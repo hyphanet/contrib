@@ -1,9 +1,3 @@
-fcptools (0.4.7-1) unstable; urgency=low
-
-  * Moved to HEAD
-
- -- Dan Merillat <dan@merillat.org>  Thu, 23 May 2002 18:29:55 -0400
-
 fcptools (0.4.6-1) unstable; urgency=low
 
   * Initial Release.
