@@ -3,6 +3,7 @@
 #define RECENT_ADDITIONS_LENGTH   48
 #define FPROXY_ADDRESS            "http://localhost:8081/"
 #define ACCEPT_THREADS		  16
+#define _GNU_SOURCE // rwlocks! yay!
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -14,8 +15,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <ctype.h>
-
-#define __USE_UNIX98
 #include <pthread.h>
 
 pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
