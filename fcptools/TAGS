@@ -5,8 +5,6 @@ CVS/Repository,0
 
 CVS/Entries,0
 
-CVS/Entries.Log,0
-
 debian/CVS/Root,0
 
 debian/CVS/Repository,0
@@ -157,8 +155,10 @@ dghjdgh jd dfohj dfoihjd fgohij dfiohj dioj ioj 5,246
 
 TODO,135
 + means todo4,130
-= Improve the splitfile size ceiling; the node uses one,66,3371
-= (Win32); returns to command prompt with 81,3998
+= Improve the splitfile size ceiling; the node uses one,67,3445
+= (Win32); returns to command prompt with 82,4072
+
+TAGS,0
 
 aclocal.m4,17482
       subroutine foofoo4445,157312
@@ -3855,9 +3855,11 @@ int _fcpLink(227,4668
 void _fcpUnlink(269,5586
 int _fcpDeleteFile(293,6075
 
-ezFCPlib/_fcpGet.c,57
-int get_file(51,1383
-int get_follow_redirects(328,8959
+ezFCPlib/_fcpGet.c,137
+static int read_metadata_line(37,1111
+int get_file(53,1449
+int get_follow_redirects(328,9222
+static int read_metadata_line(381,10236
 
 ezFCPlib/_fcpLog.c,139
 static FILE *logstream;34,1053
@@ -3905,50 +3907,49 @@ static int fec_insert_data_blocks(41,1267
 static int fec_insert_check_blocks(42,1327
 static int fec_make_metadata(43,1388
 int put_file(61,1847
-int put_fec_splitfile(354,10515
-int put_date_redirect(386,11352
-int put_redirect(393,11466
-static int fec_segment_file(438,12579
-static int fec_encode_segment(567,17588
-static int fec_insert_data_blocks(719,21692
-static int fec_insert_check_blocks(832,24660
-static int fec_make_metadata(888,25973
+int put_fec_splitfile(354,10514
+int put_date_redirect(386,11351
+int put_redirect(393,11465
+static int fec_segment_file(438,12578
+static int fec_encode_segment(567,17587
+static int fec_insert_data_blocks(719,21691
+static int fec_insert_check_blocks(832,24659
+static int fec_make_metadata(889,26035
 
-ezFCPlib/_fcpRecvResponse.c,1296
-char *strdup(35,1088
-static int  getrespHello(37,1118
-static int  getrespInfo(38,1152
-static int  getrespSuccess(39,1185
-static int  getrespDataFound(41,1222
-static int  getrespDataChunk(42,1260
-static int  getrespDataNotFound(43,1298
-static int  getrespRouteNotFound(44,1339
-static int  getrespUriError(46,1382
-static int  getrespRestarted(47,1419
-static int  getrespKeyCollision(48,1457
-static int  getrespPending(49,1498
-static int  getrespFailed(51,1535
-static int  getrespFormatError(52,1570
-static int  getrespSegmentHeaders(55,1640
-static int  getrespBlocksEncoded(56,1683
-static int  getrespMadeMetadata(57,1725
-int _fcpRecvResponse(60,1768
-static int getrespHello(163,4499
-static int getrespInfo(203,5561
-static int getrespSuccess(324,9544
-static int getrespDataFound(370,10613
-static int getrespDataChunk(411,11650
-static int getrespDataNotFound(457,12726
-static int getrespRouteNotFound(480,13199
-static int getrespUriError(517,14240
-static int getrespRestarted(553,15037
-static int getrespKeyCollision(581,15680
-static int getrespPending(626,16738
-static int getrespFailed(677,18006
-static int getrespFormatError(716,18819
-static int  getrespSegmentHeaders(744,19481
-static int getrespBlocksEncoded(804,21375
-static int getrespMadeMetadata(832,22087
+ezFCPlib/_fcpRecvResponse.c,1274
+static int  getrespHello(37,1132
+static int  getrespInfo(38,1166
+static int  getrespSuccess(39,1199
+static int  getrespDataFound(41,1236
+static int  getrespDataChunk(42,1274
+static int  getrespDataNotFound(43,1312
+static int  getrespRouteNotFound(44,1353
+static int  getrespUriError(46,1396
+static int  getrespRestarted(47,1433
+static int  getrespKeyCollision(48,1471
+static int  getrespPending(49,1512
+static int  getrespFailed(51,1549
+static int  getrespFormatError(52,1584
+static int  getrespSegmentHeaders(55,1654
+static int  getrespBlocksEncoded(56,1697
+static int  getrespMadeMetadata(57,1739
+int _fcpRecvResponse(60,1782
+static int getrespHello(163,4513
+static int getrespInfo(203,5575
+static int getrespSuccess(324,9558
+static int getrespDataFound(370,10627
+static int getrespDataChunk(414,11774
+static int getrespDataNotFound(463,12932
+static int getrespRouteNotFound(486,13405
+static int getrespUriError(523,14446
+static int getrespRestarted(559,15243
+static int getrespKeyCollision(587,15886
+static int getrespPending(632,16944
+static int getrespFailed(683,18212
+static int getrespFormatError(722,19025
+static int  getrespSegmentHeaders(750,19687
+static int getrespBlocksEncoded(810,21581
+static int getrespMadeMetadata(838,22293
 
 ezFCPlib/_fcpSock.c,238
 static int host_is_numeric(48,1274
@@ -4055,49 +4056,49 @@ typedef int FCPSOCKET;FCPSOCKET61,1836
 } FCPRESP_SUCCESS;FCPRESP_SUCCESS200,5716
 } FCPRESP_NODEINFO;FCPRESP_NODEINFO232,6445
 } FCPRESP_NODEHELLO;FCPRESP_NODEHELLO240,6586
-} FCPRESP_DATAFOUND;FCPRESP_DATAFOUND246,6714
-} FCPRESP_DATACHUNK;FCPRESP_DATACHUNK251,6794
-} FCPRESP_KEYCOLLISION;FCPRESP_KEYCOLLISION258,6901
-} FCPRESP_PENDING;FCPRESP_PENDING266,7038
-} FCPRESP_FAILED;FCPRESP_FAILED270,7091
-} FCPRESP_URIERROR;FCPRESP_URIERROR274,7143
-} FCPRESP_ROUTENOTFOUND;FCPRESP_ROUTENOTFOUND282,7286
-} FCPRESP_RESTARTED;FCPRESP_RESTARTED286,7356
-} FCPRESP_FORMATERROR;FCPRESP_FORMATERROR290,7411
-} FCPRESP_SEGMENTHEADER;FCPRESP_SEGMENTHEADER307,7829
-} FCPRESP_BLOCKMAP;FCPRESP_BLOCKMAP315,7977
-} FCPRESP_BLOCKSENCODED;FCPRESP_BLOCKSENCODED320,8074
-} FCPRESP_BLOCKSDECODED;FCPRESP_BLOCKSDECODED326,8206
-} FCPRESP_MADEMETADATA;FCPRESP_MADEMETADATA330,8278
-} FCPRESP;FCPRESP359,9104
-} hOptions;hOptions381,9463
-} hURI;hURI393,9747
-} hBlock;hBlock405,10093
-} hSegment;hSegment432,10583
-} hDocument;hDocument442,10702
-} hMetadata;hMetadata459,10940
-} hKey;hKey483,11333
-} hFCP;hFCP504,11601
-	int    fcpStartup(520,11939
-	void   fcpTerminate(521,11991
-	hFCP  *fcpCreateHFCP(524,12060
-	hFCP  *fcpInheritHFCP(525,12127
-	void   fcpDestroyHFCP(526,12163
-	hURI  *fcpCreateHURI(529,12229
-	void   fcpDestroyHURI(530,12258
-	int    fcpParseHURI(532,12294
-	int    fcpPutKeyFromFile(535,12412
-	int    fcpGetKeyToFile(536,12507
-	int    fcpMakeSvkKeypair(539,12661
-	int    fcpClientHello(541,12747
-	int    fcpClientInfo(542,12783
-	int    fcpInvertPrivateKey(543,12818
-	int    fcpOpenKey(546,12927
-	int    fcpWriteKey(547,12980
-	int    fcpWriteMetadata(548,13033
-	int    fcpReadKey(550,13092
-	int    fcpReadMetadata(551,13144
-	int    fcpCloseKey(553,13202
+} FCPRESP_DATAFOUND;FCPRESP_DATAFOUND246,6712
+} FCPRESP_DATACHUNK;FCPRESP_DATACHUNK253,6841
+} FCPRESP_KEYCOLLISION;FCPRESP_KEYCOLLISION260,6948
+} FCPRESP_PENDING;FCPRESP_PENDING268,7085
+} FCPRESP_FAILED;FCPRESP_FAILED272,7138
+} FCPRESP_URIERROR;FCPRESP_URIERROR276,7190
+} FCPRESP_ROUTENOTFOUND;FCPRESP_ROUTENOTFOUND284,7333
+} FCPRESP_RESTARTED;FCPRESP_RESTARTED288,7403
+} FCPRESP_FORMATERROR;FCPRESP_FORMATERROR292,7458
+} FCPRESP_SEGMENTHEADER;FCPRESP_SEGMENTHEADER309,7876
+} FCPRESP_BLOCKMAP;FCPRESP_BLOCKMAP317,8024
+} FCPRESP_BLOCKSENCODED;FCPRESP_BLOCKSENCODED322,8121
+} FCPRESP_BLOCKSDECODED;FCPRESP_BLOCKSDECODED328,8253
+} FCPRESP_MADEMETADATA;FCPRESP_MADEMETADATA332,8325
+} FCPRESP;FCPRESP361,9151
+} hOptions;hOptions383,9510
+} hURI;hURI395,9794
+} hBlock;hBlock407,10140
+} hSegment;hSegment434,10630
+} hDocument;hDocument444,10749
+} hMetadata;hMetadata461,10987
+} hKey;hKey485,11380
+} hFCP;hFCP508,11720
+	int    fcpStartup(524,12058
+	void   fcpTerminate(525,12110
+	hFCP  *fcpCreateHFCP(528,12179
+	hFCP  *fcpInheritHFCP(529,12246
+	void   fcpDestroyHFCP(530,12282
+	hURI  *fcpCreateHURI(533,12348
+	void   fcpDestroyHURI(534,12377
+	int    fcpParseHURI(536,12413
+	int    fcpPutKeyFromFile(539,12531
+	int    fcpGetKeyToFile(540,12626
+	int    fcpMakeSvkKeypair(543,12780
+	int    fcpClientHello(545,12866
+	int    fcpClientInfo(546,12902
+	int    fcpInvertPrivateKey(547,12937
+	int    fcpOpenKey(550,13046
+	int    fcpWriteKey(551,13099
+	int    fcpWriteMetadata(552,13152
+	int    fcpReadKey(554,13211
+	int    fcpReadMetadata(555,13263
+	int    fcpCloseKey(557,13321
 
 ezFCPlib/ezFCPlib.inc,10672
 _P_tmpdir	_P_tmpdir23,895
@@ -4492,21 +4493,21 @@ static void _fcpDestroyResponse(37,1111
 hFCP *fcpCreateHFCP(42,1231
 hFCP *fcpInheritHFCP(80,2249
 void fcpDestroyHFCP(96,2615
-hOptions *_fcpCreateHOptions(121,3060
-void _fcpDestroyHOptions(140,3527
-hKey *_fcpCreateHKey(151,3731
-void _fcpDestroyHKey(170,4065
-static void _fcpDestroyResponse(212,4709
-hBlock *_fcpCreateHBlock(236,6031
-void _fcpDestroyHBlock(254,6345
-hMetadata *_fcpCreateHMetadata(269,6539
-void _fcpDestroyHMetadata(281,6726
-void _fcpDestroyHMetadata_cdocs(297,6972
-hURI *fcpCreateHURI(322,7412
-void fcpDestroyHURI(332,7532
-int fcpParseHURI(349,7959
-hSegment *_fcpCreateHSegment(475,10945
-void _fcpDestroyHSegment(485,11093
+hOptions *_fcpCreateHOptions(123,3101
+void _fcpDestroyHOptions(142,3568
+hKey *_fcpCreateHKey(153,3772
+void _fcpDestroyHKey(172,4106
+static void _fcpDestroyResponse(214,4750
+hBlock *_fcpCreateHBlock(238,6072
+void _fcpDestroyHBlock(256,6386
+hMetadata *_fcpCreateHMetadata(271,6580
+void _fcpDestroyHMetadata(283,6767
+void _fcpDestroyHMetadata_cdocs(299,7013
+hURI *fcpCreateHURI(324,7453
+void fcpDestroyHURI(334,7573
+int fcpParseHURI(351,8000
+hSegment *_fcpCreateHSegment(477,10986
+void _fcpDestroyHSegment(487,11134
 
 ezFCPlib/fcpGetKeyToFile.c,29
 int fcpGetKeyToFile(39,1099
@@ -4535,7 +4536,7 @@ int _fcpPutKeyFromFile(79,1965
 
 ezFCPlib/fcpReadKey.c,53
 int fcpReadKey(38,1130
-int fcpReadMetadata(77,1809
+int fcpReadMetadata(57,1456
 
 ezFCPlib/fcpStartup.c,76
 int _fcpDMALLOC;36,1088
@@ -4544,7 +4545,7 @@ void fcpTerminate(63,1581
 
 ezFCPlib/fcpWriteKey.c,55
 int fcpWriteKey(39,1183
-int fcpWriteMetadata(72,1773
+int fcpWriteMetadata(60,1567
 
 ezFCPlib/.deps/fcpOpenKey.P,0
 
@@ -4584,16 +4585,655 @@ ezFCPlib/.deps/fcpMakeSvkKeypair.P,0
 
 ezFCPlib/.deps/fcpWriteKey.P,0
 
+ezFCPlib/t.ps,22693
+/_S /_S18,361
+/_R /_R21,409
+/S /S25,462
+/MF /MF31,538
+/MF_PS /MF_PS59,1101
+/SF /SF82,1555
+/SUF /SUF90,1703
+/SUF_PS /SUF_PS98,1859
+/M /M106,2040
+/s /s107,2061
+/Box /Box109,2081
+/bgs /bgs118,2268
+/bgcs /bgcs134,2551
+/highlight_bars /highlight_bars153,2912
+/line_highlight /line_highlight185,3660
+/column_lines /column_lines193,3804
+/column_borders /column_borders206,4030
+/draw_underlay /draw_underlay218,4251
+/underlay /underlay227,4369
+/user_underlay /user_underlay240,4664
+/page_prefeed /page_prefeed252,4870
+/wrapped_line_mark /wrapped_line_mark261,5022
+/BeginEPSF /BeginEPSF297,5726
+/EndEPSF /EndEPSF314,6186
+/languagelevel /languagelevel321,6368
+/encoding_vector /encoding_vector328,6541
+/.notdef /.notdef329,6560
+/.notdef /.notdef330,6621
+/.notdef /.notdef331,6682
+/.notdef /.notdef332,6743
+/.notdef /.notdef333,6804
+/.notdef /.notdef334,6865
+/.notdef /.notdef335,6926
+/.notdef /.notdef336,6987
+/space /space337,7048
+/dollar /dollar338,7109
+/parenleft /parenleft339,7170
+/comma /comma340,7231
+/zero /zero341,7292
+/four /four342,7353
+/eight /eight343,7414
+/less /less344,7475
+/at /at345,7536
+/D /D346,7597
+/H /H347,7658
+/L /L348,7719
+/P /P349,7780
+/T /T350,7841
+/X /X351,7902
+/backslash /backslash352,7963
+/quoteleft /quoteleft353,8024
+/d /d354,8085
+/h /h355,8146
+/l /l356,8207
+/p /p357,8268
+/t /t358,8329
+/x /x359,8390
+/bar /bar360,8451
+/.notdef /.notdef361,8512
+/.notdef /.notdef362,8573
+/.notdef /.notdef363,8634
+/.notdef /.notdef364,8695
+/.notdef /.notdef365,8756
+/.notdef /.notdef366,8817
+/.notdef /.notdef367,8878
+/.notdef /.notdef368,8939
+/space /space369,9000
+/currency /currency370,9061
+/dieresis /dieresis371,9122
+/logicalnot /logicalnot372,9183
+/degree /degree373,9244
+/acute /acute374,9305
+/cedilla /cedilla375,9366
+/onequarter /onequarter376,9428
+/Agrave /Agrave377,9489
+/Adieresis /Adieresis378,9550
+/Egrave /Egrave379,9611
+/Igrave /Igrave380,9672
+/Eth /Eth381,9733
+/Ocircumflex /Ocircumflex382,9794
+/Oslash /Oslash383,9855
+/Udieresis /Udieresis384,9916
+/agrave /agrave385,9977
+/adieresis /adieresis386,10038
+/egrave /egrave387,10099
+/igrave /igrave388,10160
+/eth /eth389,10221
+/ocircumflex /ocircumflex390,10282
+/oslash /oslash391,10343
+/udieresis /udieresis392,10404
+/HFpt_w /HFpt_w399,10579
+/HFpt_h /HFpt_h400,10594
+/Courier-Bold /Courier-Bold401,10609
+/HF /HF402,10638
+/Courier /Courier403,10700
+/F-gs-font /F-gs-font404,10723
+/#copies /#copies405,10741
+/do_header /do_header414,10915
+/d_page_w /d_page_w436,11464
+/d_page_h /d_page_h437,11482
+/d_header_x /d_header_x438,11500
+/d_header_y /d_header_y439,11518
+/d_header_w /d_header_w440,11538
+/d_header_h /d_header_h441,11558
+/d_footer_x /d_footer_x442,11577
+/d_footer_y /d_footer_y443,11595
+/d_footer_w /d_footer_w444,11613
+/d_footer_h /d_footer_h445,11633
+/d_output_w /d_output_w446,11651
+/d_output_h /d_output_h447,11671
+/cols /cols448,11691
+/pagenum /pagenum454,11764
+/fname /fname455,11779
+/fdir /fdir456,11802
+/ftail /ftail457,11815
+/fmodstr /fmodstr459,11862
+/pagenumstr /pagenumstr460,11902
+/user_header_p /user_header_p461,11922
+/user_header_left_str /user_header_left_str462,11946
+/user_header_center_str /user_header_center_str463,11984
+/user_header_right_str /user_header_right_str464,12023
+/user_footer_p /user_footer_p465,12064
+/Courier-Oblique /Courier-Oblique469,12132
+/F-gs-font /F-gs-font472,12175
+/Courier-Oblique /Courier-Oblique474,12211
+/F-gs-font /F-gs-font477,12325
+/Courier-Oblique /Courier-Oblique479,12361
+/F-gs-font /F-gs-font480,12386
+/Courier-Oblique /Courier-Oblique482,12422
+/F-gs-font /F-gs-font485,12499
+/Courier-Oblique /Courier-Oblique487,12535
+/F-gs-font /F-gs-font488,12560
+/Courier-Oblique /Courier-Oblique490,12596
+/F-gs-font /F-gs-font493,12650
+/Courier-Oblique /Courier-Oblique495,12686
+/F-gs-font /F-gs-font498,12767
+/Courier-Oblique /Courier-Oblique500,12803
+/F-gs-font /F-gs-font503,12876
+/Courier-Oblique /Courier-Oblique505,12912
+/F-gs-font /F-gs-font508,12955
+/Courier-Oblique /Courier-Oblique510,12992
+/F-gs-font /F-gs-font513,13087
+/Courier-Oblique /Courier-Oblique515,13124
+/F-gs-font /F-gs-font518,13167
+/Courier-Oblique /Courier-Oblique520,13204
+/F-gs-font /F-gs-font523,13315
+/Courier-Oblique /Courier-Oblique525,13352
+/F-gs-font /F-gs-font528,13463
+/Courier-Oblique /Courier-Oblique530,13500
+/F-gs-font /F-gs-font533,13608
+/Courier-Oblique /Courier-Oblique535,13645
+/F-gs-font /F-gs-font538,13725
+/Courier-Oblique /Courier-Oblique540,13762
+/F-gs-font /F-gs-font543,13805
+/Courier-Oblique /Courier-Oblique545,13842
+/F-gs-font /F-gs-font548,13948
+/Courier-Oblique /Courier-Oblique550,13985
+/F-gs-font /F-gs-font553,14090
+/Courier-Oblique /Courier-Oblique555,14127
+/F-gs-font /F-gs-font558,14231
+/Courier-Oblique /Courier-Oblique560,14268
+/F-gs-font /F-gs-font563,14355
+/Courier-Oblique /Courier-Oblique565,14392
+/F-gs-font /F-gs-font568,14435
+/Courier-Oblique /Courier-Oblique570,14472
+/F-gs-font /F-gs-font573,14580
+/Courier-Oblique /Courier-Oblique575,14617
+/F-gs-font /F-gs-font578,14719
+/Courier-Oblique /Courier-Oblique580,14756
+/F-gs-font /F-gs-font583,14872
+/Courier-Oblique /Courier-Oblique585,14909
+/F-gs-font /F-gs-font588,14952
+/Courier-Bold /Courier-Bold593,15025
+/F-gs-font /F-gs-font596,15070
+/Courier-Bold /Courier-Bold599,15103
+/F-gs-font /F-gs-font602,15153
+/Courier-Bold /Courier-Bold607,15226
+/F-gs-font /F-gs-font610,15271
+/Courier-Bold /Courier-Bold613,15304
+/F-gs-font /F-gs-font616,15351
+/Courier-Bold /Courier-Bold620,15405
+/F-gs-font /F-gs-font623,15450
+/Courier-Bold /Courier-Bold626,15483
+/F-gs-font /F-gs-font629,15530
+/Courier-Bold /Courier-Bold633,15584
+/F-gs-font /F-gs-font636,15629
+/Courier-Bold /Courier-Bold639,15662
+/F-gs-font /F-gs-font642,15710
+/Courier-Bold /Courier-Bold646,15764
+/F-gs-font /F-gs-font649,15809
+/Courier-Bold /Courier-Bold652,15842
+/F-gs-font /F-gs-font655,15890
+/Courier-Bold /Courier-Bold659,15944
+/F-gs-font /F-gs-font662,15989
+/Courier-Bold /Courier-Bold665,16022
+/F-gs-font /F-gs-font668,16069
+/Courier-Bold /Courier-Bold673,16142
+/F-gs-font /F-gs-font676,16187
+/Courier-Bold /Courier-Bold679,16220
+/F-gs-font /F-gs-font682,16268
+/Courier-Oblique /Courier-Oblique686,16343
+/F-gs-font /F-gs-font689,16465
+/Courier-Oblique /Courier-Oblique692,16521
+/F-gs-font /F-gs-font695,16564
+/Courier-Oblique /Courier-Oblique697,16601
+/F-gs-font /F-gs-font700,16656
+/Courier-Oblique /Courier-Oblique702,16693
+/F-gs-font /F-gs-font703,16718
+/Courier-Oblique /Courier-Oblique705,16755
+/F-gs-font /F-gs-font708,16844
+/Courier-Oblique /Courier-Oblique710,16881
+/F-gs-font /F-gs-font711,16906
+/Courier-Oblique /Courier-Oblique713,16943
+/F-gs-font /F-gs-font716,17043
+/Courier-Oblique /Courier-Oblique718,17080
+/F-gs-font /F-gs-font719,17105
+/Courier-Oblique /Courier-Oblique721,17142
+/F-gs-font /F-gs-font724,17202
+/Courier-Oblique /Courier-Oblique726,17239
+/F-gs-font /F-gs-font729,17299
+/Courier-Oblique /Courier-Oblique731,17336
+/F-gs-font /F-gs-font734,17399
+/Courier-Oblique /Courier-Oblique736,17436
+/F-gs-font /F-gs-font739,17479
+/Courier-Bold /Courier-Bold741,17516
+/F-gs-font /F-gs-font744,17557
+/Courier-Bold /Courier-Bold747,17590
+/F-gs-font /F-gs-font750,17636
+/Courier-Bold /Courier-Bold753,17684
+/F-gs-font /F-gs-font756,17727
+/Courier-Bold /Courier-Bold765,17842
+/F-gs-font /F-gs-font768,17884
+/Courier-Bold /Courier-Bold775,18007
+/F-gs-font /F-gs-font778,18048
+/Courier-Bold /Courier-Bold784,18123
+/F-gs-font /F-gs-font787,18164
+/Courier-Bold /Courier-Bold794,18261
+/F-gs-font /F-gs-font797,18307
+/Courier-Bold /Courier-Bold800,18342
+/F-gs-font /F-gs-font803,18384
+/Courier-Bold /Courier-Bold809,18466
+/F-gs-font /F-gs-font812,18512
+/Courier-Bold /Courier-Bold815,18547
+/F-gs-font /F-gs-font818,18589
+/Courier-Bold /Courier-Bold825,18690
+/F-gs-font /F-gs-font828,18736
+/Courier-Bold /Courier-Bold831,18771
+/F-gs-font /F-gs-font834,18813
+/Courier-Bold /Courier-Bold840,18896
+/F-gs-font /F-gs-font843,18942
+/Courier-Bold /Courier-Bold846,18977
+/F-gs-font /F-gs-font849,19019
+/Courier-Bold /Courier-Bold856,19121
+/F-gs-font /F-gs-font859,19162
+/Courier-Bold /Courier-Bold866,19283
+/F-gs-font /F-gs-font869,19357
+/Courier-Oblique /Courier-Oblique876,19456
+/F-gs-font /F-gs-font879,19571
+/Courier-Bold /Courier-Bold887,19741
+/F-gs-font /F-gs-font890,19852
+/Courier-Bold /Courier-Bold896,19972
+/F-gs-font /F-gs-font899,20018
+/Courier-Bold /Courier-Bold902,20056
+/F-gs-font /F-gs-font905,20101
+/Courier-Oblique /Courier-Oblique928,20524
+/F-gs-font /F-gs-font931,20634
+/Courier-Bold /Courier-Bold936,20705
+/F-gs-font /F-gs-font939,20744
+/Courier-Bold /Courier-Bold945,20816
+/F-gs-font /F-gs-font948,20861
+/Courier-Bold /Courier-Bold951,20895
+/F-gs-font /F-gs-font954,20933
+/Courier-Bold /Courier-Bold960,21013
+/F-gs-font /F-gs-font963,21058
+/Courier-Bold /Courier-Bold966,21092
+/F-gs-font /F-gs-font969,21130
+/Courier-Bold /Courier-Bold976,21240
+/F-gs-font /F-gs-font979,21280
+/pagenum /pagenum991,21510
+/fname /fname992,21525
+/fdir /fdir993,21548
+/ftail /ftail994,21561
+/fmodstr /fmodstr996,21608
+/pagenumstr /pagenumstr997,21648
+/user_header_p /user_header_p998,21668
+/user_header_left_str /user_header_left_str999,21692
+/user_header_center_str /user_header_center_str1000,21730
+/user_header_right_str /user_header_right_str1001,21769
+/user_footer_p /user_footer_p1002,21810
+/Courier-Oblique /Courier-Oblique1009,21918
+/F-gs-font /F-gs-font1012,21987
+/Courier-Bold /Courier-Bold1016,22044
+/F-gs-font /F-gs-font1019,22084
+/Courier-Bold /Courier-Bold1022,22161
+/F-gs-font /F-gs-font1025,22202
+/Courier-Bold /Courier-Bold1028,22238
+/F-gs-font /F-gs-font1031,22282
+/Courier-Bold /Courier-Bold1038,22402
+/F-gs-font /F-gs-font1041,22500
+/Courier-Bold /Courier-Bold1056,22784
+/F-gs-font /F-gs-font1059,22828
+/Courier-Bold /Courier-Bold1062,22866
+/F-gs-font /F-gs-font1065,22909
+/Courier-Bold /Courier-Bold1075,23068
+/F-gs-font /F-gs-font1078,23164
+/Courier-Oblique /Courier-Oblique1094,23471
+/F-gs-font /F-gs-font1097,23540
+/Courier-Bold /Courier-Bold1101,23598
+/F-gs-font /F-gs-font1104,23638
+/Courier-Bold /Courier-Bold1110,23823
+/F-gs-font /F-gs-font1113,23895
+/Courier-Bold /Courier-Bold1119,23975
+/F-gs-font /F-gs-font1122,24017
+/Courier-Bold /Courier-Bold1125,24052
+/F-gs-font /F-gs-font1128,24097
+/Courier-Bold /Courier-Bold1140,24278
+/F-gs-font /F-gs-font1143,24386
+/Courier-Oblique /Courier-Oblique1153,24549
+/F-gs-font /F-gs-font1156,24624
+/Courier-Bold /Courier-Bold1166,24792
+/F-gs-font /F-gs-font1169,24836
+/Courier-Bold /Courier-Bold1176,24939
+/F-gs-font /F-gs-font1179,24981
+/Courier-Bold /Courier-Bold1182,25014
+/F-gs-font /F-gs-font1185,25074
+/Courier-Bold /Courier-Bold1191,25178
+/F-gs-font /F-gs-font1194,25245
+/Courier-Bold /Courier-Bold1200,25349
+/F-gs-font /F-gs-font1203,25420
+/Courier-Bold /Courier-Bold1219,25812
+/F-gs-font /F-gs-font1222,25878
+/Courier-Bold /Courier-Bold1225,25917
+/F-gs-font /F-gs-font1228,25959
+/Courier-Bold /Courier-Bold1234,26074
+/F-gs-font /F-gs-font1237,26117
+/Courier-Bold /Courier-Bold1246,26234
+/F-gs-font /F-gs-font1249,26276
+/Courier-Bold /Courier-Bold1252,26309
+/F-gs-font /F-gs-font1255,26368
+/Courier-Bold /Courier-Bold1261,26472
+/F-gs-font /F-gs-font1264,26538
+/Courier-Bold /Courier-Bold1270,26616
+/F-gs-font /F-gs-font1273,26659
+/Courier-Bold /Courier-Bold1282,26776
+/F-gs-font /F-gs-font1285,26818
+/Courier-Bold /Courier-Bold1288,26851
+/F-gs-font /F-gs-font1291,26911
+/Courier-Bold /Courier-Bold1297,27015
+/F-gs-font /F-gs-font1300,27082
+/Courier-Bold /Courier-Bold1306,27186
+/F-gs-font /F-gs-font1309,27252
+/Courier-Bold /Courier-Bold1312,27291
+/F-gs-font /F-gs-font1315,27333
+/Courier-Oblique /Courier-Oblique1324,27490
+/F-gs-font /F-gs-font1327,27563
+/Courier-Oblique /Courier-Oblique1337,27734
+/F-gs-font /F-gs-font1340,27816
+/Courier-Bold /Courier-Bold1350,27989
+/F-gs-font /F-gs-font1353,28032
+/Courier-Bold /Courier-Bold1360,28127
+/F-gs-font /F-gs-font1363,28169
+/Courier-Bold /Courier-Bold1366,28202
+/F-gs-font /F-gs-font1369,28265
+/Courier-Bold /Courier-Bold1375,28370
+/F-gs-font /F-gs-font1378,28440
+/Courier-Bold /Courier-Bold1384,28518
+/F-gs-font /F-gs-font1387,28561
+/Courier-Bold /Courier-Bold1394,28656
+/F-gs-font /F-gs-font1397,28698
+/Courier-Bold /Courier-Bold1400,28731
+/F-gs-font /F-gs-font1403,28795
+/Courier-Oblique /Courier-Oblique1406,28832
+/F-gs-font /F-gs-font1409,28912
+/Courier-Bold /Courier-Bold1413,28998
+/F-gs-font /F-gs-font1416,29069
+/Courier-Bold /Courier-Bold1422,29171
+/F-gs-font /F-gs-font1425,29256
+/Courier-Oblique /Courier-Oblique1443,29646
+/F-gs-font /F-gs-font1446,29719
+/Courier-Oblique /Courier-Oblique1456,29890
+/F-gs-font /F-gs-font1459,29968
+/Courier-Bold /Courier-Bold1467,30118
+/F-gs-font /F-gs-font1470,30161
+/Courier-Oblique /Courier-Oblique1477,30254
+/F-gs-font /F-gs-font1480,30352
+/Courier-Bold /Courier-Bold1484,30408
+/F-gs-font /F-gs-font1487,30449
+/Courier-Bold /Courier-Bold1490,30481
+/F-gs-font /F-gs-font1493,30538
+/Courier-Bold /Courier-Bold1505,30727
+/F-gs-font /F-gs-font1508,30804
+/Courier-Oblique /Courier-Oblique1517,30921
+/F-gs-font /F-gs-font1520,30993
+/Courier-Oblique /Courier-Oblique1530,31158
+/F-gs-font /F-gs-font1533,31235
+/pagenum /pagenum1546,31414
+/fname /fname1547,31429
+/fdir /fdir1548,31452
+/ftail /ftail1549,31465
+/fmodstr /fmodstr1551,31512
+/pagenumstr /pagenumstr1552,31552
+/user_header_p /user_header_p1553,31572
+/user_header_left_str /user_header_left_str1554,31596
+/user_header_center_str /user_header_center_str1555,31634
+/user_header_right_str /user_header_right_str1556,31673
+/user_footer_p /user_footer_p1557,31714
+/Courier-Bold /Courier-Bold1563,31806
+/F-gs-font /F-gs-font1566,31849
+/Courier-Bold /Courier-Bold1575,31966
+/F-gs-font /F-gs-font1578,32008
+/Courier-Bold /Courier-Bold1581,32041
+/F-gs-font /F-gs-font1584,32103
+/Courier-Bold /Courier-Bold1590,32206
+/F-gs-font /F-gs-font1593,32279
+/Courier-Bold /Courier-Bold1599,32394
+/F-gs-font /F-gs-font1602,32437
+/Courier-Bold /Courier-Bold1611,32554
+/F-gs-font /F-gs-font1614,32596
+/Courier-Bold /Courier-Bold1617,32629
+/F-gs-font /F-gs-font1620,32686
+/Courier-Bold /Courier-Bold1626,32789
+/F-gs-font /F-gs-font1629,32857
+/Courier-Bold /Courier-Bold1635,32967
+/F-gs-font /F-gs-font1638,33010
+/Courier-Bold /Courier-Bold1647,33127
+/F-gs-font /F-gs-font1650,33172
+/Courier-Bold /Courier-Bold1656,33273
+/F-gs-font /F-gs-font1659,33363
+/Courier-Bold /Courier-Bold1665,33445
+/F-gs-font /F-gs-font1668,33488
+/Courier-Oblique /Courier-Oblique1675,33585
+/F-gs-font /F-gs-font1678,33645
+/Courier-Bold /Courier-Bold1685,33743
+/F-gs-font /F-gs-font1688,33786
+/Courier-Oblique /Courier-Oblique1695,33934
+/F-gs-font /F-gs-font1698,34045
+/Courier-Bold /Courier-Bold1702,34101
+/F-gs-font /F-gs-font1705,34141
+/Courier-Bold /Courier-Bold1711,34258
+/F-gs-font /F-gs-font1714,34339
+/Courier-Bold /Courier-Bold1724,34525
+/F-gs-font /F-gs-font1727,34567
+/Courier-Bold /Courier-Bold1730,34600
+/F-gs-font /F-gs-font1733,34645
+/Courier-Oblique /Courier-Oblique1745,34796
+/F-gs-font /F-gs-font1748,34869
+/Courier-Bold /Courier-Bold1755,34963
+/F-gs-font /F-gs-font1758,35003
+/Courier-Bold /Courier-Bold1764,35139
+/F-gs-font /F-gs-font1767,35203
+/Courier-Bold /Courier-Bold1777,35349
+/F-gs-font /F-gs-font1780,35391
+/Courier-Bold /Courier-Bold1783,35424
+/F-gs-font /F-gs-font1786,35469
+/Courier-Oblique /Courier-Oblique1796,35602
+/F-gs-font /F-gs-font1799,35708
+/Courier-Oblique /Courier-Oblique1804,35784
+/F-gs-font /F-gs-font1807,35861
+/Courier-Bold /Courier-Bold1823,36233
+/F-gs-font /F-gs-font1826,36273
+/Courier-Bold /Courier-Bold1832,36405
+/F-gs-font /F-gs-font1835,36473
+/Courier-Bold /Courier-Bold1844,36611
+/F-gs-font /F-gs-font1847,36653
+/Courier-Bold /Courier-Bold1850,36686
+/F-gs-font /F-gs-font1853,36731
+/Courier-Oblique /Courier-Oblique1863,36864
+/F-gs-font /F-gs-font1866,36953
+/Courier-Oblique /Courier-Oblique1868,36991
+/F-gs-font /F-gs-font1871,37068
+/Courier-Oblique /Courier-Oblique1876,37144
+/F-gs-font /F-gs-font1879,37219
+/Courier-Bold /Courier-Bold1884,37295
+/F-gs-font /F-gs-font1887,37335
+/Courier-Oblique /Courier-Oblique1894,37446
+/F-gs-font /F-gs-font1897,37527
+/Courier-Bold /Courier-Bold1901,37585
+/F-gs-font /F-gs-font1904,37625
+/Courier-Bold /Courier-Bold1910,37818
+/F-gs-font /F-gs-font1913,37861
+/Courier-Bold /Courier-Bold1930,38182
+/F-gs-font /F-gs-font1933,38225
+/Courier-Bold /Courier-Bold1940,38340
+/F-gs-font /F-gs-font1943,38380
+/Courier-Bold /Courier-Bold1952,38588
+/F-gs-font /F-gs-font1955,38648
+/Courier-Oblique /Courier-Oblique1964,38770
+/F-gs-font /F-gs-font1967,38854
+/Courier-Bold /Courier-Bold1983,39242
+/F-gs-font /F-gs-font1986,39305
+/Courier-Oblique /Courier-Oblique1998,39551
+/F-gs-font /F-gs-font2001,39642
+/Courier-Bold /Courier-Bold2026,40129
+/F-gs-font /F-gs-font2029,40170
+/Courier-Bold /Courier-Bold2035,40265
+/F-gs-font /F-gs-font2038,40338
+/pagenum /pagenum2047,40429
+/fname /fname2048,40444
+/fdir /fdir2049,40467
+/ftail /ftail2050,40480
+/fmodstr /fmodstr2052,40527
+/pagenumstr /pagenumstr2053,40567
+/user_header_p /user_header_p2054,40587
+/user_header_left_str /user_header_left_str2055,40611
+/user_header_center_str /user_header_center_str2056,40649
+/user_header_right_str /user_header_right_str2057,40688
+/user_footer_p /user_footer_p2058,40729
+/Courier-Bold /Courier-Bold2068,40891
+/F-gs-font /F-gs-font2071,40933
+/Courier-Bold /Courier-Bold2074,40968
+/F-gs-font /F-gs-font2077,41013
+/Courier-Bold /Courier-Bold2090,41185
+/F-gs-font /F-gs-font2093,41225
+/Courier-Bold /Courier-Bold2106,41578
+/F-gs-font /F-gs-font2109,41632
+/Courier-Oblique /Courier-Oblique2125,41891
+/F-gs-font /F-gs-font2128,41983
+/Courier-Bold /Courier-Bold2132,42039
+/F-gs-font /F-gs-font2135,42079
+/Courier-Bold /Courier-Bold2142,42230
+/F-gs-font /F-gs-font2145,42273
+/Courier-Oblique /Courier-Oblique2154,42407
+/F-gs-font /F-gs-font2157,42503
+/Courier-Bold /Courier-Bold2161,42561
+/F-gs-font /F-gs-font2164,42601
+/Courier-Bold /Courier-Bold2173,42809
+/F-gs-font /F-gs-font2176,42869
+/Courier-Bold /Courier-Bold2204,43425
+/F-gs-font /F-gs-font2207,43467
+/Courier-Bold /Courier-Bold2213,43567
+/F-gs-font /F-gs-font2216,43642
+/Courier-Bold /Courier-Bold2226,43792
+/F-gs-font /F-gs-font2229,43834
+/Courier-Bold /Courier-Bold2232,43869
+/F-gs-font /F-gs-font2235,43914
+/Courier-Bold /Courier-Bold2248,44086
+/F-gs-font /F-gs-font2251,44126
+/Courier-Bold /Courier-Bold2260,44292
+/F-gs-font /F-gs-font2263,44346
+/Courier-Bold /Courier-Bold2279,44644
+/F-gs-font /F-gs-font2282,44717
+/Courier-Bold /Courier-Bold2289,44818
+/F-gs-font /F-gs-font2292,44862
+/Courier-Bold /Courier-Bold2299,44954
+/F-gs-font /F-gs-font2302,44999
+/Courier-Oblique /Courier-Oblique2305,45033
+/F-gs-font /F-gs-font2308,45123
+/Courier-Oblique /Courier-Oblique2313,45199
+/F-gs-font /F-gs-font2316,45316
+/Courier-Bold /Courier-Bold2330,45635
+/F-gs-font /F-gs-font2333,45696
+/Courier-Bold /Courier-Bold2340,45792
+/F-gs-font /F-gs-font2343,45836
+/Courier-Oblique /Courier-Oblique2351,45949
+/F-gs-font /F-gs-font2354,45992
+/Courier-Oblique /Courier-Oblique2356,46030
+/F-gs-font /F-gs-font2359,46130
+/Courier-Oblique /Courier-Oblique2361,46168
+/F-gs-font /F-gs-font2364,46212
+/Courier-Bold /Courier-Bold2366,46250
+/F-gs-font /F-gs-font2369,46291
+/Courier-Bold /Courier-Bold2372,46324
+/F-gs-font /F-gs-font2375,46382
+/Courier-Bold /Courier-Bold2378,46431
+/F-gs-font /F-gs-font2381,46474
+/Courier-Bold /Courier-Bold2394,46664
+/F-gs-font /F-gs-font2397,46706
+/Courier-Bold /Courier-Bold2403,46789
+/F-gs-font /F-gs-font2406,46831
+/Courier-Bold /Courier-Bold2413,46947
+/F-gs-font /F-gs-font2416,46988
+/Courier-Bold /Courier-Bold2422,47066
+/F-gs-font /F-gs-font2425,47107
+/Courier-Oblique /Courier-Oblique2432,47205
+/F-gs-font /F-gs-font2435,47319
+/Courier-Bold /Courier-Bold2440,47416
+/F-gs-font /F-gs-font2443,47480
+/Courier-Bold /Courier-Bold2461,47814
+/F-gs-font /F-gs-font2464,47885
+/pagenum /pagenum2476,48015
+/fname /fname2477,48030
+/fdir /fdir2478,48053
+/ftail /ftail2479,48066
+/fmodstr /fmodstr2481,48113
+/pagenumstr /pagenumstr2482,48153
+/user_header_p /user_header_p2483,48173
+/user_header_left_str /user_header_left_str2484,48197
+/user_header_center_str /user_header_center_str2485,48235
+/user_header_right_str /user_header_right_str2486,48274
+/user_footer_p /user_footer_p2487,48315
+/Courier-Bold /Courier-Bold2493,48403
+/F-gs-font /F-gs-font2496,48446
+/Courier-Oblique /Courier-Oblique2503,48554
+/F-gs-font /F-gs-font2506,48646
+/Courier-Bold /Courier-Bold2513,48768
+/F-gs-font /F-gs-font2516,48823
+/Courier-Oblique /Courier-Oblique2525,48939
+/F-gs-font /F-gs-font2528,49028
+/Courier-Bold /Courier-Bold2532,49086
+/F-gs-font /F-gs-font2535,49126
+/Courier-Bold /Courier-Bold2544,49305
+/F-gs-font /F-gs-font2547,49369
+/Courier-Bold /Courier-Bold2557,49561
+/F-gs-font /F-gs-font2560,49604
+/Courier-Bold /Courier-Bold2569,49720
+/F-gs-font /F-gs-font2572,49762
+/Courier-Oblique /Courier-Oblique2575,49797
+/F-gs-font /F-gs-font2578,49902
+/Courier-Bold /Courier-Bold2585,50028
+/F-gs-font /F-gs-font2588,50110
+/Courier-Bold /Courier-Bold2598,50330
+/F-gs-font /F-gs-font2601,50384
+/Courier-Bold /Courier-Bold2608,50490
+/F-gs-font /F-gs-font2611,50530
+/Courier-Bold /Courier-Bold2620,50685
+/F-gs-font /F-gs-font2623,50766
+/Courier-Bold /Courier-Bold2633,50960
+/F-gs-font /F-gs-font2636,51001
+/Courier-Bold /Courier-Bold2645,51119
+/F-gs-font /F-gs-font2648,51161
+/Courier-Oblique /Courier-Oblique2651,51198
+/F-gs-font /F-gs-font2654,51267
+/Courier-Bold /Courier-Bold2659,51375
+/F-gs-font /F-gs-font2662,51438
+/Courier-Bold /Courier-Bold2689,51904
+/F-gs-font /F-gs-font2692,51944
+/Courier-Bold /Courier-Bold2695,51991
+/F-gs-font /F-gs-font2698,52035
+/Courier-Bold /Courier-Bold2705,52156
+/F-gs-font /F-gs-font2708,52232
+/Courier-Bold /Courier-Bold2724,52537
+/F-gs-font /F-gs-font2727,52581
+
+ezFCPlib/t.pdf,20
+xú≠YmS‚»˛ÓØ8Â6,68
+
 ezFCPlib/_fcpLog.o,34
 ELF1,0
 %Z	21,3316
 Zn53,3860
 
-ezFCPlib/_fcpRecvResponse.o,52
-âD$ã13,4029
-â$Ë58,9820
-i90,13361
-Zw121,13869
+ezFCPlib/fcpPutKeyFromFile.c~,35
+	Function returns:returns57,1445
+
+ezFCPlib/_fcpRecvResponse.o,38
+â$Ë58,9846
+i90,13389
+Zw121,13897
 
 ezFCPlib/_fcpSock.o,31
 ãEÄ89Î	«E¸4,1754
@@ -4611,7 +5251,7 @@ ezFCPlib/_fcpMetadata.o,58
 uç4,1097
 e29,5582
 Zs59,6090
-Uds u%Vvè133,25045
+Uds u%Vvè133,25084
 
 ezFCPlib/_fcpMimetype.o,32
 ELF1,0
@@ -4620,29 +5260,29 @@ Zs88,5066
 
 ezFCPlib/_fcpGet.o,0
 
-ezFCPlib/_fcpPut.o,392
+ezFCPlib/_fcpPut.o,404
 ¸ˇˇÉΩ‘øˇˇ2u8,2463
 %Z	44,13454
 Zn76,13998
-í‚Û»’_C9:YJ154,34107
-í‚Û»’_C9:YJ‘;‘.@:úY1:úY/	9-™’.=:úY1:Y.N˛6(ˇõ:$Y:'X:4¨:f„Y:4XÅ<¨:fùXÅ:>¨:fù...…∆ZéÒúX;ú.™:e-æ™:e∏h„:∫’ú&tù##y´rUìˇ%’ú'<:fu:e™´d	+¢<’.9:X;ˇ8ÒúXÒúX154,34107
-RemoveLocalKey=155,34954
+A147,28623
+í‚Û»’_C9:YJ155,34146
+í‚Û»’_C9:YJ‘;‘.@:úY1:úY/	9-™’.=:úY1:Y.N˛6(ˇõ:$Y:'X:4¨:f„Y:4XÅ<¨:fùXÅ:>¨:fù...…∆ZéÒúX;ú.™:e-æ™:e∏h„:∫’ú&tù##y´rUìˇ%’ú'<:fu:e™´d	+¢<’.9:X;ˇ8ÒúXÒúX155,34146
+RemoveLocalKey=156,34986
 
 ezFCPlib/fcpCreation.o,32
 ELF1,0
-d27,7202
-Zr57,7710
+d27,7226
+Zr57,7734
 
 ezFCPlib/fcpInfo.o,56
 t.«D$2,295
 %Z	20,4102
 Zn52,4646
-Private=129,23473
+Private=130,23505
 
-ezFCPlib/fcpOpenKey.o,33
+ezFCPlib/fcpOpenKey.o,20
 ELF1,0
 c22,3887
-∂L123,21050
 
 ezFCPlib/fcpCloseKey.o,32
 ELF1,0
@@ -4661,10 +5301,9 @@ h21,3695
 Zv51,4203
 x;71,4604
 
-ezFCPlib/fcpReadKey.o,33
+ezFCPlib/fcpReadKey.o,20
 ELF1,0
-c20,3441
-∂L121,20604
+c20,3285
 
 ezFCPlib/fcpMakeSvkKeypair.o,43
 ELF1,0
@@ -4678,8 +5317,8 @@ c20,3091
 
 ezFCPlib/fcpWriteKey.o,32
 ELF1,0
-d21,3478
-Zr51,3986
+d21,3318
+Zr51,3826
 
 ezFCPlib/libezfcp.a,2366
 D	D26,4653
@@ -4688,131 +5327,153 @@ sD	sD76,5553
 tD	tD77,5581
 uD	uD78,5610
 x3x381,5681
-M	M223,39518
-DM	DM247,39963
-_g_g265,40250
-sM	sM275,40418
-tM	tM276,40446
-uM	uM277,40475
-E	E376,76102
-DE	DE399,76547
-____417,76834
-sE	sE426,77002
-tE	tE427,77030
-uE	uE428,77059
-x4x4431,77130
-E	E531,108000
-DE	DE554,108445
-____572,108732
-sE	sE581,108900
-tE	tE582,108928
-uE	uE583,108957
-x4x4586,109028
-E	E670,136151
-DE	DE693,136596
-____711,136883
-sE	sE720,137051
-tE	tE721,137079
-uE	uE722,137108
-x4x4725,137179
-I	I810,167415
-DI	DI833,167860
-_c_c850,168147
-sI	sI859,168315
-tI	tI860,168343
-uI	uI861,168372
-x8x8864,168443
-I	I973,196751
-DI	DI996,197196
-_c_c1013,197483
-sI	sI1022,197651
-tI	tI1023,197679
-uI	uI1024,197708
-x8x81027,197779
-D	D1106,229948
-DD	DD1129,230393
-sD	sD1156,230848
-tD	tD1157,230876
-uD	uD1158,230905
-x3x31161,230976
-D	D1281,269071
-DD	DD1304,269516
-sD	sD1331,269971
-tD	tD1332,269999
-uD	uD1333,270028
-x3x31336,270099
-H	H1498,309443
-DH	DH1521,309888
-_b_b1538,310175
-sH	sH1547,310343
-tH	tH1548,310371
-uH	uH1549,310400
-x7x71552,310471
-D	D1662,340947
-DD	DD1685,341392
-sD	sD1712,341847
-tD	tD1713,341875
-uD	uD1714,341904
-x3x31717,341975
-G	G1796,368472
-DG	DG1819,368917
-_a_a1836,369204
-sG	sG1845,369372
-tG	tG1846,369400
-uG	uG1847,369429
-x6x61850,369500
-H	H1924,395562
-DH	DH1947,396007
-_b_b1964,396294
-sH	sH1973,396462
-tH	tH1974,396490
-uH	uH1975,396519
-x7x71978,396590
-N	N2061,422066
-CC2083,422489
-DN	DN2084,422511
-_h_h2101,422798
-qq2108,422921
-sN	sN2110,422966
-tN	tN2111,422994
-uN	uN2112,423023
-L	L2188,449760
-C	C2210,450183
-DL	DL2211,450205
-_f_f2228,450492
-q	q2236,450615
-sL	sL2238,450660
-tL	tL2239,450688
-uL	uL2240,450717
-G	G2313,476018
-DG	DG2336,476463
-_a_a2353,476750
-sG	sG2362,476918
-tG	tG2363,476946
-uG	uG2364,476975
-x6x62367,477046
-N	N2438,502152
-CC2460,502575
-DN	DN2461,502597
-_h_h2478,502884
-qq2485,503007
-sN	sN2487,503052
-tN	tN2488,503080
-uN	uN2489,503109
-G	G2562,526728
-DG	DG2585,527173
-_a_a2602,527460
-sG	sG2611,527628
-tG	tG2612,527656
-uG	uG2613,527685
-x6x62616,527756
-H	H2687,552319
-DH	DH2710,552764
-_b_b2727,553051
-sH	sH2736,553219
-tH	tH2737,553247
-uH	uH2738,553276
-x7x72741,553347
+M	M224,39578
+DM	DM248,40023
+_g_g266,40310
+sM	sM276,40478
+tM	tM277,40506
+uM	uM278,40535
+E	E378,76198
+DE	DE401,76643
+____419,76930
+sE	sE428,77098
+tE	tE429,77126
+uE	uE430,77155
+x4x4433,77226
+E	E534,108128
+DE	DE557,108573
+____575,108860
+sE	sE584,109028
+tE	tE585,109056
+uE	uE586,109085
+x4x4589,109156
+E	E671,136319
+DE	DE694,136764
+____712,137051
+sE	sE721,137219
+tE	tE722,137247
+uE	uE723,137276
+x4x4726,137347
+I	I808,167615
+DI	DI831,168060
+_c_c848,168347
+sI	sI857,168515
+tI	tI858,168543
+uI	uI859,168572
+x8x8862,168643
+I	I971,197015
+DI	DI994,197460
+_c_c1011,197747
+sI	sI1020,197915
+tI	tI1021,197943
+uI	uI1022,197972
+x8x81025,198043
+D	D1103,230283
+DD	DD1126,230728
+sD	sD1153,231183
+tD	tD1154,231211
+uD	uD1155,231240
+x3x31158,231311
+D	D1275,269551
+DD	DD1298,269996
+sD	sD1325,270451
+tD	tD1326,270479
+uD	uD1327,270508
+x3x31330,270579
+H	H1493,309979
+DH	DH1516,310424
+_b_b1533,310711
+sH	sH1542,310879
+tH	tH1543,310907
+uH	uH1544,310936
+x7x71547,311007
+D	D1656,341563
+DD	DD1679,342008
+sD	sD1706,342463
+tD	tD1707,342491
+uD	uD1708,342520
+x3x31711,342591
+G	G1791,369120
+DG	DG1814,369565
+_a_a1831,369852
+sG	sG1840,370020
+tG	tG1841,370048
+uG	uG1842,370077
+x6x61845,370148
+H	H1918,396242
+DH	DH1941,396687
+_b_b1958,396974
+sH	sH1967,397142
+tH	tH1968,397170
+uH	uH1969,397199
+x7x71972,397270
+N	N2054,422786
+CC2076,423209
+DN	DN2077,423231
+_h_h2094,423518
+qq2101,423641
+sN	sN2103,423686
+tN	tN2104,423714
+uN	uN2105,423743
+L	L2180,450512
+C	C2202,450935
+DL	DL2203,450957
+_f_f2220,451244
+q	q2228,451367
+sL	sL2230,451412
+tL	tL2231,451440
+uL	uL2232,451469
+G	G2306,476646
+DG	DG2329,477091
+_a_a2346,477378
+sG	sG2355,477546
+tG	tG2356,477574
+uG	uG2357,477603
+x6x62360,477674
+N	N2430,502760
+CC2452,503183
+DN	DN2453,503205
+_h_h2470,503492
+qq2477,503615
+sN	sN2479,503660
+tN	tN2480,503688
+uN	uN2481,503717
+G	G2553,527368
+DG	DG2576,527813
+_a_a2593,528100
+sG	sG2602,528268
+tG	tG2603,528296
+uG	uG2604,528325
+x6x62607,528396
+H	H2675,552831
+DH	DH2698,553276
+_b_b2715,553563
+sH	sH2724,553731
+tH	tH2725,553759
+uH	uH2726,553788
+x7x72729,553859
+
+ezFCPlib/fcpReadKey.c~,53
+int fcpReadKey(38,1130
+int fcpReadMetadata(75,1800
+
+ezFCPlib/_fcpGet.c~,109
+	function retrieves retrieves45,1277
+	function expects expects47,1326
+	function returns:returns49,1386
+
+ezFCPlib/fcpWriteKey.c~,55
+int fcpWriteKey(39,1183
+int fcpWriteMetadata(72,1773
+
+ezFCPlib/_fcpPut.c~,246
+	function creates creates51,1531
+	function expects expects55,1724
+	function returns:returns57,1784
+	function creates creates337,9969
+	Function will	will339,10105
+	function expects expects346,10334
+	function returns:returns348,10394
 
 fcpcommon/CVS/Root,0
 
@@ -5013,9 +5674,9 @@ char *file;73,1982
 int   b_stdout 75,2024
 int   b_genkeys 76,2067
 int main(79,2111
-void track(198,4388
-static void parse_args(217,4832
-static void usage(332,7129
+void track(197,4377
+static void parse_args(216,4821
+static void usage(331,7118
 
 fcpget/fcpget.dsp,11
 CFG=7,223
@@ -5024,14 +5685,27 @@ fcpget/.deps/fcpget.P,0
 
 fcpget/fcpget.o,33
 ELF1,0
-Zk62,5585
-_[67,5690
+Zk63,5693
+_[68,5798
 
-fcpget/fcpget,68
-âD$ã42,35869
-RemoveLocalKey=145,51978
-c861,181099
-∂L962,198262
+fcpget/fcpget,320
+ÏˇˇãEÉ7,8203
+;°Ïââ$ËíŸˇˇ11,12454
+;°Ïââ$ËíŸˇˇÎçÖËÔˇˇâD$«D$;°Ïââ$ËqŸˇˇ°Ï11,12454
+Zâ$Ë¿éˇˇÖ¿u ãE35,31805
+d629,136862
+Zr659,137370
+h746,157017
+Zv776,157525
+x;796,157926
+c858,177699
+c971,198870
+e2132,415493
+Zs2162,416001
+íQ,2194,416641
+%Z	2242,435330
+Zn2274,435874
+lL2346,452371
 
 Makefile,1407
 SHELL 17,646
@@ -6278,29 +6952,29 @@ fcpput/Makefile.manual,13
 CFLAGS=6,75
 
 fcpput/fcpput.c,571
-extern int _fcpDMALLOC;38,1128
-static void parse_args(41,1160
-static void usage(42,1208
-void track(45,1251
-char           *host;54,1507
-unsigned short  port 55,1529
-int   verbosity 57,1573
-int   htl 58,1607
-int   retry 59,1644
-int   regress 60,1683
-int   optmask 61,1724
-char *logfile 63,1746
-FILE *logstream 64,1808
-char *keyuri 66,1866
-char *metafile 67,1907
-char *files[69,1961
-int   file_count 70,2036
-int   b_stdin 72,2094
-int   b_genkeys 73,2136
-int main(76,2180
-void track(227,5236
-static void parse_args(252,5864
-static void usage(369,8084
+extern int _fcpDMALLOC;40,1149
+static void parse_args(43,1181
+static void usage(44,1229
+void track(47,1272
+char           *host;56,1528
+unsigned short  port 57,1550
+int   verbosity 59,1594
+int   htl 60,1628
+int   retry 61,1665
+int   regress 62,1704
+int   optmask 63,1745
+char *logfile 65,1767
+FILE *logstream 66,1829
+char *keyuri 68,1887
+char *metafile 69,1928
+char *files[71,1982
+int   file_count 72,2057
+int   b_stdin 74,2115
+int   b_genkeys 75,2157
+int main(78,2201
+void track(227,5207
+static void parse_args(252,5835
+static void usage(369,8055
 
 fcpput/fcpput.dsp,11
 CFG=7,223
@@ -6309,12 +6983,41 @@ fcpput/.deps/fcpput.P,0
 
 fcpput/fcpput.o,33
 ELF1,0
-Zk66,6104
-_[71,6209
+Zk67,6340
+_[72,6445
 
-fcpput/fcpput,41
-âD$ã20,18285
-RemoveLocalKey=169,58378
+fcpput/fcpput.c~,571
+extern int _fcpDMALLOC;40,1149
+static void parse_args(43,1181
+static void usage(44,1229
+void track(47,1272
+char           *host;56,1528
+unsigned short  port 57,1550
+int   verbosity 59,1594
+int   htl 60,1628
+int   retry 61,1665
+int   regress 62,1704
+int   optmask 63,1745
+char *logfile 65,1767
+FILE *logstream 66,1829
+char *keyuri 68,1887
+char *metafile 69,1928
+char *files[71,1982
+int   file_count 72,2057
+int   b_stdin 74,2115
+int   b_genkeys 75,2157
+int main(78,2201
+void track(227,5206
+static void parse_args(252,5834
+static void usage(369,8054
+
+fcpput/fcpput,98
+@â$ËzœˇˇÖ¿u ãE12,15011
+d657,137180
+Zr687,137688
+j774,157337
+Zx804,157845
+x=823,158246
 
 fcpputsite/CVS/Root,0
 
@@ -6552,11 +7255,11 @@ char  *logfile 68,1859
 FILE  *logstream 69,1879
 char  *command 70,1901
 int main(73,1923
-void track(149,3361
-static void parse_args(174,3989
-static void usage(235,5180
-static int clienthello(264,6086
-static int clientinfo(281,6513
+void track(149,3360
+static void parse_args(174,3988
+static void usage(235,5179
+static int clienthello(264,6085
+static int clientinfo(281,6512
 
 fcpx/fcpx.dsp,11
 CFG=7,221
@@ -6567,9 +7270,9 @@ fcpx/fcpx.o,22
 ELF1,0
 g22,5333
 
-fcpx/fcpx,34
-âD$ã18,15089
-Private=138,28369
+fcpx/fcpx,41
+Òâ$Ë€ˇˇÖ¿u ãE9,11899
+a1153,213258
 
 include/CVS/Root,0
 
@@ -7267,1490 +7970,7 @@ DUALCASE=25,723
   as_expr=56,1414
   as_basename=62,1528
 
-autom4te.cache/requests,16
-@request 5,155
-
-autom4te.cache/output.0,51282
-   function prototypes prototypes2531,79067
-@%:@ gives unlimited permission to copy,7,257
-  NULLCMD=15,515
-DUALCASE=22,767
-  as_unset=26,898
-    eval $as_var=45,1313
-  as_expr=53,1458
-  as_basename=59,1572
-      continue 1236,40131
-      ac_arg=1238,40211
-    1) ac_configure_args0=1241,40300
-      ac_configure_args1=1243,40368
-	ac_must_keep_next=1245,40471
-	    esac1254,40881
-	  -* ) ac_must_keep_next=1256,40899
-      ac_configure_args=1259,40948
-ac_signal=1351,43474
-    CONFIG_SITE=1389,44324
-    case $cache_file in1409,45042
-      [\\/]* | ?:[\\/]* ) . $cache_file;1410,45066
-      *)                      . ./$cache_file;1411,45108
-ac_cache_corrupted=1422,45383
-  eval ac_old_set=1425,45498
-      ac_cache_corrupted=1433,45904
-      ac_cache_corrupted=1437,46100
-	ac_cache_corrupted=1447,46576
-      ac_arg=1454,46784
-    *) ac_arg=1455,46855
-      *) ac_configure_args=1459,47009
-   { (exit 1468,47480
-   { (exit 1); exit 1468,47480
-ac_ext=1471,47512
-    ac_aux_dir=1501,47876
-    ac_aux_dir=1505,47995
-    ac_aux_dir=1509,48110
-ac_config_guess=1519,48479
-  as_save_IFS=1542,49572
-  as_save_IFS=$IFS; IFS=1542,49572
-ac_clean_files_save=2180,68513
-ac_cv_exeext=2199,69449
-    conftest.$ac_ext 2207,69726
-	break;2213,69874
-	ac_cv_exeext=2215,69893
-	break;2222,70130
-   { (exit 2233,70445
-   { (exit 77); exit 2233,70445
-ac_exeext=2236,70479
-    cross_compiling=2253,71196
-	cross_compiling=2256,71271
-ac_clean_files=2272,71749
-    *.$ac_ext | *.xcoff | *.tds | *.d | *.pdb | *.xSYM | *.bb | *.bbg | *.o | *.obj 2294,72747
-    *.* ) ac_cv_exeext=2295,72836
-    * ) break;2298,72929
-EXEEXT=2314,73393
-main 2329,73799
-  for ac_file in `(ls conftest.o conftest.obj; ls conftest.*) 2>/dev/null`2342,74036
-    *.$ac_ext | *.xcoff | *.tds | *.d | *.pdb | *.xSYM | *.bb | *.bbg 2344,74134
-    *) ac_cv_objext=2345,74209
-   { (exit 2357,74617
-   { (exit 1); exit 2357,74617
-OBJEXT=2364,74781
-main 2379,75221
-	 { ac_try=2398,75589
-	 { ac_try=2404,75821
-  ac_compiler_gnu=2410,76027
-main 2440,76822
-	 { ac_try=2456,77150
-	 { ac_try=2462,77382
-  ac_cv_prog_cc_g=2468,77588
-  CFLAGS=2480,77900
-    CFLAGS=2483,77993
-    CFLAGS=2489,78075
-  ac_cv_prog_cc_stdc=2499,78349
-FILE * (*rcsopen)2513,78715
-static char *e 2514,78769
-static char *f 2520,78837
-int osf4_cc_array 2537,79475
-int test 2539,79518
-struct s1 s12540,79546
-struct s2 s22541,79577
-int pairnames 2542,79611
-int argc;2543,79696
-char **argv;2544,79706
-main 2546,79723
-	 { ac_try=2572,80478
-	 { ac_try=2578,80710
-  ac_cv_prog_cc_stdc=2584,80916
-    CC=2605,81374
-	 { ac_try=2626,82072
-	 { ac_try=2632,82304
-	 { ac_try=2671,83300
-	 { ac_try=2677,83532
-main 2699,84060
-	 { ac_try=2715,84398
-	 { ac_try=2721,84630
-ac_ext=2748,85309
-  as_save_IFS=2773,86447
-  as_save_IFS=$IFS; IFS=2773,86447
-	ac_prog=3069,95785
-    ac_prog=3075,95950
-    with_gnu_ld=3079,96040
-  lt_save_ifs=3093,96440
-  lt_save_ifs="$IFS"; IFS=3093,96440
-    IFS=3095,96508
-      lt_cv_path_LD=3098,96645
-  IFS=3112,97070
-   { (exit 3128,97499
-   { (exit 1); exit 3128,97499
-  lt_cv_prog_gnu_ld=3137,97887
-  lt_cv_prog_gnu_ld=3140,97919
-with_gnu_ld=3146,98048
-  lt_cv_ld_reload_flag=3154,98325
-*) reload_flag=3161,98524
-reload_cmds=3163,98563
-  lt_cv_path_NM=3172,98883
-  lt_save_ifs="$IFS"; IFS=3174,98910
-    IFS=3176,99005
-	lt_cv_path_NM=3186,99518
-	  lt_cv_path_NM=3192,99637
-	  lt_cv_path_NM=3196,99686
-  IFS=3203,99864
-  lt_cv_file_magic_cmd=3216,100292
-  lt_cv_deplibs_check_method=3236,101068
-  lt_cv_deplibs_check_method=3240,101120
-  lt_cv_deplibs_check_method=3247,101380
-  lt_cv_deplibs_check_method=3254,101657
-  lt_cv_deplibs_check_method=3259,101808
-      lt_cv_deplibs_check_method=3268,102102
-    lt_cv_deplibs_check_method=3274,102339
-  lt_cv_deplibs_check_method=3279,102396
-  lt_cv_file_magic_cmd=3283,102462
-    lt_cv_deplibs_check_method=3290,102708
-    lt_cv_deplibs_check_method=3294,102895
-  esac3297,103047
-  *-32|*"-32 ") libmagic=3302,103104
-  *-n32|*"-n32 ") libmagic=3303,103138
-  *-64|*"-64 ") libmagic=3304,103171
-  *) libmagic=3305,103205
-  lt_cv_deplibs_check_method=3307,103240
-  lt_cv_deplibs_check_method=3312,103318
-    lt_cv_deplibs_check_method=3317,103448
-  lt_cv_deplibs_check_method=3324,103635
-  lt_cv_deplibs_check_method=3330,103830
-  lt_cv_file_magic_cmd=3334,103883
-    lt_cv_deplibs_check_method=3337,104089
-  lt_cv_deplibs_check_method=3344,104284
-  lt_cv_deplibs_check_method=3348,104339
-  lt_cv_deplibs_check_method=3352,104393
-    lt_cv_deplibs_check_method=3358,104513
-    lt_cv_deplibs_check_method=3362,104709
-    lt_cv_file_magic_cmd=3365,104767
-    lt_cv_file_magic_cmd=3369,104918
-    lt_cv_deplibs_check_method=3374,105100
-  esac3376,105147
-sysv5OpenUNIX8* | sysv5UnixWare7* | sysv5uw[3379,105160
-  lt_cv_deplibs_check_method=3380,105236
-file_magic_cmd=3387,105399
-  enableval=3403,105802
-      HPUX_IA64_MODE=3421,106333
-      HPUX_IA64_MODE=3424,106382
-  rm -rf conftest*3428,106431
-      LD=3441,106839
-      LD=3444,106892
-      LD=3447,106950
-      LD=3453,107070
-      LD=3456,107114
-      LD=3459,107162
-  rm -rf conftest*3464,107215
-          LD=3479,107659
-          LD=3482,107749
-          LD=3485,107826
-          LD=3488,107900
-      esac3490,107952
-          LD=3495,108030
-          LD=3498,108120
-          LD=3501,108192
-          LD=3504,108267
-      esac3506,108319
-  rm -rf conftest*3510,108353
-  SAVE_CFLAGS=3515,108463
-  ac_ext=3522,108751
-	 { ac_try=3552,109471
-	 { ac_try=3558,109703
-  lt_cv_cc_needs_belf=3564,109908
-    CFLAGS=3584,110572
-need_locks=3590,110615
-  CPP=3602,111093
-  (exit $ac_status); } >/dev/null;3640,112292
-    ac_cpp_err=3642,112364
-  (exit $ac_status); } >/dev/null;3678,113250
-    ac_cpp_err=3680,113322
-ac_preproc_ok=3696,113641
-    ac_cv_prog_CPP=3709,113859
-  (exit $ac_status); } >/dev/null;3747,114953
-    ac_cpp_err=3749,115025
-  (exit $ac_status); } >/dev/null;3785,115911
-    ac_cpp_err=3787,115983
-ac_preproc_ok=3803,116302
-ac_ext=3821,116766
-main 3845,117433
-	 { ac_try=3861,117761
-	 { ac_try=3867,117993
-  ac_cv_header_stdc=3873,118199
-  ac_cv_header_stdc=3897,118758
-  ac_cv_header_stdc=3918,119175
-# define ISLOWER(ISLOWER3937,119580
-# define TOUPPER(TOUPPER3938,119627
-# define ISLOWER(ISLOWER3940,119692
-# define TOUPPER(TOUPPER3944,119826
-#define XOR(XOR3947,119888
-main 3949,119943
-  (exit $ac_status); } && { ac_try=3964,120258
-ac_cv_header_stdc=3977,120644
-	 { ac_try=4031,121901
-	 { ac_try=4037,122133
-	 { ac_try=4098,123912
-	 { ac_try=4104,124144
-  ac_header_compiler=4110,124350
-  (exit $ac_status); } >/dev/null;4139,125218
-    ac_cpp_err=4141,125290
-  ac_header_preproc=4150,125457
-    ac_header_preproc=4168,126213
-ac_ext=4213,128125
-set dummy $ac_tool_prefix$ac_prog; ac_word=4222,128570
-  ac_cv_prog_CXX=4229,128830
-as_save_IFS=$IFS; IFS=4231,128893
-    ac_cv_prog_CXX=4238,129118
-  ac_ct_CXX=4260,129508
-set dummy $ac_prog; ac_word=4264,129684
-  ac_cv_prog_ac_ct_CXX=4271,129941
-as_save_IFS=$IFS; IFS=4273,130016
-    ac_cv_prog_ac_ct_CXX=4280,130241
-test -n "$ac_ct_CXX" || ac_ct_CXX=4300,130627
-  ac_status=4317,131178
-  ac_status=4322,131378
-main 4339,131870
-	 { ac_try=4358,132238
-	 { ac_try=4364,132472
-  ac_compiler_gnu=4370,132678
-main 4400,133492
-	 { ac_try=4416,133820
-	 { ac_try=4422,134054
-  ac_cv_prog_cxx_g=4428,134260
-  CXXFLAGS=4440,134578
-    CXXFLAGS=4443,134676
-    CXXFLAGS=4449,134762
-	 { ac_try=4487,135598
-	 { ac_try=4493,135832
-main 4515,136360
-	 { ac_try=4531,136698
-	 { ac_try=4537,136932
-ac_ext=4558,137470
-  (exit $ac_status); } >/dev/null;4607,139252
-    ac_cpp_err=4609,139324
-  (exit $ac_status); } >/dev/null;4645,140214
-    ac_cpp_err=4647,140286
-ac_preproc_ok=4663,140609
-    ac_cv_prog_CXXCPP=4676,140827
-  (exit $ac_status); } >/dev/null;4714,141947
-    ac_cpp_err=4716,142019
-  (exit $ac_status); } >/dev/null;4752,142909
-    ac_cpp_err=4754,142981
-ac_preproc_ok=4770,143304
-ac_ext=4788,143778
-set dummy $ac_tool_prefix$ac_prog; ac_word=4803,144452
-  ac_cv_prog_F77=4810,144712
-as_save_IFS=$IFS; IFS=4812,144775
-    ac_cv_prog_F77=4819,145000
-  ac_ct_F77=4841,145390
-set dummy $ac_prog; ac_word=4845,145613
-  ac_cv_prog_ac_ct_F77=4852,145870
-as_save_IFS=$IFS; IFS=4854,145945
-    ac_cv_prog_ac_ct_F77=4861,146170
-  F77=4882,146557
-  ac_status=4897,147076
-  ac_status=4902,147276
-ac_save_ext=4909,147515
-	 { ac_try=4933,148214
-	 { ac_try=4939,148448
-  ac_compiler_gnu=4945,148654
-  FFLAGS=4967,149275
-	 { ac_try=4982,149647
-	 { ac_try=4988,149881
-  ac_cv_prog_f77_g=4994,150087
-  FFLAGS=5007,150404
-    FFLAGS=5010,150519
-    FFLAGS=5016,150622
-    i=5039,151325
-    lt_cv_sys_max_cmd_len=12288;    # 12K is about right5048,151656
-    lt_cv_sys_max_cmd_len=5055,151905
-    lt_cv_sys_max_cmd_len=5066,152416
-    lt_cv_sys_max_cmd_len=5072,152592
-symcode=5120,154216
-  symcode=5140,154916
-    symcode=5144,155037
-  symcode=5150,155397
-  symcode=5153,155431
-  symcode=5156,155479
-  symcode=5159,155510
-opt_cr=5164,155576
-  symcode=5174,155789
-  lt_cv_sys_global_symbol_pipe=5181,155938
-int main(5196,156286
-    nlist=5205,156553
-# define lt_ptr_t 5232,157479
-# define lt_ptr_t 5234,157510
-# define const5235,157535
-lt_preloaded_symbols[5243,157667
-	  lt_save_LIBS=5257,157992
-	    pipe_works=5266,158327
-    lt_cv_sys_global_symbol_pipe=5289,158827
-  lt_cv_sys_global_symbol_to_cdecl=5296,158925
-  lt_cv_objdir=5314,159444
-    COLLECT_NAMES=5335,159939
-Xsed=5343,160139
-set dummy ${ac_tool_prefix}ar;5372,160973
-set dummy ${ac_tool_prefix}ar; ac_word=5372,160973
-  ac_cv_prog_AR=5379,161227
-as_save_IFS=$IFS; IFS=5381,161288
-    ac_cv_prog_AR=5388,161513
-  ac_ct_AR=5408,161868
-set dummy ar; ac_word=5410,161958
-  ac_cv_prog_ac_ct_AR=5417,162207
-as_save_IFS=$IFS; IFS=5419,162280
-    ac_cv_prog_ac_ct_AR=5426,162505
-  AR=5445,162906
-set dummy ${ac_tool_prefix}ranlib;5452,163083
-set dummy ${ac_tool_prefix}ranlib; ac_word=5452,163083
-  ac_cv_prog_RANLIB=5459,163349
-as_save_IFS=$IFS; IFS=5461,163418
-    ac_cv_prog_RANLIB=5468,163643
-  ac_ct_RANLIB=5488,164030
-set dummy ranlib; ac_word=5490,164132
-  ac_cv_prog_ac_ct_RANLIB=5497,164393
-as_save_IFS=$IFS; IFS=5499,164474
-    ac_cv_prog_ac_ct_RANLIB=5506,164699
-  RANLIB=5525,165132
-set dummy ${ac_tool_prefix}strip;5532,165324
-set dummy ${ac_tool_prefix}strip; ac_word=5532,165324
-  ac_cv_prog_STRIP=5539,165587
-as_save_IFS=$IFS; IFS=5541,165654
-    ac_cv_prog_STRIP=5548,165879
-  ac_ct_STRIP=5568,166258
-set dummy strip; ac_word=5570,166357
-  ac_cv_prog_ac_ct_STRIP=5577,166615
-as_save_IFS=$IFS; IFS=5579,166694
-    ac_cv_prog_ac_ct_STRIP=5586,166919
-  STRIP=5605,167343
-    old_postinstall_cmds=5639,168169
-    old_postinstall_cmds=5642,168251
-  old_archive_cmds=5645,168332
-  case $MAGIC_CMD in5657,168776
-main 6588,199633
-	 { ac_try=6604,199974
-	 { ac_try=6610,200206
-aix_libpath=6617,200414
-if test -z "$aix_libpath"; then aix_libpath=6620,200601
-if test -z "$aix_libpath"; then aix_libpath=6629,200939
-       hardcode_libdir_flag_spec=6631,201004
-	  hardcode_libdir_flag_spec=6635,201384
-	 { ac_try=6664,202256
-	 { ac_try=6670,202488
-aix_libpath=6677,202696
-if test -z "$aix_libpath"; then aix_libpath=6680,202883
-if test -z "$aix_libpath"; then aix_libpath=6689,203221
-	 hardcode_libdir_flag_spec=6691,203286
-      archive_cmds=6708,204144
-      export_dynamic_flag_spec=6716,204725
-      hardcode_libdir_flag_spec=6724,205006
-      archive_cmds_need_lc=6742,205808
-      	allow_undefined_flag=6749,206021
-            allow_undefined_flag=6756,206264
-      fi6759,206353
-    	lt_int_apple_cc_single_mod=6762,206377
-    	  lt_int_apple_cc_single_mod=6765,206517
-    	  archive_cmds=6768,206621
-          archive_expsym_cmds=6775,207314
-      archive_cmds=6791,208612
-      ld_shlibs=6797,208792
-      archive_cmds=6805,209095
-      archive_cmds=6813,209392
-      archive_cmds=6821,209663
-	archive_cmds=6829,209895
-	  archive_cmds=6847,210750
-	  archive_cmds=6850,210853
-	  archive_cmds=6856,211042
-	  archive_cmds=6859,211128
-	  hardcode_libdir_flag_spec=6866,211316
-	  hardcode_libdir_flag_spec=6873,211509
-	  hardcode_libdir_flag_spec=6882,211739
-      fi6892,212023
-	archive_cmds=6897,212109
-	archive_cmds=6909,212803
-      archive_cmds=6919,213108
-      hardcode_direct=6927,213362
-	archive_cmds=6930,213538
-	   archive_cmds=6940,213920
-      fi6944,214074
-      hardcode_libdir_flag_spec=6948,214103
-	allow_undefined_flag=6957,214798
-	allow_undefined_flag=6969,215570
-      archive_cmds=6985,216731
-      no_undefined_flag=6993,216974
-	archive_cmds=6995,217042
-	whole_archive_flag_spec=7008,217957
-      link_all_deplibs=7010,218042
-	archive_cmds=7017,218258
-	  archive_cmds=7030,218629
-	  archive_cmds=7036,218836
-	  archive_cmds=7041,218992
-      runpath_var=7045,219158
-      archive_cmds=7050,219246
-	archive_cmds=7057,219456
-      archive_cmds=7066,219659
-   sysv5OpenUNIX8* | sysv5UnixWare7* |  sysv5uw[7074,219882
-      no_undefined_flag=7075,219949
-	archive_cmds=7077,220026
-      no_undefined_flag=7086,220309
-      archive_cmds=7098,220961
-      ld_shlibs=7104,221133
-  variables_saved_for_relink=7115,221389
-  (exit $ac_status); } 2>conftest.err;7144,222410
-        soname=7145,222454
-	  archive_cmds_need_lc=7163,223069
-  fi7176,223400
-library_names_spec=7182,223553
-  sys_lib_search_path_spec=7196,223863
-    sys_lib_search_path_spec=7202,224339
-  version_type=7227,225086
-    library_names_spec=7233,225232
-	   echo '#endif'; } | ${CC} -E - | grep yes > /dev/null;7245,225872
-	can_build_shared=7248,225949
-      library_names_spec=7259,226450
-  library_names_spec=7271,226897
-  library_names_spec=7277,227331
-  version_type=7283,227455
-  version_type=7297,228132
-      dldir=7308,228519
-      soname_spec=7324,229174
-        sys_lib_search_path_spec=7333,229893
-      library_names_spec=7340,230176
-    esac7342,230314
-    library_names_spec=7346,230336
-  dynamic_linker=7349,230463
-  dynamic_linker=7355,230618
-    sys_lib_search_path_spec=7366,231135
-  version_type=7374,231545
-  dynamic_linker=7383,231837
-  version_type=7387,231878
-  objformat=7399,232260
-      library_names_spec=7408,232610
-  shlibpath_var=7412,232752
-    shlibpath_overrides_runpath=7418,232893
-    shlibpath_overrides_runpath=7422,232982
-  esac7425,233051
-  version_type=7429,233070
-  version_type=7441,233522
-      sys_lib_search_path_spec=7454,234034
-     shrext_cmds=7461,234284
-    shrext_cmds=7472,234845
-  postinstall_cmds=7481,235278
-    nonstopux*) version_type=7486,235369
-		version_type=7489,235460
-  need_lib_prefix=7494,235521
-      libsuff=7505,235972
-      libsuff=7507,236071
-      libsuff=7509,236164
-    *) libsuff=7510,236212
-    esac7511,236262
-  shlibpath_var=7514,236285
-  dynamic_linker=7523,236644
-  version_type=7528,236704
-    lt_ld_extra=7543,237327
-  version_type=7557,237936
-  version_type=7569,238317
-    library_names_spec=7573,238438
-  version_type=7587,238988
-  version_type=7594,239220
-  version_type=7604,239547
-	shlibpath_overrides_runpath=7613,239971
-	shlibpath_overrides_runpath=7616,240016
-    shlibpath_overrides_runpath=7620,240071
-  libname_spec=7625,240124
-  version_type=7634,240329
-  version_type=7645,240785
-  version_type=7652,241037
-  version_type=7665,241473
-    need_lib_prefix=7671,241754
-  version_type=7677,241848
-      need_lib_prefix=7689,242284
-      need_lib_prefix=7692,242332
-  esac7697,242485
-    version_type=7702,242537
-  version_type=7710,242768
-  dynamic_linker=7717,243015
-    hardcode_action=7739,243949
-  enable_fast_install=7754,244391
-  enable_fast_install=7758,244543
-  test -z "$old_striplib" && old_striplib=7766,244831
-         striplib=7775,245158
-  enable_dlopen=7791,245475
-    lt_cv_dlopen=7806,245743
-    lt_cv_dlopen=7811,245815
-  ac_check_lib_save_LIBS=7822,246144
-main 7839,246592
-	 { ac_try=7855,246943
-	 { ac_try=7861,247175
-  ac_cv_lib_dl_dlopen=7867,247380
-  lt_cv_dlopen=7881,247767
-#define shl_load 7906,248409
-char shl_load 7928,249017
-main 7942,249379
-	 { ac_try=7958,249741
-	 { ac_try=7964,249973
-  ac_cv_func_shl_load=7970,250178
-  lt_cv_dlopen=7983,250536
-  ac_check_lib_save_LIBS=7990,250783
-main 8007,251234
-	 { ac_try=8023,251587
-	 { ac_try=8029,251819
-  ac_cv_lib_dld_shl_load=8035,252024
-  lt_cv_dlopen=8049,252426
-#define dlopen 8064,252961
-char dlopen 8086,253561
-main 8100,253915
-	 { ac_try=8116,254275
-	 { ac_try=8122,254507
-  ac_cv_func_dlopen=8128,254712
-  lt_cv_dlopen=8141,255060
-  ac_check_lib_save_LIBS=8148,255296
-main 8165,255744
-	 { ac_try=8181,256095
-	 { ac_try=8187,256327
-  ac_cv_lib_dl_dlopen=8193,256532
-  lt_cv_dlopen=8207,256919
-  ac_check_lib_save_LIBS=8214,257186
-main 8231,257636
-	 { ac_try=8247,257987
-	 { ac_try=8253,258219
-  ac_cv_lib_svld_dlopen=8259,258424
-  lt_cv_dlopen=8273,258821
-  ac_check_lib_save_LIBS=8280,259093
-main 8297,259544
-	 { ac_try=8313,259897
-	 { ac_try=8319,260129
-  ac_cv_lib_dld_dld_link=8325,260334
-  lt_cv_dlopen=8339,260736
-    enable_dlopen=8361,260893
-  lt_cv_dlopen_self=8383,261526
-  lt_dlunknown=0; lt_dlno_uscore=8385,261557
-  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=8385,261557
-#  define LT_DLGLOBAL	8398,261803
-#    define LT_DLGLOBAL	8401,261863
-#    define LT_DLGLOBAL	8403,261906
-#    define LT_DLLAZY_OR_NOW	8411,262112
-#      define LT_DLLAZY_OR_NOW	8414,262179
-#        define LT_DLLAZY_OR_NOW	8417,262251
-#          define LT_DLLAZY_OR_NOW	8420,262327
-#          define LT_DLLAZY_OR_NOW	8422,262383
-void fnord(8433,262531
-int main 8434,262557
-  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;8453,263005
-    (./conftest;8454,263078
-    (./conftest; exit;8454,263078
-    lt_status=8455,263115
-      x$lt_dlneed_uscore) lt_cv_dlopen_self=8458,263205
-      x$lt_unknown|x*) lt_cv_dlopen_self=8459,263256
-    lt_cv_dlopen_self=8463,263346
-      LDFLAGS=8474,263546
-  lt_cv_dlopen_self_static=8481,263921
-  lt_dlunknown=0; lt_dlno_uscore=8483,263959
-  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=8483,263959
-#  define LT_DLGLOBAL	8496,264205
-#    define LT_DLGLOBAL	8499,264265
-#    define LT_DLGLOBAL	8501,264308
-#    define LT_DLLAZY_OR_NOW	8509,264514
-#      define LT_DLLAZY_OR_NOW	8512,264581
-#        define LT_DLLAZY_OR_NOW	8515,264653
-#          define LT_DLLAZY_OR_NOW	8518,264729
-#          define LT_DLLAZY_OR_NOW	8520,264785
-void fnord(8531,264933
-int main 8532,264959
-  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;8551,265407
-    (./conftest;8552,265480
-    (./conftest; exit;8552,265480
-    lt_status=8553,265517
-      x$lt_dlneed_uscore) lt_cv_dlopen_self_static=8556,265614
-      x$lt_unknown|x*) lt_cv_dlopen_self_static=8557,265672
-    lt_cv_dlopen_self_static=8561,265769
-  yes|no) enable_dlopen_self=8579,266076
-  *) enable_dlopen_self=8580,266127
-  yes|no) enable_dlopen_self_static=8584,266206
-  *) enable_dlopen_self_static=8585,266271
-    archive_cmds=8606,267021
-    archive_cmds_need_lc=8618,267321
-      	allow_undefined_flag=8625,267536
-            allow_undefined_flag=8632,267779
-      fi8635,267868
-    output_verbose_link_cmd=8638,267895
-    lt_echo=8746,272380
-cfgfile=8750,272491
-SED=8789,274142
-if test "X\${CDPATH+set}" = Xset; then CDPATH=8796,274342
-if test "X\${CDPATH+set}" = Xset; then CDPATH=:; export CDPATH;8796,274342
-available_tags=8799,274477
-  COLLECT_NAMES=9108,283493
-  ltmain_in=9129,284174
-ac_ext=9136,284306
-  withval=9147,284642
-  available_tags=9170,285537
-  lt_save_ifs="$IFS"; IFS=9172,285646
-    IFS=9174,285728
-   { (exit 9180,286068
-   { (exit 1); exit 9180,286068
-	  ac_ext=9198,286603
-  lt_cv_prog_gnu_ld=9263,288278
-  lt_cv_path_LD=9268,288397
-  lt_prog_compiler_no_builtin_flag_CXX=9281,288721
-  withval=9292,288999
-ac_prog=9297,289093
-    ac_prog=9305,289390
-    ac_prog=9307,289458
-  case $ac_prog in9309,289513
-      re_direlt=9312,289584
-	ac_prog=9316,289775
-    ac_prog=9322,289940
-    with_gnu_ld=9326,290030
-  lt_save_ifs=9340,290430
-  lt_save_ifs="$IFS"; IFS=9340,290430
-    IFS=9342,290498
-      lt_cv_path_LD=9345,290635
-  IFS=9359,291060
-   { (exit 9375,291489
-   { (exit 1); exit 9375,291489
-  lt_cv_prog_gnu_ld=9384,291877
-  lt_cv_prog_gnu_ld=9387,291909
-with_gnu_ld=9393,292038
-    archive_cmds_CXX=9400,292241
-      whole_archive_flag_spec_CXX=9414,293059
-      aix_use_runtimelinking=9454,294524
-	    aix_use_runtimelinking=9467,294928
-      exp_sym_flag=9474,295005
-	collect2name=9493,295735
-	shared_flag=9516,296517
-	  shared_flag=9519,296593
-      allow_undefined_flag_CXX=9532,297053
-	 { ac_try=9558,297676
-	 { ac_try=9564,297910
-aix_libpath=9571,298118
-if test -z "$aix_libpath"; then aix_libpath=9574,298305
-if test -z "$aix_libpath"; then aix_libpath=9583,298643
-      hardcode_libdir_flag_spec_CXX=9585,298708
-	hardcode_libdir_flag_spec_CXX=9590,299104
-	 { ac_try=9619,299985
-	 { ac_try=9625,300219
-aix_libpath=9632,300427
-if test -z "$aix_libpath"; then aix_libpath=9635,300614
-if test -z "$aix_libpath"; then aix_libpath=9644,300952
-	hardcode_libdir_flag_spec_CXX=9646,301017
-	ld_shlibs_CXX=9665,301955
-    esac9667,301977
-    hardcode_libdir_flag_spec_CXX=9673,302142
-      archive_cmds_CXX=9679,302372
-	echo EXPORTS > $output_objdir/$soname.def;9685,302833
-	cat $export_symbols >> $output_objdir/$soname.def;9686,302877
-      $CC -shared -nostdlib $output_objdir/$soname.def $predep_objects $libobjs $deplibs $postdep_objects $compiler_flags -o $output_objdir/$soname ${wl}--image-base=9688,302939
-    archive_cmds_need_lc_CXX=9696,303237
-      	allow_undefined_flag_CXX=9703,303460
-            allow_undefined_flag_CXX=9710,303711
-      fi9713,303804
-    lt_int_apple_cc_single_mod=9716,303831
-      lt_int_apple_cc_single_mod=9719,303968
-      archive_cmds_CXX=9722,304069
-      archive_expsym_cmds_CXX=9730,304761
-	ld_shlibs_CXX=9749,306134
-	ld_shlibs_CXX=9754,306240
-	ld_shlibs_CXX=9758,306315
-    esac9760,306337
-    ld_shlibs_CXX=9764,306444
-    archive_cmds_need_lc_CXX=9767,306488
-    ld_shlibs_CXX=9772,306640
-  gnu*9774,306669
-    hardcode_libdir_flag_spec_CXX=9777,306694
-      archive_cmds_CXX=9791,307093
-        archive_cmds_CXX=9804,308041
-    esac9810,308419
-	hardcode_libdir_flag_spec_CXX=9816,308532
-	hardcode_libdir_flag_spec_CXX=9821,308690
-	hardcode_libdir_flag_spec_CXX=9824,308753
-      hardcode_direct_CXX=9832,308947
-      hardcode_direct_CXX=9836,309032
-      hardcode_direct_CXX=9843,309240
-	ld_shlibs_CXX=9853,309495
-	  archive_cmds_CXX=9858,309566
-	  archive_cmds_CXX=9861,309656
-	output_verbose_link_cmd=9872,310198
-	      archive_cmds_CXX=9879,310549
-	      archive_cmds_CXX=9882,310651
-	  ld_shlibs_CXX=9888,310908
-    esac9891,310936
-	archive_cmds_CXX=9897,311017
-	    archive_cmds_CXX=9908,311590
-    hardcode_libdir_flag_spec_CXX=9916,312121
-	archive_cmds_CXX=9927,312495
-	with_gnu_ld=9948,314059
-	archive_cmds_CXX=9958,314643
-    esac9975,315744
-    ld_shlibs_CXX=9979,315818
-    ld_shlibs_CXX=9983,315902
-	ld_shlibs_CXX=9989,316018
-	ld_shlibs_CXX=9993,316093
-    esac9995,316115
-      archive_cmds_CXX=9999,316220
-	archive_cmds_CXX=10016,316924
-	ld_shlibs_CXX=10029,317541
-	allow_undefined_flag_CXX=10032,317574
-	  allow_undefined_flag_CXX=10050,318737
-    esac10066,319512
-	archive_cmds_CXX=10076,319805
-	ld_shlibs_CXX=10088,320383
-	allow_undefined_flag_CXX=10091,320416
-	  allow_undefined_flag_CXX=10113,321975
-    esac10129,322760
-    ld_shlibs_CXX=10133,322832
-    archive_cmds_need_lc_CXX=10136,322868
-	ld_shlibs_CXX=10144,323054
-    esac10146,323076
-	ld_shlibs_CXX=10153,323197
-	ld_shlibs_CXX=10158,323283
-	ld_shlibs_CXX=10162,323358
-    esac10164,323380
-	no_undefined_flag_CXX=10170,323482
-	    whole_archive_flag_spec_CXX=10184,324283
-	link_all_deplibs_CXX=10187,324396
-	archive_cmds_CXX=10207,325328
-	  no_undefined_flag_CXX=10215,325686
-	    archive_cmds_CXX=10217,325788
-    esac10241,327316
-  sysv5OpenUNIX8* | sysv5UnixWare7* | sysv5uw[10243,327332
-    archive_cmds_need_lc_CXX=10244,327397
-	ld_shlibs_CXX=10251,327550
-	ld_shlibs_CXX=10255,327625
-    esac10257,327647
-    ld_shlibs_CXX=10261,327722
-    ld_shlibs_CXX=10265,327802
-  pre_test_object_deps_done=10296,328464
-	 prev=10311,328997
-	     compiler_lib_search_path_CXX=10324,329369
-	   postdeps_CXX=10334,329683
-	 pre_test_object_deps_done=10345,329956
-	   predep_objects_CXX=10351,330106
-	   postdep_objects_CXX=10357,330248
-*" -lc "*) archive_cmds_need_lc_CXX=10378,330563
-lt_prog_compiler_wl_CXX=10381,330611
-    lt_prog_compiler_wl_CXX=10390,330919
-	lt_prog_compiler_static_CXX=10398,331133
-      lt_prog_compiler_pic_CXX=10405,331379
-    beos* | cygwin* | irix5* | irix6* | nonstopux* | osf3* | osf4* | osf5*10407,331461
-      lt_prog_compiler_pic_CXX=10413,331768
-      lt_prog_compiler_pic_CXX=10418,331945
-      lt_prog_compiler_pic_CXX=10422,332067
-	lt_prog_compiler_pic_CXX=10426,332155
-      hppa*64*|ia64*10433,332340
-	lt_prog_compiler_pic_CXX=10436,332375
-      esac10438,332413
-      lt_prog_compiler_pic_CXX=10441,332440
-	  lt_prog_compiler_static_CXX=10450,332643
-	esac10461,333032
-	    lt_prog_compiler_pic_CXX=10466,333086
-	    lt_prog_compiler_pic_CXX=10470,333173
-	esac10474,333232
-      freebsd* | kfreebsd*-gnu)10476,333242
-	    lt_prog_compiler_wl_CXX=10482,333365
-	      lt_prog_compiler_pic_CXX=10485,333524
-	    lt_prog_compiler_wl_CXX=10489,333585
-	      lt_prog_compiler_pic_CXX=10496,333793
-	    esac10498,333840
-	esac10502,333872
-	    lt_prog_compiler_wl_CXX=10507,333947
-	esac10513,334093
-	    lt_prog_compiler_wl_CXX=10519,334171
-	    lt_prog_compiler_wl_CXX=10524,334289
-	    lt_prog_compiler_pic_CXX=10532,334559
-	esac10537,334659
-      lynxos*10539,334669
-      m88k*10541,334688
-	    lt_prog_compiler_pic_CXX=10546,334747
-	esac10550,334816
-      netbsd* | knetbsd*-gnu)10552,334826
-	    lt_prog_compiler_wl_CXX=10557,334919
-	    lt_prog_compiler_pic_CXX=10561,335007
-	    lt_prog_compiler_wl_CXX=10565,335086
-	esac10573,335341
-      psos*10575,335351
-	    lt_prog_compiler_pic_CXX=10580,335409
-	esac10584,335469
-	    lt_prog_compiler_pic_CXX=10590,335567
-	    lt_prog_compiler_pic_CXX=10596,335741
-	esac10600,335800
-	    lt_prog_compiler_pic_CXX=10606,335873
-	    lt_prog_compiler_pic_CXX=10611,335983
-	esac10615,336042
-	    lt_prog_compiler_pic_CXX=10621,336124
-	esac10625,336184
-      unixware*10627,336194
-      vxworks*10629,336215
-	lt_prog_compiler_can_build_shared_CXX=10632,336244
-  lt_prog_compiler_pic_works_CXX=10650,336801
-       lt_prog_compiler_pic_works_CXX=10672,337902
-     *) lt_prog_compiler_pic_CXX=10684,338212
-    lt_prog_compiler_pic_CXX=10687,338292
-    lt_prog_compiler_pic_CXX=10698,338513
-  lt_cv_prog_compiler_c_o_CXX=10707,338852
-       lt_cv_prog_compiler_c_o_CXX=10733,339947
-  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a;10965,348610
-  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a; $show "cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a"; cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a || exit 10965,348610
-  ;;10966,348922
-  library_names_spec=10969,348935
-  version_type=10975,349059
-  version_type=10989,349736
-      dldir=11000,350123
-      soname_spec=11016,350778
-        sys_lib_search_path_spec=11025,351497
-      library_names_spec=11032,351780
-    esac11034,351918
-    library_names_spec=11038,351940
-  dynamic_linker=11041,352067
-  dynamic_linker=11047,352222
-    sys_lib_search_path_spec=11058,352739
-  version_type=11066,353149
-  dynamic_linker=11075,353441
-  version_type=11079,353482
-  objformat=11091,353864
-      library_names_spec=11100,354214
-  shlibpath_var=11104,354356
-    shlibpath_overrides_runpath=11110,354497
-    shlibpath_overrides_runpath=11114,354586
-  esac11117,354655
-  version_type=11121,354674
-  version_type=11133,355126
-      sys_lib_search_path_spec=11146,355638
-     shrext_cmds=11153,355888
-    shrext_cmds=11164,356449
-  postinstall_cmds=11173,356882
-    nonstopux*) version_type=11178,356973
-		version_type=11181,357064
-  need_lib_prefix=11186,357125
-      libsuff=11197,357576
-      libsuff=11199,357675
-      libsuff=11201,357768
-    *) libsuff=11202,357816
-    esac11203,357866
-  shlibpath_var=11206,357889
-  dynamic_linker=11215,358248
-  version_type=11220,358308
-    lt_ld_extra=11235,358931
-  version_type=11249,359540
-  version_type=11261,359921
-    library_names_spec=11265,360042
-  version_type=11279,360592
-  version_type=11286,360824
-  version_type=11296,361151
-	shlibpath_overrides_runpath=11305,361575
-	shlibpath_overrides_runpath=11308,361620
-    shlibpath_overrides_runpath=11312,361675
-  libname_spec=11317,361728
-  version_type=11326,361933
-  version_type=11337,362389
-  version_type=11344,362641
-  version_type=11357,363077
-    need_lib_prefix=11363,363358
-  version_type=11369,363452
-      need_lib_prefix=11381,363888
-      need_lib_prefix=11384,363936
-  esac11389,364089
-    version_type=11394,364141
-  version_type=11402,364372
-  dynamic_linker=11409,364619
-    hardcode_action_CXX=11431,365579
-  enable_fast_install=11446,366045
-  enable_fast_install=11450,366197
-  test -z "$old_striplib" && old_striplib=11458,366485
-         striplib=11467,366812
-  enable_dlopen=11483,367129
-    lt_cv_dlopen=11498,367397
-    lt_cv_dlopen=11503,367469
-  ac_check_lib_save_LIBS=11514,367798
-main 11531,368246
-	 { ac_try=11547,368597
-	 { ac_try=11553,368831
-  ac_cv_lib_dl_dlopen=11559,369036
-  lt_cv_dlopen=11573,369423
-#define shl_load 11598,370065
-char shl_load 11620,370673
-main 11634,371035
-	 { ac_try=11650,371397
-	 { ac_try=11656,371631
-  ac_cv_func_shl_load=11662,371836
-  lt_cv_dlopen=11675,372194
-  ac_check_lib_save_LIBS=11682,372441
-main 11699,372892
-	 { ac_try=11715,373245
-	 { ac_try=11721,373479
-  ac_cv_lib_dld_shl_load=11727,373684
-  lt_cv_dlopen=11741,374086
-#define dlopen 11756,374621
-char dlopen 11778,375221
-main 11792,375575
-	 { ac_try=11808,375935
-	 { ac_try=11814,376169
-  ac_cv_func_dlopen=11820,376374
-  lt_cv_dlopen=11833,376722
-  ac_check_lib_save_LIBS=11840,376958
-main 11857,377406
-	 { ac_try=11873,377757
-	 { ac_try=11879,377991
-  ac_cv_lib_dl_dlopen=11885,378196
-  lt_cv_dlopen=11899,378583
-  ac_check_lib_save_LIBS=11906,378850
-main 11923,379300
-	 { ac_try=11939,379651
-	 { ac_try=11945,379885
-  ac_cv_lib_svld_dlopen=11951,380090
-  lt_cv_dlopen=11965,380487
-  ac_check_lib_save_LIBS=11972,380759
-main 11989,381210
-	 { ac_try=12005,381563
-	 { ac_try=12011,381797
-  ac_cv_lib_dld_dld_link=12017,382002
-  lt_cv_dlopen=12031,382404
-    enable_dlopen=12053,382561
-  lt_cv_dlopen_self=12075,383194
-  lt_dlunknown=0; lt_dlno_uscore=12077,383225
-  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=12077,383225
-#  define LT_DLGLOBAL	12090,383471
-#    define LT_DLGLOBAL	12093,383531
-#    define LT_DLGLOBAL	12095,383574
-#    define LT_DLLAZY_OR_NOW	12103,383780
-#      define LT_DLLAZY_OR_NOW	12106,383847
-#        define LT_DLLAZY_OR_NOW	12109,383919
-#          define LT_DLLAZY_OR_NOW	12112,383995
-#          define LT_DLLAZY_OR_NOW	12114,384051
-void fnord(12125,384199
-int main 12126,384225
-  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;12145,384673
-    (./conftest;12146,384746
-    (./conftest; exit;12146,384746
-    lt_status=12147,384783
-      x$lt_dlneed_uscore) lt_cv_dlopen_self=12150,384873
-      x$lt_unknown|x*) lt_cv_dlopen_self=12151,384924
-    lt_cv_dlopen_self=12155,385014
-      LDFLAGS=12166,385214
-  lt_cv_dlopen_self_static=12173,385589
-  lt_dlunknown=0; lt_dlno_uscore=12175,385627
-  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=12175,385627
-#  define LT_DLGLOBAL	12188,385873
-#    define LT_DLGLOBAL	12191,385933
-#    define LT_DLGLOBAL	12193,385976
-#    define LT_DLLAZY_OR_NOW	12201,386182
-#      define LT_DLLAZY_OR_NOW	12204,386249
-#        define LT_DLLAZY_OR_NOW	12207,386321
-#          define LT_DLLAZY_OR_NOW	12210,386397
-#          define LT_DLLAZY_OR_NOW	12212,386453
-void fnord(12223,386601
-int main 12224,386627
-  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;12243,387075
-    (./conftest;12244,387148
-    (./conftest; exit;12244,387148
-    lt_status=12245,387185
-      x$lt_dlneed_uscore) lt_cv_dlopen_self_static=12248,387282
-      x$lt_unknown|x*) lt_cv_dlopen_self_static=12249,387340
-    lt_cv_dlopen_self_static=12253,387437
-  yes|no) enable_dlopen_self=12271,387744
-  *) enable_dlopen_self=12272,387795
-  yes|no) enable_dlopen_self_static=12276,387874
-  *) enable_dlopen_self_static=12277,387939
-    lt_echo=12364,391055
-cfgfile=12368,391166
-ac_ext=12681,400424
-ac_ext=12706,401000
-    archive_cmds=12775,403059
-    lt_prog_compiler_wl_F77=12806,403989
-	lt_prog_compiler_static_F77=12814,404205
-      lt_prog_compiler_pic_F77=12822,404452
-    beos* | cygwin* | irix5* | irix6* | nonstopux* | osf3* | osf4* | osf5*12825,404535
-      lt_prog_compiler_pic_F77=12832,404843
-      lt_prog_compiler_pic_F77=12838,405021
-      lt_prog_compiler_can_build_shared_F77=12844,405215
-	lt_prog_compiler_pic_F77=12850,405342
-      hppa*64*|ia64*12858,405528
-	lt_prog_compiler_pic_F77=12862,405581
-      esac12864,405619
-      lt_prog_compiler_pic_F77=12868,405647
-      lt_prog_compiler_wl_F77=12875,405820
-	lt_prog_compiler_static_F77=12878,405933
-      lt_prog_compiler_pic_F77=12887,406241
-      lt_prog_compiler_wl_F77=12891,406329
-	lt_prog_compiler_pic_F77=12899,406535
-      lt_prog_compiler_static_F77=12903,406663
-      lt_prog_compiler_wl_F77=12907,406764
-      lt_prog_compiler_pic_F77=12913,406913
-	lt_prog_compiler_wl_F77=12920,407056
-        lt_prog_compiler_wl_F77=12925,407184
-      esac12929,407317
-      lt_prog_compiler_wl_F77=12933,407365
-      lt_prog_compiler_pic_F77=12939,407506
-      lt_prog_compiler_wl_F77=12944,407609
-      lt_prog_compiler_wl_F77=12950,407753
-      lt_prog_compiler_wl_F77=12956,407936
-	lt_prog_compiler_pic_F77=12963,408114
-      lt_prog_compiler_pic_F77=12969,408226
-      lt_prog_compiler_can_build_shared_F77=12974,408326
-  lt_prog_compiler_pic_works_F77=12992,408893
-       lt_prog_compiler_pic_works_F77=13014,409988
-     *) lt_prog_compiler_pic_F77=13026,410298
-    lt_prog_compiler_pic_F77=13029,410378
-    lt_prog_compiler_pic_F77=13040,410599
-  lt_cv_prog_compiler_c_o_F77=13049,410932
-       lt_cv_prog_compiler_c_o_F77=13075,412027
-  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a;14106,454463
-  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a; $show "cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a"; cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a || exit 14106,454463
-  ;;14107,454775
-  library_names_spec=14110,454788
-  version_type=14116,454912
-  version_type=14130,455589
-      dldir=14141,455976
-      soname_spec=14157,456631
-        sys_lib_search_path_spec=14166,457350
-      library_names_spec=14173,457633
-    esac14175,457771
-    library_names_spec=14179,457793
-  dynamic_linker=14182,457920
-  dynamic_linker=14188,458075
-    sys_lib_search_path_spec=14199,458592
-  version_type=14207,459002
-  dynamic_linker=14216,459294
-  version_type=14220,459335
-  objformat=14232,459717
-      library_names_spec=14241,460067
-  shlibpath_var=14245,460209
-    shlibpath_overrides_runpath=14251,460350
-    shlibpath_overrides_runpath=14255,460439
-  esac14258,460508
-  version_type=14262,460527
-  version_type=14274,460979
-      sys_lib_search_path_spec=14287,461491
-     shrext_cmds=14294,461741
-    shrext_cmds=14305,462302
-  postinstall_cmds=14314,462735
-    nonstopux*) version_type=14319,462826
-		version_type=14322,462917
-  need_lib_prefix=14327,462978
-      libsuff=14338,463429
-      libsuff=14340,463528
-      libsuff=14342,463621
-    *) libsuff=14343,463669
-    esac14344,463719
-  shlibpath_var=14347,463742
-  dynamic_linker=14356,464101
-  version_type=14361,464161
-    lt_ld_extra=14376,464784
-  version_type=14390,465393
-  version_type=14402,465774
-    library_names_spec=14406,465895
-  version_type=14420,466445
-  version_type=14427,466677
-  version_type=14437,467004
-	shlibpath_overrides_runpath=14446,467428
-	shlibpath_overrides_runpath=14449,467473
-    shlibpath_overrides_runpath=14453,467528
-  libname_spec=14458,467581
-  version_type=14467,467786
-  version_type=14478,468242
-  version_type=14485,468494
-  version_type=14498,468930
-    need_lib_prefix=14504,469211
-  version_type=14510,469305
-      need_lib_prefix=14522,469741
-      need_lib_prefix=14525,469789
-  esac14530,469942
-    version_type=14535,469994
-  version_type=14543,470225
-  dynamic_linker=14550,470472
-    hardcode_action_F77=14572,471432
-  enable_fast_install=14587,471898
-  enable_fast_install=14591,472050
-  test -z "$old_striplib" && old_striplib=14599,472338
-         striplib=14608,472665
-    lt_echo=14707,476006
-cfgfile=14711,476117
-ac_ext=15024,485375
-ac_ext=15043,485757
-  lt_prog_compiler_no_builtin_flag_GCJ=15077,486555
-  lt_cv_prog_compiler_rtti_exceptions=15085,486893
-       lt_cv_prog_compiler_rtti_exceptions=15107,487993
-    lt_prog_compiler_no_builtin_flag_GCJ=15117,488266
-    lt_prog_compiler_wl_GCJ=15132,488651
-	lt_prog_compiler_static_GCJ=15140,488867
-      lt_prog_compiler_pic_GCJ=15148,489114
-    beos* | cygwin* | irix5* | irix6* | nonstopux* | osf3* | osf4* | osf5*15151,489197
-      lt_prog_compiler_pic_GCJ=15158,489505
-      lt_prog_compiler_pic_GCJ=15164,489683
-      lt_prog_compiler_can_build_shared_GCJ=15170,489877
-	lt_prog_compiler_pic_GCJ=15176,490004
-      hppa*64*|ia64*15184,490190
-	lt_prog_compiler_pic_GCJ=15188,490243
-      esac15190,490281
-      lt_prog_compiler_pic_GCJ=15194,490309
-      lt_prog_compiler_wl_GCJ=15201,490482
-	lt_prog_compiler_static_GCJ=15204,490595
-      lt_prog_compiler_pic_GCJ=15213,490903
-      lt_prog_compiler_wl_GCJ=15217,490991
-	lt_prog_compiler_pic_GCJ=15225,491197
-      lt_prog_compiler_static_GCJ=15229,491325
-      lt_prog_compiler_wl_GCJ=15233,491426
-      lt_prog_compiler_pic_GCJ=15239,491575
-	lt_prog_compiler_wl_GCJ=15246,491718
-        lt_prog_compiler_wl_GCJ=15251,491846
-      esac15255,491979
-      lt_prog_compiler_wl_GCJ=15259,492027
-      lt_prog_compiler_pic_GCJ=15265,492168
-      lt_prog_compiler_wl_GCJ=15270,492271
-      lt_prog_compiler_wl_GCJ=15276,492415
-      lt_prog_compiler_wl_GCJ=15282,492598
-	lt_prog_compiler_pic_GCJ=15289,492776
-      lt_prog_compiler_pic_GCJ=15295,492888
-      lt_prog_compiler_can_build_shared_GCJ=15300,492988
-  lt_prog_compiler_pic_works_GCJ=15318,493555
-       lt_prog_compiler_pic_works_GCJ=15340,494650
-     *) lt_prog_compiler_pic_GCJ=15352,494960
-    lt_prog_compiler_pic_GCJ=15355,495040
-    lt_prog_compiler_pic_GCJ=15366,495261
-  lt_cv_prog_compiler_c_o_GCJ=15375,495594
-       lt_cv_prog_compiler_c_o_GCJ=15401,496689
-	 { ac_try=15783,511567
-	 { ac_try=15789,511799
-aix_libpath=15796,512007
-if test -z "$aix_libpath"; then aix_libpath=15799,512194
-if test -z "$aix_libpath"; then aix_libpath=15808,512532
-       hardcode_libdir_flag_spec_GCJ=15810,512597
-	  hardcode_libdir_flag_spec_GCJ=15814,512985
-	 { ac_try=15843,513869
-	 { ac_try=15849,514101
-aix_libpath=15856,514309
-if test -z "$aix_libpath"; then aix_libpath=15859,514496
-if test -z "$aix_libpath"; then aix_libpath=15868,514834
-	 hardcode_libdir_flag_spec_GCJ=15870,514899
-      archive_cmds_GCJ=15887,515785
-      export_dynamic_flag_spec_GCJ=15895,516382
-      hardcode_libdir_flag_spec_GCJ=15903,516667
-      archive_cmds_need_lc_GCJ=15921,517493
-      	allow_undefined_flag_GCJ=15928,517714
-            allow_undefined_flag_GCJ=15935,517965
-      fi15938,518058
-    	lt_int_apple_cc_single_mod=15941,518082
-    	  lt_int_apple_cc_single_mod=15944,518222
-    	  archive_cmds_GCJ=15947,518326
-          archive_expsym_cmds_GCJ=15954,519031
-      archive_cmds_GCJ=15970,520365
-      ld_shlibs_GCJ=15976,520557
-      archive_cmds_GCJ=15984,520864
-      archive_cmds_GCJ=15992,521177
-      archive_cmds_GCJ=16000,521464
-	archive_cmds_GCJ=16008,521712
-	  archive_cmds_GCJ=16026,522595
-	  archive_cmds_GCJ=16029,522702
-	  archive_cmds_GCJ=16035,522895
-	  archive_cmds_GCJ=16038,522985
-	  hardcode_libdir_flag_spec_GCJ=16045,523177
-	  hardcode_libdir_flag_spec_GCJ=16052,523390
-	  hardcode_libdir_flag_spec_GCJ=16061,523636
-      fi16071,523940
-	archive_cmds_GCJ=16076,524026
-	archive_cmds_GCJ=16088,524744
-      archive_cmds_GCJ=16098,525069
-      hardcode_direct_GCJ=16106,525343
-	archive_cmds_GCJ=16109,525527
-	   archive_cmds_GCJ=16119,525929
-      fi16123,526091
-      hardcode_libdir_flag_spec_GCJ=16127,526120
-	allow_undefined_flag_GCJ=16136,526835
-	allow_undefined_flag_GCJ=16148,527631
-      archive_cmds_GCJ=16164,528824
-      no_undefined_flag_GCJ=16172,529079
-	archive_cmds_GCJ=16174,529151
-	whole_archive_flag_spec_GCJ=16187,530090
-      link_all_deplibs_GCJ=16189,530179
-	archive_cmds_GCJ=16196,530399
-	  archive_cmds_GCJ=16209,530794
-	  archive_cmds_GCJ=16215,531009
-	  archive_cmds_GCJ=16220,531177
-      runpath_var=16224,531351
-      archive_cmds_GCJ=16229,531443
-	archive_cmds_GCJ=16236,531665
-      archive_cmds_GCJ=16245,531880
-   sysv5OpenUNIX8* | sysv5UnixWare7* |  sysv5uw[16253,532119
-      no_undefined_flag_GCJ=16254,532186
-	archive_cmds_GCJ=16256,532267
-      no_undefined_flag_GCJ=16265,532562
-      archive_cmds_GCJ=16277,533234
-      ld_shlibs_GCJ=16283,533418
-  variables_saved_for_relink=16294,533690
-  (exit $ac_status); } 2>conftest.err;16323,534723
-        soname=16324,534767
-	  archive_cmds_need_lc_GCJ=16342,535402
-  fi16355,535753
-library_names_spec=16361,535906
-  sys_lib_search_path_spec=16375,536216
-    sys_lib_search_path_spec=16381,536692
-  version_type=16406,537439
-    library_names_spec=16412,537585
-	   echo '#endif'; } | ${CC} -E - | grep yes > /dev/null;16424,538225
-	can_build_shared=16427,538302
-      library_names_spec=16438,538803
-  library_names_spec=16450,539250
-  library_names_spec=16456,539684
-  version_type=16462,539808
-  version_type=16476,540485
-      dldir=16487,540872
-      soname_spec=16503,541527
-        sys_lib_search_path_spec=16512,542246
-      library_names_spec=16519,542529
-    esac16521,542667
-    library_names_spec=16525,542689
-  dynamic_linker=16528,542816
-  dynamic_linker=16534,542971
-    sys_lib_search_path_spec=16545,543488
-  version_type=16553,543898
-  dynamic_linker=16562,544190
-  version_type=16566,544231
-  objformat=16578,544613
-      library_names_spec=16587,544963
-  shlibpath_var=16591,545105
-    shlibpath_overrides_runpath=16597,545246
-    shlibpath_overrides_runpath=16601,545335
-  esac16604,545404
-  version_type=16608,545423
-  version_type=16620,545875
-      sys_lib_search_path_spec=16633,546387
-     shrext_cmds=16640,546637
-    shrext_cmds=16651,547198
-  postinstall_cmds=16660,547631
-    nonstopux*) version_type=16665,547722
-		version_type=16668,547813
-  need_lib_prefix=16673,547874
-      libsuff=16684,548325
-      libsuff=16686,548424
-      libsuff=16688,548517
-    *) libsuff=16689,548565
-    esac16690,548615
-  shlibpath_var=16693,548638
-  dynamic_linker=16702,548997
-  version_type=16707,549057
-    lt_ld_extra=16722,549680
-  version_type=16736,550289
-  version_type=16748,550670
-    library_names_spec=16752,550791
-  version_type=16766,551341
-  version_type=16773,551573
-  version_type=16783,551900
-	shlibpath_overrides_runpath=16792,552324
-	shlibpath_overrides_runpath=16795,552369
-    shlibpath_overrides_runpath=16799,552424
-  libname_spec=16804,552477
-  version_type=16813,552682
-  version_type=16824,553138
-  version_type=16831,553390
-  version_type=16844,553826
-    need_lib_prefix=16850,554107
-  version_type=16856,554201
-      need_lib_prefix=16868,554637
-      need_lib_prefix=16871,554685
-  esac16876,554838
-    version_type=16881,554890
-  version_type=16889,555121
-  dynamic_linker=16896,555368
-    hardcode_action_GCJ=16918,556328
-  enable_fast_install=16933,556794
-  enable_fast_install=16937,556946
-  test -z "$old_striplib" && old_striplib=16945,557234
-         striplib=16954,557561
-  enable_dlopen=16970,557878
-    lt_cv_dlopen=16985,558146
-    lt_cv_dlopen=16990,558218
-  ac_check_lib_save_LIBS=17001,558547
-main 17018,558995
-	 { ac_try=17034,559346
-	 { ac_try=17040,559578
-  ac_cv_lib_dl_dlopen=17046,559783
-  lt_cv_dlopen=17060,560170
-#define shl_load 17085,560812
-char shl_load 17107,561420
-main 17121,561782
-	 { ac_try=17137,562144
-	 { ac_try=17143,562376
-  ac_cv_func_shl_load=17149,562581
-  lt_cv_dlopen=17162,562939
-  ac_check_lib_save_LIBS=17169,563186
-main 17186,563637
-	 { ac_try=17202,563990
-	 { ac_try=17208,564222
-  ac_cv_lib_dld_shl_load=17214,564427
-  lt_cv_dlopen=17228,564829
-#define dlopen 17243,565364
-char dlopen 17265,565964
-main 17279,566318
-	 { ac_try=17295,566678
-	 { ac_try=17301,566910
-  ac_cv_func_dlopen=17307,567115
-  lt_cv_dlopen=17320,567463
-  ac_check_lib_save_LIBS=17327,567699
-main 17344,568147
-	 { ac_try=17360,568498
-	 { ac_try=17366,568730
-  ac_cv_lib_dl_dlopen=17372,568935
-  lt_cv_dlopen=17386,569322
-  ac_check_lib_save_LIBS=17393,569589
-main 17410,570039
-	 { ac_try=17426,570390
-	 { ac_try=17432,570622
-  ac_cv_lib_svld_dlopen=17438,570827
-  lt_cv_dlopen=17452,571224
-  ac_check_lib_save_LIBS=17459,571496
-main 17476,571947
-	 { ac_try=17492,572300
-	 { ac_try=17498,572532
-  ac_cv_lib_dld_dld_link=17504,572737
-  lt_cv_dlopen=17518,573139
-    enable_dlopen=17540,573296
-  lt_cv_dlopen_self=17562,573929
-  lt_dlunknown=0; lt_dlno_uscore=17564,573960
-  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=17564,573960
-#  define LT_DLGLOBAL	17577,574206
-#    define LT_DLGLOBAL	17580,574266
-#    define LT_DLGLOBAL	17582,574309
-#    define LT_DLLAZY_OR_NOW	17590,574515
-#      define LT_DLLAZY_OR_NOW	17593,574582
-#        define LT_DLLAZY_OR_NOW	17596,574654
-#          define LT_DLLAZY_OR_NOW	17599,574730
-#          define LT_DLLAZY_OR_NOW	17601,574786
-void fnord(17612,574934
-int main 17613,574960
-  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;17632,575408
-    (./conftest;17633,575481
-    (./conftest; exit;17633,575481
-    lt_status=17634,575518
-      x$lt_dlneed_uscore) lt_cv_dlopen_self=17637,575608
-      x$lt_unknown|x*) lt_cv_dlopen_self=17638,575659
-    lt_cv_dlopen_self=17642,575749
-      LDFLAGS=17653,575949
-  lt_cv_dlopen_self_static=17660,576324
-  lt_dlunknown=0; lt_dlno_uscore=17662,576362
-  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=17662,576362
-#  define LT_DLGLOBAL	17675,576608
-#    define LT_DLGLOBAL	17678,576668
-#    define LT_DLGLOBAL	17680,576711
-#    define LT_DLLAZY_OR_NOW	17688,576917
-#      define LT_DLLAZY_OR_NOW	17691,576984
-#        define LT_DLLAZY_OR_NOW	17694,577056
-#          define LT_DLLAZY_OR_NOW	17697,577132
-#          define LT_DLLAZY_OR_NOW	17699,577188
-void fnord(17710,577336
-int main 17711,577362
-  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;17730,577810
-    (./conftest;17731,577883
-    (./conftest; exit;17731,577883
-    lt_status=17732,577920
-      x$lt_dlneed_uscore) lt_cv_dlopen_self_static=17735,578017
-      x$lt_unknown|x*) lt_cv_dlopen_self_static=17736,578075
-    lt_cv_dlopen_self_static=17740,578172
-  yes|no) enable_dlopen_self=17758,578479
-  *) enable_dlopen_self=17759,578530
-  yes|no) enable_dlopen_self_static=17763,578609
-  *) enable_dlopen_self_static=17764,578674
-    lt_echo=17851,581790
-cfgfile=17855,581901
-ac_ext=18168,591159
-ac_ext=18186,591486
-    lt_echo=18296,595161
-cfgfile=18300,595272
-ac_ext=18613,604489
-   { (exit 18626,604871
-   { (exit 1); exit 18626,604871
-      available_tags=18632,605013
-   { (exit 18646,605537
-   { (exit 1); exit 18646,605537
-LIBTOOL_DEPS=18653,605626
-main 18699,606255
-	 { ac_try=18715,606583
-	 { ac_try=18721,606815
-  ac_cv_header_stdc=18727,607021
-  ac_cv_header_stdc=18751,607580
-  ac_cv_header_stdc=18772,607997
-# define ISLOWER(ISLOWER18791,608402
-# define TOUPPER(TOUPPER18792,608449
-# define ISLOWER(ISLOWER18794,608514
-# define TOUPPER(TOUPPER18798,608648
-#define XOR(XOR18801,608710
-main 18803,608765
-  (exit $ac_status); } && { ac_try=18818,609080
-ac_cv_header_stdc=18831,609466
-# define WEXITSTATUS(WEXITSTATUS18861,610257
-# define WIFEXITED(WIFEXITED18864,610341
-main 18868,610408
-	 { ac_try=18886,610800
-	 { ac_try=18892,611032
-  ac_cv_header_sys_wait_h=18898,611238
-	 { ac_try=18959,612851
-	 { ac_try=18965,613083
-  ac_header_compiler=18971,613289
-  (exit $ac_status); } >/dev/null;19000,614157
-    ac_cpp_err=19002,614229
-  ac_header_preproc=19011,614396
-    ac_header_preproc=19029,615152
-main 19088,617441
-  typedef int charset[charset19093,617562
-  struct point point19099,617727
-    typedef const int *iptr;iptr19123,618479
-    struct s s19129,618660
-	 { ac_try=19150,619137
-	 { ac_try=19156,619369
-  ac_cv_c_const=19162,619575
-main 19194,620295
-	 { ac_try=19213,620685
-	 { ac_try=19219,620917
-  ac_cv_type_size_t=19225,621123
-main 19262,622004
-	 { ac_try=19279,622362
-	 { ac_try=19285,622594
-  ac_cv_header_time=19291,622800
-main 19325,623642
-	 { ac_try=19341,623996
-	 { ac_try=19347,624228
-  ac_cv_struct_tm=19353,624434
-#define gethostbyname 19387,625347
-char gethostbyname 19409,625975
-main 19423,626357
-	 { ac_try=19439,626724
-	 { ac_try=19445,626956
-  ac_cv_func_gethostbyname=19451,627161
-  ac_check_lib_save_LIBS=19472,627785
-main 19489,628241
-	 { ac_try=19505,628599
-	 { ac_try=19511,628831
-  ac_cv_lib_nsl_gethostbyname=19517,629036
-  LIBS=19535,629524
-#define setsockopt 19554,630051
-char setsockopt 19576,630667
-main 19590,631037
-	 { ac_try=19606,631401
-	 { ac_try=19612,631633
-  ac_cv_func_setsockopt=19618,631838
-  ac_check_lib_save_LIBS=19639,632447
-main 19656,632903
-	 { ac_try=19672,633258
-	 { ac_try=19678,633490
-  ac_cv_lib_socket_setsockopt=19684,633695
-  LIBS=19702,634186
-#define $ac_func 19737,634891
-char $ac_func 19759,635499
-main 19773,635861
-	 { ac_try=19789,636223
-	 { ac_try=19795,636455
-                                                            ac_config_files=19827,637142
-if diff $cache_file confcache >/dev/null 2>&1; then 19873,638995
-  ac_vpsub=19892,639723
-s,19919,640460
-s,19920,640471
-s,19921,640482
-s,\$,$$,19921,640482
-ac_LF_and_DOT=19930,640851
-DEFS=19931,640880
-debug=19963,641790
-  NULLCMD=19977,642101
-DUALCASE=19984,642353
-  as_unset=19988,642484
-    eval $as_var=20007,642899
-  as_expr=20015,643044
-  as_basename=20021,643158
-
-autom4te.cache/traces.0,153
-m4trace:configure.in:2: -1- m4_pattern_forbid([^_?A[2,61
-m4trace:configure.in:2: -1- m4_pattern_forbid([^LIBOBJS$], [do not use LIBOBJS directly,4,176
+TODO~,135
++ means todo4,130
+= Improve the splitfile size ceiling; the node uses one,67,3445
+= (Win32); returns to command prompt with 82,4072
