@@ -130,7 +130,7 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
         break;
     case FCPRESP_TYPE_KEYCOLLISION:
         // either of these are ok
-        _fcpLog(FCP_LOG_NORMAL, "fcpPutKeyFromFile: KEYCOLLISON: %s", file);
+        _fcpLog(FCP_LOG_NORMAL, "fcpPutKeyFromFile: KEYCOLLISION: %s", file);
         break;
     case FCPRESP_TYPE_FORMATERROR:
         _fcpLog(FCP_LOG_NORMAL, "fcpPutKeyFromFile: FORMATERROR: %s", file);

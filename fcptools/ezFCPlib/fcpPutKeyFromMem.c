@@ -105,7 +105,7 @@ int fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int dat
         break;
     case FCPRESP_TYPE_KEYCOLLISION:
         // either of these are ok
-        _fcpLog(FCP_LOG_NORMAL, "fcpPutKeyFromMem: KEYCOLLISON");
+        _fcpLog(FCP_LOG_NORMAL, "fcpPutKeyFromMem: KEYCOLLISION");
         break;
     case FCPRESP_TYPE_FORMATERROR:
         _fcpLog(FCP_LOG_NORMAL, "fcpPutKeyFromMem: FORMATERROR");

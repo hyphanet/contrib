@@ -56,6 +56,8 @@ int main(int argc, char* argv[])
     // go thru command line args
     parse_args(argc, argv);
 
+		printf("keyFile (in main()): -%s-\n", keyFile);
+
     // try and fire up FCP library
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
 
@@ -67,7 +69,7 @@ int main(int argc, char* argv[])
 
     _fcpLog(FCP_LOG_VERBOSE, "Successfully connected to node");
 
-// repeat many times - hunting mem leaks
+		// repeat many times - hunting mem leaks
     for (i = 0; i < numtimes; i++)
     {
         // create an FCP handle
@@ -144,7 +146,7 @@ int main(int argc, char* argv[])
             while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
                 write(fd, buf, count);
     
-            if (keyFile != NULL)
+            if (fd != 1)
                 close(fd);
         }
     
@@ -230,6 +232,9 @@ static void parse_args(int argc, char *argv[])
 
   /* If there's another parameter, it's the FILE to store the results in.
      Default value is "" if not passed */
+
+  printf("optind: %d - argc: %d - keyFile: _%s_ - argv[optind]: _%s_\n", optind, argc, keyFile, argv[optind]);
+  
   if (optind < argc)
     strncpy(keyFile, argv[optind++], L_FILENAME);
 }
