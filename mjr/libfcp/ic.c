@@ -27,7 +27,7 @@ usage (char *me)
 		    "  -t --threads        Concurrency.\n"
 		    "  -r --retries        Number of retries per insert before abort.\n"
 		    "  -o --outfile        Output file for log.\n"
-		    "  -m --mimetype       Content type of data.\n",
+		    "  -m --mimetype       Content type of data.\n\n",
 		    me);
     exit(2);
 }
@@ -277,9 +277,9 @@ insert (char *file, int depth)
 	}
     } else {
 	fcp_metadata *m = fcp_metadata_new();
-	fcp_info(m, "", "Content-Type", strlen(mimetype)
-					  ? mimetype
-					  : get_content_type(file));
+	if (strcasecmp(mimetype, "none"))
+	    fcp_info(m, "", "Content-Type", strlen(mimetype)
+		     ? mimetype : get_content_type(file));
 	status = -1;
 	while (status != FCP_SUCCESS  && status != FCP_KEY_COLLISION && r--)
 	    status = fcp_insert(m, "", data, s.st_size, htl, threads);
