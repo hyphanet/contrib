@@ -6,8 +6,16 @@
 		Also it's better this way as you can get proper notification (through tooltips)
 		of what the freenet node is actually doing at any one time */
 
-#include "winsock2.h"
-#include "windows.h"
+<<<<<<< launchthread.c
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <windows.h>
+#include <winsock2.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "types.h"
 #include "launchthread.h"
 #include "shared_data.h"
@@ -24,6 +32,21 @@ const char szerrMsg[]=	"Couldn't start the node,\n"
 						"an entry Javaexec= pointing to a Java Runtime binary (jview.exe/java.exe)";
 const char szerrTitle[]="Error starting node";
 
+const char szFCPerrMsg[]=	"Couldn't launch FCPProxy\n";
+const char szFCPerrTitle[]=	"Error launching FCPProxy";
+
+
+const char sztempdir1[]="FECTempDir"; /* ie FECTempDir=C:\windows\temp\freenet */
+const char sztempdir2[]="mainport.params.servlet.1.params.tempDir"; /* see sztempdir1 */
+const char sztempdir3[]="tempDir"; /* see sztempdir1 */
+
+const char szServices[]="services";
+const char szMainport[]="mainport";
+const char szMainportPort[]="mainport.port"; // the port mainport listens on
+
+extern const char szfinifile[];
+extern const char szfinisec[];
+
 /* handles, etc. */
 PROCESS_INFORMATION FredPrcInfo;	/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
 
@@ -39,6 +62,7 @@ BOOL TestGateway(void)
 {
 	// returns TRUE if gateway (fproxy etc) is running
 	// FALSE if not
+
 	// Currently just a stub until function is implemented
 	static BOOL bGateway = FALSE;
 	static SOCKET sock;
@@ -399,4 +423,91 @@ void MonitorThreadKillFserve()
 		ModifyIcon();
 	}
 	UNLOCK(NFREENETMODE);
+}
+
+
+void LoadFCPProxy(void)
+{
+	// should FCPProxy be loaded:
+	// ONLY IF Fproxy is not supposed to be loaded.
+	if (!bUsingFProxy)
+	{
+		char szexecbuf[sizeof(szHomeDirectory)+32];
+
+		lstrcpy(szexecbuf, szHomeDirectory);
+		lstrcat(szexecbuf, "\\fcpproxy.exe");
+
+		if (!CreateProcess(szexecbuf, NULL, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE | CREATE_NO_WINDOW, NULL, NULL, &FCPProxyStartInfo, &FCPProxyPrcInfo) )
+		{
+			DWORD dwError = GetLastError();
+			// if error was FileNotFound then that's ok, it means the user didn't install FCPProxy
+			if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND)
+			{
+				MessageBox(NULL, szFCPerrMsg, szFCPerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
+			}
+		}
+	}
+	else
+	{
+		ZeroMemory(&FCPProxyPrcInfo, sizeof(PROCESS_INFORMATION));
+	}
+}
+
+void DeleteFilesInDirectory(char* directory)
+{
+	HANDLE find;
+	WIN32_FIND_DATA file;
+	bool created_directory = true;
+	char search[MAX_PATH];
+
+	if(strlen(directory) == 0)
+		return;	// empty directory name
+
+	//TODO: automatically use win2k security if in win2k
+	//TODO: recursively make directories
+	if(!CreateDirectory(directory, NULL))
+		created_directory = false; 
+
+	// search all files in directory
+
+	lstrcpyn(search, directory, MAX_PATH - 4);
+	if(directory[strlen(directory) - 1] != '\\' || directory[strlen(directory) - 1] != '/') // append a '\'
+		lstrcat(search, "\\");
+    lstrcat(search, "*.*");
+	find = FindFirstFile(search, &file);
+	if(find == INVALID_HANDLE_VALUE)
+		if(!created_directory)
+			MessageBox(NULL, "Unable to create temporary file directory", "Error", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+		else
+			MessageBox(NULL, "Created direcotory but couldn't find any files", "Error", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+
+	do {
+		char* filename = malloc(sizeof(directory) + sizeof(file.cFileName) + 1);
+		if(!filename) return; //we have bigger problems then, so don't bother
+		lstrcpyn(filename, directory, MAX_PATH - 3);
+		lstrcat(filename, file.cFileName);
+		DeleteFile(filename);
+		free(filename);
+	} while(FindNextFile(find, &file));
+	FindClose(find);
+}
+
+void ClearTempDirectories(void)
+{
+	// this should be done every time the node is started or stopped (while the node is not running preferably)
+	char tempdir1[MAX_PATH], tempdir2[MAX_PATH], tempdir3[MAX_PATH];
+
+	SetCurrentDirectory(szHomeDirectory);
+
+	// FIXME: this shoudln't be committed liek this
+	GetPrivateProfileString(szfinisec, sztempdir1, szempty, tempdir1, MAX_PATH, szfinifile);
+	GetPrivateProfileString(szfinisec, sztempdir2, szempty, tempdir2, MAX_PATH, szfinifile);
+	GetPrivateProfileString(szfinisec, sztempdir3, szempty, tempdir3, MAX_PATH, szfinifile);
+
+	if(strlen(tempdir1))
+		DeleteFilesInDirectory(tempdir1);
+	if(strlen(tempdir2))
+		DeleteFilesInDirectory(tempdir2);
+	if(strlen(tempdir3))
+		DeleteFilesInDirectory(tempdir3);
 }
