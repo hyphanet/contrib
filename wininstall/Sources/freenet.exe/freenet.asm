@@ -35,6 +35,12 @@ ExitFserve PROTO
 .data 
 ClassName  db "TrayIconFreenetClass",0 
 AppName    db "Freenet",0
+; These will be used when we include the config utility
+ConfigdllName db "config.dll",0
+ConfigProcName db "Config",0
+hconfigdll dd 0                 ; handle of the configdll, if loaded
+
+
 fserve     db " -cp freenet.jar Freenet.node.Node",0
 fconfig    db " -cp freenet.jar Freenet.node.gui.Config freenet.ini",0
 gatewayURIdef db "http://127.0.0.1:",0      ; Initialization will use this to creat gatewayURI
@@ -177,6 +183,21 @@ retnow:
   ret 
 SkipSpace endp
 ;----------------------------------------------------------------------------------------
+;DynLib proc dllName:DWORD, procName:DWORD
+; Loads a dll, and returns a pointer to the start of procName
+; it needs to be unloaded with "invoke FreeLibrary,hLib" when not used anymore
+; parameters: pointer to the dllName (string), pointer to the function name (string)
+; Return value: address of the function beginning
+;LOCAL hlib:DWORD        ; handle of the dll
+
+;  invoke LoadLibrary, dllName   ; returns handle to the library (DLL). If not, it will return NULL on failure
+;  mov hLib,eax
+
+;  invoke GetProcAddress,hLib,addr FunctionName  ; returns the address of the function if successful. Otherwise, it returns NULL 
+                                                ; Addresses of functions don't change unless you unload and reload the library. So you can put them in a global variable
+                        ; return with the value of GetProcAddress in eax, this is the address of the proc
+;  ret                   ; which can be called with something like: mov TestHelloAddr,eax call [TestHelloAddr]
+;Dynlib endp             ; Don't forget to unload the dll later!!!                               
 ;----------------------------------------------------------------------------------------
 Initialize proc
       ;==================================================
@@ -346,6 +367,7 @@ WinMain endp
 ;----------------------------------------------------------------------------------------------
 ExitFserve proc
       invoke TerminateProcess, hfservePrc, 0    ; brutal closing of the node
+      invoke Sleep, 500
       cmp ax,0                                  ; returns nonzero on success
       jz @F
       mov   fRunning, 0                         ; reset fRunning flag, if successful
@@ -354,11 +376,60 @@ ExitFserve proc
       invoke CloseHandle, hfservePrc
       ret
 ExitFserve endp
+
 ;----------------------------------------------------------------------------------------------
+
+StartConfigOrig proc
+;---------------------
+; Starts the Java configuration Dialog programm
+; once the new dll loaded will work, this function can be removed
+;---------------------
+LOCAL StartInfo:STARTUPINFO         ; needed to start the configuration process, outsource when outsourcing this one
+LOCAL prcInfo:PROCESS_INFORMATION   ;   "               "
+
+  mov   StartInfo.cb,SIZEOF STARTUPINFO
+  mov   StartInfo.lpReserved,NULL
+  mov   StartInfo.lpDesktop,NULL
+  mov   StartInfo.lpTitle,NULL
+   ;mov   StartInfo.dwFlags,STARTF_USESHOWWINDOW
+   ;mov   StartInfo.wShowWindow,SW_MINIMIZE
+  mov   StartInfo.cbReserved2,0
+  mov   StartInfo.lpReserved2,NULL            
+  invoke CreateProcess, addr javawpath, addr fconfig, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL,\
+  ADDR StartInfo, ADDR prcInfo    ; start Config
+  invoke WaitForSingleObject, prcInfo.hProcess, INFINITE      ;Wait till configuration is finished
+  invoke CloseHandle, prcInfo.hThread           ; and closing the handles of the process
+  invoke CloseHandle, prcInfo.hProcess
+
+  ret
+StartConfigOrig endp
+
+;----------------------------------------------------------------------------------------------
+StartConfig proc hParentWnd:DWORD
+; Pops up the configuration dialog which it loads from a dynamic loaded dll
+LOCAL ConfigProcAddress:DWORD
+
+  invoke LoadLibrary, OFFSET ConfigdllName        ; returns handle to the library (DLL). If not, it will return NULL on failure
+  mov hconfigdll, eax
+  invoke GetProcAddress,hconfigdll,OFFSET ConfigProcName  ; returns the address of the function if successful. Otherwise, it returns NULL 
+                                                        ; Addresses of functions don't change unless you unload and reload the library. So you can put them in a global variable
+    mov ConfigProcAddress, eax
+  .if (eax)             ; if we didn't fail (eax=0)
+    xor eax,eax		; push NULL as hParentWnd
+    push eax            ; hParentWnd             ; parameter 1 for the Config function
+    call [ConfigProcAddress]
+  .elseif
+    call StartConfigOrig    ; if we failed loading config.dll and getting the "Config" address, we fallback to the Java configurator
+  .endif
+
+  invoke FreeLibrary, hconfigdll
+  ret
+StartConfig endp
+
+;----------------------------------------------------------------------------------------------
+
 WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM 
     LOCAL pt:POINT
-    LOCAL StartInfo:STARTUPINFO         ; needed to start the configuration process, outsource when outsourcing this one
-    LOCAL prcInfo:PROCESS_INFORMATION   ;   "               "
     LOCAL lpmenitinf:MENUITEMINFO
  
     .if uMsg==WM_CREATE
@@ -449,19 +520,9 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 ;                invoke CreateDialogParam, hInstance, 100, hWnd, OFFSET FLogDlgProc, 0
                 
             .elseif ax==IDM_CONFIGURE                   ;menu choice configure 
-                mov   StartInfo.cb,SIZEOF STARTUPINFO
-                mov   StartInfo.lpReserved,NULL
-                mov   StartInfo.lpDesktop,NULL
-                mov   StartInfo.lpTitle,NULL
-                ;mov   StartInfo.dwFlags,STARTF_USESHOWWINDOW
-                ;mov   StartInfo.wShowWindow,SW_MINIMIZE
-                mov   StartInfo.cbReserved2,0
-                mov   StartInfo.lpReserved2,NULL            
-                invoke CreateProcess, addr javawpath, addr fconfig, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL,\
-                ADDR StartInfo, ADDR prcInfo    ; start Config
-                invoke WaitForSingleObject, prcInfo.hProcess, INFINITE      ;Wait till configuration is finished
-                invoke CloseHandle, prcInfo.hThread           ; and closing the handles of the process
-                invoke CloseHandle, prcInfo.hProcess
+
+                ;call StartConfigOrig                ; Pop up the configuration dialog and process it, need to wait here until it's done
+                call StartConfig                   ; Pop up the new configuration dialog and process it, need to wait here until it's done
                 call ExitFserve                 ; restarting the server
                 call Initialize                 ; reread all necessary configs
                 call StartFserve
