@@ -15,6 +15,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "fcpcommon"=".\fcpcommon\fcpcommon.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "fcpget"=".\fcpget\fcpget.dsp" - Package Owner=<4>
 
 Package=<5>
