@@ -23,7 +23,7 @@ main (int argc, char **argv)
     
     chdir_to_home();
     touch_inform_server(argv[1]);
-    l = listening_socket(ANARCAST_SERVER_PORT);
+    l = listening_socket(ANARCAST_SERVER_PORT, INADDR_ANY);
     
     puts("Server started.");
     

@@ -129,7 +129,7 @@ timestr ()
 
 // make a listening socket on port
 int
-listening_socket (int port)
+listening_socket (int port, int addr)
 {
     struct sockaddr_in a;
     int r = 1, s;
@@ -137,7 +137,7 @@ listening_socket (int port)
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
     a.sin_port = htons(port);
-    a.sin_addr.s_addr = htons(INADDR_ANY);
+    a.sin_addr.s_addr = htons(addr);
 
     if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	die("socket() failed");

@@ -57,7 +57,7 @@ main (int argc, char **argv)
     
     printf("%d Anarcast servers in database.\n", (end-hosts)/4);
     
-    l = listening_socket(INFORM_SERVER_PORT);
+    l = listening_socket(INFORM_SERVER_PORT, INADDR_ANY);
     active = 0;
     
 //    if (pthread_create(&t, NULL, thread, NULL))

@@ -84,7 +84,7 @@ main (int argc, char **argv)
     chdir_to_home();
     load_graphs();
     inform((inform_server = argv[1]));
-    l = listening_socket(PROXY_SERVER_PORT);
+    l = listening_socket(PROXY_SERVER_PORT, INADDR_LOOPBACK);
     
     // accept connections and spawn a thread for each
     for (;;)
