@@ -175,12 +175,12 @@ public class Assert {
 
     public static void assertTrue(boolean condition) {
         if (!condition)
-            throw new AssertionFailedError("Assertion not true");
+            throw new AssertionFailedError("Assertion not true.");
     }
 
     public static void assertTrue(String message, boolean condition) {
         if (!condition)
-            throw new AssertionFailedError(message + ": Assertion not tue.");
+            throw new AssertionFailedError(message + ": Assertion not true.");
     }
 
     public static void fail() {

@@ -67,10 +67,10 @@ public abstract class TestCase extends Assert implements Test {
         this.name = name;
     }
 
-    public void setUp() {
+    protected void setUp() throws Exception {
     }
 
-    public void tearDown() {
+    protected void tearDown() throws Exception {
     }
 
     public String toString() {
