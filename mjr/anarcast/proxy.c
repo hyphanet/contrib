@@ -302,8 +302,7 @@ hookup (const char hash[HASHLEN], int *address, int off)
     
     set_nonblock(c);
 
-    // loop until connect works
-    for (;;)
+    for (;;) // loop until connect works
 	if (connect(c, &a, sizeof(a)) == -1 && errno != EINPROGRESS) {
 	    rmref(a.sin_addr.s_addr);
 	    a.sin_addr.s_addr = route(hash, 0);
@@ -318,7 +317,7 @@ hookup (const char hash[HASHLEN], int *address, int off)
 void
 do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, const char *hashes)
 {
-    int m, next, active;
+    int m, next, active, i, realcount;
     fd_set w;
     struct timeval start, end;
     long seconds, millis;
@@ -330,29 +329,27 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     } xfers[FD_SETSIZE];
     
     FD_ZERO(&w);
-    next = active = 0;
-    m = 1;
+    next = active = m = realcount = 0;
     
-    alert("Inserting %d blocks of %d bytes each.", blockcount, blocksize);
+    for (i = 0 ; i < blockcount ; i++)
+	if (!mask[i]) realcount++;
+    
+    alert("Inserting %d blocks of %d bytes each.", realcount, blocksize);
     
     if (gettimeofday(&start, NULL) == -1)
         die("gettimeofday() failed");
     
     for (;;) {
-	int i;
 	fd_set x;
 	
-	// make new connections
-	while (active < CONCURRENCY && next < blockcount) {
+	while (active < CONCURRENCY && next < blockcount) { // make new connections
 	    int c;
 	    int addy;
-	    // skip this part, its mask is true
-	    if (mask && mask[next]) {
+	    if (mask && mask[next]) { // skip this part, its mask is true
 		next++;
 		continue;
 	    }
-	    // connect to server, watch fd
-	    c = hookup(&hashes[next*HASHLEN], &addy, 0);
+	    c = hookup(&hashes[next*HASHLEN], &addy, 0); // connect to server, watch fd
 	    FD_SET(c, &w);
 	    if (c >= m) m = c + 1;
 	    xfers[c].peeraddy = addy;
@@ -363,52 +360,42 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 	}
 	
 	x = w;
-	i = select(m, NULL, &x, NULL, NULL);
-	if (i == -1) die("select() failed");
-	if (!i) continue;
+	if (select(m, NULL, &x, NULL, NULL) == -1)
+	    die("select() failed");
 
-	// send data to eligible servers
-	for (i = 0 ; i < m ; i++)
+	for (i = 0 ; i < m ; i++) // send data to eligible servers
 	    if (FD_ISSET(i, &x)) {
 		int n = xfers[i].off;
-		if (n == -5)
-		    // command
-		    n = writeall(i, "i", 1);
-		else if (n < 0)
-		    // data length
-		    n = writeall(i, &(&blocksize)[4+n], -n);
-		else
-		    // data
-		    n = writeall(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
+		if (n == -5) // command
+		    n = write(i, "i", 1);
+		else if (n < 0) // data length
+		    n = write(i, &(&blocksize)[4+n], -n);
+		else // data
+		    n = write(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
 
-		// io error
-		if (n <= 0) {
+		if (n <= 0) { // io error
 		    int c, addy;
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
+		    if (i + 1 == m) m--;
 		    rmref(xfers[i].peeraddy);
-		    // connect to server, watch new fd
-		    c = hookup(&hashes[xfers[i].num*HASHLEN], &addy, 0);
+		    c = hookup(&hashes[xfers[i].num*HASHLEN], &addy, 0); // connect to server, watch new fd
 		    FD_SET(c, &w);
+		    if (c >= m) m = c + 1;
 		    xfers[c].peeraddy = addy;
 		    xfers[c].num = xfers[i].num;
 		    xfers[c].off = -5; // 'i' + 4-byte datalength
-		}
-		
-		// are we done?
-		xfers[i].off += n;
-		if (xfers[i].off == blocksize) {
+		} else if ((xfers[i].off += n) == blocksize) { // all done
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
-		    if (i == m) m--;
+		    if (i + 1 == m) m--;
 		    active--;
 		}
 	    }
 
-	// nothing left to do?
-	if (!active && next == blockcount)
+	if (!active && next == blockcount) // nothing left to do?
 	    break;
     }
     
@@ -423,10 +410,10 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     }
 	
     alert("Insert of %d blocks completed in %d minutes, %d.%03d seconds.",
-          blockcount, seconds/60, seconds%60, millis);
+          realcount, seconds/60, seconds%60, millis);
 
     alert("Average throughput: %.3f kilobytes/second.",
-	  (double)blockcount*blocksize/(seconds*1000+millis));
+	  (double)realcount*blocksize/(seconds*1000+millis));
 }
 
 //=== request ===============================================================
@@ -632,8 +619,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     
     FD_ZERO(&r);
     FD_ZERO(&w);
-    next = active = success = 0;
-    m = 1;
+    next = active = success = m = 0;
     
     alert("Downloading %d blocks of %d bytes each.", blockcount, blocksize);
     
@@ -644,16 +630,13 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 	int i;
 	fd_set s, x;
 
-	// make new connections
-	while (active < CONCURRENCY && next < blockcount) {
+	while (active < CONCURRENCY && next < blockcount) { // make new connections
 	    int c, addy;
-	    // skip this part, its mask is true
-	    if (mask && mask[next]) {
+	    if (mask && mask[next]) { // skip this part, its mask is true
 		next++;
 		continue;
 	    }
-	    // connect to server, watch fd
-	    c = hookup(&hashes[next*HASHLEN], &addy, 0);
+	    c = hookup(&hashes[next*HASHLEN], &addy, 0); // connect to server, watch fd
 	    FD_SET(c, &w);
 	    if (c >= m) m = c + 1;
 	    xfers[c].peeraddy = addy;
@@ -665,60 +648,48 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 	}
 
 	s = r, x = w;
-	i = select(m, &s, &x, NULL, NULL);
-	if (i == -1) die("select() failed");
-	if (!i) continue;
-
-	// send request to eligible servers
-	for (i = 0 ; i < m ; i++)
+	if (select(m, &s, &x, NULL, NULL) == -1)
+	    die("select() failed");
+	
+	for (i = 0 ; i < m ; i++) // send request to eligible servers
 	    if (FD_ISSET(i, &x)) {
 		int n = xfers[i].off;
-		if (n == -1)
-		    // command
-		    n = writeall(i, "r", 1);
-		else
-		    // hash
-		    n = writeall(i, &hashes[xfers[i].num*HASHLEN+n], HASHLEN-n);
+		if (n == -1) // command
+		    n = write(i, "r", 1);
+		else // hash
+		    n = write(i, &hashes[xfers[i].num*HASHLEN+n], HASHLEN-n);
 
-		// io error
-		if (n <= 0) {
+		if (n <= 0) { // io error
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
+		    if (i + 1 == m) m--;
 		    rmref(xfers[i].peeraddy);
-		    // connect to server, watch new fd
-		    if (++xfers[i].try < 3) {
+		    if (++xfers[i].try < 3) { // connect to server, watch new fd
 		        int c, addy;
 		        c = hookup(&hashes[xfers[i].num*HASHLEN], &addy, xfers[i].try);
 		        FD_SET(c, &w);
+			if (c >= m) m = c + 1;
 			xfers[c].peeraddy = addy;
 		        xfers[c].num = xfers[i].num;
 			xfers[c].try = xfers[i].try;
 		        xfers[c].off = -1; // 'r'
-		    } else {
-			if (i == m) m--;
+		    } else
 		        active--;
-		    }
-		}
-		
-		// are we done sending our request?
-		if ((xfers[i].off += n) == HASHLEN) {
+		} else if ((xfers[i].off += n) == HASHLEN) { // are we done sending our request?
 		    FD_CLR(i, &w); // no more sending data...
 		    FD_SET(i, &r); // reading is good fer yer brane!
 		    xfers[i].off = -4; // datalength
 		}
 	    }
 
-	// read our precious data
-	for (i = 0 ; i < m ; i++)
+	for (i = 0 ; i < m ; i++) // read our precious data
 	    if (FD_ISSET(i, &s)) {
 		int n = xfers[i].off;
-		if (n < 0)
-		    // data length
-		    n = readall(i, &(&xfers[i].dlen)[4+n], -n);
-		else
-		    // data
-		    n = readall(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
+		if (n < 0) // data length
+		    n = read(i, &(&xfers[i].dlen)[4+n], -n);
+		else // data
+		    n = read(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
 
 		if (n <= 0) {
 		    if (close(i) == -1)
@@ -726,34 +697,26 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    if (xfers[i].off != -4)
 			rmref(xfers[i].peeraddy);
 		    FD_CLR(i, &r);
-		    // try another server
-		    if (++xfers[i].try < 3) {
+		    if (i + 1 == m) m--;
+		    if (++xfers[i].try < 3) { // try another server
 		        int c, addy;
-		        c = hookup(&hashes[xfers[i].num*HASHLEN], &addy, xfers[i].try);
-		        FD_SET(c, &w);
+			c = hookup(&hashes[xfers[i].num*HASHLEN], &addy, xfers[i].try);
+			FD_SET(c, &w);
+			if (c >= m) m = c + 1;
 			xfers[c].peeraddy = addy;
 		        xfers[c].num = xfers[i].num;
 		        xfers[c].try = xfers[i].try;
-		        xfers[c].off = -(1+HASHLEN); // 'r' + hash
-		    } else {
-		        if (i == m) m--;
+		        xfers[c].off = -1; // 'r'
+		    } else
 		        active--;
-		    }
-		}
-
-		// is the data length incorrect?
-		xfers[i].off += n;
-		if (!xfers[i].off && xfers[i].dlen != blocksize) {
+		} else if (!(xfers[i].off += n) && xfers[i].dlen != blocksize) { // bad datalength
 		    alert("Data length read for block %d is incorrect. (%d != %d)", xfers[i].num+1, xfers[i].dlen, blocksize);
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &r);
-		    if (i == m) m--;
+		    if (i + 1 == m) m--;
 		    active--;
-		}
-
-		// are we done reading the data?
-		if (xfers[i].off == blocksize) {
+		} else if (xfers[i].off == blocksize) { // done reading data
 		    unsigned char hash[HASHLEN];
 		    hashdata(&blocks[xfers[i].num*blocksize], blocksize, hash);
 		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
@@ -766,13 +729,12 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &r);
-		    if (i == m) m--;
+		    if (i + 1 == m) m--;
 		    active--;
 		}
 	    }
 
-	// nothing left to do?
-	if (!active && next == blockcount)
+	if (!active && next == blockcount) // nothing left to do?
 	    break;
     }
     
@@ -810,6 +772,8 @@ load_address_database ()
 	alert("No addresses in database. Exiting.\n");
 	exit(1);
     }
+
+    alert("Loading %d addresses.", count);
     
     // purge old addresses
     while (head) {
