@@ -127,7 +127,6 @@ const int CommandActions[] = {COMMAND_OPEN, COMMAND_IMPORT, COMMAND_EXPORT, COMM
 /*		strings, etc... */
 char szHomeDirectory[MAX_PATH];		/* used to store the directory in which freenet.exe, etcm are located */
 
-char szjavapath[JAVAWMAXLEN];		/* used to read Javaexec= definition out of FLaunch.ini */
 char szjavawpath[JAVAWMAXLEN];		/* used to read Javaw= definition out of FLaunch.ini */
 char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out of FLaunch.ini */
 char szfconfigexec[BUFLEN];			/* used to read Fconfig= definition out of FLaunch.ini */
@@ -747,28 +746,45 @@ void ReloadSettings(void)
 {
 	char szbuffer[MAX_PATH*2+2048];
 
+	szbuffer[0]='\0';
+	szjavawpath[0]='\0';
+
 	/* set the current directory to the path name so we can use GetProfile commands in the current directory */
 	SetCurrentDirectory(szHomeDirectory);
 
-	/* Get the javaw line and if that isn't there fall back on the javaexec line ... */
-	/* (Note, javaw.exe is used in preference to java.exe) */
-	if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
+	/* Get the javaexec line and if that isn't there fall back on the javaw line ... */
+	/* (Note, java.exe is used in preference to javaw.exe because:
+	    1.  Freenet node doesn't create a window so don't need any Windows overhead of javaw
+	    2.  Javaw.exe process cannot be 'stopped' cleanly because node doesn't create a window
+	        (there is no window to send a CLOSE message to, so must resort to TerminateThread which is unpleasant)
+	    3.  Java.exe can be stopped 'cleanly' by sending a CLOSE message (Freenet.exe tries three different close messages :-)
+	    4.  java.exe can also be stopped 'cleanly' by sending a ^C to its STDIN handle (Freenet.exe doesn't do this yet
+	        but will soon, especially when we really roll out with 'free' JVMs which not be as versatile as Sun's) */
+	if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
 	{
-		GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
+		if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
+		{
+			// try and find a generic "java.exe" in the path - if it works, use that, if not default to "javaw.exe"
+			HANDLE hJavaExecutable = LoadLibrary("java.exe");
+			if (hJavaExecutable==NULL || hJavaExecutable==INVALID_HANDLE_VALUE)
+			{
+				hJavaExecutable = LoadLibrary("javaw.exe");
+			}
+			if (hJavaExecutable!=NULL && hJavaExecutable!=INVALID_HANDLE_VALUE)
+			{
+				GetModuleFileName(hJavaExecutable, szbuffer, JAVAWMAXLEN);
+				FreeLibrary(hJavaExecutable);
+			}
+			else
+			{
+				// try and find whatever .jar is associated with in the registry
+				// if it isn't named "java.exe" or "javaw.exe" then ignore it
+				// TODO
+			}
+		}
 	}
 	/* .. and convert to short filename format, because we want one SIMPLE string for javaw.exe path */
 	GetShortPathName(szbuffer, szjavawpath, sizeof(szjavawpath) );
-
-
-	/* Get the javaexec line ...*/
-	if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
-	{
-		GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
-	}
-	/* ... and convert to short filename format, because we want one SIMPLE string for java.exe path */
-	GetShortPathName(szbuffer, szjavapath, sizeof(szjavapath) );
-
-
 
 	/* get the fservecli launch string from flaunch.ini */
 	GetPrivateProfileString(szflsec, szfservecliexeckey, szfserveclidefaultexec, szfservecliexec, BUFLEN, szflfile);
@@ -958,6 +974,9 @@ void StartConfig(void)
 		pProcAddress = (LPFNDLLCONFIG)GetProcAddress(hConfigDLL,szConfigProcName);
 		if (pProcAddress)
 		{
+			SetCurrentDirectory(szHomeDirectory);
+			CreateConfig("./default.ini");
+			MergeConfig(szfinifile,"./default.ini");
 			result = (pProcAddress)(NULL,FALSE);	/* BOOL InvokeConfig (HWND parentHwnd, BOOL Wizardmode); */
 			// when we get here configuration is complete
 			// need to restart the server
@@ -973,10 +992,10 @@ void StartConfig(void)
 			// configuration complete - release the 'configurator' mutex
 			ReleaseSemaphore(hConfiguratorSemaphore,1,NULL);
 		}
+		
+		/* Unload the DLL */
+		FreeLibrary(hConfigDLL);
 	}
-
-	/* Unload the DLL */
-	FreeLibrary(hConfigDLL);
 
 	if ((!hConfigDLL) || (!pProcAddress) )
 	{
@@ -1018,6 +1037,9 @@ void StartConfigOrig(void)
 		lstrcpy(szexecbuf, szfconfigexec);
 	}
 
+	SetCurrentDirectory(szHomeDirectory);
+	CreateConfig("./default.ini");
+	MergeConfig(szfinifile,"./default.ini");
 	if (!CreateProcess(szexec, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
 	{
 		MessageBox(NULL, "Unable to launch configurator for Freenet", "Cannot Config", MB_OK | MB_ICONERROR | MB_TASKMODAL);

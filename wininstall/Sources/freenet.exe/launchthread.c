@@ -236,9 +236,28 @@ void KillProcessNicely(PROCESS_INFORMATION *prcinfo)
 	/* get the window handle from the process ID by matching all
 	   known windows against it (not really ideal but no alternative) */
 	EnumWindows(KillWindowByProcessId, (LPARAM)(prcinfo->dwProcessId) );
+	
+	/* Also try sending the process a few thread-messages ... */
+	PostThreadMessage(prcinfo->dwThreadId, WM_CLOSE, 0, 0);
+	PostThreadMessage(prcinfo->dwThreadId, WM_SYSCOMMAND, SC_CLOSE, 0);
 
-	/* wait for the process to shutdown (we give it five seconds) */
-	for (i=0; i<5000; i+=KAnimationSpeed)
+	/* wait for the process to shutdown (we give it one second) */
+	for (i=0; i<1000; i+=KAnimationSpeed)
+	{
+		dwWaitError = WaitForSingleObject(prcinfo->hProcess,KAnimationSpeed);
+		if (dwWaitError!=WAIT_TIMEOUT)
+			break;
+
+		// keep icon animation while we wait
+		ModifyIcon();
+	}
+	if (dwWaitError==WAIT_TIMEOUT)
+	{
+		// try sending a few more thread-messages ... */
+		PostThreadMessage(prcinfo->dwThreadId, WM_QUIT, 0, 0);
+	}
+	/* wait for the process to shutdown (we give it four more seconds) */
+	for (i=0; i<4000; i+=KAnimationSpeed)
 	{
 		dwWaitError = WaitForSingleObject(prcinfo->hProcess,KAnimationSpeed);
 		if (dwWaitError!=WAIT_TIMEOUT)
