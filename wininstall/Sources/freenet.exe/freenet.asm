@@ -53,7 +53,9 @@ errMsg db "Couldn't start the node,",13,"make sure FLaunch.ini has an entry java
 errTitle db "Error starting node",0 
 MAXLEN equ 256
 javawpath db "java.exe",0, MAXLEN-9 DUP (?) ; Stores the path to javaw (incl filename)
-fRunning db 0       ;indicates whether the Node is running
+;Status flags and command line option indicators:
+fRunning db 0                   ; indicates whether the Node is running
+OpenGWOnStartup db 0            ; was freenet.exe called with the -open option?
 
 .data?
 BUFLEN equ 400
@@ -117,14 +119,16 @@ LOCAL hMainWnd:HWND
 		ret                         ; return TRUE to continue
 	.ENDIF
 
+; yes we are running it, so find its hMainWnd and open the Gateway page...
+
+	invoke FindWindow, ADDR ClassName, NULL
+	cmp    eax,0                      ; didn't find Window? Then
+      jz ReturnZero                     ; return FALSE (eax=0) to exit
+
+	invoke GetLastActivePopup, eax
+	mov	hMainWnd, eax		; eax == hMainWnd or hPopupWnd
+
 ;commenting out, we don't want to show the main window as it is invisible.
-;	invoke FindWindow, ADDR ClassName, NULL
-;	cmp    eax,0                      ; didn't find Window? Then
-;      jz ReturnZero                     ; return FALSE (eax=0) to exit
-;
-;	invoke GetLastActivePopup, eax
-;	mov	hMainWnd, eax		; eax == hMainWnd or hPopupWnd
-;
 ;   invoke	IsIconic, hMainWnd
 ;    .IF (eax)
 ;		invoke	ShowWindow, hMainWnd, SW_RESTORE
@@ -132,16 +136,55 @@ LOCAL hMainWnd:HWND
 ;   .ENDIF
 ;   invoke	SetForegroundWindow, hMainWnd
 
+    ;open the Gateway page now...
+    invoke SendMessage,hMainWnd,WM_COMMAND,IDM_GATEWAY,0  ;this opens the Gateway page if the node is running
+
+
 ReturnZero: mov eax,FALSE		; return FALSE (eax=0) to exit
     ret
 
 OnlyOneInstance endp
 ;컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴
+;-------------------------------------------------
+SkipSpace proc lpvoid:DWORD 
+; Skipspace will forward through a string until it skipped the first space or the strings end is reached
+; Spaces in "aa bb" are allowed and will be ignored
+; Return value: the new address in eax
+
+  mov edx,lpvoid  ; using edx as running pointer
+  xor al,al       ; al shows if we are in a paranthesis or not, initialize  mov edx,lpvoid
+  dec edx
+  stloop:
+   inc edx          ; look at next char
+   mov ah, [edx]
+   cmp ah,0        ; Exit if we reached the end lpvoid will point to the 0 then
+   jz retnow
+   cmp ah,22  ; 22='"'
+   jnz @F           ; jump if we don't need to change paranthesis state
+    xor al,1        ; Switch bx 1/0 we are now in or out of paranthesis
+   @@:
+   
+   cmp al,1        ; are we in a paranthesis?
+   jz stloop       ; the go to the loopstart
+   cmp ah,32       ;  32=' ' ?
+   jz incandret
+  jmp stloop        ; and back to the beginning of the loop 
+   
+incandret:
+  inc edx
+retnow:
+  mov eax, edx   ; and return the pointer to the new stringstart as return value
+  ret 
+SkipSpace endp
+;----------------------------------------------------------------------------------------
 ;----------------------------------------------------------------------------------------
 Initialize proc
       ;==================================================
-      ; Initialize (e.g. Read Javabin path
+      ; Initialize (e.g. Read Javabin path) and parses the cmd line otions setting the correct flags
       ;==================================================
+LOCAL lpvoid:DWORD ,lpvoid2:DWORD       ; pointers used to parse the cmdline string
+LOCAL lcid:DWORD;
+
  szText flsec,"Freenet Launcher"
  szText javakey,"Javaexec"
  szText javawkey,"Javaw"
@@ -149,7 +192,6 @@ Initialize proc
  szText flfile,"./FLaunch.ini"
  szText finisec,"Freenet node"
  szText empty, 0
-
 
  ; Set current directory to the dir where the exe is in
  invoke GetModuleFileName, NULL, OFFSET buffer, BUFLEN     ;Get complete path of the executable
@@ -179,6 +221,43 @@ Initialize proc
  invoke szCatStr, addr gatewayURI, addr buffer          ; and the port into gatewayURI
  ;debug only: invoke WritePrivateProfileString, OFFSET finisec,OFFSET fprxkey, OFFSET gatewayURI, OFFSET flfile
 
+; Parsing the commandline now:
+   szText OpenGW, "-open"
+
+
+    mov lcid, 0                 ; Setting the fucking language id to SORT_DEFAULT, LANG_NEUTRAL, we need that for comparing strings later on
+    invoke GetCommandLine       ; Get the command line (incl. .exe)
+
+    mov lpvoid, eax             ; lpvoid to beginning of command line
+    invoke SkipSpace, lpvoid    ; Skip the first blank, allow "es around a string though
+    mov lpvoid, eax             ; this first call will skip the executable file name
+
+    cmdlineloop:
+      mov bl, [eax]             ; copy char in [eax] to bl to see if...
+      cmp bl, 0                 ; did we reach the end of the string?
+      jz endcmdlineparsing      ; then exit the parsing
+      invoke SkipSpace, lpvoid  ; look for the next cmdline string to set the end of the first one right
+
+      mov lpvoid2, eax          ; otherwise point lpvoid2 to the beginning of the next cmdline option
+      sub eax, lpvoid           ; sub lpvoid, so we get the string length of the cmdline option, because of the space it will be 1 too large if we are not at the end of the string
+      cmp eax, 0                ; are we at the end of the string?
+      jnz @F                    ; yes, then move the cmdline len is lpvoid2-lpvoid1
+        dec eax
+      @@:
+      mov edx, -1     
+      invoke CompareString, lcid, NORM_IGNORECASE, lpvoid, eax, OFFSET OpenGW, edx ; returns 1,2,3 on <,=,>
+
+      .if (eax==2)              ; strings matched
+        mov OpenGWOnStartup, 1  ; Set OpenGWOnStartup flag
+        szText dlg,"Setting Open flag"
+      .endif
+
+      mov eax, lpvoid2          ; setting lpvoid to the next cmdline option, pointed to by lpvoid2
+      mov lpvoid, eax
+      jmp cmdlineloop           ; and restart the parsing loop
+
+  endcmdlineparsing:                              
+; Finished parsing the command line
 
  ret
 Initialize endp
@@ -295,6 +374,10 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         invoke AppendMenu,hPopupMenu,MF_STRING,IDM_EXIT,addr ExitString
         ;Starting FServe
         invoke SendMessage, hWnd, WM_COMMAND, IDM_STARTSTOP, 0
+        .if (OpenGWOnStartup)            ; if freenet.exe was started with the '-OpenGateway' option
+          invoke Sleep, 3000                                ; Wait until the node has started for sure
+          invoke SendMessage,hWnd,WM_COMMAND,IDM_GATEWAY,0  ;this opens the Gateway page
+        .endif
 
     .elseif uMsg==WM_DESTROY
         invoke ExitFserve; 
