@@ -155,6 +155,9 @@ insert (int c)
     dlen = g.dbc * blocksize;
     clen = g.cbc * blocksize;
     len  = dlen + clen;
+
+    // if there's more than one blocksize of padding, we really fucked up
+    assert(dlen < datalength + blocksize);
     
     // read data from client
     alert("Reading plaintext from client.");
