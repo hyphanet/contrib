@@ -1,17 +1,17 @@
 #include "anarcast.h"
 #include "crypt.c"
 
-// our splendid states
-struct {
-    char type, hash[HASHLEN], *data;
-    unsigned int off, len;
-} a[FD_SETSIZE];
-
 int
 main (int argc, char **argv)
 {
     int m, l;
     fd_set r, w;
+
+    // states
+    struct {
+	char type, hash[HASHLEN], *data;
+	unsigned int off, len;
+    } a[FD_SETSIZE];
     
     if (argc != 1) {
 	fprintf(stderr, "Usage: %s (no options)\n", argv[0]);
