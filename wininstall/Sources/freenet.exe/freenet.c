@@ -23,6 +23,7 @@
 #include "logfile.h"
 #include "about.h"
 #include "stdlib.h" // for atol
+#include "stdio.h" // for sprintf
 
 /******************************************************
  *  G L O B A L S                                     *
@@ -68,10 +69,12 @@ const char szflfile[]="./FLaunch.ini";           /* name of the ini file */
 const char szflsec[]="Freenet Launcher";         /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=javaw.exe */
+const char szjavamemkey[]="Java Mem"; /* ie Java Mem=128  meaning 128MB JVM */
 const char szprioritykey[]="Priority"; /* ie Priority=0 */
 const int  nDefaultPriority = THREAD_PRIORITY_IDLE;
 const char szpriorityclasskey[]="PriorityClass"; /* ie PriorityClass=32 */
 const int  nDefaultPriorityClass = IDLE_PRIORITY_CLASS;
+const int  njavamemdefault=192; /* ie Java Mem=192 */
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Main */
 const char szfserveclidefaultexec[]="freenet.node.Main"; /* default for above */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
@@ -135,6 +138,7 @@ char szfprxPort[6];                 /* used to store just the fproxy port (Defau
 WORD fprxPort;                      /* Decimal version of Port number as read from freenet.ini */
 char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8888" after the fproxy port has been read from freenet.ini */
 char szClasspathExtra[32767];       /* used to store additional jars to put into the CLASSPATH env variable */
+int  njavamem;
 
 /*		flags, etc... */
 FREENET_MODE nFreenetMode=FREENET_STOPPED;
@@ -770,6 +774,8 @@ void ReloadSettings(void)
 	/* UPDATE 6th March 2003:
 	   I'm pissed off trying to work around system configurations.  Instead I now use javaw.exe in preference
 	   and simply TerminateProcess it instead of trying to shut it down cleanly.  It works.  Fuck it */
+	// Info for the interested - Win98 / WinME *cannot*  (CANNOT)  shutdown windows if a console app (even a hidden one)
+	// is still running.  Hence the 'workaround' of just using the win32 non-console jvm and terminating it (yuk)
 	if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
 	{
 		if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
@@ -795,6 +801,20 @@ void ReloadSettings(void)
 	}
 	/* .. and convert to short filename format, because we want one SIMPLE string for javaw.exe path */
 	GetShortPathName(szbuffer, szjavawpath, sizeof(szjavawpath) );
+
+	/* get the memory amount from flaunch.ini */
+	njavamem = GetPrivateProfileInt(szflsec, szjavamemkey, njavamemdefault, szflfile);
+	if (njavamem<=0)
+	{
+		njavamem = njavamemdefault;
+	}
+	if (njavamem==njavamemdefault)
+	{
+		char szmem[11];
+		sprintf(szmem, "%lu", njavamemdefault);
+		WritePrivateProfileString(szflsec, szjavamemkey, szmem, szflfile);
+	}
+	
 
 	/* get the fservecli launch string from flaunch.ini */
 	GetPrivateProfileString(szflsec, szfservecliexeckey, szfserveclidefaultexec, szfservecliexec, BUFLEN, szflfile);

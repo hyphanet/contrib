@@ -8,6 +8,7 @@
 
 #include "stdafx.h"
 #include "launchthread.h"
+#include "stdio.h"
 
 /******************************************************
  *  G L O B A L S                                     *
@@ -399,11 +400,16 @@ STARTUPINFO FredStartInfo={	sizeof(STARTUPINFO),
 
 void MonitorThreadRunFserve()
 {
-	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
+	char szexecbuf[sizeof(szjavawpath)+17+sizeof(szfservecliexec)+2];
 
 	lstrcpy(szexecbuf, szjavawpath);
 	lstrcat(szexecbuf, " ");
-	lstrcat(szexecbuf, szfservecliexec); 
+	if(njavamem>0)
+	{
+		sprintf(szexecbuf+strlen(szexecbuf), "-Xmx%lum ", njavamem);
+	}
+	lstrcat(szexecbuf, szfservecliexec);
+
 
 	// AllocConsole();
 	
