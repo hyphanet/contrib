@@ -9,7 +9,7 @@
 Name "Update Freenet"
 
 ; The file to write
-OutFile "UpdateFreenet.exe"
+OutFile "UpdateSnapshot.exe"
 
 
 InstallDir $EXEDIR       ; The default installation directory
@@ -45,9 +45,19 @@ CloseFreenet:
 ClosedFreenet:
 
  StrCpy $1 "http://freenetproject.org/snapshots/freenet-latest.jar"
- StrCpy $2 "$INSTDIR\freenet.jar"
+ StrCpy $2 "$INSTDIR\freenet.jar.new"
  Call DownloadFile
  
+  Delete "$INSTDIR\freenet.jar"
+  IfErrors 0 jardeleted
+  MessageBox MB_OK "Error deleting the old jar, aborting update..."
+  Abort
+  jardeleted:
+  Rename "$INSTDIR\freenet.jar.new" "$INSTDIR\freenet.jar"
+
+  
+ 
+  # update finished, starting the node if it ran before
   IntCmp $9 1 0 StartedFreenet
   DetailPrint "Starting Freenet now"
   ClearErrors
@@ -58,3 +68,10 @@ StartedFreenet:
  
   RMDir /r $TEMP\freenet
 SectionEnd
+
+;--------------------------------------------------------------------
+Function .onInstFailed
+ RMDir /r $TEMP\freenet
+ Delete "$INSTDIR\freenet.jar.new" 
+FunctionEnd
+
