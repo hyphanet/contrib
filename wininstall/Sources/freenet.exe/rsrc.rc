@@ -70,10 +70,10 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.freenetproject.org\r\nsupport@freenetproject.org\r\nWritten / Maintained by Dave Hooper\r\n23 April 2003\0"
+            VALUE "Comments", "http://www.freenetproject.org\r\nsupport@freenetproject.org\r\nWritten / Maintained by Dave Hooper\r\n24 April 2003\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "Freenet Systray Application\0"
-            VALUE "FileVersion", "0.5.1.2\0"
+            VALUE "FileVersion", "0.5.1.3\0"
             VALUE "InternalName", "freenet.exe\0"
             VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
             VALUE "LegalTrademarks", "\0"
@@ -151,23 +151,24 @@ BEGIN
                     IDC_TEXT3,37,7,180,19,SS_CENTERIMAGE | NOT WS_VISIBLE
 END
 
-IDD_ABOUT DIALOG DISCARDABLE  0, 0, 231, 116
+IDD_ABOUT DIALOGEX 0, 0, 233, 114
 STYLE DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP | WS_VISIBLE | 
     WS_CAPTION | WS_SYSMENU
 CAPTION "About Freenet"
 FONT 8, "MS Sans Serif"
 BEGIN
-    GROUPBOX        "Freenet for Windows®",IDC_STATIC,7,7,217,102
-    ICON            IDI_HOPSENABLED,IDC_STATIC,18,20,20,20
+    GROUPBOX        "Freenet for Windows®",IDC_STATIC,7,7,219,100
+    ICON            IDI_HOPSENABLED,IDC_ABOUT_ICON,16,20,20,20,0,
+                    WS_EX_TRANSPARENT
     LTEXT           "Freenet for Windows® support software maintained by Dave Hooper.",
-                    IDC_STATIC,53,20,149,18
-    LTEXT           "Version 0.5.1.2 (23th April 2003)",IDC_STATIC,53,40,165,
+                    IDC_STATIC,55,20,149,18
+    LTEXT           "Version 0.5.1.3 (24th April 2003)",IDC_STATIC,55,40,165,
                     10
-    LTEXT           "Node info:",IDC_STATIC,13,50,205,8
-    LTEXT           "",IDC_STATIC_ABOUT_NODEINFO,13,58,205,31
-    DEFPUSHBUTTON   "&OK",IDOK,140,94,84,15
-    PUSHBUTTON      "www.freenetproject.org",IDC_LAUNCH_WWW_SUPPORT_PAGE,7,
-                    94,133,15
+    LTEXT           "Node info:",IDC_STATIC,13,49,207,8
+    LTEXT           "",IDC_STATIC_ABOUT_NODEINFO,13,59,207,31
+    DEFPUSHBUTTON   "&OK",IDOK,141,91,84,15
+    PUSHBUTTON      "www.freenetproject.org",IDC_LAUNCH_WWW_SUPPORT_PAGE,8,
+                    91,133,15
 END
 
 
@@ -198,9 +199,9 @@ BEGIN
     IDD_ABOUT, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 224
+        RIGHTMARGIN, 226
         TOPMARGIN, 7
-        BOTTOMMARGIN, 109
+        BOTTOMMARGIN, 107
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -52,6 +52,7 @@ char* ReadIntoFileBuffer(HANDLE hFile, ULARGE_INTEGER *pulCurrentFilePosition, c
 	ULARGE_INTEGER ulReadStartOffset;
 	ULARGE_INTEGER ulActualCurrentPosition;
 	BOOL bReadSuccess;
+	char * szRunner;
 
 	// we always want a nul-terminated buffer
 	pTextBuffer[dwTextBufferSize-1]='\0';
@@ -108,6 +109,16 @@ char* ReadIntoFileBuffer(HANDLE hFile, ULARGE_INTEGER *pulCurrentFilePosition, c
 	{
 		*pdwBytesReadAfter = dwBytesReadAfter;
 	}
+
+	// change any NULs embedded within log to SPACE characters
+	szRunner = pTextBuffer + strlen(pTextBuffer);
+	while ( szRunner< pCurrentPointer+dwBytesReadAfter )
+	{
+		*szRunner=' ';
+		szRunner = szRunner + strlen(szRunner);
+	}		
+		
+
 	return pCurrentPointer;
 }
 	
@@ -337,8 +348,7 @@ char* ReadNextNLines( /* in,out */ int *pnLines, char * pStartLookingHere, char 
 void FormatFileSize(char *pBuffer,DWORDLONG dwlFileSize)
 {
 	char* szunit;
-	DWORD shramount,dwForDec,dwForRem;
-	float divamount;
+	DWORD shramount;
 
 	if (dwlFileSize >= Int64ShllMod32(1,20) )
 	{
@@ -347,14 +357,12 @@ void FormatFileSize(char *pBuffer,DWORDLONG dwlFileSize)
 		{
 			// Gigabytes
 			shramount=30;
-			divamount=10.24f;
 			szunit="GB";
 		}
 		else
 		{
 			// Megabytes
 			shramount=20;
-			divamount=10.24f;
 			szunit="MB";
 		}
 	}
@@ -365,28 +373,22 @@ void FormatFileSize(char *pBuffer,DWORDLONG dwlFileSize)
 		{
 			// Kilobytes
 			shramount=10;
-			divamount=10.24f;
 			szunit="KB";
 		}
 		else
 		{
 			shramount=0;
-			divamount=1.0f;
 			szunit="bytes";
 		}
 	}
-	dwForDec = (DWORD)Int64ShraMod32(dwlFileSize,shramount);
-	dwForRem = (DWORD)(((float)((DWORD)(dwlFileSize-Int64ShllMod32(dwForDec,shramount))))/divamount);
-	if (dwForRem>99)
-	{
-		dwForRem=99;
-	}
 	if (shramount==0)
 	{
-		wsprintf(pBuffer, "%lu %s", dwForDec, szunit);
+		wsprintf(pBuffer, "%lu %s", dwlFileSize, szunit);
 	}
 	else
 	{
+		DWORD dwForDec = (DWORD)Int64ShraMod32(dwlFileSize,shramount);
+		DWORD dwForRem = (DWORD)(((float)((DWORD)(Int64ShraMod32(dwlFileSize,shramount-10)-Int64ShllMod32(dwForDec,10))))/10.24);
 		wsprintf(pBuffer, "%lu.%02u %s", dwForDec, dwForRem, szunit);
 	}
 }
@@ -394,7 +396,37 @@ void FormatFileSize(char *pBuffer,DWORDLONG dwlFileSize)
 
 void UpdateLogfileWindow (HWND hwndEditBox, HWND hwndScrollBar, const char * pTextPointer, int nLines, int nEditLines, DWORDLONG dwlFileSize, DWORDLONG ulFirstLineFilePosition, DWORDLONG ulLastLineFilePosition)
 {
-	SetWindowText(hwndEditBox, pTextPointer);
+	char szBuffer[32767];
+	size_t szBufferLen;
+	char *szRunner = szBuffer;
+
+	strncpy(szBuffer,pTextPointer,32766);
+	szBuffer[32766]='\0';
+	szBufferLen = 1+strlen(szBuffer);
+	while (szRunner<szBuffer+32766 && *szRunner)
+	{
+		char * szNewline = strchr(szRunner, '\n');
+		if (szNewline==NULL || *szNewline!='\n')
+			break;
+		if ( (szRunner==szNewline) || (*(szNewline-1) != '\r') )
+		{
+			szRunner = szNewline;
+			if (szBufferLen < 32766)
+			{
+				memmove(szRunner+1, szRunner, szBufferLen);
+				++szBufferLen;
+			}
+			else
+			{
+				memmove(szRunner+1, szRunner, szBufferLen-1);
+				szBuffer[32766]='\0';
+			}
+			*szRunner = '\r';
+			++szRunner;
+		}
+		++szRunner;
+	}
+	SetWindowText(hwndEditBox, szBuffer);
 
 	if (nLines < nEditLines)
 	{
