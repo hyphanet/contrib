@@ -88,21 +88,28 @@ load_key_database ()
     pthread_t t;
     int i;
     long ctime, last;
-    struct item *f, *tail;
+    struct item *f, *tail = NULL;
     char key[256], name[256], desc[1024], end[256];
     FILE *data = fopen("beable_database", "r");
+    
     if (!data) {
 	data = fopen("beable_database", "w");
 	if (!data) return -1;
-	fprintf(data, "freenet:KSK@test.html\nThe Infamous test.html\nThis has been swarming around the Freenet for a long time. Nobody knows who inserted it. This entry is just some nonsense to make my braindead software happy. Oh well.\n666\nEND\n");
+	fprintf(data, "freenet:KSK@test.html\n"
+		      "Welcome to Beable!\n"
+		      "This is just a placeholder.\n"
+		      "666\n"
+		      "END\n");
 	fclose(data);
 	data = fopen("beable_database", "r");
 	if (!data) return -1;
     }
     
     while (!feof(data)) {
-	i = fscanf(data, "%[^\n]\n%[^\n]\n%[^\n]\n%lx\n%[^\n]\n", key, name, desc, &ctime, end);
-	if (i != 5 || strcmp(end, "END") != 0) return -1;
+	i = fscanf(data, "%[^\n]\n%[^\n]\n%[^\n]\n%lx\n%[^\n]\n",
+		   key, name, desc, &ctime, end);
+	if (i != 5 || strcmp(end, "END") != 0)
+	    return -1;
 	if (!database) {
 	    database = malloc(sizeof(struct item));
 	    database->key = strdup(key);
@@ -161,7 +168,8 @@ database_sync_thread (void *arg)
 	}
 	pthread_mutex_lock(&mutex);
 	for (i = database; i ; i = i->next)
-	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n", i->key, i->name, i->desc, i->ctime);
+	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n",
+		    i->key, i->name, i->desc, i->ctime);
 	pthread_mutex_unlock(&mutex);
 	fclose(data);
     }
@@ -186,14 +194,16 @@ void *
 handler_thread (void *arg)
 {
     FILE *socket;
-    int i;
     char buf[1024], method[5], url[512];
 
     if (!(socket = fdopen(*(int *)arg, "r+")))
 	pthread_exit(NULL);
     
-    i = fscanf(socket, "%4s %511s\n", method, url);
-    if (i != 2)	goto end;
+    if (!fgets(buf, 1024, socket))
+	goto end;
+    
+    if (sscanf(buf, "%4s %511s", method, url) != 2)
+	goto end;
     
     if (strcmp(method, "GET") != 0)
 	goto end;
@@ -218,18 +228,60 @@ end:
 void
 send_index (FILE *socket)
 {
-    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nCache-control: no-cache\r\n\r\n<html>\n<head><title>Beable</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Beable!</h1>\n<table cellspacing=0 cellpadding=0>\n<tr align=center><td><form action=\"/search\" method=get>Search: <input type=text name=1 size=55 maxlength=255> <input type=submit value=\"Search\"></form>\n</td></tr>\n<tr align=center><td><a href=\"http://freenetproject.org/\">Get Freenet</a> || <a href=\"/add\">Add A Link</a> || <a href=\"/data\">Download Database</a></td></tr>\n</table>\n\n<p><table border=1>\n<tr><td><b>Name</b></td></td><td><b>Description</b></td></tr>\n";
-    char two[]="</table>\n\n</center>\n</body>\n</html>\r\n";
+    char one[]=
+	"HTTP/1.1 200 OK"
+	"\nContent-Type: text/html"
+	"\nCache-control: no-cache"
+	"\n"
+	"\n<html>"
+	"\n<head><title>Beable</title></head>"
+	"\n<body link=red vlink=red alink=red bgcolor=white>"
+	"\n"
+	"\n<center>"
+	"\n<h1>Beable!</h1>"
+	"\n<table cellspacing=0 cellpadding=0>"
+	"\n  <tr align=center>"
+	"\n    <td>"
+	"\n      <form action=\"/search\" method=get>"
+	"\n	   <input type=text name=1 size=55 maxlength=255>"
+	"\n	   <input type=submit value=\"Search\">"
+	"\n      </form>"
+	"\n    </td>"
+	"\n  </tr>"
+	"\n  <tr align=center>"
+	"\n    <td>"
+	"\n      <a href=\"http://freenetproject.org/\">Get Freenet</a>"
+	"\n      || <a href=\"/add\">Add A Link</a>"
+	"\n      || <a href=\"/data\">Download Database</a>"
+	"\n    </td>"
+	"\n  </tr>"
+	"\n</table>"
+	"\n"
+	"\n<p><table border=1>"
+	"\n  <tr>"
+	"\n    <td><b>Name</b></td>"
+	"\n    <td><b>Description</b></td>"
+	"\n  </tr>\n";
+    
+    char two[]=
+	"\n</table>"
+	"\n</center>"
+	"\n</body>"
+	"\n</html>\n";
     
     int i;
     
     fputs(one, socket);
     pthread_mutex_lock(&mutex);
-    for (i = 0 ; i < RECENT_ADDITIONS_LENGTH ; i++) {
-	if (!recent_additions[i]) break;
-	fprintf(socket, "<tr><td><a href=\"%s%s\">%s</a></td><td>%s</td></tr>\n",
-		FPROXY_ADDRESS, recent_additions[i]->key, recent_additions[i]->name, recent_additions[i]->desc);
-    }
+    for (i = 0 ; recent_additions[i] && i < RECENT_ADDITIONS_LENGTH ; i++)
+	fprintf(socket, "<tr>"
+			"\n  <td><a href=\"%s%s\">%s</a></td>"
+			"\n  <td>%s</td>"
+			"</tr>\n",
+			FPROXY_ADDRESS,
+			recent_additions[i]->key,
+			recent_additions[i]->name,
+			recent_additions[i]->desc);
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
@@ -237,8 +289,28 @@ send_index (FILE *socket)
 void
 run_search (FILE *socket, char *url)
 {
-    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Search Results</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Search Results</h1>\n\n<p><table border=1>\n<tr><td><b>Name</b></td></td><td><b>Description</b></td></tr>\n";
-    char two[]="</table>\n\n</center>\n</body>\n</html>\r\n";
+    char one[]=
+	"HTTP/1.1 200 OK"
+	"\n"
+	"\nContent-Type: text/html"
+	"\n"
+	"\n<html>"
+	"\n<head><title>Search Results</title></head>"
+	"\n<body link=red vlink=red alink=red bgcolor=white>"
+	"\n<center>"
+	"\n"
+	"\n<h1>Search Results</h1>"
+	"\n<p><table border=1>"
+	"\n  <tr>"
+	"\n    <td><b>Name</b></td>"
+	"\n    <td><b>Description</b></td>"
+	"\n  </tr>\n";
+    
+    char two[]=
+	"\n</table>"
+	"\n</center>"
+	"\n</body>"
+	"\n</html>\n";
     
     struct item *i;
     char *query;
@@ -253,7 +325,14 @@ run_search (FILE *socket, char *url)
     pthread_mutex_lock(&mutex);
     for (i = database ; i ; i = i->next)
 	if (strstr(i->name, query) || strstr(i->desc, query))
-	    fprintf(socket, "<tr><td><a href=\"%s%s\">%s</a></td><td>%s</td></tr>\n", FPROXY_ADDRESS, i->key, i->name, i->desc);
+	    fprintf(socket, "<tr>"
+		            "\n  <td><a href=\"%s%s\">%s</a></td>"
+			    "\n  <td>%s</td>"
+			    "\n</tr>\n",
+			    FPROXY_ADDRESS,
+			    i->key,
+			    i->name,
+			    i->desc);
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
@@ -261,7 +340,26 @@ run_search (FILE *socket, char *url)
 void
 run_add (FILE *socket, char *url)
 {
-    char form[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Beable</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Beable!</h1>\n<form action=\"/add\" method=get>\n<p>Freenet URI: <input type=text name=1 size=55 maxlength=255>\n<p>Short Name: <input type=text name=2 size=55 maxlength=255>\n<p>Description: <textarea cols=55 rows=3 name=3></textarea>\n<p><input type=submit value=\"Add Link\"></form>\n\n</center>\n</body>\n</html>\r\n";
+    char form[]=
+	"HTTP/1.1 200 OK"
+	"\nContent-Type: text/html"
+	"\n"
+	"\n<html>"
+	"\n<head><title>Beable</title></head>"
+	"\n<body link=red vlink=red alink=red bgcolor=white>"
+	"\n"
+	"\n<center>"
+	"\n<h1>Beable!</h1>"
+	"\n<form action=\"/add\" method=get>"
+	"\n  <p>Freenet URI: <input type=text name=1 size=55 maxlength=255>"
+	"\n  <p>Short Name:  <input type=text name=2 size=55 maxlength=255>"
+	"\n  <p>Description: <textarea cols=55 rows=3 name=3></textarea>"
+	"\n  <p><input type=submit value=\"Add Link\">"
+	"\n</form>"
+	"\n"
+	"\n</center>"
+	"\n</body>"
+	"\n</html>\n";
     
     int n;
     char *p, *q, *key = NULL, *name = NULL, *desc = NULL;
@@ -300,7 +398,9 @@ run_add (FILE *socket, char *url)
 		recent_additions[n] = recent_additions[n-1];
 	    recent_additions[0] = j;
 	    pthread_mutex_unlock(&mutex);
-	    fprintf(socket, "HTTP/1.0 301 Moved Permanently\r\nConnection: close\r\nLocation: /\r\n\r\n");
+	    fprintf(socket, "HTTP/1.0 301 Moved Permanently"
+		          "\nConnection: close"
+			  "\nLocation: /\n\n");
             return;
 	}
     }
@@ -313,14 +413,40 @@ fof:
 void
 send_data (FILE *socket)
 {
-    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Beable Database</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<table border=1>\n<tr><td><b>Name</b></td></td><td><b>Description</b></td></tr>\n";
-    char two[]="</table>\n\n</center>\n</body>\n</html>\r\n";
+    char one[]=
+	"HTTP/1.1 200 OK"
+	"\nContent-Type: text/html"
+	"\n"
+	"\n<html>"
+	"\n<head><title>Beable Database</title></head>"
+	"\n<body link=red vlink=red alink=red bgcolor=white>"
+	"\n"
+	"\n<center>"
+	"\n<table border=1>"
+	"\n  <tr>"
+	"\n    <td><b>Name</b></td>"
+	"\n    <td><b>Description</b></td>"
+	"\n  </tr>\n";
+    
+    char two[]=
+	"\n</table>"
+	"\n</center>"
+	"\n</body>"
+	"\n</html>\n";
+    
     struct item *i;
     
     fputs(one, socket);
     pthread_mutex_lock(&mutex);
     for (i = database ; i ; i = i->next)
-	fprintf(socket, "<tr><td><a href=\"%s%s\">%s</a></td><td>%s</td></tr>\n", FPROXY_ADDRESS, i->key, i->name, i->desc);
+	fprintf(socket, "<tr>"
+			"\n  <td><a href=\"%s%s\">%s</a></td>"
+			"\n  <td>%s</td>"
+			"\n</tr>\n",
+			FPROXY_ADDRESS,
+			i->key,
+			i->name,
+			i->desc);
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
@@ -328,7 +454,16 @@ send_data (FILE *socket)
 void
 send_error_404 (FILE *socket)
 {
-    char message[]="HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html><head><title>404 Not Found</title></head><body><h1>The requested URL was not found.</h1></body></html>\r\n";
+    char message[]=
+	"HTTP/1.1 404 Not Found"
+	"\nContent-Type: text/html"
+	"\n"
+	"\n<html>"
+	"\n<head><title>404 Not Found</title></head>"
+	"\n<body>"
+	"\n<h1>The requested URL was not found.</h1>"
+	"\n</body>"
+	"\n</html>\n";
     
     fputs(message, socket);
 }
