@@ -35,44 +35,60 @@ ShowInstDetails show
 Function DetectJava
 # this function detects Sun Java from registry and calls the JavaFind utility otherwise
 
-  # First look for the current version of Java and get the correct path in $2,
-  # then test if its empty (nonexisting)
-  DetailPrint "Detecting Java"
+  # Save $0, $2, $5 and $6
+  Push $0
+  Push $2
+  Push $5
+  Push $6
+  
+  # This is the first time we run the JavaFind
+  StrCpy $5 "No"
+
 StartCheck:
-  StrCpy $0 "Software\JavaSoft\Java Runtime Environment\1.4"	; JRE key into $0
-  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
-  StrCmp $2 "" 0 EndCheck
-  
-  StrCpy $0 "Software\JavaSoft\Java Development Kit\1.4"        ; if we don't have JRE
-  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
-  StrCmp $2 "" 0 EndCheck
+  # First get the installed version (if any) in $2
+  # then get the path in $6
 
-  StrCpy $0 "Software\JavaSoft\Java Runtime Environment\1.3"	; JRE key into $0
-  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
-  StrCmp $2 "" 0 EndCheck
-  
-  StrCpy $0 "Software\JavaSoft\Java Development Kit\1.3"        ; if we don't have JRE
-  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
-  StrCmp $2 "" 0 EndCheck
+  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment"
+  # Get JRE installed version
+  ReadRegStr $2 HKLM $0 "CurrentVersion"
+  StrCmp $2 "" DetectTry2
 
-  # Check for 1.2
-  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.2"	; JRE key into $0
-  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
+  # Get JRE path
+  ReadRegStr $6 HKLM "$0\$2" "JavaHome"
+  StrCmp $6 "" DetectTry2
+  
+ DetectTry2:
+  # we did not get a JRE, but there might be a SDK installed
+  StrCpy $0 "Software\JavaSoft\Java Development Kit"
+  # Get JRE installed version
+  ReadRegStr $2 HKLM $0 "CurrentVersion"
   StrCmp $2 "" RunJavaFind
 
-EndCheck:
-  StrCpy $3 "$2\bin\java.exe"
-  StrCpy $4 "$2\bin\javaw.exe"
+  # Get JRE path
+  ReadRegStr $6 HKLM "$0\$2" "JavaHome"
+  StrCmp $6 "" RunJavaFind
+  
 
+  StrCpy $3 "$6\bin\java.exe"
+  StrCpy $4 "$6\bin\javaw.exe"
+
+  # Check if files exists and write paths
   IfFileExists $3 0 RunJavaFind
   WriteINIStr "$INSTDIR\FLaunch.ini" "Freenet Launcher" "JavaExec" $3
   IfFileExists $4 0 RunJavaFind
   WriteINIStr "$INSTDIR\FLaunch.ini" "Freenet Launcher" "Javaw" $4
 
-  #jump to the end if we did the Java recognition correctly
+  # Jump to the end if we did the Java recognition correctly
   Goto End
 
-RunJavaFind:
+ RunJavaFind:
+ 
+  # If RunJavaFind has been already launched, abort installation
+  StrCmp $5 "Yes" AbortJava
+
+  # Put 'Yes' in $5 to state that RunJavaFind was launched
+  StrCpy $5 "Yes"
+
  !ifdef embedJava
     # Install Java runtime only if not found
     DetailPrint "Lauching Sun's Java Runtime Environment installation..."
@@ -87,9 +103,16 @@ RunJavaFind:
   Execwait "$INSTDIR\findjava.exe"
   ExecWait "$INSTDIR\cfgclient.exe"
   Delete "$INSTDIR\cfgclient.exe"
+  
+  # Get the Java path from the updated FLaunch.ini
+  ReadINIStr $3 "$INSTDIR\FLaunch.ini" "Freenet Launcher" "JavaExec"
+  ReadINIStr $4 "$INSTDIR\FLaunch.ini" "Freenet Launcher" "Javaw"
 
-
+  # Check if files exist
+  IfFileExists $3 0 RunJavaFind
+  IfFileExists $4 0 RunJavaFind
   Goto End
+  
  GetJava:
   # Open the download page for Sun's Java
   ExecShell "open" "http://javasoft.com/"
@@ -98,7 +121,16 @@ RunJavaFind:
   Abort
 !endif
 
+ AbortJava:
+  MessageBox MB_OK|MB_ICONSTOP "I still can't find any Java interpreter. Did you really installed the JRE?$\r$\nInstallation will now stop."
+  Abort
+  
 End:
+  # Restore $0, $2, $5 and $6
+  Pop $6
+  Pop $5
+  Pop $2
+  Pop $0
 FunctionEnd
 ;-----------------------------------------------------------------------------------
 Section "Freenet (required)"
@@ -135,18 +167,19 @@ Section "Freenet (required)"
   ExecWait "$INSTDIR\GetSeed"
   BringToFront
   ClearErrors
+  # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
+  IfFileExists "$INSTDIR\freenet.ini" iniFileExisted
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
+  iniFileExisted:
   # turn on FProxy by default
   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
   IfErrors CfgnodeError
-  # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
-  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
-  
   # now calling the GUI configurator
   ExecWait "$INSTDIR\NodeConfig.exe"
   
- Seed:
-  # seeding the initial references
-  #we need to check the existence of seed.ref here and fail if it does not exist.
+ 
+  # Seeding the initial references
+  # we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
   BringToFront
   DetailPrint "CONFIGURING THE NODE NOW, THIS CAN TAKE A LONG TIME!!!"
@@ -169,17 +202,9 @@ Section "Freenet (required)"
  CfgnodeError:
   BringToFront
   MessageBox MB_OK "There was an error while creating the Freenet configuration file. Do you really have Java already installed? Aborting installation now!"
-  Abort
- 
- ConfigError:
-  BringToFront
-  MessageBox MB_OK "There was an error while configuring Freenet.$\r$\nDo you really have Java already installed?$\r$\nAborting installation!"
-  Abort
- 
- Abort_inst:
   BringToFront
   Abort
-
+ 
  End:
 SectionEnd
 ;--------------------------------------------------------------------------------------
@@ -278,13 +303,13 @@ SectionEnd
 Section Uninstall
 
   #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
- ShutDown:
+ ;ShutDown:
   FindWindow $0 "TrayIconFreenetClass"
   IsWindow $0 StillRunning NotRunning 
  StillRunning:
-  # Closing Freenet
-  SendMessage $0 16 0 0
-  MessageBox MB_YESNO "You are still running Freenet, trying to shut it down now. Should install proceed?" IDYES ShutDown
+  ;# Closing Freenet
+  ;SendMessage $0 16 0 0
+  MessageBox MB_OK "You are still running Freenet, please shut it down first"
   Abort
  NotRunning:
 
@@ -327,13 +352,13 @@ Function .onInit
   ;Delete $TEMP\spltmp.wav
 
   #Is the node still running? The system tray Window class is called: TrayIconFreenetClass
- ShutDown:
+ ;ShutDown:
   FindWindow $0 "TrayIconFreenetClass"
   IsWindow $0 StillRunning NotRunning 
  StillRunning:
   # Closing Freenet
-  SendMessage $0 16 0 0
-  MessageBox MB_YESNO "You are still running Freenet, trying to shut it down now. Should install proceed?" IDYES ShutDown
+  ;SendMessage $0 16 0 0
+  MessageBox MB_OK "You are still running Freenet, please shut it down first"
   Abort
  NotRunning:
 FunctionEnd
