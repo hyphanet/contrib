@@ -15,6 +15,7 @@
 #define IDD_DLG_PERM_WARN               129
 #define IDD_PP_FPROXY                   130
 #define IDC_storeCacheSize              1000
+#define IDC_storeSize                   1000
 #define IDC_seedNodes                   1001
 #define IDC_announcementAttempts        1002
 #define IDC_fproxy_inserthtl            1003
@@ -38,7 +39,7 @@
 #define IDC_maxHopsToLive               1021
 #define IDC_maxHopsToLive_spin          1022
 #define IDC_maximumThreads              1023
-#define IDC_maximumThreads_spin 1024
+#define IDC_maximumThreads_spin         1024
 #define IDC_adminPassword               1025
 #define IDC_announcementDelay           1026
 #define IDC_announcementDelayBase       1027

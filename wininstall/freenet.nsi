@@ -312,13 +312,15 @@ Section -PostInstall
   WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet"
   WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 
-  MessageBox MB_YESNO "Congratulations, you have finished the installation of Freenet successfully.$\r$\nDo you want to start your Freenet node now?" IDNO StartedNode
-  Exec "$INSTDIR\freenet.exe"
+  #MessageBox MB_YESNO "Congratulations, you have finished the installation of Freenet successfully.$\r$\nDo you want to start your Freenet node now?" IDNO StartedNode
+  #Exec "$INSTDIR\freenet.exe"
 StartedNode:
 
   Delete "$INSTDIR\cfgnode.exe"      
   Delete "$INSTDIR\findjava.exe"
   Delete "$INSTDIR\GetSeed.exe"
+
+MessageBox MB_OK "Finished installation. Due to a little bug (which will soon be fixed) you have to rename the file seed.ref to seednodes.ref before starting Freenet."
 SectionEnd
 ;------------------------------------------------------------------------------------------
 

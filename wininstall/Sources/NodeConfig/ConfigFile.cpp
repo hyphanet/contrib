@@ -70,11 +70,9 @@ void CConfigFile::Load()
 	// propose 20% of the free disk space, but min 10MB and max 2GB
 	ULARGE_INTEGER FreeBytes,TotalBytes;
 	GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
-	// our variable m_storeCacheSize is in Megabytes so we need to divide by 2^20
-
+	// our variable m_storeSize is in Megabytes so we need to divide by 2^20
 	// i.e. shift FreeBytes right 20 bits
-
-	pNormal->m_storeCacheSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
+	pNormal->m_storeSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
 	pNormal->m_transient = FALSE;
@@ -202,13 +200,11 @@ void CConfigFile::Save()
 	fprintf(fp, "# a fixed size. If you change this or the storePath field following,\n");
 	fprintf(fp, "# your entire datastore will be wiped and replaced with a blank one\n");
 
-	// storeCacheSize = size in bytes ... our variable m_storeCacheSize is in Megabytes so
-
+	// storeSize = size in bytes ... our variable m_storeCacheSize is in Megabytes so
 	// multiply by 2^20, i.e. shift left 20 bits, before writing to conf file
+	char szStoreSize[35];
 
-	char szStoreCacheSize[35];
-
-	fprintf(fp, "storeCacheSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeCacheSize,20), szStoreCacheSize, 10) );
+	fprintf(fp, "storeSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeSize,20), szStoreSize, 10) );
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the directory in which the node's datastore files should go.\n");
 	fprintf(fp, "storePath=%s\n", pNormal->m_storePath);
@@ -461,9 +457,9 @@ void CConfigFile::processItem(char *tok, char *val)
 		if(_atoi64(val) != 0)
 
 		{
-			// storeCacheSize = size in bytes ... our variable m_storeCacheSize is in Megabytes
+			// storeSize = size in bytes ... our variable m_storeSize is in Megabytes
 			// so divide what we read from conf file by 2^20, i.e. shift right 20 bits
-			pNormal->m_storeCacheSize = (DWORD)(Int64ShrlMod32(_atoi64(val),20));
+			pNormal->m_storeSize = (DWORD)(Int64ShrlMod32(_atoi64(val),20));
 		}
 
 	}

@@ -159,8 +159,8 @@ BEGIN
     CONTROL         "Spin5",IDC_maxHopsToLive_spin,"msctls_updown32",
                     UDS_ARROWKEYS,212,186,14,16
     EDITTEXT        IDC_maximumThreads,240,187,24,12,ES_AUTOHSCROLL
-    CONTROL         "Spin6",IDC_maximumThreads_spin,
-                    "msctls_updown32",UDS_ARROWKEYS,264,186,14,15
+    CONTROL         "Spin6",IDC_maximumThreads_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,264,186,14,15
     LTEXT           "Node Admin Password (optional)",IDC_STATIC,138,208,103,
                     8
     EDITTEXT        IDC_adminPassword,137,217,75,12,ES_PASSWORD | 
@@ -245,7 +245,7 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Normal Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
-    EDITTEXT        IDC_storeCacheSize,36,36,48,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_storeSize,36,36,48,12,ES_AUTOHSCROLL
     CTEXT           "If this is your first time running a Freenet node, you won't need to change any of the 'Advanced' or 'Geek' settings. Just choose a location and a size for your node datastore.",
                     IDC_STATIC,7,2,305,16
     GROUPBOX        "Node Data Store",IDC_STATIC,7,22,305,57
