@@ -86,7 +86,7 @@ inline char *
 mbuf (size_t len)
 {
     char *p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    
+    printf("trying to map %d bytes\n", len);
     if (p == MAP_FAILED)
 	die("mmap() failed");
     
