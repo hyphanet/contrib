@@ -1,19 +1,10 @@
-// insertFreesite.c - part of fcpputsite
-// This module is the engine that does the inserting
-// CopyLeft (c) 2001 by David McNab
+/*
+  insertFreesite.c - part of fcpputsite
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <time.h>
+  This module is the engine that does the inserting
+  CopyLeft (c) 2001 by David McNab
+*/
 
-#ifdef WINDOWS
-#include <process.h>
-#else
-#include <pthread.h>
-#include <unistd.h>
-#include <fcntl.h>
-#endif
 
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
@@ -151,7 +142,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                     break;
                 }
                 else
-                    sleep(1);  // one or more threads currently running
+                    Sleep( 1, 0 );  // one or more threads currently running
             }
         }
 
@@ -169,7 +160,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         if (firstThreadSlot == maxThreads)
         {
             // no - wait a while and restart
-            sleep(1);
+            Sleep( 1, 0 );
 			if (++clicks == 180)
 				_fcpLog(FCP_LOG_DEBUG, "fcpputsite: all thread slots full");
             continue;

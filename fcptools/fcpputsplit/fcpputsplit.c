@@ -15,11 +15,6 @@
 #define MAXRETRIES 10
 #define KEYSIZE  1024
 
-#ifdef WINDOWS
-#define mysleep(msecs)  Sleep(msecs)
-#else
-#define mysleep(msecs)  usleep((msecs) * 1000)
-#endif
 
 char *GetMimeType(char *pathname);
 
@@ -359,8 +354,7 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
         }
 
 
-
-        mysleep(50);
+        Sleep( 50, 0 );
 
 
         /// freeing finished blocks

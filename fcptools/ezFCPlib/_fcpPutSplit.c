@@ -127,7 +127,7 @@ void _fcpInitSplit(int maxSplitThreads)
 	LaunchThread(splitInsMgr, NULL);
 
 	while (!splitMgrRunning)
-		sleep(1);
+		Sleep( 1, 0 );
 
 	_fcpLog(FCP_LOG_VERBOSE,
 			"_fcpInitSplit: splitfile insert manager now running, max %d threads",
@@ -229,7 +229,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 	// wait for it to finish
 	while (job->status != SPLIT_INSSTAT_MANIFEST && job->status != SPLIT_INSSTAT_FAILED)
-		sleep(1);
+		Sleep( 1, 0 );
 
 	close(fd);
 
@@ -386,7 +386,7 @@ void splitAddJob(splitJobIns *job)
 	while (newJob != NULL)
 	{
 		_fcpLog(FCP_LOG_DEBUG, "splitAddJob: waiting for split insert queue to come free");
-		sleep(1);
+		Sleep( 1, 0 );
 	}
 	newJob = job;
 
@@ -428,7 +428,7 @@ static void splitInsMgr(void *nothing)
 	while (1)
 	{
 		// let things breathe a bit
-		sleep(1);
+		Sleep( 1, 0 );
 		breakloop = 0;
 
 		if (++clicks == 600)
