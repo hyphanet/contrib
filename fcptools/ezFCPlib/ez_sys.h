@@ -40,7 +40,9 @@
 #define close _close
 #define commit _commit
 
-/* WIN constants */
+/* WIN constants (BINARY is commented out until I figure out *how* to
+	 document this section */
+
 #define _FCP_READFILE_FLAGS (_O_RDONLY /*| _O_BINARY*/)
 #define _FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC /*| _O_BINARY*/)
 
@@ -70,38 +72,52 @@
 extern int _fcpDMALLOC;
 #endif
 
-/*
-	Function prototypes
-*/
+/* Function prototypes */
 
-extern hBlock *_fcpCreateHBlock(void);
-extern void    _fcpDestroyHBlock(hBlock *);
+/* Struct Creation & Destruction functions */
 
-extern hKey   *_fcpCreateHKey(void);
-extern void    _fcpDestroyHKey(hKey *);
+extern hBlock    *_fcpCreateHBlock(void);
+extern void       _fcpDestroyHBlock(hBlock *);
 
-extern hOptions *_fcpCreateHOptions(void);
-extern void      _fcpDestroyHOptions(hOptions *);
+extern hKey      *_fcpCreateHKey(void);
+extern void       _fcpDestroyHKey(hKey *);
+
+extern hOptions  *_fcpCreateHOptions(void);
+extern void       _fcpDestroyHOptions(hOptions *);
+
+extern hSegment  *_fcpCreateHSegment(void);
+extern void       _fcpDestroyHSegment(hSegment *);
 
 /* Metadata handling functions */
-extern int     _fcpMetaParse(hMetadata *, char *buf);
-extern void    _fcpMetaFree(hMetadata *);
+
+extern int   _fcpMetaParse(hMetadata *, char *buf);
+extern char *_fcpMetaString(hMetadata *);
+extern void  _fcpMetaFree(hMetadata *);
 
 extern hMetadata  *_fcpCreateHMetadata(void);
 extern void        _fcpDestroyHMetadata(hMetadata *);
 extern void        _fcpDestroyHMetadata_cdocs(hMetadata *);
 
-/* Some FEC definitions */
-extern hSegment   *_fcpCreateHSegment(void);
-extern void        _fcpDestroyHSegment(hSegment *);
+/* metadata routines */
 
-/* fcpLog */
+extern hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);
+extern char      *cdocLookupKey(hDocument *doc, char *keyName);
+
+extern hDocument *cdocAddDoc(hMetadata *meta, char *cdocName);
+extern int        cdocAddKey(hDocument *doc, char *key, char *val);
+
+/* Mimetypes */
+
+extern char     *_fcpGetMimetype(char *pathname);
+
+/* Log functions */
+
 extern void  _fcpLog(int level, char *format, ...);
-
 extern void  _fcpOpenLog(FILE *logstream, int verbosity);
 extern void  _fcpCloseLog(void);
 
 /* Socket functions */
+
 extern int   _fcpSockConnect(hFCP *hfcp);
 extern void  _fcpSockDisconnect(hFCP *hfcp);
 
@@ -110,43 +126,60 @@ extern int   _fcpSockRecv(hFCP *hfcp, char *buf, int len);
 extern int   _fcpSockRecvln(hFCP *hfcp, char *resp, int len);
 
 /* send/recv substitutes */
+
 extern int   _fcpRecv(FCPSOCKET socket, char *buf, int len);
 extern int   _fcpSend(FCPSOCKET socket, char *buf, int len);
 
 /* read/write substitutes */
+
 extern int   _fcpRead(int fd, char *buf, int len);
 extern int   _fcpWrite(int fd, char *buf, int len);
 
-/* Others */
-extern char *_fcpGetMimetype(char *pathname);
-extern int   _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename);
+/* Put and related functions */
 
-extern int   _fcpLink(hBlock *h, int access);
-extern void  _fcpUnlink(hBlock *h);
+extern int   _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri);
+extern int   _fcpPutSplitfile(hFCP *hfcp);
+
+extern int   _fcpInsertRoot(hFCP *hfcp);
+
+/* Get and related functions */
+
+extern int   _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri);
+extern int   _fcpGetSplitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
+
+extern int   _fcpGetFollowRedirects(hFCP *hfcp, char *uri);
+
+/* hBlock functions */
+
+extern int   _fcpBlockLink(hBlock *h, int access);
+extern void  _fcpBlockUnlink(hBlock *h);
+
+extern int   _fcpBlockSetFilename(hBlock *h, char *filename);
+extern int   _fcpBlockUnsetFilename(hBlock *h);
+
+/* Generic file functions */
 
 extern int            _fcpTmpfile(char *filename);
 extern unsigned long  _fcpFilesize(char *filename);
 
-extern int   _fcpCopyFile(char *dest, char *src);
-extern int   _fcpDeleteFile(hBlock *h);
+extern int            _fcpCopyFile(char *dest, char *src);
+extern int            _fcpDeleteBlockFile(hBlock *h);
+
+extern int            fcpGetFilesize(hFCP *hfcp, char *uri);
+
+/* miscellaneous helper functions */
 
 extern long  xtol(char *);
 extern int   memtoi(char *);
 
-extern int   put_file(hFCP *hfcp, char *uri);
-extern int   put_fec_splitfile(hFCP *hfcp);
-
+#if 0 /* DEPRECATE ALL THIS ? */
 extern int   put_date_redirect(hFCP *hfcp, char *uri);
 extern int   put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
 
-extern int   get_file(hFCP *hfcp, char *uri);
-extern int   get_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
-
-extern int   get_follow_redirects(hFCP *hfcp, char *uri);
-extern int   get_size(hFCP *hfcp, char *uri);
-
-extern hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);
-extern char      *cdocLookupKey(hDocument *doc, char *keyName);
+long       cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
+long       cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
+char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal);
+#endif
 
 #endif /* EZ_SYS_H */
 

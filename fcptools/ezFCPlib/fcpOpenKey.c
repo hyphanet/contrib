@@ -86,12 +86,12 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 	if (hfcp->options->rawmode == 0) {
 		
 		_fcpLog(FCP_LOG_VERBOSE, "starting recursive retrieve");
-		rc = get_follow_redirects(hfcp, key_uri);
+		rc = _fcpGetFollowRedirects(hfcp, key_uri);
 	}
 	else { /* RAWMODE */
 		
 		_fcpLog(FCP_LOG_VERBOSE, "start rawmode retrieve");
-		rc = get_file(hfcp, key_uri);
+		/*rc = _fcpGetBLock(hfcp, key_uri);*/
 	}
 	
 	if (rc) { /* bail after cleaning up */
@@ -102,8 +102,8 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 	_fcpLog(FCP_LOG_DEBUG, "retrieved key into tmpblocks: %s", hfcp->key->target_uri->uri_str);
 
 	/* now link the files, so that next fcpReadKey() is primed */
-	_fcpLink(hfcp->key->tmpblock, _FCP_READ);
-	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_READ);
+	_fcpBlockLink(hfcp->key->tmpblock, _FCP_READ);
+	_fcpBlockLink(hfcp->key->metadata->tmpblock, _FCP_READ);
 
   return 0;
 }
@@ -120,8 +120,8 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
   if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
 
 	/* link the files */
-	_fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
-	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
+	_fcpBlockLink(hfcp->key->tmpblock, _FCP_WRITE);
+	_fcpBlockLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
 
 	/* that's it for now */
   

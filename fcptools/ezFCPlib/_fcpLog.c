@@ -57,7 +57,7 @@ void _fcpLog(int level, char *format, ...)
 
 	switch (level) {
 	case FCP_LOG_CRITICAL: /*1*/
-		fprintf(logstream, "! %s\n", buf);
+		fprintf(logstream, "%s\n", buf);
 		break;
 		
 	case FCP_LOG_NORMAL: /*2*/

@@ -35,13 +35,6 @@
 
 #include "ez_sys.h"
 
-/* exported definitions */
-
-#if 0
-long       cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
-long       cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
-char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal);
-#endif
 
 /* private definitions */
 static int getLine(char *, char *, int);
@@ -112,13 +105,19 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 		}
 		
 		if (rc == STATE_END) {
-			/* done(); */
-		}
 
-		meta->_start = getLine(line, buf, meta->_start);
+			/*_fcpLog(FCP_LOG_DEBUG, "%s", buf+meta->_start);*/
+			meta->rest = strdup(buf+meta->_start);
+
+			meta->_start = -1;
+		}
+		else {
+			meta->_start = getLine(line, buf, meta->_start);
+		}
   }
-  
-  return 0;
+
+	_fcpLog(FCP_LOG_DEBUG, "Exiting _fcpMetaParse()");
+	return 0;
 }
 
 void _fcpMetaDestroy(hMetadata *meta)
@@ -126,25 +125,82 @@ void _fcpMetaDestroy(hMetadata *meta)
 	meta = meta;
 }
 
-/**********************************************************************/
-
-#if 0
-/*
-  Metadata lookup routines
-*/
-
-long cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
+char *_fcpMetaString(hMetadata *meta)
 {
+	char *buf;
+	char s[513];
+
+	int  i, j;
+
+	snprintf(s, 512, "Version\nRevision=1\n");
+	buf = malloc(strlen(s)+1);
+	strcpy(buf, s);
+
+	for (i=0; i < meta->cdoc_count; i++) {
+
+		if (meta->cdocs[i]->name)
+			snprintf(s, 512, "EndPart\nDocument\nName=%s\n", meta->cdocs[i]->name);
+		else
+			snprintf(s, 512, "EndPart\nDocument\n");
+		
+		buf = realloc(buf, strlen(buf)+strlen(s)+1);
+		strcat(buf, s);
+
+		for (j=0; j < meta->cdocs[i]->field_count; j+=2) {
+
+			snprintf(s, 512, "%s=%s\n",
+							 meta->cdocs[i]->data[j],
+							 meta->cdocs[i]->data[j+1]);
+
+			buf = realloc(buf, strlen(buf)+strlen(s)+1);
+			strcat(buf, s);
+		}
+	}
+
+	buf = realloc(buf, strlen(buf)+strlen("End\n")+1);
+	strcat(buf, "End\n");
+
+	buf = realloc(buf, strlen(buf)+strlen(meta->rest)+1);
+	strcat(buf, meta->rest);
+	
+	return buf;
 }
 
-long cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
+hDocument *cdocAddDoc(hMetadata *meta, char *cdocName)
 {
+	int doc_index;
+
+	doc_index = meta->cdoc_count;
+
+	/* allocate space for new document */
+	meta->cdoc_count++;
+
+	/* add the document to the meta structure */
+	meta->cdocs[doc_index] = malloc(sizeof (hDocument));
+	memset(meta->cdocs[doc_index], 0, sizeof (hDocument));
+
+	if (cdocName) meta->cdocs[doc_index]->name = strdup(cdocName);
+
+	return meta->cdocs[doc_index];
 }
 
-char *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal)
+
+int cdocAddKey(hDocument *doc, char *key, char *val)
 {
+	int field_index;
+
+	field_index = doc->field_count * 2;
+	
+	/* add one to the field counter */
+	doc->field_count++;
+	
+	/* finally add the key and val */
+	doc->data[field_index]   = strdup(key);
+	doc->data[field_index+1] = strdup(val);
+
+	return 0;
 }
-#endif
+
 
 /*
 	Given a document name (null for default doc), return a pointer to the
@@ -195,6 +251,26 @@ char *cdocLookupKey(hDocument *doc, char *keyName)
 	/* here, we didn't find the key in the specified doc.. return null */
 	return 0;
 }
+
+
+#if 0
+/*
+  Metadata lookup routines
+*/
+
+long cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
+{
+}
+
+long cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
+{
+}
+
+char *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal)
+{
+}
+#endif
+
 
 /**********************************************************************/
 /* private/local to this module */
@@ -343,7 +419,7 @@ static int parse_document(hMetadata *meta, char *buf)
 #if 0
 	/* is this the first time we've been through this function? */
 	if (meta->cdoc_count == 1)
-		meta->cdocs = (hDocument **)malloc(sizeof (hDocument *));
+		meta->cdocs = malloc(sizeof (hDocument *));
 
 	else
 		meta->cdocs = realloc(meta->cdocs, meta->cdoc_count * sizeof(hDocument *));
@@ -351,7 +427,7 @@ static int parse_document(hMetadata *meta, char *buf)
 #endif
 
 	/* add the document to the meta structure */
-	meta->cdocs[doc_index] = (hDocument *)malloc(sizeof (hDocument));
+	meta->cdocs[doc_index] = malloc(sizeof (hDocument));
 	memset(meta->cdocs[doc_index], 0, sizeof (hDocument));
 
 	_fcpLog(FCP_LOG_DEBUG, "document index (should be zero): %d", doc_index);
@@ -445,14 +521,14 @@ int main(int argc, char *argv[])
 	/* bleah */
 	ul = _fcpFilesize("meta.dat");
 
-	str = (char *)malloc(rc + 1);
+	str = malloc(rc + 1);
 
 	file = fopen("meta.dat", "rb");
 	fno = fileno(file);
 
 	read(fno, str, rc);
 
-	meta = (hMetadata *)malloc(sizeof (hMetadata));
+	meta = malloc(sizeof (hMetadata));
 	memset(meta, 0, sizeof (hMetadata));
 
 	rc = _fcpMetaParse(meta, str);

@@ -161,7 +161,7 @@ int _fcpCopyFile(char *dest, char *src)
 
 	if (CopyFile(src, dest, FALSE) == 0) {
 		_fcpLog(FCP_LOG_DEBUG, "couldn't CopyFile()");
-		return 0;
+		return -1;
 	}
 
 	return _fcpFilesize(dest);
@@ -181,12 +181,12 @@ int _fcpCopyFile(char *dest, char *src)
 		
 		if (!dest) {
 			_fcpLog(FCP_LOG_DEBUG, "OOPS: dest: %s", dest);
-			return 0;
+			return -1;
 		}
 		
 		if (!src) {
 			_fcpLog(FCP_LOG_DEBUG, "OOPS: src: %s", src);
-			return 0;
+			return -1;
 		}
 		
 		if ((dfd = open(dest, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE)) == -1) {
@@ -223,111 +223,3 @@ int _fcpCopyFile(char *dest, char *src)
 	}
 #endif
 }
-
-int _fcpLink(hBlock *h, int access)
-{
-	int flag;
-
-	if (h->fd != -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - fd != -1", h->filename);
-		return -1;
-	}
-
-	/* if the file was deleted, get another tmp filename */
-	if (!h->filename[0]) _fcpTmpfile(h->filename);
-
-#ifdef WIN32
-	flag = h->binary_mode ? O_BINARY : 0;
-#else
-	flag = 0;
-#endif
-
-	switch (access) {
-		case _FCP_READ:
-			h->fd = open(h->filename, _FCP_READFILE_FLAGS | flag, _FCP_READFILE_MODE);
-			break;
-
-		case _FCP_WRITE:
-			h->fd = open(h->filename, _FCP_WRITEFILE_FLAGS | flag, _FCP_CREATEFILE_MODE);
-			break;
-
-		default:
-			_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - access mode invalid", h->filename);
-			return -2;
-	}
-
-	if (h->fd == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - open() returned -1", h->filename);
-		return -1;
-	}
-
-	/* if we reach here, life is peachy */
-	_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - LINKED", h->filename);
-	return 0;
-}
-
-void _fcpUnlink(hBlock *h)
-{
-	if (h->fd == 0) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): fd == 0");
-		h->fd = -1;
-		return;
-	}
-
-	if (h->fd == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - fd already closed / not opened", h->filename);
-		h->fd = -1;
-		return;
-	}
-
-	if (close(h->fd) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - close() returned -1", h->filename);
-		h->fd = -1;
-		return;
-	}
-
-	_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - UN*LINKED", h->filename);
-	h->fd = -1;
-}
-
-int _fcpDeleteFile(hBlock *h)
-{
-	int rc;
-
-	rc = 0;
-
-	if (h->fd == 0) {
-		_fcpLog(FCP_LOG_DEBUG, "fd==0; this condition should never be reached");
-		return -1;
-	}
-	if (h->fd > 0) {
-		_fcpLog(FCP_LOG_DEBUG, "fd>0; this file needs to be closed first");
-
-		close(h->fd);
-		h->fd = -1;
-	}
-
-	if (h->filename[0] != 0) {
-
-		/* one way or another, set rc=0 on success, -1 on failure*/
-#ifdef WIN32
-		rc = (DeleteFile(h->filename) != 0 ? 0 : 1);
-		if (rc != 0) rc = GetLastError();
-#else
-		rc = unlink(h->filename);
-#endif
-
-	}
-	else _fcpLog(FCP_LOG_DEBUG, "tmpfile doesn't exist apparantly");
-
-	if (rc != 0) {
-		_fcpLog(FCP_LOG_DEBUG, "error %d in _fcpDeleteFile(): %s", rc, h->filename);
-		return -1;
-	}
-
-	/*_fcpLog(FCP_LOG_DEBUG, "deleted file: %s", h->filename);*/
-
-	h->filename[0] = 0;
-	return 0;
-}
-

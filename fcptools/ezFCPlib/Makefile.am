@@ -21,6 +21,7 @@ FCP_SOURCE = "\
 _fcpLog.c \
 _fcpRecvResponse.c \
 _fcpSock.c \
+_fcpBlock.c \
 _fcpUtil.c \
 _fcpFile.c \
 _fcpMetadata.c \
@@ -40,9 +41,33 @@ fcpStartup.c \
 fcpWriteKey.c \
 "
 
-# The following files are currently ignored for now
-# fcpMakeChkFromFile.c \
+FCP_TEST = "\
+_fcpLog.c \
+_fcpRecvResponse.c \
+_fcpSock.c \
+_fcpBlock.c \
+_fcpUtil.c \
+_fcpFile.c \
+_fcpMetadata.c \
+_fcpMimetype.c \
+_fcpGet.c \
+_fcpPut.c \
+ezFCPlib.h \
+fcpTest.c \
+fcpCreation.c \
+fcpInfo.c \
+fcpOpenKey.c \
+fcpCloseKey.c \
+fcpPutKeyFromFile.c \
+fcpGetKeyToFile.c \
+fcpReadKey.c \
+fcpMakeSvkKeypair.c \
+fcpStartup.c \
+fcpWriteKey.c \
+"
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 #libezfcp_la_SOURCES = $(FCP_SOURCE)
 
+bin_PROGRAMS = fcptest
+fcptest_SOURCES  = $(FCP_TEST)

@@ -4,7 +4,7 @@ AC_INIT(ezFCPlib/fcpStartup.c)
 dnl *** The next line must also be updated in ezFCPlib.h
 dnl *** grep 'VERSION' ezFCPlib/ezFCPlib.h
 
-AM_INIT_AUTOMAKE(fcptools, "0.4.9")
+AM_INIT_AUTOMAKE(fcptools, "0.9.0")
 
 dnl AM_CONFIG_HEADER(config.h)
 

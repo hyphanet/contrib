@@ -109,13 +109,17 @@ noinst_LIBRARIES = libezfcp.a
 
 include_HEADERS = ezFCPlib.h
 
-FCP_SOURCE = " _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpUtil.c _fcpFile.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
+FCP_SOURCE = " _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpBlock.c _fcpUtil.c _fcpFile.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
 
 
-# The following files are currently ignored for now
-# fcpMakeChkFromFile.c \
+FCP_TEST = " _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpBlock.c _fcpUtil.c _fcpFile.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpTest.c fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
+
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
+#libezfcp_la_SOURCES = $(FCP_SOURCE)
+
+bin_PROGRAMS = fcptest
+fcptest_SOURCES = $(FCP_TEST)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 LIBRARIES =  $(noinst_LIBRARIES)
@@ -126,12 +130,27 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 libezfcp_a_LIBADD = 
 libezfcp_a_OBJECTS =  _fcpLog.$(OBJEXT) _fcpRecvResponse.$(OBJEXT) \
-_fcpSock.$(OBJEXT) _fcpUtil.$(OBJEXT) _fcpFile.$(OBJEXT) \
-_fcpMetadata.$(OBJEXT) _fcpMimetype.$(OBJEXT) _fcpGet.$(OBJEXT) \
-_fcpPut.$(OBJEXT) fcpCreation.$(OBJEXT) fcpInfo.$(OBJEXT) \
-fcpOpenKey.$(OBJEXT) fcpCloseKey.$(OBJEXT) fcpPutKeyFromFile.$(OBJEXT) \
+_fcpSock.$(OBJEXT) _fcpBlock.$(OBJEXT) _fcpUtil.$(OBJEXT) \
+_fcpFile.$(OBJEXT) _fcpMetadata.$(OBJEXT) _fcpMimetype.$(OBJEXT) \
+_fcpGet.$(OBJEXT) _fcpPut.$(OBJEXT) fcpCreation.$(OBJEXT) \
+fcpInfo.$(OBJEXT) fcpOpenKey.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
+fcpPutKeyFromFile.$(OBJEXT) fcpGetKeyToFile.$(OBJEXT) \
+fcpReadKey.$(OBJEXT) fcpMakeSvkKeypair.$(OBJEXT) fcpStartup.$(OBJEXT) \
+fcpWriteKey.$(OBJEXT)
+bin_PROGRAMS =  fcptest$(EXEEXT)
+PROGRAMS =  $(bin_PROGRAMS)
+
+fcptest_OBJECTS =  _fcpLog.$(OBJEXT) _fcpRecvResponse.$(OBJEXT) \
+_fcpSock.$(OBJEXT) _fcpBlock.$(OBJEXT) _fcpUtil.$(OBJEXT) \
+_fcpFile.$(OBJEXT) _fcpMetadata.$(OBJEXT) _fcpMimetype.$(OBJEXT) \
+_fcpGet.$(OBJEXT) _fcpPut.$(OBJEXT) fcpTest.$(OBJEXT) \
+fcpCreation.$(OBJEXT) fcpInfo.$(OBJEXT) fcpOpenKey.$(OBJEXT) \
+fcpCloseKey.$(OBJEXT) fcpPutKeyFromFile.$(OBJEXT) \
 fcpGetKeyToFile.$(OBJEXT) fcpReadKey.$(OBJEXT) \
 fcpMakeSvkKeypair.$(OBJEXT) fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT)
+fcptest_LDADD = $(LDADD)
+fcptest_DEPENDENCIES = 
+fcptest_LDFLAGS = 
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -145,15 +164,15 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-DEP_FILES =  .deps/_fcpFile.P .deps/_fcpGet.P .deps/_fcpLog.P \
-.deps/_fcpMetadata.P .deps/_fcpMimetype.P .deps/_fcpPut.P \
-.deps/_fcpRecvResponse.P .deps/_fcpSock.P .deps/_fcpUtil.P \
-.deps/fcpCloseKey.P .deps/fcpCreation.P .deps/fcpGetKeyToFile.P \
-.deps/fcpInfo.P .deps/fcpMakeSvkKeypair.P .deps/fcpOpenKey.P \
-.deps/fcpPutKeyFromFile.P .deps/fcpReadKey.P .deps/fcpStartup.P \
-.deps/fcpWriteKey.P
-SOURCES = $(libezfcp_a_SOURCES)
-OBJECTS = $(libezfcp_a_OBJECTS)
+DEP_FILES =  .deps/_fcpBlock.P .deps/_fcpFile.P .deps/_fcpGet.P \
+.deps/_fcpLog.P .deps/_fcpMetadata.P .deps/_fcpMimetype.P \
+.deps/_fcpPut.P .deps/_fcpRecvResponse.P .deps/_fcpSock.P \
+.deps/_fcpUtil.P .deps/fcpCloseKey.P .deps/fcpCreation.P \
+.deps/fcpGetKeyToFile.P .deps/fcpInfo.P .deps/fcpMakeSvkKeypair.P \
+.deps/fcpOpenKey.P .deps/fcpPutKeyFromFile.P .deps/fcpReadKey.P \
+.deps/fcpStartup.P .deps/fcpTest.P .deps/fcpWriteKey.P
+SOURCES = $(libezfcp_a_SOURCES) $(fcptest_SOURCES)
+OBJECTS = $(libezfcp_a_OBJECTS) $(fcptest_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -217,6 +236,35 @@ libezfcp.a: $(libezfcp_a_OBJECTS) $(libezfcp_a_DEPENDENCIES)
 	-rm -f libezfcp.a
 	$(AR) cru libezfcp.a $(libezfcp_a_OBJECTS) $(libezfcp_a_LIBADD)
 	$(RANLIB) libezfcp.a
+
+mostlyclean-binPROGRAMS:
+
+clean-binPROGRAMS:
+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+
+distclean-binPROGRAMS:
+
+maintainer-clean-binPROGRAMS:
+
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(bindir)
+	@list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo " $(LIBTOOL)  --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
+	    $(LIBTOOL)  --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	  else :; fi; \
+	done
+
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	list='$(bin_PROGRAMS)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	done
+
+fcptest$(EXEEXT): $(fcptest_OBJECTS) $(fcptest_DEPENDENCIES)
+	@rm -f fcptest$(EXEEXT)
+	$(LINK) $(fcptest_LDFLAGS) $(fcptest_OBJECTS) $(fcptest_LDADD) $(LIBS)
 
 install-includeHEADERS: $(include_HEADERS)
 	@$(NORMAL_INSTALL)
@@ -322,7 +370,7 @@ check-am: all-am
 check: check-am
 installcheck-am:
 installcheck: installcheck-am
-install-exec-am:
+install-exec-am: install-binPROGRAMS
 install-exec: install-exec-am
 
 install-data-am: install-includeHEADERS
@@ -331,14 +379,14 @@ install-data: install-data-am
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 install: install-am
-uninstall-am: uninstall-includeHEADERS
+uninstall-am: uninstall-binPROGRAMS uninstall-includeHEADERS
 uninstall: uninstall-am
-all-am: Makefile $(LIBRARIES) $(HEADERS)
+all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(HEADERS)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
 installdirs:
-	$(mkinstalldirs)  $(DESTDIR)$(includedir)
+	$(mkinstalldirs)  $(DESTDIR)$(bindir) $(DESTDIR)$(includedir)
 
 
 mostlyclean-generic:
@@ -351,27 +399,29 @@ distclean-generic:
 
 maintainer-clean-generic:
 mostlyclean-am:  mostlyclean-noinstLIBRARIES mostlyclean-compile \
-		mostlyclean-libtool mostlyclean-tags mostlyclean-depend \
-		mostlyclean-generic
+		mostlyclean-libtool mostlyclean-binPROGRAMS \
+		mostlyclean-tags mostlyclean-depend mostlyclean-generic
 
 mostlyclean: mostlyclean-am
 
-clean-am:  clean-noinstLIBRARIES clean-compile clean-libtool clean-tags \
-		clean-depend clean-generic mostlyclean-am
+clean-am:  clean-noinstLIBRARIES clean-compile clean-libtool \
+		clean-binPROGRAMS clean-tags clean-depend clean-generic \
+		mostlyclean-am
 
 clean: clean-am
 
 distclean-am:  distclean-noinstLIBRARIES distclean-compile \
-		distclean-libtool distclean-tags distclean-depend \
-		distclean-generic clean-am
+		distclean-libtool distclean-binPROGRAMS distclean-tags \
+		distclean-depend distclean-generic clean-am
 	-rm -f libtool
 
 distclean: distclean-am
 
 maintainer-clean-am:  maintainer-clean-noinstLIBRARIES \
 		maintainer-clean-compile maintainer-clean-libtool \
-		maintainer-clean-tags maintainer-clean-depend \
-		maintainer-clean-generic distclean-am
+		maintainer-clean-binPROGRAMS maintainer-clean-tags \
+		maintainer-clean-depend maintainer-clean-generic \
+		distclean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
 
@@ -381,7 +431,9 @@ maintainer-clean: maintainer-clean-am
 clean-noinstLIBRARIES maintainer-clean-noinstLIBRARIES \
 mostlyclean-compile distclean-compile clean-compile \
 maintainer-clean-compile mostlyclean-libtool distclean-libtool \
-clean-libtool maintainer-clean-libtool uninstall-includeHEADERS \
+clean-libtool maintainer-clean-libtool mostlyclean-binPROGRAMS \
+distclean-binPROGRAMS clean-binPROGRAMS maintainer-clean-binPROGRAMS \
+uninstall-binPROGRAMS install-binPROGRAMS uninstall-includeHEADERS \
 install-includeHEADERS tags mostlyclean-tags distclean-tags clean-tags \
 maintainer-clean-tags distdir mostlyclean-depend distclean-depend \
 clean-depend maintainer-clean-depend info-am info dvi-am dvi check \
@@ -391,7 +443,6 @@ all-redirect all-am all installdirs mostlyclean-generic \
 distclean-generic clean-generic maintainer-clean-generic clean \
 mostlyclean distclean maintainer-clean
 
-#libezfcp_la_SOURCES = $(FCP_SOURCE)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

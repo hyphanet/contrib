@@ -246,66 +246,51 @@ static int getrespInfo(hFCP *hfcp)
 			hfcp->response.nodeinfo.javaversion = strdup(resp+12);
 		}
 		else if (!strncmp(resp, "Processors=", 11)) {
-
 			hfcp->response.nodeinfo.processors = xtol(resp+11);
 		}
 		else if (!strncmp(resp, "MaximumMemory=", 14)) {
-
 			hfcp->response.nodeinfo.maximummemory = xtol(resp+14);
 		}
 		else if (!strncmp(resp, "AllocatedMemory=", 16)) {
-
 			hfcp->response.nodeinfo.allocatedmemory = xtol(resp+16);
 		}
 		else if (!strncmp(resp, "FreeMemory=", 11)) {
-
 			hfcp->response.nodeinfo.freememory = xtol(resp+11);
 		}
 		else if (!strncmp(resp, "EstimatedLoad=", 14)) {
-
 			hfcp->response.nodeinfo.estimatedload = xtol(resp+14);
 		}
 		else if (!strncmp(resp, "EstimateRateLimitingLoad=", 25)) {
-
 			hfcp->response.nodeinfo.estimateratelimitingload = xtol(resp+25);
 		}
 		else if (!strncmp(resp, "DatastoreMax=", 13)) {
-
 			hfcp->response.nodeinfo.datastoremax = xtol(resp+13);
 		}
 		else if (!strncmp(resp, "DatastoreFree=", 14)) {
-
 			hfcp->response.nodeinfo.datastorefree = xtol(resp+14);
 		}
 		else if (!strncmp(resp, "DatastoreUsed=", 14)) {
-
 			hfcp->response.nodeinfo.datastoreused = xtol(resp+14);
 		}
 		else if (!strncmp(resp, "MaxFileSize=", 12)) {
-
 			hfcp->response.nodeinfo.maxfilesize = xtol(resp+12);
 		}
 		else if (!strncmp(resp, "MostRecentTimestamp=", 20)) {
-
 			hfcp->response.nodeinfo.mostrecenttimestamp = xtol(resp+20);
 		}
 		else if (!strncmp(resp, "LeastRecentTimestamp=", 21)) {
-
 			hfcp->response.nodeinfo.leastrecenttimestamp = xtol(resp+21);
 		}
 		else if (!strncmp(resp, "RoutingTime=", 12)) {
-
 			hfcp->response.nodeinfo.routingtime = xtol(resp+12);
 		}
 		else if (!strncmp(resp, "AvailableThreads=", 17)) {
-
 			hfcp->response.nodeinfo.availablethreads = xtol(resp+17);
 		}
 		else if (!strncmp(resp, "IsTransient=", 12)) {
 			hfcp->response.nodeinfo.istransient = strdup(resp+12);
 		}
 		else if (!strncmp(resp, "ActiveJobs=", 11)) {
-
 			hfcp->response.nodeinfo.activejobs = xtol(resp+11);
 		}
 		else if (!strncmp(resp, "EndMessage", 10))
@@ -339,12 +324,18 @@ static int getrespSuccess(hFCP *hfcp)
 			strncpy(hfcp->response.success.publickey, resp + 10, L_KEY);
 		}
 
+#if 0 /* not sure why this is here */
 		else if (!strncmp(resp, "Public=", 7)) {
 			strncpy(hfcp->response.success.public, resp + 7, L_KEY);
 		}
+#endif
 
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.success.privatekey, resp + 11, L_KEY);
+		}
+
+		else if (!strncmp(resp, "CryptoKey=", 10)) {
+			strncpy(hfcp->response.success.cryptokey, resp + 10, L_KEY);
 		}
 
 		else if (!strncmp(resp, "Length=", 7)) {
@@ -363,7 +354,6 @@ static int getrespSuccess(hFCP *hfcp)
 		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
-	
 }
 
 
@@ -417,7 +407,7 @@ static int getrespDataChunk(hFCP *hfcp)
 	int  rc;
 	int  len;
 
-	/* set the internal index for later use by get_file() */
+	/* set the internal index for later use by _fcpGetBLock() */
 	hfcp->response.datachunk._index = 0;
 
 	rc = _fcpSockRecvln(hfcp, resp, 8192);
@@ -429,7 +419,7 @@ static int getrespDataChunk(hFCP *hfcp)
 		if (hfcp->response.datachunk.length == 0) {
 
 			_fcpLog(FCP_LOG_DEBUG, "initial allocation of data block");
-			hfcp->response.datachunk.data = (char *)malloc(len+1);
+			hfcp->response.datachunk.data = malloc(len+1);
 		}
 
 		else if (len > hfcp->response.datachunk.length) {
@@ -531,7 +521,6 @@ static int getrespUriError(hFCP *hfcp)
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.urierror.reason) free(hfcp->response.urierror.reason);
-			
 			hfcp->response.urierror.reason = strdup(resp + 7);
 		}
 

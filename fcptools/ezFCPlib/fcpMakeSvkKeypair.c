@@ -37,15 +37,12 @@
 	Better allocate the parameters before calling this function.
 */
 
-int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy)
+int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *crypt_key)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
 
 	_fcpLog(FCP_LOG_VERBOSE, "Entered GenerateSVKPair()");
-
-	/* entropy? */
-	entropy = entropy;
 
 	/* try to connect first.. bomb otherwise */
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
@@ -65,6 +62,7 @@ int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy)
 
   strcpy(pub_key, hfcp->response.success.publickey);
   strcpy(priv_key, hfcp->response.success.privatekey);
+  strcpy(crypt_key, hfcp->response.success.cryptokey);
   
   _fcpSockDisconnect(hfcp);
 

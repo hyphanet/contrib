@@ -55,18 +55,26 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyRead()");
 
 	/* unlink both files */
-	_fcpUnlink(hfcp->key->tmpblock);
-	_fcpUnlink(hfcp->key->metadata->tmpblock);
+	_fcpBlockUnlink(hfcp->key->tmpblock);
+	_fcpBlockUnlink(hfcp->key->metadata->tmpblock);
 
 	/* delete the tmpblocks before exiting */
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
+
+	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpCloseKeyRead()");
 
   return 0;
 }
 
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
+	/*
+		- Metadata for redirect is no problem *unless* there's a un-named piece
+		  of custom metadata; then the metadata will have 2 un-named docs;
+			could be a problem.
+	*/
+
 	int rc;
 
 	unsigned long key_size;
@@ -75,25 +83,48 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
 
 	/* unlink both files */
-	_fcpUnlink(hfcp->key->tmpblock);
-	_fcpUnlink(hfcp->key->metadata->tmpblock);
+	_fcpBlockUnlink(hfcp->key->tmpblock);
+	_fcpBlockUnlink(hfcp->key->metadata->tmpblock);
 
 	key_size  = hfcp->key->size;
 	meta_size = hfcp->key->metadata->size;
 
-	if (key_size > hfcp->options->splitblock) {
-		_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
-		rc = put_fec_splitfile(hfcp);
+	/**** TODO!!! MIMETYPE!  (shit i almost forgot!) ***/
+
+	if (key_size) {
+	
+		if (key_size > hfcp->options->splitblock) {
+			_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
+
+			rc = _fcpPutSplitfile(hfcp);
+		}
+		else {
+			_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
+	
+			rc = _fcpPutBlock(hfcp,
+												hfcp->key->tmpblock,
+												0,
+												"CHK@");
+		}
 	}
 
-	else { /* Otherwise, insert as a normal key */
-		_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
-		rc = put_file(hfcp, "CHK@");
-	}
+	if (rc) goto cleanup;
 
-	if (rc) /* bail after cleaning up */
+	if (meta_size) {
+		_fcpLog(FCP_LOG_DEBUG, "inserting metadata");
+
+		rc = _fcpPutBlock(hfcp,
+											0,
+											hfcp->key->metadata->tmpblock,
+											hfcp->key->target_uri->uri_str);
+	}
+	
+	if (rc) {
+		_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
 		goto cleanup;
+	}
 
+	/* copy over the CHK uri */
 	fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
 #ifdef DMALLOC
@@ -101,6 +132,47 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
 #endif
 
+	/* now the CHK has been inserted; check for metadata and insert a
+		 re-direct if necessary */
+
+	/* if it's a CHK with NO metadata, skip insertion of the root key */
+	if ((hfcp->key->target_uri->type == KEY_TYPE_CHK) && (hfcp->key->metadata->size == 0)) {
+
+		/* copy over new CHK */
+		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
+	}
+	else { /* for CHK's, SSK's, and KSK's that *have* metadata */
+		
+		if ((rc = _fcpInsertRoot(hfcp)) != 0) {
+
+			_fcpLog(FCP_LOG_DEBUG, "could not insert root key/map file");
+
+			rc = -1;
+			goto cleanup;
+		}
+	}
+
+	_fcpLog(FCP_LOG_DEBUG, "successfully inserted key %s", hfcp->key->target_uri->uri_str);
+	rc = 0;
+
+	/* delete the tmpblocks before exiting */
+	_fcpDeleteBlockFile(hfcp->key->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
+
+
+ cleanup: /* rc should be set to an FCP_ERR code */
+
+	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpCloseKeyWrite()");
+	return rc;
+}
+
+
+
+
+
+
+
+#if 0
 	switch (hfcp->key->target_uri->type) {
 	case KEY_TYPE_CHK: /* for CHK's, copy over the generated CHK to the target_uri field */
 
@@ -110,15 +182,15 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	case KEY_TYPE_SSK:
 	case KEY_TYPE_KSK:
 
-		put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
+		/*put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);*/
 		break;
 	}
 		
 	hfcp->key->size = hfcp->key->metadata->size = 0;
 
 	/* delete the tmpblocks before exiting */
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
 	return 0;
 
@@ -127,9 +199,9 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
 
 	/* delete the tmpblocks before exiting */
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
 	return rc;
 }
-
+#endif

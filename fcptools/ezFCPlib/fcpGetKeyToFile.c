@@ -59,12 +59,15 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	if (hfcp->options->rawmode == 0) {
 		
 		_fcpLog(FCP_LOG_VERBOSE, "Starting recursive retrieve (will follow redirects)");
-		rc = get_follow_redirects(hfcp, key_uri);
+		rc = _fcpGetFollowRedirects(hfcp, key_uri);
 	}
 	else { /* RAWMODE */
 		
 		_fcpLog(FCP_LOG_VERBOSE, "Starting basic retrieve (rawmode)");
-		rc = get_file(hfcp, key_uri);
+		rc = _fcpGetBLock(hfcp,
+											hfcp->key->tmpblock,
+											hfcp->key->metadata->tmpblock,
+											key_uri);
 	}
 
 	if (rc) { /* bail after cleaning up */
@@ -104,8 +107,8 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	_fcpLog(FCP_LOG_DEBUG, "Retrieved key: %s", hfcp->key->target_uri->uri_str);
 	
 	/* delete temp files before exiting */
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
 
@@ -114,8 +117,8 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 cleanup:
 
 	/* delete temp files before exiting */
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->tmpblock);
+	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
 

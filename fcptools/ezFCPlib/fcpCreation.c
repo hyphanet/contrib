@@ -43,7 +43,7 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 {
   hFCP *h;
 
-	h = (hFCP *)malloc(sizeof (hFCP));
+	h = malloc(sizeof (hFCP));
 	memset(h, 0, sizeof (hFCP));
 
 	if (!host) {
@@ -61,14 +61,18 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 	h->options = _fcpCreateHOptions();
 
 	/* do the handle option mask */
-	h->options->rawmode      = (optmask & FCP_MODE_RAW ? FCP_MODE_RAW : 0);
-	h->options->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? FCP_MODE_DELETE_LOCAL : 0);
-	h->options->skip_local   = (optmask & FCP_MODE_SKIP_LOCAL ? FCP_MODE_SKIP_LOCAL : 0);
+	h->options->rawmode       = (optmask & FCP_MODE_RAW ? FCP_MODE_RAW : 0);
+	h->options->delete_local  = (optmask & FCP_MODE_DELETE_LOCAL ? FCP_MODE_DELETE_LOCAL : 0);
+	h->options->skip_local    = (optmask & FCP_MODE_SKIP_LOCAL ? FCP_MODE_SKIP_LOCAL : 0);
+	h->options->dbr           = (optmask & FCP_MODE_DBR ? FCP_MODE_DBR : 0);
+	h->options->meta_redirect = (optmask & FCP_MODE_REDIRECT_METADATA ? FCP_MODE_REDIRECT_METADATA : 0);
 
-	_fcpLog(FCP_LOG_DEBUG, "rawmode: %u, delete_local: %u, skip_local: %u",
+	_fcpLog(FCP_LOG_DEBUG, "rawmode: %u, delete_local: %u, skip_local: %u, dbr: %u, meta_redirect: %u",
 					h->options->rawmode,
 					h->options->delete_local,
-					h->options->skip_local);
+					h->options->skip_local,
+					h->options->dbr,
+					h->options->meta_redirect);
 	
 	h->key = _fcpCreateHKey();
 	
@@ -84,7 +88,11 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 	if (!hfcp) return 0;
 
 	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl,
-		                hfcp->options->rawmode | hfcp->options->delete_local | hfcp->options->skip_local);
+		                hfcp->options->rawmode |
+										hfcp->options->delete_local |
+										hfcp->options->skip_local |
+		                hfcp->options->dbr |
+		                hfcp->options->meta_redirect);
 
 	/* copy over any other options */
 	h->options->timeout = hfcp->options->timeout;
@@ -124,7 +132,7 @@ hOptions *_fcpCreateHOptions(void)
 {
 	hOptions *h;
 
-	h = (hOptions *)malloc(sizeof (hOptions));
+	h = malloc(sizeof (hOptions));
 	memset(h, 0, sizeof (hOptions));
 
 	h->logstream = EZFCP_DEFAULT_LOGSTREAM;		
@@ -154,7 +162,7 @@ hKey *_fcpCreateHKey(void)
 {
 	hKey *h;
 
-	h = (hKey *)malloc(sizeof (hKey));
+	h = malloc(sizeof (hKey));
 	memset(h, 0, sizeof (hKey));
 
 	h->uri        = fcpCreateHURI();
@@ -239,7 +247,7 @@ hBlock *_fcpCreateHBlock(void)
 {
 	hBlock *h;
 
-	h = (hBlock *)malloc(sizeof (hBlock)); /* 1st ! */
+	h = malloc(sizeof (hBlock)); /* 1st ! */
 	memset(h, 0, sizeof (hBlock));
 
 	h->uri = fcpCreateHURI();
@@ -250,6 +258,8 @@ hBlock *_fcpCreateHBlock(void)
 	}		
 
 	h->fd = -1;
+	h->delete = 1;
+
 	return h;
 }
 
@@ -258,8 +268,8 @@ void _fcpDestroyHBlock(hBlock *h)
 	if (h) {
 		
 		/* close and delete the file */
-		_fcpUnlink(h);
-		_fcpDeleteFile(h);
+		_fcpBlockUnlink(h);
+		_fcpDeleteBlockFile(h);
 		
 		if (h->uri) {
 			fcpDestroyHURI(h->uri);
@@ -272,7 +282,7 @@ hMetadata *_fcpCreateHMetadata(void)
 {
 	hMetadata *h;
 
-	h = (hMetadata *)malloc(sizeof (hMetadata));
+	h = malloc(sizeof (hMetadata));
 	memset(h, 0, sizeof (hMetadata));
 
 	h->tmpblock = _fcpCreateHBlock();
@@ -289,7 +299,7 @@ void _fcpDestroyHMetadata(hMetadata *h)
 			free(h->tmpblock);
 		}
 		
-		if (h->raw_metadata) free(h->raw_metadata);
+		/*if (h->raw_metadata) free(h->raw_metadata); DEPRECATE */
 
 		if (h->cdoc_count)
 			_fcpDestroyHMetadata_cdocs(h);
@@ -325,7 +335,7 @@ hURI *fcpCreateHURI(void)
 {
 	hURI *h;
 
-	h = (hURI *)malloc(sizeof (hURI));
+	h = malloc(sizeof (hURI));
 	memset(h, 0, sizeof (hURI));
 
 	return h;
@@ -336,8 +346,8 @@ void fcpDestroyHURI(hURI *h)
 	if (h) {
 		if (h->uri_str) free(h->uri_str);
 		if (h->keyid) free(h->keyid);
+		if (h->filename) free(h->filename);
 		if (h->docname) free(h->docname);
-		if (h->metastring) free(h->metastring);
 	}
 }
 
@@ -351,18 +361,20 @@ void fcpDestroyHURI(hURI *h)
 int fcpParseHURI(hURI *uri, char *key)
 {
 	int len;
-	
-	char *p;
-	char *p_key;
 
-	p_key = key;
+	char *p_key;
+	char *string_end;
+	char  uri_s[513];
 
 	/* clear out the dynamic arrays before attempting to parse a new uri */
 	if (uri->uri_str) free(uri->uri_str);
   if (uri->keyid) free(uri->keyid);
+	if (uri->filename) free(uri->filename);
 	if (uri->docname) free(uri->docname);
-	if (uri->metastring) free(uri->metastring);
-
+	
+	/* save the key root */
+	p_key = key;
+	
 	/* zero the block of memory */
 	memset(uri, 0, sizeof (hURI));
 
@@ -372,98 +384,115 @@ int fcpParseHURI(hURI *uri, char *key)
 	
   /* classify key header */
   if (!strncmp(key, "SSK@", 4)) {
-		char *string_end;
 		
     uri->type = KEY_TYPE_SSK;
+		strcpy(uri_s, "freenet:SSK@");
+
 		key += 4;
+		string_end = strstr(key, "/");
 
-		/* Copy out the key id, up until the '/' char.*/
-		for (p = key; *p != '/'; p++);
-		len = p - key;
-
-		uri->keyid = (char *)malloc(len + 1);
-		strncpy(uri->keyid, key, len);
-		uri->keyid[len] = 0;
-
-		/* Make key point to the char after '/' */
-		key = ++p;
-		
-		/* handle rest of key, depending on what's included and what's implied */
-		
-		/* if the '//' sequence isn't in the uri.. */
-		if (!(string_end = strstr(p, "//"))) {
-			
-			uri->docname = strdup(p);
-
-			uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->docname) + 20);
-			sprintf(uri->uri_str, "freenet:SSK@%s/%s//", uri->keyid, uri->docname); 
+		/* check for case where there's nothing after the key id */
+		if (!string_end) {
+			uri->keyid = strdup(key);
+			strcat(uri_s, uri->keyid);
 		}
-		else { /* there's a "//"; must use that as the next border */
-			
-			string_end = strstr(p, "//");
-			len = string_end - p;
-			
-			uri->docname = malloc(len + 1);
-			strncpy(uri->docname, p, len);
-			uri->docname[len] = 0;
-		
-			/* set key to first char after "//" */
-			key = string_end + 2;
-			
-			/* now set the remaining part to metastring */
-			uri->metastring = strdup(key);
-			
-			uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->docname) + strlen(uri->metastring) + 20);
-			
-			/* @@@ TODO: yes we're ignoring metastring for now.. */
-			sprintf(uri->uri_str, "freenet:SSK@%s/%s//", uri->keyid, uri->docname); 
-			_fcpLog(FCP_LOG_DEBUG, "uri_str: %s", uri->uri_str);
-		}
-  }
 
+		else {
+			/* string_end points to the '/' character */
+			uri->keyid = strndup(key, string_end - key);
+			strcat(uri_s, uri->keyid);
+			strcat(uri_s, "/");
+		
+			/* point key to the first char after the '/' */
+			key = (string_end + 1);
+			
+			string_end = strstr(key, "//");
+			
+			/* if there's nothing after the '/' */
+			if (!string_end) {
+				uri->filename = strdup(key);
+				strcat(uri_s, uri->filename);
+			}
+
+			/* TODO: handle multiple '//' characters with docnames */
+			
+			/* if there's a '//' character */
+			else {
+				uri->filename = strndup(key, string_end - key);
+				strcat(uri_s, uri->filename);
+				strcat(uri_s, "//");
+				
+				/* point key to char after '//' */
+				key = (string_end + 2);
+				
+				/* take the rest as the metadata control document name */
+				uri->docname = strdup(key);
+				strcat(uri_s, uri->docname);
+			}
+		}
+	}
+		
   else if (!strncmp(key, "CHK@", 4)) {
-		
-    uri->type = KEY_TYPE_CHK;
+	
+		uri->type = KEY_TYPE_CHK;
+
+		strcpy(uri_s, "freenet:CHK@");
 		key += 4;
-    
+
 		len = strlen(key);
 
 		if (len) {
-			uri->keyid = (char *)malloc(len + 1);
-			strcpy(uri->keyid, key);
-		}
-		
-		if (len) {
-			uri->uri_str = (char *)malloc(len + 15); /* 15 is 2 more than needed i think */
-			sprintf(uri->uri_str, "freenet:CHK@%s", uri->keyid);
-		}
-		else {
-			uri->uri_str = (char *)malloc(15);
-			strcpy(uri->uri_str, "freenet:CHK@");
-		}
-  }
-  
-	/* freenet:KSK@freetext.html */
 
+			string_end = strstr(key, "/");
+			
+			/* check for the case where there's nothing after the CHK@key part */
+			if (!string_end) {
+				uri->keyid = strdup(key);
+				strcat(uri_s, uri->keyid);
+			}
+			
+			else {
+				/* string_end points to the '/' character */
+				uri->keyid = strndup(key, string_end - key);
+				strcat(uri_s, "/");
+
+				/* point key to the first char after the '/' */
+				key = (string_end + 1);
+				
+				string_end = strstr(key, "//");
+				
+				/* check for the case where there's nothing after the CHK@key/filename part :) */
+				if (!string_end) {
+					uri->filename = strdup(key);
+					strcat(uri_s, uri->filename);
+				}
+				
+				else { /* this shouldn't happen for CHK's */
+					_fcpLog(FCP_LOG_DEBUG, "there's a metastring after the filename hint in the CHK@.. not supported");
+				}
+			}
+		}
+	}
+	
+	/* freenet:KSK@freetext.html */
   else if (!strncmp(key, "KSK@", 4)) {
 
     uri->type = KEY_TYPE_KSK;
 
+		strcpy(uri_s, "freenet:KSK@");
     key += 4;
 
-		len = strlen(key);
-
-		uri->keyid = (char *)malloc(len + 1);
-		strcpy(uri->keyid, key);
-
-		uri->uri_str = (char *)malloc(strlen(uri->keyid) + 15);
-		sprintf(uri->uri_str, "freenet:KSK@%s", uri->keyid);
+		uri->keyid = strdup(key);
+		strcat(uri_s, uri->keyid);
   }
   
   else {
 		_fcpLog(FCP_LOG_CRITICAL, "Error attempting to parse invalid key: %s", p_key);
     return -1;
   }
+
+	uri->uri_str = strdup(uri_s);
+	_fcpLog(FCP_LOG_DEBUG, "uri_str: %s", uri->uri_str);
 
   return 0;
 }
@@ -478,7 +507,7 @@ hSegment *_fcpCreateHSegment(void)
 {
   hSegment *h;
 
-	h = (hSegment *)malloc(sizeof (hSegment));
+	h = malloc(sizeof (hSegment));
   memset(h, 0, sizeof (hSegment));
 
   return h;
@@ -511,3 +540,21 @@ void _fcpDestroyHSegment(hSegment *h)
 	}
 }
 
+#ifdef fcpCreationTEST
+
+int main(int c, char *argv[])
+{
+	char  s[513];
+	hURI *uri;
+
+	uri = fcpCreateHURI();
+	strcpy(s, "SSK@TDtkQZpHTMbhGoSxWfR-ly8BTa4PAgM,phJ~IgAADJkijtDO7iAeSw/toad/1//index.html");
+	
+	fcpParseHURI(uri, s);
+		
+	printf(":%s:\n", uri->uri_str);
+	
+	return 0;
+}
+
+#endif

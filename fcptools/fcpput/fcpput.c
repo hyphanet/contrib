@@ -124,15 +124,19 @@ int main(int argc, char* argv[])
 	hfcp->options->retry = retry;
   
   if (b_genkeys) {
+		char pub[L_KEY+1];
+		char priv[L_KEY+1];
+		char crypt[L_KEY+1];
     
     /* generate a keypair and just exit */
-    if (fcpMakeSvkKeypair(hfcp, buf, buf+40, buf+80)) {
+
+    if (fcpMakeSvkKeypair(hfcp, pub, priv, crypt)) {
       fprintf(stdout, "Could not generate keypair\n");
       rc = -1;
 			goto cleanup;
     }
     
-    fprintf(stdout, "Public: %s\nPrivate: %s\n", buf, buf+40);
+    fprintf(stdout, "Public: %s\nPrivate: %s\nEntropy: %s\n", pub, priv, crypt);
     rc = 0;
 		goto cleanup;
   }
@@ -180,7 +184,7 @@ int main(int argc, char* argv[])
 		
 		for (i=0; i<file_count; i++) {
 			
-			if (_fcpPutKeyFromFile(hfcp, keyuri, files[i], metafile)) {
+			if (fcpPutKeyFromFile(hfcp, keyuri, files[i], metafile)) {
 				fprintf(stdout, "Could not insert file into Freenet: %s\n", files[i]);
 				rc = -1;
 				goto cleanup;
@@ -256,14 +260,17 @@ static void parse_args(int argc, char *argv[])
     {"port", 1, 0, 'p'},
     {"htl", 1, 0, 'l'},
     {"metadata", 1, 0, 'm'},
-    {"stdin", 0, 0, 's'},
+    {"logfile", 1, 0, 'f'},
 
+    {"stdin", 0, 0, 's'},
     {"retry", 1, 0, 'a'},
-    {"regress", 1, 0, 'e'},
     {"delete-local", 0, 0, 'D'},
+    {"dbr", 0, 0, 'd'},
+    {"regress", 1, 0, 'e'},
+
+		{"meta-redirect", 0, 0, 'M'},
 
     {"verbosity", 1, 0, 'v'},
-    {"logfile", 1, 0, 'f'},
     {"genkeys", 0, 0, 'g'},
 
     {"version", 0, 0, 'V'},
@@ -271,7 +278,7 @@ static void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:sa:e:Dv:f:gVh";
+  char short_options[] = "n:p:l:m:f:sa:Dde:Mv:gVh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -300,6 +307,10 @@ static void parse_args(int argc, char *argv[])
 			metafile = (char *)malloc(strlen(optarg) + 1);
       strcpy(metafile, optarg);
       break;
+
+    case 'f':
+			logfile = strdup(optarg);
+      break;
 			
 		case 's':
 			/* read from stdin for key data */ 
@@ -309,22 +320,26 @@ static void parse_args(int argc, char *argv[])
 		case 'a':
 			i = atoi( optarg );
 			if (i > 0) retry = i;
-			
-		case 'e':
-			i = atoi( optarg );
-			if (i > 0) regress = i;
-			
+
     case 'D':
       optmask |= FCP_MODE_DELETE_LOCAL;
       break;
 			
+    case 'd':
+      optmask |= FCP_MODE_DBR;
+      break;
+			
+		case 'e':
+			i = atoi( optarg );
+			if (i > 0) regress = i;
+
+		case 'M':
+      optmask |= FCP_MODE_REDIRECT_METADATA;
+      break;
+
     case 'v':
       i = atoi( optarg );
       if ((i >= 0) && (i <= 4)) verbosity = i;
-      break;
-
-    case 'f':
-			logfile = strdup(optarg);
       break;
 
     case 'g':
@@ -375,23 +390,27 @@ static void usage(char *s)
 	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
 
 	printf("Usage: fcpput [-n hostname] [-p port] [-l hops to live]\n");
-	printf("              [-m metadata] [-s] [-e regress] [-D] [-v verbosity]\n");
+	printf("              [-m metadata] [-a retry] [-D] [-s] [-d]\n");
+	printf("              [-e regress] [-v verbosity] [-f logfile]\n");
 	printf("              [-g] [-V] [-h] freenet_uri [FILE]...\n\n");
 
 	printf("Options:\n\n");
 	printf("  -n, --address host     Freenet node address\n");
 	printf("  -p, --port num         Freenet node port\n");
-	printf("  -l, --htl num          Hops to live\n\n");
-
+	printf("  -l, --htl num          Hops to live\n");
 	printf("  -m, --metadata file    Read key metadata from local file\n");
-	printf("  -a, --retry num        Number of retries after a timeout\n");
+	printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n\n");
+
 	printf("  -s, --stdin            Read key data from stdin\n");
-/*printf("  -e, --regress num      Number of days to regress\n");*/
-	printf("  -D, --delete-local     Delete key from local datastore on insert\n\n");
+	printf("  -a, --retry num        Number of retries after a timeout\n");
+	printf("  -D, --delete-local     Delete key from local datastore on insert\n");
+	printf("  -d, --dbr              Insert key as a date-based redirect\n");
+	printf("  -e, --regress num      Number of days to regress\n\n");
+
+	/*printf("  -M, --meta-redirect    Insert metadata via redirect\n\n");*/
 
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-	printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n\n");
 
 	printf("  -g, --genkeys          Generate a keypair then exit\n\n");
 

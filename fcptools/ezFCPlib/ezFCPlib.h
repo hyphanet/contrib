@@ -51,7 +51,7 @@ typedef SOCKET FCPSOCKET;
 #define strncasecmp strnicmp
 
 /* VERSION is defined by automake for non-Win platforms. */
-#define VERSION "0.4.9w"
+#define VERSION "0.9.0w"
 
 /**************************************************************************
   UNIX specifics
@@ -125,16 +125,15 @@ typedef int FCPSOCKET;
 
 /*
 	option flags
-	these must be powers of 2; they're bitmasks (1,2,4,8,16,32,64,128,256,512,1024,...)
+	these must be powers of 2; they're bitmasks
 */
-#define FCP_MODE_O_READ        0x0001
-#define FCP_MODE_O_WRITE       0x0002
-#define FCP_MODE_RAW           0x0004
-#define FCP_MODE_DELETE_LOCAL  0x0008
-#define FCP_MODE_SKIP_LOCAL    0x0010
-/**************************    0x0012 */
-/**************************    0x0014 */
-/**************************    0x0018 */
+#define FCP_MODE_O_READ              0x0001 /* 0000 0001 */
+#define FCP_MODE_O_WRITE             0x0002 /* 0000 0010 */
+#define FCP_MODE_RAW                 0x0004 /* 0000 0100 */
+#define FCP_MODE_DELETE_LOCAL        0x0008 /* 0000 1000 */
+#define FCP_MODE_SKIP_LOCAL          0x0010 /* 0001 0000 */
+#define FCP_MODE_DBR                 0x0020 /* 0010 0000 */
+#define FCP_MODE_REDIRECT_METADATA   0x0040 /* 0100 0000 */
 
 /*
 	Reasonable defaults
@@ -191,10 +190,11 @@ typedef int FCPSOCKET;
 typedef struct {
 	char *uri;
 
-	char  publickey[L_KEY+1];
 	char  public[L_KEY+1];
 
+	char  publickey[L_KEY+1];
 	char  privatekey[L_KEY+1];
+	char  cryptokey[L_KEY+1];
 
 	unsigned long length;
 } FCPRESP_SUCCESS;
@@ -236,7 +236,7 @@ typedef struct {
   char  *protocol;
 
 	unsigned short  highest_build;
-	unsigned long  max_filesize;
+	unsigned long   max_filesize;
 } FCPRESP_NODEHELLO;
 
 typedef struct {
@@ -247,7 +247,7 @@ typedef struct {
 
 typedef struct {
   long  length;
-	long _index; /* used internally by get_file() */
+	long _index; /* used internally by _fcpGetBLock() */
 
   char          *data;
 } FCPRESP_DATACHUNK;
@@ -374,6 +374,8 @@ typedef struct {
 	int   skip_local;
 	int   timeout;
 	int   rawmode;
+	int   meta_redirect;
+	int   dbr;
 
 	FILE *logstream;
 	
@@ -382,17 +384,38 @@ typedef struct {
 
 } hOptions;
 
-typedef struct {
-  int   type;        /* CHK@, KSK@, SSK@ */
+/*
+	sample URI's:
 
+	CHKs
+	freenet:CHK@c6v8qRGb8hWd1XDAwNodJRcqGY4OAwI,mhZFyoWs5PDIfBtENb3VpQ
+
+	freenet:CHK@c6v8qRGb8hWd1XDAwNodJRcqGY4OAwI,mhZFyoWs5PDIfBtENb3VpQ/filenamehint.ext//docname
+	freenet:CHK@c6v8qRGb8hWd1XDAwNodJRcqGY4OAwI,mhZFyoWs5PDIfBtENb3VpQ//docname
+
+	SSKs
+	SSK@kWu5Osv~VAI3-kH7z8QIVxklv-YPAgM/fishtools/52//
+	
+
+	KSKs
+
+*/
+
+typedef struct {
+  int    type;       /* CHK@, KSK@, SSK@ */
 	char  *uri_str;    /* the unparsed uri */
+
   char  *keyid;      /* the pub/priv/ch key */
 
-	/* SSK's */
-	char  *docname;    /* the /name// piece */
+	char  *filename;   /* filename hint */
+	char  *docname;    /* metadata document name */
+
+#if 0 /* DEPRECATE */
 	char  *metastring; /* the //images/activelink.gif piece */
+#endif
 
 } hURI;
+
 
 typedef struct {
 	char   filename[L_FILENAME+1];  /* null terminated filename */
@@ -400,7 +423,10 @@ typedef struct {
 
 	int    fn_status;   /* status relative to Freenet */
 	int    size;        /* size of this chunk */
+
 	int    binary_mode; /* 0 for text , 1 for binary */
+	int    delete;      /* 0 will not delete the file when requested,
+												 !0 does */
 
 	hURI  *uri;         /* this block's CHK */
 
@@ -454,8 +480,8 @@ typedef struct {
 
 	int         cdoc_count;
 	hDocument  *cdocs[128];
-
-	char       *raw_metadata;
+	
+	char       *rest;
 
 	int  _start;  /* intended for internal use */
 } hMetadata;
@@ -502,7 +528,7 @@ typedef struct {
   FCPSOCKET socket;
 
 	hKey *key;
-	char *_redirect; /* curent key to redirect to (used by get_file()) */
+	char *_redirect; /* curent key to redirect to (used by _fcpGetBLock()) */
 		
   FCPRESP response;
 } hFCP;

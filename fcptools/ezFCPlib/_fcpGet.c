@@ -40,7 +40,7 @@ static int read_metadata_line(hFCP *hfcp, char *line, int size);
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
 /*
-	get_file()
+	_fcpGetBLock()
 
 	function retrieves a freenet CHK via it's URI.
 
@@ -50,7 +50,8 @@ static int read_metadata_line(hFCP *hfcp, char *line, int size);
 	- zero on success
 	- non-zero on error.
 */
-int get_file(hFCP *hfcp, char *uri)
+
+int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 {
 	char get_command[L_FILE_BLOCKSIZE+1];  /* used *twice* in this function */
 
@@ -64,7 +65,7 @@ int get_file(hFCP *hfcp, char *uri)
 
 	int bytes;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered get_file(key: \"%s\")", uri);
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpGetBLock(key: \"%s\")", uri);
 
 	/* Here we can be certain that the files have been properly initialized */
 
@@ -76,7 +77,7 @@ int get_file(hFCP *hfcp, char *uri)
 								);
 
 	retry = hfcp->options->retry;
-	fcpParseHURI(hfcp->key->tmpblock->uri, uri);
+	fcpParseHURI(keyblock->uri, uri);
 
 	/********************************************************************/
 
@@ -184,7 +185,7 @@ int get_file(hFCP *hfcp, char *uri)
 			break;
 			
 		default:
-			_fcpLog(FCP_LOG_DEBUG, "get_file() - received unknown response code: %d", rc);
+			_fcpLog(FCP_LOG_DEBUG, "_fcpGetBLock() - received unknown response code: %d", rc);
 			break;
 
 		} /* switch (rc) */			
@@ -217,7 +218,7 @@ int get_file(hFCP *hfcp, char *uri)
 	/******************************************************************/
 
 	/* only link if necessary */
-	if (meta_bytes)	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
+	if (meta_bytes)	_fcpBlockLink(metablock, _FCP_WRITE);
 
 	while (meta_bytes > 0) {
 
@@ -229,7 +230,7 @@ int get_file(hFCP *hfcp, char *uri)
 			goto cleanup;
 		}		
 
-		_fcpWrite(hfcp->key->metadata->tmpblock->fd, get_command, bytes);
+		_fcpWrite(metablock->fd, get_command, bytes);
 		meta_bytes -= bytes;
 
 		/* inspect for a redirect.. if yes, store in hfcp->_redirect */
@@ -247,12 +248,12 @@ int get_file(hFCP *hfcp, char *uri)
 	/* if there was metadata, cleanup */
 	if (hfcp->key->metadata->size > 0) {
 		_fcpLog(FCP_LOG_VERBOSE, "Read %d bytes of metadata", hfcp->key->metadata->size);
-		_fcpUnlink(hfcp->key->metadata->tmpblock);
+		_fcpBlockUnlink(metablock);
 	}
 
 	if (key_bytes) {
 		_fcpLog(FCP_LOG_DEBUG, "link key file");
-		_fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
+		_fcpBlockLink(keyblock, _FCP_WRITE);
 	}
 
 	/* if the DataChunk hasn't been received, do a NOP and let the loop
@@ -261,7 +262,7 @@ int get_file(hFCP *hfcp, char *uri)
 
 	else if (hfcp->response.datachunk._index < hfcp->response.datachunk.length) {
 		
-		_fcpWrite(hfcp->key->tmpblock->fd,
+		_fcpWrite(keyblock->fd,
 							hfcp->response.datachunk.data + hfcp->response.datachunk._index,
 							hfcp->response.datachunk.length - hfcp->response.datachunk._index);
 
@@ -287,7 +288,7 @@ int get_file(hFCP *hfcp, char *uri)
 			_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");
 
 			key_count = hfcp->response.datachunk.length;
-			_fcpWrite(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data, key_count);
+			_fcpWrite(keyblock->fd, hfcp->response.datachunk.data, key_count);
 			
 			key_bytes -= key_count;
 		}
@@ -302,19 +303,19 @@ int get_file(hFCP *hfcp, char *uri)
 	if (hfcp->key->size > 0) {
 		
 		_fcpLog(FCP_LOG_VERBOSE, "Read key data");
-		_fcpUnlink(hfcp->key->tmpblock);
+		_fcpBlockUnlink(keyblock);
 	}
 
   _fcpSockDisconnect(hfcp);
-	_fcpLog(FCP_LOG_DEBUG, "get_file() - retrieved key: %s", uri);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpGetBLock() - retrieved key: %s", uri);
 
 	return 0;
 
  cleanup: /* this is called when there is an error above */
 
 	/* unlink both.. not to worry if fd is -1 (it's checked in *Unlink()) */
-	_fcpUnlink(hfcp->key->tmpblock);
-	_fcpUnlink(hfcp->key->metadata->tmpblock);
+	_fcpBlockUnlink(keyblock);
+	_fcpBlockUnlink(metablock);
 
   _fcpSockDisconnect(hfcp);
 	_fcpLog(FCP_LOG_DEBUG, "abnormal termination");
@@ -325,23 +326,26 @@ int get_file(hFCP *hfcp, char *uri)
 /*
 	On success, function set hfcp->key->uri with CHK of data.
  */
-int get_follow_redirects(hFCP *hfcp, char *uri)
+int _fcpGetFollowRedirects(hFCP *hfcp, char *uri)
 {
 	char  get_uri[L_URI+1];
 
 	int   rc;
 	int   depth;
 
-	/* make calls to get_file() until we have exhausted any/all redirects */
+	/* make calls to _fcpGetBLock() until we have exhausted any/all redirects */
 
-	_fcpLog(FCP_LOG_DEBUG, "get_follow_redirects()");
+	_fcpLog(FCP_LOG_DEBUG, "_fcpGetFollowRedirects()");
 
 	strncpy(get_uri, uri, L_URI);
 	depth = 0;
 
-	rc = get_file(hfcp, get_uri);
+	rc = _fcpGetBLock(hfcp,
+										hfcp->key->tmpblock,
+										hfcp->key->metadata->tmpblock,
+										get_uri);
 
-	_fcpLog(FCP_LOG_DEBUG, "get_file() returned as rc: %d", rc);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpGetBLock() returned as rc: %d", rc);
 	
 	while (rc == 0) {
 
@@ -355,7 +359,10 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 
 			free(hfcp->_redirect); hfcp->_redirect = 0;
 			
-			rc = get_file(hfcp, get_uri);
+			rc = _fcpGetBLock(hfcp,
+												hfcp->key->tmpblock,
+												hfcp->key->metadata->tmpblock,
+												get_uri);
 		}
 
 		else {
