@@ -69,10 +69,10 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
 
 	 This may be a *bad* idea, but signals cannot be allowed to propogate to
 	 child processes.  I don't know which (if any) signals should be handled.
-  */
+
   sigfillset( &sigset );
   sigprocmask(SIG_SETMASK, &sigset, NULL);
-
+  */
  
   // set global parms
   strcpy(_fcpHost, (host == NULL) ? EZFCP_DEFAULT_HOST : host);
