@@ -242,21 +242,21 @@ static void usage(char *s)
     printf("Usage: fcpget [OPTIONS] key [file]\n\n");
 
     printf("Options:\n\n");
-    printf("  -n, --address host     Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
-    printf("  -p, --port num	     Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
-    printf("  -l, --htl num	     Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
-		printf("  -e, --regress num	 Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
-    printf("  -r, --raw 	     Raw mode - don't follow redirects\n\n");
+    printf("  -n, --address host   Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
+    printf("  -p, --port num       Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
+    printf("  -l, --htl num	       Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
+		printf("  -e, --regress num    Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
+    printf("  -r, --raw            Raw mode - don't follow redirects\n\n");
 
-    printf("  -m, --metadata file    Write key's metadata to file (default \"stdout\")\n");
-    printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
-    printf("			     0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+    printf("  -m, --metadata file  Write key's metadata to file (default \"stdout\")\n");
+    printf("  -v, --verbosity num  Verbosity of log messages (default 2)\n");
+    printf("                       0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 
-    printf("  -V, --version	     Output version information and exit\n");
-    printf("  -h, --help	     Display this help and exit\n\n");
+    printf("  -V, --version	       Output version information and exit\n");
+    printf("  -h, --help           Display this help and exit\n\n");
 
-    printf("  key		     Freenet key (freenet:KSK@gpl.txt)\n");
-    printf("  file		     Write key's data to file (default \"stdout\")\n\n");
+    printf("  key                  Freenet key (freenet:KSK@gpl.txt)\n");
+    printf("  file                 Write key's data to file (default \"stdout\")\n\n");
 
     exit(0);
 }
