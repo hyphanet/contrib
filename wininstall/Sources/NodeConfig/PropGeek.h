@@ -47,8 +47,8 @@ public:
 	CString	m_storeCacheFile;
 	CString	m_storeDataFile;
 	UINT	m_streamBufferSize;
+	CString	m_logFormat;
 	CString	m_logLevel;
-	CString	m_logVerbosity;
 	//}}AFX_DATA
 
 

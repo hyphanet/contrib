@@ -93,7 +93,7 @@ void CConfigFile::Load()
 	pAdvanced->m_initialRequestHTL = 15;
 	pAdvanced->m_inputBandwidthLimit = 0;
 	pAdvanced->m_maxHopsToLive = 25;
-	pAdvanced->m_maximumConnectionThreads = 16;
+	pAdvanced->m_maximumThreads = 120;
 	pAdvanced->m_outputBandwidthLimit = 0;
 	pAdvanced->m_seedNodes = "seed.ref";
 	pAdvanced->m_nodestatusservlet = true;
@@ -117,7 +117,7 @@ void CConfigFile::Load()
 	pGeek->m_localAnnounceTargets = "";
 	pGeek->m_logFile = "freenet.log";
 	pGeek->m_logLevel = "normal";
-	pGeek->m_logVerbosity = "2";
+	pGeek->m_logFormat = "d (c, t): m";
 	pGeek->m_messageStoreSize = 50000;
 	pGeek->m_minCacheCount = 1;
 	pGeek->m_routeConnectTimeout = 10000;
@@ -201,7 +201,6 @@ void CConfigFile::Save()
 	fprintf(fp, "# The byte size of the datastore cache file.  Note that it will maintain\n");
 	fprintf(fp, "# a fixed size. If you change this or the storePath field following,\n");
 	fprintf(fp, "# your entire datastore will be wiped and replaced with a blank one\n");
-	fprintf(fp, "\n");
 
 	// storeCacheSize = size in bytes ... our variable m_storeCacheSize is in Megabytes so
 
@@ -212,30 +211,25 @@ void CConfigFile::Save()
 	fprintf(fp, "storeCacheSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeCacheSize,20), szStoreCacheSize, 10) );
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the directory in which the node's datastore files should go.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "storePath=%s\n", pNormal->m_storePath);
 	fprintf(fp, "\n");
 	fprintf(fp, "# Transient nodes do not give out references to themselves, and should\n");
 	fprintf(fp, "# therefore not receive any requests.  Set this to yes only if you are\n");
 	fprintf(fp, "# on a slow, non-permanent connection.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "transient=%s\n", pNormal->m_transient ? "true" : "false");
 	fprintf(fp, "\n");
 	fprintf(fp, "# The port to listen for incoming FNP (Freenet Node Protocol) connections on.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "listenPort=%d\n", pNormal->m_listenPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The I.P. address of this node as seen by the public internet.\n");
 	fprintf(fp, "# This is needed in order for the node to determine its own\n");
 	fprintf(fp, "# NodeReference.\n");
-	fprintf(fp, "\n");
 	if (pNormal->m_ipAddress.GetLength() == 0)
 		fprintf(fp, "#ipAddress=\n");
 	else
 		fprintf(fp, "ipAddress=%s\n", pNormal->m_ipAddress.GetBuffer(1));
 	fprintf(fp, "\n");
 	fprintf(fp, "# This is used only by Windows configurator, not by node\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "warnPerm=%s\n", pNormal->warnPerm ? "true" : "false");
 	fprintf(fp, "\n");
 	fprintf(fp, "\n");
@@ -244,21 +238,17 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "# set to yes if you want your node to announce itself to other nodes\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "doAnnounce=%s\n", pAdvanced->m_doAnnounce ? "yes" : "no");
 	fprintf(fp, "\n");
 	fprintf(fp, "# file containing initial node references\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "seedNodes=%s\n", pAdvanced->m_seedNodes);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The port to listen for local FCP (Freenet Client Protocol) connections on.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "clientPort=%d\n", pAdvanced->m_clientPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The maximum number of bytes per second to transmit, totaled between\n");
 	fprintf(fp, "# incoming and outgoing connections.  Ignored if either inputBandwidthLimit\n");
 	fprintf(fp, "# or outputBandwidthLiit is nonzero.\n");
-	fprintf(fp, "\n");
 	if (pAdvanced->m_inputBandwidthLimit == 0 && pAdvanced->m_outputBandwidthLimit == 0)
 		fprintf(fp, "bandwidthLimit=%d\n", pAdvanced->m_bandwidthLimit);
 	else
@@ -266,23 +256,19 @@ void CConfigFile::Save()
 	fprintf(fp, "\n");
 	fprintf(fp, "# If nonzero, specifies an independent limit for outgoing data only.\n");
 	fprintf(fp, "# (overrides bandwidthLimit if nonzero)\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "outputBandwidthLimit=%d\n", pAdvanced->m_outputBandwidthLimit);
 	fprintf(fp, "inputBandwidthLimit=%d\n", pAdvanced->m_inputBandwidthLimit);
 	fprintf(fp, "\n");
 	fprintf(fp, "#A comma-separated list of hosts which are allowed to talk to node via FCP\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "fcpHosts=%s\n", pAdvanced->m_fcpHosts.GetBuffer(0));
 	fprintf(fp, "\n");
 	fprintf(fp, "# The hops that initial requests should make.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "initialRequestHTL=%d\n", pAdvanced->m_initialRequestHTL);
 	fprintf(fp, "\n");
 	fprintf(fp, "# If this is set then users that can provide the password can\n");
 	fprintf(fp, "# can have administrative access. It is recommended that\n");
 	fprintf(fp, "# you do not use this without also using adminPeer below\n");
 	fprintf(fp, "# in which case both are required.\n");
-	fprintf(fp, "\n");
 	if (pAdvanced->m_adminPassword.GetLength() == 0)
 		fprintf(fp, "#adminPassword=\n");
 	else
@@ -294,13 +280,11 @@ void CConfigFile::Save()
 	fprintf(fp, "\n");
 	fprintf(fp, "# When forwarding a request, the node will reduce the HTL to this value\n");
 	fprintf(fp, "# if it is found to be in excess.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "maxHopsToLive=%d\n", pAdvanced->m_maxHopsToLive);
 	fprintf(fp, "\n");
 	fprintf(fp, "# Should we use thread-management?  If this number is defined and non-zero,\n");
 	fprintf(fp, "# this specifies how many inbound connections can be active at once.\n");
-	fprintf(fp, "\n");
-	fprintf(fp, "maximumConnectionThreads=%d\n", pAdvanced->m_maximumConnectionThreads);
+	fprintf(fp, "maximumThreads=%d\n", pAdvanced->m_maximumThreads);
 	fprintf(fp, "\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "########################\n");
@@ -309,67 +293,54 @@ void CConfigFile::Save()
 	fprintf(fp, "\n");
 	fprintf(fp, "# The number of attempts to make at announcing this node per\n");
 	fprintf(fp, "# initial peer. Zero means the node will not announce itself\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "announcementAttempts=%d\n", pGeek->m_announcementAttempts);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The amount of time to wait before initially announcing the node,\n");
 	fprintf(fp, "# and to base the time the time between retries on. In milliseconds.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "announcementDelay=%d\n", pGeek->m_announcementDelay);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The value to mutliply the last delay time with for each retry.\n");
 	fprintf(fp, "# That is, for try N, we weight <announcementDelay>*<announcementDelay>^N\n");
 	fprintf(fp, "# before starting.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "announcementDelayBase=%d\n", pGeek->m_announcementDelayBase);
 	fprintf(fp, "\n");
 	fprintf(fp, "# announcementPeers: undocumented.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "announcementPeers=%d\n", pGeek->m_announcementPeers);
 	fprintf(fp, "\n");
 	fprintf(fp, "# How long to wait for authentication before giving up (in milliseconds)\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "authTimeout=%d\n", pGeek->m_authTimeout);
 	fprintf(fp, "\n");
 	fprintf(fp, "# What size should the blocks have when moving data?\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "blockSize=%d\n", pGeek->m_blockSize);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The interval at which to write out the node's data file\n");
 	fprintf(fp, "# (the store_<port> file, *not* the cache_<port> file).\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "checkPointInterval=%d\n", pGeek->m_checkPointInterval);
 	fprintf(fp, "\n");
 	fprintf(fp, "# How long to listen on an inactive connection before closing\n");
 	fprintf(fp, "# (if reply address is known)\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "connectionTimeout=%d\n", pGeek->m_connectionTimeout);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The directory in which to cache diagnostics data.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "diagnosticsPath=%s\n", pGeek->m_diagnosticsPath.GetBuffer(0));
 	fprintf(fp, "\n");
-	fprintf(fp, "# The diagnostics module receives and aggregates statistics aboutFreenet's performance. This will eat some gratuitous memory and cpubut may let you provide valuable data to the project.\n");
-	fprintf(fp, "\n");
+	fprintf(fp, "# The diagnostics module receives and aggregates statistics aboutFreenet's performance.\n");
+	fprintf(fp, "# This will eat some gratuitous memory and cpubut may let you provide valuable data to the project.\n");
 	fprintf(fp, "doDiagnostics=%s\n", pGeek->m_doDiagnostics ? "yes" : "no");
 	fprintf(fp, "\n");
 	fprintf(fp, "# The expected standard deviation in hopTimeExpected.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "hopTimeDeviation=%d\n", pGeek->m_hopTimeDeviation);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The expected time it takes a Freenet node to pass a message.\n");
 	fprintf(fp, "# Used to calculate timeout values for requests.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "hopTimeExpected=%d\n", pGeek->m_hopTimeExpected);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The number of keys to request from the returned close values\n");
 	fprintf(fp, "# after an Announcement (this is per announcement made).\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "initialRequests=%d\n", pGeek->m_initialRequests);
 	fprintf(fp, "\n");
 	fprintf(fp, "# localAnnounceTargets: undocumented.\n");
 	fprintf(fp, "# The name of the log file (`NO' to log to standard out)\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "logFile=%s\n", pGeek->m_logFile);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The error reporting threshold, one of:\n");
@@ -377,59 +348,53 @@ void CConfigFile::Save()
 	fprintf(fp, "#   Normal:  Report significant events\n");
 	fprintf(fp, "#   Minor:   Report minor events\n");
 	fprintf(fp, "#   Debug:   Report events only of relevance when debugging\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "logLevel=%s\n", pGeek->m_logLevel.GetBuffer(0));
 	fprintf(fp, "\n");
-	fprintf(fp, "# How verbose should the logging be? (1-5)\n");
-	fprintf(fp, "\n");
-	fprintf(fp, "logVerbosity=%s\n", pGeek->m_logVerbosity);
+	fprintf(fp, "#A template string for log messages.  All non-alphabet characters are\n");
+	fprintf(fp, "# reproduced verbatim.  Alphabet characters are substituted as follows:\n");
+	fprintf(fp, "# d = date (timestamp), c = class name of the source object,\n");
+	fprintf(fp, "# h = hashcode of the object, t = thread name, p = priority,\n");
+	fprintf(fp, "# m = the actual log message\n");
+	fprintf(fp, "logFormat=%s\n", pGeek->m_logFormat);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The number of outstanding message replies the node will\n");
 	fprintf(fp, "# wait for before it starts to abandon them.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "messageStoreSize=%d\n", pGeek->m_messageStoreSize);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The minimum number of entries the node should try to maintain\n");
 	fprintf(fp, "# in the cache.  The largest file size allowed in the cache will be\n");
 	fprintf(fp, "# storeCacheSize / minCacheCount.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "minCacheCount=%d\n", pGeek->m_minCacheCount);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The time to wait for connections to be established and \n");
 	fprintf(fp, "# authenticated before passing by a node while routing out.\n");
 	fprintf(fp, "# Connections that are by passed are still finished and cached \n");
 	fprintf(fp, "# for the time set by ConnectionTimeout (in milliseconds).\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "routeConnectTimeout=%d\n", pGeek->m_routeConnectTimeout);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The number of unique nodes that can be contained in the routing table.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "rtMaxNodes=%d\n", pGeek->m_rtMaxNodes);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The number of references allowed in the routing table.  This should not\n");
 	fprintf(fp, "# be set too high.  It is suggested to leave it at 1000 for now.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "rtMaxRefs=%d\n", pGeek->m_rtMaxRefs);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the file containing the node's datastore (i.e., its cache\n");
 	fprintf(fp, "# of Freenet keys).  Defaults to cache_<port> in the storePath directory.\n");
-	fprintf(fp, "\n");
 	if (pGeek->m_storeCacheFile.GetLength() == 0)
-		fprintf(fp, "#storeCacheFile\n");
+		fprintf(fp, "#storeCacheFile=\n");
 	else
 		fprintf(fp, "storeCacheFile=%s/cache_%d\n", pNormal->m_storePath, pNormal->m_listenPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the file containing the node's reference to itself, its\n");
 	fprintf(fp, "# routing table, and the datastore directory.  Defaults to store_<port>\n");
 	fprintf(fp, "# in the storePath directory.\n");
-	fprintf(fp, "\n");
 	if (pGeek->m_storeDataFile.GetLength() == 0)
-		fprintf(fp, "#storeDataFile\n");
+		fprintf(fp, "#storeDataFile=\n");
 	else
 		fprintf(fp, "storeDataFile=%s/store_%d\n", pNormal->m_storePath, pNormal->m_listenPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# streamBufferSize: undocumented.\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "streamBufferSize=%d\n", pGeek->m_streamBufferSize);
 	fprintf(fp, "\n\n");
 
@@ -536,8 +501,8 @@ void CConfigFile::processItem(char *tok, char *val)
 		pAdvanced->m_adminPassword = val;
 	else if (!strcmp(tok, "maxHopsToLive"))
 		pAdvanced->m_maxHopsToLive = atoi(val);
-	else if (!strcmp(tok, "maximumConnectionThreads"))
-		pAdvanced->m_maximumConnectionThreads = atoi(val);
+	else if (!strcmp(tok, "maximumThreads"))
+		pAdvanced->m_maximumThreads = atoi(val);
 	else if (!strcmp(tok, "nodestatus.class"))
 		pAdvanced->m_nodestatusclass = val;
 	else if (!strcmp(tok, "nodestatus.port"))
@@ -572,8 +537,8 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_logFile = val;
 	else if (!strcmp(tok, "logLevel"))
 		pGeek->m_logLevel = val;
-	else if (!strcmp(tok, "logVerbosity"))
-		pGeek->m_logVerbosity = val;
+	else if (!strcmp(tok, "logFormat"))
+		pGeek->m_logFormat = val;
 	else if (!strcmp(tok, "messageStoreSize"))
 		pGeek->m_messageStoreSize = atoi(val);
 	else if (!strcmp(tok, "minCacheCount"))

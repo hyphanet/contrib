@@ -32,7 +32,7 @@ public:
 	UINT	m_initialRequestHTL;
 	UINT	m_inputBandwidthLimit;
 	UINT	m_maxHopsToLive;
-	UINT	m_maximumConnectionThreads;
+	UINT	m_maximumThreads;
 	UINT	m_outputBandwidthLimit;
 	CString	m_seedNodes;
 	BOOL	m_nodestatusservlet;
@@ -55,7 +55,7 @@ protected:
 	afx_msg void OnInitialRequestHTLspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnInputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnMaxHopsToLivespin(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnMaximumConnectionThreadsspin(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG

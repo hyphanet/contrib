@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "Dec21-2001snapshot"
+!define VERSION "2002-01-08-snapshot"
 #!define LANGUAGE "German"
 
 Name "Freenet ${VERSION}"
@@ -213,7 +213,7 @@ Section
   iniFileExisted:
   # turn on FProxy by default
   ClearErrors
-  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
+  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
   IfErrors CfgnodeError
   # now calling the GUI configurator
   ExecWait "$INSTDIR\NodeConfig.exe"

@@ -105,6 +105,7 @@ void CPropNormal::OnnotTransientClick()
 {
 	int result;
 
+	UpdateData(TRUE);
 	if (warnPerm)
 	{
 		result = pWarnPerm->DoModal();
@@ -129,6 +130,7 @@ void CPropNormal::OnnotTransientClick()
 
 void CPropNormal::OntransientClick() 
 {
+	UpdateData(TRUE);
 	m_transient = TRUE;
 	m_notTransient = FALSE;
 	showNodeAddrFields(FALSE);
@@ -141,13 +143,9 @@ void CPropNormal::showNodeAddrFields(BOOL showing)
 
 	static CWnd *ipTitle = GetDlgItem(IDC_ipAddress_TITLE);
 	static CWnd *ipFld = GetDlgItem(IDC_ipAddress);
-	static CWnd *lpTitle = GetDlgItem(IDC_listenPort_TITLE);
-	static CWnd *lpFld = GetDlgItem(IDC_listenPort);
 
 	ipTitle->ShowWindow(showMode);
 	ipFld->ShowWindow(showMode);
-	lpTitle->ShowWindow(showMode);
-	lpFld->ShowWindow(showMode);
 	UpdateData(FALSE);
 }
 

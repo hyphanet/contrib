@@ -49,8 +49,8 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_inputBandwidthLimit, 0, 999999999);
 	DDX_Text(pDX, IDC_maxHopsToLive, m_maxHopsToLive);
 	DDV_MinMaxUInt(pDX, m_maxHopsToLive, 10, 50);
-	DDX_Text(pDX, IDC_maximumConnectionThreads, m_maximumConnectionThreads);
-	DDV_MinMaxUInt(pDX, m_maximumConnectionThreads, 1, 1024);
+	DDX_Text(pDX, IDC_maximumThreads, m_maximumThreads);
+	DDV_MinMaxUInt(pDX, m_maximumThreads, 1, 1024);
 	DDX_Text(pDX, IDC_outputBandwidthLimit, m_outputBandwidthLimit);
 	DDV_MinMaxUInt(pDX, m_outputBandwidthLimit, 0, 999999999);
 	DDX_Text(pDX, IDC_seedNodes, m_seedNodes);
@@ -67,7 +67,7 @@ BEGIN_MESSAGE_MAP(CPropAdvanced, CPropertyPage)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_initialRequestHTL_spin, OnInitialRequestHTLspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_inputBandwidthLimit_spin, OnInputBandwidthLimitspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_maxHopsToLive_spin, OnMaxHopsToLivespin)
-	ON_NOTIFY(UDN_DELTAPOS, IDC_maximumConnectionThreads_spin, OnMaximumConnectionThreadsspin)
+	ON_NOTIFY(UDN_DELTAPOS, IDC_maximumThreads_spin, OnMaximumThreadsspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_outputBandwidthLimit_spin, OnOutputBandwidthLimitspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_bandwidthLimit_spin, OnBandwidthLimitspin)
 	//}}AFX_MSG_MAP
@@ -187,23 +187,23 @@ void CPropAdvanced::OnMaxHopsToLivespin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropAdvanced::OnMaximumConnectionThreadsspin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
 	if (pNMUpDown->iDelta < 0)
 	{
-		if (m_maximumConnectionThreads < 1024)
+		if (m_maximumThreads < 1024)
 		{
-			m_maximumConnectionThreads++;
+			m_maximumThreads++;
 			UpdateData(FALSE);
 		}
 	}
 	else
 	{
-		if (m_maximumConnectionThreads > 0)
+		if (m_maximumThreads > 0)
 		{
-			m_maximumConnectionThreads--;
+			m_maximumThreads--;
 			UpdateData(FALSE);
 		}
 	}

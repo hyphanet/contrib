@@ -37,8 +37,8 @@
 #define IDC_initialRequestHTL_spin      1020
 #define IDC_maxHopsToLive               1021
 #define IDC_maxHopsToLive_spin          1022
-#define IDC_maximumConnectionThreads    1023
-#define IDC_maximumConnectionThreads_spin 1024
+#define IDC_maximumThreads              1023
+#define IDC_maximumThreads_spin 1024
 #define IDC_adminPassword               1025
 #define IDC_announcementDelay           1026
 #define IDC_announcementDelayBase       1027
@@ -84,6 +84,7 @@
 #define IDC_fproxy_splitretries         1072
 #define IDC_NODESTATUSCLASS             1072
 #define IDC_importNewNodeRef            1073
+#define IDC_logFormat                   1073
 #define IDC_fproxy_splitincHTL          1074
 #define IDC_GETLOCALSEED                1075
 #define IDC_BUT_exportRef               1076
@@ -97,7 +98,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1073
+#define _APS_NEXT_CONTROL_VALUE         1074
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

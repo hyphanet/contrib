@@ -151,16 +151,15 @@ BEGIN
     GROUPBOX        "Performance Settings",IDC_STATIC,138,165,174,38
     LTEXT           "Init Req HTL",IDC_STATIC,144,177,42,8
     LTEXT           "Max HTL",IDC_STATIC,195,177,30,8
-    LTEXT           "Max Connections In",IDC_STATIC,240,177,64,8
+    LTEXT           "Max. Threads",IDC_STATIC,240,177,44,8
     EDITTEXT        IDC_initialRequestHTL,142,187,25,12,ES_AUTOHSCROLL
     CONTROL         "Spin4",IDC_initialRequestHTL_spin,"msctls_updown32",
                     UDS_ARROWKEYS,168,186,14,15
     EDITTEXT        IDC_maxHopsToLive,194,187,17,14,ES_AUTOHSCROLL
     CONTROL         "Spin5",IDC_maxHopsToLive_spin,"msctls_updown32",
                     UDS_ARROWKEYS,212,186,14,16
-    EDITTEXT        IDC_maximumConnectionThreads,240,187,24,12,
-                    ES_AUTOHSCROLL
-    CONTROL         "Spin6",IDC_maximumConnectionThreads_spin,
+    EDITTEXT        IDC_maximumThreads,240,187,24,12,ES_AUTOHSCROLL
+    CONTROL         "Spin6",IDC_maximumThreads_spin,
                     "msctls_updown32",UDS_ARROWKEYS,264,186,14,15
     LTEXT           "Node Admin Password (optional)",IDC_STATIC,138,208,103,
                     8
@@ -201,10 +200,10 @@ BEGIN
     EDITTEXT        IDC_diagnosticsPath,31,127,58,12,ES_AUTOHSCROLL
     GROUPBOX        "Logging",IDC_STATIC,7,154,88,81
     LTEXT           "File",IDC_STATIC,15,171,12,8
-    EDITTEXT        IDC_logFile,31,169,57,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_logFile,31,169,58,12,ES_AUTOHSCROLL
     LTEXT           "Level",IDC_STATIC,15,193,18,8
     COMBOBOX        IDC_logLevel,42,190,48,54,CBS_DROPDOWN | WS_TABSTOP
-    LTEXT           "Verbosity",IDC_STATIC,15,216,30,8
+    LTEXT           "Format",IDC_STATIC,15,216,22,8
     GROUPBOX        "Misc",IDC_STATIC,103,7,209,227
     LTEXT           "authTimeout",IDC_STATIC,110,18,40,8
     EDITTEXT        IDC_authTimeout,110,26,35,12,ES_AUTOHSCROLL
@@ -238,8 +237,7 @@ BEGIN
     EDITTEXT        IDC_streamBufferSize,216,142,43,12,ES_AUTOHSCROLL
     LTEXT           "initialRequests",IDC_STATIC,215,160,46,8
     EDITTEXT        IDC_initialRequests,216,168,43,12,ES_AUTOHSCROLL
-    COMBOBOX        IDC_logVerbosity,51,212,39,65,CBS_DROPDOWN | CBS_SORT | 
-                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_logFormat,42,212,47,14,ES_AUTOHSCROLL
 END
 
 IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 241
@@ -434,16 +432,6 @@ BEGIN
 0x694d, 0x6f6e, 0x0072, 
     IDC_logLevel, 0x403, 6, 0
 0x6544, 0x7562, 0x0067, 
-    IDC_logVerbosity, 0x403, 2, 0
-0x0031, 
-    IDC_logVerbosity, 0x403, 2, 0
-0x0032, 
-    IDC_logVerbosity, 0x403, 2, 0
-0x0033, 
-    IDC_logVerbosity, 0x403, 2, 0
-0x0034, 
-    IDC_logVerbosity, 0x403, 2, 0
-0x0035, 
     0
 END
 
