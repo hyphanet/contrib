@@ -197,6 +197,11 @@ insert (int c)
 	return;
     }
     
+    if (!datalength) {
+	alert("Datalength is zero.");
+	return;
+    }
+    
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
     if (!(i = datalength/blocksize)) i++;
@@ -446,6 +451,12 @@ request (int c)
     hashes = malloc(i);
     if (readall(c, &datalength, 4) != 4 || readall(c, hashes, i) != i) {
 	alert("Error reading key from client.");
+	free(hashes);
+	return;
+    }
+
+    if (!datalength) {
+	alert("Datalength is zero.");
 	free(hashes);
 	return;
     }
