@@ -37,8 +37,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "Release"
-# PROP Intermediate_Dir "Release"
+# PROP Output_Dir ""
+# PROP Intermediate_Dir "c:\temp\Release"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -50,7 +50,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib ..\ezFCPlib\Release\ezFCPlib.lib /nologo /subsystem:console /machine:I386 /out:"fcpput.exe"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib ..\ezFCPlib\Release\ezFCPlib.lib /nologo /subsystem:console /machine:I386
 
 !ELSEIF  "$(CFG)" == "fcpput - Win32 Debug"
 
@@ -61,7 +61,7 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "c:\temp\Debug"
+# PROP Output_Dir ""
 # PROP Intermediate_Dir "c:\temp\Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
@@ -74,7 +74,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 ..\ezFCPlib\ezFCPlib.lib ..\fcpcommon\fcpcommon.lib wsock32.lib /nologo /subsystem:console /debug /machine:I386 /nodefaultlib:"libcmt.lib" /nodefaultlib:"libcd.lib" /out:"fcpput.exe" /pdbtype:sept
+# ADD LINK32 wsock32.lib /nologo /subsystem:console /debug /machine:I386 /nodefaultlib:"libcmt.lib" /nodefaultlib:"libcd.lib" /pdbtype:sept
 # SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
@@ -88,7 +88,63 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\fcpput.c
+SOURCE=..\ezFCPlib\_fcpCompat.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\_fcpGlobals.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\_fcpLog.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\_fcpRecvResponse.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\_fcpSock.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\_fcpUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\fcpCloseKey.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\fcpCreation.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\fcpOpenKey.c
+# End Source File
+# Begin Source File
+
+SOURCE=".\fcpput-main.c"
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\fcpPut.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\fcpPutKeyFromFile.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\fcpStartup.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\fcpWriteKey.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ezFCPlib\mimetype.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -99,9 +155,5 @@ SOURCE=.\fcpput.c
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
-# Begin Source File
-
-SOURCE=.\temp.txt
-# End Source File
 # End Target
 # End Project

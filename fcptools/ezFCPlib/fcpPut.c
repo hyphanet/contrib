@@ -517,6 +517,16 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	/* helper pointer */
 	segment = hfcp->key->segments[index];
 
+	if (!(fp = fopen(key_filename, "rb"))) {
+		_fcpLog(FCP_LOG_VERBOSE, "Could not open key data in file \"%s\"", key_filename);
+		return -1;
+	}			
+
+	/* seek to the location relative to the segment (if needed) */
+	if (segment->offset > 0) {
+		fseek(fp, segment->offset, SEEK_SET);
+	}
+
 	/* insert data blocks first */
 	for (bi=0; bi < segment->db_count; bi++) {
 		tmp_hfcp = _fcpCreateHFCP();
@@ -526,19 +536,10 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 		_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
 
-		if (!(fp = fopen(key_filename, "rb"))) {
-			_fcpLog(FCP_LOG_VERBOSE, "Could not open key data in file \"%s\"", key_filename);
-			return -1;
-		}			
-
-		/* seek to the location relative to the segment (if needed) */
-		if (segment->offset > 0) {
-			fseek(fp, segment->offset, SEEK_SET);
-		}
-
-		/* now insert from fseek result only up to block_size bytes */
+		/* now insert "block_size" bytes from current file pointer */
+		/* on return, file pointer points to first byte to be written on
+			subsequent pass */
 		rc = put_file(tmp_hfcp, fp, segment->block_size, 0);
-		fclose(fp);
 
 		if (rc != 0) {
 			_fcpLog(FCP_LOG_DEBUG, "could not insert data block %d (0->size-1) into Freenet", bi);
@@ -550,6 +551,15 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 		_fcpDestroyHFCP(tmp_hfcp);
 	}
+
+	/* if we're not at EOF, then not all the key data has been written */
+	if (!feof(fp)) {
+		_fcpLog(FCP_LOG_DEBUG, "did not write all key data to socket");
+		return -1;
+	}
+
+	/* we're done with the key data */
+	fclose(fp);
 
 	/* insert check blocks second */
 	for (bi=0; bi < segment->cb_count; bi++) {

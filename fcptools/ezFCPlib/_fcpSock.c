@@ -34,15 +34,30 @@
 
 #include "ezFCPlib.h"
 
+/* imports */
 extern void crSockDisconnect(hFCP *hfcp);
+
+/* private helper functions */
+static int host_is_numeric(char *host);
 
 
 int crSockConnect(hFCP *hfcp)
 {
   int rc;
+	unsigned long ul;
 
   struct sockaddr_in localAddr, servAddr;
   struct hostent *h;
+
+	/* if inet_addr not set, then get the numeric equivalent */
+	if (hfcp->inet_addr == 0) {
+		if (host_is_numeric(hfcp->host)) {
+			ul = inet_addr(hfcp->host);
+			gethostbyaddr();
+		}
+		else {
+		}
+	}
 
   if (!(h = gethostbyname(hfcp->host))) return -1;
 
@@ -85,9 +100,20 @@ int crSockConnect(hFCP *hfcp)
   return 0;
 }
 
+/*********************************************************************/
 
-void _fcpSockDisconnect(hFCP *hfcp)
+static int host_is_numeric(char *host)
 {
-	return;
+	while (*host != '.') {
+
+		/* if there's a character not between 0 -> 9, return with "false" */
+		if ((*host < '0') || (*host > '9')) return 0;
+
+		host++;
+	}
+	
+	/* return "true"; there are no alpha characters in the hostname
+		up to the first "." */
+	return 1;
 }
 

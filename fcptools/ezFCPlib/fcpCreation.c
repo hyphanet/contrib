@@ -100,12 +100,10 @@ void _fcpDestroyHKey(hKey *h)
 		if (h->uri) _fcpDestroyHURI(h->uri);
 		if (h->mimetype) free(h->mimetype);
 		if (h->tmpblock) free(h->tmpblock);
-
 		if (h->metadata) free(h->metadata);
 
-
 		/*
-		while (i < h->chunk_count)
+		while (i < h->segment_count)
 			_fcpDestroyHBlock(h->chunks[i++]);
 		*/
 
@@ -135,6 +133,13 @@ void _fcpDestroyHURI(hURI *h)
 	}
 }
 
+/*
+	_fcpParseURI()
+
+	This function parses a string containing a fully-qualified Freenet URI
+	into simpler components.  It is written to be re-entrant on the same
+	hURI pointer (it can be called repeatedly without being re-created.
+*/
 int _fcpParseURI(hURI *uri, char *key)
 {
 	int len;
@@ -142,11 +147,25 @@ int _fcpParseURI(hURI *uri, char *key)
 	char *p;
 	char *p2;
 
+	char *p_key;
+
+	p_key = key;
+
+	/* clear out the dynamic arrays before attempting to parse a new uri */
+	if (uri->uri_str) free(uri->uri_str);
+  if (uri->keyid) free(uri->keyid);
+	if (uri->path) free(uri->path);
+	if (uri->file) free(uri->file);
+
+	/* zero the block of memory */
+	memset(uri, 0, sizeof (hURI));
+
   /* skip 'freenet:' */
   if (!strncmp(key, "freenet:", 8))
     key += 8;
 
   /* classify key header */
+	/* MUST TEST SSK@ PARSING! */
   if (!strncmp(key, "SSK@", 4)) {
 
     uri->type = KEY_TYPE_SSK;
@@ -199,15 +218,10 @@ int _fcpParseURI(hURI *uri, char *key)
 		len = strlen(key);
 
 		if (len) {
-			if (uri->keyid) free(uri->keyid);
 			uri->keyid = (char *)malloc(len + 1);
-
 			strcpy(uri->keyid, key);
 		}
 		
-		/* don't forget to update the raw string.. */
-		if (uri->uri_str) free(uri->uri_str);
-
 		if (uri->keyid) {
 			uri->uri_str = (char *)malloc(strlen(uri->keyid) + 5);
 			sprintf(uri->uri_str, "CHK@%s", uri->keyid);
@@ -223,22 +237,21 @@ int _fcpParseURI(hURI *uri, char *key)
   else if (!strncmp(key, "KSK@", 4)) {
 
     uri->type = KEY_TYPE_KSK;
-		strcpy(uri->uri_str, "KSK@");
 
     key += 4;
 
-		for (p = key; *p; p++);
-		len = p-key;
+		len = strlen(key);
 
 		uri->keyid = (char *)malloc(len + 1);
-		strncpy(uri->keyid, key, len);
+		strcpy(uri->keyid, key);
 		*(uri->keyid + len) = 0;
 
-		realloc(uri->uri_str, strlen(uri->keyid) + 5);
-		strcat(uri->uri_str, uri->keyid);
+		uri->uri_str = (char *)malloc(strlen(uri->keyid) + 5);
+		sprintf(uri->uri_str, "KSK@%s", uri->keyid);
   }
   
   else {
+		_fcpLog(FCP_LOG_DEBUG, "error attempting to parse invalid key \"%s\"", p_key);
     return 1;
   }
 
