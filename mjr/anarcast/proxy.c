@@ -321,7 +321,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     int m, next, active;
     fd_set w;
     struct timeval start, end;
-    long diff;
+    long seconds, millis;
     
     struct {
 	int num;
@@ -415,12 +415,18 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     if (gettimeofday(&end, NULL) == -1)
 	die("gettimeofday() failed");
     
-    diff = (end.tv_sec-start.tv_sec)*1000 + (end.tv_usec-start.tv_usec)/1000;
+    seconds = end.tv_sec - start.tv_sec;
+    millis = (end.tv_usec-start.tv_usec)/1000;
+    if (millis < 0) {
+	millis = -millis;
+	seconds--;
+    }
 	
-    alert("Insert of %d blocks completed in %d minutes, %d.%d seconds.",
-          blockcount, diff/1000/60, diff/1000, diff);
+    alert("Insert of %d blocks completed in %d minutes, %d.%03d seconds.",
+          blockcount, seconds/60, seconds%60, millis);
 
-    alert("Average throughput: %d kilobytes/second.", blockcount*blocksize/diff);
+    alert("Average throughput: %f kilobytes/second.",
+	  (double)blockcount*blocksize/(seconds*1000+millis));
 }
 
 //=== request ===============================================================
@@ -614,7 +620,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     int m, next, active, success;
     fd_set r, w;
     struct timeval start, end;
-    long diff;
+    long seconds, millis;
 
     struct {
 	int num;
@@ -773,13 +779,17 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     if (gettimeofday(&end, NULL) == -1)
 	die("gettimeofday() failed");
     
-    diff = (end.tv_sec-start.tv_sec)*1000 + (end.tv_usec-start.tv_usec)/1000;
+    seconds = end.tv_sec - start.tv_sec;
+    millis = (end.tv_usec-start.tv_usec)/1000;
+    if (millis < 0) {
+	millis = -millis;
+	seconds--;
+    }
     
-    alert("Download of %d/%d (%d%%) blocks completed in %d minutes, %d.%d seconds.",
-	  success, blockcount,(int) ((double) success / (double) blockcount * 100),
-	  diff/1000/60, diff/1000, diff);
+    alert("Download of %d/%d (%d%%) blocks completed in %d minutes, %d.%03d seconds.",
+	  success, blockcount, (int)((double)success/blockcount*100), seconds/60, seconds%60, millis);
 
-    alert("Average throughput: %d kilobytes/second.", success*blocksize/diff);
+    alert("Average throughput: %f kilobytes/second.", (double)success*blocksize/(seconds*1000+millis));
 }
 
 //=== routing ===============================================================
@@ -869,10 +879,10 @@ addref (unsigned int addr)
 	}
     }
 
+    refop('+', n->hash, n->addr);
+
     if (pthread_mutex_unlock(&mutex))
         die("pthread_mutex_unlock() failed");
-
-    refop('+', n->hash, n->addr);
 }
 
 void
@@ -906,8 +916,12 @@ unsigned int
 route (const char hash[HASHLEN], int off)
 {
     struct node *p, *last;
-    
+    int tmp;
+
     assert(off < 3);
+    
+    if (pthread_mutex_lock(&mutex))
+	die("pthread_mutex_lock() failed");
     
     if (!head)
 	die("empty address list");
@@ -930,7 +944,11 @@ route (const char hash[HASHLEN], int off)
     }
     
     refop('*', p->hash, p->addr);
+    tmp = p->addr;
+
+    if (pthread_mutex_unlock(&mutex))
+	die("pthread_mutex_unlock() failed");
     
-    return p->addr;
+    return tmp;
 }
 
