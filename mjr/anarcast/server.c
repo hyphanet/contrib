@@ -82,7 +82,7 @@ main (int argc, char **argv)
 			    char hex[HASHLEN*2+1];
 			    hashdata(a[n].data, a[n].len, a[n].hash);
 			    bytestohex(hex, a[n].hash, HASHLEN);
-			    printf("%s < %s\n", timestr(), hex);
+			    printf("%s < %s %d\n", timestr(), hex, a[n].len);
 			    if (stat(hex, &st) == -1) {
 				if ((i = open(hex, O_WRONLY | O_CREAT, 0644)) == -1)
 				    die("open() failed");
@@ -148,7 +148,7 @@ main (int argc, char **argv)
 		    if (c > 0) { // success!
 			char hex[HASHLEN*2+1];
 			bytestohex(hex, a[n].hash, HASHLEN);
-			printf("%s > %s\n", timestr(), hex);
+			printf("%s > %s %d\n", timestr(), hex, a[n].len);
 		    } else ioerror(); // error, yuck.
 		    FD_CLR(n, &w);
 		    if (n + 1 == m) m--;
