@@ -3,7 +3,7 @@
 INCLUDES= -I$(top_srcdir)/include
 
 noinst_LIBRARIES = libezfcp.a
-noinst_HEADERS = compat.h
+noinst_HEADERS = ezFCPlib.h compat.h
 
 FCP_SOURCE = \
 	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c \
@@ -14,7 +14,6 @@ FCP_SOURCE = \
 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c \
 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c \
-	mimetype.c template.c safeMalloc.c compat.c
+	mimetype.c template.c safeMalloc.c
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
-

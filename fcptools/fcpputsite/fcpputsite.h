@@ -1,4 +1,3 @@
-
 #define MAXFILELEN  256
 #define CHKKEYLEN   128
 
@@ -12,6 +11,10 @@
 #define INSERT_THREAD_DONE      2
 #define INSERT_THREAD_FAILED    3
 
+#define FCPPUTSITE_ATTEMPTS        3
+#define FCPPUTSITE_INSERT_THREADS  5
+#define FCPPUTSITE_DEFAULT_FILE    "index.html"
+
 typedef struct _sitefile
 {
     char    filename[MAXFILELEN];   // obvious
@@ -22,7 +25,6 @@ typedef struct _sitefile
     struct _sitefile *next;         // next file in chain
 }
 SiteFile;
-
 
 typedef struct
 {

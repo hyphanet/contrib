@@ -1,8 +1,6 @@
-
 /*
-  QM Compatibility Routines
-  by Jay Oliveri
-  Copyright 2002 QM LLC.
+  compat.h
+  Copyright 2002 by Jay Oliveri
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,64 +17,52 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifndef _COMPAT_H
-#define _COMPAT_H
 
-/* Place generic statements here if you must ;) */
-
-/* Create Function Pointer type */
 typedef void (*FP) (void *);
 
+
+/**************************************************************************
+  Function definitions
+**************************************************************************/
+static int crLaunchThread(void (*f)(void *), void *parms)
+{
 #ifdef WINDOWS
-
-/* Kludge until someone finds a better way
-   Normally this would be 0.4.3 or something similar */
-#define VERSION "WINDOWS"
-
-#define write _write
-#define open _open
-#define read _read
-#define close _close
-#define mkstemp _mkstemp
-#define snprintf _snprintf
-#define vsnprintf _vsnprintf
-
-#define OPEN_MODE_READ  (_O_RDONLY | _O_BINARY)
-#define OPEN_MODE_WRITE 0
-
-#include <malloc.h>
-#include <process.h>
-#include <winsock.h>
-#include <io.h>
+  return _beginthread(f, 0, parms) == -1 ? -1 : 0;
 
 #else
+  pthread_t pth;
+  pthread_attr_t attr;
+  
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-/* UNIX includes that do not correspond on WINDOWS go here */
-#define OPEN_MODE_READ  0
-#define OPEN_MODE_WRITE 0
-
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#include <stdint.h>
-#include <unistd.h>
-#include <pthread.h>
-
+  return pthread_create(&pth, &attr, (void *)f, parms);
 #endif
+}
 
+static void crQuitThread(char *s)
+{
+#ifdef WINDOWS
+  _endthread();
 
-/* Function Definitions */
-
-#ifdef __cplusplus
-#define _C_ "C"
 #else
-#define _C_
+  pthread_exit(s);
 #endif
+}
 
-extern _C_ int   crLaunchThread(FP, void *);
-extern _C_ void  crQuitThread(char *);
-extern _C_ int   crSleep(unsigned int, unsigned int);
+static int crSleep(unsigned int seconds, unsigned int nanoseconds)
+{
+#ifdef WINDOWS
+  Sleep(seconds * 1000);
+	return 0;
 
-#endif /* End of COMPAT_H */
+#else
+  struct timespec delay;
+  struct timespec remain;
+
+  delay.tv_sec = seconds;
+  delay.tv_nsec = nanoseconds;
+
+  return nanosleep( &delay, &remain );
+#endif
+}

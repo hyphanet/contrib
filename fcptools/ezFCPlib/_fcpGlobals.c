@@ -1,4 +1,3 @@
-
 /*
   This code is part of FreeWeb - an FCP-based client for Freenet
 
@@ -20,11 +19,6 @@ char  _fcpHost[L_HOST];
 int   _fcpPort;
 int   _fcpHtl;
 int   _fcpRawMode;
-
-// Remove the following comments when temp files are confirmed to be working
-// correctly.
-//char  _fcpProgPath[256];
-//int   _fcpFileNum;       /* temporary file count */
 
 char  _fcpID[4] = { 0, 0, 0, 2 };
 int   _fcpRegress;

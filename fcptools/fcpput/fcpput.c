@@ -404,16 +404,15 @@ static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len)
 }
 
 
-//
-// extension of atoi()
-//
-// this func recognises suffices on numbers
-//
-// eg '64k' will get parsed as 65536
-//
-// recognises the suffices 'k', 'K', 'm', 'M', 'g', 'G'
-//
-// Thanks to mjr for this lovely snippet
+/*
+	Extension of atoi()
+	
+	This func recognises suffices on numbers
+	eg '64k' will get parsed as 65536
+	recognises the suffices 'k', 'K', 'm', 'M', 'g', 'G'
+
+	Thanks to mjr for this lovely snippet
+*/
 
 static int parse_num(char *s)
 {

@@ -20,6 +20,7 @@
 */
 
 #include "ezFCPlib.h"
+#include "compat.h"
 
 typedef struct
 {

@@ -11,9 +11,6 @@
 //  See http://www.gnu.org/ for further details of the GPL.
 //
 
-#include <time.h>
-#include <stdlib.h>
-
 #include "ezFCPlib.h"
 
 //

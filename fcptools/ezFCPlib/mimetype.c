@@ -1,6 +1,6 @@
-
-#include <stdio.h>
-#include <string.h>
+/*
+	mimetype.c
+*/
 
 #include "ezFCPlib.h"
 

@@ -1,10 +1,15 @@
-// fcpputsite.c - simple command line client that uses FCP
-// for insertion of freesites
-// CopyLeft () 2001 by David McNab
+/*
+	fcpputsite.c - simple command line client that uses FCP
+	for insertion of freesites
 
-#include "stdio.h"
+	CopyLeft () 2001 by David McNab
+*/
+
 #include "ezFCPlib.h"
+#include "fcpputsite.h"
 
+#define _GNU_SOURCE
+#include "getopt.h"
 
 //
 // IMPORTED DECLARATIONS
@@ -14,7 +19,11 @@ extern int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *pri
                           char *defaultFile, int daysFuture, int maxThreads, int maxRetries,
                           int dodbr);
 
-extern int fcpSplitChunkSize;
+extern int  fcpSplitChunkSize;
+
+//extern int  crLaunchThread(void (*f)(void *), void *parms);
+//extern void crQuitThread(char *s);
+//extern int  crSleep(unsigned int seconds, unsigned int nanoseconds);
 
 
 //
@@ -25,32 +34,47 @@ char *strsav(char *old, char *text_to_append);
 int fcpLogCallback(int level, char *buf);
 
 
-//
-// PRIVATE DECLARATIONS
-//
-
+/*
+	PRIVATE DECLARATIONS
+*/
 static void parse_args(int argc, char *argv[]);
 static int  parse_num(char *s);
-static int  usage(char *msg);
+static void usage(char *);
 static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len);
 
-static int  htlVal = 3;
-static char *nodeAddr = "127.0.0.1";
-static int  nodePort = 8481;
-static int  verbosity = FCP_LOG_NORMAL;
+/* Configurable command-line parameters
+   Strings/Arrays that have default values if not set explicitly from the
+   command line should be initialized to "", a zero-length string.
+*/
+static char  keyUri[L_URI];
+static char  keyFile[L_FILENAME] = "";
+static char  metaFile[L_FILENAME] = "";
 
-static int  daysFuture = 0;             // number of days ahead to insert mapfile
-static char privKey[80];                    // SSK private key
-static char pubKey[80];                     // SSK public key
-static char *siteName = NULL;               // name of site - SSK subspace identifier
-static char *siteDir = NULL;                // directory of site's files
-static char *defaultFile = "index.html";    // redirect target for unnamed cdoc
-static int  generateKeys = 0;           // flag requiring keypair generation only
-static int  dodbr = 1;					// flag on whether we generate a dbr or not
-static int  maxThreads = 5;             // maximum number of concurrent insert threads
-static int  maxAttempts = 3;                // maximum number of insert attempts
+static char  nodeAddr[L_HOST] = EZFCP_DEFAULT_HOST;
+static int   nodePort = EZFCP_DEFAULT_PORT;
+static int   htlVal = EZFCP_DEFAULT_HTL;
 
-static int	maxSplitThreads = 0;
+static int   regress = EZFCP_DEFAULT_REGRESS;
+static int   rawMode = EZFCP_DEFAULT_RAWMODE;
+
+/*
+ attempts       ->  maxAttempts
+ splitThreads   ->  maxSplitThreads
+ insertThreads  ->  maxThreads
+*/
+static int  maxThreads = FCPPUTSITE_INSERT_THREADS; // maximum number of concurrent insert threads
+static int  maxAttempts = FCPPUTSITE_ATTEMPTS;      // maximum number of insert attempts
+static int	maxSplitThreads = FCP_MAX_SPLIT_THREADS;
+
+static int   verbosity = FCP_LOG_NORMAL;
+static int   daysFuture = 0;             // number of days ahead to insert mapfile
+static char  privKey[L_KEY];             // SSK private key
+static char  pubKey[L_KEY];              // SSK public key
+static char  siteName[L_URI] = "";       // name of site - SSK subspace identifier
+static char  siteDir[L_FILENAME] = "";   // directory of site's files
+static char  defaultFile[L_FILENAME] = FCPPUTSITE_DEFAULT_FILE;    // redirect target for unnamed cdoc
+static int   genKeypair = 0;           // flag requiring keypair generation only
+static int   dodbr = 1;					         // flag on whether we generate a dbr or not
 
 
 int main(int argc, char* argv[])
@@ -68,7 +92,7 @@ int main(int argc, char* argv[])
     }
 
     // Does the user just want a keypair?
-    if (generateKeys)
+    if (genKeypair)
     {
         HFCP *hfcp = fcpCreateHandle();
 
@@ -110,106 +134,158 @@ int fcpLogCallback(int level, char *buf)
 
 static void parse_args(int argc, char *argv[])
 {
-    int i;
+  static struct option long_options[] = {
+    {"address", 1, NULL, 'n'},
+    {"port", 1, NULL, 'p'},
+    {"htl", 1, NULL, 'l'},
+    {"raw", 0, NULL, 'r'},
+		{"attempts", 1, NULL, 'a'},
+		{"size", 1, NULL, 's'},
+		{"split-threads", 1, NULL, 't'},
+		{"insert-threads", 1, NULL, 'i'},
+		{"no-dbr", 0, NULL, 'd'},
+		{"gen-keypair", 0, NULL, 'g'},
+		{"days", 1, NULL, 'f'},
+		{"default", 1, NULL, 'D'},
+    {"verbosity", 1, NULL, 'v'},
+    {"version", 0, NULL, 'V'},
+    {"help", 0, NULL, 'h'},
+    {0, 0, 0, 0}
+  };
+  static char short_options[] = "l:n:p:s:a:p:i:dgf:D:rv:Vh";
 
-    // is user generating keys instead of inserting?
-    if (argc == 1)
-        usage("missing parameters");
+  /* c is the option code; i is buffer storage for an int */
+  int c, i;
 
-    for (i = 1; i < argc; i++)
-    {
-        if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-help"))
-            usage(NULL);
-        else if (!strcmp(argv[i], "-n"))
-            nodeAddr = (++i < argc)
-                        ? argv[i]
-                        : (char *)usage("missing node address");
-        else if (!strcmp(argv[i], "-htl"))
-            htlVal = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing htl argument");
-        else if (!strcmp(argv[i], "-p"))
-            nodePort = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing port number");
-        else if (!strcmp(argv[i], "-v"))
-            verbosity = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing verbosity level");
-        else if (!strcmp(argv[i], "-ss"))
-            fcpSplitChunkSize = (++i < argc)
-                        ? parse_num(argv[i])
-                        : (int)usage("missing splitfile chunk size");
-        else if (!strcmp(argv[i], "-st"))
-            maxSplitThreads = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing max splitfile threads");
-        else if (!strcmp(argv[i], "-f"))
-            daysFuture = (++i < argc)
-                        ? atoi(argv[i])
-                        : usage("missing future days argument");
-        else if (!strcmp(argv[i], "-a"))
-            maxAttempts = (++i < argc)
-                        ? atoi(argv[i])
-                        : usage("missing maxAttempts value");
-        else if (!strcmp(argv[i], "-t"))
-            maxThreads = (++i < argc)
-                        ? atoi(argv[i])
-                        : usage("missing thread count");
-        else if (!strcmp(argv[i], "-def"))
-            defaultFile = (++i < argc)
-                        ? argv[i]
-                        : (char *)usage("missing default file");
-	else if (!strcmp(argv[i], "-nodbr"))
-	    dodbr = 0;
-        else if (!strcmp(argv[i], "-g"))
-            generateKeys = 1;
-        else
-        {
-            // have we run out of args?
-            if (i + 4 != argc)
-                usage("Incorrect number of arguments");
+  while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
+    switch (c) {
 
-            // cool - get main args
-            siteName = argv[i++];
-            siteDir = argv[i++];
-            strcpy(pubKey, argv[i++]);
-            strcpy(privKey, argv[i]);
-        }
-    }
+    case 'n':
+      strncpy( nodeAddr, optarg, L_URI );
+      break;
+
+    case 'p':
+      i = atoi( optarg );
+      if (i > 0) nodePort = i;
+      break;
+
+    case 'l':
+      i = atoi( optarg );
+      if (i > 0) htlVal = i;
+      break;
+
+    case 'r':
+      rawMode = 1;
+      break;
+
+		case 'a':
+			i = atoi( optarg );
+			if (i > 0) maxAttempts = i;
+			break;
+
+		case 's':
+			i = atoi( optarg );
+			if (i > 0) fcpSplitChunkSize = i;
+			break;
+
+		case 't':
+			i = atoi( optarg );
+			if (i > 0) maxSplitThreads = i;
+			break;
+
+		case 'i':
+			i = atoi( optarg );
+			if (i > 0) maxThreads = i;
+			break;
+ 
+		case 'd':
+			dodbr = 0;
+			break;
+ 
+		case 'g':
+			genKeypair = 1;
+			return;
+ 
+		case 'f':
+			i = atoi( optarg );
+			if (i > 0) daysFuture = i;
+			break;
+ 
+		case 'D':
+      strncpy( defaultFile, optarg, L_URI );
+			break;
+ 
+    case 'v':
+      i = atoi( optarg );
+      if ((i >= 0) && (i <= 4)) verbosity = i;
+      break;
+
+    case 'V':
+      printf( "FCPtools Version %s\n", VERSION );
+      exit(0);
+
+    case 'h':
+      usage(NULL);
+      break;
+		}
+	}
+
+	/* Process NAME, DIR, PUB, PRV parameters here */
+
+  if (optind < argc) strncpy(siteName, argv[optind++], L_URI);
+  else usage("You must specify a site name");
+
+  if (optind < argc) strncpy(siteDir, argv[optind++], L_FILENAME);
+  else usage("You must specify a directory");
+
+  if (optind < argc) strncpy(pubKey, argv[optind++], L_KEY);
+  else usage("You must specify a public key");
+
+  if (optind < argc) strncpy(privKey, argv[optind++], L_KEY);
+  else usage("You must specify a private key");
+
+	printf("wheeeeeeeeeeee!!\n\n");
 }
 
-
-static int usage(char *s)
+static void usage(char *s)
 {
-    if (s != NULL)
-        printf("%s\n\n", s);
-    printf("fcpputsite - Insert a directory of files into Freenet as a freesite\n");
-    printf("Written by David McNab - http://freeweb.sourceforge.net\n\n");
-    printf("usage: fcpputsite [options] name dir pubKey privKey\n");
-    printf("Options are:\n");
-    printf("  -h: display this help\n");
-    printf("  -htl val:    use HopsToLive value of val, default 3\n");
-    printf("  -n addr:     address of your freenet 0.4 node, default 'localhost'\n");
-    printf("  -p port:     FCP port for your freenet 0.4 node, default 8481\n");
-    printf("  -v level:    verbosity of logging messages:\n");
-    printf("               0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-    printf("               default is 2\n");
-	printf("  -ss:         size of splitfile chunks, default %d\n", SPLIT_BLOCK_SIZE);
-	printf("  -st:         max number of splitfile threads, default %d\n", FCP_MAX_SPLIT_THREADS);
-    printf("  -g:          DON'T insert a site - just create an SVK keypair instead\n");
-    printf("  -nodbr       don't insert a dbr redirection, just a map file\n");
-    printf("  -f numDays:  insert a map file numDays in the future, default 0 (today)\n");
-    printf("  -def file:   name of site's 'default' file, default is index.html\n");
-    printf("               the default file MUST exist in selected directory\n");
-    printf("  -t threads:  the maximum number of insert threads (default 5)\n");
-    printf("  -a attempts: maximum number of attempts at inserting each file (default 3)\n");
-    printf("Required arguments are:\n");
-    printf("  name:        name of site - more formally, the SSK subspace identifier\n");
-    printf("  dir:         the directory containing the freesite\n");
-    printf("  pubKey:      the SSK public key\n");
-    printf("  privKey:     the SSK private key\n");
-    exit(-1);
+  if (s) printf("Error: %s\n", s);
+
+  printf("FCPtools; Freenet Client Protocol Tools\n");
+  printf("Copyright (c) 2001 by David McNab\n\n");
+
+  printf("Usage: fcpputsite [OPTIONS] name dir pubkey prvkey\n\n");
+
+  printf("Options:\n\n");
+  printf("  -n, --address host        Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
+  printf("  -p, --port num            Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
+  printf("  -l, --htl num             Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
+  printf("  -r, --raw                 Raw mode - don't follow redirects\n\n");
+
+  printf("  -a, --attempts num        Attempts to insert each file (default %d)\n", FCPPUTSITE_ATTEMPTS);
+  printf("  -s, --size num            Size of splitfile chunks (default %d)\n", SPLIT_BLOCK_SIZE);
+  printf("  -p, --split-threads num   Number of splitfile threads (default %d)\n", FCP_MAX_SPLIT_THREADS);
+  printf("  -i, --insert-threads num  Max number of insert threads (default %d)\n\n", FCPPUTSITE_INSERT_THREADS);
+ 
+	printf("  -d, --no-dbr              Do not insert a dbr redirection\n");
+	printf("  -g, --gen-keypair         Do not insert - just create an SVK keypair instead\n");
+	printf("  -f, --days num            Insert a map file num days in the future (default is today)\n");
+	printf("  -D, --default file        Name of site's default file (default \"%s\")\n", FCPPUTSITE_DEFAULT_FILE);
+	printf("                            (the default file must exist in the specified directory)\n");  
+  printf("  -v, --verbosity num       Verbosity of log messages (default 2)\n");
+  printf("                            0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+ 	
+	printf("  -V, --version             Output version information and exit\n");
+	printf("  -h, --help                Display this help and exit\n\n");
+ 
+	printf("Required arguments:\n\n");
+
+	printf("  name      Name of site (SSK subspace identifier)\n");
+	printf("  dir       The directory containing the site\n");
+	printf("  pubkey    The SSK public key\n");
+	printf("  prvkey    The SSK private key\n\n");
+  
+  exit(-1);
 }
 
 

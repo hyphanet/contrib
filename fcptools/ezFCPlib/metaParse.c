@@ -1,15 +1,13 @@
-//
-// metaParse.c
-//
-// new simplified fieldset-based parser for ezFCPlib
-//
-// this replaces the yacc-generated parser from older
-// versions of ezFCPlib
-//
+/*
+	metaParse.c
+
+	New simplified fieldset-based parser for ezFCPlib.
+
+	This replaces the yacc-generated parser from older
+	versions of ezFCPlib.
+*/
 
 #include "ezFCPlib.h"
-
-#include <string.h>
 
 
 //
@@ -136,7 +134,7 @@ META04 *metaParse(char *buf)
             {
                 // create empty fieldset struct
                 thisdoc = meta->numDocs++;
-                meta = realloc(meta, sizeof(META04) + sizeof(FLDSET *) * meta->numDocs);
+                meta = realloc(meta->cdoc, sizeof(META04) + sizeof(FLDSET *) * meta->numDocs);
                 meta->cdoc[thisdoc] = safeMalloc(sizeof(FLDSET));
                 meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
                 meta->cdoc[thisdoc]->numFields = 0;

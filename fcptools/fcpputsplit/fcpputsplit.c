@@ -1,12 +1,15 @@
-// fcpputsplit.c - inserts a splitfile
-// CopyLeft () 2001 by David McNab
+/*
+	fcpputsplit.c - inserts a splitfile
 
-#include "stdio.h"
+	CopyLeft () 2001 by David McNab
+*/
+
+
 #include "ezFCPlib.h"
+#include "compat.h"
 
 #define MAXRETRIES 10
 #define KEYSIZE  1024
-
 
 char *GetMimeType(char *pathname);
 

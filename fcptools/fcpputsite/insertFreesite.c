@@ -7,6 +7,7 @@
 
 
 #include "ezFCPlib.h"
+#include "compat.h"
 #include "fcpputsite.h"
 
 
@@ -19,6 +20,9 @@ extern SiteFile *scan_dir(char *dirname, int *pNumFiles);
 extern char     *strsav(char *old, char *text_to_append);
 extern char     *GetMimeType(char *pathname);
 
+extern int  crLaunchThread(void (*f)(void *), void *parms);
+extern void crQuitThread(char *s);
+extern int  crSleep(unsigned int seconds, unsigned int nanoseconds);
 
 //
 // EXPORTED DECLARATIONS

@@ -11,8 +11,9 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#include <signal.h>
 #include "ezFCPlib.h"
+
+#include <signal.h>
 
 /*
   Imported Declarations

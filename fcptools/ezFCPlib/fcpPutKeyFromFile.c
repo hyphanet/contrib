@@ -12,9 +12,6 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-
-#include <stdlib.h>
-
 #include "ezFCPlib.h"
 
 extern char     _fcpID[];

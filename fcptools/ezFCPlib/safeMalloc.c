@@ -11,7 +11,7 @@
 */
 
 #include "ezFCPlib.h"
-
+#include "compat.h"
 
 /*
   safeMalloc()

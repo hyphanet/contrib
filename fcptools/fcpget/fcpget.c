@@ -32,10 +32,10 @@ char  metaFile[L_FILENAME] = "";
 char  nodeAddr[L_HOST] = EZFCP_DEFAULT_HOST;
 int   nodePort = EZFCP_DEFAULT_PORT;
 int   htlVal = EZFCP_DEFAULT_HTL;
-
+int   regress = EZFCP_DEFAULT_REGRESS;
 int   rawMode = EZFCP_DEFAULT_RAWMODE;
-int   verbosity = FCP_LOG_NORMAL;
 
+int   verbosity = FCP_LOG_NORMAL;
 
 int main(int argc, char* argv[])
 {
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     // try and fire up FCP library
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
 
-    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, 0) != 0)
+    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, regress) != 0)
     {
         _fcpLog(FCP_LOG_CRITICAL, "Failed to connect to node - aborting");
         return 1;
@@ -167,51 +167,54 @@ int main(int argc, char* argv[])
 static void parse_args(int argc, char *argv[])
 {
   static struct option long_options[] = {
-    {"htl", 1, NULL, 'l'},
     {"address", 1, NULL, 'n'},
     {"port", 1, NULL, 'p'},
-    {"metadata", 1, NULL, 'm'},
+    {"htl", 1, NULL, 'l'},
+		{"regress", 1, NULL, 'e'},
     {"raw", 0, NULL, 'r'},
+    {"metadata", 1, NULL, 'm'},
     {"verbosity", 1, NULL, 'v'},
     {"version", 0, NULL, 'V'},
     {"help", 0, NULL, 'h'},
     {0, 0, 0, 0}
   };
-  static char short_options[] = "l:n:p:m:rv:Vh";
+  static char short_options[] = "l:n:p:e:m:rv:Vh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
 
   while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
-
-    //printf("%s\n", optarg);
     switch (c) {
 
-    case 'l':
-      i = atoi( optarg );
-      htlVal = (i <= 0 ? 0 : i);
-      break;
-      
     case 'n':
       strncpy( nodeAddr, optarg, L_URI );
       break;
-      
+
     case 'p':
       i = atoi( optarg );
-      nodePort = ( i <= 0 ? EZFCP_DEFAULT_PORT : i );
+      if (i > 0) nodePort = i;
+			break;
+      
+    case 'l':
+      i = atoi( optarg );
+      if (i > 0) htlVal = i;
+      break;
+
+		case 'e':
+			i = atoi( optarg );
+			if (i > 0) regress = i;
+      
+    case 'r':
+      rawMode = 1;
       break;
       
     case 'm':
       strncpy( metaFile, optarg, L_FILENAME );
       break;
       
-    case 'r':
-      rawMode = 1;
-      break;
-      
     case 'v':
       i = atoi( optarg );
-      verbosity = ( i <= 0 ? 0 : i );
+      if ((i >= 0) && (i <= 4)) verbosity = i;
       break;
       
     case 'V':
@@ -224,13 +227,11 @@ static void parse_args(int argc, char *argv[])
     }
   }
 
-  //printf("\noptind: %d :: argc: %d\n\n", optind, argc);
   if (optind < argc) strncpy(keyUri, argv[optind++], L_URI);
   else usage("You must specify a key");
 
   /* If there's another parameter, it's the FILE to store the results in.
-     Default value is "stdout" if not passed */
-
+     Default value is "" if not passed */
   if (optind < argc)
     strncpy(keyFile, argv[optind++], L_FILENAME);
 }
@@ -239,21 +240,23 @@ static void parse_args(int argc, char *argv[])
 static void usage(char *s)
 {
     if (s) printf("Error: %s\n", s);
+
     printf("FCPtools; Freenet Client Protocol Tools\n");
     printf("Copyright (c) 2001 by David McNab\n\n");
 
     printf("Usage: fcpget [OPTIONS] key [file]\n\n");
 
     printf("Options:\n\n");
-    printf("  -l. --htl htlVal       Hops to Live value, default %d\n", htlVal);
-    printf("  -n, --address addr     Address of your Freenet node,\n");
-    printf("                         default \"%s\"\n", nodeAddr);
-    printf("  -p, --port port        Port of your freenet 0.4 node, default %d\n", nodePort);
+    printf("  -n, --address host     Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
+    printf("  -p, --port num         Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
+    printf("  -l, --htl num          Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
+		printf("  -e, --regress num      Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
+    printf("  -r, --raw              Raw mode - don't follow redirects\n\n");
+
     printf("  -m, --metadata file    Write key's metadata to file (default \"stdout\")\n");
-    printf("  -r, --raw              Raw mode - don't follow redirects\n");
-    printf("  -v, --verbosity level  Verbosity of logging messages:\n");
-    printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-    printf("                         (default=2)\n");
+    printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
+    printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+
     printf("  -V, --version          Output version information and exit\n");
     printf("  -h, --help             Display this help and exit\n\n");
 

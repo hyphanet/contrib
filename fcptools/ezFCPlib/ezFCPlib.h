@@ -14,21 +14,64 @@
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
-/*
-  Necessary includes
 
-  These includes are useful for all of the FCPtools code.  Any module-specific
-  include should be placed within said module.
+/**************************************************************************
+  MS-WINDOWS specifics
+**************************************************************************/
+#ifdef WINDOWS
 
-*/
-#include "compat.h"
+/* VERSION is defined by automake for non-Win platforms. */
+#define VERSION "0.4.5/Win"
 
+#define write _write
+#define open _open
+#define read _read
+#define close _close
+#define mkstemp _mkstemp
+#define snprintf _snprintf
+#define vsnprintf _vsnprintf
+
+#define OPEN_MODE_READ  (_O_RDONLY | _O_BINARY)
+#define OPEN_MODE_WRITE 0
+
+#include <malloc.h>
+#include <process.h>
+#include <winsock.h>
+#include <io.h>
+//#include <stdint.h> Remove if not needed under win (not needed under *nix)
+
+
+/**************************************************************************
+  NON MS-WINDOWS (Linux, BSD, ...)
+**************************************************************************/
+#else
+
+/* UNIX includes that do not correspond on WINDOWS go here */
+#define OPEN_MODE_READ  0
+#define OPEN_MODE_WRITE 0
+
+// Keep <sys/> files first in #include order
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#include <unistd.h>
+#include <pthread.h>
+#include <errno.h>
+
+#endif
+
+
+/**************************************************************************
+  GENERIC (place anything that must happen after the above decl's here)
+**************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h> 
 
@@ -53,7 +96,6 @@
 #define L_KEY         128
 #define L_KEYINDEX    128
 #define L_KSK         32768
-
 
 /*
   Splitfiles handling definitions
