@@ -4,9 +4,6 @@
 #include "anarcast.h"
 #include "sha.c"
 
-// how many graphs do we have?
-#define GRAPHCOUNT    512
-
 // how many blocks should be transfer at a time?
 #define CONCURRENCY   8
 
@@ -28,8 +25,11 @@ struct node {
 // load our evil mutant graphs from the graph file
 void load_graphs ();
 
+// how many graphs do we have? (graphs[0] = 1 data block)
+unsigned short graphcount;
+
 // the graphs themselves. graphs[0] = 1 data block, and so on
-struct graph graphs[GRAPHCOUNT];
+struct graph *graphs;
 
 // our lovely AVL tree
 struct node *tree;
@@ -150,8 +150,12 @@ load_graphs ()
     if (close(i) == -1)
 	die("close() failed");
     
+    // the graph count is the first thing in the graph file
+    memcpy(&graphcount, data, 2);
+    graphs = malloc(sizeof(struct graph) * graphcount);
+    
     // brutally load our graphs
-    for (n = 0, i = 0 ; i < GRAPHCOUNT ; i++) {
+    for (n = 2, i = 0 ; i < graphcount ; i++) {
 	memcpy(&graphs[i].dbc, &data[n], 2);
 	n += 2;
 	memcpy(&graphs[i].cbc, &data[n], 2);
@@ -171,7 +175,7 @@ load_graphs ()
 	}*/
     }
 
-    alert("Loaded %d graphs.", GRAPHCOUNT);
+    alert("Loaded %d graphs.", graphcount);
 }
 
 int
@@ -199,7 +203,7 @@ insert (int c)
     
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
-    if (datalength/blocksize > GRAPHCOUNT) {
+    if (datalength/blocksize > graphcount) {
 	alert("I do not have a graph for %d data blocks.", datalength/blocksize);
 	return;
     }
@@ -425,7 +429,7 @@ request (int c)
     
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
-    if (datalength/blocksize > GRAPHCOUNT) {
+    if (datalength/blocksize > graphcount) {
 	alert("I do not have a graph for %d data blocks.", datalength/blocksize);
 	return;
     }
