@@ -18,12 +18,11 @@ NOTE: FProxy works still less reliable than the console clients. If you are havi
 5)Have patience! Inserting or retrieving can easily take up to 5 minutes. Especially when it
   says 'state "REQUESTING" reached' it will take quite a while.
 
-I you think there is something missing in one of the next sections, please drop me a mail 
-with suggestions: Sebastian@SSpaeth.de. Please no FProxy support questions though.
 
 Browser plugins
 ===============
 If you want to enable your browser to use URIs of the format "freenet:<key>" (that is most probably the way freenet URI will be linked to on web pages in the future) you'll need a browser plugin.
+Note: Browser plugins are not yet included!
 
 Mozilla/NS6:
 For Netscape6 and Mozilla based browsers there's a GNU GPL/MPL licensed cool tool available at
@@ -67,17 +66,9 @@ Troubleshooting
   -serverAddress <nodeIP>:<port> option. Look at the files .fproxyrc and FLaunch.ini in 
   any text editor. You should have the correct address (and port number) in the FProxy entry.
 
-FAQ
-===
-Can I connect to a non local node with FProxy?
-  Yes, just start FProxy separately from the node and provide a 
-  -serverAddress IPAddress:<portnumber> which points to the node you want to use. That's it.
-  For instance handy if you run an Internet café, otherwise I son't see any purpose for not 
-  running a local node. YOU DO GIVE UP YOUR ANONYMITY when connecting to a non-local node!!!
-
-*General Freenet Questions*
 
 Where can I get additional help?
-  Try the freenet-support@lists.sourceforge.net mailing list after searching the 
+================================
+  Try the support@freenetproject.org mailing list after searching the 
   documentation on the freenet site. You might be lucky in the #freenet channel on the
   IRC server irc.openprojects.org, sometimes some developers hang out there.

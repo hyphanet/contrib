@@ -1,5 +1,4 @@
-/* Originally hacked together by Sebastian Späth (Sebastian@SSpaeth.de)*/
-/* License: Feel free to do whatever you want with it (Public Domain)  */
+/* --- The following code comes from d:\programme\lcc\lib\wizard\textmode.tpl. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -133,7 +132,7 @@ int main(int argc,char *argv[])
 	changeAddress(s,"finsert",FLaunchSec,FLAUNCHER);
 	changeAddress(s,"frequest",FLaunchSec,FLAUNCHER);
 	changeAddress(s,"fproxy",FLaunchSec,FLAUNCHER);
-	changeAddress(appendString,"serverAddress","FProxy",".\\.fproxyrc");
+	WriteParam(appendString,"serverAddress","FProxy",".\\.fproxyrc");
 
 /*As a temporary measure (as long as JavaSearch can't handle this, just set Javaw to the same directory as Java*/
     SetJavawToJavaPath();

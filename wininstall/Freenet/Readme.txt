@@ -31,10 +31,6 @@ BINARY INSTALLATION
 Note that Java must have been installed prior to Freenet being installed, otherwise
 the configuration of Freenet will break.
 
-I am interested in feedback concerning the installation process, if there is anything that
-didn't work or which could be improved, send a mail to Sebastian@SSpaeth.de
-
-
 CONFIGURATION
 -------------
 
@@ -46,6 +42,8 @@ CONFIGURATION
   to use the new port if you want to be able to use the console clients
 
 * Browse through freenet.ini if you like to modify .ini files manually
+
+* For help on configuration and usage you can send a mail to: support@freenetproject.org
 
 
 USAGE
