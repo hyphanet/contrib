@@ -2,15 +2,18 @@
 
 use strict;
 $|++;
-die unless @ARGV == 2 || -d $ARGV[0];
+unless (@ARGV == 2 && -d $ARGV[0]) {
+    print "Usage: $0 <directory to insert> <directory to create>\n";
+    exit 1;
+}
 $ARGV[0] =~ s/\/$//g;
 $ARGV[1] =~ s/\/$//g;
 recurse($ARGV[0], $ARGV[1]);
 
 sub recurse {
     my ($from, $to) = @_;
-    mkdir($to, 0755);
-    opendir DIR, $from;
+    mkdir($to, 0755) or die "mkdir of $to failed!";
+    opendir DIR, $from or die "opendir of $from failed!";
     my @dir = readdir DIR;
     for (sort @dir) {
 	/^\./ and next;

@@ -12,3 +12,8 @@ proxy: proxy.c $(DEPS)
 
 clean:
 	rm -f $(PROGRAMS)
+
+install: all
+	cp -f lc le ri /usr/local/bin/
+	@echo "The client tools (lc, le, ri) have been installed. Other daemons and utilities"
+	@echo "must be user-installed. See the INSTALL file for instructions. It's easy."
