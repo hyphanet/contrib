@@ -540,10 +540,8 @@ fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl)
 		  type == DATA ? 0 : length);
     while (length) {
 	length -= (n = length > 1024 ? 1024 : length);
-	status = fread(buf, 1, n, in);
-	if (status != n) goto ioerror;
-	status = fwrite(buf, 1, n, sock);
-	if (status != n) goto ioerror;
+	if (fread(buf, 1, n, in) != n) goto ioerror;
+	if (fwrite(buf, 1, n, sock) != n) goto ioerror;
     }
     status = fscanf(sock, "%s\nURI=%s\nEndMessage\n", buf, foo);
     if (status == 1 && strcmp(buf, "URIError") == 0)
@@ -574,7 +572,7 @@ calc_partsize (int length)
        	n++;
     }
     if (length/1024 > tmp) n++;
-    return (8 << (n/2)) * 1024;
+    return (8 << ((n-1)/2)) * 1024;
 }
 
 int
