@@ -56,7 +56,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CMoveablePropertyPage message handlers
 
-void CMoveablePropertyPage::OnMouseMove(UINT nFlags, CPoint point) 
+void CMoveablePropertyPage::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if ( (nFlags & MK_RBUTTON) || (nFlags & MK_LBUTTON) )
 	{
@@ -76,7 +76,7 @@ void CMoveablePropertyPage::OnMouseMove(UINT nFlags, CPoint point)
 			EndDrag();
 		}
 	}
-	
+
 	CPropertyPage::OnMouseMove(nFlags, point);
 }
 
@@ -96,13 +96,13 @@ void CMoveablePropertyPage::EndDrag(void)
 	ReleaseCapture();
 }
 
-void CMoveablePropertyPage::OnRButtonDown(UINT nFlags, CPoint point) 
+void CMoveablePropertyPage::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	BeginDrag(point);
 	CPropertyPage::OnRButtonDown(nFlags, point);
 }
 
-void CMoveablePropertyPage::OnRButtonUp(UINT nFlags, CPoint point) 
+void CMoveablePropertyPage::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	EndDrag();
 	CPropertyPage::OnRButtonUp(nFlags, point);

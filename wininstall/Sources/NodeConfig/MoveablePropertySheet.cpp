@@ -48,19 +48,19 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CMoveablePropertySheet message handlers
 
-void CMoveablePropertySheet::OnRButtonDown(UINT nFlags, CPoint point) 
+void CMoveablePropertySheet::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	BeginDrag(point);
 	CPropertySheet::OnRButtonDown(nFlags, point);
 }
 
-void CMoveablePropertySheet::OnRButtonUp(UINT nFlags, CPoint point) 
+void CMoveablePropertySheet::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	EndDrag();
 	CPropertySheet::OnRButtonUp(nFlags, point);
 }
 
-void CMoveablePropertySheet::OnMouseMove(UINT nFlags, CPoint point) 
+void CMoveablePropertySheet::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if ( (nFlags & MK_RBUTTON) || (nFlags & MK_LBUTTON) )
 	{
@@ -79,7 +79,7 @@ void CMoveablePropertySheet::OnMouseMove(UINT nFlags, CPoint point)
 			EndDrag();
 		}
 	}
-	
+
 	CPropertySheet::OnMouseMove(nFlags, point);
 }
 
