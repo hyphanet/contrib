@@ -115,8 +115,6 @@ void fcpDestroyHFCP(hFCP *h)
 			free(h->key);
 		}
 
-		if (h->_redirect) free(h->_redirect);
-
 		_fcpDestroyHOptions(h->options);
 		_fcpDestroyResponse(h);
 
@@ -295,6 +293,8 @@ void _fcpDestroyHMetadata(hMetadata *h)
 		
 		if (h->cdoc_count)
 			_fcpDestroyHMetadata_cdocs(h);
+
+		if (h->encoding) free(h->encoding);
 	}
 }
 
@@ -346,6 +346,15 @@ void fcpDestroyHURI(hURI *h)
 	}
 }
 
+hDocument *_fcpCreateHDocument(void)
+{
+	hDocument *h;
+	
+	h = malloc(sizeof (hDocument));
+	memset(h, 0, sizeof (hDocument));
+	
+	return h;
+}
 
 void _fcpDestroyHDocument(hDocument *h)
 {
@@ -356,10 +365,16 @@ void _fcpDestroyHDocument(hDocument *h)
 		if (h->field_count) {
 			
 			for (i=0; i < (h->field_count * 2); i += 2) {
-				free(h->data[i]);
-				free(h->data[i+1]);
+				free(*h->data+i);
+				free(*h->data+i+1);
+				
+				free(h->data+i);
+				free(h->data+i+1);
 			}
 		}
+		
+		if (h->format) free(h->format);
+		if (h->description) free(h->description);
 	}
 }
 

@@ -250,7 +250,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 
 	meta = _fcpCreateHMetadata();
 
-	if (hfcp->options->meta_redirect) {
+	if (hfcp->options->meta_redirect) { /* TODO: deprecate along with command line options */
 		
 		/* insert the metadata and store the uri and use as redirect */
 		tmp_hfcp = fcpInheritHFCP(hfcp);

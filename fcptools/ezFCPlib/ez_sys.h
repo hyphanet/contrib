@@ -74,6 +74,7 @@ extern hMetadata  *_fcpCreateHMetadata(void);
 extern void        _fcpDestroyHMetadata(hMetadata *);
 extern void        _fcpDestroyHMetadata_cdocs(hMetadata *);
 
+extern hDocument  *_fcpCreateHDocument(void);
 extern void        _fcpDestroyHDocument(hDocument *h);
 
 /* metadata routines */

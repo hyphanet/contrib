@@ -299,6 +299,7 @@ typedef struct {
 
 typedef struct {
   unsigned short  timeout;
+  char           *reason;
 } FCPRESP_RESTARTED;
 
 typedef struct {
@@ -463,8 +464,11 @@ typedef struct {
 	int    type;
 	char  *name;
 
+	char  *format;
+	char  *description;
+
 	int    field_count;
-	char  *data[128];  /* max == 64 */
+	char  **data;  /* TODO !!! */
 	
 } hDocument;
 
@@ -472,13 +476,13 @@ typedef struct {
 typedef struct {
 	unsigned long  size;
 
-	int  revision;
-	int  encoding;
+	int   revision;
+	char *encoding;
 
 	hBlock     *tmpblock;
 
 	int         cdoc_count;
-	hDocument  *cdocs[128];
+	hDocument  **cdocs; /* TODO !!! */
 
 	char       *raw;   /* raw freenet metadata (no "rest" parts) */
 	char       *rest;  /* the "rest" part/no freenet cdocs */
@@ -532,7 +536,6 @@ typedef struct {
   FCPSOCKET socket;
 
 	hKey *key;
-	char *_redirect; /* curent key to redirect to (used by _fcpGetBLock()) */
 		
   FCPRESP response;
 } hFCP;

@@ -107,9 +107,13 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 
 	_fcpLog(FCP_LOG_VERBOSE, "Fetching first block");
 
-	/* this isn't funcional but more informational */
-	if (hfcp->options->noredirect != 0)
+	if (hfcp->options->noredirect != 0) {
+		get_next = 0;		
 		_fcpLog(FCP_LOG_VERBOSE, "Starting single retrieve (no redirects)");
+	}
+	else {
+		get_next = 1;
+	}
 	
 	rc = _fcpGetBLock(hfcp,
 										hfcp->key->tmpblock,
@@ -127,17 +131,14 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 	
 	/* Here, the key and meta data is within the tmpblocks */
 	
-	/* check the metadata structures for any redirects */
-
-	if (hfcp->options->noredirect)
-		get_next = 0;
-	else
-		get_next = 1;
-
 	while (get_next) {
 
 		doc = cdocFindDoc(hfcp->key->metadata, hfcp->key->target_uri->metastring);
 
+		if (doc)
+			_fcpLog(FCP_LOG_DEBUG, "docname: %s, format: %s, description: %s\n",
+				doc->name, doc->format, doc->description);
+			
 		if (!doc)
 			get_next = 0;
 
@@ -160,11 +161,9 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 			case META_TYPE_SPLITFILE:
 				rc = _fcpGetSplitfile(hfcp);
 				break;
-				
+	
 			default:
 				_fcpLog(FCP_LOG_DEBUG, "note: unhandled doctype: %d", doc->type);
-				get_next = 0;
-				
 				break;
 			}
 		}
@@ -190,7 +189,6 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 cleanup:
 
 	if (next_uri) free(next_uri);
-	/*if (doc) _fcpDestroyHDocument(doc);*/
 
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
 	return rc;

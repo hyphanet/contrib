@@ -124,7 +124,12 @@ int main(int argc, char* argv[])
 	hfcp->options->retry = retry;
 	hfcp->options->future = future;
 	hfcp->options->min_timeout = min_timeout;
-  
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 0, 1);
+#endif
+	  
   if (b_genkeys) {
 		char pub[L_KEY+1];
 		char priv[L_KEY+1];
@@ -236,7 +241,7 @@ int main(int argc, char* argv[])
 				goto cleanup;
 			}
 			
-			fprintf(stdout, "%s (%s)\n", hfcp->key->target_uri->uri_str, files[i]);
+			fprintf(stdout, "%s/%s\n", hfcp->key->target_uri->uri_str, files[i]);
 		}
 	}
 
@@ -264,7 +269,7 @@ int main(int argc, char* argv[])
 
 #ifdef DMALLOC
 	dmalloc_verify(0);
-	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 0, 1);
 
 	dmalloc_shutdown();
 #endif
@@ -286,9 +291,7 @@ void track(const char *file, const unsigned int line,
 	if (!file) strcpy(f, "NULL");
 	else strncpy(f, file, 32);
 
-	if ((!strcmp(file, "fcpCreation.c")) && (line == 187)) {
-		printf("|| %s:%d, size %d, old_addr: %x, new_addr: %x ||\n", f, line, byte_size, old_addr, new_addr);
-	}
+	printf("|| %s:%d, size %d, old_addr: %x, new_addr: %x ||\n", f, line, byte_size, old_addr, new_addr);
 
 	return;
 }

@@ -54,12 +54,21 @@ static int parse_document(hMetadata *, char *);
 #define STATE_WAIT_END      5
 #define STATE_END           6
 
-
 /*
-  metaParse
-  
-  converts a raw buffer of metadata into an organised
-  and accessible data structure
+	FUNCTION:_fcpMetaParse()
+
+
+	PARAMETERS:
+
+	- meta: An allocated hMetadata struct.
+
+	IN:
+	-
+
+	OUT:
+	-
+
+	RETURNS: Zero on success, <0 on error.
 */
 int _fcpMetaParse(hMetadata *meta, char *buf)
 {
@@ -75,11 +84,14 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 
 	/* here's the silly use of _start; holds the 'start' value so that we can
 		 return a 'state' value as well */
-
+	
+	meta->size += strlen(buf);
+	
 	/* prime the loop */
 	meta->_start = getLine(line, buf, 0);
-  while (meta->_start >= 0) { /* loop until we process all lines in the metadata string */
 
+  while (meta->_start >= 0) { /* loop until we process all lines in the metadata string */
+		
 		if (!strncasecmp(line, "Version", 7)) {
 			rc = parse_version(meta, buf);
 
@@ -102,30 +114,44 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 			
 			/* if there's a rest section to merge with another rest section, bail */
 			if ((meta->rest) && (buf[meta->_start] != 0)) {
-				_fcpLog(FCP_LOG_CRITICAL, "Cannot merge 2 set of 'REST' section metadata");
+				_fcpLog(FCP_LOG_CRITICAL, "Cannot merge 2 sets of 'REST' section metadata");
 				return -1;
 			}
-
+			
 			if (buf[meta->_start] != 0) {
 				meta->rest = strdup(buf+meta->_start);
 			}
 			
 			meta->_start = -1;
 		}
-
+		
 		else
 			meta->_start = getLine(line, buf, meta->_start);
   }
 
+	if (meta->raw) free(meta->raw);
+	meta->raw = strdup(buf);
+	
 	_fcpLog(FCP_LOG_DEBUG, "Exiting _fcpMetaParse()");
 	return 0;
 }
 
-void _fcpMetaDestroy(hMetadata *meta)
-{
-	meta = meta;
-}
+/*
+	FUNCTION:_fcpMetaString()
 
+	Assembles a raw-metadata representation of the contents of an hMetadata
+	struct. It can be sent in raw form to a node as part of a ClientPut.
+
+	PARAMETERS:
+
+	- meta: An allocated hMetadata struct containing parsed metadata.
+
+	IN:
+
+	OUT:
+
+	RETURNS: Raw metadata c-string, 0 on error.
+*/
 char *_fcpMetaString(hMetadata *meta)
 {
 	char *buf;
@@ -137,6 +163,12 @@ char *_fcpMetaString(hMetadata *meta)
 	buf = malloc(strlen(s)+1);
 	strcpy(buf, s);
 
+	if (meta->encoding) {
+		snprintf(s, 512, "Encoding=%s\n", meta->encoding);
+		buf = realloc(buf, strlen(buf)+strlen(s)+1);
+		strcat(buf, s);
+	}
+
 	for (i=0; i < meta->cdoc_count; i++) {
 
 		if (meta->cdocs[i]->name)
@@ -146,7 +178,19 @@ char *_fcpMetaString(hMetadata *meta)
 		
 		buf = realloc(buf, strlen(buf)+strlen(s)+1);
 		strcat(buf, s);
-
+		
+		if (meta->cdocs[i]->format) {
+			snprintf(s, 512, "Info.Format=%s\n", meta->cdocs[i]->format);
+			buf = realloc(buf, strlen(buf)+strlen(s)+1);
+			strcat(buf, s);
+		}
+		
+		if (meta->cdocs[i]->description) {
+			snprintf(s, 512, "Info.Description=%s\n", meta->cdocs[i]->description);
+			buf = realloc(buf, strlen(buf)+strlen(s)+1);
+			strcat(buf, s);
+		}
+		
 		for (j=0; j < meta->cdocs[i]->field_count; j+=2) {
 
 			snprintf(s, 512, "%s=%s\n",
@@ -178,10 +222,9 @@ hDocument *cdocAddDoc(hMetadata *meta, char *cdocName)
 	/* allocate space for new document */
 	meta->cdoc_count++;
 
-	/* add the document to the meta structure */
-	meta->cdocs[doc_index] = malloc(sizeof (hDocument));
-	memset(meta->cdocs[doc_index], 0, sizeof (hDocument));
-
+	*(meta->cdocs + doc_index) = malloc(sizeof (hDocument *));
+	*(meta->cdocs + doc_index) = _fcpCreateHDocument();
+		
 	if (cdocName) meta->cdocs[doc_index]->name = strdup(cdocName);
 
 	return meta->cdocs[doc_index];
@@ -193,9 +236,12 @@ int cdocAddKey(hDocument *doc, char *key, char *val)
 	int field_index;
 
 	field_index = doc->field_count * 2;
-	
+
 	/* add one to the field counter */
 	doc->field_count++;
+
+	/* allocate two char pointers */
+	*(doc->data + field_index) = malloc((sizeof (char *)) * 2);
 	
 	/* finally add the key and val */
 	doc->data[field_index]   = strdup(key);
@@ -213,7 +259,11 @@ hDocument *cdocFindDoc(hMetadata *meta, char *cdocName)
 {
 	int i;
 
-	for (i=0; i < meta->cdoc_count; i++) {
+	/* start the search from the end, fulfilling the requirement that documents
+		 with the same name will cause FCPLib to use the *last* document in 
+		 the set (check the metadata spec). */
+
+	for (i = meta->cdoc_count-1; i >= 0; i--) {
 
 		/* check for the default document, to be overly safe about NULL prts */
 		if (!cdocName) {
@@ -254,26 +304,6 @@ char *cdocLookupKey(hDocument *doc, char *keyName)
 	/* here, we didn't find the key in the specified doc.. return null */
 	return 0;
 }
-
-
-#if 0
-/*
-  Metadata lookup routines
-*/
-
-long cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
-{
-}
-
-long cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
-{
-}
-
-char *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal)
-{
-}
-#endif
-
 
 /**********************************************************************/
 /* private/local to this module */
@@ -327,6 +357,8 @@ static int getLine(char *line, char *buf, int start)
   
   if (!buf) return -1;
 
+	memset(line, 0, 512);
+	
 	/* If we're done, return w/ -2; */
 	if (buf[start] == 0) return -2;
 
@@ -393,14 +425,7 @@ static int parse_version(hMetadata *meta, char *buf)
 				return -1;
 			}
 
-			l = xtol(val);
-
-			if ((meta->encoding != 0) && (meta->encoding != l)) {
-				_fcpLog(FCP_LOG_CRITICAL, "Encodings do not match");
-				return -1;
-			}
-
-			meta->encoding = l;
+			meta->encoding = strdup(val);
 
 			_fcpLog(FCP_LOG_DEBUG, "key Encoding; val \"%s\"", val);
 		}
@@ -430,21 +455,25 @@ static int parse_document(hMetadata *meta, char *buf)
   char  val[257];
 
 	int   doc_index;
-	int field_index;
+	int   field_index;
 
 	hDocument *doc;
 
 	doc_index = meta->cdoc_count;
+	meta->cdoc_count++;
+
 	key[0] = 0;
 	val[0] = 0;
 
-	/* allocate space for new document */
-	meta->cdoc_count++;
+	if (doc_index == 0)
+		meta->cdocs = malloc(sizeof (hDocument **));
+	else
+		meta->cdocs = realloc(meta->cdocs, sizeof (hDocument **) * meta->cdoc_count);
 
-	_fcpLog(FCP_LOG_DEBUG, "document index (should be zero): %d", doc_index);
-
-	doc = malloc(sizeof (hDocument));
-	memset(doc, 0, sizeof (hDocument));
+	doc = _fcpCreateHDocument();
+	
+	/* for some reason the following loop gets called twice
+		under certain circumstances */
 	
 	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
 
@@ -456,27 +485,28 @@ static int parse_document(hMetadata *meta, char *buf)
 			/* we handle "Name" seperately according to the spec */
 			if (!strncasecmp(key, "Name", 4)) {
 
-				/* check if a document with the same name has already been added */
-				if (cdocFindDoc(meta, val)) {
-
-					_fcpLog(FCP_LOG_DEBUG, "warning: document with same name \"%s\" already exists.. skipping", val);
-
-					free(doc);
-					return 0;
-				}
-
 				doc->name = strdup(val);
 				continue;
 			}
 
-			else {
-				/* find the first available position in the array for the new pair */
+			else if (!strncasecmp(key, "Info.Format", 11))
+				doc->format = strdup(val);
 
+			else if (!strncasecmp(key, "Info.Description", 16))
+				doc->description = strdup(val);
+			
+			else { /* find the first available position in the array for the new pair */
+				
 				field_index = doc->field_count * 2;
-
+				
 				/* add one to the field counter */
 				doc->field_count++;
 
+				if (field_index == 0)
+					doc->data = malloc(sizeof (char *) * 2);
+				else
+					doc->data = realloc(doc->data, sizeof (char *) * field_index);
+				
 				/* finally add the key and val */
 				doc->data[field_index]   = strdup(key);
 				doc->data[field_index+1] = strdup(val);
@@ -495,14 +525,6 @@ static int parse_document(hMetadata *meta, char *buf)
 				
 				else if (!strncasecmp(key, "SplitFile.", 10))
 					doc->type = META_TYPE_SPLITFILE;
-
-				/*
-				else if (!strncasecmp(key, "Info.", 10))
-					doc->type = META_TYPE_INFO;
-				
-				else if (!strncasecmp(key, "ExtInfo.", 10))
-					doc->type = META_TYPE_EXTINFO;
-				*/
 			}
 
 		} /* end of processing key/val pairs */
@@ -510,24 +532,20 @@ static int parse_document(hMetadata *meta, char *buf)
 		/* it's *not* a key/val pair */
 		else {
 
-			if (!strncasecmp(line, "EndPart", 7))
+			if (!strncasecmp(line, "EndPart", 7)) {
+
+				meta->cdocs[doc_index] = doc;
 				return STATE_WAIT_DOCUMENT;
+			}
 
 			else if (!strncasecmp(line, "End", 3)) {
 
-				/*
-				if (cdocFindDoc(meta, doc->name)) {
-					_fcpLog(FCP_LOG_DEBUG, "warning; document already exists.. another being stored with same name");
-				}
-				*/
-				
 				meta->cdocs[doc_index] = doc;
-				
 				return STATE_END;
 			}
 			
 			else {
-				_fcpLog(FCP_LOG_DEBUG, "encountered unhandled pair; \"%s\"", line);
+				_fcpLog(FCP_LOG_DEBUG, "encountered unexpected token; \"%s\"", line);
 			}
 		}
 	}
@@ -545,6 +563,7 @@ int main(int argc, char *argv[])
  
 	FILE *file;
 	int   fno;
+	int   i;
 
 	hMetadata *meta;
 	hDocument *doc;
@@ -552,18 +571,23 @@ int main(int argc, char *argv[])
 	unsigned long ul;
 	int rc;
 
+	_fcpOpenLog(stdout, 4);
+
 	/* bleah */
 	ul = _fcpFilesize("meta.dat");
 
-	str = malloc(rc + 1);
+	str = malloc(ul + 1);
 
 	file = fopen("meta.dat", "rb");
 	fno = fileno(file);
 
-	read(fno, str, rc);
+	read(fno, str, ul);
+	str[ul]=0;
 
-	meta = malloc(sizeof (hMetadata));
-	memset(meta, 0, sizeof (hMetadata));
+	/*printf("\n*************************************************\n:%s:\n", str);
+		printf("*************************************************\n");*/
+	
+	meta = _fcpCreateHMetadata();
 
 	rc = _fcpMetaParse(meta, str);
 
@@ -571,7 +595,29 @@ int main(int argc, char *argv[])
 		printf("_fcpMetaParse returned error: %d\n", rc);
 		return 1;
 	}
+	
+	/* dump the read contents */
 
+	printf("\nMETADATA:\n:%s:\n", _fcpMetaString(meta));
+	
+	printf("\nsize: %lu, revision: %d, encoding: :%s:, doc_count: %d\nraw: :%s:\nrest: :%s:\n\n",
+				 meta->size, meta->revision, meta->encoding, meta->cdoc_count, meta->raw, meta->rest);
+	
+	for (i=0; i < meta->cdoc_count; i++) {
+		int j;
+		
+		printf("doc %d/%d, doc_name: :%s:, field_count: %d, ", i+1, meta->cdoc_count,
+					 meta->cdocs[i]->name, meta->cdocs[i]->field_count);
+		printf("format: :%s:, description: :%s:\n", meta->cdocs[i]->format, meta->cdocs[i]->description);
+		
+		for (j=0; j < meta->cdocs[i]->field_count; j+=2) {
+			printf("name: %s, val: %s\n", meta->cdocs[i]->data[j], meta->cdocs[i]->data[j+1]);
+		}
+		
+		printf("\n");
+	}
+
+#if 0	
 	/* test doc lookup */
 	if (!(doc = cdocFindDoc(meta, "date-redirect"))) {
 		printf("cdocFindDoc returned NULL");
@@ -585,6 +631,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("val: %s\n", val);
+#endif
 
 	return 0;
 }

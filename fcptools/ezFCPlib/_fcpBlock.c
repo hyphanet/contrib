@@ -1,4 +1,3 @@
-
 /*
   This code is part of FCPTools - an FCP-based client library for Freenet
 

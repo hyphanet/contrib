@@ -556,6 +556,12 @@ static int getrespRestarted(hFCP *hfcp)
 			/*_fcpLog(FCP_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
 		}
 
+		if (!strncmp(resp, "Reason=", 7)) {
+			if (hfcp->response.restarted.reason) free(hfcp->response.restarted.reason);
+			
+			hfcp->response.restarted.reason = strdup(resp + 7);
+		}
+
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_RESTARTED;
 
@@ -584,16 +590,14 @@ static int getrespKeyCollision(hFCP *hfcp)
 			hfcp->response.keycollision.uri = strdup(resp+4);
 		}
 
-#   if 0		
 		else if (!strncmp(resp, "PublicKey=", 10)) {
 			strncpy(hfcp->response.keycollision.publickey, resp + 10, L_KEY);
 		}
-#   endif
 		
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.keycollision.privatekey, resp + 11, L_KEY);
 		}
-		
+
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_KEYCOLLISION;
 
@@ -630,20 +634,18 @@ static int getrespPending(hFCP *hfcp)
 			if (hfcp->response.pending.uri) free(hfcp->response.pending.uri);
 			hfcp->response.pending.uri = strdup(resp+4);
 		}
-		
+
+		else if (!strncmp(resp, "Timeout=", 8)) { /* milliseconds */
+			hfcp->response.pending.timeout = (unsigned short)xtol(resp + 8);
+			hfcp->options->timeout = hfcp->response.pending.timeout;
+		}
+
 		else if (!strncmp(resp, "PublicKey=", 10)) {
 			strncpy(hfcp->response.pending.publickey, resp + 10, L_KEY);
 		}
 		
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.pending.privatekey, resp + 11, L_KEY);
-		}
-
-		else if (!strncmp(resp, "Timeout=", 8)) { /* milliseconds */
-			hfcp->response.pending.timeout = (unsigned short)xtol(resp + 8);
-			hfcp->options->timeout = hfcp->response.pending.timeout;
-
-			/*_fcpLog(FCP_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))

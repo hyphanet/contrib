@@ -248,8 +248,10 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 				break;
 				
 			case FCPRESP_TYPE_RESTARTED:
-				_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message");
+				_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message: %s", hfcp->response.restarted.reason);
 				/*_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));*/
+
+				break;
 				
 				/* disconnect from the socket */
 				_fcpSockDisconnect(hfcp);

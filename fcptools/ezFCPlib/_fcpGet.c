@@ -155,7 +155,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 			break;
 			
 		case FCPRESP_TYPE_RESTARTED:
-			_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message");
+			_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message: %s", hfcp->response.restarted.reason);
 			_fcpLog(FCP_LOG_DEBUG, "timeout value: %u seconds", (int)(hfcp->options->timeout / 1000));
 			
 			/* disconnect from the socket */
@@ -245,6 +245,10 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 	/******************************************************************/
 
+	/* delete the "old" metadata.. so that it doesn't get confused with the
+		 new key data it directed the client to */
+	_fcpDeleteBlockFile(metablock);
+
 	/* only link if necessary */
 	if (meta_bytes)
 		_fcpBlockLink(metablock, _FCP_WRITE);
@@ -292,13 +296,6 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		
 		_fcpLog(FCP_LOG_VERBOSE, "Read %d bytes of metadata", hfcp->key->metadata->size);
 		_fcpBlockUnlink(metablock);
-
-		if (!hfcp->key->metadata) {
-			_fcpLog(FCP_LOG_CRITICAL, "hMetadata struct not malloc'ed");
-
-			rc = -1;
-			goto cleanup;
-		}
 
 		/* parse the metadata */
 		_fcpLog(FCP_LOG_DEBUG, "parsing the metadata");
