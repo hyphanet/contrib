@@ -6,7 +6,7 @@ FCPtools are easily installed on a Win32 platform; Windows 95/98/NT/2K.
 However, they must be installed manually since there isn't currently a setup
 program.  The good news; it's easy to install.
 
-FCPtools includes 5 executables, all statically linked against ezFCPlib.
+FCPtools includes 5 executables, all statically linked against ezFCPlib:
 
 1. fcpget.exe
 2. fcpproxy.exe
