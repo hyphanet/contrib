@@ -197,7 +197,7 @@ void ImportRefs(void)
 				// no error - user hit cancel
 				break;
 			case FNERR_BUFFERTOOSMALL:
-				MessageBox(NULL,"Sorry to be a pain ... \nYou selected too many files and this caused Windows® to\nignore your attempt to import Freenet Reference files.\nPlease try to select fewer files next time.","Import Freenet References - We Love Windows®",MB_OK);
+				MessageBox(NULL,"Sorry to be a pain ... \nYou selected too many files and this caused Windows® to\nmess around with your attempt to import Freenet Reference files.\nPlease try to select fewer files next time.","Import Freenet References - We Love Windows®",MB_OK);
 				break;
 			default:
 				Bug();
@@ -230,7 +230,6 @@ void ImportRefs(void)
 				// only one file was selected
 				// -- so import it
 				ImportFile(szFile);
-				return;
 			}
 			else
 			{
@@ -264,7 +263,6 @@ void ImportRefs(void)
 			}
 
 			SendMessage(hImportProgressWnd, WM_CLOSE, 0, 0);
-
 		}
 	}
 }
