@@ -39,11 +39,11 @@ const char szAppName[]="Freenet";
 const char szgatewayURIdef[]="http://127.0.0.1:";
 
 /* popup menu item text */
-const char szStopString[]="&Stop Freenet";
-const char szStartString[]="&Start Freenet";
-const char szGatewayString[]="Open &Gateway";
-const char szConfigureString[]="&Configure";
-const char szExitString[]="E&xit";
+char szStopString[]="&Stop Freenet";
+char szStartString[]="&Start Freenet";
+char szGatewayString[]="Open &Gateway";
+char szConfigureString[]="&Configure";
+char szExitString[]="E&xit";
 
 /* tooltip text - matches order of FREENET_MODE enums */
 const char *szFreenetTooltipText[]=
@@ -60,7 +60,6 @@ const char szFreenetJar[]="Freenet.jar";
 const char szflfile[]="./FLaunch.ini"; /* ie name of file */
 const char szflsec[]="Freenet Launcher"; /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
-const char szjavawkey[]="Javaw"; /* ie Javaw=g:\winnt\system32\jview.exe */
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Node */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
 const char szfserveclidefaultexec[]="Freenet.node.Node"; /* default for above */
@@ -82,7 +81,7 @@ const char szConfigProcName[]="Config"; /* ie name of Config function */
  *	Global Variables data:                            *
  ******************************************************/
 /*		strings, etc... */
-char szjavawpath[JAVAWMAXLEN];		/* used to read Javaw= definition out of FLaunch.ini */
+char szjavapath[JAVAWMAXLEN];		/* used to read Javaexec= definition out of FLaunch.ini */
 char szfservecliexec[BUFLEN];			/* used to read Fservecli= definition out of FLaunch.ini */
 char szfconfigexec[BUFLEN];			/* used to read Fconfig= definition out of FLaunch.ini */
 char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8081" after the 8081 bit has been read from freenet.ini */
@@ -94,6 +93,7 @@ bool bOpenGatewayOnStartup=false;	/* was freenet.exe called with the -open optio
 /*		handles, etc... */
 PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
 HANDLE hSemaphore=NULL;				/* unique handle used to guarantee only one instance of freenet.exe app is ever running at one time */
+HANDLE hConfiguratorSemaphore=NULL;		/* mutex object used to ensure we never run two (or more!) copies of the configurator */
 DWORD dwMonitorThreadId;			/* thread identifier for the background 'flasher' thread - global so we can PostThreadMessage to it */
 HICON hHopsEnabledIcon=NULL;		/* icon handle - resource loaded during initialisation code */
 HICON hHopsDisabledIcon=NULL;		/* icon handle - resource loaded during initialisation code */
@@ -104,6 +104,12 @@ HWND hWnd=NULL;						/* main window handle  */
 HINSTANCE hInstance=NULL;			/* handle to the main application instance */
 LPSTR lpszAppCommandLine;			/* global pointer to the command line passed to this app */
 HANDLE pSystray;					/* handle to a mutex object used to synchronise access to the shared systray structure below */
+
+
+/*		lock objects for critical sections */
+extern enum LOCKCONTEXTS;
+HANDLE hnFreenetMode = NULL;
+HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, NULL};
 
 
 /* icon array - must match order in FREENET_MODE in types.h */
@@ -179,6 +185,14 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 
 	/* pSystray is used to synchronise access to the shared systray NOTIFYICONDATA structure */
 	pSystray = CreateMutex(NULL,FALSE,NULL);
+	
+	/* hConfiguratorSemaphore is used so we never load more than one instance of the configurator at a time */
+	hConfiguratorSemaphore = CreateSemaphore(NULL,1,1,NULL);
+
+	/* Lock objects: for critical sections, essentially */
+	hnFreenetMode = CreateMutex(NULL, FALSE, NULL);
+
+
 
 	/* Create a separate thread to handle flashing the systray icon */
 	hMonitorThread = CreateThread(NULL,1, MonitorThread, NULL, 0, &dwMonitorThreadId);
@@ -192,6 +206,8 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	/* did everything work so far? */
 	if (hMonitorThread!=NULL &&
 		pSystray!=NULL &&
+		hConfiguratorSemaphore!=NULL && 
+		hnFreenetMode!=NULL &&
 		hRestartingIcon!=NULL &&
 		hAlertIcon!=NULL &&
 		hHopsDisabledIcon!=NULL &&
@@ -256,13 +272,15 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	/*	when we get here it's because the message pump exited cleanly OR
 		because earlier code failed (e.g. couldn't create monitor thread)  */
 
+	/* CreateThread could have failed - there are some cleanup operations
+		we can only perform when CreateThread WORKED:  */
 	if (hMonitorThread)
 	{
-		/* CreateThread could have failed so only do these steps if CreateThread WORKED:  */
 		PostThreadMessage(dwMonitorThreadId, WM_QUITMONITORINGTHREAD, 0,0);
 		WaitForSingleObject(hMonitorThread, INFINITE);
 		CloseHandle(hMonitorThread);
 	}
+
 	if (hWnd)
 	{
 		/* remove the icon from the system tray */
@@ -277,6 +295,10 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 
 	if (hSemaphore) CloseHandle(hSemaphore);
 	if (pSystray) CloseHandle(pSystray);
+
+	if (hConfiguratorSemaphore) CloseHandle(hConfiguratorSemaphore);
+
+	if (hnFreenetMode) CloseHandle(hnFreenetMode);
 
 	return msg.wParam;
 }
@@ -310,9 +332,11 @@ bool OnlyOneInstance()
 }
 
 
+/* One-time initialisation - ONLY DO THIS ONCE.  'refreshing settings' is performed by calling ReloadSettings */
 void Initialise(void)
 {
-	char szbuffer[MAX_PATH+1];
+	char szbuffer[MAX_PATH*2+2048];
+	char szShortPathbuffer[MAX_PATH+1];
 	DWORD getenv;
 	DWORD buffersize,dwStrlen;
 	char dummy[1];
@@ -320,32 +344,17 @@ void Initialise(void)
 
 	LPSTR szCommandLinePtr, szEndPointer;
 	
-	/* Get path this executable is running from, and how long the path is in characters */
-	DWORD nCharacters = GetModuleFileName(NULL, szbuffer, BUFLEN);
-	/* chop off the end part as this will be "freenet.exe"
-	   - i.e. rewind from the end to find the first \ character
-	   and set it to null - this chops off the executable name leaving just the path name */
-	char * bufferpointer = szbuffer+nCharacters;
-	while (nCharacters--)
-	{
-		if (*bufferpointer=='\\')
-		{
-			*bufferpointer='\0';
-			break;
-		}
-		--bufferpointer;
-	}
-	
-	/* set the current directory to the path name so we can use GetProfile commands in the current directory */
+	GetAppDirectory(szbuffer);
+
 	SetCurrentDirectory(szbuffer);
 
-
-
 	/* set up the environment variable for CLASSPATH: */
+
 	lstrcat(szbuffer,"\\");
 	lstrcat(szbuffer,szFreenetJar);
-	dwStrlen = lstrlen(szbuffer);
-	/* buffer now holds, e.g., "G:\Program Files\Freenet\Freenet.jar" 
+	GetShortPathName(szbuffer, szShortPathbuffer, sizeof(szShortPathbuffer)-1);
+	dwStrlen = lstrlen(szShortPathbuffer);
+	/* buffer now holds, e.g., "G:\Progra~1\Freenet\Freenet.jar" 
 		where G:\Program Files\Freenet in this example is the current directory */
 	/* dwStrlen equals the length of this string */
 	/* bump up the size of dwStrlen to account for the fact that we need to add
@@ -396,7 +405,7 @@ void Initialise(void)
 		// environment variable doesn't already exist - so create it
 		// and set its value to G:\Program Files\Freenet\Freenet.jar
 		// success.
-		SetEnvironmentVariable("CLASSPATH",szbuffer);
+		SetEnvironmentVariable("CLASSPATH",szShortPathbuffer);
 	}
 	else if ( (szCLASSPATH!=NULL) && (getenv+dwStrlen<=buffersize) )
 	{
@@ -407,7 +416,7 @@ void Initialise(void)
 		// we can now add the string we need onto the end of the current value
 		// of CLASSPATH, separated using a semicolon
 		lstrcat(szCLASSPATH,";");
-		lstrcat(szCLASSPATH,szbuffer);
+		lstrcat(szCLASSPATH,szShortPathbuffer);
 		SetEnvironmentVariable("CLASSPATH",szCLASSPATH);
 	}
 	// else - allocation failed - Windows must be low on resources.
@@ -423,24 +432,8 @@ void Initialise(void)
 	}
 
 
-
-	/* Get the Javaw and Java info from flaunch.ini */
-	if ( !GetPrivateProfileString(szflsec, szjavawkey, szempty, szjavawpath, JAVAWMAXLEN, szflfile) )
-	{
-		GetPrivateProfileString(szflsec, szjavakey, szempty, szjavawpath, JAVAWMAXLEN, szflfile);
-	}
-
-	/* get the fservecli launch string from flaunch.ini */
-	GetPrivateProfileString(szflsec, szfservecliexeckey, szfserveclidefaultexec, szfservecliexec, BUFLEN, szflfile);
-
-	/* get the fconfig launch string from flaunch.ini */
-	GetPrivateProfileString(szflsec, szfconfigexeckey, szfconfigdefaultexec, szfconfigexec, BUFLEN, szflfile);
-
-	/* form the gateway string - the "http://127.0.0.1:" is constant */
-	lstrcpy(szgatewayURI, szgatewayURIdef);
-	/* then append the port number of fproxy, looked up from freenet.ini */
-	GetPrivateProfileString(szfinisec, szfprxkey, szempty, szgatewayURI+lstrlen(szgatewayURI), 6, szfinifile);
-
+	/*  Load in settings from flaunch.ini etc.  */
+	ReloadSettings();
 
 	
 	/* Parse the application command line: */
@@ -473,7 +466,60 @@ void Initialise(void)
 
 
 
+void ReloadSettings(void)
+{
+	char szbuffer[MAX_PATH*2+2048];
 
+	/* set the current directory to the path name so we can use GetProfile commands in the current directory */
+	GetAppDirectory(szbuffer);	
+	SetCurrentDirectory(szbuffer);
+
+	/* Get the Javaexec info from flaunch.ini */
+	GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
+	/* convert to short filename format, because we want one SIMPLE string for java.exe path */
+	GetShortPathName(szbuffer, szjavapath, sizeof(szjavapath) );
+
+
+	/* get the fservecli launch string from flaunch.ini */
+	GetPrivateProfileString(szflsec, szfservecliexeckey, szfserveclidefaultexec, szfservecliexec, BUFLEN, szflfile);
+
+	/* get the fconfig launch string from flaunch.ini */
+	GetPrivateProfileString(szflsec, szfconfigexeckey, szfconfigdefaultexec, szfconfigexec, BUFLEN, szflfile);
+
+	/* form the gateway string - the "http://127.0.0.1:" is constant */
+	lstrcpy(szgatewayURI, szgatewayURIdef);
+	/* then append the port number of fproxy, looked up from freenet.ini */
+	GetPrivateProfileString(szfinisec, szfprxkey, szempty, szgatewayURI+lstrlen(szgatewayURI), 6, szfinifile);
+
+}
+
+
+void GetAppDirectory(char * szbuffer)
+{
+	/* Get path this executable is running from, and how long the path is in characters */
+	DWORD nCharacters = GetModuleFileName(NULL, szbuffer, BUFLEN);
+	/* chop off the end part as this will be "freenet.exe"
+	   - i.e. rewind from the end to find the first \ character
+	   and set it to null - this chops off the executable name leaving just the path name */
+	char * bufferpointer = szbuffer+nCharacters;
+	while (nCharacters--)
+	{
+		if (*bufferpointer=='\\')
+		{
+			// special case - if just a bare drive then need terminating back slash
+			// eg D:\ rather than D:
+			if ( (bufferpointer>szbuffer) &&
+				 (bufferpointer<szbuffer+sizeof(szbuffer)) &&
+				 (*(bufferpointer-1)==':') )
+			{
+				bufferpointer++;
+			}
+			*bufferpointer='\0';
+			break;
+		}
+		--bufferpointer;
+	}
+}
 
 
 /* launches the java interpreter and starts the freenet node running */
@@ -510,11 +556,20 @@ void ExitFserve(void)
 	the configuration tool */
 void RestartFserve(void)
 {
-	nFreenetMode=FREENET_RESTARTING;
-	ModifyIcon();
-	ExitFserve();
-	Initialise();
-	StartFserve();
+	LOCK(NFREENETMODE);
+	if (nFreenetMode==FREENET_RUNNING)
+	{
+		nFreenetMode=FREENET_RESTARTING;
+		UNLOCK(NFREENETMODE);
+		ModifyIcon();
+		ExitFserve();
+		ReloadSettings();
+		StartFserve();
+	}
+	else
+	{
+		UNLOCK(NFREENETMODE);
+	}
 }
 
 
@@ -572,9 +627,6 @@ bool StartConfig(void)
 		{
 			(pProcAddress)(NULL);
 		}
-
-		/* Bug in config.dll - function ISN'T found because it has the wrong name */
-		pProcAddress = (LPCONFIGPROC)(-1);
 	}
 
 	/* Unload the DLL */
@@ -600,13 +652,13 @@ bool StartConfigOrig(void)
 							NULL,NULL,NULL};
 	PROCESS_INFORMATION prcConfigInfo;
 
-	char szexecbuf[sizeof(szjavawpath)+sizeof(szfconfigexec)+2];
+	char szexecbuf[sizeof(szjavapath)+sizeof(szfconfigexec)+2];
 
-	lstrcpy(szexecbuf, szjavawpath);
+	lstrcpy(szexecbuf, szjavapath);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfconfigexec); 
 
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
+	if (!CreateProcess(szjavapath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
 	{
 		MessageBox(NULL, "Unable to launch configurator for Freenet", "Cannot Config", MB_OK | MB_ICONERROR | MB_TASKMODAL);
 	}
@@ -639,10 +691,16 @@ void UnlockObject(HANDLE pMutex)
 
 /*	WindowProc - implements the popup menu, the mouse handling, and
 	the obvious windows events (WM_CREATE / WM_DESTROY)	*/
+MENUITEMINFO gatewayitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_DEFAULT | MFS_GRAYED, IDM_GATEWAY, NULL,NULL,NULL,0,szGatewayString, 0 };
+MENUITEMINFO startstopitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_STARTSTOP, NULL,NULL,NULL,0,szStartString, 0 };
+MENUITEMINFO configitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_CONFIGURE, NULL,NULL,NULL,0,szConfigureString, 0 };
+MENUITEMINFO exititem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXIT, NULL,NULL,NULL,0,szExitString, 0 };
+MENUITEMINFO separatoritem = {sizeof(MENUITEMINFO), MIIM_TYPE, MFT_SEPARATOR, 0, IDM_GATEWAY, NULL,NULL,NULL,0,NULL, 0 };
+
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-
 	POINT mousepos;
+
 	GetCursorPos(&mousepos);
 
 	switch (message)
@@ -650,12 +708,13 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_CREATE:
 
 			hPopupMenu = CreatePopupMenu();
-			AppendMenu(hPopupMenu,MF_STRING|MF_GRAYED,IDM_GATEWAY,szGatewayString);
-			AppendMenu(hPopupMenu,MF_STRING,IDM_STARTSTOP,szStartString);
-			AppendMenu(hPopupMenu,MF_STRING,IDM_CONFIGURE,szConfigureString);
-			AppendMenu(hPopupMenu,MF_SEPARATOR,0, NULL);
-			AppendMenu(hPopupMenu,MF_STRING,IDM_EXIT,szExitString);
-			        
+
+			InsertMenuItem(hPopupMenu, 0, TRUE, &gatewayitem);
+			InsertMenuItem(hPopupMenu, 1, TRUE, &startstopitem);
+			InsertMenuItem(hPopupMenu, 2, TRUE, &configitem);
+			InsertMenuItem(hPopupMenu, 3, TRUE, &separatoritem);
+			InsertMenuItem(hPopupMenu, 4, TRUE, &exititem);
+		        
 			break;
 
 		case WM_DESTROY:
@@ -701,14 +760,33 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 						case IDM_CONFIGURE: // menu choice configure - run the Config tool
 							
-							if (StartConfig())
+							// is the configurator already running?
+							if (WaitForSingleObject(hConfiguratorSemaphore, 1) == WAIT_TIMEOUT)
 							{
-								/* we get here after the configuration app has run */
-								if (nFreenetMode==FREENET_RUNNING) // restart the server
-								{
-									RestartFserve();
-								}
+								// configurator still running
+								// ideally, give it the focus here
+								HWND ConfiguratorWindow = FindWindow(NULL, "Freenet configurator");
+								SetForegroundWindow(ConfiguratorWindow);
+								break;
 							}
+							else
+							{
+
+								// we now 'own' the configurator semaphore object
+													
+								if (StartConfig() )
+								{
+									/* we get here after the configuration app has run */
+									if (nFreenetMode==FREENET_RUNNING) // restart the server
+									{
+										RestartFserve();
+									}
+								}
+
+								// release the semaphore when configurator has completed
+								ReleaseSemaphore(hConfiguratorSemaphore,1,NULL);
+							}
+
 							break;
 
 						case IDM_EXIT: // otherwise menu choice exit, exiting
@@ -927,4 +1005,17 @@ LPSTR SkipSpace(LPSTR szString)
 		}
 		szString++;
 	} while (1);
+}
+
+
+
+
+void LOCK(enum LOCKCONTEXTS lockcontext)
+{
+	WaitForSingleObject(*(LOCKOBJECTS[lockcontext]), INFINITE);
+}
+
+void UNLOCK(enum LOCKCONTEXTS lockcontext)
+{
+	ReleaseMutex(*(LOCKOBJECTS[lockcontext]));
 }
