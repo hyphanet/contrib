@@ -1,0 +1,53 @@
+Preface
+---------------------------------------------------------------------------
+
+This document defines a binary file format for describing hierarchical
+trees of byte array to Freenet key associations.
+
+The format is not limited to Freenet use -- you could use such a format for
+storing your cat food recipes -- as the names and values may be arbitrary
+byte arrays of less than 4294967296 bytes.
+
+
+Basic Types
+---------------------------------------------------------------------------
+
+Values are little-endian.
+
+<int> = 4 byte unsigned integer.
+<array> = <(int)size> <byte[size]> The size of the array, followed by the
+          actual data. Size may equal 0, in which case there is no data.
+
+
+Chunks
+---------------------------------------------------------------------------
+
+A file is composed of a <Header> chunk followed by a set of <Node> chunks.
+The total size of a file is limited to 4294967296 bytes (4,294 gigabytes).
+
+<Header> =
+
+<int> Archive version. (Currently 0)
+<int> File offset of the root node.
+<array> Name of the root node (effectively, the archive name).
+<array> The SSK public key where updates and patches may be found, or a 
+	zero-length array if not updatable or patchable.
+<int> Update interval, in seconds. If not updatable, then 0.
+<int> Patch interval, in seconds. If not patchable, then 0.
+
+File offsets correspond to the location of the first byte of the node
+relative to the beginning of the file.
+
+<Node> =
+
+<int> Child count.
+<int> Entry count.
+
+<array> Name of child.
+<int> File offset of child.
+(repeat the last two lines /child count/ times)
+
+<array> Name of entry.
+<array> Freenet CHK, in raw binary.
+(repeat the last two lines /entry count/ times)
+

@@ -1,0 +1,187 @@
+Preface
+---------------------------------------------------------------------------
+
+This document describes the simple, plain text tree description format,
+which is designed to be as easy for a human to read and write as possible.
+
+You should have received a tree.vim file with this distribution. You should
+install it if you plan to edit trees, or you will become even more insane
+than you already are. (Hey, you're reading this! Normal people don't read
+shit like this!) You'll have to stick it in vim's syntax/ directory and add
+an entry to filetypes.vim (or your .vimrc) to identify files matching *.tree
+as Gremlin Tree Format.
+
+
+Structure
+---------------------------------------------------------------------------
+
+Subdirectories are denoted with tabs. You should set your tabstop to a
+smaller value if the default is too awkward; I've found 2 - 4 to be a
+reasonable range. You must be careful to always use tabs when editing trees,
+as the compiler will not accept spaces where it expects tabs.
+
+That big confusing string to the right of the equals sign is a Freenet CHK.
+
+	freenet:CHK@1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The name to the left of the equals sign may not begin with spaces. Anything
+else is allowed (even '=').
+
+Directory names may not start with spaces, and they may not contain '='.
+
+
+Example
+---------------------------------------------------------------------------
+
+6am Eternal
+	Faster=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Abintra
+	ALH84001=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Applied Imagination=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Bad Season For Driving=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Blue Blonde and Cherry=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Blue Egg Jam=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Born in a Barn=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Candlepower=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Louder=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Loudspeak=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Luci=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Shimmy the Shackle=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Wounded=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Anna in the Dark
+	Anders & Anderzine=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Jungle Waltz=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	No Way Out=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	OCD (chapter #2)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	OCD (chapter #3)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Pas P Du Ikke Delgger Nlen=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Rumble Jungle=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Thank You=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	The Castle At Night=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	The Trip=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Venice Romance=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	When a Heart Stops=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+CC Bluesboy Project
+	Breaking Your Concentration=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Call of The Wild=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Greazy Pork Sandwich=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Riding The Acoustic Outhouse=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Shut Your Mouth (I've Got The Blues)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	So-Ho Jamming in G=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Strat-a-Tat-Tat=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Twilight Train Hopper=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Chimp
+	21st Century=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	500 Hawaiian Guitars=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Adelaide=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	After The Show=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Country Air=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Fulllife=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	In The Snow=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Little One=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Lullaby=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Neighbours=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Screen Dream=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	The Ageing Taxi Driver=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Digital Destiny
+	Epic 9.1=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	The Storm=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Dj Kaotik
+	Project 7=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Entropical
+	Da Good Vibrations=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Haiku 4 U=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	It Came from Beyond=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Naked Merciless Force=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	The Fourth Rail=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Tom Ze ReReMix=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Gringo Scar
+	As High As Possible=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Blindsong for Saskia=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Chimponaut=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Dead As Dreams=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Do You Like Our Machine=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Fit(demo)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Glad to Have Dementia=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	I Have a Map=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Its Lonely in Outer Space=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Local Anesthetic=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Minus=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Poncho's Lament=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Sci-Chotic, Ahh Naturally(short edit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Twothirds=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Jenelle
+	Human Frailty=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Kaye
+	Bubble=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Chanson de Nuit=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	If I Was a Blackbird=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Midnight Moon=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	My Dream=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Release Me=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Sleep=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Sue Me=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Tha Mi Sgith=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Twilight=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Kevin Kane
+	Cut=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Insane Asylum=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Last Boy=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Matthew=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Oh My Heart=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	One More Time=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Someone=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	The Porch Song=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	The Stinking Song=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Tired Little Son=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+LD120
+	Cassandra Complex=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Shadow of Death v2.0=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Symphonique Sandra=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Mixster J
+	Get On (150 bpm Trance Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Get Ready=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Hard Attak=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Majestic=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Plastik Hammer=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Shot=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Subzone Embryo(Keltik Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Subzone Embryo=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Throw Your Hands in The Air=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Unknown=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Mystic Mafia
+	303Infinity Vs Mystic Mafia(Fade Away)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Fade Away=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Man Kind=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Soul Surfing=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Trance Atlantic=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Trance Gression=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Potato
+	Change=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Too Long=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Try=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Without You=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Velvet Collective
+	Funky Dancer (Alternative 3 mix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Funky Dancer (radio edit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Sittin' in the Pocket=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Sittin' in the Pocket (Alternative 3 mix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Special=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+Virtualizer
+	Creature of The Night=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Destiny(Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Destiny=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Episode 1=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Episode Zero=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Far From Home(FX-Skit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Kingdom of Madness=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Man Made in Truth=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Massimum Overdry(FX-Skit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Meet The Family=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	Millenium State=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	My Heart Loves U=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	War(Space Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+	War=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
+
+
