@@ -18,6 +18,9 @@ SetOverwrite on
 
 Section "Freenet 0.3.6.1 (required)"
 
+#First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
+FindWindow "close" "TrayIconFreenetClass" ""
+
 # Copying the actual Freenet files to the install dir
 SetOutPath $INSTDIR\
 File freenet\*.*
@@ -55,11 +58,16 @@ Section "Launch Freenet node now"
 SectionIn 1,2
 Exec "$INSTDIR\freenet.exe"
 
-#Section "IE browser plugin"
-#SectionIn 2
-#SetOutPath $INSTDIR\IEplugin
-#File freenet\IEplugin\*.*
+Section "IE browser plugin"
+SectionIn 2
+SetOutPath $INSTDIR\IEplugin
+File freenet\IEplugin\*.*
 #Exec '"$WINDIR\notepad.exe" "$INSTDIR\IEplugin\Readme.txt"'
+WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet CLSID {CDDCA3BE-697E-4BEB-BCE4-5650C1580BCE}
+WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet '' 'freenet: Asychronous Pluggable Protocol Handler'
+WriteRegStr HKEY_CLASSES_ROOT freenet '' 'URL:freenet protocol'
+WriteRegStr HKEY_CLASSES_ROOT freenet 'URL Protocol' ''
+RegDLL $INSTDIR\IEplugin\FreenetProtocol.dll
 
 #Section "NS6/Mozilla plugin"
 #SectionIn 2
@@ -96,12 +104,17 @@ MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `Please delete .freenet in your f
 
 # Delete $INSTDIR\.freenet\*.*
 # RMDir $INSTDIR\.freenet
-Delete $INSTDIR\IEplugin\*.*
-RMDir $INSTDIR\IEplugin
 Delete $INSTDIR\NSplugin\*.*
 RMDir $INSTDIR\NSplugin
 Delete $INSTDIR\*.*
 RMDir $INSTDIR
+
+# remove IE plugin
+UnRegDLL $INSTDIR\IEplugin\FreenetProtocol.dll
+Delete $INSTDIR\IEplugin\*.*
+RMDir $INSTDIR\IEplugin
+DeleteRegKey HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet
+DeleteRegKey HKEY_CLASSES_ROOT freenet
 
 Delete "$SMPROGRAMS\Freenet.lnk"
 Delete "$SMSTARTUP\Freenet.lnk"
