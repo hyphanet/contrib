@@ -1,67 +1,147 @@
-This is the README file for FCPtools.
+This is the README file for the unstable version of FCPtools (cvs HEAD).
 
-CopyLeft (c) 2001 by David McNab <david@rebirthing.co.nz>
+CopyLeft (c) 2001, 2003 by David McNab <david@rebirthing.co.nz>
 Currently maintained by Jay Oliveri <ilnero@gmx.net>
+------------------------------------------------------------------------
 
-This source package builds four Freenet FCP components:
+There are other files in this distribution that may be helpful:
 
-* ezFCPlib:    ANSI-C Freenet client library.  It is unique in that it doesn't
-               require any third party libraries (as do many of the other
-               Freenet client libs.
+AUTHORS:         Lists those responsible for creating this beast.
+COPYING:         GNU General Public License details.
+ChangeLog:       Summary of important changes (not used).
+INSTALL:         Generic installation instructions.
+INSTALL.bsd:     BSD specific.
+INSTALL.msvc:    Visual C++ specific.
+INSTALL.solaris: Solaris specific.
+NEWS:            FCPTools important news (not used).
+README:          * You are Here *
+README.win:      Windows specific information mainly for developers.
+TODO:            Wishlist of features.
+ezFCPlib/README: Information on using the ezFCPlib API.
 
-* fcpget:      command-line freenet request, based on FCP.
+Any other files present in the distribution but not listed here should
+be considered mainly of interest to developers; contact the maintainer
+for any further information.
 
-* fcpput:      command-line freenet insert, based on FCP.
+All the pieces currently in CVS are:
 
-* fcpputsite:  command-line freesite insertion client - fast and easy.
+ ezFCPlib:   Freenet Client Protocol Library.
+ fcpput:     Insert documents into Freenet.
+*fcpget:     Retrieve documents from Freenet.
+*fcpputsite: Insert a Freesite (or Freenet Website) into Freenet.
+*fcpproxy:   http proxy server; an fproxy replacement (unmaintained).
 
-* fcpproxy:    http proxy server; an fproxy replacement.
+Programs marked (*) are not compiled and linked by default.
+------------------------------------------------------------------------
 
-(Set favorite editor's tabstop to 2 for best results)
+This version of FCPTools is being overhauled. Currently the tools
+can publish keys (single and FEC-redundant) into Freenet, but not retrieve
+them. The code to retrieve keys is currently being worked out, and as a
+result fcpget and any Get() functions in ezFCPlib are not implemented.
 
-This is a work in progress.
+fcpputsite has not been updated to use the new API in ezFCPlib, so that
+program for the time being remains not implemented. It would be a
+comparatively easy task to code fcpputsite against the new ezFCPlib,
+since fcpputsite now only needs to be concerned with non-FCP routines
+(creating a record file for recovery in the event of insert failure, for
+example).
+
+Contact the maintainer for more information (it's my mess for now).
 
 
----------------------------------------------------------------------------
+------------
 Introduction
----------------------------------------------------------------------------
+------------
 
-The aim of FCPtools is to offer a truly multi-platform ANSI-C based Freenet
-client library, as well as provide command-line tools for convenience and
-potentially shell scripting.
+FCPTools consists of two parts; ezFCPlib is an ANSI-C based Freenet Client
+Protocol Library, to assist would-be client writers by hiding from them the
+details of communicating with Freenet via FCP.
 
-While still in development, the tools have successfully compiled and run on:
+The second part consists of command line tools (fcpget, fcpput and
+fcpputsite) statically linked against ezFCPlib, and serve as good examples
+on how to use the ezFCPlib API.
 
-* Windows 2000/Microsoft Visual C++  6.0
-* GNU/Linux
-* FreeBSD
+The aim of FCPTools is to offer a portable, C based Freenet Client Library,
+and useful command line tools for intelligent scripting. It is my hope that
+providing a useful FCP library will in turn create more sophisticated
+Freenet clients. Time will tell.
+
+While still in development, the tools have been successfully used on:
+
+* Windows 2000 using Microsoft Visual C++ 6.0 sp5.
+* GNU/Linux (Debian, RedHat).
+* FreeBSD.
+
+(Untested but possible platforms; Solaris, *BSD, Mac OSX).
 
 
----------------------------------------------------------------------------
+------------------
 Building the tools
----------------------------------------------------------------------------
+------------------
 
-Check INSTALL (for Unix), INSTALL.solaris or INSTALL.msvc (for Windows/MSVC++)
-depending on your platform.
+Check INSTALL (for GNU compatible setups on any OS), INSTALL.solaris or
+INSTALL.msvc (Visual C++) depending on your OS and development platform.
 
 
----------------------------------------------------------------------------
-ezFCPlib - An easy, multi-platform FCP library
----------------------------------------------------------------------------
+------------
+Using fcpput
+------------
 
-ezFCPlib aims to be a portable, multi-platform client library for programmers
-who want to write Freenet capable clients without learning the details of
-Freenet itself.  It also minimizes the "ripple effect" from changes in the
-Node source, which is important at this stage in Freenet's life.
+The following information is returned by calling fcpput -h:
 
-The API provides client writers:
+fcpput [OPTIONS] <uri> <file>
+fcpput [OPTIONS] --stdin <uri>
 
-* Functions to create Freenet keys and keypairs.
-* High level reading/writing of Freenet data.
-* Lower level reading/writing via filestreams.
-* Various utility functions.
+Options:
 
-While parts of the spec are out of date, the functions and their signatures
-have remained the same.  You can find it relative to this directory at:
+  -n, --address host     Freenet node address (default "127.0.0.1")
+  -p, --port num         Freenet node port (default 8481)
+  -l, --htl num          Hops to live (default 3)
 
-./ezfcplib/doc/spec.html
+  -m, --metadata file    Read key metadata from local file
+  -s, --stdin            Read key data from stdin
+  -e, --regress num      Number of days to regress (default 3)
+  -r, --raw              Raw mode - don't follow redirects
+  -v, --verbosity num    Verbosity of log messages (default 2)
+                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug
+
+  -g, --genkeys          Generate a keypair then exit
+
+  -V, --version          Output version information and exit
+  -h, --help             Display this help and exit
+
+  uri                    URI to give newly inserted key; variations:
+                           CHK@
+                           KSK@<routing key>
+                           SSK@<private key>[/<docname>]
+
+  file                   Read key data from local file
+                         (cannot be used with --stdin)
+
+Examples:
+
+To insert a Content Hash Key (CHK) with file "gpl.txt":
+  fcpput CHK@ /home/hapi/gpl.txt
+
+To insert a Keyword Signed Key (KSK) with file "gpl.txt" against a
+freenet node at address raven.cp.net with hops to live 10:
+  fcpput --htl 10 --address raven.cp.net KSK@gpl.txt /home/hapi/gpl.txt
+
+To insert a Subspace Signed Key (SSK) with file "gpl.txt":
+  fcpput SSK@LNlEaG7L24af-OH~CKmyPOvJ~EM/ gpl.txt
+
+To insert an SSK within named document "licenses":
+  fcpput SSK@LNlEaG7L24af-OH~CKmyPOvJ~EM/licenses gpl.txt
+
+
+--------------
+Using ezFCPlib
+--------------
+
+The current setup builds ezFCPlib into a static library, on both Windows and
+UNIX. It would be desirable to build a Windows DLL and UNIX .so in addition,
+so send patches by all means.
+
+Refer to README under the ezFCPlib directory for information on how to use
+ezFCPlib in a C friendly environment.
+

@@ -3,19 +3,24 @@ that can be implemented by any competent C programmer.
 
 + means todo
 = means done
-- means the feature was dropped
+
 
 ----------------
 FCPtools generic
+----------------
 
-++ Problems at end of Put() routine for all files on Win32.
 + Update ezFCPlib documentation.
-+ Confirm OS X and Solaris functionality.
-+ Add usage instructions to README file for fcpget, fcpput, fcpputsite.
-+ Confirm KSK, SSK, and CHK logic is all sound. Initial tests (on Linux) look good.
+
++ Confirm OS X functionality.
++ Confirm *BSD functionality.
++ Confirm Solaris functionality.
+
++ Add usage instructions to README for fcpget, fcpputsite.
+
 
 -----------------
 ezFCPlib specific
+-----------------
 
 + Implement Key Retrival code (currently only code for inserting).
 + Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
@@ -23,24 +28,31 @@ ezFCPlib specific
 + Handle HighestSeenBuild from NodeHello message.
 + Make fcpLog() work with files as well as standard output.
 + Implement SkipDS logic.
++ Implement DeleteDS logic.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 = Add keygen code.
 + Implement CheckBlockOffset and DataBlockOffset in handling of fec segment headers.
-  (it's causing the java.lang.NumberFormatException messages in the log).
+  (it's causing the java.lang.NumberFormatException messages in Fred's log).
++ #define HFCP to hFCP to ease transition.
++ Decide which global vars should be handled by CreateHFCP and which need setter functions for modification
+  (not acceptable that ezFCPlib needs to be loaded in order to change configuration parameters).
++ Implement retry logic, so that ezFCPlib attempts to insert _fcpRetry times on failed message.
 
 ------
 fcpput
+------
 
 = Implement -g command-line switch (GenerateKeypair).
 + Optimize main()'s speed read from standard input.
++ (Win32); returns to command prompt with (harmless) error when reading key data from stdin.
+
 
 ------
 fcpget
+------
 
-(Under re-write)
 
 ----------
 fcpputsite
-
-(Under re-write).
+----------
 
