@@ -584,17 +584,19 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 
 		// io error
 		if (n <= 0) {
-		    int c;
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
 		    // connect to server, watch new fd
 		    if (++xfers[i].try < 3) {
-		        c = hookup(&hashes[xfers[i].num*HASHLEN], xfers[c].try);
+		        int c = hookup(&hashes[xfers[i].num*HASHLEN], xfers[c].try);
 		        FD_SET(c, &w);
 		        xfers[c].num = xfers[i].num;
 			xfers[c].try = xfers[i].try;
 		        xfers[c].off = -1; // 'r'
+		    } else {
+			if (i == m) m--;
+		        active--;
 		    }
 		}
 		
@@ -618,26 +620,19 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    n = readall(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
 
 		if (n <= 0) {
-		    // the server hung up gracefully. request failed.
-		    if (xfers[i].off == -4 && !n) {
-			if (close(i) == -1)
-			    die("close() failed");
-			FD_CLR(i, &r);
-			if (i == m) m--;
-			active--;
-		    } else { // io error, restart
-			int c;
-			if (close(i) == -1)
-			    die("close() failed");
-			FD_CLR(i, &w);
-			// connect to server, watch new fd
-			if (++xfers[i].try < 3) {
-			    c = hookup(&hashes[xfers[i].num*HASHLEN], xfers[i].try);
-			    FD_SET(c, &w);
-			    xfers[c].num = xfers[i].num;
-			    xfers[c].try = xfers[i].try;
-			    xfers[c].off = -(1+HASHLEN); // 'r' + hash
-			}
+		    if (close(i) == -1)
+		        die("close() failed");
+		    FD_CLR(i, &r);
+		    // try another server
+		    if (++xfers[i].try < 3) {
+		        int c = hookup(&hashes[xfers[i].num*HASHLEN], xfers[i].try);
+		        FD_SET(c, &w);
+		        xfers[c].num = xfers[i].num;
+		        xfers[c].try = xfers[i].try;
+		        xfers[c].off = -(1+HASHLEN); // 'r' + hash
+		    } else {
+		        if (i == m) m--;
+		        active--;
 		    }
 		}
 
