@@ -82,7 +82,7 @@ RANLIB = @RANLIB@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
-SUBDIRS = fcpcommon ezFCPlib fcpput
+SUBDIRS = fcpcommon ezFCPlib fcphello fcpput
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
