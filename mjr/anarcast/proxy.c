@@ -110,6 +110,7 @@ run_thread (void *arg)
         if (d == 'i') insert(c);
     }
 
+    printf("\n");
     if (close(c) == -1)
 	die("close() failed");
     free(arg);
@@ -121,9 +122,8 @@ alert (const char *s, ...)
 {
     va_list args;
     va_start(args, s);
-    vprintf(s, args);
-    // all this for a fucking newline
     printf("\n");
+    vprintf(s, args);
     fflush(stdout);
     va_end(args);
 }
@@ -368,7 +368,6 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 		// io error
 		if (n <= 0) {
 		    int c;
-		    ioerror();
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
@@ -531,7 +530,6 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		// io error
 		if (n <= 0) {
 		    int c;
-		    ioerror();
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
@@ -571,7 +569,6 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 			active--;
 		    } else { // io error, restart
 			int c;
-			ioerror();
 			if (close(i) == -1)
 			    die("close() failed");
 			FD_CLR(i, &w);
@@ -660,6 +657,8 @@ inform ()
 	puts("No servers, exiting.");
 	exit(0);
     }
+
+    printf("\n");
 }
 
 //=== routing ===============================================================
