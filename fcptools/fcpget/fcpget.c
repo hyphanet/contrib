@@ -188,7 +188,7 @@ static void parse_args(int argc, char *argv[])
     switch (c) {
 
     case 'n':
-      strncpy( nodeAddr, optarg, L_URI );
+      strncpy( nodeAddr, optarg, L_HOST );
       break;
 
     case 'p':

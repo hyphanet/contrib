@@ -7,5 +7,5 @@ scope:
 	cscope -s ezFCPlib -s fcpputsite -s fcpget -s fcpput -s fcpproxy -s fcpputsplit
 
 clean:
-	find -name '*~'| xargs rm
+	find -name '*~'| xargs rm -f
 

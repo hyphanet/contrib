@@ -228,7 +228,7 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
  			fldSet = cdocFindDoc(meta, NULL);
  			
  
- 		if (fldSet) {
+ 		if (!fldSet) {
 			redirecting=0;
 			continue;
 		}
