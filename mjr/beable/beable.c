@@ -213,7 +213,7 @@ end:
 void
 send_index (FILE *socket)
 {
-    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nCache-control: no-cache\r\n\r\n<html>\n<head><title>Beable</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Beable!</h1>\n<table cellspacing=0 cellpadding=0>\n<tr align=center><td><form action=\"/search\" method=get>Search: <input type=text name=1 size=55 maxlength=255> <input type=submit value=\"Search\"></form>\n</td></tr>\n<tr align=center><td><a href=\"http://freenetproject.org/\">Get Freenet</a> || <a href=\"/add\">Add A Link</a> || <a href=\"/data\">Download Database</a></td></tr>\n</table>\n\n<p><table border=1>\n<tr><td><b>URI</b></td></td><td><b>Description</b></td></tr>\n";
+    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nCache-control: no-cache\r\n\r\n<html>\n<head><title>Beable</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Beable!</h1>\n<table cellspacing=0 cellpadding=0>\n<tr align=center><td><form action=\"/search\" method=get>Search: <input type=text name=1 size=55 maxlength=255> <input type=submit value=\"Search\"></form>\n</td></tr>\n<tr align=center><td><a href=\"http://freenetproject.org/\">Get Freenet</a> || <a href=\"/add\">Add A Link</a> || <a href=\"/data\">Download Database</a></td></tr>\n</table>\n\n<p><table border=1>\n<tr><td><b>Name</b></td></td><td><b>Description</b></td></tr>\n";
     char two[]="</table>\n\n</center>\n</body>\n</html>\r\n";
     
     int i;
@@ -232,7 +232,7 @@ send_index (FILE *socket)
 void
 run_search (FILE *socket, char *url)
 {
-    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Search Results</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Search Results</h1>\n\n<p><table border=1>\n<tr><td><b>URI</b></td></td><td><b>Description</b></td></tr>\n";
+    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Search Results</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Search Results</h1>\n\n<p><table border=1>\n<tr><td><b>Name</b></td></td><td><b>Description</b></td></tr>\n";
     char two[]="</table>\n\n</center>\n</body>\n</html>\r\n";
     
     struct item *i;
@@ -308,7 +308,7 @@ fof:
 void
 send_data (FILE *socket)
 {
-    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Beable Database</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<table border=1>\n<tr><td><b>URI</b></td></td><td><b>Description</b></td></tr>\n";
+    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Beable Database</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<table border=1>\n<tr><td><b>Name</b></td></td><td><b>Description</b></td></tr>\n";
     char two[]="</table>\n\n</center>\n</body>\n</html>\r\n";
     struct item *i;
     
