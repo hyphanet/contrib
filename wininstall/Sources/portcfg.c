@@ -10,12 +10,14 @@
 #include "winsock2.h"
 /*<---------------------------------------------------------------------->*/
 // #define DEBUG //uncomment line to turn off debug output
-#define JAVAEXEC 	"listenPort"
+#define LISTENPORT 	"listenPort"
 #define FLAUNCHSEC 	"Freenet Node"
 #define FLAUNCHFILE ".\\freenet.ini"
 #define MAXSTRLEN 256
 #define TRANSIENT "transient"
-
+#define DISKCACHE "diskCache"
+#define DEF_MINDISKCACHE 100 /* This much will be proposed for Freenet as minimum */
+#define DEF_DISKSIZEPERCENT 0.2 /* That many percent of the free disc space will be proposed to be used */
 static int freeport=0;
 char str[256];
 
@@ -124,7 +126,7 @@ WSADATA wsaData;
 	if (WSAStartup(wVersionRequested, &wsaData) != 0) {return 0; /* No sense continuing if we can't use WinSock */}
 
 	/* Does a ListenPort exist?*/
-	if (GetParam (str,JAVAEXEC,FLAUNCHSEC,FLAUNCHFILE) != NULL) {
+	if (GetParam (str,LISTENPORT,FLAUNCHSEC,FLAUNCHFILE) != NULL) {
 		strcat(str, " is already configured as freenet port. Should we use it?");
 		if (MessageBox(NULL,str,"Port already defined",MB_YESNO) == IDYES) {freeport=atoi(str);EndDialog(hDlg,1);};
 	}
@@ -140,6 +142,7 @@ application needs to do here.
 static BOOL CALLBACK DialogFunc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 int i;
+long long freeBytes;
 BOOL isSuccess;
 
 	switch (msg) {
@@ -149,6 +152,12 @@ BOOL isSuccess;
 	case WM_INITDIALOG:
 		InitializeApp(hwndDlg,wParam,lParam);
 		SetDlgItemText(hwndDlg,102,itoa(freeport,str,10));
+		/* Set Diskcache defaults */
+		GetDiskFreeSpaceEx(NULL, &freeBytes,NULL,NULL);
+		SetDlgItemInt(hwndDlg,107,(freeBytes/1000000),FALSE);
+		SetDlgItemInt(hwndDlg,109,max(DEF_MINDISKCACHE,(freeBytes/1000000)*DEF_DISKSIZEPERCENT),FALSE);
+		/* Set transient on by default*/
+		SendDlgItemMessage(hwndDlg, 106, BM_SETCHECK, BST_CHECKED,0);
 		return TRUE;
 	/* By default, IDOK means close this dialog returning 1, IDCANCEL means
            close this dialog returning zero
@@ -160,8 +169,15 @@ BOOL isSuccess;
 				i  = GetDlgItemInt(hwndDlg, 102, &isSuccess, FALSE);
 				if (isSuccess) freeport = i;
 				/* and write as param */
-				WriteParam (itoa(freeport,str,10),JAVAEXEC,FLAUNCHSEC,FLAUNCHFILE);
-     			/* Get connection type and set transient=yes and informWrite=no if dialup */
+				WriteParam (itoa(freeport,str,10),LISTENPORT,FLAUNCHSEC,FLAUNCHFILE);
+
+				/* Get the disk cache size and write the param to disk */
+				i  = GetDlgItemInt(hwndDlg, 109, &isSuccess, FALSE);
+				itoa(i,str,10);
+				strcat(str,"000000");
+				WriteParam (str,DISKCACHE,FLAUNCHSEC,FLAUNCHFILE);
+
+				/* Get connection type and set transient=yes and informWrite=no if dialup */
 				if (SendDlgItemMessage(hwndDlg, 106, BM_GETCHECK, 0,0)) {
 					WriteParam ("no","informWrite",FLAUNCHSEC,FLAUNCHFILE);
 					WriteParam ("yes","transient",FLAUNCHSEC,FLAUNCHFILE);
