@@ -19,7 +19,7 @@
 #define FCP_REQUEST_FAILED	-5
 #define FCP_IO_ERROR		-6
 
-enum {DATA, CONTROL};
+enum {FCP_DATA, FCP_CONTROL};
 
 typedef struct {
     char *document_name;   // to which document this part applies

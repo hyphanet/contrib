@@ -85,7 +85,7 @@ fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
 	} else strcpy(nuri, uri);
 	status = fcp_get(data, &len, &type, nuri, htl);
 	if (status != FCP_SUCCESS) return status;
-	if (type == CONTROL) { // read the control doc and recurse
+	if (type == FCP_CONTROL) { // read the control doc and recurse
 	    fcp_metadata *m2 = fcp_metadata_new();
 	    status = parse_control_doc(m2, data);
 	    if (status != FCP_SUCCESS) goto fail;
@@ -254,7 +254,7 @@ fcp_get (FILE *data, int *len, int *type, char *uri, int htl)
 	    || strncmp(buf, "EndMessage", 10) != 0)
 	return FCP_IO_ERROR;
     *len = dlen;
-    *type = mlen == dlen ? CONTROL : DATA;
+    *type = mlen == dlen ? FCP_CONTROL : FCP_DATA;
     while (dlen) {
 	status = fscanf(sock, "DataChunk\nLength=%x\nData", &n);
 	fgetc(sock);
@@ -386,7 +386,7 @@ parse_splitfile (fcp_metadata *m, FILE *data)
 	    m->sf[n]->document_name = strdup(val);
 	else if (strcmp(name, "FileSize") == 0)
 	    m->sf[n]->filesize = strtol(val, NULL, 16);
-	else if (strcmp(name, "keys") == 0) {
+	else if (strcmp(name, "Chunks") == 0) {
 	    status = strtol(val, NULL, 16);
 	    if (m->sf[n]->keys || status < 0)
 		return FCP_INVALID_METADATA;
@@ -480,7 +480,7 @@ fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
     if (length < 128 * 1024) {
 	char uri[128];
 	strcpy(uri, "freenet:CHK@");
-	status = fcp_insert_raw(in, uri, length, DATA, htl);
+	status = fcp_insert_raw(in, uri, length, FCP_DATA, htl);
 	if (status != FCP_SUCCESS) return status;
 	status = fcp_redirect(m, document_name, uri);
 	return status;
@@ -542,7 +542,7 @@ insert_thread (void *arg)
     int r = 3, status = -1;
     while (r-- && status != FCP_SUCCESS) {
 	rewind(i->data);
-	status = fcp_insert_raw(i->data, i->uri, i->length, DATA, i->htl);
+	status = fcp_insert_raw(i->data, i->uri, i->length, FCP_DATA, i->htl);
     }
     pthread_mutex_lock(i->mutex);
     if (status != FCP_SUCCESS) *i->error = status;
@@ -568,7 +568,7 @@ fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl)
 		  "MetadataLength=%x\n"
 		  "Data\n",
 		  htl, uri, length,
-		  type == DATA ? 0 : length);
+		  type == FCP_DATA ? 0 : length);
     while (length) {
 	length -= (n = length > 1024 ? 1024 : length);
 	if (fread(buf, 1, n, in) != n) goto ioerror;
@@ -679,7 +679,7 @@ fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
     }
     j = ftell(data);
     rewind(data);
-    return fcp_insert_raw(data, uri, j, CONTROL, htl);
+    return fcp_insert_raw(data, uri, j, FCP_CONTROL, htl);
 }
 
 void

@@ -74,7 +74,7 @@ insert (char *file, int depth)
     if (s.st_size < 256 * 1024) {
 	status = -1;
 	while (status != FCP_SUCCESS && r--)
-	    status = fcp_insert_raw(data, uri, s.st_size, DATA, htl);
+	    status = fcp_insert_raw(data, uri, s.st_size, FCP_DATA, htl);
 	if (status != FCP_SUCCESS) {
 	    fprintf(stderr, "Inserting %s failed!\n", file);
 	    pthread_exit(NULL);
