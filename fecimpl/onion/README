@@ -1,0 +1,82 @@
+README for onionfec-0.1.jar, updated 20011104
+giannijohansson@mediaone.net
+
+This directory contains FECEncoder and FECDecoder plugin 
+implementations for fproxy.   It was written on top of the 
+Onion Networks Java FEC Library v1.0.2.
+
+See:
+http://www.onionnetworks.com/components.html
+
+for more information on Onion Networks.
+
+See the file onion_LICENSE for licensing information for
+the Onion Networks code.
+
+DEPLOYING:
+Make sure onionfec-0.1.jar, fec.jar and common.jar are in
+your CLASSPATH.
+
+Then add the following fragment to you freenet
+initialization file (freenet.conf or freenet.ini)
+if it isn't already there.
+
+<---snip--->
+fproxy.FECDecoder_0_name=OnionDecoder_0
+fproxy.FECDecoder_0_class=OnionFECDecoder
+
+fproxy.FECEncoder_0_name=default_encoder
+fproxy.FECEncoder_0_class=OnionFECEncoder
+
+fproxy.FECEncoder_1_name=OnionEncoder_0
+fproxy.FECEncoder_1_class=OnionFECEncoder
+<---snip--->
+
+When you restart fproxy, the encoder and decoder
+implementations should be available.
+
+NATIVE CODE:
+I disabled native code support by default.  If you
+want to configure native code support, get the Onion Networks
+Java FEC Library v1.0.2 zip:
+
+http://www.onionnetworks.com/fec/fec-1.0.2.zip
+
+Install the correct native libraries and JNI support jars
+for your system.
+
+Then use the classes NativeOnionFECDecoder and NativeOnionFECEncoder
+in your Freenet initialization files.
+
+e.g.:
+fproxy.FECDecoder_0_name=OnionDecoder_0
+fproxy.FECDecoder_0_class=NativeOnionFECDecoder
+
+instead of:
+fproxy.FECDecoder_0_name=OnionDecoder_0
+fproxy.FECDecoder_0_class=OnionFECDecoder
+
+
+BUILDING:
+This code is built with a standard GNU Makefile. 
+If you are in a non-*nix environment, then you are
+on your own. 
+
+Edit the FREENET_CP line in Makefile if nescessary to point to
+your Freenet classes. Then from this directory, type:
+
+make jar
+
+to build the onionfec-0.1.jar in current directory.
+
+DISCLAIMER:
+This code wasn't written by Onion Networks. It isn't endorsed or 
+supported by them.
+
+
+
+
+
+
+
+
