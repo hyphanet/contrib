@@ -121,42 +121,6 @@ bytestohex (char *hex, const void *bytes, int blen)
     *hex = 0;
 }
 
-// dunno if they expel you for this one too
-inline int
-hextobytes (const char *hex, void *bytes, uint hlen)
-{
-    int i, j;
-    char d;
-
-    if (hlen & 1) return 0;
-    
-    for (j = 0, i = 0; i < hlen; i += 2) {
-        d = 0;
-        if (hex[i] >= 'a' && hex[i] <= 'f')
-            d |= (hex[i] - 'a') + 10;
-        else if (hex[i] >= 'A' && hex[i] <= 'F')
-            d |= (hex[i] - 'A') + 10;
-        else if (hex[i] >= '0' && hex[i] <= '9')
-            d |= (hex[i] - '0');
-        else
-            return 0;
-        
-	d <<= 4;
-        if (hex[i + 1] >= 'a' && hex[i + 1] <= 'f')
-            d |= (hex[i + 1] - 'a') + 10;
-        else if (hex[i + 1] >= 'A' && hex[i + 1] <= 'F')
-            d |= (hex[i + 1] - 'A') + 10;
-        else if (hex[i + 1] >= '0' && hex[i + 1] <= '9')
-            d |= (hex[i + 1] - '0');
-        else
-            return 0;
-        
-	((char *)bytes)[j++] = d;
-    }
-
-    return j;
-}
-
 // return a wonderful, nonthreadsafe timestamp
 inline char *
 timestr ()
