@@ -1,22 +1,22 @@
-//
-//  This code is part of ezFCPlib - an FCP-based client library for Freenet
-//
-//  Designed and implemented by David McNab, heretic108@users.sourceforge.net
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The FreeWeb website is at http://freeweb.sourceforge.net
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
-//  Module: _fcpPutSplit
-//
-//  Description:	* invoked at ezFCPlib startup
-//					* creates a thread which manages all splitfile inserts
-//					  across all threads within the calling process
-//					* manages queueing of splitfile insert jobs
-//
+/*
+  This code is part of ezFCPlib - an FCP-based client library for Freenet
+
+  Designed and implemented by David McNab, heretic108@users.sourceforge.net
+  CopyLeft (c) 2001 by David McNab
+
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
+
+  This code is distributed under the GNU Public Licence (GPL) version 2.
+  See http://www.gnu.org/ for further details of the GPL.
+
+  Module: _fcpPutSplit
+
+Description:	- invoked at ezFCPlib startup
+					- creates a thread which manages all splitfile inserts
+					  across all threads within the calling process
+					- manages queueing of splitfile insert jobs
+*/
 
 #ifndef WINDOWS
 #include "unistd.h"
@@ -404,8 +404,8 @@ void splitAddJob(splitJobIns *job)
 
 }
 
-
-char *xxx = 0x1467658;
+/* wtf is this?
+char *xxx = 0x1467658; */
 
 
 //
@@ -506,7 +506,7 @@ static void splitInsMgr(void *nothing)
 		// Check for any new jobs
 		if (newJob != NULL)
 		{
-			splitJobIns *temp = &newJob->next;
+			splitJobIns *temp = newJob->next;
 
 			// Add this job to main queue
 			_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: got req to insert file '%s'",

@@ -1,6 +1,7 @@
 
 # order is important here (for now)
-SUBDIRS = ezFCPlib fcpputsite fcpget fcpput fcpproxy fcpputsplit
+#SUBDIRS = ezFCPlib fcpputsite fcpget fcpput fcpproxy fcpputsplit
+SUBDIRS = fcpputsite fcpget fcpput fcpproxy fcpputsplit
 
 
 scope:

@@ -2603,7 +2603,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -2695,7 +2695,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -2765,4 +2765,5 @@ EOF
 chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
+
 
