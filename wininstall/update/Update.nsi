@@ -1,36 +1,67 @@
 ; Update.nsi
 ;
 ; This script will automatically stop the freenet node, 
-; download the newest freenet.jar and start the node again
+; download the newest freenet.jar and seednodes.ref and 
+; start the node again
 ;
+
 !include ..\webinstall.inc
+!include "MUI.nsh"
+!include "WinMessages.nsh"
 
-; The name of the installer
-Name "Update Freenet"
+!define MUI_PRODUCT "Freenet"
+!define MUI_VERSION "Updater"
 
-; The file to write
+;--------------------------------
+;Configuration
+
+Name "Freenet Updater"
 OutFile "UpdateSnapshot.exe"
 
-
-InstallDir $EXEDIR       ; The default installation directory
-;DirShow hide             ; Don't show the directory selection page
-AutoCloseWindow true     ; Close the window after installation
+InstallDir $EXEDIR  
+;DirShow hide       
+;AutoCloseWindow true 
 ShowInstDetails show
 
-;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "..\upx.exe -9 temp.dat"
 
-;-----------------------------------------------------------------------
+;--------------------------------
+;Modern UI Configuration
 
-; The stuff to install
-Section "Update jar (required)"
-# $9 stores whether freenet ran previously so we have to start it again
+XPStyle on
 
-# copying the download dll
-SetDetailsPrint none
-SetOutPath $TEMP\freenet
-File ..\nsisdl.dll
-SetDetailsPrint both
+!define MUI_ICON "..\Freenet-NET.ico"
+!define MUI_UNICON "..\Freenet-NET.ico"
+!define MUI_SPECIALBITMAP "..\Freenet-Panel.bmp"
+
+!define MUI_PROGRESSBAR smooth
+    
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE "..\GNU.txt"
+
+!insertmacro MUI_PAGE_INSTFILES  
+
+;!define MUI_FINISHPAGE_RUN "$INSTDIR\freenet.exe"   
+!insertmacro MUI_PAGE_FINISH
+   
+!define MUI_ABORTWARNING
+
+  
+;--------------------------------
+;Languages
+ 
+!insertmacro MUI_LANGUAGE "English"
+LangString DESC_SecFreenetNode ${LANG_ENGLISH} "Downloads the latest Freenet Node software"
+
+
+;--------------------------------
+;Data
+LicenseData "..\GNU.txt"
+
+
+
+
+Section "Update Freenet (required)"
 
 SetOutPath $EXEDIR
 
@@ -44,15 +75,11 @@ CloseFreenet:
   Goto CloseFreenet
 
 ClosedFreenet:
- StrCpy $1 "http://freenetproject.org/snapshots/freenet-latest.jar"
+ StrCpy $1 "http://freenetproject.org/snapshots/freenet.jar"
  StrCpy $2 "$INSTDIR\freenet.jar.new"
  Call DownloadFile
- 
+
  Delete "$INSTDIR\freenet.jar"
- IfErrors 0 jardeleted
- MessageBox MB_OK "Error deleting the old jar, aborting update..."
- Abort
- jardeleted:
  Rename "$INSTDIR\freenet.jar.new" "$INSTDIR\freenet.jar"
 
  StrCpy $1 "http://freenetproject.org/snapshots/seednodes.ref"
@@ -60,13 +87,9 @@ ClosedFreenet:
  Call DownloadFile
 
  Delete "$INSTDIR\seednodes.ref"
- IfErrors 0 refdeleted
- MessageBox MB_OK "Error deleting the old seednodes, aborting update..."
- Abort
- refdeleted:
  Rename "$INSTDIR\seednodes.ref.new" "$INSTDIR\seednodes.ref"  
  
-  # update finished, starting the node if it ran before
+ # update finished, starting the node if it ran before
  IntCmp $9 1 0 StartedFreenet
  DetailPrint "Starting Freenet now"
  ClearErrors
