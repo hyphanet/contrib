@@ -64,9 +64,10 @@ const char *szFreenetTooltipText[]=
 };
 
 /* string constants for use with the FLaunch.ini file */
-const char szFreenetJar[]="Freenet.jar";
-const char szflfile[]="./FLaunch.ini"; /* ie name of file */
-const char szflsec[]="Freenet Launcher"; /* ie [Freenet Launcher] subsection text */
+const char szFreenetJar[]="Freenet.jar";         /* name of the freenet.jar to be appended to the classpath */
+const char szFreenetExtJar[]="Freenet-ext.jar";  /* name of an external dependency .jar to be appended to the classpath */
+const char szflfile[]="./FLaunch.ini";           /* name of the ini file */
+const char szflsec[]="Freenet Launcher";         /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=javaw.exe */
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Node */
@@ -494,18 +495,24 @@ BOOL Initialise(void)
 	GetAppDirectory(szHomeDirectory);
 	lstrcpy(szbuffer,szHomeDirectory);
 	SetCurrentDirectory(szbuffer);
+    GetShortPathName(szbuffer, szShortPathbuffer, sizeof(szShortPathbuffer)-1);
 
 	/* set up the environment variable for CLASSPATH: */
-
+    strcpy(szbuffer,szShortPathbuffer);
 	lstrcat(szbuffer,"\\");
 	lstrcat(szbuffer,szFreenetJar);
-	GetShortPathName(szbuffer, szShortPathbuffer, sizeof(szShortPathbuffer)-1);
-	dwStrlen = lstrlen(szShortPathbuffer);
+    lstrcat(szbuffer,";");
+    lstrcat(szbuffer,szShortPathbuffer);
+   	lstrcat(szbuffer,"\\");
+    lstrcat(szbuffer,szFreenetExtJar);
+
+    /* simply add the external helper .jar for now, ideally we  want to append the path name to it as well;*/
+	dwStrlen = lstrlen(szbuffer);
 	/* buffer now holds, e.g., "G:\Progra~1\Freenet\Freenet.jar" 
 		where G:\Program Files\Freenet in this example is the current directory */
 	/* dwStrlen equals the length of this string */
 	/* bump up the size of dwStrlen to account for the fact that we need to add
-		a semicolon to the string later, and a NUL character too ...
+		a semicolon to the string later, and a NULL character too ...
 		... also increment a bit more for good measure */
 	dwStrlen+=5;
 
@@ -552,7 +559,7 @@ BOOL Initialise(void)
 		// environment variable doesn't already exist - so create it
 		// and set its value to G:\Program Files\Freenet\Freenet.jar
 		// success.
-		SetEnvironmentVariable("CLASSPATH",szShortPathbuffer);
+		SetEnvironmentVariable("CLASSPATH",szbuffer);
 	}
 	else if ( (szCLASSPATH!=NULL) && (getenv+dwStrlen<=buffersize) )
 	{
@@ -563,7 +570,7 @@ BOOL Initialise(void)
 		// we can now add the string we need onto the end of the current value
 		// of CLASSPATH, separated using a semicolon
 		lstrcat(szCLASSPATH,";");
-		lstrcat(szCLASSPATH,szShortPathbuffer);
+		lstrcat(szCLASSPATH,szShbuffer);
 		SetEnvironmentVariable("CLASSPATH",szCLASSPATH);
 	}
 	// else - allocation failed - Windows must be low on resources.

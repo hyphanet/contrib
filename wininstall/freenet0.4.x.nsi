@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define "0.4-10102001-snapshot" ${VERSION}
+!define VERSION "0.4-10102001-snapshot"
 
 Name "Freenet ${VERSION}"
 OutFile "Freenet_setup-${VERSION}.exe"

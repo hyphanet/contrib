@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-#include <string.h>
+//#include <string.h>
 
 #include <windows.h>
 
@@ -16,19 +16,7 @@
 
 //#define DEBUGGING
 
-
-
-#define CFGFILE ".\\freenet.ini"
-
 #define FLAUNCHER ".\\FLaunch.ini"
-
-#define FPROXYRC ".\\.fproxyrc"
-
-#define OPTIONSTR " --serverAddress "
-
-#define DEFAULT_IP "tcp/127.0.0.1"
-
-#define FNetSec "Freenet node"
 
 #define FLaunchSec "Freenet Launcher"
 
@@ -158,115 +146,9 @@ void SetJavawToJavaPath(){
 
 /*---------------------------------------------------------------------*/
 
-BOOL changeAddress(char *address, char *key, char *section, char *filename) {
-
-	char i,j;
-
-	char *p_char;
-
-	char s[MAXSTRLEN] = "";
-
-
-
-	/*strip -serveraddres off */
-
-	if(GetParam(s, key, section, filename) != NULL) {
-
-		/* Stripping existing -serverAddress values */
-
-		if ((p_char = strstr(strlwr(s),"-serveraddress")) != NULL) {
-
-		   GetParam(s, key, section, filename);
-
-		   i = p_char - &s[0] - 1; /* Set i to the space before -serverAddress (1.th char=0) */
-
-		   j = i + 17;
-
-		   while (s[j]!='\0' && s[j]!=' ') ++j;
-
-		   for (;s[i-1]!='\0';j++,i++) s[i]=s[j];
-
-		} else { GetParam(s, key, section, filename);}
-
-	}
-
-	strcat(s,address);
-
-	return WriteParam(s, key, section, filename);
-
-}
-
-
-
-/*---------------------------------------------------------------------*/
-
 int main(int argc,char *argv[])
 
 {
-
-	char appendString[MAXSTRLEN] = "";
-
-	char s[MAXSTRLEN];
-
-
-
-
-
- 	 /* Try to get another machinename to connect to, otherwise the default 127.0.0.1 will be used */
-
-	if(GetParam(s,"nodeAddress",FNetSec, CFGFILE) == NULL) {
-
-		strcat (appendString,DEFAULT_IP);
-
-	} else {
-
-		strcat (appendString,s);
-
-	}
-
-
-
-	strcat(appendString,":");
-
-
-
-	 /* append port to appendString */
-
-	 /* If Listenport is not in Freenet.ini exit without doing anything */
-
-	if(GetParam(s,"ListenPort",FNetSec, CFGFILE) == NULL) {
-
-		printf("Error, no port specified, what should I configure then?\n");
-
-        exit(1);
-
-	}
-
-	strcat(appendString,s);
-
-
-
-	/*ok, here appendstring is the fully qualified Address string we want to append */
-
-
-
-	strcpy(s,OPTIONSTR);	//setting s to OPTIONSTR " -serverAddress "
-
-	strcat(s,appendString);	//and adding the actual address
-
-							// so s will be " -serverAddress 127... "
-
-							// and appendstring only 127.0.0.1:1234
-
-
-
-	changeAddress(s,"finsert",FLaunchSec,FLAUNCHER);
-
-	changeAddress(s,"frequest",FLaunchSec,FLAUNCHER);
-
-	changeAddress(s,"fproxy",FLaunchSec,FLAUNCHER);
-
-
 
 /*As a temporary measure (as long as JavaSearch can't handle this, just set Javaw to the same directory as Java*/
 

@@ -7,8 +7,9 @@
 #include <windows.h>
 #define MAXSTRLEN 256
 #define CMDLINE_LEN 1024
-#define DEFJAVAEXEC "javaexec"
 
+
+/* the following are the parameters of the profileString array, containing the exe filename, the Javapath and the */
 enum {EXE_EXEC,JAVA_PATH,EXE_FILE,AMT_OPTIONS};
 
 // uncomment next line to turn debug messages on
@@ -63,15 +64,12 @@ void GetExeName(char *exeFilename, char *argv){
 /*-------------------------------------------------------------------*/
 void parseJavaPath (char *s) {
 /* This function parses the Javapath and adds "s to the path if there are blanks in the path */
-/* If there are spaces it will look like: c:\"prog files\java.exe" to overcome the start /m ...
-   difficulties on the Win9x/NT versions as they are handled differently*/
+
   BOOL blanks = FALSE;
   char j,i;
 
 	for (j=(strlen(s)-1);j>0;--j) if (s[j] == ' ') blanks=TRUE;
     if (blanks) {
-		// Now follows an ugly hack to insert a parenthesis after the C:\"path\java.exe"
-		// this is due to differences in W98 W2K which allows/doesn't allow a title in Parenthesis
 		for (j=strlen(s);j>=0;--j) s[j+1]=s[j];
 		s[0]='\"'; //inserting the " at the right place.
 		strcat(s,"\""); //closing parenthesis after Javaexec bin and go on
@@ -79,15 +77,14 @@ void parseJavaPath (char *s) {
     	   printf("Blanks found. Setting to: %s\n",s);
   		  #endif
 	}
-	strcat(s," ");
 }
 /*-------------------------------------------------------------------*/
 int main(int argc,char *argv[]){
 	char i,j;
+    char javapath[MAXSTRLEN] = "";
 	char cmdline[CMDLINE_LEN] = "";
 	char s[MAXSTRLEN] = "";
-	char profileString[AMT_OPTIONS][25]={"","",""}; /* fields are:[0] Param to Java binary [1]Javaexecutable [2]ThisExefilename */
-	const char *minimizeStr = "start /min ";
+ char profileString[AMT_OPTIONS][25]={"","",""}; /* fields are:[0] Param to Java binary [1]Javaexecutable [2]ThisExefilename */
 	const char *cfgSection = "Freenet Launcher";
 	const char *cfgFilename = ".\\FLaunch.ini";
 
@@ -116,20 +113,12 @@ printf("parsing %d\n",i);
 		switch (i) {
 			case EXE_EXEC : {
 						strcpy(profileString[JAVA_PATH], (strlen(s)==0) ? "javaexec": s);
-					  	#ifdef DEBUGGING
-	   					printf("Found explicit Java binary instruction %s\n",s);
-	  	  			  	#endif
 						break;
 						}
 			case JAVA_PATH : { 
-#ifdef DEBUGGING
-				          printf("before%d",i);
-#endif
 						parseJavaPath(s);
-#ifdef DEBUGGING
-						printf("after%d",i);
-#endif
 						strcat (cmdline,s);
+                        strcat (cmdline," ");
 						break;
 						}
 			case EXE_FILE :{
@@ -153,5 +142,6 @@ printf("parsing %d\n",i);
 
 	/*finally executing external programm and returning error code on exit*/
 	printf("Executing: %s\n",cmdline);
+    //ShellExecute(NULL,"open",javapath,cmdline,NULL,SW_SHOW);
 	return system(cmdline);
 }
