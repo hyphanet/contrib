@@ -63,6 +63,29 @@ void GetExeName(char *exeFilename, char *argv){
 	#endif
 }
 /*-------------------------------------------------------------------*/
+void parseJavaPath (char *s) {
+/* This function parses the Javapath and adds "s to the path if there are blanks in the path */
+/* If there are spaces it will look like: c:\"prog files\java.exe" to overcome the start /m ...
+   difficulties on the Win9x/NT versions as they are handled differently*/
+  BOOL blanks = FALSE;
+  char j,i;
+
+	for (j=(strlen(s)-1);j>0;--j) if (s[j] == ' ') blanks=TRUE;
+    if (blanks) {
+		// Now follows an ugly hack to insert a parenthesis after the C:\"path\java.exe"
+		// this is due to differences in W98 W2K which allows/doesn't allow a title in Parenthesis
+		j=0;
+		while (j<(strlen(s)) && (s[j]!='\\')) ++j;
+		for (i=strlen(s);i>j;--i) s[i+1]=s[i];
+		s[++j]='\"'; //inserting the " at the right place.
+		strcat(s,"\""); //closing parenthesis after Javaexec bin and go on
+		  #ifdef DEBUGGING
+    	   printf("Blanks found. Setting to: %s\n",s);
+  		  #endif
+	}
+	strcat(s," ");
+}
+/*-------------------------------------------------------------------*/
 int main(int argc,char *argv[]){
 	char i,j;
 	char cmdline[CMDLINE_LEN] = "";
@@ -84,9 +107,9 @@ int main(int argc,char *argv[]){
 	#ifdef DEBUGGING
 	 printf("ExeFileName= %s\nSetting directory to: %s\n",profileString[EXE_FILE],s);
 	#endif
-
 	/*now parsing the configfile */
 	for (i=0;i<=AMT_OPTIONS-1;++i) {
+printf("parsing %d\n",i);
 		s[0]='\0'; /*initialising s so we never append shit when nothing was found */
 		if(GetPrivateProfileString(cfgSection,profileString[i],"",s,MAXSTRLEN,cfgFilename) == 0 && i>1){
 			printf("Couldn't find %s in section %s in %s\n",profileString[i],cfgSection,cfgFilename);
@@ -113,26 +136,19 @@ int main(int argc,char *argv[]){
 						break;
 						}
 			case JAVA_PATH : {
-						// Now follows an ugly hack to insert a parenthesis after the C:\"path\java.exe"
-						// this is due to differences in W98 W2K which allows/doesn't allow a title in Parenthesis
-						for (j=strlen(s);j>=0;--j) s[j+1]=s[j];
-						j=0;
-						while (j<(strlen(s)) && (s[j]!='\\')) {
-							s[j]=s[j+1];
-							++j;
-							}
-						s[j]='\"'; //inserting the " at the right place, I know it's ugly
-						strcat(cmdline,s);
-					    strcat(cmdline,"\" "); //closing parenthesis after Javaexec bin and go on
+				          printf("before%d",i);
+						parseJavaPath(s);
+						printf("after%d",i);
+						strcat (cmdline,s);
 						break;
 						}
 			case EXE_FILE :{
+				        printf("start cmdline");
 					   	strcat(cmdline,s);
 						break;
 						}
 		};
 	};
-
 	/* adding additional command line options */
 	for (i=1;i < argc;i++) {
 		strcat(cmdline," ");
