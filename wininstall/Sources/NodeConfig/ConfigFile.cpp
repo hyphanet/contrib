@@ -139,8 +139,8 @@ void CConfigFile::Load()
 	pDiagnostics->m_logLevel = "normal";
 	pDiagnostics->m_logFormat = "d (c, t): m";
 	pDiagnostics->m_nodestatusservlet = true;
-	pDiagnostics->m_nodestatusport = 8889;
-	pDiagnostics->m_nodestatusclass = "freenet.client.http.NodeStatusServlet";
+	pDiagnostics->m_nodestatusport = 8890;
+	pDiagnostics->m_nodestatusclass = "freenet.node.http.NodeInfoServlet";
 	
 	// Reset unknown parameters container
 	UnknownParms = "";
