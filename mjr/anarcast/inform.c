@@ -35,6 +35,9 @@ main (int argc, char **argv)
     if (!(end = memmem(hosts, DATABASE_SIZE, &m, 4)))
 	die("cannot find end of inform_database");
 
+    while ((end - hosts) % 4)
+	end++;
+
     if (close(l) == -1)
 	die("close() failed");
     

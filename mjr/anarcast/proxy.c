@@ -378,7 +378,7 @@ request (int c)
 	return;
     }
 
-    if (!(hashes = malloc(i-4)))
+    if (!(hashes = malloc(i)))
 	die("malloc() failed");
     
     if (readall(c, &blocksize, 4) != 4 || readall(c, hashes, i) != i) {
