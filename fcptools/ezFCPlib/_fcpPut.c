@@ -441,7 +441,7 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 	
-	fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
+	fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 	fcpWriteMetadata(tmp_hfcp, buf, strlen(buf));
 	
 	unlink_key(tmp_hfcp->key);
@@ -736,7 +736,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		}
 		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
-		fd = _fcpTmpfile(&segment->check_blocks[bi]->filename);
+		fd = _fcpTmpfile(segment->check_blocks[bi]->filename);
 
 		if (fd == -1) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not open file (%s) for writing check block", 
@@ -843,7 +843,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->db_count);
 
-		fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
+		fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
@@ -992,7 +992,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	index = 0;
 
 	tmp_hfcp = fcpInheritHFCP(hfcp);
-	fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
+	fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 	
 	while (index < segment_count) {
 		/* build SegmentHeader and BlockMap pairs */
@@ -1119,7 +1119,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	fcpDestroyHFCP(tmp_hfcp);
 
 	tmp_hfcp = fcpInheritHFCP(hfcp);
-	fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
+	fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 
 	/* write metadata to tmp file */
 	_fcpLog(FCP_LOG_DEBUG, "writing prepared metadata to temporary file for insertion");

@@ -30,6 +30,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Change name of xtoi() to xtol().
 + Re-implement rawmode option after routines settle down.
 + Remove all the 8192 block writing; let the os optimize.
 + Change so that fcpReadKey() and fcpWriteKey() return bytes read/written instead of 0 on success.

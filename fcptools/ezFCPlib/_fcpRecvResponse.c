@@ -347,19 +347,21 @@ static int getrespDataFound(hFCP *hfcp)
 	hfcp->response.datafound.datalength = 0;
 	hfcp->response.datafound.metadatalength = 0;
 
+	hfcp->key->size = 0;
+	hfcp->key->metadata->size = 0;
+
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "DataLength=", 11)) {
-			hfcp->response.datafound.datalength = xtoi(resp + 11);
+			hfcp->key->size = hfcp->response.datafound.datalength = xtoi(resp + 11);
 		}
 		
 		else if (strncmp(resp, "MetadataLength=", 15) == 0) {
-			hfcp->response.datafound.metadatalength = xtoi(resp + 15);
+			hfcp->key->metadata->size = hfcp->response.datafound.metadatalength = xtoi(resp + 15);
 		}
 
 		else if (strncmp(resp, "Timeout=", 8) == 0) {
-			hfcp->response.datafound.timeout = xtoi(resp + 8);
-			hfcp->timeout = hfcp->response.datafound.timeout;
+			hfcp->timeout = hfcp->response.datafound.timeout = xtoi(resp + 8);
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))

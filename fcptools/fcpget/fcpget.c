@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     int fd;
     
     /* this call will fetch the key to local datastore */
-    if (fcpOpenKey(hfcp, keyuri, FCP_O_READ)) return -1;
+    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_READ)) return -1;
     
     fd = fileno(stdout);
 
@@ -105,8 +105,8 @@ int main(int argc, char* argv[])
     }
   }
   
-  fcpTerminate();
   fcpDestroyHFCP(hfcp);
+  fcpTerminate();
   
 #ifdef WINDOWS_DISABLE
   system("pause");
@@ -128,6 +128,7 @@ static void parse_args(int argc, char *argv[])
     {"retry", 1, 0, 'a'},
     {"regress", 1, 0, 'e'},
     {"skip-local", 0, 0, 'S'},
+    {"rawmode", 0, 0, 'r'},
 
     {"verbosity", 1, 0, 'v'},
     {"logfile", 1, 0, 'f'},
@@ -137,7 +138,7 @@ static void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:sa:e:Sv:f:Vh";
+  char short_options[] = "n:p:l:m:sa:e:Srv:f:Vh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -161,6 +162,10 @@ static void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if (i >= 0) htl = i;
       break;
+			
+    case 'r':
+      optmask |= FCP_MODE_RAW;
+      break;
       
     case 'm':
       metafile = (char *)malloc(strlen(optarg) + 1);
@@ -181,7 +186,7 @@ static void parse_args(int argc, char *argv[])
       if (i > 0) regress = i;
       
     case 'S':
-      optmask |= HOPT_SKIP_LOCAL;
+      optmask |= FCP_MODE_SKIP_LOCAL;
       break;
 			
     case 'v':
@@ -207,6 +212,8 @@ static void parse_args(int argc, char *argv[])
   }
   
   if (optind < argc) {
+		char buf[1025];
+
     keyuri = (char *)malloc(strlen(argv[optind]) + 1);
     strcpy(keyuri, argv[optind++]);
   }
@@ -256,7 +263,8 @@ static void usage(char *s)
   printf("  -a, --retry num        Number of retries after a timeout\n");
   printf("  -s, --stdout           Write key data to stdout\n");
   printf("  -e, --regress num      Number of days to regress\n");
-  printf("  -S, --skip-local       Skip key in local datastore on retrieve\n\n");
+  printf("  -S, --skip-local       Skip key in local datastore on retrieve\n");
+  printf("  -r, --rawmode          Do not follow redirects on retrieve\n\n");
   
   printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
   printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");

@@ -58,9 +58,9 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 	if (regress >= 0) h->regress = regress;
 	
 	/* do the handle option mask */
-	h->rawmode =      (optmask & HOPT_RAW ? 1 : 0);
-	h->delete_local = (optmask & HOPT_DELETE_LOCAL ? 1 : 0);
-	h->skip_local =   (optmask & HOPT_SKIP_LOCAL ? 1 : 0);
+	h->rawmode =      (optmask & FCP_MODE_RAW ? 1 : 0);
+	h->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? 1 : 0);
+	h->skip_local =   (optmask & FCP_MODE_SKIP_LOCAL ? 1 : 0);
 	
 	return h;
 }
@@ -74,7 +74,7 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 	if (!hfcp) return 0;
 
 	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress,
-		                hfcp->rawmode | hfcp->delete_local);
+		                hfcp->rawmode | hfcp->delete_local | hfcp->skip_local);
 
 	h->timeout = hfcp->timeout;
 

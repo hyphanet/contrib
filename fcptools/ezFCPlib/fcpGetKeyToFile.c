@@ -38,10 +38,9 @@
 */
 int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
-	int rc;
-	hURI *uri;
-	int do_get;
-
+	hFCP *tmp_hfcp;
+	int   rc;
+	
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpGetKeyToFile()");
 	_fcpLog(FCP_LOG_DEBUG, "Function parameters:");
 	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s, key_filename: %s, meta_filename: %s",
@@ -49,66 +48,67 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 					key_filename,
 					meta_filename
 					);
-
-	hfcp->key = _fcpCreateHKey();
-	hfcp->key->metadata = _fcpCreateHMetadata();
-
-	uri = fcpCreateHURI();
-	if (fcpParseURI(uri, key_uri)) goto cleanup;
-
-	/* uri holds the passed in & parsed key uri */
-
-	do_get = 1; while (do_get == 1) {
-		switch (uri->type) {
-			
-		case KEY_TYPE_CHK: /* for CHK's */
-			
-			fcpParseURI(hfcp->key->target_uri, uri->uri_str);
-			fcpParseURI(hfcp->key->uri, uri->uri_str);
-
-			_fcpLog(FCP_LOG_VERBOSE, "got CHK: %s", uri->uri_str);
-
-			do_get = 0;
-			break;
-			
-		case KEY_TYPE_SSK:
-		case KEY_TYPE_KSK:
-			{
-				char chk_uri[L_KEY+1];
-				
-				/* find the CHK that the target_uri is referring to and
-					 store it in the chk_uri string */
-				
-				if (get_redirect(hfcp, chk_uri, uri->uri_str)) {
-					rc = -1;
-					goto cleanup;
-				}
-				
-				/* chk_uri is our next retrieve target */
-				fcpParseURI(uri, chk_uri);
-				
-				_fcpLog(FCP_LOG_VERBOSE, "got redirected key.. rewinding loop");
-				break;
-			}
-		}
-	} /* end while (do_get) loop */
+	
+	/* function must get the key, then determine if it's a normal key or a manifest for a splitfile */
+	
+	tmp_hfcp = fcpInheritHFCP(hfcp);
+	
+	tmp_hfcp->key = _fcpCreateHKey();
+	tmp_hfcp->key->tmpblock = _fcpCreateHBlock();
+	tmp_hfcp->key->tmpblock->fd = _fcpTmpfile(tmp_hfcp->key->tmpblock->filename);	
+	
+	tmp_hfcp->key->metadata = _fcpCreateHMetadata();
+	tmp_hfcp->key->metadata->tmpblock = _fcpCreateHBlock();
+	tmp_hfcp->key->metadata->tmpblock->fd = _fcpTmpfile(tmp_hfcp->key->metadata->tmpblock->filename);	
+	
+	fcpParseURI(tmp_hfcp->key->target_uri, key_uri);
+	
+	/* close the tmp files */
+	unlink_key(tmp_hfcp->key);
+	
+	/* if in normal mode, follow the redirects */
+	if (tmp_hfcp->rawmode == 0) {
 		
+		_fcpLog(FCP_LOG_VERBOSE, "starting recursive retrieve");
+		rc = get_follow_redirects(tmp_hfcp, key_uri,
+															tmp_hfcp->key->tmpblock->filename,
+															tmp_hfcp->key->metadata->tmpblock->filename);
+	}
+	else { /* RAWMODE */
+		
+		_fcpLog(FCP_LOG_VERBOSE, "start rawmode retrieve");
+		rc = get_file(tmp_hfcp, key_uri,
+									tmp_hfcp->key->tmpblock->filename,
+									tmp_hfcp->key->metadata->tmpblock->filename);
+	}
+	
+	if (rc) { /* bail after cleaning up */
+		
+		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", tmp_hfcp->key->target_uri->uri_str);
+		return -1;
+	}
+	
+	/* Here, the key and meta data is within the tmpblocks */
+	
 	/* TODO: check metadata to detect splitfiles */
-
-	_fcpLog(FCP_LOG_VERBOSE, "Start basic retrieve");
-	rc = get_file(hfcp, hfcp->key->uri->uri_str, key_filename, meta_filename);
-
-	if (rc) /* bail after cleaning up */
-		goto cleanup;
 	
-	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
-	return 0;
+	/* copy over the necessary information into the hfcp struct from tmp_hfcp */
 	
-
- cleanup: /* rc should be set to an FCP_ERR code */
-
-	_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
-
-	return rc;
+	if (copy_file(key_filename, tmp_hfcp->key->tmpblock->filename) < 0) {
+		return -1;
+	}
+	
+	if (copy_file(meta_filename, tmp_hfcp->key->metadata->tmpblock->filename) < 0) {
+		return -1;
+	}
+	
+	hfcp->key = tmp_hfcp->key;
+	
+	tmp_hfcp->key = 0;
+	fcpDestroyHFCP(tmp_hfcp);
+	
+	_fcpLog(FCP_LOG_VERBOSE, "Retrieved key: %s", hfcp->key->target_uri->uri_str);
+	
+	return 0 ;
 }
 

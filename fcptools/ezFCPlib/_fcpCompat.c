@@ -52,36 +52,42 @@ void _fcpSockDisconnect(hFCP *hfcp)
 	hfcp->socket = FCP_SOCKET_DISCONNECTED;
 }
 
-
-
-int _fcpTmpfile(char **filename)
+int _fcpTmpfile(char *filename)
 {
-	char s[513];
+	char s[L_FILENAME_MAX+1];
 	int search = 1;
+	int i;
 
 	struct stat st;
 	time_t seedseconds;
+
+	if (!filename) {
+		_fcpLog(FCP_LOG_DEBUG, "filename is null");
+		return -1;
+	}
 
 	time(&seedseconds);
 	srand((unsigned int)seedseconds);
 
 	while (search) {
 
-		snprintf(s, 512, "%s%ceztmp_%x", _fcpTmpDir, DIR_SEP, (unsigned int)rand());
+		snprintf(s, L_FILENAME_MAX, "%s%ceztmp_%x", _fcpTmpDir, DIR_SEP, (unsigned int)rand());
 
 		if (stat(s, &st))
 			if (errno == ENOENT) search = 0;
 	}
+	i = strlen(s);
 
 	/* set the filename parameter to the newly generated Tmp filename */
-	*filename = strdup(s);
 
+	strncpy(filename, s, L_FILENAME_MAX);
+	
 	/* I think creating the file right here is good in avoiding
 		 race conditions.  Let the caller close the file (leaving a
 		 zero-length file behind) if it needs to be re-opened
 		 (ie when calling fcpGet()) */
 	
-	return creat(*filename, FCP_OPEN_FLAGS);
+	return creat(filename, FCP_CREATE_FLAGS);
 }
 
 int _fcpRecv(int socket, char *buf, int len)

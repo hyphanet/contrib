@@ -76,7 +76,7 @@
 #define DIR_SEP '/'
 
 /* on *nix, this creates a file with perms "rw-------" (600) */
-#define FCP_OPEN_FLAGS (O_CREAT | S_IRUSR | S_IWUSR)
+#define FCP_CREATE_FLAGS (O_CREAT | S_IRUSR | S_IWUSR)
 
 #endif
 
@@ -110,6 +110,7 @@
 #define L_FILE_BLOCKSIZE    8192
 #define L_ERROR_STRING      512
 #define L_METADATA_MAX      65536
+#define L_FILENAME_MAX      512
 
 /* TODO: deprecate */
 #define L_KEY               40
@@ -128,11 +129,17 @@
 #define META_TYPE_EXTINFO   'e'
 
 /*
-	flags for fcpOpenKey()
+	option flags
+	these must be powers of 2; they're bitmasks
 */
-#define FCP_O_READ         0x100
-#define FCP_O_WRITE        0x200
-#define FCP_O_RAW          0x400   /* disable automatic metadata handling */
+#define FCP_MODE_O_READ        0x0001
+#define FCP_MODE_O_WRITE       0x0002
+#define FCP_MODE_RAW           0x0004  /* disable automatic metadata handling */
+#define FCP_MODE_DELETE_LOCAL  0x0008
+#define FCP_MODE_SKIP_LOCAL    0x0010
+/**************************    0x0020 */
+/**************************    0x0040 */
+/**************************    0x0080 */
 
 /*
 	Reasonable defaults
@@ -147,13 +154,6 @@
 #define EZFCP_DEFAULT_DELETELOCAL  0
 #define EZFCP_DEFAULT_RAWMODE      0
 #define EZFCP_DEFAULT_TIMEOUT      300000 /* 5 minutes in milliseconds */
-
-/*
-	these must be powers of 2; they're bitmasks
-*/
-#define HOPT_DELETE_LOCAL  1
-#define HOPT_SKIP_LOCAL    2
-#define HOPT_RAW           4
 
 /* error codes; just negative numbers; group together
 */
@@ -337,14 +337,11 @@ typedef struct {
 
 
 typedef struct {
-	char  *filename;  /* null terminated filename */
-	/*FILE  *file;*/      /* stream pointer */
+	char   filename[L_FILENAME_MAX];  /* null terminated filename */
 	int    fd;        /* corresponding file descriptor */
 
 	int    fn_status; /* status relative to Freenet */
-
 	int    size;      /* size of this chunk */
-	int    index;     /* current file pointer basically */
 
 	hURI  *uri;       /* this block's CHK */
 
@@ -485,6 +482,7 @@ extern "C" {
 	
 	/* Generate Key/Value pair (entropy not currently used */
 	int    fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy);
+
 	int    fcpClientHello(hFCP *hfcp);
 	int    fcpClientInfo(hFCP *hfcp);
 	

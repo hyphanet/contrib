@@ -34,14 +34,6 @@
 
 #include "ez_sys.h"
 
-/* Private functions for internal use */
-/*
-static int fec_segment_file(hFCP *hfcp);
-static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);
-static int fec_retrieve_segment(hFCP *hfcp, char *key_filename, int segment);
-static int fec_make_metadata(hFCP *hfcp, char *meta_filename);
-*/
-
 
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
@@ -74,11 +66,13 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	int index;
 
-	if ((kfd = open(key_filename, O_WRONLY)) == -1) {
+	_fcpLog(FCP_LOG_DEBUG, "Entered get_file()");
+
+	if ((kfd = creat(key_filename, FCP_CREATE_FLAGS)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "Could not open temp file (%s) for writing key data", key_filename);
 	}
 	
-	if ((mfd = open(meta_filename, O_WRONLY)) == -1) {
+	if ((mfd = creat(meta_filename, FCP_CREATE_FLAGS)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "Could not open temp file (%s) for writing meta data", meta_filename);
 	}
 	
@@ -86,7 +80,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	rc = snprintf(get_command, L_FILE_BLOCKSIZE,
 								"ClientGet\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nEndMessage\n",
-								(hfcp->delete_local == 0 ? "false" : "true"),
+								(hfcp->skip_local == 0 ? "false" : "true"),
 								uri,
 								hfcp->htl
 								);
@@ -105,8 +99,9 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		/* connect to Freenet FCP */
 		if (_fcpSockConnect(hfcp) != 0)	return -1;
 
-		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, timeout: %d, keysize: n/a, metasize: n/a, skip_local: %d",
-						hfcp->htl, hfcp->regress, hfcp->timeout, hfcp->skip_local);
+		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, "
+						"timeout: %d, keysize: n/a, metasize: n/a, skip_local: %d, rawmode: %d",
+						hfcp->htl, hfcp->regress, hfcp->timeout, hfcp->skip_local, hfcp->rawmode);
 		
 		/* Send ClientGet command */
 		if (send(hfcp->socket, get_command, strlen(get_command), 0) == -1) {
@@ -223,8 +218,11 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		
 		goto cleanup;
 	}
-
-	hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
+	
+	if (meta_bytes)
+		hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
+	else
+		hfcp->key->metadata->raw_metadata = 0;
 	
 	/* keep writing metadata as long as there's metadata to write..
 		 fetching more datachunks when required */
@@ -263,6 +261,10 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		if (meta_bytes == 0) {
 
 			_fcpLog(FCP_LOG_DEBUG, "finished metadata");
+
+			hfcp->key->metadata->raw_metadata[index] = 0;
+			_fcpMetaParse(hfcp->key->metadata, hfcp->key->metadata->raw_metadata);
+
 			break;
 		}
 	}
@@ -291,10 +293,6 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		if (kfd != -1)
 			write(kfd, hfcp->response.datachunk.data + meta_count, key_count);
 		
-		memcpy(hfcp->key->metadata->raw_metadata + index,
-					 hfcp->response.datachunk.data + meta_count,
-					 key_count);
-		
 		key_bytes -= key_count;
 		index += key_count;
 
@@ -305,8 +303,6 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		 result is the most recent data chunk is exhausted of whatever key data
 		 it had (both key and meta), so fetch more chunks and write them to the
 		 keyfile */
-
-	hfcp->key->metadata->raw_metadata[index] = 0;
 
 	while (key_bytes > 0) {
 		
@@ -353,73 +349,82 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 	return rc;
 }
 
-
-int get_size(hFCP *hfcp, char *uri)
+/*
+	On success, function set hfcp->key->uri with CHK of data.
+ */
+int get_follow_redirects(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 {
-	hFCP *tmp_hfcp;
+	hDocument *doc;
 
-	char  buf[513];
+	char      *key;
+	char      *get_uri;
+
 	int   rc;
+	int   depth;
 
-	rc = snprintf(buf, 512, "GetSize\nURI=%s\nEndMessage\n", uri);
+	/* make calls to get_file() until we have exhausted any/all redirects */
+
+	_fcpLog(FCP_LOG_DEBUG, "get_follow_redirects()");
+
+	get_uri = strdup(uri);
+	depth = 0;
+
+	rc = get_file(hfcp, get_uri, key_filename, meta_filename);
+
+	_fcpLog(FCP_LOG_DEBUG, "get_file() returned as rc: %d", rc);
 	
-	tmp_hfcp = fcpInheritHFCP(hfcp);
+	while (rc == 0) {
 
-	/* new connection to Freenet FCP */
-	if (_fcpSockConnect(tmp_hfcp) != 0) return -1;
-
-	/* Send GetSize message */
-	if (send(tmp_hfcp->socket, buf, strlen(buf), 0) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not send GetSize message");
-		rc = -1;
+		/* now we have the key data and perhaps metadata */
 		
-		goto cleanup;
+		_fcpLog(FCP_LOG_DEBUG, "check metadata");
+		
+		/* if true, there's no metadata; we got data! */
+		if (hfcp->key->metadata->size == 0) {
+			
+			_fcpLog(FCP_LOG_DEBUG, "no metadata?  got data!");
+			
+			fcpParseURI(hfcp->key->uri, get_uri);
+			break;
+		}
+		else { /* check for the case where there's metadata, but no redirect */
+			
+			_fcpLog(FCP_LOG_DEBUG, "there's metadata.. check for redirect key");
+
+			doc = cdocFindDoc(hfcp->key->metadata, 0);
+			key = (doc ? cdocLookupKey(doc, "Redirect.Target") : 0);
+
+			if (!key) {
+				
+				_fcpLog(FCP_LOG_DEBUG, "metadata, but no redirect key.. got data");
+
+				fcpParseURI(hfcp->key->uri, get_uri);
+				break;
+			}
+			else { /* key/val pair is redirect */
+
+				_fcpLog(FCP_LOG_DEBUG, "key: %s", key);
+
+				free(get_uri);
+				get_uri = strdup(key);
+				depth++;
+
+				unlink_key(hfcp->key);
+
+				rc = get_file(hfcp, get_uri, key_filename, meta_filename);
+			}
+		}
 	}
 
-	rc = _fcpRecvResponse(tmp_hfcp);
+	if (rc != 0)
+		_fcpLog(FCP_LOG_DEBUG, "get_file() returned: %d", rc);
 
-	switch (rc) {
-		
-	case FCPRESP_TYPE_SUCCESS:
-		_fcpLog(FCP_LOG_VERBOSE, "Received success message");
-		break;
-		
-	case FCPRESP_TYPE_FORMATERROR:
-		_fcpLog(FCP_LOG_CRITICAL, "FormatError - reason: %s", tmp_hfcp->response.formaterror.reason);
-		break;
-		
-	}
-		
-	/* expecting a success response */
-	if (rc != FCPRESP_TYPE_SUCCESS) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not retrieve Success message");
-		rc = -1;
+	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %d",
+					hfcp->key->target_uri->uri_str,
+					hfcp->key->uri->uri_str,
+					depth);
 
-		goto cleanup;
-	}
-	
-	_fcpLog(FCP_LOG_VERBOSE, "Received Success message");
-		
-	rc = tmp_hfcp->response.success.length;
-	fcpDestroyHFCP(tmp_hfcp);
-	
-	return rc;
-
- cleanup:
-	fcpDestroyHFCP(tmp_hfcp);
-
-	return rc;
-}
-
-
-int get_redirect(hFCP *hfcp, char *uri_chk, char *uri_redirect)
-{
-	_fcpLog(FCP_LOG_DEBUG, "in get_redirect()");
-
-	hfcp = hfcp;
-	uri_chk = uri_chk;
-	uri_redirect = uri_redirect;
-	
 	return 0;
+
 }
 

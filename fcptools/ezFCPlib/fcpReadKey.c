@@ -56,8 +56,6 @@ int fcpReadKey(hFCP *hfcp, char *buf, int len)
 		}
 
 		/* Info was read.. update indexes */
-		hfcp->key->tmpblock->index += rc;
-						 
 		len -= rc;
 		bytes += rc;
 
@@ -93,8 +91,6 @@ int fcpReadMetadata(hFCP *hfcp, char *buf, int len)
 		}
 
 		/* Info was read.. update indexes */
-		hfcp->key->metadata->tmpblock->index += rc;
-
 		len -= rc;
 		buf += rc;
 

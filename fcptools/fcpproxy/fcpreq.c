@@ -705,7 +705,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
     // END OF FILTHY HACK
 
     // Open Freenet key
-    if (fcpOpenKey(hfcp, freenet_key, _FCP_O_READ) < 0)
+    if (fcpOpenKey(hfcp, freenet_key, _FCP_MODE_O_READ) < 0)
     {
         fcpreq_404(sock, freenet_key);
         return -1;

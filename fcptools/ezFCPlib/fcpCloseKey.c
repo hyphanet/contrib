@@ -38,10 +38,10 @@ static int fcpCloseKeyWrite(hFCP *hfcp);
 
 int fcpCloseKey(hFCP *hfcp)
 {
-  if (hfcp->key->openmode & FCP_O_READ)
+  if (hfcp->key->openmode & FCP_MODE_O_READ)
 	 return fcpCloseKeyRead(hfcp);
 
-  else if (hfcp->key->openmode & FCP_O_WRITE)
+  else if (hfcp->key->openmode & FCP_MODE_O_WRITE)
 	 return fcpCloseKeyWrite(hfcp);
 
   else
@@ -66,7 +66,10 @@ void unlink_key(hKey *hKey)
 
 static int fcpCloseKeyRead(hFCP *hfcp)
 {
-	hfcp = hfcp;
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyRead()");
+
+	/* close the temporary files */
+	unlink_key(hfcp->key);
 
   return 0;
 }
@@ -74,8 +77,6 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
-	hFCP *tmp_hfcp;
-
 	int rc;
 
 	int key_size;
@@ -83,44 +84,33 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
 
-	/* close the temporary key file */
-	close(hfcp->key->tmpblock->fd);
-
-	/* close the temporary metadata file */
-	close(hfcp->key->metadata->tmpblock->fd);
-
-	tmp_hfcp = fcpInheritHFCP(hfcp);
+	/* close the temporary files */
+	unlink_key(hfcp->key);
 
 	key_size  = file_size(hfcp->key->tmpblock->filename);
 	meta_size = file_size(hfcp->key->metadata->tmpblock->filename);
 
-	tmp_hfcp->key = _fcpCreateHKey();
-	tmp_hfcp->key->metadata = _fcpCreateHMetadata();
-
 	if (key_size > L_BLOCK_SIZE)
-		rc = put_fec_splitfile(tmp_hfcp,
+		rc = put_fec_splitfile(hfcp,
 													 hfcp->key->tmpblock->filename,
 													 (meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0));
 
 	else /* Otherwise, insert as a normal key */
-		rc = put_file(tmp_hfcp, "CHK@", 
+		rc = put_file(hfcp, "CHK@", 
 									hfcp->key->tmpblock->filename,
 									(meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0));
 
 	if (rc) /* bail after cleaning up */
 		goto cleanup;
 
-	/* tmp_hfcp->key->uri is the CHK@ of the file we've just inserted */
+	/* hfcp->key->uri is the CHK@ of the file we've just inserted */
 
 	switch (hfcp->key->target_uri->type) {
 
 	case KEY_TYPE_CHK: /* for CHK's, copy over the generated CHK to the target_uri field */
 
-		/* re-parse the CHK into target_uri (it only contains CHK@ currently) */
-		fcpParseURI(hfcp->key->uri, tmp_hfcp->key->uri->uri_str);
-
-		/* then copy it to the target as well */
-		fcpParseURI(hfcp->key->target_uri, tmp_hfcp->key->uri->uri_str);
+		/* copy it to the target */
+		fcpParseURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
 
 		break;
 
@@ -138,6 +128,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
  cleanup: /* rc should be set to an FCP_ERR code */
 	
 	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
+
 	return rc;
 }
 

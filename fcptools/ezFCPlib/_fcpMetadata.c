@@ -43,9 +43,6 @@ long       cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long  defV
 char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal);
 #endif
 
-hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);
-char      *cdocLookupKey(hDocument *doc, char *keyName);
-
 /* private definitions */
 static int getLine(char *, char *, int);
 static int splitLine(char *, char *, char *);
@@ -80,7 +77,6 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 	int   rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpMetaParse()");
-	_fcpLog(FCP_LOG_DEBUG, "Metadata:\n%s", buf);
 
 	/* I don't want to look at the warnings while I haven't finished this
 		 piece yet */
@@ -95,7 +91,6 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 
 	/* prime the loop */
 	meta->_start = getLine(line, buf, 0);
-
   while (meta->_start >= 0) { /* loop until we process all lines in the metadata string */
 
 		if (!strncasecmp(line, "Version", 7)) {

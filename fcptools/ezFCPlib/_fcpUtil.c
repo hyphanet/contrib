@@ -24,13 +24,16 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/* we don't need to include ezfcplib.h is we include these */
+/* we don't need to include ezfcplib.h if we include these */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 
+#include "ezFCPlib.h"
+
+#include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "ez_sys.h"
 
 /*
   function xtoi()
@@ -84,5 +87,38 @@ int memtoi(char *s)
 		default:
 			return n;
 	 }
+}
+
+int copy_file(char *dest, char *src)
+{
+	char buf[8193];
+
+	int dfd;
+	int sfd;
+
+	int count;
+	int bytes;
+
+	if ((dfd = creat(dest, FCP_CREATE_FLAGS)) == -1) {
+
+		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", dest);
+		return -1;
+	}
+
+	if ((sfd = open(src, O_RDONLY)) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", src);
+		return -1;
+	}
+	
+	for (bytes = 0; (count = read(sfd, buf, 8192)) > 0; bytes += count)
+		write(dfd, buf, count);
+
+	if (count == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "a read returned an error");
+		return -1;
+	}
+
+	_fcpLog(FCP_LOG_DEBUG, "copy_file copied %d bytes", bytes);
+	return bytes;
 }
 

@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
     /* read the key data from stdin */
     int fd;
     
-    if (fcpOpenKey(hfcp, keyuri, FCP_O_WRITE)) return -1;
+    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_WRITE)) return -1;
     
     /* read it from stdin */
     /* buf has 8193 bytes */
@@ -240,7 +240,7 @@ static void parse_args(int argc, char *argv[])
 			if (i > 0) regress = i;
 			
     case 'D':
-      optmask |= HOPT_DELETE_LOCAL;
+      optmask |= FCP_MODE_DELETE_LOCAL;
       break;
 			
     case 'v':
