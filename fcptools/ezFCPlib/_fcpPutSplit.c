@@ -434,8 +434,14 @@ static void splitInsMgr(void *nothing)
 					jobQueueEnd = NULL;
 			}
 			else
+			{
 				// use 'prev' ptr to unlink this job
 				prevJob->next = tmpJob->next;
+				if (tmpJob == jobQueueEnd)
+					// we're ditching last in queue, so we need to
+					// point jobQueueEnd to previous item
+					jobQueueEnd = prevJob;
+			}
 
 			_fcpLog(FCP_LOG_DEBUG, "Queue dump: after ditching");
 			dumpQueue();
