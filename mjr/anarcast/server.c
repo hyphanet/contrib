@@ -76,9 +76,10 @@ main (int argc, char **argv)
 	
 	// read type
 	if (!a[n].type) {
-	    read(n, &a[n].type, 1);
+	    c = read(n, &a[n].type, 1);
 	    if (a[n].type != 'r' && a[n].type != 'i') {
-		puts("Format Error: Unrecognized transaction type.");
+		if (c) // the inform server will connect and hang up
+		    puts("Format Error: Unrecognized transaction type.");
 		FD_CLR(n, &r);
 		if (close(n) == -1)
 		    die("close() failed");

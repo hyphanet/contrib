@@ -77,7 +77,7 @@ main (int argc, char **argv)
 	fd_set s = r, x = w;
 	
 	// tell our thread to grab the mutex and update the database
-	if (!n && !active)
+	if (!active)
 	    pthread_cond_broadcast(&cond);
 	
 	if ((n = select(m, &s, &x, NULL, NULL)) == -1)
@@ -191,7 +191,7 @@ thread (void *arg)
 	// wait for a while if we must
 	if ((l = time(NULL)) < lastweed + WEED_INTERVAL) {
 	    int i = lastweed + WEED_INTERVAL - l;
-	    printf("Sleeping %d seconds before smoking up again.\n", i);
+	    printf("Sleeping %d seconds before next verification run.\n", i);
 	    sleep(i);
 	}
 

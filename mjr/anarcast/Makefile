@@ -1,4 +1,4 @@
-CFLAGS = -ggdb -Wall
+CFLAGS = -O9 -Wall
 PROGRAMS = server insert request inform proxy
 DEPS = anarcast.h graphs.h crypt.c Makefile
 

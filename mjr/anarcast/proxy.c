@@ -726,15 +726,6 @@ inform ()
 	die("close() failed");
 
     alert("%d Anarcast servers loaded.\n", count);
-
-    {
-	int i;
-	for (i = 0 ; i < 100 ; i++)
-	    addref(i);
-	
-	while (head)
-	    rmref(head->addr);
-    }
 }
 
 //=== routing ===============================================================
