@@ -28,6 +28,27 @@ const char szerrTitle[]="Error starting node";
 PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
 
 
+BOOL TestGateway(void)
+{
+	// returns TRUE if gateway (fproxy etc) is running
+	// FALSE if not
+	// Currently just a stub until function is implemented
+	return TRUE;
+}
+
+BOOL TestInternetConnection(void)
+{
+	// returns TRUE if we successfully got data through from the internet,
+	// FALSE if not
+	// Currently just a stub
+	// Will probably use a combination of any or all of the following:
+	//		Calls to InetIsOffline(0)   (freenet.c has already got a proc handle for this function)
+	//		Trying to ping or open TCP/IP connection to one of 'n' sites
+	//					e.g. sites/ports chosen from i.p addresses in datastore
+	//							
+	return TRUE;
+}
+
 DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 {
 	MSG msg;
@@ -99,6 +120,7 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 				break;
 
 			case WAIT_OBJECT_0+1:
+			case WAIT_ABANDONED_0+1:
 				// we have received a posted thread message : deal with it
 				while ( PeekMessage(&msg,(HWND)(-1),0,0,PM_REMOVE) )
 				{
@@ -128,6 +150,8 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 				break;
 
 			case WAIT_OBJECT_0:
+			case WAIT_ABANDONED_0:
+			default:
 				{
 					// thread has died - begin flashing icon:
 					DWORD dwError;
@@ -137,12 +161,47 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 				//break;  NO BREAK - FALL THROUGH!
 
 			case WAIT_TIMEOUT:
-				if (nFreenetMode==FREENET_CANNOT_START)
+				
+				LOCK(NFREENETMODE);
+				switch (nFreenetMode)
 				{
-					// period timeout fired - change the icon
-					ModifyIcon();
+				
+					case FREENET_CANNOT_START:
+						// period timeout fired - change the icon
+						break;
+	
+					case FREENET_RUNNING:
+					case FREENET_RUNNING_NO_GATEWAY:
+						if (!TestInternetConnection())
+						{
+							nFreenetMode=FREENET_RUNNING_NO_INTERNET;
+						}
+						break;
+				
+					case FREENET_RUNNING_NO_INTERNET:
+					case FREENET_NOT_RUNNING_NO_INTERNET:
+						if (TestInternetConnection())
+						{
+							if (nFreenetMode==FREENET_NOT_RUNNING_NO_INTERNET)
+							{
+								nFreenetMode=FREENET_STOPPED;
+							}
+							else if (TestGateway())
+							{
+								nFreenetMode=FREENET_RUNNING;
+							}
+							else
+							{
+								nFreenetMode=FREENET_RUNNING_NO_GATEWAY;
+							}
+						}
+						break;
 				}
+				UNLOCK(NFREENETMODE);
+				ModifyIcon();
+						
 				break;
+
 		} // switch
 
 	} // while !bQuitThreadNow
@@ -155,15 +214,17 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 
 
 /* note - ONLY TO BE CALLED FROM ASYNCHRONOUS THREAD LEVEL - i.e. Monitor Thread */
+
+STARTUPINFO StartInfo={	sizeof(STARTUPINFO),
+						NULL,NULL,NULL,
+						0,0,0,0,0,0,0,
+						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+						SW_HIDE,
+						0,NULL,
+						NULL,NULL,NULL};
+
 void MonitorThreadRunFserve()
 {
-	STARTUPINFO StartInfo={	sizeof(STARTUPINFO),
-							NULL,NULL,NULL,
-							0,0,0,0,0,0,0,
-							STARTF_USESHOWWINDOW,
-							SW_HIDE,
-							0,NULL,
-							NULL,NULL,NULL};
 	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
 
 	lstrcpy(szexecbuf, szjavawpath);

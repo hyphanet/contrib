@@ -11,7 +11,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 /* startup code: */
 bool OnlyOneInstance(void);
-void Initialise(void);  /* reads basic settings, also acts on command line */
+BOOL Initialise(void);  /* reads basic settings, also acts on command line */
 void GetAppDirectory(char * szbuffer);
 
 /* Reloading settings from flaunch.ini, etc.  */
