@@ -76,12 +76,18 @@ extern int   _fcpRecvResponse(hFCP *hfcp);
 extern int   _fcpSockRecv(hFCP *hfcp, char *buf, int len);
 extern int   _fcpSockRecvln(hFCP *hfcp, char *resp, int len);
 
+extern int   _fcpRecv(int socket, char *buf, int len);
+
+/* Others */
 extern char *_fcpGetMimetype(char *pathname);
 
 extern int   _fcpTmpfile(char **filename);
 
 extern long  file_size(char *filename);
+
+/* careful with this one.. mainly a *hack* i admit */
 extern void  unlink_key(hKey *hKey);
+
 extern long  xtoi(char *);
 
 #endif /* EZ_SYS_H */

@@ -75,11 +75,11 @@ int main(int argc, char* argv[])
 	/* Make sure all input args are sent to ezFCPlib as advertised */
 	hfcp = fcpCreateHFCP(host, port, 0, 0, 0);
 
-	if (!strncasecmp(command, "clienthello", 11)) {
+	if (!strncasecmp(command, "hello", 11)) {
 		rc = clienthello(hfcp);
 	}
 
-	else if (!strncasecmp(command, "clientinfo", 10)) {
+	else if (!strncasecmp(command, "info", 10)) {
 		rc = clientinfo(hfcp);
 	}
 
@@ -87,7 +87,6 @@ int main(int argc, char* argv[])
 		usage("Did not specify a supported FCP command");
 	}
 
-	if (rc) fprintf(stdout, "Command \"%s\" returned error code: %d", command, rc);
 	return rc;
 }
 
@@ -177,8 +176,8 @@ static void usage(char *s)
 
 	printf("COMMAND is one of the following FCP commands:\n\n");
 
-	printf("  clienthello\n");
-	printf("  clientinfo\n\n");
+	printf("  hello\n");
+	printf("  info\n\n");
 
 	printf("Options:\n\n");
 

@@ -85,12 +85,12 @@ int _fcpTmpfile(char **filename)
 #endif
 }
 
-int _fcpRecv(int socket, char *buf, int len, int flags)
+int _fcpRecv(int socket, char *buf, int len)
 {
 	int rc;
 
 #ifdef WIN32
-	rc = recv(socket, buf, len, flags);
+	rc = recv(socket, buf, len, 0);
 #else
 	rc = read(socket, buf, len);
 #endif
@@ -104,7 +104,6 @@ int _fcpRecv(int socket, char *buf, int len, int flags)
 int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 {
 	int rc;
-	int rcvd = 0;
 
 	struct timeval tv;
 	fd_set readfds;
@@ -118,7 +117,7 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
 
 	/* handle this popular case first */	
-	if (rc == SOCKET_ERROR) {
+	if (rc == -1) {
 		return EZERR_GENERAL;
 	}
 	/* check for socket timeout */
@@ -130,9 +129,9 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 	integer is acceptable, meaning all is well */
 
 	/* grab the chunk whole */
-	rc = _fcpRecv(hfcp->socket, buf, len, 0);
+	rc = _fcpRecv(hfcp->socket, buf, len);
 
-	if (rc == SOCKET_ERROR) {
+	if (rc == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
 		return -1;
 	}
@@ -158,7 +157,7 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
 
 	/* handle this popular case first */	
-	if (rc == SOCKET_ERROR) {
+	if (rc == -1) {
 		return EZERR_GENERAL;
 	}
 	/* check for socket timeout */
@@ -171,9 +170,9 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 
 	while (1) {
 
-		rc = _fcpRecv(hfcp->socket, buf+rcvd, 1, 0);
+		rc = _fcpRecv(hfcp->socket, buf+rcvd, 1);
 
-		if (rc == SOCKET_ERROR) {
+		if (rc == -1) {
 			_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
 			return -1;
 		}
