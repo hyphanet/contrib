@@ -78,6 +78,7 @@ META04 *metaParse(char *buf)
     meta->vers[0] = '\0';
     meta->numDocs = 0;
     meta->trailingInfo = NULL;
+    meta->cdoc = NULL;
 
     // main parser loop
     for (; (key = getLine(buf, &next)) != NULL; buf = next)
@@ -134,10 +135,12 @@ META04 *metaParse(char *buf)
             {
                 // create empty fieldset struct
                 thisdoc = meta->numDocs++;
-                meta = realloc(meta->cdoc, sizeof(META04) + sizeof(FLDSET *) * meta->numDocs);
+                meta->cdoc = realloc(meta->cdoc,
+		    sizeof(FLDSET *) * meta->numDocs);
                 meta->cdoc[thisdoc] = safeMalloc(sizeof(FLDSET));
                 meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
                 meta->cdoc[thisdoc]->numFields = 0;
+		meta->cdoc[thisdoc]->key = NULL;
                 state = STATE_INDOC;
             }
             else
@@ -164,9 +167,9 @@ META04 *metaParse(char *buf)
 
                 // append key-value pair
                 thiskey = meta->cdoc[thisdoc]->numFields++;
-                meta->cdoc[thisdoc]
-                    = realloc(meta->cdoc[thisdoc],
-                        sizeof(FLDSET) + sizeof(KEYVALPAIR) * meta->cdoc[thisdoc]->numFields);
+                meta->cdoc[thisdoc]->key =
+                    realloc(meta->cdoc[thisdoc]->key,
+                        sizeof(KEYVALPAIR) * meta->cdoc[thisdoc]->numFields);
                 meta->cdoc[thisdoc]->key[thiskey].name = strdup(key);
                 meta->cdoc[thisdoc]->key[thiskey].value = val ? strdup(val) : NULL;
             }
