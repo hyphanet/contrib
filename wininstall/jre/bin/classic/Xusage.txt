@@ -1,0 +1,18 @@
+    -Xbootclasspath:<directories and zip/jar files separated by ;>
+                      set search path for bootstrap classes and resources
+    -Xbootclasspath/a:<directories and zip/jar files separated by ;>
+                      append to end of bootstrap class path
+    -Xbootclasspath/p:<directories and zip/jar files separated by ;>
+                      prepend in front of bootstrap class path
+    -Xnoclassgc       disable class garbage collection
+    -Xms<size>        set initial Java heap size
+    -Xmx<size>        set maximum Java heap size
+    -Xrs              reduce the use of OS signals
+    -Xcheck:jni       perform additional checks for JNI functions
+    -Xcheck:nabounds  perform additional checks for JNI array operations
+    -Xrunhprof[:help]|[:<option>=<value>, ...]
+                      perform heap, cpu, or monitor profiling
+    -Xdebug           enable remote debugging
+    -Xfuture          enable strictest checks, anticipating future default
+
+The -X options are non-standard and subject to change without notice.
