@@ -90,7 +90,7 @@ const char szfseeddefaultexportprecmd[]="--export";
 const char szfseedexportcmdpostkey[]="exportcmdpost"; /* ie exportcmdpost="" */
 const char szfseeddefaultexportpostcmd[]="";
 const char* szTempDirs[]={"FECTempDir","mainport.params.servlet.1.params.tempDir","tempDir",NULL}; /* ie FECTempDir=C:\windows\temp\freenet , etc*/ 
-const char szClasspathExtraKey[]="Classpath Extra"; /* ie ClasspathExtra="F:\Something\Whatsit.jar" "G:\SomethingElse\Doodad.jar" */
+const char szClasspathExtraKey[]="Classpath Extra"; /* ie Classpath Extra=F:\Something\Whatsit.jar;G:\Something Else\Doodad.jar */
 
 /* string constants for use with the freenet.ini file */
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
@@ -614,8 +614,6 @@ void SetClasspathEnvForThisThread(void)
 			szCLASSPATH=NULL;
 		}
 	}
-
-	WinExec("cmd.exe", SW_NORMAL);
 }
 
 /* One-time initialisation - ONLY DO THIS ONCE.  'refreshing settings' is performed by calling ReloadSettings */
