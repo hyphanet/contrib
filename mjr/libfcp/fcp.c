@@ -1,10 +1,11 @@
 #include "fcp.h"
 
 FILE * fcp_connect ();
-enum {DATA, CONTROL};
 int fcp_get (FILE *data, int *len, int *type, char *uri, int htl);
 int splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads);
-int calc_partsize (int bytes);
+int calc_partsize (int length);
+int calc_partcount (int partsize, int length);
+void * insert_thread (void *arg);
 
 int parse_control_doc (fcp_metadata *m, FILE *data);
 int parse_redirect (fcp_metadata *m, FILE *data);
@@ -17,8 +18,8 @@ fcp_metadata *
 fcp_metadata_new ()
 {
     fcp_metadata *m = malloc(sizeof(fcp_metadata));
-    m->r_count = 0; m->dr_count = 0; m->sf_count = 0; m->i_count = 0;
     m->uri = NULL; m->r = NULL; m->dr = NULL; m->sf = NULL; m->i = NULL;
+    m->r_count = 0; m->dr_count = 0; m->sf_count = 0; m->i_count = 0;
     return m;
 }
 
@@ -98,6 +99,12 @@ fail:	    fcp_metadata_free(m2);
 }
 
 int
+splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads)
+{
+    return FCP_SUCCESS;
+}
+
+int
 fcp_read (fcp_document *d, char *buf, int length)
 {
     int n;
@@ -138,17 +145,17 @@ fcp_get (FILE *data, int *len, int *type, char *uri, int htl)
     }
     if (dlen < 0 || (mlen && mlen != dlen)
 	    || strncmp(buf, "EndMessage", 10) != 0)
-	return FCP_READ_FAILED;
+	return FCP_IO_ERROR;
     *len = dlen;
     *type = mlen == dlen ? CONTROL : DATA;
     while (dlen) {
 	status = fscanf(sock, "DataChunk\nLength=%x\nData", &n);
 	fgetc(sock);
-	if (status != 1 || n < 0) return FCP_READ_FAILED;
+	if (status != 1 || n < 0) return FCP_IO_ERROR;
 	dlen -= n;
 	while (n) {
 	    i = fread(buf, 1, n > 1024 ? 1024 : n, sock);
-	    if (!i) return FCP_READ_FAILED;
+	    if (!i) return FCP_IO_ERROR;
 	    fwrite(buf, 1, i, data);
 	    n -= i;
 	}
@@ -245,10 +252,10 @@ parse_splitfile (fcp_metadata *m, FILE *data)
 {
     char line[512], name[512], val[512];
     int status, n = m->sf_count++;
-    m->sf = realloc(m->sf, sizeof(date_redirect *) * m->sf_count);
-    m->sf[n] = malloc(sizeof(date_redirect));
+    m->sf = realloc(m->sf, sizeof(splitfile *) * m->sf_count);
+    m->sf[n] = malloc(sizeof(splitfile));
     m->sf[n]->document_name = NULL;
-    m->sf[n]->filesize = -1;
+    m->sf[n]->filesize = 0;
     m->sf[n]->chunk_count = 0;
     m->sf[n]->chunks = NULL;
     while (fgets(line, 512, data)) {
@@ -323,117 +330,284 @@ parse_unknown (fcp_metadata *m, FILE *data)
     return FCP_SUCCESS;
 }
 
+typedef struct {
+    pthread_cond_t *cond;
+    pthread_mutex_t *mutex;
+    int *activethreads;
+    int *error;
+    int length;
+    FILE *data;
+    char *uri;
+    int htl;
+} intargs;
+
 int
-splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads)
+fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
+	        int htl, int threads)
 {
-    return FCP_SUCCESS;
-}
-/*
-int
-fcp_insert (FILE *in, int length, char *uri, int htl, int threads)
-{
-    int partsize = calc_partsize(length);
-    int partcount = ceil(length/(double)partsize);printf("partsize: %d\npartcount: %d\n", partsize/1024, partcount);
-    FILE *parts[partcount];
-    char buf[1024], *chks[partcount];
-    int n, tmp = length, activethreads = 0;
-    pthread_t thread;
-    for (n = 0 ; n < partcount ; n++) {
-	int read, i = partsize < tmp ? partsize : tmp;
-	parts[n] = tmpfile();
-	while (i) {
-	    read = fread(buf, 1, i > 1024 ? 1024 : i, in);
-	    if (!read) return FCP_READ_FAILED;
-	    fwrite(buf, 1, read, parts[n]);
-	    i -= read;
-	    tmp -= read;
+    int status;
+    if (length < 128 * 1024) {
+	char uri[128];
+	strcpy(uri, "freenet:CHK@");
+	status = fcp_insert_raw(in, uri, length, DATA, htl);
+	if (status != FCP_SUCCESS) return status;
+	status = fcp_redirect(m, document_name, uri);
+	return status;
+    } else {
+	int partsize = calc_partsize(length);
+	int partcount = calc_partcount(partsize, length);
+	int n, t, r, s, activethreads = 0, error = 0, len = length;
+	char buf[1024], keys[partcount][128];
+	FILE *parts[partcount];
+	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+	for (t = 0 ; t < partcount ; t++) {
+	    pthread_t thread;
+	    intargs *i = malloc(sizeof(intargs));
+	    len -= (n = len > partsize ? partsize : len);
+	    parts[t] = tmpfile();
+	    i->cond = &cond; i->mutex = &mutex;
+	    i->activethreads = &activethreads;
+	    i->error = &error; i->length = n;
+	    i->data = parts[t]; i->uri = keys[t];
+	    i->htl = htl;
+	    strcpy(i->uri, "freenet:CHK@");
+	    while (n) {
+		n -= (r = n > 1024 ? 1024 : n);
+		s = fread(buf, 1, r, in);
+		if (s != r) return FCP_IO_ERROR;
+		s = fwrite(buf, 1, r, parts[t]);
+		if (s != r) return FCP_IO_ERROR;
+	    }
+	    rewind(parts[t]);
+	    pthread_create(&thread, NULL, insert_thread, (void *) i);
+	    if (++activethreads == threads) pthread_cond_wait(&cond, &mutex);
+	    if (error) return error;
 	}
-	activethreads++;
-	//pthread_create(&thread, NULL, insert_chk_thread, (void *) &chks[n]);
+	while (activethreads) {
+	    pthread_cond_wait(&cond, &mutex);
+	    if (error) return error;
+	}
+        n = m->sf_count++;
+        m->sf = realloc(m->sf, sizeof(splitfile *) * m->sf_count);
+        m->sf[n] = malloc(sizeof(splitfile));
+        m->sf[n]->document_name = strdup(document_name);
+        m->sf[n]->filesize = length;
+        m->sf[n]->chunk_count = partcount;
+        m->sf[n]->chunks = calloc(partcount, sizeof(FILE *));
+	for (t = 0 ; t < partcount ; t++)
+	    m->sf[n]->chunks[t] = strdup(keys[t]);
+	return FCP_SUCCESS;
     }
-    
+}
+
+void *
+insert_thread (void *arg)
+{
+    intargs *i = (intargs *) arg;
+    int r = 3, status = -1;
+    while (r-- && status != FCP_SUCCESS) {
+	rewind(i->data);
+	status = fcp_insert_raw(i->data, i->uri, i->length, DATA, i->htl);
+    }
+    pthread_mutex_lock(i->mutex);
+    if (status != FCP_SUCCESS) *i->error = status;
+    (*i->activethreads)--;
+    pthread_cond_broadcast(i->cond);
+    pthread_mutex_unlock(i->mutex);
+    fclose(i->data);
+    free(i);
+    pthread_exit(NULL);
+}
+
+int
+fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl)
+{
+    int n, status;
+    char buf[1024], foo[128];
+    FILE *sock = fcp_connect();
+    if (!sock) return FCP_CONNECT_FAILED;
+    fprintf(sock, "ClientPut\n"
+	          "HopsToLive=%x\n"
+		  "URI=%s\n"
+		  "DataLength=%x\n"
+		  "MetadataLength=%x\n"
+		  "Data\n",
+		  htl, uri, length,
+		  type == DATA ? 0 : length);
+    while (length) {
+	length -= (n = length > 1024 ? 1024 : length);
+	status = fread(buf, 1, n, in);
+	if (status != n) goto ioerror;
+	status = fwrite(buf, 1, n, sock);
+	if (status != n) goto ioerror;
+    }
+    status = fscanf(sock, "%s\nURI=%s\nEndMessage\n", buf, foo);
+    if (status == 1 && strcmp(buf, "URIError") == 0)
+	goto invalid_uri;
+    if (status == 2) {
+	strcpy(uri, foo);
+	if (strcmp(buf, "Success") == 0
+		|| strcmp(buf, "KeyCollision") == 0)
+	    goto success;
+    }
+ioerror:
+    fclose(sock);
+    return FCP_IO_ERROR;
+invalid_uri:
+    fclose(sock);
+    return FCP_INVALID_URI;
+success:
+    fclose(sock);
     return FCP_SUCCESS;
 }
 
 int
-calc_partsize (int bytes)
+calc_partsize (int length)
 {
-    int n = 0, tmp = bytes/1024;
+    int n = 0, tmp = length/1024;
     while (tmp) {
 	tmp >>= 1;
        	n++;
     }
-    if (bytes/1024 > tmp) n++;
+    if (length/1024 > tmp) n++;
     return (8 << (n/2)) * 1024;
 }
-*/
+
+int
+calc_partcount (int partsize, int length)
+{
+    int pc = length / partsize;
+    if (pc * partsize < length) pc++;
+    return pc;
+}
+
+int
+fcp_redirect (fcp_metadata *m, char *document_name, char *target_uri)
+{
+    int n = m->r_count++;
+    m->r = realloc(m->r, sizeof(redirect *) * m->r_count);
+    m->r[n] = malloc(sizeof(redirect));
+    m->r[n]->document_name = strdup(document_name);
+    m->r[n]->target_uri = strdup(target_uri);
+    return FCP_SUCCESS;    
+}
+
+int
+fcp_date_redirect (fcp_metadata *m, char *document_name, char *predate,
+	char *postdate, long baseline, long increment)
+{
+    int n = m->dr_count++;
+    m->dr = realloc(m->dr, sizeof(date_redirect *) * m->dr_count);
+    m->dr[n] = malloc(sizeof(date_redirect));
+    m->dr[n]->document_name = strdup(document_name);
+    m->dr[n]->predate = strdup(predate);
+    m->dr[n]->postdate = strdup(postdate);
+    m->dr[n]->baseline = baseline;
+    m->dr[n]->increment = increment;
+    return FCP_SUCCESS;
+}
+
+int
+fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
+{
+    int i, j;
+    FILE *data = tmpfile();
+    for (i = 0 ; i < m->r_count ; i++)
+        fprintf(data, "Redirect\n"
+	    	      "DocumentName=%s\n"
+		      "Target=%s\n"
+		      "End\n",
+		      m->r[i]->document_name,
+		      m->r[i]->target_uri);
+    for (i = 0 ; i < m->dr_count ; i++)
+        fprintf(data, "DateRedirect\n"
+	    	      "DocumentName=%s\n"
+		      "Predate=%s\n"
+		      "Postdate=%s\n"
+		      "Baseline=%lx\n"
+		      "Increment=%lx\n"
+		      "End\n",
+		      m->dr[i]->document_name,
+		      m->dr[i]->predate,
+		      m->dr[i]->postdate,
+		      m->dr[i]->baseline,
+		      m->dr[i]->increment);
+    for (i = 0 ; i < m->sf_count ; i++) {
+        fprintf(data, "SplitFile\n"
+		      "DocumentName=%s\n"
+		      "FileSize=%x\n"
+		      "Chunks=%x\n",
+		      m->sf[i]->document_name,
+		      m->sf[i]->filesize,
+		      m->sf[i]->chunk_count);
+	for (j = 0 ; j < m->sf[i]->chunk_count ; j++)
+	    fprintf(data, "Chunk.%x=%s\n", j, m->sf[i]->chunks[j]);
+    }
+    j = ftell(data);
+    rewind(data);
+    return fcp_insert_raw(data, uri, j, CONTROL, htl);
+}
+
 void
 fcp_metadata_free (fcp_metadata *m)
 {
     int i, j;
     if (m->uri) free(m->uri);
-    if (m->r_count) {
-	for (i = 0 ; i < m->r_count ; i++) {
-	    if (m->r[i]->document_name)
-		free(m->r[i]->document_name);
-	    if (m->r[i]->target_uri)
-		free(m->r[i]->target_uri);
-	    free(m->r[i]);
-	}
-	free(m->r);
+    for (i = 0 ; i < m->r_count ; i++) {
+        if (m->r[i]->document_name)
+	    free(m->r[i]->document_name);
+	if (m->r[i]->target_uri)
+	    free(m->r[i]->target_uri);
+	free(m->r[i]);
     }
-    if (m->dr_count) {
-	for (i = 0 ; i < m->dr_count ; i++) {
-	    if (m->dr[i]->document_name)
-		free(m->dr[i]->document_name);
-	    if (m->dr[i]->predate)
-		free(m->dr[i]->predate);
-	    if (m->dr[i]->postdate)
-		free(m->dr[i]->postdate);
-	    free(m->dr[i]);
-	}
-	free(m->dr);
+    if (m->r) free(m->r);
+    for (i = 0 ; i < m->dr_count ; i++) {
+        if (m->dr[i]->document_name)
+    	    free(m->dr[i]->document_name);
+	if (m->dr[i]->predate)
+	    free(m->dr[i]->predate);
+	if (m->dr[i]->postdate)
+	    free(m->dr[i]->postdate);
+	free(m->dr[i]);
     }
-    if (m->sf_count) {
-	for (i = 0 ; i < m->sf_count ; i++) {
-	    if (m->sf[i]->document_name)
-		free(m->sf[i]->document_name);
-	    if (m->sf[i]->chunks) {
-		for (j = 0 ; m->sf[i]->chunks[j] ; j++)
-		    free(m->sf[i]->chunks[j]);
-	        free(m->sf[i]->chunks);
+    if (m->dr) free(m->dr);
+    for (i = 0 ; i < m->sf_count ; i++) {
+        if (m->sf[i]->document_name)
+	    free(m->sf[i]->document_name);
+	for (j = 0 ; j < m->sf[i]->chunk_count ; j++)
+	    free(m->sf[i]->chunks[j]);
+	free(m->sf[i]->chunks);
+    }
+/*	if (m->sf[i]->check_pieces)
+	    free(m->sf[i]->check_pieces);
+	if (m->sf[i]->checks) {
+	    for (j = 0 ; m->sf[i]->checks[j] ; j++) {
+	        for (k = 0 ; m->sf[i]->checks[j][k] ; k++)
+		    free(m->sf[i]->checks[j][k]);
+		free(m->sf[i]->checks[j]);
 	    }
-/*	    if (m->sf[i]->check_pieces)
-		free(m->sf[i]->check_pieces);
-	    if (m->sf[i]->checks) {
-		for (j = 0 ; m->sf[i]->checks[j] ; j++) {
-		    for (k = 0 ; m->sf[i]->checks[j][k] ; k++)
-			free(m->sf[i]->checks[j][k]);
-		    free(m->sf[i]->checks[j]);
-		}
-	    }
-	    if (m->sf[i]->graph) {
-		for (j = 0 ; m->sf[i]->graph[j] ; j++)
-		    free(m->sf[i]->graph[j]);
-		free(m->sf[i]->graph);
-	    }*/
-	}    
-    }
-    if (m->i_count) {
-	for (i = 0 ; i < m->i_count ; i++) {
-	    if (m->i[i]->document_name)
-		free(m->i[i]->document_name);
-	    for (j = 0 ; m->i[i]->fields[j] ; j++) {
-	        if (m->i[i]->fields[j][0])
-		    free(m->i[i]->fields[j][0]);
-	        if (m->i[i]->fields[j][1])
-		    free(m->i[i]->fields[j][1]);
-	        free(m->i[i]->fields[j]);
-	    }
-	    free(m->i[i]);
 	}
-	free(m->i);
+	if (m->sf[i]->graph) {
+	    for (j = 0 ; m->sf[i]->graph[j] ; j++)
+	        free(m->sf[i]->graph[j]);
+	    free(m->sf[i]->graph);
+	}*/
+    if (m->sf) free(m->sf);
+    for (i = 0 ; i < m->i_count ; i++) {
+        if (m->i[i]->document_name)
+	    free(m->i[i]->document_name);
+	for (j = 0 ; m->i[i]->fields[j] ; j++) {
+	    if (m->i[i]->fields[j][0])
+	        free(m->i[i]->fields[j][0]);
+	    if (m->i[i]->fields[j][1])
+	        free(m->i[i]->fields[j][1]);
+	    free(m->i[i]->fields[j]);
+	}
+	free(m->i[i]);
     }
+    if (m->i) free(m->i);
+    free(m);
 }
 
 FILE *
@@ -451,8 +625,8 @@ fcp_connect ()
     address.sin_port = (serv->s_port);
     address.sin_addr.s_addr = addr.s_addr;
     connected_socket = socket(AF_INET, SOCK_STREAM, 0);
-    connected = connect(connected_socket, (struct sockaddr *) &address,
-	    sizeof(address));
+    connected = connect(connected_socket,
+	    (struct sockaddr *) &address, sizeof(address));
     if (connected < 0) return NULL;
     return fdopen(connected_socket, "w+");
 }

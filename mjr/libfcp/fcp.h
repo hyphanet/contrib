@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <math.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <pthread.h>
 
 #define FCP_SUCCESS		0
 #define FCP_CONNECT_FAILED	-1
@@ -14,9 +14,12 @@
 #define FCP_PART_NOT_FOUND	-3
 #define FCP_INVALID_METADATA    -4
 #define FCP_REQUEST_FAILED	-5
-#define FCP_READ_FAILED		-6
+#define FCP_IO_ERROR		-6
+#define FCP_KEY_COLLISION	-7
 
-#define FCP_FUCK		-999
+#define FCP_FUCK		-666
+
+enum {DATA, CONTROL};
 
 typedef struct {
     char *document_name;   // to which document this part applies
@@ -28,7 +31,7 @@ typedef struct {
     char *predate;         // the portion of the key URI before the date
     char *postdate;        // the portion of the key URI after the date
     long baseline;         // the baseline, in seconds since the epoch
-    int increment;         // the increment, in seconds
+    long increment;        // the increment, in seconds
 } date_redirect;
 
 typedef struct {
@@ -83,8 +86,24 @@ int fcp_request (fcp_metadata *m, fcp_document *s,
 int fcp_read (fcp_document *d, char *buf, int length);
 
 // insert length bytes from in. returns 0 on success, or error (<0)
-// uri is updated with the final URI.
-int fcp_insert (FILE *in, int length, char *uri, int htl, int threads);
+int fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
+	int htl, int threads);
+
+// insert a single-part file. returns 0 on success, or error (<0)
+// type may be DATA or CONTROL
+// updates uri with final uri
+int fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl);
+
+// create a redirect
+int fcp_redirect (fcp_metadata *m, char *document_name,	char *target_uri);
+
+// create a date-based redirect
+int fcp_date_redirect (fcp_metadata *m, char *document_name, char *predate,
+	char *postdate, long baseline, long increment);
+
+// inserts metadata
+// updates uri with final uri
+int fcp_metadata_insert (fcp_metadata *m, char *uri, int htl);
 
 // close and free a fcp_document
 int fcp_close (fcp_document *d);
