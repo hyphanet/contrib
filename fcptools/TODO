@@ -18,7 +18,7 @@ FCPtools generic
 + Add usage instructions to README for fcpget, fcpputsite.
 + Add fcphello command to just send ClientHello to node (ft-0.2).
 + Make FEC_CHUNK_SIZE configurable; default to 1M.
-+ Implement no_dbr option.
++ Implement do_dbr option.
 + Implement default_doc option (defaults to index.html).
 + Implement future_insert(num_days) option.
 + Implement SkipDS logic.
@@ -26,6 +26,7 @@ FCPtools generic
 + Verify other options (raw, etc.) work as expected.
 
 + Implement an insertion/retrieval scheduler layer; directly above the fcpWriteKey() and fcpPutKeyFromFile() routines.
+  (Most useful to a future fcpputsite program).
   Would provide the following functionality as well:
   
   + Retry option; attempt again (due to error or Restarted message) to insert or retrieve the named key.  After 'n' retries, return with error.
@@ -37,6 +38,8 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Solidify TEMP directory setting for all architectures. (fcpStartup.c)
+  (Win: create in %USERPROFILE%\TEMP), (*nix: create in /tmp with perm '600')
 + Implement Key Retrival code (currently only code for inserting).
 + Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
 + Check all internal APIs for consistant usage and funcionality.
@@ -47,9 +50,10 @@ ezFCPlib specific
 + Implement CheckBlockOffset and DataBlockOffset in handling of fec segment headers.
   (it's causing the java.lang.NumberFormatException messages in Fred's log).
 + #define HFCP to hFCP to ease transition.
-+ Decide which global vars should be handled by CreateHFCP and which need setter functions for modification
-  (not acceptable that ezFCPlib needs to be loaded in order to change configuration parameters).
++ Remove global variables in _fcpGlobals.c.  Make them private.
 + Implement retry logic, so that ezFCPlib attempts to insert _fcpRetry times on failed message.
++ Correct Restarted message handling to ensure seamless restarts.
++ Ignore DataChunks between Restarted and DataFound messages (from freenet-dev).
 
 ------
 fcpput
@@ -65,6 +69,8 @@ fcpputsite
 ----------
 
 + Re-link againt ezFCPlib and implement site-wide specific insert logic.
++ Implement Edition based logic.
++ Verify current DRB logic.
 
 
 ------

@@ -31,8 +31,16 @@
 
 extern void _fcpSockDisconnect(hFCP *hfcp);
 
+extern char *_fcpHost;
+extern unsigned short _fcpPort;
+extern int _fcpHtl;
+extern int _fcpRegress;
+extern int _fcpRawmode;
 
-hFCP *fcpCreateHFCP(void)
+/*
+	Create a HFCP structure with default information
+*/
+hFCP *fcpCreateDefHFCP(void)
 {
   hFCP *h;
 
@@ -46,6 +54,39 @@ hFCP *fcpCreateHFCP(void)
 	h->htl = _fcpHtl;
 	h->regress = _fcpRegress;
 	h->rawmode = _fcpRawmode;
+
+	_fcpLog(FCP_LOG_DEBUG, "using address %s:%d", h->host, h->port);
+
+	return h;
+}
+
+/*
+	This version requires certain variables to be specified as arguments.
+
+	host, port and htl can be passed zero/nul, and defaults will be used.
+*/
+hFCP *fcpCreateHFCP(char *host, int port, int htl, int delete_local, int regress, int rawmode)
+{
+  hFCP *h;
+
+	h = (hFCP *)malloc(sizeof (hFCP));
+	memset(h, 0, sizeof (hFCP));
+
+	if (!host) {
+		h->host = malloc(10);
+		strcpy(h->host, EZFCP_DEFAULT_HOST);
+	}
+	else {
+		h->host = malloc(strlen(host) + 1);
+		strcpy(h->host, host);
+	}
+
+	h->port = (port == 0 ? EZFCP_DEFAULT_PORT : port );
+	h->htl =  (htl  == 0 ? EZFCP_DEFAULT_HTL  : htl  );
+
+	h->regress = regress;
+	h->rawmode = rawmode;
+	h->delete_local = delete_local;
 
 	_fcpLog(FCP_LOG_DEBUG, "using address %s:%d", h->host, h->port);
 

@@ -27,6 +27,19 @@
 #include "ezFCPlib.h"
 
 #include <string.h>
+#include <stdlib.h>
+
+
+extern char *_fcpHost;
+extern char *_fcpTmpDir;
+
+extern unsigned short _fcpPort;
+extern int _fcpHtl;
+extern int _fcpRawmode;
+extern int _fcpVerbosity;
+extern int _fcpRegress;
+
+/* I'm not sure it's a good idea to allow logging in fcpStartup */
 
 int fcpStartup(void)
 {
@@ -35,34 +48,34 @@ int fcpStartup(void)
 
 	WORD wVersionRequested;
 	WSADATA wsaData;
-#endif
 
-	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpStartup()");
-
-#ifdef WIN32
 	SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
 	wVersionRequested = MAKEWORD(2, 0);
 
-	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
-
-		_fcpLog(FCP_LOG_VERBOSE, "Could not initialize the Winsock subsystem");
+	if (WSAStartup(wVersionRequested, &wsaData) != 0)
 		return -1;
-	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "Initialized Winsock subsystem");
-
-	/* @@@ TODO: implement Win32 API call to properly retrieve the TEMP dir. */
-	/* something like libvar = getenv( "LIB" ) */
-	_fcpTmpDir = "c:/temp";
+	/* Get TEMP value from the Environment */
+	_fcpTmpDir = strdup(getenv("TEMP"));
 
 #else
-	_fcpTmpDir = "/tmp";
+	_fcpTmpDir = strdup("/tmp");
 
 #endif
+
+	/*** This section is for both platforms
+			 Let's set some reasonable defaults:
+	 ***/
 
 	/* this is like so because of perhaps an undefined behaviour on Win with
 		 realloc'ed null pointers */
 	_fcpHost = strdup(EZFCP_DEFAULT_HOST);
+
+	_fcpPort = EZFCP_DEFAULT_PORT;
+  _fcpHtl = EZFCP_DEFAULT_HTL;
+	_fcpRawmode = EZFCP_DEFAULT_RAWMODE;
+	_fcpVerbosity = EZFCP_DEFAULT_VERBOSITY;
+	_fcpRegress = EZFCP_DEFAULT_REGRESS;
 
 	return 0;
 }
@@ -72,6 +85,8 @@ void fcpTerminate(void)
 {
 	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpTerminate()");
 
+	free(_fcpTmpDir);
+	free(_fcpHost);
+
 	return;
 }
-

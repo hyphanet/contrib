@@ -51,6 +51,8 @@ int _fcpSockConnect(hFCP *hfcp)
 	struct hostent *host_ent;
   struct in_addr  in_address;
 
+	char fcpID[4] = { 0, 0, 0, 2 };
+
 	_fcpLog(FCP_LOG_DEBUG, "attempting socket connection");
 	
 	if (host_is_numeric(hfcp->host)) {
@@ -66,7 +68,7 @@ int _fcpSockConnect(hFCP *hfcp)
 	/* now (struct in_addr)in_address is set properly in either
 		 name case or dotted-IP */
 	sa_serv_addr.sin_addr.s_addr = in_address.s_addr;
-  sa_serv_addr.sin_port = htons(_fcpPort);
+  sa_serv_addr.sin_port = htons(hfcp->port);
   sa_serv_addr.sin_family = AF_INET;
 	
   /* create socket */
@@ -96,7 +98,7 @@ int _fcpSockConnect(hFCP *hfcp)
 	}
 
 	/* Send fcpID */
-	send(hfcp->socket, _fcpID, 4, 0);
+	send(hfcp->socket, fcpID, 4, 0);
 
   return 0;
 }

@@ -74,7 +74,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	/* close the temporary metadata file */
 	fclose(hfcp->key->metadata->tmpblock->file);
 
-	tmp_hfcp = fcpCreateHFCP();
+	tmp_hfcp = fcpCreateDefHFCP();
 	size = file_size(hfcp->key->tmpblock->filename);
 
 	if (size > L_BLOCK_SIZE)
@@ -113,7 +113,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 			
 			hFCP *hfcp_meta;
 			
-			hfcp_meta = fcpCreateHFCP();
+			hfcp_meta = fcpCreateDefHFCP();
 			hfcp_meta->key = _fcpCreateHKey();
 			
 			/* uri was already checked above for validity */

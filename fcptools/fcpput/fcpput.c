@@ -45,6 +45,15 @@ extern long file_size(char *);
 void  parse_args(int argc, char *argv[]);
 void  usage(char *);
 
+/* Global vars to fcpput */
+char           *host;
+unsigned short  port;
+
+int htl = 3;
+int regress = 0;
+int delete_local = 0;
+int verbosity = 0;
+
 char  *keyuri = 0;
 char  *keyfile = 0;
 char  *metafile = 0;
@@ -74,12 +83,16 @@ int main(int argc, char* argv[])
 		 accurate diagnostics from users.
 	*/
 
-	if (fcpStartup())	return -1;
-
-	/* must occur after fcpStartup() since it changes _fcp* variables */
 	parse_args(argc, argv);
 
-	hfcp = fcpCreateHFCP();
+	/* Call before calling *any* other ?fcp* routines */
+	if (fcpStartup())	return -1;
+
+	/* set log verbosity before anything */
+	fcpSetLogVerbosity(verbosity);
+
+	/* Make sure all input args are sent to ezFCPlib as advertised */
+	hfcp = fcpCreateHFCP(host, port, htl, delete_local, regress, 0);
 
 	if (b_genkeys) {
 
@@ -101,7 +114,7 @@ int main(int argc, char* argv[])
 		if (fcpOpenKey(hfcp, keyuri, _FCP_O_WRITE))	return -1;
 
 		/* read it from stdin */
-		/* this is real inefficient.. @TODO: tighten */
+		/* is this inefficient ?? */
 		while ((c = getc(stdin)) != -1) {
 			buf[0] = c;
 			fcpWriteKey(hfcp, buf, 1);
@@ -178,7 +191,8 @@ void parse_args(int argc, char *argv[])
     {"stdin", 0, 0, 's'},
 
     {"regress", 1, 0, 'e'},
-    {"raw", 0, 0, 'r'},
+    {"delete_local", 0, 0, 'D'},
+
     {"verbosity", 1, 0, 'v'},
     {"genkeysy", 0, 0, 'g'},
 
@@ -187,7 +201,7 @@ void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:se:rv:gVh";
+  char short_options[] = "n:p:l:m:se:Dv:gVh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -196,22 +210,22 @@ void parse_args(int argc, char *argv[])
     switch (c) {
 			
     case 'n':
-			if (_fcpHost) free(_fcpHost);
-			_fcpHost = (char *)malloc(strlen(optarg) + 1);
+			if (host) free(host);
+			host = (char *)malloc(strlen(optarg) + 1);
 			
-      strcpy( _fcpHost, optarg);
-      _fcpLog(FCP_LOG_DEBUG, "parse_args() using host %s", _fcpHost);
+      strcpy(host, optarg);
+      _fcpLog(FCP_LOG_DEBUG, "parse_args() using host %s", host);
       break;
 			
     case 'p':
       i = atoi( optarg );
-      if (i > 0) _fcpPort = i;
-      _fcpLog(FCP_LOG_DEBUG, "parse_args() using port %d", _fcpPort);
+      if (i > 0) port = i;
+      _fcpLog(FCP_LOG_DEBUG, "parse_args() using port %d", port);
       break;
 			
     case 'l':
       i = atoi( optarg );
-      if (i >= 0) _fcpHtl = i;
+      if (i >= 0) htl = i;
       break;
 
 		case 'm':
@@ -226,15 +240,15 @@ void parse_args(int argc, char *argv[])
 			
 		case 'e':
 			i = atoi( optarg );
-			if (i > 0) _fcpRegress = i;
+			if (i > 0) regress = i;
 			
-    case 'r':
-      _fcpRawmode = 1;
+    case 'D':
+      delete_local = 1;
       break;
 			
     case 'v':
       i = atoi( optarg );
-      if ((i >= 0) && (i <= 4)) _fcpVerbosity = i;
+      if ((i >= 0) && (i <= 4)) verbosity = i;
       break;
 
     case 'g':
@@ -288,19 +302,20 @@ void usage(char *s)
 	printf("Copyright (c) 2001-2003 by David McNab <david@rebirthing.co.nz>\n");
 	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
 
-	printf("Usages: fcpput [OPTIONS] <uri> <file>\n");
-	printf("        fcpput [OPTIONS] --stdin <uri>\n\n");
+	printf("Usage: fcpput [-n hostname] [-p port] [-l hops to live]\n");
+	printf("              [-m metadata] [-s] [-e regress] [-D] [-v verbosity]\n");
+	printf("              [-g] [-V] [-h] freenet_uri filename\n\n");
 
-	printf("Options:\n\n");
-	printf("  -n, --address host     Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
-	printf("  -p, --port num         Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
-	printf("  -l, --htl num          Hops to live (default %d)\n\n", EZFCP_DEFAULT_HTL);
+	printf("Options (*=not implemented):\n\n");
+	printf("  -n, --address host     Freenet node address\n");
+	printf("  -p, --port num         Freenet node port\n");
+	printf("  -l, --htl num          Hops to live\n\n");
 
 	printf("  -m, --metadata file    Read key metadata from local file\n");
 	printf("  -s, --stdin            Read key data from stdin\n");
+	printf("  *e, --regress num      Number of days to regress\n");
+	printf("   D, --delete-local     Delete key from local datastore on insert\n\n");
 
-	printf("  -e, --regress num      Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
-	printf("  -r, --raw              Raw mode - don't follow redirects\n");
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 

@@ -92,9 +92,8 @@
   fcpLogCallback will be called with a verbosity argument, which will
   be one of these values. This allows the client program to screen log
   messages according to importance.
-
-	Let's start at 1, so that Verbosity=0 is *really* silent :)
 */
+#define FCP_LOG_SILENT        0
 #define FCP_LOG_CRITICAL      1
 #define FCP_LOG_NORMAL        2
 #define FCP_LOG_VERBOSE       3
@@ -134,23 +133,18 @@
 #define META_TYPE_INFO      'i'
 #define META_TYPE_EXTINFO   'e'
 
-/*
-  General FCP definitions
-*/
-#define EZFCP_DEFAULT_HOST       "127.0.0.1"
-#define EZFCP_DEFAULT_PORT       8481
-#define EZFCP_DEFAULT_HTL        3
-#define EZFCP_DEFAULT_REGRESS    3
-#define EZFCP_DEFAULT_RAWMODE    0
-#define EZFCP_DEFAULT_VERBOSITY  FCP_LOG_NORMAL
-
-/*
-
-  flags for fcpOpenKey()
-*/
+/* flags for fcpOpenKey() */
 #define _FCP_O_READ         0x100
 #define _FCP_O_WRITE        0x200
 #define _FCP_O_RAW          0x400   /* disable automatic metadata handling */
+
+/* Reasonable defaults */
+#define EZFCP_DEFAULT_HOST       "127.0.0.1"
+#define EZFCP_DEFAULT_PORT       8481
+#define EZFCP_DEFAULT_HTL        3
+#define EZFCP_DEFAULT_VERBOSITY  FCP_LOG_SILENT
+#define EZFCP_DEFAULT_REGRESS    0
+#define EZFCP_DEFAULT_RAWMODE    0
 
 
 /***********************************************************************
@@ -395,6 +389,7 @@ typedef struct {
 	int      htl;
 	int      regress;
 	int      rawmode;
+	int      delete_local;
 
 	char    *description;
 	int      protocol;
@@ -410,19 +405,6 @@ typedef struct {
 
 /**********************************************************************/
 
-/* Global variables */
-extern char  _fcpID[4];
-
-extern char *_fcpHost;
-extern unsigned short _fcpPort;
-extern int   _fcpHtl;
-extern int   _fcpRawmode;
-
-extern int   _fcpVerbosity;
-extern int   _fcpRegress;
-extern int   _fcpInsertAttempts;
-extern char *_fcpTmpDir;
-
 
 /* Function prototypes */
 #ifdef __cplusplus
@@ -430,7 +412,9 @@ extern "C" {
 #endif
 	
 	/* Handle management functions */
-	hFCP   *fcpCreateHFCP(void);
+	hFCP   *fcpCreateDefHFCP(void);
+	hFCP   *fcpCreateHFCP(char *host, int port, int htl, int delete_local, int regress, int rawmode);
+
 	void    fcpDestroyHFCP(hFCP *);
 
 	/* URI functions */
@@ -457,6 +441,7 @@ extern "C" {
 
 	/* fcpLog */
 	void  _fcpLog(int level, char *format, ...);
+	void fcpSetLogVerbosity(int verbosity);
 	
 	/* Socket functions */
 	int   _fcpSockConnect(hFCP *hfcp);

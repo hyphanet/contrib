@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+extern int _fcpVerbosity;
 
 /* extern int vsnprintf(char *str, size_t size, const char *format, va_list ap); */
 
@@ -72,3 +73,16 @@ void _fcpLog(int level, char *format, ...)
 	}
 }
 
+
+/*
+  Function: fcpSetLogVerbosity(int verbosity)
+*/
+void fcpSetLogVerbosity(int verbosity)
+{
+	if ((verbosity >= 0) && (verbosity <= 4)) {
+		_fcpVerbosity = verbosity;
+		_fcpLog(FCP_LOG_DEBUG, "Log verbosity changed to %d", _fcpVerbosity);
+	}
+
+	return;
+}

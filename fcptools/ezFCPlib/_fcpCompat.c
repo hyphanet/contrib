@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern char *_fcpTmpDir;
 
 int    _fcpThreadLaunch(void (*f)(void *), void *parms);
 void   _fcpThreadQuit(char *s);
@@ -68,8 +69,7 @@ int _fcpLaunchThread(void (*f)(void *), void *parms)
   return pthread_create(&pth, &attr, (void *(*)(void *))f, parms);
 
 #else
-  /*return _beginthread(f, 0, parms) == -1 ? -1 : 0;*/
-	return 0;
+  return _beginthread(f, 0, parms) == -1 ? -1 : 0;
 
 #endif
 }

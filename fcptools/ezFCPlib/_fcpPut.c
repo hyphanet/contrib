@@ -102,6 +102,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	/* pre-handle the key and metadata filenames to simplify the logic here
 		 if at all possible */
 
+	_fcpLog(FCP_LOG_DEBUG, "checking key data");
+	
 	if (key_filename) {
 		if (!(kfile = fopen(key_filename, "rb"))) {
 			hfcp->error = strdup("could not open key data file");
@@ -122,6 +124,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	hfcp->key = _fcpCreateHKey();
 	hfcp->key->size = file_size(key_filename);
 
+	_fcpLog(FCP_LOG_DEBUG, "checking key metadata");
+
 	/* and now the same for the metadata */
 	if (meta_filename) {
 		if (!(mfile = fopen(meta_filename, "rb"))) {
@@ -140,6 +144,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		meta_bytes = 0;
 
 	/* let's loop this until we stop receiving Restarted messages */
+
+	_fcpLog(FCP_LOG_VERBOSE, "entering insert loop");
 	
 	do {
 		/* @@@ perhaps perform lseeks() to handle Restarted messages.. */
@@ -150,7 +156,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		/* create a put message (depending on existance of metadata) */
 		if (meta_bytes) {
 			rc = snprintf(buf, L_FILE_BLOCKSIZE,
-										"ClientPut\nURI=CHK@\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
+										"ClientPut\nRemoveLocalKey=%s\nURI=CHK@\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
+										(hfcp->delete_local == 0 ? "false" : "true"),
 										hfcp->htl,
 										hfcp->key->size + meta_bytes,
 										meta_bytes
@@ -158,11 +165,14 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		}
 		else {
 			rc = snprintf(buf, L_FILE_BLOCKSIZE,
-										"ClientPut\nURI=CHK@\nHopsToLive=%x\nDataLength=%x\nData\n",
+										"ClientPut\nRemoveLocalKey=%s\nURI=CHK@\nHopsToLive=%x\nDataLength=%x\nData\n",
+										(hfcp->delete_local == 0 ? "false" : "true"),
 										hfcp->htl,
 										hfcp->key->size
 										);
 		}
+
+		_fcpLog(FCP_LOG_DEBUG, "Send ClientPut message\n%s", buf);
 		
 		/* Send ClientPut command */
 		if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
@@ -421,13 +431,9 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 	
 	/* create the put message */
 	rc = snprintf(buf, L_FILE_BLOCKSIZE,
-								"ClientPut\nURI=%s\n" \
-								"HopsToLive=%x\n" \
-								"DataLength=%x\n" \
-								"MetadataLength=%x\n" \
-								"Data\n" \
-								"%s",
-							
+								"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n%s",
+								
+								(hfcp->delete_local == 0 ? "false" : "true"),
 								hfcp->key->uri->uri_str,
 								hfcp->htl,
 								meta_bytes,
@@ -805,7 +811,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
-		tmp_hfcp = fcpCreateHFCP();
+		tmp_hfcp = fcpCreateDefHFCP();
 		tmp_hfcp->key = _fcpCreateHKey();
 		tmp_hfcp->key->size = segment->block_size;
 		
@@ -820,7 +826,8 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		/* create a put message */
 		
 		rc = snprintf(buf, L_FILE_BLOCKSIZE,
-									"ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
+									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
+									(hfcp->delete_local == 0 ? "false" : "true"),
 									tmp_hfcp->key->uri->uri_str,
 									tmp_hfcp->htl,
 									tmp_hfcp->key->size
@@ -953,7 +960,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	/* insert check blocks next */
 
 	for (bi=0; bi < segment->cb_count; bi++) {
-		tmp_hfcp = fcpCreateHFCP();
+		tmp_hfcp = fcpCreateDefHFCP();
 		
 		_fcpLog(FCP_LOG_DEBUG, "inserting check block %d", bi);
 		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0);
@@ -1105,12 +1112,9 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	/* create the put message */
 	rc = snprintf(buf, L_FILE_BLOCKSIZE,
-								"ClientPut\nURI=CHK@\n" \
-								"HopsToLive=%x\n" \
-								"DataLength=%x\n" \
-								"MetadataLength=%x\n" \
-								"Data\n",
+								"ClientPut\nRemoveLocalKey=%s\nURI=CHK@\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
 								
+								(hfcp->delete_local == 0 ? "false" : "true"),
 								hfcp->htl,
 								meta_len,
 								meta_len

@@ -36,18 +36,12 @@
 */
 
 /* Common FCP related default protocol values */
-char  _fcpID[4] = { 0, 0, 0, 2 };
+char *_fcpHost;
 
-char *_fcpHost = 0; /* In case I forget again.. this is correct */
+unsigned short _fcpPort;
+int   _fcpHtl;
+int   _fcpRawmode;
 
-unsigned short _fcpPort = EZFCP_DEFAULT_PORT;
-int   _fcpHtl = EZFCP_DEFAULT_HTL;
-int   _fcpRawmode = EZFCP_DEFAULT_RAWMODE;
-
-int   _fcpVerbosity = EZFCP_DEFAULT_VERBOSITY;
-int   _fcpRegress = EZFCP_DEFAULT_REGRESS;
-char *_fcpTmpDir = 0;
-
-/* Basic accounting - ensure sockets are getting closed */
-int   _fcpNumOpenSockets = 0;
-
+int   _fcpVerbosity;
+int   _fcpRegress;
+char *_fcpTmpDir;
