@@ -97,7 +97,8 @@ insert (char *file, int depth)
 	fcp_metadata_free(m);
     }
     while (depth--) putchar('\t');
-    printf("%s=%s\n", t ? t + 1 : file, &uri[12]);
+    sprintf(uri, "%s//", uri);
+    printf("%s=%s\n", t ? t + 1 : file, uri);
 }
 
 int
