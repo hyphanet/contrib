@@ -461,7 +461,7 @@ request (int c)
 	 next2:;
 	}
 
-	if (a) continue; // the following is expensive, so avoid it if possible
+	if (!n || a) continue; // the following is expensive, so avoid it if possible
 
 	// we may still be able to do it. there's a possibility that we can
 	// reconstruct a data block from check blocks alone. first, we find two
