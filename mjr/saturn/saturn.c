@@ -16,7 +16,7 @@
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int htl, threads, max_threads, collisions, max_collisions, skip, min_bytes;
-regex_t *regex;
+regex_t *regex, *datex;
 char *nntpserver, *group;
 uint32_t article_count, *articles;
 FILE *sock, *log;
@@ -185,8 +185,8 @@ exit:
 article *
 get_article (uint32_t msg_num)
 {
-    int status = 0, base64 = 0;
-    char line[512], msg_id[512], name[512];
+    int foo, status = 0, base64 = 0;
+    char line[512], msg_id[512], name[512], date[512];
     FILE *decoded, *data = tmpfile();
     article *a;
 
@@ -209,6 +209,18 @@ get_article (uint32_t msg_num)
 	}
         fgets(line, 512, sock);
         if (strcmp(line, ".\r\n") != 0) goto badreply;
+    }
+
+    if (datex) {
+	fprintf(sock, "date %d\r\n", msg_num);
+	fflush(sock);
+	fgets(line, 512, sock);
+	foo = sscanf(line, "%d %s\r\n", &status, date);
+	if (foo != 2 || status != 111) goto badreply; fprintf(stderr, "%s ", date);
+	if (regexec(datex, date, 0, NULL, 0)) {
+	    fprintf(stderr, "Skipping unmatched article %d.\n", msg_num);
+	    goto error;
+	}
     }
     
     if (min_bytes) {
@@ -292,7 +304,9 @@ usage (char *me)
 		    "  -r --regex         Only insert articles whose names match regex.\n"
 		    "  -c --collisions    Terminate after a number of collisions.\n"
 		    "  -s --skip          Skip x newest articles.\n"
-		    "  -m --min           Skip articles less than x bytes.\n\n",
+		    "  -m --min           Skip articles less than x bytes.\n"
+		    "  -d --date          Only insert articles whose dates match regex.\n"
+		    "                     (date format: YYYYMMDDHHMMSS) || b0rked!!!\n\n",
 		    me);
     exit(2);
 }
@@ -303,7 +317,7 @@ main (int argc, char **argv)
     pthread_t thread;
     article *a;
     int c;
-    char regex_string[256];
+    char regex_string[256], date_string[256];
     extern int optind;
     extern char *optarg;
 
@@ -314,6 +328,7 @@ main (int argc, char **argv)
 	{"collisions", 1, NULL, 'c'},
 	{"skip",       1, NULL, 's'},
 	{"min",        1, NULL, 'm'},
+	{"date",       1, NULL, 'd'},
 	{0, 0, 0, 0}
     };
     
@@ -327,11 +342,12 @@ main (int argc, char **argv)
     htl = 15;
     max_threads = 1;
     regex_string[0] = '\0';
+    date_string[0] = '\0';
     max_collisions = 0;
     skip = 0;
     min_bytes = 0;
     
-    while ((c = getopt_long(argc, argv, "h:t:r:c:s:m:", long_options, NULL)) != EOF) {
+    while ((c = getopt_long(argc, argv, "h:t:r:c:s:m:d:", long_options, NULL)) != EOF) {
         switch (c) {
         case 'h':
             htl = atoi(optarg);
@@ -350,6 +366,9 @@ main (int argc, char **argv)
             break;
 	case 'm':
 	    min_bytes = atoi(optarg);
+	    break;
+	case 'd':
+	    strncpy(date_string, optarg, 256);
 	    break;
         case '?':
             usage(argv[0]);
@@ -393,6 +412,16 @@ main (int argc, char **argv)
 	    exit(2);
 	}
     }
+
+    datex = NULL;
+    if (strlen(date_string)) {
+	datex = malloc(sizeof(regex_t));
+	c = regcomp(datex, date_string, REG_ICASE | REG_EXTENDED | REG_NOSUB);
+	if (c != 0) {
+	    fprintf(stderr, "Invalid regular expression: %s\n", date_string);
+	    exit(2);
+	}
+    }
     
     nntp_connect();
     nntp_xover();
@@ -419,6 +448,7 @@ main (int argc, char **argv)
     } while (article_count);
     
     printf("End of article list reached. Waiting for inserts to complete...\n");
+    while (threads) pthread_cond_wait(&cond, &mutex);
     pthread_exit(NULL);
 }
 
