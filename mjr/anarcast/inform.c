@@ -24,7 +24,7 @@ int
 main (int argc, char **argv)
 {
     unsigned int l, m, active;
-    pthread_t t;
+   // pthread_t t;
     fd_set r, w;
     
     if (argc != 1) {

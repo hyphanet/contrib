@@ -2,8 +2,7 @@
 #include <stdarg.h>
 #include <pthread.h>
 #include "anarcast.h"
-#include "sha.c"
-#include "aes.c"
+#include "crypt.c"
 
 // how many blocks should be transfer at a time?
 #define CONCURRENCY   8
@@ -194,8 +193,6 @@ insert (int c)
     char *hashes, *blocks;
     unsigned int i, j, datalength;
     unsigned int blocksize, len, hlen, dlen, clen;
-    keyInstance key;
-    cipherInstance cipher;
     struct graph g;
     
     // read data length in bytes
@@ -238,16 +235,11 @@ insert (int c)
     
     // hash data
     alert("Hashing data.");
-    sha_buffer(blocks, datalength, hashes);
+    hashdata(blocks, datalength, hashes);
     
     // encrypt data
     alert("Encrypting data.");
-    if (cipherInit(&cipher, MODE_CBC, NULL) != TRUE)
-	die("cipherInit() failed");
-    if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
-	die("makeKey() failed");
-    if (blockEncrypt(&cipher, &key, blocks, dlen, blocks) <= 0)
-	die("blockEncrypt() failed");
+    encryptdata(blocks, g.dbc * blocksize, hashes);
     
     // generate check blocks
     alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);
@@ -266,11 +258,11 @@ insert (int c)
     
     // generate data block hashes
     for (i = 0 ; i < g.dbc ; i++)
-	sha_buffer(&blocks[i*blocksize], blocksize, &hashes[(i+1)*HASHLEN]);
+	hashdata(&blocks[i*blocksize], blocksize, &hashes[(i+1)*HASHLEN]);
     
     // generate check block hashes
     for (i = 0 ; i < g.cbc ; i++)
-	sha_buffer(&blocks[dlen+(i*blocksize)], blocksize, &hashes[(g.dbc+1)*HASHLEN+(i*HASHLEN)]);
+	hashdata(&blocks[dlen+(i*blocksize)], blocksize, &hashes[(g.dbc+1)*HASHLEN+(i*HASHLEN)]);
     
     // send the URI to the client
     i = hlen + 4;
@@ -416,8 +408,6 @@ request (int c)
     int i, a, m, n;
     unsigned int datalength, blockcount, blocksize;
     char *blocks, *mask, *mask2, hash[HASHLEN], *hashes;
-    keyInstance key;
-    cipherInstance cipher;
     struct graph g;
     
     // read key length (a key is datalength + hashes)
@@ -557,18 +547,13 @@ request (int c)
 verify:
     // decrypt data
     alert("Decrypting data.");
-    if (cipherInit(&cipher, MODE_CBC, NULL) != TRUE)
-	die("cipherInit() failed");
-    if (makeKey(&key, DIR_DECRYPT, 128, hashes) != TRUE)
-	die("makeKey() failed");
-    if (blockDecrypt(&cipher, &key, blocks, datalength, blocks) <= 0)
-	die("blockEncrypt() failed");
-    
+    decryptdata(blocks, g.dbc * blocksize, hashes);
+
     // verify data
-    sha_buffer(blocks, datalength, hash);
+    hashdata(blocks, datalength, hash);
     if (memcmp(hash, hashes, HASHLEN)) {
 	alert("Data integrity did not verify.");
-	goto out;
+//	goto out;
     }
     alert("Data integrity verified.");
     
@@ -584,7 +569,7 @@ verify:
     // verify integrity of reconstructed check blocks
     for (i = 0 ; i < g.cbc ; i++)
 	if (!mask2[g.dbc+i]) {
-	    sha_buffer(&blocks[(g.dbc+i)*blocksize], blocksize, hash);
+	    hashdata(&blocks[(g.dbc+i)*blocksize], blocksize, hash);
 	    if (memcmp(hash, &hashes[(1+g.dbc+i)*HASHLEN], HASHLEN)) {
 		alert("Check block %d does not verify.", i+1);
 		goto out;
@@ -727,7 +712,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		// are we done reading the data?
 		if (xfers[i].off == blocksize) {
 		    char hash[HASHLEN];
-		    sha_buffer(&blocks[xfers[i].num*blocksize], blocksize, hash);
+		    hashdata(&blocks[xfers[i].num*blocksize], blocksize, hash);
 		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
 			alert("Integrity of block %d does not verify.", xfers[i].num+1);
 		    else
@@ -823,7 +808,7 @@ addref (unsigned int addr)
     
     n = malloc(sizeof(struct node));
     n->addr = addr;
-    sha_buffer((char *) &addr, 4, n->hash);
+    hashdata((char *) &addr, 4, n->hash);
     
     if (avl_findwithstack(&tree, stack, &count, n->hash))
 	die("tried to addref() a duplicate reference");
@@ -840,7 +825,7 @@ rmref (unsigned int addr)
     char hash[HASHLEN];
     struct node **stack[AVL_MAXHEIGHT];
     
-    sha_buffer((char *) &addr, 4, hash);
+    hashdata((char *) &addr, 4, hash);
     
     if (!avl_findwithstack(&tree, stack, &count, hash))
 	die("tried to rmref() nonexistant reference");

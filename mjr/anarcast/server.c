@@ -1,5 +1,5 @@
 #include "anarcast.h"
-#include "sha.c"
+#include "crypt.c"
 
 // mongolian cluster-fuck! sorry, i had to get that in somewhere
 void touch_inform_server (char *server);
@@ -107,7 +107,7 @@ main (int argc, char **argv)
 	    a[n].off += c;
 	    if (a[n].off == a[n].len) {
 		char hex[HASHLEN*2+1];
-		sha_buffer(a[n].data, a[n].len, a[n].hash);
+		hashdata(a[n].data, a[n].len, a[n].hash);
 		bytestohex(hex, a[n].hash, HASHLEN);
 		printf("%s < %s\n", timestr(), hex);
 		if (stat(hex, &st) == -1) {

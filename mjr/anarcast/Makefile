@@ -1,6 +1,6 @@
 CFLAGS = -g -Wall
 PROGRAMS = server insert request inform proxy
-DEPS = anarcast.h Makefile
+DEPS = anarcast.h crypt.c Makefile
 
 all: $(PROGRAMS)
 
