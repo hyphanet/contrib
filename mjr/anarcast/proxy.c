@@ -33,7 +33,7 @@ void * run_thread (void *arg);
 void alert (const char *s, ...);
 
 void insert (int c);
-void do_insert (char *blocks, int blockcount, int blocksize);
+void do_insert (char *blocks, int blockcount, int blocksize, char *hashes);
 
 void request (int c);
 
@@ -229,7 +229,7 @@ insert (int c)
     }
 
     // actually insert the blocks
-    do_insert(blocks, g.dbc + g.cbc, blocksize);
+    do_insert(blocks, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
 
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
@@ -237,11 +237,11 @@ insert (int c)
 }
 
 void
-do_insert (char *blocks, int blockcount, int blocksize)
+do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
 {
     int m;
     fd_set r, w;
-
+    
     FD_ZERO(&r);
     FD_ZERO(&w);
     
@@ -256,6 +256,7 @@ do_insert (char *blocks, int blockcount, int blocksize)
 	if (i == -1) die("select() failed");
 	if (!i) continue;
 
+	
     }
 }
 
