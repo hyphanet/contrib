@@ -373,7 +373,7 @@ request (int c)
     }
     
     i -= 4;
-    if (i % HASHLEN) {
+    if (i % HASHLEN || i == HASHLEN) {
 	alert("Bad key length: %s.", i);
 	return;
     }
