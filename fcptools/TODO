@@ -1,13 +1,48 @@
 This is the TODO file for FCPtools.
 
 
-This file's purpose is to provide a breakdown of important features/fixes that
-can be implemented by any competent C programmer.
+This file's purpose is to provide a breakdown of important features/fixes
+that can be implemented by any competent C programmer.
 
 
 ---------------------------------------------------------------------------
-*** ezFCPlib specific *** (In order of relative importance)
+ezFCPlib specific
+
+* Make fcpOpenKey() handle splitfiles.
+* In fcpPutSplit(), move splitfile thread handling up a layer so it dosn't
+	confilict with putsite.
+* Check all internal APIs for consistant usage and funcionality.
+	(cdocGetDoc() is an example, in that the documented behavior is different
+	from it's actual implementaion.
+* WIN32 equivilant code for crTicket/crCancel in common.h.
+* Update core FCP request and response parsing; Implement new FCP commands
+	as discussed on Freenet-dev.
 
 
 ---------------------------------------------------------------------------
-*** FCPtools generic ***
+fcpget
+
+* Implement DBR regression support.
+* Make retries configurable.
+
+
+---------------------------------------------------------------------------
+fcpputsite
+
+* Handle large manifests more intelligently.
+* WIN32 code for checking for file changes.
+
+
+---------------------------------------------------------------------------
+FCPtools generic
+
+* Pattern all command-line interfaces and option parsing like fcpget's usage
+	of getopts().  Consider standardizing a default config file, and a
+	parameter	to use a configuration file from an alternate location.
+
+
+---------------------------------------------------------------------------
+New functionality
+
+* Add FEC support rather then straight splitfiles (option)
+* Update documentation on all exported APIs.
