@@ -67,16 +67,16 @@ const char *szFreenetTooltipText[]=
 };
 
 /* string constants for use with the FLaunch.ini file */
-const char szFreenetJar[]="Freenet.jar";         /* name of the freenet.jar to be appended to the classpath */
-const char szFreenetExtJar[]="Freenet-ext.jar";  /* name of an external dependency .jar to be appended to the classpath */
+const char szFreenetJar[]="freenet.jar";         /* name of the freenet.jar to be appended to the classpath */
+const char szFreenetExtJar[]="freenet-ext.jar";  /* name of an external dependency .jar to be appended to the classpath */
 const char szflfile[]="./FLaunch.ini";           /* name of the ini file */
 const char szflsec[]="Freenet Launcher";         /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=javaw.exe */
 const char szprioritykey[]="Priority"; /* ie Priority=0 */
-const int  nDefaultPriority = THREAD_PRIORITY_NORMAL;
+const int  nDefaultPriority = THREAD_PRIORITY_IDLE;
 const char szpriorityclasskey[]="PriorityClass"; /* ie PriorityClass=32 */
-const int  nDefaultPriorityClass = NORMAL_PRIORITY_CLASS;
+const int  nDefaultPriorityClass = IDLE_PRIORITY_CLASS;
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Main */
 const char szfserveclidefaultexec[]="freenet.node.Main"; /* default for above */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */

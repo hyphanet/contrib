@@ -54,8 +54,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,4,0,0
- PRODUCTVERSION 0,4,0,0
+ FILEVERSION 0,5,1,0
+ PRODUCTVERSION 0,5,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,17 +70,17 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.freenetproject.org\r\n\r\nWritten / Maintained by Dave Hooper\r\nContact freenet@beermex.com\0"
+            VALUE "Comments", "http://www.freenetproject.org\r\nsupport@freenetproject.org\r\nWritten / Maintained by Dave Hooper\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "Freenet Systray Application\0"
-            VALUE "FileVersion", "0.4.0.0\0"
+            VALUE "FileVersion", "0.5.1.0\0"
             VALUE "InternalName", "freenet.exe\0"
             VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "freenet.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "freenet systray\0"
-            VALUE "ProductVersion", "Freenet 0.4.X\0"
+            VALUE "ProductVersion", "Freenet 0.5\0"
             VALUE "SpecialBuild", "\0"
         END
     END
