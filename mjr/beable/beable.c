@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <err.h>
 
 pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
 
@@ -28,7 +29,7 @@ struct item {
 } *database = NULL, *recent_additions[RECENT_ADDITIONS_LENGTH];
 
 int listening_socket ();                   // Create and bind a new listening socket.
-int load_key_database ();                  // Load key database.
+void load_key_database ();                 // Load key database.
 void * accept_thread (void *arg);          // Accept and run transactions.
 void run (int conn);                       // Handle a HTTP connection.
 void send_index (FILE *socket);            // Send the default page.
@@ -41,41 +42,45 @@ int url_decode (char *url);                // URL decode.
 int
 main ()
 {
-    int i, socket = listening_socket();
+    int i, s;
     pthread_t t;
     
-    if (socket == -1) {
-	fprintf(stderr, "Error initializing listening socket.\n");
-	exit(1);
-    }
-
-    if (load_key_database() == -1) {
-	fprintf(stderr, "Error loading key database.\n");
-	exit(1);
-    }
+    load_key_database();
+    s = listening_socket();
     
     signal(SIGPIPE, SIG_IGN);
 
     for (i = 0 ; i < ACCEPT_THREADS ; i++) {
-	pthread_create(&t, NULL, accept_thread, (void *) &socket);
-	pthread_detach(t);
+	if (pthread_create(&t, NULL, accept_thread, (void *) &s) != 0)
+	    err(1, "pthread_create() failed");
+	if (pthread_detach(t) != 0)
+	    err(1, "pthread_detach() failed");
     }
     
     for (;;) {
 	FILE *data;
 	struct item *i;
+	
 	sleep(DATABASE_SYNC_INTERVAL);
+	
 	data = fopen("beable_database", "w");
 	if (!data) {
 	    fprintf(stderr, "Error opening database for write.\n");
 	    continue;
 	}
-	pthread_rwlock_rdlock(&lock);
+	
+	if (pthread_rwlock_rdlock(&lock) != 0)
+	    err(1, "pthread_rwlock_rdlock() failed");
+	
 	for (i = database; i ; i = i->next)
 	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n",
 		    i->key, i->name, i->desc, i->ctime);
-	pthread_rwlock_unlock(&lock);
-	fclose(data);
+	
+	if (pthread_rwlock_unlock(&lock) != 0)
+	    err(1, "pthread_rwlock_unlock() failed");
+	
+	if (fclose(data) != 0)
+	    err(1, "fclose() failed");
     }
 }
 
@@ -91,20 +96,21 @@ listening_socket ()
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	return -1;
+	err(1, "socket() failed");
     
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &r, sizeof(r));
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &r, sizeof(r)) != 0)
+	err(1, "setsockopt() failed");
     
     if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0)
-	return -1;
+	err(1, "bind() failed");
     
     if (listen(sock, SOMAXCONN) < 0)
-	return -1;
+	err(1, "listen() failed");
 
     return sock;
 }
 
-int
+void
 load_key_database ()
 {
     int i;
@@ -114,12 +120,18 @@ load_key_database ()
     FILE *data = fopen("beable_database", "r");
     
     while (data && !feof(data)) {
+	
 	i = fscanf(data, "%[^\n]\n%[^\n]\n%[^\n]\n%lx\n%[^\n]\n",
 		   key, name, desc, &ctime, end);
-	if (i != 5 || strcmp(end, "END") != 0)
-	    return -1;
+	
+	if (i != 5 || strcmp(end, "END") != 0) {
+	    fprintf(stderr, "Invalid database entry read.\n");
+	    exit(1);
+	}
+	
 	if (!database) {
-	    database = malloc(sizeof(struct item));
+	    if (!(database = malloc(sizeof(struct item))))
+		err(1, "malloc() failed");
 	    database->key = strdup(key);
 	    database->name = strdup(name);
 	    database->desc = strdup(desc);
@@ -127,7 +139,8 @@ load_key_database ()
 	    database->next = NULL;
 	    tail = database;
 	} else {
-	    tail->next = malloc(sizeof(struct item));
+	    if (!(tail->next = malloc(sizeof(struct item))))
+		err(1, "malloc() failed");
 	    tail->next->key = strdup(key);
 	    tail->next->name = strdup(name);
 	    tail->next->desc = strdup(desc);
@@ -152,8 +165,8 @@ load_key_database ()
 	last = ctime;
     }
 
-    if (data) fclose(data);
-    return 0;
+    if (data && fclose(data) != 0)
+	err(1, "fclose() failed");
 }
 
 void *
@@ -196,7 +209,8 @@ run (int conn)
     else                                  send_error_404(socket);
 
 end:
-    fclose(socket);
+    if (fclose(socket) != 0)
+	err(1, "fclose() failed");
 }
 
 void
@@ -245,9 +259,13 @@ send_index (FILE *socket)
     
     int i;
     
-    fputs(one, socket);
-    pthread_rwlock_rdlock(&lock);
-    for (i = 0 ; recent_additions[i] && i < RECENT_ADDITIONS_LENGTH ; i++)
+    if (fputs(one, socket) == EOF)
+	return;
+    
+    if (pthread_rwlock_rdlock(&lock) != 0)
+	err(1, "pthread_rwlock_rdlock() failed");
+    
+    for (i = 0 ; recent_additions[i] && i < RECENT_ADDITIONS_LENGTH ; i++) {
 	fprintf(socket, "  <tr>"
 			"\n    <td><a href=\"%s%s\">%s</a></td>"
 			"\n    <td>%s</td>"
@@ -256,8 +274,16 @@ send_index (FILE *socket)
 			recent_additions[i]->key,
 			recent_additions[i]->name,
 			recent_additions[i]->desc);
-    pthread_rwlock_unlock(&lock);
-    fputs(two, socket);
+
+	if (feof(socket) || ferror(socket))
+	    break;
+    }
+    
+    if (pthread_rwlock_unlock(&lock) != 0)
+	err(1, "pthread_rwlock_unlock() failed");
+    
+    if (!feof(socket) && !ferror(socket))
+	fputs(two, socket);
 }
 
 void
@@ -328,22 +354,30 @@ run_search (FILE *socket, char *url)
     }
 	
     
-    fputs(one, socket);
-    pthread_rwlock_rdlock(&lock);
+    if (fputs(one, socket) == EOF)
+	return;
+    
+    if (pthread_rwlock_rdlock(&lock) != 0)
+	err(1, "pthread_rwlock_rdlock() failed");
+    
     for (i = database ; i ; i = i->next) {
 	int nlen = strlen(i->name);
 	int dlen = strlen(i->desc);
 	char name[nlen], desc[dlen];
+	
 	while (nlen--)
 	    name[nlen] = tolower(i->name[nlen]);
+	
 	while (dlen--)
 	    desc[dlen] = tolower(i->desc[dlen]);
+	
 	for (m = 0 ; m < n ; m++)
 	    if (!strstr(name, search[m]) && !strstr(desc, search[m]))
 		    break;
-	if (m != n)
-	    continue;
-        fprintf(socket, "  <tr>"
+	
+	if (m != n) continue;
+        
+	fprintf(socket, "  <tr>"
 	                "\n    <td><a href=\"%s%s\">%s</a></td>"
 			"\n    <td>%s</td>"
 			"\n  </tr>\n",
@@ -351,9 +385,16 @@ run_search (FILE *socket, char *url)
 			i->key,
 			i->name,
 			i->desc);
+
+	if (feof(socket) || ferror(socket))
+	    break;
     }
-    pthread_rwlock_unlock(&lock);
-    fputs(two, socket);
+    
+    if (pthread_rwlock_unlock(&lock) != 0)
+	err(1, "pthread_rwlock_unlock() failed");
+    
+    if (!feof(socket) && !ferror(socket))
+	fputs(two, socket);
 }
 
 void
@@ -403,22 +444,24 @@ run_add (FILE *socket, char *url)
     if (!key || !name || !desc)
 	goto fof;
     
-    j = malloc(sizeof(struct item));
+    if (!(j = malloc(sizeof(struct item))))
+	err(1, "malloc() failed");
+
     j->key = strdup(key);
     j->name = strdup(name);
     j->desc = strdup(desc);
     j->ctime = time(NULL);
     
-    pthread_rwlock_wrlock(&lock);
+    if (pthread_rwlock_wrlock(&lock) != 0)
+	err(1, "pthread_rwlock_wrlock() failed");
+
     if (!database) {
 	database = j;
 	j->next = NULL;
-    }
-    else if (strcmp(database->name, name) >= 0) {
+    } else if (strcmp(database->name, name) >= 0) {
 	j->next = database;
 	database = j;
-    }
-    else {
+    } else {
         for (i = database ; ; i = i->next) {
 	    if (!i->next || strcmp(i->next->name, name) >= 0) {
                 j->next = i->next;
@@ -427,14 +470,19 @@ run_add (FILE *socket, char *url)
 	    }
 	}
     }
+    
     for (n = RECENT_ADDITIONS_LENGTH ; n > 0 ; n--)
 	recent_additions[n] = recent_additions[n-1];
+    
     recent_additions[0] = j;
-    pthread_rwlock_unlock(&lock);
+    
+    if (pthread_rwlock_unlock(&lock) != 0)
+	err(1, "pthread_rwlock_unlock() failed");
     
     fprintf(socket, "HTTP/1.0 301 Moved Permanently"
 	            "\nConnection: close"
 		    "\nLocation: /\n\n");
+    return;
 
 fof:
     send_error_404(socket);
@@ -467,9 +515,13 @@ send_data (FILE *socket)
     
     struct item *i;
     
-    fputs(one, socket);
-    pthread_rwlock_rdlock(&lock);
-    for (i = database ; i ; i = i->next)
+    if (fputs(one, socket) == EOF)
+	return;
+
+    if (pthread_rwlock_rdlock(&lock) != 0)
+	err(1, "pthread_rwlock_rdlock() failed");
+    
+    for (i = database ; i ; i = i->next) {
 	fprintf(socket, "  <tr>"
 			"\n    <td><a href=\"%s%s\">%s</a></td>"
 			"\n    <td>%s</td>"
@@ -478,8 +530,16 @@ send_data (FILE *socket)
 			i->key,
 			i->name,
 			i->desc);
-    pthread_rwlock_unlock(&lock);
-    fputs(two, socket);
+	
+	if (feof(socket) || ferror(socket))
+	    break;
+    }
+    
+    if (pthread_rwlock_unlock(&lock) != 0)
+	err(1, "pthread_rwlock_unlock() failed");
+    
+    if (!feof(socket) && !ferror(socket))
+	fputs(two, socket);
 }
 
 void
@@ -502,8 +562,8 @@ send_error_404 (FILE *socket)
 int
 url_decode (char *url)
 {
-    char tmp[512];
     int i, j = 0, len = strlen(url);
+    char tmp[len];
     
     for (i = 0 ; i < len ; i++) {
 	if (url[i] == '+') {
@@ -523,7 +583,7 @@ url_decode (char *url)
 	    tmp[j++] = url[i];
     }
         
-	tmp[j] = 0;
-	strcpy(url, tmp);
-	return 0;
+    tmp[j] = 0;
+    strcpy(url, tmp);
+    return 0;
 }
