@@ -11,7 +11,7 @@
 	================================================================
 	11-Dec-2000		Tim Buchalka - buchalka@hotmail.com			v1.1
 	09-Jan-2001		Tim Buchalka - buchalka@hotmail.com			v1.2
-							
+    20-Apr-2001     David McNab - david@rebirthing.co.nz        v1.3							
 
 	Items enhanced/added to version 1.1
 
@@ -34,11 +34,19 @@
      N.B. Code compiles with a warning - conversion from long to char - Should not effect
 	 operation of program but a future version should probably address this.
 
+    Items added to version 1.3
+
+    1. Disallowed use of Windows java interpreters (this eliminating a whole class of hassles)
+	2. If the program's filename is 'locjava.exe' instead of 'findjava.exe', then it won't search
+	   anywhere for a java interpreter - it will assume that on exists at ./jre/bin/java.exe and
+	   write that path to the flaunch.ini file.
+
 
 *//////////////////////////////////////////////////////////////////////////////
 
 #include <windows.h>
 #include <fstream.h>
+#include <stdio.h>
 #include <string.h>
 #include <commctrl.h>
 #include "resource.h"
@@ -89,8 +97,31 @@ DialogControls dc;
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
     {
 
-		// If we find an interpreter in the registry dont bother with the hdd check
+		char javapath[256];
+		char *exename;
+		char *progpath;
 
+		// determine the directory in which this executable is running
+		progpath = strdup(_pgmptr); // 'pgmptr' is a global windows-specific string
+		exename = strrchr(progpath, '\\'); // point to slash between path and filename
+		*exename++ = '\0'; // split the string and point to filename part
+
+		// davidmcnab - magic command line argument which sets to locally bundled java
+		if (!_stricmp(exename, "locjava.exe"))
+		{
+			// generate absolute pathname for embedded java interpreter, write to flaunch.ini
+			sprintf(javapath, "%s\\jre\\bin\\java.exe", progpath);
+		    WritePrivateProfileString("Freenet Launcher", "javaexec", javapath, ".\\FLaunch.ini");
+
+			// ditto for javaw.exe
+			sprintf(javapath, "%s\\jre\\bin\\javaw.exe", progpath);
+		    WritePrivateProfileString("Freenet Launcher", "javaw", javapath, ".\\FLaunch.ini");
+
+			// no need for dialog
+			return 0;
+		}
+
+		// If we find an interpreter in the registry dont bother with the hdd check
 		if((searchRegistry() == JAVA_FOUND_IN_REGISTRY))
 		{
 			PostQuitMessage(1); //exit
