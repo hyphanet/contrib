@@ -49,6 +49,8 @@ public:
 	UINT	m_maximumPadding;
 	UINT	m_nUnknowns;
 	CString	m_strNumUnknowns;
+	BOOL	m_bAutoIP;
+	BOOL	m_bAllowNodeAddressChanges;
 	//}}AFX_DATA
 
 	CString	m_unknowns;
@@ -66,6 +68,7 @@ protected:
 	//{{AFX_MSG(CPropGeek)
 	afx_msg void OnUnknown();
 	virtual BOOL OnInitDialog();
+	afx_msg void OnCheckAllowNodeAddressChanges();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

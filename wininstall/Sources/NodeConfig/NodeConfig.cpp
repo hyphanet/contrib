@@ -155,6 +155,10 @@ BOOL CNodeConfigApp::InitInstance()
 	pFProxy = &FProxy;
 	pDiagnostics = &Diagnostics;
 
+	// Tie Normal page to Geek page so checking the 'allow updates' box in Geek enables
+	// the corresponding windows in Normal
+	pNormal->m_pGeek = pGeek;
+
 	propdlg.AddPage(pNormal);
 	propdlg.AddPage(pAdvanced);
 	propdlg.AddPage(pGeek);

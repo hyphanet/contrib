@@ -26,6 +26,8 @@ private:
 	BOOL	atobool(char *buf);
 	void	ReadFLaunchIni(void);
 	void	UpdateFLaunchIni(void);
+	BOOL	m_bAllowNodeAddressChanges;
+	bool	IsValidNodeAddress(CString & strNodeAddress);
 };
 
 typedef BOOL (WINAPI GETDISKFREESPACEEX_) (LPCTSTR,PULARGE_INTEGER,PULARGE_INTEGER,PULARGE_INTEGER);

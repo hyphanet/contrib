@@ -14,6 +14,7 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropNormal dialog
+class CPropGeek;
 
 class CPropNormal : public CMoveablePropertyPage
 {
@@ -24,7 +25,6 @@ public:
 	CPropNormal();
 	~CPropNormal();
 	void	showNodeAddrFields(BOOL showing);
-	BOOL	warnPerm;
 
 // Dialog Data
 	//{{AFX_DATA(CPropNormal)
@@ -38,6 +38,8 @@ public:
 	CString	m_storeFile;
 	int		m_transient;
 	//}}AFX_DATA
+	CPropGeek* m_pGeek;
+	CString m_strHiddenNodeAddress;
 
 
 // Overrides
@@ -52,17 +54,19 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(CPropNormal)
 	afx_msg void OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	afx_msg void OnImportNewNodeRef();
 	afx_msg void OnDestroy();
 	afx_msg void Ontransient();
 	afx_msg void OnNotTransient();
+	virtual BOOL OnInitDialog();
+	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
+	afx_msg void OnRandomizePort();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+	BOOL m_bAllowNodeAddressChanges;
+	BOOL m_bAutoIP;
 
 	void OnNodeAvailability(void);
-
 };
 
 //{{AFX_INSERT_LOCATION}}

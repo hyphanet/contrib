@@ -104,10 +104,15 @@
 #define IDC_FAILURETABTIME              1095
 #define IDC_adminPeer                   1095
 #define IDC_FAILURETABTIMESPIN          1096
+#define IDC_RANDOMIZEPORT               1096
 #define IDC_BOUTBOUNDCONTACTS           1097
 #define IDC_BINBOUNDREQUESTS            1098
+#define IDC_CHECK_CHANGENODEADDRESS     1098
 #define IDC_BOUTBOUNDREQUESTS           1099
+#define IDC_CHECK_AUTOIP                1099
+#define IDC_STATIC_NODEAVAILABILITY_FRAME 1099
 #define IDC_LISTOFUNKNOWN               1100
+#define IDC_STATIC_NODEADDRESS_COLON    1100
 #define IDC_ADDTHIS                     1102
 #define IDC_ADDIT                       1105
 #define IDC_DELETE                      1106
@@ -126,7 +131,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1096
+#define _APS_NEXT_CONTROL_VALUE         1101
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

@@ -22,6 +22,8 @@ CPropGeek::CPropGeek() : CMoveablePropertyPage(CPropGeek::IDD)
 {
 	//{{AFX_DATA_INIT(CPropGeek)
 	m_strNumUnknowns = _T("");
+	m_bAutoIP = FALSE;
+	m_bAllowNodeAddressChanges = FALSE;
 	//}}AFX_DATA_INIT
 }
 
@@ -74,12 +76,15 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_storeCipherWidth, m_storeCipherWidth);
 	DDX_Text(pDX, IDC_maximumPadding, m_maximumPadding);
 	DDX_Text(pDX, IDC_NUMUNKNOWN, m_strNumUnknowns);
+	DDX_Check(pDX, IDC_CHECK_AUTOIP, m_bAutoIP);
+	DDX_Check(pDX, IDC_CHECK_CHANGENODEADDRESS, m_bAllowNodeAddressChanges);
 	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(CPropGeek, CMoveablePropertyPage)
 	//{{AFX_MSG_MAP(CPropGeek)
 	ON_BN_CLICKED(IDC_UNKNOWN, OnUnknown)
+	ON_BN_CLICKED(IDC_CHECK_CHANGENODEADDRESS, OnCheckAllowNodeAddressChanges)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -104,6 +109,9 @@ BOOL CPropGeek::OnInitDialog()
 	CMoveablePropertyPage::OnInitDialog();
 	UpdateNumofUnknowns();
 
+	GetDlgItem(IDC_CHECK_AUTOIP)->EnableWindow(m_bAllowNodeAddressChanges);
+	UpdateData(FALSE);
+
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
@@ -122,4 +130,11 @@ void CPropGeek::UpdateNumofUnknowns()
 	}
 	m_strNumUnknowns.Format("%d", nUnknowns);
 	UpdateData(FALSE);
+}
+
+void CPropGeek::OnCheckAllowNodeAddressChanges() 
+{
+	// TODO: Add your control notification handler code here
+	UpdateData(TRUE);
+	GetDlgItem(IDC_CHECK_AUTOIP)->EnableWindow(m_bAllowNodeAddressChanges);
 }

@@ -2,7 +2,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-
 #include "stdafx.h"
 #include "NodeConfig.h"
 #include "ConfigFile.h"
@@ -12,14 +11,11 @@
 #include "PropFproxy.h"
 #include "PropDiagnostics.h"
 
-
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
-
-
 
 extern char				progPath[256];
 extern CPropNormal		*pNormal;
@@ -42,7 +38,6 @@ CString getTempDir()
 	return dir;
 }	
 
-
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -54,26 +49,36 @@ CConfigFile::CConfigFile()
      PHOSTENT hostinfo;
 
 	//Try to guess the own host name
-	pNormal->m_ipAddress = "localhost";
+	pNormal->m_strHiddenNodeAddress = "localhost";
 
 	if(!gethostname ( name, sizeof(name)))
     {
 		if(hostinfo = gethostbyname(name))
         {
-			pNormal->m_ipAddress = hostinfo->h_name;
+			pNormal->m_strHiddenNodeAddress = hostinfo->h_name;
             //ip = inet_ntoa (*(struct in_addr *)*hostinfo->h_addr_list);
         }
     }
 
-	// set the ip address to undefined if it does not contain a '.' (all valid ip addresses/domain names should)
-	if(pNormal->m_ipAddress != "localhost" && pNormal->m_ipAddress.Find('.') == -1)
-		pNormal->m_ipAddress = "localhost";
+	if (!IsValidNodeAddress(pNormal->m_strHiddenNodeAddress))
+	{
+		pNormal->m_strHiddenNodeAddress = "localhost";
+	}
 }
 
 
 CConfigFile::~CConfigFile()
 {
 
+}
+
+bool CConfigFile::IsValidNodeAddress(CString & strNodeAddress)
+{
+	if(strNodeAddress != "localhost" && strNodeAddress.Find('.') == -1)
+	{
+		return false;
+	}
+	return true;
 }
 
 void CConfigFile::Load()
@@ -127,13 +132,13 @@ void CConfigFile::Load()
 	// i.e. shift FreeBytes right 20 bits
 	pNormal->m_storeSize = __max(10,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5);
 	pNormal->m_storeFile = "";
+
 	pNormal->m_tempFile = getTempDir();
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
-	pNormal->m_transient = TRANSIENT;
+	pNormal->m_transient = NOT_TRANSIENT;
 	// the ipAddrress is determined in the constructor: pNormal->m_ipAddress;
-	srand( (unsigned)time( NULL ) );
+	srand(time(NULL));
 	pNormal->m_listenPort = rand() + 1024;	// random port number
-	pNormal->warnPerm = TRUE;
 
 	// Advanced tab
 	pAdvanced->m_adminPassword = "";
@@ -174,6 +179,8 @@ void CConfigFile::Load()
 	pGeek->m_streamBufferSize = 16384;
 	pGeek->m_storeCipherName = "Twofish";
 	pGeek->m_storeCipherWidth = 128;
+	pGeek->m_bAutoIP = TRUE;
+	pGeek->m_bAllowNodeAddressChanges = FALSE;
 
 	pFProxy->m_fproxyport = 8888;
 	pFProxy->m_fproxyclass= "freenet.client.http.FproxyServlet";
@@ -245,7 +252,6 @@ void CConfigFile::Load()
 		pDiagnostics->m_nodeinfoport = 8890;
 	}
 
-
 	/////////////////////////////////
 	//
 	// Load any additional settings from FLaunch.ini
@@ -258,8 +264,10 @@ void CConfigFile::Load()
 void CConfigFile::Save()
 {
 	// TODO: fix localhost bug easier *HACK*
+	/*
 	if(pNormal->m_ipAddress == "localhost")
 		pNormal->m_transient = TRANSIENT;
+	*/
 
 	// GOD THIS IS A FREAKING HACK. FIXME.
 	if(pNormal->m_storeFile != "") {
@@ -299,6 +307,7 @@ void CConfigFile::Save()
 	fprintf(fp, "# Normal entries\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "\n");
+
 	fprintf(fp, "# The byte size of the datastore cache file.  Note that it will maintain\n");
 	fprintf(fp, "# a fixed size. If you change this or the storePath field following,\n");
 	fprintf(fp, "# your entire datastore will be wiped and replaced with a blank one\n");
@@ -315,10 +324,6 @@ void CConfigFile::Save()
 	fprintf(fp, "%sstoreFile=%s\n",pNormal->m_storeFile.GetLength()?"":"#", pNormal->m_storeFile);
 
 	fprintf(fp, "\n");
-	fprintf(fp, "# Transient nodes do not give out references to themselves, and should\n");
-	fprintf(fp, "# therefore not receive any requests.  Set this to yes only if you are\n");
-	fprintf(fp, "# on a slow, non-permanent connection.\n");
-	fprintf(fp, "transient=%s\n", (pNormal->m_transient == TRANSIENT) ? "true" : "false");
 	fprintf(fp, "\n");
 	fprintf(fp, "# The port to listen for incoming FNP (Freenet Node Protocol) connections on.\n");
 	fprintf(fp, "listenPort=%d\n", pNormal->m_listenPort);
@@ -326,18 +331,37 @@ void CConfigFile::Save()
 	fprintf(fp, "# The I.P. address of this node as seen by the public internet.\n");
 	fprintf(fp, "# This is needed in order for the node to determine its own\n");
 	fprintf(fp, "# NodeReference.\n");
-	if (pNormal->m_ipAddress.GetLength() == 0)
-		fprintf(fp, "ipAddress=localhost\n");
+	if (!IsValidNodeAddress(pNormal->m_ipAddress))
+	{
+		if (pNormal->m_ipAddress.CompareNoCase("AUTOMATIC")==0)
+		{
+			fprintf(fp, "ipAddress=\n"); // auto IP detection is turned on in config file by specifying a blank ip address
+		}
+		else
+		{
+			fprintf(fp, "ipAddress=localhost\n"); // invalid IP address so guess it's localhost
+		}
+	}
 	else
-		fprintf(fp, "ipAddress=%s\n", pNormal->m_ipAddress.GetBuffer(1));
+	{
+		if (pGeek->m_bAutoIP)
+		{
+			fprintf(fp, "ipAddress=\n"); // auto IP detection is turned on in config file by specifying a blank ip address
+		}
+		else
+		{
+			// a real valid IP or domain address:
+			fprintf(fp, "ipAddress=%s\n", pNormal->m_ipAddress.GetBuffer(1));
+		}
+	}
+	fprintf(fp, "# Transient nodes do not give out references to themselves, and should\n");
+	fprintf(fp, "# therefore not receive any requests.  Set this to yes only if you are\n");
+	fprintf(fp, "# on a slow, non-permanent connection.\n");
+	fprintf(fp, "transient=%s\n", (pNormal->m_transient == TRANSIENT) ? "true" : "false");
 	fprintf(fp, "\n");
 	fprintf(fp, "# The directory to store any temporary files created by the node. It gets deleted\n");
 	fprintf(fp, "# automatically on node start and stop.\n");
 	fprintf(fp, "tempDir=%s\n", pNormal->m_tempFile);
-	fprintf(fp, "\n");
-	fprintf(fp, "# This is used only by Windows configurator, not by node\n");
-	fprintf(fp, "warnPerm=%s\n", pNormal->warnPerm ? "true" : "false");
-	fprintf(fp, "\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Advanced Entries\n");
@@ -470,6 +494,7 @@ void CConfigFile::Save()
 	fprintf(fp, "# The path to the file containing the node's reference to itself, its\n");
 	fprintf(fp, "# routing table, and the datastore directory.  Defaults to store_<port>\n");
 	fprintf(fp, "# in the storePath directory.\n");
+
 	if (pGeek->m_storeDataFile.GetLength() == 0)
 		fprintf(fp, "#storeDataFile=\n");
 	else
@@ -526,7 +551,9 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Services & Servlets\n");
 	fprintf(fp, "########################\n");
+
 	fprintf(fp, "\n");
+
 	fprintf(fp, "# this line is deliberately commented out to let fred choose the defaults\n");
 	fprintf(fp, "%services=mainport,distribution\n");
 	fprintf(fp, "\n");
@@ -637,10 +664,23 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "listenPort"))
 		pNormal->m_listenPort = atoi(val);
 	else if (!strcmp(tok, "ipAddress"))
-		pNormal->m_ipAddress = val;
-	else if (!strcmp(tok, "warnPerm"))
-		pNormal->warnPerm = atobool(val);
+	{
+		if (!strcmp(val, ""))
+		{
+			// Config file uses an empty ip address to indicate 'use automatic IP detection'
+			pNormal->m_ipAddress = "AUTOMATIC"; // largely cosmetic
+			pGeek->m_bAutoIP = TRUE;
+		}
+		else
+		{
+			pNormal->m_ipAddress = val;
+			pGeek->m_bAutoIP = FALSE;
+		}
+		pNormal->m_strHiddenNodeAddress = pNormal->m_ipAddress;
+	}
+
 	// FECTempDir and mainport.params.servlet.1.params.tempDir both get put in tempDir
+
 	else if (!strcmp(tok, "FECTempDir"))
 		pNormal->m_tempFile = val;
 	else if (!strcmp(tok, "mainport.params.servlet.1.params.tempDir"))
@@ -723,6 +763,7 @@ void CConfigFile::processItem(char *tok, char *val)
 /*		// absorb obsoleted 'nodestatus' setting - don't set m_nodeinfoservlet to FALSE
 		// because that could replace it if the previous line had already set it to TRUE!
 		if (strstr(_strupr(val),"NODESTATUS") ) pDiagnostics->m_nodeinfoservlet = TRUE; */
+
 		/* ignore "distribution" for now as it's not configurable yet */
 	}
 	else if (!strcmp(tok, "mainport.class"))
@@ -780,6 +821,7 @@ void CConfigFile::processItem(char *tok, char *val)
 			pDiagnostics->m_nodeinfoclass = val;
 	}
 
+
 		// replacement nodeinfo settings
 	else if (!strcmp(tok, "nodeinfo.port"))
 		pDiagnostics->m_nodeinfoport = atoi(val);
@@ -790,10 +832,12 @@ void CConfigFile::processItem(char *tok, char *val)
 		pDiagnostics->m_nFailureTableEntries = atoi(val);
 	else if (!strcmp(tok, "failureTableTime"))
 		pDiagnostics->m_nFailureTableTimeSeconds = atoi(val)/1000;
+
 	else if (!strcmp(tok, "fproxy.port"))
 		pFProxy->m_fproxyport = atoi(val);
 	else if (!strcmp(tok, "nodestatus.port"))
 		/*eat it*/  ;
+
 /*
 	else if (!strstr(tok, "fproxy.")) {
 		CString s(tok);
@@ -833,7 +877,6 @@ BOOL CConfigFile::atobool(char *buf)
 
 
 // split a line of the form 'key [= value] into the key/value pair
-
 char *CConfigFile::splitLine(char *buf)
 {
     char *eq;
@@ -841,6 +884,7 @@ char *CConfigFile::splitLine(char *buf)
 
 	// delete trailing line terminators
 	s = buf + strlen(buf) - 1;
+
 	while (*s == '\r' || *s == '\n')
 		*s-- = '\0';
 

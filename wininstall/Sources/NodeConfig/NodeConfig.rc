@@ -208,66 +208,72 @@ BEGIN
     GROUPBOX        "Unknown Settings",IDC_STATIC,8,84,290,72
 END
 
-IDD_PP_GEEK DIALOG DISCARDABLE  0, 0, 319, 274
+IDD_PP_GEEK DIALOG DISCARDABLE  0, 0, 319, 282
 STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Serious Geeks Only"
 FONT 8, "MS Sans Serif"
 BEGIN
-    GROUPBOX        "Announcements",IDC_STATIC,7,7,88,88
-    LTEXT           "Attempts",IDC_STATIC,22,26,28,8
-    LTEXT           "Delay (ms)",IDC_STATIC,16,41,34,8
-    LTEXT           "DelayBase",IDC_STATIC,14,58,35,8
-    LTEXT           "Peers",IDC_STATIC,30,73,19,8
-    EDITTEXT        IDC_announcementAttempts,55,22,33,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_announcementDelay,55,38,33,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_announcementDelayBase,55,55,33,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_announcementPeers,55,71,33,12,ES_AUTOHSCROLL
-    GROUPBOX        "Misc",IDC_STATIC,103,7,209,176
-    LTEXT           "authTimeout",IDC_STATIC,110,18,40,8
-    EDITTEXT        IDC_authTimeout,110,26,35,12,ES_AUTOHSCROLL
-    LTEXT           "checkPointInterval",IDC_STATIC,109,64,60,8
-    EDITTEXT        IDC_checkPointInterval,109,72,42,12,ES_AUTOHSCROLL
-    LTEXT           "blockSize",IDC_STATIC,110,87,51,8
-    EDITTEXT        IDC_blockSize,110,96,40,12,ES_AUTOHSCROLL
-    LTEXT           "connectionTimeout",IDC_STATIC,109,110,62,8
-    EDITTEXT        IDC_connectionTimeout,109,119,40,12,ES_AUTOHSCROLL
-    LTEXT           "hopTimeExpected",IDC_STATIC,109,134,58,8
-    EDITTEXT        IDC_hopTimeExpected,109,143,40,12,ES_AUTOHSCROLL
-    LTEXT           "hopTimeDeviation",IDC_STATIC,109,159,58,8
-    EDITTEXT        IDC_hopTimeDeviation,109,167,40,12,ES_AUTOHSCROLL
-    LTEXT           "storeDataFile",IDC_STATIC,109,214,42,8
-    EDITTEXT        IDC_storeDataFile,109,222,188,12,ES_AUTOHSCROLL
-    LTEXT           "localAnnounceTargets",IDC_STATIC,217,17,72,8
-    EDITTEXT        IDC_localAnnounceTargets,217,25,43,12,ES_AUTOHSCROLL
-    LTEXT           "messageStoreSize",IDC_STATIC,216,41,59,8
-    EDITTEXT        IDC_messageStoreSize,217,50,43,12,ES_AUTOHSCROLL
-    LTEXT           "routeConnectTimeout",IDC_STATIC,216,64,69,8
-    EDITTEXT        IDC_routeConnectTimeout,216,73,44,12,ES_AUTOHSCROLL
-    LTEXT           "rtMaxNodes",IDC_STATIC,215,87,39,8
-    EDITTEXT        IDC_rtMaxNodes,216,94,44,12,ES_AUTOHSCROLL
-    LTEXT           "rtMaxRefs",IDC_STATIC,215,110,33,8
-    EDITTEXT        IDC_rtMaxRefs,216,118,44,12,ES_AUTOHSCROLL
-    LTEXT           "streamBufferSize",IDC_STATIC,215,134,54,8
-    EDITTEXT        IDC_streamBufferSize,216,142,43,12,ES_AUTOHSCROLL
-    LTEXT           "initialRequests",IDC_STATIC,215,160,46,8
-    EDITTEXT        IDC_initialRequests,216,168,43,12,ES_AUTOHSCROLL
-    GROUPBOX        "Encryption",IDC_STATIC,7,116,88,54
-    LTEXT           "Cipher name",IDC_STATIC,14,125,57,8
-    LTEXT           "Cipher width",IDC_STATIC,15,152,46,8
-    EDITTEXT        IDC_storeCipherName,13,135,76,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_storeCipherWidth,65,150,24,14,ES_AUTOHSCROLL
-    LTEXT           "maximumPadding",IDC_STATIC,110,40,56,8
-    EDITTEXT        IDC_maximumPadding,110,49,40,14,ES_AUTOHSCROLL
-    GROUPBOX        "Unknown Settings",IDC_STATIC,7,198,88,46
-    LTEXT           "0",IDC_NUMUNKNOWN,79,209,12,10
-    LTEXT           "Unknown settings:",IDC_STATIC,13,209,61,10
-    PUSHBUTTON      "&Edit ...",IDC_UNKNOWN,13,221,28,13
-    GROUPBOX        "Data Store",IDC_STATIC,102,186,210,58
-    LTEXT           "storeType",IDC_STATIC,109,194,32,8
-    EDITTEXT        IDC_storeType,109,202,187,12,ES_AUTOHSCROLL
+    GROUPBOX        "Announcements",IDC_STATIC,7,37,88,88
+    LTEXT           "Attempts",IDC_STATIC,21,56,28,8
+    LTEXT           "Delay (ms)",IDC_STATIC,15,71,34,8
+    LTEXT           "DelayBase",IDC_STATIC,14,87,35,8
+    LTEXT           "Peers",IDC_STATIC,30,103,19,8
+    EDITTEXT        IDC_announcementAttempts,55,52,33,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_announcementDelay,55,68,33,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_announcementDelayBase,55,85,33,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_announcementPeers,55,101,33,12,ES_AUTOHSCROLL
+    GROUPBOX        "Misc",IDC_STATIC,103,37,209,177
+    LTEXT           "authTimeout",IDC_STATIC,110,47,40,8
+    EDITTEXT        IDC_authTimeout,110,56,35,12,ES_AUTOHSCROLL
+    LTEXT           "checkPointInterval",IDC_STATIC,110,96,60,8
+    EDITTEXT        IDC_checkPointInterval,110,105,42,12,ES_AUTOHSCROLL
+    LTEXT           "blockSize",IDC_STATIC,110,118,51,8
+    EDITTEXT        IDC_blockSize,110,126,40,12,ES_AUTOHSCROLL
+    LTEXT           "connectionTimeout",IDC_STATIC,110,140,62,8
+    EDITTEXT        IDC_connectionTimeout,110,149,40,12,ES_AUTOHSCROLL
+    LTEXT           "hopTimeExpected",IDC_STATIC,110,164,58,8
+    EDITTEXT        IDC_hopTimeExpected,110,173,40,12,ES_AUTOHSCROLL
+    LTEXT           "hopTimeDeviation",IDC_STATIC,110,189,58,8
+    EDITTEXT        IDC_hopTimeDeviation,110,197,40,12,ES_AUTOHSCROLL
+    LTEXT           "storeDataFile",IDC_STATIC,109,247,42,8
+    EDITTEXT        IDC_storeDataFile,109,255,188,12,ES_AUTOHSCROLL
+    LTEXT           "localAnnounceTargets",IDC_STATIC,217,47,72,8
+    EDITTEXT        IDC_localAnnounceTargets,217,56,43,12,ES_AUTOHSCROLL
+    LTEXT           "messageStoreSize",IDC_STATIC,217,70,59,8
+    EDITTEXT        IDC_messageStoreSize,217,80,43,12,ES_AUTOHSCROLL
+    LTEXT           "routeConnectTimeout",IDC_STATIC,217,96,69,8
+    EDITTEXT        IDC_routeConnectTimeout,217,105,44,12,ES_AUTOHSCROLL
+    LTEXT           "rtMaxNodes",IDC_STATIC,217,118,39,8
+    EDITTEXT        IDC_rtMaxNodes,217,126,44,12,ES_AUTOHSCROLL
+    LTEXT           "rtMaxRefs",IDC_STATIC,217,140,33,8
+    EDITTEXT        IDC_rtMaxRefs,217,149,44,12,ES_AUTOHSCROLL
+    LTEXT           "streamBufferSize",IDC_STATIC,217,164,54,8
+    EDITTEXT        IDC_streamBufferSize,217,173,43,12,ES_AUTOHSCROLL
+    LTEXT           "initialRequests",IDC_STATIC,217,189,46,8
+    EDITTEXT        IDC_initialRequests,217,197,43,12,ES_AUTOHSCROLL
+    GROUPBOX        "Encryption",IDC_STATIC,7,146,88,54
+    LTEXT           "Cipher name",IDC_STATIC,14,155,57,8
+    LTEXT           "Cipher width",IDC_STATIC,15,182,46,8
+    EDITTEXT        IDC_storeCipherName,13,165,76,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_storeCipherWidth,65,180,24,14,ES_AUTOHSCROLL
+    LTEXT           "maximumPadding",IDC_STATIC,110,70,56,8
+    EDITTEXT        IDC_maximumPadding,110,80,40,14,ES_AUTOHSCROLL
+    GROUPBOX        "Unknown Settings",IDC_STATIC,7,228,88,46
+    LTEXT           "0",IDC_NUMUNKNOWN,79,239,12,10
+    LTEXT           "Unknown settings:",IDC_STATIC,13,239,61,10
+    PUSHBUTTON      "&Edit ...",IDC_UNKNOWN,13,251,28,13
+    GROUPBOX        "Data Store",IDC_STATIC,103,217,210,57
+    LTEXT           "storeType",IDC_STATIC,109,225,32,8
+    EDITTEXT        IDC_storeType,109,234,187,12,ES_AUTOHSCROLL
+    CONTROL         "Allow changes to Node Address, Port and Availability settings (on Normal page)",
+                    IDC_CHECK_CHANGENODEADDRESS,"Button",BS_AUTOCHECKBOX | 
+                    BS_MULTILINE | WS_TABSTOP,7,7,151,23
+    CONTROL         "Automatic IP address detection (""I am not behind a NAT"")",
+                    IDC_CHECK_AUTOIP,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | 
+                    WS_TABSTOP,161,7,151,23
 END
 
-IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 274
+IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 282
 STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Normal Settings"
 FONT 8, "MS Sans Serif"
@@ -283,39 +289,39 @@ BEGIN
                     WS_GROUP,15,56,54,11
     EDITTEXT        IDC_storeFile,71,54,219,12,ES_AUTOHSCROLL
     CTEXT           "Please don't change any of the 'Advanced' or 'Geek' settings unless you know what you're doing. Incorrect settings can damage your node and even impair the Freenet network as a whole",
-                    IDC_STATIC,7,249,305,18
-    GROUPBOX        "Node References",IDC_STATIC,7,151,305,97
+                    IDC_STATIC,7,256,305,18
+    GROUPBOX        "Node References",IDC_STATIC,7,159,305,97
     CTEXT           "To connect to the Freenet network, your node needs at least one 'Node Reference', or Node Ref. A Node Ref is a small file that gives your node a 'key' into the network.",
-                    IDC_STATIC,12,160,291,20
+                    IDC_STATIC,12,168,291,20
     CONTROL         "Get Default Node Refs",IDC_useDefaultNodeRefs,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,60,235,88,10
-    PUSHBUTTON      "Import new Node Ref",IDC_importNewNodeRef,174,235,89,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,60,243,88,10
+    PUSHBUTTON      "Import new Node Ref",IDC_importNewNodeRef,174,243,89,10
     CONTROL         "Spin1",IDC_storeCacheSize_spin,"msctls_updown32",
                     UDS_ARROWKEYS,81,35,11,16
-    GROUPBOX        "Node Availability",IDC_STATIC,7,107,305,42
+    GROUPBOX        "Node Availability - Go to the Geek page to change these settings",
+                    IDC_STATIC_NODEAVAILABILITY_FRAME,7,113,305,44
     CONTROL         "Node is transient",IDC_transient,"Button",
                     BS_AUTORADIOBUTTON | BS_MULTILINE | WS_GROUP | 
-                    WS_TABSTOP,14,130,75,16
+                    WS_TABSTOP,14,136,75,16
     CONTROL         "Node will run 24hrs/day",IDC_notTransient,"Button",
-                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,122,91,10
-    LTEXT           "Nodes running 24/7 are good for Freenet",IDC_STATIC,106,
-                    119,47,25
-    LTEXT           "Node Address (IP or domain)  ""localhost"" will be transient",
-                    IDC_ipAddress_TITLE,160,114,98,18
-    LTEXT           "FNP Listen Port",IDC_listenPort_TITLE,257,122,50,8
-    EDITTEXT        IDC_ipAddress,159,132,91,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_listenPort,257,130,40,12,ES_AUTOHSCROLL
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,126,91,10
+    LTEXT           "Node Address",IDC_ipAddress_TITLE,110,127,54,10
+    LTEXT           "Port",IDC_listenPort_TITLE,251,127,14,8
+    EDITTEXT        IDC_ipAddress,110,137,132,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_listenPort,251,137,40,12,ES_AUTOHSCROLL
     CTEXT           "For most people, the default Node Refs will work fine. But if your Internet Service Provider (or your country's government) blocks Freenet access, you can bypass the restriction by getting a Node Ref from someone you know and trust.",
-                    IDC_STATIC,13,180,290,26
+                    IDC_STATIC,13,188,290,26
     CTEXT           "If you suspect your access to Freenet is blocked, then DON'T choose the default Node Refs, because this may expose you as a Freenet user. Instead, get someone to send you a ref to their own node, and click on the 'Import New Node Ref' button below",
-                    IDC_STATIC,13,206,290,26
+                    IDC_STATIC,13,214,290,26
     PUSHBUTTON      "...",IDC_storePath_browse,292,54,14,12
     GROUPBOX        "Temporary File Storage",IDC_STATIC,7,70,305,38
-    CTEXT           "Store files in an encrypted folder or partition if possible. Cleared regularly by freenet.",
-                    IDC_STATIC,14,79,291,11
-    EDITTEXT        IDC_tempFile,71,89,219,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_tempFile_browser,292,89,14,12
-    LTEXT           "Temp Dir Path",IDC_STATIC,15,91,46,8
+    CTEXT           "Temp files should go to an encrypted folder if possible. Cleared regularly by freenet.",
+                    IDC_STATIC,14,80,291,11
+    EDITTEXT        IDC_tempFile,71,91,219,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_tempFile_browser,292,91,14,12
+    LTEXT           "Temp Dir Path",IDC_STATIC,15,93,46,8
+    PUSHBUTTON      "#",IDC_RANDOMIZEPORT,292,137,13,12
+    LTEXT           ":",IDC_STATIC_NODEADDRESS_COLON,245,139,6,11
 END
 
 IDD_PP_FPROXY DIALOG DISCARDABLE  0, 0, 319, 274
@@ -440,7 +446,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 312
         TOPMARGIN, 7
-        BOTTOMMARGIN, 244
+        BOTTOMMARGIN, 274
     END
 
     IDD_PP_NORMAL, DIALOG
@@ -448,7 +454,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 312
         TOPMARGIN, 7
-        BOTTOMMARGIN, 234
+        BOTTOMMARGIN, 274
     END
 
     IDD_PP_FPROXY, DIALOG
