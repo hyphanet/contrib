@@ -15,6 +15,9 @@ struct node {
     struct node *prev, *next;
 };
 
+// use this when i'm adding or removing addresses
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 // the head of our linked list of servers
 struct node *head;
 
@@ -748,6 +751,9 @@ addref (unsigned int addr)
     n->addr = addr;
     hashdata(&addr, 4, n->hash);
     
+    if (pthread_mutex_lock(&mutex))
+        die("pthread_mutex_lock() failed");
+    
     if (!head) {
 	n->next = n->prev = NULL;
 	head = n;
@@ -776,6 +782,9 @@ addref (unsigned int addr)
 	}
     }
 
+    if (pthread_mutex_unlock(&mutex))
+        die("pthread_mutex_unlock() failed");
+
     refop('+', n->hash, n->addr);
 }
 
@@ -786,6 +795,9 @@ rmref (unsigned int addr)
     struct node *p;
     
     hashdata(&addr, 4, hash);
+    
+    if (pthread_mutex_lock(&mutex))
+	die("pthread_mutex_lock() failed");
     
     for (p = head; p ; p = p->next)
 	if (!memcmp(p->hash, hash, HASHLEN)) {
@@ -801,8 +813,11 @@ rmref (unsigned int addr)
 	    free(p);
 	    p = NULL;
 	    refop('-', hash, addr);
+            if (pthread_mutex_unlock(&mutex))
+	        die("pthread_mutex_unlock() failed");
 	    return;
 	}
+
     
     die("address not found in linked list");
 }
