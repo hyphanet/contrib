@@ -4,10 +4,11 @@
 # KDE for example requires strict ansi compliance (these params actually).
 CFLAGS=-ansi -W -Wall -pedantic -g
 
-lib_LIBRARIES = libezfcp.a
+#lib_LIBRARIES = libezfcp.a
+noinst_LIBRARIES = libezfcp.a
 
-lib_LTLIBRARIES = libezfcp.la
-libezfcp_la_LDFLAGS = -version-info 0:0:0
+#lib_LTLIBRARIES = libezfcp.la
+#libezfcp_la_LDFLAGS = -version-info 0:0:0
 
 include_HEADERS = ezFCPlib.h
 
@@ -42,5 +43,5 @@ mimetype.c \
 # fcpWriteKeyIndex.c \
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
-libezfcp_la_SOURCES = $(FCP_SOURCE)
+#libezfcp_la_SOURCES = $(FCP_SOURCE)
 

@@ -26,8 +26,6 @@
 
 /* Generic <sys/> includes here so they are first. */
 
-#include <fcntl.h>
-
 /**************************************************************************
   MS-WINDOWS specifics
 **************************************************************************/
@@ -55,11 +53,6 @@
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
 
-#define OPEN_MODE_READ  (_O_RDONLY | _O_BINARY)
-#define OPEN_MODE_WRITE 0
-
-#define OPEN_PERMS (_S_IREAD | _S_IWRITE)
-
 #define S_IREAD _S_IREAD
 #define S_IWRITE _S_IWRITE
 
@@ -70,9 +63,6 @@
 #else
 
 /* UNIX includes that do not correspond on WINDOWS go here */
-#define OPEN_MODE_READ  0
-#define OPEN_MODE_WRITE 0
-
 #define OPEN_PERMS (S_IRUSR | S_IWUSR)
 
 /* Keep 'sys' files first in include order */
@@ -85,6 +75,8 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 /*************************************************************************/
 
@@ -143,8 +135,6 @@
 #define EZFCP_DEFAULT_HTL        3
 #define EZFCP_DEFAULT_REGRESS    3
 #define EZFCP_DEFAULT_RAWMODE    0
-#define EZFCP_DEFAULT_DODELETE   0
-#define EZFCP_DEFAULT_INSERTATTEMPTS 3
 #define EZFCP_DEFAULT_VERBOSITY  FCP_LOG_NORMAL
 
 /*
@@ -281,30 +271,19 @@ typedef struct {
 } hURI;
 
 
-typedef struct _metapiece metapiece;
-struct _metapiece {
-	char       *key;
-	char       *val;
+typedef struct {
+	char  *key;
+	char  *val;
 
-	metapiece  *next;
-};
+} hHashtable;
 
 
 typedef struct {
-	int         count;
-	int         size;
+	char  *filename;
+	FILE  *file;
 
-	/* Ordered linked-list */
-	metapiece  *list;
-} hMeta;
-
-
-typedef struct {
-	char  *file_name;
-	int    fd;
-
-	int    file_size;
-	int    file_offset;
+	int    size;
+	int    offset;
 
 	hURI  *uri;
 
@@ -312,7 +291,11 @@ typedef struct {
 
 
 typedef struct {
-	int       type;
+	int  type;
+
+	int  m_count;
+	int  m_size;
+	hHashtable  **m_data;
 
 	hURI     *uri;
 
@@ -320,8 +303,8 @@ typedef struct {
 	int       header_sent;
 	char     *mimetype;
 
-	int       size;
-	int       offset;
+	int       k_size;
+	int       k_offset;
 
 	int       chunkCount;
 	hChunk  **chunks;
@@ -333,6 +316,7 @@ typedef struct {
 	int      port;
 	int      htl;
 	int      regress;
+	int      rawmode;
 
 	char    *description;
 	int      protocol;
@@ -341,7 +325,6 @@ typedef struct {
   int      status;
 
 	hKey    *key;
-	hMeta   *meta;
 		
   FCPRESP  response;
 } hFCP;
@@ -402,10 +385,11 @@ void  _fcpDestroyHKey(hKey *);
 /* void  _fcpDestroyHSplitChunk(hSplitChunk *); */
 
 /* Key open/close functions */
-int    fcpOpenKeyRead(hFCP *hfcp, char *keyname, char *filename);
-int    fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
+int    fcpOpenKey(hFCP *hfcp, char *key, int mode);
 
 int    fcpReadKey(hFCP *hfcp, char *buf, int len);
+int    fcpWriteKey(hFCP *hfcp, char *buf, int len);
+
 int    fcpCloseKey(hFCP *hfcp);
 
 

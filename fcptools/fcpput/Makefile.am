@@ -4,5 +4,6 @@ CFLAGS=-ansi -W -Wall -pedantic -g
 bin_PROGRAMS = fcpput
 
 fcpput_LDFLAGS  = -L$(top_srcdir)/ezFCPlib -L$(top_srcdir)/fcpcommon
-fcpput_LDADD    = -lezfcp -lfcpcommon
-fcpput_SOURCES  = fcpput.c
+#fcpput_LDADD    = -lezfcp -lfcpcommon
+fcpput_LDADD    = ../ezFCPlib/libezfcp.a -lfcpcommon
+fcpput_SOURCES  = fcpput.c libezfcp.a

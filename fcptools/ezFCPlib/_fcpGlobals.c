@@ -31,7 +31,6 @@ int   _fcpRawmode = EZFCP_DEFAULT_RAWMODE;
 
 int   _fcpVerbosity = EZFCP_DEFAULT_VERBOSITY;
 int   _fcpRegress = EZFCP_DEFAULT_REGRESS;
-int   _fcpInsertAttempts = EZFCP_DEFAULT_INSERTATTEMPTS;
 char *_fcpTmpDir = 0;
 
 /* Basic accounting - ensure sockets are getting closed */

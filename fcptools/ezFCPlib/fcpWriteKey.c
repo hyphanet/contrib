@@ -34,90 +34,86 @@
 
 #include "ezFCPlib.h"
 
-extern int   snprintf(char *str, size_t size, const char *format, ...);
-extern int   crSockConnect(hFCP *hfcp);
-extern void  crSockDisconnect(hFCP *hfcp);
 
-static int send_header(hfcp);
+extern int    snprintf(char *str, size_t size, const char *format, ...);
+extern int    crSockConnect(hFCP *hfcp);
+extern void   crSockDisconnect(hFCP *hfcp);
+extern char  *crTmpFilename(void);
+
+
+static int _fcpInsertChunk(hChunk *chunk);
 
 
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 {
-	int index;
-	int size;
-	hChunk *chunk;
-
+	int chunk_avail;
+	int count;
 	int rc;
 
+	hChunk *chunk;
+
 	/* the first available chunk in the array */
-	index = hfcp->key->chunkCount - 1;
+	chunk = hfcp->key->chunks[hfcp->key->chunkCount - 1];
 
-	chunk = hfcp->key->chunks[index];
-	size = CHUNK_BLOCK_SIZE - chunk->file_size;
-	rc = write(chunk->fd, buf, size);
+	chunk_avail = CHUNK_BLOCK_SIZE - chunk->size;
+	count = (len > chunk_avail ? chunk_avail : len);
 
-	/* Problem if at least these two params don't equate */
-	if (rc != size) return -1;
+	/* While there's still data to write from caller.. */
+	while (len) {
 
-	/* If these 2 equate, then return w/ no errors immed */
-	if (size == len) {
-		chunk->file_size += size;
-		chunk->file_offset += size;
+		rc = fwrite(buf, count, 1, chunk->file);
+		if (rc == 0) {
+			_fcpLog(FCP_LOG_DEBUG, "Error writing %d byte chunk to %s", count, chunk->filename);
+			return -1;
+		}
 
-		return size;
+		/* Info was written.. update indexes */
+		chunk->size += count;
+		chunk_avail -= count;
+		len -= count;
+		buf += count;
+
+		_fcpLog(FCP_LOG_DEBUG, "Wrote %d bytes to chunk %d", count, hfcp->key->chunkCount);
+
+		if (chunk_avail == 0) {
+
+			/* Close the file that should be exactly 256K in size.. */
+			_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", hfcp->key->chunkCount, chunk->filename);
+
+			fclose(chunk->file);
+			chunk->file = 0;
+
+			/* Go off an insert chunk; block till function returns */
+			if ((rc = _fcpInsertChunk(chunk))) {
+				_fcpLog(FCP_LOG_DEBUG, "error in inserting chunk %d from file %s", hfcp->key->chunkCount, chunk->filename);
+				return -1;
+			}
+
+			hfcp->key->chunkCount++;
+
+			hfcp->key->chunks = realloc(hfcp->key->chunks, sizeof(hChunk *) * hfcp->key->chunkCount);
+			hfcp->key->chunks[hfcp->key->chunkCount - 1] = _fcpCreateHChunk();
+
+			chunk = hfcp->key->chunks[hfcp->key->chunkCount - 1];
+
+			chunk->filename = crTmpFilename();
+			if (!(chunk->file = fopen(chunk->filename, "w")))
+				return -1;
+
+			chunk_avail = CHUNK_BLOCK_SIZE;
+			count = (len > chunk_avail ? chunk_avail : len);
+		}
 	}
-
-	/* If we get here, then this chunk is full, start another one after firing
-		 off an insertion thread for the current chunk */
-
-	/* rc = _fcpInsertChunk(hfcp); */
-
-	/* Now create a new chunk and start writing to that one.. */
-	index++;
-	hfcp->key->chunks = realloc(hfcp->key->chunks, sizeof(hChunk *) * (index + 1));
-	hfcp->key->chunks[index] = _fcpCreateHChunk();
-
-	chunk = hfcp->key->chunks[index];
-
-	/* Initialize the new chunk */
-	chunk->filename = crTmpFilename();
-	chunk->fd = open(chunk->filename, O_CREAT);
 	
-  
-	rc = send(hfcp->socket, buf, len, 0);
-	if (rc > 0) {
-		hfcp->key->offset += rc;
-		return rc;
-	}
-
-  return 0;
+	return 0;
 }
 
 
-static int send_header(hFCP *hfcp)
+static int _fcpInsertChunk(hChunk *chunk)
 {
-	char buf[4097];
-	int len;
-	int rc;
 
-	/* uri_str should already be set to CHK@ via _fcpParseURI() */
-	snprintf(buf,
-					 4096,
-					 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
-					 hfcp->key->uri->uri_str,
-					 hfcp->htl,
-					 hfcp->key->size
-					 );
 
-	if (crSockConnect(hfcp)) return -1;
-  if (send(hfcp->socket, _fcpID, 4, 0) != 4) return -1;
 
-	len = strlen(buf);
-	rc = send(hfcp->socket, buf, len, 0);
-
-  if (rc < len) {
-    crSockDisconnect(hfcp);
-		return -1;
-	}
+	return 0;
 }
 

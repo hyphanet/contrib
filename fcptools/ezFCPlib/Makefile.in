@@ -88,11 +88,12 @@ install_sh = @install_sh@
 
 CFLAGS = -ansi -W -Wall -pedantic -g
 
-lib_LIBRARIES = libezfcp.a
+#lib_LIBRARIES = libezfcp.a
+noinst_LIBRARIES = libezfcp.a
 
-lib_LTLIBRARIES = libezfcp.la
-libezfcp_la_LDFLAGS = -version-info 0:0:0
 
+#lib_LTLIBRARIES = libezfcp.la
+#libezfcp_la_LDFLAGS = -version-info 0:0:0
 include_HEADERS = ezFCPlib.h
 
 FCP_SOURCE = "\
@@ -127,11 +128,10 @@ mimetype.c \
 # fcpReadKeyIndex.c \
 # fcpWriteKeyIndex.c \
 libezfcp_a_SOURCES = $(FCP_SOURCE)
-libezfcp_la_SOURCES = $(FCP_SOURCE)
 subdir = ezFCPlib
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES =
-LIBRARIES = $(lib_LIBRARIES)
+LIBRARIES = $(noinst_LIBRARIES)
 
 libezfcp_a_AR = $(AR) cru
 libezfcp_a_LIBADD =
@@ -141,14 +141,6 @@ am_libezfcp_a_OBJECTS = _fcpLog.$(OBJEXT) _fcpGlobals.$(OBJEXT) \
 	fcpStartup.$(OBJEXT) _fcpCompat.$(OBJEXT) fcpReadKey.$(OBJEXT) \
 	fcpWriteKey.$(OBJEXT) fcpCreation.$(OBJEXT) mimetype.$(OBJEXT)
 libezfcp_a_OBJECTS = $(am_libezfcp_a_OBJECTS)
-LTLIBRARIES = $(lib_LTLIBRARIES)
-
-libezfcp_la_LIBADD =
-am_libezfcp_la_OBJECTS = _fcpLog.lo _fcpGlobals.lo _fcpSock.lo \
-	_fcpRecvResponse.lo _fcpUtil.lo fcpOpenKey.lo fcpCloseKey.lo \
-	fcpStartup.lo _fcpCompat.lo fcpReadKey.lo fcpWriteKey.lo \
-	fcpCreation.lo mimetype.lo
-libezfcp_la_OBJECTS = $(am_libezfcp_la_OBJECTS)
 
 DEFS = @DEFS@
 DEFAULT_INCLUDES =  -I. -I$(srcdir)
@@ -156,20 +148,13 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
-@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/_fcpCompat.Plo $(DEPDIR)/_fcpCompat.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpGlobals.Plo $(DEPDIR)/_fcpGlobals.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Plo $(DEPDIR)/_fcpLog.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Plo $(DEPDIR)/_fcpSock.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpUtil.Plo $(DEPDIR)/_fcpUtil.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Plo $(DEPDIR)/fcpCloseKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpCreation.Plo $(DEPDIR)/fcpCreation.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Plo $(DEPDIR)/fcpOpenKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpReadKey.Plo $(DEPDIR)/fcpReadKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpStartup.Plo $(DEPDIR)/fcpStartup.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpWriteKey.Plo $(DEPDIR)/fcpWriteKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/mimetype.Plo $(DEPDIR)/mimetype.Po
+@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/_fcpCompat.Po $(DEPDIR)/_fcpGlobals.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Po $(DEPDIR)/_fcpRecvResponse.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Po $(DEPDIR)/_fcpUtil.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Po $(DEPDIR)/fcpCreation.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Po $(DEPDIR)/fcpReadKey.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpStartup.Po $(DEPDIR)/fcpWriteKey.Po \
+@AMDEP_TRUE@	$(DEPDIR)/mimetype.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -177,11 +162,11 @@ LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(libezfcp_a_SOURCES) $(libezfcp_la_SOURCES)
+DIST_SOURCES = $(libezfcp_a_SOURCES)
 HEADERS = $(include_HEADERS)
 
 DIST_COMMON = $(include_HEADERS) Makefile.am Makefile.in
-SOURCES = $(libezfcp_a_SOURCES) $(libezfcp_la_SOURCES)
+SOURCES = $(libezfcp_a_SOURCES)
 
 all: all-am
 
@@ -205,57 +190,13 @@ Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
 
 AR = ar
-install-libLIBRARIES: $(lib_LIBRARIES)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(libdir)
-	@list='$(lib_LIBRARIES)'; for p in $$list; do \
-	  if test -f $$p; then \
-	    echo " $(INSTALL_DATA) $$p $(DESTDIR)$(libdir)/$$p"; \
-	    $(INSTALL_DATA) $$p $(DESTDIR)$(libdir)/$$p; \
-	  else :; fi; \
-	done
-	@$(POST_INSTALL)
-	@list='$(lib_LIBRARIES)'; for p in $$list; do \
-	  if test -f $$p; then \
-	    echo " $(RANLIB) $(DESTDIR)$(libdir)/$$p"; \
-	    $(RANLIB) $(DESTDIR)$(libdir)/$$p; \
-	  else :; fi; \
-	done
 
-uninstall-libLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(lib_LIBRARIES)'; for p in $$list; do \
-	  echo " rm -f $(DESTDIR)$(libdir)/$$p"; \
-	  rm -f $(DESTDIR)$(libdir)/$$p; \
-	done
-
-clean-libLIBRARIES:
-	-test -z "$(lib_LIBRARIES)" || rm -f $(lib_LIBRARIES)
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
 libezfcp.a: $(libezfcp_a_OBJECTS) $(libezfcp_a_DEPENDENCIES) 
 	-rm -f libezfcp.a
 	$(libezfcp_a_AR) libezfcp.a $(libezfcp_a_OBJECTS) $(libezfcp_a_LIBADD)
 	$(RANLIB) libezfcp.a
-install-libLTLIBRARIES: $(lib_LTLIBRARIES)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(libdir)
-	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
-	  if test -f $$p; then \
-	    echo " $(LIBTOOL) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(libdir)/$$p"; \
-	    $(LIBTOOL) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(libdir)/$$p; \
-	  else :; fi; \
-	done
-
-uninstall-libLTLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
-	  echo " $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p"; \
-	  $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p; \
-	done
-
-clean-libLTLIBRARIES:
-	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
-libezfcp.la: $(libezfcp_la_OBJECTS) $(libezfcp_la_DEPENDENCIES) 
-	$(LINK) -rpath $(libdir) $(libezfcp_la_LDFLAGS) $(libezfcp_la_OBJECTS) $(libezfcp_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -263,31 +204,18 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpCompat.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpCompat.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpGlobals.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpGlobals.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpSock.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpSock.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpUtil.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpUtil.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreation.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreation.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/mimetype.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/mimetype.Po@am__quote@
 
 distclean-depend:
@@ -385,10 +313,10 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES) $(LTLIBRARIES) $(HEADERS)
+all-am: Makefile $(LIBRARIES) $(HEADERS)
 
 installdirs:
-	$(mkinstalldirs) $(DESTDIR)$(libdir) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir)
+	$(mkinstalldirs) $(DESTDIR)$(includedir)
 
 install: install-am
 install-exec: install-exec-am
@@ -415,8 +343,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libLIBRARIES clean-libLTLIBRARIES \
-	clean-libtool mostlyclean-am
+clean-am: clean-generic clean-libtool clean-noinstLIBRARIES \
+	mostlyclean-am
 
 distclean: distclean-am
 
@@ -433,7 +361,7 @@ info-am:
 
 install-data-am: install-includeHEADERS
 
-install-exec-am: install-libLIBRARIES install-libLTLIBRARIES
+install-exec-am:
 
 install-info: install-info-am
 
@@ -450,23 +378,21 @@ mostlyclean: mostlyclean-am
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-uninstall-am: uninstall-includeHEADERS uninstall-info-am \
-	uninstall-libLIBRARIES uninstall-libLTLIBRARIES
+uninstall-am: uninstall-includeHEADERS uninstall-info-am
 
 .PHONY: GTAGS all all-am check check-am clean clean-generic \
-	clean-libLIBRARIES clean-libLTLIBRARIES clean-libtool distclean \
-	distclean-compile distclean-depend distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am info \
-	info-am install install-am install-data install-data-am \
-	install-exec install-exec-am install-includeHEADERS \
-	install-info install-info-am install-libLIBRARIES \
-	install-libLTLIBRARIES install-man install-strip installcheck \
+	clean-libtool clean-noinstLIBRARIES distclean distclean-compile \
+	distclean-depend distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am info info-am install \
+	install-am install-data install-data-am install-exec \
+	install-exec-am install-includeHEADERS install-info \
+	install-info-am install-man install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool tags uninstall \
-	uninstall-am uninstall-includeHEADERS uninstall-info-am \
-	uninstall-libLIBRARIES uninstall-libLTLIBRARIES
+	uninstall-am uninstall-includeHEADERS uninstall-info-am
 
+#libezfcp_la_SOURCES = $(FCP_SOURCE)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

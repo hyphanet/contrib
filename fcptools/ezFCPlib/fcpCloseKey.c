@@ -27,16 +27,13 @@
 #include <sys/stat.h>
 
 #include <fcntl.h>
-#include <stdio.h>
+#include <stdlib.h>
 
-extern char   *_fcpHost;
-extern int     _fcpPort;
-extern int     _fcpHtl;
-extern int     _fcpRawMode;
-extern char    _fcpID[];
 
 static int      fcpCloseKeyRead(hFCP *hfcp);
 static int      fcpCloseKeyWrite(hFCP *hfcp);
+
+static int      test(hFCP *hfcp);
 
 
 int fcpCloseKey(hFCP *hfcp)
@@ -60,52 +57,48 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
-	int rc;
+	_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", hfcp->key->chunkCount, hfcp->key->chunks[hfcp->key->chunkCount - 1]->filename);
 
- /* expecting a success response */
-  rc = _fcpRecvResponse(hfcp);
+	/* Close the last chunk in the array */
+	fclose(hfcp->key->chunks[hfcp->key->chunkCount - 1]->file);	
+	hfcp->key->chunks[hfcp->key->chunkCount - 1]->file = 0;
 
-  switch (rc) {
-  case FCPRESP_TYPE_SUCCESS:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): SUCCESS");
-    break;
-
-  case FCPRESP_TYPE_FORMATERROR:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): FORMATERROR");
-    break;
-
-  case FCPRESP_TYPE_FAILED:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): FAILED");
-    break;
-
-  case FCPRESP_TYPE_URIERROR:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): URIERROR");
-    break;
-
-  case FCPRESP_TYPE_RESTARTED:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): RESTARTED");
-    break;
-
-  case FCPRESP_TYPE_ROUTENOTFOUND:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): ROUTENOTFOUND");
-    break;
-
-  case FCPRESP_TYPE_KEYCOLLISION:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): KEYCOLLISION");
-    break;
-
-  case FCPRESP_TYPE_PENDING:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): PENDING");
-    break;
-
-  default:
-    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): BAD - received unknown response message from node");
-    return -1;
-  }
-
-  /* finished with connection */
-  crSockDisconnect(hfcp);
-
+	test(hfcp);
   return 0;
+}
+
+
+static int test(hFCP *hfcp)
+{
+	FILE *f;
+	FILE *ck;
+	char *buf;
+	int rc;
+	int i;
+
+	buf = (char *)malloc(1058);
+	f = fopen("ez-reassembled", "w");
+
+	_fcpLog(FCP_LOG_DEBUG, "Ultra detailed test of re-assemblence of splitfiles based on hfcp info");
+
+	for (i=0; i < hfcp->key->chunkCount; i++) {
+		ck = fopen(hfcp->key->chunks[i]->filename, "r");
+
+		_fcpLog(FCP_LOG_DEBUG, "opened file %s for reading", hfcp->key->chunks[i]->filename);
+
+		rc = fgetc(ck);
+		while (rc != -1) {
+			fputc(rc, f);
+			rc = fgetc(ck);
+		}
+
+		fclose(ck);
+		_fcpLog(FCP_LOG_DEBUG, "closed file %s for reading", hfcp->key->chunks[i]->filename);
+	}
+	
+	free(buf);
+	fclose(f);
+
+	return 0;
 }
 

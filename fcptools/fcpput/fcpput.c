@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
@@ -50,7 +51,7 @@ int main(int argc, char* argv[])
 	hFCP *hfcp;
 	int rc;
 
-	char buf[L_FD_BLOCKSIZE];
+	char buf[L_FD_BLOCKSIZE + 1];
 	int fd;
 
 	/* Must occur before any FCP related calls to set parameters prior */
@@ -63,7 +64,7 @@ int main(int argc, char* argv[])
 
 	/* If file is not specified, read key data from stdin */
 	if (!keyfile) fd = STDIN_FILENO;
-	else fd = open(keyfile, O_RDONLY, S_IRUSR);
+	else fd = open(keyfile, O_RDONLY);
 
 	if (fd == -1) {
 		printf("Error\n");
@@ -72,12 +73,12 @@ int main(int argc, char* argv[])
 
 	hfcp = _fcpCreateHFCP();
 
-	if (rc = fcpOpenKeyWrite(hfcp, keyuri))	{
+	if (rc = fcpOpenKey(hfcp, keyuri, _FCP_O_WRITE))	{
 		_fcpLog(FCP_LOG_CRITICAL, "fcpput: cannot open key writing");
 		return 1;
 	}
 
-	while ((rc = read(fd, buf, L_FD_BLOCKSIZE)) > 0)
+	while ((rc = read(fd, buf, 2851)) > 0)
 		fcpWriteKey(hfcp, buf, rc);
 
 	/* Clean it up */
@@ -165,7 +166,6 @@ void parse_args(int argc, char *argv[])
 
 		case 'a':
 			i = atoi( optarg );
-			if (i > 0) _fcpInsertAttempts = i;
 			break;
 
 			/*case 's':
@@ -228,8 +228,8 @@ void usage(char *s)
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 
-  printf("  -a, --attempts num     Attempts to insert each file (default %d)\n", EZFCP_DEFAULT_INSERTATTEMPTS);
-  printf("  -s, --size num         Size of splitfile chunks (default %d)\n", SPLIT_BLOCK_SIZE);
+  printf("  -a, --attempts num     Attempts to insert each file (default %d)\n", 1);
+  printf("  -s, --size num         Size of splitfile chunks (default %d)\n", CHUNK_BLOCK_SIZE);
   printf("  -t, --threads num      Number of splitfile threads (default %d)\n\n", FCP_MAX_SPLIT_THREADS);
 
 	printf("  -V, --version          Output version information and exit\n");

@@ -43,6 +43,11 @@ long xtoi(char *s)
 
 
 /*
+	Add functions to add, insert, remove, retrieve data from Hashtable udt.
+*/
+
+
+/*
 long timeLastMidnight()
 {
   time_t timenow;

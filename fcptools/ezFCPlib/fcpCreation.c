@@ -36,12 +36,13 @@ hFCP *_fcpCreateHFCP(void)
 	h = (hFCP *)malloc(sizeof (hFCP));
   memset(h, 0, sizeof (hFCP));
 
-	h->host = malloc(strlen(_fcpHost) + 1);
-	strcpy(h->host, _fcpHost);
+	h->host = malloc(strlen(EZFCP_DEFAULT_HOST) + 1);
+	strcpy(h->host, EZFCP_DEFAULT_HOST);
 
-	h->port = _fcpPort;
-	h->htl = _fcpHtl;
-	h->regress = _fcpRegress;
+	h->port = EZFCP_DEFAULT_PORT;
+	h->htl = EZFCP_DEFAULT_HTL;
+	h->regress = EZFCP_DEFAULT_REGRESS;
+	h->rawmode = EZFCP_DEFAULT_RAWMODE;
 
 	h->socket = -1;
 
@@ -51,6 +52,50 @@ hFCP *_fcpCreateHFCP(void)
 void _fcpDestroyHFCP(hFCP *h)
 {
 	if (h) free(h);
+}
+
+
+hChunk *_fcpCreateHChunk(void)
+{
+	hChunk *h;
+
+	h = (hChunk *)malloc(sizeof (hChunk));
+	memset(h, 0, sizeof (hChunk));;
+
+	return h;
+}
+
+
+void _fcpDestroyHChunk(hChunk *h)
+{
+	if (h) {
+	}
+
+	free(h);
+}
+
+
+hKey *_fcpCreateHKey(void)
+{
+	hKey *h;
+
+	h = (hKey *)malloc(sizeof (hKey));
+	memset(h, 0, sizeof (hKey));
+
+	h->uri = _fcpCreateHURI();
+
+	return h;
+}
+
+
+void _fcpDestroyHKey(hKey *h)
+{
+	if (h) {
+		_fcpDestroyHURI(h->uri);
+		h->uri = 0;
+
+		free(h);
+	}
 }
 
 
@@ -73,47 +118,6 @@ void _fcpDestroyHURI(hURI *h)
 		if (h->path) free(h->path);
 		if (h->file) free(h->file);
 
-		free(h);
-	}
-}
-
-
-hChunk *_fcpCreateHChunk(void)
-{
-	hChunk *h;
-
-	h = (hChunk *)malloc(sizeof (hChunk));
-	memset(h, 0, sizeof(hChunk));
-
-	return h;
-}
-
-
-void _fcpDestroyHChunk(hChunk *h)
-{
-	if (h) {
-	}
-
-	free(h);
-}
-
-
-hKey *_fcpCreateHKey(void)
-{
-	hKey *h;
-
-	h = (hKey *)malloc(sizeof (hKey));
-	memset(h, 0, sizeof (hKey));
-
-	return h;
-}
-
-void _fcpDestroyHKey(hKey *h)
-{
-	if (h) {
-		_fcpDestroyHURI(h->uri);
-
-		if (h->mimetype) free(h->mimetype);
 		free(h);
 	}
 }

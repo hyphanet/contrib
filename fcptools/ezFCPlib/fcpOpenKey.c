@@ -27,63 +27,65 @@
 
 extern int   snprintf(char *str, size_t size, const char *format, ...);
 
-extern int   crSockConnect(hFCP *hfcp);
-extern void  crSockDisconnect(hFCP *hfcp);
+extern int    crSockConnect(hFCP *hfcp);
+extern void   crSockDisconnect(hFCP *hfcp);
+extern char  *crTmpFilename(void);
 
 
+static int    fcpOpenKeyRead(hFCP *hfcp, char *key);
+static int    fcpOpenKeyWrite(hFCP *hfcp, char *key);
 
-int fcpOpenKeyRead(hFCP *hfcp, char *key, char *filename)
+
+int fcpOpenKey(hFCP *hfcp, char *key, int mode)
 {
+  /* Validate flags */
+  if ((mode & _FCP_O_READ) && (mode & _FCP_O_WRITE))
+    return -1;      /* read/write access is impossible */
+  
+  if ((mode & (_FCP_O_READ | _FCP_O_WRITE)) == 0)
+    return -1;      /* neither selected - illegal */
+  
+  if (mode & _FCP_O_RAW)
+    hfcp->rawmode = 1;
+
+  /* Now perform the read/write specific open */
+  if (mode & _FCP_O_READ)
+    return fcpOpenKeyRead(hfcp, key);
+
+  else if (mode & _FCP_O_WRITE)
+    return fcpOpenKeyWrite(hfcp, key);
+
+	else return -2; /* Who knows what's wrong here.. */
+}
+
+
+static int fcpOpenKeyRead(hFCP *hfcp, char *key)
+{
+	hfcp->key->openmode = _FCP_O_READ;
   return 0;
 }
 
 
-int fcpOpenKeyWrite(hFCP *hfcp, char *keyname)
+static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 {
-  int   rc;
-	char  buf[4096 + 1];
-	int   len;
-
-	hURI *uri = 0;
+	hfcp->key = _fcpCreateHKey();
+	hfcp->key->openmode = _FCP_O_WRITE;
 	
-	/* Allocate hKey handle */
-	if (hfcp->key) _fcpDestroyHKey(hfcp->key);
-	hfcp->key = (hKey *)malloc(sizeof(hKey));
+	/* Bomb out if the key cannot be parsed into a valid URI */
+	if (_fcpParseURI(hfcp->key->uri, key))
+		return -1;
 
 	hfcp->key->chunkCount = 1;
-	hfcp->key->chunks = _fcpCreateHChunk();
+	hfcp->key->chunks = (hChunk **)malloc(sizeof (hChunk *));
+	hfcp->key->chunks[0] = _fcpCreateHChunk();
 
-	/* Initialize the first (and potentially only) chunk */
 	hfcp->key->chunks[0]->filename = crTmpFilename();
-	hfcp->key->chunks[0]->fd = open(hfcp->key->chunks[0]->filename, O_CREAT);
-	
-	uri = _fcpCreateHURI();
-
-	if (_fcpParseURI(uri, keyname)) {
-		_fcpDestroyHURI(uri);
+	if (!(hfcp->key->chunks[0]->file = fopen(hfcp->key->chunks[0]->filename, "w")))
 		return -1;
-	}
-	hfcp->key->uri = uri;
-	
-	if (crSockConnect(hfcp)) return -1;
-  if (send(hfcp->socket, _fcpID, 4, 0) != 4) return -1;
 
-	strcpy(buf, "ClientHello\nEndMessage\n");
-	len = strlen(buf);
-	rc = send(hfcp->socket, buf, len, 0);
+	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");
 
-  /* If I couldn't say HELLO, bomb out */
-	if (rc < len) return -1;
-
-	if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_NODEHELLO) return -1;
-
-	_fcpLog(FCP_LOG_DEBUG, "Confirmed hello response from host %s", hfcp->host);
-	_fcpLog(FCP_LOG_DEBUG, "Node description: %s", hfcp->description);
-		
-  _fcpSockDisconnect(hfcp);
-
-
-	/* Beginning of PUT successful */
-  return 0;
+	/* Successful in opening temporary chunk bucket thing */
+	return 0;
 }
 
