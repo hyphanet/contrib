@@ -76,9 +76,12 @@ BEGIN
             VALUE "FileVersion", "0.4.0.0\0"
             VALUE "InternalName", "freenet.exe\0"
             VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
+            VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "freenet.exe\0"
+            VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "freenet systray\0"
             VALUE "ProductVersion", "Freenet 0.4.X\0"
+            VALUE "SpecialBuild", "\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -98,13 +101,13 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_HOPSENABLED         ICON    DISCARDABLE     "Freenet.ico"
+IDI_REFERENCE           ICON    DISCARDABLE     "res\\ref.ico"
 IDI_HOPSDISABLED        ICON    DISCARDABLE     "noFnet.ico"
 IDI_ALERT               ICON    DISCARDABLE     "alert.ico"
 IDI_RESTARTING          ICON    DISCARDABLE     "restart.ico"
 IDI_NOGWAY              ICON    DISCARDABLE     "noGway.ico"
 IDI_NOINET              ICON    DISCARDABLE     "noInet.ico"
 IDI_THUNDERBOLT         ICON    DISCARDABLE     "tbolt.ico"
-
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -119,3 +122,4 @@ IDI_THUNDERBOLT         ICON    DISCARDABLE     "tbolt.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+

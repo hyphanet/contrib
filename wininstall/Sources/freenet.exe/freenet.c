@@ -931,7 +931,6 @@ DWORD WINAPI WaitForJavaConfigurator(LPVOID lpvprochandle)
 	HANDLE hJavaConfig = (HANDLE)lpvprochandle;
 
 	WaitForSingleObject(hJavaConfig, INFINITE);
-	CloseHandle(hJavaConfig);
 	// configuration complete - release the 'configurator' mutex
 	ReleaseSemaphore(hConfiguratorSemaphore,1,NULL);
 	// need to restart the server
@@ -941,6 +940,7 @@ DWORD WINAPI WaitForJavaConfigurator(LPVOID lpvprochandle)
 	if(ExitCode==0 && ExitCode != STILL_ACTIVE)
 		PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
 
+	CloseHandle(hJavaConfig);
 	return 0;
 }
 
