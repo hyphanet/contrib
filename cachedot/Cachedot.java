@@ -1,16 +1,13 @@
 /*
- *  This ugly code is intended to check slashdot for updates, when it
- *  notices one it will download the top-most story, extract the
- *  hyperlinks from it, and mirror them to Freenet.  It makes use
- *  of some external unix commands, including "rm", "wget", and
- *  "fcpputsite" from the FCPTools collection.
- *  At the time of writing it should do the above assuming fcpputsite
- *  works correctly (I could never get it to complete a mirroring
- *  but I have limited experience with it).  The only remaining thing
- *  is to implement the code to create an index.html file of the links
- *  in /tmp/cachedot so that fcpputsite won't complain about the lack
- *  of a default file, and so that people will have something to
- *  link to.
+ *  Cachedot watches Slashdot and mirrors the sites that new stories link to into
+ *  Freenet.
+ *
+ *  TODO:
+ *  Make fcpputsite work
+ *  Convert external links to used __CHECKED_HTTP__
+ *  Make the index page nicer (like have a copy of the story with the links replaced)
+ *  (Longer term): Try to remove the reliance on external Unix programs like wget and
+ *  fcpputsite
  */
 import java.io.*;
 import java.net.*;
