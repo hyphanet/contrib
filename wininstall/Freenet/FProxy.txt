@@ -23,13 +23,16 @@ with suggestions: Sebastian@SSpaeth.de. Please no FProxy support questions thoug
 
 Browser plugins
 ===============
+If you want to enable your browser to use URIs of the format "freenet:<key>" (that is most probably the way freenet URI will be linked to on web pages in the future) you'll need a browser plugin.
+
 Mozilla/NS6:
-If you want to enable your browser to use URIs of the format "freenet:<key>" (that is most probably the way freenet URI will be linked to on web pages in the future) you'll need a browser plugin. For Netscape6 and Mozilla based browsers there's a cool tool available at http://protozilla.mozdev.org/ that does it. Hopefully we'll be able to provide some documentation on this in the future. Installation happens by visiting this link in Mozilla/NS6:
-http://protozilla.mozdev.org/download.html, click on the button for installing on Windows and choose the menu entry tasks->Protozilla to enable it. Please direct feedback for this to the
-developers of that project.
+For Netscape6 and Mozilla based browsers there's a GNU GPL/MPL licensed cool tool available at
+http://protozilla.mozdev.org/ that does it. We provide it optionally during installation.
+For updates, licensing information and more information have a look at their web site.
 
 Internet Explorer:
-There exists a IE plugin that does the same for IE. An implementation will be included in future Freenet installers. For feedback contact the developer mailto:freenet@hug.cx.
+There exists a IE plugin that does the same for IE. An implementation is included in current
+installers. For feedback contact the developer mailto:freenet@hug.cx.
 
 
 Tips for requesting
