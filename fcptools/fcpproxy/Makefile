@@ -1,0 +1,57 @@
+# Makefile for fcpproxy - the Freenet http gateway client
+#
+# Latest versions of source and binaries are available from the
+# FreeWeb website - http://freeweb.sourceforge.net
+#
+# derived by David McNab from Internet Junkbuster proxy - www.junkbusters.com
+#
+
+# comment out the next line if you do NOT want to use regular expressions
+REGEX = -DREGEX
+
+DEFAULT_CFLAGS = -I. -I../ezFCPlib $(REGEX) -DSTDC_HEADERS -DHAVE_STRING
+
+PROG        = fcpproxy
+O           = o
+RM          = rm -f
+MORE_CFLAGS = -g
+LIBS_LINUX  = ../ezFCPlib/ezFCPlib.a -pthread
+LIBS_CYGWIN = ../ezFCPlib/ezFCPlib.a
+
+# use these for mingw32
+#PROG        = junkbstr.exe
+#MORE_CFLAGS = -DWin32_Winsock -O3
+#LDFLAGS     = -lwsock32
+
+# use these for Win32
+#PROG     = junkbstr.exe
+#MORE_CFLAGS = /nologo -MT -Og
+#LDFLAGS = wsock32.lib
+#O       = obj
+#RM      = del
+
+CFLAGS  = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
+
+OBJS =	main.$(O) proxy.$(O) fcpreq.$(O) parsers.$(O) filters.$(O) loaders.$(O) \
+	bind.$(O) conn.$(O) encode.$(O) ssplit.$(O) socks4.$(O) acl.$(O) \
+	gnu_regex.$(O) win32.$(O)
+
+default:
+	echo "Target must be one of 'linux', 'cygwin' or 'clean'
+
+linux: $(OBJS)
+	$(CC) $(CFLAGS) -o $(PROG) $(OBJS) $(LIBS_LINUX) $(LDFLAGS)
+
+cygwin: $(OBJS)
+	$(CC) $(CFLAGS) -o $(PROG) $(OBJS) $(LIBS_CYGWIN) $(LDFLAGS)
+
+clean:
+	$(RM) fcpproxy a.out core *.o *.obj
+
+clobber: clean
+	$(RM) junkbuster junkbuster.xMAP junkbstr.exe *.pdb *.lib *.exp
+
+# $Id: Makefile,v 1.1 2001/09/29 01:30:38 heretic108 Exp $
+# Written and copyright 1997-8 Anonymous Coders and Junkbusters Corporation.
+# Distributed under the GNU General Public License; see the README file.
+# This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html

@@ -1,0 +1,104 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "ezFCPlib"=.\ezFCPlib\ezFCPlib.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "fcpget"=.\fcpget\fcpget.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "fcpproxy"=.\fcpproxy\fcpproxy.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "fcpput"=.\fcpput\fcpput.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "fcpputsite"=.\fcpputsite\fcpputsite.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "fcpputsplit"=.\fcpputsplit\fcpputsplit.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+}}}
+
+###############################################################################
+

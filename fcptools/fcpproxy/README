@@ -1,0 +1,74 @@
+README for the Internet Junkbuster Proxy (TM) Copyright 1997-8 Junkbusters Corp.
+
+	$Id: README,v 1.1 2001/09/29 01:30:37 heretic108 Exp $ 
+
+	This program is free software; you can redistribute it and/or modify it
+	under the terms of the GNU General Public License as published by the
+	Free Software Foundation; either version 2 of the License,
+	or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+	See the GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+The version of the code with this makefile is Version 2.0.2.
+No CHANGES file is included here; for a history of previous versions see
+	http://www.junkbusters.com/ht/en/ijbdist.html#previous
+This version tightens security over 2.0.1; some multi-user sites will need
+to change the listen-address in the configuration file (see previous URL).
+
+For installation on Windows see http://www.junkbusters.com/ht/en/ijbwin.html
+An executable is provided so you don't need nmake or a C compiler.
+
+For UNIX and other systems see the FAQ. If you just want to test it with its
+defaults of simply stopping cookies and private info, all you need to do now
+on most Unix systems is type make, run junkbuster & and configure your browser.
+
+This directory should contain the following files.  The .html files are also
+in http://www.junkbusters.com/ht/en/ and http://internet.junkbuster.com
+You are welcome to publish copies of the .html files on your local web server,
+according to the GNU General Public License.
+
+gpl.html	GNU General Public Licence
+junkbstr.exe	Executable (binary) for Windows 95/NT
+Makefile	A very bland Makefile; Most versions of Unix except HP & Suns
+		compile without change. Windows requires the changes indicated.
+ijbman.html	Manual for the Internet Junkbuster, HTML format
+junkbuster.1	Manual for the Internet Junkbuster, man macro format:
+			man ./junkbuster.1 # or nroff -man junkbuster.1 | more
+ijbfaq.html	FAQ: Frequently Asked Questions on the Internet Junkbuster
+		Includes installation instructions
+junkbstr.ini	Sample configuration file with almost all options commented out
+sblock.ini	Sample blockfile (which doesn't really block much, see FAQ)
+scookie.ini	Sample cookiefile (permits little; you decide who to trust)
+saclfile.ini	Sample access control file (block access to everyone)
+sforward.ini	Sample forwardfile (does no fowarding, no gateways, so SOCKS)
+strust.ini	Sample trustfile (has no trusted sites and blocks nothing)
+conn.c, bind.c, encode.c, loaders.c, parsers.c, ssplit.c   Various utilities
+socks4.c	Code for SOCKS4 and SOCKS4A gateways
+jcc.c		The main program
+jcc.h		#included declarations etc
+gnu_regex.c, gnu_regex.h:	Regular expression code from the FSF, not us.
+win32.c		A few lines of code specific to the Windows version (95 & NT)
+acl.c		Access controls (new in version 2.0) - doesn't replace firewalls
+filters.c	Strings for the presentation of messages to user
+
+If you find that the Internet Junkbuster improves the quality of your life
+online, we hope you'll visit http://www.junkbusters.com to see how our free
+services can help you bust other kinds of junk out of your life:
+junk mail, spam, telemarketing, and invasions of your private data.
+And please tell your friends about this free product, and help them set it up.
+
+If your company finds this software useful in protecting its confidential
+information and making its people happier and more productive, please consider
+purchasing one of our our commercial support packages:
+	http://www.junkbusters.com/ht/en/ijbfaq.html#commercial
+
+We don't advertise, so please tell others in your community about us.
+
+Junkbusters Corp. 	http://www.junkbusters.com
