@@ -16,7 +16,6 @@ static void *usage(char *msg);
 
 
 static int putsplitfile( HFCP *hfcp, int workingThreads,  int file);
-//static void LaunchThread(void (*func)(void *), void *parg);
 static void splitblockThread(void *arg);
 
 
@@ -423,21 +422,3 @@ void splitblockThread( void *job)
     *(params->threadSlot)=-1;
 
 }
-
-/*
-static void LaunchThread(void (*func)(void *), void *parg)
-{
-#ifdef SINGLE_THREAD_DEBUG
-    (*func)(parg);
-    return;
-#else
-#ifdef WINDOWS
-    _beginthread(func, 0, parg);
-#else
-    pthread_t pth;
-    pthread_create(&pth, NULL, (void *(*)(void *))func, parg);
-#endif
-#endif
-}               // 'LaunchThread()'
-*/
-

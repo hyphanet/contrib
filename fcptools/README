@@ -21,7 +21,11 @@ This source package builds four Freenet FCP components:
 
 This is a work in progress.
 
+
 ---------------------------------------------------------------------------
+Introduction
+---------------------------------------------------------------------------
+
 The aim of FCPtools is to offer a truly multi-platform ANSI-C based Freenet
 client library, as well as provide command-line tools for convenience and
 potentially shell scripting.
@@ -37,29 +41,8 @@ While still in development, the tools have successfully compiled and run on:
 Building the tools
 ---------------------------------------------------------------------------
 
-1. Unix (general)
-
-To compile the FCPtools on any system that can run GNU bash (which should
-include all the various Unices, as well as Windows/Cygwin):
-
-* Type './configure'
-
-* Running 'configure' takes awhile.  Try './configure --help' for
-  further options.
-
-* Type 'make' to compile the tools.
-
-* Optionally, type 'make check' to run any self-tests.
-
-* Type 'make install' to install the programs, data files and
-  documentation.
-
-* Type 'make clean' to start a fresh build.
-
-
-2. Solaris
-
-Same as Unix, but substitute 'gmake' for 'make'
+Check INSTALL (for Unix), INSTALL.solaris or INSTALL.msvc (for Windows/MSVC++)
+depending on your platform.
 
 
 ---------------------------------------------------------------------------
@@ -84,16 +67,23 @@ have remained the same.  You can find it relative to this directory at:
 ./ezfcplib/doc/spec.html
 
 
--------------------------------------------------------
-fcpget
--------------------------------------------------------
+---------------------------------------------------------------------------
+About the source code
+---------------------------------------------------------------------------
 
 
--------------------------------------------------------
-fcpput
--------------------------------------------------------
+I (joliveri) have been restructuring the source to allow a few things I feel
+are important:
 
+*) Added ./fcpcommon directory.  All shareable code between all of
+   the FCPtools should reside here.
 
--------------------------------------------------------
-fcpputsite
--------------------------------------------------------
+*) Added ./include directory.  All header files shared between all of the
+   FCPtools should reside here.
+
+   ezFCPlib.h resides under the ./ezFCPlib directory since that directory
+   *must* exist independantly of the tools.  This allows client writers
+   to simply include the ./ezFCPlib directory under their source tree and
+   Automake takes care of the rest.
+
+*) Created ./include...

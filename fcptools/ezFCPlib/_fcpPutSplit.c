@@ -108,10 +108,10 @@ void _fcpInitSplit(int maxSplitThreads)
 	maxThreads = (maxSplitThreads == 0) ? FCP_MAX_SPLIT_THREADS : maxSplitThreads;
 
 	// Launch manager thread
-	LaunchThread(splitMgrThread, NULL);
+	crLaunchThread(splitMgrThread, NULL);
 
 	while (!splitMgrRunning)
-		_fcpSleep( 1, 0 );
+		crSleep( 1, 0 );
 
 	_fcpLog(FCP_LOG_VERBOSE,
 			"_fcpInitSplit: splitfile insert manager now running, max %d threads",
@@ -213,7 +213,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 	// wait for it to finish
 	while (job->status != SPLIT_INSSTAT_MANIFEST && job->status != SPLIT_INSSTAT_FAILED)
-		_fcpSleep( 1, 0 );
+		crSleep( 1, 0 );
 
 	close(fd);
 
@@ -370,7 +370,7 @@ void splitAddJob(splitJobIns *job)
 	while (newJob != NULL)
 	{
 		_fcpLog(FCP_LOG_DEBUG, "splitAddJob: waiting for split insert queue to come free");
-		_fcpSleep( 1, 0 );
+		crSleep( 1, 0 );
 	}
 	newJob = job;
 
@@ -412,7 +412,7 @@ static void splitMgrThread(void *nothing)
 	while (1)
 	{
 		// let things breathe a bit
-		_fcpSleep( 1, 0 );
+		crSleep( 1, 0 );
 		breakloop = 0;
 
 		if (++clicks == 600)
@@ -557,7 +557,7 @@ static void splitMgrThread(void *nothing)
 							i, params->key->fileName);
 
 					// fire up a thread to insert this chunk
-					if (LaunchThread(chunkThread, params) != 0)
+					if (crLaunchThread(chunkThread, params) != 0)
 					{
 						// failed thread launch - force restart of main loop
 						_fcpLog(FCP_LOG_CRITICAL, "thread launch failed: chunk %d, file %s",
@@ -678,7 +678,7 @@ static void chunkThread(void *params)
 	 chunkParams->key->status = SPLIT_INSSTAT_BADNEWS;
 
 	 runningThreads--;
-	 QuitThread(0);
+	 crQuitThread(0);
 
 	 return;
   }
@@ -711,6 +711,6 @@ static void chunkThread(void *params)
 	runningThreads--;
 	_fcpLog(FCP_LOG_DEBUG, "%d:chunkThread: %d threads now running",
 			mypid, runningThreads);
-	QuitThread(0);
+	crQuitThread(0);
 	return;
 }

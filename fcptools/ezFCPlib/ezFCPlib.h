@@ -113,9 +113,9 @@ typedef struct _splitJob {
 
 #define RECV_BUFSIZE            2048
 
-#define EZFCP_DEFAULT_HOST      "127.0.0.1"
+#define EZFCP_DEFAULT_HOST      "localhost"
 #define EZFCP_DEFAULT_PORT      8481
-#define EZFCP_DEFAULT_HTL       25
+#define EZFCP_DEFAULT_HTL       3
 #define EZFCP_DEFAULT_REGRESS   3
 #define EZFCP_DEFAULT_RAWMODE   0
 

@@ -2,9 +2,7 @@ This is the TODO file for FCPtools.
 
 
 This file's purpose is to provide a breakdown of important features/fixes that
-can be implemented by any competent C programmer.  If why a particular feature
-needs implementaion is left a mystery, it's because long winded explanations
-are not meant for this TODO file, otherwise I'd call it the TODO+WHY file.
+can be implemented by any competent C programmer.
 
 
 ---------------------------------------------------------------------------
@@ -25,12 +23,5 @@ any code sharing.
 ---------------------------------------------------------------------------
 *** FCPtools generic ***
 
-- fix STDOUT parameter in fcpget
-
 - Enhance command-line interface.  Add version number to all help screens
-  (done for fcpget).
-
-- Standardize all global-defaults (localhost/127.0.0.1, etc.)
-
-
-(to be completed)
+  (done for fcpget; todo for fcpput*).

@@ -182,13 +182,6 @@ static void parse_args(int argc, char *argv[])
   /* c is the option code; i is buffer storage for an int */
   int c, i;
 
-  /* Set the defaults here.  It cleans up main() */
-  *keyUri = 0;
-  *keyFile = 0;
-
-  strcpy(nodeAddr, "localhost");
-  strcpy(metaFile, "stdout");
-
   while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
 
     //printf("%s\n", optarg);
@@ -205,7 +198,7 @@ static void parse_args(int argc, char *argv[])
       
     case 'p':
       i = atoi( optarg );
-      nodePort = ( i <= 0 ? 8481 : i );
+      nodePort = ( i <= 0 ? EZFCP_DEFAULT_PORT : i );
       break;
       
     case 'm':
@@ -253,10 +246,10 @@ static void usage(char *s)
 
     printf("Options:\n\n");
     printf("  -l. --htl htlVal       Hops to Live value, default %d\n", htlVal);
-    printf("  -n, --address addr     Address of your freenet 0.4 node,\n");
+    printf("  -n, --address addr     Address of your Freenet node,\n");
     printf("                         default \"%s\"\n", nodeAddr);
     printf("  -p, --port port        Port of your freenet 0.4 node, default %d\n", nodePort);
-    printf("  -m, --metadata file    Write key's metadata to FILE or STDOUT\n");
+    printf("  -m, --metadata file    Write key's metadata to file (default \"stdout\")\n");
     printf("  -r, --raw              Raw mode - don't follow redirects\n");
     printf("  -v, --verbosity level  Verbosity of logging messages:\n");
     printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
@@ -265,7 +258,7 @@ static void usage(char *s)
     printf("  -h, --help             Display this help and exit\n\n");
 
     printf("  key                    Freenet key (freenet:KSK@gpl.txt)\n");
-    printf("  file                   File to save key data to (default=STDOUT)\n\n");
+    printf("  file                   Write key's data to file (default \"stdout\")\n\n");
 
     exit(0);
 }

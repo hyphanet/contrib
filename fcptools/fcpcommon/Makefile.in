@@ -71,7 +71,7 @@ INCLUDES = -I$(top_srcdir)/include
 
 noinst_LIBRARIES = libfcpcommon.a
 
-libfcpcommon_a_SOURCES = getopt.c getopt1.c compat.c
+libfcpcommon_a_SOURCES = getopt.c getopt1.c
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 LIBRARIES =  $(noinst_LIBRARIES)
@@ -81,20 +81,20 @@ DEFS = @DEFS@ -I. -I$(srcdir)
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 libfcpcommon_a_LIBADD = 
-libfcpcommon_a_OBJECTS =  getopt.o getopt1.o compat.o
+libfcpcommon_a_OBJECTS =  getopt.o getopt1.o
 AR = ar
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
-DIST_COMMON =  README Makefile.am Makefile.in
+DIST_COMMON =  Makefile.am Makefile.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-DEP_FILES =  .deps/compat.P .deps/getopt.P .deps/getopt1.P
+DEP_FILES =  .deps/getopt.P .deps/getopt1.P
 SOURCES = $(libfcpcommon_a_SOURCES)
 OBJECTS = $(libfcpcommon_a_OBJECTS)
 

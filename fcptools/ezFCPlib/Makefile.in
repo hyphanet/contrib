@@ -72,8 +72,9 @@ VERSION = @VERSION@
 INCLUDES = -I$(top_srcdir)/include
 
 noinst_LIBRARIES = libezfcp.a
+noinst_HEADERS = compat.h
 
-FCP_SOURCE =  	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c 	_fcpRecvResponse.c _fcpSock.c _fcpUtil.c fcpCloseKey.c 	fcpCreateHandle.c fcpDestroyHandle.c fcpGetKeyToFile.c 	fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c 	mimetype.c template.c safeMalloc.c
+FCP_SOURCE =  	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c 	_fcpRecvResponse.c _fcpSock.c _fcpUtil.c fcpCloseKey.c 	fcpCreateHandle.c fcpDestroyHandle.c fcpGetKeyToFile.c 	fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c 	mimetype.c template.c safeMalloc.c compat.c
 
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
@@ -93,12 +94,14 @@ fcpInitHandle.o fcpMakChkFromMem.o fcpMakeChkFromFile.o \
 fcpMakeSvkKeypair.o fcpOpenKey.o fcpOpenKeyIndex.o fcpPutKeyFromFile.o \
 fcpPutKeyFromMem.o fcpRawMode.o fcpReadKey.o fcpReadKeyIndex.o \
 fcpSetParam.o fcpStartup.o fcpWriteKey.o fcpWriteKeyIndex.o metaParse.o \
-mimetype.o template.o safeMalloc.o
+mimetype.o template.o safeMalloc.o compat.o
 AR = ar
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
+HEADERS =  $(noinst_HEADERS)
+
 DIST_COMMON =  Makefile.am Makefile.in TODO
 
 
@@ -108,15 +111,15 @@ TAR = tar
 GZIP_ENV = --best
 DEP_FILES =  .deps/_fcpGlobals.P .deps/_fcpLog.P .deps/_fcpPutSplit.P \
 .deps/_fcpReadBlk.P .deps/_fcpRecvResponse.P .deps/_fcpSock.P \
-.deps/_fcpUtil.P .deps/fcpCloseKey.P .deps/fcpCreateHandle.P \
-.deps/fcpDestroyHandle.P .deps/fcpGetKeyToFile.P .deps/fcpGetKeyToMem.P \
-.deps/fcpInitHandle.P .deps/fcpMakChkFromMem.P \
-.deps/fcpMakeChkFromFile.P .deps/fcpMakeSvkKeypair.P .deps/fcpOpenKey.P \
-.deps/fcpOpenKeyIndex.P .deps/fcpPutKeyFromFile.P \
-.deps/fcpPutKeyFromMem.P .deps/fcpRawMode.P .deps/fcpReadKey.P \
-.deps/fcpReadKeyIndex.P .deps/fcpSetParam.P .deps/fcpStartup.P \
-.deps/fcpWriteKey.P .deps/fcpWriteKeyIndex.P .deps/metaParse.P \
-.deps/mimetype.P .deps/safeMalloc.P .deps/template.P
+.deps/_fcpUtil.P .deps/compat.P .deps/fcpCloseKey.P \
+.deps/fcpCreateHandle.P .deps/fcpDestroyHandle.P \
+.deps/fcpGetKeyToFile.P .deps/fcpGetKeyToMem.P .deps/fcpInitHandle.P \
+.deps/fcpMakChkFromMem.P .deps/fcpMakeChkFromFile.P \
+.deps/fcpMakeSvkKeypair.P .deps/fcpOpenKey.P .deps/fcpOpenKeyIndex.P \
+.deps/fcpPutKeyFromFile.P .deps/fcpPutKeyFromMem.P .deps/fcpRawMode.P \
+.deps/fcpReadKey.P .deps/fcpReadKeyIndex.P .deps/fcpSetParam.P \
+.deps/fcpStartup.P .deps/fcpWriteKey.P .deps/fcpWriteKeyIndex.P \
+.deps/metaParse.P .deps/mimetype.P .deps/safeMalloc.P .deps/template.P
 SOURCES = $(libezfcp_a_SOURCES)
 OBJECTS = $(libezfcp_a_OBJECTS)
 
@@ -261,7 +264,7 @@ install-am: all-am
 install: install-am
 uninstall-am:
 uninstall: uninstall-am
-all-am: Makefile $(LIBRARIES)
+all-am: Makefile $(LIBRARIES) $(HEADERS)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
