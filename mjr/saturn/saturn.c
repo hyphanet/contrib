@@ -177,6 +177,11 @@ get_article (uint32_t msg_num)
     FILE *decoded, *data = tmpfile();
     article *a;
 
+    if (!data) {
+	fprintf(stderr, "Error creating tmpfile()!\n");
+	return NULL;
+    }
+    
     if (regex) {
         fprintf(sock, "xhdr subject %d\r\n", msg_num);
         fflush(sock);
@@ -187,7 +192,7 @@ get_article (uint32_t msg_num)
         if (regexec(regex, line, 0, NULL, 0)) {
 	    fprintf(stderr, "Skipping unmatched article %d.\n", msg_num);
 	    fgets(line, 512, sock);
-	    return NULL;
+	    goto error;
 	}
         fgets(line, 512, sock);
         if (strcmp(line, ".\r\n") != 0) goto badreply;
@@ -204,7 +209,7 @@ get_article (uint32_t msg_num)
         if (status < min_bytes) {
 	    fprintf(stderr, "Skipping article %d: less than %d bytes.\n", msg_num, min_bytes);
 	    fgets(line, 512, sock);
-	    return NULL;
+	    goto error;
         }
         fgets(line, 512, sock);
         if (strcmp(line, ".\r\n") != 0) goto badreply;
@@ -216,17 +221,17 @@ get_article (uint32_t msg_num)
     sscanf(line, "%d %*d %s\r\n", &status, msg_id);
     if (status != 222) goto badreply;
     printf("Downloading article %d... ", msg_num);
-    fflush(NULL);
+    fflush(stdout);
     while (fgets(line, 512, sock)) {
 	if (strcmp(line, ".\r\n") == 0) break;
 	fputs(line, data);
     }
     if (strcmp(line, ".\r\n") != 0) {
-	fprintf(stderr, "terminated unexpectedly!\n");
-	return NULL;
+	printf("terminated unexpectedly!\n");
+	goto error;
     }
     printf("done.\n");
-
+    
     rewind(data); name[0] = '\0';
     while (fgets(line, 512, data)) {
        if (strncmp(line, "begin ", 6) == 0) {
@@ -238,17 +243,17 @@ get_article (uint32_t msg_num)
 	   break;
        }
     }
-
+    
     if (!strlen(name)) {
 	fprintf(stderr, "Decoding error on article %d: no data found!\n", msg_num);
-	return NULL;
+	goto error;
     }
     
     if (base64) decoded = read_base64(data);
     else decoded = read_stduu(data);
     if (!decoded) {
 	fprintf(stderr, "Decoding error on article %d: bad data!\n", msg_num);
-	return NULL;
+	goto error;
     }
     fclose(data);
     
@@ -260,6 +265,8 @@ get_article (uint32_t msg_num)
 
 badreply:
     fprintf(stderr, "Unexpected reply: %s", line);
+error:
+    fclose(data);
     return NULL;
 }
 
