@@ -150,8 +150,8 @@ insert (int c)
     unsigned int i, j;
     unsigned int blocksize, len, hlen, dlen, clen;
     struct graph g;
-    keyInstance key;
-    cipherInstance cipher;
+    //keyInstance key;
+    //cipherInstance cipher;
     
     // read data length in bytes
     if (readall(c, &i, 4) != 4) {
@@ -195,12 +195,12 @@ insert (int c)
     // encrypt data with its hash
     alert("Hashing and encrypting data.");
     sha_buffer(blocks, dlen, hashes);
-    if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
-	die("cipherInit() failed");
-    if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
-	die("makeKey() failed");
-    if (blockEncrypt(&cipher, &key, blocks, dlen, blocks) <= 0)
-	die("blockEncrypt() failed");
+//    if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
+//	die("cipherInit() failed");
+//    if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
+//	die("makeKey() failed");
+//    if (blockEncrypt(&cipher, &key, blocks, dlen, blocks) <= 0)
+//	die("blockEncrypt() failed");
     
     // generate check blocks
     alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);
