@@ -59,8 +59,10 @@ insert (int c)
     cipherInstance cipher;
     fd_set r, w;
     
-    if (readall(c, &len, 4) != 4)
+    if (readall(c, &len, 4) != 4) {
+	ioerror();
 	return;
+    }
 
     p = mbuf(len);
     if (readall(c, p, len) != len) {
@@ -129,6 +131,20 @@ insert (int c)
 void
 request (int c)
 {
+    int i, pc;
+    char **keys;
+
+    if (readall(c, &i, 4) != 4) {
+	ioerror();
+	return;
+    }
+
+    if (i%20) {
+	puts("Bad key length.");
+	return;
+    }
+    
+    pc = i/20;
 }
 
 void

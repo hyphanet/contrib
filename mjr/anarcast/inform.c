@@ -1,92 +1,138 @@
-#define MAX_HOSTS       16384
-#define VERIFY_INTERVAL 60
-#define WRITE_INTERVAL  60
+#define DATABASE_SIZE (1024*1024)
+#define WEED_INTERVAL (60*60)
 
 #include "anarcast.h"
 
-int n;
-unsigned int hosts[MAX_HOSTS];
+void weed_dead_servers ();
 
-long last_verify, last_write;
+char *hosts, *end, *off[FD_SETSIZE];
 
 int
-main (int argc, char **argv)
+main ()
 {
-    int f, l, c, d, i;
-    struct sockaddr_in a;
+    unsigned int l, m, active;
+    long last_weeding;
+    fd_set r, w;
 
+    if ((l = open("inform_database", O_RDWR|O_CREAT, 0644)) == -1)
+	err(1, "open() of inform_database failed");
+    
+    if (ftruncate(l, DATABASE_SIZE) == -1)
+	err(1, "ftruncate() of infrom_database failed");
+
+    hosts = mmap(0, DATABASE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, l, 0);
+    if (hosts == MAP_FAILED)
+	err(1, "mmap() of inform_database failed");
+    
+    m = 0;
+    if (!(end = memmem(hosts, DATABASE_SIZE, &m, 4)))
+	err(1, "cannot find end of inform_database");
+
+    if (close(l) == -1)
+	err(1, "close() failed");
+    
     if ((l = listening_socket(INFORM_SERVER_PORT)) == -1)
 	err(1, "can't grab port %d", INFORM_SERVER_PORT);
     
-    if ((f = open("inform_database", O_RDWR | O_CREAT, 0644)) == -1)
-	err(1, "open(2) of inform_database failed");
-
-    if (read(f, &hosts, sizeof(hosts)) != sizeof(hosts)) {
-	puts("initializing new/bad inform_database");
-        memset(&hosts, 0, sizeof(hosts));
-	if (lseek(f, SEEK_SET, 0) == -1)
-	    err(1, "lseek(2) failed");
-	if (write(f, &hosts, sizeof(hosts)) != sizeof(hosts))
-	    err(1, "write(2) failed");
-	if (lseek(f, SEEK_SET, 0) == -1)
-	    err(1, "lseek(2) failed");
-    }
-
-    for (n = 0 ; n < MAX_HOSTS ; n++)
-	if (!hosts[n]) break;
+    last_weeding = time(NULL);
+    active = 0;
     
-    last_verify = time(NULL);
-    last_write = time(NULL);
+    FD_ZERO(&r);
+    FD_ZERO(&w);
+    FD_SET(l, &r);
+    m = l + 1;
     
     for (;;) {
-	i = sizeof(a);
-	if ((c = accept(l, &a, &i)) != -1) {
-	    d = 0;
-	    for (i = 0 ; i < n ; i++) {
-	        if (write(c, &hosts[i], 4) != 4)
-		    break;
-		if (hosts[i] == a.sin_addr.s_addr)
-		    d = 1;
+	int n;
+	fd_set s = r, x = w;
+	struct timeval tv = {2,0};
+	
+	n = select(m, &s, &x, NULL, &tv);
+	if (n == -1) err(1, "select(2) failed");
+	if (!n) {
+	    if (!active && time(NULL) > last_weeding + WEED_INTERVAL) {
+		puts("Weeding....");
+		weed_dead_servers();
+		last_weeding = time(NULL);
 	    }
-	    if (!d) hosts[n++] = a.sin_addr.s_addr;
-	    close(c);
+	    continue;
 	}
-	if (time(NULL) > last_write + WRITE_INTERVAL) {
-	    last_write = time(NULL);
-	    if (write(f, &hosts, sizeof(hosts)) != sizeof(hosts))
-		err(1, "write(2) failed");
-	    if (lseek(f, SEEK_SET, 0) == -1)
-		err(1, "lseek(2) failed");
-	}
-	if (time(NULL) > last_verify + VERIFY_INTERVAL) {
-	    int o = 0;
-	    unsigned int h[MAX_HOSTS];
-	    last_verify = time(NULL);
-	    for (i = 0 ; i < n ; i++) {
-	        struct sockaddr_in a;
-		memset(&a, 0, sizeof(a));
-		a.sin_family = AF_INET;
-		a.sin_port = htons(ANARCAST_SERVER_PORT);
-		a.sin_addr.s_addr = hosts[i];
-		if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-		    err(1, "socket(2) failed");
-		if (connect(c, &a, sizeof(a)) != -1)
-		    h[o++] = hosts[i];
-		close(c);
+
+	for (n = 3 ; n < m ; n++)
+	    if (FD_ISSET(n, &s)) {
+		struct sockaddr_in a;
+		int c, b = sizeof(a);
+		if ((c = accept(n, &a, &b)) == -1) {
+		    ioerror();
+		    continue;
+		}
+		active++;
+		FD_SET(c, &w);
+		off[c] = hosts;
+		if (c == m) m++;
+		if (!memmem(hosts, end-hosts, &a.sin_addr.s_addr, 4)) {
+		    memcpy(end, &a.sin_addr.s_addr, 4);
+		    end += 4;
+		}
+		printf("%s added.\n", inet_ntoa(a.sin_addr));
 	    }
-	    if (o != n) printf("%d of %d total hosts unreachable.", o, n);
-	    else printf("all hosts still online :)\n");
-	    if (o * 2 > n) {
-		puts("too many unreachable hosts - not updating list");
-		continue;
+
+	for (n = 3 ; n < m ; n++)
+	    if (FD_ISSET(n, &x)) {
+		int c = write(n, off[n], end-off[n]);
+		if (c <= 0) {
+		    if (off[n] != hosts) ioerror();
+		    active--;
+		    FD_CLR(n, &w);
+		    close(n);
+		} else if ((off[n] += c) == end) {
+		    active--;
+		    FD_CLR(n, &w);
+		    close(n);
+		}
 	    }
-	    n = o;
-	    memcpy(hosts, h, sizeof(hosts));
-	    if (write(f, &hosts, sizeof(hosts)) != sizeof(hosts))
-		err(1, "write(2) failed");
-	    if (lseek(f, SEEK_SET, 0) == -1)
-		err(1, "lseek(2) failed");
-	}
     }
+}
+
+void
+weed_dead_servers ()
+{
+    int f, c;
+    char *p, *q, *b = mbuf(DATABASE_SIZE);
+    
+    memset(b, 0, DATABASE_SIZE);
+    
+    for (p = q = hosts, f = 0 ; *(int*)p ; p += 4) {
+	struct sockaddr_in a;
+	memset(&a, 0, sizeof(a));
+	a.sin_family = AF_INET;
+	a.sin_port = htons(ANARCAST_SERVER_PORT);
+	a.sin_addr.s_addr = *(int*)p;
+	
+	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	    err(1, "socket(2) failed");
+	
+	if (connect(c, &a, sizeof(a)) != -1) {
+	    memcpy(q, p, 4);
+	    q += 4;
+	} else {
+	    printf("%s unreachable.\n", inet_ntoa(a.sin_addr));
+	    f++;
+	}
+	
+	close(c);
+    }
+    
+    printf("%d of %d total hosts unreachable.\n", f, (end-hosts)/4);
+    
+    if (f * 2 > (end-hosts)/4) {
+	puts("Too many unreachable hosts--not updating database.");
+    } else {
+	memcpy(hosts, b, q-b);
+	end = q;
+    }
+    
+    if (munmap(b, DATABASE_SIZE) == -1)
+	err(1, "munmap() failed");
 }
 

@@ -3,8 +3,10 @@
 #define INFORM_SERVER_PORT    7342
 #define HASH_LEN              20
 #define DEFAULT_INFORM_SERVER "localhost"
+#define _GNU_SOURCE
 
 #include <err.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -15,6 +17,7 @@
 #include <sys/socket.h>
 #include <sys/sendfile.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
