@@ -833,11 +833,10 @@ fcp_connect ()
     int connected_socket, connected;
     FILE *sock;
     serv = getservbyname("fcp", "tcp");
-    if (!serv) return NULL;
     addr.s_addr = inet_addr("127.0.0.1");
     memset((char *) &address, 0, sizeof(address));
     address.sin_family = AF_INET;
-    address.sin_port = (serv->s_port);
+    address.sin_port = serv ? (serv->s_port) : htons(8082);
     address.sin_addr.s_addr = addr.s_addr;
     connected_socket = socket(AF_INET, SOCK_STREAM, 0);
     connected = connect(connected_socket,
