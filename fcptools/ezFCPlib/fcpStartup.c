@@ -45,11 +45,6 @@ int fcpStartup(char *logfile, int log_verbosity)
 	/* pass a bum value here and it's set to SILENT */
 	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
 
-	if (logfile) {
-		if (!(_fcpLogStream = fopen(logfile, "a")))
-			return -1;
-	}
-
 #ifdef WIN32
 	{
 		WORD wVersionRequested;
@@ -62,8 +57,9 @@ int fcpStartup(char *logfile, int log_verbosity)
 			return -1;
 	}
 
-	/* TODO: arrange me !!
 	_fcpTmpDir = strdup(getenv("TEMP"));
+
+	/* Maybe this needs to be re-thought */
 	_fcpHomeDir = getenv("USERPROFILE");
 	*/
 
@@ -73,6 +69,12 @@ int fcpStartup(char *logfile, int log_verbosity)
 	_fcpHomeDir = getenv("HOME");
 
 #endif
+
+	/* now finish initialization of the logfile, after the settings above */
+		if (logfile) {
+		if (!(_fcpLogStream = fopen(logfile, "a")))
+			return -1;
+	}
 
 	return 0;
 }

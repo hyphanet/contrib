@@ -54,8 +54,10 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
+/*
 #define S_IRUSR _S_IRUSR
 #define S_IWUSR _S_IWUSR
+*/
 
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp

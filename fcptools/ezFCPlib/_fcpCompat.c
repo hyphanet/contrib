@@ -26,18 +26,60 @@
 
 #include "ezFCPlib.h"
 
-void _fcpSockDisconnect(hFCP *hfcp);
+#include <time.h>
+
+extern char *_fcpTmpDir;
+
+/*********************************************************************/
 
 void _fcpSockDisconnect(hFCP *hfcp)
 {
   if (hfcp->socket == FCP_SOCKET_DISCONNECTED)
 		return;
 
-#ifndef WIN32
-	close(hfcp->socket);
-#else
+#ifdef WIN32
 	closesocket(hfcp->socket);
+#else
+	close(hfcp->socket);
 #endif
 
 	hfcp->socket = FCP_SOCKET_DISCONNECTED;
 }
+
+int _fcpTmpfile(char **filename)
+{
+	char s[513];
+	int search = 1;
+
+	struct stat st;
+	time_t seedseconds;
+
+	time(&seedseconds);
+	srand((unsigned int)seedseconds);
+
+	while (search) {
+		snprintf(s, 512, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
+
+		if (stat(s, &st) == -1)
+			if (errno == ENOENT) search = 0;
+	}
+
+	/* set the filename parameter to the newly generated Tmp filename */
+	*filename = (char *)malloc(strlen(s) + 1);
+	strcpy(*filename, s);
+
+	/* until I find a better way, this is how it is for now */
+
+#ifdef WIN32
+	/* on Win, this should create a file with permissions inherited from
+		the parent directory */
+	return creat(*filename, O_CREAT);
+
+#else
+	/* on *nix, this creates a file with perms "rw-------" (600) */
+	return creat(*filename, O_CREAT | S_IRUSR | S_IWUSR);
+
+#endif
+
+}
+

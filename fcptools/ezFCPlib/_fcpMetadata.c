@@ -34,11 +34,7 @@
 #include <string.h>
 
 
-/* *********************** HERE DEFINE STRUCTS in EZFCPLIB.H and continue ***************/
-
-/*
-  EXPORTED DEFINITIONS
-*/
+/* exported definitions */
 
 #if 0
 long       cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
@@ -49,15 +45,11 @@ char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defV
 hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);
 char      *cdocLookupKey(hDocument *doc, char *keyName);
 
-/*
-  IMPORTED DEFINITIONS
-*/
+/* imported definitions */
 extern long xtoi(char *s);
 extern long file_size(char *filename);
 
-/*
-  PRIVATE DEFINITIONS
-*/
+/* private definitions */
 static int getLine(char *, char *, int);
 static int splitLine(char *, char *, char *);
 
@@ -78,9 +70,6 @@ static int parse_document(hMetadata *, char *);
 #define STATE_WAIT_END      5
 #define STATE_END           6
 
-/*
-  END OF DECLARATIONS
-*/
 
 /*
   metaParse
@@ -90,7 +79,6 @@ static int parse_document(hMetadata *, char *);
 */
 int _fcpMetaParse(hMetadata *meta, char *buf)
 {
-	/* 1k boundary + 1 (for null character) */
   char  line[513];
   char  key[257];
   char  val[257];
@@ -294,7 +282,6 @@ static int getLine(char *line, char *buf, int start)
 
 static int parse_version(hMetadata *meta, char *buf)
 {
-	/* 1k boundary + 1 (for null character) */
   char  line[513];
   char  key[257];
   char  val[257];
@@ -345,7 +332,6 @@ static int parse_version(hMetadata *meta, char *buf)
 
 static int parse_document(hMetadata *meta, char *buf)
 {
-	/* 1k boundary + 1 (for null character) */
   char  line[513];
   char  key[257];
   char  val[257];

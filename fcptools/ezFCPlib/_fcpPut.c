@@ -33,9 +33,9 @@
 #include <errno.h>
 
 
-extern int   _fcpSockConnect(hFCP *hfcp);
-extern void  _fcpSockDisconnect(hFCP *hfcp);
-extern int   _fcpTmpfile(char *filename, int size);
+extern int    _fcpSockConnect(hFCP *hfcp);
+extern void   _fcpSockDisconnect(hFCP *hfcp);
+extern int    _fcpTmpfile(char **filename);
 
 extern long  file_size(char *filename);
 
@@ -384,9 +384,6 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 		
 		hfcp->key->metadata = _fcpCreateHMetadata();
 		hfcp->key->metadata->size = file_size(meta_filename);	
-
-		/* re-set meta_bytes to metadata size */
-		meta_bytes = hfcp->key->metadata->size;
 	}
 
 	if (fec_segment_file(hfcp) != 0) return -1;
@@ -734,7 +731,6 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	block_len = hfcp->response.blocksencoded.block_size;
 	
 	for (bi=0; bi < segment->cb_count; bi++) {
-		
 		/* We're expecting a DataChunk message */
 		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
 			hfcp->error = strdup("did not receive expected DataChunk message");
@@ -742,9 +738,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		}
 		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
-
-		segment->check_blocks[bi]->filename = (char *)malloc(257);
-		fd = _fcpTmpfile(segment->check_blocks[bi]->filename, 257);
+		fd = _fcpTmpfile(&segment->check_blocks[bi]->filename);
 
 		if (fd == -1) {
 			snprintf(msg, 512, "could not open file for writing check block %d: %s",
@@ -1120,12 +1114,9 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	/* now read metadata from freenet and write to tmp file */
 
-	mfilename = (char *)malloc(257);
-	mfd = _fcpTmpfile(mfilename, 257);
+	mfd = _fcpTmpfile(&mfilename);
 
 	/* barf all the data into the file */
-
-	/* This shit isn't working... */
 	bytes = 0;
 
 	while (bytes < meta_len) {

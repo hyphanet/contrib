@@ -36,7 +36,7 @@
 
 extern int    _fcpSockConnect(hFCP *hfcp);
 extern void   _fcpSockDisconnect(hFCP *hfcp);
-extern char  *_fcpTmpFilename(void);
+extern int    _fcpTmpfile(char **filename);
 
 
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)

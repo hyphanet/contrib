@@ -31,6 +31,7 @@
 #endif
 
 #include <string.h>
+#include <errno.h>
 
 #include "ezFCPlib.h"
 
@@ -43,6 +44,7 @@ static int host_is_numeric(char *host);
 
 int _fcpSockConnect(hFCP *hfcp)
 {
+	char msg[513];
   int rc;
 	
   struct sockaddr_in sa_local_addr;
@@ -83,7 +85,11 @@ int _fcpSockConnect(hFCP *hfcp)
 	
   rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
   if (rc < 0) {
-		_fcpLog(FCP_LOG_DEBUG, "error binding to port %d", hfcp->port);
+		snprintf(msg, 512, "error binding to port %d: %s", hfcp->port, strerror(errno));
+
+		_fcpLog(FCP_LOG_DEBUG, "%s", msg);
+		hfcp->error = strdup(msg);
+
 		_fcpSockDisconnect(hfcp);
     return -1;
   }
@@ -91,8 +97,11 @@ int _fcpSockConnect(hFCP *hfcp)
   /* connect to server */
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
   if (rc < 0) {
-		_fcpLog(FCP_LOG_DEBUG, "error connecting to server %s", hfcp->host);
-		_fcpLog(FCP_LOG_DEBUG, "connect returned \"%s\"", strerror(errno));
+		snprintf(msg, 512, "error connecting to server %s: %s", hfcp->host, strerror(errno));
+
+		_fcpLog(FCP_LOG_DEBUG, "%s", msg);
+		hfcp->error = strdup(msg);
+
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}

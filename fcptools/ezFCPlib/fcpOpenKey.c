@@ -34,9 +34,9 @@
 #include <fcntl.h>
 
 
-extern int   _fcpSockConnect(hFCP *hfcp);
-extern void  _fcpSockDisconnect(hFCP *hfcp);
-extern int   _fcpTmpfile(char *filename, int size);
+extern int    _fcpSockConnect(hFCP *hfcp);
+extern void   _fcpSockDisconnect(hFCP *hfcp);
+extern int    _fcpTmpfile(char **filename);
 
 static int    fcpOpenKeyRead(hFCP *hfcp, char *key_uri);
 static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
@@ -104,7 +104,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 	/* Tie it to a unique temporary file */
 	hfcp->key->tmpblock->filename	= (char *)malloc(257);
 
-	hfcp->key->tmpblock->fd = _fcpTmpfile(hfcp->key->tmpblock->filename, 257);
+	hfcp->key->tmpblock->fd = _fcpTmpfile(&hfcp->key->tmpblock->filename);
 	if (hfcp->key->tmpblock->fd == -1)
 		return -1;
 
@@ -115,7 +115,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 	hfcp->key->metadata->tmpblock->filename	= (char *)malloc(257);
 
 	hfcp->key->metadata->tmpblock->fd =
-		_fcpTmpfile(hfcp->key->metadata->tmpblock->filename, 257);
+		_fcpTmpfile(&hfcp->key->metadata->tmpblock->filename);
 
 	if (hfcp->key->metadata->tmpblock->fd == -1)
 		return -1;
