@@ -32,29 +32,36 @@ While still in development, the tools have successfully compiled and run on:
 Building the tools
 -------------------------------------------------
 
-* Unix
+1. Unix:
 
 To compile the FCPtools on any system that can run GNU bash (which should
 include all the various Unices, as well as Windows running Cygwin):
 
-  1. Type './configure'
+   * Type './configure'
 
-     Running 'configure' takes awhile.  Try './configure --help' for
+   * Running 'configure' takes awhile.  Try './configure --help' for
      further options.
 
-  2. Type 'make' to compile the tools.
+   * Type 'make' to compile the tools.
 
-  3. Optionally, type 'make check' to run any self-tests.
+   * Optionally, type 'make check' to run any self-tests.
 
-  4. Type 'make install' to install the programs, data files and
+   * Type 'make install' to install the programs, data files and
      documentation.
 
-  5. Type 'make clean' to start a fresh build.
+   * Type 'make clean' to start a fresh build.
 
-* Windows
+2. Windows:
 
-With MSVC, simply open the fcptools.dsw workspace file,
-and build each of the projects.
+You can either install the Cygwin package and follow the same instructions
+for Unix, or use the hand-crafted makefile.
+
+To use a makefile other than the default 'Makefile':
+
+   * Type 'make -f Makefile.manual'.
+
+Finally, you can open the fcptools.dsw workspace file in MS Visual C++, and
+build each of the projects.
 
 -------------------------------------------------
 ezFCPlib - the easiest multi-platform FCP library

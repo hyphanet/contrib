@@ -10,7 +10,7 @@ INSTDIR=/usr/local/bin
 
 default:
 	@echo "Target must be one of:"
-	@echo " linux    Builds linux version"
+#	@echo " linux    Builds linux version"
 	@echo " cygwin   Builds cygwin version"
 	@echo " clean    Cleans out all objects and binaries"
 	@echo " install  puts binaries into $(INSTDIR)"
