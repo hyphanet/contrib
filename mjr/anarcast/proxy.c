@@ -1,5 +1,5 @@
 #define GRAPHCOUNT    512
-#define CONCURRENCY   16
+#define CONCURRENCY   8
 #define AVL_MAXHEIGHT 41
 
 #include <math.h>
@@ -31,6 +31,7 @@ char *inform_server;
 void inform ();
 void * run_thread (void *arg);
 void alert (const char *s, ...);
+int is_set (struct graph *g, int db, int cb);
 
 void insert (int c);
 void do_insert (char *blocks, int blockcount, int blocksize, char *hashes);
@@ -123,6 +124,15 @@ load_graphs ()
 	n += (graphs[i].dbc * graphs[i].cbc) / 8;
 	if ((graphs[i].dbc * graphs[i].cbc) % 8)
 	    n++;
+	alert("Graph %d: %d x %d.", i+1, graphs[i].dbc, graphs[i].cbc);
+/*	{
+	    int j, p;
+	    for (j = 0 ; j < graphs[i].dbc ; j++) {
+		for (p = 0 ; p < graphs[i].cbc ; p++)
+		    printf("%d", is_set(&graphs[i], j, p) ? 1 : 0);
+		printf("\n");
+	    }
+	}*/
     }
 }
 
@@ -236,34 +246,120 @@ insert (int c)
     free(hashes);
 }
 
+int
+hookup (char hash[HASHLEN])
+{
+    struct sockaddr_in a;
+    extern int errno;
+    int i, c;
+
+    memset(&a, 0, sizeof(a));
+    a.sin_family = AF_INET;
+    a.sin_port = htons(ANARCAST_SERVER_PORT);
+    a.sin_addr.s_addr = route(hash);
+
+    if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	die("socket() failed");
+    
+    if ((i = fcntl(c, F_GETFL, 0)) == -1)
+	die("fnctl() failed");
+    
+    if (fcntl(c, F_SETFL, i | O_NONBLOCK) == -1)
+	die("fnctl() failed");
+
+    // loop until connect works
+    for (;;)
+	if (connect(c, &a, sizeof(a)) == -1 && errno != EINPROGRESS) {
+	    rmref(a.sin_addr.s_addr);
+	    a.sin_addr.s_addr = route(hash);
+	} else break;
+    
+    return c;
+}
+
 void
 do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
 {
-    int m;
-    fd_set r, w;
+    int m, next, active;
+    fd_set w;
     
-    FD_ZERO(&r);
-    FD_ZERO(&w);
+    struct {
+	int num;
+	int off;
+    } xfers[FD_SETSIZE];
     
     alert("Inserting %d blocks.", blockcount);
     
-    m = 0;
+    FD_ZERO(&w);
+    next = active = 0;
+    m = 1;
+    
     for (;;) {
 	int i;
-	fd_set s = r, x = w;
+	fd_set x = w;
 
-	i = select(m, &s, &x, NULL, NULL);
-	if (i == -1) die("select() failed");
-	if (!i) continue;
+	if (active) {
+	    i = select(m, NULL, &x, NULL, NULL);
+	    if (i == -1) die("select() failed");
+	    if (!i) continue;
+	}
 
-	
+	while (active < CONCURRENCY && next < blockcount) {
+	    int c = hookup(&hashes[next*HASHLEN]);
+	    FD_SET(c, &w);
+	    if (c >= m) m = c + 1;
+	    xfers[c].num = next;
+	    xfers[c].off = -5;
+	    active++;
+	    next++;
+	}
+
+	for (i = 0 ; i < m ; i++)
+	    if (FD_ISSET(i, &x)) {
+		int n = xfers[i].off;
+		
+		if (n == -5)
+		    n = writeall(i, "i", 1);
+		else if (n < 0)
+		    n = writeall(i, &(&blocksize)[4+n], -n);
+		else
+		    n = writeall(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
+
+		if (n <= 0) {
+		    int c;
+		    ioerror();
+		    if (close(i) == -1)
+			die("close() failed");
+		    FD_CLR(i, &w);
+		    c = hookup(&hashes[xfers[i].num*HASHLEN]);
+		    FD_SET(c, &w);
+		    xfers[c].num = xfers[i].num;
+		    xfers[c].off = -5;
+		}
+		
+		xfers[i].off += n;
+		if (xfers[i].off == blocksize) {
+		    alert("Block %d inserted.", xfers[i].num + 1);
+		    if (close(i) == -1)
+			die("close() failed");
+		    FD_CLR(i, &w);
+		    if (i == m) m--;
+		    active--;
+		}
+	    }
+
+	if (!active && next == blockcount)
+	    break;
     }
+
+    alert("Insert completed.");
 }
 
 void
 request (int c)
 {
     int i;
+    char *hashes;
 
     if (readall(c, &i, 4) != 4) {
 	ioerror();
@@ -271,7 +367,16 @@ request (int c)
     }
 
     if (i % HASHLEN) {
-	puts("Bad key length.");
+	alert("Bad key length: %s.", i);
+	return;
+    }
+
+    if (!(hashes = malloc(i)))
+	die("malloc() failed");
+    
+    if (readall(c, hashes, i) != i) {
+	ioerror();
+	free(hashes);
 	return;
     }
 }
@@ -602,48 +707,3 @@ avl_remove (struct node **stack[], int stackcount)
     *removenodeptr = relinknode;
 }
 
-int
-printk_avl(struct node *tree, int depth)
-{
-	int leftheight=0, rightheight=0, err=0;
-
-	printf("tree: %p\n", tree);
-
-	if (tree) {
-		struct node *next;
-		int diff;
-
-		printf("(");
-		next = tree->left;
-		if (next) {
-			leftheight = printk_avl(next, depth+1);
-			printf(" < ");
-		}
-
-		diff = tree->heightdiff;
-		printf("*%d/%d*: ", depth, diff);
-		{
-		    char hex[HASHLEN*2+1]; bytestohex(hex, tree->hash, HASHLEN); puts(hex);
-		}
-		next = tree->right;
-		if (next) {
-			printf(" > ");
-			rightheight = printk_avl(next, depth+1);
-		}
-
-		if (abs(leftheight - rightheight) > 1) {
-			printf(" ERROR imbalanced %d|%d.", leftheight, rightheight);
-			err = 1;
-		} else if ((leftheight > rightheight && diff != TREE_LEFT)
-			   || (leftheight < rightheight && diff != TREE_RIGHT)
-			   || (leftheight == rightheight
-			       && diff != TREE_BALANCED)) {
-			printf(" ERROR incorrect height.");
-			err = 1;
-		}
-
-		printf(")");
-	}
-
-	return (leftheight > rightheight ? leftheight : rightheight) + 1;
-}

@@ -5,6 +5,7 @@
 #define _GNU_SOURCE
 
 #include <err.h>
+#include <errno.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
