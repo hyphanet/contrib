@@ -19,12 +19,10 @@ typedef enum _tagfreenetmode
 {
 	FREENET_STOPPED	= 0,				/* indicates node is not running - has been stopped or has never been started */
 	FREENET_RUNNING,					/* indicates node is running */
-	FREENET_RUNNING_NO_GATEWAY,			/* indicates node is running but FProxy is not */
-	FREENET_RUNNING_NO_INTERNET,		/* indicates node is running but internet connection is 'down' in some way */
 	FREENET_RESTARTING,					/* indicates node is stopping but that immediately after stoppage will begin starting again */
 	FREENET_STOPPING,					/* indicates node is stopping and that after stoppage will end up in the FREENET_STOPPED state */
-	FREENET_CANNOT_START,				/* indicates node is not running and that a recent attempt to start (or restart) the node failed */
-	FREENET_NOT_RUNNING_NO_INTERNET		/* indicates node is not running and that the internet connection is 'down' in some way */
+	FREENET_STARTING,					/* indicates node is stopping and that after stoppage will end up in the FREENET_STOPPED state */
+	FREENET_CANNOT_START				/* indicates node is not running and that a recent attempt to start (or restart) the node failed */
 } FREENET_MODE;
 
 

@@ -72,10 +72,13 @@ extern HANDLE * LOCKOBJECTS[];
  ******************************************************/
 
 /* helper function to select appropriate icon and tooltip text given current state */
-void ModifyIcon(void);
+extern void ModifyIcon(void);
 /* helper function for critical (thread safe) sections */
-void LOCK(enum LOCKCONTEXTS lockcontext);
-void UNLOCK(enum LOCKCONTEXTS lockcontext);
+extern void LOCK(enum LOCKCONTEXTS lockcontext);
+extern void UNLOCK(enum LOCKCONTEXTS lockcontext);
+/* allow icon thread to wait until fserve execution has stopped */
+extern void WaitForFServe(void);
 
+extern const int KAnimationSpeed;
 
 #endif /*FREENET_TRAY_SHARED_DATA_H_INCLUDED*/

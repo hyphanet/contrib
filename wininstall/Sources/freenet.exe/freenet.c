@@ -16,6 +16,7 @@
 
 
 #undef UNICODE
+#include "winsock.h"
 #include "windows.h"
 #include "shellapi.h"
 #include "winnls.h"
@@ -58,12 +59,10 @@ const char *szFreenetTooltipText[]=
 {
 	"Freenet is Stopped",
 	"Freenet is Running",
-	"Freenet is Running - Fproxy is Not",
-	"Freenet is Running - But where is your Internet connection?",
 	"Freenet is Restarting... Please Wait",
 	"Freenet is Stopping... Please Wait",
-	"Freenet is Having Problems - check freenet.log",
-	"Freenet is Stopped - But where is your Internet connection?"
+	"Freenet is Starting... Please Wait",
+	"Freenet is Having Problems - check freenet.log"
 };
 
 /* string constants for use with the FLaunch.ini file */
@@ -97,9 +96,7 @@ const char szfseeddefaultexportpostcmd[]="";
 /* string constants for use with the freenet.ini file */
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
 const char szfinisec[]="Freenet node"; /* ie [Freenet node] subsection text */
-const char szfprxkey[]="mainport.port"; /* ie fproxy.port=8081 */
-const char szserviceskey[]="services"; /* ie services=fproxy,nodestatus */
-
+const char szfprxkey[]="mainport.port"; /* ie mainport.port=8081 */
 
 /* for launching configuration dll */
 const char szConfigDLLName[]="config.dll"; /* ie name of file */
@@ -139,10 +136,11 @@ FREENET_MODE nFreenetMode=FREENET_STOPPED;
 bool bOpenGatewayOnStartup=false;	/* was freenet.exe called with the -open option?  */
 UINT g_uintTaskbarExplodedMsg=0;	/* see MSDN - "Taskbar Creation Notification" */
 bool bFConfigExecUseJava=false;
-bool bUsingFProxy=false;			/* is FProxy set to run with Fred? */
 int nPriority=THREAD_PRIORITY_NORMAL;  /* the priority of the jre for fred */
 int nPriorityClass=NORMAL_PRIORITY_CLASS;  /* the priority class of the jre for fred */
-
+const int GANIMATIONFRAMES=4;
+int g_n_AnimationCounter=0;
+const int KAnimationSpeed = 300; /* ms */
 
 /*		handles, etc... */
 HANDLE hSemaphore=NULL;				/* unique handle used to guarantee only one instance of freenet.exe app is ever running at one time */
@@ -151,10 +149,11 @@ DWORD dwMonitorThreadId;			/* thread identifier for the background 'flasher' thr
 HICON hHopsEnabledIcon=NULL;		/* icon handle - resource loaded during initialisation code */
 HICON hHopsDisabledIcon=NULL;		/* icon handle - resource loaded during initialisation code */
 HICON hAlertIcon=NULL;				/* icon handle - resource loaded during initialisation code */
-HICON hRestartingIcon=NULL;			/* icon handle - resource loaded during initialisation code */
 HICON hHopsNoGatewayIcon=NULL;		/* icon handle - resource loaded during initialisation code */
 HICON hHopsNoInternetIcon=NULL;		/* icon handle - resource loaded during initialisation code */
 HICON hThunderboltIcon=NULL;		/* icon handle - resource loaded during initialisation code */
+HICON hStartingIcon[4]={NULL,NULL,NULL,NULL}; // GANIMATIONFRAMES
+HICON hStoppingIcon[4]={NULL,NULL,NULL,NULL};
 HMENU hPopupMenu=NULL;				/* handle to Popup Menu (right click on systray icon) */
 HWND hWnd=NULL;						/* main window handle  */
 HINSTANCE hInstance=NULL;			/* handle to the main application instance */
@@ -178,12 +177,10 @@ const HICON *hFreenetIcons[] =
 {
 	&hHopsDisabledIcon,
 	&hHopsEnabledIcon,
-	&hHopsNoGatewayIcon,
-	&hHopsNoInternetIcon,
-	&hRestartingIcon,
-	&hHopsDisabledIcon,
-	&hAlertIcon,
-	&hHopsNoInternetIcon
+	hStoppingIcon,
+	hStoppingIcon,
+	hStartingIcon,
+	&hAlertIcon
 };
 
 
@@ -208,6 +205,8 @@ NOTIFYICONDATA note= {	sizeof(NOTIFYICONDATA),
 
 int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLine, int cmdShow) 
 {
+	int wsaError=0;
+	WSADATA wsadata;
 	MSG msg;
 	DWORD dwGetMessageResult;
 	WNDCLASSEX wc={	sizeof(wc), 
@@ -222,7 +221,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 					NULL,
 					szWindowClassName,
 					(HICON) NULL};
-	HANDLE hMonitorThread;
+	HANDLE hMonitorThread=NULL;
 
 	/* make global copies of the hInstance and command line of this app: 
 	   they could come in handy */
@@ -254,10 +253,18 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	hHopsEnabledIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_HOPSENABLED), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hHopsDisabledIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_HOPSDISABLED), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hAlertIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_ALERT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-	hRestartingIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_RESTARTING), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hHopsNoGatewayIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_NOGWAY), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hHopsNoInternetIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_NOINET), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hThunderboltIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_THUNDERBOLT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStartingIcon[0] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STARTING1), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStartingIcon[1] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STARTING2), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStartingIcon[2] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STARTING3), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStartingIcon[3] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STARTING4), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStoppingIcon[0] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STOPPING1), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStoppingIcon[1] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STOPPING2), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStoppingIcon[2] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STOPPING3), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hStoppingIcon[3] = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_STOPPING4), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+
 
 	/* hConfiguratorSemaphore is used so we never load more than one instance of the configurator at a time */
 	hConfiguratorSemaphore = CreateSemaphore(NULL,1,1,NULL);
@@ -268,6 +275,8 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	hDialogBoxes = CreateMutex(NULL,FALSE,NULL);
 	hLogfileViewerDialogBox = CreateMutex(NULL,FALSE,NULL);
 	
+	/* Initialise WinSock */
+	wsaError = WSAStartup(MAKEWORD(1,1),&wsadata);
 
 	/* Create a separate thread to handle flashing the systray icon */
 	hMonitorThread = CreateThread(NULL,1, MonitorThread, NULL, 0, &dwMonitorThreadId);
@@ -283,13 +292,13 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 		hSystray!=NULL &&
 		hConfiguratorSemaphore!=NULL && 
 		hnFreenetMode!=NULL &&
-		hRestartingIcon!=NULL &&
 		hAlertIcon!=NULL &&
 		hHopsDisabledIcon!=NULL &&
 		hHopsEnabledIcon!=NULL && 
 		hHopsNoGatewayIcon!=NULL && 
 		hHopsNoInternetIcon!=NULL &&
-		hThunderboltIcon!=NULL)
+		hThunderboltIcon!=NULL &&
+		wsaError==0)
 	{
 
 		/*** main code: ***/
@@ -319,7 +328,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 		if (bOpenGatewayOnStartup)
 		{
 			Sleep(3000);
-			if (nFreenetMode==FREENET_RUNNING || nFreenetMode==FREENET_RUNNING_NO_INTERNET)
+			if (nFreenetMode==FREENET_RUNNING)
 			{
 				/*  only do this if node is running FOR SURE  */
 				SendMessage(hWnd, WM_COMMAND, IDM_GATEWAY, 0);
@@ -364,6 +373,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 
 clearup:
 	/* destroy objects by handle - not really necessary but it's nice to be tidy */
+	if (wsaError==0) WSACleanup();
 	if (hWnd) DestroyWindow(hWnd);
 	if (hAlertIcon) DestroyIcon(hAlertIcon);
 	if (hHopsEnabledIcon) DestroyIcon(hHopsEnabledIcon);
@@ -721,14 +731,6 @@ void ReloadSettings(void)
 	lstrcpy(szgatewayURI, szgatewayURIdef);
 	/* then append the port number of fproxy, looked up from freenet.ini */
 	GetPrivateProfileString(szfinisec, szfprxkey, szempty, szgatewayURI+lstrlen(szgatewayURI), 6, szfinifile);
-
-
-	/* find out whether fproxy is supposed to be running */
-	/* (if not, fcpproxy will be loaded by default) */
-	ZeroMemory(szbuffer,sizeof(szbuffer));
-	GetPrivateProfileString(szfinisec, szserviceskey, szempty, szbuffer, sizeof(szbuffer)-1, szfinifile);
-	szbuffer[sizeof(szbuffer)-1]='\0';
-	bUsingFProxy = (strstr(szbuffer,"fproxy") != NULL);
 }
 
 
@@ -795,19 +797,13 @@ void ExitFserve(void)
 void RestartFserve(void)
 {
 	LOCK(NFREENETMODE);
-	if (nFreenetMode==FREENET_RUNNING || nFreenetMode==FREENET_RUNNING_NO_INTERNET || nFreenetMode==FREENET_RUNNING_NO_GATEWAY)
-	{
-		nFreenetMode=FREENET_RESTARTING;
-		UNLOCK(NFREENETMODE);
-		ModifyIcon();
-		ExitFserve();
-		ReloadSettings();
-		StartFserve();
-	}
-	else
-	{
-		UNLOCK(NFREENETMODE);
-	}
+	nFreenetMode=FREENET_RESTARTING;
+	UNLOCK(NFREENETMODE);
+
+	ModifyIcon();
+	ExitFserve();
+	ReloadSettings();
+	StartFserve();
 }
 
 
@@ -838,17 +834,19 @@ void ModifyIcon(void)
 		}
 		break;
 
-	/* add here all cases that flash between an icon and the 'hops ENABLED' icon */
-	case FREENET_RUNNING_NO_INTERNET:
-		/*	flashing icon */
-		if (note.hIcon == *(hFreenetIcons[nFreenetMode]) )
+	/* add here all 'animated' icons */
+	case FREENET_STARTING:
+	case FREENET_STOPPING:
+	case FREENET_RESTARTING:
+		if (g_n_AnimationCounter>=GANIMATIONFRAMES-1)
 		{
-			note.hIcon = hHopsEnabledIcon;
+			g_n_AnimationCounter = 0;
 		}
 		else
 		{
-			note.hIcon = *(hFreenetIcons[nFreenetMode]);
+			++g_n_AnimationCounter;
 		}
+		note.hIcon = (hFreenetIcons[nFreenetMode])[g_n_AnimationCounter];
 		break;
 
 	default:
@@ -965,7 +963,7 @@ DWORD WINAPI WaitForJavaConfigurator(LPVOID lpvprochandle)
 	CloseHandle(hJavaConfig);
 	if(ExitCode==0)
 	{
-		if(MessageBox(NULL,"The new settings will only take effect after restarting the node.\r\nShould the node be restarted now?\r\nWARNING: This aborts all current data transfers!",szAppName,MB_YESNO|MB_ICONQUESTION|MB_SYSTEMMODAL) == IDYES)
+		if(MessageBox(NULL,"The new settings will only take effect after restarting the node.\r\nShould the node be restarted now?\r\nWARNING: This aborts all current data transfers!",szAppName,MB_YESNO|MB_ICONQUESTION) == IDYES)
 		{
 			PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
 		}
@@ -1036,7 +1034,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						case IDM_GATEWAY: // menu choice Open Gateway (or doubleclick on icon)
 							/* is the Node running? - if no, then don't open the Gateway page */
-							if (nFreenetMode==FREENET_RUNNING || nFreenetMode==FREENET_RUNNING_NO_INTERNET) 
+							if (nFreenetMode==FREENET_RUNNING) 
 							{
 								ShellExecute(hWnd, "open", szgatewayURI, NULL, NULL, SW_SHOWNORMAL);
 							}
@@ -1048,9 +1046,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							switch (nFreenetMode)
 							{
 								case FREENET_RUNNING:
+								case FREENET_STARTING:
 								case FREENET_RESTARTING:
-								case FREENET_RUNNING_NO_INTERNET:
-								case FREENET_RUNNING_NO_GATEWAY:
 									// yes - stop server
 									ExitFserve();
 									break;
@@ -1058,9 +1055,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								case FREENET_STOPPED:
 								case FREENET_STOPPING:
 								case FREENET_CANNOT_START:
-								case FREENET_NOT_RUNNING_NO_INTERNET:
 								default:
 									// no - start the server
+									ReloadSettings();
 									StartFserve();
 									break;
 							}
@@ -1081,7 +1078,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							}
 							else
 							{
-								// we now 'own' the configurator semaphore object+
+								// we now 'own' the configurator semaphore object
 								StartConfig();
 								/* StartConfig will automatically cause RestartFserve() to run when completed */
 								/* it will also release the semaphore */
@@ -1092,7 +1089,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						case IDM_RESTART: // menu choice restart - essentially Stop followed by Start
 
 							// only applicable if node is running
-							if (nFreenetMode==FREENET_RUNNING || nFreenetMode==FREENET_RUNNING_NO_INTERNET || nFreenetMode==FREENET_RUNNING_NO_GATEWAY)
+							if (nFreenetMode==FREENET_RUNNING || nFreenetMode==FREENET_STARTING || nFreenetMode==FREENET_STOPPING)
 							{
 								RestartFserve();
 							}
@@ -1142,8 +1139,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						switch (nFreenetMode)
 						{
 							case FREENET_RUNNING:
-							case FREENET_RUNNING_NO_INTERNET:
-							case FREENET_RUNNING_NO_GATEWAY:
 								/* Node is running - can stop it */
 								/* Can view gateway */
 								/* Can 'restart' it */
@@ -1155,12 +1150,20 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							case FREENET_STOPPED:
 							case FREENET_CANNOT_START:
 							case FREENET_STOPPING:
-							case FREENET_NOT_RUNNING_NO_INTERNET:
-								/* Node is stopped */
-								/* or Node is stopping - but I'm allowing you to queue up a restart command */
+								/* Node is stopped - can start it */
+								/* or Node is stopping - but I'm allowing you to queue up a start command */
 								/* Cannot view gateway */
 								/* Cannot 'restart' it */
 								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND|MF_ENABLED,IDM_STARTSTOP,szStartString);
+								ModifyMenu(hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND|MF_GRAYED,IDM_GATEWAY,szGatewayString);
+								ModifyMenu(hPopupMenu,IDM_RESTART,MF_BYCOMMAND|MF_GRAYED,IDM_RESTART,szRestartString);
+								break;
+
+							case FREENET_STARTING:
+								/* Node is running - can stop it */
+								/* Cannot view gateway */
+								/* Cannot 'restart' it */
+								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND|MF_ENABLED,IDM_STARTSTOP,szStopString);
 								ModifyMenu(hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND|MF_GRAYED,IDM_GATEWAY,szGatewayString);
 								ModifyMenu(hPopupMenu,IDM_RESTART,MF_BYCOMMAND|MF_GRAYED,IDM_RESTART,szRestartString);
 								break;

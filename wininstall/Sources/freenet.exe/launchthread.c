@@ -6,12 +6,11 @@
 		Also it's better this way as you can get proper notification (through tooltips)
 		of what the freenet node is actually doing at any one time */
 
+#include "winsock2.h"
 #include "windows.h"
 #include "types.h"
 #include "launchthread.h"
 #include "shared_data.h"
-#include <stdlib.h>
-#include <string.h>
 
 /******************************************************
  *  G L O B A L S                                     *
@@ -25,32 +24,32 @@ const char szerrMsg[]=	"Couldn't start the node,\n"
 						"an entry Javaexec= pointing to a Java Runtime binary (jview.exe/java.exe)";
 const char szerrTitle[]="Error starting node";
 
-const char szFCPerrMsg[]=	"Couldn't launch FCPProxy\n";
-const char szFCPerrTitle[]=	"Error launching FCPProxy";
-
-
-const char sztempdir1[]="FECTempDir"; /* ie FECTempDir=C:\windows\temp\freenet */
-const char sztempdir2[]="mainport.params.servlet.1.params.tempDir"; /* see sztempdir1 */
-const char sztempdir3[]="tempDir"; /* see sztempdir1 */
-
-extern const char szfinifile[];
-extern const char szfinisec[];
-
-
 /* handles, etc. */
 PROCESS_INFORMATION FredPrcInfo;	/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
-PROCESS_INFORMATION FCPProxyPrcInfo;	/* handles to FCPProxy console app, and identifiers */
 
 
-// forward references:  (for this not external and not in launchthread.h)
-void LoadFCPProxy(void);
+BOOL FredIsRunning(void)
+{
+	// talk to the fred port
+	return TRUE;
+}
 
-
+// NOT re-entrant ... just a very basic state machine
 BOOL TestGateway(void)
 {
 	// returns TRUE if gateway (fproxy etc) is running
 	// FALSE if not
 	// Currently just a stub until function is implemented
+	static BOOL bGateway = FALSE;
+	static SOCKET sock;
+	static BOOL bProbing = FALSE;
+	static int i=0;
+	WSAPROTOCOL_INFO p;
+
+	if (bProbing) return bGateway;
+
+	//sock = WSASocket(FROM_PROTOCOL_INFO,FROM_PROTOCOL_INFO,FROM_PROTOCOL_INFO,
+	if (i<20) { ++i; return FALSE;}
 	return TRUE;
 }
 
@@ -96,33 +95,42 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 		switch (nFreenetMode)
 		{
 		case FREENET_RUNNING:
-		case FREENET_RUNNING_NO_GATEWAY:
-		case FREENET_RUNNING_NO_INTERNET:
+		case FREENET_STARTING:
 			// we're supposed to be 'monitoring' the node - Fserve thread is allegedly running - check that it still is!
 			// wait for either a posted thread message, or the prcInfo.hProcess object being signalled,
 			// (wait until either Fserve dies or WE receive a thread message telling us to do something different)
-			//
-			// New - use a timeout of 2000 milliseconds i.e. two seconds
-			// This allows us to perform our regular checks on the internet connection and on the gateway
-			// and update the status icon accordingly
 			phobjectlist[0] = FredPrcInfo.hProcess;
-			dwTimeout = 2000;
+			if (nFreenetMode==FREENET_STARTING)
+			{
+				dwTimeout = KAnimationSpeed; // animation speed
+			}
+			else
+			{
+				// New - use a timeout of 2000 milliseconds i.e. two seconds
+				// This allows us to perform our regular checks on the internet connection and on the gateway
+				// and update the status icon accordingly
+				dwTimeout = 2000;
+			}
 			break;
 		
 		case FREENET_CANNOT_START:
-		case FREENET_NOT_RUNNING_NO_INTERNET:
 			// Fserve failed to load and run - 
-			// so just wait for a threadmessage or a 500ms timeout
+			// just wait for a threadmessage or a KAnimationSpeed(ms) timeout
 			// This generates our timeout-driven flashing icon
 			phobjectlist[0] = hAlwaysUnsignalled;
-			dwTimeout = 500;
+			dwTimeout = KAnimationSpeed;
 			break;
 
 		case FREENET_STOPPING:
-		case FREENET_RESTARTING: /* just another kind of 'stopping' */
+		case FREENET_RESTARTING: /* just another kind of 'stopping' really */
+			// as above but allow for animated icons
+			phobjectlist[0] = hAlwaysUnsignalled;
+			dwTimeout = KAnimationSpeed;
+			break;
+
 		case FREENET_STOPPED:
 		default:
-			// Freenet is either not running, or shutting down
+			// Freenet is either not running, or shutting down, or starting up, etc
 			// so just wait for a threadmessage - no monitoring ... no flashing icon ...
 			phobjectlist[0] = hAlwaysUnsignalled;
 			dwTimeout = INFINITE;
@@ -145,14 +153,12 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 					switch (msg.message)
 					{
 					case WM_BEGINMONITORING:
-						ClearTempDirectories();
 						/* fire up the node! */
 						MonitorThreadRunFserve();
 						break;
 
 					case WM_ENDMONITORING:
 						MonitorThreadKillFserve();
-						ClearTempDirectories();
 						break;
 
 					case WM_QUITMONITORINGTHREAD:
@@ -185,37 +191,27 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 				LOCK(NFREENETMODE);
 				switch (nFreenetMode)
 				{
-				
-					case FREENET_CANNOT_START:
-						// period timeout fired - change the icon
-						break;
-	
 					case FREENET_RUNNING:
-					case FREENET_RUNNING_NO_GATEWAY:
 						if (!TestInternetConnection())
 						{
-							nFreenetMode=FREENET_RUNNING_NO_INTERNET;
+							//nFreenetMode=FREENET_RUNNING_NO_INTERNET;
 						}
+						else if (!TestGateway())
+						{
+							//nFreenetMode=FREENET_RUNNING_NO_GATEWAY;
+						}
+						break;
+
+					case FREENET_STARTING:
+						if ( TestGateway() && FredIsRunning() )
+						{
+							nFreenetMode=FREENET_RUNNING;
+						}
+						break;
+
+					default:
 						break;
 				
-					case FREENET_RUNNING_NO_INTERNET:
-					case FREENET_NOT_RUNNING_NO_INTERNET:
-						if (TestInternetConnection())
-						{
-							if (nFreenetMode==FREENET_NOT_RUNNING_NO_INTERNET)
-							{
-								nFreenetMode=FREENET_STOPPED;
-							}
-							else if (TestGateway())
-							{
-								nFreenetMode=FREENET_RUNNING;
-							}
-							else
-							{
-								nFreenetMode=FREENET_RUNNING_NO_GATEWAY;
-							}
-						}
-						break;
 				}
 				UNLOCK(NFREENETMODE);
 				ModifyIcon();
@@ -234,16 +230,32 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 
 void KillProcessNicely(PROCESS_INFORMATION *prcinfo)
 {
+	DWORD dwWaitError;
+	int i;
+
 	/* get the window handle from the process ID by matching all
 	   known windows against it (not really ideal but no alternative) */
 	EnumWindows(KillWindowByProcessId, (LPARAM)(prcinfo->dwProcessId) );
 
 	/* wait for the process to shutdown (we give it five seconds) */
-	if (WaitForSingleObject(prcinfo->hProcess,5000) == WAIT_TIMEOUT)
+	for (i=0; i<5000; i+=KAnimationSpeed)
+	{
+		dwWaitError = WaitForSingleObject(prcinfo->hProcess,KAnimationSpeed);
+		if (dwWaitError!=WAIT_TIMEOUT)
+			break;
+
+		// keep icon animation while we wait
+		ModifyIcon();
+	}
+	if (dwWaitError==WAIT_TIMEOUT)
 	{
 		/* OH MY, nothing worked - ok then, brutally terminate the process: */
 		TerminateProcess(prcinfo->hProcess,0);
-		WaitForSingleObject(prcinfo->hProcess,INFINITE);
+		// wait indefinitely for process to end.  keep icon animation while we wait
+		while ( (dwWaitError = WaitForSingleObject(prcinfo->hProcess,KAnimationSpeed))==WAIT_TIMEOUT)
+		{
+			ModifyIcon();
+		}
 	}
 	CloseHandle(prcinfo->hThread);
 	CloseHandle(prcinfo->hProcess);
@@ -251,6 +263,12 @@ void KillProcessNicely(PROCESS_INFORMATION *prcinfo)
 	prcinfo->hProcess=NULL;
 	prcinfo->dwThreadId=0;
 	prcinfo->dwProcessId=0;
+}
+
+void WaitForFServe(void)
+{
+	// blocker
+	WaitForSingleObject(FredPrcInfo.hProcess,INFINITE);
 }
 
 /* If this looks confusing see article Q178893 in MSDN.
@@ -321,15 +339,6 @@ STARTUPINFO FredStartInfo={	sizeof(STARTUPINFO),
 							0,NULL,
 							NULL,NULL,NULL};
 
-STARTUPINFO FCPProxyStartInfo=
-						{	sizeof(STARTUPINFO),
-							NULL,NULL,NULL,
-							0,0,0,0,0,0,0,
-							STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
-							SW_HIDE,
-							0,NULL,
-							NULL,NULL,NULL};
-
 void MonitorThreadRunFserve()
 {
 	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
@@ -362,9 +371,8 @@ void MonitorThreadRunFserve()
 		dwThreadPriority = GetThreadPriority(FredPrcInfo.hThread);
 		dwError = GetLastError();
 		CloseHandle(hDupThread);
-		nFreenetMode=FREENET_RUNNING;
+		nFreenetMode=FREENET_STARTING;
 		ModifyIcon();
-		LoadFCPProxy();
 	}
 }
 
@@ -391,96 +399,4 @@ void MonitorThreadKillFserve()
 		ModifyIcon();
 	}
 	UNLOCK(NFREENETMODE);
-
-	if ( (FCPProxyPrcInfo.hProcess != NULL)  || (FCPProxyPrcInfo.hThread != NULL) )
-	{
-		KillProcessNicely(&FCPProxyPrcInfo);
-	}		
-}
-
-
-
-void LoadFCPProxy(void)
-{
-	// should FCPProxy be loaded:
-	// ONLY IF Fproxy is not supposed to be loaded.
-	if (!bUsingFProxy)
-	{
-		char szexecbuf[sizeof(szHomeDirectory)+32];
-
-		lstrcpy(szexecbuf, szHomeDirectory);
-		lstrcat(szexecbuf, "\\fcpproxy.exe");
-
-		if (!CreateProcess(szexecbuf, NULL, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE | CREATE_NO_WINDOW, NULL, NULL, &FCPProxyStartInfo, &FCPProxyPrcInfo) )
-		{
-			DWORD dwError = GetLastError();
-			// if error was FileNotFound then that's ok, it means the user didn't install FCPProxy
-			if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND)
-			{
-				MessageBox(NULL, szFCPerrMsg, szFCPerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
-			}
-		}
-	}
-	else
-	{
-		ZeroMemory(&FCPProxyPrcInfo, sizeof(PROCESS_INFORMATION));
-	}
-}
-
-void DeleteFilesInDirectory(char* directory)
-{
-	HANDLE find;
-	WIN32_FIND_DATA file;
-	bool created_directory = true;
-	char search[MAX_PATH];
-
-	if(strlen(directory) == 0)
-		return;	// empty directory name
-
-	//todo: automatically use win2k security if in win2k
-	if(!CreateDirectory(directory, NULL))
-		created_directory = false; 
-
-	// search all files in directory
-
-	lstrcpyn(search, directory, MAX_PATH - 4);
-	if(directory[strlen(directory) - 1] != '\\' || directory[strlen(directory) - 1] != '/') // append a '\'
-		lstrcat(search, "\\");
-    lstrcat(search, "*.*");
-	find = FindFirstFile(search, &file);
-	if(find == INVALID_HANDLE_VALUE)
-		if(!created_directory)
-			MessageBox(NULL, "Unable to create temporary file directory", "Error", MB_OK | MB_ICONERROR | MB_TASKMODAL);
-		else
-			MessageBox(NULL, "Created direcotory but couldn't find any files", "Error", MB_OK | MB_ICONERROR | MB_TASKMODAL);
-
-	do {
-		char* filename = malloc(sizeof(directory) + sizeof(file.cFileName) + 1);
-		if(!filename) return; //we have bigger problems then, so don't bother
-		lstrcpyn(filename, directory, MAX_PATH - 3);
-		lstrcat(filename, file.cFileName);
-		DeleteFile(filename);
-		free(filename);
-	} while(FindNextFile(find, &file));
-	FindClose(find);
-}
-
-void ClearTempDirectories(void)
-{
-	// this should be done every time the node is started or stopped (while the node is not running preferably)
-	char tempdir1[MAX_PATH], tempdir2[MAX_PATH], tempdir3[MAX_PATH];
-
-	SetCurrentDirectory(szHomeDirectory);
-
-	// FIXME: this shoudln't be committed liek this
-	GetPrivateProfileString(szfinisec, sztempdir1, szempty, tempdir1, MAX_PATH, szfinifile);
-	GetPrivateProfileString(szfinisec, sztempdir2, szempty, tempdir2, MAX_PATH, szfinifile);
-	GetPrivateProfileString(szfinisec, sztempdir3, szempty, tempdir3, MAX_PATH, szfinifile);
-
-	if(strlen(tempdir1))
-		DeleteFilesInDirectory(tempdir1);
-	if(strlen(tempdir2))
-		DeleteFilesInDirectory(tempdir2);
-	if(strlen(tempdir3))
-		DeleteFilesInDirectory(tempdir3);
 }

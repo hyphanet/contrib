@@ -26,6 +26,14 @@
 #define IDI_NOINET                      505
 #define IDI_THUNDERBOLT                 506
 #define IDI_REFERENCE                   510
+#define IDI_STOPPING1                   600
+#define IDI_STOPPING2                   601
+#define IDI_STOPPING3                   603
+#define IDI_STOPPING4                   604
+#define IDI_STARTING1                   605
+#define IDI_STARTING2                   606
+#define IDI_STARTING3                   607
+#define IDI_STARTING4                   608
 #define IDM_GATEWAY                     1000
 #define IDCOPY                          1000
 #define IDM_STARTSTOP                   1001
@@ -49,7 +57,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
+#define _APS_NEXT_RESOURCE_VALUE        115
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1010
 #define _APS_NEXT_SYMED_VALUE           101
