@@ -28,17 +28,24 @@ Mozilla plugin:
  - Either include browser plugins in the install or pop up a text file, telling how to
    install them
  - Add instructions about how to change the port number.
+
 Java source:
  - Make scripts.Setup.java so that it can silently create a freenet.ini with all defaults
 
- - turn off bandwidth throttling by default?
- - Write a better help file / manual / starter in a nice format (Windows help or html)
 Cfgclient:
  - on multiple runs it appends the node port several times, preventing FProxy to start up
    (fixed?)
+
 FindJava.exe:
  - Rename Cancel button to "Abort" (best to cancel whole installation!)
  - Put the window in Front once it is pops up the search done alert.
-Bugs:
+
+Bugs & improvements:
  - Configure doesn't work with jview.exe but with javaw.exe
+ - Portcfg recognizes and respects used Freenet ports. However as we currently copy a new
+   freenet.ini on every install over the old one, we lose the old prefs when installing a new
+   version over the old one. (One mor reason for letting scripts.Setup create a freenet.ini
+   silently on install (it respects existing ports on creation as well).
+ - turn off bandwidth throttling by default?
+ - Write a better help file / manual / starter in a nice format (Windows help or html)
 
