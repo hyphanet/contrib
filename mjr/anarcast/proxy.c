@@ -726,6 +726,15 @@ inform ()
 	die("close() failed");
 
     alert("%d Anarcast servers loaded.\n", count);
+
+    {
+	int i;
+	for (i = 0 ; i < 100 ; i++)
+	    addref(i);
+	
+	while (head)
+	    rmref(head->addr);
+    }
 }
 
 //=== routing ===============================================================
@@ -755,27 +764,22 @@ addref (unsigned int addr)
         die("pthread_mutex_lock() failed");
     
     if (!head) {
-	n->next = n->prev = NULL;
+	n->next = NULL;
 	head = n;
     } else {
-	struct node *p;
-	for (p = head ; ; p = p->next) {
+	struct node *p, *last;
+	for (last = NULL, p = head ; ; last = p, p = p->next) {
     	    if (memcmp(n->hash, p->hash, HASHLEN) < 0) {
-		if (p->prev) { // middle
+		if (last) { // middle
 		    n->next = p;
-		    n->prev = p->prev;
-		    p->prev->next = n;
-		    p->prev = n;
+		    last->next = n;
 		} else { // first
 		    n->next = head;
-		    n->prev = NULL;
-		    head->prev = n;
 		    head = n;
 		}
 		break;
 	    } else if (!p->next) { // last
 		n->next = NULL;
-		n->prev = p;
 		p->next = n;
 		break;
 	    }
@@ -792,32 +796,25 @@ void
 rmref (unsigned int addr)
 {
     char hash[HASHLEN];
-    struct node *p;
+    struct node *p, *last = NULL;
     
     hashdata(&addr, 4, hash);
     
     if (pthread_mutex_lock(&mutex))
 	die("pthread_mutex_lock() failed");
     
-    for (p = head; p ; p = p->next)
+    for (last = NULL, p = head; p ; last = p, p = p->next)
 	if (!memcmp(p->hash, hash, HASHLEN)) {
-	    if (p->prev) {
-		p->prev->next = p->next;
-		if (p->next)
-		    p->next->prev = p->prev;
-	    } else { // first
+	    if (last) // middle
+		last->next = p->next;
+	    else // first
 		head = p->next;
-		if (p->next)
-		    p->next->prev = NULL;
-	    }
 	    free(p);
-	    p = NULL;
 	    refop('-', hash, addr);
             if (pthread_mutex_unlock(&mutex))
 	        die("pthread_mutex_unlock() failed");
 	    return;
 	}
-
     
     die("address not found in linked list");
 }
@@ -825,27 +822,27 @@ rmref (unsigned int addr)
 unsigned int
 route (const char hash[HASHLEN], int off)
 {
-    struct node *p;
+    struct node *p, *last;
     
     assert(off < 3);
     
     if (!head)
 	die("empty address list");
     
-    for (p = head ; ; p = p->next)
+    for (last = NULL, p = head ; ; last = p, p = p->next)
 	if (!p->next || memcmp(hash, p->hash, HASHLEN) < 0)
 	    break;
     
     if (off) {
-	if (p->next && !p->prev)
+	if (p->next && !last)
 	    p = p->next;
-	else if (!p->next && p->prev)
-	    p = p->prev;
-	else if (p->next && p->prev) {
-	    if (memcmp(hash, p->prev->hash, HASHLEN) > memcmp(hash, p->next->hash, HASHLEN))
-	        p = off == 1 ? p->next : p->prev;
+	else if (!p->next && last)
+	    p = last;
+	else if (p->next && last) {
+	    if (memcmp(hash, last->hash, HASHLEN) > memcmp(hash, p->next->hash, HASHLEN))
+	        p = off == 1 ? p->next : last;
 	    else
-	        p = off == 1 ? p->prev : p->next;
+	        p = off == 1 ? last : p->next;
 	}
     }
     
