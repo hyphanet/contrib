@@ -149,7 +149,7 @@ void CConfigFile::Load()
 	pAdvanced->m_maxNodeConnections = 60;
 	pAdvanced->m_outputBandwidthLimit = 0;
 	pAdvanced->m_seedFile = "seednodes.ref";
-	pAdvanced->SetCPUPrioritySlider(THREAD_PRIORITY_NORMAL, NORMAL_PRIORITY_CLASS);
+	pAdvanced->SetCPUPrioritySlider(THREAD_PRIORITY_IDLE, IDLE_PRIORITY_CLASS);
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
@@ -257,6 +257,10 @@ void CConfigFile::Load()
 
 void CConfigFile::Save()
 {
+	// TODO: fix localhost bug easier *HACK*
+	if(pNormal->m_ipAddress == "localhost")
+		pNormal->m_transient = TRANSIENT;
+
 	UpdateFLaunchIni();
 
 	FILE *fp;
@@ -511,7 +515,7 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Services & Servlets\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "services=mainport,nodestatus\n");
+	fprintf(fp, "services=mainport\n");
 	fprintf(fp, "\n");
 
 	// Mainport settings
@@ -547,13 +551,14 @@ void CConfigFile::Save()
 	fprintf(fp, "failureTableTime=%lu000\n",pDiagnostics->m_nFailureTableTimeSeconds);
 	fprintf(fp, "\n");
 
-	// FIXME: Node status settings (hardcoded for now) - automatically stripped on read due to it having been switched to nodeinfo previously.
+/*	// FIXME: Node status settings (hardcoded for now) - automatically stripped on read due to it having been switched to nodeinfo previously.
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Node status servlet settings\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "nodestatus.class=freenet.client.http.NodeStatusServlet\n");
 	fprintf(fp, "nodestatus.port=8889\n");
 	fprintf(fp, "\n");
+*/
 
 	// Write out unknown parameters
 	if (pGeek->m_unknowns.GetLength() > 0)
@@ -573,8 +578,8 @@ void CConfigFile::Save()
 
 void CConfigFile::ReadFLaunchIni(void)
 {
-	DWORD dwPriority = GetPrivateProfileInt("Freenet Launcher", "Priority", THREAD_PRIORITY_NORMAL, FLaunchIniFileName);
-	DWORD dwPriorityClass = GetPrivateProfileInt("Freenet Launcher", "PriorityClass", NORMAL_PRIORITY_CLASS, FLaunchIniFileName);
+	DWORD dwPriority = GetPrivateProfileInt("Freenet Launcher", "Priority", THREAD_PRIORITY_IDLE, FLaunchIniFileName);
+	DWORD dwPriorityClass = GetPrivateProfileInt("Freenet Launcher", "PriorityClass", IDLE_PRIORITY_CLASS, FLaunchIniFileName);
 	pAdvanced->SetCPUPrioritySlider(dwPriority,dwPriorityClass);
 }
 
@@ -749,7 +754,7 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "logOutboundRequests"))
 		pDiagnostics->m_bLogOutboundRequests = atobool(val);
 
-/*		// absorb obsoleted 'nodestatus' settings
+		// absorb obsoleted 'nodestatus' settings
 	else if (!strcmp(tok, "nodestatus.port"))
 	{
 		if (pDiagnostics->m_nodeinfoport == -1)
@@ -760,7 +765,7 @@ void CConfigFile::processItem(char *tok, char *val)
 		if (!pDiagnostics->m_nodeinfoclass.Compare(""))
 			pDiagnostics->m_nodeinfoclass = val;
 	}
-*/
+
 		// replacement nodeinfo settings
 	else if (!strcmp(tok, "nodeinfo.port"))
 		pDiagnostics->m_nodeinfoport = atoi(val);
@@ -773,15 +778,23 @@ void CConfigFile::processItem(char *tok, char *val)
 		pDiagnostics->m_nFailureTableTimeSeconds = atoi(val)/1000;
 	else if (!strcmp(tok, "fproxy.port"))
 		pFProxy->m_fproxyport = atoi(val);
-/*	else if (!strstr(tok, "fproxy.")) {
+	else if (!strcmp(tok, "nodestatus.port"))
+		/*eat it*/  ;
+/*
+	else if (!strstr(tok, "fproxy.")) {
 		CString s(tok);
 		s.Replace("fproxy.", "mainport.params.servlet.1.");
-		this->processItem((char *)s.GetString() , val);
+		this->processItem((char *)(s.GetBuffer()) , val);
 	}
 	else if (!strstr(tok, "nodeinfo.")) {
 		CString s(tok);
 		s.Replace("nodeinfo.", "mainport.params.servlet.2.");
-		this->processItem((char *)(s.GetString()), val);
+		this->processItem((char *)(s.GetBuffer()), val);
+	}
+	else if (!strstr(tok, "nodestatus.")) {
+		Cstring s(tok);
+		s.Replace("nodestatus.", "mainport.params.servlet.5.");
+		this->processItem((char*)(s.GetBuffer()), val)
 	}
 */
 
