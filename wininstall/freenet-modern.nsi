@@ -161,6 +161,7 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
     SetOutPath "$SYSDIR"
     File "Mfc42.dll"
     ClearErrors
+    SetOutPath "$INSTDIR"
   !else
     MessageBox MB_OK "You need to have Mfc42.dll in the directory $SYSDIR.$\r$\nIt is not included in this installer, so please download a snapshot containing it.$\r$\nAborting now..."
     Call AbortCleanup
@@ -240,6 +241,7 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   CopyFiles "$2\README" "$INSTDIR\README"
   readmenotinstalled:
 
+  SetOutPath "$R0\freenet-install"
   Push $3
   IntCmp $3 8 libInst4 NoLibInst4 libInst4
   libInst4:
@@ -329,6 +331,16 @@ Section "Freenet Node" SecFreenetNode
     NoSetSize1:
     Pop $3 # retrieve previous value of $3 to carry out actual installation
   !endif
+
+  IfFileExists "$INSTDIR\seednodes.ref" NoDownloadSeednodes
+  IfFileExists "$R0\freenet-install\seednodes.ref" NoDownloadSeednodes
+  MessageBox MB_YESNO "To connect to the Freenet network, your Freenet node needs to know about at least one other Freenet node.$\r$\nThis is called a 'Node Reference' or 'seednodes.ref' file.$\r$\nDo you want to download 'seednodes.ref' from the Free Net Project's servers?$\r$\nYou may want to say NO if you have been given a .ref file by a friend,$\r$\nor if you have installed Freenet before and still have the file named seednodes.ref" IDNO NoDownloadSeedNodes
+  AddSize 200 ; add 200K for seednodes.ref
+  NSISdl::download "http://freenetproject.org/snapshots/seednodes.ref" "$R0\freenet-install\seednodes.ref"
+  ClearErrors
+
+  NoDownloadSeedNodes:
+
 
   IntOp $4 $3 + 0 # save $3 in $4 (although it isn't used beyond this point ... yet...)
   IntCmp $3 8 NoInstall4 Install4 NoInstall4
@@ -514,6 +526,22 @@ Section "Freenet Node" SecFreenetNode
   Delete "$INSTDIR\UpdateSnapshot.exe"
   Delete "$INSTDIR\FindJava.exe"
 
+  ; Associated with .ref files:
+  Push $R0
+  ReadRegStr $R0 HKEY_CLASSES_ROOT ".ref" ""
+  StrCmp $R0 "" DoRefs
+  StrCmp $R0 "Freenet_node_ref" DoRefs
+  StrCmp $R0 "Freenet node reference" DoRefs
+  goto DontDoRefs ; already associated with something else so don't clobber
+  DoRefs:
+  WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet node reference"
+  WriteRegStr HKEY_CLASSES_ROOT "Freenet node reference\shell\open\command" "" '"$INSTDIR\freenet.exe" -import "%1"'
+  WriteRegStr HKEY_CLASSES_ROOT "Freenet node reference\DefaultIcon" "" "$INSTDIR\freenet.exe,7"
+  DeleteRegKey HKEY_CLASSES_ROOT "Freenet_node_ref"
+  DontDoRefs:
+  Pop $R0
+
+
 SectionEnd
 
 ;--------------------------------
@@ -581,6 +609,21 @@ Section "Uninstall"
   ReadRegStr ${TEMP} HKLM "Software\${MUI_PRODUCT}" "Start Menu Folder"
   StrCpy ${TEMP} "$SMPROGRAMS\${TEMP}"
   GetFullPathName /SHORT ${TEMP} ${TEMP} # convert to short filename
+
+  ; Disassociated from .ref files:
+  Push $R0
+  ReadRegStr $R0 HKEY_CLASSES_ROOT ".ref" ""
+  StrCmp $R0 "" DontDisassociateRefs
+  StrCmp $R0 "Freenet_node_ref" DisassociateRefs
+  StrCmp $R0 "Freenet node reference" DisassociateRefs
+  goto DontDisassociateRefs
+  DisassociateRefs:
+  WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet node reference"
+  WriteRegStr HKEY_CLASSES_ROOT "Freenet node reference\shell\open\command" "" '"$INSTDIR\freenet.exe" -import "%1"'
+  WriteRegStr HKEY_CLASSES_ROOT "Freenet node reference\DefaultIcon" "" "$INSTDIR\freenet.exe,7"
+  DeleteRegKey HKEY_CLASSES_ROOT "Freenet_node_ref"
+  DontDisassociateRefs:
+  Pop $R0
   
   StrCmp ${TEMP} "" noshortcuts
   
