@@ -1,4 +1,5 @@
-FCPtools are CopyLeft (c) 2001 by David McNab <david@rebirthing.co.nz>
+FCPtools are Copyright (c) 2001 by David McNab <david@rebirthing.co.nz>
 
-Contributors:
+Contributors in order of appearance:
 Jay Oliveri <ilnero@gmx.net>: Autoconf and Automake functionality.
+Karl Dietz <dekarl@users.sourceforge.net>: Porting to FreeBSD.
