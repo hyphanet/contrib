@@ -28,6 +28,8 @@
 
 #include <string.h>
 
+#include "ez_sys.h"
+
 static struct mimeTabEnt
 {
   char *ext;
@@ -211,7 +213,7 @@ MimeTab[] = {
   { 0, 0 }
 };
 
-char *fcpGetMimetype(char *filename)
+char *_fcpGetMimetype(char *filename)
 {
   int   i;
   char *s;

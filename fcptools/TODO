@@ -31,16 +31,12 @@ ezFCPlib specific
 -----------------
 
 + Add configuration option for Timeout length (in seconds)
-+ Improve upon temp file and log file locations.
 + Update ezFCPlib programming API documentation.
 + Implement Key Retrieval code (currently only code for inserting).
 + Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
 + Implement SkipDS logic.
 + Check all internal APIs for consistant usage and funcionality.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
-+ Implement retry logic, so that ezFCPlib attempts to insert _fcpRetry times on failed message.
-+ Correct Restarted message handling to ensure seamless restarts.
-  (_fcpPut.c:266, _fcpPut.c:915, _fcpPut.c:1105, _fcpPut.c:1220).
 + Make hDocument->data field dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 + Improve the splitfile size ceiling; the node uses one, the tools use another(?)
@@ -64,6 +60,9 @@ ezFCPlib specific
   (it's causing the java.lang.NumberFormatException messages in Fred's log).
 = Add Pending handling in put_file, so it pauses for said timeout and retries 'a-' times before returning with error.
 = Use OpenKey() and WriteKey() instead of manually creating the FCP messages wherever possible.
+= Correct Restarted message handling to ensure seamless restarts.
+= Implement retry logic, so that ezFCPlib attempts to insert _fcpRetry times on failed message.
+= Improve upon temp file and log file locations (ok for now; platform dependant).
 
 
 ------

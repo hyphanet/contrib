@@ -39,10 +39,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-/* imports */
-extern void _fcpSockDisconnect(hFCP *hfcp);
-
-extern int  _fcpRetry;
+#include "ez_sys.h"
 
 /* private helper functions */
 static int host_is_numeric(char *host);
@@ -131,7 +128,7 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 	if (rc < 0) return -1;
 	
 	if (!FD_ISSET(hfcp->socket, &readfds)) {
-		return FCP_ERR_TIMEOUT;
+		return EZERR_SOCKET_TIMEOUT;
 	}
 
 	for (rc = 1; rc > 0; rcvd += rc) {
@@ -165,7 +162,7 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 	if (rc < 0) return rc;
 	
 	if (!FD_ISSET(hfcp->socket, &readfds))
-		return FCP_ERR_TIMEOUT;
+		return EZERR_SOCKET_TIMEOUT;
 
 	while (1) {
 		rc = read(hfcp->socket, buf + rcvd, 1);

@@ -1,7 +1,7 @@
 # order is important here (for now)
 # fcpproxy not included.. under development
 #SUBDIRS = fcpcommon ezFCPlib fcpputsite fcpget fcpput
-SUBDIRS = fcpcommon ezFCPlib fcphello fcpput
+SUBDIRS = fcpcommon ezFCPlib fcpx fcpput
 
 scope:
 	cscope -s ezFCPlib -s fcpput

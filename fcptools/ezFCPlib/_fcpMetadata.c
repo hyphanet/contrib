@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ez_sys.h"
 
 /* exported definitions */
 
@@ -44,10 +45,6 @@ char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defV
 
 hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);
 char      *cdocLookupKey(hDocument *doc, char *keyName);
-
-/* imported definitions */
-extern long xtoi(char *s);
-extern long file_size(char *filename);
 
 /* private definitions */
 static int getLine(char *, char *, int);

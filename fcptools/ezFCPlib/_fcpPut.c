@@ -33,16 +33,7 @@
 #include <errno.h>
 #include <math.h>
 
-
-extern int    _fcpSockConnect(hFCP *hfcp);
-extern void   _fcpSockDisconnect(hFCP *hfcp);
-extern int    _fcpSockRecv(hFCP *hfcp, char *buf, int len);
-extern int    _fcpRetry;
-
-extern int    _fcpTmpfile(char **filename);
-
-extern long   file_size(char *filename);
-extern void   unlink_key(hKey *hKey);
+#include "ez_sys.h"
 
 /* exported functions for fcptools codebase */
 
@@ -277,7 +268,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 
 				break;
 				
-			case FCP_ERR_TIMEOUT:
+			case EZERR_SOCKET_TIMEOUT:
 				retry--;
 
 				_fcpLog(FCP_LOG_VERBOSE, "Received timeout waiting for response");
@@ -319,7 +310,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 
 	/* if we exhauseted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
-		rc = FCP_ERR_TIMEOUT;
+		rc = EZERR_SOCKET_TIMEOUT;
 		goto cleanup;
 	}
 
@@ -458,7 +449,7 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 	
-	fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE);
+	fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
 	fcpWriteMetadata(tmp_hfcp, buf, strlen(buf));
 	
 	unlink_key(tmp_hfcp->key);
@@ -863,7 +854,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
 		tmp_hfcp = fcpInheritHFCP(hfcp);
-		fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE);
+		fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
 
 		bytes = segment->block_size;
 		while (bytes) {
@@ -1006,7 +997,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	index = 0;
 
 	tmp_hfcp = fcpInheritHFCP(hfcp);
-	fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE);
+	fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
 	
 	while (index < segment_count) {
 		/* build SegmentHeader and BlockMap pairs */
@@ -1128,7 +1119,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	fcpDestroyHFCP(tmp_hfcp);
 
 	tmp_hfcp = fcpInheritHFCP(hfcp);
-	fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE);
+	fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
 
 	/* write metadata to tmp file */
 

@@ -104,66 +104,87 @@
 /* TODO: deprecate */
 #define L_KEY               40
 
-#define FCP_MAX_SPLIT_THREADS  8
-
-#define CHUNK_STAT_LOCAL    0  /* not in freenet; local datastore */
-#define CHUNK_STAT_QUEUED   1  /* waiting for mgr thread to pick up */
-#define CHUNK_STAT_INPROG   2  /* in progress */
-#define CHUNK_STAT_MANIFEST 4  /* inserting splitfile manifest */
-#define CHUNK_STAT_SUCCESS  5  /* full insert completed successfully */
-#define CHUNK_STAT_ERROR    3  /* failure - awaiting cleanup */
-#define CHUNK_STAT_FAILED   6  /* insert failed somewhere */
-
 #define KEY_TYPE_SSK  1
 #define KEY_TYPE_CHK  2
 #define KEY_TYPE_KSK  3
 
-/* 0 is the "unset" value */
+/*
+	0 is the "unset" value
+*/
 #define META_TYPE_REDIRECT  'r'
 #define META_TYPE_DBR       'd'
 #define META_TYPE_SPLITFILE 's'
 #define META_TYPE_INFO      'i'
 #define META_TYPE_EXTINFO   'e'
 
-/* flags for fcpOpenKey() */
-#define _FCP_O_READ         0x100
-#define _FCP_O_WRITE        0x200
-#define _FCP_O_RAW          0x400   /* disable automatic metadata handling */
+/*
+	flags for fcpOpenKey()
+*/
+#define FCP_O_READ         0x100
+#define FCP_O_WRITE        0x200
+#define FCP_O_RAW          0x400   /* disable automatic metadata handling */
 
-/* flags for fcpCreateFile() */
-#define _FCP_CREATE_READ    1
-#define _FCP_CREATE_WRITE   2
-#define _FCP_CREATE_APPEND  4
-
-/* Reasonable defaults */
+/*
+	Reasonable defaults
+*/
 #define EZFCP_DEFAULT_HOST         "127.0.0.1"
 #define EZFCP_DEFAULT_PORT         8481
 #define EZFCP_DEFAULT_HTL          3
 #define EZFCP_DEFAULT_VERBOSITY    FCP_LOG_NORMAL
 #define EZFCP_DEFAULT_LOGSTREAM    stdout
-#define EZFCP_DEFAULT_RETRY        3
+#define EZFCP_DEFAULT_RETRY        5
 #define EZFCP_DEFAULT_REGRESS      0
 #define EZFCP_DEFAULT_DELETELOCAL  0
 #define EZFCP_DEFAULT_RAWMODE      0
 #define EZFCP_DEFAULT_TIMEOUT      300000 /* 5 minutes in milliseconds */
 
+/*
+	these must be powers of 2; they're bitmasks
+*/
 #define HOPT_DELETE_LOCAL  1
 #define HOPT_RAW           2
 
-/* error codes */
+/* error codes; just negative numbers; group together
+*/
+#define EZERR_GENERAL -1
+#define EZERR_SOCKET_TIMEOUT -100
 
-#define FCP_ERR_GENERAL -1
-#define FCP_ERR_TIMEOUT -100
+/*
+	Tokens for response types.
+*/
+#define FCPRESP_TYPE_NODEHELLO      1
+#define FCPRESP_TYPE_SUCCESS        2
+#define FCPRESP_TYPE_DATAFOUND      3
+#define FCPRESP_TYPE_DATACHUNK      4
+#define FCPRESP_TYPE_DATANOTFOUND   5
+#define FCPRESP_TYPE_ROUTENOTFOUND  6
+#define FCPRESP_TYPE_URIERROR       7
+#define FCPRESP_TYPE_RESTARTED      8
+#define FCPRESP_TYPE_KEYCOLLISION   9
+#define FCPRESP_TYPE_PENDING        10
+#define FCPRESP_TYPE_FAILED         11
+#define FCPRESP_TYPE_FORMATERROR    12
+
+#define FCPRESP_TYPE_SEGMENTHEADER  13
+#define FCPRESP_TYPE_BLOCKMAP       14
+#define FCPRESP_TYPE_BLOCKSENCODED  15
+#define FCPRESP_TYPE_BLOCKSDECODED  16
+#define FCPRESP_TYPE_MADEMETADATA   17
+
+/* Tokens for receive states
+*/
+#define RECV_STATE_WAITING      0
+#define RECV_STATE_GOTHEADER    1
 
 
 /***********************************************************************
 	Connection handling structgures and definitions.
 */
 typedef struct {
-	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
+	char *uri;
 
-	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[L_KEY+1];
+	char  privatekey[L_KEY+1];
 } FCPRESP_SUCCESS;
 
 typedef struct {
@@ -172,27 +193,27 @@ typedef struct {
 } FCPRESP_DATAFOUND;
 
 typedef struct {
-  int    length;  /* Length=<number: number of bytes in trailing field> */
-  char  *data;    /* MetadataLength=<number: default=0: number of bytes of	metadata> */
+  int    length;
+  char  *data;
 } FCPRESP_DATACHUNK;
 
 typedef struct {
-	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
+	char *uri;
 
-	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[L_KEY+1];
+	char  privatekey[L_KEY+1];
 } FCPRESP_KEYCOLLISION;
 
 typedef struct {
-	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
-	int   timeout; /* Timeout: milliseconds */
+	char *uri;
+	int   timeout;
 
-	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[L_KEY+1];
+	char  privatekey[L_KEY+1];
 } FCPRESP_PENDING;
 
 typedef struct {
-  char *reason;   /* [Reason=<descriptive string>] */
+  char *reason;
 } FCPRESP_FAILED;
 
 typedef struct {
@@ -208,7 +229,7 @@ typedef struct {
 } FCPRESP_RESTARTED;
 
 typedef struct {
-  char *reason;   /* [Reason=<descriptive string>] */
+  char *reason;
 } FCPRESP_FORMATERROR;
 
 typedef struct {
@@ -276,46 +297,19 @@ typedef struct {
 } FCPRESP;
 
 
-/*
-	Tokens for response types.
-*/
-#define FCPRESP_TYPE_NODEHELLO      1
-#define FCPRESP_TYPE_SUCCESS        2
-#define FCPRESP_TYPE_DATAFOUND      3
-#define FCPRESP_TYPE_DATACHUNK      4
-#define FCPRESP_TYPE_DATANOTFOUND   5
-#define FCPRESP_TYPE_ROUTENOTFOUND  6
-#define FCPRESP_TYPE_URIERROR       7
-#define FCPRESP_TYPE_RESTARTED      8
-#define FCPRESP_TYPE_KEYCOLLISION   9
-#define FCPRESP_TYPE_PENDING        10
-#define FCPRESP_TYPE_FAILED         11
-#define FCPRESP_TYPE_FORMATERROR    12
-
-#define FCPRESP_TYPE_SEGMENTHEADER  13
-#define FCPRESP_TYPE_BLOCKMAP       14
-#define FCPRESP_TYPE_BLOCKSENCODED  15
-#define FCPRESP_TYPE_BLOCKSDECODED  16
-#define FCPRESP_TYPE_MADEMETADATA   17
-
-/* Tokens for receive states */
-#define RECV_STATE_WAITING      0
-#define RECV_STATE_GOTHEADER    1
-
-
 /**********************************************************************
   Freenet Client Protocol Handle Definition Section
 */
 typedef struct {
-  int    type; /* CHK@, KSK@, SSK@ */
+  int    type;     /* CHK@, KSK@, SSK@ */
 
-	char  *uri_str; /* the unparsed uri */
-  char  *keyid; /* the pub/priv/ch key */
+	char  *uri_str;  /* the unparsed uri */
+  char  *keyid;    /* the pub/priv/ch key */
 
 	/* SSK's */
-	char  *docname; /* the /name// piece */
-
+	char  *docname;  /* the /name// piece */
 	char  *metastring; /* the //images/activelink.gif piece */
+
 } hURI;
 
 
@@ -383,15 +377,15 @@ typedef struct {
 	int         cdoc_count;
 	hDocument **cdocs;
 
-	int  _start;  /* intended for internal use.. not documented */
+	int  _start;  /* intended for internal use */
 } hMetadata;
 
 
 typedef struct {
 	int        type;
 
-	hURI      *uri; /* always just a CHK@ */
-	hURI      *target_uri;  /* used to hold the final key uri */
+	hURI      *uri;        /* always just a CHK@ */
+	hURI      *target_uri; /* holds the final key uri */
 
 	int        openmode;
 	char      *mimetype;
@@ -424,8 +418,6 @@ typedef struct {
   int   socket;
 	int   timeout;
 
-  char  error[L_ERROR_STRING + 1];
-
 	hKey *key;
 		
   FCPRESP response;
@@ -434,72 +426,43 @@ typedef struct {
 
 /**********************************************************************/
 
-
 /* Function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
-	
-	/* Handle management functions */
-	hFCP   *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask);
-	hFCP   *fcpInheritHFCP(hFCP *hfcp);
-	void    fcpDestroyHFCP(hFCP *);
 
-	/* URI functions */
-	hURI   *fcpCreateHURI(void);
-	void    fcpDestroyHURI(hURI *);
-	int     fcpParseURI(hURI *uri, char *key);
-
-	hBlock *_fcpCreateHBlock(void);
-	void    _fcpDestroyHBlock(hBlock *);
-
-	hKey   *_fcpCreateHKey(void);
-	void    _fcpDestroyHKey(hKey *);
-
-	/* Metadata handling functions */
-	int   _fcpMetaParse(hMetadata *, char *buf);
-	void  _fcpMetaFree(hMetadata *);
-
-	hMetadata  *_fcpCreateHMetadata(void);
-	void        _fcpDestroyHMetadata(hMetadata *);
-
-	/* Some FEC definitions */
-	hSegment  *_fcpCreateHSegment(void);
-	void       _fcpDestroyHSegment(hSegment *);
-
-	/* fcpLog */
-	void  _fcpLog(int level, char *format, ...);
-	
-	/* Socket functions */
-	int   _fcpSockConnect(hFCP *hfcp);
-	void  _fcpSockDisconnect(hFCP *hfcp);
-	
-	int   _fcpRecvResponse(hFCP *hfcp);
+	/* Any function prototype listed here should be considered
+		 "documented", and matched with an explanation in ezFCPlib's
+		 API documentation.
+	*/
 
 	/* Startup and shutdown functions */
-	int   fcpStartup(char *logfile, int retry, int log_verbosity);
-	void  fcpTerminate(void);
+	int    fcpStartup(char *logfile, int retry, int log_verbosity);
+	void   fcpTerminate(void);
 
-	/* Generate Key/Value pair */
-	int   fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy);
-	
-	/* Freenet functions for operations between memory and freenet */
-	int   fcpOpenKey(hFCP *hfcp, char *key, int mode);
-	int   fcpCloseKey(hFCP *hfcp);
+	/* HFCP handle management functions */
+	hFCP  *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask);
+	hFCP  *fcpInheritHFCP(hFCP *hfcp);
+	void   fcpDestroyHFCP(hFCP *hfcp);
 
-	int   fcpReadKey(hFCP *hfcp, char *buf, int len);
-	int   fcpWriteKey(hFCP *hfcp, char *buf, int len);
-
-	int   fcpWriteMetadata(hFCP *hfcp, char *buf, int len);
-	int   fcpReadMetadata(hFCP *hfcp, char *buf, int len);
-
-	/* Sends a NodeHello and parses the response into hfcp */
-	int   fcpSendHello(hFCP *hfcp);	
+	/* hURI handle functions */
+	hURI  *fcpCreateHURI(void);
+	void   fcpDestroyHURI(hURI *uri);
+	int    fcpParseURI(hURI *uri, char *key);
 
 	/* Client functions for operations between files on disk and freenet */
-	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_uri, char *key_filename, char *meta_filename);
-
-	char *fcpGetMimetype(char *pathname);
+	int    fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename);
+	
+	/* Generate Key/Value pair (entropy not currently used */
+	int    fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy);
+	int    fcpClientHello(hFCP *hfcp);
+	int    fcpClientInfo(hFCP *hfcp);
+	
+	/* Freenet functions for operations between memory and freenet */
+	int    fcpOpenKey(hFCP *hfcp, char *key, int mode);
+	int    fcpWriteKey(hFCP *hfcp, char *buf, int len);
+	int    fcpWriteMetadata(hFCP *hfcp, char *buf, int len);
+	int    fcpCloseKey(hFCP *hfcp);
 
 #ifdef __cplusplus
 }

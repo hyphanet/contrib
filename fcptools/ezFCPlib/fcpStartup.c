@@ -30,15 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-extern int   _fcpVerbosity;
-extern FILE *_fcpLogStream;
-
-extern char *_fcpTmpDir;
-extern char *_fcpHomeDir;
-extern int   _fcpSplitblock;
-extern int   _fcpRetry;
-
+#include "ez_sys.h"
 
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 
@@ -83,7 +75,7 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 			return -1;
 		}
 	}
-
+	
 	_fcpSplitblock = L_BLOCK_SIZE;
 
 	return 0;

@@ -29,11 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern long xtoi(char *);
-
-extern int  _fcpSockRecv(hFCP *hfcp, char *resp, int len);
-extern int  _fcpSockRecvln(hFCP *hfcp, char *resp, int len);
-
+#include "ez_sys.h"
 
 /* suppress a compiler warning */
 char *strdup(const char *s);
@@ -74,7 +70,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 		/* return -1 on error, except if it's a TIMEOUT */
 		if (rc <= 0)
-			return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+			return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	
 		if (!strncmp(resp, "NodeHello", 9)) {
 			hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
@@ -193,7 +189,7 @@ static int getrespHello(hFCP *hfcp)
 	}
 
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -230,7 +226,7 @@ static int getrespSuccess(hFCP *hfcp)
   }
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 	
@@ -263,7 +259,7 @@ static int getrespDataFound(hFCP *hfcp)
 	}
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -298,7 +294,7 @@ static int getrespDataChunk(hFCP *hfcp)
 	}
 
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -321,7 +317,7 @@ static int getrespDataNotFound(hFCP *hfcp)
 	}
 
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -358,7 +354,7 @@ static int getrespRouteNotFound(hFCP *hfcp)
 	}
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -381,7 +377,7 @@ static int getrespUriError(hFCP *hfcp)
 	}
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -409,7 +405,7 @@ static int getrespRestarted(hFCP *hfcp)
 	}
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -445,7 +441,7 @@ static int getrespKeycollision(hFCP *hfcp)
   }
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -492,7 +488,7 @@ static int getrespPending(hFCP *hfcp)
   }
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -531,7 +527,7 @@ static int getrespFailed(hFCP *hfcp)
   }
   
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -569,7 +565,7 @@ static int getrespFormatError(hFCP *hfcp)
   }
   
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -629,7 +625,7 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 
   /* oops.. there's been a socket error of sorts */
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -658,7 +654,7 @@ static int getrespBlocksEncoded(hFCP *hfcp)
 	}
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -683,7 +679,7 @@ static int getrespMadeMetadata(hFCP *hfcp)
 	}
 	
 	if (rc < 0)
-		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }

@@ -30,17 +30,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ez_sys.h"
 
 extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri);
 extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
 extern int put_date_redirect(hFCP *hfcp, char *uri);
 extern int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
-
-extern long file_size(char *filename);
-extern void unlink_key(hFCP *hfcp);
-
-extern int _fcpSplitblock;
 
 /*
 	fcpPutKeyFromFile()
@@ -91,7 +87,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	/* set the mimetype if the key exists */
 	if (key_size)
-		hfcp->key->mimetype = strdup(fcpGetMimetype(key_filename));
+		hfcp->key->mimetype = strdup(_fcpGetMimetype(key_filename));
 
 	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
 	

@@ -29,11 +29,9 @@
 #include <stdio.h>
 #include <string.h>
 
-extern int   _fcpSockConnect(hFCP *hfcp);
-extern void  _fcpSockDisconnect(hFCP *hfcp);
+#include "ez_sys.h"
 
-
-int fcpSendHello(hFCP *hfcp)
+int fcpClientHello(hFCP *hfcp)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
 	int  rc;
@@ -47,7 +45,7 @@ int fcpSendHello(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "sending ClientHello message");
 	
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
-		snprintf(hfcp->error, L_ERROR_STRING, "Could not send ClientHello message");
+		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
 
 		_fcpSockDisconnect(hfcp);
 		return -1;
@@ -55,7 +53,7 @@ int fcpSendHello(hFCP *hfcp)
 	
 	/* expecting a NodeHello response */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEHELLO) {
-		snprintf(hfcp->error, L_ERROR_STRING, "fcpSendHello(): error returned from node: %d", rc);
+		_fcpLog(FCP_LOG_VERBOSE, "Returned error code: %d", rc);
 
 		_fcpSockDisconnect(hfcp);
 		return -1;
@@ -68,3 +66,38 @@ int fcpSendHello(hFCP *hfcp)
 	return 0;
 }
 
+
+int fcpClientInfo(hFCP *hfcp)
+{
+	char buf[L_FILE_BLOCKSIZE+1];
+	int  rc;
+
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpClientInfo()");
+
+	if (_fcpSockConnect(hfcp) != 0)	return -1;
+	
+	rc = snprintf(buf, L_FILE_BLOCKSIZE, "ClientHello\nEndMessage\n");
+	
+	_fcpLog(FCP_LOG_DEBUG, "sending ClientHello message");
+	
+	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
+		
+		_fcpSockDisconnect(hfcp);
+		return -1;
+	}
+	
+	/* expecting a NodeHello response */
+	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEHELLO) {
+		_fcpLog(FCP_LOG_VERBOSE, "fcpSendHello(): error returned from node: %d", rc);
+
+		_fcpSockDisconnect(hfcp);
+		return -1;
+	}
+	
+	/* Note: inside getrespHello() the fields hfcp->node and hfcp->protocol
+		 are set */
+
+	_fcpSockDisconnect(hfcp);
+	return 0;
+}

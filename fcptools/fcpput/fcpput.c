@@ -32,10 +32,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-
-/* import this convenience function from ezFCPlib */
-extern long file_size(char *);
-
+/* Cheat here and import ez_sys.h function(s) */
+extern long   file_size(char *filename);
 
 void  parse_args(int argc, char *argv[]);
 void  usage(char *);
@@ -86,7 +84,7 @@ int main(int argc, char* argv[])
 
 	/* Call before calling *any* other ?fcp* routines */
 	if (fcpStartup(logfile, retry, verbosity)) {
-		_fcpLog(FCP_LOG_CRITICAL, "Failed to initialize ezFCP library");
+		fprintf(stdout, "Failed to initialize ezFCP library\n");
 		return -1;
 	}
 
@@ -98,11 +96,11 @@ int main(int argc, char* argv[])
 		/* generate a keypair and just exit */
 		/* im a little cheap and saving ram.. duh */
 		if (fcpMakeSvkKeypair(hfcp, buf, buf+40, buf+80)) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not generate keypair; %s", hfcp->error);
+			fprintf(stdout, "Could not generate keypair\n");
 			return -1;
 		}
 
-		_fcpLog(FCP_LOG_NORMAL, "Public: %s\nPrivate: %s\n", buf, buf+40);
+		fprintf(stdout, "Public: %s\nPrivate: %s\n", buf, buf+40);
 		return 0;
 	}
 
@@ -110,7 +108,7 @@ int main(int argc, char* argv[])
 		/* read the key data from stdin */
 		int c;
 
-		if (fcpOpenKey(hfcp, keyuri, _FCP_O_WRITE))	return -1;
+		if (fcpOpenKey(hfcp, keyuri, FCP_O_WRITE))	return -1;
 
 		/* read it from stdin */
 		/* is this inefficient ?? */
@@ -127,8 +125,7 @@ int main(int argc, char* argv[])
 			int metafile_size;
 
 			if (!(file = fopen(metafile, "rb"))) {
-				
-				_fcpLog(FCP_LOG_CRITICAL, "Could not open metadata file \"%s\"", metafile);
+				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
 				return -1;
 			}
 
@@ -139,8 +136,7 @@ int main(int argc, char* argv[])
 
 			metafile_size = file_size(metafile);
 			if (bytes != metafile_size) {
-				_fcpLog(FCP_LOG_CRITICAL, "Wrote %d/%d bytes of metadata; discarded rest");
-
+				fprintf(stdout, "Wrote %d/%d bytes of metadata; discarded rest\n", bytes, metafile_size);
 				return -1;
 			}
 		}
@@ -151,16 +147,15 @@ int main(int argc, char* argv[])
 	else {
 		/* use keyfile as the filename of key data */
 		if (fcpPutKeyFromFile(hfcp, keyuri, keyfile, metafile)) {
-
-			_fcpLog(FCP_LOG_CRITICAL, "Could not insert \"%s\" into freenet from file \"%s\"", keyuri, keyfile);
+			fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, keyfile);
 			return -1;
 		}
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "Operation Successfull");
+	fprintf(stdout, "Operation Successfull\n");
 	fcpTerminate();
 
-	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->target_uri->uri_str);
+	fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
 	fcpDestroyHFCP(hfcp);
 	
 #ifdef WINDOWS_DISABLE

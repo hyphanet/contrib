@@ -17,29 +17,26 @@ _fcpGlobals.c \
 _fcpCompat.c \
 _fcpLog.c \
 _fcpRecvResponse.c \
-_fcpInfo.c \
 _fcpSock.c \
 _fcpUtil.c \
 _fcpMetadata.c \
+_fcpMimetype.c \
 _fcpPut.c \
 ezFCPlib.h \
 fcpCloseKey.c \
 fcpCreation.c \
+fcpInfo.c \
 fcpOpenKey.c \
 fcpPutKeyFromFile.c \
 fcpReadKey.c \
 fcpMakeSvkKeypair.c \
 fcpStartup.c \
 fcpWriteKey.c \
-mimetype.c \
 "
 
 # The following files are currently ignored for now
 # fcpGetKeyToFile.c \
 # fcpMakeChkFromFile.c \
-# fcpOpenKeyIndex.c \
-# fcpReadKeyIndex.c \
-# fcpWriteKeyIndex.c \
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 #libezfcp_la_SOURCES = $(FCP_SOURCE)

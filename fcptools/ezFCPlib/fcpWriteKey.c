@@ -33,11 +33,7 @@
 #include <stdarg.h>
 #include <fcntl.h>
 
-
-extern int    _fcpSockConnect(hFCP *hfcp);
-extern void   _fcpSockDisconnect(hFCP *hfcp);
-extern int    _fcpTmpfile(char **filename);
-
+#include "ez_sys.h"
 
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 {
@@ -52,7 +48,7 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 		rc = write(hfcp->key->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
-			snprintf(hfcp->error, L_ERROR_STRING, "error during call to fcpWriteKey()");
+			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteKey()");
 			return -1;
 		}
 
@@ -80,7 +76,7 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 		rc = write(hfcp->key->metadata->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
-			snprintf(hfcp->error, L_ERROR_STRING, "error during call to fcpWriteMetadata()");
+			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteMetadata()");
 			return -1;
 		}
 

@@ -30,8 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern void _fcpSockDisconnect(hFCP *hfcp);
-
+#include "ez_sys.h"
 
 /*
 	This version requires certain variables to be specified as arguments.

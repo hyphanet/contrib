@@ -33,10 +33,7 @@
 #include <stdarg.h>
 #include <fcntl.h>
 
-
-extern int    _fcpSockConnect(hFCP *hfcp);
-extern void   _fcpSockDisconnect(hFCP *hfcp);
-extern int    _fcpTmpfile(char **filename);
+#include "ez_sys.h"
 
 static int    fcpOpenKeyRead(hFCP *hfcp, char *key_uri);
 static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
@@ -45,24 +42,24 @@ static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
 int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 {
   /* Validate flags */
-  if ((mode & _FCP_O_READ) && (mode & _FCP_O_WRITE))
+  if ((mode & FCP_O_READ) && (mode & FCP_O_WRITE))
     return -1;      /* read/write access is impossible */
   
-  if ((mode & (_FCP_O_READ | _FCP_O_WRITE)) == 0)
+  if ((mode & (FCP_O_READ | FCP_O_WRITE)) == 0)
     return -1;      /* neither selected - illegal */
   
-  if (mode & _FCP_O_RAW)
+  if (mode & FCP_O_RAW)
     hfcp->rawmode = 1;
 
   /* Now perform the read/write specific open */
-  if (mode & _FCP_O_READ)
+  if (mode & FCP_O_READ)
     return fcpOpenKeyRead(hfcp, key_uri);
 
-  else if (mode & _FCP_O_WRITE)
+  else if (mode & FCP_O_WRITE)
     return fcpOpenKeyWrite(hfcp, key_uri);
 
 	else { /* Who knows what's wrong here.. */
-		snprintf(hfcp->error, L_ERROR_STRING, "invalid mode specified");
+		_fcpLog(FCP_LOG_DEBUG, "invalid file open mode specified: %d", mode);
 		return -1;
 	}
 }
@@ -71,7 +68,7 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
 
-	hfcp->key->openmode = _FCP_O_READ;
+	hfcp->key->openmode = FCP_O_READ;
 
 	/* not yet implemented */
 	key_uri = key_uri;
@@ -83,7 +80,7 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 {
 	hfcp->key = _fcpCreateHKey();
-	hfcp->key->openmode = _FCP_O_WRITE;
+	hfcp->key->openmode = FCP_O_WRITE;
 
 	/* store final key uri for later usage */
 	if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;

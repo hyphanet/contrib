@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "ez_sys.h"
+
 extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
 extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
@@ -42,10 +44,10 @@ static int fcpCloseKeyWrite(hFCP *hfcp);
 
 int fcpCloseKey(hFCP *hfcp)
 {
-  if (hfcp->key->openmode & _FCP_O_READ)
+  if (hfcp->key->openmode & FCP_O_READ)
 	 return fcpCloseKeyRead(hfcp);
 
-  else if (hfcp->key->openmode & _FCP_O_WRITE)
+  else if (hfcp->key->openmode & FCP_O_WRITE)
 	 return fcpCloseKeyWrite(hfcp);
 
   else
@@ -105,7 +107,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 									hfcp->key->metadata->tmpblock->filename);
 
 	if (rc) {
-		_fcpLog(FCP_LOG_VERBOSE, "Insert error; \"%s\"", (hfcp->error ? hfcp->error: "unspecified error"));
+		_fcpLog(FCP_LOG_VERBOSE, "Insert error code: %d", rc);
 
 		fcpDestroyHFCP(tmp_hfcp);
 		return -1;
@@ -138,7 +140,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 			hfcp_meta = fcpInheritHFCP(hfcp);
 			
-			if (fcpOpenKey(hfcp_meta, hfcp->key->uri->uri_str, _FCP_O_WRITE)) return -1;
+			if (fcpOpenKey(hfcp_meta, hfcp->key->uri->uri_str, FCP_O_WRITE)) return -1;
 
 			_fcpLog(FCP_LOG_DEBUG, "writing key to ezfcplib");
 			fcpWriteKey(hfcp_meta, buf, strlen(buf));

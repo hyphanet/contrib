@@ -45,6 +45,5 @@ AC_SUBST(INCLUDES)
 AC_SUBST(LIBS)
 AC_SUBST(LDADD)
 
-#AC_OUTPUT(Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile)
-AC_OUTPUT(Makefile fcpcommon/Makefile ezFCPlib/Makefile fcphello/Makefile fcpput/Makefile)
+AC_OUTPUT(Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpx/Makefile fcpput/Makefile)
 
