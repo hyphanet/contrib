@@ -1,0 +1,7 @@
+This is the TODO file for FCPtools.
+
+*2001-11-16: joliveri
+
+Need to streamline the check for pthreads (POSIX.1 in general) done during
+automake.
+
