@@ -174,7 +174,7 @@ fcp_close (fcp_document *d)
     if (d->status) free(d->status);
     for (i = 0 ; i < d->p_count ; i++) {
 	if (d->chunks[i]) free(d->chunks[i]);
-	if (d->streams[i]) free(d->streams[i]);
+	if (d->streams[i]) fclose(d->streams[i]);
     }
     if (d->chunks) free(d->chunks);
     if (d->streams) free(d->streams);
