@@ -152,7 +152,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	fprintf(stdout, "Operation Successfull\n");
 	fcpTerminate();
 
 	fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
