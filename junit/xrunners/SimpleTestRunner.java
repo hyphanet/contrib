@@ -33,8 +33,8 @@ public class SimpleTestRunner {
             TestListener tl = new SimpleTestListener();
             tr.addListener(tl);
             ts.run(tr);
-            if (tr.wasSuccessful()) {
-                System.exit(0);
+            if (!tr.wasSuccessful()) {
+                System.exit(1);
             }
         } catch (Exception e) {
             e.printStackTrace(System.out);
