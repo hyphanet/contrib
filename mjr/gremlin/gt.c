@@ -75,7 +75,7 @@ gt_cd (gremlin_tree *gt, char *name, char *data)
 	return 0;
     }
     memcpy(&offset, data, 4);
-    fseek(gt->in, offset, SEEK_SET); printf("seeking to: %d\n", offset);
+    fseek(gt->in, offset, SEEK_SET);
     gt->depth++;
     gt->names[gt->depth] = strdup(name);
     gt->offsets[gt->depth] = offset;

@@ -58,7 +58,7 @@ typedef struct {
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int xfer_count;
-xfer *xfers[1024]; // active downloads (interspersed with nulls from xfers completing)
+xfer **xfers; // active downloads (interspersed with nulls from xfers completing)
 
 int
 main (int argc, char **argv)
@@ -328,12 +328,13 @@ new_xfer (char *name, char *key)
 	if (!xfers[i]) {
 	    xfers[i] = x;
 	    *arg = i;
-	    pthread_create(&thread, NULL, get_thread, arg); // bad?
+	    pthread_create(&thread, NULL, get_thread, arg);
 	    return 0;
 	}
     }
     
     *arg = xfer_count;
+    xfers = realloc(xfers, sizeof(xfer) * (xfer_count + 1));
     xfers[xfer_count++] = x; // append
     pthread_create(&thread, NULL, get_thread, arg);
     return 0;
@@ -342,7 +343,7 @@ new_xfer (char *name, char *key)
 void *
 get_thread (void *args)
 {
-    xfer *x = xfers[*(int *)args]; // this shit is filthy
+    xfer *x = xfers[*(int *)args]; // where am I?
     char line[128];
     int status, mlen = 0, len = 0, c, read = 0;
     FILE *sock = fcp_connect(), *out, *temp = tmpfile();
@@ -396,7 +397,7 @@ get_thread (void *args)
 
     // transfer started.
     pthread_mutex_lock(&mutex);
-    x->size = len; // I guess
+    x->size = len;
     pthread_mutex_unlock(&mutex);
     
     len -= mlen;
