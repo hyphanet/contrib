@@ -1,7 +1,7 @@
 How to prepare a self installing package of "Freenet for Windows"
 -----------------------------------------------------------------
 
-Any questions? mailto:Sebastian@SSpaeth.de
+Any questions? mailto:Sebastian@SSpaeth.de / mailto:freenet@hug.cx
 
 How to make an install
 ======================
@@ -10,9 +10,8 @@ How to make an install
 2)Take the Freenet subdirectory and add the current files:
   freenet.jar, .fproxyrc
   (freenet.ini will be created on install)
-2a)Create a Subdirectory of Freenet called "IEplugin" and put IEFreenetPlugin.dll for the IE plugin in there).
-2b)Create a Subdirectory of Freenet called "NSplugin" and put all the files from the NSplugin dir in CVS in there (or adapt freenet.nsi to your location of NSplugin).
-3)Duplicate fserve.exe in the same directory as files: frequest.exe, finsert.exe, fproxy.exe and cfgnode.exe
+2a)Check out Contrib/IEPlugin and Contrib/NSPlugin from CVS. 
+3)Run !runmefirst.bat to create frequest.exe, finsert.exe, fproxy.exe and cfgnode.exe
 4)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
 5)Call "makensis freenet"
 6)Test install AND LET OTHER PEOPLE INSTALL AS WELL, bugs often appear only with special 
@@ -23,11 +22,12 @@ ToDo list (Help appreciated)
 ============================
 Browser plugins:
 IEplugin:
- - Test if automatic install functions!
+ - Test if automatic install works!
 Mozilla plugin:
  - Either include browser plugins in the install or pop up a text file, telling how to
    install them
  - Add instructions about how to change the port number.
+ - problem with long temp filenames?
 
 Java source:
  - Make scripts.Setup.java so that it can silently create a freenet.ini with all defaults
@@ -44,7 +44,7 @@ Bugs & improvements:
  - Configure doesn't work with jview.exe but with javaw.exe
  - Portcfg recognizes and respects used Freenet ports. However as we currently copy a new
    freenet.ini on every install over the old one, we lose the old prefs when installing a new
-   version over the old one. (One mor reason for letting scripts.Setup create a freenet.ini
+   version over the old one. (One more reason for letting scripts.Setup create a freenet.ini
    silently on install (it respects existing ports on creation as well).
  - turn off bandwidth throttling by default?
  - Write a better help file / manual / starter in a nice format (Windows help or html)
