@@ -122,8 +122,8 @@ Section "Freenet (required)"
  Seed:
   # seeding the initial references
   MessageBox MB_OK "A browser with instructions for obtaining initial references will open when you click OK.$\r$\nPlease save the file seed.ref in your Freenet directory and close the browser."
-  ExecShell "open" "$INSTDIR\docs\GetSeedNode.html"
-  MessageBox MB_OKCANCEL "Hit OK if you finished downloading the seed.ref and you want to continue the installation process. Hit Cancel if you want to abort the installation now." IDCANCEL Abort_Inst
+  ExecWait "$INSTDIR\GetSeed"
+  Delete "$INSTDIR\GetSeed"
 #we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
   ExecWait "$INSTDIR\fsrvcli --seed seed.ref"
