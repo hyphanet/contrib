@@ -91,6 +91,9 @@ main (int argc, char **argv)
 				    die("write() to file failed");
 				if (close(i) == -1)
 				    die("close() failed");
+			    } else {
+				if (utime(hex, NULL) == -1)
+				    die("utime() failed");
 			    }
 			    if (munmap(a[n].data, a[n].len) == -1)
 				die("munmap() failed");
