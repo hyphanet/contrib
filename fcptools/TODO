@@ -21,8 +21,8 @@ ezFCPlib specific
 * Check all internal APIs for consistant usage and funcionality.
 	(cdocGetDoc() is an example, in that the documented behavior is different
 	from it's actual implementaion.
-* Update core FCP request and response parsing; Implement new FCP commands
-	as discussed on Freenet-dev (ClientDelete, ...).
+* Update core FCP request and response parsing.
+* Implement HighestSeenBuild optional param from NodeHello message.
 * Verify opentemp() in _fcpUtil.c works correctly with POSIX macros on all
   platforms.
 * No more printf's !
