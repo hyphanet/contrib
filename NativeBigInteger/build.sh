@@ -18,7 +18,7 @@ mkdir lib
 mkdir lib/net
 mkdir lib/net/i2p
 mkdir lib/net/i2p/util
-for x in none pentium2 pentium3 pentium4 athlon
+for x in none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon
 do
 	mkdir bin/$x
 	cd bin/$x
