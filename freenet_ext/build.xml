@@ -46,13 +46,20 @@
     <copy file="../fecimpl/onion/alien/onion_LICENSE" todir="${build}"/>
   </target>
 
+  <target name="jcpuid" depends="init">
+    <copy todir="${build}">
+      <fileset dir="../jcpuid" includes="lib/**">
+      </fileset>
+    </copy>
+  </target>
+
   <target name="clean"
     description="Delete the build directory and archives">
     <delete dir="${build}"/>
     <delete file="${jar.location}"/>
   </target>
 
-  <target name="jar" depends="servlet,onion"
+  <target name="jar" depends="servlet,onion,jcpuid"
     description="Create a .jar">
     <jar jarfile="${jar.location}" basedir="${build}" includes="**">
       <zipfileset src="../fecimpl/onion/alien/onion-common.jar"/>
