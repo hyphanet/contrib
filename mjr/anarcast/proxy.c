@@ -418,14 +418,14 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     seconds = end.tv_sec - start.tv_sec;
     millis = (end.tv_usec-start.tv_usec)/1000;
     if (millis < 0) {
-	millis = -millis;
+	millis += 1000;
 	seconds--;
     }
 	
     alert("Insert of %d blocks completed in %d minutes, %d.%03d seconds.",
           blockcount, seconds/60, seconds%60, millis);
 
-    alert("Average throughput: %f kilobytes/second.",
+    alert("Average throughput: %.3f kilobytes/second.",
 	  (double)blockcount*blocksize/(seconds*1000+millis));
 }
 
@@ -782,14 +782,14 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     seconds = end.tv_sec - start.tv_sec;
     millis = (end.tv_usec-start.tv_usec)/1000;
     if (millis < 0) {
-	millis = -millis;
+	millis += 1000;
 	seconds--;
     }
     
     alert("Download of %d/%d (%d%%) blocks completed in %d minutes, %d.%03d seconds.",
 	  success, blockcount, (int)((double)success/blockcount*100), seconds/60, seconds%60, millis);
 
-    alert("Average throughput: %f kilobytes/second.", (double)success*blocksize/(seconds*1000+millis));
+    alert("Average throughput: %.3f kilobytes/second.", (double)success*blocksize/(seconds*1000+millis));
 }
 
 //=== routing ===============================================================
