@@ -93,6 +93,7 @@ char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8081" after the
 /*		flags, etc... */
 FREENET_MODE nFreenetMode=FREENET_STOPPED;
 bool bOpenGatewayOnStartup=false;	/* was freenet.exe called with the -open option?  */
+UINT g_uintTaskbarExplodedMsg=0;	/* see MSDN - "Taskbar Creation Notification" */
 
 /*		handles, etc... */
 HANDLE hSemaphore=NULL;				/* unique handle used to guarantee only one instance of freenet.exe app is ever running at one time */
@@ -102,6 +103,9 @@ HICON hHopsEnabledIcon=NULL;		/* icon handle - resource loaded during initialisa
 HICON hHopsDisabledIcon=NULL;		/* icon handle - resource loaded during initialisation code */
 HICON hAlertIcon=NULL;				/* icon handle - resource loaded during initialisation code */
 HICON hRestartingIcon=NULL;			/* icon handle - resource loaded during initialisation code */
+HICON hHopsNoGatewayIcon=NULL;		/* icon handle - resource loaded during initialisation code */
+HICON hHopsNoInternetIcon=NULL;		/* icon handle - resource loaded during initialisation code */
+HICON hThunderboltIcon=NULL;		/* icon handle - resource loaded during initialisation code */
 HMENU hPopupMenu=NULL;				/* handle to Popup Menu (right click on systray icon) */
 HWND hWnd=NULL;						/* main window handle  */
 HINSTANCE hInstance=NULL;			/* handle to the main application instance */
@@ -120,9 +124,12 @@ const HICON *hFreenetIcons[] =
 {
 	&hHopsDisabledIcon,
 	&hHopsEnabledIcon,
+	&hHopsNoGatewayIcon,
+	&hHopsNoInternetIcon,
 	&hRestartingIcon,
 	&hHopsDisabledIcon,
-	&hAlertIcon
+	&hAlertIcon,
+	&hHopsNoInternetIcon
 };
 
 
@@ -185,6 +192,9 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	hHopsDisabledIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_HOPSDISABLED), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hAlertIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_ALERT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hRestartingIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_RESTARTING), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hHopsNoGatewayIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_NOGWAY), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hHopsNoInternetIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_NOINET), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	hThunderboltIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_THUNDERBOLT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 
 	/* hConfiguratorSemaphore is used so we never load more than one instance of the configurator at a time */
 	hConfiguratorSemaphore = CreateSemaphore(NULL,1,1,NULL);
@@ -211,7 +221,10 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 		hRestartingIcon!=NULL &&
 		hAlertIcon!=NULL &&
 		hHopsDisabledIcon!=NULL &&
-		hHopsEnabledIcon!=NULL)
+		hHopsEnabledIcon!=NULL && 
+		hHopsNoGatewayIcon!=NULL && 
+		hHopsNoInternetIcon!=NULL &&
+		hThunderboltIcon!=NULL)
 	{
 
 		/*** main code: ***/
@@ -292,6 +305,9 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	if (hAlertIcon) DestroyIcon(hAlertIcon);
 	if (hHopsEnabledIcon) DestroyIcon(hHopsEnabledIcon);
 	if (hHopsDisabledIcon) DestroyIcon(hHopsDisabledIcon);
+	if (hHopsNoGatewayIcon) DestroyIcon(hHopsNoGatewayIcon);
+	if (hHopsNoInternetIcon) DestroyIcon(hHopsNoInternetIcon);
+	if (hThunderboltIcon) DestroyIcon(hThunderboltIcon);
 
 	if (hSemaphore) CloseHandle(hSemaphore);
 	if (hSystray) CloseHandle(hSystray);
@@ -748,7 +764,11 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			InsertMenuItem(hPopupMenu, 3, TRUE, &configitem);
 			InsertMenuItem(hPopupMenu, 4, TRUE, &separatoritem);
 			InsertMenuItem(hPopupMenu, 5, TRUE, &exititem);
-		        
+		       
+			/* see MSDN - we need to do this to safeguard against the systray icon
+			   blowing itself away if / when  explorer.exe  eats itself */
+			g_uintTaskbarExplodedMsg = RegisterWindowMessage(TEXT("TaskbarCreated"));
+
 			break;
 
 		case WM_DESTROY:
@@ -900,6 +920,17 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
     	default:
+			
+			/* see MSDN - we need to do this to safeguard against the systray icon
+			   blowing itself away if / when  explorer.exe  eats itself */
+			if (message == g_uintTaskbarExplodedMsg)
+			{
+				LOCK(SYSTRAY);
+				Shell_NotifyIcon(NIM_ADD,&note);
+				ModifyIcon();
+				UNLOCK(SYSTRAY);
+			}
+						
 			// Let windows handle all messages we choose to ignore.
 			return(DefWindowProc(hWnd, message, wParam, lParam));
 
