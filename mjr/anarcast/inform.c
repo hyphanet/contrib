@@ -1,35 +1,22 @@
+#include "anarcast.h"
+
 #define DATABASE_SIZE (1024*1024)
 #define WEED_INTERVAL (60*60)
-
-#include "anarcast.h"
-#include <pthread.h>
-
-// thread-related filth
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-int waiting;
-
-// this thread tries to connect to every server in the database. when it's
-// done, it waits on our condition variable.  the main loop waits until there
-// are no more connections and then broadcasts the condition, which causes our
-// thread to grab the mutex, update the database, and start over after perhaps
-// pausing a while
-void * thread (void *arg);
-
-char *hosts, // the start of our data. woohoo
-     *end; // the end of our data. add new data here and move this up
-
-struct {
-    unsigned int count; // number of addresses to send
-    unsigned int off; // offset in database
-} a[FD_SETSIZE];
+#define WEED_CONCURRENCY 2
 
 int
 main (int argc, char **argv)
 {
     int l, m, active;
-    pthread_t t;
     fd_set r, w;
+
+    char *hosts, // the start of our data. woohoo
+         *end; // the end of our data. add new data here and move this up
+
+    struct {
+	unsigned int count; // number of addresses to send
+	unsigned int off; // offset in database
+    } a[FD_SETSIZE];
     
     if (argc != 1) {
 	fprintf(stderr, "Usage: %s (no switches)\n", argv[0]);
@@ -64,9 +51,6 @@ main (int argc, char **argv)
     l = listening_socket(INFORM_SERVER_PORT, INADDR_ANY);
     active = 0;
     
-    if (pthread_create(&t, NULL, thread, NULL))
-	die("pthread_create() failed");
-    
     FD_ZERO(&r);
     FD_ZERO(&w);
     FD_SET(l, &r);
@@ -77,11 +61,7 @@ main (int argc, char **argv)
 	fd_set s = r, x = w;
 	struct timeval tv = {60, 0};
 	
-	// tell our thread to grab the mutex and update the database
-	if (!active)
-	    pthread_cond_broadcast(&cond);
-	
-	if ((n = select(m, &s, &x, NULL, &tv)) == -1)
+	if (select(m, &s, &x, NULL, &tv) == -1)
 	    die("select() failed");
 	
 	for (n = 3 ; n < m ; n++)
@@ -101,10 +81,8 @@ main (int argc, char **argv)
 		a[c].off = -4; // sizeof count value
 		if (c == m) m++;
 		if (!memmem(hosts, end-hosts, &s.sin_addr.s_addr, 4)) {
-		    pthread_mutex_lock(&mutex);
 		    memcpy(end, &s.sin_addr.s_addr, 4);
 		    end += 4;
-		    pthread_mutex_unlock(&mutex);
 		    printf("%-15s Added.\n", inet_ntoa(s.sin_addr));
 		} else
 		    printf("%-15s Already known.\n", inet_ntoa(s.sin_addr));
@@ -137,7 +115,7 @@ main (int argc, char **argv)
 	    }
     }
 }
-
+/*
 void *
 thread (void *arg)
 {
@@ -199,4 +177,4 @@ thread (void *arg)
 	lastweed = l; // update our lastweed to the time when we finished
     }
 }
-
+*/
