@@ -70,7 +70,7 @@ main ()
 	    fprintf(stderr, "Error opening database for write.\n");
 	    continue;
 	}
-	pthread_rwlock_wrlock(&lock);
+	pthread_rwlock_rdlock(&lock);
 	for (i = database; i ; i = i->next)
 	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n",
 		    i->key, i->name, i->desc, i->ctime);
