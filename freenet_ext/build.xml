@@ -53,13 +53,20 @@
     </copy>
   </target>
 
+  <target name="bigint" depends="init">
+    <copy todir="${build}">
+      <fileset dir="../NativeBigInteger" includes="lib/**">
+      </fileset>
+    </copy>
+  </target>
+
   <target name="clean"
     description="Delete the build directory and archives">
     <delete dir="${build}"/>
     <delete file="${jar.location}"/>
   </target>
 
-  <target name="jar" depends="servlet,onion,jcpuid"
+  <target name="jar" depends="servlet,onion,jcpuid,bigint"
     description="Create a .jar">
     <jar jarfile="${jar.location}" basedir="${build}" includes="**">
       <zipfileset src="../fecimpl/onion/alien/onion-common.jar"/>
