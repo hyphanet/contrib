@@ -31,7 +31,6 @@
 #define _GNU_SOURCE
 
 /* Generic <sys/> includes here so they are first. */
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -43,6 +42,7 @@
 #include <process.h>
 #include <winsock.h>
 #include <io.h>
+#include <time.h>
 
 /* VERSION is defined by automake for non-Win platforms. */
 #define VERSION "0.4.9w"
@@ -66,6 +66,8 @@
 /* Keep 'sys' files first in include order */
 
 #include <sys/socket.h>
+#include <sys/time.h>
+
 #include <unistd.h>
 
 #endif
