@@ -25,7 +25,7 @@ LicenseData GNU.txt
 !ifdef embedJava
 OutFile Freenet-withjava-setup0.3.9.1.exe
 !else
-OutFile Freenet_setup0.3.9.1.exe
+OutFile Freenet_setup0.3.9.1-2.exe
 !endif
 
 UninstallText "This uninstalls Freenet and all files on this node. (You may need to shut down running nodes before proceeding)"
@@ -63,6 +63,11 @@ FindWindow "close" "TrayIconFreenetClass" ""
 # Copying the actual Freenet files to the install dir
 SetOutPath "$INSTDIR"
 File freenet\*.*
+CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\frequest.exe" 6
+CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
+CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\FProxy.exe" 6
+CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
+
 
 # possibly embed full Java runtime
 !ifdef embedJava

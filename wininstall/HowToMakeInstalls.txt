@@ -8,9 +8,11 @@ How to make an install
 1)Get the free Nullsoft installer (NSIS) at http://nullsoft.com/free/NSIS (>v1.1h)
   freenet.nsi has been updated to use a more current development version (1.1h) available at:
   http://firehose.net/free/nsis
-2)Take the Freenet subdirectory and add the current files:
+2a)Add the current files the Freenet subdirectory:
   freenet.jar  (freenet.ini will be created on install)
-2a)Check out Contrib/IEPlugin and Contrib/NSPlugin from CVS. 
+2b)Add upx.exe to this directory (for additional compression of the installer) 
+   from http://upx.sourceforge.net/
+2a)(Check out Contrib/IEPlugin and Contrib/NSPlugin from CVS. )
 3)Run !runmefirst.bat to create frequest.exe, finsert.exe, fproxy.exe and cfgnode.exe
 4)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
 5)Call "makensis freenet"
