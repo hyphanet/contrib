@@ -1,9 +1,11 @@
 #include "anarcast.h"
 #include "sha.c"
 
+// mongolian cluster-fuck! sorry, i had to get that in somewhere
 void touch_inform_server (char *server);
 
-struct state {
+// our splendid states
+struct {
     char type, hash[HASHLEN], *data;
     unsigned int off, len;
 } a[FD_SETSIZE];
@@ -30,6 +32,7 @@ main (int argc, char **argv)
     FD_SET(l, &r);
     m = l + 1;
     
+    // and we're off!
     for (;;) {
 	int i, n, c;
 	struct stat st;
@@ -41,9 +44,10 @@ main (int argc, char **argv)
 
 	//=== read ==========================================================
 	
+	// seek to the first eligible fd
 	for (n = 3 ; n < m ; n++)
 	    if (FD_ISSET(n, &s)) break;
-	if (n == m) goto write;
+	if (n == m) goto write; // no readable fds? ok!
 
 	// accept connection
 	if (n == l) {
@@ -99,6 +103,7 @@ main (int argc, char **argv)
 		    die("close() failed");
 		continue;
 	    }
+	    // we're all done! now let's save the motherfucker!
 	    a[n].off += c;
 	    if (a[n].off == a[n].len) {
 		char hex[HASHLEN*2+1];
@@ -139,12 +144,14 @@ main (int argc, char **argv)
 		if (a[n].off) continue;
 	    }
 	    bytestohex(hex, a[n].hash, HASHLEN);
+	    // we don't have it! damn, hang up
 	    if (stat(hex, &st) == -1) {
 		FD_CLR(n, &r);
 		if (close(n) == -1)
 		    die("close() failed");
 		continue;
 	    }
+	    // we have it! yay! let's get drunk and fuck!
 	    if ((c = open(hex, O_RDONLY)) == -1)
 		die("open() failed");
 	    a[n].data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, c, 0);
@@ -152,28 +159,29 @@ main (int argc, char **argv)
 		die("mmap() failed");
 	    if (close(c) == -1)
 	        die("close() failed");
-	    FD_CLR(n, &r);
-	    FD_SET(n, &w);
+	    FD_CLR(n, &r); // no more reading...
+	    FD_SET(n, &w); // we wanna write our data back to the client now!
 	    a[n].len = st.st_size;
-	    a[n].off = -4;
+	    a[n].off = -4; // data length int
 	}
 
 write:	//=== write =========================================================
 
+	// seek to first eligible fd
 	for (n = 3 ; n < m ; n++)
 	    if (FD_ISSET(n, &x)) break;
 	if (n == m) continue;
 	
 	i = a[n].off;
-	if (i < 0) c = write(n, &(&a[n].len)[4+i], -i);
-	else c = write(n, &a[n].data[i], a[n].len - i);
+	if (i < 0) c = write(n, &(&a[n].len)[4+i], -i); // write data length
+	else c = write(n, &a[n].data[i], a[n].len - i); // write the data!
 	a[n].off += c;
 	if (c <= 0 || a[n].off == a[n].len) {
-	    if (c > 0) {
+	    if (c > 0) { // success!
 		char hex[HASHLEN*2+1];
 		bytestohex(hex, a[n].hash, HASHLEN);
 		printf("%s > %s\n", timestr(), hex);
-	    } else ioerror();
+	    } else ioerror(); // error, yuck.
 	    FD_CLR(n, &w);
 	    if (close(n) == -1)
 		die("close() failed");
@@ -206,6 +214,7 @@ touch_inform_server (char *server)
     if (connect(c, &a, sizeof(a)) == -1)
 	printf("Warning: connect() to %s failed.\n", server);
     
+    // we don't need to read any addresses. we're just a server, buddy.
     if (close(c) == -1)
 	die("close() failed");
 }

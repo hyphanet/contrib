@@ -1,19 +1,23 @@
-#define GRAPHCOUNT    512
-#define CONCURRENCY   8
-#define AVL_MAXHEIGHT 41
-
 #include <math.h>
 #include <stdarg.h>
 #include <pthread.h>
 #include "anarcast.h"
 #include "sha.c"
 
+// how many graphs do we have?
+#define GRAPHCOUNT    512
+
+// how many blocks should be transfer at a time?
+#define CONCURRENCY   8
+
+// a teenage mutant ninja graph (tm)
 struct graph {
     unsigned short dbc; // data block count
     unsigned short cbc; // check block count
     unsigned char *graph; // array of bits
 };
 
+// a node of our lovely AVL tree
 struct node {
     unsigned int addr;
     char hash[HASHLEN];
@@ -21,25 +25,50 @@ struct node {
     unsigned char heightdiff;
 };
 
+// load our evil mutant graphs from the graph file
 void load_graphs ();
+
+// the graphs themselves. graphs[0] = 1 data block, and so on
 struct graph graphs[GRAPHCOUNT];
 
+// our lovely AVL tree
 struct node *tree;
+
+// our inform server hostname
 char *inform_server;
 
+// connect to the inform server and populate our lovely AVL tree
 void inform ();
+
+// read the transaction type, call the right function, and close the connection
 void * run_thread (void *arg);
+
+// mandatory variadic function
 void alert (const char *s, ...);
+
+// check if bit (db * cb) is set in g->graph
 int is_set (struct graph *g, int db, int cb);
 
+// read data, send back key, insert blocks, etc
 void insert (int c);
-void do_insert (char *blocks, char *mask, int blockcount, int blocksize, char *hashes);
 
+// insert blocks that aren't set true at mask[block]
+void do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, const char *hashes);
+
+// read key from client, download blocks, reconstruct data, insert reconstructed parts, etc
 void request (int c);
 
+// download all the blocks i can get, set mask[block] = 1 for each begot block
+void do_request (char *blocks, char *mask, int blockcount, int blocksize);
+
+// add a reference to our lovely AVL tree. it better not be a duplicate!
 void addref (unsigned int addr);
+
+// remove a reference to our lovely AVL tree. it better be there!
 void rmref (unsigned int addr);
-unsigned int route (char hash[HASHLEN]);
+
+// return the address of the proper host for hash
+unsigned int route (const char hash[HASHLEN]);
 
 int
 main (int argc, char **argv)
@@ -57,6 +86,7 @@ main (int argc, char **argv)
     inform((inform_server = argv[1]));
     l = listening_socket(PROXY_SERVER_PORT);
     
+    // accept connections and spawn a thread for each
     for (;;)
 	if ((c = accept(l, NULL, 0)) != -1) {
 	    int *i = malloc(4);
@@ -73,10 +103,13 @@ run_thread (void *arg)
 {
     int c = *(int*)arg;
     char d;
+
+    // read transaction type, call handler
     if (read(c, &d, 1) == 1) {
         if (d == 'r') request(c);
         if (d == 'i') insert(c);
     }
+
     if (close(c) == -1)
 	die("close() failed");
     free(arg);
@@ -89,6 +122,7 @@ alert (const char *s, ...)
     va_list args;
     va_start(args, s);
     vprintf(s, args);
+    // all this for a fucking newline
     printf("\n");
     fflush(stdout);
     va_end(args);
@@ -116,6 +150,7 @@ load_graphs ()
     if (close(i) == -1)
 	die("close() failed");
     
+    // brutally load our graphs
     for (n = 0, i = 0 ; i < GRAPHCOUNT ; i++) {
 	memcpy(&graphs[i].dbc, &data[n], 2);
 	n += 2;
@@ -247,7 +282,7 @@ insert (int c)
 }
 
 int
-hookup (char hash[HASHLEN])
+hookup (const char hash[HASHLEN])
 {
     struct sockaddr_in a;
     extern int errno;
@@ -274,7 +309,7 @@ hookup (char hash[HASHLEN])
 }
 
 void
-do_insert (char *blocks, char *mask, int blockcount, int blocksize, char *hashes)
+do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, const char *hashes)
 {
     int m, next, active;
     fd_set w;
@@ -298,44 +333,54 @@ do_insert (char *blocks, char *mask, int blockcount, int blocksize, char *hashes
 	    if (!i) continue;
 	}
 
+	// make new connections
 	while (active < CONCURRENCY && next < blockcount) {
 	    int c;
-	    if (mask && !mask[next]) { // skip this part
+	    // skip this part, its mask is true
+	    if (mask && mask[next]) {
 		next++;
 		continue;
 	    }
+	    // connect to server, watch fd
 	    c = hookup(&hashes[next*HASHLEN]);
 	    FD_SET(c, &w);
 	    if (c >= m) m = c + 1;
 	    xfers[c].num = next;
-	    xfers[c].off = -5;
+	    xfers[c].off = -5; // 'i' + 4-byte datalength
 	    active++;
 	    next++;
 	}
 
+	// send data to eligible servers
 	for (i = 0 ; i < m ; i++)
 	    if (FD_ISSET(i, &x)) {
 		int n = xfers[i].off;
 		
 		if (n == -5)
+		    // command
 		    n = writeall(i, "i", 1);
 		else if (n < 0)
+		    // data length
 		    n = writeall(i, &(&blocksize)[4+n], -n);
 		else
+		    // data
 		    n = writeall(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
 
+		// io error
 		if (n <= 0) {
 		    int c;
 		    ioerror();
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
+		    // connect to server, watch new fd
 		    c = hookup(&hashes[xfers[i].num*HASHLEN]);
 		    FD_SET(c, &w);
 		    xfers[c].num = xfers[i].num;
 		    xfers[c].off = -5;
 		}
 		
+		// are we done?
 		xfers[i].off += n;
 		if (xfers[i].off == blocksize) {
 		    if (close(i) == -1)
@@ -346,6 +391,7 @@ do_insert (char *blocks, char *mask, int blockcount, int blocksize, char *hashes
 		}
 	    }
 
+	// nothing left to do?
 	if (!active && next == blockcount)
 	    break;
     }
@@ -358,15 +404,17 @@ request (int c)
 {
     int i;
     unsigned int blockcount, blocksize;
-    char *blocks, *hash, *hashes;
+    char *blocks, *mask, *hash, *hashes;
     struct graph g;
     
+    // read key length (a key is blocksize + hashes)
     if (readall(c, &i, 4) != 4) {
 	ioerror();
 	return;
     }
     
-    i -= 4;
+    // is our key a series of > 2 hashes?
+    i -= 4; // subtract block size
     if (i % HASHLEN || i == HASHLEN) {
 	alert("Bad key length: %s.", i);
 	return;
@@ -375,12 +423,14 @@ request (int c)
     if (!(hashes = malloc(i)))
 	die("malloc() failed");
     
+    // read block size and hashes from client
     if (readall(c, &blocksize, 4) != 4 || readall(c, hashes, i) != i) {
 	ioerror();
 	free(hashes);
 	return;
     }
-
+    
+    // compute blockcount, make sure we support it
     blockcount = (i-1) / HASHLEN;
     if (blockcount > GRAPHCOUNT) {
 	alert("I do not have a graph for %d data blocks!", blockcount);
@@ -389,22 +439,25 @@ request (int c)
     }
     
     g = graphs[blockcount-1];
-    
+    mask = malloc(blockcount);
     blocks = mbuf(blockcount * blocksize);
     
+    // slurp up all the data we can
     alert("Requesting %d blocks of %d bytes each.", blockcount, blocksize);
-    
+    memset(mask, 0, blockcount); // all parts are missing before we download them
+    do_request(blocks, mask, blockcount, blocksize);
     alert("Request complete.");
     
-    // hash data
+    // verify data
     alert("Verifying data integrity.");
-    sha_buffer(blocks, blocksize * g.dbc, hash);
+    i = blocksize * g.dbc;
+    sha_buffer(blocks, i, hash);
     if (memcmp(hash, hashes, HASHLEN)) {
 	alert("Decoding error: data does not verify!");
 	goto out;
     }
     
-    i = blocksize * g.dbc;
+    // write data to client
     if (writeall(c, &i, 4) != 4 || writeall(c, blocks, i) != i) {
 	ioerror();
 	goto out;
@@ -414,6 +467,12 @@ out:
     if (munmap(blocks, blockcount * blocksize) == -1)
 	die("munmap() failed");
     free(hashes);
+    free(mask);
+}
+
+void
+do_request (char *blocks, char *mask, int blockcount, int blocksize)
+{
 }
 
 //=== inform ================================================================
@@ -444,6 +503,7 @@ inform ()
     
     tree = NULL;
     
+    // read and insert our friends
     for (n = 0 ; ; n++) {
 	unsigned int i;
 	int j = readall(c, &i, 4);
@@ -462,9 +522,11 @@ inform ()
 
 //=== routing ===============================================================
 
+#define AVL_MAXHEIGHT 41
+
 void avl_insert (struct node *node, struct node **stack[], int stackmax);
 void avl_remove (struct node **stack[], int stackmax);
-int avl_findwithstack (struct node **tree, struct node ***stack, int *count, char hash[HASHLEN]);
+int avl_findwithstack (struct node **tree, struct node ***stack, int *count, const char hash[HASHLEN]);
 
 void
 refop (char op, char *hash, unsigned int addr)
@@ -472,6 +534,7 @@ refop (char op, char *hash, unsigned int addr)
     char hex[HASHLEN*2+1];
     struct in_addr x;
     
+    // print our pretty message
     x.s_addr = addr;
     bytestohex(hex, hash, HASHLEN);
     alert("%c %15s %s", op, inet_ntoa(x), hex);
@@ -516,7 +579,7 @@ rmref (unsigned int addr)
 }
 
 unsigned int
-route (char hash[HASHLEN])
+route (const char hash[HASHLEN])
 {
     int count;
     struct node **stack[AVL_MAXHEIGHT];
@@ -532,7 +595,7 @@ route (char hash[HASHLEN])
 }
 
 int
-avl_findwithstack (struct node **tree, struct node ***stack, int *count, char hash[HASHLEN])
+avl_findwithstack (struct node **tree, struct node ***stack, int *count, const char hash[HASHLEN])
 {
     struct node *n = *tree;
     int found = 0;
@@ -557,7 +620,9 @@ avl_findwithstack (struct node **tree, struct node ***stack, int *count, char ha
     
     return found;
 }
-    
+
+// abandon all hope, ye who venture here
+
 enum {TREE_BALANCED, TREE_LEFT, TREE_RIGHT};
 
 static inline int

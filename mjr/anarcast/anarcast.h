@@ -1,8 +1,4 @@
-#define PROXY_SERVER_PORT     9748
-#define ANARCAST_SERVER_PORT  9209
-#define INFORM_SERVER_PORT    7342
-#define HASHLEN               20
-#define _GNU_SOURCE
+#define _GNU_SOURCE // gunnuuu!!!!
 
 #include <errno.h>
 #include <arpa/inet.h>
@@ -21,6 +17,20 @@
 #include <time.h>
 #include <unistd.h>
 
+// our adorable client proxy server port
+#define PROXY_SERVER_PORT     9748
+
+// our obstreperous server port
+#define ANARCAST_SERVER_PORT  9209
+
+// our bouncy, fluorescent inform server port
+#define INFORM_SERVER_PORT    7342
+
+// the length of a SHA hash
+#define HASHLEN               20
+
+
+// a cute suicide note. goodbye, terrible world!
 #define die(msg) {                                                           \
     extern int errno;                                                        \
     fprintf(stderr, "%s/%s/%d: %s (%s)\n", __FILE__, __FUNCTION__, __LINE__, \
@@ -28,6 +38,7 @@
     exit(1);                                                                 \
 }
 
+// a little warning for IO errors
 inline void
 ioerror ()
 {
@@ -35,8 +46,9 @@ ioerror ()
     printf("I/O Error: %s.\n", strerror(errno));
 }
 
+// the reading rainbow!
 inline int
-readall (int c, const void *b, int len)
+readall (int c, void *b, int len)
 {
     int j = 0, i = 0;
     
@@ -47,6 +59,7 @@ readall (int c, const void *b, int len)
     return i;
 }
 
+// the wrongheaded writing wriggler!
 inline int
 writeall (int c, const void *b, int len)
 {
@@ -59,6 +72,7 @@ writeall (int c, const void *b, int len)
     return i;
 }
 
+// mmap a temp file. you have to munmap this when you're done
 inline char *
 mbuf (size_t len)
 {
@@ -84,6 +98,7 @@ mbuf (size_t len)
     return p;
 }
 
+// some high schools will expel you for using this function. watch out!
 inline void
 bytestohex (char *hex, const void *bytes, int blen)
 {
@@ -97,6 +112,7 @@ bytestohex (char *hex, const void *bytes, int blen)
     *hex = 0;
 }
 
+// dunno if they expel you for this one too
 inline int
 hextobytes (const char *hex, void *bytes, uint hlen)
 {
@@ -132,6 +148,7 @@ hextobytes (const char *hex, void *bytes, uint hlen)
     return j;
 }
 
+// return a wonderful, nonthreadsafe timestamp
 inline char *
 timestr ()
 {
@@ -151,6 +168,7 @@ timestr ()
     return ts;
 }
 
+// make a listening socket on port
 int
 listening_socket (int port)
 {
@@ -177,6 +195,7 @@ listening_socket (int port)
     return s;
 }
 
+// xor two byte arrays, store result in a, leave b alone
 inline void
 xor (void *a, const void *b, int len)
 {
@@ -191,6 +210,7 @@ xor (void *a, const void *b, int len)
     while (--i);
 }
 
+// go home!
 inline void
 chdir_to_home ()
 {
@@ -204,6 +224,7 @@ chdir_to_home ()
 	die("chdir() failed");
 }
 
+// sir, you'll have to move along. you're blocking traffic
 inline void
 set_nonblock (int c)
 {

@@ -3,9 +3,12 @@
 
 #include "anarcast.h"
 
+// this should really happen in its own thread.
 void weed_dead_servers ();
 
-char *hosts, *end, *off[FD_SETSIZE];
+char *hosts, // the start of our data. woohoo
+     *end, // the end of our data. add new data here and move this up
+     *off[FD_SETSIZE]; // the offsets of our current connections in the data
 
 int
 main (int argc, char **argv)
@@ -34,7 +37,8 @@ main (int argc, char **argv)
     m = 0;
     if (!(end = memmem(hosts, DATABASE_SIZE, &m, 4)))
 	die("cannot find end of inform_database");
-
+    
+    // maybe the last host ended in \0*.
     while ((end - hosts) % 4)
 	end++;
 
@@ -60,6 +64,7 @@ main (int argc, char **argv)
 	n = select(m, &s, &x, NULL, &tv);
 	if (n == -1) die("select() failed");
 	if (!n) {
+	    // put this in its own thread!
 	    if (!active && time(NULL) > last_weeding + WEED_INTERVAL) {
 		puts("Weeding....");
 		weed_dead_servers();
@@ -72,6 +77,8 @@ main (int argc, char **argv)
 	    if (FD_ISSET(n, &s)) {
 		struct sockaddr_in a;
 		int c, b = sizeof(a);
+		// accept a connection
+		// I NEED TO CONNECT BACK TO THE HOST BECAUSE IT MIGHT BE SPOOFED!!!
 		if ((c = accept(n, &a, &b)) == -1) {
 		    ioerror();
 		    continue;
@@ -109,7 +116,7 @@ main (int argc, char **argv)
 }
 
 void
-weed_dead_servers ()
+weed_dead_servers () // yucky. i don't like this one bit
 {
     int f, c;
     char *p, *q, *b = mbuf(DATABASE_SIZE);
