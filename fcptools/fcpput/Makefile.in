@@ -81,18 +81,38 @@ am__quote = @am__quote@
 install_sh = @install_sh@
 
 INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
+
+FCP_SOURCE = "\
+_fcpCompat.c \
+_fcpGlobals.c \
+_fcpLog.c \
+_fcpReadBlk.c \
+_fcpRecvResponse.c \
+_fcpSock.c \
+_fcpUtil.c \
+fcpOpenKey.c \
+fcpOpenKeyIndex.c \
+fcpPutKeyFromFile.c \
+fcpStartup.c \
+fcpput.c"
+
 bin_PROGRAMS = fcpput
 
-fcpput_LDFLAGS = -L$(top_srcdir)/ezFCPlib -L$(top_srcdir)/fcpcommon
-fcpput_LDADD = -lezfcp -lfcpcommon
-fcpput_SOURCES = fcpput.c
+fcpput_LDFLAGS = -L$../fcpcommon
+fcpput_LDADD = -lfcpcommon
+fcpput_SOURCES = $(FCP_SOURCE)
 subdir = fcpput
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES =
 bin_PROGRAMS = fcpput$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
-am_fcpput_OBJECTS = fcpput.$(OBJEXT)
+am_fcpput_OBJECTS = _fcpCompat.$(OBJEXT) _fcpGlobals.$(OBJEXT) \
+	_fcpLog.$(OBJEXT) _fcpReadBlk.$(OBJEXT) \
+	_fcpRecvResponse.$(OBJEXT) _fcpSock.$(OBJEXT) \
+	_fcpUtil.$(OBJEXT) fcpOpenKey.$(OBJEXT) \
+	fcpOpenKeyIndex.$(OBJEXT) fcpPutKeyFromFile.$(OBJEXT) \
+	fcpStartup.$(OBJEXT)
 fcpput_OBJECTS = $(am_fcpput_OBJECTS)
 fcpput_DEPENDENCIES =
 
@@ -102,7 +122,13 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
-@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/fcpput.Po
+@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/_fcpCompat.Po $(DEPDIR)/_fcpGlobals.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Po $(DEPDIR)/_fcpReadBlk.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Po $(DEPDIR)/_fcpSock.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpUtil.Po $(DEPDIR)/fcpOpenKey.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKeyIndex.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpStartup.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -169,7 +195,17 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpput.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpCompat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpGlobals.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpReadBlk.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpSock.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpUtil.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKeyIndex.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Po@am__quote@
 
 distclean-depend:
 	-rm -rf $(DEPDIR)

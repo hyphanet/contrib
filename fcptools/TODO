@@ -12,6 +12,9 @@ FCPtools generic
 * Add usage instructions to README file for fcpget, fcpput, fcpputsite.
 * Streamline log messages, and stray printf's (perhaps in ezFCPlib).
 
+* Prune ezfcplib.h extern function defines and co-ordinate.
+* Verify fcpPutKeyFromFile works properly via fcpput.
+
 ---------------------------------------------------------------------------
 ezFCPlib specific
 
@@ -25,7 +28,6 @@ ezFCPlib specific
 * Implement HighestSeenBuild optional param from NodeHello message.
 * Verify opentemp() in _fcpUtil.c works correctly with POSIX macros on all
   platforms.
-* No more printf's !
 
 
 ---------------------------------------------------------------------------
@@ -39,6 +41,7 @@ fcpget
 fcpput
 
 * Fix bug when inserting to another Node via -n and -p parameters.
+  (Perhaps fixed; seemed my remote node was misconfigured - Jay)
 * Fix insert attempt counter (it reaches the undefined 4 out of 3).
 
 
@@ -48,9 +51,3 @@ fcpputsite
 * Handle large manifests more intelligently.
 * WIN32 code for checking for file changes.
 * WIN32 tempfiles.
-
-
----------------------------------------------------------------------------
-fcpputsplit
-
-* Merge into fcpput.
