@@ -169,10 +169,10 @@ xor (void *a, const void *b, int len)
 {
     int i;
     
-    for (i = 0 ; i < len / sizeof(int) ; i++)
+    for (i = 0 ; i < len / 4 ; i++)
 	((int *)a)[i] ^= ((int *)b)[i];
     
-    i = len % sizeof(int);
+    i = len % 4;
     do ((char *)a)[len-i] ^= ((char *)b)[len-i];
     while (--i);
 }

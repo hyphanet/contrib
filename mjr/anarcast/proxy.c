@@ -14,8 +14,8 @@ struct node {
 };
 
 struct graph {
-    unsigned int dbc; // data block count
-    unsigned int cbc; // check block count
+    unsigned short dbc; // data block count
+    unsigned short cbc; // check block count
     unsigned char *graph; // array of bits
 };
 
@@ -117,10 +117,10 @@ load_graphs ()
 	die("close() failed");
     
     for (n = 0, i = 0 ; i < GRAPHCOUNT ; i++) {
-	memcpy(&graphs[i].dbc, &data[n], 4);
-	n += 4;
-	memcpy(&graphs[i].cbc, &data[n], 4);
-	n += 4;
+	memcpy(&graphs[i].dbc, &data[n], 2);
+	n += 2;
+	memcpy(&graphs[i].cbc, &data[n], 2);
+	n += 2;
 	graphs[i].graph = &data[n];
 	n += (graphs[i].dbc + graphs[i].cbc) / 8;
 	if ((graphs[i].dbc + graphs[i].cbc) % 8)
@@ -128,12 +128,19 @@ load_graphs ()
     }
 }
 
+int
+is_set (struct graph *g, int db, int cb)
+{
+    int n = db + cb;
+    return (g->graph[n / 8] << (n % 8)) & 128;
+}
+
 inline void
 insert (int c)
 {
     char *hashes, *blocks;
-    unsigned int i, len, hlen, dlen, clen;
-    int blocksize;
+    unsigned int i, j;
+    unsigned int blocksize, len, hlen, dlen, clen;
     struct graph g;
     keyInstance key;
     cipherInstance cipher;
@@ -188,18 +195,22 @@ insert (int c)
     
     // generate check blocks
     alert("Generating check blocks.");
-    // ....
+    for (i = 0 ; i < g.cbc ; i++)
+	for (j = 0 ; j < g.dbc ; j++)
+	    if (is_set(&g, j, i))
+		xor(&blocks[dlen+(i*blocksize)], // check block (modified)
+		    &blocks[j*blocksize], // data block (const)
+		    blocksize);
     
     alert("Hashing blocks.");
     
     // generate data block hashes
     for (i = 0 ; i < g.dbc ; i++)
-	sha_buffer(&blocks[(i+1)*blocksize], blocksize,
-		   &hashes[(i+1)*HASHLEN]);
+	sha_buffer(&blocks[i*blocksize], blocksize, &hashes[(i+1)*HASHLEN]);
     
     // generate check block hashes
     for (i = 0 ; i < g.cbc ; i++)
-	sha_buffer(&blocks[HASHLEN+dlen+(i*blocksize)], blocksize,
+	sha_buffer(&blocks[dlen+(i*blocksize)], blocksize,
 		   &hashes[(g.dbc+1)*HASHLEN+(i*hlen)]);
     
     // send the URI to the client
