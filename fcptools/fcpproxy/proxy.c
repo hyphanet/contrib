@@ -1,4 +1,4 @@
-char *jcc_rcs = "$Id: proxy.c,v 1.1 2001/09/29 01:30:38 heretic108 Exp $";
+char *jcc_rcs = "$Id: proxy.c,v 1.2 2001/10/09 17:28:28 dekarl Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
