@@ -29,6 +29,7 @@ char        *metaData = NULL;
 int         rawMode = 0;
 int         silentMode = 0;
 int         verbosity = FCP_LOG_NORMAL;
+int			maxAttempts = 3;                // maximum number of insert attempts
 
 int			maxSplitThreads = FCP_MAX_SPLIT_THREADS;
 
@@ -135,19 +136,26 @@ int main(int argc, char* argv[])
 
 		fileSize = fileStat.st_size;
 
-		if (fileSize < MAX_KSK_LEN !! strstr(keyUri, "CHK@"))
+		if (fileSize < MAX_KSK_LEN || strstr(keyUri, "CHK@"))
 		{
-			_fcpLog(FCP_LOG_VERBOSE, "Key is small or a chk, inserting directly");
-			insertError = fcpPutKeyFromFile(hfcp, keyUri, keyFile, metaData);
+			int i = 1;
+
+			do
+				_fcpLog(FCP_LOG_VERBOSE,
+					"Key is small or chk, inserting directly, attempt %d/%d",
+					i, maxAttempts);
+			while ((insertError = fcpPutKeyFromFile(hfcp, keyUri, keyFile, metaData)) != 0 && i++ <= maxAttempts);
 		}
 		else
 		{
+			int i = 0;
+
 			_fcpLog(FCP_LOG_VERBOSE, "Key too big, inserting as CHK");
 
 			// gotta insert as CHK, then insert a redirect to it
-			if ((insertError = fcpPutKeyFromFile(hfcp, "CHK@", keyFile, metaData)) != 0)
+			while ((insertError = fcpPutKeyFromFile(hfcp, "CHK@", keyFile, metaData)) != 0 && i++ < maxAttempts)
 			{
-				printf("Insert failed\n");
+				printf("Insert attempt %d/%d failed\n", i, maxAttempts);
 				return -1;
 			}
 
@@ -160,12 +168,13 @@ int main(int argc, char* argv[])
 					chk);
 
 			// insert the redirect
-			if ((insertError = fcpPutKeyFromMem(hfcp, keyUri, NULL, metaRedir, 0)) != 0)
+			i = 0;
+			while ((insertError = fcpPutKeyFromMem(hfcp, keyUri, NULL, metaRedir, 0)) != 0 && i++ < maxAttempts)
 			{
-				_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted data as %s\n", chk);
-				printf("But failed to insert a redirect, sorry\n");
+				printf("Redirect insert attempt %d/%d failed\n", i, maxAttempts);
 				return -1;
 			}
+			_fcpLog(FCP_LOG_VERBOSE, "Redirect inserted successfully");
 		}
 
     }
@@ -222,6 +231,10 @@ static void parse_args(int argc, char *argv[])
             fcpSplitChunkSize = (++i < argc)
                         ? parse_num(argv[i])
                         : (int)usage("missing splitfile chunk size");
+        else if (!strcmp(argv[i], "-a"))
+            maxAttempts = (++i < argc)
+                        ? atoi(argv[i])
+                        : usage("missing maxAttempts value");
         else if (!strcmp(argv[i], "-st"))
             maxSplitThreads = (++i < argc)
                         ? atoi(argv[i])
@@ -262,7 +275,7 @@ static void *usage(char *s)
     printf("-n nodeAddr: address of your freenet 0.4 node, default 'localhost'\n");
     printf("-p nodePort: FCP port for your freenet 0.4 node, default 8481\n");
     printf("-m file:     get key's metadata from file, 'stdin' means stdin\n");
-    printf("-r:          raw mode - don't create redirects\n");
+    printf("-a attempts: maximum number of attempts at inserting each file (default 3)\n");
 	printf("-ss:         size of splitfile chunks, default %d\n", SPLIT_BLOCK_SIZE);
 	printf("-st:         max number of splitfile threads, default %d\n", FCP_MAX_SPLIT_THREADS);
     printf("-v level:    verbosity of logging messages:\n");
