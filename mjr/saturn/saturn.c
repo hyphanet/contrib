@@ -151,7 +151,7 @@ fcp_put_thread (void *args)
 	fgets(reply, 512, fcp);
 	if (strncmp(reply, "URI=", 4) != 0) goto free;
 	fprintf(log, "%s=%s", a->name, &reply[4]);
-    } else if (strncmp(reply, "KeyCollision", 12) == 0) {
+    } else { // FCPHandler is stupid, it makes KeyCollisions look like RouteNotFound!
 	pthread_mutex_lock(&mutex);
 	collisions++;
 	pthread_mutex_unlock(&mutex);
@@ -193,20 +193,22 @@ get_article (uint32_t msg_num)
     fgets(line, 512, sock);
     if (strcmp(line, ".\r\n") != 0) goto badreply;
     
-    fprintf(sock, "xhdr bytes %d\r\n", msg_num);
-    fflush(sock);
-    fgets(line, 512, sock);
-    sscanf(line, "%d", &status);
-    if (status != 221) goto badreply;
-    fgets(line, 512, sock);
-    sscanf(line, "%*d %d\r\n", &status);
-    if (status < min_bytes) {
-	fprintf(stderr, "Skipping article %d: less than %d bytes.\n", msg_num, min_bytes);
-	fgets(line, 512, sock);
-	return NULL;
+    if (min_bytes) {
+        fprintf(sock, "xhdr bytes %d\r\n", msg_num);
+        fflush(sock);
+        fgets(line, 512, sock);
+        sscanf(line, "%d", &status);
+        if (status != 221) goto badreply;
+        fgets(line, 512, sock);
+        sscanf(line, "%*d %d\r\n", &status);
+        if (status < min_bytes) {
+	    fprintf(stderr, "Skipping article %d: less than %d bytes.\n", msg_num, min_bytes);
+	    fgets(line, 512, sock);
+	    return NULL;
+        }
+        fgets(line, 512, sock);
+        if (strcmp(line, ".\r\n") != 0) goto badreply;
     }
-    fgets(line, 512, sock);
-    if (strcmp(line, ".\r\n") != 0) goto badreply;
     
     fprintf(sock, "body %d\r\n", msg_num);
     fflush(sock);
