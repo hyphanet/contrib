@@ -1,5 +1,3 @@
-
-h:\freenet\CVSWORK\Contrib\wininstall\Sources\FindJava>perl -e "while(<>)" -e "{" -e "s/\x0d[^\x0a]/\x0a/;" -e "s/\x0d\x0a/\x0a/;" -e "print $_;" -e "}" -e "" 
 /*/////////////////////////////////////////////////////////////////////////////
 
 	file : findjava.cpp
