@@ -418,7 +418,8 @@ void CConfigFile::processItem(char *tok, char *val)
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
 	else if (!strcmp(tok, "storeCacheSize"))
-		pNormal->m_storeCacheSize = atol(val) / 1048576;
+		//just use the preference if it was != 0
+		if (atol(val) != 0) pNormal->m_storeCacheSize = atol(val) / 1048576;
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))
