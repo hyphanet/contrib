@@ -377,45 +377,7 @@ SOURCE=.\fcpReadKeyIndex.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\fcpSetHost.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpSetHtl.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpSetRegress.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
+SOURCE=.\fcpSetParam.c
 # End Source File
 # Begin Source File
 

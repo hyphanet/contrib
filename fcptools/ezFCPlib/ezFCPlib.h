@@ -49,7 +49,13 @@
 #endif
 
 
-// For keeping track of splitfile insert threads
+////////////////////////////////////////////////
+//
+// Splitfiles handling definitions
+//
+
+// For keeping track of splitfile insert threads - used by fcpputsplit
+// will discontinue when splitfiles mgr is working
 
 typedef struct
 {
@@ -61,10 +67,29 @@ typedef struct
 fcpPutJob;
 
 
-//default split part size
+#define SPLIT_BLOCK_SIZE (512*1024)		//default split part size
 
-#define SPLIT_BLOCK_SIZE (512*1024)
+#define SPLIT_INSSTAT_WAITING	0	// waiting for mgr thread to pick up
+#define SPLIT_INSSTAT_INPROG	1	// in progress
+#define SPLIT_INSSTAT_SUCCESS	2	// full insert completed successfully
+#define SPLIT_INSSTAT_FAILED	3	// insert failed somewhere
 
+
+// Splitfile Insert Control Block
+
+typedef struct
+{
+	char	status;		// status as advised by splitmgr thread
+	int		chunkSize;	// size of splitfiles chunks
+}
+splitJobIns;
+
+
+
+
+////////////////////////////////////////////////
+//
+// General FCP definitions
 
 #define FCP_ID_REQUIRED
 
@@ -432,6 +457,8 @@ typedef struct
     char            pubkey[MAX_KEY_LEN]; // filled in after writing a key
     char            privkey[MAX_KEY_LEN]; // filled in after writing a key
     char            failReason[256];    // reason sent back with failure msg
+
+	splitJobIns		split;			// control structure for insert split job
 }
 HFCP;
 
