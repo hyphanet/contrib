@@ -11,7 +11,7 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 
 dnl Checks for libraries.
-AC_CHECK_LIB(pthread, pthread_create, X_EXTRA_LIBS="$X_EXTRA_LIBS -lpthread")
+AC_CHECK_LIB(pthread, pthread_create, LIBS="$LIBS -lpthread")
 AC_CHECK_LIB(c_r, pthread_create, LDFLAGS="$LDFLAGS -pthread -D_THREAD_SAFE")
 
 dnl Checks for header files.
