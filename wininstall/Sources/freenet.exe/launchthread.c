@@ -152,13 +152,13 @@ void MonitorThreadRunFserve()
 							SW_HIDE,
 							0,NULL,
 							NULL,NULL,NULL};
-	char szexecbuf[sizeof(szjavapath)+sizeof(szfservecliexec)+2];
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
 
-	lstrcpy(szexecbuf, szjavapath);
+	lstrcpy(szexecbuf, szjavawpath);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfservecliexec); 
 
-	if (!CreateProcess(szjavapath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartInfo, &prcInfo) )
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartInfo, &prcInfo) )
 	{
 		MessageBox(NULL, szerrMsg, szerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
 		nFreenetMode=FREENET_CANNOT_START;

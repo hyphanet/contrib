@@ -36,7 +36,7 @@ extern const char szempty[];
 extern const char szWindowClassName[];
 extern const char szAppName[];
 
-extern char szjavapath[JAVAWMAXLEN];	/* used to read Javaexec= definition out of FLaunch.ini */
+extern char szjavawpath[JAVAWMAXLEN];	/* used to read Javaexec= definition out of FLaunch.ini */
 extern char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out of FLaunch.ini */
 
 /*		flags, etc... */
