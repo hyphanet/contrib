@@ -27,7 +27,16 @@ verified, and sent to the client.
 Using Anarcast
 ------------------------------------------------------------------------------
 
-The included 'request' and 'insert' are simple clients.
+The included 'request' and 'insert' are simple clients. 'lc' and 'le' are much
+more interesting. 'le' will turn a directory structure of keyfiles (which can
+be created with 'ri', the recursive inserter) into a tar.gz file. The keyfiles
+in each directory will be moved to an invisible .candidates file. (See le
+--help for more info.)
+
+To use such an archive, first tar -zxf the tarball. Next, cd to any directory,
+and run 'lc' with no arguments. It'll print a numbered list of downloadable
+files. Finally, specify the file numbers to download as arguments to 'lc', and
+it'll request and save them. (See lc --help for more info.)
 
 Attacking Anarcast
 ------------------------------------------------------------------------------
