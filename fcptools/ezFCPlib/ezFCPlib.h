@@ -106,11 +106,7 @@
 /*
   Lengths of allocated strings/arrays.
 */
-#if 0
 #define L_BLOCK_SIZE        1024000  /* default split part size (1,000 * 1,024) */
-#endif
-
-#define L_BLOCK_SIZE        64000
 #define L_FILE_BLOCKSIZE    8192
 #define L_RESPONSE_BUFFER   2048
 

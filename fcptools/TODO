@@ -16,6 +16,21 @@ FCPtools generic
 + Confirm Solaris functionality.
 
 + Add usage instructions to README for fcpget, fcpputsite.
++ Add fcphello command to just send ClientHello to node (ft-0.2).
++ Make FEC_CHUNK_SIZE configurable; default to 1M.
++ Implement no_dbr option.
++ Implement default_doc option (defaults to index.html).
++ Implement future_insert(num_days) option.
++ Implement SkipDS logic.
++ Implement DeleteDS logic.
++ Verify other options (raw, etc.) work as expected.
+
++ Implement an insertion/retrieval scheduler layer; directly above the fcpWriteKey() and fcpPutKeyFromFile() routines.
+  Would provide the following functionality as well:
+  
+  + Retry option; attempt again (due to error or Restarted message) to insert or retrieve the named key.  After 'n' retries, return with error.
+  + Insert thread count; maximum number of non-FEC insert threads; make FEC insert thread count hardcoded to 1.
+  + FEC_insert thread count; should treat these 2 threading situations differently for some reason.
 
 
 -----------------
@@ -27,8 +42,6 @@ ezFCPlib specific
 + Check all internal APIs for consistant usage and funcionality.
 + Handle HighestSeenBuild from NodeHello message.
 + Make fcpLog() work with files as well as standard output.
-+ Implement SkipDS logic.
-+ Implement DeleteDS logic.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 = Add keygen code.
 + Implement CheckBlockOffset and DataBlockOffset in handling of fec segment headers.
@@ -47,12 +60,14 @@ fcpput
 + (Win32); returns to command prompt with (harmless) error when reading key data from stdin.
 
 
-------
-fcpget
-------
-
-
 ----------
 fcpputsite
 ----------
+
++ Re-link againt ezFCPlib and implement site-wide specific insert logic.
+
+
+------
+fcpget
+------
 
