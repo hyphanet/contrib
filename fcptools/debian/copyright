@@ -1,7 +1,8 @@
 This package was debianized by Jay Oliveri <ilnero@gmx.net> on
 Sat, 27 Apr 2002 14:05:39 -0400.
 
-Upstream Author(s): Jay Oliveri <ilnero@gmx.net>
+Upstream Author(s): David McNab <david@rebirthing.co.nz>
+                    Jay Oliveri <ilnero@gmx.net>
 
 Copyright:
 
@@ -18,4 +19,3 @@ Copyright:
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-

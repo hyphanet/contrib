@@ -48,7 +48,10 @@ build-stamp:  config.status
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp 
+	rm -f build-stamp
+
+	rm -f config.cache
+	rm -f config.status
 
 	# Add here commands to clean up after the build process.
 	-$(MAKE) distclean
@@ -56,9 +59,6 @@ clean:
 	  cp -f /usr/share/misc/config.sub config.sub
 	-test -r /usr/share/misc/config.guess && \
 	  cp -f /usr/share/misc/config.guess config.guess
-
-	rm -f config.cache
-	rm -f config.status
 
 
 	dh_clean
@@ -70,8 +70,12 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/tmp
-	$(MAKE) install prefix=$(CURDIR)/debian/tmp
+	$(MAKE) install prefix=$(CURDIR)/debian/tmp/usr
 
+	dh_undocumented fcpget.1
+	dh_undocumented fcpput.1
+	dh_undocumented fcpputsite.1
+	dh_undocumented fcpputsplit.1
 
 # Build architecture-independent files here.
 binary-indep: build install
