@@ -22,9 +22,9 @@
 **************************************************************************/
 #ifdef WINDOWS
 
-/* VERSION is defined by automake for non-Win platforms. */   
-#define VERSION "0.4.6"   
-  
+/* VERSION is defined by automake for non-Win platforms. */
+#define VERSION "0.4.6"
+
 #define write _write
 #define open _open
 #define read _read
@@ -173,9 +173,7 @@ typedef struct _splitJob {
 #define _FCP_O_RAW          0x400   /* disable automatic metadata handling */
 
 
-/*
-  defs for metadata structure
-*/
+/* METADATA related definitions */
 #define KEY_TYPE_MSK        'M'
 #define KEY_TYPE_SSK        'S'
 #define KEY_TYPE_KSK        'K'
@@ -358,17 +356,17 @@ typedef struct _04LEVEL {
   struct _04LEVEL *_next;
 } META04SPLITLEVEL;
 
+/* METADATA-parsing data structures */
 
 typedef struct {
-  char *name;              /* key name */
-  char *value;             /* value if any, or NULL */
+  char name[128];              /* key name */
+  char value[128];             /* value if any, or NULL */
 } KEYVALPAIR;
 
-
 typedef struct {
-  int numFields;           /* number of fields in this cdoc */
+  int count;             /* number of fields in this cdoc */
   int type;
-  KEYVALPAIR *key;        /* array of key/value pairs */
+  KEYVALPAIR *keys[64];    /* array of key/value pairs */
 } FLDSET;
 
 /*
@@ -376,9 +374,9 @@ typedef struct {
 */
 typedef struct {
   char vers[16];
-  int numDocs;
-  char *trailingInfo;         /* optional */
-  FLDSET **cdoc;              /* new - array of cdocs */
+
+  int count;
+  FLDSET *cdoc[64];      /* new - array of cdocs */
 } META04;
 
 /*

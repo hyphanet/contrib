@@ -9,33 +9,31 @@
 
 #include "ezFCPlib.h"
 
-
-//
-// EXPORTED DEFINITIONS
-//
-
-META04  *metaParse(char *buf);
+/*
+	EXPORTED DEFINITIONS
+*/
+int     metaParse(META04 *meta, char *buf);
 void    metafree(META04 *meta);
+
 long    cdocIntVal(META04 *meta, char *cdocName, char *keyName, long defVal);
 long    cdocHexVal(META04 *meta, char *cdocName, char *keyName, long defVal);
-char    *cdocStrVal(META04 *meta, char *cdocName, char *keyName, char *defVal);
-FLDSET  *cdocFindDoc(META04 *meta, char *cdocName);
-char    *cdocLookupKey(FLDSET *fldset, char *keyName);
+char   *cdocStrVal(META04 *meta, char *cdocName, char *keyName, char *defVal);
+
+FLDSET *cdocFindDoc(META04 *meta, char *cdocName);
+char   *cdocLookupKey(FLDSET *fldset, char *keyName);
 
 
-//
-// IMPORTED DEFINITIONS
-//
-
+/*
+	IMPORTED DEFINITIONS
+*/
 extern long xtoi(char *s);
 
 
-//
-// PRIVATE DEFINITIONS
-//
-
-static char    *getLine(char *buf, char **nextPos);
-static char    *splitLine(char *buf);
+/*
+	PRIVATE DEFINITIONS
+*/
+static int getLine(char *, char *, int);
+static int splitLine(char *, char *, char *);
 
 // parse states - internal use only
 
@@ -47,184 +45,156 @@ static char    *splitLine(char *buf);
 #define STATE_END           5       // after 'End'
 
 
-//////////////////////////////////////////////////////////////
-//
-// END OF DECLARATIONS
-//
-//////////////////////////////////////////////////////////////
+/*
+	END OF DECLARATIONS
+*/
 
+/*
+	metaParse
 
-//
-// metaParse
-//
-// converts a raw buffer of metadata into an organised
-// and accessible data structure
-//
-
-META04 *metaParse(char *buf)
+	converts a raw buffer of metadata into an organised
+	and accessible data structure
+*/
+int metaParse(META04 *meta, char *buf)
 {
-    char    *next;
+	int   start;
+	char  line[256];
+	char  key[128];
+	char  val[128];
+	
+	int   state = STATE_BEGIN;
+	int   thisdoc = 0;
+	int   thiskey = 0;
+	
+	// init metadata structure
+	meta->vers[0] = 0;
+	meta->count = 0;
+	meta->cdoc[0] = 0;
+	
+	start = getLine(line, buf, 0);
+	while (start != -1) {
 
-    char    *key;
-    char    *val;
+		_fcpLog(FCP_LOG_DEBUG, "DEBUG: line: %s", line);
 
-    META04  *meta = safeMalloc(sizeof(META04));
+		splitLine(line, key, val);
+		_fcpLog(FCP_LOG_DEBUG, "DEBUG: key: %s, val: %s", key, val);
 
-    int     state = STATE_BEGIN;
-    int     thisdoc = 0;
-    int     thiskey = 0;
+		// now process key=val pair
+		switch (state) {
+		case STATE_BEGIN:
+			if (!strcasecmp(key, "Version"))
+				state = STATE_INHDR;
+			else
+				_fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Version', got '%s'", key);
+			break;
+			
+		case STATE_INHDR:
+			if (!strcasecmp(key, "Revision")) {
+				if (val[0]) {
+					strcpy(meta->vers, val);
+					state = STATE_WAITENDHDR;
+				}
+				else
+					_fcpLog(FCP_LOG_NORMAL, "Metadata: 'Revision' nas no value");
+			}
+			else
+				_fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Revision', got '%s'", key);
+			break;
 
-    // init metadata structure
-    meta->vers[0] = '\0';
-    meta->numDocs = 0;
-    meta->trailingInfo = NULL;
-    meta->cdoc = NULL;
+		case STATE_WAITENDHDR:
+			if (!strcasecmp(key, "EndPart")) {
+				state = STATE_WAITDOC;
+				break;
+			}
+			else if (!strcasecmp(key, "End"))
+				state = STATE_END;
+			else
+				_fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'EndPart' or 'End', got '%s'", key);
+			break;
+			
+			case STATE_WAITDOC:
+				if (!strcasecmp(key, "Document")) {
 
-    // main parser loop
-    for (; (key = getLine(buf, &next)) != NULL; buf = next)
-    {
-        val = splitLine(key);
+					thisdoc = meta->count++;
+					meta->cdoc[thisdoc] = (FLDSET *) malloc(sizeof (FLDSET) );
+					meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
+					meta->cdoc[thisdoc]->count = 0;
+					meta->cdoc[thisdoc]->keys[0] = 0;
+					state = STATE_INDOC;
+				}
+				else
+					_fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Document', got '%s'", key);
+				break;
+				
+			case STATE_INDOC:
+				if (!strcasecmp(key, "EndPart"))
+					state = STATE_WAITDOC;
 
-        // debug statements
-        //if (val == NULL)
-        //    printf("Key only: '%s'\n", key);
-        //else
-        //    printf("Key = '%s', value = '%s'\n", key, val);
+				else if (!strcasecmp(key, "End"))
+					state = STATE_END;
 
-        buf = next; // point after this line for next iteration
+				else {
+					// Set type if not already set
+					if (meta->cdoc[thisdoc]->type == META_TYPE_04_NONE) {
+						if (!strcasecmp(key, "Redirect.Target"))
+							meta->cdoc[thisdoc]->type = META_TYPE_04_REDIR;
 
-        // now process key=val pair
-        switch (state)
-        {
-        case STATE_BEGIN:
-            if (!strcasecmp(key, "Version"))
-                state = STATE_INHDR;
-            else
-                _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Version', got '%s'", key);
-            break;
+						else if (!strcasecmp(key, "DateRedirect.Target"))
+							meta->cdoc[thisdoc]->type = META_TYPE_04_DBR;
 
-        case STATE_INHDR:
-            if (!strcasecmp(key, "Revision"))
-            {
-                if (val != NULL)
-                {
-                    strcpy(meta->vers, val);
-                    state = STATE_WAITENDHDR;
-                }
-                else
-                    _fcpLog(FCP_LOG_NORMAL, "Metadata: 'Revision' nas no value");
-            }
-            else
-                _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Revision', got '%s'", key);
-            break;
+						else if (!strncasecmp(key, "SplitFile", 9))
+							meta->cdoc[thisdoc]->type = META_TYPE_04_SPLIT;
+					}
 
-        case STATE_WAITENDHDR:
-            if (!strcasecmp(key, "EndPart"))
-            {
-                state = STATE_WAITDOC;
-                break;
-            }
-            else if (!strcasecmp(key, "End"))
-                state = STATE_END;
-            else
-                _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'EndPart' or 'End', got '%s'", key);
-            break;
+					// append key-value pair
+					thiskey = meta->cdoc[thisdoc]->count++;
+					meta->cdoc[thisdoc]->keys[thiskey] = (KEYVALPAIR *) malloc(sizeof (KEYVALPAIR));
 
-        case STATE_WAITDOC:
-            if (!strcasecmp(key, "Document"))
-            {
-							// create empty fieldset struct
-							thisdoc = meta->numDocs++;
-							meta->cdoc = realloc(meta->cdoc, sizeof(FLDSET *) * meta->numDocs);
-							meta->cdoc[thisdoc] = safeMalloc(sizeof(FLDSET));
-							meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
-							meta->cdoc[thisdoc]->numFields = 0;
-							meta->cdoc[thisdoc]->key = NULL;
-							state = STATE_INDOC;
-            }
-            else
-                _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Document', got '%s'", key);
-            break;
+					strcpy(meta->cdoc[thisdoc]->keys[thiskey]->name, key);
+					if (val)
+						strcpy(meta->cdoc[thisdoc]->keys[thiskey]->value, val);
+					else
+						meta->cdoc[thisdoc]->keys[thiskey]->value[0] = 0;
 
-        case STATE_INDOC:
-            if (!strcasecmp(key, "EndPart"))
-                state = STATE_WAITDOC;
-            else if (!strcasecmp(key, "End"))
-                state = STATE_END;
-            else
-            {
-                // Set type if not already set
-                if (meta->cdoc[thisdoc]->type == META_TYPE_04_NONE)
-                {
-                    if (!strcmp(key, "Redirect.Target"))
-                        meta->cdoc[thisdoc]->type = META_TYPE_04_REDIR;
-                    else if (!strcmp(key, "DateRedirect.Target"))
-                        meta->cdoc[thisdoc]->type = META_TYPE_04_DBR;
-                    else if (!strncmp(key, "SplitFile", 9))
-                        meta->cdoc[thisdoc]->type = META_TYPE_04_SPLIT;
-                }
+				}
+				break;
+		}
+		start = getLine(line, buf, start);
 
-                // append key-value pair
-                thiskey = meta->cdoc[thisdoc]->numFields++;
-                meta->cdoc[thisdoc]->key =
-									realloc(meta->cdoc[thisdoc]->key,
-									sizeof(KEYVALPAIR) * meta->cdoc[thisdoc]->numFields);
+	} // 'for (each line of metadata)'
 
-                meta->cdoc[thisdoc]->key[thiskey].name = strdup(key);
-                meta->cdoc[thisdoc]->key[thiskey].value = val ? strdup(val) : NULL;
-            }
-            break;
-        }
-    }       // 'for (each line of metadata)'
-
-    // grab trailing info, if any
-    if (buf != NULL && *buf != '\0')
-        meta->trailingInfo = strdup(buf);
-
-    // all done
-    return meta;
-
-}           // 'metaParse()'
+	// all done
+	return 0;
+	
+} // 'metaParse()'
 
 
-//
-// metaFree()
-//
-// a destructor routine for a META04 structure
-//
+/*
+	metaFree()
 
+	a destructor routine for a META04 structure
+*/
 void metaFree(META04 *meta)
 {
-    int i, j;
+	int i, j;
+	
+	if (!meta) return;
+	
+	// free each cdoc
+	for (i = 0; i < meta->count; i++) {
+	
+		// free all field-value pairs within current cdoc
+		for (j = 0; j < meta->cdoc[i]->count; j++)
+			free(meta->cdoc[i]->keys[j]);
+		
+		// now ditch this cdoc
+		free(meta->cdoc[i]);
+	}
+	
+	// now ditch whole structure
+	free(meta);
 
-    // ignore NULL ptr
-    if (meta == NULL)
-        return;
-
-    // turf trailing info if any
-    if (meta->trailingInfo != NULL)
-        free(meta->trailingInfo);
-
-    // free each cdoc
-    for (i = 0; i < meta->numDocs; i++)
-    {
-        // free all field-value pairs within current cdoc
-        for (j = 0; j < meta->cdoc[i]->numFields; j++)
-        {
-            if (meta->cdoc[i]->key[j].name != NULL)
-                free(meta->cdoc[i]->key[j].name);
-            if (meta->cdoc[i]->key[j].value != NULL)
-                free(meta->cdoc[i]->key[j].value);
-        }
-
-        // now ditch this cdoc
-        free(meta->cdoc[i]);
-    }
-
-    // now ditch whole structure
-    free(meta);
-    // phew! :)
-}               // 'metaFree()'
+} // 'metaFree()'
 
 
 //
@@ -298,7 +268,7 @@ FLDSET *cdocFindDoc(META04 *meta, char *cdocName)
     if (cdocName == NULL || cdocName[0] == '\0')
     {
         // search for first unnamed cdoc
-        for (i = 0; i < meta->numDocs; i++)
+        for (i = 0; i < meta->count; i++)
             if (cdocLookupKey(meta->cdoc[i], "Name") == NULL)
                 // no name in this cdoc
                 return meta->cdoc[i];
@@ -308,8 +278,8 @@ FLDSET *cdocFindDoc(META04 *meta, char *cdocName)
     else
     {
         // search for named cdoc
-        for (i = 0; i < meta->numDocs; i++)
-            if ((s = cdocLookupKey(meta->cdoc[i], "Name")) != NULL
+        for (i = 0; i < meta->count; i++)
+            if ((s = cdocLookupKey(meta->cdoc[i], cdocName)) != NULL
                 && !strcasecmp(s, cdocName)
             )
                 return meta->cdoc[i];
@@ -336,123 +306,74 @@ char *cdocLookupKey(FLDSET *fldset, char *keyName)
     if (keyName == NULL || keyName[0] == '\0')
         return NULL;
 
-    for (i = 0; i < fldset->numFields; i++)
-        if (!strcasecmp(fldset->key[i].name, keyName))
+    for (i = 0; i < fldset->count; i++)
+        if (!strcasecmp(fldset->keys[i]->name, keyName))
             // found it
-            return fldset->key[i].value;
+            return fldset->keys[i]->value;
 
     // no key of that name sorry
     return NULL;
 
-}               // 'cdocLookupKey()'
+} // 'cdocLookupKey()'
 
+/*
+	Private functions
+*/
 
-//
-// Private functions
-//
+/*
+	Split a line of the form 'key [= value] into the key/value pair
+	return 0 on success.
+*/
 
-
-// split a line of the form 'key [= value] into the key/value pair
-
-static char *splitLine(char *buf)
+int splitLine(char *line, char *key, char *val)
 {
-    char *eq = strchr(buf, '=');
-    char *s, *s1;
+	if (strchr(line, '=')) {
+		while (*line != '=') *key++ = *line++;
+		
+		// add the trailing NULL
+		*key = 0;
+		line++;
 
-    if (eq == NULL)
-        return NULL;
+		// now copy the key's value
+		while (*val++ = *line++);
+		return 0;
+	}
 
-    *eq = '\0';
+	// here, the line is a key, no value
+	while (*key++ = *line++);
+	val[0] = 0;
 
-    // delete whitespace after key
-    for (s = eq - 1; strchr(" \t", *s) != NULL; s--)
-        *s = '\0';
-
-    // delete whitespace before value
-    for (s = eq + 1; strchr(" \t", *s) != NULL; s++)
-        ;
-
-    // bail if nothing left in value
-    if (*s == '\0')
-        return NULL;
-
-    // delete whitespace after value
-    for (s1 = s + strlen(s) - 1; strchr(" \t", *s1) != NULL; s1--)
-        *s1 = '\0';
-
-    return (strlen(s1) > 0) ? s : NULL;
+	return 0;
 }
 
-
-//
-// This routine is used to break up a buffer into a stream of lines,
-// deleting leading and trailing whitespace,
-// ignoring empty lines,
-// ignoring comment lines (first non-white is '#' or ';'
-//
-
-char *getLine(char *buf, char **nextPos)
+/*
+	This function should return a 'line', terminated by NULL only
+	(no carriage-return/linefeed nonsense)
+*/
+int getLine(char *line, char *buf, int start)
 {
-    char *whites = " \t\r\n";
-    char *eol;
+	int  eol;
 
-    // bail if done
-    if (buf == NULL)
-        return NULL;
+	line[0] = 0;
+	while (buf[start]) {
 
-    // skip leading whitespace and comment lines
-    for (;*buf != '\0'; buf++)
-    {
-        // skip whitespace
-        if (strchr(whites, *buf) != NULL)
-            continue;
+		// find end of line
+		eol = start;
+		while ((buf[eol] != '\n') && (buf[eol] != 0)) eol++;
 
-        // skip comment lines
-        if (strchr("#;", *buf) != NULL)
-        {
-            while (*buf != '\0' && strchr("\r\n", *buf) == NULL)
-                buf++;
-            while (*buf != '\0' && strchr("\r\n", *buf) != NULL)
-                buf++;
-            if (*buf == '\0')
-                return NULL;
-            else
-            {
-                buf--;
-                continue;
-            }
-        }
+		// are we at \n, or NULL?
+		if (buf[eol] == '\n') {
+			strncpy(line, buf+start, eol-start);
+			line[eol-start] = 0;
+			
+			return eol+1;
+		}
+		else {
+			strcpy(line, buf+start);
 
-        // find end of line
-        if ((eol = strpbrk(buf, "\r\n")) == NULL)
-        {
-            // no end of line - return what we have
-            *nextPos = NULL;
-            eol = buf + strlen(buf) - 1;
-            while (strchr(whites, *eol) != NULL)
-                *eol-- = '\0';
-            return buf;
-        }
+			return -1;
+		}
+	}
 
-        // terminate line
-        *eol++ = '\0';
-
-        // skip past any additional line terminator(s)
-        while (*eol != '\0' && strchr("\r\n", *eol) != NULL)
-            eol++;
-
-        // anything left after line terminator?
-        if (*eol == '\0')
-            *nextPos = NULL;
-        else
-            *nextPos = eol;
-
-        eol = buf + strlen(buf) - 1;
-        while (strchr(whites, *eol) != NULL)
-            *eol-- = '\0';
-        return buf;
-    }
-
-    return NULL;
-}               // 'getLine()'
-
+	return -1;
+} // 'getLine()'

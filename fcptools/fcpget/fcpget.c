@@ -47,12 +47,6 @@ int main(int argc, char* argv[])
     int numtimes = 1;
     int i;
 
-/**
-    blk = safeMalloc(100);
-    blk = realloc(blk, 120);
-    free(blk);
-**/
-
     // go thru command line args
     parse_args(argc, argv);
 
@@ -80,38 +74,6 @@ int main(int argc, char* argv[])
         {
             _fcpLog(FCP_LOG_CRITICAL, "Failed to open '%s'", keyUri);
             return -1;
-        }
-    
-        // snarf key's metadata
-        if (metaFile[0])
-        {
-            printf("---METADATA DUMP NOT IMPLEMENTED YET---\n");
-            if (!strcmp(metaFile, "stdout"))
-            {
-                // dump metadata to stdout
-                //printf("---START-OF_METADATA---\n%s", hfcp->meta->raw);
-                //puts("---END-OF-METADATA-----");
-            }
-            else
-            {
-                // nuke metadata file if it exists
-                //unlink(metaFile);
-    
-#ifdef WINDOWS
-                // open a file to write the key to
-                //if ((fd = _open(metaFile, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0)
-#else
-                //if ((fd = open(metaFile, O_CREAT | O_WRONLY, S_IREAD | S_IWRITE)) < 0)
-#endif
-                //{
-                //    printf("Cannot create file '%s'\n", metaFile);
-                //    return -1;
-                //}
-    
-                //write(fd, hfcp->meta->raw, hfcp->meta->len);
-                //close(fd);
-            }
-    
         }
     
         // output key data, if any

@@ -17,8 +17,8 @@
 // IMPORTED DECLARATIONS
 //
 
-extern META04   *metaParse(char *buf);
-extern void     metaFree(META04 *meta);
+extern int     *metaParse(META04 *, char *);
+extern void     metaFree(META04 *);
 
 extern time_t   _mkgmtime(struct tm *p_tm); // thank God for this gem of a function!
 extern long     xtoi(char *s);
@@ -93,6 +93,7 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 {
   char     buf[1024];
   int      n;
+	int      j;
   int      len;
   FCP_URI *uri;
   FCP_URI *uriTgt;
@@ -183,10 +184,22 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 			_fcpLog(FCP_LOG_DEBUG, "Metadata:\n--------\n%s\n--------", ptr);
 				
 			fflush(stdout);
-			meta = metaParse(ptr);
+
+			meta = safeMalloc(sizeof(META04));
+			metaParse(meta, ptr);
 			free(ptr);
 		}
-			
+
+		/* Dump the metadata information from META04 (debug) */
+		/*
+		for (n=0; n < meta->count; n++) {
+			for (j=0; j < meta->cdoc[n]->count; j++) {
+				printf("keyname: %s, ", meta->cdoc[n]->keys[j]->name);
+				printf("valname: %s\n", meta->cdoc[n]->keys[j]->value);
+			}
+		}
+		*/
+
 		timeNow = (long)time(NULL);
 
 		/* Parse metadata into the field set struct */
@@ -204,13 +217,12 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 		if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
 				strcpy(hfcp->mimeType, s);
 
-		/* Now handle the 4 cdoc meta types */
 		switch (fldSet->type)	{
 		case META_TYPE_04_NONE:
 			// success
 			redirecting = 0;
 			break;
-			
+
 		case META_TYPE_04_REDIR:
 			s = cdocLookupKey(fldSet, "Redirect.Target");
 			sprintf(buf, s);
