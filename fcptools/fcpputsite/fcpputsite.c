@@ -5,6 +5,8 @@
 	CopyLeft () 2001 by David McNab
 */
 
+#include <unistd.h>
+
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
 
@@ -128,7 +130,7 @@ static void parse_args(int argc, char *argv[])
 	/* c is the option code; i is buffer storage for an int */
 	int c, i;
 
-	while ((c = getopt(argc, argv, short_options)) != EOF)
+	while ((c = getopt(argc, argv, short_options)) != -1)
 	{
 		switch (c)
 		{

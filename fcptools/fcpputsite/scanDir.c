@@ -5,6 +5,8 @@
   CopyLeft (c) 2001 by David McNab
 */
 
+#include <sys/stat.h>
+
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
 
@@ -12,32 +14,30 @@
 #include <dirent.h>
 #endif
 
-//
-// IMPORTED DECLARATIONS
-//
+/*
+	IMPORTED DECLARATIONS
+/*
 
 extern int fcpLogCallback(int level, char *buf);
 
-//
-// EXPORTED DECLARATIONS
-//
+/*
+  EXPORTED DECLARATIONS
+*/
 
 SiteFile *scan_dir(char *dirname, int *pNumFiles);
 
-
-//
-// PRIVATE DECLARATIONS
-//
+/*
+	PRIVATE DECLARATIONS
+*/
 
 static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist);
 
 static int      numFiles;
 static int      dirPrefixLen;
 
-// END DECLARATIONS
-//
-////////////////////////////////////////////////////////////////////
-
+/*
+	END DECLARATIONS
+*/
 
 SiteFile *scan_dir(char *dirname, int *pNumFiles)
 {
@@ -52,31 +52,30 @@ SiteFile *scan_dir(char *dirname, int *pNumFiles)
     numFiles = *pNumFiles = 0;
     filelist = scan_dir_recurse(dirname, NULL);
 
-    // were there any files in that dir?
-    if (filelist != NULL)
-    {
-        // yes - convert the linked list into an array, and derive relative pathnames
-        fileArray = safeMalloc(sizeof(SiteFile) * numFiles);
-        for (i = 0; i < numFiles; i++)
-        {
-            SiteFile *temp = filelist;
-            memcpy(&fileArray[i], temp, sizeof(SiteFile));
-            strcpy(fileArray[i].relpath, fileArray[i].filename + dirPrefixLen + 1);
+    /* were there any files in that dir? */
+    if (filelist != NULL) {
 
-            // convert evil DOS backslashes into nice unix forward slashes
+			/* yes - convert the linked list into an array, and derive relative pathnames */
+			fileArray = safeMalloc(sizeof(SiteFile) * numFiles);
+			for (i = 0; i < numFiles; i++) {
+				SiteFile *temp = filelist;
+				memcpy(&fileArray[i], temp, sizeof(SiteFile));
+				strcpy(fileArray[i].relpath, fileArray[i].filename + dirPrefixLen + 1);
+				
+				/* convert evil DOS backslashes into nice unix forward slashes */
 #ifdef WINDOWS
-            for (s = fileArray[i].relpath; *s != '\0'; s++)
-                if (*s == '\\')
-                    *s = '/';
+				for (s = fileArray[i].relpath; *s != '\0'; s++)
+					if (*s == '\\')
+						*s = '/';
 #endif
-            filelist = filelist->next;
-            free(temp);
-        }
-        *pNumFiles = numFiles;
-        return fileArray;
+				filelist = filelist->next;
+				free(temp);
+			}
+			*pNumFiles = numFiles;
+			return fileArray;
     }
     else
-        return NULL;
+			return NULL;
 }
 
 
@@ -103,9 +102,7 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
     strcat(subpath, "*.*");
 #endif
 
-    //
-    // Open the directory
-    //
+    /* Open the directory */
 #ifdef WINDOWS
     if ((dirhandle = FindFirstFile(subpath, &finddata)) == NULL)
 #else
@@ -113,18 +110,15 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
 #endif
         return NULL;
 
-    //
-    // loop to read all the directory entries
-    //
+    /* loop to read all the directory entries */
 #ifdef WINDOWS
     while(FindNextFile(dirhandle, &finddata) != 0)
 #else
     while ((dirEntry = readdir(pDir)) != NULL)
 #endif
     {
-        //
-        // Skip parent
-        //
+
+			/* Skip parent */
 #ifdef WINDOWS
         if (!strcmp(finddata.cFileName, ".."))
             continue;
@@ -133,9 +127,7 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
             continue;
 #endif
 
-        //
-        // Get attributes
-        //
+        /* Get attributes */
         strcpy(subpath, dirname);
         strcat(subpath, "/");
 #ifdef WINDOWS
@@ -146,13 +138,13 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
         stat(subpath, &fileStat);
         if (fileStat.st_mode & S_IFDIR)
         {
-            // directory - recurse into it
+					/* directory - recurse into it */
             filelist_temp = scan_dir_recurse(subpath, filelist);
             filelist = filelist_temp;
         }
         else
         {
-            // normal file - append to list
+					/* normal file - append to list */
             filelist_temp = (SiteFile *)safeMalloc(sizeof(SiteFile));
             strcpy(filelist_temp->filename, subpath);
             filelist_temp->next = filelist;
@@ -162,12 +154,12 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
             filelist_temp->insertStatus = INSERT_FILE_WAITING;
             filelist = filelist_temp;
 
-            // update files count
+            /* update files count */
             numFiles++;
         }
     }
 
-    // Finished - close directory
+    /* Finished - close directory */
 #ifdef WINDOWS
     FindClose(dirhandle);
 #else
@@ -175,4 +167,4 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
 #endif
 
     return filelist;
-}               // 'scan_dir_recurse()'
+} /* 'scan_dir_recurse()' */

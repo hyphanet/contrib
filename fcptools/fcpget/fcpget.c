@@ -10,6 +10,8 @@
 #define _GNU_SOURCE
 #include "getopt.h"
 
+#include <fcntl.h>
+
 int fcpLogCallback(int level, char *buf);
 
 
@@ -46,10 +48,10 @@ int main(int argc, char* argv[])
     int numtimes = 3;
     int i;
 
-    // go thru command line args
+    /* go thru command line args */
     parse_args(argc, argv);
 
-    // try and fire up FCP library
+    /* try and fire up FCP library */
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
 
     if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, 0) != 0)
@@ -60,43 +62,42 @@ int main(int argc, char* argv[])
 
     _fcpLog(FCP_LOG_VERBOSE, "Successfully connected to node");
 
-        // create an FCP handle
-        hfcp=fcpCreateHandle();
-        fcpSetHtl(hfcp, htlVal);
+		/* create an FCP handle */
+		hfcp=fcpCreateHandle();
+		fcpSetHtl(hfcp, htlVal);
     
-		// repeat many times - hunting mem leaks
-    for (i = 0; i < numtimes; i++)
-    {
-		int res;
-        // try to get the key open
-        _fcpLog(FCP_LOG_VERBOSE, "Trying to open '%s'", keyUri);
-		res=fcpOpenKey(hfcp, keyUri, 
-				(_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0)));
-        if (res != 0)
-            _fcpLog(FCP_LOG_CRITICAL, "Failed to open '%s', retry %d", 
-					keyUri, i);
-		else
-			break;
-	}
-	if (i<numtimes) {
+		/* repeat many times - hunting mem leaks */
+    for (i = 0; i < numtimes; i++) {
+			int res;
+			/* try to get the key open */
+			_fcpLog(FCP_LOG_VERBOSE, "Trying to open '%s'", keyUri);
+			res=fcpOpenKey(hfcp, keyUri, 
+										 (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0)));
+			if (res != 0)
+				_fcpLog(FCP_LOG_CRITICAL, "Failed to open '%s', retry %d", 
+								keyUri, i);
+			else
+				break;
+		}
+		if (i<numtimes) {
     
-        // output key data, if any
+			/* output key data, if any */
         if (hfcp->keysize > 0)
         {
-            // nuke file if it exists
+					/* nuke file if it exists */
             if (keyFile[0])
             {
                 unlink(keyFile);
 #ifdef WINDOWS
-                // open a file to write the key to
+                /* open a file to write the key to */
                 if ((fd = open(keyFile, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0)
                 {
                     printf("Cannot create file '%s'\n", keyFile);
                     return -1;
                 }
 #else
-                // open a file to write the key to
-                if ((fd = open(keyFile, O_CREAT| O_WRONLY, S_IREAD | S_IWRITE)) < 0)
+                /* open a file to write the key to */
+                if ((fd = open(keyFile, O_CREAT| O_WRONLY, S_IRUSR | S_IWUSR)) < 0)
                 {
                     printf("Cannot create file '%s'\n", keyFile);
                     return -1;
@@ -106,7 +107,7 @@ int main(int argc, char* argv[])
             else
                 fd = 1;
     
-            // suck all of key's data into this file
+            /* suck all of key's data into this file */
             while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
                 write(fd, buf, count);
 
@@ -122,17 +123,17 @@ int main(int argc, char* argv[])
 				if ((metaFile[0]== '-') && (metaFile[1]=='\0'))
 					fd=1;
 				else {
-					// nuke file if it exists
+					/* nuke file if it exists */
 	                unlink(metaFile);
 #ifdef WINDOWS
-		            // open a file to write the key to
+									/* open a file to write the key to */
 			        if ((fd = open(metaFile, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0)
 				    {
 					    printf("Cannot create file '%s'\n", metaFile);
 					    return -1;
 					}
 #else
-		            // open a file to write the key to
+							/* open a file to write the key to */
 					if ((fd = open(metaFile, O_CREAT| O_WRONLY, S_IREAD | S_IWRITE)) < 0)
 					{
 							printf("Cannot create file '%s'\n", metaFile);
@@ -140,7 +141,7 @@ int main(int argc, char* argv[])
 					}
 				}
 #endif
-				// suck all of key's data into this file
+				/* suck all of key's data into this file */
 				write(fd, hfcp->rawMetadata, strlen(hfcp->rawMetadata));
 
 				if(fd != 1)
@@ -151,7 +152,7 @@ int main(int argc, char* argv[])
     
         }
     
-        // all done
+        /* all done */
         fcpCloseKey(hfcp);
         fcpDestroyHandle(hfcp);
 
@@ -168,15 +169,15 @@ int main(int argc, char* argv[])
 static void parse_args(int argc, char *argv[])
 {
   static struct option long_options[] = {
-    {"address", 1, NULL, 'n'},
-    {"port", 1, NULL, 'p'},
-    {"htl", 1, NULL, 'l'},
-    {"regress", 1, NULL, 'e'},
-    {"raw", 0, NULL, 'r'},
-    {"metadata", 1, NULL, 'm'},
-    {"verbosity", 1, NULL, 'v'},
-    {"version", 0, NULL, 'V'},
-    {"help", 0, NULL, 'h'},
+    {"address", 1, 0, 'n'},
+    {"port", 1, 0, 'p'},
+    {"htl", 1, 0, 'l'},
+    {"regress", 1, 0, 'e'},
+    {"raw", 0, 0, 'r'},
+    {"metadata", 1, 0, 'm'},
+    {"verbosity", 1, 0, 'v'},
+    {"version", 0, 0, 'V'},
+    {"help", 0, 0, 'h'},
     {0, 0, 0, 0}
   };
   static char short_options[] = "n:p:l:e:rm:v:Vh";
@@ -184,7 +185,7 @@ static void parse_args(int argc, char *argv[])
   /* c is the option code; i is buffer storage for an int */
   int c, i;
 
-  while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
+  while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != -1) {
     switch (c) {
 
     case 'n':
@@ -224,7 +225,7 @@ static void parse_args(int argc, char *argv[])
       exit(0);
       
     case 'h':
-      usage(NULL);
+      usage(0);
       break;
     }
   }

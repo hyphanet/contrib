@@ -18,7 +18,6 @@
   GENERIC
 **************************************************************************/
 /* Place <sys/> includes here so they are first. */
-#include <sys/stat.h>
 
 /**************************************************************************
   MS-WINDOWS specifics
@@ -61,8 +60,10 @@
 #define OPEN_MODE_READ  0
 #define OPEN_MODE_WRITE 0
 
-#define S_IREAD __S_IREAD
-#define S_IWRITE __S_IWRITE
+/*
+#define S_IREAD _S_IREAD
+#define S_IWRITE _S_IWRITE
+*/
 
 /* Keep 'sys' files first in include order */
 
@@ -110,14 +111,12 @@
   For keeping track of splitfile insert threads - used by fcpputsplit
   will discontinue when splitfiles mgr is working
 */
-/*
 typedef struct {
   char *buffer;
   char *threadSlot;
   int blocksize;
   char **key;
 } fcpPutJob;
-*/
 
 
 #define SPLIT_BLOCK_SIZE       262144    /* default split part size (256*1024) */

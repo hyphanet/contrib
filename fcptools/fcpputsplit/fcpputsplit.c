@@ -4,9 +4,14 @@
 	CopyLeft () 2001 by David McNab
 */
 
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "ezFCPlib.h"
 #include "compat.h"
+
+#include <unistd.h>
+#include <stdio.h>
 
 #define MAXRETRIES 10
 #define KEYSIZE  1024
@@ -15,8 +20,8 @@ char *GetMimeType(char *pathname);
 
 static void parse_args(int argc, char *argv[]);
 static void *usage(char *msg);
-//static char *strsav(char *old, char *text_to_append); what's this?
 
+/*static char *strsav(char *old, char *text_to_append); what's this? */
 
 static int putsplitfile( HFCP *hfcp, int workingThreads,  int file);
 static void splitblockThread(void *arg);
@@ -49,50 +54,50 @@ int main(int argc, char* argv[])
     char s[4096];
     struct stat st;
 
-    // go thru command line args
+    /* go thru command line args */
     parse_args(argc, argv);
 
-    // can we open the file?
+    /* can we open the file? */
 #ifdef WINDOWS
     if ((fd = _open(keyFile, _O_BINARY)) < 0)
 #else
     if ((fd = open(keyFile, 0)) < 0)
 #endif
 	{
-	    // failure - cannot open
+	    /* failure - cannot open */
 	    printf("cannot open file!\n");
 	    return -1;
 	}
 
-    // how big's this file?
-    //filesize = _filelength(fd);
+    /* how big's this file? */
+    /* filesize = _filelength(fd); */
     stat(keyFile, &st);
     fileSize = st.st_size;
 
-    // calculates the number of blocks
+    /* calculates the number of blocks */
     blockCount= fileSize/partsize;
     if( fileSize % partsize) { blockCount++; }
 
     printf("Filesize= %d\n", fileSize);
     printf("Splitting into %d parts\n", blockCount);
 
-    // try and fire up FCP library
+    /* try and fire up FCP library */
     if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, maxthreads) != 0)
         return 1;
 
-    // create an FCP handle
+    /* create an FCP handle
     hfcp = fcpCreateHandle();
     fcpSetHtl(hfcp, htlVal);
 
-    // now the big loop !
+    /* now the big loop ! */
     insertError = putsplitfile( hfcp, maxthreads, fd);
 
-    // clean up
+    /* clean up */
     if (fd != 0)
         close(fd);
 
 
-    if( !insertError) { // no error? insert the metadata
+    if( !insertError) { /* no error? insert the metadata */
         metaData= safeMalloc( 100+KEYSIZE*blockCount);
         strcpy( metaData, "Version\nRevision=1\nEndPart\nDocument\n");
         sprintf( s, "SplitFile.Size=%x\n", fileSize);
@@ -125,8 +130,8 @@ int main(int argc, char* argv[])
             } else {
                 printf("Error : could not insert metadata\n");
             }
-        } else {  // inserting CHK step
-            // too big for an ssk, insert map as a chk and redirect to that
+        } else {  /* inserting CHK step */
+            /* too big for an ssk, insert map as a chk and redirect to that */
 
             fcpDestroyHandle(hfcp);
             hfcp = fcpCreateHandle();
@@ -142,7 +147,7 @@ int main(int argc, char* argv[])
                 return -1;
             }
 
-            // inserted ok as CHK - now build a redirect to that CHK
+            /* inserted ok as CHK - now build a redirect to that CHK */
             free(metaData);
             metaData= safeMalloc( 8096);
             sprintf( metaData, "Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",hfcp->created_uri);
@@ -152,7 +157,7 @@ int main(int argc, char* argv[])
             hfcp = fcpCreateHandle();
             fcpSetHtl(hfcp, htlVal);
 
-            // now insert at DBR target a redirect to mapfile CHK
+            /* now insert at DBR target a redirect to mapfile CHK */
             i=0;
             while ((insertError=fcpPutKeyFromMem(hfcp, keyUri, NULL, metaData, 0)) != 0 && i<MAXRETRIES)
             {
@@ -169,10 +174,10 @@ int main(int argc, char* argv[])
         }
         free( metaData);
 
-    } else {
+		} else {
         printf("Error during insert... not inserting metadata\n");
     }
-    // all done
+    /* all done */
     fcpDestroyHandle(hfcp);
     return insertError;
 }
@@ -230,11 +235,11 @@ static void parse_args(int argc, char *argv[])
             silentMode = 1;
         else
         {
-            // have we run out of args?
+            /* have we run out of args? */
             if (i == argc)
                 usage("missing key argument");
 
-            // cool - get URI and possibly file as well
+            /* cool - get URI and possibly file as well */
             keyUri = argv[i++];
             keyFile = (i < argc) ? argv[i] : NULL;
         }
@@ -255,7 +260,7 @@ static void *usage(char *s)
     printf("             default is 2\n");
     printf("-t nb:       number of blocks to insert at the same time, default is 8\n");
     printf("-s partsize: size of each chunk, in KB\n");
-    printf("key          a Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
+    printf("key          a Freenet key URI [freenet:]XXX@blah[/blah][/*[path]]\n");
     printf("file         a file to take key data from - uses stdin if no filename\n");
     exit(-1);
 }
@@ -277,7 +282,7 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
 
     threadStatus= safeMalloc( sizeof(int)*(blockCount+2));
     for (i = 0; i <= blockCount+1; i++)
-        threadStatus[i] = 0; // 0 idle   1 working     2 done -1 error
+        threadStatus[i] = 0; /* 0 idle   1 working     2 done -1 error */
 
     buffers=safeMalloc( sizeof(char*)*(blockCount+2));
     for (i = 0; i <= blockCount+1; i++)
@@ -307,14 +312,14 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
             }
             printf("Size of block %d : %d\n", lastrequestedblock+1, blockSizes[lastrequestedblock]);
 
-            // going to the start of this chunk
+            /* going to the start of this chunk */
             lseek( file, partsize*(lastrequestedblock), 0);
 
-            // reading it to memory
+            /* reading it to memory */
             buffers[lastrequestedblock]= safeMalloc( blockSizes[lastrequestedblock]);
             size= read( file, buffers[lastrequestedblock], blockSizes[lastrequestedblock]);
 
-            // forking
+            /* forking */
             threadStatus[lastrequestedblock]=1;
             pfcpPutJob = safeMalloc(sizeof(fcpPutJob));
             pfcpPutJob->buffer = buffers[lastrequestedblock];
@@ -328,14 +333,14 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
         }
 
 
-        // counting number of threads and looking if one of them failed
-        requestingthreads=0;
+        /* counting number of threads and looking if one of them failed
+        requestingthreads=0; */
         for( i=0; i<blockCount; i++)
         {
             if( threadStatus[i]==-1)
             {
                 printf("block %d failed... exiting...\n", i);
-                for(i=0; i<blockCount+1; i++)  // killing other threads
+                for(i=0; i<blockCount+1; i++)  /* killing other threads */
                 {
                     threadStatus[i]=-2;
                 }
@@ -351,7 +356,7 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
         crSleep( 50, 0 );
 
 
-        /// freeing finished blocks
+        /* freeing finished blocks */
         i=lastsentblock+1;
         while( threadStatus[i]==2)
         {
@@ -405,7 +410,7 @@ void splitblockThread( void *job)
         error=fcpPutKeyFromMem(hfcpLocal, "CHK@", params->buffer, NULL, params->blocksize);
         printf("key: %s\n", hfcpLocal->created_uri);
 
-        if( *(params->threadSlot) == -2) { // one block failed
+        if( *(params->threadSlot) == -2) { /* one block failed */
             if( !error) {free( params->buffer);}
             fcpDestroyHandle(hfcpLocal);
             return;

@@ -3,11 +3,17 @@
 	CopyLeft () 2001 by David McNab
 */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "ezFCPlib.h"
 
 #define _GNU_SOURCE
 #include "getopt.h"
- 
+
+#include <unistd.h>
+#include <stdio.h>
+
 #define FCPPUT_ATTEMPTS 3
 
 extern int fcpSplitChunkSize;
@@ -42,7 +48,7 @@ int   verbosity = FCP_LOG_NORMAL;
 int main(int argc, char* argv[])
 {
     HFCP *hfcp;
-    char *keyData = NULL;
+    char *keyData = 0;
     char keyBuf[4096];
     int curlen, newlen;
     int insertError;
@@ -69,7 +75,7 @@ int main(int argc, char* argv[])
             : fopen(metaFile, "r");
         char metaLine[256];
 
-        if (fp_meta == NULL)
+        if (fp_meta == 0)
         {
             printf("fcpput: failed to open metadata file '%s'\n", metaFile);
             exit(1);
@@ -78,11 +84,11 @@ int main(int argc, char* argv[])
         if (meta_stdin)
         {
             // read metadata from stdin)
-            metaData = strsav(NULL, "");
+            metaData = strsav(0, "");
 
             if (!quiet)
                 printf("Enter metadata line by line, enter a line '.' to finish:\n");
-            while (fgets(metaLine, sizeof(metaLine), fp_meta) != NULL)
+            while (fgets(metaLine, sizeof(metaLine), fp_meta) != 0)
                 if (metaLine[0] == '.')
                     break;
                 else
@@ -93,7 +99,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            while (fgets(metaLine, sizeof(metaLine), fp_meta) != NULL)
+            while (fgets(metaLine, sizeof(metaLine), fp_meta) != 0)
             {
                 metaData = strsav(metaData, metaLine);
                 //metaData = strsav(metaData, "\n");
@@ -102,9 +108,9 @@ int main(int argc, char* argv[])
     }
 
     // read key data from stdin if required
-    if (keyFile == NULL)
+    if (keyFile == 0)
     {
-        keyData = NULL;
+        keyData = 0;
         fd = 0;
 
         // read key from stdin
@@ -171,7 +177,7 @@ int main(int argc, char* argv[])
 
 			// insert the redirect
 			i = 0;
-			while ((insertError = fcpPutKeyFromMem(hfcp, keyUri, NULL, metaRedir, 0)) != 0 && i++ < attempts)
+			while ((insertError = fcpPutKeyFromMem(hfcp, keyUri, 0, metaRedir, 0)) != 0 && i++ < attempts)
 			{
 				printf("Redirect insert attempt %d/%d failed\n", i, attempts);
 				return -1;
@@ -182,7 +188,7 @@ int main(int argc, char* argv[])
     }
 
     // clean up
-    if (metaData != NULL)
+    if (metaData != 0)
         free(metaData);
     if (fd != 0)
         close(fd);
@@ -212,18 +218,18 @@ int fcpLogCallback(int level, char *buf)
 static void parse_args(int argc, char *argv[])
 {
   static struct option long_options[] = {
-    {"address", 1, NULL, 'n'},
-    {"port", 1, NULL, 'p'},
-    {"htl", 1, NULL, 'l'},
-    {"raw", 0, NULL, 'r'},
-    {"metadata", 1, NULL, 'm'},
-		{"size", 1, NULL, 's'},
-		{"quiet", 0, NULL, 'q'},
-		{"attempts", 1, NULL, 'a'},
-		{"threads", 1, NULL, 't'},
-    {"verbosity", 1, NULL, 'v'},
-    {"version", 0, NULL, 'V'},
-    {"help", 0, NULL, 'h'},
+    {"address", 1, 0, 'n'},
+    {"port", 1, 0, 'p'},
+    {"htl", 1, 0, 'l'},
+    {"raw", 0, 0, 'r'},
+    {"metadata", 1, 0, 'm'},
+		{"size", 1, 0, 's'},
+		{"quiet", 0, 0, 'q'},
+		{"attempts", 1, 0, 'a'},
+		{"threads", 1, 0, 't'},
+    {"verbosity", 1, 0, 'v'},
+    {"version", 0, 0, 'V'},
+    {"help", 0, 0, 'h'},
     {0, 0, 0, 0}
   };
   static char short_options[] = "l:n:p:e:m:s:qa:t:rv:Vh";
@@ -285,7 +291,7 @@ static void parse_args(int argc, char *argv[])
       exit(0);
 
     case 'h':
-      usage(NULL);
+      usage(0);
       break;
 		}
 	}
@@ -341,7 +347,7 @@ static char *strsav(char *old, char *text_to_append)
     int old_len, new_len;
     char *p;
 
-    if(( text_to_append == NULL) || (*text_to_append == '\0')) {
+    if(( text_to_append == 0) || (*text_to_append == '\0')) {
         return(old);
     }
 
@@ -354,13 +360,13 @@ static char *strsav(char *old, char *text_to_append)
     new_len = old_len + strlen(text_to_append) + 1;
 
     if(old) {
-        if((p = (char *)realloc(old, new_len)) == NULL) {
+        if((p = (char *)realloc(old, new_len)) == 0) {
 //          fprintf(logfp, "%s: realloc(%d) bytes for proxy_args failed!\n", prog, new_len);
             printf("realloc(%d) bytes for proxy_args failed!\n", new_len);
             exit(1);
         }
     } else {
-        if((p = (char *)safeMalloc(new_len)) == NULL) {
+        if((p = (char *)safeMalloc(new_len)) == 0) {
 //          fprintf(logfp, "%s: safeMalloc(%d) bytes for proxy_args failed!\n", prog, new_len);
             printf("safeMalloc(%d) bytes for proxy_args failed!\n", new_len);
             exit(1);
@@ -377,22 +383,22 @@ static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len)
     int new_len;
     char *p;
 
-    if(buf_to_append == NULL)
+    if(buf_to_append == 0)
         return(old);
 
-    if(old == NULL)
+    if(old == 0)
         old_len = 0;
 
     new_len = old_len + add_len;
 
     if(old) {
-        if((p = (char *)realloc(old, new_len)) == NULL) {
+        if((p = (char *)realloc(old, new_len)) == 0) {
 //          fprintf(logfp, "%s: realloc(%d) bytes for proxy_args failed!\n", prog, new_len);
             printf("realloc(%d) bytes for proxy_args failed!\n", new_len);
             exit(1);
         }
     } else {
-        if((p = (char *)safeMalloc(new_len)) == NULL) {
+        if((p = (char *)safeMalloc(new_len)) == 0) {
 //          fprintf(logfp, "%s: safeMalloc(%d) bytes for proxy_args failed!\n", prog, new_len);
             printf("safeMalloc(%d) bytes for proxy_args failed!\n", new_len);
             exit(1);
@@ -432,4 +438,3 @@ static int parse_num(char *s)
 		return n;
    }
 }
-
