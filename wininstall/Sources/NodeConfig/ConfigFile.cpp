@@ -316,11 +316,9 @@ void CConfigFile::Save()
 	else
 		fprintf(fp, "ipAddress=%s\n", pNormal->m_ipAddress.GetBuffer(1));
 	fprintf(fp, "\n");
-	fprintf(fp, "# The directory to hold temporary files for FEC\n");
-	fprintf(fp, "FECTempDir=%s\n", pNormal->m_tempFile);
-	fprintf(fp, "\n");
-	fprintf(fp, "# The directory to use for mainport's temporary files\n");
-	fprintf(fp, "mainport.params.servlet.1.params.tempDir=%s\n", pNormal->m_tempFile);
+	fprintf(fp, "# The directory to store any temporary files created by the node. It gets deleted\n");
+	fprintf(fp, "# automatically on node start and stop.\n");
+	fprintf(fp, "tempDir=%s\n", pNormal->m_tempFile);
 	fprintf(fp, "\n");
 	fprintf(fp, "# This is used only by Windows configurator, not by node\n");
 	fprintf(fp, "warnPerm=%s\n", pNormal->warnPerm ? "true" : "false");
@@ -543,7 +541,7 @@ void CConfigFile::Save()
 	fprintf(fp, "failureTableTime=%lu000\n",pDiagnostics->m_nFailureTableTimeSeconds);
 	fprintf(fp, "\n");
 
-	// FIXME: Node status settings (hardcoded for now
+	// FIXME: Node status settings (hardcoded for now) - automatically stripped on read due to it having been switched to nodeinfo previously.
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Node status servlet settings\n");
 	fprintf(fp, "########################\n");
@@ -618,9 +616,12 @@ void CConfigFile::processItem(char *tok, char *val)
 		pNormal->m_ipAddress = val;
 	else if (!strcmp(tok, "warnPerm"))
 		pNormal->warnPerm = atobool(val);
+	// FECTempDir and mainport.params.servlet.1.params.tempDir both get put in tempDir
 	else if (!strcmp(tok, "FECTempDir"))
 		pNormal->m_tempFile = val;
 	else if (!strcmp(tok, "mainport.params.servlet.1.params.tempDir"))
+		pNormal->m_tempFile = val;
+	else if (!strcmp(tok, "tempDir"))
 		pNormal->m_tempFile = val;
 	else if (!strcmp(tok, "doAnnounce"))
 		pAdvanced->m_doAnnounce = atobool(val);
