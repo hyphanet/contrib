@@ -1,8 +1,3 @@
-OBJS = 
-DEPS = 
-LIBS = 
-CFLAGS = 
-
 all: base64 gt gremlin gtc gtd
 
 gremlin: base64.c gt.c gremlin.c Makefile
