@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <signal.h>
+#include <pthread.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -9,33 +11,49 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netdb.h>
-#include <pthread.h>
 #include <getopt.h>
 #include <regex.h>
 
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int htl, threads, max_threads, min_bytes, collisions;
-regex_t *regex, *datex;
-char *nntpserver, *group;
-uint32_t article_count, *articles;
-FILE *sock, *log;
 
+int htl,           // hops to live
+    threads,       // current active thread count
+    min_bytes,     // minumum article size
+    collisions,    // current collision count
+    article_count, // article count
+    terminate;     // have we caught a sigterm?
+
+regex_t *regex;    // article-name regex
+
+FILE *log,         // logfile
+     *nntp;        // nntp socket
+ 
 typedef struct {
-    char id[512], name[512];
+    int bytes,
+        article_number;
+    char *filename,
+	 *subject,
+	 *author,
+	 *date,
+         *id;
     FILE *data;
 } article;
 
-void nntp_connect ();
-void nntp_xover ();
+article **articles; // article_count articles, sans filename
+
+void nntp_connect (char *nntpserver);
+void nntp_xover (char *group);
 void * fcp_put_thread (void *args);
-article * get_article (uint32_t msg_num);
+void logfunc (article *a, char *uri);
+int get_article (article *a);
+void signal_handler (int sig);
 FILE * read_stduu (FILE *in);
 FILE * read_base64 (FILE *in);
 char * get_content_type (char *filename);
 
 void
-nntp_connect ()
+nntp_connect (char *nntpserver)
 {
     struct in_addr addr;
     struct sockaddr_in address;
@@ -65,45 +83,95 @@ nntp_connect ()
 	exit(1);
     }
 
-    sock = fdopen(connected_socket, "w+");
+    nntp = fdopen(connected_socket, "w+");
+    if (!nntp) {
+	fprintf(stderr, "Error fdopen()ing socket.\n");
+	exit(1);
+    }
 }
 
 void
-nntp_xover ()
+nntp_xover (char *group)
 {
-    char line[512];
-    int status;
+    char line[1024], a[256], b[256], c[256], d[256];
+    int t, i, n, count, start, end, status, unmatched, too_small;
+    article *r;
     
-    fgets(line, 512, sock);
-    if (strncmp(line, "200", 3) != 0) goto badreply;
-    fflush(sock);
+    fgets(line, 1024, nntp);
+    if (strncmp(line, "200", 3) != 0)
+	goto badreply;
     
-    fprintf(sock, "listgroup %s\r\n", group);
-    fflush(sock);
+    fprintf(nntp, "group %s\r\n", group);
     
-    fgets(line, 512, sock); status = 0;
-    sscanf(line, "%d", &status);
-    if (status != 211) goto badreply;
-    fflush(sock);
+    fgets(line, 1024, nntp);
+    status = sscanf(line, "211 %d %d %d %*s\r\n", &count, &start, &end);
+    if (status != 3)
+	goto badreply;
+    
+    fprintf(nntp, "xover %d %d\r\n", start, end);
 
-    fprintf(stderr, "Downloading article list... ");
-    fflush(NULL);
+    fgets(line, 1024, nntp);
+    if (strncmp(line, "224", 3) != 0)
+	goto badreply;
+
+    fprintf(stderr, "Downloading article overviews ");
+    
+    unmatched = 0;
+    too_small = 0;
     article_count = 0;
-    articles = calloc(128, sizeof(uint32_t));
-    while (fgets(line, 512, sock)) {
-	if (strcmp(line, ".\r\n") == 0) break;
-	status = sscanf(line, "%d\r\n", &articles[article_count++]);
-	if (status != 1) goto badreply;
-	if (article_count % 128 == 0)
-	    articles = realloc(articles, sizeof(uint32_t) * (article_count + 128));
+    articles = calloc(count, sizeof(article *));
+    t = 0;
+    
+    while (fgets(line, 1024, nntp)) {
+
+	if (t++ % 32 == 0)
+	    fprintf(stderr, ".");
+	
+	if (strcmp(line, ".\r\n") == 0)
+	    break;
+	
+	status = sscanf(line, "%d %[^\t] %[^\t] %[^\t] %[^\t] %d",
+                        &i, a, b, c, d, &n); // i=artnum a=subject b=author c=date d=artid n=bytes
+	
+	if (status != 6)
+	    continue; // ah fuck.
+	
+	if (regex && regexec(regex, a, 0, NULL, 0)) {
+	    unmatched++;
+	    continue;
+	}
+        if (min_bytes && n < min_bytes) {
+	    too_small++;
+	    continue;
+	}
+	
+	r = malloc(sizeof(article));
+	
+	r->article_number = i;
+	r->subject = strdup(a);
+	r->author = strdup(b);
+	r->date = strdup(c);
+	r->id = strdup(d);
+	r->bytes = n;
+	
+	articles[article_count++] = r;
     }
 
+    fprintf(stderr, "\n");
+
     if (strcmp(line, ".\r\n") != 0) {
-	fprintf(stderr, "listgroup from server terminated unexpectedly!\n");
+	fprintf(stderr, "Listgroup from server terminated unexpectedly!\n");
 	exit(1);
     }
 
-    fprintf(stderr, "%d articles.\n", article_count);
+    fprintf(stderr, "%d (%d%%) articles queued.", article_count,
+	    (int) ((double) (count - unmatched - too_small) / (double) count * 100));
+    if (regex && unmatched)
+	fprintf(stderr, " %d unmatched.", unmatched);
+    if (min_bytes && too_small)
+	fprintf(stderr, " %d too small.", too_small);
+    fprintf(stderr, "\n\n");
+    
     return;
 
 badreply:
@@ -135,13 +203,13 @@ fcp_put_thread (void *args)
 {
     article *a = (article *) args;
     FILE *fcp = fcp_connect();
-    char reply[512];
+    char reply[512], uri[256];
     int c;
     if (!fcp) {
 	fprintf(stderr, "Error connecting to node!\n");
 	goto exit;
     }
-    sprintf(reply, "Content-Type=%s\nEnd\n", get_content_type(a->name));
+    sprintf(reply, "Content-Type=%s\nEnd\n", get_content_type(a->filename));
     fwrite("\0\0\0\2", 4, 1, fcp);
     fprintf(fcp, "ClientPut\n"
 	         "HopsToLive=%x\n"
@@ -152,20 +220,22 @@ fcp_put_thread (void *args)
 		 htl,
 		 strlen(reply),
 		 ftell(a->data));
-    fflush(fcp);
     fputs(reply, fcp);
     rewind(a->data);
-    while ((c = fgetc(a->data)) != EOF) fputc(c, fcp);
-    fflush(fcp);
+    while ((c = fread(reply, 1, 512, a->data)))
+	fwrite(reply, 1, c, fcp);
     fgets(reply, 512, fcp);
     if (strncmp(reply, "Success", 7) == 0) {
 	fgets(reply, 512, fcp);
-	if (strncmp(reply, "URI=", 4) != 0) goto free;
-	fprintf(log, "%s=%s", a->name, &reply[4]);
-	fflush(log);
+	if (sscanf(reply, "URI=%s\n", uri) != 1)
+	    goto free;
+	logfunc(a, uri);
 	fgets(reply, 512, fcp);
-    } else { // should I log collided inserts?
+    } else {
 	fgets(reply, 512, fcp);
+	if (sscanf(reply, "URI=%s\n", uri) != 1)
+	    goto free;
+	logfunc(a, uri);
 	fgets(reply, 512, fcp);
 	collisions++;
     }
@@ -173,6 +243,11 @@ fcp_put_thread (void *args)
 free:
     fclose(fcp);
     fclose(a->data);
+    free(a->filename);
+    free(a->subject);
+    free(a->author);
+    free(a->date);
+    free(a->id);
     free(a);
 exit:
     pthread_mutex_lock(&mutex);
@@ -182,117 +257,78 @@ exit:
     pthread_exit(NULL);
 }
 
-article *
-get_article (uint32_t msg_num)
+void
+logfunc (article *a, char *uri)
+{
+    fprintf(log, "%s\t%s\t%s\t%s\t%s\t%s\t%d\n", a->filename, uri,
+	    a->subject, a->author, a->date, a->id, a->bytes);
+}
+
+int
+get_article (article *a)
 {
     int status = 0, base64 = 0;
-    char line[512], msg_id[512], name[512];
+    char line[512], filename[512];
     FILE *decoded, *data = tmpfile();
-    article *a;
-
+    
     if (!data) {
 	fprintf(stderr, "Error creating tmpfile()!\n");
-	return NULL;
+	return -1;
     }
     
-    if (regex) {
-        fprintf(sock, "xhdr subject %d\r\n", msg_num);
-        fflush(sock);
-        fgets(line, 512, sock);
-        sscanf(line, "%d", &status);
-        if (status != 221) goto badreply;
-        fgets(line, 512, sock);
-        if (regexec(regex, line, 0, NULL, 0)) {
-	    fprintf(stderr, "Skipping unmatched article %d.\n", msg_num);
-	    fgets(line, 512, sock);
-	    goto error;
-	}
-        fgets(line, 512, sock);
-        if (strcmp(line, ".\r\n") != 0) goto badreply;
-    }
-/*
-    if (datex) {
-	fprintf(sock, "date %d\r\n", msg_num);
-	fflush(sock);
-	fgets(line, 512, sock);
-	foo = sscanf(line, "%d %s\r\n", &status, date);
-	if (foo != 2 || status != 111) goto badreply; fprintf(stderr, "%s ", date);
-	if (regexec(datex, date, 0, NULL, 0)) {
-	    fprintf(stderr, "Skipping unmatched article %d.\n", msg_num);
-	    goto error;
-	}
-    }
-*/
-    if (min_bytes) {
-        fprintf(sock, "xhdr bytes %d\r\n", msg_num);
-        fflush(sock);
-        fgets(line, 512, sock);
-        sscanf(line, "%d", &status);
-        if (status != 221) goto badreply;
-        fgets(line, 512, sock);
-        sscanf(line, "%*d %d\r\n", &status);
-        if (status < min_bytes) {
-	    fprintf(stderr, "Skipping article %d: less than %d bytes.\n", msg_num, min_bytes);
-	    fgets(line, 512, sock);
-	    goto error;
-        }
-        fgets(line, 512, sock);
-        if (strcmp(line, ".\r\n") != 0) goto badreply;
-    }
+    fprintf(nntp, "body %d\r\n", a->article_number);
     
-    fprintf(sock, "body %d\r\n", msg_num);
-    fflush(sock);
-    fgets(line, 512, sock);
-    sscanf(line, "%d %*d %s\r\n", &status, msg_id);
+    fgets(line, 512, nntp);
+    sscanf(line, "%d", &status);
     if (status != 222) goto badreply;
-    fprintf(stderr, "Downloading article %d... ", msg_num);
-    fflush(stdout);
-    while (fgets(line, 512, sock)) {
+    
+    while (fgets(line, 512, nntp)) {
 	if (strcmp(line, ".\r\n") == 0) break;
 	fputs(line, data);
     }
+    
     if (strcmp(line, ".\r\n") != 0) {
-	fprintf(stderr, "terminated unexpectedly!\n");
+	fprintf(stderr, "Transfer terminated unexpectedly!\n");
 	goto error;
     }
-    fprintf(stderr, "done.\n");
     
-    rewind(data); name[0] = '\0';
+    rewind(data);
+    filename[0] = '\0';
     while (fgets(line, 512, data)) {
        if (strncmp(line, "begin ", 6) == 0) {
-	   sscanf(line, "begin %*o %s", name);
+	   sscanf(line, "begin %*o %s", filename);
 	   break;
        } else if (strncmp(line, "begin-base64 ", 13) == 0) {
-	   sscanf(line, "begin-base64 %*o %s", name);
+	   sscanf(line, "begin-base64 %*o %s", filename);
 	   base64 = 1;
 	   break;
        }
     }
     
-    if (!strlen(name)) {
-	fprintf(stderr, "Decoding error on article %d: no data.\n", msg_num);
+    if (!strlen(filename)) {
+	fprintf(stderr, "No data.\n");
 	goto error;
     }
     
     if (base64) decoded = read_base64(data);
     else decoded = read_stduu(data);
     if (!decoded) {
-	fprintf(stderr, "Decoding error on article %d: bad data.\n", msg_num);
+	fprintf(stderr, "Bad data.\n");
 	goto error;
     }
     fclose(data);
     
-    a = malloc(sizeof(article));
+    fprintf(stderr, "Done.\n");
+    
+    a->filename = strdup(filename);
     a->data = decoded;
-    strcpy(a->id, msg_id);
-    strcpy(a->name, name);
-    return a;
+    return 0;
 
 badreply:
     fprintf(stderr, "Unexpected reply: %s", line);
 error:
     fclose(data);
-    return NULL;
+    return -1;
 }
 
 void
@@ -306,19 +342,29 @@ usage (char *me)
 		    "  -o --output        Location of an alternative log file (or - for stdout).\n"
 		    "  -c --collisions    Maximum number of collisions before exiting.\n"
 		    "  -s --subject       Only insert articles whose subjects match regex.\n\n",
-//		    "  -d --date          Only insert articles whose dates match regex.\n"
-//		    "                     (date format: YYYYMMDDHHMMSS) || b0rked!!!\n\n"
 		    me);
     exit(2);
+}
+
+void
+signal_handler (int sig)
+{
+    terminate = 1;
+    signal(sig, signal_handler);
 }
 
 int
 main (int argc, char **argv)
 {
-    pthread_t thread;
-    article *a;
-    int max_collisions, all, c, newest, stamp;
-    char foo[256], regex_string[256], date_string[256];
+    
+    int c, max_threads,    // maximum thread count
+           max_collisions, // maximum collision count before exit
+	   all,            // ignore last-article-inserted marker?
+	   stamp,          // the last article
+           base,
+	   cur_num;
+
+    char *nntpserver, foo[256], regex_string[256];
     FILE *last;
     extern int optind;
     extern char *optarg;
@@ -328,15 +374,15 @@ main (int argc, char **argv)
         {"threads",    1, NULL, 't'},
 	{"subject",    1, NULL, 's'},
 	{"min",        1, NULL, 'm'},
-	{"date",       1, NULL, 'd'},
 	{"collisions", 1, NULL, 'c'},
 	{"all",        0, NULL, 'a'},
 	{0, 0, 0, 0}
     };
     
     nntpserver = getenv("NNTPSERVER");
-    if (!nntpserver) {
-	fprintf(stderr, "The NNTPSERVER environment variable must be set to the hostname of your NNTP server.\n"
+    if (!nntpserver) { 
+	fprintf(stderr, "The NNTPSERVER environment variable must be set "
+		        "to the hostname of your NNTP server.\n"
 		        "Example: export NNTPSERVER=nntp.myisp.com\n");
 	exit(2);
     }
@@ -345,13 +391,14 @@ main (int argc, char **argv)
     max_threads = 10;
     foo[0] = '\0';
     regex_string[0] = '\0';
-    date_string[0] = '\0';
+    terminate = 0;
     min_bytes = 0;
     max_collisions = 0;
     collisions = 0;
     all = 0;
     
-    while ((c = getopt_long(argc, argv, "o:h:t:s:m:d:c:a", long_options, NULL)) != EOF) {
+    while ((c = getopt_long(argc, argv, "o:h:t:s:m:c:a",
+		            long_options, NULL)) != EOF) {
         switch (c) {
 	case 'o':
 	    strncpy(foo, optarg, 256);
@@ -367,9 +414,6 @@ main (int argc, char **argv)
 	    break;
 	case 'm':
 	    min_bytes = atoi(optarg);
-	    break;
-	case 'd':
-	    strncpy(date_string, optarg, 256);
 	    break;
 	case 'c':
 	    max_collisions = atoi(optarg);
@@ -387,7 +431,6 @@ main (int argc, char **argv)
         usage(argv[0]);
         exit(2);
     }
-    group = argv[optind];
    
     if (htl < 1) {
 	fprintf(stderr, "Invalid HTL.\n");
@@ -415,19 +458,9 @@ main (int argc, char **argv)
 	    exit(2);
 	}
     }
-/*
-    datex = NULL;
-    if (strlen(date_string)) {
-	datex = malloc(sizeof(regex_t));
-	c = regcomp(datex, date_string, REG_ICASE | REG_EXTENDED | REG_NOSUB);
-	if (c != 0) {
-	    fprintf(stderr, "Invalid regular expression: %s\n", date_string);
-	    exit(2);
-	}
-    }
-*/
-    nntp_connect();
-    nntp_xover();
+    
+    nntp_connect(nntpserver);
+    nntp_xover(argv[optind]);
     
     if (!article_count) {
 	fprintf(stderr, "No articles in group.\n");
@@ -435,42 +468,68 @@ main (int argc, char **argv)
     }
     
     if (!strlen(foo))
-	strcpy(foo, group);
+	strcpy(foo, argv[optind]);
     
-    log = strcmp(foo, "-") == 0 ? stdout : fopen(foo, "a");
+    log = strcmp(foo, "-") == 0 ? stdout : fopen(foo, "w");
     if (!log) {
 	fprintf(stderr, "Can't open log file %s to append to!\n", foo);
 	exit(1);
     }
+
+    stamp = 0;
+    if (!all) {
+        sprintf(foo, "%s/.saturn", getenv("HOME"));
+        mkdir(foo, 0755); // so I'm lazy! blum blum shub to you, too.
     
-    sprintf(foo, "%s/.saturn", getenv("HOME"));
-    mkdir(foo, 0755); // so I'm lazy! blum blum shub to you, too.
-    
-    sprintf(foo, "%s/.saturn/%s_last", getenv("HOME"), group);
-    last = fopen(foo, "r");
-    if (!last) {
-	stamp = articles[0];
-    } else {
-        c = fscanf(last, "%d", &stamp);
-        if (c != 1) stamp = 0;
-        fclose(last);
+        sprintf(foo, "%s/.saturn/%s", getenv("HOME"), argv[optind]);
+        last = fopen(foo, "r");
+        if (last) {
+            fscanf(last, "%d", &stamp);
+            fclose(last);
+        }
     }
 
-    newest = articles[article_count-1];
+    if (stamp && stamp == articles[article_count-1]->article_number) {
+	fprintf(stderr, "No new articles.\n");
+	exit(0);
+    }
 
-    fprintf(stderr, "Inserting from number %d down to %d.\n", newest, stamp);
+    signal(SIGINT, signal_handler);
     
-    do {
-	if (!all && articles[article_count-1] == stamp) {
-	    fprintf(stderr, "End of new articles reached. (Specify --all to override.)\n");
+    base = 0;
+    if (stamp)
+        for (c = 0 ; c < article_count ; c++)
+	    if (articles[c]->article_number == stamp) {
+		base = ++c;
+		break;
+            }
+
+    for (c = base ; c < article_count ; c++) {	
+        
+	cur_num = articles[c]->article_number;
+	
+        if (stamp && !all && cur_num == stamp) {
+	    fprintf(stderr, "End of new articles reached. "
+		            "(Specify --all to override.)\n");
 	    goto end;
 	}
+	
 	if (max_collisions && collisions > max_collisions) {
 	    fprintf(stderr, "Maximum collisions reached.\n");
 	    goto end;
 	}
-	if ((a = get_article(articles[--article_count]))) {
-	    pthread_create(&thread, NULL, fcp_put_thread, a);
+	
+	if (terminate) {
+	    terminate = 0;
+	    goto end;
+	}
+
+	fprintf(stderr, "%02d %08d ", (int) ((double) (c - base)
+	        / (double) (article_count - base) * 100), cur_num);
+	
+	if (get_article(articles[c]) == 0) {
+            pthread_t thread;
+	    pthread_create(&thread, NULL, fcp_put_thread, articles[c]);
 	    if (max_threads && ++threads >= max_threads)
 		while (threads >= max_threads) {
 		    pthread_mutex_lock(&mutex);
@@ -478,24 +537,26 @@ main (int argc, char **argv)
 		    pthread_mutex_unlock(&mutex);
 		}
 	}
-    } while (article_count);
+    }
 
 end:
     fprintf(stderr, "Waiting for inserts to complete...\n");
     while (threads) {
+	if (terminate) break;
 	pthread_mutex_lock(&mutex);
 	pthread_cond_wait(&cond, &mutex);
 	pthread_mutex_unlock(&mutex);
     }
-    
+
     last = fopen(foo, "w");
     if (!last) {
 	fprintf(stderr, "Can't open %s for writing!\n", foo);
 	exit(1);
     }
-    fprintf(last, "%d", newest);
+    fprintf(last, "%d", cur_num);
     fclose(last);
-    
+
+    fclose(log);
     pthread_exit(NULL);
 }
 
