@@ -1,6 +1,5 @@
-/* Small utility to decide on an unused port for Freenet during install*/
-/* Originally hacked together by Sebastian Späth (Sebastian@SSpaeth.de)*/
-/* License: Feel free to do whatever you want with it (Public Domain)  */
+// @@header: d:\dokumente\source\portcfg\portcfgres.h
+// @@resources: d:\dokumente\source\portcfg\portcfg.rc
 /*<---------------------------------------------------------------------->*/
 #include <windows.h>
 #include <stdlib.h>
@@ -126,7 +125,7 @@ WSADATA wsaData;
 	/* Does a ListenPort exist?*/
 	if (GetParam (str,JAVAEXEC,FLAUNCHSEC,FLAUNCHFILE) != NULL) {
 		strcat(str, " is already configured as freenet port. Should we use it?");
-		if (MessageBox(NULL,str,"Port already defined",MB_YESNO) == IDYES) {EndDialog(hDlg,1);};
+		if (MessageBox(NULL,str,"Port already defined",MB_YESNO) == IDYES) {freeport=atoi(str);EndDialog(hDlg,1);};
 	}
 	freeport = SearchPort(hDlg);
 	return 1;

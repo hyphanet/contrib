@@ -1,4 +1,4 @@
-README - Freenet 0.3.6
+README - Freenet 0.3.7
 
 IMPORTANT WARNING
 -----------------
@@ -113,3 +113,4 @@ Credits for the Win32 version
  - Sebastian@SSpaeth.de for putting all the crap together and make it work 
  - All the people that I forced to install it over and over again to 
    test it and make it work
+ - Philipp Hug for writing the IE plugin and providing useful installer tools
