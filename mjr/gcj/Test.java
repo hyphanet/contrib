@@ -1,39 +1,41 @@
 import BigInteger;
 
 public class Test {
+    
     public static void main(String[] args) {
+	
 	BigInteger x = new BigInteger("534523452342352345345435342552345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454111");
 	BigInteger y = new BigInteger("534523452342352345345435342552345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523");
 	BigInteger z = new BigInteger("5345234523423523453454353425523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454523452342352345345452345234235234534545234523423523453454527356750693570693576093709357093576905760957609376093762411");
 
-	System.out.println(z.abs());
-	System.out.println(z.add(y));
-	System.out.println(z.and(y));
-	System.out.println(z.andNot(y));
-	System.out.println(z.bitCount());
-	System.out.println(z.bitLength());
-	System.out.println(z.clearBit(2));
-	System.out.println(z.compareTo(y));
-	System.out.println(x.divide(y));
-	System.out.println(z.equals(y));
-	System.out.println(z.flipBit(3));
-	System.out.println(z.gcd(y));
-	System.out.println(z.getLowestSetBit());
-	System.out.println(z.isProbablePrime(3));
-	System.out.println(x.mod(y));
-	System.out.println(x.modInverse(y));
-	System.out.println(x.modPow(y, z));
-	System.out.println(z.multiply(y));
-	System.out.println(z.not());
-	System.out.println(z.or(y));
-	System.out.println(z.pow(4));
-	System.out.println(x.remainder(y));
-	System.out.println(z.setBit(2));
-	System.out.println(z.shiftLeft(3));
-	System.out.println(z.shiftRight(4));
-	System.out.println(x.subtract(y));
-	System.out.println(z.testBit(4));
-	System.out.println(z.xor(y));
+	System.out.println("1: " + z.abs());
+	System.out.println("2: " + z.add(y));
+	System.out.println("3: " + z.and(y));
+	System.out.println("4: " + z.andNot(y));
+	System.out.println("5: " + z.bitCount());
+	System.out.println("6: " + z.bitLength());
+	System.out.println("7: " + z.clearBit(2));
+	System.out.println("8: " + z.compareTo(y));
+	System.out.println("9: " + x.divide(y));
+	System.out.println("A: " + z.equals(y));
+	System.out.println("B: " + z.flipBit(3));
+	System.out.println("C: " + z.gcd(y));
+	System.out.println("D: " + z.getLowestSetBit());
+	System.out.println("E: " + z.isProbablePrime(3));
+	System.out.println("F: " + x.mod(y));
+	System.out.println("G: " + x.modInverse(y));
+	System.out.println("H: " + x.modPow(y, z));
+	System.out.println("I: " + z.multiply(y));
+	System.out.println("J: " + z.not());
+	System.out.println("K: " + z.or(y));
+	System.out.println("L: " + z.pow(4));
+	System.out.println("1: " + x.remainder(y));
+	System.out.println("M: " + z.setBit(2));
+	System.out.println("N: " + z.shiftLeft(3));
+	System.out.println("O: " + z.shiftRight(4));
+	System.out.println("P: " + x.subtract(y));
+	System.out.println("Q: " + z.testBit(4));
+	System.out.println("R: " + z.xor(y));
     }
 }
 
