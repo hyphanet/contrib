@@ -1,4 +1,4 @@
-# Makefile.in generated automatically by automake 1.4-p6 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
 # Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
@@ -93,7 +93,27 @@ noinst_LIBRARIES = libezfcp.a
 
 include_HEADERS = ezFCPlib.h
 
-FCP_SOURCE = " _fcpGlobals.c _fcpCompat.c _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpUtil.c _fcpMetadata.c _fcpMimetype.c _fcpPut.c ezFCPlib.h fcpCloseKey.c fcpCreation.c fcpInfo.c fcpOpenKey.c fcpPutKeyFromFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
+FCP_SOURCE = "\
+_fcpGlobals.c \
+_fcpCompat.c \
+_fcpLog.c \
+_fcpRecvResponse.c \
+_fcpSock.c \
+_fcpUtil.c \
+_fcpMetadata.c \
+_fcpMimetype.c \
+_fcpPut.c \
+ezFCPlib.h \
+fcpCloseKey.c \
+fcpCreation.c \
+fcpInfo.c \
+fcpOpenKey.c \
+fcpPutKeyFromFile.c \
+fcpReadKey.c \
+fcpMakeSvkKeypair.c \
+fcpStartup.c \
+fcpWriteKey.c \
+"
 
 
 # The following files are currently ignored for now
@@ -129,7 +149,7 @@ DIST_COMMON =  README Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = tar
+TAR = gtar
 GZIP_ENV = --best
 DEP_FILES =  .deps/_fcpCompat.P .deps/_fcpGlobals.P .deps/_fcpLog.P \
 .deps/_fcpMetadata.P .deps/_fcpMimetype.P .deps/_fcpPut.P \
@@ -236,7 +256,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
 	  awk '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
 	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags -o $$here/TAGS $(ETAGS_ARGS) $$tags  $$unique $(LISP))
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
 
 mostlyclean-tags:
 
