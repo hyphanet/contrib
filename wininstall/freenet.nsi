@@ -1,5 +1,4 @@
-;uncomment on of the two next lines, depending on the type of installer you are building
-!define VERSION "webinstall"
+; comment the following line if creating a standalone installer. Also, define embedJava if we are embedding java (which i have never done)
 !define WEBINSTALL
 
 !define NUM "0.5.1.pre1-1"
@@ -216,7 +215,6 @@ Section
   Push "freenet-distribution"
   Call StrStr
   Pop $0
-  MessageBox MB_OK "Got $0"
   StrCmp $0 "freenet-distribution" distribution not-distribution
   distribution:
     CopyFiles "$EXEDIR\freenet.jar" "$INSTDIR\freenet.jar"
