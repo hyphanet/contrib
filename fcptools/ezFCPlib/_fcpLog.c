@@ -33,12 +33,12 @@ extern int fcpLogCallback(int level, char *buf);
 
 void _fcpLog(int level, char *format,... )
 {
-    char buf[36000];
+    char buf[65536];
 
     // thanks mjr for the idea
     va_list ap;
     va_start(ap, format);
-    vsnprintf(buf, 36000, format, ap);
+    vsnprintf(buf, 65536, format, ap);
     va_end(ap);
     fcpLogCallback(level, buf);
 }

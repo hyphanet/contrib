@@ -371,7 +371,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 		}
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "%s: successfully inserted splitfile manifest");
+	_fcpLog(FCP_LOG_VERBOSE, "%s: successfully inserted splitfile manifest", splitManifest);
 	runningThreads--;
 	return 0;
 }
