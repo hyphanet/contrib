@@ -1,32 +1,14 @@
-/* Wedit generated resource file */
 #include "\masm32\include\resource.h"
 #include "d:\masm32\freenet\rsrc.h"
 
-500 ICON Freenet.ico
 
-DLG_0100 DIALOG 6, 3, 465, 172
-STYLE DS_CENTER | DS_SETFOREGROUND | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | 
-    WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CAPTION | WS_SYSMENU | 
-    WS_THICKFRAME
-FONT 8, "Helv"
-BEGIN
-    PUSHBUTTON      "Close", ID_CLOSE, 419, 152, 40, 14
-    PUSHBUTTON      "Clear", ID_CLEARLOG, 366, 152, 40, 14, WS_DISABLED
-    LISTBOX         IDFLOG, 6, 6, 453, 140, LBS_DISABLENOSCROLL | WS_VSCROLL | 
-                    WS_HSCROLL | WS_TABSTOP | 0x2000
-END
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
 
-DLG_FREQ DIALOGEX 0, 0, 328, 32
-STYLE DS_MODALFRAME | DS_CENTER | DS_SETFOREGROUND | WS_POPUP | WS_VISIBLE | 
-    WS_CAPTION | WS_SYSMENU
-EXSTYLE WS_EX_TOOLWINDOW
-CAPTION "FProxy request"
-FONT 8, "Helv"
-BEGIN
-    EDITTEXT        ID_KEY, 6, 2, 316, 13, ES_AUTOHSCROLL | ES_NOHIDESEL | 
-                    WS_GROUP
-    DEFPUSHBUTTON   "Get key", IDOK, 282, 16, 40, 14
-    PUSHBUTTON      "Close", IDCANCEL, 237, 16, 40, 14
-    LTEXT           "Specify Key type (if not default) and key", -1, 6, 18, 
-                    130, 10, NOT WS_GROUP
-END
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+500                     ICON    DISCARDABLE     "Freenet.ico"
+501                     ICON    DISCARDABLE     "noFnet.ico"
+/////////////////////////////////////////////////////////////////////////////

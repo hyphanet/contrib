@@ -224,7 +224,7 @@ WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD
     cmp eax,FALSE               ; and if it is already running
     jz EndWinMain               ; exit at once
     call Initialize             ; Call the initialize procedure to read the prefs and set the CWD
-        
+       
         ;==================================================
         ; Fill WNDCLASSEX structure with required variables
         ;==================================================
@@ -238,7 +238,7 @@ WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD
     mov   wc.hbrBackground,COLOR_APPWORKSPACE 
     mov   wc.lpszMenuName,NULL 
     mov   wc.lpszClassName,OFFSET ClassName 
-    invoke LoadIcon,NULL,IDI_APPLICATION 
+    invoke LoadIcon, NULL, 500      ; (500 is Hops icon )
     mov   wc.hIcon,eax 
     mov   wc.hIconSm,eax 
     invoke LoadCursor,NULL,IDC_ARROW 
@@ -248,6 +248,7 @@ WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD
        WS_OVERLAPPED+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+WS_VISIBLE+WS_MINIMIZE,CW_USEDEFAULT,\
        CW_USEDEFAULT,350,200,NULL,NULL,hInst,NULL 
     mov   hwnd,eax
+
 
       ;===================================
       ; Loop until PostQuitMessage is sent
@@ -309,7 +310,12 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             mov note.uID,IDI_TRAY 
             mov note.uFlags,NIF_ICON+NIF_MESSAGE+NIF_TIP 
             mov note.uCallbackMessage,WM_SHELLNOTIFY 
-            invoke LoadIcon,hInstance, 500              ;Load freenet icon (500) for system tray
+            mov ax, 501                                 ; decide whether to load resource 500 or 501
+            cmp fRunning, 0                             ; to display a Running/Norunning Freenet icon
+            jz @F                                      ; Running? then take 500 instead of 501
+            dec ax
+            @@:
+            invoke LoadIcon,hInstance, ax               ;Load freenet icon (500 or 501) for system tray
             mov note.hIcon,eax 
             invoke lstrcpy,addr note.szTip,addr AppName
             invoke ShowWindow,hWnd,SW_HIDE 
@@ -330,9 +336,9 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 invoke ShellExecute, hWnd, NULL, addr gatewayURI, NULL, NULL, 0
                 @@:
 
-            .elseif ax==IDM_FREQUEST                    ; menu choice Request Key
-                ;Call Dialog DLG_FREQ /200
-                invoke CreateDialogParam, hInstance, 200, hWnd, OFFSET FReqDlgProc, 0
+            ;.elseif ax==IDM_FREQUEST                    ; menu choice Request Key
+            ;    ;Call Dialog DLG_FREQ /200
+            ;    invoke CreateDialogParam, hInstance, 200, hWnd, OFFSET FReqDlgProc, 0
                                 
             .elseif ax==IDM_STARTSTOP                   ;menu choice Start/Stop FProxy
                 .if fRunning==1                         ;is the server up?
@@ -344,10 +350,16 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                   invoke ModifyMenu,hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND,IDM_STARTSTOP,addr StartString
                   invoke ModifyMenu,hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND+MF_GRAYED,IDM_GATEWAY,addr GatewayString
                   ;invoke ModifyMenu,hPopupMenu,IDM_FREQUEST,MF_BYCOMMAND+MF_GRAYED,IDM_FREQUEST,addr FrequestString
+                  invoke LoadIcon,hInstance, 501              ;Load Nofreenet icon (501) for system tray
+                  mov note.hIcon,eax 
+                  invoke Shell_NotifyIcon,NIM_MODIFY,addr note 
                 .else               ; Node was started or stop failed
                   invoke ModifyMenu,hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND,IDM_STARTSTOP,addr StopString
                   invoke ModifyMenu,hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND,IDM_GATEWAY,addr GatewayString
                   ;invoke ModifyMenu,hPopupMenu,IDM_FREQUEST,MF_BYCOMMAND,IDM_FREQUEST,addr FrequestString
+                  invoke LoadIcon,hInstance, 500              ;Load freenet icon (500) for system tray
+                  mov note.hIcon,eax 
+                  invoke Shell_NotifyIcon,NIM_MODIFY,addr note 
                 .endif
 ;            .elseif ax==IDM_SHOWLOG                     ; menu choice Show Log
 ;                ;Call Dialog DLG_0100 /100
@@ -383,7 +395,7 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
                 invoke TrackPopupMenu,hPopupMenu,TPM_RIGHTALIGN,pt.x,pt.y,NULL,hWnd,NULL 
                 invoke PostMessage,hWnd,WM_NULL,0,0 
             .elseif lParam==WM_LBUTTONDBLCLK
-                invoke SendMessage,hWnd,WM_COMMAND,IDM_GATEWAY,0   ;this starts FProxy configuration
+                invoke SendMessage,hWnd,WM_COMMAND,IDM_GATEWAY,0   ;this opens the Gateway page
                 ;invoke SendMessage,hWnd,WM_COMMAND,IDM_RESTORE,0   ;this would restore the window
             .endif 
         .endif 
@@ -459,51 +471,50 @@ WndProc endp
 ;  ret
 ;FLogDlgProc endp
 ;----------------------------------------------------------------------------------------------
-FReqDlgProc proc hwndDlg:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
+;FReqDlgProc proc hwndDlg:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
  ;should return nonzero if it processes the message, and zero if it does not, except:WM_INITDIALOG
-LOCAL hCBkeytype:HWND   ; handle of the key type Combobox
-LOCAL hEMkey:HWND       ; handle of the key field
+;LOCAL hCBkeytype:HWND   ; handle of the key type Combobox
+;LOCAL hEMkey:HWND       ; handle of the key field
 
-  .if uMsg==WM_INITDIALOG
-        invoke GetDlgItem,hwndDlg,103           ; get handle of the keytype combobox
-        mov hCBkeytype, eax
-        invoke GetDlgItem,hwndDlg,104           ; get the handle of the kay field
-        mov hEMkey, eax
+;  .if uMsg==WM_INITDIALOG
+;        invoke GetDlgItem,hwndDlg,103           ; get handle of the keytype combobox
+;        mov hCBkeytype, eax
+;        invoke GetDlgItem,hwndDlg,104           ; get the handle of the kay field
+;        mov hEMkey, eax
 
-        invoke SetFocus, hEMkey                 ; and set focus to the Key field
-        xor eax,eax
-        ret                                     ; ret (0) to indicate we set the focus self
+;        invoke SetFocus, hEMkey                 ; and set focus to the Key field
+;        xor eax,eax
+;        ret                                     ; ret (0) to indicate we set the focus self
         
 
-  .elseif uMsg==WM_CLOSE
-        ;invoke DestroyWindow, hwndDlg
-        jmp ReturnTrue
+;  .elseif uMsg==WM_CLOSE
+;        ;invoke DestroyWindow, hwndDlg
+;        jmp ReturnTrue
         
-  .elseif uMsg==WM_COMMAND
-      .if wParam==IDCANCEL
-           ;invoke DestroyWindow, hwndDlg
-           jmp ReturnTrue
-           
-      .elseif wParam==IDOK                      ; Get Key chosen
-          invoke lnstr, addr gatewayURI
-          invoke MemCopy, addr gatewayURI, addr buffer, eax                 ; copy the GatewayURI (without 0!) into buffer
-          mov [OFFSET buffer + eax],'/'
-          inc eax
-          mov [OFFSET buffer + eax],0
-          invoke GetDlgItemText, hwndDlg, ID_KEY, addr execbuf   , BUFLEN     ;Get whatever stands in the key fiels, returns character received
-          invoke szCatStr, addr buffer, addr execbuf
-          invoke ShellExecute, hwndDlg, NULL, addr buffer, NULL, NULL, 0    ; call browser gatewayURI+key
-          invoke SetDlgItemText, hwndDlg, ID_KEY, addr buffer
-          jmp ReturnTrue
-      .endif
-  .endif
+;  .elseif uMsg==WM_COMMAND
+;           ;invoke DestroyWindow, hwndDlg
+;           jmp ReturnTrue
+;           
+;      .elseif wParam==IDOK                      ; Get Key chosen
+;          invoke lnstr, addr gatewayURI
+;          invoke MemCopy, addr gatewayURI, addr buffer, eax                 ; copy the GatewayURI (without 0!) into buffer
+;          mov [OFFSET buffer + eax],'/'
+;          inc eax
+;          mov [OFFSET buffer + eax],0
+;          invoke GetDlgItemText, hwndDlg, ID_KEY, addr execbuf   , BUFLEN     ;Get whatever stands in the key fiels, returns character received
+;          invoke szCatStr, addr buffer, addr execbuf
+;          invoke ShellExecute, hwndDlg, NULL, addr buffer, NULL, NULL, 0    ; call browser gatewayURI+key
+;          invoke SetDlgItemText, hwndDlg, ID_KEY, addr buffer
+;          jmp ReturnTrue
+;      .endif
+;  .endif
   
-  xor eax,eax       ;if we didn't handle it return FALSE to call defDlgProc
-  ret
-ReturnTrue:
-  mov eax,1
-  ret
-FReqDlgProc endp
+; xor eax,eax       ;if we didn't handle it return FALSE to call defDlgProc
+;  ret
+;ReturnTrue:
+;  mov eax,1
+;  ret
+;FReqDlgProc endp
 ;----------------------------------------------------------------------------------------------
 
 end start
