@@ -1,0 +1,268 @@
+/*
+ *  This ugly code is intended to check slashdot for updates, when it
+ *  notices one it will download the top-most story, extract the
+ *  hyperlinks from it, and mirror them to Freenet.  It makes use
+ *  of some external unix commands, including "rm", "wget", and
+ *  "fcpputsite" from the FCPTools collection.
+ *  At the time of writing it should do the above assuming fcpputsite
+ *  works correctly (I could never get it to complete a mirroring
+ *  but I have limited experience with it).  The only remaining thing
+ *  is to implement the code to create an index.html file of the links
+ *  in /tmp/cachedot so that fcpputsite won't complain about the lack
+ *  of a default file, and so that people will have something to
+ *  link to.
+ */
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.regex.*;
+
+/**
+ *  Mirror the hyperlinks on a Slashdot story to Freenet
+ *
+ *@author     Sanity
+ *@created    July 20, 2002
+ */
+public class Cachedot {
+	/**
+	 *  The main program for the Cachedot class
+	 *
+	 *@param  args                       The command line arguments
+	 *@exception  MalformedURLException  Description of the Exception
+	 *@exception  IOException            Description of the Exception
+	 *@exception  InterruptedException   Description of the Exception
+	 */
+	static URL slashXml;
+	static  URL   slashFP;
+	static  File  mirrorDir  = new File("/tmp/cachedot");
+
+
+	/**
+	 *  The main program for the Cachedot class
+	 *
+	 *@param  args                       The command line arguments
+	 *@exception  MalformedURLException  Description of the Exception
+	 *@exception  IOException            Description of the Exception
+	 *@exception  InterruptedException   Description of the Exception
+	 */
+	public static void main(String[] args)
+		throws MalformedURLException, IOException, InterruptedException {
+		slashXml = new URL("http://slashdot.org/slashdot.xml");
+		slashFP = new URL("http://slashdot.org/");
+
+		String  lastXML  = "";
+
+		while (true) {
+			// Grab slashdot XML page
+			log("Checking " + slashXml + " for changes");
+			InputStream   i   = slashXml.openStream();
+			StringBuffer  sb  = new StringBuffer(100);
+			while (true) {
+				int  r  = i.read();
+				if (r == -1)
+					break;
+				sb.append((char) r);
+			}
+			if (lastXML.hashCode() != sb.toString().hashCode()) {
+				lastXML = sb.toString();
+				Story  s  = getLastStory();
+				grabStory(s);
+				Util.fcpInsert(mirrorDir, s.getId());
+			}
+
+			Thread.sleep(10000);
+		}
+	}
+
+
+	/**
+	 *  Gets the newUrls attribute of the Cachedot object
+	 *
+	 *@return                  The lastStory value
+	 *@exception  IOException  Description of the Exception
+	 */
+	public static Story getLastStory()
+		throws IOException {
+		log("Grabbing last story from " + slashFP);
+		InputStream   i   = slashFP.openStream();
+		StringBuffer  sb  = new StringBuffer(1000);
+		while (true) {
+			int  r  = i.read();
+			if (r == -1)
+				break;
+			sb.append((char) r);
+		}
+		Pattern       ex  = Pattern.compile("FACE=\"arial,helvetica\" SIZE=\"4\" COLOR=\"#FFFFFF\"><B>(.*?)</B>.*?<i>(.*?)</i>.*?articles/(.*?).shtml",
+				Pattern.DOTALL);
+		Matcher       m   = ex.matcher(sb.toString());
+		m.find();
+		return new Story(m.group(1), m.group(2), m.group(3));
+	}
+
+
+	/**
+	 *  Description of the Method
+	 *
+	 *@param  s  Description of the Parameter
+	 */
+	public static void grabStory(Story s) {
+		if (mirrorDir.exists())
+			Util.recursDel(mirrorDir);
+		mirrorDir.mkdir();
+
+		for (Enumeration urls = s.getUrls(); urls.hasMoreElements(); )
+			Util.wget((String) urls.nextElement(), mirrorDir, 1);
+
+//		Util.fcpInsert(mirrorDir, s.getId());
+	}
+
+
+	/**
+	 *  Description of the Method
+	 *
+	 *@param  message  Description of the Parameter
+	 */
+	public static void log(String message) {
+		System.err.println(message);
+	}
+}
+
+/**
+ *  A Slashdot story
+ *
+ *@author     Sanity
+ *@created    July 20, 2002
+ */
+class Story {
+
+
+	String     title, text, id;
+	Hashtable  urls   = new Hashtable();
+
+
+	/**
+	 *  Constructor for the Story object
+	 *
+	 *@param  title  The title of the story
+	 *@param  text   The text of the story
+	 *@param  id     The Slashdot story ID
+	 */
+	public Story(String title, String text, String id) {
+		this.title = title;
+		this.id = id;
+		Cachedot.log("Parsing story: '" + title + "' with id " + id);
+		Pattern  urlex  = Pattern.compile("<A.*?HREF=\"(http://.*?)\".*?>(.*?)<", Pattern.CASE_INSENSITIVE);
+		Matcher  m      = urlex.matcher(text);
+		while (m.find()) {
+			Cachedot.log("Found URL: " + m.group(1));
+			urls.put(m.group(1), m.group(2));
+		}
+		Cachedot.log("Done parsing story");
+	}
+
+
+	/**
+	 *  Gets the id attribute of the Story object
+	 *
+	 *@return    The id value
+	 */
+	public String getId() {
+		return this.id;
+	}
+
+
+	/**
+	 *  Gets an Enumeration of the URLs in this story
+	 *
+	 *@return    The urls value
+	 */
+	public Enumeration getUrls() {
+		return urls.keys();
+	}
+
+
+	/**
+	 *  Gets the text associated with a URL
+	 *
+	 *@param  url  Description of the Parameter
+	 *@return      The text value
+	 */
+	public String getText(String url) {
+		return (String) urls.get(url);
+	}
+}
+
+/**
+ *  Description of the Class
+ *
+ *@author     Sanity
+ *@created    July 21, 2002
+ */
+class Util {
+
+
+	static  Runtime  rt;
+	static {
+		rt = Runtime.getRuntime();
+	}
+
+
+	/**
+	 *  Description of the Method
+	 *
+	 *@param  url    Description of the Parameter
+	 *@param  dest   Description of the Parameter
+	 *@param  depth  Description of the Parameter
+	 *@return        Description of the Return Value
+	 */
+	public static boolean wget(String url, File dest, int depth) {
+		Cachedot.log("Mirroring " + url + " to " + dest);
+		try {
+			Process  p  = rt.exec("wget --recursive --level=" + depth + " --convert-links " + url, new String[0], dest);
+			return (p.waitFor() == 0);
+		}
+		catch (Exception e) {
+			Cachedot.log("Wget of " + url + " failed due to " + e);
+			return false;
+		}
+	}
+
+
+	/**
+	 *  Description of the Method
+	 *
+	 *@param  dir   Description of the Parameter
+	 *@param  name  Description of the Parameter
+	 *@return       Description of the Return Value
+	 */
+	public static boolean fcpInsert(File dir, String name) {
+		try {
+			Cachedot.log("Starting fcpInsert of files in " + dir);
+			Process  p  = rt.exec("fcpputsite '" + name + "' " + dir + " Jfwpce58XD6gk~uOz4zy2rzV65g PZeKc90WU-8vdQ~Oc451Fw2tpEM");
+			return (p.waitFor() == 0);
+		}
+		catch (Exception e) {
+			Cachedot.log("Insert of " + name + " failed due to" + e);
+			return false;
+		}
+	}
+
+
+	/**
+	 *  Description of the Method
+	 *
+	 *@param  del  Description of the Parameter
+	 *@return      Description of the Return Value
+	 */
+	public static boolean recursDel(File del) {
+		try {
+			Process  p  = rt.exec("rm -rf " + del);
+			return (p.waitFor() == 0);
+		}
+		catch (Exception e) {
+			Cachedot.log("Delete of " + del + " failed due to " + e);
+			return false;
+		}
+	}
+}
+
