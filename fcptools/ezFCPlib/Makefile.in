@@ -79,6 +79,7 @@ GCJ = @GCJ@
 GCJFLAGS = @GCJFLAGS@
 HAVE_LIB = @HAVE_LIB@
 INCLUDES = @INCLUDES@
+LDADD = @LDADD@
 LIB = @LIB@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -94,8 +95,10 @@ STRIP = @STRIP@
 VERSION = @VERSION@
 
 CFLAGS = -ansi -W -Wall -pedantic -g
+
+# joliveri local settings
 #CFLAGS=-ansi -W -Wall -pedantic -g -DDMALLOC
-LDADD = /usr/lib/libdmalloc.a
+#LDADD=/usr/lib/libdmalloc.a
 
 #lib_LIBRARIES = libezfcp.a
 noinst_LIBRARIES = libezfcp.a
