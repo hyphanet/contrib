@@ -79,6 +79,8 @@ static void			splitInsMgr(void *nothing);
 
 static void			chunkThread(chunkThreadParams *params);
 
+static int			dumpQueue();
+
 static splitJobIns	*newJob;
 static splitJobIns	*jobQueue;
 static splitJobIns	*jobQueueEnd;
@@ -401,71 +403,11 @@ static void splitInsMgr(void *nothing)
 	while (1)
 	{
 		// let things breathe a bit
-		mysleep(10);
+		mysleep(1000);
 
-
-		// detailed status message dump
-		if (++clicks % 60 == 0)
-		{
-			clicks = 0;
-			_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: start of loop, queue dump:");
-			for (tmp1 = jobQueue; tmp1 != NULL; tmp1 = tmp1->next)
-			{
-				int i;
-				char buf[1024];
-				char buf1[10];
-
-				_fcpLog(FCP_LOG_DEBUG, "  %s", tmp1->fileName);
-				sprintf(buf, "    %d chunks, inserting: ", tmp1->numChunks);
-				for (i = 0; i < tmp1->numChunks; i++)
-				{
-					switch (tmp1->chunk[i].status)
-					{
-					case SPLIT_INSSTAT_IDLE:
-					case SPLIT_INSSTAT_WAITING:
-					case SPLIT_INSSTAT_INPROG:
-						sprintf(buf1, "%d,", i);
-						strcat(buf, buf1);
-					}
-				}
-				_fcpLog(FCP_LOG_DEBUG, buf);
-			}
-		}
-
-		// Check for any new jobs
-		if (newJob != NULL)
-		{
-			// Add this job to main queue
-			_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: got req to insert file '%s'",
-					newJob->fileName);
-			if (jobQueueEnd != NULL)
-				jobQueueEnd->next = newJob;
-			else
-				jobQueue = newJob;
-
-			jobQueueEnd = newJob;
-			newJob->next = NULL;
-			newJob = NULL;
-			continue;
-		}
-
-		// No more to do if thread quota is maxed out
-		if (runningThreads >= maxThreads)
-		{
-			mysleep(1000);
-			continue;
-		}
-
-
-		if (jobQueue == NULL)
-			_fcpLog(FCP_LOG_DEBUG, "Job queue is empty");
-
-
-		// search for freshly completed jobs
+		// de-queue any freshly completed or failed jobs
 		for (tmpJob = jobQueue; tmpJob != NULL; tmpJob = tmpJob->next)
 		{
-			//_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: found job in progress");
-
 			if (tmpJob->status == SPLIT_INSSTAT_BADNEWS)
 				// mark as failed so client thread can pick it up
 				tmpJob->status = SPLIT_INSSTAT_FAILED;
@@ -479,21 +421,58 @@ static void splitInsMgr(void *nothing)
 				continue;
 			}
 
-			// job at tmpJob is complete, dequeue it
+			_fcpLog(FCP_LOG_DEBUG, "Queue dump: before ditching job for '%s'",
+					tmpJob->fileName);
+			dumpQueue();
+
+			// if we get here, then job at tmpJob is complete, dequeue it
 			if (tmpJob == jobQueue)
-				// trivial case - we're at head of queue
 			{
+				// trivial case - we're at head of queue
 				jobQueue = jobQueue->next;
 				if (jobQueue == NULL)
 					jobQueueEnd = NULL;
 			}
 			else
-			{
 				// use 'prev' ptr to unlink this job
 				prevJob->next = tmpJob->next;
-				//prevJob = tmpJob;
-			}
+
+			_fcpLog(FCP_LOG_DEBUG, "Queue dump: after ditching");
+			dumpQueue();
 		}
+
+		// Check for any new jobs
+		if (newJob != NULL)
+		{
+			// Add this job to main queue
+			_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: got req to insert file '%s'",
+					newJob->fileName);
+
+			_fcpLog(FCP_LOG_DEBUG, "Queue dump: before adding job for '%s'",
+					newJob->fileName);
+			dumpQueue();
+
+			if (jobQueueEnd != NULL)
+				jobQueueEnd->next = newJob;
+			else
+				jobQueue = newJob;
+
+			jobQueueEnd = newJob;
+			newJob->next = NULL;
+			newJob = NULL;
+
+			_fcpLog(FCP_LOG_DEBUG, "Queue dump: after adding new job");
+			dumpQueue();
+
+			continue;
+		}
+
+		// No more to do if thread quota is maxed out
+		if (runningThreads >= maxThreads)
+			continue;
+
+		if (jobQueue == NULL)
+			_fcpLog(FCP_LOG_DEBUG, "Job queue is empty");
 
 		_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: looking for next chunk to insert");
 
@@ -543,10 +522,38 @@ static void splitInsMgr(void *nothing)
 				}
 			}
 		}
-
-		mysleep(1000);
 	}
 }				// 'splitInsMgr()'
+
+
+static int dumpQueue()
+{
+	splitJobIns *job;
+
+	for (job = jobQueue; job != NULL; job = job->next)
+	{
+		int i;
+		char buf[1024];
+		char buf1[10];
+
+		_fcpLog(FCP_LOG_DEBUG, "  %s", job->fileName);
+
+		sprintf(buf, "    %d chunks, inserting: ", job->numChunks);
+		for (i = 0; i < job->numChunks; i++)
+		{
+			switch (job->chunk[i].status)
+			{
+			case SPLIT_INSSTAT_IDLE:
+			case SPLIT_INSSTAT_WAITING:
+			case SPLIT_INSSTAT_INPROG:
+				sprintf(buf1, "%d,", i);
+				strcat(buf, buf1);
+			}
+		}
+		_fcpLog(FCP_LOG_DEBUG, buf);
+
+	}
+}
 
 
 //
