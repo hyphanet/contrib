@@ -57,6 +57,9 @@ StartCheck:
   ReadRegStr $6 HKLM "$0\$2" "JavaHome"
   StrCmp $6 "" DetectTry2
   
+  #We seem to have a JRE now
+  Goto GetJRE
+  
  DetectTry2:
   # we did not get a JRE, but there might be a SDK installed
   StrCpy $0 "Software\JavaSoft\Java Development Kit"
@@ -68,7 +71,7 @@ StartCheck:
   ReadRegStr $6 HKLM "$0\$2" "JavaHome"
   StrCmp $6 "" RunJavaFind
   
-
+ GetJRE:
   StrCpy $3 "$6\bin\java.exe"
   StrCpy $4 "$6\bin\javaw.exe"
 
@@ -194,11 +197,10 @@ SectionEnd
 Section
 # This is the invisible 'core' section which does all the install/config stuff
 
-  HideWindow
+
   Call DetectJava
 
   # create the configuration file now
-  BringToFront
   # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
   IfFileExists "$INSTDIR\freenet.ini" iniFileExisted
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
