@@ -2,16 +2,14 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-//cvs
-
 #include "stdafx.h"
 
 #include "NodeConfig.h"
 #include "ConfigFile.h"
-
 #include "PropNormal.h"
 #include "PropAdvanced.h"
 #include "PropGeek.h"
+#include "PropFProxy.h"
 
 
 #ifdef _DEBUG
@@ -25,7 +23,7 @@ extern char				progPath[256];
 extern CPropNormal		*pNormal;
 extern CPropAdvanced	*pAdvanced;
 extern CPropGeek		*pGeek;
-
+extern CPropFProxy		*pFProxy;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -111,11 +109,8 @@ void CConfigFile::Load()
 	pGeek->m_initialRequests = 10;
 	pGeek->m_localAnnounceTargets = "";
 	pGeek->m_logFile = "freenet.log";
-
 	pGeek->m_logLevel = "normal";
-
 	pGeek->m_logVerbosity = "2";
-
 	pGeek->m_messageStoreSize = 50000;
 	pGeek->m_minCacheCount = 1;
 	pGeek->m_routeConnectTimeout = 10000;
@@ -125,6 +120,14 @@ void CConfigFile::Load()
 	pGeek->m_storeDataFile = "";
 	pGeek->m_streamBufferSize = 65536;
 
+	pFProxy->m_fproxyport = 8888;
+	pFProxy->m_fproxyclass= "Freenet.client.http.FproxyServlet";
+	pFProxy->m_bfproxyfilter = TRUE;
+	pFProxy->m_strfproxyallowedmime = "text/plain,image/jpeg,image/gif,image/png";
+	pFProxy->m_bfproxyservice= TRUE;
+	pFProxy->m_fproxyinserthtl = 15;
+	pFProxy->m_fproxyrequesthtl = 15;
+	
 	// Reset unknown parameters container
 	UnknownParms = "";
 
@@ -410,6 +413,19 @@ void CConfigFile::Save()
 	fprintf(fp, "# streamBufferSize: undocumented.\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "streamBufferSize=%d\n", pGeek->m_streamBufferSize);
+	fprintf(fp, "\n\n");
+
+	// FProxy settings
+	fprintf(fp, "########################\n");
+	fprintf(fp, "# FProxy Settings\n");
+	fprintf(fp, "########################\n");
+	fprintf(fp, "services=%s\n",pFProxy->m_bfproxyservice?"fproxy":"");
+	fprintf(fp, "fproxy.class=%s\n",pFProxy->m_fproxyclass);
+	fprintf(fp, "fproxy.port=%d\n",pFProxy->m_fproxyport);
+	fprintf(fp, "fproxy.insertHtl=%d\n",pFProxy->m_fproxyinserthtl);
+	fprintf(fp, "fproxy.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
+	fprintf(fp, "fproxy.filter=%s\n",pFProxy->m_bfproxyfilter?"true":"false");
+	fprintf(fp, "fproxy.passThroughMimeTypes=%s\n",pFProxy->m_strfproxyallowedmime);
 	fprintf(fp, "\n");
 
 	// Write out unknown parameters
@@ -524,6 +540,22 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_storeDataFile = val;
 	else if (!strcmp(tok, "streamBufferSize"))
 		pGeek->m_streamBufferSize = atoi(val);
+	// FProxy
+	else if (!strcmp(tok, "services"))
+		pFProxy->m_bfproxyservice = (strstr(_strupr(val),"FPROXY"))?TRUE:FALSE;
+	else if (!strcmp(tok, "fproxy.class"))
+		pFProxy->m_fproxyclass = val;
+	else if (!strcmp(tok, "fproxy.port"))
+		pFProxy->m_fproxyport = atoi(val);
+	else if (!strcmp(tok, "fproxy.insertHtl"))
+		pFProxy->m_fproxyinserthtl = atoi(val);
+	else if (!strcmp(tok, "fproxy.requestHtl"))
+		pFProxy->m_fproxyrequesthtl = atoi(val);
+	else if (!strcmp(tok, "fproxy.filter"))
+		pFProxy->m_bfproxyfilter = atobool(val);
+	else if (!strcmp(tok, "fproxy.passThroughMimeTypes"))
+		pFProxy->m_strfproxyallowedmime = val;
+
 	else
 	{
 		// Add to 'unknown parameters' list

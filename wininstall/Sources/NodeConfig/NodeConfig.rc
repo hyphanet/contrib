@@ -28,7 +28,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDR_MAINFRAME           ICON    DISCARDABLE     "idr_main.ico"
+IDR_MAINFRAME           ICON    DISCARDABLE     "res\\NodeConfig.ico"
 #endif    // Neutral (Default) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -57,49 +57,6 @@ BEGIN
                     SS_NOPREFIX
     LTEXT           "CopyWrong (C) 2001 David McNab",IDC_STATIC,41,24,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
-END
-
-IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 241
-STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
-CAPTION "Normal Settings"
-FONT 8, "MS Sans Serif"
-BEGIN
-    EDITTEXT        IDC_storeCacheSize,36,36,30,12,ES_AUTOHSCROLL
-    CTEXT           "If this is your first time running a Freenet node, you won't need to change any of the 'Advanced' or 'Geek' settings. Just choose a location and a size for your node datastore.",
-                    IDC_STATIC,7,2,305,16
-    GROUPBOX        "Node Data Store",IDC_STATIC,7,22,305,57
-    LTEXT           "Size (MB)",IDC_STATIC,15,33,16,17
-    LTEXT           "If you change either of these settings, your entire node's datastore will be erased and replaced with a fresh empty store. You should ideally choose one size and location, and stick with it.",
-                    IDC_STATIC,93,28,207,26
-    LTEXT           "Location",IDC_STATIC,16,60,28,8
-    EDITTEXT        IDC_storePath,46,58,229,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse",IDC_storePath_browse,278,60,27,12
-    CTEXT           "Please don't change any of the 'Advanced' or 'Geek' settings unless you know what you're doing. Incorrect settings can damage your node and even impair the Freenet network as a whole",
-                    IDC_STATIC,7,217,305,18
-    GROUPBOX        "Node References",IDC_STATIC,7,125,305,90
-    CTEXT           "To connect to the Freenet network, your node needs at least one 'Node Reference', or Node Ref. A Node Ref is a small file that gives your node a 'key' into the network.",
-                    IDC_STATIC,14,134,291,17
-    CTEXT           "For most people, the default Node Refs will work fine. But if your Internet Service Provider (or your country's government) blocks Freenet access, you can bypass the restriction by getting a Node Ref from someone you know and trust.",
-                    IDC_STATIC,13,151,290,26
-    CTEXT           "If you suspect your access to Freenet is blocked, then DON'T choose the default Node Refs, because this may expose you as a Freenet user. Instead, get someone to send you a ref to their own node, and click on the 'Import New Node Ref' button below",
-                    IDC_STATIC,15,176,290,26
-    CONTROL         "Use Default Node Refs",IDC_useDefaultNodeRefs,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,60,202,89,10
-    PUSHBUTTON      "Import new Node Ref",IDC_importNewNodeRef,174,202,89,10
-    CONTROL         "Spin1",IDC_storeCacheSize_spin,"msctls_updown32",
-                    UDS_ARROWKEYS,67,35,12,16
-    GROUPBOX        "Node Availability",IDC_STATIC,7,82,305,38
-    CONTROL         "Node will run 24hrs/day",IDC_notTransient,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,93,91,10
-    CONTROL         "Node is transient",IDC_transient,"Button",
-                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,100,75,16
-    LTEXT           "Nodes running 24/7 are good for Freenet",IDC_STATIC,106,
-                    89,47,25
-    LTEXT           "Node Address (IP or domain)",IDC_ipAddress_TITLE,160,91,
-                    91,8
-    LTEXT           "FNP Listen Port",IDC_listenPort_TITLE,257,92,50,8
-    EDITTEXT        IDC_ipAddress,159,101,91,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_listenPort,257,101,40,12,ES_AUTOHSCROLL
 END
 
 IDD_PP_ADVANCED DIALOG DISCARDABLE  0, 0, 319, 241
@@ -222,6 +179,76 @@ BEGIN
                     WS_VSCROLL | WS_TABSTOP
 END
 
+IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 241
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Normal Settings"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDC_storeCacheSize,36,36,30,12,ES_AUTOHSCROLL
+    CTEXT           "If this is your first time running a Freenet node, you won't need to change any of the 'Advanced' or 'Geek' settings. Just choose a location and a size for your node datastore.",
+                    IDC_STATIC,7,2,305,16
+    GROUPBOX        "Node Data Store",IDC_STATIC,7,22,305,57
+    LTEXT           "Size (MB)",IDC_STATIC,15,33,16,17
+    LTEXT           "If you change either of these settings, your entire node's datastore will be erased and replaced with a fresh empty store. You should ideally choose one size and location, and stick with it.",
+                    IDC_STATIC,93,28,207,26
+    LTEXT           "Location",IDC_STATIC,16,60,28,8
+    EDITTEXT        IDC_storePath,46,58,229,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse",IDC_storePath_browse,278,60,27,12
+    CTEXT           "Please don't change any of the 'Advanced' or 'Geek' settings unless you know what you're doing. Incorrect settings can damage your node and even impair the Freenet network as a whole",
+                    IDC_STATIC,7,217,305,18
+    GROUPBOX        "Node References",IDC_STATIC,7,125,305,90
+    CTEXT           "To connect to the Freenet network, your node needs at least one 'Node Reference', or Node Ref. A Node Ref is a small file that gives your node a 'key' into the network.",
+                    IDC_STATIC,14,134,291,17
+    CTEXT           "For most people, the default Node Refs will work fine. But if your Internet Service Provider (or your country's government) blocks Freenet access, you can bypass the restriction by getting a Node Ref from someone you know and trust.",
+                    IDC_STATIC,13,151,290,26
+    CTEXT           "If you suspect your access to Freenet is blocked, then DON'T choose the default Node Refs, because this may expose you as a Freenet user. Instead, get someone to send you a ref to their own node, and click on the 'Import New Node Ref' button below",
+                    IDC_STATIC,15,176,290,26
+    CONTROL         "Use Default Node Refs",IDC_useDefaultNodeRefs,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,60,202,89,10
+    PUSHBUTTON      "Import new Node Ref",IDC_importNewNodeRef,174,202,89,10
+    CONTROL         "Spin1",IDC_storeCacheSize_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,67,35,12,16
+    GROUPBOX        "Node Availability",IDC_STATIC,7,82,305,38
+    CONTROL         "Node will run 24hrs/day",IDC_notTransient,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,93,91,10
+    CONTROL         "Node is transient",IDC_transient,"Button",
+                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,100,75,16
+    LTEXT           "Nodes running 24/7 are good for Freenet",IDC_STATIC,106,
+                    89,47,25
+    LTEXT           "Node Address (IP or domain)",IDC_ipAddress_TITLE,160,91,
+                    91,8
+    LTEXT           "FNP Listen Port",IDC_listenPort_TITLE,257,92,50,8
+    EDITTEXT        IDC_ipAddress,159,101,91,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_listenPort,257,101,40,12,ES_AUTOHSCROLL
+END
+
+IDD_PP_FPROXY DIALOG DISCARDABLE  0, 0, 319, 241
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "FProxy"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "FProxy port",IDC_FPROXYPORT_TITLE,15,40,51,8
+    EDITTEXT        IDC_fproxy_port,15,50,27,12,ES_NUMBER
+    GROUPBOX        "Advanced",IDC_STATIC,99,78,213,48
+    LTEXT           "FProxy class",IDC_STATIC,106,96,51,8
+    EDITTEXT        IDC_fproxy_class,105,106,200,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_fproxy_inserthtl,65,87,22,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_fproxy_requesthtl,65,106,22,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    LTEXT           "Insert HTL",IDC_STATIC,13,90,42,8
+    LTEXT           "Request HTL",IDC_STATIC,13,109,48,8
+    GROUPBOX        "Hops to live",IDC_STATIC,7,78,85,48
+    CONTROL         "Anonymity filter",IDC_FPROXYFILTER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,105,27,85,10
+    CONTROL         "FProxy active",IDC_FPROXYSERVICE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,27,74,10
+    GROUPBOX        "Basic settings",IDC_STATIC,7,18,85,51
+    GROUPBOX        "Anonymity",IDC_STATIC,99,18,213,51
+    EDITTEXT        IDC_FPROXYALLOWEDMIME,105,49,200,14,ES_AUTOHSCROLL
+    LTEXT           "Allowed Mime types",IDC_STATIC,106,39,90,8
+END
+
 
 #ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
@@ -282,14 +309,6 @@ BEGIN
         BOTTOMMARGIN, 48
     END
 
-    IDD_PP_NORMAL, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 312
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 234
-    END
-
     IDD_PP_ADVANCED, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -299,6 +318,22 @@ BEGIN
     END
 
     IDD_PP_GEEK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 312
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 234
+    END
+
+    IDD_PP_NORMAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 312
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 234
+    END
+
+    IDD_PP_FPROXY, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 312

@@ -13,11 +13,15 @@
 #define IDD_PP_GEEK                     109
 #define IDR_MAINFRAME                   128
 #define IDD_DLG_PERM_WARN               129
+#define IDD_PP_FPROXY                   130
+#define IDD_PROPPAGE_LARGE              131
 #define IDC_EDIT1                       1000
 #define IDC_storeCacheSize              1000
 #define IDC_seedNodes                   1000
 #define IDC_announcementAttempts        1000
+#define IDC_fproxy_inserthtl            1000
 #define IDC_storePath                   1001
+#define IDC_fproxy_requesthtl           1001
 #define IDC_storePath_browse            1002
 #define IDC_useDefaultNodeRefs          1003
 #define IDC_importNewNodeRef            1004
@@ -70,14 +74,20 @@
 #define IDC_ipAddress_TITLE             1054
 #define IDC_listenPort_TITLE            1055
 #define IDC_DONT_WARN_PERM              1056
+#define IDC_fproxy_port                 1061
+#define IDC_FPROXYPORT_TITLE            1062
+#define IDC_fproxy_class                1063
+#define IDC_FPROXYFILTER                1064
+#define IDC_FPROXYSERVICE               1065
+#define IDC_FPROXYALLOWEDMIME           1066
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        132
+#define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1057
+#define _APS_NEXT_CONTROL_VALUE         1067
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

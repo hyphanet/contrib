@@ -110,6 +110,10 @@ SOURCE=.\PropAdvanced.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\PropFProxy.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\PropGeek.cpp
 # End Source File
 # Begin Source File
@@ -143,6 +147,10 @@ SOURCE=.\PropAdvanced.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\PropFProxy.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\PropGeek.h
 # End Source File
 # Begin Source File
@@ -161,10 +169,6 @@ SOURCE=.\StdAfx.h
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-# Begin Source File
-
-SOURCE=.\idr_main.ico
-# End Source File
 # Begin Source File
 
 SOURCE=.\res\NodeConfig.ico

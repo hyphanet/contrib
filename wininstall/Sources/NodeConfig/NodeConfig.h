@@ -1,7 +1,5 @@
 // NodeConfig.h : main header file for the NODECONFIG application
 //
-//cvs
-
 
 #if !defined(AFX_NODECONFIG_H__90BB8677_5BCB_4520_98BD_729C2A4705A0__INCLUDED_)
 #define AFX_NODECONFIG_H__90BB8677_5BCB_4520_98BD_729C2A4705A0__INCLUDED_
