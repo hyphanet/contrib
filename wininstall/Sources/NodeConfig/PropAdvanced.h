@@ -35,6 +35,7 @@ public:
 	UINT	m_maximumThreads;
 	UINT	m_outputBandwidthLimit;
 	CString	m_seedFile;
+	UINT	m_maxNodeConnections;
 	//}}AFX_DATA
 
 
@@ -55,6 +56,7 @@ protected:
 	afx_msg void OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnchangedmaxNodeConnectionsspin(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

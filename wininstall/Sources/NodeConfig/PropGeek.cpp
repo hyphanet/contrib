@@ -19,8 +19,7 @@ IMPLEMENT_DYNCREATE(CPropGeek, CPropertyPage)
 
 CPropGeek::CPropGeek() : CPropertyPage(CPropGeek::IDD)
 {
-	//{{AFX_DATA_INIT(CPropGeek)
-	//}}AFX_DATA_INIT
+
 }
 
 CPropGeek::~CPropGeek()
@@ -54,8 +53,7 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_localAnnounceTargets, m_localAnnounceTargets);
 	DDX_Text(pDX, IDC_messageStoreSize, m_messageStoreSize);
 	DDV_MinMaxUInt(pDX, m_messageStoreSize, 128, 1048576);
-	DDX_Text(pDX, IDC_minCacheCount, m_minCacheCount);
-	DDV_MinMaxUInt(pDX, m_minCacheCount, 1, 1048576);
+	DDX_Text(pDX, IDC_blockSize, m_blockSize);
 	DDX_Text(pDX, IDC_routeConnectTimeout, m_routeConnectTimeout);
 	DDV_MinMaxUInt(pDX, m_routeConnectTimeout, 1000, 300000);
 	DDX_Text(pDX, IDC_rtMaxNodes, m_rtMaxNodes);
@@ -66,6 +64,9 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDV_MaxChars(pDX, m_storeDataFile, 256);
 	DDX_Text(pDX, IDC_streamBufferSize, m_streamBufferSize);
 	DDV_MinMaxUInt(pDX, m_streamBufferSize, 1024, 1048576);
+	DDX_Text(pDX, IDC_storeCipherName, m_storeCipherName);
+	DDX_Text(pDX, IDC_storeCipherWidth, m_storeCipherWidth);
+	DDX_Text(pDX, IDC_maximumPadding, m_maximumPadding);
 	//}}AFX_DATA_MAP
 }
 

@@ -40,6 +40,7 @@
 #define IDC_adminPassword               1025
 #define IDC_announcementDelay           1026
 #define IDC_announcementDelayBase       1027
+#define IDC_maxNodeConnections_spin     1027
 #define IDC_announcementPeers           1028
 #define IDC_doDiagnostics               1029
 #define IDC_diagnosticsPath             1030
@@ -47,11 +48,11 @@
 #define IDC_logLevel                    1033
 #define IDC_authTimeout                 1035
 #define IDC_checkPointInterval          1037
-#define IDC_minCacheCount               1038
+#define IDC_blockSize                   1038
 #define IDC_connectionTimeout           1039
 #define IDC_hopTimeExpected             1040
 #define IDC_hopTimeDeviation            1041
-#define IDC_storeFile					1042
+#define IDC_storeFile                   1042
 #define IDC_storeDataFile               1043
 #define IDC_localAnnounceTargets        1044
 #define IDC_messageStoreSize            1045
@@ -83,9 +84,13 @@
 #define IDC_logFormat                   1073
 #define IDC_fproxy_splitincHTL          1074
 #define IDC_GETLOCALSEED                1075
+#define IDC_maxNodeConnections          1075
 #define IDC_BUT_exportRef               1076
+#define IDC_storeCipherName             1076
 #define IDC_transient                   1077
+#define IDC_storeCipherWidth            1077
 #define IDC_DLOADPROGRESS               1078
+#define IDC_maximumPadding              1078
 #define IDC_doAnnounce                  1079
 
 // Next default values for new objects
@@ -94,7 +99,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1075
+#define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

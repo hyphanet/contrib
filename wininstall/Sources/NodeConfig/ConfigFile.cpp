@@ -94,6 +94,7 @@ void CConfigFile::Load()
 	pAdvanced->m_inputBandwidthLimit = 0;
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumThreads = 120;
+	pAdvanced->m_maxNodeConnections = 60;
 	pAdvanced->m_outputBandwidthLimit = 0;
 	pAdvanced->m_seedFile = "seednodes.ref";
 
@@ -110,12 +111,15 @@ void CConfigFile::Load()
 	pGeek->m_initialRequests = 10;
 	pGeek->m_localAnnounceTargets = "";
 	pGeek->m_messageStoreSize = 50000;
-	pGeek->m_minCacheCount = 1;
+	pGeek->m_blockSize = 4096;
+	pGeek->m_maximumPadding = 65536;
 	pGeek->m_routeConnectTimeout = 10000;
 	pGeek->m_rtMaxNodes = 100;
 	pGeek->m_rtMaxRefs = 1000;
 	pGeek->m_storeDataFile = "";
 	pGeek->m_streamBufferSize = 65536;
+	pGeek->m_storeCipherName = "Twofish";
+	pGeek->m_storeCipherWidth = 128;
 
 	pFProxy->m_fproxyport = 8888;
 	pFProxy->m_fproxyclass= "freenet.client.http.FproxyServlet";
@@ -281,6 +285,9 @@ void CConfigFile::Save()
 	fprintf(fp, "# this specifies how many inbound connections can be active at once.\n");
 	fprintf(fp, "maximumThreads=%d\n", pAdvanced->m_maximumThreads);
 	fprintf(fp, "\n");
+	fprintf(fp, "# The number of connections that a node can keep open at the same time\n");
+	fprintf(fp, "maxNodeConnections=%d\n", pAdvanced->m_maxNodeConnections);
+	fprintf(fp, "\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Geek Settings\n");
@@ -329,10 +336,12 @@ void CConfigFile::Save()
 	fprintf(fp, "# wait for before it starts to abandon them.\n");
 	fprintf(fp, "messageStoreSize=%d\n", pGeek->m_messageStoreSize);
 	fprintf(fp, "\n");
-	fprintf(fp, "# The minimum number of entries the node should try to maintain\n");
-	fprintf(fp, "# in the cache.  The largest file size allowed in the cache will be\n");
-	fprintf(fp, "# storeCacheSize / minCacheCount.\n");
-	fprintf(fp, "minCacheCount=%d\n", pGeek->m_minCacheCount);
+	fprintf(fp, "# What size should the blocks have when moving data?\n");
+	fprintf(fp, "blockSize=%d\n", pGeek->m_blockSize);
+	fprintf(fp, "\n");
+	fprintf(fp, "# The maximum number of bytes of padding to allow between messages\n");
+	fprintf(fp, "# and in Void messages.\n");
+	fprintf(fp, "maximumPadding=%d\n", pGeek->m_maximumPadding);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The time to wait for connections to be established and \n");
 	fprintf(fp, "# authenticated before passing by a node while routing out.\n");
@@ -355,8 +364,16 @@ void CConfigFile::Save()
 	else
 		fprintf(fp, "storeDataFile=store_%d\n", pNormal->m_listenPort);
 	fprintf(fp, "\n");
-	fprintf(fp, "# streamBufferSize: undocumented.\n");
-	fprintf(fp, "streamBufferSize=%d\n", pGeek->m_streamBufferSize);
+	fprintf(fp, "# The name of a symmetric cipher algorithm to encrypt the datastore\n");
+	fprintf(fp, "# contents with.  Supported algorithms are \"Twofish\", \"Rijndael\",\n");
+	fprintf(fp, "# and \"null\", \"none\", or \"void\" (for no encryption).\n");
+	fprintf(fp, "storeCipherName=%s\n", pGeek->m_storeCipherName);
+	fprintf(fp, "\n");
+	fprintf(fp, "# The width in bits of the cipher key to use for the datastore.\n");
+	fprintf(fp, "# The allowed values for this will depend on the cipher algorithm.\n");
+	fprintf(fp, "# Twofish allows 64, 128, 192, or 256, while Rijndael allows\n");
+	fprintf(fp, "# 128, 192, or 256.\n");
+	fprintf(fp, "storeCipherWidth=%d\n", pGeek->m_storeCipherWidth);
 	fprintf(fp, "\n\n");
 
 	fprintf(fp, "########################\n");
@@ -489,6 +506,8 @@ void CConfigFile::processItem(char *tok, char *val)
 		pAdvanced->m_maxHopsToLive = atoi(val);
 	else if (!strcmp(tok, "maximumThreads"))
 		pAdvanced->m_maximumThreads = atoi(val);
+	else if (!strcmp(tok, "maxNodeConnections"))
+		pAdvanced->m_maxNodeConnections = atoi(val);
 	else if (!strcmp(tok, "announcementAttempts"))
 		pGeek->m_announcementAttempts = atoi(val);
 	else if (!strcmp(tok, "announcementDelay"))
@@ -511,8 +530,10 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_initialRequests = atoi(val);
 	else if (!strcmp(tok, "messageStoreSize"))
 		pGeek->m_messageStoreSize = atoi(val);
-	else if (!strcmp(tok, "minCacheCount"))
-		pGeek->m_minCacheCount = atoi(val);
+	else if (!strcmp(tok, "blockSize"))
+		pGeek->m_blockSize = atoi(val);
+	else if (!strcmp(tok, "maximumPadding"))
+		pGeek->m_maximumPadding = atoi(val);
 	else if (!strcmp(tok, "routeConnectTimeout"))
 		pGeek->m_routeConnectTimeout = atoi(val);
 	else if (!strcmp(tok, "rtMaxNodes"))
@@ -523,6 +544,10 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_storeDataFile = val;
 	else if (!strcmp(tok, "streamBufferSize"))
 		pGeek->m_streamBufferSize = atoi(val);
+	else if (!strcmp(tok, "storeCipherName"))
+		pGeek->m_storeCipherName = val;
+	else if (!strcmp(tok, "storeCipherWidth"))
+		pGeek->m_storeCipherWidth = atoi(val);
 	// Servlets & FProxy
 	else if (!strcmp(tok, "services"))
 	{

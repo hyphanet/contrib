@@ -36,12 +36,15 @@ public:
 	UINT	m_initialRequests;
 	CString	m_localAnnounceTargets;
 	UINT	m_messageStoreSize;
-	UINT	m_minCacheCount;
+	UINT	m_blockSize;
 	UINT	m_routeConnectTimeout;
 	UINT	m_rtMaxNodes;
 	UINT	m_rtMaxRefs;
 	CString	m_storeDataFile;
 	UINT	m_streamBufferSize;
+	CString	m_storeCipherName;
+	UINT	m_storeCipherWidth;
+	UINT	m_maximumPadding;
 	//}}AFX_DATA
 
 

@@ -50,6 +50,7 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_outputBandwidthLimit, 0, 999999999);
 	DDX_Text(pDX, IDC_SEEDFILE, m_seedFile);
 	DDV_MaxChars(pDX, m_seedFile, 255);
+	DDX_Text(pDX, IDC_maxNodeConnections, m_maxNodeConnections);
 	//}}AFX_DATA_MAP
 }
 
@@ -62,6 +63,7 @@ BEGIN_MESSAGE_MAP(CPropAdvanced, CPropertyPage)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_maximumThreads_spin, OnMaximumThreadsspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_outputBandwidthLimit_spin, OnOutputBandwidthLimitspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_bandwidthLimit_spin, OnBandwidthLimitspin)
+	ON_NOTIFY(UDN_DELTAPOS, IDC_maxNodeConnections_spin, OnchangedmaxNodeConnectionsspin)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -74,18 +76,19 @@ void CPropAdvanced::OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	UpdateData(TRUE);
 	if (pNMUpDown->iDelta < 0)
 	{
-		if (m_bandwidthLimit++ == 0)
-			m_inputBandwidthLimit = m_outputBandwidthLimit = 0;
-		UpdateData(FALSE);
+		m_bandwidthLimit += 1000;
 	}
 	else
 	{
-		if (m_bandwidthLimit > 0)
+		if (m_bandwidthLimit >= 1000)
 		{
-			m_bandwidthLimit--;
-			UpdateData(FALSE);
+			m_bandwidthLimit -= 1000;
 		}
 	}
+
+	if (m_bandwidthLimit > 0)
+			m_inputBandwidthLimit = m_outputBandwidthLimit = 0;
+	UpdateData(FALSE);
 	*pResult = 0;
 }
 
@@ -95,18 +98,17 @@ void CPropAdvanced::OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	UpdateData(TRUE);
 	if (pNMUpDown->iDelta < 0)
 	{
-		m_outputBandwidthLimit++;
 		m_bandwidthLimit = 0;
-		UpdateData(FALSE);
+		m_outputBandwidthLimit += 1000;
 	}
 	else
 	{
-		if (m_outputBandwidthLimit > 0)
+		if (m_outputBandwidthLimit >= 1000)
 		{
-			m_outputBandwidthLimit--;
-			UpdateData(FALSE);
+			m_outputBandwidthLimit -= 1000;
 		}
 	}
+	UpdateData(FALSE);
 	*pResult = 0;
 }
 
@@ -116,18 +118,17 @@ void CPropAdvanced::OnInputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	UpdateData(TRUE);
 	if (pNMUpDown->iDelta < 0)
 	{
-		m_inputBandwidthLimit++;
 		m_bandwidthLimit = 0;
-		UpdateData(FALSE);
+		m_inputBandwidthLimit += 1000;
 	}
 	else
 	{
-		if (m_inputBandwidthLimit > 0)
+		if (m_inputBandwidthLimit >= 1000)
 		{
-			m_inputBandwidthLimit--;
-			UpdateData(FALSE);
+			m_inputBandwidthLimit -= 1000;
 		}
 	}
+	UpdateData(FALSE);
 	*pResult = 0;
 }
 
@@ -188,7 +189,6 @@ void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult)
 		if (m_maximumThreads < 1024)
 		{
 			m_maximumThreads++;
-			UpdateData(FALSE);
 		}
 	}
 	else
@@ -196,8 +196,28 @@ void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult)
 		if (m_maximumThreads > 0)
 		{
 			m_maximumThreads--;
-			UpdateData(FALSE);
 		}
 	}
+	UpdateData(FALSE);
+	*pResult = 0;
+}
+
+void CPropAdvanced::OnchangedmaxNodeConnectionsspin(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
+	UpdateData(TRUE);
+	if (pNMUpDown->iDelta < 0)
+	{
+			m_maxNodeConnections++;
+	}
+	else
+	{
+		if (m_maxNodeConnections > 0)
+		{
+			m_maxNodeConnections--;
+			
+		}
+	}
+	UpdateData(FALSE);
 	*pResult = 0;
 }
