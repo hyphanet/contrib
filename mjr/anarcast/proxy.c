@@ -332,7 +332,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     next = active = m = realcount = 0;
     
     for (i = 0 ; i < blockcount ; i++)
-	if (!mask[i]) realcount++;
+	if (!mask || !mask[i]) realcount++;
     
     alert("Inserting %d blocks of %d bytes each.", realcount, blocksize);
     
