@@ -38,7 +38,8 @@ public class Assert {
     public static void assertEquals(String message, boolean expected, 
                                     boolean actual) {
         if (!(expected && actual) && (actual || expected))
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(byte expected, byte actual) {
@@ -49,7 +50,8 @@ public class Assert {
     public static void assertEquals(String message, byte expected, 
                                     byte actual) {
         if (expected != actual)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(char expected, char actual) {
@@ -59,7 +61,8 @@ public class Assert {
 
     public static void assertEquals(String message, char expected, char actual) {
         if (expected != actual)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(double expected, double actual, 
@@ -72,7 +75,8 @@ public class Assert {
     public static void assertEquals(String message, double expected, 
                                     double actual, double delta) {
         if (Math.abs(expected - actual) > delta)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(float expected, float actual, 
@@ -85,7 +89,8 @@ public class Assert {
     public static void assertEquals(String message, float expected, 
                                     float actual, double delta) {
         if (Math.abs(expected - actual) > delta)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(int expected, int actual) {
@@ -95,7 +100,8 @@ public class Assert {
 
     public static void assertEquals(String message, int expected, int actual) {
         if (expected != actual)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(long expected, long actual) {
@@ -106,18 +112,20 @@ public class Assert {
     public static void assertEquals(String message, long expected, 
                                     long actual) {
         if (expected != actual)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(Object expected, Object actual) {
-        if (expected.equals(actual))
+        if (!expected.equals(actual))
             throw new AssertionFailedError(expected + " != " + actual);
     }
 
     public static void assertEquals(String message, Object expected, 
                                     Object actual) {
-        if (expected.equals(actual))
-            throw new AssertionFailedError(message);
+        if (!expected.equals(actual))
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertEquals(short expected, short actual) {
@@ -128,7 +136,8 @@ public class Assert {
     public static void assertEquals(String message, short expected, 
                                     short actual) {
         if (expected != actual)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": "  + expected 
+                                           + " != " + actual);
     }
 
     public static void assertNotNull(Object o) {
@@ -137,8 +146,8 @@ public class Assert {
     }
 
     public static void assertNotNull(String m, Object o) {
-        if (o != null)
-            throw new AssertionFailedError(m);
+        if (o == null)
+            throw new AssertionFailedError(m + ": Object is null.");
     }
 
     public static void assertNull(Object o) {
@@ -148,7 +157,7 @@ public class Assert {
 
     public static void assertNull(String m, Object o) {
         if (o != null)
-            throw new AssertionFailedError(m);
+            throw new AssertionFailedError(m + ": Object not null.");
     }
 
     public static void assertSame(Object expected, Object actual) {
@@ -160,7 +169,8 @@ public class Assert {
     public static void assertSame(String message, Object expected, 
                                   Object actual) {
         if (expected != actual)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message  + ": "  + expected 
+                                           + " not same as " + actual);
     }
 
     public static void assertTrue(boolean condition) {
@@ -170,15 +180,15 @@ public class Assert {
 
     public static void assertTrue(String message, boolean condition) {
         if (!condition)
-            throw new AssertionFailedError(message);
+            throw new AssertionFailedError(message + ": Assertion not tue.");
     }
 
     public static void fail() {
-        throw new AssertionFailedError("Failed");
+        throw new AssertionFailedError("Failed.");
     }
 
     public static void fail(String m) {
-        throw new AssertionFailedError(m);
+        throw new AssertionFailedError(m + ": Failed.");
     }
 
 }

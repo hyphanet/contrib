@@ -15,7 +15,7 @@ public class TestFailure {
     protected Throwable fThrownException;
 
     public TestFailure(Test failedTest, Throwable thrownException) {
-        this.fFailedTest = fFailedTest;
+        this.fFailedTest = failedTest;
         this.fThrownException = thrownException;
     } 
 
@@ -23,7 +23,7 @@ public class TestFailure {
         return fFailedTest;
     }
 
-    public Throwable throwException() {
+    public Throwable thrownException() {
         return fThrownException;
     }
 
