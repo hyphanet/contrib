@@ -11,8 +11,23 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+/* PORTABLE ? YES */
+
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
+
+/* Necessary includes */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+ 
+#include <pthread.h>
+/* ~Necessary includes */
 
 /*
   Threshold levels for the user-provided fcpLogCallback() function
@@ -20,37 +35,11 @@
   be one of these values. This allows the client program to screen log
   messages according to importance
 */
-//#define FCP_LOG_SILENT      0
 #define FCP_LOG_CRITICAL    0
 #define FCP_LOG_NORMAL      1
 #define FCP_LOG_VERBOSE     2
 #define FCP_LOG_DEBUG       3
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <fcntl.h>
-#include <time.h>
-
-#include "dirent.h"
-#include "sys/stat.h"
-#include "unistd.h"
-
-/*
-#ifdef WINDOWS
-#include <io.h>
-#include <windows.h>
-#else
-*/
-
-#include <sys/socket.h>
-#include <unistd.h>
-#include <pthread.h>
-
-/* #endif */
 
 #define DIR_DELIM_CHAR      '/'
 #define DIR_DELIM_STRING    "/"
@@ -113,22 +102,6 @@ typedef struct _splitJob {
   splitChunkIns *chunk;      /* malloc'ed array of split chunk control blocks */
   struct _splitJob *next;  /* next on linked list */
 } splitJobIns;
-
-/*
-  Macro to implement a platform-independent sleep function
-
-  As long as we use POSIX.1 compliant functions (sleep is one of them),
-  this code should also work on NT/2K, since this is the only version
-  of POSIX it supports.  Even though it's limited, it has pthreads, which
-  I think is worth it after all the research I've done so far.  ?
-*/
-/*
-#ifdef WINDOWS
-#define mysleep(msecs)  Sleep(msecs)
-#else
-#define mysleep(msecs)  usleep((msecs) * 1000)
-#endif
-*/
 
 /*
   General FCP definitions

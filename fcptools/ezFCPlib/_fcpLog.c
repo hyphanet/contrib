@@ -12,13 +12,9 @@
 //  See http://www.gnu.org/ for further details of the GPL.
 //
 
-#include <stdarg.h>
-
-#ifdef _WIN32
-#define vsnprintf _vsnprintf
-#endif
-
 #include "ezFCPlib.h"
+
+#include <stdarg.h>
 
 extern int fcpLogCallback(int level, char *buf);
 

@@ -1,7 +1,5 @@
 
 # Makefile.am for ezFCPlib
-#
-# It builds both a static .a and shared libtool .la version.
 
 INCLUDES = -I$(srcdir)
 CFLAGS = -pedantic
@@ -17,9 +15,9 @@ FCP_SOURCE = \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c \
 	mimetype.c template.c safeMalloc.c
 
-#noinst_HEADERS = ezFCPlib.h
-
+noinst_HEADERS = ezFCPlib.h
 noinst_LIBRARIES = libezfcp.a
+
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 
 noinst_PROGRAMS = test unix

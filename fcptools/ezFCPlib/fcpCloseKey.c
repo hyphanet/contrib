@@ -12,13 +12,9 @@
 //  See http://www.gnu.org/ for further details of the GPL.
 //
 
-#ifndef WINDOWS
-#include "unistd.h"
-#endif
-
-#include "stdlib.h"
-
 #include "ezFCPlib.h"
+
+#include <unistd.h>
 
 
 extern char     *_fcpHost;

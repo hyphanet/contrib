@@ -7,10 +7,9 @@
 // versions of ezFCPlib
 //
 
+#include "ezFCPlib.h"
 
 #include <string.h>
-
-#include "ezFCPlib.h"
 
 
 //
@@ -39,12 +38,6 @@ extern long xtoi(char *s);
 
 static char    *getLine(char *buf, char **nextPos);
 static char    *splitLine(char *buf);
-
-#ifdef WINDOWS
-#define strcasecmp(s1, s2) strcmpi(s1, s2)
-#endif
-
-
 
 // parse states - internal use only
 

@@ -23,6 +23,8 @@ Description:	- invoked at ezFCPlib startup
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <sys/stat.h>
+
 
 #include "ezFCPlib.h"
 

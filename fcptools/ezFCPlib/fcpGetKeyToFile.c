@@ -1,31 +1,25 @@
-//
-//  This code is part of FreeWeb - an FCP-based client for Freenet
-//
-//  Designed and implemented by David McNab, david@rebirthing.co.nz
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The FreeWeb website is at http://freeweb.sourceforge.net
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
+/*
+  This code is part of FreeWeb - an FCP-based client for Freenet
 
-#ifndef WINDOWS
-#include "unistd.h"
-#endif
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
+
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
+
+  This code is distributed under the GNU Public Licence (GPL) version 2.
+  See http://www.gnu.org/ for further details of the GPL.
+*/
 
 #include "ezFCPlib.h"
 
+/*
+  Function:    fcpGetKeyToFile()
 
-//
-// Function:    fcpGetKeyToFile()
-//
-// Arguments:   hfcp
-//
-// Description:
-//
-//
+  Arguments:   hfcp
+
+  Description:
+*/
 
 int fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata)
 {
@@ -43,12 +37,9 @@ int fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata)
     unlink(file);
 
     // open a file to write the key to
-#ifdef WINDOWS
-    if ((fd = _open(file, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0)
-#else
     if ((fd = open(file, O_CREAT, S_IREAD | S_IWRITE)) < 0)
-#endif
-        return -1;
+
+    return -1;
 
     // suck all of key's data into this file
     while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
