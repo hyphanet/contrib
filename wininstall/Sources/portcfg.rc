@@ -1,20 +1,23 @@
 /* Wedit generated resource file */
 #include <windows.h>
-#include "portcfgres.h"
+#include "d:\dokumente\source\initcfg\portcfgres.h"
 
 
-IDD_MAINDIALOG DIALOG 7, 20, 177, 56
+IDD_MAINDIALOG DIALOG 7, 20, 183, 103
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
     WS_SYSMENU
-CAPTION "Freenet port"
+CAPTION "Freenet initial configuration"
 FONT 8, "Helv"
 BEGIN
-    DEFPUSHBUTTON   "OK", IDOK, 123, 13, 40, 14
-    PUSHBUTTON      "Cancel", IDCANCEL, 123, 33, 40, 14
-    LTEXT           "Free port found. Should we use it?", 101, 11, 10, 112, 
-                    11
-    EDITTEXT        102, 49, 32, 38, 12, ES_NUMBER
-    LTEXT           "Use port:", 103, 12, 33, 36, 8
-    LTEXT           "Otherwise modify it to your choice.", 104, 11, 20, 109, 
+    DEFPUSHBUTTON   "OK", IDOK, 101, 83, 40, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 51, 83, 40, 14
+    LTEXT           "Unused port found. Should we use it?", 101, 55, 15, 122, 
+                    10
+    EDITTEXT        102, 12, 19, 38, 12, ES_NUMBER
+    LTEXT           "Otherwise modify it to your choice.", 104, 55, 27, 109, 
                     12
+    AUTOCHECKBOX    "Dialup connection (transient=yes)", 106, 14, 59, 
+                    121, 10
+    GROUPBOX        "Freenet port", 103, 6, 6, 171, 35
+    GROUPBOX        "Connection type", 105, 6, 48, 171, 27
 END

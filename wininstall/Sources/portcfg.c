@@ -14,6 +14,7 @@
 #define FLAUNCHSEC 	"Freenet Node"
 #define FLAUNCHFILE ".\\freenet.ini"
 #define MAXSTRLEN 256
+#define TRANSIENT "transient"
 
 static int freeport=0;
 char str[256];
@@ -160,6 +161,12 @@ BOOL isSuccess;
 				if (isSuccess) freeport = i;
 				/* and write as param */
 				WriteParam (itoa(freeport,str,10),JAVAEXEC,FLAUNCHSEC,FLAUNCHFILE);
+     			/* Get connection type and set transient=yes and informWrite=no if dialup */
+				if (SendDlgItemMessage(hwndDlg, 106, BM_GETCHECK, 0,0)) {
+					WriteParam ("no","informWrite",FLAUNCHSEC,FLAUNCHFILE);
+					WriteParam ("yes","transient",FLAUNCHSEC,FLAUNCHFILE);
+				}
+				/* close the dialog */
 				EndDialog(hwndDlg,1);
 				return 1;
 			case IDCANCEL:
