@@ -149,10 +149,6 @@ insert (int c)
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
     hashes = malloc(hlen);
     
-    // grow big enough, my dear
-    while (g.dbc * blocksize < datalength)
-	blocksize++;
-    
     // pad to first multiple of our crypto blocksize
     while (g.dbc * blocksize < datalength + (datalength % 16))
 	blocksize++;
@@ -179,7 +175,7 @@ insert (int c)
     
     // encrypt data
     alert("Encrypting data.");
-    encryptdata(blocks, g.dbc * blocksize, hashes);
+    encryptdata(blocks, datalength + 16 - (datalength % 16), hashes);
     
     // generate check blocks
     alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);
@@ -379,10 +375,6 @@ request (int c)
     }
     g = graphs[datalength/blocksize-1];
     
-    // grow big enough, my dear
-    while (g.dbc * blocksize < datalength)
-	blocksize++;
-    
     // pad to first multiple of our crypto blocksize
     while (g.dbc * blocksize < datalength + (datalength % 16))
 	blocksize++;
@@ -491,7 +483,7 @@ request (int c)
 verify:
     // decrypt data
     alert("Decrypting data.");
-    decryptdata(blocks, g.dbc * blocksize, hashes);
+    decryptdata(blocks, datalength + 16 - (datalength % 16), hashes);
 
     // verify data
     hashdata(blocks, datalength, hash);
