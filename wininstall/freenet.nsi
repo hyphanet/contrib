@@ -182,12 +182,8 @@ FindWindow "close" "TrayIconFreenetClass" ""
 DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet"
 #DeleteRegValue HKEY_CURRENT_USER "Software\Microsoft\Windows\CurrentVersion\Run" "Freenet server"
 
-# F... W2K doesn't provide deltree anymore, telling the user to delete their fucking dir themselves
-ExecWait 'command.com /c rd "$INSTDIR\.freenet"'
-MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `Please delete .freenet in your freenet directory manually.` 0 0
-
 # Now deleting the rest
-# RMDir /r $INSTDIR\.freenet
+#RMDir /r $INSTDIR\.freenet
 RMDir /r $INSTDIR
 
 # remove IE plugin
