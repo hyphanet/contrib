@@ -1,0 +1,39 @@
+.TH FCPGET 1 "August 2002" Linux "FCP (Freenet Client Protocol) Tools"
+.SH NAME
+fcpget \- Retrieve files from Freenet using Freenet's Client Protocol
+.SH SYNOPSIS
+.B fcpget
+[OPTIONS] key [FILE]
+.SH DESCRIPTION
+.B fcpget
+does really hip things with Freenet.
+.SH OPTIONS
+.IP "-n host"
+Address of FCP capable host.
+.IP "-p port"
+Port of FCP capable host.
+.IP "-l hops-to-live"
+Hops to live count.
+.IP "-e regress-num"
+Number of days to regress.
+.IP -r
+Enable rawmode.
+.IP "-m metadata-file"
+File to store metadata.
+.IP "-v verbosity"
+Verbosity level for logging.
+.IP -V
+Output version information and exit.
+.IP -h
+Display usage information and exit.
+.SH ENVIRONMENT
+.IP FCPBLEH
+May be a good idea to use environment variables.
+.SH BUGS
+The command name should have been chosen more carefully
+to reflect its purpose.
+.SH AUTHOR
+Jay Oliveri <ilnero@gmx.net>
+.SH "SEE ALSO"
+.BR fcpput (1),
+.BR fcpputsite (5),
