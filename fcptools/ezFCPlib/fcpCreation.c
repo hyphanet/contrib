@@ -62,15 +62,13 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 
 	/* do the handle option mask */
 	h->options->noredirect       = (optmask & FCP_MODE_RAW ? FCP_MODE_RAW : 0);
-	h->options->delete_local  = (optmask & FCP_MODE_DELETE_LOCAL ? FCP_MODE_DELETE_LOCAL : 0);
-	h->options->skip_local    = (optmask & FCP_MODE_SKIP_LOCAL ? FCP_MODE_SKIP_LOCAL : 0);
+	h->options->remove_local  = (optmask & FCP_MODE_REMOVE_LOCAL ? FCP_MODE_REMOVE_LOCAL : 0);
 	h->options->dbr           = (optmask & FCP_MODE_DBR ? FCP_MODE_DBR : 0);
 	h->options->meta_redirect = (optmask & FCP_MODE_REDIRECT_METADATA ? FCP_MODE_REDIRECT_METADATA : 0);
 
-	_fcpLog(FCP_LOG_DEBUG, "noredirect: %u, delete_local: %u, skip_local: %u, dbr: %u, meta_redirect: %u",
+	_fcpLog(FCP_LOG_DEBUG, "noredirect: %u, remove_local: %u, dbr: %u, meta_redirect: %u",
 					h->options->noredirect,
-					h->options->delete_local,
-					h->options->skip_local,
+					h->options->remove_local,
 					h->options->dbr,
 					h->options->meta_redirect);
 	
@@ -89,14 +87,14 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 
 	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl,
 		                hfcp->options->noredirect |
-										hfcp->options->delete_local |
-										hfcp->options->skip_local |
+										hfcp->options->remove_local |
 		                hfcp->options->dbr |
 		                hfcp->options->meta_redirect);
 
 	/* copy over any other options */
 	h->options->timeout = hfcp->options->timeout;
 	h->options->retry = hfcp->options->retry;
+	h->options->mintimeout = hfcp->options->mintimeout;
 
 	return h;
 }
@@ -136,10 +134,9 @@ hOptions *_fcpCreateHOptions(void)
 	memset(h, 0, sizeof (hOptions));
 
 	h->logstream = EZFCP_DEFAULT_LOGSTREAM;		
-	h->delete_local = EZFCP_DEFAULT_DELETELOCAL;
+	h->remove_local = EZFCP_DEFAULT_DELETELOCAL;
 	h->regress = EZFCP_DEFAULT_REGRESS;
 	h->retry = EZFCP_DEFAULT_RETRY;
-	h->skip_local = EZFCP_DEFAULT_SKIPLOCAL;
 	h->splitblock = EZFCP_DEFAULT_BLOCKSIZE;
 	h->timeout = EZFCP_DEFAULT_TIMEOUT;
 	h->verbosity = EZFCP_DEFAULT_VERBOSITY;
@@ -297,8 +294,6 @@ void _fcpDestroyHMetadata(hMetadata *h)
 			free(h->tmpblock);
 		}
 		
-		/*if (h->raw_metadata) free(h->raw_metadata); DEPRECATE */
-
 		if (h->cdoc_count)
 			_fcpDestroyHMetadata_cdocs(h);
 	}
@@ -544,6 +539,17 @@ void _fcpDestroyHSegment(hSegment *h)
 			free(h->check_blocks);
 		}
 	}
+}
+
+void _fcpDestroyHSegments(hKey *key)
+{
+	int i;
+
+	for (i=0; i < key->segment_count; i++) {
+		_fcpDestroyHSegment(key->segments[i]);
+	}
+
+	key->segment_count = 0;
 }
 
 #ifdef fcpCreationTEST

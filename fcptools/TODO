@@ -10,9 +10,15 @@ that can be implemented by any competent C programmer.
 General
 ----------------
 
++ Make sure the "undocumented" switches are documented at least in fcpput, fcpget, etc.
++ After Pending, reset the Retry count.
++ fcpput thinks -D option is passed on inserting splitfiles(?)
 + Fix spelling in _fcpRecvResponse.c: "Received RoutNotFound message"
-+ Implement future_insert(num_days) option.
++ Implement future_insert(num_days) option (along with *both* DBR root and target keys).
++ Send email to Dev about MetaRedirect control doc.
++ Write code to insert DBR root and target in same execution (using a 'future insert' option).
 
+= Change DeleteLocal to SkipLocal.
 = Confirm _fcpMetaParse() can handle merging metadata into an already allocated meta struct.
 = Verify metadata handling when storing metadata as redirect (and not within SSK/KSK).
   (needs more testing, but looks ok).
@@ -23,7 +29,10 @@ General
 ezFCPlib
 -----------------
 
-+!Add handling of CryptoKey in key generation and SSK handling.
++ Append the filename to the filename-hint section of the returned URI for CHK's.
++ Clean up Verbose log messages; verify *all* command line options are re-iterated.
++ Verify handling of CryptoKey in key generation.
++ Handle "BackedOff" field in RouteNotFound response.
 + Move READFILE WRITEFILE flags from ez_sys to ezFCPlib.h
 + Add configuration option for Timeout length (in seconds)
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.

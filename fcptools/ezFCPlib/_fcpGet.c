@@ -40,17 +40,34 @@ static int read_metadata_line(hFCP *hfcp, char *line, int size);
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
 /*
-	_fcpGetBLock()
+	FUNCTION:_fcpGetBLock()
 
-	function retrieves a freenet CHK via it's URI.
+	PARAMETERS:
 
-	function expects the following members in hfcp to be set:
+	- hfcp: A created and initialized hFCP struct.
+	- keyblock: Points to an hBlock of keydata.
+	- metablock: Points to an hBlock of metadata.
+	- uri: Freenet URI to retrieve.
 
-	function returns:
-	- zero on success
-	- non-zero on error.
+	IN:
+	- hfcp->htl: Hops to live.
+	- hfcp->host: Host of Freenet node.
+	- hfcp->port: Port of Freenet node.
+
+	- hfcp->options->delete_local: Send RemoveLocalKey?
+	- hfcp->options->retry: Number of retries on socket timeouts and Restarts.
+	- hfcp->options->meta_redirect: Insert metadata via redirect?
+	- hfcp->options->dbr: Insert key as DBR?
+
+	OUT:
+	- hfcp->key->size: Number of bytes of keydata.
+	- hfcp->key->metadata->size: Number of bytes of metadata.
+	- hfcp->key->metadata->cdocs: Parsed metadata control doc information.
+
+	- hfcp->key->tmpblock->uri: CHK of inserted block.
+
+	RETURNS: Zero on success, <0 on error.
 */
-
 int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 {
 	char get_command[L_FILE_BLOCKSIZE+1];  /* used *twice* in this function */
@@ -71,7 +88,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 	rc = snprintf(get_command, L_FILE_BLOCKSIZE,
 								"ClientGet\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nEndMessage\n",
-								(hfcp->options->skip_local == 0 ? "false" : "true"),
+								(hfcp->options->remove_local == 0 ? "false" : "true"),
 								uri,
 								hfcp->htl
 								);
@@ -91,11 +108,11 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		/* connect to Freenet FCP */
 		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
-		_fcpLog(FCP_LOG_VERBOSE, "sending ClientGet message to %s:%u, htl=%u, skip_local=%s",
+		_fcpLog(FCP_LOG_VERBOSE, "sending ClientGet message to %s:%u, htl=%u, remove_local=%s",
 						hfcp->host,
 						hfcp->port,
 						hfcp->htl,
-						(hfcp->options->skip_local ? "Yes" : "No"));
+						(hfcp->options->remove_local ? "Yes" : "No"));
 
 		
 		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%u, keysize=%u, metasize=%u",
@@ -149,13 +166,18 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 		case FCPRESP_TYPE_ROUTENOTFOUND: /* Unreachable, Restarted, Rejected */
 			_fcpLog(FCP_LOG_VERBOSE, "Received RouteNotFound message");
-			_fcpLog(FCP_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u",
+
+			_fcpLog(FCP_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u, backed off: %u",
 							hfcp->response.routenotfound.unreachable,
 							hfcp->response.routenotfound.restarted,
-							hfcp->response.routenotfound.rejected);
+							hfcp->response.routenotfound.rejected,
+							hfcp->response.routenotfound.backedoff);
 			
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
+			
+			/* re-set retry count to initial value */
+			retry = hfcp->options->retry;
 			
 			/* this will route us to a restart */
 			rc = FCPRESP_TYPE_RESTARTED;
@@ -231,16 +253,11 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		}		
 
 		_fcpWrite(metablock->fd, get_command, bytes);
+
+		/* TODO write the raw metadata to a buf and pass into metaparse when done
+			 (only the cdoc; don't parse the 'rest' piece */
+
 		meta_bytes -= bytes;
-
-		/* inspect for a redirect.. if yes, store in hfcp->_redirect */
-		if (!strncmp(get_command, "Redirect.Target=", 16)) {
-
-			/* chop off the \n */
-			get_command[strlen(get_command)-1] = 0;
-
-			hfcp->_redirect = strdup(get_command + 16);
-		}
 
 		_fcpLog(FCP_LOG_DEBUG, "meta_bytes remaining: %d", meta_bytes);
 	}
@@ -249,6 +266,8 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 	if (hfcp->key->metadata->size > 0) {
 		_fcpLog(FCP_LOG_VERBOSE, "Read %d bytes of metadata", hfcp->key->metadata->size);
 		_fcpBlockUnlink(metablock);
+
+		/* TODO parse into hfcp struct and save */
 	}
 
 	if (key_bytes) {
@@ -340,6 +359,9 @@ int _fcpGetFollowRedirects(hFCP *hfcp, char *uri)
 	strncpy(get_uri, uri, L_URI);
 	depth = 0;
 
+	/* this call will put metadata control doc info in
+		 hfcp->key->metadata->dcocs */
+
 	rc = _fcpGetBLock(hfcp,
 										hfcp->key->tmpblock,
 										hfcp->key->metadata->tmpblock,
@@ -350,6 +372,9 @@ int _fcpGetFollowRedirects(hFCP *hfcp, char *uri)
 	while (rc == 0) {
 
 		/* now we have the key data and perhaps metadata */
+
+		/* TODO check for static redirects */
+		/* check the hfcp->key->metadata->cdocs[] array */
 
 		if (hfcp->_redirect) {
 			_fcpLog(FCP_LOG_VERBOSE, "Following redirect to %s", hfcp->_redirect);
@@ -365,10 +390,18 @@ int _fcpGetFollowRedirects(hFCP *hfcp, char *uri)
 												get_uri);
 		}
 
+		/* TODO check for date-based redirects */
+		/* calculate date target based on today's date + 'future_insert' parameter */
+
 		else {
 			
 			_fcpLog(FCP_LOG_DEBUG, "got data!");
 			fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
+
+			/* TODO check metadata for meta_redirect flag; if true then
+				 fetch the CHK@ referred and use that metadata
+				 (use *tmp_hfcp)
+			*/
 			
 			break;
 		}

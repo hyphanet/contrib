@@ -39,6 +39,7 @@ fcpReadKey.c \
 fcpMakeSvkKeypair.c \
 fcpStartup.c \
 fcpWriteKey.c \
+mktime.c \
 "
 
 FCP_TEST = "\
@@ -64,6 +65,7 @@ fcpReadKey.c \
 fcpMakeSvkKeypair.c \
 fcpStartup.c \
 fcpWriteKey.c \
+mktime.c \
 "
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)

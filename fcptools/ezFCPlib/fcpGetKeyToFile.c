@@ -58,8 +58,8 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	/* if in normal mode, follow the redirects */
 	if (hfcp->options->noredirect == 0) {
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Starting recursive retrieve (will follow redirects)");
-		rc = _fcpGetFollowRedirects(hfcp, key_uri);
+		/*_fcpLog(FCP_LOG_VERBOSE, "Starting recursive retrieve (will follow redirects)");*/
+		/*rc = _fcpGetFollowRedirects(hfcp, key_uri);*/
 	}
 	else { /* RAWMODE */
 		

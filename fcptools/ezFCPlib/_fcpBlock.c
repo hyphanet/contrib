@@ -96,19 +96,19 @@ int _fcpBlockLink(hBlock *h, int access)
 void _fcpBlockUnlink(hBlock *h)
 {
 	if (h->fd == 0) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): fd == 0");
+		/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): fd == 0");*/
 		h->fd = -1;
 		return;
 	}
 
 	if (h->fd == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - fd already closed / not opened", h->filename);
+		/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - fd already closed / not opened", h->filename);*/
 		h->fd = -1;
 		return;
 	}
 
 	if (close(h->fd) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - close() returned -1", h->filename);
+		/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - close() returned -1", h->filename);*/
 		h->fd = -1;
 		return;
 	}

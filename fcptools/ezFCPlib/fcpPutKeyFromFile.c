@@ -34,7 +34,11 @@
 #include "ez_sys.h"
 
 /*
-	FUNCTION fcpPutKeyFromFile()
+	FUNCTION:fcpPutKeyFromFile()
+
+	function creates a freenet CHK using the contents in 'key_filename'
+	along with key metadata contained in 'meta_filename'.  Function will
+	check	and validate the size of both file arguments.
 	
 	PARAMETERS:
 
@@ -146,6 +150,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 		rc = _fcpPutSplitfile(hfcp);
 
+		_fcpDestroyHSegments(hfcp->key);
+
 		/* CHK uri is already in proper location (hfcp->key->uri) */
 	}
 	
@@ -156,6 +162,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 											hfcp->key->tmpblock,
 											0,
 											"CHK@");
+
+		/* tmpblocks will be deleted before function exit below */
 
 		/* copy over the CHK uri */
 		fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
@@ -175,7 +183,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		/* copy over new CHK */
 		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
 	}
-	else { /* for CHK's, SSK's, and KSK's that *have* metadata */
+	else { /* for CHK's (with metadata) and all SSK's/KSK's */
 		
 		if ((rc = _fcpInsertRoot(hfcp)) != 0) {
 

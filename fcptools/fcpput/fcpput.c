@@ -24,7 +24,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-
 #include "ezFCPlib.h"
 #include "getopt.h"
 
@@ -32,8 +31,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-
-#include "ez_sys.h"
 
 #ifdef DMALLOC
 #include <dmalloc.h>
@@ -59,7 +56,9 @@ unsigned short  port = EZFCP_DEFAULT_PORT;
 int   verbosity = FCP_LOG_NORMAL;
 int   htl       = EZFCP_DEFAULT_HTL;
 int   retry     = EZFCP_DEFAULT_RETRY;
+int   mintime   = 0;
 int   optmask   = 0;
+int   future    = 0;
 
 char *logfile = 0; /* filename for logfile (if not stdout) */
 FILE *logstream = 0; /* FILE * to logfile (or stdout) */
@@ -121,8 +120,10 @@ int main(int argc, char* argv[])
 	
   hfcp = fcpCreateHFCP(host, port, htl, optmask);
 
-	/* set retry manually; TODO: set() functions for hfcp->options */
+	/* set retry and DBR info manually */
 	hfcp->options->retry = retry;
+	hfcp->options->mintimeout = mintime;
+	hfcp->options->future = future;
   
   if (b_genkeys) {
 		char pub[L_KEY+1];
@@ -305,12 +306,14 @@ static void parse_args(int argc, char *argv[])
     {"port", 1, 0, 'p'},
     {"htl", 1, 0, 'l'},
     {"metadata", 1, 0, 'm'},
-    {"logfile", 1, 0, 'f'},
+    {"logfile", 1, 0, 'o'},
 
     {"stdin", 0, 0, 's'},
     {"retry", 1, 0, 'a'},
+    {"mintime", 1, 0, 't'},
     {"delete-local", 0, 0, 'D'},
     {"dbr", 0, 0, 'd'},
+    {"future-days", 1, 0, 'f'},
 
 		{"meta-redirect", 0, 0, 'M'},
 
@@ -325,7 +328,7 @@ static void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:f:sa:DdMv:gVh1";
+  char short_options[] = "n:p:l:m:o:sa:t:Ddf:Mv:gVh1";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -355,7 +358,7 @@ static void parse_args(int argc, char *argv[])
       strcpy(metafile, optarg);
       break;
 
-    case 'f':
+    case 'o':
 			logfile = strdup(optarg);
       break;
 			
@@ -367,15 +370,26 @@ static void parse_args(int argc, char *argv[])
 		case 'a':
 			i = atoi( optarg );
 			if (i > 0) retry = i;
+			break;
+
+		case 't':
+			i = atoi( optarg );
+			if (i > 0) mintime = i;
+			break;
 
     case 'D':
-      optmask |= FCP_MODE_DELETE_LOCAL;
+      optmask |= FCP_MODE_REMOVE_LOCAL;
       break;
 			
     case 'd':
       optmask |= FCP_MODE_DBR;
       break;
 			
+		case 'f':
+			i = atoi( optarg );
+			if (i > 0) future = i;
+			break;
+
 		case 'M':
       optmask |= FCP_MODE_REDIRECT_METADATA;
       break;
@@ -433,13 +447,15 @@ static void usage(char *s)
 	if (s) printf("Error: %s\n", s);
 
 	printf("FCPtools; Freenet Client Protocol Tools\n");
-	printf("CopyLeft 2001 by David McNab <david@rebirthing.co.nz>\n");
+	printf("CopyLeft 2001-2004 by David McNab <david@rebirthing.co.nz>\n");
 	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
 
 	printf("Usage: fcpput [-n hostname] [-p port] [-l hops to live]\n");
-	printf("              [-m metadata] [-a retry] [-D] [-s] [-d]\n");
-	printf("              [-v verbosity] [-f logfile] [-g]\n");
-	printf("              [-V] [-h] freenet_uri [FILE]...\n\n");
+	printf("              [-m metadata] [-M] [-d] [-f days] [-a retry]\n");
+	printf("              [-t mintime [-D] [-o logfile] [-v verbosity]\n");
+	printf("              [-s] [-V] [-h] freenet_uri [FILE]...\n\n");
+
+	printf("       fcpput [-n hostname] [-p port] [-g]\n\n");
 
 	printf("Options:\n\n");
 	printf("  -n, --address host     Freenet node address\n");
@@ -449,17 +465,19 @@ static void usage(char *s)
 	printf("  -m, --metadata file    Read key metadata from local file\n");
 	printf("  -M, --meta-redirect    Insert metadata via redirect\n\n");
 
-	printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n");
+	printf("  -d, --dbr              Insert key as a date-based redirect\n");
+	printf("  -f, --future-days num  Number of days into the future to insert DBR key\n\n");
+
+	printf("  -a, --retry num        Number of retries after a timeout\n");
+	printf("  -t, --mintime num      Mininum time (seconds) to wait before timeout on connection\n");
+	printf("  -D, --remove-local     Remove key from local datastore on insert\n\n");
+
+	printf("  -o, --logfile file     Full pathname for the output log file (default stdout)\n");
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 
-	printf("  -a, --retry num        Number of retries after a timeout\n");
-	printf("  -D, --delete-local     Delete key from local datastore on insert\n");
-	printf("  -d, --dbr              Insert key as a date-based redirect\n");
-	printf("  -s, --stdin            Read key data from stdin\n\n");
-
-	printf("  -g, --genkeys          Generate a keypair then exit\n\n");
-
+	printf("  -s, --stdin            Read key data from stdin\n");
+	printf("  -g, --genkeys          Generate a keypair then exit\n");
 	printf("  -V, --version          Output version information and exit\n");
 	printf("  -h, --help             Display this help and exit\n\n");
 
@@ -468,7 +486,7 @@ static void usage(char *s)
 	printf("                           KSK@<routing key>\n");
 	printf("                           SSK@<private key>[/<docname>]\n\n");
 
-	printf("  file                   Read key data from local file\n");
+	printf("  FILE                   Read key data from one or more files\n");
 	printf("                         (cannot be used with --stdin)\n\n");
 
 	printf("Examples:\n\n");

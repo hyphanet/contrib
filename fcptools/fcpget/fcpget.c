@@ -220,22 +220,21 @@ static void parse_args(int argc, char *argv[])
     {"port", 1, 0, 'p'},
     {"htl", 1, 0, 'l'},
     {"metadata", 1, 0, 'm'},
-    {"stdout", 0, 0, 's'},
+    {"regress", 1, 0, 'e'},
 
     {"retry", 1, 0, 'a'},
-    {"regress", 1, 0, 'e'},
-    {"skip-local", 0, 0, 'S'},
-    {"noredirect", 0, 0, 'r'},
-
+    {"remove-local", 0, 0, 'D'},
+    {"logfile", 1, 0, 'o'},
     {"verbosity", 1, 0, 'v'},
-    {"logfile", 1, 0, 'f'},
 
+    {"noredirect", 0, 0, 'r'},
+    {"stdout", 0, 0, 's'},
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:sa:e:Srv:f:Vh";
+  char short_options[] = "n:p:l:m:e:a:Do:v:rsVh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -282,8 +281,8 @@ static void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if (i > 0) regress = i;
       
-    case 'S':
-      optmask |= FCP_MODE_SKIP_LOCAL;
+    case 'D':
+      optmask |= FCP_MODE_REMOVE_LOCAL;
       break;
 			
     case 'v':
@@ -291,7 +290,7 @@ static void parse_args(int argc, char *argv[])
       if ((i >= 0) && (i <= 4)) verbosity = i;
       break;
       
-    case 'f':
+    case 'o':
       logfile = strdup(optarg);
       break;
       
@@ -333,32 +332,33 @@ static void usage(char *s)
   if (s) printf("Error: %s\n", s);
   
   printf("FCPtools; Freenet Client Protocol Tools\n");
-  printf("CopyLeft 2001 by David McNab <david@rebirthing.co.nz>\n\n");
+  printf("CopyLeft 2001-2004 by David McNab <david@rebirthing.co.nz>\n\n");
   
   printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
   
   printf("Usage: fcpget [-n hostname] [-p port] [-l hops to live]\n");
-  printf("              [-m metadata] [-s] [-e regress] [-S] [-v verbosity]\n");
-  printf("              [-V] [-h] freenet_uri [FILE]\n\n");
-  
+  printf("              [-m metadata] [-e regress] [-a retry]\n");
+  printf("              [-D] [-o logfile] [-v verbosity]\n");
+  printf("              [-r] [-s] [-V] [-h] freenet_uri [FILE]n\n");
+	
   printf("Options:\n\n");
   
   printf("  -n, --address host     Freenet node address\n");
   printf("  -p, --port num         Freenet node port\n");
   printf("  -l, --htl num          Hops to live\n\n");
 
-	printf("  -m, --metadata file    Write key metadata to local file\n\n");
+	printf("  -m, --metadata file    Write key metadata to local file\n");
+	printf("  -e, --regress num      Number of days to regress\n\n");
 
-  printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n");
+  printf("  -a, --retry num        Number of retries after a timeout\n");
+	printf("  -D, --remove-local     Remove key from local datastore on retrieve\n\n");
+
+  printf("  -o, --logfile file     Full pathname for the output log file (default stdout)\n");
   printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
   printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 
-  printf("  -a, --retry num        Number of retries after a timeout\n");
-  printf("  -S, --skip-local       Skip key in local datastore on retrieve\n");
 	printf("  -r, --noredirect       Do not follow redirects on retrieve\n");
-	printf("  -e, --regress num      Number of days to regress\n");
-  printf("  -s, --stdout           Write key data to stdout\n\n");
-  
+  printf("  -s, --stdout           Write key data to stdout\n");
   printf("  -V, --version          Output version information and exit\n");
   printf("  -h, --help             Display this help and exit\n\n");
   
@@ -367,7 +367,7 @@ static void usage(char *s)
   printf("                           KSK@<routing key>\n");
   printf("                           SSK@<public key>[/<docname>]\n\n");
   
-  printf("  file                   Write key data to local file\n");
+  printf("  FILE                   Write key data to local file\n");
   printf("                         (cannot be used with --stdout)\n\n");
   
   exit(0);

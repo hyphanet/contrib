@@ -385,6 +385,7 @@ static int getrespDataFound(hFCP *hfcp)
 
 		else if (strncmp(resp, "Timeout=", 8) == 0) {
 			hfcp->options->timeout = hfcp->response.datafound.timeout = (unsigned short)xtol(resp + 8);
+			/*_fcpLog(FCP_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
@@ -496,6 +497,9 @@ static int getrespRouteNotFound(hFCP *hfcp)
 		else if (!strncmp(resp, "Rejected=", 9))
 			hfcp->response.routenotfound.rejected = (unsigned short)xtol(resp + 9);
 
+		else if (!strncmp(resp, "BackedOff=", 10))
+			hfcp->response.routenotfound.backedoff = (unsigned short)xtol(resp + 10);
+
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_ROUTENOTFOUND;
 
@@ -557,6 +561,8 @@ static int getrespRestarted(hFCP *hfcp)
 		if (!strncmp(resp, "Timeout=", 8)) {
 			hfcp->response.restarted.timeout = (unsigned short)xtol(resp + 8);
 			hfcp->options->timeout = hfcp->response.restarted.timeout;
+
+			/*_fcpLog(FCP_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
 		}
 
 		else if (!strncmp(resp, "EndMessage", 10))
@@ -643,6 +649,8 @@ static int getrespPending(hFCP *hfcp)
 		else if (!strncmp(resp, "Timeout=", 8)) { /* milliseconds */
 			hfcp->response.pending.timeout = (unsigned short)xtol(resp + 8);
 			hfcp->options->timeout = hfcp->response.pending.timeout;
+
+			/*_fcpLog(FCP_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))

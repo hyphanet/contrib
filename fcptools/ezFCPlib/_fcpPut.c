@@ -32,8 +32,11 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <time.h>
 
 #include "ez_sys.h"
+
+extern time_t mkgmtime(struct tm *);
 
 /* Private functions for internal use */
 static int fec_segment_file(hFCP *hfcp);
@@ -42,21 +45,42 @@ static int fec_insert_data_blocks(hFCP *hfcp, int segment);
 static int fec_insert_check_blocks(hFCP *hfcp, int segment);
 static int fec_make_metadata(hFCP *hfcp);
 
+static char *_fcpDBRString(hURI *uri, int future);
+
 
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
 /*
-	_fcpPutBlock()
+	FUNCTION:_fcpPutBlock()
 
-	function creates a freenet CHK using the contents in 'key_filename'
-	along with key metadata contained in 'meta_filename'.  Function will
-	check	and validate the size of both file arguments.
+	Inserts a block (single piece of key/meta data) into Freenet and returns
+	the URI for inserted block.  This function can be called for single blocks
+	and for each block in a splitfile.
 
-	function expects the following members in hfcp to be set:
+	PARAMETERS:
 
-	function returns:
-	- zero on success
-	- non-zero on error.
+	- hfcp: A created and initialized hFCP struct.
+	- keyblock: Points to an hBlock of keydata.
+	- metablock: Points to an hBlock of metadata.
+	- uri: Freenet URI to insert data under ("CHK@" to calculate).
+
+	IN:
+	- hfcp->htl: Hops to live.
+	- hfcp->host: Host of Freenet node.
+	- hfcp->port: Port of Freenet node.
+
+	- hfcp->key->size: Number of bytes of keydata.
+	- hfcp->key->metadata->size: Number of bytes of metadata.
+
+	- hfcp->options->remove_local: Send RemoveLocalKey?
+	- hfcp->options->retry: Number of retries on socket timeouts and Restarts.
+	- hfcp->options->meta_redirect: Insert metadata via redirect?
+	- hfcp->options->dbr: Insert key as DBR?
+
+	OUT:
+	- hfcp->key->tmpblock->uri: CHK of inserted block.
+
+	RETURNS: Zero on success, <0 on error.
 */
 int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 {
@@ -72,6 +96,7 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 	int bytes;
 	int byte_count;
 
+	/* grab the sizes and save them here */
 	keysize = (keyblock ? hfcp->key->size : 0);
 	metasize = (metablock ? hfcp->key->metadata->size : 0);
 
@@ -81,17 +106,19 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		return -1;
 	}
 
+	/* build a ClientPut command, taking into account the possible existance
+		 of metadata */
 	if (metasize == 0)
 		rc = snprintf(put_command, L_FILE_BLOCKSIZE,
 									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%lx\nData\n",
-									(hfcp->options->delete_local == 0 ? "false" : "true"),
+									(hfcp->options->remove_local == 0 ? "false" : "true"),
 									uri,
 									hfcp->htl,
 									keysize);
 	else
 		rc = snprintf(put_command, L_FILE_BLOCKSIZE,
 									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%lx\nMetadataLength=%lx\nData\n",
-									(hfcp->options->delete_local == 0 ? "false" : "true"),
+									(hfcp->options->remove_local == 0 ? "false" : "true"),
 									uri,
 									hfcp->htl,
 									keysize + metasize,
@@ -99,8 +126,10 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 	/********************************************************************/
 
+	/* set the retry count to full before entering loop */
 	retry = hfcp->options->retry;
-	fcpParseHURI(hfcp->key->tmpblock->uri, uri);
+
+	/*fcpParseHURI(hfcp->key->tmpblock->uri, uri);*/
 	
 	do { /* let's loop this until we stop receiving Restarted messages */
 		
@@ -109,16 +138,15 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		/* connect to Freenet FCP */
 		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
-		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%u, htl=%u, delete_local=%s, meta-redirect=%s, dbr=%s",
+		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%u, htl=%u, remove_local=%s, meta-redirect=%s, dbr=%s",
 						hfcp->host,
 						hfcp->port,
 						hfcp->htl,
-						(hfcp->options->delete_local ? "Yes" : "No"),
+						(hfcp->options->remove_local ? "Yes" : "No"),
 						(hfcp->options->meta_redirect ? "Yes" : "No"),
 						(hfcp->options->dbr ? "Yes" : "No"));
 		
-		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%u, keysize=%u, metasize=%u",
-						hfcp->options->regress,
+		_fcpLog(FCP_LOG_DEBUG, "other information.. keysize=%u, metasize=%u",
 						keysize,
 						metasize);
 		
@@ -220,13 +248,13 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 				
 			case FCPRESP_TYPE_KEYCOLLISION:
 
-				_fcpLog(FCP_LOG_VERBOSE, "Received KeyCollision message (successful)");
+				_fcpLog(FCP_LOG_VERBOSE, "Received KeyCollision message (Success)");
 				fcpParseHURI(hfcp->key->tmpblock->uri, hfcp->response.keycollision.uri);
 				break;
 				
 			case FCPRESP_TYPE_RESTARTED:
 				_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message");
-				_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
+				/*_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));*/
 				
 				/* disconnect from the socket */
 				_fcpSockDisconnect(hfcp);
@@ -239,7 +267,10 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 			case FCPRESP_TYPE_PENDING:
 
 				_fcpLog(FCP_LOG_VERBOSE, "Received Pending message");
-				_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
+				/*_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));*/
+
+				/* re-set retry count to initial value */
+				retry = hfcp->options->retry;
 
 				break;
 				
@@ -259,16 +290,20 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 			case FCPRESP_TYPE_ROUTENOTFOUND:
 				retry--;
 
-				_fcpLog(FCP_LOG_VERBOSE, "Received RoutNotFound message");
-				_fcpLog(FCP_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u",
+				_fcpLog(FCP_LOG_VERBOSE, "Received RouteNotFound message");
+				_fcpLog(FCP_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u, backed off: %u",
 								hfcp->response.routenotfound.unreachable,
 								hfcp->response.routenotfound.restarted,
-								hfcp->response.routenotfound.rejected);
+								hfcp->response.routenotfound.rejected,
+								hfcp->response.routenotfound.backedoff);
 
 				/* now do the same routine as done for SOCKET_TIMEOUT */
 				
 				/* disconnect from the socket */
 				_fcpSockDisconnect(hfcp);
+
+				/* re-set retry count to initial value */
+				retry = hfcp->options->retry;
 
 				/* this will route us to a restart */
 				rc = FCPRESP_TYPE_RESTARTED;
@@ -387,6 +422,7 @@ int _fcpPutSplitfile(hFCP *hfcp)
 	PARAMETERS:
 
 	IN:
+	- hfcp->key->uri: CHK@ uri.
 
 	OUT:
 
@@ -398,8 +434,12 @@ int _fcpInsertRoot(hFCP *hfcp)
 	hDocument *doc;
 
 	char  buf[8193];
-	char *metadata;
-	char *metadata_uri;
+
+	hMetadata *meta;
+	char      *metadata_raw;
+	char      *uri;
+
+	char      *dbr;
 
 	int  bytes;
 	int  byte_count;
@@ -409,9 +449,12 @@ int _fcpInsertRoot(hFCP *hfcp)
 
 	/* first let's be careful w/ our pointers, eh? */
 	tmp_hfcp     = 0;
-	metadata     = 0;
-	metadata_uri = 0;
+	meta         = 0;
+	metadata_raw = 0;
+	uri          = 0;
 	doc          = 0;
+
+	meta = _fcpCreateHMetadata();
 
 	if (hfcp->options->meta_redirect) {
 		
@@ -453,15 +496,15 @@ int _fcpInsertRoot(hFCP *hfcp)
 		}
 
 		/* store the uri and use as redirect target */
-		metadata_uri = strdup(tmp_hfcp->key->tmpblock->uri->uri_str);
-		snprintf(buf, 512, "Version\nRevision=1\nEndPart\nDocument\nName=meta-redirect\nRedirectTarget=%s\nEnd", metadata_uri);
+		uri = strdup(tmp_hfcp->key->tmpblock->uri->uri_str);
+		snprintf(buf, 8192, "Version\nRevision=1\nEndPart\nDocument\nMetadataRedirect.Target=%s\nEnd", uri);
 
 		/* cleanup a little */
 		fcpDestroyHFCP(tmp_hfcp);
 		free(tmp_hfcp); tmp_hfcp = 0;
 		
 		/* parse */
-		if (_fcpMetaParse(hfcp->key->metadata, buf) != 0) {
+		if (_fcpMetaParse(meta, buf) != 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Error parsing custom metadata");
 			
 			rc = -1;
@@ -476,16 +519,16 @@ int _fcpInsertRoot(hFCP *hfcp)
 			_fcpBlockLink(hfcp->key->metadata->tmpblock, _FCP_READ);
 			
 			/* allocate space for raw metadata */
-			metadata = malloc(hfcp->key->metadata->size + 1);
+			metadata_raw = malloc(hfcp->key->metadata->size + 1);
 			
 			/* read it in one pass */
-			_fcpRead(hfcp->key->metadata->tmpblock->fd, metadata, hfcp->key->metadata->size);
+			_fcpRead(hfcp->key->metadata->tmpblock->fd, metadata_raw, hfcp->key->metadata->size);
 			
 			/* make it a cstrz */
-			metadata[hfcp->key->metadata->size] = 0;
+			metadata_raw[hfcp->key->metadata->size] = 0;
 
 			/* parse */
-			if (_fcpMetaParse(hfcp->key->metadata, metadata) != 0) {
+			if (_fcpMetaParse(meta, metadata_raw) != 0) {
 				_fcpLog(FCP_LOG_CRITICAL, "Error parsing custom metadata");
 				
 				rc = -1;
@@ -496,47 +539,85 @@ int _fcpInsertRoot(hFCP *hfcp)
 		}
 	}
 
-	/* in either case, a call to _fcpMetaParse() occurs exactly once
-		 (but could have occurred before this function, as for splitfiles */
-	 
-	doc = cdocAddDoc(hfcp->key->metadata, 0);
+	/* must do this for both cases */
+	doc = cdocAddDoc(meta, 0);
 	cdocAddKey(doc, "Redirect.Target", hfcp->key->uri->uri_str);
-	
+
+	/* all the user metadata (and a meta-redirect if specified) is in the
+		 meta struct */
+
+	_fcpDestroyHMetadata(hfcp->key->metadata);
+	hfcp->key->metadata = _fcpCreateHMetadata();
+
+	tmp_hfcp = fcpInheritHFCP(hfcp);
+
 	/* check on the dbr option */
+
 	if (hfcp->options->dbr) {
+		
+		if (!(dbr = _fcpDBRString(hfcp->key->target_uri, hfcp->options->future))) {
+			rc = -1;
+			goto cleanup;
+		}
 
-		/* create a doc for the date-redirect and add the target */
-		doc = cdocAddDoc(hfcp->key->metadata, "date-redirect");
-		cdocAddKey(doc, "DateRedirect.Target", hfcp->key->target_uri->uri_str);
-
-		_fcpLog(FCP_LOG_DEBUG, "inserted dbr key");
+		_fcpLog(FCP_LOG_DEBUG, "dbr: %s", dbr);
+		
+		/* store the dbr uri over target_uri */
+		uri = strdup(dbr);
+		free(dbr); dbr = 0;
 	}
 
-	/* at this point, *all* metadata (if any) is in the hfcp->key->metadata struct */
-
-	/* open another hfcp to write the metadata */
-	tmp_hfcp = fcpInheritHFCP(hfcp);
-	fcpOpenKey(tmp_hfcp, hfcp->key->target_uri->uri_str, FCP_MODE_O_WRITE);
-
-	if (metadata) free(metadata);
-	metadata = _fcpMetaString(hfcp->key->metadata);
-
-	fcpWriteMetadata(tmp_hfcp, metadata, strlen(metadata));
-
+	else {
+		uri = hfcp->key->target_uri->uri_str;
+	}
+	
+	/* open the date-coded key */
+	fcpOpenKey(tmp_hfcp, uri, FCP_MODE_O_WRITE);
+	
+	if (metadata_raw) free(metadata_raw);
+	metadata_raw = _fcpMetaString(meta);
+	
+	fcpWriteMetadata(tmp_hfcp, metadata_raw, strlen(metadata_raw));
+	
 	_fcpBlockUnlink(tmp_hfcp->key->tmpblock);
 	_fcpBlockUnlink(tmp_hfcp->key->metadata->tmpblock);
-
-	/* now insert the metadata (with no key data to insert) */
+	
+	/* now insert the DBR target key */
 	rc = _fcpPutBlock(tmp_hfcp,
 										0,
 										tmp_hfcp->key->metadata->tmpblock,
-										hfcp->key->target_uri->uri_str);
+										tmp_hfcp->key->target_uri->uri_str);
 
+	_fcpLog(FCP_LOG_DEBUG, "inserted dbr key");
+	
+	/* for DBR's, need to insert root key with DateRedirect.Target dcoc */
+	if (hfcp->options->dbr) {
+
+		fcpDestroyHFCP(tmp_hfcp);
+		free(tmp_hfcp);
+
+		tmp_hfcp = fcpInheritHFCP(hfcp);
+		
+		fcpOpenKey(tmp_hfcp, hfcp->key->target_uri->uri_str, FCP_MODE_O_WRITE);
+		
+		snprintf(buf, 8192, "Version\nRevision=1\nEndPart\nDocument\nDateRedirect.Target=%s\nEnd", hfcp->key->target_uri->uri_str);
+		fcpWriteMetadata(tmp_hfcp, buf, strlen(buf));
+		
+		_fcpBlockUnlink(tmp_hfcp->key->tmpblock);
+		_fcpBlockUnlink(tmp_hfcp->key->metadata->tmpblock);
+		
+		/* now insert the metadata (with no key data to insert) */
+		rc = _fcpPutBlock(tmp_hfcp,
+											0,
+											tmp_hfcp->key->metadata->tmpblock,
+											hfcp->key->target_uri->uri_str);
+	}
+	
 	/* fall into cleanup and return rc, which on success == 0 */
-
+	
 	fcpParseHURI(hfcp->key->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
-	/*if (hfcp->key->target_uri->type == KEY_TYPE_CHK)*/
+	if (hfcp->key->target_uri->type == KEY_TYPE_CHK)
 	fcpParseHURI(hfcp->key->target_uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
 	rc = 0;
@@ -549,10 +630,57 @@ int _fcpInsertRoot(hFCP *hfcp)
 		free(tmp_hfcp);
 	}
 
-	if (metadata) free(metadata);
+	if (metadata_raw) free(metadata_raw);
 
 	return rc;
 }
+
+
+char *_fcpDBRString(hURI *uri, int future)
+{
+	char *uri_str;
+
+	struct tm *t_tm;
+	time_t t_t;
+	
+	time(&t_t);
+	t_tm = gmtime(&t_t);
+
+	t_tm->tm_hour = 0;
+	t_tm->tm_min = 0;
+	t_tm->tm_sec = 0;
+
+	/* use future to adjust number of days.. */
+	t_tm->tm_mday += future;
+
+	t_t = mkgmtime(t_tm);
+
+	/* now use this number (in hex) and build up the new URI */
+	uri_str = malloc(1025);
+
+	switch (uri->type) {
+
+	case KEY_TYPE_SSK:
+
+		snprintf(uri_str, 1024, "freenet:SSK@%s-%x/%s//", uri->keyid, (unsigned)t_t, uri->docname);
+		break;
+
+	case KEY_TYPE_KSK:
+
+		snprintf(uri_str, 1024, "freenet:KSK@%s-%x", uri->keyid, (unsigned)t_t);
+		break;
+
+	default:
+
+		free(uri_str);
+		return 0;
+	}
+
+	uri_str = realloc(uri_str, strlen(uri_str)+1);
+	return uri_str;	
+}
+
+
 
 /***********************************************************************/
 /* static functions static functions static functions static functions */

@@ -40,32 +40,7 @@
 #define close _close
 #define commit _commit
 
-/* WIN constants (BINARY is commented out until I figure out *how* to
-	 document this section */
-
-#define _FCP_READFILE_FLAGS (_O_RDONLY /*| _O_BINARY*/)
-#define _FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC /*| _O_BINARY*/)
-
-#define _FCP_CREATEFILE_MODE (_S_IWRITE | _S_IREAD)
-#define _FCP_READFILE_MODE (0)
-
-#define _FCP_DIR_SEP '\\'
-
-#else
-
-/* non-WIN constants */
-#define _FCP_READFILE_FLAGS (O_RDONLY)
-#define _FCP_WRITEFILE_FLAGS (O_CREAT | O_WRONLY | O_TRUNC)
-
-#define _FCP_CREATEFILE_MODE (S_IWUSR | S_IRUSR)
-#define _FCP_READFILE_MODE (0)
-
-#define _FCP_DIR_SEP '/'
-
 #endif
-
-#define _FCP_READ   0x0001
-#define _FCP_WRITE  0x0002
 
 #ifdef DMALLOC
 #include "dmalloc.h"
@@ -87,6 +62,7 @@ extern void       _fcpDestroyHOptions(hOptions *);
 
 extern hSegment  *_fcpCreateHSegment(void);
 extern void       _fcpDestroyHSegment(hSegment *);
+extern void       _fcpDestroyHSegments(hKey *);
 
 /* Metadata handling functions */
 

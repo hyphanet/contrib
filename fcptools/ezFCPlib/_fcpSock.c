@@ -136,7 +136,12 @@ int _fcpSockConnect(hFCP *hfcp)
 	}
 	
 	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%u", hfcp->host, hfcp->port);
+
+	/* reset the timeout to the default to avoid waiting on the same interval
+	 over and over again.. */
 	
+	hfcp->options->timeout = EZFCP_DEFAULT_TIMEOUT;
+
 	return 0;
 }
 
@@ -223,7 +228,13 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 	fd_set readfds;
 
 	tv.tv_usec = 0;
-	tv.tv_sec  = hfcp->options->timeout / 1000;
+
+	if (hfcp->options->timeout < (hfcp->options->mintimeout * 1000)) {
+		tv.tv_sec = (hfcp->options->mintimeout);
+		_fcpLog(FCP_LOG_DEBUG, "raised timeout to mininum value: %u milliseconds", hfcp->options->timeout);
+	}
+	else
+		tv.tv_sec = hfcp->options->timeout / 1000;
 
 	FD_ZERO(&readfds);
 	FD_SET(hfcp->socket, &readfds);
@@ -268,7 +279,13 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 	fd_set readfds;
 
 	tv.tv_usec = 0;
-	tv.tv_sec  = hfcp->options->timeout / 1000;
+
+	if (hfcp->options->timeout < (hfcp->options->mintimeout * 1000)) {
+		tv.tv_sec = (hfcp->options->mintimeout * 1000);
+		_fcpLog(FCP_LOG_DEBUG, "raised timeout to mininum value: %u milliseconds", hfcp->options->timeout);
+	}
+	else
+		tv.tv_sec = hfcp->options->timeout / 1000;
 
 	FD_ZERO(&readfds);
 	FD_SET(hfcp->socket, &readfds);

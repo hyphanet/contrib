@@ -50,6 +50,17 @@ typedef SOCKET FCPSOCKET;
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
 
+/* (BINARY is commented out until I figure out *how* to
+	 document this section */
+
+#define _FCP_READFILE_FLAGS (_O_RDONLY /*| _O_BINARY*/)
+#define _FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC /*| _O_BINARY*/)
+
+#define _FCP_CREATEFILE_MODE (_S_IWRITE | _S_IREAD)
+#define _FCP_READFILE_MODE 0
+
+#define _FCP_DIR_SEP '\\'
+
 /* VERSION is defined by automake for non-Win platforms. */
 #define VERSION "0.9.0w"
 
@@ -68,13 +79,24 @@ typedef int FCPSOCKET;
 
 #include <unistd.h>
 
+#define _FCP_READFILE_FLAGS (O_RDONLY)
+#define _FCP_WRITEFILE_FLAGS (O_CREAT | O_WRONLY | O_TRUNC)
+
+#define _FCP_CREATEFILE_MODE (S_IWUSR | S_IRUSR)
+#define _FCP_READFILE_MODE 0
+
+#define _FCP_DIR_SEP '/'
+
 #endif
+
+#define _FCP_READ   0x0001
+#define _FCP_WRITE  0x0002
 
 /**************************************************************************
   GENERIC (place anything that must happen after the above decl's here)
 **************************************************************************/
 
-/* bah: REMOVE */
+/* Needed for struct FILE */
 #include <stdio.h>
 
 /*************************************************************************/
@@ -123,10 +145,9 @@ typedef int FCPSOCKET;
 #define FCP_MODE_O_READ              0x0001 /* 0000 0001 */
 #define FCP_MODE_O_WRITE             0x0002 /* 0000 0010 */
 #define FCP_MODE_RAW                 0x0004 /* 0000 0100 */
-#define FCP_MODE_DELETE_LOCAL        0x0008 /* 0000 1000 */
-#define FCP_MODE_SKIP_LOCAL          0x0010 /* 0001 0000 */
-#define FCP_MODE_DBR                 0x0020 /* 0010 0000 */
-#define FCP_MODE_REDIRECT_METADATA   0x0040 /* 0100 0000 */
+#define FCP_MODE_REMOVE_LOCAL        0x0008 /* 0000 1000 */
+#define FCP_MODE_DBR                 0x0020 /* 0001 0000 */
+#define FCP_MODE_REDIRECT_METADATA   0x0040 /* 0010 0000 */
 
 /*
 	Reasonable defaults
@@ -142,7 +163,7 @@ typedef int FCPSOCKET;
 #define EZFCP_DEFAULT_DELETELOCAL  0
 #define EZFCP_DEFAULT_SKIPLOCAL    0
 #define EZFCP_DEFAULT_RAWMODE      0
-#define EZFCP_DEFAULT_TIMEOUT      300000 /* 5 minutes in milliseconds */
+#define EZFCP_DEFAULT_TIMEOUT      180000 /* 3 minutes in milliseconds */
 
 /* error codes; just negative numbers; group together
 */
@@ -274,6 +295,8 @@ typedef struct {
 	unsigned short   unreachable;
 	unsigned short   rejected;
 	unsigned short   restarted;
+	unsigned short   backedoff;
+
 } FCPRESP_ROUTENOTFOUND;
 
 typedef struct {
@@ -357,18 +380,22 @@ typedef struct {
 /**********************************************************************
   Freenet Client Protocol Handle Definition Section
 */
+
+/* *** ALERT!! *** Anything added in this struct must be also handled in
+	 fcpInheritHFCP() in file fcpCreation.c */
 typedef struct {
 	unsigned long splitblock;
 
 	int   verbosity;
 	int   retry;
 	int   regress;
-	int   delete_local;
-	int   skip_local;
+	int   remove_local;
 	int   timeout;
+	int   mintimeout;
 	int   noredirect;
 	int   meta_redirect;
 	int   dbr;
+	int   future;
 
 	FILE *logstream;
 	
@@ -377,22 +404,6 @@ typedef struct {
 
 } hOptions;
 
-/*
-	sample URI's:
-
-	CHKs
-	freenet:CHK@c6v8qRGb8hWd1XDAwNodJRcqGY4OAwI,mhZFyoWs5PDIfBtENb3VpQ
-
-	freenet:CHK@c6v8qRGb8hWd1XDAwNodJRcqGY4OAwI,mhZFyoWs5PDIfBtENb3VpQ/filenamehint.ext//docname
-	freenet:CHK@c6v8qRGb8hWd1XDAwNodJRcqGY4OAwI,mhZFyoWs5PDIfBtENb3VpQ//docname
-
-	SSKs
-	SSK@kWu5Osv~VAI3-kH7z8QIVxklv-YPAgM/fishtools/52//
-	
-
-	KSKs
-
-*/
 
 typedef struct {
   int    type;       /* CHK@, KSK@, SSK@ */
@@ -402,10 +413,6 @@ typedef struct {
 
 	char  *filename;   /* filename hint */
 	char  *docname;    /* metadata document name */
-
-#if 0 /* DEPRECATE */
-	char  *metastring; /* the //images/activelink.gif piece */
-#endif
 
 } hURI;
 
