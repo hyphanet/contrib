@@ -64,12 +64,19 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
+AR = @AR@
 AS = @AS@
 AWK = @AWK@
 CC = @CC@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
 DLLTOOL = @DLLTOOL@
 ECHO = @ECHO@
+EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+F77 = @F77@
+GCJ = @GCJ@
+GCJFLAGS = @GCJFLAGS@
 HAVE_LIB = @HAVE_LIB@
 INCLUDES = @INCLUDES@
 LDADD = @LDADD@
@@ -83,6 +90,7 @@ OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+RC = @RC@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
@@ -123,7 +131,6 @@ _fcpPut.$(OBJEXT) fcpCloseKey.$(OBJEXT) fcpCreation.$(OBJEXT) \
 fcpOpenKey.$(OBJEXT) fcpPutKeyFromFile.$(OBJEXT) fcpReadKey.$(OBJEXT) \
 fcpMakeSvkKeypair.$(OBJEXT) fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) \
 mimetype.$(OBJEXT)
-AR = ar
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)

@@ -44,7 +44,7 @@
 #include <io.h>
 
 /* VERSION is defined by automake for non-Win platforms. */
-#define VERSION "0.9.0-1"
+#define VERSION "0.4.9w"
 
 #define write _write
 #define open _open

@@ -58,8 +58,6 @@ extern int _fcpSplitblock;
 */
 int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
-	char buf[513];
-
 	int key_size;
 	int meta_size;
 	int rc;

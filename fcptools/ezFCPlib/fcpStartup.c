@@ -44,8 +44,6 @@ extern int   _fcpRetry;
 
 int fcpStartup(char *logfile, int retry, int log_verbosity)
 {
-	char buf[513];
-
 	/* pass a bum value here and it's set to SILENT */
 	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
 	_fcpRetry     = (retry >= 0 ? retry : 0);
