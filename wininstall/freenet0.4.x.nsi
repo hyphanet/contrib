@@ -1,8 +1,9 @@
 # installer generator script for Freenet:
+!define "0.4-10102001-snapshot" ${VERSION}
 
-Name "Freenet 0.4.snapshot"
-OutFile "Freenet_setup-30092001.exe"
-ComponentText "This will install Freenet 0.4.snapshot on your system."
+Name "Freenet ${VERSION}"
+OutFile "Freenet_setup-${VERSION}.exe"
+ComponentText "This will install Freenet ${VERSION} on your system."
 
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
@@ -110,6 +111,7 @@ Section "Freenet (required)"
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "transient" "true"
   ExecWait "$INSTDIR\cfgclient.exe"
   IfErrors ConfigError
+
   # now calling the GUI configurator
   ExecWait "$INSTDIR\NodeConfig.exe"
   # No, we don't want to start FProxy by default
@@ -172,13 +174,13 @@ Section "Startmenu and Desktop Icons"
 SectionIn 1,2
 
    CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   CreateDirectory "$SMPROGRAMS\Freenet"
-   CreateShortCut "$SMPROGRAMS\Freenet\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   CreateShortCut "$SMPROGRAMS\Freenet\Fcpproxy.lnk" "$INSTDIR\fcpproxy.exe" "" "$INSTDIR\fcpproxy.exe" 0
-   WriteINIStr "$SMPROGRAMS\Freenet\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
-   ;WriteINIStr "$SMPROGRAMS\Freenet\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
-   ;CreateShortcut "$SMPROGRAMS\Freenet\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
-   CreateShortCut "$SMPROGRAMS\Freenet\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
+   CreateDirectory "$SMPROGRAMS\Freenet0.4"
+   CreateShortCut "$SMPROGRAMS\Freenet0.4\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   CreateShortCut "$SMPROGRAMS\Freenet0.4\Fcpproxy.lnk" "$INSTDIR\fcpproxy.exe" "" "$INSTDIR\fcpproxy.exe" 0
+   WriteINIStr "$SMPROGRAMS\Freenet0.4\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
+   ;WriteINIStr "$SMPROGRAMS\Freenet0.4\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   ;CreateShortcut "$SMPROGRAMS\Freenet0.4\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
+   CreateShortCut "$SMPROGRAMS\Freenet0.4\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
 ;-------------------------------------------------------------------------------
  SectionDivider
@@ -245,7 +247,15 @@ SectionEnd
 Section Uninstall
 
   #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
-  FindWindow "prompt" "TrayIconFreenetClass" "You are still running Freenet, please shut it down first and retry then."
+ ShutDown:
+  FindWindow $0 "TrayIconFreenetClass"
+  IsWindow %0 StillRunning NotRunning
+ StillRunning:
+  # Closing Freenet
+  SendMessage %0 16 0 0
+  MessageBox MB_YESNO "You are still running Freenet, trying to shut it down now. Should install proceed?" IDYES ShutDown
+  Abort
+ NotRunning:
 
   # Unregister .ref files
   DeleteRegKey HKEY_CLASSES_ROOT ".ref"
@@ -267,12 +277,7 @@ Section Uninstall
   # remove the desktop and startmenu icons
   Delete "$SMSTARTUP\Freenet.lnk"
   Delete "$DESKTOP\Freenet.lnk"
-  Delete "$SMPROGRAMS\Freenet\Freenet.lnk"
-  Delete "$SMPROGRAMS\Freenet\Fcpproxy.lnk"
-  Delete "$SMPROGRAMS\Freenet\FN Homepage.url"
-  ;Delete "$SMPROGRAMS\Freenet\FNGuide.url"
-  Delete "$SMPROGRAMS\Freenet\Uninstall.lnk" 
-  RMDir /r "$SMPROGRAMS\Freenet"
+  RMDir /r "$SMPROGRAMS\Freenet0.4"
 
   #delete "$SMPROGRAMS\Start FProxy.lnk"
   #Delete "$QUICKLAUNCH\Start FProxy.lnk"
@@ -281,7 +286,15 @@ SectionEnd
 
 Function .onInit
   #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
-  FindWindow "prompt" "TrayIconFreenetClass" "You are still running Freenet, please shut it down first and retry then."
+ ShutDown:
+  FindWindow $0 "TrayIconFreenetClass"
+  IsWindow %0 StillRunning NotRunning
+ StillRunning:
+  # Closing Freenet
+  SendMessage %0 16 0 0
+  MessageBox MB_YESNO "You are still running Freenet, trying to shut it down now. Should install proceed?" IDYES ShutDown
+  Abort
+ NotRunning:
 FunctionEnd
 ;-----------------------------------------------------------------------------------------
 
