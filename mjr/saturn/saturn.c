@@ -341,7 +341,7 @@ error:
 void
 usage (char *me)
 {
-    fprintf(stderr, "Usage %s [options] some.news.group\n\n"
+    fprintf(stderr, "Usage: %s [options] some.news.group\n\n"
                     "  -h --htl x        The hops to live for inserts. (default 10)\n"
 		    "  -t --threads x    The maximum number of concurrent inserts. (default 10)\n"
 		    "  -m --min x        Skip articles less than x bytes.\n"
@@ -686,12 +686,10 @@ read_base64 (FILE *in)
     return out;
 }
 
-struct pair {
+struct {
     char *ext;
     char *type;
-};
-
-struct pair associations[] = {
+} associations[] = {
     {"csm", "application/cu-seeme"},
     {"cu", "application/cu-seeme"},
     {"tsp", "application/dsptype"},
