@@ -94,9 +94,8 @@ int _fcpSockConnect(hFCP *hfcp)
 	
   /* connect to server */
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
-  if (rc < 0)
-  {
-	_fcpLog(FCP_LOG_CRITICAL, "Error connecting to server %s: %s", hfcp->host, strerror(errno));
+  if (rc < 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Error connecting to server %s:%d; %s", hfcp->host, hfcp->port, strerror(errno));
 		_fcpSockDisconnect(hfcp);
 
 		return -1;
