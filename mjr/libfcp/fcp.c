@@ -171,11 +171,11 @@ int
 fcp_close (fcp_document *d)
 {
     int i;
-    if (d->status) free(d->status);
     for (i = 0 ; i < d->p_count ; i++) {
 	if (d->chunks[i]) free(d->chunks[i]);
 	if (d->streams[i]) fclose(d->streams[i]);
     }
+    if (d->status) free(d->status);
     if (d->chunks) free(d->chunks);
     if (d->streams) free(d->streams);
     free(d);
@@ -457,7 +457,7 @@ fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
 	status = fcp_redirect(m, document_name, uri);
 	return status;
     } else {
-	int partsize = calc_partsize(length);
+	int partsize = calc_partsize(length/1024) * 1024;
 	int partcount = calc_partcount(partsize, length);
 	int n, t, r, s, activethreads = 0, error = 0, len = length;
 	char buf[1024], keys[partcount][128];
@@ -566,13 +566,10 @@ success:
 int
 calc_partsize (int length)
 {
-    int n = 0, tmp = length/1024;
-    while (tmp) {
-	tmp >>= 1;
-       	n++;
-    }
-    if (length/1024 > tmp) n++;
-    return (8 << ((n-1)/2)) * 1024;
+    int n = 0, tmp = length;
+    while (tmp) {tmp >>= 1; n++;}
+    if (length > tmp) n++;
+    return (8 << ((n-1)/2));
 }
 
 int

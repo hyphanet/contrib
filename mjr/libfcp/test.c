@@ -14,7 +14,7 @@ main (int argc, char **argv)
 	fwrite(buf, 1, n, stdout);
 	len -= n;
     }
-    fcp_close(d);
+    //fcp_close(d);
     fcp_metadata_free(m);
     return 0;
 }

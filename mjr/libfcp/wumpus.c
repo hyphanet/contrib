@@ -69,7 +69,7 @@ insert (char *file, int depth)
 	pthread_exit(NULL);
     }
     strcpy(uri, "freenet:CHK@");
-    if (s.st_size < 128 * 1024) {
+    if (s.st_size < 256 * 1024) {
 	status = -1;
 	while (status != FCP_SUCCESS && r--)
 	    status = fcp_insert_raw(data, uri, s.st_size, DATA, htl);
