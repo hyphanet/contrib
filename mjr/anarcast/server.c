@@ -161,16 +161,16 @@ write:	//=== write =========================================================
 	if (a[n].type == 'r') {
 	    i = a[n].off;
 	    if (i < 0) c = write(n, &(&a[n].len)[4+i], -i);
-	    else c = write(n, &a[n].data[i], PART_SIZE - i);
+	    else c = write(n, &a[n].data[i], a[n].len - i);
 	    a[n].off += c;
-	    if (c <= 0 || a[n].off == PART_SIZE) {
+	    if (c <= 0 || a[n].off == a[n].len) {
 	        if (c > 0) {
 		    bytestohex(b, a[n].hash, HASH_LEN);
 		    printf("%s > %s\n", timestr(), b);
 		} else ioerror();
 	        FD_CLR(n, &w);
 	        close(n);
-	        munmap(a[n].data, PART_SIZE);
+	        munmap(a[n].data, a[n].len);
 	    }
 	}
     }

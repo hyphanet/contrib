@@ -3,21 +3,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <err.h>
-#include <time.h>
 #include "anarcast.h"
 
 int
 main (int argc, char **argv)
 {
     struct sockaddr_in a;
-    unsigned char *data, h[HASH_LEN], b[HASH_LEN*2+1];
-    int s, r;
-    unsigned int dl;
+    unsigned char *data, b[1024];
+    int s, i, dl;
     
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
@@ -28,19 +25,20 @@ main (int argc, char **argv)
 	    || connect(s, &a, sizeof(a)) == -1)
 	err(1, "can't make socket");
     
-    writeall(s, "i", 1);
+    writeall(s, "r", 1);
+
+    if (!(i = hextobytes(argv[1], b, strlen(argv[1]))))
+	err(1, "bad hex");
     
-    dl = 123467;
-    writeall(s, &dl, 4);
+    // hash
+    writeall(s, b, i);
+    
+    // data length
+    readall(s, &dl, 4);
+    printf("length: %d\n", dl);
     
     data = mbuf(dl);
-    r = open("/dev/urandom", O_RDONLY);
-    readall(r, data, dl);
-    writeall(s, data, dl);
-    
-    readall(s, h, 20);
-    bytestohex(b, h, 20);
-    puts(b);
+    printf("read: %d\n", readall(s, data, dl));
     
     return 0;
 }

@@ -3,7 +3,6 @@
 #define INFORM_SERVER_PORT    7342
 #define HASH_LEN              20
 #define DEFAULT_INFORM_SERVER "localhost"
-#define PART_SIZE             (64 * 1024)
 
 #include <err.h>
 #include <fcntl.h>
