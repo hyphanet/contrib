@@ -33,6 +33,8 @@ main ()
     if (close(l) == -1)
 	err(1, "close() failed");
     
+    printf("%d Anarcast servers in database.\n", (end-hosts)/4);
+    
     l = listening_socket(INFORM_SERVER_PORT);
     last_weeding = time(NULL);
     active = 0;

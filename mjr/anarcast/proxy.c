@@ -3,11 +3,25 @@
 #include "sha.c"
 #include "aes.c"
 
+struct node {
+    unsigned int addr;
+    char hash[HASH_LEN];
+    struct node *left, *right;
+};
+
+struct node *tree;
+char *inform_server;
+
+void inform ();
 void * run_thread (void *arg);
 void insert (int c);
 void request (int c);
-void inform (char *server);
-inline void addref (unsigned int addr);
+void addref (unsigned int addr);
+void rmref (struct node *n);
+int route (char hash[HASH_LEN]);
+struct node * tree_search (struct node *tree, char hash[HASH_LEN]);
+void tree_insert (struct node **tree, struct node *item);
+void tree_copy (struct node *tree, struct node **new, struct node *fuck);
 
 int
 main (int argc, char **argv)
@@ -21,7 +35,7 @@ main (int argc, char **argv)
     }
     
     chdir_to_home();
-    inform(argv[1]);
+    inform((inform_server = argv[1]));
     l = listening_socket(PROXY_SERVER_PORT);
     
     for (;;)
@@ -95,15 +109,15 @@ request (int c)
 }
 
 void
-inform (char *server)
+inform ()
 {
     int c, n;
     struct sockaddr_in a;
     struct hostent *h;
     extern int h_errno;
     
-    if (!(h = gethostbyname(server))) {
-	printf("%s: %s.\n", server, hstrerror(h_errno));
+    if (!(h = gethostbyname(inform_server))) {
+	printf("%s: %s.\n", inform_server, hstrerror(h_errno));
 	exit(1);
     }
     
@@ -116,7 +130,9 @@ inform (char *server)
 	err(1, "socket() failed");
     
     if (connect(c, &a, sizeof(a)) == -1)
-	err(1, "connect() to %s failed", server);
+	err(1, "connect() to %s failed", inform_server);
+    
+    tree = NULL;
     
     for (n = 0 ; ; n++) {
 	unsigned int i;
@@ -126,23 +142,140 @@ inform (char *server)
 	addref(i);
     }
 
-    printf("%d Anarcast servers loaded.\n", n);
+    printf("\n%d Anarcast servers loaded.\n\n", n);
 
     if (!n) {
 	puts("No servers, exiting.");
 	exit(0);
     }
+/*
+    {
+	int i;
+	for (i = 0 ; i < 10 ; i++)
+	    addref(i);
+    }
+
+    {
+	int i = 39;
+	char hash[20];
+	sha_buffer((char *) &i, 4, hash);
+	c = route(hash);
+	printf("c = %d\n", c);
+    }
+*/
 }
 
-inline void
+void
 addref (unsigned int addr)
 {
     struct in_addr x;
-    char hash[HASH_LEN], hex[HASH_LEN*2+1];
-    x.s_addr = addr;
-    sha_buffer((char *) &addr, 4, hash);
-    bytestohex(hex, hash, HASH_LEN);
-    printf("Added %-16s (%s)\n", inet_ntoa(x), hex);
+    char hex[HASH_LEN*2+1];
+    struct node *item;
     
+    if (!(item = malloc(sizeof(struct node))))
+	err(1, "malloc() failed");
+    
+    item->left = item->right = NULL;
+    item->addr = addr;
+    sha_buffer((char *) &addr, 4, item->hash);
+    
+    tree_insert(&tree, item);
+    
+    bytestohex(hex, item->hash, HASH_LEN);
+    x.s_addr = addr;
+    printf("+ %15s %s\n", inet_ntoa(x), hex);
+}
+
+void
+rmref (struct node *n)
+{
+    struct node *new = NULL;
+    char hex[HASH_LEN*2+1];
+    struct in_addr x;
+    
+    x.s_addr = n->addr;
+    bytestohex(hex, n->hash, HASH_LEN);
+    
+    tree_copy(tree, &new, n);
+    tree = new;
+    
+    printf("- %15s %s\n", inet_ntoa(x), hex);
+}
+
+int
+route (char hash[HASH_LEN])
+{
+    for (;;) {
+        struct node *n;
+	struct sockaddr_in a;
+	int c;
+
+	if (!(n = tree_search(tree, hash)))
+	    break;
+	
+	memset(&a, 0, sizeof(a));
+	a.sin_family = AF_INET;
+	a.sin_port = htons(ANARCAST_SERVER_PORT);
+	a.sin_addr.s_addr = n->addr;
+	
+	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	    err(1, "socket() failed");
+
+	if (connect(c, &a, sizeof(a)) != -1) {
+	    char hex[HASH_LEN*2+1];
+	    bytestohex(hex, n->hash, HASH_LEN);
+	    printf("* %15s %s\n", inet_ntoa(a.sin_addr), hex);
+	    return c;
+	}
+
+	rmref(n);
+	close(c);
+    }
+    
+    puts("\nServer list exhausted. Contacting inform server.\n");
+    inform();
+    return route(hash);
+}
+
+struct node *
+tree_search (struct node *tree, char hash[HASH_LEN])
+{
+    if (!tree)
+	return tree;
+    else if (memcmp(hash, tree->hash, HASH_LEN) < 0) {
+	if (tree->left)
+	    return tree_search(tree->left, hash);
+        else
+	    return tree;
+    } else if (memcmp(hash, tree->hash, HASH_LEN) > 0) {
+	if (tree->right)
+	    return tree_search(tree->right, hash);
+	else
+	    return tree;
+    } else
+	return tree;
+}
+
+void
+tree_insert (struct node **tree, struct node *item)
+{
+    if (!*tree)
+	*tree = item;
+    else if (memcmp(item->hash, (*tree)->hash, HASH_LEN) < 0)
+	tree_insert(&(*tree)->left, item);
+    else if (memcmp(item->hash, (*tree)->hash, HASH_LEN) > 0) 
+	tree_insert(&(*tree)->right, item);
+}
+
+void
+tree_copy (struct node *tree, struct node **new, struct node *fuck)
+{
+    if (tree->left) tree_copy(tree->left, new, fuck);
+    if (tree->right) tree_copy(tree->right, new, fuck);
+    if (tree == fuck) free(tree);
+    else {
+	tree->left = tree->right = NULL;
+	tree_insert(new, tree);
+    }
 }
 
