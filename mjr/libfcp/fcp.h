@@ -66,12 +66,14 @@ typedef struct {
 typedef struct {
     pthread_mutex_t mutex; // mutex for this document
     pthread_cond_t cond;   // signals part completion
-    int error;             // if this is !0, an error occurred - abort
     int cur_part;          // the index of the current part
     int p_count;
-    FILE **parts;          // an array of parts, some in progress (NULL)
-    int threads;           // maximum swarming threads
-    int htl;               // hops to live
+    char **chunks;         // an array of URIs
+    char *status;          // the status of each stream
+    FILE **streams;        // an array of parts, some in progress (NULL)
+    int htl;
+    int threads;
+    int activethreads;
 } fcp_document;
 
 // return a pointer to a new, nulled fcp_metadata
