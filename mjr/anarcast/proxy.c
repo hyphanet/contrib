@@ -578,10 +578,8 @@ verify:
     }
     alert("%d bytes written to client.", datalength);
     
-    if (!m) goto out; // no blocks to reinsert!
-    
-    // verify integrity of reconstructed check blocks
-    for (i = 0 ; i < g.cbc ; i++)
+    // verify integrity of reconstructed check blocks (if we reconstructed any)
+    for (i = 0 ; m && i < g.cbc ; i++)
 	if (!mask2[g.dbc+i]) {
 	    hashdata(&blocks[(g.dbc+i)*blocksize], blocksize, hash);
 	    if (memcmp(hash, &hashes[(1+g.dbc+i)*HASHLEN], HASHLEN)) {
@@ -589,6 +587,14 @@ verify:
 		goto out;
 	    }
 	}
+    
+    for (i = 0 ; i < blockcount ; i++)
+	if (mask2[i] == 2) {
+	    mask2[i] = 0; // this was downloaded from a nonideal server, so we reinsert it
+	    m = 1; // yes, reinsert
+	}
+    
+    if (!m) goto out; // no blocks to reinsert!
     
     // insert reconstructed blocks
     do_insert(blocks, mask2, blockcount, blocksize, &hashes[HASHLEN]);
@@ -722,7 +728,10 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
 			alert("Integrity of block %d does not verify.", xfers[i].num+1);
 		    else {
-			mask[xfers[i].num] = 1; // success
+			if (!xfers[i].try)
+			    mask[xfers[i].num] = 1; // success
+			else
+			    mask[xfers[i].num] = 2; // success, but still reinsert
 			success++;
 		    }
 		    
