@@ -2,7 +2,7 @@
  *  freenet.exe launcher                 *
  *  systray icon application             *
  *****************************************
- *  First cut at a C-language version    *
+ *  C-language version                   *
  *  Dave Hooper                          *
  *                                       *
  *  Based on assembly-language original  *
@@ -14,7 +14,6 @@
 
 		This file contains the entry point and the message pump */
 
-/* Version 1.00.0 */
 
 #undef UNICODE
 #include "windows.h"
@@ -62,6 +61,10 @@ const char szflsec[]="Freenet Launcher"; /* ie [Freenet Launcher] subsection tex
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=g:\winnt\system32\jview.exe */
 const char szfserveexeckey[]="fserve"; /* ie Fserve=Freenet.node.gui.GUINode */
+const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
+const char szfservedefaultexec[]="Freenet.node.gui.GUINode";
+const char szfconfigdefaultexec[]="-cp freenet.jar Freenet.node.gui.Config freenet.ini";
+
 
 /* string constants for use with the freenet.ini file */
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
@@ -80,6 +83,7 @@ const char szConfigProcName[]="Config"; /* ie name of Config function */
 /*		strings, etc... */
 char szjavawpath[JAVAWMAXLEN];		/* used to read Javaw= definition out of FLaunch.ini */
 char szfserveexec[BUFLEN];			/* used to read Fserve= definition out of FLaunch.ini */
+char szfconfigexec[BUFLEN];			/* used to read Fconfig= definition out of FLaunch.ini */
 char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8081" after the 8081 bit has been read from freenet.ini */
 
 /*		flags, etc... */
@@ -307,7 +311,7 @@ bool OnlyOneInstance()
 
 void Initialise(void)
 {
-	char szbuffer[BUFLEN];
+	char szbuffer[MAX_PATH+1];
 	LPSTR szCommandLinePtr, szEndPointer;
 	
 	/* Get path this executable is running from, and how long the path is in characters */
@@ -336,8 +340,11 @@ void Initialise(void)
 	}
 
 	/* get the fserve launch string from flaunch.ini */
-	GetPrivateProfileString(szflsec, szfserveexeckey, szempty, szfserveexec, BUFLEN, szflfile);
-	
+	GetPrivateProfileString(szflsec, szfserveexeckey, szfservedefaultexec, szfserveexec, BUFLEN, szflfile);
+
+	/* get the fconfig launch string from flaunch.ini */
+	GetPrivateProfileString(szflsec, szfconfigexeckey, szfconfigdefaultexec, szfconfigexec, BUFLEN, szflfile);
+
 	/* form the gateway string - the "http://127.0.0.1:" is constant */
 	lstrcpy(szgatewayURI, szgatewayURIdef);
 	/* then append the port number of fproxy, looked up from freenet.ini */
@@ -475,17 +482,53 @@ bool StartConfig(void)
 			(pProcAddress)(NULL);
 		}
 
-		/* There is a bug in config.dll where the dialog box appears in response
-			to loading the dll rather than running the config function.  So since LoadLibrary
-			causes everything to happen, pretend that the procaddress stuff worked ok */
-		pProcAddress=(LPCONFIGPROC)(!NULL);
-
-		/* Unload the DLL */
-		FreeLibrary(hConfigDLL);
+		/* Bug in config.dll - function ISN'T found because it has the wrong name */
+		pProcAddress = (LPCONFIGPROC)(-1);
 	}
 
-	/* return true iff both the DLL and the function within the DLL could be loaded */
-	return ( (hConfigDLL!=NULL) && (pProcAddress!=NULL) );
+	/* Unload the DLL */
+	FreeLibrary(hConfigDLL);
+
+	if ((!hConfigDLL) || (!pProcAddress) )
+	{
+		return StartConfigOrig();
+	}
+	
+	return true;
+}
+
+
+bool StartConfigOrig(void)
+{
+	STARTUPINFO StartConfigInfo={	sizeof(STARTUPINFO),
+							NULL,NULL,NULL,
+							0,0,0,0,0,0,0,
+							STARTF_USESHOWWINDOW,
+							SW_MINIMIZE,
+							0,NULL,
+							NULL,NULL,NULL};
+	PROCESS_INFORMATION prcConfigInfo;
+
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szfconfigexec)+2];
+
+	lstrcpy(szexecbuf, szjavawpath);
+	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, szfconfigexec); 
+
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
+	{
+		MessageBox(NULL, "Unable to launch configurator for Freenet", "Cannot Config", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+	}
+	else
+	{
+		WaitForSingleObject(prcConfigInfo.hProcess, INFINITE);
+		CloseHandle(prcConfigInfo.hProcess);
+		CloseHandle(prcConfigInfo.hThread);
+	}
+
+	// return true if we need to restart freenet node to take account of new settings
+	// ... since we don't know we MUST return true!
+	return true;
 }
 
 

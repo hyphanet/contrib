@@ -25,6 +25,7 @@ void ExitFserve(void);
 
 /* bit of a kludge - synchronous - used to load configurator dll */
 bool StartConfig(void);
+bool StartConfigOrig(void);
 
 
 /* helper functions to synchronise multithreaded locking requests on a object by its handler */
