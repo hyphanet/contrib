@@ -121,21 +121,13 @@
 #define KEY_TYPE_CHK  2
 #define KEY_TYPE_KSK  3
 
-#define META_TYPE_DEFAULT   1
-#define META_TYPE_REDIRECT  2
-#define META_TYPE_DBR       3
-#define META_TYPE_INFO      4
-#define META_TYPE_EXTINFO   5
-#define META_TYPE_04        6
-
-/*
-  cdoc type fields
-*/
-#define META_TYPE_04_REDIR  'r'
-#define META_TYPE_04_DBR    'd'
-#define META_TYPE_04_SPLIT  's'
-#define META_TYPE_04_NONE   'n'
-
+/* 0 is the "unset" value */
+#define META_TYPE_DEFAULT   '*'
+#define META_TYPE_REDIRECT  'r'
+#define META_TYPE_DBR       'd'
+#define META_TYPE_SPLITFILE 's'
+#define META_TYPE_INFO      'i'
+#define META_TYPE_EXTINFO   'e'
 
 /*
   General FCP definitions
@@ -340,6 +332,7 @@ typedef struct {
 
 typedef struct {
 	int    type;
+	char  *name;
 
 	int    field_count;
 	char **data;
@@ -348,12 +341,15 @@ typedef struct {
 
 
 typedef struct {
+	int  size;
+	
 	int  revision;
 	int  encoding;
 
 	int         cdoc_count;
 	hDocument **cdocs;
 
+	int  _start;  /* intended for internal user.. not documented */
 } hMetadata;
 
 
@@ -439,6 +435,11 @@ extern "C" {
 	void  _fcpSockDisconnect(hFCP *hfcp);
 	
 	int   _fcpRecvResponse(hFCP *hfcp);
+
+	/* Metadata handling functions */
+	int   _fcpMetaParse(hMetadata *, char *buf);
+	void  _fcpMetaFree(hMetadata *);
+	
 
 	/* fcpLog */
 	void  _fcpLog(int level, char *format, ...);

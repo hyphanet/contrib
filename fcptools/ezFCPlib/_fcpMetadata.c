@@ -21,6 +21,10 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+/*
+	ALL metadata parsing routines are case-insensitive.
+*/
+
 #include "ezFCPlib.h"
 
 #include <stdlib.h>
@@ -32,8 +36,6 @@
 /*
   EXPORTED DEFINITIONS
 */
-int     _fcpMetaParse(hMetadata *meta, char *buf);
-void    _fcpMetaFree(hMetadata *meta);
 
 #if 0
 long    cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long defVal);
@@ -55,10 +57,15 @@ extern long xtoi(char *s);
 static int getLine(char *, char *, int);
 static int splitLine(char *, char *, char *);
 
-static int parse_end_tag(char *);
+static int parse_version(hMetadata *, char *);
+static int parse_document(hMetadata *, char *);
 
-/* parse states - internal use only */
 
+/*
+	Parse states.
+
+	The meaning has changed a bit from the old code.
+*/
 #define STATE_WAIT_VERSION  1
 #define STATE_IN_VERSION    2
 #define STATE_WAIT_DOCUMENT 3
@@ -79,140 +86,47 @@ static int parse_end_tag(char *);
 */
 int _fcpMetaParse(hMetadata *meta, char *buf)
 {
-  int   start;
-  int   state;
-	int   rc;
-	
 	/* 1k boundary + 1 (for null character) */
   char  line[513];
   char  key[257];
   char  val[257];
 
-
+	int   rc;
+	
 	/* free *meta if it has old metadata */
 	/* loop from 0-meta->cd_count; free(meta[i]); */
 
-  state = STATE_WAIT_VERSION;
-	_fcpLog(FCP_LOG_DEBUG, "begin parsing metadata");
-   
-  start = getLine(line, buf, 0);
-  while (start > 0) { /* loop until we process all lines in the metadata string */
+	/* here's the silly use of _start; holds the 'start' value so that we can
+		 return a 'state' value as well */
 
-    switch (state) {
-		 
-		case STATE_WAIT_VERSION:
-      if (strncasecmp(line, "Version", 7)) {
-				_fcpLog(FCP_LOG_DEBUG, "expected Version header");
+	/* prime the loop */
+	meta->_start = getLine(line, buf, 0);
+
+  while (meta->_start >= 0) { /* loop until we process all lines in the metadata string */
+
+		if (!strncasecmp(line, "Version", 7)) {
+			rc = parse_version(meta, buf);
+
+			if ((rc != STATE_WAIT_DOCUMENT) && (rc != STATE_END)) {
+				_fcpLog(FCP_LOG_DEBUG, "error!");
 				return -1;
 			}
+		}
+		
+		else if (!strncasecmp(line, "Document", 8)) {
+			rc = parse_document(meta, buf);
 
-			state = STATE_IN_VERSION;
-			break;
-
-		/* handle the version document seperately */
-		case STATE_IN_VERSION:
-      if (!strncasecmp(line, "Revision=", 9)) {
-
-				if (splitLine(line, key, val)) {
-					_fcpLog(FCP_LOG_DEBUG, "expected value for Revision key");
-					return -1;
-				}
-
-				meta->revision = xtoi(val);
-				_fcpLog(FCP_LOG_DEBUG, "key Revision; val \"%s\"", val);
-
-				break;
-			}
-
-			else if (!strncasecmp(line, "Encoding", 8)) {
-
-				if (splitLine(line, key, val)) {
-					_fcpLog(FCP_LOG_DEBUG, "expected value for Encoding key");
-					return -1;
-				}
-
-				meta->encoding = xtoi(val);
-				_fcpLog(FCP_LOG_DEBUG, "key Encoding; val \"%s\"", val);
-				
-				break;
-			}
-
-			/* otherwise, make the perhaps bad assumption that this piece has End'ed */
-      else {
-				state = parse_end_tag(line);
-				break;
-			}
-			
-		case STATE_WAIT_DOCUMENT:
-      if (strncasecmp(line, "Document", 8)) {
-				_fcpLog(FCP_LOG_DEBUG, "expected Document header");
+			if ((rc != STATE_WAIT_DOCUMENT) && (rc != STATE_END)) {
+				_fcpLog(FCP_LOG_DEBUG, "error!");
 				return -1;
 			}
+		}
+		
+		if (rc == STATE_END) {
+			/* done(); */
+		}
 
-			state = STATE_IN_DOCUMENT;
-
-			/* increment doc counter, and allocate new space for document */
-			meta->cdoc_count++;
-			realloc(meta->cdocs, meta->cdoc_count * sizeof(hDocument *));
-			
-			break;
-
-		case STATE_IN_DOCUMENT:
-			if (strchr(line, '=')) {
-				
-				/* no real need to check here afaik */
-				if (splitLine(line, key, val)) return -1;
-
-				/* STORE KEY/VAL.. call another func!! */
-				_fcpLog(FCP_LOG_DEBUG, "TODO: store key \"%s\" with value \"%s\"", key, val);
-
-#if 0
-				/* Set type if not already set */
-				if (meta->cdoc[thisdoc]->type == META_TYPE_04_NONE) {
-					if (!strcasecmp(key, "Redirect.Target"))
-						meta->cdoc[thisdoc]->type = META_TYPE_04_REDIR;
-					
-					else if (!strcasecmp(key, "DateRedirect.Target"))
-						meta->cdoc[thisdoc]->type = META_TYPE_04_DBR;
-					
-					else if (!strncasecmp(key, "SplitFile", 9))
-						meta->cdoc[thisdoc]->type = META_TYPE_04_SPLIT;
-				}
-#endif
-
-				break;
-			}
-			else
-				state = STATE_WAIT_END;
-
-			/*******************************************************************/
-			/* STATE_WAIT_END should be at the end of the switch..case block
-				 so that other case sections can bubble down to it w/out breaking
-				 and re-looping. */
-			/*******************************************************************/
-
-    case STATE_WAIT_END:
-      if (!strncasecmp(line, "EndPart", 7)) {
-				state = STATE_WAIT_DOCUMENT;
-				break;
-      }
-
-      else if (!strncasecmp(line, "End", 3)) {
-				state = STATE_END;
-				break;
-			}
-
-      else {
-				_fcpLog(FCP_LOG_DEBUG, "expected End/EndPart; encountered \"%s\"", line);
-				return -1;
-			}
-      
-		case STATE_END:
-			break;
-    }
-
-		/* get the next line, buster */
-    start = getLine(line, buf, start);
+		meta->_start = getLine(line, buf, meta->_start);
   }
   
   return 0;
@@ -220,34 +134,10 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 
 #if 0
 
-/*
-  metaFree()
-  
-  a destructor routine for a hMetadata structure
-*/
-void metaFree(hMetadata *meta)
+
+void _fcpMetaDestroy(hMetadata *meta)
 {
-  int i, j;
-  
-  if (!meta) return;
-  
-  /* free each cdoc */
-  if (meta->cdoc) {
-    for (i = 0; i < meta->count; i++) {
-      
-      /* free all field-value pairs within current cdoc */
-      for (j = 0; j < meta->cdoc[i]->count; j++)
-	free(meta->cdoc[i]->keys[j]);
-      
-      /* now ditch this cdoc */
-      free(meta->cdoc[i]);
-    }
-    free(meta->cdoc);
-  }
-  
-  
-  /* now ditch whole structure */
-  free(meta);
+
 }
 
 /**********************************************************************/
@@ -407,13 +297,18 @@ static int splitLine(char *line, char *key, char *val)
 /*
   This function should return a 'line', terminated by 0 only
   (no carriage-return/linefeed nonsense)
+	
+	After processing the last line, getLine() should immediately
+	return on next call w/ -2.  Return -1 on error.
 */
 static int getLine(char *line, char *buf, int start)
 {
 	int line_index;
   
   if (!buf) return -1;
-	if (buf[start] == 0) return -1;
+
+	/* If we're done, return w/ -2; */
+	if (buf[start] == 0) return -2;
 
 	line_index = 0;
 	while (1) { /* :) */
@@ -439,18 +334,132 @@ static int getLine(char *line, char *buf, int start)
 }
 
 
-static int parse_end_tag(char *line)
+static int parse_version(hMetadata *meta, char *buf)
 {
-	if (!strncasecmp(line, "EndPart", 7))
-		return STATE_WAIT_DOCUMENT;
+	/* 1k boundary + 1 (for null character) */
+  char  line[513];
+  char  key[257];
+  char  val[257];
 	
-	else if (!strncasecmp(line, "End", 3))
-		return STATE_END;
+	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
+
+		_fcpLog(FCP_LOG_DEBUG, "read line \"%s\"", line);
+
+		if (!strncasecmp(line, "Revision=", 9)) {
+
+			if (splitLine(line, key, val)) {
+				_fcpLog(FCP_LOG_DEBUG, "expected value for Revision key");
+				return -1;
+			}
+
+			meta->revision = xtoi(val);
+			_fcpLog(FCP_LOG_DEBUG, "key Revision; val \"%s\"", val);
+		}
 	
-	else {
-		_fcpLog(FCP_LOG_DEBUG, "expected End/EndPart; encountered \"%s\"", line);
-		return -1;
+		else if (!strncasecmp(line, "Encoding=", 9)) {
+			
+			if (splitLine(line, key, val)) {
+				_fcpLog(FCP_LOG_DEBUG, "expected value for Encoding key");
+				return -1;
+			}
+
+			meta->encoding = xtoi(val);
+			_fcpLog(FCP_LOG_DEBUG, "key Encoding; val \"%s\"", val);
+		}
+
+		else if (!strncasecmp(line, "EndPart", 7)) {
+			return STATE_WAIT_DOCUMENT;
+		}
+	
+		else if (!strncasecmp(line, "End", 3)) {
+			return STATE_END;
+		}
+
+		else {
+			_fcpLog(FCP_LOG_DEBUG, "encountered unhandled pair; \"%s\"", line);
+		}
 	}
+
+	/* we shouldn't reach here, except on error */
+	return -1;
+}
+
+
+static int parse_document(hMetadata *meta, char *buf)
+{
+	/* 1k boundary + 1 (for null character) */
+  char  line[513];
+  char  key[257];
+  char  val[257];
+
+	int   doc_index;
+
+	doc_index = meta->cdoc_count;
+
+	/* allocate space for new document */
+	meta->cdoc_count++;
+
+	/* is this the first time we've been through this function? */
+	if (meta->cdoc_count == 1) {
+		meta->cdocs = (hDocument **)malloc(sizeof (hDocument *));
+	}
+	else {
+		realloc(meta->cdocs, meta->cdoc_count * sizeof(hDocument *));
+	}
+
+	/* add the document to the meta structure */
+	meta->cdocs[doc_index] = (hDocument *)malloc(sizeof (hDocument));
+	
+	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
+
+		/* if this is a key/val pair.. */
+		if (strchr(line, '=')) {
+	
+			splitLine(line, key, val);
+			_fcpLog(FCP_LOG_DEBUG, "encountered key \"%s\" with value \"%s\"", key, val);
+			
+			/* Set type if not already set */
+			if (meta->cdocs[doc_index]->type == 0) {
+				
+				if (!strncasecmp(key, "Redirect.", 9))
+					meta->cdocs[doc_index]->type = META_TYPE_REDIRECT;
+				
+				else if (!strncasecmp(key, "DateRedirect.", 13))
+					meta->cdocs[doc_index]->type = META_TYPE_DBR;
+				
+				else if (!strncasecmp(key, "SplitFile.", 10))
+					meta->cdocs[doc_index]->type = META_TYPE_SPLITFILE;
+				
+				/* potentially none of the above may execute.. this is by design */
+			}
+			
+			/* we handle "Name" seperately according to the spec */
+			if (!strncasecmp(key, "Name", 4)) {
+				meta->cdocs[doc_index]->name = strdup(val);
+			}
+
+			else {
+				_fcpLog(FCP_LOG_DEBUG, "Add the key/val pair to doc %s", meta->cdocs[doc_index]->name);
+			}
+
+		} /* end of processing key/val pairs */
+
+		/* it's *not* a key/val pair */
+		else {
+
+			if (!strncasecmp(line, "EndPart", 7))
+				return STATE_WAIT_DOCUMENT;
+
+			else if (!strncasecmp(line, "End", 3))
+				return STATE_END;
+		
+			else {
+			_fcpLog(FCP_LOG_DEBUG, "encountered unhandled pair; \"%s\"", line);
+			}
+		}
+	}
+
+	return 0;
 }
 
 
@@ -490,9 +499,12 @@ int main(int argc, char *argv[])
 	printf("%s\n", mdata);
 
 	hm = (hMetadata *)malloc(sizeof (hMetadata));
-	rc = _fcpMetaParse(hm, mdata);
+	memset(hm, 0, sizeof (hMetadata));
 
-	return 0;
+	rc = _fcpMetaParse(hm, mdata);
+	printf("returning %d\n", rc);
+
+	return rc;
 }
 
 #endif

@@ -572,7 +572,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		if (!(file = fopen(segment->check_blocks[bi]->filename, "wb"))) {
 			snprintf(msg, 512, "could not open file for writing check block %d", bi);
-			hfcp->error = strdup(msg)
+			hfcp->error = strdup(msg);
 			return -1;
 		}
 		fd = fileno(file);
@@ -582,7 +582,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 			
 			if (byte_count != hfcp->response.datachunk.length) {
 				snprintf(msg, 512, "error writing check block %d", bi);
-				hfcp->error = strdup(msg)
+				hfcp->error = strdup(msg);
 				return -1;
 			}
 			
@@ -809,7 +809,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	return 0;
 }
 
-static int fec_make_metadata(hFCP *hfcp)
+static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 {
 	char buf_s[L_FILE_BLOCKSIZE+1];
 	char buf[32768]; /* large enough? */
