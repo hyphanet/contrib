@@ -24,16 +24,17 @@
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
+/* Yes? */
+#define _GNU_SOURCE
+
 /* Generic <sys/> includes here so they are first. */
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /**************************************************************************
   MS-WINDOWS specifics
 **************************************************************************/
 #ifdef WINDOWS
-
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
@@ -106,8 +107,6 @@
 #define L_ERROR_MESSAGE     256
 #define L_KEY               40
 
-/* DEPRECATE: #define FCPRESP_BUFSIZE  2048 */
-
 #define FCP_MAX_SPLIT_THREADS  8
 
 #define CHUNK_STAT_LOCAL    0  /* not in freenet; local datastore */
@@ -122,12 +121,25 @@
 #define KEY_TYPE_CHK  2
 #define KEY_TYPE_KSK  3
 
+#define META_TYPE_DEFAULT   1
+#define META_TYPE_REDIRECT  2
+#define META_TYPE_DBR       3
+#define META_TYPE_INFO      4
+#define META_TYPE_EXTINFO   5
+#define META_TYPE_04        6
+
+/*
+  cdoc type fields
+*/
+#define META_TYPE_04_REDIR  'r'
+#define META_TYPE_04_DBR    'd'
+#define META_TYPE_04_SPLIT  's'
+#define META_TYPE_04_NONE   'n'
+
 
 /*
   General FCP definitions
 */
-#define FCP_ID_REQUIRED
-
 #define EZFCP_DEFAULT_HOST       "127.0.0.1"
 #define EZFCP_DEFAULT_PORT       8481
 #define EZFCP_DEFAULT_HTL        3
@@ -327,17 +339,26 @@ typedef struct {
 
 
 typedef struct {
-	int    count;
-	int    size;
+	int    type;
 
-	char  *key;
-	char  *val;
+	int    field_count;
+	char **data;
+	
+} hDocument;
+
+
+typedef struct {
+	int  revision;
+	int  encoding;
+
+	int         cdoc_count;
+	hDocument **cdocs;
 
 } hMetadata;
 
 
 typedef struct {
-	int  type;
+	int        type;
 
 	hURI      *uri;
 
@@ -346,7 +367,6 @@ typedef struct {
 	int        size;
 
 	hBlock    *tmpblock;
-
 	hMetadata *metadata;
 
 	int        segment_count;
@@ -440,6 +460,9 @@ extern "C" {
 	/* Client functions for operations between files on disk and freenet */
 	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_filename, char *meta_filename);
 
+
+	char *GetMimeType(char *pathname);
+	char *str_reset(char *dest, char *src);
 	
 #ifdef __cplusplus
 }

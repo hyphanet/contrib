@@ -23,22 +23,16 @@
 
 #include "ezFCPlib.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 
-extern int fcpPut(hFCP *hfcp);
+extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
 
 
 static int fcpCloseKeyRead(hFCP *hfcp);
 static int fcpCloseKeyWrite(hFCP *hfcp);
-
-static int test(hFCP *hfcp);
-
 
 int fcpCloseKey(hFCP *hfcp)
 {
@@ -61,6 +55,30 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
+	hFCP *tmp_hfcp;
+	int   rc;
+
+	/* close the temporary file */
+	fclose(hfcp->key->tmpblock->file);
+
+	/* insert the 'ol bugger */
+	tmp_hfcp = _fcpCreateHFCP();
+	
+	tmp_hfcp->key = _fcpCreateHKey();
+	tmp_hfcp->key->size = hfcp->key->size;
+	
+	_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
+	
+	rc = put_file(tmp_hfcp, hfcp->key->tmpblock->filename, 0);
+	
+	if (rc != 0) {
+		_fcpLog(FCP_LOG_DEBUG, "could not insert");
+		return -1;
+	}		
+
+	_fcpParseURI(hfcp->key->uri, tmp_hfcp->key->uri->uri_str);
+	_fcpDestroyHFCP(tmp_hfcp);
+
 	return 0;
 }
 

@@ -22,11 +22,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <sys/types.h>
-
 #ifndef WINDOWS
-#include <sys/socket.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -37,7 +33,7 @@
 #include "ezFCPlib.h"
 
 /* imports */
-extern void crSockDisconnect(hFCP *hfcp);
+extern void _fcpSockDisconnect(hFCP *hfcp);
 
 /* private helper functions */
 static int host_is_numeric(char *host);
@@ -84,7 +80,7 @@ int _fcpSockConnect(hFCP *hfcp)
   rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
   if (rc < 0) {
 		_fcpLog(FCP_LOG_DEBUG, "error binding to port %d", hfcp->port);
-		crSockDisconnect(hfcp);
+		_fcpSockDisconnect(hfcp);
     return -1;
   }
 	
@@ -93,7 +89,7 @@ int _fcpSockConnect(hFCP *hfcp)
   if (rc < 0) {
 		_fcpLog(FCP_LOG_DEBUG, "error connecting to server %s", hfcp->host);
 		_fcpLog(FCP_LOG_DEBUG, "connect returned \"%s\"", strerror(errno));
-		crSockDisconnect(hfcp);
+		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
 	

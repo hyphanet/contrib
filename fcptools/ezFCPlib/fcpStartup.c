@@ -21,15 +21,10 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <sys/types.h>
-
-#ifdef WINDOWS
-#include <winsock.h>
-#endif
+#include "ezFCPlib.h"
 
 #include <string.h>
 
-#include "ezFCPlib.h"
 
 /*** Should accept a few parameters ****/
 int fcpStartup(void)
@@ -49,6 +44,8 @@ int fcpStartup(void)
 	_fcpTmpDir = "c:/temp";
 
 #endif
+
+	_fcpHost = strdup(EZFCP_DEFAULT_HOST);
 
 	return 0;
 }

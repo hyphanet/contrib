@@ -24,9 +24,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-
-#include <sys/types.h>
-#include <sys/stat.h>
+#include "ezFCPlib.h"
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -34,15 +32,16 @@
 #include <string.h>
 #include <errno.h>
 
-#include "ezFCPlib.h"
 
+extern int   _fcpSockConnect(hFCP *hfcp);
+extern void  _fcpSockDisconnect(hFCP *hfcp);
+extern char *_fcpTmpFilename(void);
 
-extern int  _fcpSockConnect(hFCP *hfcp);
-extern void  crSockDisconnect(hFCP *hfcp);
-extern char *crTmpFilename(void);
+extern long  file_size(char *filename);
 
 /* exported functions for fcptools codebase */
 
+/* the following two functions will set hfcp->error if one is encountered */
 int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
 int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
@@ -50,17 +49,37 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 /* Private functions for internal use */
 static int send_clientput(hFCP *hfcp);
 
-static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename);
+static int fec_segment_file(hFCP *hfcp, char *key_filename);
 static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);
 static int fec_insert_segment(hFCP *hfcp, char *key_filename, int segment);
-static int fec_make_metadata(hFCP *hfcp);
+static int fec_make_metadata(hFCP *hfcp, char *meta_filename);
+
 
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
+/*
+	put_file()
 
+	function assumes that key_filename and meta_filename contain files that
+	actually exist; this should be checked before calling put_file.
+
+	function expects the following members in hfcp to be set:
+	- hfcp->key->uri
+	- hfcp->key->size
+	- hfcp->metadata->size
+
+	function may modify:
+	- hfcp->error
+	- hfcp->key->uri
+
+	function returns:
+	- zero on success
+	- non-zero on error.
+*/
 int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
+	char msg[513];
 	int rc;
 
 	int kfd;
@@ -72,6 +91,12 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	FILE *kfile;
 	FILE *mfile;
 
+	/* clear the error field */
+	if (hfcp->error) {
+		free(hfcp->error);
+		hfcp->error = 0;
+	}
+
 	/* let's loop this until we stop receiving Restarted messages */
 
 	do {
@@ -81,26 +106,40 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		/* Open metadata file */
 		if (meta_filename) {
 			if (!(mfile = fopen(meta_filename, "rb"))) {
-				_fcpLog(FCP_LOG_DEBUG, "could not open metadata file for reading");
+				hfcp->error = strdup("could not open metadata file");
 				return -1;
 			}
 			mfd = fileno(mfile);
 			
 			/* send metadata */
-			while ((rc = read(mfd, buf, L_FILE_BLOCKSIZE)) > 0) {
-				if (send(hfcp->socket, buf, rc, 0) < 0) {
-					_fcpLog(FCP_LOG_DEBUG, "could not write metadata to socket");
+			bytes = hfcp->key->metadata->size;
+
+			while (bytes) {
+				byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
+			
+				if ((rc = read(mfd, buf, byte_count)) <= 0) {
+					hfcp->error = strdup("could not read metadata from file");
 					return -1;
 				}
+
+				if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
+					hfcp->error = strdup("could not write metadata to socket");
+					return -1;
+				}
+				
+				/* decrement number of bytes written */
+				bytes -= byte_count;
 			}
 			
 			_fcpLog(FCP_LOG_VERBOSE, "Wrote metadata to socket");
 			fclose(mfile);
-		}
+		} /* finished writing metadata (if any) */
 		
 		/* now write key data */
-		if (!(kfile = fopen(key_filename, "rb")))
+		if (!(kfile = fopen(key_filename, "rb"))) {
+			hfcp->error = strdup("could not open key data file");
 			return -1;
+		}
 		
 		kfd = fileno(kfile);
 		bytes = hfcp->key->size;
@@ -110,13 +149,13 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 			
 			/* read from source */
 			if ((rc = read(kfd, buf, byte_count)) <= 0) {
-				_fcpLog(FCP_LOG_DEBUG, "could not read key data from file \"%s\"", key_filename);
+				hfcp->error = strdup("could not read key data from file");
 				return -1;
 			}
 			
 			/* write to socket */
 			if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
-				_fcpLog(FCP_LOG_DEBUG, "could not write key data to socket");
+				hfcp->error = strdup("could not write key data to socket");
 				return -1;
 			}
 			
@@ -129,50 +168,54 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		
 		switch (rc) {
 		case FCPRESP_TYPE_SUCCESS:
-			_fcpLog(FCP_LOG_DEBUG, "node returned Success message");
 			_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
-			
 			break;
 			
 		case FCPRESP_TYPE_KEYCOLLISION:
-			_fcpLog(FCP_LOG_DEBUG, "node returned KeyCollision message");
 			_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
-			
 			break;
 			
 		case FCPRESP_TYPE_RESTARTED:
-			_fcpLog(FCP_LOG_DEBUG, "node returned Restarted message");
-
 			fclose(mfile);
 			fclose(kfile);			
 
-			crSockDisconnect(hfcp);
+			_fcpSockDisconnect(hfcp);
 			break;
-			
+
+		/* for the error cases, set hfcp->error.. */
+
 		case FCPRESP_TYPE_ROUTENOTFOUND:
-			_fcpLog(FCP_LOG_DEBUG, "node returned RouteNotFound message");
+			hfcp->error = strdup("route not found");
 			break;
 			
 		case FCPRESP_TYPE_FORMATERROR:
-			_fcpLog(FCP_LOG_DEBUG, "node returned FormatError message");
+			snprintf(msg, 512, "node returned format error; \"%s\"", hfcp->response.formaterror.reason);
+			hfcp->error = strdup(msg);
+
 			break;
 			
 		case FCPRESP_TYPE_FAILED:
-			_fcpLog(FCP_LOG_DEBUG, "node returned Failed message");
+			snprintf(msg, 512, "node returned failed; \"%s\"", hfcp->response.failed.reason);
+			hfcp->error = strdup(msg);
+
 			break;
 			
 		default:
-			_fcpLog(FCP_LOG_DEBUG, "received unknown response code: %d", rc);
-			
-			crSockDisconnect(hfcp);
-			return -1;
+			hfcp->error = strdup("unknown response code from node");
+			break;
 		}
 
   } while (rc == FCPRESP_TYPE_RESTARTED);
 
-  /* finished with connection */
-  crSockDisconnect(hfcp);
-  
+  /*
+		finished with connection.
+		
+		note: on a Restarted message, hfcp is re-connected, so either way we
+		must perform a disconnect here.
+	*/
+  _fcpSockDisconnect(hfcp);
+
+  /* hfcp->error should be set already in switch..case block */
   if ((rc != FCPRESP_TYPE_SUCCESS) && (rc != FCPRESP_TYPE_KEYCOLLISION))
     return -1;
 
@@ -182,11 +225,34 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 }
 
 
+/*
+	put_fec_splitfile()
+
+	function assumes that key_filename and meta_filename contain files that
+	actually exist; this should be checked before calling put_fec_splitfile.
+
+	function expects the following members in hfcp to be set:
+	- hfcp->key->uri
+	- hfcp->key->size
+	- hfcp->metadata->size
+
+	function returns:
+	- zero on success
+	- non-zero on error.
+	
+	functions called within each may set hfcp->error on return.
+*/
 int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 {
 	int index;
 
-	if (fec_segment_file(hfcp, key_filename, meta_filename) != 0)	return -1;
+	/* clear the error field */
+	if (hfcp->error) {
+		free(hfcp->error);
+		hfcp->error = 0;
+	}
+
+	if (fec_segment_file(hfcp, key_filename) != 0) return -1;
 	
 	for (index = 0; index < hfcp->key->segment_count; index++)
 		if (fec_encode_segment(hfcp, key_filename, index) != 0) return -1;
@@ -196,7 +262,7 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 	/* now that the data is inserted, generate and insert metadata for the
 		 splitfile */
-	if (fec_make_metadata(hfcp) != 0) return -1;
+	if (fec_make_metadata(hfcp, meta_filename)) return -1;
 
 	return 0;
 }
@@ -214,12 +280,13 @@ static int send_clientput(hFCP *hfcp)
 	
   /* create a put message */
 
-  if (hfcp->key->metadata) {
+  if (hfcp->key->metadata->size) {
     rc = snprintf(buf, L_FILE_BLOCKSIZE,
 						 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
 						 hfcp->key->uri->uri_str,
+
 						 hfcp->htl,
-						 hfcp->key->size,
+						 hfcp->key->size + hfcp->key->metadata->size,
 						 hfcp->key->metadata->size
 						 );
 	}
@@ -245,17 +312,25 @@ static int send_clientput(hFCP *hfcp)
 	return 0;
 }
 
+/*
+	fec_segment_file()
 
-static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
+	function will set hfcp->error before returning to caller
+*/
+static int fec_segment_file(hFCP *hfcp, char *key_filename)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
+	char msg[513];
 	int rc;
 
 	int index;
 	int segment_count;
 
   /* connect to Freenet FCP */
-  if (_fcpSockConnect(hfcp) != 0) return -1;
+  if (_fcpSockConnect(hfcp) != 0) {
+		hfcp->error = strdup("could not make socket connection to node");
+		return -1;
+	}
 
 	snprintf(buf, L_FILE_BLOCKSIZE,
 					 "FECSegmentFile\nAlgoName=OnionFEC_a_1_2\nFileLength=%x\nEndMessage\n",
@@ -263,11 +338,14 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 					 );
 
 	/* Send fcpID */
-	if (send(hfcp->socket, _fcpID, 4, 0) == -1) return -1;
+	if (send(hfcp->socket, _fcpID, 4, 0) == -1) {
+		hfcp->error = strdup("could not send FCP identification bytes");
+		return -1;
+	}
 		 
 	/* Send FECSegmentFile command */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not send FECSegmentFile command");
+		hfcp->error = strdup("could not send FECSegmentFile command");
 		return -1;
 	}
 
@@ -277,23 +355,24 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 
   switch (rc) {
   case FCPRESP_TYPE_SEGMENTHEADER:
-    _fcpLog(FCP_LOG_DEBUG, "node returned SegmentHeader message");
 		break;
 		
   case FCPRESP_TYPE_FORMATERROR:
-    _fcpLog(FCP_LOG_DEBUG, "node returned FormatError message");
-    crSockDisconnect(hfcp);
+		snprintf(msg, 512, "node returned format error; \"%s\"", hfcp->response.formaterror.reason);
+		hfcp->error = strdup(msg);
+
+    _fcpSockDisconnect(hfcp);
 		return -1;
 
   case FCPRESP_TYPE_FAILED:
-    _fcpLog(FCP_LOG_DEBUG, "node returned Failed message: %s", hfcp->error);
-    _fcpLog(FCP_LOG_DEBUG, "reason - %s", hfcp->error);
+		snprintf(msg, 512, "node returned failed; \"%s\"", hfcp->response.failed.reason);
+		hfcp->error = strdup(msg);
 
-    crSockDisconnect(hfcp);
+    _fcpSockDisconnect(hfcp);
 		return -1;
 
 	default:
-		_fcpLog(FCP_LOG_DEBUG, "did not receive expected SegmentHeader response");
+		hfcp->error = strdup("unknown response code from node");
 		return -1;
 	}
 
@@ -358,7 +437,7 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	} /* End While - all segments now in hfcp container */
 
 	/* Disconnect this connection.. its outlived it's purpose */
-	crSockDisconnect(hfcp);
+	_fcpSockDisconnect(hfcp);
 
 	return 0;
 }
@@ -367,6 +446,7 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
+	char msg[513];
 	int fd;
 	int rc;
 
@@ -391,10 +471,16 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	pad_len      = (segment->block_count * segment->block_size) - data_len;
 	
 	/* new connection to Freenet FCP */
-	if (_fcpSockConnect(hfcp) != 0) return -1;
+	if (_fcpSockConnect(hfcp) != 0) {
+		hfcp->error = strdup("could not make socket connection to node");
+		return -1;
+	}
 	
 	/* Send fcpID */
-	if (send(hfcp->socket, _fcpID, 4, 0) == -1) return -1;
+	if (send(hfcp->socket, _fcpID, 4, 0) == -1) {
+		hfcp->error = strdup("could not send FCP identification bytes");
+		return -1;
+	}
 	
 	snprintf(buf, L_FILE_BLOCKSIZE,
 					 "FECEncodeSegment\nDataLength=%x\nMetadataLength=%x\nData\n",
@@ -404,19 +490,19 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	
 	/* Send FECEncodeSegment message */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not write FECEncodeSegment message");
+		hfcp->error = strdup("could not write FECEncodeSegment message");
 		return -1;
 	}
 	
 	/* Send SegmentHeader */
 	if (send(hfcp->socket, segment->header_str, strlen(segment->header_str), 0) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not write initial SegmentHeader message");
+		hfcp->error = strdup("could not write initial SegmentHeader message");
 		return -1;
 	}
 
 	/* Open file we are about to send */
 	if (!(file = fopen(key_filename, "rb"))) {
-		_fcpLog(FCP_LOG_DEBUG, "could not open file for reading");
+		hfcp->error = strdup("could not open file for reading");
 		return -1;
 	}
 	fd = fileno(file);
@@ -435,6 +521,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		bytes = read(fd, buf, byte_count);
 		
 		if ((rc = send(hfcp->socket, buf, bytes, 0)) < 0) {
+			hfcp->error = strdup("could not write bytes to socket");
 			return -1;
 		}
 		
@@ -454,7 +541,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		byte_count = (fi > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: fi);
 		
 		if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
-			_fcpLog(FCP_LOG_DEBUG, "could not write zero-padded data to socket: %s", strerror(errno));
+			hfcp->error = strdup("could not write zero-padded data to socket");
 			return -1;
 		}
 		
@@ -464,7 +551,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	
 	/* if the response isn't BlocksEncoded, we have a problem */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_BLOCKSENCODED) {
-		_fcpLog(FCP_LOG_DEBUG, "did not receive expected BlocksEncoded message");
+		hfcp->error = strdup("did not receive expected BlocksEncoded message");
 		return -1;
 	}
 	
@@ -475,18 +562,17 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		/* We're expecting a DataChunk message */
 		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-			_fcpLog(FCP_LOG_DEBUG, "did not receive expected DataChunk message");
+			hfcp->error = strdup("did not receive expected DataChunk message");
 			return -1;
 		}
 		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
-		segment->check_blocks[bi]->filename = crTmpFilename();
+		segment->check_blocks[bi]->filename = _fcpTmpFilename();
 		segment->check_blocks[bi]->size = block_len;
 		
 		if (!(file = fopen(segment->check_blocks[bi]->filename, "wb"))) {
-			
-			_fcpLog(FCP_LOG_DEBUG, "could not open file \"%s\" for writing check block %d",
-							segment->check_blocks[bi]->filename, bi);
+			snprintf(msg, 512, "could not open file for writing check block %d", bi);
+			hfcp->error = strdup(msg)
 			return -1;
 		}
 		fd = fileno(file);
@@ -495,7 +581,8 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 			byte_count = write(fd, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
 			
 			if (byte_count != hfcp->response.datachunk.length) {
-				_fcpLog(FCP_LOG_DEBUG, "error writing check block %d", bi);
+				snprintf(msg, 512, "error writing check block %d", bi);
+				hfcp->error = strdup(msg)
 				return -1;
 			}
 			
@@ -504,13 +591,13 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 			/* only get the next DataChunk message if we're expecting one */
 			if (fi < block_len)
 				if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-					_fcpLog(FCP_LOG_DEBUG, "did not receive expected DataChunk message (2)");
+					hfcp->error = strdup("did not receive expected DataChunk message (2)");
 					return -1;
 				}
 		}
 		
 		if (fi != block_len) {
-			_fcpLog(FCP_LOG_DEBUG, "bytes received for check block did not match with expected length");
+			hfcp->error = strdup("bytes received for check block did not match with expected length");
 			return -1;
 		}
 
@@ -527,6 +614,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
+	char msg[513];
 	int rc;
 	int node_rc;
 
@@ -548,145 +636,148 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	/* start at the first block, of course */
 	bi = 0;
 	
-	/* loop until we stop receiving Restarted messages */
-	
-	do { /* outer loop for re-transmitting in response to Restarted messages */
+	while (bi < segment->db_count) { /* while (bi < segment->db_count) */
 		
 		/* open key file */
 		if (!(kfile = fopen(key_filename, "rb"))) {
-			_fcpLog(FCP_LOG_VERBOSE, "Could not open key data in file \"%s\"", key_filename);
+			hfcp->error = strdup("Could not open key data from file");
 			return -1;
 		}			
 		kfd = fileno(kfile);
 		
 		/* seek to the location relative to the segment (if needed) */
-		if (segment->offset > 0)
-			lseek(kfd, segment->offset, SEEK_SET);
+		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
-		while (bi < segment->db_count) { /* insert all data blocks */
-
-			tmp_hfcp = _fcpCreateHFCP();
-			tmp_hfcp->key = _fcpCreateHKey();
-			tmp_hfcp->key->size = segment->block_size;
+		tmp_hfcp = _fcpCreateHFCP();
+		tmp_hfcp->key = _fcpCreateHKey();
+		tmp_hfcp->key->size = segment->block_size;
+		
+		_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
+		
+		/* now insert "block_size" bytes from current file pointer */
+		/* on return, file pointer points to first byte to be written on
+			 subsequent pass */
+		
+		_fcpLog(FCP_LOG_DEBUG, "inserting data block %d", bi);
+		
+		if ((rc = send_clientput(tmp_hfcp))) {
+			hfcp->error = strdup("could not send ClientPut message to node");
+			return -1;
+		}
+		
+		/* read from the parameter file pointer for key data; write to the
+			 open socket */
+		bytes = segment->block_size;
+		
+		_fcpLog(FCP_LOG_DEBUG, "bytes to write: %d", bytes);
+		while (bytes) {
+			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 			
-			_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
+			/* read from source */
+			if ((byte_count = read(kfd, buf, byte_count)) <= 0) break;
 			
-			/* now insert "block_size" bytes from current file pointer */
-			/* on return, file pointer points to first byte to be written on
-				 subsequent pass */
-			
-			_fcpLog(FCP_LOG_DEBUG, "inserting data block %d", bi);
-			
-			rc = send_clientput(tmp_hfcp);
-			
-			/* read from the parameter file pointer for key data; write to the
-				 open socket */
-			bytes = segment->block_size;
-			
-			_fcpLog(FCP_LOG_DEBUG, "bytes to write: %d", bytes);
-			while (bytes) {
-				byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
-				
-				/* read from source */
-				if ((byte_count = read(kfd, buf, byte_count)) <= 0) break;
-				
-				/* write to socket */
-				if ((rc = send(tmp_hfcp->socket, buf, byte_count, 0)) < 0) {
-					_fcpLog(FCP_LOG_DEBUG, "could not write key data to socket");
-					return -1;
-				}
-				
-				/* decrement by number of bytes written to the socket */
-				bytes -= byte_count;
-			}
-			
-			if (bytes) _fcpLog(FCP_LOG_DEBUG, "must send zero-padded data");
-			
-			/* check to see if there's pad bytes we have to send */
-			memset(buf, 0, L_FILE_BLOCKSIZE);
-			while (bytes) {
-				byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
-				
-				/* write to socket */
-				if ((rc = send(tmp_hfcp->socket, buf, byte_count, 0)) < 0) {
-					_fcpLog(FCP_LOG_DEBUG, "could not write pad data to socket");
-					return -1;
-				}
-				
-				/* decrement by number of bytes written to the socket */
-				bytes -= byte_count;
-			}
-			
-			/* expecting a success response */
-			node_rc = _fcpRecvResponse(tmp_hfcp);
-			
-			switch (node_rc) {
-			case FCPRESP_TYPE_SUCCESS:
-				_fcpLog(FCP_LOG_DEBUG, "node returned Success message");
-				
-				segment->data_blocks[bi] = _fcpCreateHBlock();
-				_fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.success.uri);
-				
-				break;
-				
-			case FCPRESP_TYPE_KEYCOLLISION:
-				_fcpLog(FCP_LOG_DEBUG, "node returned KeyCollision message");
-				
-				segment->data_blocks[bi] = _fcpCreateHBlock();
-				_fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.keycollision.uri);
-				
-				break;
-				
-			case FCPRESP_TYPE_RESTARTED:
-				_fcpLog(FCP_LOG_DEBUG, "node returned Restarted message");
-				
-				crSockDisconnect(tmp_hfcp);
-				_fcpDestroyHFCP(tmp_hfcp);
-				
-				fclose(kfile);
-				break;
-				
-			case FCPRESP_TYPE_ROUTENOTFOUND:
-				_fcpLog(FCP_LOG_DEBUG, "node returned RouteNotFound message");
-				break;
-				
-			case FCPRESP_TYPE_FORMATERROR:
-				_fcpLog(FCP_LOG_DEBUG, "node returned FormatError message");
-				break;
-				
-			case FCPRESP_TYPE_FAILED:
-				_fcpLog(FCP_LOG_DEBUG, "node returned Failed message");
-				break;
-				
-			default:
-				_fcpLog(FCP_LOG_DEBUG, "received unknown response code: %d", node_rc);
-				
-				crSockDisconnect(tmp_hfcp);
-				_fcpDestroyHFCP(tmp_hfcp);
-
-				fclose(kfile);
+			/* write to socket */
+			if ((rc = send(tmp_hfcp->socket, buf, byte_count, 0)) < 0) {
+				hfcp->error = strdup("could not write key data to socket");
 				return -1;
 			}
 			
-			/* finished with connection */
-			crSockDisconnect(tmp_hfcp);
+			/* decrement by number of bytes written to the socket */
+			bytes -= byte_count;
+		}
+		
+		if (bytes) _fcpLog(FCP_LOG_DEBUG, "must send zero-padded data");
+		
+		/* check to see if there's pad bytes we have to send */
+		memset(buf, 0, L_FILE_BLOCKSIZE);
+		while (bytes) {
+			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 			
-			if ((node_rc != FCPRESP_TYPE_SUCCESS) && (node_rc != FCPRESP_TYPE_KEYCOLLISION))
+			/* write to socket */
+			if ((rc = send(tmp_hfcp->socket, buf, byte_count, 0)) < 0) {
+				hfcp->error = strdup("could not write pad data to socket");
 				return -1;
+			}
 			
-			_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %d: %s",
-							bi, segment->data_blocks[bi]->uri->uri_str);
+			/* decrement by number of bytes written to the socket */
+			bytes -= byte_count;
+		}
+		
+		/* expecting a success response */
+		node_rc = _fcpRecvResponse(tmp_hfcp);
+		
+		switch (node_rc) {
+		case FCPRESP_TYPE_SUCCESS:
+			segment->data_blocks[bi] = _fcpCreateHBlock();
+			_fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.success.uri);
+			
+			break;
+			
+		case FCPRESP_TYPE_KEYCOLLISION:
+			segment->data_blocks[bi] = _fcpCreateHBlock();
+			_fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.keycollision.uri);
+			
+			break;
+			
+		case FCPRESP_TYPE_RESTARTED:
+			/* clean up for loop re-entry, captain over, over */
+			_fcpSockDisconnect(tmp_hfcp);
 			_fcpDestroyHFCP(tmp_hfcp);
 			
-			/* before restarting the loop, adjust bi if we were successful */
-			if (node_rc != FCPRESP_TYPE_RESTARTED) bi++;
+			fclose(kfile);
+			break;
+			
+		case FCPRESP_TYPE_ROUTENOTFOUND:
+			hfcp->error = strdup("route not found");
+			break;
+			
+		case FCPRESP_TYPE_FORMATERROR:
+			snprintf(msg, 512, "node returned format error; \"%s\"", tmp_hfcp->response.formaterror.reason);
+			hfcp->error = strdup(msg);
+			
+			break;
+			
+		case FCPRESP_TYPE_FAILED:
+			snprintf(msg, 512, "node returned failed; \"%s\"", tmp_hfcp->response.failed.reason);
+			hfcp->error = strdup(msg);
+			
+			break;
+			
+		default:
+			hfcp->error = strdup("unknown response code from node");
+			break;
 		}
-	} while (node_rc == FCPRESP_TYPE_RESTARTED);
-	
+		
+		/* now handle everything smoothly, if perhaps overkill.. */
+
+		/* re-do the current segment is node sends us Restarted */
+		if (node_rc == FCPRESP_TYPE_RESTARTED) continue;
+		
+		/* if there's an error that causes us to halt.. */
+		if ((node_rc != FCPRESP_TYPE_SUCCESS) && (node_rc != FCPRESP_TYPE_KEYCOLLISION)) break;
+		
+		/* here, node_rc is either success or collision, both which are ok */
+		bi++;
+	}
+
+	/* finished with connection */
+	_fcpSockDisconnect(tmp_hfcp);
+	_fcpDestroyHFCP(tmp_hfcp);
+
 	/* we're done with the key data */
 	fclose(kfile);
+
+	/* hfcp->error should already be set with the great news */
+	if ((node_rc != FCPRESP_TYPE_SUCCESS) && (node_rc != FCPRESP_TYPE_KEYCOLLISION)) {
+		return -1;
+	}
 	
-	/* insert check blocks second */
+	_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %d: %s",
+					bi, segment->data_blocks[bi]->uri->uri_str);
+	
+	/******************************************************************/
+	/* insert check blocks next */
+
 	for (bi=0; bi < segment->cb_count; bi++) {
 		tmp_hfcp = _fcpCreateHFCP();
 		
@@ -700,6 +791,8 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 		if (rc != 0) {
 			_fcpLog(FCP_LOG_DEBUG, "could not insert check block %d into Freenet", bi);
+
+			/* hfcp->error already set via call to put_file() */
 			return -1;
 		}		
 
@@ -720,6 +813,10 @@ static int fec_make_metadata(hFCP *hfcp)
 {
 	char buf_s[L_FILE_BLOCKSIZE+1];
 	char buf[32768]; /* large enough? */
+
+	char msg[513];
+
+	hFCP *tmp_hfcp;
 
 	int rc;
 	int fi;
@@ -766,25 +863,30 @@ static int fec_make_metadata(hFCP *hfcp)
 	/* send it to the node */
 
   /* connect to Freenet FCP */
-  if (_fcpSockConnect(hfcp) != 0)
+  if (_fcpSockConnect(hfcp) != 0) {
+		hfcp->error = strdup("could not make socket connection to node");
     return -1;
+	}
 	
 	/* Send fcpID */
-	if (send(hfcp->socket, _fcpID, 4, 0) == -1)
-		 return -1;
+	if (send(hfcp->socket, _fcpID, 4, 0) == -1) {
+		hfcp->error = strdup("could not send FCP identification bytes");
+		return -1;
+	}
 
 	/* Send FECMakeMetadata command */
-	sprintf(buf_s, "FECMakeMetadata\nDescription=file\nMimeType=text/plain\nDataLength=%x\nData\n",
+	sprintf(buf_s, "FECMakeMetadata\nDescription=file\nMimeType=%s\nDataLength=%x\nData\n",
+					hfcp->key->mimetype,
 					strlen(buf));
 
 	if (send(hfcp->socket, buf_s, strlen(buf_s), 0) == -1) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not send FECMakeMetadata message");
+		hfcp->error = strdup("Could not send FECMakeMetadata message");
 		return -1;
 	}
 
 	/* now send the segment headers and blockmap information */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not send metadata information");
+		hfcp->error = strdup("Could not send metadata information");
 		return -1;
 	}
 	
@@ -793,37 +895,55 @@ static int fec_make_metadata(hFCP *hfcp)
 	
 	switch (rc) {
 	case FCPRESP_TYPE_MADEMETADATA:
-		_fcpLog(FCP_LOG_DEBUG, "node returned MadeMetadata message");
-
 		meta_len = hfcp->response.mademetadata.datalength;
 		break;
 
 	case FCPRESP_TYPE_FAILED:
-		_fcpLog(FCP_LOG_DEBUG, "revceived Failed message; %s", hfcp->error);
+		snprintf(msg, 512, "node returned failed; \"%s\"", hfcp->response.failed.reason);
+		hfcp->error = strdup(msg);
 
-		crSockDisconnect(hfcp);
+		_fcpSockDisconnect(hfcp);
 		return -1;
 
 	default:
-		_fcpLog(FCP_LOG_DEBUG, "received unknown response code: %d", rc);
-		
-		crSockDisconnect(hfcp);
+		hfcp->error = strdup("unknown response code from node");
+		_fcpSockDisconnect(hfcp);
+
 		return -1;
 	}
 
-	for (fi=0; fi < meta_len; ) {
+	tmp_hfcp = _fcpCreateHFCP();
+	if (fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE)) {
+		hfcp->error = strdup("could not open metadata key for writing");
+		return -1;
+	}
+	
+	for (rc = 0; meta_len; meta_len -= hfcp->response.datachunk.length) {
 
 		/* We're expecting a DataChunk message */
 		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-			_fcpLog(FCP_LOG_DEBUG, "did not receive expected DataChunk message");
+			hfcp->error = strdup("did not receive expected DataChunk message");
+			
+			_fcpDestroyHFCP(tmp_hfcp);
 			return -1;
 		}
 
-		snprintf(buf, hfcp->response.datachunk.length, "%s", hfcp->response.datachunk.data);
-		_fcpLog(FCP_LOG_DEBUG, "%s", buf);
+		if ((rc = fcpWriteKey(tmp_hfcp, hfcp->response.datachunk.data, hfcp->response.datachunk.length)) != 0) {
+			hfcp->error = strdup("error in writing fec metadata information");
 
-		fi += hfcp->response.datachunk.length;
+			_fcpDestroyHFCP(tmp_hfcp);
+			return -1;
+		}
 	}
+
+	if (fcpCloseKey(tmp_hfcp)) {
+		hfcp->error = strdup("could not close key in preparation for writing");
+		return -1;
+	}
+
+	/* get the inserted URI and store it */
+	_fcpParseURI(hfcp->key->uri, tmp_hfcp->key->uri->uri_str);
+	_fcpDestroyHFCP(tmp_hfcp);
 
 	return 0;
 }

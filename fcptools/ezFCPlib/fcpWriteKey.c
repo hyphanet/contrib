@@ -21,12 +21,7 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifndef WINDOWS
-#include <sys/socket.h>
-#endif
+#include "ezFCPlib.h"
 
 #include <time.h>
 #include <string.h>
@@ -35,17 +30,45 @@
 #include <stdarg.h>
 #include <fcntl.h>
 
-#include "ezFCPlib.h"
 
 /* Why isn't this defined where the manpage claims it is? */
 extern int    snprintf(char *str, size_t size, const char *format, ...);
 
 extern int    _fcpSockConnect(hFCP *hfcp);
-extern void   crSockDisconnect(hFCP *hfcp);
-extern char  *crTmpFilename(void);
+extern void   _fcpSockDisconnect(hFCP *hfcp);
+extern char  *_fcpTmpFilename(void);
 
 
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
+{
+	int count;
+	int rc;
+
+	count = (len > 8192 ? 8192 : len);
+
+	/* While there's still data to write from caller.. */
+	while (len) {
+
+		rc = write(hfcp->key->tmpblock->fd, buf, count);
+		
+		if (rc != count) {
+			_fcpLog(FCP_LOG_CRITICAL, "fcpWriteKey ERROR: Error writing %d byte block to %s",
+							count, hfcp->key->tmpblock->filename);
+			return -1;
+		}
+
+		/* Info was written.. update indexes */
+		hfcp->key->size += count;
+
+		len -= count;
+		buf += count;
+	}
+	
+	return 0;
+}
+
+
+int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 {
 	int count;
 	int rc;

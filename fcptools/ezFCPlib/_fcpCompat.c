@@ -17,18 +17,11 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/*
-	I'd like to name all these functions with the prefix "cr" to imply
-	they are "compatibility routines", that work on both *nix and Win32
-	making use of #ifdef's.
-*/
+#include "ezFCPlib.h"
 
 #ifndef WINDOWS
 #include <sys/socket.h>
 #endif
-
-#include <sys/types.h>
-#include <sys/stat.h>
 
 #ifndef WINDOWS
 #include <netinet/in.h>
@@ -47,18 +40,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ezFCPlib.h"
+
+int    _fcpThreadLaunch(void (*f)(void *), void *parms);
+void   _fcpThreadQuit(char *s);
+int    _fcpThreadSleep(unsigned int seconds, unsigned int nanoseconds);
+int    _fcpSockConnect(hFCP *hfcp);
+void   _fcpSockDisconnect(hFCP *hfcp);
+char  *_fcpTmpFilename(void);
 
 
-int    crThreadLaunch(void (*f)(void *), void *parms);
-void   crThreadQuit(char *s);
-int    crThreadSleep(unsigned int seconds, unsigned int nanoseconds);
-int    crSockConnect(hFCP *hfcp);
-void   crSockDisconnect(hFCP *hfcp);
-char  *crTmpFilename(void);
-
-
-int crThreadLaunch(void (*f)(void *), void *parms)
+int _fcpLaunchThread(void (*f)(void *), void *parms)
 {
 #ifndef WINDOWS
   pthread_t pth;
@@ -78,7 +69,7 @@ int crThreadLaunch(void (*f)(void *), void *parms)
 
 
 #if 0
-void crThreadQuit(char *s)
+void _fcpThreadQuit(char *s)
 {
 #ifndef WINDOWS
   pthread_exit(s);
@@ -89,7 +80,7 @@ void crThreadQuit(char *s)
 #endif
 }
 
-int crThreadSleep(unsigned int seconds, unsigned int nanoseconds)
+int _fcpThreadSleep(unsigned int seconds, unsigned int nanoseconds)
 {
 #ifndef WINDOWS
   struct timespec delay;
@@ -109,7 +100,7 @@ int crThreadSleep(unsigned int seconds, unsigned int nanoseconds)
 #endif
 
 
-void crSockDisconnect(hFCP *hfcp)
+void _fcpSockDisconnect(hFCP *hfcp)
 {
   if (hfcp->socket < 0) return;
 
@@ -123,7 +114,7 @@ void crSockDisconnect(hFCP *hfcp)
 }
 
 
-char *crTmpFilename(void)
+char *_fcpTmpFilename(void)
 {
 	int search = 1;
   char *filename = 0;

@@ -11,13 +11,7 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#include <sys/stat.h>
-
 #include "ezFCPlib.h"
-
-#ifndef WINDOWS
-#include <unistd.h>
-#endif
 
 #include <fcntl.h>
 #include <stdlib.h>

@@ -11,10 +11,11 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+#include "ezFCPlib.h"
+
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "ezFCPlib.h"
 
 /* extern int vsnprintf(char *str, size_t size, const char *format, va_list ap); */
 

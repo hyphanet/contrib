@@ -11,12 +11,7 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifndef WINDOWS
-#include <sys/socket.h>
-#endif
+#include "ezFCPlib.h"
 
 #include <time.h>
 #include <string.h>
@@ -25,15 +20,12 @@
 #include <stdarg.h>
 #include <fcntl.h>
 
-#include "ezFCPlib.h"
-
 
 extern int   snprintf(char *str, size_t size, const char *format, ...);
 
-extern int    crSockConnect(hFCP *hfcp);
-extern void   crSockDisconnect(hFCP *hfcp);
-extern char  *crTmpFilename(void);
-
+extern int    _fcpSockConnect(hFCP *hfcp);
+extern void   _fcpSockDisconnect(hFCP *hfcp);
+extern char  *_fcpTmpFilename(void);
 
 static int    fcpOpenKeyRead(hFCP *hfcp, char *key);
 static int    fcpOpenKeyWrite(hFCP *hfcp, char *key);
@@ -87,7 +79,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 	hfcp->key->tmpblock = _fcpCreateHBlock();
 
 	/* Tie it to a unique temporary file */
-	hfcp->key->tmpblock->filename = crTmpFilename();
+	hfcp->key->tmpblock->filename = _fcpTmpFilename();
 	if (!(hfcp->key->tmpblock->file = fopen(hfcp->key->tmpblock->filename, "wb")))
 		return -1;
 

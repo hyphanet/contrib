@@ -11,15 +11,17 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+#include "ezFCPlib.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 
 /*
-  xtoi()
+  function xtoi()
 
-  Convert a hexadecimal number string into an int
-  this is the hex version of atoi
+  Convert a hexadecimal string into an int. This is the hex version of
+	atoi.
 */
 long xtoi(char *s)
 {
@@ -38,5 +40,31 @@ long xtoi(char *s)
       break;
   
   return val;
+}
+
+
+long file_size(char *filename)
+{
+	struct stat fstat;
+
+	if (!filename) return -1;
+
+	if (stat(filename, &fstat))
+		return -1;
+	else
+		return fstat.st_size;
+}
+
+
+char *str_reset(char *dest, char *src)
+{
+	if (dest) free(dest);
+
+	dest = (char*)malloc(strlen(src) + 1);
+	strcpy(dest, src);
+
+	/* on function exit, dest *may* not point to the same location it did when
+		 the function was originally called.  Use the returned value instead. */
+	return dest;
 }
 

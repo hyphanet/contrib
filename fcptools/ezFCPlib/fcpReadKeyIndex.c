@@ -11,9 +11,10 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+#include "ezFCPlib.h"
+
 #include <stdio.h>
 
-#include "ezFCPlib.h"
 
 /*
   Function:    fcpReadKeyIndex()

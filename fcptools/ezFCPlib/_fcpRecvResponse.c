@@ -1,25 +1,32 @@
-
 /*
-  This code is part of FCPTools - an FCP based client library for Freenet.
-
-  Designed and implemented by David McNab, david@rebirthing.co.nz
+  This code is part of FCPTools - an FCP-based client library for Freenet
+	
+  Designed and implemented by David McNab <david@rebirthing.co.nz>
   CopyLeft (c) 2001 by David McNab
-
-  The FreeWeb website is at http://freeweb.sourceforge.net
-  The website for Freenet is at http://freenet.sourceforge.net
-
-  This code is distributed under the GNU Public Licence (GPL) version 2.
-  See http://www.gnu.org/ for further details of the GPL.
+	
+	Currently maintained by Jay Oliveri <ilnero@gmx.net>
+	
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <sys/types.h>
+#include "ezFCPlib.h"
+
 
 #include <stdlib.h>
-
-#define _GNU_SOURCE
 #include <string.h>
 
-#include "ezFCPlib.h"
 
 extern long xtoi(char *);
 
@@ -61,9 +68,11 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 		if (getrespline(hfcp, resp) < 0) return -1;
 		
-		if (!strcmp(resp, "Restarted"))	getrespRestarted(hfcp);
+		if (!strcmp(resp, "Restarted"))
+			getrespRestarted(hfcp);
 
-		else if (!strcmp(resp, "Pending")) getrespPending(hfcp);
+		else if (!strcmp(resp, "Pending"))
+			getrespPending(hfcp);
  		
 		else break;
 	}
@@ -116,25 +125,11 @@ int _fcpRecvResponse(hFCP *hfcp)
 		rc = getrespFormatError(hfcp);
 		hfcp->response.type = FCPRESP_TYPE_FORMATERROR;
 
-		if (hfcp->error) free(hfcp->error);
-
-		if (hfcp->response.formaterror.reason)
-			hfcp->error = strdup(hfcp->response.formaterror.reason);
-		else
-			hfcp->error = 0;
-
 		return rc;
   }
   else if (!strcmp(resp, "Failed")) {
 		rc = getrespFailed(hfcp);
 		hfcp->response.type = FCPRESP_TYPE_FAILED;
-
-		if (hfcp->error) free(hfcp->error);
-
-		if (hfcp->response.failed.reason)
-			hfcp->error = strdup(hfcp->response.failed.reason);
-		else
-			hfcp->error = 0;
 
 		return rc;
   }
@@ -352,9 +347,20 @@ static int getrespUriError(hFCP *hfcp)
 
 static int getrespRestarted(hFCP *hfcp)
 {
+	char resp[1025];
+
 	_fcpLog(FCP_LOG_DEBUG, "received Restarted response");
 
-	return FCPRESP_TYPE_RESTARTED;
+	while (!getrespline(hfcp, resp)) {
+
+		if (!strncmp(resp, "EndMessage", 10))
+			return FCPRESP_TYPE_RESTARTED;
+
+		else
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
+	}
+	
+	return -1;
 }
 
 

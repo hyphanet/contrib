@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
 {
 	hFCP *hfcp;
 	int rc;
+	char buf[100];
 
 	if (fcpStartup()) {
 		printf("Call to fcpStartup() failed\n");
@@ -59,7 +60,23 @@ int main(int argc, char* argv[])
 
 	/* must occur after fcpStartup() since it changes _fcp* variables */
 	parse_args(argc, argv);
+
+#if 0
+	hfcp = _fcpCreateHFCP();
+
+	if (fcpOpenKey(hfcp, "CHK@", _FCP_O_WRITE)) {
+		_fcpLog(FCP_LOG_DEBUG, "could not open metadata key for writing");
+		return -1;
+	}
 	
+	fcpWriteKey(hfcp, buf, 90);
+	fcpCloseKey(hfcp);
+
+	_fcpDestroyHFCP(hfcp);
+	fcpTerminate();
+#endif
+
+#if 1	
 	hfcp = _fcpCreateHFCP();
 	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
 
@@ -70,6 +87,7 @@ int main(int argc, char* argv[])
 
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();
+#endif
 
 #ifdef WINDOWS_DISABLE
 	system("pause");
