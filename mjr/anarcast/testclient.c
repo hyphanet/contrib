@@ -18,7 +18,6 @@ main (int argc, char **argv)
     unsigned char *data, h[HASH_LEN], b[HASH_LEN*2+1];
     int s, r;
     unsigned int dl;
-    off_t o = 0;
     
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
