@@ -952,7 +952,6 @@ void StartConfig(void)
 	LPFNDLLCONFIG /*LPCONFIGPROC*/ pProcAddress = NULL;
 
 	SetCurrentDirectory(szHomeDirectory);
-	CreateConfig("default.ini");
 
 	if (hConfigDLL)
 	{
@@ -967,7 +966,8 @@ void StartConfig(void)
 				// result==zero means config was successful
 				// so restart the node
 				SetCurrentDirectory(szHomeDirectory);
-				MergeConfig("freenet.ini","default.ini");
+				CreateConfig("./default.ini");
+				MergeConfig(szfinifile,"./default.ini");
 				PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
 			}
 			// configuration complete - release the 'configurator' mutex
@@ -1029,9 +1029,6 @@ void StartConfigOrig(void)
 		dwJavaConfigProcId=prcConfigInfo.dwProcessId;
 		CloseHandle(hJavaConfigThread);
 		CloseHandle(prcConfigInfo.hThread);
-
-		SetCurrentDirectory(szHomeDirectory);
-		MergeConfig("freenet.ini","default.ini");
 	}
 }
 
@@ -1049,9 +1046,13 @@ DWORD WINAPI WaitForJavaConfigurator(LPVOID lpvprochandle)
 	// If we exited the configuration with exit code 0, restart the node
 	GetExitCodeProcess(hJavaConfig, &ExitCode);
 	CloseHandle(hJavaConfig);
+	SetCurrentDirectory(szHomeDirectory);
+	CreateConfig("./default.ini");
+	MergeConfig(szfinifile,"./default.ini");
+
 	if(ExitCode==0)
 	{
-		if(MessageBox(NULL,"The new settings will only take effect after restarting the node.\r\nShould the node be restarted now?\r\nWARNING: This aborts all current data transfers!",szAppName,MB_YESNO|MB_ICONQUESTION) == IDYES)
+		if(MessageBox(NULL,"The new settings will only take effect after restarting the node.\r\nShould the node be restarted now?\r\nWARNING: This aborts all current data transfers!",szAppName,MB_YESNO|MB_ICONQUESTION|MB_SYSTEMMODAL) == IDYES)
 		{
 			PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
 		}
@@ -1670,8 +1671,8 @@ void MergeConfig(const char * szINIFile, const char * szDefaultsFile)
 		{
 			strncpy(szKey, iNonspace, iEquals-iNonspace);
 			*(szKey+(iEquals-iNonspace))='\0';
-			GetPrivateProfileString(szfinisec,szKey,"",szValue,sizeof(szValue),szINIFile);
-			if (lstrlen(szValue))
+			GetPrivateProfileString(szfinisec,szKey,"**default**",szValue,sizeof(szValue),szINIFile);
+			if (lstrcmp(szValue,"**default**")!=0)
 			{
 				// found it - update output:
 				// 1-  If default hasn't got % then output ini value ALWAYS
@@ -1707,8 +1708,8 @@ OutputINIEqualsValue:
 				if (*iNonspace=='%')
 				{
 					// see if INI file overrides the key (i.e. without a %)
-					GetPrivateProfileString(szfinisec,szKey+1,"",szValue,sizeof(szValue),szINIFile);
-					if (lstrlen(szValue))
+					GetPrivateProfileString(szfinisec,szKey+1,"**default**",szValue,sizeof(szValue),szINIFile);
+					if (lstrcmp(szValue,"**default**")!=0)
 					{
 						// INI file overrides the key, see if the INI file value is the same as the default value though!
 						if (lstrcmp(szValue,iEquals+1)==0)
