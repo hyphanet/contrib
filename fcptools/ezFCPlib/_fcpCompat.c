@@ -68,11 +68,8 @@ int _fcpTmpfile(char **filename)
 	*filename = (char *)malloc(strlen(s) + 1);
 	strcpy(*filename, s);
 
-	/* until I find a better way, this is how it is for now */
-
 #ifdef WIN32
-	/* on Win, this should create a file with permissions inherited from
-		the parent directory */
+	/* this call should inherit permissions from the parent dir */
 	return creat(*filename, O_CREAT);
 
 #else
@@ -80,6 +77,5 @@ int _fcpTmpfile(char **filename)
 	return creat(*filename, O_CREAT | S_IRUSR | S_IWUSR);
 
 #endif
-
 }
 

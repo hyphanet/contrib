@@ -341,7 +341,6 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	int mfd;
 
 	int index;
-	int meta_bytes;
 
 	FILE *kfile;
 	FILE *mfile;

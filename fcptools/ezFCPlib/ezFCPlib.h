@@ -102,12 +102,6 @@
 
 #define FCP_SOCKET_DISCONNECTED -99
 
-/* Defined for portability, and usage by _fcpCreateFile() */
-#define FCP_CREATE_READ       1
-#define FCP_CREATE_WRITE      2
-#define FCP_CREATE_APPEND     4
-
-
 /*
   Lengths of allocated strings/arrays.
 */
@@ -115,7 +109,7 @@
 #define L_FILE_BLOCKSIZE    8192
 #define L_RESPONSE_BUFFER   2048
 
-/* deprecate */
+/* TODO: deprecate */
 #define L_KEY               40
 
 #define FCP_MAX_SPLIT_THREADS  8
@@ -143,6 +137,11 @@
 #define _FCP_O_READ         0x100
 #define _FCP_O_WRITE        0x200
 #define _FCP_O_RAW          0x400   /* disable automatic metadata handling */
+
+/* flags for fcpCreateFile() */
+#define _FCP_CREATE_READ    1
+#define _FCP_CREATE_WRITE   2
+#define _FCP_CREATE_APPEND  4
 
 /* Reasonable defaults */
 #define EZFCP_DEFAULT_HOST         "127.0.0.1"
@@ -299,13 +298,6 @@ typedef struct {
 /**********************************************************************
   Freenet Client Protocol Handle Definition Section
 */
-typedef struct {
-	int    verbosity;
-	FILE  *logstream;
-
-} hFCPConfig;
-
-
 typedef struct {
   int    type; /* CHK@, KSK@, SSK@ */
 
@@ -468,9 +460,6 @@ extern "C" {
 
 	/* fcpLog */
 	void  _fcpLog(int level, char *format, ...);
-
-	void fcpSetLogVerbosity(int verbosity);
-	int  fcpSetLogStream(FILE *stream);
 	
 	/* Socket functions */
 	int   _fcpSockConnect(hFCP *hfcp);
@@ -497,7 +486,7 @@ extern "C" {
 
 	/* Sends a NodeHello and parses the response into hfcp */
 	int   fcpSendHello(hFCP *hfcp);	
-	
+
 	/* Client functions for operations between files on disk and freenet */
 	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_uri, char *key_filename, char *meta_filename);
 

@@ -61,7 +61,6 @@ int fcpStartup(char *logfile, int log_verbosity)
 
 	/* Maybe this needs to be re-thought */
 	_fcpHomeDir = getenv("USERPROFILE");
-	*/
 
 #else
 
