@@ -357,8 +357,13 @@ void MonitorThreadKillFserve()
 
 		KillProcessNicely(&FredPrcInfo);
 	}
-	nFreenetMode=FREENET_STOPPED;
-	ModifyIcon();
+	LOCK(NFREENETMODE);
+	if (nFreenetMode!=FREENET_RESTARTING)
+	{
+		nFreenetMode=FREENET_STOPPED;
+		ModifyIcon();
+	}
+	UNLOCK(NFREENETMODE);
 
 	if ( (FCPProxyPrcInfo.hProcess != NULL)  || (FCPProxyPrcInfo.hThread != NULL) )
 	{
