@@ -449,7 +449,7 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 							}
 							else
 							{
-								ImportFileWithProgress(szCommandLinePtr);
+								ImportFileWithProgressPump(szCommandLinePtr);
 								return FALSE;
 							}	
 							break;

@@ -117,7 +117,7 @@ IDI_THUNDERBOLT         ICON    DISCARDABLE     "res\\tbolt.ico"
 IDD_LOGFILEVIEWER DIALOGEX 0, 0, 426, 207
 STYLE DS_SETFOREGROUND | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "View Freenet.log"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,369,186,50,14
     PUSHBUTTON      "&Copy Selection to Clipboard",IDCOPY,139,186,143,14
@@ -129,13 +129,19 @@ BEGIN
                     WS_DISABLED
 END
 
-IDD_IMPORTPROGRESS DIALOG DISCARDABLE  0, 0, 221, 34
-STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE
+IDD_IMPORTPROGRESS DIALOG DISCARDABLE  0, 0, 252, 46
+STYLE DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP
 FONT 8, "MS Sans Serif"
 BEGIN
-    ICON            IDI_REFERENCE,IDC_STATIC,7,7,21,20
-    LTEXT           "Importing Freenet References... This will not take long...",
-                    IDC_STATIC,34,7,180,20,SS_CENTERIMAGE
+    ICON            IDI_REFERENCE,IDC_STATIC,7,7,20,20
+    LTEXT           "Importing Freenet References... This will not take long.. ",
+                    IDC_TEXT1,37,7,180,19,SS_CENTERIMAGE
+    LTEXT           "",IDC_FRAME1,218,7,27,32,NOT WS_GROUP
+    LTEXT           "",IDC_S_IMPORTFILENAME,7,27,238,12,SS_CENTERIMAGE
+    LTEXT           "Importing Freenet References... This will not take long ..",
+                    IDC_TEXT2,37,7,180,19,SS_CENTERIMAGE | NOT WS_VISIBLE
+    LTEXT           "Importing Freenet References... This will not take long. .",
+                    IDC_TEXT3,37,7,180,19,SS_CENTERIMAGE | NOT WS_VISIBLE
 END
 
 
@@ -158,9 +164,9 @@ BEGIN
     IDD_IMPORTPROGRESS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 214
+        RIGHTMARGIN, 245
         TOPMARGIN, 7
-        BOTTOMMARGIN, 27
+        BOTTOMMARGIN, 39
     END
 END
 #endif    // APSTUDIO_INVOKED
