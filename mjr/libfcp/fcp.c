@@ -575,6 +575,7 @@ fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl)
 	if (fwrite(buf, 1, n, sock) != n) goto ioerror;
     }
     status = fscanf(sock, "%s\nURI=%s\nEndMessage\n", buf, foo);
+    while (fgetc(sock) != EOF);
     if (status == 1 && strcmp(buf, "URIError") == 0)
 	goto invalid_uri;
     if (status == 2) {

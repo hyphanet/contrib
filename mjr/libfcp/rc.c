@@ -71,7 +71,7 @@ main (int argc, char **argv)
         }
     }
 
-    if (htl < 1) {
+    if (htl < 0) {
         fprintf(stdout, "Invalid hops to live.\n");
         return 1;
     }
