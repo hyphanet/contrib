@@ -1,6 +1,6 @@
 /* Wedit generated resource file */
 #include <windows.h>
-#include "d:\dokumente\source\portcfg\portcfgres.h"
+#include "portcfgres.h"
 
 
 IDD_MAINDIALOG DIALOG 7, 20, 177, 56

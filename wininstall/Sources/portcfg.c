@@ -59,9 +59,9 @@ WNDCLASS wc;
 
 
 int SearchPort (HWND hDlg) {
-/* Looks for a free random port >1024
+/* Looks for a free random port >5000
    Returns: 0 for error, Port number otherwise*/
-   //registered ports:1024-65535
+   //registered ports:5001-65535
    SOCKET hSock;
    struct sockaddr_in sa;           /* Local address and port number */
    struct hostent *hp;
@@ -88,9 +88,9 @@ int SearchPort (HWND hDlg) {
 
 	srand((unsigned int) (GetTickCount()));	/* Get random seed*/
 
-	for (i=0;i<500;++i) {
+	for (i=0;i<1000;++i) {
     	/* bind the socket to the internet address */
-		do {port=rand();} while (port<1024 || port>0xFFFF);
+		do {port=rand();} while (port<5001 || port>0xFFFF);
 		#ifdef DEBUG
 		  MessageBox(hDlg,itoa(port,s,10),"Port chosen",MB_OK);
 		#endif
