@@ -45,6 +45,10 @@
 #endif
 #endif
 
+extern int strcmp(const char *, const char *);
+extern int strncmp(const char *, const char *, int);
+extern int strlen(const char *);
+
 #include <stdio.h>
 
 /* Comment out all this code if we are using the GNU C Library, and are not

@@ -3,6 +3,18 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
+Project: "ezFCPdll"=".\ezFCPlib\ezFCPdll.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "ezFCPlib"=".\ezFCPlib\ezFCPlib.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -35,6 +47,12 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name fcpcommon
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -47,23 +65,17 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name fcpcommon
+    End Project Dependency
 }}}
 
 ###############################################################################
 
 Project: "fcpputsite"=".\fcpputsite\fcpputsite.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "fcptools"=".\fcptools.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -83,6 +95,12 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name ezFCPlib
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name fcpcommon
+    End Project Dependency
 }}}
 
 ###############################################################################

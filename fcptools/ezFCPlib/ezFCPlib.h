@@ -40,7 +40,7 @@
 #ifdef WIN32
 #include <malloc.h>
 #include <process.h>
-#include <winsock.h>
+#include <winsock2.h>
 #include <io.h>
 #include <time.h>
 

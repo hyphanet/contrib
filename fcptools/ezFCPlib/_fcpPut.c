@@ -834,13 +834,8 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 
 static int fec_insert_check_blocks(hFCP *hfcp, int index)
 {
-	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
-
 	int bi;   /* block index */
-
-	int bytes;
-	int byte_count;
 
 	hSegment  *segment;
 
