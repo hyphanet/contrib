@@ -20,8 +20,6 @@
 */
 
 extern char  _fcpHost[];
-//extern char *_pHost;
-//extern char *_pProg;
 extern int   _fcpPort;
 extern int   _fcpHtl;
 extern int   _fcpRawMode;
@@ -41,12 +39,6 @@ extern int   _fcpRegress;
 
   Returns:  0 if successful
             -1 if failed
-
-  Notes:
-
-  All signals should be ignored for now.  Threads that need to intercept
-  signals must do it in a portable way otherwise Solaris and BSD (non-linux
-  esp) platforms where standards are more rigid will cause the lib to fail.
 */
 
 int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads)
@@ -61,7 +53,7 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   int  len;
 
   // set global parms
-  strcpy(_fcpHost, host ? host: EZFCP_DEFAULT_HOST);
+  strncpy(_fcpHost, host ? host: EZFCP_DEFAULT_HOST, L_HOST);
   _fcpPort = (port > 0) ? port : EZFCP_DEFAULT_PORT;
   _fcpHtl = (defaultHtl >= 0) ? defaultHtl : EZFCP_DEFAULT_HTL;
   _fcpRawMode = (raw > 0) ? 1 : 0;

@@ -83,22 +83,27 @@ int fcpOpenKey(HFCP *hfcp, char *key, int mode)
 
 static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 {
-  char     buf[1024];
-	char    *ptr;         /* pointer to unparsed metadata */
-  int      n;
-	int      j;
-  int      len;
+  char     buf[L_SOCKET_REQUEST];
+	char    *ptr;
+
   FCP_URI *uri;
   FCP_URI *uriTgt;
-  int      redirecting;
+
   char    *currKey;
   char    *newKey = NULL;
+
   META04  *meta;
   int      metaLen;
+
   FLDSET  *fldSet;
+
+	int      len;
+	int      n;
+
   char    *s;
   char    *path;
   int      docFound;
+  int      redirecting;
 
   long     offset = 0;
   long     increment = 86400;
@@ -127,7 +132,8 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 		}
 			
 		// analyse current key
-		uri = _fcpParseUri(currKey);
+		uri = (FCP_URI *) malloc(sizeof (FCP_URI) );
+		_fcpParseUri(uri, currKey);
 			
 		/* Grab key at current key URI
 			 connect to Freenet FCP */
@@ -139,7 +145,7 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 		}
 			
 		// create and send key request
-		sprintf(buf, "ClientGet\nURI=%s\nHopsToLive=%x\nEndMessage\n", uri->uri_str, hfcp->htl);
+		snprintf(buf, L_SOCKET_REQUEST, "ClientGet\nURI=%s\nHopsToLive=%x\nEndMessage\n", uri->uri_str, hfcp->htl);
 		len = strlen(buf);
 			
 		_fcpSockSend(hfcp, _fcpID, 4);
@@ -164,35 +170,35 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 		hfcp->keysize = hfcp->conn.response.body.datafound.dataLength;
 			
 		// suck in the metadata, if any
+		ptr = NULL;
 		meta = NULL;
 		if ((metaLen = hfcp->conn.response.body.datafound.metaLength) > 0) {
-			ptr = (char *) malloc(metaLen + 1);    // extra byte for '\0'
+
+			ptr = (char *) malloc(metaLen+1);
 				
 			// get all the metadata
-			hfcp->conn.response.body.datafound.metaData = ptr;
 			_fcpReadBlk(hfcp, ptr, metaLen);
-			ptr[metaLen] = '\0';
-				
-			_fcpLog(FCP_LOG_DEBUG, "Metadata:\n--------\n%s\n--------", ptr);
-				
-			fflush(stdout);
-		}
+			ptr[metaLen] = 0;
 
-		/* if rawmode is set, copy the raw metadata to the appropriate HFCP
-			 member, then break out of the redirecting loop and return to caller */
-		if (_fcpRawMode) {
-			hfcp->rawMetadata = (char *) malloc(metaLen + 1);
-			memcpy( hfcp->rawMetadata, ptr, metaLen );
-			free(ptr);
-
-			redirecting = 0;
-			continue;
-		}
-		else {
+			// parse metadata into META04 struct, then copy into HFCP
+			// check end of this function for code that sets hfcp->meta.
 			meta = (META04 *) malloc( sizeof(META04) );
 			metaParse(meta, ptr);
 
+			hfcp->rawMetadata = (char *) malloc(metaLen);
+			memcpy(hfcp->rawMetadata, ptr, metaLen);
+
+			_fcpLog(FCP_LOG_DEBUG, "Metadata:\n--------\n%s\n--------", ptr);
+			fflush(stdout);
+
+			// free the no longer necessary metadata pointer.
 			free(ptr);
+		}
+
+		/* fcpRawMode means, do not follow redirects */
+		if (_fcpRawMode) {
+			redirecting = 0;
+			continue;
 		}
 		
 		/* Dump the metadata information from META04 (debug) */
@@ -207,18 +213,9 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 
 		timeNow = (long)time(NULL);
 
-		//fldSet = cdocFindDoc(meta, NULL);
-
-		/* If fldSet is NULL, there's no useful metadata */
-		/* Effectively break out of the for loop and prepare return to caller */
-		//		if (!fldSet) {
-		//	redirecting = 0;
-		//	continue;
-		//}
-		
 		/* Get the mimetype if it exists */
 		if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
-				strcpy(hfcp->mimeType, s);
+				strncpy(hfcp->mimeType, s, L_MIMETYPE);
 
 		switch (fldSet->type)	{
 		case META_TYPE_04_NONE:
@@ -236,12 +233,15 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 			
 		case META_TYPE_04_DBR:
 			s = cdocLookupKey(fldSet, "DateRedirect.Target");
-			uriTgt = _fcpParseUri(s);
+			uriTgt = (FCP_URI *) malloc(sizeof (FCP_URI) );
+			_fcpParseUri(uriTgt, s);
 			
 			if ((s = cdocLookupKey(fldSet, "DateRedirect.Offset")) != NULL)
 				offset = xtoi(s);
+
 			if ((s = cdocLookupKey(fldSet, "DateRedirect.Increment")) != NULL)
 				increment = xtoi(s);
+
 			tgtTime = timeNow - ((timeNow - offset) % increment);
 			
 			if (!strncmp(uriTgt->uri_str, "KSK@", 4))	{
@@ -315,7 +315,8 @@ static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
     }
   
   // save the key
-  hfcp->wr_info.uri = _fcpParseUri(key);
+	hfcp->wr_info.uri = (FCP_URI *) malloc(sizeof (FCP_URI) );
+  _fcpParseUri(hfcp->wr_info.uri, key);
   
   // generate unique filenames and open the files
   
@@ -338,78 +339,91 @@ static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
 }
 
 
-FCP_URI *_fcpParseUri(char *key)
+int _fcpParseUri(FCP_URI *uri, char *key)
 {
-    //char skip_keytype = 1;
-    FCP_URI *uri = safeMalloc(sizeof(FCP_URI));
+	char *dupkey = strdup(key);
 
-    char *dupkey = strdup(key);
-    char *oldkey = dupkey;
-    char *subpath;
+	// set path to NULL; currently only used for SVK's
+	uri->path = 0;
+	
+	// skip 'freenet:'
+	if (!strncmp(dupkey, "freenet:", 8))
+		dupkey += 8;
+	
+	// classify key header
+	if (!strncmp(dupkey, "SSK@", 4)) {
+		char *path = strchr(dupkey, '/');
 
-    // set defaults
-    uri->path[0] = uri->subpath[0] = '\0';
-    uri->is_msk = 0;
-    uri->numdocs = 0;
+		uri->type = KEY_TYPE_SSK;
 
-    // skip 'freenet:'
-    if (!strncmp(dupkey, "freenet:", 8))
-        dupkey += 8;
+		dupkey += 4;
+		*path++ = '\0';
 
-    // classify key header
-    if (!strncmp(dupkey, "SSK@", 4))
-    {
-        char *path = strchr(dupkey, '/');
+		// do the malloc stuff (see CHK section next for comments)
+		uri->keyid = (char *) malloc(strlen(dupkey) + 1);
+		strcpy(uri->keyid, dupkey);
 
-        dupkey += 4;
-        uri->type = KEY_TYPE_SSK;
-        *path++ = '\0';
-        strcpy(uri->keyid, dupkey);
-        strcpy(uri->path, path);
-        sprintf(uri->uri_str, "SSK@%s/%s", uri->keyid, uri->path);
-    }
-    else if (!strncmp(dupkey, "CHK@", 4))
-    {
-        uri->type = KEY_TYPE_KSK;
-        dupkey += 4;
-        strcpy(uri->keyid, dupkey);
-        sprintf(uri->uri_str, "CHK@%s", uri->keyid);
-    }
-    else if (!strncmp(dupkey, "KSK@", 4))
-    {
-        uri->type = KEY_TYPE_CHK;
-        dupkey += 4;
-        strcpy(uri->keyid, dupkey);
-        sprintf(uri->uri_str, "KSK@%s", uri->keyid);
-    }
-    else
-    {
-        // just a KSK
-        strcpy(uri->keyid, dupkey);
-        uri->type = KEY_TYPE_KSK;
-        sprintf(uri->uri_str, "KSK@%s", uri->keyid);
-    }
+		uri->uri_str = (char *) malloc(strlen(uri->keyid) + strlen(uri->path) + 6);
+		sprintf(uri->uri_str, "SSK@%s/%s", uri->keyid, uri->path);
 
-    free(oldkey);
-    return uri;
+		uri->path = (char *) malloc(strlen(path + 1));
+		strcpy(uri->path, path);
+	}
 
+	else if (!strncmp(dupkey, "CHK@", 4)) { // DONE; do TEST
+		uri->type = KEY_TYPE_CHK;
+
+		dupkey += 4;
+
+		// malloc the string and then do a simple strcpy
+		// (strncpy is unecessary since strlen located the NULL char).
+		uri->keyid = (char *) malloc(strlen(dupkey) + 1);
+		strcpy(uri->keyid, dupkey);
+
+		// now do the same for the raw uri string field
+		// (malloc size + 4 (CHK@) + 1 (NULL) = 5)
+		uri->uri_str = (char *) malloc(strlen(uri->keyid) + 5);
+		sprintf(uri->uri_str, "CHK@%s", uri->keyid);
+	}
+
+	else if (!strncmp(key, "KSK@", 4)) { // DONE; do TEST
+		uri->type = KEY_TYPE_KSK;
+
+		key += 4;
+
+		// same as code for CHK@
+		uri->keyid = (char *) malloc(strlen(dupkey) + 1);
+		strcpy(uri->keyid, dupkey);
+
+		uri->uri_str = (char *) malloc(strlen(uri->keyid) + 5);
+		sprintf(uri->uri_str, "KSK@%s", uri->keyid);
+	}
+
+	else {
+		// bad bad
+		return 1;
+	}
+
+	// free the only dynamically allocated string that isn't a FCP_URI member.
+	free(dupkey);
+	return 0;
 }
 
 
-//
-// destructor for URI struct returned by _fcpParseUri()
-//
+/*
+	destructor for URI struct returned by _fcpParseUri()
+*/
 
 void _fcpFreeUri(FCP_URI *uri)
 {
-    int i;
 
-    if (uri == NULL)
-        return;
+	if (!uri) return;
 
-    for (i = 0; i < uri->numdocs; i++)
-        free(uri->docname[i]);
-    free(uri);
+	if (uri->keyid) free(uri->keyid);
+	if (uri->path) free(uri->path);
+	if (uri->uri_str) free(uri->uri_str);
+
+	free(uri);
 }
 
 

@@ -61,13 +61,14 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
         return -1;
 
     // save the key
-    if ((hfcp->wr_info.uri = _fcpParseUri(key)) == 0)
-    {
-        _fcpSockDisconnect(hfcp);
-        return -1;
-    }
+		hfcp->wr_info.uri = (FCP_URI *) malloc(sizeof (FCP_URI));
+		_fcpParseUri(hfcp->wr_info.uri, key);
 
-    //key = "KSK@xxxbug1";
+		hfcp->wr_info.uri = (FCP_URI *) malloc(sizeof(FCP_URI));
+    if (!_fcpParseUri(hfcp->wr_info.uri, key)) {
+			_fcpSockDisconnect(hfcp);
+			return -1;
+    }
 
     // create a put message
     if (metadata != NULL)

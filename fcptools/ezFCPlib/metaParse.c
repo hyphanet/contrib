@@ -354,6 +354,8 @@ int getLine(char *line, char *buf, int start)
 {
 	int  eol;
 
+	if (!buf) return -1;
+
 	line[0] = 0;
 	while (buf[start]) {
 
@@ -366,7 +368,7 @@ int getLine(char *line, char *buf, int start)
 			strncpy(line, buf+start, eol-start);
 			line[eol-start] = 0;
 			
-			return eol+1;
+			return -1;
 		}
 		else {
 			strcpy(line, buf+start);
@@ -375,5 +377,5 @@ int getLine(char *line, char *buf, int start)
 		}
 	}
 
-	return -1;
+	return 1;
 } // 'getLine()'

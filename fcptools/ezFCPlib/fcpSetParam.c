@@ -24,11 +24,11 @@
 
 #include "ezFCPlib.h"
 
-extern char    _fcpHost[256];
+extern char  _fcpHost[];
 
 void fcpSetHost(char *newHost)
 {
-    strcpy(_fcpHost, newHost);
+    strncpy(_fcpHost, newHost, L_HOST);
 }
 
 

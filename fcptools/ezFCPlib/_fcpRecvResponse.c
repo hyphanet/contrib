@@ -1,4 +1,3 @@
-
 /*
   This code is part of FreeWeb - an FCP-based client for Freenet
 
@@ -14,6 +13,8 @@
 
 #include "ezFCPlib.h"
 
+extern long xtoi(char *s);
+
 //static int    getrespchar(HFCP *hfcp);
 static int  getrespHello(HFCP *hfcpconn);
 static int  getrespSuccess(HFCP *hfcpconn);
@@ -27,7 +28,7 @@ static int  getrespKeycollision(HFCP *hfcp);
 static int  getrespRouteNotFound(HFCP *hfcp);
 static int  getrespblock(HFCP *hfcp, char *respblock, int bytesreqd);
 static int  getrespline(HFCP *hfcp, char *buf);
-static int  htoi(char *s);
+//static int  htoi(char *s);
 
 
 /*
@@ -44,13 +45,6 @@ int _fcpRecvResponse(HFCP *hfcp)
   hfcp->created_uri[0] = '\0';
   hfcp->privkey[0] = '\0';
   hfcp->pubkey[0] = '\0';
-
-  //hfcp->conn.response.body.keypair.pubkey = NULL;
-  //hfcp->conn.response.body.keypair.privkey = NULL;
-  //hfcp->conn.response.body.keypair.uristr = NULL;
-  hfcp->pubkey[0] = '\0';
-  hfcp->privkey[0] = '\0';
-  hfcp->created_uri[0] = '\0';
 
   // get first response line - loop until we don't get Restarted
   while (1) {
@@ -151,40 +145,25 @@ int _fcpRecvResponse(HFCP *hfcp)
 
 static int getrespHello(HFCP *hfcp)
 {
-    char respline[RECV_BUFSIZE];
+	char respline[RECV_BUFSIZE];
 
-    // get protocol field
-    while (getrespline(hfcp, respline) == 0) {
-		if (strncmp(respline, "Protocol=", 9) == 0) {
-		  unsigned int max = sizeof(hfcp->protocol) - 1;
-		  
-		  if (strlen(respline+9) > max) {
-			 strncpy(hfcp->protocol, respline+9, max);
-			 hfcp->protocol[max] = '\0';
-		  }
-		  else
-			 strcpy(hfcp->protocol, respline+9);
-		}
+	// get protocol field
+	while (getrespline(hfcp, respline) == 0) {
 
-		else if (strncmp(respline, "Node=", 5) == 0) {
-		  unsigned int max = sizeof(hfcp->node) - 1;
-		  
-		  if (strlen(respline+5) > max) {
-			 strncpy(hfcp->node, respline+5, max);
-			 hfcp->node[max] = '\0';
-		  }
-		  else
-			 strcpy(hfcp->node, respline+5);
-		}
+		if (strncmp(respline, "Protocol=", 9) == 0)
+			hfcp->protocol = xtoi(respline+9);
+
+		else if (strncmp(respline, "Node=", 5) == 0)
+			strncpy(hfcp->node, respline+5, L_NODE_DESCRIPTION);
 
 		else if (strcmp(respline, "EndMessage") == 0)
-		  return FCPRESP_TYPE_HELLO;
-    }
-
-    // failed somewhere
-    return -1;
-	 
-}       // 'fcprespHello()'
+			return FCPRESP_TYPE_HELLO;
+	}
+	
+	// failed somewhere
+	return -1;
+	
+} // 'fcprespHello()'
 
 
 
@@ -202,7 +181,6 @@ static int getrespSuccess(HFCP *hfcp)
 {
   char respline[RECV_BUFSIZE];
 
-  // get protocol field
   while (getrespline(hfcp, respline) == 0) {
 	 if (strncmp(respline, "URI=", 4) == 0) {
 		//hfcp->conn.response.body.keypair.uristr = strdup(respline + 4);
@@ -243,7 +221,6 @@ static int getrespFailed(HFCP *hfcp)
 {
   char respline[RECV_BUFSIZE];
 
-  // get protocol field
   while (getrespline(hfcp, respline) == 0) {
 	 if (strncmp(respline, "Reason=", 4) == 0) {
 		//hfcp->conn.response.body.failed.reason = strdup(respline + 8);
@@ -286,14 +263,13 @@ static int getrespDatafound(HFCP *hfcp)
     if (hfcp->conn.response.body.datachunk.data != NULL)
         hfcp->conn.response.body.datachunk.data = NULL;
 
-    // get protocol field
     while (getrespline(hfcp, respline) == 0)
     {
         if (strncmp(respline, "DataLength=", 11) == 0)
-            hfcp->conn.response.body.datafound.dataLength = htoi(respline + 11);
+            hfcp->conn.response.body.datafound.dataLength = xtoi(respline + 11);
 
         else if (strncmp(respline, "MetadataLength=", 15) == 0)
-            hfcp->conn.response.body.datafound.metaLength = htoi(respline + 15);
+            hfcp->conn.response.body.datafound.metaLength = xtoi(respline + 15);
 
         else if (strcmp(respline, "EndMessage") == 0)
         {
@@ -327,11 +303,10 @@ static int getrespDatachunk(HFCP *hfcp)
 {
     char respline[RECV_BUFSIZE];
 
-    // get protocol field
     while (getrespline(hfcp, respline) == 0)
     {
         if (strncmp(respline, "Length=", 7) == 0)
-            hfcp->conn.response.body.datachunk.length = htoi(respline + 7);
+            hfcp->conn.response.body.datachunk.length = xtoi(respline + 7);
 
         else if (strncmp(respline, "Data", 4) == 0)
         {
@@ -391,7 +366,6 @@ static int getrespRouteNotFound(HFCP *hfcp)
 {
     char respline[RECV_BUFSIZE];
 
-    // get protocol field
     while (getrespline(hfcp, respline) == 0)
     {
         if (!strcmp(respline, "EndMessage"))
@@ -419,7 +393,6 @@ static int getrespDataNotFound(HFCP *hfcp)
 {
     char respline[RECV_BUFSIZE];
 
-    // get protocol field
     while (getrespline(hfcp, respline) == 0)
     {
         if (!strcmp(respline, "EndMessage"))
@@ -449,7 +422,6 @@ static int getrespUrierror(HFCP *hfcp)
 {
     char respline[RECV_BUFSIZE];
 
-    // get protocol field
     while (getrespline(hfcp, respline) == 0)
     {
         if (!strcmp(respline, "EndMessage"))
@@ -477,7 +449,6 @@ static int getrespKeycollision(HFCP *hfcp)
 {
     char respline[RECV_BUFSIZE];
 
-    // get protocol field
     while (getrespline(hfcp, respline) == 0)
     {
         if (strncmp(respline, "URI=", 4) == 0)
@@ -598,6 +569,7 @@ static int getrespline(HFCP *hfcp, char *buf)
 //
 //  Description:    converts a string to its hex numerical value
 
+/*
 static int htoi(char *s)
 {
     int val = 0;
@@ -619,5 +591,6 @@ static int htoi(char *s)
     return val;
 
 }       // 'htoi()'
+*/
 
 /* force cvs update */

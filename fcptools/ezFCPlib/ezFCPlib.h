@@ -94,12 +94,20 @@
 /*
   Lengths of allocated strings/arrays.
 */
-#define L_URI         256
-#define L_HOST        128
-#define L_FILENAME    128
-#define L_KEY         128
-#define L_KEYINDEX    128
-#define L_KSK         32768
+#define L_HOST              128
+#define L_PROTOCOL          10
+#define L_NODE_DESCRIPTION  128
+#define L_MIMETYPE          80
+#define L_FILENAME          128
+
+#define L_SSK_PATH          128
+
+#define L_URI               256
+#define L_KEY               128
+#define L_KEYINDEX          128
+#define L_KSK               32768
+#define L_MESSAGE           256
+#define L_SOCKET_REQUEST    2048
 
 /*
   Splitfiles handling definitions
@@ -223,7 +231,7 @@ typedef struct _splitJob {
   first - basic node hello response
 */
 typedef struct {
-  char *protocol;  /* malloc - protocol ID */
+  int   protocol;  /* protocol ID */
   char *node;      /* malloc - node ID */
 } FCPRESP_HELLO;
 
@@ -248,12 +256,12 @@ typedef struct {
   Received data header response
 */
 typedef struct {
-  int dataLength;             /* DataLength=<number: number of bytes of
-											metadata+data> */
-  int metaLength;             /* MetadataLength=<number: default=0: number of
-											bytes of metadata> */
-  char *metaData;             /* malloc metadata */
-  char *metaPtr;              /* current pointer into metadata */
+
+  int dataLength;  /* count of: (metadata + data) */
+  int metaLength;  /* number of bytes of metadata */
+
+  //char *metaData; // DEPRACATE
+  //char *metaPtr;  // DEPRACATE
 } FCPRESP_DATAFOUND;
 
 
@@ -308,15 +316,12 @@ typedef struct {
   Freenet URI split up into its parts
 */
 typedef struct {
-  char type;
-  char is_msk;        /* set if key is an MSK */
-  char keyid[128];
-  char path[128];     /* only used with SSKs */
-  char uri_str[256];  /* raw uri string */
-  char subpath[128];  /* only used for MSKs - the part after the '//' */
-  int  numdocs;       /* number of MSK document names in 'docname[]' array */
-  char **docname;     /* array of docname pointers -
-								 'SSK@blah/path//name1//name2//...//namen' */
+  char    type;
+  char   *keyid;     /* malloc */
+  char   *path;      /* malloc - only used with SSKs */
+	//char  **docname;           /* DEPRECATE */
+  char   *uri_str;   /* malloc - raw uri string */
+  int     numdocs;       /* number of documents */
 } FCP_URI;
 
 
@@ -413,12 +418,7 @@ typedef struct {
 typedef _FCPCONN {
   int socket;
   int Status;
-  /*
-	 int recvState;
-	 unsigned char rawBuf[RECV_BUFSIZE]; * ring buffer for incoming node response data *
-	 unsigned char *rawBufStart;         * start ptr into rawBuf *
-	 unsigned char *rawbufEnd;           * end ptr into rawBuf - points JUSTAFTER last char *
-  */
+
   FCPRESP response;
 } FCPCONN;
 
@@ -434,31 +434,32 @@ typedef struct {
   int keysize;   /* with requests, this is the size of key data */
   int bytesread; /* num bytes read from key so far */
   int openmode;
-  char protocol[64];
-  char node[256];
+  int protocol;
+  char node[L_NODE_DESCRIPTION];
   
-  char *rawMetadata;   /* raw metadata read from file when in raw mode */
-  META04 *meta;        /* structure containing parsed metadata */
+  char   *rawMetadata;  /* raw metadata read from file when in raw mode */
+  META04 *meta;         /* structure containing parsed metadata */
   FLDSET *fields;
-  char mimeType[80];
+  char    mimeType[L_MIMETYPE];
 
   struct {
-	 FCP_URI *uri;        /* uri of key being inserted */
-	 int fd_data;         /* fd for writing key data to temp file */
-	 int num_data_wr;     /* num bytes of normal data written */
-	 char data_temp_file[L_tmpnam];   /* temporary file full path */
-	 int fd_meta;         /* fd for writing key metadata to temp file */
-	 int num_meta_wr;     /* num bytes of metadata written */
-	 char meta_temp_file[L_tmpnam];   /* temporary file full path */
-  } wr_info;
+		FCP_URI  *uri;             /* uri of key being inserted */
 
+		int   fd_data;         /* fd for writing key data to temp file */
+		int   num_data_wr;     /* num bytes of normal data written */
+		char  data_temp_file[L_tmpnam];   /* temporary file full path */
+		int   fd_meta;         /* fd for writing key metadata to temp file */
+		int   num_meta_wr;     /* num bytes of metadata written */
+		char  meta_temp_file[L_tmpnam];   /* temporary file full path */
+  } wr_info;
+	
   FCPCONN conn;
 
   FCP_KEYINDEX keyindex;
   char created_uri[L_KEY];  /* filled in by library after writing key */
   char pubkey[L_KEY];       /* filled in after writing a key */
   char privkey[L_KEY];      /* filled in after writing a key */
-  char failReason[256];           /* reason sent back with failure msg */
+  char failReason[L_MESSAGE];           /* reason sent back with failure msg */
 
   splitJobIns split;              /* control structure for insert split job */
 } HFCP;
@@ -473,6 +474,7 @@ typedef struct {
 #endif
 
 extern _C_ int      fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads);
+
 extern _C_ HFCP    *fcpCreateHandle();
 extern _C_ void     fcpInitHandle(HFCP *hfcp);
 extern _C_ int      fcpMakeSvkKeypair(HFCP *hfcp, char *pubkey, char *privkey);
@@ -507,7 +509,7 @@ extern _C_ int      _fcpSockSend(HFCP *hfcp, char *buf, int len);
 extern _C_ void     _fcpClose(HFCP *hfcp);
 extern _C_ int      _fcpRecvResponse(HFCP *hfcp);
 extern _C_ int      _fcpReadBlk(HFCP *hfcp, char *buf, int len);
-extern _C_ FCP_URI *_fcpParseUri(char *key);
+extern _C_ int      _fcpParseUri(FCP_URI *uri, char *key);
 extern _C_ void     _fcpFreeUri(FCP_URI *uri);
 extern _C_ void     _fcpLog(int level, char *format,...);
 extern _C_ void     _fcpInitSplit(int maxThreads);
