@@ -1,4 +1,3 @@
-
 /*
   This code is part of FCPTools - an FCP-based client library for Freenet
 	
@@ -143,9 +142,6 @@ int _fcpParseURI(hURI *uri, char *key)
   if (!strncmp(key, "freenet:", 8))
     key += 8;
 
-	/* for "xxK@" initially.. */
-	uri->uri_str = (char *)malloc(5);
-  
   /* classify key header */
   if (!strncmp(key, "SSK@", 4)) {
 
@@ -187,31 +183,34 @@ int _fcpParseURI(hURI *uri, char *key)
 		*(uri->file + len) = 0;
 
 		/* the +10 really is +8:  "SSK@ + / + //"  */
-		realloc(uri->uri_str, strlen(uri->keyid) + strlen(uri->path) + strlen(uri->file) + 10);
+		uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->path) + strlen(uri->file) + 10);
 		sprintf(uri->uri_str, "SSK@%s/%s//%s", uri->keyid, uri->path, uri->file); 
   }
-
-	/* freenet:CHK@fkjdfjglsdjgslkgdjfghsdjkflgskdjfghdjfksl */
 
   else if (!strncmp(key, "CHK@", 4)) {
 
     uri->type = KEY_TYPE_CHK;
-		strcpy(uri->uri_str, "CHK@");
-
 		key += 4;
     
-		for (p = key; *p; p++);
-		len = p-key;
-
-		_fcpLog(FCP_LOG_DEBUG, "length is: %d", len);
+		len = strlen(key);
 
 		if (len) {
+			if (uri->keyid) free(uri->keyid);
 			uri->keyid = (char *)malloc(len + 1);
-			strncpy(uri->keyid, key, len);
-			*(uri->keyid + len) = 0;
 
-			realloc(uri->uri_str, strlen(uri->keyid) + 5);
-			strcat(uri->uri_str, uri->keyid);
+			strcpy(uri->keyid, key);
+		}
+		
+		/* don't forget to update the raw string.. */
+		if (uri->uri_str) free(uri->uri_str);
+
+		if (uri->keyid) {
+			uri->uri_str = (char *)malloc(strlen(uri->keyid) + 5);
+			sprintf(uri->uri_str, "CHK@%s", uri->keyid);
+		}
+		else {
+			uri->uri_str = (char *)malloc(5);
+			strcpy(uri->uri_str, "CHK@");
 		}
   }
   
@@ -238,13 +237,6 @@ int _fcpParseURI(hURI *uri, char *key)
   else {
     return 1;
   }
-
-	_fcpLog(FCP_LOG_DEBUG, "uri->keyid: %s; uri->path: %s; uri->file: %s\nuri->uri_str: %s",
-					uri->keyid,
-					uri->path,
-					uri->file,
-					uri->uri_str
-					);
 
   return 0;
 }

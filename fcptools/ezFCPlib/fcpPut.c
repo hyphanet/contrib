@@ -50,7 +50,7 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 /* Private functions for internal use */
 static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename);
 static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);
-static int fec_insert_blocks(hFCP *hfcp);
+static int fec_insert_segment(hFCP *hfcp, char *key_filename, int segment);
 
 
 int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
@@ -71,7 +71,6 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
   /* create a put message */
 
   if (meta_filename) {
-	
     snprintf(buf, L_FILE_BLOCKSIZE,
 						 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
 						 hfcp->key->uri->uri_str,
@@ -92,7 +91,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	/* Send fcpID */
 	if (send(hfcp->socket, _fcpID, 4, 0) == -1)
 		 return -1;
-		 
+
 	/* Send ClientPut command */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "could not send ClientPut command");
@@ -106,23 +105,28 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	}
 
 	/* Open metadata file */
-	if (!(mfile = fopen(meta_filename, "rb"))) {
-		_fcpLog(FCP_LOG_DEBUG, "could not open metadata file for reading");
-		return -1;
-	}
-
+	if (meta_filename)
+		if (!(mfile = fopen(meta_filename, "rb"))) {
+			_fcpLog(FCP_LOG_DEBUG, "could not open metadata file for reading");
+			return -1;
+		}
+	
 	kfd = fileno(kfile);
-	mfd = fileno(mfile);
+
+	if (meta_filename) mfd = fileno(mfile);
 
   /* send metadata */
-	while ((rc = read(mfd, buf, L_FILE_BLOCKSIZE)) > 0) {
-
-    if (send(hfcp->socket, buf, rc, 0) < 0) {
-      _fcpLog(FCP_LOG_DEBUG, "could not write metadata to Freenet");
-      return -1;
+	if (meta_filename) {
+		while ((rc = read(mfd, buf, L_FILE_BLOCKSIZE)) > 0) {
+			
+			if (send(hfcp->socket, buf, rc, 0) < 0) {
+				_fcpLog(FCP_LOG_DEBUG, "could not write metadata to Freenet");
+				return -1;
+			}
 		}
+
+		fclose(mfile);
 	}
-	fclose(mfile);
 
   /* send key data */
 	while ((rc = read(kfd, buf, L_FILE_BLOCKSIZE)) > 0) {
@@ -140,10 +144,18 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
   switch (rc) {
   case FCPRESP_TYPE_SUCCESS:
     _fcpLog(FCP_LOG_DEBUG, "node returned Success message");
-    break;
-
+		
+		hfcp->key->uri = _fcpCreateHURI();
+		_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
+		
+		break;
+		
   case FCPRESP_TYPE_KEYCOLLISION:
     _fcpLog(FCP_LOG_DEBUG, "node returned KeyCollision message");
+		
+		hfcp->key->uri = _fcpCreateHURI();
+		_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
+
     break;
 
   case FCPRESP_TYPE_ROUTENOTFOUND:
@@ -174,9 +186,6 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	/* Before returning, set all the hfcp-> fields proper, so that the response
 		 struct can be re-used on next call to _fcpRecvResponse(). */
 	
-	hfcp->key->uri = _fcpCreateHURI();
-	_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
-
 	return 0;
 }
 
@@ -191,11 +200,19 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 	for (index = 0; index < hfcp->key->segment_count; index++) {
 		rc = fec_encode_segment(hfcp, key_filename, index);
-		_fcpLog(FCP_LOG_DEBUG, "fec_encode_segment returned %d", index);
+
+		_fcpLog(FCP_LOG_DEBUG, "fec_encode_segment returned %d", rc);
 	}
-
 	_fcpLog(FCP_LOG_DEBUG, "fec_encode_segment loop returned");
+	
+	for (index = 0; index < hfcp->key->segment_count; index++) {
+		rc = fec_insert_segment(hfcp, key_filename, index);
 
+		_fcpLog(FCP_LOG_DEBUG, "fec_insert_segment returned %d", rc);
+	}	
+	_fcpLog(FCP_LOG_DEBUG, "fec_insert_segment loop returned");
+	
+	
 	return 0;
 }
 
@@ -275,7 +292,7 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		hfcp->key->segments[index]->header_str = (char *)malloc(strlen(buf) + 1);
 		strcpy(hfcp->key->segments[index]->header_str, buf);
 
-		_fcpLog(FCP_LOG_DEBUG, "got segment %d/%d", index+1, segment_count);
+		_fcpLog(FCP_LOG_DEBUG, "got segment %d (index=%d); total %d", index+1, index, segment_count);
 	
 		hfcp->key->segments[index]->filelength       = hfcp->response.segmentheader.filelength;
 		hfcp->key->segments[index]->offset           = hfcp->response.segmentheader.offset;
@@ -426,6 +443,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
 		segment->check_blocks[bi]->filename = crTmpFilename();
+		segment->check_blocks[bi]->size = block_len;
 		
 		if (!(file = fopen(segment->check_blocks[bi]->filename, "wb"))) {
 			
@@ -457,7 +475,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 			_fcpLog(FCP_LOG_DEBUG, "bytes received for check block did not match with expected length");
 			return -1;
 		}
-		
+
 		/* Close the check block file */
 		fclose(file);
 	}
@@ -468,32 +486,62 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 }
 
 
-static int fec_insert_blocks(hFCP *hfcp)
+static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 {
+	char buf[L_FILE_BLOCKSIZE+1];
+	int fd;
+	int rc;
+
+	int fi;   /* file index */
+	int bi;   /* block index */
+
+	int byte_count;
+
+	int data_len;
+	int block_len;
+	int metadata_len;
+	int pad_len;
+
+	hSegment  *segment;
+	FILE      *file;
+
+	struct stat fstat;
+
+	/* helper pointer */
+	segment = hfcp->key->segments[index];
+
 #if 0
-	hfcp_tmp = _fcpCreateHFCP();
+	/* insert data blocks first */
+	for (bi=0; bi < segment->db_count; bi++) {
+		hFCP *tmp_hfcp;
 
-	/* Loop through all the segments */
-	for (index=0; index < segment_count; index++) {
+		tmp_hfcp = _fcpCreateHFCP();
+		
+		/* use the temporary handle, to put the data block with NULL metadata */
+		rc = put_file(tmp_hfcp, segment->data_blocks[bi]->filename, 0);
 
-		/* Loop through all the check blocks */
-		for (bi=0; bi < hfcp->key->segments[segment]->cb_count; bi++) {
-			
-			rc = put_file(hfcp_tmp, hfcp->key->segments[segment]->check_blocks[bi]->filename, 0);
-			_fcpLog(FCP_LOG_DEBUG, "inserted check block in file \"%s\"\nrc=%d\nURI=%s",
-							hfcp->key->segments[segment]->data_blocks[bi]->filename,
-							rc,
-							hfcp_tmp->key->uri->uri_str
-							);
-		}
+		_fcpLog(FCP_LOG_DEBUG, "put_file returned %d for data block %d", rc, bi);
 	}
-	
-	_fcpDestroyHFCP(hfcp_tmp);
-	
-	/* Exit properly */
-	
-	crSockDisconnect(hfcp);
 #endif
+
+	/* insert check blocks second */
+	for (bi=0; bi < segment->cb_count; bi++) {
+		hFCP *tmp_hfcp;
+
+		tmp_hfcp = _fcpCreateHFCP();
+
+		tmp_hfcp->key = _fcpCreateHKey();
+		tmp_hfcp->key->size = segment->check_blocks[bi]->size;
+
+		_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
+
+		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0);
+
+		_fcpLog(FCP_LOG_DEBUG, "put_file returned %d for check block %d", rc, bi);
+		_fcpLog(FCP_LOG_DEBUG, "inserted uri: %s", tmp_hfcp->key->uri->uri_str);
+
+		_fcpDestroyHFCP(tmp_hfcp);
+	}
 
 	return 0;
 }
