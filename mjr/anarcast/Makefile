@@ -1,4 +1,4 @@
-CFLAGS = -Wall
+CFLAGS = -O9 -Wall
 PROGRAMS = inform insert proxy request server sync
 DEPS = anarcast.h graphs.h crypt.c Makefile
 

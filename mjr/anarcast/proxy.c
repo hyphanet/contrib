@@ -6,7 +6,7 @@
 #include "crypt.c"
 
 // how many blocks should be transfer at a time?
-#define CONCURRENCY   1
+#define CONCURRENCY   8
 
 // a node in our linked list of servers
 struct node {
@@ -334,7 +334,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     for (;;) {
 	int i;
 	fd_set x;
-
+	
 	// make new connections
 	while (active < CONCURRENCY && next < blockcount) {
 	    int c;
@@ -354,7 +354,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 	    active++;
 	    next++;
 	}
-        
+	
 	x = w;
 	i = select(m, NULL, &x, NULL, NULL);
 	if (i == -1) die("select() failed");
@@ -663,7 +663,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    // connect to server, watch new fd
 		    if (++xfers[i].try < 3) {
 		        int c, addy;
-		        c = hookup(&hashes[xfers[i].num*HASHLEN], &addy, xfers[c].try);
+		        c = hookup(&hashes[xfers[i].num*HASHLEN], &addy, xfers[i].try);
 		        FD_SET(c, &w);
 			xfers[c].peeraddy = addy;
 		        xfers[c].num = xfers[i].num;
