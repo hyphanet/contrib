@@ -16,9 +16,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPropGeek property page
 
-IMPLEMENT_DYNCREATE(CPropFProxy, CPropertyPage)
+IMPLEMENT_DYNCREATE(CPropFProxy, CMoveablePropertyPage)
 
-CPropFProxy::CPropFProxy() : CPropertyPage(CPropFProxy::IDD)
+CPropFProxy::CPropFProxy() : CMoveablePropertyPage(CPropFProxy::IDD)
 {
 	//{{AFX_DATA_INIT(CPropFProxy)
 	m_fproxyrequesthtl = 0;
@@ -40,7 +40,7 @@ CPropFProxy::~CPropFProxy()
 
 void CPropFProxy::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CMoveablePropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropFProxy)
 	DDX_Text(pDX, IDC_fproxy_class, m_fproxyclass);
 	DDX_Text(pDX, IDC_fproxy_port, m_fproxyport);
@@ -58,7 +58,7 @@ void CPropFProxy::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPropFProxy, CPropertyPage)
+BEGIN_MESSAGE_MAP(CPropFProxy, CMoveablePropertyPage)
 	//{{AFX_MSG_MAP(CPropFProxy)
 		// NOTE: the ClassWizard will add message map macros here
 	//}}AFX_MSG_MAP

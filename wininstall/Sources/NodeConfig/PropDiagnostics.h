@@ -7,11 +7,12 @@
 
 #include "stdafx.h"
 #include "resource.h"
+#include "MoveablePropertyPage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropDiagnostics dialog
 
-class CPropDiagnostics : public CPropertyPage
+class CPropDiagnostics : public CMoveablePropertyPage
 {
 	DECLARE_DYNCREATE(CPropDiagnostics)
 

@@ -7,13 +7,14 @@
 
 #include "stdafx.h"
 #include "resource.h"
+#include "MoveablePropertyPage.h"
 
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropAdvanced dialog
 #define NUMPRIORITIES (7)
 
-class CPropAdvanced : public CPropertyPage
+class CPropAdvanced : public CMoveablePropertyPage
 {
 	DECLARE_DYNCREATE(CPropAdvanced)
 

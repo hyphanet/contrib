@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "NodeConfig.h"
+#include "MoveablePropertySheet.h"
 #include "PropNormal.h"
 #include "PropAdvanced.h"
 #include "PropGeek.h"
@@ -138,7 +139,7 @@ BOOL CNodeConfigApp::InitInstance()
 
 
 	//CNodeConfigDlg dlg;
-	CPropertySheet propdlg(IDS_TITLE);
+	CMoveablePropertySheet propdlg(IDS_TITLE);
 
 	CPropNormal Normal;
 	CPropAdvanced Advanced;

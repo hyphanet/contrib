@@ -7,6 +7,7 @@
 
 #include "stdafx.h"
 #include "resource.h"
+#include "MoveablePropertyPage.h"
 
 #define TRANSIENT 0
 #define NOT_TRANSIENT 1
@@ -14,7 +15,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CPropNormal dialog
 
-class CPropNormal : public CPropertyPage
+class CPropNormal : public CMoveablePropertyPage
 {
 	DECLARE_DYNCREATE(CPropNormal)
 

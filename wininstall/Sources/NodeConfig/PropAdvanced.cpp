@@ -18,9 +18,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPropAdvanced property page
 
-IMPLEMENT_DYNCREATE(CPropAdvanced, CPropertyPage)
+IMPLEMENT_DYNCREATE(CPropAdvanced, CMoveablePropertyPage)
 
-CPropAdvanced::CPropAdvanced() : CPropertyPage(CPropAdvanced::IDD)
+CPropAdvanced::CPropAdvanced() : CMoveablePropertyPage(CPropAdvanced::IDD)
 {
 	//{{AFX_DATA_INIT(CPropAdvanced)
 	m_n_Slider_CPUPriority = 0;
@@ -33,7 +33,7 @@ CPropAdvanced::~CPropAdvanced()
 
 void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CMoveablePropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropAdvanced)
 	DDX_Text(pDX, IDC_adminPassword, m_adminPassword);
 	DDV_MaxChars(pDX, m_adminPassword, 32);
@@ -63,7 +63,7 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPropAdvanced, CPropertyPage)
+BEGIN_MESSAGE_MAP(CPropAdvanced, CMoveablePropertyPage)
 	//{{AFX_MSG_MAP(CPropAdvanced)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_initialRequestHTL_spin, OnInitialRequestHTLspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_inputBandwidthLimit_spin, OnInputBandwidthLimitspin)
@@ -347,5 +347,5 @@ BOOL CPropAdvanced::OnSetActive()
 	m_ctrl_Slider_CPUPriority.SetTicFreq(1);
 	m_ctrl_Slider_CPUPriority.SetRange(0,NUMPRIORITIES-1,TRUE);
 
-	return CPropertyPage::OnSetActive();
+	return CMoveablePropertyPage::OnSetActive();
 }

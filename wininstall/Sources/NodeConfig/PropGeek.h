@@ -7,11 +7,12 @@
 
 #include "stdafx.h"
 #include "resource.h"
+#include "MoveablePropertyPage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropGeek dialog
 
-class CPropGeek : public CPropertyPage
+class CPropGeek : public CMoveablePropertyPage
 {
 	DECLARE_DYNCREATE(CPropGeek)
 		// Construction

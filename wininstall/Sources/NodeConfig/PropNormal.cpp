@@ -24,9 +24,9 @@ extern CPropAdvanced	*pAdvanced;
 /////////////////////////////////////////////////////////////////////////////
 // CPropNormal property page
 
-IMPLEMENT_DYNCREATE(CPropNormal, CPropertyPage)
+IMPLEMENT_DYNCREATE(CPropNormal, CMoveablePropertyPage)
 
-CPropNormal::CPropNormal() : CPropertyPage(CPropNormal::IDD)
+CPropNormal::CPropNormal() : CMoveablePropertyPage(CPropNormal::IDD)
 {
 	//{{AFX_DATA_INIT(CPropNormal)
 	m_transient = NOT_TRANSIENT;
@@ -39,7 +39,7 @@ CPropNormal::~CPropNormal()
 
 void CPropNormal::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CMoveablePropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropNormal)
 	DDX_Control(pDX, IDC_importNewNodeRef, m_importNewNodeRef);
 	DDX_Text(pDX, IDC_storeSize, m_storeSize);
@@ -54,7 +54,7 @@ void CPropNormal::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPropNormal, CPropertyPage)
+BEGIN_MESSAGE_MAP(CPropNormal, CMoveablePropertyPage)
 	//{{AFX_MSG_MAP(CPropNormal)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_storeCacheSize_spin, OnStoreCacheSizespin)
 	ON_WM_CREATE()
@@ -139,7 +139,7 @@ void CPropNormal::showNodeAddrFields(BOOL showing)
 
 int CPropNormal::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	if (CPropertyPage::OnCreate(lpCreateStruct) == -1)
+	if (CMoveablePropertyPage::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
 	return 0;
@@ -149,7 +149,7 @@ void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus)
 {
 	HANDLE hfile;
 
-	CPropertyPage::OnShowWindow(bShow, nStatus);
+	CMoveablePropertyPage::OnShowWindow(bShow, nStatus);
 
 	// hide node ip address/port fields if transient
 	showNodeAddrFields(m_transient==NOT_TRANSIENT);
@@ -186,5 +186,5 @@ void CPropNormal::OnDestroy()
 		Getseeddlg.DoModal();
 	}
 
-	CPropertyPage::OnDestroy();
+	CMoveablePropertyPage::OnDestroy();
 }

@@ -7,12 +7,12 @@
 
 #include "stdafx.h"
 #include "resource.h"
-
+#include "MoveablePropertyPage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropFProxy dialog
 
-class CPropFProxy : public CPropertyPage
+class CPropFProxy : public CMoveablePropertyPage
 {
 	DECLARE_DYNCREATE(CPropFProxy)
 

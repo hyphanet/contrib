@@ -16,9 +16,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPropGeek property page
 
-IMPLEMENT_DYNCREATE(CPropGeek, CPropertyPage)
+IMPLEMENT_DYNCREATE(CPropGeek, CMoveablePropertyPage)
 
-CPropGeek::CPropGeek() : CPropertyPage(CPropGeek::IDD)
+CPropGeek::CPropGeek() : CMoveablePropertyPage(CPropGeek::IDD)
 {
 	//{{AFX_DATA_INIT(CPropGeek)
 	m_strNumUnknowns = _T("");
@@ -32,7 +32,7 @@ CPropGeek::~CPropGeek()
 
 void CPropGeek::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CMoveablePropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropGeek)
 	DDX_Text(pDX, IDC_announcementAttempts, m_announcementAttempts);
 	DDV_MinMaxUInt(pDX, m_announcementAttempts, 1, 256);
@@ -75,7 +75,7 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	//}}AFX_DATA_MAP
 }
 
-BEGIN_MESSAGE_MAP(CPropGeek, CPropertyPage)
+BEGIN_MESSAGE_MAP(CPropGeek, CMoveablePropertyPage)
 	//{{AFX_MSG_MAP(CPropGeek)
 	ON_BN_CLICKED(IDC_UNKNOWN, OnUnknown)
 	//}}AFX_MSG_MAP
@@ -99,7 +99,7 @@ void CPropGeek::OnUnknown()
 
 BOOL CPropGeek::OnInitDialog()
 {
-	CPropertyPage::OnInitDialog();
+	CMoveablePropertyPage::OnInitDialog();
 	UpdateNumofUnknowns();
 
 	return TRUE;  // return TRUE unless you set the focus to a control

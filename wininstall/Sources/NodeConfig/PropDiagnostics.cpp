@@ -15,9 +15,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPropDiagnostics property page
 
-IMPLEMENT_DYNCREATE(CPropDiagnostics, CPropertyPage)
+IMPLEMENT_DYNCREATE(CPropDiagnostics, CMoveablePropertyPage)
 
-CPropDiagnostics::CPropDiagnostics() : CPropertyPage(CPropDiagnostics::IDD)
+CPropDiagnostics::CPropDiagnostics() : CMoveablePropertyPage(CPropDiagnostics::IDD)
 {
 	//{{AFX_DATA_INIT(CPropDiagnostics)
 	m_nFailureTableEntries = 0;
@@ -31,7 +31,7 @@ CPropDiagnostics::~CPropDiagnostics()
 
 void CPropDiagnostics::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CMoveablePropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropDiagnostics)
 	DDX_Check(pDX, IDC_NODEINFOSERVLET, m_nodeinfoservlet);
 	DDX_Text(pDX, IDC_NODEINFOCLASS, m_nodeinfoclass);
@@ -53,7 +53,7 @@ void CPropDiagnostics::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPropDiagnostics, CPropertyPage)
+BEGIN_MESSAGE_MAP(CPropDiagnostics, CMoveablePropertyPage)
 	//{{AFX_MSG_MAP(CPropDiagnostics)
 	ON_BN_CLICKED(IDC_NODEINFOSERVLET, OnNodeinfoservlet)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_FAILURETABENTRIESSPIN, OnFailureTabEntriesSpin)
@@ -76,7 +76,7 @@ BOOL CPropDiagnostics::OnSetActive()
 	UpdateData(TRUE);
 	GetDlgItem(IDC_NODEINFOCLASS)->EnableWindow(m_nodeinfoservlet);
 	GetDlgItem(IDC_NODEINFOPORT)->EnableWindow(m_nodeinfoservlet);
-	return CPropertyPage::OnSetActive();
+	return CMoveablePropertyPage::OnSetActive();
 }
 
 void CPropDiagnostics::OnFailureTabEntriesSpin(NMHDR* pNMHDR, LRESULT* pResult)
