@@ -39,570 +39,301 @@ int GetEditLines(HWND hwndEditBox)
 }
 
 
-// THIS CODE ONLY WORKS IF TextBufferSize < 4GB ....  but that's very LIKELY
-// (default size of TextBufferSize is just 4KB ... )
-char* ReadPrevNLines(int *pnLines, HANDLE hFile, ULARGE_INTEGER ulCurrentFilePosition, ULARGE_INTEGER *pulFirstLineFileOffset, ULARGE_INTEGER *pulLastLineFileOffset, ULARGE_INTEGER *pulCurrentLineFileOffset, char *pTextBuffer, DWORD TextBufferSize)
+// reads floor(dwTextBufferSize/2) bytes from before ulCurrentFilePosition and
+// ceil(dwTextBufferSize/2) bytes from after (including) ulCurrentFilePosition
+// Puts all data into pTextBuffer, and returns a pointer to somewhere in the
+// middle of that buffer, referring to the byte actually read from CurrentFilePosition
+//  (effectively char * pCurrentPointer)
+// Also returns a modified ulCurrentFilePosition if the various reads went off
+// the start or end of the file
+char* ReadIntoFileBuffer(HANDLE hFile, ULARGE_INTEGER *pulCurrentFilePosition, char *pTextBuffer, DWORD dwTextBufferSize, /* out */ DWORD *pdwBytesReadBefore, /* out */ DWORD *pdwBytesReadAfter)
 {
-	char * pFirstOfNLines;
-	char * pLastOfNLines;
-	DWORD dwRead;
-	int nLines = *pnLines;
-	DWORD dwBytesToRead;
+	char * pCurrentPointer;
+
+	DWORD dwBytesBefore, dwBytesAfter;
+	DWORD dwBytesToRead, dwBytesReadBefore, dwBytesReadAfter;
 	ULARGE_INTEGER ulReadStartOffset;
-	BOOL bGotStartOfCurrentLineFileOffset=FALSE;
-	ULARGE_INTEGER ulFirstLineFileOffset,ulLastLineFileOffset,ulCurrentLineFileOffset;
-	BOOL bCurrentFilePointerIsEndOfLine=FALSE;
+	ULARGE_INTEGER ulActualCurrentPosition;
 	BOOL bReadSuccess;
 
-	*pnLines = 0;
-	pulFirstLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pulLastLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pulCurrentLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pTextBuffer[0]='\0';
-
-	// if asked to return 0 lines then do nothing but
-	// return a pointer to an empty buffer
-	if (nLines==0)
-	{
-		return pTextBuffer;
-	}
+	// we always want a nul-terminated buffer
+	pTextBuffer[dwTextBufferSize-1]='\0';
+	--dwTextBufferSize;
 
 
-	dwRead=0;
-	// we want to read as many bytes before the current file position as possible
-	if (ulCurrentFilePosition.QuadPart >= TextBufferSize-1)
+	dwBytesBefore = dwTextBufferSize/2;
+	dwBytesAfter = dwTextBufferSize - dwBytesBefore;
+
+	pCurrentPointer = pTextBuffer;
+
+	dwBytesReadBefore=0;
+	dwBytesToRead = dwBytesBefore;
+	if (pulCurrentFilePosition->QuadPart < dwBytesBefore)
 	{
-		// we are at least buffersize bytes into the file
-		// read from (here-buffersize) to here
-		dwBytesToRead = TextBufferSize-1;
-		ulReadStartOffset.QuadPart = ulCurrentFilePosition.QuadPart - (TextBufferSize-1);
+		// well... read as many bytes as we can then
+		dwBytesToRead = pulCurrentFilePosition->LowPart;
 	}
-	else
+	ulReadStartOffset.QuadPart = pulCurrentFilePosition->QuadPart - dwBytesToRead;
+	if (dwBytesToRead > 0)
 	{
-		// we are less than buffersize bytes into the file, so just
-		// read from the start of the file to here
-		dwBytesToRead = ulCurrentFilePosition.LowPart;
-		ulReadStartOffset.QuadPart=0;
+		SetFilePointer(hFile, ulReadStartOffset.LowPart, &(ulReadStartOffset.HighPart), FILE_BEGIN);
+		bReadSuccess = ReadFile(hFile,pTextBuffer,dwBytesToRead,&dwBytesReadBefore,NULL);
 	}
-	// Now, the above might mean we should read in zero bytes
-	// Check for this...  if the above calculation works out at zero bytes
-	// then don't do anything - we've got all we can from the file.
-	SetFilePointer(hFile, ulReadStartOffset.LowPart, &(ulReadStartOffset.HighPart), FILE_BEGIN);
-	if (dwBytesToRead!=0)
+
+	if (bReadSuccess)
 	{
-		bReadSuccess = ReadFile(hFile,pTextBuffer,dwBytesToRead,&dwRead,NULL);
-		if (bReadSuccess  &&  dwRead==0)
+		// find out the resulting file pointer for the block of data we've just read
+		ulActualCurrentPosition.QuadPart=0;
+		ulActualCurrentPosition.LowPart = SetFilePointer(hFile, 0, &(ulActualCurrentPosition.HighPart), FILE_CURRENT);
+		if (ulActualCurrentPosition.LowPart!=0xffffffff || GetLastError()==NO_ERROR)
 		{
-			// we're at end of file...  or beyond it (maybe the file shrank?)
-			// and so we couldn't read any bytes -
-			// so reset file pointer to (end of file) minus buffersize and try again
-			if ((int)(SetFilePointer(hFile,0,NULL,FILE_END))<(int)(TextBufferSize-1))
-			{
-				// file smaller than TextBufferSize-1 bytes!
-				// so try again, at the start of the file
-				SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-			}
-			else
-			{
-				SetFilePointer(hFile,-(int)(TextBufferSize-1),NULL,FILE_END);
-			}
-			// and fill the buffer
-			dwBytesToRead = TextBufferSize-1;
-			bReadSuccess = ReadFile(hFile,pTextBuffer,dwBytesToRead,&dwRead,NULL);
-		}
-		if (!bReadSuccess)
-		{
-			pTextBuffer[0] = '\0';
-			return pTextBuffer;
+			pulCurrentFilePosition->QuadPart = ulActualCurrentPosition.QuadPart;
 		}
 	}
+	// otherwise leave *(pulCurrentFilePosition) alone... basically, we only won't
+	// execute the above code if there was a file seeking problem.
 
-	// find out the resulting file pointer for the block of data we've just read
-	ulCurrentFilePosition.QuadPart=0;
-	ulCurrentFilePosition.LowPart = SetFilePointer(hFile, 0, &(ulCurrentFilePosition.HighPart), FILE_CURRENT);
-	if (ulCurrentFilePosition.LowPart==0xffffffff && GetLastError()!=NO_ERROR)
-	{
-		pTextBuffer[0] = '\0';
-		return pTextBuffer;
-	}
-
-	// runner used to find first of N lines of text
-	pFirstOfNLines = pTextBuffer+dwRead-1;
-	// runner used to find last of N lines of text
-	pLastOfNLines = pFirstOfNLines;
 	
-	// if we didn't read in a full TextBuffer then read more now:
-	// e.g. if TextBufferSize=4KB, and we were only 1KB into file, the above will
-	// have read that first 1KB, so now we need to read an additional 3KB
-	if (dwRead < TextBufferSize-1)
+	pCurrentPointer = pTextBuffer + dwBytesReadBefore;
+
+	// now read from the current file position too:
+	dwBytesToRead = dwBytesAfter;
+	dwBytesReadAfter=0;
+	ReadFile(hFile,pCurrentPointer,dwBytesToRead,&dwBytesReadAfter,NULL);
+
+	*(pCurrentPointer + dwBytesReadAfter) = '\0'; // nul-terminate buffer
+	
+	if (pdwBytesReadBefore!=NULL)
 	{
-		DWORD dwAlsoRead=0;
-		bReadSuccess = ReadFile(hFile,pTextBuffer+dwRead,(TextBufferSize-1)-dwRead,&dwAlsoRead,NULL);
-		if (!bReadSuccess)
+		*pdwBytesReadBefore = dwBytesReadBefore;
+	}
+	if (pdwBytesReadAfter!=NULL)
+	{
+		*pdwBytesReadAfter = dwBytesReadAfter;
+	}
+	return pCurrentPointer;
+}
+	
+char* FindStartOfCurrentLine(char * pTextBuffer, const char * const pAbsoluteStartOfTextBuffer)
+{
+	while (pTextBuffer>pAbsoluteStartOfTextBuffer)
+	{
+		--pTextBuffer;
+		if (*pTextBuffer=='\n')
 		{
-			pTextBuffer[0] = '\0';
-			return pTextBuffer;
-		}
-		dwRead+=dwAlsoRead;
-	}
-
-	// if we failed to read any bytes, return an empty nul-terminated buffer
-	if (dwRead==0)
-	{
-		pTextBuffer[0] = '\0';
-		return pTextBuffer;
-	}
-
-
-	// null-terminate end of buffer
-	pTextBuffer[dwRead]='\0';
-
-	// Find FIRST of N lines
-	// This code also determines the file pointer that points to the start of
-	// the current line (e.g. may be ulCurrentFilePosition or may be a bit less
-	// if ulCurrentFilePosition happens to point to somewhere in the middle of a
-	// line of text).
-	// (if we don't find N lines before the pointer then look for (N-found) lines after pointer too)
-	ulFirstLineFileOffset.QuadPart = ulCurrentFilePosition.QuadPart;
-	ulLastLineFileOffset.QuadPart = ulCurrentFilePosition.QuadPart;
-	ulCurrentLineFileOffset.QuadPart = ulCurrentFilePosition.QuadPart;
-
-
-	// if last characters read was \n then skip backwards past it
-	// and start the counting of linefeeds from BEFORE them.
-	if (*pFirstOfNLines=='\n')
-	{
-		--pFirstOfNLines;
-		--ulCurrentLineFileOffset.QuadPart;
-		--ulFirstLineFileOffset.QuadPart;
-		bCurrentFilePointerIsEndOfLine=TRUE;
-	}
-	else
-	{
-		// we will need to find the end of the line we're on...
-		bCurrentFilePointerIsEndOfLine=FALSE;
-	}
-
-
-	// count number of linefeeds, backwards from end,
-	// and stop when we've counted the number we're looking for
-	while ( (pFirstOfNLines>=pTextBuffer) && (nLines>0) )
-	{
-		if (*pFirstOfNLines=='\n')
-		{
-			--nLines;
-			++(*pnLines);
-			if (!bGotStartOfCurrentLineFileOffset)
-			{
-				++ulCurrentLineFileOffset.QuadPart;
-				bGotStartOfCurrentLineFileOffset=TRUE;
-			}
-			if (nLines==0)
-			{
-				++pFirstOfNLines;
-				++ulFirstLineFileOffset.QuadPart;
-				break;
-			}
-		}
-		--pFirstOfNLines;
-		--ulFirstLineFileOffset.QuadPart;
-		if (!bGotStartOfCurrentLineFileOffset)
-		{
-			--ulCurrentLineFileOffset.QuadPart;
+			++pTextBuffer;
+			break;
 		}
 	}
-	// fix up if we ran off the start of the buffer
-	if (pFirstOfNLines < pTextBuffer)
+	return pTextBuffer;
+}
+
+char* FindEndOfCurrentLine(char * pTextBuffer, const char * const pAbsoluteEndOfTextBuffer)
+{
+	while (pTextBuffer<pAbsoluteEndOfTextBuffer)
 	{
-		// count this as another complete line
-		++(*pnLines);
-		while (pFirstOfNLines<pTextBuffer)
+		if (*pTextBuffer=='\n')
 		{
-			++pFirstOfNLines;
-			++ulFirstLineFileOffset.QuadPart;
-			if (!bGotStartOfCurrentLineFileOffset)
-			{
-				++ulCurrentLineFileOffset.QuadPart;
-			}
+			break;
 		}
+		++pTextBuffer;
 	}
-	bGotStartOfCurrentLineFileOffset=TRUE;
-	// When we get here we have pFirstOfNLines pointing to the start of the
-	// first line that we want to present back to the caller (which is at most
-	// nLines before the file position pointed to by ulCurrentLineFileOffset)
-	// And we have a filepointer in ulFirstLineFilePointer which points to the
-	// position in the file of the character pointed to by pFirstOfNLines
-	// We also have a filepointer that points to the start
-	// of the current line (i.e. same as ulCurrentFilePointer passed in
-	// if it happened to point to one character after a \n or if it happened
-	// to point to the start of the file, otherwise ulCurrentFilePointer minus
-	// a bit, to get it to the start of a line of text)
-
-	// if we didn't find nLines full before (up to and including) ulCurrentFilePointer
-	// then we now need to do the same sorta thing to find the last line needed
-	if ( (nLines!=0) || (!bCurrentFilePointerIsEndOfLine) )
-	{
-		// we couldn't find enough lines of text before the current file pointer
-		// so look in the part of the buffer containing data read AFTER the current file pointer
-		// (currently pointed to by nLastOfNLines)
-
-		if (!bCurrentFilePointerIsEndOfLine)
-		{
-			// we need to find the end of THIS line ...
-			// effectively just another pass through proceeding code
-			// We decrement pnLines because the preceeding code already
-			// incremented it, and we haven't  REALLY  found the whole line yet...
-			++nLines;
-			--(*pnLines);
-		}
-		else
-		{
-			// if last characters read at current file pointer was not \n and
-			// the next character read after current file pointer is \n then skip over the \n
-			// and start the counting of linefeeds from AFTER that.
-			if ( (pLastOfNLines>pTextBuffer) && (*(pLastOfNLines-1)!='\n') )
-			{
-				if (*pLastOfNLines=='\n')
-				{
-					++pLastOfNLines;
-					++ulLastLineFileOffset.QuadPart;
-				}
-				else
-				{
-					// the code for finding the FirstOfNLines has already counted this line...
-					// one fewer line terminating \n to look for then
-					--nLines; 
-				}
-			}
-		}
-
-		
-		// count number of linefeeds, forwards from here to end of buffer,
-		// and stop when we've counted the number we're looking for
-		while ( (pLastOfNLines<pTextBuffer+dwRead) && (*pLastOfNLines) && (nLines>0) )
-		{
-			if (*pLastOfNLines=='\n')
-			{
-				--nLines;
-				++(*pnLines);
-			}
-			++pLastOfNLines;
-			++ulLastLineFileOffset.QuadPart;
-		}
-		// fix up if we've run off the end of the buffer
-		if ( (pLastOfNLines>=pTextBuffer+dwRead) || (*pLastOfNLines=='\0') )
-		{
-			// count this as another complete line
-			++(*pnLines);
-			while ( (pLastOfNLines>=pTextBuffer+dwRead) || (*pLastOfNLines=='\0') )
-			{
-				--pLastOfNLines;
-				--ulLastLineFileOffset.QuadPart;
-			}
-		}
-		// when finished, pLastOfNLines will either point to the last non-nul character in buffer
-		// or last \n of Nth line (with pFirstOfNLines pointing to first character of 1st line)
-		// And ulLastLineFileOffset is the file pointer to the character pointed to by pLastOfNLines
-	}
-
-	// get rid of trailing \n or \r\n in block of text if any
-	if (*pLastOfNLines=='\n')
-	{
-		*pLastOfNLines='\0';
-		pLastOfNLines--;
-		if ( (pLastOfNLines>=pTextBuffer) && (*pLastOfNLines=='\r') )
-		{
-			*pLastOfNLines='\0';
-		}
-	}
-	else if (*pLastOfNLines=='\r')
-	{
-		*pLastOfNLines='\0';
-	}
-
-	pulCurrentLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pulFirstLineFileOffset->QuadPart = ulFirstLineFileOffset.QuadPart;
-	pulLastLineFileOffset->QuadPart = ulLastLineFileOffset.QuadPart;
-
-	return pFirstOfNLines;
+	return pTextBuffer;
 }
 
 
-// THIS CODE ONLY WORKS IF TextBufferSize < 4GB ....  but that's very LIKELY
-// (default size of TextBufferSize is just 4KB ... )
-char* ReadNextNLines(int *pnLines, HANDLE hFile, ULARGE_INTEGER ulCurrentFilePosition, ULARGE_INTEGER *pulFirstLineFileOffset, ULARGE_INTEGER *pulLastLineFileOffset, ULARGE_INTEGER *pulCurrentLineFileOffset, char *pTextBuffer, DWORD TextBufferSize)
+// Modifies pTextBuffer and returns a pointer into it, such that there are (at most) nLines of
+// text between the pointer returned and the NUL terminating character.
+// The first line is either pStartLookingHere-nLines or the start of the text buffer (pAbsoluteStartOfTextBuffer)
+// The last line is either pStartLookingHere or pStartLookingHere+ at most nLines or the end of the text buffer (pAbsoluteEndOfTextBuffer)
+char* ReadPrevNLines( /* in,out */ int *pnLines, char * pStartLookingHere, char * pAbsoluteStartOfTextBuffer, char * pAbsoluteEndOfTextBuffer, /* out */ char **ppEndOfLastLine)
 {
-	char * pFirstOfNLines;
-	char * pLastOfNLines;
-	DWORD dwRead;
-	int nLines = *pnLines;
-	DWORD dwBytesToRead;
-	ULARGE_INTEGER ulReadStartOffset;
-	BOOL bGotStartOfCurrentLineFileOffset=FALSE;
-	ULARGE_INTEGER ulFirstLineFileOffset,ulLastLineFileOffset,ulCurrentLineFileOffset;
-	BOOL bCurrentFilePointerIsStartOfLine=FALSE;
-	BOOL bReadSuccess;
+	char * pLastLine;
+	char * pFirstLine = pStartLookingHere;
+	int nLinesFound=0, nLinesToFind=*pnLines;
 
-	*pnLines = 0;
-	pulFirstLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pulLastLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pulCurrentLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pTextBuffer[0]='\0';
-
-	// if asked to return 0 lines then do nothing but
-	// return a pointer to an empty buffer
-	if (nLines==0)
+	if ( (nLinesToFind==0) ||
+		 (pAbsoluteStartOfTextBuffer==pAbsoluteEndOfTextBuffer) ||
+		 (pStartLookingHere < pAbsoluteStartOfTextBuffer) ||
+		 (pStartLookingHere > pAbsoluteEndOfTextBuffer) )
 	{
-		return pTextBuffer;
-	}
-
-
-	// we want to read as many bytes after the current file position as possible
-	dwBytesToRead = TextBufferSize-1;
-	ulReadStartOffset.QuadPart = ulCurrentFilePosition.QuadPart;
-	SetFilePointer(hFile, ulReadStartOffset.LowPart, &(ulReadStartOffset.HighPart), FILE_BEGIN);
-	bReadSuccess = ReadFile(hFile,pTextBuffer,dwBytesToRead,&dwRead,NULL);
-	if (bReadSuccess  &&  dwRead==0)
-	{
-		// we're at end of file...  or beyond it (maybe the file shrank?)
-		// and so we couldn't read any bytes -
-		// so reset file pointer to (end of file) minus buffersize and try again
-		if ((int)(SetFilePointer(hFile,0,NULL,FILE_END))<(int)(TextBufferSize-1))
+		*pStartLookingHere = '\0';
+		if (ppEndOfLastLine)
 		{
-			// file smaller than TextBufferSize-1 bytes!
-			// so try again, at the start of the file
-			ulCurrentFilePosition.QuadPart=0;
-			ulCurrentFilePosition.LowPart = SetFilePointer(hFile, 0, &(ulCurrentFilePosition.HighPart), FILE_BEGIN);
+			*ppEndOfLastLine = pStartLookingHere;
 		}
-		else
-		{
-			ulCurrentFilePosition.QuadPart=0;
-			ulCurrentFilePosition.LowPart = SetFilePointer(hFile,-(int)(TextBufferSize-1),&(ulCurrentFilePosition.HighPart),FILE_END);
-		}
-		// and fill the buffer
-		dwBytesToRead = TextBufferSize-1;
-		bReadSuccess = ReadFile(hFile,pTextBuffer,dwBytesToRead,&dwRead,NULL);
-	}
-	if (!bReadSuccess)
-	{
-		pTextBuffer[0] = '\0';
-		return pTextBuffer;
+		return pStartLookingHere;
 	}
 
-	// runner used to find last of N lines of text
-	pLastOfNLines = pTextBuffer;
-	// runner used to find first of N lines of text
-	pFirstOfNLines = pLastOfNLines;
+	*pAbsoluteEndOfTextBuffer = '\0';
+	if (pStartLookingHere==pAbsoluteEndOfTextBuffer)
+	{
+		--pStartLookingHere;
+	}
+	--pAbsoluteEndOfTextBuffer;
 	
-	// if we didn't read in a full TextBuffer then read more now:
-	// e.g. if TextBufferSize=4KB, and we only had 1KB left of file, the above will
-	// have read that last 1KB, so now we need to read 3KB from BEFORE the file pointer
-	if (dwRead < TextBufferSize-1)
+	// find start and end of current line
+	pLastLine = FindEndOfCurrentLine(pStartLookingHere, pAbsoluteEndOfTextBuffer);
+	pFirstLine = FindStartOfCurrentLine(pStartLookingHere, pAbsoluteStartOfTextBuffer);
+
+	// find nLines, backwards, including this line
+	--nLinesToFind;
+	++nLinesFound;
+	if (pFirstLine > pAbsoluteStartOfTextBuffer)
 	{
-		DWORD dwAlsoRead;
-		dwBytesToRead = (TextBufferSize-1)-dwRead;
-		memmove(pTextBuffer+dwBytesToRead,pTextBuffer,dwRead);
-		pLastOfNLines+=dwBytesToRead;
-		pFirstOfNLines+=dwBytesToRead;
-		if (ulCurrentFilePosition.QuadPart >= dwBytesToRead)
+		while (	nLinesToFind>0 )
 		{
-			// we are at least buffersize bytes into the file
-			// read from (here-buffersize) to here
-			ulReadStartOffset.QuadPart = ulCurrentFilePosition.QuadPart - (dwBytesToRead);
-		}
-		else
-		{
-			// we are less than buffersize bytes into the file, so just
-			// read from the start of the file to here
-			dwBytesToRead = ulCurrentFilePosition.LowPart;
-			ulReadStartOffset.QuadPart=0;
-		}
-		// Now, the above might mean we should read in zero bytes
-		// Check for this...  if the above calculation works out at zero bytes
-		// then don't do anything - we've got all we can from the file.
-		SetFilePointer(hFile, ulReadStartOffset.LowPart, &(ulReadStartOffset.HighPart), FILE_BEGIN);
-		if (dwBytesToRead!=0)
-		{
-			bReadSuccess = ReadFile(hFile,pTextBuffer,dwBytesToRead,&dwAlsoRead,NULL);
-			if (bReadSuccess  &&  dwAlsoRead==0)
+			--nLinesToFind;
+			++nLinesFound;
+			--pFirstLine;
+			pFirstLine = FindStartOfCurrentLine(pFirstLine, pAbsoluteStartOfTextBuffer);
+			if (pFirstLine==pAbsoluteStartOfTextBuffer)
 			{
-				// we're at end of file...  or beyond it (maybe the file shrank?)
-				// and so we couldn't read any bytes -
-				// so reset file pointer to (end of file) minus buffersize and try again
-				if ((int)(SetFilePointer(hFile,0,NULL,FILE_END))<(int)(TextBufferSize-1))
-				{
-					// file smaller than TextBufferSize-1 bytes!
-					// so try again, at the start of the file
-					SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-				}
-				else
-				{
-					SetFilePointer(hFile,-(int)(TextBufferSize-1),NULL,FILE_END);
-				}
-				bReadSuccess = ReadFile(hFile,pTextBuffer,dwBytesToRead,&dwAlsoRead,NULL);
-			}
-			if (!bReadSuccess)
-			{
-				pTextBuffer[0] = '\0';
-				return pTextBuffer;
-			}
-			if (dwAlsoRead < dwBytesToRead)
-			{
-				memmove(pTextBuffer,pTextBuffer+(dwBytesToRead-dwAlsoRead),dwAlsoRead);
+				break;
 			}
 		}
-
-		dwRead+=dwAlsoRead;
 	}
 
-	// if we failed to read any bytes, return an empty nul-terminated buffer
-	if (dwRead==0)
+	if (nLinesToFind>0)
 	{
-		pTextBuffer[0] = '\0';
-		return pTextBuffer;
-	}
-
-
-	// null-terminate end of buffer
-	pTextBuffer[dwRead]='\0';
-
-	// Find LAST of N lines
-	// (if we don't find N lines before the pointer then look for (N-found) lines after pointer too)
-	ulFirstLineFileOffset.QuadPart = ulCurrentFilePosition.QuadPart;
-	ulLastLineFileOffset.QuadPart = ulCurrentFilePosition.QuadPart;
-	ulCurrentLineFileOffset.QuadPart = ulCurrentFilePosition.QuadPart;
-
-	// if the last character read BEFORE ulCurrentFilePosition was not \n then it
-	// means ulCurrentFilePosition is somewhere in the middle of a line so we will
-	// later need to find the start of that line
-	if ( (pFirstOfNLines>pTextBuffer) && (*(pFirstOfNLines-1)!='\n') )
-	{
-		// we will need to find the start of the line we're on...
-		bCurrentFilePointerIsStartOfLine=FALSE;
-		bGotStartOfCurrentLineFileOffset=FALSE;
-	}
-	else
-	{
-		bCurrentFilePointerIsStartOfLine=TRUE;
-		bGotStartOfCurrentLineFileOffset=TRUE;
-	}
-
-
-
-	// count number of linefeeds, forwards from here to end of buffer,
-	// and stop when we've counted the number we're looking for
-	while ( (pLastOfNLines<pTextBuffer+dwRead) && (*pLastOfNLines) && (nLines>0) )
-	{
-		if (*pLastOfNLines=='\n')
+		// ok, try to find remainder of lines after this line
+		if (pLastLine < pAbsoluteEndOfTextBuffer)
 		{
-			--nLines;
-			++(*pnLines);
-		}
-		++pLastOfNLines;
-		++ulLastLineFileOffset.QuadPart;
-	}
-	// fix up if we've run off the end of the buffer
-	if ( (pLastOfNLines>=pTextBuffer+dwRead) || (*pLastOfNLines=='\0') )
-	{
-		// count this as another complete line
-		++(*pnLines);
-		while ( (pLastOfNLines>=pTextBuffer+dwRead) || (*pLastOfNLines=='\0') )
-		{
-			--pLastOfNLines;
-			--ulLastLineFileOffset.QuadPart;
-		}
-	}
-	// when finished, pLastOfNLines will either point to the last non-nul character in buffer
-	// or last \n of Nth line (with pFirstOfNLines pointing to first character of 1st line)
-	// And ulLastLineFileOffset is the file pointer to the character pointed to by pLastOfNLines
-	
-	// get rid of trailing \n or \r\n in block of text if any
-	if (*pLastOfNLines=='\n')
-	{
-		*pLastOfNLines='\0';
-		if ( pLastOfNLines>pTextBuffer )
-		{
-			pLastOfNLines--;
-			if ( *pLastOfNLines=='\r' )
-			*pLastOfNLines='\0';
-		}
-	}
-	else if (*pLastOfNLines=='\r')
-	{
-		*pLastOfNLines='\0';
-	}
-
-
-	// When we get here we have pLastOfNLines pointing to the end of the
-	// last line that we want to present back to the caller (which is at most
-	// nLines after the file position pointed to by ulCurrentLineFileOffset)
-	// And we have a filepointer in ulLastLineFilePointer which points to the
-	// position in the file of the character pointed to by pLastOfNLines
-
-	// if we didn't find nLines full before (up to and including) ulCurrentFilePointer
-	// then we now need to do the same sorta thing to find the last line needed
-	if ( (nLines!=0) || (!bCurrentFilePointerIsStartOfLine) )
-	{
-		// count number of linefeeds, backwards from end,
-		// and stop when we've counted the number we're looking for
-		while ( (pFirstOfNLines>=pTextBuffer) && (nLines>0) )
-		{
-			if (*pFirstOfNLines=='\n')
+			while (	nLinesToFind>0 )
 			{
-				--nLines;
-				++(*pnLines);
-				if (!bGotStartOfCurrentLineFileOffset)
+				--nLinesToFind;
+				++nLinesFound;
+				++pLastLine;
+				pLastLine = FindEndOfCurrentLine(pLastLine, pAbsoluteEndOfTextBuffer);
+				if (pLastLine==pAbsoluteEndOfTextBuffer)
 				{
-					++ulCurrentLineFileOffset.QuadPart;
-					bGotStartOfCurrentLineFileOffset=TRUE;
-				}
-				if (nLines==0)
-				{
-					++pFirstOfNLines;
-					++ulFirstLineFileOffset.QuadPart;
 					break;
 				}
 			}
-			--pFirstOfNLines;
-			--ulFirstLineFileOffset.QuadPart;
-			if (!bGotStartOfCurrentLineFileOffset)
-			{
-				--ulCurrentLineFileOffset.QuadPart;
-			}
 		}
-		// fix up if we ran off the start of the buffer
-		if (pFirstOfNLines < pTextBuffer)
+	}
+
+	if (ppEndOfLastLine)
+	{
+		*ppEndOfLastLine = pLastLine;
+	}
+
+	if (*pLastLine=='\n')
+	{
+		*pLastLine='\0';
+		if (pLastLine > pAbsoluteStartOfTextBuffer)
 		{
-			// count this as another complete line
-			++(*pnLines);
-			while (pFirstOfNLines<pTextBuffer)
+			--pLastLine;
+			if (*pLastLine=='\r')
 			{
-				++pFirstOfNLines;
-				++ulFirstLineFileOffset.QuadPart;
-				if (!bGotStartOfCurrentLineFileOffset)
+				*pLastLine='\0';
+				if (pLastLine > pAbsoluteStartOfTextBuffer)
 				{
-					++ulCurrentLineFileOffset.QuadPart;
+					--pLastLine;
 				}
 			}
 		}
-		bGotStartOfCurrentLineFileOffset=TRUE;
 	}
-	// When we get here we have pFirstOfNLines pointing to the start of the
-	// first line that we want to present back to the caller (which is at most
-	// nLines before the file position pointed to by ulCurrentLineFileOffset)
-	// And we have a filepointer in ulFirstLineFilePointer which points to the
-	// position in the file of the character pointed to by pFirstOfNLines
-	// We also have a filepointer that points to the start
-	// of the current line (i.e. same as ulCurrentFilePointer passed in
-	// if it happened to point to one character after a \n or if it happened
-	// to point to the start of the file, otherwise ulCurrentFilePointer minus
-	// a bit, to get it to the start of a line of text)
 
-	pulCurrentLineFileOffset->QuadPart = ulCurrentFilePosition.QuadPart;
-	pulFirstLineFileOffset->QuadPart = ulFirstLineFileOffset.QuadPart;
-	pulLastLineFileOffset->QuadPart = ulLastLineFileOffset.QuadPart;
+	*pnLines = nLinesFound;
+	return pFirstLine;
+}
 
-	return pFirstOfNLines;
+// Modifies pTextBuffer and returns a pointer into it, such that there are (at most) nLines of
+// text between the pointer returned and the NUL terminating character.
+// The last line is either pStartLookingHere+nLines or the end of the text buffer (pAbsoluteEndOfTextBuffer)
+// The first line is either pStartLookingHere or pStartLookingHere- at most nLines or the start of the text buffer (pAbsoluteStartOfTextBuffer)
+char* ReadNextNLines( /* in,out */ int *pnLines, char * pStartLookingHere, char * pAbsoluteStartOfTextBuffer, char * pAbsoluteEndOfTextBuffer, /* out */ char **ppEndOfLastLine)
+{
+	char * pLastLine;
+	char * pFirstLine = pStartLookingHere;
+	int nLinesFound=0, nLinesToFind=*pnLines;
+
+	if ( (nLinesToFind==0) ||
+		 (pAbsoluteStartOfTextBuffer==pAbsoluteEndOfTextBuffer) ||
+		 (pStartLookingHere < pAbsoluteStartOfTextBuffer) ||
+		 (pStartLookingHere > pAbsoluteEndOfTextBuffer) )
+	{
+		*pStartLookingHere = '\0';
+		if (ppEndOfLastLine)
+		{
+			*ppEndOfLastLine = pStartLookingHere;
+		}
+		return pStartLookingHere;
+	}
+
+	*pAbsoluteEndOfTextBuffer = '\0';
+	if (pStartLookingHere==pAbsoluteEndOfTextBuffer)
+	{
+		--pStartLookingHere;
+	}
+	--pAbsoluteEndOfTextBuffer;
+	
+	// find start and end of current line
+	pLastLine = FindEndOfCurrentLine(pStartLookingHere, pAbsoluteEndOfTextBuffer);
+	pFirstLine = FindStartOfCurrentLine(pStartLookingHere, pAbsoluteStartOfTextBuffer);
+
+	// find nLines, forwards, including this line
+	--nLinesToFind;
+	++nLinesFound;
+	if (pLastLine < pAbsoluteEndOfTextBuffer)
+	{
+		while (	nLinesToFind>0 )
+		{
+			--nLinesToFind;
+			++nLinesFound;
+			++pLastLine;
+			pLastLine = FindEndOfCurrentLine(pLastLine, pAbsoluteEndOfTextBuffer);
+			if (pLastLine==pAbsoluteEndOfTextBuffer)
+			{
+				break;
+			}
+		}
+	}
+
+	if (nLinesToFind>0)
+	{
+		// ok, try to find remainder of lines before this line
+		if (pFirstLine > pAbsoluteStartOfTextBuffer)
+		{
+			while (	nLinesToFind>0 )
+			{
+				--nLinesToFind;
+				++nLinesFound;
+				--pFirstLine;
+				pFirstLine = FindStartOfCurrentLine(pFirstLine, pAbsoluteStartOfTextBuffer);
+				if (pFirstLine==pAbsoluteStartOfTextBuffer)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	if (ppEndOfLastLine)
+	{
+		*ppEndOfLastLine = pLastLine;
+	}
+
+	if (*pLastLine=='\n')
+	{
+		*pLastLine='\0';
+		if (pLastLine > pAbsoluteStartOfTextBuffer)
+		{
+			--pLastLine;
+			if (*pLastLine=='\r')
+			{
+				*pLastLine='\0';
+				if (pLastLine > pAbsoluteStartOfTextBuffer)
+				{
+					--pLastLine;
+				}
+			}
+		}
+	}
+
+	*pnLines = nLinesFound;
+	return pFirstLine;
 }
 
 
@@ -664,7 +395,7 @@ void FormatFileSize(char *pBuffer,DWORDLONG dwlFileSize)
 }
 
 
-void UpdateLogfileWindow (HWND hwndEditBox, HWND hwndScrollBar, const char * pTextPointer, int nLines, int nEditLines, DWORDLONG dwlFileSize, DWORDLONG ulCurrentFilePosition)
+void UpdateLogfileWindow (HWND hwndEditBox, HWND hwndScrollBar, const char * pTextPointer, int nLines, int nEditLines, DWORDLONG dwlFileSize, DWORDLONG ulFirstLineFilePosition, DWORDLONG ulLastLineFilePosition)
 {
 	SetWindowText(hwndEditBox, pTextPointer);
 
@@ -674,42 +405,22 @@ void UpdateLogfileWindow (HWND hwndEditBox, HWND hwndScrollBar, const char * pTe
 	}
 	else
 	{
-		int estNumberOfLinesInFile;
-		int estLineWeAreOnNow;
 		SCROLLINFO si;
-		if (dwlFileSize > UInt32x32To64((int)(0x7fffffff),80) )
-		{
-			estNumberOfLinesInFile = (int)(0x7fffffff);
-		}
-		else
-		{
-			estNumberOfLinesInFile = (int)(dwlFileSize/80);
-		}
-		if (ulCurrentFilePosition >= dwlFileSize-1)
-		{
-			estLineWeAreOnNow = estNumberOfLinesInFile;
-		}
-		else if (ulCurrentFilePosition > UInt32x32To64((int)(0x7fffffff),80) )
-		{
-			estLineWeAreOnNow = (int)(0x7fffffff);
-		}
-		else
-		{
-			estLineWeAreOnNow = (int)(ulCurrentFilePosition/80);
-			if (estLineWeAreOnNow>nEditLines)
-			{
-				estLineWeAreOnNow-=nEditLines;
-			}
-			else
-			{
-				estLineWeAreOnNow=0;
-			}
-		}
-		si.nMin = 0;
-		si.nMax = estNumberOfLinesInFile;
-		si.nPos = estLineWeAreOnNow;
-		si.nPage = nEditLines;
+		si.nMin=0;
 		si.cbSize = sizeof(SCROLLINFO);
+		if (dwlFileSize <= 0x7fffffff )
+		{
+			si.nMax = (int)dwlFileSize;
+			si.nPos = (int)(ulFirstLineFilePosition);
+			si.nPage = (int)(ulLastLineFilePosition-ulFirstLineFilePosition);
+		}
+		else
+		{
+			float posPerByte = ((float)0x7fffffff)/((float)(LONGLONG)dwlFileSize);
+			si.nMax = 0x7fffffff;
+			si.nPos = (int)((float)(LONGLONG)ulFirstLineFilePosition*posPerByte);
+			si.nPage = (int)((float)(LONGLONG)(ulLastLineFilePosition-ulFirstLineFilePosition)*posPerByte);
+		}
 		si.fMask = SIF_DISABLENOSCROLL | SIF_PAGE | SIF_POS | SIF_RANGE;
 		EnableScrollBar(hwndScrollBar,SB_CTL, ESB_ENABLE_BOTH);
 		SetScrollInfo(hwndScrollBar,SB_CTL,&si,TRUE);
@@ -794,6 +505,8 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 	ULARGE_INTEGER ulFromHereFilePosition;
 	FILETIME ftLastModified;
 	HANDLE hLogFile;
+	DWORD dwBytesReadBefore, dwBytesReadAfter;
+	char * pStartOfFirstLinePointer, * pEndOfLastLinePointer;
 
 	char cszWindowTitle[64];
 	char szWindowTitle[128];
@@ -807,8 +520,11 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 	SetWindowText(d->hwndDialog, szWindowTitle);
 	ulFromHereFilePosition.QuadPart = d->ulCurrentLineFileOffset.QuadPart;
 	nLines = d->nEditLines;
-	pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d->ulFirstLineFileOffset), &(d->ulLastLineFileOffset), &(d->ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
-	UpdateLogfileWindow(d->hwndEditBox, d->hwndScrollBar, pTextPointer, nLines, d->nEditLines, d->dwlFileSize.QuadPart, d->ulLastLineFileOffset.QuadPart);
+	pTextPointer = ReadIntoFileBuffer(hLogFile, &ulFromHereFilePosition, pTextBuffer, sizeof(pTextBuffer), &dwBytesReadBefore, &dwBytesReadAfter);
+	pStartOfFirstLinePointer = ReadPrevNLines( &nLines, pTextPointer, pTextPointer-dwBytesReadBefore, pTextPointer+dwBytesReadAfter, &pEndOfLastLinePointer);
+	d->ulFirstLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) - (pTextPointer-pStartOfFirstLinePointer);
+	d->ulLastLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) + (pEndOfLastLinePointer-pTextPointer);
+	UpdateLogfileWindow(d->hwndEditBox, d->hwndScrollBar, pStartOfFirstLinePointer, nLines, d->nEditLines, d->dwlFileSize.QuadPart, d->ulFirstLineFileOffset.QuadPart, d->ulLastLineFileOffset.QuadPart);
 	if (hLogFile)
 	{
 		CloseHandle(hLogFile);
@@ -859,8 +575,11 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 						ulFromHereFilePosition.QuadPart = d->ulCurrentLineFileOffset.QuadPart;
 					}
 					nLines = d->nEditLines;
-					pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d->ulFirstLineFileOffset), &(d->ulLastLineFileOffset), &(d->ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
-					UpdateLogfileWindow(d->hwndEditBox, d->hwndScrollBar, pTextPointer, nLines, d->nEditLines, d->dwlFileSize.QuadPart, d->ulLastLineFileOffset.QuadPart);
+					pTextPointer = ReadIntoFileBuffer(hLogFile, &ulFromHereFilePosition, pTextBuffer, sizeof(pTextBuffer), &dwBytesReadBefore, &dwBytesReadAfter);
+					pStartOfFirstLinePointer = ReadPrevNLines( &nLines, pTextPointer, pTextPointer-dwBytesReadBefore, pTextPointer+dwBytesReadAfter, &pEndOfLastLinePointer);
+					d->ulFirstLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) - (pTextPointer-pStartOfFirstLinePointer);
+					d->ulLastLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) + (pEndOfLastLinePointer-pTextPointer);
+					UpdateLogfileWindow(d->hwndEditBox, d->hwndScrollBar, pStartOfFirstLinePointer, nLines, d->nEditLines, d->dwlFileSize.QuadPart, d->ulFirstLineFileOffset.QuadPart, d->ulLastLineFileOffset.QuadPart);
 				}
 				if (hLogFile)
 				{
@@ -886,6 +605,8 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 {
 	BOOL bQuit=FALSE;
 	HANDLE hLogFile;
+	DWORD dwBytesReadBefore,dwBytesReadAfter;
+	char * pStartOfFirstLinePointer, * pEndOfLastLinePointer;
 
 
 	switch (uMsg)
@@ -959,9 +680,6 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 				{
 					ulFromHereFilePosition.QuadPart = 0;
 				}
-				nLines=1;
-				pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
-				ulFromHereFilePosition.QuadPart = d.ulFirstLineFileOffset.QuadPart;
 				bForward=TRUE;
 				break;
 			case SB_LINEDOWN:
@@ -969,9 +687,6 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 				// implemented as read one line down from (last line file offset)+1
 				// then read nLines up from (that offset)
 				ulFromHereFilePosition.QuadPart = d.ulLastLineFileOffset.QuadPart+1;
-				nLines=1;
-				pTextPointer = ReadNextNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
-				ulFromHereFilePosition.QuadPart = d.ulLastLineFileOffset.QuadPart;
 				break;
 			case SB_PAGEUP:
 				// read up one page -
@@ -999,15 +714,20 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 			if (!bDoNothing)
 			{
 				nLines=d.nEditLines;
+				pTextPointer = ReadIntoFileBuffer(hLogFile, &ulFromHereFilePosition, pTextBuffer, sizeof(pTextBuffer), &dwBytesReadBefore, &dwBytesReadAfter);
 				if (bForward)
 				{
-					pTextPointer = ReadNextNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+					pStartOfFirstLinePointer = ReadNextNLines( &nLines, pTextPointer, pTextPointer-dwBytesReadBefore, pTextPointer+dwBytesReadAfter, &pEndOfLastLinePointer);
+					d.ulFirstLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) - (pTextPointer-pStartOfFirstLinePointer);
+					d.ulLastLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) + (pEndOfLastLinePointer-pTextPointer);
 				}
 				else
 				{
-					pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+					pStartOfFirstLinePointer = ReadPrevNLines( &nLines, pTextPointer, pTextPointer-dwBytesReadBefore, pTextPointer+dwBytesReadAfter, &pEndOfLastLinePointer);
+					d.ulFirstLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) - (pTextPointer-pStartOfFirstLinePointer);
+					d.ulLastLineFileOffset.QuadPart = (ulFromHereFilePosition.QuadPart) + (pEndOfLastLinePointer-pTextPointer);
 				}
-				UpdateLogfileWindow(d.hwndEditBox, d.hwndScrollBar, pTextPointer, nLines, d.nEditLines, d.dwlFileSize.QuadPart, d.ulCurrentLineFileOffset.QuadPart);
+				UpdateLogfileWindow(d.hwndEditBox, d.hwndScrollBar, pStartOfFirstLinePointer, nLines, d.nEditLines, d.dwlFileSize.QuadPart, d.ulFirstLineFileOffset.QuadPart, d.ulLastLineFileOffset.QuadPart);
 			}
 
 			if (hLogFile)
