@@ -121,6 +121,10 @@ SOURCE=.\_fcpSock.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\_fcpURI.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\_fcpUtil.c
 # End Source File
 # Begin Source File
