@@ -52,7 +52,7 @@ void addref (unsigned int addr);
 void rmref (unsigned int addr);
 
 // return the address of the proper host for hash
-unsigned int route (const char hash[HASHLEN]);
+unsigned int route (const char hash[HASHLEN], int off);
 
 int
 main (int argc, char **argv)
@@ -222,7 +222,7 @@ insert (int c)
 }
 
 int
-hookup (const char hash[HASHLEN])
+hookup (const char hash[HASHLEN], int off)
 {
     struct sockaddr_in a;
     extern int errno;
@@ -231,7 +231,7 @@ hookup (const char hash[HASHLEN])
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
     a.sin_port = htons(ANARCAST_SERVER_PORT);
-    a.sin_addr.s_addr = route(hash);
+    a.sin_addr.s_addr = route(hash, off);
 
     if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	die("socket() failed");
@@ -242,7 +242,7 @@ hookup (const char hash[HASHLEN])
     for (;;)
 	if (connect(c, &a, sizeof(a)) == -1 && errno != EINPROGRESS) {
 	    rmref(a.sin_addr.s_addr);
-	    a.sin_addr.s_addr = route(hash);
+	    a.sin_addr.s_addr = route(hash, 0);
 	} else break;
     
     return c;
@@ -282,7 +282,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 		continue;
 	    }
 	    // connect to server, watch fd
-	    c = hookup(&hashes[next*HASHLEN]);
+	    c = hookup(&hashes[next*HASHLEN], 0);
 	    FD_SET(c, &w);
 	    if (c >= m) m = c + 1;
 	    xfers[c].num = next;
@@ -312,7 +312,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 			die("close() failed");
 		    FD_CLR(i, &w);
 		    // connect to server, watch new fd
-		    c = hookup(&hashes[xfers[i].num*HASHLEN]);
+		    c = hookup(&hashes[xfers[i].num*HASHLEN], 0);
 		    FD_SET(c, &w);
 		    xfers[c].num = xfers[i].num;
 		    xfers[c].off = -5; // 'i' + 4-byte datalength
@@ -532,6 +532,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     
     struct {
 	int num;
+	int try;
 	int off;
 	int dlen;
     } xfers[FD_SETSIZE];
@@ -560,10 +561,11 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		continue;
 	    }
 	    // connect to server, watch fd
-	    c = hookup(&hashes[next*HASHLEN]);
+	    c = hookup(&hashes[next*HASHLEN], 0);
 	    FD_SET(c, &w);
 	    if (c >= m) m = c + 1;
 	    xfers[c].num = next;
+	    xfers[c].try = 0;
 	    xfers[c].off = -1; // 'r'
 	    active++;
 	    next++;
@@ -587,10 +589,13 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 			die("close() failed");
 		    FD_CLR(i, &w);
 		    // connect to server, watch new fd
-		    c = hookup(&hashes[xfers[i].num*HASHLEN]);
-		    FD_SET(c, &w);
-		    xfers[c].num = xfers[i].num;
-		    xfers[c].off = -1; // 'r'
+		    if (++xfers[i].try < 3) {
+		        c = hookup(&hashes[xfers[i].num*HASHLEN], xfers[c].try);
+		        FD_SET(c, &w);
+		        xfers[c].num = xfers[i].num;
+			xfers[c].try = xfers[i].try;
+		        xfers[c].off = -1; // 'r'
+		    }
 		}
 		
 		// are we done sending our request?
@@ -626,10 +631,13 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 			    die("close() failed");
 			FD_CLR(i, &w);
 			// connect to server, watch new fd
-			c = hookup(&hashes[xfers[i].num*HASHLEN]);
-			FD_SET(c, &w);
-			xfers[c].num = xfers[i].num;
-			xfers[c].off = -(1+HASHLEN); // 'r' + hash
+			if (++xfers[i].try < 3) {
+			    c = hookup(&hashes[xfers[i].num*HASHLEN], xfers[i].try);
+			    FD_SET(c, &w);
+			    xfers[c].num = xfers[i].num;
+			    xfers[c].try = xfers[i].try;
+			    xfers[c].off = -(1+HASHLEN); // 'r' + hash
+			}
 		    }
 		}
 
@@ -718,7 +726,7 @@ inform ()
 
     alert("%d Anarcast servers loaded.\n", count);
 
-    for (c = 0 ; c < 100 ; c++) 
+    for (c = 0 ; c < 10000 ; c++) 
 	addref(c);
     
     {
@@ -730,7 +738,7 @@ inform ()
 	    printf("%d: %s\n", i++, hex);
 	}
     }
-    for (c = 0 ; c < 100 ; c++)
+    for (c = 0 ; c < 10000 ; c++)
         rmref(c);
 
     {
@@ -827,17 +835,31 @@ rmref (unsigned int addr)
 }
 
 unsigned int
-route (const char hash[HASHLEN])
+route (const char hash[HASHLEN], int off)
 {
-    struct node *last = NULL, *p;
+    struct node *p;
+    
+    assert(off < 3);
     
     if (!head)
 	die("empty address list");
     
-    for (p = head ; p ; last = p, p = p->next)
-	if (memcmp(hash, p->hash, HASHLEN) < 0) {
-	    
+    for (p = head ; ; p = p->next)
+	if (!p->next || memcmp(hash, p->hash, HASHLEN) < 0)
+	    break;
+    
+    if (off) {
+	if (p->next && !p->prev)
+	    p = p->next;
+	else if (!p->next && p->prev)
+	    p = p->prev;
+	else if (p->next && p->prev) {
+	    if (memcmp(hash, p->prev->hash, HASHLEN) > memcmp(hash, p->next->hash, HASHLEN))
+	        p = off == 1 ? p->next : p->prev;
+	    else
+	        p = off == 1 ? p->prev : p->next;
 	}
+    }
     
     refop('*', p->hash, p->addr);
     

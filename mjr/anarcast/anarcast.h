@@ -1,6 +1,7 @@
 #define _GNU_SOURCE // gunnuuu!!!!
 
 #include <errno.h>
+#include <assert.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
