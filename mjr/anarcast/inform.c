@@ -75,12 +75,13 @@ main (int argc, char **argv)
     for (;;) {
 	int n;
 	fd_set s = r, x = w;
+	struct timeval tv = {60, 0};
 	
 	// tell our thread to grab the mutex and update the database
 	if (!active)
 	    pthread_cond_broadcast(&cond);
 	
-	if ((n = select(m, &s, &x, NULL, NULL)) == -1)
+	if ((n = select(m, &s, &x, NULL, &tv)) == -1)
 	    die("select() failed");
 	
 	for (n = 3 ; n < m ; n++)
