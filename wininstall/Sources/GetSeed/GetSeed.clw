@@ -13,7 +13,7 @@ Class1=CGetSeedApp
 Class2=CGetSeedDlg
 
 ResourceCount=1
-Resource1=IDD_GetSeed_DIALOG (English (U.S.))
+Resource1=IDD_GETSEEDDLG (Neutral)
 
 [CLS:CGetSeedApp]
 Type=0
@@ -21,6 +21,8 @@ BaseClass=CWinApp
 HeaderFile=GetSeed.h
 ImplementationFile=GetSeed.cpp
 LastObject=IDC_DLOADPROGRESS
+Filter=N
+VirtualFilter=AC
 
 [CLS:CGetSeedDlg]
 Type=0
@@ -29,14 +31,15 @@ HeaderFile=GetSeedDlg.h
 ImplementationFile=GetSeedDlg.cpp
 Filter=D
 VirtualFilter=dWC
+LastObject=ID_HELP_GETSEED
 
 [DLG:IDD_GetSeed_DIALOG]
 Type=1
 Class=CGetSeedDlg
 
-[DLG:IDD_GetSeed_DIALOG (English (U.S.))]
+[DLG:IDD_GETSEEDDLG (Neutral)]
 Type=1
-Class=?
+Class=CGetSeedDlg
 ControlCount=9
 Control1=IDCANCEL,button,1342242816
 Control2=IDC_GETSEED,button,1342242817
@@ -45,6 +48,6 @@ Control4=IDC_SEEDFILE,edit,1484849280
 Control5=IDC_STATIC,static,1342308352
 Control6=IDC_GETLOCALSEED,button,1342242816
 Control7=IDC_STATIC,button,1342177287
-Control8=IDC_SEEDHELP,button,1342242816
-Control9=IDC_DLOADPROGRESS,msctls_progress32,1350565888
+Control8=IDC_DLOADPROGRESS,msctls_progress32,1350565888
+Control9=ID_HELP,button,1342242816
 

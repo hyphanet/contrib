@@ -73,7 +73,7 @@ BOOL CGetSeedDlg::OnGetseed()
 	BOOL success = 1, doDialUp = 0;
 	DWORD filesize = 0;
 	DWORD fsize_bufsize = 4; //size of filesize buffer in bytes
-	DWORD dwFlags = INTERNET_STATE_DISCONNECTED; //check for existing connection flags
+	DWORD dwFlags = INTERNET_CONNECTION_MODEM; //check for existing connection flags
 	DWORD read;
 	DWORD written;
 
@@ -91,7 +91,7 @@ BOOL CGetSeedDlg::OnGetseed()
 	}
 	UpdateData(TRUE);
 	hInternet = InternetOpen(AfxGetApp()->m_pszAppName, INTERNET_OPEN_TYPE_PRECONFIG , NULL, NULL, NULL /*dwFlags*/); // returns NULL on failure
-	hhttpFile = InternetOpenUrl(hInternet, m_seedURL, NULL, NULL, INTERNET_FLAG_NO_UI, NULL); //return FAIL on error
+	hhttpFile = InternetOpenUrl(hInternet, m_seedURL, NULL, NULL, INTERNET_FLAG_NO_UI|INTERNET_FLAG_NO_COOKIES, NULL); //return FAIL on error
 	HttpQueryInfo(hhttpFile,HTTP_QUERY_CONTENT_LENGTH|HTTP_QUERY_FLAG_NUMBER,(LPVOID)&filesize,&fsize_bufsize,NULL);
 	if (filesize) 
 	{	//Set progress bar control step size
@@ -141,3 +141,4 @@ BOOL CGetSeedDlg::OnGetlocalseed()
 
 	return success;
 }
+

@@ -1,0 +1,15 @@
+// MAKEHELP.BAT generated Help Map file.  Used by Freenet.HPJ. 
+ 
+// Commands (ID_* and IDM_*) 
+HID_HELP_GETSEED                        0x103F1
+ 
+// Prompts (IDP_*) 
+HIDP_SOCKETS_INIT_FAILED                0x30067
+ 
+// Resources (IDR_*) 
+HIDR_MAINFRAME                          0x20080
+ 
+// Dialogs (IDD_*) 
+HIDD_GETSEEDDLG                         0x20066
+ 
+// Frame Controls (IDW_*) 

@@ -93,6 +93,53 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\hlp\Freenet.hpj
+
+!IF  "$(CFG)" == "GetSeed - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build - Making help file...
+OutDir=.\Release
+InputPath=.\hlp\Freenet.hpj
+
+"$(OutDir)\freenet.hlp" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	start /wait hcw /C /E /M "hlp\freenet.hpj" 
+	if errorlevel 1 goto :Error 
+	if not exist "hlp\freenet.hlp" goto :Error 
+	copy "hlp\freenet.hlp" $(OutDir) 
+	goto :done 
+	:Error 
+	echo hlp\freenet.hpj(1) : error: 
+	type "hlp\freenet.log" 
+	:done 
+	
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "GetSeed - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build - Making help file...
+OutDir=.\Debug
+InputPath=.\hlp\Freenet.hpj
+
+"$(OutDir)\freenet.hlp" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	start /wait hcw /C /E /M "hlp\freenet.hpj" 
+	if errorlevel 1 goto :Error 
+	if not exist "hlp\freenet.hlp" goto :Error 
+	copy "hlp\freenet.hlp" $(OutDir) 
+	goto :done 
+	:Error 
+	echo hlp\freenet.hpj(1) : error: 
+	type "hlp\freenet.log" 
+	:done 
+	
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
 SOURCE=.\GetSeed.cpp
 # End Source File
 # Begin Source File
@@ -114,15 +161,15 @@ SOURCE=.\StdAfx.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\Resource.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\GetSeed.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\GetSeedDlg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Resource.h
 # End Source File
 # Begin Source File
 
@@ -139,6 +186,43 @@ SOURCE=.\res\GetSeed.ico
 # Begin Source File
 
 SOURCE=.\res\GetSeed.rc2
+# End Source File
+# End Group
+# Begin Group "Help files"
+
+# PROP Default_Filter "*.rtf,*.cnt"
+# Begin Source File
+
+SOURCE=.\hlp\Freenet.cnt
+
+!IF  "$(CFG)" == "GetSeed - Win32 Release"
+
+# Begin Custom Build - copying .cnt file
+OutDir=.\Release
+InputPath=.\hlp\Freenet.cnt
+
+"$(OutDir)\freenet.cnt" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy "hlp\freenet.cnt" $(OutDir)
+
+# End Custom Build
+
+!ELSEIF  "$(CFG)" == "GetSeed - Win32 Debug"
+
+# Begin Custom Build - copying .cnt file
+OutDir=.\Debug
+InputPath=.\hlp\Freenet.cnt
+
+"$(OutDir)\freenet.cnt" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	copy "hlp\freenet.cnt" $(OutDir)
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\hlp\Freenet.rtf
 # End Source File
 # End Group
 # Begin Source File

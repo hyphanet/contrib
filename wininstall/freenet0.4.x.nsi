@@ -1,8 +1,8 @@
 # installer generator script for Freenet:
 
-Name "Freenet 0.4.4"
-OutFile "Freenet_setup0.4.4.exe"
-ComponentText "This will install Freenet 0.4.4 on your system."
+Name "Freenet 0.4.snapshot"
+OutFile "Freenet_setup-16092001.exe"
+ComponentText "This will install Freenet 0.4.snapshot on your system."
 
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
@@ -22,7 +22,7 @@ AutoCloseWindow true
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
-InstallDir "$PROGRAMFILES\Freenet"
+InstallDir "$PROGRAMFILES\Freenet0.4"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 
 ;-----------------------------------------------------------------------------------

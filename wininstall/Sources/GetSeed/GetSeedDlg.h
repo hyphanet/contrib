@@ -23,7 +23,7 @@ public:
 // Dialog Data
 private:
 	//{{AFX_DATA(CGetSeedDlg)
-	enum { IDD = IDD_GetSeed_DIALOG };
+	enum { IDD = IDD_GETSEEDDLG };
 	CProgressCtrl	m_dloadprogressbar;
 	CString	m_seedURL;
 	CString	m_seedfile;
@@ -46,8 +46,6 @@ protected:
 	afx_msg BOOL OnGetlocalseed();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-private:
-	static const char *pdefUrl;
 };
 
 //{{AFX_INSERT_LOCATION}}
