@@ -26,7 +26,7 @@ extern int  fcpSplitChunkSize;
 // EXPORTED DECLARATIONS
 //
 
-char *strsav(char *old, char *text_to_append);
+char *strsav(char *old, int *oldlen, char *text_to_append);
 int fcpLogCallback(int level, char *buf);
 
 
@@ -66,6 +66,7 @@ static char  siteDir[L_FILENAME] = "";   // directory of site's files
 static char  defaultFile[L_FILENAME] = FCPPUTSITE_DEFAULT_FILE;    // redirect target for unnamed cdoc
 static int   genKeypair = 0;           // flag requiring keypair generation only
 static int   dodbr = 1;					         // flag on whether we generate a dbr or not
+static int   dodelete = 0;				// set HFCP->delete flag.
 
 
 int main(int argc, char* argv[])
@@ -81,6 +82,7 @@ int main(int argc, char* argv[])
         _fcpLog(FCP_LOG_CRITICAL, "Unable to connect with Freenet node's FCP interface\n");
         return 1;
     }
+	fcpSetDelete(dodelete);
 
     // Does the user just want a keypair?
     if (genKeypair)
@@ -118,32 +120,32 @@ int fcpLogCallback(int level, char *buf)
 static void parse_args(int argc, char *argv[])
 {
   static struct option long_options[] = {
+	{"delete", 0, NULL, 'X'},
     {"address", 1, NULL, 'n'},
     {"port", 1, NULL, 'p'},
     {"htl", 1, NULL, 'l'},
     {"raw", 0, NULL, 'r'},
-		{"attempts", 1, NULL, 'a'},
-		{"size", 1, NULL, 's'},
-		{"split-threads", 1, NULL, 't'},
-		{"insert-threads", 1, NULL, 'i'},
-		{"no-dbr", 0, NULL, 'd'},
-		{"gen-keypair", 0, NULL, 'g'},
-		{"days", 1, NULL, 'f'},
-		{"default", 1, NULL, 'D'},
+	{"attempts", 1, NULL, 'a'},
+	{"size", 1, NULL, 's'},
+	{"split-threads", 1, NULL, 't'},
+	{"insert-threads", 1, NULL, 'i'},
+	{"no-dbr", 0, NULL, 'd'},
+	{"gen-keypair", 0, NULL, 'g'},
+	{"days", 1, NULL, 'f'},
+	{"default", 1, NULL, 'D'},
     {"verbosity", 1, NULL, 'v'},
     {"version", 0, NULL, 'V'},
     {"help", 0, NULL, 'h'},
     {0, 0, 0, 0}
   };
-  static char short_options[] = "l:n:p:s:a:p:i:dgf:D:rv:Vh";
+  static char short_options[] = "l:n:p:s:a:p:i:dgf:XD:rv:Vh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
 
-  while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
-    switch (c) {
-
-    case 'n':
+	while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
+	  switch (c) {
+		case 'n':
       strncpy( nodeAddr, optarg, L_HOST );
       break;
 
@@ -210,7 +212,11 @@ static void parse_args(int argc, char *argv[])
     case 'h':
       usage(NULL);
       break;
+			case 'X':
+				dodelete=1;
+				break;
 		}
+
 	}
 
 	/* Process NAME, DIR, PUB, PRV parameters here */
@@ -270,7 +276,7 @@ static void usage(char *s)
 }
 
 
-char *strsav(char *old, char *text_to_append)
+char *strsav(char *old, int *oldlen, char *text_to_append)
 {
     int old_len, new_len;
     char *p;
@@ -280,7 +286,10 @@ char *strsav(char *old, char *text_to_append)
     }
 
     if(old) {
-        old_len = strlen(old);
+		if (oldlen)
+			old_len=*oldlen;
+		else
+			old_len = strlen(old);
     } else {
         old_len = 0;
     }
@@ -300,6 +309,8 @@ char *strsav(char *old, char *text_to_append)
     }
 
     strcpy(p + old_len, text_to_append);
+	if (oldlen)
+		*oldlen=new_len;
     return(p);
 }
 
