@@ -57,64 +57,103 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 
   else if (mode & FCP_O_WRITE)
     return fcpOpenKeyWrite(hfcp, key_uri);
-
-	else { /* Who knows what's wrong here.. */
-		_fcpLog(FCP_LOG_DEBUG, "invalid file open mode specified: %d", mode);
-		return -1;
-	}
+  
+  else { /* Who knows what's wrong here.. */
+    _fcpLog(FCP_LOG_DEBUG, "invalid file open mode specified: %d", mode);
+    return -1;
+  }
 }
 
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
-	hfcp = hfcp;
-	key_uri = key_uri;
+  int rc;
+  
+  hfcp->key = _fcpCreateHKey();
+  hfcp->key->openmode = FCP_O_READ;
+  
+  /* store final key uri for later usage */
+  if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
+  
+  /* prepare the tmpblock for key data */
+  hfcp->key->tmpblock = _fcpCreateHBlock();
+  
+  /* Tie it to a unique temporary file */
+  hfcp->key->tmpblock->filename	= (char *)malloc(257);
+  
+  hfcp->key->tmpblock->fd = _fcpTmpfile(&hfcp->key->tmpblock->filename);
+  if (hfcp->key->tmpblock->fd == -1) return -1;
+  
+  /* now prepare the tmpblock for key *meta* data */
+  hfcp->key->metadata = _fcpCreateHMetadata();
+  hfcp->key->metadata->tmpblock = _fcpCreateHBlock();
+  
+  hfcp->key->metadata->tmpblock->filename	= (char *)malloc(257);
+  
+  hfcp->key->metadata->tmpblock->fd = _fcpTmpfile(&hfcp->key->metadata->tmpblock->filename);
+  if (hfcp->key->metadata->tmpblock->fd == -1)
+    return -1;
+  
+  unlink_key(hfcp->key);
+  
+  /* key and meta tmp files are closed, but exist and are ready.. call get_file() */
+  if ((rc = get_file(hfcp, key_uri,
+		     hfcp->key->tmpblock->filename,
+		     hfcp->key->metadata->tmpblock->filename)) != 0) {
+    
+    _fcpLog(FCP_LOG_DEBUG, "could not get file from freenet");
+    return -1;
+  }
+  
+  _fcpLog(FCP_LOG_DEBUG, "transferred file into temp directory");
+  
+  /* now open the key and meta files, preparing them for subsequent
+     calls to fcpReadKey() */
 
-#if 0
-	/* TODO TODO TODO */
-
-	hfcp->key = _fcpCreateHKey();
-	hfcp->key->openmode = FCP_O_READ;
-
-	/* store final key uri for later usage */
-	if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
-	
-	/* call get_file() or get_splitfile() based on size */
-	
-#endif
-
+  if ((hfcp->key->tmpblock->fd = open(hfcp->key->tmpblock->filename, O_RDONLY)) == -1) {
+    _fcpLog(FCP_LOG_DEBUG, "could not create temp key file");
+    return -1;
+  }
+	hfcp->key->size = file_size(hfcp->key->tmpblock->filename);
+  
+  if ((hfcp->key->metadata->tmpblock->fd = open(hfcp->key->metadata->tmpblock->filename, O_RDONLY)) == -1) {
+    _fcpLog(FCP_LOG_DEBUG, "could not create temp metadata file");
+    return -1;
+  }
+	hfcp->key->metadata->size = file_size(hfcp->key->metadata->tmpblock->filename);
+  
+  hfcp->key->tmpblock->index = 0;
+  hfcp->key->metadata->tmpblock->index = 0;
+  
   return 0;
 }
 
 static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 {
-	hfcp->key = _fcpCreateHKey();
-	hfcp->key->openmode = FCP_O_WRITE;
-
-	/* store final key uri for later usage */
-	if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
-	
-	/* prepare the tmpblock for key data */
-	hfcp->key->tmpblock = _fcpCreateHBlock();
-
-	/* Tie it to a unique temporary file */
-	hfcp->key->tmpblock->filename	= (char *)malloc(257);
-
-	hfcp->key->tmpblock->fd = _fcpTmpfile(&hfcp->key->tmpblock->filename);
-	if (hfcp->key->tmpblock->fd == -1)
-		return -1;
-
-	/* now prepare the tmpblock for key *meta* data */
-	hfcp->key->metadata = _fcpCreateHMetadata();
-	hfcp->key->metadata->tmpblock = _fcpCreateHBlock();
-
-	hfcp->key->metadata->tmpblock->filename	= (char *)malloc(257);
-
-	hfcp->key->metadata->tmpblock->fd =
-		_fcpTmpfile(&hfcp->key->metadata->tmpblock->filename);
-
-	if (hfcp->key->metadata->tmpblock->fd == -1)
-		return -1;
-
-	return 0;
+  hfcp->key = _fcpCreateHKey();
+  hfcp->key->openmode = FCP_O_WRITE;
+  
+  /* store final key uri for later usage */
+  if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
+  
+  /* prepare the tmpblock for key data */
+  hfcp->key->tmpblock = _fcpCreateHBlock();
+  
+  /* Tie it to a unique temporary file */
+  hfcp->key->tmpblock->filename	= (char *)malloc(257);
+  
+  hfcp->key->tmpblock->fd = _fcpTmpfile(&hfcp->key->tmpblock->filename);
+  if (hfcp->key->tmpblock->fd == -1) return -1;
+  
+  /* now prepare the tmpblock for key *meta* data */
+  hfcp->key->metadata = _fcpCreateHMetadata();
+  hfcp->key->metadata->tmpblock = _fcpCreateHBlock();
+  
+  hfcp->key->metadata->tmpblock->filename	= (char *)malloc(257);
+  
+  hfcp->key->metadata->tmpblock->fd =	_fcpTmpfile(&hfcp->key->metadata->tmpblock->filename);
+  if (hfcp->key->metadata->tmpblock->fd == -1)
+    return -1;
+  
+  return 0;
 }
 

@@ -341,6 +341,7 @@ int put_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 	if (hfcp->key->metadata->size) close(mfd);
 	
   _fcpSockDisconnect(hfcp);
+	_fcpLog(FCP_LOG_DEBUG, "abnormal termination");
 
 	return rc;
 }

@@ -26,34 +26,85 @@
 
 #include "ezFCPlib.h"
 
-/*
-  Function:    fcpReadKey()
-  
-  Arguments:   hfcp
-  
-  Description:
-*/
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <fcntl.h>
 
-#if 0
+#include "ez_sys.h"
+
 int fcpReadKey(hFCP *hfcp, char *buf, int len)
 {
-  int n;
-  int bytesLeft = hfcp->keysize - hfcp->bytesread;
-  
-  if (bytesLeft == 0)
-    return 0;
-  
-  if (len > bytesLeft)
-    len = bytesLeft;
-  
-  n = _fcpReadBlk(hfcp, buf, len);
-  hfcp->bytesread += n;
+	int bytes;
+	int count;
+	int rc;
+	
+	/* while there's still data in the tmp block */
+	
+	bytes = 0;
 
-  return 0;
+	while (len) {
+
+		count = (len > 8192 ? 8192 : len);
+		rc = read(hfcp->key->tmpblock->fd, buf+bytes, count);
+
+		if (rc < 0) {
+			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadKey()");
+			return -1;
+		}
+
+		/* Info was read.. update indexes */
+		hfcp->key->tmpblock->index += rc;
+						 
+		len -= rc;
+		bytes += rc;
+
+		/* note: this usually gets hit twice, a redundant case when
+			 attempting to read past EOF */
+
+		if (rc < count)
+			break;
+	}
+	
+	return bytes;
 }
+
 
 int fcpReadMetadata(hFCP *hfcp, char *buf, int len)
 {
+	int bytes;
+	int count;
+	int rc;
+	
+	/* while there's still data in the tmp block */
 
+	bytes = 0;
+
+	while (len) {
+
+		count = (len > 8192 ? 8192 : len);
+		rc = read(hfcp->key->metadata->tmpblock->fd, buf+bytes, count);
+		
+		if (rc < 0) {
+			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadMetadata()");
+			return -1;
+		}
+
+		/* Info was read.. update indexes */
+		hfcp->key->metadata->tmpblock->index += rc;
+
+		len -= rc;
+		buf += rc;
+
+		/* note: this usually gets hit twice, a redundant case when
+			 attempting to read past EOF */
+		
+		if (rc < count)
+			break;
+	}
+	
+	return bytes;
 }
-#endif
+

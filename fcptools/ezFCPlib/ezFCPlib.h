@@ -58,6 +58,7 @@
 #define strncasecmp strnicmp
 
 #define DIR_SEP '\\'
+#define FCP_OPEN_FLAGS O_CREAT
 
 /**************************************************************************
   UNIX specifics
@@ -73,6 +74,9 @@
 #include <unistd.h>
 
 #define DIR_SEP '/'
+
+/* on *nix, this creates a file with perms "rw-------" (600) */
+#define FCP_OPEN_FLAGS (O_CREAT | S_IRUSR | S_IWUSR)
 
 #endif
 
@@ -334,11 +338,13 @@ typedef struct {
 
 typedef struct {
 	char  *filename;  /* null terminated filename */
-	FILE  *file;      /* stream pointer */
+	/*FILE  *file;*/      /* stream pointer */
 	int    fd;        /* corresponding file descriptor */
 
 	int    fn_status; /* status relative to Freenet */
+
 	int    size;      /* size of this chunk */
+	int    index;     /* current file pointer basically */
 
 	hURI  *uri;       /* this block's CHK */
 
@@ -429,7 +435,9 @@ typedef struct {
 	int   htl;
 	int   regress;
 	int   rawmode;
+
 	int   delete_local;
+	int   skip_local;
 
 	char *description;
   char *protocol;

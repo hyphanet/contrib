@@ -40,6 +40,7 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 {
 	int rc;
 	hURI *uri;
+	int do_get;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpGetKeyToFile()");
 	_fcpLog(FCP_LOG_DEBUG, "Function parameters:");
@@ -56,27 +57,42 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	if (fcpParseURI(uri, key_uri)) goto cleanup;
 
 	/* uri holds the passed in & parsed key uri */
-	switch (uri->type) {
 
-	case KEY_TYPE_CHK: /* for CHK's */
+	do_get = 1; while (do_get == 1) {
+		switch (uri->type) {
+			
+		case KEY_TYPE_CHK: /* for CHK's */
+			
+			fcpParseURI(hfcp->key->target_uri, uri->uri_str);
+			fcpParseURI(hfcp->key->uri, uri->uri_str);
 
-		fcpParseURI(hfcp->key->target_uri, uri->uri_str);
-		fcpParseURI(hfcp->key->uri, uri->uri_str);
-		break;
+			_fcpLog(FCP_LOG_VERBOSE, "got CHK: %s", uri->uri_str);
 
-	case KEY_TYPE_SSK:
-	case KEY_TYPE_KSK:
-
-		/* uri is a target_uri, so store it */
-		fcpParseURI(hfcp->key->target_uri, uri->uri_str);
-
-		/* find the CHK that the target_uri is referring to */
-		get_redirect(hfcp, hfcp->key->uri->uri_str, uri->uri_str);
-
-		/* now in uri is the CHK that is the redirect target */
-		break;
-	}
-
+			do_get = 0;
+			break;
+			
+		case KEY_TYPE_SSK:
+		case KEY_TYPE_KSK:
+			{
+				char chk_uri[L_KEY+1];
+				
+				/* find the CHK that the target_uri is referring to and
+					 store it in the chk_uri string */
+				
+				if (get_redirect(hfcp, chk_uri, uri->uri_str)) {
+					rc = -1;
+					goto cleanup;
+				}
+				
+				/* chk_uri is our next retrieve target */
+				fcpParseURI(uri, chk_uri);
+				
+				_fcpLog(FCP_LOG_VERBOSE, "got redirected key.. rewinding loop");
+				break;
+			}
+		}
+	} /* end while (do_get) loop */
+		
 	/* TODO: check metadata to detect splitfiles */
 
 	_fcpLog(FCP_LOG_VERBOSE, "Start basic retrieve");

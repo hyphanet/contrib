@@ -58,8 +58,9 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 	if (regress >= 0) h->regress = regress;
 	
 	/* do the handle option mask */
-	h->rawmode =       (optmask & HOPT_RAW ? 1 : 0);
-	h->delete_local =  (optmask & HOPT_DELETE_LOCAL ? 1 : 0);
+	h->rawmode =      (optmask & HOPT_RAW ? 1 : 0);
+	h->delete_local = (optmask & HOPT_DELETE_LOCAL ? 1 : 0);
+	h->skip_local =   (optmask & HOPT_SKIP_LOCAL ? 1 : 0);
 	
 	return h;
 }
@@ -115,7 +116,7 @@ void _fcpDestroyHBlock(hBlock *h)
 		if (h->uri) fcpDestroyHURI(h->uri);
 
 		if (h->fd != -1) {
-			fclose(h->file);
+			close(h->fd);
 			h->fd = -1;
 		}
 

@@ -52,6 +52,8 @@ void _fcpSockDisconnect(hFCP *hfcp)
 	hfcp->socket = FCP_SOCKET_DISCONNECTED;
 }
 
+
+
 int _fcpTmpfile(char **filename)
 {
 	char s[513];
@@ -74,15 +76,12 @@ int _fcpTmpfile(char **filename)
 	/* set the filename parameter to the newly generated Tmp filename */
 	*filename = strdup(s);
 
-#ifdef WIN32
-	/* this call should inherit permissions from the parent dir */
-	return creat(*filename, O_CREAT);
-
-#else
-	/* on *nix, this creates a file with perms "rw-------" (600) */
-	return creat(*filename, O_CREAT | S_IRUSR | S_IWUSR);
-
-#endif
+	/* I think creating the file right here is good in avoiding
+		 race conditions.  Let the caller close the file (leaving a
+		 zero-length file behind) if it needs to be re-opened
+		 (ie when calling fcpGet()) */
+	
+	return creat(*filename, FCP_OPEN_FLAGS);
 }
 
 int _fcpRecv(int socket, char *buf, int len)

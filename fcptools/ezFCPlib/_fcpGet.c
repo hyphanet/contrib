@@ -74,22 +74,11 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	int index;
 
-	FILE *kfile;
-	FILE *mfile;
-
-	if ((kfile = fopen(key_filename, "wb")) != 0)
-		kfd = fileno(kfile);
-	else {
-
-		kfd = -1;
+	if ((kfd = open(key_filename, O_WRONLY)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "Could not open temp file (%s) for writing key data", key_filename);
 	}
 	
-	if ((mfile = fopen(meta_filename, "wb")) != 0)
-		mfd = fileno(mfile);
-	else {
-
-		mfd = -1;
+	if ((mfd = open(meta_filename, O_WRONLY)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "Could not open temp file (%s) for writing meta data", meta_filename);
 	}
 	
@@ -116,8 +105,8 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		/* connect to Freenet FCP */
 		if (_fcpSockConnect(hfcp) != 0)	return -1;
 
-		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, timeout: %d, keysize: n/a, metasize: n/a, delete_local: %d",
-						hfcp->htl, hfcp->regress, hfcp->timeout, hfcp->delete_local);
+		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, timeout: %d, keysize: n/a, metasize: n/a, skip_local: %d",
+						hfcp->htl, hfcp->regress, hfcp->timeout, hfcp->skip_local);
 		
 		/* Send ClientGet command */
 		if (send(hfcp->socket, get_command, strlen(get_command), 0) == -1) {
@@ -349,7 +338,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 	if (mfd != -1) close(mfd);			
 	
   _fcpSockDisconnect(hfcp);
-	_fcpLog(FCP_LOG_DEBUG, "get_file() - retrieved key: %s", hfcp->key->uri->uri_str);
+	_fcpLog(FCP_LOG_DEBUG, "get_file() - retrieved key: %s", uri);
 
 	return 0;
 
@@ -359,6 +348,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 	if (mfd != -1) close(mfd);
 	
   _fcpSockDisconnect(hfcp);
+	_fcpLog(FCP_LOG_DEBUG, "abnormal termination");
 
 	return rc;
 }
@@ -424,6 +414,8 @@ int get_size(hFCP *hfcp, char *uri)
 
 int get_redirect(hFCP *hfcp, char *uri_chk, char *uri_redirect)
 {
+	_fcpLog(FCP_LOG_DEBUG, "in get_redirect()");
+
 	hfcp = hfcp;
 	uri_chk = uri_chk;
 	uri_redirect = uri_redirect;

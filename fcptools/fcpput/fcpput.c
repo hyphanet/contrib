@@ -61,116 +61,112 @@ int    b_genkeys = 0;
 
 int main(int argc, char* argv[])
 {
-	hFCP *hfcp;
-	int   rc;
-
-	char  buf[8193];
-	int   bytes;
-
-	rc = 0;
-	
-	/* I think the key with fcpput and related command line clients is to keep
-		 the log message creation to a mininum; keep the error-checking to a
-		 mininum and let ezFCPlib attempt to handle everything. It's the
-		 intention to make ezFCPlib convenient enough for client writers to
-		 use.
-
-		 It also allows me/coders to get the log message right so to enable
-		 accurate diagnostics from users.
-	*/
-
-	host = strdup(EZFCP_DEFAULT_HOST);
-
-	parse_args(argc, argv);
-
-	/* Call before calling *any* other ?fcp* routines */
-	if (fcpStartup(logfile, retry, verbosity)) {
-		fprintf(stdout, "Failed to initialize ezFCP library\n");
-		return -1;
-	}
-
-	/* Make sure all input args are sent to ezFCPlib as advertised */
-	hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
-
-	if (b_genkeys) {
-
-		/* generate a keypair and just exit */
-		/* im a little cheap and saving ram.. duh */
-		if (fcpMakeSvkKeypair(hfcp, buf, buf+40, buf+80)) {
-			fprintf(stdout, "Could not generate keypair\n");
-			return -1;
-		}
-
-		fprintf(stdout, "Public: %s\nPrivate: %s\n", buf, buf+40);
-		return 0;
-	}
-
-	if (b_stdin) {		
-		/* read the key data from stdin */
-		int fd;
-
-		if (fcpOpenKey(hfcp, keyuri, FCP_O_WRITE)) return -1;
-
-		/* read it from stdin */
-		/* buf has 8193 bytes */
-		fd = fileno(stdin);
-
-		while ((bytes = read(fd, buf, 8192)) > 0) {
-			/* null it so that it can be dumped out like a string */
-
-			buf[bytes] = 0;
-			printf("block: %s", buf);
-
-			fcpWriteKey(hfcp, buf, bytes);
-		}
-
-		/* not sure why this is here.. */
-		fflush(stdin);
-
-		if (metafile) {
-			FILE *file;
-			int   metafile_size;
-
-			if (!(file = fopen(metafile, "rb"))) {
-				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
-				return -1;
-			}
-			fd = fileno(file);
-
-			while ((bytes = read(fd, buf, 8192)) != -1) {
-				buf[bytes] = 0;
-				fcpWriteMetadata(hfcp, buf, bytes);
-			}
-			fclose(file);
-
-			metafile_size = file_size(metafile);
-			if (hfcp->key->metadata->size != metafile_size) {
-				fprintf(stdout, "Wrote %d/%d bytes of metadata; discarded rest\n", bytes, metafile_size);
-				return -1;
-			}
-		}
-
-		if (fcpCloseKey(hfcp)) return -1;
-	}
-
-	else {
-		/* use keyfile as the filename of key data */
-		if (fcpPutKeyFromFile(hfcp, keyuri, keyfile, metafile)) {
-			fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, keyfile);
-			return -1;
-		}
-	}
-
-	fcpTerminate();
-
-	fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
-	fcpDestroyHFCP(hfcp);
-	
+  hFCP *hfcp;
+  int   rc;
+  
+  char  buf[8193];
+  int   bytes;
+  
+  rc = 0;
+  
+  /* I think the key with fcpput and related command line clients is to keep
+     the log message creation to a mininum; keep the error-checking to a
+     mininum and let ezFCPlib attempt to handle everything. It's the
+     intention to make ezFCPlib convenient enough for client writers to
+     use.
+     
+     It also allows me/coders to get the log message right so to enable
+     accurate diagnostics from users.
+  */
+  
+  host = strdup(EZFCP_DEFAULT_HOST);
+  
+  parse_args(argc, argv);
+  
+  /* Call before calling *any* other ?fcp* routines */
+  if (fcpStartup(logfile, retry, verbosity)) {
+    fprintf(stdout, "Failed to initialize ezFCP library\n");
+    return -1;
+  }
+  
+  /* Make sure all input args are sent to ezFCPlib as advertised */
+  hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
+  
+  if (b_genkeys) {
+    
+    /* generate a keypair and just exit */
+    /* im a little cheap and saving ram.. duh */
+    if (fcpMakeSvkKeypair(hfcp, buf, buf+40, buf+80)) {
+      fprintf(stdout, "Could not generate keypair\n");
+      return -1;
+    }
+    
+    fprintf(stdout, "Public: %s\nPrivate: %s\n", buf, buf+40);
+    return 0;
+  }
+  
+  if (b_stdin) {		
+    /* read the key data from stdin */
+    int fd;
+    
+    if (fcpOpenKey(hfcp, keyuri, FCP_O_WRITE)) return -1;
+    
+    /* read it from stdin */
+    /* buf has 8193 bytes */
+    fd = fileno(stdin);
+    
+    while ((bytes = read(fd, buf, 8192)) > 0) {
+      buf[bytes] = 0;
+      fcpWriteKey(hfcp, buf, bytes);
+    }
+    
+    /* not sure why this is here.. */
+    fflush(stdin);
+    
+    if (metafile) {
+      FILE *file;
+      int   metafile_size;
+      
+      if (!(file = fopen(metafile, "rb"))) {
+	fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
+	return -1;
+      }
+      fd = fileno(file);
+      
+      while ((bytes = read(fd, buf, 8192)) != -1) {
+	buf[bytes] = 0;
+	fcpWriteMetadata(hfcp, buf, bytes);
+      }
+      fclose(file);
+      
+      metafile_size = file_size(metafile);
+      if (hfcp->key->metadata->size != metafile_size) {
+	fprintf(stdout, "Wrote %d/%d bytes of metadata; discarded rest\n", bytes, metafile_size);
+	return -1;
+      }
+    }
+    
+    if (fcpCloseKey(hfcp)) return -1;
+  }
+  
+  else {
+    /* use keyfile as the filename of key data */
+    if (fcpPutKeyFromFile(hfcp, keyuri, keyfile, metafile)) {
+      fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, keyfile);
+      return -1;
+    }
+  }
+  
+  fcpTerminate();
+  
+  fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
+  fcpDestroyHFCP(hfcp);
+  
 #ifdef WINDOWS_DISABLE
-	system("pause");
+  system("pause");
 #endif
-	
-	return 0;
+  
+  return 0;
 }
 
 

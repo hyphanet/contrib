@@ -67,6 +67,7 @@ void unlink_key(hKey *hKey)
 static int fcpCloseKeyRead(hFCP *hfcp)
 {
 	hfcp = hfcp;
+
   return 0;
 }
 

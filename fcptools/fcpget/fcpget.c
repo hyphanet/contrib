@@ -60,62 +60,59 @@ int    b_stdout   = 0;
 
 int main(int argc, char* argv[])
 {
-	hFCP *hfcp;
+  hFCP *hfcp;
+  
+  char  buf[8193];
+  int   bytes;
+  int   rc;
+  
+  rc = 0;
+  host = strdup(EZFCP_DEFAULT_HOST);
+  
+  parse_args(argc, argv);
+  
+  /* Call before calling *any* other ?fcp* routines */
+  if (fcpStartup(logfile, retry, verbosity)) {
+    fprintf(stdout, "Failed to initialize ezFCP library\n");
+    return -1;
+  }
+  
+  /* Make sure all input args are sent to ezFCPlib as advertised */
+  hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
+  
+  if (b_stdout) {
+    /* write data to stdout */
+    int fd;
+    
+    /* this call will fetch the key to local datastore */
+    if (fcpOpenKey(hfcp, keyuri, FCP_O_READ)) return -1;
+    
+    fd = fileno(stdout);
 
-	char  buf[8193];
-	int   bytes;
-	int   rc;
+    while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0)
+      write(fd, buf, bytes);
 
-	rc = 0;
-	host = strdup(EZFCP_DEFAULT_HOST);
-
-	parse_args(argc, argv);
-
-	/* Call before calling *any* other ?fcp* routines */
-	if (fcpStartup(logfile, retry, verbosity)) {
-		fprintf(stdout, "Failed to initialize ezFCP library\n");
-		return -1;
-	}
-
-	/* Make sure all input args are sent to ezFCPlib as advertised */
-	hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
-
-	if (b_stdout) {
-		/* write data to stdout */
-		int fd;
-
-		/* this call will fetch the key to local datastore */
-		if (fcpOpenKey(hfcp, keyuri, FCP_O_READ))	return -1;
-		
-		fd = fileno(stdout);
-
-		/*while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0) {*/
-			/* null it so that it can be dumped out like a string */
-
-			buf[bytes] = 0;
-			write(fd, buf, 8192);
-			/*}*/
-		fflush(stdout);
-
-		/*if (fcpCloseKey(hfcp)) return -1;*/
-	}
-
-	else {
-		
-		if (fcpGetKeyToFile(hfcp, keyuri, keyfile, metafile)) {
-			fprintf(stdout, "Could not retrieve \"%s\" from freenet\n", keyuri);
-			return -1;
-		}
-	}
-
-	fcpTerminate();
-	fcpDestroyHFCP(hfcp);
-	
+    fflush(stdout);
+    
+    if (fcpCloseKey(hfcp)) return -1;
+  }
+  
+  else {
+    
+    if (fcpGetKeyToFile(hfcp, keyuri, keyfile, metafile)) {
+      fprintf(stdout, "Could not retrieve \"%s\" from freenet\n", keyuri);
+      return -1;
+    }
+  }
+  
+  fcpTerminate();
+  fcpDestroyHFCP(hfcp);
+  
 #ifdef WINDOWS_DISABLE
-	system("pause");
+  system("pause");
 #endif
-	
-	return 0;
+  
+  return 0;
 }
 
 
@@ -147,11 +144,11 @@ static void parse_args(int argc, char *argv[])
 
   while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
     switch (c) {
-			
+      
     case 'n':
-			if (host) free(host);
-			host = (char *)malloc(strlen(optarg) + 1);
-			
+      if (host) free(host);
+      host = (char *)malloc(strlen(optarg) + 1);
+      
       strcpy(host, optarg);
       break;
 			
@@ -164,25 +161,25 @@ static void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if (i >= 0) htl = i;
       break;
-
-		case 'm':
-			metafile = (char *)malloc(strlen(optarg) + 1);
+      
+    case 'm':
+      metafile = (char *)malloc(strlen(optarg) + 1);
       strcpy(metafile, optarg);
       break;
-			
-		case 's':
-			/* read from stdout for key data */ 
-			b_stdout = 1;
+      
+    case 's':
+      /* read from stdout for key data */ 
+      b_stdout = 1;
       break;
-			
-		case 'a':
-			i = atoi( optarg );
-			if (i > 0) retry = i;
-			
-		case 'e':
-			i = atoi( optarg );
-			if (i > 0) regress = i;
-			
+      
+    case 'a':
+      i = atoi( optarg );
+      if (i > 0) retry = i;
+      
+    case 'e':
+      i = atoi( optarg );
+      if (i > 0) regress = i;
+      
     case 'S':
       optmask |= HOPT_SKIP_LOCAL;
       break;
@@ -191,91 +188,91 @@ static void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if ((i >= 0) && (i <= 4)) verbosity = i;
       break;
-
+      
     case 'f':
-			if (logfile) free(logfile);
-			logfile = (char *)malloc(strlen(optarg) + 1);
-			
+      if (logfile) free(logfile);
+      logfile = (char *)malloc(strlen(optarg) + 1);
+      
       strcpy(logfile, optarg);
       break;
-
+      
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
       exit(0);
-			
+      
     case 'h':
       usage(0);
       exit(0);
-		}
-	}
-	
+    }
+  }
+  
   if (optind < argc) {
-		keyuri = (char *)malloc(strlen(argv[optind]) + 1);
-		strcpy(keyuri, argv[optind++]);
-	}
-	
+    keyuri = (char *)malloc(strlen(argv[optind]) + 1);
+    strcpy(keyuri, argv[optind++]);
+  }
+  
   if (optind < argc) {
-		keyfile = (char *)malloc(strlen(argv[optind]) + 1);
-		strcpy(keyfile, argv[optind++]);
+    keyfile = (char *)malloc(strlen(argv[optind]) + 1);
+    strcpy(keyfile, argv[optind++]);
 	}
-
-	if (!keyuri) {
-		usage("You must specify a valid URI and local filename for key data");
-		exit(1);
-	}
-
-	if ((keyfile) && (b_stdout)) {
-		usage("You cannot specifiy both a key filename and --stdout");
-		exit(1);
-	}
-
-	if ((!keyfile) && (!b_stdout)) {
-		usage("You must specify a local file, or use the --stdout option");
-		exit(1);
-	}
+  
+  if (!keyuri) {
+    usage("You must specify a valid URI and local filename for key data");
+    exit(1);
+  }
+  
+  if ((keyfile) && (b_stdout)) {
+    usage("You cannot specifiy both a key filename and --stdout");
+    exit(1);
+  }
+  
+  if ((!keyfile) && (!b_stdout)) {
+    usage("You must specify a local file, or use the --stdout option");
+    exit(1);
+  }
 }
 
 
 static void usage(char *s)
 {
-	if (s) printf("Error: %s\n", s);
-	
-	printf("FCPtools; Freenet Client Protocol Tools\n");
-	printf("Copyright (c) 2001-2003 by David McNab <david@rebirthing.co.nz>\n\n");
-
-	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
-
-	printf("Usage: fcpget [-n hostname] [-p port] [-l hops to live]\n");
-	printf("              [-m metadata] [-s] [-e regress] [-S] [-v verbosity]\n");
-	printf("              [-V] [-h] freenet_uri filename\n\n");
-
-	printf("Options:\n\n");
-
-	printf("  -n, --address host     Freenet node address\n");
-	printf("  -p, --port num         Freenet node port\n");
-	printf("  -l, --htl num          Hops to live\n\n");
-
-	printf("  -m, --metadata file    Write key metadata to local file\n");
-	printf("  -a, --retry num        Number of retries after a timeout\n");
-	printf("  -s, --stdout           Write key data to stdout\n");
-/*printf("  -e, --regress num      Number of days to regress\n");*/
-	printf("  -S, --skip-local       Skip key in local datastore on retrieve\n\n");
-
-	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
-	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-	printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n\n");
-
-	printf("  -V, --version          Output version information and exit\n");
-	printf("  -h, --help             Display this help and exit\n\n");
-
-	printf("  uri                    URI to give newly inserted key; variations:\n");
-	printf("                           CHK@\n");
-	printf("                           KSK@<routing key>\n");
-	printf("                           SSK@<private key>[/<docname>]\n\n");
-
-	printf("  file                   Write key data to local file\n");
-	printf("                         (cannot be used with --stdout)\n\n");
-	
-	exit(0);
+  if (s) printf("Error: %s\n", s);
+  
+  printf("FCPtools; Freenet Client Protocol Tools\n");
+  printf("Copyright (c) 2001-2003 by David McNab <david@rebirthing.co.nz>\n\n");
+  
+  printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
+  
+  printf("Usage: fcpget [-n hostname] [-p port] [-l hops to live]\n");
+  printf("              [-m metadata] [-s] [-e regress] [-S] [-v verbosity]\n");
+  printf("              [-V] [-h] freenet_uri filename\n\n");
+  
+  printf("Options:\n\n");
+  
+  printf("  -n, --address host     Freenet node address\n");
+  printf("  -p, --port num         Freenet node port\n");
+  printf("  -l, --htl num          Hops to live\n\n");
+  
+  printf("  -m, --metadata file    Write key metadata to local file\n");
+  printf("  -a, --retry num        Number of retries after a timeout\n");
+  printf("  -s, --stdout           Write key data to stdout\n");
+  printf("  -e, --regress num      Number of days to regress\n");
+  printf("  -S, --skip-local       Skip key in local datastore on retrieve\n\n");
+  
+  printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
+  printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
+  printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n\n");
+  
+  printf("  -V, --version          Output version information and exit\n");
+  printf("  -h, --help             Display this help and exit\n\n");
+  
+  printf("  uri                    URI to give newly inserted key; variations:\n");
+  printf("                           CHK@\n");
+  printf("                           KSK@<routing key>\n");
+  printf("                           SSK@<private key>[/<docname>]\n\n");
+  
+  printf("  file                   Write key data to local file\n");
+  printf("                         (cannot be used with --stdout)\n\n");
+  
+  exit(0);
 }
 
