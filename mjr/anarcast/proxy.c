@@ -278,9 +278,7 @@ insert (int c)
     }
 
     // actually insert the blocks
-    alert("Inserting %d blocks of %d bytes each.", g.dbc + g.cbc, blocksize);
     do_insert(blocks, NULL, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
-    alert("Inserted of %d blocks completed.", g.dbc + g.cbc);
     
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
@@ -322,6 +320,8 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 {
     int m, next, active;
     fd_set w;
+    struct timeval start, end;
+    long diff;
     
     struct {
 	int num;
@@ -332,6 +332,11 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     FD_ZERO(&w);
     next = active = 0;
     m = 1;
+    
+    alert("Inserting %d blocks of %d bytes each.", blockcount, blocksize);
+    
+    if (gettimeofday(&start, NULL) == -1)
+        die("gettimeofday() failed");
     
     for (;;) {
 	int i;
@@ -406,6 +411,16 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 	if (!active && next == blockcount)
 	    break;
     }
+    
+    if (gettimeofday(&end, NULL) == -1)
+	die("gettimeofday() failed");
+    
+    diff = (end.tv_sec-start.tv_sec)*1000 + (end.tv_usec-start.tv_usec)/1000;
+	
+    alert("Insert of %d blocks completed in %d minutes, %d.%d seconds.",
+          blockcount, diff/1000/60, diff/1000, diff);
+
+    alert("Average throughput: %d kilobytes/second.", blockcount*blocksize/diff);
 }
 
 //=== request ===============================================================
@@ -459,16 +474,12 @@ request (int c)
     blocks = mbuf(blockcount * blocksize);
     
     // slurp up all the data we can
-    alert("Downloading %d blocks of %d bytes each.", blockcount, blocksize);
     memset(mask, 0, blockcount); // all parts are missing before we download them
     do_request(blocks, mask, blockcount, blocksize, &hashes[HASHLEN]);
     
     // how many missing blocks?
     for (i = n = 0 ; i < blockcount ; i++)
 	if (!mask[i]) n++;
-    
-    alert("Download of %d/%d (%d%%) blocks completed.", blockcount-n, blockcount,
-	  (int) ((double) (blockcount-n) / (double) blockcount * 100));
     
     if (!(m = n)) {
 	alert("No missing parts to reconstruct.");
@@ -587,9 +598,7 @@ verify:
 	}
     
     // insert reconstructed blocks
-    alert("Inserting %d reconstructed blocks.", m);
     do_insert(blocks, mask2, blockcount, blocksize, &hashes[HASHLEN]);
-    alert("Reconstructed blocks inserted.");
 
 out:
     if (munmap(blocks, blockcount * blocksize) == -1)
@@ -602,9 +611,11 @@ out:
 void
 do_request (char *blocks, char *mask, int blockcount, int blocksize, const char *hashes)
 {
-    int m, next, active;
+    int m, next, active, success;
     fd_set r, w;
-    
+    struct timeval start, end;
+    long diff;
+
     struct {
 	int num;
 	int try;
@@ -615,8 +626,13 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     
     FD_ZERO(&r);
     FD_ZERO(&w);
-    next = active = 0;
+    next = active = success = 0;
     m = 1;
+    
+    alert("Downloading %d blocks of %d bytes each.", blockcount, blocksize);
+    
+    if (gettimeofday(&start, NULL) == -1)
+        die("gettimeofday() failed");
     
     for (;;) {
 	int i;
@@ -736,8 +752,10 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    hashdata(&blocks[xfers[i].num*blocksize], blocksize, hash);
 		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
 			alert("Integrity of block %d does not verify.", xfers[i].num+1);
-		    else
+		    else {
 			mask[xfers[i].num] = 1; // success
+			success++;
+		    }
 		    
 		    if (close(i) == -1)
 			die("close() failed");
@@ -751,6 +769,17 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 	if (!active && next == blockcount)
 	    break;
     }
+    
+    if (gettimeofday(&end, NULL) == -1)
+	die("gettimeofday() failed");
+    
+    diff = (end.tv_sec-start.tv_sec)*1000 + (end.tv_usec-start.tv_usec)/1000;
+    
+    alert("Download of %d/%d (%d%%) blocks completed in %d minutes, %d.%d seconds.",
+	  success, blockcount,(int) ((double) success / (double) blockcount * 100),
+	  diff/1000/60, diff/1000, diff);
+
+    alert("Average throughput: %d kilobytes/second.", success*blocksize/diff);
 }
 
 //=== routing ===============================================================
