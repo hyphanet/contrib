@@ -199,11 +199,13 @@ insert (int c)
     
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
-    if (datalength/blocksize > graphcount) {
-	alert("I do not have a graph for %d data blocks.", datalength/blocksize);
+    i = datalength/blocksize;
+    if (!i) i++;
+    if (i > graphcount) {
+	alert("I do not have a graph for %d data blocks.", i);
 	return;
     }
-    g = graphs[datalength/blocksize-1];
+    g = graphs[i-1];
     
     // allocate space for plaintext hash and data- and check-block hashes
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
@@ -223,7 +225,7 @@ insert (int c)
     // read data from client
     alert("Reading plaintext from client.");
     blocks = mbuf(len);
-    memset(&blocks[i], 0, dlen - i);
+    memset(&blocks[i], 0, dlen - datalength);
     if (readall(c, blocks, datalength) != datalength) {
 	alert("Error reading data from client.");
 	if (munmap(blocks, len) == -1)
@@ -278,7 +280,7 @@ insert (int c)
     // actually insert the blocks
     alert("Inserting %d blocks of %d bytes each.", g.dbc + g.cbc, blocksize);
     do_insert(blocks, NULL, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
-    alert("Blocks inserted.");
+    alert("Inserted of %d blocks completed.", g.dbc + g.cbc);
     
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
@@ -439,11 +441,13 @@ request (int c)
     
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
-    if (datalength/blocksize > graphcount) {
-	alert("I do not have a graph for %d data blocks.", datalength/blocksize);
+    i = datalength/blocksize;
+    if (!i) i++;
+    if (i > graphcount) {
+	alert("I do not have a graph for %d data blocks.", i);
 	return;
     }
-    g = graphs[datalength/blocksize-1];
+    g = graphs[i-1];
     
     // pad to first multiple of our crypto blocksize
     while (g.dbc * blocksize < datalength + (datalength % 16))
