@@ -1013,7 +1013,7 @@ STARTUPINFO StartConfigInfo={sizeof(STARTUPINFO),
 						NULL,NULL,NULL,
 						0,0,0,0,0,0,0,
 						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
-						SW_NORMAL,
+						SW_HIDE,
 						0,NULL,
 						NULL,NULL,NULL};
 void StartConfigOrig(void)
@@ -1570,7 +1570,7 @@ STARTUPINFO ConfigInfo={sizeof(STARTUPINFO),
 						NULL,NULL,NULL,
 						0,0,0,0,0,0,0,
 						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
-						SW_NORMAL,
+						SW_HIDE,
 						0,NULL,
 						NULL,NULL,NULL};
 

@@ -366,7 +366,7 @@ void MonitorThreadRunFserve()
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfservecliexec); 
 
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, nPriorityClass, NULL, NULL, &FredStartInfo, &FredPrcInfo) )
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, nPriorityClass|CREATE_NO_WINDOW, NULL, NULL, &FredStartInfo, &FredPrcInfo) )
 	{
 		MessageBox(NULL, szerrMsg, szerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
 		nFreenetMode=FREENET_CANNOT_START;
