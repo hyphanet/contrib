@@ -27,15 +27,15 @@ verified, and sent to the client.
 Using Anarcast
 ------------------------------------------------------------------------------
 
-The included 'request' and 'insert' are simple clients. 'lc' and 'le' are much
-more interesting. 'le' will turn a directory structure of keyfiles (which can
-be created with 'ri', the recursive inserter) into a tar.gz file. The keyfiles
+The included `request' and `insert' are simple clients. `lc' and `le' are much
+more interesting. `le' will turn a directory structure of keyfiles (which can
+be created with `ri', the recursive inserter) into a tar.gz file. The keyfiles
 in each directory will be moved to an invisible .candidates file. (See le
 --help for more info.)
 
 To use such an archive, first tar -zxf the tarball. Next, cd to any directory,
-and run 'lc' with no arguments. It'll print a numbered list of downloadable
-files. Finally, specify the file numbers to download as arguments to 'lc', and
+and run `lc' with no arguments. It'll print a numbered list of downloadable
+files. Finally, specify the file numbers to download as arguments to `lc', and
 it'll request and save them. (See lc --help for more info.)
 
 Attacking Anarcast
@@ -43,7 +43,9 @@ Attacking Anarcast
 
 Anarcast depends on a central database of servers. Servers register themselves
 with this database regularly, and client proxies download from it the
-addresses of the current servers in the network.
+addresses of the current servers in the network. (True to the Unix philosophy,
+these tasks--registering a server, and downloading the address list--are
+handled by two programs, `register' and `sync'.)
 
 How can a database server be attacked? In two ways:
 
@@ -60,8 +62,8 @@ be fine.
 
 An attacker can also flood a server with data until it is forced to delete
 old, legitimate data from the cache to make room. This is a difficult and
-expensive attack, but it is difficult to defend against, especially if it is
-carried out over a long period of time over the entire network.
+expensive attack, but it is also difficult to defend against, especially if it
+is carried out over a long period of time over the entire network.
 
 Central Database Load
 ------------------------------------------------------------------------------
