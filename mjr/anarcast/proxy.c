@@ -11,7 +11,7 @@
 // a node in our linked list of servers
 struct node {
     unsigned int addr;
-    char hash[HASHLEN];
+    unsigned char hash[HASHLEN];
     struct node *next;
 };
 
@@ -754,7 +754,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 
 		// are we done reading the data?
 		if (xfers[i].off == blocksize) {
-		    char hash[HASHLEN];
+		    unsigned char hash[HASHLEN];
 		    hashdata(&blocks[xfers[i].num*blocksize], blocksize, hash);
 		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
 			alert("Integrity of block %d does not verify.", xfers[i].num+1);
@@ -888,7 +888,7 @@ addref (unsigned int addr)
 void
 rmref (unsigned int addr)
 {
-    char hash[HASHLEN];
+    unsigned char hash[HASHLEN];
     struct node *p, *last = NULL;
     
     hashdata(&addr, 4, hash);
@@ -913,7 +913,7 @@ rmref (unsigned int addr)
 }
 
 int // returns 1 if b is closer to a than c
-iscloser (const char a[HASHLEN], const char b[HASHLEN], const char c[HASHLEN])
+iscloser (const unsigned char *a, const unsigned char *b, const unsigned char *c)
 {
     int i, diff = 0;
     for (i = 0 ; i < HASHLEN ; i++) {
@@ -926,7 +926,7 @@ iscloser (const char a[HASHLEN], const char b[HASHLEN], const char c[HASHLEN])
 }
 
 unsigned int
-route (const char hash[HASHLEN], int off)
+route (const unsigned char hash[HASHLEN], int off)
 {
     struct node *p, *last, *last2;
     int tmp;
