@@ -43,7 +43,7 @@ typedef struct {
 article **articles; // article_count articles, sans filename
 
 void nntp_connect (char *nntpserver);
-void nntp_xover (char *group);
+void nntp_xover (char *group, int start);
 void * fcp_put_thread (void *args);
 void logfunc (article *a, char *uri);
 int get_article (article *a);
@@ -91,7 +91,7 @@ nntp_connect (char *nntpserver)
 }
 
 void
-nntp_xover (char *group)
+nntp_xover (char *group, int begin)
 {
     char line[1024], a[256], b[256], c[256], d[256];
     int t, i, n, count, start, end, status, unmatched, too_small;
@@ -108,7 +108,12 @@ nntp_xover (char *group)
     if (status != 3)
 	goto badreply;
     
-    fprintf(nntp, "xover %d %d\r\n", start, end);
+    if (begin) {
+	start = begin;
+	count -= begin - start;
+    }
+    
+    fprintf(nntp, "xover %d-%d\r\n", start, end);
 
     fgets(line, 1024, nntp);
     if (strncmp(line, "224", 3) != 0)
@@ -360,13 +365,12 @@ main (int argc, char **argv)
     
     int c, max_threads,    // maximum thread count
            max_collisions, // maximum collision count before exit
-	   all,            // ignore last-article-inserted marker?
-	   stamp,          // the last article
-           base,
+	   all,            // ignore begin marker?
+	   begin,          // where to start
 	   cur_num;
 
     char *nntpserver, foo[256], regex_string[256];
-    FILE *last;
+    FILE *state;
     extern int optind;
     extern char *optarg;
 
@@ -460,14 +464,6 @@ main (int argc, char **argv)
 	}
     }
     
-    nntp_connect(nntpserver);
-    nntp_xover(argv[optind]);
-    
-    if (!article_count) {
-	fprintf(stderr, "No articles in group.\n");
-	exit(0);
-    }
-    
     if (!strlen(foo))
 	strcpy(foo, argv[optind]);
     
@@ -481,39 +477,29 @@ main (int argc, char **argv)
     mkdir(foo, 0755); // so I'm lazy! blum blum shub to you, too.
     
     sprintf(foo, "%s/.saturn/%s", getenv("HOME"), argv[optind]);
-    stamp = 0;
+    
+    begin = 0;
     if (!all) {
-        last = fopen(foo, "r");
-        if (last) {
-            fscanf(last, "%d", &stamp);
-            fclose(last);
+        state = fopen(foo, "r");
+        if (state) {
+            fscanf(state, "%d", &begin);
+            fclose(state);
         }
     }
-
-    if (stamp && stamp == articles[article_count-1]->article_number) {
-	fprintf(stderr, "No new articles.\n");
+    
+    nntp_connect(nntpserver);
+    nntp_xover(argv[optind], begin);
+    
+    if (!article_count) {
+	fprintf(stderr, "No articles in group.\n");
 	exit(0);
     }
 
     signal(SIGINT, signal_handler);
     
-    base = 0;
-    if (stamp)
-        for (c = 0 ; c < article_count ; c++)
-	    if (articles[c]->article_number == stamp) {
-		base = ++c;
-		break;
-            }
-
-    for (c = base ; c < article_count ; c++) {	
+    for (c = 0 ; c < article_count ; c++) {	
         
 	cur_num = articles[c]->article_number;
-	
-        if (stamp && !all && cur_num == stamp) {
-	    fprintf(stderr, "End of new articles reached. "
-		            "(Specify --all to override.)\n");
-	    goto end;
-	}
 	
 	if (max_collisions && collisions > max_collisions) {
 	    fprintf(stderr, "Maximum collisions reached.\n");
@@ -525,8 +511,8 @@ main (int argc, char **argv)
 	    goto end;
 	}
 
-	fprintf(stderr, "%02d %08d ", (int) ((double) (c - base)
-	        / (double) (article_count - base) * 100), cur_num);
+	fprintf(stderr, "%02d %08d ", (int) ((double) c
+		    / article_count * 100), cur_num);
 	
 	if (get_article(articles[c]) == 0) {
             pthread_t thread;
@@ -549,13 +535,13 @@ end:
 	pthread_mutex_unlock(&mutex);
     }
 
-    last = fopen(foo, "w");
-    if (!last) {
+    state = fopen(foo, "w");
+    if (!state) {
 	fprintf(stderr, "Can't open %s for writing!\n", foo);
 	exit(1);
     }
-    fprintf(last, "%d", cur_num);
-    fclose(last);
+    fprintf(state, "%d", cur_num);
+    fclose(state);
 
     fclose(log);
     pthread_exit(NULL);
