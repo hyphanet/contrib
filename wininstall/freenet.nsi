@@ -56,7 +56,7 @@ Exec "$INSTDIR\freenet.exe"
 Section "IE browser plugin"
 SectionIn 2
 SetOutPath $INSTDIR
-File freenet\IEplugin\*.*
+File ..\IEplugin\bin\*.*
 WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet CLSID {CDDCA3BE-697E-4BEB-BCE4-5650C1580BCE}
 WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet '' 'freenet: Asychronous Pluggable Protocol Handler'
 WriteRegStr HKEY_CLASSES_ROOT freenet '' 'URL:freenet protocol'
@@ -67,9 +67,9 @@ Section "Mozilla plugin"
 SectionIn 2
 SetOutPath $TEMP
 # The next files are not yet deleted anywhere, need to do this somewhere!
-File freenet\NSplugin\launch.exe
-File freenet\NSplugin\mozinst.html
-File freenet\NSplugin\protozilla-0.3-win32.xpi
+File ..\NSplugin\launch.exe
+File ..\NSplugin\mozinst.html
+File ..\NSplugin\protozilla-0.3-win32.xpi
 Exec '"$TEMP\launch.exe" Mozilla "$TEMP\mozinst.html"'
 
 #need to delete the tempfiles again
