@@ -1,6 +1,9 @@
 #ifndef FREENET_TRAY_SHARED_DATA_H_INCLUDED
 #define FREENET_TRAY_SHARED_DATA_H_INCLUDED
 
+#include "windows.h"
+#include "shellapi.h"
+
 /******************************************************
  * #defines:                                          *
  ******************************************************/
@@ -42,7 +45,7 @@ extern PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running free
 
 /*		structures, etc... */
 /*      systray structure: GLOBAL BECAUSE IT IS UPDATED BY/FROM MULTIPLE THREADS */
-extern NOTIFYICONDATA note;;
+extern NOTIFYICONDATA note;
 
 
 #endif /*FREENET_TRAY_SHARED_DATA_H_INCLUDED*/
