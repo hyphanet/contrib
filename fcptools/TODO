@@ -105,4 +105,6 @@ fcpget
 ------
 
 + Read metadata (if any) via fcpReadMetadata()
++ Write metadata to the right place when -s is used
+  (it currently dumps to stdout.. desirable?)
 

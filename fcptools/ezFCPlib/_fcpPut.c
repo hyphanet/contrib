@@ -112,7 +112,6 @@ int put_file(hFCP *hfcp, char *uri)
 			goto cleanup;
 		}
 
-#if 0
 		/* now send any metadata that's available first.. */
 		if (hfcp->key->metadata->size > 0) {
 
@@ -143,7 +142,6 @@ int put_file(hFCP *hfcp, char *uri)
 
 			_fcpLog(FCP_LOG_VERBOSE, "Wrote metadata");
 		}
-#endif
 		
 		/* Here, all metadata has been written */
 		
@@ -213,6 +211,10 @@ int put_file(hFCP *hfcp, char *uri)
 				/* disconnect from the socket */
 				_fcpSockDisconnect(hfcp);
 
+				/* unlink the temp files.. they'll be re-linked on look re-entry */
+				_fcpUnlink(hfcp->key->tmpblock);
+				_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 				/* re-set retry count to initial value */
 				retry = hfcp->options->retry;
 				
@@ -232,7 +234,11 @@ int put_file(hFCP *hfcp, char *uri)
 
 				/* disconnect from the socket */
 				_fcpSockDisconnect(hfcp);
-				
+
+				/* unlink the temp files.. they'll be re-linked on look re-entry */
+				_fcpUnlink(hfcp->key->tmpblock);
+				_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 				/* this will route us to a restart */
 				rc = FCPRESP_TYPE_RESTARTED;
 				
@@ -251,6 +257,10 @@ int put_file(hFCP *hfcp, char *uri)
 				
 				/* disconnect from the socket */
 				_fcpSockDisconnect(hfcp);
+
+				/* unlink the temp files.. they'll be re-linked on look re-entry */
+				_fcpUnlink(hfcp->key->tmpblock);
+				_fcpUnlink(hfcp->key->metadata->tmpblock);
 				
 				/* this will route us to a restart */
 				rc = FCPRESP_TYPE_RESTARTED;
@@ -377,22 +387,30 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 
 	_fcpLog(FCP_LOG_DEBUG, "uri_src: %s, uri_destination: %s", uri_src, uri_dest);
 	
-	rc = snprintf(buf, 512,
-								"Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",
-								uri_dest
-								);
-	
+	snprintf(buf, 512,
+		"Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",
+		uri_dest
+		);
+
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 	
 	fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 	fcpWriteMetadata(tmp_hfcp, buf, strlen(buf));
-	
-	rc = 0;
-	
-	/* now insert the metadata which contains the redirect info */
-	/*rc = put_file(tmp_hfcp, uri_src);*/
 
-	fcpCloseKey(tmp_hfcp);
+	_fcpLog(FCP_LOG_DEBUG, "wrote metadata containing redirect");
+
+	/* unlink from the files before calling put_file() */
+	_fcpUnlink(tmp_hfcp->key->tmpblock);
+	_fcpUnlink(tmp_hfcp->key->metadata->tmpblock);
+
+	/* now insert the metadata which contains the redirect info */
+	rc = put_file(tmp_hfcp, uri_src);
+
+	/* delete the temp files, which are normally deleted in either
+	PutKeyFromFile()/GetKeyToFile() or fcpCloseKey*() */
+	_fcpDeleteFile(tmp_hfcp->key->tmpblock);
+	_fcpDeleteFile(tmp_hfcp->key->metadata->tmpblock);
+
 	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	

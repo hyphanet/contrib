@@ -220,18 +220,27 @@ int _fcpCopyFile(char *dest, char *src)
 
 int _fcpLink(hBlock *h, int access)
 {
+	int flag;
+
 	if (h->fd != -1) {
 		_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - fd != -1", h->filename);
 		return -1;
 	}
 
+	/* amazing the shit one must perform in order for Windows to be "happy" */
+#ifdef WIN32
+	flag = h->binary_mode ? O_BINARY : 0;
+#else
+	flag = 0;
+#endif
+
 	switch (access) {
 		case _FCP_READ:
-			h->fd = open(h->filename, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE);
+			h->fd = open(h->filename, _FCP_READFILE_FLAGS | flag, _FCP_READFILE_MODE);
 			break;
 
 		case _FCP_WRITE:
-			h->fd = open(h->filename, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE);
+			h->fd = open(h->filename, _FCP_WRITEFILE_FLAGS | flag, _FCP_CREATEFILE_MODE);
 			break;
 
 		default:
@@ -262,12 +271,6 @@ void _fcpUnlink(hBlock *h)
 		h->fd = -1;
 		return;
 	}
-
-	/*if (commit(h->fd) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - error committing the file to disk", h->filename);
-		h->fd = -1;
-		return;
-	}*/
 
 	if (close(h->fd) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - close() returned -1", h->filename);

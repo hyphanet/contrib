@@ -159,6 +159,9 @@ hKey *_fcpCreateHKey(void)
 	h->target_uri = fcpCreateHURI();
 
 	h->tmpblock = _fcpCreateHBlock();
+	h->tmpblock->binary_mode = 1;
+
+	/* binary_mode defaults to 0/text */
 	h->metadata = _fcpCreateHMetadata();
 
 	return h;
@@ -370,6 +373,7 @@ int fcpParseHURI(hURI *uri, char *key)
 
 		uri->keyid = (char *)malloc(len + 1);
 		strncpy(uri->keyid, key, len);
+		uri->keyid[len] = 0;
 
 		/* Make key point to the char after '/' */
 		key = ++p;

@@ -131,6 +131,10 @@ int get_file(hFCP *hfcp, char *uri)
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
+			/* unlink the temp files.. they'll be re-linked on look re-entry */
+			_fcpUnlink(hfcp->key->tmpblock);
+			_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 			/* re-set retry count to initial value */
 			retry = hfcp->options->retry;
 			
@@ -150,6 +154,10 @@ int get_file(hFCP *hfcp, char *uri)
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
+			/* unlink the temp files.. they'll be re-linked on look re-entry */
+			_fcpUnlink(hfcp->key->tmpblock);
+			_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 			/* this will route us to a restart */
 			rc = FCPRESP_TYPE_RESTARTED;
 
@@ -164,6 +172,10 @@ int get_file(hFCP *hfcp, char *uri)
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
+			/* unlink the temp files.. they'll be re-linked on look re-entry */
+			_fcpUnlink(hfcp->key->tmpblock);
+			_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 			/* this will route us to a restart */
 			rc = FCPRESP_TYPE_RESTARTED;
 			

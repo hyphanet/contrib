@@ -40,9 +40,9 @@
 #define close _close
 #define commit _commit
 
-/* constants */
-#define _FCP_READFILE_FLAGS (_O_RDONLY | _O_BINARY)
-#define _FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC | _O_BINARY)
+/* WIN constants */
+#define _FCP_READFILE_FLAGS (_O_RDONLY /*| _O_BINARY*/)
+#define _FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC /*| _O_BINARY*/)
 
 #define _FCP_CREATEFILE_MODE (_S_IWRITE | _S_IREAD)
 #define _FCP_READFILE_MODE (0)
@@ -53,7 +53,7 @@ typedef SOCKET FCPSOCKET;
 
 #else
 
-/* constants */
+/* non-WIN constants */
 #define _FCP_READFILE_FLAGS (O_RDONLY)
 #define _FCP_WRITEFILE_FLAGS (O_CREAT | O_WRONLY | O_TRUNC)
 

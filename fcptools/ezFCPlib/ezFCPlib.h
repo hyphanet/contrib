@@ -351,10 +351,11 @@ typedef struct {
 	char   filename[L_FILENAME+1];  /* null terminated filename */
 	int    fd;         /* corresponding file descriptor */
 
-	int    fn_status;  /* status relative to Freenet */
-	int    size;       /* size of this chunk */
+	int    fn_status;   /* status relative to Freenet */
+	int    size;        /* size of this chunk */
+	int    binary_mode; /* 0 for text , 1 for binary */
 
-	hURI  *uri;        /* this block's CHK */
+	hURI  *uri;         /* this block's CHK */
 
 } hBlock;
 
