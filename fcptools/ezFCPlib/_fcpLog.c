@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+static FILE *logstream;
+static int   verbosity;
 
 /*
   Function:    _fcpLog()
@@ -40,38 +42,48 @@
 void _fcpLog(int level, char *format, ...)
 {
 	char  buf[FCP_LOG_MESSAGE_SIZE + 1];
-	FILE *stream;
 
 	/* thanks mjr for the idea */
 	va_list ap;
 
 	/* exit if the message wishes to be ignored */
-	/*if (level > _fcpVerbosity) return;*/
+	if (level > verbosity) return;
 	
 	va_start(ap, format);
 	vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
 	va_end(ap);
 
-	/*stream = (_fcpLogStream ? _fcpLogStream : stdout);*/
-	stream = stdout;
-
 	switch (level) {
 	case FCP_LOG_CRITICAL: /*1*/
-		fprintf(stream, "! %s\n", buf);
+		fprintf(logstream, "! %s\n", buf);
 		break;
 		
 	case FCP_LOG_NORMAL: /*2*/
-		fprintf(stream, "%s\n", buf);
+		fprintf(logstream, "%s\n", buf);
 		break;
 		
 	case FCP_LOG_VERBOSE: /*3*/
-		fprintf(stream, "+ %s\n", buf);
+		fprintf(logstream, "+ %s\n", buf);
 		break;
 		
 	case FCP_LOG_DEBUG: /*4*/
-		fprintf(stream, "D %s\n", buf);
+		fprintf(logstream, "D %s\n", buf);
 		break;
 	}
 
-	fflush(stream);
+	fflush(logstream);
 }
+
+void _fcpOpenLog(FILE *f, int v)
+{
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpOpenLog()");
+
+	logstream = f;
+	verbosity = v;
+}
+
+void _fcpCloseLog(void)
+{
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpCloseLog() [empty function]");
+}
+

@@ -30,22 +30,18 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
-+ Remove the need for _fcpGlobals.c & _fcpCompat.c
++ SSK handling isn't working properly.. FIX
 + Verify that OpenKey/CloseKey do *not* need to be Destroyed then Recreated
   (make them re-usable after "closing" without destroying)
   ++ Make this true also for put_file/get_file
 + Implement regress for _fcpGet.c.
-+ Change name of xtoi() to xtol().
 + Re-implement rawmode option after routines settle down.
-+ Remove all the 8192 block writing; let the os optimize.
 + Change so that fcpReadKey() and fcpWriteKey() return bytes read/written instead of 0 on success.
-+ Add logic in _fcpCompat.c for read() routine for 8192 blocksize instead of '1'
 + Add configuration option for Timeout length (in seconds)
 + Add handling of CryptoKey in key generation and SSK handling.
 + Update ezFCPlib programming API documentation.
-= Implement FEC Splitfile handling for _fcpGet.c.
++ Implement FEC Splitfile handling for _fcpGet.c.
 + Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
-+ Implement SkipDS logic.
 + Check all internal APIs for consistant usage and funcionality.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Make hDocument->data & hMetadata->cdocs fields dynamic.
@@ -53,9 +49,14 @@ ezFCPlib specific
 + Improve the splitfile size ceiling; the node uses one, the tools use another(?)
 + Differentiate between splitfile size known by fcptools and the one returned by Fred's FEC commands.
 
+- Remove all the 8192 block writing; let the os optimize.
 - Make FEC_CHUNK_SIZE configurable; default to 1M (Fred computes this afaik).
 - Ignore DataChunks between Restarted and DataFound messages (from freenet-dev; necessary?)
 
+= Implement SkipDS logic.
+= Change name of xtoi() to xtol().
+= Add logic in _fcpCompat.c for read() routine for 8192 blocksize instead of '1' (done elsewhere)
+= Remove the need for _fcpGlobals.c & _fcpCompat.c
 = #define HFCP to hFCP to ease transition. (not necessary)
 = Remove global variables in _fcpGlobals.c.  Make them private. (all that remains are read-only).
 = Make fcpLog() work with files as well as standard output.
@@ -80,12 +81,12 @@ ezFCPlib specific
 fcpput
 ------
 
-+ Optimize main()'s speed read from standard input (use fd and read() function instead).
 + (Win32); returns to command prompt with (harmless) error when reading key data from stdin.
 + Implement -a "--attempts" logic.
-+ Add logic to handle >1 files passed in from command line (FILES ...).
++ Complete logic to handle >1 files passed in from command line (FILES ...).
 
 = Implement -g command-line switch (GenerateKeypair).
+= Optimize main()'s speed read from standard input (use fd and read() function instead).
 
 
 ----------

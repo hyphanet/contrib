@@ -51,7 +51,8 @@ unsigned short  port = EZFCP_DEFAULT_PORT;
 
 int   verbosity = FCP_LOG_NORMAL;
 char *logfile = 0;
-char *command;
+FILE *logstream = 0;
+char *command = 0;
 
 
 int main(int argc, char* argv[])
@@ -66,10 +67,22 @@ int main(int argc, char* argv[])
 
 	if (!command) usage("Did not specifiy an FCP command");
 
+	if (logfile) {
+
+		if (!(logstream = fopen(logfile, "w"))) {
+			fprintf(stdout, "Could not open logfile.. using stdout\n");
+			logstream = stdout;
+		}
+	}
+	else {
+		logstream = stdout;
+	}
+	
 	/* Call before calling *any* other ?fcp* routines */
-	if (fcpStartup(logfile, 0, verbosity)) {
+	if (fcpStartup(logstream, verbosity)) {
 		fprintf(stdout, "Failed to initialize ezFCP library\n");
-		return -1;
+		rc = -1;
+		goto cleanup;
 	}
 
 	/* Make sure all input args are sent to ezFCPlib as advertised */
@@ -87,7 +100,13 @@ int main(int argc, char* argv[])
 		usage("Did not specify a supported FCP command");
 	}
 
-	return rc;
+	if (logfile) fclose(logstream);
+	return 0;
+
+ cleanup:
+
+	if (logfile) fclose(logstream);
+	return 1;
 }
 
 
@@ -132,10 +151,7 @@ static void parse_args(int argc, char *argv[])
       break;
 
     case 'f':
-			if (logfile) free(logfile);
-			logfile = (char *)malloc(strlen(optarg) + 1);
-			
-      strcpy(logfile, optarg);
+			logfile = strdup(optarg);
       break;
 			
     case 'V':
@@ -162,10 +178,6 @@ static void parse_args(int argc, char *argv[])
 static void usage(char *s)
 {
 	if (s) printf("Error: %s\n", s);
-
-/*
-"01234567890123456789012345678901234567890123456789012345678901234567890123456789"
-*/
 
 	printf("FCPtools; Freenet Client Protocol Tools\n");
 	printf("CopyLeft 2001 by David McNab <david@rebirthing.co.nz>\n");

@@ -100,8 +100,13 @@ int put_file(hFCP *hfcp, char *uri)
 		/* connect to Freenet FCP */
 		if (_fcpSockConnect(hfcp) != 0)	return -1;
 
-		_fcpLog(FCP_LOG_DEBUG, "sending ClientPut message - htl: %d, regress: %d, timeout: %d, keysize: %d, metasize: %d, delete_local: %d",
-						hfcp->htl, hfcp->options->regress, hfcp->options->timeout, hfcp->key->size, hfcp->key->metadata->size, hfcp->options->delete_local);
+		_fcpLog(FCP_LOG_DEBUG, "sending ClientPut message - htl: %d, regress: %d, timeout: %d, keysize: %d, metasize: %d, delete_local: %s",
+						hfcp->htl,
+						hfcp->options->regress,
+						hfcp->options->timeout,
+						hfcp->key->size,
+						hfcp->key->metadata->size,
+						(hfcp->options->delete_local ? "Yes" : "No"));
 		
 		/* Send ClientPut command */
 		if ((rc = _fcpSend(hfcp->socket, put_command, strlen(put_command))) == -1) {

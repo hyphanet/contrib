@@ -38,8 +38,9 @@ int _fcpDMALLOC;
 
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 
-int fcpStartup(char *logfile, int retry, int log_verbosity)
+int fcpStartup(FILE *logstream, int verbosity)
 {
+
 #ifdef WIN32
 	{
 		WORD wVersionRequested;
@@ -51,9 +52,11 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 		if (WSAStartup(wVersionRequested, &wsaData) != 0)
 			return -1;
 	}
-	
 #endif
-	
+
+	_fcpOpenLog(logstream, verbosity);
+	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpStartup() successfully");
+
 	return 0;
 }
 
@@ -61,10 +64,12 @@ void fcpTerminate(void)
 {
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpTerminate()");
+	_fcpCloseLog();
 
 #ifdef WIN32
 	{
-	/* on Win32, we gotta call the winsock exit function */
+		WSACleanup();
 	}
 #endif
 }
+

@@ -142,16 +142,16 @@ typedef int FCPSOCKET;
 
 /*
 	option flags
-	these must be powers of 2; they're bitmasks
+	these must be powers of 2; they're bitmasks (1,2,4,8,16,32,64,128,256,512,1024,...)
 */
 #define FCP_MODE_O_READ        0x0001
 #define FCP_MODE_O_WRITE       0x0002
-#define FCP_MODE_RAW           0x0004  /* disable automatic metadata handling */
+#define FCP_MODE_RAW           0x0004
 #define FCP_MODE_DELETE_LOCAL  0x0008
 #define FCP_MODE_SKIP_LOCAL    0x0010
-/**************************    0x0020 */
-/**************************    0x0040 */
-/**************************    0x0080 */
+/**************************    0x0012 */
+/**************************    0x0014 */
+/**************************    0x0018 */
 
 /*
 	Reasonable defaults
@@ -485,7 +485,7 @@ extern "C" {
 	*/
 
 	/* Startup and shutdown functions */
-	int    fcpStartup(char *logfile, int retry, int log_verbosity);
+	int    fcpStartup(FILE *logstream, int verbosity);
 	void   fcpTerminate(void);
 
 	/* HFCP handle management functions */

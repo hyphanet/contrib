@@ -89,9 +89,12 @@ int get_file(hFCP *hfcp, char *uri)
 		/* connect to Freenet FCP */
 		if (_fcpSockConnect(hfcp) != 0)	return -1;
 
-		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, "
-						"timeout: %d, keysize: n/a, metasize: n/a, skip_local: %d, rawmode: %d",
-						hfcp->htl, hfcp->options->regress, hfcp->options->timeout, hfcp->options->skip_local, hfcp->options->rawmode);
+		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, timeout: %d, keysize: n/a, metasize: n/a, skip_local: %s, rawmode: %d",
+						hfcp->htl,
+						hfcp->options->regress,
+						hfcp->options->timeout,
+						(hfcp->options->skip_local ? "Yes" : "No"),
+						hfcp->options->rawmode);
 		
 		/* Send ClientGet command */
 		if ((rc = _fcpSend(hfcp->socket, get_command, strlen(get_command))) == -1) {

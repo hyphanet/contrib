@@ -61,9 +61,14 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 	h->options = _fcpCreateHOptions();
 
 	/* do the handle option mask */
-	h->options->rawmode =               (optmask & FCP_MODE_RAW ? 1 : 0);
-	h->options->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? 1 : 0);
-	h->options->skip_local =   (optmask & FCP_MODE_SKIP_LOCAL ? 1 : 0);
+	h->options->rawmode      = (optmask & FCP_MODE_RAW ? FCP_MODE_RAW : 0);
+	h->options->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? FCP_MODE_DELETE_LOCAL : 0);
+	h->options->skip_local   = (optmask & FCP_MODE_SKIP_LOCAL ? FCP_MODE_SKIP_LOCAL : 0);
+
+	_fcpLog(FCP_LOG_DEBUG, "rawmode: %d, delete_local: %d, skip_local: %d",
+					h->options->rawmode,
+					h->options->delete_local,
+					h->options->skip_local);
 	
 	h->key = _fcpCreateHKey();
 	
@@ -81,7 +86,9 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl,
 		                hfcp->options->rawmode | hfcp->options->delete_local | hfcp->options->skip_local);
 
+	/* copy over any other options */
 	h->options->timeout = hfcp->options->timeout;
+	h->options->retry = hfcp->options->retry;
 
 	return h;
 }

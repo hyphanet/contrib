@@ -121,7 +121,9 @@ void _fcpSockDisconnect(hFCP *hfcp)
 		return;
 
 #ifdef WIN32
+	shutdown(hfcp->socket, 2);
 	closesocket(hfcp->socket);
+
 #else
 	close(hfcp->socket);
 #endif

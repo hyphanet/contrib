@@ -35,12 +35,8 @@
 
 #ifdef DMALLOC
 #include <dmalloc.h>
-
 extern int _fcpDMALLOC;
 #endif
-
-/* Cheat here and import ez_sys.h function(s) */
-extern long   file_size(char *filename);
 
 static void parse_args(int argc, char *argv[]);
 static void usage(char *);
@@ -58,22 +54,23 @@ void track(const char *file, const unsigned int line,
 char           *host;
 unsigned short  port = EZFCP_DEFAULT_PORT;
 
-int  verbosity = FCP_LOG_NORMAL;
-int  htl       = EZFCP_DEFAULT_HTL;
-int  retry     = EZFCP_DEFAULT_RETRY;
-int  regress   = EZFCP_DEFAULT_REGRESS;
-int  optmask   = 0;
+int   verbosity = FCP_LOG_NORMAL;
+int   htl       = EZFCP_DEFAULT_HTL;
+int   retry     = EZFCP_DEFAULT_RETRY;
+int   regress   = EZFCP_DEFAULT_REGRESS;
+int   optmask   = 0;
 
-char *logfile = 0;
+char *logfile = 0; /* filename for logfile (if not stdout) */
+FILE *logstream = 0; /* FILE * to logfile (or stdout) */
 
-char  *keyuri    = 0;
-char  *metafile  = 0;
+char *keyuri    = 0; /* passed in URI */
+char *metafile  = 0; /* name of metadata filename */
 
-char  *files[128];
-int    file_count = 0;
+char *files[128]; /* array of files to insert (last FILES... parameter) */
+int   file_count = 0; /* number of files in the array */
 
-int    b_stdin   = 0;
-int    b_genkeys = 0;
+int   b_stdin   = 0; /* was -s passed? */
+int   b_genkeys = 0; /* was -g passed? */
 
 
 int main(int argc, char* argv[])
@@ -86,67 +83,79 @@ int main(int argc, char* argv[])
 	int   i;
   
   rc = 0;
-  
-  /* I think the key with fcpput and related command line clients is to keep
-     the log message creation to a mininum; keep the error-checking to a
-     mininum and let ezFCPlib attempt to handle everything. It's the
-     intention to make ezFCPlib convenient enough for client writers to
-     use.
-     
-     It also allows me/coders to get the log message right so to enable
-     accurate diagnostics from users.
-  */
+	i = 0;
   
 #ifdef DMALLOC
 	/*dmalloc_track(track);*/
 	_fcpDMALLOC = dmalloc_mark();
 #endif
 
+	/* set this to the default, and then parse the command line */
   host = strdup(EZFCP_DEFAULT_HOST);
-  
+
+	/* now parse switches */
   parse_args(argc, argv);
+
+	/* if logfile != 0, then try and open it */
+	if (logfile) {
+
+		/* if there's an error opening the file, default to stdout */
+		if (!(logstream = fopen(logfile, "w"))) {
+			fprintf(stdout, "Could not open logfile.. using stdout\n");
+			logstream = stdout;
+		}
+	}
+	else { /* nothing specified? default to stdout */
+		logstream = stdout;
+	}
   
-  /* Call before calling *any* other ?fcp* routines */
-  if (fcpStartup(logfile, retry, verbosity)) {
+  /* Call before calling *any* other fcp*() routines */
+  if (fcpStartup(logstream, verbosity)) {
     fprintf(stdout, "Failed to initialize ezFCP library\n");
-    return -1;
+    rc = -1;
+		goto cleanup;
   }
-  
-  /* Make sure all input args are sent to ezFCPlib as advertised */
+	
   hfcp = fcpCreateHFCP(host, port, htl, optmask);
+
+	/* set retry manually; TODO: set() functions for hfcp->options */
+	hfcp->options->retry = retry;
   
   if (b_genkeys) {
     
     /* generate a keypair and just exit */
-    /* im a little cheap and saving ram.. duh */
     if (fcpMakeSvkKeypair(hfcp, buf, buf+40, buf+80)) {
       fprintf(stdout, "Could not generate keypair\n");
-      return -1;
+      rc = -1;
+			goto cleanup;
     }
     
     fprintf(stdout, "Public: %s\nPrivate: %s\n", buf, buf+40);
-    return 0;
+    rc = 0;
+		goto cleanup;
   }
   
   if (b_stdin) {		
     /* read the key data from stdin */
     int fd;
     
-    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_WRITE)) return -1;
+    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_WRITE)) {
+			rc = -1;
+			goto cleanup;
+		}
     
     fd = fileno(stdin);
-
-    while ((bytes = read(fd, buf, 8192)) > 0) {
+		
+    while ((bytes = read(fd, buf, 8192)) > 0)
       fcpWriteKey(hfcp, buf, bytes);
-    }
-
+		
     /* not sure why this is here.. */
     fflush(stdin);
-
+		
 #if 0 /* metadata handling isn't done */
     if (metafile) {
       int mfd;
-      
+			
       if ((mfd = open(metafile, FCP_READFILE_FLAGS)) == -1) {
 				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
 				return -1;
@@ -160,27 +169,46 @@ int main(int argc, char* argv[])
     }
 #endif
     
-    if (fcpCloseKey(hfcp)) return -1;
+    if (fcpCloseKey(hfcp)) {
+			rc = -1;
+			goto cleanup;
+		}
   }
-  
   else { /* call fcpPutKeyFromFile() */
-
+		
 		for (i=0; i<file_count; i++) {
-
+			
 			if (fcpPutKeyFromFile(hfcp, keyuri, files[i], metafile)) {
 				fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, files[i]);
-				return -1;
+				rc = -1;
+				goto cleanup;
 			}
-
-			fprintf(stdout, "%s : %s\n", hfcp->key->target_uri->uri_str, files[i]);
-			free(files[i]);
+			
+			fprintf(stdout, "%s <= %s\n", hfcp->key->target_uri->uri_str, files[i]);
 		}
 	}
 
-	fprintf(stdout, "Put %d/%d files into Freenet\n", i, file_count);
-	free(keyuri);
+	if (file_count > 1)
+		fprintf(stdout, "Put %d/%d files into Freenet\n", i, file_count);
 
-  fcpDestroyHFCP(hfcp);
+	/* make sure we enter 'cleanup' with a success value; all others with errors (!0) */
+	rc = 0;
+	
+ cleanup:
+	
+	if (logfile) {
+		fclose(logstream);
+		free(logfile);
+	}
+
+	free(host);
+	free(keyuri);
+	free(metafile);
+
+	for (i=0; i < file_count; i++)
+		free(files[i]);
+
+	fcpDestroyHFCP(hfcp);
 	free(hfcp);
 
   fcpTerminate();
@@ -191,8 +219,8 @@ int main(int argc, char* argv[])
 
 	dmalloc_shutdown();
 #endif
-  
-	return 0;
+
+	return rc;
 }
 
 
@@ -297,10 +325,7 @@ static void parse_args(int argc, char *argv[])
       break;
 
     case 'f':
-			if (logfile) free(logfile);
-			logfile = (char *)malloc(strlen(optarg) + 1);
-			
-      strcpy(logfile, optarg);
+			logfile = strdup(optarg);
       break;
 
     case 'g':
@@ -319,10 +344,8 @@ static void parse_args(int argc, char *argv[])
 
 	if (b_genkeys) return;
 
-  if (optind < argc) {
-		keyuri = (char *)malloc(strlen(argv[optind]) + 1);
-		strcpy(keyuri, argv[optind++]);
-	}
+  if (optind < argc)
+		keyuri = strdup(argv[optind++]);
 
 	while (optind < argc)
 		files[file_count++] = strdup(argv[optind++]);
@@ -361,7 +384,7 @@ static void usage(char *s)
 	printf("  -p, --port num         Freenet node port\n");
 	printf("  -l, --htl num          Hops to live\n\n");
 
-	printf("  -m, --metadata file    Read key metadata from local file\n");
+/*printf("  -m, --metadata file    Read key metadata from local file\n");*/
 	printf("  -a, --retry num        Number of retries after a timeout\n");
 	printf("  -s, --stdin            Read key data from stdin\n");
 /*printf("  -e, --regress num      Number of days to regress\n");*/

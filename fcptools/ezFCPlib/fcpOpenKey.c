@@ -41,6 +41,8 @@ static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
 
 int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 {
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKey() - mode: %d", mode);
+
   /* Validate flags */
   if ((mode & FCP_MODE_O_READ) && (mode & FCP_MODE_O_WRITE))
     return -1; /* read/write access is impossible */

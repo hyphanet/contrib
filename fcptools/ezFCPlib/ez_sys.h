@@ -81,6 +81,9 @@ extern void        _fcpDestroyHSegment(hSegment *);
 /* fcpLog */
 extern void  _fcpLog(int level, char *format, ...);
 
+extern void  _fcpOpenLog(FILE *logstream, int verbosity);
+extern void  _fcpCloseLog(void);
+
 /* Socket functions */
 extern int   _fcpSockConnect(hFCP *hfcp);
 extern void  _fcpSockDisconnect(hFCP *hfcp);
