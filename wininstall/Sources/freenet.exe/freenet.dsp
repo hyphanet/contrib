@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib shell32.lib /nologo /version:1.0 /subsystem:windows /map /machine:IX86 /ALIGN:4096
+# ADD LINK32 kernel32.lib user32.lib shell32.lib /nologo /version:1.0 /subsystem:windows /map /machine:IX86
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "freenet - Win32 Debug"
@@ -119,6 +119,14 @@ SOURCE=.\noFnet.ico
 # End Source File
 # Begin Source File
 
+SOURCE=.\noGway.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\noInet.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\restart.ico
 # End Source File
 # Begin Source File
@@ -128,10 +136,21 @@ SOURCE=.\rsrc.h
 # Begin Source File
 
 SOURCE=.\rsrc.rc
+
+!IF  "$(CFG)" == "freenet - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "freenet - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=.\shared_data.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\tbolt.ico
 # End Source File
 # Begin Source File
 
