@@ -243,8 +243,6 @@ static void parse_args(int argc, char *argv[])
 
   if (optind < argc) strncpy(privKey, argv[optind++], L_KEY);
   else usage("You must specify a private key");
-
-	printf("wheeeeeeeeeeee!!\n\n");
 }
 
 static void usage(char *s)
