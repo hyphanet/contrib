@@ -32,9 +32,8 @@ potentially shell scripting.
 
 While still in development, the tools have successfully compiled and run on:
 * Windows 2000/Microsoft Visual C++  6.0
-* (confirmation from Win98/95 users?)
-* FreeBSD & NetBSD
 * GNU/Linux
+* FreeBSD
 
 
 ---------------------------------------------------------------------------

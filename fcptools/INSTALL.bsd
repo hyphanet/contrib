@@ -1,0 +1,8 @@
+Basic Installation for Berkeley UNIX
+====================================
+
+These are BSD specific installation instructions.
+
+Follow the instructions in INSTALL, substituting 'make' with 'gmake'.
+
+-joliveri
