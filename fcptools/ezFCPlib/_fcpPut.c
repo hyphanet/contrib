@@ -118,7 +118,7 @@ int put_file(hFCP *hfcp, char *uri)
 		
 		/* Send ClientPut command */
 		if ((rc = _fcpSend(hfcp->socket, put_command, strlen(put_command))) == -1) {
-			_fcpLog(FCP_LOG_CRITICAL, "Error sending ClientPut message");
+		_fcpLog(FCP_LOG_CRITICAL, "Error sending ClientPut message");
 			goto cleanup;
 		}
 
@@ -853,6 +853,7 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->cb_count);
 
+		/* don't delete the temp files on exiting the "_" version */
 		rc = _fcpPutKeyFromFile(tmp_hfcp, "CHK@", segment->check_blocks[bi]->filename, 0);
 
 		if (rc < 0) {

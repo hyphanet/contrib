@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
 		
 		for (i=0; i<file_count; i++) {
 			
-			if (fcpPutKeyFromFile(hfcp, keyuri, files[i], metafile)) {
+			if (_fcpPutKeyFromFile(hfcp, keyuri, files[i], metafile)) {
 				fprintf(stdout, "Could not insert file into Freenet: %s\n", files[i]);
 				rc = -1;
 				goto cleanup;
@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 
 	/* make sure we enter 'cleanup' with a success value; all others with errors (!0) */
 	rc = 0;
-	
+
  cleanup:
 	
 	if (logfile) {

@@ -12,10 +12,10 @@ FCPtools generic
 
 + Ensure all printf's use proper formats (unsigned short=%su, unsigned long=%lu)
 + Implement future_insert(num_days) option.
-+ Verify other options (raw, etc.) work as expected.
-+ Address the myriad of compiler warnings on OSX platform.
-+ Update website docs for ClientGet to clearly indicate actual behaviour.
 
+= Address the myriad of compiler warnings on OSX platform.
+= Update website docs for ClientGet to clearly indicate actual behaviour.
+= Verify other options (raw, etc.) work as expected.
 = Confirm *BSD functionality (compiles with minimal warnings)
 = Confirm Solaris functionality (compiles with minimal warnings)
 = Add usage instructions to README for fcpget, fcpputsite.
@@ -28,14 +28,14 @@ ezFCPlib specific
 + Implement regress for _fcpGet.c.
 + Add configuration option for Timeout length (in seconds)
 + Add handling of CryptoKey in key generation and SSK handling.
-+ Update ezFCPlib programming API documentation.
 + Implement FEC Splitfile handling for _fcpGet.c.
 + Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
-+ Check all internal APIs for consistant usage and funcionality.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= Check all internal APIs for consistant usage and funcionality.
+= Update ezFCPlib programming API documentation.
 = SSK & KSK handling isn't working properly.. (fine; was a bug elsewhere)
 = Re-implement rawmode option after routines settle down.
 = Implement SkipDS logic.
@@ -99,7 +99,8 @@ fcpputsite
 fcpget
 ------
 
-+ Read metadata (if any) via fcpReadMetadata()
-+ Write metadata to the right place when -s is used
+
+= Read metadata (if any) via fcpReadMetadata()
+= Write metadata to the right place when -s is used
   (it currently dumps to stdout.. desirable?)
 
