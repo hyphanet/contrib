@@ -86,10 +86,6 @@ int get_file(hFCP *hfcp, char *uri)
 		minutes = (int)(hfcp->options->timeout / 1000 / 60);
 		seconds = ((hfcp->options->timeout / 1000) - (minutes * 60));
 
-		/* link to the tempblocks */
-		_fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
-		_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
-
 		/* connect to Freenet FCP */
 		if ((rc = _fcpSockConnect(hfcp)) != 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not connect to node %s:%d", hfcp->host, hfcp->port);
@@ -143,10 +139,6 @@ int get_file(hFCP *hfcp, char *uri)
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
-			/* unlink the temp files.. they'll be re-linked on look re-entry */
-			_fcpUnlink(hfcp->key->tmpblock);
-			_fcpUnlink(hfcp->key->metadata->tmpblock);
-
 			/* re-set retry count to initial value */
 			retry = hfcp->options->retry;
 			
@@ -166,10 +158,6 @@ int get_file(hFCP *hfcp, char *uri)
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
-			/* unlink the temp files.. they'll be re-linked on loop re-entry */
-			_fcpUnlink(hfcp->key->tmpblock);
-			_fcpUnlink(hfcp->key->metadata->tmpblock);
-
 			/* this will route us to a restart */
 			rc = FCPRESP_TYPE_RESTARTED;
 
@@ -184,10 +172,6 @@ int get_file(hFCP *hfcp, char *uri)
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
-			/* unlink the temp files.. they'll be re-linked on look re-entry */
-			_fcpUnlink(hfcp->key->tmpblock);
-			_fcpUnlink(hfcp->key->metadata->tmpblock);
-
 			/* this will route us to a restart */
 			rc = FCPRESP_TYPE_RESTARTED;
 			
@@ -211,6 +195,8 @@ int get_file(hFCP *hfcp, char *uri)
 
 	/* if we exhauseted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Failed to retrieve file after %d retries", hfcp->options->retry);
+
 		rc = EZERR_SOCKET_TIMEOUT;
 		goto cleanup;
 	}
@@ -218,6 +204,8 @@ int get_file(hFCP *hfcp, char *uri)
 	/* If data is not found, bail */
 	
   if (rc != FCPRESP_TYPE_DATAFOUND) {
+		_fcpLog(FCP_LOG_CRITICAL, "Failed to retrieve file");
+
 		rc = -1;
     goto cleanup;
 	}
@@ -235,42 +223,34 @@ int get_file(hFCP *hfcp, char *uri)
 		goto cleanup;
 	}
 
-	/* initialize this so that later we can use it in *if* statement */
-	meta_count = 0;
+	/* now process the datachunks that are to follow
+		 (there will be at least 1) */
+
+	/* check for the metadata chunk */
 
 	if (meta_bytes) {
 
+		/* allocate area for the raw metadata */
+		if (hfcp->key->metadata->raw_metadata) free(hfcp->key->metadata->raw_metadata);
 		hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
 
-		/* keep writing metadata as long as there's metadata to write..
-			 fetching more datachunks when required */
-		
-		_fcpLog(FCP_LOG_DEBUG, "retrieve metadata");
-		
-		/* index traverses through the raw metadata (char *) */
-		index = 0;
+		_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
+	}
 
-		/* if there's no metadata, the response will be retrieved and then the loop
-			 is exited.. the next code block extracts the key data from the first
-			 response retrieved */
-	
-		while ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
+	while (meta_bytes > 0) {
+
+		if ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
 			
 			_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");
-
+			
 			/* set meta_count below datachunk length */
 			meta_count = (meta_bytes > hfcp->response.datachunk.length ? 
 										hfcp->response.datachunk.length :
 										meta_bytes);
-
-			if (meta_count == 0) {
-				_fcpLog(FCP_LOG_DEBUG, "no metadata to process");
-				break;
-			}
-
+			
 			_fcpLog(FCP_LOG_DEBUG, "writing metadata block");
 			_fcpWrite(hfcp->key->metadata->tmpblock->fd, hfcp->response.datachunk.data, meta_count);
-
+			
 			/* copy over the raw metadata for handling later */
 			memcpy(hfcp->key->metadata->raw_metadata + index,
 						 hfcp->response.datachunk.data,
@@ -278,56 +258,26 @@ int get_file(hFCP *hfcp, char *uri)
 			
 			meta_bytes -= meta_count;
 			index += meta_count;
-
-			/* if we're done, break out to avoid fetching another chunk prematurely */
-			if (meta_bytes == 0) {
-
-				_fcpLog(FCP_LOG_VERBOSE, "Read metadata");
-
-				hfcp->key->metadata->raw_metadata[index] = 0;
-				_fcpMetaParse(hfcp->key->metadata, hfcp->key->metadata->raw_metadata);
-
-				break;
-			}
 		}
-	} /* at this point all the metadata has been written */
+		else {
+			_fcpLog(FCP_LOG_DEBUG, "expected missing datachunk message");
 
-	/* check rc to see what caused loop exit */
-
-	if (meta_bytes != 0) {
-		_fcpLog(FCP_LOG_DEBUG, "loop exited while there was still metadata to process");
-		
-		rc = -1;
-		goto cleanup;
+			rc = -1;
+			goto cleanup;
+		}
 	}
 
-	/* check for trailing key data in most recent data chunk */
+	if (hfcp->key->metadata->size > 0) {
+		hfcp->key->metadata->raw_metadata[index] = 0;
 
-	_fcpLog(FCP_LOG_DEBUG, "meta_count: %d, hfcp->response.datachunk.length: %d",
-		meta_count, hfcp->response.datachunk.length);
-
-	if (meta_count < hfcp->response.datachunk.length) {
-
-		_fcpLog(FCP_LOG_DEBUG, "processing %d/%d bytes of trailing key data",
-						hfcp->response.datachunk.length - meta_count,
-						hfcp->response.datachunk.length
-						);
-
-		/* key_count is the chunk length minus the metadata written within it */
-		key_count = (hfcp->response.datachunk.length - meta_count);
-
-		_fcpWrite(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data + meta_count, key_count);
+		_fcpMetaParse(hfcp->key->metadata, hfcp->key->metadata->raw_metadata);
+		_fcpLog(FCP_LOG_VERBOSE, "Read metadata");
 		
-		key_bytes -= key_count;
-		index += key_count;
-
-		_fcpLog(FCP_LOG_DEBUG, "key_bytes remaining: %d", key_bytes);
+		_fcpUnlink(hfcp->key->metadata->tmpblock);
 	}
 
-	/* here, all metadata has been written, and some key data has been written;
-		 result is the most recent data chunk is exhausted of whatever key data
-		 it had (both key and meta), so fetch more chunks and write them to the
-		 keyfile */
+	/* perhaps there's no key data.. just metadata.. */
+	if (key_bytes) _fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
 
 	while (key_bytes > 0) {
 		
@@ -351,11 +301,11 @@ int get_file(hFCP *hfcp, char *uri)
 		}
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "Read key data");
-
-	/* all metadata and key data has been written.. yay! */
-	_fcpUnlink(hfcp->key->tmpblock);
-	_fcpUnlink(hfcp->key->metadata->tmpblock);
+	if (hfcp->key->size > 0) {
+		
+		_fcpLog(FCP_LOG_VERBOSE, "Read key data");
+		_fcpUnlink(hfcp->key->tmpblock);
+	}
 
   _fcpSockDisconnect(hfcp);
 	_fcpLog(FCP_LOG_DEBUG, "get_file() - retrieved key: %s", uri);

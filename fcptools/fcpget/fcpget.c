@@ -152,8 +152,6 @@ int main(int argc, char* argv[])
 			rc = -1;
 			goto cleanup;
 		}
-
-		fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
   }
   
   else { /* otherwise get the key and write it to a file */
@@ -163,8 +161,6 @@ int main(int argc, char* argv[])
       rc = -1;
 			goto cleanup;
     }
-
-		fprintf(stdout, "%s (%s)\n", hfcp->key->target_uri->uri_str, file);
   }
 
 	rc = 0;
