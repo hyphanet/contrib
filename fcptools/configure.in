@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(ezFCPlib/fcpStartup.c)
 
 dnl The next line must also be updated in ezFCPlib.h
-AM_INIT_AUTOMAKE(fcptools, "0.9.0")
+AM_INIT_AUTOMAKE(fcptools, "0.9.0-1")
 dnl AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.

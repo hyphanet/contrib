@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 	/* must occur after fcpStartup() since it changes _fcp* variables */
 	parse_args(argc, argv);
 
-	hfcp = _fcpCreateHFCP();
+	hfcp = fcpCreateHFCP();
 
 	if (b_genkeys) {
 
@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
 
 	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
 
-	_fcpDestroyHFCP(hfcp);
+	fcpDestroyHFCP(hfcp);
 	fcpTerminate();
 	
 #ifdef WINDOWS_DISABLE

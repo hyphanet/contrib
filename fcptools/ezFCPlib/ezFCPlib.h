@@ -44,7 +44,7 @@
 #include <io.h>
 
 /* VERSION is defined by automake for non-Win platforms. */
-#define VERSION "0.9.0"
+#define VERSION "0.9.0-1"
 
 #define write _write
 #define open _open
@@ -430,28 +430,19 @@ extern "C" {
 #endif
 	
 	/* Handle management functions */
-	hFCP   *_fcpCreateHFCP(void);
-	void    _fcpDestroyHFCP(hFCP *);
+	hFCP   *fcpCreateHFCP(void);
+	void    fcpDestroyHFCP(hFCP *);
 
-	hURI   *_fcpCreateHURI(void);
-	int     _fcpParseURI(hURI *uri, char *key);
-	void    _fcpDestroyHURI(hURI *);
+	/* URI functions */
+	hURI   *fcpCreateHURI(void);
+	void    fcpDestroyHURI(hURI *);
+	int     fcpParseURI(hURI *uri, char *key);
 
 	hBlock *_fcpCreateHBlock(void);
 	void    _fcpDestroyHBlock(hBlock *);
 
 	hKey   *_fcpCreateHKey(void);
 	void    _fcpDestroyHKey(hKey *);
-
-	/* Some FEC definitions */
-	hSegment  *_fcpCreateHSegment(void);
-	void       _fcpDestroyHSegment(hSegment *);
-
-	/* Socket functions */
-	int   _fcpSockConnect(hFCP *hfcp);
-	void  _fcpSockDisconnect(hFCP *hfcp);
-	
-	int   _fcpRecvResponse(hFCP *hfcp);
 
 	/* Metadata handling functions */
 	int   _fcpMetaParse(hMetadata *, char *buf);
@@ -460,9 +451,19 @@ extern "C" {
 	hMetadata  *_fcpCreateHMetadata(void);
 	void        _fcpDestroyHMetadata(hMetadata *);
 
+	/* Some FEC definitions */
+	hSegment  *_fcpCreateHSegment(void);
+	void       _fcpDestroyHSegment(hSegment *);
+
 	/* fcpLog */
 	void  _fcpLog(int level, char *format, ...);
 	
+	/* Socket functions */
+	int   _fcpSockConnect(hFCP *hfcp);
+	void  _fcpSockDisconnect(hFCP *hfcp);
+	
+	int   _fcpRecvResponse(hFCP *hfcp);
+
 	/* Startup and shutdown functions */
 	int   fcpStartup(void);
 	void  fcpTerminate(void);
@@ -483,9 +484,7 @@ extern "C" {
 	/* Client functions for operations between files on disk and freenet */
 	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_uri, char *key_filename, char *meta_filename);
 
-
 	char *GetMimeType(char *pathname);
-	char *str_reset(char *dest, char *src);
 	
 #ifdef __cplusplus
 }

@@ -108,7 +108,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */
 	/* create the final key as a re-direct to the inserted CHK@ */
 
-	if (_fcpParseURI(hfcp->key->target_uri, key_uri)) {
+	if (fcpParseURI(hfcp->key->target_uri, key_uri)) {
 
 		/* set the proper error string always on return to non-ez code */
 		hfcp->error = strdup("target uri is invalid");
@@ -128,23 +128,23 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 			
 			hFCP *hfcp_meta;
 			
-			hfcp_meta = _fcpCreateHFCP();
+			hfcp_meta = fcpCreateHFCP();
 			hfcp_meta->key = _fcpCreateHKey();
 			
 			/* uri was already checked above for validity */
-			_fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
+			fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
 			
 			if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
 				
 				_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
-				_fcpDestroyHFCP(hfcp_meta);
+				fcpDestroyHFCP(hfcp_meta);
 				
 				return -1;
 			}
 			
 			/* success inserting the re-direct */
-			_fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
-			_fcpDestroyHFCP(hfcp_meta);
+			fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
+			fcpDestroyHFCP(hfcp_meta);
 			
 			break;
 		}

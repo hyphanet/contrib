@@ -32,7 +32,7 @@
 extern void _fcpSockDisconnect(hFCP *hfcp);
 
 
-hFCP *_fcpCreateHFCP(void)
+hFCP *fcpCreateHFCP(void)
 {
   hFCP *h;
 
@@ -52,7 +52,7 @@ hFCP *_fcpCreateHFCP(void)
 	return h;
 }
 
-void _fcpDestroyHFCP(hFCP *h)
+void fcpDestroyHFCP(hFCP *h)
 {
 	if (h) {
 		if (h->socket < 0) _fcpSockDisconnect(h);
@@ -72,7 +72,7 @@ hBlock *_fcpCreateHBlock(void)
 	h = (hBlock *)malloc(sizeof (hBlock));
 	memset(h, 0, sizeof (hBlock));
 
-	h->uri = _fcpCreateHURI();
+	h->uri = fcpCreateHURI();
 
 	return h;
 }
@@ -81,7 +81,7 @@ void _fcpDestroyHBlock(hBlock *h)
 {
 	if (h) {
 		if (h->filename) free(h->filename);
-		if (h->uri) _fcpDestroyHURI(h->uri);
+		if (h->uri) fcpDestroyHURI(h->uri);
 
 		free(h);
 	}
@@ -94,8 +94,8 @@ hKey *_fcpCreateHKey(void)
 	h = (hKey *)malloc(sizeof (hKey));
 	memset(h, 0, sizeof (hKey));
 
-	h->uri        = _fcpCreateHURI();
-	h->target_uri = _fcpCreateHURI();
+	h->uri        = fcpCreateHURI();
+	h->target_uri = fcpCreateHURI();
 
 	return h;
 }
@@ -105,8 +105,8 @@ void _fcpDestroyHKey(hKey *h)
 	if (h) {
 		int i;
 
-		if (h->uri)   _fcpDestroyHURI(h->uri);
-		if (h->target_uri) _fcpDestroyHURI(h->target_uri);
+		if (h->uri)   fcpDestroyHURI(h->uri);
+		if (h->target_uri) fcpDestroyHURI(h->target_uri);
 
 		if (h->mimetype) free(h->mimetype);
 		if (h->tmpblock) free(h->tmpblock);
@@ -117,7 +117,7 @@ void _fcpDestroyHKey(hKey *h)
 	}
 }
 
-hURI *_fcpCreateHURI(void)
+hURI *fcpCreateHURI(void)
 {
 	hURI *h;
 
@@ -127,7 +127,7 @@ hURI *_fcpCreateHURI(void)
 	return h;
 }
 
-void _fcpDestroyHURI(hURI *h)
+void fcpDestroyHURI(hURI *h)
 {
 	if (h) {
 		if (h->uri_str) free(h->uri_str);
@@ -140,13 +140,13 @@ void _fcpDestroyHURI(hURI *h)
 }
 
 /*
-	_fcpParseURI()
+	fcpParseURI()
 
 	This function parses a string containing a fully-qualified Freenet URI
 	into simpler components.  It is written to be re-entrant on the same
 	hURI pointer (it can be called repeatedly without being re-created.
 */
-int _fcpParseURI(hURI *uri, char *key)
+int fcpParseURI(hURI *uri, char *key)
 {
 	int len;
 	

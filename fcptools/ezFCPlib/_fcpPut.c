@@ -246,11 +246,11 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		
 		switch (rc) {
 		case FCPRESP_TYPE_SUCCESS:
-			_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
+			fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
 			break;
 			
 		case FCPRESP_TYPE_KEYCOLLISION:
-			_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
+			fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
 			break;
 			
 		case FCPRESP_TYPE_RESTARTED:
@@ -450,12 +450,12 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 	
 	switch (rc) {
 	case FCPRESP_TYPE_SUCCESS:
-		_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
+		fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
 
 		break;
 		
 	case FCPRESP_TYPE_KEYCOLLISION:
-		_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
+		fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
 
 		_fcpLog(FCP_LOG_DEBUG, "keycollision on insert of redirect metadata");
 		break;
@@ -805,11 +805,11 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
-		tmp_hfcp = _fcpCreateHFCP();
+		tmp_hfcp = fcpCreateHFCP();
 		tmp_hfcp->key = _fcpCreateHKey();
 		tmp_hfcp->key->size = segment->block_size;
 		
-		_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
+		fcpParseURI(tmp_hfcp->key->uri, "CHK@");
 		
 		_fcpLog(FCP_LOG_DEBUG, "inserting data block %d", bi);
 		
@@ -882,20 +882,20 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		switch (node_rc) {
 		case FCPRESP_TYPE_SUCCESS:
 			segment->data_blocks[bi] = _fcpCreateHBlock();
-			_fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.success.uri);
+			fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.success.uri);
 			
 			break;
 			
 		case FCPRESP_TYPE_KEYCOLLISION:
 			segment->data_blocks[bi] = _fcpCreateHBlock();
-			_fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.keycollision.uri);
+			fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.keycollision.uri);
 			
 			break;
 			
 		case FCPRESP_TYPE_RESTARTED:
 			/* clean up for loop re-entry, captain over, over */
 			_fcpSockDisconnect(tmp_hfcp);
-			_fcpDestroyHFCP(tmp_hfcp);
+			fcpDestroyHFCP(tmp_hfcp);
 			
 			fclose(kfile);
 			break;
@@ -935,7 +935,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 	/* finished with connection */
 	_fcpSockDisconnect(tmp_hfcp);
-	_fcpDestroyHFCP(tmp_hfcp);
+	fcpDestroyHFCP(tmp_hfcp);
 
 	/* we're done with the key data */
 	fclose(kfile);
@@ -953,7 +953,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	/* insert check blocks next */
 
 	for (bi=0; bi < segment->cb_count; bi++) {
-		tmp_hfcp = _fcpCreateHFCP();
+		tmp_hfcp = fcpCreateHFCP();
 		
 		_fcpLog(FCP_LOG_DEBUG, "inserting check block %d", bi);
 		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0);
@@ -966,13 +966,13 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		}		
 
 		segment->check_blocks[bi] = _fcpCreateHBlock();
-		_fcpParseURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
+		fcpParseURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
 	
 		_fcpLog(FCP_LOG_DEBUG, "successfully inserted check block %d", bi);
 		_fcpLog(FCP_LOG_VERBOSE, "Inserted check block %d: %s",
 						bi, tmp_hfcp->key->uri->uri_str);
 
-		_fcpDestroyHFCP(tmp_hfcp);
+		fcpDestroyHFCP(tmp_hfcp);
 	}
 
 	return 0;
@@ -1155,11 +1155,11 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	switch (rc) {
 	case FCPRESP_TYPE_SUCCESS:
-		_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
+		fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
 		break;
 		
 	case FCPRESP_TYPE_KEYCOLLISION:
-		_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
+		fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
 		break;
 		
 	case FCPRESP_TYPE_FORMATERROR:

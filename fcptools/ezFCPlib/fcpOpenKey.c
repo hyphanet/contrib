@@ -93,7 +93,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 	hfcp->key->openmode = _FCP_O_WRITE;
 
 	/* store final key uri for later usage */
-	if (_fcpParseURI(hfcp->key->target_uri, key_uri)) {
+	if (fcpParseURI(hfcp->key->target_uri, key_uri)) {
 		hfcp->error = strdup("invalid freenet uri");
 		return -1;
 	}
