@@ -62,7 +62,7 @@ void addref (unsigned int addr);
 void rmref (unsigned int addr);
 
 // return the address of the proper host for hash
-unsigned int route (const char hash[HASHLEN], int off);
+unsigned int route (const unsigned char hash[HASHLEN], int off);
 
 int
 main (int argc, char **argv)
