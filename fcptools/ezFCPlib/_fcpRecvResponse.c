@@ -365,7 +365,7 @@ static int getrespRouteNotFound(hFCP *hfcp)
 			return FCPRESP_TYPE_ROUTENOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "recei.ed unhandled field \"%s\"", resp);
 	}
 	
 	return -1;
@@ -489,7 +489,6 @@ static int getrespPending(hFCP *hfcp)
 static int getrespFailed(hFCP *hfcp)
 {
 	char resp[1025];
-	int len;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Failed response");
 

@@ -95,7 +95,6 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 
 	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");
 
-	/* Successful in opening temporary chunk bucket thing */
 	return 0;
 }
 

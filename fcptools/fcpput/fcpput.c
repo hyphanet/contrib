@@ -54,17 +54,21 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	/* must occur after fcpStartup() since it changes _fcp* variables */
 	parse_args(argc, argv);
 	
 	hfcp = _fcpCreateHFCP();
 	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
 
-	if (rc) printf("bad\n");
+	if (rc)
+		_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into Freenet", keyfile);
+	else
+		_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
 
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();
 
-#ifdef WINDOWS
+#ifdef WINDOWS_DISABLE
 	system("pause");
 #endif
 
@@ -89,7 +93,6 @@ void parse_args(int argc, char *argv[])
 
     {"verbosity", 1, 0, 'v'},
 		{"attempts", 1, 0, 'a'},
-		/* {"size", 1, 0, 's'}, */
 		{"threads", 1, 0, 't'},
 
     {"version", 0, 0, 'V'},
@@ -97,7 +100,6 @@ void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  /* char short_options[] = "n:p:l:e:rk:m:v:a:s:t:Vh"; */
   char short_options[] = "n:p:l:e:rk:m:v:a:t:Vh";
 
   /* c is the option code; i is buffer storage for an int */
@@ -202,20 +204,14 @@ void usage(char *s)
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 
-  printf("  -a, --attempts num     Attempts to insert each file (default %d)\n", 1);
-  /* printf("  -s, --size num         Size of splitfile chunks (default %d)\n", CHUNK_BLOCK_SIZE); */
-  printf("  -t, --threads num      Number of splitfile threads (default %d)\n\n", FCP_MAX_SPLIT_THREADS);
+  printf("  -a, --attempts num     Attempts to insert each file (default %d)\n\n", 1);
 
 	printf("  -V, --version          Output version information and exit\n");
 	printf("  -h, --help             Display this help and exit\n\n");
 
 	printf("  key                    Freenet key (...)\n");
 	printf("  file                   Read key's data from file (default \"stdin\")\n\n");
-	
-	printf("NOTE - only the inserted key URI will be written to stdout\n"
-				 "Therefore, you can use this utility in shell backtick commands\n\n");
  
 	exit(0);
 }
-
 

@@ -47,22 +47,17 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	/* If it's larger than L_BLOCK_SIZE, insert as an FEC encoded splitfile */
 	if (hfcp->key->size > L_BLOCK_SIZE) {
 
-		_fcpLog(FCP_LOG_VERBOSE, "Performing FEC-encoded insert");
+		_fcpLog(FCP_LOG_DEBUG, "Performing FEC-encoded insert");
 		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
 	}
 	else { /* Otherwise, insert as a normal key */
 
 		_fcpParseURI(hfcp->key->uri, "CHK@");
 
-		_fcpLog(FCP_LOG_VERBOSE, "Performing basic insert (non-redundant)");
+		_fcpLog(FCP_LOG_DEBUG, "Performing basic insert (non-redundant)");
 		rc = put_file(hfcp, key_filename, meta_filename);
 	}
 	
-	if (rc)
-		_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into Freenet", key_filename);
-	else
-		_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
-
 	return rc;
 }
 
