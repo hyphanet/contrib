@@ -277,7 +277,7 @@ BEGIN
                     IDC_STATIC,66,7,189,16
     GROUPBOX        "Node Data Store",IDC_STATIC,7,24,305,46
     LTEXT           "Size (MB)",IDC_STATIC,11,33,16,17
-    LTEXT           "If a location us bit specified, the data store will be created in the main Freenet program directory. Set this directory exclusively for freenet.",
+    LTEXT           "If a location is not specified, the data store will be created in the main Freenet program directory. Set this directory exclusively for freenet.",
                     IDC_STATIC,94,34,216,19
     CONTROL         "Path && filename",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | 
                     WS_GROUP,15,56,54,11
