@@ -416,8 +416,8 @@ int _fcpParseUri(FCP_URI *uri, char *key)
     uri->keyid = (char *) malloc(strlen(dupkey) + 1);
     strcpy(uri->keyid, dupkey);
     
-    uri->uri_str = (char *) malloc(strlen(uri->keyid) + 5);
-    sprintf(uri->uri_str, "KSK@%s", uri->keyid);
+		uri->uri_str = (char *) malloc(strlen(key) + 5);
+		sprintf(uri->uri_str, "KSK@%s", key);
   }
   
   else {
