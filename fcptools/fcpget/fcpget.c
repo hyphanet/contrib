@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 	/* Make sure all input args are sent to ezFCPlib as advertised */
   hfcp = fcpCreateHFCP(host, port, htl, optmask);
 
-	/* set retry manually; TODO: set() functions for hfcp->options */
+	/* set retry manually */
 	hfcp->options->retry = retry;
 
   if (b_stdout) {

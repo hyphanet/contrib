@@ -10,24 +10,26 @@ that can be implemented by any competent C programmer.
 General
 ----------------
 
-+ Confirm _fcpMetaParse() can handle merging metadata into an already allocated meta struct.
 + Implement future_insert(num_days) option.
 
+= Confirm _fcpMetaParse() can handle merging metadata into an already allocated meta struct.
 = Verify metadata handling when storing metadata as redirect (and not within SSK/KSK).
   (needs more testing, but looks ok).
 = Rename 'rawmode' option 'noredirect'.
+
 
 -----------------
 ezFCPlib
 -----------------
 
++!Add handling of CryptoKey in key generation and SSK handling.
 + Add configuration option for Timeout length (in seconds)
-+ Add handling of CryptoKey in key generation and SSK handling.
-+ Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= Verify current DBR logic.
+= Implement do_dbr option.
 = Implement logic to read in <rest> section for custom metadata (_fcpMetadata.c).
 = Check all internal APIs for consistant usage and funcionality.
 = Update ezFCPlib programming API documentation.
@@ -37,6 +39,7 @@ ezFCPlib
 fcpput
 ------
 
+= Implement metadata handling for FEC encoded files.
 = Tighten >1 file put logic (?).
 = Implement meta-redirect insert option.
 = Implement -g command-line switch (GenerateKeypair).
@@ -48,8 +51,6 @@ fcpputsite
 
 + Re-link againt ezFCPlib and implement site-wide specific insert logic.
 + Implement Edition based logic.
-+ Verify current DBR logic.
-+ Implement do_dbr option.
 + Implement default_doc option (defaults to index.html).
 
 
@@ -57,11 +58,12 @@ fcpputsite
 fcpget
 ------
 
-
++ Start w/ _fcpGet.c:_fcpGetBlock()
 + Implement FEC Splitfile handling for _fcpGet.c.
 + On getFollowRedirects, must save metadata for the case where a redirect takes
 	the client to another key; currently we're dropping the metadata.
 + Implement regress for _fcpGet.c.
++ Implement metadata handling for FEC encoded files.
 
 = Read metadata (if any) via fcpReadMetadata()
 = Write metadata to the right place when -s is used
