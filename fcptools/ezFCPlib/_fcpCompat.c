@@ -153,7 +153,8 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 
 	FD_ZERO(&readfds);
 	FD_SET(hfcp->socket, &readfds);
-	
+
+	buf[0] = 0;
 	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
 
 	/* handle this popular case first */	
@@ -172,6 +173,11 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 		char s[41];
 
 		rc = _fcpRecv(hfcp->socket, buf+rcvd, 1);
+
+		if (rc == 0) {
+			_fcpLog(FCP_LOG_DEBUG, "_fcpRecv() returned 0 (indicated an extraneous call)");
+			return 0;
+		}
 
 		if (rc == -1) {
 			_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");

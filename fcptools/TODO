@@ -30,6 +30,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Remove all the 8192 block writing; let the os optimize.
 + Change so that fcpReadKey() and fcpWriteKey() return bytes read/written instead of 0 on success.
 + Add logic in _fcpCompat.c for read() routine for 8192 blocksize instead of '1'
 + Add configuration option for Timeout length (in seconds)

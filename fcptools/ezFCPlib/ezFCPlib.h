@@ -105,6 +105,7 @@
 #define L_BLOCK_SIZE        1024000  /* default split part size (1,000 * 1,024) */
 #define L_FILE_BLOCKSIZE    8192
 #define L_ERROR_STRING      512
+#define L_METADATA_MAX      65536
 
 /* TODO: deprecate */
 #define L_KEY               40
@@ -394,6 +395,8 @@ typedef struct {
 
 	int         cdoc_count;
 	hDocument **cdocs;
+
+	char       *raw_metadata;
 
 	int  _start;  /* intended for internal use */
 } hMetadata;

@@ -64,11 +64,15 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 	while (1) {
 
+		memset(resp, 0, 8193);
 		rc = _fcpSockRecvln(hfcp, resp, 8192);
 
 		/* return -1 on error, except if it's a TIMEOUT */
 		if (rc <= 0)
 			return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+
+		else if (rc == 0)
+			return 0;
 	
 		if (!strncmp(resp, "NodeHello", 9)) {
 			hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
@@ -143,7 +147,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 		
 		/* Else, send a warning; a little loose, but this is still in development */
 		else {
-			_fcpLog(FCP_LOG_DEBUG, "_fcpRecvResponse() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "_fcpRecvResponse() - received unknown message \"%s\"", resp);
 		}
 	}
 	
@@ -381,27 +385,45 @@ static int getrespDataChunk(hFCP *hfcp)
 	rc = _fcpSockRecvln(hfcp, resp, 8192);
 	
 	if (!strncmp(resp, "Length=", 7)) {
-		hfcp->response.datachunk.length = xtoi(resp + 7);
-	}
-	else return -1;
+		
+		len = xtoi(resp + 7);
+		/*_fcpLog(FCP_LOG_DEBUG, "Length: %d", len);*/
 
-	_fcpLog(FCP_LOG_DEBUG, "received DataChunk response (%d bytes)", hfcp->response.datachunk.length);
+		if (hfcp->response.datachunk.length == 0) {
+
+			/*_fcpLog(FCP_LOG_DEBUG, "initial allocation of data block");*/
+			hfcp->response.datachunk.data = (char *)malloc(len+1);
+		}
+
+		else if (len > hfcp->response.datachunk.length) {
+
+			/*_fcpLog(FCP_LOG_DEBUG, "reallocation of data block");*/
+			free(hfcp->response.datachunk.data);
+			hfcp->response.datachunk.data = (char *)malloc(len+1);
+		}
+		else {
+			/*_fcpLog(FCP_LOG_DEBUG, "no need to reallocate");*/
+		}
+
+		hfcp->response.datachunk.length = len;
+	}
+	else {
+		_fcpLog(FCP_LOG_DEBUG, "did not receive expected Length property");
+		return -1;
+	}
 
 	/* this line *should just be the word 'data' */
 	rc = _fcpSockRecvln(hfcp, resp, 8192);
 
-	len = hfcp->response.datachunk.length;
-	if (hfcp->response.datachunk.data) free(hfcp->response.datachunk.data);
-	hfcp->response.datachunk.data = (char *)malloc(len+1);
+	if (strncmp(resp, "Data", 4)) {
+		_fcpLog(FCP_LOG_DEBUG, "did not receive expected Data response line");
+		return -1;
+	}
 
-	_fcpLog(FCP_LOG_DEBUG, "** 1");
-	
 	/* get len bytes of data */
 	if ((rc = _fcpSockRecv(hfcp, hfcp->response.datachunk.data, len)) <= 0)
 		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 
-	_fcpLog(FCP_LOG_DEBUG, "** 2");
-	
 	hfcp->response.datachunk.data[len] = 0;
 	
 	return FCPRESP_TYPE_DATACHUNK;

@@ -70,12 +70,11 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	int key_bytes;
 	int key_count;
-	int block_count;
 
 	int meta_bytes;
 	int meta_count;
-	int chunk_written;
 
+	int index;
 
 	FILE *kfile;
 	FILE *mfile;
@@ -140,6 +139,11 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 		case FCPRESP_TYPE_DATAFOUND:
 			_fcpLog(FCP_LOG_VERBOSE, "Received DataFound message");
+			_fcpLog(FCP_LOG_DEBUG, "keysize: %d, metadata size: %d",
+							hfcp->response.datafound.datalength - hfcp->response.datafound.metadatalength,
+							hfcp->response.datafound.metadatalength
+							);
+
 			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->timeout / 1000));
 			break;
 			
@@ -223,88 +227,117 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	/* Now we have key data, and possibly meta data waiting for us */
 
-	key_bytes = hfcp->response.datafound.datalength;
 	meta_bytes = hfcp->response.datafound.metadatalength;
+	key_bytes = hfcp->response.datafound.datalength - meta_bytes;
 
+	if (meta_bytes > L_METADATA_MAX) {
+		_fcpLog(FCP_LOG_DEBUG, "metadata size too large: %d", meta_bytes);
+		rc = -1;
+		
+		goto cleanup;
+	}
+
+	hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
+	
 	/* grab all the metadata from the datachunks first */
 
 	_fcpLog(FCP_LOG_DEBUG, "retrieve metadata");
+	index = 0;
 
 	while ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
-		
-		chunk_written = 0;
+
+		/*_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");*/
 
 		/* set meta_count below datachunk length */
 		meta_count = (meta_bytes > hfcp->response.datachunk.length ? 
 									hfcp->response.datachunk.length :
 									meta_bytes);
+
+		if (meta_count == 0) {
+			_fcpLog(FCP_LOG_DEBUG, "no metadata to process");
+			break;
+		}
 		
-		while (meta_count > 0) {
-			block_count = (meta_count > 8192 ? 8192 : meta_count);
+		if (mfd != -1)
+			write(mfd, hfcp->response.datachunk.data, meta_count);
+		
+		memcpy(hfcp->key->metadata->raw_metadata + index,
+					 hfcp->response.datachunk.data,
+					 meta_count);
+		
+		meta_bytes -= meta_count;
+		index += meta_count;
 
-			if (mfd != -1) write(mfd, hfcp->response.datachunk.data + chunk_written, block_count);
-			
-			/* decrement bytes to write, and increment count of bytes written within chunk */
-			meta_count -= block_count;
-			meta_bytes -= block_count;
-			
-			chunk_written += block_count;
-		}
-
-		/* entire chunk was metadata.. continue with the next datachunk */
-		if (chunk_written == hfcp->response.datachunk.length) {
-			_fcpLog(FCP_LOG_DEBUG, "entire chunk was metadata");
-				continue;
-		}
-
-		_fcpLog(FCP_LOG_DEBUG, "all metadata written");
-
-		/* all metadata has been written; dump key data in datachunk */
 		if (meta_bytes == 0) {
-			int key_trail;
-
-			if (mfd != -1) fclose(mfile);
-			key_trail = (hfcp->response.datachunk.length - chunk_written);
-
-			while (key_trail > 0) {
-				block_count = (key_trail > 8192 ? 8192 : key_trail);
-				
-				if (kfd != -1) write(kfd, hfcp->response.datachunk.data + chunk_written, block_count);
-				
-				/* decrement bytes to write, and increment count of bytes written within chunk */
-				key_trail -= block_count;
-				key_bytes -= block_count;
-				
-				chunk_written += block_count;
-			}
-
-			_fcpLog(FCP_LOG_DEBUG, "wrote data chunk");
-		}
-	} /* end metadata "while" loop */
-
-	_fcpLog(FCP_LOG_DEBUG, "finished with partial key/meta data chunk");
-	
-	/* at this point, the remaining datachunks will all completely be key data */
-	/* blindly dump them to the key file after closing the metafile */
-
-	while ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
-
-		_fcpLog(FCP_LOG_DEBUG, "got data chunk");
-
-		chunk_written = 0;
-
-		while (key_bytes > 0) {
-			key_count = (hfcp->response.datachunk.length > 8192 ? 8192 : hfcp->response.datachunk.length);
-			
-			if (kfd != -1) write(kfd, hfcp->response.datachunk.data + chunk_written, block_count);
-			
-			key_bytes -= block_count;
-			chunk_written += block_count;
+			_fcpLog(FCP_LOG_DEBUG, "finished metadata");
+			break;
 		}
 	}
 
+	/* check rc to see what caused loop exit */
+
+	if (meta_bytes != 0) {
+		_fcpLog(FCP_LOG_DEBUG, "loop exited while there was still metadata to process");
+		
+		rc = -1;
+		goto cleanup;
+	}
+
+	/* check for trailing key data */
+
+	if (meta_count < hfcp->response.datachunk.length) {
+
+		_fcpLog(FCP_LOG_DEBUG, "processing %d/%d bytes of trailing key data",
+						hfcp->response.datachunk.length - meta_count,
+						hfcp->response.datachunk.length
+						);
+
+		/* key_count is the chunk length minus the metadata written within it */
+		key_count = (hfcp->response.datachunk.length - meta_count);
+
+		if (kfd != -1)
+			write(kfd, hfcp->response.datachunk.data + meta_count, key_count);
+		
+		memcpy(hfcp->key->metadata->raw_metadata + index,
+					 hfcp->response.datachunk.data + meta_count,
+					 key_count);
+		
+		key_bytes -= key_count;
+		index += key_count;
+
+		_fcpLog(FCP_LOG_DEBUG, "key_bytes remaining: %d", key_bytes);
+	}
+
+	hfcp->key->metadata->raw_metadata[index] = 0;
+
+	while (key_bytes > 0) {
+		
+		/* the remaining data chunks should be just key data */
+		if ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
+			
+			/*_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");*/
+
+			key_count = hfcp->response.datachunk.length;
+			
+			if (kfd != -1)
+				write(kfd, hfcp->response.datachunk.data, key_count);
+			
+			key_bytes -= key_count;
+			index += key_count;
+		}
+		else {
+			_fcpLog(FCP_LOG_DEBUG, "expected missing datachunk message");
+
+			rc = -1;
+			goto cleanup;
+		}
+	}
+
+	/* all metadata and key data has been written.. yay! */
+
 	/* do a 'local' cleanup here' */
-	if (kfd != -1) fclose(kfile);			
+	if (kfd != -1) close(kfd);			
+	if (mfd != -1) close(mfd);			
 	
   _fcpSockDisconnect(hfcp);
 	_fcpLog(FCP_LOG_DEBUG, "get_file() - retrieved key: %s", hfcp->key->uri->uri_str);
@@ -313,8 +346,8 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 
  cleanup: /* this is called when there is an error above */
-	if (kfd != -1) fclose(kfile);			
-	if (mfd != -1) fclose(mfile);
+	if (kfd != -1) close(kfd);			
+	if (mfd != -1) close(mfd);
 	
   _fcpSockDisconnect(hfcp);
 
