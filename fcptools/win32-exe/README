@@ -1,0 +1,8 @@
+This is the Win32-EXE README file.
+
+
+---------------------------------------------------------------------
+(Explain to install, cygwin1.dll must be copied to %systemroot% or anywhere in %PATH%.
+Also gotta add ezfcp.dll into the mix ;)
+
+:)
