@@ -243,7 +243,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	}
 
 	// create a manifest for all the inserted chunks
-	_fcpLog(FCP_LOG_VERBOSE, "fcpInsSplitFile: insert of '%s' failed", fileName);
+	_fcpLog(FCP_LOG_VERBOSE, "fcpInsSplitFile: insert of '%s' successful", fileName);
 	return insertSplitManifest(hfcp, key, metaData);
 
 }
@@ -271,7 +271,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData)
 	char *splitManifest;
 	char s[1024];
 
-	printf("Creating splitfile manifest\n");
+	_fcpLog(FCP_LOG_VERBOSE, "Creating splitfile manifest");
 
 	// Create mem block for metadata
     splitManifest = malloc(100 + 512 * hfcp->split.numChunks);
@@ -340,7 +340,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData)
 	}
 
 	_fcpLog(FCP_LOG_VERBOSE, "successfully inserted splitfile manifest:\n");
-	puts(splitManifest);
+	_fcpLog(FCP_LOG_VERBOSE, splitManifest);
 	return 0;
 }
 
