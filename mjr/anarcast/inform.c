@@ -2,9 +2,19 @@
 #define WEED_INTERVAL (60*60)
 
 #include "anarcast.h"
+#include <pthread.h>
 
-// this should really happen in its own thread.
-void weed_dead_servers ();
+// thread-related filth
+pthread_mutex_t mutex;
+pthread_cond_t cond;
+int waiting;
+
+// this thread tries to connect to every server in the database. when it
+// finishes, it sets waiting to true, and waits on our condition variable.
+// the main loop waits until there are no more connections and then broadcasts
+// the condition, which causes our thread to grab the mutex, update the database,
+// and start over after perhaps pausing a while
+void * thread (void *arg);
 
 char *hosts, // the start of our data. woohoo
      *end, // the end of our data. add new data here and move this up
@@ -15,6 +25,7 @@ main (int argc, char **argv)
 {
     unsigned int l, m, active;
     long last_weeding;
+    pthread_t t;
     fd_set r, w;
     
     if (argc != 1) {
@@ -51,6 +62,9 @@ main (int argc, char **argv)
     last_weeding = time(NULL);
     active = 0;
     
+    if (pthread_create(&t, NULL, thread, NULL))
+	die("pthread_create() failed");
+    
     FD_ZERO(&r);
     FD_ZERO(&w);
     FD_SET(l, &r);
@@ -61,17 +75,11 @@ main (int argc, char **argv)
 	fd_set s = r, x = w;
 	struct timeval tv = {2,0};
 	
-	n = select(m, &s, &x, NULL, &tv);
-	if (n == -1) die("select() failed");
-	if (!n) {
-	    // put this in its own thread!
-	    if (!active && time(NULL) > last_weeding + WEED_INTERVAL) {
-		puts("Weeding....");
-		weed_dead_servers();
-		last_weeding = time(NULL);
-	    }
-	    continue;
-	}
+	if ((n = select(m, &s, &x, NULL, &tv)) == -1)
+	    die("select() failed");
+	
+	if (!n && waiting) // tell our thread to grab the mutex and update the database
+	    pthread_cond_broadcast(&cond);
 
 	for (n = 3 ; n < m ; n++)
 	    if (FD_ISSET(n, &s)) {
@@ -115,46 +123,62 @@ main (int argc, char **argv)
     }
 }
 
-void
-weed_dead_servers () // yucky. i don't like this one bit
+void *
+thread (void *arg)
 {
-    int f, c;
+    int f;
+    long l, lastweed = 0;
     char *p, *q, *b = mbuf(DATABASE_SIZE);
     
-    memset(b, 0, DATABASE_SIZE);
-    
-    for (p = q = hosts, f = 0 ; *(int*)p ; p += 4) {
-	struct sockaddr_in a;
-	memset(&a, 0, sizeof(a));
-	a.sin_family = AF_INET;
-	a.sin_port = htons(ANARCAST_SERVER_PORT);
-	a.sin_addr.s_addr = *(int*)p;
-	
-	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	    die("socket() failed");
-	
-	if (connect(c, &a, sizeof(a)) != -1) {
-	    memcpy(q, p, 4);
-	    q += 4;
-	} else {
-	    printf("%s unreachable.\n", inet_ntoa(a.sin_addr));
-	    f++;
+    for (;;) {
+	// try to connect to every host in our database. if we can, then stick
+	// it in the new buffer and advance the new end pointer (q)
+	for (p = q = hosts, f = 0 ; *(int*)p ; p += 4) {
+	    int c;
+	    struct sockaddr_in a;
+	    
+	    memset(&a, 0, sizeof(a));
+	    a.sin_family = AF_INET;
+	    a.sin_port = htons(ANARCAST_SERVER_PORT);
+	    a.sin_addr.s_addr = *(int*)p;
+	    
+	    if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+		die("socket() failed");
+	    
+	    if (connect(c, &a, sizeof(a)) != -1) {
+		memcpy(q, p, 4);
+		q += 4;
+	    } else {
+		printf("%s unreachable.\n", inet_ntoa(a.sin_addr));
+		f++;
+	    }
+	    
+	    if (close(c) == -1)
+		die("close() failed");
 	}
 	
-	if (close(c) == -1)
-	    die("close() failed");
+	printf("%d of %d total hosts unreachable.\n", f, (end-hosts)/4);
+	
+	if (f * 2 > (end-hosts)/4) {
+	    puts("Too many unreachable hosts--not updating database.");
+	} else {
+	    puts("Waiting for current transfers to complete before updating database.");
+	    pthread_mutex_lock(&mutex);
+	    pthread_cond_wait(&cond, &mutex);
+	    memcpy(hosts, b, q-b);
+	    end = hosts + (q-b);
+	    puts("Database updated.");
+	    pthread_mutex_unlock(&mutex);
+	}
+
+	// wait for a while if we must
+	if ((l = time(NULL)) < lastweed + WEED_INTERVAL) {
+	    int i = lastweed + WEED_INTERVAL - l;
+	    printf("Sleeping %d seconds before smoking up again.\n", i);
+	    sleep(i);
+	}
+
+	lastweed = l; // update our lastweed to the time when we finished
     }
-    
-    printf("%d of %d total hosts unreachable.\n", f, (end-hosts)/4);
-    
-    if (f * 2 > (end-hosts)/4) {
-	puts("Too many unreachable hosts--not updating database.");
-    } else {
-	memcpy(hosts, b, q-b);
-	end = q;
-    }
-    
-    if (munmap(b, DATABASE_SIZE) == -1)
-	die("munmap() failed");
 }
 
