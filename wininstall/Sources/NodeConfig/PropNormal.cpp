@@ -9,6 +9,7 @@
 #include "PropAdvanced.h"
 #include "GetSeedDlg.h"
 #include "DlgWarnPerm.h"
+#include "UpdateSpin.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -74,31 +75,11 @@ void CPropNormal::OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	DWORD dwNewStoreSize = m_storeSize-pNMUpDown->iDelta;
-	const DWORD dwMaxStoreSize = 0xffffffff;
-	const DWORD dwMinStoreSize = 10;
-
-	if ( pNMUpDown->iDelta < 0 && m_storeSize <= dwMaxStoreSize )
+	CUpdateSpin<DWORD> cus(m_storeSize, 10, 0xffffffff);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-		if ( dwNewStoreSize < m_storeSize || dwNewStoreSize > dwMaxStoreSize )
-		{
-			// it went beyond dwMaxStoreSize or wrapped over 0xffffffff
-			dwNewStoreSize = dwMaxStoreSize;
-		}
-		m_storeSize = dwNewStoreSize;
 		UpdateData(FALSE);
 	}
-	else if (pNMUpDown->iDelta > 0 && m_storeSize > dwMinStoreSize)
-	{
-		if ( dwNewStoreSize > m_storeSize || dwNewStoreSize < dwMinStoreSize)
-		{
-			// it went beyone dwMinStoreSize or wrapped over 0x00000000
-			dwNewStoreSize=10;
-		}
-		m_storeSize = dwNewStoreSize;
-		UpdateData(FALSE);
-	}
-
 	*pResult = 0;
 }
 
