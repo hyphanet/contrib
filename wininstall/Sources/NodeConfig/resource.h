@@ -75,23 +75,26 @@
 #define IDC_FPROXYDROPPEDCONN           1068
 #define IDC_fproxy_splitthreads         1069
 #define IDC_SEEDFILE                    1070
-#define IDC_NODESTATUSSERVLET           1070
-#define IDC_useDefaultNodeRefs          1071
-#define IDC_NODESTATUSPORT              1071
-#define IDC_fproxy_splitretries         1072
-#define IDC_NODESTATUSCLASS             1072
-#define IDC_importNewNodeRef            1073
-#define IDC_logFormat                   1073
-#define IDC_fproxy_splitincHTL          1074
-#define IDC_GETLOCALSEED                1075
-#define IDC_maxNodeConnections          1075
-#define IDC_BUT_exportRef               1076
-#define IDC_storeCipherName             1076
-#define IDC_transient                   1077
-#define IDC_storeCipherWidth            1077
-#define IDC_DLOADPROGRESS               1078
-#define IDC_maximumPadding              1078
-#define IDC_doAnnounce                  1079
+#define IDC_NODESTATUSSERVLET           1071
+#define IDC_useDefaultNodeRefs          1072
+#define IDC_NODESTATUSPORT              1073
+#define IDC_fproxy_splitretries         1074
+#define IDC_NODESTATUSCLASS             1075
+#define IDC_importNewNodeRef            1076
+#define IDC_logFormat                   1077
+#define IDC_fproxy_splitincHTL          1078
+#define IDC_GETLOCALSEED                1079
+#define IDC_maxNodeConnections          1080
+#define IDC_BUT_exportRef               1081
+#define IDC_storeCipherName             1082
+#define IDC_transient                   1083
+#define IDC_storeCipherWidth            1084
+#define IDC_DLOADPROGRESS               1085
+#define IDC_maximumPadding              1086
+#define IDC_doAnnounce                  1087
+#define IDC_slider_CPUPriority          1088
+#define IDC_Static_CPUPriority          1089
+#define IDC_storePath_browse			1090
 
 // Next default values for new objects
 // 

@@ -20,6 +20,8 @@ IMPLEMENT_DYNCREATE(CPropAdvanced, CPropertyPage)
 
 CPropAdvanced::CPropAdvanced() : CPropertyPage(CPropAdvanced::IDD)
 {
+	//{{AFX_DATA_INIT(CPropAdvanced)
+	//}}AFX_DATA_INIT
 }
 
 CPropAdvanced::~CPropAdvanced()
@@ -51,6 +53,8 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SEEDFILE, m_seedFile);
 	DDV_MaxChars(pDX, m_seedFile, 255);
 	DDX_Text(pDX, IDC_maxNodeConnections, m_maxNodeConnections);
+	DDX_Control(pDX, IDC_slider_CPUPriority, m_ctrl_Slider_CPUPriority);
+	DDX_Text(pDX, IDC_Static_CPUPriority, m_str_Static_CPUPriority);
 	//}}AFX_DATA_MAP
 }
 

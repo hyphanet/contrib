@@ -36,6 +36,8 @@ public:
 	UINT	m_outputBandwidthLimit;
 	CString	m_seedFile;
 	UINT	m_maxNodeConnections;
+	CSliderCtrl	m_ctrl_Slider_CPUPriority;
+	CString	m_str_Static_CPUPriority;
 	//}}AFX_DATA
 
 
