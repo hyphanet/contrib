@@ -95,7 +95,7 @@ int _fcpRecv(int socket, char *buf, int len)
 	rc = read(socket, buf, len);
 #endif
 
-	if (rc <= 0)
+	if (rc < 0)
 		return -1;
 	else
 		return rc;

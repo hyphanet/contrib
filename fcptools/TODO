@@ -30,6 +30,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Add logic in _fcpCompat.c for read() routine for 8192 blocksize instead of '1'
 + Add configuration option for Timeout length (in seconds)
 + Add handling of CryptoKey in key generation and SSK handling.
 + Update ezFCPlib programming API documentation.

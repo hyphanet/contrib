@@ -62,12 +62,12 @@ static int  getrespblock(hFCP *, char *respblock, int bytesreqd);
 
 int _fcpRecvResponse(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	while (1) {
 
-		rc = _fcpSockRecvln(hfcp, resp, 1024);
+		rc = _fcpSockRecvln(hfcp, resp, 8192);
 
 		/* return -1 on error, except if it's a TIMEOUT */
 		if (rc <= 0)
@@ -161,12 +161,12 @@ int _fcpRecvResponse(hFCP *hfcp)
 */
 static int getrespHello(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received NodeHello response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "MaxFileSize=", 12)) {
 			hfcp->max_filesize = xtoi(resp+12);
@@ -201,12 +201,12 @@ static int getrespHello(hFCP *hfcp)
 
 static int getrespInfo(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "Architecture=", 13)) {
 			_fcpLog(FCP_LOG_DEBUG, resp);
@@ -296,12 +296,12 @@ static int getrespInfo(hFCP *hfcp)
 
 static int getrespSuccess(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Success response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.success.uri) free(hfcp->response.success.uri);
@@ -334,7 +334,7 @@ static int getrespSuccess(hFCP *hfcp)
 
 static int getrespDataFound(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received DataFound response");
@@ -342,7 +342,7 @@ static int getrespDataFound(hFCP *hfcp)
 	hfcp->response.datafound.datalength = 0;
 	hfcp->response.datafound.metadatalength = 0;
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "DataLength=", 11))
 			hfcp->response.datafound.datalength = xtoi(resp + 11);
@@ -366,10 +366,10 @@ static int getrespDataFound(hFCP *hfcp)
 
 static int getrespDataChunk(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "Length=", 7))
 			hfcp->response.datachunk.length = xtoi(resp + 7);
@@ -401,12 +401,12 @@ static int getrespDataChunk(hFCP *hfcp)
 
 static int getrespDataNotFound(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received DataNotFound response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_DATANOTFOUND;
@@ -424,12 +424,12 @@ static int getrespDataNotFound(hFCP *hfcp)
 
 static int getrespRouteNotFound(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received RouteNotFound response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.routenotfound.reason) free(hfcp->response.routenotfound.reason);
@@ -461,12 +461,12 @@ static int getrespRouteNotFound(hFCP *hfcp)
 
 static int getrespUriError(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received UriError response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_URIERROR;
@@ -484,12 +484,12 @@ static int getrespUriError(hFCP *hfcp)
 
 static int getrespRestarted(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Restarted response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "Timeout=", 8)) {
 			hfcp->response.restarted.timeout = xtoi(resp + 8);
@@ -512,12 +512,12 @@ static int getrespRestarted(hFCP *hfcp)
 
 static int getrespKeycollision(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received KeyCollision response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.keycollision.uri) free(hfcp->response.keycollision.uri);
@@ -554,12 +554,12 @@ static int getrespKeycollision(hFCP *hfcp)
 
 static int getrespPending(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Pending response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.pending.uri) free(hfcp->response.pending.uri);
@@ -605,12 +605,12 @@ static int getrespPending(hFCP *hfcp)
 
 static int getrespFailed(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Failed response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.failed.reason) free(hfcp->response.failed.reason);
@@ -644,12 +644,12 @@ static int getrespFailed(hFCP *hfcp)
 
 static int getrespFormatError(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received FormatError response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.formaterror.reason) free(hfcp->response.formaterror.reason);
@@ -672,12 +672,12 @@ static int getrespFormatError(hFCP *hfcp)
 
 static int  getrespSegmentHeaders(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received SegmentHeader response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "FECAlgorithm=", 13))
 			strncpy(hfcp->response.segmentheader.fec_algorithm, resp + 13, L_KEY);
@@ -732,12 +732,12 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 
 static int getrespBlocksEncoded(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received BlocksEncoded response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "BlockCount=", 11))
 			hfcp->response.blocksencoded.block_count = xtoi(resp + 11);
@@ -760,12 +760,12 @@ static int getrespBlocksEncoded(hFCP *hfcp)
 
 static int getrespMadeMetadata(hFCP *hfcp)
 {
-	char resp[1025];
+	char resp[8193];
 	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received MadeMetadata response");
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "DataLength=", 11))
 			hfcp->response.mademetadata.datalength = xtoi(resp + 11);
