@@ -109,6 +109,8 @@ int main(int argc, char* argv[])
 	
 	/* Make sure all input args are sent to ezFCPlib as advertised */
 	hfcp = fcpCreateHFCP(host, port, 0, 0);
+
+	rc = 0;
 	
 	if (!strncasecmp(command, "hello", 11)) {
 		rc = clienthello(hfcp);
@@ -119,8 +121,6 @@ int main(int argc, char* argv[])
 	else {
 		usage("Did not specify a supported FCP command");
 	}
-	
-	rc = 0;
 	
  cleanup:
 	

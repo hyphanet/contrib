@@ -133,9 +133,10 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 		}
 
 	if (hfcp->key->metadata->size) {
-		if (_fcpCopyFile(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
+		if (_fcpCopyFile(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not copy internal tempfile metadata %s", meta_filename);
 			return -1;
+		}
 	}
 
 	/* Now insert the key data as a CHK@, and later we'll insert a redirect

@@ -32,7 +32,7 @@
 #include "ez_sys.h"
 
 /* suppress a compiler warning */
-char *strdup(const char *s);
+/*char *strdup(const char *s); DELETE ? */
 
 static int  getrespHello(hFCP *);
 static int  getrespInfo(hFCP *);
@@ -374,6 +374,9 @@ static int getrespDataFound(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "received DataFound response");
 
+	/* set to -1 to indicate the DataChunk has not yet been retrieved */
+	hfcp->response.datachunk._index = -1;
+
 	hfcp->response.datafound.datalength = 0;
 	hfcp->response.datafound.metadatalength = 0;
 
@@ -414,6 +417,9 @@ static int getrespDataChunk(hFCP *hfcp)
 	int  rc;
 	int  len;
 
+	/* set the internal index for later use by get_file() */
+	hfcp->response.datachunk._index = 0;
+
 	rc = _fcpSockRecvln(hfcp, resp, 8192);
 	
 	if (!strncmp(resp, "Length=", 7)) {
@@ -426,7 +432,7 @@ static int getrespDataChunk(hFCP *hfcp)
 			hfcp->response.datachunk.data = (char *)malloc(len+1);
 		}
 
-		else if ((unsigned long)len > hfcp->response.datachunk.length) {
+		else if (len > hfcp->response.datachunk.length) {
 
 			hfcp->response.datachunk.data = realloc(hfcp->response.datachunk.data, len+1);
 		}

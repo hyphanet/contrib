@@ -242,12 +242,14 @@ typedef struct {
 typedef struct {
   unsigned long  datalength;
   unsigned long  metadatalength;
-	unsigned short   timeout;
+	unsigned short timeout;
 } FCPRESP_DATAFOUND;
 
 typedef struct {
-  unsigned long   length;
-  char  *data;
+  long  length;
+	long _index; /* used internally by get_file() */
+
+  char          *data;
 } FCPRESP_DATACHUNK;
 
 typedef struct {
@@ -498,7 +500,9 @@ typedef struct {
 	hOptions *options;
 
   FCPSOCKET socket;
+
 	hKey *key;
+	char *_redirect; /* curent key to redirect to (used by get_file()) */
 		
   FCPRESP response;
 } hFCP;

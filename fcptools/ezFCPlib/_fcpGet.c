@@ -34,6 +34,8 @@
 
 #include "ez_sys.h"
 
+static int read_metadata_line(hFCP *hfcp, char *line, int size);
+
 
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
@@ -50,7 +52,7 @@
 */
 int get_file(hFCP *hfcp, char *uri)
 {
-	char get_command[L_FILE_BLOCKSIZE+1];
+	char get_command[L_FILE_BLOCKSIZE+1];  /* used *twice* in this function */
 
 	int rc;
 	int retry;
@@ -59,9 +61,8 @@ int get_file(hFCP *hfcp, char *uri)
 	unsigned long key_count;
 
 	unsigned long meta_bytes;
-	unsigned long meta_count;
 
-	int index;
+	int bytes;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered get_file(key: \"%s\")", uri);
 
@@ -208,74 +209,75 @@ int get_file(hFCP *hfcp, char *uri)
 	}
 
 	/* Now we have key data, and possibly meta data waiting for us */
-
 	/* temp blocks are already linked */
 	
 	hfcp->key->metadata->size = meta_bytes = hfcp->response.datafound.metadatalength;
 	hfcp->key->size = key_bytes = (hfcp->response.datafound.datalength - meta_bytes);
-	
-	if (meta_bytes > L_RAW_METADATA) {
-		_fcpLog(FCP_LOG_DEBUG, "metadata size too large: %u", meta_bytes);
+
+	/******************************************************************/
+
+	/* only link if necessary */
+	if (meta_bytes)	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
+
+	while (meta_bytes > 0) {
+
+		/* re-use the get_command string */
+		if ((bytes = read_metadata_line(hfcp, get_command, L_FILE_BLOCKSIZE)) <= 0) {
+			_fcpLog(FCP_LOG_DEBUG, "read_metadata_line() returned zero");
+			
+			rc = -1;
+			goto cleanup;
+		}		
+
+		_fcpWrite(hfcp->key->metadata->tmpblock->fd, get_command, bytes);
+		meta_bytes -= bytes;
+
+		/* inspect for a redirect.. if yes, store in hfcp->_redirect */
+		if (!strncmp(get_command, "Redirect.Target=", 16)) {
+
+			/* chop off the \n */
+			get_command[strlen(get_command)-1] = 0;
+
+			hfcp->_redirect = strdup(get_command + 16);
+		}
+
+		_fcpLog(FCP_LOG_DEBUG, "meta_bytes remaining: %d", meta_bytes);
+	}
+
+	/* if there was metadata, cleanup */
+	if (hfcp->key->metadata->size > 0) {
+		_fcpLog(FCP_LOG_VERBOSE, "Read %d bytes of metadata", hfcp->key->metadata->size);
+		_fcpUnlink(hfcp->key->metadata->tmpblock);
+	}
+
+	if (key_bytes) {
+		_fcpLog(FCP_LOG_DEBUG, "link key file");
+		_fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
+	}
+
+	/* if the DataChunk hasn't been received, do a NOP and let the loop
+		 structure carry into the key section */
+	if (hfcp->response.datachunk._index == -1);
+
+	else if (hfcp->response.datachunk._index < hfcp->response.datachunk.length) {
+		
+		_fcpWrite(hfcp->key->tmpblock->fd,
+							hfcp->response.datachunk.data + hfcp->response.datachunk._index,
+							hfcp->response.datachunk.length - hfcp->response.datachunk._index);
+
+		key_bytes -= (hfcp->response.datachunk.length - hfcp->response.datachunk._index);
+	}
+
+	/* this shouldn't happen */
+	else if (hfcp->response.datachunk._index != hfcp->response.datachunk.length) {
+		_fcpLog(FCP_LOG_DEBUG, "OUCH this shouldn't happen");
+
 		rc = -1;
 		goto cleanup;
 	}
 
-	/* now process the datachunks that are to follow
-		 (there will be at least 1) */
-
-	/* check for the metadata chunk */
-
-	if (meta_bytes) {
-
-		/* allocate area for the raw metadata */
-		if (hfcp->key->metadata->raw_metadata) free(hfcp->key->metadata->raw_metadata);
-		hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
-
-		_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
-	}
-
-	index = 0;
-	while (meta_bytes > 0) {
-
-		if ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
-			
-			_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");
-			
-			/* set meta_count below datachunk length */
-			meta_count = (meta_bytes > hfcp->response.datachunk.length ? 
-										hfcp->response.datachunk.length :
-										meta_bytes);
-			
-			_fcpLog(FCP_LOG_DEBUG, "writing metadata block");
-			_fcpWrite(hfcp->key->metadata->tmpblock->fd, hfcp->response.datachunk.data, meta_count);
-			
-			/* copy over the raw metadata for handling later */
-			memcpy(hfcp->key->metadata->raw_metadata + index,
-						 hfcp->response.datachunk.data,
-						 meta_count);
-			
-			meta_bytes -= meta_count;
-			index += meta_count;
-		}
-		else {
-			_fcpLog(FCP_LOG_DEBUG, "expected missing datachunk message");
-
-			rc = -1;
-			goto cleanup;
-		}
-	}
-
-	if (hfcp->key->metadata->size > 0) {
-		hfcp->key->metadata->raw_metadata[index] = 0;
-
-		_fcpMetaParse(hfcp->key->metadata, hfcp->key->metadata->raw_metadata);
-		_fcpLog(FCP_LOG_VERBOSE, "Read metadata");
-		
-		_fcpUnlink(hfcp->key->metadata->tmpblock);
-	}
-
-	/* perhaps there's no key data.. just metadata.. */
-	if (key_bytes) _fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
+	/* at this point, we need to fetch a new DataChunk and dump em all
+		 into the key file */
 
 	while (key_bytes > 0) {
 		
@@ -285,11 +287,9 @@ int get_file(hFCP *hfcp, char *uri)
 			_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");
 
 			key_count = hfcp->response.datachunk.length;
-			
 			_fcpWrite(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data, key_count);
 			
 			key_bytes -= key_count;
-			index += key_count;
 		}
 		else {
 			_fcpLog(FCP_LOG_DEBUG, "expected missing datachunk message");
@@ -327,10 +327,7 @@ int get_file(hFCP *hfcp, char *uri)
  */
 int get_follow_redirects(hFCP *hfcp, char *uri)
 {
-	hDocument *doc;
-
-	char      *key;
-	char       get_uri[L_URI+1];
+	char  get_uri[L_URI+1];
 
 	int   rc;
 	int   depth;
@@ -349,43 +346,27 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 	while (rc == 0) {
 
 		/* now we have the key data and perhaps metadata */
-		
-		_fcpLog(FCP_LOG_DEBUG, "check metadata");
-		
-		/* if true, there's no metadata; we got data! */
-		if (hfcp->key->metadata->size == 0) {
-			
-			_fcpLog(FCP_LOG_DEBUG, "no metadata?  got data!");
-			fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
 
+		if (hfcp->_redirect) {
+			_fcpLog(FCP_LOG_VERBOSE, "Following redirect to %s", hfcp->_redirect);
+
+			strncpy(get_uri, hfcp->_redirect, L_URI);
+			depth++;
+
+			free(hfcp->_redirect); hfcp->_redirect = 0;
+			
+			rc = get_file(hfcp, get_uri);
+		}
+
+		else {
+			
+			_fcpLog(FCP_LOG_DEBUG, "got data!");
+			fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
+			
 			break;
 		}
-		else { /* check for the case where there's metadata, but no redirect */
-			
-			_fcpLog(FCP_LOG_DEBUG, "there's metadata.. check for redirect key");
-
-			doc = cdocFindDoc(hfcp->key->metadata, 0);
-			key = (doc ? cdocLookupKey(doc, "Redirect.Target") : 0);
-
-			if (!key) {
-				
-				_fcpLog(FCP_LOG_DEBUG, "metadata, but no redirect key.. got data");
-				fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
-
-				break;
-			}
-			else { /* key/val pair is redirect */
-
-				_fcpLog(FCP_LOG_VERBOSE, "Following redirect to %s", key);
-
-				strncpy(get_uri, key, L_URI);
-				depth++;
-
-				rc = get_file(hfcp, get_uri);
-			}
-		}
 	}
-
+	
 	if (rc != 0) return -1;
 
 	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %u",
@@ -396,3 +377,40 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 	return 0;
 }
 
+
+static int read_metadata_line(hFCP *hfcp, char *line, int size)
+{
+	int  i;
+
+	i = 0;
+	while (1) {
+
+		/* check for case where datachunk needs to be 'refreshed' */
+		if ((hfcp->response.datachunk._index == -1) ||
+				(hfcp->response.datachunk._index == hfcp->response.datachunk.length)) {
+
+			_fcpLog(FCP_LOG_DEBUG, "!! refreshing DataChunk");
+			
+			if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATACHUNK) {
+				_fcpLog(FCP_LOG_DEBUG, "expected DataChunk");
+				return -1;
+			}
+		}
+
+		line[i++] = hfcp->response.datachunk.data[hfcp->response.datachunk._index++];
+
+		if (i == size) {
+			_fcpLog(FCP_LOG_DEBUG, "OOPS! truncating metadata line!!");
+			line[i-1] = 0;
+
+			return i-1;
+		}
+
+		if (line[i-1] == '\n') {
+			line[i] = 0;
+
+			/*_fcpLog(FCP_LOG_DEBUG, "I got %d bytes of metadata :%s:", i, line);*/
+			return i;
+		}
+	}
+}

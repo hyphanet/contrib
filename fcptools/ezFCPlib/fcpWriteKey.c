@@ -38,65 +38,41 @@
 /* On success, return the number of bytes written */
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 {
-	int count;
-	int bytes;
 	int rc;
 
 	/* don't bother if the fd isn't valid */
 	if (hfcp->key->tmpblock->fd == -1) return -1;
 
-	/* While there's still data to write from caller.. */
-	bytes = 0;
-	while (len) {
-
-		count = (len > 8192 ? 8192 : len);
-		rc = _fcpWrite(hfcp->key->tmpblock->fd, buf, count);
+	rc = _fcpWrite(hfcp->key->tmpblock->fd, buf, len);
 		
-		if (rc != count) {
-			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteKey()");
-			return -1;
-		}
-
-		/* Info was written.. update indexes */
-		hfcp->key->size += rc;
-		bytes += rc;
-
-		len -= rc;
-		buf += rc;
+	if (rc < 0) {
+		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteKey()");
+		return -1;
 	}
 	
-	return bytes;
+	/* Info was written.. update indexes */
+	hfcp->key->size += rc;
+
+	return rc;
 }
 
 
 int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 {
-	int count;
-	int bytes;
 	int rc;
 
 	if (hfcp->key->metadata->tmpblock->fd == -1) return -1;
 
-	/* While there's still data to write from caller.. */
-	bytes = 0;
-	while (len) {
-
-		count = (len > 8192 ? 8192 : len);
-		rc = _fcpWrite(hfcp->key->metadata->tmpblock->fd, buf, count);
-		
-		if (rc != count) {
-			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteMetadata()");
-			return -1;
-		}
-
-		/* Info was written.. update indexes */
-		hfcp->key->metadata->size += rc;
-		bytes += rc;
-
-		len -= rc;
-		buf += rc;
+	rc = _fcpWrite(hfcp->key->metadata->tmpblock->fd, buf, len);
+	
+	if (rc < 0) {
+		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteMetadata()");
+		return -1;
 	}
 	
-	return bytes;
+	/* Info was written.. update indexes */
+	hfcp->key->metadata->size += rc;
+	
+	return rc;
 }
 

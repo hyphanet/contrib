@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include "ez_sys.h"
+
 #ifdef DMALLOC
 #include <dmalloc.h>
 extern int _fcpDMALLOC;
@@ -151,8 +153,7 @@ int main(int argc, char* argv[])
 
     /* not sure why this is here.. */
     fflush(stdin);
-		
-#if 0 /* metadata handling isn't done */
+
     if (metafile) {
       int mfd;
 			
@@ -167,7 +168,6 @@ int main(int argc, char* argv[])
       }
       close(mfd);
     }
-#endif
     
     if (fcpCloseKey(hfcp)) {
 			rc = -1;
@@ -383,7 +383,7 @@ static void usage(char *s)
 	printf("  -p, --port num         Freenet node port\n");
 	printf("  -l, --htl num          Hops to live\n\n");
 
-/*printf("  -m, --metadata file    Read key metadata from local file\n");*/
+	printf("  -m, --metadata file    Read key metadata from local file\n");
 	printf("  -a, --retry num        Number of retries after a timeout\n");
 	printf("  -s, --stdin            Read key data from stdin\n");
 /*printf("  -e, --regress num      Number of days to regress\n");*/

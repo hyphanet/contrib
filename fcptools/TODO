@@ -14,6 +14,7 @@ FCPtools generic
 + Implement future_insert(num_days) option.
 + Verify other options (raw, etc.) work as expected.
 + Address the myriad of compiler warnings on OSX platform.
++ Update website docs for ClientGet to clearly indicate actual behaviour.
 
 = Confirm *BSD functionality (compiles with minimal warnings)
 = Confirm Solaris functionality (compiles with minimal warnings)

@@ -109,6 +109,8 @@ void fcpDestroyHFCP(hFCP *h)
 			free(h->key);
 		}
 
+		if (h->_redirect) free(h->_redirect);
+
 		_fcpDestroyHOptions(h->options);
 		_fcpDestroyResponse(h);
 

@@ -37,75 +37,36 @@
 
 int fcpReadKey(hFCP *hfcp, char *buf, int len)
 {
-	int bytes;
 	int rc;
 
 	if (hfcp->key->tmpblock->fd == -1) return -1;
 
-	/* while there's still data in the tmp block */
+	rc = _fcpRead(hfcp->key->tmpblock->fd, buf, len);
 	
-	bytes = 0;
-	while (len) {
-
-		rc = _fcpRead(hfcp->key->tmpblock->fd, buf, len);
-
-		_fcpLog(FCP_LOG_DEBUG, "rc from ReadKey: %d", rc);
-
-		if (rc < 0) {
-			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadKey()");
-			return -1;
-		}
-
-		_fcpLog(FCP_LOG_DEBUG, "rc from ReadKey: %d", rc);
-
-		/* Info was read.. update indexes */
-		len -= rc;
-		bytes += rc;
-
-		/* note: this usually gets hit twice, a redundant case when
-			 attempting to read past EOF */
-
-		if (rc == 0) {
-			break;
-		}
+	_fcpLog(FCP_LOG_DEBUG, "rc from ReadKey: %d", rc);
+	
+	if (rc < 0) {
+		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadKey()");
+		return -1;
 	}
 	
-	return bytes;
+	return rc;
 }
 
 
 int fcpReadMetadata(hFCP *hfcp, char *buf, int len)
 {
-	int bytes;
-	int count;
 	int rc;
 	
 	if (hfcp->key->metadata->tmpblock->fd == -1) return -1;
 
-	/* while there's still data in the tmp block */
-
-	bytes = 0;
-	while (len) {
-
-		count = (len > 8192 ? 8192 : len);
-		rc = _fcpRead(hfcp->key->metadata->tmpblock->fd, buf+bytes, count);
+	rc = _fcpRead(hfcp->key->metadata->tmpblock->fd, buf, len);
 		
-		if (rc < 0) {
-			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadMetadata()");
-			return -1;
-		}
-
-		/* Info was read.. update indexes */
-		len -= rc;
-		buf += rc;
-
-		/* note: this usually gets hit twice, a redundant case when
-			 attempting to read past EOF */
-		
-		if (rc < count)
-			break;
+	if (rc < 0) {
+		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadMetadata()");
+		return -1;
 	}
 	
-	return bytes;
+	return rc;
 }
 

@@ -135,11 +135,10 @@ int main(int argc, char* argv[])
     
     fd = fileno(stdout);
 
-#if 0 /* metadata handling isn't done */
+		/* metadata handling isn't done */
     while ((bytes = fcpReadMetadata(hfcp, buf, 8192)) > 0) {
       write(fd, buf, bytes);
 		}
-#endif
 
     while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0) {
       write(fd, buf, bytes);
@@ -348,12 +347,12 @@ static void usage(char *s)
   printf("  -p, --port num         Freenet node port\n");
   printf("  -l, --htl num          Hops to live\n\n");
   
-/*printf("  -m, --metadata file    Write key metadata to local file\n");*/
+	printf("  -m, --metadata file    Write key metadata to local file\n");
   printf("  -a, --retry num        Number of retries after a timeout\n");
   printf("  -s, --stdout           Write key data to stdout\n");
 /*printf("  -e, --regress num      Number of days to regress\n");*/
   printf("  -S, --skip-local       Skip key in local datastore on retrieve\n");
-/*printf("  -r, --rawmode          Do not follow redirects on retrieve\n\n");*/
+	printf("  -r, --rawmode          Do not follow redirects on retrieve\n\n");
   
   printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
   printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
