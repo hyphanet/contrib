@@ -1,6 +1,6 @@
 # installer generator script for Freenet:
 !define VERSION "20020210"
-#!define WEBINSTALL
+!define WEBINSTALL
 #!define LANGUAGE "Dutch"
 
 # include language specific installer data
@@ -336,12 +336,13 @@ Section -PostInstall
 
   MessageBox MB_YESNO "Congratulations, you have finished the installation of Freenet successfully.$\r$\nDo you want to start your Freenet node now?" IDNO StartedNode
   Exec "$INSTDIR\freenet.exe"
+  
 StartedNode:
-
   Delete "$INSTDIR\cfgnode.exe"
   Delete "$INSTDIR\cfgclient.exe"      
   Delete "$INSTDIR\findjava.exe"
   RMDir /r "$TEMP/Freenet"
+  MessageBox MB_OK "After starting Freenet a little rabbit icon will appear in the lower right corner of your screen (system tray)$\r$\n$\r$\nFreenet is running in this case, you can use it by:$\r$\n  1) Using special applications (i.e. Frost)$\r$\n  2) Right-clicking on the icon and select from the menu$\r$\n  3) Double-click on the icon to open the web gateway (same as Open Gateway from the menu)"
 SectionEnd
 ;------------------------------------------------------------------------------------------
 
