@@ -19,10 +19,8 @@
 #define IDC_announcementAttempts        1002
 #define IDC_fproxy_inserthtl            1003
 #define IDC_GETSEED                     1004
-#define IDC_storePath                   1005
 #define IDC_fproxy_requesthtl           1006
 #define IDC_SEEDURL                     1007
-#define IDC_storePath_browse            1008
 #define IDC_ipAddress                   1009
 #define IDC_listenPort                  1010
 #define IDC_clientPort                  1011
@@ -53,7 +51,7 @@
 #define IDC_connectionTimeout           1039
 #define IDC_hopTimeExpected             1040
 #define IDC_hopTimeDeviation            1041
-#define IDC_storeCacheFile              1042
+#define IDC_storeFile					1042
 #define IDC_storeDataFile               1043
 #define IDC_localAnnounceTargets        1044
 #define IDC_messageStoreSize            1045

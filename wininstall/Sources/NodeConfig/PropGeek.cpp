@@ -45,9 +45,6 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_checkPointInterval, 100, 60000);
 	DDX_Text(pDX, IDC_connectionTimeout, m_connectionTimeout);
 	DDV_MinMaxUInt(pDX, m_connectionTimeout, 5000, 3600000);
-	DDX_Text(pDX, IDC_diagnosticsPath, m_diagnosticsPath);
-	DDV_MaxChars(pDX, m_diagnosticsPath, 256);
-	DDX_Check(pDX, IDC_doDiagnostics, m_doDiagnostics);
 	DDX_Text(pDX, IDC_hopTimeDeviation, m_hopTimeDeviation);
 	DDV_MinMaxUInt(pDX, m_hopTimeDeviation, 100, 999999);
 	DDX_Text(pDX, IDC_hopTimeExpected, m_hopTimeExpected);
@@ -55,8 +52,6 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_initialRequests, m_initialRequests);
 	DDV_MinMaxUInt(pDX, m_initialRequests, 1, 999);
 	DDX_Text(pDX, IDC_localAnnounceTargets, m_localAnnounceTargets);
-	DDX_Text(pDX, IDC_logFile, m_logFile);
-	DDV_MaxChars(pDX, m_logFile, 256);
 	DDX_Text(pDX, IDC_messageStoreSize, m_messageStoreSize);
 	DDV_MinMaxUInt(pDX, m_messageStoreSize, 128, 1048576);
 	DDX_Text(pDX, IDC_minCacheCount, m_minCacheCount);
@@ -71,8 +66,6 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDV_MaxChars(pDX, m_storeDataFile, 256);
 	DDX_Text(pDX, IDC_streamBufferSize, m_streamBufferSize);
 	DDV_MinMaxUInt(pDX, m_streamBufferSize, 1024, 1048576);
-	DDX_Text(pDX, IDC_logFormat, m_logFormat);
-	DDX_CBString(pDX, IDC_logLevel, m_logLevel);
 	//}}AFX_DATA_MAP
 }
 

@@ -75,7 +75,7 @@ void CConfigFile::Load()
 	// our variable m_storeSize is in Megabytes so we need to divide by 2^20
 	// i.e. shift FreeBytes right 20 bits
 	pNormal->m_storeSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
-	pNormal->m_storecachefile = "";
+	pNormal->m_storeFile = "";
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
 	pNormal->m_transient = FALSE;
 	pNormal->m_notTransient = !pNormal->m_transient;
@@ -105,15 +105,10 @@ void CConfigFile::Load()
 	pGeek->m_authTimeout = 30000;
 	pGeek->m_checkPointInterval = 1200;
 	pGeek->m_connectionTimeout = 180000;
-	pGeek->m_diagnosticsPath = ".freenet/stats";
-	pGeek->m_doDiagnostics = TRUE;
 	pGeek->m_hopTimeDeviation = 12000;
 	pGeek->m_hopTimeExpected = 12000;
 	pGeek->m_initialRequests = 10;
 	pGeek->m_localAnnounceTargets = "";
-	pGeek->m_logFile = "freenet.log";
-	pGeek->m_logLevel = "normal";
-	pGeek->m_logFormat = "d (c, t): m";
 	pGeek->m_messageStoreSize = 50000;
 	pGeek->m_minCacheCount = 1;
 	pGeek->m_routeConnectTimeout = 10000;
@@ -134,6 +129,11 @@ void CConfigFile::Load()
 	pFProxy->m_fproxy_splitretries = 1;
 	pFProxy->m_fproxy_splitthreads = 10;
 
+	pDiagnostics->m_diagnosticsPath = ".freenet/stats";
+	pDiagnostics->m_doDiagnostics = TRUE;
+	pDiagnostics->m_logFile = "freenet.log";
+	pDiagnostics->m_logLevel = "normal";
+	pDiagnostics->m_logFormat = "d (c, t): m";
 	pDiagnostics->m_nodestatusservlet = true;
 	pDiagnostics->m_nodestatusport = 8889;
 	pDiagnostics->m_nodestatusclass = "freenet.client.http.NodeStatusServlet";
@@ -203,9 +203,10 @@ void CConfigFile::Save()
 
 	fprintf(fp, "storeSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeSize,20), szStoreSize, 10) );
 	fprintf(fp, "\n");
-	fprintf(fp, "# The file (can include a path) containing the node's datastore (i.e., its cache\n");
-	fprintf(fp, "# of Freenet keys).  Defaults to cache_<port> in the main freenet directory.\n");
-	fprintf(fp, "%sstoreCacheFile=%s\n",pNormal->m_storecachefile.GetLength()?"":"#", pNormal->m_storecachefile);
+	fprintf(fp, "# The path to a single file (including file name, or a comma-separated list of files,");
+	fprintf(fp, "# containing the data store.  The size of each file is given by <storeSize>.");
+	fprintf(fp, "# Defaults to cache_<port> in the main freenet directory.\n");
+	fprintf(fp, "%sstoreFile=%s\n",pNormal->m_storeFile.GetLength()?"":"#", pNormal->m_storeFile);
 	fprintf(fp, "\n");
 	fprintf(fp, "# Transient nodes do not give out references to themselves, and should\n");
 	fprintf(fp, "# therefore not receive any requests.  Set this to yes only if you are\n");
@@ -312,13 +313,6 @@ void CConfigFile::Save()
 	fprintf(fp, "# (if reply address is known)\n");
 	fprintf(fp, "connectionTimeout=%d\n", pGeek->m_connectionTimeout);
 	fprintf(fp, "\n");
-	fprintf(fp, "# The directory in which to cache diagnostics data.\n");
-	fprintf(fp, "diagnosticsPath=%s\n", pGeek->m_diagnosticsPath.GetBuffer(0));
-	fprintf(fp, "\n");
-	fprintf(fp, "# The diagnostics module receives and aggregates statistics aboutFreenet's performance.\n");
-	fprintf(fp, "# This will eat some gratuitous memory and cpubut may let you provide valuable data to the project.\n");
-	fprintf(fp, "doDiagnostics=%s\n", pGeek->m_doDiagnostics ? "yes" : "no");
-	fprintf(fp, "\n");
 	fprintf(fp, "# The expected standard deviation in hopTimeExpected.\n");
 	fprintf(fp, "hopTimeDeviation=%d\n", pGeek->m_hopTimeDeviation);
 	fprintf(fp, "\n");
@@ -330,24 +324,7 @@ void CConfigFile::Save()
 	fprintf(fp, "# after an Announcement (this is per announcement made).\n");
 	fprintf(fp, "initialRequests=%d\n", pGeek->m_initialRequests);
 	fprintf(fp, "\n");
-	fprintf(fp, "# localAnnounceTargets: undocumented.\n");
-	fprintf(fp, "# The name of the log file (`NO' to log to standard out)\n");
-	fprintf(fp, "logFile=%s\n", pGeek->m_logFile);
-	fprintf(fp, "\n");
-	fprintf(fp, "# The error reporting threshold, one of:\n");
-	fprintf(fp, "#   Error:   Errors only\n");
-	fprintf(fp, "#   Normal:  Report significant events\n");
-	fprintf(fp, "#   Minor:   Report minor events\n");
-	fprintf(fp, "#   Debug:   Report events only of relevance when debugging\n");
-	fprintf(fp, "logLevel=%s\n", pGeek->m_logLevel.GetBuffer(0));
-	fprintf(fp, "\n");
-	fprintf(fp, "#A template string for log messages.  All non-alphabet characters are\n");
-	fprintf(fp, "# reproduced verbatim.  Alphabet characters are substituted as follows:\n");
-	fprintf(fp, "# d = date (timestamp), c = class name of the source object,\n");
-	fprintf(fp, "# h = hashcode of the object, t = thread name, p = priority,\n");
-	fprintf(fp, "# m = the actual log message\n");
-	fprintf(fp, "logFormat=%s\n", pGeek->m_logFormat);
-	fprintf(fp, "\n");
+	fprintf(fp, "# localAnnounceTargets: undocumented.\n\n");
 	fprintf(fp, "# The number of outstanding message replies the node will\n");
 	fprintf(fp, "# wait for before it starts to abandon them.\n");
 	fprintf(fp, "messageStoreSize=%d\n", pGeek->m_messageStoreSize);
@@ -380,6 +357,35 @@ void CConfigFile::Save()
 	fprintf(fp, "\n");
 	fprintf(fp, "# streamBufferSize: undocumented.\n");
 	fprintf(fp, "streamBufferSize=%d\n", pGeek->m_streamBufferSize);
+	fprintf(fp, "\n\n");
+
+	fprintf(fp, "########################\n");
+	fprintf(fp, "# Diagnostics Settings\n");
+	fprintf(fp, "########################\n");
+	fprintf(fp, "# The name of the log file (`NO' to log to standard out)\n");
+	fprintf(fp, "logFile=%s\n", pDiagnostics->m_logFile);
+	fprintf(fp, "\n");
+	fprintf(fp, "# The error reporting threshold, one of:\n");
+	fprintf(fp, "#   Error:   Errors only\n");
+	fprintf(fp, "#   Normal:  Report significant events\n");
+	fprintf(fp, "#   Minor:   Report minor events\n");
+	fprintf(fp, "#   Debug:   Report events only of relevance when debugging\n");
+	fprintf(fp, "logLevel=%s\n", pDiagnostics->m_logLevel.GetBuffer(0));
+	fprintf(fp, "\n");
+	fprintf(fp, "#A template string for log messages.  All non-alphabet characters are\n");
+	fprintf(fp, "# reproduced verbatim.  Alphabet characters are substituted as follows:\n");
+	fprintf(fp, "# d = date (timestamp), c = class name of the source object,\n");
+	fprintf(fp, "# h = hashcode of the object, t = thread name, p = priority,\n");
+	fprintf(fp, "# m = the actual log message\n");
+	fprintf(fp, "logFormat=%s\n", pDiagnostics->m_logFormat);
+	fprintf(fp, "\n");
+	fprintf(fp, "# The directory in which to cache diagnostics data.\n");
+	fprintf(fp, "diagnosticsPath=%s\n", pDiagnostics->m_diagnosticsPath.GetBuffer(0));
+	fprintf(fp, "\n");
+	fprintf(fp, "# The diagnostics module receives and aggregates statistics aboutFreenet's performance.\n");
+	fprintf(fp, "# This will eat some gratuitous memory and cpubut may let you provide valuable data to the project.\n");
+	fprintf(fp, "doDiagnostics=%s\n", pDiagnostics->m_doDiagnostics ? "yes" : "no");
+	fprintf(fp, "\n");
 	fprintf(fp, "\n\n");
 
 	fprintf(fp, "########################\n");
@@ -448,8 +454,8 @@ void CConfigFile::processItem(char *tok, char *val)
 			pNormal->m_storeSize = (DWORD)(Int64ShrlMod32(_atoi64(val),20));
 		}
 	}
-	else if (!strcmp(tok, "storeCacheFile"))
-		pNormal->m_storecachefile = val;
+	else if (!strcmp(tok, "storeFile"))
+		pNormal->m_storeFile = val;
 	else if (!strcmp(tok, "transient"))
 	{
 		pNormal->m_transient = atobool(val);
@@ -461,7 +467,6 @@ void CConfigFile::processItem(char *tok, char *val)
 		pNormal->m_ipAddress = val;
 	else if (!strcmp(tok, "warnPerm"))
 		pNormal->warnPerm = atobool(val);
-
 	else if (!strcmp(tok, "doAnnounce"))
 		pAdvanced->m_doAnnounce = atobool(val);
 	else if (!strcmp(tok, "seedFile"))
@@ -498,22 +503,12 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_checkPointInterval = atoi(val);
 	else if (!strcmp(tok, "connectionTimeout"))
 		pGeek->m_connectionTimeout = atoi(val);
-	else if (!strcmp(tok, "diagnosticsPath"))
-		pGeek->m_diagnosticsPath = val;
-	else if (!strcmp(tok, "doDiagnostics"))
-		pGeek->m_doDiagnostics = atobool(val);
 	else if (!strcmp(tok, "hopTimeDeviation"))
 		pGeek->m_hopTimeDeviation = atoi(val);
 	else if (!strcmp(tok, "hopTimeExpected"))
 		pGeek->m_hopTimeExpected = atoi(val);
 	else if (!strcmp(tok, "initialRequests"))
 		pGeek->m_initialRequests = atoi(val);
-	else if (!strcmp(tok, "logFile"))
-		pGeek->m_logFile = val;
-	else if (!strcmp(tok, "logLevel"))
-		pGeek->m_logLevel = val;
-	else if (!strcmp(tok, "logFormat"))
-		pGeek->m_logFormat = val;
 	else if (!strcmp(tok, "messageStoreSize"))
 		pGeek->m_messageStoreSize = atoi(val);
 	else if (!strcmp(tok, "minCacheCount"))
@@ -554,10 +549,20 @@ void CConfigFile::processItem(char *tok, char *val)
 		pFProxy->m_fproxy_splitretries = atoi(val);
 	else if (!strcmp(tok, "fproxy.params.splitFileThreads"))
 		pFProxy->m_fproxy_splitthreads = atoi(val);
-		else if (!strcmp(tok, "nodestatus.class"))
-		pDiagnostics->m_nodestatusclass = val;
+	else if (!strcmp(tok, "logFile"))
+		pDiagnostics->m_logFile = val;
+	else if (!strcmp(tok, "logLevel"))
+		pDiagnostics->m_logLevel = val;
+	else if (!strcmp(tok, "logFormat"))
+		pDiagnostics->m_logFormat = val;
+	else if (!strcmp(tok, "diagnosticsPath"))
+		pDiagnostics->m_diagnosticsPath = val;
+	else if (!strcmp(tok, "doDiagnostics"))
+		pDiagnostics->m_doDiagnostics = atobool(val);
 	else if (!strcmp(tok, "nodestatus.port"))
 		pDiagnostics->m_nodestatusport = atoi(val);
+	else if (!strcmp(tok, "nodestatus.class"))
+		pDiagnostics->m_nodestatusclass = val;
 
 	else
 	{

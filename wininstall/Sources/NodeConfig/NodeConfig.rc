@@ -185,17 +185,6 @@ BEGIN
     EDITTEXT        IDC_announcementDelay,55,38,33,12,ES_AUTOHSCROLL
     EDITTEXT        IDC_announcementDelayBase,55,55,33,12,ES_AUTOHSCROLL
     EDITTEXT        IDC_announcementPeers,55,71,33,12,ES_AUTOHSCROLL
-    GROUPBOX        "Diagnostics",IDC_STATIC,7,101,88,47
-    CONTROL         "Enable",IDC_doDiagnostics,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,13,113,38,10
-    LTEXT           "Path",IDC_STATIC,14,129,16,8
-    EDITTEXT        IDC_diagnosticsPath,31,127,58,12,ES_AUTOHSCROLL
-    GROUPBOX        "Logging",IDC_STATIC,7,154,88,81
-    LTEXT           "File",IDC_STATIC,15,171,12,8
-    EDITTEXT        IDC_logFile,31,169,58,12,ES_AUTOHSCROLL
-    LTEXT           "Level",IDC_STATIC,15,193,18,8
-    COMBOBOX        IDC_logLevel,42,190,48,54,CBS_DROPDOWN | WS_TABSTOP
-    LTEXT           "Format",IDC_STATIC,15,216,22,8
     GROUPBOX        "Misc",IDC_STATIC,103,7,209,227
     LTEXT           "authTimeout",IDC_STATIC,110,18,40,8
     EDITTEXT        IDC_authTimeout,110,26,35,12,ES_AUTOHSCROLL
@@ -225,7 +214,6 @@ BEGIN
     EDITTEXT        IDC_streamBufferSize,216,142,43,12,ES_AUTOHSCROLL
     LTEXT           "initialRequests",IDC_STATIC,215,160,46,8
     EDITTEXT        IDC_initialRequests,216,168,43,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_logFormat,42,212,47,14,ES_AUTOHSCROLL
 END
 
 IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 241
@@ -241,7 +229,7 @@ BEGIN
     LTEXT           "If you change either of these settings, your entire node's datastore will be erased and replaced with a fresh empty store. If you don't specify a location the data store will be created in the main freenet directory.",
                     IDC_STATIC,100,28,205,26
     LTEXT           "Path + file name",IDC_STATIC,15,57,27,15
-    EDITTEXT        IDC_storeCacheFile,46,58,258,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_storeFile,46,58,258,12,ES_AUTOHSCROLL
     CTEXT           "Please don't change any of the 'Advanced' or 'Geek' settings unless you know what you're doing. Incorrect settings can damage your node and even impair the Freenet network as a whole",
                     IDC_STATIC,7,217,305,18
     GROUPBOX        "Node References",IDC_STATIC,7,125,305,90
@@ -315,15 +303,27 @@ CAPTION "Diagnostics"
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "Nodestatus enabled",IDC_NODESTATUSSERVLET,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,13,96,121,10
-    GROUPBOX        "Servlets",IDC_STATIC,7,85,154,74
-    EDITTEXT        IDC_NODESTATUSPORT,13,111,31,14,ES_AUTOHSCROLL | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,131,121,10
+    GROUPBOX        "Servlets",IDC_STATIC,7,94,189,74
+    EDITTEXT        IDC_NODESTATUSPORT,134,129,31,14,ES_AUTOHSCROLL | 
                     ES_NUMBER
-    LTEXT           "Port",IDC_STATIC,46,115,21,8
-    EDITTEXT        IDC_NODESTATUSCLASS,67,112,60,14,ES_AUTOHSCROLL
-    LTEXT           "Class",IDC_STATIC,130,115,22,8
+    LTEXT           "Port",IDC_STATIC,168,133,21,8
+    EDITTEXT        IDC_NODESTATUSCLASS,13,149,152,14,ES_AUTOHSCROLL
+    LTEXT           "Class",IDC_STATIC,169,145,22,8
     LTEXT           "The nodestatus servlet enables a web interface to view diagnostics data in a web browser.",
-                    IDC_STATIC,13,130,143,20
+                    IDC_STATIC,13,102,176,25
+    GROUPBOX        "Diagnostics",IDC_STATIC,108,7,88,81
+    CONTROL         "Enable",IDC_doDiagnostics,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,115,24,38,10
+    LTEXT           "Path",IDC_STATIC,115,45,16,8
+    EDITTEXT        IDC_diagnosticsPath,132,43,58,12,ES_AUTOHSCROLL
+    GROUPBOX        "Logging",IDC_STATIC,7,7,92,81
+    LTEXT           "File",IDC_STATIC,15,24,12,8
+    EDITTEXT        IDC_logFile,41,22,48,12,ES_AUTOHSCROLL
+    LTEXT           "Level",IDC_STATIC,15,46,18,8
+    COMBOBOX        IDC_logLevel,41,43,49,54,CBS_DROPDOWN | WS_TABSTOP
+    LTEXT           "Format",IDC_STATIC,15,69,22,8
+    EDITTEXT        IDC_logFormat,41,65,48,14,ES_AUTOHSCROLL
 END
 
 
@@ -434,7 +434,7 @@ END
 // Dialog Info
 //
 
-IDD_PP_GEEK DLGINIT
+IDD_PP_DIAGNOSTICS DLGINIT
 BEGIN
     IDC_logLevel, 0x403, 6, 0
 0x7245, 0x6f72, 0x0072, 

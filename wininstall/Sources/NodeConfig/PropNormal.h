@@ -33,7 +33,7 @@ public:
 	CString	m_ipAddress;
 	UINT	m_listenPort;
 	BOOL	m_notTransient;
-	CString	m_storecachefile;
+	CString	m_storeFile;
 	//}}AFX_DATA
 
 

@@ -31,13 +31,10 @@ public:
 	UINT	m_authTimeout;
 	UINT	m_checkPointInterval;
 	UINT	m_connectionTimeout;
-	CString	m_diagnosticsPath;
-	BOOL	m_doDiagnostics;
 	UINT	m_hopTimeDeviation;
 	UINT	m_hopTimeExpected;
 	UINT	m_initialRequests;
 	CString	m_localAnnounceTargets;
-	CString	m_logFile;
 	UINT	m_messageStoreSize;
 	UINT	m_minCacheCount;
 	UINT	m_routeConnectTimeout;
@@ -45,8 +42,6 @@ public:
 	UINT	m_rtMaxRefs;
 	CString	m_storeDataFile;
 	UINT	m_streamBufferSize;
-	CString	m_logFormat;
-	CString	m_logLevel;
 	//}}AFX_DATA
 
 
