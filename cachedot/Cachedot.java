@@ -288,9 +288,12 @@ class Util {
 	 *@return       Description of the Return Value
 	 */
 	public static boolean fcpInsert(File dir, String name) {
+		Thread  isp;
 		try {
 			Cachedot.log("Starting fcpInsert of files in " + dir);
 			Process  p  = rt.exec("fcpputsite -d -l 3 '" + name + "' " + dir + " Jfwpce58XD6gk~uOz4zy2rzV65g PZeKc90WU-8vdQ~Oc451Fw2tpEM");
+			isp = (new InputStreamPrinter(p.getInputStream()));
+			isp.start();
 			return (p.waitFor() == 0);
 		}
 		catch (Exception e) {
@@ -315,6 +318,44 @@ class Util {
 			Cachedot.log("Delete of " + del + " failed due to " + e);
 			return false;
 		}
+	}
+}
+
+/**
+ *  Description of the Class
+ *
+ *@author     ian
+ *@created    July 25, 2002
+ */
+class InputStreamPrinter extends Thread {
+
+
+	InputStream  os;
+
+
+	/**
+	 *  Constructor for the OutputStreamPrinter object
+	 *
+	 *@param  os  Description of the Parameter
+	 */
+	public InputStreamPrinter(InputStream os) {
+		this.os = os;
+	}
+
+
+	/**  Main processing method for the OutputStreamPrinter object */
+	public void run() {
+		System.out.println("OutputStreamPrinter started");
+		try {
+			int  c  = os.read();
+			while (c != -1) {
+				System.out.write((char) c);
+				System.out.flush();
+				c = os.read();
+			}
+		}
+		catch (Exception e) {}
+		System.out.println("OutputStreamPrinter stopped");
 	}
 }
 
