@@ -22,7 +22,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifndef WINDOWS
+#ifndef WIN32
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>

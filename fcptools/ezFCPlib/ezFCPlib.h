@@ -34,7 +34,7 @@
 /**************************************************************************
   MS-WINDOWS specifics
 **************************************************************************/
-#ifdef WINDOWS
+#ifdef WIN32
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>

@@ -27,15 +27,16 @@
 
 int fcpStartup(void)
 {
-	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpStartup()");
+#ifdef WIN32
+	/* define our Win32 specific vars here :) */
 
-#ifndef WINDOWS
-	_fcpTmpDir = "/tmp";
-
-#else
 	WORD wVersionRequested;
 	WSADATA wsaData;
+#endif
 
+	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpStartup()");
+
+#ifdef WIN32
 	SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
 	wVersionRequested = MAKEWORD(2, 0);
 
@@ -47,8 +48,12 @@ int fcpStartup(void)
 
 	_fcpLog(FCP_LOG_VERBOSE, "Initialized Winsock subsystem");
 
-	/* TODO: implement Win32 API call to properly retrieve the TEMP dir. */
+	/* @@@ TODO: implement Win32 API call to properly retrieve the TEMP dir. */
+	/* something like libvar = getenv( "LIB" ) */
 	_fcpTmpDir = "c:/temp";
+
+#else
+	_fcpTmpDir = "/tmp";
 
 #endif
 

@@ -62,7 +62,6 @@ static int  getrespline(hFCP *, char *respline);
 int _fcpRecvResponse(hFCP *hfcp)
 {
 	char resp[1025];
-	int rc;
 
 	while (1) {
 

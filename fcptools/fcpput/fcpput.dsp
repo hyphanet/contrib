@@ -101,7 +101,7 @@ SOURCE=.\fcpput.c
 # End Group
 # Begin Source File
 
-SOURCE="C:\Program Files\Microsoft Visual Studio\VC98\Lib\WSOCK32.LIB"
+SOURCE=..\..\..\..\..\..\WINNT\system32\wsock32.dll
 # End Source File
 # Begin Source File
 

@@ -19,11 +19,11 @@
 
 #include "ezFCPlib.h"
 
-#ifndef WINDOWS
+#ifndef WIN32
 #include <sys/socket.h>
 #endif
 
-#ifndef WINDOWS
+#ifndef WIN32
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -51,7 +51,7 @@ char  *_fcpTmpFilename(void);
 
 int _fcpLaunchThread(void (*f)(void *), void *parms)
 {
-#ifndef WINDOWS
+#ifndef WIN32
   pthread_t pth;
   pthread_attr_t attr;
   
@@ -71,7 +71,7 @@ int _fcpLaunchThread(void (*f)(void *), void *parms)
 #if 0
 void _fcpThreadQuit(char *s)
 {
-#ifndef WINDOWS
+#ifndef WIN32
   pthread_exit(s);
 
 #else
@@ -82,7 +82,7 @@ void _fcpThreadQuit(char *s)
 
 int _fcpThreadSleep(unsigned int seconds, unsigned int nanoseconds)
 {
-#ifndef WINDOWS
+#ifndef WIN32
   struct timespec delay;
   struct timespec remain;
 
@@ -105,7 +105,7 @@ void _fcpSockDisconnect(hFCP *hfcp)
   if (hfcp->socket == FCP_SOCKET_DISCONNECTED)
 		return;
 
-#ifndef WINDOWS
+#ifndef WIN32
 	close(hfcp->socket);
 #else
 	closesocket(hfcp->socket);
