@@ -40,17 +40,10 @@ int fcpMakeSvkKeypair(HFCP *hfcp, char *pubkey, char *privkey)
   char key_dummy[256];
   int  n;
   int  len;
-  int oldhtl;
+
+	/* Should work cleanly, without the fcpKludge as it was so cleverly named */
   
-  /* temporary fudge - allows us to use old freenet */
-  /*strcpy(pubkey, "uDT8iApCWc33MlNClfiMlIRHZOkQAgE"); */
-  /*strcpy(privkey, "GgyIDK5iFet2GOn-mm7~AkRl2JHlfdzxr2e0"); */
-  /*return 0; */
-
-  /* delete these lines when new freenet is installed */
-
-  if (_fcpSockConnect(hfcp) != 0)
-    return -1;
+  if (_fcpSockConnect(hfcp) != 0) return -1;
   
   len = strlen(cmd);
   _fcpSockSend(hfcp, _fcpID, 4);
@@ -65,32 +58,9 @@ int fcpMakeSvkKeypair(HFCP *hfcp, char *pubkey, char *privkey)
     _fcpSockDisconnect(hfcp);
     return -1;
   }
-  _fcpSockDisconnect(hfcp);
-  
-  /* copy the keys */
-  /* strcpy(pubkey, hfcp->conn.response.body.keypair.pubkey); */
-  /* strcpy(privkey, hfcp->conn.response.body.keypair.privkey); */
-  /* strcpy(privkey, hfcp->privkey); */
 
-  /* ugh!! noe we have to insert a 'junk key' under this private key and get back a */
-  /* public key which will work! */
-  sprintf(key_dummy, "SSK@%s/fcpKludge", privkey);
-  oldhtl = hfcp->htl;
-  fcpSetHtl(hfcp, 0);
-  fcpPutKeyFromMem(hfcp, key_dummy, "duhhhh", 0, 3);
-  fcpSetHtl(hfcp, oldhtl);
-
-  /* if (hfcp->conn.response.body.keypair.uristr == 0) */
-  if (hfcp->created_uri[0] == '\0') {
-    _fcpLog(FCP_LOG_CRITICAL, "fcpMakeSvkKeypair - failed");
-    return -1;
-  }
-
-  /* strchr(hfcp->conn.response.body.keypair.uristr, '/') = '\0'; */
-  /* strcpy(pubkey, hfcp->conn.response.body.keypair.uristr + 12); // + 12 to skip 'freenet:SSK@' */
-  
-  *strchr(hfcp->created_uri, '/') = 0;
-  strcpy(pubkey, hfcp->created_uri + 12); /* + 12 to skip 'freenet:SSK@' */
+  strcpy(pubkey, hfcp->pubkey);
+  strcpy(privkey, hfcp->privkey);
   
   _fcpSockDisconnect(hfcp);
   return 0;

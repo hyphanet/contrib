@@ -2,7 +2,7 @@
 
 # Keep these flags since this directory may be used in other projects.
 # KDE for example requires strict ansi compliance (these params actually).
-CFLAGS=-ansi -W -Wall -pedantic
+CFLAGS=-ansi -W -Wall -pedantic -g
 
 lib_LIBRARIES = libezfcp.a
 

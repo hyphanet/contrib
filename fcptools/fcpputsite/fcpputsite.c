@@ -45,8 +45,6 @@ static int	 maxSplitThreads;
 static PutSiteOptions siteOptions;
 
 
-
-
 int main(int argc, char* argv[])
 {
 	int error;
@@ -74,6 +72,9 @@ int main(int argc, char* argv[])
 	if (genKeypair)
 	{
 		HFCP *hfcp = fcpCreateHandle();
+
+		siteOptions.pubKey = (char *) malloc(L_KEY);
+		siteOptions.privKey = (char *) malloc(L_KEY);
 
 		if (fcpMakeSvkKeypair(hfcp, siteOptions.pubKey,
 				siteOptions.privKey) != 0) {

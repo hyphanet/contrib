@@ -1,4 +1,5 @@
 INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
+CFLAGS=-g
 
 bin_PROGRAMS = fcpputsite
 

@@ -173,7 +173,7 @@ static int getrespHello(HFCP *hfcp)
 
   Returns      FCPRESP_TYPE_SUCCESS if successful, -1 otherwise
 
-  Description: reads in and processes details of NodeHello response
+  Description: reads in and processes details of NodeSuccess response
 */
 
 static int getrespSuccess(HFCP *hfcp)
@@ -182,17 +182,14 @@ static int getrespSuccess(HFCP *hfcp)
 
   while (getrespline(hfcp, respline) == 0) {
 		if (strncmp(respline, "URI=", 4) == 0) {
-			/*hfcp->conn.response.body.keypair.uristr = strdup(respline + 4);*/
 			strcpy(hfcp->created_uri, respline + 4);
 		}
 		
 		else if (strncmp(respline, "PublicKey=", 10) == 0) {
-			/*hfcp->conn.response.body.keypair.pubkey = strdup(respline + 10);*/
 			strcpy(hfcp->pubkey, respline + 10);
 		}
 		
 		else if (strncmp(respline, "PrivateKey=", 11) == 0) {
-			/*hfcp->conn.response.body.keypair.privkey = strdup(respline + 11);*/
 			strcpy(hfcp->privkey, respline + 11);
 		}
 		

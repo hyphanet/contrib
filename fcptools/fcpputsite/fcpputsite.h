@@ -41,7 +41,7 @@ typedef struct
 } PutJob;
 
 typedef struct {
-	char *		siteName;
+	char  *siteName;
 	char	*siteDir;
 	char	*pubKey;
 	char	*privKey;
