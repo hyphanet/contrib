@@ -130,6 +130,8 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 			_fcpSockDisconnect(hfcp);
 			_fcpFreeUri(uri);
 		}
+
+		// ************** currKey = NULL ************* !
 			
 		// analyse current key
 		uri = (FCP_URI *) malloc(sizeof (FCP_URI) );
@@ -217,6 +219,9 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 		if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
 				strncpy(hfcp->mimeType, s, L_MIMETYPE);
 
+		fldSet = cdocFindDoc(meta, NULL);
+
+	if (fldSet) 
 		switch (fldSet->type)	{
 		case META_TYPE_04_NONE:
 			// success
@@ -356,18 +361,19 @@ int _fcpParseUri(FCP_URI *uri, char *key)
 
 		uri->type = KEY_TYPE_SSK;
 
-		dupkey += 4;
-		*path++ = '\0';
+		dupkey += 4; /* set to start of key value (after SSK@) */
+		*path++ = 0; /* set the '/' char to null for handling */
 
-		// do the malloc stuff (see CHK section next for comments)
+		// do the malloc stuff
 		uri->keyid = (char *) malloc(strlen(dupkey) + 1);
 		strcpy(uri->keyid, dupkey);
 
-		uri->uri_str = (char *) malloc(strlen(uri->keyid) + strlen(uri->path) + 6);
-		sprintf(uri->uri_str, "SSK@%s/%s", uri->keyid, uri->path);
-
 		uri->path = (char *) malloc(strlen(path + 1));
 		strcpy(uri->path, path);
+
+		// 10 to be safe
+		uri->uri_str = (char *) malloc(strlen(uri->keyid) + strlen(path) + 10);
+		sprintf(uri->uri_str, "SSK@%s/%s", uri->keyid, path);
 	}
 
 	else if (!strncmp(dupkey, "CHK@", 4)) { // DONE; do TEST
@@ -424,6 +430,7 @@ void _fcpFreeUri(FCP_URI *uri)
 	if (uri->uri_str) free(uri->uri_str);
 
 	free(uri);
+	_fcpLog(FCP_LOG_DEBUG, "freed FCP_URI struct");
 }
 
 
