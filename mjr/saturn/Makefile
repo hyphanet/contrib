@@ -1,4 +1,4 @@
 all: 
-	gcc -g3 -Wall -o saturn saturn.c -lpthread
+	gcc -g -Wall -o saturn saturn.c -pthread
 install: 
 	cp saturn /usr/local/bin
