@@ -55,11 +55,11 @@ int get_file(hFCP *hfcp, char *uri)
 	int rc;
 	int retry;
 
-	int key_bytes;
-	int key_count;
+	unsigned long key_bytes;
+	unsigned long key_count;
 
-	int meta_bytes;
-	int meta_count;
+	unsigned long meta_bytes;
+	unsigned long meta_count;
 
 	int index;
 
@@ -234,6 +234,7 @@ int get_file(hFCP *hfcp, char *uri)
 		_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
 	}
 
+	index = 0;
 	while (meta_bytes > 0) {
 
 		if ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {

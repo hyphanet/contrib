@@ -483,7 +483,7 @@ static int fec_segment_file(hFCP *hfcp)
 	}
 
 	/* Allocate the area for all required segments (spaces for pointers to hSegment) */
-	hfcp->key->segment_count = hfcp->response.segmentheader.segments;
+	hfcp->key->segment_count = (unsigned short)hfcp->response.segmentheader.segments;
 	hfcp->key->segments = (hSegment **)malloc(sizeof (hSegment *) * hfcp->key->segment_count);
 
 	/* Loop while there's more segments to receive */
@@ -569,15 +569,15 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
 
-	int fi;   /* file index */
-	int bi;   /* block index */
+	unsigned long fi;   /* file index */
+	unsigned long bi;   /* block index */
 
-	int byte_count;
+	unsigned long byte_count;
 
-	int data_len;
-	int block_len;
-	int metadata_len;
-	int pad_len;
+	unsigned long data_len;
+	unsigned long block_len;
+	unsigned long metadata_len;
+	unsigned long pad_len;
 
 	hSegment  *segment;
 
@@ -721,7 +721,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
 
-	int bi;   /* block index */
+	unsigned long bi;   /* block index */
 
 	int bytes;
 	int byte_count;
@@ -832,7 +832,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 static int fec_insert_check_blocks(hFCP *hfcp, int index)
 {
 	int rc;
-	int bi;   /* block index */
+	unsigned long bi;   /* block index */
 
 	hSegment *segment;
 	hFCP     *tmp_hfcp;
@@ -891,7 +891,6 @@ static int fec_make_metadata(hFCP *hfcp)
 	char block[L_FILE_BLOCKSIZE];
 
 	int rc;
-	int bi;
 	int meta_len;
 
 	int segment_count;
@@ -899,6 +898,8 @@ static int fec_make_metadata(hFCP *hfcp)
 
 	int bytes;
 	int byte_count;
+
+	unsigned long bi;
 
 	hSegment *segment;
 	hFCP     *tmp_hfcp;

@@ -270,8 +270,8 @@ static int clienthello(hFCP *hfcp)
 	/* Now dump the info */
 	fprintf(stdout, "Description: %s\n", hfcp->description);
 	fprintf(stdout, "Protocol: %s\n", hfcp->protocol);
-	fprintf(stdout, "HighestSeenBuild: %d\n", hfcp->highest_build);
-	fprintf(stdout, "MaxFileSize: %d\n", hfcp->max_filesize);
+	fprintf(stdout, "HighestSeenBuild: %lu\n", hfcp->highest_build);
+	fprintf(stdout, "MaxFileSize: %lu\n", hfcp->max_filesize);
 
 	return 0;
 }
@@ -289,26 +289,26 @@ static int clientinfo(hFCP *hfcp)
 	fprintf(stdout, "OperatingSystem: %s\n", hfcp->response.nodeinfo.operatingsystem);
 	fprintf(stdout, "OperatingSystemVersion: %s\n", hfcp->response.nodeinfo.operatingsystemversion);
 	fprintf(stdout, "NodeAddress: %s\n", hfcp->response.nodeinfo.nodeaddress);
-	fprintf(stdout, "NodePort: %d\n", hfcp->response.nodeinfo.nodeport);
+	fprintf(stdout, "NodePort: %lu\n", hfcp->response.nodeinfo.nodeport);
 	fprintf(stdout, "JavaVendor: %s\n", hfcp->response.nodeinfo.javavendor);
 	fprintf(stdout, "JavaName: %s\n", hfcp->response.nodeinfo.javaname);
 	fprintf(stdout, "JavaVersion: %s\n", hfcp->response.nodeinfo.javaversion);
-	fprintf(stdout, "Processors: %d\n", hfcp->response.nodeinfo.processors);
-	fprintf(stdout, "MaximumMemory: %d\n", hfcp->response.nodeinfo.maximummemory);
-	fprintf(stdout, "AllocatedMemory: %d\n", hfcp->response.nodeinfo.allocatedmemory);
-	fprintf(stdout, "FreeMemory: %d\n", hfcp->response.nodeinfo.freememory);
-	fprintf(stdout, "EstimatedLoad: %d\n", hfcp->response.nodeinfo.estimatedload);
-	fprintf(stdout, "EstimateRateLimitingLoad: %d\n", hfcp->response.nodeinfo.estimateratelimitingload);
-	fprintf(stdout, "DatastoreMax: %d\n", hfcp->response.nodeinfo.datastoremax);
-	fprintf(stdout, "DatastoreFree: %d\n", hfcp->response.nodeinfo.datastorefree);
-	fprintf(stdout, "DatastoreUsed: %d\n", hfcp->response.nodeinfo.datastoreused);
-	fprintf(stdout, "MaxFileSize: %d\n", hfcp->response.nodeinfo.maxfilesize);
-	fprintf(stdout, "MostRecentTimestamp: %d\n", hfcp->response.nodeinfo.mostrecenttimestamp);
-	fprintf(stdout, "LeastRecentTimestamp: %d\n", hfcp->response.nodeinfo.leastrecenttimestamp);
-	fprintf(stdout, "RoutingTime: %d\n", hfcp->response.nodeinfo.routingtime);
-	fprintf(stdout, "AvailableThreads: %d\n", hfcp->response.nodeinfo.availablethreads);
+	fprintf(stdout, "Processors: %lu\n", hfcp->response.nodeinfo.processors);
+	fprintf(stdout, "MaximumMemory: %lu\n", hfcp->response.nodeinfo.maximummemory);
+	fprintf(stdout, "AllocatedMemory: %lu\n", hfcp->response.nodeinfo.allocatedmemory);
+	fprintf(stdout, "FreeMemory: %lu\n", hfcp->response.nodeinfo.freememory);
+	fprintf(stdout, "EstimatedLoad: %lu\n", hfcp->response.nodeinfo.estimatedload);
+	fprintf(stdout, "EstimateRateLimitingLoad: %lu\n", hfcp->response.nodeinfo.estimateratelimitingload);
+	fprintf(stdout, "DatastoreMax: %lu\n", hfcp->response.nodeinfo.datastoremax);
+	fprintf(stdout, "DatastoreFree: %lu\n", hfcp->response.nodeinfo.datastorefree);
+	fprintf(stdout, "DatastoreUsed: %lu\n", hfcp->response.nodeinfo.datastoreused);
+	fprintf(stdout, "MaxFileSize: %lu\n", hfcp->response.nodeinfo.maxfilesize);
+	fprintf(stdout, "MostRecentTimestamp: %lu\n", hfcp->response.nodeinfo.mostrecenttimestamp);
+	fprintf(stdout, "LeastRecentTimestamp: %lu\n", hfcp->response.nodeinfo.leastrecenttimestamp);
+	fprintf(stdout, "RoutingTime: %lu\n", hfcp->response.nodeinfo.routingtime);
+	fprintf(stdout, "AvailableThreads: %lu\n", hfcp->response.nodeinfo.availablethreads);
 	fprintf(stdout, "IsTransient: %s\n", hfcp->response.nodeinfo.istransient);
-	fprintf(stdout, "ActiveJobs: %d\n", hfcp->response.nodeinfo.activejobs);
+	fprintf(stdout, "ActiveJobs: %lu\n", hfcp->response.nodeinfo.activejobs);
 
 	return 0;
 }

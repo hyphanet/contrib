@@ -397,7 +397,7 @@ static int getrespDataFound(hFCP *hfcp)
 		}
 
 		else if (strncmp(resp, "Timeout=", 8) == 0) {
-			hfcp->options->timeout = hfcp->response.datafound.timeout = xtol(resp + 8);
+			hfcp->options->timeout = hfcp->response.datafound.timeout = (unsigned short)xtol(resp + 8);
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
@@ -432,7 +432,7 @@ static int getrespDataChunk(hFCP *hfcp)
 			hfcp->response.datachunk.data = (char *)malloc(len+1);
 		}
 
-		else if (len > hfcp->response.datachunk.length) {
+		else if ((unsigned long)len > hfcp->response.datachunk.length) {
 
 			hfcp->response.datachunk.data = realloc(hfcp->response.datachunk.data, len+1);
 		}
@@ -498,13 +498,13 @@ static int getrespRouteNotFound(hFCP *hfcp)
 		}
 
 		else if (!strncmp(resp, "Unreachable=", 12))
-			hfcp->response.routenotfound.unreachable = xtol(resp + 12);
+			hfcp->response.routenotfound.unreachable = (unsigned short)xtol(resp + 12);
 
 		else if (!strncmp(resp, "Restarted=", 10))
-			hfcp->response.routenotfound.restarted = xtol(resp + 10);
+			hfcp->response.routenotfound.restarted = (unsigned short)xtol(resp + 10);
 
 		else if (!strncmp(resp, "Rejected=", 9))
-			hfcp->response.routenotfound.rejected = xtol(resp + 9);
+			hfcp->response.routenotfound.rejected = (unsigned short)xtol(resp + 9);
 
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_ROUTENOTFOUND;
@@ -566,7 +566,7 @@ static int getrespRestarted(hFCP *hfcp)
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "Timeout=", 8)) {
-			hfcp->response.restarted.timeout = xtol(resp + 8);
+			hfcp->response.restarted.timeout = (unsigned short)xtol(resp + 8);
 			hfcp->options->timeout = hfcp->response.restarted.timeout;
 		}
 
@@ -652,7 +652,7 @@ static int getrespPending(hFCP *hfcp)
 		}
 
 		else if (!strncmp(resp, "Timeout=", 8)) { /* milliseconds */
-			hfcp->response.pending.timeout = xtol(resp + 8);
+			hfcp->response.pending.timeout = (unsigned short)xtol(resp + 8);
 			hfcp->options->timeout = hfcp->response.pending.timeout;
 		}
 		
@@ -817,7 +817,7 @@ static int getrespBlocksEncoded(hFCP *hfcp)
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "BlockCount=", 11))
-			hfcp->response.blocksencoded.block_count = xtol(resp + 11);
+			hfcp->response.blocksencoded.block_count = (unsigned short)xtol(resp + 11);
 
 		else if (!strncmp(resp, "BlockSize=", 10))
 			hfcp->response.blocksencoded.block_size = xtol(resp + 10);

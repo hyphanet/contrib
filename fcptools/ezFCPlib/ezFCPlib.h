@@ -195,7 +195,8 @@ typedef struct {
 	char  public[L_KEY+1];
 
 	char  privatekey[L_KEY+1];
-	int   length;
+
+	unsigned long length;
 } FCPRESP_SUCCESS;
 
 typedef struct {
@@ -203,49 +204,49 @@ typedef struct {
 	char  *operatingsystem;
 	char  *operatingsystemversion;
 	
-	int    nodeport;
+	unsigned long  nodeport;
 	char  *nodeaddress;
+	char  *istransient;
 
 	char  *javavendor;
 	char  *javaname;
 	char  *javaversion;
 
-	long   maximummemory;
-	long   maxfilesize;
-	long   allocatedmemory;
-	long   freememory;
-	int    processors;
-	int    availablethreads;
-	int    activejobs;
+	unsigned long  maximummemory;
+	unsigned long  maxfilesize;
+	unsigned long  allocatedmemory;
+	unsigned long  freememory;
+	unsigned long  processors;
+	unsigned long  availablethreads;
+	unsigned long  activejobs;
 
-	long   datastoremax;
-	long   datastorefree;
-	long   datastoreused;
-	long   estimatedload;
-	long   estimateratelimitingload;
+	unsigned long  datastoremax;
+	unsigned long  datastorefree;
+	unsigned long  datastoreused;
+	unsigned long  estimatedload;
+	unsigned long  estimateratelimitingload;
 
-	char  *istransient;
-	long   mostrecenttimestamp;
-	long   leastrecenttimestamp;
-	long   routingtime;
+	unsigned long  mostrecenttimestamp;
+	unsigned long  leastrecenttimestamp;
+	unsigned long  routingtime;
 } FCPRESP_NODEINFO;
 
 typedef struct {
 	char  *description;
   char  *protocol;
 
-	int    highest_build;
-	int    max_filesize;
+	unsigned short  highest_build;
+	unsigned long  max_filesize;
 } FCPRESP_NODEHELLO;
 
 typedef struct {
-  int datalength;
-  int metadatalength;
-	int timeout;
+  unsigned long  datalength;
+  unsigned long  metadatalength;
+	unsigned short   timeout;
 } FCPRESP_DATAFOUND;
 
 typedef struct {
-  int    length;
+  unsigned long   length;
   char  *data;
 } FCPRESP_DATACHUNK;
 
@@ -258,7 +259,7 @@ typedef struct {
 
 typedef struct {
 	char *uri;
-	int   timeout;
+	unsigned short   timeout;
 
 	char  publickey[L_KEY+1];
 	char  privatekey[L_KEY+1];
@@ -275,13 +276,13 @@ typedef struct {
 typedef struct {
   char *reason;
 
-	int   unreachable;
-	int   rejected;
-	int   restarted;
+	unsigned short   unreachable;
+	unsigned short   rejected;
+	unsigned short   restarted;
 } FCPRESP_ROUTENOTFOUND;
 
 typedef struct {
-  int  timeout;
+  unsigned short  timeout;
 } FCPRESP_RESTARTED;
 
 typedef struct {
@@ -291,39 +292,41 @@ typedef struct {
 typedef struct {
 	char  fec_algorithm[L_64+1];
  
-	int   filelength;
-	long  offset;
-	int   block_count;
-	int   block_size;
-	int   datablock_offset;
-	int   checkblock_count;
-	int   checkblock_size;
-	int   checkblock_offset;
-	int   segments;
-	int   segment_num;
-	int   blocks_required;
+	unsigned long   filelength;
+	unsigned long   offset;
+	unsigned long   block_size;
+	unsigned long   datablock_offset;
+	unsigned long   checkblock_size;
+	unsigned long   checkblock_offset;
+	unsigned long   segment_num;
+	unsigned long   blocks_required;
+
+	unsigned long   block_count;
+	unsigned long   checkblock_count;
+	unsigned long   segments;
 } FCPRESP_SEGMENTHEADER;
 
 typedef struct {
-	int     block_count;
+	unsigned short  block_count;
+	unsigned short  checkblock_count;
+
 	char  **blocks;
-	int     checkblock_count;
 	char  **checkblocks;
 } FCPRESP_BLOCKMAP;
 
 typedef struct {
-	int   block_count;
-	int   block_size;
+	unsigned short  block_count;
+	unsigned long   block_size;
 } FCPRESP_BLOCKSENCODED;
 
 typedef struct {
-	int   block_count;
-	int   block_size;
-	int   data_length;
+	unsigned short  block_count;
+	unsigned long   block_size;
+	unsigned long   data_length;
 } FCPRESP_BLOCKSDECODED;
 
 typedef struct {
-  int datalength;
+  unsigned long  datalength;
 } FCPRESP_MADEMETADATA;
 
 
@@ -360,8 +363,9 @@ typedef struct {
   Freenet Client Protocol Handle Definition Section
 */
 typedef struct {
+	unsigned long splitblock;
+
 	int   verbosity;
-	int   splitblock;
 	int   retry;
 	int   regress;
 	int   delete_local;
@@ -404,26 +408,26 @@ typedef struct {
 typedef struct {
 	char  *header_str;
 
-	int    filelength;
-	long   offset;
+	unsigned long  filelength;
+	unsigned long  offset;
 
-	int    block_count;
-	int    block_size;
-	int    datablock_offset;
+	unsigned long  block_count;
+	unsigned long  block_size;
+	unsigned long  datablock_offset;
 
-	int    checkblock_count;
-	int    checkblock_size;
-	int    checkblock_offset;
+	unsigned long  checkblock_count;
+	unsigned long  checkblock_size;
+	unsigned long  checkblock_offset;
 
-	int    segments;
-	int    segment_num;
-	int    blocks_required;
+	unsigned long  segments;
+	unsigned long  segment_num;
+	unsigned long  blocks_required;
 
-	int      db_count;
-	hBlock **data_blocks;
+	unsigned long  db_count;
+	unsigned long  cb_count;
 
-	int      cb_count;
-	hBlock **check_blocks;
+	hBlock  **data_blocks;
+	hBlock  **check_blocks;
 
 } hSegment;
 
@@ -439,8 +443,8 @@ typedef struct {
 
 
 typedef struct {
-	int  size;
-	
+	unsigned long  size;
+
 	int  revision;
 	int  encoding;
 
@@ -466,13 +470,14 @@ typedef struct {
 
 	int        openmode;
 	char      *mimetype;
-	int        size;
+
+	unsigned long   size;
+	unsigned short  segment_count;
 
 	hBlock    *tmpblock;
 
 	hMetadata *metadata;
 
-	int        segment_count;
 	hSegment **segments;
 
 } hKey;
@@ -481,14 +486,14 @@ typedef struct {
 typedef struct {
 	char    *host;
 
-	unsigned short port;
-	int            htl;
+	unsigned short  port;
+	unsigned short  htl;
 
 	char  *description;
 	char  *protocol;
 
-	int    highest_build;
-	int    max_filesize;
+	unsigned long  highest_build;
+	unsigned long  max_filesize;
 
 	hOptions *options;
 

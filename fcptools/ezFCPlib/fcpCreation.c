@@ -489,7 +489,7 @@ void _fcpDestroyHSegment(hSegment *h)
 		if (h->header_str) free(h->header_str);
 
 		if (h->db_count) {
-			for (i=0; i < h->db_count; i++) {
+			for (i=0; i < (unsigned short)h->db_count; i++) {
 				_fcpDestroyHBlock(h->data_blocks[i]);
 				free(h->data_blocks[i]);
 			}
@@ -498,7 +498,7 @@ void _fcpDestroyHSegment(hSegment *h)
 		}			
 		
 		if (h->cb_count) {
-			for (i=0; i < h->cb_count; i++) {
+			for (i=0; i < (unsigned short)h->cb_count; i++) {
 				_fcpDestroyHBlock(h->check_blocks[i]);
 				free(h->check_blocks[i]);
 			}

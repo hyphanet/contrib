@@ -69,8 +69,8 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 {
 	int rc;
 
-	int key_size;
-	int meta_size;
+	unsigned long key_size;
+	unsigned long meta_size;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
 

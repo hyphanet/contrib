@@ -10,6 +10,7 @@ that can be implemented by any competent C programmer.
 FCPtools generic
 ----------------
 
++ Ensure all printf's use proper formats (unsigned short=%su, unsigned long=%lu)
 + Implement future_insert(num_days) option.
 + Verify other options (raw, etc.) work as expected.
 + Address the myriad of compiler warnings on OSX platform.
@@ -23,9 +24,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
-+ SSK & KSK handling isn't working properly.. FIX
 + Implement regress for _fcpGet.c.
-+ Re-implement rawmode option after routines settle down.
 + Add configuration option for Timeout length (in seconds)
 + Add handling of CryptoKey in key generation and SSK handling.
 + Update ezFCPlib programming API documentation.
@@ -36,6 +35,8 @@ ezFCPlib specific
 + Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= SSK & KSK handling isn't working properly.. (fine; was a bug elsewhere)
+= Re-implement rawmode option after routines settle down.
 = Implement SkipDS logic.
 = Change name of xtoi() to xtol().
 = Add logic in _fcpCompat.c for read() routine for 8192 blocksize instead of '1' (done elsewhere)
