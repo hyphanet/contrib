@@ -266,15 +266,19 @@ DWORD WINAPI doDeepSearch(LPVOID lpvParameter)
 	// Initial search should look for the java executable in the windows
 	// directory (to reduce the time taken to find the interpreter)
 
-	while (*cCurrentDrive)
-	{
-		iDriveType = GetDriveType(cCurrentDrive);
-
-		if (iDriveType == DRIVE_FIXED && (iDriveType != DRIVE_CDROM))
-			CheckWindowsFolders(cCurrentDrive);
-
-        cCurrentDrive += strlen(cCurrentDrive) + 1;
-	}
+//////////////////////////////////
+//
+// search of windows folders disabled - davidmcnab
+//
+//	while (*cCurrentDrive)
+//	{
+//		iDriveType = GetDriveType(cCurrentDrive);
+//
+//		if (iDriveType == DRIVE_FIXED && (iDriveType != DRIVE_CDROM))
+//			CheckWindowsFolders(cCurrentDrive);
+//
+//      cCurrentDrive += strlen(cCurrentDrive) + 1;
+//	}
 
 	// Now do a full search of all files on all drives, remembering that
 	// the user can abort the search at any time.
@@ -502,8 +506,9 @@ int parsePath(char *cPathEnvironment)
 
 int searchIn(char *cPath)
 {
-    int     iSearchFilesCount = 2;
-    char    *cSearchFiles[]   = { "jview.exe", "java.exe" };
+    int     iSearchFilesCount = 1;
+//    char    *cSearchFiles[]   = { "jview.exe", "java.exe" };
+    char    *cSearchFiles[]   = { "java.exe" }; // removed jview.exe from Java candidates - davidmcnab
     char    *cFullPath;
     int     iRet, i;
 	bool	bFound = false;
