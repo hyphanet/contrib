@@ -22,12 +22,12 @@ ezFCPlib specific
 + Make fcpLog() work with files as well as standard output.
 + Implement SkipDS logic.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
-+ Add keygen code.
+= Add keygen code.
 
 ------
 fcpput
 
-+ Implement -g command-line switch (GenerateKeypair).
+= Implement -g command-line switch (GenerateKeypair).
 + Optimize main()'s speed read from standard input.
 
 ------
