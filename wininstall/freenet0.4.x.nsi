@@ -1,7 +1,7 @@
 # installer generator script for Freenet:
 
 Name "Freenet 0.4.snapshot"
-OutFile "Freenet_setup-16092001.exe"
+OutFile "Freenet_setup-30092001.exe"
 ComponentText "This will install Freenet 0.4.snapshot on your system."
 
 LicenseText "Freenet is published under the GNU general public license:"
@@ -23,7 +23,7 @@ AutoCloseWindow true
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
 InstallDir "$PROGRAMFILES\Freenet0.4"
-InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
+;InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 
 ;-----------------------------------------------------------------------------------
 Function DetectJava
@@ -96,32 +96,38 @@ Section "Freenet (required)"
 
   HideWindow
   Call DetectJava
-  Delete "$INSTDIR\findjava.exe"
-  ClearErrors
+
   BringToFront
-
-  #create the configuration file now
-  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "seedNodes" "seed.ref"
-  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "ipAddress" "127.0.0.1"  
-  ExecWait "$INSTDIR\portcfg.exe"
-  IfErrors ConfigError
-  ExecWait '"$INSTDIR\cfgnode.exe" --silent freenet.ini'
- End_config:
-  Delete "$INSTDIR\portcfg.exe"
-
-  IfErrors CfgnodeError ; this does not work yet. It never returns an error message?!
-  Delete "$INSTDIR\cfgnode.exe"
+  # create the configuration file now
+  # but get a current seed file first
+  ExecWait "$INSTDIR\GetSeed"
+  ClearErrors
+  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
+  IfErrors CfgnodeError
+  # delete the set diskstoresize in a hackish manner, we set our own proposal lateron
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
+  # and set other winspecific settings
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "transient" "true"
   ExecWait "$INSTDIR\cfgclient.exe"
-  IfErrors ConfigError ; this does not work yet. It never returns an error message?!
+  IfErrors ConfigError
+  # now calling the GUI configurator
+  ExecWait "$INSTDIR\NodeConfig.exe"
+  # yes we do want to start FProxy by default
+  # We need to add fproxy lateron as NodeConfig destroys all unknown prefs so far :-(
+  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
+  ;  replace the above line with the one below if you want to start fproxy automatically
+  ;  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
+    
+  Delete "$INSTDIR\findjava.exe"
+  Delete "$INSTDIR\cfgnode.exe"
   Delete "$INSTDIR\cfgclient.exe"
-
+  Delete "$INSTDIR\GetSeed.exe"
+  
  Seed:
   # seeding the initial references
-  ExecWait "$INSTDIR\GetSeed"
-  Delete "$INSTDIR\GetSeed.exe"
-  ClearErrors
-#we need to check the existence of seed.ref here and fail if it does not exist.
+  #we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
+  ClearErrors
   ExecWait "$INSTDIR\fsrvcli --seed seed.ref"
   IfErrors SeedError NoSeedError
   SeedError:
@@ -151,6 +157,15 @@ Section "Freenet (required)"
   Abort
 
  End:
+SectionEnd
+;--------------------------------------------------------------------------------------
+
+Section "FCPProxy (web browser based access)"
+SectionIn 1,2
+
+  SetOutPath "$INSTDIR"
+  File "freenet\fcpproxy\*.*"
+
 SectionEnd
 ;--------------------------------------------------------------------------------------
  
@@ -192,18 +207,12 @@ SectionIn 1,2
 ##need to delete the tempfiles again
 #SectionEnd
 ;---------------------------------------------------------------------------------------
-Section "Launch Freenet on Startup"
+Section "Launch Freenet on each Startup"
 SectionIn 2
   # WriteRegStr HKEY_CURRENT_USER "Software\Microsoft\Windows\CurrentVersion\Run" "Freenet server" '"$INSTDIR\fserve.exe"'
   CreateShortCut "$SMSTARTUP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
 SectionEnd
 
-;---------------------------------------------------------------------------------------
-
-Section "Launch Freenet node now"
-SectionIn 2
-  Exec "$INSTDIR\freenet.exe"
-SectionEnd
 ;---------------------------------------------------------------------------------------
 
 Section "View Readme.txt"
@@ -213,9 +222,6 @@ SectionEnd
 ;---------------------------------------------------------------------------------------
 
 Section -PostInstall
-  # put this temporary in the prefs until FProxy is back
-  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "services.fproxy.port" "8888"
-  MessageBox MB_OK "Congratulations, you have finished the installation of Freenet successfully."
 
   # Register .ref files to be added to seed.ref with a double-click
   WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet_node_ref"
@@ -229,8 +235,13 @@ Section -PostInstall
   # Registering the unistall information
   WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet"
   WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
+
+  MessageBox MB_YESNO "Congratulations, you have finished the installation of Freenet successfully.$\r$\nDo you want to start your Freenet node now?" IDNO StartedNode
+  Exec "$INSTDIR\freenet.exe"
+StartedNode:
 SectionEnd
 ;------------------------------------------------------------------------------------------
+
 # Uninstall part begins here:
 Section Uninstall
 

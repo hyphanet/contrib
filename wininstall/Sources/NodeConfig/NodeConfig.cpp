@@ -46,8 +46,6 @@ END_MESSAGE_MAP()
 
 CNodeConfigApp::CNodeConfigApp()
 {
-	// TODO: add construction code here,
-	// Place all significant initialization in InitInstance
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -116,7 +114,17 @@ BOOL CNodeConfigApp::InitInstance()
 	if (propdlg.DoModal() == IDOK)
 	{
 		pConfigFile->Save();
+		clickedOK=TRUE;
+	}
+	else
+	{
+		clickedOK=FALSE;
 	}
 
-	return FALSE;
+	return TRUE;
+}
+
+int CNodeConfigApp::ExitInstance() 
+{
+	return (clickedOK) ? 0 : 1; // return 0 if we clicked OK and 1 otherwise (canceled dialog)
 }

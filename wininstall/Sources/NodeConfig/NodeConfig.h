@@ -29,6 +29,7 @@ public:
 	//{{AFX_VIRTUAL(CNodeConfigApp)
 	public:
 	virtual BOOL InitInstance();
+	virtual int ExitInstance();
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -38,6 +39,8 @@ public:
 		//    DO NOT EDIT what you see in these blocks of generated code !
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+private:
+	BOOL clickedOK; // used to decide on the return value of the app
 };
 
 

@@ -30,7 +30,11 @@ extern CPropGeek		*pGeek;
 
 CConfigFile::CConfigFile()
 {
+	ULARGE_INTEGER freeDiskSpace,TotalNumberOfBytes;
 
+	// Set the free disk space available to the caller at creation of a CConfigFile instance
+	GetDiskFreeSpaceEx(NULL,&freeDiskSpace,&TotalNumberOfBytes,NULL);
+	freeDiskSpaceMB = (UINT)(freeDiskSpace.QuadPart >> 20); //use MB instead of bytes
 }
 
 CConfigFile::~CConfigFile()
@@ -50,7 +54,7 @@ void CConfigFile::Load()
 
 	// Normal tab
 	//pNormal->m_importNewNodeRef.EnableWindow(false);
-	pNormal->m_storeCacheSize = 10;
+	pNormal->m_storeCacheSize = (UINT)min(max(10, (UINT)(0.2 * freeDiskSpaceMB)),2047); //def: 20% of free diskspace, but not larger 2GB(-1MB) and max 10MB
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = true;
 
@@ -62,13 +66,13 @@ void CConfigFile::Load()
 	pAdvanced->m_fcpHosts = "127.0.0.1,localhost";
 	pAdvanced->m_initialRequestHTL = 15;
 	pAdvanced->m_inputBandwidthLimit = 0;
-	pAdvanced->m_ipAddress = "";
+	pAdvanced->m_ipAddress = "undefined";
 	srand( (unsigned)time( NULL ) );
 	pAdvanced->m_listenPort = rand() + 1024;	// random port number
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumConnectionThreads = 16;
 	pAdvanced->m_outputBandwidthLimit = 0;
-	pAdvanced->m_seedNodes = "ALL.REF";
+	pAdvanced->m_seedNodes = "seed.ref";
 	pAdvanced->m_transient = TRUE;
 
 	// Geek tab
@@ -393,7 +397,8 @@ void CConfigFile::processItem(char *tok, char *val)
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
 	else if (!strcmp(tok, "storeCacheSize"))
-		pNormal->m_storeCacheSize = atol(val) / 1048576;
+		// use only existing value if differrent from 0 (propose our own default otherwise)
+		if (atol(val)) pNormal->m_storeCacheSize = atol(val) / 1048576;
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))
@@ -473,10 +478,10 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "streamBufferSize"))
 		pGeek->m_streamBufferSize = atoi(val);
 	else
-	{
-		char msg[1024];
-		sprintf(msg, "Unknown param - '%s'", tok);
-		MessageBox(0, msg, "Freenet Config - Error in freenet.ini", MB_SYSTEMMODAL);
+	{	// commenting out MessageBox on each unknown parameter (Sebastian Späth)
+		// char msg[1024];
+		// sprintf(msg, "Unknown param - '%s'", tok);
+		// MessageBox(0, msg, "Freenet Config - Error in freenet.ini", MB_SYSTEMMODAL);
 	}
 }
 

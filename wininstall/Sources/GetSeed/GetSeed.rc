@@ -32,16 +32,17 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "GetSeed"
 FONT 8, "MS Sans Serif"
 BEGIN
-    PUSHBUTTON      "&Cancel",IDCANCEL,7,101,50,14
     DEFPUSHBUTTON   "&Download References",IDC_GETSEED,9,31,79,14
-    EDITTEXT        IDC_SEEDURL,92,31,152,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_SEEDFILE,10,77,234,14,ES_AUTOHSCROLL | WS_DISABLED
-    LTEXT           "Destination file",IDC_STATIC,11,68,62,8
+    PUSHBUTTON      "&Cancel",IDCANCEL,7,101,50,14
     PUSHBUTTON      "Get &Local References",IDC_GETLOCALSEED,9,14,79,14
+    PUSHBUTTON      "&Help",ID_HELP,75,101,50,14
+    EDITTEXT        IDC_SEEDURL,92,31,152,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SEEDFILE,10,77,234,14,ES_AUTOHSCROLL | WS_DISABLED | 
+                    NOT WS_TABSTOP
+    LTEXT           "Destination file",IDC_STATIC,11,68,62,8
     GROUPBOX        "Initial Freenet references",IDC_STATIC,6,3,242,92
     CONTROL         "Progress1",IDC_DLOADPROGRESS,"msctls_progress32",
                     WS_BORDER,9,49,234,14
-    PUSHBUTTON      "&Help",ID_HELP,75,101,50,14
 END
 
 

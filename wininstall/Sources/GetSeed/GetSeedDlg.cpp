@@ -57,10 +57,8 @@ BOOL CGetSeedDlg::OnInitDialog()
 	//  when the application's main window is not a dialog
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
-	
-	// TODO: Add extra initialization here
-	
-	return TRUE;  // return TRUE  unless you set the focus to a control
+
+	return FALSE;  // return TRUE  unless you set the focus to a control
 }
 
 BOOL CGetSeedDlg::OnGetseed()

@@ -75,7 +75,7 @@ const char szfconfigdefaultexec[]="Freenet.node.gui.Config freenet.ini"; /* defa
 /* string constants for use with the freenet.ini file */
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
 const char szfinisec[]="Freenet node"; /* ie [Freenet node] subsection text */
-const char szfprxkey[]="services.fproxy.port"; /* ie services.fproxy.port=8081 */
+const char szfprxkey[]="fproxy.port"; /* ie fproxy.port=8081 */
 
 /* for launching configuration dll */
 const char szConfigDLLName[]="config.dll"; /* ie name of file */
@@ -708,20 +708,14 @@ void StartConfigOrig(void)
 	PROCESS_INFORMATION prcConfigInfo;
 
 
+	// commenting stuff out, as we are calling an external app and not a java class
+	// for Java classes use szjavawpath and szexecbuf again when creating the process
+	// char szexecbuf[sizeof(szjavawpath)+2+sizeof(szfconfigexec)];
+	// lstrcpy(szexecbuf, szjavawpath);
+	// lstrcat(szexecbuf, " ");
+	// lstrcat(szexecbuf, szfconfigexec); 
 
-	char szexecbuf[sizeof(szjavawpath)+sizeof(szfconfigexec)+2];
-
-
-
-	lstrcpy(szexecbuf, szjavawpath);
-
-	lstrcat(szexecbuf, " ");
-
-	lstrcat(szexecbuf, szfconfigexec); 
-
-
-
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
+	if (!CreateProcess((char*)szfconfigexec, NULL, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
 
 	{
 

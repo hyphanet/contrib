@@ -6,16 +6,17 @@ Any questions? mailto:Sebastian@SSpaeth.de / mailto:freenet@hug.cx
 How to make an install
 ======================
 1)Get the free Nullsoft installer (NSIS) at http://nullsoft.com/free/NSIS (>v1.1h)
-  freenet.nsi has been updated to use a more current development version (1.1h) available at:
-  http://firehose.net/free/nsis
-2a)Add the current files the Freenet subdirectory:
-  freenet.jar  (freenet.ini will be created on install)
+  or from http://firehose.net/free/nsis
+2a)Add the current binaries to the "Freenet" subdirectory:
+  frenet.exe,fserve.exe,NodeConfig.exe,cfgclient.exe,findjava.exe,GetSeed.exe
+  (the sources are in the Sources subdirectory, binaries are not included due to Oskars protest anymore)
+  freenet.jar
+  (freenet.ini will be created on install)
 2b)Add upx.exe to this directory (for additional compression of the installer) 
-   from http://upx.sourceforge.net/
-2a)(Check out Contrib/IEPlugin and Contrib/NSPlugin from CVS. )
-3)Run !runmefirst.bat to create frequest.exe, finsert.exe, fproxy.exe and cfgnode.exe
+   from http://upx.sourceforge.net/ (but it will work without as well)
+   
 4)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
-5)Call "makensis freenet"
+5)Call "makensis freenet0.4.x.nsi" or right-click and "compile" the script if you installed NSIS correctly
 6)Test install AND LET OTHER PEOPLE INSTALL AS WELL, bugs often appear only with special 
   configurations (Java Runtime, Win version, Path names,...)
 
