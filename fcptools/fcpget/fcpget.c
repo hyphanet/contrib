@@ -368,7 +368,7 @@ static void usage(char *s)
   printf("  uri                    URI to retrieve; variations:\n");
   printf("                           CHK@\n");
   printf("                           KSK@<routing key>\n");
-  printf("                           SSK@<private key>[/<docname>]\n\n");
+  printf("                           SSK@<public key>[/<docname>]\n\n");
   
   printf("  file                   Write key data to local file\n");
   printf("                         (cannot be used with --stdout)\n\n");
