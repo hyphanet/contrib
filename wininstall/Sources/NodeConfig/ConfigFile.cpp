@@ -200,7 +200,7 @@ void CConfigFile::Save()
 	// storeCacheSize = size in bytes ... our variable m_storeCacheSize is in Megabytes so
 	// multiply by 2^20, i.e. shift left 20 bits, before writing to conf file
 	char szStoreCacheSize[35];
-	fprintf(fp, "storeCacheSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeCacheSize,10), szStoreCacheSize, 10) );
+	fprintf(fp, "storeCacheSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeCacheSize,20), szStoreCacheSize, 10) );
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the directory in which the node's datastore files should go.\n");
 	fprintf(fp, "\n");
