@@ -23,6 +23,7 @@ ezFCPlib
 -----------------
 
 +!Add handling of CryptoKey in key generation and SSK handling.
++ Move READFILE WRITEFILE flags from ez_sys to ezFCPlib.h
 + Add configuration option for Timeout length (in seconds)
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Make hDocument->data & hMetadata->cdocs fields dynamic.

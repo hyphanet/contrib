@@ -397,7 +397,10 @@ int fcpParseHURI(hURI *uri, char *key)
 
 		else {
 			/* string_end points to the '/' character */
-			uri->keyid = strndup(key, string_end - key);
+
+			uri->keyid = malloc(string_end - key + 1);
+			strncpy(uri->keyid, key, string_end - key);
+
 			strcat(uri_s, uri->keyid);
 			strcat(uri_s, "/");
 		
@@ -416,7 +419,10 @@ int fcpParseHURI(hURI *uri, char *key)
 			
 			/* if there's a '//' character */
 			else {
-				uri->filename = strndup(key, string_end - key);
+
+				uri->filename = malloc(string_end - key + 1);
+				strncpy(uri->filename, key, string_end - key);
+
 				strcat(uri_s, uri->filename);
 				strcat(uri_s, "//");
 				
@@ -451,7 +457,9 @@ int fcpParseHURI(hURI *uri, char *key)
 			
 			else {
 				/* string_end points to the '/' character */
-				uri->keyid = strndup(key, string_end - key);
+				uri->keyid = malloc(string_end - key + 1);
+				strncpy(uri->keyid, key, string_end - key);
+
 				strcat(uri_s, "/");
 
 				/* point key to the first char after the '/' */
