@@ -2,9 +2,9 @@
 
 # Keep these flags since this directory may be used in other projects.
 # KDE for example requires strict ansi compliance (these params actually).
-
 CFLAGS=-ansi -W -Wall -pedantic
-#CFLAGS=-W -Wall
+
+lib_LIBRARIES = libezfcp.a
 
 lib_LTLIBRARIES = libezfcp.la
 libezfcp_la_LDFLAGS = -version-info 0:0:0
@@ -22,6 +22,6 @@ FCP_SOURCE = \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c \
 	metaParse.c mimetype.c template.c safeMalloc.c
 
-#libezfcp_a_SOURCES = $(FCP_SOURCE)
+libezfcp_a_SOURCES = $(FCP_SOURCE)
 libezfcp_la_SOURCES = $(FCP_SOURCE)
 

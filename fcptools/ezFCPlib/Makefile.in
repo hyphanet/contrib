@@ -88,7 +88,8 @@ install_sh = @install_sh@
 
 CFLAGS = -ansi -W -Wall -pedantic
 
-#CFLAGS=-W -Wall
+lib_LIBRARIES = libezfcp.a
+
 lib_LTLIBRARIES = libezfcp.la
 libezfcp_la_LDFLAGS = -version-info 0:0:0
 
@@ -106,11 +107,31 @@ FCP_SOURCE = \
 	metaParse.c mimetype.c template.c safeMalloc.c
 
 
-#libezfcp_a_SOURCES = $(FCP_SOURCE)
+libezfcp_a_SOURCES = $(FCP_SOURCE)
 libezfcp_la_SOURCES = $(FCP_SOURCE)
 subdir = ezFCPlib
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES =
+LIBRARIES = $(lib_LIBRARIES)
+
+libezfcp_a_AR = $(AR) cru
+libezfcp_a_LIBADD =
+am_libezfcp_a_OBJECTS = _fcpGlobals.$(OBJEXT) _fcpLog.$(OBJEXT) \
+	_fcpPutSplit.$(OBJEXT) _fcpReadBlk.$(OBJEXT) \
+	_fcpRecvResponse.$(OBJEXT) _fcpSock.$(OBJEXT) \
+	_fcpUtil.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
+	fcpCreateHandle.$(OBJEXT) fcpDestroyHandle.$(OBJEXT) \
+	fcpGetKeyToFile.$(OBJEXT) fcpGetKeyToMem.$(OBJEXT) \
+	fcpInitHandle.$(OBJEXT) fcpMakChkFromMem.$(OBJEXT) \
+	fcpMakeChkFromFile.$(OBJEXT) fcpMakeSvkKeypair.$(OBJEXT) \
+	fcpOpenKey.$(OBJEXT) fcpOpenKeyIndex.$(OBJEXT) \
+	fcpPutKeyFromFile.$(OBJEXT) fcpPutKeyFromMem.$(OBJEXT) \
+	fcpRawMode.$(OBJEXT) fcpReadKey.$(OBJEXT) \
+	fcpReadKeyIndex.$(OBJEXT) fcpSetParam.$(OBJEXT) \
+	fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) \
+	fcpWriteKeyIndex.$(OBJEXT) metaParse.$(OBJEXT) \
+	mimetype.$(OBJEXT) template.$(OBJEXT) safeMalloc.$(OBJEXT)
+libezfcp_a_OBJECTS = $(am_libezfcp_a_OBJECTS)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 
 libezfcp_la_LIBADD =
@@ -132,31 +153,52 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
-@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/_fcpGlobals.Plo $(DEPDIR)/_fcpLog.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpPutSplit.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpReadBlk.Plo \
+@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/_fcpGlobals.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpGlobals.Po $(DEPDIR)/_fcpLog.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Po $(DEPDIR)/_fcpPutSplit.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpPutSplit.Po $(DEPDIR)/_fcpReadBlk.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpReadBlk.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Plo $(DEPDIR)/_fcpUtil.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Plo $(DEPDIR)/_fcpSock.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpUtil.Plo $(DEPDIR)/_fcpUtil.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Plo $(DEPDIR)/fcpCloseKey.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpCreateHandle.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpCreateHandle.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpDestroyHandle.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpDestroyHandle.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToFile.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToFile.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToMem.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToMem.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpInitHandle.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpInitHandle.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpMakChkFromMem.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpMakChkFromMem.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpMakeChkFromFile.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpMakeChkFromFile.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpMakeSvkKeypair.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpMakeSvkKeypair.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Plo $(DEPDIR)/fcpOpenKey.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpOpenKeyIndex.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKeyIndex.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromMem.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpRawMode.Plo $(DEPDIR)/fcpReadKey.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromMem.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpRawMode.Plo $(DEPDIR)/fcpRawMode.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpReadKey.Plo $(DEPDIR)/fcpReadKey.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpReadKeyIndex.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpSetParam.Plo $(DEPDIR)/fcpStartup.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpWriteKey.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/fcpReadKeyIndex.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpSetParam.Plo $(DEPDIR)/fcpSetParam.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpStartup.Plo $(DEPDIR)/fcpStartup.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpWriteKey.Plo $(DEPDIR)/fcpWriteKey.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpWriteKeyIndex.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/metaParse.Plo $(DEPDIR)/mimetype.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/safeMalloc.Plo $(DEPDIR)/template.Plo
+@AMDEP_TRUE@	$(DEPDIR)/fcpWriteKeyIndex.Po \
+@AMDEP_TRUE@	$(DEPDIR)/metaParse.Plo $(DEPDIR)/metaParse.Po \
+@AMDEP_TRUE@	$(DEPDIR)/mimetype.Plo $(DEPDIR)/mimetype.Po \
+@AMDEP_TRUE@	$(DEPDIR)/safeMalloc.Plo $(DEPDIR)/safeMalloc.Po \
+@AMDEP_TRUE@	$(DEPDIR)/template.Plo $(DEPDIR)/template.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -164,11 +206,11 @@ LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(libezfcp_la_SOURCES)
+DIST_SOURCES = $(libezfcp_a_SOURCES) $(libezfcp_la_SOURCES)
 HEADERS = $(include_HEADERS)
 
 DIST_COMMON = $(include_HEADERS) Makefile.am Makefile.in
-SOURCES = $(libezfcp_la_SOURCES)
+SOURCES = $(libezfcp_a_SOURCES) $(libezfcp_la_SOURCES)
 
 all: all-am
 
@@ -190,6 +232,38 @@ Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && \
 	  CONFIG_HEADERS= CONFIG_LINKS= \
 	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
+
+AR = ar
+install-libLIBRARIES: $(lib_LIBRARIES)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(libdir)
+	@list='$(lib_LIBRARIES)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo " $(INSTALL_DATA) $$p $(DESTDIR)$(libdir)/$$p"; \
+	    $(INSTALL_DATA) $$p $(DESTDIR)$(libdir)/$$p; \
+	  else :; fi; \
+	done
+	@$(POST_INSTALL)
+	@list='$(lib_LIBRARIES)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo " $(RANLIB) $(DESTDIR)$(libdir)/$$p"; \
+	    $(RANLIB) $(DESTDIR)$(libdir)/$$p; \
+	  else :; fi; \
+	done
+
+uninstall-libLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LIBRARIES)'; for p in $$list; do \
+	  echo " rm -f $(DESTDIR)$(libdir)/$$p"; \
+	  rm -f $(DESTDIR)$(libdir)/$$p; \
+	done
+
+clean-libLIBRARIES:
+	-test -z "$(lib_LIBRARIES)" || rm -f $(lib_LIBRARIES)
+libezfcp.a: $(libezfcp_a_OBJECTS) $(libezfcp_a_DEPENDENCIES) 
+	-rm -f libezfcp.a
+	$(libezfcp_a_AR) libezfcp.a $(libezfcp_a_OBJECTS) $(libezfcp_a_LIBADD)
+	$(RANLIB) libezfcp.a
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
 	$(mkinstalldirs) $(DESTDIR)$(libdir)
@@ -219,36 +293,67 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpGlobals.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpGlobals.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpPutSplit.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpPutSplit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpReadBlk.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpReadBlk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpSock.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpSock.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpUtil.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpUtil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreateHandle.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreateHandle.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpDestroyHandle.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpDestroyHandle.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToFile.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToMem.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToMem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpInitHandle.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpInitHandle.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakChkFromMem.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakChkFromMem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeChkFromFile.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeChkFromFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeSvkKeypair.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeSvkKeypair.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKeyIndex.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKeyIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromMem.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromMem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpRawMode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpRawMode.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKeyIndex.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKeyIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpSetParam.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpSetParam.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKey.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKeyIndex.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKeyIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/metaParse.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/metaParse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/mimetype.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/mimetype.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/safeMalloc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/safeMalloc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/template.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/template.Po@am__quote@
 
 distclean-depend:
 	-rm -rf $(DEPDIR)
@@ -345,10 +450,10 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(HEADERS)
+all-am: Makefile $(LIBRARIES) $(LTLIBRARIES) $(HEADERS)
 
 installdirs:
-	$(mkinstalldirs) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir)
+	$(mkinstalldirs) $(DESTDIR)$(libdir) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir)
 
 install: install-am
 install-exec: install-exec-am
@@ -375,8 +480,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
-	mostlyclean-am
+clean-am: clean-generic clean-libLIBRARIES clean-libLTLIBRARIES \
+	clean-libtool mostlyclean-am
 
 distclean: distclean-am
 
@@ -393,7 +498,7 @@ info-am:
 
 install-data-am: install-includeHEADERS
 
-install-exec-am: install-libLTLIBRARIES
+install-exec-am: install-libLIBRARIES install-libLTLIBRARIES
 
 install-info: install-info-am
 
@@ -411,20 +516,21 @@ mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
 uninstall-am: uninstall-includeHEADERS uninstall-info-am \
-	uninstall-libLTLIBRARIES
+	uninstall-libLIBRARIES uninstall-libLTLIBRARIES
 
 .PHONY: GTAGS all all-am check check-am clean clean-generic \
-	clean-libLTLIBRARIES clean-libtool distclean distclean-compile \
-	distclean-depend distclean-generic distclean-libtool \
-	distclean-tags distdir dvi dvi-am info info-am install \
-	install-am install-data install-data-am install-exec \
-	install-exec-am install-includeHEADERS install-info \
-	install-info-am install-libLTLIBRARIES install-man \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	tags uninstall uninstall-am uninstall-includeHEADERS \
-	uninstall-info-am uninstall-libLTLIBRARIES
+	clean-libLIBRARIES clean-libLTLIBRARIES clean-libtool distclean \
+	distclean-compile distclean-depend distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am info \
+	info-am install install-am install-data install-data-am \
+	install-exec install-exec-am install-includeHEADERS \
+	install-info install-info-am install-libLIBRARIES \
+	install-libLTLIBRARIES install-man install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool tags uninstall \
+	uninstall-am uninstall-includeHEADERS uninstall-info-am \
+	uninstall-libLIBRARIES uninstall-libLTLIBRARIES
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
