@@ -17,6 +17,7 @@ void update_list ();
 void pl_add (char *name, char *uri);
 void pl_update ();
 void * pl_thread (void *args);
+void my_wait();
 
 void key_up ();
 void key_down ();
@@ -28,6 +29,7 @@ void key_tab ();
 void key_backspace ();
 void key_add_all ();
 void key_pause ();
+void key_quit ();
 
 char home[256];
 int curline, offset;
@@ -47,9 +49,10 @@ char **catalogs;
 struct pl_item {
     struct pl_item *next;
     pthread_t thread;
-    int id, die;
+    fcp_document *d;
+    int id;
     char *name, *uri;
-    FILE *data;
+    FILE *data, *mpg123;
 };
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -267,11 +270,10 @@ main (int argc, char **argv)
 	    case KEY_BACKSPACE: key_backspace(); break; // remove plist entry
 	    case 'd':           key_add_all();   break; // queue all songs in dir
 	    case 'p':           key_pause();     break; // pause
+	    case 'q':           key_quit();      break; // quit
 	    default: break;
 	}
     }
-    clear(); endwin();
-    return 0;
 }
 
 void
@@ -391,8 +393,9 @@ pl_add (char *name, char *uri)
 {
     struct pl_item *new = malloc(sizeof(struct pl_item));
     pthread_mutex_lock(&mutex);
-    new->name = strdup(name); new->uri = strdup(uri); new->die = 0;
+    new->name = strdup(name); new->uri = strdup(uri);
     new->data = NULL; new->next = NULL; new->id = counter++;
+    new->mpg123 = NULL; new->d = NULL;
     if (!head) { // first node
 	head = tail = new;
     } else {
@@ -447,15 +450,25 @@ void
 key_backspace ()
 {
     int i = 0;
-    struct pl_item *last = NULL, *pli = head;
+    struct pl_item *p, *last = NULL, *pli = head;
     if (focus == LEFT) return; // nope, sorry
     pthread_mutex_lock(&mutex);
     while (pli) {
 	if (i == curline) {
 	    if (last) last->next = pli->next;
 	    else head = pli->next;
+	    if (last && !last->next) tail = last;
 	    if (i == --pl_len) curline--;
-	    pli->die = 1;
+	    if (last && head->id >= pli->id - buffer)
+		for (p = pli->next ; p ; p = p->next) p->id--;
+	    pthread_cancel(pli->thread);
+//	    if (pli->d) fcp_close(pli->d);
+	    if (pli->data) fclose(pli->data);
+	    if (pli->mpg123) pclose(pli->mpg123);
+	    free(pli->name); free(pli->uri); free(pli);
+    	    pl_update();
+	    pthread_mutex_unlock(&mutex); // FIXME !!!!
+	    pthread_cond_broadcast(&cond);
 	    break;
 	}
 	last = pli;
@@ -478,8 +491,18 @@ key_add_all ()
 void
 key_pause ()
 {
-    if (paused) paused = 0;
-    else paused = 1;
+    pthread_mutex_lock(&mutex);
+    if (paused) paused = 0; else paused = 1;
+    pthread_cond_broadcast(&cond);
+    pthread_mutex_unlock(&mutex);
+}
+
+void
+key_quit ()
+{
+    clear();
+    endwin();
+    exit(0);
 }
 
 void
@@ -504,53 +527,39 @@ void *
 pl_thread (void *args)
 {
     struct pl_item *pli = (struct pl_item *) args;
-    fcp_document *d = fcp_document_new();
     char buf[1024];
-    FILE *mpg123 = NULL;
     int n, length;    
-    while (head->id < pli->id - buffer) {
-	usleep(10);
-	if (pli->die) goto die;
-    }
-    length = fcp_request(NULL, d, pli->uri, htl, threads);
-    while (pli != head) {
-	usleep(10);
-	if (pli->die) goto die;
-    }
-    mpg123 = popen("mpg123 - &>/dev/null", "w");
-    if (!mpg123) length = 0;
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+    while (head->id < pli->id - buffer) my_wait();
+    pli->d = fcp_document_new();
+    length = fcp_request(NULL, pli->d, pli->uri, htl, threads);
+    while (pli != head) my_wait();
+    pli->mpg123 = popen("mpg123 - &>/dev/null", "w");
+    if (!pli->mpg123) length = 0;
     while (length > 0) {
-	if (pli->die) {
-	    pclose(mpg123);
-	    goto die;
-	}
-	while (paused) {
-	    usleep(10);
-	    if (pli->die) {
-		pclose(mpg123);
-		goto die;
-	    }
-	}
-	length -= (n = fcp_read(d, buf, 1024));
+	while (paused) my_wait();
+	length -= (n = fcp_read(pli->d, buf, 1024));
 	if (!n) break;
-	if (fwrite(buf, 1, n, mpg123) != n) break;
+	if (fwrite(buf, 1, n, pli->mpg123) != n) break;
     }
     pthread_mutex_lock(&mutex);
-    fcp_close(d);
-    if (mpg123) pclose(mpg123);
+    fcp_close(pli->d);
+    if (pli->mpg123) pclose(pli->mpg123);
     pl_len--;
+    if (focus == RIGHT && curline > 0) curline--;
     head = pli->next;
     free(pli->name); free(pli->uri); free(pli);
     pl_update();
+    pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&mutex);
     pthread_exit(NULL);
-die:
+}
+
+void
+my_wait ()
+{
     pthread_mutex_lock(&mutex);
-    fcp_close(d);
-    if (mpg123) pclose(mpg123);
-    free(pli->name); free(pli->uri); free(pli);
-    pl_update();
+    pthread_cond_wait(&cond, &mutex);
     pthread_mutex_unlock(&mutex);
-    pthread_exit(NULL);
 }
 
