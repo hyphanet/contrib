@@ -35,7 +35,6 @@ void _fcpLog(int level, char *format, ...)
     va_list ap;
     va_start(ap, format);
 
-	 // vsprintf() is ANSI-C compliant, vsnprintf() is not.
     vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
 
     va_end(ap);

@@ -19,14 +19,6 @@
 	 - manages queueing of splitfile insert jobs
 */
 
-#include <unistd.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <sys/stat.h>
-
-
 #include "ezFCPlib.h"
 
 typedef struct
@@ -72,10 +64,13 @@ extern char     _fcpID[];
 static int			insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file);
 static void			splitAddJob(splitJobIns *job);
 
-static int			LaunchThread(void (*)(void *), void *parg);
+/* Create type 'FP' for 'Function Pointer' which takes a 'void *' parameter */
+typedef void (*FP) (void *);
 
-static void			splitInsMgr(void *nothing);
-static void			chunkThread(chunkThreadParams *params);
+static int			LaunchThread   (FP, void *);
+static void			splitMgrThread (void *);
+static void			chunkThread    (void *);
+
 static int			dumpQueue();
 
 static splitJobIns	*newJob;
@@ -84,7 +79,7 @@ static splitJobIns	*jobQueueEnd;
 static splitJobIns	*activeJobs;
 
 static int			runningThreads = 0;  /* number of split threads currently running   */
-static int			clientThreads = 0;   /*  number of caller threads currently running */
+static int			clientThreads = 0;   /* number of caller threads currently running  */
 
 static int			maxThreads = FCP_MAX_SPLIT_THREADS;
 static char			splitMgrRunning = 0;
@@ -124,7 +119,7 @@ void _fcpInitSplit(int maxSplitThreads)
 	maxThreads = (maxSplitThreads == 0) ? FCP_MAX_SPLIT_THREADS : maxSplitThreads;
 
 	// Launch manager thread
-	LaunchThread(splitInsMgr, NULL);
+	LaunchThread(splitMgrThread, NULL);
 
 	while (!splitMgrRunning)
 		Sleep( 1, 0 );
@@ -399,7 +394,7 @@ char *xxx = 0x1467658; */
 
 
 /*
-  splitInsMgr()
+  splitMgrThread()
 
   Arguments:    none
 
@@ -409,7 +404,7 @@ char *xxx = 0x1467658; */
   small keys) gets inserted into Freenet, except through this thread.
 */
 
-static void splitInsMgr(void *nothing)
+static void splitMgrThread(void *nothing)
 {
 	splitJobIns	*tmpJob, *prevJob;
 
@@ -499,7 +494,7 @@ static void splitInsMgr(void *nothing)
 			splitJobIns *temp = newJob->next;
 
 			// Add this job to main queue
-			_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: got req to insert file '%s'",
+			_fcpLog(FCP_LOG_DEBUG, "splitMgrThread: got req to insert file '%s'",
 					newJob->fileName);
 
 			_fcpLog(FCP_LOG_DEBUG, "Queue dump: before adding job for '%s'",
@@ -529,7 +524,7 @@ static void splitInsMgr(void *nothing)
 
 		//if (jobQueue == NULL)
 		//	_fcpLog(FCP_LOG_DEBUG, "Job queue is empty");
-		//_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: looking for next chunk to insert");
+		//_fcpLog(FCP_LOG_DEBUG, "splitMgrThread: looking for next chunk to insert");
 
 		// We have spare thread slots - search for next chunk insert job to launch
 		for (tmpJob = jobQueue; tmpJob != NULL && !breakloop; tmpJob = tmpJob->next)
@@ -548,6 +543,9 @@ static void splitInsMgr(void *nothing)
 
 				if (chunk->status == SPLIT_INSSTAT_WAITING)
 				{
+					pthread_t pth;
+					pthread_attr_t attr;
+
 					chunkThreadParams *params = safeMalloc(sizeof(chunkThreadParams));
 
 					chunk->status = SPLIT_INSSTAT_INPROG;		// correct code
@@ -573,6 +571,9 @@ static void splitInsMgr(void *nothing)
 							i, params->key->fileName);
 
 					// fire up a thread to insert this chunk
+					pthread_attr_init(&attr);
+					pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
 					if (LaunchThread(chunkThread, params) != 0)
 					{
 						// failed thread launch - force restart of main loop
@@ -590,10 +591,10 @@ static void splitInsMgr(void *nothing)
 					// Successful launch - Add to tally of running threads
 					runningThreads++;
 				}
-			}				// 'for each splitfile chunk'
-		}					// 'for (each spare thread slot)'
-	}						// 'while (1)'
-}							// 'splitInsMgr()'
+			}				/* for each splitfile chunk */
+		}					/* for (each spare thread slot) */
+	}						/* while (1) */
+}							/* splitMgrThread() */
 
 
 static int dumpQueue()
@@ -661,57 +662,64 @@ static int dumpQueue()
 // Thread to insert a single chunk
 //
 
-static void chunkThread(chunkThreadParams *params)
+static void chunkThread(void *params)
 {
-	static int keynum = 0;
-	char mem[1024];
-	HFCP *hfcp = fcpCreateHandle();
-	int mypid = getpid();
+  static int keynum = 0;
+  char mem[1024];
+  HFCP *hfcp = fcpCreateHandle();
+  int mypid = getpid();
 
-//params->chunk->status = SPLIT_INSSTAT_SUCCESS;
-//params->key->doneChunks++;
+  // eliminates ANSI-C "incompatible pointer type" warning
+  chunkThreadParams *chunkParams = (chunkThreadParams *)params;
 
-	_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserting chunk index %d of %s",
-			mypid,
-			params->chunk->index,
-			params->key->fileName);
+  //chunkParams->chunk->status = SPLIT_INSSTAT_SUCCESS;
+  //chunkParams->key->doneChunks++;
 
-	if (fcpPutKeyFromMem(hfcp, "CHK@", params->chunk->chunk, NULL, params->chunk->size)
-		!= 0)
-	{
-		_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: failed to insert chunk index %d of %s",
-			mypid,
-			params->chunk->index,
-			params->key->fileName);
-		params->chunk->status = SPLIT_INSSTAT_FAILED;
-		params->key->status = SPLIT_INSSTAT_BADNEWS;
-		runningThreads--;
-		pthread_exit(0);
-		return;
-	}
+  _fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserting chunk index %d of %s",
+			 mypid,
+			 chunkParams->chunk->index,
+			 chunkParams->key->fileName);
+  
+  if (fcpPutKeyFromMem(hfcp,
+							  "CHK@", chunkParams->chunk->chunk, NULL,
+							  chunkParams->chunk->size) != 0) {
+	 
+	 _fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: failed to insert chunk index %d of %s",
+				mypid,
+				chunkParams->chunk->index,
+				chunkParams->key->fileName);
 
-//	printf("### params->chunk = %x\n", params->chunk);
+	 chunkParams->chunk->status = SPLIT_INSSTAT_FAILED;
+	 chunkParams->key->status = SPLIT_INSSTAT_BADNEWS;
 
-	params->chunk->status = SPLIT_INSSTAT_MANIFEST;
-	params->key->doneChunks++;
+	 runningThreads--;
+	 pthread_exit(0);
 
-//	sprintf(params->chunk->key, "CHK@%03d", keynum);
-	strcpy(params->chunk->key, hfcp->created_uri);		// correct code
+	 return;
+  }
 
-	//strncpy(mem, params->chunk->chunk, params->chunk->size);
-	//mem[params->chunk->size] = '\0';
+//	printf("### chunkParams->chunk = %x\n", chunkParams->chunk);
 
-	//printf("thrd: inserted %s with %d bytes of data '%s'\n", params->chunk->key, params->chunk->size, mem);
+	chunkParams->chunk->status = SPLIT_INSSTAT_MANIFEST;
+	chunkParams->key->doneChunks++;
 
-	free(params->chunk->chunk);
+//	sprintf(chunkParams->chunk->key, "CHK@%03d", keynum);
+	strcpy(chunkParams->chunk->key, hfcp->created_uri);		// correct code
+
+	//strncpy(mem, chunkParams->chunk->chunk, chunkParams->chunk->size);
+	//mem[chunkParams->chunk->size] = '\0';
+
+	//printf("thrd: inserted %s with %d bytes of data '%s'\n", chunkParams->chunk->key, chunkParams->chunk->size, mem);
+
+	free(chunkParams->chunk->chunk);
 
 	_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserted chunk index %d of %s\nkey=%s",
 			mypid,
-			params->chunk->index,
-			params->key->fileName,
-			params->chunk->key);
+			chunkParams->chunk->index,
+			chunkParams->key->fileName,
+			chunkParams->chunk->key);
 
-	free(params);
+	free(chunkParams);
 	fcpDestroyHandle(hfcp);
 
 	// only decrement thread count if we're not ready to write the manifest
@@ -723,19 +731,13 @@ static void chunkThread(chunkThreadParams *params)
 }
 
 
-static int LaunchThread(void (*f)(void *), void *parg)
+static int LaunchThread(FP f, void *parms)
 {
-/* Does the following #define really work ?
- */
-#ifdef SINGLE_THREAD_DEBUG
-    (*f)(parg);
-    return;
-#endif
+  pthread_t pth;
+  pthread_attr_t attr;
+  
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-   pthread_t pth;
-	pthread_attr_t attr;
-
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	return pthread_create(&pth, &attr, (void *(*)(void *))f, parg);
-} /* 'LaunchThread()' */
+  return pthread_create(&pth, &attr, (void *)f, parms);
+}

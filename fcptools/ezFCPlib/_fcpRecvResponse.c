@@ -30,264 +30,237 @@ static int  getrespline(HFCP *hfcp, char *buf);
 static int  htoi(char *s);
 
 
-//
-// Function:    _fcpRecvResponse
-//
-// Arguments:   fcpconn
-//
-//
+/*
+  Function:    _fcpRecvResponse
+
+  Arguments:   fcpconn
+*/
 
 int _fcpRecvResponse(HFCP *hfcp)
 {
-    char respline[RECV_BUFSIZE];
+  char respline[RECV_BUFSIZE];
 
-    // Initialise the return fields
-    hfcp->created_uri[0] = '\0';
-    hfcp->privkey[0] = '\0';
-    hfcp->pubkey[0] = '\0';
+  // Initialise the return fields
+  hfcp->created_uri[0] = '\0';
+  hfcp->privkey[0] = '\0';
+  hfcp->pubkey[0] = '\0';
 
-    //hfcp->conn.response.body.keypair.pubkey = NULL;
-    //hfcp->conn.response.body.keypair.privkey = NULL;
-    //hfcp->conn.response.body.keypair.uristr = NULL;
-    hfcp->pubkey[0] = '\0';
-    hfcp->privkey[0] = '\0';
-    hfcp->created_uri[0] = '\0';
+  //hfcp->conn.response.body.keypair.pubkey = NULL;
+  //hfcp->conn.response.body.keypair.privkey = NULL;
+  //hfcp->conn.response.body.keypair.uristr = NULL;
+  hfcp->pubkey[0] = '\0';
+  hfcp->privkey[0] = '\0';
+  hfcp->created_uri[0] = '\0';
 
-    // get first response line - loop until we don't get Restarted
-    while (1)
-    {
-        if (getrespline(hfcp, respline) != 0)
-            return -2;
-        else if ((strcmp(respline, "Restarted") != 0)
-                && (strcmp(respline, "Pending") != 0))
-            // not a 'Restarted' and not an error - handle it below
-            break;
-        else
-        {
-            // read lines till we fail or get an 'EndMessage'
-            int status;
+  // get first response line - loop until we don't get Restarted
+  while (1) {
 
-            while ((status = getrespline(hfcp, respline)) == 0)
-            {
-                if (status != 0)
-                {
-                    _fcpLog(FCP_LOG_CRITICAL, "failed to read response");
-                    return -2;
-                }
-                else if (!strcmp(respline, "EndMessage"))
-                    break;
-            }
-        }
-    }
+	 if (getrespline(hfcp, respline) != 0)
+		return -2;
 
-    // categorise the response
-    if (!strcmp(respline, "NodeHello"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_HELLO;
-        return getrespHello(hfcp);
-    }
-    else if (!strcmp(respline, "Success"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_SUCCESS;
-        return getrespSuccess(hfcp);
-    }
-    else if (!strcmp(respline, "DataFound"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_DATAFOUND;
-        return getrespDatafound(hfcp);
-    }
-    else if (!strcmp(respline, "DataChunk"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_DATACHUNK;
-        return getrespDatachunk(hfcp);
-    }
-    else if (!strcmp(respline, "FormatError"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_FORMATERROR;
-        return getrespFormaterror(hfcp);
-    }
-    else if (!strcmp(respline, "URIError"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_URIERROR;
-        return getrespUrierror(hfcp);
-    }
-    else if (!strcmp(respline, "DataNotFound"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_DATANOTFOUND;
-        return getrespDataNotFound(hfcp);
-    }
-    else if (!strcmp(respline, "RouteNotFound"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_ROUTENOTFOUND;
-        return getrespRouteNotFound(hfcp);
-    }
-    else if (!strcmp(respline, "KeyCollision"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_KEYCOLLISION;
-        return getrespKeycollision(hfcp);
-    }
-    else if (!strcmp(respline, "Failed"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_FAILED;
-        return getrespFailed(hfcp);
-    }
-    else if (!strcmp(respline, "SizeError"))
-    {
-        hfcp->conn.response.type = FCPRESP_TYPE_SIZEERROR;
-        return FCPRESP_TYPE_SIZEERROR;
-    }
+	 else if ((strcmp(respline, "Restarted") != 0)
+				 && (strcmp(respline, "Pending") != 0))
+		// not a 'Restarted' and not an error - handle it below
+		break;
 
-    else
-    {
-        _fcpLog(FCP_LOG_CRITICAL, 
-			"_fcpRecvResponse: illegal reply header from node: '%s'", 
-			respline
-		);
-        return -3;      // got unknown response
-    }
+	 else {
+		// read lines till we fail or get an 'EndMessage'
+		int status;
+		  
+		while ((status = getrespline(hfcp, respline)) == 0) {
 
-    return 0;
+		  if (status != 0) {
+			 _fcpLog(FCP_LOG_CRITICAL, "failed to read response");
 
+			 return -2;
+		  }
+		  else if (!strcmp(respline, "EndMessage"))
+			 break;
+		}
+	 }
+  }
+  
+  // categorise the response
+  if (!strcmp(respline, "NodeHello")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_HELLO;
+	 return getrespHello(hfcp);
+  }
+  else if (!strcmp(respline, "Success")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_SUCCESS;
+	 return getrespSuccess(hfcp);
+  }
+  else if (!strcmp(respline, "DataFound")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_DATAFOUND;
+	 return getrespDatafound(hfcp);
+  }
+  else if (!strcmp(respline, "DataChunk")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_DATACHUNK;
+	 return getrespDatachunk(hfcp);
+  }
+  else if (!strcmp(respline, "FormatError")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_FORMATERROR;
+	 return getrespFormaterror(hfcp);
+  }
+  else if (!strcmp(respline, "URIError")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_URIERROR;
+	 return getrespUrierror(hfcp);
+  }
+  else if (!strcmp(respline, "DataNotFound")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_DATANOTFOUND;
+	 return getrespDataNotFound(hfcp);
+  }
+  else if (!strcmp(respline, "RouteNotFound")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_ROUTENOTFOUND;
+	 return getrespRouteNotFound(hfcp);
+  }
+  else if (!strcmp(respline, "KeyCollision")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_KEYCOLLISION;
+	 return getrespKeycollision(hfcp);
+  }
+  else if (!strcmp(respline, "Failed")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_FAILED;
+	 return getrespFailed(hfcp);
+  }
+  else if (!strcmp(respline, "SizeError")) {
+	 hfcp->conn.response.type = FCPRESP_TYPE_SIZEERROR;
+	 return FCPRESP_TYPE_SIZEERROR;
+  }
+  
+  else {
+	 _fcpLog(FCP_LOG_CRITICAL, 
+				"_fcpRecvResponse: illegal reply header from node: '%s'", 
+				respline
+				);
+	 return -3;      // got unknown response
+  }
+  
+  return 0;
 }       // '_fcpRecvResponse()'
 
 
 
-//
-// Function:    getrespHello()
-//
-// Arguments    hfcpconn - Freenet FCP handle
-//
-// Returns      FCPRESP_TYPE_HELLO if successful, -1 otherwise
-//
-// Description: reads in and processes details of NodeHello response
-//
+/*
+  Function:    getrespHello()
+
+  Arguments    hfcpconn - Freenet FCP handle
+
+  Returns      FCPRESP_TYPE_HELLO if successful, -1 otherwise
+
+  Description: reads in and processes details of NodeHello response
+*/
 
 static int getrespHello(HFCP *hfcp)
 {
     char respline[RECV_BUFSIZE];
 
     // get protocol field
-    while (getrespline(hfcp, respline) == 0)
-    {
-        if (strncmp(respline, "Protocol=", 9) == 0)
-        {
-            unsigned int max = sizeof(hfcp->protocol) - 1;
+    while (getrespline(hfcp, respline) == 0) {
+		if (strncmp(respline, "Protocol=", 9) == 0) {
+		  unsigned int max = sizeof(hfcp->protocol) - 1;
+		  
+		  if (strlen(respline+9) > max) {
+			 strncpy(hfcp->protocol, respline+9, max);
+			 hfcp->protocol[max] = '\0';
+		  }
+		  else
+			 strcpy(hfcp->protocol, respline+9);
+		}
 
-            if (strlen(respline+9) > max)
-            {
-                strncpy(hfcp->protocol, respline+9, max);
-                hfcp->protocol[max] = '\0';
-            }
-            else
-                strcpy(hfcp->protocol, respline+9);
-        }
+		else if (strncmp(respline, "Node=", 5) == 0) {
+		  unsigned int max = sizeof(hfcp->node) - 1;
+		  
+		  if (strlen(respline+5) > max) {
+			 strncpy(hfcp->node, respline+5, max);
+			 hfcp->node[max] = '\0';
+		  }
+		  else
+			 strcpy(hfcp->node, respline+5);
+		}
 
-        else if (strncmp(respline, "Node=", 5) == 0)
-        {
-            unsigned int max = sizeof(hfcp->node) - 1;
-
-            if (strlen(respline+5) > max)
-            {
-                strncpy(hfcp->node, respline+5, max);
-                hfcp->node[max] = '\0';
-            }
-            else
-                strcpy(hfcp->node, respline+5);
-        }
-
-        else if (strcmp(respline, "EndMessage") == 0)
-            return FCPRESP_TYPE_HELLO;
+		else if (strcmp(respline, "EndMessage") == 0)
+		  return FCPRESP_TYPE_HELLO;
     }
 
     // failed somewhere
     return -1;
-
+	 
 }       // 'fcprespHello()'
 
 
 
-//
-// Function:    getrespSuccess()
-//
-// Arguments    hfcpconn - Freenet FCP handle
-//
-// Returns      FCPRESP_TYPE_SUCCESS if successful, -1 otherwise
-//
-// Description: reads in and processes details of NodeHello response
-//
+/*
+  Function:    getrespSuccess()
+
+  Arguments    hfcpconn - Freenet FCP handle
+
+  Returns      FCPRESP_TYPE_SUCCESS if successful, -1 otherwise
+
+  Description: reads in and processes details of NodeHello response
+*/
 
 static int getrespSuccess(HFCP *hfcp)
 {
-    char respline[RECV_BUFSIZE];
+  char respline[RECV_BUFSIZE];
 
-    // get protocol field
-    while (getrespline(hfcp, respline) == 0)
-    {
-        if (strncmp(respline, "URI=", 4) == 0)
-        {
-            //hfcp->conn.response.body.keypair.uristr = strdup(respline + 4);
-            strcpy(hfcp->created_uri, respline + 4);
-        }
+  // get protocol field
+  while (getrespline(hfcp, respline) == 0) {
+	 if (strncmp(respline, "URI=", 4) == 0) {
+		//hfcp->conn.response.body.keypair.uristr = strdup(respline + 4);
+		strcpy(hfcp->created_uri, respline + 4);
+	 }
 
-        else if (strncmp(respline, "PublicKey=", 10) == 0)
-        {
-            //hfcp->conn.response.body.keypair.pubkey = strdup(respline + 10);
-            strcpy(hfcp->pubkey, respline + 10);
-        }
+	 else if (strncmp(respline, "PublicKey=", 10) == 0) {
+		//hfcp->conn.response.body.keypair.pubkey = strdup(respline + 10);
+		strcpy(hfcp->pubkey, respline + 10);
+	 }
+	 
+	 else if (strncmp(respline, "PrivateKey=", 11) == 0) {
+		//hfcp->conn.response.body.keypair.privkey = strdup(respline + 11);
+		strcpy(hfcp->privkey, respline + 11);
+	 }
 
-        else if (strncmp(respline, "PrivateKey=", 11) == 0)
-        {
-            //hfcp->conn.response.body.keypair.privkey = strdup(respline + 11);
-            strcpy(hfcp->privkey, respline + 11);
-        }
+	 else if (strcmp(respline, "EndMessage") == 0) return FCPRESP_TYPE_SUCCESS;
+  }
 
-        else if (strcmp(respline, "EndMessage") == 0)
-            return FCPRESP_TYPE_SUCCESS;
-    }
-
-    // failed somewhere
-    return -1;
+  // failed somewhere
+  return -1;
 
 }       // 'fcprespSuccess()'
 
 
 
-//
-// Function:    getrespFailed()
-//
-// Arguments    hfcpconn - Freenet FCP handle
-//
-// Returns      FCPRESP_TYPE_SUCCESS if successful, -1 otherwise
-//
-// Description: reads in and processes details of Failed response
-//
+/*
+  Function:    getrespFailed()
+
+  Arguments    hfcpconn - Freenet FCP handle
+
+  Returns      FCPRESP_TYPE_SUCCESS if successful, -1 otherwise
+
+  Description: reads in and processes details of Failed response
+*/
 
 static int getrespFailed(HFCP *hfcp)
 {
-    char respline[RECV_BUFSIZE];
+  char respline[RECV_BUFSIZE];
 
-    // get protocol field
-    while (getrespline(hfcp, respline) == 0)
-    {
-        if (strncmp(respline, "Reason=", 4) == 0)
-        {
-            //hfcp->conn.response.body.failed.reason = strdup(respline + 8);
-            strcpy(hfcp->failReason, respline + 8);
-        }
+  // get protocol field
+  while (getrespline(hfcp, respline) == 0) {
+	 if (strncmp(respline, "Reason=", 4) == 0) {
+		//hfcp->conn.response.body.failed.reason = strdup(respline + 8);
+		strcpy(hfcp->failReason, respline + 8);
+	 }
 
-        if (strncmp(respline, "URI=", 4) == 0)
-        {
-            //hfcp->conn.response.body.keypair.uristr = strdup(respline + 4);
-            strcpy(hfcp->created_uri, respline + 4);
-        }
-
-        else if (strcmp(respline, "EndMessage") == 0)
-            return FCPRESP_TYPE_FAILED;
-    }
-
-    // failed somewhere
-    return -1;
-
+	 if (strncmp(respline, "URI=", 4) == 0) {
+		//hfcp->conn.response.body.keypair.uristr = strdup(respline + 4);
+		strcpy(hfcp->created_uri, respline + 4);
+	 }
+	 
+	 else if (strcmp(respline, "EndMessage") == 0) return FCPRESP_TYPE_FAILED;
+  }
+  
+  // failed somewhere
+  return -1;
+  
 }       // 'fcprespFailed()'
 
 

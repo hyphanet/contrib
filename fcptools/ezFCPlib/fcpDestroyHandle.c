@@ -31,16 +31,14 @@ extern void    metaFree(META04 *meta);
 
 void fcpDestroyHandle(HFCP *hfcp)
 {
-    if (hfcp)
-    {
-        if (hfcp->meta)
-            metaFree(hfcp->meta);
+  if (hfcp) {
+	 if (hfcp->meta)
+		metaFree(hfcp->meta);
+	 
+	 if (hfcp->wr_info.uri != NULL)
+		free(hfcp->wr_info.uri);
 
-        if (hfcp->wr_info.uri != NULL)
-            free(hfcp->wr_info.uri);
-
-        if (hfcp->malloced)
-            free(hfcp);
-    }
-
+	 if (hfcp->malloced)
+		free(hfcp);
+  }
 }       // 'fcpDestroyHandle()'

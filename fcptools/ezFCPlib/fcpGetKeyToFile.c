@@ -23,33 +23,31 @@
 
 int fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata)
 {
-    char buf[1024];
-    int count;
-    int fd;
+  char buf[1024];
+  int count;
+  int fd;
 
-    // try to get the key open
-    if (fcpOpenKey(hfcp, key, (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0))) != 0)
-        return -1;
+  // try to get the key open
+  if (fcpOpenKey(hfcp, key, (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0))) != 0)
+	 return -1;
+  
+  *pMetadata = NULL;
 
-    *pMetadata = NULL;
+  // nuke file if it exists
+  unlink(file);
 
-    // nuke file if it exists
-    unlink(file);
-
-    // open a file to write the key to
-    if ((fd = open(file, O_CREAT, S_IREAD | S_IWRITE)) < 0)
-
+  // open a file to write the key to
+  if ((fd = open(file, O_CREAT, S_IREAD | S_IWRITE)) < 0)
     return -1;
 
-    // suck all of key's data into this file
-    while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
-        write(fd, buf, count);
-    close(fd);
+  // suck all of key's data into this file
+  while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
+	 write(fd, buf, count);
+  
+  close(fd);
 
-    // all done
-    fcpCloseKey(hfcp);
-    return 0;
-
+  // all done
+  fcpCloseKey(hfcp);
+  
+  return 0;
 }       // 'fcpGetKeyToFile()'
-
-/* force cvs update */

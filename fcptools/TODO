@@ -1,26 +1,40 @@
 This is the TODO file for FCPtools.
 
 
--------------------------------------------------------------------------------
-Need to streamline the check for pthreads (POSIX.1, perhaps a later version if
-CygWin supports it) done during automake.
+This file's purpose is to provide a breakdown of important features/fixes that
+can be implemented by any competent C programmer.  If why a particular feature
+needs implementaion is left a mystery, it's because long winded explanations
+are not meant for this TODO file, otherwise I'd call it the TODO+WHY file.
 
 
-Complete all modifications necessary for true portability among UNIX-like
-environments.  This includes:
+---------------------------------------------------------------------------
+*** ezFCPlib specific *** (In order of relative importance)
 
-* fcpOpenKey.c:
-* fcpWriteKey.c:
-* fcpGetKeyToFile.c:
-* fcpPutKeyFromFile.c:
+1. Implement signal handling proper for a pthreads application.  Specifically,
+it should compile *and* run on Solaris.
 
-* _fcpPutSplit.c:
-* metaParse.c:
+2. Work fcpPutKeyFromFile.c away from the #WINDOWS specifics.
+   (completed- joliveri)
+
+3. Confirm socket code in _fcpSock.c functions when compiled on NT/Cygwin.
+
+4. A function that accepts (char *) and returns a unique filename.  The man
+page for mktemp(3) is a good example, minus the portability.
+ 
+5. Confirm file open() functions are portable and whether or not streams
+should take their place (fcpOpenKey.c, ...).
+
+6. Consolidate _fcpUtil.c with other global 'FCPtools' related functions.
+
+7. Clean up _fcpRecvResponse.c (syntax, indenting scheme).  See if there can be
+any code sharing.
+
+8. Determine the purpose of fcpMakeChkFromMem.c, fcpMakeChkFromFile.c.
 
 
--------------------------------------------------------------------------------
-Non-port specific tasks:
+---------------------------------------------------------------------------
+*** FCPtools generic ***
 
-* Add command line param '--version'.
-* Pretty up the command line info screens.
+. Enhance command-line interface.  Add --version to all tools.
 
+(to be completed)

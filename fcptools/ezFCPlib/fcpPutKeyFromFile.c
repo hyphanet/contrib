@@ -1,46 +1,38 @@
-//
-//  This code is part of FreeWeb - an FCP-based client for Freenet
-//
-//  Designed and implemented by David McNab, david@rebirthing.co.nz
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The FreeWeb website is at http://freeweb.sourceforge.net
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
 
-#ifndef WINDOWS
-#include "unistd.h"
-#endif
+/*
+  This code is part of FreeWeb - an FCP-based client for Freenet
 
-#include "stdlib.h"
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
+
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
+
+  This code is distributed under the GNU Public Licence (GPL) version 2.
+  See http://www.gnu.org/ for further details of the GPL.
+*/
+
+
+#include <stdlib.h>
 
 #include "ezFCPlib.h"
 
 extern char     _fcpID[];
 
-#ifndef WINDOWS
-#define _read(fd, buf, len) read(fd, buf, len)
-#endif
-
-
-//
-// IMPORTED DECLARATIONS
-//
+/*
+  IMPORTED DECLARATIONS
+*/
 
 extern int fcpSplitChunkSize;
 
 
-//
-// Function:    fcpPutKeyFromFile()
-//
-// Arguments:   hfcp
-//
-// Description:
-//
-//
+/*
+  Function:    fcpPutKeyFromFile()
+
+  Arguments:   hfcp
+
+  Description:
+*/
 
 int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
 {
@@ -53,13 +45,8 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
     struct stat st;
 
     // can we open the file?
-#ifdef WINDOWS
-    if ((fd = _open(file, _O_BINARY)) < 0)
-#else
     if ((fd = open(file, 0)) < 0)
-#endif
-        // failure - cannot open
-        return -1;
+		return -1;
 
     // how big's this file?
     //filesize = _filelength(fd);

@@ -1,115 +1,123 @@
-README
+This is the README file for FCPtools.
 
-This source package builds four Freenet FCP components; fcpproxy, fcpget,
-fcpput and ezFCPlib.
-
-CopyLeft (c) 2001 by David McNab,
+CopyLeft (c) 2001 by David McNab
 david@rebirthing.co.nz
 
-- fcpputsite is a command-line freesite insertion client - fast and easy.
+This source package builds four Freenet FCP components:
 
-- fcpproxy is a handy http proxy server and forms an ideal fproxy replacement.
+* ezFCPlib:    ANSI-C Freenet client library.  It is unique in that it doesn't
+               require any third party libraries (as do many of the other
+               Freenet client libs.
 
-- fcpget is a command-line request client, completely based on FCP.
+* fcpget:      command-line freenet request, based on FCP.
 
-- fcpput is a command-line insert client, completely based on FCP.
+* fcpput:      command-line freenet insert, based on FCP.
 
-- ezFCPlib is an easy FCP library. It is unique in that it doesn't require
-  any third party libraries (as do many of the other Freenet client libs).
+* fcpputsite:  command-line freesite insertion client - fast and easy.
+
+* fcpproxy:    http proxy server; an fproxy replacement.
+
+(Set favorite editor's tabstop to 2 for best results)
 
 This is a work in progress.
 
-The aim of FCPtools is to offer a truly multi-platform set of FCP tools,
-to assist with writing Freenet client programs in C/C++.
+---------------------------------------------------------------------------
+The aim of FCPtools is to offer a truly multi-platform ANSI-C based Freenet
+client library, as well as provide command-line tools for convenience and
+potentially shell scripting.
 
 While still in development, the tools have successfully compiled and run on:
-* Windows native (compiling with MS Visual C++)
-* Windows with Cygwin
-* Linux
-* FreeBSD 4
-* NetBSD
+* Windows 2K/Cygwin (confirmed)
+* Windows 98/Cygwin (confirm?)
+* BSD (Free and Net) (confirmed)
+* Linux (confirmed)
+* Solaris (pending)
 
--------------------------------------------------
+FCPtools no longer compiles within the MS Visual C++ environment.  To provide
+true portability, one must move away from the company notorious for being
+against it.</opinion>
+
+
+---------------------------------------------------------------------------
 Building the tools
--------------------------------------------------
+---------------------------------------------------------------------------
 
-1. Unix:
+1. Unix (general)
 
 To compile the FCPtools on any system that can run GNU bash (which should
-include all the various Unices, as well as Windows running Cygwin):
+include all the various Unices, as well as Windows/Cygwin):
 
-   * Type './configure'
+* Type './configure'
 
-   * Running 'configure' takes awhile.  Try './configure --help' for
-     further options.
+* Running 'configure' takes awhile.  Try './configure --help' for
+  further options.
 
-   * Type 'make' to compile the tools.
+* Type 'make' to compile the tools.
 
-   * Optionally, type 'make check' to run any self-tests.
+* Optionally, type 'make check' to run any self-tests.
 
-   * Type 'make install' to install the programs, data files and
-     documentation.
+* Type 'make install' to install the programs, data files and
+  documentation.
 
-   * Type 'make clean' to start a fresh build.
+* Type 'make clean' to start a fresh build.
 
-2. Windows:
+2. Solaris
 
-You can either install the Cygwin package and follow the same instructions
-for Unix, or use the hand-crafted makefile.
+Same as Unix, but substitute 'gmake' for 'make'
 
-To use a makefile other than the default 'Makefile':
 
-   * Type 'make -f Makefile.manual'.
-
-Finally, you can open the fcptools.dsw workspace file in MS Visual C++, and
-build each of the projects.
-
--------------------------------------------------
+---------------------------------------------------------------------------
 ezFCPlib - the easiest multi-platform FCP library
--------------------------------------------------
-
-1. Features:
+---------------------------------------------------------------------------
 
 Writing Freenet client programs in C/C++ has never been easier.
-This API offers two levels of Freenet access - file/memory level, and
-stream level.
+
+This API offers two levels of Freenet access:
+
+* File/Memory.
+* Streams.
+
 Read the spec in ezfcplib/doc/spec.html for more info.
 
 
--------------------------------------
-'fcpproxy' - the FreeWeb Proxy Server.
--------------------------------------
+-------------------------------------------------------
+fcpget
+-------------------------------------------------------
+
+
+-------------------------------------------------------
+fcpput
+-------------------------------------------------------
+
+
+-------------------------------------------------------
+fcpputsite
+-------------------------------------------------------
+
+
+---------------------------------------------------------------------------
+fcpproxy - http proxy
+---------------------------------------------------------------------------
 
 1. Features:
 
-* FProxy replacement
-* generic http proxy
-* FreeWeb gateway
+* FProxy replacement.
+* Generic http proxy.
 
-This proxy is evolving towards a complete FCP-based replacement of
-fproxy, with the FreeWeb browsing features built-in.
+This proxy is evolving towards a complete FCP-based replacement of fproxy, with
+the FreeWeb browsing features built-in.
 
-You can point your browser to this proxy permanently.
-Any normal web requests go out to the mainstream web, while
-fproxy-style and freeweb-style requests go to Freenet.
-
+You can point your browser to this proxy permanently. Any normal web requests
+go out to the mainstream web, while fproxy-style and freeweb-style requests
+go to Freenet.
 
 2. Running:
 
-As you can see in main.c, this proxy listens on port 8888.
+Fcpproxy listens on port 8888.
 
-If you want, you can edit your .freenetrc file, change the
-fproxy listening port to something else, and set fcpproxy to
-listen on 8081. That way, any links explicitly using
-'http://127.0.0.1:8081/whatever' will work ok.
+If you want, you can edit your .freenetrc file, change the fproxy listening
+port to something else, and set fcpproxy to listen on 8081. That way, any links
+explicitly using 'http://127.0.0.1:8081/whatever' will work ok.
 
-Also, you'll need to make a directory /usr/share/fcpproxy, and
-copy there the file gateway.html
-
-
--------------------------------------------------------
-fcpget - a simple FCP-based command line request client
--------------------------------------------------------
-
-While originally intended as a demo of the ezFCPlib library, this
-is rapidly evolving into a full-featured request client.
+Also, you'll need to make a directory /usr/share/fcpproxy, and copy there the
+file gateway.html
