@@ -7,11 +7,13 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "fcp.h"
+#include <fcp.h>
 
 int htl = 10;
 int threads = 10;
 int retries = 3;
+
+FILE *log;
 
 void insertdir (char *dir, int depth);
 void insert (char *file, int depth);
@@ -36,8 +38,8 @@ insertdir (char *dir, int depth)
     int n, i;
     char *r = rindex(dir, '/');
     n = depth++;
-    while (n--) putchar('\t');
-    puts(r ? r + 1 : dir);
+    while (n--) fputc('\t', log);
+    fprintf(log, "%s\n", r ? r + 1 : dir);
     n = scandir(dir, &namelist, 0, alphasort);
     for (i = 0 ; i < n ; i++) {
 	if (namelist[i]->d_name[0] == '.') continue;
@@ -95,10 +97,10 @@ insert (char *file, int depth)
 	    pthread_exit(NULL);
 	}
 	fcp_metadata_free(m);
+        sprintf(uri, "%s//", uri);
     }
-    while (depth--) putchar('\t');
-    sprintf(uri, "%s//", uri);
-    printf("%s=%s\n", t ? t + 1 : file, uri);
+    while (depth--) fputc('\t', log);
+    fprintf(log, "%s=%s\n", t ? t + 1 : file, uri);
 }
 
 int
@@ -158,6 +160,8 @@ main (int argc, char **argv)
     }
     
     if (!argv[optind]) usage(argv[0]);
+    
+    log = stdout;    
     
     arg = argv[(c = optind)];
     for (i = 1 ; argv[c] ; arg = argv[++c]) {

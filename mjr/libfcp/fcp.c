@@ -1,4 +1,4 @@
-#include "fcp.h"
+#include <fcp.h>
 
 FILE * fcp_connect ();
 int fcp_get (FILE *data, int *len, int *type, char *uri, int htl);
@@ -21,8 +21,15 @@ fcp_metadata *
 fcp_metadata_new ()
 {
     fcp_metadata *m = malloc(sizeof(fcp_metadata));
-    m->uri = NULL; m->r = NULL; m->dr = NULL; m->sf = NULL; m->i = NULL;
-    m->r_count = 0; m->dr_count = 0; m->sf_count = 0; m->i_count = 0;
+    m->uri = NULL;
+    m->r = NULL;
+    m->dr = NULL;
+    m->sf = NULL;
+    m->i = NULL;
+    m->r_count = 0;
+    m->dr_count = 0;
+    m->sf_count = 0;
+    m->i_count = 0;
     return m;
 }
 
@@ -32,8 +39,11 @@ fcp_document_new ()
     fcp_document *d = malloc(sizeof(fcp_document));
     pthread_mutex_init(&d->mutex, NULL);
     pthread_cond_init(&d->cond, NULL);
-    d->cur_part = 0; d->p_count = 0;
-    d->chunks = NULL; d->status = NULL; d->streams = NULL;
+    d->cur_part = 0;
+    d->chunk_count = 0;
+    d->keys = NULL;
+    d->status = NULL;
+    d->streams = NULL;
     return d;
 }
 
@@ -96,9 +106,9 @@ fail:	    fcp_metadata_free(m2);
 	    pthread_mutex_init(&d->mutex, NULL);
 	    pthread_cond_init(&d->cond, NULL);
 	    d->cur_part = 0;
-	    d->p_count = 1;
-	    d->chunks = malloc(sizeof(char *));
-	    d->chunks[0] = strdup(nuri);
+	    d->chunk_count = 1;
+	    d->keys = malloc(sizeof(char *));
+	    d->keys[0] = strdup(nuri);
 	    d->status = malloc(1);
 	    d->status[0] = FCP_SUCCESS;
 	    d->streams = malloc(sizeof(FILE *));
@@ -115,14 +125,14 @@ splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads)
     pthread_t thread;
     d->cur_part = 0; d->htl = htl;
     d->threads = threads; d->activethreads = 0;
-    d->p_count = sf->chunk_count;
-    d->status = malloc(d->p_count);
-    d->chunks = calloc(d->p_count, sizeof(char *));
-    d->streams = calloc(d->p_count, sizeof(FILE *));
-    for (i = 0 ; i < d->p_count ; i++) {
+    d->chunk_count = sf->chunk_count;
+    d->status = malloc(d->chunk_count);
+    d->keys = calloc(d->chunk_count, sizeof(char *));
+    d->streams = calloc(d->chunk_count, sizeof(FILE *));
+    for (i = 0 ; i < d->chunk_count ; i++) {
 	d->status[i] = 1;
-	d->chunks[i] = strdup(sf->chunks[i]);
-	d->streams[i] = NULL;
+	d->keys[i] = strdup(sf->keys[i]);
+	d->streams[i] = tmpfile();
     }
     pthread_create(&thread, NULL, big_brother, (void *) d);
     return sf->filesize;
@@ -139,7 +149,7 @@ big_brother (void *arg)
     int i;
     pthread_t thread;
     fcp_document *d = (fcp_document *) arg;
-    for (i = 0 ; i < d->p_count ; i++) {
+    for (i = 0 ; i < d->chunk_count ; i++) {
 	rtargs *r = malloc(sizeof(rtargs));
 	r->part = i; r->d = d;
 	pthread_create(&thread, NULL, winston_smith, (void *) r);
@@ -152,15 +162,15 @@ big_brother (void *arg)
 void *
 winston_smith (void *arg)
 {
-    int n = 3, len, type;
+    int status = 1, n = 3, len, type;
     rtargs *r = (rtargs *) arg;
-    r->d->streams[r->part] = tmpfile();
-    while (n-- && r->d->status[r->part] != FCP_SUCCESS) {
+    while (n-- && status != FCP_SUCCESS) {
 	rewind(r->d->streams[r->part]);
-	r->d->status[r->part] = fcp_get(r->d->streams[r->part], &len, &type,
-		r->d->chunks[r->part], r->d->htl);
+	status = fcp_get(r->d->streams[r->part], &len, &type,
+			 r->d->keys[r->part], r->d->htl);
     }
     pthread_mutex_lock(&r->d->mutex);
+    r->d->status[r->part] = status;
     r->d->activethreads--;
     pthread_cond_broadcast(&r->d->cond);
     pthread_mutex_unlock(&r->d->mutex);
@@ -171,13 +181,20 @@ int
 fcp_close (fcp_document *d)
 {
     int i;
-    for (i = 0 ; i < d->p_count ; i++) {
-	if (d->chunks[i]) free(d->chunks[i]);
-	if (d->streams[i]) fclose(d->streams[i]);
+    if (!d->status) goto end;
+    for (i = 0 ; i < d->chunk_count ; i++) {
+	if (d->status[i] == 1) {
+	    pthread_mutex_lock(&d->mutex);
+	    pthread_cond_wait(&d->cond, &d->mutex);
+	    pthread_mutex_unlock(&d->mutex);
+	}
+	free(d->keys[i]);
+	fclose(d->streams[i]);
     }
     if (d->status) free(d->status);
-    if (d->chunks) free(d->chunks);
+    if (d->keys) free(d->keys);
     if (d->streams) free(d->streams);
+end:
     free(d);
     return FCP_SUCCESS;
 }
@@ -193,7 +210,7 @@ fcp_read (fcp_document *d, char *buf, int length)
     if (d->status[d->cur_part] < 0) return d->status[d->cur_part];
     n = fread(buf, 1, length, d->streams[d->cur_part]);
     if (n != length) {
-	if (++d->cur_part == d->p_count) return n;
+	if (++d->cur_part == d->chunk_count) return n;
 	pthread_mutex_lock(&d->mutex);
 	while (d->status[d->cur_part] > 0)
 	    pthread_cond_wait(&d->cond, &d->mutex);
@@ -293,14 +310,14 @@ parse_redirect (fcp_metadata *m, FILE *data)
 	status = sscanf(line, "%[^=]=%s", name, val);
 	if (status == 1 && (line[strlen(line)-2] == '='
 		    || line[strlen(line)-3] == '=')) {
-	    status++; val[0] = '\0';
+	    status++;
+	    val[0] = '\0';
 	}
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
 	    m->r[n]->document_name = strdup(val);
 	else if (strcmp(name, "Target") == 0)
 	    m->r[n]->target_uri = strdup(val);
-	else break;
     }
     if (!m->r[n]->document_name || !m->r[n]->target_uri
 	    || strncmp(line, "End", 3) != 0)
@@ -316,13 +333,16 @@ parse_date_redirect (fcp_metadata *m, FILE *data)
     m->dr = realloc(m->dr, sizeof(date_redirect *) * m->dr_count);
     m->dr[n] = malloc(sizeof(date_redirect));
     m->dr[n]->document_name = NULL;
-    m->dr[n]->predate = NULL; m->dr[n]->postdate = NULL;
-    m->dr[n]->baseline = -1; m->dr[n]->increment = 86400;
+    m->dr[n]->predate = NULL;
+    m->dr[n]->postdate = NULL;
+    m->dr[n]->baseline = -1;
+    m->dr[n]->increment = 86400;
     while (fgets(line, 512, data)) {
 	status = sscanf(line, "%[^=]=%s", name, val);
 	if (status == 1 && (line[strlen(line)-2] == '='
 		    || line[strlen(line)-3] == '=')) {
-	    status++; val[0] = '\0';
+	    status++;
+	    val[0] = '\0';
 	}
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
@@ -335,7 +355,6 @@ parse_date_redirect (fcp_metadata *m, FILE *data)
 	    m->dr[n]->baseline = strtol(val, NULL, 16);
 	else if (strcmp(name, "Increment") == 0)
 	    m->dr[n]->increment = strtol(val, NULL, 16);
-	else break;
     }
     if (!m->dr[n]->document_name || !m->dr[n]->predate
 	    || !m->dr[n]->postdate || m->dr[n]->baseline < 0
@@ -354,31 +373,32 @@ parse_splitfile (fcp_metadata *m, FILE *data)
     m->sf[n]->document_name = NULL;
     m->sf[n]->filesize = 0;
     m->sf[n]->chunk_count = 0;
-    m->sf[n]->chunks = NULL;
+    m->sf[n]->keys = NULL;
     while (fgets(line, 512, data)) {
 	status = sscanf(line, "%[^=]=%s", name, val);
 	if (status == 1 && (line[strlen(line)-2] == '='
 		    || line[strlen(line)-3] == '=')) {
-	    status++; val[0] = '\0';
+	    status++;
+	    val[0] = '\0';
 	}
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
 	    m->sf[n]->document_name = strdup(val);
 	else if (strcmp(name, "FileSize") == 0)
 	    m->sf[n]->filesize = strtol(val, NULL, 16);
-	else if (strcmp(name, "Chunks") == 0) {
+	else if (strcmp(name, "keys") == 0) {
 	    status = strtol(val, NULL, 16);
-	    if (m->sf[n]->chunks || status < 0)
+	    if (m->sf[n]->keys || status < 0)
 		return FCP_INVALID_METADATA;
-	    m->sf[n]->chunks = calloc(status, sizeof(char *));
+	    m->sf[n]->keys = calloc(status, sizeof(char *));
 	    m->sf[n]->chunk_count = status;
 	} else if (strncmp(name, "Chunk.", 6) == 0) {
 	    status = strtol(&name[6], NULL, 16);
-	    if (!m->sf[n]->chunks || status < 0
+	    if (!m->sf[n]->keys || status < 0
 		    || status >= m->sf[n]->chunk_count)
 		return FCP_INVALID_METADATA;
-	    m->sf[n]->chunks[status] = strdup(val);
-	} //else break;
+	    m->sf[n]->keys[status] = strdup(val);
+	}
     }
     if (!m->sf[n]->document_name || m->sf[n]->filesize <= 0
 	    || m->sf[n]->chunk_count <= 0 || strncmp(line, "End", 3) != 0)
@@ -397,6 +417,11 @@ parse_info (fcp_metadata *m, FILE *data)
     m->i[n]->f_count = 0;
     while (fgets(line, 512, data)) {
 	status = sscanf(line, "%[^=]=%s", name, val);
+	if (status == 1 && (line[strlen(line)-2] == '='
+		    || line[strlen(line)-3] == '=')) {
+	    status++;
+	    val[0] = '\0';
+	}
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0) {
 	    m->dr[n]->document_name = val;
@@ -421,6 +446,11 @@ parse_unknown (fcp_metadata *m, FILE *data)
     int status;
     while (fgets(line, 512, data)) {
 	status = sscanf(line, "%[^=]=%s", name, val);
+	if (status == 1 && (line[strlen(line)-2] == '='
+		    || line[strlen(line)-3] == '=')) {
+	    status++;
+	    val[0] = '\0';
+	}
 	if (status != 2) break;
 	if (strcmp(name, "Importance") == 0)
 	    if (strcmp(val, "Required") == 0)
@@ -467,10 +497,13 @@ fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
 	    intargs *i = malloc(sizeof(intargs));
 	    len -= (n = len > partsize ? partsize : len);
 	    parts[t] = tmpfile();
-	    i->cond = &cond; i->mutex = &mutex;
+	    i->cond = &cond;
+	    i->mutex = &mutex;
 	    i->activethreads = &activethreads;
-	    i->error = &error; i->length = n;
-	    i->data = parts[t]; i->uri = keys[t];
+	    i->error = &error;
+	    i->length = n;
+	    i->data = parts[t];
+	    i->uri = keys[t];
 	    i->htl = htl;
 	    strcpy(i->uri, "freenet:CHK@");
 	    while (n) {
@@ -495,9 +528,9 @@ fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
         m->sf[n]->document_name = strdup(document_name);
         m->sf[n]->filesize = length;
         m->sf[n]->chunk_count = partcount;
-        m->sf[n]->chunks = calloc(partcount, sizeof(FILE *));
+        m->sf[n]->keys = calloc(partcount, sizeof(FILE *));
 	for (t = 0 ; t < partcount ; t++)
-	    m->sf[n]->chunks[t] = strdup(keys[t]);
+	    m->sf[n]->keys[t] = strdup(keys[t]);
 	return FCP_SUCCESS;
     }
 }
@@ -565,7 +598,10 @@ int
 calc_partsize (int length)
 {
     int n = 0, tmp = length;
-    while (tmp) {tmp >>= 1; n++;}
+    while (tmp) {
+	tmp >>= 1;
+	n++;
+    }
     if (length > tmp) n++;
     return (8 << ((n-1)/2));
 }
@@ -638,7 +674,7 @@ fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
 		      m->sf[i]->filesize,
 		      m->sf[i]->chunk_count);
 	for (j = 0 ; j < m->sf[i]->chunk_count ; j++)
-	    fprintf(data, "Chunk.%x=%s\n", j, m->sf[i]->chunks[j]);
+	    fprintf(data, "Chunk.%x=%s\n", j, m->sf[i]->keys[j]);
 	fprintf(data, "End\n");
     }
     j = ftell(data);
@@ -673,8 +709,8 @@ fcp_internal_free (fcp_metadata *m)
         if (m->sf[i]->document_name)
 	    free(m->sf[i]->document_name);
 	for (j = 0 ; j < m->sf[i]->chunk_count ; j++)
-	    free(m->sf[i]->chunks[j]);
-	free(m->sf[i]->chunks);
+	    free(m->sf[i]->keys[j]);
+	free(m->sf[i]->keys);
     }
 /*	if (m->sf[i]->check_pieces)
 	    free(m->sf[i]->check_pieces);
@@ -720,6 +756,7 @@ fcp_connect ()
     struct sockaddr_in address;
     struct servent *serv;
     int connected_socket, connected;
+    FILE *sock;
     serv = getservbyname("fcp", "tcp");
     if (!serv) return NULL;
     addr.s_addr = inet_addr("127.0.0.1");
@@ -731,7 +768,10 @@ fcp_connect ()
     connected = connect(connected_socket,
 	    (struct sockaddr *) &address, sizeof(address));
     if (connected < 0) return NULL;
-    return fdopen(connected_socket, "w+");
+    sock = fdopen(connected_socket, "w+");
+    if (!sock) return NULL;
+    fwrite("\0\0\0\2", 4, 1, sock);
+    return sock;
 }
 
 char *

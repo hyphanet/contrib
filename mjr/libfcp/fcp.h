@@ -38,7 +38,7 @@ typedef struct {
     char *document_name;   // to which document this part applies
     int filesize;          // the final size of the original file
     int chunk_count;       // the number of data chunks
-    char **chunks;         // an array of /chunk_count/ Freenet URIs
+    char **keys;           // an array of /chunk_count/ Freenet URIs
 //    int check_levels;      // the number of levels of check coding
 //    int *check_pieces;     // the number of check pieces for each level.
 //    char ***checks;        // the Freenet URI of each check piece in the matrix
@@ -66,9 +66,9 @@ typedef struct {
 typedef struct {
     pthread_mutex_t mutex; // mutex for this document
     pthread_cond_t cond;   // signals part completion
-    int cur_part;          // the index of the current part
-    int p_count;
-    char **chunks;         // an array of URIs
+    int cur_part;          // the index of the current chunk
+    int chunk_count;
+    char **keys;           // an array of URIs
     char *status;          // the status of each stream
     FILE **streams;        // an array of parts, some in progress (NULL)
     int htl;
