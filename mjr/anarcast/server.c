@@ -22,7 +22,6 @@ struct state {
     unsigned int len, off;
 } a[FD_SETSIZE];
 
-void run (int sock);
 int listening_socket ();
 void bytestohex (char *hex, char *bytes, int blen);
 
