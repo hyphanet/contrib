@@ -235,11 +235,13 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	// any good?
 	if (job->status == SPLIT_INSSTAT_FAILED)
 	{
+		_fcpLog(FCP_LOG_NORMAL, "fcpInsSplitFile: insert of '%s' failed", fileName);
 		free(job->chunk);
 		return -1;
 	}
 
 	// create a manifest for all the inserted chunks
+	_fcpLog(FCP_LOG_VERBOSE, "fcpInsSplitFile: insert of '%s' failed", fileName);
 	return insertSplitManifest(hfcp, key, metaData);
 
 }
@@ -402,6 +404,7 @@ static void splitInsMgr(void *nothing)
 		mysleep(10);
 
 
+		// detailed status message dump
 		if (++clicks % 60 == 0)
 		{
 			clicks = 0;
@@ -474,8 +477,11 @@ static void splitInsMgr(void *nothing)
 				// mark as complete so client thread can pick it up
 				tmpJob->status = SPLIT_INSSTAT_SUCCESS;
 			else
+			{
 				// no change - no need to de-queue
+				prevJob = tmpJob;
 				continue;
+			}
 
 			// job at tmpJob is complete, dequeue it
 			if (tmpJob == jobQueue)
