@@ -1,0 +1,13 @@
+Freenet is open source and developed by a hard working and underpaid group of individuals.
+For details visit http://freenetproject.org
+
+Portions of Freenet for Windows are covered by the following licenses.  
+
+GNU General Public License
+Sun Microsystems, Inc Binary Code License Agreement
+
+
+Acknowledgement of this statement implies acknowledgement of the following licenses.
+The full text of each of these licenses are reproduced below.
+
+---------------------------------------------
