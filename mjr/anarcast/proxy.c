@@ -170,6 +170,8 @@ load_graphs ()
 	    }
 	}*/
     }
+
+    alert("Loaded %d graphs.", GRAPHCOUNT);
 }
 
 int
@@ -198,7 +200,7 @@ insert (int c)
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
     if (datalength/blocksize > GRAPHCOUNT) {
-	alert("I do not have a graph for %d data blocks!", datalength/blocksize);
+	alert("I do not have a graph for %d data blocks.", datalength/blocksize);
 	return;
     }
     g = graphs[datalength/blocksize-1];
@@ -255,12 +257,11 @@ insert (int c)
 	sha_buffer(&blocks[dlen+(i*blocksize)], blocksize, &hashes[(g.dbc+1)*HASHLEN+(i*HASHLEN)]);
     
     // send the URI to the client
-    alert("Writing key to client.");
     i = hlen + 4;
     if (writeall(c, &i, 4) != 4 ||
 	writeall(c, &datalength, 4) != 4 ||
 	writeall(c, hashes, hlen) != hlen) {
-	alert("Error writing key to client.");
+	alert("Writing key to client failed.");
 	if (munmap(blocks, len) == -1)
 	    die("munmap() failed");
 	free(hashes);
@@ -270,7 +271,7 @@ insert (int c)
     // actually insert the blocks
     alert("Inserting %d blocks of %d bytes each.", g.dbc + g.cbc, blocksize);
     do_insert(blocks, NULL, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
-    alert("Insert complete.");
+    alert("Blocks inserted.");
     
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
@@ -425,7 +426,7 @@ request (int c)
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
     if (datalength/blocksize > GRAPHCOUNT) {
-	alert("I do not have a graph for %d data blocks!", datalength/blocksize);
+	alert("I do not have a graph for %d data blocks.", datalength/blocksize);
 	return;
     }
     g = graphs[datalength/blocksize-1];
@@ -448,7 +449,7 @@ request (int c)
     for (i = n = 0 ; i < blockcount ; i++)
 	if (!mask[i]) n++;
     
-    alert("Download of %d/%d (%d%%) blocks complete.", blockcount-n, blockcount,
+    alert("Download of %d/%d (%d%%) blocks completed.", blockcount-n, blockcount,
 	  (int) ((double) (blockcount-n) / (double) blockcount * 100));
     
     if (!(m = n)) {
@@ -505,7 +506,7 @@ request (int c)
 		if (is_set(&g, j, i) && !mask[j])
 		    goto next2;
 	    // woohoo! we have all the data blocks. we'll xor them to make a check block!
-	    alert("Computed check block %d from data blocks:", i+1);
+	    sprintf(b, "Computed check block %d from data blocks:", i+1);
 	    for (j = 0 ; j < g.dbc ; j++)
 		if (is_set(&g, j, i)) {
 		    sprintf(b, "%s %d", b, j+1);
@@ -526,25 +527,30 @@ request (int c)
 	
     } while (a && n);
     
-    if (n) {
-	alert("Data was not recoverable. %d blocks unrecovered.", n);
+    if (n) { // damn, we just couldn't do it
+	char b[1024];
+	sprintf(b, "Data was not recoverable. %d unrecovered blocks:", n);
+	for (i = 0 ; i < blockcount ; i++)
+	    if (!mask[i]) sprintf(b, "%s %d", b, i+1);
+	alert("%s.", b);
 	goto out;
     }
     
 verify:
     // verify data
-    alert("Verifying data integrity.");
     sha_buffer(blocks, datalength, hash);
     if (memcmp(hash, hashes, HASHLEN)) {
-	alert("Data does not verify.");
+	alert("Data integrity did not verify.");
 	goto out;
     }
+    alert("Data integrity verified.");
     
     // write data to client
     if (writeall(c, &datalength, 4) != 4 || writeall(c, blocks, datalength) != datalength) {
 	alert("Error writing data to client.");
 	goto out;
     }
+    alert("%d bytes written to client.", datalength);
     
     if (!m) goto out; // no blocks to reinsert!
     
@@ -683,7 +689,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		// is the data length incorrect?
 		xfers[i].off += n;
 		if (!xfers[i].off && xfers[i].dlen != blocksize) {
-		    alert("Data length read for block %d is incorrect! (%d != %d)", xfers[i].num+1, xfers[i].dlen, blocksize);
+		    alert("Data length read for block %d is incorrect. (%d != %d)", xfers[i].num+1, xfers[i].dlen, blocksize);
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &r);
@@ -696,7 +702,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    char hash[HASHLEN];
 		    sha_buffer(&blocks[xfers[i].num*blocksize], blocksize, hash);
 		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
-			alert("Block %d is corrupt!", xfers[i].num+1);
+			alert("Integrity of block %d does not verify.", xfers[i].num+1);
 		    else
 			mask[xfers[i].num] = 1; // success
 		    
@@ -747,7 +753,7 @@ inform ()
 	unsigned int i;
 	int j = readall(c, &i, 4);
 	if (!j) break;
-    	if (j != 4) die("Inform server hung up unexpectedly");
+    	if (j != 4) die("inform server hung up unexpectedly");
 	addref(i);
     }
 
