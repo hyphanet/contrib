@@ -54,8 +54,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,3,0,0
- PRODUCTVERSION 0,3,9,2
+ FILEVERSION 0,4,0,0
+ PRODUCTVERSION 0,4,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,15 +70,15 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.freenetproject.org\r\n\r\nWritten / Maintained by Dave Hooper\r\nContact no-brain@mindless.com\0"
+            VALUE "Comments", "http://www.freenetproject.org\r\n\r\nWritten / Maintained by Dave Hooper\r\nContact freenet@beermex.com\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "Freenet Systray Application\0"
-            VALUE "FileVersion", "0.3.0.0\0"
+            VALUE "FileVersion", "0.4.0.0\0"
             VALUE "InternalName", "freenet.exe\0"
             VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
             VALUE "OriginalFilename", "freenet.exe\0"
             VALUE "ProductName", "freenet systray\0"
-            VALUE "ProductVersion", "During 0.3.9.2\0"
+            VALUE "ProductVersion", "Freenet 0.4.X\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -105,39 +105,6 @@ IDI_NOGWAY              ICON    DISCARDABLE     "noGway.ico"
 IDI_NOINET              ICON    DISCARDABLE     "noInet.ico"
 IDI_THUNDERBOLT         ICON    DISCARDABLE     "tbolt.ico"
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_IMPORT DIALOG DISCARDABLE  0, 0, 186, 95
-STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
-FONT 8, "MS Sans Serif"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,129,7,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,129,24,50,14
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
-BEGIN
-    IDD_IMPORT, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 179
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 88
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -152,4 +119,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
