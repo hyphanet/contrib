@@ -42,4 +42,29 @@ typedef struct
 }
 PutJob;
 
-	
+typedef struct {
+	char *		siteName;
+	char	*siteDir;
+	char	*pubKey;
+	char	*privKey;
+	char	*defaultFile;
+	char	*recordFile;
+	int		daysAhead;
+	int		maxThreads;
+	int		maxRetries;
+	char	dodbr;
+} PutSiteOptions;
+
+// fcpputsite.c exports
+
+char *strsav(char *old, int *oldlen, char *text_to_append);
+int fcpLogCallback(int level, char *buf);
+
+// insertFreesite.c exports
+
+extern int insertFreesite(PutSiteOptions *opts);
+
+// scandir.c exports
+
+SiteFile *scan_dir(char *dirname, int *pNumFiles);
+

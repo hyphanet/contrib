@@ -22,6 +22,7 @@ int   _fcpRawMode;
 
 char  _fcpID[4] = { 0, 0, 0, 2 };
 int   _fcpRegress;
+int	  _fcpDoDelete=0;
 
 /* Basic accounting - ensure sockets are getting closed */
 int   _fcpNumOpenSockets = 0;

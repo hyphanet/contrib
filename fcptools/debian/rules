@@ -30,14 +30,15 @@ major=2
 #major=`ls src/.libs/lib*.so.* | \
 # awk '{if (match($$0,/\.so\.[0-9]+$$/)) print substr($$0,RSTART+4)}'`
 
-config.status: configure
+config-stamp: configure
 	dh_testdir
 	# Add here commands to configure the package.
 	./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
+	touch config-stamp
 
 
 build: build-stamp
-build-stamp:  config.status
+build-stamp:  config-stamp
 	dh_testdir
 
 	# Add here commands to compile the package.
@@ -51,7 +52,7 @@ clean:
 	rm -f build-stamp
 
 	rm -f config.cache
-	rm -f config.status
+	rm -f config-stamp
 
 	# Add here commands to clean up after the build process.
 	-$(MAKE) distclean

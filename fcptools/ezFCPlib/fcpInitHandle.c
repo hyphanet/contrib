@@ -20,6 +20,7 @@ extern int  _fcpPort;
 extern int  _fcpHtl;
 extern int  _fcpRawMode;
 extern int  _fcpRegress;
+extern int  _fcpDoDelete;
 
 
 /*
@@ -52,6 +53,7 @@ void fcpInitHandle(HFCP *hfcp)
   hfcp->fields = NULL;
   hfcp->node[0] = '\0';
   hfcp->protocol = 0;
+  hfcp->delete=_fcpDoDelete;
 
   // initialise write status block
   hfcp->wr_info.fd_data = -1;

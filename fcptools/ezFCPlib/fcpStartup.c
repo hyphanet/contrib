@@ -25,6 +25,7 @@ extern int   _fcpHtl;
 extern int   _fcpRawMode;
 extern char  _fcpID[];
 extern int   _fcpRegress;
+extern int   _fcpDoDelete;
 
 
 /*
@@ -107,3 +108,8 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   return 0;
   
 } // 'fcpStartup()'
+
+
+void fcpSetDelete(int arg) {
+	_fcpDoDelete=arg;
+}

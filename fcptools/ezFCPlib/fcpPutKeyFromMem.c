@@ -52,9 +52,10 @@ int _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int da
     {
 
         sprintf(buf,
-                "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
+                "ClientPut\nURI=%s\nHopsToLive=%x\nFlags=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
                 name,
                 hfcp->htl,
+				hfcp->delete,
                 datalen + meta_len,
                 meta_len
                 );
@@ -62,9 +63,10 @@ int _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int da
     else
     {
         sprintf(buf,
-                "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
+                "ClientPut\nURI=%s\nHopsToLive=%x\nFlags=%x\nDataLength=%x\nData\n",
                 name,
                 hfcp->htl,
+				hfcp->delete,
                 datalen
                 );
     }

@@ -13,7 +13,6 @@
 */
 
 #include "ezFCPlib.h"
-
 #include <sys/stat.h>
 
 extern char     _fcpID[];
@@ -72,9 +71,10 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
     {
         meta_len = strlen(metadata);
         sprintf(buf,
-                "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
+                "ClientPut\nURI=%s\nHopsToLive=%x\nFlags=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
                 key,
                 hfcp->htl,
+				hfcp->delete ? 1 : 0,
                 filesize + meta_len,
                 meta_len
                 );

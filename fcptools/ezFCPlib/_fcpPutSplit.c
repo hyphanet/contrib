@@ -97,12 +97,14 @@ void _fcpInitSplit(int maxSplitThreads)
 {
 	time_t thistime;
 
-	time(&thistime);
-	srand(thistime);
 
+	maxThreads = maxSplitThreads;
 
 	if (maxSplitThreads == 0)
 		return;
+
+	time(&thistime);
+	srand(thistime);
 
 	if (splitMgrRunning)
 	{
@@ -112,7 +114,6 @@ void _fcpInitSplit(int maxSplitThreads)
 
 	_fcpLog(FCP_LOG_VERBOSE, "_fcpInitSplit: launching splitfile insert manager");
 
-	maxThreads = (maxSplitThreads == 0) ? FCP_MAX_SPLIT_THREADS : maxSplitThreads;
 
 	// Launch manager thread
 	crLaunchThread(splitMgrThread, NULL);
