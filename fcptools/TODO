@@ -20,16 +20,16 @@ FCPtools generic
 + Make FEC_CHUNK_SIZE configurable; default to 1M.
 + Implement future_insert(num_days) option.
 + Implement SkipDS logic.
-+ Implement DeleteDS logic.
 + Verify other options (raw, etc.) work as expected.
 
 + Implement an insertion/retrieval scheduler layer; directly above the fcpWriteKey() and fcpPutKeyFromFile() routines.
   (Most useful to a future fcpputsite program).
   Would provide the following functionality as well:
-  
   + Retry option; attempt again (due to error or Restarted message) to insert or retrieve the named key.  After 'n' retries, return with error.
   + Insert thread count; maximum number of non-FEC insert threads; make FEC insert thread count hardcoded to 1.
   + FEC_insert thread count; should treat these 2 threading situations differently for some reason.
+
+= Implement DeleteDS logic (delete-local or RemoveLocalKey).
 
 
 -----------------
@@ -38,13 +38,14 @@ ezFCPlib specific
 
 + Solidify TEMP directory setting for all architectures. (fcpStartup.c)
   (Win: create in %USERPROFILE%\TEMP), (*nix: create in /tmp with perm '600')
++ Add logic like fcpTmpDir for an 'fcpHomeDir'; /home/$user on nix, %USERPROFILE%\My Documents for Win32.
 + Implement Key Retrival code (currently only code for inserting).
 + Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
 + Check all internal APIs for consistant usage and funcionality.
 + Handle HighestSeenBuild from NodeHello message.
++ Code a seperate fcpNodeHello function.
 + Make fcpLog() work with files as well as standard output.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
-= Add keygen code.
 + Implement CheckBlockOffset and DataBlockOffset in handling of fec segment headers.
   (it's causing the java.lang.NumberFormatException messages in Fred's log).
 + #define HFCP to hFCP to ease transition.
@@ -53,14 +54,16 @@ ezFCPlib specific
 + Correct Restarted message handling to ensure seamless restarts.
   (especially broken in FEC inserts)
 + Ignore DataChunks between Restarted and DataFound messages (from freenet-dev).
+= Add keygen code.
+
 
 ------
 fcpput
 ------
 
-= Implement -g command-line switch (GenerateKeypair).
 + Optimize main()'s speed read from standard input.
 + (Win32); returns to command prompt with (harmless) error when reading key data from stdin.
+= Implement -g command-line switch (GenerateKeypair).
 
 
 ----------
@@ -77,4 +80,3 @@ fcpputsite
 ------
 fcpget
 ------
-
