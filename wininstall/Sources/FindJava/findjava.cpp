@@ -380,11 +380,12 @@ DWORD WINAPI doDeepSearch(LPVOID lpvParameter)
 	    SetWindowText(dc.hWndStatusText, "Java not found. Press Close to exit.");
 		SetWindowText(dc.hWndCloseButton, "&Close");
 		MessageBox(dc.hWndMain, 
-			"A Java interpreter could not be found.\n\n"
-			"Please install the Java Runtime Environment.\n"
+			"A Java interpreter (java.exe) could not be found.\n\n"
+			"Please install a suitable Java Runtime Environment.\n"
             "For more information visit http://java.sun.com and search for\n"
-			"\"Java Runtime Environment\" and \"windows\".  The latest version\n"
-			"at time of writing is the Java(TM) 2 Runtime Environment JRE 1.3.1 .\n",
+			"\"JRE Windows SDK\".  The latest version at time of writing is\n"
+			"the Java(TM) 2 Runtime Environment JRE 1.3.1 .\n\n"
+			"Note - Sun JRE 1.1.x does NOT contain a compatible java.exe\n",
             "Search failed", 
             MB_OK | MB_ICONSTOP);
 		searchDone = 1; // doh - please be consistent, the search IS finished!
