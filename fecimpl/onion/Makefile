@@ -11,18 +11,16 @@ DISTRO_TAG=onionfec-0.1
 
 LOCAL_CP=.:${ONION_CP}:${FREENET_CP}
 
-#JAVAC=javac
-#JAVAC_OPTS=-target 1.1 -classpath ${LOCAL_CP}
+JAVAC=javac
+JAVAC_OPTS=-target 1.1 -classpath ${LOCAL_CP}
 
-JAVAC=jikes
-JAVAC_OPTS=-classpath ${LOCAL_CP}:${JIKESPATH} 
+#JAVAC=jikes
+#JAVAC_OPTS=-classpath ${LOCAL_CP}:${JIKESPATH} 
 
 
 classes:	FECUtils.class \
 		OnionFECEncoder.class \
-		OnionFECDecoder.class \
-		NativeOnionFECEncoder.class \
-		NativeOnionFECDecoder.class
+		OnionFECDecoder.class
 
 jar:		classes
 		jar -cvf ${DISTRO_TAG}.jar ./*.class

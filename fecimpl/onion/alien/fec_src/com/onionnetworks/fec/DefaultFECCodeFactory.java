@@ -126,7 +126,7 @@ public class DefaultFECCodeFactory extends FECCodeFactory {
                         (new Object[] {K, N});
                     break;
                 } catch (Throwable doh) {
-                    doh.printStackTrace();
+                    //doh.printStackTrace();
                 }
             }
                         

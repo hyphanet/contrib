@@ -1,3 +1,8 @@
+// REDFLAG: rename to OnionFECUtils
+// REDFLAG: Purge the unused code out of this file.
+// REDFLAG: investigate file io , extra zeroing????
+
+
 /*
   This code is distributed under the GNU Public Licence (GPL) version 2.  See
   http://www.gnu.org/ for further details of the GPL.
@@ -12,7 +17,6 @@ import com.onionnetworks.util.*;
 import freenet.support.Bucket;
 import freenet.support.BucketFactory;
 
-// REDFLAG: Purge the unused code out of this file.
 /**
  * Wrap the Onion Networks FEC routines so that they can operate on Buckets.
  * <p>
@@ -22,10 +26,6 @@ import freenet.support.BucketFactory;
  **/
 public class FECUtils {
 
-    // This stomps system properties.
-    // Could cause grief if the user is using the fec
-    // code in some other app. e.g. Swarmcast
-    //
     // Calling this prevents an ugly warning stack
     // trace from the DefaultFECCodeFactory when the 
     // native libs are not installed.
@@ -36,80 +36,53 @@ public class FECUtils {
         System.err.println("Native code off. Using Java FEC implementaion.");
     }
 
-    // uses blocks[0].size() as block size
-    // 
-    // FEC encodes, the data in blocks, returning numCheckBlocks check blocks.
-    // REQUIRES: blocks all the same size.
-    public final static Bucket[] encode(Bucket[] blocks, int numCheckBlocks,
-                                        BucketFactory bucketFactory) throws IOException {
-        DefaultFECCodeFactory factory = new DefaultFECCodeFactory();
-
-        final int k = blocks.length;
-        final int n = k + numCheckBlocks;
-        FECCode code = factory.createFECCode(k, n);
-
-        Bucket[] ret = null;
-        Bucket[] checkBlocks = new Bucket[numCheckBlocks];
-        try {
-            for (int i =0; i < checkBlocks.length; i++) {
-                checkBlocks[i] = bucketFactory.makeBucket(blocks[0].size());
-            }
-            encode(code, blocks, checkBlocks);
-            ret = checkBlocks;
-            checkBlocks = null;
-        }
-        finally {
-            freeBuckets(bucketFactory, checkBlocks);
-        }
-
-        return ret;
-    } 
-
     // package scope on purpose.
-    // Caller must ensure that n, k 
-    // as read off of blocks, checkBlocks length match the code.
+    // Caller must ensure that n, k match the code.
+    // requested can be null
     // REQUIRES: 
-    final static void encode(FECCode code,
-                             Bucket[] blocks, Bucket[] checkBlocks) 
+    final static void encode(FECCode code, int n, int k,
+                             Bucket[] blocks, Bucket[] checkBlocks, int[] requested) 
         throws IOException {
 
         final int BLOCK_SIZE = (int)blocks[0].size();
         
-        final int k = blocks.length;
-        final int n = blocks.length + checkBlocks.length;
         final int l = n - k;
 
-        Buffer[] src = readBuffers(blocks);
-
-        Buffer[] repair = allocateBuffers(l, BLOCK_SIZE);
-
-        int[] index = new int[l];
-        int i = 0;
-        for (i = 0; i < l; i++) {
-            index[i] = k + i;
+        int[] index = null;
+        
+        if (requested != null) {
+            // Only encode requested check blocks
+            index = requested;
         }
+        else {
+            // Encode all check blocks
+            index = new int[l];
+            int i = 0;
+            for (i = 0; i < l; i++) {
+                index[i] = k + i;
+            }
+        }
+
+        if (requested.length != index.length) {
+            throw new IOException("Illegal arguments: requested.length != checkBlocks.length"); 
+        }
+
+        Buffer[] src = readBuffers(blocks);
+        Buffer[] repair = allocateBuffers(index.length, BLOCK_SIZE);
+
 
         long start = System.currentTimeMillis();
         code.encode(src, repair, index);
-        System.err.println("Made " + l + " " + BLOCK_SIZE + " byte check blocks in "
+        System.err.println("Made " + index.length + " " + BLOCK_SIZE + " byte check blocks in "
                            + (System.currentTimeMillis() - start ) + "ms.");
         
+        int i = 0;
         for (i = 0; i < repair.length; i++) {
             // We can just throw here because we don't own
             // any of the buckets.
             dumpBlock(repair[i], checkBlocks[i]);
         }
     }
-
-    private final static int getBlockSize(Bucket[] blocks) {
-        for (int i = 0; i < blocks.length; i++) {
-            if (blocks[i] != null) {
-                return (int)blocks[i].size();
-            }
-        }
-        throw new IllegalArgumentException("No non-null blocks!");
-    }
-
 
     // block size is taken from the size of the first non-null block in
     // blocks.
@@ -230,7 +203,7 @@ public class FECUtils {
             list += " " + indices[j];
         }
 
-        System.err.println("Decoded into packets: " + list.trim());
+        //System.err.println("Decoded into packets: " + list.trim());
 
         System.err.println("FEC decode took " + (System.currentTimeMillis() - start ) + "ms.");
         
@@ -238,130 +211,6 @@ public class FECUtils {
             // Nothing to clean up on exception
             // because we don't own any Buckets.
             dumpBlock(packets[decodeIndices[i]], decoded[i]);
-        }
-    }
-
-    // This is horrible. No need to copy into new files...
-    // zero pads last block.
-    public final static Bucket[] segmentFile(String fileName, int blockSize, BucketFactory factory) 
-        throws IOException {
-        File f = new File(fileName);
-        int length = (int)f.length();
-        int nBlocks = length / blockSize;
-        if ((length % blockSize) != 0) {
-            nBlocks++;
-        }
-        Bucket[] ret = new Bucket[nBlocks];
-        
-        boolean zeroPadding = false;
-        byte[]  buf = new byte[4096];
-        InputStream in = null;
-        try {
-            in = new FileInputStream(fileName);
-            for (int i = 0; i < nBlocks; i++) {
-                ret[i] = factory.makeBucket(blockSize);
-                OutputStream out = null;
-                try {
-                    out = ret[i].getOutputStream();
-                    int byteCount = blockSize;
-                    while(byteCount > 0) {
-                        int nLimit = buf.length;
-                        if (nLimit > byteCount) {
-                            nLimit = byteCount;
-                        }
-                        
-                        int nRead = nLimit;
-                        if (!zeroPadding) {
-                            nRead = in.read(buf);
-                        }
-
-                        if (nRead < 0) {
-                            // Zero pad last block.
-                            if (i == nBlocks - 1) {
-                                zeroPadding = true;
-                                for (int j = 0; j < buf.length; j++) {
-                                    buf[j] = 0;
-                                }
-                                nRead = nLimit;
-                            }
-                            else {
-                                throw new IOException("Read failed.");
-                            }
-                        }
-                        out.write(buf, 0, nRead);
-                        byteCount -= nRead;
-                    } 
-                }
-                finally {
-                    if (out != null) {
-                        try {out.close();} catch(IOException e) {}
-                    }
-                }
-            }
-        }
-        catch (IOException ioe) {
-            if (ret != null) {
-                // Don't leave temp files hanging around.
-                for (int i = 0; i < ret.length; i++) {
-                    if (ret[i] != null) {
-                        try { factory.freeBucket(ret[i]); } catch (IOException e) {}
-                    }
-                }
-                throw ioe;
-            }
-        }
-        finally {
-            if (in != null) {
-                try {in.close();} catch (IOException ioe) {}
-            }
-        }
-        return ret;
-    }
-
-    // Truncates last bucket if it exceeds length.
-    public final static void concatinate(Bucket[] src, Bucket dest, int length) 
-        throws IOException {
-        OutputStream out = null;
-        try {
-            dest.resetWrite();
-            out = dest.getOutputStream();
-
-            byte[]  buf = new byte[4096];
-            int byteCount = 0;
-            int i=0;
-            for (i = 0; i < src.length; i++) {
-                InputStream in = null;
-                try {
-                    in = src[i].getInputStream();
-                    int bucketLen = (int)src[i].size();
-                    while ((bucketLen > 0) && (length > 0)) {
-                        int nLimit = buf.length;
-                        if (length < nLimit) {
-                            nLimit = length;
-                        }
-                        int nRead = in.read(buf, 0, nLimit);
-                        if (nRead < 0) {
-                            throw new IOException("read failed.");
-                        }
-                        out.write(buf, 0, nRead);
-                        bucketLen -= nRead;
-                        length -= nRead;
-                    } 
-                    in.close();
-                    in = null;
-                }
-                catch (IOException ioe) {
-                    if (in != null) {
-                        try {in.close();} catch (IOException ioe1) {}
-                    }
-                    throw ioe;
-                }
-            }
-        }
-        finally {
-            if (out != null) {
-                try { out.close(); } catch (IOException ioe) {} 
-            }
         }
     }
 
