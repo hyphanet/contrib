@@ -1,8 +1,8 @@
-README for fproxy FEC plugin, updated 20020223
+README for fred FEC plugin, updated 20020915
 giannijohansson@attbi.com
 
 This directory contains FECEncoder and FECDecoder plugin 
-implementations for fproxy.   It was written on top of the 
+implementations for fred.   It was written on top of the 
 Onion Networks Java FEC Library v1.0.2.
 
 See:
@@ -15,31 +15,16 @@ This plugin implementation and the Onion Networks FEC code is
 now built in to freenet-ext.jar by default.  You shouldn't
 have to add any additional jars to your CLASSPATH.  
 
-The installer for freenet should have added the necessary
-lines to you freenet.ini/conf file to make fproxy load
-this plugin.
+The encoder and decoder class names are OnionFECEncoder and 
+OnionFECDecoder respectively.  These plugins report their name as
+"OnionFEC_a_1_2" and support FEC encoding and decoding 
+with 50% redundancy.
 
-If you're having trouble check that the following lines
-are in your freenet.ini/conf file.
-
-<---snip--->
-fproxy.params.FECDecoder_0_name=OnionDecoder_0
-fproxy.params.FECDecoder_0_class=OnionFECDecoder
-
-fproxy.params.FECEncoder_0_name=default_encoder
-fproxy.params.FECEncoder_0_class=OnionFECEncoder
-
-fproxy.params.FECEncoder_1_name=OnionEncoder_0
-fproxy.params.FECEncoder_1_class=OnionFECEncoder
-
-# Set this to point to a dir with a lot of free
-# free space on your system.
-# fproxy.params.tempDir=/usr3/fproxy_tmp
-<---snip--->
+The encoder and decoder are enabled by default in the current version of 
+fred/fproxy.
 
 NATIVE CODE:
-I disabled native code support by default.  If you
-want to configure native code support, get the Onion Networks
+If you want to configure native code support, get the Onion Networks
 Java FEC Library v1.0.2 zip:
 
 http://www.onionnetworks.com/fec/fec-1.0.2.zip
@@ -47,17 +32,20 @@ http://www.onionnetworks.com/fec/fec-1.0.2.zip
 Install the correct native libraries and JNI support jars
 for your system.
 
-Then use the classes NativeOnionFECDecoder and NativeOnionFECEncoder
-in your Freenet initialization files.
+The plugin implementations will automatically use the native
+libraries if they are present.
 
-e.g.:
-fproxy.params.FECDecoder_0_name=OnionDecoder_0
-fproxy.params.FECDecoder_0_class=NativeOnionFECDecoder
+HINT:
 
-instead of:
-fproxy.params.FECDecoder_0_name=OnionDecoder_0
-fproxy.params.FECDecoder_0_class=OnionFECDecoder
+You can test whether the the native code is running by checking fred's
+stderr after executing the first FCP FEC command after startup.
 
+If you see the messages:
+"Unable to find native library for fec8"
+"Unable to find native library for fec16" 
+The JNI code couldn't be loaded.
+
+If you don't see any message the JNI code is working.
 
 BUILDING:
 This code is built with a standard GNU Makefile. 
@@ -70,6 +58,64 @@ your Freenet classes. Then from this directory, type:
 make jar
 
 to build.
+
+IMPLEMENTATION NOTES:
+A. Algorithm name
+An algorithm name is an identifier string which completely specifies
+how a file of a given length will be encoded and decoded. Plugin implementations
+can not require any parameter besides file length to instantiate an appropriate
+encoder or decoder.
+
+If you want to make an alternate implementation for an existing algorithm name
+it must produce output that is bit-for-bit identical.  This includes segmentation
+and striping.  See below.
+
+B. Segmentation
+The plugins segment files larger than 128M into 128M chunks and only 
+do FEC within each chunk.
+
+Here's the rationale for this limitation:
+
+We want to stay with the 8 bit coders because they are much faster
+than the 16 bit coders.
+
+8-bit -> maximum n of 256.
+
+Selecting a maximum k of 128 seemed reasonable from experimentation. 
+Even for the 8-bit coders encoding/decoding times increase noticeably with n.
+
+1M is the maximum reasonable block size.
+
+This implies a maximum segment size of 128M. 
+
+C. Striping
+
+The Onionnetworks FEC code does all computations in memory.
+It appears that both the Pure Java and JNI implemenations work this way.
+
+The implementation uses striping to bound memory usage.  
+
+I picked 24M as the target high water mark. This implies a maximum unstriped data 
+size of 16M at 50% redundancy (16M of data + 8M of check blocks == 24M).
+
+For files larger than 16M, all the data and check blocks are striped.
+
+Striping means that all data and check blocks are divided into stripes and
+encoding/decoding is done in separate passes over each stripe.
+
+For example a 32M file would be divided into 64 512k data blocks from
+which 32 512k check blocks would be encoded.  The stripe width would
+be 256k.  The encoding would be done in 2 passes.  First the top 256k
+halves of all data blocks would be encoded to create the top 256k
+halves of the check blocks, then the bottom halves of the data blocks
+would be encoded to create the bottom halves of the check blocks.
+
+NOTE:
+The calculations for striping and segmentation are done in the
+SegmentationParams class.  Check it out if you are trying to write
+code which duplicates the plugins' segmentation and striping behavior.
+
+redundancyNum == 1, redundancyDenom == 2 (for "OnionFEC_a_1_2")
 
 DISCLAIMER:
 This code wasn't written by Onion Networks. It isn't endorsed or 
