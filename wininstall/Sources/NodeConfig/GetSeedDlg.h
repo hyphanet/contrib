@@ -8,7 +8,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#define DEFSEEDURL "http://freenetproject.org/seed.ref"
+#define DEFSEEDURL "http://hawk.freenetproject.org/~freenet4/seednodes.ref"
 #define DEFSEEDFILE "seed.ref"
 
 /////////////////////////////////////////////////////////////////////////////

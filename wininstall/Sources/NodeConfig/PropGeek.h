@@ -29,7 +29,6 @@ public:
 	UINT	m_announcementDelayBase;
 	UINT	m_announcementPeers;
 	UINT	m_authTimeout;
-	UINT	m_blockSize;
 	UINT	m_checkPointInterval;
 	UINT	m_connectionTimeout;
 	CString	m_diagnosticsPath;

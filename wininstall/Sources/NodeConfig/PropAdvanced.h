@@ -34,7 +34,7 @@ public:
 	UINT	m_maxHopsToLive;
 	UINT	m_maximumThreads;
 	UINT	m_outputBandwidthLimit;
-	CString	m_seedNodes;
+	CString	m_seedFile;
 	BOOL	m_nodestatusservlet;
 	UINT	m_nodestatusport;
 	CString	m_nodestatusclass;

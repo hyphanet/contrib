@@ -123,7 +123,7 @@ BEGIN
     GROUPBOX        "External Node References",IDC_STATIC,7,7,160,34
     LTEXT           "File containing external Node Refs",IDC_STATIC,11,18,61,
                     17
-    EDITTEXT        IDC_seedNodes,74,21,85,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_seedFile,74,21,85,12,ES_AUTOHSCROLL
     GROUPBOX        "Node Announcements",IDC_STATIC,7,46,305,34
     CONTROL         "Announce to Other Nodes",IDC_doAnnounce,"Button",
                     BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,58,56,18
@@ -207,8 +207,6 @@ BEGIN
     GROUPBOX        "Misc",IDC_STATIC,103,7,209,227
     LTEXT           "authTimeout",IDC_STATIC,110,18,40,8
     EDITTEXT        IDC_authTimeout,110,26,35,12,ES_AUTOHSCROLL
-    LTEXT           "blockSize",IDC_STATIC,110,41,32,8
-    EDITTEXT        IDC_blockSize,110,49,35,12,ES_AUTOHSCROLL
     LTEXT           "checkPointInterval",IDC_STATIC,109,64,60,8
     EDITTEXT        IDC_checkPointInterval,109,72,42,12,ES_AUTOHSCROLL
     LTEXT           "minCacheCount",IDC_STATIC,110,87,51,8

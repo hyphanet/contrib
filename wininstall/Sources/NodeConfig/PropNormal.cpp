@@ -167,7 +167,7 @@ void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus)
 	showNodeAddrFields(!m_transient);
 
 	//activate "use default seed" if the specified seed files does not exist
-	if ((hfile = CreateFile(pAdvanced->m_seedNodes,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,NULL,NULL)) == INVALID_HANDLE_VALUE)
+	if ((hfile = CreateFile(pAdvanced->m_seedFile,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,NULL,NULL)) == INVALID_HANDLE_VALUE)
 	{
 		m_useDefaultNodeRefs = TRUE;
 	}

@@ -14,9 +14,8 @@
 #define IDR_MAINFRAME                   128
 #define IDD_DLG_PERM_WARN               129
 #define IDD_PP_FPROXY                   130
-#define IDC_storeCacheSize              1000
 #define IDC_storeSize                   1000
-#define IDC_seedNodes                   1001
+#define IDC_seedFile                    1001
 #define IDC_announcementAttempts        1002
 #define IDC_fproxy_inserthtl            1003
 #define IDC_GETSEED                     1004
@@ -49,7 +48,6 @@
 #define IDC_logFile                     1031
 #define IDC_logLevel                    1033
 #define IDC_authTimeout                 1035
-#define IDC_blockSize                   1036
 #define IDC_checkPointInterval          1037
 #define IDC_minCacheCount               1038
 #define IDC_connectionTimeout           1039
@@ -64,7 +62,6 @@
 #define IDC_rtMaxRefs                   1048
 #define IDC_streamBufferSize            1049
 #define IDC_initialRequests             1050
-#define IDC_logVerbosity                1051
 #define IDC_storeCacheSize_spin         1052
 #define IDC_notTransient                1053
 #define IDC_ipAddress_TITLE             1054

@@ -43,8 +43,6 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_announcementPeers, 1, 256);
 	DDX_Text(pDX, IDC_authTimeout, m_authTimeout);
 	DDV_MinMaxUInt(pDX, m_authTimeout, 1000, 1800000);
-	DDX_Text(pDX, IDC_blockSize, m_blockSize);
-	DDV_MinMaxUInt(pDX, m_blockSize, 256, 1048576);
 	DDX_Text(pDX, IDC_checkPointInterval, m_checkPointInterval);
 	DDV_MinMaxUInt(pDX, m_checkPointInterval, 100, 60000);
 	DDX_Text(pDX, IDC_connectionTimeout, m_connectionTimeout);
