@@ -1,32 +1,10 @@
-#include <err.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/socket.h>
-#include <sys/sendfile.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
 #include "anarcast.h"
 #include "sha.c"
-
-#define ioerror(c) { \
-    if (c == -1) printf("I/O Error: %s.\n", strerror(errno)); \
-    else puts("I/O Error: Connection reset by peer."); \
-}
 
 struct state {
     char type, hash[HASH_LEN], *data;
     unsigned int off;
 } a[FD_SETSIZE];
-
-int listening_socket ();
-void bytestohex (char *hex, char *bytes, int blen);
 
 int
 main (int argc, char **argv)
@@ -40,7 +18,7 @@ main (int argc, char **argv)
     if (chdir(b) == -1)
 	err(1, "can't change to %s", b);
     
-    if ((l = listening_socket()) == -1)
+    if ((l = listening_socket(ANARCAST_SERVER_PORT)) == -1)
 	err(1, "can't grab port %d", ANARCAST_SERVER_PORT);
     
     FD_ZERO(&r);
@@ -196,41 +174,5 @@ write:	//=== write =========================================================
 	    }
 	}
     }
-}
-
-int
-listening_socket ()
-{
-    struct sockaddr_in a;
-    int r = 1, s;
-
-    memset(&a, 0, sizeof(a));
-    a.sin_family = AF_INET;
-    a.sin_port = htons(ANARCAST_SERVER_PORT);
-    a.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return -1;
-
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &r, sizeof(r));
-
-    if (bind(s, &a, sizeof(a)) < 0)
-        return -1;
-
-    if (listen(s, SOMAXCONN) < 0)
-        return -1;
-    
-    return s;
-}
-
-void
-bytestohex (char *hex, char *bytes, int blen)
-{
-    static char hextable[] = "0123456789ABCDEF";
-    for ( ; blen-- ; bytes++) {
-	*hex++ = hextable[*bytes >> 4 & 0x0f];
-	*hex++ = hextable[*bytes & 0x0f];
-    }
-    *hex = 0;
 }
 

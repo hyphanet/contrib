@@ -17,12 +17,10 @@
 #include "sha.c"
 #include "aes.c"
 
-int listening_socket ();
 void * run_thread (void *arg);
 void insert (int c);
 void request (int c);
 void inform ();
-void bytestohex (char *hex, char *bytes, int blen);
 
 int
 main (int argc, char **argv)
@@ -36,7 +34,7 @@ main (int argc, char **argv)
     if (chdir(b) == -1)
 	err(1, "can't change to %s", b);
     
-    if ((l = listening_socket()) == -1)
+    if ((l = listening_socket(PROXY_SERVER_PORT)) == -1)
 	err(1, "can't grab port %d", PROXY_SERVER_PORT);
     
     for (;;)
@@ -73,21 +71,12 @@ insert (int c)
     if (read(c, &len, 4) != 4)
 	return;
     
-    strcpy(b, "/tmp/anarcast-XXXXXX");
-    if ((f = mkstemp(b)) == -1)
-        err(1, "mkstemp(3) failed");
-    
-    if (ftruncate(f, len) == -1)
-        err(1, "ftruncate(2) failed");
-    
-    p = mmap(0, len, PROT_WRITE|PROT_READ, MAP_SHARED, f, 0);
-    if (p == MAP_FAILED)
-        err(1, "mmap(2) failed");
-    close(f);
+    p = mbuf(len);
     
     for (f = 0 ; f < len ; ) {
 	f += (i = read(c, &p[f], len - f));
 	if (i <= 0) {
+	    ioerror(i);
 	    munmap(p, len);
 	    return;
 	}
@@ -108,31 +97,6 @@ insert (int c)
 void
 request (int c)
 {
-}
-
-int
-listening_socket ()
-{
-    struct sockaddr_in a;
-    int r = 1, s;
-
-    memset(&a, 0, sizeof(a));
-    a.sin_family = AF_INET;
-    a.sin_port = htons(PROXY_SERVER_PORT);
-    a.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return -1;
-
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &r, sizeof(r));
-
-    if (bind(s, &a, sizeof(a)) < 0)
-        return -1;
-
-    if (listen(s, SOMAXCONN) < 0)
-        return -1;
-    
-    return s;
 }
 
 void
@@ -179,16 +143,5 @@ inform (char *server)
     close(d);
     close(i);
     printf("%d known servers.\n", t / 4);
-}
-
-void
-bytestohex (char *hex, char *bytes, int blen)
-{
-    static char hextable[] = "0123456789ABCDEF";
-    for ( ; blen-- ; bytes++) {
-	*hex++ = hextable[*bytes >> 4 & 0x0f];
-	*hex++ = hextable[*bytes & 0x0f];
-    }
-    *hex = 0;
 }
 

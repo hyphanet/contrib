@@ -2,22 +2,7 @@
 #define VERIFY_INTERVAL 60
 #define WRITE_INTERVAL  60
 
-#include <err.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
 #include "anarcast.h"
-
-int listening_socket ();
 
 int n;
 unsigned int hosts[MAX_HOSTS];
@@ -30,7 +15,7 @@ main (int argc, char **argv)
     int f, l, c, d, i;
     struct sockaddr_in a;
 
-    if ((l = listening_socket()) == -1)
+    if ((l = listening_socket(INFORM_SERVER_PORT)) == -1)
 	err(1, "can't grab port %d", INFORM_SERVER_PORT);
     
     if ((f = open("inform_database", O_RDWR | O_CREAT, 0644)) == -1)
@@ -103,30 +88,5 @@ main (int argc, char **argv)
 		err(1, "lseek(2) failed");
 	}
     }
-}
-    
-int
-listening_socket ()
-{
-    struct sockaddr_in a;
-    int r = 1, s;
-
-    memset(&a, 0, sizeof(a));
-    a.sin_family = AF_INET;
-    a.sin_port = htons(INFORM_SERVER_PORT);
-    a.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return -1;
-
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &r, sizeof(r));
-
-    if (bind(s, &a, sizeof(a)) < 0)
-        return -1;
-
-    if (listen(s, SOMAXCONN) < 0)
-        return -1;
-    
-    return s;
 }
 
