@@ -86,7 +86,6 @@ main (int argc, char **argv)
 		struct sockaddr_in a;
 		int c, b = sizeof(a);
 		// accept a connection
-		// I NEED TO CONNECT BACK TO THE HOST BECAUSE IT MIGHT BE SPOOFED!!!
 		if ((c = accept(n, &a, &b)) == -1) {
 		    ioerror();
 		    continue;
