@@ -1,9 +1,9 @@
-import Freenet.FieldSet;
-import Freenet.client.FECEncoder;
-import Freenet.client.metadata.SplitFile;
-import Freenet.support.Bucket;
-import Freenet.support.BucketFactory;
-import Freenet.support.StripedBucketArray;
+import freenet.FieldSet;
+import freenet.client.FECEncoder;
+import freenet.client.metadata.SplitFile;
+import freenet.support.Bucket;
+import freenet.support.BucketFactory;
+import freenet.support.StripedBucketArray;
 
 
 import com.onionnetworks.fec.FECCode;

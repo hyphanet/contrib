@@ -9,8 +9,8 @@ import java.util.Properties;
 import com.onionnetworks.fec.*;
 import com.onionnetworks.util.*;
 
-import Freenet.support.Bucket;
-import Freenet.support.BucketFactory;
+import freenet.support.Bucket;
+import freenet.support.BucketFactory;
 
 // REDFLAG: Purge the unused code out of this file.
 /**
