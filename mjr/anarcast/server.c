@@ -80,13 +80,9 @@ main (int argc, char **argv)
 	    }
 	    a[n].off += c;
 	    if (a[n].off == PART_SIZE) {
-		long t = time(NULL);
-		struct tm *tm = localtime(&t);
-		char ts[128];
-		strftime(ts, 128, "%T", tm);
 		sha_buffer(a[n].data, PART_SIZE, a[n].hash);
 		bytestohex(b, a[n].hash, HASH_LEN);
-		printf("%s < %s\n", ts, b);
+		printf("%s < %s\n", timestr(), b);
 		if (stat(b, &st) == -1) {
 		    if ((i = open(b, O_WRONLY | O_CREAT, 0644)) == -1)
 			err(1, "open(2) failed");
@@ -161,12 +157,8 @@ write:	//=== write =========================================================
 	    a[n].off += (c = write(n, &a[n].data[i], PART_SIZE - i));
 	    if (c <= 0 || a[n].off == PART_SIZE) {
 	        if (c > 0) {
-		    long t = time(NULL);
-		    struct tm *tm = localtime(&t);
-		    char ts[128];
-		    strftime(ts, 128, "%T", tm);
 		    bytestohex(b, a[n].hash, HASH_LEN);
-		    printf("%s > %s\n", ts, b);
+		    printf("%s > %s\n", timestr(), b);
 		} else ioerror(c);
 	        FD_CLR(n, &w);
 	        close(n);

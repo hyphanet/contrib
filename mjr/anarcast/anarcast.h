@@ -96,6 +96,17 @@ hextobytes (char *hex, char *bytes, uint hlen)
     return j;
 }
 
+inline char *
+timestr ()
+{
+    long t = time(NULL);
+    struct tm *tm = localtime(&t);
+    static char ts[128];
+    if (!strftime(ts, 128, "%T", tm))
+	err(1, "strftime() failed");
+    return ts;
+}
+
 int
 listening_socket (int port)
 {
@@ -104,7 +115,7 @@ listening_socket (int port)
 
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
-    a.sin_port = htons(INFORM_SERVER_PORT);
+    a.sin_port = htons(port);
     a.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
