@@ -109,19 +109,11 @@ int main(int argc, char* argv[])
 
 int fcpLogCallback(int level, char *buf)
 {
-	FILE *fp;
+  if (level <= verbosity)
+    printf("%s\n", buf);
 
-    if (level <= verbosity)
-	{
-		fp = fopen("fcpputsite.log", "a");
-        puts(buf);
-		fputs(buf, fp);
-		fputc('\n', fp);
-		fclose(fp);
-	}
-    return 0;
+  return 0;
 }
-
 
 static void parse_args(int argc, char *argv[])
 {
@@ -157,75 +149,62 @@ static void parse_args(int argc, char *argv[])
 
     case 'p':
       i = atoi( optarg );
-			//printf("p! - %d\n",i);
       if (i > 0) nodePort = i;
       break;
 
     case 'l':
       i = atoi( optarg );
-			//printf("l! - %d\n",i);
       if (i > 0) htlVal = i;
       break;
 
     case 'r':
       rawMode = 1;
-			//printf("r! - %d\n",rawMode);
       break;
 
 		case 'a':
 			i = atoi( optarg );
-			//printf("a! - %d\n",i);
 			if (i > 0) maxAttempts = i;
 			break;
 
 		case 's':
 			i = atoi( optarg );
-			//printf("s! - %d\n",i);
 			if (i > 0) fcpSplitChunkSize = i;
 			break;
 
 		case 't':
 			i = atoi( optarg );
-			//printf("t! - %d\n",i);
 			if (i > 0) maxSplitThreads = i;
 			break;
 
 		case 'i':
 			i = atoi( optarg );
-			//printf("i! - %d\n",i);
 			if (i > 0) maxThreads = i;
 			break;
  
 		case 'd':
 			dodbr = 0;
-			//printf("d! - %d\n",dodbr);
 			break;
  
 		case 'g':
 			genKeypair = 1;
-			//printf("g! - %d\n",genKeypair);
 			return;
  
 		case 'f':
 			i = atoi( optarg );
-			//printf("f! - %d\n",i);
 			if (i > 0) daysFuture = i;
 			break;
  
 		case 'D':
       strncpy( defaultFile, optarg, L_URI );
-			//printf("D! - %s\n",defaultFile);
 			break;
  
     case 'v':
       i = atoi( optarg );
-			//printf("v! - %d\n",i);
       if ((i >= 0) && (i <= 4)) verbosity = i;
       break;
 
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
-			printf("V!\n");
       exit(0);
 
     case 'h':
