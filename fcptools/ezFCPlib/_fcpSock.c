@@ -50,8 +50,8 @@ int _fcpSockConnect(hFCP *hfcp)
   struct sockaddr_in sa_local_addr;
   struct sockaddr_in sa_serv_addr;
 	
-  struct in_addr in_address;
 	struct hostent *host_ent;
+  struct in_addr  in_address;
 
 	_fcpLog(FCP_LOG_DEBUG, "attempting socket connection");
 	
@@ -62,9 +62,11 @@ int _fcpSockConnect(hFCP *hfcp)
     host_ent = gethostbyname(hfcp->host);
 		if (!host_ent) return -1;
 
-    memcpy((struct in_addr *)&in_address, host_ent->h_addr_list[0], host_ent->h_length);
+		in_address.s_addr = ((struct in_addr *)host_ent->h_addr_list[0])->s_addr;
   }
 
+	/* now (struct in_addr)in_address is set properly in either
+		 name case or dotted-IP */
 	sa_serv_addr.sin_addr.s_addr = in_address.s_addr;
   sa_serv_addr.sin_port = htons(_fcpPort);
   sa_serv_addr.sin_family = AF_INET;
