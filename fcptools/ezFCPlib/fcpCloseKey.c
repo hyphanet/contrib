@@ -130,7 +130,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		break;
 	}
 		
-	_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted key \"%s\"", hfcp->key->uri->uri_str);
+	_fcpLog(FCP_LOG_VERBOSE, "Uri: %s", hfcp->key->target_uri->uri_str);
 	
 	return 0;
 
