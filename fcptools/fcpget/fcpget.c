@@ -7,6 +7,8 @@
 
 #include "ezFCPlib.h"
 
+#define _GNU_SOURCE
+#include "getopt.h"
 
 /*
   IMPORTED DECLARATIONS
@@ -17,16 +19,19 @@
   PRIVATE DECLARATIONS
 */
 static void parse_args(int argc, char *argv[]);
-static void *usage(char *msg);
+static void usage(char *msg);
 
-char  *keyUri     = NULL;
-char  *keyFile    = NULL;
-int    htlVal     = 25;
-char  *nodeAddr   = "localhost";
-int    nodePort   = 8481;
-char  *metaFile   = NULL;
-int    rawMode    = 0;
-int    verbosity  = FCP_LOG_NORMAL;
+/* Configurable command-line parameters */
+char  keyUri[MAX_URI_LEN];
+char  keyFile[MAX_FILENAME_LEN];
+char  nodeAddr[MAX_URI_LEN] = "localhost";
+char  metaFile[MAX_FILENAME_LEN] = "stdout";
+
+int   htlVal = 25;
+int   nodePort = 8481;
+
+int   rawMode = 0;
+int   verbosity = FCP_LOG_NORMAL;
 
 
 int main(int argc, char* argv[])
@@ -49,10 +54,6 @@ int main(int argc, char* argv[])
 
     // go thru command line args
     parse_args(argc, argv);
-    if (keyUri == NULL) {
-        _fcpLog(FCP_LOG_CRITICAL, "You must specify a key to get!");
-        return -1;
-    }
 
     // try and fire up FCP library
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
@@ -156,75 +157,112 @@ int main(int argc, char* argv[])
 
 }
 
+/* IMPORTANT
+   This function should bail if the parameters are bad in any way.  main() can
+   then continue cleanly. */
 
 static void parse_args(int argc, char *argv[])
 {
-    int i;
+  static struct option long_options[] = {
+    {"htl", 1, NULL, 'l'},
+    {"address", 1, NULL, 'n'},
+    {"port", 1, NULL, 'p'},
+    {"metadata", 1, NULL, 'm'},
+    {"raw", 0, NULL, 'r'},
+    {"verbosity", 1, NULL, 'v'},
+    {"version", 0, NULL, 'V'},
+    {"help", 0, NULL, 'h'},
+    {0, 0, 0, 0}
+  };
+  static char short_options[] = "l:n:p:m:rv:Vh";
 
-    if (argc == 1)
-      usage("no key specified");
+  /* c is the option code; i is buffer storage for an int */
+  int c, i;
 
-    for (i = 1; i < argc; i++)
-    {
-        if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-help"))
-            usage("help information");
-        else if (!strcmp(argv[i], "-n"))
-            nodeAddr = (++i < argc)
-                        ? argv[i]
-                        : (char *)usage("missing node address");
-        else if (!strcmp(argv[i], "-htl"))
-            htlVal = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing htl argument");
-        else if (!strcmp(argv[i], "-p"))
-            nodePort = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing port number");
-        else if (!strcmp(argv[i], "-v"))
-            verbosity = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing verbosity level");
-        else if (!strcmp(argv[i], "-m"))
-            metaFile = (++i < argc)
-                        ? argv[i]
-                        : (char *)usage("missing metadata filename\n");
-        else if (!strcmp(argv[i], "-r"))
-            rawMode = 1;
-        else
-        {
-            // have we run out of args?
-            if (i == argc)
-                usage("missing key argument");
+  /* Set the defaults here.  It cleans up main() */
+  *keyUri = 0;
+  *keyFile = 0;
 
-            // cool - get URI and possibly file as well
-            keyUri = argv[i++];
-            keyFile = (i < argc) ? argv[i] : NULL;
-        }
+  strcpy(nodeAddr, "localhost");
+  strcpy(metaFile, "stdout");
+
+  while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
+
+    //printf("%s\n", optarg);
+    switch (c) {
+
+    case 'l':
+      i = atoi( optarg );
+      htlVal = (i <= 0 ? 0 : i);
+      break;
+      
+    case 'n':
+      strncpy( nodeAddr, optarg, MAX_URI_LEN );
+      break;
+      
+    case 'p':
+      i = atoi( optarg );
+      nodePort = ( i <= 0 ? 8481 : i );
+      break;
+      
+    case 'm':
+      strncpy( metaFile, optarg, MAX_FILENAME_LEN );
+      break;
+      
+    case 'r':
+      rawMode = 1;
+      break;
+      
+    case 'v':
+      i = atoi( optarg );
+      verbosity = ( i <= 0 ? 0 : i );
+      break;
+      
+    case 'V':
+      printf( "FCPtools Version %s\n", VERSION );
+      exit(0);
+      
+    case 'h':
+      usage(NULL);
+      break;
     }
+  }
+
+  //printf("\noptind: %d :: argc: %d\n\n", optind, argc);
+  if (optind < argc) strncpy(keyUri, argv[optind++], MAX_URI_LEN);
+  else usage("You must specify a key");
+
+  /* If there's another parameter, it's the FILE to store the results in.
+     Default value is "stdout" if not passed */
+
+  if (optind < argc)
+    strncpy(keyFile, argv[optind++], MAX_FILENAME_LEN);
 }
 
 
-static void *usage(char *s)
+static void usage(char *s)
 {
-    printf("Error: %s\n", s);
-    printf("fcpget Version %s\n", VERSION);
+    if (s) printf("Error: %s\n", s);
+    printf("FCPtools; Freenet Client Protocol Tools\n");
     printf("Copyright (c) 2001 by David McNab\n\n");
 
     printf("Usage: fcpget [OPTIONS] key [file]\n\n");
 
-	 printf("Options:\n\n");
-    printf("  -htl htlVal    Use HopsToLive value of htlVal, default %d\n", htlVal);
-    printf("  -n nodeAddr    Address of your freenet 0.4 node, default \"%s\"\n", nodeAddr);
-    printf("  -p nodePort    FCP port for your freenet 0.4 node, default %d\n", nodePort);
-    printf("  -m file        Write key's metadata to file, \"stdout\" means stdout\n");
-    printf("  -r             Raw mode - don't follow redirects\n");
-    printf("  -v level       Verbosity of logging messages:\n");
-    printf("                 0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-    printf("                 (default=2)\n");
-    printf("  -h             Display this help\n\n");
+    printf("Options:\n\n");
+    printf("  -l. --htl htlVal       Hops to Live value, default %d\n", htlVal);
+    printf("  -n, --address addr     Address of your freenet 0.4 node,\n");
+    printf("                         default \"%s\"\n", nodeAddr);
+    printf("  -p, --port port        Port of your freenet 0.4 node, default %d\n", nodePort);
+    printf("  -m, --metadata file    Write key's metadata to FILE or STDOUT\n");
+    printf("  -r, --raw              Raw mode - don't follow redirects\n");
+    printf("  -v, --verbosity level  Verbosity of logging messages:\n");
+    printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
+    printf("                         (default=2)\n");
+    printf("  -V, --version          Output version information and exit\n");
+    printf("  -h, --help             Display this help and exit\n\n");
 
-    printf("  key            A Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
-    printf("  file           A file to save key data to - stdout if no filename\n");
+    printf("  key                    A Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
+    printf("  file                   A file to save key data to - stdout if no filename\n\n");
 
     exit(0);
 }
@@ -232,7 +270,7 @@ static void *usage(char *s)
 int fcpLogCallback(int level, char *buf)
 {
     if (level <= verbosity)
-        puts(buf);
+      puts(buf);
     return 0;
 }
 

@@ -69,13 +69,12 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-INCLUDES = -I$(srcdir)
+INCLUDES = -I$(top_srcdir)/include
 #CFLAGS = -pedantic
 
 FCP_SOURCE =  	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c 	_fcpRecvResponse.c _fcpSock.c _fcpUtil.c fcpCloseKey.c 	fcpCreateHandle.c fcpDestroyHandle.c fcpGetKeyToFile.c 	fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c 	mimetype.c template.c safeMalloc.c
 
 
-noinst_HEADERS = ezFCPlib.h compat.h
 noinst_LIBRARIES = libezfcp.a
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
@@ -115,8 +114,6 @@ CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
-HEADERS =  $(noinst_HEADERS)
-
 DIST_COMMON =  Makefile.am Makefile.in TODO
 
 
@@ -297,7 +294,7 @@ install-am: all-am
 install: install-am
 uninstall-am:
 uninstall: uninstall-am
-all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(HEADERS)
+all-am: Makefile $(LIBRARIES) $(PROGRAMS)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
@@ -354,12 +351,6 @@ uninstall-am uninstall all-redirect all-am all installdirs \
 mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
-
-#test_SOURCES = \
-#	test.c
-
-#unix_SOURCES = \
-#	unix.c
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -71,7 +71,7 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-SUBDIRS = ezFCPlib fcpputsite fcpget fcpput fcpputsplit
+SUBDIRS = fcpcommon ezFCPlib fcpputsite fcpget fcpput fcpputsplit
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 

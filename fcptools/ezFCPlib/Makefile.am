@@ -1,7 +1,7 @@
 
 # Makefile.am for ezFCPlib
 
-INCLUDES = -I$(srcdir)
+INCLUDES = -I$(top_srcdir)/include
 #CFLAGS = -pedantic
 
 FCP_SOURCE = \
@@ -15,16 +15,8 @@ FCP_SOURCE = \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c \
 	mimetype.c template.c safeMalloc.c
 
-noinst_HEADERS = ezFCPlib.h compat.h
 noinst_LIBRARIES = libezfcp.a
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 
 noinst_PROGRAMS = test unix
-
-#test_SOURCES = \
-#	test.c
-
-#unix_SOURCES = \
-#	unix.c
-

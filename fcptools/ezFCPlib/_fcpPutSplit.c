@@ -718,6 +718,6 @@ static void chunkThread(void *params)
 	runningThreads--;
 	_fcpLog(FCP_LOG_DEBUG, "%d:chunkThread: %d threads now running",
 			mypid, runningThreads);
-	QuitThread();
+	QuitThread(0);
 	return;
 }
