@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+
+# libtool scripts and configs
+libtoolize -c --force
+
+# Local autoconf config
+aclocal
+
+# Generate makefiles
+automake
+
+# Generate configure script
+autoconf
+
+./configure --prefix=/usr/src
+
