@@ -32,16 +32,16 @@ RSC=rc.exe
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "Release"
-# PROP BASE Intermediate_Dir "Release"
+# PROP BASE Output_Dir "ezFCPlib___Win32_Release"
+# PROP BASE Intermediate_Dir "ezFCPlib___Win32_Release"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir ""
-# PROP Intermediate_Dir "c:\temp\Release"
+# PROP Output_Dir "ezFCPlib___Win32_Release"
+# PROP Intermediate_Dir "ezFCPlib___Win32_Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_LIB" /D "WINDOWS" /YX /FD /LD /GD /c
+# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -50,18 +50,13 @@ BSC32=bscmake.exe
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
-# Begin Special Build Tool
-SOURCE="$(InputPath)"
-PostBuild_Desc=copy header file
-PostBuild_Cmds=copy ezFCPlib.h Release
-# End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "Debug"
-# PROP BASE Intermediate_Dir "Debug"
+# PROP BASE Output_Dir "ezFCPlib___Win32_Debug"
+# PROP BASE Intermediate_Dir "ezFCPlib___Win32_Debug"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
@@ -69,7 +64,7 @@ PostBuild_Cmds=copy ezFCPlib.h Release
 # PROP Intermediate_Dir "c:\temp\Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I ".." /I "..\include" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "WINDOWS" /D "NEW_PARSER" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /ML /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "WINDOWS" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -95,16 +90,6 @@ SOURCE=.\_fcpCompat.c
 # Begin Source File
 
 SOURCE=.\_fcpGlobals.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -112,31 +97,15 @@ SOURCE=.\_fcpLog.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\_fcpPut.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\_fcpRecvResponse.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\_fcpSock.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -145,16 +114,6 @@ SOURCE=.\_fcpUtil.c
 # Begin Source File
 
 SOURCE=.\fcpCloseKey.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -162,87 +121,19 @@ SOURCE=.\fcpCreation.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\fcpMakeChkFromFile.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
 SOURCE=.\fcpOpenKey.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\fcpPutKeyFromFile.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpReadKey.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\fcpStartup.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\fcpWriteKey.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -259,7 +150,7 @@ SOURCE=.\ezFCPlib.h
 # End Group
 # Begin Source File
 
-SOURCE=.\doc\spec.html
+SOURCE="C:\Program Files\Microsoft Visual Studio\VC98\Lib\WSOCK32.LIB"
 # End Source File
 # End Target
 # End Project

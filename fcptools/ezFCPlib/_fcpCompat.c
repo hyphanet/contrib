@@ -70,7 +70,8 @@ int crThreadLaunch(void (*f)(void *), void *parms)
   return pthread_create(&pth, &attr, (void *(*)(void *))f, parms);
 
 #else
-  return _beginthread(f, 0, parms) == -1 ? -1 : 0;
+  /*return _beginthread(f, 0, parms) == -1 ? -1 : 0;*/
+	return 0;
 
 #endif
 }

@@ -402,7 +402,6 @@ static int getrespKeycollision(hFCP *hfcp)
 static int getrespPending(hFCP *hfcp)
 {
 	char resp[1025];
-	int len;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Pending response");
 
@@ -483,7 +482,6 @@ static int getrespFailed(hFCP *hfcp)
 static int getrespFormatError(hFCP *hfcp)
 {
 	char resp[1025];
-	int len;
 
 	_fcpLog(FCP_LOG_DEBUG, "received FormatError response");
 

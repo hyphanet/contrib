@@ -215,7 +215,7 @@ static int send_clientput(hFCP *hfcp)
   /* create a put message */
 
   if (hfcp->key->metadata) {
-    snprintf(buf, L_FILE_BLOCKSIZE,
+    rc = snprintf(buf, L_FILE_BLOCKSIZE,
 						 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
 						 hfcp->key->uri->uri_str,
 						 hfcp->htl,
@@ -224,7 +224,7 @@ static int send_clientput(hFCP *hfcp)
 						 );
 	}
 	else {
-    snprintf(buf, L_FILE_BLOCKSIZE,
+    rc = snprintf(buf, L_FILE_BLOCKSIZE,
 						 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
 						 hfcp->key->uri->uri_str,
 						 hfcp->htl,
@@ -726,7 +726,6 @@ static int fec_make_metadata(hFCP *hfcp)
 	int bi;
 	int meta_len;
 
-	int byte_count;
 	int segment_count;
 	int index;
 
