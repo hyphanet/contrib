@@ -462,6 +462,7 @@ request (int c)
     // try to reconstruct blocks until we win or lose
     do {
 	int j, k;
+	char b[1024];
 	
 	a = 0; // no blocks built yet
 	
@@ -479,10 +480,14 @@ request (int c)
 			goto next; // we don't have all the data blocks yet.
 		// yay! we have both the check block and the other data blocks.
 		// xor them all together, and we have our missing data block!
+		sprintf(b, "Computed data block %d from check block %d and data blocks:", i+1, j+1);
 		memcpy(&blocks[i*blocksize], &blocks[(g.dbc+j)*blocksize], blocksize);
 		for (k = 0 ; k < g.dbc ; k++)
-		    if (is_set(&g, k, j))
+		    if (is_set(&g, k, j)) {
+			sprintf(b, "%s %d", b, k+1);
 			xor(&blocks[i*blocksize], &blocks[k*blocksize], blocksize);
+		    }
+		alert("%s.", b);
 		mask[i] = a = 1; // we got it, baby!
 		n--;
 		break;
@@ -499,9 +504,13 @@ request (int c)
 		if (is_set(&g, j, i) && !mask[j])
 		    goto next2;
 	    // woohoo! we have all the data blocks. we'll xor them to make a check block!
+	    alert("Computed check block %d from data blocks:", i+1);
 	    for (j = 0 ; j < g.dbc ; j++)
-		if (is_set(&g, j, i))
+		if (is_set(&g, j, i)) {
+		    sprintf(b, "%s %d", b, j+1);
 		    xor(&blocks[(g.dbc+i)*blocksize], &blocks[j*blocksize], blocksize);
+		}
+	    alert("%s.", b);
 	    mask[g.dbc+i] = a = 1; // we got it, baby!!
 	    n--;
 	 next2:;
