@@ -1,12 +1,14 @@
 /*
-  This code is part of FreeWeb - an FCP-based client for Freenet
+  This code is part of FCPTools - an FCP-based client library for Freenet
 
-  Designed and implemented by David McNab, david@rebirthing.co.nz
   CopyLeft (c) 2001 by David McNab
 
-  The FreeWeb website is at http://freeweb.sourceforge.net
-  The website for Freenet is at http://freenet.sourceforge.net
-
+  Developers:
+  - David McNab <david@rebirthing.co.nz>
+  - Jay Oliveri <ilnero@gmx.net>
+  
+  Currently maintained by Jay Oliveri <ilnero@gmx.net>
+  
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or

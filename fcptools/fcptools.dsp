@@ -69,10 +69,6 @@ SOURCE=.\COPYING
 # End Source File
 # Begin Source File
 
-SOURCE=.\INSTALL
-# End Source File
-# Begin Source File
-
 SOURCE=.\INSTALL.msvc
 # End Source File
 # Begin Source File

@@ -24,7 +24,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -107,6 +106,9 @@ int main(int argc, char* argv[])
 			buf[0] = c;
 			fcpWriteKey(hfcp, buf, 1);
 		}
+
+		/* @@@ TODO: verify on Unix */
+		fflush(stdin);
 
 		if (metafile) {
 			int bytes;

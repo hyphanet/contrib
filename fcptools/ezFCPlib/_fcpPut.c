@@ -136,9 +136,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		/* re-set meta_bytes to metadata size */
 		meta_bytes = hfcp->key->metadata->size;
 	}
-
-	/* set to zero; meaning so far, zero bytes of metadata to process */
-	bytes = 0;
+	else
+		meta_bytes = 0;
 
 	/* let's loop this until we stop receiving Restarted messages */
 	
