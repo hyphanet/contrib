@@ -11,14 +11,14 @@
 # (and some files (e.g. freenet-latest.jar / freenet.jar) are aliases so count as 1)
 
 
-!define NUMBER_OF_DOWNLOADABLE_FILES 5
+!define NUMBER_OF_DOWNLOADABLE_FILES 4
 
 
 !include "MUI.nsh"
 
 !define MUI_PRODUCT "Freenet"
 !define WEBINSTALL  #  the default install type
-;!define BUILDDATE 20040311
+;!define BUILDDATE 20040807
 !define JAVAINSTALLER "jre-win32-latest.exe"
 
 !ifdef WEBINSTALL
@@ -235,7 +235,6 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   IfFileExists "$2\freenet-ext.jar" FoundLocalFiles
   IfFileExists "$2\freenet.jar" FoundLocalFiles
   IfFileExists "$2\freenet-latest.jar" FoundLocalFiles
-  IfFileExists "$2\UpdateSnapshot.exe" FoundLocalFiles
 
   # if we get here there's no local files to install
   goto NoLocalFilesToInstall
@@ -266,13 +265,6 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   IntOp $R3 $R3 + 1
   #Delete "$2\NodeConfig.exe"
   nodeconfignotinstalled:
-  IfFileExists "$2\UpdateSnapshot.exe" 0 updaternotinstalled
-  ClearErrors
-  CopyFiles "$2\UpdateSnapshot.exe" "$R0\freenet-install\UpdateSnapshot.exe"
-  IfErrors DiskWriteError
-  IntOp $R3 $R3 + 1
-  #Delete "$2\UpdateSnapshot.exe"
-  updaternotinstalled:
   IfFileExists "$2\freenet.exe" 0 freenetexenotinstalled
   ClearErrors
   CopyFiles "$2\freenet.exe" "$R0\freenet-install\freenet.exe"
@@ -396,13 +388,6 @@ Section "Freenet Node" SecFreenetNode
   Call GetFile
   IfErrors DiskWriteError
 
-  Push "http://freenetproject.org/snapshots/UpdateSnapshot.exe"
-  Push "$R0\freenet-install"
-  Push "UpdateSnapshot.exe"
-  Call GetFile
-  IfErrors DiskWriteError
-
-
   DoneGettingFiles:
 
   # when we get here, the stack contains a list of files that have been successfully downloaded
@@ -421,6 +406,7 @@ Section "Freenet Node" SecFreenetNode
   SetDetailsPrint both
   ClearErrors
   CopyFiles "$R0\freenet-install\*.*" "$INSTDIR"
+  File update\UpdateSnapshot.exe
   IfErrors DiskWriteError
   # Step 3- Merge ini files
   # Step 3a - create a default .ini file
@@ -479,7 +465,7 @@ Section "Freenet Node" SecFreenetNode
   SetDetailsPrint both
 
   ; Also tidy up 'old' files from target folder
-  Delete "$INSTDIR\UpdateSnapshot.exe"
+;  Delete "$INSTDIR\UpdateSnapshot.exe"
   Delete "$INSTDIR\FindJava.exe"
 
   ; Associated with .ref files:
@@ -550,6 +536,7 @@ Section "Uninstall"
   Delete "$INSTDIR\freenet-ext.jar"
   Delete "$INSTDIR\freenet.jar"
   Delete "$INSTDIR\freenet-webinstall.exe"
+  Delete "$INSTDIR\UpdateSnapshot.exe"
   Delete "$INSTDIR\README"
   Delete "$INSTDIR\default.ini"
   Delete "$INSTDIR\freenet.log"
