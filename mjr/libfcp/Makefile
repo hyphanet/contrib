@@ -1,14 +1,19 @@
 CFLAGS = -g -Wall -L. -I.
 
-all: libfcp ic rc install
+all: libfcp ic rc
 
-libfcp: fcp.c
-	gcc $(CFLAGS) -shared -o libfcp.so fcp.c
+libfcp:
+	gcc $(CFLAGS) -shared -o libfcp.so fcp.c -pthread
 
-ic: libfcp ic.c
-	gcc $(CFLAGS) -o ic ic.c -lfcp -lpthread
+ic:
+	gcc $(CFLAGS) -o ic ic.c -lfcp -pthread
 
-rc: libfcp rc.c
-	gcc $(CFLAGS) -o rc rc.c -lfcp -lpthread
+rc:
+	gcc $(CFLAGS) -o rc rc.c -lfcp -pthread
 
 install:
+	cp libfcp.so /usr/local/include
+	cp ic /usr/local/bin
+	cp rc /usr/local/bin
+
+.PHONY: libfcp ic rc
