@@ -84,6 +84,8 @@ INSTALL.msvc,0
 
 INSTALL.solaris,0
 
+JAVA,0
+
 Makefile.am,14
 SUBDIRS 4,81
 
@@ -155,10 +157,8 @@ dghjdgh jd dfohj dfoihjd fgohij dfiohj dioj ioj 5,246
 
 TODO,135
 + means todo4,130
-= Improve the splitfile size ceiling; the node uses one,65,3266
-= (Win32); returns to command prompt with 80,3893
-
-TAGS,0
+= Improve the splitfile size ceiling; the node uses one,66,3371
+= (Win32); returns to command prompt with 81,3998
 
 aclocal.m4,17482
       subroutine foofoo4445,157312
@@ -2790,6 +2790,10 @@ defaultIFS=166,3622
 	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dsttmp;241,5383
 	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dsttmp; else true;241,5383
 
+libdmalloc.a,42
+dmalloc:dmalloc113,35026
+rr136,49265
+
 ltconfig,10839
 SHELL=29,1258
   UNAME=57,1900
@@ -3112,651 +3116,650 @@ LTCONFIG_VERSION=2718,85792
   COLLECT_NAMES=2942,91907
   *ac_space=2988,93436
 
-ltmain.sh,18007
-progname=52,1840
-  SP2NL=79,2547
-  save_LC_ALL=90,2882
-  save_LC_ALL="$LC_ALL"; LC_ALL=90,2882
-  save_LANG=93,2968
-  save_LANG="$LANG"; LANG=93,2968
-mode=107,3334
-  *) optarg=169,4962
-      execute_dlfiles=176,5109
-      tagname=179,5173
-	  taglist=197,5642
-      esac204,5902
-    prev=211,5973
-    exit 228,6428
-    exit 237,6754
-    preserve_args=243,6844
-    run=247,6910
-    exit 262,7240
-  --finish) mode=265,7259
-  --mode) prevopt=267,7289
-  --mode=268,7329
-  --preserve-dup-deps) duplicate_deps=270,7360
-    show=273,7430
-  --tag) prevopt=277,7489
-  --tag=278,7526
-    prevopt=286,7652
-    exit 293,7792
-    nonopt=297,7816
-exec_cmd=312,8152
-      mode=322,8485
-      done331,8583
-      mode=334,8638
-      mode=337,8687
-      mode=340,8724
-      test -n "$execute_dlfiles" && mode=344,8839
-      fi353,9165
-  generic_help=366,9470
-	libobj=393,10122
-	  arg_mode=406,10357
-	  later=411,10437
-	  suppress_opt=416,10494
-	  arg_mode=421,10545
-	-Wc,425,10758
-	  args=426,10766
-	  save_ifs="$IFS"; IFS=428,10825
-	    IFS=430,10877
-	    lastarg=440,11194
-	  lastarg=454,11523
-	esac  #  case $arg457,11569
-      lastarg=462,11677
-      base_compile=473,12042
-      exit 483,12306
-      [ -z "$libobj" ] && libobj=487,12379
-    xform=493,12589
-    *.adb) xform=496,12657
-    *.ads) xform=497,12681
-    *.c++) xform=499,12729
-    *.cc) xform=500,12753
-    *.ii) xform=501,12775
-    *.cpp) xform=503,12825
-    *.cxx) xform=504,12849
-    *.f90) xform=505,12873
-    *.java) xform=507,12921
-    libobj=510,12957
-      exit 516,13186
-	      tagname=541,14391
-	fi556,14837
-	build_old_libs=564,14924
-	pic_mode=569,14978
-	pic_mode=574,15030
-    objname=580,15078
-      xdir=583,15215
-      removelist=597,15532
-      pic_mode=613,16029
-      output_obj=619,16195
-      until $run ln "$0" "$lockfile" 2>/dev/null;632,16654
-      eval srcfile=656,17396
-      fbsd_hideous_sh_bug=676,18020
-	command=679,18099
-	status=688,18323
-	command=696,18494
-	  error=733,19515
-        suppress_output=747,19838
-	command=762,20240
-	command=767,20380
-	  error=805,21445
-    exit 835,22154
-    modename=840,22212
-      allow_undefined=857,22984
-    libtool_args=860,23028
-	      tagname=928,25009
-	fi943,25453
-	    dlopen_self=958,25873
-	    dlopen_self=962,25985
-    test -n "$old_archive_from_new_cmds" && build_old_libs=974,26191
-      arg=978,26347
-      *) qarg=984,26548
-      libtool_args=986,26581
-	  compile_command=992,26739
-	    compile_command=1001,26973
-	      dlself=1009,27209
-	      dlself=1017,27348
-	      dlself=1019,27435
-	      dlfiles=1029,27596
-	  esac1036,27715
-	  export_symbols=1039,27739
-	  prev=1044,27870
-	  export_symbols_regex=1048,27913
-	  inst_prefix_dir=1053,27985
-	  precious_files_regex=1058,28055
-	  release=1063,28123
-	    save_arg=1069,28209
-		pic_object=1079,28522
-	  *) . ./$arg 1570,39241
-	  xdir=1582,39547
-	    xdir=1584,39632
-	    pic_object=1591,39773
-		dlfiles=1595,39927
-	      dlprefiles=1607,40222
-	    non_pic_object=1619,40495
-	      arg=1624,40694
-	    xdir=1636,40969
-	      xdir=1638,41058
-	deplibs=1653,41384
-	  dlfiles=1663,41582
-	  dlprefiles=1667,41704
-	arg=1679,41977
-	esac1684,42116
-	compile_command=1690,42238
-      eval arg=1702,42595
-      eval shlib_search_path=1714,42991
-      output_objdir=1723,43355
-      status=1731,43590
-      exit 1742,43853
-    *.$libext) linkmode=1744,43875
-    *.lo | *.$objext) linkmode=1745,43909
-    *.la) linkmode=1746,43947
-    *) linkmode=1747,43973
-      duplicate_compiler_generated_deps=1753,44157
-      duplicate_compiler_generated_deps=1756,44217
-    specialdeplibs=1759,44291
-	*" $deplib "*) specialdeplibs=1767,44541
-      libs=1770,44616
-      libs=1774,44689
-	  *" $pre_post_dep "*) specialdeplibs=1783,45087
-	  pre_post_deps=1785,45170
-	  *.la)1802,45632
-	    exit 1805,45734
-	done1808,45762
-	compile_deplibs=1811,45782
-    *)  passes=1818,45909
-	libs=1824,46065
-	dlopen) libs=1829,46155
-	dlpreopen) libs=1830,46183
-	link) libs=1831,46217
-	save_deplibs=1836,46355
-	lib=1840,46429
-	    compile_deplibs=1845,46578
-	    deplibs=1858,46938
-	      lib=1865,47221
-		  found=1868,47338
-	      compile_deplibs=1879,47550
-		  library_names=1894,48213
-	*) . ./$lib 2049,52601
-	  test -n "$dlopen" && dlfiles=2055,52778
-	  deplibs=2061,52969
-	    convenience=2068,53228
-	      deplibs=2072,53411
-	        *" $deplib "*) specialdeplibs=2075,53532
-	      tmp_libs=2078,53631
-	fi # $pass 2085,53839
-	  linklib=2091,53964
-	    dlprefiles=2109,54640
-	  abs_ladir=2120,54873
-	    abs_ladir=2124,55120
-	laname=2128,55162
-	    dir=2134,55440
-	    newdlprefiles=2158,56129
-	    newdlprefiles=2161,56275
-	    deplibs=2170,56510
-	    compile_deplibs=2172,56603
-	  newlib_search_path=2182,56870
-	    linkalldeplibs=2188,57082
-	    -L*) newlib_search_path=2194,57185
-	      deplibs=2198,57420
-	      *" $deplib "*) specialdeplibs=2206,57697
-	    tmp_libs=2209,57783
-	      *) temp_rpath=2223,58256
-	      *) compile_rpath=2235,58567
-	      *) finalize_rpath=2244,58778
-	  fi # $linkmode,2248,58861
-	  fi # $linkmode,$pass 2248,58861
-	link_static=2259,59148
-	    notinst_deplibs=2263,59351
-	      *) compile_rpath=2288,60236
-	      *) finalize_rpath=2297,60447
-	    realname=2306,60649
-	    libname=2308,60686
-	      soname=2311,60821
-		major=2316,60953
-	      eval soname=2320,61023
-	      save_ifs=2334,61496
-	      save_ifs="$IFS"; IFS=2334,61496
-		IFS=2337,61590
-	    if test -f "$output_objdir/$newlib"; then 2346,61739
-	      save_ifs=2348,61850
-	      save_ifs="$IFS"; IFS=2348,61850
-		IFS=2351,61953
-	    add_shlibpath=2364,62307
-		add=2371,62476
-		        add=2384,63045
-		*-*-sunos*) add_shlibpath=2390,63171
-		add_dir=2392,63216
-		add_shlibpath=2395,63305
-		add=2403,63451
-		add_dir=2405,63522
-		  case "$libdir" in2408,63643
-		      add_dir=2410,63679
-		add=2414,63757
-		add_shlibpath=2416,63828
-	    *) lib_linked=2422,63915
-	      *) compile_shlibpath=2433,64200
-	      test -n "$add_dir" && compile_deplibs=2437,64325
-		*) finalize_shlibpath=2447,64763
-	    add_shlibpath=2454,64913
-	      add=2459,65063
-	      add_dir=2461,65140
-	      *) finalize_shlibpath=2466,65303
-	      add=2468,65377
-	        add=2471,65537
-		case "$libdir" in2480,65849
-		    add_dir=2482,65881
-	      add=2486,65958
-	      test -n "$add_dir" && finalize_deplibs=2490,66026
-	    test -n "$old_library" && linklib=2502,66540
-		build_libtool_libs=2534,68245
-	    temp_deplibs=2553,68796
-	      -R*) temp_xrpath=2556,68878
-		   *) xrpath=2559,68995
-		   esac;2560,69035
-	      *) temp_deplibs=2561,69047
-	    dependency_libs=2564,69118
-	    newdependency_libs=2573,69420
-	      *" $deplib "*) specialdeplibs=2576,69550
-	    tmp_libs=2579,69636
-	      -L*) path=2586,69841
-		dir=2588,69884
-		  absdir=2594,70068
-		    absdir=2597,70220
-		  path=2602,70313
-		  path=2612,70650
-		      depdepl=2621,70961
-		      depdepl=2624,71034
-		    *) newlib_search_path=2629,71184
-		  path=2632,71260
-		path=2635,71284
-		esac 2637,71306
-		 eval tmp_libs=2644,71420
-		       eval depdepl=2647,71568
-		*) continue 2653,71681
-		esac 2654,71698
-	      *) continue 2656,71716
-	      *) deplibs=2660,71804
-	      *) deplibs=2664,71915
-	  deplibs=2674,72234
-	  lib_search_path=2680,72413
-	    *) lib_search_path=2684,72524
-	  newlib_search_path=2687,72593
-	  vars=2691,72669
-	  eval tmp_libs=2697,72822
-	    -L*) new_libs=2707,73179
-	    -R*2708,73221
-	      *" $deplib "*) new_libs=2725,74100
-		*) new_libs=2729,74208
-		esac2730,74245
-	      esac2732,74257
-	  tmp_libs=2736,74297
-	      *) tmp_libs=2742,74426
-	      esac2743,74468
-	    *) tmp_libs=2745,74490
-	  eval $var=2748,74548
-	  i=2756,74805
-	  tmp_libs=2760,74849
-      dlfiles=2766,74980
-      build_libtool_libs=2801,76036
-	name=2810,76247
-	  name=2822,76620
-	  libobjs=2839,77169
-      install_libdir=2851,77488
-	  oldlibs=2860,77800
-	save_ifs=2875,78226
-	save_ifs="$IFS"; IFS=2875,78226
-	  number_major=2891,78614
-	    current=2908,79137
-	    current=2913,79236
-	  esac2917,79353
-	  current=2920,79372
-	  exit 2932,79696
-	  exit 2941,79936
-	  exit 2950,80161
-	major=2961,80438
-	  major=2970,80625
-	  major=2978,80900
-	  major=2983,80978
-	  major=2988,81051
-	    *)         verstring_prefix=2992,81159
-	  verstring=2994,81207
-	    iface=2999,81367
-	  major=3010,81615
-	  major=3015,81698
-	    iface=3022,81916
-	  major=3032,82133
-	  major=3039,82298
-	  exit 3046,82525
-	  major=3052,82670
-	    verstring=3060,82852
-	    versuffix=3064,82927
-	  major=3072,83116
-	    build_libtool_libs=3081,83410
-	removelist=3093,83723
-	    *.$objext)3097,83823
-	oldlibs=3117,84381
-	lib_search_path=3125,84658
-	temp_xrpath=3132,84967
-	  temp_xrpath=3134,85008
-	  *) finalize_rpath=3137,85099
-	  dependency_libs=3141,85239
-	*) dlfiles=3151,85511
-      old_dlprefiles=3156,85616
-	*) dlprefiles=3161,85746
-	    deplibs=3173,86120
-	    ;;3177,86246
-	      deplibs=3185,86511
-	name_save=3192,86639
-	  int main(3221,87655
-	    ldd_output=3226,87773
-	      name=3228,87831
-		    newdeplibs=3234,88115
-		  libname=3240,88215
-		    newdeplibs=3245,88434
-	      name=3265,89258
-		  ldd_output=3272,89516
-		      newdeplibs=3276,89671
-		    libname=3282,89776
-		      newdeplibs=3287,90005
-	  file_magic_regex=3315,91115
-	    name=3317,91212
-		  newdeplibs=3323,91505
-		libname=3329,91621
-		  potential_libs=3331,91736
-		      potlib=3343,92213
-			potliblink=3345,92290
-			*) potlib=3348,92418
-			newdeplibs=3354,92639
-		droppeddeps=3362,92777
-	      newdeplibs=3378,93523
-	  match_pattern_regex=3384,93667
-	    name=3386,93767
-		  newdeplibs=3392,94049
-		libname=3398,94165
-		  potential_libs=3400,94280
-		    potlib=3402,94375
-		      newdeplibs=3406,94582
-		droppeddeps=3414,94733
-	      newdeplibs=3430,95485
-	  newdeplibs=3435,95598
-	      tmp_deplibs=3441,95872
-	    droppeddeps=3453,96387
-	versuffix=3457,96426
-	      oldlibs=3485,97556
-		oldlibs=3503,98316
-	  hardcode_libdirs=3525,98847
-		  hardcode_libdirs=3533,99138
-		    hardcode_libdirs=3540,99385
-		eval flag=3545,99496
-	      *) perm_rpath=3551,99674
-	    libdir=3558,99888
-	      eval dep_rpath=3560,99974
-	    rpath=3567,100205
-	      rpath=3569,100249
-	eval shared_ext=3583,100684
-	  eval soname=3590,100846
-	  dlname=3595,100938
-	    export_symbols=3611,101390
-	    save_ifs="$IFS"; IFS=3614,101501
-	      IFS=3616,101557
-	        skipped_export=3622,101778
-	tmp_deplibs=3643,102537
-			tmp_deplibs=3648,102642
-	deplibs=3652,102704
-	    save_libobjs=3656,102810
-	    generated=3668,103157
-	      case $xlib in3672,103258
-	      [\\/]* | [A-Za-z]:[\\/]*) xabs=3673,103279
-	      *) xabs=3674,103328
-	      xlib=3676,103372
-	  eval flag=3722,104969
-	    eval test_cmds=3734,105409
-	  eval test_cmds=3742,105633
-	    save_libobjs=3766,106549
-	      objlist=3786,107079
-		eval concat_cmds=3792,107301
-	    export_symbols=3813,108099
-	  save_ifs="$IFS"; IFS=3832,108681
-	    IFS=3834,108740
-	    eval libobjs=3846,109013
-	      cmds=3854,109354
-	    cmds=3860,109509
-	save_ifs="$IFS"; IFS=3870,109722
-	  IFS=3872,109770
-	  dlname=3896,110582
-	libobj=3932,111520
-	libobj=3936,111594
-      reload_conv_objs=3948,111912
-	  eval reload_conv_objs=3956,112145
-	  generated=3967,112449
-	    case $xlib in3971,112544
-	    [\\/]* | [A-Za-z]:[\\/]*) xabs=3972,112563
-	    *) xabs=3973,112610
-	    xlib=3975,112650
-      save_ifs="$IFS"; IFS=4025,114435
-	IFS=4027,114493
-	reload_objs=4059,115261
-	save_ifs="$IFS"; IFS=4062,115340
-	  IFS=4064,115388
-      exit 4077,115596
-	*cygwin*) output=4082,115649
-	compile_deplibs=4102,116345
-        compile_command=4111,116685
-      compile_command=4117,116845
-	  *) finalize_rpath=4126,117184
-      rpath=4132,117297
-	      hardcode_libdirs=4138,117527
-		hardcode_libdirs=4145,117788
-	    eval flag=4150,117893
-	  *) perm_rpath=4156,118053
-	  *) dllsearchpath=4163,118221
-	  esac4164,118268
-	libdir=4171,118441
-	      hardcode_libdirs=4182,118767
-		hardcode_libdirs=4189,119028
-	    eval flag=4194,119133
-	  *) finalize_perm_rpath=4200,119302
-	libdir=4207,119527
-	compile_command=4214,119765
-	  dlsyms=4221,120081
-	  nlist=4232,120333
-	    progfiles=4260,121159
-	      export_symbols=4278,121820
-	    name=4290,122370
-		uniq > "$nlist"S;4311,122959
-	  pic_flag_for_symtable=4362,123909
-	    *) pic_flag_for_symtable=4372,124360
-	    esac;4373,124426
-	    *) pic_flag_for_symtable=4377,124508
-	  compile_command=4390,125039
-	  exit 4395,125334
-	compile_command=4404,125544
-	compile_command=4410,125821
-	rpath=4429,126357
-	  case $dir in4431,126393
-	    rpath=4434,126460
-	    rpath=4438,126542
-	temp_rpath=4442,126599
-	compile_command=4446,126693
-	finalize_command=4449,126856
-	  rpath=4457,127104
-	    rpath=4459,127144
-	  rpath=4465,127314
-	    rpath=4467,127363
-	link_command=4475,127552
-	link_command=4488,127976
-	  link_command=4495,128312
-	    relink_command=4497,128414
-	    relink_command=4525,129396
-	    relink_command=4527,129564
-	case $0 in4539,130004
-	[\\/]* | [A-Za-z]:[\\/]*) qecho=4540,130016
-	*) qecho=4541,130079
-	qecho=4543,130131
-	  *.exe) output=4553,130468
-	    exeext=4558,130613
-	  *) exeext=4560,130688
-	    cwrappersource=4564,130750
-# define LT_PATHMAX 4594,131706
-# define LT_PATHMAX 4596,131761
-# define LT_PATHMAX 4598,131798
-#define DIR_SEPARATOR 4602,131853
-#define HAVE_DOS_BASED_FILE_SYSTEM4607,131979
-#define DIR_SEPARATOR_2 4609,132039
-# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4614,132107
-# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4616,132189
-#define XMALLOC(XMALLOC4620,132314
-#define XFREE(XFREE4621,132388
-void * xmalloc 4627,132516
-char * xstrdup 4628,132545
-char * basename 4629,132582
-char * fnqualify(4630,132618
-char * strendzap(4631,132654
-void lt_fatal 4632,132700
-main 4635,132747
-xmalloc 4666,133408
-xstrdup 4676,133536
-basename 4683,133660
-fnqualify(4700,133998
-strendzap(4727,134628
-lt_error_core 4747,134918
-lt_fatal 4759,135186
-	  $run $LTCC -s -o $cwrapper $cwrappersource4772,135638
-      exit 4951,140807
-	oldobjs=4959,140983
-	  oldobjs=4964,141112
-	gentop=4973,141289
-	generated=4982,141508
-	  case $xlib in4987,141638
-	  [\\/]* | [A-Za-z]:[\\/]*) xabs=4988,141655
-	  *) xabs=4989,141700
-	  xlib=4991,141736
-       cmds=5037,143379
-	  cmds=5043,143570
-	    AR_FLAGS=5064,144383
-	      oldobjs=5081,144846
-	        RANLIB=5083,144916
-	    eval cmds=5093,145188
-      save_ifs="$IFS"; IFS=5099,145300
-        eval cmd=5101,145358
-      old_library=5117,145656
-	  relink_command=5124,145930
-	  relink_command=5126,146094
-        relink_command=5136,146584
-	    output=5145,146824
-		name=5151,147040
-		newdependency_libs=5157,147265
-	      *) newdependency_libs=5159,147327
-	    dependency_libs=5162,147411
-	      name=5165,147500
-	      newdlfiles=5171,147732
-	      name=5176,147867
-	      newdlprefiles=5182,148099
-	      case $lib in 5188,148248
-		[\\/]* | [A-Za-z]:[\\/]*) abs=5189,148269
-		*) abs=5190,148311
-	      newdlfiles=5192,148348
-	      case $lib in 5197,148474
-		[\\/]* | [A-Za-z]:[\\/]*) abs=5198,148495
-		*) abs=5199,148537
-	      newdlprefiles=5201,148574
-    exit 5260,150215
-    modename=5265,150270
-      arg=5273,150634
-      install_prog=5279,150795
-    install_prog=5295,151174
-	files=5308,151407
-      -f) prev=5315,151504
-      -g) prev=5316,151527
-      -m) prev=5317,151550
-      -o) prev=5318,151573
-	stripme=5320,151606
-	  prev=5328,151744
-      arg=5337,151848
-      install_prog=5343,152006
-    dest=5369,152645
-      destdir=5374,152814
-    case $destdir in5389,153250
-	*.lo)5394,153355
-	  exit 5398,153465
-      done5401,153487
-    libtool_install_magic=5407,153623
-	staticlibs=5418,153845
-	library_names=5430,154146
-	  destfile=5545,157674
-	  staticdest=5557,157961
-	  exit 5563,158104
-	  staticobj=5576,158431
-	  destfile=5587,158719
-	      file=5600,159066
-	    wrapper=5609,159252
-	    wrapper=5612,159315
-	  notinst_deplibs=5616,159435
-	  *) wrapperdot=5624,159721
-	      */* | *\\*) . $lib 5645,160308
-	      *) . ./$lib 5646,160337
-	    libfile=5649,160379
-	      finalize=5652,160622
-	  *) wrapperdot=5662,160923
-	      outputname=5682,161575
-	      file=5693,161971
-	    destfile=5712,162447
-	    destfile=5715,162495
-	  esac5717,162559
-      name=5728,162791
-      cmds=5742,163214
-      save_ifs="$IFS"; IFS=5743,163247
-	IFS=5745,163305
-      test -n "$run" && current_libdirs=5759,163639
-    modename=5768,163839
-	  cmds=5781,164151
-	  save_ifs="$IFS"; IFS=5782,164172
-	    IFS=5784,164224
-	  eval cmds=5794,164442
-      libdir=5823,165490
-    exit 5838,166107
-    modename=5843,166162
-      dir=5861,166583
-	dlname=5873,166906
-	  *) . ./$file 5940,168648
-	  file=5944,168712
-      file=5949,168819
-	LC_ALL=5961,169144
-	LANG=5964,169236
-      exec_cmd=5968,169328
-    fi5977,169570
-    modename=5982,169643
-      -f) rm="$rm $arg"; rmforce=5995,169915
-      -*) rm=5996,169955
-      *) files=5997,169982
-    rmdirs=6007,170169
-      dir=6011,170234
-	dir=6013,170325
-	  *) rmdirs=6025,170655
-	exit_status=6035,170918
-      rmfiles=6041,171002
-	    rmfiles=6051,171283
-	      cmds=6059,171605
-	      save_ifs="$IFS"; IFS=6060,171637
-		IFS=6062,171697
-		  exit_status=6067,171822
-	      cmds=6075,171986
-	      save_ifs="$IFS"; IFS=6076,172022
-		IFS=6078,172082
-		  exit_status=6083,172207
-	    rmfiles=6103,172660
-	    rmfiles=6109,172844
-	  noexename=6116,172945
-	    relink_command=6128,173356
-	      rmfiles=6135,173669
-	      rmfiles=6138,173766
-      $run $rm $rmfiles || exit_status=6145,173878
-    exit $exit_status6157,174160
-    exit 6163,174279
-  exit 6212,175988
-  exit 6367,181591
-build_libtool_libs=6388,182426
-build_old_libs=`case $build_libtool_libs in yes) $echo no;; *) $echo yes;6393,182560
+ltmain.sh,18327
+basename=27,1285
+default_mode=74,2431
+  SP2NL=92,2947
+  save_LC_ALL=103,3282
+  save_LC_ALL="$LC_ALL"; LC_ALL=103,3282
+  save_LANG=106,3368
+  save_LANG="$LANG"; LANG=106,3368
+mode=120,3746
+func_infer_tag 181,5476
+eval std_shrext=242,7609
+  *) optarg=252,7821
+      execute_dlfiles=259,7968
+      tagname=262,8032
+	  taglist=280,8520
+      esac287,8787
+    prev=294,8858
+    exit $EXIT_SUCCESS311,9313
+    exit $EXIT_SUCCESS320,9665
+    preserve_args=326,9767
+    run=330,9833
+    exit $EXIT_SUCCESS345,10163
+  --finish) mode=348,10194
+  --mode) prevopt=350,10224
+  --mode=351,10264
+  --preserve-dup-deps) duplicate_deps=353,10295
+    show=356,10365
+  --tag) prevopt=360,10424
+  --tag=361,10461
+    prevopt=369,10587
+    exit $EXIT_FAILURE376,10727
+    nonopt=380,10763
+exec_cmd=395,11111
+      mode=405,11444
+      done414,11542
+      mode=417,11597
+      mode=420,11646
+      mode=423,11683
+      test -n "$execute_dlfiles" && mode=427,11798
+      fi436,12124
+  generic_help=449,12441
+	libobj=476,13093
+	  arg_mode=489,13340
+	  later=494,13420
+	  suppress_opt=499,13477
+	  arg_mode=504,13528
+	-Wc,508,13741
+	  args=509,13749
+	  save_ifs="$IFS"; IFS=511,13808
+	    IFS=513,13861
+	    lastarg=523,14178
+	  lastarg=537,14507
+	esac  #  case $arg540,14553
+      lastarg=545,14661
+      base_compile=556,15026
+      exit $EXIT_FAILURE566,15302
+      [ -z "$libobj" ] && libobj=570,15387
+    xform=576,15597
+    *.adb) xform=579,15665
+    *.ads) xform=580,15689
+    *.c++) xform=582,15737
+    *.cc) xform=583,15761
+    *.ii) xform=584,15783
+    *.cpp) xform=586,15833
+    *.cxx) xform=587,15857
+    *.f90) xform=588,15881
+    *.java) xform=590,15929
+    libobj=593,15965
+      exit $EXIT_FAILURE599,16194
+	build_old_libs=608,16332
+	pic_mode=613,16386
+	pic_mode=618,16438
+    objname=624,16486
+      xdir=627,16623
+      removelist=641,16952
+      pic_mode=657,17461
+      output_obj=663,17627
+      until $run ln "$progpath" "$lockfile" 2>/dev/null;676,18098
+      eval srcfile=700,18859
+      fbsd_hideous_sh_bug=720,19483
+	command=723,19562
+	status=732,19786
+	command=740,19957
+	  error=777,21002
+        suppress_output=791,21325
+	command=806,21727
+	command=811,21867
+	  error=849,22956
+    exit $EXIT_SUCCESS879,23665
+    modename=884,23735
+      allow_undefined=901,24507
+    libtool_args=904,24551
+	    dlopen_self=963,25800
+	    dlopen_self=967,25912
+    test -n "$old_archive_from_new_cmds" && build_old_libs=979,26118
+      arg=983,26274
+      *) qarg=989,26475
+      libtool_args=991,26508
+	  compile_command=997,26666
+	    compile_command=1006,26900
+	      dlself=1014,27136
+	      dlself=1022,27275
+	      dlself=1024,27362
+	      dlfiles=1034,27523
+	  esac1041,27642
+	  export_symbols=1044,27666
+	  prev=1049,27809
+	  export_symbols_regex=1053,27852
+	  inst_prefix_dir=1058,27924
+	  precious_files_regex=1063,27994
+	  release=1068,28062
+	    save_arg=1074,28148
+		pic_object=1084,28461
+	  *) . ./$arg 1580,39324
+	  xdir=1592,39642
+	    xdir=1594,39727
+	    pic_object=1601,39868
+		dlfiles=1605,40022
+	      dlprefiles=1617,40317
+	    non_pic_object=1629,40590
+	      arg=1634,40789
+	    xdir=1646,41076
+	      xdir=1648,41165
+	deplibs=1663,41491
+	  dlfiles=1673,41689
+	  dlprefiles=1677,41811
+	arg=1689,42084
+	esac1694,42223
+	compile_command=1700,42345
+      eval arg=1712,42714
+      eval shlib_search_path=1724,43110
+      output_objdir=1733,43474
+      status=1741,43709
+      exit $EXIT_FAILURE1752,43972
+    *.$libext) linkmode=1754,44006
+    *.lo | *.$objext) linkmode=1755,44040
+    *.la) linkmode=1756,44078
+    *) linkmode=1757,44104
+      duplicate_compiler_generated_deps=1763,44289
+      duplicate_compiler_generated_deps=1766,44349
+    specialdeplibs=1769,44423
+	*" $deplib "*) specialdeplibs=1777,44673
+      libs=1780,44748
+      libs=1784,44821
+	  *" $pre_post_dep "*) specialdeplibs=1793,45219
+	  pre_post_deps=1795,45302
+	  *.la)1812,45764
+	    exit $EXIT_FAILURE1815,45866
+	done1818,45906
+	compile_deplibs=1821,45926
+    *)  passes=1828,46053
+	libs=1834,46209
+	dlopen) libs=1839,46299
+	dlpreopen) libs=1840,46327
+	  libs=1842,46368
+	save_deplibs=1849,46557
+	lib=1853,46631
+	    compile_deplibs=1858,46780
+	    deplibs=1871,47140
+	      lib=1878,47427
+		  found=1881,47544
+	      compile_deplibs=1892,47756
+		  library_names=1907,48419
+	*) . ./$lib 2062,52829
+	  test -n "$dlopen" && dlfiles=2068,53006
+	  deplibs=2074,53197
+	    convenience=2081,53468
+	      deplibs=2085,53651
+	        *" $deplib "*) specialdeplibs=2088,53772
+	      tmp_libs=2091,53871
+	fi # $pass 2098,54091
+	  linklib=2104,54212
+	    dlprefiles=2124,54924
+	  abs_ladir=2135,55157
+	    abs_ladir=2139,55404
+	laname=2143,55446
+	    dir=2149,55724
+	    newdlprefiles=2173,56425
+	    newdlprefiles=2176,56571
+	    deplibs=2185,56806
+	    compile_deplibs=2187,56899
+	  newlib_search_path=2197,57162
+	    linkalldeplibs=2203,57374
+	    -L*) newlib_search_path=2209,57477
+	      deplibs=2213,57712
+	      *" $deplib "*) specialdeplibs=2221,57989
+	    tmp_libs=2224,58075
+	      *) temp_rpath=2238,58548
+	      *) compile_rpath=2250,58859
+	      *) finalize_rpath=2259,59070
+	  fi # $linkmode,2263,59153
+	  fi # $linkmode,$pass 2263,59153
+	link_static=2274,59440
+	    notinst_deplibs=2278,59643
+	      *) compile_rpath=2304,60516
+	      *) finalize_rpath=2313,60727
+	    realname=2322,60929
+	    libname=2324,60966
+	      soname=2327,61101
+		major=2332,61233
+	      eval soname=2336,61303
+	      save_ifs=2350,61776
+	      save_ifs="$IFS"; IFS=2350,61776
+		IFS=2353,61870
+	    if test -f "$output_objdir/$newlib"; then 2362,62019
+	      save_ifs=2364,62130
+	      save_ifs="$IFS"; IFS=2364,62130
+		IFS=2367,62233
+	    add_shlibpath=2380,62587
+		add=2387,62756
+		        add=2400,63327
+		*-*-sunos*) add_shlibpath=2406,63452
+		add_dir=2408,63497
+		add_shlibpath=2411,63586
+		add=2419,63732
+		add_dir=2421,63803
+		  case "$libdir" in2424,63924
+		      add_dir=2426,63960
+		add=2430,64038
+		add_shlibpath=2432,64109
+	    *) lib_linked=2438,64196
+	      *) compile_shlibpath=2449,64493
+	      test -n "$add_dir" && compile_deplibs=2453,64618
+		*) finalize_shlibpath=2463,65056
+	    add_shlibpath=2470,65206
+	      add=2475,65356
+	      add_dir=2477,65433
+	      *) finalize_shlibpath=2482,65596
+	      add=2484,65670
+	        add=2488,65833
+		case "$libdir" in2497,66145
+		    add_dir=2499,66177
+	      add=2503,66254
+	      test -n "$add_dir" && finalize_deplibs=2507,66322
+	    test -n "$old_library" && linklib=2519,66836
+		build_libtool_libs=2551,68541
+	    temp_deplibs=2571,69100
+	      -R*) temp_xrpath=2574,69182
+		   *) xrpath=2577,69299
+		   esac;2578,69339
+	      *) temp_deplibs=2579,69351
+	    dependency_libs=2582,69422
+	    newdependency_libs=2591,69724
+	      *" $deplib "*) specialdeplibs=2594,69854
+	    tmp_libs=2597,69940
+	      -L*) path=2604,70145
+		dir=2606,70188
+		  absdir=2612,70372
+		    absdir=2615,70524
+		  path=2620,70617
+		  path=2630,70966
+		      depdepl=2640,71283
+		      depdepl=2643,71356
+		    *) newlib_search_path=2648,71507
+		  path=2651,71583
+		  path=2654,71607
+		esac2656,71633
+		  eval tmp_libs=2662,71747
+		      eval depdepl=2665,71896
+		*) continue 2671,71994
+		esac2672,72011
+	      *) continue 2674,72023
+	      *) deplibs=2678,72111
+	      *) deplibs=2682,72215
+	  deplibs=2692,72534
+	  lib_search_path=2698,72713
+	    *) lib_search_path=2702,72824
+	  newlib_search_path=2705,72893
+	  vars=2709,72969
+	  eval tmp_libs=2715,73122
+	    -L*) new_libs=2725,73479
+	    -R*2726,73521
+	      *" $deplib "*) new_libs=2743,74400
+		*) new_libs=2747,74508
+		esac2748,74545
+	      esac2750,74557
+	  tmp_libs=2754,74597
+	      *) tmp_libs=2760,74726
+	      esac2761,74768
+	    *) tmp_libs=2763,74790
+	  eval $var=2766,74848
+	  i=2775,75113
+	  tmp_libs=2779,75157
+      dlfiles=2785,75288
+      build_libtool_libs=2820,76344
+	name=2829,76555
+	  name=2841,76945
+	  libobjs=2858,77511
+      install_libdir=2870,77830
+	  oldlibs=2879,78142
+	save_ifs=2894,78568
+	save_ifs="$IFS"; IFS=2894,78568
+	  number_major=2910,78967
+	    current=2927,79490
+	    current=2932,79589
+	  esac2936,79706
+	  current=2939,79725
+	  exit $EXIT_FAILURE2951,80049
+	  exit $EXIT_FAILURE2960,80301
+	  exit $EXIT_FAILURE2969,80538
+	major=2980,80839
+	  major=2989,81026
+	  major=2997,81301
+	  major=3002,81379
+	  major=3007,81452
+	    *)         verstring_prefix=3011,81560
+	  verstring=3013,81608
+	    iface=3018,81768
+	  major=3029,82016
+	  major=3034,82099
+	    iface=3041,82317
+	  major=3051,82534
+	  major=3058,82699
+	  exit $EXIT_FAILURE3065,82926
+	  major=3071,83083
+	    verstring=3079,83265
+	    versuffix=3083,83340
+	  major=3091,83529
+	    build_libtool_libs=3100,83823
+	removelist=3112,84136
+	    *.$objext)3116,84236
+	oldlibs=3138,84860
+	lib_search_path=3146,85137
+	temp_xrpath=3153,85446
+	  temp_xrpath=3155,85487
+	  *) finalize_rpath=3158,85578
+	  dependency_libs=3162,85718
+	*) dlfiles=3172,85990
+      old_dlprefiles=3177,86095
+	*) dlprefiles=3182,86225
+	    deplibs=3194,86599
+	    ;;3198,86725
+	      deplibs=3206,86990
+	name_save=3213,87118
+	  int main(3242,88134
+	    ldd_output=3247,88252
+	      name=3249,88310
+		    newdeplibs=3255,88594
+		  libname=3261,88694
+		    newdeplibs=3266,88913
+	      name=3286,89737
+		  ldd_output=3293,89995
+		      newdeplibs=3297,90150
+		    libname=3303,90255
+		      newdeplibs=3308,90484
+	  file_magic_regex=3336,91594
+	    name=3338,91691
+		  newdeplibs=3344,91984
+		libname=3350,92100
+		  potential_libs=3352,92215
+		      potlib=3364,92692
+			potliblink=3366,92769
+			*) potlib=3369,92897
+			newdeplibs=3375,93118
+		droppeddeps=3383,93256
+	      newdeplibs=3399,94002
+	  match_pattern_regex=3405,94146
+	    name=3407,94246
+		  newdeplibs=3413,94528
+		libname=3419,94644
+		  potential_libs=3421,94759
+		    potlib=3423,94854
+		      newdeplibs=3427,95061
+		droppeddeps=3435,95212
+	      newdeplibs=3451,95964
+	  newdeplibs=3456,96077
+	      tmp_deplibs=3462,96351
+	    droppeddeps=3474,96866
+	versuffix=3478,96905
+	      oldlibs=3506,98035
+		oldlibs=3524,98795
+	  hardcode_libdirs=3546,99326
+		  hardcode_libdirs=3554,99617
+		    hardcode_libdirs=3561,99864
+		eval flag=3566,99975
+	      *) perm_rpath=3572,100153
+	    libdir=3579,100367
+	      eval dep_rpath=3581,100453
+	    rpath=3588,100684
+	      rpath=3590,100728
+	eval shared_ext=3604,101163
+	  eval soname=3611,101330
+	  dlname=3616,101422
+	    export_symbols=3632,101874
+	    save_ifs="$IFS"; IFS=3635,101985
+	      IFS=3637,102041
+	        skipped_export=3643,102262
+	tmp_deplibs=3664,103021
+			tmp_deplibs=3669,103125
+	deplibs=3673,103187
+	    save_libobjs=3677,103292
+	    generated=3689,103639
+	      case $xlib in3693,103740
+	      [\\/]* | [A-Za-z]:[\\/]*) xabs=3694,103761
+	      *) xabs=3695,103810
+	      xlib=3697,103854
+	  eval flag=3743,105451
+	    eval test_cmds=3755,105891
+	  eval test_cmds=3763,106115
+	    save_libobjs=3787,107031
+	      objlist=3807,107561
+		eval concat_cmds=3813,107783
+	    export_symbols=3834,108581
+	  save_ifs="$IFS"; IFS=3853,109163
+	    IFS=3855,109222
+	    eval libobjs=3866,109472
+	      cmds=3874,109813
+	    cmds=3880,109968
+	save_ifs="$IFS"; IFS=3890,110181
+	  IFS=3892,110229
+	  dlname=3916,111053
+	libobj=3952,112003
+	libobj=3956,112077
+      reload_conv_objs=3968,112395
+	  eval reload_conv_objs=3976,112628
+	  generated=3987,112932
+	    case $xlib in3991,113027
+	    [\\/]* | [A-Za-z]:[\\/]*) xabs=3992,113046
+	    *) xabs=3993,113093
+	    xlib=3995,113133
+      save_ifs="$IFS"; IFS=4045,114918
+	IFS=4047,114976
+	reload_objs=4079,115768
+	save_ifs="$IFS"; IFS=4082,115847
+	  IFS=4084,115895
+      exit $EXIT_SUCCESS4097,116103
+	*cygwin*) output=4102,116168
+	compile_deplibs=4122,116864
+        compile_command=4131,117204
+      compile_command=4137,117364
+	  *) finalize_rpath=4146,117703
+      rpath=4152,117816
+	      hardcode_libdirs=4158,118046
+		hardcode_libdirs=4165,118307
+	    eval flag=4170,118412
+	  *) perm_rpath=4176,118572
+	  *) dllsearchpath=4183,118740
+	  esac4184,118787
+	libdir=4191,118960
+	      hardcode_libdirs=4202,119286
+		hardcode_libdirs=4209,119547
+	    eval flag=4214,119652
+	  *) finalize_perm_rpath=4220,119821
+	libdir=4227,120046
+	compile_command=4234,120284
+	  dlsyms=4241,120600
+	  nlist=4252,120852
+	    progfiles=4280,121678
+	      export_symbols=4298,122339
+	    name=4310,122889
+		uniq > "$nlist"S;4331,123478
+	  pic_flag_for_symtable=4382,124428
+	    *) pic_flag_for_symtable=4392,124879
+	    esac;4393,124945
+	    *) pic_flag_for_symtable=4397,125027
+	  compile_command=4410,125558
+	  exit $EXIT_FAILURE4415,125853
+	compile_command=4424,126075
+	compile_command=4430,126352
+	rpath=4449,126888
+	  case $dir in4451,126924
+	    rpath=4454,126991
+	    rpath=4458,127073
+	temp_rpath=4462,127130
+	compile_command=4466,127224
+	finalize_command=4469,127387
+	  rpath=4477,127635
+	    rpath=4479,127675
+	  rpath=4485,127845
+	    rpath=4487,127894
+	link_command=4495,128083
+	link_command=4508,128519
+	  link_command=4515,128855
+	    relink_command=4517,128957
+	    relink_command=4545,129939
+	    relink_command=4547,130107
+	case $progpath in4559,130554
+	[\\/]* | [A-Za-z]:[\\/]*) qecho=4560,130573
+	*) qecho=4561,130643
+	qecho=4563,130702
+	  *.exe) output=4573,131039
+	    exeext=4578,131184
+	  *) exeext=4580,131259
+	    cwrappersource=4584,131321
+# define LT_PATHMAX 4614,132286
+# define LT_PATHMAX 4616,132341
+# define LT_PATHMAX 4618,132378
+#define DIR_SEPARATOR 4622,132433
+#define HAVE_DOS_BASED_FILE_SYSTEM4627,132559
+#define DIR_SEPARATOR_2 4629,132618
+# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4634,132686
+# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4636,132768
+#define XMALLOC(XMALLOC4640,132893
+#define XFREE(XFREE4641,132967
+void * xmalloc 4647,133095
+char * xstrdup 4648,133124
+char * basename 4649,133161
+char * fnqualify(4650,133197
+char * strendzap(4651,133233
+void lt_fatal 4652,133279
+main 4655,133326
+xmalloc 4686,133984
+xstrdup 4696,134111
+basename 4703,134235
+fnqualify(4720,134571
+strendzap(4747,135201
+lt_error_core 4767,135490
+lt_fatal 4779,135757
+	  $run $LTCC -s -o $cwrapper $cwrappersource4792,136209
+      exit $EXIT_SUCCESS4971,141426
+	oldobjs=4979,141614
+	  oldobjs=4984,141743
+	gentop=4993,141920
+	generated=5002,142139
+	  case $xlib in5007,142269
+	  [\\/]* | [A-Za-z]:[\\/]*) xabs=5008,142286
+	  *) xabs=5009,142331
+	  xlib=5011,142367
+       cmds=5057,144010
+	  cmds=5063,144201
+	    AR_FLAGS=5084,145014
+	      oldobjs=5101,145475
+	        RANLIB=5103,145545
+	    eval cmds=5113,145815
+      save_ifs="$IFS"; IFS=5119,145927
+        eval cmd=5121,145985
+      old_library=5137,146283
+	  relink_command=5144,146557
+	  relink_command=5146,146721
+	relink_command=5156,147218
+	    output=5167,147451
+		name=5173,147667
+		newdependency_libs=5179,147904
+	      *) newdependency_libs=5181,147966
+	    dependency_libs=5184,148050
+	      name=5187,148139
+	      newdlfiles=5193,148383
+	      name=5198,148518
+	      newdlprefiles=5204,148762
+	      case $lib in5210,148911
+		[\\/]* | [A-Za-z]:[\\/]*) abs=5211,148931
+		*) abs=5212,148973
+	      newdlfiles=5214,149010
+	      case $lib in5219,149136
+		[\\/]* | [A-Za-z]:[\\/]*) abs=5220,149156
+		*) abs=5221,149198
+	      newdlprefiles=5223,149235
+    exit $EXIT_SUCCESS5282,150876
+    modename=5287,150943
+      arg=5295,151307
+      install_prog=5301,151468
+    install_prog=5317,151847
+	files=5330,152080
+      -f) prev=5337,152177
+      -g) prev=5338,152200
+      -m) prev=5339,152223
+      -o) prev=5340,152246
+	stripme=5342,152279
+	  prev=5350,152417
+      arg=5359,152521
+      install_prog=5365,152679
+    dest=5391,153354
+      destdir=5396,153523
+    case $destdir in5411,153971
+	*.lo)5416,154076
+	  exit $EXIT_FAILURE5420,154186
+      done5423,154220
+    libtool_install_magic=5429,154356
+	staticlibs=5440,154578
+	library_names=5452,154891
+	  destfile=5567,158443
+	  staticdest=5579,158730
+	  exit $EXIT_FAILURE5585,158873
+	  staticobj=5598,159212
+	  destfile=5609,159512
+	      file=5622,159859
+	    wrapper=5631,160045
+	    wrapper=5634,160108
+	  notinst_deplibs=5638,160228
+	  *) wrapperdot=5646,160514
+	      */* | *\\*) . $lib 5667,161113
+	      *) . ./$lib 5668,161142
+	    libfile=5671,161184
+	      finalize=5674,161427
+	  *) wrapperdot=5684,161728
+	      outputname=5708,162453
+	      file=5719,162849
+	    destfile=5738,163325
+	    destfile=5741,163373
+	  esac5743,163437
+      name=5754,163669
+      cmds=5768,164092
+      save_ifs="$IFS"; IFS=5769,164125
+	IFS=5771,164183
+      test -n "$run" && current_libdirs=5785,164517
+    modename=5794,164736
+	  cmds=5807,165048
+	  save_ifs="$IFS"; IFS=5808,165069
+	    IFS=5810,165121
+	  eval cmds=5820,165339
+      libdir=5849,166399
+    exit $EXIT_SUCCESS5864,167016
+    modename=5869,167083
+      dir=5887,167528
+	dlname=5899,167863
+	  *) . ./$file 5966,169617
+	  file=5970,169681
+      file=5975,169788
+	LC_ALL=5987,170113
+	LANG=5990,170205
+      exec_cmd=5994,170297
+    fi6003,170551
+    modename=6008,170624
+      -f) rm="$rm $arg"; rmforce=6021,170896
+      -*) rm=6022,170936
+      *) files=6023,170963
+    rmdirs=6033,171162
+      dir=6037,171227
+	dir=6039,171318
+	  *) rmdirs=6051,171648
+	exit_status=6061,171911
+      rmfiles=6067,171995
+	    rmfiles=6077,172276
+	      cmds=6085,172598
+	      save_ifs="$IFS"; IFS=6086,172630
+		IFS=6088,172690
+		  exit_status=6093,172815
+	      cmds=6101,172979
+	      save_ifs="$IFS"; IFS=6102,173015
+		IFS=6104,173075
+		  exit_status=6109,173200
+	    rmfiles=6129,173653
+	    rmfiles=6135,173837
+	  noexename=6142,173938
+	    relink_command=6154,174348
+	      rmfiles=6161,174661
+	      rmfiles=6164,174758
+      $run $rm $rmfiles || exit_status=6171,174870
+    exit $exit_status6183,175152
+    exit $EXIT_FAILURE6189,175271
+  exit $EXIT_SUCCESS6238,177016
+  exit $EXIT_FAILURE6393,182631
+build_libtool_libs=6414,183490
+build_old_libs=`case $build_libtool_libs in yes) $echo no;; *) $echo yes;6419,183624
 
 missing,0
 
@@ -3774,63 +3777,63 @@ ezFCPlib/CVS/Repository,0
 ezFCPlib/CVS/Entries,0
 
 ezFCPlib/Makefile,758
-SHELL 19,740
-	  if test -f "$$p"; then d=224,6635
-	  if test -f "$$p"; then d= ; else d=224,6635
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi;224,6635
-	  $(226,6758
-	  rm -f $(232,6920
-	unique=`for i in $$list; do echo $$i;239,7046
-	here=242,7175
-	here=247,7315
-	list=248,7330
-	unique=249,7363
-	unique=`for i in $$list; do echo $$i;249,7363
-	  || (cd $(253,7540
-	    cp -pr $$d/$$file $(distdir)/$$file;277,8164
-	  fi;282,8357
-DEPS_MAGIC 285,8373
-	$(COMPILE) -Wp,300,8588
-	$(COMPILE) -Wp,-MD,300,8588
-	@-cp .deps/$(*F).pp .deps/$(*F).P;301,8629
-	    >> .deps/$(*F).P;304,8767
-	$(LTCOMPILE) -Wp,309,8853
-	$(LTCOMPILE) -Wp,-MD,309,8853
-	  < .deps/$(*F).pp > .deps/$(*F).P;311,8946
-	    >> .deps/$(*F).P;314,9085
-	@$(331,9393
+SHELL 20,776
+	  if test -f "$$p"; then d=225,6694
+	  if test -f "$$p"; then d= ; else d=225,6694
+	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi;225,6694
+	  $(227,6817
+	  rm -f $(233,6979
+	unique=`for i in $$list; do echo $$i;240,7105
+	here=243,7234
+	here=248,7374
+	list=249,7389
+	unique=250,7422
+	unique=`for i in $$list; do echo $$i;250,7422
+	  || (cd $(254,7599
+	    cp -pr $$d/$$file $(distdir)/$$file;278,8223
+	  fi;283,8416
+DEPS_MAGIC 286,8432
+	$(COMPILE) -Wp,301,8647
+	$(COMPILE) -Wp,-MD,301,8647
+	@-cp .deps/$(*F).pp .deps/$(*F).P;302,8688
+	    >> .deps/$(*F).P;305,8826
+	$(LTCOMPILE) -Wp,310,8912
+	$(LTCOMPILE) -Wp,-MD,310,8912
+	  < .deps/$(*F).pp > .deps/$(*F).P;312,9005
+	    >> .deps/$(*F).P;315,9144
+	@$(332,9452
 
 ezFCPlib/.cvsignore,0
 
 ezFCPlib/Makefile.am,14
-CFLAGS=5,174
+CFLAGS=6,210
 
 ezFCPlib/Makefile.in,758
-SHELL 19,740
-	  if test -f "$$p"; then d=224,5916
-	  if test -f "$$p"; then d= ; else d=224,5916
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi;224,5916
-	  $(226,6039
-	  rm -f $(232,6201
-	unique=`for i in $$list; do echo $$i;239,6327
-	here=242,6456
-	here=247,6596
-	list=248,6611
-	unique=249,6644
-	unique=`for i in $$list; do echo $$i;249,6644
-	  || (cd $(253,6821
-	    cp -pr $$d/$$file $(distdir)/$$file;277,7445
-	  fi;282,7638
-DEPS_MAGIC 285,7654
-	$(COMPILE) -Wp,300,7869
-	$(COMPILE) -Wp,-MD,300,7869
-	@-cp .deps/$(*F).pp .deps/$(*F).P;301,7910
-	    >> .deps/$(*F).P;304,8048
-	$(LTCOMPILE) -Wp,309,8134
-	$(LTCOMPILE) -Wp,-MD,309,8134
-	  < .deps/$(*F).pp > .deps/$(*F).P;311,8227
-	    >> .deps/$(*F).P;314,8366
-	@$(331,8674
+SHELL 20,776
+	  if test -f "$$p"; then d=225,5975
+	  if test -f "$$p"; then d= ; else d=225,5975
+	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi;225,5975
+	  $(227,6098
+	  rm -f $(233,6260
+	unique=`for i in $$list; do echo $$i;240,6386
+	here=243,6515
+	here=248,6655
+	list=249,6670
+	unique=250,6703
+	unique=`for i in $$list; do echo $$i;250,6703
+	  || (cd $(254,6880
+	    cp -pr $$d/$$file $(distdir)/$$file;278,7504
+	  fi;283,7697
+DEPS_MAGIC 286,7713
+	$(COMPILE) -Wp,301,7928
+	$(COMPILE) -Wp,-MD,301,7928
+	@-cp .deps/$(*F).pp .deps/$(*F).P;302,7969
+	    >> .deps/$(*F).P;305,8107
+	$(LTCOMPILE) -Wp,310,8193
+	$(LTCOMPILE) -Wp,-MD,310,8193
+	  < .deps/$(*F).pp > .deps/$(*F).P;312,8286
+	    >> .deps/$(*F).P;315,8425
+	@$(332,8733
 
 ezFCPlib/README,0
 
@@ -3842,9 +3845,19 @@ ezFCPlib/StdAfx.h,112
 #define AFX_STDAFX_H__F9535EE6_41EA_4DFF_B567_F42F9572E310__INCLUDED_7,243
 #define WIN32_LEAN_AND_MEAN	15,403
 
+ezFCPlib/_fcpFile.c,214
+int _fcpTmpfile(47,1242
+int _fcpRead(103,2631
+int _fcpWrite(121,2843
+unsigned long _fcpFilesize(143,3140
+int _fcpCopyFile(156,3350
+int _fcpLink(227,4668
+void _fcpUnlink(269,5586
+int _fcpDeleteFile(293,6075
+
 ezFCPlib/_fcpGet.c,57
 int get_file(51,1383
-int get_follow_redirects(330,8987
+int get_follow_redirects(328,8959
 
 ezFCPlib/_fcpLog.c,139
 static FILE *logstream;34,1053
@@ -3892,16 +3905,16 @@ static int fec_insert_data_blocks(41,1267
 static int fec_insert_check_blocks(42,1327
 static int fec_make_metadata(43,1388
 int put_file(61,1847
-int put_fec_splitfile(357,10592
-int put_date_redirect(389,11429
-int put_redirect(396,11543
-static int fec_segment_file(441,12656
-static int fec_encode_segment(573,17733
-static int fec_insert_data_blocks(725,21765
-static int fec_insert_check_blocks(838,24723
-static int fec_make_metadata(894,26026
+int put_fec_splitfile(354,10515
+int put_date_redirect(386,11352
+int put_redirect(393,11466
+static int fec_segment_file(438,12579
+static int fec_encode_segment(567,17588
+static int fec_insert_data_blocks(719,21692
+static int fec_insert_check_blocks(832,24660
+static int fec_make_metadata(888,25973
 
-ezFCPlib/_fcpRecvResponse.c,1295
+ezFCPlib/_fcpRecvResponse.c,1296
 char *strdup(35,1088
 static int  getrespHello(37,1118
 static int  getrespInfo(38,1152
@@ -3921,31 +3934,31 @@ static int  getrespBlocksEncoded(56,1683
 static int  getrespMadeMetadata(57,1725
 int _fcpRecvResponse(60,1768
 static int getrespHello(163,4499
-static int getrespInfo(203,5409
-static int getrespSuccess(298,7952
-static int getrespDataFound(344,9021
-static int getrespDataChunk(385,10042
-static int getrespDataNotFound(431,11103
-static int getrespRouteNotFound(454,11576
-static int getrespUriError(491,12569
-static int getrespRestarted(527,13366
-static int getrespKeyCollision(555,13993
-static int getrespPending(600,15051
-static int getrespFailed(651,16303
-static int getrespFormatError(690,17116
-static int  getrespSegmentHeaders(718,17778
-static int getrespBlocksEncoded(778,19672
-static int getrespMadeMetadata(806,20368
+static int getrespInfo(203,5561
+static int getrespSuccess(324,9544
+static int getrespDataFound(370,10613
+static int getrespDataChunk(411,11650
+static int getrespDataNotFound(457,12726
+static int getrespRouteNotFound(480,13199
+static int getrespUriError(517,14240
+static int getrespRestarted(553,15037
+static int getrespKeyCollision(581,15680
+static int getrespPending(626,16738
+static int getrespFailed(677,18006
+static int getrespFormatError(716,18819
+static int  getrespSegmentHeaders(744,19481
+static int getrespBlocksEncoded(804,21375
+static int getrespMadeMetadata(832,22087
 
 ezFCPlib/_fcpSock.c,238
 static int host_is_numeric(48,1274
 int _fcpSockConnect(54,1498
-void _fcpSockDisconnect(137,3656
-int _fcpRecv(161,4224
-int _fcpSend(183,4492
-int _fcpSockRecv(213,4952
-int _fcpSockRecvln(257,5778
-static int host_is_numeric(327,7234
+void _fcpSockDisconnect(143,3587
+int _fcpRecv(166,4155
+int _fcpSend(188,4423
+int _fcpSockRecv(218,4883
+int _fcpSockRecvln(262,5709
+static int host_is_numeric(332,7165
 
 ezFCPlib/_fcpUtil.c,39
 long xtol(50,1268
@@ -3969,7 +3982,7 @@ EZFCPDLL_API int fnEzFCPdll(23,792
 ezFCPlib/ezFCPlib.dsp,11
 CFG=7,220
 
-ezFCPlib/ezFCPlib.h,4220
+ezFCPlib/ezFCPlib.h,4273
 #define _EZFCPLIB_H 28,989
 #define _GNU_SOURCE31,1084
 typedef SOCKET FCPSOCKET;FCPSOCKET48,1490
@@ -3977,113 +3990,114 @@ typedef SOCKET FCPSOCKET;FCPSOCKET48,1490
 #define strncasecmp 51,1544
 #define VERSION 54,1634
 typedef int FCPSOCKET;FCPSOCKET61,1836
-#define FCP_LOG_SILENT 87,2615
-#define FCP_LOG_CRITICAL 88,2647
-#define FCP_LOG_NORMAL 89,2679
-#define FCP_LOG_VERBOSE 90,2711
-#define FCP_LOG_DEBUG 91,2743
-#define FCP_LOG_MESSAGE_SIZE 92,2775
-#define FCP_SOCKET_DISCONNECTED 94,2827
-#define L_64 99,2909
-#define L_256 100,2940
-#define L_512 101,2972
-#define L_KEY 103,3005
-#define L_FILENAME 104,3038
-#define L_URI 105,3072
-#define L_RAW_METADATA 106,3106
-#define L_FILE_BLOCKSIZE 109,3154
-#define KEY_TYPE_SSK 112,3202
-#define KEY_TYPE_CHK 113,3226
-#define KEY_TYPE_KSK 114,3250
-#define META_TYPE_REDIRECT 119,3305
-#define META_TYPE_DBR 120,3337
-#define META_TYPE_SPLITFILE 121,3369
-#define META_TYPE_INFO 122,3401
-#define META_TYPE_EXTINFO 123,3433
-#define FCP_MODE_O_READ 129,3571
-#define FCP_MODE_O_WRITE 130,3609
-#define FCP_MODE_RAW 131,3647
-#define FCP_MODE_DELETE_LOCAL 132,3685
-#define FCP_MODE_SKIP_LOCAL 133,3723
-#define EZFCP_DEFAULT_HOST 141,3912
-#define EZFCP_DEFAULT_PORT 142,3959
-#define EZFCP_DEFAULT_HTL 143,3999
-#define EZFCP_DEFAULT_VERBOSITY 144,4036
-#define EZFCP_DEFAULT_LOGSTREAM 145,4086
-#define EZFCP_DEFAULT_BLOCKSIZE 146,4128
-#define EZFCP_DEFAULT_RETRY 147,4218
-#define EZFCP_DEFAULT_REGRESS 148,4255
-#define EZFCP_DEFAULT_DELETELOCAL 149,4292
-#define EZFCP_DEFAULT_SKIPLOCAL 150,4329
-#define EZFCP_DEFAULT_RAWMODE 151,4366
-#define EZFCP_DEFAULT_TIMEOUT 152,4403
-#define EZERR_GENERAL 156,4535
-#define EZERR_SOCKET_TIMEOUT 157,4560
-#define FCPRESP_TYPE_SUCCESS 162,4629
-#define FCPRESP_TYPE_NODEHELLO 163,4667
-#define FCPRESP_TYPE_NODEINFO 164,4706
-#define FCPRESP_TYPE_DATAFOUND 165,4745
-#define FCPRESP_TYPE_DATACHUNK 166,4784
-#define FCPRESP_TYPE_DATANOTFOUND 167,4823
-#define FCPRESP_TYPE_ROUTENOTFOUND 168,4862
-#define FCPRESP_TYPE_URIERROR 169,4901
-#define FCPRESP_TYPE_RESTARTED 170,4940
-#define FCPRESP_TYPE_KEYCOLLISION 171,4979
-#define FCPRESP_TYPE_PENDING 172,5018
-#define FCPRESP_TYPE_FAILED 173,5057
-#define FCPRESP_TYPE_FORMATERROR 174,5096
-#define FCPRESP_TYPE_SEGMENTHEADER 175,5135
-#define FCPRESP_TYPE_BLOCKMAP 176,5175
-#define FCPRESP_TYPE_BLOCKSENCODED 177,5215
-#define FCPRESP_TYPE_BLOCKSDECODED 178,5255
-#define FCPRESP_TYPE_MADEMETADATA 179,5295
-#define RECV_STATE_WAITING 183,5368
-#define RECV_STATE_GOTHEADER 184,5402
-} FCPRESP_SUCCESS;FCPRESP_SUCCESS198,5689
-} FCPRESP_NODEINFO;FCPRESP_NODEINFO202,5754
-} FCPRESP_DATAFOUND;FCPRESP_DATAFOUND208,5846
-} FCPRESP_DATACHUNK;FCPRESP_DATACHUNK213,5917
-} FCPRESP_KEYCOLLISION;FCPRESP_KEYCOLLISION220,6024
-} FCPRESP_PENDING;FCPRESP_PENDING228,6150
-} FCPRESP_FAILED;FCPRESP_FAILED232,6203
-} FCPRESP_URIERROR;FCPRESP_URIERROR236,6255
-} FCPRESP_ROUTENOTFOUND;FCPRESP_ROUTENOTFOUND244,6365
-} FCPRESP_RESTARTED;FCPRESP_RESTARTED248,6424
-} FCPRESP_FORMATERROR;FCPRESP_FORMATERROR252,6479
-} FCPRESP_SEGMENTHEADER;FCPRESP_SEGMENTHEADER268,6786
-} FCPRESP_BLOCKMAP;FCPRESP_BLOCKMAP275,6917
-} FCPRESP_BLOCKSENCODED;FCPRESP_BLOCKSENCODED280,6994
-} FCPRESP_BLOCKSDECODED;FCPRESP_BLOCKSDECODED286,7096
-} FCPRESP_MADEMETADATA;FCPRESP_MADEMETADATA290,7157
-} FCPRESP;FCPRESP318,7947
-} hOptions;hOptions339,8297
-} hURI;hURI351,8581
-} hBlock;hBlock363,8927
-} hSegment;hSegment390,9315
-} hDocument;hDocument400,9434
-} hMetadata;hMetadata417,9663
-} hKey;hKey440,10045
-} hFCP;hFCP460,10321
-	int    fcpStartup(476,10659
-	void   fcpTerminate(477,10711
-	hFCP  *fcpCreateHFCP(480,10780
-	hFCP  *fcpInheritHFCP(481,10847
-	void   fcpDestroyHFCP(482,10883
-	hURI  *fcpCreateHURI(485,10949
-	void   fcpDestroyHURI(486,10978
-	int    fcpParseHURI(488,11014
-	int    fcpPutKeyFromFile(491,11132
-	int    fcpGetKeyToFile(492,11227
-	int    fcpMakeSvkKeypair(495,11381
-	int    fcpClientHello(497,11467
-	int    fcpClientInfo(498,11503
-	int    fcpInvertPrivateKey(499,11538
-	int    fcpOpenKey(502,11647
-	int    fcpWriteKey(503,11700
-	int    fcpWriteMetadata(504,11753
-	int    fcpReadKey(506,11812
-	int    fcpReadMetadata(507,11864
-	int    fcpCloseKey(509,11922
+#define FCP_LOG_SILENT 88,2633
+#define FCP_LOG_CRITICAL 89,2665
+#define FCP_LOG_NORMAL 90,2697
+#define FCP_LOG_VERBOSE 91,2729
+#define FCP_LOG_DEBUG 92,2761
+#define FCP_LOG_MESSAGE_SIZE 93,2793
+#define FCP_SOCKET_DISCONNECTED 95,2845
+#define L_64 100,2927
+#define L_256 101,2958
+#define L_512 102,2990
+#define L_KEY 104,3023
+#define L_FILENAME 105,3056
+#define L_URI 106,3090
+#define L_RAW_METADATA 107,3124
+#define L_FILE_BLOCKSIZE 110,3172
+#define KEY_TYPE_SSK 113,3220
+#define KEY_TYPE_CHK 114,3244
+#define KEY_TYPE_KSK 115,3268
+#define META_TYPE_REDIRECT 120,3323
+#define META_TYPE_DBR 121,3355
+#define META_TYPE_SPLITFILE 122,3387
+#define META_TYPE_INFO 123,3419
+#define META_TYPE_EXTINFO 124,3451
+#define FCP_MODE_O_READ 130,3589
+#define FCP_MODE_O_WRITE 131,3627
+#define FCP_MODE_RAW 132,3665
+#define FCP_MODE_DELETE_LOCAL 133,3703
+#define FCP_MODE_SKIP_LOCAL 134,3741
+#define EZFCP_DEFAULT_HOST 142,3930
+#define EZFCP_DEFAULT_PORT 143,3977
+#define EZFCP_DEFAULT_HTL 144,4017
+#define EZFCP_DEFAULT_VERBOSITY 145,4054
+#define EZFCP_DEFAULT_LOGSTREAM 146,4104
+#define EZFCP_DEFAULT_BLOCKSIZE 147,4146
+#define EZFCP_DEFAULT_RETRY 148,4236
+#define EZFCP_DEFAULT_REGRESS 149,4273
+#define EZFCP_DEFAULT_DELETELOCAL 150,4310
+#define EZFCP_DEFAULT_SKIPLOCAL 151,4347
+#define EZFCP_DEFAULT_RAWMODE 152,4384
+#define EZFCP_DEFAULT_TIMEOUT 153,4421
+#define EZERR_GENERAL 157,4553
+#define EZERR_SOCKET_TIMEOUT 158,4578
+#define FCPRESP_TYPE_SUCCESS 163,4647
+#define FCPRESP_TYPE_NODEHELLO 164,4685
+#define FCPRESP_TYPE_NODEINFO 165,4724
+#define FCPRESP_TYPE_DATAFOUND 166,4763
+#define FCPRESP_TYPE_DATACHUNK 167,4802
+#define FCPRESP_TYPE_DATANOTFOUND 168,4841
+#define FCPRESP_TYPE_ROUTENOTFOUND 169,4880
+#define FCPRESP_TYPE_URIERROR 170,4919
+#define FCPRESP_TYPE_RESTARTED 171,4958
+#define FCPRESP_TYPE_KEYCOLLISION 172,4997
+#define FCPRESP_TYPE_PENDING 173,5036
+#define FCPRESP_TYPE_FAILED 174,5075
+#define FCPRESP_TYPE_FORMATERROR 175,5114
+#define FCPRESP_TYPE_SEGMENTHEADER 176,5153
+#define FCPRESP_TYPE_BLOCKMAP 177,5193
+#define FCPRESP_TYPE_BLOCKSENCODED 178,5233
+#define FCPRESP_TYPE_BLOCKSDECODED 179,5273
+#define FCPRESP_TYPE_MADEMETADATA 180,5313
+#define RECV_STATE_WAITING 184,5386
+#define RECV_STATE_GOTHEADER 185,5420
+} FCPRESP_SUCCESS;FCPRESP_SUCCESS200,5716
+} FCPRESP_NODEINFO;FCPRESP_NODEINFO232,6445
+} FCPRESP_NODEHELLO;FCPRESP_NODEHELLO240,6586
+} FCPRESP_DATAFOUND;FCPRESP_DATAFOUND246,6714
+} FCPRESP_DATACHUNK;FCPRESP_DATACHUNK251,6794
+} FCPRESP_KEYCOLLISION;FCPRESP_KEYCOLLISION258,6901
+} FCPRESP_PENDING;FCPRESP_PENDING266,7038
+} FCPRESP_FAILED;FCPRESP_FAILED270,7091
+} FCPRESP_URIERROR;FCPRESP_URIERROR274,7143
+} FCPRESP_ROUTENOTFOUND;FCPRESP_ROUTENOTFOUND282,7286
+} FCPRESP_RESTARTED;FCPRESP_RESTARTED286,7356
+} FCPRESP_FORMATERROR;FCPRESP_FORMATERROR290,7411
+} FCPRESP_SEGMENTHEADER;FCPRESP_SEGMENTHEADER307,7829
+} FCPRESP_BLOCKMAP;FCPRESP_BLOCKMAP315,7977
+} FCPRESP_BLOCKSENCODED;FCPRESP_BLOCKSENCODED320,8074
+} FCPRESP_BLOCKSDECODED;FCPRESP_BLOCKSDECODED326,8206
+} FCPRESP_MADEMETADATA;FCPRESP_MADEMETADATA330,8278
+} FCPRESP;FCPRESP359,9104
+} hOptions;hOptions381,9463
+} hURI;hURI393,9747
+} hBlock;hBlock405,10093
+} hSegment;hSegment432,10583
+} hDocument;hDocument442,10702
+} hMetadata;hMetadata459,10940
+} hKey;hKey483,11333
+} hFCP;hFCP504,11601
+	int    fcpStartup(520,11939
+	void   fcpTerminate(521,11991
+	hFCP  *fcpCreateHFCP(524,12060
+	hFCP  *fcpInheritHFCP(525,12127
+	void   fcpDestroyHFCP(526,12163
+	hURI  *fcpCreateHURI(529,12229
+	void   fcpDestroyHURI(530,12258
+	int    fcpParseHURI(532,12294
+	int    fcpPutKeyFromFile(535,12412
+	int    fcpGetKeyToFile(536,12507
+	int    fcpMakeSvkKeypair(539,12661
+	int    fcpClientHello(541,12747
+	int    fcpClientInfo(542,12783
+	int    fcpInvertPrivateKey(543,12818
+	int    fcpOpenKey(546,12927
+	int    fcpWriteKey(547,12980
+	int    fcpWriteMetadata(548,13033
+	int    fcpReadKey(550,13092
+	int    fcpReadMetadata(551,13144
+	int    fcpCloseKey(553,13202
 
 ezFCPlib/ezFCPlib.inc,10672
 _P_tmpdir	_P_tmpdir23,895
@@ -4400,7 +4414,7 @@ splitMgrThread splitMgrThread622,16583
 timeLastMidnight timeLastMidnight623,16611
 xtoi xtoi624,16634
 
-ezFCPlib/ez_sys.h,2325
+ezFCPlib/ez_sys.h,2343
 #define _EZ_SYS_H 32,1172
 #define snprintf 37,1229
 #define vsnprintf 38,1256
@@ -4449,22 +4463,22 @@ extern char *_fcpGetMimetype(121,3417
 extern int   _fcpPutKeyFromFile(122,3463
 extern int   _fcpLink(124,3565
 extern void  _fcpUnlink(125,3611
-extern int   _fcpTmpfile(127,3648
-extern long  _fcpFilesize(128,3690
-extern int   _fcpCopyFile(130,3734
-extern int   _fcpDeleteFile(131,3784
-extern long  xtol(133,3825
-extern int   memtoi(134,3852
-extern int   put_file(136,3882
-extern int   put_fec_splitfile(137,3928
-extern int   put_date_redirect(139,3973
-extern int   put_redirect(140,4028
-extern int   get_file(142,4099
-extern int   get_fec_splitfile(143,4145
-extern int   get_follow_redirects(145,4231
-extern int   get_size(146,4289
-extern hDocument *cdocFindDoc(148,4336
-extern char      *cdocLookupKey(149,4400
+extern int            _fcpTmpfile(127,3648
+extern unsigned long  _fcpFilesize(128,3699
+extern int   _fcpCopyFile(130,3752
+extern int   _fcpDeleteFile(131,3802
+extern long  xtol(133,3843
+extern int   memtoi(134,3870
+extern int   put_file(136,3900
+extern int   put_fec_splitfile(137,3946
+extern int   put_date_redirect(139,3991
+extern int   put_redirect(140,4046
+extern int   get_file(142,4117
+extern int   get_fec_splitfile(143,4163
+extern int   get_follow_redirects(145,4249
+extern int   get_size(146,4307
+extern hDocument *cdocFindDoc(148,4354
+extern char      *cdocLookupKey(149,4418
 
 ezFCPlib/fcpCloseKey.c,171
 static int fcpCloseKeyRead(36,1073
@@ -4483,24 +4497,24 @@ void _fcpDestroyHOptions(140,3527
 hKey *_fcpCreateHKey(151,3731
 void _fcpDestroyHKey(170,4065
 static void _fcpDestroyResponse(212,4709
-hBlock *_fcpCreateHBlock(226,5324
-void _fcpDestroyHBlock(244,5638
-hMetadata *_fcpCreateHMetadata(259,5832
-void _fcpDestroyHMetadata(271,6019
-void _fcpDestroyHMetadata_cdocs(287,6265
-hURI *fcpCreateHURI(312,6705
-void fcpDestroyHURI(322,6837
-int fcpParseHURI(339,7264
-hSegment *_fcpCreateHSegment(465,10250
-void _fcpDestroyHSegment(475,10398
+hBlock *_fcpCreateHBlock(236,6031
+void _fcpDestroyHBlock(254,6345
+hMetadata *_fcpCreateHMetadata(269,6539
+void _fcpDestroyHMetadata(281,6726
+void _fcpDestroyHMetadata_cdocs(297,6972
+hURI *fcpCreateHURI(322,7412
+void fcpDestroyHURI(332,7532
+int fcpParseHURI(349,7959
+hSegment *_fcpCreateHSegment(475,10945
+void _fcpDestroyHSegment(485,11093
 
 ezFCPlib/fcpGetKeyToFile.c,29
 int fcpGetKeyToFile(39,1099
 
 ezFCPlib/fcpInfo.c,89
-int fcpClientHello(34,1053
-int fcpClientInfo(69,1866
-int fcpInvertPrivateKey(101,2611
+int fcpClientHello(35,1073
+int fcpClientInfo(78,2208
+int fcpInvertPrivateKey(110,3024
 
 ezFCPlib/fcpMakeChkFromFile.c,31
 int fcpMakeChkFromFile(24,542
@@ -4532,20 +4546,273 @@ ezFCPlib/fcpWriteKey.c,55
 int fcpWriteKey(39,1183
 int fcpWriteMetadata(72,1773
 
-ezFCPlib/_fcpFile.c,205
-int _fcpTmpfile(47,1242
-int _fcpRead(103,2631
-int _fcpWrite(121,2843
-long _fcpFilesize(139,3057
-int _fcpCopyFile(152,3246
-int _fcpLink(223,4564
-void _fcpUnlink(265,5482
-int _fcpDeleteFile(289,5971
+ezFCPlib/.deps/fcpOpenKey.P,0
 
-ezFCPlib/_fcpMetadata-stub.c,61
-long xtol(9,111
-void _fcpLog(28,462
-long file_size(58,976
+ezFCPlib/.deps/_fcpLog.P,0
+
+ezFCPlib/.deps/_fcpSock.P,0
+
+ezFCPlib/.deps/_fcpRecvResponse.P,0
+
+ezFCPlib/.deps/_fcpUtil.P,0
+
+ezFCPlib/.deps/_fcpFile.P,0
+
+ezFCPlib/.deps/_fcpGet.P,0
+
+ezFCPlib/.deps/_fcpMetadata.P,0
+
+ezFCPlib/.deps/_fcpMimetype.P,0
+
+ezFCPlib/.deps/_fcpPut.P,0
+
+ezFCPlib/.deps/fcpInfo.P,0
+
+ezFCPlib/.deps/fcpCreation.P,0
+
+ezFCPlib/.deps/fcpCloseKey.P,0
+
+ezFCPlib/.deps/fcpReadKey.P,0
+
+ezFCPlib/.deps/fcpPutKeyFromFile.P,0
+
+ezFCPlib/.deps/fcpGetKeyToFile.P,0
+
+ezFCPlib/.deps/fcpStartup.P,0
+
+ezFCPlib/.deps/fcpMakeSvkKeypair.P,0
+
+ezFCPlib/.deps/fcpWriteKey.P,0
+
+ezFCPlib/_fcpLog.o,34
+ELF1,0
+%Z	21,3316
+Zn53,3860
+
+ezFCPlib/_fcpRecvResponse.o,52
+âD$ã13,4029
+â$Ë58,9820
+i90,13361
+Zw121,13869
+
+ezFCPlib/_fcpSock.o,31
+ãEÄ89Î	«E¸4,1754
+a31,4901
+
+ezFCPlib/_fcpUtil.o,23
+âE¯Îã2,327
+a23,3291
+
+ezFCPlib/_fcpFile.o,20
+ELF1,0
+a29,5126
+
+ezFCPlib/_fcpMetadata.o,58
+uç4,1097
+e29,5582
+Zs59,6090
+Uds u%Vvè133,25045
+
+ezFCPlib/_fcpMimetype.o,32
+ELF1,0
+e58,4558
+Zs88,5066
+
+ezFCPlib/_fcpGet.o,0
+
+ezFCPlib/_fcpPut.o,392
+¸ˇˇÉΩ‘øˇˇ2u8,2463
+%Z	44,13454
+Zn76,13998
+í‚Û»’_C9:YJ154,34107
+í‚Û»’_C9:YJ‘;‘.@:úY1:úY/	9-™’.=:úY1:Y.N˛6(ˇõ:$Y:'X:4¨:f„Y:4XÅ<¨:fùXÅ:>¨:fù...…∆ZéÒúX;ú.™:e-æ™:e∏h„:∫’ú&tù##y´rUìˇ%’ú'<:fu:e™´d	+¢<’.9:X;ˇ8ÒúXÒúX154,34107
+RemoveLocalKey=155,34954
+
+ezFCPlib/fcpCreation.o,32
+ELF1,0
+d27,7202
+Zr57,7710
+
+ezFCPlib/fcpInfo.o,56
+t.«D$2,295
+%Z	20,4102
+Zn52,4646
+Private=129,23473
+
+ezFCPlib/fcpOpenKey.o,33
+ELF1,0
+c22,3887
+∂L123,21050
+
+ezFCPlib/fcpCloseKey.o,32
+ELF1,0
+d22,3729
+Zr52,4237
+
+ezFCPlib/fcpPutKeyFromFile.o,43
+ELF1,0
+j24,4409
+Zx54,4917
+x=73,5318
+
+ezFCPlib/fcpGetKeyToFile.o,43
+ELF1,0
+h21,3695
+Zv51,4203
+x;71,4604
+
+ezFCPlib/fcpReadKey.o,33
+ELF1,0
+c20,3441
+∂L121,20604
+
+ezFCPlib/fcpMakeSvkKeypair.o,43
+ELF1,0
+j19,3271
+Zx49,3779
+x=68,4180
+
+ezFCPlib/fcpStartup.o,20
+ELF1,0
+c20,3091
+
+ezFCPlib/fcpWriteKey.o,32
+ELF1,0
+d21,3478
+Zr51,3986
+
+ezFCPlib/libezfcp.a,2366
+D	D26,4653
+DD	DD49,5098
+sD	sD76,5553
+tD	tD77,5581
+uD	uD78,5610
+x3x381,5681
+M	M223,39518
+DM	DM247,39963
+_g_g265,40250
+sM	sM275,40418
+tM	tM276,40446
+uM	uM277,40475
+E	E376,76102
+DE	DE399,76547
+____417,76834
+sE	sE426,77002
+tE	tE427,77030
+uE	uE428,77059
+x4x4431,77130
+E	E531,108000
+DE	DE554,108445
+____572,108732
+sE	sE581,108900
+tE	tE582,108928
+uE	uE583,108957
+x4x4586,109028
+E	E670,136151
+DE	DE693,136596
+____711,136883
+sE	sE720,137051
+tE	tE721,137079
+uE	uE722,137108
+x4x4725,137179
+I	I810,167415
+DI	DI833,167860
+_c_c850,168147
+sI	sI859,168315
+tI	tI860,168343
+uI	uI861,168372
+x8x8864,168443
+I	I973,196751
+DI	DI996,197196
+_c_c1013,197483
+sI	sI1022,197651
+tI	tI1023,197679
+uI	uI1024,197708
+x8x81027,197779
+D	D1106,229948
+DD	DD1129,230393
+sD	sD1156,230848
+tD	tD1157,230876
+uD	uD1158,230905
+x3x31161,230976
+D	D1281,269071
+DD	DD1304,269516
+sD	sD1331,269971
+tD	tD1332,269999
+uD	uD1333,270028
+x3x31336,270099
+H	H1498,309443
+DH	DH1521,309888
+_b_b1538,310175
+sH	sH1547,310343
+tH	tH1548,310371
+uH	uH1549,310400
+x7x71552,310471
+D	D1662,340947
+DD	DD1685,341392
+sD	sD1712,341847
+tD	tD1713,341875
+uD	uD1714,341904
+x3x31717,341975
+G	G1796,368472
+DG	DG1819,368917
+_a_a1836,369204
+sG	sG1845,369372
+tG	tG1846,369400
+uG	uG1847,369429
+x6x61850,369500
+H	H1924,395562
+DH	DH1947,396007
+_b_b1964,396294
+sH	sH1973,396462
+tH	tH1974,396490
+uH	uH1975,396519
+x7x71978,396590
+N	N2061,422066
+CC2083,422489
+DN	DN2084,422511
+_h_h2101,422798
+qq2108,422921
+sN	sN2110,422966
+tN	tN2111,422994
+uN	uN2112,423023
+L	L2188,449760
+C	C2210,450183
+DL	DL2211,450205
+_f_f2228,450492
+q	q2236,450615
+sL	sL2238,450660
+tL	tL2239,450688
+uL	uL2240,450717
+G	G2313,476018
+DG	DG2336,476463
+_a_a2353,476750
+sG	sG2362,476918
+tG	tG2363,476946
+uG	uG2364,476975
+x6x62367,477046
+N	N2438,502152
+CC2460,502575
+DN	DN2461,502597
+_h_h2478,502884
+qq2485,503007
+sN	sN2487,503052
+tN	tN2488,503080
+uN	uN2489,503109
+G	G2562,526728
+DG	DG2585,527173
+_a_a2602,527460
+sG	sG2611,527628
+tG	tG2612,527656
+uG	uG2613,527685
+x6x62616,527756
+H	H2687,552319
+DH	DH2710,552764
+_b_b2727,553051
+sH	sH2736,553219
+tH	tH2737,553247
+uH	uH2738,553276
+x7x72741,553347
 
 fcpcommon/CVS/Root,0
 
@@ -4646,6 +4913,19 @@ getopt_long 66,2141
 getopt_long_only 82,2644
 main 100,3000
 
+fcpcommon/.deps/getopt.P,0
+
+fcpcommon/.deps/getopt1.P,0
+
+fcpcommon/getopt.o,10
+ELF1,0
+
+fcpcommon/getopt1.o,10
+ELF1,0
+
+fcpcommon/libfcpcommon.a,13
+C	C16,2774
+
 fcpget/CVS/Root,0
 
 fcpget/CVS/Repository,0
@@ -4654,30 +4934,30 @@ fcpget/CVS/Entries,0
 
 fcpget/Makefile,682
 SHELL 14,565
-	    $(LIBTOOL)  --mode=156,4810
-	  else 157,4962
-	  else :; fi;157,4962
-	@$(161,5009
-	  rm -f $(163,5078
-	unique=`for i in $$list; do echo $$i;212,5973
-	here=215,6102
-	here=220,6242
-	list=221,6257
-	unique=222,6290
-	unique=`for i in $$list; do echo $$i;222,6290
-	  || (cd $(226,6467
-	    cp -pr $$d/$$file $(distdir)/$$file;250,7087
-	  fi;255,7280
-DEPS_MAGIC 258,7296
-	$(COMPILE) -Wp,273,7511
-	$(COMPILE) -Wp,-MD,273,7511
-	@-cp .deps/$(*F).pp .deps/$(*F).P;274,7552
-	    >> .deps/$(*F).P;277,7690
-	$(LTCOMPILE) -Wp,282,7776
-	$(LTCOMPILE) -Wp,-MD,282,7776
-	  < .deps/$(*F).pp > .deps/$(*F).P;284,7869
-	    >> .deps/$(*F).P;287,8008
-	@$(304,8313
+	    $(LIBTOOL)  --mode=157,4834
+	  else 158,4986
+	  else :; fi;158,4986
+	@$(162,5033
+	  rm -f $(164,5102
+	unique=`for i in $$list; do echo $$i;213,5997
+	here=216,6126
+	here=221,6266
+	list=222,6281
+	unique=223,6314
+	unique=`for i in $$list; do echo $$i;223,6314
+	  || (cd $(227,6491
+	    cp -pr $$d/$$file $(distdir)/$$file;251,7111
+	  fi;256,7304
+DEPS_MAGIC 259,7320
+	$(COMPILE) -Wp,274,7535
+	$(COMPILE) -Wp,-MD,274,7535
+	@-cp .deps/$(*F).pp .deps/$(*F).P;275,7576
+	    >> .deps/$(*F).P;278,7714
+	$(LTCOMPILE) -Wp,283,7800
+	$(LTCOMPILE) -Wp,-MD,283,7800
+	  < .deps/$(*F).pp > .deps/$(*F).P;285,7893
+	    >> .deps/$(*F).P;288,8032
+	@$(305,8337
 
 fcpget/.cvsignore,0
 
@@ -4686,30 +4966,30 @@ INCLUDES 1,0
 
 fcpget/Makefile.in,682
 SHELL 14,565
-	    $(LIBTOOL)  --mode=156,4081
-	  else 157,4233
-	  else :; fi;157,4233
-	@$(161,4280
-	  rm -f $(163,4349
-	unique=`for i in $$list; do echo $$i;212,5244
-	here=215,5373
-	here=220,5513
-	list=221,5528
-	unique=222,5561
-	unique=`for i in $$list; do echo $$i;222,5561
-	  || (cd $(226,5738
-	    cp -pr $$d/$$file $(distdir)/$$file;250,6358
-	  fi;255,6551
-DEPS_MAGIC 258,6567
-	$(COMPILE) -Wp,273,6782
-	$(COMPILE) -Wp,-MD,273,6782
-	@-cp .deps/$(*F).pp .deps/$(*F).P;274,6823
-	    >> .deps/$(*F).P;277,6961
-	$(LTCOMPILE) -Wp,282,7047
-	$(LTCOMPILE) -Wp,-MD,282,7047
-	  < .deps/$(*F).pp > .deps/$(*F).P;284,7140
-	    >> .deps/$(*F).P;287,7279
-	@$(304,7584
+	    $(LIBTOOL)  --mode=157,4105
+	  else 158,4257
+	  else :; fi;158,4257
+	@$(162,4304
+	  rm -f $(164,4373
+	unique=`for i in $$list; do echo $$i;213,5268
+	here=216,5397
+	here=221,5537
+	list=222,5552
+	unique=223,5585
+	unique=`for i in $$list; do echo $$i;223,5585
+	  || (cd $(227,5762
+	    cp -pr $$d/$$file $(distdir)/$$file;251,6382
+	  fi;256,6575
+DEPS_MAGIC 259,6591
+	$(COMPILE) -Wp,274,6806
+	$(COMPILE) -Wp,-MD,274,6806
+	@-cp .deps/$(*F).pp .deps/$(*F).P;275,6847
+	    >> .deps/$(*F).P;278,6985
+	$(LTCOMPILE) -Wp,283,7071
+	$(LTCOMPILE) -Wp,-MD,283,7071
+	  < .deps/$(*F).pp > .deps/$(*F).P;285,7164
+	    >> .deps/$(*F).P;288,7303
+	@$(305,7608
 
 fcpget/Makefile.manual,0
 
@@ -4739,6 +5019,19 @@ static void usage(332,7129
 
 fcpget/fcpget.dsp,11
 CFG=7,223
+
+fcpget/.deps/fcpget.P,0
+
+fcpget/fcpget.o,33
+ELF1,0
+Zk62,5585
+_[67,5690
+
+fcpget/fcpget,68
+âD$ã42,35869
+RemoveLocalKey=145,51978
+c861,181099
+∂L962,198262
 
 Makefile,1407
 SHELL 17,646
@@ -5924,30 +6217,30 @@ fcpput/CVS/Entries,0
 
 fcpput/Makefile,682
 SHELL 14,565
-	    $(LIBTOOL)  --mode=156,4810
-	  else 157,4962
-	  else :; fi;157,4962
-	@$(161,5009
-	  rm -f $(163,5078
-	unique=`for i in $$list; do echo $$i;212,5973
-	here=215,6102
-	here=220,6242
-	list=221,6257
-	unique=222,6290
-	unique=`for i in $$list; do echo $$i;222,6290
-	  || (cd $(226,6467
-	    cp -pr $$d/$$file $(distdir)/$$file;250,7087
-	  fi;255,7280
-DEPS_MAGIC 258,7296
-	$(COMPILE) -Wp,273,7511
-	$(COMPILE) -Wp,-MD,273,7511
-	@-cp .deps/$(*F).pp .deps/$(*F).P;274,7552
-	    >> .deps/$(*F).P;277,7690
-	$(LTCOMPILE) -Wp,282,7776
-	$(LTCOMPILE) -Wp,-MD,282,7776
-	  < .deps/$(*F).pp > .deps/$(*F).P;284,7869
-	    >> .deps/$(*F).P;287,8008
-	@$(304,8313
+	    $(LIBTOOL)  --mode=157,4840
+	  else 158,4992
+	  else :; fi;158,4992
+	@$(162,5039
+	  rm -f $(164,5108
+	unique=`for i in $$list; do echo $$i;213,6003
+	here=216,6132
+	here=221,6272
+	list=222,6287
+	unique=223,6320
+	unique=`for i in $$list; do echo $$i;223,6320
+	  || (cd $(227,6497
+	    cp -pr $$d/$$file $(distdir)/$$file;251,7117
+	  fi;256,7310
+DEPS_MAGIC 259,7326
+	$(COMPILE) -Wp,274,7541
+	$(COMPILE) -Wp,-MD,274,7541
+	@-cp .deps/$(*F).pp .deps/$(*F).P;275,7582
+	    >> .deps/$(*F).P;278,7720
+	$(LTCOMPILE) -Wp,283,7806
+	$(LTCOMPILE) -Wp,-MD,283,7806
+	  < .deps/$(*F).pp > .deps/$(*F).P;285,7899
+	    >> .deps/$(*F).P;288,8038
+	@$(305,8343
 
 fcpput/.cvsignore,0
 
@@ -5956,30 +6249,30 @@ INCLUDES 1,0
 
 fcpput/Makefile.in,682
 SHELL 14,565
-	    $(LIBTOOL)  --mode=156,4081
-	  else 157,4233
-	  else :; fi;157,4233
-	@$(161,4280
-	  rm -f $(163,4349
-	unique=`for i in $$list; do echo $$i;212,5244
-	here=215,5373
-	here=220,5513
-	list=221,5528
-	unique=222,5561
-	unique=`for i in $$list; do echo $$i;222,5561
-	  || (cd $(226,5738
-	    cp -pr $$d/$$file $(distdir)/$$file;250,6358
-	  fi;255,6551
-DEPS_MAGIC 258,6567
-	$(COMPILE) -Wp,273,6782
-	$(COMPILE) -Wp,-MD,273,6782
-	@-cp .deps/$(*F).pp .deps/$(*F).P;274,6823
-	    >> .deps/$(*F).P;277,6961
-	$(LTCOMPILE) -Wp,282,7047
-	$(LTCOMPILE) -Wp,-MD,282,7047
-	  < .deps/$(*F).pp > .deps/$(*F).P;284,7140
-	    >> .deps/$(*F).P;287,7279
-	@$(304,7584
+	    $(LIBTOOL)  --mode=157,4111
+	  else 158,4263
+	  else :; fi;158,4263
+	@$(162,4310
+	  rm -f $(164,4379
+	unique=`for i in $$list; do echo $$i;213,5274
+	here=216,5403
+	here=221,5543
+	list=222,5558
+	unique=223,5591
+	unique=`for i in $$list; do echo $$i;223,5591
+	  || (cd $(227,5768
+	    cp -pr $$d/$$file $(distdir)/$$file;251,6388
+	  fi;256,6581
+DEPS_MAGIC 259,6597
+	$(COMPILE) -Wp,274,6812
+	$(COMPILE) -Wp,-MD,274,6812
+	@-cp .deps/$(*F).pp .deps/$(*F).P;275,6853
+	    >> .deps/$(*F).P;278,6991
+	$(LTCOMPILE) -Wp,283,7077
+	$(LTCOMPILE) -Wp,-MD,283,7077
+	  < .deps/$(*F).pp > .deps/$(*F).P;285,7170
+	    >> .deps/$(*F).P;288,7309
+	@$(305,7614
 
 fcpput/Makefile.manual,13
 CFLAGS=6,75
@@ -6012,38 +6305,22 @@ static void usage(369,8084
 fcpput/fcpput.dsp,11
 CFG=7,223
 
+fcpput/.deps/fcpput.P,0
+
+fcpput/fcpput.o,33
+ELF1,0
+Zk66,6104
+_[71,6209
+
+fcpput/fcpput,41
+âD$ã20,18285
+RemoveLocalKey=169,58378
+
 fcpputsite/CVS/Root,0
 
 fcpputsite/CVS/Repository,0
 
 fcpputsite/CVS/Entries,0
-
-fcpputsite/Makefile,682
-SHELL 14,565
-	    $(LIBTOOL)  --mode=151,4707
-	  else 152,4859
-	  else :; fi;152,4859
-	@$(156,4906
-	  rm -f $(158,4975
-	unique=`for i in $$list; do echo $$i;207,5898
-	here=210,6027
-	here=215,6167
-	list=216,6182
-	unique=217,6215
-	unique=`for i in $$list; do echo $$i;217,6215
-	  || (cd $(221,6392
-	    cp -pr $$d/$$file $(distdir)/$$file;245,7020
-	  fi;250,7213
-DEPS_MAGIC 253,7229
-	$(COMPILE) -Wp,268,7444
-	$(COMPILE) -Wp,-MD,268,7444
-	@-cp .deps/$(*F).pp .deps/$(*F).P;269,7485
-	    >> .deps/$(*F).P;272,7623
-	$(LTCOMPILE) -Wp,277,7709
-	$(LTCOMPILE) -Wp,-MD,277,7709
-	  < .deps/$(*F).pp > .deps/$(*F).P;279,7802
-	    >> .deps/$(*F).P;282,7941
-	@$(299,8246
 
 fcpputsite/.cvsignore,0
 
@@ -6152,752 +6429,6 @@ static int      dirPrefixLen;40,587
 SiteFile *scan_dir(46,643
 static SiteFile *scan_dir_recurse(86,1634
 
-fcpputsite/fcpputsite.o,32
-ELF1,0
-e19,3102
-Zs49,3610
-
-fcpputsite/fcpputsite,35
-e17,7022
-Zs47,7530
-»J122,23602
-
-t.ps,21777
-/_S /_S18,361
-/_R /_R21,409
-/S /S25,462
-/MF /MF31,538
-/MF_PS /MF_PS59,1101
-/SF /SF82,1555
-/SUF /SUF90,1703
-/SUF_PS /SUF_PS98,1859
-/M /M106,2040
-/s /s107,2061
-/Box /Box109,2081
-/bgs /bgs118,2268
-/bgcs /bgcs134,2551
-/highlight_bars /highlight_bars153,2912
-/line_highlight /line_highlight185,3660
-/column_lines /column_lines193,3804
-/column_borders /column_borders206,4030
-/draw_underlay /draw_underlay218,4251
-/underlay /underlay227,4369
-/user_underlay /user_underlay240,4664
-/page_prefeed /page_prefeed252,4870
-/wrapped_line_mark /wrapped_line_mark261,5022
-/BeginEPSF /BeginEPSF297,5726
-/EndEPSF /EndEPSF314,6186
-/languagelevel /languagelevel321,6368
-/encoding_vector /encoding_vector328,6541
-/.notdef /.notdef329,6560
-/.notdef /.notdef330,6621
-/.notdef /.notdef331,6682
-/.notdef /.notdef332,6743
-/.notdef /.notdef333,6804
-/.notdef /.notdef334,6865
-/.notdef /.notdef335,6926
-/.notdef /.notdef336,6987
-/space /space337,7048
-/dollar /dollar338,7109
-/parenleft /parenleft339,7170
-/comma /comma340,7231
-/zero /zero341,7292
-/four /four342,7353
-/eight /eight343,7414
-/less /less344,7475
-/at /at345,7536
-/D /D346,7597
-/H /H347,7658
-/L /L348,7719
-/P /P349,7780
-/T /T350,7841
-/X /X351,7902
-/backslash /backslash352,7963
-/quoteleft /quoteleft353,8024
-/d /d354,8085
-/h /h355,8146
-/l /l356,8207
-/p /p357,8268
-/t /t358,8329
-/x /x359,8390
-/bar /bar360,8451
-/.notdef /.notdef361,8512
-/.notdef /.notdef362,8573
-/.notdef /.notdef363,8634
-/.notdef /.notdef364,8695
-/.notdef /.notdef365,8756
-/.notdef /.notdef366,8817
-/.notdef /.notdef367,8878
-/.notdef /.notdef368,8939
-/space /space369,9000
-/currency /currency370,9061
-/dieresis /dieresis371,9122
-/logicalnot /logicalnot372,9183
-/degree /degree373,9244
-/acute /acute374,9305
-/cedilla /cedilla375,9366
-/onequarter /onequarter376,9428
-/Agrave /Agrave377,9489
-/Adieresis /Adieresis378,9550
-/Egrave /Egrave379,9611
-/Igrave /Igrave380,9672
-/Eth /Eth381,9733
-/Ocircumflex /Ocircumflex382,9794
-/Oslash /Oslash383,9855
-/Udieresis /Udieresis384,9916
-/agrave /agrave385,9977
-/adieresis /adieresis386,10038
-/egrave /egrave387,10099
-/igrave /igrave388,10160
-/eth /eth389,10221
-/ocircumflex /ocircumflex390,10282
-/oslash /oslash391,10343
-/udieresis /udieresis392,10404
-/HFpt_w /HFpt_w399,10579
-/HFpt_h /HFpt_h400,10594
-/Courier-Bold /Courier-Bold401,10609
-/HF /HF402,10638
-/Courier /Courier403,10700
-/F-gs-font /F-gs-font404,10723
-/#copies /#copies405,10741
-/do_header /do_header414,10915
-/d_page_w /d_page_w436,11464
-/d_page_h /d_page_h437,11482
-/d_header_x /d_header_x438,11500
-/d_header_y /d_header_y439,11518
-/d_header_w /d_header_w440,11538
-/d_header_h /d_header_h441,11558
-/d_footer_x /d_footer_x442,11577
-/d_footer_y /d_footer_y443,11595
-/d_footer_w /d_footer_w444,11613
-/d_footer_h /d_footer_h445,11633
-/d_output_w /d_output_w446,11651
-/d_output_h /d_output_h447,11671
-/cols /cols448,11691
-/pagenum /pagenum454,11764
-/fname /fname455,11779
-/fdir /fdir456,11812
-/ftail /ftail457,11834
-/fmodstr /fmodstr459,11882
-/pagenumstr /pagenumstr460,11922
-/user_header_p /user_header_p461,11942
-/user_header_left_str /user_header_left_str462,11966
-/user_header_center_str /user_header_center_str463,12005
-/user_header_right_str /user_header_right_str464,12044
-/user_footer_p /user_footer_p465,12085
-/Courier-Oblique /Courier-Oblique469,12153
-/F-gs-font /F-gs-font472,12196
-/Courier-Oblique /Courier-Oblique474,12232
-/F-gs-font /F-gs-font477,12346
-/Courier-Oblique /Courier-Oblique479,12382
-/F-gs-font /F-gs-font480,12407
-/Courier-Oblique /Courier-Oblique482,12443
-/F-gs-font /F-gs-font485,12520
-/Courier-Oblique /Courier-Oblique487,12556
-/F-gs-font /F-gs-font488,12581
-/Courier-Oblique /Courier-Oblique490,12617
-/F-gs-font /F-gs-font493,12671
-/Courier-Oblique /Courier-Oblique495,12707
-/F-gs-font /F-gs-font498,12788
-/Courier-Oblique /Courier-Oblique500,12824
-/F-gs-font /F-gs-font503,12897
-/Courier-Oblique /Courier-Oblique505,12933
-/F-gs-font /F-gs-font508,12976
-/Courier-Oblique /Courier-Oblique510,13013
-/F-gs-font /F-gs-font513,13108
-/Courier-Oblique /Courier-Oblique515,13145
-/F-gs-font /F-gs-font518,13188
-/Courier-Oblique /Courier-Oblique520,13225
-/F-gs-font /F-gs-font523,13336
-/Courier-Oblique /Courier-Oblique525,13373
-/F-gs-font /F-gs-font528,13484
-/Courier-Oblique /Courier-Oblique530,13521
-/F-gs-font /F-gs-font533,13629
-/Courier-Oblique /Courier-Oblique535,13666
-/F-gs-font /F-gs-font538,13746
-/Courier-Oblique /Courier-Oblique540,13783
-/F-gs-font /F-gs-font543,13826
-/Courier-Oblique /Courier-Oblique545,13863
-/F-gs-font /F-gs-font548,13969
-/Courier-Oblique /Courier-Oblique550,14006
-/F-gs-font /F-gs-font553,14111
-/Courier-Oblique /Courier-Oblique555,14148
-/F-gs-font /F-gs-font558,14252
-/Courier-Oblique /Courier-Oblique560,14289
-/F-gs-font /F-gs-font563,14376
-/Courier-Oblique /Courier-Oblique565,14413
-/F-gs-font /F-gs-font568,14456
-/Courier-Oblique /Courier-Oblique570,14493
-/F-gs-font /F-gs-font573,14601
-/Courier-Oblique /Courier-Oblique575,14638
-/F-gs-font /F-gs-font578,14740
-/Courier-Oblique /Courier-Oblique580,14777
-/F-gs-font /F-gs-font583,14893
-/Courier-Oblique /Courier-Oblique585,14930
-/F-gs-font /F-gs-font588,14973
-/Courier-Bold /Courier-Bold593,15046
-/F-gs-font /F-gs-font596,15091
-/Courier-Bold /Courier-Bold599,15124
-/F-gs-font /F-gs-font602,15174
-/Courier-Bold /Courier-Bold607,15247
-/F-gs-font /F-gs-font610,15290
-/Courier-Bold /Courier-Bold613,15325
-/F-gs-font /F-gs-font616,15368
-/Courier-Bold /Courier-Bold620,15422
-/F-gs-font /F-gs-font623,15467
-/Courier-Bold /Courier-Bold626,15500
-/F-gs-font /F-gs-font629,15549
-/Courier-Bold /Courier-Bold633,15603
-/F-gs-font /F-gs-font636,15646
-/Courier-Bold /Courier-Bold641,15719
-/F-gs-font /F-gs-font644,15764
-/Courier-Bold /Courier-Bold647,15797
-/F-gs-font /F-gs-font650,15844
-/Courier-Bold /Courier-Bold654,15898
-/F-gs-font /F-gs-font657,15943
-/Courier-Bold /Courier-Bold660,15976
-/F-gs-font /F-gs-font663,16024
-/Courier-Bold /Courier-Bold667,16078
-/F-gs-font /F-gs-font670,16123
-/Courier-Bold /Courier-Bold673,16156
-/F-gs-font /F-gs-font676,16204
-/Courier-Bold /Courier-Bold680,16258
-/F-gs-font /F-gs-font683,16303
-/Courier-Bold /Courier-Bold686,16336
-/F-gs-font /F-gs-font689,16383
-/Courier-Bold /Courier-Bold694,16456
-/F-gs-font /F-gs-font697,16500
-/Courier-Bold /Courier-Bold700,16535
-/F-gs-font /F-gs-font703,16576
-/Courier-Bold /Courier-Bold707,16630
-/F-gs-font /F-gs-font710,16675
-/Courier-Bold /Courier-Bold713,16708
-/F-gs-font /F-gs-font716,16754
-/Courier-Bold /Courier-Bold720,16808
-/F-gs-font /F-gs-font723,16851
-/Courier-Bold /Courier-Bold728,16924
-/F-gs-font /F-gs-font731,16969
-/Courier-Bold /Courier-Bold734,17002
-/F-gs-font /F-gs-font737,17050
-/Courier-Oblique /Courier-Oblique741,17125
-/F-gs-font /F-gs-font744,17231
-/Courier-Bold /Courier-Bold747,17287
-/F-gs-font /F-gs-font750,17328
-/Courier-Bold /Courier-Bold753,17361
-/F-gs-font /F-gs-font756,17410
-/Courier-Bold /Courier-Bold759,17446
-/F-gs-font /F-gs-font762,17489
-/Courier-Bold /Courier-Bold771,17609
-/F-gs-font /F-gs-font774,17651
-/Courier-Bold /Courier-Bold780,17745
-/F-gs-font /F-gs-font783,17787
-/Courier-Bold /Courier-Bold790,17901
-/F-gs-font /F-gs-font793,17942
-/Courier-Bold /Courier-Bold799,18025
-/F-gs-font /F-gs-font802,18066
-/Courier-Bold /Courier-Bold809,18160
-/F-gs-font /F-gs-font812,18204
-/Courier-Bold /Courier-Bold825,18424
-/F-gs-font /F-gs-font828,18470
-/Courier-Bold /Courier-Bold831,18506
-/F-gs-font /F-gs-font834,18546
-/Courier-Bold /Courier-Bold841,18652
-/F-gs-font /F-gs-font844,18695
-/Courier-Bold /Courier-Bold847,18730
-/F-gs-font /F-gs-font850,18773
-/Courier-Bold /Courier-Bold854,18859
-/F-gs-font /F-gs-font857,18902
-/Courier-Bold /Courier-Bold860,18947
-/F-gs-font /F-gs-font863,18992
-/Courier-Bold /Courier-Bold869,19068
-/F-gs-font /F-gs-font872,19110
-/Courier-Bold /Courier-Bold876,19182
-/F-gs-font /F-gs-font879,19225
-/Courier-Bold /Courier-Bold885,19299
-/F-gs-font /F-gs-font888,19342
-/Courier-Bold /Courier-Bold893,19416
-/F-gs-font /F-gs-font896,19459
-/Courier-Bold /Courier-Bold902,19577
-/F-gs-font /F-gs-font905,19630
-/Courier-Bold /Courier-Bold908,19692
-/F-gs-font /F-gs-font911,19739
-/Courier-Bold /Courier-Bold914,19773
-/F-gs-font /F-gs-font917,19815
-/Courier-Bold /Courier-Bold924,19921
-/F-gs-font /F-gs-font927,19961
-/Courier-Bold /Courier-Bold933,20062
-/F-gs-font /F-gs-font936,20102
-/Courier-Oblique /Courier-Oblique946,20260
-/F-gs-font /F-gs-font949,20369
-/Courier-Oblique /Courier-Oblique957,20518
-/F-gs-font /F-gs-font960,20629
-/Courier-Oblique /Courier-Oblique967,20717
-/F-gs-font /F-gs-font970,20816
-/Courier-Oblique /Courier-Oblique972,20852
-/F-gs-font /F-gs-font975,20956
-/Courier-Oblique /Courier-Oblique977,20992
-/F-gs-font /F-gs-font980,21090
-/Courier-Oblique /Courier-Oblique982,21126
-/F-gs-font /F-gs-font985,21204
-/Courier-Bold /Courier-Bold995,21393
-/F-gs-font /F-gs-font998,21432
-/Courier-Bold /Courier-Bold1004,21541
-/F-gs-font /F-gs-font1007,21608
-/Courier-Bold /Courier-Bold1013,21680
-/F-gs-font /F-gs-font1016,21722
-/pagenum /pagenum1025,21813
-/fname /fname1026,21828
-/fdir /fdir1027,21861
-/ftail /ftail1028,21883
-/fmodstr /fmodstr1030,21931
-/pagenumstr /pagenumstr1031,21971
-/user_header_p /user_header_p1032,21991
-/user_header_left_str /user_header_left_str1033,22015
-/user_header_center_str /user_header_center_str1034,22054
-/user_header_right_str /user_header_right_str1035,22093
-/user_footer_p /user_footer_p1036,22134
-/Courier-Oblique /Courier-Oblique1046,22278
-/F-gs-font /F-gs-font1049,22354
-/Courier-Bold /Courier-Bold1053,22409
-/F-gs-font /F-gs-font1056,22449
-/Courier-Bold /Courier-Bold1062,22570
-/F-gs-font /F-gs-font1065,22636
-/Courier-Bold /Courier-Bold1071,22713
-/F-gs-font /F-gs-font1074,22757
-/Courier-Bold /Courier-Bold1084,22889
-/F-gs-font /F-gs-font1087,22933
-/Courier-Oblique /Courier-Oblique1095,23042
-/F-gs-font /F-gs-font1098,23152
-/Courier-Oblique /Courier-Oblique1100,23190
-/F-gs-font /F-gs-font1103,23275
-/Courier-Oblique /Courier-Oblique1105,23313
-/F-gs-font /F-gs-font1108,23423
-/Courier-Bold /Courier-Bold1111,23481
-/F-gs-font /F-gs-font1114,23522
-/Courier-Bold /Courier-Bold1117,23555
-/F-gs-font /F-gs-font1120,23601
-/Courier-Bold /Courier-Bold1123,23637
-/F-gs-font /F-gs-font1126,23676
-/Courier-Bold /Courier-Bold1129,23716
-/F-gs-font /F-gs-font1132,23759
-/Courier-Bold /Courier-Bold1135,23801
-/F-gs-font /F-gs-font1138,23843
-/Courier-Bold /Courier-Bold1147,23959
-/F-gs-font /F-gs-font1150,24000
-/Courier-Bold /Courier-Bold1156,24076
-/F-gs-font /F-gs-font1159,24117
-/Courier-Bold /Courier-Bold1169,24266
-/F-gs-font /F-gs-font1172,24309
-/Courier-Bold /Courier-Bold1193,24673
-/F-gs-font /F-gs-font1196,24713
-/Courier-Bold /Courier-Bold1199,24759
-/F-gs-font /F-gs-font1202,24803
-/Courier-Bold /Courier-Bold1208,24880
-/F-gs-font /F-gs-font1211,24922
-/Courier-Bold /Courier-Bold1214,24957
-/F-gs-font /F-gs-font1217,25001
-/Courier-Bold /Courier-Bold1225,25114
-/F-gs-font /F-gs-font1228,25155
-/Courier-Bold /Courier-Bold1231,25188
-/F-gs-font /F-gs-font1234,25235
-/Courier-Bold /Courier-Bold1237,25269
-/F-gs-font /F-gs-font1240,25310
-/Courier-Bold /Courier-Bold1243,25350
-/F-gs-font /F-gs-font1246,25393
-/Courier-Bold /Courier-Bold1249,25435
-/F-gs-font /F-gs-font1252,25475
-/Courier-Bold /Courier-Bold1261,25591
-/F-gs-font /F-gs-font1264,25632
-/Courier-Bold /Courier-Bold1270,25708
-/F-gs-font /F-gs-font1273,25749
-/Courier-Bold /Courier-Bold1283,25898
-/F-gs-font /F-gs-font1286,25941
-/Courier-Bold /Courier-Bold1307,26306
-/F-gs-font /F-gs-font1310,26346
-/Courier-Bold /Courier-Bold1313,26392
-/F-gs-font /F-gs-font1316,26436
-/Courier-Bold /Courier-Bold1322,26513
-/F-gs-font /F-gs-font1325,26555
-/Courier-Bold /Courier-Bold1328,26590
-/F-gs-font /F-gs-font1331,26634
-/Courier-Bold /Courier-Bold1339,26747
-/F-gs-font /F-gs-font1342,26789
-/Courier-Bold /Courier-Bold1345,26824
-/F-gs-font /F-gs-font1348,26874
-/Courier-Bold /Courier-Bold1351,26911
-/F-gs-font /F-gs-font1354,26952
-/Courier-Bold /Courier-Bold1363,27074
-/F-gs-font /F-gs-font1366,27115
-/Courier-Bold /Courier-Bold1373,27213
-/F-gs-font /F-gs-font1376,27257
-/Courier-Bold /Courier-Bold1385,27377
-/F-gs-font /F-gs-font1388,27417
-/Courier-Bold /Courier-Bold1394,27514
-/F-gs-font /F-gs-font1397,27556
-/Courier-Bold /Courier-Bold1400,27591
-/F-gs-font /F-gs-font1403,27631
-/Courier-Bold /Courier-Bold1409,27743
-/F-gs-font /F-gs-font1412,27785
-/Courier-Bold /Courier-Bold1421,27917
-/F-gs-font /F-gs-font1424,27961
-/Courier-Bold /Courier-Bold1432,28076
-/F-gs-font /F-gs-font1435,28117
-/Courier-Bold /Courier-Bold1438,28150
-/F-gs-font /F-gs-font1441,28200
-/Courier-Bold /Courier-Bold1444,28237
-/F-gs-font /F-gs-font1447,28280
-/Courier-Bold /Courier-Bold1450,28323
-/F-gs-font /F-gs-font1453,28366
-/Courier-Bold /Courier-Bold1462,28505
-/F-gs-font /F-gs-font1465,28568
-/Courier-Bold /Courier-Bold1472,28674
-/F-gs-font /F-gs-font1475,28717
-/Courier-Bold /Courier-Bold1478,28752
-/F-gs-font /F-gs-font1481,28795
-/Courier-Bold /Courier-Bold1486,28871
-/F-gs-font /F-gs-font1489,28911
-/Courier-Bold /Courier-Bold1495,29049
-/F-gs-font /F-gs-font1498,29111
-/Courier-Bold /Courier-Bold1504,29187
-/F-gs-font /F-gs-font1507,29231
-/Courier-Bold /Courier-Bold1517,29363
-/F-gs-font /F-gs-font1520,29406
-/Courier-Bold /Courier-Bold1527,29513
-/F-gs-font /F-gs-font1530,29554
-/Courier-Bold /Courier-Bold1538,29666
-/F-gs-font /F-gs-font1541,29707
-/Courier-Bold /Courier-Bold1550,29825
-/F-gs-font /F-gs-font1553,29865
-/Courier-Bold /Courier-Bold1559,29941
-/F-gs-font /F-gs-font1562,29981
-/Courier-Bold /Courier-Bold1571,30095
-/F-gs-font /F-gs-font1574,30135
-/Courier-Bold /Courier-Bold1580,30211
-/F-gs-font /F-gs-font1583,30250
-/pagenum /pagenum1592,30344
-/fname /fname1593,30359
-/fdir /fdir1594,30392
-/ftail /ftail1595,30414
-/fmodstr /fmodstr1597,30462
-/pagenumstr /pagenumstr1598,30502
-/user_header_p /user_header_p1599,30522
-/user_header_left_str /user_header_left_str1600,30546
-/user_header_center_str /user_header_center_str1601,30585
-/user_header_right_str /user_header_right_str1602,30624
-/user_footer_p /user_footer_p1603,30665
-/Courier-Bold /Courier-Bold1618,30890
-/F-gs-font /F-gs-font1621,30930
-/Courier-Bold /Courier-Bold1627,31042
-/F-gs-font /F-gs-font1630,31097
-/Courier-Bold /Courier-Bold1636,31183
-/F-gs-font /F-gs-font1639,31227
-/Courier-Bold /Courier-Bold1651,31385
-/F-gs-font /F-gs-font1654,31425
-/Courier-Bold /Courier-Bold1660,31536
-/F-gs-font /F-gs-font1663,31590
-/Courier-Bold /Courier-Bold1669,31675
-/F-gs-font /F-gs-font1672,31719
-/Courier-Bold /Courier-Bold1684,31877
-/F-gs-font /F-gs-font1687,31917
-/Courier-Bold /Courier-Bold1693,32096
-/F-gs-font /F-gs-font1696,32171
-/Courier-Bold /Courier-Bold1702,32257
-/F-gs-font /F-gs-font1705,32301
-/Courier-Bold /Courier-Bold1717,32460
-/F-gs-font /F-gs-font1720,32500
-/Courier-Bold /Courier-Bold1726,32675
-/F-gs-font /F-gs-font1729,32750
-/Courier-Bold /Courier-Bold1735,32835
-/F-gs-font /F-gs-font1738,32877
-/Courier-Bold /Courier-Bold1741,32912
-/F-gs-font /F-gs-font1744,32957
-/Courier-Bold /Courier-Bold1756,33112
-/F-gs-font /F-gs-font1759,33153
-/Courier-Bold /Courier-Bold1771,33408
-/F-gs-font /F-gs-font1774,33448
-/Courier-Bold /Courier-Bold1780,33566
-/F-gs-font /F-gs-font1783,33631
-/Courier-Bold /Courier-Bold1789,33711
-/F-gs-font /F-gs-font1792,33753
-/Courier-Bold /Courier-Bold1795,33788
-/F-gs-font /F-gs-font1798,33833
-/Courier-Bold /Courier-Bold1810,34012
-/F-gs-font /F-gs-font1813,34085
-/Courier-Bold /Courier-Bold1822,34210
-/F-gs-font /F-gs-font1825,34250
-/Courier-Bold /Courier-Bold1831,34352
-/F-gs-font /F-gs-font1834,34392
-/Courier-Bold /Courier-Bold1843,34534
-/F-gs-font /F-gs-font1846,34578
-/Courier-Bold /Courier-Bold1855,34697
-/F-gs-font /F-gs-font1858,34742
-/Courier-Bold /Courier-Bold1867,34857
-/F-gs-font /F-gs-font1870,34897
-/Courier-Bold /Courier-Bold1876,34999
-/F-gs-font /F-gs-font1879,35039
-/Courier-Bold /Courier-Bold1888,35181
-/F-gs-font /F-gs-font1891,35225
-/Courier-Bold /Courier-Bold1900,35339
-/F-gs-font /F-gs-font1903,35382
-/Courier-Bold /Courier-Bold1909,35477
-/F-gs-font /F-gs-font1912,35518
-/Courier-Bold /Courier-Bold1915,35551
-/F-gs-font /F-gs-font1918,35597
-/Courier-Bold /Courier-Bold1921,35644
-/F-gs-font /F-gs-font1924,35686
-/Courier-Bold /Courier-Bold1933,35805
-/F-gs-font /F-gs-font1936,35846
-/Courier-Bold /Courier-Bold1943,35944
-/F-gs-font /F-gs-font1946,35984
-/Courier-Bold /Courier-Bold1952,36100
-/F-gs-font /F-gs-font1955,36168
-/Courier-Bold /Courier-Bold1961,36259
-/F-gs-font /F-gs-font1964,36303
-/Courier-Oblique /Courier-Oblique1974,36438
-/F-gs-font /F-gs-font1977,36534
-/Courier-Bold /Courier-Bold1981,36590
-/F-gs-font /F-gs-font1984,36630
-/Courier-Bold /Courier-Bold1991,36769
-/F-gs-font /F-gs-font1994,36812
-/Courier-Bold /Courier-Bold1997,36847
-/F-gs-font /F-gs-font2000,36890
-/Courier-Bold /Courier-Bold2007,37020
-/F-gs-font /F-gs-font2010,37062
-/Courier-Bold /Courier-Bold2017,37164
-/F-gs-font /F-gs-font2020,37207
-/Courier-Bold /Courier-Bold2025,37283
-/F-gs-font /F-gs-font2028,37327
-/Courier-Bold /Courier-Bold2034,37412
-/F-gs-font /F-gs-font2037,37454
-/Courier-Bold /Courier-Bold2040,37487
-/F-gs-font /F-gs-font2043,37534
-/Courier-Bold /Courier-Bold2052,37728
-/F-gs-font /F-gs-font2055,37771
-/Courier-Bold /Courier-Bold2062,37866
-/F-gs-font /F-gs-font2065,37908
-/Courier-Bold /Courier-Bold2068,37941
-/F-gs-font /F-gs-font2071,37989
-/Courier-Bold /Courier-Bold2080,38188
-/F-gs-font /F-gs-font2083,38231
-/Courier-Bold /Courier-Bold2090,38324
-/F-gs-font /F-gs-font2093,38368
-/Courier-Bold /Courier-Bold2099,38466
-/F-gs-font /F-gs-font2102,38544
-/Courier-Bold /Courier-Bold2108,38634
-/F-gs-font /F-gs-font2111,38677
-/Courier-Bold /Courier-Bold2121,38806
-/F-gs-font /F-gs-font2124,38845
-/Courier-Bold /Courier-Bold2130,38958
-/F-gs-font /F-gs-font2133,39037
-/Courier-Bold /Courier-Bold2139,39125
-/F-gs-font /F-gs-font2142,39168
-/Courier-Oblique /Courier-Oblique2152,39297
-/F-gs-font /F-gs-font2155,39375
-/Courier-Bold /Courier-Bold2159,39451
-/F-gs-font /F-gs-font2162,39515
-/pagenum /pagenum2171,39619
-/fname /fname2172,39634
-/fdir /fdir2173,39667
-/ftail /ftail2174,39689
-/fmodstr /fmodstr2176,39737
-/pagenumstr /pagenumstr2177,39777
-/user_header_p /user_header_p2178,39797
-/user_header_left_str /user_header_left_str2179,39821
-/user_header_center_str /user_header_center_str2180,39860
-/user_header_right_str /user_header_right_str2181,39899
-/user_footer_p /user_footer_p2182,39940
-/Courier-Bold /Courier-Bold2188,40028
-/F-gs-font /F-gs-font2191,40072
-/Courier-Bold /Courier-Bold2199,40184
-/F-gs-font /F-gs-font2202,40226
-/Courier-Bold /Courier-Bold2205,40261
-/F-gs-font /F-gs-font2208,40309
-/Courier-Bold /Courier-Bold2217,40431
-/F-gs-font /F-gs-font2220,40471
-/Courier-Bold /Courier-Bold2226,40586
-/F-gs-font /F-gs-font2229,40650
-/Courier-Bold /Courier-Bold2238,40779
-/F-gs-font /F-gs-font2241,40823
-/Courier-Bold /Courier-Bold2251,40955
-/F-gs-font /F-gs-font2254,40995
-/Courier-Bold /Courier-Bold2260,41111
-/F-gs-font /F-gs-font2263,41203
-/Courier-Bold /Courier-Bold2272,41343
-/F-gs-font /F-gs-font2275,41387
-/Courier-Bold /Courier-Bold2285,41519
-/F-gs-font /F-gs-font2288,41559
-/Courier-Bold /Courier-Bold2294,41684
-/F-gs-font /F-gs-font2297,41767
-/Courier-Bold /Courier-Bold2306,41909
-/F-gs-font /F-gs-font2309,41953
-/Courier-Bold /Courier-Bold2319,42109
-/F-gs-font /F-gs-font2322,42180
-/Courier-Bold /Courier-Bold2333,42357
-/F-gs-font /F-gs-font2336,42398
-/Courier-Bold /Courier-Bold2339,42431
-/F-gs-font /F-gs-font2342,42483
-/Courier-Bold /Courier-Bold2351,42604
-/F-gs-font /F-gs-font2354,42645
-/Courier-Bold /Courier-Bold2365,42806
-/F-gs-font /F-gs-font2368,42846
-/Courier-Bold /Courier-Bold2374,42961
-/F-gs-font /F-gs-font2377,43047
-/Courier-Bold /Courier-Bold2383,43125
-/F-gs-font /F-gs-font2386,43169
-/Courier-Bold /Courier-Bold2395,43284
-/F-gs-font /F-gs-font2398,43324
-/Courier-Bold /Courier-Bold2404,43438
-/F-gs-font /F-gs-font2407,43519
-/Courier-Bold /Courier-Bold2424,43780
-/F-gs-font /F-gs-font2427,43820
-/Courier-Oblique /Courier-Oblique2434,43940
-/F-gs-font /F-gs-font2437,44040
-/Courier-Bold /Courier-Bold2441,44095
-/F-gs-font /F-gs-font2444,44138
-/Courier-Bold /Courier-Bold2447,44173
-/F-gs-font /F-gs-font2450,44216
-/Courier-Bold /Courier-Bold2457,44362
-/F-gs-font /F-gs-font2460,44402
-/Courier-Bold /Courier-Bold2466,44508
-/F-gs-font /F-gs-font2469,44550
-/Courier-Bold /Courier-Bold2476,44672
-/F-gs-font /F-gs-font2479,44715
-/Courier-Bold /Courier-Bold2487,44830
-/F-gs-font /F-gs-font2490,44872
-/Courier-Bold /Courier-Bold2493,44931
-/F-gs-font /F-gs-font2496,45004
-/Courier-Bold /Courier-Bold2503,45100
-/F-gs-font /F-gs-font2506,45140
-/Courier-Bold /Courier-Bold2512,45252
-/F-gs-font /F-gs-font2515,45327
-/Courier-Bold /Courier-Bold2521,45422
-/F-gs-font /F-gs-font2524,45466
-/Courier-Oblique /Courier-Oblique2534,45601
-/F-gs-font /F-gs-font2537,45704
-/Courier-Bold /Courier-Bold2545,45837
-/F-gs-font /F-gs-font2548,45881
-
-fcpx/CVS/Root,0
-
-fcpx/CVS/Repository,0
-
-fcpx/CVS/Entries,0
-
-fcpx/Makefile,682
-SHELL 14,565
-	    $(LIBTOOL)  --mode=154,4703
-	  else 155,4855
-	  else :; fi;155,4855
-	@$(159,4902
-	  rm -f $(161,4971
-	unique=`for i in $$list; do echo $$i;210,5852
-	here=213,5981
-	here=218,6121
-	list=219,6136
-	unique=220,6169
-	unique=`for i in $$list; do echo $$i;220,6169
-	  || (cd $(224,6346
-	    cp -pr $$d/$$file $(distdir)/$$file;248,6962
-	  fi;253,7155
-DEPS_MAGIC 256,7171
-	$(COMPILE) -Wp,271,7386
-	$(COMPILE) -Wp,-MD,271,7386
-	@-cp .deps/$(*F).pp .deps/$(*F).P;272,7427
-	    >> .deps/$(*F).P;275,7565
-	$(LTCOMPILE) -Wp,280,7651
-	$(LTCOMPILE) -Wp,-MD,280,7651
-	  < .deps/$(*F).pp > .deps/$(*F).P;282,7744
-	    >> .deps/$(*F).P;285,7883
-	@$(302,8188
-
-fcpx/Makefile.am,14
-INCLUDES 1,0
-
-fcpx/Makefile.in,682
-SHELL 14,565
-	    $(LIBTOOL)  --mode=154,3976
-	  else 155,4128
-	  else :; fi;155,4128
-	@$(159,4175
-	  rm -f $(161,4244
-	unique=`for i in $$list; do echo $$i;210,5125
-	here=213,5254
-	here=218,5394
-	list=219,5409
-	unique=220,5442
-	unique=`for i in $$list; do echo $$i;220,5442
-	  || (cd $(224,5619
-	    cp -pr $$d/$$file $(distdir)/$$file;248,6235
-	  fi;253,6428
-DEPS_MAGIC 256,6444
-	$(COMPILE) -Wp,271,6659
-	$(COMPILE) -Wp,-MD,271,6659
-	@-cp .deps/$(*F).pp .deps/$(*F).P;272,6700
-	    >> .deps/$(*F).P;275,6838
-	$(LTCOMPILE) -Wp,280,6924
-	$(LTCOMPILE) -Wp,-MD,280,6924
-	  < .deps/$(*F).pp > .deps/$(*F).P;282,7017
-	    >> .deps/$(*F).P;285,7156
-	@$(302,7461
-
-fcpx/fcpx.c,428
-static void parse_args(39,1092
-static void usage(40,1140
-static int  clienthello(42,1171
-static int  clientinfo(43,1208
-char           *host;49,1427
-unsigned short  port 50,1449
-int    verbosity 52,1493
-char  *logfile 53,1528
-FILE  *logstream 54,1548
-char  *command 55,1570
-int main(58,1592
-static void parse_args(118,2783
-static void usage(179,3974
-static int clienthello(208,4880
-static int clientinfo(226,5347
-
-fcpx/fcpx.dsp,11
-CFG=7,221
-
-include/CVS/Root,0
-
-include/CVS/Repository,0
-
-include/CVS/Entries,0
-
-include/getopt.h,572
-# define _GETOPT_H 23,976
-extern char *optarg;36,1292
-extern int optind;50,1799
-extern int opterr;55,1925
-extern int optopt;59,2004
-struct optionoption83,3080
-# define no_argument	99,3430
-# define required_argument	100,3454
-# define optional_argument	101,3483
-extern int getopt 134,4806
-extern int getopt 136,4917
-extern int getopt_long 140,4993
-extern int getopt_long_only 142,5135
-extern int _getopt_internal 147,5356
-extern int getopt 153,5620
-extern int getopt_long 155,5665
-extern int getopt_long_only 156,5692
-extern int _getopt_internal 158,5725
-
-man/CVS/Root,0
-
-man/CVS/Repository,0
-
-man/CVS/Entries,0
-
-man/fcpget.1,37
-.B fcpget5,163
-[OPTIONS] key 6,173
-
-man/index.bt,0
-
 config.log,1622
 | extern "C" void std::exit (int) throw (); using std::exit;409,13952
 | extern "C" void std::exit (int) throw (); using std::exit;441,14855
@@ -6944,668 +6475,788 @@ config.log,1622
 #define VERSION 1138,38397
 extern "C" void std::exit (int) throw (); using std::exit;1141,38447
 
-libdmalloc.a,42
-dmalloc:dmalloc113,35026
-rr136,49265
+fcpx/CVS/Root,0
 
-libtool,18291
+fcpx/CVS/Repository,0
+
+fcpx/CVS/Entries,0
+
+fcpx/Makefile,682
+SHELL 14,565
+	    $(LIBTOOL)  --mode=156,4755
+	  else 157,4907
+	  else :; fi;157,4907
+	@$(161,4954
+	  rm -f $(163,5023
+	unique=`for i in $$list; do echo $$i;212,5904
+	here=215,6033
+	here=220,6173
+	list=221,6188
+	unique=222,6221
+	unique=`for i in $$list; do echo $$i;222,6221
+	  || (cd $(226,6398
+	    cp -pr $$d/$$file $(distdir)/$$file;250,7014
+	  fi;255,7207
+DEPS_MAGIC 258,7223
+	$(COMPILE) -Wp,273,7438
+	$(COMPILE) -Wp,-MD,273,7438
+	@-cp .deps/$(*F).pp .deps/$(*F).P;274,7479
+	    >> .deps/$(*F).P;277,7617
+	$(LTCOMPILE) -Wp,282,7703
+	$(LTCOMPILE) -Wp,-MD,282,7703
+	  < .deps/$(*F).pp > .deps/$(*F).P;284,7796
+	    >> .deps/$(*F).P;287,7935
+	@$(304,8240
+
+fcpx/Makefile.am,14
+INCLUDES 1,0
+
+fcpx/Makefile.in,682
+SHELL 14,565
+	    $(LIBTOOL)  --mode=156,4026
+	  else 157,4178
+	  else :; fi;157,4178
+	@$(161,4225
+	  rm -f $(163,4294
+	unique=`for i in $$list; do echo $$i;212,5175
+	here=215,5304
+	here=220,5444
+	list=221,5459
+	unique=222,5492
+	unique=`for i in $$list; do echo $$i;222,5492
+	  || (cd $(226,5669
+	    cp -pr $$d/$$file $(distdir)/$$file;250,6285
+	  fi;255,6478
+DEPS_MAGIC 258,6494
+	$(COMPILE) -Wp,273,6709
+	$(COMPILE) -Wp,-MD,273,6709
+	@-cp .deps/$(*F).pp .deps/$(*F).P;274,6750
+	    >> .deps/$(*F).P;277,6888
+	$(LTCOMPILE) -Wp,282,6974
+	$(LTCOMPILE) -Wp,-MD,282,6974
+	  < .deps/$(*F).pp > .deps/$(*F).P;284,7067
+	    >> .deps/$(*F).P;287,7206
+	@$(304,7511
+
+fcpx/fcpx.c,501
+extern int _fcpDMALLOC;39,1119
+static void parse_args(45,1180
+static void usage(46,1228
+static int  clienthello(48,1259
+static int  clientinfo(49,1296
+void track(52,1348
+char           *host;64,1758
+unsigned short  port 65,1780
+int    verbosity 67,1824
+char  *logfile 68,1859
+FILE  *logstream 69,1879
+char  *command 70,1901
+int main(73,1923
+void track(149,3361
+static void parse_args(174,3989
+static void usage(235,5180
+static int clienthello(264,6086
+static int clientinfo(281,6513
+
+fcpx/fcpx.dsp,11
+CFG=7,221
+
+fcpx/.deps/fcpx.P,0
+
+fcpx/fcpx.o,22
+ELF1,0
+g22,5333
+
+fcpx/fcpx,34
+âD$ã18,15089
+Private=138,28369
+
+include/CVS/Root,0
+
+include/CVS/Repository,0
+
+include/CVS/Entries,0
+
+include/getopt.h,572
+# define _GETOPT_H 23,976
+extern char *optarg;36,1292
+extern int optind;50,1799
+extern int opterr;55,1925
+extern int optopt;59,2004
+struct optionoption83,3080
+# define no_argument	99,3430
+# define required_argument	100,3454
+# define optional_argument	101,3483
+extern int getopt 134,4806
+extern int getopt 136,4917
+extern int getopt_long 140,4993
+extern int getopt_long_only 142,5135
+extern int _getopt_internal 147,5356
+extern int getopt 153,5620
+extern int getopt_long 155,5665
+extern int getopt_long_only 156,5692
+extern int _getopt_internal 158,5725
+
+man/CVS/Root,0
+
+man/CVS/Repository,0
+
+man/CVS/Entries,0
+
+man/fcpget.1,37
+.B fcpget5,163
+[OPTIONS] key 6,173
+
+man/index.bt,0
+
+libtool,18570
 SED=33,1408
 if test "X${CDPATH+set}" = Xset; then CDPATH=40,1615
 if test "X${CDPATH+set}" = Xset; then CDPATH=:; export CDPATH;40,1615
 available_tags=43,1749
-progname=395,12834
-  SP2NL=422,13541
-  save_LC_ALL=433,13876
-  save_LC_ALL="$LC_ALL"; LC_ALL=433,13876
-  save_LANG=436,13962
-  save_LANG="$LANG"; LANG=436,13962
-mode=450,14328
-  *) optarg=512,15956
-      execute_dlfiles=519,16103
-      tagname=522,16167
-	  taglist=540,16636
-      esac547,16896
-    prev=554,16967
-    exit 571,17422
-    exit 580,17748
-    preserve_args=586,17838
-    run=590,17904
-    exit 605,18234
-  --finish) mode=608,18253
-  --mode) prevopt=610,18283
-  --mode=611,18323
-  --preserve-dup-deps) duplicate_deps=613,18354
-    show=616,18424
-  --tag) prevopt=620,18483
-  --tag=621,18520
-    prevopt=629,18646
-    exit 636,18786
-    nonopt=640,18810
-exec_cmd=655,19146
-      mode=665,19479
-      done674,19577
-      mode=677,19632
-      mode=680,19681
-      mode=683,19718
-      test -n "$execute_dlfiles" && mode=687,19833
-      fi696,20159
-  generic_help=709,20464
-	libobj=736,21116
-	  arg_mode=749,21351
-	  later=754,21431
-	  suppress_opt=759,21488
-	  arg_mode=764,21539
-	-Wc,768,21752
-	  args=769,21760
-	  save_ifs="$IFS"; IFS=771,21819
-	    IFS=773,21871
-	    lastarg=783,22188
-	  lastarg=797,22517
-	esac  #  case $arg800,22563
-      lastarg=805,22671
-      base_compile=816,23036
-      exit 826,23300
-      [ -z "$libobj" ] && libobj=830,23373
-    xform=836,23583
-    *.adb) xform=839,23651
-    *.ads) xform=840,23675
-    *.c++) xform=842,23723
-    *.cc) xform=843,23747
-    *.ii) xform=844,23769
-    *.cpp) xform=846,23819
-    *.cxx) xform=847,23843
-    *.f90) xform=848,23867
-    *.java) xform=850,23915
-    libobj=853,23951
-      exit 859,24180
-	      tagname=884,25385
-	fi899,25831
-	build_old_libs=907,25918
-	pic_mode=912,25972
-	pic_mode=917,26024
-    objname=923,26072
-      xdir=926,26209
-      removelist=940,26526
-      pic_mode=956,27023
-      output_obj=962,27189
-      until $run ln "$0" "$lockfile" 2>/dev/null;975,27648
-      eval srcfile=999,28390
-      fbsd_hideous_sh_bug=1019,29014
-	command=1022,29093
-	status=1031,29317
-	command=1039,29488
-	  error=1076,30509
-        suppress_output=1090,30832
-	command=1105,31234
-	command=1110,31374
-	  error=1148,32439
-    exit 1178,33148
-    modename=1183,33206
-      allow_undefined=1200,33978
-    libtool_args=1203,34022
-	      tagname=1271,36003
-	fi1286,36447
-	    dlopen_self=1301,36867
-	    dlopen_self=1305,36979
-    test -n "$old_archive_from_new_cmds" && build_old_libs=1317,37185
-      arg=1321,37341
-      *) qarg=1327,37542
-      libtool_args=1329,37575
-	  compile_command=1335,37733
-	    compile_command=1344,37967
-	      dlself=1352,38203
-	      dlself=1360,38342
-	      dlself=1362,38429
-	      dlfiles=1372,38590
-	  esac1379,38709
-	  export_symbols=1382,38733
-	  prev=1387,38864
-	  export_symbols_regex=1391,38907
-	  inst_prefix_dir=1396,38979
-	  precious_files_regex=1401,39049
-	  release=1406,39117
-	    save_arg=1412,39203
-		pic_object=1422,39516
-	  *) . ./$arg 1913,50235
-	  xdir=1925,50541
-	    xdir=1927,50626
-	    pic_object=1934,50767
-		dlfiles=1938,50921
-	      dlprefiles=1950,51216
-	    non_pic_object=1962,51489
-	      arg=1967,51688
-	    xdir=1979,51963
-	      xdir=1981,52052
-	deplibs=1996,52378
-	  dlfiles=2006,52576
-	  dlprefiles=2010,52698
-	arg=2022,52971
-	esac2027,53110
-	compile_command=2033,53232
-      eval arg=2045,53589
-      eval shlib_search_path=2057,53985
-      output_objdir=2066,54349
-      status=2074,54584
-      exit 2085,54847
-    *.$libext) linkmode=2087,54869
-    *.lo | *.$objext) linkmode=2088,54903
-    *.la) linkmode=2089,54941
-    *) linkmode=2090,54967
-      duplicate_compiler_generated_deps=2096,55151
-      duplicate_compiler_generated_deps=2099,55211
-    specialdeplibs=2102,55285
-	*" $deplib "*) specialdeplibs=2110,55535
-      libs=2113,55610
-      libs=2117,55683
-	  *" $pre_post_dep "*) specialdeplibs=2126,56081
-	  pre_post_deps=2128,56164
-	  *.la)2145,56626
-	    exit 2148,56728
-	done2151,56756
-	compile_deplibs=2154,56776
-    *)  passes=2161,56903
-	libs=2167,57059
-	dlopen) libs=2172,57149
-	dlpreopen) libs=2173,57177
-	link) libs=2174,57211
-	save_deplibs=2179,57349
-	lib=2183,57423
-	    compile_deplibs=2188,57572
-	    deplibs=2201,57932
-	      lib=2208,58215
-		  found=2211,58332
-	      compile_deplibs=2222,58544
-		  library_names=2237,59207
-	*) . ./$lib 2392,63595
-	  test -n "$dlopen" && dlfiles=2398,63772
-	  deplibs=2404,63963
-	    convenience=2411,64222
-	      deplibs=2415,64405
-	        *" $deplib "*) specialdeplibs=2418,64526
-	      tmp_libs=2421,64625
-	fi # $pass 2428,64833
-	  linklib=2434,64958
-	    dlprefiles=2452,65634
-	  abs_ladir=2463,65867
-	    abs_ladir=2467,66114
-	laname=2471,66156
-	    dir=2477,66434
-	    newdlprefiles=2501,67123
-	    newdlprefiles=2504,67269
-	    deplibs=2513,67504
-	    compile_deplibs=2515,67597
-	  newlib_search_path=2525,67864
-	    linkalldeplibs=2531,68076
-	    -L*) newlib_search_path=2537,68179
-	      deplibs=2541,68414
-	      *" $deplib "*) specialdeplibs=2549,68691
-	    tmp_libs=2552,68777
-	      *) temp_rpath=2566,69250
-	      *) compile_rpath=2578,69561
-	      *) finalize_rpath=2587,69772
-	  fi # $linkmode,2591,69855
-	  fi # $linkmode,$pass 2591,69855
-	link_static=2602,70142
-	    notinst_deplibs=2606,70345
-	      *) compile_rpath=2631,71230
-	      *) finalize_rpath=2640,71441
-	    realname=2649,71643
-	    libname=2651,71680
-	      soname=2654,71815
-		major=2659,71947
-	      eval soname=2663,72017
-	      save_ifs=2677,72490
-	      save_ifs="$IFS"; IFS=2677,72490
-		IFS=2680,72584
-	    if test -f "$output_objdir/$newlib"; then 2689,72733
-	      save_ifs=2691,72844
-	      save_ifs="$IFS"; IFS=2691,72844
-		IFS=2694,72947
-	    add_shlibpath=2707,73301
-		add=2714,73470
-		        add=2727,74039
-		*-*-sunos*) add_shlibpath=2733,74165
-		add_dir=2735,74210
-		add_shlibpath=2738,74299
-		add=2746,74445
-		add_dir=2748,74516
-		  case "$libdir" in2751,74637
-		      add_dir=2753,74673
-		add=2757,74751
-		add_shlibpath=2759,74822
-	    *) lib_linked=2765,74909
-	      *) compile_shlibpath=2776,75194
-	      test -n "$add_dir" && compile_deplibs=2780,75319
-		*) finalize_shlibpath=2790,75757
-	    add_shlibpath=2797,75907
-	      add=2802,76057
-	      add_dir=2804,76134
-	      *) finalize_shlibpath=2809,76297
-	      add=2811,76371
-	        add=2814,76531
-		case "$libdir" in2823,76843
-		    add_dir=2825,76875
-	      add=2829,76952
-	      test -n "$add_dir" && finalize_deplibs=2833,77020
-	    test -n "$old_library" && linklib=2845,77534
-		build_libtool_libs=2877,79239
-	    temp_deplibs=2896,79790
-	      -R*) temp_xrpath=2899,79872
-		   *) xrpath=2902,79989
-		   esac;2903,80029
-	      *) temp_deplibs=2904,80041
-	    dependency_libs=2907,80112
-	    newdependency_libs=2916,80414
-	      *" $deplib "*) specialdeplibs=2919,80544
-	    tmp_libs=2922,80630
-	      -L*) path=2929,80835
-		dir=2931,80878
-		  absdir=2937,81062
-		    absdir=2940,81214
-		  path=2945,81307
-		  path=2955,81644
-		      depdepl=2964,81955
-		      depdepl=2967,82028
-		    *) newlib_search_path=2972,82178
-		  path=2975,82254
-		path=2978,82278
-		esac 2980,82300
-		 eval tmp_libs=2987,82414
-		       eval depdepl=2990,82562
-		*) continue 2996,82675
-		esac 2997,82692
-	      *) continue 2999,82710
-	      *) deplibs=3003,82798
-	      *) deplibs=3007,82909
-	  deplibs=3017,83228
-	  lib_search_path=3023,83407
-	    *) lib_search_path=3027,83518
-	  newlib_search_path=3030,83587
-	  vars=3034,83663
-	  eval tmp_libs=3040,83816
-	    -L*) new_libs=3050,84173
-	    -R*3051,84215
-	      *" $deplib "*) new_libs=3068,85094
-		*) new_libs=3072,85202
-		esac3073,85239
-	      esac3075,85251
-	  tmp_libs=3079,85291
-	      *) tmp_libs=3085,85420
-	      esac3086,85462
-	    *) tmp_libs=3088,85484
-	  eval $var=3091,85542
-	  i=3099,85799
-	  tmp_libs=3103,85843
-      dlfiles=3109,85974
-      build_libtool_libs=3144,87030
-	name=3153,87241
-	  name=3165,87614
-	  libobjs=3182,88163
-      install_libdir=3194,88482
-	  oldlibs=3203,88794
-	save_ifs=3218,89220
-	save_ifs="$IFS"; IFS=3218,89220
-	  number_major=3234,89608
-	    current=3251,90131
-	    current=3256,90230
-	  esac3260,90347
-	  current=3263,90366
-	  exit 3275,90690
-	  exit 3284,90930
-	  exit 3293,91155
-	major=3304,91432
-	  major=3313,91619
-	  major=3321,91894
-	  major=3326,91972
-	  major=3331,92045
-	    *)         verstring_prefix=3335,92153
-	  verstring=3337,92201
-	    iface=3342,92361
-	  major=3353,92609
-	  major=3358,92692
-	    iface=3365,92910
-	  major=3375,93127
-	  major=3382,93292
-	  exit 3389,93519
-	  major=3395,93664
-	    verstring=3403,93846
-	    versuffix=3407,93921
-	  major=3415,94110
-	    build_libtool_libs=3424,94404
-	removelist=3436,94717
-	    *.$objext)3440,94817
-	oldlibs=3460,95375
-	lib_search_path=3468,95652
-	temp_xrpath=3475,95961
-	  temp_xrpath=3477,96002
-	  *) finalize_rpath=3480,96093
-	  dependency_libs=3484,96233
-	*) dlfiles=3494,96505
-      old_dlprefiles=3499,96610
-	*) dlprefiles=3504,96740
-	    deplibs=3516,97114
-	    ;;3520,97240
-	      deplibs=3528,97505
-	name_save=3535,97633
-	  int main(3564,98649
-	    ldd_output=3569,98767
-	      name=3571,98825
-		    newdeplibs=3577,99109
-		  libname=3583,99209
-		    newdeplibs=3588,99428
-	      name=3608,100252
-		  ldd_output=3615,100510
-		      newdeplibs=3619,100665
-		    libname=3625,100770
-		      newdeplibs=3630,100999
-	  file_magic_regex=3658,102109
-	    name=3660,102206
-		  newdeplibs=3666,102499
-		libname=3672,102615
-		  potential_libs=3674,102730
-		      potlib=3686,103207
-			potliblink=3688,103284
-			*) potlib=3691,103412
-			newdeplibs=3697,103633
-		droppeddeps=3705,103771
-	      newdeplibs=3721,104517
-	  match_pattern_regex=3727,104661
-	    name=3729,104761
-		  newdeplibs=3735,105043
-		libname=3741,105159
-		  potential_libs=3743,105274
-		    potlib=3745,105369
-		      newdeplibs=3749,105576
-		droppeddeps=3757,105727
-	      newdeplibs=3773,106479
-	  newdeplibs=3778,106592
-	      tmp_deplibs=3784,106866
-	    droppeddeps=3796,107381
-	versuffix=3800,107420
-	      oldlibs=3828,108550
-		oldlibs=3846,109310
-	  hardcode_libdirs=3868,109841
-		  hardcode_libdirs=3876,110132
-		    hardcode_libdirs=3883,110379
-		eval flag=3888,110490
-	      *) perm_rpath=3894,110668
-	    libdir=3901,110882
-	      eval dep_rpath=3903,110968
-	    rpath=3910,111199
-	      rpath=3912,111243
-	eval shared_ext=3926,111678
-	  eval soname=3933,111840
-	  dlname=3938,111932
-	    export_symbols=3954,112384
-	    save_ifs="$IFS"; IFS=3957,112495
-	      IFS=3959,112551
-	        skipped_export=3965,112772
-	tmp_deplibs=3986,113531
-			tmp_deplibs=3991,113636
-	deplibs=3995,113698
-	    save_libobjs=3999,113804
-	    generated=4011,114151
-	      case $xlib in4015,114252
-	      [\\/]* | [A-Za-z]:[\\/]*) xabs=4016,114273
-	      *) xabs=4017,114322
-	      xlib=4019,114366
-	  eval flag=4065,115963
-	    eval test_cmds=4077,116403
-	  eval test_cmds=4085,116627
-	    save_libobjs=4109,117543
-	      objlist=4129,118073
-		eval concat_cmds=4135,118295
-	    export_symbols=4156,119093
-	  save_ifs="$IFS"; IFS=4175,119675
-	    IFS=4177,119734
-	    eval libobjs=4189,120007
-	      cmds=4197,120348
-	    cmds=4203,120503
-	save_ifs="$IFS"; IFS=4213,120716
-	  IFS=4215,120764
-	  dlname=4239,121576
-	libobj=4275,122514
-	libobj=4279,122588
-      reload_conv_objs=4291,122906
-	  eval reload_conv_objs=4299,123139
-	  generated=4310,123443
-	    case $xlib in4314,123538
-	    [\\/]* | [A-Za-z]:[\\/]*) xabs=4315,123557
-	    *) xabs=4316,123604
-	    xlib=4318,123644
-      save_ifs="$IFS"; IFS=4368,125429
-	IFS=4370,125487
-	reload_objs=4402,126255
-	save_ifs="$IFS"; IFS=4405,126334
-	  IFS=4407,126382
-      exit 4420,126590
-	*cygwin*) output=4425,126643
-	compile_deplibs=4445,127339
-        compile_command=4454,127679
-      compile_command=4460,127839
-	  *) finalize_rpath=4469,128178
-      rpath=4475,128291
-	      hardcode_libdirs=4481,128521
-		hardcode_libdirs=4488,128782
-	    eval flag=4493,128887
-	  *) perm_rpath=4499,129047
-	  *) dllsearchpath=4506,129215
-	  esac4507,129262
-	libdir=4514,129435
-	      hardcode_libdirs=4525,129761
-		hardcode_libdirs=4532,130022
-	    eval flag=4537,130127
-	  *) finalize_perm_rpath=4543,130296
-	libdir=4550,130521
-	compile_command=4557,130759
-	  dlsyms=4564,131075
-	  nlist=4575,131327
-	    progfiles=4603,132153
-	      export_symbols=4621,132814
-	    name=4633,133364
-		uniq > "$nlist"S;4654,133953
-	  pic_flag_for_symtable=4705,134903
-	    *) pic_flag_for_symtable=4715,135354
-	    esac;4716,135420
-	    *) pic_flag_for_symtable=4720,135502
-	  compile_command=4733,136033
-	  exit 4738,136328
-	compile_command=4747,136538
-	compile_command=4753,136815
-	rpath=4772,137351
-	  case $dir in4774,137387
-	    rpath=4777,137454
-	    rpath=4781,137536
-	temp_rpath=4785,137593
-	compile_command=4789,137687
-	finalize_command=4792,137850
-	  rpath=4800,138098
-	    rpath=4802,138138
-	  rpath=4808,138308
-	    rpath=4810,138357
-	link_command=4818,138546
-	link_command=4831,138970
-	  link_command=4838,139306
-	    relink_command=4840,139408
-	    relink_command=4868,140390
-	    relink_command=4870,140558
-	case $0 in4882,140998
-	[\\/]* | [A-Za-z]:[\\/]*) qecho=4883,141010
-	*) qecho=4884,141073
-	qecho=4886,141125
-	  *.exe) output=4896,141462
-	    exeext=4901,141607
-	  *) exeext=4903,141682
-	    cwrappersource=4907,141744
-# define LT_PATHMAX 4937,142700
-# define LT_PATHMAX 4939,142755
-# define LT_PATHMAX 4941,142792
-#define DIR_SEPARATOR 4945,142847
-#define HAVE_DOS_BASED_FILE_SYSTEM4950,142973
-#define DIR_SEPARATOR_2 4952,143033
-# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4957,143101
-# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4959,143183
-#define XMALLOC(XMALLOC4963,143308
-#define XFREE(XFREE4964,143382
-void * xmalloc 4970,143510
-char * xstrdup 4971,143539
-char * basename 4972,143576
-char * fnqualify(4973,143612
-char * strendzap(4974,143648
-void lt_fatal 4975,143694
-main 4978,143741
-xmalloc 5009,144402
-xstrdup 5019,144530
-basename 5026,144654
-fnqualify(5043,144992
-strendzap(5070,145622
-lt_error_core 5090,145912
-lt_fatal 5102,146180
-	  $run $LTCC -s -o $cwrapper $cwrappersource5115,146632
-      exit 5294,151801
-	oldobjs=5302,151977
-	  oldobjs=5307,152106
-	gentop=5316,152283
-	generated=5325,152502
-	  case $xlib in5330,152632
-	  [\\/]* | [A-Za-z]:[\\/]*) xabs=5331,152649
-	  *) xabs=5332,152694
-	  xlib=5334,152730
-       cmds=5380,154373
-	  cmds=5386,154564
-	    AR_FLAGS=5407,155377
-	      oldobjs=5424,155840
-	        RANLIB=5426,155910
-	    eval cmds=5436,156182
-      save_ifs="$IFS"; IFS=5442,156294
-        eval cmd=5444,156352
-      old_library=5460,156650
-	  relink_command=5467,156924
-	  relink_command=5469,157088
-        relink_command=5479,157578
-	    output=5488,157818
-		name=5494,158034
-		newdependency_libs=5500,158259
-	      *) newdependency_libs=5502,158321
-	    dependency_libs=5505,158405
-	      name=5508,158494
-	      newdlfiles=5514,158726
-	      name=5519,158861
-	      newdlprefiles=5525,159093
-	      case $lib in 5531,159242
-		[\\/]* | [A-Za-z]:[\\/]*) abs=5532,159263
-		*) abs=5533,159305
-	      newdlfiles=5535,159342
-	      case $lib in 5540,159468
-		[\\/]* | [A-Za-z]:[\\/]*) abs=5541,159489
-		*) abs=5542,159531
-	      newdlprefiles=5544,159568
-    exit 5603,161209
-    modename=5608,161264
-      arg=5616,161628
-      install_prog=5622,161789
-    install_prog=5638,162168
-	files=5651,162401
-      -f) prev=5658,162498
-      -g) prev=5659,162521
-      -m) prev=5660,162544
-      -o) prev=5661,162567
-	stripme=5663,162600
-	  prev=5671,162738
-      arg=5680,162842
-      install_prog=5686,163000
-    dest=5712,163639
-      destdir=5717,163808
-    case $destdir in5732,164244
-	*.lo)5737,164349
-	  exit 5741,164459
-      done5744,164481
-    libtool_install_magic=5750,164617
-	staticlibs=5761,164839
-	library_names=5773,165140
-	  destfile=5888,168668
-	  staticdest=5900,168955
-	  exit 5906,169098
-	  staticobj=5919,169425
-	  destfile=5930,169713
-	      file=5943,170060
-	    wrapper=5952,170246
-	    wrapper=5955,170309
-	  notinst_deplibs=5959,170429
-	  *) wrapperdot=5967,170715
-	      */* | *\\*) . $lib 5988,171302
-	      *) . ./$lib 5989,171331
-	    libfile=5992,171373
-	      finalize=5995,171616
-	  *) wrapperdot=6005,171917
-	      outputname=6025,172569
-	      file=6036,172965
-	    destfile=6055,173441
-	    destfile=6058,173489
-	  esac6060,173553
-      name=6071,173785
-      cmds=6085,174208
-      save_ifs="$IFS"; IFS=6086,174241
-	IFS=6088,174299
-      test -n "$run" && current_libdirs=6102,174633
-    modename=6111,174833
-	  cmds=6124,175145
-	  save_ifs="$IFS"; IFS=6125,175166
-	    IFS=6127,175218
-	  eval cmds=6137,175436
-      libdir=6166,176484
-    exit 6181,177101
-    modename=6186,177156
-      dir=6204,177577
-	dlname=6216,177900
-	  *) . ./$file 6283,179642
-	  file=6287,179706
-      file=6292,179813
-	LC_ALL=6304,180138
-	LANG=6307,180230
-      exec_cmd=6311,180322
-    fi6320,180564
-    modename=6325,180637
-      -f) rm="$rm $arg"; rmforce=6338,180909
-      -*) rm=6339,180949
-      *) files=6340,180976
-    rmdirs=6350,181163
-      dir=6354,181228
-	dir=6356,181319
-	  *) rmdirs=6368,181649
-	exit_status=6378,181912
-      rmfiles=6384,181996
-	    rmfiles=6394,182277
-	      cmds=6402,182599
-	      save_ifs="$IFS"; IFS=6403,182631
-		IFS=6405,182691
-		  exit_status=6410,182816
-	      cmds=6418,182980
-	      save_ifs="$IFS"; IFS=6419,183016
-		IFS=6421,183076
-		  exit_status=6426,183201
-	    rmfiles=6446,183654
-	    rmfiles=6452,183838
-	  noexename=6459,183939
-	    relink_command=6471,184350
-	      rmfiles=6478,184663
-	      rmfiles=6481,184760
-      $run $rm $rmfiles || exit_status=6488,184872
-    exit $exit_status6500,185154
-    exit 6506,185273
-  exit 6555,186982
-  exit 6710,192585
-build_libtool_libs=6731,193420
-build_old_libs=`case $build_libtool_libs in yes) $echo no;; *) $echo yes;6736,193554
-SHELL=6748,193867
-
-t.pdf,465
-xú•Ymo‚H˛û_Q iˆHéø€L2ßeíeEGàF£„Ñå›Ä˜åÕÿ&fuˇ˝™ÌnCÏ∂3Ÿ$ä∏ªûÍÍß™ûnæÅ‘ñA¢øÏ’Ÿú|;ÈL4X≈'ﬂ@NÒgüß¯∞K?ò.O≤2(*òö÷VU¶õì∆|Èlo<ü¥ù≥È'äﬁ≈AS˜§!i≈ËHZ˙©&≥O«ˆä†çp	ÈÉŒDñ6,68
-xú•Ymo‚H˛û_Q iˆHéø€L2ßeíeEGàF£„Ñå›Ä˜åÕÿ&fuˇ˝™ÌnCÏ∂3Ÿ$ä∏ªûÍÍß™ûnæÅ‘ñA¢øÏ’Ÿú|;ÈL4X≈'ﬂ@NÒgüß¯∞K?ò.O≤2(*òö÷VU¶õì∆|Èlo<ü¥ù≥È'äﬁ≈AS˜§!i≈ËHZ˙©&≥O«ˆä†çp	ÈÉŒDñ¡§÷[ö•¥h…*µ¨¶ÉÂèlåöçëï∂¡ÏtŒ””g-+}®yZi¿tÌ≈‡Ñ.|›⁄QBùππO√–è°v@ﬂµvL\p|è	¯ﬁ"≤£=,√n"Bí‘¿´)<˛?<ihœ˛N«ÈOÆ¬Ì~Hñ	ÃŒÏIía±á6,68
-
-key,83
-FCPtools are Copyright 1,0
-I can also be found on the Freenode irc network 4,137
+default_mode=417,13425
+  SP2NL=435,13941
+  save_LC_ALL=446,14276
+  save_LC_ALL="$LC_ALL"; LC_ALL=446,14276
+  save_LANG=449,14362
+  save_LANG="$LANG"; LANG=449,14362
+mode=463,14740
+func_infer_tag 524,16470
+eval std_shrext=585,18603
+  *) optarg=595,18815
+      execute_dlfiles=602,18962
+      tagname=605,19026
+	  taglist=623,19514
+      esac630,19781
+    prev=637,19852
+    exit $EXIT_SUCCESS654,20307
+    exit $EXIT_SUCCESS663,20659
+    preserve_args=669,20761
+    run=673,20827
+    exit $EXIT_SUCCESS688,21157
+  --finish) mode=691,21188
+  --mode) prevopt=693,21218
+  --mode=694,21258
+  --preserve-dup-deps) duplicate_deps=696,21289
+    show=699,21359
+  --tag) prevopt=703,21418
+  --tag=704,21455
+    prevopt=712,21581
+    exit $EXIT_FAILURE719,21721
+    nonopt=723,21757
+exec_cmd=738,22105
+      mode=748,22438
+      done757,22536
+      mode=760,22591
+      mode=763,22640
+      mode=766,22677
+      test -n "$execute_dlfiles" && mode=770,22792
+      fi779,23118
+  generic_help=792,23435
+	libobj=819,24087
+	  arg_mode=832,24334
+	  later=837,24414
+	  suppress_opt=842,24471
+	  arg_mode=847,24522
+	-Wc,851,24735
+	  args=852,24743
+	  save_ifs="$IFS"; IFS=854,24802
+	    IFS=856,24855
+	    lastarg=866,25172
+	  lastarg=880,25501
+	esac  #  case $arg883,25547
+      lastarg=888,25655
+      base_compile=899,26020
+      exit $EXIT_FAILURE909,26296
+      [ -z "$libobj" ] && libobj=913,26381
+    xform=919,26591
+    *.adb) xform=922,26659
+    *.ads) xform=923,26683
+    *.c++) xform=925,26731
+    *.cc) xform=926,26755
+    *.ii) xform=927,26777
+    *.cpp) xform=929,26827
+    *.cxx) xform=930,26851
+    *.f90) xform=931,26875
+    *.java) xform=933,26923
+    libobj=936,26959
+      exit $EXIT_FAILURE942,27188
+	build_old_libs=951,27326
+	pic_mode=956,27380
+	pic_mode=961,27432
+    objname=967,27480
+      xdir=970,27617
+      removelist=984,27946
+      pic_mode=1000,28455
+      output_obj=1006,28621
+      until $run ln "$progpath" "$lockfile" 2>/dev/null;1019,29092
+      eval srcfile=1043,29853
+      fbsd_hideous_sh_bug=1063,30477
+	command=1066,30556
+	status=1075,30780
+	command=1083,30951
+	  error=1120,31996
+        suppress_output=1134,32319
+	command=1149,32721
+	command=1154,32861
+	  error=1192,33950
+    exit $EXIT_SUCCESS1222,34659
+    modename=1227,34729
+      allow_undefined=1244,35501
+    libtool_args=1247,35545
+	    dlopen_self=1306,36794
+	    dlopen_self=1310,36906
+    test -n "$old_archive_from_new_cmds" && build_old_libs=1322,37112
+      arg=1326,37268
+      *) qarg=1332,37469
+      libtool_args=1334,37502
+	  compile_command=1340,37660
+	    compile_command=1349,37894
+	      dlself=1357,38130
+	      dlself=1365,38269
+	      dlself=1367,38356
+	      dlfiles=1377,38517
+	  esac1384,38636
+	  export_symbols=1387,38660
+	  prev=1392,38803
+	  export_symbols_regex=1396,38846
+	  inst_prefix_dir=1401,38918
+	  precious_files_regex=1406,38988
+	  release=1411,39056
+	    save_arg=1417,39142
+		pic_object=1427,39455
+	  *) . ./$arg 1923,50318
+	  xdir=1935,50636
+	    xdir=1937,50721
+	    pic_object=1944,50862
+		dlfiles=1948,51016
+	      dlprefiles=1960,51311
+	    non_pic_object=1972,51584
+	      arg=1977,51783
+	    xdir=1989,52070
+	      xdir=1991,52159
+	deplibs=2006,52485
+	  dlfiles=2016,52683
+	  dlprefiles=2020,52805
+	arg=2032,53078
+	esac2037,53217
+	compile_command=2043,53339
+      eval arg=2055,53708
+      eval shlib_search_path=2067,54104
+      output_objdir=2076,54468
+      status=2084,54703
+      exit $EXIT_FAILURE2095,54966
+    *.$libext) linkmode=2097,55000
+    *.lo | *.$objext) linkmode=2098,55034
+    *.la) linkmode=2099,55072
+    *) linkmode=2100,55098
+      duplicate_compiler_generated_deps=2106,55283
+      duplicate_compiler_generated_deps=2109,55343
+    specialdeplibs=2112,55417
+	*" $deplib "*) specialdeplibs=2120,55667
+      libs=2123,55742
+      libs=2127,55815
+	  *" $pre_post_dep "*) specialdeplibs=2136,56213
+	  pre_post_deps=2138,56296
+	  *.la)2155,56758
+	    exit $EXIT_FAILURE2158,56860
+	done2161,56900
+	compile_deplibs=2164,56920
+    *)  passes=2171,57047
+	libs=2177,57203
+	dlopen) libs=2182,57293
+	dlpreopen) libs=2183,57321
+	  libs=2185,57362
+	save_deplibs=2192,57551
+	lib=2196,57625
+	    compile_deplibs=2201,57774
+	    deplibs=2214,58134
+	      lib=2221,58421
+		  found=2224,58538
+	      compile_deplibs=2235,58750
+		  library_names=2250,59413
+	*) . ./$lib 2405,63823
+	  test -n "$dlopen" && dlfiles=2411,64000
+	  deplibs=2417,64191
+	    convenience=2424,64462
+	      deplibs=2428,64645
+	        *" $deplib "*) specialdeplibs=2431,64766
+	      tmp_libs=2434,64865
+	fi # $pass 2441,65085
+	  linklib=2447,65206
+	    dlprefiles=2467,65918
+	  abs_ladir=2478,66151
+	    abs_ladir=2482,66398
+	laname=2486,66440
+	    dir=2492,66718
+	    newdlprefiles=2516,67419
+	    newdlprefiles=2519,67565
+	    deplibs=2528,67800
+	    compile_deplibs=2530,67893
+	  newlib_search_path=2540,68156
+	    linkalldeplibs=2546,68368
+	    -L*) newlib_search_path=2552,68471
+	      deplibs=2556,68706
+	      *" $deplib "*) specialdeplibs=2564,68983
+	    tmp_libs=2567,69069
+	      *) temp_rpath=2581,69542
+	      *) compile_rpath=2593,69853
+	      *) finalize_rpath=2602,70064
+	  fi # $linkmode,2606,70147
+	  fi # $linkmode,$pass 2606,70147
+	link_static=2617,70434
+	    notinst_deplibs=2621,70637
+	      *) compile_rpath=2647,71510
+	      *) finalize_rpath=2656,71721
+	    realname=2665,71923
+	    libname=2667,71960
+	      soname=2670,72095
+		major=2675,72227
+	      eval soname=2679,72297
+	      save_ifs=2693,72770
+	      save_ifs="$IFS"; IFS=2693,72770
+		IFS=2696,72864
+	    if test -f "$output_objdir/$newlib"; then 2705,73013
+	      save_ifs=2707,73124
+	      save_ifs="$IFS"; IFS=2707,73124
+		IFS=2710,73227
+	    add_shlibpath=2723,73581
+		add=2730,73750
+		        add=2743,74321
+		*-*-sunos*) add_shlibpath=2749,74446
+		add_dir=2751,74491
+		add_shlibpath=2754,74580
+		add=2762,74726
+		add_dir=2764,74797
+		  case "$libdir" in2767,74918
+		      add_dir=2769,74954
+		add=2773,75032
+		add_shlibpath=2775,75103
+	    *) lib_linked=2781,75190
+	      *) compile_shlibpath=2792,75487
+	      test -n "$add_dir" && compile_deplibs=2796,75612
+		*) finalize_shlibpath=2806,76050
+	    add_shlibpath=2813,76200
+	      add=2818,76350
+	      add_dir=2820,76427
+	      *) finalize_shlibpath=2825,76590
+	      add=2827,76664
+	        add=2831,76827
+		case "$libdir" in2840,77139
+		    add_dir=2842,77171
+	      add=2846,77248
+	      test -n "$add_dir" && finalize_deplibs=2850,77316
+	    test -n "$old_library" && linklib=2862,77830
+		build_libtool_libs=2894,79535
+	    temp_deplibs=2914,80094
+	      -R*) temp_xrpath=2917,80176
+		   *) xrpath=2920,80293
+		   esac;2921,80333
+	      *) temp_deplibs=2922,80345
+	    dependency_libs=2925,80416
+	    newdependency_libs=2934,80718
+	      *" $deplib "*) specialdeplibs=2937,80848
+	    tmp_libs=2940,80934
+	      -L*) path=2947,81139
+		dir=2949,81182
+		  absdir=2955,81366
+		    absdir=2958,81518
+		  path=2963,81611
+		  path=2973,81960
+		      depdepl=2983,82277
+		      depdepl=2986,82350
+		    *) newlib_search_path=2991,82501
+		  path=2994,82577
+		  path=2997,82601
+		esac2999,82627
+		  eval tmp_libs=3005,82741
+		      eval depdepl=3008,82890
+		*) continue 3014,82988
+		esac3015,83005
+	      *) continue 3017,83017
+	      *) deplibs=3021,83105
+	      *) deplibs=3025,83209
+	  deplibs=3035,83528
+	  lib_search_path=3041,83707
+	    *) lib_search_path=3045,83818
+	  newlib_search_path=3048,83887
+	  vars=3052,83963
+	  eval tmp_libs=3058,84116
+	    -L*) new_libs=3068,84473
+	    -R*3069,84515
+	      *" $deplib "*) new_libs=3086,85394
+		*) new_libs=3090,85502
+		esac3091,85539
+	      esac3093,85551
+	  tmp_libs=3097,85591
+	      *) tmp_libs=3103,85720
+	      esac3104,85762
+	    *) tmp_libs=3106,85784
+	  eval $var=3109,85842
+	  i=3118,86107
+	  tmp_libs=3122,86151
+      dlfiles=3128,86282
+      build_libtool_libs=3163,87338
+	name=3172,87549
+	  name=3184,87939
+	  libobjs=3201,88505
+      install_libdir=3213,88824
+	  oldlibs=3222,89136
+	save_ifs=3237,89562
+	save_ifs="$IFS"; IFS=3237,89562
+	  number_major=3253,89961
+	    current=3270,90484
+	    current=3275,90583
+	  esac3279,90700
+	  current=3282,90719
+	  exit $EXIT_FAILURE3294,91043
+	  exit $EXIT_FAILURE3303,91295
+	  exit $EXIT_FAILURE3312,91532
+	major=3323,91833
+	  major=3332,92020
+	  major=3340,92295
+	  major=3345,92373
+	  major=3350,92446
+	    *)         verstring_prefix=3354,92554
+	  verstring=3356,92602
+	    iface=3361,92762
+	  major=3372,93010
+	  major=3377,93093
+	    iface=3384,93311
+	  major=3394,93528
+	  major=3401,93693
+	  exit $EXIT_FAILURE3408,93920
+	  major=3414,94077
+	    verstring=3422,94259
+	    versuffix=3426,94334
+	  major=3434,94523
+	    build_libtool_libs=3443,94817
+	removelist=3455,95130
+	    *.$objext)3459,95230
+	oldlibs=3481,95854
+	lib_search_path=3489,96131
+	temp_xrpath=3496,96440
+	  temp_xrpath=3498,96481
+	  *) finalize_rpath=3501,96572
+	  dependency_libs=3505,96712
+	*) dlfiles=3515,96984
+      old_dlprefiles=3520,97089
+	*) dlprefiles=3525,97219
+	    deplibs=3537,97593
+	    ;;3541,97719
+	      deplibs=3549,97984
+	name_save=3556,98112
+	  int main(3585,99128
+	    ldd_output=3590,99246
+	      name=3592,99304
+		    newdeplibs=3598,99588
+		  libname=3604,99688
+		    newdeplibs=3609,99907
+	      name=3629,100731
+		  ldd_output=3636,100989
+		      newdeplibs=3640,101144
+		    libname=3646,101249
+		      newdeplibs=3651,101478
+	  file_magic_regex=3679,102588
+	    name=3681,102685
+		  newdeplibs=3687,102978
+		libname=3693,103094
+		  potential_libs=3695,103209
+		      potlib=3707,103686
+			potliblink=3709,103763
+			*) potlib=3712,103891
+			newdeplibs=3718,104112
+		droppeddeps=3726,104250
+	      newdeplibs=3742,104996
+	  match_pattern_regex=3748,105140
+	    name=3750,105240
+		  newdeplibs=3756,105522
+		libname=3762,105638
+		  potential_libs=3764,105753
+		    potlib=3766,105848
+		      newdeplibs=3770,106055
+		droppeddeps=3778,106206
+	      newdeplibs=3794,106958
+	  newdeplibs=3799,107071
+	      tmp_deplibs=3805,107345
+	    droppeddeps=3817,107860
+	versuffix=3821,107899
+	      oldlibs=3849,109029
+		oldlibs=3867,109789
+	  hardcode_libdirs=3889,110320
+		  hardcode_libdirs=3897,110611
+		    hardcode_libdirs=3904,110858
+		eval flag=3909,110969
+	      *) perm_rpath=3915,111147
+	    libdir=3922,111361
+	      eval dep_rpath=3924,111447
+	    rpath=3931,111678
+	      rpath=3933,111722
+	eval shared_ext=3947,112157
+	  eval soname=3954,112324
+	  dlname=3959,112416
+	    export_symbols=3975,112868
+	    save_ifs="$IFS"; IFS=3978,112979
+	      IFS=3980,113035
+	        skipped_export=3986,113256
+	tmp_deplibs=4007,114015
+			tmp_deplibs=4012,114119
+	deplibs=4016,114181
+	    save_libobjs=4020,114286
+	    generated=4032,114633
+	      case $xlib in4036,114734
+	      [\\/]* | [A-Za-z]:[\\/]*) xabs=4037,114755
+	      *) xabs=4038,114804
+	      xlib=4040,114848
+	  eval flag=4086,116445
+	    eval test_cmds=4098,116885
+	  eval test_cmds=4106,117109
+	    save_libobjs=4130,118025
+	      objlist=4150,118555
+		eval concat_cmds=4156,118777
+	    export_symbols=4177,119575
+	  save_ifs="$IFS"; IFS=4196,120157
+	    IFS=4198,120216
+	    eval libobjs=4209,120466
+	      cmds=4217,120807
+	    cmds=4223,120962
+	save_ifs="$IFS"; IFS=4233,121175
+	  IFS=4235,121223
+	  dlname=4259,122047
+	libobj=4295,122997
+	libobj=4299,123071
+      reload_conv_objs=4311,123389
+	  eval reload_conv_objs=4319,123622
+	  generated=4330,123926
+	    case $xlib in4334,124021
+	    [\\/]* | [A-Za-z]:[\\/]*) xabs=4335,124040
+	    *) xabs=4336,124087
+	    xlib=4338,124127
+      save_ifs="$IFS"; IFS=4388,125912
+	IFS=4390,125970
+	reload_objs=4422,126762
+	save_ifs="$IFS"; IFS=4425,126841
+	  IFS=4427,126889
+      exit $EXIT_SUCCESS4440,127097
+	*cygwin*) output=4445,127162
+	compile_deplibs=4465,127858
+        compile_command=4474,128198
+      compile_command=4480,128358
+	  *) finalize_rpath=4489,128697
+      rpath=4495,128810
+	      hardcode_libdirs=4501,129040
+		hardcode_libdirs=4508,129301
+	    eval flag=4513,129406
+	  *) perm_rpath=4519,129566
+	  *) dllsearchpath=4526,129734
+	  esac4527,129781
+	libdir=4534,129954
+	      hardcode_libdirs=4545,130280
+		hardcode_libdirs=4552,130541
+	    eval flag=4557,130646
+	  *) finalize_perm_rpath=4563,130815
+	libdir=4570,131040
+	compile_command=4577,131278
+	  dlsyms=4584,131594
+	  nlist=4595,131846
+	    progfiles=4623,132672
+	      export_symbols=4641,133333
+	    name=4653,133883
+		uniq > "$nlist"S;4674,134472
+	  pic_flag_for_symtable=4725,135422
+	    *) pic_flag_for_symtable=4735,135873
+	    esac;4736,135939
+	    *) pic_flag_for_symtable=4740,136021
+	  compile_command=4753,136552
+	  exit $EXIT_FAILURE4758,136847
+	compile_command=4767,137069
+	compile_command=4773,137346
+	rpath=4792,137882
+	  case $dir in4794,137918
+	    rpath=4797,137985
+	    rpath=4801,138067
+	temp_rpath=4805,138124
+	compile_command=4809,138218
+	finalize_command=4812,138381
+	  rpath=4820,138629
+	    rpath=4822,138669
+	  rpath=4828,138839
+	    rpath=4830,138888
+	link_command=4838,139077
+	link_command=4851,139513
+	  link_command=4858,139849
+	    relink_command=4860,139951
+	    relink_command=4888,140933
+	    relink_command=4890,141101
+	case $progpath in4902,141548
+	[\\/]* | [A-Za-z]:[\\/]*) qecho=4903,141567
+	*) qecho=4904,141637
+	qecho=4906,141696
+	  *.exe) output=4916,142033
+	    exeext=4921,142178
+	  *) exeext=4923,142253
+	    cwrappersource=4927,142315
+# define LT_PATHMAX 4957,143280
+# define LT_PATHMAX 4959,143335
+# define LT_PATHMAX 4961,143372
+#define DIR_SEPARATOR 4965,143427
+#define HAVE_DOS_BASED_FILE_SYSTEM4970,143553
+#define DIR_SEPARATOR_2 4972,143612
+# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4977,143680
+# define IS_DIR_SEPARATOR(IS_DIR_SEPARATOR4979,143762
+#define XMALLOC(XMALLOC4983,143887
+#define XFREE(XFREE4984,143961
+void * xmalloc 4990,144089
+char * xstrdup 4991,144118
+char * basename 4992,144155
+char * fnqualify(4993,144191
+char * strendzap(4994,144227
+void lt_fatal 4995,144273
+main 4998,144320
+xmalloc 5029,144978
+xstrdup 5039,145105
+basename 5046,145229
+fnqualify(5063,145565
+strendzap(5090,146195
+lt_error_core 5110,146484
+lt_fatal 5122,146751
+	  $run $LTCC -s -o $cwrapper $cwrappersource5135,147203
+      exit $EXIT_SUCCESS5314,152420
+	oldobjs=5322,152608
+	  oldobjs=5327,152737
+	gentop=5336,152914
+	generated=5345,153133
+	  case $xlib in5350,153263
+	  [\\/]* | [A-Za-z]:[\\/]*) xabs=5351,153280
+	  *) xabs=5352,153325
+	  xlib=5354,153361
+       cmds=5400,155004
+	  cmds=5406,155195
+	    AR_FLAGS=5427,156008
+	      oldobjs=5444,156469
+	        RANLIB=5446,156539
+	    eval cmds=5456,156809
+      save_ifs="$IFS"; IFS=5462,156921
+        eval cmd=5464,156979
+      old_library=5480,157277
+	  relink_command=5487,157551
+	  relink_command=5489,157715
+	relink_command=5499,158212
+	    output=5510,158445
+		name=5516,158661
+		newdependency_libs=5522,158898
+	      *) newdependency_libs=5524,158960
+	    dependency_libs=5527,159044
+	      name=5530,159133
+	      newdlfiles=5536,159377
+	      name=5541,159512
+	      newdlprefiles=5547,159756
+	      case $lib in5553,159905
+		[\\/]* | [A-Za-z]:[\\/]*) abs=5554,159925
+		*) abs=5555,159967
+	      newdlfiles=5557,160004
+	      case $lib in5562,160130
+		[\\/]* | [A-Za-z]:[\\/]*) abs=5563,160150
+		*) abs=5564,160192
+	      newdlprefiles=5566,160229
+    exit $EXIT_SUCCESS5625,161870
+    modename=5630,161937
+      arg=5638,162301
+      install_prog=5644,162462
+    install_prog=5660,162841
+	files=5673,163074
+      -f) prev=5680,163171
+      -g) prev=5681,163194
+      -m) prev=5682,163217
+      -o) prev=5683,163240
+	stripme=5685,163273
+	  prev=5693,163411
+      arg=5702,163515
+      install_prog=5708,163673
+    dest=5734,164348
+      destdir=5739,164517
+    case $destdir in5754,164965
+	*.lo)5759,165070
+	  exit $EXIT_FAILURE5763,165180
+      done5766,165214
+    libtool_install_magic=5772,165350
+	staticlibs=5783,165572
+	library_names=5795,165885
+	  destfile=5910,169437
+	  staticdest=5922,169724
+	  exit $EXIT_FAILURE5928,169867
+	  staticobj=5941,170206
+	  destfile=5952,170506
+	      file=5965,170853
+	    wrapper=5974,171039
+	    wrapper=5977,171102
+	  notinst_deplibs=5981,171222
+	  *) wrapperdot=5989,171508
+	      */* | *\\*) . $lib 6010,172107
+	      *) . ./$lib 6011,172136
+	    libfile=6014,172178
+	      finalize=6017,172421
+	  *) wrapperdot=6027,172722
+	      outputname=6051,173447
+	      file=6062,173843
+	    destfile=6081,174319
+	    destfile=6084,174367
+	  esac6086,174431
+      name=6097,174663
+      cmds=6111,175086
+      save_ifs="$IFS"; IFS=6112,175119
+	IFS=6114,175177
+      test -n "$run" && current_libdirs=6128,175511
+    modename=6137,175730
+	  cmds=6150,176042
+	  save_ifs="$IFS"; IFS=6151,176063
+	    IFS=6153,176115
+	  eval cmds=6163,176333
+      libdir=6192,177393
+    exit $EXIT_SUCCESS6207,178010
+    modename=6212,178077
+      dir=6230,178522
+	dlname=6242,178857
+	  *) . ./$file 6309,180611
+	  file=6313,180675
+      file=6318,180782
+	LC_ALL=6330,181107
+	LANG=6333,181199
+      exec_cmd=6337,181291
+    fi6346,181545
+    modename=6351,181618
+      -f) rm="$rm $arg"; rmforce=6364,181890
+      -*) rm=6365,181930
+      *) files=6366,181957
+    rmdirs=6376,182156
+      dir=6380,182221
+	dir=6382,182312
+	  *) rmdirs=6394,182642
+	exit_status=6404,182905
+      rmfiles=6410,182989
+	    rmfiles=6420,183270
+	      cmds=6428,183592
+	      save_ifs="$IFS"; IFS=6429,183624
+		IFS=6431,183684
+		  exit_status=6436,183809
+	      cmds=6444,183973
+	      save_ifs="$IFS"; IFS=6445,184009
+		IFS=6447,184069
+		  exit_status=6452,184194
+	    rmfiles=6472,184647
+	    rmfiles=6478,184831
+	  noexename=6485,184932
+	    relink_command=6497,185342
+	      rmfiles=6504,185655
+	      rmfiles=6507,185752
+      $run $rm $rmfiles || exit_status=6514,185864
+    exit $exit_status6526,186146
+    exit $EXIT_FAILURE6532,186265
+  exit $EXIT_SUCCESS6581,188010
+  exit $EXIT_FAILURE6736,193625
+build_libtool_libs=6757,194484
+build_old_libs=`case $build_libtool_libs in yes) $echo no;; *) $echo yes;6762,194618
+SHELL=6774,194931
 
 config.status,135
 debug=7,199
@@ -7615,3 +7266,1491 @@ DUALCASE=25,723
     eval $as_var=48,1269
   as_expr=56,1414
   as_basename=62,1528
+
+autom4te.cache/requests,16
+@request 5,155
+
+autom4te.cache/output.0,51282
+   function prototypes prototypes2531,79067
+@%:@ gives unlimited permission to copy,7,257
+  NULLCMD=15,515
+DUALCASE=22,767
+  as_unset=26,898
+    eval $as_var=45,1313
+  as_expr=53,1458
+  as_basename=59,1572
+      continue 1236,40131
+      ac_arg=1238,40211
+    1) ac_configure_args0=1241,40300
+      ac_configure_args1=1243,40368
+	ac_must_keep_next=1245,40471
+	    esac1254,40881
+	  -* ) ac_must_keep_next=1256,40899
+      ac_configure_args=1259,40948
+ac_signal=1351,43474
+    CONFIG_SITE=1389,44324
+    case $cache_file in1409,45042
+      [\\/]* | ?:[\\/]* ) . $cache_file;1410,45066
+      *)                      . ./$cache_file;1411,45108
+ac_cache_corrupted=1422,45383
+  eval ac_old_set=1425,45498
+      ac_cache_corrupted=1433,45904
+      ac_cache_corrupted=1437,46100
+	ac_cache_corrupted=1447,46576
+      ac_arg=1454,46784
+    *) ac_arg=1455,46855
+      *) ac_configure_args=1459,47009
+   { (exit 1468,47480
+   { (exit 1); exit 1468,47480
+ac_ext=1471,47512
+    ac_aux_dir=1501,47876
+    ac_aux_dir=1505,47995
+    ac_aux_dir=1509,48110
+ac_config_guess=1519,48479
+  as_save_IFS=1542,49572
+  as_save_IFS=$IFS; IFS=1542,49572
+ac_clean_files_save=2180,68513
+ac_cv_exeext=2199,69449
+    conftest.$ac_ext 2207,69726
+	break;2213,69874
+	ac_cv_exeext=2215,69893
+	break;2222,70130
+   { (exit 2233,70445
+   { (exit 77); exit 2233,70445
+ac_exeext=2236,70479
+    cross_compiling=2253,71196
+	cross_compiling=2256,71271
+ac_clean_files=2272,71749
+    *.$ac_ext | *.xcoff | *.tds | *.d | *.pdb | *.xSYM | *.bb | *.bbg | *.o | *.obj 2294,72747
+    *.* ) ac_cv_exeext=2295,72836
+    * ) break;2298,72929
+EXEEXT=2314,73393
+main 2329,73799
+  for ac_file in `(ls conftest.o conftest.obj; ls conftest.*) 2>/dev/null`2342,74036
+    *.$ac_ext | *.xcoff | *.tds | *.d | *.pdb | *.xSYM | *.bb | *.bbg 2344,74134
+    *) ac_cv_objext=2345,74209
+   { (exit 2357,74617
+   { (exit 1); exit 2357,74617
+OBJEXT=2364,74781
+main 2379,75221
+	 { ac_try=2398,75589
+	 { ac_try=2404,75821
+  ac_compiler_gnu=2410,76027
+main 2440,76822
+	 { ac_try=2456,77150
+	 { ac_try=2462,77382
+  ac_cv_prog_cc_g=2468,77588
+  CFLAGS=2480,77900
+    CFLAGS=2483,77993
+    CFLAGS=2489,78075
+  ac_cv_prog_cc_stdc=2499,78349
+FILE * (*rcsopen)2513,78715
+static char *e 2514,78769
+static char *f 2520,78837
+int osf4_cc_array 2537,79475
+int test 2539,79518
+struct s1 s12540,79546
+struct s2 s22541,79577
+int pairnames 2542,79611
+int argc;2543,79696
+char **argv;2544,79706
+main 2546,79723
+	 { ac_try=2572,80478
+	 { ac_try=2578,80710
+  ac_cv_prog_cc_stdc=2584,80916
+    CC=2605,81374
+	 { ac_try=2626,82072
+	 { ac_try=2632,82304
+	 { ac_try=2671,83300
+	 { ac_try=2677,83532
+main 2699,84060
+	 { ac_try=2715,84398
+	 { ac_try=2721,84630
+ac_ext=2748,85309
+  as_save_IFS=2773,86447
+  as_save_IFS=$IFS; IFS=2773,86447
+	ac_prog=3069,95785
+    ac_prog=3075,95950
+    with_gnu_ld=3079,96040
+  lt_save_ifs=3093,96440
+  lt_save_ifs="$IFS"; IFS=3093,96440
+    IFS=3095,96508
+      lt_cv_path_LD=3098,96645
+  IFS=3112,97070
+   { (exit 3128,97499
+   { (exit 1); exit 3128,97499
+  lt_cv_prog_gnu_ld=3137,97887
+  lt_cv_prog_gnu_ld=3140,97919
+with_gnu_ld=3146,98048
+  lt_cv_ld_reload_flag=3154,98325
+*) reload_flag=3161,98524
+reload_cmds=3163,98563
+  lt_cv_path_NM=3172,98883
+  lt_save_ifs="$IFS"; IFS=3174,98910
+    IFS=3176,99005
+	lt_cv_path_NM=3186,99518
+	  lt_cv_path_NM=3192,99637
+	  lt_cv_path_NM=3196,99686
+  IFS=3203,99864
+  lt_cv_file_magic_cmd=3216,100292
+  lt_cv_deplibs_check_method=3236,101068
+  lt_cv_deplibs_check_method=3240,101120
+  lt_cv_deplibs_check_method=3247,101380
+  lt_cv_deplibs_check_method=3254,101657
+  lt_cv_deplibs_check_method=3259,101808
+      lt_cv_deplibs_check_method=3268,102102
+    lt_cv_deplibs_check_method=3274,102339
+  lt_cv_deplibs_check_method=3279,102396
+  lt_cv_file_magic_cmd=3283,102462
+    lt_cv_deplibs_check_method=3290,102708
+    lt_cv_deplibs_check_method=3294,102895
+  esac3297,103047
+  *-32|*"-32 ") libmagic=3302,103104
+  *-n32|*"-n32 ") libmagic=3303,103138
+  *-64|*"-64 ") libmagic=3304,103171
+  *) libmagic=3305,103205
+  lt_cv_deplibs_check_method=3307,103240
+  lt_cv_deplibs_check_method=3312,103318
+    lt_cv_deplibs_check_method=3317,103448
+  lt_cv_deplibs_check_method=3324,103635
+  lt_cv_deplibs_check_method=3330,103830
+  lt_cv_file_magic_cmd=3334,103883
+    lt_cv_deplibs_check_method=3337,104089
+  lt_cv_deplibs_check_method=3344,104284
+  lt_cv_deplibs_check_method=3348,104339
+  lt_cv_deplibs_check_method=3352,104393
+    lt_cv_deplibs_check_method=3358,104513
+    lt_cv_deplibs_check_method=3362,104709
+    lt_cv_file_magic_cmd=3365,104767
+    lt_cv_file_magic_cmd=3369,104918
+    lt_cv_deplibs_check_method=3374,105100
+  esac3376,105147
+sysv5OpenUNIX8* | sysv5UnixWare7* | sysv5uw[3379,105160
+  lt_cv_deplibs_check_method=3380,105236
+file_magic_cmd=3387,105399
+  enableval=3403,105802
+      HPUX_IA64_MODE=3421,106333
+      HPUX_IA64_MODE=3424,106382
+  rm -rf conftest*3428,106431
+      LD=3441,106839
+      LD=3444,106892
+      LD=3447,106950
+      LD=3453,107070
+      LD=3456,107114
+      LD=3459,107162
+  rm -rf conftest*3464,107215
+          LD=3479,107659
+          LD=3482,107749
+          LD=3485,107826
+          LD=3488,107900
+      esac3490,107952
+          LD=3495,108030
+          LD=3498,108120
+          LD=3501,108192
+          LD=3504,108267
+      esac3506,108319
+  rm -rf conftest*3510,108353
+  SAVE_CFLAGS=3515,108463
+  ac_ext=3522,108751
+	 { ac_try=3552,109471
+	 { ac_try=3558,109703
+  lt_cv_cc_needs_belf=3564,109908
+    CFLAGS=3584,110572
+need_locks=3590,110615
+  CPP=3602,111093
+  (exit $ac_status); } >/dev/null;3640,112292
+    ac_cpp_err=3642,112364
+  (exit $ac_status); } >/dev/null;3678,113250
+    ac_cpp_err=3680,113322
+ac_preproc_ok=3696,113641
+    ac_cv_prog_CPP=3709,113859
+  (exit $ac_status); } >/dev/null;3747,114953
+    ac_cpp_err=3749,115025
+  (exit $ac_status); } >/dev/null;3785,115911
+    ac_cpp_err=3787,115983
+ac_preproc_ok=3803,116302
+ac_ext=3821,116766
+main 3845,117433
+	 { ac_try=3861,117761
+	 { ac_try=3867,117993
+  ac_cv_header_stdc=3873,118199
+  ac_cv_header_stdc=3897,118758
+  ac_cv_header_stdc=3918,119175
+# define ISLOWER(ISLOWER3937,119580
+# define TOUPPER(TOUPPER3938,119627
+# define ISLOWER(ISLOWER3940,119692
+# define TOUPPER(TOUPPER3944,119826
+#define XOR(XOR3947,119888
+main 3949,119943
+  (exit $ac_status); } && { ac_try=3964,120258
+ac_cv_header_stdc=3977,120644
+	 { ac_try=4031,121901
+	 { ac_try=4037,122133
+	 { ac_try=4098,123912
+	 { ac_try=4104,124144
+  ac_header_compiler=4110,124350
+  (exit $ac_status); } >/dev/null;4139,125218
+    ac_cpp_err=4141,125290
+  ac_header_preproc=4150,125457
+    ac_header_preproc=4168,126213
+ac_ext=4213,128125
+set dummy $ac_tool_prefix$ac_prog; ac_word=4222,128570
+  ac_cv_prog_CXX=4229,128830
+as_save_IFS=$IFS; IFS=4231,128893
+    ac_cv_prog_CXX=4238,129118
+  ac_ct_CXX=4260,129508
+set dummy $ac_prog; ac_word=4264,129684
+  ac_cv_prog_ac_ct_CXX=4271,129941
+as_save_IFS=$IFS; IFS=4273,130016
+    ac_cv_prog_ac_ct_CXX=4280,130241
+test -n "$ac_ct_CXX" || ac_ct_CXX=4300,130627
+  ac_status=4317,131178
+  ac_status=4322,131378
+main 4339,131870
+	 { ac_try=4358,132238
+	 { ac_try=4364,132472
+  ac_compiler_gnu=4370,132678
+main 4400,133492
+	 { ac_try=4416,133820
+	 { ac_try=4422,134054
+  ac_cv_prog_cxx_g=4428,134260
+  CXXFLAGS=4440,134578
+    CXXFLAGS=4443,134676
+    CXXFLAGS=4449,134762
+	 { ac_try=4487,135598
+	 { ac_try=4493,135832
+main 4515,136360
+	 { ac_try=4531,136698
+	 { ac_try=4537,136932
+ac_ext=4558,137470
+  (exit $ac_status); } >/dev/null;4607,139252
+    ac_cpp_err=4609,139324
+  (exit $ac_status); } >/dev/null;4645,140214
+    ac_cpp_err=4647,140286
+ac_preproc_ok=4663,140609
+    ac_cv_prog_CXXCPP=4676,140827
+  (exit $ac_status); } >/dev/null;4714,141947
+    ac_cpp_err=4716,142019
+  (exit $ac_status); } >/dev/null;4752,142909
+    ac_cpp_err=4754,142981
+ac_preproc_ok=4770,143304
+ac_ext=4788,143778
+set dummy $ac_tool_prefix$ac_prog; ac_word=4803,144452
+  ac_cv_prog_F77=4810,144712
+as_save_IFS=$IFS; IFS=4812,144775
+    ac_cv_prog_F77=4819,145000
+  ac_ct_F77=4841,145390
+set dummy $ac_prog; ac_word=4845,145613
+  ac_cv_prog_ac_ct_F77=4852,145870
+as_save_IFS=$IFS; IFS=4854,145945
+    ac_cv_prog_ac_ct_F77=4861,146170
+  F77=4882,146557
+  ac_status=4897,147076
+  ac_status=4902,147276
+ac_save_ext=4909,147515
+	 { ac_try=4933,148214
+	 { ac_try=4939,148448
+  ac_compiler_gnu=4945,148654
+  FFLAGS=4967,149275
+	 { ac_try=4982,149647
+	 { ac_try=4988,149881
+  ac_cv_prog_f77_g=4994,150087
+  FFLAGS=5007,150404
+    FFLAGS=5010,150519
+    FFLAGS=5016,150622
+    i=5039,151325
+    lt_cv_sys_max_cmd_len=12288;    # 12K is about right5048,151656
+    lt_cv_sys_max_cmd_len=5055,151905
+    lt_cv_sys_max_cmd_len=5066,152416
+    lt_cv_sys_max_cmd_len=5072,152592
+symcode=5120,154216
+  symcode=5140,154916
+    symcode=5144,155037
+  symcode=5150,155397
+  symcode=5153,155431
+  symcode=5156,155479
+  symcode=5159,155510
+opt_cr=5164,155576
+  symcode=5174,155789
+  lt_cv_sys_global_symbol_pipe=5181,155938
+int main(5196,156286
+    nlist=5205,156553
+# define lt_ptr_t 5232,157479
+# define lt_ptr_t 5234,157510
+# define const5235,157535
+lt_preloaded_symbols[5243,157667
+	  lt_save_LIBS=5257,157992
+	    pipe_works=5266,158327
+    lt_cv_sys_global_symbol_pipe=5289,158827
+  lt_cv_sys_global_symbol_to_cdecl=5296,158925
+  lt_cv_objdir=5314,159444
+    COLLECT_NAMES=5335,159939
+Xsed=5343,160139
+set dummy ${ac_tool_prefix}ar;5372,160973
+set dummy ${ac_tool_prefix}ar; ac_word=5372,160973
+  ac_cv_prog_AR=5379,161227
+as_save_IFS=$IFS; IFS=5381,161288
+    ac_cv_prog_AR=5388,161513
+  ac_ct_AR=5408,161868
+set dummy ar; ac_word=5410,161958
+  ac_cv_prog_ac_ct_AR=5417,162207
+as_save_IFS=$IFS; IFS=5419,162280
+    ac_cv_prog_ac_ct_AR=5426,162505
+  AR=5445,162906
+set dummy ${ac_tool_prefix}ranlib;5452,163083
+set dummy ${ac_tool_prefix}ranlib; ac_word=5452,163083
+  ac_cv_prog_RANLIB=5459,163349
+as_save_IFS=$IFS; IFS=5461,163418
+    ac_cv_prog_RANLIB=5468,163643
+  ac_ct_RANLIB=5488,164030
+set dummy ranlib; ac_word=5490,164132
+  ac_cv_prog_ac_ct_RANLIB=5497,164393
+as_save_IFS=$IFS; IFS=5499,164474
+    ac_cv_prog_ac_ct_RANLIB=5506,164699
+  RANLIB=5525,165132
+set dummy ${ac_tool_prefix}strip;5532,165324
+set dummy ${ac_tool_prefix}strip; ac_word=5532,165324
+  ac_cv_prog_STRIP=5539,165587
+as_save_IFS=$IFS; IFS=5541,165654
+    ac_cv_prog_STRIP=5548,165879
+  ac_ct_STRIP=5568,166258
+set dummy strip; ac_word=5570,166357
+  ac_cv_prog_ac_ct_STRIP=5577,166615
+as_save_IFS=$IFS; IFS=5579,166694
+    ac_cv_prog_ac_ct_STRIP=5586,166919
+  STRIP=5605,167343
+    old_postinstall_cmds=5639,168169
+    old_postinstall_cmds=5642,168251
+  old_archive_cmds=5645,168332
+  case $MAGIC_CMD in5657,168776
+main 6588,199633
+	 { ac_try=6604,199974
+	 { ac_try=6610,200206
+aix_libpath=6617,200414
+if test -z "$aix_libpath"; then aix_libpath=6620,200601
+if test -z "$aix_libpath"; then aix_libpath=6629,200939
+       hardcode_libdir_flag_spec=6631,201004
+	  hardcode_libdir_flag_spec=6635,201384
+	 { ac_try=6664,202256
+	 { ac_try=6670,202488
+aix_libpath=6677,202696
+if test -z "$aix_libpath"; then aix_libpath=6680,202883
+if test -z "$aix_libpath"; then aix_libpath=6689,203221
+	 hardcode_libdir_flag_spec=6691,203286
+      archive_cmds=6708,204144
+      export_dynamic_flag_spec=6716,204725
+      hardcode_libdir_flag_spec=6724,205006
+      archive_cmds_need_lc=6742,205808
+      	allow_undefined_flag=6749,206021
+            allow_undefined_flag=6756,206264
+      fi6759,206353
+    	lt_int_apple_cc_single_mod=6762,206377
+    	  lt_int_apple_cc_single_mod=6765,206517
+    	  archive_cmds=6768,206621
+          archive_expsym_cmds=6775,207314
+      archive_cmds=6791,208612
+      ld_shlibs=6797,208792
+      archive_cmds=6805,209095
+      archive_cmds=6813,209392
+      archive_cmds=6821,209663
+	archive_cmds=6829,209895
+	  archive_cmds=6847,210750
+	  archive_cmds=6850,210853
+	  archive_cmds=6856,211042
+	  archive_cmds=6859,211128
+	  hardcode_libdir_flag_spec=6866,211316
+	  hardcode_libdir_flag_spec=6873,211509
+	  hardcode_libdir_flag_spec=6882,211739
+      fi6892,212023
+	archive_cmds=6897,212109
+	archive_cmds=6909,212803
+      archive_cmds=6919,213108
+      hardcode_direct=6927,213362
+	archive_cmds=6930,213538
+	   archive_cmds=6940,213920
+      fi6944,214074
+      hardcode_libdir_flag_spec=6948,214103
+	allow_undefined_flag=6957,214798
+	allow_undefined_flag=6969,215570
+      archive_cmds=6985,216731
+      no_undefined_flag=6993,216974
+	archive_cmds=6995,217042
+	whole_archive_flag_spec=7008,217957
+      link_all_deplibs=7010,218042
+	archive_cmds=7017,218258
+	  archive_cmds=7030,218629
+	  archive_cmds=7036,218836
+	  archive_cmds=7041,218992
+      runpath_var=7045,219158
+      archive_cmds=7050,219246
+	archive_cmds=7057,219456
+      archive_cmds=7066,219659
+   sysv5OpenUNIX8* | sysv5UnixWare7* |  sysv5uw[7074,219882
+      no_undefined_flag=7075,219949
+	archive_cmds=7077,220026
+      no_undefined_flag=7086,220309
+      archive_cmds=7098,220961
+      ld_shlibs=7104,221133
+  variables_saved_for_relink=7115,221389
+  (exit $ac_status); } 2>conftest.err;7144,222410
+        soname=7145,222454
+	  archive_cmds_need_lc=7163,223069
+  fi7176,223400
+library_names_spec=7182,223553
+  sys_lib_search_path_spec=7196,223863
+    sys_lib_search_path_spec=7202,224339
+  version_type=7227,225086
+    library_names_spec=7233,225232
+	   echo '#endif'; } | ${CC} -E - | grep yes > /dev/null;7245,225872
+	can_build_shared=7248,225949
+      library_names_spec=7259,226450
+  library_names_spec=7271,226897
+  library_names_spec=7277,227331
+  version_type=7283,227455
+  version_type=7297,228132
+      dldir=7308,228519
+      soname_spec=7324,229174
+        sys_lib_search_path_spec=7333,229893
+      library_names_spec=7340,230176
+    esac7342,230314
+    library_names_spec=7346,230336
+  dynamic_linker=7349,230463
+  dynamic_linker=7355,230618
+    sys_lib_search_path_spec=7366,231135
+  version_type=7374,231545
+  dynamic_linker=7383,231837
+  version_type=7387,231878
+  objformat=7399,232260
+      library_names_spec=7408,232610
+  shlibpath_var=7412,232752
+    shlibpath_overrides_runpath=7418,232893
+    shlibpath_overrides_runpath=7422,232982
+  esac7425,233051
+  version_type=7429,233070
+  version_type=7441,233522
+      sys_lib_search_path_spec=7454,234034
+     shrext_cmds=7461,234284
+    shrext_cmds=7472,234845
+  postinstall_cmds=7481,235278
+    nonstopux*) version_type=7486,235369
+		version_type=7489,235460
+  need_lib_prefix=7494,235521
+      libsuff=7505,235972
+      libsuff=7507,236071
+      libsuff=7509,236164
+    *) libsuff=7510,236212
+    esac7511,236262
+  shlibpath_var=7514,236285
+  dynamic_linker=7523,236644
+  version_type=7528,236704
+    lt_ld_extra=7543,237327
+  version_type=7557,237936
+  version_type=7569,238317
+    library_names_spec=7573,238438
+  version_type=7587,238988
+  version_type=7594,239220
+  version_type=7604,239547
+	shlibpath_overrides_runpath=7613,239971
+	shlibpath_overrides_runpath=7616,240016
+    shlibpath_overrides_runpath=7620,240071
+  libname_spec=7625,240124
+  version_type=7634,240329
+  version_type=7645,240785
+  version_type=7652,241037
+  version_type=7665,241473
+    need_lib_prefix=7671,241754
+  version_type=7677,241848
+      need_lib_prefix=7689,242284
+      need_lib_prefix=7692,242332
+  esac7697,242485
+    version_type=7702,242537
+  version_type=7710,242768
+  dynamic_linker=7717,243015
+    hardcode_action=7739,243949
+  enable_fast_install=7754,244391
+  enable_fast_install=7758,244543
+  test -z "$old_striplib" && old_striplib=7766,244831
+         striplib=7775,245158
+  enable_dlopen=7791,245475
+    lt_cv_dlopen=7806,245743
+    lt_cv_dlopen=7811,245815
+  ac_check_lib_save_LIBS=7822,246144
+main 7839,246592
+	 { ac_try=7855,246943
+	 { ac_try=7861,247175
+  ac_cv_lib_dl_dlopen=7867,247380
+  lt_cv_dlopen=7881,247767
+#define shl_load 7906,248409
+char shl_load 7928,249017
+main 7942,249379
+	 { ac_try=7958,249741
+	 { ac_try=7964,249973
+  ac_cv_func_shl_load=7970,250178
+  lt_cv_dlopen=7983,250536
+  ac_check_lib_save_LIBS=7990,250783
+main 8007,251234
+	 { ac_try=8023,251587
+	 { ac_try=8029,251819
+  ac_cv_lib_dld_shl_load=8035,252024
+  lt_cv_dlopen=8049,252426
+#define dlopen 8064,252961
+char dlopen 8086,253561
+main 8100,253915
+	 { ac_try=8116,254275
+	 { ac_try=8122,254507
+  ac_cv_func_dlopen=8128,254712
+  lt_cv_dlopen=8141,255060
+  ac_check_lib_save_LIBS=8148,255296
+main 8165,255744
+	 { ac_try=8181,256095
+	 { ac_try=8187,256327
+  ac_cv_lib_dl_dlopen=8193,256532
+  lt_cv_dlopen=8207,256919
+  ac_check_lib_save_LIBS=8214,257186
+main 8231,257636
+	 { ac_try=8247,257987
+	 { ac_try=8253,258219
+  ac_cv_lib_svld_dlopen=8259,258424
+  lt_cv_dlopen=8273,258821
+  ac_check_lib_save_LIBS=8280,259093
+main 8297,259544
+	 { ac_try=8313,259897
+	 { ac_try=8319,260129
+  ac_cv_lib_dld_dld_link=8325,260334
+  lt_cv_dlopen=8339,260736
+    enable_dlopen=8361,260893
+  lt_cv_dlopen_self=8383,261526
+  lt_dlunknown=0; lt_dlno_uscore=8385,261557
+  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=8385,261557
+#  define LT_DLGLOBAL	8398,261803
+#    define LT_DLGLOBAL	8401,261863
+#    define LT_DLGLOBAL	8403,261906
+#    define LT_DLLAZY_OR_NOW	8411,262112
+#      define LT_DLLAZY_OR_NOW	8414,262179
+#        define LT_DLLAZY_OR_NOW	8417,262251
+#          define LT_DLLAZY_OR_NOW	8420,262327
+#          define LT_DLLAZY_OR_NOW	8422,262383
+void fnord(8433,262531
+int main 8434,262557
+  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;8453,263005
+    (./conftest;8454,263078
+    (./conftest; exit;8454,263078
+    lt_status=8455,263115
+      x$lt_dlneed_uscore) lt_cv_dlopen_self=8458,263205
+      x$lt_unknown|x*) lt_cv_dlopen_self=8459,263256
+    lt_cv_dlopen_self=8463,263346
+      LDFLAGS=8474,263546
+  lt_cv_dlopen_self_static=8481,263921
+  lt_dlunknown=0; lt_dlno_uscore=8483,263959
+  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=8483,263959
+#  define LT_DLGLOBAL	8496,264205
+#    define LT_DLGLOBAL	8499,264265
+#    define LT_DLGLOBAL	8501,264308
+#    define LT_DLLAZY_OR_NOW	8509,264514
+#      define LT_DLLAZY_OR_NOW	8512,264581
+#        define LT_DLLAZY_OR_NOW	8515,264653
+#          define LT_DLLAZY_OR_NOW	8518,264729
+#          define LT_DLLAZY_OR_NOW	8520,264785
+void fnord(8531,264933
+int main 8532,264959
+  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;8551,265407
+    (./conftest;8552,265480
+    (./conftest; exit;8552,265480
+    lt_status=8553,265517
+      x$lt_dlneed_uscore) lt_cv_dlopen_self_static=8556,265614
+      x$lt_unknown|x*) lt_cv_dlopen_self_static=8557,265672
+    lt_cv_dlopen_self_static=8561,265769
+  yes|no) enable_dlopen_self=8579,266076
+  *) enable_dlopen_self=8580,266127
+  yes|no) enable_dlopen_self_static=8584,266206
+  *) enable_dlopen_self_static=8585,266271
+    archive_cmds=8606,267021
+    archive_cmds_need_lc=8618,267321
+      	allow_undefined_flag=8625,267536
+            allow_undefined_flag=8632,267779
+      fi8635,267868
+    output_verbose_link_cmd=8638,267895
+    lt_echo=8746,272380
+cfgfile=8750,272491
+SED=8789,274142
+if test "X\${CDPATH+set}" = Xset; then CDPATH=8796,274342
+if test "X\${CDPATH+set}" = Xset; then CDPATH=:; export CDPATH;8796,274342
+available_tags=8799,274477
+  COLLECT_NAMES=9108,283493
+  ltmain_in=9129,284174
+ac_ext=9136,284306
+  withval=9147,284642
+  available_tags=9170,285537
+  lt_save_ifs="$IFS"; IFS=9172,285646
+    IFS=9174,285728
+   { (exit 9180,286068
+   { (exit 1); exit 9180,286068
+	  ac_ext=9198,286603
+  lt_cv_prog_gnu_ld=9263,288278
+  lt_cv_path_LD=9268,288397
+  lt_prog_compiler_no_builtin_flag_CXX=9281,288721
+  withval=9292,288999
+ac_prog=9297,289093
+    ac_prog=9305,289390
+    ac_prog=9307,289458
+  case $ac_prog in9309,289513
+      re_direlt=9312,289584
+	ac_prog=9316,289775
+    ac_prog=9322,289940
+    with_gnu_ld=9326,290030
+  lt_save_ifs=9340,290430
+  lt_save_ifs="$IFS"; IFS=9340,290430
+    IFS=9342,290498
+      lt_cv_path_LD=9345,290635
+  IFS=9359,291060
+   { (exit 9375,291489
+   { (exit 1); exit 9375,291489
+  lt_cv_prog_gnu_ld=9384,291877
+  lt_cv_prog_gnu_ld=9387,291909
+with_gnu_ld=9393,292038
+    archive_cmds_CXX=9400,292241
+      whole_archive_flag_spec_CXX=9414,293059
+      aix_use_runtimelinking=9454,294524
+	    aix_use_runtimelinking=9467,294928
+      exp_sym_flag=9474,295005
+	collect2name=9493,295735
+	shared_flag=9516,296517
+	  shared_flag=9519,296593
+      allow_undefined_flag_CXX=9532,297053
+	 { ac_try=9558,297676
+	 { ac_try=9564,297910
+aix_libpath=9571,298118
+if test -z "$aix_libpath"; then aix_libpath=9574,298305
+if test -z "$aix_libpath"; then aix_libpath=9583,298643
+      hardcode_libdir_flag_spec_CXX=9585,298708
+	hardcode_libdir_flag_spec_CXX=9590,299104
+	 { ac_try=9619,299985
+	 { ac_try=9625,300219
+aix_libpath=9632,300427
+if test -z "$aix_libpath"; then aix_libpath=9635,300614
+if test -z "$aix_libpath"; then aix_libpath=9644,300952
+	hardcode_libdir_flag_spec_CXX=9646,301017
+	ld_shlibs_CXX=9665,301955
+    esac9667,301977
+    hardcode_libdir_flag_spec_CXX=9673,302142
+      archive_cmds_CXX=9679,302372
+	echo EXPORTS > $output_objdir/$soname.def;9685,302833
+	cat $export_symbols >> $output_objdir/$soname.def;9686,302877
+      $CC -shared -nostdlib $output_objdir/$soname.def $predep_objects $libobjs $deplibs $postdep_objects $compiler_flags -o $output_objdir/$soname ${wl}--image-base=9688,302939
+    archive_cmds_need_lc_CXX=9696,303237
+      	allow_undefined_flag_CXX=9703,303460
+            allow_undefined_flag_CXX=9710,303711
+      fi9713,303804
+    lt_int_apple_cc_single_mod=9716,303831
+      lt_int_apple_cc_single_mod=9719,303968
+      archive_cmds_CXX=9722,304069
+      archive_expsym_cmds_CXX=9730,304761
+	ld_shlibs_CXX=9749,306134
+	ld_shlibs_CXX=9754,306240
+	ld_shlibs_CXX=9758,306315
+    esac9760,306337
+    ld_shlibs_CXX=9764,306444
+    archive_cmds_need_lc_CXX=9767,306488
+    ld_shlibs_CXX=9772,306640
+  gnu*9774,306669
+    hardcode_libdir_flag_spec_CXX=9777,306694
+      archive_cmds_CXX=9791,307093
+        archive_cmds_CXX=9804,308041
+    esac9810,308419
+	hardcode_libdir_flag_spec_CXX=9816,308532
+	hardcode_libdir_flag_spec_CXX=9821,308690
+	hardcode_libdir_flag_spec_CXX=9824,308753
+      hardcode_direct_CXX=9832,308947
+      hardcode_direct_CXX=9836,309032
+      hardcode_direct_CXX=9843,309240
+	ld_shlibs_CXX=9853,309495
+	  archive_cmds_CXX=9858,309566
+	  archive_cmds_CXX=9861,309656
+	output_verbose_link_cmd=9872,310198
+	      archive_cmds_CXX=9879,310549
+	      archive_cmds_CXX=9882,310651
+	  ld_shlibs_CXX=9888,310908
+    esac9891,310936
+	archive_cmds_CXX=9897,311017
+	    archive_cmds_CXX=9908,311590
+    hardcode_libdir_flag_spec_CXX=9916,312121
+	archive_cmds_CXX=9927,312495
+	with_gnu_ld=9948,314059
+	archive_cmds_CXX=9958,314643
+    esac9975,315744
+    ld_shlibs_CXX=9979,315818
+    ld_shlibs_CXX=9983,315902
+	ld_shlibs_CXX=9989,316018
+	ld_shlibs_CXX=9993,316093
+    esac9995,316115
+      archive_cmds_CXX=9999,316220
+	archive_cmds_CXX=10016,316924
+	ld_shlibs_CXX=10029,317541
+	allow_undefined_flag_CXX=10032,317574
+	  allow_undefined_flag_CXX=10050,318737
+    esac10066,319512
+	archive_cmds_CXX=10076,319805
+	ld_shlibs_CXX=10088,320383
+	allow_undefined_flag_CXX=10091,320416
+	  allow_undefined_flag_CXX=10113,321975
+    esac10129,322760
+    ld_shlibs_CXX=10133,322832
+    archive_cmds_need_lc_CXX=10136,322868
+	ld_shlibs_CXX=10144,323054
+    esac10146,323076
+	ld_shlibs_CXX=10153,323197
+	ld_shlibs_CXX=10158,323283
+	ld_shlibs_CXX=10162,323358
+    esac10164,323380
+	no_undefined_flag_CXX=10170,323482
+	    whole_archive_flag_spec_CXX=10184,324283
+	link_all_deplibs_CXX=10187,324396
+	archive_cmds_CXX=10207,325328
+	  no_undefined_flag_CXX=10215,325686
+	    archive_cmds_CXX=10217,325788
+    esac10241,327316
+  sysv5OpenUNIX8* | sysv5UnixWare7* | sysv5uw[10243,327332
+    archive_cmds_need_lc_CXX=10244,327397
+	ld_shlibs_CXX=10251,327550
+	ld_shlibs_CXX=10255,327625
+    esac10257,327647
+    ld_shlibs_CXX=10261,327722
+    ld_shlibs_CXX=10265,327802
+  pre_test_object_deps_done=10296,328464
+	 prev=10311,328997
+	     compiler_lib_search_path_CXX=10324,329369
+	   postdeps_CXX=10334,329683
+	 pre_test_object_deps_done=10345,329956
+	   predep_objects_CXX=10351,330106
+	   postdep_objects_CXX=10357,330248
+*" -lc "*) archive_cmds_need_lc_CXX=10378,330563
+lt_prog_compiler_wl_CXX=10381,330611
+    lt_prog_compiler_wl_CXX=10390,330919
+	lt_prog_compiler_static_CXX=10398,331133
+      lt_prog_compiler_pic_CXX=10405,331379
+    beos* | cygwin* | irix5* | irix6* | nonstopux* | osf3* | osf4* | osf5*10407,331461
+      lt_prog_compiler_pic_CXX=10413,331768
+      lt_prog_compiler_pic_CXX=10418,331945
+      lt_prog_compiler_pic_CXX=10422,332067
+	lt_prog_compiler_pic_CXX=10426,332155
+      hppa*64*|ia64*10433,332340
+	lt_prog_compiler_pic_CXX=10436,332375
+      esac10438,332413
+      lt_prog_compiler_pic_CXX=10441,332440
+	  lt_prog_compiler_static_CXX=10450,332643
+	esac10461,333032
+	    lt_prog_compiler_pic_CXX=10466,333086
+	    lt_prog_compiler_pic_CXX=10470,333173
+	esac10474,333232
+      freebsd* | kfreebsd*-gnu)10476,333242
+	    lt_prog_compiler_wl_CXX=10482,333365
+	      lt_prog_compiler_pic_CXX=10485,333524
+	    lt_prog_compiler_wl_CXX=10489,333585
+	      lt_prog_compiler_pic_CXX=10496,333793
+	    esac10498,333840
+	esac10502,333872
+	    lt_prog_compiler_wl_CXX=10507,333947
+	esac10513,334093
+	    lt_prog_compiler_wl_CXX=10519,334171
+	    lt_prog_compiler_wl_CXX=10524,334289
+	    lt_prog_compiler_pic_CXX=10532,334559
+	esac10537,334659
+      lynxos*10539,334669
+      m88k*10541,334688
+	    lt_prog_compiler_pic_CXX=10546,334747
+	esac10550,334816
+      netbsd* | knetbsd*-gnu)10552,334826
+	    lt_prog_compiler_wl_CXX=10557,334919
+	    lt_prog_compiler_pic_CXX=10561,335007
+	    lt_prog_compiler_wl_CXX=10565,335086
+	esac10573,335341
+      psos*10575,335351
+	    lt_prog_compiler_pic_CXX=10580,335409
+	esac10584,335469
+	    lt_prog_compiler_pic_CXX=10590,335567
+	    lt_prog_compiler_pic_CXX=10596,335741
+	esac10600,335800
+	    lt_prog_compiler_pic_CXX=10606,335873
+	    lt_prog_compiler_pic_CXX=10611,335983
+	esac10615,336042
+	    lt_prog_compiler_pic_CXX=10621,336124
+	esac10625,336184
+      unixware*10627,336194
+      vxworks*10629,336215
+	lt_prog_compiler_can_build_shared_CXX=10632,336244
+  lt_prog_compiler_pic_works_CXX=10650,336801
+       lt_prog_compiler_pic_works_CXX=10672,337902
+     *) lt_prog_compiler_pic_CXX=10684,338212
+    lt_prog_compiler_pic_CXX=10687,338292
+    lt_prog_compiler_pic_CXX=10698,338513
+  lt_cv_prog_compiler_c_o_CXX=10707,338852
+       lt_cv_prog_compiler_c_o_CXX=10733,339947
+  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a;10965,348610
+  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a; $show "cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a"; cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a || exit 10965,348610
+  ;;10966,348922
+  library_names_spec=10969,348935
+  version_type=10975,349059
+  version_type=10989,349736
+      dldir=11000,350123
+      soname_spec=11016,350778
+        sys_lib_search_path_spec=11025,351497
+      library_names_spec=11032,351780
+    esac11034,351918
+    library_names_spec=11038,351940
+  dynamic_linker=11041,352067
+  dynamic_linker=11047,352222
+    sys_lib_search_path_spec=11058,352739
+  version_type=11066,353149
+  dynamic_linker=11075,353441
+  version_type=11079,353482
+  objformat=11091,353864
+      library_names_spec=11100,354214
+  shlibpath_var=11104,354356
+    shlibpath_overrides_runpath=11110,354497
+    shlibpath_overrides_runpath=11114,354586
+  esac11117,354655
+  version_type=11121,354674
+  version_type=11133,355126
+      sys_lib_search_path_spec=11146,355638
+     shrext_cmds=11153,355888
+    shrext_cmds=11164,356449
+  postinstall_cmds=11173,356882
+    nonstopux*) version_type=11178,356973
+		version_type=11181,357064
+  need_lib_prefix=11186,357125
+      libsuff=11197,357576
+      libsuff=11199,357675
+      libsuff=11201,357768
+    *) libsuff=11202,357816
+    esac11203,357866
+  shlibpath_var=11206,357889
+  dynamic_linker=11215,358248
+  version_type=11220,358308
+    lt_ld_extra=11235,358931
+  version_type=11249,359540
+  version_type=11261,359921
+    library_names_spec=11265,360042
+  version_type=11279,360592
+  version_type=11286,360824
+  version_type=11296,361151
+	shlibpath_overrides_runpath=11305,361575
+	shlibpath_overrides_runpath=11308,361620
+    shlibpath_overrides_runpath=11312,361675
+  libname_spec=11317,361728
+  version_type=11326,361933
+  version_type=11337,362389
+  version_type=11344,362641
+  version_type=11357,363077
+    need_lib_prefix=11363,363358
+  version_type=11369,363452
+      need_lib_prefix=11381,363888
+      need_lib_prefix=11384,363936
+  esac11389,364089
+    version_type=11394,364141
+  version_type=11402,364372
+  dynamic_linker=11409,364619
+    hardcode_action_CXX=11431,365579
+  enable_fast_install=11446,366045
+  enable_fast_install=11450,366197
+  test -z "$old_striplib" && old_striplib=11458,366485
+         striplib=11467,366812
+  enable_dlopen=11483,367129
+    lt_cv_dlopen=11498,367397
+    lt_cv_dlopen=11503,367469
+  ac_check_lib_save_LIBS=11514,367798
+main 11531,368246
+	 { ac_try=11547,368597
+	 { ac_try=11553,368831
+  ac_cv_lib_dl_dlopen=11559,369036
+  lt_cv_dlopen=11573,369423
+#define shl_load 11598,370065
+char shl_load 11620,370673
+main 11634,371035
+	 { ac_try=11650,371397
+	 { ac_try=11656,371631
+  ac_cv_func_shl_load=11662,371836
+  lt_cv_dlopen=11675,372194
+  ac_check_lib_save_LIBS=11682,372441
+main 11699,372892
+	 { ac_try=11715,373245
+	 { ac_try=11721,373479
+  ac_cv_lib_dld_shl_load=11727,373684
+  lt_cv_dlopen=11741,374086
+#define dlopen 11756,374621
+char dlopen 11778,375221
+main 11792,375575
+	 { ac_try=11808,375935
+	 { ac_try=11814,376169
+  ac_cv_func_dlopen=11820,376374
+  lt_cv_dlopen=11833,376722
+  ac_check_lib_save_LIBS=11840,376958
+main 11857,377406
+	 { ac_try=11873,377757
+	 { ac_try=11879,377991
+  ac_cv_lib_dl_dlopen=11885,378196
+  lt_cv_dlopen=11899,378583
+  ac_check_lib_save_LIBS=11906,378850
+main 11923,379300
+	 { ac_try=11939,379651
+	 { ac_try=11945,379885
+  ac_cv_lib_svld_dlopen=11951,380090
+  lt_cv_dlopen=11965,380487
+  ac_check_lib_save_LIBS=11972,380759
+main 11989,381210
+	 { ac_try=12005,381563
+	 { ac_try=12011,381797
+  ac_cv_lib_dld_dld_link=12017,382002
+  lt_cv_dlopen=12031,382404
+    enable_dlopen=12053,382561
+  lt_cv_dlopen_self=12075,383194
+  lt_dlunknown=0; lt_dlno_uscore=12077,383225
+  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=12077,383225
+#  define LT_DLGLOBAL	12090,383471
+#    define LT_DLGLOBAL	12093,383531
+#    define LT_DLGLOBAL	12095,383574
+#    define LT_DLLAZY_OR_NOW	12103,383780
+#      define LT_DLLAZY_OR_NOW	12106,383847
+#        define LT_DLLAZY_OR_NOW	12109,383919
+#          define LT_DLLAZY_OR_NOW	12112,383995
+#          define LT_DLLAZY_OR_NOW	12114,384051
+void fnord(12125,384199
+int main 12126,384225
+  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;12145,384673
+    (./conftest;12146,384746
+    (./conftest; exit;12146,384746
+    lt_status=12147,384783
+      x$lt_dlneed_uscore) lt_cv_dlopen_self=12150,384873
+      x$lt_unknown|x*) lt_cv_dlopen_self=12151,384924
+    lt_cv_dlopen_self=12155,385014
+      LDFLAGS=12166,385214
+  lt_cv_dlopen_self_static=12173,385589
+  lt_dlunknown=0; lt_dlno_uscore=12175,385627
+  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=12175,385627
+#  define LT_DLGLOBAL	12188,385873
+#    define LT_DLGLOBAL	12191,385933
+#    define LT_DLGLOBAL	12193,385976
+#    define LT_DLLAZY_OR_NOW	12201,386182
+#      define LT_DLLAZY_OR_NOW	12204,386249
+#        define LT_DLLAZY_OR_NOW	12207,386321
+#          define LT_DLLAZY_OR_NOW	12210,386397
+#          define LT_DLLAZY_OR_NOW	12212,386453
+void fnord(12223,386601
+int main 12224,386627
+  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;12243,387075
+    (./conftest;12244,387148
+    (./conftest; exit;12244,387148
+    lt_status=12245,387185
+      x$lt_dlneed_uscore) lt_cv_dlopen_self_static=12248,387282
+      x$lt_unknown|x*) lt_cv_dlopen_self_static=12249,387340
+    lt_cv_dlopen_self_static=12253,387437
+  yes|no) enable_dlopen_self=12271,387744
+  *) enable_dlopen_self=12272,387795
+  yes|no) enable_dlopen_self_static=12276,387874
+  *) enable_dlopen_self_static=12277,387939
+    lt_echo=12364,391055
+cfgfile=12368,391166
+ac_ext=12681,400424
+ac_ext=12706,401000
+    archive_cmds=12775,403059
+    lt_prog_compiler_wl_F77=12806,403989
+	lt_prog_compiler_static_F77=12814,404205
+      lt_prog_compiler_pic_F77=12822,404452
+    beos* | cygwin* | irix5* | irix6* | nonstopux* | osf3* | osf4* | osf5*12825,404535
+      lt_prog_compiler_pic_F77=12832,404843
+      lt_prog_compiler_pic_F77=12838,405021
+      lt_prog_compiler_can_build_shared_F77=12844,405215
+	lt_prog_compiler_pic_F77=12850,405342
+      hppa*64*|ia64*12858,405528
+	lt_prog_compiler_pic_F77=12862,405581
+      esac12864,405619
+      lt_prog_compiler_pic_F77=12868,405647
+      lt_prog_compiler_wl_F77=12875,405820
+	lt_prog_compiler_static_F77=12878,405933
+      lt_prog_compiler_pic_F77=12887,406241
+      lt_prog_compiler_wl_F77=12891,406329
+	lt_prog_compiler_pic_F77=12899,406535
+      lt_prog_compiler_static_F77=12903,406663
+      lt_prog_compiler_wl_F77=12907,406764
+      lt_prog_compiler_pic_F77=12913,406913
+	lt_prog_compiler_wl_F77=12920,407056
+        lt_prog_compiler_wl_F77=12925,407184
+      esac12929,407317
+      lt_prog_compiler_wl_F77=12933,407365
+      lt_prog_compiler_pic_F77=12939,407506
+      lt_prog_compiler_wl_F77=12944,407609
+      lt_prog_compiler_wl_F77=12950,407753
+      lt_prog_compiler_wl_F77=12956,407936
+	lt_prog_compiler_pic_F77=12963,408114
+      lt_prog_compiler_pic_F77=12969,408226
+      lt_prog_compiler_can_build_shared_F77=12974,408326
+  lt_prog_compiler_pic_works_F77=12992,408893
+       lt_prog_compiler_pic_works_F77=13014,409988
+     *) lt_prog_compiler_pic_F77=13026,410298
+    lt_prog_compiler_pic_F77=13029,410378
+    lt_prog_compiler_pic_F77=13040,410599
+  lt_cv_prog_compiler_c_o_F77=13049,410932
+       lt_cv_prog_compiler_c_o_F77=13075,412027
+  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a;14106,454463
+  finish_eval='for lib in `ls $libdir/*.ixlibrary 2>/dev/null`; do libname=`$echo "X$lib" | $Xsed -e '\''s%^.*/\([^/]*\)\.ixlibrary$%\1%'\''`; test $rm /sys/libs/${libname}_ixlibrary.a; $show "cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a"; cd /sys/libs && $LN_S $lib ${libname}_ixlibrary.a || exit 14106,454463
+  ;;14107,454775
+  library_names_spec=14110,454788
+  version_type=14116,454912
+  version_type=14130,455589
+      dldir=14141,455976
+      soname_spec=14157,456631
+        sys_lib_search_path_spec=14166,457350
+      library_names_spec=14173,457633
+    esac14175,457771
+    library_names_spec=14179,457793
+  dynamic_linker=14182,457920
+  dynamic_linker=14188,458075
+    sys_lib_search_path_spec=14199,458592
+  version_type=14207,459002
+  dynamic_linker=14216,459294
+  version_type=14220,459335
+  objformat=14232,459717
+      library_names_spec=14241,460067
+  shlibpath_var=14245,460209
+    shlibpath_overrides_runpath=14251,460350
+    shlibpath_overrides_runpath=14255,460439
+  esac14258,460508
+  version_type=14262,460527
+  version_type=14274,460979
+      sys_lib_search_path_spec=14287,461491
+     shrext_cmds=14294,461741
+    shrext_cmds=14305,462302
+  postinstall_cmds=14314,462735
+    nonstopux*) version_type=14319,462826
+		version_type=14322,462917
+  need_lib_prefix=14327,462978
+      libsuff=14338,463429
+      libsuff=14340,463528
+      libsuff=14342,463621
+    *) libsuff=14343,463669
+    esac14344,463719
+  shlibpath_var=14347,463742
+  dynamic_linker=14356,464101
+  version_type=14361,464161
+    lt_ld_extra=14376,464784
+  version_type=14390,465393
+  version_type=14402,465774
+    library_names_spec=14406,465895
+  version_type=14420,466445
+  version_type=14427,466677
+  version_type=14437,467004
+	shlibpath_overrides_runpath=14446,467428
+	shlibpath_overrides_runpath=14449,467473
+    shlibpath_overrides_runpath=14453,467528
+  libname_spec=14458,467581
+  version_type=14467,467786
+  version_type=14478,468242
+  version_type=14485,468494
+  version_type=14498,468930
+    need_lib_prefix=14504,469211
+  version_type=14510,469305
+      need_lib_prefix=14522,469741
+      need_lib_prefix=14525,469789
+  esac14530,469942
+    version_type=14535,469994
+  version_type=14543,470225
+  dynamic_linker=14550,470472
+    hardcode_action_F77=14572,471432
+  enable_fast_install=14587,471898
+  enable_fast_install=14591,472050
+  test -z "$old_striplib" && old_striplib=14599,472338
+         striplib=14608,472665
+    lt_echo=14707,476006
+cfgfile=14711,476117
+ac_ext=15024,485375
+ac_ext=15043,485757
+  lt_prog_compiler_no_builtin_flag_GCJ=15077,486555
+  lt_cv_prog_compiler_rtti_exceptions=15085,486893
+       lt_cv_prog_compiler_rtti_exceptions=15107,487993
+    lt_prog_compiler_no_builtin_flag_GCJ=15117,488266
+    lt_prog_compiler_wl_GCJ=15132,488651
+	lt_prog_compiler_static_GCJ=15140,488867
+      lt_prog_compiler_pic_GCJ=15148,489114
+    beos* | cygwin* | irix5* | irix6* | nonstopux* | osf3* | osf4* | osf5*15151,489197
+      lt_prog_compiler_pic_GCJ=15158,489505
+      lt_prog_compiler_pic_GCJ=15164,489683
+      lt_prog_compiler_can_build_shared_GCJ=15170,489877
+	lt_prog_compiler_pic_GCJ=15176,490004
+      hppa*64*|ia64*15184,490190
+	lt_prog_compiler_pic_GCJ=15188,490243
+      esac15190,490281
+      lt_prog_compiler_pic_GCJ=15194,490309
+      lt_prog_compiler_wl_GCJ=15201,490482
+	lt_prog_compiler_static_GCJ=15204,490595
+      lt_prog_compiler_pic_GCJ=15213,490903
+      lt_prog_compiler_wl_GCJ=15217,490991
+	lt_prog_compiler_pic_GCJ=15225,491197
+      lt_prog_compiler_static_GCJ=15229,491325
+      lt_prog_compiler_wl_GCJ=15233,491426
+      lt_prog_compiler_pic_GCJ=15239,491575
+	lt_prog_compiler_wl_GCJ=15246,491718
+        lt_prog_compiler_wl_GCJ=15251,491846
+      esac15255,491979
+      lt_prog_compiler_wl_GCJ=15259,492027
+      lt_prog_compiler_pic_GCJ=15265,492168
+      lt_prog_compiler_wl_GCJ=15270,492271
+      lt_prog_compiler_wl_GCJ=15276,492415
+      lt_prog_compiler_wl_GCJ=15282,492598
+	lt_prog_compiler_pic_GCJ=15289,492776
+      lt_prog_compiler_pic_GCJ=15295,492888
+      lt_prog_compiler_can_build_shared_GCJ=15300,492988
+  lt_prog_compiler_pic_works_GCJ=15318,493555
+       lt_prog_compiler_pic_works_GCJ=15340,494650
+     *) lt_prog_compiler_pic_GCJ=15352,494960
+    lt_prog_compiler_pic_GCJ=15355,495040
+    lt_prog_compiler_pic_GCJ=15366,495261
+  lt_cv_prog_compiler_c_o_GCJ=15375,495594
+       lt_cv_prog_compiler_c_o_GCJ=15401,496689
+	 { ac_try=15783,511567
+	 { ac_try=15789,511799
+aix_libpath=15796,512007
+if test -z "$aix_libpath"; then aix_libpath=15799,512194
+if test -z "$aix_libpath"; then aix_libpath=15808,512532
+       hardcode_libdir_flag_spec_GCJ=15810,512597
+	  hardcode_libdir_flag_spec_GCJ=15814,512985
+	 { ac_try=15843,513869
+	 { ac_try=15849,514101
+aix_libpath=15856,514309
+if test -z "$aix_libpath"; then aix_libpath=15859,514496
+if test -z "$aix_libpath"; then aix_libpath=15868,514834
+	 hardcode_libdir_flag_spec_GCJ=15870,514899
+      archive_cmds_GCJ=15887,515785
+      export_dynamic_flag_spec_GCJ=15895,516382
+      hardcode_libdir_flag_spec_GCJ=15903,516667
+      archive_cmds_need_lc_GCJ=15921,517493
+      	allow_undefined_flag_GCJ=15928,517714
+            allow_undefined_flag_GCJ=15935,517965
+      fi15938,518058
+    	lt_int_apple_cc_single_mod=15941,518082
+    	  lt_int_apple_cc_single_mod=15944,518222
+    	  archive_cmds_GCJ=15947,518326
+          archive_expsym_cmds_GCJ=15954,519031
+      archive_cmds_GCJ=15970,520365
+      ld_shlibs_GCJ=15976,520557
+      archive_cmds_GCJ=15984,520864
+      archive_cmds_GCJ=15992,521177
+      archive_cmds_GCJ=16000,521464
+	archive_cmds_GCJ=16008,521712
+	  archive_cmds_GCJ=16026,522595
+	  archive_cmds_GCJ=16029,522702
+	  archive_cmds_GCJ=16035,522895
+	  archive_cmds_GCJ=16038,522985
+	  hardcode_libdir_flag_spec_GCJ=16045,523177
+	  hardcode_libdir_flag_spec_GCJ=16052,523390
+	  hardcode_libdir_flag_spec_GCJ=16061,523636
+      fi16071,523940
+	archive_cmds_GCJ=16076,524026
+	archive_cmds_GCJ=16088,524744
+      archive_cmds_GCJ=16098,525069
+      hardcode_direct_GCJ=16106,525343
+	archive_cmds_GCJ=16109,525527
+	   archive_cmds_GCJ=16119,525929
+      fi16123,526091
+      hardcode_libdir_flag_spec_GCJ=16127,526120
+	allow_undefined_flag_GCJ=16136,526835
+	allow_undefined_flag_GCJ=16148,527631
+      archive_cmds_GCJ=16164,528824
+      no_undefined_flag_GCJ=16172,529079
+	archive_cmds_GCJ=16174,529151
+	whole_archive_flag_spec_GCJ=16187,530090
+      link_all_deplibs_GCJ=16189,530179
+	archive_cmds_GCJ=16196,530399
+	  archive_cmds_GCJ=16209,530794
+	  archive_cmds_GCJ=16215,531009
+	  archive_cmds_GCJ=16220,531177
+      runpath_var=16224,531351
+      archive_cmds_GCJ=16229,531443
+	archive_cmds_GCJ=16236,531665
+      archive_cmds_GCJ=16245,531880
+   sysv5OpenUNIX8* | sysv5UnixWare7* |  sysv5uw[16253,532119
+      no_undefined_flag_GCJ=16254,532186
+	archive_cmds_GCJ=16256,532267
+      no_undefined_flag_GCJ=16265,532562
+      archive_cmds_GCJ=16277,533234
+      ld_shlibs_GCJ=16283,533418
+  variables_saved_for_relink=16294,533690
+  (exit $ac_status); } 2>conftest.err;16323,534723
+        soname=16324,534767
+	  archive_cmds_need_lc_GCJ=16342,535402
+  fi16355,535753
+library_names_spec=16361,535906
+  sys_lib_search_path_spec=16375,536216
+    sys_lib_search_path_spec=16381,536692
+  version_type=16406,537439
+    library_names_spec=16412,537585
+	   echo '#endif'; } | ${CC} -E - | grep yes > /dev/null;16424,538225
+	can_build_shared=16427,538302
+      library_names_spec=16438,538803
+  library_names_spec=16450,539250
+  library_names_spec=16456,539684
+  version_type=16462,539808
+  version_type=16476,540485
+      dldir=16487,540872
+      soname_spec=16503,541527
+        sys_lib_search_path_spec=16512,542246
+      library_names_spec=16519,542529
+    esac16521,542667
+    library_names_spec=16525,542689
+  dynamic_linker=16528,542816
+  dynamic_linker=16534,542971
+    sys_lib_search_path_spec=16545,543488
+  version_type=16553,543898
+  dynamic_linker=16562,544190
+  version_type=16566,544231
+  objformat=16578,544613
+      library_names_spec=16587,544963
+  shlibpath_var=16591,545105
+    shlibpath_overrides_runpath=16597,545246
+    shlibpath_overrides_runpath=16601,545335
+  esac16604,545404
+  version_type=16608,545423
+  version_type=16620,545875
+      sys_lib_search_path_spec=16633,546387
+     shrext_cmds=16640,546637
+    shrext_cmds=16651,547198
+  postinstall_cmds=16660,547631
+    nonstopux*) version_type=16665,547722
+		version_type=16668,547813
+  need_lib_prefix=16673,547874
+      libsuff=16684,548325
+      libsuff=16686,548424
+      libsuff=16688,548517
+    *) libsuff=16689,548565
+    esac16690,548615
+  shlibpath_var=16693,548638
+  dynamic_linker=16702,548997
+  version_type=16707,549057
+    lt_ld_extra=16722,549680
+  version_type=16736,550289
+  version_type=16748,550670
+    library_names_spec=16752,550791
+  version_type=16766,551341
+  version_type=16773,551573
+  version_type=16783,551900
+	shlibpath_overrides_runpath=16792,552324
+	shlibpath_overrides_runpath=16795,552369
+    shlibpath_overrides_runpath=16799,552424
+  libname_spec=16804,552477
+  version_type=16813,552682
+  version_type=16824,553138
+  version_type=16831,553390
+  version_type=16844,553826
+    need_lib_prefix=16850,554107
+  version_type=16856,554201
+      need_lib_prefix=16868,554637
+      need_lib_prefix=16871,554685
+  esac16876,554838
+    version_type=16881,554890
+  version_type=16889,555121
+  dynamic_linker=16896,555368
+    hardcode_action_GCJ=16918,556328
+  enable_fast_install=16933,556794
+  enable_fast_install=16937,556946
+  test -z "$old_striplib" && old_striplib=16945,557234
+         striplib=16954,557561
+  enable_dlopen=16970,557878
+    lt_cv_dlopen=16985,558146
+    lt_cv_dlopen=16990,558218
+  ac_check_lib_save_LIBS=17001,558547
+main 17018,558995
+	 { ac_try=17034,559346
+	 { ac_try=17040,559578
+  ac_cv_lib_dl_dlopen=17046,559783
+  lt_cv_dlopen=17060,560170
+#define shl_load 17085,560812
+char shl_load 17107,561420
+main 17121,561782
+	 { ac_try=17137,562144
+	 { ac_try=17143,562376
+  ac_cv_func_shl_load=17149,562581
+  lt_cv_dlopen=17162,562939
+  ac_check_lib_save_LIBS=17169,563186
+main 17186,563637
+	 { ac_try=17202,563990
+	 { ac_try=17208,564222
+  ac_cv_lib_dld_shl_load=17214,564427
+  lt_cv_dlopen=17228,564829
+#define dlopen 17243,565364
+char dlopen 17265,565964
+main 17279,566318
+	 { ac_try=17295,566678
+	 { ac_try=17301,566910
+  ac_cv_func_dlopen=17307,567115
+  lt_cv_dlopen=17320,567463
+  ac_check_lib_save_LIBS=17327,567699
+main 17344,568147
+	 { ac_try=17360,568498
+	 { ac_try=17366,568730
+  ac_cv_lib_dl_dlopen=17372,568935
+  lt_cv_dlopen=17386,569322
+  ac_check_lib_save_LIBS=17393,569589
+main 17410,570039
+	 { ac_try=17426,570390
+	 { ac_try=17432,570622
+  ac_cv_lib_svld_dlopen=17438,570827
+  lt_cv_dlopen=17452,571224
+  ac_check_lib_save_LIBS=17459,571496
+main 17476,571947
+	 { ac_try=17492,572300
+	 { ac_try=17498,572532
+  ac_cv_lib_dld_dld_link=17504,572737
+  lt_cv_dlopen=17518,573139
+    enable_dlopen=17540,573296
+  lt_cv_dlopen_self=17562,573929
+  lt_dlunknown=0; lt_dlno_uscore=17564,573960
+  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=17564,573960
+#  define LT_DLGLOBAL	17577,574206
+#    define LT_DLGLOBAL	17580,574266
+#    define LT_DLGLOBAL	17582,574309
+#    define LT_DLLAZY_OR_NOW	17590,574515
+#      define LT_DLLAZY_OR_NOW	17593,574582
+#        define LT_DLLAZY_OR_NOW	17596,574654
+#          define LT_DLLAZY_OR_NOW	17599,574730
+#          define LT_DLLAZY_OR_NOW	17601,574786
+void fnord(17612,574934
+int main 17613,574960
+  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;17632,575408
+    (./conftest;17633,575481
+    (./conftest; exit;17633,575481
+    lt_status=17634,575518
+      x$lt_dlneed_uscore) lt_cv_dlopen_self=17637,575608
+      x$lt_unknown|x*) lt_cv_dlopen_self=17638,575659
+    lt_cv_dlopen_self=17642,575749
+      LDFLAGS=17653,575949
+  lt_cv_dlopen_self_static=17660,576324
+  lt_dlunknown=0; lt_dlno_uscore=17662,576362
+  lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=17662,576362
+#  define LT_DLGLOBAL	17675,576608
+#    define LT_DLGLOBAL	17678,576668
+#    define LT_DLGLOBAL	17680,576711
+#    define LT_DLLAZY_OR_NOW	17688,576917
+#      define LT_DLLAZY_OR_NOW	17691,576984
+#        define LT_DLLAZY_OR_NOW	17694,577056
+#          define LT_DLLAZY_OR_NOW	17697,577132
+#          define LT_DLLAZY_OR_NOW	17699,577188
+void fnord(17710,577336
+int main 17711,577362
+  (exit $ac_status); } && test -s conftest${ac_exeext} 2>/dev/null;17730,577810
+    (./conftest;17731,577883
+    (./conftest; exit;17731,577883
+    lt_status=17732,577920
+      x$lt_dlneed_uscore) lt_cv_dlopen_self_static=17735,578017
+      x$lt_unknown|x*) lt_cv_dlopen_self_static=17736,578075
+    lt_cv_dlopen_self_static=17740,578172
+  yes|no) enable_dlopen_self=17758,578479
+  *) enable_dlopen_self=17759,578530
+  yes|no) enable_dlopen_self_static=17763,578609
+  *) enable_dlopen_self_static=17764,578674
+    lt_echo=17851,581790
+cfgfile=17855,581901
+ac_ext=18168,591159
+ac_ext=18186,591486
+    lt_echo=18296,595161
+cfgfile=18300,595272
+ac_ext=18613,604489
+   { (exit 18626,604871
+   { (exit 1); exit 18626,604871
+      available_tags=18632,605013
+   { (exit 18646,605537
+   { (exit 1); exit 18646,605537
+LIBTOOL_DEPS=18653,605626
+main 18699,606255
+	 { ac_try=18715,606583
+	 { ac_try=18721,606815
+  ac_cv_header_stdc=18727,607021
+  ac_cv_header_stdc=18751,607580
+  ac_cv_header_stdc=18772,607997
+# define ISLOWER(ISLOWER18791,608402
+# define TOUPPER(TOUPPER18792,608449
+# define ISLOWER(ISLOWER18794,608514
+# define TOUPPER(TOUPPER18798,608648
+#define XOR(XOR18801,608710
+main 18803,608765
+  (exit $ac_status); } && { ac_try=18818,609080
+ac_cv_header_stdc=18831,609466
+# define WEXITSTATUS(WEXITSTATUS18861,610257
+# define WIFEXITED(WIFEXITED18864,610341
+main 18868,610408
+	 { ac_try=18886,610800
+	 { ac_try=18892,611032
+  ac_cv_header_sys_wait_h=18898,611238
+	 { ac_try=18959,612851
+	 { ac_try=18965,613083
+  ac_header_compiler=18971,613289
+  (exit $ac_status); } >/dev/null;19000,614157
+    ac_cpp_err=19002,614229
+  ac_header_preproc=19011,614396
+    ac_header_preproc=19029,615152
+main 19088,617441
+  typedef int charset[charset19093,617562
+  struct point point19099,617727
+    typedef const int *iptr;iptr19123,618479
+    struct s s19129,618660
+	 { ac_try=19150,619137
+	 { ac_try=19156,619369
+  ac_cv_c_const=19162,619575
+main 19194,620295
+	 { ac_try=19213,620685
+	 { ac_try=19219,620917
+  ac_cv_type_size_t=19225,621123
+main 19262,622004
+	 { ac_try=19279,622362
+	 { ac_try=19285,622594
+  ac_cv_header_time=19291,622800
+main 19325,623642
+	 { ac_try=19341,623996
+	 { ac_try=19347,624228
+  ac_cv_struct_tm=19353,624434
+#define gethostbyname 19387,625347
+char gethostbyname 19409,625975
+main 19423,626357
+	 { ac_try=19439,626724
+	 { ac_try=19445,626956
+  ac_cv_func_gethostbyname=19451,627161
+  ac_check_lib_save_LIBS=19472,627785
+main 19489,628241
+	 { ac_try=19505,628599
+	 { ac_try=19511,628831
+  ac_cv_lib_nsl_gethostbyname=19517,629036
+  LIBS=19535,629524
+#define setsockopt 19554,630051
+char setsockopt 19576,630667
+main 19590,631037
+	 { ac_try=19606,631401
+	 { ac_try=19612,631633
+  ac_cv_func_setsockopt=19618,631838
+  ac_check_lib_save_LIBS=19639,632447
+main 19656,632903
+	 { ac_try=19672,633258
+	 { ac_try=19678,633490
+  ac_cv_lib_socket_setsockopt=19684,633695
+  LIBS=19702,634186
+#define $ac_func 19737,634891
+char $ac_func 19759,635499
+main 19773,635861
+	 { ac_try=19789,636223
+	 { ac_try=19795,636455
+                                                            ac_config_files=19827,637142
+if diff $cache_file confcache >/dev/null 2>&1; then 19873,638995
+  ac_vpsub=19892,639723
+s,19919,640460
+s,19920,640471
+s,19921,640482
+s,\$,$$,19921,640482
+ac_LF_and_DOT=19930,640851
+DEFS=19931,640880
+debug=19963,641790
+  NULLCMD=19977,642101
+DUALCASE=19984,642353
+  as_unset=19988,642484
+    eval $as_var=20007,642899
+  as_expr=20015,643044
+  as_basename=20021,643158
+
+autom4te.cache/traces.0,153
+m4trace:configure.in:2: -1- m4_pattern_forbid([^_?A[2,61
+m4trace:configure.in:2: -1- m4_pattern_forbid([^LIBOBJS$], [do not use LIBOBJS directly,4,176
