@@ -19,6 +19,7 @@ _fcpLog.c \
 _fcpRecvResponse.c \
 _fcpSock.c \
 _fcpUtil.c \
+_fcpFile.c \
 _fcpMetadata.c \
 _fcpMimetype.c \
 _fcpGet.c \

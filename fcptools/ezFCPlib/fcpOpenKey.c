@@ -114,7 +114,11 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
   /* store final key uri for later usage */
   if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;
   if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
-	
+
+	/* link the files */
+	_fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
+	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
+
 	/* that's it for now */
   
   return 0;

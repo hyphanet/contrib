@@ -154,7 +154,7 @@ int _fcpCopyFile(char *dest, char *src)
 
 #ifdef WIN32
 
-	if (CopyFile(src, dest, 0) == 0) {
+	if (CopyFile(src, dest, FALSE) == 0) {
 		_fcpLog(FCP_LOG_DEBUG, "couldn't CopyFile()");
 		return 0;
 	}
@@ -171,6 +171,8 @@ int _fcpCopyFile(char *dest, char *src)
 	int count;
 	int bytes;
 
+	dfd = sfd = -1;
+
 	if (!dest) {
 		_fcpLog(FCP_LOG_DEBUG, "OOPS: dest: %s", dest);
 		return 0;
@@ -182,14 +184,13 @@ int _fcpCopyFile(char *dest, char *src)
 	}
 
 	if ((dfd = open(dest, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE)) == -1) {
-
 		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", dest);
 		return -1;
 	}
 
 	if ((sfd = open(src, _FCP_READFILE_FLAGS)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", src);
-		return -1;
+		goto cleanup;
 	}
 	
 	for (bytes = 0; (count = read(sfd, buf, 8192)) > 0; bytes += count)
@@ -197,15 +198,22 @@ int _fcpCopyFile(char *dest, char *src)
 
 	if (count == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "a read returned an error");
-		return -1;
+		goto cleanup;
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "_fcpCopyFile() copied %d bytes", bytes);
 
-	close(sfd);
-	close(dfd);
+	if (sfd != -1) close(sfd);
+	if (dfd != -1) close(dfd);
 
 	return bytes;
+
+ cleanup:
+
+	if (sfd != -1) close(sfd);
+	if (dfd != -1) close(dfd);
+
+	return -1;
 
 #endif
 }
@@ -272,19 +280,39 @@ void _fcpUnlink(hBlock *h)
 	h->fd = -1;
 }
 
-int _fcpDeleteFile(char *file)
+int _fcpDeleteFile(hBlock *h)
 {
 	int rc;
 
-	/* one way or another, set rc=0 on success, -1 on failure*/
+	rc = 0;
+
+	if (h->fd == 0) {
+		_fcpLog(FCP_LOG_DEBUG, "fd==0; this condition should never be reached");
+		return -1;
+	}
+	if (h->fd > 0) {
+		_fcpLog(FCP_LOG_DEBUG, "fd>0; this file needs to be closed first");
+
+		close(h->fd);
+		h->fd = -1;
+	}
+
+	if (h->filename[0] != 0) {
+		/* one way or another, set rc=0 on success, -1 on failure*/
+
 #ifdef WIN32
-	rc = (DeleteFile(file) == TRUE ? 0 : 1);
+		rc = (DeleteFile(h->filename) != 0 ? 0 : 1);
+		if (rc != 0) rc = GetLastError();
 #else
-	rc = unlink(file);
+		rc = unlink(h->filename);
 #endif
 
+		h->filename[0] = 0;
+	}
+	else _fcpLog(FCP_LOG_DEBUG, "tmpfile doesn't exist apparantly");
+
 	if (rc != 0) {
-		_fcpLog(FCP_LOG_DEBUG, "could not DeleteFile()");
+		_fcpLog(FCP_LOG_DEBUG, "could not _fcpDeleteFile(): error %d", rc);
 		return -1;
 	}
 

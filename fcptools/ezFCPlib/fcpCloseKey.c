@@ -67,6 +67,10 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
 
+	/* unlink both files */
+	_fcpUnlink(hfcp->key->tmpblock);
+	_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 	key_size  = hfcp->key->size;
 	meta_size = hfcp->key->metadata->size;
 
@@ -101,12 +105,20 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		
 	_fcpLog(FCP_LOG_VERBOSE, "Uri: %s", hfcp->key->target_uri->uri_str);
 	hfcp->key->size = hfcp->key->metadata->size = 0;
-	
+
+	/* delete the tmpblocks before exiting */
+	_fcpDeleteFile(hfcp->key->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+
 	return 0;
 
  cleanup: /* rc should be set to an FCP_ERR code */
 	
 	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
+
+	/* delete the tmpblocks before exiting */
+	_fcpDeleteFile(hfcp->key->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
 
 	return rc;
 }

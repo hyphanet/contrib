@@ -115,7 +115,7 @@ extern int   _fcpTmpfile(char *filename);
 extern long  _fcpFilesize(char *filename);
 
 extern int   _fcpCopyFile(char *dest, char *src);
-extern int   _fcpDeleteFile(char *file);
+extern int   _fcpDeleteFile(hBlock *h);
 
 extern long  xtol(char *);
 extern int   memtoi(char *);

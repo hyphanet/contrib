@@ -142,7 +142,6 @@ int put_file(hFCP *hfcp, char *uri)
 			} /* finished writing metadata (if any) */
 
 			_fcpLog(FCP_LOG_VERBOSE, "Wrote metadata");
-			_fcpUnlink(hfcp->key->metadata->tmpblock);
 		}
 #endif
 		
@@ -179,7 +178,6 @@ int put_file(hFCP *hfcp, char *uri)
 			}
 
 			_fcpLog(FCP_LOG_VERBOSE, "Wrote Key data");
-			_fcpUnlink(hfcp->key->tmpblock);
 		}
 
 		do {
@@ -289,6 +287,9 @@ int put_file(hFCP *hfcp, char *uri)
 	}
 
   _fcpSockDisconnect(hfcp);
+	_fcpUnlink(hfcp->key->tmpblock);
+	_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 	_fcpLog(FCP_LOG_DEBUG, "put_file() - inserted key: %s", hfcp->key->tmpblock->uri->uri_str);
 
 	return 0;
@@ -297,10 +298,11 @@ int put_file(hFCP *hfcp, char *uri)
 
 	/* make sure these files are closed.. don't worry (here)
 	if the file descriptors *are* already closed */
-	_fcpUnlink(hfcp->key->tmpblock);
-	_fcpUnlink(hfcp->key->metadata->tmpblock);
 	
   _fcpSockDisconnect(hfcp);
+	_fcpUnlink(hfcp->key->tmpblock);
+	_fcpUnlink(hfcp->key->metadata->tmpblock);
+
 	_fcpLog(FCP_LOG_DEBUG, "abnormal termination");
 
 	return rc;
@@ -385,9 +387,6 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 	fcpWriteMetadata(tmp_hfcp, buf, strlen(buf));
 	
-	/*tmpfile_unlink(tmp_hfcp->key);
-	tmpfile_link(tmp_hfcp->key, O_RDONLY);*/
-
 	rc = 0;
 	
 	/* now insert the metadata which contains the redirect info */
@@ -943,10 +942,7 @@ static int fec_make_metadata(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "wrote FECMakeMetadata message to temporary file");
 
-	/*tmpfile_unlink(tmp_hfcp->key);*/
 	meta_len = tmp_hfcp->key->size;
-
-	/*tmpfile_link(tmp_hfcp->key, O_RDONLY);*/
 
   if (_fcpSockConnect(tmp_hfcp) != 0) return -1;
 
@@ -977,9 +973,6 @@ static int fec_make_metadata(hFCP *hfcp)
 		bytes -= rc;
 	}
 
-	/*tmpfile_unlink(tmp_hfcp->key);
-	tmpfile_link(tmp_hfcp->key, O_WRONLY);*/
-	
 	/* expecting a mademetadata response */
 	rc = _fcpRecvResponse(tmp_hfcp);
 	
@@ -1029,9 +1022,6 @@ static int fec_make_metadata(hFCP *hfcp)
 	}
 	
 	_fcpLog(FCP_LOG_DEBUG, "metadata written to temporary file");
-
-	/*tmpfile_unlink(tmp_hfcp->key);
-	tmpfile_link(tmp_hfcp->key, O_RDONLY);*/
 
 	/* needed to force put_file() to only insert metadata for splitfile manifest */
 	tmp_hfcp->key->size = 0;

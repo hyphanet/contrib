@@ -246,17 +246,10 @@ void _fcpDestroyHBlock(hBlock *h)
 			h->fd = -1;
 		}
 
-		if (strlen(h->filename)) {
-			int rc;
-
-			/* delete the file */
-			if ((rc = DeleteFile(h->filename)) == 0)
-				_fcpLog(FCP_LOG_DEBUG, "deleted temp file %s", h->filename);
-
-			else
-				_fcpLog(FCP_LOG_DEBUG, "warning: could not delete temp file %s: \"%s\"",
-								h->filename, strerror(errno));
-		}
+#if 0 /* i think this would be unecessary */
+		_fcpDeleteFile(hfcp->key->tmpblock);
+		_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+#endif
 		
 		if (h->uri) {
 			fcpDestroyHURI(h->uri);
