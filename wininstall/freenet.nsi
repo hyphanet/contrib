@@ -29,15 +29,19 @@ SetOverwrite on
 ;-----------------------------------------------------------------------------------
 Function DetectJava
 # this function detects Sun Java from registry and calls the JavaFind utility otherwise
-# $0-1: temp variable, $2: path of JRE, $3: JRE binary
 
   # First look for the current version of Java and get the correct path in $2,
   # then test if its empty (nonexisting)
-  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment"	; JRE key into $0
-  ReadRegStr $1 HKLM $0 "CurrentVersion"			; read the current version
-  ReadRegStr $2 HKLM "$0\$1" "JavaHome"				; read JRE path in $2
-  StrCmp $2 "" RunJavaFind					; abort if JRE is empty
+Check13:
+  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.3"	; JRE key into $0
+  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
+  StrCmp $2 "" 0 EndCheck
+Check12:
+  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.2"	; JRE key into $0
+  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
+  StrCmp $2 "" RunJavaFind
 
+EndCheck:
   StrCpy $3 "$2\bin\java.exe"
   StrCpy $4 "$2\bin\javaw.exe"
 
