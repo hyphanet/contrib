@@ -298,7 +298,6 @@ parse_redirect (fcp_metadata *m, FILE *data)
 	    status++; val[0] = '\0';
 	}
 	if (status != 2) break;
-	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
 	    m->r[n]->document_name = strdup(val);
 	else if (strcmp(name, "Target") == 0)
@@ -327,7 +326,6 @@ parse_date_redirect (fcp_metadata *m, FILE *data)
 		    || line[strlen(line)-3] == '=')) {
 	    status++; val[0] = '\0';
 	}
-	if (status != 2) break;
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
 	    m->dr[n]->document_name = strdup(val);
