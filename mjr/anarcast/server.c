@@ -45,13 +45,14 @@ main (int argc, char **argv)
 	int i, n, c;
 	struct stat st;
 	fd_set s = r, x = w;
+	struct timeval tv = {60, 0};
         
 	if (time(NULL) > last_register + REGISTER_INTERVAL) {
 	    touch_inform_server(inform_server);
 	    last_register = time(NULL);
 	}
 	
-	i = select(m, &s, &x, NULL, NULL);
+	i = select(m, &s, &x, NULL, &tv);
 	if (i == -1) die("select() failed");
 	if (!i) continue;
 
