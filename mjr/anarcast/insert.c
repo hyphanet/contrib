@@ -5,9 +5,10 @@ main (int argc, char **argv)
 {
     struct stat st;
     struct sockaddr_in a;
-    unsigned char *data, *y, *z;
+    unsigned char *y, *z;
     unsigned int l;
     int s, r;
+    off_t o;
     
     if (argc != 2) {
 	fprintf(stderr, "Usage: %s <file>\n", argv[0]);
@@ -34,12 +35,9 @@ main (int argc, char **argv)
     if (writeall(s, "i", 1) != 1 || writeall(s, &st.st_size, 4) != 4)
 	die("writeall() of header to server failed");
     
-    data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, r, 0);
-    if (data == MAP_FAILED)
-	die("mmap() failed");
-    
-    if (writeall(s, data, st.st_size) != st.st_size)
-	die("writeall() of data failed");
+    o = 0;
+    if (sendfile(s, r, &o, st.st_size) != st.st_size)
+	die("sendfile() failed");
     
     if (readall(s, &l, 4) != 4)
 	die("readall() of key length failed");
