@@ -17,6 +17,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <pthread.h>
 
 typedef void (*FP) (void *);
 
@@ -36,7 +37,7 @@ static int crLaunchThread(void (*f)(void *), void *parms)
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  return pthread_create(&pth, &attr, (void *)f, parms);
+  /*return pthread_create(&pth, &attr, (void *)f, parms);*/
 #endif
 }
 
@@ -54,7 +55,7 @@ static int crSleep(unsigned int seconds, unsigned int nanoseconds)
 {
 #ifdef WINDOWS
   Sleep(seconds * 1000);
-	return 0;
+  return 0;
 
 #else
   struct timespec delay;

@@ -27,32 +27,32 @@ extern char  _fcpID[];
 extern int   _fcpRegress;
 extern int   _fcpDoDelete;
 
-
 /*
   Function:    fcpStartup()
+  
+  Arguments:
 
-  Arguments: host       string containing hostname. NULL arg uses default of "127.0.0.1"
-             port       port number to communicate with FCP on. <= 0 defaults to Freenet standard 8082
-             defaultHtl default hops to live. if 0, gets set to EZFCP_HTL_DEFAULT
-             raw        set to disable automatic metadata handling
-             maxSplitThreads	maximum number of splitfile insert threads,
-                              if 0 defaults to FCP_MAX_SPLIT_THREADS
-
+  host       string containing hostname. NULL arg uses default of "127.0.0.1"
+  port       port number to communicate with FCP on. <= 0 defaults to Freenet standard 8082
+  defaultHtl default hops to live. if 0, gets set to EZFCP_HTL_DEFAULT
+  raw        set to disable automatic metadata handling
+  
+  maxSplitThreads
+  maximum number of splitfile insert threads, if 0 defaults to FCP_MAX_SPLIT_THREADS
+  
   Returns:  0 if successful
-            -1 if failed
+  -1 if failed
 */
 
 int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads)
 {
-  //sigset_t sigset;
-
   HFCP *hfcp;
 
   char *handshake = "ClientHello\nEndMessage\n";
   int  n;
   int  len;
 
-  // set global parms
+  /* set global parms */
   strncpy(_fcpHost, host ? host: EZFCP_DEFAULT_HOST, L_HOST);
   _fcpPort = (port > 0) ? port : EZFCP_DEFAULT_PORT;
   _fcpHtl = (defaultHtl >= 0) ? defaultHtl : EZFCP_DEFAULT_HTL;
@@ -63,10 +63,10 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
 
   if (_fcpSockInit() != 0) return -1;
 
-  // Create temporary handle
+  /* Create temporary handle */
   hfcp=fcpCreateHandle();
 
-  // try a handshake
+  /* try a handshake */
   if (_fcpSockConnect(hfcp) != 0) return -1;
 
   len = strlen(handshake);
@@ -74,8 +74,8 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   n = _fcpSockSend(hfcp, _fcpID, 4);
 
   if (n < 4) {
-	 _fcpLog(FCP_LOG_CRITICAL, "failed to send ID bytes");
-	 return -1;
+    _fcpLog(FCP_LOG_CRITICAL, "failed to send ID bytes");
+    return -1;
   }
   _fcpLog(FCP_LOG_DEBUG, "sending handshake...");
   
@@ -83,33 +83,31 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   if (n < len) {
 
 #ifdef WINDOWS
-	 int err = WSAGetLastError();
-	 _fcpLog(FCP_LOG_CRITICAL, "Error %d sending handshake", err);
+    int err = WSAGetLastError();
+    _fcpLog(FCP_LOG_CRITICAL, "Error %d sending handshake", err);
 #endif
-	 _fcpSockDisconnect(hfcp);
-	 return -1;
+    _fcpSockDisconnect(hfcp);
+    return -1;
   }
-
+  
   _fcpLog(FCP_LOG_DEBUG, "fcpStartup: awaiting response");
   
   if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_HELLO) {
-	 _fcpSockDisconnect(hfcp);
-	 return -1;
+    _fcpSockDisconnect(hfcp);
+    return -1;
   }
   
   _fcpLog(FCP_LOG_DEBUG, "fcpStartup: got response");
   
   _fcpSockDisconnect(hfcp);
   
-  // All ok - now fire up splitfile insert manager
+  /* All ok - now fire up splitfile insert manager */
   _fcpInitSplit(maxSplitThreads);
   
-  // success
+  /* success */
   return 0;
-  
-} // 'fcpStartup()'
-
+}
 
 void fcpSetDelete(int arg) {
-	_fcpDoDelete=arg;
+  _fcpDoDelete=arg;
 }

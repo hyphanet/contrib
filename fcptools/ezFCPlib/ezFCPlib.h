@@ -14,10 +14,11 @@
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
+/**************************************************************************
+  GENERIC
+**************************************************************************/
 /* Place <sys/> includes here so they are first. */
-#include <sys/types.h>
 #include <sys/stat.h>
-
 
 /**************************************************************************
   MS-WINDOWS specifics
@@ -38,21 +39,18 @@
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
 
-#define S_IREAD _S_IREAD 
-#define S_IWRITE _S_IWRITE
-
 #define OPEN_MODE_READ  (_O_RDONLY | _O_BINARY)
 #define OPEN_MODE_WRITE 0
 
+#define S_IREAD _S_IREAD
+#define S_IWRITE _S_IWRITE
+
 #include <sys/time.h>
-#include <unistd.h>
 
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
 #include <io.h>
-#include <string.h>
-
 
 /**************************************************************************
   NON MS-WINDOWS (Linux, BSD, ...)
@@ -63,29 +61,18 @@
 #define OPEN_MODE_READ  0
 #define OPEN_MODE_WRITE 0
 
+#define S_IREAD __S_IREAD
+#define S_IWRITE __S_IWRITE
+
 /* Keep 'sys' files first in include order */
-#include <sys/socket.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#include <unistd.h>
-#include <pthread.h>
-#include <errno.h>
 
 #endif
-
 
 /**************************************************************************
   GENERIC (place anything that must happen after the above decl's here)
 **************************************************************************/
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-/*#include <time.h>*/
 
+/*************************************************************************/
 
 /*
   Threshold levels for the user-provided fcpLogCallback() function
@@ -123,12 +110,14 @@
   For keeping track of splitfile insert threads - used by fcpputsplit
   will discontinue when splitfiles mgr is working
 */
+/*
 typedef struct {
   char *buffer;
   char *threadSlot;
   int blocksize;
-  char **key;          /* key URI, if inserting metadata */
+  char **key;
 } fcpPutJob;
+*/
 
 
 #define SPLIT_BLOCK_SIZE       262144    /* default split part size (256*1024) */
@@ -453,10 +442,10 @@ typedef struct {
 
 		int   fd_data;         /* fd for writing key data to temp file */
 		int   num_data_wr;     /* num bytes of normal data written */
-		char  data_temp_file[L_tmpnam];   /* temporary file full path */
+		char  data_temp_file[L_FILENAME];   /* temporary file full path */
 		int   fd_meta;         /* fd for writing key metadata to temp file */
 		int   num_meta_wr;     /* num bytes of metadata written */
-		char  meta_temp_file[L_tmpnam];   /* temporary file full path */
+		char  meta_temp_file[L_FILENAME];   /* temporary file full path */
   } wr_info;
 	
   FCPCONN conn;

@@ -88,6 +88,7 @@ install_sh = @install_sh@
 
 CFLAGS = -ansi -W -Wall -pedantic
 
+#CFLAGS=-W -Wall
 lib_LTLIBRARIES = libezfcp.la
 libezfcp_la_LDFLAGS = -version-info 0:0:0
 

@@ -15,7 +15,7 @@
 
 /*
   safeMalloc()
-
+  
   a malloc() wrapper which waits until the requested amount of memory
   becomes available
 */
@@ -25,13 +25,13 @@ void *safeMalloc(int nbytes)
   unsigned int delay_s = 1;
   
   while ((blk = malloc(nbytes)) == NULL) {
-	 _fcpLog(FCP_LOG_CRITICAL, "safeMalloc: req for %d bytes failed, waiting %d seconds", nbytes, delay_s);
-
-	 // Sleep for delay_s seconds, 0 nanoseconds.
-	 crSleep(delay_s, 0);
-
-	 // Double the delay for next time, max 1 hour (hahaha)
-	 if (delay_s < 3600) delay_s = delay_s << 1;
+    _fcpLog(FCP_LOG_CRITICAL, "safeMalloc: req for %d bytes failed, waiting %d seconds", nbytes, delay_s);
+    
+    /* Sleep for delay_s seconds, 0 nanoseconds. */
+    crSleep(delay_s, 0);
+    
+    /* Double the delay for next time, max 1 hour (hahaha) */
+    if (delay_s < 3600) delay_s = delay_s << 1;
   }
   
   return blk;

@@ -1,12 +1,12 @@
 /*
-	This code is part of ezFCPlib - an FCP-based C client library for Freenet
-
-	Designed and implemented by David McNab, david@rebirthing.co.nz
-	CopyLeft (c) 2001 by David McNab
-
-	The FreeWeb website is at http://freeweb.sourceforge.net
-	The website for Freenet is at http://freenet.sourceforge.net
-
+  This code is part of ezFCPlib - an FCP-based C client library for Freenet
+  
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
+  
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
+  
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
@@ -28,36 +28,32 @@ extern char  _fcpHost[];
 
 void fcpSetHost(char *newHost)
 {
-    strncpy(_fcpHost, newHost, L_HOST);
+  strncpy(_fcpHost, newHost, L_HOST);
 }
 
-
-//
-// Function:    fcpSetHtl
-//
-// Arguments:   hfcp    pointer to FCP handle, created with fcpCreateHandle()
-//				htl		hops to live value
-//
-// Description: Sets the default HTL for all future freenet operations on given handle
-//
+/*
+  Function:    fcpSetHtl
+  
+  Arguments:   hfcp    pointer to FCP handle, created with fcpCreateHandle()
+  htl		hops to live value
+  
+  Description: Sets the default HTL for all future freenet operations on given handle
+*/
 
 void fcpSetHtl(HFCP *hfcp, int htl)
 {
-    hfcp->htl = htl;
+  hfcp->htl = htl;
+}
 
-}       // 'fcpDestroyHandle()'
-
-
-//
-// Function:    fcpSetRegress
-//
-// Arguments:   hfcp    pointer to FCP handle, created with fcpCreateHandle()
-//
-// Description: Sets the number of days to regress in retrying failed date redirects
-//
+/*
+  Function:    fcpSetRegress
+  
+  Arguments:   hfcp    pointer to FCP handle, created with fcpCreateHandle()
+  
+  Description: Sets the number of days to regress in retrying failed date redirects
+*/
 
 void fcpSetRegress(HFCP *hfcp, int regress)
 {
-    hfcp->regress = regress;
-
-}       // 'fcpDestroyHandle()'
+  hfcp->regress = regress;
+}

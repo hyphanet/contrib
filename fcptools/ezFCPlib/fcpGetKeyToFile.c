@@ -11,13 +11,20 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "ezFCPlib.h"
+
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 /*
   Function:    fcpGetKeyToFile()
 
   Arguments:   hfcp
-
+  
   Description:
 */
 
@@ -27,27 +34,27 @@ int fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata)
   int count;
   int fd;
 
-  // try to get the key open
+  /* try to get the key open */
   if (fcpOpenKey(hfcp, key, (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0))) != 0)
 	 return -1;
   
-  *pMetadata = NULL;
+  *pMetadata = 0;
 
-  // nuke file if it exists
+  /* nuke file if it exists */
   unlink(file);
 
-  // open a file to write the key to
+  /* open a file to write the key to */
   if ((fd = open(file, OPEN_MODE_WRITE | O_CREAT, S_IREAD | S_IWRITE)) < 0)
     return -1;
 
-  // suck all of key's data into this file
+  /* suck all of key's data into this file */
   while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
 	 write(fd, buf, count);
   
   close(fd);
 
-  // all done
+  /* all done */
   fcpCloseKey(hfcp);
   
   return 0;
-}       // 'fcpGetKeyToFile()'
+}

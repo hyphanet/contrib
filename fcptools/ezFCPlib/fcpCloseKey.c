@@ -1,4 +1,3 @@
-
 /*
   This code is part of FreeWeb - an FCP-based client for Freenet
 
@@ -22,7 +21,6 @@ extern char    _fcpID[];
 
 static int      fcpCloseKeyRead(HFCP *hfcp);
 static int      fcpCloseKeyWrite(HFCP *hfcp);
-
 
 /*
   Function:    fcpCloseKey()
@@ -76,16 +74,16 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
   char buf[1024];
   int fd, count, n;
 
-  // close the temporary files
+  /* close the temporary files */
   close(hfcp->wr_info.fd_data);
   if (hfcp->raw) close(hfcp->wr_info.fd_meta);
 
-  // connect to Freenet FCP
+  /* connect to Freenet FCP */
   if (_fcpSockConnect(hfcp) != 0) return -1;
 
   _fcpSockSend(hfcp, _fcpID, 4);
 
-  // create and send put message
+  /* create and send put message */
   if (hfcp->wr_info.num_meta_wr > 0) {
 	 sprintf(buf,
 				"ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
@@ -103,7 +101,7 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 				);
   }
   
-  // send off client put command
+  /* send off client put command */
   count = strlen(buf);
   n = _fcpSockSend(hfcp, buf, count);
   if (n < count) {
@@ -111,7 +109,7 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 	 return -1;
   }
   
-  // Send metadata if there's any
+  /* Send metadata if there's any */
   if (hfcp->wr_info.num_meta_wr > 0) {
 	 fd = open(hfcp->wr_info.meta_temp_file, OPEN_MODE_READ);
 	 
@@ -121,7 +119,7 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 	 close(fd);
   }
   
-  // Now send data
+  /* Now send data */
   if (hfcp->wr_info.num_data_wr > 0) {
 	 fd = open(hfcp->wr_info.data_temp_file, OPEN_MODE_READ);
 	 
@@ -131,18 +129,18 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 	 close(fd);
   }
   
-  // ditch the temp files
+  /* ditch the temp files */
   unlink(hfcp->wr_info.meta_temp_file);
   unlink(hfcp->wr_info.meta_temp_file);
 
-  // expecting a success response
+  /* expecting a success response */
   if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_SUCCESS) {
 	 _fcpSockDisconnect(hfcp);
 	
 	 return -1;
   }
 
-  // done with socket
+  /* done with socket */
   _fcpSockDisconnect(hfcp);
 
   return 0;

@@ -12,6 +12,7 @@
 */
 
 #include "ezFCPlib.h"
+#include <string.h>
 
 extern long xtoi(char *);
 

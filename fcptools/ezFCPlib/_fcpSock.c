@@ -1,4 +1,4 @@
-z/*
+/*
 	This code is part of FreeWeb - an FCP-based client for Freenet
 
 	Designed and implemented by David McNab, david@rebirthing.co.nz
@@ -22,7 +22,19 @@ z/*
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include "ezFCPlib.h"
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 /*
 	IMPORTED DECLARATIONS
@@ -47,20 +59,20 @@ struct hostent* hp;
 
 int _fcpSockInit()
 {
-	WORD wVersionRequested;
-	WSADATA wsaData;
-
-	/* start up sockets iterface just in case it hasn't been done already */
-	SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-	wVersionRequested = MAKEWORD(2, 0);
-	if (WSAStartup(wVersionRequested, &wsaData) != 0)
-		return -1;
-
-	/* locate Freenet FCP port */
-	if (GetAddr(_fcpHost, _fcpPort, &_fcpSockAddr) == 0)
-		return -1;
-	
-	return 0;
+  WORD wVersionRequested;
+  WSADATA wsaData;
+  
+  /* start up sockets iterface just in case it hasn't been done already */
+  SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
+  wVersionRequested = MAKEWORD(2, 0);
+  if (WSAStartup(wVersionRequested, &wsaData) != 0)
+    return -1;
+  
+  /* locate Freenet FCP port */
+  if (GetAddr(_fcpHost, _fcpPort, &_fcpSockAddr) == 0)
+    return -1;
+  
+  return 0;
 }
 
 

@@ -35,7 +35,7 @@ int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
   int     needed = len;
 
   /* if there's anything sitting in buffer, add it */
-  if ((tmp0 = hfcp->conn.response.body.datachunk.data) != NULL) {
+  if ((tmp0 = hfcp->conn.response.body.datachunk.data) != 0) {
 	 tmp1 = hfcp->conn.response.body.datachunk.dataptr;
 	 tmpend = hfcp->conn.response.body.datachunk.dataend;
 	 
@@ -49,7 +49,7 @@ int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
 		 /* didch block if it's exhausted */
 		 if (tmpend - tmp1 == needed) {
 			 free(hfcp->conn.response.body.datachunk.data);
-			 hfcp->conn.response.body.datachunk.data = NULL;
+			 hfcp->conn.response.body.datachunk.data = 0;
 		 }
 		 
 		 return needed;      /* all done - see ya next time */
@@ -63,7 +63,7 @@ int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
 	 
 	 /* ditch the data pointer */
 	 free(hfcp->conn.response.body.datachunk.data);
-	 hfcp->conn.response.body.datachunk.data = NULL;
+	 hfcp->conn.response.body.datachunk.data = 0;
 	 
   } /* drop thru */
 
@@ -75,7 +75,7 @@ int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
 		if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATACHUNK) {
 			
 			/*free(hfcp->conn.response.body.datachunk.data);*/
-			hfcp->conn.response.body.datachunk.data = NULL;
+			hfcp->conn.response.body.datachunk.data = 0;
 			break;
 		}
 		if (hfcp->conn.response.body.datachunk.length >= needed) {
@@ -94,14 +94,14 @@ int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
 			
 			/* turf this data */
 			free(hfcp->conn.response.body.datachunk.data);
-			hfcp->conn.response.body.datachunk.data = NULL;
+			hfcp->conn.response.body.datachunk.data = 0;
 		}
 	 
 		/* ditch data if it's exhausted */
 		if (hfcp->conn.response.body.datachunk.dataptr >=
 				hfcp->conn.response.body.datachunk.dataend) {
 			free(hfcp->conn.response.body.datachunk.data);
-			hfcp->conn.response.body.datachunk.data = NULL;
+			hfcp->conn.response.body.datachunk.data = 0;
 		}
   }
   
