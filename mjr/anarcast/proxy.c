@@ -449,7 +449,10 @@ request (int c)
     for (i = n = 0 ; i < blockcount ; i++)
 	if (!mask[i]) n++;
     
-    if (!n) goto verify; // woo! we got all of `em!
+    if (!n) {
+	alert("No missing parts to reconstruct.");
+	goto verify; // woo! we got all of `em!
+    }
     
     // back up original mask. we'll use it to insert the reconstructed parts later
     m = n;
