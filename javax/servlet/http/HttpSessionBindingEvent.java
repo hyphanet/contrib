@@ -56,13 +56,11 @@
  * This source code implements specifications defined by the Java
  * Community Process. In order to remain compliant with the specification
  * DO NOT add / change / or delete method signatures!
- */ 
-
+ */
 
 package javax.servlet.http;
 
 import java.util.EventObject;
-
 
 /**
  *
@@ -86,86 +84,64 @@ import java.util.EventObject;
 
 public class HttpSessionBindingEvent extends EventObject {
 
+	/* The name to which the object is being bound or unbound */
 
+	private String name;
 
+	/**
+	 *
+	 * Constructs an event that notifies an object that it
+	 * has been bound to or unbound from a session. 
+	 * To receive the event, the object must implement
+	 * {@link HttpSessionBindingListener}.
+	 *
+	 *
+	 *
+	 * @param session 	the session to which the object is bound or unbound
+	 *
+	 * @param name 	the name with which the object is bound or unbound
+	 *
+	 * @see			#getName
+	 * @see			#getSession
+	 *
+	 */
 
-    /* The name to which the object is being bound or unbound */
+	public HttpSessionBindingEvent(HttpSession session, String name) {
+		super(session);
+		this.name = name;
+	}
 
-    private String name;
-    
-  
+	/**
+	 *
+	 * Returns the name with which the object is bound to or
+	 * unbound from the session.
+	 *
+	 *
+	 * @return		a string specifying the name with which
+	 *			the object is bound to or unbound from
+	 *			the session
+	 *
+	 *
+	 */
 
-    /**
-     *
-     * Constructs an event that notifies an object that it
-     * has been bound to or unbound from a session. 
-     * To receive the event, the object must implement
-     * {@link HttpSessionBindingListener}.
-     *
-     *
-     *
-     * @param session 	the session to which the object is bound or unbound
-     *
-     * @param name 	the name with which the object is bound or unbound
-     *
-     * @see			#getName
-     * @see			#getSession
-     *
-     */
+	public String getName() {
+		return name;
+	}
 
-    public HttpSessionBindingEvent(HttpSession session, String name) {
-	super(session);
-	this.name = name;
-    }
-    
-    
-    
-   
-  
-    
-    /**
-     *
-     * Returns the name with which the object is bound to or
-     * unbound from the session.
-     *
-     *
-     * @return		a string specifying the name with which
-     *			the object is bound to or unbound from
-     *			the session
-     *
-     *
-     */
+	/**
+	 *
+	 * Returns the session to or from which the object is
+	 * bound or unbound.
+	 *
+	 * @return		the session to which the object is
+	 *			bound or from which the object is
+	 *			unbound
+	 *
+	 *
+	 *
+	 */
 
-    public String getName() {
-	return name;
-    }
-    
-    
-  
-  
-    
-
-    /**
-     *
-     * Returns the session to or from which the object is
-     * bound or unbound.
-     *
-     * @return		the session to which the object is
-     *			bound or from which the object is
-     *			unbound
-     *
-     *
-     *
-     */
-    
-    public HttpSession getSession() {
-	return (HttpSession) getSource();
-    }
+	public HttpSession getSession() {
+		return (HttpSession) getSource();
+	}
 }
-
-
-
-
-
-
-
