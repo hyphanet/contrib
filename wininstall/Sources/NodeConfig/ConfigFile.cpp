@@ -24,6 +24,7 @@ extern CPropNormal		*pNormal;
 extern CPropAdvanced	*pAdvanced;
 extern CPropGeek		*pGeek;
 
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -52,6 +53,12 @@ void CConfigFile::Load()
 	pNormal->m_storeCacheSize = 10;
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = true;
+	pNormal->m_transient = TRUE;
+	pNormal->m_notTransient = FALSE;
+	pNormal->m_ipAddress = "";
+	srand( (unsigned)time( NULL ) );
+	pNormal->m_listenPort = rand() + 1024;	// random port number
+	pNormal->warnPerm = TRUE;
 
 	// Advanced tab
 	pAdvanced->m_adminPassword = "";
@@ -61,14 +68,10 @@ void CConfigFile::Load()
 	pAdvanced->m_fcpHosts = "127.0.0.1,localhost";
 	pAdvanced->m_initialRequestHTL = 15;
 	pAdvanced->m_inputBandwidthLimit = 0;
-	pAdvanced->m_ipAddress = "";
-	srand( (unsigned)time( NULL ) );
-	pAdvanced->m_listenPort = rand() + 1024;	// random port number
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumConnectionThreads = 16;
 	pAdvanced->m_outputBandwidthLimit = 0;
 	pAdvanced->m_seedNodes = "ALL.REF";
-	pAdvanced->m_transient = TRUE;
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
@@ -169,16 +172,33 @@ void CConfigFile::Save()
 	fprintf(fp, "\n");
 	fprintf(fp, "storePath=%s\n", pNormal->m_storePath);
 	fprintf(fp, "\n");
-	fprintf(fp, "\n");
-	fprintf(fp, "########################\n");
-	fprintf(fp, "# Advanced Entries\n");
-	fprintf(fp, "########################\n");
-	fprintf(fp, "\n");
 	fprintf(fp, "# Transient nodes do not give out references to themselves, and should\n");
 	fprintf(fp, "# therefore not receive any requests.  Set this to yes only if you are\n");
 	fprintf(fp, "# on a slow, non-permanent connection.\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "transient=%s\n", pAdvanced->m_transient ? "true" : "false");
+	fprintf(fp, "transient=%s\n", pNormal->m_transient ? "true" : "false");
+	fprintf(fp, "\n");
+	fprintf(fp, "# The port to listen for incoming FNP (Freenet Node Protocol) connections on.\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "listenPort=%d\n", pNormal->m_listenPort);
+	fprintf(fp, "\n");
+	fprintf(fp, "# The I.P. address of this node as seen by the public internet.\n");
+	fprintf(fp, "# This is needed in order for the node to determine its own\n");
+	fprintf(fp, "# NodeReference.\n");
+	fprintf(fp, "\n");
+	if (pNormal->m_ipAddress.GetLength() == 0)
+		fprintf(fp, "#ipAddress=\n");
+	else
+		fprintf(fp, "ipAddress=%s\n", pNormal->m_ipAddress.GetBuffer(1));
+	fprintf(fp, "\n");
+	fprintf(fp, "# This is used only by Windows configurator, not by node\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "warnPerm=%s\n", pNormal->warnPerm ? "true" : "false");
+	fprintf(fp, "\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "########################\n");
+	fprintf(fp, "# Advanced Entries\n");
+	fprintf(fp, "########################\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "# set to yes if you want your node to announce itself to other nodes\n");
 	fprintf(fp, "\n");
@@ -187,10 +207,6 @@ void CConfigFile::Save()
 	fprintf(fp, "# file containing initial node references\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "seedNodes=%s\n", pAdvanced->m_seedNodes);
-	fprintf(fp, "\n");
-	fprintf(fp, "# The port to listen for incoming FNP (Freenet Node Protocol) connections on.\n");
-	fprintf(fp, "\n");
-	fprintf(fp, "listenPort=%d\n", pAdvanced->m_listenPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The port to listen for local FCP (Freenet Client Protocol) connections on.\n");
 	fprintf(fp, "\n");
@@ -218,15 +234,6 @@ void CConfigFile::Save()
 	fprintf(fp, "# The hops that initial requests should make.\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "initialRequestHTL=%d\n", pAdvanced->m_initialRequestHTL);
-	fprintf(fp, "\n");
-	fprintf(fp, "# The I.P. address of this node as seen by the public internet.\n");
-	fprintf(fp, "# This is needed in order for the node to determine its own\n");
-	fprintf(fp, "# NodeReference.\n");
-	fprintf(fp, "\n");
-	if (pAdvanced->m_ipAddress.GetLength() == 0)
-		fprintf(fp, "#ipAddress=\n");
-	else
-		fprintf(fp, "ipAddress=%s\n", pAdvanced->m_ipAddress.GetBuffer(1));
 	fprintf(fp, "\n");
 	fprintf(fp, "# If this is set then users that can provide the password can\n");
 	fprintf(fp, "# can have administrative access. It is recommended that\n");
@@ -367,7 +374,7 @@ void CConfigFile::Save()
 	if (pGeek->m_storeCacheFile.GetLength() == 0)
 		fprintf(fp, "#storeCacheFile\n");
 	else
-		fprintf(fp, "storeCacheFile=%s/cache_%d\n", pNormal->m_storePath, pAdvanced->m_listenPort);
+		fprintf(fp, "storeCacheFile=%s/cache_%d\n", pNormal->m_storePath, pNormal->m_listenPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the file containing the node's reference to itself, its\n");
 	fprintf(fp, "# routing table, and the datastore directory.  Defaults to store_<port>\n");
@@ -376,7 +383,7 @@ void CConfigFile::Save()
 	if (pGeek->m_storeDataFile.GetLength() == 0)
 		fprintf(fp, "#storeDataFile\n");
 	else
-		fprintf(fp, "storeDataFile=%s/store_%d\n", pNormal->m_storePath, pAdvanced->m_listenPort);
+		fprintf(fp, "storeDataFile=%s/store_%d\n", pNormal->m_storePath, pNormal->m_listenPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# streamBufferSize: undocumented.\n");
 	fprintf(fp, "\n");
@@ -413,13 +420,21 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))
-		pAdvanced->m_transient = atobool(val);
+	{
+		pNormal->m_transient = atobool(val);
+		pNormal->m_notTransient = !pNormal->m_transient;
+	}
+	else if (!strcmp(tok, "listenPort"))
+		pNormal->m_listenPort = atoi(val);
+	else if (!strcmp(tok, "ipAddress"))
+		pNormal->m_ipAddress = val;
+	else if (!strcmp(tok, "warnPerm"))
+		pNormal->warnPerm = atobool(val);
+
 	else if (!strcmp(tok, "doAnnounce"))
 		pAdvanced->m_doAnnounce = atobool(val);
 	else if (!strcmp(tok, "seedNodes"))
 		pAdvanced->m_seedNodes = val;
-	else if (!strcmp(tok, "listenPort"))
-		pAdvanced->m_listenPort = atoi(val);
 	else if (!strcmp(tok, "clientPort"))
 		pAdvanced->m_clientPort = atoi(val);
 	else if (!strcmp(tok, "bandwidthLimit"))
@@ -432,8 +447,6 @@ void CConfigFile::processItem(char *tok, char *val)
 		pAdvanced->m_fcpHosts = val;
 	else if (!strcmp(tok, "initialRequestHTL"))
 		pAdvanced->m_initialRequestHTL = atoi(val);
-	else if (!strcmp(tok, "ipAddress"))
-		pAdvanced->m_ipAddress = val;
 	else if (!strcmp(tok, "adminPassword"))
 		pAdvanced->m_adminPassword = val;
 	else if (!strcmp(tok, "maxHopsToLive"))

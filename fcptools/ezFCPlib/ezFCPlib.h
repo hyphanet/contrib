@@ -49,6 +49,23 @@
 #endif
 
 
+// For keeping track of splitfile insert threads
+
+typedef struct
+{
+    char        *buffer;
+    char        *threadSlot;
+    int         blocksize;
+    char        **key;           // key URI, if inserting metadata
+}
+fcpPutJob;
+
+
+//default split part size
+
+#define SPLIT_BLOCK_SIZE (512*1024)
+
+
 #define FCP_ID_REQUIRED
 
 // this kludge covers till i install new freenet on windows
@@ -331,6 +348,28 @@ typedef struct
     char    basedate[9];            // basedate of key, if using basedates
 }
 FCP_KEYINDEX;
+
+
+/////////////////////////////////////////////////////////
+//
+// Splitfile control structure
+//
+
+#define CHUNK_STATUS_WAITING	0
+#define CHUNK_STATUS_INPROG		1
+#define CHUNK_STATUS_DONE		2
+
+typedef struct
+{
+	int		chunkSize;
+	int		chunkTotal;
+	int		chunksInserted;
+	char	isfile;			// TRUE if splitting a file, FALSE if memory
+	int		keyfd;			// fd of open file being inserted, if a file
+	char	*keymem;		// ptr to block of mem being inserted, if mem
+	char	*chunkStatus;	// array of status bytes for chunks
+}
+FCP_SPLIT;
 
 
 /////////////////////////////////////////////////////////

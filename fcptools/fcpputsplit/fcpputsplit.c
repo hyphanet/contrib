@@ -12,7 +12,6 @@
 #include <fcntl.h>
 #endif
 
-#define PARTSIZE (512*1024)    //default split part size
 #define MAXRETRIES 10
 #define KEYSIZE  1024
 
@@ -34,17 +33,6 @@ static void LaunchThread(void (*func)(void *), void *parg);
 static void splitblockThread(void *arg);
 
 
-
-typedef struct
-{
-    char        *buffer;
-    char        *threadSlot;
-    int         blocksize;
-    char        **key;           // key URI, if inserting metadata
-}
-PutJob;
-
-
 char        *keyUri = NULL;
 int         *blockSizes;
 char        **blockCHK;
@@ -60,7 +48,7 @@ char        *metaData = NULL;
 int         rawMode = 0;
 int         silentMode = 0;
 int         verbosity = FCP_LOG_NORMAL;
-int         partsize=PARTSIZE;
+int         partsize=SPLIT_BLOCK_SIZE;
 int         maxthreads=8;
 
 int main(int argc, char* argv[])
@@ -295,7 +283,7 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
     int lastsentblock=-1;
     int lastrequestedblock=0;
     int recvBytes=0;
-    PutJob  *pPutJob;
+    fcpPutJob  *pfcpPutJob;
 
 
     threadStatus= malloc( sizeof(int)*(blockCount+2));
@@ -339,12 +327,12 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
 
             // forking
             threadStatus[lastrequestedblock]=1;
-            pPutJob = malloc(sizeof(PutJob));
-            pPutJob->buffer = buffers[lastrequestedblock];
-            pPutJob->threadSlot = &(threadStatus[lastrequestedblock]);
-            pPutJob->blocksize= blockSizes[lastrequestedblock];
-            pPutJob->key= &(blockCHK[lastrequestedblock]);
-            LaunchThread(splitblockThread, (void *)pPutJob);
+            pfcpPutJob = malloc(sizeof(fcpPutJob));
+            pfcpPutJob->buffer = buffers[lastrequestedblock];
+            pfcpPutJob->threadSlot = &(threadStatus[lastrequestedblock]);
+            pfcpPutJob->blocksize= blockSizes[lastrequestedblock];
+            pfcpPutJob->key= &(blockCHK[lastrequestedblock]);
+            LaunchThread(splitblockThread, (void *)pfcpPutJob);
 
             lastrequestedblock++;
 
@@ -416,7 +404,7 @@ void splitblockThread( void *job)
     int error=1;
     char *pMetadata=NULL;
     HFCP *hfcpLocal;
-    PutJob *params= (PutJob *)job;
+    fcpPutJob *params= (fcpPutJob *)job;
     int retries=0;
 
 

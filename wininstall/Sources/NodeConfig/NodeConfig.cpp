@@ -10,6 +10,8 @@
 #include "PropAdvanced.h"
 #include "PropGeek.h"
 
+#include "DlgWarnPerm.h"
+
 #include "ConfigFile.h"
 
 #ifdef _DEBUG
@@ -28,6 +30,7 @@ char			progPath[256];
 CPropNormal		*pNormal;
 CPropAdvanced	*pAdvanced;
 CPropGeek		*pGeek;
+CDlgWarnPerm	*pWarnPerm;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -83,10 +86,12 @@ BOOL CNodeConfigApp::InitInstance()
 	CPropNormal Normal;
 	CPropAdvanced Advanced;
 	CPropGeek Geek;
+	CDlgWarnPerm	WarnPerm;
 
 	pNormal = &Normal;
 	pAdvanced = &Advanced;
 	pGeek = &Geek;
+	pWarnPerm = &WarnPerm;
 
 	propdlg.AddPage(pNormal);
 	propdlg.AddPage(pAdvanced);

@@ -29,13 +29,10 @@ public:
 	CString	m_fcpHosts;
 	UINT	m_initialRequestHTL;
 	UINT	m_inputBandwidthLimit;
-	CString	m_ipAddress;
-	UINT	m_listenPort;
 	UINT	m_maxHopsToLive;
 	UINT	m_maximumConnectionThreads;
 	UINT	m_outputBandwidthLimit;
 	CString	m_seedNodes;
-	BOOL	m_transient;
 	//}}AFX_DATA
 
 

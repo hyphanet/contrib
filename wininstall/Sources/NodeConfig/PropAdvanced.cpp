@@ -26,13 +26,10 @@ CPropAdvanced::CPropAdvanced() : CPropertyPage(CPropAdvanced::IDD)
 	m_fcpHosts = _T("");
 	m_initialRequestHTL = 0;
 	m_inputBandwidthLimit = 0;
-	m_ipAddress = _T("");
-	m_listenPort = 0;
 	m_maxHopsToLive = 0;
 	m_maximumConnectionThreads = 0;
 	m_outputBandwidthLimit = 0;
 	m_seedNodes = _T("");
-	m_transient = FALSE;
 	//}}AFX_DATA_INIT
 }
 
@@ -56,10 +53,6 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_initialRequestHTL, 0, 50);
 	DDX_Text(pDX, IDC_inputBandwidthLimit, m_inputBandwidthLimit);
 	DDV_MinMaxUInt(pDX, m_inputBandwidthLimit, 0, 999999999);
-	DDX_Text(pDX, IDC_ipAddress, m_ipAddress);
-	DDV_MaxChars(pDX, m_ipAddress, 128);
-	DDX_Text(pDX, IDC_listenPort, m_listenPort);
-	DDV_MinMaxUInt(pDX, m_listenPort, 1, 65535);
 	DDX_Text(pDX, IDC_maxHopsToLive, m_maxHopsToLive);
 	DDV_MinMaxUInt(pDX, m_maxHopsToLive, 10, 50);
 	DDX_Text(pDX, IDC_maximumConnectionThreads, m_maximumConnectionThreads);
@@ -68,7 +61,6 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_outputBandwidthLimit, 0, 999999999);
 	DDX_Text(pDX, IDC_seedNodes, m_seedNodes);
 	DDV_MaxChars(pDX, m_seedNodes, 255);
-	DDX_Check(pDX, IDC_transient, m_transient);
 	//}}AFX_DATA_MAP
 }
 

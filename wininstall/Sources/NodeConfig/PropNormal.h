@@ -18,6 +18,8 @@ class CPropNormal : public CPropertyPage
 public:
 	CPropNormal();
 	~CPropNormal();
+	void	showNodeAddrFields(BOOL showing);
+	BOOL	warnPerm;
 
 // Dialog Data
 	//{{AFX_DATA(CPropNormal)
@@ -26,6 +28,10 @@ public:
 	UINT	m_storeCacheSize;
 	CString	m_storePath;
 	BOOL	m_useDefaultNodeRefs;
+	BOOL	m_transient;
+	CString	m_ipAddress;
+	UINT	m_listenPort;
+	BOOL	m_notTransient;
 	//}}AFX_DATA
 
 
@@ -41,6 +47,10 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(CPropNormal)
 	afx_msg void OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnnotTransientClick();
+	afx_msg void OntransientClick();
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

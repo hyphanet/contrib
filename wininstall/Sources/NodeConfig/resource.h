@@ -11,6 +11,7 @@
 #define IDD_PP_ADVANCED                 108
 #define IDD_PP_GEEK                     109
 #define IDR_MAINFRAME                   128
+#define IDD_DLG_PERM_WARN               129
 #define IDC_EDIT1                       1000
 #define IDC_storeCacheSize              1000
 #define IDC_seedNodes                   1000
@@ -64,14 +65,18 @@
 #define IDC_initialRequests             1050
 #define IDC_logVerbosity                1051
 #define IDC_storeCacheSize_spin         1052
+#define IDC_notTransient                1053
+#define IDC_ipAddress_TITLE             1054
+#define IDC_listenPort_TITLE            1055
+#define IDC_DONT_WARN_PERM              1056
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        129
+#define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1053
+#define _APS_NEXT_CONTROL_VALUE         1057
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
