@@ -233,10 +233,10 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	close(fd);
 
 	// any good?
+	free(job->chunk);
 	if (job->status == SPLIT_INSSTAT_FAILED)
 	{
 		_fcpLog(FCP_LOG_NORMAL, "fcpInsSplitFile: insert of '%s' failed", fileName);
-		free(job->chunk);
 		return -1;
 	}
 
@@ -449,7 +449,7 @@ static void splitInsMgr(void *nothing)
 			continue;
 		}
 
-		// don't do anything if threads are maxed out
+		// No more to do if thread quota is maxed out
 		if (runningThreads >= maxThreads)
 		{
 			mysleep(1000);
@@ -467,12 +467,8 @@ static void splitInsMgr(void *nothing)
 			//_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: found job in progress");
 
 			if (tmpJob->status == SPLIT_INSSTAT_BADNEWS)
-			{
+				// mark as failed so client thread can pick it up
 				tmpJob->status = SPLIT_INSSTAT_FAILED;
-
-				// dequeue this head item
-				jobQueue = jobQueue->next;
-			}
 			else if (tmpJob->doneChunks == tmpJob->numChunks)
 				// mark as complete so client thread can pick it up
 				tmpJob->status = SPLIT_INSSTAT_SUCCESS;
@@ -490,13 +486,12 @@ static void splitInsMgr(void *nothing)
 				jobQueue = jobQueue->next;
 				if (jobQueue == NULL)
 					jobQueueEnd = NULL;
-
 			}
 			else
 			{
 				// use 'prev' ptr to unlink this job
 				prevJob->next = tmpJob->next;
-				prevJob = tmpJob;
+				//prevJob = tmpJob;
 			}
 		}
 
@@ -578,7 +573,7 @@ static void chunkThread(chunkThreadParams *params)
 	{
 		_fcpLog(FCP_LOG_NORMAL, "chunkThread: failed to insert chunk");
 		params->chunk->status = SPLIT_INSSTAT_FAILED;
-		params->key->status = SPLIT_INSSTAT_FAILED;
+		params->key->status = SPLIT_INSSTAT_BADNEWS;
 		runningThreads--;
 		return;
 	}
@@ -596,7 +591,7 @@ static void chunkThread(chunkThreadParams *params)
 	free(params->chunk->chunk);
 
 	_fcpLog(FCP_LOG_VERBOSE,
-			"chunkThread: chunk %d/%d: %s",
+			"chunkThread: success inserting %d/%d: %s",
 			params->key->doneChunks, params->key->numChunks, hfcp->created_uri);
 
 	free(params);
