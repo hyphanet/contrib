@@ -56,8 +56,6 @@ int main(int argc, char* argv[])
     // go thru command line args
     parse_args(argc, argv);
 
-		printf("keyFile (in main()): -%s-\n", keyFile);
-
     // try and fire up FCP library
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
 
@@ -170,7 +168,7 @@ static void parse_args(int argc, char *argv[])
     {"address", 1, NULL, 'n'},
     {"port", 1, NULL, 'p'},
     {"htl", 1, NULL, 'l'},
-		{"regress", 1, NULL, 'e'},
+    {"regress", 1, NULL, 'e'},
     {"raw", 0, NULL, 'r'},
     {"metadata", 1, NULL, 'm'},
     {"verbosity", 1, NULL, 'v'},
@@ -178,7 +176,7 @@ static void parse_args(int argc, char *argv[])
     {"help", 0, NULL, 'h'},
     {0, 0, 0, 0}
   };
-  static char short_options[] = "l:n:p:e:m:rv:Vh";
+  static char short_options[] = "n:p:l:e:rm:v:Vh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -193,16 +191,17 @@ static void parse_args(int argc, char *argv[])
     case 'p':
       i = atoi( optarg );
       if (i > 0) nodePort = i;
-			break;
+      break;
       
     case 'l':
       i = atoi( optarg );
       if (i > 0) htlVal = i;
       break;
 
-		case 'e':
-			i = atoi( optarg );
-			if (i > 0) regress = i;
+    case 'e':
+      i = atoi( optarg );
+      if (i > 0) regress = i;
+      break;
       
     case 'r':
       rawMode = 1;
@@ -233,8 +232,6 @@ static void parse_args(int argc, char *argv[])
   /* If there's another parameter, it's the FILE to store the results in.
      Default value is "" if not passed */
 
-  printf("optind: %d - argc: %d - keyFile: _%s_ - argv[optind]: _%s_\n", optind, argc, keyFile, argv[optind]);
-  
   if (optind < argc)
     strncpy(keyFile, argv[optind++], L_FILENAME);
 }
@@ -271,8 +268,8 @@ static void usage(char *s)
 
 int fcpLogCallback(int level, char *buf)
 {
-	if (level <= verbosity)
-		printf("%s\n", buf);
+  if (level <= verbosity)
+    printf("%s\n", buf);
 
-	return 0;
+  return 0;
 }
