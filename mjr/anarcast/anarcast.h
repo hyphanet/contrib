@@ -29,7 +29,6 @@
 // the length of a SHA hash
 #define HASHLEN               20
 
-
 // a cute suicide note. goodbye, terrible world!
 #define die(msg) {                                                           \
     extern int errno;                                                        \
