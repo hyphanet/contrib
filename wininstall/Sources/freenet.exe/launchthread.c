@@ -152,13 +152,13 @@ void MonitorThreadRunFserve()
 							SW_HIDE,
 							0,NULL,
 							NULL,NULL,NULL};
-	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
+	char szexecbuf[sizeof(szjavapath)+sizeof(szfservecliexec)+2];
 
-	lstrcpy(szexecbuf, szjavawpath);
+	lstrcpy(szexecbuf, szjavapath);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfservecliexec); 
 
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartInfo, &prcInfo) )
+	if (!CreateProcess(szjavapath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartInfo, &prcInfo) )
 	{
 		MessageBox(NULL, szerrMsg, szerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
 		nFreenetMode=FREENET_CANNOT_START;
@@ -166,9 +166,8 @@ void MonitorThreadRunFserve()
 	}
 	else
 	{
-		/* 'watch' the process object to check that the java interpreter launched correctly
-			and that the freenet node is indeed running */
-		WaitForInputIdle(prcInfo.hProcess,INFINITE);
+		/* (... the process object will be 'watched' to check that the java interpreter launched correctly
+			and that the freenet node is indeed running... ) */
 		nFreenetMode=FREENET_RUNNING;
 		ModifyIcon();
 	}
@@ -180,10 +179,12 @@ void MonitorThreadKillFserve()
 	if ( (prcInfo.hProcess!=NULL) || (prcInfo.hThread!=NULL) )
 	{
 		/* set nFreenetMode to FREENET_STOPPING only if we didn't get here because of RestartFserve */
+		LOCK(NFREENETMODE);
 		if (nFreenetMode!=FREENET_RESTARTING)
 		{
 			nFreenetMode=FREENET_STOPPING;
 		}
+		UNLOCK(NFREENETMODE);
 		ModifyIcon();
 
 		/* best effort at closing down the node: */
