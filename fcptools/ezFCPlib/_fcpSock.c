@@ -26,9 +26,9 @@
 
 #include "ezFCPlib.h"
 
-#include <sys/select.h>
-
 #ifndef WIN32
+#include <sys/select.h> /* !!! */
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>

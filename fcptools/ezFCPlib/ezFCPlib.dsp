@@ -94,15 +94,15 @@ SOURCE=.\_fcpGlobals.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\_fcpInfo.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\_fcpLog.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\_fcpMetadata.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\_fcpMimetype.c
 # End Source File
 # Begin Source File
 
@@ -130,6 +130,10 @@ SOURCE=.\fcpCreation.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\fcpInfo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\fcpMakeSvkKeypair.c
 # End Source File
 # Begin Source File
@@ -148,14 +152,14 @@ SOURCE=.\fcpStartup.c
 
 SOURCE=.\fcpWriteKey.c
 # End Source File
-# Begin Source File
-
-SOURCE=.\mimetype.c
-# End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\ez_sys.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\ezFCPlib.h

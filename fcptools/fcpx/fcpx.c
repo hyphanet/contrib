@@ -206,9 +206,7 @@ static int clienthello(hFCP *hfcp)
 	fprintf(stdout, "Highest Seen Build: %d\n", hfcp->highest_build);
 	fprintf(stdout, "Max Filesize: %d\n", hfcp->max_filesize);
 
-	_fcpSockDisconnect(hfcp);
 	fcpDestroyHFCP(hfcp);
-
 	return 0;
 }
 

@@ -27,7 +27,6 @@
 /* we don't need to include ezfcplib.h is we include these */
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 /*
   function xtoi()
