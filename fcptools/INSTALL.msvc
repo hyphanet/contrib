@@ -8,7 +8,8 @@ workspace fcptools.dsw, then do either a Batch Build or Rebuild All to
 compile the ezFCPlib library and command line tools.
 
 If the build process is more complicated than this, there is a problem
-and should be reported to either myself <ilnero@gmx.net> or Freenet-dev
-when all else fails.
+and should be reported to either myself (ilnero@gmx.net) or
+clients@freenetproject.org when all else fails.
 
 -joliveri
+
