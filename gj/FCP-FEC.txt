@@ -1,5 +1,10 @@
-FCP FEC Proposal rev. 1.0
-giannijohansson@attbi.com 20020912
+------------------------------------------------------------
+This document describes the FCP FEC commands as currently
+implemented in fred.
+------------------------------------------------------------
+
+FCP FEC Proposal rev. 1.1
+giannijohansson@attbi.com 20030125
 
 I. INTRODUCTION:
 
@@ -48,6 +53,11 @@ blocks must contain zeros.
 II. Proposed FCP FEC commands
 
 convention: All numbers are hexadecimal
+
+convention: Blocks are numbered from 0 to n - 1 on a 
+            per segment basis.
+            Data blocks are indices 0 to  k - 1.
+            Check blocks are indices k to n - 1. 
 
 A. Helper messages, SegmentHeader and BlockMap
 
@@ -152,10 +162,15 @@ be sent if requested.
 D. FECDecodeSegment 
 The FECDecodeSegment message is used to decode missing data blocks for
 a segment of a file.  The RequestedList field contains a comma
-delimited list of the requested data blocks.  Similarly, BlockList and
+delimited list of the requested blocks.  Similarly, BlockList and
 CheckList contain the indices of the data blocks and check blocks that
 are being sent to decode from.  All index lists must be in ascending
 order.
+
+Note that RequestedList may contain check block indices as well
+as data block indices.  If check indices are present the FCP server
+will encode the requested check blocks and send them after the decoded
+data blocks.  This feature was added to support healing re-insertion.
 
 The SegmentHeader for the segment must sent as data in the trailing
 field of the FECDecodeSegment message preceding the blocks to
@@ -211,12 +226,20 @@ field in the first SegmentHeader.
 On failure a Failed message is sent.
 
 F. FECMakeMetadata
-The FECMakeMetadata command creates a metadata for a SplitFile from
+The FECMakeMetadata command creates metadata for a SplitFile from
 a list of SegmentHeader BlockMap pairs sent as data in it's trailing field.
 The list must be in order of ascending segment number.
 
+The Checksum field is optional.  If provided, it should contain an
+SHA-1 hash of the entire file. The hash can be generated using the
+GenerateSHA1 FCP command, though in most cases it will be faster to
+use a local library if one is available.
+
+Clients are strongly encouraged to set the Checksum value.
+
 FECMakeMetadata
 Description=file
+CheckSum=c8766a76f81727b2b7c131e9ad6a53c8aa820a1e
 MimeType=text/plain
 DataLength=<total length of all SegmentHeaders and BlockMaps>
 Data
@@ -240,7 +263,11 @@ existing ClientPut command, and saves the resulting CHK URIs.
 After the data blocks and check blocks for all segments have been
 inserted, the client code sends a FECMakeMetadata command with the
 SegmentHeaders and BlockMaps listing the inserted blocks.  It saves
-the SplitFile metadata and inserts it into Freenet.
+the SplitFile metadata and inserts it into Freenet. 
+
+The client may optionally specify the SHA-1 checksum for the file
+in the FECMakeMetadata command. In this case, the Checksum value is
+included in the InfoPart of the generated metadata.
 
 Done.
 
@@ -250,12 +277,17 @@ The client code sends a FECSegmentSplitFile with the SplitFile metadata
 and saves the SegmentHeader,BlockMap pairs.
 
 For each segment, it uses the CHK lists int the BlockMap to 
-downloads the minimum number of data and check blocks
+download the minimum number of data and check blocks
 as given by SegmentHeader.BlocksRequired. It then calls FECDecodeSegment to 
 decode the missing data blocks.
 
-Finally, it concatinates the data blocks together, possibly ignoring trailing 
+Finally, it concatenates the data blocks together, possibly ignoring trailing 
 padding blocks.
+
+If a checksum value for the file was specified in an InfoPart in the
+metadata somewhere along the redirect chain, that value can be used to
+check the integrity of the reconstructed file by calculating its SHA-1
+hash.
 
 Done.
 
@@ -264,13 +296,46 @@ III. Changes to SplitFile metadata format.
 0) Deprecate the BlockSize field, since check blocks are not necessarily the
 same size as data blocks and blocks may be different sizes across segments.
 
+[None of my code depends on this, but it has not been removed from the code.]
+
 1) Add an AlgoName field. This is the name for the decoder and encoder implementation,
 that can be used to decode or re-encode the file.  This replaces decoder.name and decoder.encoder
 in the previous implementation.
 
+[This has been done.]
+
 2) Remove the decoder FieldSet.
 
+[freenet.client.metadata.SplitFile detects that this field is 
+ present so that fproxy / SplitFileRequestServlet can 
+ warn about unsupported obsolete encoders.]
+
 * SplitFile.Graph is currently not being used and is not implemented.
+
+IV. GenerateSHA1
+
+This FCP command isn't part of the FEC commands but it's useful
+for FEC client authors.
+
+GenerateSHA1
+DataLength=abc123
+Data
+<data>
+
+On success a Success message is sent, with the hash in its
+SHA1 field.
+
+On failure a Failed message is sent.
+
+------------------------------------------------------------
+CHANGE HISTORY
+------------------------------------------------------------
+20030125
+- optional checksum in FECMakeMetadata
+- optional re-encoding of check blocks for healing in FECDecodeSegment
+- brief example of GenerateSHA1.
+
+
 
 
 
