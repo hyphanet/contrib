@@ -67,10 +67,12 @@ void CConfigFile::Load()
 
 	// Normal tab
 	//pNormal->m_importNewNodeRef.EnableWindow(false);
-		// propose 20% of the free disk space, but min 10MB and max 2GB
-		ULARGE_INTEGER FreeBytes,TotalBytes;
-		GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
-	pNormal->m_storeCacheSize = __max(10,__min(2047,(unsigned int)(.2*(unsigned int)((FreeBytes.QuadPart>>20)))));
+	// propose 20% of the free disk space, but min 10MB and max 2GB
+	ULARGE_INTEGER FreeBytes,TotalBytes;
+	GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
+	// our variable m_storeCacheSize is in Megabytes so we need to divide by 2^20
+	// i.e. shift FreeBytes right 20 bits
+	pNormal->m_storeCacheSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
 	pNormal->m_transient = FALSE;
@@ -195,7 +197,10 @@ void CConfigFile::Save()
 	fprintf(fp, "# a fixed size. If you change this or the storePath field following,\n");
 	fprintf(fp, "# your entire datastore will be wiped and replaced with a blank one\n");
 	fprintf(fp, "\n");
-	fprintf(fp, "storeCacheSize=%ld\n", pNormal->m_storeCacheSize * 1048576);
+	// storeCacheSize = size in bytes ... our variable m_storeCacheSize is in Megabytes so
+	// multiply by 2^20, i.e. shift left 20 bits, before writing to conf file
+	char szStoreCacheSize[35];
+	fprintf(fp, "storeCacheSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeCacheSize,10), szStoreCacheSize, 10) );
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the directory in which the node's datastore files should go.\n");
 	fprintf(fp, "\n");
@@ -462,8 +467,15 @@ void CConfigFile::processItem(char *tok, char *val)
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
 	else if (!strcmp(tok, "storeCacheSize"))
-		//only if we did not set 0 as disk cache size (means we should propose our own default value)
-		{if(atol(val) != 0) pNormal->m_storeCacheSize = atol(val) / 1048576;}
+	//only if we did not set 0 as disk cache size (means we should propose our own default value)
+	{
+		if(_atoi64(val) != 0)
+		{
+			// storeCacheSize = size in bytes ... our variable m_storeCacheSize is in Megabytes
+			// so divide what we read from conf file by 2^20, i.e. shift right 20 bits
+			pNormal->m_storeCacheSize = (DWORD)(Int64ShrlMod32(_atoi64(val),20));
+		}
+	}
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))
