@@ -1,34 +1,42 @@
-
-// fcpget.c - simple command line client that uses FCP
-// CopyLeft () 2001 by David McNab
-
-#include <stdio.h>
-#include <stdlib.h>
+/*
+	fcpget.c - simple command line client that uses FCP
+	CopyLeft () 2001 by David McNab
+*/
 
 #include "ezFCPlib.h"
 
+#define _GNU_SOURCE
+#include "getopt.h"
+ 
+#define FCPPUT_ATTEMPTS 3
 
 extern int fcpSplitChunkSize;
 
 static void parse_args(int argc, char *argv[]);
-static void *usage(char *msg);
+static void usage(char *);
 static char *strsav(char *old, char *text_to_append);
 static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len);
 static int parse_num(char *s);
 
-char        *keyUri = NULL;
-char        *keyFile = NULL;
-int         htlVal = 3;
-char        *nodeAddr = "127.0.0.1";
-int         nodePort = 8481;
-char        *metaFile = NULL;
-char        *metaData = NULL;
-int         rawMode = 0;
-int         silentMode = 0;
-int         verbosity = FCP_LOG_NORMAL;
-int			maxAttempts = 3;                // maximum number of insert attempts
+/* Configurable command-line parameters
+   Strings/Arrays that have default values if not set explicitly from the
+   command line should be initialized to "", a zero-length string.
+*/
+char  keyUri[L_URI];
+char  keyFile[L_FILENAME] = "";
+char  metaFile[L_FILENAME] = "";
+char *metaData = 0;
+ 
+char  nodeAddr[L_HOST] = EZFCP_DEFAULT_HOST;
+int   nodePort = EZFCP_DEFAULT_PORT;
+int   htlVal = EZFCP_DEFAULT_HTL;
+int   regress = EZFCP_DEFAULT_REGRESS;
+int   rawMode = EZFCP_DEFAULT_RAWMODE;
+int   quiet = 0;
+int   attempts = FCPPUT_ATTEMPTS;
+int   splitThreads = FCP_MAX_SPLIT_THREADS;
 
-int			maxSplitThreads = FCP_MAX_SPLIT_THREADS;
+int   verbosity = FCP_LOG_NORMAL;
 
 
 int main(int argc, char* argv[])
@@ -39,16 +47,13 @@ int main(int argc, char* argv[])
     int curlen, newlen;
     int insertError;
     int fd;
-	struct stat fileStat;
 
-    // go thru command line args
+		struct stat fileStat;
+
     parse_args(argc, argv);
 
-	//printf("chose splitfile chunk size of %d\n", fcpSplitChunkSize);
-	//getchar();
-
     // try and fire up FCP library
-    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, maxSplitThreads) != 0)
+    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, splitThreads) != 0)
         return 1;
 
     // create an FCP handle
@@ -56,7 +61,7 @@ int main(int argc, char* argv[])
     fcpSetHtl(hfcp, htlVal);
 
     // get hold of some metadata if needed
-    if (metaFile != NULL)
+    if (metaFile[0])
     {
         char meta_stdin = !strcmp(metaFile, "stdin");
         FILE *fp_meta = meta_stdin
@@ -75,7 +80,7 @@ int main(int argc, char* argv[])
             // read metadata from stdin)
             metaData = strsav(NULL, "");
 
-            if (!silentMode)
+            if (!quiet)
                 printf("Enter metadata line by line, enter a line '.' to finish:\n");
             while (fgets(metaLine, sizeof(metaLine), fp_meta) != NULL)
                 if (metaLine[0] == '.')
@@ -103,7 +108,7 @@ int main(int argc, char* argv[])
         fd = 0;
 
         // read key from stdin
-        if (!silentMode)
+        if (!quiet)
             printf("Enter key data line by line, prees Control-D to finish:\n");
 
         curlen = 0;
@@ -140,8 +145,8 @@ int main(int argc, char* argv[])
 			do
 				_fcpLog(FCP_LOG_VERBOSE,
 					"Key is small or chk, inserting directly, attempt %d/%d",
-					i, maxAttempts);
-			while ((insertError = fcpPutKeyFromFile(hfcp, keyUri, keyFile, metaData)) != 0 && i++ <= maxAttempts);
+					i, attempts);
+			while ((insertError = fcpPutKeyFromFile(hfcp, keyUri, keyFile, metaData)) != 0 && i++ <= attempts);
 		}
 		else
 		{
@@ -150,9 +155,9 @@ int main(int argc, char* argv[])
 			_fcpLog(FCP_LOG_VERBOSE, "Key too big, inserting as CHK");
 
 			// gotta insert as CHK, then insert a redirect to it
-			while ((insertError = fcpPutKeyFromFile(hfcp, "CHK@", keyFile, metaData)) != 0 && i++ < maxAttempts)
+			while ((insertError = fcpPutKeyFromFile(hfcp, "CHK@", keyFile, metaData)) != 0 && i++ < attempts)
 			{
-				printf("Insert attempt %d/%d failed\n", i, maxAttempts);
+				printf("Insert attempt %d/%d failed\n", i, attempts);
 				return -1;
 			}
 
@@ -166,9 +171,9 @@ int main(int argc, char* argv[])
 
 			// insert the redirect
 			i = 0;
-			while ((insertError = fcpPutKeyFromMem(hfcp, keyUri, NULL, metaRedir, 0)) != 0 && i++ < maxAttempts)
+			while ((insertError = fcpPutKeyFromMem(hfcp, keyUri, NULL, metaRedir, 0)) != 0 && i++ < attempts)
 			{
-				printf("Redirect insert attempt %d/%d failed\n", i, maxAttempts);
+				printf("Redirect insert attempt %d/%d failed\n", i, attempts);
 				return -1;
 			}
 			_fcpLog(FCP_LOG_VERBOSE, "Redirect inserted successfully");
@@ -200,91 +205,136 @@ int fcpLogCallback(int level, char *buf)
     return 0;
 }
 
+/* IMPORTANT
+   This function should bail if the parameters are bad in any way.  main() can
+   then continue cleanly. */
 
 static void parse_args(int argc, char *argv[])
 {
-    int i;
+  static struct option long_options[] = {
+    {"address", 1, NULL, 'n'},
+    {"port", 1, NULL, 'p'},
+    {"htl", 1, NULL, 'l'},
+    {"raw", 0, NULL, 'r'},
+    {"metadata", 1, NULL, 'm'},
+		{"size", 1, NULL, 's'},
+		{"quiet", 0, NULL, 'q'},
+		{"attempts", 1, NULL, 'a'},
+		{"threads", 1, NULL, 't'},
+    {"verbosity", 1, NULL, 'v'},
+    {"version", 0, NULL, 'V'},
+    {"help", 0, NULL, 'h'},
+    {0, 0, 0, 0}
+  };
+  static char short_options[] = "l:n:p:e:m:s:qa:t:rv:Vh";
 
-    if (argc == 1)
-        usage("missing key URI");
+  /* c is the option code; i is buffer storage for an int */
+  int c, i;
 
-    for (i = 1; i < argc; i++)
-    {
-        if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-help"))
-            usage("help information");
-        else if (!strcmp(argv[i], "-n"))
-            nodeAddr = (++i < argc)
-                        ? argv[i]
-                        : (char *)usage("missing node address");
-        else if (!strcmp(argv[i], "-htl"))
-            htlVal = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing htl argument");
-        else if (!strcmp(argv[i], "-p"))
-            nodePort = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing port number");
-        else if (!strcmp(argv[i], "-ss"))
-            fcpSplitChunkSize = (++i < argc)
-                        ? parse_num(argv[i])
-                        : (int)usage("missing splitfile chunk size");
-        else if (!strcmp(argv[i], "-a"))
-            maxAttempts = (++i < argc)
-                        ? atoi(argv[i])
-                        : usage("missing maxAttempts value");
-        else if (!strcmp(argv[i], "-st"))
-            maxSplitThreads = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing max splitfile threads");
-        else if (!strcmp(argv[i], "-v"))
-            verbosity = (++i < argc)
-                        ? atoi(argv[i])
-                        : (int)usage("missing verbosity parm");
-        else if (!strcmp(argv[i], "-m"))
-            metaFile = (++i < argc)
-                        ? argv[i]
-                        : (char *)usage("missing metadata filename\n");
-        else if (!strcmp(argv[i], "-r"))
-            rawMode = 1;
-        else if (!strcmp(argv[i], "-s"))
-            silentMode = 1;
-        else
-        {
-            // have we run out of args?
-            if (i == argc)
-                usage("missing key argument");
+  while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
+    switch (c) {
 
-            // cool - get URI and possibly file as well
-            keyUri = argv[i++];
-            keyFile = (i < argc) ? argv[i] : NULL;
-        }
-    }
+    case 'n':
+      strncpy( nodeAddr, optarg, L_URI );
+      break;
+
+    case 'p':
+      i = atoi( optarg );
+      if (i > 0) nodePort = i;
+      break;
+
+    case 'l':
+      i = atoi( optarg );
+      if (i > 0) htlVal = i;
+      break;
+
+    case 'r':
+      rawMode = 1;
+      break;
+
+    case 'm':
+      strncpy( metaFile, optarg, L_FILENAME );
+      break;
+
+		case 's':
+			i = atoi( optarg );
+			if (i > 0) fcpSplitChunkSize = i;
+			break;
+
+		case 'q':
+			quiet = 1;
+			break;
+
+		case 'a':
+			i = atoi( optarg );
+			if (i > 0) attempts = i;
+			break;
+
+		case 't':
+			i = atoi( optarg );
+			if (i > 0) splitThreads = i;
+			break;
+ 
+    case 'v':
+      i = atoi( optarg );
+      if ((i >= 0) && (i <= 4)) verbosity = i;
+      break;
+
+    case 'V':
+      printf( "FCPtools Version %s\n", VERSION );
+      exit(0);
+
+    case 'h':
+      usage(NULL);
+      break;
+		}
+	}
+
+  if (optind < argc) strncpy(keyUri, argv[optind++], L_URI);
+  else usage("You must specify a key");
+
+  /* If there's another parameter, it's the FILE to store the results in.
+     Default value is "" if not passed */
+  if (optind < argc)
+    strncpy(keyFile, argv[optind++], L_FILENAME);
 }
 
-
-static void *usage(char *s)
+static void usage(char *s)
 {
-    printf("fcpput: %s\n", s);
-    printf("usage: fcpput [-h] [-htl htlval] [-n nodeAddr] [-p nodePort] [-r] [-m file] key [file]\n");
-    printf("-h: display this help\n");
-    printf("-s: don't display prompts for metadata or key data\n");
-    printf("-htl htlVal: use HopsToLive value of htlVal, default 3\n");
-    printf("-n nodeAddr: address of your freenet 0.4 node, default 'localhost'\n");
-    printf("-p nodePort: FCP port for your freenet 0.4 node, default 8481\n");
-    printf("-m file:     get key's metadata from file, 'stdin' means stdin\n");
-    printf("-a attempts: maximum number of attempts at inserting each file (default 3)\n");
-	printf("-ss:         size of splitfile chunks, default %d\n", SPLIT_BLOCK_SIZE);
-	printf("-st:         max number of splitfile threads, default %d\n", FCP_MAX_SPLIT_THREADS);
-    printf("-v level:    verbosity of logging messages:\n");
-    printf("             0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-    printf("             default is 2\n");
-    printf("key          a Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
-    printf("file         a file to take key data from - uses stdin if no filename\n");
-    printf("NOTE - only the inserted key URI will be written to stdout\n"
-            "Therefore, you can use this utility in shell `` (backtick) commands\n");
-    exit(-1);
-}
+	if (s) printf("Error: %s\n", s);
 
+	printf("FCPtools; Freenet Client Protocol Tools\n");
+	printf("Copyright (c) 2001 by David McNab\n\n");
+
+	printf("Usage: fcpput [OPTIONS] key [file]\n\n");
+
+	printf("Options:\n\n");
+	printf("  -n, --address host     Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
+	printf("  -p, --port num         Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
+	printf("  -l, --htl num          Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
+	printf("  -e, --regress num      Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
+	printf("  -r, --raw              Raw mode - don't follow redirects\n\n");
+	
+	printf("  -m, --metadata file    Read key's metadata from file (default \"stdin\")\n");
+	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
+	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+
+	printf("  -q, --quiet            Quiet mode - no prompts for metadata or key data\n");
+  printf("  -a, --attempts num     Attempts to insert each file (default %d)\n", FCPPUT_ATTEMPTS);
+  printf("  -s, --size num         Size of splitfile chunks (default %d)\n", SPLIT_BLOCK_SIZE);
+  printf("  -t, --threads num      Number of splitfile threads (default %d)\n\n", FCP_MAX_SPLIT_THREADS);
+
+	printf("  -V, --version          Output version information and exit\n");
+	printf("  -h, --help             Display this help and exit\n\n");
+
+	printf("  key                    Freenet key (...)\n");
+	printf("  file                   Read key's data from file (default \"stdin\")\n\n");
+	
+	printf("NOTE - only the inserted key URI will be written to stdout\n"
+				 "Therefore, you can use this utility in shell backtick commands\n\n");
+ 
+	exit(0);
+}
 
 static char *strsav(char *old, char *text_to_append)
 {
