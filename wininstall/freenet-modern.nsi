@@ -326,7 +326,6 @@ Section "Freenet Node" SecFreenetNode
   SetDetailsPrint none
   SetOutPath "$R0\freenet-install"
   SetDetailsPrint both
-
   IfFileExists "$INSTDIR\seednodes.ref" NoDownloadSeednodes
   IfFileExists "$R0\freenet-install\seednodes.ref" NoDownloadSeednodes
   # if "Don't Prompt Me" is selected the following message box will not appear and seed download will be automatic
@@ -414,7 +413,7 @@ Section "Freenet Node" SecFreenetNode
     ;Create shortcuts
     SetDetailsPrint none
     SetOutPath "$INSTDIR" # this ensures the 'START IN' parameter of the shortcut is set to the install directory
-    SetDetailsPrint both 
+    SetDetailsPrint both
     CreateDirectory "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}"
     CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$1\freenet.exe" 0
     CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$1\Uninstall.exe" 0
@@ -511,6 +510,7 @@ Section "Uninstall"
   FindWindow $R0 "TrayIconFreenetClass"
   IsWindow $R0 StillRunning NotRunning 
   StillRunning:
+  SendMessage $R0 16 0 0 # WM_CLOSE
   MessageBox MB_OKCANCEL "Freenet is still running.  You will need to stop it to uninstall Freenet.$\r$\nPlease shut it down then click OK" IDCANCEL Cancel
   goto CheckRunning
   NotRunning:
@@ -628,11 +628,10 @@ Function DetectJava
 
   StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment"
   # Get JRE installed version
-  ReadRegStr $2 HKLM $0 "CurrentVersion"
-  StrCmp $2 "" DetectTry2
-
+  # Hack - enforce compatibility with SUN JRE 1.4(.xxx) only
+  # Hack will be removed shortly (days...)
   # Get JRE path
-  ReadRegStr $6 HKLM "$0\$2" "JavaHome"
+  ReadRegStr $6 HKLM "$0\1.4" "JavaHome"
   StrCmp $6 "" DetectTry2
   
   #We seem to have a JRE now
@@ -671,10 +670,8 @@ Function DetectJava
   # then the JRE installation may have cocked up.  Ask the user if they want to try running the JRE installer again
   # or just abort the installation
   StrCmp $5 "Yes" RetryJREInstaller
-
   # Put 'Yes' in $5 to state that is no longer the first time we've looked for the JRE on the local machine
   StrCpy $5 "Yes"
-
   GetFullPathName /SHORT $R0 $TEMP # get short version of TEMP into $R0
   SetDetailsPrint none
   SetOutPath "$R0\freenet-install"
@@ -688,13 +685,15 @@ Function DetectJava
     Goto StartCheck
   !else
     !ifdef WEBINSTALL
+      DetailPrint "You do not have Sun Java 1.4 or compatible installed -"
+      RetryJavaDownload:
       DetailPrint "Downloading Java Runtime Environment ..."
       Push "http://freenetproject.org/snapshots/jre-win32-latest.exe"
       Push "$R0\freenet-install"
       Push "jre-win32-latest.exe"
       Call RetryableDownload
       StrCmp $0 "success" jredownloadsuccess
-      MessageBox MB_OK "I could not find a Java Runtime Environment installed and I couldn't download one from$\r$\nThe Free Net Project's servers.  Installation has failed.  You could try downloading$\r$\nJava Runtime Environment ('JRE') from http://java.sun.com/getjava/ or you could just try running$\r$\nthis installer again later.  Click OK to cancel this installation"
+      MessageBox MB_RETRYCANCEL "I could not find a compatible Java Runtime Environment installed and I couldn't download one from$\r$\nThe Free Net Project's servers.  Installation has failed.  You could try downloading$\r$\nJava Runtime Environment ('JRE') from http://java.sun.com/getjava/ or you could just try running$\r$\nthis installer again later.  Click cancel to EXIT this installation" IDRETRY RetryJavaDownload
       call AbortCleanup
       jredownloadsuccess:
       DetailPrint "Installing JAVA ..."
@@ -903,9 +902,6 @@ Function AreINSTDIRandEXEDIRsame
   FileOpen $R2 "$INSTDIR\__dir__" "w"
   FileClose $R2
   IfFileExists "$EXEDIR\__dir__" TheyAreTheSame
-  SetDetailsPrint none
-  Delete "$INSTDIR\__dir__"
-  SetDetailsPrint both
 
   # when we get here we know that $INSTDIR and $EXEDIR are different
   StrCpy $0 "no"
@@ -915,5 +911,8 @@ Function AreINSTDIRandEXEDIRsame
   StrCpy $0 "yes"
 
   end:
+  SetDetailsPrint none
+  Delete "$INSTDIR\__dir__"
+  SetDetailsPrint both
 
 FunctionEnd
