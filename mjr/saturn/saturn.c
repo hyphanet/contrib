@@ -109,7 +109,7 @@ nntp_xover (char *group, int begin)
 	goto badreply;
     
     if (begin) {
-	start = begin;
+	start = ++begin;
 	count -= begin - start;
     }
     
