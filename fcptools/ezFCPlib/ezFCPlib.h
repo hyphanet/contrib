@@ -51,6 +51,23 @@
 #define DIRDELIMCHAR '/'
 #endif
 
+// Copied from fcpputsite.h to remove the dependancy.
+#ifdef WINDOWS
+
+#define DIR_DELIM_CHAR      '\\'
+#define DIR_DELIM_STRING    "\\"
+
+#else
+
+#define DIR_DELIM_CHAR      '/'
+#define DIR_DELIM_STRING    "/"
+
+#include "dirent.h"
+#include "sys/stat.h"
+#include "unistd.h"
+
+#endif
+// End of fcpputsite.h code.
 
 #define MAX_URI_LEN         256
 #define MAX_FILENAME_LEN    128

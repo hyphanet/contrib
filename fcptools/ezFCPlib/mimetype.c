@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../fcpputsite/fcpputsite.h"
+#include "ezFCPlib.h"
 
 char *GetMimeType(char *pathname);
 
