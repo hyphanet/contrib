@@ -81,6 +81,8 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 	hfcp->key->openmode = _FCP_O_READ;
 
 	/* not yet implemented */
+	key_uri = key_uri;
+
   return 1;
 }
 

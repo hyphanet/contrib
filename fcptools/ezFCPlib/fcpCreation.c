@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern void _fcpSockDisconnect(hFCP *hfcp);
 
@@ -79,7 +80,7 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 void fcpDestroyHFCP(hFCP *h)
 {
 	if (h) {
-		if (h->socket < 0) _fcpSockDisconnect(h);
+		if (h->socket != FCP_SOCKET_DISCONNECTED) _fcpSockDisconnect(h);
 
 		if (h->host) free(h->host);
 		if (h->description) free(h->description);

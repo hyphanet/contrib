@@ -33,8 +33,6 @@ extern int   _fcpVerbosity;
 extern FILE *_fcpLogStream;
 
 
-/* extern int vsnprintf(char *str, size_t size, const char *format, va_list ap); */
-
 /*
   Function:    _fcpLog()
 	

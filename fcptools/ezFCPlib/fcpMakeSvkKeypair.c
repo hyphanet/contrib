@@ -43,6 +43,9 @@ int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy)
 
 	_fcpLog(FCP_LOG_VERBOSE, "Entered GenerateSVKPair()");
 
+	/* entropy? */
+	entropy = entropy;
+
 	/* try to connect first.. bomb otherwise */
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
 

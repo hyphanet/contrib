@@ -24,16 +24,17 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include "ezFCPlib.h"
+
 #ifndef WIN32
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #endif
 
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
-
-#include "ezFCPlib.h"
 
 /* imports */
 extern void _fcpSockDisconnect(hFCP *hfcp);
@@ -45,7 +46,7 @@ static int host_is_numeric(char *host);
 int _fcpSockConnect(hFCP *hfcp)
 {
 	char msg[513];
-  int rc;
+  int  rc;
 	
   struct sockaddr_in sa_local_addr;
   struct sockaddr_in sa_serv_addr;
@@ -84,6 +85,7 @@ int _fcpSockConnect(hFCP *hfcp)
   sa_local_addr.sin_family = AF_INET;
 	
   rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
+
   if (rc < 0) {
 		snprintf(msg, 512, "error binding to port %d: %s", hfcp->port, strerror(errno));
 

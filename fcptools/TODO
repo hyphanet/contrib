@@ -44,6 +44,7 @@ ezFCPlib specific
 + Make hDocument->data field dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 + Improve the splitfile size ceiling; the node uses one, the tools use another(?)
++ Deprecate the hfcp->error thing and just use the log everywhere.
 
 - Make FEC_CHUNK_SIZE configurable; default to 1M (Fred computes this afaik).
 - Add logic like fcpTmpDir for an 'fcpHomeDir'; /home/$user on nix, %USERPROFILE%\My Documents for Win32.

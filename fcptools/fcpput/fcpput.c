@@ -24,17 +24,12 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 
-#define _GNU_SOURCE
-
-#include "getopt.h"
 #include "ezFCPlib.h"
+#include "getopt.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 
 

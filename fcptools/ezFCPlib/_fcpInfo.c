@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 extern int   _fcpSockConnect(hFCP *hfcp);
 extern void  _fcpSockDisconnect(hFCP *hfcp);
 
@@ -49,8 +48,9 @@ int fcpSendHello(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "sending ClientHello message");
 	
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
-		
+		snprintf(msg, 512, "Could not send ClientHello message");
+		hfcp->error = strdup(msg);
+
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}

@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);

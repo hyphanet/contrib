@@ -27,15 +27,11 @@
 */
 
 
-#include <sys/stat.h>
-
-#include <fcntl.h>
-#include <stdio.h>
-
-#define _GNU_SOURCE
+#include "ezFCPlib.h"
 #include "getopt.h"
 
-#include "ezFCPlib.h"
+#include <stdio.h>
+#include <string.h>
 
 
 extern int _fcpTmpfile(char **filename);
@@ -77,7 +73,11 @@ int main(int argc, char* argv[])
 	hfcp = fcpCreateHFCP(host, port, 0, 0, 0);
 
 	_fcpLog(FCP_LOG_VERBOSE, "Sending Hello message");
-	fcpSendHello(hfcp);
+
+	if (fcpSendHello(hfcp) != 0) {
+		_fcpLog(FCP_LOG_NORMAL, "Could not send Hello message to node: %s", hfcp->error);
+		return -1;
+	}
 	
 	/* Now dump the info */
 	_fcpLog(FCP_LOG_NORMAL, "Node Description: %s", hfcp->description);

@@ -54,14 +54,8 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
-/*
-#define S_IRUSR _S_IRUSR
-#define S_IWUSR _S_IWUSR
-*/
-
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
-
 
 /**************************************************************************
   UNIX specifics
@@ -80,9 +74,7 @@
 /**************************************************************************
   GENERIC (place anything that must happen after the above decl's here)
 **************************************************************************/
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
+
 #include <stdio.h>
 
 /*************************************************************************/

@@ -57,11 +57,8 @@ static int parse_version(hMetadata *, char *);
 static int parse_document(hMetadata *, char *);
 
 
-/*
-	Parse states.
-
-	The meaning has changed a bit from the old code.
-*/
+/* Parse states.
+	 The meaning has changed a bit from the old code. */
 #define STATE_WAIT_VERSION  1
 #define STATE_IN_VERSION    2
 #define STATE_WAIT_DOCUMENT 3
@@ -85,7 +82,13 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 
 	int   rc;
 
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpMetaParse()");
 	_fcpLog(FCP_LOG_DEBUG, "Metadata:\n%s", buf);
+
+	/* I don't want to look at the warnings while I haven't finished this
+		 piece yet */
+	key[0] = key[0];
+	val[0] = val[0];
 	
 	/* free *meta if it has old metadata */
 	/* loop from 0-meta->cd_count; free(meta[i]); */
@@ -128,6 +131,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 
 void _fcpMetaDestroy(hMetadata *meta)
 {
+	meta = meta;
 }
 
 /**********************************************************************/

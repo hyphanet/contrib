@@ -26,14 +26,10 @@
 
 #include "ezFCPlib.h"
 
-
 #include <stdlib.h>
 #include <string.h>
 
 extern long xtoi(char *);
-
-/* used in DataChunk to supress repeated log messages */
-static int bSupressLog = 0;
 
 
 /* suppress a compiler warning */
@@ -178,7 +174,7 @@ static int getrespHello(hFCP *hfcp)
 		}
 
 		else if (!strncmp(resp, "HighestSeenBuild=", 17)) {
-			hfcp->highest_build = xtoi(resp+17);
+			hfcp->highest_build = atoi(resp+17);
 		}
 
 		else if (!strncmp(resp, "Node=", 5)) {
