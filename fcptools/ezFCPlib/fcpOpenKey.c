@@ -91,284 +91,199 @@ int fcpOpenKey(HFCP *hfcp, char *key, int mode)
 
 static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 {
-    char    buf[1024];
-    int     n;
-    int     len;
-    FCP_URI *uri;
-    FCP_URI *uriTgt;
-    int redirecting;
-    char *currKey;
-    char *newKey = NULL;
-    META04 *meta;
-    int  metaLen;
-    int chainPath; // the MSK 'chain path' number - pathi in SSK@blan/name//path1//,,,//pathn//
-    FLDSET *fldSet;
-    char *s;
-    char *path;
-    int docFound;
+  char     buf[1024];
+  int      n;
+  int      len;
+  FCP_URI *uri;
+  FCP_URI *uriTgt;
+  int      redirecting;
+  char    *currKey;
+  char    *newKey = NULL;
+  META04  *meta;
+  int      metaLen;
+  FLDSET  *fldSet;
+  char    *s;
+  char    *path;
+  int      docFound;
 
-    _fcpLog(FCP_LOG_VERBOSE, "Request: %s", key);
+  long     offset = 0;
+  long     increment = 86400;
+  long     timeNow;
+  long     tgtTime;
+  
+  _fcpLog(FCP_LOG_VERBOSE, "Request: %s", key);
 
-    //
-    // main loop for key retrieval
-    //
+  /* Main loop for key retrieval */
+  currKey = strdup(key);
 
-    // follow the MSK chain
-    chainPath = 0;
-    currKey = strdup(key);
-    uri = NULL;
-    if (hfcp->meta != NULL)
-    {
-        metaFree(hfcp->meta);
-        hfcp->meta = NULL;
-        hfcp->fields = NULL;
-    }
+  uri = NULL;
+  if (hfcp->meta != NULL) {
+		metaFree(hfcp->meta);
+		hfcp->meta = NULL;
+		hfcp->fields = NULL;
+  }
 
-    do
-    {
-        // follow the chain of internal redirects
-        for (redirecting = 1; redirecting;)
-        {
-            fldSet = NULL;
+	for (redirecting = 1; redirecting;) {
+		fldSet = NULL;
+	  
+		// clean up if this is a loop re-entry
+		if (uri != NULL) {
+			_fcpSockDisconnect(hfcp);
+			_fcpFreeUri(uri);
+		}
+			
+		// analyse current key
+		uri = _fcpParseUri(currKey);
+			
+		/* Grab key at current key URI
+			 connect to Freenet FCP */
+		if (_fcpSockConnect(hfcp) != 0) {
+			_fcpFreeUri(uri);
+			_fcpLog(FCP_LOG_CRITICAL, "Can't connect to node for key '%s'", key);
+			free(currKey);
+			return -1;
+		}
+			
+		// create and send key request
+		sprintf(buf, "ClientGet\nURI=%s\nHopsToLive=%x\nEndMessage\n", uri->uri_str, hfcp->htl);
+		len = strlen(buf);
+			
+		_fcpSockSend(hfcp, _fcpID, 4);
+			
+		n = _fcpSockSend(hfcp, buf, len);
+		if (n < len) {
+			_fcpSockDisconnect(hfcp);
+			_fcpFreeUri(uri);
+			free(currKey);
+			return -1;
+		}
+			
+		// expecting a datafound response
+		if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATAFOUND) {
+			_fcpSockDisconnect(hfcp);
+			_fcpFreeUri(uri);
+			free(currKey);
+			return -1;
+		}
+	  
+		// record the key's data size
+		hfcp->keysize = hfcp->conn.response.body.datafound.dataLength;
+			
+		// suck in the metadata, if any
+		meta = NULL;
+		if ((metaLen = hfcp->conn.response.body.datafound.metaLength) > 0) {
+			char *ptr = safeMalloc(metaLen + 1);    // extra byte for '\0'
+			int count;
+				
+			// get all the metadata
+			hfcp->conn.response.body.datafound.metaData = ptr;
+			count = _fcpReadBlk(hfcp, ptr, metaLen);
+			ptr[count] = '\0';
+				
+			_fcpLog(FCP_LOG_DEBUG, "Metadata:\n--------\n%s\n--------", ptr);
+				
+			fflush(stdout);
+			meta = metaParse(ptr);
+			free(ptr);
+		}
+			
+		timeNow = (long)time(NULL);
 
-            // clean up if this is a loop re-entry
-            if (uri != NULL)
-            {
-                _fcpSockDisconnect(hfcp);
-                _fcpFreeUri(uri);
-            }
+		/* Parse metadata into the field set struct */
+		/* Note that cdocFindDoc returns NULL when passed that value for meta */
+		fldSet = cdocFindDoc(meta, NULL);
 
-            // analyse current key
-            uri = _fcpParseUri(currKey);
-            docFound = 0;
+		/* If fldSet is NULL, there's no useful metadata */
+		/* Effectively break out of the for loop and prepare return to caller */
+		if (!fldSet) {
+			redirecting = 0;
+			continue;
+		}
+		
+		/* Get the mimetype if it exists */
+		if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
+				strcpy(hfcp->mimeType, s);
 
-            //
-            // Grab key at current key URI
-            //
+		/* Now handle the 4 cdoc meta types */
+		switch (fldSet->type)	{
+		case META_TYPE_04_NONE:
+			// success
+			redirecting = 0;
+			break;
+			
+		case META_TYPE_04_REDIR:
+			s = cdocLookupKey(fldSet, "Redirect.Target");
+			sprintf(buf, s);
+			newKey = strdup(buf);
+			metaFree(meta);
+			_fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
+			break;
+			
+		case META_TYPE_04_DBR:
+			s = cdocLookupKey(fldSet, "DateRedirect.Target");
+			uriTgt = _fcpParseUri(s);
+			
+			if ((s = cdocLookupKey(fldSet, "DateRedirect.Offset")) != NULL)
+				offset = xtoi(s);
+			if ((s = cdocLookupKey(fldSet, "DateRedirect.Increment")) != NULL)
+				increment = xtoi(s);
+			tgtTime = timeNow - ((timeNow - offset) % increment);
+			
+			if (!strncmp(uriTgt->uri_str, "KSK@", 4))	{
+				// convert KSK@name to KSK@secshex-name
+				path = uriTgt->path;           // path is the ksk keyname
+				sprintf(buf, "KSK@%lx-%s",
+								tgtTime,
+								uriTgt->uri_str + 4);
+				newKey = strdup(buf);
+				metaFree(meta);
+				_fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
+			}
+			else if (!strncmp(uriTgt->uri_str, "SSK@", 4) && uriTgt->path != NULL)	{
 
-            // connect to Freenet FCP
-            if (_fcpSockConnect(hfcp) != 0)
-            {
-                _fcpFreeUri(uri);
-				_fcpLog(FCP_LOG_CRITICAL, "Can't connect to node for key '%s'", key);
-                free(currKey);
-                return -1;
-            }
+				// convert SSK@blah/name to SSK@blah/secshes-name
+				sprintf(buf, "SSK@%s/%lx-%s",
+								uriTgt->keyid,
+								tgtTime,
+								uriTgt->path);
+				newKey = strdup(buf);
+				metaFree(meta);
+				_fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
+			}
+			else {
+				// no cdoc matching the one requested - fail
+				_fcpLog(FCP_LOG_NORMAL, "Invalid DBR target: \n%s\n -> %s",
+								currKey, uriTgt);
+				_fcpFreeUri(uri);
+						free(currKey);
+						free(uriTgt);
+						_fcpSockDisconnect(hfcp);
+						metaFree(meta);
+						return -1;  // 404
+			}
+			
+			free(uriTgt);
+			break;
+					
+		case META_TYPE_04_SPLIT:
+			redirecting=0;
+			break;
+		}
+		
+		free(currKey);
+		currKey = newKey;
+		
+	} // 'while (redirecting)'
+	
+  /* If execution reaches here, we've succeeded in opening the key and
+		 retrieving it's metadata.  Yay! */
+  hfcp->meta = meta;
+  hfcp->fields = fldSet;
+  _fcpFreeUri(uri);
+  hfcp->keysize = hfcp->conn.response.body.datafound.dataLength;
+  return 0;
 
-            // create and send key request
-            sprintf(buf, "ClientGet\nURI=%s\nHopsToLive=%x\nEndMessage\n", uri->uri_str, hfcp->htl);
-            len = strlen(buf);
-
-            _fcpSockSend(hfcp, _fcpID, 4);
-
-            n = _fcpSockSend(hfcp, buf, len);
-            if (n < len)
-            {
-                _fcpSockDisconnect(hfcp);
-                _fcpFreeUri(uri);
-                free(currKey);
-                return -1;
-            }
-
-            // expecting a datafound response
-            if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATAFOUND)
-            {
-                _fcpSockDisconnect(hfcp);
-                _fcpFreeUri(uri);
-                free(currKey);
-                return -1;
-            }
-
-            // record the key's data size
-            hfcp->keysize = hfcp->conn.response.body.datafound.dataLength;
-
-            // suck in the metadata, if any
-            meta = NULL;
-            if ((metaLen = hfcp->conn.response.body.datafound.metaLength) > 0)
-            {
-                char *ptr = safeMalloc(metaLen + 1);    // extra byte for '\0'
-                int count;
-
-                // get all the metadata
-                hfcp->conn.response.body.datafound.metaData = ptr;
-                count = _fcpReadBlk(hfcp, ptr, metaLen);
-                ptr[count] = '\0';
-                _fcpLog(FCP_LOG_DEBUG, "Metadata:\n--------\n%s\n--------", ptr);
-
-				fflush(stdout);
-                meta = metaParse(ptr);
-                free(ptr);
-            }
-
-            // here's where we decide what we're actually going to do with this key
-            // 1. is it an msk?
-            // 2. is there any metadata?
-            // 3. does it redirect?
-
-            // is an msk redirect needed?
-            if (chainPath >= uri->numdocs && (meta == NULL || uri->numdocs > 0))
-                // don't follow internal redirects
-                redirecting = 0;
-            else
-            {
-                long offset = 0;
-                long increment = 86400;
-                long timeNow = (long)time(NULL);
-                long tgtTime;
-
-                // yes - try to find required cdoc
-                if (meta == NULL)
-                {
-                    // no metadata - see if we needed any
-                    if (uri->numdocs == 0
-                        || (chainPath == uri->numdocs - 1 && uri->docname[chainPath][0] == '\0')
-                        )
-                    {
-                        redirecting = 0;
-                        break;
-                    }
-                    else
-                    {
-                        // MSK redirect requested and no metadata available
-                        free(currKey);
-                        _fcpSockDisconnect(hfcp);
-                        _fcpFreeUri(uri);
-                        return -1;  // 404
-                    }
-                }
-
-                // there is metadata, but is there a matching cdoc?
-                if (uri->numdocs > 0)
-                    fldSet = cdocFindDoc(meta, uri->docname[chainPath]);
-                else
-                    fldSet = cdocFindDoc(meta, NULL);
-                if (fldSet == NULL)
-                {
-                    // maybe we're upstream from map
-                    if ((fldSet = cdocFindDoc(meta, NULL)) == NULL)
-                    {
-                        // no cdoc matching the one requested, and
-                        // no default cdoc - fail
-                        free(currKey);
-                        _fcpSockDisconnect(hfcp);
-                        _fcpFreeUri(uri);
-                        metaFree(meta);
-                        return -1;  // 404
-                    }
-                }
-                else if (chainPath < uri->numdocs && uri->docname[chainPath][0] != '\0')
-                    docFound = 1;
-
-                // hunt for a content-type
-                if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
-                    strcpy(hfcp->mimeType, s);
-
-                // found requested cdoc (or default) - do we need to redirect?
-                switch (fldSet->type)
-                {
-                case META_TYPE_04_NONE:
-                    // success
-                    redirecting = 0;
-                    break;
-
-                case META_TYPE_04_REDIR:
-                    s = cdocLookupKey(fldSet, "Redirect.Target");
-                    sprintf(buf, s);
-                    if (!docFound && chainPath < uri->numdocs)
-                    {
-                        strcat(buf, "//");
-                        strcat(buf, uri->docname[chainPath]);
-                    }
-                    newKey = strdup(buf);
-                    metaFree(meta);
-                    _fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
-                    break;
-
-                case META_TYPE_04_DBR:
-                    s = cdocLookupKey(fldSet, "DateRedirect.Target");
-                    uriTgt = _fcpParseUri(s);
-
-                    if ((s = cdocLookupKey(fldSet, "DateRedirect.Offset")) != NULL)
-                        offset = xtoi(s);
-                    if ((s = cdocLookupKey(fldSet, "DateRedirect.Increment")) != NULL)
-                        increment = xtoi(s);
-                    tgtTime = timeNow - ((timeNow - offset) % increment);
-
-                    if (!strncmp(uriTgt->uri_str, "KSK@", 4))
-                    {
-                        // convert KSK@name to KSK@secshex-name
-                        path = uriTgt->path;           // path is the ksk keyname
-                        sprintf(buf, "KSK@%lx-%s",
-                                tgtTime,
-                                uriTgt->uri_str + 4);
-                        if (!docFound && uri->numdocs > 0)
-                        {
-                            strcat(buf, "//");
-                            strcat(buf, uri->docname[chainPath]);
-                        }
-                        newKey = strdup(buf);
-                        metaFree(meta);
-                        _fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
-                    }
-                    else if (!strncmp(uriTgt->uri_str, "SSK@", 4) && uriTgt->path != NULL)
-                    {
-                        // convert SSK@blah/name to SSK@blah/secshes-name
-                        sprintf(buf, "SSK@%s/%lx-%s",
-                                    uriTgt->keyid,
-                                    tgtTime,
-                                    uriTgt->path);
-                        if (!docFound && chainPath < uri->numdocs)
-                        {
-                            strcat(buf, "//");
-                            strcat(buf, uri->docname[chainPath]);
-                        }
-                        newKey = strdup(buf);
-                        metaFree(meta);
-                        _fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
-                    }
-                    else
-                    {
-                        // no cdoc matching the one requested - fail
-                        _fcpLog(FCP_LOG_NORMAL, "Invalid DBR target: \n%s\n -> %s",
-                                currKey, uriTgt);
-                        _fcpFreeUri(uri);
-                        free(currKey);
-                        free(uriTgt);
-                        _fcpSockDisconnect(hfcp);
-                        metaFree(meta);
-                        return -1;  // 404
-                    }
-
-                    free(uriTgt);
-                    break;
-
-                case META_TYPE_04_SPLIT:
-
-//					printf("Metadata: Splitfile!\n");
-		redirecting=0;
-                    break;
-                }
-
-            }
-
-            if (docFound)
-                chainPath++;
-
-            free(currKey);
-            currKey = newKey;
-
-        }           // 'while (redirecting)'
-
-    } while (++chainPath < uri->numdocs);
-
-    // if we get here, we've succeeded
-    hfcp->meta = meta;
-    hfcp->fields = fldSet;
-    _fcpFreeUri(uri);
-    hfcp->keysize = hfcp->conn.response.body.datafound.dataLength;
-    return 0;
-
-}               // 'fcpOpenKeyRead()
+} // 'fcpOpenKeyRead()
 
 
 static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
@@ -429,34 +344,6 @@ FCP_URI *_fcpParseUri(char *key)
     // skip 'freenet:'
     if (!strncmp(dupkey, "freenet:", 8))
         dupkey += 8;
-
-    // ignore redundant 'MSK@' prefix
-    if (!strncmp(dupkey, "MSK@", 4))
-        dupkey += 4;
-
-    // check for tell-tale '//' MSK specifier
-    if ((subpath = strstr(dupkey, "//")) != NULL)
-    {
-        char *delim;
-
-        // found '//' - it's an MSK
-        *subpath = '\0';
-        subpath += 2;
-        strcpy(uri->subpath, subpath);
-        uri->is_msk = 1;
-
-        // split this subpath into an array of them
-        do
-        {
-            if ((delim = strstr(subpath, "//")) != NULL)
-                *delim = '\0';
-            uri = realloc(uri, sizeof(FCP_URI) + sizeof(char *) * (uri->numdocs + 1));
-            uri->docname[uri->numdocs++] = strdup(subpath);
-            if (delim != NULL)
-                subpath = delim + 2;
-        }
-        while (delim != NULL);
-    }
 
     // classify key header
     if (!strncmp(dupkey, "SSK@", 4))

@@ -12,6 +12,8 @@
 
 # Makefile.am for ezFCPlib
 
+#INCLUDES= -I$(top_srcdir)/include
+
 
 SHELL = @SHELL@
 
@@ -61,6 +63,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 AWK = @AWK@
 CC = @CC@
+INCLUDES = @INCLUDES@
 LDADD = @LDADD@
 LIBS = @LIBS@
 LN_S = @LN_S@
@@ -68,8 +71,6 @@ MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
-
-INCLUDES = -I$(top_srcdir)/include
 
 noinst_LIBRARIES = libezfcp.a
 noinst_HEADERS = ezFCPlib.h compat.h

@@ -1,6 +1,6 @@
 # Makefile.am for ezFCPlib
 
-INCLUDES= -I$(top_srcdir)/include
+#INCLUDES= -I$(top_srcdir)/include
 
 noinst_LIBRARIES = libezfcp.a
 noinst_HEADERS = ezFCPlib.h compat.h
