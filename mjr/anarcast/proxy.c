@@ -205,8 +205,7 @@ insert (int c)
     
     // allocate space for plaintext hash and data- and check-block hashes
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
-    if (!(hashes = malloc(hlen)))
-	die("malloc() failed");
+    hashes = malloc(hlen);
     
     // padding
     while (g.dbc * blocksize < datalength)
@@ -399,7 +398,7 @@ request (int c)
 {
     int i, a, n;
     unsigned int datalength, blockcount, blocksize;
-    char *blocks, *mask, hash[HASHLEN], *hashes;
+    char *blocks, *mask, *mask2, hash[HASHLEN], *hashes;
     struct graph g;
     
     // read key length (a key is datalength + hashes)
@@ -415,10 +414,8 @@ request (int c)
 	return;
     }
 
-    if (!(hashes = malloc(i)))
-	die("malloc() failed");
-    
     // read datalength and hashes from client
+    hashes = malloc(i);
     if (readall(c, &datalength, 4) != 4 || readall(c, hashes, i) != i) {
 	alert("Error reading key from client.");
 	free(hashes);
@@ -439,6 +436,7 @@ request (int c)
     
     blockcount = g.dbc + g.cbc;
     mask = malloc(blockcount);
+    mask2 = malloc(blockcount);
     blocks = mbuf(blockcount * blocksize);
     
     // slurp up all the data we can
@@ -452,6 +450,9 @@ request (int c)
 	if (!mask[i]) n++;
     
     if (!n) goto verify; // woo! we got all of `em!
+    
+    // back up original mask. we'll use it to insert the reconstructed parts later
+    memcpy(mask2, mask, blockcount);
     
     // try to reconstruct blocks until we win or lose
     do {
@@ -498,12 +499,22 @@ request (int c)
 	    mask[g.dbc+i] = a = 1; // we got it, baby!!
 	 next2:;
 	}
+
+	if (a) continue; // the following is expensive, so avoid it if possible
+
+	// we may still be able to do it. there's a possibility that we can
+	// reconstruct a data block from check blocks alone. first, we find two
+	// check blocks that include the same lowest-numbered data block. next,
+	// we kabootie flimwuggle gribble wonk
+	
     } while (a && n);
     
     if (n) {
 	alert("Data was not recoverable. %d blocks unrecovered.", n);
 	goto out;
     }
+
+    // INSERT REBUILT PARTS HERE
 
 verify:
     // verify data
@@ -525,6 +536,7 @@ out:
 	die("munmap() failed");
     free(hashes);
     free(mask);
+    free(mask2);
 }
 
 void
@@ -744,9 +756,7 @@ addref (unsigned int addr)
     struct node *n;
     struct node **stack[AVL_MAXHEIGHT];
     
-    if (!(n = malloc(sizeof(struct node))))
-	die("malloc() failed");
-    
+    n = malloc(sizeof(struct node));
     n->addr = addr;
     sha_buffer((char *) &addr, 4, n->hash);
     

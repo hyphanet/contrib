@@ -48,9 +48,7 @@ main (int argc, char **argv)
     if (l > 20000)
 	die("bogus key length");
     
-    if (!(key = malloc(l)))
-	die("malloc() of key buffer failed");
-    
+    key = malloc(l);
     if (readall(s, key, l) != l)
 	die("readall() of key failed");
     

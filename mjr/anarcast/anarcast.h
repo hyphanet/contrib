@@ -37,6 +37,16 @@
     exit(1);                                                                 \
 }
 
+// a safe malloc
+inline void *
+malloc (size_t size)
+{
+    char *p;
+    if (!(p = realloc(NULL, size)))
+	die("malloc() failed");
+    return p;
+}
+
 // a little warning for IO errors
 inline void
 ioerror ()
