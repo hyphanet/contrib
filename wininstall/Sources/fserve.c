@@ -1,4 +1,4 @@
-*/ A wrapper for the Freenet client/node */
+/* A wrapper for the Freenet client/node */
 /* Originally hacked together by Sebastian Späth (Sebastian@SSpaeth.de)*/
 /* License: Feel free to do whatever you want with it (Public Domain)  */
 #include <stdio.h>
@@ -111,7 +111,9 @@ int main(int argc,char *argv[]){
 	#endif
 	/*now parsing the configfile */
 	for (i=0;i<=AMT_OPTIONS-1;++i) {
+#ifdef DEBUGGING
 printf("parsing %d\n",i);
+#endif
 		s[0]='\0'; /*initialising s so we never append shit when nothing was found */
 		if(GetPrivateProfileString(cfgSection,profileString[i],"",s,MAXSTRLEN,cfgFilename) == 0 && i>1){
 			printf("Couldn't find %s in section %s in %s\n",profileString[i],cfgSection,cfgFilename);
@@ -137,15 +139,21 @@ printf("parsing %d\n",i);
 	  	  			  	#endif
 						break;
 						}
-			case JAVA_PATH : {
+			case JAVA_PATH : { 
+#ifdef DEBUGGING
 				          printf("before%d",i);
+#endif
 						parseJavaPath(s);
+#ifdef DEBUGGING
 						printf("after%d",i);
+#endif
 						strcat (cmdline,s);
 						break;
 						}
 			case EXE_FILE :{
+#ifdef DEBUGGING
 				        printf("start cmdline");
+#endif
 					   	strcat(cmdline,s);
 						break;
 						}
@@ -156,6 +164,10 @@ printf("parsing %d\n",i);
 		strcat(cmdline," ");
 		strcat(cmdline,argv[i]);
 		}
+
+	/* set the CLASSPATH env var to the location of the jar. */
+	/* Is there any need to request the value from the config file? */
+	SetEnvironmentVariable("CLASSPATH","freenet.jar");
 
 	/*finally executing external programm and returning error code on exit*/
 	printf("Executing: %s\n",cmdline);
