@@ -80,8 +80,8 @@ int get_file(hFCP *hfcp, char *uri)
 	/********************************************************************/
 
 	do {
-		int minutes;
-		int seconds;
+		unsigned int minutes;
+		unsigned int seconds;
 
 		minutes = (int)(hfcp->options->timeout / 1000 / 60);
 		seconds = ((hfcp->options->timeout / 1000) - (minutes * 60));
@@ -89,14 +89,14 @@ int get_file(hFCP *hfcp, char *uri)
 		/* connect to Freenet FCP */
 		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
-		_fcpLog(FCP_LOG_VERBOSE, "sending ClientGet message to %s:%d, htl=%d, skip_local=%s",
+		_fcpLog(FCP_LOG_VERBOSE, "sending ClientGet message to %s:%u, htl=%u, skip_local=%s",
 						hfcp->host,
 						hfcp->port,
 						hfcp->htl,
 						(hfcp->options->skip_local ? "Yes" : "No"));
 
 		
-		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%d, keysize=%d, metasize=%d",
+		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%u, keysize=%u, metasize=%u",
 						hfcp->options->regress,
 						hfcp->key->size,
 						hfcp->key->metadata->size);
@@ -107,7 +107,7 @@ int get_file(hFCP *hfcp, char *uri)
 			goto cleanup;
 		}
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %d minutes %d seconds)",
+		_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %u minutes %u seconds)",
 						minutes, seconds);
 
 		/* expecting a success response */
@@ -117,12 +117,12 @@ int get_file(hFCP *hfcp, char *uri)
 
 		case FCPRESP_TYPE_DATAFOUND:
 			_fcpLog(FCP_LOG_VERBOSE, "Received DataFound message");
-			_fcpLog(FCP_LOG_DEBUG, "keysize: %d, metadata size: %d",
+			_fcpLog(FCP_LOG_DEBUG, "keysize: %u, metadata size: %u",
 							hfcp->response.datafound.datalength - hfcp->response.datafound.metadatalength,
 							hfcp->response.datafound.metadatalength
 							);
 
-			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
+			_fcpLog(FCP_LOG_DEBUG, "timeout value: %u seconds", (int)(hfcp->options->timeout / 1000));
 			break;
 			
 		case FCPRESP_TYPE_URIERROR:
@@ -131,7 +131,7 @@ int get_file(hFCP *hfcp, char *uri)
 			
 		case FCPRESP_TYPE_RESTARTED:
 			_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message");
-			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
+			_fcpLog(FCP_LOG_DEBUG, "timeout value: %u seconds", (int)(hfcp->options->timeout / 1000));
 			
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
@@ -147,7 +147,7 @@ int get_file(hFCP *hfcp, char *uri)
 
 		case FCPRESP_TYPE_ROUTENOTFOUND: /* Unreachable, Restarted, Rejected */
 			_fcpLog(FCP_LOG_VERBOSE, "Received RouteNotFound message");
-			_fcpLog(FCP_LOG_DEBUG, "unreachable: %d, restarted: %d, rejected: %d",
+			_fcpLog(FCP_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u",
 							hfcp->response.routenotfound.unreachable,
 							hfcp->response.routenotfound.restarted,
 							hfcp->response.routenotfound.rejected);
@@ -192,7 +192,7 @@ int get_file(hFCP *hfcp, char *uri)
 
 	/* if we exhauseted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Failed to retrieve file after %d retries", hfcp->options->retry);
+		_fcpLog(FCP_LOG_CRITICAL, "Failed to retrieve file after %u retries", hfcp->options->retry);
 
 		rc = EZERR_SOCKET_TIMEOUT;
 		goto cleanup;
@@ -215,7 +215,7 @@ int get_file(hFCP *hfcp, char *uri)
 	hfcp->key->size = key_bytes = (hfcp->response.datafound.datalength - meta_bytes);
 	
 	if (meta_bytes > L_RAW_METADATA) {
-		_fcpLog(FCP_LOG_DEBUG, "metadata size too large: %d", meta_bytes);
+		_fcpLog(FCP_LOG_DEBUG, "metadata size too large: %u", meta_bytes);
 		rc = -1;
 		goto cleanup;
 	}
@@ -388,7 +388,7 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 
 	if (rc != 0) return -1;
 
-	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %d",
+	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %u",
 					hfcp->key->target_uri->uri_str,
 					hfcp->key->tmpblock->uri->uri_str,
 					depth);

@@ -65,7 +65,7 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 	h->options->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? FCP_MODE_DELETE_LOCAL : 0);
 	h->options->skip_local   = (optmask & FCP_MODE_SKIP_LOCAL ? FCP_MODE_SKIP_LOCAL : 0);
 
-	_fcpLog(FCP_LOG_DEBUG, "rawmode: %d, delete_local: %d, skip_local: %d",
+	_fcpLog(FCP_LOG_DEBUG, "rawmode: %u, delete_local: %u, skip_local: %u",
 					h->options->rawmode,
 					h->options->delete_local,
 					h->options->skip_local);
@@ -221,6 +221,7 @@ static void _fcpDestroyResponse(hFCP *h)
 		if (h->response.routenotfound.reason) free(h->response.routenotfound.reason);
 		if (h->response.formaterror.reason) free(h->response.formaterror.reason);
 
+		/* don't forget the nodeinfo section */
 		if (h->response.nodeinfo.architecture) free(h->response.nodeinfo.architecture);
 		if (h->response.nodeinfo.operatingsystem) free(h->response.nodeinfo.operatingsystem);
 		if (h->response.nodeinfo.operatingsystemversion) free(h->response.nodeinfo.operatingsystemversion);

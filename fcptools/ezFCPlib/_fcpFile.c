@@ -203,7 +203,7 @@ int _fcpCopyFile(char *dest, char *src)
 			goto cleanup;
 		}
 		
-		_fcpLog(FCP_LOG_DEBUG, "_fcpCopyFile() copied %d bytes", bytes);
+		_fcpLog(FCP_LOG_DEBUG, "_fcpCopyFile() copied %u bytes", bytes);
 		
 		if (sfd != -1) close(sfd);
 		if (dfd != -1) close(dfd);

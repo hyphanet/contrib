@@ -105,13 +105,13 @@ int put_file(hFCP *hfcp, char *uri)
 		/* connect to Freenet FCP */
 		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
-		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%d, htl=%d, delete_local=%s",
+		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%u, htl=%u, delete_local=%s",
 						hfcp->host,
 						hfcp->port,
 						hfcp->htl,
 						(hfcp->options->delete_local ? "Yes" : "No"));
 
-		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%d, keysize=%d, metasize=%d",
+		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%u, keysize=%u, metasize=%u",
 						hfcp->options->regress,
 						hfcp->key->size,
 						hfcp->key->metadata->size);
@@ -189,13 +189,13 @@ int put_file(hFCP *hfcp, char *uri)
 		}
 
 		do {
-			int minutes;
-			int seconds;
+			unsigned int minutes;
+			unsigned int seconds;
 
 			minutes = (int)(hfcp->options->timeout / 1000 / 60);
 			seconds = ((hfcp->options->timeout / 1000) - (minutes * 60));
 
-			_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %d minutes %d seconds)",
+			_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %u minutes %u seconds)",
 							minutes, seconds);
 			
 			/* expecting a success response */
@@ -258,7 +258,7 @@ int put_file(hFCP *hfcp, char *uri)
 				retry--;
 
 				_fcpLog(FCP_LOG_VERBOSE, "Received RoutNotFound message");
-				_fcpLog(FCP_LOG_DEBUG, "unreachable: %d, restarted: %d, rejected: %d",
+				_fcpLog(FCP_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u",
 								hfcp->response.routenotfound.unreachable,
 								hfcp->response.routenotfound.restarted,
 								hfcp->response.routenotfound.rejected);
@@ -297,7 +297,7 @@ int put_file(hFCP *hfcp, char *uri)
 
 	/* if we exhauseted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Failed to insert file after %d retries", hfcp->options->retry);
+		_fcpLog(FCP_LOG_CRITICAL, "Failed to insert file after %u retries", hfcp->options->retry);
 
 		rc = EZERR_SOCKET_TIMEOUT;
 		goto cleanup;
@@ -490,7 +490,7 @@ static int fec_segment_file(hFCP *hfcp)
 	segment_count = hfcp->key->segment_count;
 	index = 0;
 
-	_fcpLog(FCP_LOG_DEBUG, "expecting %d segment(s)", segment_count);
+	_fcpLog(FCP_LOG_DEBUG, "expecting %u segment(s)", segment_count);
 
 	/* Loop through all segments and store information */
 	for (rc = FCPRESP_TYPE_SEGMENTHEADER;
@@ -530,7 +530,7 @@ static int fec_segment_file(hFCP *hfcp)
 		if (hfcp->key->segments[index]->header_str) free(hfcp->key->segments[index]->header_str);
 		hfcp->key->segments[index]->header_str = strdup(buf);
 
-		_fcpLog(FCP_LOG_DEBUG, "received segment %d/%d", index+1, segment_count);
+		_fcpLog(FCP_LOG_DEBUG, "received segment %u/%u", index+1, segment_count);
 	
 		hfcp->key->segments[index]->filelength        = hfcp->response.segmentheader.filelength;
 		hfcp->key->segments[index]->offset            = hfcp->response.segmentheader.offset;
@@ -669,7 +669,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	/* it is a BlocksEncoded message.. get the check blocks */
 	block_len = hfcp->response.blocksencoded.block_size;
 
-	_fcpLog(FCP_LOG_DEBUG, "expecting %d check blocks", segment->cb_count);
+	_fcpLog(FCP_LOG_DEBUG, "expecting %u check blocks", segment->cb_count);
 
 	for (bi=0; bi < segment->cb_count; bi++) {
 
@@ -700,11 +700,11 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		/* Close the check block file */
 		_fcpUnlink(segment->check_blocks[bi]);
 
-		_fcpLog(FCP_LOG_DEBUG, "received check block %d/%d",
+		_fcpLog(FCP_LOG_DEBUG, "received check block %u/%u",
 						bi+1, segment->cb_count);
 	}
 	
-	_fcpLog(FCP_LOG_VERBOSE, "Successfully received %d check blocks", bi);
+	_fcpLog(FCP_LOG_VERBOSE, "Successfully received %u check blocks", bi);
 	
   _fcpSockDisconnect(hfcp);
 	return 0;
@@ -745,7 +745,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 
 	while (bi < segment->db_count) { /* while (bi < segment->db_count) */
 
-		_fcpLog(FCP_LOG_DEBUG, "inserting data block - segment: %d/%d, block %d/%d",
+		_fcpLog(FCP_LOG_DEBUG, "inserting data block - segment: %u/%u, block %u/%u",
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->db_count);
 
@@ -797,10 +797,10 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 		segment->data_blocks[bi] = _fcpCreateHBlock();
 		fcpParseHURI(segment->data_blocks[bi]->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
-		_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %d/%d",
+		_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %u/%u",
 						bi+1, segment->db_count);
 
-		_fcpLog(FCP_LOG_DEBUG, "segment %d/%d, block %d/%d, uri: %s",
+		_fcpLog(FCP_LOG_DEBUG, "segment %u/%u, block %u/%u, uri: %s",
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->db_count,
 						segment->data_blocks[bi]->uri->uri_str);
@@ -849,23 +849,23 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 
 	for (bi=0; bi < segment->cb_count; bi++) {
 
-		_fcpLog(FCP_LOG_DEBUG, "inserting check block - segment: %d/%d, block %d/%d",
+		_fcpLog(FCP_LOG_DEBUG, "inserting check block - segment: %u/%u, block %u/%u",
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->cb_count);
 
 		rc = _fcpPutKeyFromFile(tmp_hfcp, "CHK@", segment->check_blocks[bi]->filename, 0);
 
 		if (rc < 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not insert check block %d into Freenet", bi);
+			_fcpLog(FCP_LOG_CRITICAL, "Could not insert check block %u into Freenet", bi);
 			goto cleanup;
 		}		
 		
 		fcpParseHURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
 
-		_fcpLog(FCP_LOG_VERBOSE, "Inserted check block %d/%d",
+		_fcpLog(FCP_LOG_VERBOSE, "Inserted check block %u/%u",
 						bi+1, segment->cb_count);
 
-		_fcpLog(FCP_LOG_DEBUG, "segment %d/%d, block %d/%d, uri: %s",
+		_fcpLog(FCP_LOG_DEBUG, "segment %u/%u, block %u/%u, uri: %s",
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->cb_count,
 						segment->check_blocks[bi]->uri->uri_str);
@@ -1005,7 +1005,7 @@ static int fec_make_metadata(hFCP *hfcp)
 	switch (rc) {
 	case FCPRESP_TYPE_MADEMETADATA:
 		meta_len = tmp_hfcp->response.mademetadata.datalength;
-		_fcpLog(FCP_LOG_DEBUG, "bytes of metadata to process: %d", meta_len);
+		_fcpLog(FCP_LOG_DEBUG, "bytes of metadata to process: %u", meta_len);
 
 		break;
 

@@ -106,7 +106,7 @@ int _fcpSockConnect(hFCP *hfcp)
 #endif
 	
 	if (rc != 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not bind to port %d", hfcp->port);
+		_fcpLog(FCP_LOG_CRITICAL, "Could not bind to port %u", hfcp->port);
 		_fcpSockDisconnect(hfcp);
 		
 		return -1;
@@ -121,7 +121,7 @@ int _fcpSockConnect(hFCP *hfcp)
 #endif
 	
 	if (rc != 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not connect to server %s:%d", hfcp->host, hfcp->port);
+		_fcpLog(FCP_LOG_CRITICAL, "Could not connect to server %s:%u", hfcp->host, hfcp->port);
 		_fcpSockDisconnect(hfcp);
 		
 		return -1;
@@ -135,7 +135,7 @@ int _fcpSockConnect(hFCP *hfcp)
 		return -1;
 	}
 	
-	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%d", hfcp->host, hfcp->port);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%u", hfcp->host, hfcp->port);
 	
 	return 0;
 }
@@ -313,7 +313,7 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 			/* put the null bytes on the last char allocated in the array */
 			buf[--rcvd] = 0;
 
-			_fcpLog(FCP_LOG_DEBUG, "truncated line at %d bytes", rcvd);
+			_fcpLog(FCP_LOG_DEBUG, "truncated line at %u bytes", rcvd);
 
 			snprintf(s, 40, "*%s*", buf);
 			_fcpLog(FCP_LOG_DEBUG, "1st 40 bytes: %s", s);
