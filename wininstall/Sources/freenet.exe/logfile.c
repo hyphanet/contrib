@@ -13,7 +13,6 @@ struct threadData
 	HWND hwndDialog;
 	HWND hwndEditBox;
 	HWND hwndScrollBar;
-	HANDLE hLogFile;
 	HANDLE hLogFileHandleMutex;
 	ULARGE_INTEGER ulFirstLineFileOffset, ulCurrentLineFileOffset, ulLastLineFileOffset;
 	ULARGE_INTEGER dwlFileSize;
@@ -717,58 +716,72 @@ void UpdateLogfileWindow (HWND hwndEditBox, HWND hwndScrollBar, const char * pTe
 	}
 }
 
-void UpdateFileDetails(struct threadData *d)
+HANDLE UpdateFileDetails(struct threadData *d)
 {
+	HANDLE hLogFile;
 	DWORD dwError;
 
-	if ( d->hLogFile==NULL || d->hLogFile==INVALID_HANDLE_VALUE)
+	d->dwlFileSize.QuadPart=0;
+	d->ftLastModified.dwLowDateTime=0;
+	d->ftLastModified.dwHighDateTime=0;
+
+	hLogFile = CreateFile(d->szLogFileName,
+						  GENERIC_READ, 
+						  FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+						  NULL,
+						  OPEN_EXISTING,
+						  FILE_FLAG_RANDOM_ACCESS,
+						  NULL);
+
+	if (hLogFile==NULL || hLogFile==INVALID_HANDLE_VALUE)
 	{
-		d->hLogFile = CreateFile(d->szLogFileName,
-		GENERIC_READ, 
-		FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
-		NULL,
-		OPEN_EXISTING,
-		FILE_FLAG_RANDOM_ACCESS,
-		NULL);
+		// something went wrong... perhaps the operating system
+		// doesn't support FILE_SHARE_DELETE  (e.g. Win9x)
+		hLogFile = CreateFile(d->szLogFileName,
+							  GENERIC_READ, 
+							  FILE_SHARE_READ | FILE_SHARE_WRITE,
+							  NULL,
+							  OPEN_EXISTING,
+							  FILE_FLAG_RANDOM_ACCESS,
+							  NULL);
 	}
-	if ( d->hLogFile==NULL || d->hLogFile==INVALID_HANDLE_VALUE)
+	if ( hLogFile==NULL || hLogFile==INVALID_HANDLE_VALUE)
 	{
 		dwError = GetLastError();
+		return NULL;
 	}
 
-	if ( d->hLogFile!=NULL && d->hLogFile!=INVALID_HANDLE_VALUE)
+	d->dwlFileSize.LowPart = GetFileSize( hLogFile, &(d->dwlFileSize.HighPart) );
+	if (d->dwlFileSize.LowPart==0xffffffff)
 	{
-		d->dwlFileSize.LowPart = GetFileSize( d->hLogFile, &(d->dwlFileSize.HighPart) );
-		if (d->dwlFileSize.LowPart==0xffffffff)
+		dwError = GetLastError();
+		if (dwError != ERROR_SUCCESS)
 		{
-			dwError = GetLastError();
-			if (dwError != ERROR_SUCCESS)
-			{
-				d->dwlFileSize.QuadPart=0;
-				CloseHandle( d->hLogFile);
-				d->hLogFile=NULL;
-			}
+			CloseHandle( hLogFile);
+			d->dwlFileSize.QuadPart=0;
+			return NULL;
 		}
 	}
 	
-	if ( d->hLogFile!=NULL && d->hLogFile!=INVALID_HANDLE_VALUE)
+	if (!GetFileTime(hLogFile,NULL,NULL,&(d->ftLastModified) ))
 	{
-		if (!GetFileTime(d->hLogFile,NULL,NULL,&(d->ftLastModified) ))
-		{
-			dwError = GetLastError();
-			d->ftLastModified.dwLowDateTime=0;
-			d->ftLastModified.dwHighDateTime=0;
-			CloseHandle(d->hLogFile);
-			d->hLogFile=NULL;
-		}
+		dwError = GetLastError();
+		d->ftLastModified.dwLowDateTime=0;
+		d->ftLastModified.dwHighDateTime=0;
+		CloseHandle(hLogFile);
+		return NULL;
 	}
+
+	return hLogFile;
 }
 
 DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 {
 	struct threadData * d = (struct threadData *)lpvParam;
 
-	HANDLE hFindChanges = FindFirstChangeNotification(szHomeDirectory, FALSE, FILE_NOTIFY_CHANGE_SIZE);
+	HANDLE hFindChanges = FindFirstChangeNotification(szHomeDirectory,
+						  FALSE,  //  only monitor this directory, i.e. not subdirs
+						  FILE_NOTIFY_CHANGE_FILE_NAME|FILE_NOTIFY_CHANGE_LAST_WRITE);
 	const HANDLE hEvents[] = {d->hStopThreadEvent,hFindChanges};
 	DWORD dwWaitResult;
 	char pTextBuffer[4097];
@@ -780,28 +793,33 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 	int nLines;
 	ULARGE_INTEGER ulFromHereFilePosition;
 	FILETIME ftLastModified;
+	HANDLE hLogFile;
 
 	char cszWindowTitle[64];
 	char szWindowTitle[128];
 	GetWindowText(d->hwndDialog,cszWindowTitle,sizeof(cszWindowTitle));
 
 	WaitForSingleObject(d->hLogFileHandleMutex,INFINITE);
-
-	UpdateFileDetails(d);
-	memcpy(&(d->ftLastModified),&ftLastModified,sizeof(FILETIME));
+	hLogFile = UpdateFileDetails(d);
+	memcpy(&ftLastModified,&(d->ftLastModified),sizeof(FILETIME));
 	FormatFileSize(szFileSize,d->dwlFileSize.QuadPart);
 	wsprintf(szWindowTitle, "%s (%s)", cszWindowTitle, szFileSize);
 	SetWindowText(d->hwndDialog, szWindowTitle);
 	ulFromHereFilePosition.QuadPart = d->ulCurrentLineFileOffset.QuadPart;
 	nLines = d->nEditLines;
-	pTextPointer = ReadPrevNLines(&nLines, d->hLogFile, ulFromHereFilePosition, &(d->ulFirstLineFileOffset), &(d->ulLastLineFileOffset), &(d->ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+	pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d->ulFirstLineFileOffset), &(d->ulLastLineFileOffset), &(d->ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
 	UpdateLogfileWindow(d->hwndEditBox, d->hwndScrollBar, pTextPointer, nLines, d->nEditLines, d->dwlFileSize.QuadPart, d->ulLastLineFileOffset.QuadPart);
-	
+	if (hLogFile)
+	{
+		CloseHandle(hLogFile);
+		hLogFile=NULL;
+	}
 	ReleaseMutex(d->hLogFileHandleMutex);
 
 	while(!bQuit)
 	{
 		dwWaitResult = WaitForMultipleObjects(2, hEvents, FALSE /* i.e. WAIT_ANY */, 5000);
+
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
@@ -822,8 +840,7 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 			{
 				ftLastModified = d->ftLastModified;
 				WaitForSingleObject(d->hLogFileHandleMutex,INFINITE);
-
-				UpdateFileDetails(d);
+				hLogFile = UpdateFileDetails(d);
 				if (CompareFileTime(&ftLastModified, &(d->ftLastModified)) != 0)
 				{
 					memcpy(&(d->ftLastModified),&ftLastModified,sizeof(FILETIME));
@@ -842,10 +859,14 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 						ulFromHereFilePosition.QuadPart = d->ulCurrentLineFileOffset.QuadPart;
 					}
 					nLines = d->nEditLines;
-					pTextPointer = ReadPrevNLines(&nLines, d->hLogFile, ulFromHereFilePosition, &(d->ulFirstLineFileOffset), &(d->ulLastLineFileOffset), &(d->ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+					pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d->ulFirstLineFileOffset), &(d->ulLastLineFileOffset), &(d->ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
 					UpdateLogfileWindow(d->hwndEditBox, d->hwndScrollBar, pTextPointer, nLines, d->nEditLines, d->dwlFileSize.QuadPart, d->ulLastLineFileOffset.QuadPart);
 				}
-				
+				if (hLogFile)
+				{
+					CloseHandle(hLogFile);
+					hLogFile=NULL;
+				}
 				ReleaseMutex(d->hLogFileHandleMutex);
 
 			}
@@ -854,10 +875,6 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 	}
 
 	FindCloseChangeNotification(hFindChanges);
-	WaitForSingleObject(d->hLogFileHandleMutex, INFINITE);
-	CloseHandle (d->hLogFile);
-	d->hLogFile=NULL;
-	ReleaseMutex(d->hLogFileHandleMutex);
 	return 0;
 }
 
@@ -868,6 +885,8 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	BOOL bQuit=FALSE;
+	HANDLE hLogFile;
+
 
 	switch (uMsg)
 	{
@@ -894,9 +913,13 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 			d.nEditLines = GetEditLines(GetDlgItem(hwndDialog,IDC_EDIT1));
 
 			// move file pointer to end of file ready to display last n lines
-			UpdateFileDetails(&d);
+			hLogFile = UpdateFileDetails(&d);
 			d.ulCurrentLineFileOffset.QuadPart = d.dwlFileSize.QuadPart;
-
+			if (hLogFile)
+			{
+				CloseHandle(hLogFile);
+				hLogFile=NULL;
+			}
 			hThread = CreateThread(NULL,0,LogFileNotifyProc,(LPVOID)&d,0,&dwThreadID);
 			SetClassLong(hwndDialog, GCL_HICON, (LONG)(hHopsEnabledIcon) );
 
@@ -913,7 +936,7 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 			BOOL bForward=FALSE;
 
 			WaitForSingleObject(d.hLogFileHandleMutex,INFINITE);
-			UpdateFileDetails(&d);
+			hLogFile = UpdateFileDetails(&d);
 
 
 			switch (LOWORD(wParam))
@@ -937,7 +960,7 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 					ulFromHereFilePosition.QuadPart = 0;
 				}
 				nLines=1;
-				pTextPointer = ReadPrevNLines(&nLines, d.hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+				pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
 				ulFromHereFilePosition.QuadPart = d.ulFirstLineFileOffset.QuadPart;
 				bForward=TRUE;
 				break;
@@ -947,7 +970,7 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 				// then read nLines up from (that offset)
 				ulFromHereFilePosition.QuadPart = d.ulLastLineFileOffset.QuadPart+1;
 				nLines=1;
-				pTextPointer = ReadNextNLines(&nLines, d.hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+				pTextPointer = ReadNextNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
 				ulFromHereFilePosition.QuadPart = d.ulLastLineFileOffset.QuadPart;
 				break;
 			case SB_PAGEUP:
@@ -978,13 +1001,19 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 				nLines=d.nEditLines;
 				if (bForward)
 				{
-					pTextPointer = ReadNextNLines(&nLines, d.hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+					pTextPointer = ReadNextNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
 				}
 				else
 				{
-					pTextPointer = ReadPrevNLines(&nLines, d.hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
+					pTextPointer = ReadPrevNLines(&nLines, hLogFile, ulFromHereFilePosition, &(d.ulFirstLineFileOffset), &(d.ulLastLineFileOffset), &(d.ulCurrentLineFileOffset), pTextBuffer, sizeof(pTextBuffer) );
 				}
 				UpdateLogfileWindow(d.hwndEditBox, d.hwndScrollBar, pTextPointer, nLines, d.nEditLines, d.dwlFileSize.QuadPart, d.ulCurrentLineFileOffset.QuadPart);
+			}
+
+			if (hLogFile)
+			{
+				CloseHandle(hLogFile);
+				hLogFile=NULL;
 			}
 			
 			ReleaseMutex(d.hLogFileHandleMutex);
@@ -1008,6 +1037,19 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 		break;
 
 	case WM_DESTROY:
+		LOCK(LOGFILEDIALOGBOX);
+		bLogFileDialogBoxRunning=FALSE;
+		UNLOCK(LOGFILEDIALOGBOX);
+		return FALSE;
+
+	default:
+		return FALSE;
+	}
+
+
+	if (bQuit)
+	{
+		DestroyWindow(hwndDialog);
 		// Quit flag was set in above message processing
 		// destroy and cleanup
 		if (hThread)
@@ -1023,24 +1065,7 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 		{
 			CloseHandle(d.hStopThreadEvent);
 		}
-		if (d.hLogFile)
-		{
-			CloseHandle(d.hLogFile);
-		}
 
-		LOCK(LOGFILEDIALOGBOX);
-		bLogFileDialogBoxRunning=FALSE;
-		UNLOCK(LOGFILEDIALOGBOX);
-		return FALSE;
-
-	default:
-		return FALSE;
-	}
-
-
-	if (bQuit)
-	{
-		DestroyWindow(hwndDialog);
 		return TRUE;  //  true because the message obviously WAS processed, or else we wouldn't have set Quit flag
 	}
 
