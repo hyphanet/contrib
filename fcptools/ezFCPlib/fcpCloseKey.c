@@ -67,9 +67,9 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	/* insert the 'ol bugger */
 	tmp_hfcp = _fcpCreateHFCP();
 	tmp_hfcp->key = _fcpCreateHKey();
-	
-	_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
 
+	_fcpParseURI(tmp_hfcp->key->uri, hfcp->key->uri->uri_str);
+	
 	rc = put_file(tmp_hfcp,
 								hfcp->key->tmpblock->filename,
 								hfcp->key->metadata->tmpblock->filename

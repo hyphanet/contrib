@@ -39,6 +39,10 @@
 #include "ezFCPlib.h"
 
 
+extern long file_size(char *);
+extern int  put_redirect(hFCP *hfcp, char *uri_dest);
+
+
 void  parse_args(int argc, char *argv[]);
 void  usage(char *);
 
@@ -46,12 +50,17 @@ char  *keyuri = 0;
 char  *keyfile = 0;
 char  *metafile = 0;
 
+int    b_stdin = 0;
 
 int main(int argc, char* argv[])
 {
 	hFCP *hfcp;
-	int rc;
-	char buf[100];
+	hFCP *hfcp_meta;
+
+	FILE *file;
+
+	char  buf[1024];
+	int   rc;
 
 	rc = 0;
 
@@ -63,60 +72,104 @@ int main(int argc, char* argv[])
 	/* must occur after fcpStartup() since it changes _fcp* variables */
 	parse_args(argc, argv);
 
-#if 1
 	hfcp = _fcpCreateHFCP();
 
-	if (fcpOpenKey(hfcp, "CHK@", _FCP_O_WRITE)) {
-		_fcpLog(FCP_LOG_DEBUG, "could not open key for writing");
+	if (b_stdin) { /* read the key data from stdin */
+		int c;
+
+		if (fcpOpenKey(hfcp, "CHK@", _FCP_O_WRITE)) {
+			_fcpLog(FCP_LOG_DEBUG, "could not open key for writing");
+			return -1;
+		}
+		_fcpLog(FCP_LOG_DEBUG, "opened key for writing..");
+
+		/* read it from stdin */
+		while ((c = getc(stdin)) != -1) {
+			buf[0] = c;
+			fcpWriteKey(hfcp, buf, 1);
+		}
+
+		if (metafile) {
+			int bytes;
+
+			if (!(file = fopen(metafile, "rb"))) {
+				
+				_fcpLog(FCP_LOG_DEBUG, "could not open metadata file \"%s\"", metafile);
+				return -1;
+			}
+
+			for (bytes = 0; (c = getc(file)) != -1; bytes++) {
+				buf[0] = c;
+				fcpWriteMetadata(hfcp, buf, 1);
+			}
+
+			if (bytes != file_size(metafile)) {
+				_fcpLog(FCP_LOG_DEBUG, "did not write all bytes in metafile; wrote %d", bytes);
+				return -1;
+			}
+			
+			_fcpLog(FCP_LOG_DEBUG, "wrote key metadata:\n%s\n", buf);
+		}
+
+		_fcpLog(FCP_LOG_DEBUG, "now beginning network insert of file data..");
+		
+		fcpCloseKey(hfcp);
+		_fcpLog(FCP_LOG_DEBUG, "wrote key to Freenet");
+	}
+	else { /* use keyfile as the filename of key data */
+
+		if (fcpPutKeyFromFile(hfcp, keyfile, metafile)) {
+			_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into Freenet", keyfile);
+			return -1;
+		}
+	}
+
+	/* stored within hfcp->key->uri is the inserted CHK-type uri */
+	
+	hfcp_meta = _fcpCreateHFCP();
+	hfcp_meta->key = _fcpCreateHKey();
+
+	if (_fcpParseURI(hfcp_meta->key->uri, keyuri)) {
+		_fcpLog(FCP_LOG_VERBOSE, "Invalid Freenet URI \"%s\"", keyuri);
 		return -1;
 	}
-	
-	_fcpLog(FCP_LOG_DEBUG, "opened key for writing..");
-	
-	strcpy(buf, "123456789-10! suprise\n\n");
-	fcpWriteKey(hfcp, buf, strlen(buf));
 
-	_fcpLog(FCP_LOG_DEBUG, "wrote key");
-
-	strcpy(buf,
-
-				 "Version\n" \
-				 "Revision=1\n" \
-				 "EndPart\n" \
-				 "Document\n" \
-				 "Name=test\n" \
-				 "Info.Format=text/plain\n" \
-				 "End\n"
-				 );
-	fcpWriteMetadata(hfcp, buf, strlen(buf));
-
-	_fcpLog(FCP_LOG_DEBUG, "wrote key metadata:\n%s\n", buf);
-
-	_fcpLog(FCP_LOG_DEBUG, "now beginning network insert of file data..");
-	fcpCloseKey(hfcp);
-	_fcpLog(FCP_LOG_DEBUG, "wrote key to Freenet");
-
-	_fcpDestroyHFCP(hfcp);
-	fcpTerminate();
-#endif
-
-#if 0
-	hfcp = _fcpCreateHFCP();
-	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
-
-	if (rc)
-		_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into Freenet", keyfile);
-	else
+	/*** CHK ***/
+	if (hfcp_meta->key->uri->type == KEY_TYPE_CHK) {
 		_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
+	}
 
+	/*** KSK ***/
+	else if (hfcp_meta->key->uri->type == KEY_TYPE_KSK) {
+		if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
+			
+			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+			return -1;
+		}
+		else {
+			_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
+		}
+	}
+
+	/*** SSK ***/
+	else if (hfcp_meta->key->uri->type == KEY_TYPE_SSK) {
+		if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
+			
+			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+			return -1;
+		}
+		else {
+			_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
+		}
+	}
+			
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();
-#endif
-
+	
 #ifdef WINDOWS_DISABLE
 	system("pause");
 #endif
-
+	
 	return 0;
 }
 
@@ -131,21 +184,19 @@ void parse_args(int argc, char *argv[])
     {"address", 1, 0, 'n'},
     {"port", 1, 0, 'p'},
     {"htl", 1, 0, 'l'},
+    {"metadata", 1, 0, 'm'},
+    {"stdin", 0, 0, 's'},
+
     {"regress", 1, 0, 'e'},
     {"raw", 0, 0, 'r'},
-    {"key", 1, 0, 'k'},
-    {"metadata", 1, 0, 'm'},
-
     {"verbosity", 1, 0, 'v'},
-		{"attempts", 1, 0, 'a'},
-		{"threads", 1, 0, 't'},
 
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:e:rk:m:v:a:t:Vh";
+  char short_options[] = "n:p:l:m:se:rv:Vh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -171,6 +222,16 @@ void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if (i >= 0) _fcpHtl = i;
       break;
+
+		case 'm':
+			metafile = (char *)malloc(strlen(optarg) + 1);
+      strcpy(metafile, optarg);
+      break;
+			
+		case 's':
+			/* read from stdin for key data */ 
+			b_stdin = 1;
+      break;
 			
 		case 'e':
 			i = atoi( optarg );
@@ -180,24 +241,10 @@ void parse_args(int argc, char *argv[])
       _fcpRawmode = 1;
       break;
 			
-    case 'k':
-			keyuri = (char *)malloc(strlen(optarg) + 1);
-      strcpy(keyuri, optarg);
-      break;
-			
-		case 'm':
-			metafile = (char *)malloc(strlen(optarg) + 1);
-      strcpy(metafile, optarg);
-      break;
-			
     case 'v':
       i = atoi( optarg );
       if ((i >= 0) && (i <= 4)) _fcpVerbosity = i;
       break;
-			
-		case 'a':
-			i = atoi( optarg );
-			break;
 			
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
@@ -210,20 +257,23 @@ void parse_args(int argc, char *argv[])
 	}
 	
   if (optind < argc) {
+		keyuri = (char *)malloc(strlen(argv[optind]) + 1);
+		strcpy(keyuri, argv[optind++]);
+	}
+
+  if (optind < argc) {
 		keyfile = (char *)malloc(strlen(argv[optind]) + 1);
 		strcpy(keyfile, argv[optind++]);
 	}
-	else {
-		if (!keyfile) {
-			/* This means no file to insert was specified via "file" param, nor -k */
-			usage("You must specify a file parameter, or use the option \"-k\"");
-			exit(1);
-		}
-	}
-	
+
 	if (!keyuri) {
-		keyuri = (char *)malloc(5);
-		strcpy(keyuri, "CHK@");
+		usage("You must specify a valid URI and local filename for key data");
+		exit(1);
+	}
+
+	if ((!keyfile) && (!b_stdin)) {
+		usage("You must specify a local file, or use the --stdin option");
+		exit(1);
 	}
 }
 
@@ -233,30 +283,49 @@ void usage(char *s)
 	if (s) printf("Error: %s\n", s);
 
 	printf("FCPtools; Freenet Client Protocol Tools\n");
-	printf("Copyright (c) 2001 by David McNab\n\n");
+	printf("Copyright (c) 2001-2003 by David McNab <david@rebirthing.co.nz>\n");
+	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
 
-	printf("Usage: fcpput [OPTIONS] file\n\n");
+	printf("Usages: fcpput [OPTIONS] <uri> <file>\n");
+	printf("        fcpput [OPTIONS] --stdin <uri>\n\n");
 
 	printf("Options:\n\n");
 	printf("  -n, --address host     Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
 	printf("  -p, --port num         Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
-	printf("  -l, --htl num          Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
+	printf("  -l, --htl num          Hops to live (default %d)\n\n", EZFCP_DEFAULT_HTL);
+
+	printf("  -m, --metadata file    Read key metadata from local \"file\"\n");
+	printf("  -s, --stdin            Read key data from stdin\n");
+
 	printf("  -e, --regress num      Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
 	printf("  -r, --raw              Raw mode - don't follow redirects\n");
-	printf("  -k, --key key          Name of Freenet key (if unspecified, insert as CHK\n");
-	printf("  -m, --metadata file    Read key's metadata from file (default \"stdin\")\n\n");
-
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
-
-  printf("  -a, --attempts num     Attempts to insert each file (default %d)\n\n", 1);
 
 	printf("  -V, --version          Output version information and exit\n");
 	printf("  -h, --help             Display this help and exit\n\n");
 
-	printf("  key                    Freenet key (...)\n");
-	printf("  file                   Read key's data from file (default \"stdin\")\n\n");
- 
-	exit(0);
+	printf("  uri                    URI to give newly inserted key; variations:\n");
+	printf("                           CHK@\n");
+	printf("                           KSK@<routing key>\n");
+	printf("                           SSK@<private key>[/<docname>]\n\n");
+
+	printf("  file                   Read key data from local \"file\"\n");
+	printf("                         (optional if --stdin used)\n\n");
+
+	printf("Examples:\n\n");
+
+	printf("To insert a Content Hash Key (CHK) with file \"gpl.txt\":\n");
+	printf("  fcpput CHK@ /home/hapi/gpl.txt\n\n");
+	
+	printf("To insert a Keyword Signed Key (KSK) with file \"gpl.txt\" against a\n");
+	printf("freenet node at address raven.cp.net with hops to live 10:\n");
+	printf("  fcpput --htl 10 --address raven.cp.net KSK@gpl.txt /home/hapi/gpl.txt\n\n");
+
+	printf("To insert a Subspace Signed Key (SSK) with file \"gpl.txt\":\n");
+	printf("  fcpput SSK@LNlEaG7L24af-OH~CKmyPOvJ~EM/ gpl.txt\n\n");
+
+	printf("To insert an SSK within named document \"licenses\":\n");
+	printf("  fcpput SSK@LNlEaG7L24af-OH~CKmyPOvJ~EM/licenses gpl.txt\n\n");
 }
 

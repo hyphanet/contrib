@@ -41,7 +41,7 @@
 #include <io.h>
 
 /* VERSION is defined by automake for non-Win platforms. */
-#define VERSION "0.4.8"
+#define VERSION "0.9.0"
 
 #define write _write
 #define open _open
@@ -122,7 +122,6 @@
 #define KEY_TYPE_KSK  3
 
 /* 0 is the "unset" value */
-#define META_TYPE_DEFAULT   '*'
 #define META_TYPE_REDIRECT  'r'
 #define META_TYPE_DBR       'd'
 #define META_TYPE_SPLITFILE 's'
@@ -291,7 +290,7 @@ typedef struct {
 
 	char  *uri_str;
   char  *keyid;
-	char  *path;
+	char  *docname;
 	char  *file;
 } hURI;
 

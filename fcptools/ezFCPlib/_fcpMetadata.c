@@ -383,6 +383,12 @@ static int parse_document(hMetadata *meta, char *buf)
 				else if (!strncasecmp(key, "SplitFile.", 10))
 					meta->cdocs[doc_index]->type = META_TYPE_SPLITFILE;
 				
+				else if (!strncasecmp(key, "Info.", 10))
+					meta->cdocs[doc_index]->type = META_TYPE_INFO;
+				
+				else if (!strncasecmp(key, "ExtInfo.", 10))
+					meta->cdocs[doc_index]->type = META_TYPE_EXTINFO;
+				
 				/* potentially none of the above may execute.. this is by design */
 			}
 			

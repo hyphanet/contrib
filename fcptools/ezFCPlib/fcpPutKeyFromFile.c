@@ -22,6 +22,9 @@
 extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
 extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
+extern int put_date_redirect(hFCP *hfcp, char *uri);
+extern int put_redirect(hFCP *hfcp, char *uri);
+
 extern long file_size(char *filename);
 
 /*
@@ -54,6 +57,9 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	hfcp->key = _fcpCreateHKey();
 	hfcp->key->size = rc;
 
+	hfcp->key->uri = _fcpCreateHURI();
+	_fcpParseURI(hfcp->key->uri, "CHK@");
+
 	/* get the equivalent mimetype for this file we're inserting */
 	hfcp->key->mimetype = str_reset(hfcp->key->mimetype, GetMimeType(key_filename));
 
@@ -69,12 +75,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 			return -1;
 		}
-		/* otherwise, we've found a file supposed metadata in it */
 	}
 
-	/* key not specified, then generate a CHK */
-	if (!hfcp->key->uri->uri_str) _fcpParseURI(hfcp->key->uri, "CHK@");
-	
 	/* If it's larger than L_BLOCK_SIZE, insert as an FEC encoded splitfile */
 	if (hfcp->key->size > L_BLOCK_SIZE) {
 		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
@@ -84,6 +86,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 			_fcpDestroyHKey(hfcp->key);
 			hfcp->key = 0;
+			return -1;
 		}
 	}
 	else { /* Otherwise, insert as a normal key */
@@ -94,9 +97,10 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 			_fcpDestroyHKey(hfcp->key);
 			hfcp->key = 0;
+			return -1;
 		}
 	}
 	
-	return rc;
+	return 0;
 }
 

@@ -5,30 +5,19 @@ that can be implemented by any competent C programmer.
 ---------------------------------------------------------------------------
 FCPtools generic
 
-* Add FEC support rather than straight splitfiles (option).
+* Verify FEC splifile custom metadata is inserted along with spec'ed
+	metadata.
 * Update documentation on all exported APIs (from ezFCPlib).
 * Work towards OS X and Solaris platform support.
-* Improve meta handling, and spotty metadata implementation.
 * Add usage instructions to README file for fcpget, fcpput, fcpputsite.
-* Streamline log messages, and stray printf's (perhaps in ezFCPlib).
-
-* Prune ezfcplib.h extern function defines and co-ordinate.
-* Verify fcpPutKeyFromFile works properly via fcpput.
 
 ---------------------------------------------------------------------------
 ezFCPlib specific
 
-* Make fcpOpenKey() handle splitfiles.
-* In fcpPutSplit(), move splitfile thread handling up a layer so it dosn't
-	confilict with putsite.
 * Check all internal APIs for consistant usage and funcionality.
 	(cdocGetDoc() is an example, in that the documented behavior is different
 	from it's actual implementaion.
-* Update core FCP request and response parsing.
 * Implement HighestSeenBuild optional param from NodeHello message.
-* Verify opentemp() in _fcpUtil.c works correctly with POSIX macros on all
-  platforms.
-
 
 ---------------------------------------------------------------------------
 fcpget
@@ -39,10 +28,6 @@ fcpget
 
 ---------------------------------------------------------------------------
 fcpput
-
-* Fix bug when inserting to another Node via -n and -p parameters.
-  (Perhaps fixed; seemed my remote node was misconfigured - Jay)
-* Fix insert attempt counter (it reaches the undefined 4 out of 3).
 
 
 ---------------------------------------------------------------------------

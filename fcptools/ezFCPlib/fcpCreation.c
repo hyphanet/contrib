@@ -125,7 +125,7 @@ void _fcpDestroyHURI(hURI *h)
 	if (h) {
 		if (h->uri_str) free(h->uri_str);
 		if (h->keyid) free(h->keyid);
-		if (h->path) free(h->path);
+		if (h->docname) free(h->docname);
 		if (h->file) free(h->file);
 
 		free(h);
@@ -153,7 +153,7 @@ int _fcpParseURI(hURI *uri, char *key)
 	/* clear out the dynamic arrays before attempting to parse a new uri */
 	if (uri->uri_str) free(uri->uri_str);
   if (uri->keyid) free(uri->keyid);
-	if (uri->path) free(uri->path);
+	if (uri->docname) free(uri->docname);
 	if (uri->file) free(uri->file);
 
 	/* zero the block of memory */
@@ -164,8 +164,8 @@ int _fcpParseURI(hURI *uri, char *key)
     key += 8;
 
   /* classify key header */
-	/* MUST TEST SSK@ PARSING! */
   if (!strncmp(key, "SSK@", 4)) {
+		char *string_end;
 
     uri->type = KEY_TYPE_SSK;
 		key += 4;
@@ -184,29 +184,24 @@ int _fcpParseURI(hURI *uri, char *key)
 		key = ++p;
 
 		/* Calculate the length of the site name (malloc'ed) */
-		for (; strncmp(p, "//", 2); p++);
-		len = p - key;
+		/* determine if "//" doesn't appear in string.. ? */
+		if (!(string_end = strstr(p, "//"))) {
+			
+			/* if "//" doesn't appear, then go until the NULL char instead */
+			string_end = strchr(p, 0);
+		}
 
-		uri->path = (char *)malloc(len + 1); /* remember trailing 0 */
+		len = string_end - key;
+		uri->docname = (char *)malloc(len + 1); /* remember trailing 0 */
 
 		/* Now copy sitename to malloc'ed area */
-		strncpy(uri->path, key, len);
-		*(uri->path + len) = 0;
+		strncpy(uri->docname, key, len);
 
-		/* Make key point to the char after "//" */
-		key = (p += 2);
-
-		for (; *p; p++);
-		len = p - key;
-
-		uri->file = (char *)malloc(len + 1);
-
-		strncpy(uri->file, key, len);
-		*(uri->file + len) = 0;
+		*(uri->docname + len) = 0;
 
 		/* the +18 really is +16:  "freenet:SSK@ + / + //"  */
-		uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->path) + strlen(uri->file) + 18);
-		sprintf(uri->uri_str, "freenet:SSK@%s/%s//%s", uri->keyid, uri->path, uri->file); 
+		uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->docname) + 18);
+		sprintf(uri->uri_str, "freenet:SSK@%s/%s//", uri->keyid, uri->docname); 
   }
 
   else if (!strncmp(key, "CHK@", 4)) {
