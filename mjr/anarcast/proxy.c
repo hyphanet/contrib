@@ -239,7 +239,7 @@ insert (int c)
     // actually insert the blocks
     alert("Inserting %d blocks of %d bytes each.", g.dbc + g.cbc, blocksize);
     do_insert(blocks, NULL, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
-    alert("Insert completed.");
+    alert("Insert complete.");
 
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
@@ -358,7 +358,7 @@ request (int c)
 {
     int i;
     unsigned int blockcount, blocksize;
-    char *data, *hashes;
+    char *blocks, *hash, *hashes;
     struct graph g;
     
     if (readall(c, &i, 4) != 4) {
@@ -390,11 +390,28 @@ request (int c)
     
     g = graphs[blockcount-1];
     
-    data = mbuf(blockcount * blocksize);
+    blocks = mbuf(blockcount * blocksize);
     
     alert("Requesting %d blocks of %d bytes each.", blockcount, blocksize);
+    
+    alert("Request complete.");
+    
+    // hash data
+    alert("Verifying data integrity.");
+    sha_buffer(blocks, blocksize * g.dbc, hash);
+    if (memcmp(hash, hashes, HASHLEN)) {
+	alert("Decoding error: data does not verify!");
+	goto out;
+    }
+    
+    i = blocksize * g.dbc;
+    if (writeall(c, &i, 4) != 4 || writeall(c, blocks, i) != i) {
+	ioerror();
+	goto out;
+    }
 
-    if (munmap(data, blockcount * blocksize) == -1)
+out:
+    if (munmap(blocks, blockcount * blocksize) == -1)
 	die("munmap() failed");
     free(hashes);
 }
