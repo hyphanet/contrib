@@ -18,7 +18,7 @@ DirText "No files will be placed outside this directory (e.g. Windows\system)"
 EnabledBitmap Yes.bmp
 DisabledBitmap No.bmp
 BGGradient
-;AutoCloseWindow true
+AutoCloseWindow true
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
@@ -103,10 +103,6 @@ Section "Freenet (required)"
   #create the configuration file now
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "seedNodes" "seed.ref"
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "ipAddress" "127.0.0.1"  
-  MessageBox MB_YESNO "Do you want to accept the defaults (YES),$\r$\nor do you want to go through the complete Freenet configuration (Advanced users)(NO)." IDNO Cancel_Config
-  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini'
-  Goto End_Config
- Cancel_config:
   ExecWait "$INSTDIR\portcfg.exe"
   IfErrors ConfigError
   ExecWait '"$INSTDIR\cfgnode.exe" --silent freenet.ini'
@@ -121,9 +117,9 @@ Section "Freenet (required)"
 
  Seed:
   # seeding the initial references
-  MessageBox MB_OK "A browser with instructions for obtaining initial references will open when you click OK.$\r$\nPlease save the file seed.ref in your Freenet directory and close the browser."
   ExecWait "$INSTDIR\GetSeed"
-  Delete "$INSTDIR\GetSeed"
+  Delete "$INSTDIR\GetSeed.exe"
+  ClearErrors
 #we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
   ExecWait "$INSTDIR\fsrvcli --seed seed.ref"
@@ -164,6 +160,7 @@ SectionIn 1,2
    CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
    CreateDirectory "$SMPROGRAMS\Freenet"
    CreateShortCut "$SMPROGRAMS\Freenet\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   CreateShortCut "$SMPROGRAMS\Freenet\Fcpproxy.lnk" "$INSTDIR\fcpproxy.exe" "" "$INSTDIR\fcpproxy.exe" 0
    WriteINIStr "$SMPROGRAMS\Freenet\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
    ;WriteINIStr "$SMPROGRAMS\Freenet\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
    ;CreateShortcut "$SMPROGRAMS\Freenet\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
@@ -216,6 +213,10 @@ SectionEnd
 ;---------------------------------------------------------------------------------------
 
 Section -PostInstall
+  # put this temporary in the prefs until FProxy is back
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "services.fproxy.port" "8888"
+  MessageBox MB_OK "Congratulations, you are finished installing Freenet now. To use your web browser for retrieving Freenet content you need to start fcpproxy (via Start menu or double-click fcpproxy.exe) manually until an automatically starting Proxy has been added to the Freenet node."
+
   # Register .ref files to be added to seed.ref with a double-click
   WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet_node_ref"
   WriteRegStr HKEY_CLASSES_ROOT "Freenet_node_ref\shell\open\command" "" '"$INSTDIR\freenet.exe" -import "%1"'
@@ -256,10 +257,11 @@ Section Uninstall
   # remove the desktop and startmenu icons
   Delete "$SMSTARTUP\Freenet.lnk"
   Delete "$DESKTOP\Freenet.lnk"
-  #Delete "$SMPROGRAMS\Freenet\Freenet.lnk"
-  #Delete "$SMPROGRAMS\Freenet\FN Homepage.url"
+  Delete "$SMPROGRAMS\Freenet\Freenet.lnk"
+  Delete "$SMPROGRAMS\Freenet\Fcpproxy.lnk"
+  Delete "$SMPROGRAMS\Freenet\FN Homepage.url"
   ;Delete "$SMPROGRAMS\Freenet\FNGuide.url"
-  #Delete "$SMPROGRAMS\Freenet\Uninstall.lnk" 
+  Delete "$SMPROGRAMS\Freenet\Uninstall.lnk" 
   RMDir /r "$SMPROGRAMS\Freenet"
 
   #delete "$SMPROGRAMS\Start FProxy.lnk"
