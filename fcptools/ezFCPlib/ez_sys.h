@@ -124,8 +124,8 @@ extern int   _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, c
 extern int   _fcpLink(hBlock *h, int access);
 extern void  _fcpUnlink(hBlock *h);
 
-extern int   _fcpTmpfile(char *filename);
-extern long  _fcpFilesize(char *filename);
+extern int            _fcpTmpfile(char *filename);
+extern unsigned long  _fcpFilesize(char *filename);
 
 extern int   _fcpCopyFile(char *dest, char *src);
 extern int   _fcpDeleteFile(hBlock *h);

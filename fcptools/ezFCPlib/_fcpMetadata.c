@@ -439,9 +439,11 @@ int main(int argc, char *argv[])
 	hMetadata *meta;
 	hDocument *doc;
 
+	unsigned long ul;
 	int rc;
 
-	rc = _fcpFilesize("meta.dat");
+	// bleah
+	ul = _fcpFilesize("meta.dat");
 
 	str = (char *)malloc(rc + 1);
 

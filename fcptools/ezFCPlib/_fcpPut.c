@@ -79,14 +79,14 @@ int put_file(hFCP *hfcp, char *uri)
 
 	if (hfcp->key->metadata->size == 0)
 		rc = snprintf(put_command, L_FILE_BLOCKSIZE,
-									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
+									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%lx\nData\n",
 									(hfcp->options->delete_local == 0 ? "false" : "true"),
 									uri,
 									hfcp->htl,
 									hfcp->key->size);
 	else
 		rc = snprintf(put_command, L_FILE_BLOCKSIZE,
-									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
+									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%lx\nMetadataLength=%lx\nData\n",
 									(hfcp->options->delete_local == 0 ? "false" : "true"),
 									uri,
 									hfcp->htl,
@@ -449,7 +449,7 @@ static int fec_segment_file(hFCP *hfcp)
 	if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 	
 	snprintf(buf, L_FILE_BLOCKSIZE,
-					 "FECSegmentFile\nAlgoName=OnionFEC_a_1_2\nFileLength=%x\nEndMessage\n",
+					 "FECSegmentFile\nAlgoName=OnionFEC_a_1_2\nFileLength=%lx\nEndMessage\n",
 					 hfcp->key->size);
 
 	/* Send FECSegmentFile command */
@@ -509,9 +509,9 @@ static int fec_segment_file(hFCP *hfcp)
 		hfcp->key->segments[index]->check_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[index]->cb_count);
 
 		snprintf(buf, L_FILE_BLOCKSIZE,
-						 "SegmentHeader\nFECAlgorithm=%s\nFileLength=%x\nOffset=%lx\n" \
-						 "BlockCount=%x\nBlockSize=%x\nDataBlockOffset=%x\nCheckBlockCount=%x\n" \
-						 "CheckBlockSize=%x\nCheckBlockOffset=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
+						 "SegmentHeader\nFECAlgorithm=%s\nFileLength=%lx\nOffset=%lx\n" \
+						 "BlockCount=%lx\nBlockSize=%lx\nDataBlockOffset=%lx\nCheckBlockCount=%lx\n" \
+						 "CheckBlockSize=%lx\nCheckBlockOffset=%lx\nSegments=%lx\nSegmentNum=%lx\nBlocksRequired=%lx\nEndMessage\n",
 
 						 hfcp->response.segmentheader.fec_algorithm,
 						 hfcp->response.segmentheader.filelength,
@@ -593,7 +593,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	if (_fcpSockConnect(hfcp) != 0) return -1;
 
 	snprintf(buf, L_FILE_BLOCKSIZE,
-					 "FECEncodeSegment\nDataLength=%x\nMetadataLength=%x\nData\n",
+					 "FECEncodeSegment\nDataLength=%lx\nMetadataLength=%lx\nData\n",
 					 data_len + metadata_len + pad_len,
 					 metadata_len
 					 );
@@ -891,7 +891,6 @@ static int fec_make_metadata(hFCP *hfcp)
 	char block[L_FILE_BLOCKSIZE];
 
 	int rc;
-	int meta_len;
 
 	int segment_count;
 	int index;
@@ -899,6 +898,7 @@ static int fec_make_metadata(hFCP *hfcp)
 	int bytes;
 	int byte_count;
 
+	unsigned long meta_len;
 	unsigned long bi;
 
 	hSegment *segment;
@@ -921,9 +921,9 @@ static int fec_make_metadata(hFCP *hfcp)
 		segment = hfcp->key->segments[index];
 
 		snprintf(buf, 512,
-						 "SegmentHeader\nFECAlgorithm=OnionFEC_a_1_2\nFileLength=%x\nOffset=%lx\n" \
-						 "BlockCount=%x\nBlockSize=%x\nDataBlockOffset=%x\nCheckBlockCount=%x\n" \
-						 "CheckBlockSize=%x\nCheckBlockOffset=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
+						 "SegmentHeader\nFECAlgorithm=OnionFEC_a_1_2\nFileLength=%lx\nOffset=%lx\n" \
+						 "BlockCount=%lx\nBlockSize=%lx\nDataBlockOffset=%lx\nCheckBlockCount=%lx\n" \
+						 "CheckBlockSize=%lx\nCheckBlockOffset=%lx\nSegments=%lx\nSegmentNum=%lx\nBlocksRequired=%lx\nEndMessage\n",
 						 
 						 segment->filelength,
 						 segment->offset,
@@ -944,14 +944,14 @@ static int fec_make_metadata(hFCP *hfcp)
 		/* concatenate data block map */
 		for (bi=0; bi < segment->db_count; bi++) {
 
-			snprintf(buf, 512, "Block.%x=%s\n", bi, segment->data_blocks[bi]->uri->uri_str);
+			snprintf(buf, 512, "Block.%lx=%s\n", bi, segment->data_blocks[bi]->uri->uri_str);
 			fcpWriteKey(tmp_hfcp, buf, strlen(buf));
 		}
 		
 		/* now for check block map */
 		for (bi=0; bi < segment->cb_count; bi++) {
 
-			snprintf(buf, 512, "Check.%x=%s\n", bi, segment->check_blocks[bi]->uri->uri_str);
+			snprintf(buf, 512, "Check.%lx=%s\n", bi, segment->check_blocks[bi]->uri->uri_str);
 			fcpWriteKey(tmp_hfcp, buf, strlen(buf));
 		}
 		
@@ -969,7 +969,7 @@ static int fec_make_metadata(hFCP *hfcp)
   if (_fcpSockConnect(tmp_hfcp) != 0) return -1;
 
 	/* Send FECMakeMetadata command */
-	snprintf(buf, 512, "FECMakeMetadata\nDescription=file\nMimeType=%s\nDataLength=%x\nData\n",
+	snprintf(buf, 512, "FECMakeMetadata\nDescription=file\nMimeType=%s\nDataLength=%lx\nData\n",
 					 hfcp->key->mimetype,
 					 meta_len);
 

@@ -136,14 +136,18 @@ int _fcpWrite(int fd, char *buf, int len)
 	else return bs;
 }
 
-long _fcpFilesize(char *filename)
+/*
+	Return Values: non-zero integer on success, ~0 (one's complement) on error
+*/
+
+unsigned long _fcpFilesize(char *filename)
 {
-	int size;
+	unsigned long size;
 
 	struct stat fstat;
 	
-	if (!filename) size = -1;
-	else if (stat(filename, &fstat)) size = -1;
+	if (!filename) size = ~0L;
+	else if (stat(filename, &fstat)) size = ~0L;
 	else size = fstat.st_size;
 	
 	return size;

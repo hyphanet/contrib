@@ -78,6 +78,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
+	unsigned long ul;
 	int rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
@@ -92,21 +93,24 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 	fcpParseHURI(hfcp->key->target_uri, key_uri);
 
 	if (key_filename) {
-		if ((hfcp->key->size = _fcpFilesize(key_filename)) < 0) {
+		if ((ul = _fcpFilesize(key_filename)) == (unsigned)~0L) { /* one's complement of zero is error indicator */
 
 			_fcpLog(FCP_LOG_CRITICAL, "Key file not found: %s", key_filename);
 			return -1;
 		}
+		else /* it's a valid file with non-zero length */
+			hfcp->key->size = ul;
 	}
 	else
 		hfcp->key->size = 0;
 
 	if (meta_filename) {
-		if ((hfcp->key->metadata->size = _fcpFilesize(meta_filename)) < 0) {
+		if ((ul = _fcpFilesize(meta_filename)) == (unsigned)~0L) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "Metadata file not found: %s", meta_filename);
 			return -1;
 		}
+		else hfcp->key->metadata->size = ul;
 	}
 	else
 		hfcp->key->metadata->size = 0;

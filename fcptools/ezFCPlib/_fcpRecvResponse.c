@@ -208,45 +208,41 @@ static int getrespInfo(hFCP *hfcp)
 	rc = 0;
 	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response\n");
 
+	if (hfcp->response.nodeinfo.architecture) free(hfcp->response.nodeinfo.architecture);
+	if (hfcp->response.nodeinfo.operatingsystem) free(hfcp->response.nodeinfo.operatingsystem);
+	if (hfcp->response.nodeinfo.operatingsystemversion) free(hfcp->response.nodeinfo.operatingsystemversion);
+	if (hfcp->response.nodeinfo.nodeaddress) free(hfcp->response.nodeinfo.nodeaddress);
+	if (hfcp->response.nodeinfo.javavendor) free(hfcp->response.nodeinfo.javavendor);
+	if (hfcp->response.nodeinfo.javaname) free(hfcp->response.nodeinfo.javaname);
+	if (hfcp->response.nodeinfo.javaversion) free(hfcp->response.nodeinfo.javaversion);
+	if (hfcp->response.nodeinfo.istransient) free(hfcp->response.nodeinfo.istransient);
+
+	memset(&hfcp->response.nodeinfo, 0, sizeof (FCPRESP_NODEINFO));
+	
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
-
+		
 		if (!strncmp(resp, "Architecture=", 13)) {
-
-			if (hfcp->response.nodeinfo.architecture) free(hfcp->response.nodeinfo.architecture);
 			hfcp->response.nodeinfo.architecture = strdup(resp+13);
 		}
 		else if (!strncmp(resp, "OperatingSystem=", 16)) {
-
-			if (hfcp->response.nodeinfo.operatingsystem) free(hfcp->response.nodeinfo.operatingsystem);
 			hfcp->response.nodeinfo.operatingsystem= strdup(resp+16);
 		}
 		else if (!strncmp(resp, "OperatingSystemVersion=", 23)) {
-
-			if (hfcp->response.nodeinfo.operatingsystemversion) free(hfcp->response.nodeinfo.operatingsystemversion);
 			hfcp->response.nodeinfo.operatingsystemversion = strdup(resp+23);
 		}
 		else if (!strncmp(resp, "NodeAddress=", 12)) {
-
-			if (hfcp->response.nodeinfo.nodeaddress) free(hfcp->response.nodeinfo.nodeaddress);
 			hfcp->response.nodeinfo.nodeaddress = strdup(resp+12);
 		}
 		else if (!strncmp(resp, "NodePort=", 9)) {
-			
 			hfcp->response.nodeinfo.nodeport = xtol(resp+9);
 		}
 		else if (!strncmp(resp, "JavaVendor=", 11)) {
-
-			if (hfcp->response.nodeinfo.javavendor) free(hfcp->response.nodeinfo.javavendor);
 			hfcp->response.nodeinfo.javavendor = strdup(resp+11);
 		}
 		else if (!strncmp(resp, "JavaName=", 9)) {
-
-			if (hfcp->response.nodeinfo.javaname) free(hfcp->response.nodeinfo.javaname);
 			hfcp->response.nodeinfo.javaname = strdup(resp+9);
 		}
 		else if (!strncmp(resp, "JavaVersion=", 12)) {
-
-			if (hfcp->response.nodeinfo.javaversion) free(hfcp->response.nodeinfo.javaversion);
 			hfcp->response.nodeinfo.javaversion = strdup(resp+12);
 		}
 		else if (!strncmp(resp, "Processors=", 11)) {
@@ -306,8 +302,6 @@ static int getrespInfo(hFCP *hfcp)
 			hfcp->response.nodeinfo.availablethreads = xtol(resp+17);
 		}
 		else if (!strncmp(resp, "IsTransient=", 12)) {
-
-			if (hfcp->response.nodeinfo.istransient) free(hfcp->response.nodeinfo.istransient);
 			hfcp->response.nodeinfo.istransient = strdup(resp+12);
 		}
 		else if (!strncmp(resp, "ActiveJobs=", 11)) {
