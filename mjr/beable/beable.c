@@ -264,7 +264,7 @@ send_index (FILE *socket)
 	"\n  </tr>\n";
     
     char two[]=
-	"\n</table>"
+	"</table>"
 	"\n</center>"
 	"\n</body>"
 	"\n</html>\n";
@@ -274,10 +274,10 @@ send_index (FILE *socket)
     fputs(one, socket);
     pthread_mutex_lock(&mutex);
     for (i = 0 ; recent_additions[i] && i < RECENT_ADDITIONS_LENGTH ; i++)
-	fprintf(socket, "<tr>"
-			"\n  <td><a href=\"%s%s\">%s</a></td>"
-			"\n  <td>%s</td>"
-			"</tr>\n",
+	fprintf(socket, "  <tr>"
+			"\n    <td><a href=\"%s%s\">%s</a></td>"
+			"\n    <td>%s</td>"
+			"\n  </tr>\n",
 			FPROXY_ADDRESS,
 			recent_additions[i]->key,
 			recent_additions[i]->name,
@@ -307,7 +307,7 @@ run_search (FILE *socket, char *url)
 	"\n  </tr>\n";
     
     char two[]=
-	"\n</table>"
+	"</table>"
 	"\n</center>"
 	"\n</body>"
 	"\n</html>\n";
@@ -325,10 +325,10 @@ run_search (FILE *socket, char *url)
     pthread_mutex_lock(&mutex);
     for (i = database ; i ; i = i->next)
 	if (strstr(i->name, query) || strstr(i->desc, query))
-	    fprintf(socket, "<tr>"
-		            "\n  <td><a href=\"%s%s\">%s</a></td>"
-			    "\n  <td>%s</td>"
-			    "\n</tr>\n",
+	    fprintf(socket, "  <tr>"
+		            "\n    <td><a href=\"%s%s\">%s</a></td>"
+			    "\n    <td>%s</td>"
+			    "\n  </tr>\n",
 			    FPROXY_ADDRESS,
 			    i->key,
 			    i->name,
@@ -429,7 +429,7 @@ send_data (FILE *socket)
 	"\n  </tr>\n";
     
     char two[]=
-	"\n</table>"
+	"</table>"
 	"\n</center>"
 	"\n</body>"
 	"\n</html>\n";
@@ -439,10 +439,10 @@ send_data (FILE *socket)
     fputs(one, socket);
     pthread_mutex_lock(&mutex);
     for (i = database ; i ; i = i->next)
-	fprintf(socket, "<tr>"
-			"\n  <td><a href=\"%s%s\">%s</a></td>"
-			"\n  <td>%s</td>"
-			"\n</tr>\n",
+	fprintf(socket, "  <tr>"
+			"\n    <td><a href=\"%s%s\">%s</a></td>"
+			"\n    <td>%s</td>"
+			"\n  </tr>\n",
 			FPROXY_ADDRESS,
 			i->key,
 			i->name,
