@@ -261,6 +261,17 @@ void CConfigFile::Save()
 	if(pNormal->m_ipAddress == "localhost")
 		pNormal->m_transient = TRANSIENT;
 
+	// GOD THIS IS A FREAKING HACK. FIXME.
+	if(pNormal->m_storeFile != "") {
+		CString lower(pNormal->m_storeFile);
+		lower.MakeLower();
+		if(lower.Find("freenet") == -1) {
+			if(pNormal->m_storeFile.Right(1) != "/" || pNormal->m_storeFile.Right(1) != "\\")
+				pNormal->m_storeFile += "/";
+			pNormal->m_storeFile += "freenet/";
+		}
+	}
+
 	UpdateFLaunchIni();
 
 	FILE *fp;
