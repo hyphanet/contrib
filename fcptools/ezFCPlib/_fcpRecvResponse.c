@@ -12,7 +12,6 @@
 */
 
 #include <sys/types.h>
-//#include <sys/socket.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -60,7 +59,7 @@ static int  getrespFormatError(hFCP *);
 
 /* FEC specific responses */
 static int  getrespSegmentHeaders(hFCP *);
-static int  getrespSegmentHeaders(hFCP *);
+static int  getrespBlocksEncoded(hFCP *);
 
 /*
 static int  getresp
@@ -182,7 +181,10 @@ int _fcpRecvResponse(hFCP *hfcp)
 		hfcp->response.type = FCPRESP_TYPE_SEGMENTHEADER;
 		return getrespSegmentHeaders(hfcp);
   }
-
+  else if (!strcmp(respline, "BlocksEncoded")) {
+		hfcp->response.type = FCPRESP_TYPE_BLOCKSENCODED;
+		return getrespBlocksEncoded(hfcp);
+	}
 
 	/* Else, who knows what the $#@! it is anyway? */
   else {
@@ -624,12 +626,39 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 		}
 
  		else if (!strncmp(respline, "EndMessage=", 10)) {
-			_fcpLog(FCP_LOG_DEBUG, "response: %s", respline);
-			return 0;
+			_fcpLog(FCP_LOG_DEBUG, "%s", respline);
+			return FCPRESP_TYPE_SEGMENTHEADER;
 		}
   }
-  
+
+  /* oops.. there's been a socket error of sorts */
   return -1;
+}
+
+
+static int  getrespBlocksEncoded(hFCP *hfcp)
+{
+	_fcpLog(FCP_LOG_DEBUG, "received BlocksEncoded response");
+
+  while (!getrespline(hfcp)) {
+
+		if (!strncmp(respline, "BlockCount=", 11)) {
+			hfcp->response.blocksencoded.block_count = xtoi(respline + 11);
+			_fcpLog(FCP_LOG_DEBUG, "BlockCount: %d", hfcp->response.blocksencoded.block_count);
+		}
+
+		else if (!strncmp(respline, "BlockSize=", 10)) {
+			hfcp->response.blocksencoded.block_size = xtoi(respline + 10);
+			_fcpLog(FCP_LOG_DEBUG, "BlockSize: %d", hfcp->response.blocksencoded.block_size);
+		}
+
+ 		else if (!strncmp(respline, "EndMessage=", 10)) {
+			_fcpLog(FCP_LOG_DEBUG, "%s", respline);
+			return FCPRESP_TYPE_BLOCKSENCODED;
+		}
+	}
+	
+	return -1;
 }
 
 

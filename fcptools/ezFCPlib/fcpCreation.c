@@ -99,7 +99,7 @@ void _fcpDestroyHKey(hKey *h)
 		if (h->uri) _fcpDestroyHURI(h->uri);
 		if (h->mimetype) free(h->mimetype);
 
-		while (i < h->chunkCount)
+		while (i < h->chunk_count)
 			_fcpDestroyHChunk(h->chunks[i++]);
 
 		free(h);

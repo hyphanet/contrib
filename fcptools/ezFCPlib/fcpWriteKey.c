@@ -54,7 +54,7 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 	hChunk *chunk;
 
 	/* the first available chunk in the array */
-	chunk = hfcp->key->chunks[hfcp->key->chunkCount - 1];
+	chunk = hfcp->key->chunks[hfcp->key->chunk_count - 1];
 
 #ifdef CFG_MULTIPLE_CHUNKS
 	chunk_avail = CHUNK_BLOCK_SIZE - chunk->size;
@@ -86,13 +86,13 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 		len -= count;
 		buf += count;
 
-		_fcpLog(FCP_LOG_DEBUG, "Wrote %d bytes to chunk %d", count, hfcp->key->chunkCount);
+		_fcpLog(FCP_LOG_DEBUG, "Wrote %d bytes to chunk %d", count, hfcp->key->chunk_count);
 
 		/* If CFG_MULTIPLE_CHUNKS is #defined, this code never gets called */
 		if (chunk_avail == 0) {
 
 			/* Close the file that should be exactly 256K in size.. */
-			_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", hfcp->key->chunkCount, chunk->filename);
+			_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", hfcp->key->chunk_count, chunk->filename);
 
 			fclose(chunk->file);
 			chunk->file = 0;
@@ -104,15 +104,15 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 				enqueue_chunk(chunk);
 			*/
 
-			hfcp->key->chunkCount++;
+			hfcp->key->chunk_count++;
 
 			/* Allocate a pointer variable for the new chunk at the end of the
 				 2-D dynamic array. */
-			hfcp->key->chunks = realloc(hfcp->key->chunks, sizeof(hChunk *) * hfcp->key->chunkCount);
-			hfcp->key->chunks[hfcp->key->chunkCount - 1] = _fcpCreateHChunk();
+			hfcp->key->chunks = realloc(hfcp->key->chunks, sizeof(hChunk *) * hfcp->key->chunk_count);
+			hfcp->key->chunks[hfcp->key->chunk_count - 1] = _fcpCreateHChunk();
 
 			/* Set the current chunk to the newly created and empty one */
-			chunk = hfcp->key->chunks[hfcp->key->chunkCount - 1];
+			chunk = hfcp->key->chunks[hfcp->key->chunk_count - 1];
 
 			/* Assign this new chunk another temporary filename */
 			chunk->filename = crTmpFilename();

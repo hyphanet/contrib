@@ -63,7 +63,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 {
 	int index;
 
-	index = hfcp->key->chunkCount - 1;
+	index = hfcp->key->chunk_count - 1;
 	_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", index+1, hfcp->key->chunks[index]->filename);
 
 	if (hfcp->key->chunks[index]->size) {
@@ -83,7 +83,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 		/* Decrement the chunk count; leave it allocated since it will only be
 			 realloc'ed later */
-		hfcp->key->chunkCount--;
+		hfcp->key->chunk_count--;
 	}
 
 	/* Here, we're ready to insert! */

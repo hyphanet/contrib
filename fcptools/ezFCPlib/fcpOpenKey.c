@@ -79,7 +79,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 		return -1;
 
 	/* Allocate and set the initial (and perhaps) only chunk */
-	hfcp->key->chunkCount = 1;
+	hfcp->key->chunk_count = 1;
 	hfcp->key->chunks = (hChunk **)malloc(sizeof (hChunk *));
 	hfcp->key->chunks[0] = _fcpCreateHChunk();
 

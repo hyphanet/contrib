@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ezFCPlib.h"
 
@@ -53,7 +54,7 @@ static int   put_fec_splitfile(hFCP *hfcp);
 int fcpPut(hFCP *hfcp)
 {
 	/* If multiple chunks are defined, it's a standard Splitfile insert. */
-	if (hfcp->key->chunkCount > 1)
+	if (hfcp->key->chunk_count > 1)
 		return put_splitfile(hfcp);
 
 	/* If one chunk is defined, and it's *big*, do an FEC encoded insert. */
@@ -182,6 +183,8 @@ static int put_fec_splitfile(hFCP *hfcp)
 	char buf[8193];
 	int fd;
 	int rc;
+	int i;
+	int count;
 	
 	hChunk *chunk;
 	
@@ -204,13 +207,6 @@ static int put_fec_splitfile(hFCP *hfcp)
 	if (send(hfcp->socket, _fcpID, 4, 0) == -1)
 		 return -1;
 		 
-	/* Open file we are about to send */
-	chunk = hfcp->key->chunks[0];
-	if (!(chunk->file = fopen(chunk->filename, "rb"))) {
-		_fcpLog(FCP_LOG_DEBUG, "Could not open chunk for reading in order to insert into Freenet");
-		return -1;
-	}
-
 	/* Send FECSegmentFile command */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "Could not send FECSegmentFile command");
@@ -218,22 +214,79 @@ static int put_fec_splitfile(hFCP *hfcp)
 	}
 
 	rc = _fcpRecvResponse(hfcp);
-	if (!rc) _fcpLog(FCP_LOG_DEBUG, "FECSegmentFile received ok");
+	if (rc != FCPRESP_TYPE_SEGMENTHEADER) {
+		_fcpLog(FCP_LOG_DEBUG, "Did not receive expected SegmentHeader response");
+		return -1;
+	}
 
-	/* Loop through; build SegmentHeader messages for each chunk */
+	/* Allocate the area for all required segments */
+	hfcp->key->segment_count = hfcp->response.segmentheader.segments;
+	hfcp->key->segments = (hSegment **)malloc(sizeof (hSegment *) * hfcp->key->segment_count);
 
-	/* Send SegmentHeader message along with data for segment */
+	/* Loop while there's more segments to receive */
+	count = hfcp->key->segment_count;
+	i = 0;
 
-	/* Receive the BlocksEncoded message once all data has been sent */
-	/* Read the check blocks */
+	while (i < count) {
+		hfcp->key->segments[i] = (hSegment *)malloc(sizeof (hSegment));
 
-	/* Insert the entire data again, using the normal fcpPut,
-		 which is not quite recursion, but still a little wierd.
-		 Just make sure the size of the key is less than 256k. */
-	/* Insert check blocks along with data blocks */
+		/* get counts of data and check blocks */
+		hfcp->key->segments[i]->db_count = hfcp->response.segmentheader.block_count;
+		hfcp->key->segments[i]->cb_count = hfcp->response.segmentheader.checkblock_count;
 
-	/* Insert splitfile metadata */	
+		/* allocate space for data and check block handles */
+		hfcp->key->segments[i]->data_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[rc]->db_count);
+		hfcp->key->segments[i]->check_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[rc]->cb_count);
 
+		/* Copy the entire SegmentHeader for re-use later */
+		/* This is a shallow copy, but not a problem */
+
+		memcpy(&hfcp->key->segments[i]->header, &hfcp->response.segmentheader, sizeof (FCPRESP_SEGMENTHEADER));
+
+		i++;
+
+		/* Only if we're expecting more SegmentHeader messages
+			 should we attempt to retrieve one ! */
+		if (i < count) rc = _fcpRecvResponse(hfcp);
+	}			
+
+	/* Open file we are about to send */
+	chunk = hfcp->key->chunks[0];
+	if (!(chunk->file = fopen(chunk->filename, "rb"))) {
+		_fcpLog(FCP_LOG_DEBUG, "Could not open chunk for reading in order to insert into Freenet");
+		return -1;
+	}
+	fd = fileno(chunk->file);
+
+	/* Perform the writing in 8K blocks */
+
+	i = hfcp->key->size;
+	while (i) {
+		
+		/* How many bytes are we writing this pass? */
+		count = (i > 8192 ? 8192: i);
+		
+		/* Now send data */
+		rc = read(fd, buf, count);
+			
+		if (send(hfcp->socket, buf, count, 0) < 0) {
+			_fcpLog(FCP_LOG_DEBUG, "Could not write key data to Freenet");
+			return -1;
+		}
+
+		/* decrement i by number of bytes written to the socket */
+		i -= count;
+	}
+
+  rc = _fcpRecvResponse(hfcp);
+  
+  switch (rc) {
+  case FCPRESP_TYPE_BLOCKSENCODED:
+    _fcpLog(FCP_LOG_DEBUG, "fcpPut: BLOCKSENCODED");
+    break;
+	}
+
+	crSockDisconnect(hfcp);
 	return 0;
 }
 

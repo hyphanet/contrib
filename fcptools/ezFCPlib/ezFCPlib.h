@@ -62,10 +62,13 @@
 **************************************************************************/
 #else
 
+#include <sys/socket.h>
+
 /* UNIX includes that do not correspond on WINDOWS go here */
 /* Keep 'sys' files first in include order */
 
 #include <unistd.h>
+
 #define OPEN_PERMS (S_IRUSR | S_IWUSR)
 
 #endif
@@ -312,6 +315,26 @@ typedef struct {
 
 
 typedef struct {
+	int   size;
+	hURI *uri;
+
+} hBlock;
+
+
+typedef struct {
+	FCPRESP_SEGMENTHEADER  header;
+
+	int      db_count;
+	hBlock **data_blocks;
+
+
+	int      cb_count;
+	hBlock **check_blocks;
+
+} hSegment;
+
+
+typedef struct {
 	int  type;
 
 	hMetadata  **metadata;
@@ -321,11 +344,14 @@ typedef struct {
 	int       openmode;
 	int       header_sent;
 	char     *mimetype;
-
 	int       size;
-	int       chunkCount;
 
+	int       chunk_count;
 	hChunk  **chunks;
+
+	int        segment_count;
+	hSegment **segments;
+
 } hKey;
 
 
