@@ -48,7 +48,7 @@ main ()
 	struct timeval tv = {2,0};
 	
 	n = select(m, &s, &x, NULL, &tv);
-	if (n == -1) err(1, "select(2) failed");
+	if (n == -1) err(1, "select() failed");
 	if (!n) {
 	    if (!active && time(NULL) > last_weeding + WEED_INTERVAL) {
 		puts("Weeding....");
@@ -73,8 +73,9 @@ main ()
 		if (!memmem(hosts, end-hosts, &a.sin_addr.s_addr, 4)) {
 		    memcpy(end, &a.sin_addr.s_addr, 4);
 		    end += 4;
-		}
-		printf("%s added.\n", inet_ntoa(a.sin_addr));
+		    printf("%-16s Added.\n", inet_ntoa(a.sin_addr));
+		} else
+		    printf("%-16s Already known.\n", inet_ntoa(a.sin_addr));
 	    }
 
 	for (n = 3 ; n < m ; n++)
@@ -110,7 +111,7 @@ weed_dead_servers ()
 	a.sin_addr.s_addr = *(int*)p;
 	
 	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	    err(1, "socket(2) failed");
+	    err(1, "socket() failed");
 	
 	if (connect(c, &a, sizeof(a)) != -1) {
 	    memcpy(q, p, 4);

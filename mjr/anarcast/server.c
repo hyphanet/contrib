@@ -26,7 +26,7 @@ main (int argc, char **argv)
 	fd_set s = r, x = w;
 
 	i = select(m, &s, &x, NULL, NULL);
-	if (i == -1) err(1, "select(2) failed");
+	if (i == -1) err(1, "select() failed");
 	if (!i) continue;
 
 	//=== read ==========================================================
@@ -92,9 +92,9 @@ main (int argc, char **argv)
 		printf("%s < %s\n", timestr(), hex);
 		if (stat(hex, &st) == -1) {
 		    if ((i = open(hex, O_WRONLY | O_CREAT, 0644)) == -1)
-			err(1, "open(2) failed");
+			err(1, "open() failed");
 		    if (writeall(i, a[n].data, a[n].len) != a[n].len)
-			err(1, "write(2) to file failed");
+			err(1, "write() to file failed");
 		    close(i);
 		}
 		munmap(a[n].data, a[n].len);
@@ -127,10 +127,10 @@ main (int argc, char **argv)
 		continue;
 	    }
 	    if ((c = open(hex, O_RDONLY)) == -1)
-		err(1, "open(2) failed");
+		err(1, "open() failed");
 	    a[n].data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, c, 0);
 	    if (a[n].data == MAP_FAILED)
-		err(1, "mmap(2) failed");
+		err(1, "mmap() failed");
 	    close(c);
 	    FD_CLR(n, &r);
 	    FD_SET(n, &w);

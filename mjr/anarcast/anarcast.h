@@ -52,18 +52,17 @@ inline char *
 mbuf (size_t len)
 {
     int c;
-    char *p, b[1024];
+    char *p, b[] = "/tmp/anarcast-XXXXXX";
     
-    strcpy(b, "/tmp/anarcast-XXXXXX");
     if ((c = mkstemp(b)) == -1)
-	err(1, "mkstemp(3) failed");
+	err(1, "mkstemp() failed");
     
     if (ftruncate(c, len) == -1)
-	err(1, "ftruncate(2) failed");
+	err(1, "ftruncate() failed");
     
     p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, c, 0);
     if (p == MAP_FAILED)
-	err(1, "mmap(2) failed");
+	err(1, "mmap() failed");
     
     close(c);
     return p;
