@@ -103,11 +103,11 @@ _fcpLog.c \
 _fcpRecvResponse.c \
 _fcpSock.c \
 _fcpUtil.c \
+_fcpPut.c \
 ezFCPlib.h \
 fcpCloseKey.c \
 fcpCreation.c \
 fcpOpenKey.c \
-fcpPut.c \
 fcpPutKeyFromFile.c \
 fcpReadKey.c \
 fcpStartup.c \
@@ -134,8 +134,8 @@ libezfcp_a_AR = $(AR) cru
 libezfcp_a_LIBADD =
 am_libezfcp_a_OBJECTS = _fcpCompat.$(OBJEXT) _fcpGlobals.$(OBJEXT) \
 	_fcpLog.$(OBJEXT) _fcpRecvResponse.$(OBJEXT) _fcpSock.$(OBJEXT) \
-	_fcpUtil.$(OBJEXT) fcpCloseKey.$(OBJEXT) fcpCreation.$(OBJEXT) \
-	fcpOpenKey.$(OBJEXT) fcpPut.$(OBJEXT) \
+	_fcpUtil.$(OBJEXT) _fcpPut.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
+	fcpCreation.$(OBJEXT) fcpOpenKey.$(OBJEXT) \
 	fcpPutKeyFromFile.$(OBJEXT) fcpReadKey.$(OBJEXT) \
 	fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) mimetype.$(OBJEXT)
 libezfcp_a_OBJECTS = $(am_libezfcp_a_OBJECTS)
@@ -147,10 +147,10 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 @AMDEP_TRUE@DEP_FILES = $(DEPDIR)/_fcpCompat.Po $(DEPDIR)/_fcpGlobals.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Po $(DEPDIR)/_fcpRecvResponse.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Po $(DEPDIR)/_fcpUtil.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Po $(DEPDIR)/fcpCreation.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Po $(DEPDIR)/fcpPut.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Po $(DEPDIR)/_fcpPut.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Po $(DEPDIR)/_fcpSock.Po \
+@AMDEP_TRUE@	$(DEPDIR)/_fcpUtil.Po $(DEPDIR)/fcpCloseKey.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpCreation.Po $(DEPDIR)/fcpOpenKey.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpReadKey.Po $(DEPDIR)/fcpStartup.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpWriteKey.Po $(DEPDIR)/mimetype.Po
@@ -206,13 +206,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpCompat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpGlobals.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpPut.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpSock.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpUtil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPut.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Po@am__quote@
