@@ -12,16 +12,16 @@ struct node {
 struct node *tree;
 char *inform_server;
 
-void inform ();
-void * run_thread (void *arg);
-void insert (int c);
-void request (int c);
-void addref (unsigned int addr);
-void rmref (struct node *n);
-int route (char hash[HASH_LEN]);
-struct node * tree_search (struct node *tree, char hash[HASH_LEN]);
-void tree_insert (struct node **tree, struct node *item);
-void tree_copy (struct node *tree, struct node **new, struct node *fuck);
+inline void inform ();
+inline void * run_thread (void *arg);
+inline void insert (int c);
+inline void request (int c);
+inline void addref (unsigned int addr);
+inline void rmref (struct node *n);
+inline int route (char hash[HASH_LEN]);
+inline struct node * tree_search (struct node *tree, char hash[HASH_LEN]);
+inline void tree_insert (struct node **tree, struct node *item);
+inline void tree_copy (struct node *tree, struct node **new, struct node *fuck);
 
 int
 main (int argc, char **argv)
@@ -47,7 +47,7 @@ main (int argc, char **argv)
 	}
 }
 
-void *
+inline void *
 run_thread (void *arg)
 {
     int c = *(int*)arg;
@@ -61,7 +61,7 @@ run_thread (void *arg)
     pthread_exit(NULL);
 }
 
-void
+inline void
 insert (int c)
 {
     char hash[HASH_LEN], *p;
@@ -92,7 +92,7 @@ insert (int c)
     munmap(p, len);
 }
 
-void
+inline void
 request (int c)
 {
     int i;
@@ -165,7 +165,7 @@ inform ()
 */
 }
 
-void
+inline void
 addref (unsigned int addr)
 {
     struct in_addr x;
@@ -186,7 +186,7 @@ addref (unsigned int addr)
     printf("+ %15s %s\n", inet_ntoa(x), hex);
 }
 
-void
+inline void
 rmref (struct node *n)
 {
     struct node *new = NULL;
@@ -202,7 +202,7 @@ rmref (struct node *n)
     printf("- %15s %s\n", inet_ntoa(x), hex);
 }
 
-int
+inline int
 route (char hash[HASH_LEN])
 {
     for (;;) {
@@ -237,7 +237,7 @@ route (char hash[HASH_LEN])
     return route(hash);
 }
 
-struct node *
+inline struct node *
 tree_search (struct node *tree, char hash[HASH_LEN])
 {
     if (!tree)
@@ -256,7 +256,7 @@ tree_search (struct node *tree, char hash[HASH_LEN])
 	return tree;
 }
 
-void
+inline void
 tree_insert (struct node **tree, struct node *item)
 {
     if (!*tree)
@@ -267,7 +267,7 @@ tree_insert (struct node **tree, struct node *item)
 	tree_insert(&(*tree)->right, item);
 }
 
-void
+inline void
 tree_copy (struct node *tree, struct node **new, struct node *fuck)
 {
     if (tree->left) tree_copy(tree->left, new, fuck);
