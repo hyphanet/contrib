@@ -58,7 +58,7 @@ OPENFILENAME staticSaveAsDialogParams ={sizeof(OPENFILENAME),
 
 void Bug(void)
 {
-	MessageBox(NULL,"* mailto: freenet_bugs@beermex.com *\nDescribe precisely what you were doing when you saw this message","Freenet Tray oops", MB_OK);
+	MessageBox(NULL,"* mailto: support@freenetproject.org *\nDescribe precisely what you were doing when you saw this message","Freenet Tray oops", MB_OK);
 }
 
 const TCHAR* FindNull(const TCHAR* szBuffer, const TCHAR* const szEndPointer)
@@ -348,21 +348,21 @@ void ImportFile(const TCHAR * szFilename)
 	// execute FSERVE --seed %filename%
 	PROCESS_INFORMATION prcFserveSeedInfo;
 
-	char szexecbuf[MAX_PATH+1+sizeof(szFserveSeedExec)+sizeof(szFserveSeedCmdPre)+65536+sizeof(szFserveSeedCmdPost)];
-	char szexecargv0[MAX_PATH+1+sizeof(szFserveSeedExec)];
+	char szexecbuf[MAX_PATH+1+sizeof(szjavawpath)+sizeof(szfservecliexec)+2+sizeof(szFserveSeedCmdPre)+65536+sizeof(szFserveSeedCmdPost)];
 
-	lstrcpy(szexecargv0, szHomeDirectory);
-	lstrcat(szexecargv0, szBackslash);
-	lstrcat(szexecargv0, szFserveSeedExec);
-
-	lstrcpy(szexecbuf, szexecargv0);
+	lstrcpy(szexecbuf, szjavawpath);
+	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, szfservecliexec);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveSeedCmdPre);
-	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, " \"");
 	lstrcat(szexecbuf, szFilename); 
-	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, "\" ");
 	lstrcat(szexecbuf, szFserveSeedCmdPost);
-	if (!CreateProcess(szexecargv0, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveSeedInfo, &prcFserveSeedInfo) )
+
+	/* following is necessary because fred looks in *current directory* for its own ini file ... ! */
+	SetCurrentDirectory(szHomeDirectory);
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveSeedInfo, &prcFserveSeedInfo) )
 	{
 		char szErrorMsg[256];
 		lstrcpy(szErrorMsg, "Failed to import reference file:\n");
@@ -438,22 +438,25 @@ void ExportFile(const TCHAR * szFilename)
 	// execute FSERVE --export %filename%
 	PROCESS_INFORMATION prcFserveExportInfo;
 
-	char szexecbuf[MAX_PATH+1+sizeof(szFserveSeedExec)+sizeof(szFserveSeedCmdPre)+65536+sizeof(szFserveSeedCmdPost)];
-	char szexecargv0[MAX_PATH+1+sizeof(szFserveSeedExec)];
-
-	lstrcpy(szexecargv0, szHomeDirectory);
-	lstrcat(szexecargv0, szBackslash);
-	lstrcat(szexecargv0, szFserveSeedExec);
-
-	lstrcpy(szexecbuf, szexecargv0);
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2+sizeof(szFserveSeedExec)+sizeof(szFserveExportCmdPre)+65536+sizeof(szFserveExportCmdPost)];
+	lstrcpy(szexecbuf, szjavawpath);
+	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, szfservecliexec); 
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveExportCmdPre);
-	lstrcat(szexecbuf, " ");
+	if(lstrlen(szFserveExportCmdPre))
+		lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, "\"");
 	lstrcat(szexecbuf, szFilename); 
-	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, "\"");
+	if(lstrlen(szFserveExportCmdPost))
+		lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveExportCmdPost);
 
-	if (!CreateProcess(szexecargv0, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveExportInfo, &prcFserveExportInfo) )
+	/* following is necessary because fred looks in *current directory* for its own ini file ... ! */
+	SetCurrentDirectory(szHomeDirectory);
+	//if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveExportInfo, &prcFserveExportInfo) )
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartFserveExportInfo, &prcFserveExportInfo) )
 	{
 		char szErrorMsg[256];
 		lstrcpy(szErrorMsg, "Failed to export references to file:\n");
