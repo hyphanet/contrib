@@ -9,6 +9,14 @@
 
 # Stuff all external dependencies into one
 # jar.  
+
+#JAVAC=javac
+#JAVAC_OPTS=-target 1.1 -classpath .
+
+JAVAC=jikes
+JAVAC_OPTS=-classpath ${JIKESPATH}:.
+
+
 freenet-ext:	servlet onion
 		rm -rf build_dir
 		mkdir -p  build_dir/javax/servlet
@@ -37,7 +45,7 @@ freenet-ext-src:
 
 # build the javax.servlet.* classes
 servlet:
-		cd ..; rm -f `find javax -name '*.class'`; javac -target 1.1 `find javax -name '*.java'`
+		cd ..; rm -f `find javax -name '*.class'`; ${JAVAC} ${JAVAC_OPTS} `find javax -name '*.java'`
 
 # build the FECEncoder/Decoder plugins for fproxy.
 onion:
