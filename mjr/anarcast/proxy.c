@@ -191,7 +191,7 @@ insert (int c)
     
     // read data length in bytes
     if (readall(c, &datalength, 4) != 4) {
-	ioerror();
+	alert("Error reading data length from client.");
 	return;
     }
     
@@ -221,7 +221,7 @@ insert (int c)
     blocks = mbuf(len);
     memset(&blocks[i], 0, dlen - i);
     if (readall(c, blocks, datalength) != datalength) {
-	ioerror();
+	alert("Error reading data from client.");
 	if (munmap(blocks, len) == -1)
 	    die("munmap() failed");
 	free(hashes);
@@ -239,9 +239,7 @@ insert (int c)
 	sprintf(b, "Check block %2d:", i+1);
 	for (j = 0 ; j < g.dbc ; j++)
 	    if (is_set(&g, j, i)) {
-		xor(&blocks[dlen+(i*blocksize)], // check block (modified)
-		    &blocks[j*blocksize], // data block (const)
-		    blocksize);
+		xor(&blocks[dlen+(i*blocksize)], &blocks[j*blocksize], blocksize);
 		sprintf(b, "%s %d", b, j+1);
 	    }
 	alert("%s.", b);
@@ -255,8 +253,7 @@ insert (int c)
     
     // generate check block hashes
     for (i = 0 ; i < g.cbc ; i++)
-	sha_buffer(&blocks[dlen+(i*blocksize)], blocksize,
-		   &hashes[(g.dbc+1)*HASHLEN+(i*HASHLEN)]);
+	sha_buffer(&blocks[dlen+(i*blocksize)], blocksize, &hashes[(g.dbc+1)*HASHLEN+(i*HASHLEN)]);
     
     // send the URI to the client
     alert("Writing key to client.");
@@ -264,7 +261,7 @@ insert (int c)
     if (writeall(c, &i, 4) != 4 ||
 	writeall(c, &datalength, 4) != 4 ||
 	writeall(c, hashes, hlen) != hlen) {
-	ioerror();
+	alert("Error writing key to client.");
 	if (munmap(blocks, len) == -1)
 	    die("munmap() failed");
 	free(hashes);
@@ -407,7 +404,7 @@ request (int c)
     
     // read key length (a key is datalength + hashes)
     if (readall(c, &i, 4) != 4) {
-	ioerror();
+	alert("Error reading key length from client.");
 	return;
     }
     
@@ -423,7 +420,7 @@ request (int c)
     
     // read datalength and hashes from client
     if (readall(c, &datalength, 4) != 4 || readall(c, hashes, i) != i) {
-	ioerror();
+	alert("Error reading key from client.");
 	free(hashes);
 	return;
     }
@@ -454,13 +451,13 @@ request (int c)
     alert("Verifying data integrity.");
     sha_buffer(blocks, datalength, hash);
     if (memcmp(hash, hashes, HASHLEN)) {
-	alert("Decoding error: data does not verify!");
+	alert("Data does not verify.");
 	goto out;
     }
     
     // write data to client
     if (writeall(c, &datalength, 4) != 4 || writeall(c, blocks, datalength) != datalength) {
-	ioerror();
+	alert("Error writing data to client.");
 	goto out;
     }
 
