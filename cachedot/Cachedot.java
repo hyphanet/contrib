@@ -171,7 +171,7 @@ class Story {
 				idSb.append(c);
 		}
 		this.id = idSb.toString();
-		Cachedot.log("Parsing story: '" + title + "' with id " + id);
+		Cachedot.log("Parsing story: '" + title + "' with id " + this.id);
 		Pattern       urlex  = Pattern.compile("<A.*?HREF=\"(http://.*?)\".*?>(.*?)<", Pattern.CASE_INSENSITIVE);
 		Matcher       m      = urlex.matcher(text);
 		while (m.find()) {
