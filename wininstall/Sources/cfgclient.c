@@ -1,4 +1,5 @@
-/* --- The following code comes from d:\programme\lcc\lib\wizard\textmode.tpl. */
+/* Originally hacked together by Sebastian Späth (Sebastian@SSpaeth.de)*/
+/* License: Feel free to do whatever you want with it (Public Domain)  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,4 +1,6 @@
-//A wrapper for the Freenet client/node under the GNU general public license
+*/ A wrapper for the Freenet client/node */
+/* Originally hacked together by Sebastian Späth (Sebastian@SSpaeth.de)*/
+/* License: Feel free to do whatever you want with it (Public Domain)  */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

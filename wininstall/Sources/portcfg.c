@@ -1,5 +1,6 @@
-// @@header: d:\dokumente\source\portcfg\portcfgres.h
-// @@resources: d:\dokumente\source\portcfg\portcfg.rc
+/* Small utility to decide on an unused port for Freenet during install*/
+/* Originally hacked together by Sebastian Späth (Sebastian@SSpaeth.de)*/
+/* License: Feel free to do whatever you want with it (Public Domain)  */
 /*<---------------------------------------------------------------------->*/
 #include <windows.h>
 #include <stdlib.h>
