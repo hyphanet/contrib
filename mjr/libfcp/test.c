@@ -11,10 +11,10 @@ main (int argc, char **argv)
     while (len) {
 	int n = fcp_read(d, buf, 1024);
 	if (n < 0) return 1;
-	fwrite(buf, 1, n, stdout);
+	//fwrite(buf, 1, n, stdout);
 	len -= n;
     }
-    //fcp_close(d);
-    fcp_metadata_free(m);
+    fcp_close(d);
+    //fcp_metadata_free(m);
     return 0;
 }

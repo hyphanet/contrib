@@ -193,8 +193,7 @@ fcp_read (fcp_document *d, char *buf, int length)
     if (d->status[d->cur_part] < 0) return d->status[d->cur_part];
     n = fread(buf, 1, length, d->streams[d->cur_part]);
     if (n != length) {
-	fclose(d->streams[d->cur_part++]);
-	if (d->cur_part == d->p_count) return n;
+	if (++d->cur_part == d->p_count) return n;
 	pthread_mutex_lock(&d->mutex);
 	while (d->status[d->cur_part] > 0)
 	    pthread_cond_wait(&d->cond, &d->mutex);
@@ -245,10 +244,9 @@ fcp_get (FILE *data, int *len, int *type, char *uri, int htl)
 	if (status != 1 || n < 0) return FCP_IO_ERROR;
 	dlen -= n;
 	while (n) {
-	    i = fread(buf, 1, n > 1024 ? 1024 : n, sock);
+	    n -= (i = fread(buf, 1, n > 1024 ? 1024 : n, sock));
 	    if (!i) return FCP_IO_ERROR;
 	    fwrite(buf, 1, i, data);
-	    n -= i;
 	}
     }
     rewind(data);
