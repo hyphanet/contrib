@@ -82,15 +82,15 @@ void ImportFile(const TCHAR * szFilename)
 	char szexecargv0[MAX_PATH+1+sizeof(szFserveSeedExec)];
 
 	lstrcpy(szexecargv0, szHomeDirectory);
-	lstrcat(szexecargv0, "\\");
+	lstrcat(szexecargv0, szBackslash);
 	lstrcat(szexecargv0, szFserveSeedExec);
 
 	lstrcpy(szexecbuf, szexecargv0);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveSeedCmdPre);
-	lstrcat(szexecbuf, " \"");
+	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFilename); 
-	lstrcat(szexecbuf, "\" ");
+	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveSeedCmdPost);
 
 	if (!CreateProcess(szexecargv0, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveSeedInfo, &prcFserveSeedInfo) )
@@ -226,15 +226,15 @@ void ExportFile(const TCHAR * szFilename)
 	char szexecargv0[MAX_PATH+1+sizeof(szFserveSeedExec)];
 
 	lstrcpy(szexecargv0, szHomeDirectory);
-	lstrcat(szexecargv0, "\\");
+	lstrcat(szexecargv0, szBackslash);
 	lstrcat(szexecargv0, szFserveSeedExec);
 
 	lstrcpy(szexecbuf, szexecargv0);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveExportCmdPre);
-	lstrcat(szexecbuf, " \"");
+	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFilename); 
-	lstrcat(szexecbuf, "\" ");
+	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveExportCmdPost);
 
 	if (!CreateProcess(szexecargv0, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveExportInfo, &prcFserveExportInfo) )
