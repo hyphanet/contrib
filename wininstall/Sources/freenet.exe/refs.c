@@ -307,11 +307,11 @@ void ImportFileWithProgressPump(const TCHAR * szFilename)
 	while (1)
 	{
 
-		dwWaitResult = MsgWaitForMultipleObjectsEx(1,&hThread,INFINITE,QS_ALLINPUT,0);
+		dwWaitResult = MsgWaitForMultipleObjectsEx(1,&hThread,0,INFINITE,QS_ALLINPUT);
 		// has a message been put into message queue?
 		if (dwWaitResult!=WAIT_OBJECT_0+1)
 		{
-			// no ... in which case MsgWaitForMultipleObjectsEx either returned
+			// no ... in which case MsgWaitForMultipleObjects either returned
 			// because  (1)  The thread has finished (in which case exit)
 			// or       (2)  There was an error  (in which case exit)
 			break;
