@@ -65,7 +65,7 @@ RunJavaFind:
 
 GetJava:
   # Open the download page for Sun's Java
-  ExecShell "open" "http://java.sun.com/j2se/1.3/jre/download-windows.html#software"
+  ExecShell "open" "http://javasoft.com/"
   Sleep 5000
   MessageBox MB_OKCANCEL "Press OK to continue the Freenet installation AFTER having installed Java,$\r$\nCANCEL to abort the installation." IDOK StartCheck
   Abort
@@ -75,7 +75,9 @@ FunctionEnd
 ;-----------------------------------------------------------------------------------
 Section "Freenet (required)"
 
-  # Copying the actual Freenet files to the install dir
+  # Copying the Freenet files to the install dir
+  SetOutPath "$INSTDIR\docs"
+  File "freenet\docs\*.*"
   SetOutPath "$INSTDIR"
   # copying the temporary install and config utilities now
   File freenet\tools\*.*
@@ -83,7 +85,7 @@ Section "Freenet (required)"
   File freenet\*.*
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\frequest.exe" 6
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
-  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\FProxy.exe" 6
+  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\fclient.exe" 6
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\fsrvcli.exe" 6
 
@@ -95,13 +97,22 @@ Section "Freenet (required)"
   HideWindow
   Call DetectJava
   Delete "$INSTDIR\findjava.exe"
-
   ClearErrors
+  BringToFront
+
+  #create the configuration file now
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "seedNodes" "seed.ref"
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "ipAddress" "127.0.0.1"  
+  MessageBox MB_OKCANCEL "Do you want to go through the complete Freenet configuration dialog now (OK),$\r$\nor do you just want to accept the defaults for now (CANCEL)?" IDCANCEL Cancel_Config
+  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini'
+  Goto End_Config
+ Cancel_config:
   ExecWait "$INSTDIR\portcfg.exe"
   IfErrors ConfigError
-  Delete "$INSTDIR\portcfg.exe"
-  BringToFront
   ExecWait '"$INSTDIR\cfgnode.exe" --silent freenet.ini'
+ End_config:
+  Delete "$INSTDIR\portcfg.exe"
+
   IfErrors CfgnodeError ; this does not work yet. It never returns an error message?!
   Delete "$INSTDIR\cfgnode.exe"
   ExecWait "$INSTDIR\cfgclient.exe"
@@ -110,21 +121,19 @@ Section "Freenet (required)"
 
  Seed:
   # seeding the initial references
-  # Seednode.exe
-  # Delete Seednode.exe
-  ; syntax:  webfile.exe [/Q] [/N] [/E] FILENAME URL $HWNDPARENT ['TITLE']
-  ; /Q[uiet]  = no progress box ; /N[otify] = display message box on success ; /E[rrors] = display message box on failure
-  # ExecWait '"$INSTDIR\webget.exe" /E "$INSTDIR\ref\seed.html" "http://freenetproject.org/" $HWNDPARENT "Initial node references"'
-  # IfErrors weberror
-  Delete "$INSTDIR\webget.exe"
+  MessageBox MB_OK "A browser with instructions for obtaining initial references will open when you click OK.$\r$\nPlease save the file seed.ref in your Freenet directory and close the browser."
+  ExecShell "open" "$INSTDIR\docs\GetSeedNode.html"
+  Sleep 5000
+  ;Execshell "open" "http://freenetproject.org/seed.ref"
+  MessageBox MB_OKCANCEL "Hit OK if you finished downloading the seed.ref and you want to continue the installation process. Hit Cancel if you want to abort the installation now." IDCANCEL Abort_Inst
   
   # do the seeding and export our own ref file
-  ExecWait "fsrvcli --seed"
+  ExecWait "$INSTDIR\fsrvcli --seed seed.ref"
   IfErrors SeedError NoSeedError
   SeedError:
   MessageBox MB_OK "There was an error while seeding your node. This might mean that you can´t connect to other nodes lateron."
   NoSeedError:
-  ExecWait "fsrvcli --export myOwn.ref"
+  ExecWait "$INSTDIR\fsrvcli --export myOwn.ref"
   IfErrors ExportError NoExportError
   ExportError:
   MessageBox MB_OK "There was an error while exporting your own reference file. This is a noncritical error."
@@ -143,11 +152,10 @@ Section "Freenet (required)"
   MessageBox MB_OK "There was an error while configuring Freenet.$\r$\nDo you really have Java already installed?$\r$\nAborting installation!"
   Abort
  
- weberror:
+ Abort_inst:
   BringToFront
-  MessageBox MB_RETRYCANCEL "Error retrieving the initial node reference files.$\r$\nPlease make sure that you are online.$\r$\nDo you want to retry or abort the installation?" IDRETRY Seed
   Abort
-   
+
  End:
 SectionEnd
 ;--------------------------------------------------------------------------------------
@@ -205,7 +213,7 @@ SectionEnd
 
 Section "View Readme.txt"
 SectionIn 2
-  ExecShell "open" "$INSTDIR\Readme.txt"
+  ExecShell "open" "$INSTDIR\docs\Readme.txt"
 SectionEnd
 ;---------------------------------------------------------------------------------------
 
@@ -213,7 +221,7 @@ Section -PostInstall
   # Register .ref files to be added to seed.ref with a double-click
   WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet_node_ref"
   WriteRegStr HKEY_CLASSES_ROOT "Freenet_node_ref\shell\open\command" "" '"$INSTDIR\freenet.exe" -import "%1"'
-  WriteRegStr HKEY_CLASSES_ROOT "Freenet_node_ref\DefaultIcon" "" "$INSTDIR\freenet.exe,1"
+  WriteRegStr HKEY_CLASSES_ROOT "Freenet_node_ref\DefaultIcon" "" "$INSTDIR\freenet.exe,0"
 
 
   # Registering install path, so future installs will use the same path
