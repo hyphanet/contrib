@@ -70,7 +70,7 @@ extern char     _fcpID[];
 // PRIVATE DECLARATIONS
 //
 
-static int			insertSplitManifest(HFCP *hfcp, char *key, char *metaData);
+static int			insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file);
 
 static void			splitAddJob(splitJobIns *job);
 
@@ -87,6 +87,7 @@ static splitJobIns	*jobQueueEnd;
 static splitJobIns	*activeJobs;
 
 static int			runningThreads = 0;		// number of split threads currently running
+static int			clientThreads = 0;		// number of caller threads currently running
 
 static int			maxThreads = FCP_MAX_SPLIT_THREADS;
 
@@ -229,6 +230,8 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	// enqueue this insert job
 	splitAddJob(job);
 
+	clientThreads++;
+
 	// wait for it to finish
 	while (job->status != SPLIT_INSSTAT_MANIFEST && job->status != SPLIT_INSSTAT_FAILED)
 		mysleep(1000);
@@ -240,6 +243,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	{
 		_fcpLog(FCP_LOG_NORMAL, "fcpInsSplitFile: insert of '%s' failed", fileName);
 		free(job->chunk);
+		clientThreads--;
 		return -1;
 	}
 
@@ -247,13 +251,16 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	_fcpLog(FCP_LOG_VERBOSE, "fcpInsSplitFile: insert of '%s' successful", fileName);
 
 	// insert this manifest
-	result = insertSplitManifest(hfcp, key, metaData);
+	result = insertSplitManifest(hfcp, key, metaData, strrchr(fileName, DIRDELIMCHAR));
 
 	// update status for manager thread
 	job->status = (result == 0) ? SPLIT_INSSTAT_SUCCESS : SPLIT_INSSTAT_FAILED;
 
+	printf("||||||||||||| cleared job status for %s at %x\n", fileName, job);
+
 	// return to caller
 	free(job->chunk);
+	clientThreads--;
 	return result;
 }
 
@@ -272,7 +279,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 //				-1		if failed
 //
 
-static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData)
+static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file)
 {
 	splitJobIns *job = &hfcp->split;
 	splitChunkIns *chunk;
@@ -317,7 +324,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData)
     strcat( splitManifest, s);
     strcat( splitManifest, "End\n");
 
-//	_fcpLog(FCP_LOG_DEBUG, "****** Inserting manifest:\n%s", splitManifest);
+	_fcpLog(FCP_LOG_DEBUG, "%s: Inserting manifest:\n%s", file, splitManifest);
 
 	//
 	// is the splitfile manifest too big to insert directly under key?
@@ -362,8 +369,8 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData)
 		}
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "successfully inserted splitfile manifest:\n");
-	_fcpLog(FCP_LOG_VERBOSE, splitManifest);
+	_fcpLog(FCP_LOG_VERBOSE, "%s: successfully inserted splitfile manifest:\n%s",
+			file, splitManifest);
 	return 0;
 }
 
@@ -428,22 +435,25 @@ static void splitInsMgr(void *nothing)
 		// let things breathe a bit
 		mysleep(1000);
 
+		if (++clicks == 15)
+		{
+			clicks = 0;
+			_fcpLog(FCP_LOG_DEBUG, "%d threads running, %d clients, queue dump follows",
+					runningThreads, clientThreads);
+			dumpQueue();
+		}
+
 		// de-queue any freshly completed or failed jobs
 		for (tmpJob = jobQueue; tmpJob != NULL; tmpJob = tmpJob->next)
 		{
 			if (tmpJob->status == SPLIT_INSSTAT_BADNEWS)
 				// mark as failed so client thread can pick it up
 				tmpJob->status = SPLIT_INSSTAT_FAILED;
-			else if (tmpJob->doneChunks >= tmpJob->numChunks)
+			else if (tmpJob->doneChunks >= tmpJob->numChunks
+				&& tmpJob->status == SPLIT_INSSTAT_INPROG)
 			{
 				// promote to 'manifest' stage so client thread can pick it up
 				tmpJob->status = SPLIT_INSSTAT_MANIFEST;
-				prevJob = tmpJob;
-				continue;
-			}
-			else
-			{
-				// no change - no need to de-queue
 				prevJob = tmpJob;
 				continue;
 			}
@@ -451,7 +461,10 @@ static void splitInsMgr(void *nothing)
 			// skip if we haven't reached a completion state
 			if (tmpJob->status != SPLIT_INSSTAT_SUCCESS
 				&& tmpJob->status != SPLIT_INSSTAT_FAILED)
+			{
+				prevJob = tmpJob;
 				continue;
+			}
 
 			// job at tmpJob is complete, dequeue it
 			_fcpLog(FCP_LOG_DEBUG, "Queue dump: before ditching job for '%s'",
@@ -496,6 +509,7 @@ static void splitInsMgr(void *nothing)
 				jobQueue = newJob;
 
 			jobQueueEnd = newJob;
+			newJob->status = SPLIT_INSSTAT_INPROG;
 			newJob->next = NULL;
 			newJob = NULL;
 
@@ -512,12 +526,6 @@ static void splitInsMgr(void *nothing)
 		//if (jobQueue == NULL)
 		//	_fcpLog(FCP_LOG_DEBUG, "Job queue is empty");
 		//_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: looking for next chunk to insert");
-		if (++clicks == 60)
-		{
-			clicks = 0;
-			_fcpLog(FCP_LOG_DEBUG, "****** Queue dump ******");
-			dumpQueue();
-		}
 
 		// We have spare thread slots - search for next chunk insert job to launch
 		for (tmpJob = jobQueue; tmpJob != NULL; tmpJob = tmpJob->next)
@@ -576,7 +584,7 @@ static int dumpQueue()
 	{
 		int i;
 		char buf[1024];
-		char buf1[10];
+		char buf1[1024];
 
 		sprintf(buf, "%s(%d): ", strrchr(job->fileName, DIRDELIMCHAR), job->numChunks);
 
@@ -599,7 +607,12 @@ static int dumpQueue()
 			}
 		}
 		else
-			strcat(buf, " Inserting manifest");
+		{
+			sprintf(buf1, "job at %x - inserting manifest", job);
+			strcat(buf, buf1);
+//			strcat(buf, " Inserting manifest");
+
+		}
 		_fcpLog(FCP_LOG_DEBUG, buf);
 	}
 }
@@ -621,7 +634,8 @@ static void chunkThread(chunkThreadParams *params)
 			params->key->doneChunks, params->key->numChunks,
 			params->key->fileName);
 
-	if (fcpPutKeyFromMem(hfcp, "CHK@", params->chunk->chunk, NULL, params->chunk->size) != 0)
+	if (fcpPutKeyFromMem(hfcp, "CHK@", params->chunk->chunk, NULL, params->chunk->size)
+		!= 0)
 	{
 		_fcpLog(FCP_LOG_NORMAL, "chunkThread: failed to insert chunk");
 		params->chunk->status = SPLIT_INSSTAT_FAILED;
@@ -652,6 +666,8 @@ static void chunkThread(chunkThreadParams *params)
 
 	free(params);
 	fcpDestroyHandle(hfcp);
+
+	// only decrement thread count if we're not ready to write the manifest
 	runningThreads--;
 	return;
 }
