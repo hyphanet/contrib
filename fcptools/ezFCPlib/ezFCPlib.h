@@ -24,10 +24,8 @@
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
-/**************************************************************************
-  GENERIC
-**************************************************************************/
-/* Place <sys/> includes here so they are first. */
+/* Generic <sys/> includes here so they are first. */
+
 
 /**************************************************************************
   MS-WINDOWS specifics
@@ -65,8 +63,9 @@
 #define S_IREAD _S_IREAD
 #define S_IWRITE _S_IWRITE
 
+
 /**************************************************************************
-  NON MS-WINDOWS (Linux, BSD, ...)
+  UNIX specifics
 **************************************************************************/
 #else
 
@@ -77,6 +76,8 @@
 #define OPEN_PERMS (S_IRUSR | S_IWUSR)
 
 /* Keep 'sys' files first in include order */
+
+#include <unistd.h>
 
 #endif
 

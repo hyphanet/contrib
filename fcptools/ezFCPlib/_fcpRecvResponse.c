@@ -11,6 +11,9 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include <string.h>
 
 #include "ezFCPlib.h"
@@ -538,7 +541,7 @@ static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
 	while (bytesreqd > 0) {
 		/* now, try to get and return desired number of bytes */
 
-		if (i = crSockReceive(hfcp, cp, bytesreqd)) {
+		if (i = recv(hfcp->socket, cp, len, 0)) {
 			/* Increment current pointer (cp), and decrement bytes required
 				 to read.
 			*/
@@ -567,11 +570,12 @@ static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
 static int getrespline(hFCP *hfcp)
 {
 	char *p = respline;
-	int   i;
+	int   i, j;
 	int   len;
 
 	for (i=0; i < FCPRESP_BUFSIZE; i++) {
-		len = crSockReceive(hfcp, p, 1);
+
+		if (j = recv(hfcp->socket, p, 1, 0);
 		if (*p == '\n') break;
 
 		/* Finally, point to the char after the most-recently read. */
