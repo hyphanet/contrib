@@ -113,7 +113,7 @@ LPSTR lpszAppCommandLine;			/* global pointer to the command line passed to this
 
 
 /*		lock objects for critical sections */
-extern enum LOCKCONTEXTS;
+// enum LOCKCONTEXTS - defined in shared_data.h
 HANDLE hnFreenetMode = NULL;  /* mutex for nFreenetMode */
 HANDLE hSystray = NULL;	 /* mutex for systray (NOTIFYICONDATA) structure */
 HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, &hSystray, NULL};

@@ -19,16 +19,6 @@
 #define WM_TESTMESSAGE WM_USER+9 /* this is just a hint used to wait for the thread message queue to be created */
 
 /******************************************************
- * Functions shared between threads:                  *
- ******************************************************/
-
-/* helper function to select appropriate icon and tooltip text given current state */
-void ModifyIcon(void);
-/* helper function for critical (thread safe) sections */
-void LOCK(enum LOCKCONTEXTS lockcontext);
-void UNLOCK(enum LOCKCONTEXTS lockcontext);
-
-/******************************************************
  *	Global Variables data:                            *
  ******************************************************/
 /*		strings, etc... */
@@ -57,5 +47,17 @@ enum LOCKCONTEXTS
 	SYSTRAY=1
 };
 extern HANDLE * LOCKOBJECTS[];
+
+
+/******************************************************
+ * Functions shared between threads:                  *
+ ******************************************************/
+
+/* helper function to select appropriate icon and tooltip text given current state */
+void ModifyIcon(void);
+/* helper function for critical (thread safe) sections */
+void LOCK(enum LOCKCONTEXTS lockcontext);
+void UNLOCK(enum LOCKCONTEXTS lockcontext);
+
 
 #endif /*FREENET_TRAY_SHARED_DATA_H_INCLUDED*/
