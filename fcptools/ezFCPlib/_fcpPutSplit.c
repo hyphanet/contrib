@@ -266,8 +266,9 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	// return to caller
 	free(job->chunk);
 	clientThreads--;
+
 	return result;
-}
+}					// fcpInsSplitFile()
 
 
 
@@ -364,6 +365,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 	{
 		// insert split manifest directly
 		if (fcpPutKeyFromMem(hfcp, key, NULL, splitManifest, 0) != 0)
+		if (0)
 		{
 			_fcpLog(FCP_LOG_NORMAL, "insertSplitManifest(): failed to insert direct split manifest");
 			runningThreads--;
@@ -403,7 +405,7 @@ void splitAddJob(splitJobIns *job)
 }
 
 
-
+char *xxx = 0x1467658;
 
 
 //
@@ -453,18 +455,12 @@ static void splitInsMgr(void *nothing)
 			if (tmpJob->status == SPLIT_INSSTAT_BADNEWS)
 				// mark as failed so client thread can pick it up
 				tmpJob->status = SPLIT_INSSTAT_FAILED;
-			else if (tmpJob->doneChunks >= tmpJob->numChunks
-				&& tmpJob->status == SPLIT_INSSTAT_INPROG)
-			{
-				// promote to 'manifest' stage so client thread can pick it up
-				tmpJob->status = SPLIT_INSSTAT_MANIFEST;
-				prevJob = tmpJob;
-				continue;
-			}
 
 			// skip if we haven't reached a completion state
 			if (tmpJob->status != SPLIT_INSSTAT_SUCCESS
-				&& tmpJob->status != SPLIT_INSSTAT_FAILED)
+				&& tmpJob->status != SPLIT_INSSTAT_FAILED
+				&& tmpJob->doneChunks < tmpJob->numChunks
+				&& tmpJob->status == SPLIT_INSSTAT_INPROG)
 			{
 				prevJob = tmpJob;
 				continue;
@@ -475,12 +471,23 @@ static void splitInsMgr(void *nothing)
 					tmpJob->fileName);
 			dumpQueue();
 
+			// is this job done?
+			if (tmpJob->doneChunks >= tmpJob->numChunks
+				&& tmpJob->status == SPLIT_INSSTAT_INPROG)
+				// yes - promote to 'manifest' stage so client thread can pick it up
+				tmpJob->status = SPLIT_INSSTAT_MANIFEST;
+				prevJob = tmpJob;
+
+			// now de-queue it
 			if (tmpJob == jobQueue)
 			{
 				// trivial case - we're at head of queue
-				jobQueue = jobQueue->next;
+				tmpJob = jobQueue = jobQueue->next;
 				if (jobQueue == NULL)
+				{
 					jobQueueEnd = NULL;
+					break;
+				}
 			}
 			else
 			{
@@ -499,6 +506,8 @@ static void splitInsMgr(void *nothing)
 		// Check for any new jobs
 		if (newJob != NULL)
 		{
+			splitJobIns *temp = &newJob->next;
+
 			// Add this job to main queue
 			_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: got req to insert file '%s'",
 					newJob->fileName);
@@ -514,6 +523,7 @@ static void splitInsMgr(void *nothing)
 
 			jobQueueEnd = newJob;
 			newJob->status = SPLIT_INSSTAT_INPROG;
+
 			newJob->next = NULL;
 			newJob = NULL;
 
@@ -550,7 +560,7 @@ static void splitInsMgr(void *nothing)
 				{
 					chunkThreadParams *params = safeMalloc(sizeof(chunkThreadParams));
 
-					chunk->status = SPLIT_INSSTAT_INPROG;
+					chunk->status = SPLIT_INSSTAT_INPROG;		// correct code
 
 					if (i + 1 < tmpJob->numChunks)
 						chunk->size = fcpSplitChunkSize;
@@ -590,10 +600,10 @@ static void splitInsMgr(void *nothing)
 					// Successful launch - Add to tally of running threads
 					runningThreads++;
 				}
-			}
-		}
-	}
-}				// 'splitInsMgr()'
+			}				// 'for each splitfile chunk'
+		}					// 'for (each spare thread slot)'
+	}						// 'while (1)'
+}							// 'splitInsMgr()'
 
 
 static int dumpQueue()
@@ -668,6 +678,9 @@ static void chunkThread(chunkThreadParams *params)
 	HFCP *hfcp = fcpCreateHandle();
 	int mypid = getpid();
 
+//params->chunk->status = SPLIT_INSSTAT_SUCCESS;
+//params->key->doneChunks++;
+
 	_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserting chunk index %d of %s",
 			mypid,
 			params->chunk->index,
@@ -689,10 +702,11 @@ static void chunkThread(chunkThreadParams *params)
 
 //	printf("### params->chunk = %x\n", params->chunk);
 
-	params->chunk->status = SPLIT_INSSTAT_SUCCESS;
+	params->chunk->status = SPLIT_INSSTAT_MANIFEST;
 	params->key->doneChunks++;
-	//sprintf(params->chunk->key, "CHK@%03d", keynum);
-	strcpy(params->chunk->key, hfcp->created_uri);
+
+//	sprintf(params->chunk->key, "CHK@%03d", keynum);
+	strcpy(params->chunk->key, hfcp->created_uri);		// correct code
 
 	//strncpy(mem, params->chunk->chunk, params->chunk->size);
 	//mem[params->chunk->size] = '\0';
