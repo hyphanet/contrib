@@ -39,7 +39,10 @@ do
 	cd ..
 done
 
-if `uname -sr`  startswith MINGW
+#if `uname -sr`  startswith MINGW
+#then
+# exit
+#fi
 
 mkdir bin/dynamic
 cd bin/dynamic
