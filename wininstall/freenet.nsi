@@ -69,7 +69,7 @@ SetOutPath $TEMP
 # The next files are not yet deleted anywhere, need to do this somewhere!
 File freenet\NSplugin\launch.exe
 File freenet\NSplugin\mozinst.html
-File freenet\NSplugin\protozilla-0.3-other.xpi
+File freenet\NSplugin\protozilla-0.3-win32.xpi
 Exec '"$TEMP\launch.exe" Mozilla "$TEMP\mozinst.html"'
 
 #need to delete the tempfiles again
