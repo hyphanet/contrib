@@ -53,12 +53,12 @@ main (int argc, char **argv)
     qsort(blocks, n, sizeof(struct block), compare);
     
     for (i = 0 ; total > max && i < n ; i++) {
-	if (unlink(blocks[n].name) == -1) {
-	    printf("Cannot unlink %s! Exiting. (%s)\n", blocks[n].name, strerror(errno));
+	if (unlink(blocks[i].name) == -1) {
+	    printf("Cannot unlink %s! Exiting. (%s)\n", blocks[i].name, strerror(errno));
 	    exit(1);
 	}
-	printf("Unlinked %s.\n", blocks[n].name);
-	total -= blocks[n].size;
+	printf("Unlinked %s.\n", blocks[i].name);
+	total -= blocks[i].size;
     }
     
     return 0;
