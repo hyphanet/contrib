@@ -1,11 +1,23 @@
-package Freenet.support;
+package junit.xrunners;
 import junit.framework.*;
 
 
 public class SimpleTestRunnerTest extends TestCase {
 
+    public String test;
+
     public SimpleTestRunnerTest(String name) {
         super(name);
+    }
+
+    public void setUp() {
+        assertNull("tearDone worked",test);
+        test = "testing";
+    }
+
+    public void tearDown() {
+        assertNotNull("setUp worked",test);
+        test = null;
     }
 
     public void testEquals() {

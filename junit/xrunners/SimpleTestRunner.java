@@ -44,21 +44,21 @@ public class SimpleTestRunner {
     private static class SimpleTestListener implements TestListener {
         
         public void addError(Test test, Throwable t) {
-            System.out.println("Test " + test + " failed do to error: " + t);
-            //   t.printStackTrace(System.out);
+            System.out.println("Test \"" + test + "\" failed do to error: " + t);
+            t.printStackTrace(System.out);
         }
 
         public void addFailure(Test test, AssertionFailedError afe) {
-            System.out.println("Test " + test + " failed do to assertion: " 
+            System.out.println("Test \"" + test + "\" failed do to assertion: " 
                               + afe.getMessage());
         }
 
         public void endTest(Test test) {
-            System.out.println("Test " + test + " ended");
+            System.out.println("Test \"" + test + "\" ended");
         }
         
         public void startTest(Test test) {
-            System.out.println("Test " + test + " started");
+            System.out.println("Test \"" + test + "\" started");
         }
     }
 }
