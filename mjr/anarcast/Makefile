@@ -1,8 +1,8 @@
 CFLAGS = -g -Wall
-PROGRAMS = server inform insert request
+PROGRAMS = server insert request inform proxy
 DEPS = anarcast.h Makefile
 
-all: $(PROGRAMS) proxy
+all: $(PROGRAMS)
 
 %: %.c $(DEPS)
 	gcc $(CFLAGS) -o $@ $<
@@ -14,4 +14,4 @@ proxy: proxy.c $(DEPS)
 	gcc $(CFLAGS) -o proxy proxy.c -pthread -lm
 
 clean:
-	rm -f $(PROGRAMS) proxy
+	rm -f $(PROGRAMS)

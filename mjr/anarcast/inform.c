@@ -5,8 +5,8 @@
 #include <pthread.h>
 
 // thread-related filth
-pthread_mutex_t mutex;
-pthread_cond_t cond;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 int waiting;
 
 // this thread tries to connect to every server in the database. when it's
@@ -24,7 +24,6 @@ int
 main (int argc, char **argv)
 {
     unsigned int l, m, active;
-    long last_weeding;
     pthread_t t;
     fd_set r, w;
     
@@ -59,7 +58,6 @@ main (int argc, char **argv)
     printf("%d Anarcast servers in database.\n", (end-hosts)/4);
     
     l = listening_socket(INFORM_SERVER_PORT);
-    last_weeding = time(NULL);
     active = 0;
     
     if (pthread_create(&t, NULL, thread, NULL))
@@ -79,7 +77,8 @@ main (int argc, char **argv)
 	    die("select() failed");
 	
 	// tell our thread to grab the mutex and update the database
-	if (!n) pthread_cond_broadcast(&cond);
+	if (!n && !active)
+	    pthread_cond_broadcast(&cond);
 
 	for (n = 3 ; n < m ; n++)
 	    if (FD_ISSET(n, &s)) {
@@ -96,8 +95,10 @@ main (int argc, char **argv)
 		off[c] = hosts;
 		if (c == m) m++;
 		if (!memmem(hosts, end-hosts, &a.sin_addr.s_addr, 4)) {
+		    pthread_mutex_lock(&mutex);
 		    memcpy(end, &a.sin_addr.s_addr, 4);
 		    end += 4;
+		    pthread_mutex_unlock(&mutex);
 		    printf("%-15s Added.\n", inet_ntoa(a.sin_addr));
 		} else
 		    printf("%-15s Already known.\n", inet_ntoa(a.sin_addr));
@@ -125,7 +126,7 @@ main (int argc, char **argv)
 void *
 thread (void *arg)
 {
-    int f;
+/*    int f;
     long l, lastweed = time(NULL);
     char *p, *q, *b = mbuf(DATABASE_SIZE);
     
@@ -181,6 +182,6 @@ thread (void *arg)
 	}
 
 	lastweed = l; // update our lastweed to the time when we finished
-    }
+    }*/pthread_exit(NULL);
 }
 
