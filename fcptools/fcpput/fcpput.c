@@ -67,8 +67,10 @@ int  optmask   = 0;
 char *logfile = 0;
 
 char  *keyuri    = 0;
-char  *keyfile   = 0;
 char  *metafile  = 0;
+
+char  *files[128];
+int    file_count = 0;
 
 int    b_stdin   = 0;
 int    b_genkeys = 0;
@@ -81,6 +83,7 @@ int main(int argc, char* argv[])
   
   char  buf[8193];
   int   bytes;
+	int   i;
   
   rc = 0;
   
@@ -140,11 +143,11 @@ int main(int argc, char* argv[])
     /* not sure why this is here.. */
     fflush(stdin);
 
+#if 0 /* metadata handling isn't done */
     if (metafile) {
       int mfd;
       
-			/* change the next line to open file in binary mode */
-      if ((mfd = open(metafile, O_RDONLY)) == -1) {
+      if ((mfd = open(metafile, FCP_READFILE_FLAGS)) == -1) {
 				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
 				return -1;
       }
@@ -155,22 +158,27 @@ int main(int argc, char* argv[])
       }
       close(mfd);
     }
+#endif
     
     if (fcpCloseKey(hfcp)) return -1;
   }
   
-  else {
-    /* use keyfile as the filename of key data */
-    if (fcpPutKeyFromFile(hfcp, keyuri, keyfile, metafile)) {
-      fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, keyfile);
-      return -1;
-    }
+  else { /* call fcpPutKeyFromFile() */
 
-		free(keyuri);
-		free(keyfile);
-  }
+		for (i=0; i<file_count; i++) {
 
-  fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
+			if (fcpPutKeyFromFile(hfcp, keyuri, files[i], metafile)) {
+				fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, files[i]);
+				return -1;
+			}
+
+			fprintf(stdout, "%s : %s\n", hfcp->key->target_uri->uri_str, files[i]);
+			free(files[i]);
+		}
+	}
+
+	fprintf(stdout, "Put %d/%d files into Freenet\n", i, file_count);
+	free(keyuri);
 
   fcpDestroyHFCP(hfcp);
 	free(hfcp);
@@ -316,22 +324,20 @@ static void parse_args(int argc, char *argv[])
 		strcpy(keyuri, argv[optind++]);
 	}
 
-  if (optind < argc) {
-		keyfile = (char *)malloc(strlen(argv[optind]) + 1);
-		strcpy(keyfile, argv[optind++]);
-	}
+	while (optind < argc)
+		files[file_count++] = strdup(argv[optind++]);
 
 	if (!keyuri) {
 		usage("You must specify a valid URI and local filename for key data");
 		exit(1);
 	}
 
-	if ((keyfile) && (b_stdin)) {
+	if ((file_count) && (b_stdin)) {
 		usage("You cannot specifiy both a key filename and --stdin");
 		exit(1);
 	}
 
-	if ((!keyfile) && (!b_stdin)) {
+	if ((file_count==0) && (!b_stdin)) {
 		usage("You must specify a local file, or use the --stdin option");
 		exit(1);
 	}
@@ -348,7 +354,7 @@ static void usage(char *s)
 
 	printf("Usage: fcpput [-n hostname] [-p port] [-l hops to live]\n");
 	printf("              [-m metadata] [-s] [-e regress] [-D] [-v verbosity]\n");
-	printf("              [-g] [-V] [-h] freenet_uri filename\n\n");
+	printf("              [-g] [-V] [-h] freenet_uri [FILE]...\n\n");
 
 	printf("Options:\n\n");
 	printf("  -n, --address host     Freenet node address\n");

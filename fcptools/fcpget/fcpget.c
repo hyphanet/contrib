@@ -110,11 +110,15 @@ int main(int argc, char* argv[])
     
     fd = fileno(stdout);
 
-    while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0) {
+    while ((bytes = fcpReadMetadata(hfcp, buf, 8192)) > 0) {
       write(fd, buf, bytes);
 		}
 
-		/* TODO: read metadata (if any) */
+		fprintf(stdout, "\n");
+		
+    while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0) {
+      write(fd, buf, bytes);
+		}
 
     fflush(stdout);
     if (fcpCloseKey(hfcp)) return -1;
@@ -297,7 +301,7 @@ static void usage(char *s)
   
   printf("Usage: fcpget [-n hostname] [-p port] [-l hops to live]\n");
   printf("              [-m metadata] [-s] [-e regress] [-S] [-v verbosity]\n");
-  printf("              [-V] [-h] freenet_uri filename\n\n");
+  printf("              [-V] [-h] freenet_uri [FILE]\n\n");
   
   printf("Options:\n\n");
   

@@ -36,7 +36,7 @@
 #include <errno.h>
 
 /* why? */
-/*#include <time.h>*/
+#include <time.h>
 
 #include "ez_sys.h"
 
@@ -243,11 +243,13 @@ int copy_file(char *dest, char *src)
 
 int tmpfile_link(hKey *h, int flags)
 {
+	/* open the temporary key file */
 	if ((h->tmpblock->fd = open(h->tmpblock->filename, flags)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "could not link to key tmpfile: %s", h->tmpblock->filename);
 		return -1;
 	}
 	
+	/* open the temporary metadata file */
 	if ((h->metadata->tmpblock->fd = open(h->metadata->tmpblock->filename, flags)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "could not link to meta tmpfile: ", h->metadata->tmpblock->filename);
 		return -1;
@@ -260,21 +262,30 @@ int tmpfile_link(hKey *h, int flags)
 
 void tmpfile_unlink(hKey *h)
 {
+	int err;
+
+	err = 0;
+
 	/* close the temporary key file */
-	if (h->tmpblock->fd != -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not un*link from key tmpfile: %s", h->tmpblock->filename);
-		close(h->tmpblock->fd);
-	}
+	if (h->tmpblock->fd > 0)
+		if (close(h->tmpblock->fd) == -1) {
+			_fcpLog(FCP_LOG_DEBUG, "could not un*link from key tmpfile: %s", h->tmpblock->filename);
+			err++;
+		}
 
 	/* close the temporary metadata file */
-	if (h->metadata->tmpblock->fd != -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not un*link from meta tmpfile: ", h->metadata->tmpblock->filename);
-		close(h->metadata->tmpblock->fd);
-	}
-
+	if (h->metadata->tmpblock->fd > 0)
+		if (close(h->metadata->tmpblock->fd) == -1) {
+			_fcpLog(FCP_LOG_DEBUG, "could not un*link from meta tmpfile: ", h->metadata->tmpblock->filename);
+			err++;
+		}
+	
 	h->tmpblock->fd = -1;
 	h->metadata->tmpblock->fd = -1;
 	
-	_fcpLog(FCP_LOG_DEBUG, "UN*LINKED - key: %s, meta: %s", h->tmpblock->filename, h->metadata->tmpblock->filename);
+	if (err)
+		_fcpLog(FCP_LOG_DEBUG, "there were %d problems in tmpfile_unlink()", err);
+	else
+		_fcpLog(FCP_LOG_DEBUG, "UN*LINKED - key: %s, meta: %s", h->tmpblock->filename, h->metadata->tmpblock->filename);
 }
 

@@ -93,7 +93,7 @@ INCLUDES = `pkg-config --cflags glib` -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/i
 bin_PROGRAMS = fcpx
 
 fcpx_LDFLAGS = `pkg-config --libs glib` -L$(top_srcdir)/ezFCPlib -L$(top_srcdir)/fcpcommon
-fcpx_LDADD = ../ezFCPlib/libezfcp.a -lfcpcommon /usr/lib/libdmalloc.a
+fcpx_LDADD = ../ezFCPlib/libezfcp.a -lfcpcommon ../libdmalloc.a
 fcpx_SOURCES = fcpx.c
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -105,7 +105,7 @@ DEFS = @DEFS@ -I. -I$(srcdir)
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 fcpx_OBJECTS =  fcpx.$(OBJEXT)
-fcpx_DEPENDENCIES =  ../ezFCPlib/libezfcp.a /usr/lib/libdmalloc.a
+fcpx_DEPENDENCIES =  ../ezFCPlib/libezfcp.a ../libdmalloc.a
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)

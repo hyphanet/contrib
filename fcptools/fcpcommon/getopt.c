@@ -45,9 +45,11 @@
 #endif
 #endif
 
+#if 0 /* eww.. i thought this *might* help ;)  joliveri */
 extern int strcmp(const char *, const char *);
 extern int strncmp(const char *, const char *, int);
 extern int strlen(const char *);
+#endif
 
 #include <stdio.h>
 

@@ -6,5 +6,5 @@ bin_PROGRAMS = fcpput
 
 fcpput_LDFLAGS  = -L$(top_srcdir)/ezFCPlib -L$(top_srcdir)/fcpcommon
 #fcpput_LDADD    = -lezfcp -lfcpcommon
-fcpput_LDADD    = ../ezFCPlib/libezfcp.a -lfcpcommon /usr/lib/libdmalloc.a
+fcpput_LDADD    = ../ezFCPlib/libezfcp.a -lfcpcommon ../libdmalloc.a
 fcpput_SOURCES  = fcpput.c libezfcp.a
