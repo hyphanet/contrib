@@ -30,6 +30,9 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Verify that OpenKey/CloseKey do *not* need to be Destroyed then Recreated
+  (make them re-usable after "closing" without destroying)
+  ++ Make this true also for put_file/get_file
 + Implement regress for _fcpGet.c.
 + Change name of xtoi() to xtol().
 + Re-implement rawmode option after routines settle down.

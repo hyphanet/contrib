@@ -107,6 +107,10 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	}
 		
 	_fcpLog(FCP_LOG_VERBOSE, "Uri: %s", hfcp->key->target_uri->uri_str);
+
+	/* re-link the files in perparation for possible re-open via fcpOpenKey */
+	tmpfile_link(hfcp->key, O_WRONLY);
+	hfcp->key->size = hfcp->key->metadata->size = 0;
 	
 	return 0;
 

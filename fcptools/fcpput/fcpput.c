@@ -164,6 +164,9 @@ int main(int argc, char* argv[])
       fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, keyfile);
       return -1;
     }
+
+		free(keyuri);
+		free(keyfile);
   }
 
   fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
@@ -197,7 +200,9 @@ void track(const char *file, const unsigned int line,
 	if (!file) strcpy(f, "NULL");
 	else strncpy(f, file, 32);
 
-	printf("|| %s:%d, size %d, old_addr: %x, new_addr: %x ||\n", f, line, byte_size, old_addr, new_addr);
+	if ((!strcmp(file, "fcpCreation.c")) && (line == 187)) {
+		printf("|| %s:%d, size %d, old_addr: %x, new_addr: %x ||\n", f, line, byte_size, old_addr, new_addr);
+	}
 
 	return;
 }

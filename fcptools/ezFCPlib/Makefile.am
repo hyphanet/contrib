@@ -2,8 +2,8 @@
 
 # Keep these flags since this directory may be used in other projects.
 # KDE for example requires strict ansi compliance (these params actually).
-#CFLAGS=-ansi -W -Wall -pedantic -g -DDMALLOC
-CFLAGS=-ansi -W -Wall -pedantic -g
+#CFLAGS=-ansi -W -Wall -pedantic -g
+CFLAGS=-ansi -W -Wall -pedantic -g -DDMALLOC
 LDADD=/usr/lib/libdmalloc.a
 
 #lib_LIBRARIES = libezfcp.a

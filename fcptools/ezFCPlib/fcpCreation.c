@@ -129,8 +129,6 @@ hKey *_fcpCreateHKey(void)
 
 void _fcpDestroyHKey(hKey *h)
 {
-	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHKey()");*/
-
 	if (h) {
 		int i;
 
@@ -170,8 +168,6 @@ void _fcpDestroyHKey(hKey *h)
 
 static void _fcpDestroyResponse(hFCP *h)
 {
-	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyResponse()");*/
-
 	if (h) {
 		if (h->response.success.uri) free(h->response.success.uri);
 		if (h->response.datachunk.data) free(h->response.datachunk.data);
@@ -188,7 +184,7 @@ hBlock *_fcpCreateHBlock(void)
 {
 	hBlock *h;
 
-	h = (hBlock *)malloc(sizeof (hBlock));
+	h = (hBlock *)malloc(sizeof (hBlock)); /* 1st ! */
 	memset(h, 0, sizeof (hBlock));
 
 	h->uri = fcpCreateHURI();
@@ -203,8 +199,6 @@ hBlock *_fcpCreateHBlock(void)
 
 void _fcpDestroyHBlock(hBlock *h)
 {
-	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHBlock()");*/
-
 	if (h) {
 		
 		/* close the file if it's open */
@@ -236,8 +230,6 @@ hMetadata *_fcpCreateHMetadata(void)
 {
 	hMetadata *h;
 
-	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpCreateHMetadata()");*/
-
 	h = (hMetadata *)malloc(sizeof (hMetadata));
 	memset(h, 0, sizeof (hMetadata));
 
@@ -248,8 +240,6 @@ hMetadata *_fcpCreateHMetadata(void)
 
 void _fcpDestroyHMetadata(hMetadata *h)
 {
-	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHMetadata()");*/
-
 	if (h) {
 
 		if (h->tmpblock) {
@@ -284,6 +274,7 @@ void _fcpDestroyHMetadata_cdocs(hMetadata *h)
 			free(h->cdocs[i]);
 		}
 
+		/*free(h->cdocs);*/
 		h->cdoc_count = 0;
 	}
 }
@@ -292,7 +283,7 @@ hURI *fcpCreateHURI(void)
 {
 	hURI *h;
 
-	h = (hURI *)malloc(sizeof (hURI));
+	h = (hURI *)malloc(sizeof (hURI)); /* 2nd ! */
 	memset(h, 0, sizeof (hURI));
 
 	return h;
@@ -397,12 +388,12 @@ int fcpParseURI(hURI *uri, char *key)
 			strcpy(uri->keyid, key);
 		}
 		
-		if (uri->keyid) {
-			uri->uri_str = (char *)malloc(strlen(uri->keyid) + 13);
+		if (len) {
+			uri->uri_str = (char *)malloc(len + 15); /* 15 is 2 more than needed i think */
 			sprintf(uri->uri_str, "freenet:CHK@%s", uri->keyid);
 		}
 		else {
-			uri->uri_str = (char *)malloc(13);
+			uri->uri_str = (char *)malloc(15);
 			strcpy(uri->uri_str, "freenet:CHK@");
 		}
   }
@@ -419,9 +410,8 @@ int fcpParseURI(hURI *uri, char *key)
 
 		uri->keyid = (char *)malloc(len + 1);
 		strcpy(uri->keyid, key);
-		*(uri->keyid + len) = 0;
 
-		uri->uri_str = (char *)malloc(strlen(uri->keyid) + 13);
+		uri->uri_str = (char *)malloc(strlen(uri->keyid) + 15);
 		sprintf(uri->uri_str, "freenet:KSK@%s", uri->keyid);
   }
   
@@ -468,7 +458,7 @@ void _fcpDestroyHSegment(hSegment *h)
 		if (h->cb_count) {
 			for (i=0; i < h->cb_count; i++) {
 				_fcpDestroyHBlock(h->check_blocks[i]);
-				free(h->check_blocks[i++]);
+				free(h->check_blocks[i]);
 			}
 			
 			free(h->check_blocks);

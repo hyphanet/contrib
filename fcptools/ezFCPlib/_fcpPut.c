@@ -38,7 +38,8 @@
 /* Private functions for internal use */
 static int fec_segment_file(hFCP *hfcp);
 static int fec_encode_segment(hFCP *hfcp, int segment);
-static int fec_insert_segment(hFCP *hfcp, int segment);
+static int fec_insert_data_blocks(hFCP *hfcp, int segment);
+static int fec_insert_check_blocks(hFCP *hfcp, int segment);
 static int fec_make_metadata(hFCP *hfcp);
 
 
@@ -345,8 +346,11 @@ int put_fec_splitfile(hFCP *hfcp)
 	for (index = 0; index < hfcp->key->segment_count; index++)
 		if ((rc = fec_encode_segment(hfcp, index)) != 0) return rc;
 
-	for (index = 0; index < hfcp->key->segment_count; index++)
-		if ((rc = fec_insert_segment(hfcp, index)) != 0) return rc;
+	for (index = 0; index < hfcp->key->segment_count; index++) {
+
+		if ((rc = fec_insert_data_blocks(hfcp, index)) != 0) return rc;
+		if ((rc = fec_insert_check_blocks(hfcp, index)) != 0) return rc;
+	}
 
 	/* TODO: now that the data is inserted, generate and insert metadata merged with
 		 user-defined data for the splitfile */
@@ -570,25 +574,19 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	
 	/* Send FECEncodeSegment message */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not send FECEncodeSegment message");
 		rc = -1;
-		
 		goto cleanup;
 	}
 	
 	/* Send SegmentHeader */
 	if (send(hfcp->socket, segment->header_str, strlen(segment->header_str), 0) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not write initial SegmentHeader message");
 		rc = -1;
-
 		goto cleanup;
 	}
 
 	/* Open file we are about to send */
 	if ((fd = open(hfcp->key->tmpblock->filename, O_RDONLY)) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not open key file %s", hfcp->key->tmpblock->filename);
 		rc = -1;
-		
 		goto cleanup;
 	}
 	
@@ -653,22 +651,24 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	block_len = hfcp->response.blocksencoded.block_size;
 
 	_fcpLog(FCP_LOG_DEBUG, "expecting %d check blocks", segment->cb_count);
-	
+
 	for (bi=0; bi < segment->cb_count; bi++) {
 
-		/* We're expecting a DataChunk message */
-		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-			_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
-			_fcpLog(FCP_LOG_DEBUG, "expected DataChunk message");
-			rc = -1;
-
-			goto cleanup;
-		}
-		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
 		segment->check_blocks[bi]->size = block_len;
-
+		
+		/* We're expecting a DataChunk message */
+		
 		for (fi=0; fi < block_len; ) {
+
+			if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
+				_fcpLog(FCP_LOG_CRITICAL, "did not receive expected message");
+				_fcpLog(FCP_LOG_DEBUG, "expected DataChunk message");
+				rc = -1;
+				
+				goto cleanup;
+			}
+			
 			byte_count = write(segment->check_blocks[bi]->fd,
 												 hfcp->response.datachunk.data,
 												 hfcp->response.datachunk.length);
@@ -681,36 +681,21 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 			}
 			
 			fi += byte_count;
-			
-			/* only get the next DataChunk message if we're expecting one */
-			if (fi < block_len)
-				if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-					_fcpLog(FCP_LOG_CRITICAL, "did not receive expected message(2)");
-					_fcpLog(FCP_LOG_DEBUG, "expected DataChunk message(2)");
-					rc = -1;
-
-					goto cleanup;
-				}
 		}
 		
-		if (fi != block_len) {
-			_fcpLog(FCP_LOG_CRITICAL, "Number of bytes expected bytes did not match the number received");
-			rc = -1;
-
-			goto cleanup;
-		}
-
 		/* Close the check block file */
 		close(segment->check_blocks[bi]->fd);
+		segment->check_blocks[bi]->fd = -1;
 
 		_fcpLog(FCP_LOG_DEBUG, "received check block %d/%d",
 						bi+1, segment->cb_count);
 	}
-
+	
 	_fcpLog(FCP_LOG_VERBOSE, "Successfully received %d check blocks", bi);
-
+	
+  _fcpSockDisconnect(hfcp);
 	return 0;
-
+	
  cleanup: /* this is called when there is an error above */
 	
   _fcpSockDisconnect(hfcp);
@@ -718,7 +703,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 }
 
 
-static int fec_insert_segment(hFCP *hfcp, int index)
+static int fec_insert_data_blocks(hFCP *hfcp, int index)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
@@ -732,7 +717,7 @@ static int fec_insert_segment(hFCP *hfcp, int index)
 
 	hFCP *tmp_hfcp;
 
-	_fcpLog(FCP_LOG_DEBUG, "entered fec_insert_segment()");
+	_fcpLog(FCP_LOG_DEBUG, "entered fec_insert_data_blocks()");
 	
 	/* helper pointer */
 	segment = hfcp->key->segments[index];
@@ -747,10 +732,6 @@ static int fec_insert_segment(hFCP *hfcp, int index)
 		
 		goto cleanup;
 	}
-
-	/******************************************************************/
-	/* insert data blocks first */
-	/******************************************************************/
 
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 
@@ -824,10 +805,12 @@ static int fec_insert_segment(hFCP *hfcp, int index)
 		/* before restarting the loop, tear down the tmp_hfcp struct then
 			 re-instantiate it; could be wasteful, but it will do for now */
 
+		/*
 		fcpDestroyHFCP(tmp_hfcp);
 		free(tmp_hfcp);
 
 		tmp_hfcp = fcpInheritHFCP(hfcp);
+		*/
 		
 		bi++;
 	}
@@ -836,11 +819,42 @@ static int fec_insert_segment(hFCP *hfcp, int index)
 	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 
-	tmp_hfcp = fcpInheritHFCP(hfcp);
+	return 0;
 
-	/******************************************************************/
-	/* insert check blocks next */
-	/******************************************************************/
+ cleanup: /* this is called when there is an error above */
+	
+	fcpDestroyHFCP(tmp_hfcp);
+	free(tmp_hfcp);
+	
+	return rc;
+}
+
+
+/* @@@ TODO TODO @@@ */
+
+static int fec_insert_check_blocks(hFCP *hfcp, int index)
+{
+	char buf[L_FILE_BLOCKSIZE+1];
+	int rc;
+
+	int bi;   /* block index */
+
+	int bytes;
+	int byte_count;
+
+	hSegment  *segment;
+
+	hFCP *tmp_hfcp;
+
+	_fcpLog(FCP_LOG_DEBUG, "entered fec_encode_check_blocks()");
+
+	/* helper pointer */
+	segment = hfcp->key->segments[index];
+	
+	/* start at the first block, of course */
+	bi = 0;
+
+	tmp_hfcp = fcpInheritHFCP(hfcp);
 
 	for (bi=0; bi < segment->cb_count; bi++) {
 
@@ -856,7 +870,6 @@ static int fec_insert_segment(hFCP *hfcp, int index)
 			goto cleanup;
 		}		
 		
-		segment->check_blocks[bi] = _fcpCreateHBlock();
 		fcpParseURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
 
 		_fcpLog(FCP_LOG_VERBOSE, "Inserted check block %d/%d",
@@ -866,13 +879,8 @@ static int fec_insert_segment(hFCP *hfcp, int index)
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->cb_count,
 						segment->check_blocks[bi]->uri->uri_str);
-
-		_fcpSockDisconnect(hfcp);
-		
 	}
 	
-  _fcpSockDisconnect(hfcp);
-
 	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	
@@ -880,13 +888,12 @@ static int fec_insert_segment(hFCP *hfcp, int index)
 
  cleanup: /* this is called when there is an error above */
 	
-  _fcpSockDisconnect(hfcp);
-
 	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	
 	return rc;
 }
+
 
 static int fec_make_metadata(hFCP *hfcp)
 {
@@ -967,7 +974,6 @@ static int fec_make_metadata(hFCP *hfcp)
 
 	tmpfile_link(tmp_hfcp->key, O_RDONLY);
 
-  /* connect to Freenet FCP (use hfcp) */
   if (_fcpSockConnect(tmp_hfcp) != 0) return -1;
 
 	/* Send FECMakeMetadata command */
@@ -1037,24 +1043,27 @@ static int fec_make_metadata(hFCP *hfcp)
 
 			goto cleanup;
 		}
-		
-		if (write(tmp_hfcp->key->metadata->tmpblock->fd,
-							tmp_hfcp->response.datachunk.data,
-							tmp_hfcp->response.datachunk.length) <= 0) {
 
-			_fcpLog(FCP_LOG_DEBUG, "write returned <= 0");
+		if (fcpWriteMetadata(tmp_hfcp,
+												 tmp_hfcp->response.datachunk.data,
+												 tmp_hfcp->response.datachunk.length) < 0) {
+			
+			_fcpLog(FCP_LOG_DEBUG, "fcpWriteMetadata() returned < 0");
 			rc = -1;
-
+			
 			goto cleanup;
 		}
-
+		
 		bytes -= tmp_hfcp->response.datachunk.length;
 	}
-
+	
 	_fcpLog(FCP_LOG_DEBUG, "metadata written to temporary file");
 
 	tmpfile_unlink(tmp_hfcp->key);
 	tmpfile_link(tmp_hfcp->key, O_RDONLY);
+
+	/* needed to force put_file() to only insert metadata for splitfile manifest */
+	tmp_hfcp->key->size = 0;
 
 	rc = put_file(tmp_hfcp, "CHK@");
 
