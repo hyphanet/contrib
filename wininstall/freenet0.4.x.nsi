@@ -32,6 +32,10 @@ Function DetectJava
   # First look for the current version of Java and get the correct path in $2,
   # then test if its empty (nonexisting)
 StartCheck:
+  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.4"	; JRE key into $0
+  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
+  StrCmp $2 "" 0 EndCheck
+
   StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.3"	; JRE key into $0
   ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
   StrCmp $2 "" 0 EndCheck
@@ -72,9 +76,6 @@ FunctionEnd
 Section "Freenet (required)"
 
   # Copying the actual Freenet files to the install dir
-  SetOutPath "$INSTDIR\ref"
-  File "Freenet\ref\*.ref"
-
   SetOutPath "$INSTDIR"
   # copying the temporary install and config utilities now
   File freenet\tools\*.*
