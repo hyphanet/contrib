@@ -10,3 +10,10 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Description: Temp
  Temp
+
+Package: fcptools-dev
+Section: devel
+Architecture: any
+Depends: fcptools (= ${Source-Version})
+Description: Test
+ Test
