@@ -10,12 +10,13 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <pthread.h>
-
-#define MIN_SIZE 50000
+#include <getopt.h>
+#include <regex.h>
 
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int htl, threads, max_threads, collisions, max_collisions;
+int htl, threads, max_threads, collisions, max_collisions, skip, min_bytes;
+regex_t *regex;
 char *nntpserver, *group;
 uint32_t article_count, *articles;
 FILE *sock, *log;
@@ -182,10 +183,12 @@ get_article (uint32_t msg_num)
     sscanf(line, "%d", &status);
     if (status != 221) goto badreply;
     fgets(line, 512, sock);
-    if (!strstr(line, ".jp")) {
-	fprintf(stderr, "Skipping article %d: not a JPEG file.\n", msg_num);
-	fgets(line, 512, sock);
-	return NULL;
+    if (regex && regexec(regex, line, 0, NULL, 0)) {
+	if (status != 0) {
+	    fprintf(stderr, "Skipping unmatched article %d.\n", msg_num);
+	    fgets(line, 512, sock);
+	    return NULL;
+	}
     }
     fgets(line, 512, sock);
     if (strcmp(line, ".\r\n") != 0) goto badreply;
@@ -197,8 +200,8 @@ get_article (uint32_t msg_num)
     if (status != 221) goto badreply;
     fgets(line, 512, sock);
     sscanf(line, "%*d %d\r\n", &status);
-    if (status < MIN_SIZE) {
-	fprintf(stderr, "Skipping article %d: less than %d bytes.\n", msg_num, MIN_SIZE);
+    if (status < min_bytes) {
+	fprintf(stderr, "Skipping article %d: less than %d bytes.\n", msg_num, min_bytes);
 	fgets(line, 512, sock);
 	return NULL;
     }
@@ -258,20 +261,39 @@ badreply:
     return NULL;
 }
 
+void
+usage (char *me)
+{
+    fprintf(stderr, "Usage %s [options] some.news.group\n\n"
+                    "  -h --htl           The hops to live for inserts.\n"
+		    "  -t --threads       The maximum number of concurrent inserts.\n"
+		    "  -r --regex         Only insert articles whose names match regex.\n"
+		    "  -c --collisions    Terminate after a number of collisions.\n"
+		    "  -s --skip          Skip x newest articles.\n"
+		    "  -m --min           Skip articles less than x bytes.\n\n",
+		    me);
+    exit(2);
+}
+
 int
 main (int argc, char **argv)
 {
     pthread_t thread;
     article *a;
-    
-    if (argc < 2) {
-	fprintf(stderr, "Usage: %s news.group.name [htl] [threads] [max-collisions]\n"
-			"If [htl] is not specified, 15 is assumed.\n"
-		        "If [threads] is not specified, single-thread mode is assumed.\n"
-			"If [max-collisions] is not specified, unlimited CHK collisions are allowed.\n",
-			argv[0]);
-	exit(2);
-    }
+    int c;
+    char regex_string[256];
+    extern int optind;
+    extern char *optarg;
+
+    static struct option long_options[] = {
+	{"htl",        1, NULL, 'h'},
+        {"threads",    1, NULL, 't'},
+	{"regex",      1, NULL, 'r'},
+	{"collisions", 1, NULL, 'c'},
+	{"skip",       1, NULL, 's'},
+	{"min",        1, NULL, 'm'},
+	{0, 0, 0, 0}
+    };
     
     nntpserver = getenv("NNTPSERVER");
     if (!nntpserver) {
@@ -280,12 +302,76 @@ main (int argc, char **argv)
 	exit(2);
     }
 
-    group = argv[1];
+    htl = 15;
+    max_threads = 1;
+    regex_string[0] = '\0';
+    max_collisions = 0;
+    skip = 0;
+    min_bytes = 0;
+    
+    while ((c = getopt_long(argc, argv, "h:t:r:c:s:m:", long_options, NULL)) != EOF) {
+        switch (c) {
+        case 'h':
+            htl = atoi(optarg);
+            break;
+        case 't':
+            max_threads = atoi(optarg);
+            break;
+	case 'r':
+	    strncpy(regex_string, optarg, 256);
+	    break;
+        case 'c':
+            max_collisions = atoi(optarg);
+            break;
+        case 's':
+            skip = atoi(optarg);
+            break;
+	case 'm':
+	    min_bytes = atoi(optarg);
+	    break;
+        case '?':
+            usage(argv[0]);
+            break;
+        }
+    }
 
-    htl = argc > 2 ? atoi(argv[2]) : 15;
-    max_threads = argc > 3 ? atoi(argv[3]) : 1;
-    max_collisions = argc > 4 ? atoi(argv[4]) : 0;
-    collisions = 0;
+    if (argc != optind+1) {
+        usage(argv[0]);
+        exit(2);
+    }
+    group = argv[optind];
+   
+    if (htl < 1) {
+	fprintf(stderr, "Invalid HTL.\n");
+	exit(2);
+    }
+    if (max_threads < 1) {
+	fprintf(stderr, "Invalid max threads.\n");
+	exit(2);
+    }
+    if (max_collisions < 0) {
+	fprintf(stderr, "Invalid max collisions.\n");
+	exit(2);
+    }
+    if (skip < 0) {
+	fprintf(stderr, "Invalid number of articles to skip.\n");
+	exit(2);
+    }
+    if (min_bytes < 0) {
+	fprintf(stderr, "Invalid minimum bytes.\n");
+	exit(2);
+    }
+
+    regex = NULL;
+    if (strlen(regex_string)) {
+	regex = malloc(sizeof(regex_t));
+	c = regcomp(regex, regex_string, REG_ICASE | REG_EXTENDED | REG_NOSUB);
+	if (c != 0) {
+	    fprintf(stderr, "Invalid regular expression: %s\n", regex_string);
+	    exit(2);
+	}
+    }
+    
     nntp_connect();
     nntp_xover();
     
@@ -298,6 +384,7 @@ main (int argc, char **argv)
     }
     
     do {
+	if (skip-- > 0) {article_count--; continue;}
 	if (max_collisions && collisions > max_collisions) {
 	    fprintf(stderr, "Max collisions exceeded. Aborting.\n");
 	    pthread_exit(NULL);
@@ -356,38 +443,38 @@ FILE *
 read_base64 (FILE *in)
 {
     static const char b64_tab[256] = {
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*000-007*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*010-017*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*020-027*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*030-037*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*040-047*/
-        '\177', '\177', '\177', '\76',  '\177', '\177', '\177', '\77',  /*050-057*/
-        '\64',  '\65',  '\66',  '\67',  '\70',  '\71',  '\72',  '\73',  /*060-067*/
-        '\74',  '\75',  '\177', '\177', '\177', '\100', '\177', '\177', /*070-077*/
-        '\177', '\0',   '\1',   '\2',   '\3',   '\4',   '\5',   '\6',   /*100-107*/
-        '\7',   '\10',  '\11',  '\12',  '\13',  '\14',  '\15',  '\16',  /*110-117*/
-        '\17',  '\20',  '\21',  '\22',  '\23',  '\24',  '\25',  '\26',  /*120-127*/
-        '\27',  '\30',  '\31',  '\177', '\177', '\177', '\177', '\177', /*130-137*/
-        '\177', '\32',  '\33',  '\34',  '\35',  '\36',  '\37',  '\40',  /*140-147*/
-        '\41',  '\42',  '\43',  '\44',  '\45',  '\46',  '\47',  '\50',  /*150-157*/
-        '\51',  '\52',  '\53',  '\54',  '\55',  '\56',  '\57',  '\60',  /*160-167*/
-        '\61',  '\62',  '\63',  '\177', '\177', '\177', '\177', '\177', /*170-177*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*200-207*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*210-217*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*220-227*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*230-237*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*240-247*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*250-257*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*260-267*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*270-277*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*300-307*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*310-317*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*320-327*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*330-337*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*340-347*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*350-357*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*360-367*/
-        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177', /*370-377*/
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\76',  '\177', '\177', '\177', '\77',
+        '\64',  '\65',  '\66',  '\67',  '\70',  '\71',  '\72',  '\73',
+        '\74',  '\75',  '\177', '\177', '\177', '\100', '\177', '\177',
+        '\177', '\0',   '\1',   '\2',   '\3',   '\4',   '\5',   '\6',
+        '\7',   '\10',  '\11',  '\12',  '\13',  '\14',  '\15',  '\16',
+        '\17',  '\20',  '\21',  '\22',  '\23',  '\24',  '\25',  '\26',
+        '\27',  '\30',  '\31',  '\177', '\177', '\177', '\177', '\177',
+        '\177', '\32',  '\33',  '\34',  '\35',  '\36',  '\37',  '\40',
+        '\41',  '\42',  '\43',  '\44',  '\45',  '\46',  '\47',  '\50',
+        '\51',  '\52',  '\53',  '\54',  '\55',  '\56',  '\57',  '\60',
+        '\61',  '\62',  '\63',  '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
+        '\177', '\177', '\177', '\177', '\177', '\177', '\177', '\177',
     };
     
     unsigned char *p, buf[2 * BUFSIZ];
