@@ -117,6 +117,8 @@ main (int argc, char **argv)
 			    if (close(n) == -1)
 				die("close() failed");
 			} else { // data found
+			    if (utime(hex, NULL) == -1)
+				die("utime() failed");
 			    if ((c = open(hex, O_RDONLY)) == -1)
 				die("open() failed");
 			    a[n].data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, c, 0);
