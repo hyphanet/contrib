@@ -23,10 +23,15 @@ void ReloadSettings(void);
 void StartFserve(void);
 void ExitFserve(void);
 
-/* bit of a kludge - synchronous - used to load configurator dll */
-bool StartConfig(void);
-bool StartConfigOrig(void);
-
+/*	The first loads the configurator dll - synchronous but because of a bug which I cannot
+	track down the main message pump still runs ...
+	The second loads the original Java Configurator in a separate thread i.e. asynchronous
+*/
+void StartConfig(void);
+void StartConfigOrig(void);
+DWORD WINAPI WaitForJavaConfigurator(LPVOID hThread);
+/* following function is a callback used to set focus to the Java Configurator window */
+BOOL CALLBACK SetFocusByProcId(HWND hWnd, LPARAM lParam);
 
 /* helper functions to synchronise multithreaded locking requests on a object by its handler */
 void LockObject(HANDLE pObject);
