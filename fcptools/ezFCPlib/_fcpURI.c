@@ -16,7 +16,7 @@
   
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICU`LAR PURPOSE.  See the
   GNU General Public License for more details.
   
   You should have received a copy of the GNU General Public License
@@ -32,6 +32,10 @@
 
 #include "ez_sys.h"
 
+static int doRoutingKeySection(hURI *uri, char **key);
+static int doCryptoKeySection(hURI *uri, char **key);
+static int doDocnameSection(hURI *uri, char **key);
+static int doMetastringSection(hURI *uri, char **key);
 
 /*
 	fcpParseHURI()
@@ -43,26 +47,19 @@
 	FreenetURI handles parsing and creation of the Freenet URI format, defined
 	as follows:
 	
-	freenet:[KeyType@]RoutingKey[,CryptoKey][,n1=v1,n2=v2,...][/docname][//metastring]
-	
-	where KeyType is the TLA of the key (currently SVK, SSK, KSK, or CHK). If
-	omitted, KeyType defaults to KSK.
-	
-	For KSKs, the string keyword (docname) takes the RoutingKey position and the
-	remainder of the fields are inapplicable (except metastring). Examples:
-	freenet:KSK@foo//bar freenet:KSK@test.html freenet:test.html
-	
-	RoutingKey is the modified Base64 encoded key value. CryptoKey is the
-	modified Base64 encoded decryption key.
-	
-	Following the RoutingKey and CryptoKey there may be a series of
-	name=value pairs representing URI meta-information.
+	freenet:[KeyType@]RoutingKey[,CryptoKey][/docname][//metastring]
 
-	The docname is only meaningful for SSKs, and is hashed with the PK
-	fingerprint to get the key value.
+	FCPLib supports the following formats for KSK's, SSK's, and CHK's:
 	
-	The metastring is meant to be passed to the metadata processing systems that
-	act on the retrieved document.
+	KSK's
+	[freenet:][KSK@]RoutingKey[//metastring]
+	
+	SSK's
+	[freenet:]SSK@RoutingKey[,CryptoKey][/docname][//metastring]
+
+	CHK's
+	[freenet:]CHK@RoutingKey[,CryptoKey][/docname]
+
 */
 int fcpParseHURI(hURI *uri, char *key)
 {
@@ -70,8 +67,6 @@ int fcpParseHURI(hURI *uri, char *key)
 	int i;
 
 	char *p_key;
-	char *uri_s;
-
 	char *startNameVal;
 
 	if (strlen(key) >= L_URI) {
@@ -81,17 +76,12 @@ int fcpParseHURI(hURI *uri, char *key)
 		goto cleanup;
 	}
 		
-	uri_s = malloc(strlen(key)+128);
-
 	/* clear out the dynamic arrays before attempting to parse a new uri */
   if (uri->routingkey) free(uri->routingkey);
   if (uri->cryptokey) free(uri->cryptokey);
 	if (uri->filename) free(uri->filename);
 	if (uri->metastring) free(uri->metastring);
 	if (uri->uri_str) free(uri->uri_str);
-	if (uri->date) free(uri->date);
-	if (uri->rdate) free(uri->rdate);
-	if (uri->mime) free(uri->mime);
 	
 	/* save the key root */
 	p_key = key;
@@ -99,263 +89,114 @@ int fcpParseHURI(hURI *uri, char *key)
 	/* zero the block of memory */
 	memset(uri, 0, sizeof (hURI));
 
-  /* skip 'freenet:' */
-  if (!strncmp(key, "freenet:", 8)) key += 8;
+	/* copy over the raw string */
+	uri->uri_str = strdup(key);
+
+	if (!strncmp(key, "freenet:", 8)) key += 8;
 	
   /* classify key header */
   if (!strncasecmp(key, "CHK@", 4)) {
 
     uri->type = KEY_TYPE_CHK;
-		strcpy(uri_s, "freenet:CHK@");
 		key += 4;
 	}
 
   else if (!strncasecmp(key, "SSK@", 4)) {
     uri->type = KEY_TYPE_SSK;
-		strcpy(uri_s, "freenet:SSK@");
 		key += 4;
 	}
 	
 	/* when in doubt assume it's a KSK */
-  else {
+  else
     uri->type = KEY_TYPE_KSK;
-		strcpy(uri_s, "freenet:KSK@");
-		key += 4;
-	}
 
-	/* initialize to be sure */
-	startNameVal = 0;
+	/*******************************************************************/
 	
-	/* copy all the characters in the RoutingKey section */
-	uri->routingkey = malloc(L_KEY+1);
-	
-	for (i=0; (*key != ',') && (*key != '/') && (*key != 0); key++)
-		uri->routingkey[i++] = *key;
-
-	/* grab the routingkey */
-	uri->routingkey[i] = 0;
-	strcat(uri_s, uri->routingkey);
-	
-	/* if we're on a ',', then we either next have to parse a
-		 CryptoKey or n1=v1 pair */
-	if (*key == ',') {
-	
-		int doNameValPairs;
-
-		startNameVal = key++;
-		doNameValPairs = 0;
-		
-		/* test the current section to see if it's a CryptoKey */
-		for (i=0; key[i] != '\0'; i++) {
-			
-			if (key[i] == ',') { /* we have a CryptoKey, *and* n1=v1 pairs */
-
-				/* startNameVal points to the start of the n1=v1 section */
-				startNameVal = (key+i);
-							
-				uri->cryptokey = malloc(i+1);
-				memcpy(uri->cryptokey, key, i);
-				uri->cryptokey[i] = 0;
-				
-				/* build the uri_s version */
-				strcat(uri_s, ",");
-				strcat(uri_s, uri->cryptokey);
-
-				key += i;
-								
-				/* set so that in next section we look for the name/val pairs */
-				doNameValPairs = 1;
-				
-				break;
-			}
-			
-			if (key[i] == '/') { /* we have a CryptoKey, and we have *no* n1=v1 pairs */
-				
-				uri->cryptokey = malloc(i+1);
-				
-				memcpy(uri->cryptokey, key, i);
-				uri->cryptokey[i] = 0;
-				
-				/* build the uri_s version */
-				strcat(uri_s, ",");
-				strcat(uri_s, uri->cryptokey);
-				
-				key += i;
-				
-				break;
-			}
-			
-			if (key[i] == '=') { /* we have *no* CryptoKey, but only n1=v1 pairs */
-
-				/* set so that in next section we look for the name/val pairs */
-				doNameValPairs = 1;
-				
-				break;
-			}
-		} /* on exiting this block, key[i] is in set {',', '/', '=', 0} */
-		
-		/* if we hit a NULL char then we have a crypto key and that's it! */
-		if (*key=='\0') {
-			
-			uri->cryptokey = malloc(i+1);
-			memcpy(uri->cryptokey, key, i);
-			uri->cryptokey[i] = '\0';
-			
-			/* build the uri_s version */
-			strcat(uri_s, ",");
-			strcat(uri_s, uri->cryptokey);
-			
-			goto success;
-		}
-		
-		/* we have the crypto key (if there was one); process the name/val
-			 pairs */
-		
-		if (doNameValPairs) {
-			char *name;
-			char  *val;
-
-			key = startNameVal+1;
-
-			while (doNameValPairs) {
-			
-				/* find the = char... */								
-				i=0;
-				while ((key[i] != '=') && (key[i] != '\0')) i++;
-	
-				if (key[i] == '\0') {
-					rc = -1;
-					goto cleanup;
-				}
-	
-				/* get the name piece */
-				name = malloc(i+1);
-				memcpy(name, key, i);
-				name[i] = '\0';
-	
-				/* increment i, then advance key to the v1 piece */			
-				key += ++i;
-
-				i = 0;				
-				while ((key[i] != ',') && (key[i] != '/') && (key[i] != '\0')) i++;
-				
-				/* get the val piece */
-				val = malloc(i+1);
-				memcpy(val, key, i);
-				val[i] = '\0';
-
-				/* store info in the raw uri string */
-				strcat(uri_s, ",");
-				strcat(uri_s, name);
-				strcat(uri_s, "=");
-				strcat(uri_s, val);
-				
-				/* store name/val in a proper structure */				
-				/*_fcpLog(FCP_LOG_DEBUG, "name >%s< val >%s<", name, val);*/
-
-				/* store uri metadata we're interested in it */
-				if (!strcasecmp(name, "date"))
-					uri->date = strdup(val);
-
-				else if (!strcasecmp(name, "rdate"))
-					uri->rdate = strdup(val);
-				
-				else if (!strcasecmp(name, "mime"))
-					uri->mime = strdup(val);
-				
-				else if (!strcasecmp(name, "htl"))
-					uri->htl = atoi(val);
-				
-				else if (!strcasecmp(name, "try"))
-					uri->try = atoi(val);
-
-				else
-					_fcpLog(FCP_LOG_DEBUG, "unhandled uri metadata: %s", name);
-				
-				free(name);
-				free(val);
-				
-				/* if NULL or '/', then we're done processing name/val pairs */				
-				if ((key[i] == '\0') || (key[i] == '/')) {
-					doNameValPairs = 0;
-					
-					/* ensure key points to a '/' or '\0' */
-					key += i;
-				}
-				
-				else key += i+1;
-			}
-		}
+	if (doRoutingKeySection(uri, &key) != 0) {
+		rc = -1;
+		goto cleanup;
 	}
 	
-	/* here, "key" points to the start of the docname section, the start of the
-		 metastring section or '\0' */
-	
-	/* check if key is a '/'; if so parse out the filename hint section */
-	
-	if ((*key == '/') && (*(key+1) != '/')) {
-		key++;
+	if (uri->type == KEY_TYPE_KSK) {
+
+		if (*key=='/' && *(key+1)=='/') {
 		
-		if (*key == '\0') {
-			rc = -1;
-			goto cleanup;
-		}
-		
-		/* iterate through docname and stop at '//' or '\0' */
-		for (i=0; key[i] != '\0'; i++) {
-			
-			/* if key is a '//' then break */
-			if ((key[i]=='/') && (key[i+1]== '/')) break;
-		}					
-		
-		uri->filename = malloc(i+1);
-		memcpy(uri->filename, key, i);
-		uri->filename[i] = '\0';
-		
-		/* build the uri_s version */
-		strcat(uri_s, "/");
-		strcat(uri_s, uri->filename);
-	}
-	
-	/* advance past the actual filename part */
-	key += i;
-	
-	/* if we also have a metastring.. */
-	if ((*key=='/') && (*(key+1)=='/')) {
-		
-		if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_KSK)) {
-			
-			/* position after the '//' */
 			key += 2;
 			
-			/* copy over the metastring */
-			uri->metastring = strdup(key);
-			
-			/* build the uri_s version */
-			strcat(uri_s, "//");
-			strcat(uri_s, uri->metastring);
+			if (doMetastringSection(uri, &key) != 0) {
+				rc = -1;
+				goto cleanup;
+			}
 		}
-
-		else {
-			_fcpLog(FCP_LOG_DEBUG, "metastring section not valid for CHK's.. ignored");
-
-			rc = -1;
-			goto cleanup;
+	}
+	
+	else if (uri->type == KEY_TYPE_CHK) {
+	
+		if (*key==',') {
+			
+			key += 1;
+			
+			if (doCryptoKeySection(uri, &key)) {
+				rc = -1;
+				goto cleanup;
+			}
+		}
+		
+		if (*key=='/' && *(key+1)!='/') {
+		
+			key += 1;
+			
+			if (doDocnameSection(uri, &key)) {
+				rc = -1;
+				goto cleanup;
+			}
 		}
 	}
 		
+	else if (uri->type == KEY_TYPE_SSK) {
+		
+		if (*key==',') {
+			
+			key += 1;
+			
+			if (doCryptoKeySection(uri, &key)) {
+				rc = -1;
+				goto cleanup;
+			}
+		}
+		
+		if (*key=='/' && *(key+1)!='/') {
+		
+			key += 1;
+			
+			if (doDocnameSection(uri, &key)) {
+				rc = -1;
+				goto cleanup;
+			}
+		}
+
+		if (*key=='/' && *(key+1)=='/') {
+		
+			key += 1;
+			
+			if (doMetastringSection(uri, &key)) {
+				rc = -1;
+				goto cleanup;
+			}
+		}
+	}
+	
+	/* DONE */
+ 
  success:
 	
-	uri->uri_str = strdup(uri_s);
 	_fcpLog(FCP_LOG_DEBUG, "uri: %s", uri->uri_str);
-	
 	rc = 0;
 	
  cleanup:
 
-	free(uri_s);
   return rc;
-}
+}		
 
 
 char *_fcpDBRString(hURI *uri, int future)
@@ -397,3 +238,140 @@ char *_fcpDBRString(hURI *uri, int future)
 	uri_str = realloc(uri_str, strlen(uri_str)+1);
 	return uri_str;	
 }
+		
+
+/**********************************************************************
+	STATIC functions
+**********************************************************************/
+
+
+static int doRoutingKeySection(hURI *uri, char **key) {
+
+	int i;
+	
+	uri->routingkey = malloc(L_KEY+1);
+	
+	if (uri->type == KEY_TYPE_KSK) {
+		
+		i = 0;
+		while (i < L_KEY) {
+
+			/* break when we hit null */
+			if (*(*key+i) == '\0') break;
+			
+			/* break if we've hit the '//' pair */
+			if ((*(*key+i) =='/') && (*(*key+i+1) == '/')) break;
+
+			uri->routingkey[i] = *(*key+i);
+			i++;
+		}
+				
+		uri->routingkey[i] = 0;
+		*key += i;
+	}
+	
+	else if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_CHK)) {
+	
+		i = 0;
+		while (i < L_KEY) {
+
+			/* break when we hit null */
+			if (*(*key+i) == '\0') break;
+			
+			if ((*(*key+i) == '/') || (*(*key+i) == ',')) break;
+		
+			uri->routingkey[i] = *(*key+i);
+			i++;
+		}
+					
+		uri->routingkey[i] = 0;
+		*key += i;
+	}
+
+	uri->routingkey = realloc(uri->routingkey, strlen(uri->routingkey));
+	return 0;
+}
+
+
+static int doCryptoKeySection(hURI *uri, char **key) {
+
+	int i;
+	
+	uri->cryptokey = malloc(L_KEY+1);
+	
+	if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_CHK)) {
+
+		i = 0;
+		while (i < L_KEY) {
+	
+			if ((*(*key+i) == '/') || (*(*key+i) == ',')) break;
+	
+			/* break when we hit null */
+			if (*(*key+i) == '\0') break;
+					
+			uri->cryptokey[i] = *(*key+i);
+			i++;
+		}
+	
+		uri->cryptokey[i] = 0;
+		*key += i;
+	}
+	
+	uri->cryptokey = realloc(uri->cryptokey, strlen(uri->cryptokey));
+	return 0;
+}
+
+
+static int doDocnameSection(hURI *uri, char **key) {
+
+	int i;
+
+	uri->filename = malloc(L_KEY+1);
+	
+	if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_CHK)) {
+
+		i = 0;
+		while (i < L_KEY) {
+	
+			if ((*(*key+i) == '/') && (*(*key+i+1) == '/')) break;
+	
+			/* break when we hit null */
+			if (*(*key+i) == '\0') break;
+					
+			uri->filename[i] = *(*key+i);
+			i++;
+		}
+				
+		uri->filename[i] = 0;
+		*key += i;
+	}
+
+	uri->filename = realloc(uri->filename, strlen(uri->filename));
+	return 0;
+}
+
+
+static int doMetastringSection(hURI *uri, char **key) {
+
+	int i;
+
+	uri->metastring = malloc(L_KEY+1);
+	
+	i = 0;
+	while (i < L_KEY) {
+
+		/* break when we hit null */
+		if (*(*key+i) == '\0') break;
+				
+		uri->metastring[i] = *(*key+i);
+		i++;
+	}
+			
+	uri->metastring[i] = 0;
+	*key += i;
+
+	uri->metastring = realloc(uri->metastring, strlen(uri->metastring));
+	return 0;
+
+}
+

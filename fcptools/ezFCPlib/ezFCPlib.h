@@ -413,18 +413,6 @@ typedef struct {
 	char  *filename;   /* filename hint */
 	char  *metastring;
 
-	/* known metastring directives (not all are handled by FCPLib)
-	rdate, verbose, key, force, try, htl, linkhtl, maxlogsize, mime, date */
-
-	/* understood metastring directives */
-	char *date;
-	char *rdate;
-	
-	char *mime;
-	
-	int   htl;
-	int   try;
-		
 } hURI;
 
 
