@@ -145,7 +145,6 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
 	return 0;
-	
 
  cleanup: /* rc should be set to an FCP_ERR code */
 

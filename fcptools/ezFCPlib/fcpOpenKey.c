@@ -35,8 +35,8 @@
 
 #include "ez_sys.h"
 
-static int    fcpOpenKeyRead(hFCP *hfcp, char *key_uri);
-static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
+static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri);
+static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
 
 
 int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
@@ -72,7 +72,7 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKeyRead()");
 	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s", key_uri);
-	
+
 	/* function must get the key, then determine if it's a normal key or a manifest for a splitfile */
 
   hfcp->key->openmode = FCP_MODE_O_READ;

@@ -64,6 +64,7 @@ int put_file(hFCP *hfcp, char *uri)
 	char put_command[L_FILE_BLOCKSIZE+1];
 
 	int rc;
+	int b_rc;
 
 	int retry;
 	int bytes;
@@ -113,7 +114,8 @@ int put_file(hFCP *hfcp, char *uri)
 			_fcpLog(FCP_LOG_CRITICAL, "Could not send Put message");
 			goto cleanup;
 		}
-		
+
+#if 0
 		/* now send any metadata that's available first.. */
 		if (hfcp->key->metadata->size > 0) {
 			bytes = hfcp->key->metadata->size;
@@ -121,14 +123,16 @@ int put_file(hFCP *hfcp, char *uri)
 			while (bytes) {
 				byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 				
-				if ((rc = _fcpRead(hfcp->key->metadata->tmpblock->fd, buf, byte_count)) <= 0) {
+				if ((rc = _fcpRead(hfcp->key->metadata->tmpblock->fd, buf, byte_count)) == 0) {
 					_fcpLog(FCP_LOG_CRITICAL, "Could not read metadata from file");
+					rc = -1;
 					goto cleanup;
 				}
 
 				/* we read rc bytes, so send rc bytes and store new return value in rc */
 				if ((rc = _fcpSend(hfcp->socket, buf, rc)) < 0) {
 					_fcpLog(FCP_LOG_CRITICAL, "could not write metadata to socket");
+					rc = -1;
 					goto cleanup;
 				}
 				
@@ -137,6 +141,7 @@ int put_file(hFCP *hfcp, char *uri)
 
 			} /* finished writing metadata (if any) */
 		}
+#endif
 		
 		if (hfcp->key->metadata->size > 0) _fcpLog(FCP_LOG_VERBOSE, "Wrote metadata");
 		
@@ -152,19 +157,20 @@ int put_file(hFCP *hfcp, char *uri)
 			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 			
 			/* read from source */
-			if ((rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count)) <= 0) {
+			if ((b_rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count)) < 0) {
 				_fcpLog(FCP_LOG_CRITICAL, "Could not read key data from file");
+				rc = -1;
 				goto cleanup;
 			}
 
 			/* write to socket */
-			if ((rc = _fcpSend(hfcp->socket, buf, rc)) < 0) {
+			if ((rc = _fcpSend(hfcp->socket, buf, b_rc)) < 0) {
 				_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to socket");
 				goto cleanup;
 			}
 			
 			/* decrement by number of bytes written to the socket */
-			bytes -= rc;
+			bytes -= b_rc;
 		}
 
 		if (hfcp->key->size) _fcpLog(FCP_LOG_VERBOSE, "Wrote Key data");
@@ -271,7 +277,6 @@ int put_file(hFCP *hfcp, char *uri)
 			}
 
 		} while (rc == FCPRESP_TYPE_PENDING);
-
   } while ((rc == FCPRESP_TYPE_RESTARTED) && (retry >= 0));
 
 	/* check to see which condition was reached (Restarted / Timeout) */
@@ -733,7 +738,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 			
 			/* read from source */
-			if ((rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count)) <= 0) break;
+			if ((rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count)) < 0) break;
 
 			if ((rc = fcpWriteKey(tmp_hfcp, buf, rc)) < 0) {
 				_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to temporary file");

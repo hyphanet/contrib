@@ -80,7 +80,7 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	
 	/* TODO: check metadata to detect splitfiles */
 
-	_fcpLog(FCP_LOG_VERBOSE, "Copying tmp files");
+	_fcpLog(FCP_LOG_DEBUG, "Copying tmp files");
 
 	if (key_filename)
 		if (copy_file(key_filename, hfcp->key->tmpblock->filename) < 0)
