@@ -76,7 +76,8 @@ insert (char *file, int depth)
 	while (status != FCP_SUCCESS && r--)
 	    status = fcp_insert_raw(data, uri, s.st_size, FCP_DATA, htl);
 	if (status != FCP_SUCCESS) {
-	    fprintf(stderr, "Inserting %s failed!\n", file);
+	    fprintf(stderr, "Inserting %s failed: %s.\n", file,
+		    fcp_status_to_string(status));
 	    pthread_exit(NULL);
 	}
     } else {
@@ -85,7 +86,8 @@ insert (char *file, int depth)
 	while (status != FCP_SUCCESS && r--)
 	    status = fcp_insert(m, "", data, s.st_size, htl, threads);
 	if (status != FCP_SUCCESS) {
-	    fprintf(stderr, "Inserting %s failed!\n", file);
+	    fprintf(stderr, "Inserting %s failed: %s.\n", file,
+		    fcp_status_to_string(status));
 	    pthread_exit(NULL);
 	}
 	r = retries + 1;
@@ -93,7 +95,8 @@ insert (char *file, int depth)
 	while (status != FCP_SUCCESS && r--)
 	    status = fcp_metadata_insert(m, uri, htl);
 	if (status != FCP_SUCCESS) {
-	    fprintf(stderr, "Inserting %s failed!\n", file);
+	    fprintf(stderr, "Inserting %s failed: %s.\n", file,
+		    fcp_status_to_string(status));
 	    pthread_exit(NULL);
 	}
 	fcp_metadata_free(m);

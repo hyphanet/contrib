@@ -39,10 +39,6 @@ typedef struct {
     int filesize;          // the final size of the original file
     int chunk_count;       // the number of data chunks
     char **keys;           // an array of /chunk_count/ Freenet URIs
-//    int check_levels;      // the number of levels of check coding
-//    int *check_pieces;     // the number of check pieces for each level.
-//    char ***checks;        // the Freenet URI of each check piece in the matrix
-//    int **graph;           // the graph for each check piece in the matrix
 } splitfile;
 
 typedef struct {
@@ -64,6 +60,7 @@ typedef struct {
 } fcp_metadata;
 
 typedef struct {
+    char *document_name;   // document name
     pthread_mutex_t mutex; // mutex for this document
     pthread_cond_t cond;   // signals part completion
     int cur_part;          // the index of the current chunk
@@ -109,6 +106,9 @@ int fcp_redirect (fcp_metadata *m, char *document_name,	char *target_uri);
 int fcp_date_redirect (fcp_metadata *m, char *document_name, char *predate,
 	char *postdate, long baseline, long increment);
 
+// add an info field for document_name in metadata
+int fcp_info (fcp_metadata *m, char *document_name, char *name, char *value);
+
 // inserts metadata
 // updates uri with final uri
 int fcp_metadata_insert (fcp_metadata *m, char *uri, int htl);
@@ -118,4 +118,8 @@ void fcp_metadata_free (fcp_metadata *m);
 
 // return descriptive string for status code
 char * fcp_status_to_string (int code);
+
+// lookup a value in the info field for document
+// returns null if field not found
+char * fcp_lookup(fcp_metadata *m, fcp_document *d, char *field);
 

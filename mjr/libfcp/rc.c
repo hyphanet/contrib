@@ -31,7 +31,7 @@ run (char *uri, FILE *dest, int threads, int htl)
     while (len) {
 	int n = fcp_read(d, buf, 1024);
 	if (n < 0) return 1;
-	fwrite(buf, 1, n, stdout);
+	fwrite(buf, 1, n, dest);
 	len -= n;
     }
     

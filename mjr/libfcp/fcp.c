@@ -44,6 +44,7 @@ fcp_document_new ()
     d->keys = NULL;
     d->status = NULL;
     d->streams = NULL;
+    d->document_name = NULL;
     return d;
 }
 
@@ -59,7 +60,7 @@ fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
 	for (i = 0 ; i < m->r_count ; i++)
 	    if (strcmp(docname, m->r[i]->document_name) == 0)
 	        return fcp_request(NULL, d, m->r[i]->target_uri, htl,
-			threads);
+			           threads);
 	for (i = 0 ; i < m->dr_count ; i++)
 	    if (strcmp(docname, m->dr[i]->document_name) == 0) {
 	        long a = time(NULL) - m->dr[i]->baseline;
@@ -113,7 +114,8 @@ fail:	    fcp_metadata_free(m2);
 	    d->status[0] = FCP_SUCCESS;
 	    d->streams = malloc(sizeof(FILE *));
 	    d->streams[0] = data;
-            return len;
+            d->document_name = strdup("");
+	    return len;
 	}
     }
 }
@@ -123,8 +125,11 @@ splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads)
 {
     int i;
     pthread_t thread;
-    d->cur_part = 0; d->htl = htl;
-    d->threads = threads; d->activethreads = 0;
+    d->document_name = strdup(sf->document_name);
+    d->cur_part = 0;
+    d->htl = htl;
+    d->threads = threads;
+    d->activethreads = 0;
     d->chunk_count = sf->chunk_count;
     d->status = malloc(d->chunk_count);
     d->keys = calloc(d->chunk_count, sizeof(char *));
@@ -194,6 +199,7 @@ fcp_close (fcp_document *d)
     if (d->status) free(d->status);
     if (d->keys) free(d->keys);
     if (d->streams) free(d->streams);
+    if (d->document_name) free(d->document_name);
 end:
     free(d);
     return FCP_SUCCESS;
@@ -277,6 +283,8 @@ parse_control_doc (fcp_metadata *m, FILE *data)
     char line[512];
     rewind(data);
     while (fgets(line, 512, data)) {
+	if (strcmp(line, "\n") == 0 || strcmp(line, "\r\n") == 0)
+	    continue;
 	if (strncmp(line, "Redirect", 8) == 0) {
 	    status = parse_redirect(m, data);
 	    if (status != FCP_SUCCESS) return status;
@@ -415,6 +423,7 @@ parse_info (fcp_metadata *m, FILE *data)
     m->i[n] = malloc(sizeof(info));
     m->i[n]->document_name = NULL;
     m->i[n]->f_count = 0;
+    m->i[n]->fields = NULL;
     while (fgets(line, 512, data)) {
 	status = sscanf(line, "%[^=]=%s", name, val);
 	if (status == 1 && (line[strlen(line)-2] == '='
@@ -424,7 +433,7 @@ parse_info (fcp_metadata *m, FILE *data)
 	}
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0) {
-	    m->dr[n]->document_name = val;
+	    m->i[n]->document_name = strdup(val);
 	    continue;
 	}
 	x = m->i[n]->f_count++;
@@ -642,6 +651,29 @@ fcp_date_redirect (fcp_metadata *m, char *document_name, char *predate,
 }
 
 int
+fcp_info (fcp_metadata *m, char *document_name, char *name, char *value)
+{
+    int i, n;
+    for (i = 0 ; i < m->i_count ; i++)
+        if (strcmp(m->i[i]->document_name, document_name) == 0) {
+	    n = m->i[i]->f_count++;
+	    m->i[i]->fields = realloc(m->i[i]->fields, sizeof(char *)
+				      * m->i[i]->f_count);
+	    m->i[i]->fields[n] = malloc(sizeof(char *) * 2);
+	    m->i[i]->fields[n][0] = strdup(name);
+	    m->i[i]->fields[n][1] = strdup(value);
+	    return FCP_SUCCESS;
+	}
+    n = m->i_count++;
+    m->i = realloc(m->i, sizeof(info *) * m->i_count);
+    m->i[n] = malloc(sizeof(info));
+    m->i[n]->document_name = strdup(document_name);
+    m->i[n]->f_count = 0;
+    m->i[n]->fields = NULL;
+    return fcp_info(m, document_name, name, value);
+}
+
+int
 fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
 {
     int i, j;
@@ -650,7 +682,7 @@ fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
         fprintf(data, "Redirect\n"
 	    	      "DocumentName=%s\n"
 		      "Target=%s\n"
-		      "End\n",
+		      "EndPart\n",
 		      m->r[i]->document_name,
 		      m->r[i]->target_uri);
     for (i = 0 ; i < m->dr_count ; i++)
@@ -660,7 +692,7 @@ fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
 		      "Postdate=%s\n"
 		      "Baseline=%lx\n"
 		      "Increment=%lx\n"
-		      "End\n",
+		      "EndPart\n",
 		      m->dr[i]->document_name,
 		      m->dr[i]->predate,
 		      m->dr[i]->postdate,
@@ -676,11 +708,35 @@ fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
 		      m->sf[i]->chunk_count);
 	for (j = 0 ; j < m->sf[i]->chunk_count ; j++)
 	    fprintf(data, "Chunk.%x=%s\n", j, m->sf[i]->keys[j]);
-	fprintf(data, "End\n");
+	fprintf(data, "EndPart\n");
     }
-    j = ftell(data);
+    for (i = 0 ; i < m->i_count ; i++) {
+	fprintf(data, "Info\n"
+		      "DocumentName=%s\n",
+		      m->i[i]->document_name);
+	for (j = 0 ; j < m->i[i]->f_count ; j++)
+	    fprintf(data, "%s=%s\n", m->i[i]->fields[j][0],
+	            m->i[i]->fields[j][1]);
+	fprintf(data, "EndPart\n");
+    }
+    j = ftell(data) - 4;
+    fseek(data, -5, SEEK_CUR);
+    fprintf(data, "\n");
     rewind(data);
     return fcp_insert_raw(data, uri, j, FCP_CONTROL, htl);
+}
+
+char *
+fcp_lookup(fcp_metadata *m, fcp_document *d, char *field)
+{
+    int i, j;
+    if (!d->document_name) return NULL;
+    for (i = 0 ; i < m->i_count ; i++)
+	if (strcmp(m->i[i]->document_name, d->document_name) == 0)
+	    for (j = 0 ; j < m->i[i]->f_count ; j++)
+		if (strcmp(m->i[i]->fields[j][0], field) == 0)
+		    return m->i[i]->fields[j][1];
+    return NULL;
 }
 
 void
@@ -689,58 +745,35 @@ fcp_internal_free (fcp_metadata *m)
     int i, j;
     if (m->uri) free(m->uri);
     for (i = 0 ; i < m->r_count ; i++) {
-        if (m->r[i]->document_name)
-	    free(m->r[i]->document_name);
-	if (m->r[i]->target_uri)
-	    free(m->r[i]->target_uri);
+	free(m->r[i]->document_name);
+	free(m->r[i]->target_uri);
 	free(m->r[i]);
     }
-    if (m->r) free(m->r);
+    if (m->r_count) free(m->r);
     for (i = 0 ; i < m->dr_count ; i++) {
-        if (m->dr[i]->document_name)
-    	    free(m->dr[i]->document_name);
-	if (m->dr[i]->predate)
-	    free(m->dr[i]->predate);
-	if (m->dr[i]->postdate)
-	    free(m->dr[i]->postdate);
+    	free(m->dr[i]->document_name);
+	free(m->dr[i]->predate);
+	free(m->dr[i]->postdate);
 	free(m->dr[i]);
     }
-    if (m->dr) free(m->dr);
+    if (m->dr_count) free(m->dr);
     for (i = 0 ; i < m->sf_count ; i++) {
-        if (m->sf[i]->document_name)
-	    free(m->sf[i]->document_name);
+	free(m->sf[i]->document_name);
 	for (j = 0 ; j < m->sf[i]->chunk_count ; j++)
 	    free(m->sf[i]->keys[j]);
 	free(m->sf[i]->keys);
     }
-/*	if (m->sf[i]->check_pieces)
-	    free(m->sf[i]->check_pieces);
-	if (m->sf[i]->checks) {
-	    for (j = 0 ; m->sf[i]->checks[j] ; j++) {
-	        for (k = 0 ; m->sf[i]->checks[j][k] ; k++)
-		    free(m->sf[i]->checks[j][k]);
-		free(m->sf[i]->checks[j]);
-	    }
-	}
-	if (m->sf[i]->graph) {
-	    for (j = 0 ; m->sf[i]->graph[j] ; j++)
-	        free(m->sf[i]->graph[j]);
-	    free(m->sf[i]->graph);
-	}*/
-    if (m->sf) free(m->sf);
+    if (m->sf_count) free(m->sf);
     for (i = 0 ; i < m->i_count ; i++) {
-        if (m->i[i]->document_name)
-	    free(m->i[i]->document_name);
-	for (j = 0 ; m->i[i]->fields[j] ; j++) {
-	    if (m->i[i]->fields[j][0])
-	        free(m->i[i]->fields[j][0]);
-	    if (m->i[i]->fields[j][1])
-	        free(m->i[i]->fields[j][1]);
+	free(m->i[i]->document_name);
+	for (j = 0 ; j < m->i[i]->f_count ; j++) {
+	    free(m->i[i]->fields[j][0]);
+	    free(m->i[i]->fields[j][1]);
 	    free(m->i[i]->fields[j]);
 	}
 	free(m->i[i]);
     }
-    if (m->i) free(m->i);
+    if (m->i_count) free(m->i);
 }
 
 void
