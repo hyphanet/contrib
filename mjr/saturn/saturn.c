@@ -471,7 +471,7 @@ main (int argc, char **argv)
     if (!strlen(foo))
 	strcpy(foo, argv[optind]);
     
-    log = (strcmp(foo, "-") == 0) ? stdout : fopen(foo, "w");
+    log = (strcmp(foo, "-") == 0) ? stdout : fopen(foo, "a");
     if (!log) {
 	fprintf(stderr, "Can't open log file %s to append to!\n", foo);
 	exit(1);
