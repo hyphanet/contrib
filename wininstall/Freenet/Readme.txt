@@ -18,17 +18,17 @@ or higher.  The following Java implementations should work:
     names: Java SDK, J2SE), version 1.1 or higher.
 
 You do need Java, even the installation will fail if you don't have it installed as it is 
-needed for the configuration of Freenet on install. If you don't have it, grab it from
+used for the Freenet configuration on install. If you don't have it, grab it from
 http://jsp2.java.sun.com/j2se/1.3/jre/download-windows.html and reinstall.
 
-Memory requirements are modest (for Java).  You will need at least a few megabytes 
+Memory requirements are modest (for Java).  You will need at least a few hundred megabytes 
 of disk storage for Freenet data storage (the more the better).
 
 
 BINARY INSTALLATION
 -------------------
 
-Note that Java has already to be installed when Freenet is being installed, otherwise
+Note that Java must have been installed prior to Freenet being installed, otherwise
 the configuration of Freenet will break.
 
 I am interested in feedback concerning the installation process, if there is anything that
@@ -52,7 +52,7 @@ USAGE
 -----
 
 * Start freenet.exe to start the node. The system tray icon should appear and the node
-  is running then. If you suspect it not to work porperly check the Troubleshooting FAQ 
+  is running then. If you suspect it not to work properly check the Troubleshooting FAQ 
   below.
   It will also start FProxy, a web proxy that allows to use a normal browser to retrieve &
   insert documents in Freenet. See FProxy.txt for more information about how to use FProxy.
