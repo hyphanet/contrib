@@ -33,9 +33,8 @@ main (int argc, char **argv)
 	struct stat st;
 	fd_set s = r, x = w;
 	
-	i = select(m, &s, &x, NULL, NULL);
-	if (i == -1) die("select() failed");
-	if (!i) continue;
+	if (select(m, &s, &x, NULL, NULL) == -1)
+	    die("select() failed");
 	
 	for (n = 0 ; n < m ; n++)
 	    if (FD_ISSET(n, &s)) {
