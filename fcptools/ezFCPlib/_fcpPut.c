@@ -1128,38 +1128,32 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	/* This shit isn't working... */
 	bytes = 0;
 
-	while ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
+	while (bytes < meta_len) {
+		char *p;
+
+		/* if it isn't a DataChunk, then we're screwed */
+		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
+			_fcpSockDisconnect(hfcp);
+			return -1;
+		}
+
 		write(mfd, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
 		bytes += hfcp->response.datachunk.length;
 
-		snprintf(msg, 512, "DataChunk: \n%s\n", hfcp->response.datachunk.data);
-		_fcpLog(FCP_LOG_DEBUG, msg); 
+		p = (char *)malloc(hfcp->response.datachunk.length + 1);
+		memcpy(p, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
+		p[hfcp->response.datachunk.length] = 0;
+
+		_fcpLog(FCP_LOG_DEBUG, "DataChunk follows:");
+		_fcpLog(FCP_LOG_DEBUG, "%s\n", p);
+
+		free(p);
 	}
 	close(mfd);
 
 	if (rc < 0) _fcpLog(FCP_LOG_DEBUG, "DataChunk returned an error");
 
 	_fcpLog(FCP_LOG_DEBUG, "read %d metadata bytes from socket and wrote locally", bytes);
-
-	/*
-	bytes = meta_len;
-	while (bytes) {
-		byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
-		
-		if ((rc = read(mfd, buf, byte_count)) <= 0) {
-			hfcp->error = strdup("could not read metadata from socket");
-			
-			_fcpSockDisconnect(hfcp);
-			return -1;
-		}
-	
-		write(mfd, buf, byte_count);
-		bytes -= byte_count;
-	}
-
-	close(mfd);
-	*/
-
 	_fcpSockDisconnect(hfcp);
 
 	/* now re-open the file and re-barf it back into freenet as actual
