@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#define GT_SPLIT_THRESHOLD	256 * 1024
+
 #define FCP_SUCCESS		0
 #define FCP_CONNECT_FAILED	-1
 #define FCP_INVALID_URI		-2
