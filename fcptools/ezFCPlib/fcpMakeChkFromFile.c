@@ -23,5 +23,8 @@
 
 int fcpMakeChkFromFile()
 {
+	int i;
+
+	i = 0;
   return 0;
 }
