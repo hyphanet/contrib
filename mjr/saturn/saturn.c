@@ -32,6 +32,7 @@ void * fcp_put_thread (void *args);
 article * get_article (uint32_t msg_num);
 FILE * read_stduu (FILE *in);
 FILE * read_base64 (FILE *in);
+char * get_content_type (char *filename);
 
 void
 nntp_connect ()
@@ -141,9 +142,19 @@ fcp_put_thread (void *args)
 	fprintf(stderr, "Error connecting to node!\n");
 	goto exit;
     }
+    sprintf(reply, "Content-Type=%s\nEnd\n", get_content_type(a->name));
     fwrite("\0\0\0\2", 4, 1, fcp);
-    fprintf(fcp, "ClientPut\nHopsToLive=%x\nURI=freenet:CHK@\nDataLength=%lx\nData\n", htl, ftell(a->data));
+    fprintf(fcp, "ClientPut\n"
+	         "HopsToLive=%x\n"
+		 "URI=freenet:CHK@\n"
+		 "MetadataLength=%x\n"
+		 "DataLength=%lx\n"
+		 "Data\n",
+		 htl,
+		 strlen(reply),
+		 ftell(a->data));
     fflush(fcp);
+    fputs(reply, fcp);
     rewind(a->data);
     while ((c = fgetc(a->data)) != EOF) fputc(c, fcp);
     fflush(fcp);
@@ -152,6 +163,7 @@ fcp_put_thread (void *args)
 	fgets(reply, 512, fcp);
 	if (strncmp(reply, "URI=", 4) != 0) goto free;
 	fprintf(log, "%s=%s", a->name, &reply[4]);
+	fflush(log);
     } else { // FCPHandler is stupid, it makes KeyCollisions look like RouteNotFound!
 	pthread_mutex_lock(&mutex);
 	collisions++;
@@ -527,4 +539,197 @@ read_base64 (FILE *in)
     }
 
     return out;
+}
+
+struct pair {
+    char *ext;
+    char *type;
+};
+
+struct pair associations[] = {
+    {"csm", "application/cu-seeme"},
+    {"cu", "application/cu-seeme"},
+    {"tsp", "application/dsptype"},
+    {"xls", "application/excel"},
+    {"spl", "application/futuresplash"},
+    {"hqx", "application/mac-binhex40"},
+    {"doc", "application/msword"},
+    {"dot", "application/msword"},
+    {"bin", "application/octet-stream"},
+    {"oda", "application/oda"},
+    {"pdf", "application/pdf"},
+    {"pgp", "application/pgp-signature"},
+    {"ps", "application/postscript"},
+    {"ai", "application/postscript"},
+    {"eps", "application/postscript"},
+    {"ppt", "application/powerpoint"},
+    {"rtf", "application/rtf"},
+    {"wp5", "application/wordperfect5.1"},
+    {"zip", "application/zip"},
+    {"wk", "application/x-123"},
+    {"bcpio", "application/x-bcpio"},
+    {"pgn", "application/x-chess-pgn"},
+    {"cpio", "application/x-cpio"},
+    {"deb", "application/x-debian-package"},
+    {"dcr", "application/x-director"},
+    {"dir", "application/x-director"},
+    {"dxr", "application/x-director"},
+    {"dvi", "application/x-dvi"},
+    {"pfa", "application/x-font"},
+    {"pfb", "application/x-font"},
+    {"gsf", "application/x-font"},
+    {"pcf", "application/x-font"},
+    {"pcf.Z", "application/x-font"},
+    {"gtar", "application/x-gtar"},
+    {"tgz", "application/x-gtar"},
+    {"hdf", "application/x-hdf"},
+    {"phtml", "application/x-httpd-php"},
+    {"pht", "application/x-httpd-php"},
+    {"php", "application/x-httpd-php"},
+    {"php3", "application/x-httpd-php3"},
+    {"phps", "application/x-httpd-php3-source"},
+    {"php3p", "application/x-httpd-php3-preprocessed"},
+    {"class", "application/x-java"},
+    {"latex", "application/x-latex"},
+    {"frm", "application/x-maker"},
+    {"maker", "application/x-maker"},
+    {"frame", "application/x-maker"},
+    {"fm", "application/x-maker"},
+    {"fb", "application/x-maker"},
+    {"book", "application/x-maker"},
+    {"fbdoc", "application/x-maker"},
+    {"mif", "application/x-mif"},
+    {"com", "application/x-msdos-program"},
+    {"exe", "application/x-msdos-program"},
+    {"bat", "application/x-msdos-program"},
+    {"dll", "application/x-msdos-program"},
+    {"nc", "application/x-netcdf"},
+    {"cdf", "application/x-netcdf"},
+    {"pac", "application/x-ns-proxy-autoconfig"},
+    {"o", "application/x-object"},
+    {"pl", "application/x-perl"},
+    {"pm", "application/x-perl"},
+    {"shar", "application/x-shar"},
+    {"swf", "application/x-shockwave-flash"},
+    {"swfl", "application/x-shockwave-flash"},
+    {"sit", "application/x-stuffit"},
+    {"sv4cpio", "application/x-sv4cpio"},
+    {"sv4crc", "application/x-sv4crc"},
+    {"tar", "application/x-tar"},
+    {"gf", "application/x-tex-gf"},
+    {"pk", "application/x-tex-pk"},
+    {"PK", "application/x-tex-pk"},
+    {"texinfo", "application/x-texinfo"},
+    {"texi", "application/x-texinfo"},
+    {"~", "application/x-trash"},
+    {"%", "application/x-trash"},
+    {"bak", "application/x-trash"},
+    {"old", "application/x-trash"},
+    {"sik", "application/x-trash"},
+    {"t", "application/x-troff"},
+    {"tr", "application/x-troff"},
+    {"roff", "application/x-troff"},
+    {"man", "application/x-troff-man"},
+    {"me", "application/x-troff-me"},
+    {"ms", "application/x-troff-ms"},
+    {"ustar", "application/x-ustar"},
+    {"src", "application/x-wais-source"},
+    {"wz", "application/x-wingz"},
+    {"au", "audio/basic"},
+    {"snd", "audio/basic"},
+    {"mid", "audio/midi"},
+    {"midi", "audio/midi"},
+    {"mpga", "audio/mpeg"},
+    {"mpega", "audio/mpeg"},
+    {"mp2", "audio/mpeg"},
+    {"mp3", "audio/mpeg"},
+    {"m3u", "audio/mpegurl"},
+    {"aif", "audio/x-aiff"},
+    {"aiff", "audio/x-aiff"},
+    {"aifc", "audio/x-aiff"},
+    {"gsm", "audio/x-gsm"},
+    {"ra", "audio/x-pn-realaudio"},
+    {"rm", "audio/x-pn-realaudio"},
+    {"ram", "audio/x-pn-realaudio"},
+    {"rpm", "audio/x-pn-realaudio-plugin"},
+    {"wav", "audio/x-wav"},
+    {"gif", "image/gif"},
+    {"ief", "image/ief"},
+    {"jpeg", "image/jpeg"},
+    {"jpg", "image/jpeg"},
+    {"jpe", "image/jpeg"},
+    {"png", "image/png"},
+    {"tiff", "image/tiff"},
+    {"tif", "image/tiff"},
+    {"ras", "image/x-cmu-raster"},
+    {"bmp", "image/x-ms-bmp"},
+    {"pnm", "image/x-portable-anymap"},
+    {"pbm", "image/x-portable-bitmap"},
+    {"pgm", "image/x-portable-graymap"},
+    {"ppm", "image/x-portable-pixmap"},
+    {"rgb", "image/x-rgb"},
+    {"xbm", "image/x-xbitmap"},
+    {"xpm", "image/x-xpixmap"},
+    {"xwd", "image/x-xwindowdump"},
+    {"csv", "text/comma-separated-values"},
+    {"html", "text/html"},
+    {"htm", "text/html"},
+    {"mml", "text/mathml"},
+    {"txt", "text/plain"},
+    {"rtx", "text/richtext"},
+    {"tsv", "text/tab-separated-values"},
+    {"h++", "text/x-c++hdr"},
+    {"hpp", "text/x-c++hdr"},
+    {"hxx", "text/x-c++hdr"},
+    {"hh", "text/x-c++hdr"},
+    {"c++", "text/x-c++src"},
+    {"cpp", "text/x-c++src"},
+    {"cxx", "text/x-c++src"},
+    {"cc", "text/x-c++src"},
+    {"h", "text/x-chdr"},
+    {"csh", "text/x-csh"},
+    {"c", "text/x-csrc"},
+    {"java", "text/x-java"},
+    {"moc", "text/x-moc"},
+    {"p", "text/x-pascal"},
+    {"pas", "text/x-pascal"},
+    {"etx", "text/x-setext"},
+    {"sh", "text/x-sh"},
+    {"tcl", "text/x-tcl"},
+    {"tk", "text/x-tcl"},
+    {"tex", "text/x-tex"},
+    {"ltx", "text/x-tex"},
+    {"sty", "text/x-tex"},
+    {"cls", "text/x-tex"},
+    {"vcs", "text/x-vCalendar"},
+    {"vcf", "text/x-vCard"},
+    {"dl", "video/dl"},
+    {"fli", "video/fli"},
+    {"gl", "video/gl"},
+    {"mpeg", "video/mpeg"},
+    {"mpg", "video/mpeg"},
+    {"mpe", "video/mpeg"},
+    {"qt", "video/quicktime"},
+    {"mov", "video/quicktime"},
+    {"asf", "video/x-ms-asf"},
+    {"asx", "video/x-ms-asf"},
+    {"avi", "video/x-msvideo"},
+    {"movie", "video/x-sgi-movie"},
+    {"vrm", "x-world/x-vrml"},
+    {"vrml", "x-world/x-vrml"},
+    {"wrl", "x-world/x-vrml"},
+    {"ogg", "application/x-ogg"},
+    {NULL, NULL}
+};
+
+char *
+get_content_type (char *filename)
+{
+    int i;
+    char *suffix = rindex(filename, '.');
+    if (!suffix) return "application/unknown";
+    for (i = 0 ; associations[i].ext ; i++)
+	if (strcasecmp(associations[i].ext, suffix + 1) == 0)
+	    return associations[i].type;
+    return "application/unknown";
 }
