@@ -1,7 +1,14 @@
+//{{NO_DEPENDENCIES}}
+// Microsoft Developer Studio generated include file.
+// Used by rsrc.rc
+//
+
+// Next default values for new objects
+// 
+
 #ifndef FREENET_TRAY_RSRCH_INCLUDED
 #define FREENET_TRAY_RSRCH_INCLUDED
 
-/* Weditres generated include file. Do NOT edit */
 #define	ID_CLOSE		8
 #define	DLG_0100		100
 #define	IDFLOG		101
@@ -21,6 +28,9 @@
 #define	IDI_HOPSDISABLED	501
 #define	IDI_ALERT		502
 #define	IDI_RESTARTING	503
+#define	IDI_NOGWAY		504
+#define	IDI_NOINET		505
+#define	IDI_THUNDERBOLT	506
 
 #define IDM_GATEWAY		1000
 #define IDM_STARTSTOP	1001
