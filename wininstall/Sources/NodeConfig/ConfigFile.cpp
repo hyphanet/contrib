@@ -515,7 +515,9 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Services & Servlets\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "services=mainport\n");
+	fprintf(fp, "\n");
+	fprintf(fp, "# this line is deliberately commented out to let fred choose the defaults\n");
+	fprintf(fp, "%services=mainport,distribution\n");
 	fprintf(fp, "\n");
 
 	// Mainport settings
@@ -710,6 +712,7 @@ void CConfigFile::processItem(char *tok, char *val)
 /*		// absorb obsoleted 'nodestatus' setting - don't set m_nodeinfoservlet to FALSE
 		// because that could replace it if the previous line had already set it to TRUE!
 		if (strstr(_strupr(val),"NODESTATUS") ) pDiagnostics->m_nodeinfoservlet = TRUE; */
+		/* ignore "distribution" for now as it's not configurable yet */
 	}
 	else if (!strcmp(tok, "mainport.class"))
 		pFProxy->m_fproxyclass = val;
