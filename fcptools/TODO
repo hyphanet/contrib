@@ -1,6 +1,3 @@
-This is the TODO file for FCPtools.
-
-
 This file's purpose is to provide a breakdown of important features/fixes
 that can be implemented by any competent C programmer.
 
@@ -8,8 +5,12 @@ that can be implemented by any competent C programmer.
 ---------------------------------------------------------------------------
 FCPtools generic
 
-* Add FEC support rather then straight splitfiles (option)
-* Update documentation on all exported APIs.
+* Add FEC support rather than straight splitfiles (option).
+* Update documentation on all exported APIs (from ezFCPlib).
+* Work towards OS X and Solaris platform support.
+* Improve meta handling, and spotty metadata implementation.
+* Add usage instructions to README file for fcpget, fcpput, fcpputsite.
+* Streamline log messages, and stray printf's (perhaps in ezFCPlib).
 
 ---------------------------------------------------------------------------
 ezFCPlib specific
@@ -24,6 +25,7 @@ ezFCPlib specific
 	as discussed on Freenet-dev (ClientDelete, ...).
 * Verify opentemp() in _fcpUtil.c works correctly with POSIX macros on all
   platforms.
+* No more printf's !
 
 
 ---------------------------------------------------------------------------
@@ -31,6 +33,13 @@ fcpget
 
 * Implement DBR regression support.
 * Make retries configurable.
+
+
+---------------------------------------------------------------------------
+fcpput
+
+* Fix bug when inserting to another Node via -n and -p parameters.
+* Fix insert attempt counter (it reaches the undefined 4 out of 3).
 
 
 ---------------------------------------------------------------------------

@@ -31,6 +31,7 @@ client library, as well as provide command-line tools for convenience and
 potentially shell scripting.
 
 While still in development, the tools have successfully compiled and run on:
+
 * Windows 2000/Microsoft Visual C++  6.0
 * GNU/Linux
 * FreeBSD
@@ -64,25 +65,3 @@ While parts of the spec are out of date, the functions and their signatures
 have remained the same.  You can find it relative to this directory at:
 
 ./ezfcplib/doc/spec.html
-
-
----------------------------------------------------------------------------
-About the source code
----------------------------------------------------------------------------
-
-
-I (joliveri) have been restructuring the source to allow a few things I feel
-are important:
-
-*) Added ./fcpcommon directory.  All shareable code between all of
-   the FCPtools should reside here.
-
-*) Added ./include directory.  All header files shared between all of the
-   FCPtools should reside here.
-
-   ezFCPlib.h resides under the ./ezFCPlib directory since that directory
-   *must* exist independantly of the tools.  This allows client writers
-   to simply include the ./ezFCPlib directory under their source tree and
-   Automake takes care of the rest.
-
-*) Created ./include...

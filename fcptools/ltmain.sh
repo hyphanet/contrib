@@ -56,7 +56,7 @@ modename="$progname"
 PROGRAM=ltmain.sh
 PACKAGE=libtool
 VERSION=1.4.2a
-TIMESTAMP=" (1.922.2.94 2002/06/11 15:58:53)"
+TIMESTAMP=" (1.922.2.100 2002/06/26 07:25:14)"
 
 default_mode=
 help="Try \`$progname --help' for more information."
