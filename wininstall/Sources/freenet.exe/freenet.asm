@@ -183,22 +183,6 @@ retnow:
   ret 
 SkipSpace endp
 ;----------------------------------------------------------------------------------------
-;DynLib proc dllName:DWORD, procName:DWORD
-; Loads a dll, and returns a pointer to the start of procName
-; it needs to be unloaded with "invoke FreeLibrary,hLib" when not used anymore
-; parameters: pointer to the dllName (string), pointer to the function name (string)
-; Return value: address of the function beginning
-;LOCAL hlib:DWORD        ; handle of the dll
-
-;  invoke LoadLibrary, dllName   ; returns handle to the library (DLL). If not, it will return NULL on failure
-;  mov hLib,eax
-
-;  invoke GetProcAddress,hLib,addr FunctionName  ; returns the address of the function if successful. Otherwise, it returns NULL 
-                                                ; Addresses of functions don't change unless you unload and reload the library. So you can put them in a global variable
-                        ; return with the value of GetProcAddress in eax, this is the address of the proc
-;  ret                   ; which can be called with something like: mov TestHelloAddr,eax call [TestHelloAddr]
-;Dynlib endp             ; Don't forget to unload the dll later!!!                               
-;----------------------------------------------------------------------------------------
 Initialize proc
       ;==================================================
       ; Initialize (e.g. Read Javabin path) and parses the cmd line otions setting the correct flags
@@ -319,7 +303,7 @@ WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD
     LOCAL wc:WNDCLASSEX 
     LOCAL msg:MSG 
     LOCAL hwnd:HWND
-
+;test only: call StartConfig
     call OnlyOneInstance        ; make sure we have only one instance running
     cmp eax,FALSE               ; and if it is already running
     jz EndWinMain               ; exit at once
@@ -367,8 +351,10 @@ WinMain endp
 ;----------------------------------------------------------------------------------------------
 ExitFserve proc
       invoke TerminateProcess, hfservePrc, 0    ; brutal closing of the node
-      invoke Sleep, 500
-      cmp ax,0                                  ; returns nonzero on success
+      push ax                                  ; returns nonzero on success
+      invoke Sleep, 2000
+      pop ax
+      cmp eax,0                                 ; suceeded?
       jz @F
       mov   fRunning, 0                         ; reset fRunning flag, if successful
       @@:
@@ -523,9 +509,11 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 
                 ;call StartConfigOrig                ; Pop up the configuration dialog and process it, need to wait here until it's done
                 call StartConfig                   ; Pop up the new configuration dialog and process it, need to wait here until it's done
-                call ExitFserve                 ; restarting the server
                 call Initialize                 ; reread all necessary configs
-                call StartFserve
+                .if (fRunning)                       ; restart the server
+                  call ExitFserve                 ; restarting the server
+                  call StartFserve
+                .endif
                 
             .elseif ax==IDM_EXIT                        ;otherwise menu choice exit, exiting
                 invoke DestroyWindow,hWnd
