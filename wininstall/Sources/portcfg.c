@@ -61,7 +61,7 @@ WNDCLASS wc;
 int SearchPort (HWND hDlg) {
 /* Looks for a free random port >5000
    Returns: 0 for error, Port number otherwise*/
-   //registered ports:5001-65535
+   //registered ports:5000-65535
    SOCKET hSock;
    struct sockaddr_in sa;           /* Local address and port number */
    struct hostent *hp;
@@ -90,7 +90,7 @@ int SearchPort (HWND hDlg) {
 
 	for (i=0;i<1000;++i) {
     	/* bind the socket to the internet address */
-		do {port=rand();} while (port<5001 || port>0xFFFF);
+		do {port=rand();} while (port<5000 || port>0xFFFF);
 		#ifdef DEBUG
 		  MessageBox(hDlg,itoa(port,s,10),"Port chosen",MB_OK);
 		#endif
@@ -138,6 +138,9 @@ application needs to do here.
 */
 static BOOL CALLBACK DialogFunc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+int i;
+BOOL isSuccess;
+
 	switch (msg) {
 	/* This message means the dialog is started but not yet visible.
 	   Do All initializations here
@@ -152,6 +155,10 @@ static BOOL CALLBACK DialogFunc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lP
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 			case IDOK:
+				/* Get port directly from dialog entry in case it was changed */
+				i  = GetDlgItemInt(hwndDlg, 102, &isSuccess, FALSE);
+				if (isSuccess) freeport = i;
+				/* and write as param */
 				WriteParam (itoa(freeport,str,10),JAVAEXEC,FLAUNCHSEC,FLAUNCHFILE);
 				EndDialog(hwndDlg,1);
 				return 1;
