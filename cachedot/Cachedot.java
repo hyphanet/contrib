@@ -265,7 +265,7 @@ class Util {
 	public static boolean fcpInsert(File dir, String name) {
 		try {
 			Cachedot.log("Starting fcpInsert of files in " + dir);
-			Process  p  = rt.exec("fcpputsite '" + name + "' " + dir + " Jfwpce58XD6gk~uOz4zy2rzV65g PZeKc90WU-8vdQ~Oc451Fw2tpEM");
+			Process  p  = rt.exec("fcpputsite -d -l 5 '" + name + "' " + dir + " Jfwpce58XD6gk~uOz4zy2rzV65g PZeKc90WU-8vdQ~Oc451Fw2tpEM");
 			return (p.waitFor() == 0);
 		}
 		catch (Exception e) {
