@@ -28,6 +28,7 @@
 
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 
 static int      fcpCloseKeyRead(hFCP *hfcp);
@@ -57,17 +58,37 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", hfcp->key->chunkCount, hfcp->key->chunks[hfcp->key->chunkCount - 1]->filename);
+	int index;
 
-	/* Close the last chunk in the array */
-	fclose(hfcp->key->chunks[hfcp->key->chunkCount - 1]->file);	
-	hfcp->key->chunks[hfcp->key->chunkCount - 1]->file = 0;
+	index = hfcp->key->chunkCount - 1;
+	_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", index+1, hfcp->key->chunks[index]->filename);
 
-	test(hfcp);
+	if (hfcp->key->chunks[index]->size) {
+
+		/* Close the last chunk in the array */
+		fclose(hfcp->key->chunks[index]->file);	
+		hfcp->key->chunks[index]->file = 0;
+	}
+	else {
+
+		/* If the last chunk has zero bytes, then nuke it */
+		fclose(hfcp->key->chunks[index]->file);	
+		remove(hfcp->key->chunks[index]->filename);
+
+		_fcpDestroyHChunk(hfcp->key->chunks[index]);
+
+		/* Decrement the chunk count; leave it allocated since it will only be
+			 realloc'ed later */
+		hfcp->key->chunkCount--;
+	}
+
   return 0;
 }
 
 
+/* The following can be useful for debugging.. */
+
+#if 0
 static int test(hFCP *hfcp)
 {
 	FILE *f;
@@ -101,4 +122,5 @@ static int test(hFCP *hfcp)
 
 	return 0;
 }
+#endif
 

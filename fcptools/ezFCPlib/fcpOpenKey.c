@@ -75,10 +75,12 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 	if (_fcpParseURI(hfcp->key->uri, key))
 		return -1;
 
+	/* Allocate and set the initial (and perhaps) only chunk */
 	hfcp->key->chunkCount = 1;
 	hfcp->key->chunks = (hChunk **)malloc(sizeof (hChunk *));
 	hfcp->key->chunks[0] = _fcpCreateHChunk();
 
+	/* Tie it to a unique temporary file */
 	hfcp->key->chunks[0]->filename = crTmpFilename();
 	if (!(hfcp->key->chunks[0]->file = fopen(hfcp->key->chunks[0]->filename, "w")))
 		return -1;

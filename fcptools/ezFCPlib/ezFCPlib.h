@@ -112,13 +112,13 @@
 #define CHUNK_BLOCK_SIZE       262144    /* default split part size (256*1024) */
 #define FCP_MAX_SPLIT_THREADS  8
 
-#define SPLIT_INSSTAT_IDLE     0        /* no splitfile insert requested */
-#define SPLIT_INSSTAT_WAITING  1        /* waiting for mgr thread to pick up */
-#define SPLIT_INSSTAT_INPROG   2        /* in progress */
-#define SPLIT_INSSTAT_BADNEWS  3        /* failure - awaiting cleanup */
-#define SPLIT_INSSTAT_MANIFEST 4        /* inserting splitfile manifest */
-#define SPLIT_INSSTAT_SUCCESS  5        /* full insert completed successfully */
-#define SPLIT_INSSTAT_FAILED   6        /* insert failed somewhere */
+#define CHUNK_STAT_LOCAL    0  /* not in freenet; local datastore */
+#define CHUNK_STAT_QUEUED   1  /* waiting for mgr thread to pick up */
+#define CHUNK_STAT_INPROG   2  /* in progress */
+#define CHUNK_STAT_MANIFEST 4  /* inserting splitfile manifest */
+#define CHUNK_STAT_SUCCESS  5  /* full insert completed successfully */
+#define CHUNK_STAT_ERROR    3  /* failure - awaiting cleanup */
+#define CHUNK_STAT_FAILED   6  /* insert failed somewhere */
 
 #define KEY_TYPE_SSK  1
 #define KEY_TYPE_CHK  2
@@ -153,71 +153,76 @@ typedef struct {
   char *node;      /* Node=<string: freeform: Description of the nodes> */
 } FCPRESP_NODEHELLO;
 
-
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_SUCCESS;
-
 
 typedef struct {
   int datalength;
   int metadatalength;
 } FCPRESP_DATAFOUND;
 
-
 typedef struct {
   int    length;  /* Length=<number: number of bytes in trailing field> */
   char  *data;    /* MetadataLength=<number: default=0: number of bytes of	metadata> */
 } FCPRESP_DATACHUNK;
 
-
-/*
-typedef struct {} FCPRESP_DATANOTFOUND;
-*/
-
-
-/*
-typedef struct {} FCPRESP_ROUTENOTFOUND;
-*/
-
-
-/*
-typedef struct {} FCPRESP_URIERROR;
-*/
-
-
-/*
-typedef struct {} FCPRESP_RESTARTED;
-*/
-
-
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_KEYCOLLISION;
 
-
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_PENDING;
-
 
 typedef struct {
   char *reason;   /* [Reason=<descriptive string>] */
 } FCPRESP_FAILED;
 
-
 typedef struct {
   char *reason;   /* [Reason=<descriptive string>] */
 } FCPRESP_FORMATERROR;
+
+typedef struct {
+	char  fec_algorithm[41];
+ 
+	int   filelength;
+	int   offset;
+	int   block_count;
+	int   block_size;
+	int   checkblock_count;
+	int   checkblock_size;
+	int   segments;
+	int   segment_num;
+	int   blocks__required;
+} FCPRESP_SEGMENTHEADER;
+
+typedef struct {
+	int     block_count;
+	char  **blocks;
+	int     checkblock_count;
+	char  **checkblocks;
+} FCPRESP_BLOCKMAP;
+
+typedef struct {
+	int   block_count;
+	int   block_size;
+} FCPRESP_BLOCKSENCODED;
+
+typedef struct {
+	int   block_count;
+	int   block_size;
+	int   data_length;
+} FCPRESP_BLOCKSDECODED;
 
 
 /**********************************************************************
@@ -233,6 +238,13 @@ typedef struct {
 	FCPRESP_PENDING         pending;
 	FCPRESP_FAILED          failed;
 	FCPRESP_FORMATERROR     formaterror;
+
+	/* FEC specific responses */
+	FCPRESP_SEGMENTHEADER   segmentheader;
+	FCPRESP_BLOCKMAP        blockmap;
+	FCPRESP_BLOCKSENCODED   blocksencoded;
+	FCPRESP_BLOCKSDECODED   blocksdecoded;
+
 } FCPRESP;
 
 
@@ -251,6 +263,11 @@ typedef struct {
 #define FCPRESP_TYPE_PENDING        10
 #define FCPRESP_TYPE_FAILED         11
 #define FCPRESP_TYPE_FORMATERROR    12
+
+#define FCPRESP_TYPE_SEGMENTHEADER  13
+#define FCPRESP_TYPE_BLOCKMAP       14
+#define FCPRESP_TYPE_BLOCKSENCODED  15
+#define FCPRESP_TYPE_BLOCKSDECODED  16
 
 
 /* Tokens for receive states */
@@ -279,13 +296,14 @@ typedef struct {
 
 
 typedef struct {
-	char  *filename;
-	FILE  *file;
+	char  *filename;  /* null terminated filename */
+	FILE  *file;      /* stream pointer */
 
-	int    size;
-	int    offset;
+	int    fn_status; /* status relative to Freenet */
+	int    size;      /* size of this chunk */
+	int    offset;    /* offset from start of chunk */
 
-	hURI  *uri;
+	hURI  *uri;       /* this chunk's CHK */
 
 } hChunk;
 
@@ -331,14 +349,6 @@ typedef struct {
 
 
 /**********************************************************************/
-
-/*
-  Splitfile control structure
-*/
-#define CHUNK_STATUS_WAITING 0
-#define CHUNK_STATUS_INPROG  1
-#define CHUNK_STATUS_DONE    2
-
 
 /* Global variables */
 extern char  _fcpID[4];

@@ -34,14 +34,12 @@
 
 #include "ezFCPlib.h"
 
-
+/* Why isn't this defined where the manpage claims it is? */
 extern int    snprintf(char *str, size_t size, const char *format, ...);
+
 extern int    crSockConnect(hFCP *hfcp);
 extern void   crSockDisconnect(hFCP *hfcp);
 extern char  *crTmpFilename(void);
-
-
-static int _fcpInsertChunk(hChunk *chunk);
 
 
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
@@ -69,12 +67,19 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 
 		/* Info was written.. update indexes */
 		chunk->size += count;
+
+		/* If this is defined, then decrement the remaining space available for
+			 the chunk.  This effectively shoves all the data in the first chunk. */
+#ifdef CFG_MULTIPLE_CHUNKS		
 		chunk_avail -= count;
+#endif
+
 		len -= count;
 		buf += count;
 
 		_fcpLog(FCP_LOG_DEBUG, "Wrote %d bytes to chunk %d", count, hfcp->key->chunkCount);
 
+		/* If CFG_MULTIPLE_CHUNKS is #defined, this code never gets called */
 		if (chunk_avail == 0) {
 
 			/* Close the file that should be exactly 256K in size.. */
@@ -83,37 +88,32 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 			fclose(chunk->file);
 			chunk->file = 0;
 
-			/* Go off an insert chunk; block till function returns */
-			if ((rc = _fcpInsertChunk(chunk))) {
-				_fcpLog(FCP_LOG_DEBUG, "error in inserting chunk %d from file %s", hfcp->key->chunkCount, chunk->filename);
-				return -1;
-			}
+			/* We're supposed to queue it up here, but currently this kind of code
+				 isn't necessary.  Perhaps it may be used in the future, which is
+				 why it remains here in comment form. */
+			enqueue_chunk(chunk);
 
 			hfcp->key->chunkCount++;
 
+			/* Allocate a pointer variable for the new chunk at the end of the
+				 2-D dynamic array. */
 			hfcp->key->chunks = realloc(hfcp->key->chunks, sizeof(hChunk *) * hfcp->key->chunkCount);
 			hfcp->key->chunks[hfcp->key->chunkCount - 1] = _fcpCreateHChunk();
 
+			/* Set the current chunk to the newly created and empty one */
 			chunk = hfcp->key->chunks[hfcp->key->chunkCount - 1];
 
+			/* Assign this new chunk another temporary filename */
 			chunk->filename = crTmpFilename();
 			if (!(chunk->file = fopen(chunk->filename, "w")))
 				return -1;
 
+			/* Reset the amount of bytes available, since it's a new chunk */
 			chunk_avail = CHUNK_BLOCK_SIZE;
 			count = (len > chunk_avail ? chunk_avail : len);
 		}
 	}
 	
-	return 0;
-}
-
-
-static int _fcpInsertChunk(hChunk *chunk)
-{
-
-
-
 	return 0;
 }
 
