@@ -16,8 +16,10 @@
 #define MAXSTRLEN 256
 #define TRANSIENT "transient"
 #define DISKCACHE "diskCache"
-#define DEF_MINDISKCACHE 100 /* This much will be proposed for Freenet as minimum */
+#define IPADDRESS "ipAddress" /* Name of the entry that specifies your IP address */
+#define DEF_MINDISKCACHE 100  /* This much will be proposed for Freenet as minimum */
 #define DEF_DISKSIZEPERCENT 0.2 /* That many percent of the free disc space will be proposed to be used */
+
 static int freeport=0;
 char str[256];
 
@@ -128,7 +130,7 @@ WSADATA wsaData;
 	/* Does a ListenPort exist?*/
 	if (GetParam (str,LISTENPORT,FLAUNCHSEC,FLAUNCHFILE) != NULL) {
 		strcat(str, " is already configured as freenet port. Should we use it?");
-		if (MessageBox(NULL,str,"Port already defined",MB_YESNO) == IDYES) {freeport=atoi(str);EndDialog(hDlg,1);};
+		if (MessageBox(NULL,str,"Port already defined",MB_YESNO) == IDYES) {freeport=atoi(str);EndDialog(hDlg,0);};
 	}
 	freeport = SearchPort(hDlg);
 	return 1;
@@ -156,6 +158,8 @@ BOOL isSuccess;
 		GetDiskFreeSpaceEx(NULL, &freeBytes,NULL,NULL);
 		SetDlgItemInt(hwndDlg,107,(freeBytes/1000000),FALSE);
 		SetDlgItemInt(hwndDlg,109,max(DEF_MINDISKCACHE,(freeBytes/1000000)*DEF_DISKSIZEPERCENT),FALSE);
+		/* Set 127.0.0.1 as default IP address */
+		SetDlgItemText(hwndDlg,111,"127.0.0.1");
 		/* Set transient on by default*/
 		SendDlgItemMessage(hwndDlg, 106, BM_SETCHECK, BST_CHECKED,0);
 		return TRUE;
@@ -177,22 +181,26 @@ BOOL isSuccess;
 				strcat(str,"000000");
 				WriteParam (str,DISKCACHE,FLAUNCHSEC,FLAUNCHFILE);
 
+				/* Get IP address and write it to the prefs */
+				GetDlgItemText(hwndDlg, 111,str, 255);
+				WriteParam (str,IPADDRESS,FLAUNCHSEC,FLAUNCHFILE);
+
 				/* Get connection type and set transient=yes and informWrite=no if dialup */
 				if (SendDlgItemMessage(hwndDlg, 106, BM_GETCHECK, 0,0)) {
 					WriteParam ("no","informWrite",FLAUNCHSEC,FLAUNCHFILE);
 					WriteParam ("yes","transient",FLAUNCHSEC,FLAUNCHFILE);
 				}
 				/* close the dialog */
-				EndDialog(hwndDlg,1);
+				EndDialog(hwndDlg,0);
 				return 1;
 			case IDCANCEL:
-				EndDialog(hwndDlg,0);
+				EndDialog(hwndDlg,1);
 				return 1;
 		}
 		break;
         /* By default, WM_CLOSE is equivalent to CANCEL */
 	case WM_CLOSE:
-		EndDialog(hwndDlg,0);
+		EndDialog(hwndDlg,1);
 		return TRUE;
 
 	}
