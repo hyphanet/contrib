@@ -41,7 +41,7 @@ int _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int da
 
     // save the key
 		hfcp->wr_info.uri = (FCP_URI *) malloc(sizeof(FCP_URI));
-    if (!_fcpParseUri(hfcp->wr_info.uri,name))
+    if (_fcpParseUri(hfcp->wr_info.uri,name) != 0)
     {
         _fcpSockDisconnect(hfcp);
         return -1;

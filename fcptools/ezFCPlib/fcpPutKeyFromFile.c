@@ -60,12 +60,9 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
     if (_fcpSockConnect(hfcp) != 0)
         return -1;
 
-    // save the key
-		hfcp->wr_info.uri = (FCP_URI *) malloc(sizeof (FCP_URI));
-		_fcpParseUri(hfcp->wr_info.uri, key);
 
-		hfcp->wr_info.uri = (FCP_URI *) malloc(sizeof(FCP_URI));
-    if (!_fcpParseUri(hfcp->wr_info.uri, key)) {
+	hfcp->wr_info.uri = (FCP_URI *) malloc(sizeof(FCP_URI));
+    if (_fcpParseUri(hfcp->wr_info.uri, key) != 0) {
 			_fcpSockDisconnect(hfcp);
 			return -1;
     }

@@ -103,6 +103,8 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 
   char    *s;
   char    *path;
+  char    *finalpath;
+  int      docFound;
   int      redirecting;
 
   long     offset = 0;
@@ -215,13 +217,21 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 
 		timeNow = (long)time(NULL);
 
-		/* Get the mimetype if it exists */
-		if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
-				strncpy(hfcp->mimeType, s, L_MIMETYPE);
-
-		fldSet = cdocFindDoc(meta, NULL);
-
-	if (fldSet) 
+ 		/* Get the mimetype if it exists */
+ 		if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
+ 				strncpy(hfcp->mimeType, s, L_MIMETYPE);
+ 		finalpath = strstr(key, "//");
+ 		if (finalpath)
+ 			finalpath += 2; // gotta do it this way or we derefrence 0x2
+ 		fldSet = cdocFindDoc(meta, finalpath);
+ 		if (!fldSet && finalpath)
+ 			fldSet = cdocFindDoc(meta, NULL);
+ 			
+ 
+ 		if (fldSet) {
+			redirecting=0;
+			continue;
+		}
 		switch (fldSet->type)	{
 		case META_TYPE_04_NONE:
 			// success
@@ -235,13 +245,13 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 			metaFree(meta);
 			_fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
 			break;
-			
+				
 		case META_TYPE_04_DBR:
 			s = cdocLookupKey(fldSet, "DateRedirect.Target");
 			uriTgt = (FCP_URI *) malloc(sizeof (FCP_URI) );
 			if(_fcpParseUri(uriTgt, s))
 				exit(1);   // FIXME We're toast, but at least spit out a frigging error message.
-			
+				
 			if ((s = cdocLookupKey(fldSet, "DateRedirect.Offset")) != NULL)
 				offset = xtoi(s);
 
@@ -249,13 +259,13 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 				increment = xtoi(s);
 
 			tgtTime = timeNow - ((timeNow - offset) % increment);
-			
+	
 			if (!strncmp(uriTgt->uri_str, "KSK@", 4))	{
 				// convert KSK@name to KSK@secshex-name
 				path = uriTgt->path;           // path is the ksk keyname
 				sprintf(buf, "KSK@%lx-%s",
-								tgtTime,
-								uriTgt->uri_str + 4);
+					tgtTime,
+					uriTgt->uri_str + 4);
 				newKey = strdup(buf);
 				metaFree(meta);
 				_fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
@@ -264,9 +274,9 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 
 				// convert SSK@blah/name to SSK@blah/secshes-name
 				sprintf(buf, "SSK@%s/%lx-%s",
-								uriTgt->keyid,
-								tgtTime,
-								uriTgt->path);
+						uriTgt->keyid,
+						tgtTime,
+						uriTgt->path);
 				newKey = strdup(buf);
 				metaFree(meta);
 				_fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
@@ -274,26 +284,27 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 			else {
 				// no cdoc matching the one requested - fail
 				_fcpLog(FCP_LOG_NORMAL, "Invalid DBR target: \n%s\n -> %s",
-								currKey, uriTgt);
+						currKey, uriTgt);
 				_fcpFreeUri(uri);
-						free(currKey);
-						free(uriTgt);
-						_fcpSockDisconnect(hfcp);
-						metaFree(meta);
-						return -1;  // 404
+				free(currKey);
+				free(uriTgt);
+				_fcpSockDisconnect(hfcp);
+				metaFree(meta);
+				return -1;  // 404
 			}
 			
 			free(uriTgt);
 			break;
 					
 		case META_TYPE_04_SPLIT:
+//			fcpGetSplit(hfcp, fldSet);
 			redirecting=0;
 			break;
 		}
+	
 		
 		free(currKey);
 		currKey = newKey;
-		
 	} // 'while (redirecting)'
 	
   /* If execution reaches here, we've succeeded in opening the key and

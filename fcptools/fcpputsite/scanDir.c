@@ -158,8 +158,8 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
             filelist_temp->next = filelist;
             filelist_temp->chk[0] = '\0';
             filelist_temp->size = fileStat.st_size;
-						filelist_temp->ctime = fileStat.st_ctime;
-						filelist_temp->insertStatus = INSERT_FILE_WAITING;
+			filelist_temp->ctime = fileStat.st_ctime;
+            filelist_temp->insertStatus = INSERT_FILE_WAITING;
             filelist = filelist_temp;
 
             // update files count

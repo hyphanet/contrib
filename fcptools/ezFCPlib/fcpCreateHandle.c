@@ -35,7 +35,8 @@ extern int  _fcpRegress;
 
 HFCP *fcpCreateHandle()
 {
-  HFCP *hfcp = (HFCP *) malloc(sizeof (HFCP) );
+	HFCP *hfcp = (HFCP *) malloc(sizeof (HFCP) );
+	memset(hfcp, 0, sizeof(HFCP));
 	fcpInitHandle(hfcp);
 	hfcp->malloced=1;
   

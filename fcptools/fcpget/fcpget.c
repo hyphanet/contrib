@@ -70,12 +70,15 @@ int main(int argc, char* argv[])
 		int res;
         // try to get the key open
         _fcpLog(FCP_LOG_VERBOSE, "Trying to open '%s'", keyUri);
-
-        if (fcpOpenKey(hfcp, keyUri, (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0))) != 0)
-        {
-            _fcpLog(FCP_LOG_CRITICAL, "Failed to open '%s'", keyUri);
-            return -1;
-        }
+		res=fcpOpenKey(hfcp, keyUri, 
+				(_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0)));
+        if (res != 0)
+            _fcpLog(FCP_LOG_CRITICAL, "Failed to open '%s', retry %d", 
+					keyUri, i);
+		else
+			break;
+	}
+	if (i<numtimes) {
     
         // output key data, if any
         if (hfcp->keysize > 0)

@@ -223,12 +223,14 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 				&& job->status != SPLIT_INSSTAT_FAILED)
 			crSleep( 1, 0 );
 		// now drop to the bottom to see if it worked.
-	}
-	else {
-		char *buf;
+	} else {
+
+		char * buf;
 
 		job->status == SPLIT_INSSTAT_WAITING;
+	
 		buf = safeMalloc(fcpSplitChunkSize);
+	
 		
 		for (i=0; i< job->numChunks; i++)
 			job->chunk[i].key[0]=0;  // zero all keys, just to be safe.

@@ -298,7 +298,7 @@ FLDSET *cdocFindDoc(META04 *meta, char *cdocName)
     {
         // search for named cdoc
         for (i = 0; i < meta->count; i++)
-            if ((s = cdocLookupKey(meta->cdoc[i], cdocName)) != NULL
+            if ((s = cdocLookupKey(meta->cdoc[i], "Name")) != NULL
                 && !strcasecmp(s, cdocName)
             )
                 return meta->cdoc[i];
