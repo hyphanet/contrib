@@ -27,6 +27,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "cfgclient"=.\cfgclient\cfgclient.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "findjava"=.\FindJava\findjava.dsp - Package Owner=<4>
 
 Package=<5>
@@ -40,6 +52,30 @@ Package=<4>
 ###############################################################################
 
 Project: "freenet"=.\freenet.exe\freenet.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "fserve"=.\fserve\fserve.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "portcfg"=.\portcfg\portcfg.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
