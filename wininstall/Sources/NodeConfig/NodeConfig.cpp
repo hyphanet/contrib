@@ -27,7 +27,7 @@ static char THIS_FILE[] = __FILE__;
 // EXPORTS
 //
 
-char			progPath[256];
+char			progPath[256];		//executable program path (including ending '\')
 
 CPropNormal		*pNormal;
 CPropAdvanced	*pAdvanced;
@@ -63,33 +63,31 @@ CNodeConfigApp theApp;
 
 BOOL CNodeConfigApp::InitInstance()
 {
-	char *ptr,*ptr2;
- 	int pathlen;
 
+	// Why would we need sockets in this program??? Disabling for now (Sebastian Späth)
+	//if (!AfxSocketInit())
+	//{
+	//	AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
+	//	return FALSE;
+	//}
 
-	if (!AfxSocketInit())
-	{
-		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
-		return FALSE;
-	}
+	// Derive pathname of executable program's directory
+	char *exename;
+	lstrcpyn(progPath, _pgmptr,256);
+    exename = strrchr(progPath, '\\'); // point to slash between path and filename
+    *++exename = '\0'; // point to filename partand split the string
+
 
 	// Changing the help file to point to "/docs/freenet.hlp"
 	//The string is allocated before InitInstance is called.
-	ptr2 = strrchr(m_pszHelpFilePath,'\\') + 1; //points after to the last '\' which divides path and filenam
-	pathlen = ptr2 - m_pszHelpFilePath;
-	ptr = (char*)malloc(pathlen + 17); // reserve mem for the path + "docs\freenet.hlpNULL"
-	lstrcpyn (ptr,m_pszHelpFilePath,ptr2 - m_pszHelpFilePath + 1);
-	lstrcpy  ((char*)(ptr+pathlen),"docs\\freenet.hlp");
-	free ((void*)m_pszHelpFilePath);//delete the old help file string
-	m_pszHelpFilePath = ptr;		//and assign the new value to it
+	free ((void*)m_pszHelpFilePath);	//delete the old help file string
+	m_pszHelpFilePath = (char*)malloc(strlen(progPath) + 17); // reserve mem for the path + "docs\freenet.hlpNULL"
+	strcpy ((char*)m_pszHelpFilePath,progPath);
+	strcat ((char*)m_pszHelpFilePath,"docs\\freenet.hlp");
+	
 
-
-	AfxEnableControlContainer();
-
-	// Standard initialization
-	// If you are not using these features and wish to reduce the size
-	//  of your final executable, you should remove from the following
-	//  the specific initialization routines you do not need.
+	// "Are weusing ActiveX controls? I think no, disabling for now" (Sebastian Späth)
+	//AfxEnableControlContainer();
 
 #ifdef _AFXDLL
 	Enable3dControls();			// Call this when using MFC in a shared DLL
@@ -115,12 +113,6 @@ BOOL CNodeConfigApp::InitInstance()
 	propdlg.AddPage(pGeek);
 
 	propdlg.SetTitle("Freenet Node Properties", 0);
-
-    // Derive pathname of executable program's directory
-	char *exename;
-    strcpy(progPath, _pgmptr);
-    exename = strrchr(progPath, '\\'); // point to slash between path and filename
-    *exename++ = '\0'; // split the string and point to filename part
 
 	// Set up file class
 	CConfigFile *pConfigFile = new CConfigFile;

@@ -174,8 +174,7 @@ BEGIN
     LTEXT           "File",IDC_STATIC,15,171,12,8
     EDITTEXT        IDC_logFile,31,169,57,12,ES_AUTOHSCROLL
     LTEXT           "Level",IDC_STATIC,15,193,18,8
-    COMBOBOX        IDC_logLevel,42,190,48,30,CBS_DROPDOWN | CBS_SORT | 
-                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_logLevel,42,190,48,54,CBS_DROPDOWN | WS_TABSTOP
     LTEXT           "Verbosity",IDC_STATIC,15,216,30,8
     GROUPBOX        "Misc",IDC_STATIC,103,7,209,227
     LTEXT           "authTimeout",IDC_STATIC,110,18,40,8
@@ -210,7 +209,7 @@ BEGIN
     EDITTEXT        IDC_streamBufferSize,216,142,43,12,ES_AUTOHSCROLL
     LTEXT           "initialRequests",IDC_STATIC,215,160,46,8
     EDITTEXT        IDC_initialRequests,216,168,43,12,ES_AUTOHSCROLL
-    COMBOBOX        IDC_logVerbosity,51,212,39,30,CBS_DROPDOWN | CBS_SORT | 
+    COMBOBOX        IDC_logVerbosity,51,212,39,65,CBS_DROPDOWN | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
 END
 
@@ -307,6 +306,35 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_PP_GEEK DLGINIT
+BEGIN
+    IDC_logLevel, 0x403, 6, 0
+0x7245, 0x6f72, 0x0072, 
+    IDC_logLevel, 0x403, 7, 0
+0x6f4e, 0x6d72, 0x6c61, "\000" 
+    IDC_logLevel, 0x403, 6, 0
+0x694d, 0x6f6e, 0x0072, 
+    IDC_logLevel, 0x403, 6, 0
+0x6544, 0x7562, 0x0067, 
+    IDC_logVerbosity, 0x403, 2, 0
+0x0031, 
+    IDC_logVerbosity, 0x403, 2, 0
+0x0032, 
+    IDC_logVerbosity, 0x403, 2, 0
+0x0033, 
+    IDC_logVerbosity, 0x403, 2, 0
+0x0034, 
+    IDC_logVerbosity, 0x403, 2, 0
+0x0035, 
+    0
+END
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -22,7 +22,6 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CNodeConfigDlg)
 	enum { IDD = IDD_NODECONFIG_DIALOG };
-		// NOTE: the ClassWizard will add data members here
 	//}}AFX_DATA
 
 	// ClassWizard generated virtual function overrides
