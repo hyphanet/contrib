@@ -70,8 +70,8 @@ INCLUDES = -I../ezFCPlib
 bin_PROGRAMS = fcpputsplit
 
 fcpputsplit_LDFLAGS = -L../ezFCPlib
-fcpputsplit_LDADD = -lezfcp -lpthread
-fcpputsplit_SOURCES = fcpputsplit.c mimetype.c
+fcpputsplit_LDADD = -lezfcp
+fcpputsplit_SOURCES = fcpputsplit.c
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 PROGRAMS =  $(bin_PROGRAMS)
@@ -81,7 +81,7 @@ DEFS = @DEFS@ -I. -I$(srcdir)
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-fcpputsplit_OBJECTS =  fcpputsplit.o mimetype.o
+fcpputsplit_OBJECTS =  fcpputsplit.o
 fcpputsplit_DEPENDENCIES = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -94,7 +94,7 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-DEP_FILES =  .deps/fcpputsplit.P .deps/mimetype.P
+DEP_FILES =  .deps/fcpputsplit.P
 SOURCES = $(fcpputsplit_SOURCES)
 OBJECTS = $(fcpputsplit_OBJECTS)
 

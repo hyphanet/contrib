@@ -10,6 +10,8 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
+# order is important here (for now)
+
 
 SHELL = @SHELL@
 
@@ -65,7 +67,7 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-SUBDIRS = ezFCPlib fcpget fcpput fcpputsite fcpproxy fcpputsplit
+SUBDIRS = ezFCPlib fcpputsite fcpget fcpput fcpproxy fcpputsplit
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
