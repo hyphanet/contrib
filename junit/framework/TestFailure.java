@@ -1,5 +1,4 @@
 package junit.framework;
-import java.util.Vector;
 /**
  * These classes are a GPLed reimplementation of the junit framework
  * for Freenet. They are done directly from the junit 3.7 javadocs, 
