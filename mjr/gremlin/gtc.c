@@ -3,9 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-void base64_encode(char *in, char *out, int length, int equalspad);
-int base64_decode(char *in, char *out, int length);
+#include <fcp.h>
 
 FILE *in, *out;
 
@@ -94,26 +92,6 @@ write_array (char *array, int len)
     if (len) fwrite(array, sizeof(char), len, out);
 }
 
-void
-write_chk (char *key)
-{
-    int len;
-    char first[31], out[37];
-    if (strlen(key) != 54) goto error;
-    if (key[31] != ',') goto error;
-    strncpy(first, key, 31);
-    len = base64_decode(first, out, 31);
-    if (len != 23) goto error;
-    len = base64_decode(&key[32], &out[21], 22);
-    if (len != 16) goto error;
-    write_array(out, 37);
-    return;
-
-error:
-    fprintf(stderr, "Invalid CHK: %s\n", key);
-    exit(1);
-}
-
 int
 main (int argc, char **argv)
 {
@@ -129,12 +107,7 @@ main (int argc, char **argv)
 	fprintf(stderr, "Can't open file %s for reading!\n", argv[1]);
 	return 1;
     }
-
-    out = fopen(argv[2], "w");
-    if (!out) {
-	fprintf(stderr, "Can't open file %s for writing!\n", argv[2]);
-	return 1;
-    }
+    out = tmpfile();
 
     d = depth(in);
     if (d == -1) return 1;
@@ -191,7 +164,7 @@ main (int argc, char **argv)
 		split(line, name, key);
 		s = strip(name);
 		write_array(s, strlen(s));
-		write_chk(key);
+		write_array(key, strlen(key));
 	    }
 	    fseek(in, 0 - strlen(line), SEEK_CUR); // back up, we read one line too many
 	    t = &last; last = this; this = *t; // swap the offset arrays
@@ -218,12 +191,37 @@ main (int argc, char **argv)
 	split(line, name, key);
 	s = strip(name);
 	write_array(s, strlen(s));
-	write_chk(key);
+	write_array(key, strlen(key));
     }
+
+    j = ftell(out);
     
     // update the header to point to the root node
     fseek(out, 4, SEEK_SET);
     write_int(l);
+    
+    rewind(out);
+    if (strncmp(argv[2], "freenet:", 8) == 0) {
+	printf("Inserting %s... ", argv[2]);
+	if (j <= GT_SPLIT_THRESHOLD) {
+	    strcpy(line, argv[2]);
+	    l = fcp_insert_raw(out, line, j, DATA, 1);
+	    if (l != FCP_SUCCESS) {
+		printf("%s!\n", fcp_status_to_string(l));
+		return 1;
+	    }
+	    printf("%s inserted.\n", line);
+	} else {
+	    //blah
+	}
+    } else {
+	FILE *f = fopen(argv[2], "w");
+	if (!f) {
+	    printf("Can't open file %s!\n", argv[2]);
+	    return 1;
+	}
+	while (j--) fputc(fgetc(out), f);
+    }
     
     return 0;
 }

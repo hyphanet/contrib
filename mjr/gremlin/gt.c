@@ -1,6 +1,5 @@
 #include "gt.h"
 
-int base64_encode(char *in, char *out, int length, int equalspad);
 uint32_t read_int (FILE *in);
 uint32_t read_array (char **array, FILE *in);
 
@@ -14,21 +13,6 @@ gt_init (gremlin_tree *gt, FILE *in)
     read_array(&gt->names[0], in); // the root name
     if (fseek(in, gt->offsets[0], SEEK_SET) != 0) return 1; // go there
     return 0;
-}
-
-char *
-get_chk (FILE *in)
-{
-    int len;
-    char *s, *out;
-    len = read_array(&s, in);
-    if (len != 37) return s; // better failure mode?
-    out = malloc(54);
-    len = base64_encode(s, out, 21, 0);
-    out[28] = 'A'; out[29] = 'w'; out[30] = 'E'; out[31] = ',';
-    len = base64_encode(&s[21], &out[32], 16, 0);
-    free(s);
-    return out;
 }
 
 gt_entity *
@@ -46,7 +30,7 @@ gt_ls (gremlin_tree *gt)
     }
     for (i = child_count ; i < child_count + entry_count ; i++) {
 	read_array(&entities[i].name, gt->in);
-	entities[i].data = get_chk(gt->in); // the CHK
+	read_array(&entities[i].data, gt->in); // the URI
 	entities[i].type = GT_FILE;
     }
     entities[child_count + entry_count].name = NULL; // null terminated
@@ -85,7 +69,7 @@ gt_cd (gremlin_tree *gt, char *name, char *data)
 int
 gt_close (gremlin_tree *gt)
 {
-    fclose(gt->in);
+    //fclose(gt->in);
     while (gt->depth--)
 	free(gt->names[gt->depth]);
     return 0;

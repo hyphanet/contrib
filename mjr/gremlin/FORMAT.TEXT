@@ -20,168 +20,100 @@ smaller value if the default is too awkward; I've found 2 - 4 to be a
 reasonable range. You must be careful to always use tabs when editing trees,
 as the compiler will not accept spaces where it expects tabs.
 
-That big confusing string to the right of the equals sign is a Freenet CHK.
-
-	freenet:CHK@1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 The name to the left of the equals sign may not begin with spaces. Anything
 else is allowed (even '=').
 
 Directory names may not start with spaces, and they may not contain '='.
 
 
-Example
+Example (try :set syntax=tree) and see what a difference it makes!)
 ---------------------------------------------------------------------------
 
-6am Eternal
-	Faster=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Abintra
-	ALH84001=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Applied Imagination=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Bad Season For Driving=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Blue Blonde and Cherry=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Blue Egg Jam=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Born in a Barn=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Candlepower=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Louder=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Loudspeak=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Luci=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Shimmy the Shackle=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Wounded=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Anna in the Dark
-	Anders & Anderzine=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Jungle Waltz=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	No Way Out=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	OCD (chapter #2)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	OCD (chapter #3)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Pas P Du Ikke Delgger Nlen=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Rumble Jungle=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Thank You=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	The Castle At Night=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	The Trip=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Venice Romance=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	When a Heart Stops=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-CC Bluesboy Project
-	Breaking Your Concentration=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Call of The Wild=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Greazy Pork Sandwich=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Riding The Acoustic Outhouse=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Shut Your Mouth (I've Got The Blues)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	So-Ho Jamming in G=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Strat-a-Tat-Tat=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Twilight Train Hopper=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Chimp
-	21st Century=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	500 Hawaiian Guitars=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Adelaide=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	After The Show=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Country Air=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Fulllife=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	In The Snow=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Little One=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Lullaby=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Neighbours=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Screen Dream=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	The Ageing Taxi Driver=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Digital Destiny
-	Epic 9.1=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	The Storm=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Dj Kaotik
-	Project 7=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Entropical
-	Da Good Vibrations=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Haiku 4 U=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	It Came from Beyond=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Naked Merciless Force=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	The Fourth Rail=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Tom Ze ReReMix=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Gringo Scar
-	As High As Possible=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Blindsong for Saskia=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Chimponaut=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Dead As Dreams=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Do You Like Our Machine=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Fit(demo)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Glad to Have Dementia=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	I Have a Map=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Its Lonely in Outer Space=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Local Anesthetic=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Minus=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Poncho's Lament=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Sci-Chotic, Ahh Naturally(short edit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Twothirds=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Jenelle
-	Human Frailty=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Kaye
-	Bubble=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Chanson de Nuit=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	If I Was a Blackbird=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Midnight Moon=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	My Dream=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Release Me=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Sleep=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Sue Me=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Tha Mi Sgith=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Twilight=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Kevin Kane
-	Cut=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Insane Asylum=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Last Boy=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Matthew=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Oh My Heart=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	One More Time=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Someone=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	The Porch Song=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	The Stinking Song=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Tired Little Son=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-LD120
-	Cassandra Complex=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Shadow of Death v2.0=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Symphonique Sandra=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Mixster J
-	Get On (150 bpm Trance Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Get Ready=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Hard Attak=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Majestic=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Plastik Hammer=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Shot=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Subzone Embryo(Keltik Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Subzone Embryo=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Throw Your Hands in The Air=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Unknown=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Mystic Mafia
-	303Infinity Vs Mystic Mafia(Fade Away)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Fade Away=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Man Kind=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Soul Surfing=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Trance Atlantic=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Trance Gression=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Potato
-	Change=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Too Long=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Try=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Without You=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Velvet Collective
-	Funky Dancer (Alternative 3 mix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Funky Dancer (radio edit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Sittin' in the Pocket=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Sittin' in the Pocket (Alternative 3 mix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Special=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-Virtualizer
-	Creature of The Night=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Destiny(Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Destiny=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Episode 1=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Episode Zero=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Far From Home(FX-Skit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Kingdom of Madness=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Man Made in Truth=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Massimum Overdry(FX-Skit)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Meet The Family=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	Millenium State=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	My Heart Loves U=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	War(Space Remix)=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-	War=1Hk7c0WMibVYPmRaGP0RvC6WWVwKAwE,UXjAPe9o-dViZwPmxjlpbw
-
-
+Bedtime For Democracy
+	01 Take This Job and Shove It=freenet:CHK@KqtR8jPftk3x7Mlm7BRJJpJWqswJAwE,Jqmo8ww5-qV9uXf7mwQR5w//
+	02 Hop With The Jet Set=freenet:CHK@4Fr23~jxWtp9edB3DZ36by6i8gsJAwE,D-8nUvvuDDpQClO7xo3KLA//
+	03 Dear Abby=freenet:CHK@tVbdvxG0oJJo06ikmEl9~9QevYgJAwE,8hvjubsg~yQbJHpPPObGEw//
+	04 Rambozo the Clown=freenet:CHK@5goGwf3S5iPJlvfD4Z4nQOxyp~MKAwE,u874YIeI7WqK90VdAsUHUg//
+	05 Fleshdunce=freenet:CHK@2sDBMv4ks0u-fICOWyTn9ZC8ut4JAwE,2ONkP~SZ~TGKJ9cFBMBDMw//
+	06 The Great Wall=freenet:CHK@VsYCWJjJHRD4E9cyLU9QYnEW3P4JAwE,NtVQFOKEs6lT5mgdZ~nGQg//
+	07 Shrink=freenet:CHK@QPwdfIMKwjg983whk~BleXv7gjEJAwE,d81XqhfPtBmyHWooV~ISbA//
+	08 Triumph of the Swill=freenet:CHK@eQMAdIyOMtCMCNZVmWgmKdgbP1oKAwE,BHVokeraPhwedBM9i0CnZw//
+	09 Macho Insecurity=freenet:CHK@tPUSq8bnn2abKfJhaY0DThJ5~EEJAwE,NQNVn0nkRNLBDU4MqJfzEg//
+	10 I Spy=freenet:CHK@ULZQnw2C3hQy-o~x~HKB85AHl34KAwE,Fz~BAKg5zsWtbsfA4IhOMw//
+	11 Cesspools in Eden=freenet:CHK@8I045pMmnpVIainn2JWNZ~FEYZ8KAwE,SaR1KqmeSXCF2DgXbcejLw//
+	12 One-Way Ticket to Pluto=freenet:CHK@oWirVxJvf4ww9YoP2BYqan8lnpgJAwE,R5znvcIcuicq4Ths59Wf7g//
+	13 Do The Slag=freenet:CHK@blyQowKVDi8N4GaxpyFu~pnwnOUJAwE,avlU8rVCeMPPcY9gnFACIw//
+	14 A Commercial=freenet:CHK@nz4pxBwKlynQmLGhOdTt9~lToEEJAwE,Q6JgMJUc6r6771NtCCHNTQ//
+	15 Gone with my Wind=freenet:CHK@b5cPUKaz782a2ECBKRSmZXf2T30JAwE,5GFKHD7hZrD4PVQeWEj2kg//
+	16 Anarchy for Sale=freenet:CHK@Ls4mnRvpK4DMdo57wcdNLkbQnkgJAwE,2QDp0OfgbZhw1miXr5Ufyw//
+	17 Chickenshit Conformist=freenet:CHK@a64rFfFTmdrTJbsQTgZaWofKrbAKAwE,jtArC5jjRtndxIuZZ2quGg//
+	18 Where do you Draw the Line=freenet:CHK@v~Zpo0oUtL4HSrAA1YGUk36zAqEKAwE,KuDT0UeJVk29mDbTDgUueg//
+	19 Potshot Heard Round the World=freenet:CHK@2GIzigP2tpjr31WSl9~AlG~iFZoJAwE,JI8hT8fDhhB~EIBhBJAFQQ//
+	20 D.M.S.O.=freenet:CHK@4XT58dlxd4zeRhemW4bMTRHEwlUJAwE,CFY98LX~7pWaFVj~OtZiIQ//
+	21 Lie Detector=freenet:CHK@xuqerMKZJu04bKl3eFnbBE2FtCgJAwE,VTu8739Tfqf8AIXHSqMDjQ//
+Frankenchrist
+	01 Soup Is Good Food=freenet:CHK@FAYpmuMg9-7A3vRwBVoN0xXA7hkKAwE,LlDihXTwi7DILfGKlVQaJw//
+	02 Hellnation=freenet:CHK@plIcWu-YltqeNrl~HQycLpaeEEIKAwE,sD~TIcfR2KySK8uVAuNEqw//
+	03 This Could Be Anywhere=freenet:CHK@69SBEFskzlm7C8GfNVHnTcE1nSMKAwE,s~r3lZQvDJsCOuuOwtig0A//
+	04 A Growing Boy Needs His Lunch=freenet:CHK@Z4fOcjdSaC3eopfGimGrrxjrT80KAwE,qk2HBl3TEEtBVBMFsjmSqQ//
+	05 Chicken Farm=freenet:CHK@cZP~kU~JeR9td-zSpBHhzz8sML8KAwE,svThWPXB5xNvkgeYmihcmw//
+	06 Jock O Rama Invasion Of The Beef Patrol=freenet:CHK@~XZmpS4tg2rNX0wdP3LzbCD77xAJAwE,KyrFh-6JegGI2vNIX0LEfg//
+	07 Goons Of Hazzard=freenet:CHK@rfCnyUFX4Nnw~V17qGLbLjrz7JMKAwE,-mFSaTkjltRA2kUHxS7YzQ//
+	08 MTV Get Off The Air=freenet:CHK@QVtq5Et5rj09LTWbww7efhyd44UKAwE,KmWEdWWja3oMM3c1z7Z8fw//
+	09 At My Job=freenet:CHK@AK82UUlhr~f9-3vvHs7EYpR40ZUKAwE,Ah-ejygvkWk~CUN9DzPVsQ//
+	10 Stars And Stripes Of Corruption=freenet:CHK@xuJw1dcGAb1xeBsIUWleS0tUnG8KAwE,WAA1wqV5BLe8WbXd~nF8sg//
+Fresh Fruit For Rotting Vegetables
+	01 Kill The Poor=freenet:CHK@I5wBW7edpN7hT3wdLmYDDA0UHhUJAwE,woHFfe~9CMM~mFefWTMgyA//
+	02 Forward To Death=freenet:CHK@~Byy~X-vo9U9pSoQFad0lE5PNZoJAwE,st4Uige9cUZjwFxLGDMADw//
+	03 When Ya Get Drafted=freenet:CHK@FOQfbKn5gRea7SPVP0jQJKVsLVsJAwE,vLPJBC4ynNygLVcIXQVzTA//
+	04 Lets Lynch The Landlord=freenet:CHK@O-zinluBQId2u0wgsW917as42T8JAwE,dSHLGvqzHbqRBF0LW1NkxA//
+	05 Drug Me=freenet:CHK@OezHw9oJcP~nT977nS0KhD9-T0AJAwE,Px2re4-R-jwhYW3OHqFvNA//
+	06 Your Emotions=freenet:CHK@UkTQpf9kXenxqqh4Koy3vb-Zv8EJAwE,wprHLV92xwR4RPSJ9ZTlQA//
+	07 Chemical Warfare=freenet:CHK@ZNpV-7RrpOzVj5M9rPyBEtsKSQQJAwE,gl4y04yC7r8LFgt~yOn-9Q//
+	08 California Uber Alles=freenet:CHK@Qz59QSJP~~XeIi8zI4ChBLI0n4YJAwE,7fXC~cww5sF3PuyMK98-6Q//
+	09 I Kill Children=freenet:CHK@rxO2w9gtiWD8l0SfK2~aGTaTQMsJAwE,ozRYSXn8FUvAdmwOxfkOEA//
+	10 Stealing Peoples Mail=freenet:CHK@6JoZJWQhpVkDtkxuL~MxEgI1wO8JAwE,VEhKvMZI1CSBpsf1K1hxFg//
+	11 Funland At The Beach=freenet:CHK@gV4~gh~K3WI8JtWO6j5muKUVo-gJAwE,JJfKtLBW4pg~EsH5yY2S1A//
+	12 Ill In The Head=freenet:CHK@zey4oa5vQLXkrfnar5DeAT0yGcAJAwE,6145-xPgFqWMLmAlUzD5cg//
+	13 Holiday In Cambodia=freenet:CHK@Lu3npc1yq-8poiYDEQVJgCJ-9qUKAwE,ofAW9e8EogHft4cxU4rx4g//
+	14 Viva Las Vegas=freenet:CHK@LmkvE2EfM5gjgFWMknDAbHJgl~UJAwE,Ofl4JBEMXy3Zhx20I76M7Q//
+Give Me Convenience Or Give Me Death
+	01 Police Truck=freenet:CHK@2UasSVCLzZY65YOwaKFL0SZ66OYJAwE,inqn-hKZxJHqTbSCmFWpWg//
+	02 Too Drunk To Fuck=freenet:CHK@kI0~Ztn7V1-DJvJwHgnN8fa054YKAwE,Y1S3VQfADoaj--t1gv-pXQ//
+	03 California Uber Alles=freenet:CHK@6vKyvo12dj73zbDTaOX4IeHK8wcKAwE,Jwqyis5EOmhZuVCUp7XjsQ//
+	04 The Man With The Dogs=freenet:CHK@W5XlX57aJSsvDY77gGrVTL~A7wEKAwE,JwsiqvRq-T2QG-~n3g4GEg//
+	05 Insight=freenet:CHK@NMTtl7hMP~WgeZnsSwHgiX~BstEJAwE,hkEzUWtqTddRLCWIDGk5sg//
+	06 Life Sentence=freenet:CHK@Rv9RGIh-MnVuNnP-csZabu~AEBIJAwE,fPLCNsUVbDIhbQshWAFYcA//
+	07 A Child And His Lawnmower=freenet:CHK@bJNWNzAAdmwiN~8DxzG2~jl4tsQJAwE,mR5f1aeGBeCAnBM34IC54w//
+	08 Holiday In Cambodia=freenet:CHK@posOph6Ha6bBvrHhYNZ4WNczdXQKAwE,c9PG0unMGh1cvFwwXn3I8g//
+	09 I Fought The Law=freenet:CHK@Qgfb-4NicRluoMb2pxw56EibB1QJAwE,le78B~81njlnaWzLcglz~w//
+	10 Saturday Night Holocaust=freenet:CHK@agOTmNPv3xQ28IYOYtPDPwjBo6YKAwE,o2CtlUU8YC23brbq-x6rXA//
+	11 Pull My Strings=freenet:CHK@FLFwILx~DmxpxIJsL8BJ9IoJL2gKAwE,hkkOQa-Fks4ioWFemoW1Jw//
+	12 Short Songs=freenet:CHK@COHGbGTaTw94ajVZ4bU9-vTJQhQIAwE,XqRWE~hQW8mKZ33lra8WUg//
+	13 Straight As=freenet:CHK@JLEgoFrf3FATvSdqHg3yjQzTisYJAwE,ddYxfbXYWq55D6qvT7Bxug//
+	14 Kinky Sex Makes The World Go Round=freenet:CHK@JkiH5TMKzkWftBHyBDI--DHwxLcKAwE,aVVBB9Q6oYyqmRAI162Hng//
+	15 The Prey=freenet:CHK@JTRA9nZlBTVdXGRU4aQhhuH7QGYKAwE,3hrSwBW6jE-SkYHTtaQUDg//
+	16 Night Of The Living Rednecks=freenet:CHK@cI3Motmm6WCvDD6LmduVdy01Le8JAwE,NR2a~X-VKOtLdwbUsGNecw//
+	17 Buzzbomb From Pasadena=freenet:CHK@9kKKs7k-6av40cTvnxZyC9CPOP4JAwE,KhQZC3nP6uco~QeShyLSKA//
+In God We Trust Inc
+	01 Religious Vomit=freenet:CHK@OkAv8d2WEyVR-HuUHz4qsr8hnEoJAwE,hbIxqL7pTJozg-61yMQxUw//
+	02 Moral Majority=freenet:CHK@dQkMkwesFssAGX~FlF44SjHyow4JAwE,is-gbFFjOmul6YTjnXRPJA//
+	03 Hyperactive Child=freenet:CHK@cXEb0nt2NJjNt-qcKGDulr8X6xEJAwE,81NmEiiYxCYHglJo6APG8g//
+	04 Kepone Factory=freenet:CHK@WFpsCFNM9Go6zlRE7AUZAZHpi8IJAwE,oFYTqyFwtI3hqba3sZ0pUw//
+	05 Dog Bite=freenet:CHK@5BnAfu69PAWr7ffB0QgmCc1Z22oJAwE,EVgGgx2LWjqCrZ93ZglqrQ//
+	06 Nazi Punks Fuck Off=freenet:CHK@AIxo0RvU7tudGzIwgYdO83AQWXgJAwE,yjNr2Xzm30xfmDUk71~ghQ//
+	07 We've Got A Bigger Problem Now=freenet:CHK@Ve1DS5WKP2RZA8yffTq5AIZt73cKAwE,EP8FOw1dHfDb3tZ3Vbt8tQ//
+	08 Rawhide=freenet:CHK@QrYTWmJHIBg6vDrak-OYUv~PfrkKAwE,3BVngker~Gs-vvH6I8KwIg//
+Plastic Surgery Disasters
+	01 Government Flu=freenet:CHK@ARkz10Li0rGcFe6fXrr2BNBI5RQKAwE,AyxPr2hWGZq5LMH6b5Fn1w//
+	02 Terminal Preppie=freenet:CHK@kXCWoJgxVN~vxyfvurmdSKnw9HsJAwE,bjVWZW7ofISPCj42UvrxiQ//
+	03 Trust Your Mechanic=freenet:CHK@V5xMLZFVQdf2pdc6sjemPl48t-cKAwE,r9XMsCh6MIWPtebPBJhYuA//
+	04 Well Paid Scientist=freenet:CHK@0lHb6d8Xp4lCi9s4TNjHxXDeuScJAwE,2UHZg3sqt6vcrKOMkpF-ug//
+	05 Buzzbomb=freenet:CHK@ovaepcaFzYgr4Oe3-G19KjD3asYJAwE,of0~drn-S5qCQFP170DszQ//
+	06 Forest Fire=freenet:CHK@nIW~T0YBy6B~ShlpTFtpbHj5GDAKAwE,DxHqYMV0~IRl3l5o0E6EPQ//
+	08 Winnebago Warrior=freenet:CHK@kQ3ZWIeeCAT0J8aRewT-36JdosgJAwE,63lD5wjr5hH06T98gsQ7OQ//
+	09 Riot=freenet:CHK@zHEW-iBTMK1SW8Jq7ueWoUeMUVgKAwE,YOAMj9VFu7lHyhiPaclvpQ//
+	10 Bleed For Me=freenet:CHK@zZg-sQVOrWcF18JB3GosqOr95PYKAwE,L-jc~h6qbIp9fb7LUFxPng//
+	11 I Am The Owl=freenet:CHK@AaRAwmMjbRhZwQ4NTUIVkLYMLLwJAwE,sQc9Q6efyYVDCKu0o3zuPw//
+	12 Dead End=freenet:CHK@is-VLY-X0ckYjXzBrwaRR5XcqrMKAwE,taqZSZXjUo49DTn8Mx3Qng//
+	13 Moon Over Marin=freenet:CHK@zFksiw1GzdvIsQpTCAxJtWu7mxoJAwE,ngcVkOuJQ~OcWFFDDGT4yw//
