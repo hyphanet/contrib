@@ -248,7 +248,7 @@ run_search (FILE *socket, char *url)
     pthread_mutex_lock(&mutex);
     for (i = database ; i ; i = i->next)
 	if (strstr(i->name, query) || strstr(i->desc, query))
-	    fprintf(socket, "<tr><td><a href=\"%s\">%s%s</a></td><td>%s</td></tr>\n", FPROXY_ADDRESS, i->key, i->name, i->desc);
+	    fprintf(socket, "<tr><td><a href=\"%s%s\">%s</a></td><td>%s</td></tr>\n", FPROXY_ADDRESS, i->key, i->name, i->desc);
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
