@@ -115,7 +115,6 @@ void crSockDisconnect(hFCP *hfcp)
 #ifndef WINDOWS
 	close(hfcp->socket);
 #else
-	/* This one does extra cleanup within Winsock apparantly */
 	closesocket(hfcp->socket);
 #endif
 

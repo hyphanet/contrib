@@ -44,13 +44,15 @@ static int host_is_numeric(char *host);
 int _fcpSockConnect(hFCP *hfcp)
 {
   int rc;
-
+	
   struct sockaddr_in sa_local_addr;
   struct sockaddr_in sa_serv_addr;
-
+	
   struct in_addr in_address;
 	struct hostent *host_ent;
 
+	_fcpLog(FCP_LOG_DEBUG, "attempting socket connection");
+	
 	if (host_is_numeric(hfcp->host)) {
     in_address.s_addr = inet_addr(hfcp->host);
 	}
@@ -58,20 +60,20 @@ int _fcpSockConnect(hFCP *hfcp)
     host_ent = gethostbyname(hfcp->host);
     memcpy((struct in_addr *)&in_address, host_ent->h_addr_list[0], host_ent->h_length);
   }
-  
-  sa_serv_addr.sin_family = host_ent->h_addrtype;
-  memcpy((char *) &sa_serv_addr.sin_addr.s_addr, host_ent->h_addr_list[0], host_ent->h_length);
-  sa_serv_addr.sin_port = htons(_fcpPort);
 
+	sa_serv_addr.sin_addr.s_addr = in_address.s_addr;
+  sa_serv_addr.sin_port = htons(_fcpPort);
+  sa_serv_addr.sin_family = AF_INET;
+	
   /* create socket */
   hfcp->socket = socket(AF_INET, SOCK_STREAM, 0);
-
+	
   if (hfcp->socket < 0) return -1;
-
-  /* bind any port number */
-  sa_local_addr.sin_family = AF_INET;
+	
+  /* bind to any port number on local machine */
   sa_local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   sa_local_addr.sin_port = htons(0);
+  sa_local_addr.sin_family = AF_INET;
 	
   rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
   if (rc < 0) {
@@ -79,7 +81,7 @@ int _fcpSockConnect(hFCP *hfcp)
 		crSockDisconnect(hfcp);
     return -1;
   }
-
+	
   /* connect to server */
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
   if (rc < 0) {
@@ -87,7 +89,7 @@ int _fcpSockConnect(hFCP *hfcp)
 		crSockDisconnect(hfcp);
 		return -1;
 	}
-
+	
   return 0;
 }
 
