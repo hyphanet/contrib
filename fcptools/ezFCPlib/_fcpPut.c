@@ -165,9 +165,6 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 										);
 		}
 		
-		/* Send fcpID */
-		send(hfcp->socket, _fcpID, 4, 0);
-		
 		/* Send ClientPut command */
 		if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 			_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientPut message");
@@ -446,9 +443,6 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 
 	_fcpLog(FCP_LOG_DEBUG, "\n%s\n", buf);
 	
-	/* Send fcpID */
-	send(hfcp->socket, _fcpID, 4, 0);
-	
 	/* Send ClientPut command */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientPut message");
@@ -510,12 +504,6 @@ static int fec_segment_file(hFCP *hfcp)
 					 hfcp->key->size
 					 );
 
-	/* Send fcpID */
-	if (send(hfcp->socket, _fcpID, 4, 0) == -1) {
-		hfcp->error = strdup("could not send FCP identification bytes");
-		return -1;
-	}
-		 
 	/* Send FECSegmentFile command */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		hfcp->error = strdup("could not send FECSegmentFile command");
@@ -648,12 +636,6 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	/* new connection to Freenet FCP */
 	if (_fcpSockConnect(hfcp) != 0) {
 		hfcp->error = strdup("could not make socket connection to node");
-		return -1;
-	}
-	
-	/* Send fcpID */
-	if (send(hfcp->socket, _fcpID, 4, 0) == -1) {
-		hfcp->error = strdup("could not send FCP identification bytes");
 		return -1;
 	}
 	
@@ -847,10 +829,6 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 									);
 
 		_fcpLog(FCP_LOG_DEBUG, "sending message..\n%s", buf);
-		
-		/* Send fcpID */
-		if (send(tmp_hfcp->socket, _fcpID, 4, 0) == -1)
-			return -1;
 		
 		/* Send ClientPut command */
 		if (send(tmp_hfcp->socket, buf, strlen(buf), 0) == -1) {
@@ -1069,12 +1047,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
     return -1;
 	}
 	
-	/* Send fcpID */
-	if (send(hfcp->socket, _fcpID, 4, 0) == -1) {
-		hfcp->error = strdup("could not send FCP identification bytes");
-		return -1;
-	}
-
 	/* Send FECMakeMetadata command */
 	sprintf(buf_s, "FECMakeMetadata\nDescription=file\nMimeType=%s\nDataLength=%x\nData\n",
 					hfcp->key->mimetype,
@@ -1132,9 +1104,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	/* connect to Freenet FCP */
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
-
-	/* Send fcpID */
-	send(hfcp->socket, _fcpID, 4, 0);
 
 	/* create the put message */
 	rc = snprintf(buf, L_FILE_BLOCKSIZE,

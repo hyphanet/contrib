@@ -1,29 +1,34 @@
 This file's purpose is to provide a breakdown of important features/fixes
 that can be implemented by any competent C programmer.
 
++ means todo
+= means done
+- means the feature was dropped
+
 ----------------
 FCPtools generic
 
-* Update ezFCPlib documentation.
-* Confirm OS X and Solaris functionality.
-* Add usage instructions to README file for fcpget, fcpput, fcpputsite.
++ Update ezFCPlib documentation.
++ Confirm OS X and Solaris functionality.
++ Add usage instructions to README file for fcpget, fcpput, fcpputsite.
 
 -----------------
 ezFCPlib specific
 
-* Implement Key Retrival code (currently only code for inserting).
-* Implement metadata handling for FEC encoded files (specifically in
-  ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
-* Check all internal APIs for consistant usage and funcionality.
-* Handle HighestSeenBuild from NodeHello message.
-* Make fcpLog() work with files as well as standard output.
-* Implement SkipDS logic.
++ Implement Key Retrival code (currently only code for inserting).
++ Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
++ Check all internal APIs for consistant usage and funcionality.
++ Handle HighestSeenBuild from NodeHello message.
++ Make fcpLog() work with files as well as standard output.
++ Implement SkipDS logic.
++ Add logic for processing Info.Format and Info.Description metadata key/val pairs.
++ Add keygen code.
 
 ------
 fcpput
 
-* Implement -g command-line switch (GenerateKeypair).
-* Optimize main()'s speed read from standard input.
++ Implement -g command-line switch (GenerateKeypair).
++ Optimize main()'s speed read from standard input.
 
 ------
 fcpget

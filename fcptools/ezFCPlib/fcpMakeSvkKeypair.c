@@ -16,51 +16,41 @@
 #include <stdio.h>
 #include <string.h>
 
-/*
-  IMPORTED DECLARATIONS
-*/
-
-extern char     _fcpID[];
 
 /*
-  Function:    fcpMakeSvkKeypair()
-  
-  Arguments:   hfcp    FCP handle
-  pubkey  pointer to a buffer into which to write an SSK public key
-  privkey pointer to a buffer into which to write an SSK private key
-  
-  Returns:     0 if successful, non-zero if failed
-  
-  Description:
+	fcpMakeSvkKeypair()
+
+	Better allocate the parameters before calling this function.
 */
 
-int fcpMakeSvkKeypair(HFCP *hfcp, char *pubkey, char *privkey)
+int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy)
 {
-  char *cmd = "GenerateSVKPair\nEndMessage\n";
-  int  n;
-  int  len;
+	char buf[L_FILE_BLOCKSIZE+1];
+	int rc;
 
-	/* Should work cleanly, without the fcpKludge as it was so cleverly named */
+	_fcpLog(FCP_LOG_VERBOSE, "Entered GenerateSVKPair()");
+
+	/* try to connect first.. bomb otherwise */
+	if (_fcpSockConnect(hfcp) != 0)	return -1;
+
+	strcpy(buf, "GenerateSVKPair\nEndMessage\n");
+	
+	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+		_fcpLog(FCP_LOG_VERBOSE, "Could not send GenerateSVKPair message");
+		
+		_fcpSockDisconnect(hfcp);
+		return -1;
+	}
   
-  if (_fcpSockConnect(hfcp) != 0) return -1;
-  
-  len = strlen(cmd);
-  _fcpSockSend(hfcp, _fcpID, 4);
-  
-  n = _fcpSockSend(hfcp, cmd, len);
-  if (n < len) {
+  if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_SUCCESS) {
     _fcpSockDisconnect(hfcp);
     return -1;
   }
-  
-  if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_SUCCESS) {
-    _fcpSockDisconnect(hfcp);
-    return -1;
-  }
 
-  strcpy(pubkey, hfcp->pubkey);
-  strcpy(privkey, hfcp->privkey);
+  strcpy(pub_key, hfcp->response.success.publickey);
+  strcpy(priv_key, hfcp->response.success.privatekey);
   
   _fcpSockDisconnect(hfcp);
+
   return 0;
 }

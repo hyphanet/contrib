@@ -92,7 +92,10 @@ int _fcpSockConnect(hFCP *hfcp)
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
-	
+
+	/* Send fcpID */
+	send(hfcp->socket, _fcpID, 4, 0);
+
   return 0;
 }
 

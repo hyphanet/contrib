@@ -467,6 +467,9 @@ extern "C" {
 	/* Startup and shutdown functions */
 	int   fcpStartup(void);
 	void  fcpTerminate(void);
+
+	/* Generate Key/Value pair */
+	int   fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy);
 	
 	/* Freenet functions for operations between memory and freenet */
 	int   fcpOpenKey(hFCP *hfcp, char *key, int mode);

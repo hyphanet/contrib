@@ -111,6 +111,7 @@ fcpCreation.c \
 fcpOpenKey.c \
 fcpPutKeyFromFile.c \
 fcpReadKey.c \
+fcpMakeSvkKeypair.c \
 fcpStartup.c \
 fcpWriteKey.c \
 mimetype.c \
@@ -121,7 +122,6 @@ mimetype.c \
 # The following files are currently ignored for now
 # fcpGetKeyToFile.c \
 # fcpMakeChkFromFile.c \
-# fcpMakeSvkKeypair.c \
 # fcpOpenKeyIndex.c \
 # fcpReadKeyIndex.c \
 # fcpWriteKeyIndex.c \
@@ -138,8 +138,8 @@ am_libezfcp_a_OBJECTS = _fcpCompat.$(OBJEXT) _fcpGlobals.$(OBJEXT) \
 	_fcpUtil.$(OBJEXT) _fcpMetadata.$(OBJEXT) _fcpPut.$(OBJEXT) \
 	fcpCloseKey.$(OBJEXT) fcpCreation.$(OBJEXT) \
 	fcpOpenKey.$(OBJEXT) fcpPutKeyFromFile.$(OBJEXT) \
-	fcpReadKey.$(OBJEXT) fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) \
-	mimetype.$(OBJEXT)
+	fcpReadKey.$(OBJEXT) fcpMakeSvkKeypair.$(OBJEXT) \
+	fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) mimetype.$(OBJEXT)
 libezfcp_a_OBJECTS = $(am_libezfcp_a_OBJECTS)
 
 DEFS = @DEFS@
@@ -153,6 +153,7 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 @AMDEP_TRUE@	$(DEPDIR)/_fcpPut.Po $(DEPDIR)/_fcpRecvResponse.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Po $(DEPDIR)/_fcpUtil.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Po $(DEPDIR)/fcpCreation.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpMakeSvkKeypair.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpReadKey.Po $(DEPDIR)/fcpStartup.Po \
@@ -216,6 +217,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpUtil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreation.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeSvkKeypair.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Po@am__quote@

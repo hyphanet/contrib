@@ -51,6 +51,7 @@ char  *keyfile = 0;
 char  *metafile = 0;
 
 int    b_stdin = 0;
+int    b_genkeys = 0;
 
 /* @TODO: create a main_sub.. for error-handling */
 
@@ -80,6 +81,19 @@ int main(int argc, char* argv[])
 	parse_args(argc, argv);
 
 	hfcp = _fcpCreateHFCP();
+
+	if (b_genkeys) {
+
+		/* generate a keypair and just exit */
+		/* im a little cheap and saving ram.. duh */
+		if (fcpMakeSvkKeypair(hfcp, buf, buf+40, buf+80)) {
+			_fcpLog(FCP_LOG_CRITICAL, "Could not generate keypair; %s", hfcp->error);
+			return -1;
+		}
+
+		_fcpLog(FCP_LOG_NORMAL, "Public: %s\nPrivate: %s\n", buf, buf+40);
+		return 0;
+	}
 
 	if (b_stdin) {
 		/* read the key data from stdin */
@@ -164,13 +178,14 @@ void parse_args(int argc, char *argv[])
     {"regress", 1, 0, 'e'},
     {"raw", 0, 0, 'r'},
     {"verbosity", 1, 0, 'v'},
+    {"genkeysy", 0, 0, 'g'},
 
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:se:rv:Vh";
+  char short_options[] = "n:p:l:m:se:rv:gVh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -219,7 +234,11 @@ void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if ((i >= 0) && (i <= 4)) _fcpVerbosity = i;
       break;
-			
+
+    case 'g':
+			b_genkeys = 1;
+			break;
+
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
       exit(0);
@@ -229,7 +248,9 @@ void parse_args(int argc, char *argv[])
       exit(0);
 		}
 	}
-	
+
+	if (b_genkeys) return;
+
   if (optind < argc) {
 		keyuri = (char *)malloc(strlen(argv[optind]) + 1);
 		strcpy(keyuri, argv[optind++]);
@@ -280,6 +301,8 @@ void usage(char *s)
 	printf("  -r, --raw              Raw mode - don't follow redirects\n");
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+
+	printf("  -g, --genkeys          Generate a keypair then exit\n\n");
 
 	printf("  -V, --version          Output version information and exit\n");
 	printf("  -h, --help             Display this help and exit\n\n");

@@ -27,6 +27,7 @@ fcpCreation.c \
 fcpOpenKey.c \
 fcpPutKeyFromFile.c \
 fcpReadKey.c \
+fcpMakeSvkKeypair.c \
 fcpStartup.c \
 fcpWriteKey.c \
 mimetype.c \
@@ -35,7 +36,6 @@ mimetype.c \
 # The following files are currently ignored for now
 # fcpGetKeyToFile.c \
 # fcpMakeChkFromFile.c \
-# fcpMakeSvkKeypair.c \
 # fcpOpenKeyIndex.c \
 # fcpReadKeyIndex.c \
 # fcpWriteKeyIndex.c \
