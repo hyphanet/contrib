@@ -51,28 +51,30 @@ extern int _fcpDMALLOC;
 
 /* Struct Creation & Destruction functions */
 
-extern hBlock    *_fcpCreateHBlock(void);
-extern void       _fcpDestroyHBlock(hBlock *);
+extern hBlock     *_fcpCreateHBlock(void);
+extern void        _fcpDestroyHBlock(hBlock *);
 
-extern hKey      *_fcpCreateHKey(void);
-extern void       _fcpDestroyHKey(hKey *);
+extern hKey       *_fcpCreateHKey(void);
+extern void        _fcpDestroyHKey(hKey *);
 
-extern hOptions  *_fcpCreateHOptions(void);
-extern void       _fcpDestroyHOptions(hOptions *);
+extern hOptions   *_fcpCreateHOptions(void);
+extern void        _fcpDestroyHOptions(hOptions *);
 
-extern hSegment  *_fcpCreateHSegment(void);
-extern void       _fcpDestroyHSegment(hSegment *);
-extern void       _fcpDestroyHSegments(hKey *);
+extern hSegment   *_fcpCreateHSegment(void);
+extern void        _fcpDestroyHSegment(hSegment *);
+extern void        _fcpDestroyHSegments(hKey *);
 
 /* Metadata handling functions */
 
-extern int   _fcpMetaParse(hMetadata *, char *buf);
-extern char *_fcpMetaString(hMetadata *);
-extern void  _fcpMetaFree(hMetadata *);
+extern int         _fcpMetaParse(hMetadata *, char *buf);
+extern char       *_fcpMetaString(hMetadata *);
+extern void        _fcpMetaFree(hMetadata *);
 
 extern hMetadata  *_fcpCreateHMetadata(void);
 extern void        _fcpDestroyHMetadata(hMetadata *);
 extern void        _fcpDestroyHMetadata_cdocs(hMetadata *);
+
+extern void        _fcpDestroyHDocument(hDocument *h);
 
 /* metadata routines */
 
@@ -117,13 +119,14 @@ extern int   _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char 
 extern int   _fcpPutSplitfile(hFCP *hfcp);
 
 extern int   _fcpInsertRoot(hFCP *hfcp);
+extern char *_fcpDBRString(hURI *uri, int future);
 
 /* Get and related functions */
 
 extern int   _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri);
-extern int   _fcpGetSplitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
+extern int   _fcpGetSplitfile(hFCP *hfcp);
 
-extern int   _fcpGetFollowRedirects(hFCP *hfcp, char *uri);
+extern int   _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename);
 
 /* hBlock functions */
 

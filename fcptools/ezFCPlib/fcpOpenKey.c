@@ -91,17 +91,7 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
   if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;
 	if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
 
-	/* if in normal mode, follow the redirects */
-	if (hfcp->options->noredirect == 0) {
-		
-		_fcpLog(FCP_LOG_VERBOSE, "starting recursive retrieve");
-		rc = _fcpGetFollowRedirects(hfcp, key_uri);
-	}
-	else { /* RAWMODE */
-		
-		_fcpLog(FCP_LOG_VERBOSE, "start noredirect retrieve");
-		/*rc = _fcpGetBLock(hfcp, key_uri);*/
-	}
+	rc = _fcpGetKeyToFile(hfcp, key_uri, hfcp->key->tmpblock->filename, hfcp->key->metadata->tmpblock->filename);
 	
 	if (rc) { /* bail after cleaning up */
 		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);

@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
     }
   }
 
+	/* no output man? ;) */
 	rc = 0;
 
  cleanup:

@@ -56,7 +56,6 @@ unsigned short  port = EZFCP_DEFAULT_PORT;
 int   verbosity = FCP_LOG_NORMAL;
 int   htl       = EZFCP_DEFAULT_HTL;
 int   retry     = EZFCP_DEFAULT_RETRY;
-int   mintime   = 0;
 int   optmask   = 0;
 int   future    = 0;
 
@@ -122,7 +121,6 @@ int main(int argc, char* argv[])
 
 	/* set retry and DBR info manually */
 	hfcp->options->retry = retry;
-	hfcp->options->mintimeout = mintime;
 	hfcp->options->future = future;
   
   if (b_genkeys) {
@@ -310,7 +308,6 @@ static void parse_args(int argc, char *argv[])
 
     {"stdin", 0, 0, 's'},
     {"retry", 1, 0, 'a'},
-    {"mintime", 1, 0, 't'},
     {"delete-local", 0, 0, 'D'},
     {"dbr", 0, 0, 'd'},
     {"future-days", 1, 0, 'f'},
@@ -328,7 +325,7 @@ static void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:o:sa:t:Ddf:Mv:gVh1";
+  char short_options[] = "n:p:l:m:o:sa:Ddf:Mv:gVh1";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -370,11 +367,6 @@ static void parse_args(int argc, char *argv[])
 		case 'a':
 			i = atoi( optarg );
 			if (i > 0) retry = i;
-			break;
-
-		case 't':
-			i = atoi( optarg );
-			if (i > 0) mintime = i;
 			break;
 
     case 'D':
@@ -451,8 +443,8 @@ static void usage(char *s)
 	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
 
 	printf("Usage: fcpput [-n hostname] [-p port] [-l hops to live]\n");
-	printf("              [-m metadata] [-M] [-d] [-f days] [-a retry]\n");
-	printf("              [-t mintime [-D] [-o logfile] [-v verbosity]\n");
+	printf("              [-m metadata] [-M] [-d] [-f days]\n");
+	printf("              [-a retry] [-D] [-o logfile] [-v verbosity]\n");
 	printf("              [-s] [-V] [-h] freenet_uri [FILE]...\n\n");
 
 	printf("       fcpput [-n hostname] [-p port] [-g]\n\n");
@@ -469,7 +461,6 @@ static void usage(char *s)
 	printf("  -f, --future-days num  Number of days into the future to insert DBR key\n\n");
 
 	printf("  -a, --retry num        Number of retries after a timeout\n");
-	printf("  -t, --mintime num      Mininum time (seconds) to wait before timeout on connection\n");
 	printf("  -D, --remove-local     Remove key from local datastore on insert\n\n");
 
 	printf("  -o, --logfile file     Full pathname for the output log file (default stdout)\n");

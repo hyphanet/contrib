@@ -28,6 +28,7 @@ _fcpMetadata.c \
 _fcpMimetype.c \
 _fcpGet.c \
 _fcpPut.c \
+_fcpURI.c \
 ezFCPlib.h \
 fcpCreation.c \
 fcpInfo.c \
@@ -52,6 +53,7 @@ _fcpMetadata.c \
 _fcpMimetype.c \
 _fcpGet.c \
 _fcpPut.c \
+_fcpURI.c \
 ezFCPlib.h \
 fcpTest.c \
 fcpCreation.c \

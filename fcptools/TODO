@@ -10,6 +10,8 @@ that can be implemented by any competent C programmer.
 General
 ----------------
 
++ Remove the POSIX dependancy (ugh).
++ Add -ansi for linux platform (development) and restrict everywhere else.
 + Make sure the "undocumented" switches are documented at least in fcpput, fcpget, etc.
 + Send email to Dev about MetaRedirect control doc.
 

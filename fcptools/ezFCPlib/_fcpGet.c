@@ -34,8 +34,6 @@
 
 #include "ez_sys.h"
 
-static int read_metadata_line(hFCP *hfcp, char *line, int size);
-
 
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
@@ -70,7 +68,7 @@ static int read_metadata_line(hFCP *hfcp, char *line, int size);
 */
 int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 {
-	char get_command[L_FILE_BLOCKSIZE+1];  /* used *twice* in this function */
+	char buf[L_FILE_BLOCKSIZE+1];  /* used *twice* in this function */
 
 	int rc;
 	int retry;
@@ -78,22 +76,30 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 	unsigned long key_bytes;
 	unsigned long key_count;
 
+	unsigned long meta_count;
 	unsigned long meta_bytes;
+	unsigned long meta_str_len;
 
-	int bytes;
+	char         *meta_str;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpGetBLock(key: \"%s\")", uri);
 
+	/* first thing, clear out the metadata structure
+		 to make way for new and improved data ! */
+	_fcpDestroyHMetadata_cdocs(hfcp->key->metadata);
+	
 	/* Here we can be certain that the files have been properly initialized */
 
-	rc = snprintf(get_command, L_FILE_BLOCKSIZE,
+	rc = snprintf(buf, L_FILE_BLOCKSIZE,
 								"ClientGet\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nEndMessage\n",
 								(hfcp->options->remove_local == 0 ? "false" : "true"),
 								uri,
 								hfcp->htl
 								);
 
+	meta_str = NULL;
 	retry = hfcp->options->retry;
+
 	fcpParseHURI(keyblock->uri, uri);
 
 	/********************************************************************/
@@ -121,7 +127,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 						hfcp->key->metadata->size);
 
 		/* Send ClientGet command */
-		if ((rc = _fcpSend(hfcp->socket, get_command, strlen(get_command))) == -1) {
+		if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
 			_fcpLog(FCP_LOG_CRITICAL, "Error sending ClientGet message");
 			goto cleanup;
 		}
@@ -240,60 +246,77 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 	/******************************************************************/
 
 	/* only link if necessary */
-	if (meta_bytes)	_fcpBlockLink(metablock, _FCP_WRITE);
+	if (meta_bytes)
+		_fcpBlockLink(metablock, _FCP_WRITE);
+	
+	meta_str_len = 0;
 
+	/* setup the keydata here so that later we can just use it */
+	if (key_bytes) {
+		_fcpLog(FCP_LOG_DEBUG, "link key file");
+		_fcpBlockLink(keyblock, _FCP_WRITE);
+	}
+	
 	while (meta_bytes > 0) {
-
-		/* re-use the get_command string */
-		if ((bytes = read_metadata_line(hfcp, get_command, L_FILE_BLOCKSIZE)) <= 0) {
-			_fcpLog(FCP_LOG_DEBUG, "read_metadata_line() returned zero");
+		meta_str = malloc(meta_bytes+1);
+		
+		if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATACHUNK) {
+			_fcpLog(FCP_LOG_DEBUG, "expected DataChunk");
 			
 			rc = -1;
 			goto cleanup;
 		}		
 
-		_fcpWrite(metablock->fd, get_command, bytes);
+		/* set count to the min(datachunk.length, metadata_remaining) */
+		meta_count = (hfcp->response.datachunk.length > meta_bytes ?
+									meta_bytes : hfcp->response.datachunk.length);
+		
+		_fcpWrite(metablock->fd, hfcp->response.datachunk.data, meta_count);
+		memcpy(meta_str+meta_str_len, hfcp->response.datachunk.data, meta_count);
 
-		/* TODO write the raw metadata to a buf and pass into metaparse when done
-			 (only the cdoc; don't parse the 'rest' piece */
+		/* adjust index over raw metadata buffer */
+		meta_str_len += meta_count;
 
-		meta_bytes -= bytes;
+		/* and adjust count of remaining total metadata bytes to process */
+		meta_bytes -= meta_count;
 
 		_fcpLog(FCP_LOG_DEBUG, "meta_bytes remaining: %d", meta_bytes);
 	}
 
 	/* if there was metadata, cleanup */
 	if (hfcp->key->metadata->size > 0) {
+		
+		/* null the buffer */
+		meta_str[meta_str_len] = 0;
+		/*_fcpLog(FCP_LOG_DEBUG, "raw metadata: %s", meta_str);*/
+		
 		_fcpLog(FCP_LOG_VERBOSE, "Read %d bytes of metadata", hfcp->key->metadata->size);
 		_fcpBlockUnlink(metablock);
 
-		/* TODO parse into hfcp struct and save */
-	}
+		if (!hfcp->key->metadata) {
+			_fcpLog(FCP_LOG_CRITICAL, "hMetadata struct not malloc'ed");
 
-	if (key_bytes) {
-		_fcpLog(FCP_LOG_DEBUG, "link key file");
-		_fcpBlockLink(keyblock, _FCP_WRITE);
-	}
+			rc = -1;
+			goto cleanup;
+		}
 
-	/* if the DataChunk hasn't been received, do a NOP and let the loop
-		 structure carry into the key section */
-	if (hfcp->response.datachunk._index == -1);
+		/* parse the metadata */
+		_fcpLog(FCP_LOG_DEBUG, "parsing the metadata");
 
-	else if (hfcp->response.datachunk._index < hfcp->response.datachunk.length) {
-		
-		_fcpWrite(keyblock->fd,
-							hfcp->response.datachunk.data + hfcp->response.datachunk._index,
-							hfcp->response.datachunk.length - hfcp->response.datachunk._index);
+		_fcpMetaParse(hfcp->key->metadata, meta_str);
 
-		key_bytes -= (hfcp->response.datachunk.length - hfcp->response.datachunk._index);
-	}
-
-	/* this shouldn't happen */
-	else if (hfcp->response.datachunk._index != hfcp->response.datachunk.length) {
-		_fcpLog(FCP_LOG_DEBUG, "OUCH this shouldn't happen");
-
-		rc = -1;
-		goto cleanup;
+		/* handle the partial datachunk */
+		if (meta_count < hfcp->response.datachunk.length) {
+			
+			/* the first 'meta_count' bytes are metadata, the remaining bytes in the
+				 datachunk are key data */
+			
+			_fcpWrite(keyblock->fd,
+								hfcp->response.datachunk.data + meta_count,
+								hfcp->response.datachunk.length - meta_count);
+			
+			key_bytes -= (hfcp->response.datachunk.length - meta_count);
+		}
 	}
 
 	/* at this point, we need to fetch a new DataChunk and dump em all
@@ -304,7 +327,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		/* the remaining data chunks should be just key data */
 		if ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
 			
-			_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");
+			/*_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");*/
 
 			key_count = hfcp->response.datachunk.length;
 			_fcpWrite(keyblock->fd, hfcp->response.datachunk.data, key_count);
@@ -342,115 +365,11 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 	return rc;
 }
 
-/*
-	On success, function set hfcp->key->uri with CHK of data.
- */
-int _fcpGetFollowRedirects(hFCP *hfcp, char *uri)
+
+int _fcpGetSplitfile(hFCP *hfcp)
 {
-	char  get_uri[L_URI+1];
+	hfcp = hfcp;
 
-	int   rc;
-	int   depth;
-
-	/* make calls to _fcpGetBLock() until we have exhausted any/all redirects */
-
-	_fcpLog(FCP_LOG_DEBUG, "_fcpGetFollowRedirects()");
-
-	strncpy(get_uri, uri, L_URI);
-	depth = 0;
-
-	/* this call will put metadata control doc info in
-		 hfcp->key->metadata->dcocs */
-
-	rc = _fcpGetBLock(hfcp,
-										hfcp->key->tmpblock,
-										hfcp->key->metadata->tmpblock,
-										get_uri);
-
-	_fcpLog(FCP_LOG_DEBUG, "_fcpGetBLock() returned as rc: %d", rc);
-	
-	while (rc == 0) {
-
-		/* now we have the key data and perhaps metadata */
-
-		/* TODO check for static redirects */
-		/* check the hfcp->key->metadata->cdocs[] array */
-
-		if (hfcp->_redirect) {
-			_fcpLog(FCP_LOG_VERBOSE, "Following redirect to %s", hfcp->_redirect);
-
-			strncpy(get_uri, hfcp->_redirect, L_URI);
-			depth++;
-
-			free(hfcp->_redirect); hfcp->_redirect = 0;
-			
-			rc = _fcpGetBLock(hfcp,
-												hfcp->key->tmpblock,
-												hfcp->key->metadata->tmpblock,
-												get_uri);
-		}
-
-		/* TODO check for date-based redirects */
-		/* calculate date target based on today's date + 'future_insert' parameter */
-
-		else {
-			
-			_fcpLog(FCP_LOG_DEBUG, "got data!");
-			fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
-
-			/* TODO check metadata for meta_redirect flag; if true then
-				 fetch the CHK@ referred and use that metadata
-				 (use *tmp_hfcp)
-			*/
-			
-			break;
-		}
-	}
-	
-	if (rc != 0) return -1;
-
-	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %u",
-					hfcp->key->target_uri->uri_str,
-					hfcp->key->tmpblock->uri->uri_str,
-					depth);
-
-	return 0;
+	return -1;
 }
 
-
-static int read_metadata_line(hFCP *hfcp, char *line, int size)
-{
-	int  i;
-
-	i = 0;
-	while (1) {
-
-		/* check for case where datachunk needs to be 'refreshed' */
-		if ((hfcp->response.datachunk._index == -1) ||
-				(hfcp->response.datachunk._index == hfcp->response.datachunk.length)) {
-
-			_fcpLog(FCP_LOG_DEBUG, "!! refreshing DataChunk");
-			
-			if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATACHUNK) {
-				_fcpLog(FCP_LOG_DEBUG, "expected DataChunk");
-				return -1;
-			}
-		}
-
-		line[i++] = hfcp->response.datachunk.data[hfcp->response.datachunk._index++];
-
-		if (i == size) {
-			_fcpLog(FCP_LOG_DEBUG, "OOPS! truncating metadata line!!");
-			line[i-1] = 0;
-
-			return i-1;
-		}
-
-		if (line[i-1] == '\n') {
-			line[i] = 0;
-
-			/*_fcpLog(FCP_LOG_DEBUG, "I got %d bytes of metadata :%s:", i, line);*/
-			return i;
-		}
-	}
-}

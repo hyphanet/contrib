@@ -157,7 +157,7 @@ typedef int FCPSOCKET;
 #define EZFCP_DEFAULT_HTL          3
 #define EZFCP_DEFAULT_VERBOSITY    FCP_LOG_NORMAL
 #define EZFCP_DEFAULT_LOGSTREAM    stdout
-#define EZFCP_DEFAULT_BLOCKSIZE    1024000  /* default split part size (1,000 * 1,024) */
+#define EZFCP_DEFAULT_BLOCKSIZE    262144  /* default split part size (256kB) */
 #define EZFCP_DEFAULT_RETRY        5
 #define EZFCP_DEFAULT_REGRESS      0
 #define EZFCP_DEFAULT_DELETELOCAL  0
@@ -260,8 +260,7 @@ typedef struct {
 } FCPRESP_DATAFOUND;
 
 typedef struct {
-  long  length;
-	long _index; /* used internally by _fcpGetBLock() */
+  unsigned long  length;
 
   char          *data;
 } FCPRESP_DATACHUNK;
@@ -481,15 +480,20 @@ typedef struct {
 
 	int         cdoc_count;
 	hDocument  *cdocs[128];
-	
-	char       *rest;
 
-	int  _start;  /* intended for internal use */
+	char       *raw;   /* raw freenet metadata (no "rest" parts) */
+	char       *rest;  /* the "rest" part/no freenet cdocs */
+
+	int  _start;  /* intended for internal use in _fcpMetadata.c */
 } hMetadata;
 
 
 typedef struct {
 	int        type;
+
+	int        db_redirect;
+	int        static_redirect;
+	int        splitfile;
 
 	hURI      *uri;        /* always just a CHK@ */
 	hURI      *target_uri; /* holds the final key uri */

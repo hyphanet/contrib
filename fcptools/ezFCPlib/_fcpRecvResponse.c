@@ -364,9 +364,6 @@ static int getrespDataFound(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "received DataFound response");
 
-	/* set to -1 to indicate the DataChunk has not yet been retrieved */
-	hfcp->response.datachunk._index = -1;
-
 	hfcp->response.datafound.datalength = 0;
 	hfcp->response.datafound.metadatalength = 0;
 
@@ -406,10 +403,8 @@ static int getrespDataChunk(hFCP *hfcp)
 {
 	char resp[8193];
 	int  rc;
-	int  len;
 
-	/* set the internal index for later use by _fcpGetBLock() */
-	hfcp->response.datachunk._index = 0;
+	unsigned long len;
 
 	rc = _fcpSockRecvln(hfcp, resp, 8192);
 	

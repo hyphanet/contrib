@@ -99,13 +99,17 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 		}
 		
 		if (rc == STATE_END) {
-
-			if (meta->rest) {
+			
+			/* if there's a rest section to merge with another rest section, bail */
+			if ((meta->rest) && (buf[meta->_start] != 0)) {
 				_fcpLog(FCP_LOG_CRITICAL, "Cannot merge 2 set of 'REST' section metadata");
 				return -1;
 			}
 
-			meta->rest = strdup(buf+meta->_start);
+			if (buf[meta->_start] != 0) {
+				meta->rest = strdup(buf+meta->_start);
+			}
+			
 			meta->_start = -1;
 		}
 
