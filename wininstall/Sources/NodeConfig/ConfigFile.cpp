@@ -158,9 +158,9 @@ void CConfigFile::Load()
 	pGeek->m_announcementPeers = 3;
 	pGeek->m_authTimeout = 30000;
 	pGeek->m_checkPointInterval = 1200;
-	pGeek->m_connectionTimeout = 180000;
-	pGeek->m_hopTimeDeviation = 12000;
-	pGeek->m_hopTimeExpected = 12000;
+	pGeek->m_connectionTimeout = 600000;
+	pGeek->m_hopTimeDeviation = 4000;
+	pGeek->m_hopTimeExpected = 7000;
 	pGeek->m_initialRequests = 10;
 	pGeek->m_localAnnounceTargets = "";
 	pGeek->m_messageStoreSize = 50000;
@@ -171,7 +171,7 @@ void CConfigFile::Load()
 	pGeek->m_rtMaxRefs = 100;
 	pGeek->m_storeType = "freenet";
 	pGeek->m_storeDataFile = "";
-	pGeek->m_streamBufferSize = 65536;
+	pGeek->m_streamBufferSize = 16384;
 	pGeek->m_storeCipherName = "Twofish";
 	pGeek->m_storeCipherWidth = 128;
 
@@ -514,12 +514,18 @@ void CConfigFile::Save()
 	fprintf(fp, "services=mainport,nodestatus\n");
 	fprintf(fp, "\n");
 
-	// FProxy settings
+	// Mainport settings
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Mainport settings\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "mainport.class=freenet.interfaces.servlet.MultipleHttpServletContainer\n");
 	fprintf(fp, "mainport.port=%d\n",pFProxy->m_fproxyport);
+	fprintf(fp, "\n");
+
+	// Fproxy settings
+	fprintf(fp, "########################\n");
+	fprintf(fp, "# FProxy settings\n");
+	fprintf(fp, "########################\n");
 	fprintf(fp, "mainport.params.servlet.1.params.insertHtl=%d\n",pFProxy->m_fproxyinserthtl);
 	fprintf(fp, "mainport.params.servlet.1.params.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
 	fprintf(fp, "mainport.params.servlet.1.params.filter=%s\n",pFProxy->m_bfproxyfilter?"true":"false");
@@ -694,11 +700,11 @@ void CConfigFile::processItem(char *tok, char *val)
 	// Servlets & FProxy
 	else if (!strcmp(tok, "services"))
 	{
-		pFProxy->m_bfproxyservice = (strstr(_strupr(val),"FPROXY"))?true:false;
-		pDiagnostics->m_nodeinfoservlet = (strstr(_strupr(val),"NODEINFO"))?TRUE:FALSE;
-		// absorb obsoleted 'nodestatus' setting - don't set m_nodeinfoservlet to FALSE
+		pFProxy->m_bfproxyservice = (strstr(_strupr(val),"MAINPORT"))?true:false;
+		pDiagnostics->m_nodeinfoservlet = (strstr(_strupr(val),"MAINPORT"))?TRUE:FALSE;
+/*		// absorb obsoleted 'nodestatus' setting - don't set m_nodeinfoservlet to FALSE
 		// because that could replace it if the previous line had already set it to TRUE!
-		if (strstr(_strupr(val),"NODESTATUS") ) pDiagnostics->m_nodeinfoservlet = TRUE;
+		if (strstr(_strupr(val),"NODESTATUS") ) pDiagnostics->m_nodeinfoservlet = TRUE; */
 	}
 	else if (!strcmp(tok, "mainport.class"))
 		pFProxy->m_fproxyclass = val;
@@ -743,7 +749,7 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "logOutboundRequests"))
 		pDiagnostics->m_bLogOutboundRequests = atobool(val);
 
-		// absorb obsoleted 'nodestatus' settings
+/*		// absorb obsoleted 'nodestatus' settings
 	else if (!strcmp(tok, "nodestatus.port"))
 	{
 		if (pDiagnostics->m_nodeinfoport == -1)
@@ -754,6 +760,7 @@ void CConfigFile::processItem(char *tok, char *val)
 		if (!pDiagnostics->m_nodeinfoclass.Compare(""))
 			pDiagnostics->m_nodeinfoclass = val;
 	}
+*/
 		// replacement nodeinfo settings
 	else if (!strcmp(tok, "nodeinfo.port"))
 		pDiagnostics->m_nodeinfoport = atoi(val);
@@ -764,6 +771,19 @@ void CConfigFile::processItem(char *tok, char *val)
 		pDiagnostics->m_nFailureTableEntries = atoi(val);
 	else if (!strcmp(tok, "failureTableTime"))
 		pDiagnostics->m_nFailureTableTimeSeconds = atoi(val)/1000;
+	else if (!strcmp(tok, "fproxy.port"))
+		pFProxy->m_fproxyport = atoi(val);
+/*	else if (!strstr(tok, "fproxy.")) {
+		CString s(tok);
+		s.Replace("fproxy.", "mainport.params.servlet.1.");
+		this->processItem((char *)s.GetString() , val);
+	}
+	else if (!strstr(tok, "nodeinfo.")) {
+		CString s(tok);
+		s.Replace("nodeinfo.", "mainport.params.servlet.2.");
+		this->processItem((char *)(s.GetString()), val);
+	}
+*/
 
 	else
 	{

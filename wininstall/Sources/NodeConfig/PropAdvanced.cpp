@@ -51,7 +51,7 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_maxHopsToLive, m_maxHopsToLive);
 	DDV_MinMaxUInt(pDX, m_maxHopsToLive, 10, 50);
 	DDX_Text(pDX, IDC_maximumThreads, m_maximumThreads);
-	DDV_MinMaxUInt(pDX, m_maximumThreads, 1, 1024);
+	DDV_MinMaxUInt(pDX, m_maximumThreads, 0, 1024);
 	DDX_Text(pDX, IDC_outputBandwidthLimit, m_outputBandwidthLimit);
 	DDV_MinMaxUInt(pDX, m_outputBandwidthLimit, 0, 999999999);
 	DDX_Text(pDX, IDC_SEEDFILE, m_seedFile);
@@ -162,7 +162,7 @@ void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	CUpdateSpin<UINT> cus(m_maximumThreads, 1, 1024);
+	CUpdateSpin<UINT> cus(m_maximumThreads, 0, 1024);
 	if (cus.Update(pNMUpDown->iDelta) )
 	{
 		UpdateData(FALSE);
