@@ -14,22 +14,6 @@ public class Assert {
     protected Assert() {
     }
 
-    /**
-     * @deprecated
-     */
-    public static void assert(boolean condition) {
-        if (!condition)
-            throw new AssertionFailedError();
-    }
-
-    /**
-     * @deprecated
-     */
-    public static void assert(String message, boolean condition) {
-        if (!condition)
-            throw new AssertionFailedError(message);
-    }
-
     public static void assertEquals(boolean expected, boolean actual) {
         if (!(expected && actual) && (actual || expected))
             throw new AssertionFailedError(expected + " != " + actual);

@@ -5,7 +5,7 @@ import junit.framework.*;
  * A simple program that runs any tests found in a list of classes.
  *
  * This is not interface compatible with any of the (more advanced) actual
- * JUnit test runners, wherefore the package name.
+ * JUnit test runners.
  *
  * @author oskar
  */

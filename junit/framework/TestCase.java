@@ -79,9 +79,10 @@ public abstract class TestCase extends Assert implements Test {
 
     protected void runTest() throws Throwable {
         try {
+            //System.err.println(this);
             Method m = this.getClass().getMethod(name, new Class[0]);
+            //System.err.println(this.getClass() +" :    " + m);
             m.invoke(this, new Object[0]);
-        } catch (NoSuchMethodException e) {
         } catch (InvocationTargetException e) {
             throw e.getTargetException();
         } 
