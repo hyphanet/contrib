@@ -21,5 +21,6 @@ environments.  This includes:
 -------------------------------------------------------------------------------
 Non-port specific tasks:
 
-* Integrate getopts common logic for all the command line utils.  Add parameter
-  '--version' to dump value of the #define VERSION (via Automake).
+* Add command line param '--version'.
+* Pretty up the command line info screens.
+
