@@ -40,11 +40,11 @@ LicenseData GNU.txt
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
-InstallDir "$PROGRAMFILES\Freenet0.4"
+InstallDir "$PROGRAMFILES\Freenet0.5 pre5"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 ShowInstDetails show
 InstProgressFlags smooth
-CheckBitmap "checked.bmp"
+#CheckBitmap "checked.bmp"
 BGGradient
 AutoCloseWindow true
 ;-----------------------------------------------------------------------------------
@@ -158,6 +158,8 @@ Section
 # sections come the localization parts and *then* we can start the actual
 # setup/configuration of Freenet
 
+  LogSet on
+
   # First of all see if we need to install the mfc42.dll
   # Each Win user should have it anyway
   IfFileExists "$SYSDIR\Mfc42.dll" MfcDLLExists
@@ -236,12 +238,12 @@ SectionIn 1,2
    CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
    
    # Start->Programs->Freenet
-   CreateDirectory "$SMPROGRAMS\Freenet0.4"
-   CreateShortCut "$SMPROGRAMS\Freenet0.4\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   WriteINIStr "$SMPROGRAMS\Freenet0.4\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
-   ;WriteINIStr "$SMPROGRAMS\Freenet0.4\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
-   CreateShortcut "$SMPROGRAMS\Freenet0.4\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot" "" "" 0
-   CreateShortCut "$SMPROGRAMS\Freenet0.4\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
+   CreateDirectory "$SMPROGRAMS\Freenet0.5 pre5"
+   CreateShortCut "$SMPROGRAMS\Freenet0.5 pre5\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   WriteINIStr "$SMPROGRAMS\Freenet0.5 pre5\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
+   ;WriteINIStr "$SMPROGRAMS\Freenet0.5 pre5\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   CreateShortcut "$SMPROGRAMS\Freenet0.5 pre5\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot" "" "" 0
+   CreateShortCut "$SMPROGRAMS\Freenet0.5 pre5\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
  
  ;---------------------------------------------------------------------------------------
