@@ -504,7 +504,8 @@ main (int argc, char **argv)
 	    begin++;
         }
     }
-    
+
+    signal(SIGPIPE, SIG_IGN);
     nntp_connect(nntpserver);
     nntp_xover(argv[optind], begin, end);
     
