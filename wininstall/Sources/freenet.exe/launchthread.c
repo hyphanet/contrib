@@ -24,6 +24,9 @@ const char szerrMsg[]=	"Couldn't start the node,\n"
 const char szerrTitle[]="Error starting node";
 
 
+/* handles, etc. */
+PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
+
 
 DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 {
@@ -120,8 +123,12 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 				break;
 
 			case WAIT_OBJECT_0:
-				// thread has died - begin flashing icon:
-				nFreenetMode=FREENET_CANNOT_START;
+				{
+					// thread has died - begin flashing icon:
+					DWORD dwError;
+					GetExitCodeProcess(prcInfo.hProcess, &dwError);
+					nFreenetMode=FREENET_CANNOT_START;
+				}
 				//break;  NO BREAK - FALL THROUGH!
 
 			case WAIT_TIMEOUT:
@@ -191,21 +198,14 @@ void MonitorThreadKillFserve()
 
 		/* get the window handle from the process ID by matching all
 		   known windows against it (not really ideal but no alternative) */
-		EnumWindows(KillWindowByProcessId, (LPARAM)prcInfo.dwProcessId);
+		EnumWindows(KillWindowByProcessId, (LPARAM)(prcInfo.dwProcessId) );
 
 		/* wait for the node to shutdown (five seconds) */
 		if (WaitForSingleObject(prcInfo.hProcess,5000) == WAIT_TIMEOUT)
 		{
-			/* Didn't work, ok, so, try sending a WM_CLOSE message to the
-			   thread message queue of the application */
-			PostThreadMessage(prcInfo.dwThreadId, WM_CLOSE, 0, 0);
-			
-			/* wait for the node to shutdown (two-and-a-half seconds) */
-			if (WaitForSingleObject(prcInfo.hProcess,2500) == WAIT_TIMEOUT)
-			{
-				/* OH MY, nothing worked - ok then, brutally close the node: */
-				TerminateProcess(prcInfo.hProcess,0);
-			}
+			/* OH MY, nothing worked - ok then, brutally close the node: */
+			TerminateProcess(prcInfo.hProcess,0);
+			WaitForSingleObject(prcInfo.hProcess,INFINITE);
 		}
 		CloseHandle(prcInfo.hThread);
 		CloseHandle(prcInfo.hProcess);
@@ -225,21 +225,81 @@ void MonitorThreadKillFserve()
    and sit back and wait for the results */
 BOOL CALLBACK KillWindowByProcessId(HWND hWnd, LPARAM lParam)
 {
+
+#ifdef _DEBUG
+	DWORD dwError;
+#endif
+
 	/* called for each window in system */
 	/* we're using it to hunt for windows created by the freenet node process */
 	/* First find out if this window was created by the freenet node process: */
-	DWORD dwThreadId;
-	GetWindowThreadProcessId(hWnd, &dwThreadId);
-	if (dwThreadId != (DWORD)lParam)
+	DWORD dwProcessId=0;
+	DWORD dwWndProc=0;
+
+	GetWindowThreadProcessId(hWnd, &dwProcessId);
+	if (dwProcessId != (DWORD)lParam)
 	{
 		/* This window was NOT created by the process... keep enumerating */
 		return TRUE;
 	}
 
-	/* This window WAS created by the process - 
-	   Post a swift WM_CLOSE message to tell the window to close the underlying app */
-	PostMessage(hWnd, WM_CLOSE, 0, 0);
+	/* This window WAS created by the process - but is it the node window? */
 
+	/*	Is this a console window?  Console windows are generally characterised by the
+		fact that they have no WindowProc.  We can find this out! */
+	dwWndProc = GetWindowLong(hWnd, GWL_WNDPROC);
+	if (dwWndProc==0)
+	{
+		#ifdef _DEBUG
+		dwError = GetLastError();
+		#endif
+		dwWndProc = GetClassLong(hWnd, GCL_WNDPROC);
+
+		if (dwWndProc==0)
+		{
+			#ifdef _DEBUG
+			dwError=GetLastError();
+			#endif
+		
+			// This window has no WndProc ... so probably not much use sending
+			// it a WM_CLOSE message then.  Chances are it's a console window.  Keep enumerating
+			return TRUE;
+		}
+	}
+
+
+	/* Do a string comparison on the window to see if it begins with the text "Freenet node"
+		(case insensitive) */
+	/* Oh boy, you know what?  The PREVIOUS test is so effective, we don't even need to do this ! */
+	/*
+	{
+		char szWindowText[256];
+		GetWindowText(hWnd, szWindowText, 256);
+		if (lstrlen(szWindowText) < 12)
+		{
+			// Window title too short - shorter than "Freenet node"
+			return TRUE;
+		}
+	
+		if (CompareString(	LOCALE_SYSTEM_DEFAULT,
+							NORM_IGNORECASE | SORT_STRINGSORT | NORM_IGNOREWIDTH,
+							szWindowText,
+							12, // compare first 12 characters only, i.e. substring match
+							"Freenet node",
+							-1) != 2 )
+		{
+			// Confused?  CompareString returns '2' if the strings are identical
+			// Clearly this window's title doesn't begin with "Freenet node" so skip this window
+			// Keep enumerating
+			return TRUE;
+		}
+	}
+	*/
+	
+	/* Finally - this is a freenet node window. Sned it a swift "WM_SYSCOMMAND(SC_CLOSE)" message to tell
+		the window to close the underlying app */
+	SendMessage(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+	
 	/* return true to keep enumerating - there may be more windows that need shutting down */
 	return TRUE;
 }
