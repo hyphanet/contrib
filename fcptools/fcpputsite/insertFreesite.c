@@ -141,7 +141,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                     break;
                 }
                 else
-                    _fcpSleep( 1, 0 );  // one or more threads currently running
+                    crSleep( 1, 0 );  // one or more threads currently running
             }
         }
 
@@ -159,7 +159,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         if (firstThreadSlot == maxThreads)
         {
             // no - wait a while and restart
-            _fcpSleep( 1, 0 );
+            crSleep( 1, 0 );
 			if (++clicks == 180)
 				_fcpLog(FCP_LOG_DEBUG, "fcpputsite: all thread slots full");
             continue;
@@ -177,7 +177,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         pPutJob->threadSlot = threadStatus + firstThreadSlot;
         pPutJob->metadata = NULL;
         pPutJob->key[0] = '\0';
-        LaunchThread(putsiteThread, (void *)pPutJob);
+        crLaunchThread(putsiteThread, (void *)pPutJob);
         //sucksite_thread(pPutJob);
 
     }			// 'while (inserting files)'

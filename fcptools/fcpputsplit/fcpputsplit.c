@@ -318,7 +318,7 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
             pfcpPutJob->threadSlot = &(threadStatus[lastrequestedblock]);
             pfcpPutJob->blocksize= blockSizes[lastrequestedblock];
             pfcpPutJob->key= &(blockCHK[lastrequestedblock]);
-            LaunchThread(splitblockThread, (void *)pfcpPutJob);
+            crLaunchThread(splitblockThread, (void *)pfcpPutJob);
 
             lastrequestedblock++;
 
@@ -345,7 +345,7 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
         }
 
 
-        _fcpSleep( 50, 0 );
+        crSleep( 50, 0 );
 
 
         /// freeing finished blocks
