@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
   
   /* Call before calling *any* other fcp*() routines */
   if (fcpStartup(logstream, verbosity)) {
-    fprintf(stdout, "Failed to initialize ezFCP library\n");
+    fprintf(stdout, "Failed to initialize FCPLib\n");
     rc = -1;
 		goto cleanup;
   }
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
 		
     while ((bytes = read(fd, buf, 8192)) > 0)
       fcpWriteKey(hfcp, buf, bytes);
-		
+
     /* not sure why this is here.. */
     fflush(stdin);
 		
@@ -173,23 +173,22 @@ int main(int argc, char* argv[])
 			rc = -1;
 			goto cleanup;
 		}
+
+		fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
   }
   else { /* call fcpPutKeyFromFile() */
 		
 		for (i=0; i<file_count; i++) {
 			
 			if (fcpPutKeyFromFile(hfcp, keyuri, files[i], metafile)) {
-				fprintf(stdout, "Could not insert \"%s\" into freenet from file \"%s\"\n", keyuri, files[i]);
+				fprintf(stdout, "Could not insert file into Freenet: %s\n", files[i]);
 				rc = -1;
 				goto cleanup;
 			}
 			
-			fprintf(stdout, "%s <= %s\n", hfcp->key->target_uri->uri_str, files[i]);
+			fprintf(stdout, "%s (%s)\n", hfcp->key->target_uri->uri_str, files[i]);
 		}
 	}
-
-	if (file_count > 1)
-		fprintf(stdout, "Put %d/%d files into Freenet\n", i, file_count);
 
 	/* make sure we enter 'cleanup' with a success value; all others with errors (!0) */
 	rc = 0;
@@ -265,7 +264,7 @@ static void parse_args(int argc, char *argv[])
 
     {"verbosity", 1, 0, 'v'},
     {"logfile", 1, 0, 'f'},
-    {"genkeysy", 0, 0, 'g'},
+    {"genkeys", 0, 0, 'g'},
 
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},

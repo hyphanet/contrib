@@ -86,19 +86,31 @@ int get_file(hFCP *hfcp, char *uri)
 		minutes = (int)(hfcp->options->timeout / 1000 / 60);
 		seconds = ((hfcp->options->timeout / 1000) - (minutes * 60));
 
-		/* connect to Freenet FCP */
-		if (_fcpSockConnect(hfcp) != 0)	return -1;
+		/* link to the tempblocks */
+		_fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
+		_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
 
-		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, timeout: %d, keysize: n/a, metasize: n/a, skip_local: %s, rawmode: %d",
+		/* connect to Freenet FCP */
+		if ((rc = _fcpSockConnect(hfcp)) != 0) {
+			_fcpLog(FCP_LOG_CRITICAL, "Could not connect to node %s:%d", hfcp->host, hfcp->port);
+			goto cleanup;
+		}
+
+		_fcpLog(FCP_LOG_VERBOSE, "sending ClientGet message to %s:%d, htl=%d, skip_local=%s",
+						hfcp->host,
+						hfcp->port,
 						hfcp->htl,
-						hfcp->options->regress,
-						hfcp->options->timeout,
-						(hfcp->options->skip_local ? "Yes" : "No"),
-						hfcp->options->rawmode);
+						(hfcp->options->skip_local ? "Yes" : "No"));
+
 		
+		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%d, keysize=%d, metasize=%d",
+						hfcp->options->regress,
+						hfcp->key->size,
+						hfcp->key->metadata->size);
+
 		/* Send ClientGet command */
 		if ((rc = _fcpSend(hfcp->socket, get_command, strlen(get_command))) == -1) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not send Get message");
+			_fcpLog(FCP_LOG_CRITICAL, "Error sending ClientGet message");
 			goto cleanup;
 		}
 		
@@ -125,7 +137,7 @@ int get_file(hFCP *hfcp, char *uri)
 			break;
 			
 		case FCPRESP_TYPE_RESTARTED:
-			_fcpLog(FCP_LOG_VERBOSE, "Received restarted message");
+			_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message");
 			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
 			
 			/* disconnect from the socket */
@@ -145,7 +157,7 @@ int get_file(hFCP *hfcp, char *uri)
 			break;
 
 		case FCPRESP_TYPE_ROUTENOTFOUND: /* Unreachable, Restarted, Rejected */
-			_fcpLog(FCP_LOG_VERBOSE, "Received 'route not found' message");
+			_fcpLog(FCP_LOG_VERBOSE, "Received RouteNotFound message");
 			_fcpLog(FCP_LOG_DEBUG, "unreachable: %d, restarted: %d, rejected: %d",
 							hfcp->response.routenotfound.unreachable,
 							hfcp->response.routenotfound.restarted,
@@ -154,7 +166,7 @@ int get_file(hFCP *hfcp, char *uri)
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
-			/* unlink the temp files.. they'll be re-linked on look re-entry */
+			/* unlink the temp files.. they'll be re-linked on loop re-entry */
 			_fcpUnlink(hfcp->key->tmpblock);
 			_fcpUnlink(hfcp->key->metadata->tmpblock);
 
@@ -182,11 +194,11 @@ int get_file(hFCP *hfcp, char *uri)
 			break;
 			
 		case FCPRESP_TYPE_FORMATERROR:
-			_fcpLog(FCP_LOG_CRITICAL, "FormatError - reason: %s", hfcp->response.formaterror.reason);
+			_fcpLog(FCP_LOG_CRITICAL, "Received FormatError message: %s", hfcp->response.formaterror.reason);
 			break;
 			
 		case FCPRESP_TYPE_FAILED:
-			_fcpLog(FCP_LOG_CRITICAL, "Failed - reason: %s", hfcp->response.failed.reason);
+			_fcpLog(FCP_LOG_CRITICAL, "Received Failed message: %s", hfcp->response.failed.reason);
 			break;
 			
 		default:
@@ -209,8 +221,10 @@ int get_file(hFCP *hfcp, char *uri)
 		rc = -1;
     goto cleanup;
 	}
-	
+
 	/* Now we have key data, and possibly meta data waiting for us */
+
+	/* temp blocks are already linked */
 	
 	hfcp->key->metadata->size = meta_bytes = hfcp->response.datafound.metadatalength;
 	hfcp->key->size = key_bytes = (hfcp->response.datafound.datalength - meta_bytes);
@@ -228,9 +242,6 @@ int get_file(hFCP *hfcp, char *uri)
 
 		hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
 
-		/* link to the metadata file (only if there's metadata) */
-		_fcpLink(hfcp->key->metadata->tmpblock, _FCP_WRITE);
-
 		/* keep writing metadata as long as there's metadata to write..
 			 fetching more datachunks when required */
 		
@@ -239,7 +250,7 @@ int get_file(hFCP *hfcp, char *uri)
 		/* index traverses through the raw metadata (char *) */
 		index = 0;
 
-		/* if there's no metadata, the respose will be retrieved and then the loop
+		/* if there's no metadata, the response will be retrieved and then the loop
 			 is exited.. the next code block extracts the key data from the first
 			 response retrieved */
 	
@@ -271,7 +282,7 @@ int get_file(hFCP *hfcp, char *uri)
 			/* if we're done, break out to avoid fetching another chunk prematurely */
 			if (meta_bytes == 0) {
 
-				_fcpLog(FCP_LOG_DEBUG, "finished metadata");
+				_fcpLog(FCP_LOG_VERBOSE, "Read metadata");
 
 				hfcp->key->metadata->raw_metadata[index] = 0;
 				_fcpMetaParse(hfcp->key->metadata, hfcp->key->metadata->raw_metadata);
@@ -294,9 +305,6 @@ int get_file(hFCP *hfcp, char *uri)
 
 	_fcpLog(FCP_LOG_DEBUG, "meta_count: %d, hfcp->response.datachunk.length: %d",
 		meta_count, hfcp->response.datachunk.length);
-
-	/* link to the key file */
-	_fcpLink(hfcp->key->tmpblock, _FCP_WRITE);
 
 	if (meta_count < hfcp->response.datachunk.length) {
 
@@ -342,6 +350,8 @@ int get_file(hFCP *hfcp, char *uri)
 			goto cleanup;
 		}
 	}
+
+	_fcpLog(FCP_LOG_VERBOSE, "Read key data");
 
 	/* all metadata and key data has been written.. yay! */
 	_fcpUnlink(hfcp->key->tmpblock);
@@ -418,7 +428,7 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 			}
 			else { /* key/val pair is redirect */
 
-				_fcpLog(FCP_LOG_DEBUG, "key: %s", key);
+				_fcpLog(FCP_LOG_VERBOSE, "Following redirect to %s", key);
 
 				strncpy(get_uri, key, L_URI);
 				depth++;
@@ -428,8 +438,7 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 		}
 	}
 
-	if (rc != 0)
-		_fcpLog(FCP_LOG_DEBUG, "get_file() returned: %d", rc);
+	if (rc != 0) return -1;
 
 	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %d",
 					hfcp->key->target_uri->uri_str,

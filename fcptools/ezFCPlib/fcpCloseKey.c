@@ -81,11 +81,15 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	key_size  = hfcp->key->size;
 	meta_size = hfcp->key->metadata->size;
 
-	if (key_size > hfcp->options->splitblock)
+	if (key_size > hfcp->options->splitblock) {
+		_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
 		rc = put_fec_splitfile(hfcp);
+	}
 
-	else /* Otherwise, insert as a normal key */
+	else { /* Otherwise, insert as a normal key */
+		_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
 		rc = put_file(hfcp, "CHK@");
+	}
 
 	if (rc) /* bail after cleaning up */
 		goto cleanup;
@@ -110,7 +114,6 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		break;
 	}
 		
-	_fcpLog(FCP_LOG_VERBOSE, "Uri: %s", hfcp->key->target_uri->uri_str);
 	hfcp->key->size = hfcp->key->metadata->size = 0;
 
 	/* delete the tmpblocks before exiting */

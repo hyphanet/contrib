@@ -152,20 +152,21 @@ int main(int argc, char* argv[])
 			rc = -1;
 			goto cleanup;
 		}
+
+		fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
   }
   
   else { /* otherwise get the key and write it to a file */
 		
     if (fcpGetKeyToFile(hfcp, keyuri, file, metafile)) {
-      fprintf(stdout, "Could not retrieve \"%s\" from freenet\n", keyuri);
+      fprintf(stdout, "Could not retrieve key from Freenet: %s\n", keyuri);
       rc = -1;
 			goto cleanup;
     }
 
-		fprintf(stdout, "%s => %s\n", hfcp->key->target_uri->uri_str, file);
+		fprintf(stdout, "%s (%s)\n", hfcp->key->target_uri->uri_str, file);
   }
 
-	/* make sure we enter 'cleanup' with a success value; all others with errors (!0) */
 	rc = 0;
 
  cleanup:

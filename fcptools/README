@@ -25,19 +25,17 @@ for any further information.
 
 All the pieces currently in CVS are:
 
- ezFCPlib:   Freenet Client Protocol Library.
- fcpput:     Insert documents into Freenet.
-*fcpget:     Retrieve documents from Freenet.
-*fcpputsite: Insert a Freesite (or Freenet Website) into Freenet.
-*fcpproxy:   http proxy server; an fproxy replacement (unmaintained).
+ezFCPlib:   Freenet Client Protocol Library.
+fcpput:     Insert documents into Freenet.
+fcpget:     Retrieve documents from Freenet.
+fcpputsite: Insert a Freesite (or Freenet Website) into Freenet.
+fcpproxy:   http proxy server; an fproxy replacement (unmaintained).
 
-Programs marked (*) are not compiled and linked by default.
 ------------------------------------------------------------------------
 
 This version of FCPTools is being overhauled. Currently the tools
-can publish keys (single and FEC-redundant) into Freenet, but not retrieve
-them. The code to retrieve keys is currently being worked out, and as a
-result fcpget and any Get() functions in ezFCPlib are not implemented.
+can publish keys (single and FEC-redundant) into Freenet, and retrieve
+single keys (cannot retrieve FEC files from Freenet).
 
 fcpputsite has not been updated to use the new API in ezFCPlib, so that
 program for the time being remains not implemented. It would be a
@@ -83,7 +81,8 @@ Freenet clients. Time will tell.
 The tools may be compiled one of two ways:
 
 * Microsoft Visual C++ 6.0 on Windows (32-bit only).
-* GNU scripts (autoconf v2.13; automake).
+* Microsoft Visual C++ .NET (after converting the project files).
+* Any system with GNU Make.
 
 
 ------------------
@@ -93,19 +92,18 @@ Building the tools
 Check INSTALL (for GNU compatible setups on any OS), INSTALL.solaris or
 INSTALL.msvc (Visual C++) depending on your OS and development platform.
 
-FCPTools has been successfully tested on:
+FCPTools has been *successfully tested* on:
 
-* Windows 2000.
-  (need confirmation for WinXP, Win98, 2003/.NET).
-* Linux (Debian sid, RedHat 7.3).
-* BSD (FreeBSD, NetBSD).
+* Windows 2K/XP.
+* Debian Linux.
 
-Need confirmation for platforms:
+FCPTools will *compile* on (verified from the SourceForge compile farm):
 
+* Windows NT/2K/XP.
+* Linux.
+* BSD (Free, Open & Net)
 * Solaris
-* MacOS
-* OS/2
-* PalmOS (hah!)
+* OSX
 
 
 ------------
@@ -123,9 +121,7 @@ Options:
   -p, --port num         Freenet node port (default 8481)
   -l, --htl num          Hops to live (default 3)
 
-  -m, --metadata file    Read key metadata from local file
   -s, --stdin            Read key data from stdin
-  -e, --regress num      Number of days to regress (default 3)
   -r, --raw              Raw mode - don't follow redirects
   -v, --verbosity num    Verbosity of log messages (default 2)
                          0=silent, 1=critical, 2=normal, 3=verbose, 4=debug

@@ -20,3 +20,4 @@ The file allocation table (FAT) file system in Win32 operating systems is not
 case sensitive; the installable Windows NT file system (NTFS) of Windows NT
 preserves case for directory listings but ignores case in file searches and
 other system operations.
+

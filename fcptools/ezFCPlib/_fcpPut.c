@@ -83,8 +83,7 @@ int put_file(hFCP *hfcp, char *uri)
 									(hfcp->options->delete_local == 0 ? "false" : "true"),
 									uri,
 									hfcp->htl,
-									hfcp->key->size
-									);
+									hfcp->key->size);
 	else
 		rc = snprintf(put_command, L_FILE_BLOCKSIZE,
 									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
@@ -92,8 +91,7 @@ int put_file(hFCP *hfcp, char *uri)
 									uri,
 									hfcp->htl,
 									hfcp->key->size + hfcp->key->metadata->size,
-									hfcp->key->metadata->size
-									);
+									hfcp->key->metadata->size);
 
 	/********************************************************************/
 
@@ -105,19 +103,25 @@ int put_file(hFCP *hfcp, char *uri)
 		_fcpLog(FCP_LOG_VERBOSE, "%d retries left", retry);
 
 		/* connect to Freenet FCP */
-		if (_fcpSockConnect(hfcp) != 0)	return -1;
+		if ((rc = _fcpSockConnect(hfcp)) != 0) {
+			_fcpLog(FCP_LOG_CRITICAL, "Could not connect to node %s:%d", hfcp->host, hfcp->port);
+			goto cleanup;
+		}
 
-		_fcpLog(FCP_LOG_DEBUG, "sending ClientPut message - htl: %d, regress: %d, timeout: %d, keysize: %d, metasize: %d, delete_local: %s",
+		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%d, htl=%d, delete_local=%s",
+						hfcp->host,
+						hfcp->port,
 						hfcp->htl,
-						hfcp->options->regress,
-						hfcp->options->timeout,
-						hfcp->key->size,
-						hfcp->key->metadata->size,
 						(hfcp->options->delete_local ? "Yes" : "No"));
+
+		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%d, keysize=%d, metasize=%d",
+						hfcp->options->regress,
+						hfcp->key->size,
+						hfcp->key->metadata->size);
 		
 		/* Send ClientPut command */
 		if ((rc = _fcpSend(hfcp->socket, put_command, strlen(put_command))) == -1) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not send Put message");
+			_fcpLog(FCP_LOG_CRITICAL, "Error sending ClientPut message");
 			goto cleanup;
 		}
 
@@ -132,14 +136,14 @@ int put_file(hFCP *hfcp, char *uri)
 				byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 				
 				if ((rc = _fcpRead(hfcp->key->metadata->tmpblock->fd, buf, byte_count)) == 0) {
-					_fcpLog(FCP_LOG_CRITICAL, "Could not read metadata from file");
+					_fcpLog(FCP_LOG_CRITICAL, "Could not read metadata from internal tempfile");
 					rc = -1;
 					goto cleanup;
 				}
 
 				/* we read rc bytes, so send rc bytes and store new return value in rc */
 				if ((rc = _fcpSend(hfcp->socket, buf, rc)) < 0) {
-					_fcpLog(FCP_LOG_CRITICAL, "could not write metadata to socket");
+					_fcpLog(FCP_LOG_CRITICAL, "Could not write metadata to node");
 					rc = -1;
 					goto cleanup;
 				}
@@ -169,14 +173,14 @@ int put_file(hFCP *hfcp, char *uri)
 
 				/* read from source */
 				if ((rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count)) < 0) {
-					_fcpLog(FCP_LOG_CRITICAL, "Could not read key data from file");
+					_fcpLog(FCP_LOG_CRITICAL, "Could not read key data from internal tempfile");
 					rc = -1;
 					goto cleanup;
 				}
 
 				/* write to socket */
 				if ((rc = _fcpSend(hfcp->socket, buf, rc)) < 0) {
-					_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to socket");
+					_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to node");
 					goto cleanup;
 				}
 				
@@ -203,18 +207,18 @@ int put_file(hFCP *hfcp, char *uri)
 			switch (rc) {
 			case FCPRESP_TYPE_SUCCESS:
 
-				_fcpLog(FCP_LOG_VERBOSE, "Received success message");
+				_fcpLog(FCP_LOG_VERBOSE, "Received Success message");
 				fcpParseHURI(hfcp->key->tmpblock->uri, hfcp->response.success.uri);
 				break;
 				
 			case FCPRESP_TYPE_KEYCOLLISION:
 
-				_fcpLog(FCP_LOG_VERBOSE, "Received success message (key collision)");
+				_fcpLog(FCP_LOG_VERBOSE, "Received KeyCollision message (successful)");
 				fcpParseHURI(hfcp->key->tmpblock->uri, hfcp->response.keycollision.uri);
 				break;
 				
 			case FCPRESP_TYPE_RESTARTED:
-				_fcpLog(FCP_LOG_VERBOSE, "Received restarted message");
+				_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message");
 				_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
 				
 				/* disconnect from the socket */
@@ -231,7 +235,7 @@ int put_file(hFCP *hfcp, char *uri)
 				
 			case FCPRESP_TYPE_PENDING:
 
-				_fcpLog(FCP_LOG_VERBOSE, "Received pending message");
+				_fcpLog(FCP_LOG_VERBOSE, "Received Pending message");
 				_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
 
 				break;
@@ -256,7 +260,7 @@ int put_file(hFCP *hfcp, char *uri)
 			case FCPRESP_TYPE_ROUTENOTFOUND:
 				retry--;
 
-				_fcpLog(FCP_LOG_VERBOSE, "Received 'route not found' message");
+				_fcpLog(FCP_LOG_VERBOSE, "Received RoutNotFound message");
 				_fcpLog(FCP_LOG_DEBUG, "unreachable: %d, restarted: %d, rejected: %d",
 								hfcp->response.routenotfound.unreachable,
 								hfcp->response.routenotfound.restarted,
@@ -277,11 +281,11 @@ int put_file(hFCP *hfcp, char *uri)
 				break;
 				
 			case FCPRESP_TYPE_FORMATERROR:
-				_fcpLog(FCP_LOG_CRITICAL, "FormatError - reason: %s", hfcp->response.formaterror.reason);
+				_fcpLog(FCP_LOG_CRITICAL, "Received FormatError message: %s", hfcp->response.formaterror.reason);
 				break;
 				
 			case FCPRESP_TYPE_FAILED:
-				_fcpLog(FCP_LOG_CRITICAL, "Failed - reason: %s", hfcp->response.failed.reason);
+				_fcpLog(FCP_LOG_CRITICAL, "Received Failed message: %s", hfcp->response.failed.reason);
 				break;
 				
 			default:
@@ -296,11 +300,15 @@ int put_file(hFCP *hfcp, char *uri)
 
 	/* if we exhauseted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Failed to insert file after %d retries", hfcp->options->retry);
+
 		rc = EZERR_SOCKET_TIMEOUT;
 		goto cleanup;
 	}
 
   if ((rc != FCPRESP_TYPE_SUCCESS) && (rc != FCPRESP_TYPE_KEYCOLLISION)) {
+		_fcpLog(FCP_LOG_CRITICAL, "Failed to insert file");
+
 		rc = -1;
     goto cleanup;
 	}
@@ -321,8 +329,6 @@ int put_file(hFCP *hfcp, char *uri)
   _fcpSockDisconnect(hfcp);
 	_fcpUnlink(hfcp->key->tmpblock);
 	_fcpUnlink(hfcp->key->metadata->tmpblock);
-
-	_fcpLog(FCP_LOG_DEBUG, "abnormal termination");
 
 	return rc;
 }
@@ -442,13 +448,15 @@ static int fec_segment_file(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "entered fec_segment_file()");
 
-  /* connect to Freenet FCP */
-  if (_fcpSockConnect(hfcp) != 0) return -1;
-
+	/* connect to Freenet FCP */
+	if ((rc = _fcpSockConnect(hfcp)) != 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not connect to node %s:%d", hfcp->host, hfcp->port);
+		goto cleanup;
+	}
+	
 	snprintf(buf, L_FILE_BLOCKSIZE,
 					 "FECSegmentFile\nAlgoName=OnionFEC_a_1_2\nFileLength=%x\nEndMessage\n",
-					 hfcp->key->size
-					 );
+					 hfcp->key->size);
 
 	/* Send FECSegmentFile command */
 	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
@@ -464,19 +472,19 @@ static int fec_segment_file(hFCP *hfcp)
   case FCPRESP_TYPE_SEGMENTHEADER: break;
 		
   case FCPRESP_TYPE_FORMATERROR:
-		_fcpLog(FCP_LOG_CRITICAL, "FormatError - reason: %s", hfcp->response.formaterror.reason);
+		_fcpLog(FCP_LOG_CRITICAL, "Received FormatError message: %s", hfcp->response.formaterror.reason);
 
 		rc = -1;
 		goto cleanup;
 
   case FCPRESP_TYPE_FAILED:
-		_fcpLog(FCP_LOG_CRITICAL, "Failed - reason: %s", hfcp->response.failed.reason);
+		_fcpLog(FCP_LOG_CRITICAL, "Received Failed message: %s", hfcp->response.failed.reason);
 
 		rc = -1;
 		goto cleanup;
 
 	default:
-		_fcpLog(FCP_LOG_DEBUG, "fec_segment_file() - received unknown response code: %d", rc);
+		_fcpLog(FCP_LOG_DEBUG, "* warning.. fec_segment_file() received unknown response code: %d", rc);
 		break;
 	}
 
@@ -597,12 +605,16 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 					 );
 	
 	/* Send FECEncodeSegment message */
-	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1)
+	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not write FECEncodeSegment message to node");
 		goto cleanup;
-
+	}
+	
 	/* Send SegmentHeader */
-	if ((rc = _fcpSend(hfcp->socket, segment->header_str, strlen(segment->header_str))) == -1)
+	if ((rc = _fcpSend(hfcp->socket, segment->header_str, strlen(segment->header_str))) == -1) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not write segment header to node");
 		goto cleanup;
+	}
 
 	_fcpLog(FCP_LOG_DEBUG, "sent FECEncodeSegment message");
 
@@ -622,7 +634,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count);
 		
 		if ((rc = _fcpSend(hfcp->socket, buf, rc)) < 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not write to node: %s", strerror(errno));
+			_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to node");
 			goto cleanup;
 		}
 		
@@ -644,7 +656,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		byte_count = (fi > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: fi);
 		
 		if ((rc = _fcpSend(hfcp->socket, buf, byte_count)) < 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not write trailing bytes");
+			_fcpLog( FCP_LOG_CRITICAL, "Could not write trailing bytes to node");
 			goto cleanup;
 		}
 		
@@ -654,8 +666,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 
 	/* if the response isn't BlocksEncoded, we have a problem */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_BLOCKSENCODED) {
-		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
-		_fcpLog(FCP_LOG_DEBUG, "expected BlocksEncoded message");
+		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected BlocksEncoded message");
 		rc = -1;
 
 		goto cleanup;
@@ -679,8 +690,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		for (fi=0; fi < block_len; ) {
 
 			if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-				_fcpLog(FCP_LOG_CRITICAL, "did not receive expected message");
-				_fcpLog(FCP_LOG_DEBUG, "expected DataChunk message");
+				_fcpLog(FCP_LOG_CRITICAL, "did not receive expected DataChunk message");
 				rc = -1;
 				
 				goto cleanup;
@@ -758,7 +768,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 			if ((rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count)) <= 0) break;
 
 			if ((rc = fcpWriteKey(tmp_hfcp, buf, rc)) < 0) {
-				_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to temporary file");
+				_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to internal tempfile");
 				goto cleanup;
 			}
 			
@@ -774,7 +784,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 
 			if ((rc = fcpWriteKey(tmp_hfcp, buf, byte_count)) < 0) {
-				_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to temporary file");
+				_fcpLog(FCP_LOG_CRITICAL, "Could not zero data to internal tempfile");
 				goto cleanup;
 			}
 
@@ -785,9 +795,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 		_fcpLog(FCP_LOG_DEBUG, "file to insert: %s", tmp_hfcp->key->tmpblock->filename);
 
 		if (fcpCloseKey(tmp_hfcp) != 0) {
-			_fcpLog(FCP_LOG_DEBUG, "close key returned !0");
 			rc = -1;
-			
 			goto cleanup;
 		}
 
@@ -855,7 +863,6 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert check block %d into Freenet", bi);
-
 			goto cleanup;
 		}		
 		
@@ -1026,8 +1033,7 @@ static int fec_make_metadata(hFCP *hfcp)
 	while (bytes) {
 
 		if ((rc = _fcpRecvResponse(tmp_hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-			_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
-			_fcpLog(FCP_LOG_DEBUG, "did not receive expected DataChunk message");
+			_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected DataChunk message");
 			rc = -1;
 
 			goto cleanup;
@@ -1052,12 +1058,7 @@ static int fec_make_metadata(hFCP *hfcp)
 	/* needed to force put_file() to only insert metadata for splitfile manifest */
 	tmp_hfcp->key->size = 0;
 
-	rc = put_file(tmp_hfcp, "CHK@");
-
-	if (rc < 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not insert metadata");
-		goto cleanup;
-	}
+	if ((rc = put_file(tmp_hfcp, "CHK@")) < 0) goto cleanup;
 	
 	_fcpLog(FCP_LOG_DEBUG, "fec_make_metadata() was successful; inserted key: %s", tmp_hfcp->key->tmpblock->uri->uri_str);
 

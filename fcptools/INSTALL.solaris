@@ -3,11 +3,8 @@ Basic Installation for Solaris
 
 These are Solaris specific installation instructions.
 
-Follow the instructions in INSTALL, substituting 'make' with 'gmake'.
-Hopefully, everything else is the same.  Feedback from Solaris users
-would be much appreciated.
-
-As of this time (2002-07-18) the tools do not compile on Solaris.
+Follow the instructions in INSTALL, substituting 'make' with 'gmake'
+(if necessary). At any rate make sure you use GNU make.
 
 -joliveri
 

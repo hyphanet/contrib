@@ -35,18 +35,32 @@
 
 /*
 	fcpPutKeyFromFile()
+	
+	Parameters:
 
-	Function tests the validity of it's arguments.
+	- hFCP *hfcp
+	Pointer to a created & initialized struct hFCP.
+	
+	- char *key_uri
+	Key URI. Possible variants:
+
+	1. CHK@
+	2. KSK@<key name>
+	3. SSK@<private key>[/<docname>]
+	
+	- char *key_filename
+	Filename to insert as key data
+
+	- char *meta_filename
+	Filename to insert as metadata (or NULL for no metadata)
 
 	Function returns:
 	- Zero on success
-	- Negative integer on ERROR.
-
-	- hfcp->key->uri: set to CHK@ of key data (irrelevant of key uri).
-	- hfcp->key->target_uri: set to actual URI (CHK, SSK, KSK).
-
-	On a return code < 0, hFCP->error is set to error description (or NULL if no desc).
+	- Negative integer on error
 */
+
+/* This function deletes the tmpfiles before exiting. The "_" version does not */
+
 int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
 	int rc;
@@ -80,7 +94,7 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 	if (key_filename) {
 		if ((hfcp->key->size = _fcpFilesize(key_filename)) < 0) {
 
-			_fcpLog(FCP_LOG_CRITICAL, "Key data not found in file \"%s\"", key_filename);
+			_fcpLog(FCP_LOG_CRITICAL, "Key file not found: %s", key_filename);
 			return -1;
 		}
 	}
@@ -90,7 +104,7 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 	if (meta_filename) {
 		if ((hfcp->key->metadata->size = _fcpFilesize(meta_filename)) < 0) {
 
-			_fcpLog(FCP_LOG_CRITICAL, "Metadata not found in file \"%s\"", meta_filename);
+			_fcpLog(FCP_LOG_CRITICAL, "Metadata file not found: %s", meta_filename);
 			return -1;
 		}
 	}
@@ -106,15 +120,19 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
-	_fcpLog(FCP_LOG_VERBOSE, "Copying tmp files");
+	_fcpLog(FCP_LOG_DEBUG, "copying tmp files");
 
 	if (hfcp->key->size)
-		if (_fcpCopyFile(hfcp->key->tmpblock->filename, key_filename) < 0)
+		if (_fcpCopyFile(hfcp->key->tmpblock->filename, key_filename) < 0) {
+			_fcpLog(FCP_LOG_CRITICAL, "Could not copy internal tempfile key %s", key_filename);
 			return -1;
+		}
 
-	if (hfcp->key->metadata->size)
+	if (hfcp->key->metadata->size) {
 		if (_fcpCopyFile(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
+			_fcpLog(FCP_LOG_CRITICAL, "Could not copy internal tempfile metadata %s", meta_filename);
 			return -1;
+	}
 
 	/* Now insert the key data as a CHK@, and later we'll insert a redirect
 		 if necessary. If it's larger than L_BLOCK_SIZE, insert as an FEC
@@ -126,17 +144,19 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 #endif
 
 	if (hfcp->key->size > hfcp->options->splitblock) {
-		_fcpLog(FCP_LOG_VERBOSE, "Start FEC encoded insert");
+		_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
 		rc = put_fec_splitfile(hfcp);
 	}
 	
 	else { /* Otherwise, insert as a normal key */
-		_fcpLog(FCP_LOG_VERBOSE, "Start basic insert");
+		_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
 		rc = put_file(hfcp, "CHK@");
 	}
 
-	if (rc) /* bail after cleaning up */
+	if (rc) { /* bail after cleaning up */
+		_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
 		goto cleanup;
+	}
 
 	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */
 	/* create the final key as a re-direct to the inserted CHK@ */
@@ -175,17 +195,15 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 		}
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
+	_fcpLog(FCP_LOG_DEBUG, "successfully inserted key %s from file %s", hfcp->key->target_uri->uri_str, key_filename);
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
 
 	return 0;
 
  cleanup: /* rc should be set to an FCP_ERR code */
 
-	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file: %s", key_filename);
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
 
 	return rc;
 }
-
 

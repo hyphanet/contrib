@@ -7,6 +7,10 @@ Compiling FCPTools on Windows is easy with Visual C++.  Open the project
 workspace fcptools.dsw, then do either a Batch Build or Rebuild All to
 compile the ezFCPlib library and command line tools.
 
+FCPTools will also compile in the .NET environment after the project
+files are converted to MSVC 7 format (opening the .dsw file in .NET
+will prompt the user to convert).
+
 If the build process is more complicated than this, there is a problem
 and should be reported to either myself (ilnero@gmx.net) or
 devl@freenetproject.org when all else fails.

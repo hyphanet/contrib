@@ -52,22 +52,23 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	key or a manifest for a splitfile */
 
 	fcpParseHURI(hfcp->key->target_uri, key_uri);
-	fcpParseHURI(hfcp->key->tmpblock->uri, key_uri);
+
+	/* TODO: implement splitfile logic */
 
 	/* if in normal mode, follow the redirects */
 	if (hfcp->options->rawmode == 0) {
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Starting recursive retrieve");
+		_fcpLog(FCP_LOG_VERBOSE, "Starting recursive retrieve (will follow redirects)");
 		rc = get_follow_redirects(hfcp, key_uri);
 	}
 	else { /* RAWMODE */
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Start basic retrieve");
+		_fcpLog(FCP_LOG_VERBOSE, "Starting basic retrieve (rawmode)");
 		rc = get_file(hfcp, key_uri);
 	}
 
 	if (rc) { /* bail after cleaning up */
-		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
+		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key");
 		rc = -1;
 		goto cleanup;
 	}
@@ -78,25 +79,35 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	
 	/* TODO: check metadata to detect splitfiles */
 
-	_fcpLog(FCP_LOG_DEBUG, "Copying tmp files");
+	_fcpLog(FCP_LOG_DEBUG, "copying tmp files");
 
-	if (key_filename)
-		if (_fcpCopyFile(key_filename, hfcp->key->tmpblock->filename) < 0) {
-			rc = -1;
-			goto cleanup;
-		}
+	if (key_filename) 
+		if (hfcp->key->size)
+
+			if (_fcpCopyFile(key_filename, hfcp->key->tmpblock->filename) < 0) {
+				_fcpLog(FCP_LOG_CRITICAL, "Could not copy internal tempfile key %s", key_filename);
+				
+				rc = -1;
+				goto cleanup;
+			}
 
 	if (meta_filename)
-		if (_fcpCopyFile(meta_filename, hfcp->key->metadata->tmpblock->filename) < 0) {
-			rc = -1;
-			goto cleanup;
-		}
+		if (hfcp->key->metadata->size)
 
-	_fcpLog(FCP_LOG_VERBOSE, "Retrieved key: %s", hfcp->key->target_uri->uri_str);
-
+			if (_fcpCopyFile(meta_filename, hfcp->key->metadata->tmpblock->filename) < 0) {
+				_fcpLog(FCP_LOG_CRITICAL, "Could not copy internal tempfile metadata %s", meta_filename);
+				
+				rc = -1;
+				goto cleanup;
+			}
+	
+	_fcpLog(FCP_LOG_DEBUG, "Retrieved key: %s", hfcp->key->target_uri->uri_str);
+	
 	/* delete temp files before exiting */
 	_fcpDeleteFile(hfcp->key->tmpblock);
 	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+
+	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
 
 	return 0;
 
@@ -105,6 +116,8 @@ cleanup:
 	/* delete temp files before exiting */
 	_fcpDeleteFile(hfcp->key->tmpblock);
 	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+
+	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
 
 	return rc;
 }
