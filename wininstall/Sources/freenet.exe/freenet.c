@@ -27,6 +27,7 @@
 #include "launchthread.h"
 #include "refs.h"
 #include "logfile.h"
+#include "stdlib.h" // for atol
 
 /******************************************************
  *  G L O B A L S                                     *
@@ -135,7 +136,9 @@ char szFserveSeedCmdPre[BUFLEN];	/* used to store "--seed" */
 char szFserveSeedCmdPost[BUFLEN];	/* used to store "" */
 char szFserveExportCmdPre[BUFLEN];	/* used to store "--export" */
 char szFserveExportCmdPost[BUFLEN];	/* used to store "" */
-char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8888" after the 8888 bit has been read from freenet.ini */
+char szfprxPort[6];                 /* used to store just the fproxy port (Default 8888) from freenet.ini bit of above */
+WORD fprxPort;                      /* Decimal version of Port number as read from freenet.ini */
+char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8888" after the fproxy port has been read from freenet.ini */
 char szClasspathExtra[65536];       /* used to store additional jars to put into the CLASSPATH env variable */
 
 /*		flags, etc... */
@@ -200,7 +203,6 @@ NOTIFYICONDATA note= {	sizeof(NOTIFYICONDATA),
 						WM_SHELLNOTIFY,
 						NULL,
 						"" };
-
 
 /******************************************************
  * F U N C T I O N S                                  *
@@ -332,15 +334,6 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 		SendMessage(hWnd, WM_COMMAND, IDM_STARTSTOP, 0);
 
 		/* should we load the gateway page? */
-		if (bOpenGatewayOnStartup)
-		{
-			Sleep(3000);
-			if (nFreenetMode==FREENET_RUNNING)
-			{
-				/*  only do this if node is running FOR SURE  */
-				SendMessage(hWnd, WM_COMMAND, IDM_GATEWAY, 0);
-			}
-		}
 	
 		/* =================================== */
 		/* Message pump:                       */
@@ -422,6 +415,7 @@ bool OnlyOneInstance()
 	hMainWnd = FindWindow(szWindowClassName, NULL);
 	if (hMainWnd)
 	{
+		// fproxy is running
 		hMainWnd = GetLastActivePopup(hMainWnd);
 		SendMessage(hMainWnd,WM_COMMAND,IDM_GATEWAY,0);
 	}
@@ -825,7 +819,9 @@ void ReloadSettings(void)
 	/* form the gateway string - the "http://127.0.0.1:" is constant */
 	lstrcpy(szgatewayURI, szgatewayURIdef);
 	/* then append the port number of fproxy, looked up from freenet.ini */
-	GetPrivateProfileString(szfinisec, szfprxkey, szfprxdefaultvalue, szgatewayURI+lstrlen(szgatewayURI), 6, szfinifile);
+	GetPrivateProfileString(szfinisec, szfprxkey, szfprxdefaultvalue, szfprxPort, 6, szfinifile);
+	strcpy(szgatewayURI+lstrlen(szgatewayURI), szfprxPort);
+	fprxPort = (WORD)atol(szfprxPort);
 }
 
 
@@ -1423,7 +1419,7 @@ void GetToken(LPSTR szCurrentPointer)
 			switch (*szCurrentPointer)
 			{
 			case '\"':
-				/* its the closing quote - go back to looking */
+				/* it's the closing quote - go back to looking */
 				nState = LOOKING;
 				break;
 			case '\\':
@@ -1574,7 +1570,7 @@ STARTUPINFO ConfigInfo={sizeof(STARTUPINFO),
 						0,NULL,
 						NULL,NULL,NULL};
 
-void CreateConfig(const TCHAR * szFilename)
+void CreateConfig(const char * szFilename)
 {
 	// execute FSERVE --export %filename%
 	PROCESS_INFORMATION prcConfigInfo;

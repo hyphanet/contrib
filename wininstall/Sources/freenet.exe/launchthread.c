@@ -11,6 +11,7 @@
 #include "types.h"
 #include "launchthread.h"
 #include "shared_data.h"
+#include "rsrc.h" // for idm_gateway
 
 /******************************************************
  *  G L O B A L S                                     *
@@ -35,21 +36,86 @@ BOOL FredIsRunning(void)
 }
 
 // NOT re-entrant ... just a very basic state machine
-BOOL TestGateway(void)
+BOOL TestGateway(BOOL bPolling)
 {
 	// returns TRUE if gateway (fproxy etc) is running
 	// FALSE if not
-	// Currently just a stub until function is implemented
 	static BOOL bGateway = FALSE;
+	static BOOL bConnectAttempt = FALSE;
+	static struct sockaddr_in srv;
 	static SOCKET sock;
-	static BOOL bProbing = FALSE;
-	static int i=0;
-	WSAPROTOCOL_INFO p;
 
-	if (bProbing) return bGateway;
+	if (bPolling==FALSE || FredPrcInfo.hThread==NULL || FredPrcInfo.hThread==INVALID_HANDLE_VALUE || FredPrcInfo.hProcess==NULL || FredPrcInfo.hProcess==INVALID_HANDLE_VALUE)
+	{
+		bGateway=FALSE;
+		bConnectAttempt=FALSE;
+		return FALSE;
+	}
 
-	//sock = WSASocket(FROM_PROTOCOL_INFO,FROM_PROTOCOL_INFO,FROM_PROTOCOL_INFO,
-	if (i<20) { ++i; return FALSE;}
+	if (bGateway) return bGateway;
+
+	if (!bConnectAttempt)
+	{
+		u_long argpNBIO = -1;
+
+		/*** Fill in the server data structure ***/
+		memset(&srv, 0, sizeof(srv));
+		srv.sin_family      = AF_INET;
+		srv.sin_port        = htons(fprxPort);
+		srv.sin_addr.S_un.S_un_b.s_b1=127;
+		srv.sin_addr.S_un.S_un_b.s_b2=0;
+		srv.sin_addr.S_un.S_un_b.s_b3=0;
+		srv.sin_addr.S_un.S_un_b.s_b4=1;
+
+		/*** Create the socket ***/
+		sock = socket(AF_INET, SOCK_STREAM, 0);
+		if (sock < 0)
+		{
+			// failed to create the socket, well, no matter
+			return FALSE;
+		}
+		if (ioctlsocket(sock, FIONBIO, &argpNBIO) != 0)
+		{
+			// failed to put socket in nonblocking mode, that's ok
+			// just keep in blocking mode instead
+			WSAGetLastError();
+		}
+	}
+
+	/*** Connect to the socket to mainport.Port ***/
+	if (connect(sock, (const struct sockaddr*) &srv, sizeof(srv)) != 0)
+	{
+		int wError = WSAGetLastError();
+		switch (wError)
+		{
+		case WSAEWOULDBLOCK:
+			// nonblocking connect
+			bConnectAttempt=TRUE;
+			return FALSE;
+		case WSAEALREADY:
+			// still connecting nonblocking
+			return FALSE;
+		case WSAEISCONN:
+			// successful connection
+			break;
+		default:
+			// actual error
+			return FALSE;
+		}
+	}
+
+	/* we connected! so we take this to assume fproxy is running on that port */
+	/* (we could try http get/response but that would just put unnecessary load on fproxy) */
+	closesocket(sock);
+	bGateway=TRUE;
+	bConnectAttempt=FALSE;
+
+	/* should we open the gateway page? */
+	if (bOpenGatewayOnStartup)
+	{
+		SendMessage(hWnd, WM_COMMAND, IDM_GATEWAY, 0);
+		bOpenGatewayOnStartup=false;
+	}
 	return TRUE;
 }
 
@@ -196,20 +262,22 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 						{
 							//nFreenetMode=FREENET_RUNNING_NO_INTERNET;
 						}
-						else if (!TestGateway())
+						else if (!TestGateway(TRUE))
 						{
+							TestGateway(FALSE);
 							//nFreenetMode=FREENET_RUNNING_NO_GATEWAY;
 						}
 						break;
 
 					case FREENET_STARTING:
-						if ( TestGateway() && FredIsRunning() )
+						if ( TestGateway(TRUE) && FredIsRunning() )
 						{
 							nFreenetMode=FREENET_RUNNING;
 						}
 						break;
 
 					default:
+						//TestGateway(FALSE);
 						break;
 				
 				}
@@ -238,8 +306,15 @@ void KillProcessNicely(PROCESS_INFORMATION *prcinfo)
 	EnumWindows(KillWindowByProcessId, (LPARAM)(prcinfo->dwProcessId) );
 	
 	/* Also try sending the process a few thread-messages ... */
-	PostThreadMessage(prcinfo->dwThreadId, WM_CLOSE, 0, 0);
-	PostThreadMessage(prcinfo->dwThreadId, WM_SYSCOMMAND, SC_CLOSE, 0);
+	PostThreadMessage(prcinfo->dwThreadId, WM_KEYDOWN, VK_CONTROL, 0);
+	PostThreadMessage(prcinfo->dwThreadId, WM_KEYDOWN, 'C', 0);
+	PostThreadMessage(prcinfo->dwThreadId, WM_KEYUP, 'C', 0);
+	PostThreadMessage(prcinfo->dwThreadId, WM_KEYUP, VK_CONTROL, 0x80000000);
+	
+	// DON'T DO THIS as it's equivalent to pressing the X button on a console-mode app
+	// and some operating systems (notably Win9X-based, espectially Windows ME) will throw
+	// a hissy fit *AT THE USER* (which is completely broken behaviour, but still...)
+	//PostThreadMessage(prcinfo->dwThreadId, WM_SYSCOMMAND, SC_CLOSE, 0);
 
 	/* wait for the process to shutdown (we give it one second) */
 	for (i=0; i<1000; i+=KAnimationSpeed)
@@ -282,6 +357,8 @@ void KillProcessNicely(PROCESS_INFORMATION *prcinfo)
 	prcinfo->hProcess=NULL;
 	prcinfo->dwThreadId=0;
 	prcinfo->dwProcessId=0;
+
+	TestGateway(FALSE); // reset gateway (mainport) connection flags
 }
 
 void WaitForFServe(void)
@@ -366,7 +443,7 @@ void MonitorThreadRunFserve()
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfservecliexec); 
 
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, nPriorityClass|CREATE_NO_WINDOW, NULL, NULL, &FredStartInfo, &FredPrcInfo) )
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, TRUE, nPriorityClass|CREATE_NO_WINDOW|CREATE_NEW_CONSOLE, NULL, NULL, &FredStartInfo, &FredPrcInfo) )
 	{
 		MessageBox(NULL, szerrMsg, szerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
 		nFreenetMode=FREENET_CANNOT_START;

@@ -17,4 +17,6 @@ void ClearTempDirectories(void);
 /* following function is a callback used to kill off (cleanly!) the freenet node */
 BOOL CALLBACK KillWindowByProcessId(HWND hWnd, LPARAM lParam);
 
+BOOL TestGateway(BOOL bPolling);
+
 #endif /*FREENET_TRAY_LAUNCHTHREAD_H_INCLUDED*/

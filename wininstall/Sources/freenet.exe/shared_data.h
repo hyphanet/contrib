@@ -35,14 +35,18 @@ extern char szFserveSeedCmdPost[BUFLEN];		/* used to store "" */
 extern char szFserveExportCmdPre[BUFLEN];		/* used to store "--export" */
 extern char szFserveExportCmdPost[BUFLEN];		/* used to store "" */
 
+extern WORD fprxPort;
+
 /*		flags, etc... */
 extern FREENET_MODE nFreenetMode;
 extern bool bUsingFProxy;
 extern int nPriority;
 extern int nPriorityClass;
+extern bool bOpenGatewayOnStartup;
 
 /*		handles, etc... */
 extern HINSTANCE hInstance;
+extern HWND hWnd;
 
 /* Icons: */
 extern HICON hHopsEnabledIcon;
