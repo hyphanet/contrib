@@ -1,5 +1,3 @@
-// gcc -g3 -Wall -o saturn saturn.c -lpthread
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
