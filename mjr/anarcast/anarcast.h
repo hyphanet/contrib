@@ -77,14 +77,25 @@ writeall (int c, const void *b, int len)
     return i;
 }
 
-// mmap a temp file. you have to munmap this when you're done
+// mmap a temp buffer. you have to munmap this when you're done
 inline char *
 mbuf (size_t len)
 {
-    char *p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    char *p, s[] = "/tmp/anarcast-XXXXXX";
+    int fd;
     
+    if ((fd = mkstemp(s)) == -1)
+        die("mkstemp() failed");
+    
+    if (ftruncate(fd, len) == -1)
+	die("ftruncate() failed");
+    
+    p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     if (p == MAP_FAILED)
-	die("mmap() failed");
+        die("mmap() failed");
+    
+    if (unlink(s) == -1)
+	die("unlink() failed");
     
     return p;
 }
