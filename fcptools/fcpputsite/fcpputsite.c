@@ -29,6 +29,7 @@ int fcpLogCallback(int level, char *buf);
 //
 
 static void parse_args(int argc, char *argv[]);
+static int  parse_num(char *s);
 static int  usage(char *msg);
 static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len);
 
