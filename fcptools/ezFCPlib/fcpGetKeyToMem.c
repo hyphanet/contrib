@@ -35,7 +35,8 @@ int fcpGetKeyToMem(HFCP *hfcp, char *key, char **pData, char **pMetadata)
         return -1;
 
     // snarf key's metadata, if needed
-    *pMetadata = NULL;
+	if (pMetadata)			// (thanks Jason Smith for bug fix here)
+	    *pMetadata = NULL;
 
     // do we also want key's data?
     if (pData != NULL)

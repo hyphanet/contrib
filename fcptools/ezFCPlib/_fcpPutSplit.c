@@ -256,7 +256,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	// update status for manager thread
 	job->status = (result == 0) ? SPLIT_INSSTAT_SUCCESS : SPLIT_INSSTAT_FAILED;
 
-	printf("||||||||||||| cleared job status for %s at %x\n", fileName, job);
+	//printf("||||||||||||| cleared job status for %s at %x\n", fileName, job);
 
 	// return to caller
 	free(job->chunk);
@@ -289,6 +289,8 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 
 	_fcpLog(FCP_LOG_VERBOSE, "Creating splitfile manifest");
 
+	runningThreads++;
+
 	// Create mem block for metadata
     splitManifest = malloc(256 + 1024 * hfcp->split.numChunks);
 
@@ -301,25 +303,17 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
     sprintf(s, "SplitFile.BlockCount=%x\n", hfcp->split.numChunks);
     strcat(splitManifest, s);
 
-//	_fcpLog(FCP_LOG_DEBUG, "*1***** Inserting manifest:\n%s", splitManifest);
-
 	// Add the chunk records
     for(i = 0; i < hfcp->split.numChunks; i++)
     {
 		//printf("### chunk[%d] = %x\n", i, &hfcp->split.chunk[i]);
-
 		//printf("** hfcp->split.chunk[i].key = '%s'\n", hfcp->split.chunk[i].key);
-
         sprintf(s, "SplitFile.Block.%x=%s\n", i + 1, hfcp->split.chunk[i].key);
         strcat(splitManifest, s);
     }
 
-//	_fcpLog(FCP_LOG_DEBUG, "*2***** Inserting manifest:\n%s", splitManifest);
-
 	if (hfcp->split.mimeType != NULL)
 	    sprintf(s, "Info.Format=%s\n", hfcp->split.mimeType);
-
-//	_fcpLog(FCP_LOG_DEBUG, "*3***** Inserting manifest:\n%s", splitManifest);
 
     strcat( splitManifest, s);
     strcat( splitManifest, "End\n");
@@ -344,6 +338,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 		if (fcpPutKeyFromMem(hfcp1, "CHK@", splitManifest, splitManifest, 0) != 0)
 		{
 			_fcpLog(FCP_LOG_NORMAL, "insertSplitManifest(): failed to insert manifest");
+			runningThreads--;
 			return -1;
 		}
 
@@ -356,6 +351,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 		if (fcpPutKeyFromMem(hfcp, key, NULL, redirMeta, 0) != 0)
 		{
 			_fcpLog(FCP_LOG_NORMAL, "insertSplitManifest(): failed to insert redirect to split manifest");
+			runningThreads--;
 			return -1;
 		}
 	}
@@ -365,12 +361,13 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 		if (fcpPutKeyFromMem(hfcp, key, NULL, splitManifest, 0) != 0)
 		{
 			_fcpLog(FCP_LOG_NORMAL, "insertSplitManifest(): failed to insert direct split manifest");
+			runningThreads--;
 			return -1;
 		}
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "%s: successfully inserted splitfile manifest:\n%s",
-			file, splitManifest);
+	_fcpLog(FCP_LOG_VERBOSE, "%s: successfully inserted splitfile manifest");
+	runningThreads--;
 	return 0;
 }
 
@@ -435,7 +432,7 @@ static void splitInsMgr(void *nothing)
 		// let things breathe a bit
 		mysleep(1000);
 
-		if (++clicks == 15)
+		if (++clicks == 60)
 		{
 			clicks = 0;
 			_fcpLog(FCP_LOG_DEBUG, "%d threads running, %d clients, queue dump follows",
@@ -588,8 +585,13 @@ static int dumpQueue()
 
 		sprintf(buf, "%s(%d): ", strrchr(job->fileName, DIRDELIMCHAR), job->numChunks);
 
-		if (job->status != SPLIT_INSSTAT_MANIFEST)
+		switch (job->status)
 		{
+		case SPLIT_INSSTAT_WAITING:
+			sprintf(buf1, "waiting", job);
+			strcat(buf, buf1);
+			break;
+		case SPLIT_INSSTAT_INPROG:
 			for (i = 0; i < job->numChunks; i++)
 			{
 				switch (job->chunk[i].status)
@@ -605,14 +607,26 @@ static int dumpQueue()
 					break;
 				}
 			}
-		}
-		else
-		{
-			sprintf(buf1, "job at %x - inserting manifest", job);
+			break;
+		case SPLIT_INSSTAT_MANIFEST:
+			sprintf(buf1, "inserting manifest", job);
 			strcat(buf, buf1);
-//			strcat(buf, " Inserting manifest");
+			break;
+		case SPLIT_INSSTAT_SUCCESS:
+			sprintf(buf1, "success", job);
+			strcat(buf, buf1);
+			break;
+		case SPLIT_INSSTAT_BADNEWS:
+			sprintf(buf1, "badnews", job);
+			strcat(buf, buf1);
+			break;
+		case SPLIT_INSSTAT_FAILED:
+			sprintf(buf1, "failed", job);
+			strcat(buf, buf1);
+			break;
 
 		}
+
 		_fcpLog(FCP_LOG_DEBUG, buf);
 	}
 }

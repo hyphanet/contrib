@@ -68,6 +68,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
     PutJob  *pPutJob;
     int     running = 1;
     int     someFilesFailed = 0;
+	int		clicks = 0;
 
     maxTries = maxAttempts;
 
@@ -160,15 +161,22 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         // search for a thread slot
         for (firstThreadSlot = 0; firstThreadSlot < maxThreads; firstThreadSlot++)
             if (threadStatus[firstThreadSlot] == INSERT_THREAD_IDLE)
+			{
                 break;
+			}
 
         // any threads available yet?
         if (firstThreadSlot == maxThreads)
         {
             // no - wait a while and restart
             mysleep(1000);
+			if (++clicks == 180)
+				_fcpLog(FCP_LOG_DEBUG, "fcpputsite: all thread slots full");
             continue;
         }
+
+		_fcpLog(FCP_LOG_DEBUG, "fcpputsite: found thread slot for inserting %s",
+			strrchr(files[firstWaitingFile].filename, DIRDELIMCHAR)+1);
 
         // Fill out a job form and launch thread
         //numthreads++;
@@ -389,7 +397,7 @@ void putsiteThread(void *arg)
         }
         *(job->threadSlot) = INSERT_THREAD_DONE;
     }
-    free(job);
+    //free(job);
 }               // 'putsiteThread()'
 
 
