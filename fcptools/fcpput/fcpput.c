@@ -53,13 +53,14 @@ void track(const char *file, const unsigned int line,
 char           *host;
 unsigned short  port = EZFCP_DEFAULT_PORT;
 
-int   verbosity = FCP_LOG_NORMAL;
-int   htl       = EZFCP_DEFAULT_HTL;
-int   retry     = EZFCP_DEFAULT_RETRY;
-int   optmask   = 0;
-int   future    = 0;
+int   verbosity   = FCP_LOG_NORMAL;
+int   htl         = EZFCP_DEFAULT_HTL;
+int   retry       = EZFCP_DEFAULT_RETRY;
+int   optmask     = 0;
+int   future      = 0;
+int   min_timeout = 0; /* mininum timeout value */
 
-char *logfile = 0; /* filename for logfile (if not stdout) */
+char *logfile = 0;   /* filename for logfile (if not stdout) */
 FILE *logstream = 0; /* FILE * to logfile (or stdout) */
 
 char *keyuri    = 0; /* passed in URI */
@@ -122,6 +123,7 @@ int main(int argc, char* argv[])
 	/* set retry and DBR info manually */
 	hfcp->options->retry = retry;
 	hfcp->options->future = future;
+	hfcp->options->min_timeout = min_timeout;
   
   if (b_genkeys) {
 		char pub[L_KEY+1];
@@ -311,6 +313,7 @@ static void parse_args(int argc, char *argv[])
     {"delete-local", 0, 0, 'D'},
     {"dbr", 0, 0, 'd'},
     {"future-days", 1, 0, 'f'},
+    {"min-timeout", 1, 0, 't'},
 
 		{"meta-redirect", 0, 0, 'M'},
 
@@ -325,7 +328,7 @@ static void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:o:sa:Ddf:Mv:gVh1";
+  char short_options[] = "n:p:l:m:o:sa:Ddf:t:Mv:gVh1";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -380,6 +383,11 @@ static void parse_args(int argc, char *argv[])
 		case 'f':
 			i = atoi( optarg );
 			if (i > 0) future = i;
+			break;
+
+		case 't':
+			i = atoi( optarg );
+			if (i > 0) min_timeout = i;
 			break;
 
 		case 'M':

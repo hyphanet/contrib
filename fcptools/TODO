@@ -13,8 +13,8 @@ General
 + Remove the POSIX dependancy (ugh).
 + Add -ansi for linux platform (development) and restrict everywhere else.
 + Make sure the "undocumented" switches are documented at least in fcpput, fcpget, etc.
-+ Send email to Dev about MetaRedirect control doc.
 
+= Add support for DateRedirect/increment parameter
 = Write code to insert DBR root and target in same execution (using a 'future insert' option).
 = After Pending, reset the Retry count.
 = fcpput thinks -D option is passed on inserting splitfiles(?)
@@ -26,14 +26,17 @@ General
 ezFCPlib
 -----------------
 
-+ fcpParseHURI() is now crazy redundant; prune some of the replicated code and make it more generic
-	(instead of separating into 3 sections; KSK, SSK, CHK)
-+ Append the filename to the filename-hint section of the returned URI for CHK's.
+General:
++ Implement anonymity filtering.
++ Implement charset & mimetype handling.
 + Clean up Verbose log messages; verify *all* command line options are re-iterated.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= Append the filename to the filename-hint section of the returned URI for CHK's.
+= fcpParseHURI() is now crazy redundant; prune some of the replicated code and make it more generic
+	(instead of separating into 3 sections; KSK, SSK, CHK)
 = Verify handling of CryptoKey in key generation.
 = Implement CryptoKey handling for CHK's in fcpParseHURI().
 = Add configuration option for Timeout length (added a MinTimeout value).
@@ -43,6 +46,13 @@ ezFCPlib
 = Implement do_dbr option.
 = Implement logic to read in <rest> section for custom metadata (_fcpMetadata.c).
 
+Put:
+
+Get:
++ Implement charset & mimetype handling.
+
+= Handle the following query parameters(some; not all): rdate, verbose, key, force, try, htl, linkhtl, maxlogsize, mime,
+date.
 
 ------
 fcpput

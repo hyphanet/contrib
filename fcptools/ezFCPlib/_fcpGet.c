@@ -220,7 +220,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 	} while ((rc == FCPRESP_TYPE_RESTARTED) && (retry >= 0));
 
-	/* if we exhauseted our retries, then return a be-all Timeout error */
+	/* if we've exhausted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
 		_fcpLog(FCP_LOG_CRITICAL, "Failed to retrieve file after %u retries", hfcp->options->retry);
 

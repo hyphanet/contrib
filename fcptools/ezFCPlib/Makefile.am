@@ -71,5 +71,5 @@ fcpWriteKey.c \
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 #libezfcp_la_SOURCES = $(FCP_SOURCE)
 
-#bin_PROGRAMS = fcptest
-#fcptest_SOURCES  = $(FCP_TEST)
+bin_PROGRAMS = fcptest
+fcptest_SOURCES  = $(FCP_TEST)

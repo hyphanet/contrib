@@ -94,7 +94,7 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 	/* copy over any other options */
 	h->options->timeout = hfcp->options->timeout;
 	h->options->retry = hfcp->options->retry;
-	h->options->mintimeout = hfcp->options->mintimeout;
+	h->options->min_timeout = hfcp->options->min_timeout;
 
 	return h;
 }
@@ -343,6 +343,9 @@ void fcpDestroyHURI(hURI *h)
 		if (h->routingkey) free(h->routingkey);
 		if (h->filename) free(h->filename);
 		if (h->metastring) free(h->metastring);
+		if (h->date) free(h->date);
+		if (h->rdate) free(h->rdate);
+		if (h->mime) free(h->mime);
 	}
 }
 
@@ -428,7 +431,7 @@ int main(int c, char *argv[])
 		return -1;
 	}
 
-	_fcpOpenLog(stdout, 2);
+	_fcpOpenLog(stdout, 4);
 
 	uri = fcpCreateHURI();
 	printf("URI:%s\n", argv[1]);
@@ -439,6 +442,7 @@ int main(int c, char *argv[])
 		
 	case KEY_TYPE_CHK:
 
+		printf("*   type: CHK\n");
 		printf("*   routingkey:%s:\n", uri->routingkey);
 		printf("*   cryptokey:%s:\n", uri->cryptokey);
 		printf("*   filename:%s:\n", uri->filename);
@@ -448,18 +452,35 @@ int main(int c, char *argv[])
 
 	case KEY_TYPE_SSK:
 		
+		printf("*   type: SSK\n");
 		printf("*   routingkey:%s:\n", uri->routingkey);
 		printf("*   cryptokey:%s:\n", uri->cryptokey);
 		printf("*   filename:%s:\n", uri->filename);
-		printf("*   metastring:%s:\n", uri->metastring);
+		
+		printf("\n*   metastring:%s:\n", uri->metastring);
+		printf("*   date:%s:\n", uri->date);
+		printf("*   rdate:%s:\n", uri->rdate);
+		printf("*   mime:%s:\n", uri->mime);
+		printf("*   htl:%d:\n", uri->htl);
+		printf("*   try:%d:\n\n", uri->try);
+		
 		printf("*   uri_str:%s:\n", uri->uri_str);
 		
 		break;
 		
 	case KEY_TYPE_KSK:
 
+		printf("*   type: KSK\n");
 		printf("*   routingkey:%s:\n", uri->routingkey);
-		printf("*   metastring:%s:\n", uri->metastring);
+		printf("*   filename:%s:\n", uri->filename);
+		
+		printf("\n*   metastring:%s:\n", uri->metastring);
+		printf("*   date:%s:\n", uri->date);
+		printf("*   rdate:%s:\n", uri->rdate);
+		printf("*   mime:%s:\n", uri->mime);
+		printf("*   htl:%d:\n", uri->htl);
+		printf("*   try:%d:\n\n", uri->try);
+		
 		printf("*   uri_str:%s:\n", uri->uri_str);
 
 		break;

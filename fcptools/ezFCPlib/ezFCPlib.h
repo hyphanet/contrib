@@ -163,7 +163,7 @@ typedef int FCPSOCKET;
 #define EZFCP_DEFAULT_DELETELOCAL  0
 #define EZFCP_DEFAULT_SKIPLOCAL    0
 #define EZFCP_DEFAULT_RAWMODE      0
-#define EZFCP_DEFAULT_TIMEOUT      180000 /* 3 minutes in milliseconds */
+#define EZFCP_DEFAULT_TIMEOUT      420000 /* 7 minutes in milliseconds */
 
 /* error codes; just negative numbers; group together
 */
@@ -389,7 +389,7 @@ typedef struct {
 	int   regress;
 	int   remove_local;
 	int   timeout;
-	int   mintimeout;
+	int   min_timeout;
 	int   noredirect;
 	int   meta_redirect;
 	int   dbr;
@@ -413,6 +413,18 @@ typedef struct {
 	char  *filename;   /* filename hint */
 	char  *metastring;
 
+	/* known metastring directives (not all are handled by FCPLib)
+	rdate, verbose, key, force, try, htl, linkhtl, maxlogsize, mime, date */
+
+	/* understood metastring directives */
+	char *date;
+	char *rdate;
+	
+	char *mime;
+	
+	int   htl;
+	int   try;
+		
 } hURI;
 
 
