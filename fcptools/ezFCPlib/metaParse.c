@@ -133,15 +133,14 @@ META04 *metaParse(char *buf)
         case STATE_WAITDOC:
             if (!strcmp(key, "Document"))
             {
-                // create empty fieldset struct
-                thisdoc = meta->numDocs++;
-                meta->cdoc = realloc(meta->cdoc,
-		    sizeof(FLDSET *) * meta->numDocs);
-                meta->cdoc[thisdoc] = safeMalloc(sizeof(FLDSET));
-                meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
-                meta->cdoc[thisdoc]->numFields = 0;
-		meta->cdoc[thisdoc]->key = NULL;
-                state = STATE_INDOC;
+							// create empty fieldset struct
+							thisdoc = meta->numDocs++;
+							meta->cdoc = realloc(meta->cdoc, sizeof(FLDSET *) * meta->numDocs);
+							meta->cdoc[thisdoc] = safeMalloc(sizeof(FLDSET));
+							meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
+							meta->cdoc[thisdoc]->numFields = 0;
+							meta->cdoc[thisdoc]->key = NULL;
+							state = STATE_INDOC;
             }
             else
                 _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Document', got '%s'", key);
@@ -168,8 +167,9 @@ META04 *metaParse(char *buf)
                 // append key-value pair
                 thiskey = meta->cdoc[thisdoc]->numFields++;
                 meta->cdoc[thisdoc]->key =
-                    realloc(meta->cdoc[thisdoc]->key,
-                        sizeof(KEYVALPAIR) * meta->cdoc[thisdoc]->numFields);
+									realloc(meta->cdoc[thisdoc]->key,
+									sizeof(KEYVALPAIR) * meta->cdoc[thisdoc]->numFields);
+
                 meta->cdoc[thisdoc]->key[thiskey].name = strdup(key);
                 meta->cdoc[thisdoc]->key[thiskey].value = val ? strdup(val) : NULL;
             }
