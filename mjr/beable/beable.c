@@ -1,3 +1,8 @@
+#define LISTEN_PORT               6666
+#define DATABASE_SYNC_INTERVAL    60
+#define RECENT_ADDITIONS_LENGTH   50
+#define FPROXY_ADDRESS            "http://localhost:8081/"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,11 +13,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
-#define LISTEN_PORT               6666
-#define DATABASE_SYNC_INTERVAL    60
-#define RECENT_ADDITIONS_LENGTH   50
-#define FPROXY_ADDRESS            "http://localhost:8081/"
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 

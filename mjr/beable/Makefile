@@ -1,3 +1,3 @@
 all:
-	gcc -g3 -Wall -o beable beable.c -lpthread
+	gcc -g -Wall -o beable beable.c -pthread
 
