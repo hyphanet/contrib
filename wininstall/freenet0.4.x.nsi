@@ -1,8 +1,8 @@
 # installer generator script for Freenet:
 
-Name "Freenet 0.4.0.pre"
-OutFile "Freenet_setup0.4.0.pre.exe"
-ComponentText "This will install Freenet 0.4.0.pre on your system."
+Name "Freenet 0.4.4"
+OutFile "Freenet_setup0.4.4.exe"
+ComponentText "This will install Freenet 0.4.4 on your system."
 
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
@@ -215,7 +215,7 @@ SectionEnd
 Section -PostInstall
   # put this temporary in the prefs until FProxy is back
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "services.fproxy.port" "8888"
-  MessageBox MB_OK "Congratulations, you are finished installing Freenet now. To use your web browser for retrieving Freenet content you need to start fcpproxy (via Start menu or double-click fcpproxy.exe) manually until an automatically starting Proxy has been added to the Freenet node."
+  MessageBox MB_OK "Congratulations, you have finished the installation of Freenet successfully."
 
   # Register .ref files to be added to seed.ref with a double-click
   WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet_node_ref"
