@@ -67,7 +67,6 @@
 int fcpParseHURI(hURI *uri, char *key)
 {
 	int rc;
-	int len;
 	int i;
 
 	char *p_key;
@@ -111,22 +110,17 @@ int fcpParseHURI(hURI *uri, char *key)
 		key += 4;
 	}
 
-  else if (!strncasecmp(key, "CHK@", 4)) {
-    uri->type = KEY_TYPE_CHK;
-		strcpy(uri_s, "freenet:CHK@");
+  else if (!strncasecmp(key, "SSK@", 4)) {
+    uri->type = KEY_TYPE_SSK;
+		strcpy(uri_s, "freenet:SSK@");
 		key += 4;
 	}
 	
 	/* when in doubt assume it's a KSK */
-  else if (!strncasecmp(key, "KSK@", 4)) {
+  else {
     uri->type = KEY_TYPE_KSK;
 		strcpy(uri_s, "freenet:KSK@");
 		key += 4;
-	}
-
-	else {
-    uri->type = KEY_TYPE_KSK;
-		strcpy(uri_s, "freenet:KSK@");
 	}
 
 	/* initialize to be sure */
@@ -297,39 +291,39 @@ int fcpParseHURI(hURI *uri, char *key)
 	/* here, "key" points to the start of the docname section, the start of the
 		 metastring section or '\0' */
 	
-	/* check if key is a '/' */
-	if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_KSK)) {
+	/* check if key is a '/'; if so parse out the filename hint section */
+	
+	if ((*key == '/') && (*(key+1) != '/')) {
+		key++;
 		
-		if ((*key == '/') && (*(key+1) != '/')) {
-			
-			key++;
-			
-			if (*key == '\0') {
-				rc = -1;
-				goto cleanup;
-			}
-			
-			/* iterate through docname and stop at '//' or '\0' */
-			for (i=0; key[i] != '\0'; i++) {
-				
-				/* if key is a '//' then break */
-				if ((key[i]=='/') && (key[i+1]== '/')) break;
-			}					
-			
-			uri->filename = malloc(i+1);
-			memcpy(uri->filename, key, i);
-			uri->filename[i] = '\0';
-			
-			/* build the uri_s version */
-			strcat(uri_s, "/");
-			strcat(uri_s, uri->filename);
+		if (*key == '\0') {
+			rc = -1;
+			goto cleanup;
 		}
 		
-		/* advance past the actual filename part */
-		key += i;
+		/* iterate through docname and stop at '//' or '\0' */
+		for (i=0; key[i] != '\0'; i++) {
+			
+			/* if key is a '//' then break */
+			if ((key[i]=='/') && (key[i+1]== '/')) break;
+		}					
 		
-		/* if we also have a metastring.. */
-		if ((*key=='/') && (*(key+1)=='/')) {
+		uri->filename = malloc(i+1);
+		memcpy(uri->filename, key, i);
+		uri->filename[i] = '\0';
+		
+		/* build the uri_s version */
+		strcat(uri_s, "/");
+		strcat(uri_s, uri->filename);
+	}
+	
+	/* advance past the actual filename part */
+	key += i;
+	
+	/* if we also have a metastring.. */
+	if ((*key=='/') && (*(key+1)=='/')) {
+		
+		if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_KSK)) {
 			
 			/* position after the '//' */
 			key += 2;
@@ -341,13 +335,20 @@ int fcpParseHURI(hURI *uri, char *key)
 			strcat(uri_s, "//");
 			strcat(uri_s, uri->metastring);
 		}
+
+		else {
+			_fcpLog(FCP_LOG_DEBUG, "metastring section not valid for CHK's.. ignored");
+
+			rc = -1;
+			goto cleanup;
+		}
 	}
 		
-	success:
-
+ success:
+	
 	uri->uri_str = strdup(uri_s);
 	_fcpLog(FCP_LOG_DEBUG, "uri: %s", uri->uri_str);
-
+	
 	rc = 0;
 	
  cleanup:
