@@ -91,7 +91,7 @@ const char szfseedexportcmdprekey[]="exportcmdpre";  /* ie exportcmdpre="--expor
 const char szfseeddefaultexportprecmd[]="--export";
 const char szfseedexportcmdpostkey[]="exportcmdpost"; /* ie exportcmdpost="" */
 const char szfseeddefaultexportpostcmd[]="";
-
+const char* szTempDirs[]={"FECTempDir","mainport.params.servlet.1.params.tempDir","tempDir",NULL}; /* ie FECTempDir=C:\windows\temp\freenet , etc*/ 
 
 /* string constants for use with the freenet.ini file */
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
@@ -1395,4 +1395,60 @@ void LOCK(enum LOCKCONTEXTS lockcontext)
 void UNLOCK(enum LOCKCONTEXTS lockcontext)
 {
 	ReleaseMutex(*(LOCKOBJECTS[lockcontext]));
+}
+
+
+
+
+void DeleteFilesInDirectory(const char* szDirectory)
+{
+	HANDLE hFind;
+	WIN32_FIND_DATA findData;
+	BOOL bCreated;
+	char szFindMatch[MAX_PATH+5];
+
+	if(szDirectory==NULL || strlen(szDirectory)==0)
+		return; // empty directory name
+
+	//TODO: automatically use win2k security if in win2k
+	//TODO: recursively make directories
+	
+	bCreated = CreateDirectory(szDirectory, NULL);
+
+	// search all files in directory
+
+	lstrcpyn(szFindMatch, szDirectory, MAX_PATH);
+	if(szFindMatch[strlen(szFindMatch)-1] != '\\' || szFindMatch[strlen(szFindMatch) - 1] != '/') // append a '\'
+		lstrcat(szFindMatch, "\\");
+	lstrcat(szFindMatch, "*.*");
+	hFind = FindFirstFile(szFindMatch, &findData);
+
+	if(hFind!=NULL && hFind!=INVALID_HANDLE_VALUE)
+	{
+		char szFilename[MAX_PATH*2+6];
+		do
+		{
+			lstrcpy(szFilename, szDirectory);
+			lstrcat(szFilename, findData.cFileName);
+			DeleteFile(szFilename);
+		} while(FindNextFile(hFind, &findData));
+		FindClose(hFind);
+		hFind=NULL;
+	}
+}
+    
+void ClearTempDirectories(void)
+{
+	// this should be done every time the node is started or stopped (while the node is not running preferably) 
+	char tempdir[MAX_PATH+1]; 
+	const char ** szTempDirectoryKey;
+    
+	SetCurrentDirectory(szHomeDirectory); 
+    
+	for (szTempDirectoryKey=szTempDirs; *szTempDirectoryKey!=NULL; ++szTempDirectoryKey)
+	{
+		GetPrivateProfileString(szfinisec, *szTempDirectoryKey, szempty, tempdir, MAX_PATH, szfinifile);
+		if(strlen(tempdir))
+			DeleteFilesInDirectory(tempdir);
+	}
 }
