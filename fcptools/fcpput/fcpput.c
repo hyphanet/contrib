@@ -296,7 +296,7 @@ void usage(char *s)
 	printf("  -p, --port num         Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
 	printf("  -l, --htl num          Hops to live (default %d)\n\n", EZFCP_DEFAULT_HTL);
 
-	printf("  -m, --metadata file    Read key metadata from local \"file\"\n");
+	printf("  -m, --metadata file    Read key metadata from local file\n");
 	printf("  -s, --stdin            Read key data from stdin\n");
 
 	printf("  -e, --regress num      Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
@@ -314,7 +314,7 @@ void usage(char *s)
 	printf("                           KSK@<routing key>\n");
 	printf("                           SSK@<private key>[/<docname>]\n\n");
 
-	printf("  file                   Read key data from local \"file\"\n");
+	printf("  file                   Read key data from local file\n");
 	printf("                         (cannot be used with --stdin)\n\n");
 
 	printf("Examples:\n\n");
