@@ -38,7 +38,7 @@ CConfigFile::CConfigFile()
 	 char name[255];
      //CString ip;
      PHOSTENT hostinfo;
-	
+
 	//Try to guess the own host name
 	pNormal->m_ipAddress = "undefined";
 
@@ -153,7 +153,7 @@ void CConfigFile::Load()
 	pDiagnostics->m_nodeinfoservlet = true;
 	pDiagnostics->m_nodeinfoport = -1;
 	pDiagnostics->m_nodeinfoclass = "";
-	
+
 	// Reset unknown parameters container
 	pGeek->m_unknowns = "";
 
@@ -185,7 +185,7 @@ void CConfigFile::Load()
 	//
 	// Fix up any known compatibility changes
 	//
-	if ( (pDiagnostics->m_nodeinfoclass.Compare("")==0) || 
+	if ( (pDiagnostics->m_nodeinfoclass.Compare("")==0) ||
 		 (pDiagnostics->m_nodeinfoclass.Compare("freenet.client.http.NodeStatusServlet")==0) ||
 		 (pDiagnostics->m_nodeinfoport == -1) )
 	{
@@ -193,12 +193,12 @@ void CConfigFile::Load()
 		pDiagnostics->m_nodeinfoport = 8890;
 	}
 
-	
+
 	/////////////////////////////////
 	//
 	// Load any additional settings from FLaunch.ini
 	//
-	
+
 	ReadFLaunchIni();
 
 }
@@ -212,7 +212,7 @@ void CConfigFile::Save()
 
 	if ((fp = fopen(FileName, "w")) == NULL)
 	{
-		MessageBox(0, 
+		MessageBox(0,
 			"Can't write freenet.ini",
 			"Freenet Config - fatal error",
 			MB_SYSTEMMODAL | MB_ICONEXCLAMATION);
@@ -507,7 +507,7 @@ void CConfigFile::UpdateFLaunchIni(void)
 	DWORD dwPriority;
 	DWORD dwPriorityClass;
 	char szNumber[16];
-	 
+
 	pAdvanced->GetCPUPrioritySlider(dwPriority,dwPriorityClass);
 	sprintf(szNumber,"%lu",dwPriority);
 	WritePrivateProfileString("Freenet Launcher", "Priority", szNumber, FLaunchIniFileName);

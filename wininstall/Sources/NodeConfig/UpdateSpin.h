@@ -13,7 +13,7 @@ public:
 		//m_Min = new class T(min);
 		//m_Max = new class T(max);
 	}
-	
+
 	virtual ~CUpdateSpin<T> ()
 
 	{
@@ -30,7 +30,7 @@ public:
 
 		// because of the way spin controls work, the 'up' arrow
 		// yields a negative delta ( why? )
-		iDelta = -iDelta; 
+		iDelta = -iDelta;
 
 		bool bUpdate = false;
 
@@ -39,13 +39,13 @@ public:
 			m_Ref = *m_Min;
 			bUpdate = true;
 		}
-		
+
 		if (m_Ref > *m_Max)
 		{
 			m_Ref = *m_Max;
 			bUpdate = true;
 		}
-		
+
 		if ( (iDelta > 0) && (m_Ref < *m_Max) )
 		{
 			bUpdate = true;

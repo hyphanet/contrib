@@ -86,7 +86,7 @@ END_MESSAGE_MAP()
 
 //The following functions are for the unknown settings dialog
 
-void CPropGeek::OnUnknown() 
+void CPropGeek::OnUnknown()
 {
 	int temp;
 	UpdateData(TRUE);
@@ -97,11 +97,11 @@ void CPropGeek::OnUnknown()
 	UpdateNumofUnknowns();
 }
 
-BOOL CPropGeek::OnInitDialog() 
+BOOL CPropGeek::OnInitDialog()
 {
 	CPropertyPage::OnInitDialog();
 	UpdateNumofUnknowns();
-	
+
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }

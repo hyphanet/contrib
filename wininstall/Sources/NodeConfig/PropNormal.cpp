@@ -71,7 +71,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CPropNormal message handlers
 
-void CPropNormal::OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropNormal::OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -83,7 +83,7 @@ void CPropNormal::OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropNormal::Ontransient() 
+void CPropNormal::Ontransient()
 {
 	OnNodeAvailability();
 }
@@ -121,7 +121,7 @@ void CPropNormal::OnNodeAvailability()
 		showNodeAddrFields(FALSE);
 	}
 
-	UpdateData(FALSE);	
+	UpdateData(FALSE);
 }
 
 void CPropNormal::showNodeAddrFields(BOOL showing)
@@ -137,15 +137,15 @@ void CPropNormal::showNodeAddrFields(BOOL showing)
 }
 
 
-int CPropNormal::OnCreate(LPCREATESTRUCT lpCreateStruct) 
+int CPropNormal::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CPropertyPage::OnCreate(lpCreateStruct) == -1)
 		return -1;
-	
+
 	return 0;
 }
 
-void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus) 
+void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus)
 {
 	HANDLE hfile;
 
@@ -162,10 +162,10 @@ void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus)
 	else
 		CloseHandle(hfile);
 
-	UpdateData(FALSE);	
+	UpdateData(FALSE);
 }
 
-void CPropNormal::OnImportNewNodeRef() 
+void CPropNormal::OnImportNewNodeRef()
 {
 	UpdateData(TRUE);
 
@@ -178,7 +178,7 @@ void CPropNormal::OnImportNewNodeRef()
 	getseeddlg.DoModal();
 }
 
-void CPropNormal::OnDestroy() 
+void CPropNormal::OnDestroy()
 {
 	if (m_useDefaultNodeRefs)
 	{

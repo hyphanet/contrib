@@ -37,7 +37,7 @@ BEGIN
     PUSHBUTTON      "Get &Local References",IDC_GETLOCALSEED,9,14,79,14
     PUSHBUTTON      "&Help",ID_HELP,75,101,50,14
     EDITTEXT        IDC_SEEDURL,92,31,152,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_SEEDFILE,10,77,234,14,ES_AUTOHSCROLL | WS_DISABLED | 
+    EDITTEXT        IDC_SEEDFILE,10,77,234,14,ES_AUTOHSCROLL | WS_DISABLED |
                     NOT WS_TABSTOP
     LTEXT           "Destination file",IDC_STATIC,11,68,62,8
     GROUPBOX        "Initial Freenet references",IDC_STATIC,6,3,242,92
@@ -52,7 +52,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO DISCARDABLE
 BEGIN
     IDD_GETSEEDDLG, DIALOG
     BEGIN
@@ -163,7 +163,7 @@ BEGIN
                     UDS_ARROWKEYS,174,248,11,15
     LTEXT           "Node Admin Password (optional)",IDC_STATIC,200,16,103,
                     11
-    EDITTEXT        IDC_adminPassword,200,28,75,12,ES_PASSWORD | 
+    EDITTEXT        IDC_adminPassword,200,28,75,12,ES_PASSWORD |
                     ES_AUTOHSCROLL | WS_DISABLED
     LTEXT           "Unless you really need to change it, the FCP port number can and should be left at its default (port 8481).",
                     IDC_STATIC,68,119,232,21
@@ -187,7 +187,7 @@ FONT 8, "MS Sans Serif"
 BEGIN
     EDITTEXT        IDC_ADDTHIS,8,68,128,12,ES_AUTOHSCROLL
     PUSHBUTTON      "&Add",IDC_ADDIT,139,68,33,12
-    LISTBOX         IDC_LISTOFUNKNOWN,16,96,222,53,LBS_NOINTEGRALHEIGHT | 
+    LISTBOX         IDC_LISTOFUNKNOWN,16,96,222,53,LBS_NOINTEGRALHEIGHT |
                     WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
     PUSHBUTTON      "&Remove >>>",IDC_DELETE,243,134,47,14
     PUSHBUTTON      "Move &Up",IDC_MOVEUP,243,94,47,14
@@ -273,7 +273,7 @@ BEGIN
     LTEXT           "Size (MB)",IDC_STATIC,16,39,16,17
     LTEXT           "If you change either of these settings, your entire node's datastore will be erased and replaced with a fresh empty store. If you don't specify a location the data store will be created in the main Freenet program directory.",
                     IDC_STATIC,107,33,197,34
-    CONTROL         "Path && filename",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Path && filename",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,15,70,54,11
     EDITTEXT        IDC_storeFile,71,68,219,12,ES_AUTOHSCROLL
     CTEXT           "Please don't change any of the 'Advanced' or 'Geek' settings unless you know what you're doing. Incorrect settings can damage your node and even impair the Freenet network as a whole",
@@ -288,7 +288,7 @@ BEGIN
                     UDS_ARROWKEYS,86,41,11,16
     GROUPBOX        "Node Availability",IDC_STATIC,7,92,305,38
     CONTROL         "Node is transient",IDC_transient,"Button",
-                    BS_AUTORADIOBUTTON | BS_MULTILINE | WS_GROUP | 
+                    BS_AUTORADIOBUTTON | BS_MULTILINE | WS_GROUP |
                     WS_TABSTOP,14,111,75,16
     CONTROL         "Node will run 24hrs/day",IDC_notTransient,"Button",
                     BS_AUTORADIOBUTTON | WS_TABSTOP,14,103,91,10
@@ -316,9 +316,9 @@ BEGIN
     GROUPBOX        "Advanced",IDC_STATIC,99,139,213,72
     LTEXT           "FProxy class",IDC_STATIC,106,181,51,8
     EDITTEXT        IDC_fproxy_class,105,191,200,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_fproxy_inserthtl,65,87,22,14,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_fproxy_inserthtl,65,87,22,14,ES_AUTOHSCROLL |
                     ES_NUMBER
-    EDITTEXT        IDC_fproxy_requesthtl,65,106,22,14,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_fproxy_requesthtl,65,106,22,14,ES_AUTOHSCROLL |
                     ES_NUMBER
     LTEXT           "Insert HTL",IDC_STATIC,13,90,42,8
     LTEXT           "Request HTL",IDC_STATIC,13,109,48,8
@@ -332,11 +332,11 @@ BEGIN
     EDITTEXT        IDC_FPROXYALLOWEDMIME,105,49,200,14,ES_AUTOHSCROLL
     LTEXT           "Allowed Mime types",IDC_STATIC,106,39,90,8
     GROUPBOX        "Split files",IDC_STATIC,7,135,85,76
-    EDITTEXT        IDC_fproxy_splitthreads,63,148,22,14,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_fproxy_splitthreads,63,148,22,14,ES_AUTOHSCROLL |
                     ES_NUMBER
-    EDITTEXT        IDC_fproxy_splitretries,63,169,22,14,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_fproxy_splitretries,63,169,22,14,ES_AUTOHSCROLL |
                     ES_NUMBER
-    EDITTEXT        IDC_fproxy_splitincHTL,64,190,22,14,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_fproxy_splitincHTL,64,190,22,14,ES_AUTOHSCROLL |
                     ES_NUMBER
     LTEXT           "Threads",IDC_STATIC,15,151,40,8
     LTEXT           "Retries",IDC_STATIC,16,172,41,8
@@ -344,7 +344,7 @@ BEGIN
     CONTROL         "Poll for dropped connection",IDC_FPROXYDROPPEDCONN,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,106,151,199,10
     CONTROL         "Show a warning if a newer version of Freenet is available",
-                    IDC_BSHOWNEWBUILDWARNING,"Button",BS_AUTOCHECKBOX | 
+                    IDC_BSHOWNEWBUILDWARNING,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,106,166,199,10
 END
 
@@ -353,17 +353,17 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Diagnostics"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Enable",IDC_NODEINFOSERVLET,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Enable",IDC_NODEINFOSERVLET,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,22,139,37,10
     GROUPBOX        "Servlets",IDC_STATIC,7,94,305,140
-    EDITTEXT        IDC_NODEINFOPORT,265,136,31,14,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_NODEINFOPORT,265,136,31,14,ES_AUTOHSCROLL |
                     ES_NUMBER
     RTEXT           "Port",IDC_STATIC,242,139,20,8
     EDITTEXT        IDC_NODEINFOCLASS,77,136,160,14,ES_AUTOHSCROLL
     LTEXT           "The node information servlet enables a web interface to view diagnostics data in a web browser.",
                     IDC_STATIC,22,118,269,18
     GROUPBOX        "Diagnostics",IDC_STATIC,108,7,204,81
-    CONTROL         "Enable",IDC_doDiagnostics,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Enable",IDC_doDiagnostics,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,115,24,38,10
     LTEXT           "Path",IDC_STATIC,172,25,16,8
     EDITTEXT        IDC_diagnosticsPath,194,23,108,12,ES_AUTOHSCROLL
@@ -376,12 +376,12 @@ BEGIN
     EDITTEXT        IDC_logFormat,41,65,48,14,ES_AUTOHSCROLL
     GROUPBOX        "Node Information Servlet",IDC_STATIC,15,106,287,72
     LTEXT           "Size of 'Failure Table' :",IDC_STATIC,22,159,73,11
-    EDITTEXT        IDC_FAILURETABENTRIES,101,157,28,13,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_FAILURETABENTRIES,101,157,28,13,ES_AUTOHSCROLL |
                     ES_NUMBER
     CONTROL         "Spin1",IDC_FAILURETABENTRIESSPIN,"msctls_updown32",
                     UDS_ARROWKEYS,130,157,11,13
     LTEXT           "entries, and",IDC_STATIC,145,159,41,11
-    EDITTEXT        IDC_FAILURETABTIME,195,157,28,13,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_FAILURETABTIME,195,157,28,13,ES_AUTOHSCROLL |
                     ES_NUMBER
     CONTROL         "Spin1",IDC_FAILURETABTIMESPIN,"msctls_updown32",
                     UDS_ARROWKEYS,224,157,11,13
@@ -404,7 +404,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO DISCARDABLE
 BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
@@ -508,13 +508,13 @@ END
 IDD_PP_DIAGNOSTICS DLGINIT
 BEGIN
     IDC_logLevel, 0x403, 6, 0
-0x7245, 0x6f72, 0x0072, 
+0x7245, 0x6f72, 0x0072,
     IDC_logLevel, 0x403, 7, 0
-0x6f4e, 0x6d72, 0x6c61, "\000" 
+0x6f4e, 0x6d72, 0x6c61, "\000"
     IDC_logLevel, 0x403, 6, 0
-0x694d, 0x6f6e, 0x0072, 
+0x694d, 0x6f6e, 0x0072,
     IDC_logLevel, 0x403, 6, 0
-0x6544, 0x7562, 0x0067, 
+0x6544, 0x7562, 0x0067,
     0
 END
 
@@ -524,7 +524,7 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDP_SOCKETS_INIT_FAILED "Windows sockets initialization failed. We won't be able to retrieve Node references from the Internet!!"
     IDS_TITLE               "Freenet node properties"
@@ -583,7 +583,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO DISCARDABLE
 BEGIN
     IDD_DLG_PERM_WARN, DIALOG
     BEGIN
@@ -602,18 +602,18 @@ END
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE DISCARDABLE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE DISCARDABLE
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE DISCARDABLE
 BEGIN
     "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
     "#define _AFX_NO_OLE_RESOURCES\r\n"

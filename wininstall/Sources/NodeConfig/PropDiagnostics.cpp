@@ -64,14 +64,14 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CPropDiagnostics message handlers
 
-void CPropDiagnostics::OnNodeinfoservlet() 
+void CPropDiagnostics::OnNodeinfoservlet()
 {
 	UpdateData(TRUE);
 	GetDlgItem(IDC_NODEINFOCLASS)->EnableWindow(m_nodeinfoservlet);
 	GetDlgItem(IDC_NODEINFOPORT)->EnableWindow(m_nodeinfoservlet);
 }
 
-BOOL CPropDiagnostics::OnSetActive() 
+BOOL CPropDiagnostics::OnSetActive()
 {
 	UpdateData(TRUE);
 	GetDlgItem(IDC_NODEINFOCLASS)->EnableWindow(m_nodeinfoservlet);
@@ -79,7 +79,7 @@ BOOL CPropDiagnostics::OnSetActive()
 	return CPropertyPage::OnSetActive();
 }
 
-void CPropDiagnostics::OnFailureTabEntriesSpin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropDiagnostics::OnFailureTabEntriesSpin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -91,7 +91,7 @@ void CPropDiagnostics::OnFailureTabEntriesSpin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropDiagnostics::OnFailureTabTimeSpin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropDiagnostics::OnFailureTabTimeSpin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);

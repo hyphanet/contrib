@@ -57,7 +57,7 @@ END_MESSAGE_MAP()
 by Reuben Balik -- cybrguyrsb@yahoo.com
 February 24, 2002 */
 
-BOOL CUnknownDlg::OnInitDialog() 
+BOOL CUnknownDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	//Loads in unknown settings
@@ -98,7 +98,7 @@ BOOL CUnknownDlg::OnInitDialog()
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-void CUnknownDlg::OnAddit() 
+void CUnknownDlg::OnAddit()
 {
 	// Adds an item.
 	UpdateData(TRUE);
@@ -127,10 +127,10 @@ void CUnknownDlg::OnAddit()
 		m_addthis.Empty();
 		UpdateData(FALSE);
 	}
-	
+
 }
 
-void CUnknownDlg::OnDelete() 
+void CUnknownDlg::OnDelete()
 {
 	// Deletes the selected item.
 	UpdateData(TRUE);
@@ -158,7 +158,7 @@ void CUnknownDlg::OnDelete()
 	UpdateData(FALSE);
 }
 
-void CUnknownDlg::OnOK() 
+void CUnknownDlg::OnOK()
 {
 	// The user clicked ok so we will copy the list box
 	// contents into m_unknowns
@@ -173,14 +173,14 @@ void CUnknownDlg::OnOK()
 	CDialog::OnOK();
 }
 
-void CUnknownDlg::OnCancel() 
+void CUnknownDlg::OnCancel()
 {
 	// m_unknowns is unchanged
 
 	CDialog::OnCancel();
 }
 
-void CUnknownDlg::OnSelchangeListofunknown() 
+void CUnknownDlg::OnSelchangeListofunknown()
 {
 	// Puts the currently selected item into the selected box.
 	UpdateData(TRUE);
@@ -191,12 +191,12 @@ void CUnknownDlg::OnSelchangeListofunknown()
 	UpdateData(FALSE);
 }
 
-void CUnknownDlg::OnMovedown() 
+void CUnknownDlg::OnMovedown()
 {
 	// Moves up the selected item in the list box
 	UpdateData(TRUE);
 	CString temp;
-	int sel = m_listbox.GetCurSel();	
+	int sel = m_listbox.GetCurSel();
 	if(m_listbox.GetCount() > 1 && sel != m_listbox.GetCount() - 1)
 	{
 		m_listbox.GetText(sel, temp);
@@ -205,10 +205,10 @@ void CUnknownDlg::OnMovedown()
 		m_listbox.SetCurSel(sel+1);
 	}
 	UpdateData(FALSE);
-	
+
 }
 
-void CUnknownDlg::OnMoveup() 
+void CUnknownDlg::OnMoveup()
 {
 	// Moves down the selected item in the list box
 	UpdateData(TRUE);
@@ -222,5 +222,5 @@ void CUnknownDlg::OnMoveup()
 		m_listbox.SetCurSel(sel-1);
 	}
 	UpdateData(FALSE);
-	
+
 }

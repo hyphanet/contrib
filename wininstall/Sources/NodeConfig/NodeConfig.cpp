@@ -135,7 +135,7 @@ BOOL CNodeConfigApp::InitInstance()
 	m_pszHelpFilePath = (char*)malloc(strlen(progPath) + 17); // reserve mem for the path + "docs\freenet.hlpNULL"
 	strcpy ((char*)m_pszHelpFilePath,progPath);
 	strcat ((char*)m_pszHelpFilePath,"docs\\freenet.hlp");
-	
+
 
 	//CNodeConfigDlg dlg;
 	CPropertySheet propdlg(IDS_TITLE);
@@ -192,7 +192,7 @@ BOOL CNodeConfigApp::InitInstance()
 	return FALSE;
 }
 
-int CNodeConfigApp::ExitInstance() 
+int CNodeConfigApp::ExitInstance()
 {
 	return (clickedOK) ? 0 : 1; // return 0 if we clicked OK and 1 otherwise (canceled dialog)
 }

@@ -7,6 +7,7 @@
 #include "NodeConfig.h"
 #include "PropAdvanced.h"
 #include "UpdateSpin.h"
+#include "extradefines.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -78,7 +79,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CPropAdvanced message handlers
 
-void CPropAdvanced::OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -95,7 +96,7 @@ void CPropAdvanced::OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropAdvanced::OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -110,7 +111,7 @@ void CPropAdvanced::OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropAdvanced::OnInputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnInputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -124,7 +125,7 @@ void CPropAdvanced::OnInputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropAdvanced::OnInitialRequestHTLspin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnInitialRequestHTLspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -140,7 +141,7 @@ void CPropAdvanced::OnInitialRequestHTLspin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropAdvanced::OnMaxHopsToLivespin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnMaxHopsToLivespin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -156,7 +157,7 @@ void CPropAdvanced::OnMaxHopsToLivespin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -168,7 +169,7 @@ void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropAdvanced::OnchangedmaxNodeConnectionsspin(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnchangedmaxNodeConnectionsspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
@@ -301,7 +302,7 @@ void CPropAdvanced::GetCPUPrioritySlider(DWORD &dwPriority, DWORD &dwPriorityCla
 
 
 
-/*static*/ const DWORD CPropAdvanced::m_dwPriority[NUMPRIORITIES] = 
+/*static*/ const DWORD CPropAdvanced::m_dwPriority[NUMPRIORITIES] =
 {THREAD_PRIORITY_NORMAL,
  THREAD_PRIORITY_BELOW_NORMAL,
  THREAD_PRIORITY_BELOW_NORMAL,
@@ -310,7 +311,7 @@ void CPropAdvanced::GetCPUPrioritySlider(DWORD &dwPriority, DWORD &dwPriorityCla
  THREAD_PRIORITY_NORMAL,
  THREAD_PRIORITY_ABOVE_NORMAL};
 
-/*static*/ const DWORD CPropAdvanced::m_dwPriorityClass[NUMPRIORITIES] = 
+/*static*/ const DWORD CPropAdvanced::m_dwPriorityClass[NUMPRIORITIES] =
 {IDLE_PRIORITY_CLASS,
  BELOW_NORMAL_PRIORITY_CLASS,
  NORMAL_PRIORITY_CLASS,
@@ -319,7 +320,7 @@ void CPropAdvanced::GetCPUPrioritySlider(DWORD &dwPriority, DWORD &dwPriorityCla
  ABOVE_NORMAL_PRIORITY_CLASS,
  ABOVE_NORMAL_PRIORITY_CLASS};
 
-/*static*/ const char * const CPropAdvanced::m_szPriorityDescription[NUMPRIORITIES] = 
+/*static*/ const char * const CPropAdvanced::m_szPriorityDescription[NUMPRIORITIES] =
 { "<<< IDLE",
   "<< LOW",
   "< NORMAL",
@@ -328,17 +329,17 @@ void CPropAdvanced::GetCPUPrioritySlider(DWORD &dwPriority, DWORD &dwPriorityCla
   ">> HIGH",
   ">>> V.HIGH"};
 
-void CPropAdvanced::OnCustomdrawsliderCPUPriority(NMHDR* pNMHDR, LRESULT* pResult) 
+void CPropAdvanced::OnCustomdrawsliderCPUPriority(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	UpdateData(TRUE);	
+	UpdateData(TRUE);
 	m_str_Static_CPUPriority = m_szPriorityDescription[m_n_Slider_CPUPriority];
 	UpdateData(FALSE);
-	
+
 	*pResult = 0;
 }
 
 
-BOOL CPropAdvanced::OnSetActive() 
+BOOL CPropAdvanced::OnSetActive()
 {
 	// need this to ensure the slider control gets set up properly
 	// (There is no such thing as an OnInitialUpdate() override for propertypages)

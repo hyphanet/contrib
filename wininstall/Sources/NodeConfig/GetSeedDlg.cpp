@@ -21,7 +21,7 @@ extern CPropAdvanced *pAdvanced;
 CGetSeedDlg::CGetSeedDlg(BOOL silent /*FALSE*/, CWnd* pParent /*NULL*/)
 	: CDialog(CGetSeedDlg::IDD, pParent)
 {
-	m_silent = silent; 
+	m_silent = silent;
 	CString str;// = progPath;
 	str += (pAdvanced->m_seedFile.IsEmpty()) ? pAdvanced->m_seedFile : DEFSEEDFILE; //Create the default seednodes.ref location
 	//{{AFX_DATA_INIT(CGetSeedDlg)
@@ -60,7 +60,7 @@ BOOL CGetSeedDlg::OnInitDialog()
 	//  when the application's main window is not a dialog
 	//SetIcon(m_hIcon, TRUE);			// Set big icon
 	//SetIcon(m_hIcon, FALSE);		// Set small icon
-	
+
 	// If we are in silent mode start the download automatically
 	if (m_silent) SendMessage(WM_COMMAND,LOWORD(IDC_GETSEED)|HIWORD(BN_CLICKED),0);//Handle to the button);
 
@@ -82,7 +82,7 @@ BOOL CGetSeedDlg::OnGetseed()
 	DWORD written;
 
 	//DWORD InternetHangUp(DWORD dwConnection,DWORD dwReserved);
-	
+
 	//vvvv FALSE if there is no Internet connection
 	if (!InternetGetConnectedState(&dwFlags,0))
 	{
@@ -97,12 +97,12 @@ BOOL CGetSeedDlg::OnGetseed()
 	hInternet = InternetOpen(AfxGetApp()->m_pszAppName, INTERNET_OPEN_TYPE_PRECONFIG , NULL, NULL, NULL /*dwFlags*/); // returns NULL on failure
 	hhttpFile = InternetOpenUrl(hInternet, m_seedURL, NULL, NULL, INTERNET_FLAG_NO_UI|INTERNET_FLAG_NO_COOKIES, NULL); //return FAIL on error
 	HttpQueryInfo(hhttpFile,HTTP_QUERY_CONTENT_LENGTH|HTTP_QUERY_FLAG_NUMBER,(LPVOID)&filesize,&fsize_bufsize,NULL);
-	if (filesize) 
+	if (filesize)
 	{	//Set progress bar control step size
 		m_dloadprogressbar.SetStep((int)(100*512/filesize));
 	}
 	success = ((hfile = CreateFile(m_seedfile, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) != INVALID_HANDLE_VALUE) && success;
-	do 
+	do
 	{
 		success = InternetReadFile(hhttpFile, buf, 512, &read) && success;
 		success = WriteFile(hfile, buf, read, &written, 0) && success;
@@ -123,12 +123,12 @@ BOOL CGetSeedDlg::OnGetseed()
 		str.LoadString(IDS_ERR_GETSEED);
 		MessageBox(str,NULL,MB_OK|MB_ICONERROR);
 	}
-		
+
 	return success;
 }
 
-BOOL CGetSeedDlg::OnGetlocalseed() 
-{	
+BOOL CGetSeedDlg::OnGetlocalseed()
+{
 	BOOL success;
 	CString str;
 
@@ -136,7 +136,7 @@ BOOL CGetSeedDlg::OnGetlocalseed()
 
 	m_ldFile.DoModal();
 	success = CopyFile(m_ldFile.GetFileName(),m_seedfile,FALSE);	// return TRUE on success
-	if (!success) 
+	if (!success)
 	{
 		str.LoadString(IDS_ERR_GETSEED);
 		MessageBox(str,NULL,MB_OK|MB_ICONERROR);
