@@ -61,7 +61,6 @@
 package javax.servlet;
 
 import java.io.InputStream;
-import java.io.IOException;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.util.Enumeration;

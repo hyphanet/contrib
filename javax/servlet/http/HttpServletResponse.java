@@ -61,7 +61,6 @@
 package javax.servlet.http;
 
 import javax.servlet.ServletResponse;
-import javax.servlet.ServletException;
 import java.io.IOException;
 
 /**

@@ -57,9 +57,6 @@ package javax.servlet.jsp.tagext;
 
 import javax.servlet.jsp.tagext.TagInfo;
 
-import java.net.URL;
-
-import java.io.InputStream;
 
 /**
  * Information on the Tag Library;

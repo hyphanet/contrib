@@ -55,13 +55,6 @@
 package javax.servlet.jsp.tagext;
 
 import javax.servlet.jsp.*;
-import javax.servlet.jsp.tagext.*;
-
-import javax.servlet.*;
-
-import java.io.Writer;
-
-import java.util.Hashtable;
 
 /**
  * Actions in a Tag Library are defined through subclasses of Tag.

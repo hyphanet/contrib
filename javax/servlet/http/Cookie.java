@@ -60,7 +60,6 @@
 
 package javax.servlet.http;
 
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 

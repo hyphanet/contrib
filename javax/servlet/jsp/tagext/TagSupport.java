@@ -55,11 +55,6 @@
 package javax.servlet.jsp.tagext;
 
 import javax.servlet.jsp.*;
-import javax.servlet.jsp.tagext.*;
-
-import javax.servlet.*;
-
-import java.io.Writer;
 import java.io.Serializable;
 
 import java.util.Hashtable;
