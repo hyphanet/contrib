@@ -1,11 +1,12 @@
 
 #include <time.h>
 
+static time_t mkgmtime(char *datestr);
+
 main(int argc, char *argv[])
 {
     struct tm base_tm, converted_tm;
     time_t base_secs;
-    int x = _filelength(1);
 
     if (argc != 2)
     {

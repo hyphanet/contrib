@@ -20,6 +20,9 @@
 
 #ifndef WINDOWS
 #include "unistd.h"
+#ifdef HAVE_PTHREAD_H
+#include "pthread.h"
+#endif
 #endif
 
 #include "stdlib.h"
