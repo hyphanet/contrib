@@ -199,8 +199,7 @@ insert (int c)
     
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
-    i = datalength/blocksize;
-    if (!i) i++;
+    if (!(i = datalength/blocksize)) i++;
     if (i > graphcount) {
 	alert("I do not have a graph for %d data blocks.", i);
 	return;
@@ -211,8 +210,12 @@ insert (int c)
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
     hashes = malloc(hlen);
     
+    // shrink me
+    while (g.dbc * blocksize > datalength + 16 - (datalength % 16))
+	blocksize--;
+    
     // pad to first multiple of our crypto blocksize
-    while (g.dbc * blocksize < datalength + (datalength % 16))
+    while (g.dbc * blocksize < datalength + 16 - (datalength % 16))
 	blocksize++;
     
     dlen = g.dbc * blocksize;
@@ -449,16 +452,19 @@ request (int c)
     
     // find the graph for this datablock count
     blocksize = 64 * sqrt(datalength);
-    i = datalength/blocksize;
-    if (!i) i++;
+    if (!(i = datalength/blocksize)) i++;
     if (i > graphcount) {
 	alert("I do not have a graph for %d data blocks.", i);
 	return;
     }
     g = graphs[i-1];
     
+    // shrink me
+    while (g.dbc * blocksize > datalength + 16 - (datalength % 16))
+	blocksize--;
+    
     // pad to first multiple of our crypto blocksize
-    while (g.dbc * blocksize < datalength + (datalength % 16))
+    while (g.dbc * blocksize < datalength + 16 - (datalength % 16))
 	blocksize++;
     
     blockcount = g.dbc + g.cbc;
