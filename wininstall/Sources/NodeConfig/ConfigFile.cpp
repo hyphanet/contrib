@@ -125,7 +125,7 @@ void CConfigFile::Load()
 	
 	// our variable m_storeSize is in Megabytes so we need to divide by 2^20
 	// i.e. shift FreeBytes right 20 bits
-	pNormal->m_storeSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
+	pNormal->m_storeSize = __max(10,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5);
 	pNormal->m_storeFile = "";
 	pNormal->m_tempFile = getTempDir();
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
@@ -167,8 +167,8 @@ void CConfigFile::Load()
 	pGeek->m_blockSize = 4096;
 	pGeek->m_maximumPadding = 65536;
 	pGeek->m_routeConnectTimeout = 10000;
-	pGeek->m_rtMaxNodes = 100;
-	pGeek->m_rtMaxRefs = 100;
+	pGeek->m_rtMaxNodes = 50;
+	pGeek->m_rtMaxRefs = 50;
 	pGeek->m_storeType = "freenet";
 	pGeek->m_storeDataFile = "";
 	pGeek->m_streamBufferSize = 16384;
