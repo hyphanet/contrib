@@ -43,5 +43,8 @@ int   _fcpHtl;
 int   _fcpRawmode;
 
 int   _fcpVerbosity;
+FILE *_fcpLogStream;
+
 int   _fcpRegress;
+int   _fcpDeleteLocal;
 char *_fcpTmpDir;

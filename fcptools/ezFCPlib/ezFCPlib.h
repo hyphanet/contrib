@@ -139,12 +139,14 @@
 #define _FCP_O_RAW          0x400   /* disable automatic metadata handling */
 
 /* Reasonable defaults */
-#define EZFCP_DEFAULT_HOST       "127.0.0.1"
-#define EZFCP_DEFAULT_PORT       8481
-#define EZFCP_DEFAULT_HTL        3
-#define EZFCP_DEFAULT_VERBOSITY  FCP_LOG_SILENT
-#define EZFCP_DEFAULT_REGRESS    0
-#define EZFCP_DEFAULT_RAWMODE    0
+#define EZFCP_DEFAULT_HOST         "127.0.0.1"
+#define EZFCP_DEFAULT_PORT         8481
+#define EZFCP_DEFAULT_HTL          3
+#define EZFCP_DEFAULT_VERBOSITY    FCP_LOG_NORMAL
+#define EZFCP_DEFAULT_LOGSTREAM    stdout
+#define EZFCP_DEFAULT_REGRESS      0
+#define EZFCP_DEFAULT_DELETELOCAL  0
+#define EZFCP_DEFAULT_RAWMODE      0
 
 
 /***********************************************************************
@@ -192,6 +194,10 @@ typedef struct {
 } FCPRESP_FAILED;
 
 typedef struct {
+  int  timeout;
+} FCPRESP_RESTARTED;
+
+typedef struct {
   char *reason;   /* [Reason=<descriptive string>] */
 } FCPRESP_FORMATERROR;
 
@@ -202,8 +208,10 @@ typedef struct {
 	int   offset;
 	int   block_count;
 	int   block_size;
+	int   datablock_offset;
 	int   checkblock_count;
 	int   checkblock_size;
+	int   checkblock_offset;
 	int   segments;
 	int   segment_num;
 	int   blocks_required;
@@ -243,6 +251,7 @@ typedef struct {
 	FCPRESP_DATACHUNK       datachunk;
 	FCPRESP_KEYCOLLISION    keycollision;
 	FCPRESP_PENDING         pending;
+	FCPRESP_RESTARTED       restarted;
 	FCPRESP_FAILED          failed;
 	FCPRESP_FORMATERROR     formaterror;
 
@@ -319,8 +328,12 @@ typedef struct {
 	long   offset;
 	int    block_count;
 	int    block_size;
+	int    datablock_offset;
+
 	int    checkblock_count;
 	int    checkblock_size;
+	int    checkblock_offset;
+
 	int    segments;
 	int    segment_num;
 	int    blocks_required;
@@ -358,7 +371,7 @@ typedef struct {
 	int         cdoc_count;
 	hDocument **cdocs;
 
-	int  _start;  /* intended for internal user.. not documented */
+	int  _start;  /* intended for internal use.. not documented */
 } hMetadata;
 
 
@@ -441,7 +454,9 @@ extern "C" {
 
 	/* fcpLog */
 	void  _fcpLog(int level, char *format, ...);
+
 	void fcpSetLogVerbosity(int verbosity);
+	int  fcpSetLogStream(FILE *stream);
 	
 	/* Socket functions */
 	int   _fcpSockConnect(hFCP *hfcp);

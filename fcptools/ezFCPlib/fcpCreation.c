@@ -36,6 +36,8 @@ extern unsigned short _fcpPort;
 extern int _fcpHtl;
 extern int _fcpRegress;
 extern int _fcpRawmode;
+extern int _fcpDeleteLocal;
+
 
 /*
 	Create a HFCP structure with default information
@@ -54,8 +56,10 @@ hFCP *fcpCreateDefHFCP(void)
 	h->htl = _fcpHtl;
 	h->regress = _fcpRegress;
 	h->rawmode = _fcpRawmode;
+	h->delete_local = _fcpDeleteLocal;
 
-	_fcpLog(FCP_LOG_DEBUG, "using address %s:%d", h->host, h->port);
+	_fcpLog(FCP_LOG_DEBUG, "created new HFCP structure\n     host: %s, port: %d, htl: %d",
+					h->host, h->port, h->htl);
 
 	return h;
 }
@@ -82,13 +86,21 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int delete_local, int regress
 	}
 
 	h->port = (port == 0 ? EZFCP_DEFAULT_PORT : port );
-	h->htl =  (htl  == 0 ? EZFCP_DEFAULT_HTL  : htl  );
+	h->htl =  (htl  < 0 ? EZFCP_DEFAULT_HTL  : htl  );
+	
+	/* set the all-around default value for htl */
+	/* this *should* mean that once a handle is created with a specific htl,
+		 future ones will have the same htl automatically */
+	_fcpHtl = h->htl;
 
 	h->regress = regress;
 	h->rawmode = rawmode;
 	h->delete_local = delete_local;
 
-	_fcpLog(FCP_LOG_DEBUG, "using address %s:%d", h->host, h->port);
+	_fcpDeleteLocal = h->delete_local;
+
+	_fcpLog(FCP_LOG_DEBUG, "created new HFCP structure\n     host: %s, port: %d, htl: %d",
+					h->host, h->port, h->htl);
 
 	return h;
 }
@@ -195,6 +207,9 @@ int fcpParseURI(hURI *uri, char *key)
 	char *p2;
 
 	char *p_key;
+
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpParseURI()");
+	_fcpLog(FCP_LOG_DEBUG, "uri: %s", key);
 
 	p_key = key;
 
@@ -303,10 +318,12 @@ int fcpParseURI(hURI *uri, char *key)
   }
   
   else {
-		_fcpLog(FCP_LOG_DEBUG, "error attempting to parse invalid key \"%s\"", p_key);
+		_fcpLog(FCP_LOG_DEBUG, "error attempting to parse invalid key: %s", p_key);
     return 1;
   }
 
+  _fcpLog(FCP_LOG_DEBUG, "parsed uri into: %s", uri->uri_str);
+	
   return 0;
 }
 

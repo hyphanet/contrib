@@ -52,7 +52,7 @@ unsigned short  port;
 int htl = 3;
 int regress = 0;
 int delete_local = 0;
-int verbosity = 0;
+int verbosity = -1;
 
 char  *keyuri = 0;
 char  *keyfile = 0;
@@ -88,8 +88,8 @@ int main(int argc, char* argv[])
 	/* Call before calling *any* other ?fcp* routines */
 	if (fcpStartup())	return -1;
 
-	/* set log verbosity before anything */
-	fcpSetLogVerbosity(verbosity);
+	/* set log verbosity before anything (if it was changed from default) */
+	if (verbosity != -1) fcpSetLogVerbosity(verbosity);
 
 	/* Make sure all input args are sent to ezFCPlib as advertised */
 	hfcp = fcpCreateHFCP(host, port, htl, delete_local, regress, 0);
@@ -146,12 +146,10 @@ int main(int argc, char* argv[])
 				return -1;
 			}
 			
-			_fcpLog(FCP_LOG_VERBOSE, "Successfully wrote key metadata to ezFCPlib");
+			_fcpLog(FCP_LOG_DEBUG, "Successfully wrote key metadata to ezFCPlib");
 		}
 
 		if (fcpCloseKey(hfcp)) return -1;
-
-		_fcpLog(FCP_LOG_VERBOSE, "Successfully closed freenet key and wrote data to freenet");
 	}
 
 	else {
@@ -164,6 +162,7 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	_fcpLog(FCP_LOG_VERBOSE, "Operation Successful!");
 	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
 
 	fcpDestroyHFCP(hfcp);

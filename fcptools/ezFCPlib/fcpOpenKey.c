@@ -36,7 +36,7 @@
 
 extern int   _fcpSockConnect(hFCP *hfcp);
 extern void  _fcpSockDisconnect(hFCP *hfcp);
-extern char *_fcpTmpFilename(void);
+extern int   _fcpTmpfile(char *filename, int size);
 
 static int    fcpOpenKeyRead(hFCP *hfcp, char *key_uri);
 static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
@@ -102,21 +102,23 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 	hfcp->key->tmpblock = _fcpCreateHBlock();
 
 	/* Tie it to a unique temporary file */
-	hfcp->key->tmpblock->filename = _fcpTmpFilename();
-	if (!(hfcp->key->tmpblock->file = fopen(hfcp->key->tmpblock->filename, "wb")))
-		return -1;
+	hfcp->key->tmpblock->filename	= (char *)malloc(257);
 
-	hfcp->key->tmpblock->fd = fileno(hfcp->key->tmpblock->file);
+	hfcp->key->tmpblock->fd = _fcpTmpfile(hfcp->key->tmpblock->filename, 257);
+	if (hfcp->key->tmpblock->fd == -1)
+		return -1;
 
 	/* now prepare the tmpblock for key *meta* data */
 	hfcp->key->metadata = _fcpCreateHMetadata();
 	hfcp->key->metadata->tmpblock = _fcpCreateHBlock();
 
-	hfcp->key->metadata->tmpblock->filename = _fcpTmpFilename();
-	if (!(hfcp->key->metadata->tmpblock->file = fopen(hfcp->key->metadata->tmpblock->filename, "wb")))
-		return -1;
+	hfcp->key->metadata->tmpblock->filename	= (char *)malloc(257);
 
-	hfcp->key->metadata->tmpblock->fd = fileno(hfcp->key->metadata->tmpblock->file);
+	hfcp->key->metadata->tmpblock->fd =
+		_fcpTmpfile(hfcp->key->metadata->tmpblock->filename, 257);
+
+	if (hfcp->key->metadata->tmpblock->fd == -1)
+		return -1;
 
 	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");
 

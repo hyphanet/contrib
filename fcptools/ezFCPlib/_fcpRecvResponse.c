@@ -30,8 +30,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 extern long xtoi(char *);
+
+/* used in DataChunk to supress repeated log messages */
+static int bSupressLog = 0;
+
 
 /* suppress a compiler warning */
 char *strdup(const char *s);
@@ -257,8 +260,6 @@ static int getrespDataChunk(hFCP *hfcp)
 {
 	char resp[1025];
 
-	_fcpLog(FCP_LOG_DEBUG, "received Datachunk response");
-
 	while (!getrespline(hfcp, resp)) {
 
 		if (!strncmp(resp, "Length=", 7))
@@ -279,7 +280,7 @@ static int getrespDataChunk(hFCP *hfcp)
 		}
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespDataChunk(): received unhandled field \"%s\"", resp);
 	}
 
 	return -1;
@@ -351,7 +352,11 @@ static int getrespRestarted(hFCP *hfcp)
 
 	while (!getrespline(hfcp, resp)) {
 
-		if (!strncmp(resp, "EndMessage", 10))
+		if (!strncmp(resp, "Timeout=", 8)) {
+			hfcp->response.restarted.timeout = xtoi(resp + 8);
+		}
+
+		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_RESTARTED;
 
 		else
@@ -536,11 +541,17 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 		else if (!strncmp(resp, "BlockSize=", 10))
 			hfcp->response.segmentheader.block_size = xtoi(resp + 10);
 
+		else if (!strncmp(resp, "DataBlockOffset=", 16))
+			hfcp->response.segmentheader.datablock_offset = xtoi(resp + 16);
+
 		else if (!strncmp(resp, "CheckBlockCount=", 16))
 			hfcp->response.segmentheader.checkblock_count = xtoi(resp + 16);
 
 		else if (!strncmp(resp, "CheckBlockSize=", 15))
 			hfcp->response.segmentheader.checkblock_size = xtoi(resp + 15);
+
+		else if (!strncmp(resp, "CheckBlockOffset=", 17))
+			hfcp->response.segmentheader.checkblock_offset = xtoi(resp + 17);
 
 		else if (!strncmp(resp, "Segments=", 9))
 			hfcp->response.segmentheader.segments = xtoi(resp + 9);

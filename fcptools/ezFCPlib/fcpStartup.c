@@ -26,18 +26,23 @@
 
 #include "ezFCPlib.h"
 
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 extern char *_fcpHost;
 extern char *_fcpTmpDir;
 
 extern unsigned short _fcpPort;
-extern int _fcpHtl;
-extern int _fcpRawmode;
-extern int _fcpVerbosity;
-extern int _fcpRegress;
+extern int   _fcpHtl;
+extern int   _fcpRawmode;
+extern int   _fcpVerbosity;
+extern FILE *_fcpLogStream;
+
+extern int   _fcpRegress;
+extern int   _fcpDeleteLocal;
+
 
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 
@@ -75,7 +80,9 @@ int fcpStartup(void)
   _fcpHtl = EZFCP_DEFAULT_HTL;
 	_fcpRawmode = EZFCP_DEFAULT_RAWMODE;
 	_fcpVerbosity = EZFCP_DEFAULT_VERBOSITY;
+	_fcpLogStream = EZFCP_DEFAULT_LOGSTREAM;
 	_fcpRegress = EZFCP_DEFAULT_REGRESS;
+	_fcpDeleteLocal = EZFCP_DEFAULT_DELETELOCAL;
 
 	return 0;
 }
@@ -83,7 +90,7 @@ int fcpStartup(void)
 
 void fcpTerminate(void)
 {
-	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpTerminate()");
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpTerminate()");
 
 	free(_fcpTmpDir);
 	free(_fcpHost);

@@ -53,6 +53,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	int meta_size;
 	int rc;
 
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
+
 	/* clear the error string */
 	if (hfcp->error) {
 		free(hfcp->error);

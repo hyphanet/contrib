@@ -54,7 +54,7 @@ void   _fcpThreadQuit(char *s);
 int    _fcpThreadSleep(unsigned int seconds, unsigned int nanoseconds);
 int    _fcpSockConnect(hFCP *hfcp);
 void   _fcpSockDisconnect(hFCP *hfcp);
-char  *_fcpTmpFilename(void);
+int    _fcpTmpfile(char *filename, int size);
 
 
 int _fcpLaunchThread(void (*f)(void *), void *parms)
@@ -123,27 +123,33 @@ void _fcpSockDisconnect(hFCP *hfcp)
 }
 
 
-char *_fcpTmpFilename(void)
+int _fcpTmpfile(char *filename, int size)
 {
 	int search = 1;
-  char *filename = 0;
+	int ifile;
 
 	struct stat st;
   time_t seedseconds;
 
-	filename = (char *)malloc(257);
-  
 	time(&seedseconds);
 	srand((unsigned int)seedseconds);
 
 	while (search) {
-		snprintf(filename, 256, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
+		snprintf(filename, size - 1, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
 
 		if (stat(filename, &st) == -1)
 			if (errno == ENOENT) search = 0;
 	}
 	realloc(filename, strlen(filename) + 1);
 
-	return filename;
+	/* One way or another, we have a filename.. attempt to create the file */
+
+#ifndef WIN32
+	ifile = creat(filename, O_CREAT | S_IRUSR | S_IWUSR);
+#else
+	ifile = creat(filename, O_CREAT);
+#endif
+
+	return ifile;
 }
 

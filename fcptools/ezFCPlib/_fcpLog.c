@@ -29,7 +29,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-extern int _fcpVerbosity;
+extern int   _fcpVerbosity;
+extern FILE *_fcpLogStream;
+
 
 /* extern int vsnprintf(char *str, size_t size, const char *format, va_list ap); */
 
@@ -56,19 +58,19 @@ void _fcpLog(int level, char *format, ...)
 
 	switch (level) {
 	case FCP_LOG_CRITICAL: /*1*/
-		printf("CRITICAL: %s\n", buf);
+		fprintf(_fcpLogStream, "CRITICAL: %s\n", buf);
 		break;
 		
 	case FCP_LOG_NORMAL: /*2*/
-		printf("%s\n", buf);
+		fprintf(_fcpLogStream, "%s\n", buf);
 		break;
 		
 	case FCP_LOG_VERBOSE: /*3*/
-		printf("msg: %s\n", buf);
+		fprintf(_fcpLogStream, "%s\n", buf);
 		break;
 		
 	case FCP_LOG_DEBUG: /*4*/
-		printf("dbg: %s\n", buf);
+		fprintf(_fcpLogStream, "dbg: %s\n", buf);
 		break;
 	}
 }
@@ -86,3 +88,34 @@ void fcpSetLogVerbosity(int verbosity)
 
 	return;
 }
+
+/*
+  Function: fcpSetLog(char *s)
+
+	is stream==NULL, then tie the log to STDOUT
+*/
+int fcpSetLogStream(FILE *stream)
+{
+	int ifile = 0;
+	
+	/* If we have an address, use it as a file */
+	if (stream) {
+
+/* Ayyyy Windoze !!! */
+
+/* Must add logic HERE to create file in users home directory */
+
+#ifdef WIN32
+		ifile = creat("fcptools.log", O_CREAT | O_APPEND);
+#else
+		ifile = creat("/tmp/fcptools.log",  O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
+#endif
+		
+	}
+	else {
+		_fcpLogStream = stdout;
+	}
+
+	return ifile;
+}
+
