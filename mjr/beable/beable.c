@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -9,6 +10,7 @@
 
 #define LISTEN_PORT               6666
 #define DATABASE_SYNC_INTERVAL    10
+#define RECENT_ADDITIONS_LENGTH   25
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -16,8 +18,9 @@ struct item {
     char *key;
     char *name;
     char *desc;
+    long ctime;
     struct item *next;
-} *database = NULL;
+} *database = NULL, *recent_additions[RECENT_ADDITIONS_LENGTH];
 
 int listening_socket ();                   // Create and bind a new listening socket.
 int load_key_database ();                  // Load key database.
@@ -80,26 +83,28 @@ load_key_database ()
 {
     pthread_t t;
     int i;
-    struct item *tail;
+    long ctime, last;
+    struct item *f, *tail;
     char key[256], name[256], desc[1024], end[256];
     FILE *data = fopen("beable_database", "r");
     if (!data) {
 	data = fopen("beable_database", "w");
 	if (!data) return -1;
-	fprintf(data, "freenet:KSK@test.html\nThe Infamous test.html\nThis has been swarming around the Freenet for a long time. Nobody knows who inserted it. This entry is just some nonsense to make my braindead software happy. Oh well.\nEND\n");
+	fprintf(data, "freenet:KSK@test.html\nThe Infamous test.html\nThis has been swarming around the Freenet for a long time. Nobody knows who inserted it. This entry is just some nonsense to make my braindead software happy. Oh well.\n%lx\nEND\n", time(NULL));
 	fclose(data);
 	data = fopen("beable_database", "r");
 	if (!data) return -1;
     }
     
     while (!feof(data)) {
-	i = fscanf(data, "%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n", key, name, desc, end);
-	if (i != 4 || strcmp(end, "END") != 0) return -1;
+	i = fscanf(data, "%[^\n]\n%[^\n]\n%[^\n]\n%lx\n%[^\n]\n", key, name, desc, &ctime, end);
+	if (i != 5 || strcmp(end, "END") != 0) return -1;
 	if (!database) {
 	    database = malloc(sizeof(struct item));
 	    database->key = strdup(key);
 	    database->name = strdup(name);
 	    database->desc = strdup(desc);
+	    database->ctime = ctime;
 	    database->next = NULL;
 	    tail = database;
 	} else {
@@ -107,9 +112,25 @@ load_key_database ()
 	    tail->next->key = strdup(key);
 	    tail->next->name = strdup(name);
 	    tail->next->desc = strdup(desc);
+	    tail->next->ctime = ctime;
 	    tail->next->next = NULL;
 	    tail = tail->next;
 	}
+    }
+    
+    for (i = 0 ; i < RECENT_ADDITIONS_LENGTH ; i++)
+	recent_additions[i] = NULL;
+    
+    last = time(NULL);
+    for (i = 0 ; i < RECENT_ADDITIONS_LENGTH ; i++) {
+	for (ctime = 0, f = database ; f ; f = f->next) {
+	    if (f->ctime > ctime && f->ctime < last) {
+		recent_additions[i] = f;
+		ctime = f->ctime;
+	    }
+	}
+	if (!ctime) break;
+	last = ctime;
     }
 
     fclose(data);
@@ -135,7 +156,7 @@ database_sync_thread (void *arg)
 	}
 	pthread_mutex_lock(&mutex);
 	for (i = database; i ; i = i->next)
-	    fprintf(data, "%s\n%s\n%s\nEND\n", i->key, i->name, i->desc);
+	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n", i->key, i->name, i->desc, i->ctime);
 	pthread_mutex_unlock(&mutex);
 	fclose(data);
 	printf("written!\n");
@@ -192,16 +213,19 @@ end:
 void
 send_index (FILE *socket)
 {
-    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Beable</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Beable!</h1>\n<table cellspacing=0 cellpadding=0>\n<tr align=center><td><form action=\"/search\" method=get>Search: <input type=text name=1 size=55 maxlength=255> <input type=submit value=\"Search\"></form>\n</td></tr>\n<tr align=center><td><a href=\"http://freenetproject.org/\">Get Freenet</a> || <a href=\"/add\">Add A Link</a> || <a href=\"/data\">Download Database</a></td></tr>\n</table>\n\n<p><table border=1>\n<tr><td><b>URI</b></td></td><td><b>Description</b></td></tr>\n";
+    char one[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nCache-control: no-cache\r\n\r\n<html>\n<head><title>Beable</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Beable!</h1>\n<table cellspacing=0 cellpadding=0>\n<tr align=center><td><form action=\"/search\" method=get>Search: <input type=text name=1 size=55 maxlength=255> <input type=submit value=\"Search\"></form>\n</td></tr>\n<tr align=center><td><a href=\"http://freenetproject.org/\">Get Freenet</a> || <a href=\"/add\">Add A Link</a> || <a href=\"/data\">Download Database</a></td></tr>\n</table>\n\n<p><table border=1>\n<tr><td><b>URI</b></td></td><td><b>Description</b></td></tr>\n";
     char two[]="</table>\n\n</center>\n</body>\n</html>\r\n";
     
     int i;
     
     fputs(one, socket);
-    
-    for (i = 0 ; i < 10 ; i++)
-	fprintf(socket, "<tr><td><a href=\"http://www.google.com/\">The Mightly Wumpii</a></td><td>Currect events in the world of the Wumpii. Recipes you can try at home. Pizza is the great holy savior. Elves rock.</td></tr>\n");
-    
+    pthread_mutex_lock(&mutex);
+    for (i = 0 ; i < RECENT_ADDITIONS_LENGTH ; i++) {
+	if (!recent_additions[i]) break;
+	fprintf(socket, "<tr><td><a href=\"%s\">%s</a></td><td>%s</td></tr>\n",
+		recent_additions[i]->key, recent_additions[i]->name, recent_additions[i]->desc);
+    }
+    pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
 
@@ -234,6 +258,7 @@ run_add (FILE *socket, char *url)
 {
     char form[]="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n<head><title>Beable</title></head>\n<body link=red vlink=red alink=red bgcolor=white>\n<center>\n\n<h1>Beable!</h1>\n<form action=\"/add\" method=get>\n<p>Freenet URI: <input type=text name=1 size=55 maxlength=255>\n<p>Short Name: <input type=text name=2 size=55 maxlength=255>\n<p>Description: <textarea cols=55 rows=3 name=3></textarea>\n<p><input type=submit value=\"Add Link\"></form>\n\n</center>\n</body>\n</html>\r\n";
     
+    int n;
     char *p, *q, *key = NULL, *name = NULL, *desc = NULL;
     struct item *i, *j;
     
@@ -263,10 +288,15 @@ run_add (FILE *socket, char *url)
 	    j->key = strdup(key);
 	    j->name = strdup(name);
 	    j->desc = strdup(desc);
+	    j->ctime = time(NULL);
 	    j->next = i->next;
 	    i->next = j;
-            pthread_mutex_unlock(&mutex);
-            return send_index(socket);
+            for (n = RECENT_ADDITIONS_LENGTH ; n > 0 ; n--)
+		recent_additions[n] = recent_additions[n-1];
+	    recent_additions[0] = j;
+	    pthread_mutex_unlock(&mutex);
+	    fprintf(socket, "HTTP/1.0 301 Moved Permanently\r\nConnection: close\r\nLocation: /\r\n\r\n");
+            return;
 	}
     }
 
