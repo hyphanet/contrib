@@ -30,16 +30,16 @@ recurse (char *path)
 {
     struct dirent **d;
     extern int errno;
-    int i, tfd, chksum, n = scandir(path, &d, visible, alphasort);
+    int n, i, tfd, chksum, m = scandir(path, &d, visible, alphasort);
     char tfn[] = "/tmp/le-XXXXXX";
     off_t o;
 	
-    if (n == -1) {
+    if (m == -1) {
 	printf("Cannot scan %s. Aborting. (%s)\n", path, strerror(errno));
 	exit(1);
     }
 
-    if (!n) {
+    if (!m) {
 	printf("Skipping empty directory %s.\n", path);
 	return;
     }
@@ -48,7 +48,7 @@ recurse (char *path)
 	die("mkstemp() failed");
     unlink(tfn);
 
-    while (n--) {
+    for (n = 0 ; n < m ; n++) {
 	struct stat s;
 	char newpath[strlen(path) + strlen(d[n]->d_name) + 2];
 	sprintf(newpath, "%s/%s", path, d[n]->d_name);

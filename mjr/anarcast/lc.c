@@ -70,7 +70,7 @@ download (int num)
 	return;
     }
 
-    if ((fd = open(keys[num].name, O_WRONLY|O_CREAT)) == -1)
+    if ((fd = open(keys[num].name, O_WRONLY|O_CREAT, 0644)) == -1)
 	die("open() failed");
 
     memset(&a, 0, sizeof(a));
@@ -84,7 +84,8 @@ download (int num)
     if (connect(s, &a, sizeof(a)) == -1)
 	die("connect() to proxy failed");
     
-    if (writeall(s, "r", 1) != 1 || writeall(s, &keys[num].keylen, 4) != 4)
+    if (writeall(s, "r", 1) != 1 || writeall(s, &keys[num].keylen, 4) != 4
+	    || writeall(s, keys[num].key, keys[num].keylen) != keys[num].keylen)
 	die("writeall() of request to proxy failed");
 
     printf("Requesting %s: ", keys[num].name);

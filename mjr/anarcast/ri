@@ -1,0 +1,31 @@
+#!/usr/bin/perl -w
+
+use strict;
+$|++;
+die unless @ARGV == 2 || -d $ARGV[0];
+$ARGV[0] =~ s/\/$//g;
+$ARGV[1] =~ s/\/$//g;
+recurse($ARGV[0], $ARGV[1]);
+
+sub recurse {
+    my ($from, $to) = @_;
+    mkdir($to, 0755);
+    opendir DIR, $from;
+    my @dir = readdir DIR;
+    for (sort @dir) {
+	/^\./ and next;
+	my $f = "$from/$_";
+	my $t = "$to/$_";
+	-d $f and recurse($f, $t);
+	-f $f and do {
+	    print "Inserting $f: ";
+	    if (system "./insert \"$f\" \"$t\"") {
+		print "Failed.\n";
+		exit 1;
+	    } else {
+		print "Success.\n";
+	    }
+	};
+    }
+}
+
