@@ -1,7 +1,7 @@
 Freenet plugin for Microsoft Internet Explorer
 ----------------------------------------------
 
-Version: 0.06
+Version: 0.06 Build 3
 Any questions? mailto:freenet@philipphug.ch
 
 Installation
@@ -20,7 +20,7 @@ Features
 1)allows read-only access to freenet
 2)supports ie security manager (like https)
   ie warns if there are insecure items (eg. images on a we server) within a freenet page
-3)plugin reads fproxy port from freenet.ini
+3)plugin reads fproxy port from freenet.ini. (works now)
 
 Known Bugs
 ==========

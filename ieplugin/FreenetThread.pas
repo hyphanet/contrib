@@ -85,7 +85,7 @@ begin
   FRequest := CleanUpURL (Frequest);
   Delete (FRequest, 1, 8);
 
-  Request := FHost+FRequest;
+  Request := FHost+'/'+FRequest;
 
   LogMessage ('Requesting :'+Request, FID);
 
