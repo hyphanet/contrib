@@ -344,7 +344,6 @@ typedef struct {
 	int   verbosity;
 	int   splitblock;
 	int   retry;
-
 	int   regress;
 	int   delete_local;
 	int   skip_local;
@@ -359,25 +358,35 @@ typedef struct {
 } hOptions;
 
 typedef struct {
-  int   type;                        /* CHK@, KSK@, SSK@ */
+	int   type;                        /* CHK@, KSK@, SSK@ */
 
-	char  *uri_str;     /* the unparsed uri */
-  char  *keyid;       /* the pub/priv/ch key */
+	FILE *logstream;   /* stream used to send log messages; may be file or stdin */
+	
+	char  tmpdir[L_FILENAME+1];    /* temporary file directory (depends on WIN32/!WIN32) */
+	char  homedir[L_FILENAME+1];   /* Home directory */
+
+} hOptions;
+
+typedef struct {
+  int   type;        /* CHK@, KSK@, SSK@ */
+
+	char  *uri_str;    /* the unparsed uri */
+  char  *keyid;      /* the pub/priv/ch key */
 
 	/* SSK's */
-	char  *docname;     /* the /name// piece */
-	char  *metastring;  /* the //images/activelink.gif piece */
+	char  *docname;    /* the /name// piece */
+	char  *metastring; /* the //images/activelink.gif piece */
 
 } hURI;
 
 typedef struct {
 	char   filename[L_FILENAME+1];  /* null terminated filename */
-	int    fd;        /* corresponding file descriptor */
+	int    fd;         /* corresponding file descriptor */
 
-	int    fn_status; /* status relative to Freenet */
-	int    size;      /* size of this chunk */
+	int    fn_status;  /* status relative to Freenet */
+	int    size;       /* size of this chunk */
 
-	hURI  *uri;       /* this block's CHK */
+	hURI  *uri;        /* this block's CHK */
 
 } hBlock;
 
