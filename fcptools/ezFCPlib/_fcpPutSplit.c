@@ -256,7 +256,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	_fcpLog(FCP_LOG_VERBOSE, "fcpInsSplitFile: insert of '%s' successful", fileName);
 
 	// insert this manifest
-	result = insertSplitManifest(hfcp, key, metaData, strrchr(fileName, DIRDELIMCHAR));
+	result = insertSplitManifest(hfcp, key, metaData, strrchr(fileName, DIR_DELIM_CHAR));
 
 	// update status for manager thread
 	job->status = (result == 0) ? SPLIT_INSSTAT_SUCCESS : SPLIT_INSSTAT_FAILED;
@@ -616,7 +616,7 @@ static int dumpQueue()
 		char buf[1024];
 		char buf1[1024];
 
-		sprintf(buf, "%s(%d): ", strrchr(job->fileName, DIRDELIMCHAR), job->numChunks);
+		sprintf(buf, "%s(%d): ", strrchr(job->fileName, DIR_DELIM_CHAR), job->numChunks);
 
 		switch (job->status)
 		{

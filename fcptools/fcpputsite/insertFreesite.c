@@ -176,7 +176,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         }
 
 		_fcpLog(FCP_LOG_DEBUG, "fcpputsite: found thread slot for inserting %s",
-			strrchr(files[firstWaitingFile].filename, DIRDELIMCHAR)+1);
+			strrchr(files[firstWaitingFile].filename, DIR_DELIM_CHAR)+1);
 
         // Fill out a job form and launch thread
         //numthreads++;
