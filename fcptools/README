@@ -1,7 +1,7 @@
 README
 
-This source package builds four Freenet FCP components; fwproxy, fcpget, fcpput
-and ezFCPlib.
+This source package builds four Freenet FCP components; fwproxy, fcpget,
+fcpput and ezFCPlib.
 
 CopyLeft (c) 2001 by David McNab,
 david@rebirthing.co.nz
@@ -25,8 +25,8 @@ to assist with writing Freenet client programs in C/C++.
 While still in development, the tools have successfully compiled and run on:
 * Windows native (compiling with MS Visual C++)
 * Windows with Cygwin
-* Linux (Mandrake 8.0)
-* Linux (Autoconf, Automake generated scripts)
+* Linux (Mandrake 8.0, Debian 2.2)
+* FreeBSD 4
 
 -------------------------------------------------
 Building the tools
@@ -105,4 +105,3 @@ fcpget - a simple FCP-based command line request client
 
 While originally intended as a demo of the ezFCPlib library, this
 is rapidly evolving into a full-featured request client.
-
