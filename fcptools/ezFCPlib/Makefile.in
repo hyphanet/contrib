@@ -1,4 +1,4 @@
-# Makefile.in generated automatically by automake 1.4-p6 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
 # Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
@@ -64,33 +64,22 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
-AR = @AR@
 AS = @AS@
 AWK = @AWK@
 CC = @CC@
-CXX = @CXX@
-CXXCPP = @CXXCPP@
 DLLTOOL = @DLLTOOL@
 ECHO = @ECHO@
-EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-F77 = @F77@
-GCJ = @GCJ@
-GCJFLAGS = @GCJFLAGS@
-HAVE_LIB = @HAVE_LIB@
 INCLUDES = @INCLUDES@
 LDADD = @LDADD@
-LIB = @LIB@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-LTLIB = @LTLIB@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
-RC = @RC@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
@@ -104,7 +93,27 @@ noinst_LIBRARIES = libezfcp.a
 
 include_HEADERS = ezFCPlib.h
 
-FCP_SOURCE = " _fcpGlobals.c _fcpCompat.c _fcpLog.c _fcpRecvResponse.c _fcpInfo.c _fcpSock.c _fcpUtil.c _fcpMetadata.c _fcpPut.c ezFCPlib.h fcpCloseKey.c fcpCreation.c fcpOpenKey.c fcpPutKeyFromFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c mimetype.c "
+FCP_SOURCE = "\
+_fcpGlobals.c \
+_fcpCompat.c \
+_fcpLog.c \
+_fcpRecvResponse.c \
+_fcpInfo.c \
+_fcpSock.c \
+_fcpUtil.c \
+_fcpMetadata.c \
+_fcpPut.c \
+ezFCPlib.h \
+fcpCloseKey.c \
+fcpCreation.c \
+fcpOpenKey.c \
+fcpPutKeyFromFile.c \
+fcpReadKey.c \
+fcpMakeSvkKeypair.c \
+fcpStartup.c \
+fcpWriteKey.c \
+mimetype.c \
+"
 
 
 # The following files are currently ignored for now
@@ -131,6 +140,7 @@ _fcpPut.$(OBJEXT) fcpCloseKey.$(OBJEXT) fcpCreation.$(OBJEXT) \
 fcpOpenKey.$(OBJEXT) fcpPutKeyFromFile.$(OBJEXT) fcpReadKey.$(OBJEXT) \
 fcpMakeSvkKeypair.$(OBJEXT) fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) \
 mimetype.$(OBJEXT)
+AR = ar
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -142,7 +152,7 @@ DIST_COMMON =  README Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = tar
+TAR = gtar
 GZIP_ENV = --best
 DEP_FILES =  .deps/_fcpCompat.P .deps/_fcpGlobals.P .deps/_fcpInfo.P \
 .deps/_fcpLog.P .deps/_fcpMetadata.P .deps/_fcpPut.P \
@@ -249,7 +259,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
 	  awk '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
 	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags -o $$here/TAGS $(ETAGS_ARGS) $$tags  $$unique $(LISP))
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
 
 mostlyclean-tags:
 
