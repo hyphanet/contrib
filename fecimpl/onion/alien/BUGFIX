@@ -1,0 +1,10 @@
+20020223
+
+I had to fix a little bug to make DefaultFECCodeFactory work on Kaffe.
+
+rebuild.sh rebuilds a minimal fixed version of fec.jar from source.  
+It doesn't include some classes that we weren't using.
+
+
+giannijohansson@attbi.com
+
