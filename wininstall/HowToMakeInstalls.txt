@@ -1,0 +1,31 @@
+How to prepare a self installing package of "Freenet for Windows"
+-----------------------------------------------------------------
+
+Any questions? mailto:Sebastian@SSpaeth.de
+
+How to make an install
+======================
+1)Get the free Nullsoft installer (NSIS) at http://nullsoft.com/free/NSIS 
+  (I won't provide it here for disc space reasons)
+2)Take the Freenet subdirectory and add the current files:
+  freenet.jar, updated .fproxyrc and freenet.ini
+  (make sure the entry listenPort= in freenet.ini exists, but no value is entered yet,
+  otherwise this one will be used in all installs)
+3)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
+4)Call "makensis freenet"
+
+Remarks
+=======
+ -To add the plugin support there will be subdirectories in the Freenet directory,
+  but that's not ready yet.
+ -I don't update CVS too often, you might have to remind me to do so once in a while
+
+ToDo list (Help appreciated)
+=========
+ - Integrate browser plugins in install, and make installation easy
+ - Make scripts.Setup.java so that it can silently create a freenet.ini with all defaults
+ - turn off bandwidth throttling by default?
+ - Write a better help file / manual / starter in a nice format (Windows help or html)
+
+Reminder to myself: I need to put the source of JavaFind into CVS as well!
+
