@@ -1,4 +1,7 @@
 # installer generator script for Freenet:
+
+;uncomment on of the two next lines, depending on the type of installer you are building
+!define VERSION "webinstall"
 #!define VERSION "20020225"
 !define WEBINSTALL
 #!define LANGUAGE "Dutch"
