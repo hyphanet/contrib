@@ -103,7 +103,7 @@ Section "Freenet (required)"
   #create the configuration file now
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "seedNodes" "seed.ref"
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "ipAddress" "127.0.0.1"  
-  MessageBox MB_OKCANCEL "Do you want to go through the complete Freenet configuration dialog now (OK),$\r$\nor do you just want to accept the defaults for now (CANCEL)?" IDCANCEL Cancel_Config
+  MessageBox MB_YESNO "Do you want to accept the defaults (YES),$\r$\nor do you want to go through the complete Freenet configuration (Advanced users)(NO)." IDNO Cancel_Config
   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini'
   Goto End_Config
  Cancel_config:
@@ -123,10 +123,8 @@ Section "Freenet (required)"
   # seeding the initial references
   MessageBox MB_OK "A browser with instructions for obtaining initial references will open when you click OK.$\r$\nPlease save the file seed.ref in your Freenet directory and close the browser."
   ExecShell "open" "$INSTDIR\docs\GetSeedNode.html"
-  Sleep 5000
-  ;Execshell "open" "http://freenetproject.org/seed.ref"
   MessageBox MB_OKCANCEL "Hit OK if you finished downloading the seed.ref and you want to continue the installation process. Hit Cancel if you want to abort the installation now." IDCANCEL Abort_Inst
-  
+#we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
   ExecWait "$INSTDIR\fsrvcli --seed seed.ref"
   IfErrors SeedError NoSeedError
@@ -167,7 +165,7 @@ SectionIn 1,2
    CreateDirectory "$SMPROGRAMS\Freenet"
    CreateShortCut "$SMPROGRAMS\Freenet\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
    WriteINIStr "$SMPROGRAMS\Freenet\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
-   WriteINIStr "$SMPROGRAMS\Freenet\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   ;WriteINIStr "$SMPROGRAMS\Freenet\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
    ;CreateShortcut "$SMPROGRAMS\Freenet\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
    CreateShortCut "$SMPROGRAMS\Freenet\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
@@ -260,7 +258,7 @@ Section Uninstall
   Delete "$DESKTOP\Freenet.lnk"
   #Delete "$SMPROGRAMS\Freenet\Freenet.lnk"
   #Delete "$SMPROGRAMS\Freenet\FN Homepage.url"
-  #Delete "$SMPROGRAMS\Freenet\FNGuide.url"
+  ;Delete "$SMPROGRAMS\Freenet\FNGuide.url"
   #Delete "$SMPROGRAMS\Freenet\Uninstall.lnk" 
   RMDir /r "$SMPROGRAMS\Freenet"
 
