@@ -8,16 +8,15 @@
 // how many blocks should be transfer at a time?
 #define CONCURRENCY   8
 
-// a node of our lovely AVL tree
+// a node in our linked list of servers
 struct node {
     unsigned int addr;
     char hash[HASHLEN];
-    struct node *left, *right;
-    unsigned char heightdiff;
+    struct node *next;
 };
 
-// our lovely AVL tree
-struct node *tree;
+// the head and tail of our linked list of servers
+struct node *head, *tail;
 
 // our inform server hostname
 char *inform_server;
@@ -695,7 +694,7 @@ inform ()
     if (connect(c, &a, sizeof(a)) == -1)
 	die("connect() failed");
     
-    tree = NULL;
+    head = NULL;
     
     // how many friends do we have?
     if (readall(c, &count, 4) != 4)
@@ -719,12 +718,6 @@ inform ()
 
 //=== routing ===============================================================
 
-#define AVL_MAXHEIGHT 41
-
-void avl_insert (struct node *node, struct node **stack[], int stackmax);
-void avl_remove (struct node **stack[], int stackmax);
-int avl_findwithstack (struct node **tree, struct node ***stack, int *count, const char hash[HASHLEN]);
-
 void
 refop (char op, char *hash, unsigned int addr)
 {
@@ -740,18 +733,33 @@ refop (char op, char *hash, unsigned int addr)
 void
 addref (unsigned int addr)
 {
-    int count;
     struct node *n;
-    struct node **stack[AVL_MAXHEIGHT];
     
     n = malloc(sizeof(struct node));
     n->addr = addr;
     hashdata((char *) &addr, 4, n->hash);
     
-    if (avl_findwithstack(&tree, stack, &count, n->hash))
-	die("tried to addref() a duplicate reference");
-    
-    avl_insert(n, stack, count);
+    if (!head) {
+	n->next = NULL;
+	head = tail = n;
+    } else {
+	struct node *last, *p;
+	for (p = head ; p ; last = p, p = p->next)
+    	    if (memcmp(n->hash, p->hash, HASHLEN) < 0) {
+		if (p == head) {
+		    n->next = head;
+		    head = n;
+		} else {
+		    last->next = n;
+		    n->next = p;
+		}
+		break;
+	    }
+	if (!p) {
+	    n->next = NULL;
+	    tail->next = n;
+	}
+    }
 
     refop('+', n->hash, addr);
 }
@@ -759,249 +767,29 @@ addref (unsigned int addr)
 void
 rmref (unsigned int addr)
 {
-    int count;
     char hash[HASHLEN];
-    struct node **stack[AVL_MAXHEIGHT];
+    struct node *last, *p;
     
-    hashdata((char *) &addr, 4, hash);
+    hashdata(&addr, 4, hash);
     
-    if (!avl_findwithstack(&tree, stack, &count, hash))
-	die("tried to rmref() nonexistant reference");
+    for (p = head; p ; last = p, p = p->next)
+	if (!memcmp(p->hash, hash, HASHLEN)) {
+	    last->next = p->next;
+	    free(p);
+            refop('-', hash, addr);
+	    return;
+	}
     
-    avl_remove(stack, count);
-
-    refop('-', hash, addr);
+    die("address not found in linked list");
 }
 
 unsigned int
 route (const char hash[HASHLEN])
 {
-    int count;
-    struct node **stack[AVL_MAXHEIGHT];
+    struct node *p;
     
-    avl_findwithstack(&tree, stack, &count, hash);
+    refop('*', p->hash, p->addr);
     
-    if (count < 2)
-	die("the tree is empty");
-    
-    refop('*', (*stack[count-2])->hash, (*stack[count-2])->addr);
-    
-    return (*stack[count-2])->addr;
-}
-
-int
-avl_findwithstack (struct node **tree, struct node ***stack, int *count, const char hash[HASHLEN])
-{
-    struct node *n = *tree;
-    int found = 0;
-    
-    *stack++ = tree;
-    *count = 1;
-    while (n) {
-	int compval = memcmp(n->hash, hash, HASHLEN);
-	if (compval < 0) {
-	    (*count)++;
-	    *stack++ = &n->left;
-	    n = n->left;
-	} else if (compval > 0) {
-	    (*count)++;
-	    *stack++ = &n->right;
-	    n = n->right;
-	} else {
-	    found = 1;
-	    break;
-	}
-    }
-    
-    return found;
-}
-
-// abandon all hope, ye who venture here
-
-enum {TREE_BALANCED, TREE_LEFT, TREE_RIGHT};
-
-static inline int
-otherChild (int child)
-{
-    return child == TREE_LEFT ? TREE_RIGHT : TREE_LEFT;
-}
-
-static inline void
-rotateWithChild (struct node **ptrnode, int child)
-{
-    struct node *node = *ptrnode;
-    struct node *childnode;
-
-    if (child == TREE_LEFT) {
-        childnode = node->left;
-        node->left = childnode->right;
-        childnode->right = node;
-    } else {
-        childnode = node->right;
-        node->right = childnode->left;
-        childnode->left = node;
-    }
-    *ptrnode = childnode;
-
-    if (childnode->heightdiff != TREE_BALANCED) {
-        node->heightdiff = TREE_BALANCED;
-        childnode->heightdiff = TREE_BALANCED;
-    } else
-        childnode->heightdiff = otherChild(child);
-}
-
-static inline void
-rotateWithGrandChild (struct node **ptrnode, int child)
-{
-    struct node *node = *ptrnode;
-    struct node *childnode;
-    struct node *grandchildnode;
-    int other = otherChild(child);
-
-    if (child == TREE_LEFT) {
-        childnode = node->left;
-        grandchildnode = childnode->right;
-        node->left = grandchildnode->right;
-        childnode->right = grandchildnode->left;
-        grandchildnode->left = childnode;
-        grandchildnode->right = node;
-    } else {
-        childnode = node->right;
-        grandchildnode = childnode->left;
-        node->right = grandchildnode->left;
-        childnode->left = grandchildnode->right;
-        grandchildnode->right = childnode;
-        grandchildnode->left = node;
-    }
-    *ptrnode = grandchildnode;
-
-    if (grandchildnode->heightdiff == child) {
-        node->heightdiff = other;
-        childnode->heightdiff = TREE_BALANCED;
-    } else if (grandchildnode->heightdiff == other) {
-        node->heightdiff = TREE_BALANCED;
-        childnode->heightdiff = child;
-    } else {
-        node->heightdiff = TREE_BALANCED;
-        childnode->heightdiff = TREE_BALANCED;
-    }
-    grandchildnode->heightdiff = TREE_BALANCED;
-}
-
-void
-avl_insert (struct node *node, struct node **stack[], int stackcount)
-{
-    int oldheightdiff = TREE_BALANCED;
-
-    node->left = node->right = NULL;
-    node->heightdiff = 0;
-    *stack[--stackcount] = node;
-
-    while (stackcount) {
-        int nodediff, insertside;
-        struct node *parent = *stack[--stackcount];
-
-        if (parent->left == node)
-            insertside = TREE_LEFT;
-        else 
-            insertside = TREE_RIGHT;
-
-        node = parent;
-        nodediff = node->heightdiff;
-
-        if (nodediff == TREE_BALANCED) {
-            node->heightdiff = insertside;
-            oldheightdiff = insertside;
-        } else if (nodediff != insertside) {
-            node->heightdiff = TREE_BALANCED;
-            return;
-        } else {
-            if (oldheightdiff == nodediff)
-                rotateWithChild(stack[stackcount], insertside);
-            else
-                rotateWithGrandChild(stack[stackcount], insertside);
-            return;
-        }
-    }
-}
-
-void
-avl_remove (struct node **stack[], int stackcount)
-{
-    struct node *node = *stack[--stackcount];
-    struct node *nextgreatest = node->left;
-    struct node *relinknode;
-    struct node **removenodeptr;
-
-    if (nextgreatest) {
-        int newmax = stackcount+1;
-        struct node *next, tmp;
-
-        while ((next = nextgreatest->right)) {
-            newmax++;
-            stack[newmax] = &nextgreatest->right;
-            nextgreatest = next;
-        }
-
-        tmp.left = node->left;
-	tmp.right = node->right;
-	tmp.heightdiff = node->heightdiff;
-	
-	node->left = nextgreatest->left;
-	node->right = nextgreatest->left;
-	node->heightdiff = nextgreatest->heightdiff;
-	
-        nextgreatest->left = tmp.left;
-	nextgreatest->right = tmp.right;
-	nextgreatest->heightdiff = tmp.heightdiff;
-
-        *stack[stackcount] = nextgreatest;
-        stack[stackcount+1] = &nextgreatest->left;
-        *stack[newmax] = node;
-        stackcount = newmax;
-
-        relinknode = node->left;
-    } else
-        relinknode = node->right;
-
-    removenodeptr = stack[stackcount];
-
-    while (stackcount) {
-        int nodediff, removeside;
-        struct node *parent = *stack[--stackcount];
-
-        if (parent->left == node)
-            removeside = TREE_LEFT;
-        else 
-            removeside = TREE_RIGHT;
-
-        node = parent;
-        nodediff = node->heightdiff;
-
-        if (nodediff == TREE_BALANCED) {
-            node->heightdiff = otherChild(removeside);
-            break;
-        } else if (nodediff == removeside) {
-            node->heightdiff = TREE_BALANCED;
-        } else {
-            int childdiff;
-            if (nodediff == TREE_LEFT)
-                childdiff = node->left->heightdiff;
-            else
-                childdiff = node->right->heightdiff;
-
-            if (childdiff == otherChild(nodediff))
-                rotateWithGrandChild(stack[stackcount], nodediff);
-            else {
-                rotateWithChild(stack[stackcount], nodediff);
-                if (childdiff == TREE_BALANCED)
-                    break;
-            }
-
-            node = *stack[stackcount];
-        }
-    }
-
-    *removenodeptr = relinknode;
+    return 1;
 }
 

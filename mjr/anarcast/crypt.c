@@ -2224,11 +2224,11 @@ sha1_final(SHA1_CONTEXT *hd)
 }
 
 void
-hashdata (const char *buffer, size_t len, char *hash)
+hashdata (const void *buffer, size_t len, char *hash)
 {
    SHA1_CONTEXT c;
    sha1_init(&c);
-   sha1_write(&c, buffer, len);
+   sha1_write(&c, (char *) buffer, len);
    sha1_final(&c);
    memcpy(hash, c.buf, 20);
 }
