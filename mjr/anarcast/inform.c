@@ -1,5 +1,6 @@
 #define MAX_HOSTS       16384
 #define VERIFY_INTERVAL 60
+#define WRITE_INTERVAL  60
 
 #include <err.h>
 #include <fcntl.h>
@@ -21,7 +22,7 @@ int listening_socket ();
 int n;
 unsigned int hosts[MAX_HOSTS];
 
-long last_verify;
+long last_verify, last_write;
 
 int
 main (int argc, char **argv)
@@ -50,6 +51,7 @@ main (int argc, char **argv)
 	if (!hosts[n]) break;
     
     last_verify = time(NULL);
+    last_write = time(NULL);
     
     for (;;) {
 	i = sizeof(a);
@@ -63,6 +65,13 @@ main (int argc, char **argv)
 	    }
 	    if (!d) hosts[n++] = a.sin_addr.s_addr;
 	    close(c);
+	}
+	if (time(NULL) > last_write + WRITE_INTERVAL) {
+	    last_write = time(NULL);
+	    if (write(f, &hosts, sizeof(hosts)) != sizeof(hosts))
+		err(1, "write(2) failed");
+	    if (lseek(f, SEEK_SET, 0) == -1)
+		err(1, "lseek(2) failed");
 	}
 	if (time(NULL) > last_verify + VERIFY_INTERVAL) {
 	    int o = 0;
