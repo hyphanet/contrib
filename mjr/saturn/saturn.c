@@ -165,6 +165,8 @@ fcp_put_thread (void *args)
 	fflush(log);
 	fgets(reply, 512, fcp);
     } else { // should I log collided inserts?
+	fgets(reply, 512, fcp);
+	fgets(reply, 512, fcp);
 	collisions++;
     }
 
