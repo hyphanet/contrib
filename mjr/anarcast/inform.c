@@ -7,7 +7,7 @@
 int
 main (int argc, char **argv)
 {
-    int l, m, active, v_active, next;
+    int l, m, active, v_active, next, updated;
     long last_verify;
     fd_set r, w;
 
@@ -58,6 +58,7 @@ main (int argc, char **argv)
     l = listening_socket(INFORM_SERVER_PORT, INADDR_ANY);
     last_verify = 0;
     v_active = 0;
+    updated = 0;
     active = 0;
     next = 0;
     
@@ -73,6 +74,7 @@ main (int argc, char **argv)
 	
 	if (next || time(NULL) > last_verify + VERIFY_INTERVAL) {
 	    if (!next) {
+		updated = 0;
 		last_verify = time(NULL);
 		memcpy(hosts0, hosts, DATABASE_SIZE);
 		end0 = hosts0;
@@ -121,7 +123,7 @@ main (int argc, char **argv)
 	    struct sockaddr_in s;
 	    int c, b = sizeof(s);
 	    // accept a connection
-	    if ((c = accept(n, &s, &b)) == -1) {
+	    if ((c = accept(l, &s, &b)) == -1) {
 		ioerror();
 		continue;
 	    }
@@ -174,12 +176,13 @@ main (int argc, char **argv)
 		}
 	    }
 
-	if (!active && !v_active && !next) {
+	if (!active && !v_active && !next && !updated) {
 	    int pre = (end-hosts)/4, post = (end0-hosts0)/4;
 	    memset(end0, 0, 4); // terminator
 	    memcpy(hosts, hosts0, post * 4 + 4);
 	    end = hosts + (post * 4);
 	    msync(hosts, post * 4 + 4, MS_SYNC);
+	    updated = 1;
 	    printf("Database updated. %d of %d servers removed.\n", pre-post, pre);
 	}
     }
