@@ -78,9 +78,9 @@ int main(int argc, char* argv[])
 }
 
 
+#if 0
 static void parse_args(int argc, char *argv[])
 {
-#if 0
 	static struct option long_options[] = {
 		{"address", 1, NULL, 'n'},
 		{"port", 1, NULL, 'p'},
@@ -186,12 +186,8 @@ static void parse_args(int argc, char *argv[])
 				break;
 		}
 	}
-
-#endif
-
 }
 
-#if 0
 static void usage(char *s)
 {
 	if (s)

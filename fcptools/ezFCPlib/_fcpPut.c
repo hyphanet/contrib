@@ -37,9 +37,9 @@
 
 /* Private functions for internal use */
 static int fec_segment_file(hFCP *hfcp);
-static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);
-static int fec_insert_segment(hFCP *hfcp, char *key_filename, int segment);
-static int fec_make_metadata(hFCP *hfcp, char *meta_filename);
+static int fec_encode_segment(hFCP *hfcp, int segment);
+static int fec_insert_segment(hFCP *hfcp, int segment);
+static int fec_make_metadata(hFCP *hfcp);
 
 
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
@@ -328,32 +328,10 @@ int put_file(hFCP *hfcp, char *uri)
 	
 	Any function calls here may set hfcp->error on return.
 */
-int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
+int put_fec_splitfile(hFCP *hfcp)
 {
 	int rc;
 	int index;
-
-	if (key_filename) {
-		if ((hfcp->key->size = file_size(key_filename)) < 0) {
-
-			_fcpLog(FCP_LOG_CRITICAL, "put_fec_splitfile(): Key file %s does not exist", key_filename);
-			return -1;
-		}
-	}
-	else
-		hfcp->key->size = 0;
-
-	/* now metadata */
-
-	if (meta_filename) {
-		if ((hfcp->key->metadata->size = file_size(meta_filename)) < 0) {
-
-			_fcpLog(FCP_LOG_CRITICAL, "put_fec_splitfile(): Metadata file %s does not exist", meta_filename);
-			return -1;
-		}
-	}
-	else
-		hfcp->key->metadata->size = 0;
 
 	/* now if key->size and metadata->size are both zero, bail */
 	if ((hfcp->key->size == 0) && (hfcp->key->metadata->size == 0)) {
@@ -363,16 +341,16 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	}
 
 	if ((rc = fec_segment_file(hfcp)) != 0) return rc;
-	
-	for (index = 0; index < hfcp->key->segment_count; index++)
-		if ((rc = fec_encode_segment(hfcp, key_filename, index)) != 0) return rc;
-	
-	for (index = 0; index < hfcp->key->segment_count; index++)
-		if ((rc = fec_insert_segment(hfcp, key_filename, index)) != 0) return rc;
 
-	/* now that the data is inserted, generate and insert metadata merged with
+	for (index = 0; index < hfcp->key->segment_count; index++)
+		if ((rc = fec_encode_segment(hfcp, index)) != 0) return rc;
+
+	for (index = 0; index < hfcp->key->segment_count; index++)
+		if ((rc = fec_insert_segment(hfcp, index)) != 0) return rc;
+
+	/* TODO: now that the data is inserted, generate and insert metadata merged with
 		 user-defined data for the splitfile */
-	if ((rc = fec_make_metadata(hfcp, meta_filename)) != 0) return rc;
+	if ((rc = fec_make_metadata(hfcp)) != 0) return rc;
 
 	return 0;
 }
@@ -413,7 +391,6 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	/* now insert the metadata which contains the redirect info */
 	rc = put_file(tmp_hfcp, uri_src);
 	
-	tmpfile_unlink(tmp_hfcp->key);
 	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	
@@ -478,7 +455,7 @@ static int fec_segment_file(hFCP *hfcp)
 		break;
 	}
 
-	/* Allocate the area for all required segments */
+	/* Allocate the area for all required segments (spaces for pointers to hSegment) */
 	hfcp->key->segment_count = hfcp->response.segmentheader.segments;
 	hfcp->key->segments = (hSegment **)malloc(sizeof (hSegment *) * hfcp->key->segment_count);
 
@@ -490,7 +467,7 @@ static int fec_segment_file(hFCP *hfcp)
 
 	/* Loop through all segments and store information */
 	while (index < segment_count) {
-		hfcp->key->segments[index] = (hSegment *)malloc(sizeof (hSegment));
+		hfcp->key->segments[index] = _fcpCreateHSegment();
 
 		/* get counts of data and check blocks */
 		hfcp->key->segments[index]->db_count = hfcp->response.segmentheader.block_count;
@@ -519,8 +496,8 @@ static int fec_segment_file(hFCP *hfcp)
 						 hfcp->response.segmentheader.blocks_required
 						 );
 
-		hfcp->key->segments[index]->header_str = (char *)malloc(strlen(buf) + 1);
-		strcpy(hfcp->key->segments[index]->header_str, buf);
+		if (hfcp->key->segments[index]->header_str) free(hfcp->key->segments[index]->header_str);
+		hfcp->key->segments[index]->header_str = strdup(buf);
 
 		_fcpLog(FCP_LOG_DEBUG, "received segment %d/%d", index+1, segment_count);
 	
@@ -556,7 +533,7 @@ static int fec_segment_file(hFCP *hfcp)
 }
 
 
-static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
+static int fec_encode_segment(hFCP *hfcp, int index)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
 	int fd;
@@ -573,7 +550,6 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	int pad_len;
 
 	hSegment  *segment;
-	FILE      *file;
 
 	_fcpLog(FCP_LOG_DEBUG, "entered fec_encode_segment()");
 
@@ -584,7 +560,6 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	metadata_len = strlen(segment->header_str);
 	pad_len      = (segment->block_count * segment->block_size) - data_len;
 	
-	/* new connection to Freenet FCP */
 	if (_fcpSockConnect(hfcp) != 0) return -1;
 
 	snprintf(buf, L_FILE_BLOCKSIZE,
@@ -610,13 +585,12 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	}
 
 	/* Open file we are about to send */
-	if (!(file = fopen(key_filename, "rb"))) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not open key file %s", key_filename);
+	if ((fd = open(hfcp->key->tmpblock->filename, O_RDONLY)) == -1) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not open key file %s", hfcp->key->tmpblock->filename);
 		rc = -1;
-
+		
 		goto cleanup;
 	}
-	fd = fileno(file);
 	
 	/* Write the data from the file, then write the pad blocks */
 	/* data_len is the total length of the data file we're inserting */
@@ -663,6 +637,8 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		/* decrement i by number of bytes written to the socket */
 		fi -= byte_count;
 	}
+
+	close(fd);
 	
 	/* if the response isn't BlocksEncoded, we have a problem */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_BLOCKSENCODED) {
@@ -690,21 +666,12 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		}
 		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
-		fd = _fcpTmpfile(segment->check_blocks[bi]->filename); /** unlink? **/
-
-		if (fd == -1) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not open file (%s) for writing check block", 
-							 segment->check_blocks[bi]->filename,
-							bi);
-
-			rc = -1;
-			goto cleanup;
-		}
-
 		segment->check_blocks[bi]->size = block_len;
 
 		for (fi=0; fi < block_len; ) {
-			byte_count = write(fd, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
+			byte_count = write(segment->check_blocks[bi]->fd,
+												 hfcp->response.datachunk.data,
+												 hfcp->response.datachunk.length);
 			
 			if (byte_count != hfcp->response.datachunk.length) {
 				_fcpLog(FCP_LOG_CRITICAL, "Error writing check block");
@@ -734,7 +701,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		}
 
 		/* Close the check block file */
-		close(fd);
+		close(segment->check_blocks[bi]->fd);
 
 		_fcpLog(FCP_LOG_DEBUG, "received check block %d/%d",
 						bi+1, segment->cb_count);
@@ -751,7 +718,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 }
 
 
-static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
+static int fec_insert_segment(hFCP *hfcp, int index)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
@@ -763,10 +730,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 	hSegment  *segment;
 
-	FILE *kfile;
 	hFCP *tmp_hfcp;
-
-	int kfd;
 
 	_fcpLog(FCP_LOG_DEBUG, "entered fec_insert_segment()");
 	
@@ -777,13 +741,12 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	bi = 0;
 
 	/* open key file */
-	if (!(kfile = fopen(key_filename, "rb"))) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not open key file %s", key_filename);
+	if ((hfcp->key->tmpblock->fd = open(hfcp->key->tmpblock->filename, O_RDONLY)) == -1) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not open key file %s", hfcp->key->tmpblock->filename);
 		rc = -1;
 		
 		goto cleanup;
 	}
-	kfd = fileno(kfile);
 
 	/******************************************************************/
 	/* insert data blocks first */
@@ -800,14 +763,14 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 
 		/* seek to the location relative to the segment (if needed) */
-		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
+		if (segment->offset > 0) lseek(hfcp->key->tmpblock->fd, segment->offset, SEEK_SET);
 		
 		bytes = segment->block_size;
 		while (bytes) {
 			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 			
 			/* read from source */
-			if ((byte_count = read(kfd, buf, byte_count)) <= 0) break;
+			if ((byte_count = read(hfcp->key->tmpblock->fd, buf, byte_count)) <= 0) break;
 
 			if (fcpWriteKey(tmp_hfcp, buf, byte_count)) {
 				_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to temporary file");
@@ -838,21 +801,17 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 			bytes -= byte_count;
 		}
 
-		/* now that the block is written to a temp file, insert it as a CHK
-			 (no metadata here). First close the files. */
-		tmpfile_unlink(tmp_hfcp->key);
-
 		_fcpLog(FCP_LOG_DEBUG, "file to insert: %s", tmp_hfcp->key->tmpblock->filename);
 
-		rc = put_file(tmp_hfcp, "CHK@");
-		if (rc < 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not insert data block %d into Freenet", bi);
-
+		if (fcpCloseKey(tmp_hfcp) != 0) {
+			_fcpLog(FCP_LOG_DEBUG, "close key returned !0");
+			rc = -1;
+			
 			goto cleanup;
 		}
 
 		segment->data_blocks[bi] = _fcpCreateHBlock();
-		fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
+		fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
 		_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %d/%d",
 						bi+1, segment->db_count);
@@ -861,16 +820,23 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->db_count,
 						segment->data_blocks[bi]->uri->uri_str);
+
+		/* before restarting the loop, tear down the tmp_hfcp struct then
+			 re-instantiate it; could be wasteful, but it will do for now */
+
+		fcpDestroyHFCP(tmp_hfcp);
+		free(tmp_hfcp);
+
+		tmp_hfcp = fcpInheritHFCP(hfcp);
 		
 		bi++;
 	}
 
 	/* we're done with the key data */
-	tmpfile_unlink(tmp_hfcp->key);
 	fcpDestroyHFCP(tmp_hfcp);
+	free(tmp_hfcp);
 
-	close(kfd);
-	kfd = -1;
+	tmp_hfcp = fcpInheritHFCP(hfcp);
 
 	/******************************************************************/
 	/* insert check blocks next */
@@ -882,11 +848,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->cb_count);
 
-		tmp_hfcp = fcpInheritHFCP(hfcp);
-		tmp_hfcp->key = _fcpCreateHKey();
-		tmp_hfcp->key->metadata = _fcpCreateHMetadata();
-		
-		rc = put_file(tmp_hfcp, "CHK@");
+		rc = fcpPutKeyFromFile(tmp_hfcp, "CHK@", segment->check_blocks[bi]->filename, 0);
 
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert check block %d into Freenet", bi);
@@ -905,24 +867,31 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 						bi+1, segment->cb_count,
 						segment->check_blocks[bi]->uri->uri_str);
 
-		fcpDestroyHFCP(tmp_hfcp);
+		_fcpSockDisconnect(hfcp);
+		
 	}
+	
+  _fcpSockDisconnect(hfcp);
 
+	fcpDestroyHFCP(tmp_hfcp);
+	free(tmp_hfcp);
+	
 	return 0;
 
  cleanup: /* this is called when there is an error above */
 	
   _fcpSockDisconnect(hfcp);
+
+	fcpDestroyHFCP(tmp_hfcp);
+	free(tmp_hfcp);
+	
 	return rc;
 }
 
-static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
+static int fec_make_metadata(hFCP *hfcp)
 {
 	char buf[513];
 	char block[L_FILE_BLOCKSIZE];
-
-	FILE *kfile;
-	int   kfd = -1;
 
 	int rc;
 	int bi;
@@ -939,14 +908,10 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	_fcpLog(FCP_LOG_DEBUG, "entered fec_make_metadata()");
 
-	/* TODO: heh.. */
-	meta_filename = meta_filename;
-
 	segment_count = hfcp->key->segment_count;
 	index = 0;
 
 	tmp_hfcp = fcpInheritHFCP(hfcp);
-	fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
 	
 	while (index < segment_count) {
 		/* build SegmentHeader and BlockMap pairs */
@@ -973,7 +938,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		
 		/* copy the segment header */
 		fcpWriteKey(tmp_hfcp, buf, strlen(buf));
-		
 		fcpWriteKey(tmp_hfcp, "BlockMap\n", strlen("BlockMap\n"));
 		
 		/* concatenate data block map */
@@ -998,20 +962,20 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	_fcpLog(FCP_LOG_DEBUG, "wrote FECMakeMetadata message to temporary file");
 
-	/* the MakeMetadata message is now in the key tmp file for tmp_hfcp */
-
 	tmpfile_unlink(tmp_hfcp->key);
 	meta_len = tmp_hfcp->key->size;
 
+	tmpfile_link(tmp_hfcp->key, O_RDONLY);
+
   /* connect to Freenet FCP (use hfcp) */
-  if (_fcpSockConnect(hfcp) != 0) return -1;
+  if (_fcpSockConnect(tmp_hfcp) != 0) return -1;
 
 	/* Send FECMakeMetadata command */
 	snprintf(buf, 512, "FECMakeMetadata\nDescription=file\nMimeType=%s\nDataLength=%x\nData\n",
 					 hfcp->key->mimetype,
 					 meta_len);
 
-	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+	if (send(tmp_hfcp->socket, buf, strlen(buf), 0) == -1) {
 		_fcpLog(FCP_LOG_CRITICAL, "Could not send FECMakeMetadata message");
 		rc = -1;
 
@@ -1020,22 +984,12 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	_fcpLog(FCP_LOG_DEBUG, "sent FECMakeMetadata command to node");
 
-	/* open tmp file in tmp key */
-	if (!(kfile = fopen(tmp_hfcp->key->tmpblock->filename, "rb"))) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not open file");
-		rc = -1;
-
-		goto cleanup;
-	}
-
-	kfd = fileno(kfile);
 	bytes = meta_len;
-
 	while (bytes) {
 		byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
-		byte_count = read(kfd, block, byte_count);
+		byte_count = read(tmp_hfcp->key->tmpblock->fd, block, byte_count);
 
-		if (send(hfcp->socket, block, byte_count, 0) == -1) {
+		if (send(tmp_hfcp->socket, block, byte_count, 0) == -1) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not send metadata");
 			rc = -1;
 
@@ -1046,15 +1000,15 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		bytes -= byte_count;
 	}
 
-	/* close the tmp file */
 	tmpfile_unlink(tmp_hfcp->key);
+	tmpfile_link(tmp_hfcp->key, O_WRONLY);
 	
 	/* expecting a mademetadata response */
-	rc = _fcpRecvResponse(hfcp);
+	rc = _fcpRecvResponse(tmp_hfcp);
 	
 	switch (rc) {
 	case FCPRESP_TYPE_MADEMETADATA:
-		meta_len = hfcp->response.mademetadata.datalength;
+		meta_len = tmp_hfcp->response.mademetadata.datalength;
 		_fcpLog(FCP_LOG_DEBUG, "bytes of metadata to process: %d", meta_len);
 
 		break;
@@ -1069,12 +1023,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	/* now read metadata from freenet and write to tmp file,
 		 and then finally write the metadata into Freenet (via put_file) */
 
-	tmpfile_unlink(tmp_hfcp->key);
-	fcpDestroyHFCP(tmp_hfcp);
-
-	tmp_hfcp = fcpInheritHFCP(hfcp);
-	fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
-
 	/* write metadata to tmp file */
 	_fcpLog(FCP_LOG_DEBUG, "writing prepared metadata to temporary file for insertion");
 
@@ -1082,7 +1030,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	while (bytes) {
 
-		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
+		if ((rc = _fcpRecvResponse(tmp_hfcp)) != FCPRESP_TYPE_DATACHUNK) {
 			_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
 			_fcpLog(FCP_LOG_DEBUG, "did not receive expected DataChunk message");
 			rc = -1;
@@ -1090,33 +1038,50 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 			goto cleanup;
 		}
 		
-		fcpWriteKey(tmp_hfcp, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
-		bytes -= hfcp->response.datachunk.length;
+		if (write(tmp_hfcp->key->metadata->tmpblock->fd,
+							tmp_hfcp->response.datachunk.data,
+							tmp_hfcp->response.datachunk.length) <= 0) {
+
+			_fcpLog(FCP_LOG_DEBUG, "write returned <= 0");
+			rc = -1;
+
+			goto cleanup;
+		}
+
+		bytes -= tmp_hfcp->response.datachunk.length;
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "metadata written to temporary file");
-	tmpfile_unlink(tmp_hfcp->key);
 
-	/* put the file */
-	rc = put_file(hfcp, "CHK@");
+	tmpfile_unlink(tmp_hfcp->key);
+	tmpfile_link(tmp_hfcp->key, O_RDONLY);
+
+	rc = put_file(tmp_hfcp, "CHK@");
+
 	if (rc < 0) {
 		_fcpLog(FCP_LOG_CRITICAL, "Could not insert metadata");
 		
 		goto cleanup;
 	}
 	
-	/* kill the tmp handle */
-	fcpDestroyHFCP(tmp_hfcp);
-  _fcpSockDisconnect(hfcp);
+	_fcpLog(FCP_LOG_DEBUG, "fec_make_metadata() was successful; inserted key: %s", tmp_hfcp->key->tmpblock->uri->uri_str);
 
-	_fcpLog(FCP_LOG_DEBUG, "fec_make_metadata() was successful; inserted key: %s", hfcp->key->uri->uri_str);
+	fcpParseURI(hfcp->key->tmpblock->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
+
+  _fcpSockDisconnect(tmp_hfcp);
+
+	fcpDestroyHFCP(tmp_hfcp);
+	free(tmp_hfcp);
 	
 	return 0;
 
  cleanup: /* this is called when there is an error above */
 	
+  _fcpSockDisconnect(tmp_hfcp);
+
 	fcpDestroyHFCP(tmp_hfcp);
-  _fcpSockDisconnect(hfcp);
+	free(tmp_hfcp);
+
 	return rc;
 }
 

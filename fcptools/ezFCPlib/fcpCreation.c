@@ -156,9 +156,14 @@ void _fcpDestroyHKey(hKey *h)
 			free(h->metadata);
 		}
 
-		for (i=0; i < h->segment_count; i++) {
-			_fcpDestroyHSegment(h->segments[i]);
-			free(h->segments[i]);
+		if (h->segment_count) {
+
+			for (i=0; i < h->segment_count; i++) {
+				_fcpDestroyHSegment(h->segments[i]);
+				free(h->segments[i]);
+			}
+			
+			free(h->segments);
 		}
 	}
 }
@@ -451,17 +456,23 @@ void _fcpDestroyHSegment(hSegment *h)
 
 		if (h->header_str) free(h->header_str);
 
-		if (h->db_count)
+		if (h->db_count) {
 			for (i=0; i < h->db_count; i++) {
-				_fcpDestroyHBlock(h->data_blocks[i++]);
+				_fcpDestroyHBlock(h->data_blocks[i]);
 				free(h->data_blocks[i]);
 			}
+			
+			free(h->data_blocks);
+		}			
 		
-		if (h->cb_count)
+		if (h->cb_count) {
 			for (i=0; i < h->cb_count; i++) {
-				_fcpDestroyHBlock(h->check_blocks[i++]);
+				_fcpDestroyHBlock(h->check_blocks[i]);
 				free(h->check_blocks[i++]);
 			}
+			
+			free(h->check_blocks);
+		}
 	}
 }
 

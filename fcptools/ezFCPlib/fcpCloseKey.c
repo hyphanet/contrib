@@ -77,9 +77,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	meta_size = hfcp->key->metadata->size;
 
 	if (key_size > L_BLOCK_SIZE)
-		rc = put_fec_splitfile(hfcp,
-													 hfcp->key->tmpblock->filename,
-													 (meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0));
+		rc = put_fec_splitfile(hfcp);
 
 	else /* Otherwise, insert as a normal key */
 		rc = put_file(hfcp, "CHK@");

@@ -1,6 +1,6 @@
 INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
-CFLAGS=-ansi -W -Wall -pedantic -g -DDMALLOC
-#CFLAGS=-ansi -W -Wall -pedantic -g
+#CFLAGS=-ansi -W -Wall -pedantic -g -DDMALLOC
+CFLAGS=-ansi -W -Wall -pedantic -g
 
 bin_PROGRAMS = fcpput
 

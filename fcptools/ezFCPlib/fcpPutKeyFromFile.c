@@ -93,9 +93,12 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	if (copy_file(hfcp->key->tmpblock->filename, key_filename) < 0)
 		return -1;
-	
-	if (copy_file(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
-		return -1;
+
+	if (hfcp->key->metadata->size) {
+		if (copy_file(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
+			return -1;
+	}
+
 
 	tmpfile_link(hfcp->key, O_RDONLY);
 
@@ -111,7 +114,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	if (hfcp->key->size > _fcpSplitblock) {
 
 		_fcpLog(FCP_LOG_VERBOSE, "Start FEC encoded insert");
-		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
+		rc = put_fec_splitfile(hfcp);
 	}
 	
 	else { /* Otherwise, insert as a normal key */
@@ -128,11 +131,6 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	fcpParseURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
-#ifdef DMALLOC
-	dmalloc_verify(0);
-	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
-#endif
-
 	switch (hfcp->key->target_uri->type) {
 	case KEY_TYPE_CHK: /* for CHK's */
 
@@ -145,11 +143,6 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
 		break;
 	}
-
-#ifdef DMALLOC
-	dmalloc_verify(0);
-	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
-#endif
 
 	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
 	return 0;

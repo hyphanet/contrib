@@ -43,12 +43,14 @@ extern int _fcpDMALLOC;
 static void parse_args(int argc, char *argv[]);
 static void usage(char *msg);
 
+#ifdef DMALLOC
 void track(const char *file, const unsigned int line,
 					 const int func_id,
 					 const DMALLOC_SIZE byte_size,
 					 const DMALLOC_SIZE alignment,
 					 const DMALLOC_PNT old_addr,
 					 const DMALLOC_PNT new_addr);
+#endif
 	
 /*
 	fcpget globals
@@ -142,6 +144,7 @@ int main(int argc, char* argv[])
 }
 
 
+#ifdef DMALLOC
 void track(const char *file, const unsigned int line,
 											const int func_id,
 											const DMALLOC_SIZE byte_size,
@@ -158,6 +161,7 @@ void track(const char *file, const unsigned int line,
 
 	return;
 }
+#endif
 
 
 static void parse_args(int argc, char *argv[])

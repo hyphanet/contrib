@@ -45,12 +45,14 @@ extern long   file_size(char *filename);
 static void parse_args(int argc, char *argv[]);
 static void usage(char *);
 
+#ifdef DMALLOC
 void track(const char *file, const unsigned int line,
 					 const int func_id,
 					 const DMALLOC_SIZE byte_size,
 					 const DMALLOC_SIZE alignment,
 					 const DMALLOC_PNT old_addr,
 					 const DMALLOC_PNT new_addr);
+#endif
 
 /* Global vars to fcpput */
 char           *host;
@@ -164,11 +166,6 @@ int main(int argc, char* argv[])
     }
   }
 
-#ifdef DMALLOC
-	dmalloc_verify(0);
-	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
-#endif
-
   fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
 
   fcpDestroyHFCP(hfcp);
@@ -183,9 +180,11 @@ int main(int argc, char* argv[])
 	dmalloc_shutdown();
 #endif
   
-  return 0;
+	return 0;
 }
 
+
+#ifdef DMALLOC
 void track(const char *file, const unsigned int line,
 											const int func_id,
 											const DMALLOC_SIZE byte_size,
@@ -202,6 +201,8 @@ void track(const char *file, const unsigned int line,
 
 	return;
 }
+#endif
+
 
 /* IMPORTANT
    This function should bail if the parameters are bad in any way.  main() can

@@ -65,7 +65,6 @@ int fcpReadKey(hFCP *hfcp, char *buf, int len)
 			 attempting to read past EOF */
 
 		if (rc == 0) {
-			perror("*** ERR: ");
 			break;
 		}
 	}

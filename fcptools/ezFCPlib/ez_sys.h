@@ -98,7 +98,7 @@ extern int   memtoi(char *);
 extern int   copy_file(char *dest, char *src);
 
 extern int   put_file(hFCP *hfcp, char *uri);
-extern int   put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
+extern int   put_fec_splitfile(hFCP *hfcp);
 
 extern int   put_date_redirect(hFCP *hfcp, char *uri);
 extern int   put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
