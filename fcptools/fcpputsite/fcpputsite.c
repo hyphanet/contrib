@@ -21,10 +21,6 @@ extern int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *pri
 
 extern int  fcpSplitChunkSize;
 
-//extern int  crLaunchThread(void (*f)(void *), void *parms);
-//extern void crQuitThread(char *s);
-//extern int  crSleep(unsigned int seconds, unsigned int nanoseconds);
-
 
 //
 // EXPORTED DECLARATIONS
@@ -57,11 +53,6 @@ static int   htlVal = EZFCP_DEFAULT_HTL;
 static int   regress = EZFCP_DEFAULT_REGRESS;
 static int   rawMode = EZFCP_DEFAULT_RAWMODE;
 
-/*
- attempts       ->  maxAttempts
- splitThreads   ->  maxSplitThreads
- insertThreads  ->  maxThreads
-*/
 static int  maxThreads = FCPPUTSITE_INSERT_THREADS; // maximum number of concurrent insert threads
 static int  maxAttempts = FCPPUTSITE_ATTEMPTS;      // maximum number of insert attempts
 static int	maxSplitThreads = FCP_MAX_SPLIT_THREADS;
@@ -162,66 +153,80 @@ static void parse_args(int argc, char *argv[])
 
     case 'n':
       strncpy( nodeAddr, optarg, L_URI );
+			//printf("n! - %s\n",nodeAddr);
       break;
 
     case 'p':
       i = atoi( optarg );
+			//printf("p! - %d\n",i);
       if (i > 0) nodePort = i;
       break;
 
     case 'l':
       i = atoi( optarg );
+			//printf("l! - %d\n",i);
       if (i > 0) htlVal = i;
       break;
 
     case 'r':
       rawMode = 1;
+			//printf("r! - %d\n",rawMode);
       break;
 
 		case 'a':
 			i = atoi( optarg );
+			//printf("a! - %d\n",i);
 			if (i > 0) maxAttempts = i;
 			break;
 
 		case 's':
 			i = atoi( optarg );
+			//printf("s! - %d\n",i);
 			if (i > 0) fcpSplitChunkSize = i;
 			break;
 
 		case 't':
 			i = atoi( optarg );
+			//printf("t! - %d\n",i);
 			if (i > 0) maxSplitThreads = i;
 			break;
 
 		case 'i':
 			i = atoi( optarg );
+			//printf("i! - %d\n",i);
 			if (i > 0) maxThreads = i;
 			break;
  
 		case 'd':
 			dodbr = 0;
+			//printf("d! - %d\n",dodbr);
 			break;
  
 		case 'g':
 			genKeypair = 1;
+			//printf("g! - %d\n",genKeypair);
 			return;
  
 		case 'f':
 			i = atoi( optarg );
+			//printf("f! - %d\n",i);
 			if (i > 0) daysFuture = i;
 			break;
  
 		case 'D':
       strncpy( defaultFile, optarg, L_URI );
+			//printf("D! - %s\n",defaultFile);
 			break;
  
     case 'v':
       i = atoi( optarg );
+			//printf("v! - %d\n",i);
       if ((i >= 0) && (i <= 4)) verbosity = i;
       break;
 
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
+			printf("V!\n");
       exit(0);
 
     case 'h':
