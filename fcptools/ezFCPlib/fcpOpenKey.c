@@ -74,6 +74,7 @@ int fcpSetMimetype(hKey *key, char *mimetype)
 	return 0;
 }
 
+
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
   int rc;

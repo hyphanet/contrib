@@ -34,31 +34,21 @@
 #include "ez_sys.h"
 
 /*
-	fcpPutKeyFromFile()
+	FUNCTION fcpPutKeyFromFile()
 	
-	Parameters:
+	PARAMETERS:
 
-	- hFCP *hfcp
-	Pointer to a created & initialized struct hFCP.
-	
-	- char *key_uri
-	Key URI. Possible variants:
+	- hfcp: A created and initialized hFCP struct.
+	- key_uri:
+	- key_filename:	Filename to insert as key data.
+	- meta_filename: Filename to insert as metadata (or NULL for no metadata).
 
-	1. CHK@
-	2. KSK@<key name>
-	3. SSK@<private key>[/<docname>]
-	
-	- char *key_filename
-	Filename to insert as key data
+	IN:
 
-	- char *meta_filename
-	Filename to insert as metadata (or NULL for no metadata)
+	OUT:
 
-	Function returns:
-	- Zero on success
-	- Negative integer on error
+	RETURNS: Zero on success, <0 on error.
 */
-
 int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
 	unsigned long ul;
@@ -153,7 +143,10 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	if (hfcp->key->size > hfcp->options->splitblock) {
 		_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
+
 		rc = _fcpPutSplitfile(hfcp);
+
+		/* CHK uri is already in proper location (hfcp->key->uri) */
 	}
 	
 	else { /* Otherwise, insert as a normal key */
@@ -163,15 +156,15 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 											hfcp->key->tmpblock,
 											0,
 											"CHK@");
+
+		/* copy over the CHK uri */
+		fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 	}
 
 	if (rc) { /* bail after cleaning up */
 		_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
 		goto cleanup;
 	}
-
-	/* copy over the CHK uri */
-	fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
 	/* now the CHK has been inserted; check for metadata and insert a
 		 re-direct if necessary */

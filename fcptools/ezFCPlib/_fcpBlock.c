@@ -89,7 +89,7 @@ int _fcpBlockLink(hBlock *h, int access)
 	}
 
 	/* if we reach here, life is peachy */
-	_fcpLog(FCP_LOG_DEBUG, "_fcpBlockLink(): %s - LINKED", h->filename);
+	/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockLink(): %s - LINKED", h->filename);*/
 	return 0;
 }
 
@@ -113,13 +113,17 @@ void _fcpBlockUnlink(hBlock *h)
 		return;
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - UN*LINKED", h->filename);
+	/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - UN*LINKED", h->filename);*/
 	h->fd = -1;
 }
 
 int _fcpBlockSetFilename(hBlock *h, char *filename)
 {
+	if (h->filename[0]) _fcpDeleteBlockFile(h);
+
 	strncpy(h->filename, filename, L_FILENAME);
+	h->size = _fcpFilesize(filename);
+
 	return 0;
 }
 
@@ -170,8 +174,12 @@ int _fcpDeleteBlockFile(hBlock *h)
 			return -1;
 		}
 		
-		/*_fcpLog(FCP_LOG_DEBUG, "deleted file: %s", h->filename);*/
+		_fcpLog(FCP_LOG_DEBUG, "deleted file: %s", h->filename);
 	}
+
+	else
+		_fcpLog(FCP_LOG_DEBUG, "file marked for keep.. not deleting %s", h->filename);
+		
 		
 	h->filename[0] = 0;
 	h->delete = 0;

@@ -169,9 +169,10 @@ hKey *_fcpCreateHKey(void)
 	h->target_uri = fcpCreateHURI();
 
 	h->tmpblock = _fcpCreateHBlock();
-	h->tmpblock->binary_mode = 1;
 
 	/* binary_mode defaults to 0/text */
+	h->tmpblock->binary_mode = 1;
+
 	h->metadata = _fcpCreateHMetadata();
 
 	return h;
@@ -191,9 +192,6 @@ void _fcpDestroyHKey(hKey *h)
 			fcpDestroyHURI(h->target_uri);
 			free(h->target_uri);
 		}
-
-		/*char      *public_key;
-		char      *private_key;*/
 
 		if (h->mimetype) free(h->mimetype);
 

@@ -374,13 +374,24 @@ int _fcpPutSplitfile(hFCP *hfcp)
 		if ((rc = fec_insert_check_blocks(hfcp, index)) != 0) return rc;
 	}
 
-	/* TODO: now that the data is inserted, generate and insert metadata merged with
-		 user-defined data for the splitfile */
 	if ((rc = fec_make_metadata(hfcp)) != 0) return rc;
+
+	/* the CHK just inserted is in hfcp->key->uri */
 
 	return 0;
 }
 
+/*
+	FUNCTION _fcpInsertRoot()
+	
+	PARAMETERS:
+
+	IN:
+
+	OUT:
+
+	RETURNS: Zero on success, <0 on error.
+*/
 int _fcpInsertRoot(hFCP *hfcp)
 {
 	hFCP      *tmp_hfcp;
@@ -393,6 +404,8 @@ int _fcpInsertRoot(hFCP *hfcp)
 	int  bytes;
 	int  byte_count;
 	int  rc;
+
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpInsertRoot()");
 
 	/* first let's be careful w/ our pointers, eh? */
 	tmp_hfcp     = 0;
@@ -483,13 +496,12 @@ int _fcpInsertRoot(hFCP *hfcp)
 		}
 	}
 
-	/* in either case, a call to _fcpMetaParse() occurs exactly once */
-	/* TODO do we need to check on Version? */
-		 
-	/* add the redirect key */
+	/* in either case, a call to _fcpMetaParse() occurs exactly once
+		 (but could have occurred before this function, as for splitfiles */
+	 
 	doc = cdocAddDoc(hfcp->key->metadata, 0);
 	cdocAddKey(doc, "Redirect.Target", hfcp->key->uri->uri_str);
-
+	
 	/* check on the dbr option */
 	if (hfcp->options->dbr) {
 
@@ -509,9 +521,6 @@ int _fcpInsertRoot(hFCP *hfcp)
 	if (metadata) free(metadata);
 	metadata = _fcpMetaString(hfcp->key->metadata);
 
-	_fcpLog(FCP_LOG_DEBUG, "Metadata:\n%s", metadata);
-
-	/* TODO: write the REST piece here, after we're sure we can read it in properly */
 	fcpWriteMetadata(tmp_hfcp, metadata, strlen(metadata));
 
 	_fcpBlockUnlink(tmp_hfcp->key->tmpblock);
@@ -523,10 +532,13 @@ int _fcpInsertRoot(hFCP *hfcp)
 										tmp_hfcp->key->metadata->tmpblock,
 										hfcp->key->target_uri->uri_str);
 
-	/* copy the new uri */
+	/* fall into cleanup and return rc, which on success == 0 */
+
+	fcpParseHURI(hfcp->key->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
+
+	/*if (hfcp->key->target_uri->type == KEY_TYPE_CHK)*/
 	fcpParseHURI(hfcp->key->target_uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
-	/* fall into cleanup and return rc, which on success == 0 */
 	rc = 0;
 
  cleanup:
@@ -855,9 +867,9 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 	/* open key file */
 	_fcpBlockLink(hfcp->key->tmpblock, _FCP_READ);
 
-	tmp_hfcp = fcpInheritHFCP(hfcp);
-
 	while (bi < segment->db_count) { /* while (bi < segment->db_count) */
+
+		tmp_hfcp = fcpInheritHFCP(hfcp);
 
 		_fcpLog(FCP_LOG_DEBUG, "inserting data block - segment: %u/%u, block %u/%u",
 						index+1, hfcp->key->segment_count,
@@ -902,20 +914,11 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 
 		_fcpLog(FCP_LOG_DEBUG, "file to insert: %s", tmp_hfcp->key->tmpblock->filename);
 
-		/** TODO ***/
-
-#if 0
-		if (fcpCloseKey(tmp_hfcp) != 0) {
-			rc = -1;
-			goto cleanup;
-		}
-#endif
-
 		_fcpBlockUnlink(tmp_hfcp->key->tmpblock);
 		_fcpBlockUnlink(tmp_hfcp->key->metadata->tmpblock);
 
 		rc = _fcpPutBlock(tmp_hfcp,
-											hfcp->key->tmpblock,
+											tmp_hfcp->key->tmpblock,
 											0,
 											"CHK@");
 
@@ -924,6 +927,8 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 		/* check blocks were created before, so now create the data blocks only */
 		segment->data_blocks[bi] = _fcpCreateHBlock();
 		fcpParseHURI(segment->data_blocks[bi]->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
+
+		fcpDestroyHFCP(tmp_hfcp);
 
 		_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %u/%u",
 						bi+1, segment->db_count);
@@ -942,8 +947,8 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
  cleanup: /* this is called when there is an error above */
 
 	_fcpBlockUnlink(hfcp->key->tmpblock);
+	_fcpBlockUnlink(hfcp->key->metadata->tmpblock);
 
-	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	
 	return rc;
@@ -965,28 +970,33 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 	/* start at the first block, of course */
 	bi = 0;
 
-	tmp_hfcp = fcpInheritHFCP(hfcp);
-
 	for (bi=0; bi < segment->cb_count; bi++) {
 
+		tmp_hfcp = fcpInheritHFCP(hfcp);
+		
 		_fcpLog(FCP_LOG_DEBUG, "inserting check block - segment: %u/%u, block %u/%u",
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->cb_count);
+		
+		rc = _fcpBlockSetFilename(tmp_hfcp->key->tmpblock,
+															segment->check_blocks[bi]->filename);
 
-		/**** TODO ****/
-		/*rc = fcpPutKeyFromFile(tmp_hfcp, "CHK@", segment->check_blocks[bi]->filename, 0);*/
-
-		/* use _fcpSetFilename()...
+		/* must set so that _fcpPutBlock() works properly */
+		tmp_hfcp->key->size = _fcpFilesize(segment->check_blocks[bi]->filename);
+		
 		rc = _fcpPutBlock(tmp_hfcp,
-											tmp_hfcp->
-		*/
+											tmp_hfcp->key->tmpblock,
+											0,
+											"CHK@");
 
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert check block %u into Freenet", bi);
 			goto cleanup;
 		}		
 		
-		fcpParseHURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
+		fcpParseHURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
+
+		fcpDestroyHFCP(tmp_hfcp);
 
 		_fcpLog(FCP_LOG_VERBOSE, "Inserted check block %u/%u",
 						bi+1, segment->cb_count);
@@ -997,7 +1007,6 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 						segment->check_blocks[bi]->uri->uri_str);
 	}
 	
-	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	
 	return 0;
@@ -1142,13 +1151,7 @@ static int fec_make_metadata(hFCP *hfcp)
 		goto cleanup;
 	}
 
-	/* TODO *********** insert the custom metadata here!!!!!!!! */
-
-	/* now read metadata from freenet and write to tmp file,
-		 and then finally write the metadata into Freenet (via put_file) */
-
-	/* write metadata to tmp file */
-	_fcpLog(FCP_LOG_DEBUG, "writing prepared metadata to temporary file for insertion");
+	_fcpLog(FCP_LOG_DEBUG, "reading prepared metadata");
 
 	_fcpBlockLink(tmp_hfcp->key->metadata->tmpblock, _FCP_WRITE);
 	bytes = meta_len;
@@ -1162,39 +1165,28 @@ static int fec_make_metadata(hFCP *hfcp)
 			goto cleanup;
 		}
 
-		if (fcpWriteMetadata(tmp_hfcp,
-												 tmp_hfcp->response.datachunk.data,
-												 tmp_hfcp->response.datachunk.length) < 0) {
-			
-			_fcpLog(FCP_LOG_DEBUG, "fcpWriteMetadata() returned < 0");
-			rc = -1;
-			
-			goto cleanup;
-		}
+		fcpWriteMetadata(tmp_hfcp, 
+										 tmp_hfcp->response.datachunk.data,
+										 tmp_hfcp->response.datachunk.length);
 		
 		bytes -= tmp_hfcp->response.datachunk.length;
 	}
 
 	_fcpBlockUnlink(tmp_hfcp->key->metadata->tmpblock);
-	_fcpLog(FCP_LOG_DEBUG, "metadata written to temporary file");
+	_fcpLog(FCP_LOG_DEBUG, "wrote metadata to tempfile successfully");
 
-	/* needed to force _fcpPutBlock() to only insert metadata for splitfile manifest */
-	tmp_hfcp->key->size = 0;
+	rc = _fcpPutBlock(tmp_hfcp,
+										0,
+										tmp_hfcp->key->metadata->tmpblock,
+										"CHK@");
 
-	/************ TODO ************/
-	
-	/*if ((rc = _fcpPutBlock(tmp_hfcp, "CHK@")) < 0) goto cleanup;*/
-	
-	_fcpLog(FCP_LOG_DEBUG, "fec_make_metadata() was successful; inserted key: %s", tmp_hfcp->key->tmpblock->uri->uri_str);
+	if (rc != 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not insert splitfile metadata");
+		goto cleanup;
+	}
 
-	fcpParseHURI(hfcp->key->tmpblock->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
-
-  _fcpSockDisconnect(tmp_hfcp);
-
-	fcpDestroyHFCP(tmp_hfcp);
-	free(tmp_hfcp);
-	
-	return 0;
+	fcpParseHURI(hfcp->key->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
+	rc = 0;
 
  cleanup: /* this is called when there is an error above */
 	
@@ -1205,3 +1197,4 @@ static int fec_make_metadata(hFCP *hfcp)
 
 	return rc;
 }
+

@@ -74,7 +74,7 @@ int _fcpTmpfile(char *filename)
 	/* set the filename parameter to the newly generated Tmp filename */
 
 	strncpy(filename, tempfile, L_FILENAME);
-	/*_fcpLog(FCP_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);*/
+	_fcpLog(FCP_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);
 	
 	/* I think creating the file right here is good in avoiding
 		 race conditions.  Let the caller close the file (leaving a

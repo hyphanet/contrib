@@ -64,20 +64,14 @@ static int parse_document(hMetadata *, char *);
 int _fcpMetaParse(hMetadata *meta, char *buf)
 {
   char  line[513];
-  char  key[257];
-  char  val[257];
-
 	int   rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpMetaParse()");
-
-	/* I don't want to look at the warnings while I haven't finished this
-		 piece yet */
-	key[0] = 0;
-	val[0] = 0;
+	if (!meta) {
+		_fcpLog(FCP_LOG_DEBUG, "meta is NULL");
+		return -1;
+	}
 	
-	/* free *meta if it has old metadata */
-	if (meta->cdoc_count) _fcpDestroyHMetadata_cdocs(meta);
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpMetaParse()");
 
 	/* here's the silly use of _start; holds the 'start' value so that we can
 		 return a 'state' value as well */
@@ -106,14 +100,17 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 		
 		if (rc == STATE_END) {
 
-			/*_fcpLog(FCP_LOG_DEBUG, "%s", buf+meta->_start);*/
-			meta->rest = strdup(buf+meta->_start);
+			if (meta->rest) {
+				_fcpLog(FCP_LOG_CRITICAL, "Cannot merge 2 set of 'REST' section metadata");
+				return -1;
+			}
 
+			meta->rest = strdup(buf+meta->_start);
 			meta->_start = -1;
 		}
-		else {
+
+		else
 			meta->_start = getLine(line, buf, meta->_start);
-		}
   }
 
 	_fcpLog(FCP_LOG_DEBUG, "Exiting _fcpMetaParse()");
@@ -160,8 +157,10 @@ char *_fcpMetaString(hMetadata *meta)
 	buf = realloc(buf, strlen(buf)+strlen("End\n")+1);
 	strcat(buf, "End\n");
 
-	buf = realloc(buf, strlen(buf)+strlen(meta->rest)+1);
-	strcat(buf, meta->rest);
+	if (meta->rest) {
+		buf = realloc(buf, strlen(buf)+strlen(meta->rest)+1);
+		strcat(buf, meta->rest);
+	}
 	
 	return buf;
 }
@@ -357,6 +356,8 @@ static int parse_version(hMetadata *meta, char *buf)
   char  line[513];
   char  key[257];
   char  val[257];
+
+	long  l;
 	
 	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
 
@@ -369,7 +370,15 @@ static int parse_version(hMetadata *meta, char *buf)
 				return -1;
 			}
 
-			meta->revision = xtol(val);
+			l = xtol(val);
+
+			if ((meta->revision != 0) && (meta->revision != l)) {
+				_fcpLog(FCP_LOG_CRITICAL, "Metadata versions do not match");
+				return -1;
+			}
+
+			meta->revision = l; /* redundant but ok */
+
 			_fcpLog(FCP_LOG_DEBUG, "key Revision; val \"%s\"", val);
 		}
 	
@@ -380,7 +389,15 @@ static int parse_version(hMetadata *meta, char *buf)
 				return -1;
 			}
 
-			meta->encoding = xtol(val);
+			l = xtol(val);
+
+			if ((meta->encoding != 0) && (meta->encoding != l)) {
+				_fcpLog(FCP_LOG_CRITICAL, "Encodings do not match");
+				return -1;
+			}
+
+			meta->encoding = l;
+
 			_fcpLog(FCP_LOG_DEBUG, "key Encoding; val \"%s\"", val);
 		}
 
@@ -411,26 +428,19 @@ static int parse_document(hMetadata *meta, char *buf)
 	int   doc_index;
 	int field_index;
 
+	hDocument *doc;
+
 	doc_index = meta->cdoc_count;
+	key[0] = 0;
+	val[0] = 0;
 
 	/* allocate space for new document */
 	meta->cdoc_count++;
 
-#if 0
-	/* is this the first time we've been through this function? */
-	if (meta->cdoc_count == 1)
-		meta->cdocs = malloc(sizeof (hDocument *));
-
-	else
-		meta->cdocs = realloc(meta->cdocs, meta->cdoc_count * sizeof(hDocument *));
-
-#endif
-
-	/* add the document to the meta structure */
-	meta->cdocs[doc_index] = malloc(sizeof (hDocument));
-	memset(meta->cdocs[doc_index], 0, sizeof (hDocument));
-
 	_fcpLog(FCP_LOG_DEBUG, "document index (should be zero): %d", doc_index);
+
+	doc = malloc(sizeof (hDocument));
+	memset(doc, 0, sizeof (hDocument));
 	
 	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
 
@@ -439,48 +449,58 @@ static int parse_document(hMetadata *meta, char *buf)
 	
 			splitLine(line, key, val);
 			
+			/* we handle "Name" seperately according to the spec */
+			if (!strncasecmp(key, "Name", 4)) {
+
+				/* check if a document with the same name has already been added */
+				if (cdocFindDoc(meta, val)) {
+
+					_fcpLog(FCP_LOG_DEBUG, "warning: document with same name \"%s\" already exists.. skipping", val);
+
+					free(doc);
+					return 0;
+				}
+
+				doc->name = strdup(val);
+				continue;
+			}
+
+			else {
+				/* find the first available position in the array for the new pair */
+
+				field_index = doc->field_count * 2;
+
+				/* add one to the field counter */
+				doc->field_count++;
+
+				/* finally add the key and val */
+				doc->data[field_index]   = strdup(key);
+				doc->data[field_index+1] = strdup(val);
+
+				_fcpLog(FCP_LOG_DEBUG, "stored %s/%s in locations %d,%d", key, val, field_index, field_index+1);
+			}
+
 			/* Set type if not already set */
-			if (meta->cdocs[doc_index]->type == 0) {
+			if (doc->type == 0) {
 
 				if (!strncasecmp(key, "Redirect.", 9))
-					meta->cdocs[doc_index]->type = META_TYPE_REDIRECT;
+					doc->type = META_TYPE_REDIRECT;
 				
 				else if (!strncasecmp(key, "DateRedirect.", 13))
-					meta->cdocs[doc_index]->type = META_TYPE_DBR;
+					doc->type = META_TYPE_DBR;
 				
 				else if (!strncasecmp(key, "SplitFile.", 10))
-					meta->cdocs[doc_index]->type = META_TYPE_SPLITFILE;
+					doc->type = META_TYPE_SPLITFILE;
 
 				/*
 				else if (!strncasecmp(key, "Info.", 10))
-					meta->cdocs[doc_index]->type = META_TYPE_INFO;
+					doc->type = META_TYPE_INFO;
 				
 				else if (!strncasecmp(key, "ExtInfo.", 10))
-					meta->cdocs[doc_index]->type = META_TYPE_EXTINFO;
+					doc->type = META_TYPE_EXTINFO;
 				*/
-				
-				/* potentially none of the above may execute.. this is by design */
-			}
-			
-			/* we handle "Name" seperately according to the spec */
-			if (!strncasecmp(key, "Name", 4)) {
-				meta->cdocs[doc_index]->name = strdup(val);
 			}
 
-			else { /* add the key/val pair to the current document */
-				/* find the first available position in the array for the new pair */
-
-				field_index = meta->cdocs[doc_index]->field_count * 2;
-
-				/* add one to the field counter */
-				meta->cdocs[doc_index]->field_count++;
-				
-				/* finally add the key and val */
-				meta->cdocs[doc_index]->data[field_index]   = strdup(key);
-				meta->cdocs[doc_index]->data[field_index+1] = strdup(val);
-				
-				_fcpLog(FCP_LOG_DEBUG, "stored %s/%s in locations %d,%d", key, val, field_index, field_index+1);
-			}
 		} /* end of processing key/val pairs */
 
 		/* it's *not* a key/val pair */
@@ -489,11 +509,21 @@ static int parse_document(hMetadata *meta, char *buf)
 			if (!strncasecmp(line, "EndPart", 7))
 				return STATE_WAIT_DOCUMENT;
 
-			else if (!strncasecmp(line, "End", 3))
+			else if (!strncasecmp(line, "End", 3)) {
+
+				/*
+				if (cdocFindDoc(meta, doc->name)) {
+					_fcpLog(FCP_LOG_DEBUG, "warning; document already exists.. another being stored with same name");
+				}
+				*/
+				
+				meta->cdocs[doc_index] = doc;
+				
 				return STATE_END;
-		
+			}
+			
 			else {
-			_fcpLog(FCP_LOG_DEBUG, "encountered unhandled pair; \"%s\"", line);
+				_fcpLog(FCP_LOG_DEBUG, "encountered unhandled pair; \"%s\"", line);
 			}
 		}
 	}

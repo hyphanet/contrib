@@ -97,18 +97,11 @@ typedef int FCPSOCKET;
 /*
   Lengths of allocated strings/arrays.
 */
-#define L_64                64
-#define L_256               256
-#define L_512               512
-
-#define L_KEY               L_64
-#define L_FILENAME          L_512
-#define L_URI               L_512
+#define L_KEY               64
+#define L_FILENAME          1024
+#define L_URI               512
 #define L_RAW_METADATA      65536
-
-/* rework */
 #define L_FILE_BLOCKSIZE    8192
-/* ~rework */
 
 #define KEY_TYPE_SSK  1
 #define KEY_TYPE_CHK  2
@@ -292,7 +285,7 @@ typedef struct {
 } FCPRESP_FORMATERROR;
 
 typedef struct {
-	char  fec_algorithm[L_64+1];
+	char  fec_algorithm[64+1];
  
 	unsigned long   filelength;
 	unsigned long   offset;
