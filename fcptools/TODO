@@ -10,26 +10,29 @@ are not meant for this TODO file, otherwise I'd call it the TODO+WHY file.
 ---------------------------------------------------------------------------
 *** ezFCPlib specific *** (In order of relative importance)
 
-1. Implement signal handling proper for a pthreads application.  Specifically,
+- BUGFIX: fcpputsite SEGV immediately after announcing how much metadata there
+is.
+
+- Implement signal handling proper for a pthreads application.  Specifically,
 it should compile *and* run on Solaris.
 
-2. Work fcpPutKeyFromFile.c away from the #WINDOWS specifics.
+- Work fcpPutKeyFromFile.c away from the #WINDOWS specifics.
    (completed- joliveri)
 
-3. Confirm socket code in _fcpSock.c functions when compiled on NT/Cygwin.
+- Confirm socket code in _fcpSock.c functions when compiled on NT/Cygwin.
 
-4. A function that accepts (char *) and returns a unique filename.  The man
+- A function that accepts (char *) and returns a unique filename.  The man
 page for mktemp(3) is a good example, minus the portability.
  
-5. Confirm file open() functions are portable and whether or not streams
+- Confirm file open() functions are portable and whether or not streams
 should take their place (fcpOpenKey.c, ...).
 
-6. Consolidate _fcpUtil.c with other global 'FCPtools' related functions.
+- Consolidate _fcpUtil.c with other global 'FCPtools' related functions.
 
-7. Clean up _fcpRecvResponse.c (syntax, indenting scheme).  See if there can be
+- Clean up _fcpRecvResponse.c (syntax, indenting scheme).  See if there can be
 any code sharing.
 
-8. Determine the purpose of fcpMakeChkFromMem.c, fcpMakeChkFromFile.c.
+- Determine the purpose of fcpMakeChkFromMem.c, fcpMakeChkFromFile.c.
 
 
 ---------------------------------------------------------------------------

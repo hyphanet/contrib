@@ -478,7 +478,7 @@ extern _C_ void     freeMeta(META04 *meta);
   Utility functions defined here (not part of the protocol itself).
  */
 extern _C_ void    *safeMalloc(int nbytes);
-extern _C_ int      Sleep(unsigned int seconds, unsigned int nanoseconds);
+extern _C_ unsigned int Sleep(unsigned int seconds, unsigned int nanoseconds);
 
 extern _C_ long     cdocIntVal(META04 *meta, char *cdocName, char *keyName, long defVal);
 extern _C_ long     cdocHexVal(META04 *meta, char *cdocName, char *keyName, long defVal);

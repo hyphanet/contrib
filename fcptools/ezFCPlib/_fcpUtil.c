@@ -30,21 +30,16 @@ long xtoi(char *s)
 
 /*
   Sleep()
-
-  Convenience function since the only portable sleep function which takes
-  parameters in nanoseconds is a pain to call.  If you need to check
-  signals while sleeping, you probably shouldn't call this function.
-  Call nanosleep() directly and read the man pages :)
 */
-int Sleep(unsigned int seconds, unsigned int nanoseconds)
+unsigned int Sleep(unsigned int seconds, unsigned int nanoseconds)
 {
-  struct timespec delay;
-  struct timespec remain;
+  //struct timespec delay;
+  //struct timespec remain;
 
-  delay.tv_sec = seconds;
-  delay.tv_nsec = nanoseconds;
+  //delay.tv_sec = seconds;
+  //delay.tv_nsec = nanoseconds;
 
-  return nanosleep( &delay, &remain );
+  return sleep( seconds );
 }
 
 
