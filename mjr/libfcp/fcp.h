@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define FCP_SUCCESS		0
 #define FCP_CONNECT_FAILED	-1

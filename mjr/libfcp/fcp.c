@@ -134,8 +134,8 @@ big_brother (void *arg)
 	rtargs *r = malloc(sizeof(rtargs));
 	r->part = i; r->d = d;
 	pthread_create(&thread, NULL, winston_smith, (void *) r);
-	if (++d->activethreads == d->threads)
-	    pthread_cond_wait(&d->cond, &d->mutex);
+	d->activethreads++;
+	while (d->activethreads == d->threads) usleep(10);
     }
     pthread_exit(NULL);
 }
@@ -177,15 +177,19 @@ int
 fcp_read (fcp_document *d, char *buf, int length)
 {
     int n;
+    pthread_mutex_lock(&d->mutex);
     while (d->status[d->cur_part] > 0)
 	pthread_cond_wait(&d->cond, &d->mutex);
+    pthread_mutex_unlock(&d->mutex);
     if (d->status[d->cur_part] < 0) return d->status[d->cur_part];
     n = fread(buf, 1, length, d->streams[d->cur_part]);
     if (n != length) {
 	fclose(d->streams[d->cur_part++]);
 	if (d->cur_part == d->p_count) return n;
+	pthread_mutex_lock(&d->mutex);
 	while (d->status[d->cur_part] > 0)
 	    pthread_cond_wait(&d->cond, &d->mutex);
+	pthread_mutex_unlock(&d->mutex);
 	if (d->status[d->cur_part] < 0) return d->status[d->cur_part];
 	n += fread(&buf[n], 1, length - n, d->streams[d->cur_part]);
     }
@@ -280,6 +284,11 @@ parse_redirect (fcp_metadata *m, FILE *data)
     m->r[n]->target_uri = NULL;
     while (fgets(line, 512, data)) {
 	status = sscanf(line, "%[^=]=%s", name, val);
+	if (status == 1 && (line[strlen(line)-2] == '='
+		    || line[strlen(line)-3] == '=')) {
+	    status++; val[0] = '\0';
+	}
+	if (status != 2) break;
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
 	    m->r[n]->document_name = strdup(val);
@@ -305,6 +314,11 @@ parse_date_redirect (fcp_metadata *m, FILE *data)
     m->dr[n]->baseline = -1; m->dr[n]->increment = 86400;
     while (fgets(line, 512, data)) {
 	status = sscanf(line, "%[^=]=%s", name, val);
+	if (status == 1 && (line[strlen(line)-2] == '='
+		    || line[strlen(line)-3] == '=')) {
+	    status++; val[0] = '\0';
+	}
+	if (status != 2) break;
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
 	    m->dr[n]->document_name = strdup(val);
@@ -340,8 +354,7 @@ parse_splitfile (fcp_metadata *m, FILE *data)
 	status = sscanf(line, "%[^=]=%s", name, val);
 	if (status == 1 && (line[strlen(line)-2] == '='
 		    || line[strlen(line)-3] == '=')) {
-	    status++;
-	    val[0] = '\0';
+	    status++; val[0] = '\0';
 	}
 	if (status != 2) break;
 	if (strcmp(name, "DocumentName") == 0)
