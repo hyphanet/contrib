@@ -42,7 +42,7 @@ fcpStartup.c \
 fcpWriteKey.c \
 "
 
-FCP_TEST = "\
+#FCP_TEST = "\
 _fcpLog.c \
 _fcpRecvResponse.c \
 _fcpSock.c \
@@ -71,5 +71,5 @@ fcpWriteKey.c \
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 #libezfcp_la_SOURCES = $(FCP_SOURCE)
 
-bin_PROGRAMS = fcptest
-fcptest_SOURCES  = $(FCP_TEST)
+#bin_PROGRAMS = fcptest
+#fcptest_SOURCES  = $(FCP_TEST)

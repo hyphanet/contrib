@@ -151,14 +151,5 @@ extern int            fcpGetFilesize(hFCP *hfcp, char *uri);
 extern long  xtol(char *);
 extern int   memtoi(char *);
 
-#if 0 /* DEPRECATE ALL THIS ? */
-extern int   put_date_redirect(hFCP *hfcp, char *uri);
-extern int   put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
-
-long       cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
-long       cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
-char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal);
-#endif
-
 #endif /* EZ_SYS_H */
 

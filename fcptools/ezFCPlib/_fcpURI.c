@@ -64,10 +64,8 @@ static int doMetastringSection(hURI *uri, char **key);
 int fcpParseHURI(hURI *uri, char *key)
 {
 	int rc;
-	int i;
 
 	char *p_key;
-	char *startNameVal;
 
 	if (strlen(key) >= L_URI) {
 		_fcpLog(FCP_LOG_DEBUG, "uri too large; maximum length is %d", L_URI);
@@ -89,9 +87,6 @@ int fcpParseHURI(hURI *uri, char *key)
 	/* zero the block of memory */
 	memset(uri, 0, sizeof (hURI));
 
-	/* copy over the raw string */
-	uri->uri_str = strdup(key);
-
 	if (!strncmp(key, "freenet:", 8)) key += 8;
 	
   /* classify key header */
@@ -105,17 +100,20 @@ int fcpParseHURI(hURI *uri, char *key)
     uri->type = KEY_TYPE_SSK;
 		key += 4;
 	}
-	
+
+  else if (!strncasecmp(key, "KSK@", 4)) {
+    uri->type = KEY_TYPE_KSK;
+		key += 4;
+	}
+		
 	/* when in doubt assume it's a KSK */
   else
     uri->type = KEY_TYPE_KSK;
 
 	/*******************************************************************/
 	
-	if (doRoutingKeySection(uri, &key) != 0) {
-		rc = -1;
-		goto cleanup;
-	}
+	if (doRoutingKeySection(uri, &key) != 0)
+		goto error;
 	
 	if (uri->type == KEY_TYPE_KSK) {
 
@@ -123,10 +121,8 @@ int fcpParseHURI(hURI *uri, char *key)
 		
 			key += 2;
 			
-			if (doMetastringSection(uri, &key) != 0) {
-				rc = -1;
-				goto cleanup;
-			}
+			if (doMetastringSection(uri, &key) != 0)
+				goto error;
 		}
 	}
 	
@@ -136,20 +132,16 @@ int fcpParseHURI(hURI *uri, char *key)
 			
 			key += 1;
 			
-			if (doCryptoKeySection(uri, &key)) {
-				rc = -1;
-				goto cleanup;
-			}
+			if (doCryptoKeySection(uri, &key))
+				goto error;
 		}
 		
 		if (*key=='/' && *(key+1)!='/') {
 		
 			key += 1;
 			
-			if (doDocnameSection(uri, &key)) {
-				rc = -1;
-				goto cleanup;
-			}
+			if (doDocnameSection(uri, &key))
+				goto error;
 		}
 	}
 		
@@ -159,39 +151,46 @@ int fcpParseHURI(hURI *uri, char *key)
 			
 			key += 1;
 			
-			if (doCryptoKeySection(uri, &key)) {
-				rc = -1;
-				goto cleanup;
-			}
+			if (doCryptoKeySection(uri, &key))
+				goto error;
 		}
 		
 		if (*key=='/' && *(key+1)!='/') {
 		
 			key += 1;
 			
-			if (doDocnameSection(uri, &key)) {
-				rc = -1;
-				goto cleanup;
-			}
+			if (doDocnameSection(uri, &key))
+				goto error;
 		}
 
 		if (*key=='/' && *(key+1)=='/') {
 		
-			key += 1;
+			key += 2;
 			
-			if (doMetastringSection(uri, &key)) {
-				rc = -1;
-				goto cleanup;
-			}
+			if (doMetastringSection(uri, &key))
+				goto error;
 		}
 	}
 	
+	/* check for trailing chars */
+	if (*key != '\0')
+		goto error;
+		
+	
 	/* DONE */
- 
- success:
+	
+	/* copy over the raw string (p_key holds original address of key) */
+	uri->uri_str = strdup(p_key);
 	
 	_fcpLog(FCP_LOG_DEBUG, "uri: %s", uri->uri_str);
 	rc = 0;
+
+	goto cleanup;
+
+ error:
+	
+	_fcpLog(FCP_LOG_DEBUG, "error parsing invalid Freenet URI");
+	rc = -1;
 	
  cleanup:
 
@@ -333,7 +332,9 @@ static int doDocnameSection(hURI *uri, char **key) {
 		i = 0;
 		while (i < L_KEY) {
 	
-			if ((*(*key+i) == '/') && (*(*key+i+1) == '/')) break;
+			if ((*(*key+i) == '/') && (*(*key+i+1) == '/')) {
+				break;
+			}
 	
 			/* break when we hit null */
 			if (*(*key+i) == '\0') break;
@@ -362,7 +363,9 @@ static int doMetastringSection(hURI *uri, char **key) {
 
 		/* break when we hit null */
 		if (*(*key+i) == '\0') break;
-				
+
+		if ((*(*key+i) == '/') && (*(*key+i+1) == '/')) break;
+						
 		uri->metastring[i] = *(*key+i);
 		i++;
 	}
@@ -372,6 +375,5 @@ static int doMetastringSection(hURI *uri, char **key) {
 
 	uri->metastring = realloc(uri->metastring, strlen(uri->metastring));
 	return 0;
-
 }
 

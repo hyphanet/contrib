@@ -428,7 +428,7 @@ int main(int c, char *argv[])
 		return -1;
 	}
 
-	_fcpOpenLog(stdout, 2);
+	_fcpOpenLog(stdout, 4);
 
 	uri = fcpCreateHURI();
 	printf("\nURI :%s:\n\n", argv[1]);
