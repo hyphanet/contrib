@@ -654,7 +654,7 @@ void CConfigFile::processItem(char *tok, char *val)
 		}
 		else
 		{
-			long v = _atoi64(val);
+			DWORDLONG v = _atoi64(val);
 			char suffix = val[strspn(val,"0123456789")];
 			switch (suffix)
 			{
