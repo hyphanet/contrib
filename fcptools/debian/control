@@ -4,16 +4,16 @@ Maintainer: Jay Oliveri <ilnero@gmx.net>
 Build-Depends: debhelper (>> 3.0.0)
 Standards-Version: 3.5.2
 
-Package: fcptools
+Package: fcptools1
 Section: net
 Architecture: any
 Depends: ${shlibs:Depends}
-Description: Temp
- Temp
+Description: TEST
+ TEST
 
 Package: fcptools-dev
 Section: devel
 Architecture: any
-Depends: fcptools (= ${Source-Version})
-Description: Test
- Test
+Depends: fcptools1 (= ${Source-Version})
+Description: TEST
+ TEST

@@ -22,13 +22,13 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 endif
 
 # shared library versions, option 1
-#version=0.4.6
-#major=0
+version=2.0.5
+major=2
 # option 2, assuming the library is created as src/.libs/libfoo.so.2.0.5 or so
-version=`ls src/.libs/lib*.so.* | \
- awk '{if (match($$0,/[0-9]+\.[0-9]+\.[0-9]+$$/)) print substr($$0,RSTART)}'`
-major=`ls src/.libs/lib*.so.* | \
- awk '{if (match($$0,/\.so\.[0-9]+$$/)) print substr($$0,RSTART+4)}'`
+#version=`ls src/.libs/lib*.so.* | \
+# awk '{if (match($$0,/[0-9]+\.[0-9]+\.[0-9]+$$/)) print substr($$0,RSTART)}'`
+#major=`ls src/.libs/lib*.so.* | \
+# awk '{if (match($$0,/\.so\.[0-9]+$$/)) print substr($$0,RSTART+4)}'`
 
 config.status: configure
 	dh_testdir
@@ -48,7 +48,7 @@ build-stamp:  config.status
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp
+	rm -f build-stamp 
 
 	# Add here commands to clean up after the build process.
 	-$(MAKE) distclean
@@ -56,6 +56,7 @@ clean:
 	  cp -f /usr/share/misc/config.sub config.sub
 	-test -r /usr/share/misc/config.guess && \
 	  cp -f /usr/share/misc/config.guess config.guess
+
 
 	dh_clean
 
@@ -65,7 +66,7 @@ install: build
 	dh_clean -k
 	dh_installdirs
 
-	# Add here commands to install the package into debian/tmp
+	# Add here commands to install the package into debian/tmp/usr
 	$(MAKE) install prefix=$(CURDIR)/debian/tmp/usr
 
 	dh_undocumented fcpget.1
