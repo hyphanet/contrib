@@ -303,7 +303,7 @@ typedef struct {
 	char  *header_str;
 
 	int    filelength;
-	int    offset;
+	long   offset;
 	int    block_count;
 	int    block_size;
 	int    checkblock_count;

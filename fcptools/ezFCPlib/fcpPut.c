@@ -43,7 +43,7 @@ extern char *crTmpFilename(void);
 
 /* exported functions for fcptools codebase */
 
-int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
+int put_file(hFCP *hfcp, FILE *key_fp, int bytes, char *meta_filename);
 int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
 
@@ -52,20 +52,23 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);
 static int fec_insert_segment(hFCP *hfcp, char *key_filename, int segment);
 
+/* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
-/* Log messages should be VERBOSE or DEBUG only in this module */
 
-int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
+/*
+	put_file()
+*/
+int put_file(hFCP *hfcp, FILE *key_fp, int bytes, char *meta_filename)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
 	int kfd;
 	int mfd;
 
 	int rc;
+	int byte_count;
 	
-	FILE *kfile;
 	FILE *mfile;
-	
+
   /* connect to Freenet FCP */
   if (crSockConnect(hfcp) != 0)
     return -1;
@@ -104,12 +107,6 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 	_fcpLog(FCP_LOG_VERBOSE, "sent ClientPut message");
 
-	/* Open key data file */
-	if (!(kfile = fopen(key_filename, "rb"))) {
-		_fcpLog(FCP_LOG_DEBUG, "could not open key file for reading");
-		return -1;
-	}
-
 	/* Open metadata file */
 	if (meta_filename)
 		if (!(mfile = fopen(meta_filename, "rb"))) {
@@ -117,7 +114,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 			return -1;
 		}
 	
-	kfd = fileno(kfile);
+	kfd = fileno(key_fp);
 
 	if (meta_filename) mfd = fileno(mfile);
 
@@ -135,16 +132,32 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		fclose(mfile);
 	}
 
-  /* send key data */
-	while ((rc = read(kfd, buf, L_FILE_BLOCKSIZE)) > 0) {
+	/* read from the parameter file pointer for key data; write to the
+		 open socket */
+	while (bytes) {
+		byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 
-    if (send(hfcp->socket, buf, rc, 0) < 0) {
-      _fcpLog(FCP_LOG_DEBUG, "could not write key data to socket");
-      return -1;
+		/* read from source */
+		if ((rc = read(kfd, buf, L_FILE_BLOCKSIZE)) <= 0) {
+			_fcpLog(FCP_LOG_DEBUG, "could not read from pre-opened file pointer");
+			return -1;
 		}
+
+		/* write to socket */
+		if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
+			_fcpLog(FCP_LOG_DEBUG, "could not write key FILE * data to socket");
+			return -1;
+		}
+		
+		/* decrement by number of bytes written to the socket */
+		bytes -= byte_count;
 	}
-	_fcpLog(FCP_LOG_VERBOSE, "wrote key data to socket");
-  fclose(kfile);
+
+	if (bytes != 0) {
+		_fcpLog(FCP_LOG_VERBOSE, "did not write *all* data to socket!");
+	}
+	else
+		_fcpLog(FCP_LOG_VERBOSE, "wrote key data to socket");
 
   /* expecting a success response */
   rc = _fcpRecvResponse(hfcp);
@@ -498,40 +511,72 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 	hSegment  *segment;
 
+	FILE *fp;
+	hFCP *tmp_hfcp;
+
 	/* helper pointer */
 	segment = hfcp->key->segments[index];
 
-#if 0
 	/* insert data blocks first */
 	for (bi=0; bi < segment->db_count; bi++) {
-		hFCP *tmp_hfcp;
-
-		tmp_hfcp = _fcpCreateHFCP();
-		
-		/* use the temporary handle, to put the data block with NULL metadata */
-		rc = put_file(tmp_hfcp, segment->data_blocks[bi]->filename, 0);
-
-		_fcpLog(FCP_LOG_DEBUG, "put_file returned %d for data block %d", rc, bi);
-	}
-#endif
-
-	/* insert check blocks second */
-	for (bi=0; bi < segment->cb_count; bi++) {
-		hFCP *tmp_hfcp;
-
 		tmp_hfcp = _fcpCreateHFCP();
 
 		tmp_hfcp->key = _fcpCreateHKey();
-		tmp_hfcp->key->size = segment->check_blocks[bi]->size;
+		tmp_hfcp->key->size = segment->block_size;
 
 		_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
 
-		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0);
+		if (!(fp = fopen(key_filename, "rb"))) {
+			_fcpLog(FCP_LOG_VERBOSE, "Could not open key data in file \"%s\"", key_filename);
+			return -1;
+		}			
 
-		_fcpLog(FCP_LOG_DEBUG, "put_file returned %d for check block %d", rc, bi);
-		_fcpLog(FCP_LOG_DEBUG, "inserted uri: %s", tmp_hfcp->key->uri->uri_str);
+		/* seek to the location relative to the segment (if needed) */
+		if (segment->offset > 0) {
+			fseek(fp, segment->offset, SEEK_SET);
+		}
+
+		/* now insert from fseek result only up to block_size bytes */
+		rc = put_file(tmp_hfcp, fp, segment->block_size, 0);
+		fclose(fp);
+
+		if (rc != 0) {
+			_fcpLog(FCP_LOG_DEBUG, "could not insert data block %d (0->size-1) into Freenet", bi);
+			return -1;
+		}		
+
+		_fcpLog(FCP_LOG_DEBUG, "put_file returned %d fo data block %d (0->size-1)", rc, bi);
+		_fcpLog(FCP_LOG_VERBOSE, "inserted uri: %s", tmp_hfcp->key->uri->uri_str);
 
 		_fcpDestroyHFCP(tmp_hfcp);
+	}
+
+	/* insert check blocks second */
+	for (bi=0; bi < segment->cb_count; bi++) {
+		tmp_hfcp = _fcpCreateHFCP();
+
+		tmp_hfcp->key = _fcpCreateHKey();
+		tmp_hfcp->key->size = segment->checkblock_size;
+
+		_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
+
+		if (!(fp = fopen(segment->check_blocks[bi]->filename, "rb"))) {
+			_fcpLog(FCP_LOG_VERBOSE,
+							"Could not open key data in file \"%s\"",
+							segment->check_blocks[bi]->filename);
+			return -1;
+		}			
+
+		rc = put_file(tmp_hfcp, fp, segment->check_blocks[bi]->size, 0);
+		fclose(fp);
+
+		if (rc != 0) {
+			_fcpLog(FCP_LOG_DEBUG, "could not insert check block %d (0->size-1) into Freenet", bi);
+			return -1;
+		}		
+
+		_fcpLog(FCP_LOG_DEBUG, "put_file returned %d for check block %d", rc, bi);
+		_fcpLog(FCP_LOG_VERBOSE, "inserted uri: %s", tmp_hfcp->key->uri->uri_str);
 	}
 
 	return 0;
