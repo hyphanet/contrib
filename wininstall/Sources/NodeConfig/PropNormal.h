@@ -8,6 +8,8 @@
 #include "stdafx.h"
 #include "resource.h"
 
+#define TRANSIENT 0
+#define NOT_TRANSIENT 1
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropNormal dialog
@@ -29,11 +31,10 @@ public:
 	CButton	m_importNewNodeRef;
 	DWORD	m_storeSize;
 	BOOL	m_useDefaultNodeRefs;
-	BOOL	m_transient;
 	CString	m_ipAddress;
 	UINT	m_listenPort;
-	BOOL	m_notTransient;
 	CString	m_storeFile;
+	int		m_transient;
 	//}}AFX_DATA
 
 
@@ -49,14 +50,16 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(CPropNormal)
 	afx_msg void OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnnotTransientClick();
-	afx_msg void OntransientClick();
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	afx_msg void OnImportNewNodeRef();
 	afx_msg void OnDestroy();
+	afx_msg void Ontransient();
+	afx_msg void OnNotTransient();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+
+	void OnNodeAvailability(void);
 
 };
 

@@ -258,11 +258,11 @@ BEGIN
     CONTROL         "Spin1",IDC_storeCacheSize_spin,"msctls_updown32",
                     UDS_ARROWKEYS,86,41,11,16
     GROUPBOX        "Node Availability",IDC_STATIC,7,92,305,38
-    CONTROL         "Node will run 24hrs/day",IDC_notTransient,"Button",
-                    BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,103,91,10
     CONTROL         "Node is transient",IDC_transient,"Button",
-                    BS_AUTORADIOBUTTON | BS_MULTILINE | WS_TABSTOP,14,111,75,
-                    16
+                    BS_AUTORADIOBUTTON | BS_MULTILINE | WS_GROUP | 
+                    WS_TABSTOP,14,111,75,16
+    CONTROL         "Node will run 24hrs/day",IDC_notTransient,"Button",
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,103,91,10
     LTEXT           "Nodes running 24/7 are good for Freenet",IDC_STATIC,106,
                     100,47,25
     LTEXT           "Node Address (IP or domain)",IDC_ipAddress_TITLE,160,

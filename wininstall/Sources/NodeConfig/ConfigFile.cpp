@@ -77,8 +77,7 @@ void CConfigFile::Load()
 	pNormal->m_storeSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
 	pNormal->m_storeFile = "";
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
-	pNormal->m_transient = FALSE;
-	pNormal->m_notTransient = !pNormal->m_transient;
+	pNormal->m_transient = TRANSIENT;
 	// the ipAddrress is determined in the constructor: pNormal->m_ipAddress;
 	srand( (unsigned)time( NULL ) );
 	pNormal->m_listenPort = rand() + 1024;	// random port number
@@ -215,7 +214,7 @@ void CConfigFile::Save()
 	fprintf(fp, "# Transient nodes do not give out references to themselves, and should\n");
 	fprintf(fp, "# therefore not receive any requests.  Set this to yes only if you are\n");
 	fprintf(fp, "# on a slow, non-permanent connection.\n");
-	fprintf(fp, "transient=%s\n", pNormal->m_transient ? "true" : "false");
+	fprintf(fp, "transient=%s\n", (pNormal->m_transient == TRANSIENT) ? "true" : "false");
 	fprintf(fp, "\n");
 	fprintf(fp, "# The port to listen for incoming FNP (Freenet Node Protocol) connections on.\n");
 	fprintf(fp, "listenPort=%d\n", pNormal->m_listenPort);
@@ -475,8 +474,7 @@ void CConfigFile::processItem(char *tok, char *val)
 		pNormal->m_storeFile = val;
 	else if (!strcmp(tok, "transient"))
 	{
-		pNormal->m_transient = atobool(val);
-		pNormal->m_notTransient = !pNormal->m_transient;
+		pNormal->m_transient = atobool(val)?TRANSIENT:NOT_TRANSIENT;
 	}
 	else if (!strcmp(tok, "listenPort"))
 		pNormal->m_listenPort = atoi(val);

@@ -29,6 +29,7 @@ IMPLEMENT_DYNCREATE(CPropNormal, CPropertyPage)
 CPropNormal::CPropNormal() : CPropertyPage(CPropNormal::IDD)
 {
 	//{{AFX_DATA_INIT(CPropNormal)
+	m_transient = NOT_TRANSIENT;
 	//}}AFX_DATA_INIT
 }
 
@@ -43,13 +44,12 @@ void CPropNormal::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_importNewNodeRef, m_importNewNodeRef);
 	DDX_Text(pDX, IDC_storeSize, m_storeSize);
 	DDX_Check(pDX, IDC_useDefaultNodeRefs, m_useDefaultNodeRefs);
-	DDX_Check(pDX, IDC_transient, m_transient);
 	DDX_Text(pDX, IDC_ipAddress, m_ipAddress);
 	DDV_MaxChars(pDX, m_ipAddress, 128);
 	DDX_Text(pDX, IDC_listenPort, m_listenPort);
 	DDV_MinMaxUInt(pDX, m_listenPort, 1, 65535);
-	DDX_Check(pDX, IDC_notTransient, m_notTransient);
 	DDX_Text(pDX, IDC_storeFile, m_storeFile);
+	DDX_Radio(pDX, IDC_transient, m_transient);
 	//}}AFX_DATA_MAP
 }
 
@@ -57,14 +57,14 @@ void CPropNormal::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CPropNormal, CPropertyPage)
 	//{{AFX_MSG_MAP(CPropNormal)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_storeCacheSize_spin, OnStoreCacheSizespin)
-	ON_BN_CLICKED(IDC_notTransient, OnnotTransientClick)
-	ON_BN_CLICKED(IDC_transient, OntransientClick)
 	ON_WM_CREATE()
 	ON_WM_SHOWWINDOW()
 	ON_BN_CLICKED(IDC_importNewNodeRef, OnImportNewNodeRef)
 	ON_WM_DESTROY()
 	ON_WM_KILLFOCUS()
 	ON_WM_CLOSE()
+	ON_BN_CLICKED(IDC_transient, Ontransient)
+	ON_BN_CLICKED(IDC_notTransient, OnNotTransient)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -83,12 +83,22 @@ void CPropNormal::OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CPropNormal::OnnotTransientClick() 
+void CPropNormal::Ontransient() 
+{
+	OnNodeAvailability();
+}
+
+void CPropNormal::OnNotTransient()
+{
+	OnNodeAvailability();
+}
+
+void CPropNormal::OnNodeAvailability()
 {
 	int result;
 
 	UpdateData(TRUE);
-	if (warnPerm)
+	if ( (m_transient==NOT_TRANSIENT) && warnPerm)
 	{
 		result = pWarnPerm->DoModal();
 		if (pWarnPerm->m_dontWarnPerm)
@@ -97,26 +107,21 @@ void CPropNormal::OnnotTransientClick()
 		// user chickened out of running permanent node
 		if (result == IDCANCEL)
 		{
-			m_notTransient = FALSE;
-			UpdateData(FALSE);
-			return;
+			m_transient = TRANSIENT;
 		}
 	}
 
-	m_notTransient = TRUE;
-	m_transient = FALSE;
-	pAdvanced->m_doAnnounce = TRUE;
-	showNodeAddrFields(TRUE);
-	UpdateData(FALSE);
-}
+	if (m_transient == NOT_TRANSIENT)
+	{
+		pAdvanced->m_doAnnounce = TRUE;
+		showNodeAddrFields(TRUE);
+	}
+	else
+	{
+		showNodeAddrFields(FALSE);
+	}
 
-void CPropNormal::OntransientClick() 
-{
-	UpdateData(TRUE);
-	m_transient = TRUE;
-	m_notTransient = FALSE;
-	showNodeAddrFields(FALSE);
-	UpdateData(FALSE);
+	UpdateData(FALSE);	
 }
 
 void CPropNormal::showNodeAddrFields(BOOL showing)
@@ -147,7 +152,7 @@ void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus)
 	CPropertyPage::OnShowWindow(bShow, nStatus);
 
 	// hide node ip address/port fields if transient
-	showNodeAddrFields(!m_transient);
+	showNodeAddrFields(m_transient==NOT_TRANSIENT);
 
 	//activate "use default seed" if the specified seed files does not exist
 	if ((hfile = CreateFile(pAdvanced->m_seedFile,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,NULL,NULL)) == INVALID_HANDLE_VALUE)
