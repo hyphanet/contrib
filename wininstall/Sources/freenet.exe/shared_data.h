@@ -43,7 +43,6 @@ extern char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out 
 extern FREENET_MODE nFreenetMode;
 
 /*		handles, etc... */
-extern PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
 
 /*		structures, etc... */
 /*      systray structure: GLOBAL BECAUSE IT IS UPDATED BY/FROM MULTIPLE THREADS */
