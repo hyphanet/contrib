@@ -1692,7 +1692,7 @@ BOOL CopyChanges(HANDLE hFileToRead, HANDLE hFileToWrite, const char* const szIN
 			// Otherwise we leave the 'Freenet' section (assuming it's a valid section header)
 			// Valid section headers match \s*\[.*\]\s*
 			{
-				BOOL bNewSectionIsFreenetSection = (strnicmp(iNonspace+1, szfinisec+1, 13)==0);
+				BOOL bNewSectionIsFreenetSection = (strnicmp(iNonspace+1, "Freenet node]", 12)==0);
 				const char* mend;
 				if (bNewSectionIsFreenetSection)
 				{
@@ -1762,6 +1762,7 @@ keyvalue:
 				{
 					// default found in INI file so output default file's variant
 					// (as default more up-to-date)
+					*iEquals='=';
 					goto dumpline;
 				}
 				
@@ -1794,6 +1795,7 @@ OutputINIEqualsValue:
 						if (strcmp(szValue,iEquals+1)==0)
 						{
 							// INI and default are the same so just output the default:
+							*iEquals='=';
 							goto dumpline;
 						}
 						else
@@ -1809,6 +1811,7 @@ OutputINIEqualsValue:
 
 				// couldn't find that Key:
 				// INI file therefore doesn't override it so just output default variant
+				*iEquals='=';
 				goto dumpline;
 			}
 		}
