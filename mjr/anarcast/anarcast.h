@@ -90,7 +90,7 @@ bytestohex (char *hex, const void *bytes, int blen)
     static char hextable[] = "0123456789ABCDEF";
     
     for ( ; blen-- ; bytes++) {
-        *hex++ = hextable[*(char *)bytes >> 4 & 0x0f];
+        *hex++ = hextable[(*(char *)bytes >> 4) & 0x0f];
         *hex++ = hextable[*(char *)bytes & 0x0f];
     }
     
