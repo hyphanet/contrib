@@ -9,14 +9,11 @@ that can be implemented by any competent C programmer.
 FCPtools generic
 ----------------
 
-+ Update ezFCPlib documentation.
-
 + Confirm OS X functionality.
 + Confirm *BSD functionality.
 + Confirm Solaris functionality.
 
 + Add usage instructions to README for fcpget, fcpputsite.
-+ Add fcphello command to just send ClientHello to node (ft-0.2).
 + Make FEC_CHUNK_SIZE configurable; default to 1M.
 + Implement future_insert(num_days) option.
 + Implement SkipDS logic.
@@ -36,6 +33,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Update ezFCPlib programming API documentation.
 + Solidify TEMP directory setting for all architectures. (fcpStartup.c)
   (Win: create in %USERPROFILE%\TEMP), (*nix: create in /tmp with perm '600')
 + Add logic like fcpTmpDir for an 'fcpHomeDir'; /home/$user on nix, %USERPROFILE%\My Documents for Win32.
@@ -55,6 +53,7 @@ ezFCPlib specific
   (especially broken in FEC inserts)
 + Ignore DataChunks between Restarted and DataFound messages (from freenet-dev).
 = Add keygen code.
+= Add fcphello command to just send ClientHello to node (ft-0.2).
 
 
 ------

@@ -160,6 +160,8 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 /*
 	getrespHello()
+
+	Note this function copies the info directly into hfcp structure
 */
 static int getrespHello(hFCP *hfcp)
 {
@@ -169,25 +171,28 @@ static int getrespHello(hFCP *hfcp)
 
 	while (!getrespline(hfcp, resp)) {
 
-		if (!strncmp(resp, "Protocol=", 9)) {
-			hfcp->protocol = xtoi(resp + 9);
+		_fcpLog(FCP_LOG_DEBUG, "NodeHello: %s", resp);
+
+		if (!strncmp(resp, "MaxFileSize=", 12)) {
+			hfcp->max_filesize = xtoi(resp+12);
+		}
+
+		else if (!strncmp(resp, "HighestSeenBuild=", 17)) {
+			hfcp->highest_build = xtoi(resp+17);
 		}
 
 		else if (!strncmp(resp, "Node=", 5)) {
 			if (hfcp->description) free(hfcp->description);
-
 			hfcp->description = strdup(resp+5);
 		}
 
-		/* Is this parameter decimal or hex ???
-		if (!strncmp(resp, "HighestSeenBuild=", 17)) {
-			hfcp->protocol = xtoi(resp + 17);
+		else if (!strncmp(resp, "Protocol=", 9)) {
+			if (hfcp->protocol) free(hfcp->protocol);
+			hfcp->protocol = strdup(resp+9);
 		}
-		*/
 
-		else if (!strncmp(resp, "EndMessage", 10)) {
+		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_NODEHELLO;
-		}
 
 		else
 		_fcpLog(FCP_LOG_DEBUG, "getrespHello(): received unhandled field \"%s\"", resp);

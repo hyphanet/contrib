@@ -51,7 +51,6 @@ static void usage(char *msg);
 
 char           *host;
 unsigned short  port;
-/*int             htl = 3;*/
 int             verbosity = -1;
 
 
@@ -73,8 +72,17 @@ int main(int argc, char* argv[])
 
 	/* Make sure all input args are sent to ezFCPlib as advertised */
 	hfcp = fcpCreateHFCP(host, port, 0, 0, 0, 0);
-	
 
+	_fcpLog(FCP_LOG_VERBOSE, "Sending Hello message");
+	fcpSendHello(hfcp);
+	
+	/* Now dump the info */
+	_fcpLog(FCP_LOG_NORMAL, "Node Description: %s", hfcp->description);
+	_fcpLog(FCP_LOG_NORMAL, "Node Protocol: %s", hfcp->protocol);
+	_fcpLog(FCP_LOG_NORMAL, "Highest Seen Build: %d", hfcp->highest_build);
+	_fcpLog(FCP_LOG_NORMAL, "Max Filesize: %d", hfcp->max_filesize);
+
+	_fcpSockDisconnect(hfcp);
 	fcpDestroyHFCP(hfcp);
 	
 	return 0;
@@ -90,13 +98,11 @@ static void parse_args(int argc, char *argv[])
   static struct option long_options[] = {
     {"address", 1, 0, 'n'},
     {"port", 1, 0, 'p'},
-		/*    {"htl", 1, 0, 'l'},*/
     {"verbosity", 1, 0, 'v'},
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
     {0, 0, 0, 0}
   };
-  /*static char short_options[] = "n:p:l:v:Vh";*/
   static char short_options[] = "n:p:v:Vh";
 
   /* c is the option code; i is buffer storage for an int */
@@ -116,13 +122,6 @@ static void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if (i > 0) port = i;
       break;
-
-			/*
-    case 'l':
-      i = atoi( optarg );
-      if (i > 0) htl = i;
-      break;
-			*/
 
     case 'v':
       i = atoi( optarg );
@@ -160,5 +159,9 @@ static void usage(char *s)
 	printf("  -n, --address host     Freenet node address\n");
 	printf("  -p, --port num         Freenet node port\n\n");
 
+	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
+	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+
 	exit(0);
 }
+

@@ -17,6 +17,7 @@ _fcpGlobals.c \
 _fcpCompat.c \
 _fcpLog.c \
 _fcpRecvResponse.c \
+_fcpInfo.c \
 _fcpSock.c \
 _fcpUtil.c \
 _fcpMetadata.c \

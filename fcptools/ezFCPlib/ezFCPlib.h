@@ -155,6 +155,9 @@
 typedef struct {
   int   protocol;  /* Protocol=<number: protocol version number.  Currently 1> */
   char *node;      /* Node=<string: freeform: Description of the nodes> */
+	
+	int   highest_build;
+	int   max_filesize;
 } FCPRESP_NODEHELLO;
 
 typedef struct {
@@ -399,20 +402,23 @@ typedef struct {
 	char    *host;
 	unsigned short port;
 
-	int      htl;
-	int      regress;
-	int      rawmode;
-	int      delete_local;
+	int   htl;
+	int   regress;
+	int   rawmode;
+	int   delete_local;
 
-	char    *description;
-	int      protocol;
-  int      socket;
+	char *description;
+  int   protocol;
+	int   highest_build;
+	int   max_filesize;
 
-  char    *error;
+  int   socket;
 
-	hKey    *key;
+  char *error;
+
+	hKey *key;
 		
-  FCPRESP  response;
+  FCPRESP response;
 } hFCP;
 
 
@@ -480,6 +486,8 @@ extern "C" {
 
 	int   fcpWriteMetadata(hFCP *hfcp, char *buf, int len);
 	int   fcpReadMetadata(hFCP *hfcp, char *buf, int len);
+
+	int   fcpSendHello(hFCP *hfcp);	
 	
 	/* Client functions for operations between files on disk and freenet */
 	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_uri, char *key_filename, char *meta_filename);
