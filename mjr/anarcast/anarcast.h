@@ -85,7 +85,7 @@ writeall (int c, const void *b, int len)
 inline char *
 mbuf (size_t len)
 {
-    char *p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    char *p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     
     if (p == MAP_FAILED)
 	die("mmap() failed");
