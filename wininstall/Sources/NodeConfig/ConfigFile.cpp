@@ -98,7 +98,7 @@ void CConfigFile::Load()
 	pAdvanced->m_seedNodes = "seed.ref";
 	pAdvanced->m_nodestatusservlet = true;
 	pAdvanced->m_nodestatusport = 8889;
-	pAdvanced->m_nodestatusclass = "Freenet.client.http.NodeStatusServlet";
+	pAdvanced->m_nodestatusclass = "freenet.client.http.NodeStatusServlet";
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
@@ -128,7 +128,7 @@ void CConfigFile::Load()
 	pGeek->m_streamBufferSize = 65536;
 
 	pFProxy->m_fproxyport = 8888;
-	pFProxy->m_fproxyclass= "Freenet.client.http.FproxyServlet";
+	pFProxy->m_fproxyclass= "freenet.client.http.FproxyServlet";
 	pFProxy->m_bfproxyfilter = TRUE;
 	pFProxy->m_strfproxyallowedmime = "text/plain,image/jpeg,image/gif,image/png";
 	pFProxy->m_bfproxyservice= TRUE;

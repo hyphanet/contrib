@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "2002-01-08-snapshot"
+!define VERSION "2002-01-17-snapshot"
 #!define LANGUAGE "German"
 
 Name "Freenet ${VERSION}"
