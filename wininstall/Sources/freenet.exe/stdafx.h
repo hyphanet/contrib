@@ -4,7 +4,7 @@
 #define _WIN32_WINVER 0x0500
 #define _WIN32_WINNT 0x0500
 #define WINVER 0x0500
-#include "winsock.h"
+// #include "winsock.h"
 #include "windows.h"
 #include "shellapi.h"
 #include "winnls.h"
