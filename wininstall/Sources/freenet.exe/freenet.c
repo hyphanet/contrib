@@ -754,15 +754,18 @@ void ReloadSettings(void)
 	    3.  Java.exe can be stopped 'cleanly' by sending a CLOSE message (Freenet.exe tries three different close messages :-)
 	    4.  java.exe can also be stopped 'cleanly' by sending a ^C to its STDIN handle (Freenet.exe doesn't do this yet
 	        but will soon, especially when we really roll out with 'free' JVMs which not be as versatile as Sun's) */
-	if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
+	/* UPDATE 6th March 2003:
+	   I'm pissed off trying to work around system configurations.  Instead I now use javaw.exe in preference
+	   and simply TerminateProcess it instead of trying to shut it down cleanly.  It works.  Fuck it */
+	if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
 	{
-		if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
+		if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
 		{
 			// try and find a generic "java.exe" in the path - if it works, use that, if not default to "javaw.exe"
-			HANDLE hJavaExecutable = LoadLibrary("java.exe");
+			HANDLE hJavaExecutable = LoadLibrary("javaw.exe");
 			if (hJavaExecutable==NULL || hJavaExecutable==INVALID_HANDLE_VALUE)
 			{
-				hJavaExecutable = LoadLibrary("javaw.exe");
+				hJavaExecutable = LoadLibrary("java.exe");
 			}
 			if (hJavaExecutable!=NULL && hJavaExecutable!=INVALID_HANDLE_VALUE)
 			{
@@ -1008,7 +1011,7 @@ DWORD dwJavaConfigProcId=0;
 STARTUPINFO StartConfigInfo={sizeof(STARTUPINFO),
 						NULL,NULL,NULL,
 						0,0,0,0,0,0,0,
-						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+						STARTF_USESHOWWINDOW,
 						SW_HIDE,
 						0,NULL,
 						NULL,NULL,NULL};
@@ -1565,7 +1568,7 @@ void ClearTempDirectories(void)
 STARTUPINFO ConfigInfo={sizeof(STARTUPINFO),
 						NULL,NULL,NULL,
 						0,0,0,0,0,0,0,
-						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+						STARTF_USESHOWWINDOW,
 						SW_HIDE,
 						0,NULL,
 						NULL,NULL,NULL};

@@ -22,7 +22,7 @@
 
 const char szerrMsg[]=	"Couldn't start the node,\n"
 						"make sure FLaunch.ini has an entry javaw= pointing to javaw.exe or\n"
-						"an entry Javaexec= pointing to a Java Runtime binary (jview.exe/java.exe)";
+						"an entry Javaexec= pointing to a Java Runtime binary (java.exe)";
 const char szerrTitle[]="Error starting node";
 
 /* handles, etc. */
@@ -298,35 +298,16 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 
 void KillProcessNicely(PROCESS_INFORMATION *prcinfo)
 {
-	BOOL bSuccess;
 	DWORD dwWaitError;
-	int i;
 
 	/* get the window handle from the process ID by matching all
 	   known windows against it (not really ideal but no alternative) */
 	EnumWindows(KillWindowByProcessId, (LPARAM)(prcinfo->dwProcessId) );
 	
-	/* Also try sending the process a swift CTRL+C event  (low-level Win32 equiv of SIGINT) */
-	/* Note - even though result (in bSuccess) of following call seems to suggest the function
-	   call fails (on my debugger, bSuccess gets set to FALSE) it seems to work fine ... ?  */
-	bSuccess = GenerateConsoleCtrlEvent(CTRL_C_EVENT, prcinfo->dwProcessId);
-	
-	// DON'T DO THIS as it's equivalent to pressing the X button on a console-mode app
-	// and some operating systems (notably Win9X-based, espectially Windows ME) will throw
-	// a hissy fit *AT THE USER* (which is completely broken behaviour, but still...)
-	//PostThreadMessage(prcinfo->dwThreadId, WM_SYSCOMMAND, SC_CLOSE, 0);
+	/* FOR FUCK'S SAKE.  WHATEVER.  OK?  */
+	dwWaitError = WAIT_TIMEOUT;
 
-	/* wait for the process to shutdown (we give it five seconds) */
-	for (i=0; i<5000; i+=KAnimationSpeed)
-	{
-		dwWaitError = WaitForSingleObject(prcinfo->hProcess,KAnimationSpeed);
-		if (dwWaitError!=WAIT_TIMEOUT)
-			break;
-
-		// keep icon animation while we wait
-		ModifyIcon();
-	}
-	if (dwWaitError==WAIT_TIMEOUT)
+ 	if (dwWaitError==WAIT_TIMEOUT)
 	{
 		/* OH MY, nothing worked - ok then, brutally terminate the process: */
 		TerminateProcess(prcinfo->hProcess,0);
@@ -415,7 +396,7 @@ BOOL CALLBACK KillWindowByProcessId(HWND hWnd, LPARAM lParam)
 STARTUPINFO FredStartInfo={	sizeof(STARTUPINFO),
 							NULL,NULL,NULL,
 							0,0,0,0,0,0,0,
-							STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+							STARTF_USESHOWWINDOW,
 							SW_HIDE,
 							0,NULL,
 							NULL,NULL,NULL};
