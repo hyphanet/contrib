@@ -92,16 +92,15 @@ int main(int argc, char* argv[])
 
 int fcpLogCallback(int level, char *buf)
 {
-	static FILE *fp = NULL;
-
-	if (fp == NULL)
-		fp = fopen("fcpputsite.log", "w");
+	FILE *fp;
 
     if (level <= verbosity)
 	{
+		fp = fopen("fcpputsite.log", "a");
         puts(buf);
 		fputs(buf, fp);
 		fputc('\n', fp);
+		fclose(fp);
 	}
     return 0;
 }

@@ -16,7 +16,6 @@
 #include "ezFCPlib.h"
 
 
-static int  getrespline(HFCP *hfcp, char *respline);
 //static int    getrespchar(HFCP *hfcp);
 static int  getrespHello(HFCP *hfcpconn);
 static int  getrespSuccess(HFCP *hfcpconn);
@@ -29,7 +28,7 @@ static int  getrespUrierror(HFCP *hfcpconn);
 static int  getrespKeycollision(HFCP *hfcp);
 static int  getrespRouteNotFound(HFCP *hfcp);
 static int  getrespblock(HFCP *hfcp, char *respblock, int bytesreqd);
-static int  getrespline(HFCP *hfcp, char *buf);
+static int  getrespline(HFCP *hfcp, unsigned char *buf);
 static int  htoi(char *s);
 
 
@@ -583,7 +582,7 @@ static int getrespblock(HFCP *hfcp, char *respblock, int bytesreqd)
 //
 // Description: Reads a single line of text from response buffer
 
-static int getrespline(HFCP *hfcp, char *buf)
+static int getrespline(HFCP *hfcp, unsigned char *buf)
 {
     unsigned char *cp = buf;
 
@@ -597,7 +596,16 @@ static int getrespline(HFCP *hfcp, char *buf)
             return 0;
         }
         else
-            cp++;
+		{
+			cp++;
+            if ((cp - buf) >= (RECV_BUFSIZE - 1))
+			{
+				_fcpLog(FCP_LOG_CRITICAL, "*** PANIC - BUFFER OVERFLOW IN NODE RESPONSE LINE");
+	            _fcpLog(FCP_LOG_DEBUG, "From node: %s", buf);
+				*cp = '\0';
+				return 0;
+			}
+		}
     }
 
     // incomplete line
