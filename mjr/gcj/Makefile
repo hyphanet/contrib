@@ -5,3 +5,6 @@ gmp:
 
 nogmp:
 	gcj -o nogmp --main=Test Test.java BigInteger.java MPN.java natMPN.cc
+
+.PHONY: gmp nogmp
+
