@@ -32,11 +32,12 @@ Function DetectJava
 
   # First look for the current version of Java and get the correct path in $2,
   # then test if its empty (nonexisting)
-Check13:
+StartCheck:
   StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.3"	; JRE key into $0
   ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
   StrCmp $2 "" 0 EndCheck
-Check12:
+
+  # Check for 1.2
   StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.2"	; JRE key into $0
   ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
   StrCmp $2 "" RunJavaFind
@@ -63,8 +64,8 @@ GetJava:
   # Open the download page for Sun's Java
   ExecShell "open" "http://java.sun.com/j2se/1.3/jre/download-windows.html#software"
   Sleep 5000
-  MessageBox MB_OK "Press OK to continue the Freenet installation AFTER having installed Java."
-  Call DetectJava
+  MessageBox MB_OKCANCEL "Press OK to continue the Freenet installation AFTER having installed Java,$\r$\nCANCEL to abort the installation." IDOK StartCheck
+  Abort
 
 End:
 FunctionEnd
