@@ -408,6 +408,7 @@ Section "Freenet Node" SecFreenetNode
  CopyFiles "$R0\freenet-install\*.*" "$INSTDIR"
  File update\UpdateSnapshot.exe
  IfErrors DiskWriteError
+
  # Step 3- Merge ini files
  # Step 3a - create a default .ini file
  IfFileExists "$INSTDIR\default.ini" 0 NoFreenetIniDefaults
@@ -415,13 +416,11 @@ Section "Freenet Node" SecFreenetNode
  NoFreenetIniDefaults:
  DetailPrint "$1\freenet.exe -createconfig $1\default.ini"
  ExecWait "$1\freenet.exe -createconfig $1\default.ini"
- # Step 3b - Merge the existing .ini with the defaults, or use the defaults if there is no existing .ini
- IfFileExists "$INSTDIR\freenet.ini" MergeIniStuff
- CopyFiles "$INSTDIR\default.ini" "$INSTDIR\freenet.ini"
- goto DoneMergeIniStuff
- MergeIniStuff:
+ DetailPrint "$1\NodeConfig.exe"
+ ExecWait "$1\NodeConfig.exe"
+ # Step 3b - Merge freenet.ini with the defaults, or use the defaults if there is no existing .ini
  ExecWait "$1\freenet.exe -mergeconfig $1\freenet.ini $1\default.ini"
- DoneMergeIniStuff:
+
 
  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
     
