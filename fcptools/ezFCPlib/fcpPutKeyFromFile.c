@@ -101,11 +101,15 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		 if necessary. If it's larger than L_BLOCK_SIZE, insert as an FEC
 		 encoded splitfile. */
 
-	if (key_size > _fcpSplitblock)
+	if (key_size > _fcpSplitblock) {
+		_fcpLog(FCP_LOG_VERBOSE, "Start FEC encoded insert");
 		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
+	}
 	
-	else /* Otherwise, insert as a normal key */
+	else { /* Otherwise, insert as a normal key */
+		_fcpLog(FCP_LOG_VERBOSE, "Start basic insert");
 		rc = put_file(hfcp, key_filename, meta_filename, "CHK@");
+	}
 
 	if (rc) /* bail after cleaning up, setting hfcp->error */
 		goto cleanup;
@@ -134,16 +138,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		break;
 	}
 
-	if (meta_filename) {
-		snprintf(buf, 512, "Uri: %s, Keyfile: %s, Metafile: %s",
-						 hfcp->key->target_uri->uri_str, key_filename, meta_filename);
-	}
-	else {
-		snprintf(buf, 512, "Uri: %s, Keyfile: %s",
-						 hfcp->key->target_uri->uri_str, key_filename);
-	}
-	
-	_fcpLog(FCP_LOG_VERBOSE, buf);	
+	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
 	return 0;
 	
 

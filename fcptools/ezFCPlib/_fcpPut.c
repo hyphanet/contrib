@@ -93,8 +93,6 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	FILE *kfile;
 	FILE *mfile;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered put_file()");
-
 	/* if the key_filename isn't there, or NULL assume no key to insert
 		 (perhaps only metadata) */
 	
@@ -142,7 +140,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	
 	do { /* let's loop this until we stop receiving Restarted messages */
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Insertion attempt %d/%d", _fcpRetry-retry+1, _fcpRetry+1);
+		_fcpLog(FCP_LOG_VERBOSE, "%d retries left", retry);
 
 		if (hfcp->key->size > 0) {
 			kfile = fopen(key_filename, "rb");
@@ -195,7 +193,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 			} /* finished writing metadata (if any) */
 		}
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Wrote metadata");
+		if (hfcp->key->metadata->size > 0) _fcpLog(FCP_LOG_VERBOSE, "Wrote metadata");
 		
 		/* Here, all metadata has been written */
 		
@@ -228,7 +226,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 			bytes -= byte_count;
 		}
 
-		_fcpLog(FCP_LOG_VERBOSE, "Wrote Key data");
+		if (hfcp->key->size) _fcpLog(FCP_LOG_VERBOSE, "Wrote Key data");
 
 		do {
 			int minutes;
@@ -237,8 +235,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 			minutes = (int)(hfcp->timeout / 1000 / 60);
 			seconds = ((hfcp->timeout / 1000) - (minutes * 60));
 
-			_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %d seconds (%d mins %d secs)",
-							(int)(hfcp->timeout / 1000), minutes, seconds);
+			_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %d minutes %d seconds)",
+							minutes, seconds);
 			
 			/* expecting a success response */
 			rc = _fcpRecvResponse(hfcp);
@@ -247,15 +245,11 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 			case FCPRESP_TYPE_SUCCESS:
 
 				fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
-				_fcpLog(FCP_LOG_VERBOSE, "Success - Uri: %s", hfcp->key->uri->uri_str);
-
 				break;
 				
 			case FCPRESP_TYPE_KEYCOLLISION:
 
 				fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
-				_fcpLog(FCP_LOG_VERBOSE, "Success(C) - Uri: %s", hfcp->key->uri->uri_str);
-
 				break;
 				
 			case FCPRESP_TYPE_RESTARTED:
@@ -275,27 +269,15 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 				
 			case FCPRESP_TYPE_PENDING:
 
-				/* re-calculate the timeout.. it's been (perhaps) changed in getrespPending() */
-				minutes = (int)(hfcp->timeout / 1000 / 60);
-				seconds = ((hfcp->timeout / 1000) - (minutes * 60));
-				
-				_fcpLog(FCP_LOG_VERBOSE, "Pending - %d seconds (%d mins %d secs)",
-								(int)(hfcp->timeout / 1000), minutes, seconds);
+				_fcpLog(FCP_LOG_DEBUG, "new timeout value: %d seconds", (int)(hfcp->timeout / 1000));
+				_fcpLog(FCP_LOG_VERBOSE, "Received pending message");
 
 				break;
 				
 			case FCP_ERR_TIMEOUT:
 				retry--;
 
-				if (retry < 0) {
-					_fcpLog(FCP_LOG_CRITICAL, "Timeout - no more retries left");
-				}
-				else {
-					if (retry == 0)
-						_fcpLog(FCP_LOG_VERBOSE, "Timeout - 1 retry left");
-					else
-						_fcpLog(FCP_LOG_VERBOSE, "Timeout - %d retries left", retry+1);
-				}
+				_fcpLog(FCP_LOG_VERBOSE, "Received timeout waiting for response");
 
 				/* close the key and metadata source files */
 				close(mfd);
@@ -348,7 +330,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	if (hfcp->key->metadata->size) close(mfd);
 	
   _fcpSockDisconnect(hfcp);
-	_fcpLog(FCP_LOG_DEBUG, "put_file() was successful; inserted key: %s", hfcp->key->uri->uri_str);
+	_fcpLog(FCP_LOG_DEBUG, "put_file() - inserted key: %s", hfcp->key->uri->uri_str);
 
 	return 0;
 
@@ -393,8 +375,6 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 	FILE *kfile;
 	FILE *mfile;
-
-	_fcpLog(FCP_LOG_DEBUG, "Entered put_fec_splitfile()");
 
 	if (key_filename) {
 		if ((hfcp->key->size = file_size(key_filename)) < 0) {
@@ -447,8 +427,6 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 		 user-defined data for the splitfile */
 	if ((rc = fec_make_metadata(hfcp, meta_filename)) != 0) return rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Exiting put_fec_splitfile(); inserted key: %s", hfcp->key->uri->uri_str);
-
 	return 0;
 }
 
@@ -456,7 +434,7 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 #if 0
 int put_date_redirect(hFCP *hfcp, char *uri)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered put_date_redirect()");
+	_fcpLog(FCP_LOG_DEBUG, "entered put_date_redirect()");
 }
 #endif
 
@@ -468,7 +446,6 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	char  buf[513];
 	int   rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered put_redirect()");
 	_fcpLog(FCP_LOG_DEBUG, "uri_src: %s, uri_destination: %s", uri_src, uri_dest);
 	
 	rc = snprintf(buf, 512,
@@ -491,8 +468,6 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	if (rc < 0) {
 		goto cleanup;
 	}
-	
-	_fcpLog(FCP_LOG_DEBUG, "put_file() - rc: %d, URI: %s", rc, tmp_hfcp->key->uri->uri_str);
 	
 	fcpParseURI(hfcp->key->target_uri, tmp_hfcp->key->uri->uri_str);
 	fcpDestroyHFCP(tmp_hfcp);
@@ -521,7 +496,7 @@ static int fec_segment_file(hFCP *hfcp)
 	int index;
 	int segment_count;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fec_segment_file()");
+	_fcpLog(FCP_LOG_DEBUG, "entered fec_segment_file()");
 
   /* connect to Freenet FCP */
   if (_fcpSockConnect(hfcp) != 0) return -1;
@@ -540,7 +515,6 @@ static int fec_segment_file(hFCP *hfcp)
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "sent FECSegmentFile message");
-	_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node");
 	
 	rc = _fcpRecvResponse(hfcp);
 
@@ -571,6 +545,8 @@ static int fec_segment_file(hFCP *hfcp)
 	/* Loop while there's more segments to receive */
 	segment_count = hfcp->key->segment_count;
 	index = 0;
+
+	_fcpLog(FCP_LOG_DEBUG, "expecting %d segment(s)", segment_count);
 
 	/* Loop through all segments and store information */
 	while (index < segment_count) {
@@ -606,7 +582,7 @@ static int fec_segment_file(hFCP *hfcp)
 		hfcp->key->segments[index]->header_str = (char *)malloc(strlen(buf) + 1);
 		strcpy(hfcp->key->segments[index]->header_str, buf);
 
-		_fcpLog(FCP_LOG_DEBUG, "got segment index %d", index);
+		_fcpLog(FCP_LOG_DEBUG, "received segment %d/%d", index+1, segment_count);
 	
 		hfcp->key->segments[index]->filelength        = hfcp->response.segmentheader.filelength;
 		hfcp->key->segments[index]->offset            = hfcp->response.segmentheader.offset;
@@ -659,7 +635,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	hSegment  *segment;
 	FILE      *file;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fec_encode_segment()");
+	_fcpLog(FCP_LOG_DEBUG, "entered fec_encode_segment()");
 
 	/* Helper pointer since we're encoding 1 segment at a time */
 	segment = hfcp->key->segments[index];
@@ -751,7 +727,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	/* if the response isn't BlocksEncoded, we have a problem */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_BLOCKSENCODED) {
 		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
-		_fcpLog(FCP_LOG_DEBUG, "did not receive expected BlocksEncoded message");
+		_fcpLog(FCP_LOG_DEBUG, "expected BlocksEncoded message");
 		rc = -1;
 
 		goto cleanup;
@@ -759,16 +735,15 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	
 	/* it is a BlocksEncoded message.. get the check blocks */
 	block_len = hfcp->response.blocksencoded.block_size;
+
+	_fcpLog(FCP_LOG_DEBUG, "expecting %d check blocks", segment->cb_count);
 	
 	for (bi=0; bi < segment->cb_count; bi++) {
-
-		_fcpLog(FCP_LOG_VERBOSE, "Working on check block %d/%d",
-						bi, segment->cb_count-1);
 
 		/* We're expecting a DataChunk message */
 		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
 			_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
-			_fcpLog(FCP_LOG_DEBUG, "did not receive expected DataChunk message");
+			_fcpLog(FCP_LOG_DEBUG, "expected DataChunk message");
 			rc = -1;
 
 			goto cleanup;
@@ -804,7 +779,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 			if (fi < block_len)
 				if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
 					_fcpLog(FCP_LOG_CRITICAL, "did not receive expected message(2)");
-					_fcpLog(FCP_LOG_DEBUG, "did not receive expected DataChunk message(2)");
+					_fcpLog(FCP_LOG_DEBUG, "expected DataChunk message(2)");
 					rc = -1;
 
 					goto cleanup;
@@ -812,7 +787,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		}
 		
 		if (fi != block_len) {
-			_fcpLog(FCP_LOG_CRITICAL, "Number of bytes received for check block did not match expected number");
+			_fcpLog(FCP_LOG_CRITICAL, "Number of bytes expected bytes did not match the number received");
 			rc = -1;
 
 			goto cleanup;
@@ -820,10 +795,12 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 
 		/* Close the check block file */
 		close(fd);
+
+		_fcpLog(FCP_LOG_DEBUG, "received check block %d/%d",
+						bi+1, segment->cb_count);
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "Successfully received %d/%d check blocks",
-					bi, segment->cb_count-1);
+	_fcpLog(FCP_LOG_VERBOSE, "Successfully received %d check blocks", bi);
 
 	return 0;
 
@@ -851,7 +828,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 	int kfd;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fec_insert_segment()");
+	_fcpLog(FCP_LOG_DEBUG, "entered fec_insert_segment()");
 	
 	/* helper pointer */
 	segment = hfcp->key->segments[index];
@@ -871,9 +848,9 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	
 	while (bi < segment->db_count) { /* while (bi < segment->db_count) */
 
-		_fcpLog(FCP_LOG_VERBOSE, "Inserting data block - segment: %d/%d, block %d/%d",
-						index, hfcp->key->segment_count-1,
-						bi, segment->db_count-1);
+		_fcpLog(FCP_LOG_DEBUG, "inserting data block - segment: %d/%d, block %d/%d",
+						index+1, hfcp->key->segment_count,
+						bi+1, segment->db_count);
 		
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
@@ -882,9 +859,6 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE);
 
 		bytes = segment->block_size;
-		
-		_fcpLog(FCP_LOG_DEBUG, "bytes to write: %d", bytes);
-
 		while (bytes) {
 			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 			
@@ -933,9 +907,12 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		segment->data_blocks[bi] = _fcpCreateHBlock();
 		fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
 
-		_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted data block - segment %d/%d, block %d/%d, Uri: %s",
-						index, hfcp->key->segment_count-1,
-						bi, segment->db_count-1,
+		_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %d/%d",
+						bi+1, segment->db_count);
+
+		_fcpLog(FCP_LOG_DEBUG, "segment %d/%d, block %d/%d, uri: %s",
+						index+1, hfcp->key->segment_count,
+						bi+1, segment->db_count,
 						segment->data_blocks[bi]->uri->uri_str);
 		
 		bi++;
@@ -953,9 +930,9 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 	for (bi=0; bi < segment->cb_count; bi++) {
 
-		_fcpLog(FCP_LOG_VERBOSE, "Inserting check block - segment: %d/%d, block %d/%d",
-						index, hfcp->key->segment_count-1,
-						bi, segment->cb_count-1);
+		_fcpLog(FCP_LOG_DEBUG, "inserting check block - segment: %d/%d, block %d/%d",
+						index+1, hfcp->key->segment_count,
+						bi+1, segment->cb_count);
 
 		tmp_hfcp = fcpInheritHFCP(hfcp);
 		tmp_hfcp->key = _fcpCreateHKey();
@@ -971,10 +948,13 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
 		fcpParseURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
-		
-		_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted check block - segment %d/%d, block %d/%d, Uri: %s",
-						index, hfcp->key->segment_count-1,
-						bi, segment->cb_count-1,
+
+		_fcpLog(FCP_LOG_VERBOSE, "Inserted check block %d/%d",
+						bi+1, segment->cb_count);
+
+		_fcpLog(FCP_LOG_DEBUG, "segment %d/%d, block %d/%d, uri: %s",
+						index+1, hfcp->key->segment_count,
+						bi+1, segment->cb_count,
 						segment->check_blocks[bi]->uri->uri_str);
 
 		fcpDestroyHFCP(tmp_hfcp);
@@ -1009,7 +989,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	hSegment *segment;
 	hFCP     *tmp_hfcp;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fec_make_metadata()");
+	_fcpLog(FCP_LOG_DEBUG, "entered fec_make_metadata()");
 
 	/* TODO: heh.. */
 	meta_filename = meta_filename;
@@ -1081,8 +1061,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 					 hfcp->key->mimetype,
 					 meta_len);
 
-	_fcpLog(FCP_LOG_DEBUG, "\n%s", buf);
-	
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		_fcpLog(FCP_LOG_CRITICAL, "Could not send FECMakeMetadata message");
 		rc = -1;
@@ -1104,8 +1082,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	bytes = meta_len;
 
 	while (bytes) {
-		int i;
-
 		byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
 		byte_count = read(kfd, block, byte_count);
 

@@ -158,10 +158,10 @@ int main(int argc, char* argv[])
 	}
 
 	_fcpLog(FCP_LOG_VERBOSE, "Operation Successfull");
-	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->target_uri->uri_str);
-
-	fcpDestroyHFCP(hfcp);
 	fcpTerminate();
+
+	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->target_uri->uri_str);
+	fcpDestroyHFCP(hfcp);
 	
 #ifdef WINDOWS_DISABLE
 	system("pause");

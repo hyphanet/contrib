@@ -62,9 +62,6 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 	h->rawmode =       (optmask & HOPT_RAW ? 1 : 0);
 	h->delete_local =  (optmask & HOPT_DELETE_LOCAL ? 1 : 0);
 	
-	_fcpLog(FCP_LOG_DEBUG, "created new HFCP structure\n  host: %s, port: %d, htl: %d, regress: %d, delete_local: %d, timeout: %d",
-					h->host, h->port, h->htl, h->regress, h->delete_local, h->timeout);
-
 	return h;
 }
 
