@@ -1,13 +1,13 @@
-Name "Freenet 0.3.7.2"
+Name "Freenet 0.3.8.1"
 # comment the next line out to produce a real build and no testing dummy
 #!define debug
 
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
-OutFile Freenet_setup0.3.7.2.exe
+OutFile Freenet_setup0.3.8.1.exe
 UninstallText "This uninstalls Freenet and all files on this node. (You may need to shut down running nodes before proceeding)"
 UninstallExeName Uninstall-Freenet.exe
-ComponentText "This will install Freenet 0.3.7.2 on your system."
+ComponentText "This will install Freenet 0.3.8.1 on your system."
 DirText "No files will be placed outside this directory (e.g. Windows\system)"
 AutoCloseWindow true
 
@@ -82,7 +82,7 @@ WriteRegStr HKEY_LOCAL_MACHINE "Software\Freenet" "instpath" $INSTDIR
 #need to delete the tempfiles again
 
 Section "Launch Freenet on Startup"
-SectionIn 1,2
+SectionIn 2
 # WriteRegStr HKEY_CURRENT_USER "Software\Microsoft\Windows\CurrentVersion\Run" "Freenet server" '"$INSTDIR\fserve.exe"'
 CreateShortCut "$SMSTARTUP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
 
