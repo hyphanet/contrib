@@ -486,8 +486,6 @@ static int fec_segment_file(hFCP *hfcp)
 
 	index = 0;
 
-	/* TODO BUG */
-
 	_fcpLog(FCP_LOG_DEBUG, "expecting %u segment(s)", segment_count);
 
 	/* Loop through all segments and store information */
@@ -572,9 +570,12 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 
 	unsigned long byte_count;
 
+	unsigned long segment_len;
+	unsigned long file_len;
+	unsigned long file_offset;
 	unsigned long data_len;
-	unsigned long block_len;
 	unsigned long metadata_len;
+	unsigned long block_len;
 	unsigned long pad_len;
 
 	hSegment  *segment;
@@ -582,17 +583,22 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	_fcpLog(FCP_LOG_DEBUG, "entered fec_encode_segment()");
 
 	/* Helper pointer since we're encoding 1 segment at a time */
-	segment = hfcp->key->segments[index];
+	segment      = hfcp->key->segments[index];
 	
-	data_len     = segment->filelength;
-	metadata_len = strlen(segment->header_str);
-	pad_len      = (segment->block_count * segment->block_size) - data_len;
+	segment_len  = segment->block_size * segment->block_count; /* */
+	file_len     = segment->filelength;         /* total length of file */
+	file_offset  = segment->offset;             /* offset from start of file */
+	data_len     = file_len - file_offset;      /* total length of data left to write */
+	metadata_len = strlen(segment->header_str); /* length of SegmentHeader */
 	
+	_fcpLog(FCP_LOG_DEBUG, "block size: %lu, block_count: %lu, segment length: %lu",
+		segment->block_size, segment->block_count, segment_len);
+		
 	if (_fcpSockConnect(hfcp) != 0) return -1;
 
 	snprintf(buf, L_FILE_BLOCKSIZE,
 					 "FECEncodeSegment\nDataLength=%lx\nMetadataLength=%lx\nData\n",
-					 data_len + metadata_len + pad_len,
+					 segment_len + metadata_len,
 					 metadata_len
 					 );
 	
@@ -608,15 +614,23 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		goto cleanup;
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "sent FECEncodeSegment message");
+	_fcpLog(FCP_LOG_DEBUG, "sent FECEncodeSegment message for segment");
 
 	/* Open file we are about to send */
 	_fcpBlockLink(hfcp->key->tmpblock, _FCP_READ);
 
+	/* seek to the location relative to the segment (if needed) */
+	if (file_offset > 0) lseek(hfcp->key->tmpblock->fd, file_offset, SEEK_SET);
+
 	/* Write the data from the file, then write the pad blocks */
-	/* data_len is the total length of the data file we're inserting */
+	/* set fi to the number of bytes to write in this segment */
+	fi = (data_len > segment_len ? segment_len : data_len);
 	
-	fi = data_len;
+	/* pad_len is the length of the segment minus the data we're actually going to write */
+	pad_len = segment_len - fi;
+
+	_fcpLog(FCP_LOG_DEBUG, "writing segment %d/%d to node", index+1, hfcp->key->segment_count);
+			
 	while (fi) {
 		
 		/* How many bytes are we writing this pass? */
@@ -624,7 +638,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		
 		/* read byte_count bytes from the file we're inserting */
 		rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count);
-		
+				
 		if ((rc = _fcpSend(hfcp->socket, buf, rc)) < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to node");
 			goto cleanup;
@@ -636,24 +650,27 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	
 	_fcpBlockUnlink(hfcp->key->tmpblock);
 
-	/* now write the pad bytes and end transmission.. */
+	if (pad_len) { /* now write the pad bytes and end transmission.. */
 	
-	/* set the buffer to all zeroes so we can send 'em */
-	memset(buf, 0, L_FILE_BLOCKSIZE);
+		/* set the buffer to all zeroes so we can send 'em */
+		memset(buf, 0, L_FILE_BLOCKSIZE);
 	
-	fi = pad_len;
-	while (fi) {
-		
-		/* how many bytes are we writing this pass? */
-		byte_count = (fi > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: fi);
-		
-		if ((rc = _fcpSend(hfcp->socket, buf, byte_count)) < 0) {
-			_fcpLog( FCP_LOG_CRITICAL, "Could not write trailing bytes to node");
-			goto cleanup;
+		_fcpLog(FCP_LOG_DEBUG, "writing pad data");
+
+		fi = pad_len;		
+		while (fi) {
+			
+			/* how many bytes are we writing this pass? */
+			byte_count = (fi > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: fi);
+			
+			if ((rc = _fcpSend(hfcp->socket, buf, byte_count)) < 0) {
+				_fcpLog( FCP_LOG_CRITICAL, "Could not write trailing bytes to node");
+				goto cleanup;
+			}
+			
+			/* decrement i by number of bytes written to the socket */
+			fi -= rc;
 		}
-		
-		/* decrement i by number of bytes written to the socket */
-		fi -= rc;
 	}
 
 	/* if the response isn't BlocksEncoded, we have a problem */
@@ -688,6 +705,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 				goto cleanup;
 			}
 
+			/* Write it !! */
 			rc = _fcpWrite(segment->check_blocks[bi]->fd,
 										hfcp->response.datachunk.data,
 										hfcp->response.datachunk.length);

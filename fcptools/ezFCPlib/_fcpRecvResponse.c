@@ -744,44 +744,69 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
-		if (!strncmp(resp, "FECAlgorithm=", 13))
+		if (!strncmp(resp, "FECAlgorithm=", 13)) {
 			strncpy(hfcp->response.segmentheader.fec_algorithm, resp + 13, L_KEY);
+			_fcpLog(FCP_LOG_DEBUG, "FECAlgorithm: %s", hfcp->response.segmentheader.fec_algorithm);
+		}
 
-		else if (!strncmp(resp, "FileLength=", 11))
+		else if (!strncmp(resp, "FileLength=", 11)) {
 			hfcp->response.segmentheader.filelength = xtol(resp + 11);
+			_fcpLog(FCP_LOG_DEBUG, "FileLength: %lu", hfcp->response.segmentheader.filelength);
+		}
 
-		else if (!strncmp(resp, "Offset=", 7))
+		else if (!strncmp(resp, "Offset=", 7)) {
 			hfcp->response.segmentheader.offset = xtol(resp + 7);
+			_fcpLog(FCP_LOG_DEBUG, "Offset: %lu", hfcp->response.segmentheader.offset);
+		}
 
-		else if (!strncmp(resp, "BlockCount=", 11))
+		else if (!strncmp(resp, "BlockCount=", 11)) {
 			hfcp->response.segmentheader.block_count = xtol(resp + 11);
+			_fcpLog(FCP_LOG_DEBUG, "BlockCount: %lu", hfcp->response.segmentheader.block_count);
+		}
 
-		else if (!strncmp(resp, "BlockSize=", 10))
+		else if (!strncmp(resp, "BlockSize=", 10)) {
 			hfcp->response.segmentheader.block_size = xtol(resp + 10);
+			_fcpLog(FCP_LOG_DEBUG, "BlockSize: %lu", hfcp->response.segmentheader.block_size);
+		}
 
-		else if (!strncmp(resp, "DataBlockOffset=", 16))
+		else if (!strncmp(resp, "DataBlockOffset=", 16)) {
 			hfcp->response.segmentheader.datablock_offset = xtol(resp + 16);
+			_fcpLog(FCP_LOG_DEBUG, "DataBlockOffset: %lu", hfcp->response.segmentheader.datablock_offset);
+		}
 
-		else if (!strncmp(resp, "CheckBlockCount=", 16))
+		else if (!strncmp(resp, "CheckBlockCount=", 16)) {
 			hfcp->response.segmentheader.checkblock_count = xtol(resp + 16);
+			_fcpLog(FCP_LOG_DEBUG, "CheckBlockCount: %lu", hfcp->response.segmentheader.checkblock_count);
+		}
 
-		else if (!strncmp(resp, "CheckBlockSize=", 15))
+		else if (!strncmp(resp, "CheckBlockSize=", 15)) {
 			hfcp->response.segmentheader.checkblock_size = xtol(resp + 15);
+			_fcpLog(FCP_LOG_DEBUG, "CheckBlockSize: %lu", hfcp->response.segmentheader.checkblock_size);
+		}
 
-		else if (!strncmp(resp, "CheckBlockOffset=", 17))
+		else if (!strncmp(resp, "CheckBlockOffset=", 17)) {
 			hfcp->response.segmentheader.checkblock_offset = xtol(resp + 17);
+			_fcpLog(FCP_LOG_DEBUG, "CheckBlockOffset: %lu", hfcp->response.segmentheader.checkblock_offset);
+		}
 
-		else if (!strncmp(resp, "Segments=", 9))
+		else if (!strncmp(resp, "Segments=", 9)) {
 			hfcp->response.segmentheader.segments = xtol(resp + 9);
+			_fcpLog(FCP_LOG_DEBUG, "Segments: %lu", hfcp->response.segmentheader.segments);
+		}
 
-		else if (!strncmp(resp, "SegmentNum=", 11))
+		else if (!strncmp(resp, "SegmentNum=", 11)) {
 			hfcp->response.segmentheader.segment_num = xtol(resp + 11);
+			_fcpLog(FCP_LOG_DEBUG, "SegmentNum: %lu", hfcp->response.segmentheader.segment_num);
+		}
 
-		else if (!strncmp(resp, "BlocksRequired=", 15))
+		else if (!strncmp(resp, "BlocksRequired=", 15)) {
 			hfcp->response.segmentheader.blocks_required = xtol(resp + 15);
+			_fcpLog(FCP_LOG_DEBUG, "BlocksRequired: %lu", hfcp->response.segmentheader.blocks_required);
+		}
 
  		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_SEGMENTHEADER;
+		
 		else
 			_fcpLog(FCP_LOG_DEBUG, "getrespSegmentHeaders() - received unhandled field \"%s\"", resp);
   }
