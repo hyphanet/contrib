@@ -1864,7 +1864,6 @@ BOOL MergeConfig(const char * szINIFile, const char * szDefaultsFile)
 		bFailed=TRUE;
 	}
 	hUpdatedFile = CreateFile(szTemp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL|FILE_ATTRIBUTE_TEMPORARY, NULL);
-	hUpdatedFile=NULL;
 	if (hUpdatedFile==NULL || hUpdatedFile==INVALID_HANDLE_VALUE)
 	{
 		// try again with TEMP flag, as some OSs don't support it
