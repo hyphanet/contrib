@@ -1,5 +1,8 @@
 INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
 
+#CFLAGS=-ansi -W -Wall -pedantic -g
+CFLAGS=-W -Wall -pedantic -g
+
 bin_PROGRAMS = fcpx
 
 # joliveri local settings

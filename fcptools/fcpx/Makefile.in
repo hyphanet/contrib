@@ -90,6 +90,9 @@ VERSION = @VERSION@
 
 INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
 
+#CFLAGS=-ansi -W -Wall -pedantic -g
+CFLAGS = -W -Wall -pedantic -g
+
 bin_PROGRAMS = fcpx
 
 # joliveri local settings
@@ -109,7 +112,6 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 fcpx_OBJECTS =  fcpx.$(OBJEXT)
 fcpx_DEPENDENCIES =  ../ezFCPlib/libezfcp.a
-CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)

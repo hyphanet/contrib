@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 	unsigned long ul;
 	int rc;
 
-	// bleah
+	/* bleah */
 	ul = _fcpFilesize("meta.dat");
 
 	str = (char *)malloc(rc + 1);
