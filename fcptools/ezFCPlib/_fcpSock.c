@@ -26,8 +26,8 @@
 
 #include "ezFCPlib.h"
 
-#ifndef WIN32
-#include <sys/select.h> /* !!! */
+#ifndef WINDOWS
+#include <sys/select.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -109,7 +109,9 @@ int _fcpSockConnect(hFCP *hfcp)
   return 0;
 }
 
-
+/*
+	We need *both* Recv() and Recvln(); per arch WINDOWS/NON-WIN.
+*/
 int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 {
 	int rc;
