@@ -155,6 +155,10 @@ SOURCE=.\fcpPutKeyFromFile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\fcpReadKey.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\fcpStartup.c
 # End Source File
 # Begin Source File
