@@ -203,8 +203,8 @@ void CConfigFile::Save()
 
 	fprintf(fp, "storeSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeSize,20), szStoreSize, 10) );
 	fprintf(fp, "\n");
-	fprintf(fp, "# The path to a single file (including file name, or a comma-separated list of files,");
-	fprintf(fp, "# containing the data store.  The size of each file is given by <storeSize>.");
+	fprintf(fp, "# The path to a single file (including file name, or a comma-separated list of files,\n");
+	fprintf(fp, "# containing the data store.  The size of each file is given by <storeSize>.\n");
 	fprintf(fp, "# Defaults to cache_<port> in the main freenet directory.\n");
 	fprintf(fp, "%sstoreFile=%s\n",pNormal->m_storeFile.GetLength()?"":"#", pNormal->m_storeFile);
 	fprintf(fp, "\n");
