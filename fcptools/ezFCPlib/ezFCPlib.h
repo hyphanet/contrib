@@ -31,6 +31,7 @@
 #define _GNU_SOURCE
 
 /* Generic <sys/> includes here so they are first. */
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
