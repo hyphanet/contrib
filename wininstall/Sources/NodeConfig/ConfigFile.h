@@ -17,6 +17,8 @@ public:
 	void	Load();
 	void	Save();
 	CString	FileName;
+	CMapStringToString AdditionalProperties;
+
 private:
 	void	processItem(char *tok, char *val);
 	char	*splitLine(char *buf);

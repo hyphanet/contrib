@@ -112,8 +112,7 @@ Section "Freenet (required)"
   IfErrors ConfigError
   # now calling the GUI configurator
   ExecWait "$INSTDIR\NodeConfig.exe"
-  # yes we do want to start FProxy by default
-  # We need to add fproxy lateron as NodeConfig destroys all unknown prefs so far :-(
+  # No, we don't want to start FProxy by default
   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
   ;  replace the above line with the one below if you want to start fproxy automatically
   ;  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'

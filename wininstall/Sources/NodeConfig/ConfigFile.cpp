@@ -383,7 +383,18 @@ void CConfigFile::Save()
 	fprintf(fp, "\n");
 	fprintf(fp, "streamBufferSize=%d\n", pGeek->m_streamBufferSize);
 
+	// Now appending all additional values we don't handle
+	CString key, value;
+	POSITION pos = AdditionalProperties.GetStartPosition();
+	if (pos) fprintf(fp, "\n# Following are previously existing preferences:\n\n");
 	fclose(fp);
+
+	while(pos != NULL)
+	{
+		AdditionalProperties.GetNextAssoc(pos, key, value);
+		WritePrivateProfileString("Freenet node",(LPCSTR)key,(LPCSTR)value,FileName);
+		AdditionalProperties.RemoveKey((LPCSTR)key);
+	}
 }
 
 
@@ -394,11 +405,14 @@ void CConfigFile::Save()
 
 void CConfigFile::processItem(char *tok, char *val)
 {
+
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
 	else if (!strcmp(tok, "storeCacheSize"))
+	{
 		// use only existing value if differrent from 0 (propose our own default otherwise)
 		if (atol(val)) pNormal->m_storeCacheSize = atol(val) / 1048576;
+	}
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))
@@ -478,11 +492,18 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "streamBufferSize"))
 		pGeek->m_streamBufferSize = atoi(val);
 	else
-	{	// commenting out MessageBox on each unknown parameter (Sebastian Späth)
+	{
+		//now remembering all additional preferences we don´t handle
+		AdditionalProperties.SetAt(tok,val);
+
+		// commenting out MessageBox on each unknown parameter (Sebastian Späth)
 		// char msg[1024];
 		// sprintf(msg, "Unknown param - '%s'", tok);
 		// MessageBox(0, msg, "Freenet Config - Error in freenet.ini", MB_SYSTEMMODAL);
+
+		
 	}
+	
 }
 
 
