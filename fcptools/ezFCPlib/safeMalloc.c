@@ -1,18 +1,14 @@
+/*
+  This code is part of FCPtools - a multiplatform SDK for Freenet apps in C
 
-//
-//  This code is part of FCPtools - a multiplatform SDK for Freenet apps in C
-//
-//  Designed and implemented by David McNab, david@rebirthing.co.nz
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
 
-#include "stdio.h"
-#include "stdlib.h"
+  The website for Freenet is at http://freenet.sourceforge.net
+
+  This code is distributed under the GNU Public Licence (GPL) version 2.
+  See http://www.gnu.org/ for further details of the GPL.
+*/
 
 #include "ezFCPlib.h"
 
@@ -25,19 +21,18 @@
 */
 void *safeMalloc(int nbytes)
 {
-	void *blk;
-	unsigned long int delay = 500;
+  void *blk;
+  unsigned int delay_s = 1;
+  
+  while ((blk = malloc(nbytes)) == NULL) {
+	 _fcpLog(FCP_LOG_CRITICAL, "safeMalloc: req for %d bytes failed, waiting %d seconds", nbytes, delay_s);
 
-	while ((blk = malloc(nbytes)) == NULL)
-	{
-		_fcpLog(FCP_LOG_CRITICAL, "safeMalloc: req for %d bytes failed, waiting %d ms",
-				nbytes, delay);
-		sleep(delay * 1000);
+	 // Sleep for delay_s seconds, 0 nanoseconds.
+	 Sleep(delay_s, 0);
 
-		// increase the delay for next time, max 1 hour (hahaha)
-		if (delay < 3600000)
-			delay = delay * 2;
-	}
-
-	return blk;
+	 // Double the delay for next time, max 1 hour (hahaha)
+	 if (delay_s < 3600) delay_s = delay_s << 1;
+  }
+  
+  return blk;
 }

@@ -11,12 +11,17 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-/* PORTABLE ? YES */
-
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
-/* Necessary includes */
+
+/*
+  Necessary includes
+
+  These includes are useful for all of the FCPtools code.  Any module-specific
+  include should be placed within said module.
+
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,9 +30,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
- 
+
+#include <time.h> 
 #include <pthread.h>
-/* ~Necessary includes */
+
 
 /*
   Threshold levels for the user-provided fcpLogCallback() function
@@ -464,10 +470,15 @@ extern _C_ void     _fcpFreeUri(FCP_URI *uri);
 extern _C_ void     _fcpLog(int level, char *format,...);
 extern _C_ void     _fcpInitSplit(int maxThreads);
 
-extern _C_ void    *safeMalloc(int nbytes);
-
 extern _C_ META04  *parseMeta(char *buf);
 extern _C_ void     freeMeta(META04 *meta);
+
+/*
+  Utility functions defined here (not part of the protocol itself).
+ */
+extern _C_ void    *safeMalloc(int nbytes);
+extern _C_ int      Sleep(unsigned int seconds, unsigned int nanoseconds);
+
 extern _C_ long     cdocIntVal(META04 *meta, char *cdocName, char *keyName, long defVal);
 extern _C_ long     cdocHexVal(META04 *meta, char *cdocName, char *keyName, long defVal);
 extern _C_ char    *cdocStrVal(META04 *meta, char *cdocName, char *keyName, char *defVal);

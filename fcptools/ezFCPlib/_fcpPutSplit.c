@@ -12,10 +12,11 @@
 
   Module: _fcpPutSplit
 
-Description:	- invoked at ezFCPlib startup
-					- creates a thread which manages all splitfile inserts
-					  across all threads within the calling process
-					- manages queueing of splitfile insert jobs
+  Description:
+    - invoked at ezFCPlib startup
+	 - creates a thread which manages all splitfile inserts
+	   across all threads within the calling process
+	 - manages queueing of splitfile insert jobs
 */
 
 #include <unistd.h>
@@ -126,7 +127,7 @@ void _fcpInitSplit(int maxSplitThreads)
 	LaunchThread(splitInsMgr, NULL);
 
 	while (!splitMgrRunning)
-		sleep(500);
+		sleep(1);
 
 	_fcpLog(FCP_LOG_VERBOSE,
 			"_fcpInitSplit: splitfile insert manager now running, max %d threads",
@@ -228,7 +229,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 	// wait for it to finish
 	while (job->status != SPLIT_INSSTAT_MANIFEST && job->status != SPLIT_INSSTAT_FAILED)
-		sleep(1000);
+		sleep(1);
 
 	close(fd);
 
@@ -385,7 +386,7 @@ void splitAddJob(splitJobIns *job)
 	while (newJob != NULL)
 	{
 		_fcpLog(FCP_LOG_DEBUG, "splitAddJob: waiting for split insert queue to come free");
-		sleep(1000);
+		sleep(1);
 	}
 	newJob = job;
 
@@ -427,7 +428,7 @@ static void splitInsMgr(void *nothing)
 	while (1)
 	{
 		// let things breathe a bit
-		sleep(1000);
+		sleep(1);
 		breakloop = 0;
 
 		if (++clicks == 600)

@@ -1,17 +1,13 @@
 
-
-#include "time.h"
-
 #include "ezFCPlib.h"
 
 
 /*
- * xtoi()
- *
- * Convert a hexadecimal number string into an int
- * this is the hex version of atoi
- */
+  xtoi()
 
+  Convert a hexadecimal number string into an int
+  this is the hex version of atoi
+*/
 long xtoi(char *s)
 {
     long val = 0;
@@ -30,6 +26,25 @@ long xtoi(char *s)
             break;
 
     return val;
+}
+
+/*
+  Sleep()
+
+  Convenience function since the only portable sleep function which takes
+  parameters in nanoseconds is a pain to call.  If you need to check
+  signals while sleeping, you probably shouldn't call this function.
+  Call nanosleep() directly and read the man pages :)
+*/
+int Sleep(unsigned int seconds, unsigned int nanoseconds)
+{
+  struct timespec delay;
+  struct timespec remain;
+
+  delay.tv_sec = seconds;
+  delay.tv_nsec = nanoseconds;
+
+  return nanosleep( &delay, &remain );
 }
 
 

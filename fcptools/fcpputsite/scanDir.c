@@ -1,15 +1,14 @@
-// insertFreesite.c - part of fcpputsite
-// This module is the engine that does the inserting
-// CopyLeft (c) 2001 by David McNab
+/*
+  insertFreesite.c - part of fcpputsite
+  This module is the engine that does the inserting
 
-#include "stdio.h"
-#include "string.h"
-#include "sys/types.h"
+  CopyLeft (c) 2001 by David McNab
+*/
 
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
 
-
+#include <dirent.h>
 
 //
 // IMPORTED DECLARATIONS

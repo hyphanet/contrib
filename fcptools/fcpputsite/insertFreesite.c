@@ -151,7 +151,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                     break;
                 }
                 else
-                    sleep(1000);  // one or more threads currently running
+                    sleep(1);  // one or more threads currently running
             }
         }
 
@@ -169,7 +169,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         if (firstThreadSlot == maxThreads)
         {
             // no - wait a while and restart
-            sleep(1000);
+            sleep(1);
 			if (++clicks == 180)
 				_fcpLog(FCP_LOG_DEBUG, "fcpputsite: all thread slots full");
             continue;

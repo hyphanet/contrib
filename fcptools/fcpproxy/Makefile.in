@@ -57,17 +57,10 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-host_alias = @host_alias@
-host_triplet = @host@
-AS = @AS@
 AWK = @AWK@
 CC = @CC@
-CPP = @CPP@
-DLLTOOL = @DLLTOOL@
-LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
-OBJDUMP = @OBJDUMP@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
@@ -80,7 +73,7 @@ bin_PROGRAMS = fcpproxy
 
 fcpproxy_LDFLAGS = -L../ezFCPlib
 fcpproxy_LDADD = -lezfcp
-fcpproxy_SOURCES = acl.c bind.c conn.c encode.c fcpreq.c filters.c gnu_regex.c loaders.c main.c parsers.c proxy.c socks4.c ssplit.c win32.c
+fcpproxy_SOURCES = acl.c bind.c conn.c encode.c fcpreq.c filters.c gnu_regex.c loaders.c main.c parsers.c proxy.c socks4.c ssplit.c
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 PROGRAMS =  $(bin_PROGRAMS)
@@ -90,8 +83,7 @@ DEFS = @DEFS@ -I. -I$(srcdir)
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 fcpproxy_OBJECTS =  acl.o bind.o conn.o encode.o fcpreq.o filters.o \
-gnu_regex.o loaders.o main.o parsers.o proxy.o socks4.o ssplit.o \
-win32.o
+gnu_regex.o loaders.o main.o parsers.o proxy.o socks4.o ssplit.o
 fcpproxy_DEPENDENCIES = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -107,7 +99,7 @@ GZIP_ENV = --best
 DEP_FILES =  .deps/acl.P .deps/bind.P .deps/conn.P .deps/encode.P \
 .deps/fcpreq.P .deps/filters.P .deps/gnu_regex.P .deps/loaders.P \
 .deps/main.P .deps/parsers.P .deps/proxy.P .deps/socks4.P \
-.deps/ssplit.P .deps/win32.P
+.deps/ssplit.P
 SOURCES = $(fcpproxy_SOURCES)
 OBJECTS = $(fcpproxy_OBJECTS)
 
@@ -136,8 +128,8 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
 	@list='$(bin_PROGRAMS)'; for p in $$list; do \
 	  if test -f $$p; then \
-	    echo " $(LIBTOOL)  --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
-	    $(LIBTOOL)  --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
+	    echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
+	     $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	  else :; fi; \
 	done
 
@@ -320,6 +312,8 @@ uninstall-am uninstall all-redirect all-am all installdirs \
 mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
+
+#fcpproxy_SOURCES  = acl.c bind.c conn.c encode.c fcpreq.c filters.c gnu_regex.c loaders.c main.c parsers.c proxy.c socks4.c ssplit.c win32.c
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

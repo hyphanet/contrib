@@ -14,9 +14,8 @@
 
 #include "ezFCPlib.h"
 
-/*
-  Global data defs
-*/
+
+/* Global data defs */
 char  _fcpHost[256];
 int   _fcpPort;
 int   _fcpHtl;
@@ -25,7 +24,6 @@ char  _fcpProgPath[256];
 int   _fcpFileNum;       /* temporary file count */
 char  _fcpID[4] = { 0, 0, 0, 2 };
 int   _fcpRegress;
-/* force cvs update */
 
-/* basic accounting - ensure sockets are getting closed */
+/* Basic accounting - ensure sockets are getting closed */
 int   _fcpNumOpenSockets = 0;

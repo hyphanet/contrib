@@ -1,7 +1,18 @@
+-------------------------------------------------------------------------------
 This is the TODO file for FCPtools.
 
-- Need to streamline the check for pthreads (POSIX.1 in general) done during
+Need to streamline the check for pthreads (POSIX.1 in general) done during
 automake.
 
-- Move away from POSIX Threads towards State Threads for all UNIX platforms.
-Win32 platform will use native Win32 Threading.
+Complete all modifications necessary for true portability among UNIX-like
+environments.  This includes:
+
+* fcpStartup.c:ftpStartup() - TMP file management.
+* fcpOpenKey.c:
+* fcpWriteKey.c:
+* fcpCloseKey.c:fcpCloseKeyWrite() - TMP file management
+* fcpGetKeyToFile.c:
+* fcpPutKeyFromFile.c:
+* _fcpSock.c: - Remove Win32 specific socket calls.
+* _fcpPutSplit.c:
+* metaParse.c: (?)
