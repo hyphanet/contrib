@@ -122,13 +122,13 @@ char *_fcpTmpFilename(void)
 	struct stat st;
   time_t seedseconds;
 
-	filename = (char *)malloc(4097);
+	filename = (char *)malloc(257);
   
 	time(&seedseconds);
 	srand((unsigned int)seedseconds);
 
 	while (search) {
-		snprintf(filename, 4096, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
+		snprintf(filename, 256, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
 
 		if (stat(filename, &st) == -1)
 			if (errno == ENOENT) search = 0;

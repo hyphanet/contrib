@@ -335,7 +335,10 @@ typedef struct {
 	char  *name;
 
 	int    field_count;
-	char **data;
+
+	/* should change this to be completely dynamic.. short cut until i figure
+		 out why the realloc callkeeps crashing.. */
+	char *data[128];
 	
 } hDocument;
 

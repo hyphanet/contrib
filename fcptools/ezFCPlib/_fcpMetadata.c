@@ -37,14 +37,12 @@
   EXPORTED DEFINITIONS
 */
 
-#if 0
-long    cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long defVal);
-long    cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long defVal);
-char   *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal);
+long       cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
+long       cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
+char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal);
 
-FLDSET *cdocFindDoc(hMetadata *meta, char *cdocName);
-char   *cdocLookupKey(FLDSET *fldset, char *keyName);
-#endif
+hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);
+char      *cdocLookupKey(hDocument *doc, char *keyName);
 
 /*
   IMPORTED DEFINITIONS
@@ -132,131 +130,38 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
   return 0;
 }
 
-#if 0
-
-
 void _fcpMetaDestroy(hMetadata *meta)
 {
-
 }
 
 /**********************************************************************/
 
 /*
   Metadata lookup routines
-  
-  These functions look up any named key within any of the named cdocs
-  (or the first unnamed cdoc), and convert them to the desired format
 */
 
 long cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
 {
-  char *val;
-  
-  if (meta == 0)
-    return defVal;
-  
-  val = cdocStrVal(meta, cdocName, keyName, 0);
-  if (val == 0)
-    return defVal;
-  else
-    return atol(val);
 }
 
 long cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
 {
-  char *val;
-  
-  if (meta == 0)
-    return defVal;
-  
-  val = cdocStrVal(meta, cdocName, keyName, 0);
-  if (val == 0)
-    return defVal;
-  else
-    return xtoi(val);
 }
 
 char *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal)
 {
-  FLDSET *fldset;
-  char *keyStr;
-  
-  if (meta == 0)
-    return 0;
-  
-  fldset = cdocFindDoc(meta, cdocName);
-  if (fldset == 0)
-    return 0;        /* no cdoc of that name sorry */
-  else if ((keyStr = cdocLookupKey(fldset, keyName)) == 0)
-    return defVal;      /* found named cdoc but not key */
-  else
-    return keyStr;      /* got it */
 }
 
-/*
-  look up a named document within metadata
-*/
-
-FLDSET *cdocFindDoc(hMetadata *meta, char *cdocName)
+hDocument *cdocFindDoc(hMetadata *meta, char *cdocName)
 {
-  int i;
-  char *s;
-  
-  if (meta == 0)
-    return 0;
-  
-  if (cdocName == 0 || cdocName[0] == '\0')
-    {
-      /* search for first unnamed cdoc */
-      for (i = 0; i < meta->count; i++)
-	if (cdocLookupKey(meta->cdoc[i], "Name") == 0)
-	  /* no name in this cdoc */
-	  return meta->cdoc[i];
-      /* no unnamed cdocs */
-      return 0;
-    }
-  else
-    {
-      /* search for named cdoc */
-      for (i = 0; i < meta->count; i++)
-	if ((s = cdocLookupKey(meta->cdoc[i], "Name")) != 0
-	    && !strcasecmp(s, cdocName)
-            )
-	  return meta->cdoc[i];
-      /* no cdoc matching name */
-      return 0;
-    }
 }
 
-/*
-  cdocLookupKey
-  
-  given a fieldset pointer, look up a key's raw string value
-*/
-
-char *cdocLookupKey(FLDSET *fldset, char *keyName)
+char *cdocLookupKey(hDocument *doc, char *keyName)
 {
-  int i;
-  
-  if (fldset == 0)
-    return 0;
-  
-  /* spit if no key name given */
-  if (keyName == 0 || keyName[0] == '\0')
-    return 0;
-  
-  for (i = 0; i < fldset->count; i++)
-    if (!strcasecmp(fldset->keys[i]->name, keyName))
-      /* found it */
-      return fldset->keys[i]->value;
-  
-  /* no key of that name sorry */
-  return 0;
 }
 
-#endif
-
+/**********************************************************************/
+/* private/local to this module */
 /**********************************************************************/
 
 /*
@@ -393,6 +298,7 @@ static int parse_document(hMetadata *meta, char *buf)
   char  val[257];
 
 	int   doc_index;
+	int field_index;
 
 	doc_index = meta->cdoc_count;
 
@@ -400,15 +306,16 @@ static int parse_document(hMetadata *meta, char *buf)
 	meta->cdoc_count++;
 
 	/* is this the first time we've been through this function? */
-	if (meta->cdoc_count == 1) {
+	if (meta->cdoc_count == 1)
 		meta->cdocs = (hDocument **)malloc(sizeof (hDocument *));
-	}
-	else {
+	else
 		realloc(meta->cdocs, meta->cdoc_count * sizeof(hDocument *));
-	}
 
 	/* add the document to the meta structure */
 	meta->cdocs[doc_index] = (hDocument *)malloc(sizeof (hDocument));
+	memset(meta->cdocs[doc_index], 0, sizeof (hDocument));
+
+	_fcpLog(FCP_LOG_DEBUG, "document index %d", doc_index);
 	
 	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
 
@@ -416,11 +323,11 @@ static int parse_document(hMetadata *meta, char *buf)
 		if (strchr(line, '=')) {
 	
 			splitLine(line, key, val);
-			_fcpLog(FCP_LOG_DEBUG, "encountered key \"%s\" with value \"%s\"", key, val);
+			/*_fcpLog(FCP_LOG_DEBUG, "encountered key \"%s\" with value \"%s\"", key, val);*/
 			
 			/* Set type if not already set */
 			if (meta->cdocs[doc_index]->type == 0) {
-				
+
 				if (!strncasecmp(key, "Redirect.", 9))
 					meta->cdocs[doc_index]->type = META_TYPE_REDIRECT;
 				
@@ -438,10 +345,32 @@ static int parse_document(hMetadata *meta, char *buf)
 				meta->cdocs[doc_index]->name = strdup(val);
 			}
 
-			else {
-				_fcpLog(FCP_LOG_DEBUG, "Add the key/val pair to doc %s", meta->cdocs[doc_index]->name);
-			}
+			else { /* add the key/val pair to the current document */
+				/* find the first available position in the array for the new pair */
+				field_index = meta->cdocs[doc_index]->field_count * 2;
 
+				/* add one to the field counter */
+				meta->cdocs[doc_index]->field_count++;
+
+/* the following code block crashes.. hence the hardcoded field
+	 count of	128 as defined in ezFCPlib.h:hDocument */
+#if 0
+				/* (re)allocate (field_count * 2) locations (key & val) */
+				if (meta->cdocs[doc_index]->field_count == 1)
+					meta->cdocs[doc_index]->data = (char **)malloc(sizeof (char *) * 2);
+
+				else {
+					/* allocate "field_count char pointers * 2" (2 = 1 key equated with 1 val) */
+					realloc(meta->cdocs[doc_index]->data, meta->cdocs[doc_index]->field_count * sizeof (char **) * 2);
+				}
+#endif
+				
+				/* finally add the key and val */
+				meta->cdocs[doc_index]->data[field_index]   = strdup(key);
+				meta->cdocs[doc_index]->data[field_index+1] = strdup(val);
+				
+				_fcpLog(FCP_LOG_DEBUG, "stored %s/%s in locations %d,%d", key, val, field_index, field_index+1);
+			}
 		} /* end of processing key/val pairs */
 
 		/* it's *not* a key/val pair */
