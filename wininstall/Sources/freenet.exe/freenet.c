@@ -18,6 +18,7 @@
 #undef UNICODE
 #include "windows.h"
 #include "shellapi.h"
+#include "winnls.h"
 #include "rsrc.h"
 #include "types.h"
 #include "shared_data.h"
@@ -64,7 +65,7 @@ const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=javaw.exe */
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Node */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
-const char szfserveclidefaultexec[]="Freenet.node.Node"; /* default for above */
+const char szfserveclidefaultexec[]="Freenet.node.gui.GUINode"; /* default for above */
 const char szfconfigdefaultexec[]="Freenet.node.gui.Config freenet.ini"; /* default for above */
 
 
@@ -94,7 +95,6 @@ FREENET_MODE nFreenetMode=FREENET_STOPPED;
 bool bOpenGatewayOnStartup=false;	/* was freenet.exe called with the -open option?  */
 
 /*		handles, etc... */
-PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
 HANDLE hSemaphore=NULL;				/* unique handle used to guarantee only one instance of freenet.exe app is ever running at one time */
 HANDLE hConfiguratorSemaphore=NULL;		/* mutex object used to ensure we never run two (or more!) copies of the configurator */
 DWORD dwMonitorThreadId;			/* thread identifier for the background 'flasher' thread - global so we can PostThreadMessage to it */
@@ -451,13 +451,23 @@ void Initialise(void)
 			GetFirstToken(szCommandLinePtr, &szEndPointer);
 			/* and ignore it ! now - get the next tokens ...   */
 			/* while there's still tokens on the command line: */
-			while ( (szCommandLinePtr = GetNextToken(szCommandLinePtr, szEndPointer))!=NULL )
+			do
 			{
-				if (lstrcmpi(szCommandLinePtr, "-open")==0)
+				if (CompareString(	LOCALE_SYSTEM_DEFAULT,
+									NORM_IGNORECASE | SORT_STRINGSORT | NORM_IGNOREWIDTH,
+									szCommandLinePtr, 
+									-1,
+									"-open",
+									-1) == 2 )
 				{
+					/* Confused?  CompareString returns '2' if the strings are identical */
 					bOpenGatewayOnStartup=true;
 				}
+
+				szCommandLinePtr = GetNextToken(szCommandLinePtr, szEndPointer);
 			}
+			while (szCommandLinePtr != NULL);
+
 		}
 	}
 
