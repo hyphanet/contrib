@@ -38,6 +38,11 @@ freenet:CHK@... is the key with which it has been inserted into Freenet.
 This file is in a deliberately simple format so that it can be processed 
 by scripts which will, for example, create HTML indexes within Freenet.
 
+Saturn will save the article number of the last downloaded article to a
+file in ~/.saturn.  When you run Saturn again, it will automatically stop
+at that point. You can override this, and reinsert articles, with the -a
+switch.
+
 COMMAND LINE OPTIONS:
 
 Saturn supports the following command line options:
@@ -51,10 +56,12 @@ Option	Description
 	is a good number.  Trying to do too much at once isn't a good idea
 	as Freenet will place its own limits on the maximum number of
 	threads.
--r xx	Only insert articles whose names match a regular expression.
+-s xx	Only insert articles whose names match a regular expression.
 	This allows you to filter articles based on their subject lines.
 -c xx	Terminate after xx collisions.  This will cause saturn to stop
 	if it finds that files have already been inserted into Freenet,
 	suggesting that someone else has already snarfed the newsgroup.
--s xx	Skip xx newest articles
--m xx	Skips articles less than xx bytes	
+-m xx	Skips articles less than xx bytes.
+-a      Insert all articles, regardless of what has been already inserted.
+-o xx   Output log to xx. If xx is "-" log to stdout.
+

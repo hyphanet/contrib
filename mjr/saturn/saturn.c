@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -15,7 +17,7 @@
 
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int htl, threads, max_threads, collisions, max_collisions, skip, min_bytes;
+int htl, threads, max_threads, min_bytes, collisions;
 regex_t *regex, *datex;
 char *nntpserver, *group;
 uint32_t article_count, *articles;
@@ -86,7 +88,7 @@ nntp_xover ()
     if (status != 211) goto badreply;
     fflush(sock);
 
-    printf("Downloading article list... ");
+    fprintf(stderr, "Downloading article list... ");
     fflush(NULL);
     article_count = 0;
     articles = calloc(128, sizeof(uint32_t));
@@ -103,7 +105,7 @@ nntp_xover ()
 	exit(1);
     }
 
-    printf("%d articles.\n", article_count);
+    fprintf(stderr, "%d articles.\n", article_count);
     return;
 
 badreply:
@@ -163,10 +165,9 @@ fcp_put_thread (void *args)
 	if (strncmp(reply, "URI=", 4) != 0) goto free;
 	fprintf(log, "%s=%s", a->name, &reply[4]);
 	fflush(log);
-    } else { // FCPHandler is stupid, it makes KeyCollisions look like RouteNotFound!
-	pthread_mutex_lock(&mutex);
+	fgets(reply, 512, fcp);
+    } else { // should I log collided inserts?
 	collisions++;
-	pthread_mutex_unlock(&mutex);
     }
 
 free:
@@ -184,8 +185,8 @@ exit:
 article *
 get_article (uint32_t msg_num)
 {
-    int foo, status = 0, base64 = 0;
-    char line[512], msg_id[512], name[512], date[512];
+    int status = 0, base64 = 0;
+    char line[512], msg_id[512], name[512];
     FILE *decoded, *data = tmpfile();
     article *a;
 
@@ -209,7 +210,7 @@ get_article (uint32_t msg_num)
         fgets(line, 512, sock);
         if (strcmp(line, ".\r\n") != 0) goto badreply;
     }
-
+/*
     if (datex) {
 	fprintf(sock, "date %d\r\n", msg_num);
 	fflush(sock);
@@ -221,7 +222,7 @@ get_article (uint32_t msg_num)
 	    goto error;
 	}
     }
-    
+*/
     if (min_bytes) {
         fprintf(sock, "xhdr bytes %d\r\n", msg_num);
         fflush(sock);
@@ -244,17 +245,17 @@ get_article (uint32_t msg_num)
     fgets(line, 512, sock);
     sscanf(line, "%d %*d %s\r\n", &status, msg_id);
     if (status != 222) goto badreply;
-    printf("Downloading article %d... ", msg_num);
+    fprintf(stderr, "Downloading article %d... ", msg_num);
     fflush(stdout);
     while (fgets(line, 512, sock)) {
 	if (strcmp(line, ".\r\n") == 0) break;
 	fputs(line, data);
     }
     if (strcmp(line, ".\r\n") != 0) {
-	printf("terminated unexpectedly!\n");
+	fprintf(stderr, "terminated unexpectedly!\n");
 	goto error;
     }
-    printf("done.\n");
+    fprintf(stderr, "done.\n");
     
     rewind(data); name[0] = '\0';
     while (fgets(line, 512, data)) {
@@ -269,14 +270,14 @@ get_article (uint32_t msg_num)
     }
     
     if (!strlen(name)) {
-	fprintf(stderr, "Decoding error on article %d: no data found!\n", msg_num);
+	fprintf(stderr, "Decoding error on article %d: no data.\n", msg_num);
 	goto error;
     }
     
     if (base64) decoded = read_base64(data);
     else decoded = read_stduu(data);
     if (!decoded) {
-	fprintf(stderr, "Decoding error on article %d: bad data!\n", msg_num);
+	fprintf(stderr, "Decoding error on article %d: bad data.\n", msg_num);
 	goto error;
     }
     fclose(data);
@@ -298,14 +299,15 @@ void
 usage (char *me)
 {
     fprintf(stderr, "Usage %s [options] some.news.group\n\n"
-                    "  -h --htl           The hops to live for inserts.\n"
-		    "  -t --threads       The maximum number of concurrent inserts.\n"
-		    "  -r --regex         Only insert articles whose names match regex.\n"
-		    "  -c --collisions    Terminate after a number of collisions.\n"
-		    "  -s --skip          Skip x newest articles.\n"
+                    "  -h --htl           The hops to live for inserts. (default 10)\n"
+		    "  -t --threads       The maximum number of concurrent inserts. (default 10)\n"
 		    "  -m --min           Skip articles less than x bytes.\n"
-		    "  -d --date          Only insert articles whose dates match regex.\n"
-		    "                     (date format: YYYYMMDDHHMMSS) || b0rked!!!\n\n",
+		    "  -a --all           Insert all articles, even those already inserted.\n"
+		    "  -o --output        Location of an alternative log file (or - for stdout).\n"
+		    "  -c --collisions    Maximum number of collisions before exiting.\n"
+		    "  -s --subject       Only insert articles whose subjects match regex.\n\n",
+//		    "  -d --date          Only insert articles whose dates match regex.\n"
+//		    "                     (date format: YYYYMMDDHHMMSS) || b0rked!!!\n\n"
 		    me);
     exit(2);
 }
@@ -315,19 +317,20 @@ main (int argc, char **argv)
 {
     pthread_t thread;
     article *a;
-    int c;
-    char regex_string[256], date_string[256];
+    int max_collisions, all, c, newest, stamp;
+    char foo[256], regex_string[256], date_string[256];
+    FILE *last;
     extern int optind;
     extern char *optarg;
 
     static struct option long_options[] = {
 	{"htl",        1, NULL, 'h'},
         {"threads",    1, NULL, 't'},
-	{"regex",      1, NULL, 'r'},
-	{"collisions", 1, NULL, 'c'},
-	{"skip",       1, NULL, 's'},
+	{"subject",    1, NULL, 's'},
 	{"min",        1, NULL, 'm'},
 	{"date",       1, NULL, 'd'},
+	{"collisions", 1, NULL, 'c'},
+	{"all",        0, NULL, 'a'},
 	{0, 0, 0, 0}
     };
     
@@ -338,36 +341,41 @@ main (int argc, char **argv)
 	exit(2);
     }
 
-    htl = 15;
-    max_threads = 1;
+    htl = 10;
+    max_threads = 10;
+    foo[0] = '\0';
     regex_string[0] = '\0';
     date_string[0] = '\0';
-    max_collisions = 0;
-    skip = 0;
     min_bytes = 0;
+    max_collisions = 0;
+    collisions = 0;
+    all = 0;
     
-    while ((c = getopt_long(argc, argv, "h:t:r:c:s:m:d:", long_options, NULL)) != EOF) {
+    while ((c = getopt_long(argc, argv, "o:h:t:s:m:d:c:a", long_options, NULL)) != EOF) {
         switch (c) {
+	case 'o':
+	    strncpy(foo, optarg, 256);
+	    break;
         case 'h':
             htl = atoi(optarg);
             break;
         case 't':
             max_threads = atoi(optarg);
             break;
-	case 'r':
+	case 's':
 	    strncpy(regex_string, optarg, 256);
 	    break;
-        case 'c':
-            max_collisions = atoi(optarg);
-            break;
-        case 's':
-            skip = atoi(optarg);
-            break;
 	case 'm':
 	    min_bytes = atoi(optarg);
 	    break;
 	case 'd':
 	    strncpy(date_string, optarg, 256);
+	    break;
+	case 'c':
+	    max_collisions = atoi(optarg);
+	    break;
+	case 'a':
+	    all = 1;
 	    break;
         case '?':
             usage(argv[0]);
@@ -389,16 +397,12 @@ main (int argc, char **argv)
 	fprintf(stderr, "Invalid max threads.\n");
 	exit(2);
     }
-    if (max_collisions < 0) {
-	fprintf(stderr, "Invalid max collisions.\n");
-	exit(2);
-    }
-    if (skip < 0) {
-	fprintf(stderr, "Invalid number of articles to skip.\n");
-	exit(2);
-    }
     if (min_bytes < 0) {
 	fprintf(stderr, "Invalid minimum bytes.\n");
+	exit(2);
+    }
+    if (max_collisions < 0) {
+	fprintf(stderr, "Invalid maximum collisions.\n");
 	exit(2);
     }
 
@@ -411,7 +415,7 @@ main (int argc, char **argv)
 	    exit(2);
 	}
     }
-
+/*
     datex = NULL;
     if (strlen(date_string)) {
 	datex = malloc(sizeof(regex_t));
@@ -421,33 +425,77 @@ main (int argc, char **argv)
 	    exit(2);
 	}
     }
-    
+*/
     nntp_connect();
     nntp_xover();
     
-    if (!article_count) exit(0);
+    if (!article_count) {
+	fprintf(stderr, "No articles in group.\n");
+	exit(0);
+    }
     
-    log = fopen(group, "a");
+    if (!strlen(foo))
+	strcpy(foo, group);
+    
+    log = strcmp(foo, "-") == 0 ? stdout : fopen(foo, "a");
     if (!log) {
-	fprintf(stderr, "Can't open log file to append to!\n");
+	fprintf(stderr, "Can't open log file %s to append to!\n", foo);
 	exit(1);
     }
     
+    sprintf(foo, "%s/.saturn", getenv("HOME"));
+    mkdir(foo, 0755); // so I'm lazy! blum blum shub to you, too.
+    
+    sprintf(foo, "%s/.saturn/%s_last", getenv("HOME"), group);
+    last = fopen(foo, "r");
+    if (!last) {
+	stamp = articles[0];
+    } else {
+        c = fscanf(last, "%d", &stamp);
+        if (c != 1) stamp = 0;
+        fclose(last);
+    }
+
+    newest = articles[article_count-1];
+
+    fprintf(stderr, "Inserting from number %d down to %d.\n", newest, stamp);
+    
     do {
-	if (skip-- > 0) {article_count--; continue;}
+	if (!all && articles[article_count-1] == stamp) {
+	    fprintf(stderr, "End of new articles reached. (Specify --all to override.)\n");
+	    goto end;
+	}
 	if (max_collisions && collisions > max_collisions) {
-	    fprintf(stderr, "Max collisions exceeded. Aborting.\n");
-	    pthread_exit(NULL);
+	    fprintf(stderr, "Maximum collisions reached.\n");
+	    goto end;
 	}
 	if ((a = get_article(articles[--article_count]))) {
 	    pthread_create(&thread, NULL, fcp_put_thread, a);
 	    if (max_threads && ++threads >= max_threads)
-		while (threads >= max_threads) pthread_cond_wait(&cond, &mutex);
+		while (threads >= max_threads) {
+		    pthread_mutex_lock(&mutex);
+		    pthread_cond_wait(&cond, &mutex);
+		    pthread_mutex_unlock(&mutex);
+		}
 	}
     } while (article_count);
+
+end:
+    fprintf(stderr, "Waiting for inserts to complete...\n");
+    while (threads) {
+	pthread_mutex_lock(&mutex);
+	pthread_cond_wait(&cond, &mutex);
+	pthread_mutex_unlock(&mutex);
+    }
     
-    printf("End of article list reached. Waiting for inserts to complete...\n");
-    while (threads) pthread_cond_wait(&cond, &mutex);
+    last = fopen(foo, "w");
+    if (!last) {
+	fprintf(stderr, "Can't open %s for writing!\n", foo);
+	exit(1);
+    }
+    fprintf(last, "%d", newest);
+    fclose(last);
+    
     pthread_exit(NULL);
 }
 
