@@ -131,7 +131,7 @@ load_graphs ()
 int
 is_set (struct graph *g, int db, int cb)
 {
-    int n = db + cb;
+    int n = (db * g->cbc) + cb;
     return (g->graph[n / 8] << (n % 8)) & 128;
 }
 
