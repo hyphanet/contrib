@@ -26,7 +26,8 @@ clean:
 distro:         snap jar
 		rm -rf distro
 		mkdir distro/
-		cp ./alien/* distro
+		cp ./alien/*.jar distro
+		cp ./alien/onion_LICENSE distro
 		cp *.jar distro
 		cp *.zip distro
 		cp README distro
