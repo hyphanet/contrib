@@ -570,7 +570,7 @@ BOOL Initialise(void)
 		// we can now add the string we need onto the end of the current value
 		// of CLASSPATH, separated using a semicolon
 		lstrcat(szCLASSPATH,";");
-		lstrcat(szCLASSPATH,szShbuffer);
+		lstrcat(szCLASSPATH,szbuffer);
 		SetEnvironmentVariable("CLASSPATH",szCLASSPATH);
 	}
 	// else - allocation failed - Windows must be low on resources.

@@ -50,7 +50,9 @@ void CConfigFile::Load()
 
 	// Normal tab
 	//pNormal->m_importNewNodeRef.EnableWindow(false);
-	pNormal->m_storeCacheSize = 10;
+		ULARGE_INTEGER   FreeBytes,TotalBytes;
+		GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL); 
+	pNormal->m_storeCacheSize = min(max(10,((int)FreeBytes.QuadPart>>20)),2047);
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = true;
 	pNormal->m_transient = TRUE;
@@ -71,7 +73,7 @@ void CConfigFile::Load()
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumConnectionThreads = 16;
 	pAdvanced->m_outputBandwidthLimit = 0;
-	pAdvanced->m_seedNodes = "ALL.REF";
+	pAdvanced->m_seedNodes = "seed.ref";
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;

@@ -11,5 +11,6 @@ HIDR_MAINFRAME                          0x20080
  
 // Dialogs (IDD_*) 
 HIDD_GETSEEDDLG                         0x20066
+HIDD_PP_NORMAL                          107
  
 // Frame Controls (IDW_*) 

@@ -1,8 +1,12 @@
 # installer generator script for Freenet:
-!define VERSION "0.4-10102001-snapshot"
+!define VERSION "10102001snapshot"
 
 Name "Freenet ${VERSION}"
-OutFile "Freenet_setup-${VERSION}.exe"
+!ifdef embedJava
+  OutFile "Freenet_setup-${VERSION}-Java.exe"
+!else
+  OutFile "Freenet_setup-${VERSION}.exe"
+!endif
 ComponentText "This will install Freenet ${VERSION} on your system."
 
 LicenseText "Freenet is published under the GNU general public license:"
@@ -24,7 +28,8 @@ AutoCloseWindow true
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
 InstallDir "$PROGRAMFILES\Freenet0.4"
-;InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
+InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
+ShowInstDetails show
 
 ;-----------------------------------------------------------------------------------
 Function DetectJava
@@ -32,12 +37,21 @@ Function DetectJava
 
   # First look for the current version of Java and get the correct path in $2,
   # then test if its empty (nonexisting)
+  DetailPrint "Detecting Java"
 StartCheck:
-  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.4"	; JRE key into $0
+  StrCpy $0 "Software\JavaSoft\Java Runtime Environment\1.4"	; JRE key into $0
+  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
+  StrCmp $2 "" 0 EndCheck
+  
+  StrCpy $0 "Software\JavaSoft\Java Development Kit\1.4"        ; if we don't have JRE
   ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
   StrCmp $2 "" 0 EndCheck
 
-  StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment\1.3"	; JRE key into $0
+  StrCpy $0 "Software\JavaSoft\Java Runtime Environment\1.3"	; JRE key into $0
+  ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
+  StrCmp $2 "" 0 EndCheck
+  
+  StrCpy $0 "Software\JavaSoft\Java Development Kit\1.3"        ; if we don't have JRE
   ReadRegStr $2 HKLM $0 "JavaHome"				; read JRE path in $2
   StrCmp $2 "" 0 EndCheck
 
@@ -59,24 +73,43 @@ EndCheck:
   Goto End
 
 RunJavaFind:
+ !ifdef embedJava
+    # Install Java runtime only if not found
+    DetailPrint "Lauching Sun's Java Runtime Environment installation..."
+    SetOutPath "$TEMP"
+    File ${JAVAINSTALLER}
+    ExecWait "$TEMP\${JAVAINSTALLER}"
+    Delete "$TEMP\${JAVAINSTALLER}"
+    Goto StartCheck
+ !else
   # running the good ol' Java detection utility on unsuccess
   MessageBox MB_YESNO "I did not find Sun's Java Runtime Environment which is needed for Freenet.$\r$\nHit 'Yes' to open the download page for Java (http://java.sun.com),$\r$\n'No' to look for an alternative Java interpreter on your disks." IDYES GetJava
   Execwait "$INSTDIR\findjava.exe"
   Goto End
-
-GetJava:
+ GetJava:
   # Open the download page for Sun's Java
   ExecShell "open" "http://javasoft.com/"
   Sleep 5000
   MessageBox MB_OKCANCEL "Press OK to continue the Freenet installation AFTER having installed Java,$\r$\nCANCEL to abort the installation." IDOK StartCheck
   Abort
+!endif
 
 End:
 FunctionEnd
 ;-----------------------------------------------------------------------------------
 Section "Freenet (required)"
 
+  # First of all see if we need to install the mfc42.dll
+  # Each Win user should have it anyway
+  IfFileExists "$SYSDIR\Mfc42.dll" MfcDLLExists
+  DetailPrint "Installing Mfc42.dll"
+  SetOutPath "$SYSDIR"
+  File "Mfc42.dll"
+  ClearErrors
+  MfcDLLExists:
+
   # Copying the Freenet files to the install dir
+  DetailPrint "Copying Freenet files"
   SetOutPath "$INSTDIR\docs"
   File "freenet\docs\*.*"
   SetOutPath "$INSTDIR"
@@ -90,20 +123,16 @@ Section "Freenet (required)"
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\fsrvcli.exe" 6
 
-  # possibly embed full Java runtime
-  !ifdef embedJava
-  File /r jre
-  !endif
-
   HideWindow
   Call DetectJava
 
-  BringToFront
   # create the configuration file now
   # but get a current seed file first
   ExecWait "$INSTDIR\GetSeed"
+  BringToFront
   ClearErrors
-  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
+  # turn on FProxy by default
+  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
   IfErrors CfgnodeError
   # delete the set diskstoresize in a hackish manner, we set our own proposal lateron
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
@@ -115,9 +144,8 @@ Section "Freenet (required)"
   # now calling the GUI configurator
   ExecWait "$INSTDIR\NodeConfig.exe"
   # No, we don't want to start FProxy by default
-  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
   ;  replace the above line with the one below if you want to start fproxy automatically
-  ;  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
+   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
     
   Delete "$INSTDIR\findjava.exe"
   Delete "$INSTDIR\cfgnode.exe"
@@ -128,12 +156,15 @@ Section "Freenet (required)"
   # seeding the initial references
   #we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
+  BringToFront
+  DetailPrint "CONFIGURING THE NODE NOW, THIS CAN TAKE A LONG TIME!!!"
   ClearErrors
   ExecWait "$INSTDIR\fsrvcli --seed seed.ref"
   IfErrors SeedError NoSeedError
   SeedError:
   MessageBox MB_OK "There was an error while seeding your node. This might mean that you can´t connect to other nodes lateron."
   NoSeedError:
+  DetailPrint "Exporting the node reference to MyOwn.ref"
   ExecWait "$INSTDIR\fsrvcli --export myOwn.ref"
   IfErrors ExportError NoExportError
   ExportError:
@@ -161,13 +192,13 @@ Section "Freenet (required)"
 SectionEnd
 ;--------------------------------------------------------------------------------------
 
-Section "FCPProxy (web browser based access)"
-SectionIn 1,2
-
-  SetOutPath "$INSTDIR"
-  File "freenet\fcpproxy\*.*"
-
-SectionEnd
+;Section "FCPProxy (web browser based access)"
+;SectionIn 1,2
+;
+;  SetOutPath "$INSTDIR"
+;  File "freenet\fcpproxy\*.*"
+;
+;SectionEnd
 ;--------------------------------------------------------------------------------------
  
 Section "Startmenu and Desktop Icons"
@@ -285,7 +316,17 @@ SectionEnd
 ;-----------------------------------------------------------------------------------------
 
 Function .onInit
-  #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
+  # show splashscreen
+  ;SetOutPath $TEMP
+  ;File /oname=spltmp.bmp "splash.bmp"
+  ;File /oname=spltmp.wav "splash.wav"
+  ;File /oname=spltmp.exe "splash.exe"
+  ;ExecWait '"$TEMP\spltmp.exe" 1000 $HWNDPARENT $TEMP\spltmp'
+  ;Delete $TEMP\spltmp.exe
+  ;Delete $TEMP\spltmp.bmp
+  ;Delete $TEMP\spltmp.wav
+
+  #Is the node still running? The system tray Window class is called: TrayIconFreenetClass
  ShutDown:
   FindWindow $0 "TrayIconFreenetClass"
   IsWindow $0 StillRunning NotRunning 

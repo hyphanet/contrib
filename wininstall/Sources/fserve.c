@@ -68,7 +68,7 @@ void parseJavaPath (char *s) {
   BOOL blanks = FALSE;
   char j,i;
 
-	for (j=(strlen(s)-1);j>0;--j) if (s[j] == ' ') blanks=TRUE;
+	for (j = (strlen(s)-1);j>0;--j) if (s[j] == ' ') blanks=TRUE;
     if (blanks) {
 		for (j=strlen(s);j>=0;--j) s[j+1]=s[j];
 		s[0]='\"'; //inserting the " at the right place.
@@ -138,7 +138,7 @@ printf("parsing %d\n",i);
 
 	/* set the CLASSPATH env var to the location of the jar. */
 	/* Is there any need to request the value from the config file? */
-	SetEnvironmentVariable("CLASSPATH","freenet.jar");
+	SetEnvironmentVariable("CLASSPATH","freenet.jar;freenet-ext.jar");
 
 	/*finally executing external programm and returning error code on exit*/
 	printf("Executing: %s\n",cmdline);
