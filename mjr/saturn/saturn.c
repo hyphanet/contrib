@@ -141,6 +141,7 @@ fcp_put_thread (void *args)
 	fprintf(stderr, "Error connecting to node!\n");
 	goto exit;
     }
+    fwrite("\0\0\0\2", 4, 1, fcp);
     fprintf(fcp, "ClientPut\nHopsToLive=%x\nURI=freenet:CHK@\nDataLength=%lx\nData\n", htl, ftell(a->data));
     fflush(fcp);
     rewind(a->data);
