@@ -26,7 +26,7 @@ HWND hImportProgressWnd=NULL;
 #define U_BROWSE			(WM_USER+3)
 
 
-OPENFILENAME staticOpenDialogParams = {	sizeof(OPENFILENAME),
+OPENFILENAME staticOpenDialogParams = {	OPENFILENAME_SIZE_VERSION_400,
 										NULL,
 										NULL,
 										szFileExtensions,
@@ -40,7 +40,7 @@ OPENFILENAME staticOpenDialogParams = {	sizeof(OPENFILENAME),
 										"ref", // append the .ref extension by default
 										0,NULL,NULL };
 
-OPENFILENAME staticSaveAsDialogParams ={sizeof(OPENFILENAME),
+OPENFILENAME staticSaveAsDialogParams ={OPENFILENAME_SIZE_VERSION_400,
 										NULL,
 										NULL,
 										szFileExtensions,
