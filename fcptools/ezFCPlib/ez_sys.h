@@ -122,6 +122,7 @@ extern int   _fcpWrite(int fd, char *buf, int len);
 
 /* Others */
 extern char *_fcpGetMimetype(char *pathname);
+extern int   _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename);
 
 extern int   _fcpLink(hBlock *h, int access);
 extern void  _fcpUnlink(hBlock *h);

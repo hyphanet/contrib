@@ -77,14 +77,23 @@ int put_file(hFCP *hfcp, char *uri)
 		return -1;
 	}
 
-	rc = snprintf(put_command, L_FILE_BLOCKSIZE,
-								"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
-								(hfcp->options->delete_local == 0 ? "false" : "true"),
-								uri,
-								hfcp->htl,
-								hfcp->key->size + hfcp->key->metadata->size,
-								hfcp->key->metadata->size
-								);
+	if (hfcp->key->metadata->size == 0)
+		rc = snprintf(put_command, L_FILE_BLOCKSIZE,
+									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
+									(hfcp->options->delete_local == 0 ? "false" : "true"),
+									uri,
+									hfcp->htl,
+									hfcp->key->size
+									);
+	else
+		rc = snprintf(put_command, L_FILE_BLOCKSIZE,
+									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
+									(hfcp->options->delete_local == 0 ? "false" : "true"),
+									uri,
+									hfcp->htl,
+									hfcp->key->size + hfcp->key->metadata->size,
+									hfcp->key->metadata->size
+									);
 
 	/********************************************************************/
 
@@ -621,6 +630,8 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		fi -= rc;
 	}
 	
+	_fcpUnlink(hfcp->key->tmpblock);
+
 	/* now write the pad bytes and end transmission.. */
 	
 	/* set the buffer to all zeroes so we can send 'em */
@@ -641,8 +652,6 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		fi -= rc;
 	}
 
-	close(hfcp->key->tmpblock->fd);
-	
 	/* if the response isn't BlocksEncoded, we have a problem */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_BLOCKSENCODED) {
 		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
@@ -691,7 +700,6 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 						bi+1, segment->cb_count);
 	}
 	
-	_fcpUnlink(hfcp->key->tmpblock);
 	_fcpLog(FCP_LOG_VERBOSE, "Successfully received %d check blocks", bi);
 	
   _fcpSockDisconnect(hfcp);
@@ -796,7 +804,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 						segment->data_blocks[bi]->uri->uri_str);
 
 		/* there used to be code here that destroys everything..
-		in don't think it's necessary (confirm?) */
+		I don't think it's necessary anymore (confirm?) */
 		
 		bi++;
 	}
@@ -810,7 +818,9 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 	return 0;
 
  cleanup: /* this is called when there is an error above */
-	
+
+	_fcpUnlink(hfcp->key->tmpblock);
+
 	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	
@@ -841,8 +851,7 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->cb_count);
 
-		/* ahh.. the payoff! */
-		rc = fcpPutKeyFromFile(tmp_hfcp, "CHK@", segment->check_blocks[bi]->filename, 0);
+		rc = _fcpPutKeyFromFile(tmp_hfcp, "CHK@", segment->check_blocks[bi]->filename, 0);
 
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert check block %d into Freenet", bi);

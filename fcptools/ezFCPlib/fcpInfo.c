@@ -97,3 +97,47 @@ int fcpClientInfo(hFCP *hfcp)
 	_fcpSockDisconnect(hfcp);
 	return 0;
 }
+
+int fcpInvertPrivateKey(hFCP *hfcp)
+{
+	char buf[L_FILE_BLOCKSIZE+1];
+	int  rc;
+
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpInvertPrivateKey()");
+
+	if (_fcpSockConnect(hfcp) != 0)	return -1;
+	
+	rc = snprintf(buf, L_FILE_BLOCKSIZE, "InvertPrivateKey\nPrivate=%s\nEndMessage\n",
+		hfcp->key->private_key);
+	
+	_fcpLog(FCP_LOG_DEBUG, "sending InvertPrivateKey message");
+	
+	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
+		_fcpLog(FCP_LOG_VERBOSE, "Could not send InvertPrivateKey message");
+		
+		_fcpSockDisconnect(hfcp);
+		return -1;
+	}
+	
+	/* expecting a Success response */
+	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_SUCCESS) {
+		_fcpLog(FCP_LOG_VERBOSE, "fcpInvertPrivateKey(): error returned from node: %d", rc);
+
+		_fcpSockDisconnect(hfcp);
+		return -1;
+	}
+	
+	_fcpSockDisconnect(hfcp);
+
+	strncpy(hfcp->key->public_key, hfcp->response.success.public, L_KEY);
+
+	return 0;
+}
+
+
+
+
+
+
+
+

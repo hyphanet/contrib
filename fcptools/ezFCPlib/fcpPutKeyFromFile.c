@@ -33,7 +33,6 @@
 
 #include "ez_sys.h"
 
-
 /*
 	fcpPutKeyFromFile()
 
@@ -49,6 +48,21 @@
 	On a return code < 0, hFCP->error is set to error description (or NULL if no desc).
 */
 int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
+{
+	int rc;
+
+	rc = _fcpPutKeyFromFile(hfcp, key_uri, key_filename, meta_filename);
+
+	/* delete the tmpblocks before exiting */
+	_fcpDeleteFile(hfcp->key->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+
+	_fcpLog(FCP_LOG_DEBUG, "deleted temp files");
+
+	return rc;
+}
+
+int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
 	int rc;
 
@@ -137,17 +151,28 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	case KEY_TYPE_SSK:
 	case KEY_TYPE_KSK:
-		
-		put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
-		break;
+		{
+			char *key;
+			int   len;
+
+			put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
+
+			strncpy(hfcp->key->private_key, hfcp->key->target_uri->keyid, L_KEY);
+			fcpInvertPrivateKey(hfcp); 
+
+			len = strlen(hfcp->key->target_uri->uri_str);
+
+			/* 20 is at least 15 more than a safe buffer to account for optional "freenet:" */
+			key = (char *)malloc(len+20);
+			snprintf(key, len+19, "freenet:SSK@%s/%s//", hfcp->key->public_key, hfcp->key->target_uri->docname);
+
+			fcpParseHURI(hfcp->key->target_uri, key);
+			break;
+		}
 	}
 
 	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
-
-	/* delete the tmpblocks before exiting
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock); */
 
 	return 0;
 
@@ -156,10 +181,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file: %s", key_filename);
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
 
-	/* delete the tmpblocks before exiting
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock); */
-
 	return rc;
 }
+
 

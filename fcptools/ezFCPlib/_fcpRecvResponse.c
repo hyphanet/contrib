@@ -312,7 +312,11 @@ static int getrespSuccess(hFCP *hfcp)
 		else if (!strncmp(resp, "PublicKey=", 10)) {
 			strncpy(hfcp->response.success.publickey, resp + 10, L_KEY);
 		}
-		
+
+		else if (!strncmp(resp, "Public=", 7)) {
+			strncpy(hfcp->response.success.public, resp + 7, L_KEY);
+		}
+
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.success.privatekey, resp + 11, L_KEY);
 		}

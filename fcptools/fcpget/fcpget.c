@@ -161,6 +161,8 @@ int main(int argc, char* argv[])
       rc = -1;
 			goto cleanup;
     }
+
+		fprintf(stdout, "%s => %s\n", hfcp->key->target_uri->uri_str, file);
   }
 
 	/* make sure we enter 'cleanup' with a success value; all others with errors (!0) */

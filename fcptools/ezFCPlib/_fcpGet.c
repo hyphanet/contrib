@@ -213,7 +213,7 @@ int get_file(hFCP *hfcp, char *uri)
 	/* Now we have key data, and possibly meta data waiting for us */
 	
 	hfcp->key->metadata->size = meta_bytes = hfcp->response.datafound.metadatalength;
-	hfcp->key->size = key_bytes = hfcp->response.datafound.datalength - meta_bytes;
+	hfcp->key->size = key_bytes = (hfcp->response.datafound.datalength - meta_bytes);
 	
 	if (meta_bytes > L_RAW_METADATA) {
 		_fcpLog(FCP_LOG_DEBUG, "metadata size too large: %d", meta_bytes);

@@ -73,7 +73,7 @@ int _fcpTmpfile(char *filename)
 	/* set the filename parameter to the newly generated Tmp filename */
 
 	strncpy(filename, tempfile, L_FILENAME);
-	_fcpLog(FCP_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);
+	/*_fcpLog(FCP_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);*/
 	
 	/* I think creating the file right here is good in avoiding
 		 race conditions.  Let the caller close the file (leaving a
@@ -227,6 +227,9 @@ int _fcpLink(hBlock *h, int access)
 		return -1;
 	}
 
+	/* if the file was deleted, get another tmp filename */
+	if (!h->filename[0]) _fcpTmpfile(h->filename);
+
 #ifdef WIN32
 	flag = h->binary_mode ? O_BINARY : 0;
 #else
@@ -299,8 +302,8 @@ int _fcpDeleteFile(hBlock *h)
 	}
 
 	if (h->filename[0] != 0) {
-		/* one way or another, set rc=0 on success, -1 on failure*/
 
+		/* one way or another, set rc=0 on success, -1 on failure*/
 #ifdef WIN32
 		rc = (DeleteFile(h->filename) != 0 ? 0 : 1);
 		if (rc != 0) rc = GetLastError();
@@ -315,6 +318,8 @@ int _fcpDeleteFile(hBlock *h)
 		_fcpLog(FCP_LOG_DEBUG, "error %d in _fcpDeleteFile(): %s", rc, h->filename);
 		return -1;
 	}
+
+	/*_fcpLog(FCP_LOG_DEBUG, "deleted file: %s", h->filename);*/
 
 	h->filename[0] = 0;
 	return 0;

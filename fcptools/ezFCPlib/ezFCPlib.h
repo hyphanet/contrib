@@ -190,6 +190,8 @@ typedef struct {
 	char *uri;
 
 	char  publickey[L_KEY+1];
+	char  public[L_KEY+1];
+
 	char  privatekey[L_KEY+1];
 	int   length;
 } FCPRESP_SUCCESS;
@@ -420,6 +422,9 @@ typedef struct {
 	hURI      *uri;        /* always just a CHK@ */
 	hURI      *target_uri; /* holds the final key uri */
 
+	char       public_key[L_KEY+1];
+	char       private_key[L_KEY+1];
+
 	int        openmode;
 	char      *mimetype;
 	int        size;
@@ -490,7 +495,8 @@ extern "C" {
 
 	int    fcpClientHello(hFCP *hfcp);
 	int    fcpClientInfo(hFCP *hfcp);
-	
+	int    fcpInvertPrivateKey(hFCP *hfcp);
+
 	/* Freenet functions for operations between memory and freenet */
 	int    fcpOpenKey(hFCP *hfcp, char *key, int mode);
 	int    fcpWriteKey(hFCP *hfcp, char *buf, int len);

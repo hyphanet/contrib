@@ -182,6 +182,9 @@ void _fcpDestroyHKey(hKey *h)
 			free(h->target_uri);
 		}
 
+		/*char      *public_key;
+		char      *private_key;*/
+
 		if (h->mimetype) free(h->mimetype);
 
 		if (h->tmpblock) {
@@ -390,9 +393,10 @@ int fcpParseHURI(hURI *uri, char *key)
 			
 			uri->docname = malloc(len + 1);
 			strncpy(uri->docname, p, len);
+			uri->docname[len] = 0;
 		
 			/* set key to first char after "//" */
-			key = string_end + 1;
+			key = string_end + 2;
 			
 			/* now set the remaining part to metastring */
 			uri->metastring = strdup(key);
@@ -401,6 +405,7 @@ int fcpParseHURI(hURI *uri, char *key)
 			
 			/* @@@ TODO: yes we're ignoring metastring for now.. */
 			sprintf(uri->uri_str, "freenet:SSK@%s/%s//", uri->keyid, uri->docname); 
+			_fcpLog(FCP_LOG_DEBUG, "uri_str: %s", uri->uri_str);
 		}
   }
 
