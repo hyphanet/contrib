@@ -21,6 +21,7 @@
 #include "launchthread.h"
 #include "refs.h"
 #include "logfile.h"
+#include "javafinder.h"
 #include "about.h"
 #include "stdlib.h" // for atol
 #include "stdio.h" // for sprintf
@@ -69,12 +70,12 @@ const char szflfile[]="./FLaunch.ini";           /* name of the ini file */
 const char szflsec[]="Freenet Launcher";         /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=javaw.exe */
-const char szjavamemkey[]="Java Mem"; /* ie Java Mem=128  meaning 128MB JVM */
+const char szjavamemkey[]="JavaMem"; /* ie JavaMem=128  meaning 128MB JVM */
 const char szprioritykey[]="Priority"; /* ie Priority=0 */
 const int  nDefaultPriority = THREAD_PRIORITY_IDLE;
 const char szpriorityclasskey[]="PriorityClass"; /* ie PriorityClass=32 */
 const int  nDefaultPriorityClass = IDLE_PRIORITY_CLASS;
-const int  njavamemdefault=192; /* ie Java Mem=192 */
+const int  njavamemdefault=128; /* ie Java Mem=128 */
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Main */
 const char szfserveclidefaultexec[]="freenet.node.Main"; /* default for above */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
@@ -763,59 +764,35 @@ void ReloadSettings(void)
 	/* set the current directory to the path name so we can use GetProfile commands in the current directory */
 	SetCurrentDirectory(szHomeDirectory);
 
-	/* Get the javaexec line and if that isn't there fall back on the javaw line ... */
-	/* (Note, java.exe is used in preference to javaw.exe because:
-	    1.  Freenet node doesn't create a window so don't need any Windows overhead of javaw
-	    2.  Javaw.exe process cannot be 'stopped' cleanly because node doesn't create a window
-	        (there is no window to send a CLOSE message to, so must resort to TerminateThread which is unpleasant)
-	    3.  Java.exe can be stopped 'cleanly' by sending a CLOSE message (Freenet.exe tries three different close messages :-)
-	    4.  java.exe can also be stopped 'cleanly' by sending a ^C to its STDIN handle (Freenet.exe doesn't do this yet
-	        but will soon, especially when we really roll out with 'free' JVMs which not be as versatile as Sun's) */
-	/* UPDATE 6th March 2003:
-	   I'm pissed off trying to work around system configurations.  Instead I now use javaw.exe in preference
-	   and simply TerminateProcess it instead of trying to shut it down cleanly.  It works.  Fuck it */
+//	UpdateFlaunchJava();
+
 	// Info for the interested - Win98 / WinME *cannot*  (CANNOT)  shutdown windows if a console app (even a hidden one)
-	// is still running.  Hence the 'workaround' of just using the win32 non-console jvm and terminating it (yuk)
-	if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
-	{
-		if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
-		{
-			// try and find a generic "java.exe" in the path - if it works, use that, if not default to "javaw.exe"
-			HANDLE hJavaExecutable = LoadLibrary("javaw.exe");
-			if (hJavaExecutable==NULL || hJavaExecutable==INVALID_HANDLE_VALUE)
-			{
-				hJavaExecutable = LoadLibrary("java.exe");
-			}
-			if (hJavaExecutable!=NULL && hJavaExecutable!=INVALID_HANDLE_VALUE)
-			{
-				GetModuleFileName(hJavaExecutable, szbuffer, JAVAWMAXLEN);
-				FreeLibrary(hJavaExecutable);
-			}
-			else
-			{
-				// try and find whatever .jar is associated with in the registry
-				// if it isn't named "java.exe" or "javaw.exe" then ignore it
-				// TODO
-			}
-		}
-	}
+	// is still running.  Hence the 'workaround' of just using the win32 non-console jvm and TerminateProcess'ing it (yuk)
+
+	GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
 	/* .. and convert to short filename format, because we want one SIMPLE string for javaw.exe path */
 	GetShortPathName(szbuffer, szjavawpath, sizeof(szjavawpath) );
 
 	/* get the memory amount from flaunch.ini */
+	// Following two statements are necessary to fix up a propagated blunder
+	njavamem = GetPrivateProfileInt(szflsec, "Java Mem", 192, szflfile);
+	if (njavamem==192)
+	{
+		// Previous code would put Java Mem=192 into flaunch.ini AUTOMATICALLY - 
+		// dumbass.  Means there's no way to tell (when the defaults are upgraded)
+		// whether the user actually wants "192MB" or "default"
+		// Fix is to take that line out, since it IS the default
+		WritePrivateProfileString(szflsec, szjavamemkey, "192", szflfile);
+		WritePrivateProfileString(szflsec, "Java Mem", NULL, szflfile); // removes "Java Mem" ('with-a-space') setting from flaunch.ini
+	}
+
 	njavamem = GetPrivateProfileInt(szflsec, szjavamemkey, njavamemdefault, szflfile);
 	if (njavamem<=0)
 	{
 		njavamem = njavamemdefault;
-	}
-	if (njavamem==njavamemdefault)
-	{
-		char szmem[11];
-		sprintf(szmem, "%lu", njavamemdefault);
-		WritePrivateProfileString(szflsec, szjavamemkey, szmem, szflfile);
+		WritePrivateProfileString(szflsec, szjavamemkey, "default", szflfile);
 	}
 	
-
 	/* get the fservecli launch string from flaunch.ini */
 	GetPrivateProfileString(szflsec, szfservecliexeckey, szfserveclidefaultexec, szfservecliexec, BUFLEN, szflfile);
 
