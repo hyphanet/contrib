@@ -378,12 +378,11 @@ void FormatFileSize(char *pBuffer,DWORDLONG dwlFileSize)
 		else
 		{
 			shramount=0;
-			szunit="bytes";
 		}
 	}
 	if (shramount==0)
 	{
-		wsprintf(pBuffer, "%lu %s", dwlFileSize, szunit);
+		wsprintf(pBuffer, "%lu bytes", dwlFileSize);
 	}
 	else
 	{
@@ -426,6 +425,7 @@ void UpdateLogfileWindow (HWND hwndEditBox, HWND hwndScrollBar, const char * pTe
 		}
 		++szRunner;
 	}
+
 	SetWindowText(hwndEditBox, szBuffer);
 
 	if (nLines < nEditLines)

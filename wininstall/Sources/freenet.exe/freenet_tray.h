@@ -44,8 +44,8 @@ LPSTR GetNextToken(LPSTR szCurrentPointer, const LPSTR szEndPointer);
 void GetToken(LPSTR szCurrentPointer);
 LPSTR SkipSpace(LPSTR szString);
 
-void CreateConfig(LPCSTR szConfigFile);
-void MergeConfig(LPCSTR szConfigFile, LPCSTR szConfigDefaultsFile);
+BOOL CreateConfig(LPCSTR szConfigFile);
+BOOL MergeConfig(LPCSTR szConfigFile, LPCSTR szConfigDefaultsFile);
 
 typedef void(__stdcall* LPCONFIGPROC)(void*);
 

@@ -1586,7 +1586,7 @@ STARTUPINFO ConfigInfo={sizeof(STARTUPINFO),
 						0,NULL,
 						NULL,NULL,NULL};
 
-void CreateConfig(const char * szFilename)
+BOOL CreateConfig(const char * szFilename)
 {
 	// execute FSERVE --export %filename%
 	PROCESS_INFORMATION prcConfigInfo;
@@ -1607,6 +1607,7 @@ void CreateConfig(const char * szFilename)
 		lstrcpy(szErrorMsg, "Failed to generate a default config file:\n");
 		lstrcat(szErrorMsg, szFilename);
 		MessageBox(NULL, szErrorMsg, "Freenet Control Panel", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+		return FALSE;
 	}
 	else
 	{
@@ -1614,99 +1615,142 @@ void CreateConfig(const char * szFilename)
 		CloseHandle(prcConfigInfo.hThread);
 		CloseHandle(prcConfigInfo.hProcess);
 	}
+
+	return TRUE;
 }
 
-
-// Assumes maximum length of any line of text in the .ini file is no more than 2K.  Reasonable assumption!
-void MergeConfig(const char * szINIFile, const char * szDefaultsFile)
+BOOL CopyChanges(HANDLE hFileToRead, HANDLE hFileToWrite, const char* const szINIFileToMerge)
 {
-	char szTemp[MAX_PATH+2];
-	char szLine[2048];
-	char szKey[2048];
-	char szValue[2048];
+	BOOL bFailed=TRUE;
+	BOOL bFreenetSection = FALSE;
+	char szLine[4096];
+	char szValue[4096];
 	DWORD dwBytesRead,dwBytesWritten;
 	DWORD dwOffset=0;
 	char *iNewline, *iNewline2, *iNonspace, *iEquals;
-	HANDLE hDefaultsFile, hUpdatedFile;
-	
-	GetTempFileName(szHomeDirectory,"_ini",0,szTemp);
-	hDefaultsFile = CreateFile(szDefaultsFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-	if (hDefaultsFile==NULL || hDefaultsFile==INVALID_HANDLE_VALUE)
+
+	if (hFileToRead==NULL || hFileToRead==INVALID_HANDLE_VALUE)
 	{
-		MessageBox(NULL, "Couldn't find 'defaults' file", "MergeConfig failed", MB_OK);
-		goto failed;
-	}
-	hUpdatedFile = CreateFile(szTemp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL|FILE_ATTRIBUTE_TEMPORARY, NULL);
-	if (hUpdatedFile==NULL || hUpdatedFile==INVALID_HANDLE_VALUE)
-	{
-		// try again with TEMP flag, as some OSs don't support it
-		hUpdatedFile = CreateFile(szTemp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	}
-	if (hUpdatedFile==NULL || hUpdatedFile==INVALID_HANDLE_VALUE)
-	{
-		MessageBox(NULL, "Couldn't create 'updated' file", "MergeConfig failed", MB_OK);
-		goto failed;
+		return FALSE;
 	}
 
-	
+	szLine[sizeof(szLine)-1] = '\0'; // null terminate buffer to prevent buffer overruns with string api functions
 	while (1)
 	{
 		dwBytesRead=0;
-		ReadFile(hDefaultsFile, szLine+dwOffset, sizeof(szLine)-dwOffset, &dwBytesRead, NULL);
+		ReadFile(hFileToRead, szLine+dwOffset, sizeof(szLine)-1-dwOffset, &dwBytesRead, NULL);
 		if (dwBytesRead==0 && dwOffset==0)
 		{
-			// end of file
+			// end of file, we've finished
+			bFailed=FALSE;
 			break;
 		}
 		dwOffset += dwBytesRead;
 
+		// Skip lines of config that have already been processed
+		// (since \r and \n characters get converted to \0 characters)
 		if (*szLine=='\0')
 		{
-			memmove(szLine, szLine+1, sizeof(szLine)-1);
 			--dwOffset;
+			memmove(szLine, szLine+1, dwOffset);
 			continue;
 		}
 
-		iNewline = strchr(szLine, '\r');
-		iNewline2 = strchr(szLine, '\n');
-		if (iNewline+1 == iNewline2)
+		// Find end of first line of config file, and replace \r\n (or \n\r) with \0\0
+		// (or replace just \r or just \n with just \0 if line isn't terminated by \r\n or \n\r)
+		// Also find first non-space character on line at the same time:
+		iNonspace = szLine + strspn(szLine, " \t");
+		iNewline = strpbrk(iNonspace, "\r\n");
+		if (iNewline!=NULL)
 		{
+			if ( (iNewline[0]=='\r' && iNewline[1]=='\n') || (iNewline[0]=='\n' && iNewline[1]=='\r'))
+			{
+				iNewline2=iNewline+1;
+			}
+			else
+			{
+				iNewline2=iNewline;
+			}
+			if (iNonspace==iNewline)
+			{
+				// dump entire line to output file - it's just an empty line
+				goto maybe_dumpline;
+			}
 			*iNewline = '\0';
-			*iNewline2 = '\0';
-		}
-		else if (iNewline2+1 == iNewline)
-		{
-			*iNewline = '\0';
-			*iNewline2 = '\0';
-			iNewline = iNewline2;
-		}
-		else if (iNewline < iNewline2)
-		{
-			*iNewline = '\0';
-		}
-		else if (iNewline2 < iNewline)
-		{
-			*iNewline2 = '\0';
-			iNewline = iNewline2;
 		}
 
-		for (iNonspace=szLine; (*iNonspace==' ' || *iNonspace=='\t') && iNonspace<iNewline; ++iNonspace);
-		if (iNonspace==iNewline)
+		// Find first non-space character on line
+		switch (*iNonspace)
+		{
+		case '#':
+			// dump entire line to output file - it's just a comment
+			goto maybe_dumpline;
+		case '[':
+			// if it's a section, see if it's the 'Freenet' section:
+			// We're enter the 'Freenet' section if and only if the section header
+			// is "[Freenet node]" and there's nothing after the closing ] except whitespace.
+			// Otherwise we leave the 'Freenet' section (assuming it's a valid section header)
+			// Valid section headers match \s*\[.*\]\s*
+			{
+				BOOL bNewSectionIsFreenetSection = (strnicmp(iNonspace+1, szfinisec+1, 13)==0);
+				const char* mend;
+				if (bNewSectionIsFreenetSection)
+				{
+					mend = iNonspace+13+1+strspn(iNonspace+13+1," \t");
+				}
+				else
+				{
+					const char* mbrack = strchr(iNonspace+1, ']');
+					if (mbrack)
+					{
+						mend = mbrack+1+strspn(mbrack+1," \t");
+					}
+					else
+					{
+						// not a validly formed section header - no closing ]
+						// try parsing this line as a key:value pair instead
+						goto keyvalue;
+					}
+				}
+				if (*mend!='\0')
+				{
+					// There's "stuff" after the section header, so the section header isn't valid
+					// Try parsing this line as a key:value pair instead
+					goto keyvalue;
+				}
+				else
+				{
+					// nothing but whitespace after the section header - so it's a valid
+					// section header.  Do we enter or leave Freenet section?
+					bFreenetSection=bNewSectionIsFreenetSection;
+				}
+			}
+			goto maybe_dumpline;
+		default:
+			break;
+		}
+
+keyvalue:
+		if (!bFreenetSection)
+		{
+			// leave things outside of the Freenet section untouched
 			goto dumpline;
-
-		if (*iNonspace=='#')
+		}
+		else if (szINIFileToMerge==NULL)
 		{
-			/* dump entire line to output file - it's just a comment */
-			goto dumpline;
+			// ignore the contents of the [Freenet node] section
+			// (i.e. set szINIFileToMerge to extract everything BUT the [Freenet node]
+			// section
+			goto seeknext;
 		}
 
-		for (iEquals=iNonspace; *iEquals!=' ' && *iEquals!='\t' && *iEquals!='=' && iEquals<iNewline; ++iEquals);
-		if (*iEquals=='=')
+		iEquals = strchr(iNonspace, '=');
+		if (iEquals!=NULL && (*iEquals)=='=')
 		{
-			strncpy(szKey, iNonspace, iEquals-iNonspace);
-			*(szKey+(iEquals-iNonspace))='\0';
-			GetPrivateProfileString(szfinisec,szKey,"**default**",szValue,sizeof(szValue),szINIFile);
-			if (lstrcmp(szValue,"**default**")!=0)
+			const char* const szKey = iNonspace;
+			*iEquals='\0';
+			GetPrivateProfileString(szfinisec,szKey,"\xfd\xfe\xff",szValue,sizeof(szValue),szINIFileToMerge);
+			if (strcmp(szValue,"\xfd\xfe\xff")!=0)
 			{
 				// found it - update output:
 				// 1-  If default hasn't got % then output ini value ALWAYS
@@ -1720,20 +1764,21 @@ void MergeConfig(const char * szINIFile, const char * szDefaultsFile)
 					// (as default more up-to-date)
 					goto dumpline;
 				}
+				
 				// otherwise: output INI file values
-				WriteFile(hUpdatedFile,szKey,strlen(szKey),&dwBytesWritten,NULL);
+				WriteFile(hFileToWrite,szKey,strlen(szKey),&dwBytesWritten,NULL);
 				if (dwBytesWritten != strlen(szKey))
-					goto failed;
+					break;
 OutputINIEqualsValue:
-				WriteFile(hUpdatedFile,"=",1,&dwBytesWritten,NULL);
+				WriteFile(hFileToWrite,"=",1,&dwBytesWritten,NULL);
 				if (dwBytesWritten != 1)
-					goto failed;
-				WriteFile(hUpdatedFile,szValue,strlen(szValue),&dwBytesWritten,NULL);
+					break;
+				WriteFile(hFileToWrite,szValue,strlen(szValue),&dwBytesWritten,NULL);
 				if (dwBytesWritten != strlen(szValue))
-					goto failed;
-				WriteFile(hUpdatedFile,"\r\n",2,&dwBytesWritten,NULL);
+					break;
+				WriteFile(hFileToWrite,"\r\n",2,&dwBytesWritten,NULL);
 				if (dwBytesWritten != 2)
-					goto failed;
+					break;
 				goto seeknext;
 			}
 
@@ -1742,11 +1787,11 @@ OutputINIEqualsValue:
 				if (*iNonspace=='%')
 				{
 					// see if INI file overrides the key (i.e. without a %)
-					GetPrivateProfileString(szfinisec,szKey+1,"**default**",szValue,sizeof(szValue),szINIFile);
-					if (lstrcmp(szValue,"**default**")!=0)
+					GetPrivateProfileString(szfinisec,szKey+1,"\xfd\xfe\xff",szValue,sizeof(szValue),szINIFileToMerge);
+					if (strcmp(szValue,"\xfd\xfe\xff")!=0)
 					{
 						// INI file overrides the key, see if the INI file value is the same as the default value though!
-						if (lstrcmp(szValue,iEquals+1)==0)
+						if (strcmp(szValue,iEquals+1)==0)
 						{
 							// INI and default are the same so just output the default:
 							goto dumpline;
@@ -1754,9 +1799,9 @@ OutputINIEqualsValue:
 						else
 						{
 							// INI value overrides default so output what the INI file has:
-							WriteFile(hUpdatedFile,szKey+1,strlen(szKey+1),&dwBytesWritten,NULL);
+							WriteFile(hFileToWrite,szKey+1,strlen(szKey+1),&dwBytesWritten,NULL);
 							if (dwBytesWritten != strlen(szKey+1))
-								goto failed;
+								break;
 							goto OutputINIEqualsValue;
 						}
 					}
@@ -1769,40 +1814,104 @@ OutputINIEqualsValue:
 		}
 
 		// still here?  Don't know what this line is, just dump it:
-		// (fall through)
+		goto dumpline;
 
+maybe_dumpline:
+		if (bFreenetSection && szINIFileToMerge==NULL)
+		{
+			// ignore the contents of the [Freenet node] section
+			goto seeknext;
+		}
+		// else fall through to dumpline
 
 dumpline:
-		WriteFile(hUpdatedFile,szLine,(iNewline-szLine),&dwBytesWritten,NULL);
+		WriteFile(hFileToWrite,szLine,(iNewline-szLine),&dwBytesWritten,NULL);
 		if (dwBytesWritten != (DWORD)(iNewline-szLine))
-			goto failed;
-		WriteFile(hUpdatedFile,"\r\n",2,&dwBytesWritten,NULL);
+			break;
+		WriteFile(hFileToWrite,"\r\n",2,&dwBytesWritten,NULL);
 		if (dwBytesWritten != 2)
-			goto failed;
+			break;
 		/* seek for next line */
 		goto seeknext;
 
 seeknext:
-		memmove(szLine, iNewline+1, sizeof(szLine)-((iNewline-szLine)+1));
-		dwOffset-=((iNewline-szLine)+1);
+		dwOffset-=((iNewline2-szLine)+1);
+		memmove(szLine, iNewline2+1, dwOffset);
 		continue;
 	}
 
-	// when we get here, we've finished.
-	CloseHandle(hDefaultsFile);
-	hDefaultsFile=NULL;
-	CopyFile(szTemp, szINIFile, FALSE);
+	// finished processing hFileToProcess
+	return bFailed;
+}
 
-failed:
+// Assumes maximum length of any line of text in the .ini file is no more than 4K.
+BOOL MergeConfig(const char * szINIFile, const char * szDefaultsFile)
+{
+	char szTemp[MAX_PATH+2];
+	HANDLE hDefaultsFile, hUpdatedFile, hINIFile;
+	BOOL bFailed = FALSE;
+	
+	GetTempFileName(szHomeDirectory,"_ini",0,szTemp);
+	hINIFile = CreateFile(szINIFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (hINIFile==NULL || hINIFile==INVALID_HANDLE_VALUE)
+	{
+		// This is not an error.
+	}
+	hDefaultsFile = CreateFile(szDefaultsFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (hDefaultsFile==NULL || hDefaultsFile==INVALID_HANDLE_VALUE)
+	{
+		MessageBox(NULL, "Couldn't find 'defaults' file", "MergeConfig failed", MB_OK);
+		bFailed=TRUE;
+	}
+	hUpdatedFile = CreateFile(szTemp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL|FILE_ATTRIBUTE_TEMPORARY, NULL);
+	hUpdatedFile=NULL;
+	if (hUpdatedFile==NULL || hUpdatedFile==INVALID_HANDLE_VALUE)
+	{
+		// try again with TEMP flag, as some OSs don't support it
+		hUpdatedFile = CreateFile(szTemp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	}
+	if (hUpdatedFile==NULL || hUpdatedFile==INVALID_HANDLE_VALUE)
+	{
+		MessageBox(NULL, "Couldn't create 'updated' file", "MergeConfig failed", MB_OK);
+		bFailed=TRUE;
+	}
+
+	if (!bFailed)
+	{
+		bFailed = CopyChanges(hINIFile, hUpdatedFile, NULL);
+	}
+	if (!bFailed)
+	{
+		bFailed = CopyChanges(hDefaultsFile, hUpdatedFile, szINIFile);
+	}
+
+	// when we get here, we've finished.
 	if (hDefaultsFile)
 	{
 		CloseHandle(hDefaultsFile);
 		hDefaultsFile=NULL;
 	}
+	if (hINIFile)
+	{
+		CloseHandle(hINIFile);
+		hINIFile=NULL;
+	}
+
+	if (!bFailed)
+	{
+		// Success, copy across the changes from the temp filename to the real filename
+		CopyFile(szTemp, szINIFile, FALSE);
+	}
+
 	if (hUpdatedFile)
 	{
 		CloseHandle(hUpdatedFile);
 		hUpdatedFile=NULL;
 	}
 	DeleteFile(szTemp);
+	// DeleteFile(szTemp) will silently fail if tempfile was successfully created with FILE_ATTRIBUTE_TEMPORARY flag
+	// since OS will delete the file automatically when its last handle is closed
+
+
+	return bFailed;
 }
