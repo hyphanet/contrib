@@ -33,7 +33,7 @@
 
 extern long xtoi(char *);
 
-/* suppress a compiler warning for jesus */
+/* suppress a compiler warning */
 char *strdup(const char *s);
 
 static int  getrespHello(hFCP *);
