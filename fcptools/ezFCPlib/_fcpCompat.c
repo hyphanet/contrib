@@ -27,6 +27,7 @@
 /* TODO: make this shit work on windows */
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -36,17 +37,19 @@
 #include <pthread.h>
 #include <errno.h>
 
+#include <time.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ezFCPlib.h"
 
 
-int   crThreadLaunch(void (*f)(void *), void *parms);
-void  crThreadQuit(char *s);
-int   crThreadSleep(unsigned int seconds, unsigned int nanoseconds);
-int   crSockConnect(hFCP *hfcp);
-void  crSockDisconnect(hFCP *hfcp);
-char *crTmpFilename(void);
+int    crThreadLaunch(void (*f)(void *), void *parms);
+void   crThreadQuit(char *s);
+int    crThreadSleep(unsigned int seconds, unsigned int nanoseconds);
+int    crSockConnect(hFCP *hfcp);
+void   crSockDisconnect(hFCP *hfcp);
+char  *crTmpFilename(void);
 
 
 int crThreadLaunch(void (*f)(void *), void *parms)

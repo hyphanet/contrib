@@ -84,3 +84,9 @@ int crSockConnect(hFCP *hfcp)
   return 0;
 }
 
+
+void _fcpSockDisconnect(hFCP *hfcp)
+{
+	return;
+}
+

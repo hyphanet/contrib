@@ -11,20 +11,28 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#ifndef WINDOWS
-#include <unistd.h>
-#endif
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
 
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <fcntl.h>
 
 #include "ezFCPlib.h"
 
 
-hKey *fcpOpenKeyRead(hFCP *hfcp, char *key, int regress)
+extern int   snprintf(char *str, size_t size, const char *format, ...);
+
+extern int   crSockConnect(hFCP *hfcp);
+extern void  crSockDisconnect(hFCP *hfcp);
+
+
+
+int fcpOpenKeyRead(hFCP *hfcp, char *key, char *filename)
 {
   return 0;
 }
@@ -33,13 +41,12 @@ hKey *fcpOpenKeyRead(hFCP *hfcp, char *key, int regress)
 /*
 	If filename is NULL, then set file description to read from STDIN.
 */
-int fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
+int fcpOpenKeyWrite(hFCP *hfcp, char *keyname, char *filename)
 {
-  char *handshake = "ClientHello\nEndMessage\n";
-
   int   rc;
 	int   fd;
 	char  buf[4096 + 1];
+	int   len;
 
 	hURI *uri = 0;
 
@@ -65,8 +72,8 @@ int fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
 		if (hfcp->key) _fcpDestroyHKey(hfcp->key);
 		hfcp->key = (hKey *)malloc(sizeof(hKey));
 		
-		hfcp->size = -1; /* Should handle this properly elsewhere */
-		hfcp->key->fd = STDIN_FILENO;
+		hfcp->key->size = -1; /* Should handle this properly elsewhere */
+		hfcp->key->fd = -1; /* @@@ FIX @@@ */
 	}
 	
 	if (hfcp->key->size > SPLIT_BLOCK_SIZE) {
@@ -85,11 +92,11 @@ int fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
 	hfcp->key->uri = uri;
 	
 	if (crSockConnect(hfcp)) return -1;
-  if (crSockSend(hfcp, _fcpID, 4) != 4) return -1;
+  if (send(hfcp->socket, _fcpID, 4, 0) != 4) return -1;
 
 	strcpy(buf, "ClientHello\nEndMessage\n");
 	len = strlen(buf);
-	rc = _fcpSockSend(hfcp, buf, len);
+	rc = send(hfcp->socket, buf, len, 0);
 
   /* If I couldn't say HELLO, bomb out */
 	if (rc < len) return -1;
@@ -102,18 +109,18 @@ int fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
   _fcpSockDisconnect(hfcp);
 
 	snprintf(buf,
-					 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
 					 4096,
+					 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
 					 hfcp->key->uri->uri_str,
 					 hfcp->htl,
 					 hfcp->key->size
 					 );
 
 	if (crSockConnect(hfcp)) return -1;
-  if (crSockSend(hfcp, _fcpID, 4) != 4) return -1;
+  if (send(hfcp->socket, _fcpID, 4, 0) != 4) return -1;
 
 	len = strlen(buf);
-	rc = _fcpSockSend(hfcp, buf, len);
+	rc = send(hfcp->socket, buf, len, 0);
 
   if (rc < len) {
     crSockDisconnect(hfcp);

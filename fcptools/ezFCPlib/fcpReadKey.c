@@ -21,16 +21,15 @@
   Description:
 */
 
-int fcpReadKey(HFCP *hfcp, char *buf, int len)
+/*
+int fcpReadKey(hFCP *hfcp, char *buf, int len)
 {
   int n;
   int bytesLeft = hfcp->keysize - hfcp->bytesread;
   
-  /* have we sucked the key dry? */
   if (bytesLeft == 0)
     return 0;
   
-  /* if less data left in key than requested, truncate len */
   if (len > bytesLeft)
     len = bytesLeft;
   
@@ -38,3 +37,5 @@ int fcpReadKey(HFCP *hfcp, char *buf, int len)
   hfcp->bytesread += n;
   return n;
 }
+*/
+

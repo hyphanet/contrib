@@ -93,39 +93,39 @@ lib_LIBRARIES = libezfcp.a
 lib_LTLIBRARIES = libezfcp.la
 libezfcp_la_LDFLAGS = -version-info 0:0:0
 
-include_HEADERS = ezFCPlib.h compat.h
+include_HEADERS = ezFCPlib.h
 
 FCP_SOURCE = "\
 _fcpLog.c \
 _fcpGlobals.c \
-_fcpPutSplit.c \
-_fcpReadBlk.c \
 _fcpSock.c \
 _fcpRecvResponse.c \
 _fcpUtil.c \
 fcpOpenKey.c \
 ezFCPlib.h \
 fcpCloseKey.c \
-fcpDestroyHandle.c \
-fcpGetKeyToFile.c \
-fcpGetKeyToMem.c \
-fcpMakChkFromMem.c \
-fcpMakeChkFromFile.c \
-fcpMakeSvkKeypair.c \
 fcpStartup.c \
-fcpOpenKeyIndex.c \
-fcpPutKeyFromFile.c \
-fcpPutKeyFromMem.c \
 _fcpCompat.c \
 fcpReadKey.c \
-fcpReadKeyIndex.c \
 fcpWriteKey.c \
 fcpCreation.c \
-fcpWriteKeyIndex.c \
 mimetype.c \
 "
 
 
+
+# The following files are currently ignored for now
+# _fcpPutSplit.c \
+# fcpGetKeyToFile.c \
+# fcpGetKeyToMem.c \
+# fcpMakChkFromMem.c \
+# fcpMakeChkFromFile.c \
+# fcpMakeSvkKeypair.c \
+# fcpOpenKeyIndex.c \
+# fcpPutKeyFromFile.c \
+# fcpPutKeyFromMem.c \
+# fcpReadKeyIndex.c \
+# fcpWriteKeyIndex.c \
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 libezfcp_la_SOURCES = $(FCP_SOURCE)
 subdir = ezFCPlib
@@ -136,30 +136,18 @@ LIBRARIES = $(lib_LIBRARIES)
 libezfcp_a_AR = $(AR) cru
 libezfcp_a_LIBADD =
 am_libezfcp_a_OBJECTS = _fcpLog.$(OBJEXT) _fcpGlobals.$(OBJEXT) \
-	_fcpPutSplit.$(OBJEXT) _fcpReadBlk.$(OBJEXT) _fcpSock.$(OBJEXT) \
-	_fcpRecvResponse.$(OBJEXT) _fcpUtil.$(OBJEXT) \
-	fcpOpenKey.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
-	fcpDestroyHandle.$(OBJEXT) fcpGetKeyToFile.$(OBJEXT) \
-	fcpGetKeyToMem.$(OBJEXT) fcpMakChkFromMem.$(OBJEXT) \
-	fcpMakeChkFromFile.$(OBJEXT) fcpMakeSvkKeypair.$(OBJEXT) \
-	fcpStartup.$(OBJEXT) fcpOpenKeyIndex.$(OBJEXT) \
-	fcpPutKeyFromFile.$(OBJEXT) fcpPutKeyFromMem.$(OBJEXT) \
-	_fcpCompat.$(OBJEXT) fcpReadKey.$(OBJEXT) \
-	fcpReadKeyIndex.$(OBJEXT) fcpWriteKey.$(OBJEXT) \
-	fcpCreation.$(OBJEXT) fcpWriteKeyIndex.$(OBJEXT) \
-	mimetype.$(OBJEXT)
+	_fcpSock.$(OBJEXT) _fcpRecvResponse.$(OBJEXT) \
+	_fcpUtil.$(OBJEXT) fcpOpenKey.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
+	fcpStartup.$(OBJEXT) _fcpCompat.$(OBJEXT) fcpReadKey.$(OBJEXT) \
+	fcpWriteKey.$(OBJEXT) fcpCreation.$(OBJEXT) mimetype.$(OBJEXT)
 libezfcp_a_OBJECTS = $(am_libezfcp_a_OBJECTS)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 
 libezfcp_la_LIBADD =
-am_libezfcp_la_OBJECTS = _fcpLog.lo _fcpGlobals.lo _fcpPutSplit.lo \
-	_fcpReadBlk.lo _fcpSock.lo _fcpRecvResponse.lo _fcpUtil.lo \
-	fcpOpenKey.lo fcpCloseKey.lo fcpDestroyHandle.lo \
-	fcpGetKeyToFile.lo fcpGetKeyToMem.lo fcpMakChkFromMem.lo \
-	fcpMakeChkFromFile.lo fcpMakeSvkKeypair.lo fcpStartup.lo \
-	fcpOpenKeyIndex.lo fcpPutKeyFromFile.lo fcpPutKeyFromMem.lo \
-	_fcpCompat.lo fcpReadKey.lo fcpReadKeyIndex.lo fcpWriteKey.lo \
-	fcpCreation.lo fcpWriteKeyIndex.lo mimetype.lo
+am_libezfcp_la_OBJECTS = _fcpLog.lo _fcpGlobals.lo _fcpSock.lo \
+	_fcpRecvResponse.lo _fcpUtil.lo fcpOpenKey.lo fcpCloseKey.lo \
+	fcpStartup.lo _fcpCompat.lo fcpReadKey.lo fcpWriteKey.lo \
+	fcpCreation.lo mimetype.lo
 libezfcp_la_OBJECTS = $(am_libezfcp_la_OBJECTS)
 
 DEFS = @DEFS@
@@ -171,41 +159,16 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 @AMDEP_TRUE@DEP_FILES = $(DEPDIR)/_fcpCompat.Plo $(DEPDIR)/_fcpCompat.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpGlobals.Plo $(DEPDIR)/_fcpGlobals.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Plo $(DEPDIR)/_fcpLog.Po \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpPutSplit.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpPutSplit.Po $(DEPDIR)/_fcpReadBlk.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/_fcpReadBlk.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Plo \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpRecvResponse.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Plo $(DEPDIR)/_fcpSock.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpUtil.Plo $(DEPDIR)/_fcpUtil.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Plo $(DEPDIR)/fcpCloseKey.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpCreation.Plo $(DEPDIR)/fcpCreation.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpDestroyHandle.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpDestroyHandle.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToFile.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToFile.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToMem.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpGetKeyToMem.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpMakChkFromMem.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpMakChkFromMem.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpMakeChkFromFile.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpMakeChkFromFile.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpMakeSvkKeypair.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpMakeSvkKeypair.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Plo $(DEPDIR)/fcpOpenKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKeyIndex.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKeyIndex.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromMem.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromMem.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpReadKey.Plo $(DEPDIR)/fcpReadKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpReadKeyIndex.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpReadKeyIndex.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpStartup.Plo $(DEPDIR)/fcpStartup.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpWriteKey.Plo $(DEPDIR)/fcpWriteKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpWriteKeyIndex.Plo \
-@AMDEP_TRUE@	$(DEPDIR)/fcpWriteKeyIndex.Po \
 @AMDEP_TRUE@	$(DEPDIR)/mimetype.Plo $(DEPDIR)/mimetype.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -306,10 +269,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpGlobals.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpLog.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpPutSplit.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpPutSplit.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpReadBlk.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpReadBlk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpRecvResponse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/_fcpSock.Plo@am__quote@
@@ -320,36 +279,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreation.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreation.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpDestroyHandle.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpDestroyHandle.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToFile.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToFile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToMem.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpGetKeyToMem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakChkFromMem.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakChkFromMem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeChkFromFile.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeChkFromFile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeSvkKeypair.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpMakeSvkKeypair.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKeyIndex.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKeyIndex.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromMem.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromMem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKeyIndex.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKeyIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKey.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKeyIndex.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKeyIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/mimetype.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/mimetype.Po@am__quote@
 

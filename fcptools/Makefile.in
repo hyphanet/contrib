@@ -15,6 +15,7 @@
 
 # order is important here (for now)
 # fcpproxy not included.. under development
+#SUBDIRS = fcpcommon ezFCPlib fcpputsite fcpget fcpput
 
 SHELL = @SHELL@
 
@@ -84,7 +85,7 @@ am__include = @am__include@
 am__quote = @am__quote@
 install_sh = @install_sh@
 
-SUBDIRS = fcpcommon ezFCPlib fcpputsite fcpget fcpput
+SUBDIRS = fcpcommon ezFCPlib fcpput
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -389,7 +390,7 @@ uninstall-info: uninstall-info-recursive
 
 
 scope:
-	cscope -s ezFCPlib -s fcpputsite -s fcpget -s fcpput
+	cscope -s ezFCPlib -s fcpput
 
 clean:
 	find . -name '*~'| xargs rm -f

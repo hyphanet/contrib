@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
 	int rc;
 
 	char buf[L_FD_BLOCKSIZE];
-	int fd
+	int fd;
 
 	struct stat put_file;
 
@@ -68,20 +68,20 @@ int main(int argc, char* argv[])
   if (stat(keyfile, &put_file)) return -1;
 	hfcp = _fcpCreateHFCP();
 
-	if (!(rc = fcpOpenKeyWrite(hfcp, keyuri)))	{
+	if (!(rc = fcpOpenKeyWrite(hfcp, keyuri, keyfile)))	{
 		_fcpLog(FCP_LOG_CRITICAL, "fcpput: cannot open key writing");
 		return 1;
 	}
 
 	/* Now write the key to Freenet */
-	if ((fd = open(filename, O_RDONLY, S_IRUSR)) == -1) return 1;
+	if ((fd = open(keyfile, O_RDONLY, S_IRUSR)) == -1) return 1;
 
 	while ((rc = read(fd, buf, L_FD_BLOCKSIZE)) > 0)
-		fcpWriteKey(hfcp, buf, 8192));
+		fcpWriteKey(hfcp, buf, 8192);
 
 	/* Clean it up for demo purposes */
 	fcpCloseKey(hfcp);
-	fcpTerminate(hfcp);
+	fcpTerminate();
 	_fcpDestroyHFCP(hfcp);
 
 	return 0;

@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "ezFCPlib.h"
 
@@ -186,7 +187,6 @@ int _fcpRecvResponse(hFCP *hfcp)
 static int getrespHello(hFCP *hfcp)
 {
 	int len;
-	char *p;
 
 	while (!getrespline(hfcp)) {
 
@@ -541,7 +541,7 @@ static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
 	while (bytesreqd > 0) {
 		/* now, try to get and return desired number of bytes */
 
-		if (i = recv(hfcp->socket, cp, len, 0)) {
+		if (i = recv(hfcp->socket, cp, bytesreqd, 0)) {
 			/* Increment current pointer (cp), and decrement bytes required
 				 to read.
 			*/
@@ -570,12 +570,11 @@ static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
 static int getrespline(hFCP *hfcp)
 {
 	char *p = respline;
-	int   i, j;
-	int   len;
+	int   i;
+	int   j;
 
-	for (i=0; i < FCPRESP_BUFSIZE; i++) {
-
-		if (j = recv(hfcp->socket, p, 1, 0);
+	for (i = 0; i<FCPRESP_BUFSIZE; i++) {
+		if ((j = recv(hfcp->socket, p, 1, 0)) == -1) return -1;
 		if (*p == '\n') break;
 
 		/* Finally, point to the char after the most-recently read. */

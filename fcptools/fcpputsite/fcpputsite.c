@@ -5,17 +5,16 @@
 	CopyLeft () 2001 by David McNab
 */
 
-#include "ezFCPlib.h"
-#include "fcpputsite.h"
 
 #define _GNU_SOURCE
 #include "getopt.h"
 
-#ifndef WINDOWS
 #include <unistd.h>
-#endif
-
 #include <stdio.h>
+
+#include "ezFCPlib.h"
+#include "fcpputsite.h"
+
 
 /*
 	PRIVATE DECLARATIONS

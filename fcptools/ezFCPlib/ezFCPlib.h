@@ -26,6 +26,7 @@
 
 /* Generic <sys/> includes here so they are first. */
 
+#include <fcntl.h>
 
 /**************************************************************************
   MS-WINDOWS specifics
@@ -35,7 +36,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <fcntl.h>
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
@@ -77,8 +77,6 @@
 
 /* Keep 'sys' files first in include order */
 
-#include <unistd.h>
-
 #endif
 
 /**************************************************************************
@@ -86,7 +84,7 @@
 **************************************************************************/
 #include <string.h>
 #include <errno.h>
-
+#include <unistd.h>
 
 /*************************************************************************/
 
@@ -108,7 +106,10 @@
   Lengths of allocated strings/arrays.
 */
 #define L_KSK               32768
+#define L_URI               256
+#define L_FILENAME          256
 #define L_MESSAGE           256
+#define L_HOST              128
 #define L_SOCKET_REQUEST    2048
 #define L_FD_BLOCKSIZE      8192
 
@@ -126,6 +127,10 @@
 #define SPLIT_INSSTAT_MANIFEST 4        /* inserting splitfile manifest */
 #define SPLIT_INSSTAT_SUCCESS  5        /* full insert completed successfully */
 #define SPLIT_INSSTAT_FAILED   6        /* insert failed somewhere */
+
+#define KEY_TYPE_SSK  1
+#define KEY_TYPE_CHK  2
+#define KEY_TYPE_KSK  3
 
 
 /*
@@ -352,7 +357,7 @@ extern int   _fcpInsertAttempts;
 extern char *_fcpTmpDir;
 
 /* Basic accounting - ensure sockets are getting closed */
-int          _fcpNumOpenSockets = 0;
+extern int   _fcpNumOpenSockets;
 
 
 /* Function prototypes */
@@ -366,11 +371,13 @@ extern "C" {
 int            fcpStartup(void);
 void           fcpTerminate(void);
 
-/* Handle creation functions */
+/* Handle management functions */
 hFCP         *_fcpCreateHFCP(void);
 hURI         *_fcpCreateHURI(void);
 hKey         *_fcpCreateHKey(void);
-hSplitChunk  *_fcpCreateHSplitChunk(void);
+
+int           _fcpParseURI(hURI *uri, char *key);
+
 
 int _fcpParseUri(hKey *key);
 
@@ -378,23 +385,21 @@ int _fcpParseUri(hKey *key);
 void  _fcpDestroyHFCP(hFCP *);
 void  _fcpDestroyHURI(hURI *);
 void  _fcpDestroyHKey(hKey *);
-void  _fcpDestroyHSplitChunk(hSplitChunk *);
+/* void  _fcpDestroyHSplitChunk(hSplitChunk *); */
 
 /* Key open/close functions */
-hKey  *fcpOpenKeyRead(hFCP *hfcp, char *keyname, char *filename, int regress);
-hKey  *fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
+int    fcpOpenKeyRead(hFCP *hfcp, char *keyname, char *filename);
+int    fcpOpenKeyWrite(hFCP *hfcp, char *keyname, char *filename);
 
 int    fcpReadKey(hFCP *hfcp, char *buf, int len);
 int    fcpCloseKey(hFCP *hfcp);
 
-/*int    fcpOpenKey(hFCP *hfcp, char *key, int mode);*/
+
 
 
 /* put functions */
 int    fcpPutKeyFromFile(hFCP *hfcp, char *key, char *filename, char *metaname);
 
-
-int     _fcpSockInit();
 int     _fcpSockConnect(hFCP *hfcp);
 void    _fcpSockDisconnect(hFCP *hfcp);
 int     _fcpSockReceive(hFCP *hfcp, char *buf, int len);
@@ -402,8 +407,6 @@ int     _fcpSockSend(hFCP *hfcp, char *buf, int len);
 
 void    _fcpClose(hFCP *hfcp);
 int     _fcpRecvResponse(hFCP *hfcp);
-int     _fcpReadBlk(hFCP *hfcp, char *buf, int len);
-
 
 void    _fcpLog(int level, char *format,...);
 char		*GetMimeType(char *pathname);

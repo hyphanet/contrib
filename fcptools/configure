@@ -6327,6 +6327,7 @@ done
 
 
 
+#AC_OUTPUT(Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile)
 trap '' 1 2 15
 cat > confcache <<\EOF
 # This file is a shell script that caches the results of configure
@@ -6440,7 +6441,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -6556,7 +6557,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -6667,4 +6668,5 @@ EOF
 chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
+
 

@@ -24,7 +24,7 @@
 
 
 #include <stdio.h>
-#include <glib.h>
+#include <stdlib.h>
 
 #include "ezFCPlib.h"
 
@@ -99,24 +99,6 @@ void _fcpDestroyHKey(hKey *h)
 }
 
 
-hSplitChunk *_fcpCreateHSplitChunk(void)
-{
-	hSplitChunk *h;
-
-	h = (hSplitChunk *)malloc(sizeof (hSplitChunk));
-	memset(h, 0, sizeof (hSplitChunk));
-
-	return h;
-}
-
-void _fcpDestroyHSplitChunk(hSplitChunk *h)
-{
-	if (h) {
-		free(h);
-	}
-}
-
-
 int _fcpParseURI(hURI *uri, char *key)
 {
 	/* 1 of 3 possiblities:
@@ -128,7 +110,6 @@ int _fcpParseURI(hURI *uri, char *key)
 	Caller must malloc area for *key !
 	*/
 
-	int i;
 	int len;
 
 	char *p;

@@ -28,7 +28,7 @@
 
 #include "ezFCPlib.h"
 
-
+/*** Should accept a few parameters ****/
 int fcpStartup(void)
 {
 
@@ -45,6 +45,6 @@ int fcpStartup(void)
 
 void fcpTerminate(void)
 {
-	return 0;
+	return;
 }
 

@@ -21,20 +21,18 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <unistd.h>
 
 #include "ezFCPlib.h"
 
-#ifndef WINDOWS
-#include <unistd.h>
-#endif
 
-
+/*
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 {
   int count;
   
   if (hfcp->wr_info.fd_data <= 0)
-    return -1; /* temp file isn't open */
+    return -1;
   
   count = write(hfcp->wr_info.fd_data, buf, len);
   if (count < 0)
@@ -43,4 +41,5 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
   hfcp->wr_info.num_data_wr += count;
   return count;
 }
+*/
 

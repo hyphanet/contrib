@@ -15,22 +15,18 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <fcntl.h>
-
-#ifndef WINDOWS
-#include <unistd.h>
-#endif
-
 #include <stdio.h>
 
-extern char    _fcpHost[];
+extern char   *_fcpHost;
 extern int     _fcpPort;
 extern int     _fcpHtl;
 extern int     _fcpRawMode;
 extern char    _fcpID[];
 
-static int      fcpCloseKeyRead(HFCP *hfcp);
-static int      fcpCloseKeyWrite(HFCP *hfcp);
+static int      fcpCloseKeyRead(hFCP *hfcp);
+static int      fcpCloseKeyWrite(hFCP *hfcp);
 
 /*
   Function:    fcpCloseKey()
@@ -43,11 +39,11 @@ static int      fcpCloseKeyWrite(HFCP *hfcp);
   Description: finalises all operations on a key, depending on whether the
   key was opened for reading or writing
 */
-int fcpCloseKey(HFCP *hfcp)
+int fcpCloseKey(hFCP *hfcp)
 {
-  if (hfcp->openmode & _FCP_O_READ)
+  if (hfcp->key->openmode & _FCP_O_READ)
 	 return fcpCloseKeyRead(hfcp);
-  else if (hfcp->openmode & _FCP_O_WRITE)
+  else if (hfcp->key->openmode & _FCP_O_WRITE)
 	 return fcpCloseKeyWrite(hfcp);
   else
 	 return -1;
@@ -61,9 +57,9 @@ int fcpCloseKey(HFCP *hfcp)
 
   Description: closes a key after reading is complete
 */
-static int fcpCloseKeyRead(HFCP *hfcp)
+static int fcpCloseKeyRead(hFCP *hfcp)
 {
-  hfcp->openmode = 0;
+  hfcp->key->openmode = 0;
   _fcpSockDisconnect(hfcp);
 
   return 0;
@@ -79,21 +75,20 @@ static int fcpCloseKeyRead(HFCP *hfcp)
   performs the full insertion protocol sequence
   deletes the temporary files used
 */
-static int fcpCloseKeyWrite(HFCP *hfcp)
+
+/*
+static int fcpCloseKeyWrite(hFCP *hfcp)
 {
   char buf[1024];
   int fd, count, n;
 
-  /* close the temporary files */
   close(hfcp->wr_info.fd_data);
   if (hfcp->raw) close(hfcp->wr_info.fd_meta);
 
-  /* connect to Freenet FCP */
   if (_fcpSockConnect(hfcp) != 0) return -1;
 
   _fcpSockSend(hfcp, _fcpID, 4);
 
-  /* create and send put message */
   if (hfcp->wr_info.num_meta_wr > 0) {
 	 sprintf(buf,
 				"ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
@@ -111,7 +106,6 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 				);
   }
   
-  /* send off client put command */
   count = strlen(buf);
   n = _fcpSockSend(hfcp, buf, count);
   if (n < count) {
@@ -119,7 +113,6 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 	 return -1;
   }
   
-  /* Send metadata if there's any */
   if (hfcp->wr_info.num_meta_wr > 0) {
 	 fd = open(hfcp->wr_info.meta_temp_file, OPEN_MODE_READ);
 	 
@@ -129,7 +122,6 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 	 close(fd);
   }
   
-  /* Now send data */
   if (hfcp->wr_info.num_data_wr > 0) {
 	 fd = open(hfcp->wr_info.data_temp_file, OPEN_MODE_READ);
 	 
@@ -139,19 +131,18 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
 	 close(fd);
   }
   
-  /* ditch the temp files */
   unlink(hfcp->wr_info.meta_temp_file);
   unlink(hfcp->wr_info.meta_temp_file);
 
-  /* expecting a success response */
   if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_SUCCESS) {
 	 _fcpSockDisconnect(hfcp);
 	
 	 return -1;
   }
 
-  /* done with socket */
   _fcpSockDisconnect(hfcp);
 
   return 0;
 }
+*/
+
