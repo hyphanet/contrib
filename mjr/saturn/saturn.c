@@ -398,6 +398,7 @@ main (int argc, char **argv)
 	}
     } while (article_count);
     
+    printf("End of article list reached. Waiting for inserts to complete...\n");
     pthread_exit(NULL);
 }
 
@@ -483,7 +484,7 @@ read_base64 (FILE *in)
     char c1, c2, c3;
     int last_data = 0;
     FILE *out = tmpfile();
-
+    
     while (1) {
       if (!fgets(buf, sizeof(buf), in)) return out; // be lenient
       p = buf;
