@@ -1,8 +1,7 @@
 # installer generator script for Freenet:
-!define VERSION "2002-01-17-snapshot"
-#!define LANGUAGE "German"
-
-Name "Freenet ${VERSION}"
+!define VERSION "20020118"
+!define WEBINSTALL
+#!define LANGUAGE "Dutch"
 
 # include language specific installer data
 !ifdef LANGUAGE
@@ -13,9 +12,21 @@ Name "Freenet ${VERSION}"
 
 # are we including Java?
 !ifdef embedJava
-  OutFile "Freenet_setup-${VERSION}-Java.exe"
+  OutFile "freenet-Java-${VERSION}.exe"
 !else
-  OutFile "Freenet_setup-${VERSION}.exe"
+  !ifdef WEBINSTALL
+    OutFile "freenet-webinstall.exe"
+  !else
+    OutFile "freenet-${VERSION}.exe"
+  !endif
+!endif
+
+# webinstall specific stuff
+!ifdef WEBINSTALL
+  Name "Freenet Web installer"
+  !include "webinstall.inc"
+!else
+  Name "Freenet ${VERSION}"
 !endif
 
 LicenseData GNU.txt
@@ -145,14 +156,18 @@ Section
 # sections come the localization parts and *then* we can start the actual
 # setup/configuration of Freenet
 
-  WriteUninstaller Uninstall-Freenet.exe
   # First of all see if we need to install the mfc42.dll
   # Each Win user should have it anyway
   IfFileExists "$SYSDIR\Mfc42.dll" MfcDLLExists
-  DetailPrint "Installing Mfc42.dll"
-  SetOutPath "$SYSDIR"
-  File "Mfc42.dll"
-  ClearErrors
+  !ifdef WEBINSTALL
+    MessageBox MB_OK "You need to have Mfc42.dll in the directory $SYSDIR.$\r$\nIt is not included in this installer, so please download a regular snapshot first.$\r$\nAborting now..."
+    Abort
+  !else
+    DetailPrint "Installing Mfc42.dll"
+    SetOutPath "$SYSDIR"
+    File "Mfc42.dll"
+    ClearErrors
+  !endif
   MfcDLLExists:
   
   # Copying the Freenet files to the install dir
@@ -164,6 +179,22 @@ Section
   File freenet\tools\*.*
   # copying the real Freenet files now
   File freenet\*.*
+  WriteUninstaller "Uninstall-Freenet.exe"
+  !ifdef WEBINSTALL
+    # download the necessary files
+    SetOutPath "$TEMP\Freenet"
+    File nsisdl.dll
+    SetOutPath "$INSTDIR"
+    StrCpy $1 "http://freenetproject.org/snapshots/freenet-latest.jar"
+    StrCpy $2 "$INSTDIR\freenet.jar"
+    Call DownloadFile
+    StrCpy $1 "http://freenetproject.org/snapshots/freenet-ext.jar"
+    StrCpy $2 "$INSTDIR\freenet-ext.jar"
+    Call DownloadFile
+  !else
+    # copying the .jar files now
+    File freenet\jar\*.*
+  !endif
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\frequest.exe" 6
   SetDetailsPrint none
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
@@ -191,12 +222,12 @@ SectionIn 1,2
  SectionEnd
  
  ;---------------------------------------------------------------------------------------
+#temporary out of order
+#Section "German Localization (Deutsch)"
 
-Section "German Localization (Deutsch)"
-
-  SetOutPath "$INSTDIR\"
-  File  /oname=localres.dll "Freenet\localres\DE-res.dll"
-SectionEnd 
+#  SetOutPath "$INSTDIR\"
+#  File  /oname=localres.dll "Freenet\localres\DE-res.dll"
+#SectionEnd 
 
 ;-----------------------------------------------------------------------------------
 
@@ -285,16 +316,7 @@ Section "View Readme.txt"
 SectionIn 2
   ExecShell "open" "$INSTDIR\docs\Readme.txt"
 SectionEnd
-;--------------------------------------------------------------------------------------
- SectionDivider "Alternative programs"
-;---------------------------------------------------------------------------------------
-Section "FCPProxy (alternative to the integrated FProxy)"
 
-  SetOutPath "$INSTDIR\"
-   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --update --silent'
-  File "freenet\fcpproxy\*.*"
-  CreateShortCut "$SMPROGRAMS\Freenet0.4\Fcpproxy.lnk" "$INSTDIR\fcpproxy.exe" "" "$INSTDIR\fcpproxy.exe" 0
-SectionEnd
 ;--------------------------------------------------------------------------------------
 
 Section -PostInstall
@@ -312,15 +334,14 @@ Section -PostInstall
   WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet"
   WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 
-  #MessageBox MB_YESNO "Congratulations, you have finished the installation of Freenet successfully.$\r$\nDo you want to start your Freenet node now?" IDNO StartedNode
-  #Exec "$INSTDIR\freenet.exe"
+  MessageBox MB_YESNO "Congratulations, you have finished the installation of Freenet successfully.$\r$\nDo you want to start your Freenet node now?" IDNO StartedNode
+  Exec "$INSTDIR\freenet.exe"
 StartedNode:
 
-  Delete "$INSTDIR\cfgnode.exe"      
+  Delete "$INSTDIR\cfgnode.exe"
+  Delete "$INSTDIR\cfgclient.exe"      
   Delete "$INSTDIR\findjava.exe"
-  Delete "$INSTDIR\GetSeed.exe"
-
-MessageBox MB_OK "Finished installation. Due to a little bug (which will soon be fixed) you have to rename the file seed.ref to seednodes.ref before starting Freenet."
+  RMDir /r "$TEMP/Freenet"
 SectionEnd
 ;------------------------------------------------------------------------------------------
 
@@ -393,6 +414,7 @@ Function .onInstFailed
   DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet"
   DeleteRegKey HKEY_LOCAL_MACHINE "Software\Freenet"
   RMDir /r $INSTDIR
+  RMDir /r "$TEMP/Freenet"
 FunctionEnd
 
 ;-----------------------------------------------------------------------------------------
