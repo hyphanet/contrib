@@ -213,8 +213,12 @@ insert (int c)
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
     hashes = malloc(hlen);
     
-    // pad to crypto blocksize (16 bytes)
-    while (g.dbc * blocksize < datalength || g.dbc * blocksize % 16)
+    // grow big enough, my dear
+    while (g.dbc * blocksize < datalength)
+	blocksize++;
+    
+    // pad to first multiple of our crypto blocksize
+    while (g.dbc * blocksize < datalength + (datalength % 16))
 	blocksize++;
     
     dlen = g.dbc * blocksize;
@@ -439,8 +443,12 @@ request (int c)
     }
     g = graphs[datalength/blocksize-1];
     
-    // pad to crypto blocksize (16 bytes)
-    while (g.dbc * blocksize < datalength || g.dbc * blocksize % 16)
+    // grow big enough, my dear
+    while (g.dbc * blocksize < datalength)
+	blocksize++;
+    
+    // pad to first multiple of our crypto blocksize
+    while (g.dbc * blocksize < datalength + (datalength % 16))
 	blocksize++;
     
     blockcount = g.dbc + g.cbc;
