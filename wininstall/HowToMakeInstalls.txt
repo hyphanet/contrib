@@ -11,8 +11,9 @@ How to make an install
   freenet.jar, updated .fproxyrc and freenet.ini
   (make sure the entry listenPort= in freenet.ini exists, but no value is entered yet,
   otherwise this one will be used in all installs)
-3)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
-4)Call "makensis freenet"
+3)Duplicate fserv.exe in the same directory as files: frequest.exe, finsert.exe and fproxy.exe
+4)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
+5)Call "makensis freenet"
 
 Remarks
 =======
