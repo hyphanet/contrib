@@ -6,6 +6,7 @@
  *  Make fcpputsite work
  *  Convert external links to used __CHECKED_HTTP__
  *  Make the index page nicer (like have a copy of the story with the links replaced)
+ *  Be polite and check for robot.txt directives
  *  (Longer term): Try to remove the reliance on external Unix programs like wget and
  *  fcpputsite
  */
@@ -162,18 +163,32 @@ class Story {
 	 *@param  id     The Slashdot story ID
 	 */
 	public Story(String title, String text, String id) {
-		this.title = title;
+		// Remove HTML from title
+		StringBuffer  titleSb  = new StringBuffer(title.length());
+		boolean       k        = true;
+		for (int x = 0; x < title.length(); x++) {
+			char  c  = title.charAt(x);
+			if (c == '<')
+				k = false;
+			else if (c == '>')
+				k = true;
+			else if (k)
+				titleSb.append(c);
+		}
+		this.title = title.toString();
+
 		// Remove '/'s from ID
-		StringBuffer  idSb   = new StringBuffer(id.length());
+		StringBuffer  idSb     = new StringBuffer(id.length());
 		for (int x = 0; x < id.length(); x++) {
 			char  c  = id.charAt(x);
 			if (c != '/')
 				idSb.append(c);
 		}
 		this.id = idSb.toString();
-		Cachedot.log("Parsing story: '" + title + "' with id " + this.id);
-		Pattern       urlex  = Pattern.compile("<A.*?HREF=\"(http://.*?)\".*?>(.*?)<", Pattern.CASE_INSENSITIVE);
-		Matcher       m      = urlex.matcher(text);
+
+		Cachedot.log("Parsing story: '" + this.title + "' with id " + this.id);
+		Pattern       urlex    = Pattern.compile("<A.*?HREF=\"(http://.*?)\".*?>(.*?)<", Pattern.CASE_INSENSITIVE);
+		Matcher       m        = urlex.matcher(text);
 		while (m.find()) {
 			Cachedot.log("Found URL: " + m.group(1));
 			urls.put(m.group(1), m.group(2));
