@@ -9,7 +9,7 @@
  ******************************************************/
 
 /* sizes */
-#define JAVAWMAXLEN 256
+#define JAVAWMAXLEN MAX_PATH*2+2048 /* taking NO chances over path length! */
 #define BUFLEN 400
 
 /* windows messages */
@@ -24,7 +24,9 @@
 
 /* helper function to select appropriate icon and tooltip text given current state */
 void ModifyIcon(void);
-
+/* helper function for critical (thread safe) sections */
+void LOCK(enum LOCKCONTEXTS lockcontext);
+void UNLOCK(enum LOCKCONTEXTS lockcontext);
 
 /******************************************************
  *	Global Variables data:                            *
@@ -34,7 +36,7 @@ extern const char szempty[];
 extern const char szWindowClassName[];
 extern const char szAppName[];
 
-extern char szjavawpath[JAVAWMAXLEN];	/* used to read Javaw= definition out of FLaunch.ini */
+extern char szjavapath[JAVAWMAXLEN];	/* used to read Javaexec= definition out of FLaunch.ini */
 extern char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out of FLaunch.ini */
 
 /*		flags, etc... */
@@ -47,5 +49,13 @@ extern PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running free
 /*      systray structure: GLOBAL BECAUSE IT IS UPDATED BY/FROM MULTIPLE THREADS */
 extern NOTIFYICONDATA note;
 
+
+
+/*		lock objects for critical sections */
+enum LOCKCONTEXTS
+{
+	NFREENETMODE=0
+};
+extern HANDLE * LOCKOBJECTS[];
 
 #endif /*FREENET_TRAY_SHARED_DATA_H_INCLUDED*/
