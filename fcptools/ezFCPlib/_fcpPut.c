@@ -80,7 +80,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	if (key_filename) {
 		if ((hfcp->key->size = file_size(key_filename)) <= 0) {
 
-			_fcpLog(FCP_LOG_CRITICAL, "Key file %s does not exist", key_filename);
+			_fcpLog(FCP_LOG_CRITICAL, "put_file(): Error %d - Key file %s does not exist", hfcp->key->size, key_filename);
 			return -1;
 		}
 	}
@@ -92,7 +92,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	if (meta_filename) {
 		if ((hfcp->key->metadata->size = file_size(meta_filename)) <= 0) {
 
-			_fcpLog(FCP_LOG_CRITICAL, "Metadata file %s does not exist", meta_filename);
+			_fcpLog(FCP_LOG_CRITICAL, "put_file(): Metadata file %s does not exist", meta_filename);
 			return -1;
 		}
 	}
@@ -363,7 +363,7 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	if (key_filename) {
 		if ((hfcp->key->size = file_size(key_filename)) < 0) {
 
-			_fcpLog(FCP_LOG_CRITICAL, "Key file %s does not exist", key_filename);
+			_fcpLog(FCP_LOG_CRITICAL, "put_fec_splitfile(): Key file %s does not exist", key_filename);
 			return -1;
 		}
 	}
@@ -375,7 +375,7 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	if (meta_filename) {
 		if ((hfcp->key->metadata->size = file_size(meta_filename)) < 0) {
 
-			_fcpLog(FCP_LOG_CRITICAL, "Metadata file %s does not exist", meta_filename);
+			_fcpLog(FCP_LOG_CRITICAL, "put_fec_splitfile(): Metadata file %s does not exist", meta_filename);
 			return -1;
 		}
 	}

@@ -86,15 +86,3 @@ int memtoi(char *s)
 	 }
 }
 
-long file_size(char *filename)
-{
-	struct stat fstat;
-
-	if (!filename) return -1;
-
-	if (stat(filename, &fstat))
-		return -1;
-	else
-		return fstat.st_size;
-}
-

@@ -64,7 +64,8 @@ int _fcpTmpfile(char **filename)
 	srand((unsigned int)seedseconds);
 
 	while (search) {
-		snprintf(s, 512, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
+
+		snprintf(s, 512, "%s%ceztmp_%x", _fcpTmpDir, DIR_SEP, (unsigned int)rand());
 
 		if (stat(s, &st) == -1)
 			if (errno == ENOENT) search = 0;
@@ -194,5 +195,33 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 			rcvd++;
 		}
 	}
+}
+
+long file_size(char *filename)
+{
+	int size;
+
+#ifdef WIN32
+	{
+		HANDLE hFind;
+		WIN32_FIND_DATA finddata;
+
+		hFind = FindFirstFile(filename, &finddata);
+		if (hFind == INVALID_HANDLE_VALUE
+
+	}
+
+#else
+	{
+		struct stat fstat;
+
+		if (!filename) size = -1;
+		else if (stat(filename, &fstat)) size = -1;
+	}
+
+
+#endif
+
+	return fstat.st_size;
 }
 

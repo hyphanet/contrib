@@ -38,6 +38,8 @@ static int toUnix(char *path);
 
 int fcpStartup(char *logfile, int retry, int log_verbosity)
 {
+	char buf[513];
+
 	/* pass a bum value here and it's set to SILENT */
 	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
 	_fcpRetry     = (retry >= 0 ? retry : 0);
@@ -54,13 +56,11 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 			return -1;
 	}
 
-	/* gotta strdup() the return values since they're static pointers! */
-	/* causes assertion error on MSVC when exiting through fcpTerminate() */
+	snprintf(buf, 512, "%s", getenv("USERPROFILE"));
+	_fcpHomeDir = strdup(buf);
 
-	_fcpTmpDir = strdup(getenv("TEMP"));
-
-	/* Maybe this needs to be re-thought */
-	_fcpHomeDir = strdup(getenv("USERPROFILE"));
+	snprintf(buf, 512, "%s\\local settings\\temp", _fcpHomeDir);
+	_fcpTmpDir = strdup(buf);
 
 	/* both of these paths must have their \'s converted to /'s */
 	toUnix(_fcpTmpDir);
@@ -81,7 +81,10 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 			return -1;
 		}
 	}
-	
+
+	_fcpLog(FCP_LOG_DEBUG, "Home Directory: %s", _fcpHomeDir);
+	_fcpLog(FCP_LOG_DEBUG, "Temp Directory: %s", _fcpTmpDir);
+
 	_fcpSplitblock = L_BLOCK_SIZE;
 
 	return 0;

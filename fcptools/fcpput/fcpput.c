@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
+
 /* Cheat here and import ez_sys.h function(s) */
 extern long   file_size(char *filename);
 

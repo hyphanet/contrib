@@ -57,6 +57,9 @@
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
 
+/*#define DIR_SEP '\\'*/
+#define DIR_SEP '/'
+
 /**************************************************************************
   UNIX specifics
 **************************************************************************/
@@ -69,6 +72,8 @@
 #include <sys/time.h>
 
 #include <unistd.h>
+
+#define DIR_SEP '/'
 
 #endif
 
