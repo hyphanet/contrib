@@ -244,16 +244,19 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 			switch (rc) {
 			case FCPRESP_TYPE_SUCCESS:
 
+				_fcpLog(FCP_LOG_VERBOSE, "Received success message");
 				fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
 				break;
 				
 			case FCPRESP_TYPE_KEYCOLLISION:
 
+				_fcpLog(FCP_LOG_VERBOSE, "Received success message (key collision)");
 				fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
 				break;
 				
 			case FCPRESP_TYPE_RESTARTED:
-				_fcpLog(FCP_LOG_VERBOSE, "Restarting insertion upon request by node");
+				_fcpLog(FCP_LOG_VERBOSE, "Received restarted message");
+				_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->timeout / 1000));
 				
 				/* close the key and metadata source files */
 				close(mfd);
@@ -269,8 +272,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 				
 			case FCPRESP_TYPE_PENDING:
 
-				_fcpLog(FCP_LOG_DEBUG, "new timeout value: %d seconds", (int)(hfcp->timeout / 1000));
 				_fcpLog(FCP_LOG_VERBOSE, "Received pending message");
+				_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->timeout / 1000));
 
 				break;
 				
@@ -845,6 +848,10 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	}
 
 	kfd = fileno(kfile);
+
+	/******************************************************************/
+	/* insert data blocks first */
+	/******************************************************************/
 	
 	while (bi < segment->db_count) { /* while (bi < segment->db_count) */
 
@@ -927,6 +934,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 	/******************************************************************/
 	/* insert check blocks next */
+	/******************************************************************/
 
 	for (bi=0; bi < segment->cb_count; bi++) {
 

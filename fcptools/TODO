@@ -41,18 +41,14 @@ ezFCPlib specific
 + Implement retry logic, so that ezFCPlib attempts to insert _fcpRetry times on failed message.
 + Correct Restarted message handling to ensure seamless restarts.
   (_fcpPut.c:266, _fcpPut.c:915, _fcpPut.c:1105, _fcpPut.c:1220).
-+ Ignore DataChunks between Restarted and DataFound messages (from freenet-dev).
 + Make hDocument->data field dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 + Improve the splitfile size ceiling; the node uses one, the tools use another(?)
-+ Ensure the hfcp->error thing is only set in and before a fcp*() function returns to the -end user (developer)-.
-+ Use OpenKey() and WriteKey() instead of manually creating the FCP messages wherever possible.
 + Differentiate between splitfile size known by fcptools and the one returned by Fred's FEC commands.
 + Add logic to _fcpDestroyHBlock to delete old tmp files.
 
 - Make FEC_CHUNK_SIZE configurable; default to 1M (Fred computes this afaik).
-- Add logic like fcpTmpDir for an 'fcpHomeDir'; /home/$user on nix, %USERPROFILE%\My Documents for Win32.
-  (still undecided)
+- Ignore DataChunks between Restarted and DataFound messages (from freenet-dev; necessary?)
 
 = #define HFCP to hFCP to ease transition. (not necessary)
 = Remove global variables in _fcpGlobals.c.  Make them private. (all that remains are read-only).
@@ -67,6 +63,7 @@ ezFCPlib specific
 = Implement CheckBlockOffset and DataBlockOffset in handling of fec segment headers.
   (it's causing the java.lang.NumberFormatException messages in Fred's log).
 = Add Pending handling in put_file, so it pauses for said timeout and retries 'a-' times before returning with error.
+= Use OpenKey() and WriteKey() instead of manually creating the FCP messages wherever possible.
 
 
 ------

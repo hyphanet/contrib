@@ -398,6 +398,7 @@ static int getrespRestarted(hFCP *hfcp)
 
 		if (!strncmp(resp, "Timeout=", 8)) {
 			hfcp->response.restarted.timeout = xtoi(resp + 8);
+			hfcp->timeout = hfcp->response.restarted.timeout;
 		}
 
 		else if (!strncmp(resp, "EndMessage", 10))
