@@ -24,7 +24,12 @@ depth (FILE *in)
     char line[256];
     int depth = 0, lnum, len, i;
     for (lnum = 1 ; fgets(line, 256, in) ; lnum++) {
-	if (strchr(line, '=')) continue;
+	if (strchr(line, '=')) {
+	    if (line[0] == ' ') {
+		printf("Spaces before directory name detected on line %d. Aborting.\n", lnum);
+		return -1;
+	    } else continue;
+	}
 	len = strlen(line);
 	for (i = 0 ; i < len ; i++) {
 	    if (line[i] != '\t') {
