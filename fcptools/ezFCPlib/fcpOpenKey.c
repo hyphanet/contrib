@@ -239,7 +239,8 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 		case META_TYPE_04_DBR:
 			s = cdocLookupKey(fldSet, "DateRedirect.Target");
 			uriTgt = (FCP_URI *) malloc(sizeof (FCP_URI) );
-			_fcpParseUri(uriTgt, s);
+			if(_fcpParseUri(uriTgt, s))
+				exit(1);   // FIXME We're toast, but at least spit out a frigging error message.
 			
 			if ((s = cdocLookupKey(fldSet, "DateRedirect.Offset")) != NULL)
 				offset = xtoi(s);
@@ -346,7 +347,12 @@ static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
 
 int _fcpParseUri(FCP_URI *uri, char *key)
 {
-	char *dupkey = strdup(key);
+	char *ORIGdupkey = strdup(key);
+	char *dupkey;
+
+	dupkey=ORIGdupkey;
+
+	memset(uri, 0, sizeof(*uri));
 
 	// set path to NULL; currently only used for SVK's
 	uri->path = 0;
@@ -368,7 +374,7 @@ int _fcpParseUri(FCP_URI *uri, char *key)
 		uri->keyid = (char *) malloc(strlen(dupkey) + 1);
 		strcpy(uri->keyid, dupkey);
 
-		uri->path = (char *) malloc(strlen(path + 1));
+		uri->path = (char *) malloc(strlen(path) + 1); // DUH! strlen(path)=n.  strlen(path+1) = n-1.  Braindead error.
 		strcpy(uri->path, path);
 
 		// 10 to be safe
@@ -407,11 +413,13 @@ int _fcpParseUri(FCP_URI *uri, char *key)
 
 	else {
 		// bad bad
+		
+		free(ORIGdupkey); // DUH.  dupkey+n.
 		return 1;
 	}
 
 	// free the only dynamically allocated string that isn't a FCP_URI member.
-	free(dupkey);
+	free(ORIGdupkey); // DUH.  dupkey+n.
 	return 0;
 }
 

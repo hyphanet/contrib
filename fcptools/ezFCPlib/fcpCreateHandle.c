@@ -37,6 +37,7 @@ HFCP *fcpCreateHandle()
 {
   HFCP *hfcp = (HFCP *) malloc(sizeof (HFCP) );
 	fcpInitHandle(hfcp);
+	hfcp->malloced=1;
   
   return hfcp;
   

@@ -191,7 +191,44 @@ int _fcpSockReceive(HFCP *hfcp, char *buf, int len)
 #ifdef WINDOWS
     return recv(hfcp->conn.socket, buf, len, 0);
 #else
-  return read(hfcp->conn.socket, buf, len);
+	int rcvd = 0;
+	int opt, oopt;
+	opt=oopt=fcntl(hfcp->conn.socket, F_GETFL);
+	if (opt>0 && !(opt & O_NONBLOCK)) {
+		opt |= O_NONBLOCK;
+		fcntl(hfcp->conn.socket, F_SETFL, opt);
+	}
+
+	while(rcvd < len) {
+		struct timeval tv;
+		fd_set readfds;
+		int r;
+		int ditch=0;
+
+		tv.tv_usec=0;
+		tv.tv_sec=600; // FIXME MAKE CONFIGURABLE
+
+		FD_ZERO(&readfds);
+		FD_SET(hfcp->conn.socket, &readfds);
+		select(hfcp->conn.socket+1, &readfds, NULL, NULL, &tv);
+		if (!FD_ISSET(hfcp->conn.socket, &readfds)) {
+			_fcpLog(FCP_LOG_NORMAL, "Socket timeout on fd %d",
+				hfcp->conn.socket);
+			rcvd=-1;
+			ditch=1;
+		} else {
+			r=read(hfcp->conn.socket, buf + rcvd, len-rcvd);
+			if (r<0) { // shouldn't ever get EAGAIN
+				rcvd=-1;
+				ditch=1;
+			} else
+				rcvd += r;
+		}
+		if (ditch)
+			break;
+	}
+	fcntl(hfcp->conn.socket, F_SETFL, oopt);
+	return rcvd;
 #endif
 }
 

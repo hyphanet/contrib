@@ -381,7 +381,7 @@ typedef struct {
   char vers[16];
 
   int count;
-  FLDSET *cdoc[64];      /* new - array of cdocs */
+  FLDSET **cdoc;      /* new - array of cdocs, must be allocated.  We _WILL_ have more then 64 bits of metainfo */
 } META04;
 
 /*

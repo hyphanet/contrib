@@ -65,6 +65,7 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
 
   // Create temporary handle
   fcpInitHandle(hfcp);
+  hfcp->malloced=0; // created locally, don't try to free later.  (SHOULD BE UNIFIED!)
 
   // try a handshake
   if (_fcpSockConnect(hfcp) != 0) return -1;

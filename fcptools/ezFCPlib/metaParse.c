@@ -61,6 +61,10 @@ int metaParse(META04 *meta, char *buf)
 	char  line[256];
 	char  key[128];
 	char  val[128];
+	int		metacdoclen=64;
+
+	meta->cdoc=malloc(64 * sizeof(meta->cdoc));
+	meta->count=0;
 	
 	int   state = STATE_BEGIN;
 	int   thisdoc = 0;
@@ -74,10 +78,10 @@ int metaParse(META04 *meta, char *buf)
 	start = getLine(line, buf, 0);
 	while (start != -1) {
 
-		_fcpLog(FCP_LOG_DEBUG, "DEBUG: line: %s", line);
+//		_fcpLog(FCP_LOG_DEBUG, "DEBUG: line: %s", line);
 
 		splitLine(line, key, val);
-		_fcpLog(FCP_LOG_DEBUG, "DEBUG: key: %s, val: %s", key, val);
+//		_fcpLog(FCP_LOG_DEBUG, "DEBUG: key: %s, val: %s", key, val);
 
 		// now process key=val pair
 		switch (state) {
@@ -116,6 +120,17 @@ int metaParse(META04 *meta, char *buf)
 				if (!strcasecmp(key, "Document")) {
 
 					thisdoc = meta->count++;
+					if (meta->count >= metacdoclen) {
+						void *newcdoc;
+						int newlen=metacdoclen*2;
+
+						newcdoc=realloc(meta->cdoc, 
+								newlen * sizeof(meta->cdoc));
+						if (!newcdoc)
+							exit(1);
+						meta->cdoc=newcdoc;
+						metacdoclen=newlen;
+					}
 					meta->cdoc[thisdoc] = (FLDSET *) malloc(sizeof (FLDSET) );
 					meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
 					meta->cdoc[thisdoc]->count = 0;
@@ -181,15 +196,19 @@ void metaFree(META04 *meta)
 	if (!meta) return;
 	
 	// free each cdoc
-	for (i = 0; i < meta->count; i++) {
+	if (meta->cdoc) {
+		for (i = 0; i < meta->count; i++) {
 	
-		// free all field-value pairs within current cdoc
-		for (j = 0; j < meta->cdoc[i]->count; j++)
-			free(meta->cdoc[i]->keys[j]);
+			// free all field-value pairs within current cdoc
+			for (j = 0; j < meta->cdoc[i]->count; j++)
+				free(meta->cdoc[i]->keys[j]);
 		
-		// now ditch this cdoc
-		free(meta->cdoc[i]);
+			// now ditch this cdoc
+			free(meta->cdoc[i]);
+		}
+		free(meta->cdoc);
 	}
+
 	
 	// now ditch whole structure
 	free(meta);
@@ -368,14 +387,12 @@ int getLine(char *line, char *buf, int start)
 			strncpy(line, buf+start, eol-start);
 			line[eol-start] = 0;
 			
-			return -1;
-		}
-		else {
+			return eol+1;
+		} else {
 			strcpy(line, buf+start);
-
-			return -1;
+			return eol;
 		}
 	}
 
-	return 1;
+	return -1;
 } // 'getLine()'

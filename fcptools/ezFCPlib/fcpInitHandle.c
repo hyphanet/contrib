@@ -44,7 +44,6 @@ void fcpInitHandle(HFCP *hfcp)
   hfcp->meta = NULL;
   hfcp->fields = NULL;
 
-  hfcp->malloced = 1;
   hfcp->htl = _fcpHtl;
   hfcp->raw = _fcpRawMode;
   hfcp->openmode = 0;
