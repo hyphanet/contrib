@@ -562,8 +562,39 @@ request (int c)
 	// we may still be able to do it. there's a possibility that we can
 	// reconstruct a data block from check blocks alone. first, we find two
 	// check blocks that include the same lowest-numbered data block. next,
-	// we kabootie flimwuggle gribble wonk
+	// we xor those blocks, replacing one of them and updating its graph to
+	// reflect the other data blocks now xored into it. we loop at this
+	// until a check block includes only one data block, fill in that data
+	// block, and stop.
 	
+	{
+	    struct graph h = g; // copy of our graph
+	    char *checks = mbuf(g.cbc * blocksize); // copy of check blocks
+	    memcpy(checks, &blocks[g.dbc*blocksize], g.cbc * blocksize);
+	    
+	    do {
+		// find two check blocks sharing a lowest-numbered data block, xor them, update graph
+		for (i = 0, j = 0 ; i < g.cbc ; i++) {
+		    int l; // find lowest numbered data block
+		    for (l = 0 ; l < g.dbc ; l++)
+			if (is_set(&h, l, i)) break;
+		    if (l == g.dbc) continue; // weird
+		    // find another check block that has the same lowest-numbered data block
+		    for (j = 0 ; j < g.cbc ; j++)
+			if (j != i) {
+			    for (k = 0 ; k < g.dbc ; k++)
+			        if (is_set(&h, k, j)) break;
+			    if (k == l) break;
+			}
+		    if (j != g.cbc) break; // woohoo! we found two.
+		}
+		if (i == g.cbc && j == g.cbc) break; // give up
+		// xor the two blocks (i and j)
+		xor(&checks[i*blocksize], &checks[j*blocksize], blocksize);
+		// xor the graphs
+		
+	    } while (!a);
+	}
     } while (a && n);
     
     if (n) { // damn, we just couldn't do it
