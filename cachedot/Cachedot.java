@@ -66,6 +66,7 @@ public class Cachedot {
 				Story  s  = getLastStory();
 				grabStory(s);
 				Util.fcpInsert(mirrorDir, s.getId());
+				log("Insert complete - mirror available at freenet:SSK@Jfwpce58XD6gk~uOz4zy2rzV65gPAgM/" + s.getId() + "//");
 			}
 
 			Thread.sleep(10000);
@@ -90,7 +91,7 @@ public class Cachedot {
 				break;
 			sb.append((char) r);
 		}
-		Pattern       ex  = Pattern.compile("FACE=\"arial,helvetica\" SIZE=\"4\" COLOR=\"#FFFFFF\"><B>(.*?)</B>.*?<i>(.*?)</i>.*?articles/(.*?).shtml",
+		Pattern       ex  = Pattern.compile("FACE=\"arial,helvetica\" SIZE=\"4\" COLOR=\"#FFFFFF\"><B>(.*?)</B>.*?dept(.*?)Read More.*?articles/(.*?).shtml",
 				Pattern.DOTALL);
 		Matcher       m   = ex.matcher(sb.toString());
 		m.find();
@@ -114,10 +115,14 @@ public class Cachedot {
 		for (Enumeration urls = s.getUrls(); urls.hasMoreElements(); ) {
 			String  url      = (String) urls.nextElement();
 			String  urlName  = s.getText(url);
-			index.append("<li><a href=\"");
-			index.append(url.substring(7, url.length()));
-			index.append("\">" + urlName + "</a><br>");
-			Util.wget(url, mirrorDir, 1);
+			if (Util.wget(url, mirrorDir, 1)) {
+				index.append("<li><a href=\"");
+				index.append(url.substring(7, url.length()));
+				index.append("\">" + urlName + "</a>\n");
+			}
+			else
+				index.append("<li>" + urlName + " mirror failed\n");
+
 		}
 		index.append("</ul></body></html>");
 
@@ -236,6 +241,7 @@ class Story {
 	public String getText(String url) {
 		return (String) urls.get(url);
 	}
+
 }
 
 /**
@@ -264,7 +270,7 @@ class Util {
 	public static boolean wget(String url, File dest, int depth) {
 		Cachedot.log("Mirroring " + url + " to " + dest);
 		try {
-			Process  p  = rt.exec("wget --recursive --level=" + depth + " --convert-links " + url, new String[0], dest);
+			Process  p  = rt.exec("wget --timeout=10 --tries=2 --recursive --level=" + depth + " --convert-links " + url, new String[0], dest);
 			return (p.waitFor() == 0);
 		}
 		catch (Exception e) {
@@ -284,7 +290,7 @@ class Util {
 	public static boolean fcpInsert(File dir, String name) {
 		try {
 			Cachedot.log("Starting fcpInsert of files in " + dir);
-			Process  p  = rt.exec("fcpputsite -d -l 5 '" + name + "' " + dir + " Jfwpce58XD6gk~uOz4zy2rzV65g PZeKc90WU-8vdQ~Oc451Fw2tpEM");
+			Process  p  = rt.exec("fcpputsite -d -l 3 '" + name + "' " + dir + " Jfwpce58XD6gk~uOz4zy2rzV65g PZeKc90WU-8vdQ~Oc451Fw2tpEM");
 			return (p.waitFor() == 0);
 		}
 		catch (Exception e) {
