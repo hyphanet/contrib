@@ -9,8 +9,9 @@
 #include <pthread.h>
 
 #define LISTEN_PORT               6666
-#define DATABASE_SYNC_INTERVAL    10
-#define RECENT_ADDITIONS_LENGTH   25
+#define DATABASE_SYNC_INTERVAL    60
+#define RECENT_ADDITIONS_LENGTH   50
+#define FPROXY_ADDRESS            "http://localhost:8081/"
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -90,7 +91,7 @@ load_key_database ()
     if (!data) {
 	data = fopen("beable_database", "w");
 	if (!data) return -1;
-	fprintf(data, "freenet:KSK@test.html\nThe Infamous test.html\nThis has been swarming around the Freenet for a long time. Nobody knows who inserted it. This entry is just some nonsense to make my braindead software happy. Oh well.\n%lx\nEND\n", time(NULL));
+	fprintf(data, "freenet:KSK@test.html\nThe Infamous test.html\nThis has been swarming around the Freenet for a long time. Nobody knows who inserted it. This entry is just some nonsense to make my braindead software happy. Oh well.\n666\nEND\n");
 	fclose(data);
 	data = fopen("beable_database", "r");
 	if (!data) return -1;
@@ -159,7 +160,6 @@ database_sync_thread (void *arg)
 	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n", i->key, i->name, i->desc, i->ctime);
 	pthread_mutex_unlock(&mutex);
 	fclose(data);
-	printf("written!\n");
     }
 }
 
@@ -222,8 +222,8 @@ send_index (FILE *socket)
     pthread_mutex_lock(&mutex);
     for (i = 0 ; i < RECENT_ADDITIONS_LENGTH ; i++) {
 	if (!recent_additions[i]) break;
-	fprintf(socket, "<tr><td><a href=\"%s\">%s</a></td><td>%s</td></tr>\n",
-		recent_additions[i]->key, recent_additions[i]->name, recent_additions[i]->desc);
+	fprintf(socket, "<tr><td><a href=\"%s%s\">%s</a></td><td>%s</td></tr>\n",
+		FPROXY_ADDRESS, recent_additions[i]->key, recent_additions[i]->name, recent_additions[i]->desc);
     }
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
@@ -248,7 +248,7 @@ run_search (FILE *socket, char *url)
     pthread_mutex_lock(&mutex);
     for (i = database ; i ; i = i->next)
 	if (strstr(i->name, query) || strstr(i->desc, query))
-	    fprintf(socket, "<tr><td><a href=\"%s\">%s</a></td><td>%s</td></tr>\n", i->key, i->name, i->desc);
+	    fprintf(socket, "<tr><td><a href=\"%s\">%s%s</a></td><td>%s</td></tr>\n", FPROXY_ADDRESS, i->key, i->name, i->desc);
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
@@ -315,7 +315,7 @@ send_data (FILE *socket)
     fputs(one, socket);
     pthread_mutex_lock(&mutex);
     for (i = database ; i ; i = i->next)
-	fprintf(socket, "<tr><td><a href=\"%s\">%s</a></td><td>%s</td></tr>\n", i->key, i->name, i->desc);
+	fprintf(socket, "<tr><td><a href=\"%s%s\">%s</a></td><td>%s</td></tr>\n", FPROXY_ADDRESS, i->key, i->name, i->desc);
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
