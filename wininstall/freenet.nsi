@@ -1,5 +1,3 @@
-# installer generator script for Freenet:
-
 ;uncomment on of the two next lines, depending on the type of installer you are building
 !define VERSION "webinstall"
 #!define VERSION "20020225"
@@ -12,16 +10,13 @@
 !else
   !include "Def_lang.inc"
 !endif
-
 # are we including Java?
 !ifdef embedJava
   OutFile "freenet-Java-${VERSION}.exe"
+!else ifdef WEBINSTALL
+  OutFile "freenet-webinstall.exe"
 !else
-  !ifdef WEBINSTALL
-    OutFile "freenet-webinstall.exe"
-  !else
-    OutFile "freenet-${VERSION}.exe"
-  !endif
+  OutFile "freenet-${VERSION}.exe"
 !endif
 
 # webinstall specific stuff
@@ -40,12 +35,14 @@ LicenseData GNU.txt
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
-InstallDir "$PROGRAMFILES\Freenet0.5 pre5"
+InstallDir "$PROGRAMFILES\Freenet 0.5rc1"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 ShowInstDetails show
 InstProgressFlags smooth
+EnabledBitmap lucas-checked.bmp
+DisabledBitmap lucas-unchecked.bmp
 #CheckBitmap "checked.bmp"
-BGGradient
+#BGGradient
 AutoCloseWindow true
 ;-----------------------------------------------------------------------------------
 Function DetectJava
@@ -166,20 +163,30 @@ Section
   !ifdef WEBINSTALL
     MessageBox MB_OK "You need to have Mfc42.dll in the directory $SYSDIR.$\r$\nIt is not included in this installer, so please download a regular snapshot first.$\r$\nAborting now..."
     Abort
-  !else
+  !else ifdef BUNDLEDMFC42
     DetailPrint "Installing Mfc42.dll"
     SetOutPath "$SYSDIR"
     File "Mfc42.dll"
     ClearErrors
+  !else
+    MessageBox MB_OK "You need to have Mfc42.dll in the directory $SYSDIR.$\r$\nIt is not included in this installer, so please download a snapshot containing it.$\r$\nAborting now..."
+    Abort
   !endif
   MfcDLLExists:
   
+  # Always save a copy of the old fserve.ini
+  CopyFiles "$INSTDIR\flaunch.ini" "$INSTDIR\flaunch.old"
+
   # create the configuration file now
   # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
   IfFileExists "$INSTDIR\freenet.ini" iniFileExisted
-  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
+  Goto doCopyFiles
+
   iniFileExisted:
-  
+    MessageBox MB_YESNO "There is already have a freenet.ini - Keep the settings?" IDNO doCopyFiles
+    CopyFiles "$INSTDIR\freenet.ini" "$INSTDIR\freenet.ini.install"
+
+  doCopyFiles:  
   # Copying the Freenet files to the install dir
   DetailPrint "Copying Freenet files"
   SetOutPath "$INSTDIR\docs"
@@ -189,32 +196,50 @@ Section
   File freenet\tools\*.*
   # copying the real Freenet files now
   File freenet\*.*
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeSize" "0"
   WriteUninstaller "Uninstall-Freenet.exe"
+
+  IfFileExists "$INSTDIR\freenet.ini.install" 0 checkForFiles
+    Delete "$INSTDIR\freenet.ini"
+    Rename "$INSTDIR\freenet.ini.install" "$INSTDIR\freenet.ini"
   
+  checkForFiles:
   # look if there is a freenet.jar and an ext-freenet.jar in the same directory and use this
   IfFileExists "$EXEDIR\lib\freenet.jar" 0 checkedForFiles
 
   # copy the local files and use these instead
   CopyFiles "$EXEDIR\lib\freenet.jar" "$INSTDIR\freenet.jar"
   CopyFiles "$EXEDIR\lib\freenet-ext.jar" "$INSTDIR\freenet-ext.jar"
+  IfErrors removeJars
   CopyFiles "$EXEDIR\seednodes.ref" "$INSTDIR\seednodes.ref"
+  ClearErrors
 
   Goto getFilesDone
+
+  removeJars:
+    Delete "$INSTDIR\freenet.jar"
+    Delete "$INSTDIR\freenet-ext.jar"
+    ClearErrors
 
  checkedForFiles:
   !ifdef WEBINSTALL
     # download the necessary files
-    AddSize 950 ; add 950kb for Freenet.jar
+    AddSize 1500 ; add 1500kb for Freenet.jar
     AddSize 100 ; add 100kb for freenet-ext.jar
     SetOutPath "$TEMP\Freenet"
     File nsisdl.dll
     SetOutPath "$INSTDIR"
     StrCpy $1 "http://freenetproject.org/snapshots/freenet-latest.jar"
-    StrCpy $2 "$INSTDIR\freenet.jar"
+    StrCpy $2 "$INSTDIR\freenet.jar.new"
     Call DownloadFile
     StrCpy $1 "http://freenetproject.org/snapshots/freenet-ext.jar"
-    StrCpy $2 "$INSTDIR\freenet-ext.jar"
+    StrCpy $2 "$INSTDIR\freenet-ext.jar.new"
     Call DownloadFile
+    Delete "$INSTDIR\freenet.jar"
+    Delete "$INSTDIR\freenet-ext.jar"
+    ClearErrors
+    Rename "$INSTDIR\freenet.jar.new" "$INSTDIR\freenet.jar"
+    Rename "$INSTDIR\freenet-ext.jar.new" "$INSTDIR\freenet-ext.jar"
   !else
     # copying the .jar files now
     File freenet\jar\*.*
@@ -238,12 +263,12 @@ SectionIn 1,2
    CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
    
    # Start->Programs->Freenet
-   CreateDirectory "$SMPROGRAMS\Freenet0.5 pre5"
-   CreateShortCut "$SMPROGRAMS\Freenet0.5 pre5\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   WriteINIStr "$SMPROGRAMS\Freenet0.5 pre5\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
-   ;WriteINIStr "$SMPROGRAMS\Freenet0.5 pre5\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
-   CreateShortcut "$SMPROGRAMS\Freenet0.5 pre5\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot" "" "" 0
-   CreateShortCut "$SMPROGRAMS\Freenet0.5 pre5\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
+   CreateDirectory "$SMPROGRAMS\Freenet 0.5rc1"
+   CreateShortCut "$SMPROGRAMS\Freenet 0.5rc1\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   WriteINIStr "$SMPROGRAMS\Freenet 0.5rc1\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
+   ;WriteINIStr "$SMPROGRAMS\Freenet 0.5rc1\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   CreateShortcut "$SMPROGRAMS\Freenet 0.5rc1\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot.exe" "" "" 0
+   CreateShortCut "$SMPROGRAMS\Freenet 0.5rc1\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
  
  ;---------------------------------------------------------------------------------------
@@ -264,8 +289,14 @@ Section
 
   # turn on FProxy by default
   ClearErrors
+  # don't let cfgnode change the storeSize
+  ReadINIStr $8 "$INSTDIR\freenet.ini" "Freenet Node" "storeSize"
+  IfErrors noStoreSize
+
+  runCfgNode:
   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
   IfErrors CfgnodeError
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeSize" $8
   # now calling the GUI configurator
   ExecWait "$INSTDIR\NodeConfig.exe"
   
@@ -279,6 +310,8 @@ Section
   #SeedError:
   #MessageBox MB_OK "There was an error while seeding your node. This might mean that you can´t connect to other nodes lateron."
   #NoSeedError:
+  Rename myOwn.ref myOld.ref
+  ClearErrors
   DetailPrint "Exporting the node reference to MyOwn.ref"
   ExecWait "$INSTDIR\fservew --export myOwn.ref"
   IfErrors ExportError NoExportError
@@ -294,6 +327,11 @@ Section
   MessageBox MB_OK "There was an error while creating the Freenet configuration file. Do you really have Java already installed? Aborting installation now!"
   BringToFront
   Abort
+
+ noStoreSize:
+  ClearErrors
+  StrCpy $8 "0"
+  Goto runCfgNode
  
  End:
 SectionEnd
@@ -358,7 +396,8 @@ StartedNode:
   Delete "$INSTDIR\cfgnode.exe"
   Delete "$INSTDIR\cfgclient.exe"      
   Delete "$INSTDIR\findjava.exe"
-  RMDir /r "$TEMP/Freenet"
+  Delete "$INSTDIR\flaunch.old"
+  RMDir /r "$TEMP\Freenet"
   MessageBox MB_OK "After starting Freenet a little rabbit icon will appear in the lower right corner of your screen (system tray)$\r$\n$\r$\nFreenet is running in this case, you can use it by:$\r$\n  1) Using special applications (i.e. Frost)$\r$\n  2) Right-clicking on the icon and select from the menu$\r$\n  3) Double-click on the icon to open the web gateway (same as Open Gateway from the menu)"
 SectionEnd
 ;------------------------------------------------------------------------------------------
@@ -429,10 +468,22 @@ FunctionEnd
 ;-----------------------------------------------------------------------------------------
 
 Function .onInstFailed
+  MessageBox MB_YESNO|MB_DEFBUTTON2 "Do you want to remove the failed installation" IDNO DoNotDelete
+
   DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet"
   DeleteRegKey HKEY_LOCAL_MACHINE "Software\Freenet"
   RMDir /r $INSTDIR
-  RMDir /r "$TEMP/Freenet"
+
+ DoNotDelete:
+ #if we failed, copy old fserve.log over (since cfgnode probably wasn't run -- nonworking install)
+  IfFileExists "$INSTDIR\flaunch.old" 0 DeleteRemaining
+  Delete "$INSTDIR\flaunch.ini"
+  Rename "$INSTDIR\flaunch.old" "$INSTDIR\flaunch.ini"
+
+ DeleteRemaining:
+  Delete $INSTDIR\freenet.jar.new
+  Delete $INSTDIR\freenet-ext.jar.new
+  RMDir /r "$TEMP\Freenet"
 FunctionEnd
 
 ;-----------------------------------------------------------------------------------------
