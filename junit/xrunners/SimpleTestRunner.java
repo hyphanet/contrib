@@ -36,7 +36,7 @@ public class SimpleTestRunner {
             if (!tr.wasSuccessful()) {
                 System.exit(1);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace(System.out);
             System.exit(1);
         }
@@ -45,12 +45,12 @@ public class SimpleTestRunner {
     private static class SimpleTestListener implements TestListener {
         
         public void addError(Test test, Throwable t) {
-            System.out.println("Test \"" + test + "\" failed do to error: " + t);
+            System.out.println("Test \"" + test + "\" failed due to error: " + t);
             t.printStackTrace(System.out);
         }
 
         public void addFailure(Test test, AssertionFailedError afe) {
-            System.out.println("Test \"" + test + "\" failed do to assertion: " 
+            System.out.println("Test \"" + test + "\" failed due to assertion: " 
                               + afe.getMessage());
         }
 
