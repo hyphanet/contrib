@@ -1,3 +1,3 @@
 #!/bin/sh
 
-g++ -shared -Iinclude -I$JAVA_HOME/include -I$JAVA_HOME/include/linux src/*.cpp -o lib/freenet/support/CPUInformation/libjcpuid-linux.so
+g++ -shared -Iinclude -I$JAVA_HOME/include -I$JAVA_HOME/include/linux src/*.cpp -o lib/freenet/support/CPUInformation/libjcpuid-x86-linux.so
