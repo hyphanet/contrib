@@ -5,7 +5,7 @@
 #include "sha.c"
 #include "aes.c"
 
-#define GRAPHCOUNT 1024
+#define GRAPHCOUNT 512
 
 struct node {
     unsigned int addr;
@@ -90,9 +90,9 @@ alert (const char *s, ...)
 {
     va_list args;
     va_start(args, s);
-    printf("\n");
     vprintf(s, args);
-    printf("\n\n");
+    printf("\n");
+    fflush(stdout);
     va_end(args);
 }
 
@@ -122,8 +122,8 @@ load_graphs ()
 	memcpy(&graphs[i].cbc, &data[n], 2);
 	n += 2;
 	graphs[i].graph = &data[n];
-	n += (graphs[i].dbc + graphs[i].cbc) / 8;
-	if ((graphs[i].dbc + graphs[i].cbc) % 8)
+	n += (graphs[i].dbc * graphs[i].cbc) / 8;
+	if ((graphs[i].dbc * graphs[i].cbc) % 8)
 	    n++;
     }
 }
@@ -153,11 +153,11 @@ insert (int c)
     
     // find the graph for this datablock count
     blocksize = 64 * sqrt(i);
-    g = graphs[i/blocksize];
-    if (!g.dbc) {
+    if (i/blocksize > GRAPHCOUNT) {
 	alert("I do not have a graph for %d data blocks!", i/blocksize);
 	return;
     }
+    g = graphs[i/blocksize];
     
     // allocate space for plaintext hash and data- and check-block hashes
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
@@ -173,6 +173,7 @@ insert (int c)
     len  = dlen + clen;
     
     // read data from client
+    alert("Reading plaintext from client.");
     blocks = mbuf(len);
     memset(&blocks[i], 0, dlen - i);
     if (readall(c, blocks, i) != i) {
@@ -194,13 +195,18 @@ insert (int c)
 	die("blockEncrypt() failed");
     
     // generate check blocks
-    alert("Generating check blocks.");
-    for (i = 0 ; i < g.cbc ; i++)
+    alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);
+    for (i = 0 ; i < g.cbc ; i++) {
+	printf("Check block %2d:", i+1);
 	for (j = 0 ; j < g.dbc ; j++)
-	    if (is_set(&g, j, i))
+	    if (is_set(&g, j, i)) {
 		xor(&blocks[dlen+(i*blocksize)], // check block (modified)
 		    &blocks[j*blocksize], // data block (const)
 		    blocksize);
+		printf(" %d", j+1);
+	    }
+	printf(".\n");
+    }
     
     alert("Hashing blocks.");
     
@@ -211,7 +217,7 @@ insert (int c)
     // generate check block hashes
     for (i = 0 ; i < g.cbc ; i++)
 	sha_buffer(&blocks[dlen+(i*blocksize)], blocksize,
-		   &hashes[(g.dbc+1)*HASHLEN+(i*hlen)]);
+		   &hashes[(g.dbc+1)*HASHLEN+(i*HASHLEN)]);
     
     // send the URI to the client
     if (writeall(c, &hlen, 4) != 4 || writeall(c, hashes, hlen) != hlen) {
@@ -256,7 +262,7 @@ inform ()
     extern int h_errno;
     
     if (!(h = gethostbyname(inform_server))) {
-	printf("%s: %s.\n", inform_server, hstrerror(h_errno));
+	alert("%s: %s.\n", inform_server, hstrerror(h_errno));
 	exit(1);
     }
     
@@ -309,7 +315,7 @@ addref (unsigned int addr)
     
     bytestohex(hex, item->hash, HASHLEN);
     x.s_addr = addr;
-    printf("+ %15s %s\n", inet_ntoa(x), hex);
+    alert("+ %15s %s\n", inet_ntoa(x), hex);
 }
 
 inline void
@@ -325,7 +331,7 @@ rmref (struct node *n)
     tree_copy(tree, &new, n);
     tree = new;
     
-    printf("- %15s %s\n", inet_ntoa(x), hex);
+    alert("- %15s %s\n", inet_ntoa(x), hex);
 }
 
 inline int
@@ -350,7 +356,7 @@ route (char hash[HASHLEN])
 	if (connect(c, &a, sizeof(a)) != -1) {
 	    char hex[HASHLEN*2+1];
 	    bytestohex(hex, n->hash, HASHLEN);
-	    printf("* %15s %s\n", inet_ntoa(a.sin_addr), hex);
+	    alert("* %15s %s\n", inet_ntoa(a.sin_addr), hex);
 	    return c;
 	}
 
