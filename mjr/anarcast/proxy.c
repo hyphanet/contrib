@@ -456,11 +456,20 @@ void avl_remove (struct node **stack[], int stackmax);
 int avl_findwithstack (struct node **tree, struct node ***stack, int *count, char hash[HASHLEN]);
 
 void
+refop (char op, char *hash, unsigned int addr)
+{
+    char hex[HASHLEN*2+1];
+    struct in_addr x;
+    
+    x.s_addr = addr;
+    bytestohex(hex, hash, HASHLEN);
+    alert("%c %15s %s", op, inet_ntoa(x), hex);
+}
+
+void
 addref (unsigned int addr)
 {
-    struct in_addr x;
     int count;
-    char hex[HASHLEN*2+1];
     struct node *n;
     struct node **stack[AVL_MAXHEIGHT];
     
@@ -469,42 +478,36 @@ addref (unsigned int addr)
     
     n->addr = addr;
     sha_buffer((char *) &addr, 4, n->hash);
-    bytestohex(hex, n->hash, HASHLEN);
-    x.s_addr = addr;
-    alert("+ %15s %s", inet_ntoa(x), hex);
     
     if (avl_findwithstack(&tree, stack, &count, n->hash))
 	die("tried to addref() a duplicate reference");
     
     avl_insert(n, stack, count);
+
+    refop('+', n->hash, addr);
 }
 
 void
 rmref (unsigned int addr)
 {
-    char hash[HASHLEN];
-    char hex[HASHLEN*2+1];
-    struct in_addr x;
     int count;
+    char hash[HASHLEN];
     struct node **stack[AVL_MAXHEIGHT];
     
     sha_buffer((char *) &addr, 4, hash);
-    bytestohex(hex, hash, HASHLEN);
-    x.s_addr = addr;
-    alert("- %15s %s", inet_ntoa(x), hex);
     
     if (!avl_findwithstack(&tree, stack, &count, hash))
 	die("tried to rmref() nonexistant reference");
     
     avl_remove(stack, count);
+
+    refop('-', hash, addr);
 }
 
 unsigned int
 route (char hash[HASHLEN])
 {
     int count;
-    struct in_addr x;
-    char hex[HASHLEN*2+1];
     struct node **stack[AVL_MAXHEIGHT];
     
     avl_findwithstack(&tree, stack, &count, hash);
@@ -512,9 +515,7 @@ route (char hash[HASHLEN])
     if (count < 2)
 	die("the tree is empty");
     
-    bytestohex(hex, (*stack[count-2])->hash, HASHLEN);
-    x.s_addr = (*stack[count-2])->addr;
-    alert("* %15s %s", inet_ntoa(x), hex);
+    refop('*', (*stack[count-2])->hash, (*stack[count-2])->addr);
     
     return (*stack[count-2])->addr;
 }
