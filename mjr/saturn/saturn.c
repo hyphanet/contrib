@@ -27,7 +27,6 @@ typedef struct {
 
 void nntp_connect ();
 void nntp_xover ();
-void nntp_noop ();
 void * fcp_put_thread (void *args);
 article * get_article (uint32_t msg_num);
 FILE * read_stduu (FILE *in);
@@ -108,15 +107,6 @@ nntp_xover ()
 badreply:
     fprintf(stderr, "Unexpected reply: %s", line);
     exit(1);
-}
-
-void
-nntp_noop ()
-{
-    char line[512];
-    fprintf(sock, "date\r\n");
-    fflush(sock);
-    fgets(line, 512, sock);
 }
 
 FILE *
