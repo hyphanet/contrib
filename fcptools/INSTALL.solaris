@@ -1,0 +1,18 @@
+Basic Installation for Solaris
+==============================
+
+   These are Solaris specific installation instructions.
+
+   Follow the instructions in INSTALL, substituting 'make' with 'gmake'.
+   Hopefully, everything else is the same.
+
+   -joliveri
+
+Note
+====
+
+   At this time, the FCPtools are not currently working on Solaris.  Help
+   is welcome; in the meantime, I am pruning the source to be more ANSI
+   compliant, as well as fixing the signal/pthreads issue which seems to be
+   the most severe factor keeping FCPtools from Solaris.
+
