@@ -1,0 +1,89 @@
+#@+leo
+#@+node:0::@file INSTALL
+#@+body
+#@@language
+INSTALL file for pyFreenet,
+by David McNab <david@freenet.org.nz>
+11 Feb, 2003
+
+
+INTRODUCTION
+------------
+
+To install this software, you'll need a Python environment,
+preferably 2.2 or later, with distutils installed.
+
+If you want to modify, debug, extend or enhance this module,
+it's best if you can install the Leo meta-structuring code
+editor - http://leo.sourceforge.net. Leo is a great editor,
+because it gives you an excellent hierarchical view of the
+code, and it now allows for seamless integration with the
+2 'official' programmers editors, vim and [x]emacs. The
+code will be far more understandable if you view it with Leo.
+
+Build and installation of pyfreenet is pretty similar to
+building other python modules.
+
+
+HOW TO AND INSTALL
+------------------------
+
+1) Prerequisites:
+   You'll need the following software to be properly
+   built, installed, set up and working:
+
+     * Access to a Freenet node - preferably your own
+     * Python 2.1 or later
+     * Python's distutils (installable on Debian as
+       'python-dev' or 'python2.x-dev')
+
+3) Type:
+
+	  su -c "make install install-doc"
+
+
+Also, you'll find documentation for these classes in
+/usr/share/doc/pyFreenet
+
+
+TROUBLESHOOTING
+---------------
+
+Symptom:
+
+	$ make
+	python setup.py build
+	Traceback (most recent call last):
+	File "setup.py", line 12, in ?
+	from distutils.core import setup, Extension
+	ImportError: No module named distutils.core
+	make: *** [freenet_.so] Error 1
+
+Solution:
+
+	You haven't got python's distutils
+	installed. Please install python-dev
+	package
+
+
+Symptom:
+
+	$ make install
+	epydoc freenet.py freenet_.so
+	make: epydoc: Command not found
+	make: *** [doc] Error 127
+
+Possible cause:
+
+	You don't seem to have epydoc (the python documentation
+    generator) installed.
+
+Solution:
+
+	Install the 'epydoc' package (on debian, this is
+	'python-epydoc').
+
+
+#@-body
+#@-node:0::@file INSTALL
+#@-leo
