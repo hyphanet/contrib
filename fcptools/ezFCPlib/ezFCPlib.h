@@ -39,13 +39,13 @@
 **************************************************************************/
 #ifdef WIN32
 
-typedef SOCKET FCPSOCKET;
-
 #include <malloc.h>
 #include <process.h>
 #include <winsock2.h>
 #include <io.h>
 #include <time.h>
+
+typedef SOCKET FCPSOCKET;
 
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
