@@ -10,6 +10,7 @@ that can be implemented by any competent C programmer.
 General
 ----------------
 
++ Fix spelling in _fcpRecvResponse.c: "Received RoutNotFound message"
 + Implement future_insert(num_days) option.
 
 = Confirm _fcpMetaParse() can handle merging metadata into an already allocated meta struct.

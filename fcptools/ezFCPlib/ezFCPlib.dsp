@@ -182,6 +182,10 @@ SOURCE=.\ezFCPlib.h
 # End Group
 # Begin Source File
 
+SOURCE=.\README
+# End Source File
+# Begin Source File
+
 SOURCE=..\WS2_32.LIB
 # End Source File
 # End Target
