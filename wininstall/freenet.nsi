@@ -18,7 +18,7 @@ UninstallExeName Uninstall-Freenet.exe
 DirText "No files will be placed outside this directory (e.g. Windows\system)"
 
  InstType Minimal
- InstType Full
+ InstType Normal
 
 EnabledBitmap Yes.bmp
 DisabledBitmap No.bmp
@@ -85,6 +85,10 @@ RunJavaFind:
   # running the good ol' Java detection utility on unsuccess
   MessageBox MB_YESNO "I did not find Sun's Java Runtime Environment which is needed for Freenet.$\r$\nHit 'Yes' to open the download page for Java (http://java.sun.com),$\r$\n'No' to look for an alternative Java interpreter on your disks." IDYES GetJava
   Execwait "$INSTDIR\findjava.exe"
+  ExecWait "$INSTDIR\cfgclient.exe"
+  Delete "$INSTDIR\cfgclient.exe"
+
+
   Goto End
  GetJava:
   # Open the download page for Sun's Java
@@ -127,23 +131,18 @@ Section "Freenet (required)"
   Call DetectJava
 
   # create the configuration file now
-  # but get a current seed file first
+  # first get a current seed file
   ExecWait "$INSTDIR\GetSeed"
   BringToFront
   ClearErrors
   # turn on FProxy by default
   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
   IfErrors CfgnodeError
-  # delete the set diskstoresize in a hackish manner, we set our own proposal lateron
+  # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
-  ExecWait "$INSTDIR\cfgclient.exe"
-  IfErrors ConfigError
-
+  
   # now calling the GUI configurator
   ExecWait "$INSTDIR\NodeConfig.exe"
-  # No, we don't want to start FProxy by default
-  ;  replace the above line with the one below if you want to start fproxy automatically
-   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
   
  Seed:
   # seeding the initial references
@@ -188,10 +187,12 @@ SectionEnd
 Section "Startmenu and Desktop Icons"
 SectionIn 1,2
 
+   # Desktop icon
    CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   
+   # Start->Programs->Freenet
    CreateDirectory "$SMPROGRAMS\Freenet0.4"
    CreateShortCut "$SMPROGRAMS\Freenet0.4\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   CreateShortCut "$SMPROGRAMS\Freenet0.4\Fcpproxy.lnk" "$INSTDIR\fcpproxy.exe" "" "$INSTDIR\fcpproxy.exe" 0
    WriteINIStr "$SMPROGRAMS\Freenet0.4\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
    ;WriteINIStr "$SMPROGRAMS\Freenet0.4\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
    ;CreateShortcut "$SMPROGRAMS\Freenet0.4\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
@@ -244,6 +245,7 @@ SectionIn 2
   SetOutPath "$INSTDIR\"
    ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --update --silent'
   File "freenet\fcpproxy\*.*"
+  CreateShortCut "$SMPROGRAMS\Freenet0.4\Fcpproxy.lnk" "$INSTDIR\fcpproxy.exe" "" "$INSTDIR\fcpproxy.exe" 0
 SectionEnd
 ;--------------------------------------------------------------------------------------
 
@@ -268,7 +270,6 @@ StartedNode:
 
   Delete "$INSTDIR\cfgnode.exe"      
   Delete "$INSTDIR\findjava.exe"
-  Delete "$INSTDIR\cfgclient.exe"
   Delete "$INSTDIR\GetSeed.exe"
 SectionEnd
 ;------------------------------------------------------------------------------------------
