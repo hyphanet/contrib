@@ -1,6 +1,6 @@
 README
 
-This source package builds four Freenet FCP components; fwproxy, fcpget,
+This source package builds four Freenet FCP components; fcpproxy, fcpget,
 fcpput and ezFCPlib.
 
 CopyLeft (c) 2001 by David McNab,
@@ -8,7 +8,7 @@ david@rebirthing.co.nz
 
 - fcpputsite is a command-line freesite insertion client - fast and easy.
 
-- fwproxy is a handy http proxy server and forms an ideal fproxy replacement.
+- fcpproxy is a handy http proxy server and forms an ideal fproxy replacement.
 
 - fcpget is a command-line request client, completely based on FCP.
 
@@ -76,7 +76,7 @@ Read the spec in ezfcplib/doc/spec.html for more info.
 
 
 -------------------------------------
-'fwproxy' - the FreeWeb Proxy Server.
+'fcpproxy' - the FreeWeb Proxy Server.
 -------------------------------------
 
 1. Features:
@@ -98,11 +98,11 @@ fproxy-style and freeweb-style requests go to Freenet.
 As you can see in main.c, this proxy listens on port 8888.
 
 If you want, you can edit your .freenetrc file, change the
-fproxy listening port to something else, and set fwproxy to
+fproxy listening port to something else, and set fcpproxy to
 listen on 8081. That way, any links explicitly using
 'http://127.0.0.1:8081/whatever' will work ok.
 
-Also, you'll need to make a directory /usr/share/fwproxy, and
+Also, you'll need to make a directory /usr/share/fcpproxy, and
 copy there the file gateway.html
 
 
