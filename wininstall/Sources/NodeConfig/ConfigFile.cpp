@@ -93,14 +93,14 @@ void CConfigFile::Load()
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumThreads = 120;
 	pAdvanced->m_outputBandwidthLimit = 0;
-	pAdvanced->m_seedFile = "seed.ref";
+	pAdvanced->m_seedFile = "seednodes.ref";
 	pAdvanced->m_nodestatusservlet = true;
 	pAdvanced->m_nodestatusport = 8889;
 	pAdvanced->m_nodestatusclass = "freenet.client.http.NodeStatusServlet";
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
-	pGeek->m_announcementDelay = 5000;
+	pGeek->m_announcementDelay = 1800000;
 	pGeek->m_announcementDelayBase = 2;
 	pGeek->m_announcementPeers = 3;
 	pGeek->m_authTimeout = 30000;
@@ -399,14 +399,14 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "fproxy.class=%s\n",pFProxy->m_fproxyclass);
 	fprintf(fp, "fproxy.port=%d\n",pFProxy->m_fproxyport);
-	fprintf(fp, "fproxy.insertHtl=%d\n",pFProxy->m_fproxyinserthtl);
-	fprintf(fp, "fproxy.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
-	fprintf(fp, "fproxy.filter=%s\n",pFProxy->m_bfproxyfilter?"true":"false");
-	fprintf(fp, "fproxy.passThroughMimeTypes=%s\n",pFProxy->m_strfproxyallowedmime);
-	fprintf(fp, "fproxy.pollForDroppedConnection=%s\n",pFProxy->m_fproxy_pollDroppedConnection?"true":"false");
-	fprintf(fp, "fproxy.splitFileRetryHtlIncrement=%d\n",pFProxy->m_fproxy_splitinchtl);
-	fprintf(fp, "fproxy.splitFileRetries=%d\n",pFProxy->m_fproxy_splitretries);
-	fprintf(fp, "fproxy.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
+	fprintf(fp, "fproxy.params.insertHtl=%d\n",pFProxy->m_fproxyinserthtl);
+	fprintf(fp, "fproxy.params.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
+	fprintf(fp, "fproxy.params.filter=%s\n",pFProxy->m_bfproxyfilter?"true":"false");
+	fprintf(fp, "fproxy.params.passThroughMimeTypes=%s\n",pFProxy->m_strfproxyallowedmime);
+	fprintf(fp, "fproxy.params.pollForDroppedConnection=%s\n",pFProxy->m_fproxy_pollDroppedConnection?"true":"false");
+	fprintf(fp, "fproxy.params.splitFileRetryHtlIncrement=%d\n",pFProxy->m_fproxy_splitinchtl);
+	fprintf(fp, "fproxy.params.splitFileRetries=%d\n",pFProxy->m_fproxy_splitretries);
+	fprintf(fp, "fproxy.params.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
 	fprintf(fp, "\n");
 
 		// FProxy settings
@@ -442,7 +442,7 @@ void CConfigFile::processItem(char *tok, char *val)
 {
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
-	else if (!strcmp(tok, "storeCacheSize"))
+	else if (!strcmp(tok, "storeSize"))
 	//only if we did not set 0 as disk cache size (means we should propose our own default value)
 	{
 
@@ -551,21 +551,21 @@ void CConfigFile::processItem(char *tok, char *val)
 		pFProxy->m_fproxyclass = val;
 	else if (!strcmp(tok, "fproxy.port"))
 		pFProxy->m_fproxyport = atoi(val);
-	else if (!strcmp(tok, "fproxy.insertHtl"))
+	else if (!strcmp(tok, "fproxy.params.insertHtl"))
 		pFProxy->m_fproxyinserthtl = atoi(val);
-	else if (!strcmp(tok, "fproxy.requestHtl"))
+	else if (!strcmp(tok, "fproxy.params.requestHtl"))
 		pFProxy->m_fproxyrequesthtl = atoi(val);
-	else if (!strcmp(tok, "fproxy.filter"))
+	else if (!strcmp(tok, "fproxy.params.filter"))
 		pFProxy->m_bfproxyfilter = atobool(val);
-	else if (!strcmp(tok, "fproxy.passThroughMimeTypes"))
+	else if (!strcmp(tok, "fproxy.params.passThroughMimeTypes"))
 		pFProxy->m_strfproxyallowedmime = val;
-	else if (!strcmp(tok, "fproxy.pollForDroppedConnection"))
+	else if (!strcmp(tok, "fproxy.params.pollForDroppedConnection"))
 		pFProxy->m_fproxy_pollDroppedConnection = atobool(val);
-	else if (!strcmp(tok, "fproxy.splitFileRetryHtlIncrement"))
+	else if (!strcmp(tok, "fproxy.params.splitFileRetryHtlIncrement"))
 		pFProxy->m_fproxy_splitinchtl = atoi(val);
-	else if (!strcmp(tok, "fproxy.splitFileRetries"))
+	else if (!strcmp(tok, "fproxy.params.splitFileRetries"))
 		pFProxy->m_fproxy_splitretries = atoi(val);
-	else if (!strcmp(tok, "fproxy.splitFileThreads"))
+	else if (!strcmp(tok, "fproxy.params.splitFileThreads"))
 		pFProxy->m_fproxy_splitthreads = atoi(val);
 
 	else

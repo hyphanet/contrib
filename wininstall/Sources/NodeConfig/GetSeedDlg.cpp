@@ -23,7 +23,7 @@ CGetSeedDlg::CGetSeedDlg(BOOL silent /*FALSE*/, CWnd* pParent /*NULL*/)
 {
 	m_silent = silent; 
 	CString str;// = progPath;
-	str += (pAdvanced->m_seedFile.IsEmpty())?pAdvanced->m_seedFile:DEFSEEDFILE; //Create the default seed.ref location
+	str += (pAdvanced->m_seedFile.IsEmpty()) ? pAdvanced->m_seedFile : DEFSEEDFILE; //Create the default seednodes.ref location
 	//{{AFX_DATA_INIT(CGetSeedDlg)
 	m_seedURL = _T(DEFSEEDURL);
 	m_seedfile = _T(str);
