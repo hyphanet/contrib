@@ -58,6 +58,16 @@ static int  getrespPending(hFCP *);
 static int  getrespFailed(hFCP *);
 static int  getrespFormatError(hFCP *);
 
+/* FEC specific responses */
+static int  getrespSegmentHeaders(hFCP *);
+static int  getrespSegmentHeaders(hFCP *);
+
+/*
+static int  getresp
+static int  getresp
+static int  getresp
+*/
+
 /* Utility functions.. not directly part of the protocol */
 static int  getrespblock(hFCP *, char *respblock, int bytesreqd);
 static int  getrespline(hFCP *);
@@ -167,6 +177,13 @@ int _fcpRecvResponse(hFCP *hfcp)
 		return getrespFailed(hfcp);
   }
 
+	/* FEC specific */
+  else if (!strcmp(respline, "SegmentHeader")) {
+		hfcp->response.type = FCPRESP_TYPE_SEGMENTHEADER;
+		return getrespSegmentHeaders(hfcp);
+  }
+
+
 	/* Else, who knows what the $#@! it is anyway? */
   else {
 		_fcpLog(FCP_LOG_CRITICAL, "_fcpRecvResponse: bad reply header fron node");
@@ -188,7 +205,7 @@ static int getrespHello(hFCP *hfcp)
 {
 	int len;
 
-	_fcpLog(FCP_LOG_DEBUG, "parsing NodeHello response");
+	_fcpLog(FCP_LOG_DEBUG, "received NodeHello response");
 
 	while (!getrespline(hfcp)) {
 
@@ -199,8 +216,8 @@ static int getrespHello(hFCP *hfcp)
 		else if (!strncmp(respline, "Node=", 5)) {
 			if (hfcp->description) free(hfcp->description);
 
-			len = strlen(respline) - 4;
-			hfcp->description = (char *)malloc(len);
+			len = strlen(respline) - 5; /* "Node=" is 5 bytes */
+			hfcp->description = (char *)malloc(len + 1);
 			strncpy(hfcp->description, respline+5, len);
 		}
 
@@ -221,24 +238,24 @@ static int getrespSuccess(hFCP *hfcp)
 {
 	int len;
 
-	_fcpLog(FCP_LOG_DEBUG, "parsing Success response");
+	_fcpLog(FCP_LOG_DEBUG, "received Success response");
 
   while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "URI=", 4)) {
 			if (hfcp->response.success.uri) free(hfcp->response.success.uri);
 
-			len = strlen(respline) - 3;
-			hfcp->response.success.uri = (char *)malloc(len);
+			len = strlen(respline) - 4;
+			hfcp->response.success.uri = (char *)malloc(len + 1);
 			strncpy(hfcp->response.success.uri, respline + 4, len);
 		}
 		
 		else if (!strncmp(respline, "PublicKey=", 10)) {
-			strncpy(hfcp->response.success.publickey, respline + 10, 39);
+			strncpy(hfcp->response.success.publickey, respline + 10, 40);
 		}
 		
 		else if (!strncmp(respline, "PrivateKey=", 11)) {
-			strncpy(hfcp->response.success.privatekey, respline + 11, 39);
+			strncpy(hfcp->response.success.privatekey, respline + 11, 40);
 		}
 		
 		else if (!strncmp(respline, "EndMessage", 10)) {
@@ -257,6 +274,8 @@ static int getrespSuccess(hFCP *hfcp)
 
 static int getrespDataFound(hFCP *hfcp)
 {
+	_fcpLog(FCP_LOG_DEBUG, "received DataFound response");
+
 	hfcp->response.datafound.datalength = 0;
 	hfcp->response.datafound.metadatalength = 0;
 
@@ -288,6 +307,8 @@ static int getrespDataFound(hFCP *hfcp)
 
 static int getrespDataChunk(hFCP *hfcp)
 {
+	_fcpLog(FCP_LOG_DEBUG, "received Datachunk response");
+
 	while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "Length=", 7))
@@ -324,6 +345,8 @@ static int getrespDataChunk(hFCP *hfcp)
 
 static int getrespDataNotFound(hFCP *hfcp)
 {
+	_fcpLog(FCP_LOG_DEBUG, "received DataNotFound response");
+
 	while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "EndMessage", 10))
@@ -346,6 +369,8 @@ static int getrespDataNotFound(hFCP *hfcp)
 
 static int getrespRouteNotFound(hFCP *hfcp)
 {
+	_fcpLog(FCP_LOG_DEBUG, "received RouteNotFound response");
+
 	while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "EndMessage", 10))
@@ -368,6 +393,8 @@ static int getrespRouteNotFound(hFCP *hfcp)
 
 static int getrespUriError(hFCP *hfcp)
 {
+	_fcpLog(FCP_LOG_DEBUG, "received UriError response");
+
 	while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "EndMessage", 10))
@@ -386,7 +413,8 @@ static int getrespUriError(hFCP *hfcp)
 
 static int getrespRestarted(hFCP *hfcp)
 {
-	_fcpLog(FCP_LOG_DEBUG, "getrespRestarted(): %s", respline);	
+	_fcpLog(FCP_LOG_DEBUG, "received Restarted response");
+
 	return FCPRESP_TYPE_RESTARTED;
 }
 
@@ -405,22 +433,24 @@ static int getrespKeycollision(hFCP *hfcp)
 {
 	int len;
 
+	_fcpLog(FCP_LOG_DEBUG, "received KeyCollision response");
+
   while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "URI=", 4)) {
 			if (hfcp->response.keycollision.uri) free(hfcp->response.keycollision.uri);
 
-			len = strlen(respline) - 3;
-			hfcp->response.keycollision.uri = (char *)malloc(len);
+			len = strlen(respline) - 4;
+			hfcp->response.keycollision.uri = (char *)malloc(len + 1);
 			strncpy(hfcp->response.keycollision.uri, respline + 4, len);
 		}
 		
 		else if (!strncmp(respline, "PublicKey=", 10)) {
-			strncpy(hfcp->response.keycollision.publickey, respline + 10, 39);
+			strncpy(hfcp->response.keycollision.publickey, respline + 10, 40);
 		}
 		
 		else if (!strncmp(respline, "PrivateKey=", 11)) {
-			strncpy(hfcp->response.keycollision.privatekey, respline + 11, 39);
+			strncpy(hfcp->response.keycollision.privatekey, respline + 11, 40);
 		}
 		
 		else if (!strncmp(respline, "EndMessage", 10))
@@ -441,22 +471,24 @@ static int getrespPending(hFCP *hfcp)
 {
 	int len;
 
+	_fcpLog(FCP_LOG_DEBUG, "received KeyCollision response");
+
   while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "URI=", 4)) {
 			if (hfcp->response.pending.uri) free(hfcp->response.pending.uri);
 
-			len = strlen(respline) - 3;
-			hfcp->response.pending.uri = (char *)malloc(len);
+			len = strlen(respline) - 4;
+			hfcp->response.pending.uri = (char *)malloc(len + 1);
 			strncpy(hfcp->response.pending.uri, respline + 4, len);
 		}
 		
 		else if (!strncmp(respline, "PublicKey=", 10)) {
-			strncpy(hfcp->response.pending.publickey, respline + 10, 39);
+			strncpy(hfcp->response.pending.publickey, respline + 10, 40);
 		}
 		
 		else if (!strncmp(respline, "PrivateKey=", 11)) {
-			strncpy(hfcp->response.pending.privatekey, respline + 11, 39);
+			strncpy(hfcp->response.pending.privatekey, respline + 11, 40);
 		}
 		
 		else if (!strncmp(respline, "EndMessage", 10))
@@ -481,13 +513,16 @@ static int getrespFailed(hFCP *hfcp)
 {
 	int len;
 
+	_fcpLog(FCP_LOG_DEBUG, "received Failed response");
+
   while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "Reason=", 7)) {
 			if (hfcp->response.failed.reason) free(hfcp->response.failed.reason);
 			
-			len = strlen(respline) - 6;
-			strncpy(hfcp->response.failed.reason, respline + 8, len);
+			len = strlen(respline) - 7;
+			hfcp->response.failed.reason = (char *)malloc(len + 1);
+			strncpy(hfcp->response.failed.reason, respline + 7, len);
 		}
 		
 		else if (strncmp(respline, "EndMessage", 10))
@@ -512,17 +547,86 @@ static int getrespFormatError(hFCP *hfcp)
 {
 	int len;
 
+	_fcpLog(FCP_LOG_DEBUG, "received FormatError response");
+
   while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "Reason=", 7)) {
 			if (hfcp->response.formaterror.reason) free(hfcp->response.formaterror.reason);
 			
-			len = strlen(respline) - 6;
-			strncpy(hfcp->response.formaterror.reason, respline + 8, len);
+			len = strlen(respline) - 7;
+			hfcp->response.formaterror.reason = (char *)malloc(len + 1);
+			strncpy(hfcp->response.formaterror.reason, respline + 7, len);
 		}
 		
 		else if (strncmp(respline, "EndMessage", 10))
 			return FCPRESP_TYPE_FORMATERROR;
+  }
+  
+  return -1;
+}
+
+
+static int  getrespSegmentHeaders(hFCP *hfcp)
+{
+	_fcpLog(FCP_LOG_DEBUG, "received SegmentHeader response");
+
+  while (!getrespline(hfcp)) {
+
+		if (!strncmp(respline, "FECAlgorithm=", 13)) {
+			strncpy(hfcp->response.segmentheader.fec_algorithm, respline + 13, 40);
+			_fcpLog(FCP_LOG_DEBUG, "FECAlgorithm: %s", hfcp->response.segmentheader.fec_algorithm);
+		}
+
+		else if (!strncmp(respline, "FileLength=", 11)) {
+			hfcp->response.segmentheader.filelength = xtoi(respline + 11);
+			_fcpLog(FCP_LOG_DEBUG, "FileLength: %d", hfcp->response.segmentheader.filelength);
+		}
+
+		else if (!strncmp(respline, "Offset=", 7)) {
+			hfcp->response.segmentheader.offset = xtoi(respline + 7);
+			_fcpLog(FCP_LOG_DEBUG, "Offset: %d", hfcp->response.segmentheader.offset);
+		}
+
+		else if (!strncmp(respline, "BlockCount=", 11)) {
+			hfcp->response.segmentheader.block_count = xtoi(respline + 11);
+			_fcpLog(FCP_LOG_DEBUG, "BlockCount: %d", hfcp->response.segmentheader.block_count);
+		}
+
+		else if (!strncmp(respline, "BlockSize=", 10)) {
+			hfcp->response.segmentheader.block_size = xtoi(respline + 10);
+			_fcpLog(FCP_LOG_DEBUG, "BlockSize: %d", hfcp->response.segmentheader.block_size);
+		}
+
+		else if (!strncmp(respline, "CheckBlockCount=", 16)) {
+			hfcp->response.segmentheader.checkblock_count = xtoi(respline + 16);
+			_fcpLog(FCP_LOG_DEBUG, "CheckBlockCount: %d", hfcp->response.segmentheader.checkblock_count);
+		}
+
+		else if (!strncmp(respline, "CheckBlockSize=", 15)) {
+			hfcp->response.segmentheader.checkblock_size = xtoi(respline + 15);
+			_fcpLog(FCP_LOG_DEBUG, "CheckBlockSize: %d", hfcp->response.segmentheader.checkblock_size);
+		}
+
+		else if (!strncmp(respline, "Segments=", 9)) {
+			hfcp->response.segmentheader.segments = xtoi(respline + 9);
+			_fcpLog(FCP_LOG_DEBUG, "Segments: %d", hfcp->response.segmentheader.segments);
+		}
+
+		else if (!strncmp(respline, "SegmentNum=", 11)) {
+			hfcp->response.segmentheader.segment_num = xtoi(respline + 11);
+			_fcpLog(FCP_LOG_DEBUG, "SegmentNum: %d", hfcp->response.segmentheader.segment_num);
+		}
+
+		else if (!strncmp(respline, "BlocksRequired=", 15)) {
+			hfcp->response.segmentheader.blocks_required = xtoi(respline + 15);
+			_fcpLog(FCP_LOG_DEBUG, "BlocksRequired: %d", hfcp->response.segmentheader.blocks_required);
+		}
+
+ 		else if (!strncmp(respline, "EndMessage=", 10)) {
+			_fcpLog(FCP_LOG_DEBUG, "response: %s", respline);
+			return 0;
+		}
   }
   
   return -1;

@@ -156,8 +156,8 @@ typedef struct {
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_SUCCESS;
 
 typedef struct {
@@ -173,15 +173,15 @@ typedef struct {
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_KEYCOLLISION;
 
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_PENDING;
 
 typedef struct {
@@ -193,7 +193,7 @@ typedef struct {
 } FCPRESP_FORMATERROR;
 
 typedef struct {
-	char  fec_algorithm[40];
+	char  fec_algorithm[41];
  
 	int   filelength;
 	int   offset;
@@ -203,7 +203,7 @@ typedef struct {
 	int   checkblock_size;
 	int   segments;
 	int   segment_num;
-	int   blocks__required;
+	int   blocks_required;
 } FCPRESP_SEGMENTHEADER;
 
 typedef struct {
@@ -370,21 +370,18 @@ extern "C" {
 #endif
 	
 	/* Handle management functions */
-	hFCP      *_fcpCreateHFCP(void);
-	hURI      *_fcpCreateHURI(void);
-	hChunk    *_fcpCreateHChunk(void);
-	hKey      *_fcpCreateHKey(void);
-	hMetadata *_fcpCreateHMetadata(void);
+	hFCP   *_fcpCreateHFCP(void);
+	void    _fcpDestroyHFCP(hFCP *);
 
-	int   _fcpParseURI(hURI *uri, char *key);
+	hURI   *_fcpCreateHURI(void);
+	int     _fcpParseURI(hURI *uri, char *key);
+	void    _fcpDestroyHURI(hURI *);
 
-	/* Handle destruction functions */
-	void  _fcpDestroyHFCP(hFCP *);
-	void  _fcpDestroyHURI(hURI *);
-	void  _fcpDestroyHChunk(hChunk *);
-	void  _fcpDestroyHKey(hKey *);
-	void  _fcpDestroyHMetadata(hMetadata *);
-	
+	hChunk *_fcpCreateHChunk(void);
+	void    _fcpDestroyHChunk(hChunk *);
+
+	hKey   *_fcpCreateHKey(void);
+	void    _fcpDestroyHKey(hKey *);
 
 	/* Socket functions */
 	int   _fcpSockConnect(hFCP *hfcp);

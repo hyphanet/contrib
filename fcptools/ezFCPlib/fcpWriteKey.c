@@ -56,7 +56,12 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 	/* the first available chunk in the array */
 	chunk = hfcp->key->chunks[hfcp->key->chunkCount - 1];
 
+#ifdef CFG_MULTIPLE_CHUNKS
 	chunk_avail = CHUNK_BLOCK_SIZE - chunk->size;
+#else
+	chunk_avail = len;
+#endif
+
 	count = (len > chunk_avail ? chunk_avail : len);
 
 	/* While there's still data to write from caller.. */

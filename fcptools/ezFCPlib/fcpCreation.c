@@ -51,9 +51,11 @@ hFCP *_fcpCreateHFCP(void)
 
 void _fcpDestroyHFCP(hFCP *h)
 {
-	if (h) free(h);
+	if (h) {
+		if (h->host) free(h->host);
+	}
+	free(h);
 }
-
 
 hChunk *_fcpCreateHChunk(void)
 {
@@ -65,15 +67,14 @@ hChunk *_fcpCreateHChunk(void)
 	return h;
 }
 
-
 void _fcpDestroyHChunk(hChunk *h)
 {
 	if (h) {
+		if (h->filename) free(h->filename);
+		if (h->uri) _fcpDestroyHURI(h->uri);
 	}
-
 	free(h);
 }
-
 
 hKey *_fcpCreateHKey(void)
 {
@@ -91,13 +92,19 @@ hKey *_fcpCreateHKey(void)
 void _fcpDestroyHKey(hKey *h)
 {
 	if (h) {
-		_fcpDestroyHURI(h->uri);
-		h->uri = 0;
+		int i = 0;
+
+		if (h->metadata) {
+		}
+		if (h->uri) _fcpDestroyHURI(h->uri);
+		if (h->mimetype) free(h->mimetype);
+
+		while (i < h->chunkCount)
+			_fcpDestroyHChunk(h->chunks[i++]);
 
 		free(h);
 	}
 }
-
 
 hURI *_fcpCreateHURI(void)
 {
@@ -108,29 +115,6 @@ hURI *_fcpCreateHURI(void)
 	
 	return h;
 }
-
-
-hMetadata *_fcpCreateHMetadata(void)
-{
-	hMetadata *h;
-
-	h = (hMetadata *)malloc(sizeof (hMetadata));
-	memset(h, 0, sizeof (hMetadata));
-
-	return h;
-}
-
-
-void _fcpDestroyHMetadata(hMetadata *h)
-{
-	if (h) {
-		if (h->key) free(h->key);
-		if (h->val) free(h->val);
-
-		free(h);
-	}
-}
-
 
 void _fcpDestroyHURI(hURI *h)
 {
@@ -143,7 +127,6 @@ void _fcpDestroyHURI(hURI *h)
 		free(h);
 	}
 }
-
 
 int _fcpParseURI(hURI *uri, char *key)
 {

@@ -42,27 +42,42 @@ extern int   crSockConnect(hFCP *hfcp);
 extern void  crSockDisconnect(hFCP *hfcp);
 
 
+static int   put_file(hFCP *hfcp);
+static int   put_splitfile(hFCP *hfcp);
+static int   put_fec_splitfile(hFCP *hfcp);
+
+
 /*
 	Returns 0 on success.
 */
 int fcpPut(hFCP *hfcp)
 {
+	/* If multiple chunks are defined, it's a standard Splitfile insert. */
+	if (hfcp->key->chunkCount > 1)
+		return put_splitfile(hfcp);
+
+	/* If one chunk is defined, and it's *big*, do an FEC encoded insert. */
+	if (hfcp->key->size > CHUNK_BLOCK_SIZE)
+		return put_fec_splitfile(hfcp);
+
+	/* If it's small, do a quickie */
+	return put_file(hfcp);
+}	
+
+
+/* ************************************************************** */
+/* The rest of the functions in this file are effectively private */
+/* ************************************************************** */
+
+
+static int put_file(hFCP *hfcp)
+{
 	char buf[8193];
 	int fd;
 	int rc;
-
+	
 	hChunk *chunk;
-
-	if (hfcp->key->chunkCount > 1) {
-		_fcpLog(FCP_LOG_DEBUG, "Cannot insert multiple splifile chunks via fcpPut()");
-		return -1;
-	}
-
-	if (hfcp->key->size > CHUNK_BLOCK_SIZE) {
-		_fcpLog(FCP_LOG_DEBUG, "FEC not yet implemented");
-		return -1;
-	}
-
+	
   /* connect to Freenet FCP */
   if (crSockConnect(hfcp) != 0)
     return -1;
@@ -147,7 +162,78 @@ int fcpPut(hFCP *hfcp)
   
   if ((rc != FCPRESP_TYPE_SUCCESS) && (rc != FCPRESP_TYPE_KEYCOLLISION))
     return -1;
-	else
-		return 0;
+
+	_fcpLog(FCP_LOG_NORMAL, "Inserted key: %s", hfcp->response.success.uri);
+
+	/* Before returning, set all the hfcp-> fields proper, so that the response
+		 struct can be re-used on next call to _fcpRecvResponse(). */
+	return 0;
+}
+
+
+static int put_splitfile(hFCP *hfcp)
+{
+	return 0;
+}
+
+
+static int put_fec_splitfile(hFCP *hfcp)
+{
+	char buf[8193];
+	int fd;
+	int rc;
+	
+	hChunk *chunk;
+	
+  /* connect to Freenet FCP */
+  if (crSockConnect(hfcp) != 0)
+    return -1;
+	
+  if (hfcp->key->metadata != NULL) {
+		/* Code for inserting with metadata */
+
+  }
+  else {
+    snprintf(buf, 8192,
+						 "FECSegmentFile\nAlgoName=OnionFEC_a_1_2\nFileLength=%x\nEndMessage\n",
+						 hfcp->key->size
+						 );
+  }
+
+	/* Send fcpID */
+	if (send(hfcp->socket, _fcpID, 4, 0) == -1)
+		 return -1;
+		 
+	/* Open file we are about to send */
+	chunk = hfcp->key->chunks[0];
+	if (!(chunk->file = fopen(chunk->filename, "rb"))) {
+		_fcpLog(FCP_LOG_DEBUG, "Could not open chunk for reading in order to insert into Freenet");
+		return -1;
+	}
+
+	/* Send FECSegmentFile command */
+	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "Could not send FECSegmentFile command");
+		return -1;
+	}
+
+	rc = _fcpRecvResponse(hfcp);
+	if (!rc) _fcpLog(FCP_LOG_DEBUG, "FECSegmentFile received ok");
+
+	/* Loop through; build SegmentHeader messages for each chunk */
+
+	/* Send SegmentHeader message along with data for segment */
+
+	/* Receive the BlocksEncoded message once all data has been sent */
+	/* Read the check blocks */
+
+	/* Insert the entire data again, using the normal fcpPut,
+		 which is not quite recursion, but still a little wierd.
+		 Just make sure the size of the key is less than 256k. */
+	/* Insert check blocks along with data blocks */
+
+	/* Insert splitfile metadata */	
+
+	return 0;
 }
 

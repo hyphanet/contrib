@@ -78,6 +78,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		fclose(hfcp->key->chunks[index]->file);	
 		remove(hfcp->key->chunks[index]->filename);
 
+		/* ok, well now *really* nuke it */
 		_fcpDestroyHChunk(hfcp->key->chunks[index]);
 
 		/* Decrement the chunk count; leave it allocated since it will only be
@@ -89,43 +90,4 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 	return fcpPut(hfcp);
 }
-
-
-/* The following can be useful for debugging.. */
-
-#if 0
-static int test(hFCP *hfcp)
-{
-	FILE *f;
-	FILE *ck;
-	char *buf;
-	int rc;
-	int i;
-
-	buf = (char *)malloc(1058);
-	f = fopen("ez-reassembled", "wb");
-
-	_fcpLog(FCP_LOG_DEBUG, "Ultra detailed test of re-assemblence of splitfiles based on hfcp info");
-
-	for (i=0; i < hfcp->key->chunkCount; i++) {
-		ck = fopen(hfcp->key->chunks[i]->filename, "rb");
-
-		_fcpLog(FCP_LOG_DEBUG, "opened file %s for reading", hfcp->key->chunks[i]->filename);
-
-		rc = fgetc(ck);
-		while (rc != -1) {
-			fputc(rc, f);
-			rc = fgetc(ck);
-		}
-
-		fclose(ck);
-		_fcpLog(FCP_LOG_DEBUG, "closed file %s for reading", hfcp->key->chunks[i]->filename);
-	}
-	
-	free(buf);
-	fclose(f);
-
-	return 0;
-}
-#endif
 
