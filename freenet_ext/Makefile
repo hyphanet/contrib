@@ -5,7 +5,7 @@
 #
 # Real Makefile hackers will undoubtably find this somewhat
 # underwhelming. Constructive criticism is welcome.
-#
+# giannijohansson@attbi.com
 
 # Stuff all external dependencies into one
 # jar.  
@@ -25,8 +25,8 @@ freenet-ext:	servlet onion
 		mkdir -p build_dir/javax/servlet/http
 		cd ..; `find javax -name '*.class' -exec cp {} freenet_ext/build_dir/{} \;` 
 		cd ..; `find javax -name '*.properties' -exec cp {} freenet_ext/build_dir/{} \;`
-		cd build_dir; jar xvf ../../fecimpl/onion/alien/fec.jar
-		cd build_dir; jar xvf ../../fecimpl/onion/alien/common.jar
+		cd build_dir; jar xvf ../../fecimpl/onion/alien/onion-fec.jar
+		cd build_dir; jar xvf ../../fecimpl/onion/alien/onion-common.jar
 		rm -rf build_dir/META_INF
 		cp ../fecimpl/onion/alien/onion_LICENSE build_dir
 		cp ../fecimpl/onion/*.class build_dir

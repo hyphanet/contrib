@@ -1,14 +1,23 @@
-README for fred FEC plugin, updated 20020915
+README for fred FEC plugin, updated 20021020
 giannijohansson@attbi.com
 
 This directory contains FECEncoder and FECDecoder plugin 
 implementations for fred.   It was written on top of the 
-Onion Networks Java FEC Library v1.0.2.
+Onion Networks Java FEC Library v1.0.3.
 
 See:
 http://www.onionnetworks.com/components.html
 
 for more information on Onion Networks.
+
+The entire 1.0.3 distribution, including full source is
+in the fec-1.0.3.zip zip file in the alien subdirectory.
+
+NOTE:
+As of 20021020, the 1.0.3 release wasn't up on the default public pages.
+I got it from here:
+
+http://www.onionnetworks.com/developers/fec-1.0.3.zip
 
 DEPLOYING:
 This plugin implementation and the Onion Networks FEC code is
@@ -23,11 +32,12 @@ with 50% redundancy.
 The encoder and decoder are enabled by default in the current version of 
 fred/fproxy.
 
-NATIVE CODE:
-If you want to configure native code support, get the Onion Networks
-Java FEC Library v1.0.2 zip:
 
-http://www.onionnetworks.com/fec/fec-1.0.2.zip
+NATIVE CODE:
+If you want to configure native code support unzip the 
+Java FEC Library v1.0.3 full distribution zip:
+
+./alien/fec-1.0.3.zip
 
 Install the correct native libraries and JNI support jars
 for your system.
@@ -43,7 +53,8 @@ stderr after executing the first FCP FEC command after startup.
 If you see the messages:
 "Unable to find native library for fec8"
 "Unable to find native library for fec16" 
-The JNI code couldn't be loaded.
+The JNI code couldn't be loaded and the pure Java implementation
+is being used instead.
 
 If you don't see any message the JNI code is working.
 
@@ -127,6 +138,12 @@ http://www.gnu.org/ for further details of the GPL.
 
 See the file onion_LICENSE for licensing information for
 the Onion Networks code.
+
+
+
+
+
+
 
 
 

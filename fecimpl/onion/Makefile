@@ -1,13 +1,13 @@
 # Modify to point to your Freenet tree or jar.
 
 FREENET_CP=../../../freenet/build
-ONION_CP=./alien/common.jar:./alien/fec.jar
+ONION_CP=./alien/onion-common.jar:./alien/onion-fec.jar
 
 
 #FREENET_CP = ../../..
-#ONION_CP = ./alien/common.jar:./alien/fec.jar
+#ONION_CP = ./alien/onion-common.jar:./alien/onion-fec.jar
 
-DISTRO_TAG=onionfec-0.1
+DISTRO_TAG=onionfec-0.2
 
 LOCAL_CP=.:${ONION_CP}:${FREENET_CP}
 
