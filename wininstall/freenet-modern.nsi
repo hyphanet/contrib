@@ -136,10 +136,19 @@ XPStyle on
 ;     (Prompting user if such files actually exist)
 Section "-Local Lib Install" SecLocalLibInstall # hidden
 
+  IfFileExists "$INSTDIR\*.*" 0 NotNewDirectory
+  # Create a flag that says whether this installer created the directory or not ...
+  # .. if it did then it should delete the directory again when installation fails
+  SetDetailsPrint none
   SetOutPath "$INSTDIR"
-  WriteRegStr HKLM "Software\${MUI_PRODUCT}" "instpath" "$INSTDIR"
+  FileOpen $R0 "$INSTDIR\__newdir__" "w"
+  FileClose $R0
+  SetDetailsPrint both
 
-  Call DetectJava
+  NotNewDirectory:
+  SetOutPath "$INSTDIR"
+
+  WriteRegStr HKLM "Software\${MUI_PRODUCT}" "instpath" "$INSTDIR"
 
   IntOp $3 0 + 0 # set to zero - is there no other way?
 
@@ -149,6 +158,8 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
 
   # make sure the files we're downloading don't already exist in the temp dir:
   Delete "$R0\freenet-install\*.*"
+
+  Call DetectJava
 
   # First of all see if we need to install the mfc42.dll
   # Each Win user should have it anyway
@@ -189,15 +200,21 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   # Check that the install dir and the exec dir are not the same -
   # if they are then don't do this check
   IfFileExists "$INSTDIR\__dir__" 0 testlock1
+  SetDetailsPrint none
   Delete "$INSTDIR\__dir__"
+  SetDetailsPrint both
   testlock1:
   IfFileExists "$EXEDIR\__dir__" 0 testlock2
+  SetDetailsPrint none
   Delete "$EXEDIR\__dir__"
+  SetDetailsPrint both
   testlock2:
   FileOpen $R2 "$INSTDIR\__dir__" "w"
-  IfFileExists "$EXEDIR\__dir__" SkipLibInstallTest
   FileClose $R2
+  IfFileExists "$EXEDIR\__dir__" SkipLibInstallTest
+  SetDetailsPrint none
   Delete "$INSTDIR\__dir__"
+  SetDetailsPrint both
   # potentially test to see if the name of the current dir is "freenet-distribution"
   # I think that's a bit too limiting so I'm not going to do that
   #ifFileExists "$2\freenet-distribution\*.*" 0 FinishedLibInstall
@@ -241,7 +258,9 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   CopyFiles "$2\README" "$INSTDIR\README"
   readmenotinstalled:
 
+  SetDetailsPrint none
   SetOutPath "$R0\freenet-install"
+  SetDetailsPrint both
   Push $3
   IntCmp $3 8 libInst4 NoLibInst4 libInst4
   libInst4:
@@ -284,8 +303,9 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   SkipLibInstallTest:
   # used to clear up the temp file handle that we created earlier (to see if the install dir and the exec
   # dir are one and the same)
-  FileClose $R2
+  SetDetailsPrint none
   Delete "$INSTDIR\__dir__"
+  SetDetailsPrint both
   goto FinishedLibInstall
 
   FinishedLibInstall:
@@ -304,87 +324,56 @@ Section "Freenet Node" SecFreenetNode
   GetFullPathName /SHORT $2 $EXEDIR # same for EXEDIR into $2
   GetFullPathName /SHORT $R0 $TEMP # same for TEMP into $R0
 
+  SetDetailsPrint none
   SetOutPath "$R0\freenet-install"
-
-  !ifdef WEBINSTALL
-    Push $3 # so we can retrieve it, as here we will modify $3
-	# Note, must call in DESCENDING order
-    IntCmp $3 8 setSize4 NoSetSize4 setSize4
-    setSize4:
-    AddSize 32 ; add 32kb for NodeConfig.exe
-    IntOp $3 $3 - 8
-    NoSetSize4:
-    IntCmp $3 8 setSize3 NoSetSize3 setSize3
-    setSize3:
-	AddSize 32 ; add 32kb for freenet.exe
-    IntOp $3 $3 - 4
-    NoSetSize3:
-    IntCmp $3 8 setSize2 NoSetSize2 setSize2
-    setSize2:
-    AddSize 100 ; add 100kb for freenet-ext.jar
-    IntOp $3 $3 - 2
-    NoSetSize2:
-    IntCmp $3 8 setSize1 NoSetSize1 setSize1
-    setSize1:
-    AddSize 1500 ; add 1500kb for freenet.jar
-    IntOp $3 $3 - 1
-    NoSetSize1:
-    Pop $3 # retrieve previous value of $3 to carry out actual installation
-  !endif
+  SetDetailsPrint both
 
   IfFileExists "$INSTDIR\seednodes.ref" NoDownloadSeednodes
   IfFileExists "$R0\freenet-install\seednodes.ref" NoDownloadSeednodes
+  # if "Don't Prompt Me" is selected the following message box will not appear and seed download will be automatic
+  # ###TODO
   MessageBox MB_YESNO "To connect to the Freenet network, your Freenet node needs to know about at least one other Freenet node.$\r$\nThis is called a 'Node Reference' or 'seednodes.ref' file.$\r$\nDo you want to download 'seednodes.ref' from the Free Net Project's servers?$\r$\nYou may want to say NO if you have been given a .ref file by a friend,$\r$\nor if you have installed Freenet before and still have the file named seednodes.ref" IDNO NoDownloadSeedNodes
-  AddSize 200 ; add 200K for seednodes.ref
-  NSISdl::download "http://freenetproject.org/snapshots/seednodes.ref" "$R0\freenet-install\seednodes.ref"
+  Push "http://freenetproject.org/snapshots/seednodes.ref"
+  Push "$R0\freenet-install"
+  Push "seednodes.ref"
+  Call RetryableDownload
+  StrCmp $0 "success" seedsuccess
+  MessageBox MB_YESNO "Couldn't download seednodes.ref - Without this file Freenet will not work.$\r$\nDo you want to continue installation anyway?  (You will still need to download seednodes.ref yourself)" IDYES NoDownloadSeedNodes
+  Call AbortCleanup
+
+  seedsuccess:
   ClearErrors
 
   NoDownloadSeedNodes:
-
 
   IntOp $4 $3 + 0 # save $3 in $4 (although it isn't used beyond this point ... yet...)
   IntCmp $3 8 NoInstall4 Install4 NoInstall4
   Install4:
   !ifdef WEBINSTALL
-    NSISdl::download "http://freenetproject.org/snapshots/NodeConfig.exe" "$R0\freenet-install\NodeConfig.exe"
-	StrCmp $0 "success" Success4
-	IfFileExists "$INSTDIR\NodeConfig.exe" PreExistingDownload4 FailedDownload4
-	FailedDownload4:
-    Delete "$R0\freenet-install\NodeConfig.exe"
-	MessageBox MB_OK "Download of NodeConfig.exe failed.  Installation aborted at this time"
-	Call AbortCleanup
-	PreExistingDownload4:
-	MessageBox MB_YESNO "Download of NodeConfig.exe failed - Carry on installation?$\r$\n(This will use your pre-existing NodeConfig.exe)" IDYES NoFailed4
-	goto FailedDownload4
-	Success4:
+    Push "http://freenetproject.org/snapshots/NodeConfig.exe"
+    Push "$R0\freenet-install"
+    Push "NodeConfig.exe"
+    Call CheckedDownload
   !else
     ClearErrors
-	File ".\Freenet\tools\NodeConfig.exe" /ofile="$R0\freenet-install\NodeConfig.exe"
+    File ".\Freenet\tools\NodeConfig.exe" /ofile="$R0\freenet-install\NodeConfig.exe"
     IfErrors TestPreExistingFailedExtract4 Success4
-	TestPreExistingFailedExtract4:
-	IfFileExists "$INSTDIR\NodeConfig.exe" PreExistingExtract4 DiskWriteError
-	PreExistingExtract4:
-	MessageBox MB_YESNO "Couldn't extract NodeConfig.exe - Carry on installation?$\r$\n(This will use your pre-existing NodeConfig.exe)" IDYES NoFailed4
-	goto DiskWriteError
+    TestPreExistingFailedExtract4:
+    IfFileExists "$INSTDIR\NodeConfig.exe" PreExistingExtract4 DiskWriteError
+    PreExistingExtract4:
+    MessageBox MB_YESNO "Couldn't extract NodeConfig.exe - Continue with installation?$\r$\n(This will use your pre-existing NodeConfig.exe)" IDNO DiskWriteError
   !endif
-  NoFailed4:
-  goto +2
+  goto Test3
   NoInstall4:
   IntOp $3 $3 - 8
+  Test3:
   IntCmp $3 4 NoInstall3 Install3 NoInstall3
   Install3:
   !ifdef WEBINSTALL
-    NSISdl::download "http://freenetproject.org/snapshots/freenet.exe" "$R0\freenet-install\freenet.exe"
-	StrCmp $0 "success" Success3
-	IfFileExists "$INSTDIR\freenet.exe" PreExisting3 Failed3
-	Failed3:
-    Delete "$R0\freenet-install\freenet.exe"
-	MessageBox MB_OK "Download of freenet.exe failed.  Installation aborted at this time"
-	Call AbortCleanup
-	PreExisting3:
-	MessageBox MB_YESNO "Download of freenet.exe failed - Carry on installation?$\r$\n(This will use your pre-existing freenet.exe)" IDYES NoFailed3
-	goto Failed3
-	Success3:
+    Push "http://freenetproject.org/snapshots/freenet.exe"
+    Push "$R0\freenet-install"
+    Push "freenet.exe"
+    Call CheckedDownload
   !else
     ClearErrors
 	File ".\Freenet\tools\freenet.exe" /ofile="$R0\freenet-install\freenet.exe"
@@ -392,27 +381,19 @@ Section "Freenet Node" SecFreenetNode
 	TestPreExistingFailedExtract3:
 	IfFileExists "$INSTDIR\freenet.exe" PreExistingExtract3 DiskWriteError
 	PreExistingExtract3:
-	MessageBox MB_YESNO "Couldn't extract freenet.exe - Carry on installation?$\r$\n(This will use your pre-existing freenet.exe)" IDYES NoFailed3
-	goto DiskWriteError
+	MessageBox MB_YESNO "Couldn't extract freenet.exe - Continue with installation?$\r$\n(This will use your pre-existing freenet.exe)" IDNO DiskWriteError
   !endif
-  NoFailed3:
-  goto +2
+  goto Test2
   NoInstall3:
   IntOp $3 $3 - 4
+  Test2:
   IntCmp $3 2 NoInstall2 Install2 NoInstall2
   Install2:
   !ifdef WEBINSTALL
-    NSISdl::download "http://freenetproject.org/snapshots/freenet-ext.jar" "$R0\freenet-install\freenet-ext.jar"
-	StrCmp $0 "success" Success2
-	IfFileExists "$INSTDIR\freenet-ext.jar" PreExisting2 Failed2
-	Failed2:
-    Delete "$R0\freenet-install\freenet-ext.jar"
-	MessageBox MB_OK "Download of freenet-ext.jar failed.  Installation aborted at this time"
-	Call AbortCleanup
-	PreExisting2:
-	MessageBox MB_YESNO "Download of freenet-ext.jar failed - Carry on installation?$\r$\n(This will use your pre-existing freenet-ext.jar)" IDYES NoFailed2
-	goto Failed2
-	Success2:
+    Push "http://freenetproject.org/snapshots/freenet-ext.jar"
+    Push "$R0\freenet-install"
+    Push "freenet-ext.jar"
+    Call CheckedDownload
   !else
     ClearErrors
 	File ".\Freenet\jar\freenet-ext.jar" /ofile="$R0\freenet-install\freenet-ext.jar"
@@ -420,27 +401,19 @@ Section "Freenet Node" SecFreenetNode
 	TestPreExistingFailedExtract2:
 	IfFileExists "$INSTDIR\freenet-ext.jar" PreExistingExtract2 DiskWriteError
 	PreExistingExtract2:
-	MessageBox MB_YESNO "Couldn't extract freenet-ext.jar - Carry on installation?$\r$\n(This will use your pre-existing freenet-ext.jar)" IDYES NoFailed2
-	goto DiskWriteError
+	MessageBox MB_YESNO "Couldn't extract freenet-ext.jar - Continue with installation?$\r$\n(This will use your pre-existing freenet-ext.jar)" IDNO DiskWriteError
   !endif
-  NoFailed2:
-  goto +2
+  goto Test1
   NoInstall2:
   IntOp $3 $3 - 2
+  Test1:
   IntCmp $3 1 NoInstall1 Install1 NoInstall1
   Install1:
   !ifdef WEBINSTALL
-    NSISdl::download "http://freenetproject.org/snapshots/freenet-latest.jar" "$R0\freenet-install\freenet.jar"
-	StrCmp $0 "success" Success1
-	IfFileExists "$INSTDIR\freenet.jar" PreExisting1 Failed1
-	Failed1:
-    Delete "$R0\freenet-install\freenet.jar"
-	MessageBox MB_OK "Download of freenet-latest.jar failed.  Installation aborted at this time"
-	Call AbortCleanup
-	PreExisting1:
-	MessageBox MB_YESNO "Download of freenet-latest.jar failed - Carry on installation?$\r$\n(This will use your pre-existing freenet.jar)" IDYES NoFailed1
-	goto Failed1
-	Success1:
+    Push "http://freenetproject.org/snapshots/freenet-latest.jar"
+    Push "$R0\freenet-install"
+    Push "freenet.jar"
+    Call CheckedDownload
   !else
     ClearErrors
 	File ".\Freenet\jar\freenet.jar" /ofile="$R0\freenet-install\freenet.jar"
@@ -448,13 +421,12 @@ Section "Freenet Node" SecFreenetNode
 	TestPreExistingFailedExtract1:
 	IfFileExists "$INSTDIR\freenet.jar" PreExistingExtract1 DiskWriteError
 	PreExistingExtract1:
-	MessageBox MB_YESNO "Couldn't extract freenet.jar - Carry on installation?$\r$\n(This will use your pre-existing freenet.jar)" IDYES NoFailed1
-	goto DiskWriteError
+	MessageBox MB_YESNO "Couldn't extract freenet.jar - Continue with installation?$\r$\n(This will use your pre-existing freenet.jar)" IDNO DiskWriteError
   !endif
-  NoFailed1:
-  goto +2
+  goto EndTests
   NoInstall1:
   IntOp $3 $3 - 1
+  EndTests:
   IntOp $3 $4 + 0 # restore $3 from $4
 
   # when we get here, the stack contains a list of files that have been successfully downloaded
@@ -541,6 +513,12 @@ Section "Freenet Node" SecFreenetNode
   DontDoRefs:
   Pop $R0
 
+  ; finally remove the 'flag' file if we created it:
+  SetDetailsPrint none
+  Delete "$INSTDIR\__dir__"
+  Delete "$INSTDIR\__newdir__"
+  ClearErrors
+  SetDetailsPrint both
 
 SectionEnd
 
@@ -682,7 +660,6 @@ Function DetectJava
   # This is the first time we run the JavaFind
   StrCpy $5 "No"
 
-StartCheck:
   # First get the installed version (if any) in $2
   # then get the path in $6
 
@@ -698,7 +675,7 @@ StartCheck:
   #We seem to have a JRE now
   Goto GetJRE
   
- DetectTry2:
+  DetectTry2:
   # we did not get a JRE, but there might be a SDK installed
   StrCpy $0 "Software\JavaSoft\Java Development Kit"
   # Get JRE installed version
@@ -709,11 +686,12 @@ StartCheck:
   ReadRegStr $6 HKLM "$0\$2" "JavaHome"
   StrCmp $6 "" RunJavaFind
   
- GetJRE:
+  GetJRE:
   StrCpy $3 "$6\bin\java.exe"
   StrCpy $4 "$6\bin\javaw.exe"
 
   # Check if files exists and write paths
+  SetOutPath "$INSTDIR"
   IfFileExists $3 0 RunJavaFind
   WriteINIStr "$INSTDIR\FLaunch.ini" "Freenet Launcher" "JavaExec" $3
   IfFileExists $4 0 RunJavaFind
@@ -722,47 +700,45 @@ StartCheck:
   # Jump to the end if we did the Java recognition correctly
   Goto End
 
- RunJavaFind:
- 
+  RunJavaFind:
+
   # If RunJavaFind has been already launched, abort installation
   StrCmp $5 "Yes" AbortJava
 
   # Put 'Yes' in $5 to state that RunJavaFind was launched
   StrCpy $5 "Yes"
 
- !ifdef embedJava
+  GetFullPathName /SHORT $R0 $TEMP # get short version of TEMP into $R0
+  SetDetailsPrint none
+  SetOutPath "$R0\freenet-install"
+  SetDetailsPrint both
+  !ifdef embedJava
     # Install Java runtime only if not found
     DetailPrint "Lauching Sun's Java Runtime Environment installation..."
-    SetOutPath "$TEMP"
     File ${JAVAINSTALLER}
     ExecWait "$TEMP\${JAVAINSTALLER}"
     Delete "$TEMP\${JAVAINSTALLER}"
     Goto StartCheck
- !else
-  # running the good ol' Java detection utility on unsuccess
-  MessageBox MB_YESNO "I did not find Sun's Java Runtime Environment which is needed for Freenet.$\r$\nHit 'Yes' to open the download page for Java (http://java.sun.com),$\r$\n'No' to look for an alternative Java interpreter on your disks." IDYES GetJava
-  Execwait "$INSTDIR\findjava.exe"
-  ExecWait "$INSTDIR\cfgclient.exe"
-  Delete "$INSTDIR\cfgclient.exe"
-  
-  # Get the Java path from the updated FLaunch.ini
-  ReadINIStr $3 "$INSTDIR\FLaunch.ini" "Freenet Launcher" "JavaExec"
-  ReadINIStr $4 "$INSTDIR\FLaunch.ini" "Freenet Launcher" "Javaw"
+  !else
+    !ifdef WEBINSTALL
+      DetailPrint "Downloading Java Runtime Environment ..."
+      Push "http://freenetproject.org/snapshots/jre-win32-latest.exe"
+      Push "$R0\freenet-install"
+      Push "jre-win32-latest.exe"
+      Call RetryableDownload
+      StrCmp $0 "success" jredownloadsuccess
+      MessageBox MB_OK "I could not find a Java Runtime Environment installed and I couldn't download one from$\r$\nThe Free Net Project's servers.  Installation has failed.  You could try downloading$\r$\nJava Runtime Environment ('JRE') from http://java.sun.com/getjava/ or you could just try running$\r$\nthis installer again later.  Click OK to cancel this installation"
+      call AbortCleanup
+      jredownloadsuccess:
+      DetailPrint "Installing JAVA ..."
+      ExecWait "$R0\freenet-install\jre-win32-latest.exe"
+      Delete "$R0\freenet-install\jre-win32-latest.exe"
+    !endif
+  !endif
+      
+  goto RunJavaFind
 
-  # Check if files exist
-  IfFileExists $3 0 RunJavaFind
-  IfFileExists $4 0 RunJavaFind
-  Goto End
-  
- GetJava:
-  # Open the download page for Sun's Java
-  ExecShell "open" "http://javasoft.com/"
-  Sleep 5000
-  MessageBox MB_OKCANCEL "Press OK to continue the Freenet installation AFTER having installed Java,$\r$\nCANCEL to abort the installation." IDOK StartCheck
-  Call AbortCleanup
-!endif
-
- AbortJava:
+  AbortJava:
   MessageBox MB_OK|MB_ICONSTOP "I still can't find any Java interpreter. Did you really installed the JRE?$\r$\nInstallation will now stop."
   Call AbortCleanup
   
@@ -777,10 +753,27 @@ FunctionEnd
 
 Function AbortCleanup
 
+    SetDetailsPrint both
     DetailPrint "Aborted installation - Cleaning up any downloaded files..."
     GetFullPathName /SHORT $R0 $TEMP # get short version of TEMP into $R0
     Delete "$R0\freenet-install\*.*"
     RMDir "$R0\freenet-install"
+
+    # also check instdir:  we created a flag at the start of the installation if this was a new folder:
+    IfFileExists "$INSTDIR\__newdir__" 0 NotNewDir
+    # flag exists, meaning we created the $INSTDIR folder, so we delete the $INSTDIR folder
+    SetDetailsPrint none
+    Delete "$INSTDIR\__newdir__"
+    SetDetailsPrint both
+    Delete "$INSTDIR\*.*"
+    ClearErrors
+    SetDetailsPrint none
+    RMDir "$INSTDIR" # Not using /r because we don't want to remove INSTDIR if it contained subdirs.
+    SetDetailsPrint both
+    IfErrors NotNewDir # this is because RMDir will say "Removed $dir" even if it DIDN'T.  Don't want to worry user!
+    DetailPrint "Removed $INSTDIR"
+    NotNewDir:
+
     DetailPrint "Done cleaning up"
 
     # Change "cancel" button caption to "close"
@@ -810,4 +803,72 @@ Function .onInit
   StrCmp ${TEMP} "" onInitEnd
   StrCpy $INSTDIR ${TEMP}
   onInitEnd:
+FunctionEnd
+
+
+Function CheckedDownload
+
+    POP $R2 # local filename
+    POP $R3 # local dir
+    POP $R4 # remote dir+filename
+
+    PUSH $R4
+    PUSH $R3
+    PUSH $R2
+    Call CheckedDownload
+    StrCmp $0 "aborted" aborted
+    goto end
+
+    Aborted:
+    Call AbortCleanup
+
+    end:
+
+FunctionEnd
+
+
+Function RetryableDownload
+
+    POP $R2 # local filename
+    POP $R3 # local dir
+    POP $R4 # remote dir+filename
+
+    StrCpy $R5 "$R3\$R2"
+
+    DetailPrint "Downloading $R2 from $R4 ..."
+    DoDownload:
+    NSISdl::download /TIMEOUT=150000 "$R4" "$R5"
+    StrCmp $0 "success" Success
+    DetailPrint "Download of $R2 failed: $0"
+    SetDetailsPrint none
+    Delete "$R5"
+    SetDetailsPrint both
+    MessageBox MB_YESNO "Download of $R2 failed: '$0'. Retry?" IDYES Retry
+    IfFileExists "$INSTDIR\$R2" PreExistingDownload
+    goto Aborted
+    PreExistingDownload:
+    MessageBox MB_YESNO "Download of $R2 failed - Continue with installation?$\r$\n(This will use your pre-existing $R2 file)" IDYES NoFailed
+    goto Aborted
+
+    Retry:
+    DetailPrint "Retrying download of $R2 ..."
+    goto DoDownload
+
+    NoFailed:
+    DetailPrint "Using preexisting $R2"
+    StrCpy $0 "preexisting"
+    goto end
+
+    Success:
+    DetailPrint "Downloaded $R2 successfully"
+    StrCpy $0 "success"
+    goto end
+
+    Aborted:
+    DetailPrint "Download of $R2 aborted"
+    StrCpy $0 "aborted"
+    goto end
+
+    end:
+
 FunctionEnd
