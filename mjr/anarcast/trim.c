@@ -18,18 +18,18 @@ main (int argc, char **argv)
     extern int errno;
     int n, i;
     
-    if (argc != 2) {
-	printf("Usage: %s <maximum size of directory contents in bytes>\n", argv[0]);
+    if (argc != 3) {
+	printf("Usage: %s <directory to trim> <maximum size in bytes>\n", argv[0]);
 	exit(2);
     }
 
-    max = strtoul(argv[1], &p, 0);
-    if (p != argv[1] + strlen(argv[1])) {
+    max = strtoul(argv[2], &p, 0);
+    if (p != argv[2] + strlen(argv[2])) {
 	puts("Invalid argument.");
 	exit(2);
     }
 
-    if ((i = scandir(".", &d, 0, alphasort)) == -1)
+    if ((i = scandir(argv[1], &d, 0, alphasort)) == -1)
 	die("scandir() failed");
     
     blocks = malloc(sizeof(struct block) * i);
@@ -42,11 +42,13 @@ main (int argc, char **argv)
 		printf("Cannot stat %s! Exiting. (%s)\n", name, strerror(errno));
 		exit(1);
 	    }
-	    strcpy(blocks[n].name, name);
-	    blocks[n].size = s.st_size;
-	    blocks[n].mtime = s.st_mtime;
-	    total += s.st_size;
-	    n++;
+	    if (S_ISREG(s.st_mode)) {
+	        strcpy(blocks[n].name, name);
+	        blocks[n].size = s.st_size;
+	        blocks[n].mtime = s.st_mtime;
+	        total += s.st_size;
+	        n++;
+	    }
 	}
     }
 
