@@ -80,6 +80,9 @@ typedef struct {
 // return a pointer to a new, nulled fcp_metadata
 fcp_metadata * fcp_metadata_new ();
 
+// return a pointer to a new, nulled fcp_document
+fcp_document * fcp_document_new ();
+
 // start a request. returns length of data, or error (<0)
 // if !m, metadata will not be saved for later use.
 int fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
@@ -87,6 +90,9 @@ int fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
 
 // read up to length bytes into buf. returns bytes read, or error (<0)
 int fcp_read (fcp_document *d, char *buf, int length);
+
+// close and free a fcp_document
+int fcp_close (fcp_document *d);
 
 // insert length bytes from in. returns 0 on success, or error (<0)
 int fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
@@ -107,9 +113,6 @@ int fcp_date_redirect (fcp_metadata *m, char *document_name, char *predate,
 // inserts metadata
 // updates uri with final uri
 int fcp_metadata_insert (fcp_metadata *m, char *uri, int htl);
-
-// close and free a fcp_document
-int fcp_close (fcp_document *d);
 
 // free fcp_metadata
 void fcp_metadata_free (fcp_metadata *m);

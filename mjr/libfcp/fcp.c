@@ -26,6 +26,17 @@ fcp_metadata_new ()
     return m;
 }
 
+fcp_document *
+fcp_document_new ()
+{
+    fcp_document *d = malloc(sizeof(fcp_document));
+    pthread_mutex_init(&d->mutex, NULL);
+    pthread_cond_init(&d->cond, NULL);
+    d->cur_part = 0; d->p_count = 0;
+    d->chunks = NULL; d->status = NULL; d->streams = NULL;
+    return d;
+}
+
 int
 fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
 	int threads)
@@ -102,8 +113,6 @@ splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads)
 {
     int i;
     pthread_t thread;
-    pthread_mutex_init(&d->mutex, NULL);
-    pthread_cond_init(&d->cond, NULL);
     d->cur_part = 0; d->htl = htl;
     d->threads = threads; d->activethreads = 0;
     d->p_count = sf->chunk_count;
