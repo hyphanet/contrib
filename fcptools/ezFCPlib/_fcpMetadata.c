@@ -217,13 +217,17 @@ hDocument *cdocAddDoc(hMetadata *meta, char *cdocName)
 {
 	int doc_index;
 
+	/* doc_index holds position of new hDocument pointer */
 	doc_index = meta->cdoc_count;
 
-	/* allocate space for new document */
 	meta->cdoc_count++;
 
-	*(meta->cdocs + doc_index) = malloc(sizeof (hDocument *));
-	*(meta->cdocs + doc_index) = _fcpCreateHDocument();
+	if (doc_index == 0)
+		meta->cdocs = malloc(sizeof (hDocument *));
+	else
+		meta->cdocs = realloc(meta->cdocs, sizeof (hDocument *) * (doc_index+1));
+
+	meta->cdocs[doc_index] = _fcpCreateHDocument();
 		
 	if (cdocName) meta->cdocs[doc_index]->name = strdup(cdocName);
 
@@ -236,17 +240,21 @@ int cdocAddKey(hDocument *doc, char *key, char *val)
 	int field_index;
 
 	field_index = doc->field_count * 2;
-
+	
 	/* add one to the field counter */
 	doc->field_count++;
-
-	/* allocate two char pointers */
-	*(doc->data + field_index) = malloc((sizeof (char *)) * 2);
+	
+	if (field_index == 0)
+		doc->data = malloc(sizeof (char *) * 2);
+	else
+		doc->data = realloc(doc->data, sizeof (char *) * (field_index+1) * 2);
 	
 	/* finally add the key and val */
 	doc->data[field_index]   = strdup(key);
 	doc->data[field_index+1] = strdup(val);
-
+	
+	_fcpLog(FCP_LOG_DEBUG, "stored %s/%s in locations %d,%d", key, val, field_index, field_index+1);
+	
 	return 0;
 }
 
@@ -455,7 +463,6 @@ static int parse_document(hMetadata *meta, char *buf)
   char  val[257];
 
 	int   doc_index;
-	int   field_index;
 
 	hDocument *doc;
 
@@ -495,23 +502,8 @@ static int parse_document(hMetadata *meta, char *buf)
 			else if (!strncasecmp(key, "Info.Description", 16))
 				doc->description = strdup(val);
 			
-			else { /* find the first available position in the array for the new pair */
-				
-				field_index = doc->field_count * 2;
-				
-				/* add one to the field counter */
-				doc->field_count++;
-
-				if (field_index == 0)
-					doc->data = malloc(sizeof (char *) * 2);
-				else
-					doc->data = realloc(doc->data, sizeof (char *) * field_index);
-				
-				/* finally add the key and val */
-				doc->data[field_index]   = strdup(key);
-				doc->data[field_index+1] = strdup(val);
-
-				_fcpLog(FCP_LOG_DEBUG, "stored %s/%s in locations %d,%d", key, val, field_index, field_index+1);
+			else {
+				cdocAddKey(doc, key, val);
 			}
 
 			/* Set type if not already set */
@@ -616,22 +608,6 @@ int main(int argc, char *argv[])
 		
 		printf("\n");
 	}
-
-#if 0	
-	/* test doc lookup */
-	if (!(doc = cdocFindDoc(meta, "date-redirect"))) {
-		printf("cdocFindDoc returned NULL");
-		return -1;
-	}
-
-	/* test field lookup within doc */
-	if (!(val = cdocLookupKey(doc, "DateRedirect.Target"))) {
-		printf("cdocLookupKey returned NULL");
-		return -1;
-	}
-
-	printf("val: %s\n", val);
-#endif
 
 	return 0;
 }

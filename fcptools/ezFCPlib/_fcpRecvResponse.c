@@ -206,7 +206,7 @@ static int getrespInfo(hFCP *hfcp)
 	int  rc;
 
 	rc = 0;
-	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response\n");
+	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response");
 
 	if (hfcp->response.nodeinfo.architecture) free(hfcp->response.nodeinfo.architecture);
 	if (hfcp->response.nodeinfo.operatingsystem) free(hfcp->response.nodeinfo.operatingsystem);
@@ -319,13 +319,11 @@ static int getrespSuccess(hFCP *hfcp)
 		else if (!strncmp(resp, "PublicKey=", 10)) {
 			strncpy(hfcp->response.success.publickey, resp + 10, L_KEY);
 		}
-
-#   if 0 /* not sure why this is here */
+		
 		else if (!strncmp(resp, "Public=", 7)) {
-			strncpy(hfcp->response.success.public, resp + 7, L_KEY);
+			strncpy(hfcp->response.success.publickey, resp + 7, L_KEY);
 		}
-#   endif
-
+		
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.success.privatekey, resp + 11, L_KEY);
 		}
@@ -552,11 +550,9 @@ static int getrespRestarted(hFCP *hfcp)
 		if (!strncmp(resp, "Timeout=", 8)) {
 			hfcp->response.restarted.timeout = (unsigned short)xtol(resp + 8);
 			hfcp->options->timeout = hfcp->response.restarted.timeout;
-
-			/*_fcpLog(FCP_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
 		}
 
-		if (!strncmp(resp, "Reason=", 7)) {
+		else if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.restarted.reason) free(hfcp->response.restarted.reason);
 			
 			hfcp->response.restarted.reason = strdup(resp + 7);

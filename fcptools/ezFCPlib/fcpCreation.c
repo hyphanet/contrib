@@ -101,8 +101,6 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 
 void fcpDestroyHFCP(hFCP *h)
 {
-	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHFCP()");*/
-
 	if (h) {
 
 		if (h->socket != FCP_SOCKET_DISCONNECTED) _fcpSockDisconnect(h);
@@ -116,6 +114,8 @@ void fcpDestroyHFCP(hFCP *h)
 		}
 
 		_fcpDestroyHOptions(h->options);
+		free(h->options);
+
 		_fcpDestroyResponse(h);
 
 		h->socket = FCP_SOCKET_DISCONNECTED;
@@ -176,7 +176,6 @@ hKey *_fcpCreateHKey(void)
 void _fcpDestroyHKey(hKey *h)
 {
 	if (h) {
-		int i;
 
 		if (h->uri) {
 			fcpDestroyHURI(h->uri);
@@ -200,15 +199,8 @@ void _fcpDestroyHKey(hKey *h)
 			free(h->metadata);
 		}
 
-		if (h->segment_count) {
-
-			for (i=0; (unsigned)i < h->segment_count; i++) {
-				_fcpDestroyHSegment(h->segments[i]);
-				free(h->segments[i]);
-			}
-			
-			free(h->segments);
-		}
+		if (h->segment_count)
+			_fcpDestroyHSegments(h);
 	}
 }
 
@@ -239,7 +231,7 @@ hBlock *_fcpCreateHBlock(void)
 {
 	hBlock *h;
 
-	h = malloc(sizeof (hBlock)); /* 1st ! */
+	h = malloc(sizeof (hBlock));
 	memset(h, 0, sizeof (hBlock));
 
 	h->uri = fcpCreateHURI();
@@ -295,6 +287,8 @@ void _fcpDestroyHMetadata(hMetadata *h)
 			_fcpDestroyHMetadata_cdocs(h);
 
 		if (h->encoding) free(h->encoding);
+		if (h->raw) free(h->raw);
+		if (h->rest) free(h->rest);
 	}
 }
 
@@ -313,12 +307,14 @@ void _fcpDestroyHMetadata_cdocs(hMetadata *h)
 					free(h->cdocs[i]->data[j]);
 					free(h->cdocs[i]->data[j+1]);
 				}
+
+				free(h->cdocs[i]->data);
 			}
 
 			free(h->cdocs[i]);
 		}
 
-		/*free(h->cdocs);*/
+		free(h->cdocs);
 		h->cdoc_count = 0;
 	}
 	
@@ -341,6 +337,7 @@ void fcpDestroyHURI(hURI *h)
 	if (h) {
 		if (h->uri_str) free(h->uri_str);
 		if (h->routingkey) free(h->routingkey);
+		if (h->cryptokey) free(h->cryptokey);
 		if (h->filename) free(h->filename);
 		if (h->metastring) free(h->metastring);
 	}
@@ -361,18 +358,17 @@ void _fcpDestroyHDocument(hDocument *h)
 	if (h) {
 		int i;
 		
-		if (h->name) free(h->name);
 		if (h->field_count) {
 			
 			for (i=0; i < (h->field_count * 2); i += 2) {
-				free(*h->data+i);
-				free(*h->data+i+1);
-				
-				free(h->data+i);
-				free(h->data+i+1);
+				free(h->data[i]);
+				free(h->data[i+1]);
 			}
+
+			free(h->data);
 		}
 		
+		if (h->name) free(h->name);
 		if (h->format) free(h->format);
 		if (h->description) free(h->description);
 	}
@@ -405,18 +401,24 @@ void _fcpDestroyHSegment(hSegment *h)
 			for (i=0; i < (unsigned short)h->db_count; i++) {
 				_fcpDestroyHBlock(h->data_blocks[i]);
 				free(h->data_blocks[i]);
+
+				h->data_blocks[i] = 0;
 			}
 			
 			free(h->data_blocks);
+			h->data_blocks = 0;
 		}			
 		
 		if (h->cb_count) {
 			for (i=0; i < (unsigned short)h->cb_count; i++) {
 				_fcpDestroyHBlock(h->check_blocks[i]);
 				free(h->check_blocks[i]);
+
+				h->check_blocks[i] = 0;
 			}
 			
 			free(h->check_blocks);
+			h->check_blocks = 0;
 		}
 	}
 }
@@ -427,9 +429,17 @@ void _fcpDestroyHSegments(hKey *key)
 
 	for (i=0; (unsigned)i < key->segment_count; i++) {
 		_fcpDestroyHSegment(key->segments[i]);
+		free(key->segments[i]);
+
+		key->segments[i] = 0;
 	}
 
-	key->segment_count = 0;
+	if (key->segment_count) {
+		free(key->segments);
+		key->segments = 0;
+		
+		key->segment_count = 0;
+	}
 }
 
 #ifdef fcpCreationTEST

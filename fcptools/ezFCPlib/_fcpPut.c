@@ -408,8 +408,17 @@ int _fcpPutSplitfile(hFCP *hfcp)
 
 	if ((rc = fec_make_metadata(hfcp)) != 0) return rc;
 
+	/* destroy the segment block since it's not needed anymore */
+	_fcpDestroyHSegments(hfcp->key);
+	
 	/* the CHK just inserted is in hfcp->key->uri */
 
+#ifdef DMALLOC 
+	dmalloc_vmessage("*** Exiting _fcpPutSplitfile\n", 0);
+  dmalloc_verify(0); 
+  dmalloc_log_changed(_fcpDMALLOC, 1, 0, 1); 
+#endif 
+ 
 	return 0;
 }
 
@@ -694,13 +703,13 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	}
 	
 	_fcpLog(FCP_LOG_VERBOSE, "Successfully received %u check blocks", bi);
-	
-  _fcpSockDisconnect(hfcp);
-	return 0;
+	rc = 0;
 	
  cleanup: /* this is called when there is an error above */
 	
   _fcpSockDisconnect(hfcp);
+	_fcpLog(FCP_LOG_DEBUG, "exiting fec_encode_segment()");
+	
 	return rc;
 }
 
@@ -792,6 +801,8 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 		fcpParseHURI(segment->data_blocks[bi]->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
 		fcpDestroyHFCP(tmp_hfcp);
+		free(tmp_hfcp);
+		tmp_hfcp = 0;
 
 		_fcpLog(FCP_LOG_VERBOSE, "Inserted data block %u/%u",
 						bi+1, segment->db_count);
@@ -812,7 +823,12 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 	_fcpBlockUnlink(hfcp->key->tmpblock);
 	_fcpBlockUnlink(hfcp->key->metadata->tmpblock);
 
-	free(tmp_hfcp);
+	if (tmp_hfcp) {
+		fcpDestroyHFCP(tmp_hfcp);
+		free(tmp_hfcp);
+	}
+
+	_fcpLog(FCP_LOG_DEBUG, "exiting fec_insert_data_blocks()");
 	
 	return rc;
 }
@@ -860,6 +876,8 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 		fcpParseHURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
 		fcpDestroyHFCP(tmp_hfcp);
+		free(tmp_hfcp);
+		tmp_hfcp = 0;
 
 		_fcpLog(FCP_LOG_VERBOSE, "Inserted check block %u/%u",
 						bi+1, segment->cb_count);
@@ -870,14 +888,16 @@ static int fec_insert_check_blocks(hFCP *hfcp, int index)
 						segment->check_blocks[bi]->uri->uri_str);
 	}
 	
-	free(tmp_hfcp);
-	
-	return 0;
+	rc = 0;
 
  cleanup: /* this is called when there is an error above */
 	
-	fcpDestroyHFCP(tmp_hfcp);
-	free(tmp_hfcp);
+	if (tmp_hfcp) {
+		fcpDestroyHFCP(tmp_hfcp);
+		free(tmp_hfcp);
+	}
+	
+	_fcpLog(FCP_LOG_DEBUG, "entered fec_encode_check_blocks()");
 	
 	return rc;
 }

@@ -27,6 +27,7 @@
 #include "ezFCPlib.h"
 
 #include <fcntl.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,8 +151,6 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 		rc = _fcpPutSplitfile(hfcp);
 
-		_fcpDestroyHSegments(hfcp->key);
-
 		/* CHK uri is already in proper location (hfcp->key->uri) */
 	}
 	
@@ -206,6 +205,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
+
 	return rc;
 }
 
@@ -225,124 +225,60 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 int _fcpInsertRoot(hFCP *hfcp)
 {
 	hFCP      *tmp_hfcp;
+	hMetadata *meta;
 	hDocument *doc;
 
 	char  buf[8193];
 
-	hMetadata *meta;
 	char      *metadata_raw;
 	char      *uri;
 
 	char      *dbr;
-
-	int  bytes;
-	int  byte_count;
-	int  rc;
+	int        rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpInsertRoot()");
 
 	/* first let's be careful w/ our pointers, eh? */
 	tmp_hfcp     = 0;
-	meta         = 0;
 	metadata_raw = 0;
 	uri          = 0;
 	doc          = 0;
+	dbr          = 0;
 
 	meta = _fcpCreateHMetadata();
-
-	if (hfcp->options->meta_redirect) { /* TODO: deprecate along with command line options */
+	
+	/* read metadata on disk (if any) into buf */
+	if (hfcp->key->metadata->size) {
 		
-		/* insert the metadata and store the uri and use as redirect */
-		tmp_hfcp = fcpInheritHFCP(hfcp);
-		fcpOpenKey(tmp_hfcp, "CHK@", FCP_MODE_O_WRITE);
-
 		_fcpBlockLink(hfcp->key->metadata->tmpblock, _FCP_READ);
-
-		bytes = hfcp->key->metadata->size;
-		while (bytes) {
-			
-			/* How many bytes are we writing this pass? */
-			byte_count = (bytes > 8192 ? 8192: bytes);
-			
-			rc = _fcpRead(hfcp->key->metadata->tmpblock->fd, buf, byte_count);
-
-			if ((rc = fcpWriteKey(tmp_hfcp, buf, rc)) < 0) {
-				_fcpLog(FCP_LOG_CRITICAL, "Could not write key data to node");
-				goto cleanup;
-			}
-			
-			/* decrement by number of bytes written to the socket */
-			bytes -= rc;
-		}
-
-		_fcpBlockUnlink(tmp_hfcp->key->metadata->tmpblock);
-		_fcpBlockUnlink(tmp_hfcp->key->tmpblock);
 		
-		/* now insert the metadata as a key */
-		rc = _fcpPutBlock(tmp_hfcp,
-											tmp_hfcp->key->tmpblock,
-											0,
-											"CHK@");
+		/* allocate space for raw metadata */
+		metadata_raw = malloc(hfcp->key->metadata->size + 1);
 		
-		if (rc != 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not insert metadata as a redirect");
-			goto cleanup;
-		}
-
-		/* store the uri and use as redirect target */
-		uri = strdup(tmp_hfcp->key->tmpblock->uri->uri_str);
-		snprintf(buf, 8192, "Version\nRevision=1\nEndPart\nDocument\nMetadataRedirect.Target=%s\nEnd", uri);
-
-		/* cleanup a little */
-		fcpDestroyHFCP(tmp_hfcp);
-		free(tmp_hfcp); tmp_hfcp = 0;
+		/* read it in one pass */
+		_fcpRead(hfcp->key->metadata->tmpblock->fd, metadata_raw, hfcp->key->metadata->size);
+		
+		/* make it a cstrz */
+		metadata_raw[hfcp->key->metadata->size] = 0;
 		
 		/* parse */
-		if (_fcpMetaParse(meta, buf) != 0) {
+		if (_fcpMetaParse(meta, metadata_raw) != 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Error parsing custom metadata");
 			
 			rc = -1;
 			goto cleanup;
 		}
+		
+		_fcpBlockUnlink(hfcp->key->metadata->tmpblock);
 	}
-	else {
-
-		/* read metadata on disk (if any) into buf */
-		if (hfcp->key->metadata->size) {
-			
-			_fcpBlockLink(hfcp->key->metadata->tmpblock, _FCP_READ);
-			
-			/* allocate space for raw metadata */
-			metadata_raw = malloc(hfcp->key->metadata->size + 1);
-			
-			/* read it in one pass */
-			_fcpRead(hfcp->key->metadata->tmpblock->fd, metadata_raw, hfcp->key->metadata->size);
-			
-			/* make it a cstrz */
-			metadata_raw[hfcp->key->metadata->size] = 0;
-
-			/* parse */
-			if (_fcpMetaParse(meta, metadata_raw) != 0) {
-				_fcpLog(FCP_LOG_CRITICAL, "Error parsing custom metadata");
-				
-				rc = -1;
-				goto cleanup;
-			}
-			
-			_fcpBlockUnlink(hfcp->key->metadata->tmpblock);
-		}
-	}
-
+	
 	/* this must happen for both DBR's and non-DBR's */
 	doc = cdocAddDoc(meta, 0);
 	cdocAddKey(doc, "Redirect.Target", hfcp->key->uri->uri_str);
 	
 	/* all the user metadata (and a meta-redirect if specified) is in the
-		 meta struct */
-	
-	_fcpDestroyHMetadata(hfcp->key->metadata);
-	hfcp->key->metadata = _fcpCreateHMetadata();
-	
+		 'meta' struct */
+		
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 	
 	/* check on the dbr option */
@@ -362,7 +298,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 	}
 
 	else {
-		uri = hfcp->key->target_uri->uri_str;
+		uri = strdup(hfcp->key->target_uri->uri_str);
 	}
 	
 	/* open the regular *or* date-coded key (depends on above) */
@@ -384,7 +320,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "inserted redirect key");
 	
-	/* for DBR's, need to insert root key with DateRedirect.Target dcoc */
+	/* for DBR's, need to insert root key with DateRedirect.Target cdoc */
 	if (hfcp->options->dbr) {
 
 		fcpDestroyHFCP(tmp_hfcp);
@@ -417,12 +353,25 @@ int _fcpInsertRoot(hFCP *hfcp)
  cleanup:
 
 	/* Destroy ALL!!! (except for hfcp.. leave that for caller) */
+
 	if (tmp_hfcp) {
 		fcpDestroyHFCP(tmp_hfcp);
 		free(tmp_hfcp);
 	}
 
+	if (doc) {
+		_fcpDestroyHDocument(doc);
+		free(doc);
+	}
+
+	if (meta) {
+		_fcpDestroyHMetadata(meta);
+		free(meta);
+	}
+
 	if (metadata_raw) free(metadata_raw);
+	if (dbr) free(dbr);
+	if (uri) free(uri);
 
 	return rc;
 }

@@ -468,7 +468,7 @@ typedef struct {
 	char  *description;
 
 	int    field_count;
-	char  **data;  /* TODO !!! */
+	char  **data;
 	
 } hDocument;
 
@@ -482,7 +482,7 @@ typedef struct {
 	hBlock     *tmpblock;
 
 	int         cdoc_count;
-	hDocument  **cdocs; /* TODO !!! */
+	hDocument  **cdocs;
 
 	char       *raw;   /* raw freenet metadata (no "rest" parts) */
 	char       *rest;  /* the "rest" part/no freenet cdocs */

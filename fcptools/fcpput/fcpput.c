@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 	hfcp->options->min_timeout = min_timeout;
 
 #ifdef DMALLOC
-	dmalloc_verify(0);
+	/*dmalloc_verify(0);*/
 	dmalloc_log_changed(_fcpDMALLOC, 1, 0, 1);
 #endif
 	  
@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 
 	free(host);
 	free(keyuri);
-	free(metafile);
+	if (metafile) free(metafile);
 
 	for (i=0; i < file_count; i++)
 		free(files[i]);
@@ -268,9 +268,10 @@ int main(int argc, char* argv[])
   fcpTerminate();
 
 #ifdef DMALLOC
-	dmalloc_verify(0);
+	/*dmalloc_verify(0);*/
 	dmalloc_log_changed(_fcpDMALLOC, 1, 0, 1);
 
+	dmalloc_vmessage("*** Exiting fcpput.c\n", 0);
 	dmalloc_shutdown();
 #endif
 

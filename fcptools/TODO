@@ -34,9 +34,9 @@ General:
 + Implement charset & mimetype handling.
 + Clean up Verbose log messages; verify *all* command line options are re-iterated.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
-+ Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= Make hDocument->data & hMetadata->cdocs fields dynamic.
 = Append the filename to the filename-hint section of the returned URI for CHK's.
 = fcpParseHURI() is now crazy redundant; prune some of the replicated code and make it more generic
 	(instead of separating into 3 sections; KSK, SSK, CHK)

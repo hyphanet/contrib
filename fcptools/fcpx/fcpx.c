@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 	int   rc;
 	
 #ifdef DMALLOC
-	/*dmalloc_track(track);*/
+	dmalloc_track(track);
 	_fcpDMALLOC = dmalloc_mark();
 #endif
 	
