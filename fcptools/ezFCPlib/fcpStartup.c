@@ -80,9 +80,8 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 	/* now finish initialization of the logfile, after the settings above */
 	if (logfile) {
 		if (!(_fcpLogStream = fopen(logfile, "a"))) {
-			snprintf(buf, 512, "Could not open logfile \"%s\"", logfile);
 
-			_fcpLog(FCP_LOG_VERBOSE, buf);
+			_fcpLog(FCP_LOG_VERBOSE, "Could not open logfile \"%s\"", logfile);
 			return -1;
 		}
 	}

@@ -71,8 +71,6 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
 
-	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpOpenKeyRead()");
-
 	hfcp->key->openmode = _FCP_O_READ;
 
 	/* not yet implemented */
@@ -84,8 +82,6 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 
 static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 {
-	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpOpenKeyWrite()");
-
 	hfcp->key = _fcpCreateHKey();
 	hfcp->key->openmode = _FCP_O_WRITE;
 
@@ -113,8 +109,6 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 
 	if (hfcp->key->metadata->tmpblock->fd == -1)
 		return -1;
-
-	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");
 
 	return 0;
 }

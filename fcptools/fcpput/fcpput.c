@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
 
 			if (!(file = fopen(metafile, "rb"))) {
 				
-				_fcpLog(FCP_LOG_CRITICAL, "Could not open the metadata file \"%s\"", metafile);
+				_fcpLog(FCP_LOG_CRITICAL, "Could not open metadata file \"%s\"", metafile);
 				return -1;
 			}
 
@@ -139,13 +139,10 @@ int main(int argc, char* argv[])
 
 			metafile_size = file_size(metafile);
 			if (bytes != metafile_size) {
-				_fcpLog(FCP_LOG_CRITICAL, "Dropped metadata");
-				_fcpLog(FCP_LOG_CRITICAL, "Wrote %d/%d (partial/total) bytes of metadata; truncated rest");
+				_fcpLog(FCP_LOG_CRITICAL, "Wrote %d/%d bytes of metadata; discarded rest");
 
 				return -1;
 			}
-			
-			_fcpLog(FCP_LOG_DEBUG, "Successfully wrote key metadata to ezFCPlib");
 		}
 
 		if (fcpCloseKey(hfcp)) return -1;
@@ -160,7 +157,7 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "Operation Successful!");
+	_fcpLog(FCP_LOG_VERBOSE, "Operation Successfull");
 	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->target_uri->uri_str);
 
 	fcpDestroyHFCP(hfcp);

@@ -60,8 +60,6 @@ int _fcpSockConnect(hFCP *hfcp)
 
 	char fcpID[4] = { 0, 0, 0, 2 };
 
-	_fcpLog(FCP_LOG_DEBUG, "attempting socket connection");
-	
 	if (host_is_numeric(hfcp->host)) {
     in_address.s_addr = inet_addr(hfcp->host);
 	}
@@ -91,25 +89,25 @@ int _fcpSockConnect(hFCP *hfcp)
   rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
 
   if (rc < 0) {
-		snprintf(hfcp->error, L_ERROR_STRING, "error binding to port %d: %s", hfcp->port, strerror(errno));
-		_fcpLog(FCP_LOG_DEBUG, hfcp->error);
-
+		_fcpLog(FCP_LOG_CRITICAL, "Error binding to port %d: %s", hfcp->port, strerror(errno));
 		_fcpSockDisconnect(hfcp);
+
     return -1;
   }
 	
   /* connect to server */
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
   if (rc < 0) {
-		snprintf(hfcp->error, L_ERROR_STRING, "error connecting to server %s: %s", hfcp->host, strerror(errno));
-		_fcpLog(FCP_LOG_DEBUG, hfcp->error);
-
+		_fcpLog(FCP_LOG_CRITICAL, "Error connecting to server %s: %s", hfcp->host, strerror(errno));
 		_fcpSockDisconnect(hfcp);
+
 		return -1;
 	}
 
 	/* Send fcpID */
 	send(hfcp->socket, fcpID, 4, 0);
+
+	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%d", hfcp->host, hfcp->port);
 
   return 0;
 }
@@ -130,22 +128,18 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 	FD_SET(hfcp->socket, &readfds);
 	
 	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
-	_fcpLog(FCP_LOG_DEBUG, "_fcpSockRecv(): select returned %d", rc);
-	
 	if (rc < 0) return -1;
 	
 	if (!FD_ISSET(hfcp->socket, &readfds)) {
-		_fcpLog(FCP_LOG_DEBUG, "socket timeout on fd %d", hfcp->socket);
 		return FCP_ERR_TIMEOUT;
 	}
 
 	for (rc = 1; rc > 0; rcvd += rc) {
 		rc = read(hfcp->socket, buf + rcvd, len - rcvd);
-
-		_fcpLog(FCP_LOG_DEBUG, "_fcpSockRecv(): read returned %d", rc);
 	}
 
 	if (rc < 0) { /* bad */
+		_fcpLog(FCP_LOG_DEBUG, "_fcpSockRecv() - read operation returned error code %d", rc);
 		return -1;
 	}
 	

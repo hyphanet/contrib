@@ -68,9 +68,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	if (key_filename) {
 		if ((key_size = file_size(key_filename)) < 0) {
-			snprintf(hfcp->error, L_ERROR_STRING, "Key data not found in file \"%s\"", key_filename);
 
-			_fcpLog(FCP_LOG_VERBOSE, hfcp->error);
+			_fcpLog(FCP_LOG_CRITICAL, "Key data not found in file \"%s\"", key_filename);
 			return -1;
 		}
 	}
@@ -79,9 +78,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	if (meta_filename) {
 		if ((meta_size = file_size(meta_filename)) < 0) {
-			snprintf(hfcp->error, L_ERROR_STRING, "Metadata not found in file \"%s\"", meta_filename);
 
-			_fcpLog(FCP_LOG_VERBOSE, buf);
+			_fcpLog(FCP_LOG_CRITICAL, "Metadata not found in file \"%s\"", meta_filename);
 			return -1;
 		}
 	}
@@ -135,24 +133,24 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
 		break;
 	}
+
+	if (meta_filename) {
+		snprintf(buf, 512, "Uri: %s, Keyfile: %s, Metafile: %s",
+						 hfcp->key->target_uri->uri_str, key_filename, meta_filename);
+	}
+	else {
+		snprintf(buf, 512, "Uri: %s, Keyfile: %s",
+						 hfcp->key->target_uri->uri_str, key_filename);
+	}
 	
-	_fcpLog(FCP_LOG_DEBUG, "fcpPutKeyFromFile() exiting; uri: %s, target_uri: %s",
-					hfcp->key->uri->uri_str,
-					hfcp->key->target_uri->uri_str);
-	
+	_fcpLog(FCP_LOG_VERBOSE, buf);	
 	return 0;
 	
 
- cleanup:
-	if (!hfcp->error[0]) {
+ cleanup: /* rc should be set to an FCP_ERR code */
 
-		/* this should preferably not happen.. but it probably will somehow */
-		strncpy(hfcp->error, "Unspecified", L_ERROR_STRING);
-	}
+	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file: %s", key_filename);
 
-	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file: %s", hfcp->error);
-
-	/* maybe return rc instead? */
-	return -1;
+	return rc;
 }
 

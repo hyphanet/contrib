@@ -390,7 +390,7 @@ typedef struct {
 typedef struct {
 	int        type;
 
-	hURI      *uri;
+	hURI      *uri; /* always just a CHK@ */
 	hURI      *target_uri;  /* used to hold the final key uri */
 
 	int        openmode;

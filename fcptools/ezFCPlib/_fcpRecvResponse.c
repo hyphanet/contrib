@@ -145,7 +145,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 		
 		/* Else, send a warning; a little loose, but this is still in development */
 		else {
-			_fcpLog(FCP_LOG_DEBUG, "_fcpRecvResponse(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "_fcpRecvResponse() - received unhandled field \"%s\"", resp);
 		}
 	}
 	
@@ -166,8 +166,6 @@ static int getrespHello(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "received NodeHello response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
-
-		_fcpLog(FCP_LOG_DEBUG, "NodeHello: %s", resp);
 
 		if (!strncmp(resp, "MaxFileSize=", 12)) {
 			hfcp->max_filesize = xtoi(resp+12);
@@ -191,7 +189,7 @@ static int getrespHello(hFCP *hfcp)
 			return FCPRESP_TYPE_NODEHELLO;
 
 		else
-		_fcpLog(FCP_LOG_DEBUG, "getrespHello(): received unhandled field \"%s\"", resp);
+		_fcpLog(FCP_LOG_DEBUG, "getrespHello() - received unhandled field \"%s\"", resp);
 	}
 
 	if (rc < 0)
@@ -212,10 +210,7 @@ static int getrespSuccess(hFCP *hfcp)
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.success.uri) free(hfcp->response.success.uri);
-
 			hfcp->response.success.uri = strdup(resp+4);
-
-			_fcpLog(FCP_LOG_DEBUG, "getrespSuccess: uri=%s", hfcp->response.success.uri);
 		}
 		
 		else if (!strncmp(resp, "PublicKey=", 10)) {
@@ -231,7 +226,7 @@ static int getrespSuccess(hFCP *hfcp)
 		}
 
 		else
-		_fcpLog(FCP_LOG_DEBUG, "getrespSuccess(): received unhandled field \"%s\"", resp);
+		_fcpLog(FCP_LOG_DEBUG, "getrespSuccess() - received unhandled field \"%s\"", resp);
   }
 	
 	if (rc < 0)
@@ -264,7 +259,7 @@ static int getrespDataFound(hFCP *hfcp)
 			return FCPRESP_TYPE_DATAFOUND;
 
 		else
-		_fcpLog(FCP_LOG_DEBUG, "getrespDataFound(): received unhandled field \"%s\"", resp);
+		_fcpLog(FCP_LOG_DEBUG, "getrespDataFound() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
@@ -299,7 +294,7 @@ static int getrespDataChunk(hFCP *hfcp)
 		}
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespDataChunk(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespDataChunk() - received unhandled field \"%s\"", resp);
 	}
 
 	if (rc < 0)
@@ -322,7 +317,7 @@ static int getrespDataNotFound(hFCP *hfcp)
 			return FCPRESP_TYPE_DATANOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespDataNotFound(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespDataNotFound() - received unhandled field \"%s\"", resp);
 	}
 
 	if (rc < 0)
@@ -359,7 +354,7 @@ static int getrespRouteNotFound(hFCP *hfcp)
 			return FCPRESP_TYPE_ROUTENOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespRouteNotFound(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespRouteNotFound() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
@@ -382,7 +377,7 @@ static int getrespUriError(hFCP *hfcp)
 			return FCPRESP_TYPE_URIERROR;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespUriError(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespUriError() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
@@ -409,7 +404,7 @@ static int getrespRestarted(hFCP *hfcp)
 			return FCPRESP_TYPE_RESTARTED;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespRestarted(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespRestarted() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
@@ -430,10 +425,7 @@ static int getrespKeycollision(hFCP *hfcp)
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.keycollision.uri) free(hfcp->response.keycollision.uri);
-
 			hfcp->response.keycollision.uri = strdup(resp+4);
-
-			_fcpLog(FCP_LOG_DEBUG, "getrespKeycollision: uri=%s", hfcp->response.keycollision.uri);
 		}
 		
 		else if (!strncmp(resp, "PublicKey=", 10)) {
@@ -448,7 +440,7 @@ static int getrespKeycollision(hFCP *hfcp)
 			return FCPRESP_TYPE_KEYCOLLISION;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespKeyCollision(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespKeyCollision() - received unhandled field \"%s\"", resp);
   }
 	
 	if (rc < 0)
@@ -475,10 +467,7 @@ static int getrespPending(hFCP *hfcp)
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.pending.uri) free(hfcp->response.pending.uri);
-
 			hfcp->response.pending.uri = strdup(resp+4);
-
-			_fcpLog(FCP_LOG_DEBUG, "getrespPending: uri=%s", hfcp->response.pending.uri);
 		}
 		
 		else if (!strncmp(resp, "PublicKey=", 10)) {
@@ -498,7 +487,7 @@ static int getrespPending(hFCP *hfcp)
 			return FCPRESP_TYPE_PENDING;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespPending(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespPending() - received unhandled field \"%s\"", resp);
   }
 	
 	if (rc < 0)
@@ -537,7 +526,7 @@ static int getrespFailed(hFCP *hfcp)
 			return FCPRESP_TYPE_FAILED;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespFailed(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespFailed() - received unhandled field \"%s\"", resp);
   }
   
 	if (rc < 0)
@@ -568,16 +557,14 @@ static int getrespFormatError(hFCP *hfcp)
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.formaterror.reason) free(hfcp->response.formaterror.reason);
-			
 			hfcp->response.formaterror.reason = strdup(resp + 7);
-			_fcpLog(FCP_LOG_DEBUG, "formaterror.reason: %s", resp + 7);
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_FORMATERROR;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespFormatError(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespFormatError() - received unhandled field \"%s\"", resp);
   }
   
 	if (rc < 0)
@@ -636,7 +623,7 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 			return FCPRESP_TYPE_SEGMENTHEADER;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespSegmentHeaders(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespSegmentHeaders() - received unhandled field \"%s\"", resp);
   }
 
   /* oops.. there's been a socket error of sorts */
@@ -666,7 +653,7 @@ static int getrespBlocksEncoded(hFCP *hfcp)
 			return FCPRESP_TYPE_BLOCKSENCODED;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespBlocksEncoded(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespBlocksEncoded() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
@@ -691,7 +678,7 @@ static int getrespMadeMetadata(hFCP *hfcp)
 			return FCPRESP_TYPE_MADEMETADATA;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespMadeMetadata(): received unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "getrespMadeMetadata() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
