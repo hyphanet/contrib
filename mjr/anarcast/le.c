@@ -63,7 +63,7 @@ recurse (char *path)
 		printf("Cannot open %s. Aborting. (%s)\n", newpath, strerror(errno));
 		exit(1);
 	    }
-	    if (write(tfd, d[n]->d_name, strlen(d[n]->d_name)) == -1) // write null-terminated file name
+	    if (write(tfd, d[n]->d_name, strlen(d[n]->d_name)+1) != strlen(d[n]->d_name)+1) // write null-terminated file name
 		die("write() failed");
 	    if (write(tfd, &s.st_size, 4) != 4) // write key data length
 		die("write() failed");

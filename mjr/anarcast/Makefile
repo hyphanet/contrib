@@ -1,5 +1,5 @@
 CFLAGS = -O -Wall
-PROGRAMS = inform insert le proxy register request server sync trim
+PROGRAMS = inform insert lc le proxy register request server sync trim
 DEPS = anarcast.h graphs.h crypt.c Makefile
 
 all: $(PROGRAMS)
