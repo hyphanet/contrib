@@ -1,4 +1,4 @@
-README - Freenet 0.3.7
+README - Freenet 0.3.9
 
 IMPORTANT WARNING
 -----------------
