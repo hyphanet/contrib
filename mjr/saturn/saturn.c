@@ -319,7 +319,7 @@ main (int argc, char **argv)
 	}
     } while (article_count);
     
-    return 0;
+    pthread_exit(NULL);
 }
 
 #define DEC(Char) (((Char) - ' ') & 077)
