@@ -57,8 +57,7 @@
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
 
-/*#define DIR_SEP '\\'*/
-#define DIR_SEP '/'
+#define DIR_SEP '\\'
 
 /**************************************************************************
   UNIX specifics

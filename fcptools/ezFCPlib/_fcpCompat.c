@@ -67,13 +67,12 @@ int _fcpTmpfile(char **filename)
 
 		snprintf(s, 512, "%s%ceztmp_%x", _fcpTmpDir, DIR_SEP, (unsigned int)rand());
 
-		if (stat(s, &st) == -1)
+		if (stat(s, &st))
 			if (errno == ENOENT) search = 0;
 	}
 
 	/* set the filename parameter to the newly generated Tmp filename */
-	*filename = (char *)malloc(strlen(s) + 1);
-	strcpy(*filename, s);
+	*filename = strdup(s);
 
 #ifdef WIN32
 	/* this call should inherit permissions from the parent dir */
@@ -201,14 +200,17 @@ long file_size(char *filename)
 {
 	int size;
 
-#ifdef WIN32
+#ifdef HOSED
 	{
 		HANDLE hFind;
 		WIN32_FIND_DATA finddata;
 
 		hFind = FindFirstFile(filename, &finddata);
-		if (hFind == INVALID_HANDLE_VALUE
 
+		if (hFind == INVALID_HANDLE_VALUE)
+			size = -1;
+		else
+			size = finddata.nFileSizeLow;
 	}
 
 #else
@@ -217,11 +219,11 @@ long file_size(char *filename)
 
 		if (!filename) size = -1;
 		else if (stat(filename, &fstat)) size = -1;
+		else size = fstat.st_size;
 	}
-
 
 #endif
 
-	return fstat.st_size;
+	return size;
 }
 

@@ -78,7 +78,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 		 (perhaps only metadata) */
 	
 	if (key_filename) {
-		if ((hfcp->key->size = file_size(key_filename)) <= 0) {
+		if ((hfcp->key->size = file_size(key_filename)) < 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "put_file(): Error %d - Key file %s does not exist", hfcp->key->size, key_filename);
 			return -1;
@@ -90,7 +90,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	/* now metadata */
 
 	if (meta_filename) {
-		if ((hfcp->key->metadata->size = file_size(meta_filename)) <= 0) {
+		if ((hfcp->key->metadata->size = file_size(meta_filename)) < 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "put_file(): Metadata file %s does not exist", meta_filename);
 			return -1;
@@ -351,14 +351,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 {
 	int rc;
-
-	int kfd = -1;
-	int mfd = -1;
-
 	int index;
-
-	FILE *kfile;
-	FILE *mfile;
 
 	if (key_filename) {
 		if ((hfcp->key->size = file_size(key_filename)) < 0) {
@@ -387,16 +380,6 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 		_fcpLog(FCP_LOG_CRITICAL, "No data found to insert");
 		return -1;
-	}
-
-	if (hfcp->key->size > 0) {
-		kfile = fopen(key_filename, "rb");
-		kfd = fileno(kfile);
-	}
-	
-	if (hfcp->key->metadata->size > 0) {
-		mfile = fopen(meta_filename, "rb");
-		mfd = fileno(mfile);
 	}
 
 	if ((rc = fec_segment_file(hfcp)) != 0) return rc;
@@ -827,25 +810,25 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		goto cleanup;
 	}
-
 	kfd = fileno(kfile);
 
 	/******************************************************************/
 	/* insert data blocks first */
 	/******************************************************************/
-	
+
+	tmp_hfcp = fcpInheritHFCP(hfcp);
+
 	while (bi < segment->db_count) { /* while (bi < segment->db_count) */
 
 		_fcpLog(FCP_LOG_DEBUG, "inserting data block - segment: %d/%d, block %d/%d",
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->db_count);
 
+		fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
+
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
-		tmp_hfcp = fcpInheritHFCP(hfcp);
-		fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
-
 		bytes = segment->block_size;
 		while (bytes) {
 			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
@@ -860,13 +843,13 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 				goto cleanup;
 			}
 			
-			/* decrement by number of bytes written to the socket */
+			/* decrement by number of bytes read from the socket */
 			bytes -= byte_count;
 		}
 		
 		if (bytes) _fcpLog(FCP_LOG_DEBUG, "must send zero-padded data");
-		
-		/* check to see if there's pad bytes we have to send */
+	
+		/* check to see if there's pad bytes we have to retrieve */
 		memset(buf, 0, L_FILE_BLOCKSIZE);
 		while (bytes) {
 			byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
@@ -878,12 +861,13 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 				goto cleanup;
 			}
 
-			/* decrement by number of bytes written to the socket */
+			/* decrement by number of bytes read from the socket */
 			bytes -= byte_count;
 		}
 
 		/* now that the block is written to a temp file, insert it as a CHK
-			 (no metadata here). */
+			 (no metadata here). First close the files. */
+		unlink_key(tmp_hfcp->key);
 
 		_fcpLog(FCP_LOG_DEBUG, "file to insert: %s", tmp_hfcp->key->tmpblock->filename);
 

@@ -63,8 +63,10 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 	_fcpTmpDir = strdup(buf);
 
 	/* both of these paths must have their \'s converted to /'s */
+	/*
 	toUnix(_fcpTmpDir);
 	toUnix(_fcpHomeDir);
+	*/
 
 #else
 
