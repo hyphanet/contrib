@@ -1,37 +1,29 @@
-//
-//  This code is part of FreeWeb - an FCP-based client for Freenet
-//
-//  Designed and implemented by David McNab, david@rebirthing.co.nz
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The FreeWeb website is at http://freeweb.sourceforge.net
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
-//  Note that most of the modules comprising fcpproxy have been taken from
-//  the Internet Junkbusters proxy, and adapted to route freenet key requests
-//  out to Freenet.
-//
-//  The original Internet Junkbusters proxy - source and binary - is available
-//  from the Junkbusters website at http://www.junkbusters.com
-//
+/*
+  This code is part of FreeWeb - an FCP-based client for Freenet
 
-#ifdef WINDOWS
-#include "windows.h"
-#include "string.h"
-#include "stdio.h"
-#endif
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
 
-#include "../ezFCPlib/ezFCPlib.h"
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
 
-#define NULL ((void *)0)
+  This code is distributed under the GNU Public Licence (GPL) version 2.
+  See http://www.gnu.org/ for further details of the GPL.
 
-//
-// IMPORTED DECLARATIONS
-//
+  Note that most of the modules comprising fcpproxy have been taken from
+  the Internet Junkbusters proxy, and adapted to route freenet key requests
+  out to Freenet.
 
+  The original Internet Junkbusters proxy - source and binary - is available
+  from the Junkbusters website at http://www.junkbusters.com
+*/
+
+
+#include "ezFCPlib.h"
+
+/*
+  IMPORTED DECLARATIONS
+*/
 extern void fcpreq_setgateway(char *dir);
 extern void fcpreq_webblock(int enabled);
 extern void fcpreq_setdir(char *dir);
@@ -60,9 +52,9 @@ char progdir[256];
 char *gatewayFile = "gateway.html";
 #endif
 
-//
-// PRIVATE DECLARATIONS
-//
+/*
+  PRIVATE DECLARATIONS
+*/
 
 static int usage();
 
@@ -114,7 +106,7 @@ int main(int argc, char *argv[])
 
     fcpreq_webblock(1);
     fcpreq_setgateway(gatewayFile);
-    printf("Launching fcpproxy...\n");
+    printf("Launching fcpproxy (%s)...\n", VERSION);
     if (singleThread)
         printf("Single thread mode...\n");
 

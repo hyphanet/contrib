@@ -1,4 +1,4 @@
-char *jcc_rcs = "$Id: proxy.c,v 1.2 2001/10/09 17:28:28 dekarl Exp $";
+char *jcc_rcs = "$Id: proxy.c,v 1.3 2001/12/02 20:12:32 joliveri Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
@@ -11,28 +11,10 @@ char *jcc_rcs = "$Id: proxy.c,v 1.2 2001/10/09 17:28:28 dekarl Exp $";
  * cvs, or as precompiled binaries
  */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include <signal.h>
-#include <fcntl.h>
 #include <errno.h>
-
-#ifdef _WIN32
-
-#include <sys/timeb.h>
-#include <windows.h>
-#include <io.h>
-#include <process.h>
-
-#else
-
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
+#include <wait.h>
 
 #ifdef __BEOS__
 #include <socket.h>	/* BeOS has select() for sockets only. */
@@ -40,9 +22,7 @@ char *jcc_rcs = "$Id: proxy.c,v 1.2 2001/10/09 17:28:28 dekarl Exp $";
 #endif
 
 #ifndef FD_ZERO
-#include <select.h>
-#endif
-
+#include <sys/select.h>
 #endif
 
 #ifdef REGEX
@@ -50,21 +30,19 @@ char *jcc_rcs = "$Id: proxy.c,v 1.2 2001/10/09 17:28:28 dekarl Exp $";
 #endif
 
 #include "ezFCPlib.h"
-
 #include "fcpproxy.h"
 
-//
-// IMPORTED DECLARATIONS
-//
+/*
+  IMPORTED DECLARATIONS
+*/
 
-extern int fcpreq(char *host, int port, char *docpath, char *range, int sock);
+extern int   fcpreq(char *host, int port, char *docpath, char *range, int sock);
+extern char  progdir[];
 
-extern char progdir[];
 
-
-//
-// GLOBAL DECLARATIONS
-//
+/*
+  GLOBAL DECLARATIONS
+*/
 
 char *prog;
 
@@ -121,10 +99,6 @@ char DEFAULT_USER_AGENT[] ="User-Agent: Mozilla/3.01Gold (Macintosh; I; 68K)";
 int debug           = 0;
 int multi_threaded  = 1;
 int hideConsole     = 0;
-
-#ifdef _WIN32
-#define sleep(N)	Sleep(((N) * 1000))
-#endif
 
 char *logfile = NULL;
 FILE *logfp;
@@ -184,7 +158,7 @@ write_socket(int fd, char *buf, int n)
 
 	if(DEBUG(LOG)) fwrite(buf, n, 1, logfp);
 
-#if defined(_WIN32) || defined(__BEOS__)
+#if defined(__BEOS__)
 	return send(fd, buf, n, 0);
 #else
 	return write(fd, buf, n);
@@ -195,7 +169,7 @@ int
 read_socket(int fd, char *buf, int n)
 {
 	if(n <= 0) return(0);
-#if defined(_WIN32) || defined(__BEOS__)
+#if defined(__BEOS__)
 	return recv(fd, buf, n, 0);
 #else
 	return read(fd, buf, n);
@@ -205,7 +179,7 @@ read_socket(int fd, char *buf, int n)
 void
 close_socket(int fd)
 {
-#if defined(_WIN32) || defined(__BEOS__)
+#if defined(__BEOS__)
 	closesocket(fd);
 #else
 	close(fd);
@@ -935,11 +909,6 @@ void proxy(int port, int extproxyenabled, char *extproxyaddr, int extproxyport)
 
 	end_proxy_args();
 
-#ifndef _WIN32
-	signal(SIGPIPE, SIG_IGN);
-	signal(SIGCHLD, SIG_IGN);
-#endif
-
 #ifdef _WIN32
 {
 	/* print a verbose messages about FAQ's and such */
@@ -1046,7 +1015,7 @@ void proxy(int port, int extproxyenabled, char *extproxyaddr, int extproxyport)
 				write_socket(csp->cfd, buf, strlen(buf));
 				close_socket(csp->cfd);
 				csp->active = 0;
-				sleep(5);
+				Sleep(5,0);
 				continue;
 			}
 #if !defined(_WIN32) && !defined(__BEOS__)

@@ -1,4 +1,4 @@
-char *encode_rcs = "$Id: encode.c,v 1.1 2001/09/29 01:30:53 heretic108 Exp $";
+char *encode_rcs = "$Id: encode.c,v 1.2 2001/12/02 20:12:32 joliveri Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
@@ -110,24 +110,6 @@ xdtoi(char d)
 	if((d >= 'a') && (d <= 'f')) return(d - 'a' + 10);
 	if((d >= 'A') && (d <= 'F')) return(d - 'A' + 10);
 	return(0);
-}
-
-int
-xtoi(char *s)
-{
-	char d1, d2;
-	int ret = 0;
-
-	if(isxdigit(*s)) {
-		d1 = *s++;
-		if(isxdigit(*s)) {
-			d2 = *s++;
-			
-			ret = (xdtoi(d1) * 16) + xdtoi(d2);
-		}
-	}
-
-	return(ret);
 }
 
 char *

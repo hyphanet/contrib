@@ -1,4 +1,4 @@
-char *loaders_rcs = "$Id: loaders.c,v 1.2 2001/11/28 09:33:49 joliveri Exp $";
+char *loaders_rcs = "$Id: loaders.c,v 1.3 2001/12/02 20:12:32 joliveri Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
@@ -1182,7 +1182,7 @@ end_proxy_args()
 	sprintf(buf, "%s\n", ssplit_rcs    );	b = strsav(b, buf);
 	sprintf(buf, "%s\n", acl_rcs       );	b = strsav(b, buf);
 	sprintf(buf, "%s\n", gnu_regex_rcs );	b = strsav(b, buf);
-	sprintf(buf, "%s\n", win32_rcs     );	b = strsav(b, buf);
+	//sprintf(buf, "%s\n", win32_rcs     );	b = strsav(b, buf);
 	b = strsav(b, "</pre>");
 
 #ifdef REGEX
