@@ -1,4 +1,7 @@
 Name "Freenet 0.3.7.1"
+# comment the next line out to produce a real build and no testing dummy
+#!define debug
+
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
 OutFile Freenet_setup0.3.7.1.exe
@@ -6,6 +9,8 @@ UninstallText "This uninstalls Freenet and all files on this node. (You may need
 UninstallExeName Uninstall-Freenet.exe
 ComponentText "This will install Freenet 0.3.7.1 on your system."
 DirText "Select a directory to install Freenet in."
+AutoCloseWindow true
+
  InstType Minimal
  InstType Full
 
@@ -16,7 +21,8 @@ InstallDir "$PROGRAMFILES\Freenet"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 SetOverwrite on
 
-Section "Freenet base (required)"
+Section "Freenet (required)"
+!ifndef debug
 
 #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
 FindWindow "close" "TrayIconFreenetClass" ""
@@ -25,13 +31,15 @@ FindWindow "close" "TrayIconFreenetClass" ""
 SetOutPath $INSTDIR\
 File freenet\*.*
 
-WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet (remove only)"
+WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet"
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 
+HideWindow
 Execwait "$INSTDIR\findjava.exe"
 Delete "$INSTDIR\findjava.exe"
 ExecWait "$INSTDIR\portcfg.exe"
 Delete "$INSTDIR\portcfg.exe"
+BringToFront
 ExecWait '"$INSTDIR\cfgnode.exe" silent'
 Delete "$INSTDIR\cfgnode.exe"
 ExecWait "$INSTDIR\cfgclient.exe"
@@ -83,10 +91,18 @@ Section "View Readme.txt"
 SectionIn 1,2
 ExecShell "open" "$INSTDIR\Readme.txt"
 
+!endif
+#------------------------------------------------------------------------------------------
+Section -PostInstall
 
+HideWindow
+# Don't make that message to long, or the installer will be corrupted
+MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `We get a lot of feedback that Freenet wouldn't start. Have a look in your system tray after starting and you'll see Hops, the Freenet rabbit sitting there. Double-click or right-click him for further action.` 0 0
+BringToFront
 
-#------------------------------------
+#------------------------------------------------------------------------------------------
 # Uninstall part begins here:
+!ifndef debug
 Section Uninstall
 
 #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
@@ -122,3 +138,5 @@ Delete "$DESKTOP\Freenet.lnk"
 
 #delete "$SMPROGRAMS\Start FProxy.lnk"
 #Delete "$QUICKLAUNCH\Start FProxy.lnk"
+
+!endif
