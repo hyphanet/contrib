@@ -9,11 +9,11 @@ pthread_mutex_t mutex;
 pthread_cond_t cond;
 int waiting;
 
-// this thread tries to connect to every server in the database. when it
-// finishes, it sets waiting to true, and waits on our condition variable.
-// the main loop waits until there are no more connections and then broadcasts
-// the condition, which causes our thread to grab the mutex, update the database,
-// and start over after perhaps pausing a while
+// this thread tries to connect to every server in the database. when it's
+// done, it waits on our condition variable.  the main loop waits until there
+// are no more connections and then broadcasts the condition, which causes our
+// thread to grab the mutex, update the database, and start over after perhaps
+// pausing a while
 void * thread (void *arg);
 
 char *hosts, // the start of our data. woohoo
@@ -78,8 +78,8 @@ main (int argc, char **argv)
 	if ((n = select(m, &s, &x, NULL, &tv)) == -1)
 	    die("select() failed");
 	
-	if (!n && waiting) // tell our thread to grab the mutex and update the database
-	    pthread_cond_broadcast(&cond);
+	// tell our thread to grab the mutex and update the database
+	if (!n) pthread_cond_broadcast(&cond);
 
 	for (n = 3 ; n < m ; n++)
 	    if (FD_ISSET(n, &s)) {
@@ -127,7 +127,7 @@ void *
 thread (void *arg)
 {
     int f;
-    long l, lastweed = 0;
+    long l, lastweed = time(NULL);
     char *p, *q, *b = mbuf(DATABASE_SIZE);
     
     for (;;) {
@@ -159,14 +159,17 @@ thread (void *arg)
 	
 	printf("%d of %d total hosts unreachable.\n", f, (end-hosts)/4);
 	
-	if (f * 2 > (end-hosts)/4) {
-	    puts("Too many unreachable hosts--not updating database.");
+	if (!f) {
+	    puts("No unreachable hosts. Not updating database.");
+	} else if (f * 2 > (end-hosts)/4) {
+	    puts("Too many unreachable hosts. Not updating database.");
 	} else {
+	    // wait for our chance and then update the database
 	    puts("Waiting for current transfers to complete before updating database.");
 	    pthread_mutex_lock(&mutex);
 	    pthread_cond_wait(&cond, &mutex);
-	    memcpy(hosts, b, q-b);
-	    end = hosts + (q-b);
+	    memcpy(hosts, b, q-hosts);
+	    end = hosts + (q-hosts);
 	    puts("Database updated.");
 	    pthread_mutex_unlock(&mutex);
 	}
