@@ -953,7 +953,7 @@ fi
 
 # Define the identity of the package.
 PACKAGE=fcptools
-VERSION="0.4.7"
+VERSION="0.4.8"
 cat >> confdefs.h <<EOF
 #define PACKAGE "$PACKAGE"
 EOF
