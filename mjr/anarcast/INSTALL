@@ -25,5 +25,10 @@ script containing "/foo/bar/register <inform server address>" into
 /etc/cron.daily/.
 
 Running `server' will start your Anarcast server. You may change the value of
-the HOME environment variable in order to select a different location for your
-data store (e. g., "HOME=/bigdisk/ ./server").
+the $HOME environment variable in order to select a different location for your
+data store (e. g., "HOME=/bigdisk/ ./server"). Files will accumulate in
+$HOME/.anarcast. `trim' will remove the oldest files in a specified directory
+until the total directory size falls below your specified maximum. Please set
+this maximum liberally! Anything less than 4G is probably unacceptable. Aim for
+at least 20G! Thanks.
+
