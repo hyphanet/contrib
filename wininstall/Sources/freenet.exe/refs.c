@@ -355,9 +355,13 @@ void ImportFile(const TCHAR * szFilename)
 	lstrcat(szexecbuf, szfservecliexec);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveSeedCmdPre);
-	lstrcat(szexecbuf, " \"");
+	if(lstrlen(szFserveSeedCmdPre))
+		lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, "\"");
 	lstrcat(szexecbuf, szFilename); 
 	lstrcat(szexecbuf, "\" ");
+	if(lstrlen(szFserveSeedCmdPost))
+		lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveSeedCmdPost);
 
 	/* following is necessary because fred looks in *current directory* for its own ini file ... ! */
@@ -455,8 +459,7 @@ void ExportFile(const TCHAR * szFilename)
 
 	/* following is necessary because fred looks in *current directory* for its own ini file ... ! */
 	SetCurrentDirectory(szHomeDirectory);
-	//if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveExportInfo, &prcFserveExportInfo) )
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartFserveExportInfo, &prcFserveExportInfo) )
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartFserveExportInfo, &prcFserveExportInfo) )
 	{
 		char szErrorMsg[256];
 		lstrcpy(szErrorMsg, "Failed to export references to file:\n");
