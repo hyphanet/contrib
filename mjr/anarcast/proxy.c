@@ -573,9 +573,10 @@ request (int c)
 	    memcpy(checks, &blocks[g.dbc*blocksize], g.cbc * blocksize);
 	    
 	    do {
+		int l;
 		// find two check blocks sharing a lowest-numbered data block, xor them, update graph
-		for (i = 0, j = 0 ; i < g.cbc ; i++) {
-		    int l; // find lowest numbered data block
+		for (i = j = 0 ; i < g.cbc ; i++) {
+		    // find lowest numbered data block
 		    for (l = 0 ; l < g.dbc ; l++)
 			if (is_set(&h, l, i)) break;
 		    if (l == g.dbc) continue; // weird
@@ -592,8 +593,24 @@ request (int c)
 		// xor the two blocks (i and j)
 		xor(&checks[i*blocksize], &checks[j*blocksize], blocksize);
 		// xor the graphs
-		
+		// FIXME FIXME FIXME
+		// is there only one data block in the new graph?
+		for (j = k = l = 0 ; j < g.dbc ; j++)
+		    if (is_set(&h, j, i)) {
+			k = j;
+			l++;
+		    }
+		if (l == 1) { // woohoo! we got a data block!!
+		    memcpy(&blocks[k*blocksize], &checks[i*blocksize], blocksize);
+		    alert("Reconstructed data block %d from check blocks.", k+1);
+		    mask[k] = a = 1; // we got it, baby!
+		    n--;
+		    break;
+		}
 	    } while (!a);
+
+	    if (munmap(checks, g.cbc * blocksize) == -1)
+	        die("munmap() failed");
 	}
     } while (a && n);
     
