@@ -5,13 +5,13 @@ main (int argc, char **argv)
 {
     struct stat st;
     struct sockaddr_in a;
-    unsigned char *y, *z;
+    unsigned char *key;
     unsigned int l;
-    int s, r;
+    int s, r, k;
     off_t o;
     
-    if (argc != 2) {
-	fprintf(stderr, "Usage: %s <file>\n", argv[0]);
+    if (argc != 3) {
+	fprintf(stderr, "Usage: %s <file> <keyfile>\n", argv[0]);
 	exit(2);
     }
 
@@ -19,6 +19,9 @@ main (int argc, char **argv)
 	die("stat() failed");
     
     if ((r = open(argv[1], O_RDONLY)) == -1)
+	die("open() failed");
+
+    if ((k = open(argv[2], O_WRONLY|O_CREAT|O_TRUNC, 0644)) == -1)
 	die("open() failed");
     
     memset(&a, 0, sizeof(a));
@@ -45,14 +48,14 @@ main (int argc, char **argv)
     if (l > 20000)
 	die("bogus key length");
     
-    if (!(y = malloc(l)) || !(z = malloc(l*2+1)))
+    if (!(key = malloc(l)))
 	die("malloc() of key buffer failed");
     
-    if (readall(s, y, l) != l)
+    if (readall(s, key, l) != l)
 	die("readall() of key failed");
     
-    bytestohex(z, y, l);
-    puts(z);
+    if (writeall(k, key, l) != l)
+	die("writeall() of key failed");
     
     return 0;
 }

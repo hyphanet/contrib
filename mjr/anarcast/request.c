@@ -4,31 +4,28 @@ int
 main (int argc, char **argv)
 {
     struct sockaddr_in a;
-    unsigned char *data, *key;
-    int s, o, i, l;
+    struct stat st;
+    char *data;
+    unsigned int l;
+    int f, s;
+    off_t o;
     
-    if (argc != 3) {
-	fprintf(stderr, "Usage: %s <key> <outfile|->\n", argv[0]);
+    if (argc != 2) {
+	fprintf(stderr, "Usage: %s <keyfile>\n", argv[0]);
 	exit(2);
     }
 
-    i = strlen(argv[1]);
-    
-    if ((i-8) % HASHLEN)
-	die("bad key length");
-    
-    if (!(key = malloc(i/2)))
-	die("malloc() of key buffer failed");
-    
-    if (hextobytes(argv[1], key, i) != i/2)
-	die("key is not hex");
+    if (stat(argv[1], &st) == -1)
+	die("stat() failed");
 
-    if (!strcmp(argv[2], "-"))
-	o = 1;
-    else
-	if ((o = open(argv[2], O_WRONLY|O_CREAT|O_TRUNC, 0644)) == -1)
-	    die("open() failed");
-    
+    if ((st.st_size-4) % HASHLEN) {
+	fprintf(stderr, "Invalid keyfile.\n");
+	exit(1);
+    }
+
+    if ((f = open(argv[1], O_RDWR)) == -1)
+	die("open() failed");
+
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
     a.sin_port = htons(PROXY_SERVER_PORT);
@@ -38,22 +35,27 @@ main (int argc, char **argv)
 	die("socket() failed");
 
     if (connect(s, &a, sizeof(a)) == -1)
-	die("connect() to server failed");
+	die("connect() to proxy failed");
     
-    l = i/2;
-    if (writeall(s, "r", 1) != 1 || writeall(s, &l, 4) != 4 || writeall(s, key, l) != l)
-	die("writeall() of request to server failed");
+    if (writeall(s, "r", 1) != 1 || writeall(s, &st.st_size, 4) != 4)
+	die("writeall() of request to proxy failed");
+    
+    o = 0;
+    if (sendfile(s, f, &o, st.st_size) != st.st_size)
+	die("sendfile() of key to proxy failed");
     
     if (readall(s, &l, 4) != 4)
-	die("readall() of data length from server failed");
+	die("readall() of data length from proxy failed");
     
-    data = mbuf(l);
+    if (ftruncate(f, l) == -1)
+	die("ftruncate() failed");
+    
+    data = mmap(0, l, PROT_WRITE, MAP_SHARED, f, 0);
+    if (data == MAP_FAILED)
+	die("mmap() failed");
     
     if (readall(s, data, l) != l)
-	die("readall() of data from server failed");
-    
-    if (writeall(o, data, l) != l)
-	die("writeall() of data to output file failed");
+	die("readall() of data from proxy failed");
     
     return 0;
 }
