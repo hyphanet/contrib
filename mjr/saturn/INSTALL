@@ -1,9 +1,6 @@
 To Build:
-
-gcc -g3 -Wall -o saturn saturn.c -lpthread
+make
 
 To install:
-
 su
-cp saturn /usr/local/.
-
+make install
