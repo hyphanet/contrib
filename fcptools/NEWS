@@ -2,7 +2,7 @@
 
 fcptools and consequently ezFCPlib do not currently execute on Solaris.
 
-POSIX Threads (pthreads) are great for multi-threaded applcations that need
+POSIX Threads (pthreads) are great for multi-threaded applications that need
 to be portable across UNIX/MS boundaries.  The handling of signals in these
 kinds of applications must be carefully done.  The following are verbatim
 quotes dealing with solutions from Usenet:
@@ -11,5 +11,4 @@ quotes dealing with solutions from Usenet:
 Directed signals should be handled by the individual threads."
 -- Bjorn Reese; 1997/07/21; comp.programming.threads
 
-The fact that this quote is dated 1997 should indicate the situation is not
-likely to change on it's own.
+If only I knew what all this meant ;)

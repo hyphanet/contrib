@@ -1,21 +1,4 @@
 
-#ifdef WINDOWS
-
-#define DIR_DELIM_CHAR      '\\'
-#define DIR_DELIM_STRING    "\\"
-
-#else
-
-#define DIR_DELIM_CHAR      '/'
-#define DIR_DELIM_STRING    "/"
-
-#include "dirent.h"
-#include "sys/stat.h"
-#include "unistd.h"
-
-#endif
-
-
 #define MAXFILELEN  256
 #define CHKKEYLEN   128
 
