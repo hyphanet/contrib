@@ -139,6 +139,7 @@ load_key_database ()
 
     fclose(data);
     pthread_create(&t, NULL, database_sync_thread, NULL);
+    pthread_detach(t);
     return 0;
 }
 
@@ -209,6 +210,7 @@ handler_thread (void *arg)
     else                                  send_error_404(socket);
 
 end:
+    free((int *)arg);
     fclose(socket);
     pthread_exit(NULL);
 }
