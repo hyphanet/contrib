@@ -556,8 +556,8 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 				MessageBox(NULL,"Usage:\n"
 								"-open                loads the Freenet Gateway page on startup\n"
 								"-import FILENAME     imports the reference file specified by FILENAME\n"
-								"-export FILENAME     exports a reference for your node into FILENAME\n",
-								"-createconfig FILENAME     Creates a default configuration file\n",
+								"-export FILENAME     exports a reference for your node into FILENAME\n"
+								"-createconfig FILENAME     Creates a default configuration file\n"
 								"-mergeconfig FILE1 FILE2   Updates FILE1 to contain the latest configuration\n"
 								"              information from FILE2 (most useful if FILE2 was created with\n"
 								"              -createconfig FILE2 in the first place)\n"
