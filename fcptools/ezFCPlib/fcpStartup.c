@@ -32,6 +32,8 @@
 
 #include "ez_sys.h"
 
+static int toUnix(char *path);
+
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 
 int fcpStartup(char *logfile, int retry, int log_verbosity)
@@ -59,6 +61,10 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 
 	/* Maybe this needs to be re-thought */
 	_fcpHomeDir = strdup(getenv("USERPROFILE"));
+
+	/* both of these paths must have their \'s converted to /'s */
+	toUnix(_fcpTmpDir);
+	toUnix(_fcpHomeDir);
 
 #else
 
@@ -102,5 +108,15 @@ void fcpTerminate(void)
 	}
 	
 	return;
+}
+
+static int toUnix(char *path)
+{
+	int i;
+
+	for (i=0; path[i]; i++)
+		if (path[i] == '\\') path[i] = '/';
+
+	return 0;
 }
 

@@ -122,10 +122,12 @@ int main(int argc, char* argv[])
 
 	else {
 		/* use keyfile as the filename of key data */
+		/*
 		if (fcpGetKeyToFile(hfcp, keyuri, keyfile, metafile)) {
 			fprintf(stdout, "Could not retrieve \"%s\" from freenet to file \"%s\"\n", keyuri, keyfile);
 			return -1;
 		}
+		*/
 	}
 
 	fprintf(stdout, "Operation Successfull\n");

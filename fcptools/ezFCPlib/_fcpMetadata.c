@@ -84,8 +84,8 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 
 	/* I don't want to look at the warnings while I haven't finished this
 		 piece yet */
-	key[0] = key[0];
-	val[0] = val[0];
+	key[0] = 0;
+	val[0] = 0;
 	
 	/* free *meta if it has old metadata */
 	/* loop from 0-meta->cd_count; free(meta[i]); */

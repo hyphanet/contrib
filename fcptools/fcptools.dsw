@@ -27,6 +27,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "fcpget"=.\fcpget\fcpget.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "fcpput"=.\fcpput\fcpput.dsp - Package Owner=<4>
 
 Package=<5>
@@ -35,12 +47,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name ezFCPlib
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name fcpcommon
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -53,12 +59,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name ezFCPlib
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name fcpcommon
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -83,12 +83,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name ezFCPlib
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name fcpcommon
-    End Project Dependency
 }}}
 
 ###############################################################################

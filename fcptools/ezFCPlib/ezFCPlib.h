@@ -50,7 +50,6 @@
 #define open _open
 #define read _read
 #define close _close
-#define mkstemp _mkstemp
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
@@ -66,7 +65,6 @@
 /* Keep 'sys' files first in include order */
 
 #include <sys/socket.h>
-
 #include <unistd.h>
 
 #endif

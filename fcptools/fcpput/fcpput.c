@@ -35,8 +35,8 @@
 /* Cheat here and import ez_sys.h function(s) */
 extern long   file_size(char *filename);
 
-void  parse_args(int argc, char *argv[]);
-void  usage(char *msg);
+static void parse_args(int argc, char *argv[]);
+static void usage(char *);
 
 /* Global vars to fcpput */
 char           *host;
@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
    This function should bail if the parameters are bad in any way.  main() can
    then continue cleanly. */
 
-void parse_args(int argc, char *argv[])
+static void parse_args(int argc, char *argv[])
 {
   struct option long_options[] = {
     {"address", 1, 0, 'n'},
@@ -294,7 +294,7 @@ void parse_args(int argc, char *argv[])
 }
 
 
-void usage(char *s)
+static void usage(char *s)
 {
 	if (s) printf("Error: %s\n", s);
 

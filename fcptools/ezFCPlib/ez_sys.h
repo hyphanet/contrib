@@ -89,6 +89,7 @@ extern long  file_size(char *filename);
 extern void  unlink_key(hKey *hKey);
 
 extern long  xtoi(char *);
+extern int   memtoi(char *);
 
 #endif /* EZ_SYS_H */
 

@@ -88,7 +88,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 		 (perhaps only metadata) */
 	
 	if (key_filename) {
-		if ((hfcp->key->size = file_size(key_filename)) < 0) {
+		if ((hfcp->key->size = file_size(key_filename)) <= 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "Key file %s does not exist", key_filename);
 			return -1;
@@ -100,7 +100,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	/* now metadata */
 
 	if (meta_filename) {
-		if ((hfcp->key->metadata->size = file_size(meta_filename)) < 0) {
+		if ((hfcp->key->metadata->size = file_size(meta_filename)) <= 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "Metadata file %s does not exist", meta_filename);
 			return -1;
@@ -849,7 +849,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		_fcpLog(FCP_LOG_DEBUG, "inserting data block - segment: %d/%d, block %d/%d",
 						index+1, hfcp->key->segment_count,
 						bi+1, segment->db_count);
-		
+
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
@@ -894,7 +894,9 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 		/* now that the block is written to a temp file, insert it as a CHK
 			 (no metadata here). */
-		
+
+		_fcpLog(FCP_LOG_DEBUG, "file to insert: %s", tmp_hfcp->key->tmpblock->filename);
+
 		rc = put_file(tmp_hfcp, tmp_hfcp->key->tmpblock->filename, 0, "CHK@");
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert data block %d into Freenet", bi);

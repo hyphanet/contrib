@@ -25,8 +25,12 @@
 */
 
 /* we don't need to include ezfcplib.h is we include these */
+
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <string.h>
+#include <stdlib.h>
 
 /*
   function xtoi()
@@ -51,6 +55,35 @@ long xtoi(char *s)
       break;
   
   return val;
+}
+
+/*
+	function memtoi()
+	extension of atoi()
+
+	this func recognises suffices on numbers
+	eg '64k' will get parsed as 65536
+	recognises the suffices 'k', 'K', 'm', 'M', 'g', 'G'
+	(Thanks to mjr)
+*/
+
+int memtoi(char *s)
+{
+	int n = atoi(s);
+	switch (s[strlen(s)-1])
+	{
+		case 'G':
+		case 'g':
+			return n << 30;
+		case 'M':
+		case 'm':
+			return n << 20;
+		case 'K':
+		case 'k':
+			return n << 10;
+		default:
+			return n;
+	 }
 }
 
 long file_size(char *filename)

@@ -1,33 +1,48 @@
 /*
-	fcpputsite.c - simple command line client that uses FCP
-	for insertion of freesites
+  This code is part of FCPTools - an FCP-based client library for Freenet
 
-	CopyLeft () 2001 by David McNab
+  CopyLeft (c) 2001 by David McNab
+
+  Developers:
+  - David McNab <david@rebirthing.co.nz>
+  - Jay Oliveri <ilnero@gmx.net>
+  
+  Currently maintained by Jay Oliveri <ilnero@gmx.net>
+  
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-
-#define _GNU_SOURCE
+#include "ezFCPlib.h"
 #include "getopt.h"
 
-#include <unistd.h>
-#include <stdio.h>
-
-#include "ezFCPlib.h"
 #include "fcpputsite.h"
 
 #if 0
 
 /*
-	PRIVATE DECLARATIONS
+	local declarations
 */
 static void parse_args(int argc, char *argv[]);
 static int  parse_num(char *s);
 static void usage(char *);
 static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len);
 
-/* Configurable command-line parameters
-	 Strings/Arrays that have default values if not set explicitly from the
-	 command line should be initialized to "", a zero-length string.
+/*
+	Configurable command-line parameters
+	Strings/Arrays that have default values if not set explicitly from the
+	command line should be initialized to "", a zero-length string.
 */
 static char  keyUri[L_URI];
 static char  keyFile[L_FILENAME] = "";
@@ -215,107 +230,5 @@ static void usage(char *s)
 	exit(-1);
 }
 
-
-char *strsav(char *old, int *oldlen, char *text_to_append)
-{
-	int old_len, new_len;
-	char *p;
-
-	if(( text_to_append == NULL) || (*text_to_append == '\0')) {
-		return(old);
-	}
-
-	if(old) {
-	if (oldlen)
-		old_len=*oldlen;
-	else
-		old_len = strlen(old);
-	} else {
-		old_len = 0;
-	}
-
-	new_len = old_len + strlen(text_to_append) + 1;
-
-	if(old) {
-		if((p = (char *)realloc(old, new_len)) == NULL) {
-			_fcpLog(FCP_LOG_CRITICAL, "realloc(%d) bytes for proxy_args failed!\n", new_len);
-			exit(1);
-		}
-	} else {
-		if((p = (char *)safeMalloc(new_len)) == NULL) {
-			_fcpLog(FCP_LOG_CRITICAL,
-				"safeMalloc(%d) bytes for proxy_args failed!\n", new_len);
-			exit(1);
-		}
-	}
-
-	strcpy(p + old_len, text_to_append);
-	if (oldlen)
-		*oldlen += strlen(text_to_append);
-	return(p);
-}
-
-
-static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len)
-{
-	int new_len;
-	char *p;
-
-	if(buf_to_append == NULL)
-		return(old);
-
-	if(old == NULL)
-		old_len = 0;
-
-	new_len = old_len + add_len;
-
-	if(old) {
-		if((p = (char *)realloc(old, new_len)) == NULL) {
-			_fcpLog(FCP_LOG_CRITICAL,
-					"realloc(%d) bytes for proxy_args failed!\n", new_len);
-			exit(1);
-		}
-	} else {
-		if((p = (char *)safeMalloc(new_len)) == NULL) {
-			_fcpLog(FCP_LOG_CRITICAL,
-					"safeMalloc(%d) bytes for proxy_args failed!\n", new_len);
-			exit(1);
-		}
-	}
-
-	memcpy(p + old_len, buf_to_append, add_len);
-	return(p);
-}
-
-
-//
-// extension of atoi()
-//
-// this func recognises suffices on numbers
-//
-// eg '64k' will get parsed as 65536
-//
-// recognises the suffices 'k', 'K', 'm', 'M', 'g', 'G'
-//
-// Thanks to mjr for this lovely snippet
-
-static int parse_num(char *s)
-{
-	int n = atoi(s);
-	switch (s[strlen(s)-1])
-	{
-		case 'G':
-		case 'g':
-			return n << 30;
-		case 'M':
-		case 'm':
-			return n << 20;
-		case 'K':
-		case 'k':
-			return n << 10;
-		default:
-			return n;
-	 }
-}
-
 #endif
+
