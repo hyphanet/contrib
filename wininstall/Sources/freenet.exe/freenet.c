@@ -475,7 +475,7 @@ void ReloadSettings(void)
 	SetCurrentDirectory(szbuffer);
 
 	/* Get the javaw line and if that isn't there fall back on the javaexec line ... */
-	/* (Note, javaw.exe is used in preference to java.exe when loading the java configurator) */
+	/* (Note, javaw.exe is used in preference to java.exe) */
 	if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
 	{
 		GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
@@ -485,7 +485,6 @@ void ReloadSettings(void)
 
 
 	/* Get the javaexec line ...*/
-	/* (Note, java.exe is used in preference to javaw.exe when loading the freenet.node.Node) */
 	if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
 	{
 		GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
