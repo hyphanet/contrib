@@ -8,6 +8,7 @@ Standards-Version: 3.5.2
 Package: fcptools
 Section: net
 Architecture: any
+Suggests: freenet
 Description: Freenet Client Protocol Tools
  FCPTools include command line programs to insert and retrieve content
  from Freenet, a peer-to-peer network for anonymous publishing.
@@ -19,6 +20,7 @@ Description: Freenet Client Protocol Tools
 Package: fcptools-dev
 Section: devel
 Architecture: any
+Suggests: freenet
 Depends: fcptools (= ${Source-Version})
 Description: Freenet Client Protocol Tools - development
  FCPTools include command line programs to insert and retrieve content
