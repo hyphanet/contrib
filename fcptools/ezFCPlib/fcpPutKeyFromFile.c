@@ -108,35 +108,36 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	case KEY_TYPE_CHK: /* for CHK's */
 		break;
 
-	case KEY_TYPE_KSK: { /* insert a redirect to point to hfcp->key->uri */
-		
-		hFCP *hfcp_meta;
+	case KEY_TYPE_SSK:
+	case KEY_TYPE_KSK:
 
-		hfcp_meta = _fcpCreateHFCP();
-		hfcp_meta->key = _fcpCreateHKey();
-
-		/* uri was already checked above for validity */
-		_fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
-
-		if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
+		{ /* insert a redirect to point to hfcp->key->uri */
+			/* code here is identical to code in fcpCloseKey.c:105 */
 			
-			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+			hFCP *hfcp_meta;
+			
+			hfcp_meta = _fcpCreateHFCP();
+			hfcp_meta->key = _fcpCreateHKey();
+			
+			/* uri was already checked above for validity */
+			_fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
+			
+			if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
+				
+				_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+				_fcpDestroyHFCP(hfcp_meta);
+				
+				return -1;
+			}
+			
+			/* success inserting the re-direct */
+			_fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
 			_fcpDestroyHFCP(hfcp_meta);
-
-			return -1;
+			
+			break;
 		}
-
-		/* success inserting the re-direct */
-		_fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
-		_fcpDestroyHFCP(hfcp_meta);
-
-		break;
 	}
-		
-	case KEY_TYPE_SSK: /* insert a redirect to point to hfcp->key->uri */
-		_fcpLog(FCP_LOG_DEBUG, "not implemented");
-	}
-
+	
 	/* on exit, hfcp->key->uri holds the inserted final uri */
 	return 0;
 }

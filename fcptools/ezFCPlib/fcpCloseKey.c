@@ -53,6 +53,7 @@ int fcpCloseKey(hFCP *hfcp)
 
 static int fcpCloseKeyRead(hFCP *hfcp)
 {
+	hfcp = hfcp;
   return 0;
 }
 
@@ -98,39 +99,42 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	case KEY_TYPE_CHK: /* for CHK's, copy over the generated CHK to the target_uri field */
 
 		/* re-parse the CHK into target_uri (it only contains CHK@ currently) */
-		_fcpParseURI(hfcp->key->target_uri, tmp_hfcp->key->uri->uri_str);
+		_fcpParseURI(hfcp->key->uri, tmp_hfcp->key->uri->uri_str);
 		break;
 
-	case KEY_TYPE_KSK: { /* insert a redirect to point to hfcp->key->uri */
+	case KEY_TYPE_SSK:
+	case KEY_TYPE_KSK:
 		
-		hFCP *hfcp_meta;
-
-		hfcp_meta = _fcpCreateHFCP();
-		hfcp_meta->key = _fcpCreateHKey();
-
-		/* uri was already checked above for validity */
-		_fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
-
-		if (put_redirect(hfcp_meta, tmp_hfcp->key->uri->uri_str)) {
+		{ /* insert a redirect to point to hfcp->key->uri */
+			/* code here is identical to code in fcpPutKeyFromFile.c:111 */
 			
-			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+			hFCP *hfcp_meta;
+			
+			hfcp_meta = _fcpCreateHFCP();
+			hfcp_meta->key = _fcpCreateHKey();
+			
+			/* uri was already checked above for validity */
+			_fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
+			
+			if (put_redirect(hfcp_meta, tmp_hfcp->key->uri->uri_str)) {
+				
+				_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+				_fcpDestroyHFCP(hfcp_meta);
+				
+				return -1;
+			}
+			else { /* congrads.. successful insert into Freenet */
+				_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
+			}
+			
+			_fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
 			_fcpDestroyHFCP(hfcp_meta);
-
-			return -1;
+			
+			break;
 		}
-		else { /* congrads.. successful insert into Freenet */
-			_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
-		}
-
-		_fcpDestroyHFCP(hfcp_meta);
-		break;
 	}
 		
-	case KEY_TYPE_SSK: /* insert a redirect to point to hfcp->key->uri */
-		_fcpLog(FCP_LOG_DEBUG, "not implemented");
-	}
-
-	_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted key \"%s\"", hfcp->key->target_uri->uri_str);
+	_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted key \"%s\"", hfcp->key->uri->uri_str);
 	
 	return 0;
 }

@@ -11,6 +11,7 @@ FCPtools generic
 + Update ezFCPlib documentation.
 + Confirm OS X and Solaris functionality.
 + Add usage instructions to README file for fcpget, fcpput, fcpputsite.
++ Confirm KSK, SSK, and CHK logic is all sound. Initial tests look good.
 
 -----------------
 ezFCPlib specific

@@ -211,7 +211,9 @@ int _fcpParseURI(hURI *uri, char *key)
 			uri->metastring = strdup(key);
 			
 			uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->docname) + strlen(uri->metastring) + 20);
-			sprintf(uri->uri_str, "freenet:SSK@%s/%s//%s", uri->keyid, uri->docname, uri->metastring); 
+			
+			/* @@@ TODO: yes we're ignoring metastring for now.. */
+			sprintf(uri->uri_str, "freenet:SSK@%s/%s//", uri->keyid, uri->docname); 
 		}
   }
 

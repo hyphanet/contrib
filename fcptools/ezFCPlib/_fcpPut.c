@@ -440,7 +440,7 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 								meta_bytes,
 								meta_buf
 								);
-
+	
 	_fcpLog(FCP_LOG_DEBUG, "\n%s\n", buf);
 	
 	/* Send ClientPut command */
@@ -456,14 +456,18 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 	
 	switch (rc) {
 	case FCPRESP_TYPE_SUCCESS:
+		_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
+
 		break;
 		
 	case FCPRESP_TYPE_KEYCOLLISION:
+		_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
+
 		_fcpLog(FCP_LOG_DEBUG, "keycollision on insert of redirect metadata");
 		break;
 		
 	default:
-		_fcpLog(FCP_LOG_DEBUG, "weird error");
+		_fcpLog(FCP_LOG_DEBUG, "unhandled response from _fcpRecvResponse()");
 	}
 
 	_fcpSockDisconnect(hfcp);
@@ -1157,10 +1161,11 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	switch (rc) {
 	case FCPRESP_TYPE_SUCCESS:
+		_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
 		break;
 		
 	case FCPRESP_TYPE_KEYCOLLISION:
-		_fcpLog(FCP_LOG_DEBUG, "keycollision on insert of redirect metadata");
+		_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
 		break;
 		
 	case FCPRESP_TYPE_FORMATERROR:
@@ -1176,9 +1181,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	/* on any error, return here before setting the uri */
 	if ((rc != FCPRESP_TYPE_SUCCESS) && (rc != FCPRESP_TYPE_KEYCOLLISION))
 		return -1;
-
-	/* get the inserted URI and store */
-	_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
 
 	return 0;
 }
