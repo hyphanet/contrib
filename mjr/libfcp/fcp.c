@@ -169,7 +169,6 @@ fcp_close (fcp_document *d)
     }
     free(d->chunks);
     free(d->streams);
-    free(d);
     return FCP_SUCCESS;
 }
 

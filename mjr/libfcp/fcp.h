@@ -82,8 +82,8 @@ fcp_metadata * fcp_metadata_new ();
 
 // start a request. returns length of data, or error (<0)
 // if !m, metadata will not be saved for later use.
-int fcp_request (fcp_metadata *m, fcp_document *s,
-	char *uri, int htl, int threads);
+int fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
+	int threads);
 
 // read up to length bytes into buf. returns bytes read, or error (<0)
 int fcp_read (fcp_document *d, char *buf, int length);
