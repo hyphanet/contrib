@@ -1,3 +1,5 @@
+
+h:\freenet\CVSWORK\Contrib\wininstall\Sources\FindJava>perl -e "while(<>)" -e "{" -e "s/\x0d[^\x0a]/\x0a/;" -e "s/\x0d\x0a/\x0a/;" -e "print $_;" -e "}" -e "" 
 # Microsoft Developer Studio Project File - Name="findjava" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
