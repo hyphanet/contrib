@@ -18,7 +18,7 @@ main ()
 	err(1, "open() of inform_database failed");
     
     if (ftruncate(l, DATABASE_SIZE) == -1)
-	err(1, "ftruncate() of infrom_database failed");
+	err(1, "ftruncate() of inform_database failed");
 
     hosts = mmap(0, DATABASE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, l, 0);
     if (hosts == MAP_FAILED)
