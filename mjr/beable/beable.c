@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <limits.h>
 #include <sys/types.h>
@@ -50,6 +51,8 @@ main ()
 	exit(1);
     }
     
+    signal(SIGPIPE, SIG_IGN);
+
     for (;;)
 	get_connection(socket);
 }
@@ -335,7 +338,7 @@ url_decode (char *url)
     int i, j = 0, len = strlen(url);
     
     for (i = 0 ; i < len ; i++) {
-	if (url[i] == '\r' || url[i] == '\n' || url[i] == '+') {
+	if (url[i] == '+') {
 	    tmp[j++] = ' ';
 	} else if (url[i] == '%') {
 	    char c, *end, n[3];
