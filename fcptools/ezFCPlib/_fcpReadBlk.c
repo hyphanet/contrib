@@ -78,14 +78,13 @@ int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
 		hfcp->conn.response.body.datachunk.data = NULL;
 		break;
 	 }
-	 if (hfcp->conn.response.body.datachunk.length >= len) {
+	 if (hfcp->conn.response.body.datachunk.length >= needed) {
 		
 		// easy case - we've got enough data
 		memcpy(buf, hfcp->conn.response.body.datachunk.dataptr, needed);
 		hfcp->conn.response.body.datachunk.dataptr += needed;
 		needed = 0;
-	 }
-	 else {
+	 } else {
 		// pain in the ass - grab and everything in this datachunk
 		memcpy(buf,
 				 hfcp->conn.response.body.datachunk.dataptr,

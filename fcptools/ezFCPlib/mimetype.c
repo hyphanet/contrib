@@ -202,15 +202,15 @@ char *GetMimeType(char *pathname)
         s = buf;
 
     if ((s = strrchr(s, '.')) == NULL)
-        return "text/plain";        // no file extension - return default mimetype
+        return "application/octet-stream";        // no file extension - return default mimetype
     s++;    // skip the '.'
 
     for (i = 0; MimeTab[i].ext != NULL; i++)
-        if (!strcmp(s, MimeTab[i].ext))
+        if (!strcasecmp(s, MimeTab[i].ext))
             return MimeTab[i].mimetype; // found mimetype
 
     // no mimetype found
-    return NULL;
+    return "application/octet-stream";
 
 }       // 'GetMimeType()'
 

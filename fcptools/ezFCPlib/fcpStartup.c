@@ -45,8 +45,7 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
 {
   //sigset_t sigset;
 
-  HFCP hfcpBlk;
-  HFCP *hfcp = &hfcpBlk;
+  HFCP *hfcp;
 
   char *handshake = "ClientHello\nEndMessage\n";
   int  n;

@@ -491,6 +491,7 @@ extern _C_ int      fcpGetKeyToMem(HFCP *hfcp, char *keyname, char **pdata, char
 extern _C_ int      fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata);
 extern _C_ int      fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata);
 extern _C_ int      fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int datalen);
+extern _C_ int      _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int datalen, int metalen);
 extern _C_ int      fcpOpenKey(HFCP *hfcp, char *key, int mode);
 extern _C_ int      fcpReadKey(HFCP *hfcp, char *buf, int len);
 extern _C_ int      fcpCloseKey(HFCP *hfcp);

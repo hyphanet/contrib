@@ -100,6 +100,10 @@ void _fcpInitSplit(int maxSplitThreads)
 	time(&thistime);
 	srand(thistime);
 
+
+	if (maxSplitThreads == 0)
+		return;
+
 	if (splitMgrRunning)
 	{
 		_fcpLog(FCP_LOG_NORMAL, "_fcpInitSplit: Warning - the splitfile manager has already been initialized");
@@ -177,6 +181,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 {
 	struct stat fileStat;
 	int			fd;
+	int			i;
 	char		*mimeType;
 	int			result;
 
@@ -206,17 +211,85 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	job->key[0] = '\0';
 	job->fileName = fileName;
 
-	mimeType = GetMimeType(key);
-	job->mimeType = (mimeType != NULL) ? mimeType : GetMimeType(key);
+	job->mimeType =(hfcp->mimeType != NULL) ? hfcp->mimeType: GetMimeType(key);
 
-	// enqueue this insert job
-	splitAddJob(job);
+	if (maxThreads > 0) {
+		// enqueue this insert job
+		splitAddJob(job);
+		clientThreads++;
 
-	clientThreads++;
+		// wait for it to finish
+		while (job->status != SPLIT_INSSTAT_MANIFEST 
+				&& job->status != SPLIT_INSSTAT_FAILED)
+			crSleep( 1, 0 );
+		// now drop to the bottom to see if it worked.
+	}
+	else {
+		char *buf;
 
-	// wait for it to finish
-	while (job->status != SPLIT_INSSTAT_MANIFEST && job->status != SPLIT_INSSTAT_FAILED)
-		crSleep( 1, 0 );
+		job->status == SPLIT_INSSTAT_WAITING;
+		buf = safeMalloc(fcpSplitChunkSize);
+		
+		for (i=0; i< job->numChunks; i++)
+			job->chunk[i].key[0]=0;  // zero all keys, just to be safe.
+	
+	
+		for (i=0; i< job->numChunks; i++) {
+			int retry=0;
+			int thisChunkSize;
+	
+			lseek(fd, i * fcpSplitChunkSize, 0);
+			memset(buf, 0, fcpSplitChunkSize);
+			read(fd, buf, fcpSplitChunkSize);
+	
+			if (i + 1 < job->numChunks)
+				thisChunkSize = fcpSplitChunkSize;
+			else
+				thisChunkSize = job->totalSize - (i * fcpSplitChunkSize);
+	
+			for (retry=0; retry < 3; retry++) {
+				_fcpLog(FCP_LOG_VERBOSE, "Attempt %d to insert chunk %d/%d for %s",
+					retry+1, i, job->numChunks, fileName);
+	  
+				if (fcpPutKeyFromMem(hfcp,
+					  "CHK@", buf, NULL,
+					  thisChunkSize) != 0) {
+		 
+					_fcpLog(FCP_LOG_NORMAL, "Failed to insert chunk %d/%d for %s",
+						i, job->numChunks, fileName);
+					_fcpSockDisconnect(hfcp);
+					if (_fcpSockConnect(hfcp) != 0) {
+						_fcpLog(FCP_LOG_CRITICAL, "failed to reconnect");
+						retry=3;
+						break;
+					}
+	
+				} else {
+	
+					strcpy(job->chunk[i].key, hfcp->created_uri);		// correct code
+	
+					_fcpLog(FCP_LOG_VERBOSE, "inserted chunk index %d of %s\nkey=%s",
+						i,
+						job->fileName,
+						job->chunk[i].key);
+					break;
+				} // insert successful.
+	
+			} //  retry
+	
+			if (retry==3) {
+				job->status == SPLIT_INSSTAT_FAILED;
+				break;
+			}
+		}
+		// if done, promote to manifest.
+		//
+		if ((i == job->numChunks) && (job->status == SPLIT_INSSTAT_WAITING)) 
+			job->status=SPLIT_INSSTAT_MANIFEST;
+
+		// clean up some
+		free(buf);
+	}
 
 	close(fd);
 
@@ -238,7 +311,6 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	// update status for manager thread
 	job->status = (result == 0) ? SPLIT_INSSTAT_SUCCESS : SPLIT_INSSTAT_FAILED;
 
-	//printf("||||||||||||| cleared job status for %s at %x\n", fileName, job);
 
 	// return to caller
 	free(job->chunk);
@@ -246,8 +318,6 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 	return result;
 }					// fcpInsSplitFile()
-
-
 
 
 //
@@ -269,6 +339,9 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 	int i;
 	char *splitManifest;
 	char s[1024];
+
+	if (!file)
+		file="<Unknown>";
 
 	_fcpLog(FCP_LOG_VERBOSE, "Creating splitfile manifest");
 
@@ -380,9 +453,6 @@ void splitAddJob(splitJobIns *job)
 	_fcpLog(FCP_LOG_DEBUG, "splitAddJob: queued job to insert '%s'", job->fileName);
 
 }
-
-/* wtf is this?
-char *xxx = 0x1467658; */
 
 
 /*
@@ -660,8 +730,6 @@ static void chunkThread(void *params)
   // eliminates ANSI-C "incompatible pointer type" warning
   chunkThreadParams *chunkParams = (chunkThreadParams *)params;
 
-  //chunkParams->chunk->status = SPLIT_INSSTAT_SUCCESS;
-  //chunkParams->key->doneChunks++;
 
   _fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserting chunk index %d of %s",
 			 mypid,
@@ -686,20 +754,11 @@ static void chunkThread(void *params)
 	 return;
   }
 
-//	printf("### chunkParams->chunk = %x\n", chunkParams->chunk);
 
 	chunkParams->chunk->status = SPLIT_INSSTAT_MANIFEST;
 	chunkParams->key->doneChunks++;
 
-//	sprintf(chunkParams->chunk->key, "CHK@%03d", keynum);
 	strcpy(chunkParams->chunk->key, hfcp->created_uri);		// correct code
-
-	//strncpy(mem, chunkParams->chunk->chunk, chunkParams->chunk->size);
-	//mem[chunkParams->chunk->size] = '\0';
-
-	//printf("thrd: inserted %s with %d bytes of data '%s'\n", chunkParams->chunk->key, chunkParams->chunk->size, mem);
-
-	free(chunkParams->chunk->chunk);
 
 	_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserted chunk index %d of %s\nkey=%s",
 			mypid,
@@ -707,6 +766,7 @@ static void chunkThread(void *params)
 			chunkParams->key->fileName,
 			chunkParams->chunk->key);
 
+	free(chunkParams->chunk->chunk);
 	free(chunkParams);
 	fcpDestroyHandle(hfcp);
 

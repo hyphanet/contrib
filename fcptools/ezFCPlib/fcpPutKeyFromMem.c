@@ -16,6 +16,7 @@
 #include "ezFCPlib.h"
 
 extern char     _fcpID[];
+extern int fcpSplitChunkSize;
 
 
 //
@@ -27,9 +28,9 @@ extern char     _fcpID[];
 //
 //
 
-int fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int datalen)
+int _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int datalen, int meta_len)
 {
-    int meta_len = 0;
+
     char buf[2048];
     int count;
     int status;
@@ -49,7 +50,7 @@ int fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int dat
     // create a put message
     if (metadata != NULL)
     {
-        meta_len = strlen(metadata);
+
         sprintf(buf,
                 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
                 name,
@@ -145,3 +146,10 @@ int fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int dat
     return 0;
 
 }       // 'fcpPutKeyFromMem()'
+
+int fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int datalen) {
+	int meta_len=0;
+	if (metadata)
+		meta_len=strlen(metadata);
+	return _fcpPutKeyFromMem(hfcp, name, data, metadata, datalen, meta_len);
+}
