@@ -26,7 +26,7 @@ public class Native16Code extends FECCode {
         if (path != null) {
             System.load(path);
         } else {
-            System.out.println("Unable to find native library for fec16");
+            System.out.println("Unable to find native library for fec16 for platform "+NativeDeployer.OS_ARCH);
         }
     }
     
