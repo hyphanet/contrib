@@ -15,9 +15,14 @@
 #include "anarcast.h"
 #include "sha.c"
 
+#define ioerror(c) { \
+    if (c == -1) printf("I/O Error: %s.\n", strerror(errno)); \
+    else puts("I/O Error: Connection reset by peer."); \
+}
+
 struct state {
     char type, hash[HASH_LEN], *data;
-    unsigned int len, off;
+    unsigned int off;
 } a[FD_SETSIZE];
 
 int listening_socket ();
@@ -72,66 +77,46 @@ main (int argc, char **argv)
 	// read type
 	if (!a[n].type) {
 	    read(n, &a[n].type, 1);
-	    if (a[n].type == 'r') {
-	        a[n].off = -HASH_LEN;
-	    } else if (a[n].type == 'i') {
-		a[n].off = -4;
-	    } else {
+	    if (a[n].type != 'r' && a[n].type != 'i') {
+		puts("Format Error: Unrecognized transaction type.");
 		FD_CLR(n, &r);
 		close(n);
+		continue;
 	    }
+	    if (a[n].type == 'r')
+	        a[n].off = -HASH_LEN;
 	    continue;
 	}
 	
 	// insert
 	if (a[n].type == 'i') {
-	    // read length
-	    i = a[n].off;
-	    if (i < 0) {
-		if ((c = read(n, &(&a[n].len)[4+i], -i)) <= 0) {
-		    FD_CLR(n, &r);
-		    close(n);
-		    continue;
-		}
-		a[n].off += c;
-		continue;
-	    }
-	    // map temp file
-	    if (!i) {
-		strcpy(b, "/tmp/anarcast-XXXXXX");
-		if ((c = mkstemp(b)) == -1)
-		    err(1, "mkstemp(3) failed");
-		if (ftruncate(c, a[n].len) == -1)
-		    err(1, "ftruncate(2) failed");
-		a[n].data = mmap(0, a[n].len, PROT_READ | PROT_WRITE, MAP_SHARED, c, 0);
-		if (a[n].data == MAP_FAILED)
-		    err(1, "mmap(2) failed");
-		close(c);
-	    }
 	    // read data
-	    if ((c = read(n, &a[n].data[i], a[n].len - i)) <= 0) {
-		munmap(a[n].data, a[n].len);
+	    i = a[n].off;
+	    if (!i) a[n].data = mbuf(PART_SIZE);
+	    if ((c = read(n, &a[n].data[i], PART_SIZE - i)) <= 0) {
+		ioerror(c);
+		munmap(a[n].data, PART_SIZE);
 		FD_CLR(n, &r);
 		close(n);
 		continue;
 	    }
 	    a[n].off += c;
-	    if (a[n].off == a[n].len) {
+	    if (a[n].off == PART_SIZE) {
 		long t = time(NULL);
 		struct tm *tm = localtime(&t);
 		char ts[128];
 		strftime(ts, 128, "%T", tm);
-		sha_buffer(a[n].data, a[n].len, a[n].hash);
+		sha_buffer(a[n].data, PART_SIZE, a[n].hash);
 		bytestohex(b, a[n].hash, HASH_LEN);
-		printf("%s < %s (%d bytes)\n", ts, b, a[n].len);
+		printf("%s < %s\n", ts, b);
 		if (stat(b, &st) == -1) {
 		    if ((i = open(b, O_WRONLY | O_CREAT, 0644)) == -1)
 			err(1, "open(2) failed");
-		    if (write(i, a[n].data, a[n].len) != a[n].len)
+		    if (write(i, a[n].data, PART_SIZE) != PART_SIZE)
 			err(1, "write(2) to file failed");
 		    close(i);
 		}
-		munmap(a[n].data, a[n].len);
+		munmap(a[n].data, PART_SIZE);
 		FD_CLR(n, &r);
 		FD_SET(n, &w);
 		a[n].off = 0;
@@ -145,6 +130,7 @@ main (int argc, char **argv)
 	    i = a[n].off;
 	    if (i < 0) {
 		if ((c = read(n, &a[n].hash[HASH_LEN+i], -i)) <= 0) {
+		    ioerror(c);
 		    FD_CLR(n, &r);
 		    close(n);
 		    continue;
@@ -158,6 +144,14 @@ main (int argc, char **argv)
 		close(n);
 		continue;
 	    }
+	    if (st.st_size != PART_SIZE) {
+		printf("%s: Bad file size! ", b);
+		if (unlink(b) == 0) printf("Unlinked.\n");
+		else printf("Unlinking failed!\n");
+		FD_CLR(n, &r);
+		close(n);
+		continue;
+	    }
 	    if ((c = open(b, O_RDONLY)) == -1)
 		err(1, "open(2) failed");
 	    a[n].data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, c, 0);
@@ -166,8 +160,6 @@ main (int argc, char **argv)
 	    close(c);
 	    FD_CLR(n, &r);
 	    FD_SET(n, &w);
-	    a[n].len = st.st_size;
-	    a[n].off = -4;
 	}
 
 write:	//=== write =========================================================
@@ -178,9 +170,9 @@ write:	//=== write =========================================================
 	
 	if (a[n].type == 'i') {
 	    i = a[n].off;
-	    c = write(n, &a[n].hash[i], HASH_LEN - i);
-	    a[n].off += c;
+	    a[n].off += (c = write(n, &a[n].hash[i], HASH_LEN - i));
 	    if (c <= 0 || a[n].off == HASH_LEN) {
+		if (c <= 0) ioerror(c);
 		FD_CLR(n, &w);
 		close(n);
 	    }
@@ -188,21 +180,19 @@ write:	//=== write =========================================================
 	
 	if (a[n].type == 'r') {
 	    i = a[n].off;
-	    if (i < 0) c = write(n, &(&a[n].len)[4+i], -i);
-	    else c = write(n, &a[n].data[i], a[n].len - i);
-	    a[n].off += c;
-	    if (c <= 0 || a[n].off == a[n].len) {
+	    a[n].off += (c = write(n, &a[n].data[i], PART_SIZE - i));
+	    if (c <= 0 || a[n].off == PART_SIZE) {
 	        if (c > 0) {
 		    long t = time(NULL);
 		    struct tm *tm = localtime(&t);
 		    char ts[128];
 		    strftime(ts, 128, "%T", tm);
 		    bytestohex(b, a[n].hash, HASH_LEN);
-		    printf("%s > %s (%d bytes)\n", ts, b, a[n].len);
-		}
+		    printf("%s > %s\n", ts, b);
+		} else ioerror(c);
 	        FD_CLR(n, &w);
 	        close(n);
-	        munmap(a[n].data, a[n].len);
+	        munmap(a[n].data, PART_SIZE);
 	    }
 	}
     }

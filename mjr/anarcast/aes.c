@@ -48,7 +48,6 @@ typedef unsigned char   BYTE;
 typedef struct {
     BYTE  direction;                /* Key used for encrypting or decrypting? */
     int   keyLen;                   /* Length of the key  */
-    char  keyMaterial[MAX_KEY_SIZE+1];  /* Raw key data in ASCII, e.g., user input or KAT values */
     int   Nr;                       /* key-length-dependent number of rounds */
     u32   rk[4*(MAXNR + 1)];        /* key schedule */
     u32   ek[4*(MAXNR + 1)];        /* CFB1 key schedule (encryption only) */
@@ -1078,10 +1077,6 @@ rijndaelDecrypt (const u32 rk[], int Nr, const u8 ct[16], u8 pt[16])
 int
 makeKey (keyInstance *key, BYTE direction, int keyLen, char *keyMaterial)
 {
-    int i;
-    char *keyMat;
-    u8 cipherKey[MAXKB];
-    
     if (key == NULL) {
         return BAD_KEY_INSTANCE;
     }
@@ -1098,34 +1093,12 @@ makeKey (keyInstance *key, BYTE direction, int keyLen, char *keyMaterial)
         return BAD_KEY_MAT;
     }
 
-    if (keyMaterial != NULL) {
-        strncpy(key->keyMaterial, keyMaterial, keyLen/4);
-    }
-
-    keyMat = key->keyMaterial;
-     for (i = 0; i < key->keyLen/8; i++) {
-        int t, v;
-
-        t = *keyMat++;
-        if ((t >= '0') && (t <= '9')) v = (t - '0') << 4;
-        else if ((t >= 'a') && (t <= 'f')) v = (t - 'a' + 10) << 4;
-        else if ((t >= 'A') && (t <= 'F')) v = (t - 'A' + 10) << 4;
-        else return BAD_KEY_MAT;
-        
-        t = *keyMat++;
-        if ((t >= '0') && (t <= '9')) v ^= (t - '0');
-        else if ((t >= 'a') && (t <= 'f')) v ^= (t - 'a' + 10);
-        else if ((t >= 'A') && (t <= 'F')) v ^= (t - 'A' + 10);
-        else return BAD_KEY_MAT;
-        
-        cipherKey[i] = (u8)v;
-    }
     if (direction == DIR_ENCRYPT) {
-        key->Nr = rijndaelKeySetupEnc(key->rk, cipherKey, keyLen);
+        key->Nr = rijndaelKeySetupEnc(key->rk, keyMaterial, keyLen);
     } else {
-        key->Nr = rijndaelKeySetupDec(key->rk, cipherKey, keyLen);
+        key->Nr = rijndaelKeySetupDec(key->rk, keyMaterial, keyLen);
     }
-    rijndaelKeySetupEnc(key->ek, cipherKey, keyLen);
+    rijndaelKeySetupEnc(key->ek, keyMaterial, keyLen);
     return TRUE;
 }
 

@@ -15,9 +15,12 @@
 #include <pthread.h>
 #include "anarcast.h"
 #include "sha.c"
+#include "aes.c"
 
 int listening_socket ();
 void * run_thread (void *arg);
+void insert (int c);
+void request (int c);
 void inform ();
 void bytestohex (char *hex, char *bytes, int blen);
 
@@ -37,14 +40,74 @@ main (int argc, char **argv)
 	err(1, "can't grab port %d", PROXY_SERVER_PORT);
     
     for (;;)
-	if ((c = accept(l, NULL, 0)) != -1)
-	    pthread_create(&t, NULL, run_thread, &c);
+	if ((c = accept(l, NULL, 0)) != -1) {
+	    int *i = malloc(4);
+	    *i = c;
+	    pthread_create(&t, NULL, run_thread, i);
+	    pthread_detach(t);
+	}
 }
 
 void *
 run_thread (void *arg)
 {
+    int c = *(int*)arg;
+    char d;
+    if (read(c, &d, 1) == 1) {
+        if (d == 'r') request(c);
+        if (d == 'i') insert(c);
+    }
+    close(c);
+    free(arg);
     pthread_exit(NULL);
+}
+
+void
+insert (int c)
+{
+    char b[1024], *p;
+    unsigned int len, f, i;
+    keyInstance key;
+    cipherInstance cipher;
+    
+    if (read(c, &len, 4) != 4)
+	return;
+    
+    strcpy(b, "/tmp/anarcast-XXXXXX");
+    if ((f = mkstemp(b)) == -1)
+        err(1, "mkstemp(3) failed");
+    
+    if (ftruncate(f, len) == -1)
+        err(1, "ftruncate(2) failed");
+    
+    p = mmap(0, len, PROT_WRITE|PROT_READ, MAP_SHARED, f, 0);
+    if (p == MAP_FAILED)
+        err(1, "mmap(2) failed");
+    close(f);
+    
+    for (f = 0 ; f < len ; ) {
+	f += (i = read(c, &p[f], len - f));
+	if (i <= 0) {
+	    munmap(p, len);
+	    return;
+	}
+    }
+
+    sha_buffer(p, len, b);
+    if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
+	err(1, "cipherInit() failed");
+    if (makeKey(&key, DIR_ENCRYPT, 128, b) != TRUE)
+	err(1, "makeKey() failed");
+    if (blockEncrypt(&cipher, &key, p, len, p) <= 0)
+	err(1, "blockEncrypt() failed");
+    
+    munmap(p, len);
+    puts("foo");
+}
+
+void
+request (int c)
+{
 }
 
 int
@@ -94,7 +157,8 @@ inform (char *server)
 	warn("can't connect to %s", server);
 	return;
     }
-    if ((d = mkstemp("/tmp/anarcast-XXXXXX")) == -1)
+    strcpy(b, "/tmp/anarcast-XXXXXX");
+    if ((d = mkstemp(b)) == -1)
 	err(1, "mkstemp(3) failed");
     t = 0;
     while ((i = read(c, b, sizeof(b))) > 0) {
