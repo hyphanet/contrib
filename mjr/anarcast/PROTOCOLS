@@ -8,7 +8,7 @@ the (encrypted) parts it was split into. (160-bit SHA1 hashes.)
 
 The data is encrypted with 128-bit Rijndael in CBC mode with a null IV, using
 the first 128 bits of the SHA1 hash of the data as the key. It must be padded
-to a multiple of 16 first.
+to a multiple of 16 bytes first.
 
 The Client Proxy Protocol
 ------------------------------------------------------------------------------

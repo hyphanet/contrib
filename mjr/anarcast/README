@@ -7,7 +7,7 @@ Anarcast is a data distribution network consisting of a multitude of servers
 and a central database (mirrored if necessary) of server addresses.
 
 Inserts are first processed by a local client proxy. This proxy encrypts your
-data, splits it into redundant blocks, and inserts each part to a server. [1]
+data, splits it into redundant blocks, and inserts each block to a server. [1]
 The Anarcast key for the data--essentially a series of hashes--is sent to the
 client, and the insert is complete.
 
@@ -17,7 +17,8 @@ redundant data and are reinserted automatically. [2] The data is decrypted,
 verified, and sent to the client.
 
 [1] Blocks are routed to the server where hash(server address) is closest to
-    hash(block).
+    hash(block). The two next best servers will be tried in the event of a
+    failure.
     
 [2] This is how Anarcast adapts to a changing network. Also note that it is
     possible that the data is damaged beyond recovery, in which case the
