@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "16102001snapshot"
+!define VERSION "Dec11-2001snapshot"
 
 Name "Freenet ${VERSION}"
 !ifdef embedJava
@@ -9,28 +9,25 @@ Name "Freenet ${VERSION}"
 !endif
 ComponentText "This will install Freenet ${VERSION} on your system."
 
-LicenseText "Freenet is published under the GNU general public license:"
+LicenseText "Freenet is published under the GNU general public license:" "I agree"
 LicenseData GNU.txt
 
-UninstallText "This uninstalls Freenet and all files on this node. (You may need to shut down running nodes before proceeding)"
-UninstallExeName Uninstall-Freenet.exe
-
-DirText "No files will be placed outside this directory (e.g. Windows\system)"
+DirText "Please choose the directory in which Freenet should be installed"
 
  InstType Minimal
  InstType Normal
 
-EnabledBitmap Yes.bmp
-DisabledBitmap No.bmp
-BGGradient
-AutoCloseWindow true
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
 InstallDir "$PROGRAMFILES\Freenet0.4"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 ShowInstDetails show
-
+InstProgressFlags smooth
+EnabledBitmap Yes.bmp
+DisabledBitmap No.bmp
+BGGradient
+AutoCloseWindow true
 ;-----------------------------------------------------------------------------------
 Function DetectJava
 # this function detects Sun Java from registry and calls the JavaFind utility otherwise
@@ -142,6 +139,7 @@ Section
 # sections come the localization parts and *then* we can start the actual
 # setup/configuration of Freenet
 
+  WriteUninstaller Uninstall-Freenet.exe
   # First of all see if we need to install the mfc42.dll
   # Each Win user should have it anyway
   IfFileExists "$SYSDIR\Mfc42.dll" MfcDLLExists
@@ -161,10 +159,12 @@ Section
   # copying the real Freenet files now
   File freenet\*.*
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\frequest.exe" 6
-  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
-  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\fclient.exe" 6
-  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
-  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\fsrvcli.exe" 6
+  SetDetailsPrint none
+  CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
+  CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fclient.exe" 6
+  CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
+  CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fsrvcli.exe" 6
+  SetDetailsPrint both
 
 SectionEnd 
 ;--------------------------------------------------------------------------------------
@@ -282,7 +282,7 @@ SectionIn 2
   ExecShell "open" "$INSTDIR\docs\Readme.txt"
 SectionEnd
 ;--------------------------------------------------------------------------------------
- SectionDivider
+ SectionDivider "Alternative programs"
 ;---------------------------------------------------------------------------------------
 Section "FCPProxy (alternative to the integrated FProxy)"
 

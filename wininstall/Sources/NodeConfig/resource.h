@@ -78,8 +78,11 @@
 #define IDC_FPROXYDROPPEDCONN           1068
 #define IDC_fproxy_splitthreads         1069
 #define IDC_SEEDFILE                    1070
+#define IDC_NODESTATUSSERVLET           1070
 #define IDC_useDefaultNodeRefs          1071
+#define IDC_NODESTATUSPORT              1071
 #define IDC_fproxy_splitretries         1072
+#define IDC_NODESTATUSCLASS             1072
 #define IDC_importNewNodeRef            1073
 #define IDC_fproxy_splitincHTL          1074
 #define IDC_GETLOCALSEED                1075
@@ -94,7 +97,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1069
+#define _APS_NEXT_CONTROL_VALUE         1073
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

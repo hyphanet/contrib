@@ -120,11 +120,10 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Advanced Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
-    GROUPBOX        "External Node References",IDC_STATIC,7,7,305,34
+    GROUPBOX        "External Node References",IDC_STATIC,7,7,160,34
     LTEXT           "File containing external Node Refs",IDC_STATIC,11,18,61,
                     17
-    EDITTEXT        IDC_seedNodes,74,21,152,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Export ref to this node",IDC_BUT_exportRef,232,21,74,13
+    EDITTEXT        IDC_seedNodes,74,21,85,12,ES_AUTOHSCROLL
     GROUPBOX        "Node Announcements",IDC_STATIC,7,46,305,34
     CONTROL         "Announce to Other Nodes",IDC_doAnnounce,"Button",
                     BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,58,56,18
@@ -171,6 +170,14 @@ BEGIN
                     IDC_STATIC,53,103,155,21
     LTEXT           "Once your node is up and running happily within Freenet, it might be good to turn this option off.",
                     IDC_STATIC,99,58,198,18
+    CONTROL         "Nodestatus enabled",IDC_NODESTATUSSERVLET,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,176,15,121,10
+    GROUPBOX        "Servlets",IDC_STATIC,173,7,139,34
+    EDITTEXT        IDC_NODESTATUSPORT,175,25,31,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    LTEXT           "Port",IDC_STATIC,207,28,21,8
+    EDITTEXT        IDC_NODESTATUSCLASS,229,26,60,14,ES_AUTOHSCROLL
+    LTEXT           "Class",IDC_STATIC,290,28,22,8
 END
 
 IDD_PP_GEEK DIALOG DISCARDABLE  0, 0, 319, 241

@@ -84,7 +84,7 @@ REPORTING BUGS
 
 Feedback from users is an essential part of the open source model of
 software development.  If you would like to report a bug, send a mail to 
-<Freenet-dev@lists.sourceforge.net>
+<devl@freenetproject.org>
 
 ---------------------------------------------------------------------------
 

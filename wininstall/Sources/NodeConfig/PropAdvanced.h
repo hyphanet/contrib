@@ -35,6 +35,9 @@ public:
 	UINT	m_maximumConnectionThreads;
 	UINT	m_outputBandwidthLimit;
 	CString	m_seedNodes;
+	BOOL	m_nodestatusservlet;
+	UINT	m_nodestatusport;
+	CString	m_nodestatusclass;
 	//}}AFX_DATA
 
 

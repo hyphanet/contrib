@@ -21,17 +21,9 @@ IMPLEMENT_DYNCREATE(CPropAdvanced, CPropertyPage)
 CPropAdvanced::CPropAdvanced() : CPropertyPage(CPropAdvanced::IDD)
 {
 	//{{AFX_DATA_INIT(CPropAdvanced)
-	//m_adminPassword = _T("");
-	//m_bandwidthLimit = 0;
-	//m_clientPort = 0;
-	//m_doAnnounce = FALSE;
-	//m_fcpHosts = _T("");
-	//m_initialRequestHTL = 0;
-	//m_inputBandwidthLimit = 0;
-	//m_maxHopsToLive = 0;
-	//m_maximumConnectionThreads = 0;
-	//m_outputBandwidthLimit = 0;
-	//m_seedNodes = _T("");
+	m_nodestatusservlet = FALSE;
+	m_nodestatusport = 0;
+	m_nodestatusclass = _T("");
 	//}}AFX_DATA_INIT
 }
 
@@ -63,6 +55,9 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_outputBandwidthLimit, 0, 999999999);
 	DDX_Text(pDX, IDC_seedNodes, m_seedNodes);
 	DDV_MaxChars(pDX, m_seedNodes, 255);
+	DDX_Check(pDX, IDC_NODESTATUSSERVLET, m_nodestatusservlet);
+	DDX_Text(pDX, IDC_NODESTATUSPORT, m_nodestatusport);
+	DDX_Text(pDX, IDC_NODESTATUSCLASS, m_nodestatusclass);
 	//}}AFX_DATA_MAP
 }
 
