@@ -65,6 +65,49 @@ const TCHAR* FindNull(const TCHAR* szBuffer, const TCHAR* const szEndPointer)
 	return szBuffer;
 }
 
+
+BOOL CALLBACK __stdcall ImportProgressWndProc(HWND hwndDialog, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	BOOL bQuit=FALSE;
+
+	switch (uMsg)
+	{
+	case WM_INITDIALOG:
+		SetTimer(hwndDialog,1,330,NULL);
+		return TRUE;
+				
+	case WM_CLOSE:
+		bQuit=TRUE;
+		break;
+
+	case WM_SYSCOMMAND:
+		switch (wParam)
+		{
+		case SC_CLOSE:
+			bQuit=TRUE;
+			break;
+		default:
+			return FALSE;
+		}
+		break;
+
+	default:
+		return FALSE;
+	}
+
+
+	if (bQuit)
+	{
+		// Quit flag was set in above message processing
+		// destroy and cleanup
+		DestroyWindow(hwndDialog);
+		return TRUE;  //  true because the message obviously WAS processed, or else we wouldn't have set Quit flag
+	}
+
+	return FALSE;
+}
+
+
 STARTUPINFO StartFserveSeedInfo={sizeof(STARTUPINFO),
 						NULL,NULL,NULL,
 						0,0,0,0,0,0,0,
@@ -72,6 +115,18 @@ STARTUPINFO StartFserveSeedInfo={sizeof(STARTUPINFO),
 						SW_NORMAL,
 						0,NULL,
 						NULL,NULL,NULL};
+
+
+// following should be used ONLY when calling from command line
+void ImportFileWithProgress(const TCHAR * szFilename)
+{
+	// Display progress bar
+	HANDLE hImportProgressWnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_IMPORTPROGRESS), hWnd, ImportProgressWndProc);
+
+	ImportFile(szFilename);
+
+	SendMessage(hImportProgressWnd, WM_CLOSE, 0, 0);
+}
 
 void ImportFile(const TCHAR * szFilename)
 {
@@ -159,12 +214,17 @@ void ImportRefs(void)
 			// import the selected reference file(s)
 			TCHAR szPath[65536];
 			unsigned int nFiles;
+			HANDLE hImportProgressWnd;
 			
 			// how many files are there? iterate on return buffer contents
 			const TCHAR * pszFile = FindNull(szFile, szFileBufferEndPointer);
 			// pszFile now points to the end of the directory in the return buffer -
 			// advance by one to find the first filename
 			++pszFile;
+
+			// Display progress bar
+			hImportProgressWnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_IMPORTPROGRESS), hWnd, ImportProgressWndProc);
+
 			if (pszFile<szFile+sizeof(szFile) && (*pszFile=='\0') )
 			{
 				// only one file was selected
@@ -181,10 +241,7 @@ void ImportRefs(void)
 					++pszFile;
 				}
 				// when we get here, nFiles is set up.
-	
-				// Display progress bar
-				// ... ToDo
-	
+
 				// process each file in turn
 				pszFile = FindNull(szFile, szFileBufferEndPointer);
 				++pszFile;
@@ -205,6 +262,9 @@ void ImportRefs(void)
 					++pszFile;
 				}
 			}
+
+			SendMessage(hImportProgressWnd, WM_CLOSE, 0, 0);
+
 		}
 	}
 }
