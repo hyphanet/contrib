@@ -70,12 +70,12 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.freenetproject.org\0"
+            VALUE "Comments", "http://www.freenetproject.org\r\n\r\nWritten / Maintained by Dave Hooper\r\nContact no-brain@mindless.com\0"
             VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "freenet\0"
+            VALUE "FileDescription", "Freenet Systray Application\0"
             VALUE "FileVersion", "0.3.0.0\0"
             VALUE "InternalName", "freenet.exe\0"
-            VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\r\nContact no-brain@mindless.com\0"
+            VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
             VALUE "OriginalFilename", "freenet.exe\0"
             VALUE "ProductName", "freenet systray\0"
             VALUE "ProductVersion", "During 0.3.9.2\0"
