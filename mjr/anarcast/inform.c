@@ -24,7 +24,7 @@ int
 main (int argc, char **argv)
 {
     unsigned int l, m, active;
-   // pthread_t t;
+    pthread_t t;
     fd_set r, w;
     
     if (argc != 1) {
@@ -60,8 +60,8 @@ main (int argc, char **argv)
     l = listening_socket(INFORM_SERVER_PORT, INADDR_ANY);
     active = 0;
     
-//    if (pthread_create(&t, NULL, thread, NULL))
-//	die("pthread_create() failed");
+    if (pthread_create(&t, NULL, thread, NULL))
+	die("pthread_create() failed");
     
     FD_ZERO(&r);
     FD_ZERO(&w);
@@ -111,11 +111,13 @@ main (int argc, char **argv)
 		    if (off[n] != hosts) ioerror();
 		    active--;
 		    FD_CLR(n, &w);
+		    if (n+1 == m) m--;
 		    if (close(n) == -1)
 			die("close() failed");
 		} else if ((off[n] += c) == end) {
 		    active--;
 		    FD_CLR(n, &w);
+		    if (n+1 == m) m--;
 		    if (close(n) == -1)
 			die("close() failed");
 		}

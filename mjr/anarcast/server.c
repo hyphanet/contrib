@@ -97,6 +97,7 @@ main (int argc, char **argv)
             if (i < 0) {
                 if ((c = read(n, &(&a[n].len)[4+i], -i)) <= 0) {
                     FD_CLR(n, &r);
+		    if (n+1 == m) m--;
 		    if (close(n) == -1)
 		        die("close() failed");
                     continue;
@@ -110,6 +111,7 @@ main (int argc, char **argv)
 	    if ((c = read(n, &a[n].data[i], a[n].len - i)) <= 0) {
 		ioerror();
 		FD_CLR(n, &r);
+		if (n+1 == m) m--;
 		if (munmap(a[n].data, a[n].len) == -1)
 		    die("munmap() failed");
 		if (close(n) == -1)
@@ -134,6 +136,7 @@ main (int argc, char **argv)
 		if (munmap(a[n].data, a[n].len) == -1)
 		    die("munmap() failed");
 		FD_CLR(n, &r);
+		if (n+1 == m) m--;
 		if (close(n) == -1)
 		    die("close() failed");
 		continue;
@@ -149,6 +152,7 @@ main (int argc, char **argv)
 		if ((c = read(n, &a[n].hash[HASHLEN+i], -i)) <= 0) {
 		    ioerror();
 		    FD_CLR(n, &r);
+		    if (n+1 == m) m--;
 		    if (close(n) == -1)
 		        die("close() failed");
 		    continue;
@@ -160,6 +164,7 @@ main (int argc, char **argv)
 	    // we don't have it! damn, hang up
 	    if (stat(hex, &st) == -1) {
 		FD_CLR(n, &r);
+		if (n+1 == m) m--;
 		if (close(n) == -1)
 		    die("close() failed");
 		continue;
@@ -196,6 +201,7 @@ write:	//=== write =========================================================
 		printf("%s > %s\n", timestr(), hex);
 	    } else ioerror(); // error, yuck.
 	    FD_CLR(n, &w);
+            if (n+1 == m) m--;
 	    if (close(n) == -1)
 		die("close() failed");
 	    if (munmap(a[n].data, a[n].len) == -1)
