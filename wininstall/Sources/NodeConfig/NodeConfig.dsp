@@ -94,6 +94,10 @@ SOURCE=.\ConfigFile.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\DlgWarnPerm.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\NodeConfig.cpp
 # End Source File
 # Begin Source File
@@ -128,6 +132,10 @@ SOURCE=.\StdAfx.cpp
 # Begin Source File
 
 SOURCE=.\ConfigFile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\DlgWarnPerm.h
 # End Source File
 # Begin Source File
 

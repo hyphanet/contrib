@@ -113,6 +113,10 @@ SOURCE=.\_fcpLog.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\_fcpPutSplit.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\_fcpReadBlk.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"
