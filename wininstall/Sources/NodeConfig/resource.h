@@ -40,11 +40,11 @@
 #define IDC_adminPassword               1025
 #define IDC_announcementDelay           1026
 #define IDC_announcementDelayBase       1027
-#define IDC_maxNodeConnections_spin     1027
-#define IDC_announcementPeers           1028
-#define IDC_doDiagnostics               1029
-#define IDC_diagnosticsPath             1030
-#define IDC_logFile                     1031
+#define IDC_maxNodeConnections_spin     1028
+#define IDC_announcementPeers           1029
+#define IDC_doDiagnostics               1030
+#define IDC_diagnosticsPath             1031
+#define IDC_logFile                     1032
 #define IDC_logLevel                    1033
 #define IDC_authTimeout                 1035
 #define IDC_checkPointInterval          1037
@@ -75,11 +75,11 @@
 #define IDC_FPROXYDROPPEDCONN           1068
 #define IDC_fproxy_splitthreads         1069
 #define IDC_SEEDFILE                    1070
-#define IDC_NODESTATUSSERVLET           1071
+#define IDC_NODEINFOSERVLET             1071
 #define IDC_useDefaultNodeRefs          1072
-#define IDC_NODESTATUSPORT              1073
+#define IDC_NODEINFOPORT                1073
 #define IDC_fproxy_splitretries         1074
-#define IDC_NODESTATUSCLASS             1075
+#define IDC_NODEINFOCLASS               1075
 #define IDC_importNewNodeRef            1076
 #define IDC_logFormat                   1077
 #define IDC_fproxy_splitincHTL          1078
@@ -94,7 +94,7 @@
 #define IDC_doAnnounce                  1087
 #define IDC_slider_CPUPriority          1088
 #define IDC_Static_CPUPriority          1089
-#define IDC_storePath_browse			1090
+#define IDC_storePath_browse            1090
 
 // Next default values for new objects
 // 
@@ -102,7 +102,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1079
+#define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

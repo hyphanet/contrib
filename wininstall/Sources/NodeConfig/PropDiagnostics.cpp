@@ -30,9 +30,9 @@ void CPropDiagnostics::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropDiagnostics)
-	DDX_Check(pDX, IDC_NODESTATUSSERVLET, m_nodestatusservlet);
-	DDX_Text(pDX, IDC_NODESTATUSCLASS, m_nodestatusclass);
-	DDX_Text(pDX, IDC_NODESTATUSPORT, m_nodestatusport);
+	DDX_Check(pDX, IDC_NODEINFOSERVLET, m_nodeinfoservlet);
+	DDX_Text(pDX, IDC_NODEINFOCLASS, m_nodeinfoclass);
+	DDX_Text(pDX, IDC_NODEINFOPORT, m_nodeinfoport);
 	DDX_Text(pDX, IDC_logFile, m_logFile);
 	DDX_Text(pDX, IDC_logFormat, m_logFormat);
 	DDX_CBString(pDX, IDC_logLevel, m_logLevel);
@@ -44,9 +44,24 @@ void CPropDiagnostics::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CPropDiagnostics, CPropertyPage)
 	//{{AFX_MSG_MAP(CPropDiagnostics)
-		// NOTE: the ClassWizard will add message map macros here
+	ON_BN_CLICKED(IDC_NODEINFOSERVLET, OnNodeinfoservlet)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropDiagnostics message handlers
+
+void CPropDiagnostics::OnNodeinfoservlet() 
+{
+	UpdateData(TRUE);
+	GetDlgItem(IDC_NODEINFOCLASS)->EnableWindow(m_nodeinfoservlet);
+	GetDlgItem(IDC_NODEINFOPORT)->EnableWindow(m_nodeinfoservlet);
+}
+
+BOOL CPropDiagnostics::OnSetActive() 
+{
+	UpdateData(TRUE);
+	GetDlgItem(IDC_NODEINFOCLASS)->EnableWindow(m_nodeinfoservlet);
+	GetDlgItem(IDC_NODEINFOPORT)->EnableWindow(m_nodeinfoservlet);
+	return CPropertyPage::OnSetActive();
+}

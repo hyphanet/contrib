@@ -24,9 +24,9 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CPropDiagnostics)
 	enum { IDD = IDD_PP_DIAGNOSTICS };
-	BOOL	m_nodestatusservlet;
-	CString	m_nodestatusclass;
-	UINT	m_nodestatusport;
+	BOOL	m_nodeinfoservlet;
+	CString	m_nodeinfoclass;
+	UINT	m_nodeinfoport;
 	CString	m_logFile;
 	CString	m_logFormat;
 	CString	m_logLevel;
@@ -38,6 +38,8 @@ public:
 // Overrides
 	// ClassWizard generate virtual function overrides
 	//{{AFX_VIRTUAL(CPropDiagnostics)
+	public:
+	virtual BOOL OnSetActive();
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -46,7 +48,7 @@ public:
 protected:
 	// Generated message map functions
 	//{{AFX_MSG(CPropDiagnostics)
-		// NOTE: the ClassWizard will add member functions here
+	afx_msg void OnNodeinfoservlet();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

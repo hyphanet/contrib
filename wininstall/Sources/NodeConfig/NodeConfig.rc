@@ -321,17 +321,16 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Diagnostics"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Nodestatus enabled",IDC_NODESTATUSSERVLET,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,131,121,10
-    GROUPBOX        "Servlets",IDC_STATIC,7,94,189,74
-    EDITTEXT        IDC_NODESTATUSPORT,134,129,31,14,ES_AUTOHSCROLL | 
+    CONTROL         "Enable",IDC_NODEINFOSERVLET,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,22,139,37,10
+    GROUPBOX        "Servlets",IDC_STATIC,7,94,305,140
+    EDITTEXT        IDC_NODEINFOPORT,265,136,31,14,ES_AUTOHSCROLL | 
                     ES_NUMBER
-    LTEXT           "Port",IDC_STATIC,168,133,21,8
-    EDITTEXT        IDC_NODESTATUSCLASS,13,149,152,14,ES_AUTOHSCROLL
-    LTEXT           "Class",IDC_STATIC,169,145,22,8
-    LTEXT           "The nodestatus servlet enables a web interface to view diagnostics data in a web browser.",
-                    IDC_STATIC,13,102,176,25
-    GROUPBOX        "Diagnostics",IDC_STATIC,108,7,88,81
+    RTEXT           "Port",IDC_STATIC,242,139,20,8
+    EDITTEXT        IDC_NODEINFOCLASS,77,136,160,14,ES_AUTOHSCROLL
+    LTEXT           "The node information servlet enables a web interface to view diagnostics data in a web browser.",
+                    IDC_STATIC,22,118,269,18
+    GROUPBOX        "Diagnostics",IDC_STATIC,108,7,93,81
     CONTROL         "Enable",IDC_doDiagnostics,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,115,24,38,10
     LTEXT           "Path",IDC_STATIC,115,45,16,8
@@ -343,6 +342,7 @@ BEGIN
     COMBOBOX        IDC_logLevel,41,43,49,54,CBS_DROPDOWN | WS_TABSTOP
     LTEXT           "Format",IDC_STATIC,15,69,22,8
     EDITTEXT        IDC_logFormat,41,65,48,14,ES_AUTOHSCROLL
+    GROUPBOX        "Node Information Servlet",IDC_STATIC,15,106,287,51
 END
 
 

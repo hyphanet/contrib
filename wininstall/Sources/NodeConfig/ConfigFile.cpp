@@ -138,9 +138,12 @@ void CConfigFile::Load()
 	pDiagnostics->m_logFile = "freenet.log";
 	pDiagnostics->m_logLevel = "normal";
 	pDiagnostics->m_logFormat = "d (c, t): m";
-	pDiagnostics->m_nodestatusservlet = true;
-	pDiagnostics->m_nodestatusport = 8890;
-	pDiagnostics->m_nodestatusclass = "freenet.node.http.NodeInfoServlet";
+	
+	// the following are fixed up later as the obsolete
+	// "nodestatus" settings are absorbed and converted by NodeConfig
+	pDiagnostics->m_nodeinfoservlet = true;
+	pDiagnostics->m_nodeinfoport = -1;
+	pDiagnostics->m_nodeinfoclass = "";
 	
 	// Reset unknown parameters container
 	UnknownParms = "";
@@ -169,6 +172,19 @@ void CConfigFile::Load()
 		fclose(fp);
 	}
 
+	/////////////////////////////////
+	//
+	// Fix up any known compatibility changes
+	//
+	if ( (pDiagnostics->m_nodeinfoclass.Compare("")==0) || 
+		 (pDiagnostics->m_nodeinfoclass.Compare("freenet.client.http.NodeStatusServlet")==0) ||
+		 (pDiagnostics->m_nodeinfoport == -1) )
+	{
+		pDiagnostics->m_nodeinfoclass = "freenet.node.http.NodeInfoServlet";
+		pDiagnostics->m_nodeinfoport = 8890;
+	}
+
+	
 	/////////////////////////////////
 	//
 	// Load any additional settings from FLaunch.ini
@@ -419,7 +435,7 @@ void CConfigFile::Save()
 	fprintf(fp, "# Services & Servlets\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "services=%s%s\n",pFProxy->m_bfproxyservice?"fproxy,":"",
-								pDiagnostics->m_nodestatusservlet?"nodestatus,":"");
+								pDiagnostics->m_nodeinfoservlet?"nodeinfo,":"");
 	fprintf(fp, "\n");
 
 	// FProxy settings
@@ -438,12 +454,12 @@ void CConfigFile::Save()
 	fprintf(fp, "fproxy.params.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
 	fprintf(fp, "\n");
 
-		// FProxy settings
+	// FProxy settings
 	fprintf(fp, "########################\n");
-	fprintf(fp, "# Nodestatus servlet settings\n");
+	fprintf(fp, "# Node information servlet settings\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "nodestatus.class=%s\n",pDiagnostics->m_nodestatusclass);
-	fprintf(fp, "nodestatus.port=%d\n",pDiagnostics->m_nodestatusport);
+	fprintf(fp, "nodeinfo.class=%s\n",pDiagnostics->m_nodeinfoclass);
+	fprintf(fp, "nodeinfo.port=%d\n",pDiagnostics->m_nodeinfoport);
 	fprintf(fp, "\n");
 
 	// Write out unknown parameters
@@ -581,7 +597,10 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "services"))
 	{
 		pFProxy->m_bfproxyservice = (strstr(_strupr(val),"FPROXY"))?true:false;
-		pDiagnostics->m_nodestatusservlet = (strstr(_strupr(val),"NODESTATUS"))?TRUE:FALSE;
+		pDiagnostics->m_nodeinfoservlet = (strstr(_strupr(val),"NODEINFO"))?TRUE:FALSE;
+		// absorb obsoleted 'nodestatus' setting - don't set m_nodeinfoservlet to FALSE
+		// because that could replace it if the previous line had already set it to TRUE!
+		if (strstr(_strupr(val),"NODESTATUS") ) pDiagnostics->m_nodeinfoservlet = TRUE;
 	}
 	else if (!strcmp(tok, "fproxy.class"))
 		pFProxy->m_fproxyclass = val;
@@ -613,10 +632,22 @@ void CConfigFile::processItem(char *tok, char *val)
 		pDiagnostics->m_diagnosticsPath = val;
 	else if (!strcmp(tok, "doDiagnostics"))
 		pDiagnostics->m_doDiagnostics = atobool(val);
+		// absorb obsoleted 'nodestatus' settings
 	else if (!strcmp(tok, "nodestatus.port"))
-		pDiagnostics->m_nodestatusport = atoi(val);
+	{
+		if (pDiagnostics->m_nodeinfoport == -1)
+			pDiagnostics->m_nodeinfoport = atoi(val);
+	}
 	else if (!strcmp(tok, "nodestatus.class"))
-		pDiagnostics->m_nodestatusclass = val;
+	{
+		if (!pDiagnostics->m_nodeinfoclass.Compare(""))
+			pDiagnostics->m_nodeinfoclass = val;
+	}
+		// replacement nodeinfo settings
+	else if (!strcmp(tok, "nodeinfo.port"))
+		pDiagnostics->m_nodeinfoport = atoi(val);
+	else if (!strcmp(tok, "nodeinfo.class"))
+		pDiagnostics->m_nodeinfoclass = val;
 
 	else
 	{
