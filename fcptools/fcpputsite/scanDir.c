@@ -66,7 +66,7 @@ SiteFile *scan_dir(char *dirname, int *pNumFiles)
             // convert evil DOS backslashes into nice unix forward slashes
 #ifdef WINDOWS
             for (s = fileArray[i].relpath; *s != '\0'; s++)
-                if (*s == DIR_DELIM_CHAR)
+                if (*s == '\\')
                     *s = '/';
 #endif
             filelist = filelist->next;
@@ -99,7 +99,7 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
 
     strcpy(subpath, dirname);
 #ifdef WINDOWS
-    strcat(subpath, DIR_DELIM_STRING);
+    strcat(subpath, "/");
     strcat(subpath, "*.*");
 #endif
 
@@ -137,7 +137,7 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
         // Get attributes
         //
         strcpy(subpath, dirname);
-        strcat(subpath, DIR_DELIM_STRING);
+        strcat(subpath, "/");
 #ifdef WINDOWS
         strcat(subpath, finddata.cFileName);
 #else

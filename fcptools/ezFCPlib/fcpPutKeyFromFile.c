@@ -45,7 +45,7 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
     struct stat st;
 
     // can we open the file?
-    if ((fd = open(file, 0)) < 0)
+    if ((fd = open(file, OPEN_MODE_READ)) < 0)
 		return -1;
 
     // how big's this file?

@@ -29,13 +29,6 @@ typedef struct
 }
 chunkThreadParams;
 
-
-#ifdef WINDOWS
-#define OPEN_FILE_MODE (_O_RDONLY | _O_BINARY)
-#else
-#define OPEN_FILE_MODE 0
-#endif
-
 /*
   EXPORTED DECLARATIONS
 */
@@ -193,7 +186,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	}
 
 
-	if ((fd = open(fileName, OPEN_FILE_MODE)) < 0)
+	if ((fd = open(fileName, OPEN_MODE_READ)) < 0)
 	{
 		_fcpLog(FCP_LOG_CRITICAL, "fcpInsSplitFile: cannot open '%s'", fileName);
 		return -1;
@@ -237,7 +230,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	_fcpLog(FCP_LOG_VERBOSE, "fcpInsSplitFile: insert of '%s' successful", fileName);
 
 	// insert this manifest
-	result = insertSplitManifest(hfcp, key, metaData, strrchr(fileName, DIR_DELIM_CHAR));
+	result = insertSplitManifest(hfcp, key, metaData, strrchr(fileName, '/'));
 
 	// update status for manager thread
 	job->status = (result == 0) ? SPLIT_INSSTAT_SUCCESS : SPLIT_INSSTAT_FAILED;
@@ -315,7 +308,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 	if (!strncmp(key, "freenet:", 8))
 		key += 8;
 
-	if ((strncmp(key, "CHK@", 4) != 0) && (strlen(splitManifest) > MAX_KSK_LEN))
+	if ((strncmp(key, "CHK@", 4) != 0) && (strlen(splitManifest) > L_KSK))
 	{
 		// insert split manifest as chk, then redirect to it
 		HFCP *hfcp1 = fcpCreateHandle();
@@ -597,7 +590,7 @@ static int dumpQueue()
 		char buf[1024];
 		char buf1[1024];
 
-		sprintf(buf, "%s(%d): ", strrchr(job->fileName, DIR_DELIM_CHAR), job->numChunks);
+		sprintf(buf, "%s(%d): ", strrchr(job->fileName, '/'), job->numChunks);
 
 		switch (job->status)
 		{

@@ -14,7 +14,6 @@
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
-
 /*
   Necessary includes
 
@@ -45,17 +44,15 @@
 #define FCP_LOG_DEBUG         3
 #define FCP_LOG_MESSAGE_SIZE  4096   /* Was 65K */
 
-#define DIR_DELIM_CHAR      '/'
-#define DIR_DELIM_STRING    "/"
-
-
-#define MAX_URI_LEN         256
-#define MAX_FILENAME_LEN    128
-#define MAX_TMP_FNAME_LEN   L_tmpnam
-#define MAX_STRING_LEN      256
-#define MAX_KEY_LEN         128
-#define MAX_KEYINDEX_LEN    128
-#define MAX_KSK_LEN         32768
+/*
+  Lengths of allocated strings/arrays.
+*/
+#define L_URI         256
+#define L_HOST        128
+#define L_FILENAME    128
+#define L_KEY         128
+#define L_KEYINDEX    128
+#define L_KSK         32768
 
 
 /*
@@ -87,7 +84,7 @@ typedef struct {
   Splitfile Insert Control Blocks
 */
 typedef struct _splitChunk {
-  char key[MAX_URI_LEN]; /* CHK key of inserted chunk */
+  char key[L_URI]; /* CHK key of inserted chunk */
   int status;            /* insert status of this chunk */
   int index;             /* index num of this chunk */
   char *chunk;           /* byte-image of chunk to insert - malloc()'ed */
@@ -96,7 +93,7 @@ typedef struct _splitChunk {
 
 
 typedef struct _splitJob {
-  char key[MAX_URI_LEN];
+  char key[L_URI];
 
   char status;               /* status as advised by splitmgr thread */
   int fd;                    /* fd of file we are inserting from, if applicable */
@@ -117,9 +114,10 @@ typedef struct _splitJob {
 #define RECV_BUFSIZE            2048
 
 #define EZFCP_DEFAULT_HOST      "127.0.0.1"
-#define EZFCP_DEFAULT_PORT      8082
+#define EZFCP_DEFAULT_PORT      8481
 #define EZFCP_DEFAULT_HTL       25
 #define EZFCP_DEFAULT_REGRESS   3
+#define EZFCP_DEFAULT_RAWMODE   0
 
 /*
   flags for fcpOpenKey()
@@ -282,7 +280,7 @@ typedef struct {
   Container for a splitfile chunk
 */
 typedef struct _04CHUNK {
-  char uri[MAX_URI_LEN]; /* URI of this chunk */
+  char uri[L_URI]; /* URI of this chunk */
 
   /* parser internal use only */
   struct _04CHUNK *_next;
@@ -294,7 +292,7 @@ META04SPLITCHUNK;
   Container for splitfile check piece
 */
 typedef struct _04PIECE {
-  char uri[MAX_URI_LEN];   /* uri of check piece */
+  char uri[L_URI];   /* uri of check piece */
   int graphLen;            /* size of graph elementa array */
   int *graph;              /* array of graph elements */
 
@@ -341,7 +339,7 @@ typedef struct {
   Definitions for key index access
 */
 typedef struct {
-  char name[MAX_KEYINDEX_LEN];     /* name of key index */
+  char name[L_KEYINDEX];     /* name of key index */
   int next_keynum;                 /* the next key we are retrieving */
   char basedate[9];                /* basedate of key, if using basedates */
 } FCP_KEYINDEX;
@@ -404,18 +402,18 @@ typedef struct {
 	 FCP_URI *uri;        /* uri of key being inserted */
 	 int fd_data;         /* fd for writing key data to temp file */
 	 int num_data_wr;     /* num bytes of normal data written */
-	 char data_temp_file[MAX_TMP_FNAME_LEN];   /* temporary file full path */
+	 char data_temp_file[L_tmpnam];   /* temporary file full path */
 	 int fd_meta;         /* fd for writing key metadata to temp file */
 	 int num_meta_wr;     /* num bytes of metadata written */
-	 char meta_temp_file[MAX_TMP_FNAME_LEN];   /* temporary file full path */
+	 char meta_temp_file[L_tmpnam];   /* temporary file full path */
   } wr_info;
 
   FCPCONN conn;
 
   FCP_KEYINDEX keyindex;
-  char created_uri[MAX_KEY_LEN];  /* filled in by library after writing key */
-  char pubkey[MAX_KEY_LEN];       /* filled in after writing a key */
-  char privkey[MAX_KEY_LEN];      /* filled in after writing a key */
+  char created_uri[L_KEY];  /* filled in by library after writing key */
+  char pubkey[L_KEY];       /* filled in after writing a key */
+  char privkey[L_KEY];      /* filled in after writing a key */
   char failReason[256];           /* reason sent back with failure msg */
 
   splitJobIns split;              /* control structure for insert split job */

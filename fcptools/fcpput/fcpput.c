@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
     {
 		int fileSize;
 		HFCP *hfcpRedir;
-		char chk[MAX_URI_LEN];
+		char chk[L_URI];
 		char metaRedir[1024];
 
 		if (stat(keyFile, &fileStat) < 0)
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 
 		fileSize = fileStat.st_size;
 
-		if (fileSize < MAX_KSK_LEN || strstr(keyUri, "CHK@"))
+		if (fileSize < L_KSK || strstr(keyUri, "CHK@"))
 		{
 			int i = 1;
 

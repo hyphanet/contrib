@@ -16,4 +16,3 @@ FCP_SOURCE = \
 	mimetype.c template.c safeMalloc.c
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
-

@@ -21,16 +21,19 @@
 static void parse_args(int argc, char *argv[]);
 static void usage(char *msg);
 
-/* Configurable command-line parameters */
-char  keyUri[MAX_URI_LEN];
-char  keyFile[MAX_FILENAME_LEN];
-char  nodeAddr[MAX_URI_LEN] = "localhost";
-char  metaFile[MAX_FILENAME_LEN] = "stdout";
+/* Configurable command-line parameters
+	 Strings/Arrays that have default values if not set explicitly from the
+	 command line should be initialized to "", a zero-length string.
+*/
+char  keyUri[L_URI];
+char  keyFile[L_FILENAME] = "";
+char  metaFile[L_FILENAME] = "";
 
-int   htlVal = 25;
-int   nodePort = 8481;
+char  nodeAddr[L_HOST] = EZFCP_DEFAULT_HOST;
+int   nodePort = EZFCP_DEFAULT_PORT;
+int   htlVal = EZFCP_DEFAULT_HTL;
 
-int   rawMode = 0;
+int   rawMode = EZFCP_DEFAULT_RAWMODE;
 int   verbosity = FCP_LOG_NORMAL;
 
 
@@ -82,7 +85,7 @@ int main(int argc, char* argv[])
         }
     
         // snarf key's metadata
-        if (metaFile != NULL)
+        if (metaFile[0])
         {
             printf("---METADATA DUMP NOT IMPLEMENTED YET---\n");
             if (!strcmp(metaFile, "stdout"))
@@ -117,7 +120,7 @@ int main(int argc, char* argv[])
         if (hfcp->keysize > 0)
         {
             // nuke file if it exists
-            if (keyFile != NULL)
+            if (keyFile[0])
             {
                 unlink(keyFile);
 #ifdef WINDOWS
@@ -197,7 +200,7 @@ static void parse_args(int argc, char *argv[])
       break;
       
     case 'n':
-      strncpy( nodeAddr, optarg, MAX_URI_LEN );
+      strncpy( nodeAddr, optarg, L_URI );
       break;
       
     case 'p':
@@ -206,7 +209,7 @@ static void parse_args(int argc, char *argv[])
       break;
       
     case 'm':
-      strncpy( metaFile, optarg, MAX_FILENAME_LEN );
+      strncpy( metaFile, optarg, L_FILENAME );
       break;
       
     case 'r':
@@ -229,14 +232,14 @@ static void parse_args(int argc, char *argv[])
   }
 
   //printf("\noptind: %d :: argc: %d\n\n", optind, argc);
-  if (optind < argc) strncpy(keyUri, argv[optind++], MAX_URI_LEN);
+  if (optind < argc) strncpy(keyUri, argv[optind++], L_URI);
   else usage("You must specify a key");
 
   /* If there's another parameter, it's the FILE to store the results in.
      Default value is "stdout" if not passed */
 
   if (optind < argc)
-    strncpy(keyFile, argv[optind++], MAX_FILENAME_LEN);
+    strncpy(keyFile, argv[optind++], L_FILENAME);
 }
 
 
@@ -261,8 +264,8 @@ static void usage(char *s)
     printf("  -V, --version          Output version information and exit\n");
     printf("  -h, --help             Display this help and exit\n\n");
 
-    printf("  key                    A Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
-    printf("  file                   A file to save key data to - stdout if no filename\n\n");
+    printf("  key                    Freenet key (freenet:KSK@gpl.txt)\n");
+    printf("  file                   File to save key data to (default=STDOUT)\n\n");
 
     exit(0);
 }

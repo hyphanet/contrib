@@ -16,7 +16,7 @@
 
 
 /* Global data defs */
-char  _fcpHost[256];
+char  _fcpHost[L_HOST];
 int   _fcpPort;
 int   _fcpHtl;
 int   _fcpRawMode;

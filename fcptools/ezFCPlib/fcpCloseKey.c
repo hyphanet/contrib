@@ -114,7 +114,7 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
   
   // Send metadata if there's any
   if (hfcp->wr_info.num_meta_wr > 0) {
-	 fd = open(hfcp->wr_info.meta_temp_file, 0);
+	 fd = open(hfcp->wr_info.meta_temp_file, OPEN_MODE_READ);
 	 
 	 while ((count = read(fd, buf, 1024)) > 0)
 		_fcpSockSend(hfcp, buf, count);
@@ -124,7 +124,7 @@ static int fcpCloseKeyWrite(HFCP *hfcp)
   
   // Now send data
   if (hfcp->wr_info.num_data_wr > 0) {
-	 fd = open(hfcp->wr_info.data_temp_file, 0);
+	 fd = open(hfcp->wr_info.data_temp_file, OPEN_MODE_READ);
 	 
 	 while ((count = read(fd, buf, 1024)) > 0)
 		_fcpSockSend(hfcp, buf, count);

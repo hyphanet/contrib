@@ -194,12 +194,11 @@ char *GetMimeType(char *pathname)
     int i;
     char buf[128];
     char *s;
-    char delim = DIR_DELIM_CHAR;
 
     strcpy(buf, pathname);
 
     // find final slash
-    if ((s = strrchr(buf, delim)) == NULL)
+    if ((s = strrchr(buf, '/')) == NULL)
         s = buf;
 
     if ((s = strrchr(s, '.')) == NULL)

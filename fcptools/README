@@ -27,15 +27,10 @@ client library, as well as provide command-line tools for convenience and
 potentially shell scripting.
 
 While still in development, the tools have successfully compiled and run on:
-* Windows 2K/Cygwin (confirmed)
-* Windows 98/Cygwin (confirm?)
-* BSD (Free and Net) (confirmed)
-* Linux (confirmed)
-* Solaris (pending)
-
-FCPtools no longer compiles within the MS Visual C++ environment.  To provide
-true portability, one must move away from the company notorious for being
-against it.</opinion>
+* Windows 2000/Microsoft Visual C++  6.0
+* (confirmation from Win98/95 users?)
+* FreeBSD & NetBSD
+* GNU/Linux
 
 
 ---------------------------------------------------------------------------
@@ -61,23 +56,32 @@ include all the various Unices, as well as Windows/Cygwin):
 
 * Type 'make clean' to start a fresh build.
 
+
 2. Solaris
 
 Same as Unix, but substitute 'gmake' for 'make'
 
 
 ---------------------------------------------------------------------------
-ezFCPlib - the easiest multi-platform FCP library
+ezFCPlib - An easy, multi-platform FCP library
 ---------------------------------------------------------------------------
 
-Writing Freenet client programs in C/C++ has never been easier.
+ezFCPlib aims to be a portable, multi-platform client library for programmers
+who want to write Freenet capable clients without learning the details of
+Freenet itself.  It also minimizes the "ripple effect" from changes in the
+Node source, which is important at this stage in Freenet's life.
 
-This API offers two levels of Freenet access:
+The API provides client writers:
 
-* File/Memory.
-* Streams.
+* Functions to create Freenet keys and keypairs.
+* High level reading/writing of Freenet data.
+* Lower level reading/writing via filestreams.
+* Various utility functions.
 
-Read the spec in ezfcplib/doc/spec.html for more info.
+While parts of the spec are out of date, the functions and their signatures
+have remained the same.  You can find it relative to this directory at:
+
+./ezfcplib/doc/spec.html
 
 
 -------------------------------------------------------
@@ -93,31 +97,3 @@ fcpput
 -------------------------------------------------------
 fcpputsite
 -------------------------------------------------------
-
-
----------------------------------------------------------------------------
-fcpproxy - http proxy
----------------------------------------------------------------------------
-
-1. Features:
-
-* FProxy replacement.
-* Generic http proxy.
-
-This proxy is evolving towards a complete FCP-based replacement of fproxy, with
-the FreeWeb browsing features built-in.
-
-You can point your browser to this proxy permanently. Any normal web requests
-go out to the mainstream web, while fproxy-style and freeweb-style requests
-go to Freenet.
-
-2. Running:
-
-Fcpproxy listens on port 8888.
-
-If you want, you can edit your .freenetrc file, change the fproxy listening
-port to something else, and set fcpproxy to listen on 8081. That way, any links
-explicitly using 'http://127.0.0.1:8081/whatever' will work ok.
-
-Also, you'll need to make a directory /usr/share/fcpproxy, and copy there the
-file gateway.html

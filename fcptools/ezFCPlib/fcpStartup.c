@@ -76,7 +76,6 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   _fcpRegress = EZFCP_DEFAULT_REGRESS;
 
   _fcpLog(FCP_LOG_DEBUG, "fcpStartup: begin");
-  _fcpLog(FCP_LOG_DEBUG, "FCPtools version %s", VERSION);
 
   if (_fcpSockInit() != 0) return -1;
 

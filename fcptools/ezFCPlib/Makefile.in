@@ -70,16 +70,13 @@ RANLIB = @RANLIB@
 VERSION = @VERSION@
 
 INCLUDES = -I$(top_srcdir)/include
-#CFLAGS = -pedantic
+
+noinst_LIBRARIES = libezfcp.a
 
 FCP_SOURCE =  	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c 	_fcpRecvResponse.c _fcpSock.c _fcpUtil.c fcpCloseKey.c 	fcpCreateHandle.c fcpDestroyHandle.c fcpGetKeyToFile.c 	fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c 	mimetype.c template.c safeMalloc.c
 
 
-noinst_LIBRARIES = libezfcp.a
-
 libezfcp_a_SOURCES = $(FCP_SOURCE)
-
-noinst_PROGRAMS = test unix
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 LIBRARIES =  $(noinst_LIBRARIES)
@@ -98,18 +95,6 @@ fcpPutKeyFromMem.o fcpRawMode.o fcpReadKey.o fcpReadKeyIndex.o \
 fcpSetParam.o fcpStartup.o fcpWriteKey.o fcpWriteKeyIndex.o metaParse.o \
 mimetype.o template.o safeMalloc.o
 AR = ar
-PROGRAMS =  $(noinst_PROGRAMS)
-
-test_SOURCES = test.c
-test_OBJECTS =  test.o
-test_LDADD = $(LDADD)
-test_DEPENDENCIES = 
-test_LDFLAGS = 
-unix_SOURCES = unix.c
-unix_OBJECTS =  unix.o
-unix_LDADD = $(LDADD)
-unix_DEPENDENCIES = 
-unix_LDFLAGS = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -131,10 +116,9 @@ DEP_FILES =  .deps/_fcpGlobals.P .deps/_fcpLog.P .deps/_fcpPutSplit.P \
 .deps/fcpPutKeyFromMem.P .deps/fcpRawMode.P .deps/fcpReadKey.P \
 .deps/fcpReadKeyIndex.P .deps/fcpSetParam.P .deps/fcpStartup.P \
 .deps/fcpWriteKey.P .deps/fcpWriteKeyIndex.P .deps/metaParse.P \
-.deps/mimetype.P .deps/safeMalloc.P .deps/template.P .deps/test.P \
-.deps/unix.P
-SOURCES = $(libezfcp_a_SOURCES) test.c unix.c
-OBJECTS = $(libezfcp_a_OBJECTS) test.o unix.o
+.deps/mimetype.P .deps/safeMalloc.P .deps/template.P
+SOURCES = $(libezfcp_a_SOURCES)
+OBJECTS = $(libezfcp_a_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -176,23 +160,6 @@ libezfcp.a: $(libezfcp_a_OBJECTS) $(libezfcp_a_DEPENDENCIES)
 	-rm -f libezfcp.a
 	$(AR) cru libezfcp.a $(libezfcp_a_OBJECTS) $(libezfcp_a_LIBADD)
 	$(RANLIB) libezfcp.a
-
-mostlyclean-noinstPROGRAMS:
-
-clean-noinstPROGRAMS:
-	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
-
-distclean-noinstPROGRAMS:
-
-maintainer-clean-noinstPROGRAMS:
-
-test: $(test_OBJECTS) $(test_DEPENDENCIES)
-	@rm -f test
-	$(LINK) $(test_LDFLAGS) $(test_OBJECTS) $(test_LDADD) $(LIBS)
-
-unix: $(unix_OBJECTS) $(unix_DEPENDENCIES)
-	@rm -f unix
-	$(LINK) $(unix_LDFLAGS) $(unix_OBJECTS) $(unix_LDADD) $(LIBS)
 
 tags: TAGS
 
@@ -294,7 +261,7 @@ install-am: all-am
 install: install-am
 uninstall-am:
 uninstall: uninstall-am
-all-am: Makefile $(LIBRARIES) $(PROGRAMS)
+all-am: Makefile $(LIBRARIES)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
@@ -311,25 +278,23 @@ distclean-generic:
 
 maintainer-clean-generic:
 mostlyclean-am:  mostlyclean-noinstLIBRARIES mostlyclean-compile \
-		mostlyclean-noinstPROGRAMS mostlyclean-tags \
-		mostlyclean-depend mostlyclean-generic
+		mostlyclean-tags mostlyclean-depend mostlyclean-generic
 
 mostlyclean: mostlyclean-am
 
-clean-am:  clean-noinstLIBRARIES clean-compile clean-noinstPROGRAMS \
-		clean-tags clean-depend clean-generic mostlyclean-am
+clean-am:  clean-noinstLIBRARIES clean-compile clean-tags clean-depend \
+		clean-generic mostlyclean-am
 
 clean: clean-am
 
 distclean-am:  distclean-noinstLIBRARIES distclean-compile \
-		distclean-noinstPROGRAMS distclean-tags \
-		distclean-depend distclean-generic clean-am
+		distclean-tags distclean-depend distclean-generic \
+		clean-am
 
 distclean: distclean-am
 
 maintainer-clean-am:  maintainer-clean-noinstLIBRARIES \
-		maintainer-clean-compile \
-		maintainer-clean-noinstPROGRAMS maintainer-clean-tags \
+		maintainer-clean-compile maintainer-clean-tags \
 		maintainer-clean-depend maintainer-clean-generic \
 		distclean-am
 	@echo "This command is intended for maintainers to use;"
@@ -340,9 +305,7 @@ maintainer-clean: maintainer-clean-am
 .PHONY: mostlyclean-noinstLIBRARIES distclean-noinstLIBRARIES \
 clean-noinstLIBRARIES maintainer-clean-noinstLIBRARIES \
 mostlyclean-compile distclean-compile clean-compile \
-maintainer-clean-compile mostlyclean-noinstPROGRAMS \
-distclean-noinstPROGRAMS clean-noinstPROGRAMS \
-maintainer-clean-noinstPROGRAMS tags mostlyclean-tags distclean-tags \
+maintainer-clean-compile tags mostlyclean-tags distclean-tags \
 clean-tags maintainer-clean-tags distdir mostlyclean-depend \
 distclean-depend clean-depend maintainer-clean-depend info-am info \
 dvi-am dvi check check-am installcheck-am installcheck install-exec-am \

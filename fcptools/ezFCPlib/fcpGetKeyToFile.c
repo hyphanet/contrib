@@ -37,7 +37,7 @@ int fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata)
   unlink(file);
 
   // open a file to write the key to
-  if ((fd = open(file, O_CREAT, S_IREAD | S_IWRITE)) < 0)
+  if ((fd = open(file, OPEN_MODE_WRITE | O_CREAT, S_IREAD | S_IWRITE)) < 0)
     return -1;
 
   // suck all of key's data into this file

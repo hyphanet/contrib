@@ -10,17 +10,6 @@ are not meant for this TODO file, otherwise I'd call it the TODO+WHY file.
 ---------------------------------------------------------------------------
 *** ezFCPlib specific *** (In order of relative importance)
 
-- BUGFIX: fcpputsite SEGV immediately after announcing how much metadata there
-is.
-
-- Implement signal handling proper for a pthreads application.  Specifically,
-it should compile *and* run on Solaris.
-
-- Work fcpPutKeyFromFile.c away from the #WINDOWS specifics.
-   (completed- joliveri)
-
-- Confirm socket code in _fcpSock.c functions when compiled on NT/Cygwin.
-
 - A function that accepts (char *) and returns a unique filename.  The man
 page for mktemp(3) is a good example, minus the portability.
  
@@ -36,9 +25,12 @@ any code sharing.
 ---------------------------------------------------------------------------
 *** FCPtools generic ***
 
-- Enhance command-line interface.  Add version number to all help screens.
+- fix STDOUT parameter in fcpget
 
-- Standardize alol global-defaults (localhost/127.0.0.1, etc.)
+- Enhance command-line interface.  Add version number to all help screens
+  (done for fcpget).
+
+- Standardize all global-defaults (localhost/127.0.0.1, etc.)
 
 
 (to be completed)

@@ -1,6 +1,4 @@
-INCLUDES = -I$(top_srcdir)/include @INCLUDES@
-LDADD=@LDADD@
-LIBS=@LIBS@
+INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
 
 bin_PROGRAMS = fcpputsplit
 

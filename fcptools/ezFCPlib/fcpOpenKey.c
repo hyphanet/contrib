@@ -376,7 +376,7 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 
 static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
 {
-  char tmp[MAX_TMP_FNAME_LEN + 1];
+  char tmp[L_tmpnam + 1];
 
   // connect to Freenet FCP
   if (_fcpSockConnect(hfcp) != 0)
@@ -396,12 +396,12 @@ static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
   sprintf(hfcp->wr_info.meta_temp_file, tmp );
   
   // open the files
-  if ((hfcp->wr_info.fd_data = open(hfcp->wr_info.data_temp_file, O_CREAT, S_IREAD | S_IWRITE)) < 0) {
+  if ((hfcp->wr_info.fd_data = open(hfcp->wr_info.data_temp_file, OPEN_MODE_WRITE | O_CREAT, S_IREAD | S_IWRITE)) < 0) {
 	 _fcpFreeUri(hfcp->wr_info.uri);
 	 return -1;
   }
   
-  if ((hfcp->wr_info.fd_meta = open(hfcp->wr_info.meta_temp_file, O_CREAT, S_IREAD | S_IWRITE)) < 0) {
+  if ((hfcp->wr_info.fd_meta = open(hfcp->wr_info.meta_temp_file, OPEN_MODE_WRITE | O_CREAT, S_IREAD | S_IWRITE)) < 0) {
 	 close(hfcp->wr_info.fd_data);
 	 _fcpFreeUri(hfcp->wr_info.uri);
 	 return -1;
