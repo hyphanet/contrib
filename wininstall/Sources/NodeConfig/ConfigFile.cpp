@@ -96,6 +96,7 @@ void CConfigFile::Load()
 	pAdvanced->m_maxNodeConnections = 60;
 	pAdvanced->m_outputBandwidthLimit = 0;
 	pAdvanced->m_seedFile = "seednodes.ref";
+	pAdvanced->SetCPUPrioritySlider(THREAD_PRIORITY_NORMAL, NORMAL_PRIORITY_CLASS);
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
@@ -167,10 +168,20 @@ void CConfigFile::Load()
 		}
 		fclose(fp);
 	}
+
+	/////////////////////////////////
+	//
+	// Load any additional settings from FLaunch.ini
+	//
+	
+	ReadFLaunchIni();
+
 }
 
 void CConfigFile::Save()
 {
+	UpdateFLaunchIni();
+
 	FILE *fp;
 	char datestr[128];
 
@@ -450,6 +461,26 @@ void CConfigFile::Save()
 	fclose(fp);
 }
 
+
+void CConfigFile::ReadFLaunchIni(void)
+{
+	DWORD dwPriority = GetPrivateProfileInt("Freenet Launcher", "Priority", THREAD_PRIORITY_NORMAL, FLaunchIniFileName);
+	DWORD dwPriorityClass = GetPrivateProfileInt("Freenet Launcher", "PriorityClass", NORMAL_PRIORITY_CLASS, FLaunchIniFileName);
+	pAdvanced->SetCPUPrioritySlider(dwPriority,dwPriorityClass);
+}
+
+void CConfigFile::UpdateFLaunchIni(void)
+{
+	DWORD dwPriority;
+	DWORD dwPriorityClass;
+	char szNumber[16];
+	 
+	pAdvanced->GetCPUPrioritySlider(dwPriority,dwPriorityClass);
+	sprintf(szNumber,"%lu",dwPriority);
+	WritePrivateProfileString("Freenet Launcher", "Priority", szNumber, FLaunchIniFileName);
+	sprintf(szNumber,"%lu",dwPriorityClass);
+	WritePrivateProfileString("Freenet Launcher", "PriorityClass", szNumber, FLaunchIniFileName);
+}
 
 //
 // big ugly mother of a routine which assigns config parameters to

@@ -168,6 +168,8 @@ BOOL CNodeConfigApp::InitInstance()
 	CConfigFile *pConfigFile = new CConfigFile;
 	pConfigFile->FileName = progPath;
 	pConfigFile->FileName += "\\freenet.ini";
+	pConfigFile->FLaunchIniFileName = progPath;
+	pConfigFile->FLaunchIniFileName += "\\flaunch.ini";
 
 	// Load existing configuration from file
 	pConfigFile->Load();

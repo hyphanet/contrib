@@ -172,8 +172,8 @@ BEGIN
     LTEXT           "CPU Priority",IDC_STATIC,204,237,41,10
     CONTROL         "Slider1",IDC_slider_CPUPriority,"msctls_trackbar32",
                     TBS_AUTOTICKS | WS_TABSTOP,200,251,100,7
-    CONTROL         "NORMAL",IDC_Static_CPUPriority,"Static",SS_SIMPLE | 
-                    WS_GROUP,247,237,49,9
+    CONTROL         "NORMAL",IDC_Static_CPUPriority,"Static",
+                    SS_LEFTNOWORDWRAP | WS_GROUP,247,237,49,9
     LTEXT           "Max connections",IDC_STATIC,250,203,55,8
     CONTROL         "Spin4",IDC_maxNodeConnections_spin,"msctls_updown32",
                     UDS_ARROWKEYS,270,214,11,15
