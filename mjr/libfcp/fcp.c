@@ -67,7 +67,7 @@ fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
 	char nuri[strlen(uri)], *docname = strstr(uri, "//");
 	int status, len, type;
 	FILE *data = tmpfile();
-	if (!data) return FCP_FUCK;
+	if (!data) return FCP_IO_ERROR;
 	if (docname) {
 	    int n = strlen(uri) - strlen(docname);
 	    strncpy(nuri, uri, n); nuri[n] = '\0';
@@ -732,5 +732,17 @@ fcp_connect ()
 	    (struct sockaddr *) &address, sizeof(address));
     if (connected < 0) return NULL;
     return fdopen(connected_socket, "w+");
+}
+
+char *
+fcp_status_to_string (int code)
+{
+    if (code == -1) return "can't connect to Freenet node";
+    if (code == -2) return "invalid URI";
+    if (code == -3) return "document not found in metadata";
+    if (code == -4) return "invalid metadata";
+    if (code == -5) return "request failed";
+    if (code == -6) return "input/output error";
+    return "unknown error";
 }
 

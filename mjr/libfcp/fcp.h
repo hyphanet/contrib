@@ -16,9 +16,6 @@
 #define FCP_INVALID_METADATA    -4
 #define FCP_REQUEST_FAILED	-5
 #define FCP_IO_ERROR		-6
-#define FCP_KEY_COLLISION	-7
-
-#define FCP_FUCK		-666
 
 enum {DATA, CONTROL};
 
@@ -116,4 +113,7 @@ int fcp_metadata_insert (fcp_metadata *m, char *uri, int htl);
 
 // free fcp_metadata
 void fcp_metadata_free (fcp_metadata *m);
+
+// return descriptive string for status code
+char * fcp_status_to_string (int code);
 
