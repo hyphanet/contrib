@@ -1,6 +1,6 @@
 # installer generator script for Freenet:
-!define VERSION "20020201"
-!define WEBINSTALL
+!define VERSION "20020210"
+#!define WEBINSTALL
 #!define LANGUAGE "Dutch"
 
 # include language specific installer data
@@ -23,7 +23,7 @@
 
 # webinstall specific stuff
 !ifdef WEBINSTALL
-  Name "Freenet Web installer"
+  Name "Freenet webinstaller"
   !include "webinstall.inc"
 !else
   Name "Freenet ${VERSION}"
