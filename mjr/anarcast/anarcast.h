@@ -39,9 +39,11 @@ inline int
 readall (int c, const void *b, int len)
 {
     int j = 0, i = 0;
+    
     while ((i += j) < len)
 	if ((j = read(c, &((char *)b)[i], len-i)) <= 0)
 	    return i;
+    
     return i;
 }
 
@@ -49,9 +51,11 @@ inline int
 writeall (int c, const void *b, int len)
 {
     int j = 0, i = 0;
+    
     while ((i += j) < len)
 	if ((j = write(c, &((char *)b)[i], len-i)) <= 0)
 	    return i;
+    
     return i;
 }
 
@@ -84,10 +88,12 @@ inline void
 bytestohex (char *hex, const void *bytes, int blen)
 {
     static char hextable[] = "0123456789ABCDEF";
+    
     for ( ; blen-- ; bytes++) {
         *hex++ = hextable[*(char *)bytes >> 4 & 0x0f];
         *hex++ = hextable[*(char *)bytes & 0x0f];
     }
+    
     *hex = 0;
 }
 
@@ -97,12 +103,10 @@ hextobytes (const char *hex, void *bytes, uint hlen)
     int i, j;
     char d;
 
-    if (hlen & 1)
-        return 0;
-    j = 0;
-    for (i = 0; i < hlen; i += 2) {
+    if (hlen & 1) return 0;
+    
+    for (j = 0, i = 0; i < hlen; i += 2) {
         d = 0;
-
         if (hex[i] >= 'a' && hex[i] <= 'f')
             d |= (hex[i] - 'a') + 10;
         else if (hex[i] >= 'A' && hex[i] <= 'F')
@@ -111,8 +115,8 @@ hextobytes (const char *hex, void *bytes, uint hlen)
             d |= (hex[i] - '0');
         else
             return 0;
-        d <<= 4;
-
+        
+	d <<= 4;
         if (hex[i + 1] >= 'a' && hex[i + 1] <= 'f')
             d |= (hex[i + 1] - 'a') + 10;
         else if (hex[i + 1] >= 'A' && hex[i + 1] <= 'F')
@@ -121,7 +125,8 @@ hextobytes (const char *hex, void *bytes, uint hlen)
             d |= (hex[i + 1] - '0');
         else
             return 0;
-        ((char *)bytes)[j++] = d;
+        
+	((char *)bytes)[j++] = d;
     }
 
     return j;
@@ -130,11 +135,19 @@ hextobytes (const char *hex, void *bytes, uint hlen)
 inline char *
 timestr ()
 {
-    long t = time(NULL);
-    struct tm *tm = localtime(&t);
+    long t;
+    struct tm *tm;
     static char ts[128];
+    
+    if ((t = time(NULL)) == -1)
+	die("time() failed");
+
+    if (!(tm = localtime(&t)))
+	die("localtime() failed");
+    
     if (!strftime(ts, 128, "%T", tm))
 	die("strftime() failed");
+    
     return ts;
 }
 
@@ -182,8 +195,11 @@ inline void
 chdir_to_home ()
 {
     char b[1024];
+    
     sprintf(b, "%s/.anarcast", getenv("HOME"));
+    
     mkdir(b, 0755);
+    
     if (chdir(b) == -1)
 	die("chdir() failed");
 }
@@ -192,8 +208,10 @@ inline void
 set_nonblock (int c)
 {
     int i;
+    
     if ((i = fcntl(c, F_GETFL, 0)) == -1)
 	die("fnctl() failed");
+    
     if (fcntl(c, F_SETFL, i | O_NONBLOCK) == -1)
 	die("fnctl() failed");
 }
