@@ -57,16 +57,21 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 		switch (nFreenetMode)
 		{
 		case FREENET_RUNNING:
-			// we're supposed to be 'monitoring' the thread and/or flashing the warning icon
+		case FREENET_RUNNING_NO_GATEWAY:
+		case FREENET_RUNNING_NO_INTERNET:
+			// we're supposed to be 'monitoring' the node - Fserve thread is allegedly running - check that it still is!
 			// wait for either a posted thread message, or the prcInfo.hProcess object being signalled,
-			// or a timeout of 500 milliseconds i.e. half a second
-			// Fserve thread is allegedly running - check that it still is!
 			// (wait until either Fserve dies or WE receive a thread message telling us to do something different)
+			//
+			// New - use a timeout of 2000 milliseconds i.e. two seconds
+			// This allows us to perform our regular checks on the internet connection and on the gateway
+			// and update the status icon accordingly
 			phobjectlist[0] = prcInfo.hProcess;
-			dwTimeout = INFINITE;
+			dwTimeout = 2000;
 			break;
 		
 		case FREENET_CANNOT_START:
+		case FREENET_NOT_RUNNING_NO_INTERNET:
 			// Fserve failed to load and run - 
 			// so just wait for a threadmessage or a 500ms timeout
 			// This generates our timeout-driven flashing icon
