@@ -35,16 +35,6 @@
 
 #include "ez_sys.h"
 
-/* exported functions for fcptools codebase */
-
-/* the following two functions will set hfcp->error if one is encountered */
-int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri);
-int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
-
-int put_date_redirect(hFCP *hfcp, char *uri);
-int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
-
-
 /* Private functions for internal use */
 static int fec_segment_file(hFCP *hfcp);
 static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);

@@ -32,6 +32,8 @@
 	 per key insertion, etc.
 */
 
+/* NOTE: in a multithreaded implementation, this is *shared* */
+
 /* Common FCP related default protocol values */
 
 int   _fcpVerbosity;   /* verbosity of log messages; ranges from 0 through 4 */

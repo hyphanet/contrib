@@ -32,11 +32,6 @@
 
 #include "ez_sys.h"
 
-extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri);
-extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
-
-extern int put_date_redirect(hFCP *hfcp, char *uri);
-extern int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
 
 /*
 	fcpPutKeyFromFile()
@@ -105,7 +100,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		rc = put_file(hfcp, key_filename, meta_filename, "CHK@");
 	}
 
-	if (rc) /* bail after cleaning up, setting hfcp->error */
+	if (rc) /* bail after cleaning up */
 		goto cleanup;
 
 	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */

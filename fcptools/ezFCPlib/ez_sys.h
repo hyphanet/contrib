@@ -91,5 +91,11 @@ extern void  unlink_key(hKey *hKey);
 extern long  xtoi(char *);
 extern int   memtoi(char *);
 
+extern int   put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri);
+extern int   put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
+
+extern int   put_date_redirect(hFCP *hfcp, char *uri);
+extern int   put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
+
 #endif /* EZ_SYS_H */
 
