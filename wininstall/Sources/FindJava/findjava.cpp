@@ -44,13 +44,16 @@
 
 *//////////////////////////////////////////////////////////////////////////////
 
+#ifndef STRICT
+#define STRICT
+#endif
+
 #include <windows.h>
 #include <fstream.h>
 #include <stdio.h>
 #include <string.h>
 #include <commctrl.h>
 #include "resource.h"
-#include <winreg.h>
 #include <stdlib.h>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,8 +65,8 @@ int             recursiveTraversal(char *cDirectory);
 int             searchIn(char *cPath);
 int             parsePath(char *cPathEnvironment);
 int             updateConfigFiles(void);
-CALLBACK        dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-int				registry_read (char *path, char *key, char *buffer);
+BOOL CALLBACK	dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
+LONG			registry_read (char *path, char *key, char *buffer);
 int				searchRegistry();
 void			lookSpecificFolder(char *cDirectory);
 void			CheckWindowsFolders(char *cDrive);
@@ -138,7 +141,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int CALLBACK dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+BOOL CALLBACK dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     static DWORD  dwThreadID;
     static HANDLE hThread;
@@ -374,13 +377,18 @@ DWORD WINAPI doDeepSearch(LPVOID lpvParameter)
 	}
     else
     {
+	    SetWindowText(dc.hWndStatusText, "Java not found. Press Close to exit.");
+		SetWindowText(dc.hWndCloseButton, "&Close");
 		MessageBox(dc.hWndMain, 
 			"A Java interpreter could not be found.\n\n"
 			"Please install the Java Runtime Environment.\n"
-            "See http://java.sun.com/ for more information.\n",
-            NULL, 
+            "For more information visit http://java.sun.com and search for\n"
+			"\"Java Runtime Environment\" and \"windows\".  The latest version\n"
+			"at time of writing is the Java(TM) 2 Runtime Environment JRE 1.3.1 .\n",
+            "Search failed", 
             MB_OK | MB_ICONSTOP);
-			return 0;
+		searchDone = 1; // doh - please be consistent, the search IS finished!
+		return 0;
 	}
 
 	searchDone = 1;		// bad hack - use this to stop user pushing 'update settings' before search finishes
@@ -638,9 +646,9 @@ int searchRegistry()
 //**************************************************************************/
 //	(REGISTRY-READ path key)	; get string value from HKEY_LOCAL_MACHINE
 
-int registry_read (char *path, char *key, char *buffer)
+LONG registry_read (char *path, char *key, char *buffer)
 {
-	char retValue;
+	LONG retValue;
 	HKEY hkResult;
 	DWORD lSize = MAXSTR;
 	static char result[MAXSTR];
