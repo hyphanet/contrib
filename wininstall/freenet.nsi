@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "20020118"
+!define VERSION "20020201"
 !define WEBINSTALL
 #!define LANGUAGE "Dutch"
 
@@ -182,6 +182,8 @@ Section
   WriteUninstaller "Uninstall-Freenet.exe"
   !ifdef WEBINSTALL
     # download the necessary files
+    AddSize 950 ; add 950kb for Freenet.jar
+    AddSize 100 ; add 100kb for freenet-ext.jar
     SetOutPath "$TEMP\Freenet"
     File nsisdl.dll
     SetOutPath "$INSTDIR"
@@ -195,10 +197,8 @@ Section
     # copying the .jar files now
     File freenet\jar\*.*
   !endif
-  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\frequest.exe" 6
-  SetDetailsPrint none
-  CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fclient.exe" 6
+  SetDetailsPrint none
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fservew.exe" 6
   SetDetailsPrint both
@@ -217,7 +217,7 @@ SectionIn 1,2
    CreateShortCut "$SMPROGRAMS\Freenet0.4\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
    WriteINIStr "$SMPROGRAMS\Freenet0.4\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
    ;WriteINIStr "$SMPROGRAMS\Freenet0.4\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
-   ;CreateShortcut "$SMPROGRAMS\Freenet0.4\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
+   CreateShortcut "$SMPROGRAMS\Freenet0.4\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot" "" "" 0
    CreateShortCut "$SMPROGRAMS\Freenet0.4\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
  
