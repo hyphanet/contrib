@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+die "Usage: ./thumbnails infile outfile\n" unless @ARGV == 2;
+
+open(IN,  "<$ARGV[0]") or die "Can't open $ARGV[0]\n";
+open(OUT, ">$ARGV[1]") or die "Can't open $ARGV[1]\n";
+
+print OUT "<html>\n<body bgcolor=\"black\">\n<table align=\"center\">\n";
+
+while (1) {
+    print OUT "  <tr>\n";
+    for (0..3) {
+	$uri = <IN>;
+	$uri =~ s/[^=]*=freenet:/\//;
+	chop($uri);
+	print OUT "    <td>\n"
+	        . "      <a href=\"$uri\" target=\"_blank\">\n"
+		. "        <img src=\"$uri\" width=\"256\" height=\"256\" border=\"0\">\n"
+		. "      </a>\n"
+		. "    </td>\n";
+	last if eof IN;
+    }
+    print OUT "  </tr>\n";
+    last if eof IN;
+}
+
+print OUT "</table>\n</body>\n</html>\n";
+
