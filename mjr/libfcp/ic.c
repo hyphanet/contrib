@@ -9,10 +9,10 @@
 #include <sys/stat.h>
 #include <fcp.h>
 
-int htl = 10;
+int htl     = 10;
 int threads = 10;
 int retries = 3;
-
+char mimetype[256];
 FILE *log;
 
 void insertdir (char *dir, int depth);
@@ -26,7 +26,8 @@ usage (char *me)
 	    	    "  -h --htl            Hops to live.\n"
 		    "  -t --threads        Concurrency.\n"
 		    "  -r --retries        Number of retries per insert before abort.\n"
-		    "  -o --outfile        Output file for log.\n\n",
+		    "  -o --outfile        Output file for log.\n"
+		    "  -m --mimetype       Content type of data.\n",
 		    me);
     exit(2);
 }
@@ -276,9 +277,11 @@ insert (char *file, int depth)
 	}
     } else {
 	fcp_metadata *m = fcp_metadata_new();
-	fcp_info(m, "", "Content-Type", get_content_type(file));
+	fcp_info(m, "", "Content-Type", strlen(mimetype)
+					  ? mimetype
+					  : get_content_type(file));
 	status = -1;
-	while (status != FCP_SUCCESS && r--)
+	while (status != FCP_SUCCESS  && status != FCP_KEY_COLLISION && r--)
 	    status = fcp_insert(m, "", data, s.st_size, htl, threads);
 	if (status != FCP_SUCCESS && status != FCP_KEY_COLLISION) {
 	    fprintf(stderr, "Inserting %s failed: %s.\n", file,
@@ -322,15 +325,17 @@ main (int argc, char **argv)
     
     static struct option long_options[] =
     {
-	{"htl",       1, NULL, 'h'},
-	{"threads",   1, NULL, 't'},
-	{"retries",   1, NULL, 'r'},
-	{"outfile",   1, NULL, 'o'},
+	{"htl",      1, NULL, 'h'},
+	{"threads",  1, NULL, 't'},
+	{"retries",  1, NULL, 'r'},
+	{"outfile",  1, NULL, 'o'},
+	{"mimetype", 1, NULL, 'm'},
 	{0, 0, 0, 0}
     };
     
     outfile[0] = 0;
-    while ((c = getopt_long(argc, argv, "h:t:r:o:", long_options, NULL)) != EOF) {
+    mimetype[0] = 0;
+    while ((c = getopt_long(argc, argv, "h:t:r:o:m:", long_options, NULL)) != EOF) {
         switch (c) {
         case 'h':
             htl = atoi(optarg);
@@ -343,6 +348,9 @@ main (int argc, char **argv)
 	    break;
 	case 'o':
 	    strcpy(outfile, optarg);
+	    break;
+	case 'm':
+	    strcpy(mimetype, optarg);
 	    break;
         case '?':
             usage(argv[0]);
@@ -370,7 +378,7 @@ main (int argc, char **argv)
 	fprintf(stderr, "Can't open %s!\n", outfile);
 	return 1;
     }
-    
+
     arg = argv[(c = optind)];
     for (i = 1 ; argv[c] ; arg = argv[++c]) {
 	if (arg[strlen(arg)-1] == '/') arg[strlen(arg)-1] = '\0';
