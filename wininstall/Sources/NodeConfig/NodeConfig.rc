@@ -240,13 +240,13 @@ STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Normal Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
-    EDITTEXT        IDC_storeCacheSize,36,36,30,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_storeCacheSize,36,36,48,12,ES_AUTOHSCROLL
     CTEXT           "If this is your first time running a Freenet node, you won't need to change any of the 'Advanced' or 'Geek' settings. Just choose a location and a size for your node datastore.",
                     IDC_STATIC,7,2,305,16
     GROUPBOX        "Node Data Store",IDC_STATIC,7,22,305,57
     LTEXT           "Size (MB)",IDC_STATIC,15,33,16,17
     LTEXT           "If you change either of these settings, your entire node's datastore will be erased and replaced with a fresh empty store. You should ideally choose one size and location, and stick with it.",
-                    IDC_STATIC,93,28,207,26
+                    IDC_STATIC,100,28,205,26
     LTEXT           "Location",IDC_STATIC,16,60,28,8
     EDITTEXT        IDC_storePath,46,58,229,12,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse",IDC_storePath_browse,278,60,27,12
@@ -263,7 +263,7 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,60,202,88,10
     PUSHBUTTON      "Import new Node Ref",IDC_importNewNodeRef,174,202,89,10
     CONTROL         "Spin1",IDC_storeCacheSize_spin,"msctls_updown32",
-                    UDS_ARROWKEYS,67,35,12,16
+                    UDS_ARROWKEYS,85,35,11,16
     GROUPBOX        "Node Availability",IDC_STATIC,7,82,305,38
     CONTROL         "Node will run 24hrs/day",IDC_notTransient,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,93,91,10

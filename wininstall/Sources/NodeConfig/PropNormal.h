@@ -27,7 +27,7 @@ public:
 	//{{AFX_DATA(CPropNormal)
 	enum { IDD = IDD_PP_NORMAL };
 	CButton	m_importNewNodeRef;
-	UINT	m_storeCacheSize;
+	DWORD	m_storeCacheSize;
 	CString	m_storePath;
 	BOOL	m_useDefaultNodeRefs;
 	BOOL	m_transient;
