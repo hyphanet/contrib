@@ -48,15 +48,12 @@
 	- zero on success
 	- non-zero on error.
 */
-int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
+int get_file(hFCP *hfcp, char *uri)
 {
 	char get_command[L_FILE_BLOCKSIZE+1];
 
 	int rc;
 	int retry;
-
-	int kfd = -1;
-	int mfd = -1;
 
 	int key_bytes;
 	int key_count;
@@ -66,16 +63,8 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	int index;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered get_file()");
+	_fcpLog(FCP_LOG_DEBUG, "Entered get_file(key: \"%s\")", uri);
 
-	if ((kfd = creat(key_filename, FCP_CREATE_FLAGS)) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "Could not open temp file (%s) for writing key data", key_filename);
-	}
-	
-	if ((mfd = creat(meta_filename, FCP_CREATE_FLAGS)) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "Could not open temp file (%s) for writing meta data", meta_filename);
-	}
-	
 	/* Here we can be certain that the files have been properly initialized */
 
 	rc = snprintf(get_command, L_FILE_BLOCKSIZE,
@@ -86,6 +75,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 								);
 
 	retry = _fcpRetry;
+	fcpParseURI(hfcp->key->tmpblock->uri, uri);
 
 	/********************************************************************/
 
@@ -113,7 +103,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		
 		_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %d minutes %d seconds)",
 						minutes, seconds);
-		
+
 		/* expecting a success response */
 		rc = _fcpRecvResponse(hfcp);
 		
@@ -193,48 +183,50 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		} /* switch (rc) */			
 
 	} while ((rc == FCPRESP_TYPE_RESTARTED) && (retry >= 0));
-	
+
 	/* if we exhauseted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
 		rc = EZERR_SOCKET_TIMEOUT;
 		goto cleanup;
 	}
-
+	
 	/* If data is not found, bail */
-
+	
   if (rc != FCPRESP_TYPE_DATAFOUND) {
 		rc = -1;
     goto cleanup;
 	}
-
+	
 	/* Now we have key data, and possibly meta data waiting for us */
-
-	meta_bytes = hfcp->response.datafound.metadatalength;
-	key_bytes = hfcp->response.datafound.datalength - meta_bytes;
-
-	if (meta_bytes > L_METADATA_MAX) {
+	
+	hfcp->key->metadata->size = meta_bytes = hfcp->response.datafound.metadatalength;
+	hfcp->key->size = key_bytes = hfcp->response.datafound.datalength - meta_bytes;
+	
+	if (meta_bytes > L_RAW_METADATA) {
 		_fcpLog(FCP_LOG_DEBUG, "metadata size too large: %d", meta_bytes);
 		rc = -1;
 		
 		goto cleanup;
 	}
-	
+
 	if (meta_bytes)
 		hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
-	else
-		hfcp->key->metadata->raw_metadata = 0;
 	
 	/* keep writing metadata as long as there's metadata to write..
 		 fetching more datachunks when required */
-
+	
 	_fcpLog(FCP_LOG_DEBUG, "retrieve metadata");
-
+	
 	/* index traverses through the raw metadata (char *) */
 	index = 0;
 
+	/* if there's no metadata, the respose will be retrieved and then the loop
+		 is exited.. the next code block extracts the key data from the first
+		 response retrieved */
+	
 	while ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
-
-		/*_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");*/
+		
+		_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");
 
 		/* set meta_count below datachunk length */
 		meta_count = (meta_bytes > hfcp->response.datachunk.length ? 
@@ -245,9 +237,9 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 			_fcpLog(FCP_LOG_DEBUG, "no metadata to process");
 			break;
 		}
-		
-		if (mfd != -1)
-			write(mfd, hfcp->response.datachunk.data, meta_count);
+
+		_fcpLog(FCP_LOG_DEBUG, "writing metadata block");
+		write(hfcp->key->metadata->tmpblock->fd, hfcp->response.datachunk.data, meta_count);
 
 		/* copy over the raw metadata for handling later */
 		memcpy(hfcp->key->metadata->raw_metadata + index,
@@ -290,8 +282,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		/* key_count is the chunk length minus the metadata written within it */
 		key_count = (hfcp->response.datachunk.length - meta_count);
 
-		if (kfd != -1)
-			write(kfd, hfcp->response.datachunk.data + meta_count, key_count);
+		write(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data + meta_count, key_count);
 		
 		key_bytes -= key_count;
 		index += key_count;
@@ -313,8 +304,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 			key_count = hfcp->response.datachunk.length;
 			
-			if (kfd != -1)
-				write(kfd, hfcp->response.datachunk.data, key_count);
+			write(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data, key_count);
 			
 			key_bytes -= key_count;
 			index += key_count;
@@ -329,10 +319,6 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	/* all metadata and key data has been written.. yay! */
 
-	/* do a 'local' cleanup here' */
-	if (kfd != -1) close(kfd);			
-	if (mfd != -1) close(mfd);			
-	
   _fcpSockDisconnect(hfcp);
 	_fcpLog(FCP_LOG_DEBUG, "get_file() - retrieved key: %s", uri);
 
@@ -340,8 +326,6 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 
  cleanup: /* this is called when there is an error above */
-	if (kfd != -1) close(kfd);			
-	if (mfd != -1) close(mfd);
 	
   _fcpSockDisconnect(hfcp);
 	_fcpLog(FCP_LOG_DEBUG, "abnormal termination");
@@ -352,12 +336,12 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 /*
 	On success, function set hfcp->key->uri with CHK of data.
  */
-int get_follow_redirects(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
+int get_follow_redirects(hFCP *hfcp, char *uri)
 {
 	hDocument *doc;
 
 	char      *key;
-	char      *get_uri;
+	char       get_uri[L_URI+1];
 
 	int   rc;
 	int   depth;
@@ -366,10 +350,10 @@ int get_follow_redirects(hFCP *hfcp, char *uri, char *key_filename, char *meta_f
 
 	_fcpLog(FCP_LOG_DEBUG, "get_follow_redirects()");
 
-	get_uri = strdup(uri);
+	strncpy(get_uri, uri, L_URI);
 	depth = 0;
 
-	rc = get_file(hfcp, get_uri, key_filename, meta_filename);
+	rc = get_file(hfcp, get_uri);
 
 	_fcpLog(FCP_LOG_DEBUG, "get_file() returned as rc: %d", rc);
 	
@@ -383,8 +367,8 @@ int get_follow_redirects(hFCP *hfcp, char *uri, char *key_filename, char *meta_f
 		if (hfcp->key->metadata->size == 0) {
 			
 			_fcpLog(FCP_LOG_DEBUG, "no metadata?  got data!");
-			
-			fcpParseURI(hfcp->key->uri, get_uri);
+
+			fcpParseURI(hfcp->key->tmpblock->uri, get_uri);
 			break;
 		}
 		else { /* check for the case where there's metadata, but no redirect */
@@ -398,20 +382,21 @@ int get_follow_redirects(hFCP *hfcp, char *uri, char *key_filename, char *meta_f
 				
 				_fcpLog(FCP_LOG_DEBUG, "metadata, but no redirect key.. got data");
 
-				fcpParseURI(hfcp->key->uri, get_uri);
+				fcpParseURI(hfcp->key->tmpblock->uri, get_uri);
 				break;
 			}
 			else { /* key/val pair is redirect */
 
 				_fcpLog(FCP_LOG_DEBUG, "key: %s", key);
 
-				free(get_uri);
-				get_uri = strdup(key);
+				strncpy(get_uri, key, L_URI);
 				depth++;
 
-				unlink_key(hfcp->key);
+				/* unlink the tmpfiles, then relink them for re-retrieval */
+				tmpfile_unlink(hfcp->key);
+				tmpfile_link(hfcp->key, O_WRONLY);
 
-				rc = get_file(hfcp, get_uri, key_filename, meta_filename);
+				rc = get_file(hfcp, get_uri);
 			}
 		}
 	}
@@ -421,7 +406,7 @@ int get_follow_redirects(hFCP *hfcp, char *uri, char *key_filename, char *meta_f
 
 	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %d",
 					hfcp->key->target_uri->uri_str,
-					hfcp->key->uri->uri_str,
+					hfcp->key->tmpblock->uri->uri_str,
 					depth);
 
 	return 0;

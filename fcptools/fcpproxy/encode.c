@@ -1,4 +1,4 @@
-char *encode_rcs = "$Id: encode.c,v 1.2 2001/12/02 20:12:32 joliveri Exp $";
+char *encode_rcs = "$Id: encode.c,v 1.3 2004/03/24 01:09:09 joliveri Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
@@ -128,7 +128,7 @@ url_decode(char *str)
 			*q++ = ' ';
 			break;
 		case '%':
-			if((*q = xtoi(p+1))) {
+			if((*q = xtol(p+1))) {
 				p += 3;
 				q++;
 			} else {

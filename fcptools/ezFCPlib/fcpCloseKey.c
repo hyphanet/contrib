@@ -26,6 +26,7 @@
 
 #include "ezFCPlib.h"
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -49,27 +50,12 @@ int fcpCloseKey(hFCP *hfcp)
 }
 
 
-void unlink_key(hKey *hKey)
-{
-	/* close the temporary key file */
-	if (hKey->tmpblock->fd != -1) close(hKey->tmpblock->fd);
-
-	/* close the temporary metadata file */
-	if (hKey->metadata->tmpblock->fd != -1) close(hKey->metadata->tmpblock->fd);
-
-	hKey->tmpblock->fd = -1;
-	hKey->metadata->tmpblock->fd = -1;
-	
-	_fcpLog(FCP_LOG_DEBUG, "unlinked key, closed temporary files");
-}
-
-
 static int fcpCloseKeyRead(hFCP *hfcp)
 {
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyRead()");
 
 	/* close the temporary files */
-	unlink_key(hfcp->key);
+	tmpfile_unlink(hfcp->key);
 
   return 0;
 }
@@ -84,11 +70,11 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
 
-	/* close the temporary files */
-	unlink_key(hfcp->key);
+	tmpfile_unlink(hfcp->key);
+	tmpfile_link(hfcp->key, O_RDONLY);
 
-	key_size  = file_size(hfcp->key->tmpblock->filename);
-	meta_size = file_size(hfcp->key->metadata->tmpblock->filename);
+	key_size  = hfcp->key->size;
+	meta_size = hfcp->key->metadata->size;
 
 	if (key_size > L_BLOCK_SIZE)
 		rc = put_fec_splitfile(hfcp,
@@ -96,22 +82,23 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 													 (meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0));
 
 	else /* Otherwise, insert as a normal key */
-		rc = put_file(hfcp, "CHK@", 
-									hfcp->key->tmpblock->filename,
-									(meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0));
+		rc = put_file(hfcp, "CHK@");
 
 	if (rc) /* bail after cleaning up */
 		goto cleanup;
 
-	/* hfcp->key->uri is the CHK@ of the file we've just inserted */
+	tmpfile_unlink(hfcp->key);
+	fcpParseURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+#endif
 
 	switch (hfcp->key->target_uri->type) {
-
 	case KEY_TYPE_CHK: /* for CHK's, copy over the generated CHK to the target_uri field */
 
-		/* copy it to the target */
 		fcpParseURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
-
 		break;
 
 	case KEY_TYPE_SSK:

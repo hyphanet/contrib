@@ -30,6 +30,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Implement regress for _fcpGet.c.
 + Change name of xtoi() to xtol().
 + Re-implement rawmode option after routines settle down.
 + Remove all the 8192 block writing; let the os optimize.
@@ -38,16 +39,15 @@ ezFCPlib specific
 + Add configuration option for Timeout length (in seconds)
 + Add handling of CryptoKey in key generation and SSK handling.
 + Update ezFCPlib programming API documentation.
-+ Implement Key Retrieval code (currently only code for inserting).
+= Implement FEC Splitfile handling for _fcpGet.c.
 + Implement metadata handling for FEC encoded files (specifically in ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
 + Implement SkipDS logic.
 + Check all internal APIs for consistant usage and funcionality.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
-+ Make hDocument->data field dynamic.
++ Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 + Improve the splitfile size ceiling; the node uses one, the tools use another(?)
 + Differentiate between splitfile size known by fcptools and the one returned by Fred's FEC commands.
-+ Add logic to _fcpDestroyHBlock to delete old tmp files.
 
 - Make FEC_CHUNK_SIZE configurable; default to 1M (Fred computes this afaik).
 - Ignore DataChunks between Restarted and DataFound messages (from freenet-dev; necessary?)
@@ -69,6 +69,7 @@ ezFCPlib specific
 = Correct Restarted message handling to ensure seamless restarts.
 = Implement retry logic, so that ezFCPlib attempts to insert _fcpRetry times on failed message.
 = Improve upon temp file and log file locations (ok for now; platform dependant).
+= Add logic to _fcpDestroyHBlock to delete old tmp files.
 
 
 ------
@@ -97,4 +98,6 @@ fcpputsite
 ------
 fcpget
 ------
+
++ Read metadata (if any) via fcpReadMetadata()
 

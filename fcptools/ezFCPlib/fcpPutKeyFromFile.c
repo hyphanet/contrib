@@ -26,6 +26,7 @@
 
 #include "ezFCPlib.h"
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,55 +50,74 @@
 */
 int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
-	int key_size;
-	int meta_size;
 	int rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
+	
+	/* unlink the tmpfiles, then re-link later */
+	tmpfile_unlink(hfcp->key);
+
+	/* put the target uri away */
+	fcpParseURI(hfcp->key->target_uri, key_uri);
 
 	if (key_filename) {
-		if ((key_size = file_size(key_filename)) < 0) {
+		if ((hfcp->key->size = file_size(key_filename)) < 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "Key data not found in file \"%s\"", key_filename);
 			return -1;
 		}
 	}
 	else
-		key_size = 0;
+		hfcp->key->size = 0;
 
 	if (meta_filename) {
-		if ((meta_size = file_size(meta_filename)) < 0) {
+		if ((hfcp->key->metadata->size = file_size(meta_filename)) < 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "Metadata not found in file \"%s\"", meta_filename);
 			return -1;
 		}
 	}
 	else
-		meta_size = 0;
+		hfcp->key->metadata->size = 0;
 
 	/* key_size and meta_size should be properly set at this point */
 
-	hfcp->key = _fcpCreateHKey();
-	hfcp->key->metadata = _fcpCreateHMetadata();
-
 	/* set the mimetype if the key exists */
-	if (key_size)
+	if (hfcp->key->size) {
+		if (hfcp->key->mimetype) free(hfcp->key->mimetype);
 		hfcp->key->mimetype = strdup(_fcpGetMimetype(key_filename));
+	}
 
 	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
+	_fcpLog(FCP_LOG_VERBOSE, "Copying tmp files");
+
+	if (copy_file(hfcp->key->tmpblock->filename, key_filename) < 0)
+		return -1;
 	
+	if (copy_file(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
+		return -1;
+
+	tmpfile_link(hfcp->key, O_RDONLY);
+
 	/* Now insert the key data as a CHK@, and later we'll insert a redirect
 		 if necessary. If it's larger than L_BLOCK_SIZE, insert as an FEC
 		 encoded splitfile. */
 
-	if (key_size > _fcpSplitblock) {
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+#endif
+
+	if (hfcp->key->size > _fcpSplitblock) {
+
 		_fcpLog(FCP_LOG_VERBOSE, "Start FEC encoded insert");
 		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
 	}
 	
 	else { /* Otherwise, insert as a normal key */
+
 		_fcpLog(FCP_LOG_VERBOSE, "Start basic insert");
-		rc = put_file(hfcp, "CHK@", key_filename, meta_filename);
+		rc = put_file(hfcp, "CHK@");
 	}
 
 	if (rc) /* bail after cleaning up */
@@ -106,18 +126,17 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */
 	/* create the final key as a re-direct to the inserted CHK@ */
 
-	if (fcpParseURI(hfcp->key->target_uri, key_uri)) goto cleanup;
+	fcpParseURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
-	/* at this point, both the CHK@ and specified URIs (CHK, SSK, KSK) have been
-		 set in struct hFCP. */
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+#endif
 
 	switch (hfcp->key->target_uri->type) {
-
 	case KEY_TYPE_CHK: /* for CHK's */
 
-		/* the key's uri is already in hfcp->key->uri */
 		fcpParseURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
-
 		break;
 
 	case KEY_TYPE_SSK:
@@ -126,6 +145,11 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
 		break;
 	}
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+#endif
 
 	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
 	return 0;

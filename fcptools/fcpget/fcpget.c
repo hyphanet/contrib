@@ -31,12 +31,25 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#ifdef DMALLOC
+#include <dmalloc.h>
+#endif
+
+extern int _fcpDMALLOC;
+
 /*
 	local declarations
 */
 static void parse_args(int argc, char *argv[]);
 static void usage(char *msg);
 
+void track(const char *file, const unsigned int line,
+					 const int func_id,
+					 const DMALLOC_SIZE byte_size,
+					 const DMALLOC_SIZE alignment,
+					 const DMALLOC_PNT old_addr,
+					 const DMALLOC_PNT new_addr);
+	
 /*
 	fcpget globals
 */
@@ -65,6 +78,11 @@ int main(int argc, char* argv[])
   char  buf[8193];
   int   bytes;
   int   rc;
+
+#ifdef DMALLOC
+	/*dmalloc_track(track);*/
+	_fcpDMALLOC = dmalloc_mark();
+#endif
   
   rc = 0;
   host = strdup(EZFCP_DEFAULT_HOST);
@@ -76,43 +94,69 @@ int main(int argc, char* argv[])
     fprintf(stdout, "Failed to initialize ezFCP library\n");
     return -1;
   }
+
   
   /* Make sure all input args are sent to ezFCPlib as advertised */
   hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
-  
+
   if (b_stdout) {
     /* write data to stdout */
     int fd;
-    
+
     /* this call will fetch the key to local datastore */
     if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_READ)) return -1;
     
     fd = fileno(stdout);
 
-    while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0)
+    while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0) {
       write(fd, buf, bytes);
+		}
+
+		/* TODO: read metadata (if any) */
 
     fflush(stdout);
-    
     if (fcpCloseKey(hfcp)) return -1;
   }
   
   else {
-    
+
     if (fcpGetKeyToFile(hfcp, keyuri, keyfile, metafile)) {
       fprintf(stdout, "Could not retrieve \"%s\" from freenet\n", keyuri);
-      return -1;
+      rc = -1;
     }
   }
-  
+
   fcpDestroyHFCP(hfcp);
+	free(hfcp);
+	
   fcpTerminate();
-  
-#ifdef WINDOWS_DISABLE
-  system("pause");
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+
+	dmalloc_shutdown();
 #endif
-  
+	
   return 0;
+}
+
+
+void track(const char *file, const unsigned int line,
+											const int func_id,
+											const DMALLOC_SIZE byte_size,
+											const DMALLOC_SIZE alignment,
+											const DMALLOC_PNT old_addr,
+											const DMALLOC_PNT new_addr)
+{
+	char f[33];
+
+	if (!file) strcpy(f, "NULL");
+	else strncpy(f, file, 32);
+
+	printf("|| %s:%d, size %d, old_addr: %x, new_addr: %x ||\n", f, line, byte_size, old_addr, new_addr);
+
+	return;
 }
 
 
@@ -212,8 +256,6 @@ static void parse_args(int argc, char *argv[])
   }
   
   if (optind < argc) {
-		char buf[1025];
-
     keyuri = (char *)malloc(strlen(argv[optind]) + 1);
     strcpy(keyuri, argv[optind++]);
   }
@@ -245,7 +287,7 @@ static void usage(char *s)
   if (s) printf("Error: %s\n", s);
   
   printf("FCPtools; Freenet Client Protocol Tools\n");
-  printf("Copyright (c) 2001-2003 by David McNab <david@rebirthing.co.nz>\n\n");
+  printf("CopyLeft 2001 by David McNab <david@rebirthing.co.nz>\n\n");
   
   printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
   
@@ -273,7 +315,7 @@ static void usage(char *s)
   printf("  -V, --version          Output version information and exit\n");
   printf("  -h, --help             Display this help and exit\n\n");
   
-  printf("  uri                    URI to give newly inserted key; variations:\n");
+  printf("  uri                    URI to retrieve; variations:\n");
   printf("                           CHK@\n");
   printf("                           KSK@<routing key>\n");
   printf("                           SSK@<private key>[/<docname>]\n\n");

@@ -168,7 +168,7 @@ static void usage(char *s)
 */
 
 	printf("FCPtools; Freenet Client Protocol Tools\n");
-	printf("Copyright (c) 2001-2003 by David McNab <david@rebirthing.co.nz>\n");
+	printf("CopyLeft 2001 by David McNab <david@rebirthing.co.nz>\n");
 	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
 	
 	printf("Usage: fcpx [-n hostname] [-p port] [-v verbosity] [-f filename]\n");

@@ -28,16 +28,29 @@
 #include "ezFCPlib.h"
 #include "getopt.h"
 
+#include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 
+#ifdef DMALLOC
+#include <dmalloc.h>
+#endif
+
+extern int _fcpDMALLOC;
 
 /* Cheat here and import ez_sys.h function(s) */
 extern long   file_size(char *filename);
 
 static void parse_args(int argc, char *argv[]);
 static void usage(char *);
+
+void track(const char *file, const unsigned int line,
+					 const int func_id,
+					 const DMALLOC_SIZE byte_size,
+					 const DMALLOC_SIZE alignment,
+					 const DMALLOC_PNT old_addr,
+					 const DMALLOC_PNT new_addr);
 
 /* Global vars to fcpput */
 char           *host;
@@ -79,6 +92,11 @@ int main(int argc, char* argv[])
      accurate diagnostics from users.
   */
   
+#ifdef DMALLOC
+	/*dmalloc_track(track);*/
+	_fcpDMALLOC = dmalloc_mark();
+#endif
+
   host = strdup(EZFCP_DEFAULT_HOST);
   
   parse_args(argc, argv);
@@ -111,39 +129,28 @@ int main(int argc, char* argv[])
     
     if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_WRITE)) return -1;
     
-    /* read it from stdin */
-    /* buf has 8193 bytes */
     fd = fileno(stdin);
-    
+
     while ((bytes = read(fd, buf, 8192)) > 0) {
-      buf[bytes] = 0;
       fcpWriteKey(hfcp, buf, bytes);
     }
-    
+
     /* not sure why this is here.. */
     fflush(stdin);
-    
+
     if (metafile) {
-      FILE *file;
-      int   metafile_size;
+      int mfd;
       
-      if (!(file = fopen(metafile, "rb"))) {
-	fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
-	return -1;
+      if ((mfd = open(metafile, O_RDONLY)) == -1) {
+				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
+				return -1;
       }
-      fd = fileno(file);
       
-      while ((bytes = read(fd, buf, 8192)) != -1) {
-	buf[bytes] = 0;
-	fcpWriteMetadata(hfcp, buf, bytes);
+      while ((bytes = read(mfd, buf, 8192)) > 0) {
+				buf[bytes] = 0;
+				fcpWriteMetadata(hfcp, buf, bytes);
       }
-      fclose(file);
-      
-      metafile_size = file_size(metafile);
-      if (hfcp->key->metadata->size != metafile_size) {
-	fprintf(stdout, "Wrote %d/%d bytes of metadata; discarded rest\n", bytes, metafile_size);
-	return -1;
-      }
+      close(mfd);
     }
     
     if (fcpCloseKey(hfcp)) return -1;
@@ -156,19 +163,45 @@ int main(int argc, char* argv[])
       return -1;
     }
   }
-  
-  fcpTerminate();
-  
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+#endif
+
   fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
+
   fcpDestroyHFCP(hfcp);
-  
-#ifdef WINDOWS_DISABLE
-  system("pause");
+	free(hfcp);
+
+  fcpTerminate();
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+
+	dmalloc_shutdown();
 #endif
   
   return 0;
 }
 
+void track(const char *file, const unsigned int line,
+											const int func_id,
+											const DMALLOC_SIZE byte_size,
+											const DMALLOC_SIZE alignment,
+											const DMALLOC_PNT old_addr,
+											const DMALLOC_PNT new_addr)
+{
+	char f[33];
+
+	if (!file) strcpy(f, "NULL");
+	else strncpy(f, file, 32);
+
+	printf("|| %s:%d, size %d, old_addr: %x, new_addr: %x ||\n", f, line, byte_size, old_addr, new_addr);
+
+	return;
+}
 
 /* IMPORTANT
    This function should bail if the parameters are bad in any way.  main() can
@@ -303,7 +336,7 @@ static void usage(char *s)
 	if (s) printf("Error: %s\n", s);
 
 	printf("FCPtools; Freenet Client Protocol Tools\n");
-	printf("Copyright (c) 2001-2003 by David McNab <david@rebirthing.co.nz>\n");
+	printf("CopyLeft 2001 by David McNab <david@rebirthing.co.nz>\n");
 	printf("Currently maintained by Jay Oliveri <ilnero@gmx.net>\n\n");
 
 	printf("Usage: fcpput [-n hostname] [-p port] [-l hops to live]\n");

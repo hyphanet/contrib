@@ -84,7 +84,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 	val[0] = 0;
 	
 	/* free *meta if it has old metadata */
-	/* loop from 0-meta->cd_count; free(meta[i]); */
+	if (meta->cdoc_count) _fcpDestroyHMetadata_cdocs(meta);
 
 	/* here's the silly use of _start; holds the 'start' value so that we can
 		 return a 'state' value as well */
@@ -293,7 +293,7 @@ static int parse_version(hMetadata *meta, char *buf)
 				return -1;
 			}
 
-			meta->revision = xtoi(val);
+			meta->revision = xtol(val);
 			_fcpLog(FCP_LOG_DEBUG, "key Revision; val \"%s\"", val);
 		}
 	
@@ -304,7 +304,7 @@ static int parse_version(hMetadata *meta, char *buf)
 				return -1;
 			}
 
-			meta->encoding = xtoi(val);
+			meta->encoding = xtol(val);
 			_fcpLog(FCP_LOG_DEBUG, "key Encoding; val \"%s\"", val);
 		}
 
@@ -340,17 +340,21 @@ static int parse_document(hMetadata *meta, char *buf)
 	/* allocate space for new document */
 	meta->cdoc_count++;
 
+#if 0
 	/* is this the first time we've been through this function? */
 	if (meta->cdoc_count == 1)
 		meta->cdocs = (hDocument **)malloc(sizeof (hDocument *));
+
 	else
-		realloc(meta->cdocs, meta->cdoc_count * sizeof(hDocument *));
+		meta->cdocs = realloc(meta->cdocs, meta->cdoc_count * sizeof(hDocument *));
+
+#endif
 
 	/* add the document to the meta structure */
 	meta->cdocs[doc_index] = (hDocument *)malloc(sizeof (hDocument));
 	memset(meta->cdocs[doc_index], 0, sizeof (hDocument));
 
-	_fcpLog(FCP_LOG_DEBUG, "document index %d", doc_index);
+	_fcpLog(FCP_LOG_DEBUG, "document index (should be zero): %d", doc_index);
 	
 	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
 
@@ -389,11 +393,12 @@ static int parse_document(hMetadata *meta, char *buf)
 
 			else { /* add the key/val pair to the current document */
 				/* find the first available position in the array for the new pair */
+
 				field_index = meta->cdocs[doc_index]->field_count * 2;
 
 				/* add one to the field counter */
 				meta->cdocs[doc_index]->field_count++;
-
+				
 				/* finally add the key and val */
 				meta->cdocs[doc_index]->data[field_index]   = strdup(key);
 				meta->cdocs[doc_index]->data[field_index+1] = strdup(val);

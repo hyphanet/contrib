@@ -52,35 +52,40 @@ void _fcpSockDisconnect(hFCP *hfcp)
 	hfcp->socket = FCP_SOCKET_DISCONNECTED;
 }
 
+/* WARNING * Multithreaded programs should mutex this function */
+
 int _fcpTmpfile(char *filename)
 {
-	char s[L_FILENAME_MAX+1];
+	char s[L_FILENAME+1];
 	int search = 1;
-	int i;
 
 	struct stat st;
 	time_t seedseconds;
 
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpTmpfile()");
+
+	/*
 	if (!filename) {
 		_fcpLog(FCP_LOG_DEBUG, "filename is null");
 		return -1;
 	}
+	*/
 
 	time(&seedseconds);
 	srand((unsigned int)seedseconds);
 
 	while (search) {
 
-		snprintf(s, L_FILENAME_MAX, "%s%ceztmp_%x", _fcpTmpDir, DIR_SEP, (unsigned int)rand());
+		snprintf(s, L_FILENAME, "%s%ceztmp_%x", _fcpTmpDir, DIR_SEP, (unsigned int)rand());
 
 		if (stat(s, &st))
 			if (errno == ENOENT) search = 0;
 	}
-	i = strlen(s);
 
 	/* set the filename parameter to the newly generated Tmp filename */
 
-	strncpy(filename, s, L_FILENAME_MAX);
+	strncpy(filename, s, L_FILENAME);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);
 	
 	/* I think creating the file right here is good in avoiding
 		 race conditions.  Let the caller close the file (leaving a
@@ -132,6 +137,10 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 
 	/* otherwise, rc *should* be 1, but any non-zero positive
 	integer is acceptable, meaning all is well */
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+#endif
 
 	/* grab the whole chunk */
 	rc = _fcpRecv(hfcp->socket, buf, len);

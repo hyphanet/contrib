@@ -38,7 +38,6 @@
 */
 int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
-	hFCP *tmp_hfcp;
 	int   rc;
 	
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpGetKeyToFile()");
@@ -50,65 +49,47 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 					);
 	
 	/* function must get the key, then determine if it's a normal key or a manifest for a splitfile */
-	
-	tmp_hfcp = fcpInheritHFCP(hfcp);
-	
-	tmp_hfcp->key = _fcpCreateHKey();
-	tmp_hfcp->key->tmpblock = _fcpCreateHBlock();
-	tmp_hfcp->key->tmpblock->fd = _fcpTmpfile(tmp_hfcp->key->tmpblock->filename);	
-	
-	tmp_hfcp->key->metadata = _fcpCreateHMetadata();
-	tmp_hfcp->key->metadata->tmpblock = _fcpCreateHBlock();
-	tmp_hfcp->key->metadata->tmpblock->fd = _fcpTmpfile(tmp_hfcp->key->metadata->tmpblock->filename);	
-	
-	fcpParseURI(tmp_hfcp->key->target_uri, key_uri);
-	
-	/* close the tmp files */
-	unlink_key(tmp_hfcp->key);
-	
+
+	/* new fcpCreation.c routines create everything in fcpCreateHFCP() */
+
+	fcpParseURI(hfcp->key->target_uri, key_uri);
+	fcpParseURI(hfcp->key->tmpblock->uri, key_uri);
+
 	/* if in normal mode, follow the redirects */
-	if (tmp_hfcp->rawmode == 0) {
+	if (hfcp->rawmode == 0) {
 		
 		_fcpLog(FCP_LOG_VERBOSE, "starting recursive retrieve");
-		rc = get_follow_redirects(tmp_hfcp, key_uri,
-															tmp_hfcp->key->tmpblock->filename,
-															tmp_hfcp->key->metadata->tmpblock->filename);
+		rc = get_follow_redirects(hfcp, key_uri);
 	}
 	else { /* RAWMODE */
 		
 		_fcpLog(FCP_LOG_VERBOSE, "start rawmode retrieve");
-		rc = get_file(tmp_hfcp, key_uri,
-									tmp_hfcp->key->tmpblock->filename,
-									tmp_hfcp->key->metadata->tmpblock->filename);
+		rc = get_file(hfcp, key_uri);
 	}
-	
+
 	if (rc) { /* bail after cleaning up */
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", tmp_hfcp->key->target_uri->uri_str);
+		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
 		return -1;
 	}
 	
 	/* Here, the key and meta data is within the tmpblocks */
+
+	fcpParseURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
+	tmpfile_unlink(hfcp->key);
 	
 	/* TODO: check metadata to detect splitfiles */
+
+	_fcpLog(FCP_LOG_VERBOSE, "Copying tmp files");
 	
-	/* copy over the necessary information into the hfcp struct from tmp_hfcp */
-	
-	if (copy_file(key_filename, tmp_hfcp->key->tmpblock->filename) < 0) {
+	if (copy_file(key_filename, hfcp->key->tmpblock->filename) < 0)
 		return -1;
-	}
 	
-	if (copy_file(meta_filename, tmp_hfcp->key->metadata->tmpblock->filename) < 0) {
+	if (copy_file(meta_filename, hfcp->key->metadata->tmpblock->filename) < 0)
 		return -1;
-	}
-	
-	hfcp->key = tmp_hfcp->key;
-	
-	tmp_hfcp->key = 0;
-	fcpDestroyHFCP(tmp_hfcp);
-	
+
 	_fcpLog(FCP_LOG_VERBOSE, "Retrieved key: %s", hfcp->key->target_uri->uri_str);
-	
-	return 0 ;
+
+	return 0;
 }
 

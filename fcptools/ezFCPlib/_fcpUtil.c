@@ -24,9 +24,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/* we don't need to include ezfcplib.h if we include these */
-
-
 #include "ezFCPlib.h"
 
 #include <fcntl.h>
@@ -36,12 +33,12 @@
 #include "ez_sys.h"
 
 /*
-  function xtoi()
+  function xtol()
 
   Convert a hexadecimal string into an int. This is the hex version of
 	atoi.
 */
-long xtoi(char *s)
+long xtol(char *s)
 {
   long val = 0;
   
@@ -120,5 +117,43 @@ int copy_file(char *dest, char *src)
 
 	_fcpLog(FCP_LOG_DEBUG, "copy_file copied %d bytes", bytes);
 	return bytes;
+}
+
+
+int tmpfile_link(hKey *h, int flags)
+{
+	if ((h->tmpblock->fd = open(h->tmpblock->filename, flags)) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "could not link tmp files to key data");
+		return -1;
+	}
+	
+	if ((h->metadata->tmpblock->fd = open(h->metadata->tmpblock->filename, flags)) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "could not link tmp files to key data");
+		return -1;
+	}
+
+	_fcpLog(FCP_LOG_DEBUG, "linked keys");
+	return 0;
+}
+
+
+void tmpfile_unlink(hKey *h)
+{
+	/* close the temporary key file */
+	if (h->tmpblock->fd != -1) {
+		_fcpLog(FCP_LOG_DEBUG, "key: %s", h->tmpblock->filename);
+		close(h->tmpblock->fd);
+	}
+
+	/* close the temporary metadata file */
+	if (h->metadata->tmpblock->fd != -1) {
+		_fcpLog(FCP_LOG_DEBUG, "meta: %s", h->metadata->tmpblock->filename);
+		close(h->metadata->tmpblock->fd);
+	}
+
+	h->tmpblock->fd = -1;
+	h->metadata->tmpblock->fd = -1;
+	
+	_fcpLog(FCP_LOG_DEBUG, "unlinked key, closed temporary files");
 }
 

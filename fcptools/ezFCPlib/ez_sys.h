@@ -31,6 +31,10 @@
 #ifndef _EZ_SYS_H
 #define _EZ_SYS_H 
 
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
+
 /* Global vars
  */
 extern int   _fcpVerbosity;   /* verbosity of log messages; ranges from 0 through 4 */
@@ -43,6 +47,7 @@ extern int   _fcpSplitblock;  /* Mininum size necessary to begin splitfile inser
 																 (may not be the same as size returned by Fred FEC routines */
 
 extern int   _fcpRetry;       /* Nuber of times to retry on Timeout message */
+extern int   _fcpDMALLOC;
 
 /*
 	Function prototypes
@@ -60,6 +65,7 @@ extern void    _fcpMetaFree(hMetadata *);
 
 extern hMetadata  *_fcpCreateHMetadata(void);
 extern void        _fcpDestroyHMetadata(hMetadata *);
+extern void        _fcpDestroyHMetadata_cdocs(hMetadata *);
 
 /* Some FEC definitions */
 extern hSegment   *_fcpCreateHSegment(void);
@@ -82,26 +88,25 @@ extern int   _fcpRecv(int socket, char *buf, int len);
 extern char *_fcpGetMimetype(char *pathname);
 
 extern int   _fcpTmpfile(char *filename);
-
 extern long  file_size(char *filename);
 
-/* careful with this one.. mainly a *hack* i admit */
-extern void  unlink_key(hKey *hKey);
+extern int   tmpfile_link(hKey *h, int flags);
+extern void  tmpfile_unlink(hKey *h);
 
-extern long  xtoi(char *);
+extern long  xtol(char *);
 extern int   memtoi(char *);
 extern int   copy_file(char *dest, char *src);
 
-extern int   put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri);
+extern int   put_file(hFCP *hfcp, char *uri);
 extern int   put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
 extern int   put_date_redirect(hFCP *hfcp, char *uri);
 extern int   put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
 
-extern int   get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename);
+extern int   get_file(hFCP *hfcp, char *uri);
 extern int   get_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
-extern int   get_follow_redirects(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename);
+extern int   get_follow_redirects(hFCP *hfcp, char *uri);
 extern int   get_size(hFCP *hfcp, char *uri);
 
 extern hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);

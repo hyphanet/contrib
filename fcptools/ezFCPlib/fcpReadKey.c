@@ -38,7 +38,6 @@
 int fcpReadKey(hFCP *hfcp, char *buf, int len)
 {
 	int bytes;
-	int count;
 	int rc;
 	
 	/* while there's still data in the tmp block */
@@ -47,13 +46,16 @@ int fcpReadKey(hFCP *hfcp, char *buf, int len)
 
 	while (len) {
 
-		count = (len > 8192 ? 8192 : len);
-		rc = read(hfcp->key->tmpblock->fd, buf+bytes, count);
+		rc = read(hfcp->key->tmpblock->fd, buf, len);
+
+		_fcpLog(FCP_LOG_DEBUG, "rc from ReadKey: %d", rc);
 
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadKey()");
 			return -1;
 		}
+
+		_fcpLog(FCP_LOG_DEBUG, "rc from ReadKey: %d", rc);
 
 		/* Info was read.. update indexes */
 		len -= rc;
@@ -62,8 +64,10 @@ int fcpReadKey(hFCP *hfcp, char *buf, int len)
 		/* note: this usually gets hit twice, a redundant case when
 			 attempting to read past EOF */
 
-		if (rc < count)
+		if (rc == 0) {
+			perror("*** ERR: ");
 			break;
+		}
 	}
 	
 	return bytes;

@@ -26,11 +26,15 @@
 
 #include "ezFCPlib.h"
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "ez_sys.h"
+
+static void _fcpDestroyResponse(hFCP *h);
 
 /*
 	This version requires certain variables to be specified as arguments.
@@ -62,6 +66,8 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 	h->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? 1 : 0);
 	h->skip_local =   (optmask & FCP_MODE_SKIP_LOCAL ? 1 : 0);
 	
+	h->key = _fcpCreateHKey();
+	
 	return h;
 }
 
@@ -83,44 +89,25 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 
 void fcpDestroyHFCP(hFCP *h)
 {
+	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHFCP()");*/
+
 	if (h) {
+
 		if (h->socket != FCP_SOCKET_DISCONNECTED) _fcpSockDisconnect(h);
 
 		if (h->host) free(h->host);
 		if (h->description) free(h->description);
-		if (h->key) _fcpDestroyHKey(h->key);
 
-		free(h);
-	}
-}
-
-hBlock *_fcpCreateHBlock(void)
-{
-	hBlock *h;
-
-	h = (hBlock *)malloc(sizeof (hBlock));
-	memset(h, 0, sizeof (hBlock));
-
-	h->uri = fcpCreateHURI();
-	h->fd  = -1;
-
-	return h;
-}
-
-/* TODO: add delete_file logic (here and unlink_key() as well). */
-
-void _fcpDestroyHBlock(hBlock *h)
-{
-	if (h) {
-		if (h->filename) free(h->filename);
-		if (h->uri) fcpDestroyHURI(h->uri);
-
-		if (h->fd != -1) {
-			close(h->fd);
-			h->fd = -1;
+		if (h->key) {
+			_fcpDestroyHKey(h->key);
+			free(h->key);
 		}
 
-		free(h);
+		_fcpDestroyResponse(h);
+
+		h->socket = FCP_SOCKET_DISCONNECTED;
+
+		/* let caller free 'h' */
 	}
 }
 
@@ -134,23 +121,165 @@ hKey *_fcpCreateHKey(void)
 	h->uri        = fcpCreateHURI();
 	h->target_uri = fcpCreateHURI();
 
+	h->tmpblock = _fcpCreateHBlock();
+	h->metadata = _fcpCreateHMetadata();
+
 	return h;
 }
 
 void _fcpDestroyHKey(hKey *h)
 {
+	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHKey()");*/
+
 	if (h) {
 		int i;
 
-		if (h->uri)   fcpDestroyHURI(h->uri);
-		if (h->target_uri) fcpDestroyHURI(h->target_uri);
+		if (h->uri) {
+			fcpDestroyHURI(h->uri);
+			free(h->uri);
+		}
+
+		if (h->target_uri) {
+			fcpDestroyHURI(h->target_uri);
+			free(h->target_uri);
+		}
 
 		if (h->mimetype) free(h->mimetype);
-		if (h->tmpblock) free(h->tmpblock);
 
-		for (i=0; i < h->segment_count; _fcpDestroyHSegment(h->segments[i++]));
+		if (h->tmpblock) {
+			_fcpDestroyHBlock(h->tmpblock);
+			free(h->tmpblock);
+		}
 
-		free(h);
+		if (h->metadata) {
+			_fcpDestroyHMetadata(h->metadata);
+			free(h->metadata);
+		}
+
+		for (i=0; i < h->segment_count; i++) {
+			_fcpDestroyHSegment(h->segments[i]);
+			free(h->segments[i]);
+		}
+	}
+}
+
+static void _fcpDestroyResponse(hFCP *h)
+{
+	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyResponse()");*/
+
+	if (h) {
+		if (h->response.success.uri) free(h->response.success.uri);
+		if (h->response.datachunk.data) free(h->response.datachunk.data);
+		if (h->response.keycollision.uri) free(h->response.keycollision.uri);
+		if (h->response.pending.uri) free(h->response.pending.uri);
+		if (h->response.failed.reason) free(h->response.failed.reason);
+		if (h->response.urierror.reason) free(h->response.urierror.reason);
+		if (h->response.routenotfound.reason) free(h->response.routenotfound.reason);
+		if (h->response.formaterror.reason) free(h->response.formaterror.reason);
+	}
+}
+
+hBlock *_fcpCreateHBlock(void)
+{
+	hBlock *h;
+
+	h = (hBlock *)malloc(sizeof (hBlock));
+	memset(h, 0, sizeof (hBlock));
+
+	h->uri = fcpCreateHURI();
+
+	if ((h->fd = _fcpTmpfile(h->filename)) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "could not create temp file %s", h->filename);
+		return 0;
+	}		
+
+	return h;
+}
+
+void _fcpDestroyHBlock(hBlock *h)
+{
+	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHBlock()");*/
+
+	if (h) {
+		
+		/* close the file if it's open */
+
+		if (h->fd != -1) {
+			close(h->fd);
+			h->fd = -1;
+		}
+
+		if (strlen(h->filename)) {
+
+			/* delete the file */
+			if (unlink(h->filename) == 0)
+				_fcpLog(FCP_LOG_DEBUG, "deleted temp file %s", h->filename);
+
+			else
+				_fcpLog(FCP_LOG_DEBUG, "warning: could not delete temp file %s: \"%s\"",
+								h->filename, strerror(errno));
+		}
+		
+		if (h->uri) {
+			fcpDestroyHURI(h->uri);
+			free(h->uri);
+		}
+	}
+}
+
+hMetadata *_fcpCreateHMetadata(void)
+{
+	hMetadata *h;
+
+	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpCreateHMetadata()");*/
+
+	h = (hMetadata *)malloc(sizeof (hMetadata));
+	memset(h, 0, sizeof (hMetadata));
+
+	h->tmpblock = _fcpCreateHBlock();
+
+	return h;
+}
+
+void _fcpDestroyHMetadata(hMetadata *h)
+{
+	/*_fcpLog(FCP_LOG_DEBUG, "Entered fcpDestroyHMetadata()");*/
+
+	if (h) {
+
+		if (h->tmpblock) {
+			_fcpDestroyHBlock(h->tmpblock);
+			free(h->tmpblock);
+		}
+		
+		if (h->raw_metadata) free(h->raw_metadata);
+
+		if (h->cdoc_count)
+			_fcpDestroyHMetadata_cdocs(h);
+	}
+}
+
+void _fcpDestroyHMetadata_cdocs(hMetadata *h)
+{
+	if (h->cdoc_count) {
+		int i;
+		int j;
+		
+		for (i=0; i < h->cdoc_count; i++) {
+			
+			if (h->cdocs[i]->name) free(h->cdocs[i]->name);
+			if (h->cdocs[i]->field_count) {
+				
+				for (j=0; j < (h->cdocs[i]->field_count * 2); j += 2) {
+					free(h->cdocs[i]->data[j]);
+					free(h->cdocs[i]->data[j+1]);
+				}
+			}
+
+			free(h->cdocs[i]);
+		}
+
+		h->cdoc_count = 0;
 	}
 }
 
@@ -160,7 +289,7 @@ hURI *fcpCreateHURI(void)
 
 	h = (hURI *)malloc(sizeof (hURI));
 	memset(h, 0, sizeof (hURI));
-	
+
 	return h;
 }
 
@@ -171,8 +300,6 @@ void fcpDestroyHURI(hURI *h)
 		if (h->keyid) free(h->keyid);
 		if (h->docname) free(h->docname);
 		if (h->metastring) free(h->metastring);
-
-		free(h);
 	}
 }
 
@@ -188,8 +315,6 @@ int fcpParseURI(hURI *uri, char *key)
 	int len;
 	
 	char *p;
-	char *p2;
-
 	char *p_key;
 
 	p_key = key;
@@ -219,10 +344,7 @@ int fcpParseURI(hURI *uri, char *key)
 		len = p - key;
 
 		uri->keyid = (char *)malloc(len + 1);
-
 		strncpy(uri->keyid, key, len);
-		p2 = uri->keyid + len;
-		*p2 = 0;
 
 		/* Make key point to the char after '/' */
 		key = ++p;
@@ -306,24 +428,6 @@ int fcpParseURI(hURI *uri, char *key)
   return 0;
 }
 
-hMetadata *_fcpCreateHMetadata(void)
-{
-	hMetadata *h;
-
-	h = (hMetadata *)malloc(sizeof (hMetadata));
-	memset(h, 0, sizeof (hMetadata));
-
-	return h;
-}
-
-void _fcpDestroyHMetadata(hMetadata *h)
-{
-	if (h) {
-	}
-
-	return;
-}
-
 
 /*************************************************************************/
 /* FEC specific */
@@ -348,12 +452,16 @@ void _fcpDestroyHSegment(hSegment *h)
 		if (h->header_str) free(h->header_str);
 
 		if (h->db_count)
-			for (i=0; i < h->db_count; _fcpDestroyHBlock(h->data_blocks[i++]));
-
+			for (i=0; i < h->db_count; i++) {
+				_fcpDestroyHBlock(h->data_blocks[i++]);
+				free(h->data_blocks[i]);
+			}
+		
 		if (h->cb_count)
-			for (i=0; i < h->cb_count; _fcpDestroyHBlock(h->check_blocks[i++]));
-
-		free(h);
+			for (i=0; i < h->cb_count; i++) {
+				_fcpDestroyHBlock(h->check_blocks[i++]);
+				free(h->check_blocks[i++]);
+			}
 	}
 }
 

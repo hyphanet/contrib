@@ -2,7 +2,9 @@
 
 # Keep these flags since this directory may be used in other projects.
 # KDE for example requires strict ansi compliance (these params actually).
-CFLAGS=-ansi -W -Wall -pedantic -g
+CFLAGS=-ansi -W -Wall -pedantic -g -DDMALLOC
+#CFLAGS=-ansi -W -Wall -pedantic -g
+LDADD=/usr/lib/libdmalloc.a
 
 #lib_LIBRARIES = libezfcp.a
 noinst_LIBRARIES = libezfcp.a
@@ -24,10 +26,10 @@ _fcpMimetype.c \
 _fcpGet.c \
 _fcpPut.c \
 ezFCPlib.h \
-fcpCloseKey.c \
 fcpCreation.c \
 fcpInfo.c \
 fcpOpenKey.c \
+fcpCloseKey.c \
 fcpPutKeyFromFile.c \
 fcpGetKeyToFile.c \
 fcpReadKey.c \

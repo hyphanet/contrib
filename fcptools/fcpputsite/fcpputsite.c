@@ -198,7 +198,7 @@ static void usage(char *s)
 	   	printf("Error: %s\n", s);
 
 	printf("FCPtools; Freenet Client Protocol Tools\n");
-	printf("Copyright (c) 2001 by David McNab\n\n");
+	printf("CopyLeft 2001 by David McNab\n\n");
 
 	printf("Usage: fcpputsite [OPTIONS] name dir pubkey prvkey\n\n");
 

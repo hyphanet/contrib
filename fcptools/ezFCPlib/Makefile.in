@@ -79,7 +79,6 @@ GCJ = @GCJ@
 GCJFLAGS = @GCJFLAGS@
 HAVE_LIB = @HAVE_LIB@
 INCLUDES = @INCLUDES@
-LDADD = @LDADD@
 LIB = @LIB@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -94,7 +93,9 @@ RC = @RC@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
-CFLAGS = -ansi -W -Wall -pedantic -g
+CFLAGS = -ansi -W -Wall -pedantic -g -DDMALLOC
+#CFLAGS=-ansi -W -Wall -pedantic -g
+LDADD = /usr/lib/libdmalloc.a
 
 #lib_LIBRARIES = libezfcp.a
 noinst_LIBRARIES = libezfcp.a
@@ -104,7 +105,7 @@ noinst_LIBRARIES = libezfcp.a
 
 include_HEADERS = ezFCPlib.h
 
-FCP_SOURCE = " _fcpGlobals.c _fcpCompat.c _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpUtil.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpCloseKey.c fcpCreation.c fcpInfo.c fcpOpenKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
+FCP_SOURCE = " _fcpGlobals.c _fcpCompat.c _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpUtil.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
 
 
 # The following files are currently ignored for now
@@ -123,8 +124,8 @@ libezfcp_a_LIBADD =
 libezfcp_a_OBJECTS =  _fcpGlobals.$(OBJEXT) _fcpCompat.$(OBJEXT) \
 _fcpLog.$(OBJEXT) _fcpRecvResponse.$(OBJEXT) _fcpSock.$(OBJEXT) \
 _fcpUtil.$(OBJEXT) _fcpMetadata.$(OBJEXT) _fcpMimetype.$(OBJEXT) \
-_fcpGet.$(OBJEXT) _fcpPut.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
-fcpCreation.$(OBJEXT) fcpInfo.$(OBJEXT) fcpOpenKey.$(OBJEXT) \
+_fcpGet.$(OBJEXT) _fcpPut.$(OBJEXT) fcpCreation.$(OBJEXT) \
+fcpInfo.$(OBJEXT) fcpOpenKey.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
 fcpPutKeyFromFile.$(OBJEXT) fcpGetKeyToFile.$(OBJEXT) \
 fcpReadKey.$(OBJEXT) fcpMakeSvkKeypair.$(OBJEXT) fcpStartup.$(OBJEXT) \
 fcpWriteKey.$(OBJEXT)

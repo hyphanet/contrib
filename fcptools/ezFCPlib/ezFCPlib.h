@@ -58,7 +58,7 @@
 #define strncasecmp strnicmp
 
 #define DIR_SEP '\\'
-#define FCP_OPEN_FLAGS O_CREAT
+#define FCP_CREATE_FLAGS O_CREAT
 
 /**************************************************************************
   UNIX specifics
@@ -106,14 +106,19 @@
 /*
   Lengths of allocated strings/arrays.
 */
+#define L_64                64
+#define L_256               256
+#define L_512               512
+
+#define L_KEY               L_64
+#define L_FILENAME          L_512
+#define L_URI               L_512
+#define L_RAW_METADATA      65536
+
+/* rework */
 #define L_BLOCK_SIZE        1024000  /* default split part size (1,000 * 1,024) */
 #define L_FILE_BLOCKSIZE    8192
-#define L_ERROR_STRING      512
-#define L_METADATA_MAX      65536
-#define L_FILENAME_MAX      512
-
-/* TODO: deprecate */
-#define L_KEY               40
+/* ~rework */
 
 #define KEY_TYPE_SSK  1
 #define KEY_TYPE_CHK  2
@@ -200,7 +205,7 @@ typedef struct {
 } FCPRESP_SUCCESS;
 
 typedef struct {
-	char architecture[10];
+	char architecture[L_64+1];
 } FCPRESP_NODEINFO;
 
 typedef struct {
@@ -254,7 +259,7 @@ typedef struct {
 } FCPRESP_FORMATERROR;
 
 typedef struct {
-	char  fec_algorithm[L_KEY+1];
+	char  fec_algorithm[L_64+1];
  
 	int   filelength;
 	long  offset;
@@ -312,7 +317,7 @@ typedef struct {
 
 	/* FEC specific responses */
 	FCPRESP_SEGMENTHEADER   segmentheader;
-	FCPRESP_BLOCKMAP        blockmap;
+	/*FCPRESP_BLOCKMAP        blockmap;*/
 	FCPRESP_BLOCKSENCODED   blocksencoded;
 	FCPRESP_BLOCKSDECODED   blocksdecoded;
 	FCPRESP_MADEMETADATA    mademetadata;
@@ -324,20 +329,19 @@ typedef struct {
   Freenet Client Protocol Handle Definition Section
 */
 typedef struct {
-  int    type;     /* CHK@, KSK@, SSK@ */
+  int   type;                        /* CHK@, KSK@, SSK@ */
 
-	char  *uri_str;  /* the unparsed uri */
-  char  *keyid;    /* the pub/priv/ch key */
+	char  *uri_str;     /* the unparsed uri */
+  char  *keyid;       /* the pub/priv/ch key */
 
 	/* SSK's */
-	char  *docname;  /* the /name// piece */
-	char  *metastring; /* the //images/activelink.gif piece */
+	char  *docname;     /* the /name// piece */
+	char  *metastring;  /* the //images/activelink.gif piece */
 
 } hURI;
 
-
 typedef struct {
-	char   filename[L_FILENAME_MAX];  /* null terminated filename */
+	char   filename[L_FILENAME+1];  /* null terminated filename */
 	int    fd;        /* corresponding file descriptor */
 
 	int    fn_status; /* status relative to Freenet */
@@ -380,10 +384,7 @@ typedef struct {
 	char  *name;
 
 	int    field_count;
-
-	/* TODO: change this to be completely dynamic.. short cut until i figure
-		 out why the realloc callkeeps crashing.. */
-	char *data[128];
+	char  *data[128];  /* max == 64 */
 	
 } hDocument;
 
@@ -397,7 +398,7 @@ typedef struct {
 	hBlock     *tmpblock;
 
 	int         cdoc_count;
-	hDocument **cdocs;
+	hDocument  *cdocs[128];
 
 	char       *raw_metadata;
 
@@ -439,7 +440,7 @@ typedef struct {
 	char *description;
   char *protocol;
 	int   highest_build;
-	int   max_filesize;
+	int   max_filesize;  /* returned from fcphello */
 	
   int   socket;
 	int   timeout;
@@ -474,6 +475,7 @@ extern "C" {
 	/* hURI handle functions */
 	hURI  *fcpCreateHURI(void);
 	void   fcpDestroyHURI(hURI *uri);
+
 	int    fcpParseURI(hURI *uri, char *key);
 
 	/* Client functions for operations between files on disk and freenet */

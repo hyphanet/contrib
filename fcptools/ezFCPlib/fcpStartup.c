@@ -44,7 +44,7 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 
 #ifdef WIN32
 	{
-		char buf[513];
+		char buf[L_FILENAME+1];
 	
 		WORD wVersionRequested;
 		WSADATA wsaData;
@@ -55,11 +55,11 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 		if (WSAStartup(wVersionRequested, &wsaData) != 0)
 			return -1;
 		
-		snprintf(buf, 512, "%s", getenv("USERPROFILE"));
-		_fcpHomeDir = strdup(buf);
+		snprintf(buf, L_FILENAME, "%s", getenv("USERPROFILE"));
+		strncpy(_fcpHomeDir, buf, L_FILENAME);
 		
-		snprintf(buf, 512, "%s\\local settings\\temp", _fcpHomeDir);
-		_fcpTmpDir = strdup(buf);
+		snprintf(buf, L_FILENAME, "%s\\local settings\\temp", _fcpHomeDir);
+		strncpy(_fcpTmpDir, buf, L_FILENAME);
 	}
 	
 	/* both of these paths must have their \'s converted to /'s */
@@ -103,9 +103,6 @@ void fcpTerminate(void)
 	}
 #endif
 
-	if (_fcpTmpDir) free(_fcpTmpDir);
-	if (_fcpHomeDir) free(_fcpHomeDir);
-
 	if (_fcpLogStream) {
 		fclose(_fcpLogStream);
 		_fcpLogStream = 0;
@@ -113,15 +110,3 @@ void fcpTerminate(void)
 	
 	return;
 }
-
-#if 0
-static int toUnix(char *path)
-{
-	int i;
-
-	for (i=0; path[i]; i++)
-		if (path[i] == '\\') path[i] = '/';
-
-	return 0;
-}
-#endif
