@@ -397,7 +397,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 void
 request (int c)
 {
-    int i;
+    int i, a, n;
     unsigned int datalength, blockcount, blocksize;
     char *blocks, *mask, hash[HASHLEN], *hashes;
     struct graph g;
@@ -446,7 +446,66 @@ request (int c)
     memset(mask, 0, blockcount); // all parts are missing before we download them
     do_request(blocks, mask, blockcount, blocksize, &hashes[HASHLEN]);
     alert("Request complete.");
- 
+    
+    // how many missing blocks?
+    for (i = n = 0 ; i < blockcount ; i++)
+	if (!mask[i]) n++;
+    
+    if (!n) goto verify; // woo! we got all of `em!
+    
+    // try to reconstruct blocks until we win or lose
+    do {
+	int j, k;
+	
+	a = 0; // no blocks built yet
+	
+	// try to reconstruct missing data blocks. to reconstruct a data block,
+	// we need to have a check block of which it's a member, and the other
+	// data blocks that were xored into that check block.
+	for (i = 0 ; i < g.dbc ; i++) {
+	    if (mask[i]) continue; // already built
+	    // find any check blocks this data block is in
+	    for (j = 0 ; j < g.cbc ; i++) {
+		if (!mask[g.dbc+j]) continue; // not built yet, sorry
+		// do we have all the other data blocks in this check block?
+		for (k = 0 ; k < g.dbc ; k++)
+		    if (is_set(&g, k, j) && !mask[k])
+			goto next; // we don't have all the data blocks yet.
+		// yay! we have both the check block and the other data blocks.
+		// xor them all together, and we have our missing data block!
+		memcpy(&blocks[i*blocksize], &blocks[(g.dbc+j)*blocksize], blocksize);
+		for (k = 0 ; k < g.dbc ; k++)
+		    if (is_set(&g, k, j))
+			xor(&blocks[i*blocksize], &blocks[k*blocksize], blocksize);
+		mask[i] = a = 1; // we got it, baby!
+		break;
+	     next:;
+	    }
+	}
+	
+	// try to reconstruct missing check blocks. to reconstruct a check block,
+	// we need to have all its data blocks.
+	for (i = 0 ; i < g.cbc ; i++) {
+	    if (mask[g.dbc+i]) continue; // already built
+	    // do we have all the data blocks?
+	    for (j = 0 ; j < g.dbc ; j++)
+		if (is_set(&g, j, i) && !mask[j])
+		    goto next2;
+	    // woohoo! we have all the data blocks. we'll xor them to make a check block!
+	    for (j = 0 ; j < g.dbc ; j++)
+		if (is_set(&g, j, i))
+		    xor(&blocks[(g.dbc+i)*blocksize], &blocks[j*blocksize], blocksize);
+	    mask[g.dbc+i] = a = 1; // we got it, baby!!
+	 next2:;
+	}
+    } while (a && n);
+    
+    if (n) {
+	alert("Data was not recoverable. %d blocks unrecovered.", n);
+	goto out;
+    }
+
+verify:
     // verify data
     alert("Verifying data integrity.");
     sha_buffer(blocks, datalength, hash);
