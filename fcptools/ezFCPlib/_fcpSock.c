@@ -81,23 +81,38 @@ int _fcpSockConnect(hFCP *hfcp)
 	
   /* create socket */
   hfcp->socket = socket(AF_INET, SOCK_STREAM, 0);
-	
+
+	/* I guess someone @MS thought it would be a good idea to implement BSD sockets just like
+	BSD, *except* for a SOCKET to be an unsigned int.. wonderful! */
+#ifdef WIN32
+  if (hfcp->socket == INVALID_SOCKET) return -1;
+#else
   if (hfcp->socket < 0) return -1;
-	
+#endif
+
   /* bind to any port number on local machine */
   sa_local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   sa_local_addr.sin_port = htons(0);
   sa_local_addr.sin_family = AF_INET;
-	
+
   rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
 
-  if (rc < 0) {
+#ifdef WIN32
+	if (rc ==	SOCKET_ERROR) {
+		_fcpLog(FCP_LOG_CRITICAL, "bind returned an error: %d", WSAGetLastError());
+		_fcpSockDisconnect(hfcp);
+
+		return -1;
+	}
+#else
+  if (rc != 0) {
 		_fcpLog(FCP_LOG_CRITICAL, "Error binding to port %d: %s", hfcp->port, strerror(errno));
 		_fcpSockDisconnect(hfcp);
 
-    return -1;
+		return -1;
   }
-	
+#endif
+
   /* connect to server */
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
   if (rc < 0) {
@@ -108,7 +123,11 @@ int _fcpSockConnect(hFCP *hfcp)
 	}
 
 	/* Send fcpID */
-	rc = _fcpSend(hfcp->socket, fcpID, 4);
+	if ((rc = _fcpSend(hfcp->socket, fcpID, 4)) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "could not send 4-byte fcp ID");
+		return -1;
+	}
+
 
 	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%d", hfcp->host, hfcp->port);
 
@@ -171,6 +190,17 @@ int _fcpSend(FCPSOCKET socket, char *buf, int len)
 
 		/* this function is the same on win and BSD-systems */
 		rc = send(socket, buf+bs, len, 0);
+
+		if (rc < 0) {
+
+#ifdef WIN32
+			_fcpLog(FCP_LOG_DEBUG, "send() returned error code: %d", WSAGetLastError());
+#else
+			_fcpLog(FCP_LOG_DEBUG, "send() returned error");
+#endif
+
+			return -1;
+		}
 
 		len -= rc;
 		bs += rc;
