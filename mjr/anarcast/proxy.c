@@ -95,6 +95,8 @@ alert (const char *s, ...)
     va_end(args);
 }
 
+//=== graph =================================================================
+
 void
 load_graphs ()
 {
@@ -142,6 +144,8 @@ is_set (struct graph *g, int db, int cb)
     int n = (db * g->cbc) + cb;
     return (g->graph[n / 8] << (n % 8)) & 128;
 }
+
+//=== insert ================================================================
 
 void
 insert (int c)
@@ -354,6 +358,8 @@ do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
     alert("Insert completed.");
 }
 
+//=== request ===============================================================
+
 void
 request (int c)
 {
@@ -379,6 +385,8 @@ request (int c)
 	return;
     }
 }
+
+//=== inform ================================================================
 
 void
 inform ()
@@ -422,7 +430,7 @@ inform ()
     }
 }
 
-//=== routing crap ==========================================================
+//=== routing ===============================================================
 
 void avl_insert (struct node *node, struct node **stack[], int stackmax);
 void avl_remove (struct node **stack[], int stackmax);
