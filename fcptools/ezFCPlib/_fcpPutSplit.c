@@ -439,7 +439,7 @@ static void splitInsMgr(void *nothing)
 		mysleep(1000);
 		breakloop = 0;
 
-		if (++clicks == 300)
+		if (++clicks == 600)
 		{
 			clicks = 0;
 			_fcpLog(FCP_LOG_DEBUG, "%d threads running, %d clients, queue dump follows",
@@ -586,11 +586,6 @@ static void splitInsMgr(void *nothing)
 					}
 					else
 						chunk->status = SPLIT_INSSTAT_INPROG;
-
-//					_fcpLog(FCP_LOG_CRITICAL, "SLEEPING!!!!");
-
-					mysleep(30000);
-
 
 					// Successful launch - Add to tally of running threads
 					runningThreads++;

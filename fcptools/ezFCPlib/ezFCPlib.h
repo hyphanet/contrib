@@ -25,11 +25,11 @@
 // messages according to importance
 //
 
-#define FCP_LOG_SILENT      0
-#define FCP_LOG_CRITICAL    1
-#define FCP_LOG_NORMAL      2
-#define FCP_LOG_VERBOSE     3
-#define FCP_LOG_DEBUG       4
+//#define FCP_LOG_SILENT      0
+#define FCP_LOG_CRITICAL    0
+#define FCP_LOG_NORMAL      1
+#define FCP_LOG_VERBOSE     2
+#define FCP_LOG_DEBUG       3
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -95,8 +95,8 @@ fcpPutJob;
 typedef struct _splitChunk
 {
 	char	key[MAX_URI_LEN];		// CHK key of inserted chunk
-	char	status;					// insert status of this chunk
-	char	index;					// index num of this chunk
+	int		status;					// insert status of this chunk
+	int		index;					// index num of this chunk
 	char	*chunk;					// byte-image of chunk to insert - malloc()'ed
 	int		size;					// SIZE of this chunk
 }
