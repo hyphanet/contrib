@@ -2,6 +2,7 @@
 #define DATABASE_SYNC_INTERVAL    60
 #define RECENT_ADDITIONS_LENGTH   50
 #define FPROXY_ADDRESS            "http://localhost:8081/"
+#define ACCEPT_THREADS		  16
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,9 +27,8 @@ struct item {
 
 int listening_socket ();                   // Create and bind a new listening socket.
 int load_key_database ();                  // Load key database.
-void * database_sync_thread (void *arg);   // Synchronizes the database in memory with the disk.
-void get_connection (int socket);          // Wait for a new connection and spawn a thread to handle it.
-void * handler_thread (void *arg);         // Handle a HTTP connection.
+void * accept_thread (void *arg);          // Accept and run transactions.
+void run (int conn);                       // Handle a HTTP connection.
 void send_index (FILE *socket);            // Send the default page.
 void run_search (FILE *socket, char *url); // Run a search.
 void run_add (FILE *socket, char *url);    // Add a Freenet URI from CGI GET input.
@@ -39,7 +39,8 @@ int url_decode (char *url);                // URL decode.
 int
 main ()
 {
-    int socket = listening_socket();
+    int i, socket = listening_socket();
+    pthread_t t;
 
     if (socket == -1) {
 	fprintf(stderr, "Error initializing listening socket.\n");
@@ -53,27 +54,50 @@ main ()
     
     signal(SIGPIPE, SIG_IGN);
 
-    for (;;)
-	get_connection(socket);
+    for (i = 0 ; i < ACCEPT_THREADS ; i++) {
+	pthread_create(&t, NULL, accept_thread, (void *) &socket);
+	pthread_detach(t);
+    }
+    
+    for (;;) {
+	FILE *data;
+	struct item *i;
+	sleep(DATABASE_SYNC_INTERVAL);
+	if (system("cp -f beable_database beable_database_backup") != 0) {
+	    fprintf(stderr, "Error backing up database.\n");
+	    continue;
+	}
+	data = fopen("beable_database", "w");
+	if (!data) {
+	    fprintf(stderr, "Error opening database for write.\n");
+	    continue;
+	}
+	pthread_mutex_lock(&mutex);
+	for (i = database; i ; i = i->next)
+	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n",
+		    i->key, i->name, i->desc, i->ctime);
+	pthread_mutex_unlock(&mutex);
+	fclose(data);
+    }
 }
 
 int
 listening_socket ()
 {
-    struct sockaddr_in address;
+    struct sockaddr_in addr;
     int r = 1, sock;
     
-    memset((char *) &address, 0, sizeof(address));
-    address.sin_family = AF_INET;
-    address.sin_port = htons(LISTEN_PORT);
-    address.sin_addr.s_addr = htonl(INADDR_ANY);
+    memset((char *) &addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(LISTEN_PORT);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	return -1;
     
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &r, sizeof(r));
     
-    if (bind(sock, (struct sockaddr *) &address, sizeof(address)) < 0)
+    if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0)
 	return -1;
     
     if (listen(sock, 1) < 0)
@@ -85,7 +109,6 @@ listening_socket ()
 int
 load_key_database ()
 {
-    pthread_t t;
     int i;
     long ctime, last;
     struct item *f, *tail = NULL;
@@ -145,59 +168,27 @@ load_key_database ()
     }
 
     fclose(data);
-    pthread_create(&t, NULL, database_sync_thread, NULL);
-    pthread_detach(t);
     return 0;
 }
 
 void *
-database_sync_thread (void *arg)
+accept_thread (void *arg)
 {
-    for (;;) {
-	FILE *data;
-	struct item *i;
-	sleep(DATABASE_SYNC_INTERVAL);
-	if (system("cp -f beable_database beable_database_backup") != 0) {
-	    fprintf(stderr, "Error backing up database.\n");
-	    continue;
-	}
-	data = fopen("beable_database", "w");
-	if (!data) {
-	    fprintf(stderr, "Error opening database for write.\n");
-	    continue;
-	}
-	pthread_mutex_lock(&mutex);
-	for (i = database; i ; i = i->next)
-	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n",
-		    i->key, i->name, i->desc, i->ctime);
-	pthread_mutex_unlock(&mutex);
-	fclose(data);
-    }
+    int conn;
+    
+    for (;;)
+	if ((conn = accept(*(int *)arg, NULL, 0)) != -1)
+	    run(conn);
 }
 
 void
-get_connection (int socket)
-{
-    struct sockaddr_in incoming;
-    int *conn = malloc(sizeof(int));
-    int b = sizeof(incoming);
-    pthread_t t;
-    
-    if ((*conn = accept(socket, &incoming, &b)) < 0)
-	return;
-    
-    pthread_create(&t, NULL, handler_thread, conn);
-    pthread_detach(t);
-}
-
-void *
-handler_thread (void *arg)
+run (int conn)
 {
     FILE *socket;
     char buf[1024], method[5], url[512];
-
-    if (!(socket = fdopen(*(int *)arg, "r+")))
-	pthread_exit(NULL);
+    
+    if (!(socket = fdopen(conn, "r+")))
+	return;
     
     if (!fgets(buf, 1024, socket))
 	goto end;
@@ -220,9 +211,7 @@ handler_thread (void *arg)
     else                                  send_error_404(socket);
 
 end:
-    free((int *)arg);
     fclose(socket);
-    pthread_exit(NULL);
 }
 
 void
