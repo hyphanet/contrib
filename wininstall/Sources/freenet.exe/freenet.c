@@ -782,7 +782,7 @@ void ReloadSettings(void)
 		// dumbass.  Means there's no way to tell (when the defaults are upgraded)
 		// whether the user actually wants "192MB" or "default"
 		// Fix is to take that line out, since it IS the default
-		WritePrivateProfileString(szflsec, szjavamemkey, "192", szflfile);
+		WritePrivateProfileString(szflsec, szjavamemkey, "default", szflfile);
 		WritePrivateProfileString(szflsec, "Java Mem", NULL, szflfile); // removes "Java Mem" ('with-a-space') setting from flaunch.ini
 	}
 
