@@ -171,13 +171,14 @@ int
 fcp_close (fcp_document *d)
 {
     int i;
-    free(d->status);
+    if (d->status) free(d->status);
     for (i = 0 ; i < d->p_count ; i++) {
 	if (d->chunks[i]) free(d->chunks[i]);
 	if (d->streams[i]) free(d->streams[i]);
     }
-    free(d->chunks);
-    free(d->streams);
+    if (d->chunks) free(d->chunks);
+    if (d->streams) free(d->streams);
+    free(d);
     return FCP_SUCCESS;
 }
 
