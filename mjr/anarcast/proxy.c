@@ -534,6 +534,16 @@ verify:
     
     if (m) goto out; // no blocks to reinsert!
     
+    // verify integrity of reconstructed check blocks
+    for (i = 0 ; i < g.cbc ; i++)
+	if (!mask2[g.dbc+i]) {
+	    sha_buffer(&blocks[(g.dbc+i)*blocksize], blocksize, hash);
+	    if (memcmp(hash, &hashes[(1+g.dbc+i)*HASHLEN], HASHLEN)) {
+		alert("Check block %d does not verify.", i+1);
+		goto out;
+	    }
+	}
+    
     // insert reconstructed blocks
     alert("Inserting %d reconstructed blocks.");
     do_insert(blocks, mask2, blockcount, blocksize, &hashes[HASHLEN]);
