@@ -1,7 +1,19 @@
-The Client Proxy Protocol
+Introduction
 ------------------------------------------------------------------------------
 
 All values are little-endian.
+
+A key is a 4-byte datalength, the hash of the plaintext, and the hashes of all
+the (encrypted) parts it was split into. (160-bit SHA1 hashes.)
+
+The data is encrypted with 128-bit Rijndael in CBC mode with a null IV, using
+the first 128 bits of the SHA1 hash of the data as the key. It must be padded
+to a multiple of 16 first.
+
+The Client Proxy Protocol
+------------------------------------------------------------------------------
+
+Writing an ordinary client? Read this.
 
 To request a file by its key:
 
@@ -13,6 +25,8 @@ If the request fails, the client proxy will hang up. Otherwise,
 	
 	read(sock, &datalength, 4);
 	read(sock, &data, datalength);
+
+Contratulations! You have your data.
 
 To insert a file:
 
@@ -36,15 +50,10 @@ network byte order (they slip right into sockaddr_in.sin_addr.s_addr).
 	for (i = 0 ; i < address_count ; i++)
 	    read(sock, &address, 4);
 
-The inform server may send more than address_count addresses (these were added
-after address_count was sent).
-
 The Server Protocol
 ------------------------------------------------------------------------------
 
-All values are little-endian.
-
-To request a block by its hash:
+To request a block by its SHA1 hash:
 
 	write(sock, "r", 1);
 	write(sock, hash, 20);
@@ -55,7 +64,7 @@ Otherwise,
 	read(sock, &datalength, 4);
 	read(sock, data, datalength);
 
-and then verify the SHA hash of the returned data against what you requested.
+and then verify the SHA1 hash of the returned data against what you requested.
 
 Inserting a block is simple:
 
