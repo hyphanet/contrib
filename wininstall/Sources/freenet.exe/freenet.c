@@ -139,7 +139,7 @@ char szFserveExportCmdPost[BUFLEN];	/* used to store "" */
 char szfprxPort[6];                 /* used to store just the fproxy port (Default 8888) from freenet.ini bit of above */
 WORD fprxPort;                      /* Decimal version of Port number as read from freenet.ini */
 char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8888" after the fproxy port has been read from freenet.ini */
-char szClasspathExtra[65536];       /* used to store additional jars to put into the CLASSPATH env variable */
+char szClasspathExtra[65535];       /* used to store additional jars to put into the CLASSPATH env variable */
 
 /*		flags, etc... */
 FREENET_MODE nFreenetMode=FREENET_STOPPED;
@@ -566,7 +566,7 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 
 void SetClasspathEnvForThisThread(void)
 {
-	char szbuffer[MAX_PATH*2+2048+65536];
+	char szbuffer[MAX_PATH*2+2048+65535];
 	char szShortPathbuffer[MAX_PATH+1];
 	DWORD getenv;
 	DWORD buffersize,dwStrlen;
@@ -577,7 +577,7 @@ void SetClasspathEnvForThisThread(void)
 	/* set the current directory to the path name so we can use GetProfile commands in the current directory */
 	SetCurrentDirectory(szHomeDirectory);
 	/* Get any additional CLASSPATH jars specified by the user in the .ini file:  */
-	GetPrivateProfileString(szflsec, szClasspathExtraKey, szempty, szClasspathExtra, 65536, szflfile);
+	GetPrivateProfileString(szflsec, szClasspathExtraKey, szempty, szClasspathExtra, 65535, szflfile);
 
 	lstrcpy(szbuffer,szHomeDirectory);
     GetShortPathName(szbuffer, szShortPathbuffer, sizeof(szShortPathbuffer)-1);

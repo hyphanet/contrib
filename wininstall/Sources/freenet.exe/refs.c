@@ -121,7 +121,7 @@ DWORD WINAPI ImportRefsThread(LPVOID lpvParam)
 	if (bResult)
 	{
 		// import the selected reference file(s)
-		TCHAR szPath[65536];
+		TCHAR szPath[65535];
 		unsigned int nFiles;
 		
 		// how many files are there? iterate on return buffer contents
@@ -352,7 +352,7 @@ void ImportFile(const TCHAR * szFilename)
 	// execute FSERVE --seed %filename%
 	PROCESS_INFORMATION prcFserveSeedInfo;
 
-	char szexecbuf[MAX_PATH+1+sizeof(szjavawpath)+sizeof(szfservecliexec)+2+sizeof(szFserveSeedCmdPre)+65536+sizeof(szFserveSeedCmdPost)];
+	char szexecbuf[MAX_PATH+1+sizeof(szjavawpath)+sizeof(szfservecliexec)+2+sizeof(szFserveSeedCmdPre)+65535+sizeof(szFserveSeedCmdPost)];
 
 	lstrcpy(szexecbuf, szjavawpath);
 	lstrcat(szexecbuf, " ");
@@ -446,7 +446,7 @@ void ExportFile(const TCHAR * szFilename)
 	// execute FSERVE --export %filename%
 	PROCESS_INFORMATION prcFserveExportInfo;
 
-	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2+sizeof(szFserveSeedExec)+sizeof(szFserveExportCmdPre)+65536+sizeof(szFserveExportCmdPost)];
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2+sizeof(szFserveSeedExec)+sizeof(szFserveExportCmdPre)+65535+sizeof(szFserveExportCmdPost)];
 	lstrcpy(szexecbuf, szjavawpath);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfservecliexec); 
