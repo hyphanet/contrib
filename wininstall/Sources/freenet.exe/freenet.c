@@ -965,7 +965,7 @@ DWORD WINAPI WaitForJavaConfigurator(LPVOID lpvprochandle)
 	CloseHandle(hJavaConfig);
 	if(ExitCode==0)
 	{
-		if(MessageBox(NULL,"The new settings will only take effect after restarting the node.\r\nShould the node be restarted now?\r\nWARNING: This aborts all current data transfers!",szAppName,MB_YESNO|MB_ICONQUESTION) == IDYES)
+		if(MessageBox(NULL,"The new settings will only take effect after restarting the node.\r\nShould the node be restarted now?\r\nWARNING: This aborts all current data transfers!",szAppName,MB_YESNO|MB_ICONQUESTION|MB_SYSTEMMODAL) == IDYES)
 		{
 			PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
 		}

@@ -431,14 +431,28 @@ void DeleteFilesInDirectory(char* directory)
 {
 	HANDLE find;
 	WIN32_FIND_DATA file;
+	bool created_directory = true;
+	char search[MAX_PATH];
+
+	if(strlen(directory) == 0)
+		return;	// empty directory name
+
+	//todo: automatically use win2k security if in win2k
+	if(!CreateDirectory(directory, NULL))
+		created_directory = false; 
 
 	// search all files in directory
-	char search[MAX_PATH];
-	lstrcpyn(search, directory, MAX_PATH - 3); 
+
+	lstrcpyn(search, directory, MAX_PATH - 4);
+	if(directory[strlen(directory) - 1] != '\\' || directory[strlen(directory) - 1] != '/') // append a '\'
+		lstrcat(search, "\\");
     lstrcat(search, "*.*");
 	find = FindFirstFile(search, &file);
 	if(find == INVALID_HANDLE_VALUE)
-		return;
+		if(!created_directory)
+			MessageBox(NULL, "Unable to create temporary file directory", "Error", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+		else
+			MessageBox(NULL, "Created direcotory but couldn't find any files", "Error", MB_OK | MB_ICONERROR | MB_TASKMODAL);
 
 	do {
 		char* filename = malloc(sizeof(directory) + sizeof(file.cFileName) + 1);
@@ -462,11 +476,6 @@ void ClearTempDirectories(void)
 	GetPrivateProfileString(szfinisec, sztempdir1, szempty, tempdir1, MAX_PATH, szfinifile);
 	GetPrivateProfileString(szfinisec, sztempdir2, szempty, tempdir2, MAX_PATH, szfinifile);
 	GetPrivateProfileString(szfinisec, sztempdir3, szempty, tempdir3, MAX_PATH, szfinifile);
-
-	//todo: automatically use win2k security if in win2k
-	CreateDirectory(tempdir1, NULL);
-	CreateDirectory(tempdir2, NULL);
-	CreateDirectory(tempdir3, NULL);
 
 	if(strlen(tempdir1))
 		DeleteFilesInDirectory(tempdir1);
