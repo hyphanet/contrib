@@ -1174,6 +1174,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 
 					case WM_LBUTTONDOWN :
+						// show last active popup window -- you know, in case it has been shuffled
+						// to the bottom of the pile on the desktop
+						SetForegroundWindow(hWnd);
+						SetForegroundWindow(GetLastActivePopup(hWnd));
 						break;
 
 				}
