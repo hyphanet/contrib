@@ -30,9 +30,8 @@ WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninst
 
 Execwait "$INSTDIR\findjava.exe"
 Delete "$INSTDIR\findjava.exe"
-#No need for portcfg anymore? cfgnode creates a random port entry...
-#ExecWait "$INSTDIR\portcfg.exe"
-#Delete "$INSTDIR\portcfg.exe"
+ExecWait "$INSTDIR\portcfg.exe"
+Delete "$INSTDIR\portcfg.exe"
 ExecWait '"$INSTDIR\cfgnode.exe" silent'
 Delete "$INSTDIR\cfgnode.exe"
 ExecWait "$INSTDIR\cfgclient.exe"
