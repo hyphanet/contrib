@@ -104,7 +104,7 @@ FCP_SOURCE = \
 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c \
 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c \
-	metaParse.c mimetype.c template.c safeMalloc.c
+	metaParse.c mimetype.c safeMalloc.c
 
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
@@ -130,7 +130,7 @@ am_libezfcp_a_OBJECTS = _fcpGlobals.$(OBJEXT) _fcpLog.$(OBJEXT) \
 	fcpReadKeyIndex.$(OBJEXT) fcpSetParam.$(OBJEXT) \
 	fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) \
 	fcpWriteKeyIndex.$(OBJEXT) metaParse.$(OBJEXT) \
-	mimetype.$(OBJEXT) template.$(OBJEXT) safeMalloc.$(OBJEXT)
+	mimetype.$(OBJEXT) safeMalloc.$(OBJEXT)
 libezfcp_a_OBJECTS = $(am_libezfcp_a_OBJECTS)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 
@@ -143,8 +143,7 @@ am_libezfcp_la_OBJECTS = _fcpGlobals.lo _fcpLog.lo _fcpPutSplit.lo \
 	fcpOpenKey.lo fcpOpenKeyIndex.lo fcpPutKeyFromFile.lo \
 	fcpPutKeyFromMem.lo fcpRawMode.lo fcpReadKey.lo \
 	fcpReadKeyIndex.lo fcpSetParam.lo fcpStartup.lo fcpWriteKey.lo \
-	fcpWriteKeyIndex.lo metaParse.lo mimetype.lo template.lo \
-	safeMalloc.lo
+	fcpWriteKeyIndex.lo metaParse.lo mimetype.lo safeMalloc.lo
 libezfcp_la_OBJECTS = $(am_libezfcp_la_OBJECTS)
 
 DEFS = @DEFS@
@@ -197,8 +196,7 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 @AMDEP_TRUE@	$(DEPDIR)/fcpWriteKeyIndex.Po \
 @AMDEP_TRUE@	$(DEPDIR)/metaParse.Plo $(DEPDIR)/metaParse.Po \
 @AMDEP_TRUE@	$(DEPDIR)/mimetype.Plo $(DEPDIR)/mimetype.Po \
-@AMDEP_TRUE@	$(DEPDIR)/safeMalloc.Plo $(DEPDIR)/safeMalloc.Po \
-@AMDEP_TRUE@	$(DEPDIR)/template.Plo $(DEPDIR)/template.Po
+@AMDEP_TRUE@	$(DEPDIR)/safeMalloc.Plo $(DEPDIR)/safeMalloc.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -352,8 +350,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/mimetype.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/safeMalloc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/safeMalloc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/template.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/template.Po@am__quote@
 
 distclean-depend:
 	-rm -rf $(DEPDIR)

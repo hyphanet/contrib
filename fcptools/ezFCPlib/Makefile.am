@@ -20,7 +20,7 @@ FCP_SOURCE = \
 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c \
 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c \
-	metaParse.c mimetype.c template.c safeMalloc.c
+	metaParse.c mimetype.c safeMalloc.c
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 libezfcp_la_SOURCES = $(FCP_SOURCE)
