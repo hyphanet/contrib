@@ -4,7 +4,6 @@
 #define HASHLEN               20
 #define _GNU_SOURCE
 
-#include <err.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -63,20 +62,20 @@ mbuf (size_t len)
     char *p, b[] = "/tmp/anarcast-XXXXXX";
     
     if ((c = mkstemp(b)) == -1)
-	err(1, "mkstemp() failed");
+	die("mkstemp() failed");
     
     if (ftruncate(c, len) == -1)
-	err(1, "ftruncate() failed");
+	die("ftruncate() failed");
     
     p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, c, 0);
     if (p == MAP_FAILED)
-	err(1, "mmap() failed");
+	die("mmap() failed");
     
     if (close(c) == -1)
-	err(1, "close() failed");
+	die("close() failed");
     
     if (unlink(b) == -1)
-	err(1, "unlink() failed");
+	die("unlink() failed");
     
     return p;
 }
@@ -135,7 +134,7 @@ timestr ()
     struct tm *tm = localtime(&t);
     static char ts[128];
     if (!strftime(ts, 128, "%T", tm))
-	err(1, "strftime() failed");
+	die("strftime() failed");
     return ts;
 }
 
@@ -151,16 +150,16 @@ listening_socket (int port)
     a.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	err(1, "socket() failed");
+	die("socket() failed");
 
     if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &r, sizeof(r)) == -1)
-	err(1, "setsockopt() failed");
+	die("setsockopt() failed");
 
     if (bind(s, &a, sizeof(a)) == -1)
-	err(1, "bind() failed");
+	die("bind() failed");
 
     if (listen(s, SOMAXCONN) == -1)
-	err(1, "listen() failed");
+	die("listen() failed");
 
     return s;
 }
@@ -174,6 +173,7 @@ xor (void *a, const void *b, int len)
 	((int *)a)[i] ^= ((int *)b)[i];
     
     if (!(i = len % 4)) return;
+    
     do ((char *)a)[len-i] ^= ((char *)b)[len-i];
     while (--i);
 }
@@ -185,7 +185,7 @@ chdir_to_home ()
     sprintf(b, "%s/.anarcast", getenv("HOME"));
     mkdir(b, 0755);
     if (chdir(b) == -1)
-	err(1, "chdir() to %s failed", b);
+	die("chdir() failed");
 }
 
 inline void
