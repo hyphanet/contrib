@@ -1,5 +1,6 @@
-#define GRAPHCOUNT  512
-#define CONCURRENCY 16
+#define GRAPHCOUNT    512
+#define CONCURRENCY   16
+#define AVL_MAXHEIGHT 41
 
 #include <math.h>
 #include <stdarg.h>
@@ -8,16 +9,17 @@
 #include "sha.c"
 #include "aes.c"
 
-struct node {
-    unsigned int addr;
-    char hash[HASHLEN];
-    struct node *left, *right;
-};
-
 struct graph {
     unsigned short dbc; // data block count
     unsigned short cbc; // check block count
     unsigned char *graph; // array of bits
+};
+
+struct node {
+    unsigned int addr;
+    char hash[HASHLEN];
+    struct node *left, *right;
+    unsigned char heightdiff;
 };
 
 void load_graphs ();
@@ -26,22 +28,18 @@ struct graph graphs[GRAPHCOUNT];
 struct node *tree;
 char *inform_server;
 
-inline void inform ();
-inline void * run_thread (void *arg);
+void inform ();
+void * run_thread (void *arg);
 void alert (const char *s, ...);
 
-inline void insert (int c);
-inline void do_insert (char *blocks, int blockcount, int blocksize);
+void insert (int c);
+void do_insert (char *blocks, int blockcount, int blocksize);
 
-inline void request (int c);
+void request (int c);
 
-inline void addref (unsigned int addr);
-inline void rmref (struct node *n);
-inline int route (char hash[HASHLEN]);
-
-inline struct node * tree_search (struct node *tree, char hash[HASHLEN]);
-inline void tree_insert (struct node **tree, struct node *item);
-inline void tree_copy (struct node *tree, struct node **new, struct node *fuck);
+void addref (unsigned int addr);
+void rmref (unsigned int addr);
+unsigned int route (char hash[HASHLEN]);
 
 int
 main (int argc, char **argv)
@@ -70,7 +68,7 @@ main (int argc, char **argv)
 	}
 }
 
-inline void *
+void *
 run_thread (void *arg)
 {
     int c = *(int*)arg;
@@ -135,7 +133,7 @@ is_set (struct graph *g, int db, int cb)
     return (g->graph[n / 8] << (n % 8)) & 128;
 }
 
-inline void
+void
 insert (int c)
 {
     char *hashes, *blocks;
@@ -197,15 +195,16 @@ insert (int c)
     // generate check blocks
     alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);
     for (i = 0 ; i < g.cbc ; i++) {
-	printf("Check block %2d:", i+1);
+	char b[1024];
+	sprintf(b, "Check block %2d:", i+1);
 	for (j = 0 ; j < g.dbc ; j++)
 	    if (is_set(&g, j, i)) {
 		xor(&blocks[dlen+(i*blocksize)], // check block (modified)
 		    &blocks[j*blocksize], // data block (const)
 		    blocksize);
-		printf(" %d", j+1);
+		sprintf(b, "%s %d", b, j+1);
 	    }
-	printf(".\n");
+	alert("%s.", b);
     }
     
     alert("Hashing blocks.");
@@ -220,6 +219,7 @@ insert (int c)
 		   &hashes[(g.dbc+1)*HASHLEN+(i*HASHLEN)]);
     
     // send the URI to the client
+    alert("Writing key to client.");
     if (writeall(c, &hlen, 4) != 4 || writeall(c, hashes, hlen) != hlen) {
 	ioerror();
 	if (munmap(blocks, len) == -1)
@@ -236,7 +236,7 @@ insert (int c)
     free(hashes);
 }
 
-inline void
+void
 do_insert (char *blocks, int blockcount, int blocksize)
 {
     int m;
@@ -247,10 +247,19 @@ do_insert (char *blocks, int blockcount, int blocksize)
     
     alert("Inserting %d blocks.", blockcount);
     
-    
+    m = 0;
+    for (;;) {
+	int i;
+	fd_set s = r, x = w;
+
+	i = select(m, &s, &x, NULL, NULL);
+	if (i == -1) die("select() failed");
+	if (!i) continue;
+
+    }
 }
 
-inline void
+void
 request (int c)
 {
     int i;
@@ -275,7 +284,7 @@ inform ()
     extern int h_errno;
     
     if (!(h = gethostbyname(inform_server))) {
-	alert("%s: %s.\n", inform_server, hstrerror(h_errno));
+	alert("%s: %s.", inform_server, hstrerror(h_errno));
 	exit(1);
     }
     
@@ -310,118 +319,330 @@ inform ()
 
 //=== routing crap ==========================================================
 
-inline void
+void avl_insert (struct node *node, struct node **stack[], int stackmax);
+void avl_remove (struct node **stack[], int stackmax);
+int avl_findwithstack (struct node **tree, struct node ***stack, int *count, char hash[HASHLEN]);
+
+void
 addref (unsigned int addr)
 {
     struct in_addr x;
+    int count;
     char hex[HASHLEN*2+1];
-    struct node *item;
+    struct node *n;
+    struct node **stack[AVL_MAXHEIGHT];
     
-    if (!(item = malloc(sizeof(struct node))))
+    if (!(n = malloc(sizeof(struct node))))
 	die("malloc() failed");
     
-    item->left = item->right = NULL;
-    item->addr = addr;
-    sha_buffer((char *) &addr, 4, item->hash);
-    
-    tree_insert(&tree, item);
-    
-    bytestohex(hex, item->hash, HASHLEN);
+    n->addr = addr;
+    sha_buffer((char *) &addr, 4, n->hash);
+    bytestohex(hex, n->hash, HASHLEN);
     x.s_addr = addr;
-    alert("+ %15s %s\n", inet_ntoa(x), hex);
+    alert("+ %15s %s", inet_ntoa(x), hex);
+    
+    if (avl_findwithstack(&tree, stack, &count, n->hash))
+	die("tried to addref() a duplicate reference");
+    
+    avl_insert(n, stack, count);
 }
 
-inline void
-rmref (struct node *n)
+void
+rmref (unsigned int addr)
 {
-    struct node *new = NULL;
+    char hash[HASHLEN];
     char hex[HASHLEN*2+1];
     struct in_addr x;
+    int count;
+    struct node **stack[AVL_MAXHEIGHT];
     
-    x.s_addr = n->addr;
-    bytestohex(hex, n->hash, HASHLEN);
+    sha_buffer((char *) &addr, 4, hash);
+    bytestohex(hex, hash, HASHLEN);
+    x.s_addr = addr;
+    alert("- %15s %s", inet_ntoa(x), hex);
     
-    tree_copy(tree, &new, n);
-    tree = new;
+    if (!avl_findwithstack(&tree, stack, &count, hash))
+	die("tried to rmref() nonexistant reference");
     
-    alert("- %15s %s\n", inet_ntoa(x), hex);
+    avl_remove(stack, count);
 }
 
-inline int
+unsigned int
 route (char hash[HASHLEN])
 {
-    for (;;) {
-        struct node *n;
-	struct sockaddr_in a;
-	int c;
+    int count;
+    struct in_addr x;
+    char hex[HASHLEN*2+1];
+    struct node **stack[AVL_MAXHEIGHT];
+    
+    avl_findwithstack(&tree, stack, &count, hash);
+    
+    if (count < 2)
+	die("the tree is empty");
+    
+    bytestohex(hex, (*stack[count-2])->hash, HASHLEN);
+    x.s_addr = (*stack[count-2])->addr;
+    alert("* %15s %s", inet_ntoa(x), hex);
+    
+    return (*stack[count-2])->addr;
+}
 
-	if (!(n = tree_search(tree, hash)))
+int
+avl_findwithstack (struct node **tree, struct node ***stack, int *count, char hash[HASHLEN])
+{
+    struct node *n = *tree;
+    int found = 0;
+    
+    *stack++ = tree;
+    *count = 1;
+    while (n) {
+	int compval = memcmp(n->hash, hash, HASHLEN);
+	if (compval < 0) {
+	    (*count)++;
+	    *stack++ = &n->left;
+	    n = n->left;
+	} else if (compval > 0) {
+	    (*count)++;
+	    *stack++ = &n->right;
+	    n = n->right;
+	} else {
+	    found = 1;
 	    break;
-	
-	memset(&a, 0, sizeof(a));
-	a.sin_family = AF_INET;
-	a.sin_port = htons(ANARCAST_SERVER_PORT);
-	a.sin_addr.s_addr = n->addr;
-	
-	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	    die("socket() failed");
-
-	if (connect(c, &a, sizeof(a)) != -1) {
-	    char hex[HASHLEN*2+1];
-	    bytestohex(hex, n->hash, HASHLEN);
-	    alert("* %15s %s\n", inet_ntoa(a.sin_addr), hex);
-	    return c;
 	}
-
-	rmref(n);
-	if (close(c) == -1)
-	    die("close() failed");
     }
     
-    alert("Server list exhausted. Contacting inform server.");
-    inform();
-    return route(hash);
+    return found;
+}
+    
+enum {TREE_BALANCED, TREE_LEFT, TREE_RIGHT};
+
+static inline int
+otherChild (int child)
+{
+    return child == TREE_LEFT ? TREE_RIGHT : TREE_LEFT;
 }
 
-inline struct node *
-tree_search (struct node *tree, char hash[HASHLEN])
+static inline void
+rotateWithChild (struct node **ptrnode, int child)
 {
-    if (!tree)
-	return tree;
-    else if (memcmp(hash, tree->hash, HASHLEN) < 0) {
-	if (tree->left)
-	    return tree_search(tree->left, hash);
-        else
-	    return tree;
-    } else if (memcmp(hash, tree->hash, HASHLEN) > 0) {
-	if (tree->right)
-	    return tree_search(tree->right, hash);
-	else
-	    return tree;
+    struct node *node = *ptrnode;
+    struct node *childnode;
+
+    if (child == TREE_LEFT) {
+        childnode = node->left;
+        node->left = childnode->right;
+        childnode->right = node;
+    } else {
+        childnode = node->right;
+        node->right = childnode->left;
+        childnode->left = node;
+    }
+    *ptrnode = childnode;
+
+    if (childnode->heightdiff != TREE_BALANCED) {
+        node->heightdiff = TREE_BALANCED;
+        childnode->heightdiff = TREE_BALANCED;
     } else
-	return tree;
+        childnode->heightdiff = otherChild(child);
 }
 
-inline void
-tree_insert (struct node **tree, struct node *item)
+static inline void
+rotateWithGrandChild (struct node **ptrnode, int child)
 {
-    if (!*tree)
-	*tree = item;
-    else if (memcmp(item->hash, (*tree)->hash, HASHLEN) < 0)
-	tree_insert(&(*tree)->left, item);
-    else if (memcmp(item->hash, (*tree)->hash, HASHLEN) > 0) 
-	tree_insert(&(*tree)->right, item);
+    struct node *node = *ptrnode;
+    struct node *childnode;
+    struct node *grandchildnode;
+    int other = otherChild(child);
+
+    if (child == TREE_LEFT) {
+        childnode = node->left;
+        grandchildnode = childnode->right;
+        node->left = grandchildnode->right;
+        childnode->right = grandchildnode->left;
+        grandchildnode->left = childnode;
+        grandchildnode->right = node;
+    } else {
+        childnode = node->right;
+        grandchildnode = childnode->left;
+        node->right = grandchildnode->left;
+        childnode->left = grandchildnode->right;
+        grandchildnode->right = childnode;
+        grandchildnode->left = node;
+    }
+    *ptrnode = grandchildnode;
+
+    if (grandchildnode->heightdiff == child) {
+        node->heightdiff = other;
+        childnode->heightdiff = TREE_BALANCED;
+    } else if (grandchildnode->heightdiff == other) {
+        node->heightdiff = TREE_BALANCED;
+        childnode->heightdiff = child;
+    } else {
+        node->heightdiff = TREE_BALANCED;
+        childnode->heightdiff = TREE_BALANCED;
+    }
+    grandchildnode->heightdiff = TREE_BALANCED;
 }
 
-inline void
-tree_copy (struct node *tree, struct node **new, struct node *fuck)
+void
+avl_insert (struct node *node, struct node **stack[], int stackcount)
 {
-    if (tree->left) tree_copy(tree->left, new, fuck);
-    if (tree->right) tree_copy(tree->right, new, fuck);
-    if (tree == fuck) free(tree);
-    else {
-	tree->left = tree->right = NULL;
-	tree_insert(new, tree);
+    int oldheightdiff = TREE_BALANCED;
+
+    node->left = node->right = NULL;
+    node->heightdiff = 0;
+    *stack[--stackcount] = node;
+
+    while (stackcount) {
+        int nodediff, insertside;
+        struct node *parent = *stack[--stackcount];
+
+        if (parent->left == node)
+            insertside = TREE_LEFT;
+        else 
+            insertside = TREE_RIGHT;
+
+        node = parent;
+        nodediff = node->heightdiff;
+
+        if (nodediff == TREE_BALANCED) {
+            node->heightdiff = insertside;
+            oldheightdiff = insertside;
+        } else if (nodediff != insertside) {
+            node->heightdiff = TREE_BALANCED;
+            return;
+        } else {
+            if (oldheightdiff == nodediff)
+                rotateWithChild(stack[stackcount], insertside);
+            else
+                rotateWithGrandChild(stack[stackcount], insertside);
+            return;
+        }
     }
 }
 
+void
+avl_remove (struct node **stack[], int stackcount)
+{
+    struct node *node = *stack[--stackcount];
+    struct node *nextgreatest = node->left;
+    struct node *relinknode;
+    struct node **removenodeptr;
+
+    if (nextgreatest) {
+        int newmax = stackcount+1;
+        struct node *next, tmp;
+
+        while ((next = nextgreatest->right)) {
+            newmax++;
+            stack[newmax] = &nextgreatest->right;
+            nextgreatest = next;
+        }
+
+        tmp.left = node->left;
+	tmp.right = node->right;
+	tmp.heightdiff = node->heightdiff;
+	
+	node->left = nextgreatest->left;
+	node->right = nextgreatest->left;
+	node->heightdiff = nextgreatest->heightdiff;
+	
+        nextgreatest->left = tmp.left;
+	nextgreatest->right = tmp.right;
+	nextgreatest->heightdiff = tmp.heightdiff;
+
+        *stack[stackcount] = nextgreatest;
+        stack[stackcount+1] = &nextgreatest->left;
+        *stack[newmax] = node;
+        stackcount = newmax;
+
+        relinknode = node->left;
+    } else
+        relinknode = node->right;
+
+    removenodeptr = stack[stackcount];
+
+    while (stackcount) {
+        int nodediff, removeside;
+        struct node *parent = *stack[--stackcount];
+
+        if (parent->left == node)
+            removeside = TREE_LEFT;
+        else 
+            removeside = TREE_RIGHT;
+
+        node = parent;
+        nodediff = node->heightdiff;
+
+        if (nodediff == TREE_BALANCED) {
+            node->heightdiff = otherChild(removeside);
+            break;
+        } else if (nodediff == removeside) {
+            node->heightdiff = TREE_BALANCED;
+        } else {
+            int childdiff;
+            if (nodediff == TREE_LEFT)
+                childdiff = node->left->heightdiff;
+            else
+                childdiff = node->right->heightdiff;
+
+            if (childdiff == otherChild(nodediff))
+                rotateWithGrandChild(stack[stackcount], nodediff);
+            else {
+                rotateWithChild(stack[stackcount], nodediff);
+                if (childdiff == TREE_BALANCED)
+                    break;
+            }
+
+            node = *stack[stackcount];
+        }
+    }
+
+    *removenodeptr = relinknode;
+}
+
+int
+printk_avl(struct node *tree, int depth)
+{
+	int leftheight=0, rightheight=0, err=0;
+
+	printf("tree: %p\n", tree);
+
+	if (tree) {
+		struct node *next;
+		int diff;
+
+		printf("(");
+		next = tree->left;
+		if (next) {
+			leftheight = printk_avl(next, depth+1);
+			printf(" < ");
+		}
+
+		diff = tree->heightdiff;
+		printf("*%d/%d*: ", depth, diff);
+		{
+		    char hex[HASHLEN*2+1]; bytestohex(hex, tree->hash, HASHLEN); puts(hex);
+		}
+		next = tree->right;
+		if (next) {
+			printf(" > ");
+			rightheight = printk_avl(next, depth+1);
+		}
+
+		if (abs(leftheight - rightheight) > 1) {
+			printf(" ERROR imbalanced %d|%d.", leftheight, rightheight);
+			err = 1;
+		} else if ((leftheight > rightheight && diff != TREE_LEFT)
+			   || (leftheight < rightheight && diff != TREE_RIGHT)
+			   || (leftheight == rightheight
+			       && diff != TREE_BALANCED)) {
+			printf(" ERROR incorrect height.");
+			err = 1;
+		}
+
+		printf(")");
+	}
+
+	return (leftheight > rightheight ? leftheight : rightheight) + 1;
+}
