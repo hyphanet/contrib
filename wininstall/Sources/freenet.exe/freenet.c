@@ -938,7 +938,8 @@ DWORD WINAPI WaitForJavaConfigurator(LPVOID lpvprochandle)
 	GetExitCodeProcess(hJavaConfig, &ExitCode);
 	// If we exited the configuration with exit code 0, restart the node
 	if(ExitCode==0 && ExitCode != STILL_ACTIVE)
-		PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
+        if(MessageBox(NULL,"The new settings will only take effect after restarting the node.\r\nShould the node be restarted now?\r\nWARNING: This aborts all current data transfers!",szAppName,MB_YESNO|MB_ICONQUESTION) == IDYES)
+		        PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
 
 	CloseHandle(hJavaConfig);
 	return 0;
