@@ -13,11 +13,9 @@
 
 #include "ezFCPlib.h"
 
-/*
 #ifndef P_tmpdir
  #define P_tmpdir "/tmp"
 #endif
-*/
 
 /*
   xtoi()
