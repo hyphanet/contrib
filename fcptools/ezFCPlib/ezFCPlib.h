@@ -39,14 +39,18 @@
 #include "sys/stat.h"
 #include "unistd.h"
 
+/*
 #ifdef WINDOWS
 #include <io.h>
 #include <windows.h>
 #else
+*/
+
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
-#endif
+
+/* #endif */
 
 #define DIR_DELIM_CHAR      '/'
 #define DIR_DELIM_STRING    "/"
@@ -118,12 +122,13 @@ typedef struct _splitJob {
   of POSIX it supports.  Even though it's limited, it has pthreads, which
   I think is worth it after all the research I've done so far.  ?
 */
+/*
 #ifdef WINDOWS
 #define mysleep(msecs)  Sleep(msecs)
 #else
 #define mysleep(msecs)  usleep((msecs) * 1000)
 #endif
-
+*/
 
 /*
   General FCP definitions
@@ -226,8 +231,8 @@ typedef struct {
 											metadata+data> */
   int metaLength;             /* MetadataLength=<number: default=0: number of
 											bytes of metadata> */
-  unsigned char *metaData;    /* malloc metadata */
-  unsigned char *metaPtr;     /* current pointer into metadata */
+  char *metaData;             /* malloc metadata */
+  char *metaPtr;              /* current pointer into metadata */
 } FCPRESP_DATAFOUND;
 
 

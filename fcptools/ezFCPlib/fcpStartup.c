@@ -1,22 +1,18 @@
-//
-//  This code is part of FreeWeb - an FCP-based client for Freenet
-//
-//  Designed and implemented by David McNab, david@rebirthing.co.nz
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The FreeWeb website is at http://freeweb.sourceforge.net
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
+/*
+  This code is part of FreeWeb - an FCP-based client for Freenet
 
-#ifndef WINDOWS
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
+
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
+
+  This code is distributed under the GNU Public Licence (GPL) version 2.
+  See http://www.gnu.org/ for further details of the GPL.
+*/
+
 #include <signal.h>
-#endif
-
 #include "ezFCPlib.h"
-
 
 //
 // Imported Declarations
@@ -30,24 +26,23 @@ extern int  _fcpHtl;
 extern int  _fcpRawMode;
 extern char _fcpProgPath[];
 extern int  _fcpFileNum;    // temporary file count
-extern char     _fcpID[];
+extern char _fcpID[];
 extern int  _fcpRegress;
 
 
+/*
+  Function:    fcpStartup()
 
-//
-// Function:    fcpStartup()
-//
-// Arguments:   host			string containing hostname. NULL arg uses default of "127.0.0.1"
-//              port			port number to communicate with FCP on. <= 0 defaults to Freenet standard 8082
-//              defaultHtl		default hops to live. if 0, gets set to EZFCP_HTL_DEFAULT
-//              raw				set to disable automatic metadata handling
-//				maxSplitThreads	maximum number of splitfile insert threads,
-//								if 0 defaults to FCP_MAX_SPLIT_THREADS
-//
-// Returns:     0 if successful
-//              -1 if failed
-//
+  Arguments: host       string containing hostname. NULL arg uses default of "127.0.0.1"
+             port       port number to communicate with FCP on. <= 0 defaults to Freenet standard 8082
+             defaultHtl default hops to live. if 0, gets set to EZFCP_HTL_DEFAULT
+             raw        set to disable automatic metadata handling
+             maxSplitThreads	maximum number of splitfile insert threads,
+                              if 0 defaults to FCP_MAX_SPLIT_THREADS
+
+  Returns:  0 if successful
+            -1 if failed
+*/
 
 int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads)
 {

@@ -17,12 +17,12 @@
 #include "ezFCPlib.h"
 
 
-//
-// safeMalloc()
-//
-// a malloc() wrapper which waits until the requested amount of memory
-// becomes available
+/*
+  safeMalloc()
 
+  a malloc() wrapper which waits until the requested amount of memory
+  becomes available
+*/
 void *safeMalloc(int nbytes)
 {
 	void *blk;
@@ -32,11 +32,7 @@ void *safeMalloc(int nbytes)
 	{
 		_fcpLog(FCP_LOG_CRITICAL, "safeMalloc: req for %d bytes failed, waiting %d ms",
 				nbytes, delay);
-#ifdef WINDOWS
-		Sleep(delay);
-#else
-		usleep(delay * 1000);
-#endif
+		sleep(delay * 1000);
 
 		// increase the delay for next time, max 1 hour (hahaha)
 		if (delay < 3600000)
@@ -45,4 +41,3 @@ void *safeMalloc(int nbytes)
 
 	return blk;
 }
-

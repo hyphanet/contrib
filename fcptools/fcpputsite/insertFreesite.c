@@ -151,7 +151,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                     break;
                 }
                 else
-                    mysleep(1000);  // one or more threads currently running
+                    sleep(1000);  // one or more threads currently running
             }
         }
 
@@ -169,7 +169,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         if (firstThreadSlot == maxThreads)
         {
             // no - wait a while and restart
-            mysleep(1000);
+            sleep(1000);
 			if (++clicks == 180)
 				_fcpLog(FCP_LOG_DEBUG, "fcpputsite: all thread slots full");
             continue;
@@ -391,7 +391,6 @@ void putsiteThread(void *arg)
             if ((status = fcpPutKeyFromMem(hfcp, job->key, NULL, job->metadata, 0)) == 0)
             //if ((status = 0) == 0)
             {
-                //mysleep(2000L);
                 // successful insert
                 _fcpLog(FCP_LOG_NORMAL, "Successfully inserted key %s with %d retries",
                                         job->key, i);

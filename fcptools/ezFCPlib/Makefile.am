@@ -17,8 +17,8 @@ FCP_SOURCE = \
 
 #noinst_HEADERS = ezFCPlib.h
 
-lib_LTLIBRARIES = libezfcp.la
-libezfcp_la_SOURCES = $(FCP_SOURCE)
+#lib_LTLIBRARIES = libezfcp.la
+#libezfcp_la_SOURCES = $(FCP_SOURCE)
 
 noinst_LIBRARIES = libezfcp.a
 libezfcp_a_SOURCES = $(FCP_SOURCE)

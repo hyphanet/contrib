@@ -3,6 +3,9 @@
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
  */
 
+#ifndef _FCPPROXY_H
+#define _FCPPROXY_H 
+
 #define GPC		0x0001
 #define CON		0x0002
 #define IO		0x0004
@@ -11,12 +14,6 @@
 
 #define DEBUG(X)	(debug & X)
 #define freez(X)	if(X) free(X); X = NULL
-
-#define VERSION_MAJOR "2"
-#define VERSION_MINOR "0"
-#define VERSION_POINT "2"
-
-#define VERSION VERSION_MAJOR "." VERSION_MINOR "." VERSION_POINT
 
 extern int debug;
 
@@ -284,3 +281,4 @@ extern int socks4_connect(), direct_connect();
 
 #define BANNER "<strong>Internet J<small>UNK<i><font color=\"red\">BUSTER</font></i></small></strong>"
 
+#endif

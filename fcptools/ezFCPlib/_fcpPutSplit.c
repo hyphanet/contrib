@@ -18,19 +18,13 @@ Description:	- invoked at ezFCPlib startup
 					- manages queueing of splitfile insert jobs
 */
 
-#ifndef WINDOWS
-#include "unistd.h"
-#ifdef HAVE_PTHREAD_H
-#include "pthread.h"
-#endif
-#endif
-
-#include "stdlib.h"
-#include "time.h"
-#include "string.h"
+#include <unistd.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
 
 #include "ezFCPlib.h"
-
 
 typedef struct
 {
@@ -47,43 +41,38 @@ chunkThreadParams;
 #define OPEN_FILE_MODE 0
 #endif
 
+/*
+  EXPORTED DECLARATIONS
+*/
 
-//
-// EXPORTED DECLARATIONS
-//
+void fcpSetSplitThreads(int _maxThreads);
+void _fcpInitSplit(int maxSplitThreads);
 
-void	fcpSetSplitThreads(int _maxThreads);
-void	_fcpInitSplit(int maxSplitThreads);
+int  fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData);
 
-int		fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData);
-
-int		fcpSplitChunkSize = SPLIT_BLOCK_SIZE;	// size of splitfiles chunks
+int  fcpSplitChunkSize = SPLIT_BLOCK_SIZE; /* size of splitfiles chunks */
 
 
-//
-// IMPORTED DECLARATIONS
-//
+/*
+  IMPORTED DECLARATIONS
+*/
 
 char *GetMimeType(char *pathname);
 
 extern char     _fcpID[];
 
 
-//
-// PRIVATE DECLARATIONS
-//
+/*
+  PRIVATE DECLARATIONS
+*/
 
 static int			insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file);
-
 static void			splitAddJob(splitJobIns *job);
 
-static int			LaunchThread(void (*func)(void *), void *parg);
-static void			QuitThread();
+static int			LaunchThread(void (*)(void *), void *parg);
 
 static void			splitInsMgr(void *nothing);
-
 static void			chunkThread(chunkThreadParams *params);
-
 static int			dumpQueue();
 
 static splitJobIns	*newJob;
@@ -91,30 +80,28 @@ static splitJobIns	*jobQueue;
 static splitJobIns	*jobQueueEnd;
 static splitJobIns	*activeJobs;
 
-static int			runningThreads = 0;		// number of split threads currently running
-static int			clientThreads = 0;		// number of caller threads currently running
+static int			runningThreads = 0;  /* number of split threads currently running   */
+static int			clientThreads = 0;   /*  number of caller threads currently running */
 
 static int			maxThreads = FCP_MAX_SPLIT_THREADS;
-
 static char			splitMgrRunning = 0;
 
 
-//////////////////////////////////////////////////////////////////
-//
-// FUNCTION DECLARATIONS
-//
+/*****************************************************************************
+  FUNCTION DECLARATIONS
+*/
 
 
-//
-// _fcpInitSplit()
-//
-// Arguments:		none
-//
-// Returns:			nothing
-//
-// Description:		Initialises and starts up the splitfile insert
-//					manager thread
-//
+/*
+  _fcpInitSplit()
+
+  Arguments:		none
+
+  Returns:			nothing
+  
+  Description:		Initialises and starts up the splitfile insert manager
+  thread.
+*/
 
 void _fcpInitSplit(int maxSplitThreads)
 {
@@ -125,7 +112,7 @@ void _fcpInitSplit(int maxSplitThreads)
 
 	if (splitMgrRunning)
 	{
-		_fcpLog(FCP_LOG_NORMAL, "_fcpInitSplit: error - this func was called earlier");
+		_fcpLog(FCP_LOG_NORMAL, "_fcpInitSplit: Warning - the splitfile manager has already been initialized");
 		return;
 	}
 
@@ -137,7 +124,7 @@ void _fcpInitSplit(int maxSplitThreads)
 	LaunchThread(splitInsMgr, NULL);
 
 	while (!splitMgrRunning)
-		mysleep(500);
+		sleep(500);
 
 	_fcpLog(FCP_LOG_VERBOSE,
 			"_fcpInitSplit: splitfile insert manager now running, max %d threads",
@@ -239,7 +226,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 	// wait for it to finish
 	while (job->status != SPLIT_INSSTAT_MANIFEST && job->status != SPLIT_INSSTAT_FAILED)
-		mysleep(1000);
+		sleep(1000);
 
 	close(fd);
 
@@ -396,7 +383,7 @@ void splitAddJob(splitJobIns *job)
 	while (newJob != NULL)
 	{
 		_fcpLog(FCP_LOG_DEBUG, "splitAddJob: waiting for split insert queue to come free");
-		mysleep(1000);
+		sleep(1000);
 	}
 	newJob = job;
 
@@ -408,16 +395,16 @@ void splitAddJob(splitJobIns *job)
 char *xxx = 0x1467658; */
 
 
-//
-// splitInsMgr()
-//
-// Arguments:		none
-//
-// Returns:			nothing - never returns
-//
-// Description:		This is the splitfile insert manager thread
-//					nothing (except small keys) gets inserted
-//					into Freenet, except through this thread
+/*
+  splitInsMgr()
+
+  Arguments:    none
+
+  Returns:      nothing - never returns
+
+  Description:  This is the splitfile insert manager thread. Nothing (except
+  small keys) gets inserted into Freenet, except through this thread.
+*/
 
 static void splitInsMgr(void *nothing)
 {
@@ -438,7 +425,7 @@ static void splitInsMgr(void *nothing)
 	while (1)
 	{
 		// let things breathe a bit
-		mysleep(1000);
+		sleep(1000);
 		breakloop = 0;
 
 		if (++clicks == 600)
@@ -696,7 +683,7 @@ static void chunkThread(chunkThreadParams *params)
 		params->chunk->status = SPLIT_INSSTAT_FAILED;
 		params->key->status = SPLIT_INSSTAT_BADNEWS;
 		runningThreads--;
-		QuitThread();
+		pthread_exit(0);
 		return;
 	}
 
@@ -728,38 +715,24 @@ static void chunkThread(chunkThreadParams *params)
 	runningThreads--;
 	_fcpLog(FCP_LOG_DEBUG, "%d:chunkThread: %d threads now running",
 			mypid, runningThreads);
-	QuitThread();
+	pthread_exit(0);
 	return;
 }
 
 
-static int LaunchThread(void (*func)(void *), void *parg)
+static int LaunchThread(void (*f)(void *), void *parg)
 {
+/* Does the following #define really work ?
+ */
 #ifdef SINGLE_THREAD_DEBUG
-    (*func)(parg);
+    (*f)(parg);
     return;
-#else
-#ifdef WINDOWS
-	chunkThreadParams *params = parg;
+#endif
 
-    return _beginthread(func, 0, parg) == -1 ? -1 : 0;
-#else
-    pthread_t pth;
+   pthread_t pth;
 	pthread_attr_t attr;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	return pthread_create(&pth, &attr, (void *(*)(void *))func, parg);
-#endif
-#endif
-}               // 'LaunchThread()'
-
-
-static void QuitThread()
-{
-#ifdef WINDOWS
-	_endthread();
-#else
-	pthread_exit("");
-#endif
-}
+	return pthread_create(&pth, &attr, (void *(*)(void *))f, parg);
+} /* 'LaunchThread()' */

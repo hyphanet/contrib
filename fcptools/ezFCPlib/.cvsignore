@@ -4,4 +4,5 @@ unix
 Makefile
 Makefile.in
 *.lo
+libezfcp.la
 

@@ -1,4 +1,4 @@
-char *loaders_rcs = "$Id: loaders.c,v 1.1 2001/09/29 01:30:39 heretic108 Exp $";
+char *loaders_rcs = "$Id: loaders.c,v 1.2 2001/11/28 09:33:49 joliveri Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
@@ -1028,7 +1028,7 @@ load_forwardfile_error:
 }
 
 #define JUNKBUSTERS "http://www.junkbusters.com"
-#define OPT "href=\"" JUNKBUSTERS "/ht/en/ijb" VERSION_MAJOR "man.html#"
+#define OPT "href=\"" JUNKBUSTERS "/ht/en/ijb" VERSION "man.html#"
 
 /* strsav() takes a pointer to a string stored in a dynamically allocated
  * buffer and a pointer to a string and returns a pointer to a new dynamically
@@ -1133,7 +1133,7 @@ init_proxy_args(int argc, char *argv[])
 		"<body bgcolor=\"#f8f8f0\" link=\"#000078\" alink=\"#ff0022\" vlink=\"#787878\">\n"
 		"<center>\n"
 		"<h1>" BANNER "\n"
-		"<a href=\"" JUNKBUSTERS "/ht/en/ijb" VERSION_MAJOR "faq.html#show\">Proxy Status</a>\n"
+		"<a href=\"" JUNKBUSTERS "/ht/en/ijb" VERSION "faq.html#show\">Proxy Status</a>\n"
 		"</h1></center>\n"
 		"<h2>You are using the " BANNER " <sup><small><small>TM</small></small></sup></h2>\n"
 		"Version: IJ/" VERSION "\n"

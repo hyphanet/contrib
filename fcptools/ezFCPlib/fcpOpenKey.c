@@ -11,12 +11,9 @@
 //  See http://www.gnu.org/ for further details of the GPL.
 //
 
-#include "time.h"
-#include "stdlib.h"
-
-#ifndef WINDOWS
-#include "unistd.h"
-#endif
+#include <time.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "ezFCPlib.h"
 
@@ -393,15 +390,11 @@ static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
     hfcp->wr_info.uri = _fcpParseUri(key);
 
     // generate unique filenames
-#ifdef WINDOWS
-    sprintf(hfcp->wr_info.data_temp_file, "%s\\fcp-%d.tmp", _fcpProgPath, _fcpFileNum++);
-    sprintf(hfcp->wr_info.meta_temp_file, "%s\\fcp-%d.tmp", _fcpProgPath, _fcpFileNum++);
-#else
     sprintf(hfcp->wr_info.data_temp_file, "%s/fcp-%d.tmp", _fcpProgPath, _fcpFileNum++);
     sprintf(hfcp->wr_info.meta_temp_file, "%s/fcp-%d.tmp", _fcpProgPath, _fcpFileNum++);
-#endif
 
     // open the files
+	 // Eww.. the following must be improved -joliveri
 #ifdef WINDOWS
     if ((hfcp->wr_info.fd_data = _open(hfcp->wr_info.data_temp_file,
                                         _O_CREAT | _O_RDWR | _O_BINARY,
@@ -555,14 +548,14 @@ static int calc_new_date(char *newdate, char *baseline, int increment, int daysR
     time(&secs_now);                 /* Get time in seconds */
 
     // convert baseline to tm format
-//  sscanf(baseline, "%04d%02d%02d%02d%02d%02d",
-//                  &tmb.tm_year, &tmb.tm_mon, &tmb.tm_mday, &tmb.tm_hour, &tmb.tm_min, &tmb.tm_sec);
-//  tmb.tm_mon--;
-//  tmb.tm_year -= 1900;
+	 //  sscanf(baseline, "%04d%02d%02d%02d%02d%02d",
+	 //                  &tmb.tm_year, &tmb.tm_mon, &tmb.tm_mday, &tmb.tm_hour, &tmb.tm_min, &tmb.tm_sec);
+	 //  tmb.tm_mon--;
+	 //  tmb.tm_year -= 1900;
 
-// convert baseline AS GMT to seconds since epoch
-//  secs_baseline = mktime(&tmb);
-//  secs_baseline = _mkgmtime(&tmb);    // thank God for this gem of a function!
+	 // convert baseline AS GMT to seconds since epoch
+	 //  secs_baseline = mktime(&tmb);
+	 //  secs_baseline = _mkgmtime(&tmb);    // thank God for this gem of a function!
 
     secs_baseline = date_to_secs(baseline);
 
@@ -589,6 +582,8 @@ static int calc_new_date(char *newdate, char *baseline, int increment, int daysR
 // this is made necessary because unix lacks a GMT equivalent of mktime(),
 // so we have to manually convert a date string to seconds since epoch
 //
+
+// How about gmtime() ?
 
 static time_t date_to_secs(char *datestr)
 {
