@@ -249,10 +249,10 @@ Section Uninstall
   #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
  ShutDown:
   FindWindow $0 "TrayIconFreenetClass"
-  IsWindow %0 StillRunning NotRunning
+  IsWindow $0 StillRunning NotRunning 
  StillRunning:
   # Closing Freenet
-  SendMessage %0 16 0 0
+  SendMessage $0 16 0 0
   MessageBox MB_YESNO "You are still running Freenet, trying to shut it down now. Should install proceed?" IDYES ShutDown
   Abort
  NotRunning:
@@ -288,10 +288,10 @@ Function .onInit
   #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
  ShutDown:
   FindWindow $0 "TrayIconFreenetClass"
-  IsWindow %0 StillRunning NotRunning
+  IsWindow $0 StillRunning NotRunning 
  StillRunning:
   # Closing Freenet
-  SendMessage %0 16 0 0
+  SendMessage $0 16 0 0
   MessageBox MB_YESNO "You are still running Freenet, trying to shut it down now. Should install proceed?" IDYES ShutDown
   Abort
  NotRunning:
