@@ -82,10 +82,6 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
   if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;
 	if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
 
-	/* link the files */
-	_fcpLink(hfcp->key->tmpblock, _FCP_READ);
-	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_READ);
-
 	/* if in normal mode, follow the redirects */
 	if (hfcp->options->rawmode == 0) {
 		
@@ -99,12 +95,15 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 	}
 	
 	if (rc) { /* bail after cleaning up */
-		
 		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
 		return -1;
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "retrieved key into tmpblocks: %s", hfcp->key->target_uri->uri_str);
+
+	/* now link the files, so that next fcpReadKey() is primed */
+	_fcpLink(hfcp->key->tmpblock, _FCP_READ);
+	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_READ);
 
   return 0;
 }

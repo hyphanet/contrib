@@ -390,8 +390,9 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	rc = 0;
 	
 	/* now insert the metadata which contains the redirect info */
-	rc = put_file(tmp_hfcp, uri_src);
-	
+	/*rc = put_file(tmp_hfcp, uri_src);*/
+
+	fcpCloseKey(tmp_hfcp);
 	fcpDestroyHFCP(tmp_hfcp);
 	free(tmp_hfcp);
 	

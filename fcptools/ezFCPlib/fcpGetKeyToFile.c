@@ -67,9 +67,9 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	}
 
 	if (rc) { /* bail after cleaning up */
-		
 		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
-		return -1;
+		rc = -1;
+		goto cleanup;
 	}
 	
 	/* Here, the key and meta data is within the tmpblocks */
@@ -81,15 +81,31 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	_fcpLog(FCP_LOG_DEBUG, "Copying tmp files");
 
 	if (key_filename)
-		if (_fcpCopyFile(key_filename, hfcp->key->tmpblock->filename) < 0)
-			return -1;
+		if (_fcpCopyFile(key_filename, hfcp->key->tmpblock->filename) < 0) {
+			rc = -1;
+			goto cleanup;
+		}
 
 	if (meta_filename)
-		if (_fcpCopyFile(meta_filename, hfcp->key->metadata->tmpblock->filename) < 0)
-			return -1;
+		if (_fcpCopyFile(meta_filename, hfcp->key->metadata->tmpblock->filename) < 0) {
+			rc = -1;
+			goto cleanup;
+		}
 
 	_fcpLog(FCP_LOG_VERBOSE, "Retrieved key: %s", hfcp->key->target_uri->uri_str);
 
+	/* delete temp files before exiting */
+	_fcpDeleteFile(hfcp->key->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+
 	return 0;
+
+cleanup:
+
+	/* delete temp files before exiting */
+	_fcpDeleteFile(hfcp->key->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+
+	return rc;
 }
 

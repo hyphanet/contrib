@@ -424,11 +424,6 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 					hfcp->key->tmpblock->uri->uri_str,
 					depth);
 
-	/* delete the tmpblocks before exiting */
-	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
-
 	return 0;
-
 }
 

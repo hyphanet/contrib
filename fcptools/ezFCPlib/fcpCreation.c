@@ -239,11 +239,11 @@ void _fcpDestroyHBlock(hBlock *h)
 {
 	if (h) {
 		
+#if 0 /* i think this would be unecessary.. DEPRECATE? */
 		/* close the file */
 
 		_fcpUnlink(h);
 
-#if 0 /* i think this would be unecessary */
 		_fcpDeleteFile(hfcp->key->tmpblock);
 		_fcpDeleteFile(hfcp->key->metadata->tmpblock);
 #endif
