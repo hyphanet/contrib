@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #include "rsrc.h"
 
@@ -27,18 +27,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE 
 BEGIN
     "rsrc.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE 
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -47,15 +47,14 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-#ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,4,0,0
- PRODUCTVERSION 0,4,0,0
+ FILEVERSION 0,5,0,0
+ PRODUCTVERSION 0,5,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,18 +69,14 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.freenetproject.org\r\n\r\nWritten / Maintained by Dave Hooper\r\nContact freenet@beermex.com\0"
-            VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "Freenet Systray Application\0"
-            VALUE "FileVersion", "0.4.0.0\0"
-            VALUE "InternalName", "freenet.exe\0"
-            VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "freenet.exe\0"
-            VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "freenet systray\0"
-            VALUE "ProductVersion", "Freenet 0.4.X\0"
-            VALUE "SpecialBuild", "\0"
+            VALUE "Comments", "http://www.freenetproject.org\r\n\r\nWritten / Maintained by Dave Hooper\r\nContact freenet@beermex.com"
+            VALUE "FileDescription", "Freenet Systray Application"
+            VALUE "FileVersion", "0.5.0.0 pre 1"
+            VALUE "InternalName", "freenet.exe"
+            VALUE "LegalCopyright", "Written / Maintained by Dave Hooper"
+            VALUE "OriginalFilename", "freenet.exe"
+            VALUE "ProductName", "freenet systray"
+            VALUE "ProductVersion", "Freenet 0.5.X"
         END
     END
     BLOCK "VarFileInfo"
@@ -89,8 +84,6 @@ BEGIN
         VALUE "Translation", 0x809, 1200
     END
 END
-
-#endif    // !_MAC
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -100,14 +93,14 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_HOPSENABLED         ICON    DISCARDABLE     "res\\Freenet.ico"
-IDI_REFERENCE           ICON    DISCARDABLE     "res\\ref.ico"
-IDI_HOPSDISABLED        ICON    DISCARDABLE     "res\\noFnet.ico"
-IDI_ALERT               ICON    DISCARDABLE     "res\\alert.ico"
-IDI_RESTARTING          ICON    DISCARDABLE     "res\\restart.ico"
-IDI_NOGWAY              ICON    DISCARDABLE     "res\\noGway.ico"
-IDI_NOINET              ICON    DISCARDABLE     "res\\noInet.ico"
-IDI_THUNDERBOLT         ICON    DISCARDABLE     "res\\tbolt.ico"
+IDI_HOPSENABLED         ICON                    "res\\Freenet.ico"
+IDI_REFERENCE           ICON                    "res\\ref.ico"
+IDI_HOPSDISABLED        ICON                    "res\\noFnet.ico"
+IDI_ALERT               ICON                    "res\\alert.ico"
+IDI_RESTARTING          ICON                    "res\\restart.ico"
+IDI_NOGWAY              ICON                    "res\\noGway.ico"
+IDI_NOINET              ICON                    "res\\noInet.ico"
+IDI_THUNDERBOLT         ICON                    "res\\tbolt.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -115,7 +108,7 @@ IDI_THUNDERBOLT         ICON    DISCARDABLE     "res\\tbolt.ico"
 //
 
 IDD_LOGFILEVIEWER DIALOGEX 0, 0, 426, 207
-STYLE DS_SETFOREGROUND | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_SETFOREGROUND | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "View Freenet.log"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
@@ -129,8 +122,8 @@ BEGIN
                     WS_DISABLED
 END
 
-IDD_IMPORTPROGRESS DIALOG DISCARDABLE  0, 0, 252, 46
-STYLE DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP
+IDD_IMPORTPROGRESS DIALOG  0, 0, 252, 46
+STYLE DS_SETFONT | DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            IDI_REFERENCE,IDC_STATIC,7,7,20,20
@@ -151,7 +144,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_LOGFILEVIEWER, DIALOG
     BEGIN

@@ -97,7 +97,7 @@ const char szfseeddefaultexportpostcmd[]="";
 /* string constants for use with the freenet.ini file */
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
 const char szfinisec[]="Freenet node"; /* ie [Freenet node] subsection text */
-const char szfprxkey[]="fproxy.port"; /* ie fproxy.port=8081 */
+const char szfprxkey[]="mainport.port"; /* ie fproxy.port=8081 */
 const char szserviceskey[]="services"; /* ie services=fproxy,nodestatus */
 
 /* for launching configuration dll */
