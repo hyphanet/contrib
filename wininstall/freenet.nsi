@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "10102001snapshot"
+!define VERSION "11102001snapshot"
 
 Name "Freenet ${VERSION}"
 !ifdef embedJava
@@ -136,8 +136,6 @@ Section "Freenet (required)"
   IfErrors CfgnodeError
   # delete the set diskstoresize in a hackish manner, we set our own proposal lateron
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
-  # and set other winspecific settings
-  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "transient" "true"
   ExecWait "$INSTDIR\cfgclient.exe"
   IfErrors ConfigError
 
@@ -159,13 +157,13 @@ Section "Freenet (required)"
   BringToFront
   DetailPrint "CONFIGURING THE NODE NOW, THIS CAN TAKE A LONG TIME!!!"
   ClearErrors
-  ExecWait "$INSTDIR\fsrvcli --seed seed.ref"
+  ExecWait "$INSTDIR\fserve --seed seed.ref"
   IfErrors SeedError NoSeedError
   SeedError:
   MessageBox MB_OK "There was an error while seeding your node. This might mean that you can´t connect to other nodes lateron."
   NoSeedError:
   DetailPrint "Exporting the node reference to MyOwn.ref"
-  ExecWait "$INSTDIR\fsrvcli --export myOwn.ref"
+  ExecWait "$INSTDIR\fserve --export myOwn.ref"
   IfErrors ExportError NoExportError
   ExportError:
   MessageBox MB_OK "There was an error while exporting your own reference file. This is a noncritical error."
