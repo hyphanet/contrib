@@ -169,7 +169,7 @@ Section
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fclient.exe" 6
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
-  CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fsrvcli.exe" 6
+  CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fservew.exe" 6
   SetDetailsPrint both
 
 SectionEnd 
@@ -222,16 +222,14 @@ Section
   # Seeding the initial references
   # we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
-  BringToFront
-  DetailPrint "CONFIGURING THE NODE NOW, THIS CAN TAKE A LONG TIME!!!"
-  ClearErrors
-  ExecWait "$INSTDIR\fserve --seed seed.ref"
-  IfErrors SeedError NoSeedError
-  SeedError:
-  MessageBox MB_OK "There was an error while seeding your node. This might mean that you can´t connect to other nodes lateron."
-  NoSeedError:
+  #ClearErrors
+  #ExecWait "$INSTDIR\fserve --seed seed.ref"
+  #IfErrors SeedError NoSeedError
+  #SeedError:
+  #MessageBox MB_OK "There was an error while seeding your node. This might mean that you can´t connect to other nodes lateron."
+  #NoSeedError:
   DetailPrint "Exporting the node reference to MyOwn.ref"
-  ExecWait "$INSTDIR\fserve --export myOwn.ref"
+  ExecWait "$INSTDIR\fservew --export myOwn.ref"
   IfErrors ExportError NoExportError
   ExportError:
   MessageBox MB_OK "There was an error while exporting your own reference file. This is a noncritical error."
