@@ -270,40 +270,15 @@ BOOL CALLBACK ImportProgressWndProc(HWND hwndDialog, UINT uMsg, WPARAM wParam, L
 }
 
 
-STARTUPINFO StartFserveSeedInfo={sizeof(STARTUPINFO),
-						NULL,NULL,NULL,
-						0,0,0,0,0,0,0,
-						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
-						SW_NORMAL,
-						0,NULL,
-						NULL,NULL,NULL};
-
-
-// following function is intended to be used only when calling
-// freenet.exe from command line with --import command
-// because it creates its own message pump (necessary to handle the
-// updates to the progress bar window)
-void ImportFileWithProgressPump(const TCHAR * szFilename)
+void Pump(HANDLE hThread)
 {
-	DWORD dwGetMessageResult;
-	MSG msg;
-	HANDLE hThread;
-	HWND hProgressWnd;
-	DWORD dwWaitResult;
-	
-	// Display progress bar
-	hProgressWnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_IMPORTPROGRESS), hWnd, ImportProgressWndProc);
-	SendMessage(hProgressWnd, U_FILENAME, 0, (LPARAM)szFilename);
-	ShowWindow(hProgressWnd, SW_SHOW);
-	SetForegroundWindow(hProgressWnd);
-	ShowWindow(hProgressWnd, SW_SHOW);
-
-	hThread = ImportFileAsync(szFilename);
-
 	/* =================================== */
 	/* Message pump:                       */
-	/* Loop until ImportFileThread dies    */
+	/* Loop until thread dies    */
 	/* =================================== */
+	MSG msg;
+	DWORD dwGetMessageResult;
+	DWORD dwWaitResult;
 	while (1)
 	{
 
@@ -335,6 +310,27 @@ void ImportFileWithProgressPump(const TCHAR * szFilename)
 		}
 
 	}
+}
+
+// following function is intended to be used only when calling
+// freenet.exe from command line with --import command
+// because it creates its own message pump (necessary to handle the
+// updates to the progress bar window)
+void ImportFileWithProgressPump(const TCHAR * szFilename)
+{
+	HANDLE hThread;
+	HWND hProgressWnd;
+	
+	// Display progress bar
+	hProgressWnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_IMPORTPROGRESS), hWnd, ImportProgressWndProc);
+	SendMessage(hProgressWnd, U_FILENAME, 0, (LPARAM)szFilename);
+	ShowWindow(hProgressWnd, SW_SHOW);
+	SetForegroundWindow(hProgressWnd);
+	ShowWindow(hProgressWnd, SW_SHOW);
+
+	hThread = ImportFileAsync(szFilename);
+
+	Pump(hThread);
 
 	CloseHandle(hThread);
 }
@@ -343,6 +339,14 @@ void ImportFileWithProgressPump(const TCHAR * szFilename)
 // Synchronous and asynchronous functions to import a single .ref file
 // Asynchronous is just a nasty hack on top of the synchronous function to
 // turn it into a thread
+STARTUPINFO StartFserveSeedInfo={sizeof(STARTUPINFO),
+						NULL,NULL,NULL,
+						0,0,0,0,0,0,0,
+						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+						SW_NORMAL,
+						0,NULL,
+						NULL,NULL,NULL};
+
 void ImportFile(const TCHAR * szFilename)
 {
 	// execute FSERVE --seed %filename%
@@ -359,7 +363,7 @@ void ImportFile(const TCHAR * szFilename)
 		lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, "\"");
 	lstrcat(szexecbuf, szFilename); 
-	lstrcat(szexecbuf, "\" ");
+	lstrcat(szexecbuf, "\"");
 	if(lstrlen(szFserveSeedCmdPost))
 		lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szFserveSeedCmdPost);
