@@ -4,3 +4,13 @@ make
 To install:
 su
 make install
+
+Before running:
+
+You must add this line to your /etc/services file:
+
+fcp             8082/tcp                        # Freenet Client Protocol
+
+Or if fcp is on a port other than 8082 then make the appropriate 
+modification.
+
