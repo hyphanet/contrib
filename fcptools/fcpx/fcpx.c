@@ -49,10 +49,10 @@ static int  clientinfo(hFCP *hfcp);
 char           *host;
 unsigned short  port = EZFCP_DEFAULT_PORT;
 
-int   verbosity = FCP_LOG_NORMAL;
-char *logfile = 0;
-FILE *logstream = 0;
-char *command = 0;
+int    verbosity = FCP_LOG_NORMAL;
+char  *logfile = 0;
+FILE  *logstream = 0;
+char  *command = 0;
 
 
 int main(int argc, char* argv[])
@@ -60,6 +60,7 @@ int main(int argc, char* argv[])
 	hFCP *hfcp;
 	int   rc;
 
+	/* set the host first, before parsing command line */
 	host = strdup(EZFCP_DEFAULT_HOST);
 
 	/* go thru command line args */
