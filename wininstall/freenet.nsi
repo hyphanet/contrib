@@ -25,23 +25,16 @@ FindWindow "close" "TrayIconFreenetClass" ""
 SetOutPath $INSTDIR\
 File freenet\*.*
 
-#FindRegJava is now incorporated into Findjava, no need for it
-#File freenet\misc\FindRegJava.exe
-File freenet\findjava.exe
-File freenet\cfgclient.exe
-File freenet\portcfg.exe
-
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet 0.3.5 (remove only)"
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 
-#ExecWait "$INSTDIR\FindRegJava.exe"
 Execwait "$INSTDIR\findjava.exe"
-#Delete "$INSTDIR\FindRegJava.exe"
 Delete "$INSTDIR\findjava.exe"
-ExecWait "$INSTDIR\portcfg.exe"
-Delete "$INSTDIR\portcfg.exe"
-#ExecWait '"$INSTDIR\cfgnode.exe" simple'
-# Delete "$INSTDIR\cfgnode.exe"
+#No need for portcfg anymore? cfgnode creates a random port entry...
+#ExecWait "$INSTDIR\portcfg.exe"
+#Delete "$INSTDIR\portcfg.exe"
+ExecWait '"$INSTDIR\cfgnode.exe" silent'
+Delete "$INSTDIR\cfgnode.exe"
 ExecWait "$INSTDIR\cfgclient.exe"
 Delete "$INSTDIR\cfgclient.exe"
 

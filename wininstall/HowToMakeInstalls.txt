@@ -8,12 +8,11 @@ How to make an install
 1)Get the free Nullsoft installer (NSIS) at http://nullsoft.com/free/NSIS 
   (I won't provide it here for disc space reasons)
 2)Take the Freenet subdirectory and add the current files:
-  freenet.jar, updated .fproxyrc and freenet.ini
-  (make sure the entry listenPort= in freenet.ini exists, but no value is entered yet,
-  otherwise this one will be used in all installs)
+  freenet.jar, .fproxyrc
+  (freenet.ini will be created on install)
 2a)Create a Subdirectory of Freenet called "IEplugin" and put IEFreenetPlugin.dll for the IE plugin in there.
 2b)Create a subdirectory NSplugin
-3)Duplicate fserve.exe in the same directory as files: frequest.exe, finsert.exe and fproxy.exe
+3)Duplicate fserve.exe in the same directory as files: frequest.exe, finsert.exe, fproxy.exe and cfgnode.exe
 4)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
 5)Call "makensis freenet"
 6)Test install AND LET OTHER PEOPLE INSTALL AS WELL, bugs often appear only with special 
