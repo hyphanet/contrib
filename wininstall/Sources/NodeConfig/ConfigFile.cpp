@@ -670,9 +670,12 @@ void CConfigFile::processItem(char *tok, char *val)
 			case 't':	v =  (DWORDLONG)(float(v)*976562.5);	break;
 			case 'p':	v =  (DWORDLONG)(float(v)*976562500);	break;
 			case 'e':	v *= 1000000000; v = (DWORDLONG)(float(v)*0.9765625); break;
-			default:	break;
+			default:	v /= 1048576;	break; // assume bytes
 			}
-			pNormal->m_storeSize = (unsigned long)v;
+			if (v<=0xffffffff)
+				pNormal->m_storeSize = (DWORD)v;
+			else
+				pNormal->m_storeSize = 0xffffffff;
 		}
 	}
 	else if (!strcmp(tok, "storeFile"))
