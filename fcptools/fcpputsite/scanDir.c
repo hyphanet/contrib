@@ -8,7 +8,9 @@
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
 
+#ifndef WINDOWS
 #include <dirent.h>
+#endif
 
 //
 // IMPORTED DECLARATIONS

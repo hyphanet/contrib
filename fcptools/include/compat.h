@@ -30,16 +30,9 @@ typedef void (*FP) (void *);
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
-
-/* Not sure if this is necessary */
-/* Change what <windows.h> sets */
-#define WIN32_LEAN_AND_MEAN
-#define NOGDI
-
-#include <windows.h>
 #include <io.h>
 
-#else /* !WINDOWS */
+#else
 
 /* UNIX includes that do not correspond on WINDOWS go here */
 #include <netinet/in.h>
