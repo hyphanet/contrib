@@ -2,7 +2,9 @@
 
 #include "stdafx.h"
 #include "commdlg.h"
+#include "cderr.h"
 #include "refs.h"
+#include "stdio.h"
 
 static const char szFileExtensions[] = "Freenet references (*.ref)\0*.REF\0All files (*.*)\0*.*\0\0";
 static const char szImportDialogTitlebar[] = "Import Freenet References";
@@ -53,9 +55,34 @@ OPENFILENAME staticSaveAsDialogParams ={sizeof(OPENFILENAME),
 										0,NULL,NULL };
 
 
-void Bug(void)
+void Bug(DWORD dwErrorCode)
 {
-	MessageBox(NULL,"* mailto: support@freenetproject.org *\nDescribe precisely what you were doing when you saw this message","Freenet Tray oops", MB_OK);
+	char msg[2048];
+	char num[16];
+	const char * code;
+	switch(dwErrorCode)
+	{
+	case CDERR_DIALOGFAILURE:	code = "CDERR_DIALOGFAILURE";
+	case CDERR_FINDRESFAILURE:	code = "CDERR_FINDRESFAILURE";
+	case CDERR_INITIALIZATION:	code = "CDERR_INITIALIZATION";
+	case CDERR_LOADRESFAILURE:	code = "CDERR_LOADRESFAILURE";
+	case CDERR_LOADSTRFAILURE:	code = "CDERR_LOADSTRFAILURE";
+	case CDERR_LOCKRESFAILURE:	code = "CDERR_LOCKRESFAILURE";
+	case CDERR_MEMALLOCFAILURE:	code = "CDERR_MEMALLOCFAILURE";
+	case CDERR_MEMLOCKFAILURE:	code = "CDERR_MEMLOCKFAILURE";
+	case CDERR_NOHINSTANCE:		code = "CDERR_NOHINSTANCE";
+	case CDERR_NOHOOK:			code = "CDERR_NOHOOK";
+	case CDERR_NOTEMPLATE:		code = "CDERR_NOTEMPLATE";
+	case CDERR_REGISTERMSGFAIL:	code = "CDERR_REGISTERMSGFAIL";
+	case CDERR_STRUCTSIZE:		code = "CDERR_STRUCTSIZE";
+	case FNERR_BUFFERTOOSMALL:	code = "FNERR_BUFFERTOOSMALL";
+	case FNERR_INVALIDFILENAME:	code = "FNERR_INVALIDFILENAME";
+	case FNERR_SUBCLASSFAILURE:	code = "FNERR_SUBCLASSFAILURE";
+	default:					code = num; sprintf(num, "%08x", dwErrorCode);
+	}
+
+	sprintf(msg, "* mailto: support@freenetproject.org *\nQuote \"Freenet Tray oops\" and the following\nerror number: %s\nAlso please describe *precisely* what you were doing when you saw this message", code);
+	MessageBox(NULL,msg ,"Freenet Tray oops", MB_OK);
 }
 
 const TCHAR* FindNull(const TCHAR* szBuffer, const TCHAR* const szEndPointer)
@@ -90,7 +117,7 @@ DWORD WINAPI ImportProgressTimerProc(LPVOID lpvParam)
 DWORD WINAPI ImportRefsThread(LPVOID lpvParam)
 {
 	HWND hwndDialog = (HWND)lpvParam;
-	TCHAR szFile[65535];
+	TCHAR szFile[32767];
 	TCHAR* const szFileBufferEndPointer = szFile+sizeof(szFile);
 	BOOL bResult;
 	OPENFILENAME importDetails = staticOpenDialogParams;
@@ -110,7 +137,7 @@ DWORD WINAPI ImportRefsThread(LPVOID lpvParam)
 			MessageBox(NULL,"Sorry to be a pain ... \nYou selected too many files and this caused Windows® to\nmess around with your attempt to import Freenet Reference files.\nPlease try to select fewer files next time.","Import Freenet References - We Love Windows®",MB_OK);
 			break;
 		default:
-			Bug();
+			Bug(dwError);
 			break;
 		}
 	}
@@ -118,7 +145,7 @@ DWORD WINAPI ImportRefsThread(LPVOID lpvParam)
 	if (bResult)
 	{
 		// import the selected reference file(s)
-		TCHAR szPath[65535];
+		TCHAR szPath[32767];
 		unsigned int nFiles;
 		
 		// how many files are there? iterate on return buffer contents
@@ -490,7 +517,7 @@ void ExportRefs(void)
 	else
 	{
 		// else create the dialog:
-		TCHAR szFile[65535];
+		TCHAR szFile[32767];
 		TCHAR* const szFileBufferEndPointer = szFile+sizeof(szFile);
 		BOOL bResult;
 		OPENFILENAME exportDetails = staticSaveAsDialogParams;
@@ -509,7 +536,7 @@ void ExportRefs(void)
 				// no error - user hit cancel
 				break;
 			default:
-				Bug();
+				Bug(dwError);
 				break;
 			}
 		}
