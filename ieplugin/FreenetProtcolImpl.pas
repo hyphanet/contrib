@@ -1,4 +1,4 @@
-Unit FreenetProtcolImpl;
+library FreenetProtocol;
 {
   This code is part of the freenet-IE plugin by Philipp Hug
   It is distributed under the GNU General Public Licence (GPL)
@@ -6,9 +6,9 @@ Unit FreenetProtcolImpl;
 }
 
 {
-  this unit contains TFreeNetProtcol which implements the interfaces need by IE
+  this is the dll project
 
-  @author <a href="mailto:freenet@philipphug.cx">Philipp Hug</a>
+  @author <a href="mailto:freenet@philipphug.ch">Philipp Hug</a>
   @author <a href="mailto:author2@universe">Author 2</a>
 }
 

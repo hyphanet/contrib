@@ -8,7 +8,7 @@ library FreenetProtocol;
 {
   this is the dll project
 
-  @author <a href="mailto:freenet@philipphug.cx">Philipp Hug</a>
+  @author <a href="mailto:freenet@philipphug.ch">Philipp Hug</a>
   @author <a href="mailto:author2@universe">Author 2</a>
 }
 
