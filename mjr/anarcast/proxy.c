@@ -339,7 +339,6 @@ do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
 		
 		xfers[i].off += n;
 		if (xfers[i].off == blocksize) {
-		    alert("Block %d inserted.", xfers[i].num + 1);
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &w);
