@@ -194,6 +194,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		}
 	}
 
+	/*fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);*/
+
 	_fcpLog(FCP_LOG_DEBUG, "successfully inserted key %s from file %s", hfcp->key->target_uri->uri_str, key_filename);
 	rc = 0;
 

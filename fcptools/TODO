@@ -11,49 +11,40 @@ General
 ----------------
 
 + Make sure the "undocumented" switches are documented at least in fcpput, fcpget, etc.
-+ After Pending, reset the Retry count.
-+ fcpput thinks -D option is passed on inserting splitfiles(?)
-+ Fix spelling in _fcpRecvResponse.c: "Received RoutNotFound message"
-+ Implement future_insert(num_days) option (along with *both* DBR root and target keys).
 + Send email to Dev about MetaRedirect control doc.
-+ Write code to insert DBR root and target in same execution (using a 'future insert' option).
 
-= Change DeleteLocal to SkipLocal.
-= Confirm _fcpMetaParse() can handle merging metadata into an already allocated meta struct.
-= Verify metadata handling when storing metadata as redirect (and not within SSK/KSK).
-  (needs more testing, but looks ok).
-= Rename 'rawmode' option 'noredirect'.
+= Write code to insert DBR root and target in same execution (using a 'future insert' option).
+= After Pending, reset the Retry count.
+= fcpput thinks -D option is passed on inserting splitfiles(?)
+= Fix spelling in _fcpRecvResponse.c: "Received RoutNotFound message"
+= Implement future_insert(num_days) option (along with *both* DBR root and target keys).
 
 
 -----------------
 ezFCPlib
 -----------------
 
++ fcpParseHURI() is now crazy redundant; prune some of the replicated code and make it more generic
+	(instead of separating into 3 sections; KSK, SSK, CHK)
 + Append the filename to the filename-hint section of the returned URI for CHK's.
 + Clean up Verbose log messages; verify *all* command line options are re-iterated.
-+ Verify handling of CryptoKey in key generation.
-+ Handle "BackedOff" field in RouteNotFound response.
-+ Move READFILE WRITEFILE flags from ez_sys to ezFCPlib.h
-+ Add configuration option for Timeout length (in seconds)
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= Verify handling of CryptoKey in key generation.
+= Implement CryptoKey handling for CHK's in fcpParseHURI().
+= Add configuration option for Timeout length (added a MinTimeout value).
+= Move READFILE WRITEFILE flags from ez_sys to ezFCPlib.h
+= Handle "BackedOff" field in RouteNotFound response.
 = Verify current DBR logic.
 = Implement do_dbr option.
 = Implement logic to read in <rest> section for custom metadata (_fcpMetadata.c).
-= Check all internal APIs for consistant usage and funcionality.
-= Update ezFCPlib programming API documentation.
 
 
 ------
 fcpput
 ------
-
-= Implement metadata handling for FEC encoded files.
-= Tighten >1 file put logic (?).
-= Implement meta-redirect insert option.
-= Implement -g command-line switch (GenerateKeypair).
 
 
 ----------

@@ -119,9 +119,9 @@ typedef int FCPSOCKET;
 /*
   Lengths of allocated strings/arrays.
 */
-#define L_KEY               64
+#define L_KEY               128
 #define L_FILENAME          1024
-#define L_URI               512
+#define L_URI               1024
 #define L_RAW_METADATA      65536
 #define L_FILE_BLOCKSIZE    8192
 
@@ -409,10 +409,11 @@ typedef struct {
   int    type;       /* CHK@, KSK@, SSK@ */
 	char  *uri_str;    /* the unparsed uri */
 
-  char  *keyid;      /* the pub/priv/ch key */
+  char  *routingkey;      /* the pub/priv key */
+	char  *cryptokey;
 
 	char  *filename;   /* filename hint */
-	char  *docname;    /* metadata document name */
+	char  *metastring;
 
 } hURI;
 

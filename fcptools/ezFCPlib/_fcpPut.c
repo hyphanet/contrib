@@ -278,7 +278,7 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 				retry--;
 
 				_fcpLog(FCP_LOG_VERBOSE, "Received timeout waiting for response");
-
+				
 				/* disconnect from the socket */
 				_fcpSockDisconnect(hfcp);
 
@@ -539,18 +539,18 @@ int _fcpInsertRoot(hFCP *hfcp)
 		}
 	}
 
-	/* must do this for both cases */
+	/* this must happen for both DBR's and non-DBR's */
 	doc = cdocAddDoc(meta, 0);
 	cdocAddKey(doc, "Redirect.Target", hfcp->key->uri->uri_str);
-
+	
 	/* all the user metadata (and a meta-redirect if specified) is in the
 		 meta struct */
-
+	
 	_fcpDestroyHMetadata(hfcp->key->metadata);
 	hfcp->key->metadata = _fcpCreateHMetadata();
-
+	
 	tmp_hfcp = fcpInheritHFCP(hfcp);
-
+	
 	/* check on the dbr option */
 
 	if (hfcp->options->dbr) {
@@ -571,7 +571,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 		uri = hfcp->key->target_uri->uri_str;
 	}
 	
-	/* open the date-coded key */
+	/* open the regular *or* date-coded key (depends on above) */
 	fcpOpenKey(tmp_hfcp, uri, FCP_MODE_O_WRITE);
 	
 	if (metadata_raw) free(metadata_raw);
@@ -582,13 +582,13 @@ int _fcpInsertRoot(hFCP *hfcp)
 	_fcpBlockUnlink(tmp_hfcp->key->tmpblock);
 	_fcpBlockUnlink(tmp_hfcp->key->metadata->tmpblock);
 	
-	/* now insert the DBR target key */
+	/* now insert the redirect key */
 	rc = _fcpPutBlock(tmp_hfcp,
 										0,
 										tmp_hfcp->key->metadata->tmpblock,
 										tmp_hfcp->key->target_uri->uri_str);
 
-	_fcpLog(FCP_LOG_DEBUG, "inserted dbr key");
+	_fcpLog(FCP_LOG_DEBUG, "inserted redirect key");
 	
 	/* for DBR's, need to insert root key with DateRedirect.Target dcoc */
 	if (hfcp->options->dbr) {
@@ -614,10 +614,8 @@ int _fcpInsertRoot(hFCP *hfcp)
 	}
 	
 	/* fall into cleanup and return rc, which on success == 0 */
-	
-	fcpParseHURI(hfcp->key->uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
-	if (hfcp->key->target_uri->type == KEY_TYPE_CHK)
+	/* save the uri (it changes for SSK's and certain CHK's */
 	fcpParseHURI(hfcp->key->target_uri, tmp_hfcp->key->tmpblock->uri->uri_str);
 
 	rc = 0;
@@ -658,12 +656,12 @@ char *_fcpDBRString(hURI *uri, int future)
 
 	case KEY_TYPE_SSK:
 
-		snprintf(uri_str, 1024, "freenet:SSK@%s/%ux-%s//", uri->keyid, (unsigned)days_t, uri->docname);
+		snprintf(uri_str, 1024, "freenet:SSK@%s/%x-%s//", uri->routingkey, (unsigned)days_t, uri->filename);
 		break;
 
 	case KEY_TYPE_KSK:
 
-		snprintf(uri_str, 1024, "freenet:KSK@%s-%ux", uri->keyid, (unsigned)days_t);
+		snprintf(uri_str, 1024, "freenet:KSK@%x-%s", (unsigned)days_t, uri->routingkey);
 		break;
 
 	default:
