@@ -456,6 +456,7 @@ Section "Freenet Node" SecFreenetNode
   goto CheckRunning
   NotRunning:
   # Step 2- copy the files
+  SetOutPath "$INSTDIR"
   ClearErrors
   CopyFiles "$R0\freenet-install\*.*" "$INSTDIR"
   IfErrors DiskWriteError
@@ -476,6 +477,7 @@ Section "Freenet Node" SecFreenetNode
   !insertmacro MUI_STARTMENU_WRITE_BEGIN
     
     ;Create shortcuts
+    SetOutPath "$INSTDIR"
     CreateDirectory "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}"
     CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$1\freenet.exe" 0
     CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$1\Uninstall.exe" 0
