@@ -60,6 +60,9 @@ int				searchRegistry();
 void			lookSpecificFolder(char *cDirectory);
 void			CheckWindowsFolders(char *cDrive);
 
+int				searchDone = 0;
+
+
 // 
 const int MATCH_FOUND = 2;
 bool bUpdateBeforeTraverseComplete = false;
@@ -130,6 +133,9 @@ int CALLBACK dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				case IDC_BUTTON_CLOSE:
 				{
+					if (!searchDone)
+						return FALSE;
+
 					if(bUpdateBeforeTraverseComplete)
 						MessageBox(dc.hWndMain,
 						"Java interpreter found and updated.\n",
@@ -207,6 +213,8 @@ int updateConfigFiles(void)
 ///////////////////////////////////////////////////////////////////////////////
 
 
+// this function seems to be obsolete - nobody calls it
+
 int doSearch(void)
 {
     char *cPath;
@@ -266,7 +274,7 @@ DWORD WINAPI doDeepSearch(LPVOID lpvParameter)
 	// Initial search should look for the java executable in the windows
 	// directory (to reduce the time taken to find the interpreter)
 
-//////////////////////////////////
+////////////////////////////////////////////////////
 //
 // search of windows folders disabled - davidmcnab
 //
@@ -279,6 +287,7 @@ DWORD WINAPI doDeepSearch(LPVOID lpvParameter)
 //
 //      cCurrentDrive += strlen(cCurrentDrive) + 1;
 //	}
+////////////////////////////////////////////////////
 
 	// Now do a full search of all files on all drives, remembering that
 	// the user can abort the search at any time.
@@ -343,6 +352,7 @@ DWORD WINAPI doDeepSearch(LPVOID lpvParameter)
 			return 0;
 	}
 
+	searchDone = 1;		// bad hack - use this to stop user pushing 'update settings' before search finishes
 
     SendMessage(dc.hWndResultList, LB_SETCURSEL, 0, 0);
     return 1;
