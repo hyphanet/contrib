@@ -14,7 +14,6 @@ ezFCPlib specific
 * Check all internal APIs for consistant usage and funcionality.
 	(cdocGetDoc() is an example, in that the documented behavior is different
 	from it's actual implementaion.
-* WIN32 equivilant code for crTicket/crCancel in common.h.
 * Update core FCP request and response parsing; Implement new FCP commands
 	as discussed on Freenet-dev (ClientDelete, ...).
 
@@ -31,12 +30,13 @@ fcpputsite
 
 * Handle large manifests more intelligently.
 * WIN32 code for checking for file changes.
+* WIN32 tempfiles.
 
 
 ---------------------------------------------------------------------------
 fcpputsplit
 
-* Rework parameter interface to appear like fcpget and the other tools.
+* Merge into fcpput.
 
 
 ---------------------------------------------------------------------------
@@ -52,3 +52,4 @@ New functionality
 
 * Add FEC support rather then straight splitfiles (option)
 * Update documentation on all exported APIs.
+
