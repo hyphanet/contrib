@@ -361,7 +361,7 @@ int insertFreesite(PutSiteOptions * _opts)
 
 			if (!(bclicks % 5))	{
 				/* every Nth iteration */
-				_fcpLog(FCP_LOG_NORMAL, "Busy clicks: %d", bclicks);
+				_fcpLog(FCP_LOG_VERBOSE, "Busy clicks: %d", bclicks);
 				_fcpLog(FCP_LOG_DEBUG, "Id Status  Time Filename");
 
 				for (i=0; i < opts->maxThreads; i++) {
@@ -547,9 +547,8 @@ int insertFreesite(PutSiteOptions * _opts)
 		/* should be ok now */
 
 		_fcpLog(FCP_LOG_NORMAL, "============================================");
-		_fcpLog(FCP_LOG_NORMAL,
-				"Successfully inserted SSK@%s/%s// - %d days ahead",
-				opts->pubKey, opts->siteName, opts->daysAhead);
+		_fcpLog(FCP_LOG_NORMAL,	"Successfully inserted %s - %d days ahead", hfcp->created_uri);
+
 		return 0;
 	} /* !jobsfailed */
 }   /* 'insertFreesite()' */

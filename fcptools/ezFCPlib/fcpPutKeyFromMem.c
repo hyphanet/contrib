@@ -133,14 +133,7 @@ int _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int da
     return -1;
   
   /* seems successful */
-  /*** OLD_LEAKY - no longer needed
-       if (hfcp->conn.response.body.keypair.pubkey != NULL)
-       strcpy(hfcp->pubkey, hfcp->conn.response.body.keypair.pubkey);
-       if (hfcp->conn.response.body.keypair.privkey != NULL)
-       strcpy(hfcp->privkey, hfcp->conn.response.body.keypair.privkey);
-       if (hfcp->conn.response.body.keypair.uristr != NULL)
-       strcpy(hfcp->created_uri, hfcp->conn.response.body.keypair.uristr);
-  ***/
+
   return 0;
 }
 
