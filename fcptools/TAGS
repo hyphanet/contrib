@@ -5,6 +5,8 @@ CVS/Repository,0
 
 CVS/Entries,0
 
+CVS/Entries.Log,0
+
 debian/CVS/Root,0
 
 debian/CVS/Repository,0
@@ -155,6 +157,8 @@ TODO,135
 + means todo4,130
 = Improve the splitfile size ceiling; the node uses one,65,3266
 = (Win32); returns to command prompt with 80,3893
+
+TAGS,0
 
 aclocal.m4,17482
       subroutine foofoo4445,157312
@@ -3828,10 +3832,7 @@ DEPS_MAGIC 285,7654
 	    >> .deps/$(*F).P;314,8366
 	@$(331,8674
 
-ezFCPlib/README,106
-+ hFCP *fcpInheritHFCP(97,2330
-Return Value: 0 on success,375,8439
-Return Value: 0 on success,387,8581
+ezFCPlib/README,0
 
 ezFCPlib/ReadMe.txt,0
 
@@ -3841,9 +3842,9 @@ ezFCPlib/StdAfx.h,112
 #define AFX_STDAFX_H__F9535EE6_41EA_4DFF_B567_F42F9572E310__INCLUDED_7,243
 #define WIN32_LEAN_AND_MEAN	15,403
 
-ezFCPlib/_fcpGet.c,58
+ezFCPlib/_fcpGet.c,57
 int get_file(51,1383
-int get_follow_redirects(370,10614
+int get_follow_redirects(330,8987
 
 ezFCPlib/_fcpLog.c,139
 static FILE *logstream;34,1053
@@ -3891,14 +3892,14 @@ static int fec_insert_data_blocks(41,1267
 static int fec_insert_check_blocks(42,1327
 static int fec_make_metadata(43,1388
 int put_file(61,1847
-int put_fec_splitfile(351,10318
-int put_date_redirect(383,11155
-int put_redirect(390,11269
-static int fec_segment_file(435,12382
-static int fec_encode_segment(565,17336
-static int fec_insert_data_blocks(715,21302
-static int fec_insert_check_blocks(830,24315
-static int fec_make_metadata(887,25619
+int put_fec_splitfile(357,10592
+int put_date_redirect(389,11429
+int put_redirect(396,11543
+static int fec_segment_file(441,12656
+static int fec_encode_segment(573,17733
+static int fec_insert_data_blocks(725,21765
+static int fec_insert_check_blocks(838,24723
+static int fec_make_metadata(894,26026
 
 ezFCPlib/_fcpRecvResponse.c,1295
 char *strdup(35,1088
@@ -4515,8 +4516,8 @@ static int fcpOpenKeyRead(69,2016
 static int fcpOpenKeyWrite(111,3224
 
 ezFCPlib/fcpPutKeyFromFile.c,63
-int fcpPutKeyFromFile(50,1453
-int _fcpPutKeyFromFile(65,1819
+int fcpPutKeyFromFile(64,1599
+int _fcpPutKeyFromFile(79,1965
 
 ezFCPlib/fcpReadKey.c,53
 int fcpReadKey(38,1130
@@ -4732,9 +4733,9 @@ char *file;73,1982
 int   b_stdout 75,2024
 int   b_genkeys 76,2067
 int main(79,2111
-void track(201,4545
-static void parse_args(220,4989
-static void usage(335,7286
+void track(198,4388
+static void parse_args(217,4832
+static void usage(332,7129
 
 fcpget/fcpget.dsp,11
 CFG=7,223
@@ -6004,9 +6005,9 @@ int   file_count 70,2036
 int   b_stdin 72,2094
 int   b_genkeys 73,2136
 int main(76,2180
-void track(228,5299
-static void parse_args(253,5927
-static void usage(370,8148
+void track(227,5236
+static void parse_args(252,5864
+static void usage(369,8084
 
 fcpput/fcpput.dsp,11
 CFG=7,223
@@ -6160,6 +6161,621 @@ fcpputsite/fcpputsite,35
 e17,7022
 Zs47,7530
 »J122,23602
+
+t.ps,21777
+/_S /_S18,361
+/_R /_R21,409
+/S /S25,462
+/MF /MF31,538
+/MF_PS /MF_PS59,1101
+/SF /SF82,1555
+/SUF /SUF90,1703
+/SUF_PS /SUF_PS98,1859
+/M /M106,2040
+/s /s107,2061
+/Box /Box109,2081
+/bgs /bgs118,2268
+/bgcs /bgcs134,2551
+/highlight_bars /highlight_bars153,2912
+/line_highlight /line_highlight185,3660
+/column_lines /column_lines193,3804
+/column_borders /column_borders206,4030
+/draw_underlay /draw_underlay218,4251
+/underlay /underlay227,4369
+/user_underlay /user_underlay240,4664
+/page_prefeed /page_prefeed252,4870
+/wrapped_line_mark /wrapped_line_mark261,5022
+/BeginEPSF /BeginEPSF297,5726
+/EndEPSF /EndEPSF314,6186
+/languagelevel /languagelevel321,6368
+/encoding_vector /encoding_vector328,6541
+/.notdef /.notdef329,6560
+/.notdef /.notdef330,6621
+/.notdef /.notdef331,6682
+/.notdef /.notdef332,6743
+/.notdef /.notdef333,6804
+/.notdef /.notdef334,6865
+/.notdef /.notdef335,6926
+/.notdef /.notdef336,6987
+/space /space337,7048
+/dollar /dollar338,7109
+/parenleft /parenleft339,7170
+/comma /comma340,7231
+/zero /zero341,7292
+/four /four342,7353
+/eight /eight343,7414
+/less /less344,7475
+/at /at345,7536
+/D /D346,7597
+/H /H347,7658
+/L /L348,7719
+/P /P349,7780
+/T /T350,7841
+/X /X351,7902
+/backslash /backslash352,7963
+/quoteleft /quoteleft353,8024
+/d /d354,8085
+/h /h355,8146
+/l /l356,8207
+/p /p357,8268
+/t /t358,8329
+/x /x359,8390
+/bar /bar360,8451
+/.notdef /.notdef361,8512
+/.notdef /.notdef362,8573
+/.notdef /.notdef363,8634
+/.notdef /.notdef364,8695
+/.notdef /.notdef365,8756
+/.notdef /.notdef366,8817
+/.notdef /.notdef367,8878
+/.notdef /.notdef368,8939
+/space /space369,9000
+/currency /currency370,9061
+/dieresis /dieresis371,9122
+/logicalnot /logicalnot372,9183
+/degree /degree373,9244
+/acute /acute374,9305
+/cedilla /cedilla375,9366
+/onequarter /onequarter376,9428
+/Agrave /Agrave377,9489
+/Adieresis /Adieresis378,9550
+/Egrave /Egrave379,9611
+/Igrave /Igrave380,9672
+/Eth /Eth381,9733
+/Ocircumflex /Ocircumflex382,9794
+/Oslash /Oslash383,9855
+/Udieresis /Udieresis384,9916
+/agrave /agrave385,9977
+/adieresis /adieresis386,10038
+/egrave /egrave387,10099
+/igrave /igrave388,10160
+/eth /eth389,10221
+/ocircumflex /ocircumflex390,10282
+/oslash /oslash391,10343
+/udieresis /udieresis392,10404
+/HFpt_w /HFpt_w399,10579
+/HFpt_h /HFpt_h400,10594
+/Courier-Bold /Courier-Bold401,10609
+/HF /HF402,10638
+/Courier /Courier403,10700
+/F-gs-font /F-gs-font404,10723
+/#copies /#copies405,10741
+/do_header /do_header414,10915
+/d_page_w /d_page_w436,11464
+/d_page_h /d_page_h437,11482
+/d_header_x /d_header_x438,11500
+/d_header_y /d_header_y439,11518
+/d_header_w /d_header_w440,11538
+/d_header_h /d_header_h441,11558
+/d_footer_x /d_footer_x442,11577
+/d_footer_y /d_footer_y443,11595
+/d_footer_w /d_footer_w444,11613
+/d_footer_h /d_footer_h445,11633
+/d_output_w /d_output_w446,11651
+/d_output_h /d_output_h447,11671
+/cols /cols448,11691
+/pagenum /pagenum454,11764
+/fname /fname455,11779
+/fdir /fdir456,11812
+/ftail /ftail457,11834
+/fmodstr /fmodstr459,11882
+/pagenumstr /pagenumstr460,11922
+/user_header_p /user_header_p461,11942
+/user_header_left_str /user_header_left_str462,11966
+/user_header_center_str /user_header_center_str463,12005
+/user_header_right_str /user_header_right_str464,12044
+/user_footer_p /user_footer_p465,12085
+/Courier-Oblique /Courier-Oblique469,12153
+/F-gs-font /F-gs-font472,12196
+/Courier-Oblique /Courier-Oblique474,12232
+/F-gs-font /F-gs-font477,12346
+/Courier-Oblique /Courier-Oblique479,12382
+/F-gs-font /F-gs-font480,12407
+/Courier-Oblique /Courier-Oblique482,12443
+/F-gs-font /F-gs-font485,12520
+/Courier-Oblique /Courier-Oblique487,12556
+/F-gs-font /F-gs-font488,12581
+/Courier-Oblique /Courier-Oblique490,12617
+/F-gs-font /F-gs-font493,12671
+/Courier-Oblique /Courier-Oblique495,12707
+/F-gs-font /F-gs-font498,12788
+/Courier-Oblique /Courier-Oblique500,12824
+/F-gs-font /F-gs-font503,12897
+/Courier-Oblique /Courier-Oblique505,12933
+/F-gs-font /F-gs-font508,12976
+/Courier-Oblique /Courier-Oblique510,13013
+/F-gs-font /F-gs-font513,13108
+/Courier-Oblique /Courier-Oblique515,13145
+/F-gs-font /F-gs-font518,13188
+/Courier-Oblique /Courier-Oblique520,13225
+/F-gs-font /F-gs-font523,13336
+/Courier-Oblique /Courier-Oblique525,13373
+/F-gs-font /F-gs-font528,13484
+/Courier-Oblique /Courier-Oblique530,13521
+/F-gs-font /F-gs-font533,13629
+/Courier-Oblique /Courier-Oblique535,13666
+/F-gs-font /F-gs-font538,13746
+/Courier-Oblique /Courier-Oblique540,13783
+/F-gs-font /F-gs-font543,13826
+/Courier-Oblique /Courier-Oblique545,13863
+/F-gs-font /F-gs-font548,13969
+/Courier-Oblique /Courier-Oblique550,14006
+/F-gs-font /F-gs-font553,14111
+/Courier-Oblique /Courier-Oblique555,14148
+/F-gs-font /F-gs-font558,14252
+/Courier-Oblique /Courier-Oblique560,14289
+/F-gs-font /F-gs-font563,14376
+/Courier-Oblique /Courier-Oblique565,14413
+/F-gs-font /F-gs-font568,14456
+/Courier-Oblique /Courier-Oblique570,14493
+/F-gs-font /F-gs-font573,14601
+/Courier-Oblique /Courier-Oblique575,14638
+/F-gs-font /F-gs-font578,14740
+/Courier-Oblique /Courier-Oblique580,14777
+/F-gs-font /F-gs-font583,14893
+/Courier-Oblique /Courier-Oblique585,14930
+/F-gs-font /F-gs-font588,14973
+/Courier-Bold /Courier-Bold593,15046
+/F-gs-font /F-gs-font596,15091
+/Courier-Bold /Courier-Bold599,15124
+/F-gs-font /F-gs-font602,15174
+/Courier-Bold /Courier-Bold607,15247
+/F-gs-font /F-gs-font610,15290
+/Courier-Bold /Courier-Bold613,15325
+/F-gs-font /F-gs-font616,15368
+/Courier-Bold /Courier-Bold620,15422
+/F-gs-font /F-gs-font623,15467
+/Courier-Bold /Courier-Bold626,15500
+/F-gs-font /F-gs-font629,15549
+/Courier-Bold /Courier-Bold633,15603
+/F-gs-font /F-gs-font636,15646
+/Courier-Bold /Courier-Bold641,15719
+/F-gs-font /F-gs-font644,15764
+/Courier-Bold /Courier-Bold647,15797
+/F-gs-font /F-gs-font650,15844
+/Courier-Bold /Courier-Bold654,15898
+/F-gs-font /F-gs-font657,15943
+/Courier-Bold /Courier-Bold660,15976
+/F-gs-font /F-gs-font663,16024
+/Courier-Bold /Courier-Bold667,16078
+/F-gs-font /F-gs-font670,16123
+/Courier-Bold /Courier-Bold673,16156
+/F-gs-font /F-gs-font676,16204
+/Courier-Bold /Courier-Bold680,16258
+/F-gs-font /F-gs-font683,16303
+/Courier-Bold /Courier-Bold686,16336
+/F-gs-font /F-gs-font689,16383
+/Courier-Bold /Courier-Bold694,16456
+/F-gs-font /F-gs-font697,16500
+/Courier-Bold /Courier-Bold700,16535
+/F-gs-font /F-gs-font703,16576
+/Courier-Bold /Courier-Bold707,16630
+/F-gs-font /F-gs-font710,16675
+/Courier-Bold /Courier-Bold713,16708
+/F-gs-font /F-gs-font716,16754
+/Courier-Bold /Courier-Bold720,16808
+/F-gs-font /F-gs-font723,16851
+/Courier-Bold /Courier-Bold728,16924
+/F-gs-font /F-gs-font731,16969
+/Courier-Bold /Courier-Bold734,17002
+/F-gs-font /F-gs-font737,17050
+/Courier-Oblique /Courier-Oblique741,17125
+/F-gs-font /F-gs-font744,17231
+/Courier-Bold /Courier-Bold747,17287
+/F-gs-font /F-gs-font750,17328
+/Courier-Bold /Courier-Bold753,17361
+/F-gs-font /F-gs-font756,17410
+/Courier-Bold /Courier-Bold759,17446
+/F-gs-font /F-gs-font762,17489
+/Courier-Bold /Courier-Bold771,17609
+/F-gs-font /F-gs-font774,17651
+/Courier-Bold /Courier-Bold780,17745
+/F-gs-font /F-gs-font783,17787
+/Courier-Bold /Courier-Bold790,17901
+/F-gs-font /F-gs-font793,17942
+/Courier-Bold /Courier-Bold799,18025
+/F-gs-font /F-gs-font802,18066
+/Courier-Bold /Courier-Bold809,18160
+/F-gs-font /F-gs-font812,18204
+/Courier-Bold /Courier-Bold825,18424
+/F-gs-font /F-gs-font828,18470
+/Courier-Bold /Courier-Bold831,18506
+/F-gs-font /F-gs-font834,18546
+/Courier-Bold /Courier-Bold841,18652
+/F-gs-font /F-gs-font844,18695
+/Courier-Bold /Courier-Bold847,18730
+/F-gs-font /F-gs-font850,18773
+/Courier-Bold /Courier-Bold854,18859
+/F-gs-font /F-gs-font857,18902
+/Courier-Bold /Courier-Bold860,18947
+/F-gs-font /F-gs-font863,18992
+/Courier-Bold /Courier-Bold869,19068
+/F-gs-font /F-gs-font872,19110
+/Courier-Bold /Courier-Bold876,19182
+/F-gs-font /F-gs-font879,19225
+/Courier-Bold /Courier-Bold885,19299
+/F-gs-font /F-gs-font888,19342
+/Courier-Bold /Courier-Bold893,19416
+/F-gs-font /F-gs-font896,19459
+/Courier-Bold /Courier-Bold902,19577
+/F-gs-font /F-gs-font905,19630
+/Courier-Bold /Courier-Bold908,19692
+/F-gs-font /F-gs-font911,19739
+/Courier-Bold /Courier-Bold914,19773
+/F-gs-font /F-gs-font917,19815
+/Courier-Bold /Courier-Bold924,19921
+/F-gs-font /F-gs-font927,19961
+/Courier-Bold /Courier-Bold933,20062
+/F-gs-font /F-gs-font936,20102
+/Courier-Oblique /Courier-Oblique946,20260
+/F-gs-font /F-gs-font949,20369
+/Courier-Oblique /Courier-Oblique957,20518
+/F-gs-font /F-gs-font960,20629
+/Courier-Oblique /Courier-Oblique967,20717
+/F-gs-font /F-gs-font970,20816
+/Courier-Oblique /Courier-Oblique972,20852
+/F-gs-font /F-gs-font975,20956
+/Courier-Oblique /Courier-Oblique977,20992
+/F-gs-font /F-gs-font980,21090
+/Courier-Oblique /Courier-Oblique982,21126
+/F-gs-font /F-gs-font985,21204
+/Courier-Bold /Courier-Bold995,21393
+/F-gs-font /F-gs-font998,21432
+/Courier-Bold /Courier-Bold1004,21541
+/F-gs-font /F-gs-font1007,21608
+/Courier-Bold /Courier-Bold1013,21680
+/F-gs-font /F-gs-font1016,21722
+/pagenum /pagenum1025,21813
+/fname /fname1026,21828
+/fdir /fdir1027,21861
+/ftail /ftail1028,21883
+/fmodstr /fmodstr1030,21931
+/pagenumstr /pagenumstr1031,21971
+/user_header_p /user_header_p1032,21991
+/user_header_left_str /user_header_left_str1033,22015
+/user_header_center_str /user_header_center_str1034,22054
+/user_header_right_str /user_header_right_str1035,22093
+/user_footer_p /user_footer_p1036,22134
+/Courier-Oblique /Courier-Oblique1046,22278
+/F-gs-font /F-gs-font1049,22354
+/Courier-Bold /Courier-Bold1053,22409
+/F-gs-font /F-gs-font1056,22449
+/Courier-Bold /Courier-Bold1062,22570
+/F-gs-font /F-gs-font1065,22636
+/Courier-Bold /Courier-Bold1071,22713
+/F-gs-font /F-gs-font1074,22757
+/Courier-Bold /Courier-Bold1084,22889
+/F-gs-font /F-gs-font1087,22933
+/Courier-Oblique /Courier-Oblique1095,23042
+/F-gs-font /F-gs-font1098,23152
+/Courier-Oblique /Courier-Oblique1100,23190
+/F-gs-font /F-gs-font1103,23275
+/Courier-Oblique /Courier-Oblique1105,23313
+/F-gs-font /F-gs-font1108,23423
+/Courier-Bold /Courier-Bold1111,23481
+/F-gs-font /F-gs-font1114,23522
+/Courier-Bold /Courier-Bold1117,23555
+/F-gs-font /F-gs-font1120,23601
+/Courier-Bold /Courier-Bold1123,23637
+/F-gs-font /F-gs-font1126,23676
+/Courier-Bold /Courier-Bold1129,23716
+/F-gs-font /F-gs-font1132,23759
+/Courier-Bold /Courier-Bold1135,23801
+/F-gs-font /F-gs-font1138,23843
+/Courier-Bold /Courier-Bold1147,23959
+/F-gs-font /F-gs-font1150,24000
+/Courier-Bold /Courier-Bold1156,24076
+/F-gs-font /F-gs-font1159,24117
+/Courier-Bold /Courier-Bold1169,24266
+/F-gs-font /F-gs-font1172,24309
+/Courier-Bold /Courier-Bold1193,24673
+/F-gs-font /F-gs-font1196,24713
+/Courier-Bold /Courier-Bold1199,24759
+/F-gs-font /F-gs-font1202,24803
+/Courier-Bold /Courier-Bold1208,24880
+/F-gs-font /F-gs-font1211,24922
+/Courier-Bold /Courier-Bold1214,24957
+/F-gs-font /F-gs-font1217,25001
+/Courier-Bold /Courier-Bold1225,25114
+/F-gs-font /F-gs-font1228,25155
+/Courier-Bold /Courier-Bold1231,25188
+/F-gs-font /F-gs-font1234,25235
+/Courier-Bold /Courier-Bold1237,25269
+/F-gs-font /F-gs-font1240,25310
+/Courier-Bold /Courier-Bold1243,25350
+/F-gs-font /F-gs-font1246,25393
+/Courier-Bold /Courier-Bold1249,25435
+/F-gs-font /F-gs-font1252,25475
+/Courier-Bold /Courier-Bold1261,25591
+/F-gs-font /F-gs-font1264,25632
+/Courier-Bold /Courier-Bold1270,25708
+/F-gs-font /F-gs-font1273,25749
+/Courier-Bold /Courier-Bold1283,25898
+/F-gs-font /F-gs-font1286,25941
+/Courier-Bold /Courier-Bold1307,26306
+/F-gs-font /F-gs-font1310,26346
+/Courier-Bold /Courier-Bold1313,26392
+/F-gs-font /F-gs-font1316,26436
+/Courier-Bold /Courier-Bold1322,26513
+/F-gs-font /F-gs-font1325,26555
+/Courier-Bold /Courier-Bold1328,26590
+/F-gs-font /F-gs-font1331,26634
+/Courier-Bold /Courier-Bold1339,26747
+/F-gs-font /F-gs-font1342,26789
+/Courier-Bold /Courier-Bold1345,26824
+/F-gs-font /F-gs-font1348,26874
+/Courier-Bold /Courier-Bold1351,26911
+/F-gs-font /F-gs-font1354,26952
+/Courier-Bold /Courier-Bold1363,27074
+/F-gs-font /F-gs-font1366,27115
+/Courier-Bold /Courier-Bold1373,27213
+/F-gs-font /F-gs-font1376,27257
+/Courier-Bold /Courier-Bold1385,27377
+/F-gs-font /F-gs-font1388,27417
+/Courier-Bold /Courier-Bold1394,27514
+/F-gs-font /F-gs-font1397,27556
+/Courier-Bold /Courier-Bold1400,27591
+/F-gs-font /F-gs-font1403,27631
+/Courier-Bold /Courier-Bold1409,27743
+/F-gs-font /F-gs-font1412,27785
+/Courier-Bold /Courier-Bold1421,27917
+/F-gs-font /F-gs-font1424,27961
+/Courier-Bold /Courier-Bold1432,28076
+/F-gs-font /F-gs-font1435,28117
+/Courier-Bold /Courier-Bold1438,28150
+/F-gs-font /F-gs-font1441,28200
+/Courier-Bold /Courier-Bold1444,28237
+/F-gs-font /F-gs-font1447,28280
+/Courier-Bold /Courier-Bold1450,28323
+/F-gs-font /F-gs-font1453,28366
+/Courier-Bold /Courier-Bold1462,28505
+/F-gs-font /F-gs-font1465,28568
+/Courier-Bold /Courier-Bold1472,28674
+/F-gs-font /F-gs-font1475,28717
+/Courier-Bold /Courier-Bold1478,28752
+/F-gs-font /F-gs-font1481,28795
+/Courier-Bold /Courier-Bold1486,28871
+/F-gs-font /F-gs-font1489,28911
+/Courier-Bold /Courier-Bold1495,29049
+/F-gs-font /F-gs-font1498,29111
+/Courier-Bold /Courier-Bold1504,29187
+/F-gs-font /F-gs-font1507,29231
+/Courier-Bold /Courier-Bold1517,29363
+/F-gs-font /F-gs-font1520,29406
+/Courier-Bold /Courier-Bold1527,29513
+/F-gs-font /F-gs-font1530,29554
+/Courier-Bold /Courier-Bold1538,29666
+/F-gs-font /F-gs-font1541,29707
+/Courier-Bold /Courier-Bold1550,29825
+/F-gs-font /F-gs-font1553,29865
+/Courier-Bold /Courier-Bold1559,29941
+/F-gs-font /F-gs-font1562,29981
+/Courier-Bold /Courier-Bold1571,30095
+/F-gs-font /F-gs-font1574,30135
+/Courier-Bold /Courier-Bold1580,30211
+/F-gs-font /F-gs-font1583,30250
+/pagenum /pagenum1592,30344
+/fname /fname1593,30359
+/fdir /fdir1594,30392
+/ftail /ftail1595,30414
+/fmodstr /fmodstr1597,30462
+/pagenumstr /pagenumstr1598,30502
+/user_header_p /user_header_p1599,30522
+/user_header_left_str /user_header_left_str1600,30546
+/user_header_center_str /user_header_center_str1601,30585
+/user_header_right_str /user_header_right_str1602,30624
+/user_footer_p /user_footer_p1603,30665
+/Courier-Bold /Courier-Bold1618,30890
+/F-gs-font /F-gs-font1621,30930
+/Courier-Bold /Courier-Bold1627,31042
+/F-gs-font /F-gs-font1630,31097
+/Courier-Bold /Courier-Bold1636,31183
+/F-gs-font /F-gs-font1639,31227
+/Courier-Bold /Courier-Bold1651,31385
+/F-gs-font /F-gs-font1654,31425
+/Courier-Bold /Courier-Bold1660,31536
+/F-gs-font /F-gs-font1663,31590
+/Courier-Bold /Courier-Bold1669,31675
+/F-gs-font /F-gs-font1672,31719
+/Courier-Bold /Courier-Bold1684,31877
+/F-gs-font /F-gs-font1687,31917
+/Courier-Bold /Courier-Bold1693,32096
+/F-gs-font /F-gs-font1696,32171
+/Courier-Bold /Courier-Bold1702,32257
+/F-gs-font /F-gs-font1705,32301
+/Courier-Bold /Courier-Bold1717,32460
+/F-gs-font /F-gs-font1720,32500
+/Courier-Bold /Courier-Bold1726,32675
+/F-gs-font /F-gs-font1729,32750
+/Courier-Bold /Courier-Bold1735,32835
+/F-gs-font /F-gs-font1738,32877
+/Courier-Bold /Courier-Bold1741,32912
+/F-gs-font /F-gs-font1744,32957
+/Courier-Bold /Courier-Bold1756,33112
+/F-gs-font /F-gs-font1759,33153
+/Courier-Bold /Courier-Bold1771,33408
+/F-gs-font /F-gs-font1774,33448
+/Courier-Bold /Courier-Bold1780,33566
+/F-gs-font /F-gs-font1783,33631
+/Courier-Bold /Courier-Bold1789,33711
+/F-gs-font /F-gs-font1792,33753
+/Courier-Bold /Courier-Bold1795,33788
+/F-gs-font /F-gs-font1798,33833
+/Courier-Bold /Courier-Bold1810,34012
+/F-gs-font /F-gs-font1813,34085
+/Courier-Bold /Courier-Bold1822,34210
+/F-gs-font /F-gs-font1825,34250
+/Courier-Bold /Courier-Bold1831,34352
+/F-gs-font /F-gs-font1834,34392
+/Courier-Bold /Courier-Bold1843,34534
+/F-gs-font /F-gs-font1846,34578
+/Courier-Bold /Courier-Bold1855,34697
+/F-gs-font /F-gs-font1858,34742
+/Courier-Bold /Courier-Bold1867,34857
+/F-gs-font /F-gs-font1870,34897
+/Courier-Bold /Courier-Bold1876,34999
+/F-gs-font /F-gs-font1879,35039
+/Courier-Bold /Courier-Bold1888,35181
+/F-gs-font /F-gs-font1891,35225
+/Courier-Bold /Courier-Bold1900,35339
+/F-gs-font /F-gs-font1903,35382
+/Courier-Bold /Courier-Bold1909,35477
+/F-gs-font /F-gs-font1912,35518
+/Courier-Bold /Courier-Bold1915,35551
+/F-gs-font /F-gs-font1918,35597
+/Courier-Bold /Courier-Bold1921,35644
+/F-gs-font /F-gs-font1924,35686
+/Courier-Bold /Courier-Bold1933,35805
+/F-gs-font /F-gs-font1936,35846
+/Courier-Bold /Courier-Bold1943,35944
+/F-gs-font /F-gs-font1946,35984
+/Courier-Bold /Courier-Bold1952,36100
+/F-gs-font /F-gs-font1955,36168
+/Courier-Bold /Courier-Bold1961,36259
+/F-gs-font /F-gs-font1964,36303
+/Courier-Oblique /Courier-Oblique1974,36438
+/F-gs-font /F-gs-font1977,36534
+/Courier-Bold /Courier-Bold1981,36590
+/F-gs-font /F-gs-font1984,36630
+/Courier-Bold /Courier-Bold1991,36769
+/F-gs-font /F-gs-font1994,36812
+/Courier-Bold /Courier-Bold1997,36847
+/F-gs-font /F-gs-font2000,36890
+/Courier-Bold /Courier-Bold2007,37020
+/F-gs-font /F-gs-font2010,37062
+/Courier-Bold /Courier-Bold2017,37164
+/F-gs-font /F-gs-font2020,37207
+/Courier-Bold /Courier-Bold2025,37283
+/F-gs-font /F-gs-font2028,37327
+/Courier-Bold /Courier-Bold2034,37412
+/F-gs-font /F-gs-font2037,37454
+/Courier-Bold /Courier-Bold2040,37487
+/F-gs-font /F-gs-font2043,37534
+/Courier-Bold /Courier-Bold2052,37728
+/F-gs-font /F-gs-font2055,37771
+/Courier-Bold /Courier-Bold2062,37866
+/F-gs-font /F-gs-font2065,37908
+/Courier-Bold /Courier-Bold2068,37941
+/F-gs-font /F-gs-font2071,37989
+/Courier-Bold /Courier-Bold2080,38188
+/F-gs-font /F-gs-font2083,38231
+/Courier-Bold /Courier-Bold2090,38324
+/F-gs-font /F-gs-font2093,38368
+/Courier-Bold /Courier-Bold2099,38466
+/F-gs-font /F-gs-font2102,38544
+/Courier-Bold /Courier-Bold2108,38634
+/F-gs-font /F-gs-font2111,38677
+/Courier-Bold /Courier-Bold2121,38806
+/F-gs-font /F-gs-font2124,38845
+/Courier-Bold /Courier-Bold2130,38958
+/F-gs-font /F-gs-font2133,39037
+/Courier-Bold /Courier-Bold2139,39125
+/F-gs-font /F-gs-font2142,39168
+/Courier-Oblique /Courier-Oblique2152,39297
+/F-gs-font /F-gs-font2155,39375
+/Courier-Bold /Courier-Bold2159,39451
+/F-gs-font /F-gs-font2162,39515
+/pagenum /pagenum2171,39619
+/fname /fname2172,39634
+/fdir /fdir2173,39667
+/ftail /ftail2174,39689
+/fmodstr /fmodstr2176,39737
+/pagenumstr /pagenumstr2177,39777
+/user_header_p /user_header_p2178,39797
+/user_header_left_str /user_header_left_str2179,39821
+/user_header_center_str /user_header_center_str2180,39860
+/user_header_right_str /user_header_right_str2181,39899
+/user_footer_p /user_footer_p2182,39940
+/Courier-Bold /Courier-Bold2188,40028
+/F-gs-font /F-gs-font2191,40072
+/Courier-Bold /Courier-Bold2199,40184
+/F-gs-font /F-gs-font2202,40226
+/Courier-Bold /Courier-Bold2205,40261
+/F-gs-font /F-gs-font2208,40309
+/Courier-Bold /Courier-Bold2217,40431
+/F-gs-font /F-gs-font2220,40471
+/Courier-Bold /Courier-Bold2226,40586
+/F-gs-font /F-gs-font2229,40650
+/Courier-Bold /Courier-Bold2238,40779
+/F-gs-font /F-gs-font2241,40823
+/Courier-Bold /Courier-Bold2251,40955
+/F-gs-font /F-gs-font2254,40995
+/Courier-Bold /Courier-Bold2260,41111
+/F-gs-font /F-gs-font2263,41203
+/Courier-Bold /Courier-Bold2272,41343
+/F-gs-font /F-gs-font2275,41387
+/Courier-Bold /Courier-Bold2285,41519
+/F-gs-font /F-gs-font2288,41559
+/Courier-Bold /Courier-Bold2294,41684
+/F-gs-font /F-gs-font2297,41767
+/Courier-Bold /Courier-Bold2306,41909
+/F-gs-font /F-gs-font2309,41953
+/Courier-Bold /Courier-Bold2319,42109
+/F-gs-font /F-gs-font2322,42180
+/Courier-Bold /Courier-Bold2333,42357
+/F-gs-font /F-gs-font2336,42398
+/Courier-Bold /Courier-Bold2339,42431
+/F-gs-font /F-gs-font2342,42483
+/Courier-Bold /Courier-Bold2351,42604
+/F-gs-font /F-gs-font2354,42645
+/Courier-Bold /Courier-Bold2365,42806
+/F-gs-font /F-gs-font2368,42846
+/Courier-Bold /Courier-Bold2374,42961
+/F-gs-font /F-gs-font2377,43047
+/Courier-Bold /Courier-Bold2383,43125
+/F-gs-font /F-gs-font2386,43169
+/Courier-Bold /Courier-Bold2395,43284
+/F-gs-font /F-gs-font2398,43324
+/Courier-Bold /Courier-Bold2404,43438
+/F-gs-font /F-gs-font2407,43519
+/Courier-Bold /Courier-Bold2424,43780
+/F-gs-font /F-gs-font2427,43820
+/Courier-Oblique /Courier-Oblique2434,43940
+/F-gs-font /F-gs-font2437,44040
+/Courier-Bold /Courier-Bold2441,44095
+/F-gs-font /F-gs-font2444,44138
+/Courier-Bold /Courier-Bold2447,44173
+/F-gs-font /F-gs-font2450,44216
+/Courier-Bold /Courier-Bold2457,44362
+/F-gs-font /F-gs-font2460,44402
+/Courier-Bold /Courier-Bold2466,44508
+/F-gs-font /F-gs-font2469,44550
+/Courier-Bold /Courier-Bold2476,44672
+/F-gs-font /F-gs-font2479,44715
+/Courier-Bold /Courier-Bold2487,44830
+/F-gs-font /F-gs-font2490,44872
+/Courier-Bold /Courier-Bold2493,44931
+/F-gs-font /F-gs-font2496,45004
+/Courier-Bold /Courier-Bold2503,45100
+/F-gs-font /F-gs-font2506,45140
+/Courier-Bold /Courier-Bold2512,45252
+/F-gs-font /F-gs-font2515,45327
+/Courier-Bold /Courier-Bold2521,45422
+/F-gs-font /F-gs-font2524,45466
+/Courier-Oblique /Courier-Oblique2534,45601
+/F-gs-font /F-gs-font2537,45704
+/Courier-Bold /Courier-Bold2545,45837
+/F-gs-font /F-gs-font2548,45881
 
 fcpx/CVS/Root,0
 
@@ -6983,7 +7599,13 @@ build_libtool_libs=6731,193420
 build_old_libs=`case $build_libtool_libs in yes) $echo no;; *) $echo yes;6736,193554
 SHELL=6748,193867
 
-README.win~,0
+t.pdf,465
+xú•Ymo‚H˛û_Q iˆHéø€L2ßeíeEGàF£„Ñå›Ä˜åÕÿ&fuˇ˝™ÌnCÏ∂3Ÿ$ä∏ªûÍÍß™ûnæÅ‘ñA¢øÏ’Ÿú|;ÈL4X≈'ﬂ@NÒgüß¯∞K?ò.O≤2(*òö÷VU¶õì∆|Èlo<ü¥ù≥È'äﬁ≈AS˜§!i≈ËHZ˙©&≥O«ˆä†çp	ÈÉŒDñ6,68
+xú•Ymo‚H˛û_Q iˆHéø€L2ßeíeEGàF£„Ñå›Ä˜åÕÿ&fuˇ˝™ÌnCÏ∂3Ÿ$ä∏ªûÍÍß™ûnæÅ‘ñA¢øÏ’Ÿú|;ÈL4X≈'ﬂ@NÒgüß¯∞K?ò.O≤2(*òö÷VU¶õì∆|Èlo<ü¥ù≥È'äﬁ≈AS˜§!i≈ËHZ˙©&≥O«ˆä†çp	ÈÉŒDñ¡§÷[ö•¥h…*µ¨¶ÉÂèlåöçëï∂¡ÏtŒ””g-+}®yZi¿tÌ≈‡Ñ.|›⁄QBùππO√–è°v@ﬂµvL\p|è	¯ﬁ"≤£=,√n"Bí‘¿´)<˛?<ihœ˛N«ÈOÆ¬Ì~Hñ	ÃŒÏIía±á6,68
+
+key,83
+FCPtools are Copyright 1,0
+I can also be found on the Freenode irc network 4,137
 
 config.status,135
 debug=7,199
@@ -6993,13 +7615,3 @@ DUALCASE=25,723
     eval $as_var=48,1269
   as_expr=56,1414
   as_basename=62,1528
-
-README~,172
-can publish keys 37,1535
-Protocol Library,57,2299
-The second part consists of command line tools 60,2423
-  file                   Read key data from local file139,5119
-
-INSTALL.msvc~,0
-
-INSTALL.solaris~,0
