@@ -95,11 +95,15 @@ SOURCE=.\alert.ico
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\alert.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\freenet.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\Freenet.ico
+SOURCE=.\res\Freenet.ico
 # End Source File
 # Begin Source File
 
@@ -115,15 +119,19 @@ SOURCE=.\launchthread.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\noFnet.ico
+SOURCE=.\res\noFnet.ico
 # End Source File
 # Begin Source File
 
-SOURCE=.\noGway.ico
+SOURCE=.\res\noGway.ico
 # End Source File
 # Begin Source File
 
-SOURCE=.\noInet.ico
+SOURCE=.\res\noInet.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\ref.ico
 # End Source File
 # Begin Source File
 
@@ -135,7 +143,7 @@ SOURCE=.\refs.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\restart.ico
+SOURCE=.\res\restart.ico
 # End Source File
 # Begin Source File
 
@@ -144,6 +152,13 @@ SOURCE=.\rsrc.h
 # Begin Source File
 
 SOURCE=.\rsrc.rc
+
+!IF  "$(CFG)" == "freenet - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "freenet - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -151,7 +166,7 @@ SOURCE=.\shared_data.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\tbolt.ico
+SOURCE=.\res\tbolt.ico
 # End Source File
 # Begin Source File
 
