@@ -1,0 +1,70 @@
+[THIS IS A WORK IN PROGRESS]
+
+An Overview Of Anarcast
+------------------------------------------------------------------------------
+
+Anarcast is a data distribution network consisting of a multitude of servers
+and a central database (mirrored if necessary) of server addresses.
+
+Inserts are first processed by a local client proxy. This proxy encrypts your
+data, splits it into redundant blocks, and inserts each part to a server. [1]
+The Anarcast key for the data--essentially a series of hashes--is sent to the
+client, and the insert is complete.
+
+Requests are handled by the client proxy as well. The redundant blocks that
+comprise the file are requested. Any missing blocks are reconstructed from the
+redundant data and are reinserted automatically. [2] The data is decrypted,
+verified, and sent to the client.
+
+[1] Blocks are routed to the server where hash(server address) is closest to
+    hash(block).
+    
+[2] This is how Anarcast adapts to a changing network. Also note that it is
+    possible that the data is damaged beyond recovery, in which case the
+    request will fail.
+
+Using Anarcast
+------------------------------------------------------------------------------
+
+The included 'request' and 'insert' are simple clients.
+
+Attacking Anarcast
+------------------------------------------------------------------------------
+
+Anarcast depends on a central database of servers. Servers register themselves
+with this database regularly, and client proxies download from it the
+addresses of the current servers in the network.
+
+How can a database server be attacked? In two ways:
+
+    Intimidation: All decent people use Totalitarinet, everything else should
+    be illegal, and we have a cabal of lawyers. "Server X served a block of an
+    illegal file. You must remove it from the database."
+
+    Denial-of-service: We script kiddies felt like attacking you with our
+    legions of zombie flooder bots.
+
+Of course, this database can be mirrored as much as necessary. Take one down,
+another five pop up. As long as these databases stay in sync, the network will
+be fine.
+
+An attacker can also flood a server with data until it is forced to delete
+old, legitimate data from the cache to make room. This is a difficult and
+expensive attack, but it is difficult to defend against, especially if it is
+carried out over a long period of time over the entire network.
+
+Central Database Load
+------------------------------------------------------------------------------
+
+Each address is 4 bytes. How much bandwidth will the central database require?
+Let's guess that for every server there will be 20 clients, and each client
+connects once a day.
+
+    Servers    Clients     Load (average bytes/second)
+
+      1,000     20,000      925 (1K/s)
+     10,000    200,000    92592 (100K/s)
+    100,000  2,000,000  9259259 (10M/s)
+
+The database could be mirrored as much as necessary, however. This isn't a
+problem.

@@ -216,8 +216,8 @@ insert (int c)
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
     hashes = malloc(hlen);
     
-    // padding
-    while (g.dbc * blocksize < datalength)
+    // pad to crypto blocksize (16 bytes)
+    while (g.dbc * blocksize < datalength || g.dbc * blocksize % 16)
 	blocksize++;
     
     dlen = g.dbc * blocksize;
@@ -236,10 +236,13 @@ insert (int c)
 	return;
     }
     
-    // hash and encrypt data
+    // hash data
     alert("Hashing data.");
     sha_buffer(blocks, datalength, hashes);
-    if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
+    
+    // encrypt data
+    alert("Encrypting data.");
+    if (cipherInit(&cipher, MODE_CBC, NULL) != TRUE)
 	die("cipherInit() failed");
     if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
 	die("makeKey() failed");
@@ -413,6 +416,8 @@ request (int c)
     int i, a, m, n;
     unsigned int datalength, blockcount, blocksize;
     char *blocks, *mask, *mask2, hash[HASHLEN], *hashes;
+    keyInstance key;
+    cipherInstance cipher;
     struct graph g;
     
     // read key length (a key is datalength + hashes)
@@ -444,8 +449,8 @@ request (int c)
     }
     g = graphs[datalength/blocksize-1];
     
-    // padding
-    while (g.dbc * blocksize < datalength)
+    // pad to crypto blocksize (16 bytes)
+    while (g.dbc * blocksize < datalength || g.dbc * blocksize % 16)
 	blocksize++;
     
     blockcount = g.dbc + g.cbc;
@@ -550,6 +555,15 @@ request (int c)
     }
     
 verify:
+    // decrypt data
+    alert("Decrypting data.");
+    if (cipherInit(&cipher, MODE_CBC, NULL) != TRUE)
+	die("cipherInit() failed");
+    if (makeKey(&key, DIR_DECRYPT, 128, hashes) != TRUE)
+	die("makeKey() failed");
+    if (blockDecrypt(&cipher, &key, blocks, datalength, blocks) <= 0)
+	die("blockEncrypt() failed");
+    
     // verify data
     sha_buffer(blocks, datalength, hash);
     if (memcmp(hash, hashes, HASHLEN)) {
