@@ -498,9 +498,7 @@ static int getrespFailed(hFCP *hfcp)
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.failed.reason) free(hfcp->response.failed.reason);
 			
-			len = strlen(resp) - 7;
-			hfcp->response.failed.reason = (char *)malloc(len + 1);
-			strncpy(hfcp->response.failed.reason, resp + 7, len);
+			hfcp->response.failed.reason = strdup(resp + 7);
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))

@@ -60,6 +60,8 @@ int _fcpSockConnect(hFCP *hfcp)
 	}
   else {
     host_ent = gethostbyname(hfcp->host);
+		if (!host_ent) return -1;
+
     memcpy((struct in_addr *)&in_address, host_ent->h_addr_list[0], host_ent->h_length);
   }
 

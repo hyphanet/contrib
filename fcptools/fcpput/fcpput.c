@@ -64,6 +64,10 @@ int main(int argc, char* argv[])
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();
 
+#ifdef WINDOWS
+	system("pause");
+#endif
+
 	return 0;
 }
 

@@ -22,6 +22,11 @@
 */
 
 #include <sys/types.h>
+
+#ifdef WINDOWS
+#include <winsock.h>
+#endif
+
 #include <string.h>
 
 #include "ezFCPlib.h"
@@ -29,16 +34,21 @@
 /*** Should accept a few parameters ****/
 int fcpStartup(void)
 {
-
 #ifndef WINDOWS
 	_fcpTmpDir = "/tmp";
-#else
-	/* Call WSAStartup thing */
-	/* Then set _fcpTmpDir to something that makes sense on windoze */
-#endif
 
-	_fcpHost = (char *)malloc(strlen(EZFCP_DEFAULT_HOST) + 1);
-	strcpy(_fcpHost, EZFCP_DEFAULT_HOST);
+#else
+	WORD wVersionRequested;
+	WSADATA wsaData;
+
+	SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
+	wVersionRequested = MAKEWORD(2, 0);
+
+	if (WSAStartup(wVersionRequested, &wsaData) != 0) return -1;
+
+	_fcpTmpDir = "c:/temp";
+
+#endif
 
 	return 0;
 }

@@ -190,10 +190,6 @@ SOURCE=.\fcpOpenKey.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\fcpPut.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\fcpPutKeyFromFile.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"

@@ -100,6 +100,10 @@ SOURCE=..\ezFCPlib\_fcpLog.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\ezFCPlib\_fcpPut.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\ezFCPlib\_fcpRecvResponse.c
 # End Source File
 # Begin Source File
@@ -124,11 +128,7 @@ SOURCE=..\ezFCPlib\fcpOpenKey.c
 # End Source File
 # Begin Source File
 
-SOURCE=".\fcpput-main.c"
-# End Source File
-# Begin Source File
-
-SOURCE=..\ezFCPlib\fcpPut.c
+SOURCE=.\fcpput.c
 # End Source File
 # Begin Source File
 
@@ -155,5 +155,9 @@ SOURCE=..\ezFCPlib\mimetype.c
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
+# Begin Source File
+
+SOURCE=..\fcpcommon\fcpcommon.lib
+# End Source File
 # End Target
 # End Project
