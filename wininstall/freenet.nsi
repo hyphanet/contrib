@@ -70,10 +70,16 @@ WriteRegStr HKEY_CLASSES_ROOT freenet '' 'URL:freenet protocol'
 WriteRegStr HKEY_CLASSES_ROOT freenet 'URL Protocol' ''
 RegDLL $INSTDIR\IEFreenetPlugin.dll
 
-#Section "NS6/Mozilla plugin"
-#SectionIn 2
-#SetOutPath $INSTDIR\NSplugin
-#File freenet\NSplugin\*.*
+Section "Mozilla plugin"
+SectionIn 2
+SetOutPath $TEMP
+# The next files are not yet deleted anywhere, need to do this somewhere!
+File freenet\NSplugin\launch.exe
+File freenet\NSplugin\mozinst.html
+File freenet\NSplugin\protozilla-0.3-other.xpi
+Exec '"$TEMP\launch.exe" Mozilla "$TEMP\mozinst.html"'
+
+#need to delete the tempfiles again
 
 Section "Launch Freenet on Startup"
 SectionIn 1,2
