@@ -1,7 +1,6 @@
 #@+leo
 #@+node:0::@file Makefile
 #@+body
-#@@language
 #
 # Makefile for building Python module for Freenet FCP access
 #

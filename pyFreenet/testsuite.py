@@ -17,9 +17,13 @@ import freenet
 
 # set these to your freenet node's address
 
-freenet_fcp_host = "127.0.0.1"
-freenet_fcp_port = 8481
-randomshit = "some stuff which gets endlessly repeated in a key"
+#freenet_fcp_host = "127.0.0.1"
+#freenet_fcp_host = "192.168.2.1"
+freenet_fcp_host = "192.168.1.3"
+
+#freenet_fcp_port = 8481
+freenet_fcp_port = 8482
+randomshit = "some stuff which gets endlessly repeated in a key 123"
 randomsize = 1400000
 
 import sys, time, os
@@ -82,7 +86,7 @@ def test04():
 	print "TESTSUITE: test 04: Insert a basic KSK key - raw"
 	try:
 		print "TESTSUITE: Inserting as URI: '%s'" % myuri
-		insertedksk = freenet.fcp.put("This is key '%s'\n" % keyname, '', myuri, htl=0)
+		insertedksk = freenet.node.put("This is key '%s'\n" % keyname, '', myuri, htl=0)
 	except:
 		print "TESTSUITE: failed"
 		raise
@@ -103,7 +107,7 @@ def test05():
 	global insertedksk
 
 	try:
-		k = freenet.fcp.get(insertedksk.uri)
+		k = freenet.node.get(insertedksk.uri)
 	except:
 		print "TESTSUITE: failed"
 		raise
@@ -125,15 +129,16 @@ def test06():
 		m.add('', mimetype="text/html")
 		txt = "<html><head><title>pyFreenet test 06</title></head><body><h1>test 06</h1>This is test 06 - seems ok</body></html>\n"
 		uri = freenet.uri("KSK@test06-%s" % time.strftime("%H%M%S"))
-		k = freenet.fcp.put(txt, m, uri, htl=0)
-		kr = freenet.fcp.get(uri)
+		k = freenet.node.put(txt, m, uri, htl=0)
+		kr = freenet.node.get(uri)
 		print "TESTSUITE: retrieved URI = ", kr.uri
 		print "TESTSUITE: retrieved text:\n", kr
 		print "TESTSUITE: with metadata:\n", kr.metadata
 	except:
-		print failed
+		#print failed
 		raise
 	print "TESTSUITE: PASSED\n\n"
+
 
 
 #@-body
@@ -146,7 +151,7 @@ def test07():
 	global privkey
 	print "TESTSUITE: ********************************************************"
 	print "TESTSUITE: test 07: generate an SSK keypair"
-	pubkey, privkey = freenet.fcp.genkeypair()
+	pubkey, privkey = freenet.node.genkeypair()
 	print "TESTSUITE: pubkey='%s', privkey='%s'" % (pubkey, privkey)
 	print "TESTSUITE: PASSED"
 
@@ -157,29 +162,33 @@ def test07():
 #@+body
 
 def test08():
-	global pubkey
-	global privkey
-	global siteuri
-	global mydir
+    global pubkey
+    global privkey
+    global siteuri
+    global mydir
 
-	print "TESTSUITE: ********************************************************"
-	print "TESTSUITE: test 08: Create and insert a dummy freesite"
-	print
-	mydir = "testsite-%s" % time.strftime("%H%M%S")
-	print "TESTSUITE: (creating freesite in directory '%s')" % mydir
-	os.mkdir(mydir)
-	fd = open(mydir+"/index.html", "w")
-	fd.write('<html><head><title>my testsite</title></head><body><h1>TestSite</h1>File: <a href="subdir/file.txt">subdir/file.txt</a></body></html>')
-	fd.close()
-	os.mkdir(mydir+"/subdir")
-	fd = open(mydir+"/subdir/file.txt", "w")
-	fd.write("This is file.txt from the test freesite")
-	fd.close()
-	print "TESTSUITE: Freesite created at %s" % mydir
-	print "TESTSUITE: Inserting freesite..."
-	siteuri = freenet.site.put(mydir, name="testsite", pub=pubkey, priv=privkey, htl=0)
-	print "TESTSUITE: Site URI = %s" % siteuri
-	print "TESTSUITE: PASSED\n\n"
+    print "TESTSUITE: ********************************************************"
+    print "TESTSUITE: test 08: Create and insert a dummy freesite"
+    print
+    mydir = "testsite-%s" % time.strftime("%H%M%S")
+    print "TESTSUITE: (creating freesite in directory '%s')" % mydir
+    os.mkdir(mydir)
+    fd = open(mydir+"/index.html", "w")
+    fd.write('<html><head><title>my testsite</title></head>\n')
+    fd.write('<body>\n')
+    fd.write('<h1>TestSite</h1>\n')
+    fd.write('File: <a href="subdir/file.txt">subdir/file.txt</a>\n')
+    fd.write('</body></html>\n')
+    fd.close()
+    os.mkdir(mydir+"/subdir")
+    fd = open(mydir+"/subdir/file.txt", "w")
+    fd.write("This is file.txt from the test freesite")
+    fd.close()
+    print "TESTSUITE: Freesite created at %s" % mydir
+    print "TESTSUITE: Inserting freesite..."
+    siteuri = freenet.site.put(mydir, name="testsite", pub=pubkey, priv=privkey, htl=0)
+    print "TESTSUITE: Site URI = %s" % siteuri
+    print "TESTSUITE: PASSED\n\n"
 
 
 #@-body
@@ -209,46 +218,49 @@ def test09():
 #@+body
 
 def test10():
-	print "TESTSUITE: ********************************************************"
-	print "TESTSUITE: test 10: Generate and Insert a large file."
-	print
-	# Change the string below to create a unique file.
-	# The purpose of creating the same file each time is so that you don't flood
-	# your datastore with crap each time you run these tests.
-	print "TESTSUITE: Note - edit this test script if you want to insert new random rubbish."
-	print
+    print "TESTSUITE: ********************************************************"
+    print "TESTSUITE: test 10: Generate and Insert a large file."
+    print
+    # Change the string below to create a unique file.
+    # The purpose of creating the same file each time is so that you don't flood
+    # your datastore with crap each time you run these tests.
+    print "TESTSUITE: Note - edit this test script if you want to insert new random rubbish."
+    print
 
-	global biginsertedkey
-	global fileOrig
-	global fileCheck
+    global biginsertedkey
+    global fileOrig
+    global fileCheck
 
-	print "TESTSUITE: Creating large file..."
-	fileOrig = freenet.tempFilename()
-	fileCheck = freenet.tempFilename()
-	fd = open(fileOrig, "wb")
-	size = 0
-	linenum = 1
-	while size < randomsize:
-		nextline = "%s: line %d\n" % (randomshit, linenum)
-		linenum += 1
-		fd.write(nextline)
-		size += len(nextline)
-	fd.close()
-	print "TESTSUITE: Done."
+    print "TESTSUITE: Creating large file..."
+    fileOrig = freenet.tempFilename()
+    fileCheck = freenet.tempFilename()
+    fd = open(fileOrig, "wb")
+    size = 0
+    linenum = 1
+    while size < randomsize:
+        nextline = "%s: line %d\n" % (randomshit, linenum)
+        linenum += 1
+        fd.write(nextline)
+        size += len(nextline)
+    fd.close()
+    print "TESTSUITE: Done."
 
-	# change this later to use fcp.putfile()
-	print "TESTSUITE: Reading large file into memory..."
-	fd = open(fileOrig)
-	rawdata = fd.read()
-	fd.close()
-	print "TESTSUITE: Done."
-	print "TESTSUITE: Inserting this large file - this might take ages..."
+    # change this later to use fcp.putfile()
+    print "TESTSUITE: Reading large file into memory..."
+    fd = open(fileOrig)
+    rawdata = fd.read()
+    fd.close()
+    print "TESTSUITE: Done."
+    print "TESTSUITE: Inserting this large file - this might take ages..."
 
-	biginsertedkey = freenet.fcp.put(rawdata, None, None, 0)
-	print "TESTSUITE: Big file '%s' apparently inserted fine" % fileOrig
-	print "TESTSUITE: Inserted URI: %s" % biginsertedkey.uri
-	print "TESTSUITE: PASSED\n\n"
+    #set_trace()
 
+    #biginsertedkey = freenet.node.put(rawdata, None, None, 0)
+    mynode = freenet.node(freenet_fcp_host, freenet_fcp_port)
+    biginsertedkey = mynode.put(rawdata, None, None, 0, allowSplitfiles=0)
+    print "TESTSUITE: Big file '%s' apparently inserted fine" % fileOrig
+    print "TESTSUITE: Inserted URI: %s" % biginsertedkey.uri
+    print "TESTSUITE: PASSED\n\n"
 
 #@-body
 #@-node:11::test10()
@@ -256,35 +268,35 @@ def test10():
 #@+body
 
 def test11():
-	print "TESTSUITE: ********************************************************"
-	print "TESTSUITE: test 11: Get big file inserted in test10, and compare"
-	print
+    print "TESTSUITE: ********************************************************"
+    print "TESTSUITE: test 11: Get big file inserted in test10, and compare"
+    print
 
-	global biginsertedkey
-	global fileOrig
-	global fileCheck
+    global biginsertedkey
+    global fileOrig
+    global fileCheck
 
-	try:
-		rxuri = biginsertedkey.uri
-		print "TESTSUITE: Aiming to retrieve URI: %s" % rxuri
-		print "TESTSUITE: This might take a while..."
-		bigretrievedkey = freenet.fcp.get(rxuri)
-		print "TESTSUITE: Seems to have retrieved OK - now compare!"
-		insdata = str(biginsertedkey)
-		retdata = str(bigretrievedkey)
-		if insdata != retdata:
-			print "TESTSUITE: Difference in files: orig size %d, retrieved size %d" % \
-				  len(insdata), len(retdata)
-			raise Exception("what we retrieved is not what we inserted!")
-		else:
-			print "TESTSUITE: Inserted file and retrieved file are identical"
-			print "TESTSUITE: PASSED\n\n"
-			
-	except:
-		print "TESTSUITE: **************************"
-		print "TESTSUITE:  TEST 11 FAILED!!!! :((("
-		print "TESTSUITE: **************************"
-		raise
+    try:
+        rxuri = biginsertedkey.uri
+        print "TESTSUITE: Aiming to retrieve URI: %s" % rxuri
+        print "TESTSUITE: This might take a while..."
+        bigretrievedkey = freenet.node.get(rxuri)
+        print "TESTSUITE: Seems to have retrieved OK - now compare!"
+        insdata = str(biginsertedkey)
+        retdata = str(bigretrievedkey)
+        if insdata != retdata:
+            print "TESTSUITE: Difference in files: orig size %d, retrieved size %d" % \
+                  len(insdata), len(retdata)
+            raise Exception("what we retrieved is not what we inserted!")
+        else:
+            print "TESTSUITE: Inserted file and retrieved file are identical"
+            print "TESTSUITE: PASSED\n\n"
+            
+    except:
+        print "TESTSUITE: **************************"
+        print "TESTSUITE:  TEST 11 FAILED!!!! :((("
+        print "TESTSUITE: **************************"
+        raise
 
 
 #@-body
@@ -293,23 +305,24 @@ def test11():
 #@+body
 
 def run():
-	test01()
-	test02()
-	test03()
-	test04()
-	test05()
-	test06()
-	test07()
-	test08()
-	test09()
-	test10()
-	test11()
+    test01()
+    test02()
+    test03()
+    test04()
+    test05()
+    test06()
+    test07()
+    test08()
+    test09()
+    test10()
+    test11()
 
-	print
-	print "TESTSUITE: ********************************************************"
-	print "TESTSUITE: All tests succeeded - module 'freenet' awaits you"
-	print "TESTSUITE: ********************************************************"
-	print
+    print
+    print "TESTSUITE: ********************************************************"
+    print "TESTSUITE: All tests succeeded - module 'freenet' awaits you"
+    print "TESTSUITE: ********************************************************"
+    print
+
 
 
 #@-body
@@ -317,7 +330,7 @@ def run():
 #@+node:14::mainline()
 #@+body
 if __name__ == '__main__':
-	run()
+    run()
 
 #@-body
 #@-node:14::mainline()
