@@ -16,17 +16,12 @@
 
 
 #undef UNICODE
-#include "winsock.h"
-#include "windows.h"
-#include "shellapi.h"
-#include "winnls.h"
-#include "rsrc.h"
-#include "types.h"
-#include "shared_data.h"
+#include "stdafx.h"
 #include "freenet_tray.h"
 #include "launchthread.h"
 #include "refs.h"
 #include "logfile.h"
+#include "about.h"
 #include "stdlib.h" // for atol
 
 /******************************************************
@@ -48,8 +43,8 @@ char szStopString[]="&Stop Freenet";
 char szRestartString[]="Stop and &Restart Freenet";
 char szStartString[]="&Start Freenet";
 char szGatewayString[]="Open &Gateway";
-char szConfigureString[]="&Configure";
-char szHelpString[]="&Help";
+char szConfigureString[]="&Configure...";
+char szAboutString[]="&About";
 char szExitString[]="E&xit";
 char szImportString[]="&Import Refs";
 char szExportString[]="&Export Refs";
@@ -146,8 +141,8 @@ FREENET_MODE nFreenetMode=FREENET_STOPPED;
 bool bOpenGatewayOnStartup=false;	/* was freenet.exe called with the -open option?  */
 UINT g_uintTaskbarExplodedMsg=0;	/* see MSDN - "Taskbar Creation Notification" */
 bool bFConfigExecUseJava=false;
-int nPriority=THREAD_PRIORITY_NORMAL;  /* the priority of the jre for fred */
-int nPriorityClass=NORMAL_PRIORITY_CLASS;  /* the priority class of the jre for fred */
+int nPriority=THREAD_PRIORITY_IDLE;  /* the priority of the jre for fred */
+int nPriorityClass=IDLE_PRIORITY_CLASS;  /* the priority class of the jre for fred */
 const int GANIMATIONFRAMES=4;
 int g_n_AnimationCounter=0;
 const int KAnimationSpeed = 300; /* ms */
@@ -179,7 +174,8 @@ HANDLE hnFreenetMode = NULL;  /* mutex for nFreenetMode */
 HANDLE hSystray = NULL;	 /* mutex for systray (NOTIFYICONDATA) structure */
 HANDLE hDialogBoxes = NULL;  /* mutex for controlling whether to create an Import (or Export) Refs dialog, or set focus to an existing one */
 HANDLE hLogfileViewerDialogBox = NULL;  /* mutex for controlling whether to create a Logfile Viewer dialog, or set focus to an existing one */
-HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, &hSystray, &hDialogBoxes, &hLogfileViewerDialogBox, NULL};
+HANDLE hAboutDialogBox = NULL;  /* mutex for controlling whether to create an About box, or set focus to an existing one */
+HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, &hSystray, &hDialogBoxes, &hLogfileViewerDialogBox, &hAboutDialogBox, NULL};
 
 
 /* icon array - must match order in FREENET_MODE in types.h */
@@ -283,21 +279,17 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	hSystray = CreateMutex(NULL,FALSE,NULL);
 	hDialogBoxes = CreateMutex(NULL,FALSE,NULL);
 	hLogfileViewerDialogBox = CreateMutex(NULL,FALSE,NULL);
+	hAboutDialogBox = CreateMutex(NULL,FALSE,NULL);
 	
 	/* Initialise WinSock */
 	wsaError = WSAStartup(MAKEWORD(1,1),&wsadata);
 
-	/* Create a separate thread to handle flashing the systray icon */
-	hMonitorThread = CreateThread(NULL,1, MonitorThread, NULL, 0, &dwMonitorThreadId);
-	/* wait for thread message to be created by MonitorThread:
-	   we NEED to do this before we do post any messages to the thread message queue - 
-	   so that BeginMonitoring works immediately on startup
-	   and the app closes down correctly if it can't load an icon resource */
-	while (PostThreadMessage(dwMonitorThreadId, WM_TESTMESSAGE, 0,0) == FALSE);
-
-	
 	/* did everything work so far? */
-	if (hMonitorThread!=NULL &&
+	if (hnFreenetMode!=NULL &&
+		hSystray!=NULL &&
+		hDialogBoxes!=NULL &&
+		hLogfileViewerDialogBox!=NULL &&
+		hAboutDialogBox!=NULL &&
 		hSystray!=NULL &&
 		hConfiguratorSemaphore!=NULL && 
 		hnFreenetMode!=NULL &&
@@ -307,8 +299,29 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 		hHopsNoGatewayIcon!=NULL && 
 		hHopsNoInternetIcon!=NULL &&
 		hThunderboltIcon!=NULL &&
+		hStartingIcon[0]!=NULL &&
+		hStartingIcon[1]!=NULL &&
+		hStartingIcon[2]!=NULL &&
+		hStartingIcon[3]!=NULL &&
+		hStoppingIcon[0]!=NULL &&
+		hStoppingIcon[1]!=NULL &&
+		hStoppingIcon[2]!=NULL &&
+		hStoppingIcon[3]!=NULL &&
 		wsaError==0)
 	{
+
+		/* Create a separate thread to handle flashing the systray icon */
+		hMonitorThread = CreateThread(NULL,1, MonitorThread, NULL, 0, &dwMonitorThreadId);
+	}
+	
+	/* did everything work so far? */
+	if (hMonitorThread!=NULL)
+	{
+		/* wait for thread message to be created by MonitorThread:
+		   we NEED to do this before we do post any messages to the thread message queue - 
+		   so that BeginMonitoring works immediately on startup
+		   and the app closes down correctly if it can't load an icon resource */
+		while (PostThreadMessage(dwMonitorThreadId, WM_TESTMESSAGE, 0,0) == FALSE);
 
 		/*** main code: ***/
 		RegisterClassEx(&wc);
@@ -1092,7 +1105,7 @@ MENUITEMINFO gatewayitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYP
 MENUITEMINFO startstopitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_STARTSTOP, NULL,NULL,NULL,0,szStartString, 0 };
 MENUITEMINFO restartitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_GRAYED, IDM_RESTART, NULL,NULL,NULL,0,szRestartString, 0 };
 MENUITEMINFO configitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_CONFIGURE, NULL,NULL,NULL,0,szConfigureString, 0 };
-MENUITEMINFO helpitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_HELP, NULL,NULL,NULL,0,szHelpString, 0 };
+MENUITEMINFO aboutitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_ABOUT, NULL,NULL,NULL,0,szAboutString, 0 };
 MENUITEMINFO exititem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXIT, NULL,NULL,NULL,0,szExitString, 0 };
 MENUITEMINFO importrefitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_IMPORT, NULL,NULL,NULL,0,szImportString, 0 };
 MENUITEMINFO exportrefitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXPORT, NULL,NULL,NULL,0,szExportString, 0 };
@@ -1121,7 +1134,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			InsertMenuItem(hPopupMenu, c, TRUE, &restartitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &viewlogfileitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &separatoritem); ++c;
-			InsertMenuItem(hPopupMenu, c, TRUE, &helpitem); ++c;
+			InsertMenuItem(hPopupMenu, c, TRUE, &aboutitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &exititem); ++c;
 		       
 			/* see MSDN - we need to do this to safeguard against the systray icon
@@ -1217,8 +1230,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							CreateLogfileViewer(hWnd);
 							break;
 
-						case IDM_HELP:	// show the help file
-							ShellExecute(hWnd,"open",".\\docs\\Freenet.hlp",NULL,NULL,SW_SHOWNORMAL);
+						case IDM_ABOUT:	// show the help file
+							CreateAboutBox(hWnd);
 							break;
 
 						case IDM_EXIT: // otherwise menu choice exit, exiting

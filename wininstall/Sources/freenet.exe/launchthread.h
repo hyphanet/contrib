@@ -1,6 +1,8 @@
 #ifndef FREENET_TRAY_LAUNCHTHREAD_H_INCLUDED
 #define FREENET_TRAY_LAUNCHTHREAD_H_INCLUDED
 
+#include "stdafx.h"
+
 /*	thread to take care of actually loading and running the freenet node, looking after it once
 	it's started, and handle requests to stop and restart it */
 DWORD WINAPI _stdcall MonitorThread(LPVOID null);

@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /Gr /Zp1 /MD /W3 /vd0 /O1 /Oy /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN" /FAcs /YX /FD /c
+# ADD CPP /nologo /Gr /Zp1 /MD /W3 /vd0 /O1 /Oy /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN" /FAcs /YX"stdafx.h" /FD /c
 # SUBTRACT CPP /WX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
@@ -71,7 +71,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FAcs /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FAcs /FR /YX"stdafx.h" /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -95,6 +95,10 @@ LINK32=link.exe
 # PROP Default_Filter ".c"
 # Begin Source File
 
+SOURCE=.\about.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\freenet.c
 # End Source File
 # Begin Source File
@@ -113,6 +117,10 @@ SOURCE=.\refs.c
 # Begin Group "Headers"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\about.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\freenet_tray.h
@@ -136,6 +144,10 @@ SOURCE=.\rsrc.h
 # Begin Source File
 
 SOURCE=.\shared_data.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\stdafx.h
 # End Source File
 # Begin Source File
 

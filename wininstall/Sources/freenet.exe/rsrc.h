@@ -2,21 +2,9 @@
 // Microsoft Developer Studio generated include file.
 // Used by rsrc.rc
 //
-#define ID_CLOSE                        8
-#define DLG_0100                        100
-#define IDFLOG                          101
-#define ID_CLEARLOG                     102
-#define ID_KEY                          104
-#define IDD_DIALOG1                     104
 #define IDD_LOGFILEVIEWER               104
-#define ID_KEYTYPE                      105
 #define IDD_IMPORTPROGRESS              105
-#define ID_FREQ                         106
-#define ID_KSK                          110
-#define ID_CHK                          111
-#define ID_SSK                          112
-#define ID_SVK                          113
-#define DLG_FREQ                        200
+#define IDD_ABOUT                       115
 #define IDI_FREENET                     500
 #define IDI_HOPSENABLED                 500
 #define IDI_HOPSDISABLED                501
@@ -50,16 +38,18 @@
 #define IDC_S_IMPORTFILENAME            1008
 #define IDC_TEXT1                       1009
 #define IDC_TEXT2                       1010
+#define IDC_STATIC_ABOUT_NODEINFO       1010
 #define IDC_TEXT3                       1011
-#define IDM_HELP                        1012
+#define IDM_ABOUT                       1012
+#define IDC_LAUNCH_WWW_SUPPORT_PAGE     1013
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        115
+#define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1010
+#define _APS_NEXT_CONTROL_VALUE         1014
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

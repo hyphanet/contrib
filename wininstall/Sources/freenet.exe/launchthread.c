@@ -6,12 +6,8 @@
 		Also it's better this way as you can get proper notification (through tooltips)
 		of what the freenet node is actually doing at any one time */
 
-#include "winsock2.h"
-#include "windows.h"
-#include "types.h"
+#include "stdafx.h"
 #include "launchthread.h"
-#include "shared_data.h"
-#include "rsrc.h" // for idm_gateway
 
 /******************************************************
  *  G L O B A L S                                     *

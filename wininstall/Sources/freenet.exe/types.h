@@ -1,6 +1,8 @@
 #ifndef FREENET_TRAY_TYPES_H_INCLUDED
 #define FREENET_TRAY_TYPES_H_INCLUDED
 
+#include "stdafx.h"
+
 #ifndef __cplusplus
 #define __needbool__
 #else
@@ -11,8 +13,6 @@
 #ifdef __needbool__
 typedef enum _tagbool{false=0,true} bool;
 #endif
-
-typedef void(__stdcall* LPCONFIGPROC)(void*);
 
 /* internal state enum.  Note - it may be the case that some states are not currently used in the code */
 typedef enum _tagfreenetmode

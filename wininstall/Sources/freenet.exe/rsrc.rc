@@ -70,10 +70,10 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.freenetproject.org\r\nsupport@freenetproject.org\r\nWritten / Maintained by Dave Hooper\r\n22 April 2003\0"
+            VALUE "Comments", "http://www.freenetproject.org\r\nsupport@freenetproject.org\r\nWritten / Maintained by Dave Hooper\r\n23 April 2003\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "Freenet Systray Application\0"
-            VALUE "FileVersion", "0.5.1.1\0"
+            VALUE "FileVersion", "0.5.1.2\0"
             VALUE "InternalName", "freenet.exe\0"
             VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
             VALUE "LegalTrademarks", "\0"
@@ -122,22 +122,22 @@ IDI_STARTING4           ICON    DISCARDABLE     "res\\Starting1.ico"
 //
 
 IDD_LOGFILEVIEWER DIALOGEX 0, 0, 426, 207
-STYLE DS_SETFOREGROUND | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFOREGROUND | DS_CENTER | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "View Freenet.log"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
+FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,369,186,50,14
     PUSHBUTTON      "&Copy Selection to Clipboard",IDCOPY,139,186,143,14
     EDITTEXT        IDC_EDIT1,7,7,400,178,ES_MULTILINE | ES_READONLY | 
                     WS_HSCROLL,WS_EX_TRANSPARENT
-    CONTROL         "&Track tail of file",IDC_TRACKCHANGES,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,190,62,10
+    CONTROL         "Auto-Scroll to new messages",IDC_TRACKCHANGES,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,190,125,10
     SCROLLBAR       IDC_SCROLLBAR1,408,7,11,167,SBS_BOTTOMALIGN | SBS_VERT | 
                     WS_DISABLED
 END
 
 IDD_IMPORTPROGRESS DIALOG DISCARDABLE  0, 0, 252, 46
-STYLE DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP
+STYLE DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP | WS_VISIBLE
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            IDI_REFERENCE,IDC_STATIC,7,7,20,20
@@ -149,6 +149,25 @@ BEGIN
                     IDC_TEXT2,37,7,180,19,SS_CENTERIMAGE | NOT WS_VISIBLE
     LTEXT           "Importing Freenet References... This will not take long. .",
                     IDC_TEXT3,37,7,180,19,SS_CENTERIMAGE | NOT WS_VISIBLE
+END
+
+IDD_ABOUT DIALOG DISCARDABLE  0, 0, 231, 116
+STYLE DS_MODALFRAME | DS_SETFOREGROUND | DS_CENTER | WS_POPUP | WS_VISIBLE | 
+    WS_CAPTION | WS_SYSMENU
+CAPTION "About Freenet"
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "Freenet for Windows®",IDC_STATIC,7,7,217,102
+    ICON            IDI_HOPSENABLED,IDC_STATIC,18,20,20,20
+    LTEXT           "Freenet for Windows® support software maintained by Dave Hooper.",
+                    IDC_STATIC,53,20,149,18
+    LTEXT           "Version 0.5.1.2 (23th April 2003)",IDC_STATIC,53,40,165,
+                    10
+    LTEXT           "Node info:",IDC_STATIC,13,50,205,8
+    LTEXT           "",IDC_STATIC_ABOUT_NODEINFO,13,58,205,31
+    DEFPUSHBUTTON   "&OK",IDOK,140,94,84,15
+    PUSHBUTTON      "www.freenetproject.org",IDC_LAUNCH_WWW_SUPPORT_PAGE,7,
+                    94,133,15
 END
 
 
@@ -174,6 +193,14 @@ BEGIN
         RIGHTMARGIN, 245
         TOPMARGIN, 7
         BOTTOMMARGIN, 39
+    END
+
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 224
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 109
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -1,8 +1,8 @@
 #ifndef FREENET_TRAY_SHARED_DATA_H_INCLUDED
 #define FREENET_TRAY_SHARED_DATA_H_INCLUDED
 
-#include "windows.h"
-#include "shellapi.h"
+#include "types.h"
+#include "stdafx.h"
 
 /******************************************************
  * #defines:                                          *
@@ -66,7 +66,8 @@ enum LOCKCONTEXTS
 	NFREENETMODE=0,
 	SYSTRAY=1,
 	DIALOGBOXES=2,
-	LOGFILEDIALOGBOX=3
+	LOGFILEDIALOGBOX=3,
+	ABOUTDIALOGBOX=4
 };
 extern HANDLE * LOCKOBJECTS[];
 

@@ -1,11 +1,8 @@
 // Dialog boxes for configuring import / export of references
 
-#include "windows.h"
-#include "types.h"
+#include "stdafx.h"
 #include "commdlg.h"
-#include "shared_data.h"
 #include "refs.h"
-#include "rsrc.h"
 
 static const char szFileExtensions[] = "Freenet references (*.ref)\0*.REF\0All files (*.*)\0*.*\0\0";
 static const char szImportDialogTitlebar[] = "Import Freenet References";

@@ -1,8 +1,5 @@
-#include "windows.h"
-#include "types.h"
-#include "shared_data.h"
+#include "stdafx.h"
 #include "logfile.h"
-#include "rsrc.h"
 
 HWND hLogFileDialogWnd = NULL;
 BOOL bLogFileDialogBoxRunning = FALSE;
@@ -495,7 +492,7 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 						  FILE_NOTIFY_CHANGE_FILE_NAME|FILE_NOTIFY_CHANGE_LAST_WRITE);
 	const HANDLE hEvents[] = {d->hStopThreadEvent,hFindChanges};
 	DWORD dwWaitResult;
-	char pTextBuffer[4097];
+	char pTextBuffer[32767];
 	char * pTextPointer;
 	BOOL bQuit=FALSE;
 	BOOL bTrackChanges;
@@ -633,6 +630,9 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 			// get number of lines that edit box can display on screen...
 			d.nEditLines = GetEditLines(GetDlgItem(hwndDialog,IDC_EDIT1));
 
+			// set "autoscroll to new messages" by default
+			CheckDlgButton(hwndDialog,IDC_TRACKCHANGES,BST_CHECKED);
+
 			// move file pointer to end of file ready to display last n lines
 			hLogFile = UpdateFileDetails(&d);
 			d.ulCurrentLineFileOffset.QuadPart = d.dwlFileSize.QuadPart;
@@ -649,7 +649,7 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 
 	case WM_VSCROLL:
 		{
-			char pTextBuffer[4097];
+			char pTextBuffer[32767];
 			char * pTextPointer;
 			ULARGE_INTEGER ulFromHereFilePosition;
 			int nLines;
@@ -825,7 +825,7 @@ void CreateLogfileViewer(HWND hWnd)
 {
 	// if logfile thread is already created, highlight it
 	LOCK(LOGFILEDIALOGBOX);
-	if (bLogFileDialogBoxRunning)
+	if (bLogFileDialogBoxRunning && hLogFileDialogWnd!=NULL)
 	{
 		UNLOCK(LOGFILEDIALOGBOX);
 		// if so - set focus to it:
@@ -834,12 +834,8 @@ void CreateLogfileViewer(HWND hWnd)
 	else
 	{
 		// else create the dialog box and its thread:
-		// ...
 		hLogFileDialogWnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_LOGFILEVIEWER), hWnd, LogFileViewerProc);
-		if (hLogFileDialogWnd != NULL)
-		{
-			bLogFileDialogBoxRunning=true;
-		}
+		bLogFileDialogBoxRunning = (hLogFileDialogWnd != NULL);
 		UNLOCK(LOGFILEDIALOGBOX);
 	}
 }

@@ -1,5 +1,7 @@
-#include "windows.h"
-#include "types.h"
+#ifndef FREENET_TRAY_H_INCLUDED
+#define FREENET_TRAY_H_INCLUDED
+
+#include "stdafx.h"
 
 #define WM_SHELLNOTIFY WM_USER+5 
 #define IDI_TRAY 0 
@@ -42,6 +44,10 @@ LPSTR GetNextToken(LPSTR szCurrentPointer, const LPSTR szEndPointer);
 void GetToken(LPSTR szCurrentPointer);
 LPSTR SkipSpace(LPSTR szString);
 
-
 void CreateConfig(LPCSTR szConfigFile);
 void MergeConfig(LPCSTR szConfigFile, LPCSTR szConfigDefaultsFile);
+
+typedef void(__stdcall* LPCONFIGPROC)(void*);
+
+
+#endif // FREENET_TRAY_H_INCLUDED
