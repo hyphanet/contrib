@@ -23,8 +23,11 @@
 #define IDC_storePath                   1001
 #define IDC_fproxy_requesthtl           1001
 #define IDC_storePath_browse            1002
+#define IDC_fproxy_splitthreads         1002
 #define IDC_useDefaultNodeRefs          1003
+#define IDC_fproxy_splitretries         1003
 #define IDC_importNewNodeRef            1004
+#define IDC_fproxy_splitincHTL          1004
 #define IDC_BUT_exportRef               1005
 #define IDC_transient                   1006
 #define IDC_doAnnounce                  1007
@@ -80,6 +83,7 @@
 #define IDC_FPROXYFILTER                1064
 #define IDC_FPROXYSERVICE               1065
 #define IDC_FPROXYALLOWEDMIME           1066
+#define IDC_FPROXYDROPPEDCONN           1068
 
 // Next default values for new objects
 // 
@@ -87,7 +91,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1067
+#define _APS_NEXT_CONTROL_VALUE         1069
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

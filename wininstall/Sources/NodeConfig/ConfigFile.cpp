@@ -127,6 +127,10 @@ void CConfigFile::Load()
 	pFProxy->m_bfproxyservice= TRUE;
 	pFProxy->m_fproxyinserthtl = 15;
 	pFProxy->m_fproxyrequesthtl = 15;
+	pFProxy->m_fproxy_pollDroppedConnection = TRUE;
+	pFProxy->m_fproxy_splitinchtl = 20;
+	pFProxy->m_fproxy_splitretries = 1;
+	pFProxy->m_fproxy_splitthreads = 10;
 	
 	// Reset unknown parameters container
 	UnknownParms = "";
@@ -426,6 +430,10 @@ void CConfigFile::Save()
 	fprintf(fp, "fproxy.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
 	fprintf(fp, "fproxy.filter=%s\n",pFProxy->m_bfproxyfilter?"true":"false");
 	fprintf(fp, "fproxy.passThroughMimeTypes=%s\n",pFProxy->m_strfproxyallowedmime);
+	fprintf(fp, "fproxy.pollForDroppedConnection=%s\n",pFProxy->m_fproxy_pollDroppedConnection?"true":"false");
+	fprintf(fp, "fproxy.splitFileRetryHtlIncrement=%d\n",pFProxy->m_fproxy_splitinchtl);
+	fprintf(fp, "fproxy.splitFileRetries=%d\n",pFProxy->m_fproxy_splitretries);
+	fprintf(fp, "fproxy.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
 	fprintf(fp, "\n");
 
 	// Write out unknown parameters
@@ -555,6 +563,14 @@ void CConfigFile::processItem(char *tok, char *val)
 		pFProxy->m_bfproxyfilter = atobool(val);
 	else if (!strcmp(tok, "fproxy.passThroughMimeTypes"))
 		pFProxy->m_strfproxyallowedmime = val;
+	else if (!strcmp(tok, "fproxy.pollForDroppedConnection"))
+		pFProxy->m_fproxy_pollDroppedConnection = atobool(val);
+	else if (!strcmp(tok, "fproxy.splitFileRetryHtlIncrement"))
+		pFProxy->m_fproxy_splitinchtl = atoi(val);
+	else if (!strcmp(tok, "fproxy.splitFileRetries"))
+		pFProxy->m_fproxy_splitretries = atoi(val);
+	else if (!strcmp(tok, "fproxy.splitFileThreads"))
+		pFProxy->m_fproxy_splitthreads = atoi(val);
 
 	else
 	{

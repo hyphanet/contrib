@@ -247,6 +247,18 @@ BEGIN
     GROUPBOX        "Anonymity",IDC_STATIC,99,18,213,51
     EDITTEXT        IDC_FPROXYALLOWEDMIME,105,49,200,14,ES_AUTOHSCROLL
     LTEXT           "Allowed Mime types",IDC_STATIC,106,39,90,8
+    GROUPBOX        "Split files",IDC_STATIC,7,135,85,76
+    EDITTEXT        IDC_fproxy_splitthreads,63,148,22,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_fproxy_splitretries,63,169,22,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    EDITTEXT        IDC_fproxy_splitincHTL,64,190,22,14,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    LTEXT           "Threads",IDC_STATIC,15,151,40,8
+    LTEXT           "Retries",IDC_STATIC,16,172,41,8
+    LTEXT           "Retry HTL increment",IDC_STATIC,15,189,44,18
+    CONTROL         "Poll for dropped connection",IDC_FPROXYDROPPEDCONN,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,105,86,199,10
 END
 
 

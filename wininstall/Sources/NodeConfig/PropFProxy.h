@@ -31,6 +31,10 @@ public:
 	BOOL	m_bfproxyfilter;
 	BOOL	m_bfproxyservice;
 	CString	m_strfproxyallowedmime;
+	UINT	m_fproxy_splitinchtl;
+	UINT	m_fproxy_splitretries;
+	UINT	m_fproxy_splitthreads;
+	BOOL	m_fproxy_pollDroppedConnection;
 	//}}AFX_DATA
 
 
