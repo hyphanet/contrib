@@ -8,6 +8,7 @@ that can be implemented by any competent C programmer.
 ----------------
 FCPtools generic
 
+++ Problems at end of Put() routine for all files on Win32.
 + Update ezFCPlib documentation.
 + Confirm OS X and Solaris functionality.
 + Add usage instructions to README file for fcpget, fcpput, fcpputsite.

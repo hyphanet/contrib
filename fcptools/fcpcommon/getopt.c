@@ -19,7 +19,7 @@
    You should have received a copy of the GNU Library General Public License
    along with this program; if not, write to the Free Software
    Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
-
+
 /* This tells Alpha OSF/1 not to define a getopt prototype in <stdio.h>.
    Ditto for AIX 3.2 and <stdlib.h>.  */
 #ifndef _NO_PROTO

@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Library General Public License
    along with this program; if not, write to the Free Software
    Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
-
+
 #ifdef HAVE_CONFIG_H
 #if defined (emacs) || defined (CONFIG_BROKETS)
 /* We use <config.h> instead of "config.h" so that a compilation

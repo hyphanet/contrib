@@ -202,8 +202,9 @@ int _fcpParseURI(hURI *uri, char *key)
 			string_end = strstr(p, "//");
 			len = string_end - p;
 			
-			uri->docname = strndup(p, len);
-			
+			uri->docname = malloc(len + 1);
+			strncpy(uri->docname, p, len);
+		
 			/* set key to first char after "//" */
 			key = string_end + 1;
 			

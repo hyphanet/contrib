@@ -31,26 +31,26 @@ MTL=midl.exe
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "Release"
-# PROP BASE Intermediate_Dir "Release"
+# PROP BASE Output_Dir "fcptools___Win32_Release"
+# PROP BASE Intermediate_Dir "fcptools___Win32_Release"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir ""
-# PROP Intermediate_Dir ""
+# PROP Output_Dir "Release"
+# PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 
 !ELSEIF  "$(CFG)" == "fcptools - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "Debug"
-# PROP BASE Intermediate_Dir "Debug"
+# PROP BASE Output_Dir "fcptools___Win32_Debug"
+# PROP BASE Intermediate_Dir "fcptools___Win32_Debug"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir ""
-# PROP Intermediate_Dir ""
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 
 !ENDIF 
@@ -69,7 +69,15 @@ SOURCE=.\COPYING
 # End Source File
 # Begin Source File
 
+SOURCE=.\INSTALL
+# End Source File
+# Begin Source File
+
 SOURCE=.\INSTALL.msvc
+# End Source File
+# Begin Source File
+
+SOURCE=.\README
 # End Source File
 # Begin Source File
 
