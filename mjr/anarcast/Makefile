@@ -1,11 +1,12 @@
 PROGRAMS = server inform insert request
+DEPS = anarcast.h Makefile
 
 all: $(PROGRAMS)
 
-%: %.c anarcast.h Makefile
+%: %.c $(DEPS)
 	gcc -g -Wall -o $@ $<
 
-proxy:
+proxy: proxy.c $(DEPS)
 	gcc -g -Wall -o proxy proxy.c -pthread
 
 clean:

@@ -10,16 +10,10 @@ int
 main (int argc, char **argv)
 {
     int m, l;
-    char b[1024];
     fd_set r, w;
     
-    sprintf(b, "%s/.anarcast", getenv("HOME"));
-    mkdir(b, 0755);
-    if (chdir(b) == -1)
-	err(1, "can't change to %s", b);
-    
-    if ((l = listening_socket(ANARCAST_SERVER_PORT)) == -1)
-	err(1, "can't grab port %d", ANARCAST_SERVER_PORT);
+    chdir_to_home();
+    l = listening_socket(ANARCAST_SERVER_PORT);
     
     FD_ZERO(&r);
     FD_ZERO(&w);
@@ -92,11 +86,12 @@ main (int argc, char **argv)
 	    }
 	    a[n].off += c;
 	    if (a[n].off == a[n].len) {
+		char hex[HASH_LEN*2+1];
 		sha_buffer(a[n].data, a[n].len, a[n].hash);
-		bytestohex(b, a[n].hash, HASH_LEN);
-		printf("%s < %s\n", timestr(), b);
-		if (stat(b, &st) == -1) {
-		    if ((i = open(b, O_WRONLY | O_CREAT, 0644)) == -1)
+		bytestohex(hex, a[n].hash, HASH_LEN);
+		printf("%s < %s\n", timestr(), hex);
+		if (stat(hex, &st) == -1) {
+		    if ((i = open(hex, O_WRONLY | O_CREAT, 0644)) == -1)
 			err(1, "open(2) failed");
 		    if (writeall(i, a[n].data, a[n].len) != a[n].len)
 			err(1, "write(2) to file failed");
@@ -112,6 +107,7 @@ main (int argc, char **argv)
 	
 	// request
 	if (a[n].type == 'r') {
+	    char hex[HASH_LEN*2+1];
 	    // read hash
 	    i = a[n].off;
 	    if (i < 0) {
@@ -124,13 +120,13 @@ main (int argc, char **argv)
 		a[n].off += c;
 		if (a[n].off) continue;
 	    }
-	    bytestohex(b, a[n].hash, HASH_LEN);
-	    if (stat(b, &st) == -1) {
+	    bytestohex(hex, a[n].hash, HASH_LEN);
+	    if (stat(hex, &st) == -1) {
 		FD_CLR(n, &r);
 		close(n);
 		continue;
 	    }
-	    if ((c = open(b, O_RDONLY)) == -1)
+	    if ((c = open(hex, O_RDONLY)) == -1)
 		err(1, "open(2) failed");
 	    a[n].data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, c, 0);
 	    if (a[n].data == MAP_FAILED)
@@ -165,8 +161,9 @@ write:	//=== write =========================================================
 	    a[n].off += c;
 	    if (c <= 0 || a[n].off == a[n].len) {
 	        if (c > 0) {
-		    bytestohex(b, a[n].hash, HASH_LEN);
-		    printf("%s > %s\n", timestr(), b);
+		    char hex[HASH_LEN*2+1];
+		    bytestohex(hex, a[n].hash, HASH_LEN);
+		    printf("%s > %s\n", timestr(), hex);
 		} else ioerror();
 	        FD_CLR(n, &w);
 	        close(n);

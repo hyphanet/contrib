@@ -13,7 +13,9 @@ main ()
     unsigned int l, m, active;
     long last_weeding;
     fd_set r, w;
-
+    
+    chdir_to_home();
+    
     if ((l = open("inform_database", O_RDWR|O_CREAT, 0644)) == -1)
 	err(1, "open() of inform_database failed");
     
@@ -31,9 +33,7 @@ main ()
     if (close(l) == -1)
 	err(1, "close() failed");
     
-    if ((l = listening_socket(INFORM_SERVER_PORT)) == -1)
-	err(1, "can't grab port %d", INFORM_SERVER_PORT);
-    
+    l = listening_socket(INFORM_SERVER_PORT);
     last_weeding = time(NULL);
     active = 0;
     

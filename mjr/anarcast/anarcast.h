@@ -2,7 +2,6 @@
 #define ANARCAST_SERVER_PORT  9209
 #define INFORM_SERVER_PORT    7342
 #define HASH_LEN              20
-#define DEFAULT_INFORM_SERVER "localhost"
 #define _GNU_SOURCE
 
 #include <err.h>
@@ -139,16 +138,17 @@ listening_socket (int port)
     a.sin_port = htons(port);
     a.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        return -1;
+    if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	err(1, "socket() failed");
 
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *) &r, sizeof(r));
+    if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &r, sizeof(r)) == -1)
+	err(1, "setsockopt() failed");
 
-    if (bind(s, &a, sizeof(a)) < 0)
-        return -1;
+    if (bind(s, &a, sizeof(a)) == -1)
+	err(1, "bind() failed");
 
-    if (listen(s, SOMAXCONN) < 0)
-        return -1;
+    if (listen(s, SOMAXCONN) == -1)
+	err(1, "listen() failed");
 
     return s;
 }
@@ -164,5 +164,15 @@ xor (void *a, const void *b, int len)
     i = len % sizeof(int);
     do ((char *)a)[len-i] ^= ((char *)b)[len-i];
     while (--i);
+}
+
+inline void
+chdir_to_home ()
+{
+    char b[1024];
+    sprintf(b, "%s/.anarcast", getenv("HOME"));
+    mkdir(b, 0755);
+    if (chdir(b) == -1)
+	err(1, "chdir() to %s failed", b);
 }
 
