@@ -44,14 +44,14 @@
 
 *//////////////////////////////////////////////////////////////////////////////
 
+
 #ifndef STRICT
 #define STRICT
+
 #endif
 
 #include <windows.h>
-#include <fstream.h>
 #include <stdio.h>
-#include <string.h>
 #include <commctrl.h>
 #include "resource.h"
 #include <stdlib.h>
@@ -59,15 +59,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // function prototypes
 
-int             doSearch(void);
 DWORD WINAPI    doDeepSearch(LPVOID lpvParameter);
 int             recursiveTraversal(char *cDirectory);
 int             searchIn(char *cPath);
 int             parsePath(char *cPathEnvironment);
 int             updateConfigFiles(void);
 BOOL CALLBACK	dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-LONG			registry_read (char *path, char *key, char *buffer);
-int				searchRegistry();
 void			lookSpecificFolder(char *cDirectory);
 void			CheckWindowsFolders(char *cDrive);
 
@@ -78,7 +75,6 @@ int				searchDone = 0;
 const int MATCH_FOUND = 2;
 bool bUpdateBeforeTraverseComplete = false;
 #define MAXSTR 512
-#define JAVA_FOUND_IN_REGISTRY 0
 
 ///////////////////////////////////////////////////////////////////////////////
 // globals
@@ -99,8 +95,6 @@ DialogControls dc;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
     {
-
-		char javapath[256];
 		char *exename;
 		char *progpath;
 
@@ -108,28 +102,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 		progpath = strdup(_pgmptr); // 'pgmptr' is a global windows-specific string
 		exename = strrchr(progpath, '\\'); // point to slash between path and filename
 		*exename++ = '\0'; // split the string and point to filename part
-
-		// davidmcnab - magic command line argument which sets to locally bundled java
-		if (!_stricmp(exename, "locjava.exe"))
-		{
-			// generate absolute pathname for embedded java interpreter, write to flaunch.ini
-			sprintf(javapath, "%s\\jre\\bin\\java.exe", progpath);
-		    WritePrivateProfileString("Freenet Launcher", "javaexec", javapath, ".\\FLaunch.ini");
-
-			// ditto for javaw.exe
-			sprintf(javapath, "%s\\jre\\bin\\javaw.exe", progpath);
-		    WritePrivateProfileString("Freenet Launcher", "javaw", javapath, ".\\FLaunch.ini");
-
-			// no need for dialog
-			return 0;
-		}
-
-		// If we find an interpreter in the registry dont bother with the hdd check
-		if((searchRegistry() == JAVA_FOUND_IN_REGISTRY))
-		{
-			PostQuitMessage(1); //exit
-			return 0;
-		}
 
 	    InitCommonControls();
 
@@ -167,8 +139,8 @@ BOOL CALLBACK dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				case IDC_BUTTON_CLOSE:
 				{
-					if (!searchDone)
-						return FALSE;
+					//if (!searchDone) /* disabled this, we do want to be able to update before finishing the search*/
+					//	return FALSE;
 
 					if(bUpdateBeforeTraverseComplete)
 						MessageBox(dc.hWndMain,
@@ -190,22 +162,17 @@ BOOL CALLBACK dlgProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					if(MessageBox(dc.hWndMain, 
 						"Are you sure you wish to cancel?\n"
 						"without letting the search for\n"
-						"a java interpreter complete?",
+						"a java interpreter complete?\n"
+						"You may have to edit the flaunch.ini\n"
+						"file manually or re-run the installation\n"
+						"to get Freenet to work.",
 						"Abort?",
 						MB_YESNO | MB_ICONQUESTION) == IDYES)
-					{
-							MessageBox(dc.hWndMain,
-								"Java interpreter search aborted.\n\n"
-								"You may have to edit the flaunch.ini\n"
-								"file manually or re-run the installation\n"
-								"to get freenet to work.",
-								"Aborted.",
-								MB_OK | MB_ICONINFORMATION);
-
+						{
 							CloseHandle(hThread);
 							EndDialog(hWndDlg, 1);
 							return TRUE;
-					}
+						}
 				}
 
 			}
@@ -242,54 +209,6 @@ int updateConfigFiles(void)
     delete [] cJavaExec;
 
     return 1;    
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-
-// this function seems to be obsolete - nobody calls it
-
-int doSearch(void)
-{
-    char *cPath;
-    int iSize;
-
-    // look in Windows directory
-    //
-
-    cPath = new char[MAX_PATH];
-    GetWindowsDirectory(cPath, MAX_PATH);
-
-	// Display the Update settings window if a match is found
-    if(searchIn(cPath) == MATCH_FOUND)
-	{
-		// Select the first index entry in the list.
-		SendMessage(dc.hWndResultList, LB_SETCURSEL, (WPARAM)0, 0);
-		ShowWindow(dc.hWndCloseButton, SW_SHOW);
-
-		// Set public variable so we can popup a message before window closes
-		bUpdateBeforeTraverseComplete = true;
-	}
-
-    delete [] cPath;
-
-    // look in System directory
-    //
-
-    cPath = new char[MAX_PATH];
-    GetSystemDirectory(cPath, MAX_PATH);
-    delete [] cPath;
-
-    // expand the %PATH% environment variable
-    //
-
-    iSize = ExpandEnvironmentStrings("%PATH%", cPath, 0);
-    cPath = new char[iSize];
-    ExpandEnvironmentStrings("%PATH%", cPath, iSize);
-    parsePath(cPath);
-    delete [] cPath;
-
-    return 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -378,16 +297,22 @@ DWORD WINAPI doDeepSearch(LPVOID lpvParameter)
     else
     {
 	    SetWindowText(dc.hWndStatusText, "Java not found. Press Close to exit.");
+
 		SetWindowText(dc.hWndCloseButton, "&Close");
+
 		MessageBox(dc.hWndMain, 
 			"A Java interpreter (java.exe) could not be found.\n\n"
 			"Please install a suitable Java Runtime Environment.\n"
             "For more information visit http://java.sun.com and search for\n"
+
 			"\"JRE Windows SDK\".  The latest version at time of writing is\n"
+
 			"the Java(TM) 2 Runtime Environment JRE 1.3.1 .\n\n"
+
 			"Note - Sun JRE 1.1.x does NOT contain a compatible java.exe\n",
             "Search failed", 
             MB_OK | MB_ICONSTOP);
+
 		searchDone = 1; // doh - please be consistent, the search IS finished!
 		return 0;
 	}
@@ -590,77 +515,6 @@ int searchIn(char *cPath)
 	else
 		return 1;
 }
-
-
-//----------------------------------------------------------------------------------------
-int searchRegistry()
-{
-	char s[MAXSTR]="";
-	char javapath[MAXSTR]="";
-	char javawpath[MAXSTR]="";
-	bool javaFound;
-	bool javawFound=FALSE;
-
-	const char *text1="Is this a valid path to either Java.exe or jview.exe?",
-			 *text2="Is this a valid path to javaw.exe or wjview.exe?",
-			 *msgtitle="Found Java entry in registry",
-			 *lpAppName="Freenet Launcher",
-			 *lpKeyJava = "Javaexec",
-			 *lpKeyJavaw = "Javaw",
-			 *filename = "./FLaunch.ini",
-			 *javafindcmd = "findjava.exe";
-
-
-	javaFound = (registry_read ("Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Java.exe","", javapath) == ERROR_SUCCESS);
-
-	// registry_read ("Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Javaw.exe","", javawpath);//
-	strcat(s,javapath);
-	strcat(s,"\n\n");
-	strcat(s,text1);
-
-	if (javaFound)
-	{
-		switch(MessageBox(dc.hWndMain, s, msgtitle, MB_YESNO|MB_ICONQUESTION))
-		{
-			case IDYES:
-				// INSERT Write the path to FLaunch.ini
-				WritePrivateProfileString(lpAppName, lpKeyJava, javapath, filename);
-				return 0;
-				break;
-
-			case IDNO:
-				// INSERT the normal JavaFindutility here
-				return 1;
-				break;
-
-			case IDCANCEL:
-				return 1;
-				break;
-
-		} //switch
-
-	} //if
-
-	return 1;
-}
-
-//**************************************************************************/
-//	(REGISTRY-READ path key)	; get string value from HKEY_LOCAL_MACHINE
-
-LONG registry_read (char *path, char *key, char *buffer)
-{
-	LONG retValue;
-	HKEY hkResult;
-	DWORD lSize = MAXSTR;
-	static char result[MAXSTR];
-
-    RegOpenKeyEx (HKEY_LOCAL_MACHINE,path,0,KEY_QUERY_VALUE	,&hkResult);
-    retValue = RegQueryValueEx (hkResult, key, NULL, NULL,(unsigned char*) &result,&lSize);
-    strcpy(buffer,result);
-    RegCloseKey (hkResult);
-    return retValue;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // eof
 ///////////////////////////////////////////////////////////////////////////////
