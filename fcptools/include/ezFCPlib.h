@@ -48,13 +48,14 @@
 #define DIR_DELIM_CHAR      '/'
 #define DIR_DELIM_STRING    "/"
 
+
 #define MAX_URI_LEN         256
 #define MAX_FILENAME_LEN    128
 #define MAX_TMP_FNAME_LEN   L_tmpnam
 #define MAX_STRING_LEN      256
 #define MAX_KEY_LEN         128
 #define MAX_KEYINDEX_LEN    128
-#define MAX_KSK_LEN			32768
+#define MAX_KSK_LEN         32768
 
 
 /*
@@ -74,12 +75,12 @@ typedef struct {
 #define SPLIT_BLOCK_SIZE       262144    /* default split part size (256*1024) */
 #define FCP_MAX_SPLIT_THREADS  8
 
-#define SPLIT_INSSTAT_IDLE		 0        /* no splitfile insert requested */
-#define SPLIT_INSSTAT_WAITING	 1        /* waiting for mgr thread to pick up */
-#define SPLIT_INSSTAT_INPROG	 2        /* in progress */
-#define SPLIT_INSSTAT_BADNEWS	 3        /* failure - awaiting cleanup */
+#define SPLIT_INSSTAT_IDLE     0        /* no splitfile insert requested */
+#define SPLIT_INSSTAT_WAITING  1        /* waiting for mgr thread to pick up */
+#define SPLIT_INSSTAT_INPROG   2        /* in progress */
+#define SPLIT_INSSTAT_BADNEWS  3        /* failure - awaiting cleanup */
 #define SPLIT_INSSTAT_MANIFEST 4        /* inserting splitfile manifest */
-#define SPLIT_INSSTAT_SUCCESS	 5        /* full insert completed successfully */
+#define SPLIT_INSSTAT_SUCCESS  5        /* full insert completed successfully */
 #define SPLIT_INSSTAT_FAILED   6        /* insert failed somewhere */
 
 /*
