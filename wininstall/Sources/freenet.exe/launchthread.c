@@ -31,6 +31,7 @@ const char szFCPerrTitle[]=	"Error launching FCPProxy";
 
 const char sztempdir1[]="FECTempDir"; /* ie FECTempDir=C:\windows\temp\freenet */
 const char sztempdir2[]="mainport.params.servlet.1.params.tempDir"; /* see sztempdir1 */
+const char sztempdir3[]="tempDir"; /* see sztempdir1 */
 
 extern const char szfinifile[];
 extern const char szfinisec[];
@@ -453,20 +454,24 @@ void DeleteFilesInDirectory(char* directory)
 void ClearTempDirectories(void)
 {
 	// this should be done every time the node is started or stopped (while the node is not running preferably)
-	char tempdir1[MAX_PATH], tempdir2[MAX_PATH];
+	char tempdir1[MAX_PATH], tempdir2[MAX_PATH], tempdir3[MAX_PATH];
 
 	SetCurrentDirectory(szHomeDirectory);
 
 	// FIXME: this shoudln't be committed liek this
 	GetPrivateProfileString(szfinisec, sztempdir1, szempty, tempdir1, MAX_PATH, szfinifile);
 	GetPrivateProfileString(szfinisec, sztempdir2, szempty, tempdir2, MAX_PATH, szfinifile);
+	GetPrivateProfileString(szfinisec, sztempdir3, szempty, tempdir3, MAX_PATH, szfinifile);
 
 	//todo: automatically use win2k security if in win2k
 	CreateDirectory(tempdir1, NULL);
 	CreateDirectory(tempdir2, NULL);
+	CreateDirectory(tempdir3, NULL);
 
 	if(strlen(tempdir1))
 		DeleteFilesInDirectory(tempdir1);
 	if(strlen(tempdir2))
 		DeleteFilesInDirectory(tempdir2);
+	if(strlen(tempdir3))
+		DeleteFilesInDirectory(tempdir3);
 }
