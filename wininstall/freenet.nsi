@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "11102001snapshot"
+!define VERSION "13102001snapshot"
 
 Name "Freenet ${VERSION}"
 !ifdef embedJava
@@ -144,11 +144,6 @@ Section "Freenet (required)"
   # No, we don't want to start FProxy by default
   ;  replace the above line with the one below if you want to start fproxy automatically
    ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
-    
-  Delete "$INSTDIR\findjava.exe"
-  Delete "$INSTDIR\cfgnode.exe"
-  Delete "$INSTDIR\cfgclient.exe"
-  Delete "$INSTDIR\GetSeed.exe"
   
  Seed:
   # seeding the initial references
@@ -190,15 +185,6 @@ Section "Freenet (required)"
 SectionEnd
 ;--------------------------------------------------------------------------------------
 
-;Section "FCPProxy (web browser based access)"
-;SectionIn 1,2
-;
-;  SetOutPath "$INSTDIR"
-;  File "freenet\fcpproxy\*.*"
-;
-;SectionEnd
-;--------------------------------------------------------------------------------------
- 
 Section "Startmenu and Desktop Icons"
 SectionIn 1,2
 
@@ -249,14 +235,24 @@ Section "View Readme.txt"
 SectionIn 2
   ExecShell "open" "$INSTDIR\docs\Readme.txt"
 SectionEnd
+;-------------------------------------------------------------------------------
+ SectionDivider
 ;---------------------------------------------------------------------------------------
+Section "FCPProxy (alternative to the integrated FProxy)"
+SectionIn 2
+
+  SetOutPath "$INSTDIR\"
+   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --update --silent'
+  File "freenet\fcpproxy\*.*"
+SectionEnd
+;--------------------------------------------------------------------------------------
 
 Section -PostInstall
 
   # Register .ref files to be added to seed.ref with a double-click
   WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet_node_ref"
   WriteRegStr HKEY_CLASSES_ROOT "Freenet_node_ref\shell\open\command" "" '"$INSTDIR\freenet.exe" -import "%1"'
-  WriteRegStr HKEY_CLASSES_ROOT "Freenet_node_ref\DefaultIcon" "" "$INSTDIR\freenet.exe,0"
+  WriteRegStr HKEY_CLASSES_ROOT "Freenet_node_ref\DefaultIcon" "" "$INSTDIR\freenet.exe,7"
 
 
   # Registering install path, so future installs will use the same path
@@ -269,6 +265,11 @@ Section -PostInstall
   MessageBox MB_YESNO "Congratulations, you have finished the installation of Freenet successfully.$\r$\nDo you want to start your Freenet node now?" IDNO StartedNode
   Exec "$INSTDIR\freenet.exe"
 StartedNode:
+
+  Delete "$INSTDIR\cfgnode.exe"      
+  Delete "$INSTDIR\findjava.exe"
+  Delete "$INSTDIR\cfgclient.exe"
+  Delete "$INSTDIR\GetSeed.exe"
 SectionEnd
 ;------------------------------------------------------------------------------------------
 
