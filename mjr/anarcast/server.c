@@ -3,7 +3,7 @@
 
 struct state {
     char type, hash[HASH_LEN], *data;
-    unsigned int off;
+    unsigned int off, len;
 } a[FD_SETSIZE];
 
 int
@@ -63,34 +63,46 @@ main (int argc, char **argv)
 	    }
 	    if (a[n].type == 'r')
 	        a[n].off = -HASH_LEN;
+	    else a[n].off = -4;
 	    continue;
 	}
 	
 	// insert
 	if (a[n].type == 'i') {
+            // read length
+            i = a[n].off;
+            if (i < 0) {
+                if ((c = read(n, &(&a[n].len)[4+i], -i)) <= 0) {
+                    FD_CLR(n, &r);
+                    close(n);
+                    continue;
+                }
+                a[n].off += c;
+                continue;
+            }
 	    // read data
 	    i = a[n].off;
-	    if (!i) a[n].data = mbuf(PART_SIZE);
-	    if ((c = read(n, &a[n].data[i], PART_SIZE - i)) <= 0) {
-		ioerror(c);
-		munmap(a[n].data, PART_SIZE);
+	    if (!i) a[n].data = mbuf(a[n].len);
+	    if ((c = read(n, &a[n].data[i], a[n].len - i)) <= 0) {
+		ioerror();
+		munmap(a[n].data, a[n].len);
 		FD_CLR(n, &r);
 		close(n);
 		continue;
 	    }
 	    a[n].off += c;
-	    if (a[n].off == PART_SIZE) {
-		sha_buffer(a[n].data, PART_SIZE, a[n].hash);
+	    if (a[n].off == a[n].len) {
+		sha_buffer(a[n].data, a[n].len, a[n].hash);
 		bytestohex(b, a[n].hash, HASH_LEN);
 		printf("%s < %s\n", timestr(), b);
 		if (stat(b, &st) == -1) {
 		    if ((i = open(b, O_WRONLY | O_CREAT, 0644)) == -1)
 			err(1, "open(2) failed");
-		    if (write(i, a[n].data, PART_SIZE) != PART_SIZE)
+		    if (writeall(i, a[n].data, a[n].len) != a[n].len)
 			err(1, "write(2) to file failed");
 		    close(i);
 		}
-		munmap(a[n].data, PART_SIZE);
+		munmap(a[n].data, a[n].len);
 		FD_CLR(n, &r);
 		FD_SET(n, &w);
 		a[n].off = 0;
@@ -104,7 +116,7 @@ main (int argc, char **argv)
 	    i = a[n].off;
 	    if (i < 0) {
 		if ((c = read(n, &a[n].hash[HASH_LEN+i], -i)) <= 0) {
-		    ioerror(c);
+		    ioerror();
 		    FD_CLR(n, &r);
 		    close(n);
 		    continue;
@@ -118,14 +130,6 @@ main (int argc, char **argv)
 		close(n);
 		continue;
 	    }
-	    if (st.st_size != PART_SIZE) {
-		printf("%s: Bad file size! ", b);
-		if (unlink(b) == 0) printf("Unlinked.\n");
-		else printf("Unlinking failed!\n");
-		FD_CLR(n, &r);
-		close(n);
-		continue;
-	    }
 	    if ((c = open(b, O_RDONLY)) == -1)
 		err(1, "open(2) failed");
 	    a[n].data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, c, 0);
@@ -134,6 +138,8 @@ main (int argc, char **argv)
 	    close(c);
 	    FD_CLR(n, &r);
 	    FD_SET(n, &w);
+	    a[n].len = st.st_size;
+	    a[n].off = -4;
 	}
 
 write:	//=== write =========================================================
@@ -146,7 +152,7 @@ write:	//=== write =========================================================
 	    i = a[n].off;
 	    a[n].off += (c = write(n, &a[n].hash[i], HASH_LEN - i));
 	    if (c <= 0 || a[n].off == HASH_LEN) {
-		if (c <= 0) ioerror(c);
+		if (c <= 0) ioerror();
 		FD_CLR(n, &w);
 		close(n);
 	    }
@@ -154,12 +160,14 @@ write:	//=== write =========================================================
 	
 	if (a[n].type == 'r') {
 	    i = a[n].off;
-	    a[n].off += (c = write(n, &a[n].data[i], PART_SIZE - i));
+	    if (i < 0) c = write(n, &(&a[n].len)[4+i], -i);
+	    else c = write(n, &a[n].data[i], PART_SIZE - i);
+	    a[n].off += c;
 	    if (c <= 0 || a[n].off == PART_SIZE) {
 	        if (c > 0) {
 		    bytestohex(b, a[n].hash, HASH_LEN);
 		    printf("%s > %s\n", timestr(), b);
-		} else ioerror(c);
+		} else ioerror();
 	        FD_CLR(n, &w);
 	        close(n);
 	        munmap(a[n].data, PART_SIZE);

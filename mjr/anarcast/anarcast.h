@@ -3,7 +3,7 @@
 #define INFORM_SERVER_PORT    7342
 #define HASH_LEN              20
 #define DEFAULT_INFORM_SERVER "localhost"
-#define PART_SIZE             64 * 1024
+#define PART_SIZE             (64 * 1024)
 
 #include <err.h>
 #include <fcntl.h>
@@ -21,11 +21,30 @@
 #include <unistd.h>
 
 inline void
-ioerror (int c)
+ioerror ()
 {
     extern int errno;
-    if (c == -1) printf("I/O Error: %s.\n", strerror(errno));
-    else puts("I/O Error: Connection reset by peer.");
+    printf("I/O Error: %s.\n", strerror(errno));
+}
+
+inline int
+readall (int c, const void *b, int len)
+{
+    int j = 0, i = 0;
+    while ((i += j) < len)
+	if ((j = read(c, &((char *)b)[i], len-i)) <= 0)
+	    return i;
+    return i;
+}
+
+inline int
+writeall (int c, const void *b, int len)
+{
+    int j = 0, i = 0;
+    while ((i += j) < len)
+	if ((j = write(c, &((char *)b)[i], len-i)) <= 0)
+	    return i;
+    return i;
 }
 
 inline char *
@@ -50,18 +69,18 @@ mbuf (size_t len)
 }
 
 inline void
-bytestohex (char *hex, char *bytes, int blen)
+bytestohex (char *hex, const void *bytes, int blen)
 {
     static char hextable[] = "0123456789ABCDEF";
     for ( ; blen-- ; bytes++) {
-        *hex++ = hextable[*bytes >> 4 & 0x0f];
-        *hex++ = hextable[*bytes & 0x0f];
+        *hex++ = hextable[*(char *)bytes >> 4 & 0x0f];
+        *hex++ = hextable[*(char *)bytes & 0x0f];
     }
     *hex = 0;
 }
 
 inline int
-hextobytes (char *hex, char *bytes, uint hlen)
+hextobytes (const char *hex, void *bytes, uint hlen)
 {
     int i, j;
     char d;
@@ -90,7 +109,7 @@ hextobytes (char *hex, char *bytes, uint hlen)
             d |= (hex[i + 1] - '0');
         else
             return 0;
-        bytes[j++] = d;
+        ((char *)bytes)[j++] = d;
     }
 
     return j;
@@ -130,5 +149,18 @@ listening_socket (int port)
         return -1;
 
     return s;
+}
+
+inline void
+xor (void *a, const void *b, int len)
+{
+    int i;
+    
+    for (i = 0 ; i < len / sizeof(int) ; i++)
+	((int *)a)[i] ^= ((int *)b)[i];
+    
+    i = len % sizeof(int);
+    do ((char *)a)[len-i] ^= ((char *)b)[len-i];
+    while (--i);
 }
 

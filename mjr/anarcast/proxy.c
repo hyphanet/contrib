@@ -5,6 +5,7 @@
 
 void * run_thread (void *arg);
 void insert (int c);
+void insert_parts (int c, char *p, int len, int pc);
 void request (int c);
 void inform ();
 inline void addref (char p[20]);
@@ -21,7 +22,7 @@ main (int argc, char **argv)
     if (chdir(b) == -1)
 	err(1, "can't change to %s", b);
     
-    inform(argv[1] ? argv[1] : DEFAULT_INFORM_SERVER);
+//    inform(argv[1] ? argv[1] : DEFAULT_INFORM_SERVER);
     
     if ((l = listening_socket(PROXY_SERVER_PORT)) == -1)
 	err(1, "can't grab port %d", PROXY_SERVER_PORT);
@@ -52,25 +53,22 @@ run_thread (void *arg)
 void
 insert (int c)
 {
-    char b[1024], *p;
-    unsigned int len, f, i;
+    char b[1024], *p, *hash;
+    unsigned int len, f, i, *off;
     keyInstance key;
     cipherInstance cipher;
+    fd_set r, w;
     
-    if (read(c, &len, 4) != 4)
+    if (readall(c, &len, 4) != 4)
 	return;
-    
-    p = mbuf(len);
-    
-    for (f = 0 ; f < len ; ) {
-	f += (i = read(c, &p[f], len - f));
-	if (i <= 0) {
-	    ioerror(i);
-	    munmap(p, len);
-	    return;
-	}
-    }
 
+    p = mbuf(len);
+    if (readall(c, p, len) != len) {
+	ioerror();
+	munmap(p, len);
+	return;
+    }
+    
     sha_buffer(p, len, b);
     if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
 	err(1, "cipherInit() failed");
@@ -79,8 +77,53 @@ insert (int c)
     if (blockEncrypt(&cipher, &key, p, len, p) <= 0)
 	err(1, "blockEncrypt() failed");
     
+    do binary[i] = n % 2;
+    while (n >>= 2);
+    
+    f = len/PART_SIZE;
+    if (f * PART_SIZE < len) f++;
+    f += f/16 + f%16/
+    printf("Inserting %d parts.\n", f);
+    
+    if (!(hash = alloca(f * HASH_LEN)))
+	err(1, "alloca() failed");
+    
+    if (!(off = alloca(f * sizeof(unsigned int))))
+	err(1, "alloca() failed");
+    
+    FD_ZERO(&r);
+    FD_ZERO(&w);
+    
+    for (i = 0 ; i < f ; i++) {
+	int c, j;
+/*	struct sockaddr_in a;
+	char b[20];
+	
+	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	    err(1, "socket(2) failed");
+	
+	memset(&a, 0, sizeof(a));
+	a.sin_family = AF_INET;
+	a.sin_port = htons(ANARCAST_SERVER_PORT);
+*/	
+	j = len - i*PART_SIZE;
+	sha_buffer(&p[i*PART_SIZE], j < PART_SIZE ? j : PART_SIZE, &hash[i*HASH_LEN]);
+	bytestohex(b, &hash[i*HASH_LEN], HASH_LEN);
+	printf("%d: %s\n", i,b);
+/*	
+	for (j = 0 ;;) {
+	    if (!(a.sin_addr.s_addr = getref(hash[i], j++))) {
+		puts("Can't connect to ANYONE!!!");
+		return;
+	    }
+	    if (connect(c, &a, sizeof(a)) != -1)
+		break;
+	}
+	FD_SET(c, &r);*/
+    }
+
     munmap(p, len);
-    puts("foo");
+    puts("all done now");
 }
 
 void
@@ -110,7 +153,7 @@ inform (char *server)
     if (connect(c, &a, sizeof(a)) == -1)
 	err(1, "can't connect to %s", server);
 
-    if (read(c, &n, 4) != 4)
+    if (readall(c, &n, 4) != 4)
 	err(1, "read of length failed");
     
     if (n < 0 || n > 100000) {
@@ -125,7 +168,7 @@ inform (char *server)
     
     m = n;
     while (n--) {
-	if (read(c, &i, 4) != 4)
+	if (readall(c, &i, 4) != 4)
 	    err(1, "read from inform server failed");
        	sha_buffer((char *)&i, 4, b);
 	addref(b);
