@@ -1,8 +1,8 @@
 # installer generator script for Freenet:
 
-Name "Freenet 0.3.9.2pre"
-OutFile "Freenet_setup0.3.9.2pre.exe"
-ComponentText "This will install Freenet 0.3.9.2 on your system."
+Name "Freenet 0.3.9.3"
+OutFile "Freenet_setup0.3.9.3.exe"
+ComponentText "This will install Freenet 0.3.9.3 on your system."
 
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
@@ -26,6 +26,7 @@ SetDatablockOptimize on
 InstallDir "$PROGRAMFILES\Freenet"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 SetOverwrite on
+
 ;-----------------------------------------------------------------------------------
 Function DetectJava
 # this function detects Sun Java from registry and calls the JavaFind utility otherwise
@@ -56,7 +57,7 @@ EndCheck:
 
 RunJavaFind:
   # running the good ol' Java detection utility on unsuccess
-  MessageBox MB_YESNO "I did not find Sun's Java Runtime Environment which is needed for Freenet.$\r$\nHit 'Yes' to open the download page for Java,$\r$\n'No' to look for an alternative Java interpreter on your disks." IDYES GetJava
+  MessageBox MB_YESNO "I did not find Sun's Java Runtime Environment which is needed for Freenet.$\r$\nHit 'Yes' to open the download page for Java (http://java.sun.com),$\r$\n'No' to look for an alternative Java interpreter on your disks." IDYES GetJava
   Execwait "$INSTDIR\findjava.exe"
   Goto End
 
@@ -73,7 +74,7 @@ FunctionEnd
 Section "Freenet (required)"
 
 #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
-FindWindow "close" "TrayIconFreenetClass" ""
+FindWindow "prompt" "TrayIconFreenetClass" "You are still running Freenet, please shut it down first and retry then."
 
 # Copying the actual Freenet files to the install dir
 SetOutPath "$INSTDIR"
