@@ -1,13 +1,39 @@
-Name "Freenet 0.3.8.1"
+#
+# installer generator script for both versions of Freenet:
+#  - Freenet Standard (with Java built in)
+#  - Freenet Lite (no Java)
+#
+# NOTE - if this script is run by itself, it will automatically generate just Freenet-nojava
+#      - to generate Freenet-withjava, run the script 'freenet-withjava' instead
+#      - the flag 'embedJava', if set, results in Freenet with Java. Default is Freenet noJava
+#
+# These options added by David McNab, May 2001
+
+!ifdef embedJava
+Name "Freenet 0.3.8.1 (with Java)"
+!else
+Name "Freenet 0.3.8.1 (without Java)"
+!endif
+
 # comment the next line out to produce a real build and no testing dummy
 #!define debug
 
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
-OutFile Freenet_setup0.3.8.1.exe
+!ifdef embedJava
+OutFile Freenet-withjava-setup0.3.8.1.exe
+!else
+OutFile Freenet-nojava-setup0.3.8.1.exe
+!endif
+
 UninstallText "This uninstalls Freenet and all files on this node. (You may need to shut down running nodes before proceeding)"
 UninstallExeName Uninstall-Freenet.exe
-ComponentText "This will install Freenet 0.3.8.1 on your system."
+!ifdef embedJava
+ComponentText "This will install Freenet 0.3.8.1, including Java runtime, on your system."
+!else
+ComponentText "This will install Freenet 0.3.8.1, without Java, on your system."
+!endif
+
 DirText "No files will be placed outside this directory (e.g. Windows\system)"
 AutoCloseWindow true
 
@@ -31,12 +57,28 @@ FindWindow "close" "TrayIconFreenetClass" ""
 SetOutPath $INSTDIR\
 File freenet\*.*
 
+# possibly embed full Java runtime
+!ifdef embedJava
+File /r jre
+!endif
+
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet"
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 
 HideWindow
+!ifdef embedJava
+# severe hack - gotta rename findjava and run it under a different name.
+# if findjava is run by the name 'locjava', it automatically writes the
+# local jre entries.
+# yuck! but I had to do this, because the Execwait cmd doesn't seem to allow program arguments
+Rename "$INSTDIR\findjava.exe" "$INSTDIR\locjava.exe"
+Execwait "$INSTDIR\locjava.exe"
+Delete "$INSTDIR\locjava.exe"
+!else
 Execwait "$INSTDIR\findjava.exe"
 Delete "$INSTDIR\findjava.exe"
+!endif
+
 ExecWait "$INSTDIR\portcfg.exe"
 Delete "$INSTDIR\portcfg.exe"
 BringToFront
@@ -125,8 +167,8 @@ MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `Please delete .freenet in your f
 # RMDir $INSTDIR\.freenet
 Delete $INSTDIR\NSplugin\*.*
 RMDir $INSTDIR\NSplugin
-Delete $INSTDIR\*.*
-RMDir $INSTDIR
+#Delete $INSTDIR\*.*
+RMDir /r $INSTDIR
 
 # remove IE plugin
 UnRegDLL $INSTDIR\IEplugin\IEFreenetPlugin.dll
