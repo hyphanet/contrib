@@ -389,11 +389,6 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 		 user-defined data for the splitfile */
 	if (fec_make_metadata(hfcp, meta_filename)) return -1;
 
-	/* now insert a redirect if the target uri is KSK or SSK */
-	/* in hfcp->key->uri is the CHK@ that contains the splitfile metadata..
-		 build any redirects to point to this key */
-
-
 	return 0;
 }
 
