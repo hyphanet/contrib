@@ -1,11 +1,12 @@
+#define GRAPHCOUNT  512
+#define CONCURRENCY 16
+
 #include <math.h>
 #include <stdarg.h>
 #include <pthread.h>
 #include "anarcast.h"
 #include "sha.c"
 #include "aes.c"
-
-#define GRAPHCOUNT 512
 
 struct node {
     unsigned int addr;
@@ -30,8 +31,7 @@ inline void * run_thread (void *arg);
 void alert (const char *s, ...);
 
 inline void insert (int c);
-void insert_data_blocks (char *data, int block_size, int datablock_count, char *hashes);
-void insert_check_blocks (char *data, int block_size, int datablock_count, char *hashes);
+inline void do_insert (char *blocks, int blockcount, int blocksize);
 
 inline void request (int c);
 
@@ -228,13 +228,26 @@ insert (int c)
 	return;
     }
 
-    // (insert everything now)
+    // actually insert the blocks
+    do_insert(blocks, g.dbc + g.cbc, blocksize);
 
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
     free(hashes);
+}
+
+inline void
+do_insert (char *blocks, int blockcount, int blocksize)
+{
+    int m;
+    fd_set r, w;
+
+    FD_ZERO(&r);
+    FD_ZERO(&w);
     
-    alert("Insertion complete.");
+    alert("Inserting %d blocks.", blockcount);
+    
+    
 }
 
 inline void
