@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -27,7 +27,8 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 //
 
 IDD_GETSEEDDLG DIALOGEX 0, 0, 255, 122
-STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "GetSeed"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
@@ -52,7 +53,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_GETSEEDDLG, DIALOG
     BEGIN
@@ -84,7 +85,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDR_MAINFRAME           ICON    DISCARDABLE     "res\\NodeConfig.ico"
+IDR_MAINFRAME           ICON                    "res\\NodeConfig.ico"
 #endif    // Neutral (Default) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -103,21 +104,21 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOG DISCARDABLE  0, 0, 235, 55
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_ABOUTBOX DIALOGEX 0, 0, 235, 55
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About NodeConfig"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,21,20
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
     LTEXT           "NodeConfig Version 0.5.2.4",IDC_STATIC,42,12,119,8,
                     SS_NOPREFIX
-    LTEXT           "3 July 2003  maintained by Dave Hooper",IDC_STATIC,41,
-                    24,135,8
+    LTEXT           "26 March 2004 (Rebuilt by mazzanet) maintained by Dave Hooper",
+                    IDC_STATIC,41,24,135,16
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
 END
 
-IDD_PP_ADVANCED DIALOG DISCARDABLE  0, 0, 319, 274
-STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+IDD_PP_ADVANCED DIALOG  0, 0, 319, 274
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Advanced Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -184,8 +185,8 @@ BEGIN
     GROUPBOX        "Node Admin",IDC_STATIC,193,7,119,59
 END
 
-IDD_EDITUNKNOWN DIALOG DISCARDABLE  0, 0, 307, 183
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_EDITUNKNOWN DIALOG  0, 0, 307, 183
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Edit Unknown Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -209,8 +210,8 @@ BEGIN
     GROUPBOX        "Unknown Settings",IDC_STATIC,8,84,290,72
 END
 
-IDD_PP_GEEK DIALOG DISCARDABLE  0, 0, 319, 282
-STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+IDD_PP_GEEK DIALOG  0, 0, 319, 282
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Serious Geeks Only"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -274,8 +275,8 @@ BEGIN
                     WS_TABSTOP,161,7,151,23
 END
 
-IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 282
-STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+IDD_PP_NORMAL DIALOG  0, 0, 319, 282
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Normal Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -325,8 +326,8 @@ BEGIN
     LTEXT           ":",IDC_STATIC_NODEADDRESS_COLON,245,139,6,11
 END
 
-IDD_PP_FPROXY DIALOG DISCARDABLE  0, 0, 319, 274
-STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+IDD_PP_FPROXY DIALOG  0, 0, 319, 274
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "FProxy"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -367,8 +368,8 @@ BEGIN
                     WS_TABSTOP,106,166,199,10
 END
 
-IDD_PP_DIAGNOSTICS DIALOG DISCARDABLE  0, 0, 319, 274
-STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+IDD_PP_DIAGNOSTICS DIALOG  0, 0, 319, 274
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Diagnostics"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -424,7 +425,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
@@ -477,7 +478,6 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-#ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
@@ -500,18 +500,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "Freenet for Windows®\r\nMaintained by Dave Hooper\r\nContact support@freenetproject.org\r\n3 July 2003\0"
-            VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "NodeConfig MFC Application\0"
-            VALUE "FileVersion", "0, 5, 2, 4\0"
-            VALUE "InternalName", "NodeConfig\0"
-            VALUE "LegalCopyright", "www.freenetproject.org\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "NodeConfig.EXE\0"
-            VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "NodeConfig Application\0"
-            VALUE "ProductVersion", "0.5.2\0"
-            VALUE "SpecialBuild", "\0"
+            VALUE "Comments", "Freenet for Windows®\r\nMaintained by Dave Hooper\r\nContact support@freenetproject.org\r\n26 March 2004 (Rebuilt by mazzanet)"
+            VALUE "FileDescription", "NodeConfig MFC Application"
+            VALUE "FileVersion", "0, 5, 2, 4"
+            VALUE "InternalName", "NodeConfig"
+            VALUE "LegalCopyright", "www.freenetproject.org"
+            VALUE "OriginalFilename", "NodeConfig.EXE"
+            VALUE "ProductName", "NodeConfig Application"
+            VALUE "ProductVersion", "0.5.2"
         END
     END
     BLOCK "VarFileInfo"
@@ -519,8 +515,6 @@ BEGIN
         VALUE "Translation", 0x409, 1200
     END
 END
-
-#endif    // !_MAC
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -547,7 +541,7 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDP_SOCKETS_INIT_FAILED "Windows sockets initialization failed. We won't be able to retrieve Node references from the Internet!!"
     IDS_TITLE               "Freenet node properties"
@@ -574,8 +568,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_NZ
 // Dialog
 //
 
-IDD_DLG_PERM_WARN DIALOG DISCARDABLE  0, 0, 312, 217
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_DLG_PERM_WARN DIALOG  0, 0, 312, 217
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Warning - Establishing Permanent Node"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -607,7 +601,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_DLG_PERM_WARN, DIALOG
     BEGIN
@@ -626,18 +620,18 @@ END
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE 
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE 
 BEGIN
     "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
     "#define _AFX_NO_OLE_RESOURCES\r\n"
