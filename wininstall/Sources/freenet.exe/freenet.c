@@ -40,6 +40,7 @@ const char szgatewayURIdef[]="http://127.0.0.1:";
 
 /* popup menu item text */
 char szStopString[]="&Stop Freenet";
+char szRestartString[]="Stop and &Restart Freenet";
 char szStartString[]="&Start Freenet";
 char szGatewayString[]="Open &Gateway";
 char szConfigureString[]="&Configure";
@@ -60,6 +61,7 @@ const char szFreenetJar[]="Freenet.jar";
 const char szflfile[]="./FLaunch.ini"; /* ie name of file */
 const char szflsec[]="Freenet Launcher"; /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
+const char szjavawkey[]="Javaw"; /* ie Javaw=javaw.exe */
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Node */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
 const char szfserveclidefaultexec[]="Freenet.node.Node"; /* default for above */
@@ -82,6 +84,7 @@ const char szConfigProcName[]="Config"; /* ie name of Config function */
  ******************************************************/
 /*		strings, etc... */
 char szjavapath[JAVAWMAXLEN];		/* used to read Javaexec= definition out of FLaunch.ini */
+char szjavawpath[JAVAWMAXLEN];		/* used to read Javaw= definition out of FLaunch.ini */
 char szfservecliexec[BUFLEN];			/* used to read Fservecli= definition out of FLaunch.ini */
 char szfconfigexec[BUFLEN];			/* used to read Fconfig= definition out of FLaunch.ini */
 char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8081" after the 8081 bit has been read from freenet.ini */
@@ -103,13 +106,13 @@ HMENU hPopupMenu=NULL;				/* handle to Popup Menu (right click on systray icon) 
 HWND hWnd=NULL;						/* main window handle  */
 HINSTANCE hInstance=NULL;			/* handle to the main application instance */
 LPSTR lpszAppCommandLine;			/* global pointer to the command line passed to this app */
-HANDLE pSystray;					/* handle to a mutex object used to synchronise access to the shared systray structure below */
 
 
 /*		lock objects for critical sections */
 extern enum LOCKCONTEXTS;
-HANDLE hnFreenetMode = NULL;
-HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, NULL};
+HANDLE hnFreenetMode = NULL;  /* mutex for nFreenetMode */
+HANDLE hSystray = NULL;	 /* mutex for systray (NOTIFYICONDATA) structure */
+HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, &hSystray, NULL};
 
 
 /* icon array - must match order in FREENET_MODE in types.h */
@@ -183,16 +186,13 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	hAlertIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_ALERT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 	hRestartingIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_RESTARTING), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
 
-	/* pSystray is used to synchronise access to the shared systray NOTIFYICONDATA structure */
-	pSystray = CreateMutex(NULL,FALSE,NULL);
-	
 	/* hConfiguratorSemaphore is used so we never load more than one instance of the configurator at a time */
 	hConfiguratorSemaphore = CreateSemaphore(NULL,1,1,NULL);
 
-	/* Lock objects: for critical sections, essentially */
+	/* Lock objects: for critical sections on shared data, essentially */
 	hnFreenetMode = CreateMutex(NULL, FALSE, NULL);
-
-
+	hSystray = CreateMutex(NULL,FALSE,NULL);
+	
 
 	/* Create a separate thread to handle flashing the systray icon */
 	hMonitorThread = CreateThread(NULL,1, MonitorThread, NULL, 0, &dwMonitorThreadId);
@@ -205,7 +205,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	
 	/* did everything work so far? */
 	if (hMonitorThread!=NULL &&
-		pSystray!=NULL &&
+		hSystray!=NULL &&
 		hConfiguratorSemaphore!=NULL && 
 		hnFreenetMode!=NULL &&
 		hRestartingIcon!=NULL &&
@@ -294,7 +294,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 	if (hHopsDisabledIcon) DestroyIcon(hHopsDisabledIcon);
 
 	if (hSemaphore) CloseHandle(hSemaphore);
-	if (pSystray) CloseHandle(pSystray);
+	if (hSystray) CloseHandle(hSystray);
 
 	if (hConfiguratorSemaphore) CloseHandle(hConfiguratorSemaphore);
 
@@ -474,10 +474,25 @@ void ReloadSettings(void)
 	GetAppDirectory(szbuffer);	
 	SetCurrentDirectory(szbuffer);
 
-	/* Get the Javaexec info from flaunch.ini */
-	GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
-	/* convert to short filename format, because we want one SIMPLE string for java.exe path */
+	/* Get the javaw line and if that isn't there fall back on the javaexec line ... */
+	/* (Note, javaw.exe is used in preference to java.exe when loading the java configurator) */
+	if (!GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
+	{
+		GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
+	}
+	/* .. and convert to short filename format, because we want one SIMPLE string for javaw.exe path */
+	GetShortPathName(szbuffer, szjavawpath, sizeof(szjavawpath) );
+
+
+	/* Get the javaexec line ...*/
+	/* (Note, java.exe is used in preference to javaw.exe when loading the freenet.node.Node) */
+	if (!GetPrivateProfileString(szflsec, szjavakey, szempty, szbuffer, JAVAWMAXLEN, szflfile))
+	{
+		GetPrivateProfileString(szflsec, szjavawkey, szempty, szbuffer, JAVAWMAXLEN, szflfile);
+	}
+	/* ... and convert to short filename format, because we want one SIMPLE string for java.exe path */
 	GetShortPathName(szbuffer, szjavapath, sizeof(szjavapath) );
+
 
 
 	/* get the fservecli launch string from flaunch.ini */
@@ -582,7 +597,7 @@ void RestartFserve(void)
    also sets the tooltip text appropriately */
 void ModifyIcon(void)
 {
-	LockObject(pSystray);
+	LOCK(SYSTRAY);
 
 	switch (nFreenetMode)
 	{
@@ -606,7 +621,7 @@ void ModifyIcon(void)
 	
 	lstrcpy(note.szTip, szFreenetTooltipText[nFreenetMode]);
 	Shell_NotifyIcon(NIM_MODIFY,&note);
-	UnlockObject(pSystray);
+	UNLOCK(SYSTRAY);
 }
 
 
@@ -616,7 +631,7 @@ void ModifyIcon(void)
 
 /*	Launches the configuration DLL, or, if that isn't available, the standard
 	freenet node java configurator */
-bool StartConfig(void)
+void StartConfig(void)
 {
 	HINSTANCE hConfigDLL = LoadLibrary(szConfigDLLName);
 	LPCONFIGPROC pProcAddress = NULL;
@@ -626,6 +641,11 @@ bool StartConfig(void)
 		if (pProcAddress)
 		{
 			(pProcAddress)(NULL);
+			// when we get here configuration is complete
+			// need to restart the server
+			PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
+			// configuration complete - release the 'configurator' mutex
+			ReleaseSemaphore(hConfiguratorSemaphore,1,NULL);
 		}
 	}
 
@@ -634,56 +654,60 @@ bool StartConfig(void)
 
 	if ((!hConfigDLL) || (!pProcAddress) )
 	{
-		return StartConfigOrig();
+		// couldn't load DLL, or, couldn't find Config function within DLL.
+		// Fall back to the original Java configurator
+		StartConfigOrig();
 	}
-	
-	return true;
 }
 
 
-bool StartConfigOrig(void)
+//	dwJavaConfigProcId is global so that we can use it to give the focus to the configurator
+//	window if the user clicks on 'Configure' a second time
+DWORD dwJavaConfigProcId=0;
+void StartConfigOrig(void)
 {
-	STARTUPINFO StartConfigInfo={	sizeof(STARTUPINFO),
+	STARTUPINFO StartConfigInfo={sizeof(STARTUPINFO),
 							NULL,NULL,NULL,
 							0,0,0,0,0,0,0,
-							0,
-							0,
+							STARTF_USESHOWWINDOW,
+							SW_NORMAL,
 							0,NULL,
 							NULL,NULL,NULL};
 	PROCESS_INFORMATION prcConfigInfo;
 
-	char szexecbuf[sizeof(szjavapath)+sizeof(szfconfigexec)+2];
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szfconfigexec)+2];
 
-	lstrcpy(szexecbuf, szjavapath);
+	lstrcpy(szexecbuf, szjavawpath);
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfconfigexec); 
 
-	if (!CreateProcess(szjavapath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &StartConfigInfo, &prcConfigInfo) )
 	{
 		MessageBox(NULL, "Unable to launch configurator for Freenet", "Cannot Config", MB_OK | MB_ICONERROR | MB_TASKMODAL);
 	}
 	else
 	{
-		WaitForSingleObject(prcConfigInfo.hProcess, INFINITE);
-		CloseHandle(prcConfigInfo.hProcess);
+		DWORD dwThreadId;
+		HANDLE hJavaConfigThread = CreateThread(NULL,1,WaitForJavaConfigurator,(LPVOID)(prcConfigInfo.hProcess),0,&dwThreadId);
+		dwJavaConfigProcId=prcConfigInfo.dwProcessId;
+		CloseHandle(hJavaConfigThread);
 		CloseHandle(prcConfigInfo.hThread);
 	}
-
-	// return true if we need to restart freenet node to take account of new settings
-	// ... since we don't know we MUST return true!
-	return true;
 }
 
 
+DWORD WINAPI WaitForJavaConfigurator(LPVOID lpvprochandle)
+{
+	HANDLE hJavaConfig = (HANDLE)lpvprochandle;
 
-/* Helper functions: */
-void LockObject(HANDLE pMutex)
-{
-	WaitForSingleObject(pMutex,INFINITE);
-}
-void UnlockObject(HANDLE pMutex)
-{
-	ReleaseMutex(pMutex);
+	WaitForSingleObject(hJavaConfig, INFINITE);
+	CloseHandle(hJavaConfig);
+	// configuration complete - release the 'configurator' mutex
+	ReleaseSemaphore(hConfiguratorSemaphore,1,NULL);
+	// need to restart the server
+	PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
+
+	return 0;
 }
 
 
@@ -693,6 +717,7 @@ void UnlockObject(HANDLE pMutex)
 	the obvious windows events (WM_CREATE / WM_DESTROY)	*/
 MENUITEMINFO gatewayitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_DEFAULT | MFS_GRAYED, IDM_GATEWAY, NULL,NULL,NULL,0,szGatewayString, 0 };
 MENUITEMINFO startstopitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_STARTSTOP, NULL,NULL,NULL,0,szStartString, 0 };
+MENUITEMINFO restartitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_GRAYED, IDM_RESTART, NULL,NULL,NULL,0,szRestartString, 0 };
 MENUITEMINFO configitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_CONFIGURE, NULL,NULL,NULL,0,szConfigureString, 0 };
 MENUITEMINFO exititem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXIT, NULL,NULL,NULL,0,szExitString, 0 };
 MENUITEMINFO separatoritem = {sizeof(MENUITEMINFO), MIIM_TYPE, MFT_SEPARATOR, 0, IDM_GATEWAY, NULL,NULL,NULL,0,NULL, 0 };
@@ -708,12 +733,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_CREATE:
 
 			hPopupMenu = CreatePopupMenu();
-
 			InsertMenuItem(hPopupMenu, 0, TRUE, &gatewayitem);
 			InsertMenuItem(hPopupMenu, 1, TRUE, &startstopitem);
-			InsertMenuItem(hPopupMenu, 2, TRUE, &configitem);
-			InsertMenuItem(hPopupMenu, 3, TRUE, &separatoritem);
-			InsertMenuItem(hPopupMenu, 4, TRUE, &exititem);
+			InsertMenuItem(hPopupMenu, 2, TRUE, &restartitem);
+			InsertMenuItem(hPopupMenu, 3, TRUE, &configitem);
+			InsertMenuItem(hPopupMenu, 4, TRUE, &separatoritem);
+			InsertMenuItem(hPopupMenu, 5, TRUE, &exititem);
 		        
 			break;
 
@@ -763,30 +788,31 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							// is the configurator already running?
 							if (WaitForSingleObject(hConfiguratorSemaphore, 1) == WAIT_TIMEOUT)
 							{
-								// configurator still running
-								// ideally, give it the focus here
-								HWND ConfiguratorWindow = FindWindow(NULL, "Freenet configurator");
+								// configurator still running - give it the focus
+								// following lines work for the Config.dll configurator
+								HWND ConfiguratorWindow = FindWindow(NULL, "Freenet Configurator");
 								SetForegroundWindow(ConfiguratorWindow);
+								// following lines work for the Java configurator
+								EnumWindows(SetFocusByProcId, (LPARAM)dwJavaConfigProcId);
 								break;
 							}
 							else
 							{
-
 								// we now 'own' the configurator semaphore object
-													
-								if (StartConfig() )
-								{
-									/* we get here after the configuration app has run */
-									if (nFreenetMode==FREENET_RUNNING) // restart the server
-									{
-										RestartFserve();
-									}
-								}
-
-								// release the semaphore when configurator has completed
-								ReleaseSemaphore(hConfiguratorSemaphore,1,NULL);
+								StartConfig();
+								/* StartConfig will automatically cause RestartFserve() to run when completed */
+								/* it will also release the semaphore */
 							}
 
+							break;
+
+						case IDM_RESTART: // menu choice restart - essentially Stop followed by Start
+
+							// only applicable if node is running
+							if (nFreenetMode==FREENET_RUNNING)
+							{
+								RestartFserve();
+							}
 							break;
 
 						case IDM_EXIT: // otherwise menu choice exit, exiting
@@ -819,8 +845,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							case FREENET_RUNNING:
 								/* Node is running - can stop it */
 								/* Can view gateway */
-								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND,IDM_STARTSTOP,szStopString);
-								ModifyMenu(hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND,IDM_GATEWAY,szGatewayString);
+								/* Can 'restart' it */
+								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND|MF_ENABLED,IDM_STARTSTOP,szStopString);
+								ModifyMenu(hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND|MF_ENABLED,IDM_GATEWAY,szGatewayString);
+								ModifyMenu(hPopupMenu,IDM_RESTART,MF_BYCOMMAND|MF_ENABLED,IDM_RESTART,szRestartString);
 								break;
 
 							case FREENET_STOPPED:
@@ -829,8 +857,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								/* Node is stopped */
 								/* or Node is stopping - but I'm allowing you to queue up a restart command */
 								/* Cannot view gateway */
-								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND,IDM_STARTSTOP,szStartString);
+								/* Cannot 'restart' it */
+								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND|MF_ENABLED,IDM_STARTSTOP,szStartString);
 								ModifyMenu(hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND|MF_GRAYED,IDM_GATEWAY,szGatewayString);
+								ModifyMenu(hPopupMenu,IDM_RESTART,MF_BYCOMMAND|MF_GRAYED,IDM_RESTART,szRestartString);
 								break;
 
 							case FREENET_RESTARTING:
@@ -838,8 +868,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 								/* Node is restarting - essentially a different kind of 'stopping' with
 								   additional state.  I'm allowing you to queue up a stop command */
 								/* Cannot view gateway */
-								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND,IDM_STARTSTOP,szStartString);
+								/* Cannot 'restart' it more */
+								ModifyMenu(hPopupMenu,IDM_STARTSTOP,MF_BYCOMMAND|MF_ENABLED,IDM_STARTSTOP,szStartString);
 								ModifyMenu(hPopupMenu,IDM_GATEWAY,MF_BYCOMMAND|MF_GRAYED,IDM_GATEWAY,szGatewayString);
+								ModifyMenu(hPopupMenu,IDM_RESTART,MF_BYCOMMAND|MF_GRAYED,IDM_RESTART,szRestartString);
 								break;
 						}
 
@@ -869,6 +901,31 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 
+
+/* If this looks confusing see article Q178893 in MSDN.
+   All I'm doing is enumerating ALL the top-level windows in the system and matching
+   against the Java Config process Id.  For each window enumerated I call the
+   SetForegroundWindow API function */
+BOOL CALLBACK SetFocusByProcId(HWND hWnd, LPARAM lParam)
+{
+	/* called for each window in system */
+	/* we're using it to hunt for windows created by the Java Configurator process */
+	/* First find out if this window was created by the Java Configurator process: */
+	DWORD dwThreadId;
+	GetWindowThreadProcessId(hWnd, &dwThreadId);
+	if (dwThreadId != (DWORD)lParam)
+	{
+		/* This window was NOT created by the process... keep enumerating */
+		return TRUE;
+	}
+
+	/* This window WAS created by the process */
+	SetForegroundWindow(hWnd);
+
+	/* return true to keep enumerating - there may be more windows */
+	return TRUE;
+}
+ 
 
 
 
