@@ -1,0 +1,45 @@
+#!/bin/sh
+# When executed in Mingw: Produces an jbigi.dll
+# When executed in Linux: Produces an libjbigi.so
+
+CC="gcc"
+
+case `uname -sr` in
+MINGW*)
+	JAVA_HOME="c:/j2sdk1.4.2_05"
+	COMPILEFLAGS="-Wall"
+	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include/win32/ -I$JAVA_HOME/include/"
+	LINKFLAGS="-shared -Wl,--kill-at"
+	LIBFILE="jbigi.dll";;
+*)
+	COMPILEFLAGS="-fPIC -Wall"
+	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
+	LINKFLAGS="-shared -Wl,-soname,libjbigi.so"
+	LIBFILE="libjbigi.so";;
+esac
+
+	#To link dynamically to GMP (use libgmp.so), uncomment the first line below
+	#To link statically to GMP, uncomment the second line below
+	#INCLUDELIBS="-lgmp"
+	STATICLIBS=".libs/libgmp.a"
+
+echo "Compiling C code..."
+rm -f jbigi.o $LIBFILE
+$CC -c $COMPILEFLAGS $INCLUDES ../../jbigi/src/jbigi.c
+$CC $LINKFLAGS $INCLUDES $INCLUDELIBS -o $LIBFILE jbigi.o $STATICLIBS
+
+#echo ""
+#echo "Doing an ant build..."
+#ANT="ant"
+#JAVA="java"
+#(cd ../java/ ; $ANT build)
+#
+#echo ""
+#echo "Built, now testing... This will take a while."
+#LD_LIBRARY_PATH=. $JAVA -cp ../java/build/i2p.jar -DloggerConfigLocation=../../installer/java/src/logger.config.template net.i2p.util.NativeBigInteger
+#
+#
+#echo ""
+#echo ""
+#echo "Test complete. Please review the lines 'native run time:', 'java run time:', and 'native = '"
+
