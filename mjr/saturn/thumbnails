@@ -27,7 +27,7 @@ open STDIN,  $infile      or die "Can't open $infile\n"  if $infile  ne "-";
 $tableheight = 999999 if !$tableheight;
 
 for (0..999999) {
-    $s = sprintf "%s.%03d", $outfile, $_;
+    $s = sprintf "%s.%03d.html", $outfile, $_;
     open STDOUT, ">>$s" or die "Can't open $s\n" if $outfile ne "-";
     print "<html>\n<body bgcolor=\"$backgroundcolor\">\n<table align=\"center\">\n";
     for (1..$tableheight) {
