@@ -791,14 +791,14 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 
  		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_SEGMENTHEADER;
-
 		else
 			_fcpLog(FCP_LOG_DEBUG, "getrespSegmentHeaders() - received unhandled field \"%s\"", resp);
   }
-
+	
   /* oops.. there's been a socket error of sorts */
 	if (rc < 0)
 		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+	
 	else
 		return 0;
 }

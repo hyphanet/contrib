@@ -400,10 +400,10 @@ int _fcpPutSplitfile(hFCP *hfcp)
 
 	if ((rc = fec_segment_file(hfcp)) != 0) return rc;
 
-	for (index = 0; index < hfcp->key->segment_count; index++)
+	for (index = 0; (unsigned)index < hfcp->key->segment_count; index++)
 		if ((rc = fec_encode_segment(hfcp, index)) != 0) return rc;
 
-	for (index = 0; index < hfcp->key->segment_count; index++) {
+	for (index = 0; (unsigned)index < hfcp->key->segment_count; index++) {
 
 		if ((rc = fec_insert_data_blocks(hfcp, index)) != 0) return rc;
 		if ((rc = fec_insert_check_blocks(hfcp, index)) != 0) return rc;
@@ -688,8 +688,8 @@ static int fec_segment_file(hFCP *hfcp)
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
 
-	int index;
-	int segment_count;
+	unsigned long index;
+	unsigned long segment_count;
 
 	_fcpLog(FCP_LOG_DEBUG, "entered fec_segment_file()");
 
@@ -731,12 +731,15 @@ static int fec_segment_file(hFCP *hfcp)
 	}
 
 	/* Allocate the area for all required segments (spaces for pointers to hSegment) */
-	hfcp->key->segment_count = (unsigned short)hfcp->response.segmentheader.segments;
+	hfcp->key->segment_count = hfcp->response.segmentheader.segments;
 	hfcp->key->segments = malloc(sizeof (hSegment *) * hfcp->key->segment_count);
 
 	/* Loop while there's more segments to receive */
 	segment_count = hfcp->key->segment_count;
+
 	index = 0;
+
+	/* TODO BUG */
 
 	_fcpLog(FCP_LOG_DEBUG, "expecting %u segment(s)", segment_count);
 

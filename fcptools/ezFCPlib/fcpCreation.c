@@ -204,7 +204,7 @@ void _fcpDestroyHKey(hKey *h)
 
 		if (h->segment_count) {
 
-			for (i=0; i < h->segment_count; i++) {
+			for (i=0; (unsigned)i < h->segment_count; i++) {
 				_fcpDestroyHSegment(h->segments[i]);
 				free(h->segments[i]);
 			}
@@ -675,7 +675,7 @@ void _fcpDestroyHSegments(hKey *key)
 {
 	int i;
 
-	for (i=0; i < key->segment_count; i++) {
+	for (i=0; (unsigned)i < key->segment_count; i++) {
 		_fcpDestroyHSegment(key->segments[i]);
 	}
 

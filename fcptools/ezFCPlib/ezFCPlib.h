@@ -308,7 +308,7 @@ typedef struct {
 } FCPRESP_FORMATERROR;
 
 typedef struct {
-	char  fec_algorithm[64+1];
+	char  fec_algorithm[L_KEY+1];
  
 	unsigned long   filelength;
 	unsigned long   offset;
@@ -501,7 +501,7 @@ typedef struct {
 	char      *mimetype;
 
 	unsigned long   size;
-	unsigned short  segment_count;
+	unsigned long   segment_count;
 
 	hBlock    *tmpblock;
 
