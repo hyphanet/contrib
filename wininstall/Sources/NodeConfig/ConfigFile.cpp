@@ -70,7 +70,7 @@ void CConfigFile::Load()
 		// propose 20% of the free disk space, but min 10MB and max 2GB
 		ULARGE_INTEGER FreeBytes,TotalBytes;
 		GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
-	pNormal->m_storeCacheSize = __max(10,__min(2047,(unsigned int)(FreeBytes.QuadPart>>20)));
+	pNormal->m_storeCacheSize = __max(10,__min(2047,(unsigned int)(.2*(unsigned int)((FreeBytes.QuadPart>>20)))));
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = true;
 	pNormal->m_transient = FALSE;
