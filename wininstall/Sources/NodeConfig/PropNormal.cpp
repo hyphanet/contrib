@@ -28,13 +28,6 @@ IMPLEMENT_DYNCREATE(CPropNormal, CPropertyPage)
 CPropNormal::CPropNormal() : CPropertyPage(CPropNormal::IDD)
 {
 	//{{AFX_DATA_INIT(CPropNormal)
-	//m_storeSize = 0;
-	//m_storePath = _T("");
-	//m_useDefaultNodeRefs = FALSE;
-	//m_transient = FALSE;
-	//m_ipAddress = _T("");
-	//m_listenPort = 0;
-	//m_notTransient = FALSE;
 	//}}AFX_DATA_INIT
 }
 
@@ -48,7 +41,6 @@ void CPropNormal::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(CPropNormal)
 	DDX_Control(pDX, IDC_importNewNodeRef, m_importNewNodeRef);
 	DDX_Text(pDX, IDC_storeSize, m_storeSize);
-	DDX_Text(pDX, IDC_storePath, m_storePath);
 	DDX_Check(pDX, IDC_useDefaultNodeRefs, m_useDefaultNodeRefs);
 	DDX_Check(pDX, IDC_transient, m_transient);
 	DDX_Text(pDX, IDC_ipAddress, m_ipAddress);
@@ -56,6 +48,7 @@ void CPropNormal::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_listenPort, m_listenPort);
 	DDV_MinMaxUInt(pDX, m_listenPort, 1, 65535);
 	DDX_Check(pDX, IDC_notTransient, m_notTransient);
+	DDX_Text(pDX, IDC_storeCacheFile, m_storecachefile);
 	//}}AFX_DATA_MAP
 }
 

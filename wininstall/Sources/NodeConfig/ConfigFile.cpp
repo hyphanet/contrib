@@ -10,6 +10,7 @@
 #include "PropAdvanced.h"
 #include "PropGeek.h"
 #include "PropFProxy.h"
+#include "PropDiagnostics.h"
 
 
 #ifdef _DEBUG
@@ -24,6 +25,7 @@ extern CPropNormal		*pNormal;
 extern CPropAdvanced	*pAdvanced;
 extern CPropGeek		*pGeek;
 extern CPropFProxy		*pFProxy;
+extern CPropDiagnostics *pDiagnostics;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -73,7 +75,7 @@ void CConfigFile::Load()
 	// our variable m_storeSize is in Megabytes so we need to divide by 2^20
 	// i.e. shift FreeBytes right 20 bits
 	pNormal->m_storeSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
-	pNormal->m_storePath = ".freenet";
+	pNormal->m_storecachefile = "";
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
 	pNormal->m_transient = FALSE;
 	pNormal->m_notTransient = !pNormal->m_transient;
@@ -94,9 +96,6 @@ void CConfigFile::Load()
 	pAdvanced->m_maximumThreads = 120;
 	pAdvanced->m_outputBandwidthLimit = 0;
 	pAdvanced->m_seedFile = "seednodes.ref";
-	pAdvanced->m_nodestatusservlet = true;
-	pAdvanced->m_nodestatusport = 8889;
-	pAdvanced->m_nodestatusclass = "freenet.client.http.NodeStatusServlet";
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
@@ -120,7 +119,6 @@ void CConfigFile::Load()
 	pGeek->m_routeConnectTimeout = 10000;
 	pGeek->m_rtMaxNodes = 100;
 	pGeek->m_rtMaxRefs = 1000;
-	pGeek->m_storeCacheFile = "";
 	pGeek->m_storeDataFile = "";
 	pGeek->m_streamBufferSize = 65536;
 
@@ -135,6 +133,10 @@ void CConfigFile::Load()
 	pFProxy->m_fproxy_splitinchtl = 20;
 	pFProxy->m_fproxy_splitretries = 1;
 	pFProxy->m_fproxy_splitthreads = 10;
+
+	pDiagnostics->m_nodestatusservlet = true;
+	pDiagnostics->m_nodestatusport = 8889;
+	pDiagnostics->m_nodestatusclass = "freenet.client.http.NodeStatusServlet";
 	
 	// Reset unknown parameters container
 	UnknownParms = "";
@@ -201,8 +203,9 @@ void CConfigFile::Save()
 
 	fprintf(fp, "storeSize=%s\n", _ui64toa(Int64ShllMod32(pNormal->m_storeSize,20), szStoreSize, 10) );
 	fprintf(fp, "\n");
-	fprintf(fp, "# The path to the directory in which the node's datastore files should go.\n");
-	fprintf(fp, "storePath=%s\n", pNormal->m_storePath);
+	fprintf(fp, "# The file (can include a path) containing the node's datastore (i.e., its cache\n");
+	fprintf(fp, "# of Freenet keys).  Defaults to cache_<port> in the main freenet directory.\n");
+	fprintf(fp, "%sstoreCacheFile=%s\n",pNormal->m_storecachefile.GetLength()?"":"#", pNormal->m_storecachefile);
 	fprintf(fp, "\n");
 	fprintf(fp, "# Transient nodes do not give out references to themselves, and should\n");
 	fprintf(fp, "# therefore not receive any requests.  Set this to yes only if you are\n");
@@ -367,20 +370,13 @@ void CConfigFile::Save()
 	fprintf(fp, "# be set too high.  It is suggested to leave it at 1000 for now.\n");
 	fprintf(fp, "rtMaxRefs=%d\n", pGeek->m_rtMaxRefs);
 	fprintf(fp, "\n");
-	fprintf(fp, "# The path to the file containing the node's datastore (i.e., its cache\n");
-	fprintf(fp, "# of Freenet keys).  Defaults to cache_<port> in the storePath directory.\n");
-	if (pGeek->m_storeCacheFile.GetLength() == 0)
-		fprintf(fp, "#storeCacheFile=\n");
-	else
-		fprintf(fp, "storeCacheFile=%s/cache_%d\n", pNormal->m_storePath, pNormal->m_listenPort);
-	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the file containing the node's reference to itself, its\n");
 	fprintf(fp, "# routing table, and the datastore directory.  Defaults to store_<port>\n");
 	fprintf(fp, "# in the storePath directory.\n");
 	if (pGeek->m_storeDataFile.GetLength() == 0)
 		fprintf(fp, "#storeDataFile=\n");
 	else
-		fprintf(fp, "storeDataFile=%s/store_%d\n", pNormal->m_storePath, pNormal->m_listenPort);
+		fprintf(fp, "storeDataFile=store_%d\n", pNormal->m_listenPort);
 	fprintf(fp, "\n");
 	fprintf(fp, "# streamBufferSize: undocumented.\n");
 	fprintf(fp, "streamBufferSize=%d\n", pGeek->m_streamBufferSize);
@@ -390,7 +386,7 @@ void CConfigFile::Save()
 	fprintf(fp, "# Services & Servlets\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "services=%s%s\n",pFProxy->m_bfproxyservice?"fproxy,":"",
-								pAdvanced->m_nodestatusservlet?"nodestatus,":"");
+								pDiagnostics->m_nodestatusservlet?"nodestatus,":"");
 	fprintf(fp, "\n");
 
 	// FProxy settings
@@ -413,8 +409,8 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Nodestatus servlet settings\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "nodestatus.class=%s\n",pAdvanced->m_nodestatusclass);
-	fprintf(fp, "nodestatus.port=%d\n",pAdvanced->m_nodestatusport);
+	fprintf(fp, "nodestatus.class=%s\n",pDiagnostics->m_nodestatusclass);
+	fprintf(fp, "nodestatus.port=%d\n",pDiagnostics->m_nodestatusport);
 	fprintf(fp, "\n");
 
 	// Write out unknown parameters
@@ -445,18 +441,15 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "storeSize"))
 	//only if we did not set 0 as disk cache size (means we should propose our own default value)
 	{
-
 		if(_atoi64(val) != 0)
-
 		{
 			// storeSize = size in bytes ... our variable m_storeSize is in Megabytes
 			// so divide what we read from conf file by 2^20, i.e. shift right 20 bits
 			pNormal->m_storeSize = (DWORD)(Int64ShrlMod32(_atoi64(val),20));
 		}
-
 	}
-	else if (!strcmp(tok, "storePath"))
-		pNormal->m_storePath = val;
+	else if (!strcmp(tok, "storeCacheFile"))
+		pNormal->m_storecachefile = val;
 	else if (!strcmp(tok, "transient"))
 	{
 		pNormal->m_transient = atobool(val);
@@ -491,10 +484,6 @@ void CConfigFile::processItem(char *tok, char *val)
 		pAdvanced->m_maxHopsToLive = atoi(val);
 	else if (!strcmp(tok, "maximumThreads"))
 		pAdvanced->m_maximumThreads = atoi(val);
-	else if (!strcmp(tok, "nodestatus.class"))
-		pAdvanced->m_nodestatusclass = val;
-	else if (!strcmp(tok, "nodestatus.port"))
-		pAdvanced->m_nodestatusport = atoi(val);
 	else if (!strcmp(tok, "announcementAttempts"))
 		pGeek->m_announcementAttempts = atoi(val);
 	else if (!strcmp(tok, "announcementDelay"))
@@ -535,8 +524,6 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_rtMaxNodes = atoi(val);
 	else if (!strcmp(tok, "rtMaxRefs"))
 		pGeek->m_rtMaxRefs = atoi(val);
-	else if (!strcmp(tok, "storeCacheFile"))
-		pGeek->m_storeCacheFile = val;
 	else if (!strcmp(tok, "storeDataFile"))
 		pGeek->m_storeDataFile = val;
 	else if (!strcmp(tok, "streamBufferSize"))
@@ -545,7 +532,7 @@ void CConfigFile::processItem(char *tok, char *val)
 	else if (!strcmp(tok, "services"))
 	{
 		pFProxy->m_bfproxyservice = (strstr(_strupr(val),"FPROXY"))?true:false;
-		pAdvanced->m_nodestatusservlet = (strstr(_strupr(val),"NODESTATUS"))?TRUE:FALSE;
+		pDiagnostics->m_nodestatusservlet = (strstr(_strupr(val),"NODESTATUS"))?TRUE:FALSE;
 	}
 	else if (!strcmp(tok, "fproxy.class"))
 		pFProxy->m_fproxyclass = val;
@@ -567,6 +554,10 @@ void CConfigFile::processItem(char *tok, char *val)
 		pFProxy->m_fproxy_splitretries = atoi(val);
 	else if (!strcmp(tok, "fproxy.params.splitFileThreads"))
 		pFProxy->m_fproxy_splitthreads = atoi(val);
+		else if (!strcmp(tok, "nodestatus.class"))
+		pDiagnostics->m_nodestatusclass = val;
+	else if (!strcmp(tok, "nodestatus.port"))
+		pDiagnostics->m_nodestatusport = atoi(val);
 
 	else
 	{

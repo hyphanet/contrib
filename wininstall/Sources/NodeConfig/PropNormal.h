@@ -28,12 +28,12 @@ public:
 	enum { IDD = IDD_PP_NORMAL };
 	CButton	m_importNewNodeRef;
 	DWORD	m_storeSize;
-	CString	m_storePath;
 	BOOL	m_useDefaultNodeRefs;
 	BOOL	m_transient;
 	CString	m_ipAddress;
 	UINT	m_listenPort;
 	BOOL	m_notTransient;
+	CString	m_storecachefile;
 	//}}AFX_DATA
 
 

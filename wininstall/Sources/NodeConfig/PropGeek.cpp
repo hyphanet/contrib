@@ -20,8 +20,6 @@ IMPLEMENT_DYNCREATE(CPropGeek, CPropertyPage)
 CPropGeek::CPropGeek() : CPropertyPage(CPropGeek::IDD)
 {
 	//{{AFX_DATA_INIT(CPropGeek)
-	m_logFormat = _T("");
-	m_logLevel = _T("");
 	//}}AFX_DATA_INIT
 }
 
@@ -69,8 +67,6 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxUInt(pDX, m_rtMaxNodes, 1, 999999);
 	DDX_Text(pDX, IDC_rtMaxRefs, m_rtMaxRefs);
 	DDV_MinMaxUInt(pDX, m_rtMaxRefs, 1, 99999);
-	DDX_Text(pDX, IDC_storeCacheFile, m_storeCacheFile);
-	DDV_MaxChars(pDX, m_storeCacheFile, 256);
 	DDX_Text(pDX, IDC_storeDataFile, m_storeDataFile);
 	DDV_MaxChars(pDX, m_storeDataFile, 256);
 	DDX_Text(pDX, IDC_streamBufferSize, m_streamBufferSize);

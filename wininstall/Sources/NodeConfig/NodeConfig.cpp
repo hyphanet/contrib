@@ -8,6 +8,7 @@
 #include "PropAdvanced.h"
 #include "PropGeek.h"
 #include "PropFProxy.h"
+#include "PropDiagnostics.h"
 #include "DlgWarnPerm.h"
 #include "ConfigFile.h"
 
@@ -29,7 +30,7 @@ CPropAdvanced	*pAdvanced;
 CPropGeek		*pGeek;
 CDlgWarnPerm	*pWarnPerm;
 CPropFProxy		*pFProxy;
-
+CPropDiagnostics *pDiagnostics;
 
 /////////////////////////////////////////////////////////////////////////////
 // CNodeConfigApp
@@ -144,17 +145,20 @@ BOOL CNodeConfigApp::InitInstance()
 	CPropGeek Geek;
 	CDlgWarnPerm	WarnPerm;
 	CPropFProxy FProxy;
+	CPropDiagnostics Diagnostics;
 
 	pNormal = &Normal;
 	pAdvanced = &Advanced;
 	pGeek = &Geek;
 	pWarnPerm = &WarnPerm;
 	pFProxy = &FProxy;
+	pDiagnostics = &Diagnostics;
 
 	propdlg.AddPage(pNormal);
 	propdlg.AddPage(pAdvanced);
 	propdlg.AddPage(pGeek);
 	propdlg.AddPage(pFProxy);
+	propdlg.AddPage(pDiagnostics);
 
 	propdlg.m_psh.dwFlags	|= PSH_NOAPPLYNOW|PSH_USEHICON;
 	propdlg.m_psh.hInstance = m_hInstance;

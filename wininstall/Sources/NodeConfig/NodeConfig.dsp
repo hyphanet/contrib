@@ -118,6 +118,10 @@ SOURCE=.\PropAdvanced.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\PropDiagnostics.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\PropFProxy.cpp
 # End Source File
 # Begin Source File
@@ -156,6 +160,10 @@ SOURCE=.\NodeConfig.h
 # Begin Source File
 
 SOURCE=.\PropAdvanced.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\PropDiagnostics.h
 # End Source File
 # Begin Source File
 

@@ -14,8 +14,8 @@
 #define IDR_MAINFRAME                   128
 #define IDD_DLG_PERM_WARN               129
 #define IDD_PP_FPROXY                   130
+#define IDD_PP_DIAGNOSTICS              131
 #define IDC_storeSize                   1000
-#define IDC_seedFile                    1001
 #define IDC_announcementAttempts        1002
 #define IDC_fproxy_inserthtl            1003
 #define IDC_GETSEED                     1004
@@ -96,7 +96,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1074
+#define _APS_NEXT_CONTROL_VALUE         1075
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
