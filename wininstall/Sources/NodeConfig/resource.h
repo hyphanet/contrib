@@ -2,7 +2,6 @@
 // Microsoft Developer Studio generated include file.
 // Used by NodeConfig.rc
 //
-
 #define IDD_ABOUTBOX                    100
 #define IDD_GETSEEDDLG                  102
 #define IDP_SOCKETS_INIT_FAILED         103
@@ -10,6 +9,7 @@
 #define IDS_NOTCONNECTED                105
 #define IDS_ERR_GETSEED                 106
 #define IDD_PP_NORMAL                   107
+#define IDS_ERR_NOWININET               107
 #define IDD_PP_ADVANCED                 108
 #define IDD_PP_GEEK                     109
 #define IDR_MAINFRAME                   128
@@ -116,9 +116,8 @@
 #define IDC_MOVEUP                      1111
 #define IDC_MOVEDOWN                    1112
 
-
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
@@ -127,4 +126,3 @@
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
-
