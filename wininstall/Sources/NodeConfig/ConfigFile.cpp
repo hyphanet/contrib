@@ -2,6 +2,8 @@
 //
 //////////////////////////////////////////////////////////////////////
 
+//cvs
+
 #include "stdafx.h"
 
 #include "NodeConfig.h"
@@ -50,9 +52,7 @@ void CConfigFile::Load()
 
 	// Normal tab
 	//pNormal->m_importNewNodeRef.EnableWindow(false);
-		ULARGE_INTEGER   FreeBytes,TotalBytes;
-		GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL); 
-	pNormal->m_storeCacheSize = min(max(10,((int)FreeBytes.QuadPart>>20)),2047);
+	pNormal->m_storeCacheSize = 10;
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = true;
 	pNormal->m_transient = TRUE;
@@ -73,7 +73,7 @@ void CConfigFile::Load()
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumConnectionThreads = 16;
 	pAdvanced->m_outputBandwidthLimit = 0;
-	pAdvanced->m_seedNodes = "seed.ref";
+	pAdvanced->m_seedNodes = "ALL.REF";
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
@@ -418,8 +418,7 @@ void CConfigFile::processItem(char *tok, char *val)
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
 	else if (!strcmp(tok, "storeCacheSize"))
-		//just use the preference if it was != 0
-		if (atol(val) != 0) pNormal->m_storeCacheSize = atol(val) / 1048576;
+		pNormal->m_storeCacheSize = atol(val) / 1048576;
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))

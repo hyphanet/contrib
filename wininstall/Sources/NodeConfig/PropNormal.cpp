@@ -1,5 +1,7 @@
 // PropNormal.cpp : implementation file
 //
+//cvs
+
 
 #include "stdafx.h"
 #include "NodeConfig.h"

@@ -1,5 +1,7 @@
 // DlgWarnPerm.cpp : implementation file
 //
+//cvs
+
 
 #include "stdafx.h"
 #include "nodeconfig.h"

@@ -2,6 +2,8 @@
 //  or project specific include files that are used frequently, but
 //      are changed infrequently
 //
+//cvs
+
 
 #if !defined(AFX_STDAFX_H__5D9FA218_E5A1_446F_BAC0_0BE59608E37E__INCLUDED_)
 #define AFX_STDAFX_H__5D9FA218_E5A1_446F_BAC0_0BE59608E37E__INCLUDED_

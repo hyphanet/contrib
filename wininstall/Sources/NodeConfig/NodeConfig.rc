@@ -32,9 +32,9 @@ CAPTION "About NodeConfig"
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
-    LTEXT           "NodeConfig Version 1.0",IDC_STATIC,40,10,119,8,
+    LTEXT           "NodeConfig Version 1.0",IDC_STATIC,42,12,119,8,
                     SS_NOPREFIX
-    LTEXT           "Copyright (C) 2001",IDC_STATIC,40,25,119,8
+    LTEXT           "CopyWrong (C) 2001 David McNab",IDC_STATIC,41,24,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
 END
 

@@ -1,5 +1,7 @@
 // NodeConfig.cpp : Defines the class behaviors for the application.
 //
+//cvs
+
 
 #include "stdafx.h"
 
@@ -41,7 +43,7 @@ BEGIN_MESSAGE_MAP(CNodeConfigApp, CWinApp)
 		// NOTE - the ClassWizard will add and remove mapping macros here.
 		//    DO NOT EDIT what you see in these blocks of generated code!
 	//}}AFX_MSG
-	ON_COMMAND(ID_HELP, CWinApp::OnHelpFinder)
+	ON_COMMAND(ID_HELP, CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -61,9 +63,6 @@ CNodeConfigApp theApp;
 
 BOOL CNodeConfigApp::InitInstance()
 {
-	char *ptr,*ptr2;
-	int pathlen;
-
 	if (!AfxSocketInit())
 	{
 		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
@@ -82,16 +81,6 @@ BOOL CNodeConfigApp::InitInstance()
 #else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
-
-	// Changing the help file to point to "/docs/freenet.hlp"
-	//The string is allocated before InitInstance is called.
-	ptr2 = strrchr(m_pszHelpFilePath,'\\') + 1; //points after to the last '\' which divides path and filenam
-	pathlen = ptr2 - m_pszHelpFilePath;
-	ptr = (char*)malloc(pathlen + 17); // reserve mem for the path + "docs\freenet.hlpNULL"
-	lstrcpyn (ptr,m_pszHelpFilePath,ptr2 - m_pszHelpFilePath + 1);
-	lstrcpy  ((char*)(ptr+pathlen),"docs\\freenet.hlp");
-	free ((void*)m_pszHelpFilePath);//delete the old help file string
-	m_pszHelpFilePath = ptr;		//and assign the new value to it
 
 	CNodeConfigDlg dlg;
 	CPropertySheet propdlg;
