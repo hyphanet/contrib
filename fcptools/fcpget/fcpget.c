@@ -266,7 +266,8 @@ static void usage(char *s)
 
 int fcpLogCallback(int level, char *buf)
 {
-	//if (level <= verbosity)
-	printf("level: %d, verbosity: %d !!! --%s\n", level, verbosity, buf);
+	if (level <= verbosity)
+		printf("%s\n", buf);
+
 	return 0;
 }
