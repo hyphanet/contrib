@@ -144,10 +144,6 @@ SOURCE=.\GetSeed.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\GetSeed.rc
-# End Source File
-# Begin Source File
-
 SOURCE=.\GetSeedDlg.cpp
 # End Source File
 # Begin Source File
@@ -223,6 +219,14 @@ InputPath=.\hlp\Freenet.cnt
 # Begin Source File
 
 SOURCE=.\hlp\Freenet.rtf
+# End Source File
+# End Group
+# Begin Group "Resource Scripts"
+
+# PROP Default_Filter ".rc"
+# Begin Source File
+
+SOURCE=.\GetSeed.rc
 # End Source File
 # End Group
 # Begin Source File
