@@ -74,6 +74,7 @@ fcpput
 + Optimize main()'s speed read from standard input.
 + (Win32); returns to command prompt with (harmless) error when reading key data from stdin.
 + Implement -a "--attempts" logic.
++ Add logic to handle >1 files passed in from command line (FILES ...).
 
 = Implement -g command-line switch (GenerateKeypair).
 

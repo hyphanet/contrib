@@ -74,4 +74,6 @@ void _fcpLog(int level, char *format, ...)
 		fprintf(stream, "D %s\n", buf);
 		break;
 	}
+
+	fflush(stream);
 }
