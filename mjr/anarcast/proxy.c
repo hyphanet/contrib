@@ -181,27 +181,38 @@ is_set (struct graph *g, int db, int cb)
 
 //=== insert ================================================================
 
+void debughashes(char *hashes, int n) {
+    int i;
+    alert("START HASHES");
+    for (i=0;i<n;i++) {
+	char hex[HASHLEN*2+1];
+	bytestohex(hex, &hashes[i*HASHLEN], HASHLEN);
+	alert(hex);
+    }
+    alert("END HASHES");
+}
+
 void
 insert (int c)
 {
     char *hashes, *blocks;
-    unsigned int i, j;
+    unsigned int i, j, datalength;
     unsigned int blocksize, len, hlen, dlen, clen;
     struct graph g;
     
     // read data length in bytes
-    if (readall(c, &i, 4) != 4) {
+    if (readall(c, &datalength, 4) != 4) {
 	ioerror();
 	return;
     }
     
     // find the graph for this datablock count
-    blocksize = 64 * sqrt(i);
-    if (i/blocksize > GRAPHCOUNT) {
-	alert("I do not have a graph for %d data blocks!", i/blocksize);
+    blocksize = 64 * sqrt(datalength);
+    if (datalength/blocksize > GRAPHCOUNT) {
+	alert("I do not have a graph for %d data blocks!", datalength/blocksize);
 	return;
     }
-    g = graphs[i/blocksize-1];
+    g = graphs[datalength/blocksize-1];
     
     // allocate space for plaintext hash and data- and check-block hashes
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
@@ -209,7 +220,7 @@ insert (int c)
 	die("malloc() failed");
     
     // padding
-    while (g.dbc * blocksize < i)
+    while (g.dbc * blocksize < datalength)
 	blocksize++;
     
     dlen = g.dbc * blocksize;
@@ -220,7 +231,7 @@ insert (int c)
     alert("Reading plaintext from client.");
     blocks = mbuf(len);
     memset(&blocks[i], 0, dlen - i);
-    if (readall(c, blocks, i) != i) {
+    if (readall(c, blocks, datalength) != datalength) {
 	ioerror();
 	if (munmap(blocks, len) == -1)
 	    die("munmap() failed");
@@ -230,7 +241,7 @@ insert (int c)
     
     // hash data
     alert("Hashing data.");
-    sha_buffer(blocks, dlen, hashes);
+    sha_buffer(blocks, datalength, hashes);
     
     // generate check blocks
     alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);
@@ -262,7 +273,7 @@ insert (int c)
     alert("Writing key to client.");
     i = hlen + 4;
     if (writeall(c, &i, 4) != 4 ||
-	writeall(c, &blocksize, 4) != 4 ||
+	writeall(c, &datalength, 4) != 4 ||
 	writeall(c, hashes, hlen) != hlen) {
 	ioerror();
 	if (munmap(blocks, len) == -1)
@@ -275,7 +286,7 @@ insert (int c)
     alert("Inserting %d blocks of %d bytes each.", g.dbc + g.cbc, blocksize);
     do_insert(blocks, NULL, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
     alert("Insert complete.");
-
+    
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
     free(hashes);
@@ -402,18 +413,18 @@ void
 request (int c)
 {
     int i;
-    unsigned int blockcount, blocksize;
-    char *blocks, *mask, *hash, *hashes;
+    unsigned int datalength, blockcount, blocksize;
+    char *blocks, *mask, hash[HASHLEN], *hashes;
     struct graph g;
     
-    // read key length (a key is blocksize + hashes)
+    // read key length (a key is datalength + hashes)
     if (readall(c, &i, 4) != 4) {
 	ioerror();
 	return;
     }
     
     // is our key a series of > 2 hashes?
-    i -= 4; // subtract block size
+    i -= 4; // subtract datalength bytes
     if (i % HASHLEN || i == HASHLEN) {
 	alert("Bad key length: %s.", i);
 	return;
@@ -422,35 +433,38 @@ request (int c)
     if (!(hashes = malloc(i)))
 	die("malloc() failed");
     
-    // read block size and hashes from client
-    if (readall(c, &blocksize, 4) != 4 || readall(c, hashes, i) != i) {
+    // read datalength and hashes from client
+    if (readall(c, &datalength, 4) != 4 || readall(c, hashes, i) != i) {
 	ioerror();
 	free(hashes);
 	return;
     }
     
-    // compute blockcount, make sure we support it
-    blockcount = (i-1) / HASHLEN;
-    if (blockcount > GRAPHCOUNT) {
-	alert("I do not have a graph for %d data blocks!", blockcount);
-        free(hashes);
+    // find the graph for this datablock count
+    blocksize = 64 * sqrt(datalength);
+    if (datalength/blocksize > GRAPHCOUNT) {
+	alert("I do not have a graph for %d data blocks!", datalength/blocksize);
 	return;
     }
+    g = graphs[datalength/blocksize-1];
     
-    g = graphs[blockcount-1];
+    // padding
+    while (g.dbc * blocksize < datalength)
+	blocksize++;
+    
+    blockcount = g.dbc + g.cbc;
     mask = malloc(blockcount);
     blocks = mbuf(blockcount * blocksize);
     
     // slurp up all the data we can
     alert("Requesting %d blocks of %d bytes each.", blockcount, blocksize);
     memset(mask, 0, blockcount); // all parts are missing before we download them
-    do_request(blocks, mask, blockcount, blocksize, hashes);
+    do_request(blocks, mask, blockcount, blocksize, &hashes[HASHLEN]);
     alert("Request complete.");
-    
+ 
     // verify data
     alert("Verifying data integrity.");
-    i = blocksize * g.dbc;
-    sha_buffer(blocks, i, hash);
+    sha_buffer(blocks, datalength, hash);
     if (memcmp(hash, hashes, HASHLEN)) {
 	alert("Decoding error: data does not verify!");
 	goto out;
@@ -481,6 +495,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 	int dlen;
     } xfers[FD_SETSIZE];
     
+    FD_ZERO(&r);
     FD_ZERO(&w);
     next = active = 0;
     m = 1;
@@ -522,7 +537,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    n = writeall(i, "r", 1);
 		else
 		    // hash
-		    n = writeall(i, &hashes[(xfers[i].num*HASHLEN)+n], -n);
+		    n = writeall(i, &hashes[xfers[i].num*HASHLEN+n], -n);
 
 		// io error
 		if (n <= 0) {
@@ -541,11 +556,9 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		// are we done sending our request?
 		xfers[i].off += n;
 		if (!xfers[i].off) {
-		    if (close(i) == -1)
-			die("close() failed");
 		    FD_CLR(i, &w); // no more sending data...
 		    FD_SET(i, &r); // reading is good fer yer brane!
-		    xfers[i].off = -4; // data length
+		    xfers[i].off = -4; // datalength
 		}
 	    }
 
@@ -558,11 +571,11 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    n = readall(i, &(&xfers[i].dlen)[4+n], -n);
 		else
 		    // data
-		    n = readall(i, &blocks[(xfers[i].num*HASHLEN)+n], blocksize-n);
-		
+		    n = readall(i, &blocks[xfers[i].num*blocksize+n], blocksize-n);
+
 		if (n <= 0) {
 		    // the server hung up gracefully. request failed.
-		    if (xfers[i].off == -4) {
+		    if (xfers[i].off == -4 && !n) {
 			if (close(i) == -1)
 			    die("close() failed");
 			FD_CLR(i, &r);
@@ -585,7 +598,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		// is the data length incorrect?
 		xfers[i].off += n;
 		if (!xfers[i].off && xfers[i].dlen != blocksize) {
-		    alert("Data length read for block %d is incorrect! (%d != %d)", xfers[i].num, xfers[i].dlen, blocksize);
+		    alert("Data length read for block %d is incorrect! (%d != %d)", xfers[i].num+1, xfers[i].dlen, blocksize);
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &r);
@@ -595,6 +608,16 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 
 		// are we done reading the data?
 		if (xfers[i].off == blocksize) {
+		    char hash[HASHLEN];
+		    char hex[HASHLEN*2+1];
+		    sha_buffer(&blocks[xfers[i].num*blocksize], blocksize, hash);
+		    bytestohex(hex, hash, HASHLEN); alert("HASH: %s", hex);
+		    bytestohex(hex, &hashes[xfers[i].num*HASHLEN], HASHLEN); alert("%d: %s", xfers[i].num, hex);
+		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
+			alert("Block %d is corrupt!", xfers[i].num+1);
+		    else
+			mask[xfers[i].num] = 1; // success
+		    
 		    if (close(i) == -1)
 			die("close() failed");
 		    FD_CLR(i, &r);
