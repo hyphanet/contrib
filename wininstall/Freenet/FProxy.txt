@@ -1,0 +1,80 @@
+Quickstart for FProxy
+=====================
+
+NOTE: FProxy works still less reliable than the console clients. If you are having trouble 
+      with it, please use these first to make sure it is no Freenet problem. 
+
+1)FProxy will be automatically started with the system tray utility by default. (or start 
+  FProxy.exe if you are not using the system tray utility)
+
+2)Open the gateway page by choosing "Open Gateway" in the system tray utility (or open
+  http://localhost:8081 in a webbrowser) The gateway page should appear, if you don't get a
+  page please look at the Troubleshhoting section ("The gateway page doesn't appear").
+
+3)Assuming you see the gateway page, use the request and insert fields to specify the key 
+  you want to insert/retrieve from Freenet. Think of the key as the location of files in 
+  Freenet. (Just like the http:// address of a website)
+
+5)Have patience! Inserting or retrieving can easily take up to 5 minutes. Especially when it
+  says 'state "REQUESTING" reached' it will take quite a while.
+
+I you think there is something missing in one of the next sections, please drop me a mail 
+with suggestions: Sebastian@SSpaeth.de. Please no FProxy support questions though.
+
+Browser plugins
+===============
+Mozilla/NS6:
+If you want to enable your browser to use URIs of the format "freenet:<key>" (that is most probably the way freenet URI will be linked to on web pages in the future) you'll need a browser plugin. For Netscape6 and Mozilla based browsers there's a cool tool available at http://protozilla.mozdev.org/ that does it. Hopefully we'll be able to provide some documentation on this in the future. Installation happens by visiting this link in Mozilla/NS6:
+http://protozilla.mozdev.org/download.html, click on the button for installing on Windows and choose the menu entry tasks->Protozilla to enable it. Please direct feedback for this to the
+developers of that project.
+
+Internet Explorer:
+There exists a IE plugin that does the same for IE. An implementation will be included in future Freenet installers. For feedback contact the developer mailto:freenet@hug.cx.
+
+
+Tips for requesting
+===================
+Use the list of keyservers at http://uts.cc.utexas.edu/~blanu/keyindex.html to choose the 
+keyserver you want to search for certain keys.
+
+
+Tips for inserting
+==================
+Key server: If you choose one of the key server that are presented in the menu, the key you
+  insert will be added to the list there. This is currently the only way to publish your
+  inserted key (other by telling your key to other people by mail, IRC,...)
+
+Troubleshooting
+===============
+
+1)The gateway page doesn't appear
+  Mmmh, if you didn't mistype localhost:8081, that basically means FProxy is not running at
+  all. Bad, check FProxy.log (if existing) to see what went wrong. 
+  Starting with FProxy -logging debug will give you a detailed output of what happened.
+  First assumption would be: You have already a program running that uses port 8081.
+
+2)The Gateway page appeared but I couldn't retrieve/insert anything
+  Boy, the worst case. _A lot_ of different things can be wrong in this case. First let's 
+  make sure the backend, the Freenet node itself runs fine. Try to request or insert a key 
+  via the command line client and make sure the node runs.
+
+  OK, assumimg you did suceed requesting something via the CLI client, otherwise you are 
+  fucked anyway and should fix the node first before even think of using FProxy.
+  Now, lets see if your FProxy points to your node. You should have started FProxy with a
+  -serverAddress <nodeIP>:<port> option. Look at the files .fproxyrc and FLaunch.ini in 
+  any text editor. You should have the correct address (and port number) in the FProxy entry.
+
+FAQ
+===
+Can I connect to a non local node with FProxy?
+  Yes, just start FProxy separately from the node and provide a 
+  -serverAddress IPAddress:<portnumber> which points to the node you want to use. That's it.
+  For instance handy if you run an Internet café, otherwise I son't see any purpose for not 
+  running a local node. YOU DO GIVE UP YOUR ANONYMITY when connecting to a non-local node!!!
+
+*General Freenet Questions*
+
+Where can I get additional help?
+  Try the freenet-support@lists.sourceforge.net mailing list after searching the 
+  documentation on the freenet site. You might be lucky in the #freenet channel on the
+  IRC server irc.openprojects.org, sometimes some developers hang out there.

@@ -1,0 +1,3 @@
+[FProxy]
+logfile=fproxy.log
+passthroughMimeTypes=text/plain,image/jpeg,image/gif,image/png,application/octet-stream,application/zip,audio/basic,audio/midi,audio/mpeg,audio/x-aiff,audio/x-wav,image/cgm,image/g3fax,image/tiff,image/x-xbinmapimage/x-xpixmap,image/x-xwindowdump,application/unknown
