@@ -25,8 +25,9 @@ to assist with writing Freenet client programs in C/C++.
 While still in development, the tools have successfully compiled and run on:
 * Windows native (compiling with MS Visual C++)
 * Windows with Cygwin
-* Linux (Mandrake 8.0, Debian 2.2)
+* Linux
 * FreeBSD 4
+* NetBSD
 
 -------------------------------------------------
 Building the tools
