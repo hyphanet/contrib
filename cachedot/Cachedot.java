@@ -163,10 +163,17 @@ class Story {
 	 */
 	public Story(String title, String text, String id) {
 		this.title = title;
-		this.id = id;
+		// Remove '/'s from ID
+		StringBuffer  idSb   = new StringBuffer(id.length());
+		for (int x = 0; x < id.length(); x++) {
+			char  c  = id.charAt(x);
+			if (c != '/')
+				idSb.append(c);
+		}
+		this.id = idSb.toString();
 		Cachedot.log("Parsing story: '" + title + "' with id " + id);
-		Pattern  urlex  = Pattern.compile("<A.*?HREF=\"(http://.*?)\".*?>(.*?)<", Pattern.CASE_INSENSITIVE);
-		Matcher  m      = urlex.matcher(text);
+		Pattern       urlex  = Pattern.compile("<A.*?HREF=\"(http://.*?)\".*?>(.*?)<", Pattern.CASE_INSENSITIVE);
+		Matcher       m      = urlex.matcher(text);
 		while (m.find()) {
 			Cachedot.log("Found URL: " + m.group(1));
 			urls.put(m.group(1), m.group(2));
