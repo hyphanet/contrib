@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "13102001snapshot"
+!define VERSION "14102001snapshot"
 
 Name "Freenet ${VERSION}"
 !ifdef embedJava
@@ -132,8 +132,12 @@ End:
   Pop $2
   Pop $0
 FunctionEnd
-;-----------------------------------------------------------------------------------
-Section "Freenet (required)"
+;---------------------------------------------------------------------------------------
+
+Section
+# This is the initial section in which we copy all necessary files, in the following
+# sections come the localization parts and *then* we can start the actual
+# setup/configuration of Freenet
 
   # First of all see if we need to install the mfc42.dll
   # Each Win user should have it anyway
@@ -143,7 +147,7 @@ Section "Freenet (required)"
   File "Mfc42.dll"
   ClearErrors
   MfcDLLExists:
-
+  
   # Copying the Freenet files to the install dir
   DetailPrint "Copying Freenet files"
   SetOutPath "$INSTDIR\docs"
@@ -159,19 +163,48 @@ Section "Freenet (required)"
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
   CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\fsrvcli.exe" 6
 
+SectionEnd 
+;--------------------------------------------------------------------------------------
+
+Section "Startmenu and Desktop Icons"
+SectionIn 1,2
+
+   # Desktop icon
+   CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   
+   # Start->Programs->Freenet
+   CreateDirectory "$SMPROGRAMS\Freenet0.4"
+   CreateShortCut "$SMPROGRAMS\Freenet0.4\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   WriteINIStr "$SMPROGRAMS\Freenet0.4\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
+   ;WriteINIStr "$SMPROGRAMS\Freenet0.4\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   ;CreateShortcut "$SMPROGRAMS\Freenet0.4\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
+   CreateShortCut "$SMPROGRAMS\Freenet0.4\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
+ SectionEnd
+ 
+ ;---------------------------------------------------------------------------------------
+
+Section "German Localization (Deutsch)"
+
+  SetOutPath "$INSTDIR\"
+  File  /oname=localres.dll "Freenet\localres\DE-res.dll"
+SectionEnd 
+
+;-----------------------------------------------------------------------------------
+
+Section
+# This is the invisible 'core' section which does all the install/config stuff
+
   HideWindow
   Call DetectJava
 
   # create the configuration file now
-  # first get a current seed file
-  ExecWait "$INSTDIR\GetSeed"
   BringToFront
-  ClearErrors
   # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
   IfFileExists "$INSTDIR\freenet.ini" iniFileExisted
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
   iniFileExisted:
   # turn on FProxy by default
+  ClearErrors
   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent --services fproxy'
   IfErrors CfgnodeError
   # now calling the GUI configurator
@@ -207,22 +240,7 @@ Section "Freenet (required)"
  
  End:
 SectionEnd
-;--------------------------------------------------------------------------------------
 
-Section "Startmenu and Desktop Icons"
-SectionIn 1,2
-
-   # Desktop icon
-   CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   
-   # Start->Programs->Freenet
-   CreateDirectory "$SMPROGRAMS\Freenet0.4"
-   CreateShortCut "$SMPROGRAMS\Freenet0.4\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   WriteINIStr "$SMPROGRAMS\Freenet0.4\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
-   ;WriteINIStr "$SMPROGRAMS\Freenet0.4\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
-   ;CreateShortcut "$SMPROGRAMS\Freenet0.4\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
-   CreateShortCut "$SMPROGRAMS\Freenet0.4\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
- SectionEnd
 ;-------------------------------------------------------------------------------
  SectionDivider
 ;-------------------------------------------------------------------------------
@@ -261,11 +279,10 @@ Section "View Readme.txt"
 SectionIn 2
   ExecShell "open" "$INSTDIR\docs\Readme.txt"
 SectionEnd
-;-------------------------------------------------------------------------------
+;--------------------------------------------------------------------------------------
  SectionDivider
 ;---------------------------------------------------------------------------------------
 Section "FCPProxy (alternative to the integrated FProxy)"
-SectionIn 2
 
   SetOutPath "$INSTDIR\"
    ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --update --silent'

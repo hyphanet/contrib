@@ -182,6 +182,8 @@ void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus)
 
 void CPropNormal::OnImportNewNodeRef() 
 {
+	UpdateData(TRUE);
+
 	// uncheck the "get default node refs"
 	m_useDefaultNodeRefs = FALSE;
 

@@ -2,10 +2,7 @@
 // Microsoft Developer Studio generated include file.
 // Used by NodeConfig.rc
 //
-#define IDM_ABOUTBOX                    0x0010
 #define IDD_ABOUTBOX                    100
-#define IDS_ABOUTBOX                    101
-#define IDD_NODECONFIG_DIALOG           102
 #define IDD_GETSEEDDLG                  102
 #define IDP_SOCKETS_INIT_FAILED         103
 #define IDS_TITLE                       104
@@ -17,28 +14,15 @@
 #define IDR_MAINFRAME                   128
 #define IDD_DLG_PERM_WARN               129
 #define IDD_PP_FPROXY                   130
-#define IDD_PROPPAGE_LARGE              131
-#define IDC_EDIT1                       1000
 #define IDC_storeCacheSize              1000
-#define IDC_seedNodes                   1000
-#define IDC_announcementAttempts        1000
-#define IDC_fproxy_inserthtl            1000
-#define IDC_GETSEED                     1000
-#define IDC_storePath                   1001
-#define IDC_fproxy_requesthtl           1001
-#define IDC_SEEDURL                     1001
-#define IDC_storePath_browse            1002
-#define IDC_fproxy_splitthreads         1002
-#define IDC_SEEDFILE                    1002
-#define IDC_useDefaultNodeRefs          1003
-#define IDC_fproxy_splitretries         1003
-#define IDC_importNewNodeRef            1004
-#define IDC_fproxy_splitincHTL          1004
-#define IDC_GETLOCALSEED                1004
-#define IDC_BUT_exportRef               1005
-#define IDC_transient                   1006
-#define IDC_DLOADPROGRESS               1006
-#define IDC_doAnnounce                  1007
+#define IDC_seedNodes                   1001
+#define IDC_announcementAttempts        1002
+#define IDC_fproxy_inserthtl            1003
+#define IDC_GETSEED                     1004
+#define IDC_storePath                   1005
+#define IDC_fproxy_requesthtl           1006
+#define IDC_SEEDURL                     1007
+#define IDC_storePath_browse            1008
 #define IDC_ipAddress                   1009
 #define IDC_listenPort                  1010
 #define IDC_clientPort                  1011
@@ -92,6 +76,17 @@
 #define IDC_FPROXYSERVICE               1065
 #define IDC_FPROXYALLOWEDMIME           1066
 #define IDC_FPROXYDROPPEDCONN           1068
+#define IDC_fproxy_splitthreads         1069
+#define IDC_SEEDFILE                    1070
+#define IDC_useDefaultNodeRefs          1071
+#define IDC_fproxy_splitretries         1072
+#define IDC_importNewNodeRef            1073
+#define IDC_fproxy_splitincHTL          1074
+#define IDC_GETLOCALSEED                1075
+#define IDC_BUT_exportRef               1076
+#define IDC_transient                   1077
+#define IDC_DLOADPROGRESS               1078
+#define IDC_doAnnounce                  1079
 
 // Next default values for new objects
 // 
