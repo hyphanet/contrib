@@ -98,14 +98,14 @@ META04 *metaParse(char *buf)
         switch (state)
         {
         case STATE_BEGIN:
-            if (!strcasecmp(key, "Version"))
+            if (!strcmp(key, "Version"))
                 state = STATE_INHDR;
             else
                 _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Version', got '%s'", key);
             break;
 
         case STATE_INHDR:
-            if (!strcasecmp(key, "Revision"))
+            if (!strcmp(key, "Revision"))
             {
                 if (val != NULL)
                 {
@@ -120,19 +120,19 @@ META04 *metaParse(char *buf)
             break;
 
         case STATE_WAITENDHDR:
-            if (!strcasecmp(key, "EndPart"))
+            if (!strcmp(key, "EndPart"))
             {
                 state = STATE_WAITDOC;
                 break;
             }
-            else if (!strcasecmp(key, "End"))
+            else if (!strcmp(key, "End"))
                 state = STATE_END;
             else
                 _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'EndPart' or 'End', got '%s'", key);
             break;
 
         case STATE_WAITDOC:
-            if (!strcasecmp(key, "Document"))
+            if (!strcmp(key, "Document"))
             {
                 // create empty fieldset struct
                 thisdoc = meta->numDocs++;
@@ -147,18 +147,18 @@ META04 *metaParse(char *buf)
             break;
 
         case STATE_INDOC:
-            if (!strcasecmp(key, "EndPart"))
+            if (!strcmp(key, "EndPart"))
                 state = STATE_WAITDOC;
-            else if (!strcasecmp(key, "End"))
+            else if (!strcmp(key, "End"))
                 state = STATE_END;
             else
             {
                 // Set type if not already set
                 if (meta->cdoc[thisdoc]->type == META_TYPE_04_NONE)
                 {
-                    if (!strcasecmp(key, "Redirect.Target"))
+                    if (!strcmp(key, "Redirect.Target"))
                         meta->cdoc[thisdoc]->type = META_TYPE_04_REDIR;
-                    else if (!strcasecmp(key, "DateRedirect.Target"))
+                    else if (!strcmp(key, "DateRedirect.Target"))
                         meta->cdoc[thisdoc]->type = META_TYPE_04_DBR;
                     else if (!strncmp(key, "SplitFile", 9))
                         meta->cdoc[thisdoc]->type = META_TYPE_04_SPLIT;
@@ -309,7 +309,7 @@ FLDSET *cdocFindDoc(META04 *meta, char *cdocName)
         // search for named cdoc
         for (i = 0; i < meta->numDocs; i++)
             if ((s = cdocLookupKey(meta->cdoc[i], "Name")) != NULL
-                && !strcasecmp(s, cdocName)
+                && !strcmp(s, cdocName)
             )
                 return meta->cdoc[i];
         // no cdoc matching name
@@ -336,7 +336,7 @@ char *cdocLookupKey(FLDSET *fldset, char *keyName)
         return NULL;
 
     for (i = 0; i < fldset->numFields; i++)
-        if (!strcasecmp(fldset->key[i].name, keyName))
+        if (!strcmp(fldset->key[i].name, keyName))
             // found it
             return fldset->key[i].value;
 

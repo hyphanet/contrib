@@ -4,14 +4,6 @@
 #include "stdio.h"
 #include "ezFCPlib.h"
 
-#ifdef WINDOWS
-#include <process.h>
-#else
-#include <pthread.h>
-#include <unistd.h>
-#include <fcntl.h>
-#endif
-
 #define MAXRETRIES 10
 #define KEYSIZE  1024
 
@@ -24,7 +16,7 @@ static void *usage(char *msg);
 
 
 static int putsplitfile( HFCP *hfcp, int workingThreads,  int file);
-static void LaunchThread(void (*func)(void *), void *parg);
+//static void LaunchThread(void (*func)(void *), void *parg);
 static void splitblockThread(void *arg);
 
 
@@ -354,7 +346,7 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
         }
 
 
-        Sleep( 50, 0 );
+        _fcpSleep( 50, 0 );
 
 
         /// freeing finished blocks
@@ -432,8 +424,7 @@ void splitblockThread( void *job)
 
 }
 
-
-
+/*
 static void LaunchThread(void (*func)(void *), void *parg)
 {
 #ifdef SINGLE_THREAD_DEBUG
@@ -448,5 +439,5 @@ static void LaunchThread(void (*func)(void *), void *parg)
 #endif
 #endif
 }               // 'LaunchThread()'
-
+*/
 

@@ -28,7 +28,7 @@ void *safeMalloc(int nbytes)
 	 _fcpLog(FCP_LOG_CRITICAL, "safeMalloc: req for %d bytes failed, waiting %d seconds", nbytes, delay_s);
 
 	 // Sleep for delay_s seconds, 0 nanoseconds.
-	 Sleep(delay_s, 0);
+	 _fcpSleep(delay_s, 0);
 
 	 // Double the delay for next time, max 1 hour (hahaha)
 	 if (delay_s < 3600) delay_s = delay_s << 1;

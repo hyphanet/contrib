@@ -15,7 +15,7 @@ FCP_SOURCE = \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c metaParse.c \
 	mimetype.c template.c safeMalloc.c
 
-noinst_HEADERS = ezFCPlib.h
+noinst_HEADERS = ezFCPlib.h compat.h
 noinst_LIBRARIES = libezfcp.a
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)

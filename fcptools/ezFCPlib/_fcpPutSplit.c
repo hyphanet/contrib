@@ -64,10 +64,6 @@ extern char     _fcpID[];
 static int			insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file);
 static void			splitAddJob(splitJobIns *job);
 
-/* Create type 'FP' for 'Function Pointer' which takes a 'void *' parameter */
-typedef void (*FP) (void *);
-
-static int			LaunchThread   (FP, void *);
 static void			splitMgrThread (void *);
 static void			chunkThread    (void *);
 
@@ -122,7 +118,7 @@ void _fcpInitSplit(int maxSplitThreads)
 	LaunchThread(splitMgrThread, NULL);
 
 	while (!splitMgrRunning)
-		Sleep( 1, 0 );
+		_fcpSleep( 1, 0 );
 
 	_fcpLog(FCP_LOG_VERBOSE,
 			"_fcpInitSplit: splitfile insert manager now running, max %d threads",
@@ -224,7 +220,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 	// wait for it to finish
 	while (job->status != SPLIT_INSSTAT_MANIFEST && job->status != SPLIT_INSSTAT_FAILED)
-		Sleep( 1, 0 );
+		_fcpSleep( 1, 0 );
 
 	close(fd);
 
@@ -381,7 +377,7 @@ void splitAddJob(splitJobIns *job)
 	while (newJob != NULL)
 	{
 		_fcpLog(FCP_LOG_DEBUG, "splitAddJob: waiting for split insert queue to come free");
-		Sleep( 1, 0 );
+		_fcpSleep( 1, 0 );
 	}
 	newJob = job;
 
@@ -423,7 +419,7 @@ static void splitMgrThread(void *nothing)
 	while (1)
 	{
 		// let things breathe a bit
-		Sleep( 1, 0 );
+		_fcpSleep( 1, 0 );
 		breakloop = 0;
 
 		if (++clicks == 600)
@@ -543,9 +539,6 @@ static void splitMgrThread(void *nothing)
 
 				if (chunk->status == SPLIT_INSSTAT_WAITING)
 				{
-					pthread_t pth;
-					pthread_attr_t attr;
-
 					chunkThreadParams *params = safeMalloc(sizeof(chunkThreadParams));
 
 					chunk->status = SPLIT_INSSTAT_INPROG;		// correct code
@@ -571,9 +564,6 @@ static void splitMgrThread(void *nothing)
 							i, params->key->fileName);
 
 					// fire up a thread to insert this chunk
-					pthread_attr_init(&attr);
-					pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
 					if (LaunchThread(chunkThread, params) != 0)
 					{
 						// failed thread launch - force restart of main loop
@@ -653,6 +643,8 @@ static int dumpQueue()
 
 		_fcpLog(FCP_LOG_DEBUG, buf);
 	}
+
+	return 0; /* To suppress the warning.  What should this function return? */
 }
 
 
@@ -693,7 +685,7 @@ static void chunkThread(void *params)
 	 chunkParams->key->status = SPLIT_INSSTAT_BADNEWS;
 
 	 runningThreads--;
-	 pthread_exit(0);
+	 QuitThread(0);
 
 	 return;
   }
@@ -726,18 +718,6 @@ static void chunkThread(void *params)
 	runningThreads--;
 	_fcpLog(FCP_LOG_DEBUG, "%d:chunkThread: %d threads now running",
 			mypid, runningThreads);
-	pthread_exit(0);
+	QuitThread();
 	return;
-}
-
-
-static int LaunchThread(FP f, void *parms)
-{
-  pthread_t pth;
-  pthread_attr_t attr;
-  
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-  return pthread_create(&pth, &attr, (void *)f, parms);
 }

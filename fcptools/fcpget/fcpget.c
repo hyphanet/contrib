@@ -1,39 +1,32 @@
-// fcpget.c - simple command line client that uses FCP
-// CopyLeft () 2001 by David McNab
+/*
+  fcpget.c - simple command line client that uses FCP
 
-#include "stdio.h"
-#include "stdlib.h"
+  CopyLeft () 2001 by David McNab
+*/
 
-#ifdef WINDOWS
-#include <crtdbg.h>
-#else
-#include "unistd.h"
-#endif
 
 #include "ezFCPlib.h"
 
-//
-// IMPORTED DECLARATIONS
-//
+
+/*
+  IMPORTED DECLARATIONS
+*/
 
 
-// defined in ezFCPlib.h
-
-//
-// PRIVATE DECLARATIONS
-//
-
+/*
+  PRIVATE DECLARATIONS
+*/
 static void parse_args(int argc, char *argv[]);
 static void *usage(char *msg);
 
-char        *keyUri = NULL;
-char        *keyFile = NULL;
-int         htlVal = 25;
-char        *nodeAddr = "localhost";
-int         nodePort = 8481;
-char        *metaFile = NULL;
-int         rawMode = 0;
-int         verbosity = FCP_LOG_NORMAL;
+char  *keyUri     = NULL;
+char  *keyFile    = NULL;
+int    htlVal     = 25;
+char  *nodeAddr   = "localhost";
+int    nodePort   = 8481;
+char  *metaFile   = NULL;
+int    rawMode    = 0;
+int    verbosity  = FCP_LOG_NORMAL;
 
 
 int main(int argc, char* argv[])
@@ -213,19 +206,26 @@ static void parse_args(int argc, char *argv[])
 
 static void *usage(char *s)
 {
-    printf("fcpget: %s\n", s);
-    printf("usage: fcpget [-h] [-htl htlval] [-n nodeAddr] [-p nodePort] [-r] [-m file] key [file]\n");
-    printf("-h: display this help\n");
-    printf("-htl htlVal: use HopsToLive value of htlVal, default 25\n");
-    printf("-n nodeAddr: address of your freenet 0.4 node, default 'localhost'\n");
-    printf("-p nodePort: FCP port for your freenet 0.4 node, default 8481\n");
-    printf("-m file:     write key's metadata to file, 'stdout' means stdout\n");
-    printf("-r:          raw mode - don't follow redirects\n");
-    printf("-v level:    verbosity of logging messages:\n");
-    printf("             0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-    printf("             default is 2\n");
-    printf("key          a Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
-    printf("file         a file to save key data to - stdout if no filename\n");
+    printf("Error: %s\n", s);
+    printf("fcpget Version %s\n", VERSION);
+    printf("Copyright (c) 2001 by David McNab\n\n");
+
+    printf("Usage: fcpget [OPTIONS] key [file]\n\n");
+
+	 printf("Options:\n\n");
+    printf("  -htl htlVal    Use HopsToLive value of htlVal, default %d\n", htlVal);
+    printf("  -n nodeAddr    Address of your freenet 0.4 node, default \"%s\"\n", nodeAddr);
+    printf("  -p nodePort    FCP port for your freenet 0.4 node, default %d\n", nodePort);
+    printf("  -m file        Write key's metadata to file, \"stdout\" means stdout\n");
+    printf("  -r             Raw mode - don't follow redirects\n");
+    printf("  -v level       Verbosity of logging messages:\n");
+    printf("                 0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
+    printf("                 (default=2)\n");
+    printf("  -h             Display this help\n\n");
+
+    printf("  key            A Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
+    printf("  file           A file to save key data to - stdout if no filename\n");
+
     exit(0);
 }
 

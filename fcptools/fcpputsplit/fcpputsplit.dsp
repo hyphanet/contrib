@@ -88,10 +88,6 @@ LINK32=link.exe
 
 SOURCE=.\fcpputsplit.c
 # End Source File
-# Begin Source File
-
-SOURCE=.\mimetype.c
-# End Source File
 # End Group
 # Begin Group "Header Files"
 

@@ -185,20 +185,30 @@ static void parse_args(int argc, char *argv[])
 
 static int usage()
 {
-    printf("usage: fcpproxy [-h] [-n nodeAddr] [-p nodePort] [-b browsePort] [-g gatewayfile]\n");
-    printf("-h: display this help\n");
-    printf("-n nodeAddr: address of your freenet 0.4 node, default 'localhost'\n");
-    printf("-p nodePort: FCP port for your freenet 0.4 node, default 8481\n");
-    printf("-b browsePort: the port fcpproxy listens on for browser http requests, default 8888\n");
-    printf("-htl htlVal:    the HopsToLive value to use for Freenet requests, default 10\n");
-    printf("-g gatewaypath: the pathname of a file to use as the html gateway page, default './gateway.html'\n");
-    printf("-w password:    password for 'http://[no]block?password' URLs which\n");
-    printf("                turn web blocking on or off\n");
-    printf("-v level:       verbosity of logging messages:\n");
-    printf("                0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-    printf("                default is 2\n");
-    printf("-s:             Run fcpproxy in single-thread mode\n");
-    printf("-o:             Number of working threads for splitfiles (default: 24)\n");
-    printf("-t:             Number of total threads for splitfiles (default: 32)\n");
-    exit(0);
+  printf("fcpproxy Version %s\n", VERSION);
+  printf("Copyright (c) 2001 by David McNab\n\n");
+
+  printf("Usage: fcpproxy [OPTIONS]\n\n");
+
+  printf("Options:\n\n");
+  printf("  -htl htlVal     Use HopsToLive value of htlVal, default %d\n", htlVal);
+  printf("  -n nodeAddr     Address of your freenet 0.4 node, default \"%s\"\n", nodeAddr);
+  printf("  -p nodePort     FCP port for your freenet 0.4 node, default %d\n", nodePort);
+  printf("  -b browsePort   The port fcpproxy listens on for browser http requests (default=8888)\n");
+  printf("  -g gatewaypath  The pathname of a file to use as the html gateway page, default \"./gateway.html\"\n");
+  printf("  -w password     Password for \"http://[no]block?password\" URLs which\n");
+  printf("                  turns web blocking on or off\n");
+  printf("  -v level        Verbosity of logging messages:\n");
+  printf("                  0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
+  printf("                  (default=2)\n");
+  printf("  -s              Run fcpproxy in single-thread mode\n");
+  printf("  -o              Number of working threads for splitfiles (default=24)\n");
+  printf("  -t              Number of total threads for splitfiles (default=32)\n\n");
+
+  printf("  -h              Display this help\n\n");
+
+  printf("  key             A Freenet key URI [freenet:]XXX@blah[/blah][//[path]]\n");
+  printf("  file            A file to save key data to - stdout if no filename\n");
+
+  exit(0);
 }

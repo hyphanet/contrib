@@ -24,11 +24,6 @@ extern char *_pProg;
 extern int   _fcpPort;
 extern int   _fcpHtl;
 extern int   _fcpRawMode;
-
-//These will be replaced by calls to tempnam()
-//extern char  _fcpProgPath[];
-//extern int   _fcpFileNum;    // temporary file count
-
 extern char  _fcpID[];
 extern int   _fcpRegress;
 
@@ -55,7 +50,7 @@ extern int   _fcpRegress;
 
 int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads)
 {
-  sigset_t sigset;
+  //sigset_t sigset;
 
   HFCP hfcpBlk;
   HFCP *hfcp = &hfcpBlk;
@@ -64,15 +59,14 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   int  n;
   int  len;
 
-  /*
-	 First and foremost, block all signals.
-
-	 This may be a *bad* idea, but signals cannot be allowed to propogate to
-	 child processes.  I don't know which (if any) signals should be handled.
-
-  sigfillset( &sigset );
-  sigprocmask(SIG_SETMASK, &sigset, NULL);
-  */
+  // Create an empty signal set, then add the individual signals we need to
+  // ignore, handle, etc..
+  //sigemptyset( &sigset );
+  //sigaddset( &sigset, SIGPIPE );
+  
+  // Union between current blocked signal set and contents of 'sigset' becomes
+  // the updated set of blocked signals.
+  //sigprocmask(SIG_BLOCK, &sigset, NULL);
  
   // set global parms
   strcpy(_fcpHost, (host == NULL) ? EZFCP_DEFAULT_HOST : host);
@@ -80,9 +74,6 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   _fcpHtl = (defaultHtl >= 0) ? defaultHtl : EZFCP_DEFAULT_HTL;
   _fcpRawMode = (raw > 0) ? 1 : 0;
   _fcpRegress = EZFCP_DEFAULT_REGRESS;
-
-  // set starting temp file number
-  //_fcpFileNum = 0;
 
   _fcpLog(FCP_LOG_DEBUG, "fcpStartup: begin");
   _fcpLog(FCP_LOG_DEBUG, "FCPtools version %s", VERSION);

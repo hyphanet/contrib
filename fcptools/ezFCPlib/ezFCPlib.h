@@ -22,18 +22,16 @@
   include should be placed within said module.
 
 */
+#include "compat.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
 #include <time.h> 
-#include <pthread.h>
-
 
 /*
   Threshold levels for the user-provided fcpLogCallback() function
@@ -478,8 +476,6 @@ extern _C_ void     freeMeta(META04 *meta);
   Utility functions defined here (not part of the protocol itself).
  */
 extern _C_ void    *safeMalloc(int nbytes);
-extern _C_ unsigned int Sleep(unsigned int seconds, unsigned int nanoseconds);
-
 extern _C_ long     cdocIntVal(META04 *meta, char *cdocName, char *keyName, long defVal);
 extern _C_ long     cdocHexVal(META04 *meta, char *cdocName, char *keyName, long defVal);
 extern _C_ char    *cdocStrVal(META04 *meta, char *cdocName, char *keyName, char *defVal);

@@ -33,8 +33,6 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
 // PRIVATE DECLARATIONS
 //
 
-static void LaunchThread(void (*func)(void *), void *parg);
-
 static void putsiteThread(void *arg);
 
 static int  numFiles;
@@ -143,7 +141,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                     break;
                 }
                 else
-                    Sleep( 1, 0 );  // one or more threads currently running
+                    _fcpSleep( 1, 0 );  // one or more threads currently running
             }
         }
 
@@ -161,7 +159,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         if (firstThreadSlot == maxThreads)
         {
             // no - wait a while and restart
-            Sleep( 1, 0 );
+            _fcpSleep( 1, 0 );
 			if (++clicks == 180)
 				_fcpLog(FCP_LOG_DEBUG, "fcpputsite: all thread slots full");
             continue;
@@ -403,19 +401,3 @@ void putsiteThread(void *arg)
     }
     //free(job);
 }               // 'putsiteThread()'
-
-
-static void LaunchThread(void (*func)(void *), void *parg)
-{
-#ifdef SINGLE_THREAD_DEBUG
-    (*func)(parg);
-    return;
-#else
-#ifdef WINDOWS
-    _beginthread(func, 0, parg);
-#else
-    pthread_t pth;
-    pthread_create(&pth, NULL, (void *(*)(void *))func, parg);
-#endif
-#endif
-}               // 'LaunchThread()'

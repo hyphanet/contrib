@@ -32,12 +32,13 @@ should take their place (fcpOpenKey.c, ...).
 - Clean up _fcpRecvResponse.c (syntax, indenting scheme).  See if there can be
 any code sharing.
 
-- Determine the purpose of fcpMakeChkFromMem.c, fcpMakeChkFromFile.c.
-
 
 ---------------------------------------------------------------------------
 *** FCPtools generic ***
 
-. Enhance command-line interface.  Add --version to all tools.
+- Enhance command-line interface.  Add version number to all help screens.
+
+- Standardize alol global-defaults (localhost/127.0.0.1, etc.)
+
 
 (to be completed)

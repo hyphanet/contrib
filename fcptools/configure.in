@@ -35,7 +35,8 @@ AC_CHECK_LIB(pthread, pthread_create,
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([alloca.h arpa/inet.h errno.h fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h sys/timeb.h unistd.h])
+
+AC_CHECK_HEADERS([alloca.h arpa/inet.h fcntl.h netdb.h sys/ioctl.h sys/param.h sys/socket.h sys/timeb.h])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -48,9 +49,11 @@ dnl Checks for library functions. -----------------------------------------
 AC_CHECK_LIB(pthread, pthread_create, LIBS="$LIBS -lpthread")
 AC_CHECK_LIB(c_r, pthread_create, LDFLAGS="$LDFLAGS -pthread -D_THREAD_SAFE")
 
-AC_CHECK_FUNCS([bzero gethostbyaddr inet_ntoa memset re_comp regcomp select socket strcasecmp strchr strdup strerror strpbrk strrchr strstr strtol])
+
 AC_CHECK_FUNC(gethostbyname,,[AC_CHECK_LIB(nsl,gethostbyname)])
 AC_CHECK_FUNC(setsockopt,,[AC_CHECK_LIB(socket,setsockopt)])
+
+AC_CHECK_FUNCS([bzero gethostbyaddr inet_ntoa memset re_comp regcomp select socket strcasecmp strerror strpbrk strtol])
 
 dnl -----------------------------------------------------------------------
 

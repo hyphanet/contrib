@@ -1,6 +1,7 @@
 
 #include "ezFCPlib.h"
 
+// Make use of stdio.h:#define P_tmpdir "/tmp"
 
 /*
   xtoi()
@@ -27,21 +28,6 @@ long xtoi(char *s)
 
     return val;
 }
-
-/*
-  Sleep()
-*/
-unsigned int Sleep(unsigned int seconds, unsigned int nanoseconds)
-{
-  //struct timespec delay;
-  //struct timespec remain;
-
-  //delay.tv_sec = seconds;
-  //delay.tv_nsec = nanoseconds;
-
-  return sleep( seconds );
-}
-
 
 long timeLastMidnight()
 {

@@ -96,10 +96,6 @@ SOURCE=.\insertFreesite.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\mimeType.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\scanDir.c
 # End Source File
 # End Group
