@@ -55,6 +55,7 @@
     description="Create a .jar">
     <jar jarfile="freenet-ext.jar" basedir="${build}" includes="**">
       <zipfileset src="../fecimpl/onion/alien/onion-common.jar"/>
+      <zipfileset src="../fecimpl/onion/alien/fec-native.jar"/>
     </jar>
   </target>
 </project>
