@@ -1,9 +1,12 @@
 /*
   This code is part of FCPTools - an FCP-based client library for Freenet
+
+	Developers:
+ 	- David McNab <david@rebirthing.co.nz>
+	- Jay Oliveri <ilnero@gmx.net>
 	
-  Designed and implemented by David McNab <david@rebirthing.co.nz>
   CopyLeft (c) 2001 by David McNab
-	
+
 	Currently maintained by Jay Oliveri <ilnero@gmx.net>
 	
 	This program is free software; you can redistribute it and/or modify
@@ -21,7 +24,6 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -30,11 +32,13 @@
 #include <string.h>
 #include <errno.h>
 
+#ifndef WINDOWS
 #define _GNU_SOURCE
+#endif
+
 #include "getopt.h"
 
 #include "ezFCPlib.h"
-
 
 void  parse_args(int argc, char *argv[]);
 void  usage(char *);
@@ -44,7 +48,6 @@ extern char *crTmpFilename(void);
 char  *keyuri = 0;
 char  *keyfile = 0;
 char  *metafile = 0;
-
 
 int main(int argc, char* argv[])
 {
@@ -63,7 +66,8 @@ int main(int argc, char* argv[])
 	}
 
 	/* If file is not specified, read key data from stdin */
-	if (!keyfile) fd = STDIN_FILENO;
+	/* fd=2 ??? */
+	if (!keyfile) fd = 2;
 	else fd = open(keyfile, O_RDONLY);
 
 	if (fd == -1) {
@@ -73,7 +77,8 @@ int main(int argc, char* argv[])
 
 	hfcp = _fcpCreateHFCP();
 
-	if (rc = fcpOpenKey(hfcp, keyuri, _FCP_O_WRITE))	{
+	if (rc = fcpOpenKey(hfcp, keyuri, _FCP_O_WRITE))
+	{
 		_fcpLog(FCP_LOG_CRITICAL, "fcpput: cannot open key writing");
 		return 1;
 	}
@@ -89,7 +94,6 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-
 
 /* IMPORTANT
    This function should bail if the parameters are bad in any way.  main() can
@@ -128,8 +132,8 @@ void parse_args(int argc, char *argv[])
 			if (_fcpHost) free(_fcpHost);
 			_fcpHost = (char *)malloc(strlen(optarg) + 1);
 
-      strcpy( _fcpHost, optarg);
-      break;
+			strcpy(_fcpHost, optarg);
+			break;
 
     case 'p':
       i = atoi( optarg );
@@ -141,9 +145,9 @@ void parse_args(int argc, char *argv[])
       if (i >= 0) _fcpHtl = i;
       break;
 
-		case 'e':
+	case 'e':
 			i = atoi( optarg );
-			if (i > 0) _fcpRegress = i;
+	if (i > 0) _fcpRegress = i;
 
     case 'r':
       _fcpRawmode = 1;
@@ -177,7 +181,7 @@ void parse_args(int argc, char *argv[])
 			i = atoi( optarg );
 			if (i > 0) splitThreads = i;
 			break;*/
- 
+
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
       exit(0);
@@ -205,7 +209,6 @@ void parse_args(int argc, char *argv[])
 		strcpy(keyuri, "CHK@");
 	}
 }
-
 
 void usage(char *s)
 {
@@ -240,7 +243,7 @@ void usage(char *s)
 	
 	printf("NOTE - only the inserted key URI will be written to stdout\n"
 				 "Therefore, you can use this utility in shell backtick commands\n\n");
- 
+
 	exit(0);
 }
 

@@ -13,7 +13,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifndef WINDOWS
 #include <sys/socket.h>
+#endif
 
 #include <time.h>
 #include <string.h>

@@ -60,7 +60,7 @@ hChunk *_fcpCreateHChunk(void)
 	hChunk *h;
 
 	h = (hChunk *)malloc(sizeof (hChunk));
-	memset(h, 0, sizeof (hChunk));;
+	memset(h, 0, sizeof (hChunk));
 
 	return h;
 }

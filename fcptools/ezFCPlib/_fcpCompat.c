@@ -23,18 +23,23 @@
 	making use of #ifdef's.
 */
 
-
 /* TODO: make this shit work on windows */
-#include <sys/types.h>
+#ifndef WINDOWS
 #include <sys/socket.h>
+#endif
+
+#include <sys/types.h>
 #include <sys/stat.h>
 
+#ifndef WINDOWS
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
+#endif
+
+#include <stdio.h>
 #include <errno.h>
 
 #include <time.h>

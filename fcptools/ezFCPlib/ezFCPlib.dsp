@@ -90,6 +90,10 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\_fcpCompat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\_fcpGlobals.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"
@@ -105,24 +109,6 @@ SOURCE=.\_fcpGlobals.c
 # Begin Source File
 
 SOURCE=.\_fcpLog.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\_fcpPutSplit.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\_fcpReadBlk.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -172,95 +158,11 @@ SOURCE=.\fcpCloseKey.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\fcpCreateHandle.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpDestroyHandle.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpGetKeyToFile.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpGetKeyToMem.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpInitHandle.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpMakChkFromMem.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
+SOURCE=.\fcpCreation.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\fcpMakeChkFromFile.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpMakeSvkKeypair.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"
 
@@ -288,49 +190,11 @@ SOURCE=.\fcpOpenKey.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\fcpOpenKeyIndex.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
+SOURCE=.\fcpPut.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\fcpPutKeyFromFile.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpPutKeyFromMem.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpRawMode.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"
 
@@ -355,24 +219,6 @@ SOURCE=.\fcpReadKey.c
 
 !ENDIF 
 
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpReadKeyIndex.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\fcpSetParam.c
 # End Source File
 # Begin Source File
 
@@ -404,38 +250,12 @@ SOURCE=.\fcpWriteKey.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\fcpWriteKeyIndex.c
-
-!IF  "$(CFG)" == "ezFCPlib - Win32 Release"
-
-# ADD CPP /MTd
-# SUBTRACT CPP /YX
-
-!ELSEIF  "$(CFG)" == "ezFCPlib - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\metaParse.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\mimetype.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\safeMalloc.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
-# Begin Source File
-
-SOURCE=.\compat.h
-# End Source File
 # Begin Source File
 
 SOURCE=.\ezFCPlib.h

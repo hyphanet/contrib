@@ -22,8 +22,6 @@
 */
 
 #include <sys/types.h>
-#include <sys/socket.h>
-
 #include <string.h>
 
 #include "ezFCPlib.h"
@@ -38,8 +36,11 @@ int fcpStartup(void)
 	/* Call WSAStartup thing */
 	/* Then set _fcpTmpDir to something that makes sense on windoze */
 #endif
-	
-  return 0;
+
+	_fcpHost = (char *)malloc(strlen(EZFCP_DEFAULT_HOST) + 1);
+	strcpy(_fcpHost, EZFCP_DEFAULT_HOST);
+
+	return 0;
 }
 
 

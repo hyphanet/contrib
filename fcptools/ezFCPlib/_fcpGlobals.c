@@ -24,7 +24,7 @@
 /* Common FCP related default protocol values */
 char  _fcpID[4] = { 0, 0, 0, 2 };
 
-char *_fcpHost = EZFCP_DEFAULT_HOST;
+char *_fcpHost = 0;
 int   _fcpPort = EZFCP_DEFAULT_PORT;
 int   _fcpHtl = EZFCP_DEFAULT_HTL;
 int   _fcpRawmode = EZFCP_DEFAULT_RAWMODE;

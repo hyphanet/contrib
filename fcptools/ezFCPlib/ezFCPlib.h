@@ -63,9 +63,10 @@
 #else
 
 /* UNIX includes that do not correspond on WINDOWS go here */
-#define OPEN_PERMS (S_IRUSR | S_IWUSR)
-
 /* Keep 'sys' files first in include order */
+
+#include <unistd.h>
+#define OPEN_PERMS (S_IRUSR | S_IWUSR)
 
 #endif
 
@@ -74,7 +75,6 @@
 **************************************************************************/
 #include <string.h>
 #include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 

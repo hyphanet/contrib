@@ -1,11 +1,11 @@
 /*
-	This code is part of FreeWeb - an FCP-based client for Freenet
+  This code is part of FreeWeb - an FCP-based client for Freenet
 
-	sockadDesigned and implemented by David McNab, david@rebirthing.co.nz
-	CopyLeft (c) 2001 by David McNab
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
 
-	The FreeWeb website is at http://freeweb.sourceforge.net
-	The website for Freenet is at http://freenet.sourceforge.net
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,19 +23,23 @@
 */
 
 #include <sys/types.h>
-#include <sys/time.h>
+
+#ifndef WINDOWS
 #include <sys/socket.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
 
 #include "ezFCPlib.h"
+
+extern void crSockDisconnect(hFCP *hfcp);
 
 
 int crSockConnect(hFCP *hfcp)
 {
-  int rc, i;
+  int rc;
 
   struct sockaddr_in localAddr, servAddr;
   struct hostent *h;
