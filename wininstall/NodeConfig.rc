@@ -1,0 +1,400 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOG DISCARDABLE  0, 0, 235, 55
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About NodeConfig"
+FONT 8, "MS Sans Serif"
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "NodeConfig Version 1.0",IDC_STATIC,40,10,119,8,
+                    SS_NOPREFIX
+    LTEXT           "Copyright (C) 2001",IDC_STATIC,40,25,119,8
+    DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
+END
+
+IDD_NODECONFIG_DIALOG DIALOGEX 0, 0, 320, 200
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "NodeConfig"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,260,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,260,23,50,14
+    LTEXT           "TODO: Place dialog controls here.",IDC_STATIC,50,90,200,
+                    8
+END
+
+IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 241
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Normal Settings"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDC_storeCacheSize,24,45,30,14,ES_AUTOHSCROLL
+    CTEXT           "If this is your first time running a Freenet node, you won't need to change any of the 'Advanced' or 'Geek' settings. Just choose a location and a size for your node datastore.",
+                    IDC_STATIC,7,4,305,16
+    GROUPBOX        "Node Data Store",IDC_STATIC,7,25,305,69
+    LTEXT           "Size (MB)",IDC_STATIC,24,37,31,8
+    LTEXT           "If you change either of these settings, your entire node's datastore will be erased and replaced with a fresh empty store. You should ideally choose one size and location, and stick with it.",
+                    IDC_STATIC,80,37,207,26
+    LTEXT           "Location",IDC_STATIC,24,65,28,8
+    EDITTEXT        IDC_storePath,24,74,268,15,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse",IDC_storePath_browse,258,61,34,12
+    CTEXT           "Please don't change any of the 'Advanced' or 'Geek' settings unless you know what you're doing. Incorrect settings can damage your node and even impair the Freenet network as a whole",
+                    IDC_STATIC,7,215,305,18
+    GROUPBOX        "Node References",IDC_STATIC,7,100,305,111
+    CTEXT           "To connect to the Freenet network, your node needs at least one 'Node Reference', or Node Ref. A Node Ref is a small file that gives your node a 'key' into the network.",
+                    IDC_STATIC,14,112,291,17
+    CTEXT           "For most people, the default Node Refs will work fine. But if your Internet Service Provider (or your country's government) blocks Freenet access, you can bypass the restriction by getting a Node Ref from someone you know and trust.",
+                    IDC_STATIC,13,132,290,26
+    CTEXT           "If you suspect your access to Freenet is blocked, then DON'T choose the default Node Refs, because this may expose you as a Freenet user. Instead, get someone to send you a ref to their own node, and click on the 'Import New Node Ref' button below",
+                    IDC_STATIC,15,159,290,26
+    CONTROL         "Use Default Node Refs",IDC_useDefaultNodeRefs,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,60,192,89,10
+    PUSHBUTTON      "Import new Node Ref",IDC_importNewNodeRef,174,190,89,13
+    CONTROL         "Spin1",IDC_storeCacheSize_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,56,43,13,19
+END
+
+IDD_PP_ADVANCED DIALOG DISCARDABLE  0, 0, 319, 241
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Advanced Settings"
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "External Node References",IDC_STATIC,7,7,305,34
+    LTEXT           "File containing external Node Refs",IDC_STATIC,11,18,61,
+                    17
+    EDITTEXT        IDC_seedNodes,74,21,152,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Export ref to this node",IDC_BUT_exportRef,232,21,74,13
+    GROUPBOX        "Node Addressing",IDC_STATIC,7,46,305,68
+    CONTROL         "Node is transient",IDC_transient,"Button",
+                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,13,60,40,16
+    LTEXT           "Most people run transient nodes. Please don't turn off this option unless your computer is on 24/7, AND can be reached from a fixed IP address (or a fixed domain name, or dynamic DNS address like cjb.net).",
+                    IDC_STATIC,62,57,244,25
+    CONTROL         "Announce to Other Nodes",IDC_doAnnounce,"Button",
+                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,221,92,56,18
+    LTEXT           "Node Address (IP or domain)",IDC_STATIC,16,86,91,8
+    LTEXT           "FNP Listen Port",IDC_STATIC,142,87,50,8
+    EDITTEXT        IDC_ipAddress,15,96,92,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_listenPort,142,96,40,12,ES_AUTOHSCROLL
+    GROUPBOX        "FCP access - allowing use of client programs",
+                    IDC_STATIC,7,118,305,37
+    LTEXT           "Port",IDC_STATIC,13,129,14,8
+    EDITTEXT        IDC_clientPort,12,138,30,12,ES_AUTOHSCROLL
+    LTEXT           "Hosts allowed access, comma separated, must include 127.0.0.1",
+                    IDC_STATIC,63,129,205,8
+    EDITTEXT        IDC_fcpHosts,63,138,241,12,ES_AUTOHSCROLL
+    GROUPBOX        "Node Bandwidth Limits (bytes/sec)",IDC_STATIC,7,161,122,
+                    73
+    LTEXT           "Overall",IDC_STATIC,16,179,23,8
+    EDITTEXT        IDC_bandwidthLimit,42,177,57,12,ES_AUTOHSCROLL
+    CONTROL         "Spin1",IDC_bandwidthLimit_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,100,176,16,16
+    LTEXT           "Output",IDC_STATIC,16,197,22,8
+    EDITTEXT        IDC_outputBandwidthLimit,42,196,57,12,ES_AUTOHSCROLL
+    CONTROL         "Spin2",IDC_outputBandwidthLimit_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,100,196,16,15
+    LTEXT           "Input",IDC_STATIC,22,217,17,8
+    EDITTEXT        IDC_inputBandwidthLimit,42,215,57,12,ES_AUTOHSCROLL
+    CONTROL         "Spin3",IDC_inputBandwidthLimit_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,100,214,16,16
+    GROUPBOX        "Performance Settings",IDC_STATIC,138,165,174,38
+    LTEXT           "Init Req HTL",IDC_STATIC,144,177,42,8
+    LTEXT           "Max HTL",IDC_STATIC,195,177,30,8
+    LTEXT           "Max Connections In",IDC_STATIC,240,177,64,8
+    EDITTEXT        IDC_initialRequestHTL,142,187,25,12,ES_AUTOHSCROLL
+    CONTROL         "Spin4",IDC_initialRequestHTL_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,168,186,14,15
+    EDITTEXT        IDC_maxHopsToLive,194,187,17,14,ES_AUTOHSCROLL
+    CONTROL         "Spin5",IDC_maxHopsToLive_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,212,186,14,16
+    EDITTEXT        IDC_maximumConnectionThreads,240,187,24,12,
+                    ES_AUTOHSCROLL
+    CONTROL         "Spin6",IDC_maximumConnectionThreads_spin,
+                    "msctls_updown32",UDS_ARROWKEYS,264,186,14,15
+    LTEXT           "Node Admin Password (optional)",IDC_STATIC,138,208,103,
+                    8
+    EDITTEXT        IDC_adminPassword,137,217,75,12,ES_PASSWORD | 
+                    ES_AUTOHSCROLL | WS_DISABLED
+END
+
+IDD_PP_GEEK DIALOG DISCARDABLE  0, 0, 319, 241
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Serious Geeks Only"
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "Announcements",IDC_STATIC,7,7,88,88
+    LTEXT           "Attempts",IDC_STATIC,22,26,28,8
+    LTEXT           "Delay (ms)",IDC_STATIC,16,41,34,8
+    LTEXT           "DelayBase",IDC_STATIC,14,58,35,8
+    LTEXT           "Peers",IDC_STATIC,30,73,19,8
+    EDITTEXT        IDC_announcementAttempts,55,22,33,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_announcementDelay,55,38,33,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_announcementDelayBase,55,55,33,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_announcementPeers,55,71,33,12,ES_AUTOHSCROLL
+    GROUPBOX        "Diagnostics",IDC_STATIC,7,101,88,47
+    CONTROL         "Enable",IDC_doDiagnostics,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,13,113,38,10
+    LTEXT           "Path",IDC_STATIC,14,129,16,8
+    EDITTEXT        IDC_diagnosticsPath,31,127,58,12,ES_AUTOHSCROLL
+    GROUPBOX        "Logging",IDC_STATIC,7,154,88,81
+    LTEXT           "File",IDC_STATIC,15,171,12,8
+    EDITTEXT        IDC_logFile,31,169,57,12,ES_AUTOHSCROLL
+    LTEXT           "Level",IDC_STATIC,15,193,18,8
+    COMBOBOX        IDC_logLevel,42,190,48,30,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Verbosity",IDC_STATIC,15,216,30,8
+    GROUPBOX        "Misc",IDC_STATIC,103,7,209,227
+    LTEXT           "authTimeout",IDC_STATIC,110,18,40,8
+    EDITTEXT        IDC_authTimeout,110,26,35,12,ES_AUTOHSCROLL
+    LTEXT           "blockSize",IDC_STATIC,110,41,32,8
+    EDITTEXT        IDC_blockSize,110,49,35,12,ES_AUTOHSCROLL
+    LTEXT           "checkPointInterval",IDC_STATIC,109,64,60,8
+    EDITTEXT        IDC_checkPointInterval,109,72,42,12,ES_AUTOHSCROLL
+    LTEXT           "minCacheCount",IDC_STATIC,110,87,51,8
+    EDITTEXT        IDC_minCacheCount,110,96,40,12,ES_AUTOHSCROLL
+    LTEXT           "connectionTimeout",IDC_STATIC,109,110,62,8
+    EDITTEXT        IDC_connectionTimeout,109,119,40,12,ES_AUTOHSCROLL
+    LTEXT           "hopTimeExpected",IDC_STATIC,109,134,58,8
+    EDITTEXT        IDC_hopTimeExpected,109,143,40,12,ES_AUTOHSCROLL
+    LTEXT           "hopTimeDeviation",IDC_STATIC,109,159,58,8
+    EDITTEXT        IDC_hopTimeDeviation,109,167,40,12,ES_AUTOHSCROLL
+    LTEXT           "storeCacheFile",IDC_STATIC,110,183,48,8
+    EDITTEXT        IDC_storeCacheFile,110,191,188,12,ES_AUTOHSCROLL
+    LTEXT           "storeDataFile",IDC_STATIC,110,207,42,8
+    EDITTEXT        IDC_storeDataFile,110,215,188,12,ES_AUTOHSCROLL
+    LTEXT           "localAnnounceTargets",IDC_STATIC,217,17,72,8
+    EDITTEXT        IDC_localAnnounceTargets,217,25,43,12,ES_AUTOHSCROLL
+    LTEXT           "messageStoreSize",IDC_STATIC,216,41,59,8
+    EDITTEXT        IDC_messageStoreSize,217,50,43,12,ES_AUTOHSCROLL
+    LTEXT           "routeConnectTimeout",IDC_STATIC,216,64,69,8
+    EDITTEXT        IDC_routeConnectTimeout,216,73,44,12,ES_AUTOHSCROLL
+    LTEXT           "rtMaxNodes",IDC_STATIC,215,87,39,8
+    EDITTEXT        IDC_rtMaxNodes,216,94,44,12,ES_AUTOHSCROLL
+    LTEXT           "rtMaxRefs",IDC_STATIC,215,110,33,8
+    EDITTEXT        IDC_rtMaxRefs,216,118,44,12,ES_AUTOHSCROLL
+    LTEXT           "streamBufferSize",IDC_STATIC,215,134,54,8
+    EDITTEXT        IDC_streamBufferSize,216,142,43,12,ES_AUTOHSCROLL
+    LTEXT           "initialRequests",IDC_STATIC,215,160,46,8
+    EDITTEXT        IDC_initialRequests,216,168,43,12,ES_AUTOHSCROLL
+    COMBOBOX        IDC_logVerbosity,51,212,39,30,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+END
+
+
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "\0"
+            VALUE "FileDescription", "NodeConfig MFC Application\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
+            VALUE "InternalName", "NodeConfig\0"
+            VALUE "LegalCopyright", "Copyright (C) 2001\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "NodeConfig.EXE\0"
+            VALUE "ProductName", "NodeConfig Application\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+#endif    // !_MAC
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 48
+    END
+
+    IDD_NODECONFIG_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 313
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 193
+    END
+
+    IDD_PP_NORMAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 312
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 234
+    END
+
+    IDD_PP_ADVANCED, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 312
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 234
+    END
+
+    IDD_PP_GEEK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 312
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 234
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_ABOUTBOX            "&About NodeConfig..."
+    IDP_SOCKETS_INIT_FAILED "Windows sockets initialization failed."
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (New Zealand) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENZ)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_NZ
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""res\\NodeConfig.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON    DISCARDABLE     "res\\NodeConfig.ico"
+#endif    // English (New Zealand) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#endif //_WIN32
+#include "res\NodeConfig.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"         // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
