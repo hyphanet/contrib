@@ -56,6 +56,10 @@ int main(int argc, char* argv[])
 
     // go thru command line args
     parse_args(argc, argv);
+    if (keyUri == NULL) {
+        _fcpLog(FCP_LOG_CRITICAL, "You must specify a key to get!");
+        return -1;
+    }
 
     // try and fire up FCP library
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
