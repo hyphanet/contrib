@@ -73,6 +73,10 @@ const char szflfile[]="./FLaunch.ini";           /* name of the ini file */
 const char szflsec[]="Freenet Launcher";         /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=javaw.exe */
+const char szprioritykey[]="Priority"; /* ie Priority=0 */
+const int  nDefaultPriority = THREAD_PRIORITY_NORMAL;
+const char szpriorityclasskey[]="PriorityClass"; /* ie PriorityClass=32 */
+const int  nDefaultPriorityClass = NORMAL_PRIORITY_CLASS;
 const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Node */
 const char szfserveclidefaultexec[]="Freenet.node.gui.GUINode"; /* default for above */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
@@ -135,6 +139,9 @@ bool bOpenGatewayOnStartup=false;	/* was freenet.exe called with the -open optio
 UINT g_uintTaskbarExplodedMsg=0;	/* see MSDN - "Taskbar Creation Notification" */
 bool bFConfigExecUseJava=false;
 bool bUsingFProxy=false;			/* is FProxy set to run with Fred? */
+int nPriority=THREAD_PRIORITY_NORMAL;  /* the priority of the jre for fred */
+int nPriorityClass=NORMAL_PRIORITY_CLASS;  /* the priority class of the jre for fred */
+
 
 /*		handles, etc... */
 HANDLE hSemaphore=NULL;				/* unique handle used to guarantee only one instance of freenet.exe app is ever running at one time */
@@ -704,6 +711,10 @@ void ReloadSettings(void)
 	/* get the fserve export command string from flaunch.ini */
 	GetPrivateProfileString(szflsec, szfseedexportcmdprekey, szfseeddefaultexportprecmd, szFserveExportCmdPre, BUFLEN, szflfile);
 	GetPrivateProfileString(szflsec, szfseedexportcmdpostkey, szfseeddefaultexportpostcmd, szFserveExportCmdPost, BUFLEN, szflfile);
+
+	/* Get the priority and priorityclass information from flaunch.ini */
+	nPriority=GetPrivateProfileInt(szflsec, szprioritykey, nDefaultPriority, szflfile);
+	nPriorityClass=GetPrivateProfileInt(szflsec, szpriorityclasskey, nDefaultPriorityClass, szflfile);
 
 	/* form the gateway string - the "http://127.0.0.1:" is constant */
 	lstrcpy(szgatewayURI, szgatewayURIdef);

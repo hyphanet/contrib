@@ -38,6 +38,8 @@ extern char szFserveExportCmdPost[BUFLEN];		/* used to store "" */
 /*		flags, etc... */
 extern FREENET_MODE nFreenetMode;
 extern bool bUsingFProxy;
+extern int nPriority;
+extern int nPriorityClass;
 
 /*		handles, etc... */
 extern HINSTANCE hInstance;

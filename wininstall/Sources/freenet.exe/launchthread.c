@@ -325,7 +325,7 @@ void MonitorThreadRunFserve()
 	lstrcat(szexecbuf, " ");
 	lstrcat(szexecbuf, szfservecliexec); 
 
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &FredStartInfo, &FredPrcInfo) )
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, nPriorityClass, NULL, NULL, &FredStartInfo, &FredPrcInfo) )
 	{
 		MessageBox(NULL, szerrMsg, szerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
 		nFreenetMode=FREENET_CANNOT_START;
@@ -335,6 +335,20 @@ void MonitorThreadRunFserve()
 	{
 		/* (... the process object will be 'watched' to check that the java interpreter launched correctly
 			and that the freenet node is indeed running... ) */
+		DWORD dwThreadPriority;
+		HANDLE hDupThread;
+		DWORD dwError;
+		if (!DuplicateHandle(GetCurrentProcess(), FredPrcInfo.hThread, GetCurrentProcess(), &hDupThread, PROCESS_ALL_ACCESS | THREAD_ALL_ACCESS, TRUE, 0))
+		{
+			DWORD dwError = GetLastError();
+		}
+		if (!SetThreadPriority(hDupThread, nPriority))
+		{
+			DWORD dwError = GetLastError();
+		}
+		dwThreadPriority = GetThreadPriority(FredPrcInfo.hThread);
+		dwError = GetLastError();
+		CloseHandle(hDupThread);
 		nFreenetMode=FREENET_RUNNING;
 		ModifyIcon();
 		LoadFCPProxy();
