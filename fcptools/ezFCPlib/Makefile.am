@@ -28,6 +28,7 @@ fcpCreation.c \
 fcpInfo.c \
 fcpOpenKey.c \
 fcpPutKeyFromFile.c \
+fcpGetKeyToFile.c \
 fcpReadKey.c \
 fcpMakeSvkKeypair.c \
 fcpStartup.c \
@@ -35,7 +36,6 @@ fcpWriteKey.c \
 "
 
 # The following files are currently ignored for now
-# fcpGetKeyToFile.c \
 # fcpMakeChkFromFile.c \
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)

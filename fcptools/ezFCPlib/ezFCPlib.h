@@ -142,7 +142,8 @@
 	these must be powers of 2; they're bitmasks
 */
 #define HOPT_DELETE_LOCAL  1
-#define HOPT_RAW           2
+#define HOPT_SKIP_LOCAL    2
+#define HOPT_RAW           4
 
 /* error codes; just negative numbers; group together
 */
@@ -457,6 +458,7 @@ extern "C" {
 
 	/* Client functions for operations between files on disk and freenet */
 	int    fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename);
+	int    fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename);
 	
 	/* Generate Key/Value pair (entropy not currently used */
 	int    fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy);
@@ -467,6 +469,10 @@ extern "C" {
 	int    fcpOpenKey(hFCP *hfcp, char *key, int mode);
 	int    fcpWriteKey(hFCP *hfcp, char *buf, int len);
 	int    fcpWriteMetadata(hFCP *hfcp, char *buf, int len);
+
+	int    fcpReadKey(hFCP *hfcp, char *buf, int len);
+	int    fcpReadMetadata(hFCP *hfcp, char *buf, int len);
+
 	int    fcpCloseKey(hFCP *hfcp);
 
 #ifdef __cplusplus

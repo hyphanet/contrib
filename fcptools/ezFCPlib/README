@@ -61,8 +61,6 @@ available (because it's simply not implemented yet).
 ------------------------------------------------------------------------
 
 Words words words words words words words words words words words words words
-words words words words words words words words words words words words words
-words words words words words words words words words words words words.
 
 ------------------------------------------------------------------------
 * Required Header Files
@@ -81,8 +79,6 @@ change without notice.
 ------------------------------------------------------------------------
 
 Words words words words words words words words words words words words words
-words words words words words words words words words words words words words
-words words words words words words words words words words words words.
 
 + hURI *fcpCreateHFCP(void)
 
@@ -184,8 +180,6 @@ Example using fcpCreateHURI(), fcpDestroyHURI(), fcpParseURI():
 ------------------------------------------------------------------------
 
 Words words words words words words words words words words words words words
-words words words words words words words words words words words words words
-words words words words words words words words words words words words.
 
 + int fcpStartup(char *logfile, int retry, int log_verbosity)
 
@@ -229,8 +223,6 @@ Example using fcpStartup(), fcpTerminate():
 ------------------------------------------------------------------------
 
 Words words words words words words words words words words words words words
-words words words words words words words words words words words words words
-words words words words words words words words words words words words.
 
 + int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *entropy)
 
@@ -252,8 +244,6 @@ Example using fcpMakeSvkKeypair():
 ------------------------------------------------------------------------
 
 Words words words words words words words words words words words words words
-words words words words words words words words words words words words words
-words words words words words words words words words words words words.
 
 + int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 
@@ -298,8 +288,6 @@ Example using fcpPutKeyFromFile(), fcpGetKeyFromFile():
 ------------------------------------------------------------------------
 
 Words words words words words words words words words words words words words
-words words words words words words words words words words words words words
-words words words words words words words words words words words words.
 
 + int fcpOpenKey(hFCP *hfcp, char *key, int mode)
 
@@ -376,8 +364,6 @@ fcpReadMetadata(), fcpCloseKey():
 ------------------------------------------------------------------------
 
 Words words words words words words words words words words words words words
-words words words words words words words words words words words words words
-words words words words words words words words words words words words.
 
 + int fcpClientHello(hFCP *hfcp);
 

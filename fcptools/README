@@ -46,7 +46,9 @@ since fcpputsite now only needs to be concerned with non-FCP routines
 (creating a record file for recovery in the event of insert failure, for
 example).
 
-Contact the maintainer for more information (it's my mess for now).
+Take a look at ezFCPlib/README for a current revision of the ezFCPlib API.
+Additional functions may easily be added by re-using other parts of the
+source code.
 
 
 ------------
@@ -61,18 +63,27 @@ The second part consists of command line tools (fcpget, fcpput and
 fcpputsite) statically linked against ezFCPlib, and serve as good examples
 on how to use the ezFCPlib API.
 
+The original version (current 'stable' version) was written by David
+McNab.  Currently he is working on a Python-based set of Freenet Client
+Protocol Tools. I initially started patching some things here and there
+throughout the source, and eventually reached the point where I became
+certain a rewrite of much of the implementation (but not all of the
+'interface') would be the only real option to bringing together the many
+ideas I have relating to Freenet.
+
+The major areas of work needed are in fcpputsite and fcpget.  Overall,
+ezFCPlib has become a solid foundation for itself even, and I've tried
+to re-use as much common code as possible to avoid split-behaviour.
+
 The aim of FCPTools is to offer a portable, C based Freenet Client Library,
 and useful command line tools for intelligent scripting. It is my hope that
 providing a useful FCP library will in turn create more sophisticated
 Freenet clients. Time will tell.
 
-While still in development, the tools have been successfully used on:
+The tools may be compiled one of two ways:
 
-* Windows 2000 using Microsoft Visual C++ 6.0 sp5.
-* GNU/Linux (Debian, RedHat).
-* FreeBSD.
-
-(Untested but possible platforms; Solaris, *BSD, Mac OSX).
+* Microsoft Visual C++ 6.0 on Windows (32-bit only).
+* GNU scripts (configure; make install).
 
 
 ------------------
@@ -81,6 +92,20 @@ Building the tools
 
 Check INSTALL (for GNU compatible setups on any OS), INSTALL.solaris or
 INSTALL.msvc (Visual C++) depending on your OS and development platform.
+
+FCPTools has been successfully tested on:
+
+* Windows 2000.
+  (need confirmation for WinXP, Win98, 2003/.NET).
+* Linux (Debian sid, RedHat 7.3).
+* BSD (FreeBSD, NetBSD).
+
+Need confirmation for platforms:
+
+* Solaris
+* MacOS
+* OS/2
+* PalmOS (hah!)
 
 
 ------------

@@ -36,7 +36,7 @@
 extern long   file_size(char *filename);
 
 void  parse_args(int argc, char *argv[]);
-void  usage(char *);
+void  usage(char *msg);
 
 /* Global vars to fcpput */
 char           *host;
@@ -181,7 +181,7 @@ void parse_args(int argc, char *argv[])
 
     {"retry", 1, 0, 'a'},
     {"regress", 1, 0, 'e'},
-    {"delete_local", 0, 0, 'D'},
+    {"delete-local", 0, 0, 'D'},
 
     {"verbosity", 1, 0, 'v'},
     {"logfile", 1, 0, 'f'},

@@ -1,56 +1,50 @@
 /*
-  This code is part of FreeWeb - an FCP-based client for Freenet
+  This code is part of FCPTools - an FCP-based client library for Freenet
 
-  Designed and implemented by David McNab, david@rebirthing.co.nz
   CopyLeft (c) 2001 by David McNab
 
-  The FreeWeb website is at http://freeweb.sourceforge.net
-  The website for Freenet is at http://freenet.sourceforge.net
-
-  This code is distributed under the GNU Public Licence (GPL) version 2.
-  See http://www.gnu.org/ for further details of the GPL.
+  Developers:
+  - David McNab <david@rebirthing.co.nz>
+  - Jay Oliveri <ilnero@gmx.net>
+  
+  Currently maintained by Jay Oliveri <ilnero@gmx.net>
+  
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "ezFCPlib.h"
 
-#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "ez_sys.h"
+
 
 /*
-  Function:    fcpGetKeyToFile()
-
-  Arguments:   hfcp
-  
-  Description:
+	fcpGetKeyToFile()
 */
-
-int fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata)
+int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
-  char buf[1024];
-  int count;
-  int fd;
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
 
-  /* try to get the key open */
-  if (fcpOpenKey(hfcp, key, (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0))) != 0)
-	 return -1;
-  
-  *pMetadata = 0;
+	hfcp = hfcp;
+	key_uri = key_uri;
+	key_filename = key_filename;
+	meta_filename = meta_filename;
 
-  /* nuke file if it exists */
-  unlink(file);
-
-  /* open a file to write the key to */
-  if ((fd = open(file, OPEN_MODE_WRITE | O_CREAT, OPEN_PERMS)) < 0)
-    return -1;
-
-  /* suck all of key's data into this file */
-  while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
-	 write(fd, buf, count);
-  
-  close(fd);
-
-  /* all done */
-  fcpCloseKey(hfcp);
-  
-  return 0;
+	return -1;
 }
+
