@@ -396,7 +396,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 void
 request (int c)
 {
-    int i, a, n;
+    int i, a, m, n;
     unsigned int datalength, blockcount, blocksize;
     char *blocks, *mask, *mask2, hash[HASHLEN], *hashes;
     struct graph g;
@@ -452,6 +452,7 @@ request (int c)
     if (!n) goto verify; // woo! we got all of `em!
     
     // back up original mask. we'll use it to insert the reconstructed parts later
+    m = n;
     memcpy(mask2, mask, blockcount);
     
     // try to reconstruct blocks until we win or lose
@@ -479,6 +480,7 @@ request (int c)
 		    if (is_set(&g, k, j))
 			xor(&blocks[i*blocksize], &blocks[k*blocksize], blocksize);
 		mask[i] = a = 1; // we got it, baby!
+		n--;
 		break;
 	     next:;
 	    }
@@ -497,6 +499,7 @@ request (int c)
 		if (is_set(&g, j, i))
 		    xor(&blocks[(g.dbc+i)*blocksize], &blocks[j*blocksize], blocksize);
 	    mask[g.dbc+i] = a = 1; // we got it, baby!!
+	    n--;
 	 next2:;
 	}
 
@@ -513,9 +516,7 @@ request (int c)
 	alert("Data was not recoverable. %d blocks unrecovered.", n);
 	goto out;
     }
-
-    // INSERT REBUILT PARTS HERE
-
+    
 verify:
     // verify data
     alert("Verifying data integrity.");
@@ -530,6 +531,13 @@ verify:
 	alert("Error writing data to client.");
 	goto out;
     }
+    
+    if (m) goto out; // no blocks to reinsert!
+    
+    // insert reconstructed blocks
+    alert("Inserting %d reconstructed blocks.");
+    do_insert(blocks, mask2, blockcount, blocksize, &hashes[HASHLEN]);
+    alert("Reconstructed blocks inserted.");
 
 out:
     if (munmap(blocks, blockcount * blocksize) == -1)
