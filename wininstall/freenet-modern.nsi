@@ -166,6 +166,8 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   
   SetOutPath "$1"
 
+  WriteRegStr HKLM "Software\${MUI_PRODUCT}" "instpath" "$1"
+
   IfFileExists "$1\flaunch.ini" dontInstallFlaunch InstallFlaunch
   InstallFlaunch:
   File ".\Freenet\FLaunch.ini"
@@ -268,7 +270,7 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
 
   IntCmp $3 15 FinishedLibInstall # if all files have been obtained from local, don't need to ask user if they want to download missing files
 
-  MessageBox MB_YESNO "Would you like to download the missing files from The Free Network Project's server?$\r$\n(You may want to say NO to this if you already have a working Freenet installation)" IDYES FinishedLibInstall
+  MessageBox MB_YESNO "The $EXEDIR directory did not contain all the files needed for a full installation$\r$\nWould you like to download the missing files from The Free Network Project's server?$\r$\n(You may want to say NO to this if you already have a working Freenet installation)" IDYES FinishedLibInstall
   IntOp $3 15 + 0 # make download section believe that all files have been extracted from local so that no files are downloaded
   goto FinishedLibInstall
 
@@ -295,8 +297,6 @@ SectionEnd
 ;     For monolithic install, extracts the files from the installer
 ;     (does NOT extract any files it happened to find in the current directory if user asked to install those)
 Section "Freenet Node" SecFreenetNode
-
-  ;ADD YOUR OWN STUFF HERE!
 
   GetFullPathName /SHORT $1 $INSTDIR # convert INSTDIR into short form and put into $1
   GetFullPathName /SHORT $2 $EXEDIR # same for EXEDIR into $2
@@ -489,7 +489,7 @@ Section "Freenet Node" SecFreenetNode
 
     ;Write shortcut location to the registry (for Uninstaller)
     WriteRegStr HKLM "Software\${MUI_PRODUCT}" "Start Menu Folder" "${MUI_STARTMENU_VARIABLE}"
-    
+
   !insertmacro MUI_STARTMENU_WRITE_END
   
   ;Create uninstaller
@@ -508,6 +508,10 @@ Section "Freenet Node" SecFreenetNode
   InstComplete:
   Delete "$R0\freenet-install\*.*"
   RMDir "$R0\freenet-install"
+
+  ; Also tidy up 'old' files from target folder
+  Delete "$1\UpdateSnapshot.exe"
+  Delete "$1\FindJava.exe"
 
 SectionEnd
 
@@ -528,14 +532,14 @@ SectionEnd
 ;--------------------------------
 ;Uninstaller Section
 
-Section "Uninstall"
-
-  ;ADD YOUR OWN STUFF HERE!
-
+Function un.onInit
   ReadRegStr $0 HKLM "Software\${MUI_PRODUCT}" "instpath"
   StrCmp $0 "" NoInstpath
   StrCpy $INSTDIR $0
   NoInstPath:
+FunctionEnd
+
+Section "Uninstall"
 
   GetFullPathName /SHORT $1 $INSTDIR # convert INSTDIR into short form and put into $1
   GetFullPathName /SHORT $2 $EXEDIR # same for EXEDIR into $2
@@ -558,8 +562,19 @@ Section "Uninstall"
   Delete "$1\default.ini"
   Delete "$1\freenet.log"
   Delete "$1\node-temp"
+  Delete "$1\install.log"
+  Delete "$1\fserve.exe"
+  Delete "$1\fservew.exe"
+  Delete "$1\fclient.exe"
+  Delete "$1\cfgclient.exe"
+  Delete "$1\COPYING.TXT"
+  Delete "$1\docs\freenet.hlp"
+  Delete "$1\docs\freenet.gid"
+  Delete "$1\docs\freenet.cnt"
+  Delete "$1\docs\readme.txt"
   RMDir /r "$1\stats"
   RMDir /r "$1\distrib"
+  RMDir "$1\docs"
   
   ;Remove shortcut
   ReadRegStr ${TEMP} HKLM "Software\${MUI_PRODUCT}" "Start Menu Folder"
@@ -582,13 +597,14 @@ Section "Uninstall"
   MessageBox MB_YESNO "Would you like to uninstall your node configuration and datastore?$\r$\nWARNING- you may want to say NO if you intend to reinstall Freenet in the future$\r$\nThis operation is irreversible and will delete your node's entire datastore and configuration" IDNO DontKillEverything
 
   # NOTE this does NOT just kill *.*.  It selective deletes what's installed.  This avoids the luser-deleting-
-  # all-the-mpegs-he-put-in-his-datastore problem...
+  # all-the-mpegs-he-put-in-his-datastore-folder problem...
   Delete "$1\flaunch.ini"
   Delete "$1\freenet.ini"
   Delete "$1\seednodes.ref"
   Delete "$1\prng.seed"
   RMDir /r "$1\store"
   Delete "$1\lsnodes*"
+  Delete "$1\rtnodes*"
   Delete "$1\rtprops*"
   
   DontKillEverything:
@@ -727,4 +743,20 @@ Function AbortCleanup
     # ... left as an exercise :-)
    
     Abort
+FunctionEnd
+
+
+; -------------------------------
+; callbacks
+; Set up install path (by defaults installs to same location as existing installation if present)
+Function .onInit
+  ReadRegStr ${TEMP} HKLM "Software\${MUI_PRODUCT}" "instpath"
+  StrCmp ${TEMP} "" NoInstpath
+  StrCpy $INSTDIR ${TEMP}
+  goto onInitEnd
+  NoInstPath:
+  ReadRegStr ${TEMP} HKCU "Software\${MUI_PRODUCT}" "instpath"
+  StrCmp ${TEMP} "" onInitEnd
+  StrCpy $INSTDIR ${TEMP}
+  onInitEnd:
 FunctionEnd
