@@ -1,0 +1,60 @@
+<!-- ==================================================================== -->
+<!-- Ant build file for Freenet-ext.                                      -->
+<!-- Please download and install ant from http://ant.apache.org/          -->
+<!-- ==================================================================== -->
+<project name="Freenet-ext" default="jar">
+
+  <property name="build"   value="build_dir"/>
+
+  <target name="init" 
+   description="Create build directory">
+    <mkdir dir="${build}"/>
+  </target>
+
+  <target name="servlet" depends="init"
+    description="Build the javax.servlet.* classes">
+    <javac destdir="${build}" target="1.1">
+      <src path="../javax"/>
+    </javac>
+    <copy todir="${build}">
+      <fileset dir=".." includes="javax/**/*.properties"/>
+    </copy>
+  </target>
+
+  <target name="fec" depends="init"
+    description="build the FECEncoder/Decoder plugins for fproxy.">
+    <javac destdir="${build}" target="1.1">
+      <src path="../fecimpl/onion/alien/fec_src"/>
+      <classpath path="../fecimpl/onion/alien/onion-common.jar"/>
+    </javac>
+    <copy todir="${build}">
+      <fileset dir="../fecimpl/onion/alien/fec_src">
+        <include name="**/*.properties"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="onion" depends="fec"
+    description="build the FECEncoder/Decoder plugins for fproxy.">
+    <javac destdir="${build}" target="1.1">
+      <src path="../fecimpl/onion"/>
+      <classpath path="../fecimpl/onion/alien/onion-common.jar"/>
+      <classpath path="../../freenet/build"/>
+      <exclude name="alien/**"/>
+    </javac>
+    <copy file="../fecimpl/onion/alien/onion_LICENSE" todir="${build}"/>
+  </target>
+
+  <target name="clean"
+    description="Delete the build directory and archives">
+    <delete dir="${build}"/>
+    <delete file="freenet-ext.jar"/>
+  </target>
+
+  <target name="jar" depends="servlet,onion"
+    description="Create a .jar">
+    <jar jarfile="freenet-ext.jar" basedir="${build}" includes="**">
+      <zipfileset src="../fecimpl/onion/alien/onion-common.jar"/>
+    </jar>
+  </target>
+</project>
