@@ -25,6 +25,7 @@
 #include "freenet_tray.h"
 #include "launchthread.h"
 #include "refs.h"
+#include "logfile.h"
 
 /******************************************************
  *  G L O B A L S                                     *
@@ -49,6 +50,7 @@ char szConfigureString[]="&Configure";
 char szExitString[]="E&xit";
 char szImportString[]="&Import Refs";
 char szExportString[]="&Export Refs";
+char szViewLogFileString[]="&View Logfile...";
 
 /* tooltip text - matches order of FREENET_MODE enums */
 const char *szFreenetTooltipText[]=
@@ -156,7 +158,8 @@ FARPROC InetIsOffline=NULL;			/* function pointer for "InetIsOffline" function *
 HANDLE hnFreenetMode = NULL;  /* mutex for nFreenetMode */
 HANDLE hSystray = NULL;	 /* mutex for systray (NOTIFYICONDATA) structure */
 HANDLE hDialogBoxes = NULL;  /* mutex for controlling whether to create an Import (or Export) Refs dialog, or set focus to an existing one */
-HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, &hSystray, &hDialogBoxes, NULL};
+HANDLE hLogfileViewerDialogBox = NULL;  /* mutex for controlling whether to create a Logfile Viewer dialog, or set focus to an existing one */
+HANDLE * LOCKOBJECTS[] = {&hnFreenetMode, &hSystray, &hDialogBoxes, &hLogfileViewerDialogBox, NULL};
 
 
 /* icon array - must match order in FREENET_MODE in types.h */
@@ -255,6 +258,7 @@ WinExec("fcpproxy.exe",SW_MINIMIZE);
 	hnFreenetMode = CreateMutex(NULL, FALSE, NULL);
 	hSystray = CreateMutex(NULL,FALSE,NULL);
 	hDialogBoxes = CreateMutex(NULL,FALSE,NULL);
+	hLogfileViewerDialogBox = CreateMutex(NULL,FALSE,NULL);
 	
 
 	/* Create a separate thread to handle flashing the systray icon */
@@ -320,7 +324,7 @@ WinExec("fcpproxy.exe",SW_MINIMIZE);
 		/* =================================== */
 		while (1)
 		{
-			dwGetMessageResult = GetMessage(&msg,hWnd,0,0);
+			dwGetMessageResult = GetMessage(&msg,NULL,0,0);
 			if ( (dwGetMessageResult == 0xffffffff) || (dwGetMessageResult == 0) )
 			{
 				/* we end up here if there was a problem with GetMessage
@@ -362,6 +366,8 @@ clearup:
 
 	if (hSemaphore) CloseHandle(hSemaphore);
 	if (hSystray) CloseHandle(hSystray);
+	if (hDialogBoxes) CloseHandle(hDialogBoxes);
+	if (hLogfileViewerDialogBox) CloseHandle(hLogfileViewerDialogBox);
 
 	if (hConfiguratorSemaphore) CloseHandle(hConfiguratorSemaphore);
 
@@ -443,7 +449,7 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 							}
 							else
 							{
-								ImportFile(szCommandLinePtr);
+								ImportFileWithProgress(szCommandLinePtr);
 								return FALSE;
 							}	
 							break;
@@ -962,6 +968,7 @@ MENUITEMINFO configitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE
 MENUITEMINFO exititem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXIT, NULL,NULL,NULL,0,szExitString, 0 };
 MENUITEMINFO importrefitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_IMPORT, NULL,NULL,NULL,0,szImportString, 0 };
 MENUITEMINFO exportrefitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXPORT, NULL,NULL,NULL,0,szExportString, 0 };
+MENUITEMINFO viewlogfileitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_VIEWLOGFILE, NULL,NULL,NULL,0,szViewLogFileString, 0 };
 
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -976,6 +983,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_CREATE:
 
 			hPopupMenu = CreatePopupMenu();
+			InsertMenuItem(hPopupMenu, c, TRUE, &viewlogfileitem); ++c;
+			InsertMenuItem(hPopupMenu, c, TRUE, &separatoritem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &importrefitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &exportrefitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &separatoritem); ++c;
@@ -1074,6 +1083,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 						case IDM_EXPORT: // menu choice Export Refs
 							ExportRefs();
+							break;
+
+						case IDM_VIEWLOGFILE: // menu choice View LogFile...
+							CreateLogfileViewer(hWnd);
 							break;
 
 						case IDM_EXIT: // otherwise menu choice exit, exiting

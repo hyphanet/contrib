@@ -108,6 +108,63 @@ IDI_RESTARTING          ICON    DISCARDABLE     "res\\restart.ico"
 IDI_NOGWAY              ICON    DISCARDABLE     "res\\noGway.ico"
 IDI_NOINET              ICON    DISCARDABLE     "res\\noInet.ico"
 IDI_THUNDERBOLT         ICON    DISCARDABLE     "res\\tbolt.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_LOGFILEVIEWER DIALOGEX 0, 0, 426, 207
+STYLE DS_SETFOREGROUND | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "View Freenet.log"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,369,186,50,14
+    PUSHBUTTON      "&Copy Selection to Clipboard",IDCOPY,139,186,143,14
+    EDITTEXT        IDC_EDIT1,7,7,400,178,ES_MULTILINE | ES_READONLY | 
+                    WS_HSCROLL,WS_EX_TRANSPARENT
+    CONTROL         "&Track tail of file",IDC_TRACKCHANGES,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,190,125,10
+    SCROLLBAR       IDC_SCROLLBAR1,408,7,11,167,SBS_BOTTOMALIGN | SBS_VERT | 
+                    WS_DISABLED
+END
+
+IDD_IMPORTPROGRESS DIALOG DISCARDABLE  0, 0, 221, 34
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    ICON            IDI_REFERENCE,IDC_STATIC,7,7,21,20
+    LTEXT           "Importing Freenet References... This will not take long...",
+                    IDC_STATIC,34,7,180,20,SS_CENTERIMAGE
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_LOGFILEVIEWER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 419
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 200
+    END
+
+    IDD_IMPORTPROGRESS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 214
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 27
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 

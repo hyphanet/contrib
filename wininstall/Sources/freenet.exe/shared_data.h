@@ -39,6 +39,11 @@ extern char szFserveExportCmdPost[BUFLEN];		/* used to store "" */
 extern FREENET_MODE nFreenetMode;
 
 /*		handles, etc... */
+extern HINSTANCE hInstance;
+
+/* Icons: */
+extern HICON hHopsEnabledIcon;
+
 
 /*		structures, etc... */
 /*      systray structure: GLOBAL BECAUSE IT IS UPDATED BY/FROM MULTIPLE THREADS */
@@ -53,7 +58,8 @@ enum LOCKCONTEXTS
 {
 	NFREENETMODE=0,
 	SYSTRAY=1,
-	DIALOGBOXES=2
+	DIALOGBOXES=2,
+	LOGFILEDIALOGBOX=3
 };
 extern HANDLE * LOCKOBJECTS[];
 
