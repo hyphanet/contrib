@@ -1,7 +1,11 @@
 ;uncomment on of the two next lines, depending on the type of installer you are building
 !define VERSION "webinstall"
-#!define VERSION "20020225"
 !define WEBINSTALL
+
+!define NUM "0.5.1.pre1-1"
+!define MAJOR "0.5"
+
+#!define BUNDLEDMFC42
 #!define LANGUAGE "Dutch"
 
 # include language specific installer data
@@ -12,19 +16,19 @@
 !endif
 # are we including Java?
 !ifdef embedJava
-  OutFile "freenet-Java-${VERSION}.exe"
+  OutFile "freenet-Java-${NUM}.exe"
 !else ifdef WEBINSTALL
-  OutFile "freenet-webinstall.exe"
+  OutFile "freenet-webinstall-${NUM}.exe"
 !else
-  OutFile "freenet-${VERSION}.exe"
+  OutFile "freenet-${NUM}.exe"
 !endif
 
 # webinstall specific stuff
 !ifdef WEBINSTALL
-  Name "Freenet webinstaller"
+  Name "Freenet webinstaller - packaged for freenet ${NUM}"
   !include "webinstall.inc"
 !else
-  Name "Freenet ${VERSION}"
+  Name "Freenet ${NUM}"
 !endif
 
 LicenseData GNU.txt
@@ -35,7 +39,7 @@ LicenseData GNU.txt
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
-InstallDir "$PROGRAMFILES\Freenet 0.5"
+InstallDir "$PROGRAMFILES\Freenet ${MAJOR}"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 ShowInstDetails show
 InstProgressFlags smooth
@@ -157,6 +161,9 @@ Section
 
   LogSet on
 
+  #make a 8.3 name
+  GetFullPathName /SHORT $7 $INSTDIR
+
   # First of all see if we need to install the mfc42.dll
   # Each Win user should have it anyway
   IfFileExists "$SYSDIR\Mfc42.dll" MfcDLLExists
@@ -178,7 +185,7 @@ Section
   CopyFiles "$INSTDIR\flaunch.ini" "$INSTDIR\flaunch.old"
 
   # create the configuration file now
-  # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
+  # set the diskstoresize to 0 to tell NodeConfig, to propose a value later on
   IfFileExists "$INSTDIR\freenet.ini" iniFileExisted
   Goto doCopyFiles
 
@@ -204,6 +211,22 @@ Section
     Rename "$INSTDIR\freenet.ini.install" "$INSTDIR\freenet.ini"
   
   checkForFiles:
+  #StrStr $EXEDIR "freenet-distribution" distribution not-distribution
+  Push $EXEDIR
+  Push "freenet-distribution"
+  Call StrStr
+  Pop $0
+  MessageBox MB_OK "Got $0"
+  StrCmp $0 "freenet-distribution" distribution not-distribution
+  distribution:
+    CopyFiles "$EXEDIR\freenet.jar" "$INSTDIR\freenet.jar"
+    CopyFiles "$EXEDIR\freenet-ext.jar" "$INSTDIR\freenet-ext.jar"
+    CopyFiles "$EXEDIR\seednodes.ref" "$INSTDIR\seednodes.ref"
+    CopyFiles "$EXEDIR\*.exe" "$INSTDIR\"
+  IfErrors checkedForFiles getFilesDone
+
+  not-distribution:
+  
   # look if there is a freenet.jar and an ext-freenet.jar in the same directory and use this
   IfFileExists "$EXEDIR\lib\freenet.jar" 0 checkedForFiles
 
@@ -263,12 +286,12 @@ SectionIn 1,2
    CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
    
    # Start->Programs->Freenet
-   CreateDirectory "$SMPROGRAMS\Freenet 0.5"
-   CreateShortCut "$SMPROGRAMS\Freenet 0.5\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   WriteINIStr "$SMPROGRAMS\Freenet 0.5\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
-   ;WriteINIStr "$SMPROGRAMS\Freenet 0.5\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
-   CreateShortcut "$SMPROGRAMS\Freenet 0.5\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot.exe" "" "" 0
-   CreateShortCut "$SMPROGRAMS\Freenet 0.5\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
+   CreateDirectory "$SMPROGRAMS\Freenet ${MAJOR}"
+   CreateShortCut "$SMPROGRAMS\Freenet ${MAJOR}\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   WriteINIStr "$SMPROGRAMS\Freenet ${MAJOR}\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
+   ;WriteINIStr "$SMPROGRAMS\Freenet ${MAJOR}\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   CreateShortcut "$SMPROGRAMS\Freenet ${MAJOR}\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot.exe" "" "" 0
+   CreateShortCut "$SMPROGRAMS\Freenet ${MAJOR}\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
  
  ;---------------------------------------------------------------------------------------
@@ -294,18 +317,19 @@ Section
   IfErrors noStoreSize
 
   runCfgNode:
-  ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
+  # $7 should be a shorter name for the file
+  ExecWait '"$7\cfgnode.exe" freenet.ini --silent'
   IfErrors CfgnodeError
   WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeSize" $8
   # now calling the GUI configurator
-  ExecWait "$INSTDIR\NodeConfig.exe"
+  ExecWait "$7\NodeConfig.exe"
   
  
   # Seeding the initial references
   # we need to check the existence of seed.ref here and fail if it does not exist.
   # do the seeding and export our own ref file
   #ClearErrors
-  #ExecWait "$INSTDIR\fserve --seed seed.ref"
+  #ExecWait "$7\fserve --seed seed.ref"
   #IfErrors SeedError NoSeedError
   #SeedError:
   #MessageBox MB_OK "There was an error while seeding your node. This might mean that you can´t connect to other nodes lateron."
@@ -313,7 +337,7 @@ Section
   Rename myOwn.ref myOld.ref
   ClearErrors
   DetailPrint "Exporting the node reference to MyOwn.ref"
-  ExecWait "$INSTDIR\fservew --export myOwn.ref"
+  ExecWait "$7\fservew --export myOwn.ref"
   IfErrors ExportError NoExportError
   ExportError:
   MessageBox MB_OK "There was an error while exporting your own reference file. This is a noncritical error."
@@ -404,6 +428,7 @@ SectionEnd
 
 # Uninstall part begins here:
 Section Uninstall
+  MessageBox MB_YESNO|MB_DEFBUTTON2 "Are you sure you want to remove freenet" IDNO DoNotDelete
 
   #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
  ;ShutDown:
@@ -436,10 +461,12 @@ Section Uninstall
   # remove the desktop and startmenu icons
   Delete "$SMSTARTUP\Freenet.lnk"
   Delete "$DESKTOP\Freenet.lnk"
-  RMDir /r "$SMPROGRAMS\Freenet0.4"
+  RMDir /r "$SMPROGRAMS\Freenet ${MAJOR}"
 
   #delete "$SMPROGRAMS\Start FProxy.lnk"
   #Delete "$QUICKLAUNCH\Start FProxy.lnk"
+
+  DoNotDelete:
 SectionEnd
 ;-----------------------------------------------------------------------------------------
 
@@ -487,3 +514,46 @@ Function .onInstFailed
 FunctionEnd
 
 ;-----------------------------------------------------------------------------------------
+
+;------------------------------------------------------------------------------
+; StrStr
+; input, top of stack = string to search for
+;        top of stack-1 = string to search in
+; output, top of stack (replaces with the portion of the string remaining)
+; modifies no other variables.
+;
+; Usage:
+;   Push "this is a long ass string"
+;   Push "ass"
+;   Call StrStr
+;   Pop $0
+;  ($0 at this point is "ass string")
+
+Function StrStr
+  Exch $1 ; st=haystack,old$1, $1=needle
+  Exch    ; st=old$1,haystack
+  Exch $2 ; st=old$1,old$2, $2=haystack
+  Push $3
+  Push $4
+  Push $5
+  StrLen $3 $1
+  StrCpy $4 0
+  ; $1=needle
+  ; $2=haystack
+  ; $3=len(needle)
+  ; $4=cnt
+  ; $5=tmp
+  loop:
+    StrCpy $5 $2 $3 $4
+    StrCmp $5 $1 done
+    StrCmp $5 "" done
+    IntOp $4 $4 + 1
+    Goto loop
+  done:
+  StrCpy $1 $2 "" $4
+  Pop $5
+  Pop $4
+  Pop $3
+  Pop $2
+  Exch $1
+FunctionEnd
