@@ -35,6 +35,9 @@
 
 extern int    _fcpSockConnect(hFCP *hfcp);
 extern void   _fcpSockDisconnect(hFCP *hfcp);
+extern int    _fcpSockRecv(hFCP *hfcp, char *buf, int len);
+extern int    _fcpRetry;
+
 extern int    _fcpTmpfile(char **filename);
 
 extern long   file_size(char *filename);
@@ -56,11 +59,6 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);
 static int fec_insert_segment(hFCP *hfcp, char *key_filename, int segment);
 static int fec_make_metadata(hFCP *hfcp, char *meta_filename);
 
-/* TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-+ Correct Restarted message handling to ensure seamless restarts.
-  (_fcpPut.c:266(OK), _fcpPut.c:915, _fcpPut.c:1105(?), _fcpPut.c:1220).
-+ Make sure all returns are prefixed with cleanup (use goto!)
-***********************************************************************/
 
 /* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
 
@@ -87,6 +85,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	int kfd = -1;
 	int mfd = -1;
 
+	int retry;
 	int bytes;
 	int byte_count;
 
@@ -134,6 +133,10 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 								hfcp->key->size + hfcp->key->metadata->size,
 								hfcp->key->metadata->size
 								);
+
+	/********************************************************************/
+
+	retry = _fcpRetry;
 	
 	do { /* let's loop this until we stop receiving Restarted messages */
 		
@@ -215,54 +218,87 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 		}
 
 		_fcpLog(FCP_LOG_DEBUG, "wrote key data to socket");
+
+		do {
+			
+			/* expecting a success response */
+			rc = _fcpRecvResponse(hfcp);
 		
-		/* expecting a success response */
-		rc = _fcpRecvResponse(hfcp);
+			switch (rc) {
+			case FCPRESP_TYPE_SUCCESS:
+				fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
+				break;
+				
+			case FCPRESP_TYPE_KEYCOLLISION:
+				fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
+				break;
+				
+			case FCPRESP_TYPE_RESTARTED:
+				_fcpLog(FCP_LOG_DEBUG, "received \"Restarted\"; cleaning up and re-entering the insert loop");
+				
+				/* close the key and metadata source files */
+				close(mfd);
+				close(kfd);			
+				
+				/* disconnect from the socket */
+				_fcpSockDisconnect(hfcp);
+				
+				break;
+				
+			case FCPRESP_TYPE_PENDING:
+				_fcpLog(FCP_LOG_DEBUG, "received \"Pending\"");
+				break;
+				
+			case FCP_ERR_TIMEOUT:
+				_fcpLog(FCP_LOG_VERBOSE, "Timeout; cleaning up and re-entering the insert loop");
 
-		_fcpLog(FCP_LOG_DEBUG, "put_file() handling response");
-		
-		switch (rc) {
-		case FCPRESP_TYPE_SUCCESS:
-			fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
-			break;
-			
-		case FCPRESP_TYPE_KEYCOLLISION:
-			fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
-			break;
-			
-		case FCPRESP_TYPE_RESTARTED:
-			_fcpLog(FCP_LOG_DEBUG, "received \"Restarted\"; cleaning up and re-entering the insert loop");
+				/* close the key and metadata source files */
+				close(mfd);
+				close(kfd);			
+				
+				/* disconnect from the socket */
+				_fcpSockDisconnect(hfcp);
+				
+				retry--;
 
-			/* close the key and metadata source files */
-			close(mfd);
-			close(kfd);			
-			
-			/* disconnect from the socket */
-			_fcpSockDisconnect(hfcp);
+				/* this will route us to a restart */
+				rc = FCPRESP_TYPE_RESTARTED;
+				
+				break;
+				
+			case FCPRESP_TYPE_ROUTENOTFOUND:
+				_fcpLog(FCP_LOG_VERBOSE, "Received \"RouteNotFound\"; reason: %s", hfcp->response.routenotfound.reason);
+				break;
+				
+			case FCPRESP_TYPE_FORMATERROR:
+				_fcpLog(FCP_LOG_VERBOSE, "Received \"FormatError\"; reason: %s", hfcp->response.formaterror.reason);
+				break;
+				
+			case FCPRESP_TYPE_FAILED:
+				_fcpLog(FCP_LOG_VERBOSE, "Received \"Failed\"; reason: %s", hfcp->response.failed.reason);
+				break;
+				
+			default:
+				_fcpLog(FCP_LOG_VERBOSE, "Received unknown response code from node: %d", rc);
+				break;
+			}
 
-			break;
-			
-		case FCPRESP_TYPE_ROUTENOTFOUND:
-			_fcpLog(FCP_LOG_VERBOSE, "Received \"RouteNotFound\"; reason: %s", hfcp->response.routenotfound.reason);
-			break;
-			
-		case FCPRESP_TYPE_FORMATERROR:
-			_fcpLog(FCP_LOG_VERBOSE, "Received \"FormatError\"; reason: %s", hfcp->response.formaterror.reason);
-			break;
-			
-		case FCPRESP_TYPE_FAILED:
-			_fcpLog(FCP_LOG_VERBOSE, "Received \"Failed\"; reason: %s", hfcp->response.failed.reason);
-			break;
-			
-		default:
-			_fcpLog(FCP_LOG_VERBOSE, "Received unknown response code from node: %d", rc);
-			break;
-		}
-		
-  } while (rc == FCPRESP_TYPE_RESTARTED);
+		} while (rc == FCPRESP_TYPE_PENDING);
 
-  if ((rc != FCPRESP_TYPE_SUCCESS) && (rc != FCPRESP_TYPE_KEYCOLLISION))
+  } while ((rc == FCPRESP_TYPE_RESTARTED) && (retry >= 0));
+
+	/* check to see which condition was reached (Restarted / Timeout) */
+
+	/* if we exhauseted our retries, then return a be-all Timeout error */
+	if (retry < 0) {
+		rc = FCP_ERR_TIMEOUT;
+		goto cleanup;
+	}
+
+  if ((rc != FCPRESP_TYPE_SUCCESS) && (rc != FCPRESP_TYPE_KEYCOLLISION)) {
+		rc = -1;
     goto cleanup;
+	}
 
 	/* do a 'local' cleanup here' */
 	close(kfd);			
@@ -278,7 +314,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 	if (hfcp->key->metadata->size) close(mfd);
 	
   _fcpSockDisconnect(hfcp);
-	return -1;
+
+	return rc;
 }
 
 
@@ -406,6 +443,8 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	
 	/* now insert the metadata which contains the redirect info */
 	rc = put_file(tmp_hfcp, 0, tmp_hfcp->key->metadata->tmpblock->filename, uri_src);
+
+	if (rc < 0) return rc;
 	
 	_fcpLog(FCP_LOG_DEBUG, "put_file() - rc: %d, URI: %s", rc, tmp_hfcp->key->uri->uri_str);
 	
@@ -414,6 +453,7 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	
 	return rc;
 }
+
 
 /**********************************************************************/
 
@@ -790,7 +830,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 			 (no metadata here). */
 		
 		rc = put_file(tmp_hfcp, tmp_hfcp->key->tmpblock->filename, 0, "CHK@");
-		if (rc) return -1;
+		if (rc < 0)	return rc;
 
 		segment->data_blocks[bi] = _fcpCreateHBlock();
 		fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
@@ -821,16 +861,14 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0, "CHK@");
 
-		if (rc != 0) {
+		if (rc < 0) {
 			_fcpLog(FCP_LOG_DEBUG, "could not insert check block %d into Freenet", bi);
-
-			/* hfcp->error already set via call to put_file() */
-			return -1;
+			return rc;
 		}		
-
+		
 		segment->check_blocks[bi] = _fcpCreateHBlock();
 		fcpParseURI(segment->check_blocks[bi]->uri, tmp_hfcp->key->uri->uri_str);
-	
+		
 		_fcpLog(FCP_LOG_DEBUG, "successfully inserted check block %d", bi);
 		_fcpLog(FCP_LOG_DEBUG, "inserted check block %d: %s",
 						bi, tmp_hfcp->key->uri->uri_str);
@@ -1018,6 +1056,8 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	/* put the file */
 	rc = put_file(hfcp, 0, tmp_hfcp->key->tmpblock->filename, "CHK@");
+
+	if (rc < 0) return rc;
 	
 	/* kill the tmp handle */
 	fcpDestroyHFCP(tmp_hfcp);

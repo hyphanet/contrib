@@ -46,6 +46,7 @@ unsigned short  port = EZFCP_DEFAULT_PORT;
 
 int  verbosity = FCP_LOG_NORMAL;
 int  htl       = EZFCP_DEFAULT_HTL;
+int  retry     = EZFCP_DEFAULT_RETRY;
 int  regress   = EZFCP_DEFAULT_REGRESS;
 int  optmask   = 0;
 
@@ -84,7 +85,7 @@ int main(int argc, char* argv[])
 	parse_args(argc, argv);
 
 	/* Call before calling *any* other ?fcp* routines */
-	if (fcpStartup(logfile, verbosity)) {
+	if (fcpStartup(logfile, retry, verbosity)) {
 		_fcpLog(FCP_LOG_CRITICAL, "Failed to initialize ezFCP library");
 		return -1;
 	}
@@ -186,6 +187,7 @@ void parse_args(int argc, char *argv[])
     {"metadata", 1, 0, 'm'},
     {"stdin", 0, 0, 's'},
 
+    {"retry", 1, 0, 'a'},
     {"regress", 1, 0, 'e'},
     {"delete_local", 0, 0, 'D'},
 
@@ -198,7 +200,7 @@ void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:se:Dv:f:gVh";
+  char short_options[] = "n:p:l:m:sa:e:Dv:f:gVh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -232,6 +234,10 @@ void parse_args(int argc, char *argv[])
 			/* read from stdin for key data */ 
 			b_stdin = 1;
       break;
+			
+		case 'a':
+			i = atoi( optarg );
+			if (i > 0) retry = i;
 			
 		case 'e':
 			i = atoi( optarg );
@@ -314,9 +320,10 @@ void usage(char *s)
 	printf("  -l, --htl num          Hops to live\n\n");
 
 	printf("  -m, --metadata file    Read key metadata from local file\n");
+	printf("  -a, --retry num        Number of retries after a timeout\n");
 	printf("  -s, --stdin            Read key data from stdin\n");
 /*printf("  -e, --regress num      Number of days to regress\n");*/
-	printf("   D, --delete-local     Delete key from local datastore on insert\n\n");
+	printf("  -D, --delete-local     Delete key from local datastore on insert\n\n");
 
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");

@@ -26,6 +26,8 @@
 
 #include "ezFCPlib.h"
 
+#include <sys/select.h>
+
 #ifndef WIN32
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -35,9 +37,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 /* imports */
 extern void _fcpSockDisconnect(hFCP *hfcp);
+
+extern int  _fcpRetry;
 
 /* private helper functions */
 static int host_is_numeric(char *host);
@@ -108,6 +113,84 @@ int _fcpSockConnect(hFCP *hfcp)
 
   return 0;
 }
+
+
+int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
+{
+	int rc;
+	int rcvd = 0;
+
+	struct timeval tv;
+	fd_set readfds;
+
+	tv.tv_usec = 0;
+	tv.tv_sec  = hfcp->timeout / 1000;
+	
+	FD_ZERO(&readfds);
+	FD_SET(hfcp->socket, &readfds);
+	
+	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpSockRecv(): select returned %d", rc);
+	
+	if (rc < 0) return -1;
+	
+	if (!FD_ISSET(hfcp->socket, &readfds)) {
+		_fcpLog(FCP_LOG_DEBUG, "socket timeout on fd %d", hfcp->socket);
+		return FCP_ERR_TIMEOUT;
+	}
+
+	for (rc = 1; rc > 0; rcvd += rc) {
+		rc = read(hfcp->socket, buf + rcvd, len - rcvd);
+
+		_fcpLog(FCP_LOG_DEBUG, "_fcpSockRecv(): read returned %d", rc);
+	}
+
+	if (rc < 0) { /* bad */
+		return -1;
+	}
+	
+	return rcvd;
+}
+
+
+int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
+{
+	int rc;
+	int rcvd = 0;
+
+	struct timeval tv;
+	fd_set readfds;
+
+	tv.tv_usec = 0;
+	tv.tv_sec  = hfcp->timeout / 1000;
+
+	FD_ZERO(&readfds);
+	FD_SET(hfcp->socket, &readfds);
+	
+	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
+	if (rc < 0) return rc;
+	
+	if (!FD_ISSET(hfcp->socket, &readfds))
+		return FCP_ERR_TIMEOUT;
+
+	while (1) {
+		rc = read(hfcp->socket, buf + rcvd, 1);
+
+		if (rc <= 0) break;
+		else if (buf[rcvd] == '\n') break;
+		else if (rcvd >= len) break;
+
+		rcvd++;
+	};
+
+	if (rc < 0) { /* bad */
+		return -1;
+	}
+
+	buf[rcvd] = 0;
+	return rcvd;
+}
+
 
 /*********************************************************************/
 

@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 	parse_args(argc, argv);
 
 	/* Call before calling *any* other ?fcp* routines */
-	if (fcpStartup(logfile, verbosity)) {
+	if (fcpStartup(logfile, 0, verbosity)) {
 		_fcpLog(FCP_LOG_CRITICAL, "Failed to initialize ezFCP library");
 		return -1;
 	}

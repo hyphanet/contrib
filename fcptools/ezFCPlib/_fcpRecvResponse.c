@@ -31,6 +31,9 @@
 
 extern long xtoi(char *);
 
+extern int  _fcpSockRecv(hFCP *hfcp, char *resp, int len);
+extern int  _fcpSockRecvln(hFCP *hfcp, char *resp, int len);
+
 
 /* suppress a compiler warning */
 char *strdup(const char *s);
@@ -58,97 +61,95 @@ static int  getrespMadeMetadata(hFCP *);
 
 /* Utility functions.. not directly part of the protocol */
 static int  getrespblock(hFCP *, char *respblock, int bytesreqd);
-static int  getrespline(hFCP *, char *respline);
 
 
 int _fcpRecvResponse(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	while (1) {
 
-		if (getrespline(hfcp, resp) < 0) return -1;
+		rc = _fcpSockRecvln(hfcp, resp, 1024);
+
+		/* return -1 on error, except if it's a TIMEOUT */
+		if (rc <= 0)
+			return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	
+		if (!strncmp(resp, "NodeHello", 9)) {
+			hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
+			return getrespHello(hfcp);
+		}
+		else if (!strcmp(resp, "Success")) {
+			hfcp->response.type = FCPRESP_TYPE_SUCCESS;
+			return getrespSuccess(hfcp);
+		}
 		
-		if (!strcmp(resp, "Pending")) {
-			getrespPending(hfcp);
-		} 		
-		else
-			break;
+		else if (!strcmp(resp, "DataFound")) {
+			hfcp->response.type = FCPRESP_TYPE_DATAFOUND;
+			return getrespDataFound(hfcp);
+		}
+		else if (!strcmp(resp, "DataChunk")) {
+			hfcp->response.type = FCPRESP_TYPE_DATACHUNK;
+			return getrespDataChunk(hfcp);
+		}
+		else if (!strcmp(resp, "DataNotFound")) {
+			hfcp->response.type = FCPRESP_TYPE_DATANOTFOUND;
+			return getrespDataNotFound(hfcp);
+		}
+		else if (!strcmp(resp, "RouteNotFound")) {
+			hfcp->response.type = FCPRESP_TYPE_ROUTENOTFOUND;
+			return getrespRouteNotFound(hfcp);
+		}
+		
+		else if (!strcmp(resp, "UriError")) {
+			hfcp->response.type = FCPRESP_TYPE_URIERROR;
+			return getrespUriError(hfcp);
+		}
+		else if (!strcmp(resp, "Restarted")) {
+			hfcp->response.type = FCPRESP_TYPE_RESTARTED;
+			return getrespRestarted(hfcp);
+		}
+		
+		else if (!strcmp(resp, "KeyCollision")) {
+			hfcp->response.type = FCPRESP_TYPE_KEYCOLLISION;
+			return getrespKeycollision(hfcp);
+		}
+		else if (!strcmp(resp, "Pending")) {
+			hfcp->response.type = FCPRESP_TYPE_PENDING;
+			return getrespPending(hfcp);
+		}
+		
+		else if (!strcmp(resp, "FormatError")) {
+			hfcp->response.type = FCPRESP_TYPE_FORMATERROR;
+			return getrespFormatError(hfcp);
+		}
+		else if (!strcmp(resp, "Failed")) {
+			hfcp->response.type = FCPRESP_TYPE_FAILED;
+			return getrespFailed(hfcp);
+		}
+		
+		/* FEC specific */
+		else if (!strcmp(resp, "SegmentHeader")) {
+			hfcp->response.type = FCPRESP_TYPE_SEGMENTHEADER;
+			return getrespSegmentHeaders(hfcp);
+		}
+		else if (!strcmp(resp, "BlocksEncoded")) {
+			hfcp->response.type = FCPRESP_TYPE_BLOCKSENCODED;
+			return getrespBlocksEncoded(hfcp);
+		}
+		else if (!strcmp(resp, "MadeMetadata")) {
+			hfcp->response.type = FCPRESP_TYPE_MADEMETADATA;
+			return getrespMadeMetadata(hfcp);
+		}
+		
+		/* Else, send a warning; a little loose, but this is still in development */
+		else {
+			_fcpLog(FCP_LOG_DEBUG, "_fcpRecvResponse(): received unhandled field \"%s\"", resp);
+		}
 	}
-
-  if (!strcmp(resp, "NodeHello")) {
-		hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
-		return getrespHello(hfcp);
-  }
-  else if (!strcmp(resp, "Success")) {
-		hfcp->response.type = FCPRESP_TYPE_SUCCESS;
-		return getrespSuccess(hfcp);
-  }
-
-  else if (!strcmp(resp, "DataFound")) {
-		hfcp->response.type = FCPRESP_TYPE_DATAFOUND;
-		return getrespDataFound(hfcp);
-  }
-  else if (!strcmp(resp, "DataChunk")) {
-		hfcp->response.type = FCPRESP_TYPE_DATACHUNK;
-		return getrespDataChunk(hfcp);
-  }
-  else if (!strcmp(resp, "DataNotFound")) {
-		hfcp->response.type = FCPRESP_TYPE_DATANOTFOUND;
-		return getrespDataNotFound(hfcp);
-  }
-  else if (!strcmp(resp, "RouteNotFound")) {
-		hfcp->response.type = FCPRESP_TYPE_ROUTENOTFOUND;
-		return getrespRouteNotFound(hfcp);
-  }
-
-  else if (!strcmp(resp, "UriError")) {
-		hfcp->response.type = FCPRESP_TYPE_URIERROR;
-		return getrespUriError(hfcp);
-  }
-  else if (!strcmp(resp, "Restarted")) {
-		hfcp->response.type = FCPRESP_TYPE_RESTARTED;
-		return getrespRestarted(hfcp);
-  }
-
-  else if (!strcmp(resp, "KeyCollision")) {
-		hfcp->response.type = FCPRESP_TYPE_KEYCOLLISION;
-		return getrespKeycollision(hfcp);
-  }
-  else if (!strcmp(resp, "Pending")) {
-		hfcp->response.type = FCPRESP_TYPE_PENDING;
-		return getrespPending(hfcp);
-  }
-
-  else if (!strcmp(resp, "FormatError")) {
-		hfcp->response.type = FCPRESP_TYPE_FORMATERROR;
-		return getrespFormatError(hfcp);
-  }
-	else if (!strcmp(resp, "Failed")) {
-		hfcp->response.type = FCPRESP_TYPE_FAILED;
-		return getrespFailed(hfcp);
-  }
-
-	/* FEC specific */
-  else if (!strcmp(resp, "SegmentHeader")) {
-		hfcp->response.type = FCPRESP_TYPE_SEGMENTHEADER;
-		return getrespSegmentHeaders(hfcp);
-  }
-  else if (!strcmp(resp, "BlocksEncoded")) {
-		hfcp->response.type = FCPRESP_TYPE_BLOCKSENCODED;
-		return getrespBlocksEncoded(hfcp);
-	}
-  else if (!strcmp(resp, "MadeMetadata")) {
-		hfcp->response.type = FCPRESP_TYPE_MADEMETADATA;
-		return getrespMadeMetadata(hfcp);
-	}
-
-	/* Else, send a warning; a little loose, but this is still in development */
-  else {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpRecvResponse(): received unhandled field \"%s\"", resp);
-  }
- 
-  return 0;
+	
+	return 0;
 }
 
 
@@ -160,10 +161,11 @@ int _fcpRecvResponse(hFCP *hfcp)
 static int getrespHello(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received NodeHello response");
 
-	while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		_fcpLog(FCP_LOG_DEBUG, "NodeHello: %s", resp);
 
@@ -192,17 +194,21 @@ static int getrespHello(hFCP *hfcp)
 		_fcpLog(FCP_LOG_DEBUG, "getrespHello(): received unhandled field \"%s\"", resp);
 	}
 
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespSuccess(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Success response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.success.uri) free(hfcp->response.success.uri);
@@ -228,7 +234,10 @@ static int getrespSuccess(hFCP *hfcp)
 		_fcpLog(FCP_LOG_DEBUG, "getrespSuccess(): received unhandled field \"%s\"", resp);
   }
 	
-  return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 	
 }
 
@@ -236,13 +245,14 @@ static int getrespSuccess(hFCP *hfcp)
 static int getrespDataFound(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received DataFound response");
 
 	hfcp->response.datafound.datalength = 0;
 	hfcp->response.datafound.metadatalength = 0;
 
-	while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "DataLength=", 11))
 			hfcp->response.datafound.datalength = xtoi(resp + 11);
@@ -257,15 +267,19 @@ static int getrespDataFound(hFCP *hfcp)
 		_fcpLog(FCP_LOG_DEBUG, "getrespDataFound(): received unhandled field \"%s\"", resp);
 	}
 	
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespDataChunk(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
-	while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "Length=", 7))
 			hfcp->response.datachunk.length = xtoi(resp + 7);
@@ -288,17 +302,21 @@ static int getrespDataChunk(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespDataChunk(): received unhandled field \"%s\"", resp);
 	}
 
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespDataNotFound(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received DataNotFound response");
 
-	while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_DATANOTFOUND;
@@ -307,17 +325,21 @@ static int getrespDataNotFound(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespDataNotFound(): received unhandled field \"%s\"", resp);
 	}
 
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespRouteNotFound(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received RouteNotFound response");
 
-	while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.routenotfound.reason) free(hfcp->response.routenotfound.reason);
@@ -340,17 +362,21 @@ static int getrespRouteNotFound(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespRouteNotFound(): received unhandled field \"%s\"", resp);
 	}
 	
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespUriError(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received UriError response");
 
-	while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_URIERROR;
@@ -359,17 +385,21 @@ static int getrespUriError(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespUriError(): received unhandled field \"%s\"", resp);
 	}
 	
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespRestarted(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Restarted response");
 
-	while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "Timeout=", 8)) {
 			hfcp->response.restarted.timeout = xtoi(resp + 8);
@@ -382,17 +412,21 @@ static int getrespRestarted(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespRestarted(): received unhandled field \"%s\"", resp);
 	}
 	
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespKeycollision(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received KeyCollision response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.keycollision.uri) free(hfcp->response.keycollision.uri);
@@ -417,7 +451,10 @@ static int getrespKeycollision(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespKeyCollision(): received unhandled field \"%s\"", resp);
   }
 	
-  return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
@@ -430,10 +467,11 @@ static int getrespKeycollision(hFCP *hfcp)
 static int getrespPending(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Pending response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.pending.uri) free(hfcp->response.pending.uri);
@@ -451,8 +489,9 @@ static int getrespPending(hFCP *hfcp)
 			strncpy(hfcp->response.pending.privatekey, resp + 11, L_KEY);
 		}
 
-		else if (!strncmp(resp, "Timeout=", 8)) {
+		else if (!strncmp(resp, "Timeout=", 8)) { /* milliseconds */
 			hfcp->response.pending.timeout = xtoi(resp + 8);
+			hfcp->timeout = hfcp->response.pending.timeout;
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
@@ -462,7 +501,10 @@ static int getrespPending(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespPending(): received unhandled field \"%s\"", resp);
   }
 	
-  return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
@@ -479,10 +521,11 @@ static int getrespPending(hFCP *hfcp)
 static int getrespFailed(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Failed response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.failed.reason) free(hfcp->response.failed.reason);
@@ -497,7 +540,10 @@ static int getrespFailed(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespFailed(): received unhandled field \"%s\"", resp);
   }
   
-  return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
@@ -514,10 +560,11 @@ static int getrespFailed(hFCP *hfcp)
 static int getrespFormatError(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received FormatError response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.formaterror.reason) free(hfcp->response.formaterror.reason);
@@ -533,17 +580,21 @@ static int getrespFormatError(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespFormatError(): received unhandled field \"%s\"", resp);
   }
   
-  return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int  getrespSegmentHeaders(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received SegmentHeader response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "FECAlgorithm=", 13))
 			strncpy(hfcp->response.segmentheader.fec_algorithm, resp + 13, L_KEY);
@@ -589,17 +640,21 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
   }
 
   /* oops.. there's been a socket error of sorts */
-  return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
 static int getrespBlocksEncoded(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received BlocksEncoded response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "BlockCount=", 11))
 			hfcp->response.blocksencoded.block_count = xtoi(resp + 11);
@@ -614,16 +669,20 @@ static int getrespBlocksEncoded(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespBlocksEncoded(): received unhandled field \"%s\"", resp);
 	}
 	
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 static int getrespMadeMetadata(hFCP *hfcp)
 {
 	char resp[1025];
+	int  rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "received MadeMetadata response");
 
-  while (!getrespline(hfcp, resp)) {
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
 
 		if (!strncmp(resp, "DataLength=", 11))
 			hfcp->response.mademetadata.datalength = xtoi(resp + 11);
@@ -635,7 +694,10 @@ static int getrespMadeMetadata(hFCP *hfcp)
 			_fcpLog(FCP_LOG_DEBUG, "getrespMadeMetadata(): received unhandled field \"%s\"", resp);
 	}
 	
-	return -1;
+	if (rc < 0)
+		return (rc == FCP_ERR_TIMEOUT ? FCP_ERR_TIMEOUT : -1);
+	else
+		return 0;
 }
 
 
@@ -674,34 +736,5 @@ static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
 
 	/* Return the bytes read */
 	return cp - respblock;
-}
-
-
-/*
-	Function:    getrespline()
-
-	Arguments:   fcpconn - connection block
-
-	Description: Reads a single line of text from response buffer
-*/
-
-static int getrespline(hFCP *hfcp, char *resp)
-{
-	char *p = resp;
-	int   i;
-	int   j;
-
-	for (i = 0; i<1024; i++) {
-
-		if ((j = recv(hfcp->socket, p, 1, 0)) <= 0) return -1;
-		if (*p == '\n') break;
-
-		/* Finally, point to the char after the most-recently read. */
-		p++;
-	}
-
-	resp[i] = 0;
-
-	return i > 0 ? 0 : -1;
 }
 

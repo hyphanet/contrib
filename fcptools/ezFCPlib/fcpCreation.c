@@ -54,6 +54,7 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 
 	h->port = (port == 0 ? EZFCP_DEFAULT_PORT : port );
 	h->htl =  (htl  < 0 ? EZFCP_DEFAULT_HTL  : htl  );
+	h->timeout = EZFCP_DEFAULT_TIMEOUT;
 	
 	if (regress >= 0) h->regress = regress;
 	
@@ -71,10 +72,16 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 
 hFCP *fcpInheritHFCP(hFCP *hfcp)
 {
+  hFCP *h;
+
 	if (!hfcp) return 0;
 
-	return fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress,
+	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress,
 		                hfcp->rawmode | hfcp->delete_local);
+
+	h->timeout = hfcp->timeout;
+
+	return h;
 }
 
 void fcpDestroyHFCP(hFCP *h)

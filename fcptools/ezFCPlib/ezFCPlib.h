@@ -141,15 +141,19 @@
 #define EZFCP_DEFAULT_HTL          3
 #define EZFCP_DEFAULT_VERBOSITY    FCP_LOG_NORMAL
 #define EZFCP_DEFAULT_LOGSTREAM    stdout
+#define EZFCP_DEFAULT_RETRY        3
 #define EZFCP_DEFAULT_REGRESS      0
 #define EZFCP_DEFAULT_DELETELOCAL  0
 #define EZFCP_DEFAULT_RAWMODE      0
+#define EZFCP_DEFAULT_TIMEOUT      300000 /* 5 minutes in milliseconds */
 
 #define HOPT_DELETE_LOCAL  1
 #define HOPT_RAW           2
 
 /* error codes */
+
 #define FCP_ERR_GENERAL -1
+#define FCP_ERR_TIMEOUT -100
 
 
 /***********************************************************************
@@ -181,7 +185,7 @@ typedef struct {
 
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
-	int   timeout; /* Timeout: seconds? */
+	int   timeout; /* Timeout: milliseconds */
 
 	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
 	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
@@ -418,6 +422,7 @@ typedef struct {
 	int   max_filesize;
 	
   int   socket;
+	int   timeout;
 
   char  error[L_ERROR_STRING + 1];
 
@@ -472,7 +477,7 @@ extern "C" {
 	int   _fcpRecvResponse(hFCP *hfcp);
 
 	/* Startup and shutdown functions */
-	int   fcpStartup(char *logfile, int log_verbosity);
+	int   fcpStartup(char *logfile, int retry, int log_verbosity);
 	void  fcpTerminate(void);
 
 	/* Generate Key/Value pair */

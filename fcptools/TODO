@@ -30,6 +30,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Add configuration option for Timeout length (in seconds)
 + Improve upon temp file and log file locations.
 + Update ezFCPlib programming API documentation.
 + Implement Key Retrieval code (currently only code for inserting).
@@ -65,6 +66,7 @@ ezFCPlib specific
 = Code a seperate fcpNodeHello function. (fcpSendHello()).
 = Implement CheckBlockOffset and DataBlockOffset in handling of fec segment headers.
   (it's causing the java.lang.NumberFormatException messages in Fred's log).
+= Add Pending handling in put_file, so it pauses for said timeout and retries 'a-' times before returning with error.
 
 
 ------

@@ -33,10 +33,15 @@
 */
 
 /* Common FCP related default protocol values */
-int   _fcpVerbosity;
-FILE *_fcpLogStream;
 
-char *_fcpTmpDir;
-char *_fcpHomeDir;
+int   _fcpVerbosity;   /* verbosity of log messages; ranges from 0 through 4 */
+FILE *_fcpLogStream;   /* stream used to send log messages; may be file or stdin */
 
-int   _fcpSplitblock;
+char *_fcpTmpDir;      /* temporary file directory (depends on WIN32/!WIN32) */
+char *_fcpHomeDir;     /* Home directory; not currently used */
+
+int   _fcpSplitblock;  /* Mininum size necessary to begin splitfile insertion
+                          (may not be the same as size returned by Fred FEC routines */
+
+int   _fcpRetry;       /* Nuber of times to retry on Timeout message */
+
