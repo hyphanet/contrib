@@ -45,6 +45,7 @@ Delete "$INSTDIR\portcfg.exe"
 ExecWait "$INSTDIR\cfgclient.exe"
 Delete "$INSTDIR\cfgclient.exe"
 
+# Registering install path, so future installs will use the same path
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Freenet" "instpath" $INSTDIR
 
 
@@ -60,9 +61,8 @@ Exec "$INSTDIR\freenet.exe"
 
 Section "IE browser plugin"
 SectionIn 2
-SetOutPath $INSTDIR\IEplugin
+SetOutPath $INSTDIR
 File freenet\IEplugin\*.*
-#Exec '"$WINDIR\notepad.exe" "$INSTDIR\IEplugin\Readme.txt"'
 WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet CLSID {CDDCA3BE-697E-4BEB-BCE4-5650C1580BCE}
 WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet '' 'freenet: Asychronous Pluggable Protocol Handler'
 WriteRegStr HKEY_CLASSES_ROOT freenet '' 'URL:freenet protocol'
@@ -102,19 +102,18 @@ DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Unins
 ExecWait 'command.com /c rd "$INSTDIR\.freenet"'
 MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `Please delete .freenet in your freenet directory manually.`
 
+# remove IE plugin
+UnRegDLL $INSTDIR\IEplugin\FreenetProtocol.dll
+DeleteRegKey HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet
+DeleteRegKey HKEY_CLASSES_ROOT freenet
+
+# Now deleting the rest
 # Delete $INSTDIR\.freenet\*.*
 # RMDir $INSTDIR\.freenet
 Delete $INSTDIR\NSplugin\*.*
 RMDir $INSTDIR\NSplugin
 Delete $INSTDIR\*.*
 RMDir $INSTDIR
-
-# remove IE plugin
-UnRegDLL $INSTDIR\IEplugin\FreenetProtocol.dll
-Delete $INSTDIR\IEplugin\*.*
-RMDir $INSTDIR\IEplugin
-DeleteRegKey HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet
-DeleteRegKey HKEY_CLASSES_ROOT freenet
 
 Delete "$SMPROGRAMS\Freenet.lnk"
 Delete "$SMSTARTUP\Freenet.lnk"
