@@ -57,7 +57,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename);
 	- zero on success
 	- non-zero on error.
 */
-int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
+int put_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
 	char put_command[L_FILE_BLOCKSIZE+1];
@@ -164,7 +164,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 				if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
 					_fcpLog(FCP_LOG_CRITICAL, "could not write metadata to socket");
 					
-					rc = -1;
+	 				rc = -1;
 					goto cleanup;
 				}
 				
@@ -276,7 +276,25 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri)
 				break;
 				
 			case FCPRESP_TYPE_ROUTENOTFOUND:
-				_fcpLog(FCP_LOG_CRITICAL, "RouteNotFound - reason: %s", hfcp->response.routenotfound.reason);
+				retry--;
+
+				_fcpLog(FCP_LOG_VERBOSE, "Received 'route not found' message");
+				_fcpLog(FCP_LOG_DEBUG, "unreachable: %d, restarted: %d, rejected: %d",
+								hfcp->response.routenotfound.unreachable,
+								hfcp->response.routenotfound.restarted,
+								hfcp->response.routenotfound.rejected);
+
+				/* now do the same routine as done for SOCKET_TIMEOUT */
+				/* close the key and metadata source files */
+				close(mfd);
+				close(kfd);			
+				
+				/* disconnect from the socket */
+				_fcpSockDisconnect(hfcp);
+				
+				/* this will route us to a restart */
+				rc = FCPRESP_TYPE_RESTARTED;
+				
 				break;
 				
 			case FCPRESP_TYPE_FORMATERROR:
@@ -430,7 +448,7 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	rc = 0;
 	
 	/* now insert the metadata which contains the redirect info */
-	rc = put_file(tmp_hfcp, 0, tmp_hfcp->key->metadata->tmpblock->filename, uri_src);
+	rc = put_file(tmp_hfcp, uri_src, 0, tmp_hfcp->key->metadata->tmpblock->filename);
 
 	if (rc < 0) {
 		goto cleanup;
@@ -871,7 +889,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 
 		_fcpLog(FCP_LOG_DEBUG, "file to insert: %s", tmp_hfcp->key->tmpblock->filename);
 
-		rc = put_file(tmp_hfcp, tmp_hfcp->key->tmpblock->filename, 0, "CHK@");
+		rc = put_file(tmp_hfcp, "CHK@", tmp_hfcp->key->tmpblock->filename, 0);
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert data block %d into Freenet", bi);
 
@@ -913,7 +931,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		tmp_hfcp->key = _fcpCreateHKey();
 		tmp_hfcp->key->metadata = _fcpCreateHMetadata();
 		
-		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0, "CHK@");
+		rc = put_file(tmp_hfcp, "CHK@", segment->check_blocks[bi]->filename, 0);
 
 		if (rc < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert check block %d into Freenet", bi);
@@ -1125,7 +1143,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	unlink_key(tmp_hfcp->key);
 
 	/* put the file */
-	rc = put_file(hfcp, 0, tmp_hfcp->key->tmpblock->filename, "CHK@");
+	rc = put_file(hfcp, "CHK@", 0, tmp_hfcp->key->tmpblock->filename);
 	if (rc < 0) {
 		_fcpLog(FCP_LOG_CRITICAL, "Could not insert metadata");
 		

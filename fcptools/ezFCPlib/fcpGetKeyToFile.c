@@ -38,91 +38,60 @@
 */
 int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
-	int key_size;
-	int meta_size;
 	int rc;
+	hURI *uri;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpGetKeyToFile()");
-
-	if (key_filename) {
-		if ((key_size = file_size(key_filename)) < 0) {
-
-			_fcpLog(FCP_LOG_CRITICAL, "Key data not found in file \"%s\"", key_filename);
-			return -1;
-		}
-	}
-	else
-		key_size = 0;
-
-	if (meta_filename) {
-		if ((meta_size = file_size(meta_filename)) < 0) {
-
-			_fcpLog(FCP_LOG_CRITICAL, "Metadata not found in file \"%s\"", meta_filename);
-			return -1;
-		}
-	}
-	else
-		meta_size = 0;
-
-	/* key_size and meta_size should be properly set at this point */
+	_fcpLog(FCP_LOG_DEBUG, "Function parameters:");
+	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s, key_filename: %s, meta_filename: %s",
+					key_uri,
+					key_filename,
+					meta_filename
+					);
 
 	hfcp->key = _fcpCreateHKey();
 	hfcp->key->metadata = _fcpCreateHMetadata();
 
-	/* set the mimetype if the key exists */
-	if (key_size)
-		hfcp->key->mimetype = strdup(_fcpGetMimetype(key_filename));
+	uri = fcpCreateHURI();
+	if (fcpParseURI(uri, key_uri)) goto cleanup;
 
-	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
-	
-	/* Now insert the key data as a CHK@, and later we'll insert a redirect
-		 if necessary. If it's larger than L_BLOCK_SIZE, insert as an FEC
-		 encoded splitfile. */
-
-	if (key_size > _fcpSplitblock) {
-		_fcpLog(FCP_LOG_VERBOSE, "Start FEC encoded insert");
-		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
-	}
-	
-	else { /* Otherwise, insert as a normal key */
-		_fcpLog(FCP_LOG_VERBOSE, "Start basic insert");
-		rc = put_file(hfcp, key_filename, meta_filename, "CHK@");
-	}
-
-	if (rc) /* bail after cleaning up */
-		goto cleanup;
-
-	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */
-	/* create the final key as a re-direct to the inserted CHK@ */
-
-	if (fcpParseURI(hfcp->key->target_uri, key_uri)) goto cleanup;
-
-	/* at this point, both the CHK@ and specified URIs (CHK, SSK, KSK) have been
-		 set in struct hFCP. */
-
-	switch (hfcp->key->target_uri->type) {
+	/* uri holds the passed in & parsed key uri */
+	switch (uri->type) {
 
 	case KEY_TYPE_CHK: /* for CHK's */
 
-		/* the key's uri is already in hfcp->key->uri */
-		fcpParseURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
-
+		fcpParseURI(hfcp->key->target_uri, uri->uri_str);
+		fcpParseURI(hfcp->key->uri, uri->uri_str);
 		break;
 
 	case KEY_TYPE_SSK:
 	case KEY_TYPE_KSK:
-		
-		put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
+
+		/* uri is a target_uri, so store it */
+		fcpParseURI(hfcp->key->target_uri, uri->uri_str);
+
+		/* find the CHK that the target_uri is referring to */
+		get_redirect(hfcp, hfcp->key->uri->uri_str, uri->uri_str);
+
+		/* now in uri is the CHK that is the redirect target */
 		break;
 	}
 
+	/* TODO: check metadata to detect splitfiles */
+
+	_fcpLog(FCP_LOG_VERBOSE, "Start basic retrieve");
+	rc = get_file(hfcp, hfcp->key->uri->uri_str, key_filename, meta_filename);
+
+	if (rc) /* bail after cleaning up */
+		goto cleanup;
+	
 	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
 	return 0;
 	
 
  cleanup: /* rc should be set to an FCP_ERR code */
 
-	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file: %s", key_filename);
+	_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
 
 	return rc;
 }

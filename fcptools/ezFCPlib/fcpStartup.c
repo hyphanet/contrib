@@ -32,36 +32,36 @@
 
 #include "ez_sys.h"
 
-static int toUnix(char *path);
+/*static int toUnix(char *path);*/
 
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 
 int fcpStartup(char *logfile, int retry, int log_verbosity)
 {
-	char buf[513];
-
 	/* pass a bum value here and it's set to SILENT */
 	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
 	_fcpRetry     = (retry >= 0 ? retry : 0);
 
 #ifdef WIN32
 	{
+		char buf[513];
+	
 		WORD wVersionRequested;
 		WSADATA wsaData;
 
 		SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
 		wVersionRequested = MAKEWORD(2, 0);
-
+		
 		if (WSAStartup(wVersionRequested, &wsaData) != 0)
 			return -1;
+		
+		snprintf(buf, 512, "%s", getenv("USERPROFILE"));
+		_fcpHomeDir = strdup(buf);
+		
+		snprintf(buf, 512, "%s\\local settings\\temp", _fcpHomeDir);
+		_fcpTmpDir = strdup(buf);
 	}
-
-	snprintf(buf, 512, "%s", getenv("USERPROFILE"));
-	_fcpHomeDir = strdup(buf);
-
-	snprintf(buf, 512, "%s\\local settings\\temp", _fcpHomeDir);
-	_fcpTmpDir = strdup(buf);
-
+	
 	/* both of these paths must have their \'s converted to /'s */
 	/*
 	toUnix(_fcpTmpDir);
@@ -92,7 +92,6 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 	return 0;
 }
 
-
 void fcpTerminate(void)
 {
 
@@ -115,6 +114,7 @@ void fcpTerminate(void)
 	return;
 }
 
+#if 0
 static int toUnix(char *path)
 {
 	int i;
@@ -124,4 +124,4 @@ static int toUnix(char *path)
 
 	return 0;
 }
-
+#endif

@@ -102,9 +102,9 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 													 (meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0));
 
 	else /* Otherwise, insert as a normal key */
-		rc = put_file(tmp_hfcp,
+		rc = put_file(tmp_hfcp, "CHK@", 
 									hfcp->key->tmpblock->filename,
-									(meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0), "CHK@");
+									(meta_size > 0 ? hfcp->key->metadata->tmpblock->filename: 0));
 
 	if (rc) /* bail after cleaning up */
 		goto cleanup;

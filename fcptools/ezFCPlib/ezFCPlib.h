@@ -191,6 +191,7 @@ typedef struct {
 
 	char  publickey[L_KEY+1];
 	char  privatekey[L_KEY+1];
+	int   length;
 } FCPRESP_SUCCESS;
 
 typedef struct {
@@ -200,6 +201,7 @@ typedef struct {
 typedef struct {
   int datalength;
   int metadatalength;
+	int timeout;
 } FCPRESP_DATAFOUND;
 
 typedef struct {
@@ -225,6 +227,10 @@ typedef struct {
 typedef struct {
   char *reason;
 } FCPRESP_FAILED;
+
+typedef struct {
+  char *reason;
+} FCPRESP_URIERROR;
 
 typedef struct {
   char *reason;
@@ -297,6 +303,7 @@ typedef struct {
 	FCPRESP_ROUTENOTFOUND   routenotfound;
 	FCPRESP_FAILED          failed;
 	FCPRESP_FORMATERROR     formaterror;
+	FCPRESP_URIERROR        urierror;
 
 	/* FEC specific responses */
 	FCPRESP_SEGMENTHEADER   segmentheader;

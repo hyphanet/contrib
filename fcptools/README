@@ -83,7 +83,7 @@ Freenet clients. Time will tell.
 The tools may be compiled one of two ways:
 
 * Microsoft Visual C++ 6.0 on Windows (32-bit only).
-* GNU scripts (configure; make install).
+* GNU scripts (autoconf v2.13; automake).
 
 
 ------------------

@@ -64,18 +64,26 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 	}
 }
 
-
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
-	hfcp->key = _fcpCreateHKey();
-	hfcp->key->openmode = FCP_O_WRITE;
-	
-	/* not yet implemented */
+	hfcp = hfcp;
 	key_uri = key_uri;
-	
-  return -1;
-}
 
+#if 0
+	/* TODO TODO TODO */
+
+	hfcp->key = _fcpCreateHKey();
+	hfcp->key->openmode = FCP_O_READ;
+
+	/* store final key uri for later usage */
+	if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
+	
+	/* call get_file() or get_splitfile() based on size */
+	
+#endif
+
+  return 0;
+}
 
 static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 {

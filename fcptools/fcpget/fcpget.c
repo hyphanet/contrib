@@ -61,9 +61,9 @@ int    b_stdout   = 0;
 int main(int argc, char* argv[])
 {
 	hFCP *hfcp;
-	FILE *file;
 
-	char  buf[1024];
+	char  buf[8193];
+	int   bytes;
 	int   rc;
 
 	rc = 0;
@@ -81,59 +81,34 @@ int main(int argc, char* argv[])
 	hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
 
 	if (b_stdout) {
-		/* write the key data to stdout */
-		int c;
+		/* write data to stdout */
+		int fd;
 
+		/* this call will fetch the key to local datastore */
 		if (fcpOpenKey(hfcp, keyuri, FCP_O_READ))	return -1;
+		
+		fd = fileno(stdout);
 
-#if 0 /* all this has to be adapted for get */
-		while ((c = putc(stdout)) != -1) {
-			buf[0] = c;
-			fcpWriteKey(hfcp, buf, 1);
-		}
+		/*while ((bytes = fcpReadKey(hfcp, buf, 8192)) > 0) {*/
+			/* null it so that it can be dumped out like a string */
 
-		/* @@@ TODO: verify on Unix */
+			buf[bytes] = 0;
+			write(fd, buf, 8192);
+			/*}*/
 		fflush(stdout);
 
-		if (metafile) {
-			int bytes;
-			int metafile_size;
-
-			if (!(file = fopen(metafile, "rb"))) {
-				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
-				return -1;
-			}
-
-			for (bytes = 0; (c = getc(file)) != -1; bytes++) {
-				buf[0] = c;
-				fcpWriteMetadata(hfcp, buf, 1);
-			}
-
-			metafile_size = file_size(metafile);
-			if (bytes != metafile_size) {
-				fprintf(stdout, "Wrote %d/%d bytes of metadata; discarded rest\n", bytes, metafile_size);
-				return -1;
-			}
-		}
-#endif
-
-		if (fcpCloseKey(hfcp)) return -1;
+		/*if (fcpCloseKey(hfcp)) return -1;*/
 	}
 
 	else {
-		/* use keyfile as the filename of key data */
-		/*
+		
 		if (fcpGetKeyToFile(hfcp, keyuri, keyfile, metafile)) {
-			fprintf(stdout, "Could not retrieve \"%s\" from freenet to file \"%s\"\n", keyuri, keyfile);
+			fprintf(stdout, "Could not retrieve \"%s\" from freenet\n", keyuri);
 			return -1;
 		}
-		*/
 	}
 
-	fprintf(stdout, "Operation Successfull\n");
 	fcpTerminate();
-
-	/*fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);*/
 	fcpDestroyHFCP(hfcp);
 	
 #ifdef WINDOWS_DISABLE
@@ -280,7 +255,7 @@ static void usage(char *s)
 	printf("  -p, --port num         Freenet node port\n");
 	printf("  -l, --htl num          Hops to live\n\n");
 
-	printf("  -m, --metadata file    Read key metadata from local file\n");
+	printf("  -m, --metadata file    Write key metadata to local file\n");
 	printf("  -a, --retry num        Number of retries after a timeout\n");
 	printf("  -s, --stdout           Write key data to stdout\n");
 /*printf("  -e, --regress num      Number of days to regress\n");*/
@@ -303,3 +278,4 @@ static void usage(char *s)
 	
 	exit(0);
 }
+

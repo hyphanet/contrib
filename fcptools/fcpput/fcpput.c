@@ -62,10 +62,10 @@ int    b_genkeys = 0;
 int main(int argc, char* argv[])
 {
 	hFCP *hfcp;
-	FILE *file;
-
-	char  buf[1024];
 	int   rc;
+
+	char  buf[8193];
+	int   bytes;
 
 	rc = 0;
 	
@@ -105,38 +105,46 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	if (b_stdin) {
+	if (b_stdin) {		
 		/* read the key data from stdin */
-		int c;
+		int fd;
 
-		if (fcpOpenKey(hfcp, keyuri, FCP_O_WRITE))	return -1;
+		if (fcpOpenKey(hfcp, keyuri, FCP_O_WRITE)) return -1;
 
 		/* read it from stdin */
-		/* is this inefficient ?? */
-		while ((c = getc(stdin)) != -1) {
-			buf[0] = c;
-			fcpWriteKey(hfcp, buf, 1);
+		/* buf has 8193 bytes */
+		fd = fileno(stdin);
+
+		while ((bytes = read(fd, buf, 8192)) > 0) {
+			/* null it so that it can be dumped out like a string */
+
+			buf[bytes] = 0;
+			printf("block: %s", buf);
+
+			fcpWriteKey(hfcp, buf, bytes);
 		}
 
-		/* @@@ TODO: verify on Unix */
+		/* not sure why this is here.. */
 		fflush(stdin);
 
 		if (metafile) {
-			int bytes;
-			int metafile_size;
+			FILE *file;
+			int   metafile_size;
 
 			if (!(file = fopen(metafile, "rb"))) {
 				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
 				return -1;
 			}
+			fd = fileno(file);
 
-			for (bytes = 0; (c = getc(file)) != -1; bytes++) {
-				buf[0] = c;
-				fcpWriteMetadata(hfcp, buf, 1);
+			while ((bytes = read(fd, buf, 8192)) != -1) {
+				buf[bytes] = 0;
+				fcpWriteMetadata(hfcp, buf, bytes);
 			}
+			fclose(file);
 
 			metafile_size = file_size(metafile);
-			if (bytes != metafile_size) {
+			if (hfcp->key->metadata->size != metafile_size) {
 				fprintf(stdout, "Wrote %d/%d bytes of metadata; discarded rest\n", bytes, metafile_size);
 				return -1;
 			}

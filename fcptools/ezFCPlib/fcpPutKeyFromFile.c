@@ -97,7 +97,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	
 	else { /* Otherwise, insert as a normal key */
 		_fcpLog(FCP_LOG_VERBOSE, "Start basic insert");
-		rc = put_file(hfcp, key_filename, meta_filename, "CHK@");
+		rc = put_file(hfcp, "CHK@", key_filename, meta_filename);
 	}
 
 	if (rc) /* bail after cleaning up */

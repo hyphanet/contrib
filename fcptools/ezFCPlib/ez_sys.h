@@ -97,5 +97,11 @@ extern int   put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filena
 extern int   put_date_redirect(hFCP *hfcp, char *uri);
 extern int   put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
 
+extern int   get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename);
+extern int   get_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
+extern int   get_redirect(hFCP *hfcp, char *uri_chk, char *uri_redirect);
+
+extern int   get_size(hFCP *hfcp, char *uri);
+
 #endif /* EZ_SYS_H */
 

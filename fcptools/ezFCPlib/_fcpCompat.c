@@ -128,7 +128,7 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 	/* otherwise, rc *should* be 1, but any non-zero positive
 	integer is acceptable, meaning all is well */
 
-	/* grab the chunk whole */
+	/* grab the whole chunk */
 	rc = _fcpRecv(hfcp->socket, buf, len);
 
 	if (rc == -1) {
@@ -169,6 +169,7 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 	integer is acceptable, meaning all is well */
 
 	while (1) {
+		char s[41];
 
 		rc = _fcpRecv(hfcp->socket, buf+rcvd, 1);
 
@@ -186,6 +187,9 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 			buf[--rcvd] = 0;
 
 			_fcpLog(FCP_LOG_DEBUG, "truncated line at %d bytes", rcvd);
+
+			snprintf(s, 40, "*%s*", buf);
+			_fcpLog(FCP_LOG_DEBUG, "1st 40 bytes: %s", s);
 			return rcvd;
 		}
 		else {
@@ -200,30 +204,12 @@ long file_size(char *filename)
 {
 	int size;
 
-#ifdef HOSED
-	{
-		HANDLE hFind;
-		WIN32_FIND_DATA finddata;
-
-		hFind = FindFirstFile(filename, &finddata);
-
-		if (hFind == INVALID_HANDLE_VALUE)
-			size = -1;
-		else
-			size = finddata.nFileSizeLow;
-	}
-
-#else
-	{
-		struct stat fstat;
-
-		if (!filename) size = -1;
-		else if (stat(filename, &fstat)) size = -1;
-		else size = fstat.st_size;
-	}
-
-#endif
-
+	struct stat fstat;
+	
+	if (!filename) size = -1;
+	else if (stat(filename, &fstat)) size = -1;
+	else size = fstat.st_size;
+	
 	return size;
 }
 

@@ -45,7 +45,7 @@ static int  getrespRouteNotFound(hFCP *);
 
 static int  getrespUriError(hFCP *);
 static int  getrespRestarted(hFCP *);
-static int  getrespKeycollision(hFCP *);
+static int  getrespKeyCollision(hFCP *);
 static int  getrespPending(hFCP *);
 
 static int  getrespFailed(hFCP *);
@@ -55,9 +55,6 @@ static int  getrespFormatError(hFCP *);
 static int  getrespSegmentHeaders(hFCP *);
 static int  getrespBlocksEncoded(hFCP *);
 static int  getrespMadeMetadata(hFCP *);
-
-/* Utility functions.. not directly part of the protocol */
-static int  getrespblock(hFCP *, char *respblock, int bytesreqd);
 
 
 int _fcpRecvResponse(hFCP *hfcp)
@@ -103,7 +100,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 			return getrespRouteNotFound(hfcp);
 		}
 		
-		else if (!strcmp(resp, "UriError")) {
+		else if (!strcmp(resp, "URIError")) {
 			hfcp->response.type = FCPRESP_TYPE_URIERROR;
 			return getrespUriError(hfcp);
 		}
@@ -114,7 +111,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 		
 		else if (!strcmp(resp, "KeyCollision")) {
 			hfcp->response.type = FCPRESP_TYPE_KEYCOLLISION;
-			return getrespKeycollision(hfcp);
+			return getrespKeyCollision(hfcp);
 		}
 		else if (!strcmp(resp, "Pending")) {
 			hfcp->response.type = FCPRESP_TYPE_PENDING;
@@ -315,6 +312,10 @@ static int getrespSuccess(hFCP *hfcp)
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.success.privatekey, resp + 11, L_KEY);
 		}
+
+		else if (!strncmp(resp, "Length=", 7)) {
+			hfcp->response.success.length = xtoi(resp + 7);
+		}
 		
 		else if (!strncmp(resp, "EndMessage", 10)) {
 			return FCPRESP_TYPE_SUCCESS;
@@ -344,11 +345,18 @@ static int getrespDataFound(hFCP *hfcp)
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
-		if (!strncmp(resp, "DataLength=", 11))
+		if (!strncmp(resp, "DataLength=", 11)) {
 			hfcp->response.datafound.datalength = xtoi(resp + 11);
+		}
 		
-		else if (strncmp(resp, "MetadataLength=", 15) == 0)
+		else if (strncmp(resp, "MetadataLength=", 15) == 0) {
 			hfcp->response.datafound.metadatalength = xtoi(resp + 15);
+		}
+
+		else if (strncmp(resp, "Timeout=", 8) == 0) {
+			hfcp->response.datafound.timeout = xtoi(resp + 8);
+			hfcp->timeout = hfcp->response.datafound.timeout;
+		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_DATAFOUND;
@@ -368,34 +376,35 @@ static int getrespDataChunk(hFCP *hfcp)
 {
 	char resp[8193];
 	int  rc;
+	int  len;
 
-	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
-
-		if (!strncmp(resp, "Length=", 7))
-			hfcp->response.datachunk.length = xtoi(resp + 7);
-		
-		else if (!strncmp(resp, "Data", 4))	{
-			int len;
-
-			len = hfcp->response.datachunk.length;
-			if (hfcp->response.datachunk.data) free(hfcp->response.datachunk.data);
-			hfcp->response.datachunk.data = (char *)malloc(len);
-			
-			/* get len bytes of data */
-			if (getrespblock(hfcp, hfcp->response.datachunk.data, len) != len)
-				return -1;
-
-			return FCPRESP_TYPE_DATACHUNK;
-		}
-
-		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespDataChunk() - received unhandled field \"%s\"", resp);
+	rc = _fcpSockRecvln(hfcp, resp, 8192);
+	
+	if (!strncmp(resp, "Length=", 7)) {
+		hfcp->response.datachunk.length = xtoi(resp + 7);
 	}
+	else return -1;
 
-	if (rc < 0)
+	_fcpLog(FCP_LOG_DEBUG, "received DataChunk response (%d bytes)", hfcp->response.datachunk.length);
+
+	/* this line *should just be the word 'data' */
+	rc = _fcpSockRecvln(hfcp, resp, 8192);
+
+	len = hfcp->response.datachunk.length;
+	if (hfcp->response.datachunk.data) free(hfcp->response.datachunk.data);
+	hfcp->response.datachunk.data = (char *)malloc(len+1);
+
+	_fcpLog(FCP_LOG_DEBUG, "** 1");
+	
+	/* get len bytes of data */
+	if ((rc = _fcpSockRecv(hfcp, hfcp->response.datachunk.data, len)) <= 0)
 		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
-	else
-		return 0;
+
+	_fcpLog(FCP_LOG_DEBUG, "** 2");
+	
+	hfcp->response.datachunk.data[len] = 0;
+	
+	return FCPRESP_TYPE_DATACHUNK;
 }
 
 
@@ -464,11 +473,17 @@ static int getrespUriError(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received UriError response");
+	_fcpLog(FCP_LOG_DEBUG, "received URIError response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
-		if (!strncmp(resp, "EndMessage", 10))
+		if (!strncmp(resp, "Reason=", 7)) {
+			if (hfcp->response.urierror.reason) free(hfcp->response.urierror.reason);
+			
+			hfcp->response.urierror.reason = strdup(resp + 7);
+		}
+
+		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_URIERROR;
 
 		else
@@ -481,7 +496,14 @@ static int getrespUriError(hFCP *hfcp)
 		return 0;
 }
 
+/*
+  Function:    getrespRestarted()
 
+  Arguments    hfcpconn - Freenet FCP handle
+
+	Notes:
+	- Response will set hfcp->timeout before returning.
+*/
 static int getrespRestarted(hFCP *hfcp)
 {
 	char resp[8193];
@@ -510,7 +532,7 @@ static int getrespRestarted(hFCP *hfcp)
 }
 
 
-static int getrespKeycollision(hFCP *hfcp)
+static int getrespKeyCollision(hFCP *hfcp)
 {
 	char resp[8193];
 	int  rc;
@@ -550,6 +572,9 @@ static int getrespKeycollision(hFCP *hfcp)
   Function:    getrespPending()
 
   Arguments    hfcpconn - Freenet FCP handle
+
+	Notes:
+	- Response will set hfcp->timeout before returning.
 */
 
 static int getrespPending(hFCP *hfcp)
@@ -781,43 +806,5 @@ static int getrespMadeMetadata(hFCP *hfcp)
 		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
-}
-
-
-/**********************************************************************/
-
-/*
-	Function:    getrespblock()
-
-	Arguments:   fcpconn - connection block
-
-	Returns:     number of bytes read if successful, -1 otherwise
-
-	Description: Reads an arbitrary number of bytes from connection
-*/
-
-static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
-{
-	int i = 0;
-	char *cp = respblock;
-	
-	while (bytesreqd > 0) {
-		/* now, try to get and return desired number of bytes */
-
-		if ((i = recv(hfcp->socket, cp, bytesreqd, 0)) > 0) {
-			/* Increment current pointer (cp), and decrement bytes required
-				 to read.
-			*/
-			cp += i;
-			bytesreqd -= i;
-		}
-		else if (i == 0)
-			break;      /* connection closed - got all we're gonna get */
-		else
-			return -1;  /* connection failure */
-	}
-
-	/* Return the bytes read */
-	return cp - respblock;
 }
 

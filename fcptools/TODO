@@ -30,6 +30,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Change so that fcpReadKey() and fcpWriteKey() return bytes read/written instead of 0 on success.
 + Add logic in _fcpCompat.c for read() routine for 8192 blocksize instead of '1'
 + Add configuration option for Timeout length (in seconds)
 + Add handling of CryptoKey in key generation and SSK handling.
@@ -71,7 +72,7 @@ ezFCPlib specific
 fcpput
 ------
 
-+ Optimize main()'s speed read from standard input.
++ Optimize main()'s speed read from standard input (use fd and read() function instead).
 + (Win32); returns to command prompt with (harmless) error when reading key data from stdin.
 + Implement -a "--attempts" logic.
 + Add logic to handle >1 files passed in from command line (FILES ...).
@@ -85,7 +86,7 @@ fcpputsite
 
 + Re-link againt ezFCPlib and implement site-wide specific insert logic.
 + Implement Edition based logic.
-+ Verify current DRB logic.
++ Verify current DBR logic.
 + Implement do_dbr option.
 + Implement default_doc option (defaults to index.html).
 
@@ -94,4 +95,3 @@ fcpputsite
 fcpget
 ------
 
-+ Do.

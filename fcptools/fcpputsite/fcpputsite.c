@@ -67,6 +67,12 @@ static PutSiteOptions siteOptions;
 
 int main(int argc, char* argv[])
 {
+	int i;
+
+	printf("argc: %d; ", argc);
+	for (i=0; i < argc; i++)
+		printf("\"%s\" ", argv[i]);
+
 	printf(";)\n");
 	return -1;
 }
@@ -74,6 +80,7 @@ int main(int argc, char* argv[])
 
 static void parse_args(int argc, char *argv[])
 {
+#if 0
 	static struct option long_options[] = {
 		{"address", 1, NULL, 'n'},
 		{"port", 1, NULL, 'p'},
@@ -98,8 +105,6 @@ static void parse_args(int argc, char *argv[])
 
 	/* c is the option code; i is buffer storage for an int */
 	int c, i;
-
-	#if 0
 
 	while ((c = getopt(argc, argv, short_options)) != -1)
 	{ /* while */
