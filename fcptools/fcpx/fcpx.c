@@ -70,18 +70,19 @@ int main(int argc, char* argv[])
 
 	if (logfile) {
 
+		/* if there's an error opening the file, default to stdout */
 		if (!(logstream = fopen(logfile, "w"))) {
 			fprintf(stdout, "Could not open logfile.. using stdout\n");
 			logstream = stdout;
 		}
 	}
-	else {
+	else { /* nothing specified? default to stdout */
 		logstream = stdout;
 	}
 	
 	/* Call before calling *any* other ?fcp* routines */
 	if (fcpStartup(logstream, verbosity)) {
-		fprintf(stdout, "Failed to initialize ezFCP library\n");
+    fprintf(stdout, "Failed to initialize FCPLib\n");
 		rc = -1;
 		goto cleanup;
 	}
@@ -208,15 +209,15 @@ static void usage(char *s)
 static int clienthello(hFCP *hfcp)
 {
 	if (fcpClientHello(hfcp) != 0) {
-		fprintf(stdout, "Could not send ClientHello message to node\n");
+		fprintf(stdout, "Could not send Hello message to node\n");
 		return -1;
 	}
 	
 	/* Now dump the info */
-	fprintf(stdout, "Node Description: %s\n", hfcp->description);
-	fprintf(stdout, "Node Protocol: %s\n", hfcp->protocol);
-	fprintf(stdout, "Highest Seen Build: %d\n", hfcp->highest_build);
-	fprintf(stdout, "Max Filesize: %d\n", hfcp->max_filesize);
+	fprintf(stdout, "Description: %s\n", hfcp->description);
+	fprintf(stdout, "Protocol: %s\n", hfcp->protocol);
+	fprintf(stdout, "HighestSeenBuild: %d\n", hfcp->highest_build);
+	fprintf(stdout, "MaxFileSize: %d\n", hfcp->max_filesize);
 
 	fcpDestroyHFCP(hfcp);
 	return 0;
@@ -226,9 +227,13 @@ static int clienthello(hFCP *hfcp)
 static int clientinfo(hFCP *hfcp)
 {
 	if (fcpClientInfo(hfcp) != 0) {
-		fprintf(stdout, "Could not send ClientInfo message to node\n");
+		fprintf(stdout, "Could not send Info message to node\n");
 		return -1;
 	}
+
+	/* Now dump the info */
+	fprintf(stdout, "Architecture: %s\n", hfcp->response.nodeinfo.architecture);
+	fprintf(stdout, "OperatingSystem: %s\n", hfcp->response.nodeinfo.operatingsystem);
 
 	fcpDestroyHFCP(hfcp);
 	return 0;

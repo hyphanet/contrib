@@ -53,70 +53,75 @@ static int host_is_numeric(char *host);
 
 int _fcpSockConnect(hFCP *hfcp)
 {
-  int  rc;
-	
-  struct sockaddr_in sa_local_addr;
-  struct sockaddr_in sa_serv_addr;
-	
+	int   rc;
+
+	struct sockaddr_in sa_local_addr;
+	struct sockaddr_in sa_serv_addr;
+
 	struct hostent *host_ent;
-  struct in_addr  in_address;
+	struct in_addr  in_address;
 
 	char fcpID[4] = { 0, 0, 0, 2 };
 
 	if (host_is_numeric(hfcp->host)) {
-    in_address.s_addr = inet_addr(hfcp->host);
+		in_address.s_addr = inet_addr(hfcp->host);
 	}
-  else {
-    host_ent = gethostbyname(hfcp->host);
+	else {
+		host_ent = gethostbyname(hfcp->host);
 		if (!host_ent) return -1;
 
 		in_address.s_addr = ((struct in_addr *)host_ent->h_addr_list[0])->s_addr;
-  }
+	}
 
 	/* now (struct in_addr)in_address is set properly in either
 		 name case or dotted-IP */
 	sa_serv_addr.sin_addr.s_addr = in_address.s_addr;
-  sa_serv_addr.sin_port = htons(hfcp->port);
-  sa_serv_addr.sin_family = AF_INET;
-	
-  /* create socket */
-  hfcp->socket = socket(AF_INET, SOCK_STREAM, 0);
+	sa_serv_addr.sin_port = htons(hfcp->port);
+	sa_serv_addr.sin_family = AF_INET;
 
-	/* I guess someone @MS thought it would be a good idea to implement BSD sockets just like
-	BSD, *except* for a SOCKET to be an unsigned int.. wonderful! */
+	/* create socket */
+	hfcp->socket = socket(AF_INET, SOCK_STREAM, 0);
+
+	/* translate the return code */
 #ifdef WIN32
-  if (hfcp->socket == INVALID_SOCKET) return -1;
-#else
-  if (hfcp->socket < 0) return -1;
+	if (hfcp->socket == INVALID_SOCKET) hfcp->socket = -1;
 #endif
 
-  /* bind to any port number on local machine */
-  sa_local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  sa_local_addr.sin_port = htons(0);
-  sa_local_addr.sin_family = AF_INET;
+	if (hfcp->socket < 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not create socket");
 
-  rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
+		return -1;
+	}
 
+	/* bind to any port number on local machine */
+	sa_local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	sa_local_addr.sin_port = htons(0);
+	sa_local_addr.sin_family = AF_INET;
+
+	rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
+
+	/* translate the return code */
 #ifdef WIN32
-	if (rc ==	SOCKET_ERROR) {
-		_fcpLog(FCP_LOG_CRITICAL, "bind returned an error: %d", WSAGetLastError());
+	if (rc ==	SOCKET_ERROR) rc = -1;
+#endif
+
+	if (rc != 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not connect to port %d", hfcp->port);
 		_fcpSockDisconnect(hfcp);
 
 		return -1;
 	}
-#else
-  if (rc != 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Error binding to port %d: %s", hfcp->port, strerror(errno));
-		_fcpSockDisconnect(hfcp);
 
-		return -1;
-  }
+	/* connect to server */
+	rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
+
+	/* translate the return code */
+#ifdef WIN32
+	if (rc ==	SOCKET_ERROR) rc = -1;
 #endif
 
-  /* connect to server */
-  rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
-  if (rc < 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Error connecting to server %s:%d; %s", hfcp->host, hfcp->port, strerror(errno));
+	if (rc != 0) {
+		_fcpLog(FCP_LOG_CRITICAL, "Could not connect to server %s:%d", hfcp->host, hfcp->port);
 		_fcpSockDisconnect(hfcp);
 
 		return -1;
@@ -124,20 +129,20 @@ int _fcpSockConnect(hFCP *hfcp)
 
 	/* Send fcpID */
 	if ((rc = _fcpSend(hfcp->socket, fcpID, 4)) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not send 4-byte fcp ID");
+		_fcpLog(FCP_LOG_CRITICAL, "Could not send 4-byte ID");
+		_fcpSockDisconnect(hfcp);
+
 		return -1;
 	}
 
-
 	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%d", hfcp->host, hfcp->port);
 
-  return 0;
+	return 0;
 }
 
 void _fcpSockDisconnect(hFCP *hfcp)
 {
-  if (hfcp->socket == FCP_SOCKET_DISCONNECTED)
-		return;
+	if (hfcp->socket == FCP_SOCKET_DISCONNECTED) return;
 
 #ifdef WIN32
 	shutdown(hfcp->socket, 2);

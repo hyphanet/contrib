@@ -198,8 +198,42 @@ typedef struct {
 } FCPRESP_SUCCESS;
 
 typedef struct {
-	char architecture[L_64+1];
+	char  *architecture;
+	char  *operatingsystem;
+	char  *operatingsystemversion;
+	
+	int    nodeport;
+	char  *nodeaddress;
+
+	char  *javavendor;
+	char  *javaname;
+	char  *javaversion;
+
+	int    maximummemory;
+	int    allocatedmemory;
+	int    freememory;
+
+	int    estimatedload;
+	int    datastoremax;
+	int    datastorefree;
+	int    datastoreused;
+
+	int    maxfilesize;
+	int    mostrecenttimestamp;
+	int    leastrecenttimestamp;
+	int    routingtime;
+	int    availablethreads;
+	int    istransient;
+	int    activejobs;
 } FCPRESP_NODEINFO;
+
+typedef struct {
+	char  *description;
+  char  *protocol;
+
+	int    highest_build;
+	int    max_filesize;
+} FCPRESP_NODEHELLO;
 
 typedef struct {
   int datalength;
@@ -298,6 +332,7 @@ typedef struct {
 
 	FCPRESP_SUCCESS         success;
 	FCPRESP_NODEINFO        nodeinfo;
+	FCPRESP_NODEHELLO       nodehello;
 	FCPRESP_DATAFOUND       datafound;
 	FCPRESP_DATACHUNK       datachunk;
 	FCPRESP_KEYCOLLISION    keycollision;
@@ -446,12 +481,13 @@ typedef struct {
 	unsigned short port;
 	int            htl;
 
-	hOptions *options;
+	char  *description;
+	char  *protocol;
 
-	char *description;
-  char *protocol;
-	int   highest_build;
-	int   max_filesize;  /* returned from fcphello */
+	int    highest_build;
+	int    max_filesize;
+
+	hOptions *options;
 
   FCPSOCKET socket;
 	hKey *key;

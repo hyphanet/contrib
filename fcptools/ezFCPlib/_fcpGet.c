@@ -87,10 +87,7 @@ int get_file(hFCP *hfcp, char *uri)
 		seconds = ((hfcp->options->timeout / 1000) - (minutes * 60));
 
 		/* connect to Freenet FCP */
-		if ((rc = _fcpSockConnect(hfcp)) != 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not connect to node %s:%d", hfcp->host, hfcp->port);
-			goto cleanup;
-		}
+		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
 		_fcpLog(FCP_LOG_VERBOSE, "sending ClientGet message to %s:%d, htl=%d, skip_local=%s",
 						hfcp->host,

@@ -103,10 +103,7 @@ int put_file(hFCP *hfcp, char *uri)
 		_fcpLog(FCP_LOG_VERBOSE, "%d retries left", retry);
 
 		/* connect to Freenet FCP */
-		if ((rc = _fcpSockConnect(hfcp)) != 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not connect to node %s:%d", hfcp->host, hfcp->port);
-			goto cleanup;
-		}
+		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
 		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%d, htl=%d, delete_local=%s",
 						hfcp->host,
@@ -449,10 +446,7 @@ static int fec_segment_file(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "entered fec_segment_file()");
 
 	/* connect to Freenet FCP */
-	if ((rc = _fcpSockConnect(hfcp)) != 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not connect to node %s:%d", hfcp->host, hfcp->port);
-		goto cleanup;
-	}
+	if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 	
 	snprintf(buf, L_FILE_BLOCKSIZE,
 					 "FECSegmentFile\nAlgoName=OnionFEC_a_1_2\nFileLength=%x\nEndMessage\n",

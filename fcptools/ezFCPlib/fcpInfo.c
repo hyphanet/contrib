@@ -45,21 +45,29 @@ int fcpClientHello(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "sending ClientHello message");
 	
 	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
+		_fcpLog(FCP_LOG_CRITICAL, "Could not send ClientHello message to node");
 		_fcpSockDisconnect(hfcp);
+
 		return -1;
 	}
 	
 	/* expecting a NodeHello response */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEHELLO) {
-		_fcpLog(FCP_LOG_VERBOSE, "Returned error code: %d", rc);
-
+		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected NodeHello response");
 		_fcpSockDisconnect(hfcp);
+
 		return -1;
 	}
-	
-	/* Note: inside getrespHello() the fields hfcp->node and hfcp->protocol
-		 are set */
+
+	/* copy over the response fields */
+	if (hfcp->description) free(hfcp->description);
+	hfcp->description = strdup(hfcp->response.nodehello.description);
+
+	if (hfcp->protocol) free(hfcp->protocol);
+	hfcp->protocol = strdup(hfcp->response.nodehello.protocol);
+
+	hfcp->highest_build = hfcp->response.nodehello.highest_build;
+	hfcp->max_filesize = hfcp->response.nodehello.max_filesize;
 
 	_fcpSockDisconnect(hfcp);
 	return 0;
@@ -80,19 +88,19 @@ int fcpClientInfo(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "sending ClientInfo message");
 	
 	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
-		
+		_fcpLog(FCP_LOG_CRITICAL, "Could not send ClientHello message to node");
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
 	
 	/* expecting a NodeInfo response */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEINFO) {
-		_fcpLog(FCP_LOG_VERBOSE, "fcpClientInfo(): error returned from node: %d", rc);
-
+		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected NodeInfo response");
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
+
+	/* don't copy the fields, just print them from the response struct */
 	
 	_fcpSockDisconnect(hfcp);
 	return 0;
