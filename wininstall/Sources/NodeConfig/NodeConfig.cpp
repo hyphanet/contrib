@@ -54,7 +54,6 @@ CNodeConfigApp::CNodeConfigApp()
 	lstrcpyn(progPath, _pgmptr,256);
     exename = strrchr(progPath, '\\'); // point to slash between path and filename
     *++exename = '\0'; // point to filename partand split the string
-
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -75,9 +74,56 @@ BOOL CNodeConfigApp::InitInstance()
 	#endif
 
 	// Try to load the language .dll and fallback to English if not existing
-	HINSTANCE hInst = LoadLibrary("localres.dll");
-	if (hInst != NULL) AfxSetResourceHandle(hInst);
-
+	// This curious code actually finds the current thread locale (i.e. current user locale)
+	// and looks for files named localres_0809_.dll (if the user locale is 0809).
+	// The match would also find the file localres_0409_0809_0201_.dll if it existed.
+	// If no resource dll matching user locale can be found, the default user locale is
+	// tried instead, followed by the default system locale.  If a matching resource dll
+	// still cannot be found the default (English) is used.
+	HINSTANCE hResourceLibrary = NULL;
+	DWORD dwLocaleID;
+	{
+		CString strLocaleResFile;
+		HANDLE hFind=NULL;
+		WIN32_FIND_DATA sFileData;
+		for (int langidSource=0; (langidSource<2) && (hResourceLibrary==NULL); ++langidSource)
+		{
+			switch (langidSource)
+			{
+			case 0:
+				dwLocaleID = LANGIDFROMLCID(GetThreadLocale());
+				break;
+			case 1:
+				dwLocaleID = GetUserDefaultLCID();
+				break;
+			case 2:
+			default:
+				dwLocaleID = GetSystemDefaultLCID();
+				break;
+			}
+			strLocaleResFile.Format("%slocalres*_%04x_*.dll",progPath,dwLocaleID);
+			hFind = FindFirstFile( LPCTSTR(strLocaleResFile), &sFileData);
+			if ( (hFind!=NULL) && (hFind!=INVALID_HANDLE_VALUE))
+			{
+				// found resource file, so load it
+				CString strResFile(progPath);
+				strResFile+=sFileData.cFileName;
+				hResourceLibrary = LoadLibrary( LPCTSTR(strResFile) );
+			}
+			FindClose(hFind);
+		}
+	}
+	// did we find an appropriate matching language resource DLL?
+	if (hResourceLibrary == NULL)
+	{
+		// no - see if there is a patch to the default language resource DLL
+		// (this is Seb's original code)
+		hResourceLibrary = LoadLibrary("localres.dll");
+	}
+	if (hResourceLibrary != NULL)
+	{
+		AfxSetResourceHandle(hResourceLibrary);
+	}
 
 	if (!AfxSocketInit())
 	{
