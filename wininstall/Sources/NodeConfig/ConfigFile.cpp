@@ -515,14 +515,14 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Services & Servlets\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "services=mainport\n");
+	fprintf(fp, "services=mainport,nodestatus\n");
 	fprintf(fp, "\n");
 
 	// FProxy settings
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Mainport settings\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "mainport.class=%s\n",pFProxy->m_fproxyclass);
+	fprintf(fp, "mainport.class=freenet.interfaces.servlet.MultipleHttpServletContainer\n");
 	fprintf(fp, "mainport.port=%d\n",pFProxy->m_fproxyport);
 	fprintf(fp, "mainport.params.servlet.1.params.insertHtl=%d\n",pFProxy->m_fproxyinserthtl);
 	fprintf(fp, "mainport.params.servlet.1.params.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
@@ -534,17 +534,17 @@ void CConfigFile::Save()
 	fprintf(fp, "mainport.params.servlet.1.params.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
 	fprintf(fp, "mainport.params.servlet.1.params.showNewBuildWarning=%s\n", pFProxy->m_bShowNewBuildWarning?"true":"false");
 	fprintf(fp, "\n");
-/*
+
 	// Node info servlet settings
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Node information servlet settings\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "nodeinfo.class=%s\n",pDiagnostics->m_nodeinfoclass);
-	fprintf(fp, "nodeinfo.port=%d\n",pDiagnostics->m_nodeinfoport);
+	fprintf(fp, "mainport.params.servlet.2.params.class=%s\n",pDiagnostics->m_nodeinfoclass);
+	fprintf(fp, "mainport.params.servlet.2.params.port=%d\n",pDiagnostics->m_nodeinfoport);
 	fprintf(fp, "failureTableSize=%d\n",pDiagnostics->m_nFailureTableEntries);
 	fprintf(fp, "failureTableTime=%lu000\n",pDiagnostics->m_nFailureTableTimeSeconds);
 	fprintf(fp, "\n");
-*/
+
 	// Write out unknown parameters
 	if (pGeek->m_unknowns.GetLength() > 0)
 	{

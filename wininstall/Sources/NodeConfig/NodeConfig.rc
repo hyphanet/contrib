@@ -363,13 +363,13 @@ CAPTION "Diagnostics"
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "Enable",IDC_NODEINFOSERVLET,"Button",BS_AUTOCHECKBOX | 
-                    WS_DISABLED | WS_TABSTOP,22,139,37,10
+                    WS_TABSTOP,22,139,37,10
     GROUPBOX        "Servlets",IDC_STATIC,7,94,305,140,WS_DISABLED
     EDITTEXT        IDC_NODEINFOPORT,265,136,31,14,ES_AUTOHSCROLL | 
-                    ES_READONLY | ES_NUMBER | WS_DISABLED | NOT WS_TABSTOP
+                    ES_NUMBER | NOT WS_TABSTOP
     RTEXT           "Port",IDC_STATIC,242,139,20,8
-    EDITTEXT        IDC_NODEINFOCLASS,77,136,160,14,ES_AUTOHSCROLL | 
-                    ES_READONLY | WS_DISABLED | NOT WS_TABSTOP
+    EDITTEXT        IDC_NODEINFOCLASS,77,136,160,14,ES_AUTOHSCROLL | NOT 
+                    WS_TABSTOP
     LTEXT           "The node information servlet enables a web interface to view diagnostics data in a web browser.",
                     IDC_STATIC,22,118,269,18
     GROUPBOX        "Diagnostics",IDC_STATIC,108,7,204,81
@@ -387,14 +387,14 @@ BEGIN
     GROUPBOX        "Node Information Servlet",IDC_STATIC,15,106,287,72
     LTEXT           "Size of 'Failure Table' :",IDC_STATIC,22,159,73,11
     EDITTEXT        IDC_FAILURETABENTRIES,101,157,28,13,ES_AUTOHSCROLL | 
-                    ES_NUMBER | WS_DISABLED
+                    ES_NUMBER
     CONTROL         "Spin1",IDC_FAILURETABENTRIESSPIN,"msctls_updown32",
-                    UDS_ARROWKEYS | WS_DISABLED,130,157,11,13
+                    UDS_ARROWKEYS,130,157,11,13
     LTEXT           "entries, and",IDC_STATIC,145,159,41,11
     EDITTEXT        IDC_FAILURETABTIME,195,157,28,13,ES_AUTOHSCROLL | 
-                    ES_NUMBER | WS_DISABLED
+                    ES_NUMBER
     CONTROL         "Spin1",IDC_FAILURETABTIMESPIN,"msctls_updown32",
-                    UDS_ARROWKEYS | WS_DISABLED,224,157,11,13
+                    UDS_ARROWKEYS,224,157,11,13
     LTEXT           "seconds",IDC_STATIC,239,159,33,11
     LTEXT           "Store additional diagnostics:",IDC_STATIC,115,43,185,9
     CONTROL         "Inbound contacts",IDC_BINBOUNDCONTACTS,"Button",
