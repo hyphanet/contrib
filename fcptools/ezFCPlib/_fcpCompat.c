@@ -23,7 +23,6 @@
 	making use of #ifdef's.
 */
 
-/* TODO: make this shit work on windows */
 #ifndef WINDOWS
 #include <sys/socket.h>
 #endif
@@ -37,6 +36,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <pthread.h>
+#else
+#include <process.h>
 #endif
 
 #include <stdio.h>

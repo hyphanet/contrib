@@ -39,8 +39,10 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	}
 	hfcp->key->size = fstat.st_size;
 
-	if (!(stat(meta_filename, &fstat)))
-		hfcp->key->metadata->size = fstat.st_size;
+	if (meta_filename) {
+		if (!(stat(meta_filename, &fstat)))
+			hfcp->key->metadata->size = fstat.st_size;
+	}
 
 	/* If it's larger than L_BLOCK_SIZE, insert as an FEC encoded splitfile */
 	if (hfcp->key->size > L_BLOCK_SIZE) {
@@ -55,9 +57,9 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	}
 	
 	if (rc)
-		_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into freenet");
+		_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into freenet", key_filename);
 	else
-		_fcpLog(FCP_LOG_NORMAL, "FINAL ANSWER: %s", hfcp->key->uri->uri_str);
+		_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
 
 	return rc;
 }

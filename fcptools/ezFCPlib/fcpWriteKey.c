@@ -48,8 +48,6 @@ extern char  *crTmpFilename(void);
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 {
 	int count;
-
-	int fd;
 	int rc;
 
 	count = (len > 8192 ? 8192 : len);

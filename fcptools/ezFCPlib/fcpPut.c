@@ -339,8 +339,6 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	int bi;   /* block index */
 
 	int byte_count;
-	int block_count;
-	int segment_count;
 
 	int data_len;
 	int block_len;
@@ -495,24 +493,10 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 
 static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 {
-	char buf[L_FILE_BLOCKSIZE+1];
-	int fd;
 	int rc;
-
-	int fi;   /* file index */
 	int bi;   /* block index */
 
-	int byte_count;
-
-	int data_len;
-	int block_len;
-	int metadata_len;
-	int pad_len;
-
 	hSegment  *segment;
-	FILE      *file;
-
-	struct stat fstat;
 
 	/* helper pointer */
 	segment = hfcp->key->segments[index];

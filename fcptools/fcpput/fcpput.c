@@ -49,9 +49,6 @@ int main(int argc, char* argv[])
 	hFCP *hfcp;
 	int rc;
 
-	char buf[8192];
-	int fd;
-
 	/* Must occur before any FCP related calls to set parameters prior */
 	parse_args(argc, argv);
 	
@@ -60,19 +57,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	/* If file is not specified, read key data from stdin */
-	/*
-	if (!keyfile) fd = STDIN_FILENO;
-	else fd = open(keyfile, O_RDONLY);
-
-	if (fd == -1) {
-		printf("Error\n");
-		return 1;
-	}
-	*/
-
 	hfcp = _fcpCreateHFCP();
 	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
+
+	if (rc) printf("bad\n");
 
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();

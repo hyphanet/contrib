@@ -196,7 +196,6 @@ int _fcpRecvResponse(hFCP *hfcp)
 static int getrespHello(hFCP *hfcp)
 {
 	char resp[1025];
-	int len;
 
 	_fcpLog(FCP_LOG_DEBUG, "received NodeHello response");
 
@@ -227,7 +226,6 @@ static int getrespHello(hFCP *hfcp)
 static int getrespSuccess(hFCP *hfcp)
 {
 	char resp[1025];
-	int len;
 
 	_fcpLog(FCP_LOG_DEBUG, "received Success response");
 
@@ -393,7 +391,6 @@ static int getrespRestarted(hFCP *hfcp)
 static int getrespKeycollision(hFCP *hfcp)
 {
 	char resp[1025];
-	int len;
 
 	_fcpLog(FCP_LOG_DEBUG, "received KeyCollision response");
 
