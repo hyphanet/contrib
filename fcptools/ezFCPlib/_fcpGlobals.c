@@ -37,7 +37,7 @@
 int   _fcpVerbosity;   /* verbosity of log messages; ranges from 0 through 4 */
 FILE *_fcpLogStream;   /* stream used to send log messages; may be file or stdin */
 
-char *_fcpTmpDir;      /* temporary file directory (depends on WINDOWS/!WINDOWS) */
+char *_fcpTmpDir;      /* temporary file directory (depends on WIN32/!WIN32) */
 char *_fcpHomeDir;     /* Home directory; not currently used */
 
 int   _fcpSplitblock;  /* Mininum size necessary to begin splitfile insertion

@@ -35,9 +35,9 @@
 #include <sys/stat.h>
 
 /**************************************************************************
-  MS-WINDOWS specifics
+  MS-WIN32 specifics
 **************************************************************************/
-#ifdef WINDOWS
+#ifdef WIN32
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
@@ -62,10 +62,10 @@
 **************************************************************************/
 #else
 
-#include <sys/socket.h>
-
-/* UNIX includes that do not correspond on WINDOWS go here */
+/* UNIX includes that do not correspond on WIN32 go here */
 /* Keep 'sys' files first in include order */
+
+#include <sys/socket.h>
 
 #include <unistd.h>
 

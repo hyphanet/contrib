@@ -26,7 +26,7 @@
 
 #include "ezFCPlib.h"
 
-#ifndef WINDOWS
+#ifndef WIN32
 #include <sys/select.h>
 
 #include <netinet/in.h>
@@ -94,8 +94,9 @@ int _fcpSockConnect(hFCP *hfcp)
 	
   /* connect to server */
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
-  if (rc < 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Error connecting to server %s: %s", hfcp->host, strerror(errno));
+  if (rc < 0)
+  {
+	_fcpLog(FCP_LOG_CRITICAL, "Error connecting to server %s: %s", hfcp->host, strerror(errno));
 		_fcpSockDisconnect(hfcp);
 
 		return -1;
@@ -107,81 +108,6 @@ int _fcpSockConnect(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%d", hfcp->host, hfcp->port);
 
   return 0;
-}
-
-/*
-	We need *both* Recv() and Recvln(); per arch WINDOWS/NON-WIN.
-*/
-int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
-{
-	int rc;
-	int rcvd = 0;
-
-	struct timeval tv;
-	fd_set readfds;
-
-	tv.tv_usec = 0;
-	tv.tv_sec  = hfcp->timeout / 1000;
-	
-	FD_ZERO(&readfds);
-	FD_SET(hfcp->socket, &readfds);
-	
-	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
-	if (rc < 0) return -1;
-	
-	if (!FD_ISSET(hfcp->socket, &readfds)) {
-		return EZERR_SOCKET_TIMEOUT;
-	}
-
-	for (rc = 1; rc > 0; rcvd += rc) {
-		rc = read(hfcp->socket, buf + rcvd, len - rcvd);
-	}
-
-	if (rc < 0) { /* bad */
-		_fcpLog(FCP_LOG_DEBUG, "_fcpSockRecv() - read operation returned error code %d", rc);
-		return -1;
-	}
-	
-	return rcvd;
-}
-
-
-int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
-{
-	int rc;
-	int rcvd = 0;
-
-	struct timeval tv;
-	fd_set readfds;
-
-	tv.tv_usec = 0;
-	tv.tv_sec  = hfcp->timeout / 1000;
-
-	FD_ZERO(&readfds);
-	FD_SET(hfcp->socket, &readfds);
-	
-	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
-	if (rc < 0) return rc;
-	
-	if (!FD_ISSET(hfcp->socket, &readfds))
-		return EZERR_SOCKET_TIMEOUT;
-
-	while (1) {
-		rc = read(hfcp->socket, buf + rcvd, 1);
-
-		if (rc <= 0) break;
-		else if (buf[rcvd] == '\n') break;
-		else if (rcvd >= len) break;
-
-		rcvd++;
-	};
-
-	if (rc < 0) { /* bad */
-		return -1;
-	}
-
-	buf[rcvd] = 0;
-	return rcvd;
 }
 
 

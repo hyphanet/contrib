@@ -30,8 +30,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
 #include <fcntl.h>
+
+#include "ez_sys.h"
 				
 extern char *_fcpTmpDir;
 
@@ -42,7 +43,7 @@ void _fcpSockDisconnect(hFCP *hfcp)
   if (hfcp->socket == FCP_SOCKET_DISCONNECTED)
 		return;
 
-#ifdef WINDOWS
+#ifdef WIN32
 	closesocket(hfcp->socket);
 #else
 	close(hfcp->socket);
@@ -73,7 +74,7 @@ int _fcpTmpfile(char **filename)
 	*filename = (char *)malloc(strlen(s) + 1);
 	strcpy(*filename, s);
 
-#ifdef WINDOWS
+#ifdef WIN32
 	/* this call should inherit permissions from the parent dir */
 	return creat(*filename, O_CREAT);
 
@@ -82,5 +83,117 @@ int _fcpTmpfile(char **filename)
 	return creat(*filename, O_CREAT | S_IRUSR | S_IWUSR);
 
 #endif
+}
+
+int _fcpRecv(int socket, char *buf, int len, int flags)
+{
+	int rc;
+
+#ifdef WIN32
+	rc = recv(socket, buf, len, flags);
+#else
+	rc = read(socket, buf, len);
+#endif
+
+	if (rc <= 0)
+		return -1;
+	else
+		return rc;
+}
+
+int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
+{
+	int rc;
+	int rcvd = 0;
+
+	struct timeval tv;
+	fd_set readfds;
+
+	tv.tv_usec = 0;
+	tv.tv_sec  = hfcp->timeout / 1000;
+
+	FD_ZERO(&readfds);
+	FD_SET(hfcp->socket, &readfds);
+	
+	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
+
+	/* handle this popular case first */	
+	if (rc == SOCKET_ERROR) {
+		return EZERR_GENERAL;
+	}
+	/* check for socket timeout */
+	else if (rc == 0) {
+		return EZERR_SOCKET_TIMEOUT;
+	}
+
+	/* otherwise, rc *should* be 1, but any non-zero positive
+	integer is acceptable, meaning all is well */
+
+	/* grab the chunk whole */
+	rc = _fcpRecv(hfcp->socket, buf, len, 0);
+
+	if (rc == SOCKET_ERROR) {
+		_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
+		return -1;
+	}
+	else
+		return rc;
+}
+
+
+int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
+{
+	int rc;
+	int rcvd = 0;
+
+	struct timeval tv;
+	fd_set readfds;
+
+	tv.tv_usec = 0;
+	tv.tv_sec  = hfcp->timeout / 1000;
+
+	FD_ZERO(&readfds);
+	FD_SET(hfcp->socket, &readfds);
+	
+	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
+
+	/* handle this popular case first */	
+	if (rc == SOCKET_ERROR) {
+		return EZERR_GENERAL;
+	}
+	/* check for socket timeout */
+	else if (rc == 0) {
+		return EZERR_SOCKET_TIMEOUT;
+	}
+
+	/* otherwise, rc *should* be 1, but any non-zero positive
+	integer is acceptable, meaning all is well */
+
+	while (1) {
+
+		rc = _fcpRecv(hfcp->socket, buf+rcvd, 1, 0);
+
+		if (rc == SOCKET_ERROR) {
+			_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
+			return -1;
+		}
+
+		if (buf[rcvd] == '\n') {
+			buf[rcvd] = 0;
+			return rcvd;
+		}
+		else if (rcvd >= len) {
+			/* put the null bytes on the last char allocated in the array */
+			buf[--rcvd] = 0;
+
+			_fcpLog(FCP_LOG_DEBUG, "truncated line at %d bytes", rcvd);
+			return rcvd;
+		}
+		else {
+			/* the char is already 'received' so increment the byte counter and
+			fetch another */
+			rcvd++;
+		}
+	}
 }
 
