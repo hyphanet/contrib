@@ -63,6 +63,7 @@ int main(int argc, char* argv[])
 	}
 
 	/* If file is not specified, read key data from stdin */
+	/*
 	if (!keyfile) fd = STDIN_FILENO;
 	else fd = open(keyfile, O_RDONLY);
 
@@ -70,21 +71,15 @@ int main(int argc, char* argv[])
 		printf("Error\n");
 		return 1;
 	}
+	*/
 
 	hfcp = _fcpCreateHFCP();
+	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
 
-	if (rc = fcpOpenKey(hfcp, keyuri, _FCP_O_WRITE))	{
-		_fcpLog(FCP_LOG_CRITICAL, "fcpput: cannot open key writing");
-		return 1;
-	}
+	if (rc != 0)
+		_fcpLog(FCP_LOG_CRITICAL, "Error");
 
-	while ((rc = read(fd, buf, 8192)) > 0)
-		fcpWriteKey(hfcp, buf, rc);
-
-	/* Clean it up */
-	fcpCloseKey(hfcp);
 	_fcpDestroyHFCP(hfcp);
-
 	fcpTerminate();
 
 	return 0;
@@ -108,7 +103,7 @@ void parse_args(int argc, char *argv[])
 
     {"verbosity", 1, 0, 'v'},
 		{"attempts", 1, 0, 'a'},
-		{"size", 1, 0, 's'},
+		/* {"size", 1, 0, 's'}, */
 		{"threads", 1, 0, 't'},
 
     {"version", 0, 0, 'V'},
@@ -116,7 +111,8 @@ void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:e:rk:m:v:a:s:t:Vh";
+  /* char short_options[] = "n:p:l:e:rk:m:v:a:s:t:Vh"; */
+  char short_options[] = "n:p:l:e:rk:m:v:a:t:Vh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -219,7 +215,7 @@ void usage(char *s)
 	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 
   printf("  -a, --attempts num     Attempts to insert each file (default %d)\n", 1);
-  printf("  -s, --size num         Size of splitfile chunks (default %d)\n", CHUNK_BLOCK_SIZE);
+  /* printf("  -s, --size num         Size of splitfile chunks (default %d)\n", CHUNK_BLOCK_SIZE); */
   printf("  -t, --threads num      Number of splitfile threads (default %d)\n\n", FCP_MAX_SPLIT_THREADS);
 
 	printf("  -V, --version          Output version information and exit\n");

@@ -53,27 +53,29 @@ void _fcpDestroyHFCP(hFCP *h)
 {
 	if (h) {
 		if (h->host) free(h->host);
+
+		free(h);
 	}
-	free(h);
 }
 
-hChunk *_fcpCreateHChunk(void)
+hBlock *_fcpCreateHBlock(void)
 {
-	hChunk *h;
+	hBlock *h;
 
-	h = (hChunk *)malloc(sizeof (hChunk));
-	memset(h, 0, sizeof (hChunk));
+	h = (hBlock *)malloc(sizeof (hBlock));
+	memset(h, 0, sizeof (hBlock));
 
 	return h;
 }
 
-void _fcpDestroyHChunk(hChunk *h)
+void _fcpDestroyHBlock(hBlock *h)
 {
 	if (h) {
 		if (h->filename) free(h->filename);
 		if (h->uri) _fcpDestroyHURI(h->uri);
+
+		free(h);
 	}
-	free(h);
 }
 
 hKey *_fcpCreateHKey(void)
@@ -99,8 +101,10 @@ void _fcpDestroyHKey(hKey *h)
 		if (h->uri) _fcpDestroyHURI(h->uri);
 		if (h->mimetype) free(h->mimetype);
 
+		/*
 		while (i < h->chunk_count)
-			_fcpDestroyHChunk(h->chunks[i++]);
+			_fcpDestroyHBlock(h->chunks[i++]);
+		*/
 
 		free(h);
 	}
@@ -130,15 +134,6 @@ void _fcpDestroyHURI(hURI *h)
 
 int _fcpParseURI(hURI *uri, char *key)
 {
-	/* 1 of 3 possiblities:
-
-	1) freenet:KSK@freetext.html
-	2) freenet:SSK@chjgfklguhgwuiwo7895hgkdljdshfgd/SITE//fileinsite.html
-	3) freenet:CHK@fkjdfjglsdjgslkgdjfghsdjkflgskdjfghdjfksl
-
-	Caller must malloc area for *key !
-	*/
-
 	int len;
 
 	char *p;
@@ -244,15 +239,46 @@ int _fcpParseURI(hURI *uri, char *key)
     return 1;
   }
 
-	_fcpLog(FCP_LOG_DEBUG, "uri data follows");
-
-	_fcpLog(FCP_LOG_DEBUG, "uri->keyid: %s",uri->keyid );
-	_fcpLog(FCP_LOG_DEBUG, "uri->path: %s", uri->path);
-	_fcpLog(FCP_LOG_DEBUG, "uri->file: %s", uri->file);
-	_fcpLog(FCP_LOG_DEBUG, "uri->uri_str: %s", uri->uri_str);
-
-	_fcpLog(FCP_LOG_DEBUG, "end of uri data");
+	_fcpLog(FCP_LOG_DEBUG, "uri->keyid: %s; uri->path: %s; uri->file: %s\nuri->uri_str: %s",
+					uri->keyid,
+					uri->path,
+					uri->file,
+					uri->uri_str
+					);
 
   return 0;
+}
+
+
+/*************************************************************************/
+/* FEC specific */
+/*************************************************************************/
+
+
+hSegment *_fcpCreateHSegment(void)
+{
+  hSegment *h;
+
+	h = (hSegment *)malloc(sizeof (hSegment));
+  memset(h, 0, sizeof (hSegment));
+
+  return h;
+}
+
+void _fcpDestroyHSegment(hSegment *h)
+{
+	int i;
+
+	if (h) {
+		if (h->header_str) free(h->header_str);
+
+		if (h->db_count > 0)
+			for (i=0; i < h->db_count; _fcpDestroyHBlock(h->data_blocks[i++]));
+
+		if (h->cb_count > 0)
+			for (i=0; i < h->cb_count; _fcpDestroyHBlock(h->check_blocks[i++]));
+
+		free(h);
+	}
 }
 

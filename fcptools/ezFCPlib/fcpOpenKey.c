@@ -39,6 +39,11 @@ static int    fcpOpenKeyRead(hFCP *hfcp, char *key);
 static int    fcpOpenKeyWrite(hFCP *hfcp, char *key);
 
 
+/*
+	Perhaps handle a mode mask that creates basic splitfiles, and another for
+	creating FEC encoded splitfiles (?)
+*/
+
 int fcpOpenKey(hFCP *hfcp, char *key, int mode)
 {
   /* Validate flags */
@@ -75,18 +80,18 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 	hfcp->key->openmode = _FCP_O_WRITE;
 	
 	/* Bomb out if the key cannot be parsed into a valid URI */
+	/* (uri is allocated in fcpCreation.c) */
 	if (_fcpParseURI(hfcp->key->uri, key))
 		return -1;
 
-	/* Allocate and set the initial (and perhaps) only chunk */
-	hfcp->key->chunk_count = 1;
-	hfcp->key->chunks = (hChunk **)malloc(sizeof (hChunk *));
-	hfcp->key->chunks[0] = _fcpCreateHChunk();
+	hfcp->key->tmpblock = _fcpCreateHBlock();
 
 	/* Tie it to a unique temporary file */
-	hfcp->key->chunks[0]->filename = crTmpFilename();
-	if (!(hfcp->key->chunks[0]->file = fopen(hfcp->key->chunks[0]->filename, "wb")))
+	hfcp->key->tmpblock->filename = crTmpFilename();
+	if (!(hfcp->key->tmpblock->file = fopen(hfcp->key->tmpblock->filename, "wb")))
 		return -1;
+
+	hfcp->key->tmpblock->fd = fileno(hfcp->key->tmpblock->file);
 
 	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");
 

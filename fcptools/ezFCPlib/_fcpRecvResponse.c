@@ -61,18 +61,11 @@ static int  getrespFormatError(hFCP *);
 static int  getrespSegmentHeaders(hFCP *);
 static int  getrespBlocksEncoded(hFCP *);
 
-/*
-static int  getresp
-static int  getresp
-static int  getresp
-*/
-
 /* Utility functions.. not directly part of the protocol */
 static int  getrespblock(hFCP *, char *respblock, int bytesreqd);
 static int  getrespline(hFCP *);
 
-/* */
-static char respline[FCPRESP_BUFSIZE + 1];
+static char respline[L_RESPONSE_BUFFER+1];
 
 /*
   Function:    _fcpRecvResponse
@@ -682,7 +675,7 @@ static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
 	while (bytesreqd > 0) {
 		/* now, try to get and return desired number of bytes */
 
-		if (i = recv(hfcp->socket, cp, bytesreqd, 0)) {
+		if ((i = recv(hfcp->socket, cp, bytesreqd, 0))) {
 			/* Increment current pointer (cp), and decrement bytes required
 				 to read.
 			*/
@@ -714,7 +707,7 @@ static int getrespline(hFCP *hfcp)
 	int   i;
 	int   j;
 
-	for (i = 0; i<FCPRESP_BUFSIZE; i++) {
+	for (i = 0; i<L_RESPONSE_BUFFER; i++) {
 		if ((j = recv(hfcp->socket, p, 1, 0)) == -1) return -1;
 		if (*p == '\n') break;
 

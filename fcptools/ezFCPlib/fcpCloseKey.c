@@ -61,33 +61,6 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
-	int index;
-
-	index = hfcp->key->chunk_count - 1;
-	_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", index+1, hfcp->key->chunks[index]->filename);
-
-	if (hfcp->key->chunks[index]->size) {
-
-		/* Close the last chunk in the array */
-		fclose(hfcp->key->chunks[index]->file);	
-		hfcp->key->chunks[index]->file = 0;
-	}
-	else {
-
-		/* If the last chunk has zero bytes, then nuke it */
-		fclose(hfcp->key->chunks[index]->file);	
-		remove(hfcp->key->chunks[index]->filename);
-
-		/* ok, well now *really* nuke it */
-		_fcpDestroyHChunk(hfcp->key->chunks[index]);
-
-		/* Decrement the chunk count; leave it allocated since it will only be
-			 realloc'ed later */
-		hfcp->key->chunk_count--;
-	}
-
-	/* Here, we're ready to insert! */
-
-	return fcpPut(hfcp);
+	return 0;
 }
 

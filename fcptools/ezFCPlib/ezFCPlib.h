@@ -100,19 +100,14 @@
 /*
   Lengths of allocated strings/arrays.
 */
-#define L_KSK               32768
-#define L_URI               256
-#define L_FILENAME          256
-#define L_MESSAGE           256
-#define L_HOST              128
-#define L_SOCKET_REQUEST    2048
-#define L_FD_BLOCKSIZE      8192
+#define L_BLOCK_SIZE        262144    /* default split part size (256*1024) */
+#define L_FILE_BLOCKSIZE    8192
+#define L_RESPONSE_BUFFER   2048
+#define L_ERROR_MESSAGE     256
+#define L_KEY               40
 
-/* Max size for one line of response from node */
-#define FCPRESP_BUFSIZE  2048
+/* DEPRECATE: #define FCPRESP_BUFSIZE  2048 */
 
-
-#define CHUNK_BLOCK_SIZE       262144    /* default split part size (256*1024) */
 #define FCP_MAX_SPLIT_THREADS  8
 
 #define CHUNK_STAT_LOCAL    0  /* not in freenet; local datastore */
@@ -159,8 +154,8 @@ typedef struct {
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_SUCCESS;
 
 typedef struct {
@@ -176,15 +171,15 @@ typedef struct {
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_KEYCOLLISION;
 
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_PENDING;
 
 typedef struct {
@@ -196,7 +191,7 @@ typedef struct {
 } FCPRESP_FORMATERROR;
 
 typedef struct {
-	char  fec_algorithm[41];
+	char  fec_algorithm[L_KEY+1];
  
 	int   filelength;
 	int   offset;
@@ -292,31 +287,14 @@ typedef struct {
 
 
 typedef struct {
-	int    count;
-	int    size;
-
-	char  *key;
-	char  *val;
-
-} hMetadata;
-
-
-typedef struct {
 	char  *filename;  /* null terminated filename */
 	FILE  *file;      /* stream pointer */
+	int    fd;        /* corresponding file descriptor */
 
 	int    fn_status; /* status relative to Freenet */
 	int    size;      /* size of this chunk */
-	int    offset;    /* offset from start of chunk */
 
-	hURI  *uri;       /* this chunk's CHK */
-
-} hChunk;
-
-
-typedef struct {
-	int   size;
-	hURI *uri;
+	hURI  *uri;       /* this block's CHK */
 
 } hBlock;
 
@@ -344,19 +322,27 @@ typedef struct {
 
 
 typedef struct {
-	int  type;
+	int    count;
+	int    size;
 
-	hMetadata  **metadata;
+	char  *key;
+	char  *val;
+
+} hMetadata;
+
+
+typedef struct {
+	int  type;
 
 	hURI     *uri;
 
 	int       openmode;
-	int       header_sent;
 	char     *mimetype;
 	int       size;
 
-	int       chunk_count;
-	hChunk  **chunks;
+	hBlock   *tmpblock;
+
+	hMetadata *metadata;
 
 	int        segment_count;
 	hSegment **segments;
@@ -373,9 +359,9 @@ typedef struct {
 
 	char    *description;
 	int      protocol;
-
   int      socket;
-  int      status;
+
+  char     error[L_ERROR_MESSAGE];
 
 	hKey    *key;
 		
@@ -412,11 +398,15 @@ extern "C" {
 	int     _fcpParseURI(hURI *uri, char *key);
 	void    _fcpDestroyHURI(hURI *);
 
-	hChunk *_fcpCreateHChunk(void);
-	void    _fcpDestroyHChunk(hChunk *);
+	hBlock *_fcpCreateHBlock(void);
+	void    _fcpDestroyHBlock(hBlock *);
 
 	hKey   *_fcpCreateHKey(void);
 	void    _fcpDestroyHKey(hKey *);
+
+	/* Some FEC definitions */
+	hSegment  *_fcpCreateHSegment(void);
+	void       _fcpDestroyHSegment(hSegment *);
 
 	/* Socket functions */
 	int   _fcpSockConnect(hFCP *hfcp);
@@ -431,16 +421,18 @@ extern "C" {
 	int   fcpStartup(void);
 	void  fcpTerminate(void);
 	
-	/* Key open/close functions */
+	/* Freenet functions for operations between memory and freenet */
 	int   fcpOpenKey(hFCP *hfcp, char *key, int mode);
 	int   fcpCloseKey(hFCP *hfcp);
 
 	int   fcpReadKey(hFCP *hfcp, char *buf, int len);
 	int   fcpWriteKey(hFCP *hfcp, char *buf, int len);
+
+	int   fcpWriteMetadata(hFCP *hfcp, char *buf, int len);
+	int   fcpReadMetadata(hFCP *hfcp, char *buf, int len);
 	
-	/* Client functions
-	hFCP  *fcpPutKeyFromFile(char *key, char *filename, char *meta_filename);
-	*/
+	/* Client functions for operations between files on disk and freenet */
+	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_filename, char *meta_filename);
 
 	
 #ifdef __cplusplus

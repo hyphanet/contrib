@@ -47,82 +47,29 @@ extern char  *crTmpFilename(void);
 
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 {
-	int chunk_avail;
 	int count;
+
+	int fd;
 	int rc;
 
-	hChunk *chunk;
-
-	/* the first available chunk in the array */
-	chunk = hfcp->key->chunks[hfcp->key->chunk_count - 1];
-
-#ifdef CFG_MULTIPLE_CHUNKS
-	chunk_avail = CHUNK_BLOCK_SIZE - chunk->size;
-#else
-	chunk_avail = len;
-#endif
-
-	count = (len > chunk_avail ? chunk_avail : len);
+	count = (len > 8192 ? 8192 : len);
 
 	/* While there's still data to write from caller.. */
 	while (len) {
 
-		rc = fwrite(buf, count, 1, chunk->file);
-		if (rc == 0) {
-			_fcpLog(FCP_LOG_DEBUG, "Error writing %d byte chunk to %s", count, chunk->filename);
+		rc = write(hfcp->key->tmpblock->fd, buf, count);
+		
+		if (rc != count) {
+			_fcpLog(FCP_LOG_CRITICAL, "fcpWriteKey ERROR: Error writing %d byte block to %s",
+							count, hfcp->key->tmpblock->filename);
 			return -1;
 		}
 
 		/* Info was written.. update indexes */
-		chunk->size += count;
 		hfcp->key->size += count;
-
-		/* If this is defined, then decrement the remaining space available for
-			 the chunk.  This effectively shoves all the data in the first chunk. */
-#ifdef CFG_MULTIPLE_CHUNKS		
-		chunk_avail -= count;
-#endif
 
 		len -= count;
 		buf += count;
-
-		_fcpLog(FCP_LOG_DEBUG, "Wrote %d bytes to chunk %d", count, hfcp->key->chunk_count);
-
-		/* If CFG_MULTIPLE_CHUNKS is #defined, this code never gets called */
-		if (chunk_avail == 0) {
-
-			/* Close the file that should be exactly 256K in size.. */
-			_fcpLog(FCP_LOG_DEBUG, "Closing chunk %d in file %s", hfcp->key->chunk_count, chunk->filename);
-
-			fclose(chunk->file);
-			chunk->file = 0;
-
-			/* We're supposed to queue it up here, but currently this kind of code
-				 isn't necessary.  Perhaps it may be used in the future, which is
-				 why it remains here in comment form. */
-			/*
-				enqueue_chunk(chunk);
-			*/
-
-			hfcp->key->chunk_count++;
-
-			/* Allocate a pointer variable for the new chunk at the end of the
-				 2-D dynamic array. */
-			hfcp->key->chunks = realloc(hfcp->key->chunks, sizeof(hChunk *) * hfcp->key->chunk_count);
-			hfcp->key->chunks[hfcp->key->chunk_count - 1] = _fcpCreateHChunk();
-
-			/* Set the current chunk to the newly created and empty one */
-			chunk = hfcp->key->chunks[hfcp->key->chunk_count - 1];
-
-			/* Assign this new chunk another temporary filename */
-			chunk->filename = crTmpFilename();
-			if (!(chunk->file = fopen(chunk->filename, "wb")))
-				return -1;
-
-			/* Reset the amount of bytes available, since it's a new chunk */
-			chunk_avail = CHUNK_BLOCK_SIZE;
-			count = (len > chunk_avail ? chunk_avail : len);
-		}
 	}
 	
 	return 0;
