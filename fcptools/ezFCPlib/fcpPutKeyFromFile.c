@@ -53,6 +53,12 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	int rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
+	_fcpLog(FCP_LOG_DEBUG, "Function parameters:");
+	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s, key_filename: %s, meta_filename: %s",
+					key_uri,
+					key_filename,
+					meta_filename
+					);
 	
 	/* put the target uri away */
 	fcpParseHURI(hfcp->key->target_uri, key_uri);

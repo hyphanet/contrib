@@ -44,7 +44,7 @@
 
 	function expects the following members in hfcp to be set:
 
-	@@@ function returns:
+	function returns:
 	- zero on success
 	- non-zero on error.
 */
@@ -267,9 +267,7 @@ int get_file(hFCP *hfcp, char *uri)
 				break;
 			}
 		}
-	}
-
-	if (hfcp->key->metadata->size) _fcpUnlink(hfcp->key->metadata->tmpblock);
+	} /* at this point all the metadata has been written */
 
 	/* check rc to see what caused loop exit */
 
@@ -335,12 +333,12 @@ int get_file(hFCP *hfcp, char *uri)
 
 	/* all metadata and key data has been written.. yay! */
 	_fcpUnlink(hfcp->key->tmpblock);
+	_fcpUnlink(hfcp->key->metadata->tmpblock);
 
   _fcpSockDisconnect(hfcp);
 	_fcpLog(FCP_LOG_DEBUG, "get_file() - retrieved key: %s", uri);
 
 	return 0;
-
 
  cleanup: /* this is called when there is an error above */
 
@@ -388,8 +386,8 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 		if (hfcp->key->metadata->size == 0) {
 			
 			_fcpLog(FCP_LOG_DEBUG, "no metadata?  got data!");
-
 			fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
+
 			break;
 		}
 		else { /* check for the case where there's metadata, but no redirect */
@@ -402,8 +400,8 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 			if (!key) {
 				
 				_fcpLog(FCP_LOG_DEBUG, "metadata, but no redirect key.. got data");
-
 				fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
+
 				break;
 			}
 			else { /* key/val pair is redirect */
@@ -425,6 +423,10 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 					hfcp->key->target_uri->uri_str,
 					hfcp->key->tmpblock->uri->uri_str,
 					depth);
+
+	/* delete the tmpblocks before exiting */
+	_fcpDeleteFile(hfcp->key->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
 
 	return 0;
 

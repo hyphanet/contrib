@@ -38,7 +38,7 @@
 */
 int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
-	int   rc;
+	int rc;
 	
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpGetKeyToFile()");
 	_fcpLog(FCP_LOG_DEBUG, "Function parameters:");
@@ -48,9 +48,8 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 					meta_filename
 					);
 	
-	/* function must get the key, then determine if it's a normal key or a manifest for a splitfile */
-
-	/* new fcpCreation.c routines create everything in fcpCreateHFCP() */
+	/* function must get the key, then determine if it's a normal
+	key or a manifest for a splitfile */
 
 	fcpParseHURI(hfcp->key->target_uri, key_uri);
 	fcpParseHURI(hfcp->key->tmpblock->uri, key_uri);

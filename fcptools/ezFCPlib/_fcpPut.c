@@ -54,7 +54,7 @@ static int fec_make_metadata(hFCP *hfcp);
 
 	function expects the following members in hfcp to be set:
 
-	@@@ function returns:
+	function returns:
 	- zero on success
 	- non-zero on error.
 */
@@ -535,7 +535,6 @@ static int fec_segment_file(hFCP *hfcp)
 static int fec_encode_segment(hFCP *hfcp, int index)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
-	int fd;
 	int rc;
 
 	int fi;   /* file index */
@@ -578,12 +577,8 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	_fcpLog(FCP_LOG_DEBUG, "sent FECEncodeSegment message");
 
 	/* Open file we are about to send */
-	if ((fd = open(hfcp->key->tmpblock->filename, _FCP_READFILE_FLAGS)) == -1) {
-		rc = -1;
-		_fcpLog(FCP_LOG_DEBUG, "OOPS: %s", strerror(errno));
-		goto cleanup;
-	}
-	
+	_fcpLink(hfcp->key->tmpblock, _FCP_READ);
+
 	/* Write the data from the file, then write the pad blocks */
 	/* data_len is the total length of the data file we're inserting */
 	
@@ -594,7 +589,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		byte_count = (fi > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: fi);
 		
 		/* read byte_count bytes from the file we're inserting */
-		rc = _fcpRead(fd, buf, byte_count);
+		rc = _fcpRead(hfcp->key->tmpblock->fd, buf, byte_count);
 		
 		if ((rc = _fcpSend(hfcp->socket, buf, rc)) < 0) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not write to node: %s", strerror(errno));
@@ -625,7 +620,7 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 		fi -= rc;
 	}
 
-	close(fd);
+	close(hfcp->key->tmpblock->fd);
 	
 	/* if the response isn't BlocksEncoded, we have a problem */
 	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_BLOCKSENCODED) {
@@ -708,12 +703,7 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 	bi = 0;
 
 	/* open key file */
-	if ((hfcp->key->tmpblock->fd = open(hfcp->key->tmpblock->filename, _FCP_READFILE_FLAGS)) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not open key file %s", hfcp->key->tmpblock->filename);
-		rc = -1;
-		
-		goto cleanup;
-	}
+	_fcpLink(hfcp->key->tmpblock, _FCP_READ);
 
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 
@@ -806,9 +796,6 @@ static int fec_insert_data_blocks(hFCP *hfcp, int index)
 	
 	return rc;
 }
-
-
-/* @@@ TODO TODO @@@ */
 
 static int fec_insert_check_blocks(hFCP *hfcp, int index)
 {

@@ -44,16 +44,11 @@
 #include <io.h>
 #include <time.h>
 
-/* VERSION is defined by automake for non-Win platforms. */
-#define VERSION "0.4.9w"
-
-#define snprintf _snprintf
-#define vsnprintf _vsnprintf
-#define open _open
-#define close _close
-
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
+
+/* VERSION is defined by automake for non-Win platforms. */
+#define VERSION "0.4.9w"
 
 typedef SOCKET FCPSOCKET;
 

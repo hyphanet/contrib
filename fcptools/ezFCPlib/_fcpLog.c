@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "ez_sys.h"
+
 static FILE *logstream;
 static int   verbosity;
 

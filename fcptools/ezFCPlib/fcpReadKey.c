@@ -39,7 +39,9 @@ int fcpReadKey(hFCP *hfcp, char *buf, int len)
 {
 	int bytes;
 	int rc;
-	
+
+	if (hfcp->key->tmpblock->fd == -1) return -1;
+
 	/* while there's still data in the tmp block */
 	
 	bytes = 0;
@@ -78,6 +80,8 @@ int fcpReadMetadata(hFCP *hfcp, char *buf, int len)
 	int count;
 	int rc;
 	
+	if (hfcp->key->metadata->tmpblock->fd == -1) return -1;
+
 	/* while there's still data in the tmp block */
 
 	bytes = 0;

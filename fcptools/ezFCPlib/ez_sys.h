@@ -32,18 +32,33 @@
 #define _EZ_SYS_H 
 
 #ifdef WIN32
+
+/* function aliases */
+#define snprintf _snprintf
+#define vsnprintf _vsnprintf
+#define open _open
+#define close _close
+#define commit _commit
+
+/* constants */
 #define _FCP_READFILE_FLAGS (_O_RDONLY | _O_BINARY)
 #define _FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC | _O_BINARY)
+
 #define _FCP_CREATEFILE_MODE (_S_IWRITE | _S_IREAD)
+#define _FCP_READFILE_MODE (0)
 
 #define _FCP_DIR_SEP '\\'
 
 typedef SOCKET FCPSOCKET;
 
 #else
+
+/* constants */
 #define _FCP_READFILE_FLAGS (O_RDONLY)
 #define _FCP_WRITEFILE_FLAGS (O_CREAT | O_WRONLY | O_TRUNC)
+
 #define _FCP_CREATEFILE_MODE (S_IWUSR | S_IRUSR)
+#define _FCP_READFILE_MODE (0)
 
 #define _FCP_DIR_SEP '/'
 

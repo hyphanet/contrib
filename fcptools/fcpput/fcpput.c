@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
     if (metafile) {
       int mfd;
 			
-      if ((mfd = open(metafile, FCP_READFILE_FLAGS)) == -1) {
+      if ((mfd = open(metafile, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE)) == -1) {
 				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
 				return -1;
       }

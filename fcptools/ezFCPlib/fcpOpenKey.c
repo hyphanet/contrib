@@ -68,18 +68,23 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
-  int    rc;
+  int rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKeyRead()");
 	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s", key_uri);
 
-	/* function must get the key, then determine if it's a normal key or a manifest for a splitfile */
+	/* function must get the key, then determine if it's a normal
+	key or a manifest for a splitfile */
 
   hfcp->key->openmode = FCP_MODE_O_READ;
 
   /* store final key uri for later usage */
   if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;
 	if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
+
+	/* link the files */
+	_fcpLink(hfcp->key->tmpblock, _FCP_READ);
+	_fcpLink(hfcp->key->metadata->tmpblock, _FCP_READ);
 
 	/* if in normal mode, follow the redirects */
 	if (hfcp->options->rawmode == 0) {
@@ -106,7 +111,7 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 
 static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKeyWrte()");
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKeyWrite()");
 	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s", key_uri);
 
   hfcp->key->openmode = FCP_MODE_O_WRITE;

@@ -42,6 +42,9 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 	int bytes;
 	int rc;
 
+	/* don't bother if the fd isn't valid */
+	if (hfcp->key->tmpblock->fd == -1) return -1;
+
 	/* While there's still data to write from caller.. */
 	bytes = 0;
 	while (len) {
@@ -71,6 +74,8 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 	int count;
 	int bytes;
 	int rc;
+
+	if (hfcp->key->metadata->tmpblock->fd == -1) return -1;
 
 	/* While there's still data to write from caller.. */
 	bytes = 0;

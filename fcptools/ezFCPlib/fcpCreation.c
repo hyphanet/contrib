@@ -239,12 +239,9 @@ void _fcpDestroyHBlock(hBlock *h)
 {
 	if (h) {
 		
-		/* close the file if it's open */
+		/* close the file */
 
-		if (h->fd != -1) {
-			close(h->fd);
-			h->fd = -1;
-		}
+		_fcpUnlink(h);
 
 #if 0 /* i think this would be unecessary */
 		_fcpDeleteFile(hfcp->key->tmpblock);

@@ -54,9 +54,16 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 {
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyRead()");
 
+	/* unlink both files */
+	_fcpUnlink(hfcp->key->tmpblock);
+	_fcpUnlink(hfcp->key->metadata->tmpblock);
+
+	/* delete the tmpblocks before exiting */
+	_fcpDeleteFile(hfcp->key->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+
   return 0;
 }
-
 
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {

@@ -188,7 +188,7 @@ int _fcpCopyFile(char *dest, char *src)
 		return -1;
 	}
 
-	if ((sfd = open(src, _FCP_READFILE_FLAGS)) == -1) {
+	if ((sfd = open(src, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", src);
 		goto cleanup;
 	}
@@ -220,63 +220,62 @@ int _fcpCopyFile(char *dest, char *src)
 
 int _fcpLink(hBlock *h, int access)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpLink()");
-
 	if (h->fd != -1) {
-		_fcpLog(FCP_LOG_DEBUG, "OOPS: file already linked!");
+		_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - fd != -1", h->filename);
 		return -1;
 	}
 
 	switch (access) {
 		case _FCP_READ:
-			h->fd = open(h->filename, _FCP_READFILE_FLAGS);
+			h->fd = open(h->filename, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE);
 			break;
 
 		case _FCP_WRITE:
-			h->fd = open(h->filename, _FCP_WRITEFILE_FLAGS);
+			h->fd = open(h->filename, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE);
 			break;
 
 		default:
-			_fcpLog(FCP_LOG_DEBUG, "invalid access mode");
+			_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - access mode invalid", h->filename);
 			return -2;
 	}
 
 	if (h->fd == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not link to key tmpfile: %s", h->filename);
+		_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - open() returned -1", h->filename);
 		return -1;
 	}
 
 	/* if we reach here, life is peachy */
-	_fcpLog(FCP_LOG_DEBUG, "LINKED: %s", h->filename);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpLink(): %s - LINKED", h->filename);
 	return 0;
 }
 
 void _fcpUnlink(hBlock *h)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpUnlink()");
-
 	if (h->fd == 0) {
-		_fcpLog(FCP_LOG_DEBUG, "OOPS: fd == 0!");
+		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): fd == 0");
 		h->fd = -1;
-
 		return;
 	}
 
 	if (h->fd == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "OOPS: file already closed!");
+		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - fd already closed / not opened", h->filename);
 		h->fd = -1;
-
 		return;
 	}
+
+	/*if (commit(h->fd) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - error committing the file to disk", h->filename);
+		h->fd = -1;
+		return;
+	}*/
 
 	if (close(h->fd) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not un*link from tmpfile: ", h->filename);
+		_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - close() returned -1", h->filename);
 		h->fd = -1;
-
 		return;
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "UN*LINKED: %s", h->filename);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpUnlink(): %s - UN*LINKED", h->filename);
 	h->fd = -1;
 }
 
@@ -307,15 +306,15 @@ int _fcpDeleteFile(hBlock *h)
 		rc = unlink(h->filename);
 #endif
 
-		h->filename[0] = 0;
 	}
 	else _fcpLog(FCP_LOG_DEBUG, "tmpfile doesn't exist apparantly");
 
 	if (rc != 0) {
-		_fcpLog(FCP_LOG_DEBUG, "could not _fcpDeleteFile(): error %d", rc);
+		_fcpLog(FCP_LOG_DEBUG, "error %d in _fcpDeleteFile(): %s", rc, h->filename);
 		return -1;
 	}
 
+	h->filename[0] = 0;
 	return 0;
 }
 
