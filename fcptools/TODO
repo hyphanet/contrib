@@ -8,20 +8,6 @@ can be implemented by any competent C programmer.
 ---------------------------------------------------------------------------
 *** ezFCPlib specific *** (In order of relative importance)
 
-- A function that accepts (char *) and returns a unique filename.  The man
-page for mktemp(3) is a good example, minus the portability.
- 
-- Confirm file open() functions are portable and whether or not streams
-should take their place (fcpOpenKey.c, ...).
-
-- Consolidate _fcpUtil.c with other global 'FCPtools' related functions.
-
-- Clean up _fcpRecvResponse.c (syntax, indenting scheme).  See if there can be
-any code sharing.
-
 
 ---------------------------------------------------------------------------
 *** FCPtools generic ***
-
-- Enhance command-line interface.  Add version number to all help screens
-  (done for fcpget; todo for fcpput*).
