@@ -22,6 +22,7 @@ IMPLEMENT_DYNCREATE(CPropAdvanced, CPropertyPage)
 CPropAdvanced::CPropAdvanced() : CPropertyPage(CPropAdvanced::IDD)
 {
 	//{{AFX_DATA_INIT(CPropAdvanced)
+	m_n_Slider_CPUPriority = 0;
 	//}}AFX_DATA_INIT
 }
 
@@ -56,6 +57,7 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_maxNodeConnections, m_maxNodeConnections);
 	DDX_Control(pDX, IDC_slider_CPUPriority, m_ctrl_Slider_CPUPriority);
 	DDX_Text(pDX, IDC_Static_CPUPriority, m_str_Static_CPUPriority);
+	DDX_Slider(pDX, IDC_slider_CPUPriority, m_n_Slider_CPUPriority);
 	//}}AFX_DATA_MAP
 }
 
@@ -69,6 +71,7 @@ BEGIN_MESSAGE_MAP(CPropAdvanced, CPropertyPage)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_outputBandwidthLimit_spin, OnOutputBandwidthLimitspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_bandwidthLimit_spin, OnBandwidthLimitspin)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_maxNodeConnections_spin, OnchangedmaxNodeConnectionsspin)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_slider_CPUPriority, OnCustomdrawsliderCPUPriority)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -177,5 +180,165 @@ void CPropAdvanced::OnchangedmaxNodeConnectionsspin(NMHDR* pNMHDR, LRESULT* pRes
 	*pResult = 0;
 }
 
+void CPropAdvanced::SetCPUPrioritySlider(DWORD dwPriority, DWORD dwPriorityClass)
+{
+	DWORD mostLikelyDiff = 0xffffffff;
+	int mostLikelyIndex = 0;
+
+	const DWORD dwPriorityIndex = GetPriorityIndex(dwPriority, dwPriorityClass);
+
+	for (int i=0; i<NUMPRIORITIES; i++)
+	{
+		DWORD dwThisPriorityIndex = GetPriorityIndex(m_dwPriority[i],m_dwPriorityClass[i]);
+		if (dwThisPriorityIndex == dwPriorityIndex)
+		{
+			mostLikelyIndex = i;
+			break;
+		}
+		else if (dwThisPriorityIndex > dwPriorityIndex)
+		{
+			if ( (dwThisPriorityIndex - dwPriorityIndex) < mostLikelyDiff)
+			{
+				mostLikelyDiff = dwThisPriorityIndex - dwPriorityIndex;
+				mostLikelyIndex = i;
+			}
+		}
+		else
+		{
+			if ( (dwPriorityIndex - dwThisPriorityIndex) < mostLikelyDiff)
+			{
+				mostLikelyDiff = dwPriorityIndex - dwThisPriorityIndex;
+				mostLikelyIndex = i;
+			}
+		}
+	}
+
+	m_n_Slider_CPUPriority = mostLikelyIndex;
+	m_str_Static_CPUPriority = m_szPriorityDescription[mostLikelyIndex];
+}
+
+void CPropAdvanced::GetCPUPrioritySlider(DWORD &dwPriority, DWORD &dwPriorityClass) const
+{
+	dwPriority = m_dwPriority[m_n_Slider_CPUPriority];
+	dwPriorityClass = m_dwPriorityClass[m_n_Slider_CPUPriority];
+}
+
+/*static*/ const DWORD CPropAdvanced::GetPriorityIndex(DWORD dwPriority, DWORD dwPriorityClass)
+{
+	DWORD dwPriorityIndex;
+
+	if (dwPriorityClass == REALTIME_PRIORITY_CLASS)
+	{
+		switch (dwPriority)
+		{
+		case THREAD_PRIORITY_IDLE:
+			return 16;
+		case THREAD_PRIORITY_LOWEST:
+			return 22;
+		case THREAD_PRIORITY_BELOW_NORMAL:
+			return 23;
+		case THREAD_PRIORITY_NORMAL:
+		default:
+			return 24;
+		case THREAD_PRIORITY_ABOVE_NORMAL:
+			return 25;
+		case THREAD_PRIORITY_HIGHEST:
+			return 26;
+		case THREAD_PRIORITY_TIME_CRITICAL:
+			return 31;
+		}
+	}
+
+	if (dwPriority==THREAD_PRIORITY_IDLE)
+	{
+		return 1;
+	}
+
+	switch (dwPriorityClass)
+	{
+	case IDLE_PRIORITY_CLASS:
+		dwPriorityIndex = 4;
+		break;
+	case NORMAL_PRIORITY_CLASS:
+	default:
+		dwPriorityIndex = 7;
+		break;
+	case HIGH_PRIORITY_CLASS:
+		dwPriorityIndex = 13;
+		break;
+	}
+
+	switch (dwPriority)
+	{
+	case THREAD_PRIORITY_LOWEST:
+		dwPriorityIndex -= 2;
+		break;
+	case THREAD_PRIORITY_BELOW_NORMAL:
+		dwPriorityIndex -= 1;
+		break;
+	case THREAD_PRIORITY_NORMAL:
+	default:
+		break;
+	case THREAD_PRIORITY_ABOVE_NORMAL:
+		dwPriorityIndex += 1;
+		break;
+	case THREAD_PRIORITY_HIGHEST:
+		dwPriorityIndex += 2;
+		break;
+	case THREAD_PRIORITY_TIME_CRITICAL:
+		dwPriorityIndex += 3;
+		break;
+	}
+
+	return dwPriorityIndex;
+}
 
 
+
+/*static*/ const DWORD CPropAdvanced::m_dwPriority[NUMPRIORITIES] = 
+{THREAD_PRIORITY_IDLE,
+ THREAD_PRIORITY_LOWEST,
+ THREAD_PRIORITY_BELOW_NORMAL,
+ THREAD_PRIORITY_NORMAL,
+ THREAD_PRIORITY_ABOVE_NORMAL,
+ THREAD_PRIORITY_HIGHEST,
+ THREAD_PRIORITY_TIME_CRITICAL};
+
+/*static*/ const DWORD CPropAdvanced::m_dwPriorityClass[NUMPRIORITIES] = 
+{NORMAL_PRIORITY_CLASS,
+ NORMAL_PRIORITY_CLASS,
+ NORMAL_PRIORITY_CLASS,
+ NORMAL_PRIORITY_CLASS,
+ NORMAL_PRIORITY_CLASS,
+ NORMAL_PRIORITY_CLASS,
+ NORMAL_PRIORITY_CLASS};
+
+/*static*/ const char * const CPropAdvanced::m_szPriorityDescription[NUMPRIORITIES] = 
+{ "<<< IDLE",
+  "<< LOW",
+  "< NORMAL",
+  "NORMAL",
+  "> NORMAL",
+  ">> HIGH",
+  ">>> V.HIGH"};
+
+void CPropAdvanced::OnCustomdrawsliderCPUPriority(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	UpdateData(TRUE);	
+	m_str_Static_CPUPriority = m_szPriorityDescription[m_n_Slider_CPUPriority];
+	UpdateData(FALSE);
+	
+	*pResult = 0;
+}
+
+
+BOOL CPropAdvanced::OnSetActive() 
+{
+	// need this to ensure the slider control gets set up properly
+	// (There is no such thing as an OnInitialUpdate() override for propertypages)
+	m_ctrl_Slider_CPUPriority.SetTic(1);
+	m_ctrl_Slider_CPUPriority.SetTicFreq(1);
+	m_ctrl_Slider_CPUPriority.SetRange(0,NUMPRIORITIES-1,TRUE);
+
+	return CPropertyPage::OnSetActive();
+}

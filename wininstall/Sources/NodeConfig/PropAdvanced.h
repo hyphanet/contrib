@@ -11,6 +11,7 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropAdvanced dialog
+#define NUMPRIORITIES (7)
 
 class CPropAdvanced : public CPropertyPage
 {
@@ -21,10 +22,13 @@ public:
 	CPropAdvanced();
 	~CPropAdvanced();
 
+	void SetCPUPrioritySlider(DWORD dwPriority, DWORD dwPriorityClass);
+	void GetCPUPrioritySlider(DWORD &dwPriority, DWORD &dwPriorityClass) const;
+
 // Dialog Data
 	//{{AFX_DATA(CPropAdvanced)
 	enum { IDD = IDD_PP_ADVANCED };
-	CString	m_adminPassword;
+	CString m_adminPassword;
 	UINT	m_bandwidthLimit;
 	UINT	m_clientPort;
 	BOOL	m_doAnnounce;
@@ -38,18 +42,27 @@ public:
 	UINT	m_maxNodeConnections;
 	CSliderCtrl	m_ctrl_Slider_CPUPriority;
 	CString	m_str_Static_CPUPriority;
+	int		m_n_Slider_CPUPriority;
 	//}}AFX_DATA
 
 
 // Overrides
 	// ClassWizard generate virtual function overrides
 	//{{AFX_VIRTUAL(CPropAdvanced)
+	public:
+	virtual BOOL OnSetActive();
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
 // Implementation
 protected:
+	static const DWORD m_dwPriority[NUMPRIORITIES];
+	static const DWORD m_dwPriorityClass[NUMPRIORITIES];
+	static const char * const m_szPriorityDescription[NUMPRIORITIES];
+
+	static const DWORD CPropAdvanced::GetPriorityIndex(DWORD dwPriority, DWORD dwPriorityClass);
+
 	// Generated message map functions
 	//{{AFX_MSG(CPropAdvanced)
 	afx_msg void OnInitialRequestHTLspin(NMHDR* pNMHDR, LRESULT* pResult);
@@ -59,10 +72,13 @@ protected:
 	afx_msg void OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnchangedmaxNodeConnectionsspin(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnCustomdrawsliderCPUPriority(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
+
 };
+
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
