@@ -263,7 +263,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 			fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
 			break;
 			
-		case FCPRESP_TYPE_RESTARTED:
+		case FCPRESP_TYPE_RESTARTED: /* TODO */
 			close(mfd);
 			close(kfd);			
 
@@ -434,7 +434,6 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 	/* create the put message */
 	rc = snprintf(buf, L_FILE_BLOCKSIZE,
 								"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n%s",
-								
 								(hfcp->delete_local == 0 ? "false" : "true"),
 								hfcp->key->uri->uri_str,
 								hfcp->htl,
@@ -667,7 +666,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	
 	/* Send SegmentHeader */
 	if (send(hfcp->socket, segment->header_str, strlen(segment->header_str), 0) == -1) {
-		hfcp->error = strdup("could not write initial SegmentHeader .essage");
+		hfcp->error = strdup("could not write initial SegmentHeader message");
 		return -1;
 	}
 
@@ -823,7 +822,8 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
-		tmp_hfcp = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress, 0);
+		tmp_hfcp = fcpInheritHFCP(hfcp);
+
 		tmp_hfcp->key = _fcpCreateHKey();
 		tmp_hfcp->key->size = segment->block_size;
 		
@@ -839,7 +839,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		rc = snprintf(buf, L_FILE_BLOCKSIZE,
 									"ClientPut\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
-									(hfcp->delete_local == 0 ? "false" : "true"),
+									(tmp_hfcp->delete_local == 0 ? "false" : "true"),
 									tmp_hfcp->key->uri->uri_str,
 									tmp_hfcp->htl,
 									tmp_hfcp->key->size
@@ -912,7 +912,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 			
 			break;
 			
-		case FCPRESP_TYPE_RESTARTED:
+		case FCPRESP_TYPE_RESTARTED: /* TODO */
 			/* clean up for loop re-entry, captain over, over */
 			_fcpSockDisconnect(tmp_hfcp);
 			fcpDestroyHFCP(tmp_hfcp);
@@ -975,7 +975,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	/* insert check blocks next */
 
 	for (bi=0; bi < segment->cb_count; bi++) {
-		tmp_hfcp = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress, 0);
+		tmp_hfcp = fcpInheritHFCP(hfcp);
 		
 		_fcpLog(FCP_LOG_DEBUG, "inserting check block %d", bi);
 		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0);
@@ -1102,6 +1102,9 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		_fcpSockDisconnect(hfcp);
 		return -1;
 
+	case FCPRESP_TYPE_RESTARTED: /* TODO */
+		break;
+
 	default:
 		snprintf(msg, 512, "unknown response code from node: %d", rc);
 		hfcp->error = strdup(msg);
@@ -1158,7 +1161,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	/* create the put message */
 	rc = snprintf(buf, L_FILE_BLOCKSIZE,
 								"ClientPut\nRemoveLocalKey=%s\nURI=CHK@\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
-								
 								(hfcp->delete_local == 0 ? "false" : "true"),
 								hfcp->htl,
 								meta_len,
@@ -1213,6 +1215,9 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		
 	case FCPRESP_TYPE_FORMATERROR:
 		_fcpLog(FCP_LOG_DEBUG, "keycollision on insert of redirect metadata");
+		break;
+
+	case FCPRESP_TYPE_RESTARTED:
 		break;
 
 	default:

@@ -64,17 +64,3 @@ long file_size(char *filename)
 		return fstat.st_size;
 }
 
-#if 0 /* DEPRECATE ? */
-char *str_reset(char *dest, char *src)
-{
-	if (dest) free(dest);
-
-	dest = (char*)malloc(strlen(src) + 1);
-	strcpy(dest, src);
-
-	/* on function exit, dest *may* not point to the same location it did when
-		 the function was originally called.  Use the returned value instead. */
-	return dest;
-}
-#endif
-

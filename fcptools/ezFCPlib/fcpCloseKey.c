@@ -73,8 +73,8 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 	/* close the temporary metadata file */
 	fclose(hfcp->key->metadata->tmpblock->file);
+	tmp_hfcp = fcpInheritHFCP(hfcp);
 
-	tmp_hfcp = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress, 0);
 	size = file_size(hfcp->key->tmpblock->filename);
 
 	if (size > L_BLOCK_SIZE)
@@ -113,7 +113,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 			
 			hFCP *hfcp_meta;
 			
-			hfcp_meta = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress, 0);
+			hfcp_meta = fcpInheritHFCP(hfcp);
 			hfcp_meta->key = _fcpCreateHKey();
 			
 			/* uri was already checked above for validity */

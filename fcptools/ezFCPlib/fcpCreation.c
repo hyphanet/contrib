@@ -60,10 +60,20 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 	h->rawmode =       (optmask & HOPT_RAW ? 1 : 0);
 	h->delete_local =  (optmask & HOPT_DELETE_LOCAL ? 1 : 0);
 	
-	_fcpLog(FCP_LOG_DEBUG, "created new HFCP structure\n     host: %s, port: %d, htl: %d",
-					h->host, h->port, h->htl);
+	_fcpLog(FCP_LOG_DEBUG, "created new HFCP structure\n  host: %s, port: %d, htl: %d, delete_local: %d",
+					h->host, h->port, h->htl, h->delete_local);
 
 	return h;
+}
+
+/* like dup() for files; duplicates an hFCP struct */
+
+hFCP *fcpInheritHFCP(hFCP *hfcp)
+{
+	if (!hfcp) return 0;
+
+	return fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress,
+		                hfcp->rawmode | hfcp->delete_local);
 }
 
 void fcpDestroyHFCP(hFCP *h)

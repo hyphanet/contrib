@@ -57,15 +57,18 @@ int fcpStartup(char *logfile, int log_verbosity)
 			return -1;
 	}
 
+	/* gotta strdup() the return values since they're static pointers! */
+	/* causes assertion error on MSVC when exiting through fcpTerminate() */
+
 	_fcpTmpDir = strdup(getenv("TEMP"));
 
 	/* Maybe this needs to be re-thought */
-	_fcpHomeDir = getenv("USERPROFILE");
+	_fcpHomeDir = strdup(getenv("USERPROFILE"));
 
 #else
 
 	_fcpTmpDir = strdup("/tmp");
-	_fcpHomeDir = getenv("HOME");
+	_fcpHomeDir = strdup(getenv("HOME"));
 
 #endif
 
@@ -92,3 +95,4 @@ void fcpTerminate(void)
 	
 	return;
 }
+

@@ -39,10 +39,11 @@ ezFCPlib specific
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Implement retry logic, so that ezFCPlib attempts to insert _fcpRetry times on failed message.
 + Correct Restarted message handling to ensure seamless restarts.
-  (especially broken in FEC inserts)
+  (_fcpPut.c:266, _fcpPut.c:915, _fcpPut.c:1105, _fcpPut.c:1220).
 + Ignore DataChunks between Restarted and DataFound messages (from freenet-dev).
 + Make hDocument->data field dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
++ Improve the splitfile size ceiling; the node uses one, the tools use another(?)
 
 - Make FEC_CHUNK_SIZE configurable; default to 1M (Fred computes this afaik).
 - Add logic like fcpTmpDir for an 'fcpHomeDir'; /home/$user on nix, %USERPROFILE%\My Documents for Win32.

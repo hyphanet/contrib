@@ -431,9 +431,8 @@ extern "C" {
 #endif
 	
 	/* Handle management functions */
-	hFCP   *fcpCreateDefHFCP(void);
 	hFCP   *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask);
-
+	hFCP   *fcpInheritHFCP(hFCP *hfcp);
 	void    fcpDestroyHFCP(hFCP *);
 
 	/* URI functions */

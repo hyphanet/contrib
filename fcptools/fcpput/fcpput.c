@@ -244,7 +244,7 @@ void parse_args(int argc, char *argv[])
 			if (i > 0) regress = i;
 			
     case 'D':
-      optmask &= HOPT_DELETE_LOCAL;
+      optmask |= HOPT_DELETE_LOCAL;
       break;
 			
     case 'v':
@@ -314,14 +314,14 @@ void usage(char *s)
 	printf("              [-m metadata] [-s] [-e regress] [-D] [-v verbosity]\n");
 	printf("              [-g] [-V] [-h] freenet_uri filename\n\n");
 
-	printf("Options (*=not implemented):\n\n");
+	printf("Options:\n\n");
 	printf("  -n, --address host     Freenet node address\n");
 	printf("  -p, --port num         Freenet node port\n");
 	printf("  -l, --htl num          Hops to live\n\n");
 
 	printf("  -m, --metadata file    Read key metadata from local file\n");
 	printf("  -s, --stdin            Read key data from stdin\n");
-	printf("  *e, --regress num      Number of days to regress\n");
+/*printf("  -e, --regress num      Number of days to regress\n");*/
 	printf("   D, --delete-local     Delete key from local datastore on insert\n\n");
 
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");

@@ -130,7 +130,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 			
 			hFCP *hfcp_meta;
 			
-			hfcp_meta = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress, 0);
+			hfcp_meta = fcpInheritHFCP(hfcp);
 			hfcp_meta->key = _fcpCreateHKey();
 			
 			/* uri was already checked above for validity */
