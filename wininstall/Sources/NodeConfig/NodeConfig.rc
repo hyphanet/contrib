@@ -150,17 +150,17 @@ BEGIN
                     UDS_ARROWKEYS,102,243,16,16
     GROUPBOX        "Performance Settings",IDC_STATIC,138,187,174,80
     LTEXT           "Init Req HTL",IDC_STATIC,149,203,42,9
-    LTEXT           "Max HTL",IDC_STATIC,212,203,30,9
-    LTEXT           "Max. Threads",IDC_STATIC,257,203,44,9
+    LTEXT           "Max HTL",IDC_STATIC,203,203,30,9
+    LTEXT           "Max. Threads",IDC_STATIC,149,237,44,9
     EDITTEXT        IDC_initialRequestHTL,149,215,19,12,ES_AUTOHSCROLL
     CONTROL         "Spin4",IDC_initialRequestHTL_spin,"msctls_updown32",
                     UDS_ARROWKEYS,170,214,11,15
-    EDITTEXT        IDC_maxHopsToLive,211,215,19,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_maxHopsToLive,203,215,19,12,ES_AUTOHSCROLL
     CONTROL         "Spin5",IDC_maxHopsToLive_spin,"msctls_updown32",
-                    UDS_ARROWKEYS,231,213,11,16
-    EDITTEXT        IDC_maximumThreads,257,215,24,12,ES_AUTOHSCROLL
+                    UDS_ARROWKEYS,224,213,11,16
+    EDITTEXT        IDC_maximumThreads,149,249,24,12,ES_AUTOHSCROLL
     CONTROL         "Spin6",IDC_maximumThreads_spin,"msctls_updown32",
-                    UDS_ARROWKEYS,282,214,11,15
+                    UDS_ARROWKEYS,174,248,11,15
     LTEXT           "Node Admin Password (optional)",IDC_STATIC,200,16,103,
                     11
     EDITTEXT        IDC_adminPassword,200,28,75,12,ES_PASSWORD | 
@@ -169,11 +169,15 @@ BEGIN
                     IDC_STATIC,68,119,232,21
     LTEXT           "Once your node is up and running happily within Freenet, it might be good to turn this option off.",
                     IDC_STATIC,99,70,198,18
-    LTEXT           "CPU Priority",IDC_STATIC,149,237,41,10
+    LTEXT           "CPU Priority",IDC_STATIC,204,237,41,10
     CONTROL         "Slider1",IDC_slider_CPUPriority,"msctls_trackbar32",
-                    TBS_AUTOTICKS | WS_TABSTOP,150,251,150,7
+                    TBS_AUTOTICKS | WS_TABSTOP,200,251,100,7
     CONTROL         "NORMAL",IDC_Static_CPUPriority,"Static",SS_SIMPLE | 
-                    WS_GROUP,202,237,94,9
+                    WS_GROUP,247,237,49,9
+    LTEXT           "Max connections",IDC_STATIC,250,203,55,8
+    CONTROL         "Spin4",IDC_maxNodeConnections_spin,"msctls_updown32",
+                    UDS_ARROWKEYS,270,214,11,15
+    EDITTEXT        IDC_maxNodeConnections,250,215,19,12,ES_AUTOHSCROLL
 END
 
 IDD_PP_GEEK DIALOG DISCARDABLE  0, 0, 319, 274
@@ -602,3 +606,4 @@ LANGUAGE 9, 1
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+
