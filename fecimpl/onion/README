@@ -17,7 +17,7 @@ DEPLOYING:
 Make sure onionfec-0.1.jar, fec.jar and common.jar are in
 your CLASSPATH.
 
-Then add the following fragment to you freenet
+Then add the following fragment to your freenet
 initialization file (freenet.conf or freenet.ini)
 if it isn't already there.
 
@@ -59,7 +59,7 @@ fproxy.FECDecoder_0_class=OnionFECDecoder
 
 BUILDING:
 This code is built with a standard GNU Makefile. 
-If you are in a non-*nix environment, then you are
+If you are in a non-*nix environment, then you're
 on your own. 
 
 Edit the FREENET_CP line in Makefile if nescessary to point to
@@ -67,7 +67,7 @@ your Freenet classes. Then from this directory, type:
 
 make jar
 
-to build the onionfec-0.1.jar in current directory.
+to build the onionfec-0.1.jar jar file.
 
 DISCLAIMER:
 This code wasn't written by Onion Networks. It isn't endorsed or 
