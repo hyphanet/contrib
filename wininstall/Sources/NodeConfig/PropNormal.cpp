@@ -74,11 +74,11 @@ void CPropNormal::OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	DWORD dwNewStoreSize = m_storeSize+pNMUpDown->iDelta;
+	DWORD dwNewStoreSize = m_storeSize-pNMUpDown->iDelta;
 	const DWORD dwMaxStoreSize = 0xffffffff;
 	const DWORD dwMinStoreSize = 10;
 
-	if ( pNMUpDown->iDelta > 0 && m_storeSize < dwMaxStoreSize )
+	if ( pNMUpDown->iDelta < 0 && m_storeSize <= dwMaxStoreSize )
 	{
 		if ( dwNewStoreSize < m_storeSize || dwNewStoreSize > dwMaxStoreSize )
 		{
@@ -88,7 +88,7 @@ void CPropNormal::OnStoreCacheSizespin(NMHDR* pNMHDR, LRESULT* pResult)
 		m_storeSize = dwNewStoreSize;
 		UpdateData(FALSE);
 	}
-	else if (m_storeSize > dwMinStoreSize)
+	else if (pNMUpDown->iDelta > 0 && m_storeSize > dwMinStoreSize)
 	{
 		if ( dwNewStoreSize > m_storeSize || dwNewStoreSize < dwMinStoreSize)
 		{
