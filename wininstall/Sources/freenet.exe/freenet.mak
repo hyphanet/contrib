@@ -47,6 +47,7 @@ ALL : "$(OUTDIR)\freenet.exe"
 CLEAN :
 	-@erase "$(INTDIR)\freenet.obj"
 	-@erase "$(INTDIR)\launchthread.obj"
+	-@erase "$(INTDIR)\refs.obj"
 	-@erase "$(INTDIR)\rsrc.res"
 	-@erase "$(INTDIR)\vc50.idb"
 	-@erase "$(OUTDIR)\freenet.exe"
@@ -56,10 +57,9 @@ CLEAN :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
 
 CPP=cl.exe
-CPP_PROJ=/nologo /G3 /Gr /Zp1 /MD /W3 /vd0 /Ox /Oa /Ow /Og /Oi /Os /Ob2 /Gf /Gy\
- /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN"\
- /FAcs /Fa"$(INTDIR)\\" /Fp"$(INTDIR)\freenet.pch" /YX /Fo"$(INTDIR)\\"\
- /Fd"$(INTDIR)\\" /FD /c 
+CPP_PROJ=/nologo /G3 /Gr /Zp1 /MD /W3 /vd0 /Od /Gf /Gy /D "WIN32" /D "NDEBUG"\
+ /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN" /FAcs /Fa"$(INTDIR)\\"\
+ /Fp"$(INTDIR)\freenet.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /c 
 CPP_OBJS=.\Release/
 CPP_SBRS=.
 
@@ -102,13 +102,13 @@ BSC32_FLAGS=/nologo /o"$(OUTDIR)\freenet.bsc"
 BSC32_SBRS= \
 	
 LINK32=link.exe
-LINK32_FLAGS=kernel32.lib user32.lib shell32.lib /nologo /version:1.0\
- /subsystem:windows /incremental:no /pdb:"$(OUTDIR)\freenet.pdb"\
- /map:"$(INTDIR)\freenet.map" /machine:IX86 /out:"$(OUTDIR)\freenet.exe"\
- /ALIGN:4096 
+LINK32_FLAGS=kernel32.lib user32.lib shell32.lib comdlg32.lib /nologo\
+ /version:1.0 /subsystem:windows /incremental:no /pdb:"$(OUTDIR)\freenet.pdb"\
+ /map:"$(INTDIR)\freenet.map" /machine:IX86 /out:"$(OUTDIR)\freenet.exe" 
 LINK32_OBJS= \
 	"$(INTDIR)\freenet.obj" \
 	"$(INTDIR)\launchthread.obj" \
+	"$(INTDIR)\refs.obj" \
 	"$(INTDIR)\rsrc.res"
 
 "$(OUTDIR)\freenet.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
@@ -137,6 +137,7 @@ ALL : "$(OUTDIR)\freenet.exe"
 CLEAN :
 	-@erase "$(INTDIR)\freenet.obj"
 	-@erase "$(INTDIR)\launchthread.obj"
+	-@erase "$(INTDIR)\refs.obj"
 	-@erase "$(INTDIR)\rsrc.res"
 	-@erase "$(INTDIR)\vc50.idb"
 	-@erase "$(INTDIR)\vc50.pdb"
@@ -193,13 +194,14 @@ BSC32_FLAGS=/nologo /o"$(OUTDIR)\freenet.bsc"
 BSC32_SBRS= \
 	
 LINK32=link.exe
-LINK32_FLAGS=kernel32.lib user32.lib shell32.lib /nologo /version:1.0\
- /subsystem:windows /incremental:yes /pdb:"$(OUTDIR)\freenet.pdb"\
+LINK32_FLAGS=kernel32.lib user32.lib shell32.lib comdlg32.lib /nologo\
+ /version:1.0 /subsystem:windows /incremental:yes /pdb:"$(OUTDIR)\freenet.pdb"\
  /map:"$(INTDIR)\freenet.map" /debug /machine:I386 /out:"$(OUTDIR)\freenet.exe"\
  /pdbtype:sept 
 LINK32_OBJS= \
 	"$(INTDIR)\freenet.obj" \
 	"$(INTDIR)\launchthread.obj" \
+	"$(INTDIR)\refs.obj" \
 	"$(INTDIR)\rsrc.res"
 
 "$(OUTDIR)\freenet.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
@@ -218,7 +220,9 @@ SOURCE=.\freenet.c
 
 DEP_CPP_FREEN=\
 	".\freenet_tray.h"\
-	".\rsrc.h"\
+	".\launchthread.h"\
+	".\refs.h"\
+	".\shared_data.h"\
 	".\types.h"\
 	
 
@@ -230,7 +234,7 @@ DEP_CPP_FREEN=\
 DEP_CPP_FREEN=\
 	".\freenet_tray.h"\
 	".\launchthread.h"\
-	".\rsrc.h"\
+	".\refs.h"\
 	".\shared_data.h"\
 	".\types.h"\
 	
@@ -266,16 +270,35 @@ DEP_CPP_LAUNC=\
 
 !ENDIF 
 
-SOURCE=.\rsrc.rc
-DEP_RSC_RSRC_=\
-	".\alert.ico"\
-	".\Freenet.ico"\
-	".\noFnet.ico"\
-	".\restart.ico"\
-	".\rsrc.h"\
+SOURCE=.\refs.c
+
+!IF  "$(CFG)" == "freenet - Win32 Release"
+
+DEP_CPP_REFS_=\
+	".\refs.h"\
+	".\shared_data.h"\
+	".\types.h"\
 	
 
-"$(INTDIR)\rsrc.res" : $(SOURCE) $(DEP_RSC_RSRC_) "$(INTDIR)"
+"$(INTDIR)\refs.obj" : $(SOURCE) $(DEP_CPP_REFS_) "$(INTDIR)"
+
+
+!ELSEIF  "$(CFG)" == "freenet - Win32 Debug"
+
+DEP_CPP_REFS_=\
+	".\refs.h"\
+	".\shared_data.h"\
+	".\types.h"\
+	
+
+"$(INTDIR)\refs.obj" : $(SOURCE) $(DEP_CPP_REFS_) "$(INTDIR)"
+
+
+!ENDIF 
+
+SOURCE=.\rsrc.rc
+
+"$(INTDIR)\rsrc.res" : $(SOURCE) "$(INTDIR)"
 	$(RSC) $(RSC_PROJ) $(SOURCE)
 
 
