@@ -54,7 +54,8 @@ extern NOTIFYICONDATA note;
 /*		lock objects for critical sections */
 enum LOCKCONTEXTS
 {
-	NFREENETMODE=0
+	NFREENETMODE=0,
+	SYSTRAY=1
 };
 extern HANDLE * LOCKOBJECTS[];
 
