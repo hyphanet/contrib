@@ -1978,8 +1978,8 @@ else
 fi
 echo "$ac_t""$SED" 1>&6
 
-echo $ac_n "checking how to recognise dependant libraries""... $ac_c" 1>&6
-echo "configure:1983: checking how to recognise dependant libraries" >&5
+echo $ac_n "checking how to recognise dependent libraries""... $ac_c" 1>&6
+echo "configure:1983: checking how to recognise dependent libraries" >&5
 if eval "test \"`echo '$''{'lt_cv_deplibs_check_method'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -4193,7 +4193,7 @@ cygwin* | mingw* | pw32*)
     ;;
   yes,mingw*)
     library_names_spec='${libname}`echo ${release} | sed -e 's/[.]/-/g'`${versuffix}.dll'
-    sys_lib_search_path_spec=`$CC -print-search-dirs | grep "^libraries:" | sed -e "s/^libraries://" -e "s/;/ /g"`
+    sys_lib_search_path_spec=`$CC -print-search-dirs | grep "^libraries:" | sed -e "s/^libraries://" -e "s/;/ /g" -e "s,=/,/,g"`
     ;;
   yes,pw32*)
     library_names_spec='`echo ${libname} | sed -e 's/^lib/pw/'``echo ${release} | sed -e 's/./-/g'`${versuffix}.dll'
@@ -6719,7 +6719,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpputsplit/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -6835,7 +6835,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpputsplit/Makefile"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
