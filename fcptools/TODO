@@ -6,6 +6,12 @@ that can be implemented by any competent C programmer.
 
 
 ---------------------------------------------------------------------------
+FCPtools generic
+
+* Add FEC support rather then straight splitfiles (option)
+* Update documentation on all exported APIs.
+
+---------------------------------------------------------------------------
 ezFCPlib specific
 
 * Make fcpOpenKey() handle splitfiles.
@@ -39,15 +45,3 @@ fcpputsite
 fcpputsplit
 
 * Merge into fcpput.
-
-
----------------------------------------------------------------------------
-FCPtools generic
-
-
----------------------------------------------------------------------------
-New functionality
-
-* Add FEC support rather then straight splitfiles (option)
-* Update documentation on all exported APIs.
-

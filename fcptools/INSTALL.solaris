@@ -7,4 +7,8 @@ Follow the instructions in INSTALL, substituting 'make' with 'gmake'.
 Hopefully, everything else is the same.  Feedback from Solaris users
 would be much appreciated.
 
+As of this time (2002-07-18) the tools do not compile on Solaris; I
+am in the process of obtaining a more reliable Solaris shell than
+SF's.
+
 -joliveri

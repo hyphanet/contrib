@@ -74,7 +74,7 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
 	    "ClientPut\nURI=%s\nHopsToLive=%x\nFlags=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
 	    key,
 	    hfcp->htl,
-	    hfcp->delete ? 1 : 0,
+	    hfcp->deleteDS ? 1 : 0,
 	    filesize + meta_len,
 	    meta_len
 	    );

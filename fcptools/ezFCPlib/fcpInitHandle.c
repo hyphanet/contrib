@@ -50,7 +50,7 @@ void fcpInitHandle(HFCP *hfcp)
   hfcp->fields = 0;
   hfcp->node[0] = '\0';
   hfcp->protocol = 0;
-  hfcp->delete=_fcpDoDelete;
+  hfcp->deleteDS=_fcpDoDelete;
 
   /* initialise write status block */
   hfcp->wr_info.fd_data = -1;

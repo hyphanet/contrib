@@ -151,7 +151,7 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
     }
     
     /* create and send key request */
-    snprintf(buf, L_SOCKET_REQUEST, "ClientGet\nURI=%s\nHopsToLive=%x\nFlags=%x\nEndMessage\n", uri->uri_str, hfcp->htl, hfcp->delete);
+    snprintf(buf, L_SOCKET_REQUEST, "ClientGet\nURI=%s\nHopsToLive=%x\nFlags=%x\nEndMessage\n", uri->uri_str, hfcp->htl, hfcp->deleteDS);
     len = strlen(buf);
     
     _fcpSockSend(hfcp, _fcpID, 4);

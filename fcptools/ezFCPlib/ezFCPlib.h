@@ -414,7 +414,7 @@ typedef _FCPCONN {
 typedef struct {
   int malloced;  /* set if this block was created via malloc */
   int htl;       /* hops to live - defaults to 25 */
-  int delete;	 /* Delete from local DS? */
+  int deleteDS;  /* Delete from local DS? */
   int regress;   /* days to regress when retrying failed date-redirects */
   int raw;       /* set to disable auto metadata handling */
   int verbose;   /* set to enable status printfs to stdout */

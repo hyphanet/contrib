@@ -1,9 +1,7 @@
-The following text is taken from the Microsoft Developer Network
-"Compatibility Guidelines"
+Some of the following text is taken from the Microsoft Developer Network
+"Compatibility Guidelines":
 
 ===========================================================================
-
-If you plan to transport your programs to UNIX, follow these guidelines: 
 
 Do not remove header files from the SYS subdirectory. You can place the SYS
 header files elsewhere only if you do not plan to transport your programs to

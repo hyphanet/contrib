@@ -49,7 +49,7 @@ int _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int da
 	    "ClientPut\nURI=%s\nHopsToLive=%x\nFlags=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
 	    name,
 	    hfcp->htl,
-	    hfcp->delete,
+	    hfcp->deleteDS,
 	    datalen + meta_len,
 	    meta_len
 	    );
@@ -60,7 +60,7 @@ int _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int da
 	      "ClientPut\nURI=%s\nHopsToLive=%x\nFlags=%x\nDataLength=%x\nData\n",
 	      name,
 	      hfcp->htl,
-	      hfcp->delete,
+	      hfcp->deleteDS,
 	      datalen
 	      );
     }
