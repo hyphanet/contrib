@@ -89,7 +89,6 @@ STRIP = @STRIP@
 VERSION = @VERSION@
 
 INCLUDES = -I$(top_srcdir)/include
-CFLAGS = -DDMALLOC
 
 noinst_LIBRARIES = libfcpcommon.a
 
@@ -104,6 +103,7 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 libfcpcommon_a_LIBADD = 
 libfcpcommon_a_OBJECTS =  getopt.$(OBJEXT) getopt1.$(OBJEXT)
+CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)

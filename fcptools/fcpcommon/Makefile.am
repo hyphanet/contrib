@@ -1,5 +1,4 @@
 INCLUDES= -I$(top_srcdir)/include
-CFLAGS=-DDMALLOC
 
 noinst_LIBRARIES = libfcpcommon.a
 
