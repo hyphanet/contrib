@@ -12,10 +12,9 @@
 */
 
 
-#include "ezFCPlib.h"
+#include <string.h>
 
 
-/**********************************************************************/
 /*
   xtoi()
 
@@ -41,19 +40,3 @@ long xtoi(char *s)
   return val;
 }
 
-
-/*
-	Add functions to add, insert, remove, retrieve data from Hashtable udt.
-*/
-
-
-/*
-long timeLastMidnight()
-{
-  time_t timenow;
-
-  time(&timenow);
-  timenow -= timenow % 86400;
-  return timenow;
-}
-*/

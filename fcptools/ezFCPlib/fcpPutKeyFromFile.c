@@ -34,7 +34,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 	hfcp->key = _fcpCreateHKey();
 
 	if (stat(key_filename, &fstat)) {
-		_fcpLog(FCP_LOG_CRITICAL, "fcpPutKeyFromFile ERROR: Could not find key data in file \"%s\"", key_filename);
+		_fcpLog(FCP_LOG_CRITICAL, "Could not find key data in file \"%s\"", key_filename);
 		return -1;
 	}
 	hfcp->key->size = fstat.st_size;
@@ -43,17 +43,21 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 		hfcp->key->metadata->size = fstat.st_size;
 
 	/* If it's larger than L_BLOCK_SIZE, insert as an FEC encoded splitfile */
-	if (hfcp->key->size > L_BLOCK_SIZE)
-		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
+	if (hfcp->key->size > L_BLOCK_SIZE) {
+		_fcpLog(FCP_LOG_VERBOSE, "Performing FEC encoding for splitfile");
 
-	else
-		/* Otherwise, insert as a normal key */
+		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
+	}
+	else { /* Otherwise, insert as a normal key */
+		_fcpLog(FCP_LOG_VERBOSE, "Performing non-redundant insert");
+
 		rc = put_file(hfcp, key_filename, meta_filename);
+	}
 	
 	if (rc)
-		_fcpLog(FCP_LOG_CRITICAL, "fcpPutKeyFromFile ERROR: Could not insert file \"%s\" into freenet");
+		_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into freenet");
 	else
-		_fcpLog(FCP_LOG_VERBOSE, "fcpPutKeyFromFile SUCCESS: Inserted file \"%s\" under \"%s\"", key_filename, hfcp->key->uri->uri_str);
+		_fcpLog(FCP_LOG_NORMAL, "FINAL ANSWER: %s", hfcp->key->uri->uri_str);
 
 	return rc;
 }

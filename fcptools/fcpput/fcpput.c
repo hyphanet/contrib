@@ -39,8 +39,6 @@
 void  parse_args(int argc, char *argv[]);
 void  usage(char *);
 
-extern char *crTmpFilename(void);
-
 char  *keyuri = 0;
 char  *keyfile = 0;
 char  *metafile = 0;
@@ -75,9 +73,6 @@ int main(int argc, char* argv[])
 
 	hfcp = _fcpCreateHFCP();
 	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
-
-	if (rc != 0)
-		_fcpLog(FCP_LOG_CRITICAL, "Error");
 
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();

@@ -1,11 +1,11 @@
 /*
   This code is part of FCPTools - an FCP-based client library for Freenet
 
-	Developers:
- 	- David McNab <david@rebirthing.co.nz>
-	- Jay Oliveri <ilnero@gmx.net>
-	
   CopyLeft (c) 2001 by David McNab
+
+  Developers:
+	- David McNab <david@rebirthing.co.nz>
+  - Jay Oliveri <ilnero@gmx.net>
 
 	Currently maintained by Jay Oliveri <ilnero@gmx.net>
 	
@@ -53,6 +53,8 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment);
 static int fec_insert_segment(hFCP *hfcp, char *key_filename, int segment);
 
 
+/* Log messages should be VERBOSE or DEBUG only in this module */
+
 int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 {
 	char buf[L_FILE_BLOCKSIZE+1];
@@ -92,11 +94,15 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	if (send(hfcp->socket, _fcpID, 4, 0) == -1)
 		 return -1;
 
+	_fcpLog(FCP_LOG_VERBOSE, "sent FCP id");
+
 	/* Send ClientPut command */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not send ClientPut command");
+		_fcpLog(FCP_LOG_VERBOSE, "could not send ClientPut message");
 		return -1;
 	}
+
+	_fcpLog(FCP_LOG_VERBOSE, "sent ClientPut message");
 
 	/* Open key data file */
 	if (!(kfile = fopen(key_filename, "rb"))) {
@@ -120,11 +126,12 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		while ((rc = read(mfd, buf, L_FILE_BLOCKSIZE)) > 0) {
 			
 			if (send(hfcp->socket, buf, rc, 0) < 0) {
-				_fcpLog(FCP_LOG_DEBUG, "could not write metadata to Freenet");
+				_fcpLog(FCP_LOG_DEBUG, "could not write metadata to socket");
 				return -1;
 			}
 		}
 
+		_fcpLog(FCP_LOG_VERBOSE, "wrote metadata to socket");
 		fclose(mfile);
 	}
 
@@ -132,10 +139,11 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	while ((rc = read(kfd, buf, L_FILE_BLOCKSIZE)) > 0) {
 
     if (send(hfcp->socket, buf, rc, 0) < 0) {
-      _fcpLog(FCP_LOG_DEBUG, "could not write key data to Freenet");
+      _fcpLog(FCP_LOG_DEBUG, "could not write key data to socket");
       return -1;
 		}
 	}
+	_fcpLog(FCP_LOG_VERBOSE, "wrote key data to socket");
   fclose(kfile);
 
   /* expecting a success response */
@@ -144,7 +152,9 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
   switch (rc) {
   case FCPRESP_TYPE_SUCCESS:
     _fcpLog(FCP_LOG_DEBUG, "node returned Success message");
-		
+
+		if (hfcp->key->uri) _fcpDestroyHURI(hfcp->key->uri);
+
 		hfcp->key->uri = _fcpCreateHURI();
 		_fcpParseURI(hfcp->key->uri, hfcp->response.success.uri);
 		
@@ -152,6 +162,8 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		
   case FCPRESP_TYPE_KEYCOLLISION:
     _fcpLog(FCP_LOG_DEBUG, "node returned KeyCollision message");
+
+		if (hfcp->key->uri) _fcpDestroyHURI(hfcp->key->uri);
 		
 		hfcp->key->uri = _fcpCreateHURI();
 		_fcpParseURI(hfcp->key->uri, hfcp->response.keycollision.uri);
@@ -171,7 +183,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
     break;
 
   default:
-    _fcpLog(FCP_LOG_DEBUG, "node returned unknown message id %d", rc);
+    _fcpLog(FCP_LOG_DEBUG, "received unknown response code: %d", rc);
 
     crSockDisconnect(hfcp);
     return -1;
@@ -183,9 +195,7 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
   if ((rc != FCPRESP_TYPE_SUCCESS) && (rc != FCPRESP_TYPE_KEYCOLLISION))
     return -1;
 
-	/* Before returning, set all the hfcp-> fields proper, so that the response
-		 struct can be re-used on next call to _fcpRecvResponse(). */
-	
+	_fcpLog(FCP_LOG_VERBOSE, "inserted key: %s", hfcp->key->uri->uri_str);
 	return 0;
 }
 
@@ -392,15 +402,13 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		bytes = read(fd, buf, byte_count);
 		
 		if ((rc = send(hfcp->socket, buf, bytes, 0)) < 0) {
-			_fcpLog(FCP_LOG_DEBUG, "could not write key data to socket: %s", strerror(errno));
 			return -1;
 		}
 		
 		/* decrement by number of bytes written to the socket */
 		fi -= byte_count;
-
-		_fcpLog(FCP_LOG_DEBUG, "wrote %d data bytes to socket..", data_len - fi);
 	}
+	_fcpLog(FCP_LOG_DEBUG, "wrote %d bytes to socket", data_len);
 	
 	/* now write the pad bytes and end transmission.. */
 	
@@ -420,8 +428,6 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		
 		/* decrement i by number of bytes written to the socket */
 		fi -= byte_count;
-
-		_fcpLog(FCP_LOG_DEBUG, "wrote %d zero bytes to socket..", pad_len - fi);
 	}
 	
 	/* if the response isn't BlocksEncoded, we have a problem */
@@ -429,6 +435,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		_fcpLog(FCP_LOG_DEBUG, "did not receive expected BlocksEncoded message");
 		return -1;
 	}
+	_fcpLog(FCP_LOG_DEBUG, "wrote %d zero-bytes to socket", pad_len);
 	
 	/* it is a BlocksEncoded message.. get the check blocks */
 	block_len = hfcp->response.blocksencoded.block_size;

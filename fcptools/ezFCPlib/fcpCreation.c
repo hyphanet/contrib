@@ -52,6 +52,8 @@ void _fcpDestroyHFCP(hFCP *h)
 {
 	if (h) {
 		if (h->host) free(h->host);
+		if (h->description) free(h->description);
+		if (h->key) _fcpDestroyHKey(h->key);
 
 		free(h);
 	}
@@ -95,10 +97,12 @@ void _fcpDestroyHKey(hKey *h)
 	if (h) {
 		int i = 0;
 
-		if (h->metadata) {
-		}
 		if (h->uri) _fcpDestroyHURI(h->uri);
 		if (h->mimetype) free(h->mimetype);
+		if (h->tmpblock) free(h->tmpblock);
+
+		if (h->metadata) free(h->metadata);
+
 
 		/*
 		while (i < h->chunk_count)

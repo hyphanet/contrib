@@ -28,28 +28,31 @@
 void _fcpLog(int level, char *format, ...)
 {
 	char buf[FCP_LOG_MESSAGE_SIZE + 1];
-	
+
 	/* thanks mjr for the idea */
 	va_list ap;
 
+	/* exit if the message wishes to be ignored */
+	if (level > _fcpVerbosity) return;
+	
 	va_start(ap, format);
 	vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
 	va_end(ap);
 
 	switch (level) {
-	case FCP_LOG_CRITICAL:
-		printf("Error: %s\n", buf);
+	case FCP_LOG_CRITICAL: /*1*/
+		printf("CRITICAL: %s\n", buf);
 		break;
-
-	case FCP_LOG_NORMAL:
+		
+	case FCP_LOG_NORMAL: /*2*/
 		printf("%s\n", buf);
 		break;
-
-	case FCP_LOG_VERBOSE:
-		printf("%s\n", buf);
+		
+	case FCP_LOG_VERBOSE: /*3*/
+		printf("msg: %s\n", buf);
 		break;
-
-	case FCP_LOG_DEBUG:
+		
+	case FCP_LOG_DEBUG: /*4*/
 		printf("DEBUG: %s\n", buf);
 		break;
 	}

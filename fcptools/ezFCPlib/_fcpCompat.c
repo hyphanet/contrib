@@ -137,14 +137,11 @@ char *crTmpFilename(void)
 
 	while (search) {
 		snprintf(filename, 4096, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
-		_fcpLog(FCP_LOG_DEBUG, "trying to stat: %s", filename);
 
 		if (stat(filename, &st) == -1)
 			if (errno == ENOENT) search = 0;
 	}
-
 	realloc(filename, strlen(filename) + 1);
-	_fcpLog(FCP_LOG_DEBUG, "returning tmpfile: %s", filename);
 
 	return filename;
 }
