@@ -17,6 +17,7 @@
 #include "ezFCPlib.h"
 
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 extern char _fcpID[];

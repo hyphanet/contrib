@@ -14,14 +14,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "ezFCPlib.h"
-
-#include <unistd.h>
 #include <errno.h>
 #include <time.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
+
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
+#include "ezFCPlib.h"
 
 #ifndef P_tmpdir
   #define P_tmpdir "/tmp"

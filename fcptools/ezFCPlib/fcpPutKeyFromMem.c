@@ -14,6 +14,7 @@
 #include "ezFCPlib.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 extern char     _fcpID[];
 extern int fcpSplitChunkSize;

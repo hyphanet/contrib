@@ -11,14 +11,13 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#include "ezFCPlib.h"
-
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <unistd.h>
+/*#include <unistd.h>*/
 #include <stdlib.h>
 
+#include "ezFCPlib.h"
 
 /*
   Function:    fcpGetKeyToFile()
@@ -44,7 +43,7 @@ int fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata)
   unlink(file);
 
   /* open a file to write the key to */
-  if ((fd = open(file, OPEN_MODE_WRITE | O_CREAT, S_IRUSR | S_IWUSR)) < 0)
+  if ((fd = open(file, OPEN_MODE_WRITE | O_CREAT, OPEN_PERMS)) < 0)
     return -1;
 
   /* suck all of key's data into this file */

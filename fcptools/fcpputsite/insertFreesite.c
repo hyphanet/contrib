@@ -439,10 +439,13 @@ int insertFreesite(PutSiteOptions * _opts)
 		/* create a DBR root */
 		sprintf(dbrRootUri, "SSK@%s/%s", opts->privKey, opts->siteName);
 
+		/* Create proper redirect to DBR target */
 		metaRoot = strsav(NULL, NULL,
-											"Version\nRevision=1\nEndPart\n"
-											"Document\nDateRedirect.Target=freenet:SSK@");
+			"Version\nRevision=1\nEndPart\n"
+			"Document\nDateRedirect.Target=freenet:SSK@");
+
 		metaRoot = strsav(metaRoot, NULL, opts->pubKey);
+		metaRoot = strsav(metaRoot, NULL, "PAgM");
 		metaRoot = strsav(metaRoot, NULL, "/");
 		metaRoot = strsav(metaRoot, NULL, opts->siteName);
 		metaRoot = strsav(metaRoot, NULL, "\nEnd\n");
@@ -547,7 +550,7 @@ int insertFreesite(PutSiteOptions * _opts)
 		/* should be ok now */
 
 		_fcpLog(FCP_LOG_NORMAL, "============================================");
-		_fcpLog(FCP_LOG_NORMAL,	"Successfully inserted %s - %d days ahead", hfcp->created_uri, opts->daysAhead);
+		_fcpLog(FCP_LOG_NORMAL,	"Successfully inserted freenet:SSK@%sPAgM/%s// - %d days ahead", opts->pubKey, opts->siteName, opts->daysAhead);
 
 		return 0;
 	} /* !jobsfailed */

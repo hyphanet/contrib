@@ -11,6 +11,8 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+#include <stdio.h>
+
 #include "ezFCPlib.h"
 
 /*

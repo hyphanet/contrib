@@ -24,6 +24,15 @@
 **************************************************************************/
 #ifdef WINDOWS
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <fcntl.h>
+#include <malloc.h>
+#include <process.h>
+#include <winsock.h>
+#include <io.h>
+
 /* VERSION is defined by automake for non-Win platforms. */
 #define VERSION "0.4.7"
 
@@ -41,13 +50,10 @@
 #define OPEN_MODE_READ  (_O_RDONLY | _O_BINARY)
 #define OPEN_MODE_WRITE 0
 
+#define OPEN_PERMS (_S_IREAD | _S_IWRITE)
+
 #define S_IREAD _S_IREAD
 #define S_IWRITE _S_IWRITE
-
-#include <malloc.h>
-#include <process.h>
-#include <winsock.h>
-#include <io.h>
 
 /**************************************************************************
   NON MS-WINDOWS (Linux, BSD, ...)
@@ -57,6 +63,8 @@
 /* UNIX includes that do not correspond on WINDOWS go here */
 #define OPEN_MODE_READ  0
 #define OPEN_MODE_WRITE 0
+
+#define OPEN_PERMS (S_IRUSR | S_IWUSR)
 
 /* Keep 'sys' files first in include order */
 

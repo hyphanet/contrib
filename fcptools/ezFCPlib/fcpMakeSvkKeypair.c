@@ -37,7 +37,6 @@ extern char     _fcpID[];
 int fcpMakeSvkKeypair(HFCP *hfcp, char *pubkey, char *privkey)
 {
   char *cmd = "GenerateSVKPair\nEndMessage\n";
-  char key_dummy[256];
   int  n;
   int  len;
 

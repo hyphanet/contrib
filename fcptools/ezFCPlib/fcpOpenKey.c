@@ -106,7 +106,6 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
   char    *s;
   char    *path;
   char    *finalpath;
-  int      docFound;
   int      redirecting;
 
   long     offset = 0;

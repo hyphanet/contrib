@@ -24,6 +24,9 @@
 
 #include <sys/stat.h>
 
+#include <time.h>
+#include <stdio.h>
+
 typedef struct
 {
 	splitJobIns		*key;
@@ -182,7 +185,6 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	struct stat fileStat;
 	int			fd;
 	int			i;
-	char		*mimeType;
 	int			result;
 
 	splitJobIns *job = &hfcp->split;
@@ -337,7 +339,6 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file)
 {
 	splitJobIns *job = &hfcp->split;
-	splitChunkIns *chunk;
 	int i;
 	char *splitManifest;
 	char s[1024];
@@ -468,7 +469,7 @@ static void splitMgrThread(void *nothing)
 {
 	splitJobIns	*tmpJob, *prevJob;
 
-	splitJobIns *tmp1;
+	/*splitJobIns *tmp1;*/
 	int clicks = 0;
 	int breakloop = 0;
 
@@ -717,7 +718,6 @@ static int dumpQueue()
 static void chunkThread(void *params)
 {
   static int keynum = 0;
-  char mem[1024];
   HFCP *hfcp = fcpCreateHandle();
   int mypid = getpid();
 

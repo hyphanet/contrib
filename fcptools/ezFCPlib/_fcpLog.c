@@ -13,8 +13,8 @@
 
 #include "ezFCPlib.h"
 
+#include <stdio.h>
 #include <stdarg.h>
-
 
 extern int fcpLogCallback(int level, char *buf);
 
