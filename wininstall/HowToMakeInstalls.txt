@@ -12,22 +12,33 @@ How to make an install
   (make sure the entry listenPort= in freenet.ini exists, but no value is entered yet,
   otherwise this one will be used in all installs)
 2a)Create a Subdirectory of Freenet called "IEplugin" and put IEFreenetPlugin.dll for the IE plugin in there.
-3)Duplicate fserv.exe in the same directory as files: frequest.exe, finsert.exe and fproxy.exe
+3)Duplicate fserve.exe in the same directory as files: frequest.exe, finsert.exe and fproxy.exe
 4)Configure freenet.nsi to contain the correct version numbers and exe name on all appearances
 5)Call "makensis freenet"
+6)Test install AND LET OTHER PEOPLE INSTALL AS WELL, bugs often appear only with special 
+  configurations (Java Runtime, Win version, Path names,...)
 
-Remarks
-=======
- -To add the plugin support there will be subdirectories in the Freenet directory,
-  but that's not ready yet.
- -I don't update CVS too often, you might have to remind me to do so once in a while
 
 ToDo list (Help appreciated)
-=========
- - Integrate browser plugins in install, and make installation easy
+============================
+Browser plugins:
+IEplugin:
+ - Test if automatic install functions!
+Mozilla plugin:
+ - Either include browser plugins in the install or pop up a text file, telling how to
+   install them
+ - Add instructions about how to change the port number.
+Java source:
  - Make scripts.Setup.java so that it can silently create a freenet.ini with all defaults
+
  - turn off bandwidth throttling by default?
  - Write a better help file / manual / starter in a nice format (Windows help or html)
-
-Reminder to myself: I need to put the source of JavaFind into CVS as well!
+Cfgclient:
+ - on multiple runs it appends the node port several times, preventing FProxy to start up
+   (fixed?)
+FindJava.exe:
+ - Rename Cancel button to "Abort" (best to cancel whole installation!)
+ - Put the window in Front once it is pops up the search done alert.
+Bugs:
+ - Configure doesn't work with jview.exe but with javaw.exe
 
