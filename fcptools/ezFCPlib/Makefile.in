@@ -72,7 +72,7 @@ INCLUDES = -I$(srcdir)
 noinst_LIBRARIES = libezfcp.a
 noinst_PROGRAMS = test unix
 
-libezfcp_a_SOURCES =  	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c _fcpRecvResponse.c 	_fcpSock.c _fcpUtil.c fcpCloseKey.c fcpCreateHandle.c fcpDestroyHandle.c 	fcpGetKeyToFile.c fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c fcpOpenKeyIndex.c 	fcpPutKeyFromFile.c fcpPutKeyFromMem.c fcpRawMode.c fcpReadKey.c 	fcpReadKeyIndex.c fcpSetParam.c fcpStartup.c fcpWriteKey.c 	fcpWriteKeyIndex.c metaParse.c mimetype.c template.c
+libezfcp_a_SOURCES =  	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c _fcpRecvResponse.c 	_fcpSock.c _fcpUtil.c fcpCloseKey.c fcpCreateHandle.c fcpDestroyHandle.c 	fcpGetKeyToFile.c fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c fcpOpenKeyIndex.c 	fcpPutKeyFromFile.c fcpPutKeyFromMem.c fcpRawMode.c fcpReadKey.c 	fcpReadKeyIndex.c fcpSetParam.c fcpStartup.c fcpWriteKey.c 	fcpWriteKeyIndex.c metaParse.c mimetype.c template.c safeMalloc.c
 
 
 test_SOURCES =  	test.c
@@ -99,7 +99,7 @@ fcpInitHandle.o fcpMakChkFromMem.o fcpMakeChkFromFile.o \
 fcpMakeSvkKeypair.o fcpOpenKey.o fcpOpenKeyIndex.o fcpPutKeyFromFile.o \
 fcpPutKeyFromMem.o fcpRawMode.o fcpReadKey.o fcpReadKeyIndex.o \
 fcpSetParam.o fcpStartup.o fcpWriteKey.o fcpWriteKeyIndex.o metaParse.o \
-mimetype.o template.o
+mimetype.o template.o safeMalloc.o
 AR = ar
 PROGRAMS =  $(noinst_PROGRAMS)
 
@@ -136,7 +136,8 @@ DEP_FILES =  .deps/_fcpGlobals.P .deps/_fcpLog.P .deps/_fcpPutSplit.P \
 .deps/fcpPutKeyFromMem.P .deps/fcpRawMode.P .deps/fcpReadKey.P \
 .deps/fcpReadKeyIndex.P .deps/fcpSetParam.P .deps/fcpStartup.P \
 .deps/fcpWriteKey.P .deps/fcpWriteKeyIndex.P .deps/metaParse.P \
-.deps/mimetype.P .deps/template.P .deps/test.P .deps/unix.P
+.deps/mimetype.P .deps/safeMalloc.P .deps/template.P .deps/test.P \
+.deps/unix.P
 SOURCES = $(libezfcp_a_SOURCES) $(test_SOURCES) unix.c
 OBJECTS = $(libezfcp_a_OBJECTS) $(test_OBJECTS) unix.o
 
