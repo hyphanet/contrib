@@ -11,7 +11,8 @@
 //
 
 extern int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
-                          char *defaultFile, int daysFuture, int maxThreads, int maxRetries);
+                          char *defaultFile, int daysFuture, int maxThreads, int maxRetries,
+                          int dodbr);
 
 extern int fcpSplitChunkSize;
 
@@ -45,6 +46,7 @@ static char *siteName = NULL;               // name of site - SSK subspace ident
 static char *siteDir = NULL;                // directory of site's files
 static char *defaultFile = "index.html";    // redirect target for unnamed cdoc
 static int  generateKeys = 0;           // flag requiring keypair generation only
+static int  dodbr = 1;					// flag on whether we generate a dbr or not
 static int  maxThreads = 5;             // maximum number of concurrent insert threads
 static int  maxAttempts = 3;                // maximum number of insert attempts
 
@@ -84,7 +86,7 @@ int main(int argc, char* argv[])
 
     // all ok - now go off and try to insert the site
     error = insertFreesite(siteName, siteDir, pubKey, privKey,
-                            defaultFile, daysFuture, maxThreads, maxAttempts);
+                            defaultFile, daysFuture, maxThreads, maxAttempts, dodbr);
 	_fcpLog(FCP_LOG_DEBUG, "fcpputsite: returned from insertFreesite");
 
     return error;
@@ -158,6 +160,8 @@ static void parse_args(int argc, char *argv[])
             defaultFile = (++i < argc)
                         ? argv[i]
                         : (char *)usage("missing default file");
+	else if (!strcmp(argv[i], "-nodbr"))
+	    dodbr = 0;
         else if (!strcmp(argv[i], "-g"))
             generateKeys = 1;
         else
@@ -194,6 +198,7 @@ static int usage(char *s)
 	printf("  -ss:         size of splitfile chunks, default %d\n", SPLIT_BLOCK_SIZE);
 	printf("  -st:         max number of splitfile threads, default %d\n", FCP_MAX_SPLIT_THREADS);
     printf("  -g:          DON'T insert a site - just create an SVK keypair instead\n");
+    printf("  -nodbr       don't insert a dbr redirection, just a map file\n");
     printf("  -f numDays:  insert a map file numDays in the future, default 0 (today)\n");
     printf("  -def file:   name of site's 'default' file, default is index.html\n");
     printf("               the default file MUST exist in selected directory\n");

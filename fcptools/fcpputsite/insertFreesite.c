@@ -26,7 +26,7 @@ extern char     *GetMimeType(char *pathname);
 
 int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                     char *defaultFile, int daysFuture, int maxThreads,
-                    int maxretries);
+                    int maxretries, int dodbr);
 
 
 //
@@ -50,7 +50,7 @@ static int  defaultIndex;
 
 int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                    char *defaultFile, int daysFuture, int maxThreads,
-                   int maxAttempts)
+                   int maxAttempts, int dodbr)
 {
     SiteFile *files;
     int     i;
@@ -100,6 +100,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
     _fcpLog(FCP_LOG_NORMAL, "Private Key:      %s", privKey);
     _fcpLog(FCP_LOG_NORMAL, "Default file:     %s", defaultFile);
     _fcpLog(FCP_LOG_NORMAL, "Days ahead:       %d", daysFuture);
+    _fcpLog(FCP_LOG_NORMAL, "DBR:              %s", dodbr ? "yes" : "no");
     _fcpLog(FCP_LOG_NORMAL, "Maximum threads:  %d", maxThreads);
     _fcpLog(FCP_LOG_NORMAL, "Maximum attempts: %d", maxAttempts);
 
@@ -233,11 +234,16 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         metaRoot = strsav(metaRoot, "\nEnd\n");
 
         // create dbr target uri
-        time(&timeNow);
-        sprintf(dbrTargetUri, "SSK@%s/%lx-%s",
-                        privKey,
-                        (timeNow - (timeNow % 86400)) + (daysFuture * 86400),
-                        siteName);
+	if (dodbr)
+	{
+            time(&timeNow);
+            sprintf(dbrTargetUri, "SSK@%s/%lx-%s",
+                privKey,
+                (timeNow - (timeNow % 86400)) + (daysFuture * 86400),
+                siteName);
+        }
+        else
+            strcpy(dbrTargetUri, dbrRootUri);
 
         // create mapfile
         metaMap = strsav(NULL, "Version\nRevision=1\nEndPart\n");
@@ -274,7 +280,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         _fcpLog(FCP_LOG_NORMAL, "METADATA IS %d BYTES LONG", mapLen);
 
 		// insert DBR root
-        if (fcpPutKeyFromMem(hfcp, dbrRootUri, NULL, metaRoot, 0) != 0)
+        if (dodbr && fcpPutKeyFromMem(hfcp, dbrRootUri, NULL, metaRoot, 0) != 0)
         {
             _fcpLog(FCP_LOG_CRITICAL, "Failed to insert DBR root - aborting");
             return 1;
