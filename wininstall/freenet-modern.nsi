@@ -195,8 +195,12 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   dontInstallFlaunch:
 
   !ifdef WEBINSTALL
-  # copy self to main directory
-  CopyFiles "$2\freenet-webinstall.exe" "$INSTDIR\freenet-webinstall.exe"
+    !ifdef embedJava
+	File "freenet-webinstall.exe"
+    !else
+      # copy self to main directory
+      CopyFiles "$2\freenet-webinstall.exe" "$INSTDIR\freenet-webinstall.exe"
+    !endif
   !else
   # monolithic installer includes a copy of webinstaller
   File ".\Freenet\tools\freenet-webinstall.exe"
