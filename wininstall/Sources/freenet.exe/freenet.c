@@ -503,8 +503,8 @@ bool StartConfigOrig(void)
 	STARTUPINFO StartConfigInfo={	sizeof(STARTUPINFO),
 							NULL,NULL,NULL,
 							0,0,0,0,0,0,0,
-							STARTF_USESHOWWINDOW,
-							SW_MINIMIZE,
+							0,
+							0,
 							0,NULL,
 							NULL,NULL,NULL};
 	PROCESS_INFORMATION prcConfigInfo;
