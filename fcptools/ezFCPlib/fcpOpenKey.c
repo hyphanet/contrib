@@ -99,10 +99,6 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 		return -1;
 	}
 
-	/* unlink the tmpfiles, then relink them for subsequent calls to fcpReadKey() */
-	tmpfile_unlink(hfcp->key);
-	tmpfile_link(hfcp->key, O_RDONLY);
-	
 	_fcpLog(FCP_LOG_DEBUG, "retrieved key into tmpblocks: %s", hfcp->key->target_uri->uri_str);
 
   return 0;

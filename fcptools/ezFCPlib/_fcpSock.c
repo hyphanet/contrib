@@ -129,6 +129,7 @@ void _fcpSockDisconnect(hFCP *hfcp)
 #endif
 
 	hfcp->socket = FCP_SOCKET_DISCONNECTED;
+	_fcpLog(FCP_LOG_DEBUG, "_fcpSockDisconnect()");
 }
 
 /*******************************************************************/

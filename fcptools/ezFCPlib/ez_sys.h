@@ -31,9 +31,30 @@
 #ifndef _EZ_SYS_H
 #define _EZ_SYS_H 
 
+#ifdef WIN32
+#define _FCP_READFILE_FLAGS (_O_RDONLY | _O_BINARY)
+#define _FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC | _O_BINARY)
+#define _FCP_CREATEFILE_MODE (_S_IWRITE | _S_IREAD)
+
+#define _FCP_DIR_SEP '\\'
+
+typedef SOCKET FCPSOCKET;
+
+#else
+#define _FCP_READFILE_FLAGS (O_RDONLY)
+#define _FCP_WRITEFILE_FLAGS (O_CREAT | O_WRONLY | O_TRUNC)
+#define _FCP_CREATEFILE_MODE (S_IWUSR | S_IRUSR)
+
+#define _FCP_DIR_SEP '/'
+
+typedef int FCPSOCKET;
+#endif
+
+#define _FCP_READ   0x0001
+#define _FCP_WRITE  0x0002
+
 #ifdef DMALLOC
 #include "dmalloc.h"
-
 extern int _fcpDMALLOC;
 #endif
 
@@ -87,15 +108,17 @@ extern int   _fcpWrite(int fd, char *buf, int len);
 /* Others */
 extern char *_fcpGetMimetype(char *pathname);
 
+extern int   _fcpLink(hBlock *h, int access);
+extern void  _fcpUnlink(hBlock *h);
+
 extern int   _fcpTmpfile(char *filename);
 extern long  _fcpFilesize(char *filename);
 
-extern int   tmpfile_link(hKey *h, int flags);
-extern void  tmpfile_unlink(hKey *h);
+extern int   _fcpCopyFile(char *dest, char *src);
+extern int   _fcpDeleteFile(char *file);
 
 extern long  xtol(char *);
 extern int   memtoi(char *);
-extern int   copy_file(char *dest, char *src);
 
 extern int   put_file(hFCP *hfcp, char *uri);
 extern int   put_fec_splitfile(hFCP *hfcp);

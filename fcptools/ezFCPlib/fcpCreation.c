@@ -125,8 +125,6 @@ hOptions *_fcpCreateHOptions(void)
 	h = (hOptions *)malloc(sizeof (hOptions));
 	memset(h, 0, sizeof (hOptions));
 
-	/* set the home and temp dirs */
-
 	h->logstream = EZFCP_DEFAULT_LOGSTREAM;		
 	h->delete_local = EZFCP_DEFAULT_DELETELOCAL;
 	h->regress = EZFCP_DEFAULT_REGRESS;
@@ -228,11 +226,12 @@ hBlock *_fcpCreateHBlock(void)
 
 	h->uri = fcpCreateHURI();
 
-	if ((h->fd = _fcpTmpfile(h->filename)) == -1) {
+	if (_fcpTmpfile(h->filename) != 0) {
 		_fcpLog(FCP_LOG_DEBUG, "could not create temp file %s", h->filename);
 		return 0;
 	}		
 
+	h->fd = -1;
 	return h;
 }
 
@@ -248,9 +247,10 @@ void _fcpDestroyHBlock(hBlock *h)
 		}
 
 		if (strlen(h->filename)) {
+			int rc;
 
 			/* delete the file */
-			if (unlink(h->filename) == 0)
+			if ((rc = DeleteFile(h->filename)) == 0)
 				_fcpLog(FCP_LOG_DEBUG, "deleted temp file %s", h->filename);
 
 			else

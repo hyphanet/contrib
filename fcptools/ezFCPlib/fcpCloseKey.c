@@ -54,9 +54,6 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 {
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyRead()");
 
-	/* close the temporary files */
-	tmpfile_unlink(hfcp->key);
-
   return 0;
 }
 
@@ -70,9 +67,6 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
 
-	tmpfile_unlink(hfcp->key);
-	tmpfile_link(hfcp->key, O_RDONLY);
-
 	key_size  = hfcp->key->size;
 	meta_size = hfcp->key->metadata->size;
 
@@ -85,7 +79,6 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	if (rc) /* bail after cleaning up */
 		goto cleanup;
 
-	tmpfile_unlink(hfcp->key);
 	fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
 #ifdef DMALLOC
@@ -107,9 +100,6 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	}
 		
 	_fcpLog(FCP_LOG_VERBOSE, "Uri: %s", hfcp->key->target_uri->uri_str);
-
-	/* re-link the files in perparation for possible re-open via fcpOpenKey */
-	tmpfile_link(hfcp->key, O_WRONLY);
 	hfcp->key->size = hfcp->key->metadata->size = 0;
 	
 	return 0;

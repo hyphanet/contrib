@@ -57,13 +57,6 @@
 
 typedef SOCKET FCPSOCKET;
 
-#define FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC | _O_BINARY)
-#define FCP_CREATEFILE_MODE (_S_IWRITE | _S_IREAD)
-
-#define FCP_READFILE_FLAGS (_O_BINARY | _O_RDONLY)
-
-#define FCP_DIR_SEP '\\'
-
 /**************************************************************************
   UNIX specifics
 **************************************************************************/
@@ -78,13 +71,6 @@ typedef SOCKET FCPSOCKET;
 #include <unistd.h>
 
 typedef int FCPSOCKET;
-
-#define FCP_WRITEFILE_FLAGS (O_CREAT | O_WRONLY | O_TRUNC)
-#define FCP_CREATEFILE_MODE (S_IWUSR | S_IRUSR)
-
-#define FCP_READFILE_FLAGS (O_RDONLY)
-
-#define FCP_DIR_SEP '/'
 
 #endif
 

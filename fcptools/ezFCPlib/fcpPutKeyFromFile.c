@@ -54,9 +54,6 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
 	
-	/* unlink the tmpfiles, then re-link later */
-	tmpfile_unlink(hfcp->key);
-
 	/* put the target uri away */
 	fcpParseHURI(hfcp->key->target_uri, key_uri);
 
@@ -91,15 +88,13 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
 	_fcpLog(FCP_LOG_VERBOSE, "Copying tmp files");
 
-	if (key_filename)
-		if (copy_file(hfcp->key->tmpblock->filename, key_filename) < 0)
+	if (hfcp->key->size)
+		if (_fcpCopyFile(hfcp->key->tmpblock->filename, key_filename) < 0)
 			return -1;
 
-	if (meta_filename)
-		if (copy_file(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
+	if (hfcp->key->metadata->size)
+		if (_fcpCopyFile(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
 			return -1;
-
-	tmpfile_link(hfcp->key, O_RDONLY);
 
 	/* Now insert the key data as a CHK@, and later we'll insert a redirect
 		 if necessary. If it's larger than L_BLOCK_SIZE, insert as an FEC
@@ -111,13 +106,11 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 #endif
 
 	if (hfcp->key->size > hfcp->options->splitblock) {
-
 		_fcpLog(FCP_LOG_VERBOSE, "Start FEC encoded insert");
 		rc = put_fec_splitfile(hfcp);
 	}
 	
 	else { /* Otherwise, insert as a normal key */
-
 		_fcpLog(FCP_LOG_VERBOSE, "Start basic insert");
 		rc = put_file(hfcp, "CHK@");
 	}
