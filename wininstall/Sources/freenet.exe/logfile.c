@@ -572,7 +572,7 @@ DWORD CALLBACK __stdcall LogFileNotifyProc(LPVOID lpvParam)
 					}
 					else
 					{
-						ulFromHereFilePosition.QuadPart = d->ulCurrentLineFileOffset.QuadPart;
+						ulFromHereFilePosition.QuadPart = d->ulLastLineFileOffset.QuadPart;
 					}
 					nLines = d->nEditLines;
 					pTextPointer = ReadIntoFileBuffer(hLogFile, &ulFromHereFilePosition, pTextBuffer, sizeof(pTextBuffer), &dwBytesReadBefore, &dwBytesReadAfter);
@@ -670,8 +670,7 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 				break;
 			case SB_LINEUP:
 				// read up one line -
-				// implemented as read one line up from (first line file offset)-1
-				// then read nLines down from (that offset)
+				// implemented as read nLines down from (first line file offset)-1
 				if (d.ulFirstLineFileOffset.QuadPart>=1)
 				{
 					ulFromHereFilePosition.QuadPart = d.ulFirstLineFileOffset.QuadPart-1;
@@ -684,8 +683,7 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 				break;
 			case SB_LINEDOWN:
 				// read down one line -
-				// implemented as read one line down from (last line file offset)+1
-				// then read nLines up from (that offset)
+				// implemented as read nLines up from (last line file offset)+1
 				ulFromHereFilePosition.QuadPart = d.ulLastLineFileOffset.QuadPart+1;
 				break;
 			case SB_PAGEUP:
@@ -706,6 +704,36 @@ BOOL CALLBACK __stdcall LogFileViewerProc(HWND hwndDialog, UINT uMsg, WPARAM wPa
 				ulFromHereFilePosition.QuadPart = d.ulLastLineFileOffset.QuadPart+1;
 				bForward=TRUE;
 				break;
+			case SB_THUMBPOSITION:
+			case SB_THUMBTRACK:
+				{
+					// Call GetScrollInfo to get current tracking 
+					// Because WM_VSCROLL only contains 16 bits
+					SCROLLINFO si;
+					ZeroMemory(&si, sizeof(SCROLLINFO));
+					si.cbSize = sizeof(SCROLLINFO);
+		            si.fMask = SIF_TRACKPOS | SIF_RANGE;
+					bForward=TRUE;
+
+					if (GetScrollInfo(d.hwndScrollBar, SB_CTL, &si) )
+					{
+						if (si.nMax <= 0x7fffffff )
+						{
+							ulFromHereFilePosition.QuadPart = si.nTrackPos;
+						}
+						else
+						{
+							float bytePerPos = (((float)(LONGLONG)d.dwlFileSize.QuadPart)/(float)0x7fffffff);
+							ulFromHereFilePosition.QuadPart = (DWORDLONG)(si.nTrackPos*bytePerPos);
+						}
+					}
+					else
+					{
+						bDoNothing=TRUE;
+					}
+				}
+	            break;
+
 			default:
 				bDoNothing=TRUE;
 				break;
