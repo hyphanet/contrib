@@ -2,17 +2,11 @@
 #include <stdarg.h>
 #include <pthread.h>
 #include "anarcast.h"
+#include "graphs.h"
 #include "crypt.c"
 
 // how many blocks should be transfer at a time?
 #define CONCURRENCY   8
-
-// a teenage mutant ninja graph (tm)
-struct graph {
-    unsigned short dbc; // data block count
-    unsigned short cbc; // check block count
-    unsigned char *graph; // array of bits
-};
 
 // a node of our lovely AVL tree
 struct node {
@@ -21,15 +15,6 @@ struct node {
     struct node *left, *right;
     unsigned char heightdiff;
 };
-
-// load our evil mutant graphs from the graph file
-void load_graphs ();
-
-// how many graphs do we have? (graphs[0] = 1 data block)
-unsigned short graphcount;
-
-// the graphs themselves. graphs[0] = 1 data block, and so on
-struct graph *graphs;
 
 // our lovely AVL tree
 struct node *tree;
@@ -82,7 +67,6 @@ main (int argc, char **argv)
     }
     
     chdir_to_home();
-    load_graphs();
     inform((inform_server = argv[1]));
     l = listening_socket(PROXY_SERVER_PORT, INADDR_LOOPBACK);
     
@@ -129,54 +113,6 @@ alert (const char *s, ...)
 }
 
 //=== graph =================================================================
-
-void
-load_graphs ()
-{
-    int i, n;
-    char *data;
-    struct stat s;
-    
-    if (stat("graphs", &s) == -1)
-	die("Can't stat graphs file");
-    
-    if ((i = open("graphs", O_RDONLY)) == -1)
-	die("Can't open graphs file");
-
-    data = mmap(0, s.st_size, PROT_READ, MAP_SHARED, i, 0);
-    if (data == MAP_FAILED)
-	die("mmap() failed");
-
-    if (close(i) == -1)
-	die("close() failed");
-    
-    // the graph count is the first thing in the graph file
-    memcpy(&graphcount, data, 2);
-    graphs = malloc(sizeof(struct graph) * graphcount);
-    
-    // brutally load our graphs
-    for (n = 2, i = 0 ; i < graphcount ; i++) {
-	memcpy(&graphs[i].dbc, &data[n], 2);
-	n += 2;
-	memcpy(&graphs[i].cbc, &data[n], 2);
-	n += 2;
-	graphs[i].graph = &data[n];
-	n += (graphs[i].dbc * graphs[i].cbc) / 8;
-	if ((graphs[i].dbc * graphs[i].cbc) % 8)
-	    n++;
-	//alert("Graph %d: %d x %d.", i+1, graphs[i].dbc, graphs[i].cbc);
-	/*{
-	    int j, p;
-	    for (j = 0 ; j < graphs[i].dbc ; j++) {
-		for (p = 0 ; p < graphs[i].cbc ; p++)
-		    printf("%d", is_set(&graphs[i], j, p) ? 1 : 0);
-		printf("\n");
-	    }
-	}*/
-    }
-
-    alert("Loaded %d graphs.", graphcount);
-}
 
 int
 is_set (struct graph *g, int db, int cb)
