@@ -30,5 +30,7 @@ AC_FUNC_ALLOCA
 AC_TYPE_SIGNAL
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(getcwd mkdir mktime re_comp regcomp select socket strdup strerror strstr strtol)
+AC_CHECK_FUNC(gethostbyname,,[AC_CHECK_LIB(nsl,gethostbyname)])
+AC_CHECK_FUNC(setsockopt,,[AC_CHECK_LIB(socket,setsockopt)])
 
 AC_OUTPUT(Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile)
