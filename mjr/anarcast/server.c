@@ -1,6 +1,9 @@
 #include "anarcast.h"
 #include "crypt.c"
 
+// re-register with the inform server every hour
+#define REGISTER_INTERVAL (60*60)
+
 // mongolian cluster-fuck! sorry, i had to get that in somewhere
 void touch_inform_server (char *server);
 
@@ -14,6 +17,8 @@ int
 main (int argc, char **argv)
 {
     int m, l;
+    long last_register;
+    char *inform_server;
     fd_set r, w;
     
     if (argc != 2) {
@@ -22,8 +27,11 @@ main (int argc, char **argv)
     }
     
     chdir_to_home();
-    touch_inform_server(argv[1]);
     l = listening_socket(ANARCAST_SERVER_PORT, INADDR_ANY);
+    
+    inform_server = argv[1];
+    touch_inform_server(inform_server);
+    last_register = time(NULL);
     
     puts("Server started.");
     
@@ -37,7 +45,12 @@ main (int argc, char **argv)
 	int i, n, c;
 	struct stat st;
 	fd_set s = r, x = w;
-
+        
+	if (time(NULL) > last_register + REGISTER_INTERVAL) {
+	    touch_inform_server(inform_server);
+	    last_register = time(NULL);
+	}
+	
 	i = select(m, &s, &x, NULL, NULL);
 	if (i == -1) die("select() failed");
 	if (!i) continue;
