@@ -59,7 +59,7 @@ void do_insert (const char *blocks, const char *mask, int blockcount, int blocks
 void request (int c);
 
 // download all the blocks i can get, set mask[block] = 1 for each begot block
-void do_request (char *blocks, char *mask, int blockcount, int blocksize);
+void do_request (char *blocks, char *mask, int blockcount, int blocksize, const char *hashes);
 
 // add a reference to our lovely AVL tree. it better not be a duplicate!
 void addref (unsigned int addr);
@@ -355,7 +355,6 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 	for (i = 0 ; i < m ; i++)
 	    if (FD_ISSET(i, &x)) {
 		int n = xfers[i].off;
-		
 		if (n == -5)
 		    // command
 		    n = writeall(i, "i", 1);
@@ -377,7 +376,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 		    c = hookup(&hashes[xfers[i].num*HASHLEN]);
 		    FD_SET(c, &w);
 		    xfers[c].num = xfers[i].num;
-		    xfers[c].off = -5;
+		    xfers[c].off = -5; // 'i' + 4-byte datalength
 		}
 		
 		// are we done?
@@ -445,7 +444,7 @@ request (int c)
     // slurp up all the data we can
     alert("Requesting %d blocks of %d bytes each.", blockcount, blocksize);
     memset(mask, 0, blockcount); // all parts are missing before we download them
-    do_request(blocks, mask, blockcount, blocksize);
+    do_request(blocks, mask, blockcount, blocksize, hashes);
     alert("Request complete.");
     
     // verify data
@@ -471,8 +470,143 @@ out:
 }
 
 void
-do_request (char *blocks, char *mask, int blockcount, int blocksize)
+do_request (char *blocks, char *mask, int blockcount, int blocksize, const char *hashes)
 {
+    int m, next, active;
+    fd_set r, w;
+    
+    struct {
+	int num;
+	int off;
+	int dlen;
+    } xfers[FD_SETSIZE];
+    
+    FD_ZERO(&w);
+    next = active = 0;
+    m = 1;
+    
+    for (;;) {
+	int i;
+	fd_set s = r, x = w;
+
+	if (active) {
+	    i = select(m, &s, &x, NULL, NULL);
+	    if (i == -1) die("select() failed");
+	    if (!i) continue;
+	}
+
+	// make new connections
+	while (active < CONCURRENCY && next < blockcount) {
+	    int c;
+	    // skip this part, its mask is true
+	    if (mask && mask[next]) {
+		next++;
+		continue;
+	    }
+	    // connect to server, watch fd
+	    c = hookup(&hashes[next*HASHLEN]);
+	    FD_SET(c, &w);
+	    if (c >= m) m = c + 1;
+	    xfers[c].num = next;
+	    xfers[c].off = -(1+HASHLEN); // 'r' + hash
+	    active++;
+	    next++;
+	}
+
+	// send request to eligible servers
+	for (i = 0 ; i < m ; i++)
+	    if (FD_ISSET(i, &x)) {
+		int n = xfers[i].off;
+		if (n == -(1+HASHLEN))
+		    // command
+		    n = writeall(i, "r", 1);
+		else
+		    // hash
+		    n = writeall(i, &hashes[(xfers[i].num*HASHLEN)+n], -n);
+
+		// io error
+		if (n <= 0) {
+		    int c;
+		    ioerror();
+		    if (close(i) == -1)
+			die("close() failed");
+		    FD_CLR(i, &w);
+		    // connect to server, watch new fd
+		    c = hookup(&hashes[xfers[i].num*HASHLEN]);
+		    FD_SET(c, &w);
+		    xfers[c].num = xfers[i].num;
+		    xfers[c].off = -(1+HASHLEN); // 'r' + hash
+		}
+		
+		// are we done sending our request?
+		xfers[i].off += n;
+		if (!xfers[i].off) {
+		    if (close(i) == -1)
+			die("close() failed");
+		    FD_CLR(i, &w); // no more sending data...
+		    FD_SET(i, &r); // reading is good fer yer brane!
+		    xfers[i].off = -4; // data length
+		}
+	    }
+
+	// read our precious data
+	for (i = 0 ; i < m ; i++)
+	    if (FD_ISSET(i, &s)) {
+		int n = xfers[i].off;
+		if (n < 0)
+		    // data length
+		    n = readall(i, &(&xfers[i].dlen)[4+n], -n);
+		else
+		    // data
+		    n = readall(i, &blocks[(xfers[i].num*HASHLEN)+n], blocksize-n);
+		
+		if (n <= 0) {
+		    // the server hung up gracefully. request failed.
+		    if (xfers[i].off == -4) {
+			if (close(i) == -1)
+			    die("close() failed");
+			FD_CLR(i, &r);
+			if (i == m) m--;
+			active--;
+		    } else { // io error, restart
+			int c;
+			ioerror();
+			if (close(i) == -1)
+			    die("close() failed");
+			FD_CLR(i, &w);
+			// connect to server, watch new fd
+			c = hookup(&hashes[xfers[i].num*HASHLEN]);
+			FD_SET(c, &w);
+			xfers[c].num = xfers[i].num;
+			xfers[c].off = -(1+HASHLEN); // 'r' + hash
+		    }
+		}
+
+		// is the data length incorrect?
+		xfers[i].off += n;
+		if (!xfers[i].off && xfers[i].dlen != blocksize) {
+		    alert("Data length read for block %d is incorrect! (%d != %d)", xfers[i].num, xfers[i].dlen, blocksize);
+		    if (close(i) == -1)
+			die("close() failed");
+		    FD_CLR(i, &r);
+		    if (i == m) m--;
+		    active--;
+		}
+
+		// are we done reading the data?
+		if (xfers[i].off == blocksize) {
+		    if (close(i) == -1)
+			die("close() failed");
+		    FD_CLR(i, &r);
+		    if (i == m) m--;
+		    active--;
+		}
+	    }
+
+	// nothing left to do?
+	if (!active && next == blockcount)
+	    break;
+    }
 }
 
 //=== inform ================================================================
