@@ -42,8 +42,10 @@ main (int argc, char **argv)
 	if ((c = accept(l, NULL, 0)) != -1) {
 	    int *i = malloc(4);
 	    *i = c;
-	    pthread_create(&t, NULL, run_thread, i);
-	    pthread_detach(t);
+	    if (pthread_create(&t, NULL, run_thread, i) != 0)
+		err(1, "pthread_create() failed");
+	    if (pthread_detach(t) != 0)
+		err(1, "pthread_detach() failed");
 	}
 }
 
@@ -56,7 +58,8 @@ run_thread (void *arg)
         if (d == 'r') request(c);
         if (d == 'i') insert(c);
     }
-    close(c);
+    if (close(c) == -1)
+	err(1, "close() failed");
     free(arg);
     pthread_exit(NULL);
 }
@@ -77,7 +80,8 @@ insert (int c)
     p = mbuf(len);
     if (readall(c, p, len) != len) {
 	ioerror();
-	munmap(p, len);
+	if (munmap(p, len) == -1)
+	    err(1, "munmap() failed");
 	return;
     }
     
@@ -89,7 +93,8 @@ insert (int c)
     if (blockEncrypt(&cipher, &key, p, len, p) <= 0)
 	err(1, "blockEncrypt() failed");
     
-    munmap(p, len);
+    if (munmap(p, len) == -1)
+	err(1, "munmap() failed");
 }
 
 inline void
@@ -229,7 +234,8 @@ route (char hash[HASH_LEN])
 	}
 
 	rmref(n);
-	close(c);
+	if (close(c) == -1)
+	    err(1, "close() failed");
     }
     
     puts("\nServer list exhausted. Contacting inform server.\n");

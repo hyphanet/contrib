@@ -87,11 +87,13 @@ main ()
 		    if (off[n] != hosts) ioerror();
 		    active--;
 		    FD_CLR(n, &w);
-		    close(n);
+		    if (close(n) == -1)
+			err(1, "close() failed");
 		} else if ((off[n] += c) == end) {
 		    active--;
 		    FD_CLR(n, &w);
-		    close(n);
+		    if (close(n) == -1)
+			err(1, "close() failed");
 		}
 	    }
     }
@@ -123,7 +125,8 @@ weed_dead_servers ()
 	    f++;
 	}
 	
-	close(c);
+	if (close(c) == -1)
+	    err(1, "close() failed");
     }
     
     printf("%d of %d total hosts unreachable.\n", f, (end-hosts)/4);
