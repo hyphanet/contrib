@@ -18,10 +18,17 @@ MINGW*)
 	LIBFILE="libjbigi.so";;
 esac
 
-	#To link dynamically to GMP (use libgmp.so), uncomment the first line below
-	#To link statically to GMP, uncomment the second line below
-	#INCLUDELIBS="-lgmp"
+#To link dynamically to GMP (use libgmp.so or gmp.lib), uncomment the first line below
+#To link statically to GMP, uncomment the second line below
+if test $1 = "dynamic"
+then
+	echo "Building jbigi lib that is dynamically linked to GMP" 
+	LIBPATH="-L.libs"
+	INCLUDELIBS="-lgmp"
+else
+	echo "Building jbigi lib that is statically linked to GMP"
 	STATICLIBS=".libs/libgmp.a"
+fi
 
 echo "Compiling C code..."
 rm -f jbigi.o $LIBFILE

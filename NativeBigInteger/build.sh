@@ -5,6 +5,8 @@ MINGW*)
 	echo "Building windows .dll's";;
 Linux*)
 	echo "Building linux .so's";;
+FreeBSD*)
+	echo "Building linux .so's";;
 *)
 	echo "Unsupported build environment"
 	exit;;
@@ -24,13 +26,34 @@ do
 	cd bin/$x
 	../../gmp-4.1.3/configure --build=$x
 	make
-	../../build_jbigi.sh
+	../../build_jbigi.sh static
 	case `uname -sr` in
 	MINGW*)
 		cp jbigi.dll ../../lib/net/i2p/util/jbigi-windows-$x.dll;;
 	Linux*)
 		cp libjbigi.so ../../lib/net/i2p/util/libjbigi-linux-$x.so;;
+	FreeBSD*)
+		cp libjbigi.so ../../lib/net/i2p/util/libjbigi-freebsd-$x.so;;
 	esac
 	cd ..
 	cd ..
 done
+
+if `uname -sr`  startswith MINGW
+
+mkdir bin/dynamic
+cd bin/dynamic
+../../gmp-4.1.3/configure
+make
+../../build_jbigi.sh dynamic
+case `uname -sr` in
+MINGW*)
+	cp jbigi.dll ../../lib/jbigi-windows-dynamic.dll;;
+Linux*)
+	cp libjbigi.so ../../lib/libjbigi-linux-dynamic.so;;
+FreeBSD*)
+	cp libjbigi.so ../../lib/libjbigi-freebsd-dynamic.so;;
+esac
+cd ..
+cd ..
+
