@@ -30,11 +30,6 @@ extern CPropGeek		*pGeek;
 
 CConfigFile::CConfigFile()
 {
-	ULARGE_INTEGER freeDiskSpace,TotalNumberOfBytes;
-
-	// Set the free disk space available to the caller at creation of a CConfigFile instance
-	GetDiskFreeSpaceEx(NULL,&freeDiskSpace,&TotalNumberOfBytes,NULL);
-	freeDiskSpaceMB = (UINT)(freeDiskSpace.QuadPart >> 20); //use MB instead of bytes
 }
 
 CConfigFile::~CConfigFile()
@@ -54,7 +49,7 @@ void CConfigFile::Load()
 
 	// Normal tab
 	//pNormal->m_importNewNodeRef.EnableWindow(false);
-	pNormal->m_storeCacheSize = (UINT)min(max(10, (UINT)(0.2 * freeDiskSpaceMB)),2047); //def: 20% of free diskspace, but not larger 2GB(-1MB) and max 10MB
+	pNormal->m_storeCacheSize = 10;
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = true;
 
@@ -66,13 +61,13 @@ void CConfigFile::Load()
 	pAdvanced->m_fcpHosts = "127.0.0.1,localhost";
 	pAdvanced->m_initialRequestHTL = 15;
 	pAdvanced->m_inputBandwidthLimit = 0;
-	pAdvanced->m_ipAddress = "undefined";
+	pAdvanced->m_ipAddress = "";
 	srand( (unsigned)time( NULL ) );
 	pAdvanced->m_listenPort = rand() + 1024;	// random port number
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumConnectionThreads = 16;
 	pAdvanced->m_outputBandwidthLimit = 0;
-	pAdvanced->m_seedNodes = "seed.ref";
+	pAdvanced->m_seedNodes = "ALL.REF";
 	pAdvanced->m_transient = TRUE;
 
 	// Geek tab
@@ -104,6 +99,10 @@ void CConfigFile::Load()
 	pGeek->m_storeCacheFile = "";
 	pGeek->m_storeDataFile = "";
 	pGeek->m_streamBufferSize = 65536;
+
+	// Reset unknown parameters container
+	UnknownParms = "";
+
 
 	/////////////////////////////////
 	//
@@ -382,19 +381,21 @@ void CConfigFile::Save()
 	fprintf(fp, "# streamBufferSize: undocumented.\n");
 	fprintf(fp, "\n");
 	fprintf(fp, "streamBufferSize=%d\n", pGeek->m_streamBufferSize);
+	fprintf(fp, "\n");
 
-	// Now appending all additional values we don't handle
-	CString key, value;
-	POSITION pos = AdditionalProperties.GetStartPosition();
-	if (pos) fprintf(fp, "\n# Following are previously existing preferences:\n\n");
-	fclose(fp);
-
-	while(pos != NULL)
+	// Write out unknown parameters
+	if (UnknownParms.GetLength() > 0)
 	{
-		AdditionalProperties.GetNextAssoc(pos, key, value);
-		WritePrivateProfileString("Freenet node",(LPCSTR)key,(LPCSTR)value,FileName);
-		AdditionalProperties.RemoveKey((LPCSTR)key);
+		fprintf(fp, "# Unknown parameters - these are not yet known or handled by the NodeConfig\n");
+		fprintf(fp, "# utility, but are assumed to be valid and understandable to the node\n");
+		fprintf(fp, "# if you see this in the file, then please email the parameters following\n");
+		fprintf(fp, "# this comment header to devl@freenetproject.org, to prompt the developers\n");
+		fprintf(fp, "# into updating this configuration utility - thanks\n");
+		fprintf(fp, "\n");
+		fprintf(fp, "%s\n", UnknownParms.GetBuffer(0));
 	}
+
+	fclose(fp);
 }
 
 
@@ -405,14 +406,10 @@ void CConfigFile::Save()
 
 void CConfigFile::processItem(char *tok, char *val)
 {
-
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
 	else if (!strcmp(tok, "storeCacheSize"))
-	{
-		// use only existing value if differrent from 0 (propose our own default otherwise)
-		if (atol(val)) pNormal->m_storeCacheSize = atol(val) / 1048576;
-	}
+		pNormal->m_storeCacheSize = atol(val) / 1048576;
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))
@@ -493,17 +490,12 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_streamBufferSize = atoi(val);
 	else
 	{
-		//now remembering all additional preferences we don´t handle
-		AdditionalProperties.SetAt(tok,val);
-
-		// commenting out MessageBox on each unknown parameter (Sebastian Späth)
-		// char msg[1024];
-		// sprintf(msg, "Unknown param - '%s'", tok);
-		// MessageBox(0, msg, "Freenet Config - Error in freenet.ini", MB_SYSTEMMODAL);
-
-		
+		// Add to 'unknown parameters' list
+		UnknownParms += tok;
+		UnknownParms += "=";
+		UnknownParms += val;
+		UnknownParms += "\n";
 	}
-	
 }
 
 
