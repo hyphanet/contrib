@@ -24,6 +24,7 @@ public:
 private:
 	//{{AFX_DATA(CGetSeedDlg)
 	enum { IDD = IDD_GetSeed_DIALOG };
+	CProgressCtrl	m_dloadprogressbar;
 	CString	m_seedURL;
 	CString	m_seedfile;
 	//}}AFX_DATA

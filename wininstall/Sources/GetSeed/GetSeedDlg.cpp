@@ -33,6 +33,7 @@ void CGetSeedDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CGetSeedDlg)
+	DDX_Control(pDX, IDC_DLOADPROGRESS, m_dloadprogressbar);
 	DDX_Text(pDX, IDC_SEEDURL, m_seedURL);
 	DDX_Text(pDX, IDC_SEEDFILE, m_seedfile);
 	//}}AFX_DATA_MAP
@@ -71,7 +72,7 @@ BOOL CGetSeedDlg::OnGetseed()
 	char buf[512];
 	BOOL success = 1, doDialUp = 0;
 	DWORD filesize = 0;
-	DWORD size_fsize = 4; //size of filesize buffer in bytes
+	DWORD fsize_bufsize = 4; //size of filesize buffer in bytes
 	DWORD dwFlags = INTERNET_STATE_DISCONNECTED; //check for existing connection flags
 	DWORD read;
 	DWORD written;
@@ -88,18 +89,21 @@ BOOL CGetSeedDlg::OnGetseed()
 		}
 		doDialUp = TRUE;
 	}
-
+	UpdateData(TRUE);
 	hInternet = InternetOpen(AfxGetApp()->m_pszAppName, INTERNET_OPEN_TYPE_PRECONFIG , NULL, NULL, NULL /*dwFlags*/); // returns NULL on failure
-	hhttpFile = InternetOpenUrl(hInternet, m_seedURL, NULL, NULL, INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_RESYNCHRONIZE|INTERNET_FLAG_NO_UI, NULL); //return FAIL on error
-	//Get the filesize via HttpQueryInfo if we need a progress meter at one time
-	//HttpQueryInfo(hhttpFile,HTTP_QUERY_CONTENT_LENGTH|HTTP_QUERY_FLAG_NUMBER,&filesize,&size_fsize,NULL);
-	//MessageBox(itoa(filesize,(char*)&buf,10));
+	hhttpFile = InternetOpenUrl(hInternet, m_seedURL, NULL, NULL, INTERNET_FLAG_NO_UI, NULL); //return FAIL on error
+	HttpQueryInfo(hhttpFile,HTTP_QUERY_CONTENT_LENGTH|HTTP_QUERY_FLAG_NUMBER,(LPVOID)&filesize,&fsize_bufsize,NULL);
+	if (filesize) 
+	{	//Set progress bar control step size
+		m_dloadprogressbar.SetStep((int)(100*512/filesize));
+	}
 	success = ((hfile = CreateFile(m_seedfile, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)) != INVALID_HANDLE_VALUE) && success;
 	do 
 	{
 		success = InternetReadFile(hhttpFile, buf, 512, &read) && success;
 		success = WriteFile(hfile, buf, read, &written, 0) && success;
 		success = (written == read) && success;
+		if (filesize && written && success) m_dloadprogressbar.StepIt();
 	} while (written && success);
 
 	// Cleanup now
@@ -133,5 +137,7 @@ BOOL CGetSeedDlg::OnGetlocalseed()
 		str.LoadString(IDS_ERR_GETSEED);
 		MessageBox(str,NULL,MB_OK|MB_ICONERROR);
 	}
+	else EndDialog(1);
+
 	return success;
 }
