@@ -45,33 +45,23 @@ int _fcpSockConnect(hFCP *hfcp)
 {
   int rc;
 
-  struct sockaddr_in localAddr, servAddr;
-	struct in_addr host_addr;
+  struct sockaddr_in sa_local_addr;
+  struct sockaddr_in sa_serv_addr;
+
+  struct in_addr in_address;
 	struct hostent *host_ent;
 
-	/* this little code-tangent allows it to work on Windows correctly.
-		 you cannot pass an ip address to gethostbyname() on windows as you
-		 can on linux.  check the MSDN (keyword "gethostbyname") for the
-		 relevant information.  if anyone has a better way, please show me. */
-	
 	if (host_is_numeric(hfcp->host)) {
-		if (!(rc = inet_aton(hfcp->host, &host_addr))) {
-			return -1;
-		}
-		
-		host_ent = gethostbyaddr(&host_addr, sizeof(struct in_addr), AF_INET);
+    in_address.s_addr = inet_addr(hfcp->host);
 	}
-	else /* host must be an alpha-numeric symbolic name */
-		host_ent = gethostbyname(hfcp->host);
-	
-	if (!(host_ent)) {
-		_fcpLog(FCP_LOG_DEBUG, "could not get host information for \"%s\"", hfcp->host);
-		return -1;
-	}
-	
-  servAddr.sin_family = host_ent->h_addrtype;
-  memcpy((char *) &servAddr.sin_addr.s_addr, host_ent->h_addr_list[0], host_ent->h_length);
-  servAddr.sin_port = htons(_fcpPort);
+  else {
+    host_ent = gethostbyname(hfcp->host);
+    memcpy((struct in_addr *)&in_address, host_ent->h_addr_list[0], host_ent->h_length);
+  }
+  
+  sa_serv_addr.sin_family = host_ent->h_addrtype;
+  memcpy((char *) &sa_serv_addr.sin_addr.s_addr, host_ent->h_addr_list[0], host_ent->h_length);
+  sa_serv_addr.sin_port = htons(_fcpPort);
 
   /* create socket */
   hfcp->socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -79,11 +69,11 @@ int _fcpSockConnect(hFCP *hfcp)
   if (hfcp->socket < 0) return -1;
 
   /* bind any port number */
-  localAddr.sin_family = AF_INET;
-  localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  localAddr.sin_port = htons(0);
+  sa_local_addr.sin_family = AF_INET;
+  sa_local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  sa_local_addr.sin_port = htons(0);
 	
-  rc = bind(hfcp->socket, (struct sockaddr *) &localAddr, sizeof(localAddr));
+  rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
   if (rc < 0) {
 		_fcpLog(FCP_LOG_DEBUG, "error binding to port %d", hfcp->port);
 		crSockDisconnect(hfcp);
@@ -91,7 +81,7 @@ int _fcpSockConnect(hFCP *hfcp)
   }
 
   /* connect to server */
-  rc = connect(hfcp->socket, (struct sockaddr *) &servAddr, sizeof(servAddr));
+  rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
   if (rc < 0) {
 		_fcpLog(FCP_LOG_DEBUG, "error connecting to server %s", hfcp->host);
 		crSockDisconnect(hfcp);

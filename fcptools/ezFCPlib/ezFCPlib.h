@@ -376,7 +376,7 @@ typedef struct {
 extern char  _fcpID[4];
 
 extern char *_fcpHost;
-extern int   _fcpPort;
+extern unsigned short _fcpPort;
 extern int   _fcpHtl;
 extern int   _fcpRawmode;
 
