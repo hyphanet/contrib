@@ -33,6 +33,8 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
+#define strcasecmp(s1, s2) strcmpi(s1, s2)
+
 #define S_IREAD _S_IREAD 
 #define S_IWRITE _S_IWRITE
 

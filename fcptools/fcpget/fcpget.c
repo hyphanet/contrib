@@ -10,9 +10,7 @@
 #define _GNU_SOURCE
 #include "getopt.h"
 
-/*
-  IMPORTED DECLARATIONS
-*/
+int fcpLogCallback(int level, char *buf);
 
 
 /*
@@ -268,8 +266,7 @@ static void usage(char *s)
 
 int fcpLogCallback(int level, char *buf)
 {
-    if (level <= verbosity)
-      puts(buf);
-    return 0;
+	//if (level <= verbosity)
+	printf("level: %d, verbosity: %d !!! --%s\n", level, verbosity, buf);
+	return 0;
 }
-

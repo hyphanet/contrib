@@ -97,14 +97,14 @@ META04 *metaParse(char *buf)
         switch (state)
         {
         case STATE_BEGIN:
-            if (!strcmp(key, "Version"))
+            if (!strcasecmp(key, "Version"))
                 state = STATE_INHDR;
             else
                 _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'Version', got '%s'", key);
             break;
 
         case STATE_INHDR:
-            if (!strcmp(key, "Revision"))
+            if (!strcasecmp(key, "Revision"))
             {
                 if (val != NULL)
                 {
@@ -119,19 +119,19 @@ META04 *metaParse(char *buf)
             break;
 
         case STATE_WAITENDHDR:
-            if (!strcmp(key, "EndPart"))
+            if (!strcasecmp(key, "EndPart"))
             {
                 state = STATE_WAITDOC;
                 break;
             }
-            else if (!strcmp(key, "End"))
+            else if (!strcasecmp(key, "End"))
                 state = STATE_END;
             else
                 _fcpLog(FCP_LOG_NORMAL, "Metadata: expected 'EndPart' or 'End', got '%s'", key);
             break;
 
         case STATE_WAITDOC:
-            if (!strcmp(key, "Document"))
+            if (!strcasecmp(key, "Document"))
             {
 							// create empty fieldset struct
 							thisdoc = meta->numDocs++;
@@ -147,9 +147,9 @@ META04 *metaParse(char *buf)
             break;
 
         case STATE_INDOC:
-            if (!strcmp(key, "EndPart"))
+            if (!strcasecmp(key, "EndPart"))
                 state = STATE_WAITDOC;
-            else if (!strcmp(key, "End"))
+            else if (!strcasecmp(key, "End"))
                 state = STATE_END;
             else
             {
@@ -310,7 +310,7 @@ FLDSET *cdocFindDoc(META04 *meta, char *cdocName)
         // search for named cdoc
         for (i = 0; i < meta->numDocs; i++)
             if ((s = cdocLookupKey(meta->cdoc[i], "Name")) != NULL
-                && !strcmp(s, cdocName)
+                && !strcasecmp(s, cdocName)
             )
                 return meta->cdoc[i];
         // no cdoc matching name
@@ -337,7 +337,7 @@ char *cdocLookupKey(FLDSET *fldset, char *keyName)
         return NULL;
 
     for (i = 0; i < fldset->numFields; i++)
-        if (!strcmp(fldset->key[i].name, keyName))
+        if (!strcasecmp(fldset->key[i].name, keyName))
             // found it
             return fldset->key[i].value;
 
