@@ -153,14 +153,6 @@
 	Connection handling structgures and definitions.
 */
 typedef struct {
-  int   protocol;  /* Protocol=<number: protocol version number.  Currently 1> */
-  char *node;      /* Node=<string: freeform: Description of the nodes> */
-	
-	int   highest_build;
-	int   max_filesize;
-} FCPRESP_NODEHELLO;
-
-typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
 	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
@@ -408,7 +400,7 @@ typedef struct {
 	int   delete_local;
 
 	char *description;
-  int   protocol;
+  char *protocol;
 	int   highest_build;
 	int   max_filesize;
 
@@ -487,6 +479,7 @@ extern "C" {
 	int   fcpWriteMetadata(hFCP *hfcp, char *buf, int len);
 	int   fcpReadMetadata(hFCP *hfcp, char *buf, int len);
 
+	/* Sends a NodeHello and parses the response into hfcp */
 	int   fcpSendHello(hFCP *hfcp);	
 	
 	/* Client functions for operations between files on disk and freenet */
