@@ -1,20 +1,18 @@
 
-//
-//  This code is part of FreeWeb - an FCP-based client for Freenet
-//
-//  Designed and implemented by David McNab, david@rebirthing.co.nz
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The FreeWeb website is at http://freeweb.sourceforge.net
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
+/*
+  This code is part of FreeWeb - an FCP-based client for Freenet
 
+  Designed and implemented by David McNab, david@rebirthing.co.nz
+  CopyLeft (c) 2001 by David McNab
+
+  The FreeWeb website is at http://freeweb.sourceforge.net
+  The website for Freenet is at http://freenet.sourceforge.net
+
+  This code is distributed under the GNU Public Licence (GPL) version 2.
+  See http://www.gnu.org/ for further details of the GPL.
+*/
 
 #include "ezFCPlib.h"
-
 
 //static int    getrespchar(HFCP *hfcp);
 static int  getrespHello(HFCP *hfcpconn);
@@ -28,7 +26,7 @@ static int  getrespUrierror(HFCP *hfcpconn);
 static int  getrespKeycollision(HFCP *hfcp);
 static int  getrespRouteNotFound(HFCP *hfcp);
 static int  getrespblock(HFCP *hfcp, char *respblock, int bytesreqd);
-static int  getrespline(HFCP *hfcp, unsigned char *buf);
+static int  getrespline(HFCP *hfcp, char *buf);
 static int  htoi(char *s);
 
 
@@ -585,9 +583,9 @@ static int getrespblock(HFCP *hfcp, char *respblock, int bytesreqd)
 //
 // Description: Reads a single line of text from response buffer
 
-static int getrespline(HFCP *hfcp, unsigned char *buf)
+static int getrespline(HFCP *hfcp, char *buf)
 {
-    unsigned char *cp = buf;
+    char *cp = buf;
 
     // get chars one by one till newline or till we run out
     while (_fcpSockReceive(hfcp, cp, 1) > 0)
