@@ -41,8 +41,8 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(CGetSeedDlg)
 	virtual BOOL OnInitDialog();
-	afx_msg BOOL OnGetseed();
-	afx_msg BOOL OnGetlocalseed();
+	afx_msg void OnGetseed();
+	afx_msg void OnGetlocalseed();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 private:

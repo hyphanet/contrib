@@ -37,6 +37,7 @@ void CPropAdvanced::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(CPropAdvanced)
 	DDX_Text(pDX, IDC_adminPassword, m_adminPassword);
 	DDV_MaxChars(pDX, m_adminPassword, 32);
+	DDX_Text(pDX, IDC_adminPeer, m_adminPeer);
 	DDX_Text(pDX, IDC_bandwidthLimit, m_bandwidthLimit);
 	DDV_MinMaxUInt(pDX, m_bandwidthLimit, 0, 999999999);
 	DDX_Text(pDX, IDC_clientPort, m_clientPort);

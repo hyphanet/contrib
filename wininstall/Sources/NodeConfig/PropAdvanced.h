@@ -30,6 +30,7 @@ public:
 	//{{AFX_DATA(CPropAdvanced)
 	enum { IDD = IDD_PP_ADVANCED };
 	CString m_adminPassword;
+	CString m_adminPeer;
 	UINT	m_bandwidthLimit;
 	UINT	m_clientPort;
 	BOOL	m_doAnnounce;

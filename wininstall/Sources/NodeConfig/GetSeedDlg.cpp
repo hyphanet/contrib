@@ -52,7 +52,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CGetSeedDlg message handlers
 
-BOOL CGetSeedDlg::OnInitDialog()
+afx_msg BOOL CGetSeedDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
@@ -67,7 +67,7 @@ BOOL CGetSeedDlg::OnInitDialog()
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-BOOL CGetSeedDlg::OnGetseed()
+void CGetSeedDlg::OnGetseed()
 //returns TRUE on success
 {
 	HINTERNET hInternet=NULL, hhttpFile=NULL;
@@ -98,7 +98,8 @@ BOOL CGetSeedDlg::OnGetseed()
 	{
 		str.LoadString(IDS_ERR_NOWININET);
 		MessageBox(str,NULL,MB_OK|MB_ICONERROR);
-		return FALSE;
+		return;
+//		return FALSE;
 	}
 
 	fnINTERNETGETCONNECTEDSTATE pInternetGetConnectedState = (fnINTERNETGETCONNECTEDSTATE)GetProcAddress(hWinInet, "InternetGetConnectedState");
@@ -125,7 +126,8 @@ BOOL CGetSeedDlg::OnGetseed()
 		MessageBox(str,NULL,MB_OK|MB_ICONERROR);
 		FreeLibrary(hWinInet);
 		hWinInet=NULL;
-		return FALSE;
+		return;
+//		return FALSE;
 	}
 
 
@@ -138,7 +140,8 @@ BOOL CGetSeedDlg::OnGetseed()
 			//abort the download and quit the function
 			FreeLibrary(hWinInet);
 			hWinInet=NULL;
-			return FALSE;
+			return;
+//			return FALSE;
 		}
 		doDialUp = TRUE;
 	}
@@ -181,11 +184,11 @@ BOOL CGetSeedDlg::OnGetseed()
 		str.LoadString(IDS_ERR_GETSEED);
 		MessageBox(str,NULL,MB_OK|MB_ICONERROR);
 	}
-
-	return success;
+	return;
+//	return success;
 }
 
-BOOL CGetSeedDlg::OnGetlocalseed()
+void CGetSeedDlg::OnGetlocalseed()
 {
 	BOOL success;
 	CString str;
@@ -201,6 +204,7 @@ BOOL CGetSeedDlg::OnGetlocalseed()
 	}
 	else EndDialog(1);
 
-	return success;
+	return;
+//	return success;
 }
 

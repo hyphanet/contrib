@@ -30,24 +30,14 @@ extern CPropDiagnostics *pDiagnostics;
 
 CString getTempDir()
 {
-	TCHAR tchBuf[128];
+	TCHAR tchBuf[MAX_PATH];
 	CString dir;
-	bool found;
-	if (GetEnvironmentVariable("TEMP", tchBuf, 128) > 0) {
-		dir = tchBuf;
-		found = true;
-	} else if (GetEnvironmentVariable("TMP", tchBuf, 128) > 0) {
-		dir = tchBuf;
-		found = true;
-	} else {
-		dir = "Need temporary directory";
-		found = false;
-	}
+	if(!GetTempPath(MAX_PATH, tchBuf))
+		return ""; // it failed (how?)
+	dir = tchBuf;
 
-	if(found)
-	{
-		// TODO: put it in a special freenet directory that can be wiped every time the freenet.exe restarts
-	}
+	// add a "\freenet" to the end of the dir
+	dir += "freenet\\";
 
 	return dir;
 }	
@@ -64,7 +54,7 @@ CConfigFile::CConfigFile()
      PHOSTENT hostinfo;
 
 	//Try to guess the own host name
-	pNormal->m_ipAddress = "undefined";
+	pNormal->m_ipAddress = "localhost";
 
 	if(!gethostname ( name, sizeof(name)))
     {
@@ -75,6 +65,9 @@ CConfigFile::CConfigFile()
         }
     }
 
+	// set the ip address to undefined if it does not contain a '.' (all valid ip addresses/domain names should)
+	if(pNormal->m_ipAddress != "localhost" && pNormal->m_ipAddress.Find('.') == -1)
+		pNormal->m_ipAddress = "localhost";
 }
 
 
@@ -144,6 +137,7 @@ void CConfigFile::Load()
 
 	// Advanced tab
 	pAdvanced->m_adminPassword = "";
+	pAdvanced->m_adminPeer = "";
 	pAdvanced->m_bandwidthLimit = 0;
 	pAdvanced->m_clientPort = 8481;
 	pAdvanced->m_doAnnounce = false;
@@ -174,7 +168,7 @@ void CConfigFile::Load()
 	pGeek->m_maximumPadding = 65536;
 	pGeek->m_routeConnectTimeout = 10000;
 	pGeek->m_rtMaxNodes = 100;
-	pGeek->m_rtMaxRefs = 1000;
+	pGeek->m_rtMaxRefs = 100;
 	pGeek->m_storeType = "freenet";
 	pGeek->m_storeDataFile = "";
 	pGeek->m_streamBufferSize = 65536;
@@ -318,7 +312,7 @@ void CConfigFile::Save()
 	fprintf(fp, "# This is needed in order for the node to determine its own\n");
 	fprintf(fp, "# NodeReference.\n");
 	if (pNormal->m_ipAddress.GetLength() == 0)
-		fprintf(fp, "#ipAddress=\n");
+		fprintf(fp, "ipAddress=localhost\n");
 	else
 		fprintf(fp, "ipAddress=%s\n", pNormal->m_ipAddress.GetBuffer(1));
 	fprintf(fp, "\n");
@@ -376,6 +370,10 @@ void CConfigFile::Save()
 	fprintf(fp, "# If this is set, then users that are authenticated owners\n");
 	fprintf(fp, "# of the given PK identity can have administrative access.\n");
 	fprintf(fp, "# If adminPassword is also set both are required.\n");
+	if (pAdvanced->m_adminPeer.GetLength() == 0)
+		fprintf(fp, "#adminPeer=\n");
+	else
+		fprintf(fp, "adminPeer=%s\n", pAdvanced->m_adminPeer.GetBuffer(1));
 	fprintf(fp, "\n");
 	fprintf(fp, "# When forwarding a request, the node will reduce the HTL to this value\n");
 	fprintf(fp, "# if it is found to be in excess.\n");
@@ -452,8 +450,8 @@ void CConfigFile::Save()
 	fprintf(fp, "# The number of unique nodes that can be contained in the routing table.\n");
 	fprintf(fp, "rtMaxNodes=%d\n", pGeek->m_rtMaxNodes);
 	fprintf(fp, "\n");
-	fprintf(fp, "# The number of references allowed in the routing table.  This should not\n");
-	fprintf(fp, "# be set too high.  It is suggested to leave it at 1000 for now.\n");
+	fprintf(fp, "# The number of references allowed in the routing table per node.  This\n");
+	fprintf(fp, "# should not be set too high.  It is suggested to leave it at 100 for now.\n");
 	fprintf(fp, "rtMaxRefs=%d\n", pGeek->m_rtMaxRefs);
 	fprintf(fp, "\n");
 	fprintf(fp, "# The path to the file containing the node's reference to itself, its\n");
@@ -545,6 +543,14 @@ void CConfigFile::Save()
 	fprintf(fp, "failureTableTime=%lu000\n",pDiagnostics->m_nFailureTableTimeSeconds);
 	fprintf(fp, "\n");
 
+	// FIXME: Node status settings (hardcoded for now
+	fprintf(fp, "########################\n");
+	fprintf(fp, "# Node status servlet settings\n");
+	fprintf(fp, "########################\n");
+	fprintf(fp, "nodestatus.class=freenet.client.http.NodeStatusServlet\n");
+	fprintf(fp, "nodestatus.port=8889\n");
+	fprintf(fp, "\n");
+
 	// Write out unknown parameters
 	if (pGeek->m_unknowns.GetLength() > 0)
 	{
@@ -634,6 +640,8 @@ void CConfigFile::processItem(char *tok, char *val)
 		pAdvanced->m_initialRequestHTL = atoi(val);
 	else if (!strcmp(tok, "adminPassword"))
 		pAdvanced->m_adminPassword = val;
+	else if (!strcmp(tok, "adminPeer"))
+		pAdvanced->m_adminPeer = val;
 	else if (!strcmp(tok, "maxHopsToLive"))
 		pAdvanced->m_maxHopsToLive = atoi(val);
 	else if (!strcmp(tok, "maximumThreads"))
@@ -782,7 +790,6 @@ char *CConfigFile::splitLine(char *buf)
 {
     char *eq;
     char *s, *s1;
-	int i;
 
 	// delete trailing line terminators
 	s = buf + strlen(buf) - 1;
@@ -817,13 +824,16 @@ char *CConfigFile::splitLine(char *buf)
     for (s = eq - 1; strchr(" \t", *s) != NULL; s--)
         *s = '\0';
 
+	// catch if ends with =
+	if(strlen(eq + 1) == 0)
+		return NULL;
+
     // delete whitespace before value
-	i = strlen(eq + 1);
-	for (s = eq + 1; strchr(" \t", *s) != NULL && i > 0; s++)
+	for (s = eq + 1; strchr(" \t", *s) != NULL; s++)
 		;
 
     // bail if nothing left in value
-    if (*s == '\0' || s >= eq + i)
+    if (*s == '\0')
         return NULL;
 
     // delete whitespace after value

@@ -102,6 +102,7 @@
 #define IDC_FAILURETABENTRIESSPIN       1092
 #define IDC_BINBOUNDCONTACTS            1093
 #define IDC_FAILURETABTIME              1095
+#define IDC_adminPeer                   1095
 #define IDC_FAILURETABTIMESPIN          1096
 #define IDC_BOUTBOUNDCONTACTS           1097
 #define IDC_BINBOUNDREQUESTS            1098
@@ -125,7 +126,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1095
-#define _APS_NEXT_SYMED_VALUE           101
+#define _APS_NEXT_CONTROL_VALUE         1096
+#define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

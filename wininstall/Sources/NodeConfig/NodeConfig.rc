@@ -124,9 +124,9 @@ BEGIN
     LTEXT           "File containing external Node Refs:",IDC_STATIC,16,21,
                     66,17
     EDITTEXT        IDC_SEEDFILE,85,25,94,12,ES_AUTOHSCROLL
-    GROUPBOX        "Node Announcements",IDC_STATIC,7,55,305,40
+    GROUPBOX        "Node Announcements",IDC_STATIC,7,69,305,31
     CONTROL         "Announce to Other Nodes",IDC_doAnnounce,"Button",
-                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,16,68,56,18
+                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,16,77,56,18
     GROUPBOX        "FCP access - allowing use of client programs",
                     IDC_STATIC,7,104,305,75
     LTEXT           "FCP Port",IDC_STATIC,16,118,43,10
@@ -163,12 +163,12 @@ BEGIN
                     UDS_ARROWKEYS,174,248,11,15
     LTEXT           "Node Admin Password (optional)",IDC_STATIC,200,16,103,
                     11
-    EDITTEXT        IDC_adminPassword,200,28,75,12,ES_PASSWORD | 
+    EDITTEXT        IDC_adminPassword,200,27,75,12,ES_PASSWORD | 
                     ES_AUTOHSCROLL | WS_DISABLED
     LTEXT           "Unless you really need to change it, the FCP port number can and should be left at its default (port 8481).",
                     IDC_STATIC,68,119,232,21
     LTEXT           "Once your node is up and running happily within Freenet, it might be good to turn this option off.",
-                    IDC_STATIC,99,70,198,18
+                    IDC_STATIC,99,79,198,18
     LTEXT           "CPU Priority",IDC_STATIC,204,237,41,10
     CONTROL         "Slider1",IDC_slider_CPUPriority,"msctls_trackbar32",
                     TBS_AUTOTICKS | WS_TABSTOP,200,251,100,7
@@ -178,6 +178,9 @@ BEGIN
     CONTROL         "Spin4",IDC_maxNodeConnections_spin,"msctls_updown32",
                     UDS_ARROWKEYS,270,214,11,15
     EDITTEXT        IDC_maxNodeConnections,250,215,19,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_adminPeer,200,50,89,12,ES_AUTOHSCROLL
+    LTEXT           "Node Peers (optional)",IDC_STATIC,200,40,69,10
+    GROUPBOX        "Node Admin",IDC_STATIC,193,7,119,59
 END
 
 IDD_EDITUNKNOWN DIALOG DISCARDABLE  0, 0, 307, 183
@@ -264,7 +267,7 @@ BEGIN
     EDITTEXT        IDC_storeType,109,202,187,12,ES_AUTOHSCROLL
 END
 
-IDD_PP_NORMAL DIALOG DISCARDABLE  0, 0, 319, 274
+IDD_PP_NORMAL DIALOGEX 0, 0, 319, 274
 STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Normal Settings"
 FONT 8, "MS Sans Serif"
