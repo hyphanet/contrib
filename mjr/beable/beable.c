@@ -3,7 +3,7 @@
 #define RECENT_ADDITIONS_LENGTH   48
 #define FPROXY_ADDRESS            "http://localhost:8081/"
 #define ACCEPT_THREADS		  16
-#define _GNU_SOURCE // rwlocks! yay!
+#define _GNU_SOURCE
 
 #include <stdlib.h>
 #include <stdio.h>
