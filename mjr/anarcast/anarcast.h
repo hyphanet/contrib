@@ -36,7 +36,7 @@
 	    msg, strerror(errno));                                           \
     exit(1);                                                                 \
 }
-/*
+
 // a safe malloc
 inline void *
 malloc (size_t size)
@@ -46,7 +46,7 @@ malloc (size_t size)
 	die("malloc() failed");
     return p;
 }
-*/
+
 // a little warning for IO errors
 inline void
 ioerror ()
