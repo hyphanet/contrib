@@ -1,3 +1,20 @@
 [FProxy]
-logfile=fproxy.log
-passthroughMimeTypes=text/plain,image/jpeg,image/gif,image/png,application/octet-stream,application/zip,audio/basic,audio/midi,audio/mpeg,audio/x-aiff,audio/x-wav,image/cgm,image/g3fax,image/tiff,image/x-xbinmapimage/x-xpixmap,image/x-xwindowdump,application/unknown
+# serverAddress points to the host:port on which you are running the Freenet node
+serverAddress=127.0.0.1:19114
+
+# Turns on and off FProxy content filtering. Some content may be
+# dangerous to your anonymity. For example, if an HTML page in Freenet
+# had an image embedded in it that was hosted on an HTTP server, the
+# owner of that server could check everyone who had read the HTML
+# page.
+
+# The FProxy content filter attempts to warn you when a page in
+# Freenet might contain threatening code. However, this is an
+# experimental feature, and is NOT believed to combat ALL anonymity
+# attacks. IF ANONYMITY is a HIGH PRIORITY, it is recommended that you
+# not use a browser to explore Freenet. Filtering is turned off by default.
+
+doFiltering=no
+
+#Defines the MIME types that may pass through FProxy without warning
+passthroughMimeTypes=application/octet-stream,application/pgp-keys,application/unknown,application/x-perl,application/x-shellscript,application/zip,audio/basic,audio/midi,audio/mpeg,audio/x-aiff,audio/x-wav,image/cgm,image/g3fax,image/gif,image/jpeg,image/png,image/tiff,image/x-xbinmapimage/x-xpixmap,image/x-xwindowdump,text/plain
