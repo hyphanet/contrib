@@ -714,7 +714,7 @@ void ReloadSettings(void)
 	/* find out whether fproxy is supposed to be running */
 	/* (if not, fcpproxy will be loaded by default) */
 	ZeroMemory(szbuffer,sizeof(szbuffer));
-	GetPrivateProfileString(szfinisec, szfprxkey, szempty, szbuffer, sizeof(szbuffer)-1, szfinifile);
+	GetPrivateProfileString(szfinisec, szserviceskey, szempty, szbuffer, sizeof(szbuffer)-1, szfinifile);
 	szbuffer[sizeof(szbuffer)-1]='\0';
 	bUsingFProxy = (strstr(szbuffer,"fproxy") != NULL);
 }
