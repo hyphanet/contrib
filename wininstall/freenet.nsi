@@ -1,10 +1,10 @@
-Name "Freenet 0.3.7"
+Name "Freenet 0.3.7.1"
 LicenseText "Freenet is published under the GNU general public license:"
 LicenseData GNU.txt
-OutFile Freenet_setup0.3.7.exe
+OutFile Freenet_setup0.3.7.1.exe
 UninstallText "This uninstalls Freenet and all files on this node. (You may need to shut down running nodes before proceeding)"
 UninstallExeName Uninstall-Freenet.exe
-ComponentText "This will install Freenet 0.3.7 on your system."
+ComponentText "This will install Freenet 0.3.7.1 on your system."
 DirText "Select a directory to install Freenet in."
  InstType Minimal
  InstType Full
@@ -16,7 +16,7 @@ InstallDir "$PROGRAMFILES\Freenet"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 SetOverwrite on
 
-Section "Freenet 0.3.7 (required)"
+Section "Freenet base (required)"
 
 #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
 FindWindow "close" "TrayIconFreenetClass" ""
@@ -25,7 +25,7 @@ FindWindow "close" "TrayIconFreenetClass" ""
 SetOutPath $INSTDIR\
 File freenet\*.*
 
-WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet 0.3.7 (remove only)"
+WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet (remove only)"
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 
 Execwait "$INSTDIR\findjava.exe"
@@ -81,7 +81,7 @@ CreateShortCut "$SMSTARTUP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\free
 
 Section "View Readme.txt"
 SectionIn 1,2
-Exec '"$WINDIR\notepad.exe" "$INSTDIR\Readme.txt"'
+ExecShell "open" "$INSTDIR\Readme.txt"
 
 
 
@@ -99,7 +99,7 @@ DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Unins
 
 # F... W2K doesn't provide deltree anymore, telling the user to delete their fucking dir themselves
 ExecWait 'command.com /c rd "$INSTDIR\.freenet"'
-MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `Please delete .freenet in your freenet directory manually.`
+MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `Please delete .freenet in your freenet directory manually.` 0 0
 
 # Now deleting the rest
 # Delete $INSTDIR\.freenet\*.*

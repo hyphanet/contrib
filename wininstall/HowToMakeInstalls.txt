@@ -5,8 +5,9 @@ Any questions? mailto:Sebastian@SSpaeth.de / mailto:freenet@hug.cx
 
 How to make an install
 ======================
-1)Get the free Nullsoft installer (NSIS) at http://nullsoft.com/free/NSIS 
-  (I won't provide it here for disc space reasons)
+1)Get the free Nullsoft installer (NSIS) at http://nullsoft.com/free/NSIS (>v1.1h)
+  freenet.nsi has been updated to use a more current development version (1.1h) available at:
+  http://firehose.net/free/nsis
 2)Take the Freenet subdirectory and add the current files:
   freenet.jar, .fproxyrc
   (freenet.ini will be created on install)
