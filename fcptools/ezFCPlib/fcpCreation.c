@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern void _fcpSockDisconnect(hFCP *hfcp);
+
 
 hFCP *_fcpCreateHFCP(void)
 {
@@ -42,8 +44,6 @@ hFCP *_fcpCreateHFCP(void)
 	h->regress = _fcpRegress;
 	h->rawmode = _fcpRawmode;
 
-	h->socket = -1;
-
 	_fcpLog(FCP_LOG_DEBUG, "using address %s:%d", h->host, h->port);
 
 	return h;
@@ -52,6 +52,8 @@ hFCP *_fcpCreateHFCP(void)
 void _fcpDestroyHFCP(hFCP *h)
 {
 	if (h) {
+		if (h->socket < 0) _fcpSockDisconnect(h);
+
 		if (h->host) free(h->host);
 		if (h->description) free(h->description);
 		if (h->key) _fcpDestroyHKey(h->key);
@@ -89,18 +91,20 @@ hKey *_fcpCreateHKey(void)
 	h = (hKey *)malloc(sizeof (hKey));
 	memset(h, 0, sizeof (hKey));
 
-	h->uri = _fcpCreateHURI();
+	h->uri        = _fcpCreateHURI();
+	h->target_uri = _fcpCreateHURI();
 
 	return h;
 }
-
 
 void _fcpDestroyHKey(hKey *h)
 {
 	if (h) {
 		int i;
 
-		if (h->uri) _fcpDestroyHURI(h->uri);
+		if (h->uri)   _fcpDestroyHURI(h->uri);
+		if (h->target_uri) _fcpDestroyHURI(h->target_uri);
+
 		if (h->mimetype) free(h->mimetype);
 		if (h->tmpblock) free(h->tmpblock);
 
@@ -126,7 +130,7 @@ void _fcpDestroyHURI(hURI *h)
 		if (h->uri_str) free(h->uri_str);
 		if (h->keyid) free(h->keyid);
 		if (h->docname) free(h->docname);
-		if (h->file) free(h->file);
+		if (h->metastring) free(h->metastring);
 
 		free(h);
 	}
@@ -142,7 +146,7 @@ void _fcpDestroyHURI(hURI *h)
 int _fcpParseURI(hURI *uri, char *key)
 {
 	int len;
-
+	
 	char *p;
 	char *p2;
 
@@ -154,7 +158,7 @@ int _fcpParseURI(hURI *uri, char *key)
 	if (uri->uri_str) free(uri->uri_str);
   if (uri->keyid) free(uri->keyid);
 	if (uri->docname) free(uri->docname);
-	if (uri->file) free(uri->file);
+	if (uri->metastring) free(uri->metastring);
 
 	/* zero the block of memory */
 	memset(uri, 0, sizeof (hURI));
@@ -162,11 +166,11 @@ int _fcpParseURI(hURI *uri, char *key)
   /* skip 'freenet:' */
   if (!strncmp(key, "freenet:", 8))
     key += 8;
-
+	
   /* classify key header */
   if (!strncmp(key, "SSK@", 4)) {
 		char *string_end;
-
+		
     uri->type = KEY_TYPE_SSK;
 		key += 4;
 
@@ -182,30 +186,37 @@ int _fcpParseURI(hURI *uri, char *key)
 
 		/* Make key point to the char after '/' */
 		key = ++p;
-
-		/* Calculate the length of the site name (malloc'ed) */
-		/* determine if "//" doesn't appear in string.. ? */
+		
+		/* handle rest of key, depending on what's included and what's implied */
+		
+		/* if the '//' sequence isn't in the uri.. */
 		if (!(string_end = strstr(p, "//"))) {
 			
-			/* if "//" doesn't appear, then go until the NULL char instead */
-			string_end = strchr(p, 0);
+			uri->docname = strdup(p);
+
+			uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->docname) + 20);
+			sprintf(uri->uri_str, "freenet:SSK@%s/%s//", uri->keyid, uri->docname); 
 		}
-
-		len = string_end - key;
-		uri->docname = (char *)malloc(len + 1); /* remember trailing 0 */
-
-		/* Now copy sitename to malloc'ed area */
-		strncpy(uri->docname, key, len);
-
-		*(uri->docname + len) = 0;
-
-		/* the +18 really is +16:  "freenet:SSK@ + / + //"  */
-		uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->docname) + 18);
-		sprintf(uri->uri_str, "freenet:SSK@%s/%s//", uri->keyid, uri->docname); 
+		else { /* there's a "//"; must use that as the next border */
+			
+			string_end = strstr(p, "//");
+			len = string_end - p;
+			
+			uri->docname = strndup(p, len);
+			
+			/* set key to first char after "//" */
+			key = string_end + 1;
+			
+			/* now set the remaining part to metastring */
+			uri->metastring = strdup(key);
+			
+			uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->docname) + strlen(uri->metastring) + 20);
+			sprintf(uri->uri_str, "freenet:SSK@%s/%s//%s", uri->keyid, uri->docname, uri->metastring); 
+		}
   }
 
   else if (!strncmp(key, "CHK@", 4)) {
-
+		
     uri->type = KEY_TYPE_CHK;
 		key += 4;
     

@@ -1,4 +1,3 @@
-
 /*
   This code is part of FreeWeb - an FCP-based client for Freenet
 
@@ -32,75 +31,113 @@ extern long file_size(char *filename);
 
 	function will test the validity of the arguments from caller.
 
-	function may modify:
-	- hfcp->error
-	- hfcp->key->size
-	- hfcp->key->uri
-
 	function returns:
 	- zero on success
 	- non-zero on error
 */
-int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
+int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
+	int key_size;
+	int meta_size;
 	int rc;
 
-	if ((rc = file_size(key_filename)) < 0) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not open key file \"%s\"", key_filename);
+	/* clear the error string */
+	if (hfcp->error) {
+		free(hfcp->error);
+		hfcp->error = 0;
+	}
 
-		/* set the proper error string always on return to non-ez code */
-		hfcp->error = str_reset(hfcp->error, "Could not open key file");
+	if ((rc = file_size(key_filename)) < 0) {
+		_fcpLog(FCP_LOG_VERBOSE, "Key data not found in file \"%s\"", key_filename);
+
+		hfcp->error = strdup("could not open key file");
+		return -1;
+	}
+
+	key_size = rc;
+
+	if (meta_filename) {
+		meta_size = file_size(meta_filename);
+
+		if (meta_size < 0) {
+			_fcpLog(FCP_LOG_VERBOSE, "Could not open metadata file");
+			
+			/* set the proper error string always on return to non-ez code */
+			hfcp->error = strdup("could not open metadata file");
+			
+			return -1;
+		}
+	}
+	else /* there's no metadata filename; no metadata */
+		meta_size = 0;
+
+	/* meta_size should be properly set at this point */
+
+	/* Now insert the key data as a CHK@, and later we'll insert a redirect
+		 if necessary. If it's larger than L_BLOCK_SIZE, insert as an FEC
+		 encoded splitfile. */
+
+	if (key_size > L_BLOCK_SIZE)
+		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
+	
+	else /* Otherwise, insert as a normal key */
+		rc = put_file(hfcp, key_filename, meta_filename);
+	
+	if (rc) {
+		_fcpLog(FCP_LOG_VERBOSE, "Insert error; \"%s\"", (hfcp->error ? hfcp->error: "unspecified error"));
+
+		/* destroy the key since we didn't actually insert it properly */
+		_fcpDestroyHKey(hfcp->key);
+		hfcp->key = 0;
 
 		return -1;
 	}
 
-	hfcp->key = _fcpCreateHKey();
-	hfcp->key->size = rc;
+	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */
+	/* create the final key as a re-direct to the inserted CHK@ */
 
-	hfcp->key->uri = _fcpCreateHURI();
-	_fcpParseURI(hfcp->key->uri, "CHK@");
+	if (_fcpParseURI(hfcp->key->target_uri, key_uri)) {
 
-	/* get the equivalent mimetype for this file we're inserting */
-	hfcp->key->mimetype = str_reset(hfcp->key->mimetype, GetMimeType(key_filename));
+		/* set the proper error string always on return to non-ez code */
+		hfcp->error = strdup("target uri is invalid");
+		return -1;
+	}
 
-	if (meta_filename) {
-		if ((rc = file_size(meta_filename)) < 0) {
-			_fcpLog(FCP_LOG_VERBOSE, "Could not open metadata file");
+	switch (hfcp->key->target_uri->type) {
+
+	case KEY_TYPE_CHK: /* for CHK's */
+		break;
+
+	case KEY_TYPE_KSK: { /* insert a redirect to point to hfcp->key->uri */
+		
+		hFCP *hfcp_meta;
+
+		hfcp_meta = _fcpCreateHFCP();
+		hfcp_meta->key = _fcpCreateHKey();
+
+		/* uri was already checked above for validity */
+		_fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
+
+		if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
 			
-			/* set the proper error string always on return to non-ez code */
-			hfcp->error = str_reset(hfcp->error, "Could not open metadata file");
-			
-			_fcpDestroyHKey(hfcp->key);
-			hfcp->key = 0;
+			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+			_fcpDestroyHFCP(hfcp_meta);
 
 			return -1;
 		}
+
+		/* success inserting the re-direct */
+		_fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
+		_fcpDestroyHFCP(hfcp_meta);
+
+		break;
+	}
+		
+	case KEY_TYPE_SSK: /* insert a redirect to point to hfcp->key->uri */
+		_fcpLog(FCP_LOG_DEBUG, "not implemented");
 	}
 
-	/* If it's larger than L_BLOCK_SIZE, insert as an FEC encoded splitfile */
-	if (hfcp->key->size > L_BLOCK_SIZE) {
-		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
-
-		if (rc) {
-			_fcpLog(FCP_LOG_VERBOSE, "FEC Insert error; \"%s\"", (hfcp->error ? hfcp->error: "unhandled error"));
-
-			_fcpDestroyHKey(hfcp->key);
-			hfcp->key = 0;
-			return -1;
-		}
-	}
-	else { /* Otherwise, insert as a normal key */
-		rc = put_file(hfcp, key_filename, meta_filename);
-
-		if (rc) {
-			_fcpLog(FCP_LOG_VERBOSE, "Insert error; \"%s\"", (hfcp->error ? hfcp->error: "unhandled error"));
-
-			_fcpDestroyHKey(hfcp->key);
-			hfcp->key = 0;
-			return -1;
-		}
-	}
-	
+	/* on exit, hfcp->key->uri holds the inserted final uri */
 	return 0;
 }
 

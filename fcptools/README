@@ -1,7 +1,7 @@
 This is the README file for FCPtools.
 
-CopyLeft (c) 2001 by David McNab
-david@rebirthing.co.nz
+CopyLeft (c) 2001 by David McNab <david@rebirthing.co.nz>
+Currently maintained by Jay Oliveri <ilnero@gmx.net>
 
 This source package builds four Freenet FCP components:
 

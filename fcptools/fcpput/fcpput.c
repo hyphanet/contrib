@@ -28,19 +28,19 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#define _GNU_SOURCE
+
+#include "getopt.h"
+#include "ezFCPlib.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
-#define _GNU_SOURCE
-#include "getopt.h"
 
-#include "ezFCPlib.h"
-
-
+/* import this convenience function from ezFCPlib */
 extern long file_size(char *);
-extern int  put_redirect(hFCP *hfcp, char *uri_dest);
 
 
 void  parse_args(int argc, char *argv[]);
@@ -52,38 +52,43 @@ char  *metafile = 0;
 
 int    b_stdin = 0;
 
+/* @TODO: create a main_sub.. for error-handling */
+
 int main(int argc, char* argv[])
 {
 	hFCP *hfcp;
-	hFCP *hfcp_meta;
-
 	FILE *file;
 
 	char  buf[1024];
 	int   rc;
 
 	rc = 0;
+	
+	/* I think the key with fcpput and related command line clients is to keep
+		 the log message creation to a mininum; keep the error-checking to a
+		 mininum and let ezFCPlib attempt to handle everything. It's the
+		 intention to make ezFCPlib convenient enough for client writers to
+		 use.
 
-	if (fcpStartup()) {
-		printf("Call to fcpStartup() failed\n");
-		return 1;
-	}
+		 It also allows me/coders to get the log message right so to enable
+		 accurate diagnostics from users.
+	*/
+
+	if (fcpStartup())	return -1;
 
 	/* must occur after fcpStartup() since it changes _fcp* variables */
 	parse_args(argc, argv);
 
 	hfcp = _fcpCreateHFCP();
 
-	if (b_stdin) { /* read the key data from stdin */
+	if (b_stdin) {
+		/* read the key data from stdin */
 		int c;
 
-		if (fcpOpenKey(hfcp, "CHK@", _FCP_O_WRITE)) {
-			_fcpLog(FCP_LOG_DEBUG, "could not open key for writing");
-			return -1;
-		}
-		_fcpLog(FCP_LOG_DEBUG, "opened key for writing..");
+		if (fcpOpenKey(hfcp, keyuri, _FCP_O_WRITE))	return -1;
 
 		/* read it from stdin */
+		/* this is real inefficient.. @TODO: tighten */
 		while ((c = getc(stdin)) != -1) {
 			buf[0] = c;
 			fcpWriteKey(hfcp, buf, 1);
@@ -91,10 +96,11 @@ int main(int argc, char* argv[])
 
 		if (metafile) {
 			int bytes;
+			int metafile_size;
 
 			if (!(file = fopen(metafile, "rb"))) {
 				
-				_fcpLog(FCP_LOG_DEBUG, "could not open metadata file \"%s\"", metafile);
+				_fcpLog(FCP_LOG_CRITICAL, "Could not open the metadata file \"%s\"", metafile);
 				return -1;
 			}
 
@@ -103,66 +109,34 @@ int main(int argc, char* argv[])
 				fcpWriteMetadata(hfcp, buf, 1);
 			}
 
-			if (bytes != file_size(metafile)) {
-				_fcpLog(FCP_LOG_DEBUG, "did not write all bytes in metafile; wrote %d", bytes);
+			metafile_size = file_size(metafile);
+			if (bytes != metafile_size) {
+				_fcpLog(FCP_LOG_CRITICAL, "Dropped metadata");
+				_fcpLog(FCP_LOG_CRITICAL, "Wrote %d/%d (partial/total) bytes of metadata; truncated rest");
+
 				return -1;
 			}
 			
-			_fcpLog(FCP_LOG_DEBUG, "wrote key metadata:\n%s\n", buf);
+			_fcpLog(FCP_LOG_VERBOSE, "Successfully wrote key metadata to ezFCPlib");
 		}
 
-		_fcpLog(FCP_LOG_DEBUG, "now beginning network insert of file data..");
-		
-		fcpCloseKey(hfcp);
-		_fcpLog(FCP_LOG_DEBUG, "wrote key to Freenet");
-	}
-	else { /* use keyfile as the filename of key data */
+		if (fcpCloseKey(hfcp)) return -1;
 
-		if (fcpPutKeyFromFile(hfcp, keyfile, metafile)) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not insert file \"%s\" into Freenet", keyfile);
+		_fcpLog(FCP_LOG_VERBOSE, "Successfully closed freenet key and wrote data to freenet");
+	}
+
+	else {
+		/* use keyfile as the filename of key data */
+		if (fcpPutKeyFromFile(hfcp, keyuri, keyfile, metafile)) {
+
+
+			_fcpLog(FCP_LOG_CRITICAL, "Could not insert \"%s\" into freenet from file \"%s\"", keyuri, keyfile);
 			return -1;
 		}
 	}
 
-	/* stored within hfcp->key->uri is the inserted CHK-type uri */
-	
-	hfcp_meta = _fcpCreateHFCP();
-	hfcp_meta->key = _fcpCreateHKey();
+	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
 
-	if (_fcpParseURI(hfcp_meta->key->uri, keyuri)) {
-		_fcpLog(FCP_LOG_VERBOSE, "Invalid Freenet URI \"%s\"", keyuri);
-		return -1;
-	}
-
-	/*** CHK ***/
-	if (hfcp_meta->key->uri->type == KEY_TYPE_CHK) {
-		_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
-	}
-
-	/*** KSK ***/
-	else if (hfcp_meta->key->uri->type == KEY_TYPE_KSK) {
-		if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
-			
-			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
-			return -1;
-		}
-		else {
-			_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
-		}
-	}
-
-	/*** SSK ***/
-	else if (hfcp_meta->key->uri->type == KEY_TYPE_SSK) {
-		if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
-			
-			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
-			return -1;
-		}
-		else {
-			_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
-		}
-	}
-			
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();
 	
@@ -271,6 +245,11 @@ void parse_args(int argc, char *argv[])
 		exit(1);
 	}
 
+	if ((keyfile) && (b_stdin)) {
+		usage("You cannot specifiy both a key filename and --stdin");
+		exit(1);
+	}
+
 	if ((!keyfile) && (!b_stdin)) {
 		usage("You must specify a local file, or use the --stdin option");
 		exit(1);
@@ -311,7 +290,7 @@ void usage(char *s)
 	printf("                           SSK@<private key>[/<docname>]\n\n");
 
 	printf("  file                   Read key data from local \"file\"\n");
-	printf("                         (optional if --stdin used)\n\n");
+	printf("                         (cannot be used with --stdin)\n\n");
 
 	printf("Examples:\n\n");
 

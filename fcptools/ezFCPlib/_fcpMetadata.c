@@ -50,6 +50,7 @@ char      *cdocLookupKey(hDocument *doc, char *keyName);
   IMPORTED DEFINITIONS
 */
 extern long xtoi(char *s);
+extern long file_size(char *filename);
 
 /*
   PRIVATE DEFINITIONS
@@ -92,6 +93,8 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
   char  val[257];
 
 	int   rc;
+
+	_fcpLog(FCP_LOG_DEBUG, "Metadata:\n%s", buf);
 	
 	/* free *meta if it has old metadata */
 	/* loop from 0-meta->cd_count; free(meta[i]); */
@@ -108,7 +111,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 			rc = parse_version(meta, buf);
 
 			if ((rc != STATE_WAIT_DOCUMENT) && (rc != STATE_END)) {
-				_fcpLog(FCP_LOG_DEBUG, "error!");
+				_fcpLog(FCP_LOG_DEBUG, "expected Version body");
 				return -1;
 			}
 		}
@@ -117,7 +120,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 			rc = parse_document(meta, buf);
 
 			if ((rc != STATE_WAIT_DOCUMENT) && (rc != STATE_END)) {
-				_fcpLog(FCP_LOG_DEBUG, "error!");
+				_fcpLog(FCP_LOG_DEBUG, "expected Document body");
 				return -1;
 			}
 		}
@@ -254,23 +257,24 @@ static int splitLine(char *line, char *key, char *val)
 */
 static int getLine(char *line, char *buf, int start)
 {
-	int line_index;
+	int line_index = 0;
   
   if (!buf) return -1;
 
 	/* If we're done, return w/ -2; */
 	if (buf[start] == 0) return -2;
 
-	line_index = 0;
 	while (1) { /* :) */
 
 		if ((buf[start + line_index] == '\n') ||
 				(buf[start + line_index] == 0) ||
-				(start + line_index > 512))
+				(line_index > 512))
 			break;
 
-		else
-			line[line_index++] = buf[start + line_index];
+		else {
+			line[line_index] = buf[start + line_index];
+			line_index++;
+		}
 	}
 
 	/* line_index indexes the desired location of the null char */
@@ -369,7 +373,6 @@ static int parse_document(hMetadata *meta, char *buf)
 		if (strchr(line, '=')) {
 	
 			splitLine(line, key, val);
-			/*_fcpLog(FCP_LOG_DEBUG, "encountered key \"%s\" with value \"%s\"", key, val);*/
 			
 			/* Set type if not already set */
 			if (meta->cdocs[doc_index]->type == 0) {
@@ -382,12 +385,14 @@ static int parse_document(hMetadata *meta, char *buf)
 				
 				else if (!strncasecmp(key, "SplitFile.", 10))
 					meta->cdocs[doc_index]->type = META_TYPE_SPLITFILE;
-				
+
+				/*
 				else if (!strncasecmp(key, "Info.", 10))
 					meta->cdocs[doc_index]->type = META_TYPE_INFO;
 				
 				else if (!strncasecmp(key, "ExtInfo.", 10))
 					meta->cdocs[doc_index]->type = META_TYPE_EXTINFO;
+				*/
 				
 				/* potentially none of the above may execute.. this is by design */
 			}
@@ -435,42 +440,31 @@ static int parse_document(hMetadata *meta, char *buf)
 
 int main(int argc, char *argv[])
 {
-	char *mdata;
+	char *str;
 	char *val;
+ 
+	FILE *file;
+	int   fno;
 
 	hMetadata *meta;
 	hDocument *doc;
 
 	int rc;
 
-	/* yes this is correct; string literals are allocated by compiler generated
-		 code in read-only memory space */
-	mdata = "Version\n" \
-    "Revision=1\n" \
-    "EndPart\n" \
-    "Document\n" \
-    "Redirect.Target=CHK@aabbccddee\n" \
-    "EndPart\n" \
-    "Document\n" \
-    "Name=split\n" \
-    "SplitFile.Size=102400\n" \
-    "SplitFile.BlockCount=3\n" \
-    "SplitFile.Block.1=freenet:CHK@aabbccddee1\n" \
-    "SplitFile.Block.2=freenet:CHK@aabbccddee2\n" \
-    "SplitFile.Block.3=freenet:CHK@aabbccddee3\n" \
-    "Info.Format=text/plain\n" \
-    "EndPart\n" \
-    "Document\n" \
-    "Name=date-redirect\n" \
-    "DateRedirect.Increment=93a80\n" \
-    "DateRedirect.Offset=a8c0\n" \
-    "DateRedirect.Target=SSK@aabbccddee/something\n" \
-    "End\n";
-      
+	rc = file_size("meta.dat");
+
+	str = (char *)malloc(rc + 1);
+
+	file = fopen("meta.dat", "rb");
+	fno = fileno(file);
+
+	read(fno, str, rc);
+
 	meta = (hMetadata *)malloc(sizeof (hMetadata));
 	memset(meta, 0, sizeof (hMetadata));
 
-	rc = _fcpMetaParse(meta, mdata);
+	rc = _fcpMetaParse(meta, str);
+
 	if (rc != 0) {
 		printf("_fcpMetaParse returned error: %d\n", rc);
 		return 1;

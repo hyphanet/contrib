@@ -29,7 +29,11 @@
 
 
 extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
+extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
+extern int put_redirect(hFCP *hfcp_root, char *uri_dest);
+
+extern long file_size(char *filename);
 
 static int fcpCloseKeyRead(hFCP *hfcp);
 static int fcpCloseKeyWrite(hFCP *hfcp);
@@ -56,7 +60,9 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
 	hFCP *tmp_hfcp;
-	int   rc;
+
+	int rc;
+	int size;
 
 	/* close the temporary key file */
 	fclose(hfcp->key->tmpblock->file);
@@ -64,25 +70,68 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	/* close the temporary metadata file */
 	fclose(hfcp->key->metadata->tmpblock->file);
 
-	/* insert the 'ol bugger */
 	tmp_hfcp = _fcpCreateHFCP();
-	tmp_hfcp->key = _fcpCreateHKey();
+	size = file_size(hfcp->key->tmpblock->filename);
 
-	_fcpParseURI(tmp_hfcp->key->uri, hfcp->key->uri->uri_str);
-	
-	rc = put_file(tmp_hfcp,
-								hfcp->key->tmpblock->filename,
-								hfcp->key->metadata->tmpblock->filename
-								);
-	
-	if (rc != 0) {
-		_fcpLog(FCP_LOG_DEBUG, "could not insert");
+	if (size > L_BLOCK_SIZE)
+		rc = put_fec_splitfile(tmp_hfcp,
+													 hfcp->key->tmpblock->filename,
+													 hfcp->key->metadata->tmpblock->filename);
+
+	else /* Otherwise, insert as a normal key */
+		rc = put_file(tmp_hfcp,
+									hfcp->key->tmpblock->filename,
+									hfcp->key->metadata->tmpblock->filename);
+
+	if (rc) {
+		_fcpLog(FCP_LOG_VERBOSE, "Insert error; \"%s\"", (hfcp->error ? hfcp->error: "unspecified error"));
+
+		_fcpDestroyHFCP(tmp_hfcp);
 		return -1;
-	}		
+	}
 
-	_fcpParseURI(hfcp->key->uri, tmp_hfcp->key->uri->uri_str);
-	_fcpDestroyHFCP(tmp_hfcp);
+	/* tmp_hfcp->key->uri is the CHK@ of the file we've just inserted */
+	/* the target_uri was set in fcpOpenKeyRead() */
 
+	switch (hfcp->key->target_uri->type) {
+
+	case KEY_TYPE_CHK: /* for CHK's, copy over the generated CHK to the target_uri field */
+
+		/* re-parse the CHK into target_uri (it only contains CHK@ currently) */
+		_fcpParseURI(hfcp->key->target_uri, tmp_hfcp->key->uri->uri_str);
+		break;
+
+	case KEY_TYPE_KSK: { /* insert a redirect to point to hfcp->key->uri */
+		
+		hFCP *hfcp_meta;
+
+		hfcp_meta = _fcpCreateHFCP();
+		hfcp_meta->key = _fcpCreateHKey();
+
+		/* uri was already checked above for validity */
+		_fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
+
+		if (put_redirect(hfcp_meta, tmp_hfcp->key->uri->uri_str)) {
+			
+			_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
+			_fcpDestroyHFCP(hfcp_meta);
+
+			return -1;
+		}
+		else { /* congrads.. successful insert into Freenet */
+			_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
+		}
+
+		_fcpDestroyHFCP(hfcp_meta);
+		break;
+	}
+		
+	case KEY_TYPE_SSK: /* insert a redirect to point to hfcp->key->uri */
+		_fcpLog(FCP_LOG_DEBUG, "not implemented");
+	}
+
+	_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted key \"%s\"", hfcp->key->target_uri->uri_str);
+	
 	return 0;
 }
 

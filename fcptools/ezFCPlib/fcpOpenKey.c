@@ -21,23 +21,22 @@
 #include <fcntl.h>
 
 
-extern int   snprintf(char *str, size_t size, const char *format, ...);
+extern int   _fcpSockConnect(hFCP *hfcp);
+extern void  _fcpSockDisconnect(hFCP *hfcp);
+extern char *_fcpTmpFilename(void);
 
-extern int    _fcpSockConnect(hFCP *hfcp);
-extern void   _fcpSockDisconnect(hFCP *hfcp);
-extern char  *_fcpTmpFilename(void);
-
-static int    fcpOpenKeyRead(hFCP *hfcp, char *key);
-static int    fcpOpenKeyWrite(hFCP *hfcp, char *key);
+static int    fcpOpenKeyRead(hFCP *hfcp, char *key_uri);
+static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
 
 
-/*
-	Perhaps handle a mode mask that creates basic splitfiles, and another for
-	creating FEC encoded splitfiles (?)
-*/
-
-int fcpOpenKey(hFCP *hfcp, char *key, int mode)
+int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 {
+	/* clear the error field */
+	if (hfcp->error) {
+		free(hfcp->error);
+		hfcp->error = 0;
+	}
+	
   /* Validate flags */
   if ((mode & _FCP_O_READ) && (mode & _FCP_O_WRITE))
     return -1;      /* read/write access is impossible */
@@ -50,32 +49,42 @@ int fcpOpenKey(hFCP *hfcp, char *key, int mode)
 
   /* Now perform the read/write specific open */
   if (mode & _FCP_O_READ)
-    return fcpOpenKeyRead(hfcp, key);
+    return fcpOpenKeyRead(hfcp, key_uri);
 
   else if (mode & _FCP_O_WRITE)
-    return fcpOpenKeyWrite(hfcp, key);
+    return fcpOpenKeyWrite(hfcp, key_uri);
 
-	else return -2; /* Who knows what's wrong here.. */
+	else { /* Who knows what's wrong here.. */
+		hfcp->error = strdup("invalid mode specified");
+		return -1;
+	}
 }
 
 
-static int fcpOpenKeyRead(hFCP *hfcp, char *key)
+static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
+	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpOpenKeyRead()");
+
 	hfcp->key->openmode = _FCP_O_READ;
-  return 0;
+
+	/* not yet implemented */
+  return 1;
 }
 
 
-static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
+static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 {
+	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpOpenKeyWrite()");
+
 	hfcp->key = _fcpCreateHKey();
 	hfcp->key->openmode = _FCP_O_WRITE;
-	
-	/* Bomb out if the key cannot be parsed into a valid URI */
-	/* (uri is allocated in fcpCreation.c) */
-	if (_fcpParseURI(hfcp->key->uri, key))
-		return -1;
 
+	/* store final key uri for later usage */
+	if (_fcpParseURI(hfcp->key->target_uri, key_uri)) {
+		hfcp->error = strdup("invalid freenet uri");
+		return -1;
+	}
+	
 	/* prepare the tmpblock for key data */
 	hfcp->key->tmpblock = _fcpCreateHBlock();
 
@@ -96,7 +105,6 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 
 	hfcp->key->metadata->tmpblock->fd = fileno(hfcp->key->metadata->tmpblock->file);
 
-	/* im wanna go to hawaii, yayy!! */
 	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");
 
 	return 0;

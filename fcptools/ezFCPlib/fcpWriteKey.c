@@ -31,9 +31,6 @@
 #include <fcntl.h>
 
 
-/* Why isn't this defined where the manpage claims it is? */
-extern int    snprintf(char *str, size_t size, const char *format, ...);
-
 extern int    _fcpSockConnect(hFCP *hfcp);
 extern void   _fcpSockDisconnect(hFCP *hfcp);
 extern char  *_fcpTmpFilename(void);
@@ -52,8 +49,7 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 		rc = write(hfcp->key->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
-			_fcpLog(FCP_LOG_CRITICAL, "fcpWriteKey ERROR: Error writing %d byte block to %s",
-							count, hfcp->key->tmpblock->filename);
+			hfcp->error = strdup("error during call to fcpWriteKey()");
 			return -1;
 		}
 
@@ -81,8 +77,7 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 		rc = write(hfcp->key->metadata->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
-			_fcpLog(FCP_LOG_CRITICAL, "fcpWriteKey ERROR: Error writing %d byte block to %s",
-							count, hfcp->key->metadata->tmpblock->filename);
+			hfcp->error = strdup("error during call to fcpWriteMetadata()");
 			return -1;
 		}
 

@@ -19,6 +19,7 @@ _fcpLog.c \
 _fcpRecvResponse.c \
 _fcpSock.c \
 _fcpUtil.c \
+_fcpMetadata.c \
 _fcpPut.c \
 ezFCPlib.h \
 fcpCloseKey.c \

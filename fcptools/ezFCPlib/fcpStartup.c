@@ -25,10 +25,10 @@
 
 #include <string.h>
 
-
-/*** Should accept a few parameters ****/
 int fcpStartup(void)
 {
+	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpStartup()");
+
 #ifndef WINDOWS
 	_fcpTmpDir = "/tmp";
 
@@ -39,12 +39,21 @@ int fcpStartup(void)
 	SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
 	wVersionRequested = MAKEWORD(2, 0);
 
-	if (WSAStartup(wVersionRequested, &wsaData) != 0) return -1;
+	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
 
+		_fcpLog(FCP_LOG_VERBOSE, "Could not initialize the Winsock subsystem");
+		return -1;
+	}
+
+	_fcpLog(FCP_LOG_VERBOSE, "Initialized Winsock subsystem");
+
+	/* TODO: implement Win32 API call to properly retrieve the TEMP dir. */
 	_fcpTmpDir = "c:/temp";
 
 #endif
 
+	/* this is like so because of perhaps an undefined behaviour on Win with
+		 realloc'ed null pointers */
 	_fcpHost = strdup(EZFCP_DEFAULT_HOST);
 
 	return 0;
@@ -53,6 +62,8 @@ int fcpStartup(void)
 
 void fcpTerminate(void)
 {
+	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpTerminate()");
+
 	return;
 }
 

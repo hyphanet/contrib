@@ -102,7 +102,8 @@ int _fcpThreadSleep(unsigned int seconds, unsigned int nanoseconds)
 
 void _fcpSockDisconnect(hFCP *hfcp)
 {
-  if (hfcp->socket < 0) return;
+  if (hfcp->socket == FCP_SOCKET_DISCONNECTED)
+		return;
 
 #ifndef WINDOWS
 	close(hfcp->socket);
@@ -110,7 +111,7 @@ void _fcpSockDisconnect(hFCP *hfcp)
 	closesocket(hfcp->socket);
 #endif
 
-	hfcp->socket = -1;
+	hfcp->socket = FCP_SOCKET_DISCONNECTED;
 }
 
 

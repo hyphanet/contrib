@@ -122,16 +122,12 @@ int _fcpRecvResponse(hFCP *hfcp)
   }
 
   else if (!strcmp(resp, "FormatError")) {
-		rc = getrespFormatError(hfcp);
 		hfcp->response.type = FCPRESP_TYPE_FORMATERROR;
-
-		return rc;
+		return getrespFormatError(hfcp);
   }
-  else if (!strcmp(resp, "Failed")) {
-		rc = getrespFailed(hfcp);
+	else if (!strcmp(resp, "Failed")) {
 		hfcp->response.type = FCPRESP_TYPE_FAILED;
-
-		return rc;
+		return getrespFailed(hfcp);
   }
 
 	/* FEC specific */
@@ -428,6 +424,10 @@ static int getrespPending(hFCP *hfcp)
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.pending.privatekey, resp + 11, L_KEY);
 		}
+
+		else if (!strncmp(resp, "Timeout=", 8)) {
+			hfcp->response.pending.timeout = xtoi(resp + 8);
+		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_PENDING;
@@ -497,9 +497,10 @@ static int getrespFormatError(hFCP *hfcp)
 			if (hfcp->response.formaterror.reason) free(hfcp->response.formaterror.reason);
 			
 			hfcp->response.formaterror.reason = strdup(resp + 7);
+			_fcpLog(FCP_LOG_DEBUG, "formaterror.reason: %s", resp + 7);
 		}
 		
-		else if (strncmp(resp, "EndMessage", 10))
+		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_FORMATERROR;
 
 		else

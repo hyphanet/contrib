@@ -1,38 +1,37 @@
 This file's purpose is to provide a breakdown of important features/fixes
 that can be implemented by any competent C programmer.
 
-
----------------------------------------------------------------------------
+----------------
 FCPtools generic
 
-* Verify FEC splifile custom metadata is inserted along with spec'ed
-	metadata.
-* Update documentation on all exported APIs (from ezFCPlib).
-* Work towards OS X and Solaris platform support.
+* Update ezFCPlib documentation.
+* Confirm OS X and Solaris functionality.
 * Add usage instructions to README file for fcpget, fcpput, fcpputsite.
 
----------------------------------------------------------------------------
+-----------------
 ezFCPlib specific
 
+* Implement Key Retrival code (currently only code for inserting).
+* Implement metadata handling for FEC encoded files (specifically in
+  ./ezFCPlib/_fcpPut.c:fec_make_metadata()).
 * Check all internal APIs for consistant usage and funcionality.
-	(cdocGetDoc() is an example, in that the documented behavior is different
-	from it's actual implementaion.
-* Implement HighestSeenBuild optional param from NodeHello message.
+* Handle HighestSeenBuild from NodeHello message.
+* Make fcpLog() work with files as well as standard output.
+* Implement SkipDS logic.
 
----------------------------------------------------------------------------
-fcpget
-
-* Implement DBR regression support.
-* Make retries configurable.
-
-
----------------------------------------------------------------------------
+------
 fcpput
 
+* Implement -g command-line switch (GenerateKeypair).
+* Optimize main()'s speed read from standard input.
 
----------------------------------------------------------------------------
+------
+fcpget
+
+(Under re-write)
+
+----------
 fcpputsite
 
-* Handle large manifests more intelligently.
-* WIN32 code for checking for file changes.
-* WIN32 tempfiles.
+(Under re-write).
+

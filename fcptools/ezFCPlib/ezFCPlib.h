@@ -98,13 +98,20 @@
 #define FCP_LOG_DEBUG         4
 #define FCP_LOG_MESSAGE_SIZE  4096   /* Was 65K */
 
+#define FCP_SOCKET_DISCONNECTED -99
+
 /*
   Lengths of allocated strings/arrays.
 */
-#define L_BLOCK_SIZE        262144    /* default split part size (256*1024) */
+#if 0
+#define L_BLOCK_SIZE        1024000  /* default split part size (1,000 * 1,024) */
+#endif
+
+#define L_BLOCK_SIZE        64000
 #define L_FILE_BLOCKSIZE    8192
 #define L_RESPONSE_BUFFER   2048
-#define L_ERROR_MESSAGE     256
+
+/* deprecate */
 #define L_KEY               40
 
 #define FCP_MAX_SPLIT_THREADS  8
@@ -181,6 +188,7 @@ typedef struct {
 
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
+	int   timeout; /* Timeout: seconds? */
 
 	char  publickey[L_KEY+1];  /* PublicKey=<string: public Freenet key> */
 	char  privatekey[L_KEY+1]; /* PrivateKey=<string: private Freenet key> */
@@ -286,12 +294,15 @@ typedef struct {
   Freenet Client Protocol Handle Definition Section :)
 */
 typedef struct {
-  int    type;
+  int    type; /* CHK@, KSK@, SSK@ */
 
-	char  *uri_str;
-  char  *keyid;
-	char  *docname;
-	char  *file;
+	char  *uri_str; /* the unparsed uri */
+  char  *keyid; /* the pub/priv/ch key */
+
+	/* SSK's */
+	char  *docname; /* the /name// piece */
+
+	char  *metastring; /* the //images/activelink.gif piece */
 } hURI;
 
 
@@ -362,12 +373,14 @@ typedef struct {
 	int        type;
 
 	hURI      *uri;
+	hURI      *target_uri;  /* used to hold the final key uri */
 
 	int        openmode;
 	char      *mimetype;
 	int        size;
 
 	hBlock    *tmpblock;
+
 	hMetadata *metadata;
 
 	int        segment_count;
@@ -466,7 +479,7 @@ extern "C" {
 	int   fcpReadMetadata(hFCP *hfcp, char *buf, int len);
 	
 	/* Client functions for operations between files on disk and freenet */
-	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_filename, char *meta_filename);
+	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_uri, char *key_filename, char *meta_filename);
 
 
 	char *GetMimeType(char *pathname);
