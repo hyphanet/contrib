@@ -536,7 +536,7 @@ Section "Freenet Node" SecFreenetNode
   DoRefs:
   WriteRegStr HKEY_CLASSES_ROOT ".ref" "" "Freenet node reference"
   WriteRegStr HKEY_CLASSES_ROOT "Freenet node reference\shell\open\command" "" '"$INSTDIR\freenet.exe" -import "%1"'
-  WriteRegStr HKEY_CLASSES_ROOT "Freenet node reference\DefaultIcon" "" "$INSTDIR\freenet.exe,7"
+  WriteRegStr HKEY_CLASSES_ROOT "Freenet node reference\DefaultIcon" "" "$INSTDIR\freenet.exe,6"
   DeleteRegKey HKEY_CLASSES_ROOT "Freenet_node_ref"
   DontDoRefs:
   Pop $R0
