@@ -27,4 +27,3 @@ script containing "/foo/bar/register <inform server address>" into
 Running `server' will start your Anarcast server. You may change the value of
 the HOME environment variable in order to select a different location for your
 data store (e. g., "HOME=/bigdisk/ ./server").
-
