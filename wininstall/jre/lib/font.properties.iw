@@ -1,0 +1,132 @@
+# # @(#)font.properties.iw	1.6 00/10/06
+#
+# AWT Font default Properties for Hebrew Windows 
+#
+
+dialog.0=David,HEBREW_CHARSET,NEED_CONVERTED
+dialog.1=Arial,ANSI_CHARSET
+dialog.2=WingDings,SYMBOL_CHARSET,NEED_CONVERTED
+dialog.3=Symbol,SYMBOL_CHARSET,NEED_CONVERTED
+
+dialoginput.0=David,HEBREW_CHARSET,NEED_CONVERTED
+dialoginput.1=Courier New,ANSI_CHARSET
+dialoginput.2=WingDings,SYMBOL_CHARSET,NEED_CONVERTED
+dialoginput.3=Symbol,SYMBOL_CHARSET,NEED_CONVERTED
+
+serif.0=David,HEBREW_CHARSET,NEED_CONVERTED
+serif.1=Times New Roman,ANSI_CHARSET
+serif.2=WingDings,SYMBOL_CHARSET,NEED_CONVERTED
+serif.3=Symbol,SYMBOL_CHARSET,NEED_CONVERTED
+
+sansserif.0=David,HEBREW_CHARSET,NEED_CONVERTED
+sansserif.1=Arial,ANSI_CHARSET
+sansserif.2=WingDings,SYMBOL_CHARSET,NEED_CONVERTED
+sansserif.3=Symbol,SYMBOL_CHARSET,NEED_CONVERTED
+
+monospaced.0=David,HEBREW_CHARSET,NEED_CONVERTED
+monospaced.1=Courier New,ANSI_CHARSET
+monospaced.2=WingDings,SYMBOL_CHARSET,NEED_CONVERTED
+monospaced.3=Symbol,SYMBOL_CHARSET,NEED_CONVERTED
+
+# name aliases
+#
+#alias.timesroman=serif
+#alias.helvetica=sansserif
+#alias.courier=monospaced
+
+# for backward compatibility
+#timesroman.0=Times New Roman,ANSI_CHARSET
+#helvetica.0=Arial,ANSI_CHARSET
+#courier.0=Courier New,ANSI_CHARSET
+zapfdingbats.0=WingDings,SYMBOL_CHARSET
+
+filename.David=DAVIDY.TTF
+
+filename.David_Bold=DAVIDBDY.TTF
+
+filename.David_Italic=DAVIDIY.TTF
+
+filename.David_Bold_Italic=DAVIDBIY.TTF
+
+
+filename.Arial=ARIAL.TTF
+
+filename.Arial_Bold=ARIALBD.TTF
+
+filename.Arial_Italic=ARIALI.TTF
+
+filename.Arial_Bold_Italic=ARIALBI.TTF
+
+
+filename.Courier_New=COUR.TTF
+
+filename.Courier_New_Bold=COURBD.TTF
+
+filename.Courier_New_Italic=COURI.TTF
+
+filename.Courier_New_Bold_Italic=COURBI.TTF
+
+
+filename.Times_New_Roman=TIMES.TTF
+
+filename.Times_New_Roman_Bold=TIMESBD.TTF
+
+filename.Times_New_Roman_Italic=TIMESI.TTF
+
+filename.Times_New_Roman_Bold_Italic=TIMESBI.TTF
+
+
+filename.WingDings=WINGDING.TTF
+
+
+filename.Symbol=SYMBOL.TTF
+
+
+# Default font definition
+#
+default.char=2751
+
+# Static FontCharset info.
+#
+
+fontcharset.dialog.0=sun.io.CharToByteCp1255
+fontcharset.dialog.2=sun.awt.windows.CharToByteWingDings
+fontcharset.dialog.3=sun.awt.CharToByteSymbol
+
+fontcharset.dialoginput.0=sun.io.CharToByteCp1255
+fontcharset.dialoginput.2=sun.awt.windows.CharToByteWingDings
+fontcharset.dialoginput.3=sun.awt.CharToByteSymbol
+
+fontcharset.serif.0=sun.io.CharToByteCp1255
+fontcharset.serif.2=sun.awt.windows.CharToByteWingDings
+fontcharset.serif.3=sun.awt.CharToByteSymbol
+
+fontcharset.sansserif.0=sun.io.CharToByteCp1255
+fontcharset.sansserif.2=sun.awt.windows.CharToByteWingDings
+fontcharset.sansserif.3=sun.awt.CharToByteSymbol
+
+fontcharset.monospaced.0=sun.io.CharToByteCp1255
+fontcharset.monospaced.2=sun.awt.windows.CharToByteWingDings
+fontcharset.monospaced.3=sun.awt.CharToByteSymbol
+
+# Exclusion Range info.
+#
+exclusion.dialog.0=0041-005a,0060-007a,007f-00ff
+exclusion.dialog.1=0100-ffff
+
+exclusion.dialoginput.0=0041-005a,0060-007a,007f-00ff
+exclusion.dialoginput.1=0100-ffff
+
+exclusion.serif.0=0041-005a,0060-007a,007f-00ff
+exclusion.serif.1=0600-ffff
+
+exclusion.sansserif.0=0041-005a,0060-007a,007f-00ff
+exclusion.sansserif.1=0600-ffff
+
+exclusion.monospaced.0=0041-005a,0060-007a,007f-00ff
+exclusion.monospaced.1=0100-ffff
+
+# charset for text input
+#
+inputtextcharset=HEBREW_CHARSET
+
