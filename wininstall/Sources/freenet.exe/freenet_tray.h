@@ -41,3 +41,7 @@ void GetFirstToken(LPSTR szCurrentPointer, LPSTR *pszEndPointer);
 LPSTR GetNextToken(LPSTR szCurrentPointer, const LPSTR szEndPointer);
 void GetToken(LPSTR szCurrentPointer);
 LPSTR SkipSpace(LPSTR szString);
+
+
+void CreateConfig(LPCSTR szConfigFile);
+void MergeConfig(LPCSTR szConfigFile, LPCSTR szConfigDefaultsFile);

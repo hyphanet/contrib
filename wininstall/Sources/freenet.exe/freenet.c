@@ -81,6 +81,8 @@ const char szfserveclidefaultexec[]="freenet.node.Main"; /* default for above */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
 const char szfconfigdefaultexec[]="NodeConfig.exe"; /* default for above */
 const char szfconfigisjavakey[]="fconfigUseJava"; /* ie fconfigUseJava=0 to run fconfigexec as an app, or fconfigUseJava=1 to run "java %fconfigexec%" */
+const char szfservecliconfigkey[]="cfgnode"; /* ie cfgnode=freenet.config.Setup */
+const char szfserveclidefaultconfig[]="freenet.config.Setup";
 const char szfseedcmdprekey[]="seedcmdpre"; /* ie seedcmdpre="--seed" */
 const char szfseeddefaultprecmd[]="--seed";
 const char szfseedcmdpostkey[]="seedcmdpost"; /* ie seedcmdpost="" */
@@ -108,10 +110,15 @@ typedef UINT (CALLBACK * LPFNDLLCONFIG)(HWND,BOOL); /* Format of the Configfunc*
 enum eCommands
 {
 	COMMAND_OPEN=0,
-	COMMAND_IMPORT=1,
+	COMMAND_IMPORT,
+	COMMAND_EXPORT,
+	COMMAND_HELP,
+	COMMAND_CREATECONFIG,
+	COMMAND_MERGECONFIG,
 	NUMBER_OF_COMMANDS
 };
-const char *szCommandText[] = {"-open", "-import"};
+const char *szCommandText[] = {"-open", "-import", "-export", "-seed", "-help", "-createconfig", "-mergeconfig",NULL };
+const int CommandActions[] = {COMMAND_OPEN, COMMAND_IMPORT, COMMAND_EXPORT, COMMAND_IMPORT, COMMAND_HELP, COMMAND_CREATECONFIG, COMMAND_MERGECONFIG};
 
 
 /******************************************************
@@ -124,6 +131,7 @@ char szjavapath[JAVAWMAXLEN];		/* used to read Javaexec= definition out of FLaun
 char szjavawpath[JAVAWMAXLEN];		/* used to read Javaw= definition out of FLaunch.ini */
 char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out of FLaunch.ini */
 char szfconfigexec[BUFLEN];			/* used to read Fconfig= definition out of FLaunch.ini */
+char szFserveConfig[BUFLEN];	    /* used to read cfgnode= definition out of FLaunch.ini */
 char szFserveSeedCmdPre[BUFLEN];	/* used to store "--seed" */
 char szFserveSeedCmdPost[BUFLEN];	/* used to store "" */
 char szFserveExportCmdPre[BUFLEN];	/* used to store "--export" */
@@ -444,7 +452,7 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 			/* while there's still tokens on the command line: */
 			do
 			{
-				for (i=0; i<NUMBER_OF_COMMANDS && !bUnusual; ++i)
+				for (i=0; (!bUnusual) && (szCommandText[i] != NULL); ++i)
 				{
 					if (CompareString(	LOCALE_SYSTEM_DEFAULT,
 										NORM_IGNORECASE | SORT_STRINGSORT | NORM_IGNOREWIDTH,
@@ -454,7 +462,7 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 										-1) == 2 )
 					{
 						/* Confused?  CompareString returns '2' if the strings are identical */
-						switch (i)
+						switch (CommandActions[i])
 						{
 						case COMMAND_OPEN:
 							bOpenGatewayOnStartup=true;
@@ -471,11 +479,64 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 								return FALSE;
 							}	
 							break;
+						case COMMAND_EXPORT:
+							szCommandLinePtr = GetNextToken(szCommandLinePtr, szEndPointer);
+							if (szCommandLinePtr == NULL)
+							{
+								bUnusual=TRUE;
+							}
+							else
+							{
+								ExportFile(szCommandLinePtr); // no pump needed, command is quick to execute
+								return FALSE;
+							}	
+							break;
+						case COMMAND_HELP:
+							bUnusual=TRUE;
+							break;
+						case COMMAND_CREATECONFIG:
+							szCommandLinePtr = GetNextToken(szCommandLinePtr, szEndPointer);
+							if (szCommandLinePtr == NULL)
+							{
+								bUnusual=TRUE;
+							}
+							else
+							{
+								CreateConfig(szCommandLinePtr);
+								return FALSE;
+							}
+							break;
+						case COMMAND_MERGECONFIG:
+							szCommandLinePtr = GetNextToken(szCommandLinePtr, szEndPointer);
+							if (szCommandLinePtr == NULL)
+							{
+								bUnusual=TRUE;
+							}
+							else
+							{
+								const char * szSecondArg = GetNextToken(szCommandLinePtr, szEndPointer);
+								if (szSecondArg == NULL)
+								{
+									bUnusual=TRUE;
+								}
+								else
+								{
+									MergeConfig(szCommandLinePtr, szSecondArg);
+									return FALSE;
+								}
+							}
+							break;
 						default:
 							bUnusual=TRUE;
 							break;
 						}
 					}
+				}
+
+				if (i==NUMBER_OF_COMMANDS)
+				{
+					bUnusual=TRUE;
+					break;
 				}
 
 				if (bUnusual)
@@ -494,7 +555,13 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 			{
 				MessageBox(NULL,"Usage:\n"
 								"-open                loads the Freenet Gateway page on startup\n"
-								"-import FILENAME     imports the reference file specified by FILENAME",
+								"-import FILENAME     imports the reference file specified by FILENAME\n"
+								"-export FILENAME     exports a reference for your node into FILENAME\n",
+								"-createconfig FILENAME     Creates a default configuration file\n",
+								"-mergeconfig FILE1 FILE2   Updates FILE1 to contain the latest configuration\n"
+								"              information from FILE2 (most useful if FILE2 was created with\n"
+								"              -createconfig FILE2 in the first place)\n"
+								"-help                Shows this dialog",
 								"Freenet Control Panel help",MB_OK);
 				return FALSE;
 			}
@@ -732,6 +799,9 @@ void ReloadSettings(void)
 	GetPrivateProfileString(szflsec, szfseedexportcmdprekey, szfseeddefaultexportprecmd, szFserveExportCmdPre, BUFLEN, szflfile);
 	GetPrivateProfileString(szflsec, szfseedexportcmdpostkey, szfseeddefaultexportpostcmd, szFserveExportCmdPost, BUFLEN, szflfile);
 
+	/* get the fserve config command string from flaunch.ini */
+	GetPrivateProfileString(szflsec, szfservecliconfigkey, szfserveclidefaultconfig, szFserveConfig, BUFLEN, szflfile);
+
 	/* Get the priority and priorityclass information from flaunch.ini */
 	nPriority=GetPrivateProfileInt(szflsec, szprioritykey, nDefaultPriority, szflfile);
 	nPriorityClass=GetPrivateProfileInt(szflsec, szpriorityclasskey, nDefaultPriorityClass, szflfile);
@@ -880,6 +950,10 @@ void StartConfig(void)
 	UINT result;
 	HINSTANCE hConfigDLL = LoadLibrary(szConfigDLLName);
 	LPFNDLLCONFIG /*LPCONFIGPROC*/ pProcAddress = NULL;
+
+	SetCurrentDirectory(szHomeDirectory);
+	CreateConfig("default.ini");
+
 	if (hConfigDLL)
 	{
 		pProcAddress = (LPFNDLLCONFIG)GetProcAddress(hConfigDLL,szConfigProcName);
@@ -892,6 +966,8 @@ void StartConfig(void)
 			{
 				// result==zero means config was successful
 				// so restart the node
+				SetCurrentDirectory(szHomeDirectory);
+				MergeConfig("freenet.ini","default.ini");
 				PostMessage(hWnd, WM_COMMAND, IDM_RESTART, 0);
 			}
 			// configuration complete - release the 'configurator' mutex
@@ -953,6 +1029,9 @@ void StartConfigOrig(void)
 		dwJavaConfigProcId=prcConfigInfo.dwProcessId;
 		CloseHandle(hJavaConfigThread);
 		CloseHandle(prcConfigInfo.hThread);
+
+		SetCurrentDirectory(szHomeDirectory);
+		MergeConfig("freenet.ini","default.ini");
 	}
 }
 
@@ -1460,4 +1539,235 @@ void ClearTempDirectories(void)
 		if(strlen(tempdir))
 			DeleteFilesInDirectory(tempdir);
 	}
+}
+
+
+
+STARTUPINFO ConfigInfo={sizeof(STARTUPINFO),
+						NULL,NULL,NULL,
+						0,0,0,0,0,0,0,
+						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+						SW_NORMAL,
+						0,NULL,
+						NULL,NULL,NULL};
+
+void CreateConfig(const TCHAR * szFilename)
+{
+	// execute FSERVE --export %filename%
+	PROCESS_INFORMATION prcConfigInfo;
+
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szFserveConfig)+15+MAX_PATH];
+	lstrcpy(szexecbuf, szjavawpath);
+	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, szFserveConfig); 
+	lstrcat(szexecbuf, " \"");
+	lstrcat(szexecbuf, szFilename);
+	lstrcat(szexecbuf, "\" --silent");
+
+	/* following is necessary because fred looks in *current directory* for its own ini file ... ! */
+	SetCurrentDirectory(szHomeDirectory);
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS|CREATE_NO_WINDOW, NULL, NULL, &ConfigInfo, &prcConfigInfo) )
+	{
+		char szErrorMsg[256];
+		lstrcpy(szErrorMsg, "Failed to generate a default config file:\n");
+		lstrcat(szErrorMsg, szFilename);
+		MessageBox(NULL, szErrorMsg, "Freenet Control Panel", MB_OK | MB_ICONERROR | MB_TASKMODAL);
+	}
+	else
+	{
+		WaitForSingleObject(prcConfigInfo.hProcess, INFINITE);
+		CloseHandle(prcConfigInfo.hThread);
+		CloseHandle(prcConfigInfo.hProcess);
+	}
+}
+
+
+// Assumes maximum length of any line of text in the .ini file is no more than 2K.  Reasonable assumption!
+void MergeConfig(const char * szINIFile, const char * szDefaultsFile)
+{
+	char szTemp[MAX_PATH+2];
+	char szLine[2048];
+	char szKey[2048];
+	char szValue[2048];
+	DWORD dwBytesRead,dwBytesWritten;
+	DWORD dwOffset=0;
+	char *iNewline, *iNewline2, *iNonspace, *iEquals;
+	HANDLE hDefaultsFile, hUpdatedFile;
+	
+	GetTempFileName(szHomeDirectory,"_ini",0,szTemp);
+	hDefaultsFile = CreateFile(szDefaultsFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (hDefaultsFile==NULL || hDefaultsFile==INVALID_HANDLE_VALUE)
+	{
+		MessageBox(NULL, "Couldn't find 'defaults' file", "MergeConfig failed", MB_OK);
+		goto failed;
+	}
+	hUpdatedFile = CreateFile(szTemp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL|FILE_ATTRIBUTE_TEMPORARY, NULL);
+	if (hUpdatedFile==NULL || hUpdatedFile==INVALID_HANDLE_VALUE)
+	{
+		// try again with TEMP flag, as some OSs don't support it
+		hUpdatedFile = CreateFile(szTemp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	}
+	if (hUpdatedFile==NULL || hUpdatedFile==INVALID_HANDLE_VALUE)
+	{
+		MessageBox(NULL, "Couldn't create 'updated' file", "MergeConfig failed", MB_OK);
+		goto failed;
+	}
+
+	
+	while (1)
+	{
+		dwBytesRead=0;
+		ReadFile(hDefaultsFile, szLine+dwOffset, sizeof(szLine)-dwOffset, &dwBytesRead, NULL);
+		if (dwBytesRead==0 && dwOffset==0)
+		{
+			// end of file
+			break;
+		}
+		dwOffset += dwBytesRead;
+
+		if (*szLine=='\0')
+		{
+			memmove(szLine, szLine+1, sizeof(szLine)-1);
+			--dwOffset;
+			continue;
+		}
+
+		iNewline = strchr(szLine, '\r');
+		iNewline2 = strchr(szLine, '\n');
+		if (iNewline+1 == iNewline2)
+		{
+			*iNewline = '\0';
+			*iNewline2 = '\0';
+		}
+		else if (iNewline2+1 == iNewline)
+		{
+			*iNewline = '\0';
+			*iNewline2 = '\0';
+			iNewline = iNewline2;
+		}
+		else if (iNewline < iNewline2)
+		{
+			*iNewline = '\0';
+		}
+		else if (iNewline2 < iNewline)
+		{
+			*iNewline2 = '\0';
+			iNewline = iNewline2;
+		}
+
+		for (iNonspace=szLine; (*iNonspace==' ' || *iNonspace=='\t') && iNonspace<iNewline; ++iNonspace);
+		if (iNonspace==iNewline)
+			goto dumpline;
+
+		if (*iNonspace=='#')
+		{
+			/* dump entire line to output file - it's just a comment */
+			goto dumpline;
+		}
+
+		for (iEquals=iNonspace; *iEquals!=' ' && *iEquals!='\t' && *iEquals!='=' && iEquals<iNewline; ++iEquals);
+		if (*iEquals=='=')
+		{
+			strncpy(szKey, iNonspace, iEquals-iNonspace);
+			*(szKey+(iEquals-iNonspace))='\0';
+			GetPrivateProfileString(szfinisec,szKey,"",szValue,sizeof(szValue),szINIFile);
+			if (lstrlen(szValue))
+			{
+				// found it - update output:
+				// 1-  If default hasn't got % then output ini value ALWAYS
+				// 2-  If default has got % and ini key hasn't, compare the values.
+				//     and write out the default if the ini has the same value,
+				//     or the ini key=value otherwise
+				// Actually do case 2a first, and then everything else as an 'otherwise'
+				if (*iNonspace=='%')
+				{
+					// default found in INI file so output default file's variant
+					// (as default more up-to-date)
+					goto dumpline;
+				}
+				// otherwise: output INI file values
+				WriteFile(hUpdatedFile,szKey,strlen(szKey),&dwBytesWritten,NULL);
+				if (dwBytesWritten != strlen(szKey))
+					goto failed;
+OutputINIEqualsValue:
+				WriteFile(hUpdatedFile,"=",1,&dwBytesWritten,NULL);
+				if (dwBytesWritten != 1)
+					goto failed;
+				WriteFile(hUpdatedFile,szValue,strlen(szValue),&dwBytesWritten,NULL);
+				if (dwBytesWritten != strlen(szValue))
+					goto failed;
+				WriteFile(hUpdatedFile,"\r\n",2,&dwBytesWritten,NULL);
+				if (dwBytesWritten != 2)
+					goto failed;
+				goto seeknext;
+			}
+
+			else
+			{
+				if (*iNonspace=='%')
+				{
+					// see if INI file overrides the key (i.e. without a %)
+					GetPrivateProfileString(szfinisec,szKey+1,"",szValue,sizeof(szValue),szINIFile);
+					if (lstrlen(szValue))
+					{
+						// INI file overrides the key, see if the INI file value is the same as the default value though!
+						if (lstrcmp(szValue,iEquals+1)==0)
+						{
+							// INI and default are the same so just output the default:
+							goto dumpline;
+						}
+						else
+						{
+							// INI value overrides default so output what the INI file has:
+							WriteFile(hUpdatedFile,szKey+1,strlen(szKey+1),&dwBytesWritten,NULL);
+							if (dwBytesWritten != strlen(szKey+1))
+								goto failed;
+							goto OutputINIEqualsValue;
+						}
+					}
+				}
+
+				// couldn't find that Key:
+				// INI file therefore doesn't override it so just output default variant
+				goto dumpline;
+			}
+		}
+
+		// still here?  Don't know what this line is, just dump it:
+		// (fall through)
+
+
+dumpline:
+		WriteFile(hUpdatedFile,szLine,(iNewline-szLine),&dwBytesWritten,NULL);
+		if (dwBytesWritten != (DWORD)(iNewline-szLine))
+			goto failed;
+		WriteFile(hUpdatedFile,"\r\n",2,&dwBytesWritten,NULL);
+		if (dwBytesWritten != 2)
+			goto failed;
+		/* seek for next line */
+		goto seeknext;
+
+seeknext:
+		memmove(szLine, iNewline+1, sizeof(szLine)-((iNewline-szLine)+1));
+		dwOffset-=((iNewline-szLine)+1);
+		continue;
+	}
+
+	// when we get here, we've finished.
+	CloseHandle(hDefaultsFile);
+	hDefaultsFile=NULL;
+	CopyFile(szTemp, szINIFile, FALSE);
+
+failed:
+	if (hDefaultsFile)
+	{
+		CloseHandle(hDefaultsFile);
+		hDefaultsFile=NULL;
+	}
+	if (hUpdatedFile)
+	{
+		CloseHandle(hUpdatedFile);
+		hUpdatedFile=NULL;
+	}
+	DeleteFile(szTemp);
 }
