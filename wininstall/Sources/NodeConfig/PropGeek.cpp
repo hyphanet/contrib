@@ -1,10 +1,13 @@
 // PropGeek.cpp : implementation file
 //
 
-
 #include "stdafx.h"
 #include "NodeConfig.h"
 #include "PropGeek.h"
+#include "PropNormal.h"
+#include "PropAdvanced.h"
+#include "UnknownDlg.h"
+#include "ConfigFile.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -15,19 +18,28 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPropGeek property page
 
+
 IMPLEMENT_DYNCREATE(CPropGeek, CPropertyPage)
 
 CPropGeek::CPropGeek() : CPropertyPage(CPropGeek::IDD)
 {
-
+	//{{AFX_DATA_INIT(CPropGeek)
+	m_unknowns = _T("");
+	//}}AFX_DATA_INIT
 }
+
 
 CPropGeek::~CPropGeek()
 {
+
 }
 
+
+
 void CPropGeek::DoDataExchange(CDataExchange* pDX)
+
 {
+
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropGeek)
 	DDX_Text(pDX, IDC_announcementAttempts, m_announcementAttempts);
@@ -67,15 +79,55 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_storeCipherName, m_storeCipherName);
 	DDX_Text(pDX, IDC_storeCipherWidth, m_storeCipherWidth);
 	DDX_Text(pDX, IDC_maximumPadding, m_maximumPadding);
+	DDX_Text(pDX, IDC_NUMUNKNOWN, m_unknowns);
 	//}}AFX_DATA_MAP
 }
 
-
 BEGIN_MESSAGE_MAP(CPropGeek, CPropertyPage)
 	//{{AFX_MSG_MAP(CPropGeek)
-		// NOTE: the ClassWizard will add message map macros here
+	ON_BN_CLICKED(IDC_UNKNOWN, OnUnknown)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropGeek message handlers
+
+//The following functions are for the unknown settings dialog
+
+void CPropGeek::OnUnknown() 
+{
+	int temp;
+	UpdateData(TRUE);
+	CUnknownDlg pUnknownDlg;
+	temp = pUnknownDlg.DoModal();
+	UpdateNumofUnknowns();
+	
+}
+
+BOOL CPropGeek::OnInitDialog() 
+{
+	CPropertyPage::OnInitDialog();
+	UpdateNumofUnknowns();
+	
+	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
+}
+
+void CPropGeek::UpdateNumofUnknowns()
+{
+	// Updates the number of unknowns displayed on the Geek Page
+	UpdateData(TRUE);
+	CConfigFile configfile;
+	CString theUnknowns = configfile.GetUnknowns();
+	int unknowns = 0;
+	int lastfound = 0;
+	while(theUnknowns.Find("\n", lastfound) != -1)
+	{
+		lastfound = theUnknowns.Find("\n", lastfound);
+		lastfound++;
+		unknowns++;
+	}
+	m_unknowns.Format("%d", unknowns);
+	UpdateData(FALSE);
+}
+
