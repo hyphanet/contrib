@@ -177,21 +177,21 @@ get_article (uint32_t msg_num)
     FILE *decoded, *data = tmpfile();
     article *a;
 
-    fprintf(sock, "xhdr subject %d\r\n", msg_num);
-    fflush(sock);
-    fgets(line, 512, sock);
-    sscanf(line, "%d", &status);
-    if (status != 221) goto badreply;
-    fgets(line, 512, sock);
-    if (regex && regexec(regex, line, 0, NULL, 0)) {
-	if (status != 0) {
+    if (regex) {
+        fprintf(sock, "xhdr subject %d\r\n", msg_num);
+        fflush(sock);
+        fgets(line, 512, sock);
+        sscanf(line, "%d", &status);
+        if (status != 221) goto badreply;
+        fgets(line, 512, sock);
+        if (regexec(regex, line, 0, NULL, 0)) {
 	    fprintf(stderr, "Skipping unmatched article %d.\n", msg_num);
 	    fgets(line, 512, sock);
 	    return NULL;
 	}
+        fgets(line, 512, sock);
+        if (strcmp(line, ".\r\n") != 0) goto badreply;
     }
-    fgets(line, 512, sock);
-    if (strcmp(line, ".\r\n") != 0) goto badreply;
     
     if (min_bytes) {
         fprintf(sock, "xhdr bytes %d\r\n", msg_num);
