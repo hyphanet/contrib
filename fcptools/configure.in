@@ -51,7 +51,6 @@ dnl Checks for library functions. -----------------------------------------
 AC_CHECK_LIB(pthread, pthread_create, LIBS="$LIBS -lpthread")
 AC_CHECK_LIB(c_r, pthread_create, LDFLAGS="$LDFLAGS -pthread -D_THREAD_SAFE")
 
-
 AC_CHECK_FUNC(gethostbyname,,[AC_CHECK_LIB(nsl,gethostbyname)])
 AC_CHECK_FUNC(setsockopt,,[AC_CHECK_LIB(socket,setsockopt)])
 
