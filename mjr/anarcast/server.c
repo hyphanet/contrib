@@ -115,8 +115,8 @@ main (int argc, char **argv)
 		if (munmap(a[n].data, a[n].len) == -1)
 		    err(1, "munmap() failed");
 		FD_CLR(n, &r);
-		FD_SET(n, &w);
-		a[n].off = 0;
+		if (close(n) == -1)
+		    err(1, "close() failed");
 		continue;
 	    }
 	}
@@ -163,34 +163,21 @@ write:	//=== write =========================================================
 	    if (FD_ISSET(n, &x)) break;
 	if (n == m) continue;
 	
-	if (a[n].type == 'i') {
-	    i = a[n].off;
-	    a[n].off += (c = write(n, &a[n].hash[i], HASH_LEN - i));
-	    if (c <= 0 || a[n].off == HASH_LEN) {
-		if (c <= 0) ioerror();
-		FD_CLR(n, &w);
-	        if (close(n) == -1)
-	            err(1, "close() failed");
-	    }
-	}
-	
-	if (a[n].type == 'r') {
-	    i = a[n].off;
-	    if (i < 0) c = write(n, &(&a[n].len)[4+i], -i);
-	    else c = write(n, &a[n].data[i], a[n].len - i);
-	    a[n].off += c;
-	    if (c <= 0 || a[n].off == a[n].len) {
-	        if (c > 0) {
-		    char hex[HASH_LEN*2+1];
-		    bytestohex(hex, a[n].hash, HASH_LEN);
-		    printf("%s > %s\n", timestr(), hex);
-		} else ioerror();
-	        FD_CLR(n, &w);
-	        if (close(n) == -1)
-	            err(1, "close() failed");
-	        if (munmap(a[n].data, a[n].len) == -1)
-		    err(1, "munmap() failed");
-	    }
+	i = a[n].off;
+	if (i < 0) c = write(n, &(&a[n].len)[4+i], -i);
+	else c = write(n, &a[n].data[i], a[n].len - i);
+	a[n].off += c;
+	if (c <= 0 || a[n].off == a[n].len) {
+	    if (c > 0) {
+		char hex[HASH_LEN*2+1];
+		bytestohex(hex, a[n].hash, HASH_LEN);
+		printf("%s > %s\n", timestr(), hex);
+	    } else ioerror();
+	    FD_CLR(n, &w);
+	    if (close(n) == -1)
+		err(1, "close() failed");
+	    if (munmap(a[n].data, a[n].len) == -1)
+		err(1, "munmap() failed");
 	}
     }
 }

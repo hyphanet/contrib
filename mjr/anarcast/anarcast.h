@@ -64,7 +64,12 @@ mbuf (size_t len)
     if (p == MAP_FAILED)
 	err(1, "mmap() failed");
     
-    close(c);
+    if (close(c) == -1)
+	err(1, "close() failed");
+    
+    if (unlink(b) == -1)
+	err(1, "unlink() failed");
+    
     return p;
 }
 

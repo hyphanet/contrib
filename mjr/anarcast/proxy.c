@@ -1,3 +1,5 @@
+#include <math.h>
+#include <stdarg.h>
 #include <pthread.h>
 #include "anarcast.h"
 #include "sha.c"
@@ -14,11 +16,18 @@ char *inform_server;
 
 inline void inform ();
 inline void * run_thread (void *arg);
+void alert (const char *s, ...);
+
 inline void insert (int c);
+int insert_data_blocks (char *data, int block_size, int datablock_count, char *hashes);
+int insert_check_blocks (char *data, int block_size, int datablock_count, char *hashes);
+
 inline void request (int c);
+
 inline void addref (unsigned int addr);
 inline void rmref (struct node *n);
 inline int route (char hash[HASH_LEN]);
+
 inline struct node * tree_search (struct node *tree, char hash[HASH_LEN]);
 inline void tree_insert (struct node **tree, struct node *item);
 inline void tree_copy (struct node *tree, struct node **new, struct node *fuck);
@@ -64,37 +73,109 @@ run_thread (void *arg)
     pthread_exit(NULL);
 }
 
+void
+alert (const char *s, ...)
+{
+    va_list args;
+    va_start (args, s);
+    printf("\n");
+    vprintf(s, args);
+    printf("\n\n");
+    va_end (args);
+}
+
 inline void
 insert (int c)
 {
-    char hash[HASH_LEN], *p;
-    unsigned int len;
+    char *hashes, *data;
+    unsigned int i, len;
+    int block_size, datablock_count;
     keyInstance key;
     cipherInstance cipher;
     
-    if (readall(c, &len, 4) != 4) {
+    if (readall(c, &i, 4) != 4) {
 	ioerror();
 	return;
     }
 
-    p = mbuf(len);
-    if (readall(c, p, len) != len) {
+    block_size = 64 * sqrt(i);
+    datablock_count = i / block_size;
+    
+    if (!(hashes = malloc((datablock_count+1) * HASH_LEN)))
+	err(1, "malloc() failed");
+    
+    while (datablock_count * block_size < i)
+	block_size++;
+    
+    len = datablock_count * block_size;
+    data = mbuf(datablock_count * block_size);
+    memset(&data[i], 0, len-i);
+    if (readall(c, data, i) != i) {
 	ioerror();
-	if (munmap(p, len) == -1)
+	if (munmap(data, len) == -1)
 	    err(1, "munmap() failed");
+	free(hashes);
 	return;
     }
-    
-    sha_buffer(p, len, hash);
+
+    sha_buffer(data, len, hashes);
     if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
 	err(1, "cipherInit() failed");
-    if (makeKey(&key, DIR_ENCRYPT, 128, hash) != TRUE)
+    if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
 	err(1, "makeKey() failed");
-    if (blockEncrypt(&cipher, &key, p, len, p) <= 0)
+    if (blockEncrypt(&cipher, &key, data, len, data) <= 0)
 	err(1, "blockEncrypt() failed");
     
-    if (munmap(p, len) == -1)
+    insert_data_blocks(data, block_size, datablock_count, &hashes[HASH_LEN]);
+
+//    insert_check_blocks(data, block_size, datablock_count);
+    
+    i = (datablock_count+1) * HASH_LEN;
+    if (writeall(c, &i, 4) != 4 || writeall(c, hashes, i) != i) {
+	ioerror();
+	if (munmap(data, len) == -1)
+	    err(1, "munmap() failed");
+	free(hashes);
+	return;
+    }
+
+    if (munmap(data, len) == -1)
 	err(1, "munmap() failed");
+    free(hashes);
+    
+    alert("Insertion complete.");
+}
+
+int
+insert_data_blocks (char *data, int block_size, int datablock_count, char *hashes)
+{
+    int i;
+
+    for (i = 0 ; i < datablock_count ; i++) {
+	int c;
+	sha_buffer(&data[i*block_size], block_size, &hashes[i*HASH_LEN]);
+restart:
+	c = route(&hashes[i*HASH_LEN]);
+	
+	if (writeall(c, "i", 1) != 1
+		|| writeall(c, &block_size, 4) != 4
+		|| writeall(c, &data[i*block_size], block_size) != block_size) {
+	    if (close(c) == -1)
+		err(1, "close() failed");
+	    goto restart;
+	}
+
+	if (close(c) == -1)
+	    err(1, "close() failed");
+    }
+    
+    return 0;
+}
+
+int
+insert_check_blocks (char *data, int block_size, int datablock_count, char *hashes)
+{
+    return 0;
 }
 
 inline void
@@ -147,7 +228,7 @@ inform ()
 	addref(i);
     }
 
-    printf("\n%d Anarcast servers loaded.\n\n", n);
+    alert("%d Anarcast servers loaded.", n);
 
     if (!n) {
 	puts("No servers, exiting.");
@@ -238,7 +319,7 @@ route (char hash[HASH_LEN])
 	    err(1, "close() failed");
     }
     
-    puts("\nServer list exhausted. Contacting inform server.\n");
+    alert("Server list exhausted. Contacting inform server.");
     inform();
     return route(hash);
 }

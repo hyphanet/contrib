@@ -8,11 +8,16 @@ void weed_dead_servers ();
 char *hosts, *end, *off[FD_SETSIZE];
 
 int
-main ()
+main (int argc, char **argv)
 {
     unsigned int l, m, active;
     long last_weeding;
     fd_set r, w;
+    
+    if (argc != 1) {
+	fprintf(stderr, "Usage: %s (no switches)\n", argv[0]);
+	exit(2);
+    }
     
     chdir_to_home();
     
