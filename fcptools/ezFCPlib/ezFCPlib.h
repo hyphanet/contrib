@@ -38,6 +38,9 @@
   MS-WIN32 specifics
 **************************************************************************/
 #ifdef WIN32
+
+typedef SOCKET FCPSOCKET;
+
 #include <malloc.h>
 #include <process.h>
 #include <winsock2.h>
@@ -50,12 +53,12 @@
 /* VERSION is defined by automake for non-Win platforms. */
 #define VERSION "0.4.9w"
 
-typedef SOCKET FCPSOCKET;
-
 /**************************************************************************
   UNIX specifics
 **************************************************************************/
 #else
+
+typedef int FCPSOCKET;
 
 /* UNIX includes that do not correspond on WIN32 go here */
 /* Keep 'sys' files first in include order */
@@ -64,8 +67,6 @@ typedef SOCKET FCPSOCKET;
 #include <sys/time.h>
 
 #include <unistd.h>
-
-typedef int FCPSOCKET;
 
 #endif
 

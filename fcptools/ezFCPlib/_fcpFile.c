@@ -35,8 +35,9 @@
 #include <stdlib.h>
 #include <errno.h>
 
-/* why? */
-/*#include <time.h>*/
+#ifndef WIN32
+#include <time.h>
+#endif
 
 #include "ez_sys.h"
 
@@ -163,58 +164,59 @@ int _fcpCopyFile(char *dest, char *src)
 
 #else
 
-	char buf[8193];
-
-	int dfd;
-	int sfd;
-
-	int count;
-	int bytes;
-
-	dfd = sfd = -1;
-
-	if (!dest) {
-		_fcpLog(FCP_LOG_DEBUG, "OOPS: dest: %s", dest);
-		return 0;
-	}
-
-	if (!src) {
-		_fcpLog(FCP_LOG_DEBUG, "OOPS: src: %s", src);
-		return 0;
-	}
-
-	if ((dfd = open(dest, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE)) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", dest);
+	{
+		char buf[8193];
+		
+		int dfd;
+		int sfd;
+		
+		int count;
+		int bytes;
+		
+		dfd = sfd = -1;
+		
+		if (!dest) {
+			_fcpLog(FCP_LOG_DEBUG, "OOPS: dest: %s", dest);
+			return 0;
+		}
+		
+		if (!src) {
+			_fcpLog(FCP_LOG_DEBUG, "OOPS: src: %s", src);
+			return 0;
+		}
+		
+		if ((dfd = open(dest, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE)) == -1) {
+			_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", dest);
+			return -1;
+		}
+		
+		if ((sfd = open(src, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE)) == -1) {
+			_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", src);
+			goto cleanup;
+		}
+		
+		for (bytes = 0; (count = read(sfd, buf, 8192)) > 0; bytes += count)
+			_fcpWrite(dfd, buf, count);
+		
+		if (count == -1) {
+			_fcpLog(FCP_LOG_DEBUG, "a read returned an error");
+			goto cleanup;
+		}
+		
+		_fcpLog(FCP_LOG_DEBUG, "_fcpCopyFile() copied %d bytes", bytes);
+		
+		if (sfd != -1) close(sfd);
+		if (dfd != -1) close(dfd);
+		
+		return bytes;
+		
+	cleanup:
+		
+		if (sfd != -1) close(sfd);
+		if (dfd != -1) close(dfd);
+		
 		return -1;
 	}
-
-	if ((sfd = open(src, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE)) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", src);
-		goto cleanup;
-	}
-	
-	for (bytes = 0; (count = read(sfd, buf, 8192)) > 0; bytes += count)
-		_fcpWrite(dfd, buf, count);
-
-	if (count == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "a read returned an error");
-		goto cleanup;
-	}
-
-	_fcpLog(FCP_LOG_DEBUG, "_fcpCopyFile() copied %d bytes", bytes);
-
-	if (sfd != -1) close(sfd);
-	if (dfd != -1) close(dfd);
-
-	return bytes;
-
- cleanup:
-
-	if (sfd != -1) close(sfd);
-	if (dfd != -1) close(dfd);
-
-	return -1;
-
 #endif
 }
 

@@ -49,8 +49,6 @@
 
 #define _FCP_DIR_SEP '\\'
 
-typedef SOCKET FCPSOCKET;
-
 #else
 
 /* non-WIN constants */
@@ -62,7 +60,6 @@ typedef SOCKET FCPSOCKET;
 
 #define _FCP_DIR_SEP '/'
 
-typedef int FCPSOCKET;
 #endif
 
 #define _FCP_READ   0x0001

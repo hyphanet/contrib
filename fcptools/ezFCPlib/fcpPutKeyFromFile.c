@@ -149,8 +149,12 @@ int _fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta
 		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
 		break;
 
-	case KEY_TYPE_SSK:
 	case KEY_TYPE_KSK:
+
+			put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
+			break;
+
+	case KEY_TYPE_SSK:
 		{
 			char *key;
 			int   len;
