@@ -1,4 +1,4 @@
-library FreenetProtocol;
+unit FreenetThread;
 {
   This code is part of the freenet-IE plugin by Philipp Hug
   It is distributed under the GNU General Public Licence (GPL)
@@ -6,7 +6,7 @@ library FreenetProtocol;
 }
 
 {
-  this is the dll project
+  this unit contains some routines needed by the plugin
 
   @author <a href="mailto:freenet@philipphug.ch">Philipp Hug</a>
   @author <a href="mailto:author2@universe">Author 2</a>
@@ -31,11 +31,12 @@ type
     FDone: Boolean;
     FinURL: HINTERNET;
     FProtSink: IInternetProtocolSink;
+    FBindInfo: IInternetBindInfo;
     FID: Integer;
   protected
     procedure Execute; override;
   public
-    constructor Create (ProtSink: IInternetProtocolSink); virtual;
+    constructor Create (ProtSink: IInternetProtocolSink; BindInfo: IInternetBindInfo); virtual;
     destructor Destroy; override;
     function Read (buf: PChar; bsize: cardinal; out bRead: cardinal): integer;
     property Request: String read FRequest write FRequest;
@@ -49,7 +50,7 @@ uses
   FreeNetStuff;
 { TFreenetThread }
 
-constructor TFreenetThread.Create(ProtSink: IInternetProtocolSink);
+constructor TFreenetThread.Create(ProtSink: IInternetProtocolSink; BindInfo: IInternetBindInfo);
 begin
   FOnline := False;
   FDone := False;
@@ -57,6 +58,7 @@ begin
   FreeOnTerminate := False;
   inherited Create (True);
   FProtSink:= ProtSink;
+  FBindInfo := BindInfo;
 end;
 
 destructor TFreenetThread.Destroy;
@@ -70,9 +72,15 @@ var
   Request: String;
   x: integer;
   wbuf: array [0..1000] of char;
+  cBINDF: cardinal;
+  bindinfo: _tagBINDINFO;
 const
   FHost = 'http://localhost:8081/';
 begin
+  FBindInfo.GetBindInfo (cBINDF, bindinfo);
+  LogMessage ('GetBindInfo returned:'+inttohex (cBINDF, 8), FID);
+
+
   inc (RunningThreads);
   FRequest := CleanUpURL (Frequest);
   Delete (FRequest, 1, 8);
@@ -106,8 +114,11 @@ begin
       FProtSink.ReportData (BSCF_DATAFULLYAVAILABLE or BSCF_AVAILABLEDATASIZEUNKNOWN, x, 0);
       FProtSink.ReportResult(S_OK,0,nil);
       LogMessage ('Downloading finished... Done:'+ inttostr (ord(FDone)) + ' Failed:'+inttostr (ord(FFailed)) + ' Terminated:' +inttostr(ord(Terminated)), FID);
+      InternetCloseHandle (FinURL);
+      FinURL := nil;
     end else
       FFailed := True;
+    InternetCloseHandle (inSession);
   end else
     FFailed := True;
   if FFailed then

@@ -1,4 +1,4 @@
-library FreenetProtocol;
+unit FreenetStuff;
 {
   This code is part of the freenet-IE plugin by Philipp Hug
   It is distributed under the GNU General Public Licence (GPL)
@@ -6,7 +6,7 @@ library FreenetProtocol;
 }
 
 {
-  this is the dll project
+  this unit contains some routines needed by the plugin
 
   @author <a href="mailto:freenet@philipphug.ch">Philipp Hug</a>
   @author <a href="mailto:author2@universe">Author 2</a>

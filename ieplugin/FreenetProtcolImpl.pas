@@ -1,4 +1,4 @@
-library FreenetProtocol;
+Unit FreenetProtcolImpl;
 {
   This code is part of the freenet-IE plugin by Philipp Hug
   It is distributed under the GNU General Public Licence (GPL)
@@ -6,7 +6,7 @@ library FreenetProtocol;
 }
 
 {
-  this is the dll project
+  this unit contains TFreeNetProtcol which implements the interfaces need by IE
 
   @author <a href="mailto:freenet@philipphug.ch">Philipp Hug</a>
   @author <a href="mailto:author2@universe">Author 2</a>
@@ -94,7 +94,7 @@ begin
   Delete(sReq,1,length (fnet)); { freenet: }
   sReq := HTTPDecode (sReq);
   LogMessage('Start Request Thread URI="'+sReq+'"',FID);
-  fnt := TFreenetThread.Create (OIProtSink);
+  fnt := TFreenetThread.Create (OIProtSink, OIBindInfo);
   fnt.Request := sReq;
   fnt.ID := FID;
   fnt.Resume;
@@ -275,9 +275,13 @@ function TFreeNetProtocol.QueryInfo(pwzUrl: LPCWSTR;
   cbBuffer: DWORD; var cbBuf: DWORD; dwReserved: DWORD): HResult;
 begin
   LogMessage('QueryInfo QueryOption:'+inttostr(ord(QueryOption)),FID);
-
   Result := S_OK;
   case QueryOption of
+    QUERY_CAN_NAVIGATE:
+    begin
+      PInteger(pBuffer)^:=1;
+      cbBuf := 4;
+    end;
     QUERY_USES_NETWORK:
     begin
       PInteger(pBuffer)^:=1;
