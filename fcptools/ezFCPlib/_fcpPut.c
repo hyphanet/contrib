@@ -584,7 +584,6 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	/* Open file we are about to send */
 	if ((fd = open(hfcp->key->tmpblock->filename, FCP_READFILE_FLAGS)) == -1) {
 		rc = -1;
-
 		_fcpLog(FCP_LOG_DEBUG, "OOPS: %s", strerror(errno));
 		goto cleanup;
 	}
