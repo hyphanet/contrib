@@ -1,11 +1,8 @@
 /*
-  This code is part of ezFCPlib - an FCP-based C client library for Freenet
+  This code is part of ezFCPlib.
   
   Designed and implemented by David McNab, david@rebirthing.co.nz
   CopyLeft (c) 2001 by David McNab
-  
-  The FreeWeb website is at http://freeweb.sourceforge.net
-  The website for Freenet is at http://freenet.sourceforge.net
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,40 +19,18 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include "ezFCPlib.h"
-
 #include <string.h>
 
-extern char  _fcpHost[];
-
-void fcpSetHost(char *newHost)
-{
-  strncpy(_fcpHost, newHost, L_HOST);
-}
+#include "ezFCPlib.h"
 
 /*
-  Function:    fcpSetHtl
-  
-  Arguments:   hfcp    pointer to FCP handle, created with fcpCreateHandle()
-  htl		hops to live value
-  
-  Description: Sets the default HTL for all future freenet operations on given handle
+	Set the host address of the Freenet node.
+	Also takes care of memory allocation.
 */
-
-void fcpSetHtl(HFCP *hfcp, int htl)
+void fcpSetHost(char *host)
 {
-  hfcp->htl = htl;
-}
-
-/*
-  Function:    fcpSetRegress
-  
-  Arguments:   hfcp    pointer to FCP handle, created with fcpCreateHandle()
-  
-  Description: Sets the number of days to regress in retrying failed date redirects
-*/
-
-void fcpSetRegress(HFCP *hfcp, int regress)
-{
-  hfcp->regress = regress;
+	if (_fcpHost) free(_fcpHost);
+	_fcpHost = malloc(strlen(host) + 1);
+	
+  strcpy(_fcpHost, host);
 }

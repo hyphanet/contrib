@@ -1,5 +1,5 @@
 /*
-  This code is part of FreeWeb - an FCP-based client for Freenet
+  This code is part of FCPTools - an FCP-based client library for Freenet.
 
   Designed and implemented by David McNab, david@rebirthing.co.nz
   CopyLeft (c) 2001 by David McNab
@@ -11,25 +11,11 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <errno.h>
-#include <time.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <stdio.h>
-
-#ifndef WINDOWS
-#include <unistd.h>
-#endif
 
 #include "ezFCPlib.h"
 
-#ifndef P_tmpdir
-  #define P_tmpdir "/tmp"
-#endif
 
+/**********************************************************************/
 /*
   xtoi()
 
@@ -40,8 +26,7 @@ long xtoi(char *s)
 {
   long val = 0;
   
-  if (s == 0)
-    return 0L;
+  if (!s) return 0L;
   
   for (; *s != '\0'; s++)
     if (*s >= '0' && *s <= '9')
@@ -56,6 +41,8 @@ long xtoi(char *s)
   return val;
 }
 
+
+/*
 long timeLastMidnight()
 {
   time_t timenow;
@@ -64,35 +51,4 @@ long timeLastMidnight()
   timenow -= timenow % 86400;
   return timenow;
 }
-
-int opentemp(char filename[])
-{
-  int fd;
-  static time_t seedseconds;
-  struct stat dirstats;
-  
-  if (!seedseconds) {
-    time(&seedseconds);
-    srand((unsigned int)seedseconds);
-  }
-
-  do {
-    /* Normally this will only be done once so it shouldn't
-     * be a problem to put this inside the loop */
-
-#ifdef WINDOWS
-    if (!stat(P_tmpdir, &dirstats) && dirstats.st_mode & (S_IFDIR))
-#else			
-		if (!stat(P_tmpdir, &dirstats) && ( S_ISDIR(dirstats.st_mode) |S_IWUSR|S_IXUSR))
-#endif
-
-	sprintf(filename, "%s/eztmp%x", P_tmpdir, (unsigned int)rand());
-
-      else
-	/* If P_tmpdir is not accessible, use current working dir */
-	sprintf(filename, "eztmp%x", (unsigned int)rand());
-    fd = open(filename, O_WRONLY|O_CREAT|O_EXCL, 0600);
-  } while (fd < 0 && errno == EEXIST);
-  return fd;
-}
-
+*/

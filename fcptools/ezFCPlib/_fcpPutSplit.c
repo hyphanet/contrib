@@ -22,9 +22,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "ezFCPlib.h"
-#include "compat.h"
-
 #ifndef WINDOWS
 #include <unistd.h>
 #endif
@@ -34,6 +31,8 @@
 #include <time.h>
 #include <string.h>
 #include <stdio.h>
+
+#include "ezFCPlib.h"
 
 typedef struct
 {
@@ -126,7 +125,7 @@ void _fcpInitSplit(int maxSplitThreads)
 
 
 	/* Launch manager thread */
-	crLaunchThread(splitMgrThread, NULL);
+	_fcpLaunchThread(splitMgrThread, NULL);
 
 	while (!splitMgrRunning)
 		crSleep( 1, 0 );
@@ -629,7 +628,7 @@ static void splitMgrThread(void *nothing)
 							i, params->key->fileName);
 
 					/* fire up a thread to insert this chunk */
-					if (crLaunchThread(chunkThread, params) != 0)
+					if (_fcpLaunchThread(chunkThread, params) != 0)
 					{
 						/* failed thread launch - force restart of main loop */
 						_fcpLog(FCP_LOG_CRITICAL, "thread launch failed: chunk %d, file %s",

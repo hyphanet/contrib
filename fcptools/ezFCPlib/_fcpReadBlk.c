@@ -25,10 +25,11 @@
                len         number of bytes to retrieve
 
   Description: gets a number of bytes
-               this is called after a datafound message.
                It automatically unwraps any incoming datachunk messages, and
                transparently delivers a steady stream of data
 */
+
+/* This function is only called by fcpOpenKey() and fcpReadKey(). */
 
 int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
 {
@@ -69,7 +70,9 @@ int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
   } /* drop thru */
 
 
-  /* read fresh data - XXXXXXXXXXXXXXXX - fix all this!!! */
+  /* read fresh data - XXXXXXXXXXXXXXXX - fix all this!!!
+		 How is all this broken ?
+	*/
   while (needed > 0) {
 		
 		/* try to pull a DataChunk message */

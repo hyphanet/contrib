@@ -1,7 +1,7 @@
 /*
 	This code is part of FreeWeb - an FCP-based client for Freenet
 
-	Designed and implemented by David McNab, david@rebirthing.co.nz
+	sockadDesigned and implemented by David McNab, david@rebirthing.co.nz
 	CopyLeft (c) 2001 by David McNab
 
 	The FreeWeb website is at http://freeweb.sourceforge.net
@@ -45,9 +45,9 @@
 /*
 	IMPORTED DECLARATIONS
 */
-extern char _fcpHost[];
-extern int  _fcpPort;
-extern int	_fcpNumOpenSockets;
+extern char *_fcpHost;
+extern int   _fcpPort;
+extern int	 _fcpNumOpenSockets;
 
 
 #ifdef WINDOWS
@@ -137,112 +137,12 @@ int _fcpSockInit()
 #endif
 
 
-int _fcpSockConnect(HFCP *hfcp)
-{
-  int Status;
-
-#ifdef WINDOWS
-	hfcp->conn.socket = socket(AF_INET, SOCK_STREAM, 0);
-	Status = connect(hfcp->conn.socket, &_fcpSockAddr, sizeof(_fcpSockAddr));
-#else
-
-  hfcp->conn.socket = socket(PF_INET,SOCK_STREAM,0);
-	if(hfcp->conn.socket == -1)
-    {
-			_fcpLog(FCP_LOG_CRITICAL, "Cannot create client socket.");
-			return -1;
-		}
-	
-	
-  Status = connect(hfcp->conn.socket, (struct sockaddr *)&server, sizeof(server));
-	
-	if(Status < 0)
-    {
-			close(hfcp->conn.socket);
-			hfcp->conn.socket = -1;
-			
-			_fcpLog(FCP_LOG_CRITICAL, "Connect fail.");
-		}
-	
-#endif
-	
-	if (Status < 0)
-		return -1;
-
-  hfcp->conn.response.body.datachunk.data = NULL;
-  hfcp->conn.response.body.datachunk.dataptr = NULL;
-  hfcp->conn.response.body.datachunk.length = 0;
-  hfcp->conn.response.body.keypair.privkey = NULL;
-  hfcp->conn.response.body.keypair.pubkey = NULL;
-  hfcp->conn.response.body.keypair.uristr = NULL;
-
-  /* OK - we're in :) */
-  _fcpNumOpenSockets++;
-  _fcpLog(FCP_LOG_DEBUG, "%d open sockets", _fcpNumOpenSockets);
-  return 0;
-}
-
-
-void _fcpSockDisconnect(HFCP *hfcp)
-{
-  if (hfcp->conn.socket >= 0)
-		{
-#ifdef WINDOWS
-			closesocket(hfcp->conn.socket);
-#else
-			close(hfcp->conn.socket);
-#endif
-			hfcp->conn.socket = -1;
-			_fcpNumOpenSockets--;
-		}
-	
-  _fcpLog(FCP_LOG_DEBUG, "%d open sockets", _fcpNumOpenSockets);
-}
-
-
 int _fcpSockReceive(HFCP *hfcp, char *buf, int len)
 {
 #ifdef WINDOWS
 	return recv(hfcp->conn.socket, buf, len, 0);
 #else
-	int rcvd = 0;
-	int opt, oopt;
-	opt=oopt=fcntl(hfcp->conn.socket, F_GETFL);
-	if (opt>0 && !(opt & O_NONBLOCK)) {
-		opt |= O_NONBLOCK;
-		fcntl(hfcp->conn.socket, F_SETFL, opt);
-	}
-	
-	while(rcvd < len) {
-		struct timeval tv;
-		fd_set readfds;
-		int r;
-		int ditch=0;
-		
-		tv.tv_usec=0;
-		tv.tv_sec=600; /* FIXME MAKE CONFIGURABLE */
-
-		FD_ZERO(&readfds);
-		FD_SET(hfcp->conn.socket, &readfds);
-		select(hfcp->conn.socket+1, &readfds, NULL, NULL, &tv);
-		if (!FD_ISSET(hfcp->conn.socket, &readfds)) {
-			_fcpLog(FCP_LOG_NORMAL, "Socket timeout on fd %d",
-							hfcp->conn.socket);
-			rcvd=-1;
-			ditch=1;
-		} else {
-			r=read(hfcp->conn.socket, buf + rcvd, len-rcvd);
-			if (r<0) { /* shouldn't ever get EAGAIN */
-				rcvd=-1;
-				ditch=1;
-			} else
-				rcvd += r;
-		}
-		if (ditch)
-			break;
-	}
-	fcntl(hfcp->conn.socket, F_SETFL, oopt);
-	return rcvd;
+  return read(hfcp->conn.socket, buf, len);
 #endif
 }
 

@@ -28,38 +28,19 @@ extern int  _fcpDoDelete;
   none
   
   Returns:
-  pointer to created handle, if successful
-  NULL if failed
 */		
 
 void fcpInitHandle(HFCP *hfcp)
 {
-  hfcp->created_uri[0] = '\0';
-  hfcp->privkey[0] = '\0';
-  hfcp->pubkey[0] = '\0';
-  hfcp->failReason[0] = '\0';
-
-  hfcp->meta = 0;
-  hfcp->fields = 0;
-
   hfcp->htl = _fcpHtl;
   hfcp->raw = _fcpRawMode;
-  hfcp->openmode = 0;
   hfcp->regress = _fcpRegress;
-  hfcp->keyindex.basedate[0] = '\0';
-  hfcp->fields = 0;
-  hfcp->node[0] = '\0';
-  hfcp->protocol = 0;
   hfcp->deleteDS=_fcpDoDelete;
 
   /* initialise write status block */
   hfcp->wr_info.fd_data = -1;
   hfcp->wr_info.fd_meta = -1;
-  hfcp->wr_info.num_data_wr = 0;
-  hfcp->wr_info.num_meta_wr = 0;
-  hfcp->wr_info.uri = 0;
 
   /* Initialise splitfile insert control block */
   hfcp->split.status = SPLIT_INSSTAT_IDLE;
 }
-

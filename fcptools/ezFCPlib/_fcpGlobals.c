@@ -11,18 +11,29 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
+#include <stdio.h>
+
 #include "ezFCPlib.h"
 
+/* Global data defs
 
-/* Global data defs */
-char  _fcpHost[L_HOST];
-int   _fcpPort;
-int   _fcpHtl;
-int   _fcpRawMode;
+	 These values are overriden by HFCP values, to allow different htl's
+	 per key insertion, etc.
+*/
 
+/* Common FCP related default protocol values */
 char  _fcpID[4] = { 0, 0, 0, 2 };
-int   _fcpRegress;
-int	  _fcpDoDelete=0;
+
+char *_fcpHost = EZFCP_DEFAULT_HOST;
+int   _fcpPort = EZFCP_DEFAULT_PORT;
+int   _fcpHtl = EZFCP_DEFAULT_HTL;
+int   _fcpRawmode = EZFCP_DEFAULT_RAWMODE;
+
+int   _fcpVerbosity = EZFCP_DEFAULT_VERBOSITY;
+int   _fcpRegress = EZFCP_DEFAULT_REGRESS;
+int   _fcpInsertAttempts = EZFCP_DEFAULT_INSERTATTEMPTS;
+char *_fcpTmpDir = 0;
 
 /* Basic accounting - ensure sockets are getting closed */
 int   _fcpNumOpenSockets = 0;
+

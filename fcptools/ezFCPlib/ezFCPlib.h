@@ -1,14 +1,24 @@
 /*
-  This code is part of FreeWeb - an FCP-based client for Freenet
-
-  Designed and implemented by David McNab, david@rebirthing.co.nz
+  This code is part of FCPTools - an FCP-based client library for Freenet
+	
+  Designed and implemented by David McNab <david@rebirthing.co.nz>
   CopyLeft (c) 2001 by David McNab
-
-  The FreeWeb website is at http://freeweb.sourceforge.net
-  The website for Freenet is at http://freenet.sourceforge.net
-
-  This code is distributed under the GNU Public Licence (GPL) version 2.
-  See http://www.gnu.org/ for further details of the GPL.
+	
+	Currently maintained by Jay Oliveri <ilnero@gmx.net>
+	
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #ifndef _EZFCPLIB_H
@@ -73,6 +83,9 @@
 /**************************************************************************
   GENERIC (place anything that must happen after the above decl's here)
 **************************************************************************/
+#include <string.h>
+#include <errno.h>
+
 
 /*************************************************************************/
 
@@ -80,44 +93,26 @@
   Threshold levels for the user-provided fcpLogCallback() function
   fcpLogCallback will be called with a verbosity argument, which will
   be one of these values. This allows the client program to screen log
-  messages according to importance
+  messages according to importance.
+
+	Let's start at 1, so that Verbosity=0 is *really* silent :)
 */
-#define FCP_LOG_CRITICAL      0
-#define FCP_LOG_NORMAL        1
-#define FCP_LOG_VERBOSE       2
-#define FCP_LOG_DEBUG         3
+#define FCP_LOG_CRITICAL      1
+#define FCP_LOG_NORMAL        2
+#define FCP_LOG_VERBOSE       3
+#define FCP_LOG_DEBUG         4
 #define FCP_LOG_MESSAGE_SIZE  4096   /* Was 65K */
 
 /*
   Lengths of allocated strings/arrays.
 */
-#define L_HOST              128
-#define L_PROTOCOL          10
-#define L_NODE_DESCRIPTION  128
-#define L_MIMETYPE          80
-#define L_FILENAME          128
-
-#define L_SSK_PATH          128
-
-#define L_URI               256
-#define L_KEY               128
-#define L_KEYINDEX          128
 #define L_KSK               32768
 #define L_MESSAGE           256
 #define L_SOCKET_REQUEST    2048
+#define L_FD_BLOCKSIZE      8192
 
-/*
-  Splitfiles handling definitions
-
-  For keeping track of splitfile insert threads - used by fcpputsplit
-  will discontinue when splitfiles mgr is working
-*/
-typedef struct {
-  char *buffer;
-  char *threadSlot;
-  int blocksize;
-  char **key;
-} fcpPutJob;
+/* Max size for one line of response from node */
+#define FCPRESP_BUFSIZE  2048
 
 
 #define SPLIT_BLOCK_SIZE       262144    /* default split part size (256*1024) */
@@ -131,44 +126,20 @@ typedef struct {
 #define SPLIT_INSSTAT_SUCCESS  5        /* full insert completed successfully */
 #define SPLIT_INSSTAT_FAILED   6        /* insert failed somewhere */
 
-/*
-  Splitfile Insert Control Blocks
-*/
-typedef struct _splitChunk {
-  char key[L_URI]; /* CHK key of inserted chunk */
-  int status;            /* insert status of this chunk */
-  int index;             /* index num of this chunk */
-  char *chunk;           /* byte-image of chunk to insert - malloc()'ed */
-  int size;              /* SIZE of this chunk */
-} splitChunkIns;
-
-
-typedef struct _splitJob {
-  char key[L_URI];
-
-  char status;               /* status as advised by splitmgr thread */
-  int fd;                    /* fd of file we are inserting from, if applicable */
-  int numChunks;             /* total number of chunks to insert */
-  int doneChunks;            /* number of chunks successfully inserted */
-  int totalSize;             /* total number of bytes to insert */
-  char *fileName;            /* path of file being inserted */
-  char *mimeType;
-  splitChunkIns *chunk;      /* malloc'ed array of split chunk control blocks */
-  struct _splitJob *next;  /* next on linked list */
-} splitJobIns;
 
 /*
   General FCP definitions
 */
 #define FCP_ID_REQUIRED
 
-#define RECV_BUFSIZE            2048
-
-#define EZFCP_DEFAULT_HOST      "localhost"
-#define EZFCP_DEFAULT_PORT      8481
-#define EZFCP_DEFAULT_HTL       3
-#define EZFCP_DEFAULT_REGRESS   3
-#define EZFCP_DEFAULT_RAWMODE   0
+#define EZFCP_DEFAULT_HOST       "127.0.0.1"
+#define EZFCP_DEFAULT_PORT       8481
+#define EZFCP_DEFAULT_HTL        3
+#define EZFCP_DEFAULT_REGRESS    3
+#define EZFCP_DEFAULT_RAWMODE    0
+#define EZFCP_DEFAULT_DODELETE   0
+#define EZFCP_DEFAULT_INSERTATTEMPTS 3
+#define EZFCP_DEFAULT_VERBOSITY  FCP_LOG_NORMAL
 
 /*
   flags for fcpOpenKey()
@@ -178,215 +149,185 @@ typedef struct _splitJob {
 #define _FCP_O_RAW          0x400   /* disable automatic metadata handling */
 
 
-/* METADATA related definitions */
-#define KEY_TYPE_MSK        'M'
-#define KEY_TYPE_SSK        'S'
-#define KEY_TYPE_KSK        'K'
-#define KEY_TYPE_CHK        'C'
-
-#define META_TYPE_REDIRECT  'R'
-#define META_TYPE_DBR       'D'
-#define META_TYPE_CONTENT   'C'
-#define META_TYPE_MAPFILE   'M'
-
-#define META_TYPE_04        '4'
-
-/*
-  cdoc type fields
-*/
-#define META_TYPE_04_NONE   'n'
-#define META_TYPE_04_REDIR  'r'
-#define META_TYPE_04_DBR    'd'
-#define META_TYPE_04_SPLIT  's'
-
-
-/*
-  Define structures for incoming data from node
-
-  Tokens for response types
-*/
-#define FCPRESP_TYPE_HELLO          1
-#define FCPRESP_TYPE_SUCCESS        2
-#define FCPRESP_TYPE_DATAFOUND      3
-#define FCPRESP_TYPE_DATACHUNK      4
-#define FCPRESP_TYPE_FORMATERROR    5
-#define FCPRESP_TYPE_URIERROR       6
-#define FCPRESP_TYPE_DATANOTFOUND   7
-#define FCPRESP_TYPE_ROUTENOTFOUND  8
-#define FCPRESP_TYPE_KEYCOLLISION   9
-#define FCPRESP_TYPE_SIZEERROR      10
-#define FCPRESP_TYPE_FAILED         11
-
-
-/*
-  Tokens for receive states
-*/
-#define RECV_STATE_WAITING      0
-#define RECV_STATE_GOTHEADER    1
-
-/*
-  first - basic node hello response
+/***********************************************************************
+	Connection handling structgures and definitions.
 */
 typedef struct {
-  int   protocol;  /* protocol ID */
-  char *node;      /* malloc - node ID */
-} FCPRESP_HELLO;
+  int   protocol;  /* Protocol=<number: protocol version number.  Currently 1> */
+  char *node;      /* Node=<string: freeform: Description of the nodes> */
+} FCPRESP_NODEHELLO;
 
-/*
-  Failed response
-*/
+
 typedef struct {
-  char *reason;    /* node explanation of failure */
-} FCPRESP_FAILED;
+	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-/*
-  SVK keypair response
-*/
+	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+} FCPRESP_SUCCESS;
+
+
 typedef struct {
-  char *pubkey;    /* SSK public key */
-  char *privkey;   /* SSK private key */
-  char *uristr;    /* generated URI */
-} FCPRESP_SVKKEYPAIR;
-
-
-/*
-  Received data header response
-*/
-typedef struct {
-
-  int dataLength;  /* count of: (metadata + data) */
-  int metaLength;  /* number of bytes of metadata */
-
+  int datalength;
+  int metadatalength;
 } FCPRESP_DATAFOUND;
 
 
-/*
-  Received data chunk response
-*/
 typedef struct {
-  int length;     /* Length=<number: number of bytes in trailing field> */
-  char *data;     /* MetadataLength=<number: default=0: number of bytes of	metadata> */
-  char *dataptr;  /* points into data buf for partial reads */
-  char *dataend;  /* points just after last byte of data */
+  int    length;  /* Length=<number: number of bytes in trailing field> */
+  char  *data;    /* MetadataLength=<number: default=0: number of bytes of	metadata> */
 } FCPRESP_DATACHUNK;
 
 
-typedef struct {
-  char *text;
-} FCPRESP_FORMATERROR;
-
-
-typedef struct {
-  char *text;
-} FCPRESP_URIERROR;
-
-
-typedef struct {
-  char *text;
-} FCPRESP_KEYCOLLISION;
+/*
+typedef struct {} FCPRESP_DATANOTFOUND;
+*/
 
 
 /*
-  Now bundle all these together
+typedef struct {} FCPRESP_ROUTENOTFOUND;
+*/
+
+
+/*
+typedef struct {} FCPRESP_URIERROR;
+*/
+
+
+/*
+typedef struct {} FCPRESP_RESTARTED;
+*/
+
+
+typedef struct {
+	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
+
+	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+} FCPRESP_KEYCOLLISION;
+
+
+typedef struct {
+	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
+
+	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
+} FCPRESP_PENDING;
+
+
+typedef struct {
+  char *reason;   /* [Reason=<descriptive string>] */
+} FCPRESP_FAILED;
+
+
+typedef struct {
+  char *reason;   /* [Reason=<descriptive string>] */
+} FCPRESP_FORMATERROR;
+
+
+/**********************************************************************
+  Now bundle all these together.
 */
 typedef struct {
   int type;
 
-  struct {
-	 FCPRESP_HELLO           hello;
-	 FCPRESP_FAILED          failed;
-	 FCPRESP_SVKKEYPAIR      keypair;
-	 FCPRESP_DATAFOUND       datafound;
-	 FCPRESP_DATACHUNK       datachunk;
-	 FCPRESP_FORMATERROR     fmterror;
-	 FCPRESP_URIERROR        urierror;
-	 FCPRESP_KEYCOLLISION    keycollision;
-  } body;
+	FCPRESP_SUCCESS         success;
+	FCPRESP_DATAFOUND       datafound;
+	FCPRESP_DATACHUNK       datachunk;
+	FCPRESP_KEYCOLLISION    keycollision;
+	FCPRESP_PENDING         pending;
+	FCPRESP_FAILED          failed;
+	FCPRESP_FORMATERROR     formaterror;
 } FCPRESP;
 
 
 /*
-  Universal tokens for metadata parsing
+	Tokens for response types.
+*/
+#define FCPRESP_TYPE_NODEHELLO      1
+#define FCPRESP_TYPE_SUCCESS        2
+#define FCPRESP_TYPE_DATAFOUND      3
+#define FCPRESP_TYPE_DATACHUNK      4
+#define FCPRESP_TYPE_DATANOTFOUND   5
+#define FCPRESP_TYPE_ROUTENOTFOUND  6
+#define FCPRESP_TYPE_URIERROR       7
+#define FCPRESP_TYPE_RESTARTED      8
+#define FCPRESP_TYPE_KEYCOLLISION   9
+#define FCPRESP_TYPE_PENDING        10
+#define FCPRESP_TYPE_FAILED         11
+#define FCPRESP_TYPE_FORMATERROR    12
 
-  Freenet URI split up into its parts
+
+/* Tokens for receive states */
+#define RECV_STATE_WAITING      0
+#define RECV_STATE_GOTHEADER    1
+
+
+/**********************************************************************
+  Freenet Client Protocol Handle Definition Section :)
 */
 typedef struct {
-  char    type;
-  char   *keyid;     /* malloc */
-  char   *path;      /* malloc - only used with SSKs */
-  char   *uri_str;   /* malloc - raw uri string */
-  int     numdocs;       /* number of documents */
-} FCP_URI;
+  int    type;
+
+	char  *uri_str;
+  char  *keyid;
+	char  *path;
+	char  *file;
+} hURI;
 
 
-/*
-  Container for a splitfile chunk
-*/
-typedef struct _04CHUNK {
-  char uri[L_URI]; /* URI of this chunk */
+typedef struct _metapiece metapiece;
+struct _metapiece {
+	char       *key;
+	char       *val;
 
-  /* parser internal use only */
-  struct _04CHUNK *_next;
-}
-META04SPLITCHUNK;
+	metapiece  *next;
+};
 
-
-/*
-  Container for splitfile check piece
-*/
-typedef struct _04PIECE {
-  char uri[L_URI];   /* uri of check piece */
-  int graphLen;            /* size of graph elementa array */
-  int *graph;              /* array of graph elements */
-
-  /* parser internal use only */
-  struct _04PIECE *_next;
-} META04SPLITPIECE;
-
-
-/*
-  Container for a splitfile check level
-*/
-typedef struct _04LEVEL {
-  int numPieces;              /* number of check pieces */
-  META04SPLITPIECE *piece;    /* array of check piece specs */
-
-  /* parser internal use only */
-  struct _04LEVEL *_next;
-} META04SPLITLEVEL;
-
-/* METADATA-parsing data structures */
 
 typedef struct {
-  char name[128];              /* key name */
-  char value[128];             /* value if any, or NULL */
-} KEYVALPAIR;
+	int         count;
+	int         size;
+
+	/* Ordered linked-list */
+	metapiece  *list;
+} hMeta;
+
 
 typedef struct {
-  int count;             /* number of fields in this cdoc */
-  int type;
-  KEYVALPAIR *keys[64];    /* array of key/value pairs */
-} FLDSET;
+	int    type;
 
-/*
-  Main 0.4 metadata structure
-*/
+	hURI  *uri;
+
+	int    openmode;
+	char  *mimetype;
+
+	char  *filename;
+	int    fd;
+	int    fi;
+	int    size;
+} hKey;
+
+
 typedef struct {
-  char vers[16];
+	char    *host;
+	int      port;
+	int      htl;
+	int      regress;
 
-  int count;
-  FLDSET **cdoc;      /* new - array of cdocs, must be allocated.  We _WILL_ have more then 64 bits of metainfo */
-} META04;
+	char    *description;
+	int      protocol;
 
-/*
-  Definitions for key index access
-*/
-typedef struct {
-  char name[L_KEYINDEX];     /* name of key index */
-  int next_keynum;                 /* the next key we are retrieving */
-  char basedate[9];                /* basedate of key, if using basedates */
-} FCP_KEYINDEX;
+  int      socket;
+  int      status;
 
+	hKey    *key;
+	hMeta   *meta;
+		
+  FCPRESP  response;
+} hFCP;
+
+
+/**********************************************************************/
 
 /*
   Splitfile control structure
@@ -395,133 +336,81 @@ typedef struct {
 #define CHUNK_STATUS_INPROG  1
 #define CHUNK_STATUS_DONE    2
 
-typedef struct {
-  int chunkSize;
-  int chunkTotal;
-  int chunksInserted;
-  char isfile;           /* TRUE if splitting a file, FALSE if memory */
-  int keyfd;             /* fd of open file being inserted, if a file */
-  char *keymem;          /* ptr to block of mem being inserted, if mem */
-  char *chunkStatus;     /* array of status bytes for chunks */
-} FCP_SPLIT;
 
-/*
-  Basic control block for FCP connections
-*/
-#define _FCPCONN struct _fcpconn
-typedef _FCPCONN {
-  int socket;
-  int Status;
+/* Global variables */
+extern char  _fcpID[4];
 
-  FCPRESP response;
-} FCPCONN;
+extern char *_fcpHost;
+extern int   _fcpPort;
+extern int   _fcpHtl;
+extern int   _fcpRawmode;
 
-/*
-  Now put these together into the main HFCP structure
-*/
-typedef struct {
-  int malloced;  /* set if this block was created via malloc */
-  int htl;       /* hops to live - defaults to 25 */
-  int deleteDS;  /* Delete from local DS? */
-  int regress;   /* days to regress when retrying failed date-redirects */
-  int raw;       /* set to disable auto metadata handling */
-  int verbose;   /* set to enable status printfs to stdout */
-  int keysize;   /* with requests, this is the size of key data */
-  int bytesread; /* num bytes read from key so far */
-  int openmode;
-  int protocol;
-  char node[L_NODE_DESCRIPTION];
-  
-  char   *rawMetadata;  /* raw metadata read from file when in raw mode */
-  META04 *meta;         /* structure containing parsed metadata */
-  FLDSET *fields;
-  char    mimeType[L_MIMETYPE];
+extern int   _fcpVerbosity;
+extern int   _fcpRegress;
+extern int   _fcpInsertAttempts;
+extern char *_fcpTmpDir;
 
-  struct {
-		FCP_URI  *uri;             /* uri of key being inserted */
+/* Basic accounting - ensure sockets are getting closed */
+int          _fcpNumOpenSockets = 0;
 
-		int   fd_data;         /* fd for writing key data to temp file */
-		int   num_data_wr;     /* num bytes of normal data written */
-		char  data_temp_file[L_FILENAME];   /* temporary file full path */
-		int   fd_meta;         /* fd for writing key metadata to temp file */
-		int   num_meta_wr;     /* num bytes of metadata written */
-		char  meta_temp_file[L_FILENAME];   /* temporary file full path */
-  } wr_info;
-	
-  FCPCONN conn;
 
-  FCP_KEYINDEX keyindex;
-  char created_uri[L_KEY];  /* filled in by library after writing key */
-  char pubkey[L_KEY];       /* filled in after writing a key */
-  char privkey[L_KEY];      /* filled in after writing a key */
-  char failReason[L_MESSAGE];           /* reason sent back with failure msg */
-
-  splitJobIns split;              /* control structure for insert split job */
-} HFCP;
-
-/*
-  Function prototypes
- */
+/* Function prototypes */
 #ifdef __cplusplus
-#define _C_ "C"
-#else
-#define _C_
+extern "C" {
 #endif
 
-extern _C_ int      fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads);
+/**********************************************************************/
 
-extern _C_ HFCP    *fcpCreateHandle();
-extern _C_ void     fcpInitHandle(HFCP *hfcp);
-extern _C_ int      fcpMakeSvkKeypair(HFCP *hfcp, char *pubkey, char *privkey);
-extern _C_ void     fcpSetHtl(HFCP *hfcp, int htl);
-extern _C_ void     fcpSetVerbose(HFCP *hfcp, int verbose);
-extern _C_ void     fcpSetRegress(HFCP *hfcp, int regress);
-extern _C_ void     fcpSetSplitSize(int chunkSize);
-extern _C_ void     fcpSetSplitThreads(int threads);
-extern _C_ int      fcpRawMode(HFCP *hfcp, int flag);
-extern _C_ void     fcpDestroyHandle(HFCP *hfcp);
-extern _C_ int      fcpGetKeyToMem(HFCP *hfcp, char *keyname, char **pdata, char **metadata);
-extern _C_ int      fcpGetKeyToFile(HFCP *hfcp, char *key, char *file, char **pMetadata);
-extern _C_ int      fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata);
-extern _C_ int      fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int datalen);
-extern _C_ int      _fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int datalen, int metalen);
-extern _C_ int      fcpOpenKey(HFCP *hfcp, char *key, int mode);
-extern _C_ int      fcpReadKey(HFCP *hfcp, char *buf, int len);
-extern _C_ int      fcpCloseKey(HFCP *hfcp);
-extern _C_ int      fcpWriteKey(HFCP *hfcp, char *buf, int len);
-extern _C_ int      fcpWriteKeyMeta(HFCP *hfcp, char *buf, int len);
+/* Startup and shutdown functions */
+int            fcpStartup(void);
+void           fcpTerminate(void);
 
-extern _C_ int      fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metadata);
+/* Handle creation functions */
+hFCP         *_fcpCreateHFCP(void);
+hURI         *_fcpCreateHURI(void);
+hKey         *_fcpCreateHKey(void);
+hSplitChunk  *_fcpCreateHSplitChunk(void);
 
-extern _C_ int      fcpOpenKeyIndex(HFCP *hfcp, char *name, char *date, int start);
-extern _C_ int      fcpReadKeyIndex(HFCP *hfcp, char **pdata, int keynum);
-extern _C_ int      fcpWriteKeyIndex(HFCP *hfcp, char *data);
+int _fcpParseUri(hKey *key);
 
-extern _C_ int      _fcpSockInit();
-extern _C_ int      _fcpSockConnect(HFCP *hfcp);
-extern _C_ void     _fcpSockDisconnect(HFCP *hfcp);
-extern _C_ int      _fcpSockReceive(HFCP *hfcp, char *buf, int len);
-extern _C_ int      _fcpSockSend(HFCP *hfcp, char *buf, int len);
-extern _C_ void     _fcpClose(HFCP *hfcp);
-extern _C_ int      _fcpRecvResponse(HFCP *hfcp);
-extern _C_ int      _fcpReadBlk(HFCP *hfcp, char *buf, int len);
-extern _C_ int      _fcpParseUri(FCP_URI *uri, char *key);
-extern _C_ void     _fcpFreeUri(FCP_URI *uri);
-extern _C_ void     _fcpLog(int level, char *format,...);
-extern _C_ void     _fcpInitSplit(int maxThreads);
+/* Handle destruction functions */
+void  _fcpDestroyHFCP(hFCP *);
+void  _fcpDestroyHURI(hURI *);
+void  _fcpDestroyHKey(hKey *);
+void  _fcpDestroyHSplitChunk(hSplitChunk *);
 
-extern _C_ META04  *parseMeta(char *buf);
-extern _C_ void     freeMeta(META04 *meta);
+/* Key open/close functions */
+hKey  *fcpOpenKeyRead(hFCP *hfcp, char *keyname, char *filename, int regress);
+hKey  *fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
 
-/*
-  Utility functions defined here (not part of the protocol itself).
- */
-extern _C_ void    *safeMalloc(int nbytes);
-extern _C_ long     cdocIntVal(META04 *meta, char *cdocName, char *keyName, long defVal);
-extern _C_ long     cdocHexVal(META04 *meta, char *cdocName, char *keyName, long defVal);
-extern _C_ char    *cdocStrVal(META04 *meta, char *cdocName, char *keyName, char *defVal);
-extern _C_ FLDSET  *cdocFindDoc(META04 *meta, char *cdocName);
-extern _C_ char    *cdocLookupKey(FLDSET *fldset, char *keyName);
-extern _C_ char		*GetMimeType(char *pathname);
+int    fcpReadKey(hFCP *hfcp, char *buf, int len);
+int    fcpCloseKey(hFCP *hfcp);
 
+/*int    fcpOpenKey(hFCP *hfcp, char *key, int mode);*/
+
+
+/* put functions */
+int    fcpPutKeyFromFile(hFCP *hfcp, char *key, char *filename, char *metaname);
+
+
+int     _fcpSockInit();
+int     _fcpSockConnect(hFCP *hfcp);
+void    _fcpSockDisconnect(hFCP *hfcp);
+int     _fcpSockReceive(hFCP *hfcp, char *buf, int len);
+int     _fcpSockSend(hFCP *hfcp, char *buf, int len);
+
+void    _fcpClose(hFCP *hfcp);
+int     _fcpRecvResponse(hFCP *hfcp);
+int     _fcpReadBlk(hFCP *hfcp, char *buf, int len);
+
+
+void    _fcpLog(int level, char *format,...);
+char		*GetMimeType(char *pathname);
+
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* EZFCPLIB_H */
+
