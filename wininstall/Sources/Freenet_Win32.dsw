@@ -3,31 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "GetSeed"=.\GetSeed\GetSeed.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "NodeConfig"=.\NodeConfig\NodeConfig.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "cfgclient"=.\cfgclient\cfgclient.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -64,18 +40,6 @@ Package=<4>
 ###############################################################################
 
 Project: "fserve"=.\fserve\fserve.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "portcfg"=.\portcfg\portcfg.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
