@@ -55,7 +55,7 @@ struct pl_item {
     fcp_document *d;
     int id;
     char *name, *uri;
-    FILE *data, *mpg123;
+    FILE *mpg123;
 };
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -67,14 +67,25 @@ long last_del;
 void
 curses_init ()
 {
-    initscr(); cbreak(); nonl(); keypad(stdscr, TRUE); curs_set(0); noecho();
+    initscr();
+    cbreak();
+    nonl();
+    keypad(stdscr, TRUE);
+    curs_set(0);
+    noecho();
     win_left = newwin(LINES, COLS/2, 0, 0);
     win_right = newwin(LINES, COLS/2, 0, COLS/2);
-    box(win_left, 0, 0); box(win_right, 0, 0);
-    wnoutrefresh(stdscr); wnoutrefresh(win_left); wrefresh(win_right);
+    box(win_left, 0, 0);
+    box(win_right, 0, 0);
+    wnoutrefresh(stdscr);
+    wnoutrefresh(win_left);
+    wrefresh(win_right);
     pad_left = newpad(MAX_LIST, MAX_WIDTH);
     pad_right = newpad(MAX_LIST, MAX_WIDTH);
-    focus = LEFT; pl_len = 0; counter = 0; paused = 0;
+    focus = LEFT;
+    pl_len = 0;
+    counter = 0;
+    paused = 0;
 }
 
 void
@@ -215,7 +226,8 @@ load_root ()
     
     gt = NULL;
     if (catalogs) {
-	for (i = 0 ; catalogs[i] ; i++) free(catalogs[i]);
+	for (i = 0 ; catalogs[i] ; i++)
+	    free(catalogs[i]);
 	free(catalogs);
     }
     
@@ -269,9 +281,13 @@ dialog (char *message)
     mvwaddstr(dialog, LINES/8 - 2, COLS/2 - strlen(s)/2, s);
     wrefresh(dialog);
     getch();
-    box(win_left, 0, 0); box(win_right, 0, 0);
-    wnoutrefresh(stdscr); wnoutrefresh(win_left); wrefresh(win_right);
-    refresh_left(); refresh_right();
+    box(win_left, 0, 0);
+    box(win_right, 0, 0);
+    wnoutrefresh(stdscr);
+    wnoutrefresh(win_left);
+    wrefresh(win_right);
+    refresh_left();
+    refresh_right();
 }
 
 void
@@ -296,8 +312,8 @@ main (int argc, char **argv)
 	switch(getch()) {
 	    case KEY_DOWN:      key_down();      break; // scroll down
 	    case KEY_UP:        key_up();        break; // scroll up
-	    case KEY_NPAGE:     key_npage();     break; // page down
-	    case KEY_PPAGE:     key_ppage();     break; // page up
+	    //case KEY_NPAGE:     key_npage();     break; // page down
+	    //case KEY_PPAGE:     key_ppage();     break; // page up
 	    case 13:
 	    case KEY_RIGHT:     key_enter();     break; // select
 	    case KEY_LEFT:      key_left();      break; // go back
@@ -394,7 +410,7 @@ key_enter ()
     FILE *in;
     int status;
     char path[256];
-    if (focus == RIGHT) return; // this means nothing for playlist stuff
+    if (focus == RIGHT) return;
     if (!gt) { // open a catalog
 	sprintf(path, "%s/%s", home, catalogs[curline]);
 	in = fopen(path, "r");
@@ -408,7 +424,9 @@ key_enter ()
 	if (status != 0) {
 	    sprintf(path, "Invalid catalog ~/.gp3/%s!", catalogs[curline]);
 	    dialog(path);
-	    free(gt); gt = NULL; return;
+	    free(gt);
+	    gt = NULL;
+	    return;
 	}
 	ls = gt_ls(gt);
 	update_list();
@@ -416,11 +434,13 @@ key_enter ()
     } else {
 	if (ls[curline].type == GT_DIR) { // cd
 	    gt_cd(gt, ls[curline].name, ls[curline].data);
-	    gt_free(ls); ls = gt_ls(gt);
+	    gt_free(ls);
+	    ls = gt_ls(gt);
 	    update_list();
 	    refresh_left();
 	} else { // add to playlist
 	    pl_add(ls[curline].name, ls[curline].data);
+            pl_update();
 	}
     }
 }
@@ -430,9 +450,12 @@ pl_add (char *name, char *uri)
 {
     struct pl_item *new = malloc(sizeof(struct pl_item));
     pthread_mutex_lock(&mutex);
-    new->name = strdup(name); new->uri = strdup(uri);
-    new->data = NULL; new->next = NULL; new->id = counter++;
-    new->mpg123 = NULL; new->d = NULL;
+    new->name = strdup(name);
+    new->uri = strdup(uri);
+    new->next = NULL;
+    new->id = counter++;
+    new->mpg123 = NULL;
+    new->d = NULL;
     if (!head) { // first node
 	head = tail = new;
     } else {
@@ -440,7 +463,6 @@ pl_add (char *name, char *uri)
 	tail = new;
     }
     pl_len++;
-    pl_update();
     pthread_create(&new->thread, NULL, pl_thread, (void *) new);
     pthread_detach(new->thread);
     pthread_mutex_unlock(&mutex);
@@ -449,13 +471,14 @@ pl_add (char *name, char *uri)
 void
 key_left ()
 {
-    if (focus == RIGHT) return; // nope
+    if (focus == RIGHT) return;
     if (!gt) return; // already at root
     if (gt->depth == 0) { // cd to root
 	load_root();
     } else {
 	gt_cd(gt, "..", NULL);
-        gt_free(ls); ls = gt_ls(gt);
+        gt_free(ls);
+	ls = gt_ls(gt);
 	update_list();
     }
     refresh_left();
@@ -468,11 +491,13 @@ key_tab ()
     if (focus == LEFT) {
 	mvwaddstr(pad_left, curline, 0, gt ? ls[curline].name : catalogs[curline]);
 	focus = RIGHT;
-	curline = 0; offset = 0;
+	curline = 0;
+	offset = 0;
 	refresh_left();
 	pl_update();
     } else {
-        curline = 0; offset = 0;
+        curline = 0;
+	offset = 0;
 	wattron(pad_left, A_REVERSE);
 	mvwaddstr(pad_left, curline, 0, gt ? ls[curline].name : catalogs[curline]);
 	wattroff(pad_left, A_REVERSE);
@@ -488,7 +513,7 @@ key_backspace ()
 {
     int i = 0;
     struct pl_item *p, *last = NULL, *pli = head;
-    if (focus == LEFT) return; // nope, sorry
+    if (focus == LEFT) return;
     pthread_mutex_lock(&mutex);
     while (pli) {
 	if (i == curline) {
@@ -497,12 +522,14 @@ key_backspace ()
 	    if (last && !last->next) tail = last;
 	    if (i == --pl_len) curline--;
 	    if (last && head->id >= pli->id - buffer)
-		for (p = pli->next ; p ; p = p->next) p->id--;
+		for (p = pli->next ; p ; p = p->next)
+		    p->id--;
 	    pthread_cancel(pli->thread);
 //	    if (pli->d) fcp_close(pli->d);
-	    if (pli->data) fclose(pli->data);
 	    if (pli->mpg123) pclose(pli->mpg123);
-	    free(pli->name); free(pli->uri); free(pli);
+	    free(pli->name);
+	    free(pli->uri);
+	    free(pli);
     	    pl_update();
 	    pthread_mutex_unlock(&mutex);
 	    pthread_cond_broadcast(&cond);
@@ -524,13 +551,15 @@ key_add_all ()
     for (i = 0 ; ls[i].name ; i++)
 	if (ls[i].type == GT_FILE)
 	    pl_add(ls[i].name, ls[i].data);
+    pl_update();
 }
 
 void
 key_pause ()
 {
     pthread_mutex_lock(&mutex);
-    if (paused) paused = 0; else paused = 1;
+    if (paused) paused = 0;
+    else paused = 1;
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&mutex);
 }
@@ -566,10 +595,10 @@ pl_thread (void *args)
 {
     struct pl_item *pli = (struct pl_item *) args;
     char buf[1024];
-    int n, length;    
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+    int n, length;
     while (head->id < pli->id - buffer) my_wait();
     while (time(NULL) < last_del + 3) sleep(1);
+ 
     pli->d = fcp_document_new();
     length = fcp_request(NULL, pli->d, pli->uri, htl, threads);
     pthread_mutex_lock(&mutex);
@@ -579,21 +608,41 @@ pl_thread (void *args)
     }
     pthread_mutex_unlock(&mutex);
     while (pli != head) my_wait();
+//    if (length < 0) {
+//	pthread_mutex_lock(&mutex);
+//	sprintf(buf, "Request for %s failed: %s.\n", pli->name,
+//		fcp_status_to_string(length));
+//	dialog(buf);
+//	pthread_mutex_unlock(&mutex);
+//   }
     pli->mpg123 = popen("mpg123 - &>/dev/null", "w");
-    if (!pli->mpg123) length = 0;
+    if (!pli->mpg123) {
+	pthread_mutex_lock(&mutex);
+	length = 0;
+	dialog("Could not start mpg123.");
+	pthread_mutex_unlock(&mutex);
+    }
     while (length > 0) {
 	while (paused) my_wait();
 	length -= (n = fcp_read(pli->d, buf, 1024));
-	if (!n) break;
+	if (n <= 0) {
+	    pthread_mutex_lock(&mutex);
+	    sprintf(buf, "I/O error: %d %s.\n", n, fcp_status_to_string(n));
+	    dialog(buf);
+	    pthread_mutex_unlock(&mutex);
+	    break;
+	}
 	if (fwrite(buf, 1, n, pli->mpg123) != n) break;
     }
     pthread_mutex_lock(&mutex);
     fcp_close(pli->d);
-    if (pli->mpg123) pclose(pli->mpg123);
+    pclose(pli->mpg123);
     pl_len--;
     if (focus == RIGHT && curline > 0) curline--;
     head = pli->next;
-    free(pli->name); free(pli->uri); free(pli);
+    free(pli->name);
+    free(pli->uri);
+    free(pli);
     pl_update();
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&mutex);

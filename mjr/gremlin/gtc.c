@@ -209,11 +209,11 @@ main (int argc, char **argv)
     
     rewind(out);
     if (strncmp(argv[2], "freenet:", 8) == 0) {
-	printf("Inserting %s... ", argv[2]);
-	if (j <= GT_SPLIT_THRESHOLD) {
+	printf("Inserting %s .... ", argv[2]);
+	if (j <= FCP_SPLIT_THRESHOLD) {
 	    strcpy(line, argv[2]);
-	    l = fcp_insert_raw(out, line, j, DATA, 1);
-	    if (l != FCP_SUCCESS) {
+	    l = fcp_insert_raw(out, NULL, line, j, FCP_DATA, 1);
+	    if (l != FCP_SUCCESS && l != FCP_KEY_COLLISION) {
 		printf("%s!\n", fcp_status_to_string(l));
 		return 1;
 	    }
@@ -227,7 +227,8 @@ main (int argc, char **argv)
 	    printf("Can't open file %s!\n", argv[2]);
 	    return 1;
 	}
-	while (j--) fputc(fgetc(out), f);
+	while (j--)
+	    fputc(fgetc(out), f);
     }
     
     return 0;

@@ -14,7 +14,7 @@ main (int argc, char **argv)
 	rewind(data);
 	printf("Inserting %s.\n", uri);
 	fflush(stdout);
-	fcp_insert_raw(data, uri, s.st_size, FCP_DATA, 10);
+	fcp_insert_raw(data, NULL, uri, s.st_size, FCP_DATA, 10);
     }
     return 0;
 }
