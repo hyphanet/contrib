@@ -160,7 +160,7 @@ load_graphs ()
 	n += (graphs[i].dbc * graphs[i].cbc) / 8;
 	if ((graphs[i].dbc * graphs[i].cbc) % 8)
 	    n++;
-	alert("Graph %d: %d x %d.", i+1, graphs[i].dbc, graphs[i].cbc);
+	//alert("Graph %d: %d x %d.", i+1, graphs[i].dbc, graphs[i].cbc);
 	/*{
 	    int j, p;
 	    for (j = 0 ; j < graphs[i].dbc ; j++) {
