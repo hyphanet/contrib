@@ -227,7 +227,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 		char * buf;
 
-		job->status == SPLIT_INSSTAT_WAITING;
+		job->status = SPLIT_INSSTAT_WAITING;
 	
 		buf = safeMalloc(fcpSplitChunkSize);
 	
@@ -280,7 +280,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 			} //  retry
 	
 			if (retry==3) {
-				job->status == SPLIT_INSSTAT_FAILED;
+				job->status = SPLIT_INSSTAT_FAILED;
 				break;
 			}
 		}
