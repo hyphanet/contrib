@@ -181,17 +181,6 @@ is_set (struct graph *g, int db, int cb)
 
 //=== insert ================================================================
 
-void debughashes(char *hashes, int n) {
-    int i;
-    alert("START HASHES");
-    for (i=0;i<n;i++) {
-	char hex[HASHLEN*2+1];
-	bytestohex(hex, &hashes[i*HASHLEN], HASHLEN);
-	alert(hex);
-    }
-    alert("END HASHES");
-}
-
 void
 insert (int c)
 {
