@@ -51,7 +51,7 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
     return -1; /* neither selected - illegal */
   
   if (mode & FCP_MODE_RAW)
-    hfcp->options->rawmode = 1;
+    hfcp->options->noredirect = 1;
 
   /* Now perform the read/write specific open */
   if (mode & FCP_MODE_O_READ)
@@ -64,6 +64,14 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
     _fcpLog(FCP_LOG_DEBUG, "invalid file open mode specified: %d", mode);
     return -1;
   }
+}
+
+int fcpSetMimetype(hKey *key, char *mimetype)
+{
+	if (key->mimetype) free(key->mimetype);
+	key->mimetype = strdup(mimetype);
+
+	return 0;
 }
 
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
@@ -83,14 +91,14 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 	if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
 
 	/* if in normal mode, follow the redirects */
-	if (hfcp->options->rawmode == 0) {
+	if (hfcp->options->noredirect == 0) {
 		
 		_fcpLog(FCP_LOG_VERBOSE, "starting recursive retrieve");
 		rc = _fcpGetFollowRedirects(hfcp, key_uri);
 	}
 	else { /* RAWMODE */
 		
-		_fcpLog(FCP_LOG_VERBOSE, "start rawmode retrieve");
+		_fcpLog(FCP_LOG_VERBOSE, "start noredirect retrieve");
 		/*rc = _fcpGetBLock(hfcp, key_uri);*/
 	}
 	

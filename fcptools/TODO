@@ -10,12 +10,13 @@ that can be implemented by any competent C programmer.
 FCPtools generic
 ----------------
 
-+ Rename 'rawmode' option 'noredirect'.
-+ Verify metadata handling when storing metadata as redirect (and not within SSK/KSK).
 + Implement future_insert(num_days) option.
 
+= Verify metadata handling when storing metadata as redirect (and not within SSK/KSK).
+  (needs more testing, but looks ok).
+= Rename 'rawmode' option 'noredirect'.
 = Ensure all printf's use proper formats (unsigned short=%su, unsigned long=%lu)
-= Address the myriad of compiler warnings on OSX platform.
+= Address the myriad of compiler warnings on OSX platform. (OSX not pure ANSI)
 = Update website docs for ClientGet to clearly indicate actual behaviour.
 = Verify other options (raw, etc.) work as expected.
 = Confirm *BSD functionality (compiles with minimal warnings)
@@ -29,7 +30,6 @@ ezFCPlib specific
 
 + On getFollowRedirects, must save metadata for the case where a redirect takes
 	the client to another key; currently we're dropping the metadata.
-+ Implement logic to read in <rest> section for custom metadata (_fcpMetadata.c).
 + Implement regress for _fcpGet.c.
 + Add configuration option for Timeout length (in seconds)
 + Add handling of CryptoKey in key generation and SSK handling.
@@ -39,6 +39,7 @@ ezFCPlib specific
 + Make hDocument->data & hMetadata->cdocs fields dynamic.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= Implement logic to read in <rest> section for custom metadata (_fcpMetadata.c).
 = Check all internal APIs for consistant usage and funcionality.
 = Update ezFCPlib programming API documentation.
 = SSK & KSK handling isn't working properly.. (fine; was a bug elsewhere)
@@ -80,9 +81,8 @@ ezFCPlib specific
 fcpput
 ------
 
-+ Implement meta-redirect insert option.
-+ Tighten >1 file put logic (?).
-
+= Tighten >1 file put logic (?).
+= Implement meta-redirect insert option.
 = Implement -g command-line switch (GenerateKeypair).
 = Optimize main()'s speed read from standard input (use fd and read() function instead).
 = (Win32); returns to command prompt with (harmless) error when reading key data from stdin.

@@ -61,14 +61,14 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 	h->options = _fcpCreateHOptions();
 
 	/* do the handle option mask */
-	h->options->rawmode       = (optmask & FCP_MODE_RAW ? FCP_MODE_RAW : 0);
+	h->options->noredirect       = (optmask & FCP_MODE_RAW ? FCP_MODE_RAW : 0);
 	h->options->delete_local  = (optmask & FCP_MODE_DELETE_LOCAL ? FCP_MODE_DELETE_LOCAL : 0);
 	h->options->skip_local    = (optmask & FCP_MODE_SKIP_LOCAL ? FCP_MODE_SKIP_LOCAL : 0);
 	h->options->dbr           = (optmask & FCP_MODE_DBR ? FCP_MODE_DBR : 0);
 	h->options->meta_redirect = (optmask & FCP_MODE_REDIRECT_METADATA ? FCP_MODE_REDIRECT_METADATA : 0);
 
-	_fcpLog(FCP_LOG_DEBUG, "rawmode: %u, delete_local: %u, skip_local: %u, dbr: %u, meta_redirect: %u",
-					h->options->rawmode,
+	_fcpLog(FCP_LOG_DEBUG, "noredirect: %u, delete_local: %u, skip_local: %u, dbr: %u, meta_redirect: %u",
+					h->options->noredirect,
 					h->options->delete_local,
 					h->options->skip_local,
 					h->options->dbr,
@@ -88,7 +88,7 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 	if (!hfcp) return 0;
 
 	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl,
-		                hfcp->options->rawmode |
+		                hfcp->options->noredirect |
 										hfcp->options->delete_local |
 										hfcp->options->skip_local |
 		                hfcp->options->dbr |

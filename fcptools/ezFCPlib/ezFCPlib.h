@@ -373,7 +373,7 @@ typedef struct {
 	int   delete_local;
 	int   skip_local;
 	int   timeout;
-	int   rawmode;
+	int   noredirect;
 	int   meta_redirect;
 	int   dbr;
 
@@ -574,6 +574,7 @@ extern "C" {
 
 	/* Freenet functions for operations between memory and freenet */
 	int    fcpOpenKey(hFCP *hfcp, char *key, int mode);
+	int    fcpSetMimetype(hKey *key, char *mimetype); /* NEW; not doc'ed */
 	int    fcpWriteKey(hFCP *hfcp, char *buf, int len);
 	int    fcpWriteMetadata(hFCP *hfcp, char *buf, int len);
 

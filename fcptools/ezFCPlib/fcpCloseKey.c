@@ -89,37 +89,30 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	key_size  = hfcp->key->size;
 	meta_size = hfcp->key->metadata->size;
 
-	/**** TODO!!! MIMETYPE!  (shit i almost forgot!) ***/
+	if (!hfcp->key->mimetype) fcpSetMimetype(hfcp->key, "application/octet-stream");
 
-	if (key_size) {
-	
-		if (key_size > hfcp->options->splitblock) {
-			_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
+	_fcpLog(FCP_LOG_DEBUG, "mimetype: %s", hfcp->key->mimetype);
 
-			rc = _fcpPutSplitfile(hfcp);
-		}
-		else {
-			_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
-	
-			rc = _fcpPutBlock(hfcp,
-												hfcp->key->tmpblock,
-												0,
-												"CHK@");
-		}
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+#endif
+
+	if (key_size > hfcp->options->splitblock) {
+		_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
+		
+		rc = _fcpPutSplitfile(hfcp);
 	}
-
-	if (rc) goto cleanup;
-
-	if (meta_size) {
-		_fcpLog(FCP_LOG_DEBUG, "inserting metadata");
-
+	else {
+		_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
+		
 		rc = _fcpPutBlock(hfcp,
+											hfcp->key->tmpblock,
 											0,
-											hfcp->key->metadata->tmpblock,
-											hfcp->key->target_uri->uri_str);
+											"CHK@");
 	}
 	
-	if (rc) {
+	if (rc) { /* bail after cleaning up */
 		_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
 		goto cleanup;
 	}
@@ -127,16 +120,11 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	/* copy over the CHK uri */
 	fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
-#ifdef DMALLOC
-	dmalloc_verify(0);
-	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
-#endif
-
 	/* now the CHK has been inserted; check for metadata and insert a
 		 re-direct if necessary */
 
 	/* if it's a CHK with NO metadata, skip insertion of the root key */
-	if ((hfcp->key->target_uri->type == KEY_TYPE_CHK) && (hfcp->key->metadata->size == 0)) {
+	if ((hfcp->key->target_uri->type == KEY_TYPE_CHK) && (meta_size == 0)) {
 
 		/* copy over new CHK */
 		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
@@ -155,53 +143,13 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	_fcpLog(FCP_LOG_DEBUG, "successfully inserted key %s", hfcp->key->target_uri->uri_str);
 	rc = 0;
 
+ cleanup: /* rc should be set to an FCP_ERR code (or zero) */
+
 	/* delete the tmpblocks before exiting */
 	_fcpDeleteBlockFile(hfcp->key->tmpblock);
 	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
-
-
- cleanup: /* rc should be set to an FCP_ERR code */
 
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpCloseKeyWrite()");
 	return rc;
 }
 
-
-
-
-
-
-
-#if 0
-	switch (hfcp->key->target_uri->type) {
-	case KEY_TYPE_CHK: /* for CHK's, copy over the generated CHK to the target_uri field */
-
-		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
-		break;
-
-	case KEY_TYPE_SSK:
-	case KEY_TYPE_KSK:
-
-		/*put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);*/
-		break;
-	}
-		
-	hfcp->key->size = hfcp->key->metadata->size = 0;
-
-	/* delete the tmpblocks before exiting */
-	_fcpDeleteBlockFile(hfcp->key->tmpblock);
-	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
-
-	return 0;
-
- cleanup: /* rc should be set to an FCP_ERR code */
-	
-	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
-
-	/* delete the tmpblocks before exiting */
-	_fcpDeleteBlockFile(hfcp->key->tmpblock);
-	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
-
-	return rc;
-}
-#endif

@@ -225,7 +225,7 @@ static void parse_args(int argc, char *argv[])
     {"retry", 1, 0, 'a'},
     {"regress", 1, 0, 'e'},
     {"skip-local", 0, 0, 'S'},
-    {"rawmode", 0, 0, 'r'},
+    {"noredirect", 0, 0, 'r'},
 
     {"verbosity", 1, 0, 'v'},
     {"logfile", 1, 0, 'f'},
@@ -346,17 +346,18 @@ static void usage(char *s)
   printf("  -n, --address host     Freenet node address\n");
   printf("  -p, --port num         Freenet node port\n");
   printf("  -l, --htl num          Hops to live\n\n");
-  
-	printf("  -m, --metadata file    Write key metadata to local file\n");
-  printf("  -a, --retry num        Number of retries after a timeout\n");
-  printf("  -s, --stdout           Write key data to stdout\n");
-/*printf("  -e, --regress num      Number of days to regress\n");*/
-  printf("  -S, --skip-local       Skip key in local datastore on retrieve\n");
-	printf("  -r, --rawmode          Do not follow redirects on retrieve\n\n");
-  
+
+	printf("  -m, --metadata file    Write key metadata to local file\n\n");
+
+  printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n");
   printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
-  printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
-  printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n\n");
+  printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+
+  printf("  -a, --retry num        Number of retries after a timeout\n");
+  printf("  -S, --skip-local       Skip key in local datastore on retrieve\n");
+	printf("  -r, --noredirect       Do not follow redirects on retrieve\n");
+	printf("  -e, --regress num      Number of days to regress\n");
+  printf("  -s, --stdout           Write key data to stdout\n\n");
   
   printf("  -V, --version          Output version information and exit\n");
   printf("  -h, --help             Display this help and exit\n\n");

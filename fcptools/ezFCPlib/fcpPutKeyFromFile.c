@@ -196,7 +196,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpLog(FCP_LOG_DEBUG, "successfully inserted key %s from file %s", hfcp->key->target_uri->uri_str, key_filename);
 	rc = 0;
 
- cleanup: /* rc should be set to an FCP_ERR code */
+ cleanup: /* rc should be set to an FCP_ERR code (or zero) */
 
 	/* delete the tmpblocks before exiting */
 	_fcpDeleteBlockFile(hfcp->key->tmpblock);
@@ -205,3 +205,4 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
 	return rc;
 }
+

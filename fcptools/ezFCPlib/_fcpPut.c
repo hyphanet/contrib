@@ -109,12 +109,14 @@ int _fcpPutBlock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		/* connect to Freenet FCP */
 		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
-		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%u, htl=%u, delete_local=%s",
+		_fcpLog(FCP_LOG_VERBOSE, "Sending ClientPut message to %s:%u, htl=%u, delete_local=%s, meta-redirect=%s, dbr=%s",
 						hfcp->host,
 						hfcp->port,
 						hfcp->htl,
-						(hfcp->options->delete_local ? "Yes" : "No"));
-
+						(hfcp->options->delete_local ? "Yes" : "No"),
+						(hfcp->options->meta_redirect ? "Yes" : "No"),
+						(hfcp->options->dbr ? "Yes" : "No"));
+		
 		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%u, keysize=%u, metasize=%u",
 						hfcp->options->regress,
 						keysize,

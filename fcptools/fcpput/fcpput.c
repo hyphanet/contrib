@@ -59,7 +59,6 @@ unsigned short  port = EZFCP_DEFAULT_PORT;
 int   verbosity = FCP_LOG_NORMAL;
 int   htl       = EZFCP_DEFAULT_HTL;
 int   retry     = EZFCP_DEFAULT_RETRY;
-int   regress   = EZFCP_DEFAULT_REGRESS;
 int   optmask   = 0;
 
 char *logfile = 0; /* filename for logfile (if not stdout) */
@@ -73,6 +72,8 @@ int   file_count = 0; /* number of files in the array */
 
 int   b_stdin   = 0; /* was -s passed? */
 int   b_genkeys = 0; /* was -g passed? */
+
+int   test_1    = 0; /* fcpOpenKey(), fcpCloseKey() test */
 
 
 int main(int argc, char* argv[])
@@ -140,6 +141,50 @@ int main(int argc, char* argv[])
     rc = 0;
 		goto cleanup;
   }
+
+	if ((test_1) && (files[0])) { /* test_1 uses fcpOpenKey() instead of fcpPutKeyFromFile() */
+    int kfd;
+    int mfd;
+    
+    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_WRITE)) {
+			rc = -1;
+			goto cleanup;
+		}
+		
+		if ((kfd = open(files[0], _FCP_READFILE_FLAGS, _FCP_READFILE_MODE)) == -1) {
+			fprintf(stdout, "test_1: Could not open key file \"%s\"\n", files[0]);
+			return -1;
+		}
+    
+		while ((bytes = read(kfd, buf, 8192)) > 0) {
+			buf[bytes] = 0;
+			fcpWriteKey(hfcp, buf, bytes);
+		}
+		close(kfd);
+
+		if (metafile) {
+			if ((mfd = open(metafile, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE)) == -1) {
+				fprintf(stdout, "test_1: Could not open metadata file \"%s\"\n", metafile);
+				return -1;
+			}
+			
+			while ((bytes = read(mfd, buf, 8192)) > 0) {
+				buf[bytes] = 0;
+				fcpWriteMetadata(hfcp, buf, bytes);
+			}
+			close(mfd);
+		}
+		
+    if (fcpCloseKey(hfcp)) {
+			rc = -1;
+			goto cleanup;
+		}
+
+		fprintf(stdout, "%s\n", hfcp->key->target_uri->uri_str);
+
+		rc = 0;
+		goto cleanup;
+	}
   
   if (b_stdin) {		
     /* read the key data from stdin */
@@ -266,7 +311,6 @@ static void parse_args(int argc, char *argv[])
     {"retry", 1, 0, 'a'},
     {"delete-local", 0, 0, 'D'},
     {"dbr", 0, 0, 'd'},
-    {"regress", 1, 0, 'e'},
 
 		{"meta-redirect", 0, 0, 'M'},
 
@@ -276,9 +320,12 @@ static void parse_args(int argc, char *argv[])
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
 
+		{"1", 0, 0, '1'}, /* undocumented: uses fcpOpenKey(), fcpCloseKey() instead
+												 of fcpPutKeyFromFile(); inverse true also for fcpget */
+
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:f:sa:Dde:Mv:gVh";
+  char short_options[] = "n:p:l:m:f:sa:DdMv:gVh1";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -329,10 +376,6 @@ static void parse_args(int argc, char *argv[])
       optmask |= FCP_MODE_DBR;
       break;
 			
-		case 'e':
-			i = atoi( optarg );
-			if (i > 0) regress = i;
-
 		case 'M':
       optmask |= FCP_MODE_REDIRECT_METADATA;
       break;
@@ -353,6 +396,10 @@ static void parse_args(int argc, char *argv[])
     case 'h':
       usage(0);
       exit(0);
+
+    case '1':
+			test_1 = 1;
+			printf( "Using undocumented test_1\n");
 		}
 	}
 
@@ -391,26 +438,25 @@ static void usage(char *s)
 
 	printf("Usage: fcpput [-n hostname] [-p port] [-l hops to live]\n");
 	printf("              [-m metadata] [-a retry] [-D] [-s] [-d]\n");
-	printf("              [-e regress] [-v verbosity] [-f logfile]\n");
-	printf("              [-g] [-V] [-h] freenet_uri [FILE]...\n\n");
+	printf("              [-v verbosity] [-f logfile] [-g]\n");
+	printf("              [-V] [-h] freenet_uri [FILE]...\n\n");
 
 	printf("Options:\n\n");
 	printf("  -n, --address host     Freenet node address\n");
 	printf("  -p, --port num         Freenet node port\n");
-	printf("  -l, --htl num          Hops to live\n");
-	printf("  -m, --metadata file    Read key metadata from local file\n");
-	printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n\n");
+	printf("  -l, --htl num          Hops to live\n\n");
 
-	printf("  -s, --stdin            Read key data from stdin\n");
+	printf("  -m, --metadata file    Read key metadata from local file\n");
+	printf("  -M, --meta-redirect    Insert metadata via redirect\n\n");
+
+	printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n");
+	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
+	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+
 	printf("  -a, --retry num        Number of retries after a timeout\n");
 	printf("  -D, --delete-local     Delete key from local datastore on insert\n");
 	printf("  -d, --dbr              Insert key as a date-based redirect\n");
-	printf("  -e, --regress num      Number of days to regress\n\n");
-
-	/*printf("  -M, --meta-redirect    Insert metadata via redirect\n\n");*/
-
-	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
-	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
+	printf("  -s, --stdin            Read key data from stdin\n\n");
 
 	printf("  -g, --genkeys          Generate a keypair then exit\n\n");
 
