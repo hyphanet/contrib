@@ -78,11 +78,18 @@ writeall (int c, const void *b, int len)
 }
 
 // mmap a temp buffer. you have to munmap this when you're done
+#define MAX_MALLOC_SIZE (1024 * 512)
 inline char *
 mbuf (size_t len)
 {
-    char *p, s[] = "/tmp/anarcast-XXXXXX";
+    char *p = MAP_FAILED, s[] = "/tmp/anarcast-XXXXXX";
     int fd;
+    
+    if (len < MAX_MALLOC_SIZE)
+	p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+
+    if (p != MAP_FAILED)
+	return p;
     
     if ((fd = mkstemp(s)) == -1)
         die("mkstemp() failed");
