@@ -100,14 +100,14 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_HOPSENABLED         ICON    DISCARDABLE     "Freenet.ico"
+IDI_HOPSENABLED         ICON    DISCARDABLE     "res\\Freenet.ico"
 IDI_REFERENCE           ICON    DISCARDABLE     "res\\ref.ico"
-IDI_HOPSDISABLED        ICON    DISCARDABLE     "noFnet.ico"
-IDI_ALERT               ICON    DISCARDABLE     "alert.ico"
-IDI_RESTARTING          ICON    DISCARDABLE     "restart.ico"
-IDI_NOGWAY              ICON    DISCARDABLE     "noGway.ico"
-IDI_NOINET              ICON    DISCARDABLE     "noInet.ico"
-IDI_THUNDERBOLT         ICON    DISCARDABLE     "tbolt.ico"
+IDI_HOPSDISABLED        ICON    DISCARDABLE     "res\\noFnet.ico"
+IDI_ALERT               ICON    DISCARDABLE     "res\\alert.ico"
+IDI_RESTARTING          ICON    DISCARDABLE     "res\\restart.ico"
+IDI_NOGWAY              ICON    DISCARDABLE     "res\\noGway.ico"
+IDI_NOINET              ICON    DISCARDABLE     "res\\noInet.ico"
+IDI_THUNDERBOLT         ICON    DISCARDABLE     "res\\tbolt.ico"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 

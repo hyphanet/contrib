@@ -30,7 +30,6 @@
 #define IDM_RESTART                     1004
 #define IDM_IMPORT                      1005
 #define IDM_EXPORT                      1006
-#define IDD_IMPORT                      5000
 
 // Next default values for new objects
 // 
