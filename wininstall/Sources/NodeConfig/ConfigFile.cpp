@@ -73,7 +73,39 @@ void CConfigFile::Load()
 	//pNormal->m_importNewNodeRef.EnableWindow(false);
 	// propose 20% of the free disk space, but min 10MB and max 2GB
 	ULARGE_INTEGER FreeBytes,TotalBytes;
-	GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
+
+	// first calculate disk space -
+	// - use obvious GetDiskFreeSpaceEx if available, else fall back
+	//   to GetDiskFreeSpace for compatibility with Win95 original versions
+	HINSTANCE hKernel32 = LoadLibrary("kernel32.dll");
+	GETDISKFREESPACEEX_ *pGetDiskFreeSpaceEx = NULL;
+	if (hKernel32 != NULL)
+	{
+		// got run time link to kernel32 (I can't see this ever failing!)
+		pGetDiskFreeSpaceEx = (GETDISKFREESPACEEX_ *)(GetProcAddress(hKernel32,"GetDiskFreeSpaceExA"));
+	}
+	if (pGetDiskFreeSpaceEx != NULL)
+	{
+		// Have win95 osr2 or newer - can use GetDiskFreeSpaceEx function
+		pGetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
+	}
+	else
+	{
+		DWORD dwSectorsPerCluster,dwBytesPerSector,dwNumFreeClusters,dwTotalClusters;
+		GetDiskFreeSpace(NULL,&dwSectorsPerCluster,&dwBytesPerSector,&dwNumFreeClusters,&dwTotalClusters);
+		// Following calculations are guaranteed to never overflow 32 bits
+		// (GetDiskFreeSpace returns values deliberately fiddled so that below calculations
+		//  never yield more than 2GB disk size)
+		FreeBytes.QuadPart = dwBytesPerSector * dwSectorsPerCluster;
+		TotalBytes.QuadPart = FreeBytes.QuadPart * dwTotalClusters;
+		FreeBytes.QuadPart *= dwNumFreeClusters;
+	}
+	if (hKernel32 != NULL)
+	{
+		FreeLibrary(hKernel32);
+		hKernel32=NULL;
+	}
+	
 	// our variable m_storeSize is in Megabytes so we need to divide by 2^20
 	// i.e. shift FreeBytes right 20 bits
 	pNormal->m_storeSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
