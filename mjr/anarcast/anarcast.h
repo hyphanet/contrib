@@ -21,6 +21,13 @@
 #include <time.h>
 #include <unistd.h>
 
+#define die(msg) {                                                        \
+    extern int errno;                                                     \
+    fprintf(stderr, "%s/%s/%d: %s (%s)\n", __FILE__, __PRETTY_FUNCTION__, \
+	    __LINE__, msg, strerror(errno));                              \
+    exit(1);                                                              \
+}
+
 inline void
 ioerror ()
 {

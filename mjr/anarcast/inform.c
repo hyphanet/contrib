@@ -22,21 +22,21 @@ main (int argc, char **argv)
     chdir_to_home();
     
     if ((l = open("inform_database", O_RDWR|O_CREAT, 0644)) == -1)
-	err(1, "open() of inform_database failed");
+	die("open() of inform_database failed");
     
     if (ftruncate(l, DATABASE_SIZE) == -1)
-	err(1, "ftruncate() of inform_database failed");
+	die("ftruncate() of inform_database failed");
 
     hosts = mmap(0, DATABASE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, l, 0);
     if (hosts == MAP_FAILED)
-	err(1, "mmap() of inform_database failed");
+	die("mmap() of inform_database failed");
     
     m = 0;
     if (!(end = memmem(hosts, DATABASE_SIZE, &m, 4)))
-	err(1, "cannot find end of inform_database");
+	die("cannot find end of inform_database");
 
     if (close(l) == -1)
-	err(1, "close() failed");
+	die("close() failed");
     
     printf("%d Anarcast servers in database.\n", (end-hosts)/4);
     
@@ -55,7 +55,7 @@ main (int argc, char **argv)
 	struct timeval tv = {2,0};
 	
 	n = select(m, &s, &x, NULL, &tv);
-	if (n == -1) err(1, "select() failed");
+	if (n == -1) die("select() failed");
 	if (!n) {
 	    if (!active && time(NULL) > last_weeding + WEED_INTERVAL) {
 		puts("Weeding....");
@@ -93,12 +93,12 @@ main (int argc, char **argv)
 		    active--;
 		    FD_CLR(n, &w);
 		    if (close(n) == -1)
-			err(1, "close() failed");
+			die("close() failed");
 		} else if ((off[n] += c) == end) {
 		    active--;
 		    FD_CLR(n, &w);
 		    if (close(n) == -1)
-			err(1, "close() failed");
+			die("close() failed");
 		}
 	    }
     }
@@ -120,7 +120,7 @@ weed_dead_servers ()
 	a.sin_addr.s_addr = *(int*)p;
 	
 	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	    err(1, "socket() failed");
+	    die("socket() failed");
 	
 	if (connect(c, &a, sizeof(a)) != -1) {
 	    memcpy(q, p, 4);
@@ -131,7 +131,7 @@ weed_dead_servers ()
 	}
 	
 	if (close(c) == -1)
-	    err(1, "close() failed");
+	    die("close() failed");
     }
     
     printf("%d of %d total hosts unreachable.\n", f, (end-hosts)/4);
@@ -144,6 +144,6 @@ weed_dead_servers ()
     }
     
     if (munmap(b, DATABASE_SIZE) == -1)
-	err(1, "munmap() failed");
+	die("munmap() failed");
 }
 

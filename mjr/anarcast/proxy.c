@@ -19,8 +19,8 @@ inline void * run_thread (void *arg);
 void alert (const char *s, ...);
 
 inline void insert (int c);
-int insert_data_blocks (char *data, int block_size, int datablock_count, char *hashes);
-int insert_check_blocks (char *data, int block_size, int datablock_count, char *hashes);
+void insert_data_blocks (char *data, int block_size, int datablock_count, char *hashes);
+void insert_check_blocks (char *data, int block_size, int datablock_count, char *hashes);
 
 inline void request (int c);
 
@@ -52,9 +52,9 @@ main (int argc, char **argv)
 	    int *i = malloc(4);
 	    *i = c;
 	    if (pthread_create(&t, NULL, run_thread, i) != 0)
-		err(1, "pthread_create() failed");
+		die("pthread_create() failed");
 	    if (pthread_detach(t) != 0)
-		err(1, "pthread_detach() failed");
+		die("pthread_detach() failed");
 	}
 }
 
@@ -68,7 +68,7 @@ run_thread (void *arg)
         if (d == 'i') insert(c);
     }
     if (close(c) == -1)
-	err(1, "close() failed");
+	die("close() failed");
     free(arg);
     pthread_exit(NULL);
 }
@@ -102,7 +102,7 @@ insert (int c)
     datablock_count = i / block_size;
     
     if (!(hashes = malloc((datablock_count+1) * HASH_LEN)))
-	err(1, "malloc() failed");
+	die("malloc() failed");
     
     while (datablock_count * block_size < i)
 	block_size++;
@@ -113,40 +113,40 @@ insert (int c)
     if (readall(c, data, i) != i) {
 	ioerror();
 	if (munmap(data, len) == -1)
-	    err(1, "munmap() failed");
+	    die("munmap() failed");
 	free(hashes);
 	return;
     }
 
     sha_buffer(data, len, hashes);
     if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
-	err(1, "cipherInit() failed");
+	die("cipherInit() failed");
     if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
-	err(1, "makeKey() failed");
+	die("makeKey() failed");
     if (blockEncrypt(&cipher, &key, data, len, data) <= 0)
-	err(1, "blockEncrypt() failed");
+	die("blockEncrypt() failed");
     
     insert_data_blocks(data, block_size, datablock_count, &hashes[HASH_LEN]);
 
-//    insert_check_blocks(data, block_size, datablock_count);
+    insert_check_blocks(data, block_size, datablock_count, hashes);
     
     i = (datablock_count+1) * HASH_LEN;
     if (writeall(c, &i, 4) != 4 || writeall(c, hashes, i) != i) {
 	ioerror();
 	if (munmap(data, len) == -1)
-	    err(1, "munmap() failed");
+	    die("munmap() failed");
 	free(hashes);
 	return;
     }
 
     if (munmap(data, len) == -1)
-	err(1, "munmap() failed");
+	die("munmap() failed");
     free(hashes);
     
     alert("Insertion complete.");
 }
 
-int
+void
 insert_data_blocks (char *data, int block_size, int datablock_count, char *hashes)
 {
     int i;
@@ -161,21 +161,23 @@ restart:
 		|| writeall(c, &block_size, 4) != 4
 		|| writeall(c, &data[i*block_size], block_size) != block_size) {
 	    if (close(c) == -1)
-		err(1, "close() failed");
+		die("close() failed");
 	    goto restart;
 	}
 
 	if (close(c) == -1)
-	    err(1, "close() failed");
+	    die("close() failed");
     }
-    
-    return 0;
 }
 
-int
+void
 insert_check_blocks (char *data, int block_size, int datablock_count, char *hashes)
 {
-    return 0;
+    //int i;
+    
+    //for (i = 0 ; i < datablock_count ; i++) {
+	
+    //}
 }
 
 inline void
@@ -213,10 +215,10 @@ inform ()
     a.sin_addr.s_addr = ((struct in_addr *)h->h_addr)->s_addr;
     
     if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	err(1, "socket() failed");
+	die("socket() failed");
     
     if (connect(c, &a, sizeof(a)) == -1)
-	err(1, "connect() to %s failed", inform_server);
+	die("connect() failed");
     
     tree = NULL;
     
@@ -224,7 +226,7 @@ inform ()
 	unsigned int i;
 	int j = readall(c, &i, 4);
 	if (!j) break;
-    	if (j != 4) err(1, "inform server hung up unexpectedly");
+    	if (j != 4) die("inform server hung up unexpectedly");
 	addref(i);
     }
 
@@ -259,7 +261,7 @@ addref (unsigned int addr)
     struct node *item;
     
     if (!(item = malloc(sizeof(struct node))))
-	err(1, "malloc() failed");
+	die("malloc() failed");
     
     item->left = item->right = NULL;
     item->addr = addr;
@@ -305,7 +307,7 @@ route (char hash[HASH_LEN])
 	a.sin_addr.s_addr = n->addr;
 	
 	if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	    err(1, "socket() failed");
+	    die("socket() failed");
 
 	if (connect(c, &a, sizeof(a)) != -1) {
 	    char hex[HASH_LEN*2+1];
@@ -316,7 +318,7 @@ route (char hash[HASH_LEN])
 
 	rmref(n);
 	if (close(c) == -1)
-	    err(1, "close() failed");
+	    die("close() failed");
     }
     
     alert("Server list exhausted. Contacting inform server.");

@@ -36,7 +36,7 @@ main (int argc, char **argv)
 	fd_set s = r, x = w;
 
 	i = select(m, &s, &x, NULL, NULL);
-	if (i == -1) err(1, "select() failed");
+	if (i == -1) die("select() failed");
 	if (!i) continue;
 
 	//=== read ==========================================================
@@ -62,7 +62,7 @@ main (int argc, char **argv)
 		puts("Format Error: Unrecognized transaction type.");
 		FD_CLR(n, &r);
 		if (close(n) == -1)
-		    err(1, "close() failed");
+		    die("close() failed");
 		continue;
 	    }
 	    if (a[n].type == 'r')
@@ -80,7 +80,7 @@ main (int argc, char **argv)
                 if ((c = read(n, &(&a[n].len)[4+i], -i)) <= 0) {
                     FD_CLR(n, &r);
 		    if (close(n) == -1)
-		        err(1, "close() failed");
+		        die("close() failed");
                     continue;
                 }
                 a[n].off += c;
@@ -93,9 +93,9 @@ main (int argc, char **argv)
 		ioerror();
 		FD_CLR(n, &r);
 		if (munmap(a[n].data, a[n].len) == -1)
-		    err(1, "munmap() failed");
+		    die("munmap() failed");
 		if (close(n) == -1)
-		    err(1, "close() failed");
+		    die("close() failed");
 		continue;
 	    }
 	    a[n].off += c;
@@ -106,17 +106,17 @@ main (int argc, char **argv)
 		printf("%s < %s\n", timestr(), hex);
 		if (stat(hex, &st) == -1) {
 		    if ((i = open(hex, O_WRONLY | O_CREAT, 0644)) == -1)
-			err(1, "open() failed");
+			die("open() failed");
 		    if (writeall(i, a[n].data, a[n].len) != a[n].len)
-			err(1, "write() to file failed");
+			die("write() to file failed");
 		    if (close(i) == -1)
-		        err(1, "close() failed");
+		        die("close() failed");
 		}
 		if (munmap(a[n].data, a[n].len) == -1)
-		    err(1, "munmap() failed");
+		    die("munmap() failed");
 		FD_CLR(n, &r);
 		if (close(n) == -1)
-		    err(1, "close() failed");
+		    die("close() failed");
 		continue;
 	    }
 	}
@@ -131,7 +131,7 @@ main (int argc, char **argv)
 		    ioerror();
 		    FD_CLR(n, &r);
 		    if (close(n) == -1)
-		        err(1, "close() failed");
+		        die("close() failed");
 		    continue;
 		}
 		a[n].off += c;
@@ -141,16 +141,16 @@ main (int argc, char **argv)
 	    if (stat(hex, &st) == -1) {
 		FD_CLR(n, &r);
 		if (close(n) == -1)
-		    err(1, "close() failed");
+		    die("close() failed");
 		continue;
 	    }
 	    if ((c = open(hex, O_RDONLY)) == -1)
-		err(1, "open() failed");
+		die("open() failed");
 	    a[n].data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, c, 0);
 	    if (a[n].data == MAP_FAILED)
-		err(1, "mmap() failed");
+		die("mmap() failed");
 	    if (close(c) == -1)
-	        err(1, "close() failed");
+	        die("close() failed");
 	    FD_CLR(n, &r);
 	    FD_SET(n, &w);
 	    a[n].len = st.st_size;
@@ -175,9 +175,9 @@ write:	//=== write =========================================================
 	    } else ioerror();
 	    FD_CLR(n, &w);
 	    if (close(n) == -1)
-		err(1, "close() failed");
+		die("close() failed");
 	    if (munmap(a[n].data, a[n].len) == -1)
-		err(1, "munmap() failed");
+		die("munmap() failed");
 	}
     }
 }
@@ -200,12 +200,12 @@ touch_inform_server (char *server)
     a.sin_addr.s_addr = ((struct in_addr *)h->h_addr)->s_addr;
     
     if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	err(1, "socket() failed");
+	die("socket() failed");
     
     if (connect(c, &a, sizeof(a)) == -1)
 	printf("Warning: connect() to %s failed.\n", server);
     
     if (close(c) == -1)
-	err(1, "close() failed");
+	die("close() failed");
 }
 
