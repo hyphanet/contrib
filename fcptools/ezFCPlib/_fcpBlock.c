@@ -170,9 +170,10 @@ int _fcpDeleteBlockFile(hBlock *h)
 		
 		if (rc != 0) {
 			_fcpLog(FCPT_LOG_DEBUG, "error %d in _fcpDeleteBlockFile(): %s", rc, h->filename);
+
 			return -1;
 		}
-		
+
 		_fcpLog(FCPT_LOG_DEBUG, "deleted file: %s", h->filename);
 	}
 

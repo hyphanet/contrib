@@ -209,6 +209,8 @@ int _fcpSend(FCPSOCKET fcpsock, char *buf, int len)
 		/* this function is the same on win and BSD-systems */
 		rc = send(fcpsock, buf+bs, len, 0);
 
+		/* TODO respond to error code WSAECONNABORTED (10053) */
+
 		if (rc < 0) {
 
 #ifdef WIN32
