@@ -60,8 +60,8 @@ main (int argc, char **argv)
     l = listening_socket(INFORM_SERVER_PORT);
     active = 0;
     
-    if (pthread_create(&t, NULL, thread, NULL))
-	die("pthread_create() failed");
+//    if (pthread_create(&t, NULL, thread, NULL))
+//	die("pthread_create() failed");
     
     FD_ZERO(&r);
     FD_ZERO(&w);

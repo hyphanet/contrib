@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "anarcast.h"
 #include "sha.c"
+#include "aes.c"
 
 // how many blocks should be transfer at a time?
 #define CONCURRENCY   8
@@ -193,6 +194,8 @@ insert (int c)
     char *hashes, *blocks;
     unsigned int i, j, datalength;
     unsigned int blocksize, len, hlen, dlen, clen;
+    keyInstance key;
+    cipherInstance cipher;
     struct graph g;
     
     // read data length in bytes
@@ -233,9 +236,15 @@ insert (int c)
 	return;
     }
     
-    // hash data
+    // hash and encrypt data
     alert("Hashing data.");
     sha_buffer(blocks, datalength, hashes);
+    if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
+	die("cipherInit() failed");
+    if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
+	die("makeKey() failed");
+    if (blockEncrypt(&cipher, &key, blocks, dlen, blocks) <= 0)
+	die("blockEncrypt() failed");
     
     // generate check blocks
     alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);

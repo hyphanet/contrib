@@ -85,24 +85,10 @@ writeall (int c, const void *b, int len)
 inline char *
 mbuf (size_t len)
 {
-    int c;
-    char *p, b[] = "/tmp/anarcast-XXXXXX";
+    char *p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_ANONYMOUS, -1, 0);
     
-    if ((c = mkstemp(b)) == -1)
-	die("mkstemp() failed");
-    
-    if (ftruncate(c, len) == -1)
-	die("ftruncate() failed");
-    
-    p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, c, 0);
     if (p == MAP_FAILED)
 	die("mmap() failed");
-    
-    if (close(c) == -1)
-	die("close() failed");
-    
-    if (unlink(b) == -1)
-	die("unlink() failed");
     
     return p;
 }
