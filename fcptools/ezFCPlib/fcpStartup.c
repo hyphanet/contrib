@@ -14,20 +14,23 @@
 #include <signal.h>
 #include "ezFCPlib.h"
 
-//
-// Imported Declarations
-//
+/*
+  Imported Declarations
+*/
 
-extern char _fcpHost[];
+extern char  _fcpHost[];
 extern char *_pHost;
 extern char *_pProg;
-extern int  _fcpPort;
-extern int  _fcpHtl;
-extern int  _fcpRawMode;
-extern char _fcpProgPath[];
-extern int  _fcpFileNum;    // temporary file count
-extern char _fcpID[];
-extern int  _fcpRegress;
+extern int   _fcpPort;
+extern int   _fcpHtl;
+extern int   _fcpRawMode;
+
+//These will be replaced by calls to tempnam()
+//extern char  _fcpProgPath[];
+//extern int   _fcpFileNum;    // temporary file count
+
+extern char  _fcpID[];
+extern int   _fcpRegress;
 
 
 /*
@@ -42,91 +45,92 @@ extern int  _fcpRegress;
 
   Returns:  0 if successful
             -1 if failed
+
+  Notes:
+
+  All signals should be ignored for now.  Threads that need to intercept
+  signals must do it in a portable way otherwise Solaris and BSD (non-linux
+  esp) platforms where standards are more rigid will cause the lib to fail.
 */
 
 int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads)
 {
+  sigset_t sigset;
+
+  HFCP hfcpBlk;
+  HFCP *hfcp = &hfcpBlk;
+
+  char *handshake = "ClientHello\nEndMessage\n";
+  int  n;
+  int  len;
+
+  /*
+	 First and foremost, block all signals.
+
+	 This may be a *bad* idea, but signals cannot be allowed to propogate to
+	 child processes.  I don't know which (if any) signals should be handled.
+  */
+  sigfillset( &sigset );
+  sigprocmask(SIG_SETMASK, &sigset, NULL);
+
+ 
+  // set global parms
+  strcpy(_fcpHost, (host == NULL) ? EZFCP_DEFAULT_HOST : host);
+  _fcpPort = (port > 0) ? port : EZFCP_DEFAULT_PORT;
+  _fcpHtl = (defaultHtl >= 0) ? defaultHtl : EZFCP_DEFAULT_HTL;
+  _fcpRawMode = (raw > 0) ? 1 : 0;
+  _fcpRegress = EZFCP_DEFAULT_REGRESS;
+
+  // set starting temp file number
+  //_fcpFileNum = 0;
+
+  _fcpLog(FCP_LOG_DEBUG, "fcpStartup: begin");
+  _fcpLog(FCP_LOG_DEBUG, "FCPtools version %s", VERSION);
+
+  if (_fcpSockInit() != 0) return -1;
+
+  // Create temporary handle
+  fcpInitHandle(hfcp);
+
+  // try a handshake
+  if (_fcpSockConnect(hfcp) != 0) return -1;
+
+  len = strlen(handshake);
+  _fcpLog(FCP_LOG_DEBUG, "sending fcp id bytes");
+  n = _fcpSockSend(hfcp, _fcpID, 4);
+
+  if (n < 4) {
+	 _fcpLog(FCP_LOG_CRITICAL, "failed to send ID bytes");
+	 return -1;
+  }
+  _fcpLog(FCP_LOG_DEBUG, "sending handshake...");
+  
+  n = _fcpSockSend(hfcp, handshake, len);
+  if (n < len) {
+
 #ifdef WINDOWS
-    char *exename;
+	 int err = WSAGetLastError();
+	 _fcpLog(FCP_LOG_CRITICAL, "Error %d sending handshake", err);
 #endif
-    HFCP hfcpBlk;
-    HFCP *hfcp = &hfcpBlk;
-    char *handshake = "ClientHello\nEndMessage\n";
-    int  n;
-    int  len;
+	 _fcpSockDisconnect(hfcp);
+	 return -1;
+  }
 
-    // set global parms
-    strcpy(_fcpHost, (host == NULL) ? EZFCP_DEFAULT_HOST : host);
-    _fcpPort = (port > 0) ? port : EZFCP_DEFAULT_PORT;
-    _fcpHtl = (defaultHtl >= 0) ? defaultHtl : EZFCP_DEFAULT_HTL;
-    _fcpRawMode = (raw > 0) ? 1 : 0;
-    _fcpRegress = EZFCP_DEFAULT_REGRESS;
-
-#ifdef WINDOWS
-    // note pathname of executable program
-    strcpy(_fcpProgPath, _pgmptr);
-    exename = strrchr(_fcpProgPath, '\\'); // point to slash between path and filename
-    *exename++ = '\0'; // split the string and point to filename part
-#else
-    signal(SIGPIPE, SIG_IGN);
-    strcpy(_fcpProgPath, "/tmp");
-#endif
-
-    // set starting temp file number
-    _fcpFileNum = 0;
-
-    _fcpLog(FCP_LOG_DEBUG, "fcpStartup: begin");
-
-    if (_fcpSockInit() != 0)
-        return -1;
-
-    // Create temporary handle
-    fcpInitHandle(hfcp);
-
-    //
-    // try a handshake
-    //
-
-    if (_fcpSockConnect(hfcp) != 0)
-        return -1;
-
-    len = strlen(handshake);
-    _fcpLog(FCP_LOG_DEBUG, "sending fcp id bytes");
-    n = _fcpSockSend(hfcp, _fcpID, 4);
-    if (n < 4)
-    {
-        _fcpLog(FCP_LOG_CRITICAL, "failed to send ID bytes");
-        return -1;
-    }
-    _fcpLog(FCP_LOG_DEBUG, "sending handshake...");
-
-    n = _fcpSockSend(hfcp, handshake, len);
-    if (n < len)
-    {
-#ifdef WINDOWS
-        int err = WSAGetLastError();
-        _fcpLog(FCP_LOG_CRITICAL, "Error %d sending handshake", err);
-#endif
-        _fcpSockDisconnect(hfcp);
-        return -1;
-    }
-
-    _fcpLog(FCP_LOG_DEBUG, "fcpStartup: awaiting response");
-
-    if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_HELLO)
-    {
-        _fcpSockDisconnect(hfcp);
-        return -1;
-    }
-
-    _fcpLog(FCP_LOG_DEBUG, "fcpStartup: got response");
-
-    _fcpSockDisconnect(hfcp);
-
-	// All ok - now fire up splitfile insert manager
-	_fcpInitSplit(maxSplitThreads);
-
-	// success
-    return 0;
-
+  _fcpLog(FCP_LOG_DEBUG, "fcpStartup: awaiting response");
+  
+  if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_HELLO) {
+	 _fcpSockDisconnect(hfcp);
+	 return -1;
+  }
+  
+  _fcpLog(FCP_LOG_DEBUG, "fcpStartup: got response");
+  
+  _fcpSockDisconnect(hfcp);
+  
+  // All ok - now fire up splitfile insert manager
+  _fcpInitSplit(maxSplitThreads);
+  
+  // success
+  return 0;
+  
 }       // 'fcpStartup()'

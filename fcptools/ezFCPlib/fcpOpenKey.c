@@ -30,8 +30,8 @@ extern long     xtoi(char *s);
 extern char     *_fcpHost;
 extern int      _fcpPort;
 extern int      _fcpHtl;
-extern char     *_fcpProgPath;
-extern int      _fcpFileNum;    // temporary file count
+//extern char     *_fcpProgPath;
+//extern int      _fcpFileNum;    // temporary file count
 extern char     _fcpID[];
 
 
@@ -375,60 +375,44 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 }               // 'fcpOpenKeyRead()
 
 
-
 static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
 {
-    // connect to Freenet FCP
-    if (_fcpSockConnect(hfcp) != 0)
+  char tmp[MAX_TMP_FNAME_LEN + 1];
+
+  // connect to Freenet FCP
+  if (_fcpSockConnect(hfcp) != 0)
     {
-//_endthread();
-
-        return -1;
+		//_endthread();
+		return -1;
     }
+  
+  // save the key
+  hfcp->wr_info.uri = _fcpParseUri(key);
+  
+  // generate unique filenames
+  tmpnam( tmp );
+  strcpy( hfcp->wr_info.data_temp_file, tmp );
+  
+  tmpnam( tmp );
+  sprintf(hfcp->wr_info.meta_temp_file, tmp );
+  
+  // open the files
+  if ((hfcp->wr_info.fd_data = open(hfcp->wr_info.data_temp_file, O_CREAT, S_IREAD | S_IWRITE)) < 0) {
+	 _fcpFreeUri(hfcp->wr_info.uri);
+	 return -1;
+  }
+  
+  if ((hfcp->wr_info.fd_meta = open(hfcp->wr_info.meta_temp_file, O_CREAT, S_IREAD | S_IWRITE)) < 0) {
+	 close(hfcp->wr_info.fd_data);
+	 _fcpFreeUri(hfcp->wr_info.uri);
+	 return -1;
+  }
 
-    // save the key
-    hfcp->wr_info.uri = _fcpParseUri(key);
-
-    // generate unique filenames
-    sprintf(hfcp->wr_info.data_temp_file, "%s/fcp-%d.tmp", _fcpProgPath, _fcpFileNum++);
-    sprintf(hfcp->wr_info.meta_temp_file, "%s/fcp-%d.tmp", _fcpProgPath, _fcpFileNum++);
-
-    // open the files
-	 // Eww.. the following must be improved -joliveri
-#ifdef WINDOWS
-    if ((hfcp->wr_info.fd_data = _open(hfcp->wr_info.data_temp_file,
-                                        _O_CREAT | _O_RDWR | _O_BINARY,
-                                        _S_IREAD | _S_IWRITE)) < 0)
-    {
-        _fcpFreeUri(hfcp->wr_info.uri);
-        return -1;
-    }
-    if ((hfcp->wr_info.fd_meta = _open(hfcp->wr_info.meta_temp_file,
-                                        _O_CREAT | _O_RDWR | _O_BINARY,
-                                        _S_IREAD | _S_IWRITE)) < 0)
-#else
-    if ((hfcp->wr_info.fd_data = open(hfcp->wr_info.data_temp_file, O_CREAT, S_IREAD | S_IWRITE)) < 0)
-    {
-        _fcpFreeUri(hfcp->wr_info.uri);
-        return -1;
-    }
-    if ((hfcp->wr_info.fd_meta = open(hfcp->wr_info.meta_temp_file, O_CREAT, S_IREAD | S_IWRITE)) < 0)
-#endif
-    {
-#ifdef WINDOWS
-        _close(hfcp->wr_info.fd_data);
-#else
-        close(hfcp->wr_info.fd_data);
-#endif
-        _fcpFreeUri(hfcp->wr_info.uri);
-        return -1;
-    }
-
-    hfcp->wr_info.num_data_wr = hfcp->wr_info.num_meta_wr = 0;
-    hfcp->openmode = _FCP_O_WRITE;
-
-    _fcpFreeUri(hfcp->wr_info.uri);
-    return 0;
+  hfcp->wr_info.num_data_wr = hfcp->wr_info.num_meta_wr = 0;
+  hfcp->openmode = _FCP_O_WRITE;
+  
+  _fcpFreeUri(hfcp->wr_info.uri);
+  return 0;
 }
 
 

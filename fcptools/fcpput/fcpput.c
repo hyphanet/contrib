@@ -234,7 +234,7 @@ static void parse_args(int argc, char *argv[])
         else if (!strcmp(argv[i], "-a"))
             maxAttempts = (++i < argc)
                         ? atoi(argv[i])
-                        : usage("missing maxAttempts value");
+                        : (int)usage("missing maxAttempts value");
         else if (!strcmp(argv[i], "-st"))
             maxSplitThreads = (++i < argc)
                         ? atoi(argv[i])

@@ -41,17 +41,18 @@
   be one of these values. This allows the client program to screen log
   messages according to importance
 */
-#define FCP_LOG_CRITICAL    0
-#define FCP_LOG_NORMAL      1
-#define FCP_LOG_VERBOSE     2
-#define FCP_LOG_DEBUG       3
-
+#define FCP_LOG_CRITICAL      0
+#define FCP_LOG_NORMAL        1
+#define FCP_LOG_VERBOSE       2
+#define FCP_LOG_DEBUG         3
+#define FCP_LOG_MESSAGE_SIZE  4096   /* Was 65K */
 
 #define DIR_DELIM_CHAR      '/'
 #define DIR_DELIM_STRING    "/"
 
 #define MAX_URI_LEN         256
 #define MAX_FILENAME_LEN    128
+#define MAX_TMP_FNAME_LEN   L_tmpnam
 #define MAX_STRING_LEN      256
 #define MAX_KEY_LEN         128
 #define MAX_KEYINDEX_LEN    128
@@ -404,10 +405,10 @@ typedef struct {
 	 FCP_URI *uri;        /* uri of key being inserted */
 	 int fd_data;         /* fd for writing key data to temp file */
 	 int num_data_wr;     /* num bytes of normal data written */
-	 char data_temp_file[MAX_FILENAME_LEN];   /* temporary file full path */
+	 char data_temp_file[MAX_TMP_FNAME_LEN];   /* temporary file full path */
 	 int fd_meta;         /* fd for writing key metadata to temp file */
 	 int num_meta_wr;     /* num bytes of metadata written */
-	 char meta_temp_file[MAX_FILENAME_LEN];   /* temporary file full path */
+	 char meta_temp_file[MAX_TMP_FNAME_LEN];   /* temporary file full path */
   } wr_info;
 
   FCPCONN conn;
@@ -423,7 +424,7 @@ typedef struct {
 
 /*
   Function prototypes
-*/
+ */
 #ifdef __cplusplus
 #define _C_ "C"
 #else

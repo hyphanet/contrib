@@ -1,18 +1,25 @@
--------------------------------------------------------------------------------
 This is the TODO file for FCPtools.
 
-Need to streamline the check for pthreads (POSIX.1 in general) done during
-automake.
+
+-------------------------------------------------------------------------------
+Need to streamline the check for pthreads (POSIX.1, perhaps a later version if
+CygWin supports it) done during automake.
+
 
 Complete all modifications necessary for true portability among UNIX-like
 environments.  This includes:
 
-* fcpStartup.c:ftpStartup() - TMP file management.
 * fcpOpenKey.c:
 * fcpWriteKey.c:
-* fcpCloseKey.c:fcpCloseKeyWrite() - TMP file management
 * fcpGetKeyToFile.c:
 * fcpPutKeyFromFile.c:
-* _fcpSock.c: - Remove Win32 specific socket calls.
+
 * _fcpPutSplit.c:
-* metaParse.c: (?)
+* metaParse.c:
+
+
+-------------------------------------------------------------------------------
+Non-port specific tasks:
+
+* Integrate getopts common logic for all the command line utils.  Add parameter
+  '--version' to dump value of the #define VERSION (via Automake).

@@ -19,8 +19,8 @@ extern char     *_fcpHost;
 extern int      _fcpPort;
 extern int      _fcpHtl;
 extern int      _fcpRawMode;
-extern char     *_fcpProgPath;
-extern int      _fcpFileNum;    // temporary file count
+//extern char     *_fcpProgPath;
+//extern int      _fcpFileNum;    // temporary file count
 extern char     _fcpID[];
 
 

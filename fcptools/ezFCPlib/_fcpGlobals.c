@@ -20,7 +20,7 @@ char  _fcpHost[256];
 int   _fcpPort;
 int   _fcpHtl;
 int   _fcpRawMode;
-char  _fcpProgPath[256];
+//char  _fcpProgPath[256];
 int   _fcpFileNum;       /* temporary file count */
 char  _fcpID[4] = { 0, 0, 0, 2 };
 int   _fcpRegress;

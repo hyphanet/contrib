@@ -2,7 +2,7 @@
 # Makefile.am for ezFCPlib
 
 INCLUDES = -I$(srcdir)
-CFLAGS = -pedantic
+#CFLAGS = -pedantic
 
 FCP_SOURCE = \
 	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c \
