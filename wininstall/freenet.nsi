@@ -1,7 +1,7 @@
 # installer generator script for Freenet:
 
 Name "Freenet 0.3.9.3"
-OutFile "Freenet_setup0.3.9.3.exe"
+OutFile "Freenet_setup0.3.9.test.exe"
 ComponentText "This will install Freenet 0.3.9.3 on your system."
 
 LicenseText "Freenet is published under the GNU general public license:"
@@ -18,14 +18,12 @@ DirText "No files will be placed outside this directory (e.g. Windows\system)"
 EnabledBitmap Yes.bmp
 DisabledBitmap No.bmp
 BGGradient
-AutoCloseWindow true
-SetDatablockOptimize on
+;AutoCloseWindow true
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
 InstallDir "$PROGRAMFILES\Freenet"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
-SetOverwrite on
 
 ;-----------------------------------------------------------------------------------
 Function DetectJava
@@ -73,54 +71,61 @@ FunctionEnd
 ;-----------------------------------------------------------------------------------
 Section "Freenet (required)"
 
-#First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
-FindWindow "prompt" "TrayIconFreenetClass" "You are still running Freenet, please shut it down first and retry then."
+  # Copying the actual Freenet files to the install dir
+  SetOutPath "$INSTDIR\ref"
+  File "Freenet\ref\*.ref"
 
-# Copying the actual Freenet files to the install dir
-SetOutPath "$INSTDIR"
-File freenet\*.*
-CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\frequest.exe" 6
-CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
-CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\FProxy.exe" 6
-CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
+  SetOutPath "$INSTDIR"
+  File freenet\*.*
+  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\frequest.exe" 6
+  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\finsert.exe" 6
+  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\FProxy.exe" 6
+  CopyFiles "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
 
+  # possibly embed full Java runtime
+  !ifdef embedJava
+  File /r jre
+  !endif
 
-# possibly embed full Java runtime
-!ifdef embedJava
-File /r jre
-!endif
+  HideWindow
+  Call DetectJava
+  Delete "$INSTDIR\findjava.exe"
 
-WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet"
-WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
+  ClearErrors
+  ExecWait "$INSTDIR\portcfg.exe"
+  IfErrors ConfigError
+  Delete "$INSTDIR\portcfg.exe"
+  BringToFront
+  ExecWait '"$INSTDIR\cfgnode.exe" silent'
+  IfErrors CfgnodeError ; this does not work yet. It never returns an error message?!
+  Delete "$INSTDIR\cfgnode.exe"
+  ExecWait "$INSTDIR\cfgclient.exe"
+  IfErrors ConfigError ; this does not work yet. It never returns an error message?!
+  Delete "$INSTDIR\cfgclient.exe"
+  Goto End
 
-HideWindow
-Call DetectJava
-Delete "$INSTDIR\findjava.exe"
-
-ExecWait "$INSTDIR\portcfg.exe"
-Delete "$INSTDIR\portcfg.exe"
-BringToFront
-ExecWait '"$INSTDIR\cfgnode.exe" silent'
-Delete "$INSTDIR\cfgnode.exe"
-ExecWait "$INSTDIR\cfgclient.exe"
-Delete "$INSTDIR\cfgclient.exe"
-
-# Registering install path, so future installs will use the same path
-WriteRegStr HKEY_LOCAL_MACHINE "Software\Freenet" "instpath" $INSTDIR
-
+ CfgnodeError:
+  BringToFront
+  MessageBox MB_OK "There was an error while creating the Freenet configuration file. Do you really have Java already installed? Aborting installation now!"
+  Abort
+ ConfigError:
+  BringToFront
+  MessageBox MB_OK "There was an error while configuring Freenet.$\r$\nDo you really have Java already installed?$\r$\nAborting installation!"
+  Abort
+ End:
 SectionEnd
-
 ;--------------------------------------------------------------------------------------
- Section "Startmenu and Desktop Icons"
- SectionIn 1,2
+ 
+Section "Startmenu and Desktop Icons"
+SectionIn 1,2
 
- CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
- CreateDirectory "$SMPROGRAMS\Freenet"
- CreateShortCut "$SMPROGRAMS\Freenet\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
- WriteINIStr "$SMPROGRAMS\Freenet\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
- WriteINIStr "$SMPROGRAMS\Freenet\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
- ;CreateShortcut "$SMPROGRAMS\Freenet\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
- CreateShortCut "$SMPROGRAMS\Freenet\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
+   CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   CreateDirectory "$SMPROGRAMS\Freenet"
+   CreateShortCut "$SMPROGRAMS\Freenet\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   WriteINIStr "$SMPROGRAMS\Freenet\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
+   WriteINIStr "$SMPROGRAMS\Freenet\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   ;CreateShortcut "$SMPROGRAMS\Freenet\FNGuide.url" "" "" "$SYSDIR\url.dll" 0
+   CreateShortCut "$SMPROGRAMS\Freenet\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
 ;-------------------------------------------------------------------------------
  SectionDivider
@@ -150,64 +155,75 @@ SectionEnd
 ;---------------------------------------------------------------------------------------
 Section "Launch Freenet on Startup"
 SectionIn 2
-# WriteRegStr HKEY_CURRENT_USER "Software\Microsoft\Windows\CurrentVersion\Run" "Freenet server" '"$INSTDIR\fserve.exe"'
-CreateShortCut "$SMSTARTUP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+  # WriteRegStr HKEY_CURRENT_USER "Software\Microsoft\Windows\CurrentVersion\Run" "Freenet server" '"$INSTDIR\fserve.exe"'
+  CreateShortCut "$SMSTARTUP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
 SectionEnd
 
 ;---------------------------------------------------------------------------------------
+
 Section "Launch Freenet node now"
 SectionIn 2
-Exec "$INSTDIR\freenet.exe"
+  Exec "$INSTDIR\freenet.exe"
 SectionEnd
-
 ;---------------------------------------------------------------------------------------
+
 Section "View Readme.txt"
 SectionIn 2
-ExecShell "open" "$INSTDIR\Readme.txt"
+  ExecShell "open" "$INSTDIR\Readme.txt"
 SectionEnd
 ;---------------------------------------------------------------------------------------
-#------------------------------------------------------------------------------------------
+
 Section -PostInstall
-
-HideWindow
-# Don't make that message to long, or the installer will be corrupted
-;MessageBox MB_OK|MB_ICONINFORMATION|MB_TOPMOST `We get a lot of feedback that Freenet wouldn't start. Have a look in your system tray after starting and you'll see Hops, the Freenet rabbit sitting there. Double-click or right-click him for further action.` 0 0
-BringToFront
+  # Registering install path, so future installs will use the same path
+  WriteRegStr HKEY_LOCAL_MACHINE "Software\Freenet" "instpath" $INSTDIR
+  # Registering the unistall information
+  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet"
+  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 SectionEnd
-
-#------------------------------------------------------------------------------------------
+;------------------------------------------------------------------------------------------
 # Uninstall part begins here:
 Section Uninstall
 
-#First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
-FindWindow "close" "TrayIconFreenetClass" ""
+  #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
+  FindWindow "prompt" "TrayIconFreenetClass" "You are still running Freenet, please shut it down first and retry then."
 
-#DeleteRegValue HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString"
-#DeleteRegValue HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName"
-DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet"
-#DeleteRegValue HKEY_CURRENT_USER "Software\Microsoft\Windows\CurrentVersion\Run" "Freenet server"
+  DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet"
+  DeleteRegKey HKEY_LOCAL_MACHINE "Software\Freenet"
 
-# Now deleting the rest
-#RMDir /r $INSTDIR\.freenet
-RMDir /r $INSTDIR
+  # Now deleting the rest
+  RMDir /r $INSTDIR
 
-# remove IE plugin
-UnRegDLL $INSTDIR\IEplugin\IEFreenetPlugin.dll
-Delete $INSTDIR\IEplugin\*.*
-RMDir $INSTDIR\IEplugin
-DeleteRegKey HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet
-DeleteRegKey HKEY_CLASSES_ROOT freenet
+  # remove IE plugin
+  UnRegDLL $INSTDIR\IEplugin\IEFreenetPlugin.dll
+  Delete $INSTDIR\IEplugin\*.*
+  RMDir $INSTDIR\IEplugin
+  DeleteRegKey HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet
+  DeleteRegKey HKEY_CLASSES_ROOT freenet
 
-Delete "$SMSTARTUP\Freenet.lnk"
-Delete "$DESKTOP\Freenet.lnk"
-Delete "$SMPROGRAMS\Freenet\Freenet.lnk"
-Delete "$SMPROGRAMS\Freenet\FN Homepage.url"
-Delete "$SMPROGRAMS\Freenet\FNGuide.url"
-Delete "$SMPROGRAMS\Freenet\Uninstall.lnk" 
-RMDir "$SMPROGRAMS\Freenet"
+  # remove the desktop and startmenu icons
+  Delete "$SMSTARTUP\Freenet.lnk"
+  Delete "$DESKTOP\Freenet.lnk"
+  Delete "$SMPROGRAMS\Freenet\Freenet.lnk"
+  Delete "$SMPROGRAMS\Freenet\FN Homepage.url"
+  Delete "$SMPROGRAMS\Freenet\FNGuide.url"
+  Delete "$SMPROGRAMS\Freenet\Uninstall.lnk" 
+  RMDir "$SMPROGRAMS\Freenet"
 
-#delete "$SMPROGRAMS\Start FProxy.lnk"
-#Delete "$QUICKLAUNCH\Start FProxy.lnk"
+  #delete "$SMPROGRAMS\Start FProxy.lnk"
+  #Delete "$QUICKLAUNCH\Start FProxy.lnk"
 SectionEnd
 ;-----------------------------------------------------------------------------------------
+
+Function .onInit
+  #First trying to shut down the node, the system tray Window class is called: TrayIconFreenetClass
+  FindWindow "prompt" "TrayIconFreenetClass" "You are still running Freenet, please shut it down first and retry then."
+FunctionEnd
+;-----------------------------------------------------------------------------------------
+
+Function .onInstFailed
+  DeleteRegKey HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet"
+  DeleteRegKey HKEY_LOCAL_MACHINE "Software\Freenet"
+  RMDir /r $INSTDIR
+FunctionEnd
+
 ;-----------------------------------------------------------------------------------------
