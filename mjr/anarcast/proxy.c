@@ -440,22 +440,23 @@ request (int c)
     blocks = mbuf(blockcount * blocksize);
     
     // slurp up all the data we can
-    alert("Requesting %d blocks of %d bytes each.", blockcount, blocksize);
+    alert("Downloading %d blocks of %d bytes each.", blockcount, blocksize);
     memset(mask, 0, blockcount); // all parts are missing before we download them
     do_request(blocks, mask, blockcount, blocksize, &hashes[HASHLEN]);
-    alert("Request complete.");
     
     // how many missing blocks?
     for (i = n = 0 ; i < blockcount ; i++)
 	if (!mask[i]) n++;
     
-    if (!n) {
+    alert("Download of %d/%d (%d%%) blocks complete.", blockcount-n, blockcount,
+	    (int)((double)blockcount/(double)blockcount-n) * 100);
+    
+    if (!(m = n)) {
 	alert("No missing parts to reconstruct.");
 	goto verify; // woo! we got all of `em!
     }
     
     // back up original mask. we'll use it to insert the reconstructed parts later
-    m = n;
     memcpy(mask2, mask, blockcount);
     
     // try to reconstruct blocks until we win or lose
@@ -535,7 +536,7 @@ verify:
 	goto out;
     }
     
-    if (m) goto out; // no blocks to reinsert!
+    if (!m) goto out; // no blocks to reinsert!
     
     // verify integrity of reconstructed check blocks
     for (i = 0 ; i < g.cbc ; i++)
@@ -548,7 +549,7 @@ verify:
 	}
     
     // insert reconstructed blocks
-    alert("Inserting %d reconstructed blocks.");
+    alert("Inserting %d reconstructed blocks.", m);
     do_insert(blocks, mask2, blockcount, blocksize, &hashes[HASHLEN]);
     alert("Reconstructed blocks inserted.");
 
