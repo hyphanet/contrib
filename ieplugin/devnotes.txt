@@ -1,0 +1,5 @@
+IE plugin is written in with Borland Delphi 5.0
+
+more to come here
+
+philipp

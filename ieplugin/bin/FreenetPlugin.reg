@@ -1,0 +1,30 @@
+REGEDIT4
+
+[HKEY_CLASSES_ROOT\PROTOCOLS\Handler\freenet]
+"CLSID"="{CDDCA3BE-697E-4BEB-BCE4-5650C1580BCE}"
+@="freenet: Asychronous Pluggable Protocol Handler"
+
+[HKEY_CLASSES_ROOT\freenet]
+@="URL:freenet protocol"
+"URL Protocol"=""
+
+[HKEY_CLASSES_ROOT\freenet\DefaultIcon]
+@="%SystemRoot%\\system32\\url.dll,0"
+
+[HKEY_CLASSES_ROOT\freenet\shell]
+
+[HKEY_CLASSES_ROOT\freenet\shell\open]
+
+[HKEY_CLASSES_ROOT\freenet\shell\open\command]
+@="\"C:\\Program Files\\Internet Explorer\\iexplore.exe\" -nohome"
+
+[HKEY_CLASSES_ROOT\freenet\shell\open\ddeexec]
+@="\"%1\",,-1,0,,,,"
+"NoActivateHandler"=""
+
+[HKEY_CLASSES_ROOT\freenet\shell\open\ddeexec\Application]
+@="IExplore"
+
+[HKEY_CLASSES_ROOT\freenet\shell\open\ddeexec\Topic]
+@="WWW_OpenURL"
+
