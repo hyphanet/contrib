@@ -49,6 +49,7 @@ void CPropNormal::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_listenPort, m_listenPort);
 	DDV_MinMaxUInt(pDX, m_listenPort, 1, 65535);
 	DDX_Text(pDX, IDC_storeFile, m_storeFile);
+	DDX_Text(pDX, IDC_tempFile, m_tempFile);
 	DDX_Radio(pDX, IDC_transient, m_transient);
 	//}}AFX_DATA_MAP
 }

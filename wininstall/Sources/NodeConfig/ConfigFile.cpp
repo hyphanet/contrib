@@ -9,7 +9,7 @@
 #include "PropNormal.h"
 #include "PropAdvanced.h"
 #include "PropGeek.h"
-#include "PropFProxy.h"
+#include "PropFproxy.h"
 #include "PropDiagnostics.h"
 
 
@@ -27,6 +27,30 @@ extern CPropAdvanced	*pAdvanced;
 extern CPropGeek		*pGeek;
 extern CPropFProxy		*pFProxy;
 extern CPropDiagnostics *pDiagnostics;
+
+CString getTempDir()
+{
+	TCHAR tchBuf[128];
+	CString dir;
+	bool found;
+	if (GetEnvironmentVariable("TEMP", tchBuf, 128) > 0) {
+		dir = tchBuf;
+		found = true;
+	} else if (GetEnvironmentVariable("TMP", tchBuf, 128) > 0) {
+		dir = tchBuf;
+		found = true;
+	} else {
+		dir = "Need temporary directory";
+		found = false;
+	}
+
+	if(found)
+	{
+		// TODO: put it in a special freenet directory that can be wiped every time the freenet.exe restarts
+	}
+
+	return dir;
+}	
 
 
 //////////////////////////////////////////////////////////////////////
@@ -62,7 +86,7 @@ CConfigFile::~CConfigFile()
 void CConfigFile::Load()
 {
 	FILE *fp;
-	char buf[1024];
+	char buf[4096];
 	char *pValue;
 
 	/////////////////////////////
@@ -110,6 +134,7 @@ void CConfigFile::Load()
 	// i.e. shift FreeBytes right 20 bits
 	pNormal->m_storeSize = __max(10,__min(2047,(DWORD)(Int64ShrlMod32(FreeBytes.QuadPart,20))/5));
 	pNormal->m_storeFile = "";
+	pNormal->m_tempFile = getTempDir();
 	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
 	pNormal->m_transient = TRANSIENT;
 	// the ipAddrress is determined in the constructor: pNormal->m_ipAddress;
@@ -150,6 +175,7 @@ void CConfigFile::Load()
 	pGeek->m_routeConnectTimeout = 10000;
 	pGeek->m_rtMaxNodes = 100;
 	pGeek->m_rtMaxRefs = 1000;
+	pGeek->m_storeType = "freenet";
 	pGeek->m_storeDataFile = "";
 	pGeek->m_streamBufferSize = 65536;
 	pGeek->m_storeCipherName = "Twofish";
@@ -201,7 +227,7 @@ void CConfigFile::Load()
 					MB_SYSTEMMODAL | MB_ICONINFORMATION);
 	else
 	{
-		while (fgets(buf, 1023, fp) != NULL)
+		while (fgets(buf, 4095, fp) != NULL)
 		{
 			// Split line into token and value
 			if ((pValue = splitLine(buf)) == NULL)
@@ -295,6 +321,12 @@ void CConfigFile::Save()
 		fprintf(fp, "#ipAddress=\n");
 	else
 		fprintf(fp, "ipAddress=%s\n", pNormal->m_ipAddress.GetBuffer(1));
+	fprintf(fp, "\n");
+	fprintf(fp, "# The directory to hold temporary files for FEC\n");
+	fprintf(fp, "FECTempDir=%s\n", pNormal->m_tempFile);
+	fprintf(fp, "\n");
+	fprintf(fp, "# The directory to use for mainport's temporary files\n");
+	fprintf(fp, "mainport.params.servlet.1.params.tempDir=%s\n", pNormal->m_tempFile);
 	fprintf(fp, "\n");
 	fprintf(fp, "# This is used only by Windows configurator, not by node\n");
 	fprintf(fp, "warnPerm=%s\n", pNormal->warnPerm ? "true" : "false");
@@ -432,6 +464,9 @@ void CConfigFile::Save()
 	else
 		fprintf(fp, "storeDataFile=store_%d\n", pNormal->m_listenPort);
 	fprintf(fp, "\n");
+	fprintf(fp, "# The type of store we have (this text will get clearer soon).\n");
+	fprintf(fp, "storeType=%s\n", pGeek->m_storeType);
+	fprintf(fp, "\n");
 	fprintf(fp, "# The name of a symmetric cipher algorithm to encrypt the datastore\n");
 	fprintf(fp, "# contents with.  Supported algorithms are \"Twofish\", \"Rijndael\",\n");
 	fprintf(fp, "# and \"null\", \"none\", or \"void\" (for no encryption).\n");
@@ -480,27 +515,26 @@ void CConfigFile::Save()
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Services & Servlets\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "services=%s%s\n",pFProxy->m_bfproxyservice?"fproxy,":"",
-								pDiagnostics->m_nodeinfoservlet?"nodeinfo,":"");
+	fprintf(fp, "services=mainport\n");
 	fprintf(fp, "\n");
 
 	// FProxy settings
 	fprintf(fp, "########################\n");
-	fprintf(fp, "# FProxy settings\n");
+	fprintf(fp, "# Mainport settings\n");
 	fprintf(fp, "########################\n");
-	fprintf(fp, "fproxy.class=%s\n",pFProxy->m_fproxyclass);
-	fprintf(fp, "fproxy.port=%d\n",pFProxy->m_fproxyport);
-	fprintf(fp, "fproxy.params.insertHtl=%d\n",pFProxy->m_fproxyinserthtl);
-	fprintf(fp, "fproxy.params.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
-	fprintf(fp, "fproxy.params.filter=%s\n",pFProxy->m_bfproxyfilter?"true":"false");
-	fprintf(fp, "fproxy.params.passThroughMimeTypes=%s\n",pFProxy->m_strfproxyallowedmime);
-	fprintf(fp, "fproxy.params.pollForDroppedConnection=%s\n",pFProxy->m_fproxy_pollDroppedConnection?"true":"false");
-	fprintf(fp, "fproxy.params.splitFileRetryHtlIncrement=%d\n",pFProxy->m_fproxy_splitinchtl);
-	fprintf(fp, "fproxy.params.splitFileRetries=%d\n",pFProxy->m_fproxy_splitretries);
-	fprintf(fp, "fproxy.params.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
-	fprintf(fp, "fproxy.params.showNewBuildWarning=%s\n", pFProxy->m_bShowNewBuildWarning?"true":"false");
+	fprintf(fp, "mainport.class=%s\n",pFProxy->m_fproxyclass);
+	fprintf(fp, "mainport.port=%d\n",pFProxy->m_fproxyport);
+	fprintf(fp, "mainport.params.servlet.1.params.insertHtl=%d\n",pFProxy->m_fproxyinserthtl);
+	fprintf(fp, "mainport.params.servlet.1.params.requestHtl=%d\n",pFProxy->m_fproxyrequesthtl);
+	fprintf(fp, "mainport.params.servlet.1.params.filter=%s\n",pFProxy->m_bfproxyfilter?"true":"false");
+	fprintf(fp, "mainport.params.servlet.1.params.passThroughMimeTypes=%s\n",pFProxy->m_strfproxyallowedmime);
+	fprintf(fp, "mainport.params.servlet.1.params.pollForDroppedConnection=%s\n",pFProxy->m_fproxy_pollDroppedConnection?"true":"false");
+	fprintf(fp, "mainport.params.servlet.1.params.splitFileRetryHtlIncrement=%d\n",pFProxy->m_fproxy_splitinchtl);
+	fprintf(fp, "mainport.params.servlet.1.params.splitFileRetries=%d\n",pFProxy->m_fproxy_splitretries);
+	fprintf(fp, "mainport.params.servlet.1.params.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
+	fprintf(fp, "mainport.params.servlet.1.params.showNewBuildWarning=%s\n", pFProxy->m_bShowNewBuildWarning?"true":"false");
 	fprintf(fp, "\n");
-
+/*
 	// Node info servlet settings
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Node information servlet settings\n");
@@ -510,7 +544,7 @@ void CConfigFile::Save()
 	fprintf(fp, "failureTableSize=%d\n",pDiagnostics->m_nFailureTableEntries);
 	fprintf(fp, "failureTableTime=%lu000\n",pDiagnostics->m_nFailureTableTimeSeconds);
 	fprintf(fp, "\n");
-
+*/
 	// Write out unknown parameters
 	if (pGeek->m_unknowns.GetLength() > 0)
 	{
@@ -578,6 +612,10 @@ void CConfigFile::processItem(char *tok, char *val)
 		pNormal->m_ipAddress = val;
 	else if (!strcmp(tok, "warnPerm"))
 		pNormal->warnPerm = atobool(val);
+	else if (!strcmp(tok, "FECTempDir"))
+		pNormal->m_tempFile = val;
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.tempDir"))
+		pNormal->m_tempFile = val;
 	else if (!strcmp(tok, "doAnnounce"))
 		pAdvanced->m_doAnnounce = atobool(val);
 	else if (!strcmp(tok, "seedFile"))
@@ -636,6 +674,8 @@ void CConfigFile::processItem(char *tok, char *val)
 		pGeek->m_rtMaxRefs = atoi(val);
 	else if (!strcmp(tok, "storeDataFile"))
 		pGeek->m_storeDataFile = val;
+	else if (!strcmp(tok, "storeType"))
+		pGeek->m_storeType = val;
 	else if (!strcmp(tok, "streamBufferSize"))
 		pGeek->m_streamBufferSize = atoi(val);
 	else if (!strcmp(tok, "storeCipherName"))
@@ -651,27 +691,27 @@ void CConfigFile::processItem(char *tok, char *val)
 		// because that could replace it if the previous line had already set it to TRUE!
 		if (strstr(_strupr(val),"NODESTATUS") ) pDiagnostics->m_nodeinfoservlet = TRUE;
 	}
-	else if (!strcmp(tok, "fproxy.class"))
+	else if (!strcmp(tok, "mainport.class"))
 		pFProxy->m_fproxyclass = val;
-	else if (!strcmp(tok, "fproxy.port"))
+	else if (!strcmp(tok, "mainport.port"))
 		pFProxy->m_fproxyport = atoi(val);
-	else if (!strcmp(tok, "fproxy.params.insertHtl"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.insertHtl"))
 		pFProxy->m_fproxyinserthtl = atoi(val);
-	else if (!strcmp(tok, "fproxy.params.requestHtl"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.requestHtl"))
 		pFProxy->m_fproxyrequesthtl = atoi(val);
-	else if (!strcmp(tok, "fproxy.params.filter"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.filter"))
 		pFProxy->m_bfproxyfilter = atobool(val);
-	else if (!strcmp(tok, "fproxy.params.passThroughMimeTypes"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.passThroughMimeTypes"))
 		pFProxy->m_strfproxyallowedmime = val;
-	else if (!strcmp(tok, "fproxy.params.pollForDroppedConnection"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.pollForDroppedConnection"))
 		pFProxy->m_fproxy_pollDroppedConnection = atobool(val);
-	else if (!strcmp(tok, "fproxy.params.splitFileRetryHtlIncrement"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.splitFileRetryHtlIncrement"))
 		pFProxy->m_fproxy_splitinchtl = atoi(val);
-	else if (!strcmp(tok, "fproxy.params.splitFileRetries"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.splitFileRetries"))
 		pFProxy->m_fproxy_splitretries = atoi(val);
-	else if (!strcmp(tok, "fproxy.params.splitFileThreads"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.splitFileThreads"))
 		pFProxy->m_fproxy_splitthreads = atoi(val);
-	else if (!strcmp(tok, "fproxy.params.showNewBuildWarning"))
+	else if (!strcmp(tok, "mainport.params.servlet.1.params.showNewBuildWarning"))
 		pFProxy->m_bShowNewBuildWarning = atobool(val);
 
 	else if (!strcmp(tok, "logFile"))
@@ -742,6 +782,12 @@ char *CConfigFile::splitLine(char *buf)
 {
     char *eq;
     char *s, *s1;
+	int i;
+
+	// delete trailing line terminators
+	s = buf + strlen(buf) - 1;
+	while (*s == '\r' || *s == '\n')
+		*s-- = '\0';
 
 	// delete leading whitespace
 	for (s = buf; *s; s++)
@@ -750,6 +796,8 @@ char *CConfigFile::splitLine(char *buf)
 			return NULL;
 		else if (*s == ' ' || *s == '\t')
 			continue;
+		else if (*s == '%')
+			continue;
 		else
 			break;
 	}
@@ -757,11 +805,6 @@ char *CConfigFile::splitLine(char *buf)
 		strcpy(buf, s);
 	else
 		return NULL;
-
-	// delete trailing line terminators
-	s = buf + strlen(buf) - 1;
-	while (*s == '\r' || *s == '\n')
-		*s-- = '\0';
 
 	// bail if no value given
     if ((eq = strchr(buf, '=')) == NULL)
@@ -775,11 +818,12 @@ char *CConfigFile::splitLine(char *buf)
         *s = '\0';
 
     // delete whitespace before value
-    for (s = eq + 1; strchr(" \t", *s) != NULL; s++)
-        ;
+	i = strlen(eq + 1);
+	for (s = eq + 1; strchr(" \t", *s) != NULL && i > 0; s++)
+		;
 
     // bail if nothing left in value
-    if (*s == '\0')
+    if (*s == '\0' || s >= eq + i)
         return NULL;
 
     // delete whitespace after value

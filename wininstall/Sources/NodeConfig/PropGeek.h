@@ -41,6 +41,7 @@ public:
 	UINT	m_routeConnectTimeout;
 	UINT	m_rtMaxNodes;
 	UINT	m_rtMaxRefs;
+	CString m_storeType;
 	CString	m_storeDataFile;
 	UINT	m_streamBufferSize;
 	CString	m_storeCipherName;

@@ -115,6 +115,9 @@
 #define IDC_NUMUNKNOWN                  1109
 #define IDC_MOVEUP                      1111
 #define IDC_MOVEDOWN                    1112
+#define IDC_storeType                   1113
+#define IDC_tempFile                    1114
+#define IDC_tempFile_browser            1115
 
 // Next default values for new objects
 // 
@@ -122,7 +125,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1094
+#define _APS_NEXT_CONTROL_VALUE         1095
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

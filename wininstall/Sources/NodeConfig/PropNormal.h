@@ -34,6 +34,7 @@ public:
 	BOOL	m_useDefaultNodeRefs;
 	CString	m_ipAddress;
 	UINT	m_listenPort;
+	CString m_tempFile;
 	CString	m_storeFile;
 	int		m_transient;
 	//}}AFX_DATA
