@@ -52,11 +52,14 @@ void CConfigFile::Load()
 
 	// Normal tab
 	//pNormal->m_importNewNodeRef.EnableWindow(false);
-	pNormal->m_storeCacheSize = 10;
+		// propose 20% of the free disk space, but min 10MB and max 2GB
+		ULARGE_INTEGER FreeBytes,TotalBytes;
+		GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
+	pNormal->m_storeCacheSize = __max(10,__min(2047,(unsigned int)(FreeBytes.QuadPart>>20)));
 	pNormal->m_storePath = ".freenet";
 	pNormal->m_useDefaultNodeRefs = true;
-	pNormal->m_transient = TRUE;
-	pNormal->m_notTransient = FALSE;
+	pNormal->m_transient = FALSE;
+	pNormal->m_notTransient = !pNormal->m_transient;
 	pNormal->m_ipAddress = "";
 	srand( (unsigned)time( NULL ) );
 	pNormal->m_listenPort = rand() + 1024;	// random port number
@@ -73,7 +76,7 @@ void CConfigFile::Load()
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumConnectionThreads = 16;
 	pAdvanced->m_outputBandwidthLimit = 0;
-	pAdvanced->m_seedNodes = "ALL.REF";
+	pAdvanced->m_seedNodes = "seed.ref";
 
 	// Geek tab
 	pGeek->m_announcementAttempts = 10;
@@ -418,7 +421,8 @@ void CConfigFile::processItem(char *tok, char *val)
 	if (!strcmp(tok, "[Freenet node]\n"))
 		return;
 	else if (!strcmp(tok, "storeCacheSize"))
-		pNormal->m_storeCacheSize = atol(val) / 1048576;
+		//only if we did not set 0 as disk cache size (means we should propose our own default value)
+		{if(atol(val) != 0) pNormal->m_storeCacheSize = atol(val) / 1048576;}
 	else if (!strcmp(tok, "storePath"))
 		pNormal->m_storePath = val;
 	else if (!strcmp(tok, "transient"))
