@@ -9,32 +9,12 @@
 #define CMDLINE_LEN 1024
 #define DEFJAVAEXEC "javaexec"
 
-#define EXE_MIN 0
-#define EXE_EXEC 1
-#define JAVA_PATH 2
-#define EXE_FILE 3
-#define AMT_OPTIONS 4
+/* the following are the parameters of the profileString array, containing the exe filename, the Javapath and the */
+enum {EXE_EXEC,JAVA_PATH,EXE_FILE,AMT_OPTIONS};
 
 // uncomment next line to turn debug messages on
-//#define DEBUGGING
+#define DEBUGGING
 
-
-void GetExePath(char *exePath, char *argv){
-	//Isn't there a easier function for this?
-
-	char s[MAXSTRLEN]="";
-	char i;
-
-	strcpy(s,argv);
-	if (s[strlen(s)-4]=='.') {s[strlen(s)-4]='\0';};
-	for (i=strlen(s);i>0;--i) {
-		if (s[i]=='\\') {
-			s[i]='\0';
-			strcpy(exePath,s);
-			return;
-		}
-	}
-}
 /*-----------------------------------------------------------------*/
 void GetExeName(char *exeFilename, char *argv){
 	char *p_char;
@@ -67,23 +47,14 @@ void GetExeName(char *exeFilename, char *argv){
 /*-------------------------------------------------------------------*/
 void parseJavaPath (char *s) {
 /* This function parses the Javapath and adds "s to the path if there are blanks in the path */
-/* If there are spaces it will look like: c:\"prog files\java.exe" to overcome the start /m ...
-   difficulties on the Win9x/NT versions as they are handled differently*/
   BOOL blanks = FALSE;
-  char j,i;
+  char j;
 
 	for (j=(strlen(s)-1);j>0;--j) if (s[j] == ' ') blanks=TRUE;
     if (blanks) {
-		// Now follows an ugly hack to insert a parenthesis after the C:\"path\java.exe"
-		// this is due to differences in W98 W2K which allows/doesn't allow a title in Parenthesis
-		j=0;
-		while (j<(strlen(s)) && (s[j]!='\\')) ++j;
-		for (i=strlen(s);i>j;--i) s[i+1]=s[i];
-		s[++j]='\"'; //inserting the " at the right place.
+ 		for (j=strlen(s);j>0;--j) s[j+1]=s[j];
+		s[0]='\"'; //inserting the " in the beginning.
 		strcat(s,"\""); //closing parenthesis after Javaexec bin and go on
-		  #ifdef DEBUGGING
-    	   printf("Blanks found. Setting to: %s\n",s);
-  		  #endif
 	}
 	strcat(s," ");
 }
@@ -92,24 +63,32 @@ int main(int argc,char *argv[]){
 	char i,j;
 	char cmdline[CMDLINE_LEN] = "";
 	char s[MAXSTRLEN] = "";
-	char profileString[AMT_OPTIONS][25]={"","","",""}; /* fields are:[0]ThisExeFilename+ "_min" [1] Param to Java binary [2]Javaexecutable [3]ThisExefilename */
-	const char *minimizeStr = "start /min ";
+	char profileString[AMT_OPTIONS][35]={"","",""}; /* fields are:[0] Param to Java binary [1]Javaexecutable [2]ThisExefilename */
 	const char *cfgSection = "Freenet Launcher";
 	const char *cfgFilename = ".\\FLaunch.ini";
+	char *exename;
+	char *progpath;
 
-	/*	SetConsoleTitle("Freenet Launcher"); */
-	GetExeName(profileString[EXE_FILE],argv[0]);	/* Fill this Exe filename in profileString[3]*/
-	strcpy(profileString[EXE_MIN],profileString[EXE_FILE]);		/* File Exefilename+_min in profileString[0]*/
-	strcat(profileString[EXE_MIN],"_min");
+    /* initialization part:*/
+    // determine the directory in which this executable is running
+	progpath = strdup(_pgmptr); // 'pgmptr' is a global windows-specific string
+	exename = strrchr(progpath, '\\'); // point to slash between path and filename
+	*exename++ = '\0'; // split the string and point to filename part
+ 	SetCurrentDirectory(progpath); // setting working directory to the dir in which the .exe is
+
+	strcpy(profileString[EXE_FILE],exename);	/* Fill this Exe filename in profileString[3]*/
 	strcpy(profileString[EXE_EXEC],profileString[EXE_FILE]);		/* File Exefilename+_exec in profileString[0]*/
 	strcat(profileString[EXE_EXEC],"_exec");
 
-	GetExePath(s,argv[0]);
-	SetCurrentDirectory(s);
 	#ifdef DEBUGGING
-	 printf("ExeFileName= %s\nSetting directory to: %s\n",profileString[EXE_FILE],s);
+	 printf("ExeFileName= %s\nSetting directory to: %s\n",profileString[EXE_FILE],progpath);
 	#endif
-	/*now parsing the configfile */
+
+ 	/* set the CLASSPATH env var to the location of the jar. */
+	/* Is there any need to request the value from the config file? */
+	SetEnvironmentVariable("CLASSPATH","freenet.jar");
+
+	/* initialization done, now parsing the configfile */
 	for (i=0;i<=AMT_OPTIONS-1;++i) {
 #ifdef DEBUGGING
 printf("parsing %d\n",i);
@@ -122,16 +101,6 @@ printf("parsing %d\n",i);
 	  		  #endif
 		};
 		switch (i) {
-			case EXE_MIN :{
-					strlwr(s);
-					if (strstr(s,"1") == &s[0] || strstr(s,"true") ==&s[0]) {
-						strcat(cmdline,minimizeStr);
-	      					#ifdef DEBUGGING
-	   						printf("Minimizing application!\n");
-	  	  					#endif
-						};
-					break;
-					}
 			case EXE_EXEC : {
 						strcpy(profileString[JAVA_PATH], (strlen(s)==0) ? "javaexec": s);
 					  	#ifdef DEBUGGING
@@ -140,13 +109,8 @@ printf("parsing %d\n",i);
 						break;
 						}
 			case JAVA_PATH : { 
-#ifdef DEBUGGING
-				          printf("before%d",i);
-#endif
 						parseJavaPath(s);
-#ifdef DEBUGGING
-						printf("after%d",i);
-#endif
+                        /* Put the Java runtime path (and exec) in the lateron executed cmdline */
 						strcat (cmdline,s);
 						break;
 						}
@@ -164,10 +128,6 @@ printf("parsing %d\n",i);
 		strcat(cmdline," ");
 		strcat(cmdline,argv[i]);
 		}
-
-	/* set the CLASSPATH env var to the location of the jar. */
-	/* Is there any need to request the value from the config file? */
-	SetEnvironmentVariable("CLASSPATH","freenet.jar");
 
 	/*finally executing external programm and returning error code on exit*/
 	printf("Executing: %s\n",cmdline);
