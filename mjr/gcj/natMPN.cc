@@ -24,8 +24,8 @@ details.  */
 jint
 MPN::add_1 (jintArray idest, jintArray ix, jint size, jint y)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
 #ifdef USE_GMP
   return mpn_add_1 ((mp_limb_t *) dest, (mp_limb_t *) x, (mp_size_t) size, (mp_size_t) y);
 #else
@@ -50,9 +50,9 @@ MPN::add_1 (jintArray idest, jintArray ix, jint size, jint y)
 jint
 MPN::add_n (jintArray idest, jintArray ix, jintArray iy, jint len)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
-  jint *y = elements(iy);
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
+  jint *y = elements (iy);
 #ifdef USE_GMP
   return mpn_add_n ((mp_limb_t *) dest, (mp_limb_t *) x, (mp_limb_t *) y, (mp_size_t) len);
 #else  
@@ -76,9 +76,9 @@ MPN::add_n (jintArray idest, jintArray ix, jintArray iy, jint len)
 jint
 MPN::sub_n (jintArray idest, jintArray iX, jintArray iY, jint size)
 {
-  jint *dest = elements(idest);
-  jint *X = elements(iX);
-  jint *Y = elements(iY);
+  jint *dest = elements (idest);
+  jint *X = elements (iX);
+  jint *Y = elements (iY);
 #ifdef USE_GMP
   return mpn_sub_n ((mp_limb_t *) dest, (mp_limb_t *) X, (mp_limb_t *) Y, (mp_size_t) size);
 #else
@@ -111,8 +111,8 @@ MPN::sub_n (jintArray idest, jintArray iX, jintArray iY, jint size)
 jint
 MPN::mul_1 (jintArray idest, jintArray ix, jint len, jint y)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
 #ifdef USE_GMP
   return mpn_mul_1 ((mp_limb_t *) dest, (mp_limb_t *) x, (mp_size_t) len, y);
 #else 
@@ -141,9 +141,9 @@ MPN::mul_1 (jintArray idest, jintArray ix, jint len, jint y)
 void
 MPN::mul (jintArray idest, jintArray ix, jint xlen, jintArray iy, jint ylen)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
-  jint *y = elements(iy); 
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
+  jint *y = elements (iy); 
 #ifdef USE_GMP
   mpn_mul ((mp_limb_t *) dest, (mp_limb_t *) x, (mp_size_t) xlen, (mp_limb_t *) y, (mp_size_t) ylen);
 #else
@@ -262,10 +262,10 @@ MPN::udiv_qrnnd (jlong N, jint D)
 jint
 MPN::divmod_1 (jintArray iquotient, jintArray idividend, jint len, jint divisor)
 {
-  jint *quotient = elements(iquotient);
-  jint *dividend = elements(idividend);
+  jint *quotient = elements (iquotient);
+  jint *dividend = elements (idividend);
 #ifdef USE_GMP
-  return mpn_divmod_1((mp_limb_t *) quotient, (mp_limb_t *) dividend, (mp_size_t) len, (mp_limb_t) divisor);
+  return mpn_divmod_1 ((mp_limb_t *) quotient, (mp_limb_t *) dividend, (mp_size_t) len, (mp_limb_t) divisor);
 #else
   jint i = len - 1;
   jlong r = dividend[i];
@@ -296,8 +296,8 @@ MPN::divmod_1 (jintArray iquotient, jintArray idividend, jint len, jint divisor)
 jint
 MPN::submul_1 (jintArray idest, jint offset, jintArray ix, jint len, jint y)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
 
   jlong yl = (jlong) y & (jlong)0xffffffffL;
   jint carry = 0;
@@ -332,8 +332,8 @@ MPN::submul_1 (jintArray idest, jint offset, jintArray ix, jint len, jint y)
 void
 MPN::divide (jintArray izds, jint nx, jintArray iy, jint ny)
 {
-  jint *zds = elements(izds);
-  jint *y = elements(iy);
+  jint *zds = elements (izds);
+  jint *y = elements (iy);
 #ifdef USE_GMP
   zds[nx] = mpn_divrem ((mp_limb_t *) &zds[ny], (mp_size_t) 0, (mp_limb_t *) zds, (mp_size_t) nx, (mp_limb_t *) y, (mp_size_t) ny);
 #else
@@ -450,10 +450,10 @@ MPN::count_leading_zeros (jint i)
 jint
 MPN::set_str (jintArray idest, jbyteArray istr, jint str_len, jint base)
 {
-  jint *dest = elements(idest);
-  jbyte *str = elements(istr);
+  jint *dest = elements (idest);
+  jbyte *str = elements (istr);
 #ifdef USE_GMP
-  return mpn_set_str((mp_limb_t *) dest, (unsigned char *) str, (mp_size_t) str_len, base);
+  return mpn_set_str ((mp_limb_t *) dest, (unsigned char *) str, (mp_size_t) str_len, base);
 #else
   jint size = 0;
   if ((base & (base - 1)) == 0)
@@ -526,10 +526,10 @@ MPN::set_str (jintArray idest, jbyteArray istr, jint str_len, jint base)
 jint
 MPN::cmp (jintArray ix, jintArray iy, jint size)
 {
-  jint *x = elements(ix);
-  jint *y = elements(iy);
+  jint *x = elements (ix);
+  jint *y = elements (iy);
 #ifdef USE_GMP
-  return mpn_cmp((mp_limb_t *) x, (mp_limb_t *) y, (mp_size_t) size);
+  return mpn_cmp ((mp_limb_t *) x, (mp_limb_t *) y, (mp_size_t) size);
 #else 
   while (--size >= 0)
     {
@@ -568,11 +568,11 @@ MPN::cmp (jintArray x, jint xlen, jintArray y, jint ylen)
 void
 MPN::rshift0 (jintArray idest, jintArray ix, jint x_start, jint len, jint count)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
   
   if (count > 0)
-    rshift(idest, ix, x_start, len, count);
+    rshift (idest, ix, x_start, len, count);
   else
     for (jint i = 0;  i < len;  i++)
       dest[i] = x[i + x_start];
@@ -589,11 +589,11 @@ MPN::rshift0 (jintArray idest, jintArray ix, jint x_start, jint len, jint count)
 jint
 MPN::rshift (jintArray idest, jintArray ix, jint x_start, jint len, jint count)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
 #ifdef USE_GMP
   jint retval = x[x_start] << (32 - count);
-  mpn_rshift((mp_limb_t *) dest, (mp_limb_t *) x + x_start, (mp_size_t) len, count);
+  mpn_rshift ((mp_limb_t *) dest, (mp_limb_t *) x + x_start, (mp_size_t) len, count);
   return retval;
 #else
   jint count_2 = 32 - count;
@@ -621,7 +621,7 @@ MPN::rshift (jintArray idest, jintArray ix, jint x_start, jint len, jint count)
 jlong
 MPN::rshift_long (jintArray ix, jint len, jint count)
 {
-  jint *x = elements(ix);
+  jint *x = elements (ix);
 
   jint wordno = count >> 5;
   count &= 31;
@@ -649,11 +649,11 @@ MPN::rshift_long (jintArray ix, jint len, jint count)
 jint
 MPN::lshift (jintArray idest, jint d_offset, jintArray ix, jint len, jint count)
 {
-  jint *dest = elements(idest);
-  jint *x = elements(ix);
+  jint *dest = elements (idest);
+  jint *x = elements (ix);
 #ifdef USE_GMP
   jint retval = (uint32_t) x[len-1] >> (uint32_t) (32 - count);
-  mpn_lshift((mp_limb_t *) dest + d_offset, (mp_limb_t *) x, (mp_size_t) len, count);
+  mpn_lshift ((mp_limb_t *) dest + d_offset, (mp_limb_t *) x, (mp_size_t) len, count);
   return retval;
 #else  
   jint count_2 = 32 - count;
@@ -698,7 +698,7 @@ MPN::findLowestBit (jint word)
 jint
 MPN::findLowestBit (jintArray iwords)
 {
-  jint *words = elements(iwords);
+  jint *words = elements (iwords);
   
   for (jint i = 0;  ; i++)
     {
@@ -715,10 +715,10 @@ MPN::findLowestBit (jintArray iwords)
 jint
 MPN::gcd (jintArray ix, jintArray iy, jint len)
 {
-  jint *x = elements(ix);
-  jint *y = elements(iy);
+  jint *x = elements (ix);
+  jint *y = elements (iy);
 #ifdef USE_GMP_NO_WAY
-  mp_limb_t mpl = mpn_gcd_1((mp_limb_t *) x, (mp_size_t) len, (mp_limb_t) *y);
+  mp_limb_t mpl = mpn_gcd_1 ((mp_limb_t *) x, (mp_size_t) len, (mp_limb_t) *y);
   x = (jint *) &mpl;
   return ix->length;
 #else
@@ -756,8 +756,8 @@ MPN::gcd (jintArray ix, jintArray iy, jint len)
       iother_arg = ix;
     }
 
-  jint *odd_arg = elements(iodd_arg);
-  jint *other_arg = elements(iother_arg);
+  jint *odd_arg = elements (iodd_arg);
+  jint *other_arg = elements (iother_arg);
   
   for (;;)
     {
@@ -773,15 +773,15 @@ MPN::gcd (jintArray ix, jintArray iy, jint len)
           for ( ; j < len; j++)
             other_arg[j] = 0;
         }
-      i = findLowestBit(other_arg[0]);
+      i = findLowestBit (other_arg[0]);
       if (i > 0)
         rshift (iother_arg, iother_arg, 0, len, i);
 
       // Now both odd_arg and other_arg are odd.
 
       // Subtract the smaller from the larger.
-      // This does not change the result, since gcd(a-b,b)==gcd(a,b).
-      i = cmp(iodd_arg, iother_arg, len);
+      // This does not change the result, since gcd (a-b,b)==gcd(a,b).
+      i = cmp (iodd_arg, iother_arg, len);
       if (i == 0)
           break;
       if (i > 0)
@@ -825,12 +825,12 @@ MPN::intLength (jint i)
 }
 
 /** Calcaulte the Common Lisp "integer-length" function.
- * Assumes input is canonicalized:  len==BigInteger.wordsNeeded(words,len) */
+ * Assumes input is canonicalized:  len==BigInteger.wordsNeeded (words,len) */
 
 jint
 MPN::intLength (jintArray iwords, jint len)
 {
-  jint *words = elements(iwords);
+  jint *words = elements (iwords);
   
   len--;
   return intLength (words[len]) + 32 * len;
