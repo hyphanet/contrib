@@ -18,6 +18,11 @@
 #define FCP_INVALID_METADATA    -4
 #define FCP_REQUEST_FAILED	-5
 #define FCP_IO_ERROR		-6
+#define FCP_KEY_COLLISION       -7
+#define FCP_INVALID_MESSAGE     -8
+#define FCP_ROUTE_NOT_FOUND     -9
+#define FCP_DATA_NOT_FOUND      -10
+#define FCP_DATA_REJECTED       -11
 
 enum {FCP_DATA, FCP_CONTROL};
 
@@ -96,9 +101,10 @@ int fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
 	        int htl, int threads);
 
 // insert a single-part file. returns 0 on success, or error (<0)
-// type may be DATA or CONTROL
-// updates uri with final uri
-int fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl);
+// type may be DATA or CONTROL (control docs may not have metadata)
+// updates uri with final uri (make it big!)
+int fcp_insert_raw (FILE *in, char *metadata, char *uri, int length,
+	            int type, int htl);
 
 // create a redirect
 int fcp_redirect (fcp_metadata *m, char *document_name,	char *target_uri);

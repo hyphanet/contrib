@@ -271,12 +271,16 @@ fcp_get (FILE *data, int *len, int *type, char *uri, int htl)
 		  "HopsToLive=%x\n"
 		  "EndMessage\n",
 	    	  uri, htl);
-    fgets(buf, 512, sock);
-    if (strncmp(buf, "DataFound", 9) != 0) {
-	if (strncmp(buf, "URIError", 8) == 0)
+    if (fscanf(sock, "%s\n", buf) != 1)
+	return FCP_IO_ERROR;
+    if (strcmp(buf, "DataFound") != 0) {
+	if (strcmp(buf, "URIError") == 0)
 	    return FCP_INVALID_URI;
-    	else
-	    return FCP_REQUEST_FAILED;
+    	if (strcmp(buf, "RouteNotFound") == 0)
+	    return FCP_ROUTE_NOT_FOUND;
+	if (strcmp(buf, "DataNotFound") == 0)
+	    return FCP_DATA_NOT_FOUND;
+	return FCP_INVALID_MESSAGE;
     }
     while (fgets(buf, 512, sock)) {
 	status = sscanf(buf, "%[^=]=%s", name, val);
@@ -287,9 +291,9 @@ fcp_get (FILE *data, int *len, int *type, char *uri, int htl)
             mlen = strtol(val, NULL, 16);
         else break;
     }
-    if (dlen < 0 || (mlen && mlen != dlen)
+    if (dlen < 0 || mlen < 0 || mlen > dlen
 	    || strncmp(buf, "EndMessage", 10) != 0)
-	return FCP_IO_ERROR;
+	return FCP_INVALID_MESSAGE;
     *len = dlen;
     *type = mlen == dlen ? FCP_CONTROL : FCP_DATA;
     while (dlen) {
@@ -456,7 +460,7 @@ parse_info (fcp_metadata *m, FILE *data)
     m->i[n]->f_count = 0;
     m->i[n]->fields = NULL;
     while (fgets(line, 512, data)) {
-	status = sscanf(line, "%[^=]=%s", name, val);
+	status = sscanf(line, "%[^=]=%s\n", name, val);
 	if (status == 1 && (line[strlen(line)-2] == '='
 		    || line[strlen(line)-3] == '=')) {
 	    status++;
@@ -485,7 +489,7 @@ parse_unknown (fcp_metadata *m, FILE *data)
     char line[512], name[512], val[512];
     int status;
     while (fgets(line, 512, data)) {
-	status = sscanf(line, "%[^=]=%s", name, val);
+	status = sscanf(line, "%[^=]=%s\n", name, val);
 	if (status == 1 && (line[strlen(line)-2] == '='
 		    || line[strlen(line)-3] == '=')) {
 	    status++;
@@ -520,7 +524,7 @@ fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
     if (length < 128 * 1024) {
 	char uri[128];
 	strcpy(uri, "freenet:CHK@");
-	status = fcp_insert_raw(in, uri, length, FCP_DATA, htl);
+	status = fcp_insert_raw(in, NULL, uri, length, FCP_DATA, htl);
 	if (status != FCP_SUCCESS) return status;
 	status = fcp_redirect(m, document_name, uri);
 	return status;
@@ -555,11 +559,17 @@ fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
 	    }
 	    rewind(parts[t]);
 	    pthread_create(&thread, NULL, insert_thread, (void *) i);
-	    if (++activethreads == threads) pthread_cond_wait(&cond, &mutex);
+	    if (++activethreads == threads) {
+		pthread_mutex_lock(&mutex);
+		pthread_cond_wait(&cond, &mutex);
+		pthread_mutex_unlock(&mutex);
+	    }
 	    if (error) return error;
 	}
 	while (activethreads) {
+	    pthread_mutex_lock(&mutex);
 	    pthread_cond_wait(&cond, &mutex);
+	    pthread_mutex_unlock(&mutex);
 	    if (error) return error;
 	}
         n = m->sf_count++;
@@ -580,25 +590,29 @@ insert_thread (void *arg)
 {
     intargs *i = (intargs *) arg;
     int r = 3, status = -1;
-    while (r-- && status != FCP_SUCCESS) {
+    while (r-- && status != FCP_SUCCESS && status != FCP_KEY_COLLISION) {
+	if (*i->error) goto end;
 	rewind(i->data);
-	status = fcp_insert_raw(i->data, i->uri, i->length, FCP_DATA, i->htl);
+	status = fcp_insert_raw(i->data, NULL, i->uri, i->length,
+		                FCP_DATA, i->htl);
     }
     pthread_mutex_lock(i->mutex);
-    if (status != FCP_SUCCESS) *i->error = status;
+    if (status != FCP_SUCCESS && status != FCP_KEY_COLLISION)
+	*i->error = status;
     (*i->activethreads)--;
     pthread_cond_broadcast(i->cond);
     pthread_mutex_unlock(i->mutex);
+end:
     fclose(i->data);
     free(i);
     pthread_exit(NULL);
 }
 
 int
-fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl)
+fcp_insert_raw (FILE *in, char *metadata, char *uri, int length, int type,
+	        int htl)
 {
-    int n, status;
-    char buf[1024], foo[128];
+    char buf[1024], rhead[256], ruri[256];
     FILE *sock = fcp_connect();
     if (!sock) return FCP_CONNECT_FAILED;
     fprintf(sock, "ClientPut\n"
@@ -608,31 +622,40 @@ fcp_insert_raw (FILE *in, char *uri, int length, int type, int htl)
 		  "MetadataLength=%x\n"
 		  "Data\n",
 		  htl, uri, length,
-		  type == FCP_DATA ? 0 : length);
+		  type == FCP_DATA
+		      ? (metadata ? strlen(metadata) : 0)
+		      : length);
+    if (type == FCP_DATA && metadata) fputs(metadata);
     while (length) {
-	length -= (n = length > 1024 ? 1024 : length);
+	int n = length > 1024 ? 1024 : length;
 	if (fread(buf, 1, n, in) != n) goto ioerror;
 	if (fwrite(buf, 1, n, sock) != n) goto ioerror;
+	length -= n;
     }
-    status = fscanf(sock, "%s\nURI=%s\nEndMessage\n", buf, foo);
-    while (fgetc(sock) != EOF);
-    if (status == 1 && strcmp(buf, "URIError") == 0)
-	goto invalid_uri;
-    if (status == 2) {
-	strcpy(uri, foo);
-	if (strcmp(buf, "Success") == 0
-		|| strcmp(buf, "KeyCollision") == 0)
-	    goto success;
+    if (fscanf(sock, "%s\n", rhead) != 1) goto ioerror;
+    ruri[0] = 0;
+    while (fgets(buf, 1024, sock)) {
+	if (strncmp(buf, "EndMessage", 10) == 0) break;
+	sscanf(buf, "URI=%s", ruri);
     }
+    if (strncmp(buf, "EndMessage", 10) != 0) goto ioerror;
+    fclose(sock);
+    if (strcmp(rhead, "Success") == 0 && strlen(ruri)) {
+	strcpy(uri, ruri);
+	return FCP_SUCCESS;
+    }
+    if (strcmp(rhead, "KeyCollision") == 0 && strlen(ruri)) {
+	strcpy(uri, ruri);
+	return FCP_KEY_COLLISION;
+    }
+    if (strcmp(rhead, "RouteNotFound") == 0)
+	return FCP_ROUTE_NOT_FOUND;
+    if (strcmp(rhead, "DataRejected") == 0)
+	return FCP_DATA_REJECTED;
+    return FCP_INVALID_MESSAGE;
 ioerror:
     fclose(sock);
     return FCP_IO_ERROR;
-invalid_uri:
-    fclose(sock);
-    return FCP_INVALID_URI;
-success:
-    fclose(sock);
-    return FCP_SUCCESS;
 }
 
 int
@@ -754,7 +777,7 @@ fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
     fseek(data, -5, SEEK_CUR);
     fprintf(data, "\n");
     rewind(data);
-    return fcp_insert_raw(data, uri, j, FCP_CONTROL, htl);
+    return fcp_insert_raw(data, NULL, uri, j, FCP_CONTROL, htl);
 }
 
 char *
@@ -851,12 +874,31 @@ fcp_connect ()
 char *
 fcp_status_to_string (int code)
 {
-    if (code == -1) return "can't connect to Freenet node";
-    if (code == -2) return "invalid URI";
-    if (code == -3) return "document not found in metadata";
-    if (code == -4) return "invalid metadata";
-    if (code == -5) return "request failed";
-    if (code == -6) return "input/output error";
-    return "unknown error";
+    switch (code) {
+	case FCP_CONNECT_FAILED:
+	    return "can't connect to Freenet node";
+	case FCP_INVALID_URI:
+	    return "invalid URI";
+	case FCP_PART_NOT_FOUND:
+            return "document not found in metadata";
+	case FCP_INVALID_METADATA:
+            return "invalid metadata";
+	case FCP_REQUEST_FAILED:
+            return "request failed";
+	case FCP_IO_ERROR:
+            return "input/output error";
+	case FCP_KEY_COLLISION:
+	    return "key collision";
+	case FCP_INVALID_MESSAGE:
+	    return "invalid FCP message";
+	case FCP_ROUTE_NOT_FOUND:
+	    return "route not found";
+	case FCP_DATA_NOT_FOUND:
+	    return "data not found";
+	case FCP_DATA_REJECTED:
+	    return "data rejected";
+	default:
+            return "unknown error";
+    }
 }
 

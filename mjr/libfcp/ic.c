@@ -25,7 +25,8 @@ usage (char *me)
     fprintf(stderr, "Usage: %s [options] files/directories\n\n"
 	    	    "  -h --htl            Hops to live.\n"
 		    "  -t --threads        Concurrency.\n"
-		    "  -r --retries        Number of retries per insert before abort.\n\n",
+		    "  -r --retries        Number of retries per insert before abort.\n"
+		    "  -o --outfile        Output file for log.\n\n",
 		    me);
     exit(2);
 }
@@ -266,9 +267,9 @@ insert (char *file, int depth)
     strcpy(uri, "freenet:CHK@");
     if (s.st_size < 256 * 1024) {
 	status = -1;
-	while (status != FCP_SUCCESS && r--)
-	    status = fcp_insert_raw(data, uri, s.st_size, FCP_DATA, htl);
-	if (status != FCP_SUCCESS) {
+	while (status != FCP_SUCCESS && status != FCP_KEY_COLLISION && r--)
+	    status = fcp_insert_raw(data, NULL, uri, s.st_size, FCP_DATA, htl);
+	if (status != FCP_SUCCESS && status != FCP_KEY_COLLISION) {
 	    fprintf(stderr, "Inserting %s failed: %s.\n", file,
 		    fcp_status_to_string(status));
 	    pthread_exit(NULL);
@@ -279,16 +280,16 @@ insert (char *file, int depth)
 	status = -1;
 	while (status != FCP_SUCCESS && r--)
 	    status = fcp_insert(m, "", data, s.st_size, htl, threads);
-	if (status != FCP_SUCCESS) {
+	if (status != FCP_SUCCESS && status != FCP_KEY_COLLISION) {
 	    fprintf(stderr, "Inserting %s failed: %s.\n", file,
 		    fcp_status_to_string(status));
 	    pthread_exit(NULL);
 	}
 	r = retries + 1;
 	status = -1;
-	while (status != FCP_SUCCESS && r--)
+	while (status != FCP_SUCCESS && status != FCP_KEY_COLLISION && r--)
 	    status = fcp_metadata_insert(m, uri, htl);
-	if (status != FCP_SUCCESS) {
+	if (status != FCP_SUCCESS && status != FCP_KEY_COLLISION) {
 	    fprintf(stderr, "Inserting %s failed: %s.\n", file,
 		    fcp_status_to_string(status));
 	    pthread_exit(NULL);
@@ -317,16 +318,19 @@ main (int argc, char **argv)
     char *arg;
     extern int optind;
     extern char *optarg;
+    char outfile[256];
     
     static struct option long_options[] =
     {
 	{"htl",       1, NULL, 'h'},
 	{"threads",   1, NULL, 't'},
 	{"retries",   1, NULL, 'r'},
+	{"outfile",   1, NULL, 'o'},
 	{0, 0, 0, 0}
     };
     
-    while ((c = getopt_long(argc, argv, "h:t:r:", long_options, NULL)) != EOF) {
+    outfile[0] = 0;
+    while ((c = getopt_long(argc, argv, "h:t:r:o:", long_options, NULL)) != EOF) {
         switch (c) {
         case 'h':
             htl = atoi(optarg);
@@ -337,28 +341,35 @@ main (int argc, char **argv)
 	case 'r':
 	    retries = atoi(optarg);
 	    break;
+	case 'o':
+	    strcpy(outfile, optarg);
+	    break;
         case '?':
             usage(argv[0]);
-	    return 1;
+	    break;
         }
     }
     
     if (htl < 0) {
-	fprintf(stdout, "Invalid hops to live.\n");
+	fprintf(stderr, "Invalid hops to live.\n");
 	return 1;
     }
-    if (threads < 1) {
-	fprintf(stdout, "Invalid number of threads.\n");
+    if (threads < 0) {
+	fprintf(stderr, "Invalid number of threads.\n");
 	return 1;
     }
     if (retries < 0) {
-	fprintf(stdout, "Invalid number of retries.\n");
+	fprintf(stderr, "Invalid number of retries.\n");
 	return 1;
     }
     
     if (!argv[optind]) usage(argv[0]);
     
-    log = stdout;    
+    log = strlen(outfile) ? fopen(outfile, "w") : stdout;
+    if (!log) {
+	fprintf(stderr, "Can't open %s!\n", outfile);
+	return 1;
+    }
     
     arg = argv[(c = optind)];
     for (i = 1 ; argv[c] ; arg = argv[++c]) {
