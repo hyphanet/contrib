@@ -70,6 +70,7 @@ int crThreadLaunch(void (*f)(void *), void *parms)
 }
 
 
+#if 0
 void crThreadQuit(char *s)
 {
 #ifndef WINDOWS
@@ -80,7 +81,6 @@ void crThreadQuit(char *s)
 
 #endif
 }
-
 
 int crThreadSleep(unsigned int seconds, unsigned int nanoseconds)
 {
@@ -99,6 +99,7 @@ int crThreadSleep(unsigned int seconds, unsigned int nanoseconds)
 
 #endif
 }
+#endif
 
 
 void crSockDisconnect(hFCP *hfcp)
@@ -113,7 +114,6 @@ void crSockDisconnect(hFCP *hfcp)
 #endif
 
 	hfcp->socket = -1;
-	_fcpNumOpenSockets--;
 }
 
 

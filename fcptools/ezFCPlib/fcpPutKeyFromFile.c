@@ -11,31 +11,21 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifndef WINDOWS
-#include <unistd.h>
-#endif
-
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "ezFCPlib.h"
 
 
-extern int   crSockConnect(hFCP *hfcp);
-extern void  crSockDisconnect(hFCP *hfcp);
+extern int fcpPut(hFCP *hfcp);
 
 
-int fcpPutKeyFromFile(hFCP *hfcp, char *key, char *filename, char **meta)
+#if 0
+int fcpPutKeyFromFile(char *key, char *filename, char *metadata)
 {
+	hFCP *hfcp;
 
-
-
-
-
-
+	return fcpPut(hfcp);
 }
+#endif
 

@@ -110,6 +110,28 @@ hURI *_fcpCreateHURI(void)
 }
 
 
+hMetadata *_fcpCreateHMetadata(void)
+{
+	hMetadata *h;
+
+	h = (hMetadata *)malloc(sizeof (hMetadata));
+	memset(h, 0, sizeof (hMetadata));
+
+	return h;
+}
+
+
+void _fcpDestroyHMetadata(hMetadata *h)
+{
+	if (h) {
+		if (h->key) free(h->key);
+		if (h->val) free(h->val);
+
+		free(h);
+	}
+}
+
+
 void _fcpDestroyHURI(hURI *h)
 {
 	if (h) {

@@ -77,9 +77,6 @@ int crSockConnect(hFCP *hfcp)
 		return -1;
 	}
 
-  /* OK - we're in :) */
-  _fcpNumOpenSockets++;
-
 	_fcpLog(FCP_LOG_DEBUG, "Connected to server %s:%d", _fcpHost, _fcpPort);
   return 0;
 }

@@ -97,34 +97,31 @@ noinst_LIBRARIES = libezfcp.a
 include_HEADERS = ezFCPlib.h
 
 FCP_SOURCE = "\
-_fcpLog.c \
+_fcpCompat.c \
 _fcpGlobals.c \
-_fcpSock.c \
+_fcpLog.c \
 _fcpRecvResponse.c \
+_fcpSock.c \
 _fcpUtil.c \
-fcpOpenKey.c \
 ezFCPlib.h \
 fcpCloseKey.c \
-fcpStartup.c \
-_fcpCompat.c \
-fcpReadKey.c \
-fcpWriteKey.c \
 fcpCreation.c \
+fcpOpenKey.c \
+fcpPut.c \
+fcpPutKeyFromFile.c \
+fcpReadKey.c \
+fcpStartup.c \
+fcpWriteKey.c \
 mimetype.c \
 "
 
 
 
 # The following files are currently ignored for now
-# _fcpPutSplit.c \
 # fcpGetKeyToFile.c \
-# fcpGetKeyToMem.c \
-# fcpMakChkFromMem.c \
 # fcpMakeChkFromFile.c \
 # fcpMakeSvkKeypair.c \
 # fcpOpenKeyIndex.c \
-# fcpPutKeyFromFile.c \
-# fcpPutKeyFromMem.c \
 # fcpReadKeyIndex.c \
 # fcpWriteKeyIndex.c \
 libezfcp_a_SOURCES = $(FCP_SOURCE)
@@ -135,11 +132,12 @@ LIBRARIES = $(noinst_LIBRARIES)
 
 libezfcp_a_AR = $(AR) cru
 libezfcp_a_LIBADD =
-am_libezfcp_a_OBJECTS = _fcpLog.$(OBJEXT) _fcpGlobals.$(OBJEXT) \
-	_fcpSock.$(OBJEXT) _fcpRecvResponse.$(OBJEXT) \
-	_fcpUtil.$(OBJEXT) fcpOpenKey.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
-	fcpStartup.$(OBJEXT) _fcpCompat.$(OBJEXT) fcpReadKey.$(OBJEXT) \
-	fcpWriteKey.$(OBJEXT) fcpCreation.$(OBJEXT) mimetype.$(OBJEXT)
+am_libezfcp_a_OBJECTS = _fcpCompat.$(OBJEXT) _fcpGlobals.$(OBJEXT) \
+	_fcpLog.$(OBJEXT) _fcpRecvResponse.$(OBJEXT) _fcpSock.$(OBJEXT) \
+	_fcpUtil.$(OBJEXT) fcpCloseKey.$(OBJEXT) fcpCreation.$(OBJEXT) \
+	fcpOpenKey.$(OBJEXT) fcpPut.$(OBJEXT) \
+	fcpPutKeyFromFile.$(OBJEXT) fcpReadKey.$(OBJEXT) \
+	fcpStartup.$(OBJEXT) fcpWriteKey.$(OBJEXT) mimetype.$(OBJEXT)
 libezfcp_a_OBJECTS = $(am_libezfcp_a_OBJECTS)
 
 DEFS = @DEFS@
@@ -152,9 +150,10 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 @AMDEP_TRUE@	$(DEPDIR)/_fcpLog.Po $(DEPDIR)/_fcpRecvResponse.Po \
 @AMDEP_TRUE@	$(DEPDIR)/_fcpSock.Po $(DEPDIR)/_fcpUtil.Po \
 @AMDEP_TRUE@	$(DEPDIR)/fcpCloseKey.Po $(DEPDIR)/fcpCreation.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Po $(DEPDIR)/fcpReadKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/fcpStartup.Po $(DEPDIR)/fcpWriteKey.Po \
-@AMDEP_TRUE@	$(DEPDIR)/mimetype.Po
+@AMDEP_TRUE@	$(DEPDIR)/fcpOpenKey.Po $(DEPDIR)/fcpPut.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpPutKeyFromFile.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpReadKey.Po $(DEPDIR)/fcpStartup.Po \
+@AMDEP_TRUE@	$(DEPDIR)/fcpWriteKey.Po $(DEPDIR)/mimetype.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -213,6 +212,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCloseKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpCreation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpOpenKey.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPut.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpPutKeyFromFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpReadKey.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpStartup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/fcpWriteKey.Po@am__quote@

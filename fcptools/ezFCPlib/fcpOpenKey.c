@@ -82,7 +82,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 
 	/* Tie it to a unique temporary file */
 	hfcp->key->chunks[0]->filename = crTmpFilename();
-	if (!(hfcp->key->chunks[0]->file = fopen(hfcp->key->chunks[0]->filename, "w")))
+	if (!(hfcp->key->chunks[0]->file = fopen(hfcp->key->chunks[0]->filename, "wb")))
 		return -1;
 
 	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");

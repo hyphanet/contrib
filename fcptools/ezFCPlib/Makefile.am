@@ -13,32 +13,29 @@ noinst_LIBRARIES = libezfcp.a
 include_HEADERS = ezFCPlib.h
 
 FCP_SOURCE = "\
-_fcpLog.c \
+_fcpCompat.c \
 _fcpGlobals.c \
-_fcpSock.c \
+_fcpLog.c \
 _fcpRecvResponse.c \
+_fcpSock.c \
 _fcpUtil.c \
-fcpOpenKey.c \
 ezFCPlib.h \
 fcpCloseKey.c \
-fcpStartup.c \
-_fcpCompat.c \
-fcpReadKey.c \
-fcpWriteKey.c \
 fcpCreation.c \
+fcpOpenKey.c \
+fcpPut.c \
+fcpPutKeyFromFile.c \
+fcpReadKey.c \
+fcpStartup.c \
+fcpWriteKey.c \
 mimetype.c \
 "
 
 # The following files are currently ignored for now
-# _fcpPutSplit.c \
 # fcpGetKeyToFile.c \
-# fcpGetKeyToMem.c \
-# fcpMakChkFromMem.c \
 # fcpMakeChkFromFile.c \
 # fcpMakeSvkKeypair.c \
 # fcpOpenKeyIndex.c \
-# fcpPutKeyFromFile.c \
-# fcpPutKeyFromMem.c \
 # fcpReadKeyIndex.c \
 # fcpWriteKeyIndex.c \
 

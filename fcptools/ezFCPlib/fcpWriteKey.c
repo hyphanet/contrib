@@ -67,6 +67,7 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 
 		/* Info was written.. update indexes */
 		chunk->size += count;
+		hfcp->key->size += count;
 
 		/* If this is defined, then decrement the remaining space available for
 			 the chunk.  This effectively shoves all the data in the first chunk. */
@@ -91,7 +92,9 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 			/* We're supposed to queue it up here, but currently this kind of code
 				 isn't necessary.  Perhaps it may be used in the future, which is
 				 why it remains here in comment form. */
-			enqueue_chunk(chunk);
+			/*
+				enqueue_chunk(chunk);
+			*/
 
 			hfcp->key->chunkCount++;
 
@@ -105,7 +108,7 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 
 			/* Assign this new chunk another temporary filename */
 			chunk->filename = crTmpFilename();
-			if (!(chunk->file = fopen(chunk->filename, "w")))
+			if (!(chunk->file = fopen(chunk->filename, "wb")))
 				return -1;
 
 			/* Reset the amount of bytes available, since it's a new chunk */

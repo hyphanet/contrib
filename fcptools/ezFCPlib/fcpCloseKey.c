@@ -31,10 +31,13 @@
 #include <stdio.h>
 
 
-static int      fcpCloseKeyRead(hFCP *hfcp);
-static int      fcpCloseKeyWrite(hFCP *hfcp);
+extern int fcpPut(hFCP *hfcp);
 
-static int      test(hFCP *hfcp);
+
+static int fcpCloseKeyRead(hFCP *hfcp);
+static int fcpCloseKeyWrite(hFCP *hfcp);
+
+static int test(hFCP *hfcp);
 
 
 int fcpCloseKey(hFCP *hfcp)
@@ -82,7 +85,9 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		hfcp->key->chunkCount--;
 	}
 
-  return 0;
+	/* Here, we're ready to insert! */
+
+	return fcpPut(hfcp);
 }
 
 
@@ -98,12 +103,12 @@ static int test(hFCP *hfcp)
 	int i;
 
 	buf = (char *)malloc(1058);
-	f = fopen("ez-reassembled", "w");
+	f = fopen("ez-reassembled", "wb");
 
 	_fcpLog(FCP_LOG_DEBUG, "Ultra detailed test of re-assemblence of splitfiles based on hfcp info");
 
 	for (i=0; i < hfcp->key->chunkCount; i++) {
-		ck = fopen(hfcp->key->chunks[i]->filename, "r");
+		ck = fopen(hfcp->key->chunks[i]->filename, "rb");
 
 		_fcpLog(FCP_LOG_DEBUG, "opened file %s for reading", hfcp->key->chunks[i]->filename);
 

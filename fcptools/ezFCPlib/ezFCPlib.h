@@ -156,8 +156,8 @@ typedef struct {
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_SUCCESS;
 
 typedef struct {
@@ -173,15 +173,15 @@ typedef struct {
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_KEYCOLLISION;
 
 typedef struct {
 	char *uri; /* URI=<string: fully specified URI, such as freenet:KSK@gpl.txt> */
 
-	char  publickey[41];  /* PublicKey=<string: public Freenet key> */
-	char  privatekey[41]; /* PrivateKey=<string: private Freenet key> */
+	char  publickey[40];  /* PublicKey=<string: public Freenet key> */
+	char  privatekey[40]; /* PrivateKey=<string: private Freenet key> */
 } FCPRESP_PENDING;
 
 typedef struct {
@@ -193,7 +193,7 @@ typedef struct {
 } FCPRESP_FORMATERROR;
 
 typedef struct {
-	char  fec_algorithm[41];
+	char  fec_algorithm[40];
  
 	int   filelength;
 	int   offset;
@@ -289,10 +289,13 @@ typedef struct {
 
 
 typedef struct {
+	int    count;
+	int    size;
+
 	char  *key;
 	char  *val;
 
-} hHashtable;
+} hMetadata;
 
 
 typedef struct {
@@ -311,9 +314,7 @@ typedef struct {
 typedef struct {
 	int  type;
 
-	int  m_count;
-	int  m_size;
-	hHashtable  **m_data;
+	hMetadata  **metadata;
 
 	hURI     *uri;
 
@@ -321,10 +322,9 @@ typedef struct {
 	int       header_sent;
 	char     *mimetype;
 
-	int       k_size;
-	int       k_offset;
-
+	int       size;
 	int       chunkCount;
+
 	hChunk  **chunks;
 } hKey;
 
@@ -363,63 +363,54 @@ extern int   _fcpRegress;
 extern int   _fcpInsertAttempts;
 extern char *_fcpTmpDir;
 
-/* Basic accounting - ensure sockets are getting closed */
-extern int   _fcpNumOpenSockets;
-
 
 /* Function prototypes */
 #ifdef __cplusplus
 extern "C" {
 #endif
+	
+	/* Handle management functions */
+	hFCP      *_fcpCreateHFCP(void);
+	hURI      *_fcpCreateHURI(void);
+	hChunk    *_fcpCreateHChunk(void);
+	hKey      *_fcpCreateHKey(void);
+	hMetadata *_fcpCreateHMetadata(void);
 
-/**********************************************************************/
+	int   _fcpParseURI(hURI *uri, char *key);
 
-/* Startup and shutdown functions */
-int            fcpStartup(void);
-void           fcpTerminate(void);
+	/* Handle destruction functions */
+	void  _fcpDestroyHFCP(hFCP *);
+	void  _fcpDestroyHURI(hURI *);
+	void  _fcpDestroyHChunk(hChunk *);
+	void  _fcpDestroyHKey(hKey *);
+	void  _fcpDestroyHMetadata(hMetadata *);
+	
 
-/* Handle management functions */
-hFCP         *_fcpCreateHFCP(void);
-hURI         *_fcpCreateHURI(void);
-	hChunk       *_fcpCreateHChunk(void);
-hKey         *_fcpCreateHKey(void);
+	/* Socket functions */
+	int   _fcpSockConnect(hFCP *hfcp);
+	void  _fcpSockDisconnect(hFCP *hfcp);
+	
+	int   _fcpRecvResponse(hFCP *hfcp);
 
-int           _fcpParseURI(hURI *uri, char *key);
+	/* fcpLog */
+	void  _fcpLog(int level, char *format, ...);
+	
+	/* Startup and shutdown functions */
+	int   fcpStartup(void);
+	void  fcpTerminate(void);
+	
+	/* Key open/close functions */
+	int   fcpOpenKey(hFCP *hfcp, char *key, int mode);
+	int   fcpCloseKey(hFCP *hfcp);
 
+	int   fcpReadKey(hFCP *hfcp, char *buf, int len);
+	int   fcpWriteKey(hFCP *hfcp, char *buf, int len);
+	
+	/* Client functions
+	hFCP  *fcpPutKeyFromFile(char *key, char *filename, char *meta_filename);
+	*/
 
-/* Handle destruction functions */
-void  _fcpDestroyHFCP(hFCP *);
-void  _fcpDestroyHURI(hURI *);
-void  _fcpDestroyHChunk(hChunk *);
-void  _fcpDestroyHKey(hKey *);
-/* void  _fcpDestroyHSplitChunk(hSplitChunk *); */
-
-/* Key open/close functions */
-int    fcpOpenKey(hFCP *hfcp, char *key, int mode);
-
-int    fcpReadKey(hFCP *hfcp, char *buf, int len);
-int    fcpWriteKey(hFCP *hfcp, char *buf, int len);
-
-int    fcpCloseKey(hFCP *hfcp);
-
-
-
-
-/* put functions */
-int    fcpPutKeyFromFile(hFCP *hfcp, char *key, char *filename, char *metaname);
-
-int     _fcpSockConnect(hFCP *hfcp);
-void    _fcpSockDisconnect(hFCP *hfcp);
-int     _fcpSockReceive(hFCP *hfcp, char *buf, int len);
-int     _fcpSockSend(hFCP *hfcp, char *buf, int len);
-
-void    _fcpClose(hFCP *hfcp);
-int     _fcpRecvResponse(hFCP *hfcp);
-
-void    _fcpLog(int level, char *format,...);
-char		*GetMimeType(char *pathname);
-
-
+	
 #ifdef __cplusplus
 }
 #endif
