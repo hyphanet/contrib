@@ -74,7 +74,7 @@ public abstract class TestCase extends Assert implements Test {
     }
 
     public String toString() {
-        return "TestCase: " + name;
+        return getClass().getName() + ": " + name;
     }
 
     protected void runTest() throws Throwable {

@@ -1,0 +1,15 @@
+
+This is a basic reimplementation of the JUnit unit testing framework, licensed
+under the GNU GPL (JUnit is, for some reason, released under the IBM Public 
+License). This was just an afternoons hack, so for real testing you
+may still wish to use JUnit, but developing against this should avoid any
+questions regarding licensing (since you are using the GPL, right?).
+
+This code is written without the authorization or knowledge of the original 
+JUnit authors, and bears no relation to their code short of containing the
+same class, method, and field names.
+
+&& oskar sandberg (oskar@freenetproject.org)
+
+ 
+
