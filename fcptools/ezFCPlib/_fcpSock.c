@@ -168,7 +168,7 @@ void _fcpSockDisconnect(hFCP *hfcp)
 /* This recv() handles cases where returned byte count is less than
 	the expected count */
 
-int _fcpRecv(FCPSOCKET socket, char *buf, int len)
+int _fcpRecv(FCPSOCKET fcpsock, char *buf, int len)
 {
 	int rc;
 	int bs;
@@ -177,9 +177,9 @@ int _fcpRecv(FCPSOCKET socket, char *buf, int len)
 	while (len) {
 
 #ifdef WIN32
-		rc = recv(socket, buf+bs, len, 0);
+		rc = recv(fcpsock, buf+bs, len, 0);
 #else
-		rc = read(socket, buf+bs, len);
+		rc = read(fcpsock, buf+bs, len);
 #endif
 
 		len -= rc;
@@ -190,7 +190,7 @@ int _fcpRecv(FCPSOCKET socket, char *buf, int len)
 	else return bs;
 }
 
-int _fcpSend(FCPSOCKET socket, char *buf, int len)
+int _fcpSend(FCPSOCKET fcpsock, char *buf, int len)
 {
 	int rc;
 	int bs;
@@ -199,7 +199,7 @@ int _fcpSend(FCPSOCKET socket, char *buf, int len)
 	while (len) {
 
 		/* this function is the same on win and BSD-systems */
-		rc = send(socket, buf+bs, len, 0);
+		rc = send(fcpsock, buf+bs, len, 0);
 
 		if (rc < 0) {
 

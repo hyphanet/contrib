@@ -234,7 +234,6 @@ static void _fcpDestroyResponse(hFCP *h)
 		if (h->response.nodeinfo.javavendor) free(h->response.nodeinfo.javavendor);
 		if (h->response.nodeinfo.javaname) free(h->response.nodeinfo.javaname);
 		if (h->response.nodeinfo.javaversion) free(h->response.nodeinfo.javaversion);
-		if (h->response.nodeinfo.istransient) free(h->response.nodeinfo.istransient);
 	}
 }
 
@@ -253,7 +252,7 @@ hBlock *_fcpCreateHBlock(void)
 	}		
 
 	h->fd = -1;
-	h->delete = 1;
+	h->m_delete = 1;
 
 	return h;
 }

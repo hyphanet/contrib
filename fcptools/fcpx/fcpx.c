@@ -308,7 +308,6 @@ static int clientinfo(hFCP *hfcp)
 	fprintf(stdout, "LeastRecentTimestamp: %lu\n", hfcp->response.nodeinfo.leastrecenttimestamp);
 	fprintf(stdout, "RoutingTime: %lu\n", hfcp->response.nodeinfo.routingtime);
 	fprintf(stdout, "AvailableThreads: %lu\n", hfcp->response.nodeinfo.availablethreads);
-	fprintf(stdout, "IsTransient: %s\n", hfcp->response.nodeinfo.istransient);
 	fprintf(stdout, "ActiveJobs: %lu\n", hfcp->response.nodeinfo.activejobs);
 
 	return 0;

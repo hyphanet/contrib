@@ -60,7 +60,7 @@ int _fcpBlockLink(hBlock *h, int access)
 	if (!h->filename[0]) {
 
 		_fcpTmpfile(h->filename);
-		h->delete = 1;
+		h->m_delete = 1;
 	}
 
 #ifdef WIN32
@@ -130,7 +130,7 @@ int _fcpBlockSetFilename(hBlock *h, char *filename)
 int _fcpBlockUnsetFilename(hBlock *h)
 {
 	h->filename[0]='\0';
-	h->delete = 0;
+	h->m_delete = 0;
 
 	return 0;
 }
@@ -143,7 +143,7 @@ int _fcpDeleteBlockFile(hBlock *h)
 
 	/* only do this if file is marked 'delete', otherwise just skip to the
 		 and and only set the null char */
-	if (h->delete) {
+	if (h->m_delete) {
 
 		if (h->fd == 0) {
 			_fcpLog(FCP_LOG_DEBUG, "fd==0; this condition should never be reached");
@@ -182,7 +182,7 @@ int _fcpDeleteBlockFile(hBlock *h)
 		
 		
 	h->filename[0] = 0;
-	h->delete = 0;
+	h->m_delete = 0;
 
 	return 0;
 }

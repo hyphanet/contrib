@@ -93,102 +93,6 @@ cleanup:
 	return rc;
 }
 
-#if 0
-int _fcpGetFollowRedirects(hFCP *hfcp, char *uri)
-{
-	char  get_uri[L_URI+1];
-
-	int   rc;
-	int   depth;
-
-	/* make calls to _fcpGetBLock() until we have exhausted any/all redirects */
-
-	_fcpLog(FCP_LOG_DEBUG, "_fcpGetFollowRedirects()");
-
-	strncpy(get_uri, uri, L_URI);
-	depth = 0;
-	rc = 0;
-
-	while (rc == 0) {
-		
-		/*  we have the key data and perhaps metadata from prior call
-				(both from GetKeyToFile and OpenKeyRead) */
-		
-		/* TODO check for static redirects */
-		/* check the hfcp->key->metadata->cdocs[] array */
-
-		if (hfcp->key->db_redirect) {
-
-			/*CalculateDBRTarget(with egress param);*/
-
-			_fcpLog(FCP_LOG_VERBOSE, "Following redirect to..?");
-
-			/*hfcp->key->static_redirect = 0;*/
-
-			/* get the DBR target (either KSK or SSK) */
-			rc = _fcpGetBLock(hfcp,
-												hfcp->key->tmpblock,
-												hfcp->key->metadata->tmpblock,
-												get_uri);
-
-			strncpy(get_uri, hfcp->key->tmpblock->uri->uri_str, L_URI);
-			depth++;
-		}
-
-		/* now handle the KSK/SSK@abd & KSK/SSK@abc-dbr123 */
-		if ((hfcp->key->uri->type == KEY_TYPE_KSK) || (hfcp->key->uri->type == KEY_TYPE_SSK)) {
-
-			/* get the key; save *custom* metadata and use cdoc info to
-				 follow for key data in CHK (normal or FEC) */
-			
-			rc = _fcpGetBLock(hfcp,
-												hfcp->key->tmpblock,
-												hfcp->key->metadata->tmpblock,
-												get_uri);
-
-			strncpy(get_uri, hfcp->key->tmpblock->uri->uri_str, L_URI);
-			depth++;
-		}
-		
-		/* assume it's either a normal CHK or a splitfile */
-		
-		if (hfcp->key->splitfile) {
-
-			rc = _fcpGetSplitfile(hfcp);
-			
-			/* copy over the new uri? */
-		}
-		
-		else {
-			
-			rc = _fcpGetBLock(hfcp,
-												hfcp->key->tmpblock,
-												hfcp->key->metadata->tmpblock,
-												get_uri);
-
-			strncpy(get_uri, hfcp->key->tmpblock->uri->uri_str, L_URI);
-			depth++;
-		}
-
-		/* TODO: only break from while loop if we don't need another redirect */
-		break;
-	}
-	
-	if (rc != 0) goto cleanup;
-
-	_fcpLog(FCP_LOG_DEBUG, "target: %s, chk: %s, recursions: %u",
-					hfcp->key->target_uri->uri_str,
-					hfcp->key->tmpblock->uri->uri_str,
-					depth);
-
-	rc = 0;
-
- cleanup:
-
-	return rc;
-}
-#endif
-
 
 int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
@@ -232,7 +136,6 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 
 	while (get_next) {
 
-		/*if (doc) free(doc);*/
 		doc = cdocFindDoc(hfcp->key->metadata, hfcp->key->target_uri->metastring);
 
 		if (!doc)

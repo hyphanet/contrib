@@ -138,7 +138,7 @@ int fcpInvertPrivateKey(hFCP *hfcp)
 	
 	_fcpSockDisconnect(hfcp);
 
-	strncpy(hfcp->key->public_key, hfcp->response.success.public, L_KEY);
+	strncpy(hfcp->key->public_key, hfcp->response.success.pub, L_KEY);
 
 	return 0;
 }

@@ -28,7 +28,7 @@
 #define _EZFCPLIB_H 
 
 /* this keeps warnings on other systems from generating unnecessarily */
-#define _GNU_SOURCE
+/*#define _GNU_SOURCE*/
 
 /* Generic <sys/> includes here so they are first. */
 #include <sys/types.h>
@@ -204,7 +204,7 @@ typedef int FCPSOCKET;
 typedef struct {
 	char *uri;
 
-	char  public[L_KEY+1];
+	char  pub[L_KEY+1];
 
 	char  publickey[L_KEY+1];
 	char  privatekey[L_KEY+1];
@@ -219,8 +219,7 @@ typedef struct {
 	char  *operatingsystemversion;
 	
 	unsigned long  nodeport;
-	char  *nodeaddress;
-	char  *istransient;
+	char          *nodeaddress;
 
 	char  *javavendor;
 	char  *javaname;
@@ -425,7 +424,7 @@ typedef struct {
 	int    size;        /* size of this chunk */
 
 	int    binary_mode; /* 0 for text , 1 for binary */
-	int    delete;      /* 0 will not delete the file when requested,
+	int    m_delete;      /* 0 will not delete the file when requested,
 												 !0 does */
 
 	hURI  *uri;         /* this block's CHK */

@@ -105,8 +105,8 @@ extern int   _fcpSockRecvln(hFCP *hfcp, char *resp, int len);
 
 /* send/recv substitutes */
 
-extern int   _fcpRecv(FCPSOCKET socket, char *buf, int len);
-extern int   _fcpSend(FCPSOCKET socket, char *buf, int len);
+extern int   _fcpRecv(FCPSOCKET fcpsock, char *buf, int len);
+extern int   _fcpSend(FCPSOCKET fcpsock, char *buf, int len);
 
 /* read/write substitutes */
 
@@ -130,7 +130,7 @@ extern int   _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, cha
 
 /* hBlock functions */
 
-extern int   _fcpBlockLink(hBlock *h, int access);
+extern int   _fcpBlockLink(hBlock *h, int fcpaccess);
 extern void  _fcpBlockUnlink(hBlock *h);
 
 extern int   _fcpBlockSetFilename(hBlock *h, char *filename);

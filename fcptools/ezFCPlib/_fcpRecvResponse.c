@@ -215,7 +215,6 @@ static int getrespInfo(hFCP *hfcp)
 	if (hfcp->response.nodeinfo.javavendor) free(hfcp->response.nodeinfo.javavendor);
 	if (hfcp->response.nodeinfo.javaname) free(hfcp->response.nodeinfo.javaname);
 	if (hfcp->response.nodeinfo.javaversion) free(hfcp->response.nodeinfo.javaversion);
-	if (hfcp->response.nodeinfo.istransient) free(hfcp->response.nodeinfo.istransient);
 
 	memset(&hfcp->response.nodeinfo, 0, sizeof (FCPRESP_NODEINFO));
 	
@@ -287,9 +286,6 @@ static int getrespInfo(hFCP *hfcp)
 		else if (!strncmp(resp, "AvailableThreads=", 17)) {
 			hfcp->response.nodeinfo.availablethreads = xtol(resp+17);
 		}
-		else if (!strncmp(resp, "IsTransient=", 12)) {
-			hfcp->response.nodeinfo.istransient = strdup(resp+12);
-		}
 		else if (!strncmp(resp, "ActiveJobs=", 11)) {
 			hfcp->response.nodeinfo.activejobs = xtol(resp+11);
 		}
@@ -324,11 +320,11 @@ static int getrespSuccess(hFCP *hfcp)
 			strncpy(hfcp->response.success.publickey, resp + 10, L_KEY);
 		}
 
-#if 0 /* not sure why this is here */
+#   if 0 /* not sure why this is here */
 		else if (!strncmp(resp, "Public=", 7)) {
 			strncpy(hfcp->response.success.public, resp + 7, L_KEY);
 		}
-#endif
+#   endif
 
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.success.privatekey, resp + 11, L_KEY);
@@ -587,10 +583,12 @@ static int getrespKeyCollision(hFCP *hfcp)
 			if (hfcp->response.keycollision.uri) free(hfcp->response.keycollision.uri);
 			hfcp->response.keycollision.uri = strdup(resp+4);
 		}
-		
+
+#   if 0		
 		else if (!strncmp(resp, "PublicKey=", 10)) {
 			strncpy(hfcp->response.keycollision.publickey, resp + 10, L_KEY);
 		}
+#   endif
 		
 		else if (!strncmp(resp, "PrivateKey=", 11)) {
 			strncpy(hfcp->response.keycollision.privatekey, resp + 11, L_KEY);
