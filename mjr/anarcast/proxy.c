@@ -258,7 +258,7 @@ hookup (char hash[HASHLEN])
 {
     struct sockaddr_in a;
     extern int errno;
-    int i, c;
+    int c;
 
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
@@ -268,11 +268,7 @@ hookup (char hash[HASHLEN])
     if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	die("socket() failed");
     
-    if ((i = fcntl(c, F_GETFL, 0)) == -1)
-	die("fnctl() failed");
-    
-    if (fcntl(c, F_SETFL, i | O_NONBLOCK) == -1)
-	die("fnctl() failed");
+    set_nonblock(c);
 
     // loop until connect works
     for (;;)

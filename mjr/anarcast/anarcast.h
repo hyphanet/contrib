@@ -188,3 +188,12 @@ chdir_to_home ()
 	err(1, "chdir() to %s failed", b);
 }
 
+inline void
+set_nonblock (int c)
+{
+    int i;
+    if ((i = fcntl(c, F_GETFL, 0)) == -1)
+	die("fnctl() failed");
+    if (fcntl(c, F_SETFL, i | O_NONBLOCK) == -1)
+	die("fnctl() failed");
+}

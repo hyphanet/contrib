@@ -48,6 +48,7 @@ main (int argc, char **argv)
 	// accept connection
 	if (n == l) {
 	    if ((c = accept(n, NULL, 0)) != -1) {
+		set_nonblock(c);
 		FD_SET(c, &r);
 		if (c == m) m++;
 		memset(&a[c], 0, sizeof(a[c]));

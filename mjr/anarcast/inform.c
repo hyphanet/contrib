@@ -73,6 +73,7 @@ main (int argc, char **argv)
 		    ioerror();
 		    continue;
 		}
+		set_nonblock(c);
 		active++;
 		FD_SET(c, &w);
 		off[c] = hosts;
