@@ -3,14 +3,14 @@ Introduction
 
 All values are little-endian.
 
-A key is a 4-byte datalength, the hash of the plaintext, and the hashes of all
-the (encrypted) parts it was split into. (160-bit SHA1 hashes.)
+A key is a 4-byte datalength, the SHA1 hash of the plaintext, and the SHA1
+hashes of all the (encrypted) data blocks and redundant blocks.
 
 The data is encrypted with 128-bit Rijndael in CBC mode with a null IV, using
-the first 128 bits of the SHA1 hash of the data as the key. It must be padded
-to a multiple of 16 bytes first.
+the first 128 bits of the SHA1 hash of the data as the key. It must be null
+padded to a multiple of 16 bytes before encryption but after hashing.
 
-The Client Proxy Protocol
+The Client Proxy Protocol                                          (Port 9993)
 ------------------------------------------------------------------------------
 
 Writing an ordinary client? Read this.
@@ -26,7 +26,7 @@ If the request fails, the client proxy will hang up. Otherwise,
 	read(sock, &datalength, 4);
 	read(sock, &data, datalength);
 
-Contratulations! You have your data.
+And you have your data.
 
 To insert a file:
 
@@ -39,7 +39,7 @@ If the insert fails, the client proxy will hang up. Otherwise,
 	read(sock, &keylength, 4);
 	read(sock, key, keylength);
 
-The Inform (Server-Address) Database Protocol
+The Database Synchronization Protocol                              (Port 9991)
 ------------------------------------------------------------------------------
 
 The inform server immediately returns a series of 4-byte server addresses in
@@ -50,7 +50,7 @@ network byte order (they slip right into sockaddr_in.sin_addr.s_addr).
 	for (i = 0 ; i < address_count ; i++)
 	    read(sock, &address, 4);
 
-The Server Protocol
+The Server Protocol                                                (Port 9990)
 ------------------------------------------------------------------------------
 
 To request a block by its SHA1 hash:
@@ -71,4 +71,9 @@ Inserting a block is simple:
 	write(sock, "i", 1);
 	write(sock, &datalength, 4);
 	write(sock, data, datalength);
+
+To Register A Server                                               (Port 9992)
+------------------------------------------------------------------------------
+
+Just connect. It'll hang up. All done.
 
