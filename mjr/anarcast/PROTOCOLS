@@ -1,0 +1,65 @@
+The Client Proxy Protocol
+------------------------------------------------------------------------------
+
+All values are little-endian.
+
+To request a file by its key:
+
+	write(sock, "r", 1);
+	write(sock, &keylength, 4);
+	write(sock, key, keylength);
+
+If the request fails, the client proxy will hang up. Otherwise,
+	
+	read(sock, &datalength, 4);
+	read(sock, &data, datalength);
+
+To insert a file:
+
+	write(sock, "i", 1);
+	write(sock, &datalength, 4);
+	write(sock, data, datalength);
+
+If the insert fails, the client proxy will hang up. Otherwise,
+	
+	read(sock, &keylength, 4);
+	read(sock, key, keylength);
+
+The Inform (Server-Address) Database Protocol
+------------------------------------------------------------------------------
+
+The inform server immediately returns a series of 4-byte server addresses in
+network byte order (they slip right into sockaddr_in.sin_addr.s_addr).
+
+	read(sock, &address_count, 4);
+	
+	for (i = 0 ; i < address_count ; i++)
+	    read(sock, &address, 4);
+
+The inform server may send more than address_count addresses (these were added
+after address_count was sent).
+
+The Server Protocol
+------------------------------------------------------------------------------
+
+All values are little-endian.
+
+To request a block by its hash:
+
+	write(sock, "r", 1);
+	write(sock, hash, 20);
+
+If the server hangs up at this point, it does not have the requested block.
+Otherwise,
+
+	read(sock, &datalength, 4);
+	read(sock, data, datalength);
+
+and then verify the SHA hash of the returned data against what you requested.
+
+Inserting a block is simple:
+
+	write(sock, "i", 1);
+	write(sock, &datalength, 4);
+	write(sock, data, datalength);
+
