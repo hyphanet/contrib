@@ -137,7 +137,7 @@ listening_socket (int port, int addr)
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
     a.sin_port = htons(port);
-    a.sin_addr.s_addr = htons(addr);
+    a.sin_addr.s_addr = htonl(addr);
 
     if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	die("socket() failed");
