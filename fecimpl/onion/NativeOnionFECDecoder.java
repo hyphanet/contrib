@@ -76,11 +76,11 @@ public class NativeOnionFECDecoder implements FECDecoder {
         blockSize = sf.getBlockSize();
 
         try {
-            baseN = Integer.parseInt(params.get("baseN"));
-            baseK = Integer.parseInt(params.get("baseK"));
-            endN = Integer.parseInt(params.get("endN"));
-            endK = Integer.parseInt(params.get("endK"));
-            segments = Integer.parseInt(params.get("segments"));
+            baseN = Integer.parseInt(params.get("baseN"), 16);
+            baseK = Integer.parseInt(params.get("baseK"), 16);
+            endN = Integer.parseInt(params.get("endN"), 16);
+            endK = Integer.parseInt(params.get("endK"), 16);
+            segments = Integer.parseInt(params.get("segments"), 16);
             stripeWidth = Integer.parseInt(params.get("stripeWidth"));
         }
         catch (NumberFormatException nfe) {

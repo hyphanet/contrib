@@ -278,12 +278,13 @@ public class NativeOnionFECEncoder implements FECEncoder {
         // after FEC decoding. A self healing network...
         //
         params.put("encoder", ENCODER_NAME);
-        params.put("segments", Integer.toString(segments));
+        
+        params.put("segments", Integer.toString(segments, 16));
         params.put("stripeWidth", Integer.toString(stripeWidth));
-        params.put("baseK", Integer.toString(baseK));
-        params.put("baseN", Integer.toString(baseN));
-        params.put("endK", Integer.toString(endK));
-        params.put("endN", Integer.toString(endN));
+        params.put("baseK", Integer.toString(baseK, 16));
+        params.put("baseN", Integer.toString(baseN, 16));
+        params.put("endK", Integer.toString(endK, 16));
+        params.put("endN", Integer.toString(endN, 16));
 
         return new SplitFile(len, blockSize, dataURIs, checkURIs, params);
     }
