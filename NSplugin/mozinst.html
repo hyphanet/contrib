@@ -1,0 +1,38 @@
+<html>
+<head>
+<title>Protozilla installation</title>
+<script language="JavaScript">
+function xpiCallback(url, status) {
+   if ((status == 0) || (status == 999)) {
+     alert("Protozilla installation succeeded. Please restart the browser\n");
+   } else {
+     alert("Protozilla installation failed (statuscode="+status+")\n");
+   }
+}
+
+function installPackage(xpifile, version) {
+      dump("Installing XPI file "+xpifile+", "+version+" ...\n");
+      InstallTrigger.install( {version:xpifile}, xpiCallback);
+   }
+</script>
+</head>
+<body onLoad="installPackage('protozilla-0.3-win32.xpi','0.3');">
+
+<h2>Protozilla installation</h2>
+You should view this page with Mozilla or Netscape 6 in order to install the "freenet:" plugin.
+
+<p>Protozilla is dually-licensed under the GNU General Public License and the Mozilla Public License.
+
+<p>If the installation doesn't start automatically, click
+<span style="color:blue"  onClick="installPackage('protozilla-0.3-win32.xpi','0.3');">
+  here
+</span>
+to install the freenet-plugin (JavaScript needs to be turned on) or look at the protzilla homepage for an updated version.
+
+<p><b>Thanks to the developers of protozilla. For more information about development,
+   licensing and further usage have a look at their website:
+   <a href="http://protozilla.mozdev.org">http://protozilla.mozdev.org</a></b>.
+
+
+</body>
+</html>
