@@ -5,10 +5,13 @@
   CopyLeft (c) 2001 by David McNab
 */
 
+#include <sys/types.h>
 #include <sys/stat.h>
 
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
+
+#include <unistd.h>
 
 #ifndef WINDOWS
 #include <dirent.h>
@@ -136,7 +139,7 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
         strcat(subpath, dirEntry->d_name);
 #endif
         stat(subpath, &fileStat);
-        if (fileStat.st_mode & S_IFDIR)
+	if ( S_ISDIR(fileStat.st_mode) )
         {
 					/* directory - recurse into it */
             filelist_temp = scan_dir_recurse(subpath, filelist);

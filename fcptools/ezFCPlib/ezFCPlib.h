@@ -44,8 +44,6 @@
 #define S_IREAD _S_IREAD
 #define S_IWRITE _S_IWRITE
 
-#include <sys/time.h>
-
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
@@ -59,11 +57,6 @@
 /* UNIX includes that do not correspond on WINDOWS go here */
 #define OPEN_MODE_READ  0
 #define OPEN_MODE_WRITE 0
-
-/*
-#define S_IREAD _S_IREAD
-#define S_IWRITE _S_IWRITE
-*/
 
 /* Keep 'sys' files first in include order */
 

@@ -16,6 +16,8 @@ ezFCPlib specific
 	from it's actual implementaion.
 * Update core FCP request and response parsing; Implement new FCP commands
 	as discussed on Freenet-dev (ClientDelete, ...).
+* Verify opentemp() in _fcpUtil.c works correctly with POSIX macros on all
+  platforms.
 
 
 ---------------------------------------------------------------------------
@@ -41,10 +43,6 @@ fcpputsplit
 
 ---------------------------------------------------------------------------
 FCPtools generic
-
-* Pattern all command-line interfaces and option parsing like fcpget's usage
-	of getopts().  Consider standardizing a default config file, and a
-	parameter	to use a configuration file from an alternate location.
 
 
 ---------------------------------------------------------------------------

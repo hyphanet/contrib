@@ -16,10 +16,12 @@
 
 #include "ezFCPlib.h"
 
+#include <unistd.h>
 #include <errno.h>
 #include <time.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <stdio.h>
 
 #ifndef P_tmpdir
   #define P_tmpdir "/tmp"
@@ -78,7 +80,7 @@ int opentemp(char filename[])
 #ifdef WINDOWS
     if (!stat(P_tmpdir, &dirstats) && dirstats.st_mode & (S_IFDIR))
 #else			
-      if (!stat(P_tmpdir, &dirstats) && dirstats.st_mode & (S_IFDIR|S_IWUSR|S_IXUSR))
+		if (!stat(P_tmpdir, &dirstats) && ( S_ISDIR(dirstats.st_mode) |S_IWUSR|S_IXUSR))
 #endif
 
 	sprintf(filename, "%s/eztmp%x", P_tmpdir, (unsigned int)rand());
