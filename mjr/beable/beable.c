@@ -1,6 +1,6 @@
 #define LISTEN_PORT               6666
 #define DATABASE_SYNC_INTERVAL    60
-#define RECENT_ADDITIONS_LENGTH   50
+#define RECENT_ADDITIONS_LENGTH   48
 #define FPROXY_ADDRESS            "http://localhost:8081/"
 #define ACCEPT_THREADS		  16
 
@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <ctype.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -41,7 +42,7 @@ main ()
 {
     int i, socket = listening_socket();
     pthread_t t;
-
+    
     if (socket == -1) {
 	fprintf(stderr, "Error initializing listening socket.\n");
 	exit(1);
@@ -63,10 +64,6 @@ main ()
 	FILE *data;
 	struct item *i;
 	sleep(DATABASE_SYNC_INTERVAL);
-	if (system("cp -f beable_database beable_database_backup") != 0) {
-	    fprintf(stderr, "Error backing up database.\n");
-	    continue;
-	}
 	data = fopen("beable_database", "w");
 	if (!data) {
 	    fprintf(stderr, "Error opening database for write.\n");
@@ -100,7 +97,7 @@ listening_socket ()
     if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0)
 	return -1;
     
-    if (listen(sock, 1) < 0)
+    if (listen(sock, SOMAXCONN) < 0)
 	return -1;
 
     return sock;
@@ -115,20 +112,7 @@ load_key_database ()
     char key[256], name[256], desc[1024], end[256];
     FILE *data = fopen("beable_database", "r");
     
-    if (!data) {
-	data = fopen("beable_database", "w");
-	if (!data) return -1;
-	fprintf(data, "freenet:KSK@test.html\n"
-		      "Welcome to Beable!\n"
-		      "This is just a placeholder.\n"
-		      "666\n"
-		      "END\n");
-	fclose(data);
-	data = fopen("beable_database", "r");
-	if (!data) return -1;
-    }
-    
-    while (!feof(data)) {
+    while (data && !feof(data)) {
 	i = fscanf(data, "%[^\n]\n%[^\n]\n%[^\n]\n%lx\n%[^\n]\n",
 		   key, name, desc, &ctime, end);
 	if (i != 5 || strcmp(end, "END") != 0)
@@ -167,7 +151,7 @@ load_key_database ()
 	last = ctime;
     }
 
-    fclose(data);
+    if (data) fclose(data);
     return 0;
 }
 
@@ -280,7 +264,6 @@ run_search (FILE *socket, char *url)
 {
     char one[]=
 	"HTTP/1.1 200 OK"
-	"\n"
 	"\nContent-Type: text/html"
 	"\n"
 	"\n<html>"
@@ -302,26 +285,72 @@ run_search (FILE *socket, char *url)
 	"\n</html>\n";
     
     struct item *i;
-    char *query;
+    char *p, *query, *search[32];
+    int m, n;
     
     if (strncmp(url, "/search?1=", 10) != 0) {
         send_error_404(socket);
         return;
     }
 
-    query = &url[10];
+    n = 0;
+    p = query = &url[10];
+    while (*query++) {
+	if (*p == ' ') {
+	    p++;
+	    continue;
+	}
+	if (*p == '"') {
+	    p++;
+	    while (*++query)
+	       if (*query == '"')
+		   break;
+	    if (!*query)
+		break;
+	    *query = ' ';
+	}
+	if (*query == ' ') {
+	    *query = 0;
+	    search[n++] = p;
+	    p = ++query;
+	}
+	if (n == 31)
+	    break;
+    }
+    if (*p)
+        search[n++] = p;
+    
+    for (m = 0 ; m < n ; m++) {
+	int l = strlen(search[m]);
+	while (l--)
+	    search[m][l] = tolower(search[m][l]);
+    }
+	
+    
     fputs(one, socket);
     pthread_mutex_lock(&mutex);
-    for (i = database ; i ; i = i->next)
-	if (strstr(i->name, query) || strstr(i->desc, query))
-	    fprintf(socket, "  <tr>"
-		            "\n    <td><a href=\"%s%s\">%s</a></td>"
-			    "\n    <td>%s</td>"
-			    "\n  </tr>\n",
-			    FPROXY_ADDRESS,
-			    i->key,
-			    i->name,
-			    i->desc);
+    for (i = database ; i ; i = i->next) {
+	int nlen = strlen(i->name);
+	int dlen = strlen(i->desc);
+	char name[nlen], desc[dlen];
+	while (nlen--)
+	    name[nlen] = tolower(i->name[nlen]);
+	while (dlen--)
+	    desc[dlen] = tolower(i->desc[dlen]);
+	for (m = 0 ; m < n ; m++)
+	    if (!strstr(name, search[m]) && !strstr(desc, search[m]))
+		    break;
+	if (m != n)
+	    continue;
+        fprintf(socket, "  <tr>"
+	                "\n    <td><a href=\"%s%s\">%s</a></td>"
+			"\n    <td>%s</td>"
+			"\n  </tr>\n",
+			FPROXY_ADDRESS,
+			i->key,
+			i->name,
+			i->desc);
+    }
     pthread_mutex_unlock(&mutex);
     fputs(two, socket);
 }
@@ -373,26 +402,37 @@ run_add (FILE *socket, char *url)
     if (!key || !name || !desc)
 	goto fof;
     
+    j = malloc(sizeof(struct item));
+    j->key = strdup(key);
+    j->name = strdup(name);
+    j->desc = strdup(desc);
+    j->ctime = time(NULL);
+    
     pthread_mutex_lock(&mutex);
-    for (i = database ; ; i = i->next) {
-	if (!i->next || strcmp(i->name, name) >= 0) {
-	    j = malloc(sizeof(struct item));
-	    j->key = strdup(key);
-	    j->name = strdup(name);
-	    j->desc = strdup(desc);
-	    j->ctime = time(NULL);
-	    j->next = i->next;
-	    i->next = j;
-            for (n = RECENT_ADDITIONS_LENGTH ; n > 0 ; n--)
-		recent_additions[n] = recent_additions[n-1];
-	    recent_additions[0] = j;
-	    pthread_mutex_unlock(&mutex);
-	    fprintf(socket, "HTTP/1.0 301 Moved Permanently"
-		          "\nConnection: close"
-			  "\nLocation: /\n\n");
-            return;
+    if (!database) {
+	database = j;
+	j->next = NULL;
+    }
+    else if (strcmp(database->name, name) >= 0) {
+	j->next = database;
+	database = j;
+    }
+    else {
+        for (i = database ; ; i = i->next) {
+	    if (!i->next || strcmp(i->next->name, name) >= 0) {
+                j->next = i->next;
+                i->next = j;
+		break;
+	    }
 	}
     }
+    for (n = RECENT_ADDITIONS_LENGTH ; n > 0 ; n--)
+	recent_additions[n] = recent_additions[n-1];
+    recent_additions[0] = j;
+    fprintf(socket, "HTTP/1.0 301 Moved Permanently"
+	            "\nConnection: close"
+		    "\nLocation: /\n\n");
+    pthread_mutex_unlock(&mutex);
 
 fof:
     send_error_404(socket);
