@@ -158,6 +158,10 @@ SOURCE=.\_fcpUtil.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\compat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\fcpCloseKey.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"
