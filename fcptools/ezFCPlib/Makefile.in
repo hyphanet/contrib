@@ -61,13 +61,16 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 AWK = @AWK@
 CC = @CC@
+CPP = @CPP@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-INCLUDES = -I$(srcdir)
+INCLUDES = -I$(srcdir) @INCLUDES@
+LDADD = @LDADD@
+LIBS = @LIBS@
 
 noinst_LIBRARIES = libezfcp.a
 noinst_PROGRAMS = test unix
@@ -90,7 +93,6 @@ LIBRARIES =  $(noinst_LIBRARIES)
 DEFS = @DEFS@ -I. -I$(srcdir) 
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
-LIBS = @LIBS@
 libezfcp_a_LIBADD = 
 libezfcp_a_OBJECTS =  _fcpGlobals.o _fcpLog.o _fcpPutSplit.o \
 _fcpReadBlk.o _fcpRecvResponse.o _fcpSock.o _fcpUtil.o fcpCloseKey.o \
@@ -118,7 +120,7 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 HEADERS =  $(noinst_HEADERS)
 
-DIST_COMMON =  ChangeLog Makefile.am Makefile.in NEWS install-sh missing \
+DIST_COMMON =  ChangeLog Makefile.am Makefile.in install-sh missing \
 mkinstalldirs
 
 

@@ -1,5 +1,7 @@
 
-INCLUDES = -I../ezFCPlib
+INCLUDES = -I../ezFCPlib @INCLUDES@
+LDADD=@LDADD@
+LIBS=@LIBS@
 
 bin_PROGRAMS = fcpputsplit
 

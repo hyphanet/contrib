@@ -141,7 +141,10 @@ int _fcpRecvResponse(HFCP *hfcp)
 
     else
     {
-        _fcpLog(FCP_LOG_CRITICAL, "_fcpRecvResponse: illegal reply header from node: '%s'", respline);
+        _fcpLog(FCP_LOG_CRITICAL, 
+			"_fcpRecvResponse: illegal reply header from node: '%s'", 
+			respline
+		);
         return -3;      // got unknown response
     }
 

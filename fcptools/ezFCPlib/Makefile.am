@@ -1,7 +1,9 @@
 
 # Makefile.am for ezFCPlib
 
-INCLUDES= -I$(srcdir)
+INCLUDES= -I$(srcdir) @INCLUDES@
+LDADD=@LDADD@
+LIBS=@LIBS@
 
 noinst_LIBRARIES = libezfcp.a
 noinst_PROGRAMS = test unix

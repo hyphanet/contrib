@@ -5,19 +5,39 @@ AM_INIT_AUTOMAKE(fcptools, "2.0.2")
 dnl Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
+AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 
+INCLUDES="$INCLUDES -I${includedir}"
+LIBS="$LIBS -L${libdir}"
+
 dnl Checks for libraries.
-AC_CHECK_LIB(pthread, pthread_create, LIBS="$LIBS -lpthread")
-AC_CHECK_LIB(c_r, pthread_create, LDFLAGS="$LDFLAGS -pthread -D_THREAD_SAFE")
+AC_MSG_CHECKING(for a working pthreads somewhere)
+AC_CHECK_LIB(pthread, pthread_create, 
+	LIBS="$LIBS -lpthread" 
+		AC_CHECK_HEADERS(pthread.h)
+		AC_MSG_RESULT(posix pthreads),
+	AC_CHECK_LIB(c_r, pthread_create, 
+		LIBS="$LIBS -pthread" 
+			LDFLAGS="$LDFLAGS -D_THREAD_SAFE" 
+			AC_CHECK_HEADERS(pthread.h)
+			AC_MSG_RESULT(freebsd l_c),
+		AC_CHECK_LIB(pth, pthread_create, 
+			LIBS="$LIBS -lpth" 
+				AC_CHECK_HEADERS(pth.h)
+				AC_MSG_RESULT(gnu pth),
+			AC_MSG_ERROR(no pthreads found!)
+		) dnl pth
+	) dnl c_r
+) dnl pthread
 
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(fcntl.h malloc.h pthread.h strings.h sys/ioctl.h sys/time.h unistd.h)
+AC_CHECK_HEADERS(fcntl.h malloc.h strings.h sys/ioctl.h sys/time.h unistd.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -32,5 +52,9 @@ AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(getcwd mkdir mktime re_comp regcomp select socket strdup strerror strstr strtol)
 AC_CHECK_FUNC(gethostbyname,,[AC_CHECK_LIB(nsl,gethostbyname)])
 AC_CHECK_FUNC(setsockopt,,[AC_CHECK_LIB(socket,setsockopt)])
+
+AC_SUBST(INCLUDES)
+AC_SUBST(LIBS)
+AC_SUBST(LDADD)
 
 AC_OUTPUT(Makefile ezFCPlib/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile fcpproxy/Makefile fcpputsplit/Makefile)

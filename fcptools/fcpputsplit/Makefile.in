@@ -59,13 +59,16 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 AWK = @AWK@
 CC = @CC@
+CPP = @CPP@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-INCLUDES = -I../ezFCPlib
+INCLUDES = -I../ezFCPlib @INCLUDES@
+LDADD = @LDADD@
+LIBS = @LIBS@
 
 bin_PROGRAMS = fcpputsplit
 
@@ -80,7 +83,6 @@ PROGRAMS =  $(bin_PROGRAMS)
 DEFS = @DEFS@ -I. -I$(srcdir) 
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
-LIBS = @LIBS@
 fcpputsplit_OBJECTS =  fcpputsplit.o
 fcpputsplit_DEPENDENCIES = 
 CFLAGS = @CFLAGS@
