@@ -12,11 +12,11 @@
 struct node {
     unsigned int addr;
     char hash[HASHLEN];
-    struct node *next;
+    struct node *prev, *next;
 };
 
-// the head and tail of our linked list of servers
-struct node *head, *tail;
+// the head of our linked list of servers
+struct node *head;
 
 // our inform server hostname
 char *inform_server;
@@ -694,8 +694,6 @@ inform ()
     if (connect(c, &a, sizeof(a)) == -1)
 	die("connect() failed");
     
-    head = NULL;
-    
     // how many friends do we have?
     if (readall(c, &count, 4) != 4)
 	die("inform server hung up unexpectedly");
@@ -705,6 +703,8 @@ inform ()
 	exit(0);
     }
     
+    head = NULL;
+    
     // read and insert our friends
     for (n = 0 ; n < count ; n++) {
 	unsigned int i;
@@ -713,7 +713,35 @@ inform ()
 	addref(i);
     }
 
+    if (close(c) == -1)
+	die("close() failed");
+
     alert("%d Anarcast servers loaded.\n", count);
+
+    for (c = 0 ; c < 100 ; c++) 
+	addref(c);
+    
+    {
+	struct node *p, *l;
+	char hex[HASHLEN*2+1];
+	int i=0;puts("");
+	for (p = head ; p ; l = p, p = p->next) {
+	    bytestohex(hex, p->hash, HASHLEN);
+	    printf("%d: %s\n", i++, hex);
+	}
+    }
+    for (c = 0 ; c < 100 ; c++)
+        rmref(c);
+
+    {
+	struct node *p;
+	char hex[HASHLEN*2+1];
+	int i=0;puts("");
+	for (p = head ; p ; p = p->next) {
+	    bytestohex(hex, p->hash, HASHLEN);
+	    printf("%d: %s\n", i++, hex);
+	}
+    }
 }
 
 //=== routing ===============================================================
@@ -737,46 +765,61 @@ addref (unsigned int addr)
     
     n = malloc(sizeof(struct node));
     n->addr = addr;
-    hashdata((char *) &addr, 4, n->hash);
+    hashdata(&addr, 4, n->hash);
     
     if (!head) {
-	n->next = NULL;
-	head = tail = n;
+	n->next = n->prev = NULL;
+	head = n;
     } else {
-	struct node *last, *p;
-	for (p = head ; p ; last = p, p = p->next)
+	struct node *p;
+	for (p = head ; ; p = p->next) {
     	    if (memcmp(n->hash, p->hash, HASHLEN) < 0) {
-		if (p == head) {
-		    n->next = head;
-		    head = n;
-		} else {
-		    last->next = n;
+		if (p->prev) { // middle
 		    n->next = p;
+		    n->prev = p->prev;
+		    p->prev->next = n;
+		    p->prev = n;
+		} else { // first
+		    n->next = head;
+		    n->prev = NULL;
+		    head->prev = n;
+		    head = n;
 		}
 		break;
+	    } else if (!p->next) { // last
+		n->next = NULL;
+		n->prev = p;
+		p->next = n;
+		break;
 	    }
-	if (!p) {
-	    n->next = NULL;
-	    tail->next = n;
 	}
     }
 
-    refop('+', n->hash, addr);
+    refop('+', n->hash, n->addr);
 }
 
 void
 rmref (unsigned int addr)
 {
     char hash[HASHLEN];
-    struct node *last, *p;
+    struct node *p;
     
     hashdata(&addr, 4, hash);
     
-    for (p = head; p ; last = p, p = p->next)
+    for (p = head; p ; p = p->next)
 	if (!memcmp(p->hash, hash, HASHLEN)) {
-	    last->next = p->next;
+	    if (p->prev) {
+		p->prev->next = p->next;
+		if (p->next)
+		    p->next->prev = p->prev;
+	    } else { // first
+		head = p->next;
+		if (p->next)
+		    p->next->prev = NULL;
+	    }
 	    free(p);
-            refop('-', hash, addr);
+	    p = NULL;
+	    refop('-', hash, addr);
 	    return;
 	}
     
@@ -786,7 +829,15 @@ rmref (unsigned int addr)
 unsigned int
 route (const char hash[HASHLEN])
 {
-    struct node *p;
+    struct node *last = NULL, *p;
+    
+    if (!head)
+	die("empty address list");
+    
+    for (p = head ; p ; last = p, p = p->next)
+	if (memcmp(hash, p->hash, HASHLEN) < 0) {
+	    
+	}
     
     refop('*', p->hash, p->addr);
     

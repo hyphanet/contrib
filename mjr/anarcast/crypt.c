@@ -7,7 +7,7 @@
 typedef unsigned char byte;
 typedef unsigned int u32;
 
-void hashdata (const char *buffer, size_t len, char *hash);
+void hashdata (const void *buffer, size_t len, char *hash);
 void encryptdata (byte *data, u32 len, const byte key[16]);
 void decryptdata (byte *data, u32 len, const byte key[16]);
 
