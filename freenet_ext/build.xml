@@ -4,7 +4,8 @@
 <!-- ==================================================================== -->
 <project name="Freenet-ext" default="jar">
 
-  <property name="build"   value="build_dir"/>
+  <property name="build" location="build_dir"/>
+  <property name="jar.location" location="freenet-ext.jar"/>
 
   <target name="init" 
    description="Create build directory">
@@ -39,7 +40,7 @@
     <javac destdir="${build}" target="1.1">
       <src path="../fecimpl/onion"/>
       <classpath path="../fecimpl/onion/alien/onion-common.jar"/>
-      <classpath path="../../freenet/build"/>
+      <classpath path="${classpath}"/>
       <exclude name="alien/**"/>
     </javac>
     <copy file="../fecimpl/onion/alien/onion_LICENSE" todir="${build}"/>
@@ -48,12 +49,12 @@
   <target name="clean"
     description="Delete the build directory and archives">
     <delete dir="${build}"/>
-    <delete file="freenet-ext.jar"/>
+    <delete file="${jar.location}"/>
   </target>
 
   <target name="jar" depends="servlet,onion"
     description="Create a .jar">
-    <jar jarfile="freenet-ext.jar" basedir="${build}" includes="**">
+    <jar jarfile="${jar.location}" basedir="${build}" includes="**">
       <zipfileset src="../fecimpl/onion/alien/onion-common.jar"/>
       <zipfileset src="../fecimpl/onion/alien/fec-native.jar"/>
     </jar>
