@@ -449,7 +449,7 @@ request (int c)
 	if (!mask[i]) n++;
     
     alert("Download of %d/%d (%d%%) blocks complete.", blockcount-n, blockcount,
-	    (int)((double)blockcount/(double)blockcount-n) * 100);
+	  (int) ((double) (blockcount-n) / (double) blockcount * 100));
     
     if (!(m = n)) {
 	alert("No missing parts to reconstruct.");
@@ -472,18 +472,19 @@ request (int c)
 	for (i = 0 ; i < g.dbc ; i++) {
 	    if (mask[i]) continue; // already built
 	    // find any check blocks this data block is in
-	    for (j = 0 ; j < g.cbc ; i++) {
-		if (!mask[g.dbc+j]) continue; // not built yet, sorry
+	    for (j = 0 ; j < g.cbc ; j++) {
+		if (!mask[g.dbc+j] || !is_set(&g, i, j))
+		    continue; // not built yet or not a relevant check block
 		// do we have all the other data blocks in this check block?
 		for (k = 0 ; k < g.dbc ; k++)
-		    if (is_set(&g, k, j) && !mask[k])
+		    if (is_set(&g, k, j) && !mask[k] && k != i)
 			goto next; // we don't have all the data blocks yet.
 		// yay! we have both the check block and the other data blocks.
 		// xor them all together, and we have our missing data block!
 		sprintf(b, "Computed data block %d from check block %d and data blocks:", i+1, j+1);
-		memcpy(&blocks[i*blocksize], &blocks[(g.dbc+j)*blocksize], blocksize);
+		xor(&blocks[i*blocksize], &blocks[(g.dbc+j)*blocksize], blocksize);
 		for (k = 0 ; k < g.dbc ; k++)
-		    if (is_set(&g, k, j)) {
+		    if (is_set(&g, k, j) && k != i) {
 			sprintf(b, "%s %d", b, k+1);
 			xor(&blocks[i*blocksize], &blocks[k*blocksize], blocksize);
 		    }
@@ -494,7 +495,7 @@ request (int c)
 	     next:;
 	    }
 	}
-	
+
 	// try to reconstruct missing check blocks. to reconstruct a check block,
 	// we need to have all its data blocks.
 	for (i = 0 ; i < g.cbc ; i++) {
