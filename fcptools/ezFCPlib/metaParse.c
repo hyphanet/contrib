@@ -9,6 +9,9 @@
 
 #include "ezFCPlib.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 /*
   EXPORTED DEFINITIONS
 */

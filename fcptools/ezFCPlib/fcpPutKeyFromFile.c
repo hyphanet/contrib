@@ -16,6 +16,10 @@
 
 #include "ezFCPlib.h"
 
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

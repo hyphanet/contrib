@@ -13,6 +13,12 @@
 
 #include "ezFCPlib.h"
 
+#include <sys/types.h>
+
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 

@@ -13,6 +13,8 @@
 
 #include "ezFCPlib.h"
 
+#include <stdlib.h>
+
 extern char _fcpHost[];
 extern int  _fcpPort;
 extern int  _fcpHtl;

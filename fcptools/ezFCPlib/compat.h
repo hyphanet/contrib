@@ -21,8 +21,7 @@
 #include <pthread.h>
 #endif
 
-typedef void (*FP) (void *);
-
+#include <time.h>
 
 /**************************************************************************
   Function definitions
@@ -39,7 +38,7 @@ static int crLaunchThread(void (*f)(void *), void *parms)
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-  return pthread_create(&pth, &attr, (void *)f, parms);
+  return pthread_create(&pth, &attr, (void *(*)(void *))f, parms);
 #endif
 }
 

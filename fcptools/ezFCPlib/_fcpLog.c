@@ -16,27 +16,27 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 extern int fcpLogCallback(int level, char *buf);
-
 
 /*
   Function:    _fcpLog()
-
+	
   Arguments:   as for printf
-
+	
   Description: creates a log message, then passes this to the client callback
   function fcpLogCallback()
 */
 void _fcpLog(int level, char *format, ...)
 {
-    char buf[FCP_LOG_MESSAGE_SIZE];
-
-    /* thanks mjr for the idea */
-    va_list ap;
-    va_start(ap, format);
-
-    vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
-
-    va_end(ap);
-    fcpLogCallback(level, buf);
+	char buf[FCP_LOG_MESSAGE_SIZE];
+	
+	/* thanks mjr for the idea */
+	va_list ap;
+	va_start(ap, format);
+	
+	vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
+	
+	va_end(ap);
+	fcpLogCallback(level, buf);
 }

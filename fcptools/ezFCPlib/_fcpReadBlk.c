@@ -15,6 +15,7 @@
 
 #include "ezFCPlib.h"
 
+#include <stdlib.h>
 
 /*
   Function:    _fcpReadBlk()

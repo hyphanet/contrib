@@ -14,6 +14,7 @@
 #include "ezFCPlib.h"
 
 #include <signal.h>
+#include <string.h>
 
 /*
   Imported Declarations

@@ -24,6 +24,10 @@
 
 #include "ezFCPlib.h"
 
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
 /*
   Function:    fcpWriteKey()
 

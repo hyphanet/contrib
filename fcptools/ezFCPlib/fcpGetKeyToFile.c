@@ -12,12 +12,15 @@
 */
 
 #include <sys/stat.h>
-#include <fcntl.h>
-
-/*#include <unistd.h>*/
-#include <stdlib.h>
 
 #include "ezFCPlib.h"
+
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
+#include <fcntl.h>
+#include <stdlib.h>
 
 /*
   Function:    fcpGetKeyToFile()

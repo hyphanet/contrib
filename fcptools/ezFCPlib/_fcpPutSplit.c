@@ -19,12 +19,20 @@
 	- manages queueing of splitfile insert jobs
 */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "ezFCPlib.h"
 #include "compat.h"
 
-#include <sys/stat.h>
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
 
+#include <fcntl.h>
+#include <stdlib.h>
 #include <time.h>
+#include <string.h>
 #include <stdio.h>
 
 typedef struct
@@ -71,7 +79,6 @@ static int			dumpQueue();
 static splitJobIns	*newJob;
 static splitJobIns	*jobQueue;
 static splitJobIns	*jobQueueEnd;
-static splitJobIns	*activeJobs;
 
 static int			runningThreads = 0;  /* number of split threads currently running   */
 static int			clientThreads = 0;   /* number of caller threads currently running  */
@@ -140,7 +147,7 @@ void _fcpInitSplit(int maxSplitThreads)
 	call with fcpSplitChunkSize=0 to disable splitting of inserted files
 */
 
-void fcpSetSplitSize(_chunkSize)
+void fcpSetSplitSize(int _chunkSize)
 {
 	fcpSplitChunkSize = _chunkSize;
 }
@@ -338,7 +345,6 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 
 static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file)
 {
-	splitJobIns *job = &hfcp->split;
 	int i;
 	char *splitManifest;
 	char s[1024];
@@ -552,8 +558,6 @@ static void splitMgrThread(void *nothing)
 		/* Check for any new jobs */
 		if (newJob != NULL)
 		{
-			splitJobIns *temp = newJob->next;
-
 			/* Add this job to main queue */
 			_fcpLog(FCP_LOG_DEBUG, "splitMgrThread: got req to insert file '%s'",
 					newJob->fileName);
@@ -663,8 +667,8 @@ static int dumpQueue()
 		switch (job->status)
 		{
 		case SPLIT_INSSTAT_WAITING:
-			sprintf(buf1, "waiting", job);
-			strcat(buf, buf1);
+			/*sprintf(buf1, "waiting", job);*/
+			strcat(buf, "waiting");
 			break;
 		case SPLIT_INSSTAT_INPROG:
 			for (i = 0; i < job->numChunks; i++)
@@ -684,20 +688,20 @@ static int dumpQueue()
 			}
 			break;
 		case SPLIT_INSSTAT_MANIFEST:
-			sprintf(buf1, "inserting manifest", job);
-			strcat(buf, buf1);
+			/*sprintf(buf1, "inserting manifest", job);*/
+			strcat(buf, "inserting manifest");
 			break;
 		case SPLIT_INSSTAT_SUCCESS:
-			sprintf(buf1, "success", job);
-			strcat(buf, buf1);
+			/*sprintf(buf1, "success", job);*/
+			strcat(buf, "success");
 			break;
 		case SPLIT_INSSTAT_BADNEWS:
-			sprintf(buf1, "badnews", job);
-			strcat(buf, buf1);
+			/*sprintf(buf1, "badnews", job);*/
+			strcat(buf, "badnews");
 			break;
 		case SPLIT_INSSTAT_FAILED:
-			sprintf(buf1, "failed", job);
-			strcat(buf, buf1);
+			/*sprintf(buf1, "failed", job);*/
+			strcat(buf, "failed");
 			break;
 
 		}
@@ -717,7 +721,6 @@ static int dumpQueue()
 
 static void chunkThread(void *params)
 {
-  static int keynum = 0;
   HFCP *hfcp = fcpCreateHandle();
   int mypid = getpid();
 

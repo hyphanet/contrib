@@ -13,6 +13,14 @@
 
 #include "ezFCPlib.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
 #include <stdio.h>
 
 extern char    _fcpHost[];

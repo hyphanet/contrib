@@ -13,10 +13,15 @@
 
 #include "ezFCPlib.h"
 
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 /*
   IMPORTED DECLARATIONS
@@ -39,7 +44,7 @@ extern char     _fcpID[];
 */
 static int      fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress);
 static int      fcpOpenKeyWrite(HFCP *hfcp, char *key);
-static int      calc_new_date(char *newdate, char *baseline, int increment, int regress);
+/*static int      calc_new_date(char *newdate, char *baseline, int increment, int regress);*/
 static time_t   date_to_secs(char *datestr);
 
 /*
@@ -241,7 +246,7 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
       
     case META_TYPE_04_REDIR:
       s = cdocLookupKey(fldSet, "Redirect.Target");
-      sprintf(buf, s);
+      sprintf(buf, "%s", s);
       newKey = strdup(buf);
       metaFree(meta);
       _fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
@@ -274,25 +279,22 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
       else if (!strncmp(uriTgt->uri_str, "SSK@", 4) && uriTgt->path != NULL)	{
 	
 	/* convert SSK@blah/name to SSK@blah/secshes-name */
-	sprintf(buf, "SSK@%s/%lx-%s",
-		uriTgt->keyid,
-		tgtTime,
-		uriTgt->path);
+	sprintf(buf, "SSK@%s/%lx-%s", uriTgt->keyid, tgtTime,	uriTgt->path);
 	newKey = strdup(buf);
 	metaFree(meta);
 	_fcpLog(FCP_LOG_VERBOSE, "Redirect: %s", buf);
       }
       else {
 
-	/* no cdoc matching the one requested - fail */
-	_fcpLog(FCP_LOG_NORMAL, "Invalid DBR target: \n%s\n -> %s",
-		currKey, uriTgt);
-	_fcpFreeUri(uri);
-	free(currKey);
-	free(uriTgt);
-	_fcpSockDisconnect(hfcp);
-	metaFree(meta);
-	return -1;  /* 404 */
+				/* no cdoc matching the one requested - fail */
+				_fcpLog(FCP_LOG_NORMAL, "Invalid DBR target: \n%s\n -> %s",
+								currKey, uriTgt);
+				_fcpFreeUri(uri);
+				free(currKey);
+				free(uriTgt);
+				_fcpSockDisconnect(hfcp);
+				metaFree(meta);
+				return -1;  /* 404 */
       }
       
       free(uriTgt);
@@ -353,9 +355,10 @@ static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
 
 int _fcpParseUri(FCP_URI *uri, char *key)
 {
-  char *ORIGdupkey = strdup(key);
+  char *ORIGdupkey;
   char *dupkey;
   
+	ORIGdupkey = strdup(key);
   dupkey=ORIGdupkey;
   
   memset(uri, 0, sizeof(*uri));

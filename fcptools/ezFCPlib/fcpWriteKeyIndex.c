@@ -11,9 +11,10 @@
   See http://www.gnu.org/ for further details of the GPL.
 */
 
-#include <stdio.h>
-
 #include "ezFCPlib.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 extern char     *_fcpHost;
 extern int      _fcpPort;

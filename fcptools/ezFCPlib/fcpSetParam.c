@@ -24,6 +24,8 @@
 
 #include "ezFCPlib.h"
 
+#include <string.h>
+
 extern char  _fcpHost[];
 
 void fcpSetHost(char *newHost)
