@@ -34,10 +34,9 @@ main (int argc, char **argv)
     if (writeall(s, "i", 1) != 1 || writeall(s, &st.st_size, 4) != 4)
 	die("writeall() of header to server failed");
     
-    data = mbuf(st.st_size);
-    
-    if (readall(r, data, st.st_size) != st.st_size)
-	die("readall() failed");
+    data = mmap(0, st.st_size, PROT_READ, MAP_SHARED, r, 0);
+    if (data == MAP_FAILED)
+	die("mmap() failed");
     
     if (writeall(s, data, st.st_size) != st.st_size)
 	die("writeall() of data failed");
