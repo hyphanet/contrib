@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/sendfile.h>
@@ -133,7 +134,9 @@ listening_socket (int port, int addr)
 {
     struct sockaddr_in a;
     int r = 1, s;
-
+    
+    signal(SIGPIPE, SIG_IGN); // is this sane?
+    
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
     a.sin_port = htons(port);

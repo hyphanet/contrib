@@ -674,6 +674,7 @@ void
 inform ()
 {
     int c, n;
+    unsigned int count;
     struct sockaddr_in a;
     struct hostent *h;
     extern int h_errno;
@@ -696,23 +697,24 @@ inform ()
     
     tree = NULL;
     
-    // read and insert our friends
-    for (n = 0 ; ; n++) {
-	unsigned int i;
-	int j = readall(c, &i, 4);
-	if (!j) break;
-    	if (j != 4) die("inform server hung up unexpectedly");
-	addref(i);
-    }
-
-    alert("%d Anarcast servers loaded.", n);
-
-    if (!n) {
+    // how many friends do we have?
+    if (readall(c, &count, 4) != 4)
+	die("inform server hung up unexpectedly");
+    
+    if (!count) {
 	puts("No servers, exiting.");
 	exit(0);
     }
+    
+    // read and insert our friends
+    for (n = 0 ; n < count ; n++) {
+	unsigned int i;
+	if (readall(c, &i, 4) != 4)
+	    die("inform server hung up unexpectedly");
+	addref(i);
+    }
 
-    printf("\n");
+    alert("%d Anarcast servers loaded.\n", count);
 }
 
 //=== routing ===============================================================

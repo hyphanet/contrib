@@ -17,13 +17,17 @@ int waiting;
 void * thread (void *arg);
 
 char *hosts, // the start of our data. woohoo
-     *end, // the end of our data. add new data here and move this up
-     *off[FD_SETSIZE]; // the offsets of our current connections in the data
+     *end; // the end of our data. add new data here and move this up
+
+struct {
+    unsigned int count; // number of addresses to send
+    unsigned int off; // offset in database
+} a[FD_SETSIZE];
 
 int
 main (int argc, char **argv)
 {
-    unsigned int l, m, active;
+    int l, m, active;
     pthread_t t;
     fd_set r, w;
     
@@ -71,50 +75,58 @@ main (int argc, char **argv)
     for (;;) {
 	int n;
 	fd_set s = r, x = w;
-	struct timeval tv = {2,0};
-	
-	if ((n = select(m, &s, &x, NULL, &tv)) == -1)
-	    die("select() failed");
 	
 	// tell our thread to grab the mutex and update the database
 	if (!n && !active)
 	    pthread_cond_broadcast(&cond);
-
+	
+	if ((n = select(m, &s, &x, NULL, NULL)) == -1)
+	    die("select() failed");
+	
 	for (n = 3 ; n < m ; n++)
 	    if (FD_ISSET(n, &s)) {
-		struct sockaddr_in a;
-		int c, b = sizeof(a);
+		struct sockaddr_in s;
+		int c, b = sizeof(s);
 		// accept a connection
-		if ((c = accept(n, &a, &b)) == -1) {
+		if ((c = accept(n, &s, &b)) == -1) {
 		    ioerror();
 		    continue;
 		}
 		set_nonblock(c);
 		active++;
 		FD_SET(c, &w);
-		off[c] = hosts;
+		if (c >= m) m = c + 1;
+		a[c].count = (end-hosts)/4;
+		a[c].off = -4; // sizeof count value
 		if (c == m) m++;
-		if (!memmem(hosts, end-hosts, &a.sin_addr.s_addr, 4)) {
+		if (!memmem(hosts, end-hosts, &s.sin_addr.s_addr, 4)) {
 		    pthread_mutex_lock(&mutex);
-		    memcpy(end, &a.sin_addr.s_addr, 4);
+		    memcpy(end, &s.sin_addr.s_addr, 4);
 		    end += 4;
 		    pthread_mutex_unlock(&mutex);
-		    printf("%-15s Added.\n", inet_ntoa(a.sin_addr));
+		    printf("%-15s Added.\n", inet_ntoa(s.sin_addr));
 		} else
-		    printf("%-15s Already known.\n", inet_ntoa(a.sin_addr));
+		    printf("%-15s Already known.\n", inet_ntoa(s.sin_addr));
 	    }
 
 	for (n = 3 ; n < m ; n++)
 	    if (FD_ISSET(n, &x)) {
-		int c = write(n, off[n], end-off[n]);
+		int c = a[n].off;
+	        
+		if (c < 0)
+		    // write address count
+		    c = write(n, &(&a[n].count)[4 + c], -c);
+		else
+		    // write addresses
+		    c = write(n, &hosts[a[n].off], a[n].count * 4 - a[n].off);
+		
 		if (c <= 0) {
-		    if (off[n] != hosts) ioerror();
 		    active--;
 		    FD_CLR(n, &w);
 		    if (n+1 == m) m--;
 		    if (close(n) == -1)
 			die("close() failed");
-		} else if ((off[n] += c) == end) {
+		} else if ((a[n].off += c) == a[n].count * 4) {
 		    active--;
 		    FD_CLR(n, &w);
 		    if (n+1 == m) m--;
@@ -128,7 +140,7 @@ main (int argc, char **argv)
 void *
 thread (void *arg)
 {
-/*    int f;
+    int f;
     long l, lastweed = time(NULL);
     char *p, *q, *b = mbuf(DATABASE_SIZE);
     
@@ -184,6 +196,6 @@ thread (void *arg)
 	}
 
 	lastweed = l; // update our lastweed to the time when we finished
-    }*/pthread_exit(NULL);
+    }
 }
 
