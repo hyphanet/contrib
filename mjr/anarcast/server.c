@@ -4,7 +4,7 @@
 void touch_inform_server (char *server);
 
 struct state {
-    char type, hash[HASH_LEN], *data;
+    char type, hash[HASHLEN], *data;
     unsigned int off, len;
 } a[FD_SETSIZE];
 
@@ -66,7 +66,7 @@ main (int argc, char **argv)
 		continue;
 	    }
 	    if (a[n].type == 'r')
-	        a[n].off = -HASH_LEN;
+	        a[n].off = -HASHLEN;
 	    else
 		a[n].off = -4;
 	    continue;
@@ -100,9 +100,9 @@ main (int argc, char **argv)
 	    }
 	    a[n].off += c;
 	    if (a[n].off == a[n].len) {
-		char hex[HASH_LEN*2+1];
+		char hex[HASHLEN*2+1];
 		sha_buffer(a[n].data, a[n].len, a[n].hash);
-		bytestohex(hex, a[n].hash, HASH_LEN);
+		bytestohex(hex, a[n].hash, HASHLEN);
 		printf("%s < %s\n", timestr(), hex);
 		if (stat(hex, &st) == -1) {
 		    if ((i = open(hex, O_WRONLY | O_CREAT, 0644)) == -1)
@@ -123,11 +123,11 @@ main (int argc, char **argv)
 	
 	// request
 	if (a[n].type == 'r') {
-	    char hex[HASH_LEN*2+1];
+	    char hex[HASHLEN*2+1];
 	    // read hash
 	    i = a[n].off;
 	    if (i < 0) {
-		if ((c = read(n, &a[n].hash[HASH_LEN+i], -i)) <= 0) {
+		if ((c = read(n, &a[n].hash[HASHLEN+i], -i)) <= 0) {
 		    ioerror();
 		    FD_CLR(n, &r);
 		    if (close(n) == -1)
@@ -137,7 +137,7 @@ main (int argc, char **argv)
 		a[n].off += c;
 		if (a[n].off) continue;
 	    }
-	    bytestohex(hex, a[n].hash, HASH_LEN);
+	    bytestohex(hex, a[n].hash, HASHLEN);
 	    if (stat(hex, &st) == -1) {
 		FD_CLR(n, &r);
 		if (close(n) == -1)
@@ -169,8 +169,8 @@ write:	//=== write =========================================================
 	a[n].off += c;
 	if (c <= 0 || a[n].off == a[n].len) {
 	    if (c > 0) {
-		char hex[HASH_LEN*2+1];
-		bytestohex(hex, a[n].hash, HASH_LEN);
+		char hex[HASHLEN*2+1];
+		bytestohex(hex, a[n].hash, HASHLEN);
 		printf("%s > %s\n", timestr(), hex);
 	    } else ioerror();
 	    FD_CLR(n, &w);

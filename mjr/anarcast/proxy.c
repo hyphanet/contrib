@@ -5,11 +5,22 @@
 #include "sha.c"
 #include "aes.c"
 
+#define GRAPHCOUNT 1024
+
 struct node {
     unsigned int addr;
-    char hash[HASH_LEN];
+    char hash[HASHLEN];
     struct node *left, *right;
 };
+
+struct graph {
+    unsigned int dbc; // data block count
+    unsigned int cbc; // check block count
+    unsigned char *graph; // array of bits
+};
+
+void load_graphs ();
+struct graph graphs[GRAPHCOUNT];
 
 struct node *tree;
 char *inform_server;
@@ -26,9 +37,9 @@ inline void request (int c);
 
 inline void addref (unsigned int addr);
 inline void rmref (struct node *n);
-inline int route (char hash[HASH_LEN]);
+inline int route (char hash[HASHLEN]);
 
-inline struct node * tree_search (struct node *tree, char hash[HASH_LEN]);
+inline struct node * tree_search (struct node *tree, char hash[HASHLEN]);
 inline void tree_insert (struct node **tree, struct node *item);
 inline void tree_copy (struct node *tree, struct node **new, struct node *fuck);
 
@@ -44,6 +55,7 @@ main (int argc, char **argv)
     }
     
     chdir_to_home();
+    load_graphs();
     inform((inform_server = argv[1]));
     l = listening_socket(PROXY_SERVER_PORT);
     
@@ -77,107 +89,135 @@ void
 alert (const char *s, ...)
 {
     va_list args;
-    va_start (args, s);
+    va_start(args, s);
     printf("\n");
     vprintf(s, args);
     printf("\n\n");
-    va_end (args);
+    va_end(args);
+}
+
+void
+load_graphs ()
+{
+    int i, n;
+    char *data;
+    struct stat s;
+    
+    if (stat("graphs", &s) == -1)
+	die("Can't stat graphs file");
+    
+    if ((i = open("graphs", O_RDONLY)) == -1)
+	die("Can't open graphs file");
+
+    data = mmap(0, s.st_size, PROT_READ, MAP_SHARED, i, 0);
+    if (data == MAP_FAILED)
+	die("mmap() failed");
+
+    if (close(i) == -1)
+	die("close() failed");
+    
+    for (n = 0, i = 0 ; i < GRAPHCOUNT ; i++) {
+	memcpy(&graphs[i].dbc, &data[n], 4);
+	n += 4;
+	memcpy(&graphs[i].cbc, &data[n], 4);
+	n += 4;
+	graphs[i].graph = &data[n];
+	n += (graphs[i].dbc + graphs[i].cbc) / 8;
+	if ((graphs[i].dbc + graphs[i].cbc) % 8)
+	    n++;
+    }
 }
 
 inline void
 insert (int c)
 {
-    char *hashes, *data;
-    unsigned int i, len;
-    int block_size, datablock_count;
+    char *hashes, *blocks;
+    unsigned int i, len, hlen, dlen, clen;
+    int blocksize;
+    struct graph g;
     keyInstance key;
     cipherInstance cipher;
     
+    // read data length in bytes
     if (readall(c, &i, 4) != 4) {
 	ioerror();
 	return;
     }
-
-    block_size = 64 * sqrt(i);
-    datablock_count = i / block_size;
     
-    if (!(hashes = malloc((datablock_count+1) * HASH_LEN)))
+    // find the graph for this datablock count
+    blocksize = 64 * sqrt(i);
+    g = graphs[i/blocksize];
+    if (!g.dbc) {
+	alert("I do not have a graph for %d data blocks!", i/blocksize);
+	return;
+    }
+    
+    // allocate space for plaintext hash and data- and check-block hashes
+    hlen = (1 + g.dbc + g.cbc) * HASHLEN;
+    if (!(hashes = malloc(hlen)))
 	die("malloc() failed");
     
-    while (datablock_count * block_size < i)
-	block_size++;
+    // padding
+    while (g.dbc * blocksize < i)
+	blocksize++;
     
-    len = datablock_count * block_size;
-    data = mbuf(datablock_count * block_size);
-    memset(&data[i], 0, len-i);
-    if (readall(c, data, i) != i) {
+    dlen = g.dbc * blocksize;
+    clen = g.cbc * blocksize;
+    len  = dlen + clen;
+    
+    // read data from client
+    blocks = mbuf(len);
+    memset(&blocks[i], 0, dlen - i);
+    if (readall(c, blocks, i) != i) {
 	ioerror();
-	if (munmap(data, len) == -1)
+	if (munmap(blocks, len) == -1)
 	    die("munmap() failed");
 	free(hashes);
 	return;
     }
-
-    sha_buffer(data, len, hashes);
+    
+    // encrypt data with its hash
+    alert("Hashing and encrypting data.");
+    sha_buffer(blocks, dlen, hashes);
     if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
 	die("cipherInit() failed");
     if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
 	die("makeKey() failed");
-    if (blockEncrypt(&cipher, &key, data, len, data) <= 0)
+    if (blockEncrypt(&cipher, &key, blocks, dlen, blocks) <= 0)
 	die("blockEncrypt() failed");
     
-    insert_data_blocks(data, block_size, datablock_count, &hashes[HASH_LEN]);
-
-    insert_check_blocks(data, block_size, datablock_count, hashes);
+    // generate check blocks
+    alert("Generating check blocks.");
+    // ....
     
-    i = (datablock_count+1) * HASH_LEN;
-    if (writeall(c, &i, 4) != 4 || writeall(c, hashes, i) != i) {
+    alert("Hashing blocks.");
+    
+    // generate data block hashes
+    for (i = 0 ; i < g.dbc ; i++)
+	sha_buffer(&blocks[(i+1)*blocksize], blocksize,
+		   &hashes[(i+1)*HASHLEN]);
+    
+    // generate check block hashes
+    for (i = 0 ; i < g.cbc ; i++)
+	sha_buffer(&blocks[HASHLEN+dlen+(i*blocksize)], blocksize,
+		   &hashes[(g.dbc+1)*HASHLEN+(i*hlen)]);
+    
+    // send the URI to the client
+    if (writeall(c, &hlen, 4) != 4 || writeall(c, hashes, hlen) != hlen) {
 	ioerror();
-	if (munmap(data, len) == -1)
+	if (munmap(blocks, len) == -1)
 	    die("munmap() failed");
 	free(hashes);
 	return;
     }
 
-    if (munmap(data, len) == -1)
+    // (insert everything now)
+
+    if (munmap(blocks, len) == -1)
 	die("munmap() failed");
     free(hashes);
     
     alert("Insertion complete.");
-}
-
-void
-insert_data_blocks (char *data, int block_size, int datablock_count, char *hashes)
-{
-    int i;
-
-    for (i = 0 ; i < datablock_count ; i++) {
-	int c;
-	sha_buffer(&data[i*block_size], block_size, &hashes[i*HASH_LEN]);
-restart:
-	c = route(&hashes[i*HASH_LEN]);
-	
-	if (writeall(c, "i", 1) != 1
-		|| writeall(c, &block_size, 4) != 4
-		|| writeall(c, &data[i*block_size], block_size) != block_size) {
-	    if (close(c) == -1)
-		die("close() failed");
-	    goto restart;
-	}
-
-	if (close(c) == -1)
-	    die("close() failed");
-    }
-}
-
-void
-insert_check_blocks (char *data, int block_size, int datablock_count, char *hashes)
-{
-    //int i;
-    
-    //for (i = 0 ; i < datablock_count ; i++) {
-	
-    //}
 }
 
 inline void
@@ -190,7 +230,7 @@ request (int c)
 	return;
     }
 
-    if (i % HASH_LEN) {
+    if (i % HASHLEN) {
 	puts("Bad key length.");
 	return;
     }
@@ -226,7 +266,7 @@ inform ()
 	unsigned int i;
 	int j = readall(c, &i, 4);
 	if (!j) break;
-    	if (j != 4) die("inform server hung up unexpectedly");
+    	if (j != 4) die("Inform server hung up unexpectedly");
 	addref(i);
     }
 
@@ -236,28 +276,15 @@ inform ()
 	puts("No servers, exiting.");
 	exit(0);
     }
-/*
-    {
-	int i;
-	for (i = 0 ; i < 10 ; i++)
-	    addref(i);
-    }
-
-    {
-	int i = 39;
-	char hash[20];
-	sha_buffer((char *) &i, 4, hash);
-	c = route(hash);
-	printf("c = %d\n", c);
-    }
-*/
 }
+
+//=== routing crap ==========================================================
 
 inline void
 addref (unsigned int addr)
 {
     struct in_addr x;
-    char hex[HASH_LEN*2+1];
+    char hex[HASHLEN*2+1];
     struct node *item;
     
     if (!(item = malloc(sizeof(struct node))))
@@ -269,7 +296,7 @@ addref (unsigned int addr)
     
     tree_insert(&tree, item);
     
-    bytestohex(hex, item->hash, HASH_LEN);
+    bytestohex(hex, item->hash, HASHLEN);
     x.s_addr = addr;
     printf("+ %15s %s\n", inet_ntoa(x), hex);
 }
@@ -278,11 +305,11 @@ inline void
 rmref (struct node *n)
 {
     struct node *new = NULL;
-    char hex[HASH_LEN*2+1];
+    char hex[HASHLEN*2+1];
     struct in_addr x;
     
     x.s_addr = n->addr;
-    bytestohex(hex, n->hash, HASH_LEN);
+    bytestohex(hex, n->hash, HASHLEN);
     
     tree_copy(tree, &new, n);
     tree = new;
@@ -291,7 +318,7 @@ rmref (struct node *n)
 }
 
 inline int
-route (char hash[HASH_LEN])
+route (char hash[HASHLEN])
 {
     for (;;) {
         struct node *n;
@@ -310,8 +337,8 @@ route (char hash[HASH_LEN])
 	    die("socket() failed");
 
 	if (connect(c, &a, sizeof(a)) != -1) {
-	    char hex[HASH_LEN*2+1];
-	    bytestohex(hex, n->hash, HASH_LEN);
+	    char hex[HASHLEN*2+1];
+	    bytestohex(hex, n->hash, HASHLEN);
 	    printf("* %15s %s\n", inet_ntoa(a.sin_addr), hex);
 	    return c;
 	}
@@ -327,16 +354,16 @@ route (char hash[HASH_LEN])
 }
 
 inline struct node *
-tree_search (struct node *tree, char hash[HASH_LEN])
+tree_search (struct node *tree, char hash[HASHLEN])
 {
     if (!tree)
 	return tree;
-    else if (memcmp(hash, tree->hash, HASH_LEN) < 0) {
+    else if (memcmp(hash, tree->hash, HASHLEN) < 0) {
 	if (tree->left)
 	    return tree_search(tree->left, hash);
         else
 	    return tree;
-    } else if (memcmp(hash, tree->hash, HASH_LEN) > 0) {
+    } else if (memcmp(hash, tree->hash, HASHLEN) > 0) {
 	if (tree->right)
 	    return tree_search(tree->right, hash);
 	else
@@ -350,9 +377,9 @@ tree_insert (struct node **tree, struct node *item)
 {
     if (!*tree)
 	*tree = item;
-    else if (memcmp(item->hash, (*tree)->hash, HASH_LEN) < 0)
+    else if (memcmp(item->hash, (*tree)->hash, HASHLEN) < 0)
 	tree_insert(&(*tree)->left, item);
-    else if (memcmp(item->hash, (*tree)->hash, HASH_LEN) > 0) 
+    else if (memcmp(item->hash, (*tree)->hash, HASHLEN) > 0) 
 	tree_insert(&(*tree)->right, item);
 }
 
