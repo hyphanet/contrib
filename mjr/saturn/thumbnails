@@ -16,6 +16,7 @@ for (@ARGV) {
     @nextargv and do { $r = shift @nextargv; $r and $$r = $_; next };
     !$infile  and do { $infile  = $_; next };
     !$outfile and do { $outfile = $_; next };
+    &usage;
 }
 
 $infile = "-" if !$infile; $outfile = "-" if !$outfile;
