@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /G3 /Gr /Zp1 /MD /W3 /vd0 /Od /Gf /Gy /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN" /FAcs /YX /FD /c
+# ADD CPP /nologo /G6 /Gr /Zp1 /MD /W3 /vd0 /Od /Oy /Ob0 /Gf /Gy /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN" /FAcs /YX /FD /c
 # SUBTRACT CPP /WX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib shell32.lib comdlg32.lib /nologo /version:1.0 /subsystem:windows /map /machine:IX86
+# ADD LINK32 kernel32.lib user32.lib shell32.lib comdlg32.lib gdi32.lib /nologo /version:1.0 /subsystem:windows /map /machine:IX86
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "freenet - Win32 Debug"
@@ -80,7 +80,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib shell32.lib comdlg32.lib /nologo /version:1.0 /subsystem:windows /map /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib shell32.lib comdlg32.lib gdi32.lib /nologo /version:1.0 /subsystem:windows /map /debug /machine:I386 /pdbtype:sept
 # SUBTRACT LINK32 /pdb:none /nodefaultlib
 
 !ENDIF 
@@ -89,25 +89,12 @@ LINK32=link.exe
 
 # Name "freenet - Win32 Release"
 # Name "freenet - Win32 Debug"
-# Begin Source File
+# Begin Group "Source"
 
-SOURCE=.\alert.ico
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\alert.ico
-# End Source File
+# PROP Default_Filter ".c"
 # Begin Source File
 
 SOURCE=.\freenet.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\res\Freenet.ico
-# End Source File
-# Begin Source File
-
-SOURCE=.\freenet_tray.h
 # End Source File
 # Begin Source File
 
@@ -115,7 +102,55 @@ SOURCE=.\launchthread.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\logfile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\refs.c
+# End Source File
+# End Group
+# Begin Group "Headers"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\freenet_tray.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\launchthread.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\logfile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\refs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\rsrc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\shared_data.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\types.h
+# End Source File
+# End Group
+# Begin Group "Resources"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\res\alert.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\Freenet.ico
 # End Source File
 # Begin Source File
 
@@ -135,42 +170,20 @@ SOURCE=.\res\ref.ico
 # End Source File
 # Begin Source File
 
-SOURCE=.\refs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\refs.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\res\restart.ico
-# End Source File
-# Begin Source File
-
-SOURCE=.\rsrc.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\rsrc.rc
-
-!IF  "$(CFG)" == "freenet - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "freenet - Win32 Debug"
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\shared_data.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\res\tbolt.ico
 # End Source File
+# End Group
+# Begin Group "Resource Scripts"
+
+# PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\types.h
+SOURCE=.\rsrc.rc
 # End Source File
+# End Group
 # End Target
 # End Project
