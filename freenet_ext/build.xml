@@ -48,14 +48,14 @@
 
   <target name="jcpuid" depends="init">
     <copy todir="${build}">
-      <fileset dir="../jcpuid" includes="lib/**">
+      <fileset dir="../jcpuid/lib" includes="freenet/**">
       </fileset>
     </copy>
   </target>
 
   <target name="bigint" depends="init">
     <copy todir="${build}">
-      <fileset dir="../NativeBigInteger" includes="lib/**">
+      <fileset dir="../NativeBigInteger/lib" includes="net/**">
       </fileset>
     </copy>
   </target>
