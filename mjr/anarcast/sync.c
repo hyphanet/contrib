@@ -54,7 +54,7 @@ main (int argc, char **argv)
     
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
-    a.sin_port = htons(INFORM_SERVER_PORT);
+    a.sin_port = htons(SYNC_SERVER_PORT);
     a.sin_addr.s_addr = argv[1] ? lookup_host(argv[1]) : address;
     
     if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)

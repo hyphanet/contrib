@@ -7,7 +7,7 @@
 int
 main (int argc, char **argv)
 {
-    int l, m, active, v_active, next, updated;
+    int l, l2, m, active, v_active, next, updated;
     long last_verify;
     fd_set r, w;
 
@@ -55,17 +55,19 @@ main (int argc, char **argv)
     
     hosts0 = end0 = mbuf(DATABASE_SIZE);
     
-    l = listening_socket(INFORM_SERVER_PORT, INADDR_ANY);
+    l = listening_socket(SYNC_SERVER_PORT, INADDR_ANY);
+    l2 = listening_socket(REGISTER_SERVER_PORT, INADDR_ANY);
     last_verify = 0;
     v_active = 0;
-    updated = 0;
+    updated = 1;
     active = 0;
     next = 0;
     
     FD_ZERO(&r);
     FD_ZERO(&w);
     FD_SET(l, &r);
-    m = l + 1;
+    FD_SET(l2, &r);
+    m = l2 + 1;
     
     for (;;) {
 	int n;
@@ -76,7 +78,6 @@ main (int argc, char **argv)
 	    if (!next) {
 		updated = 0;
 		last_verify = time(NULL);
-		memcpy(hosts0, hosts, DATABASE_SIZE);
 		end0 = hosts0;
 	    }
 	    while (v_active < VERIFY_CONCURRENCY && next < (end-hosts)/4) {
@@ -119,7 +120,25 @@ main (int argc, char **argv)
 	if (select(m, &s, &x, NULL, &tv) == -1)
 	    die("select() failed");
 	
-	if (FD_ISSET(l, &s)) {
+	if (FD_ISSET(l2, &s)) { // register new server, hang up
+	    struct sockaddr_in s;
+	    int c, b = sizeof(s);
+	    // accept a connection
+	    if ((c = accept(l2, &s, &b)) == -1) {
+		ioerror();
+		continue;
+	    }
+	    if (!memmem(hosts, end-hosts, &s.sin_addr.s_addr, 4)) {
+		memcpy(end, &s.sin_addr.s_addr, 4);
+		end += 4;
+		printf("%-15s Added.\n", inet_ntoa(s.sin_addr));
+	    } else
+		printf("%-15s Already known.\n", inet_ntoa(s.sin_addr));
+	    if (close(c) == -1)
+		die("close() failed");
+	}
+
+	if (FD_ISSET(l, &s)) { // reply with addresses
 	    struct sockaddr_in s;
 	    int c, b = sizeof(s);
 	    // accept a connection
@@ -129,18 +148,12 @@ main (int argc, char **argv)
 	    }
 	    set_nonblock(c);
 	    FD_SET(c, &w);
-	    active++;
 	    if (c >= m) m = c + 1;
+	    active++;
 	    a[c].type = 'n';
 	    a[c].count = (end-hosts)/4;
 	    a[c].off = -4; // sizeof count value
-	    if (c == m) m++;
-	    if (!memmem(hosts, end-hosts, &s.sin_addr.s_addr, 4)) {
-		memcpy(end, &s.sin_addr.s_addr, 4);
-		end += 4;
-		printf("%-15s Added.\n", inet_ntoa(s.sin_addr));
-	    } else
-		printf("%-15s Already known.\n", inet_ntoa(s.sin_addr));
+	    a[c].peeraddy = s.sin_addr.s_addr;
 	}
 
 	for (n = 0 ; n < m ; n++)
@@ -168,10 +181,14 @@ main (int argc, char **argv)
 			c = write(n, &hosts[a[n].off], a[n].count * 4 - a[n].off);
 		    if (c <= 0 || (a[n].off += c) == a[n].count * 4) {
 			FD_CLR(n, &w);
-			if (n+1 == m) m--;
+			if (n + 1 == m) m--;
 			active--;
 			if (close(n) == -1)
 			    die("close() failed");
+			if (c > 0) {
+			    struct in_addr s = {a[n].peeraddy};
+			    printf("%-15s Synced.\n", inet_ntoa(s));
+			}
 		    }
 		}
 	    }

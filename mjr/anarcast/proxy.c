@@ -912,10 +912,23 @@ rmref (unsigned int addr)
     die("address not found in linked list");
 }
 
+int // returns 1 if b is closer to a than c
+iscloser (const char a[HASHLEN], const char b[HASHLEN], const char c[HASHLEN])
+{
+    int i, diff = 0;
+    for (i = 0 ; i < HASHLEN ; i++) {
+	diff += (a[i] - b[i]) - (c[i] - a[i]);
+	if (diff < -1) return 1;
+        if (diff > 1) return 0;
+	diff *= 0x100;
+    }
+    return diff < 0;
+}
+
 unsigned int
 route (const char hash[HASHLEN], int off)
 {
-    struct node *p, *last;
+    struct node *p, *last, *last2;
     int tmp;
 
     assert(off < 3);
@@ -926,9 +939,14 @@ route (const char hash[HASHLEN], int off)
     if (!head)
 	die("empty address list");
     
-    for (last = NULL, p = head ; ; last = p, p = p->next)
+    for (last = last2 = NULL, p = head ; ; last2 = last, last = p, p = p->next)
 	if (!p->next || memcmp(hash, p->hash, HASHLEN) < 0)
 	    break;
+    
+    if (last && iscloser(hash, last->hash, p->hash)) {
+	p = last;
+	last = last2;
+    }
     
     if (off) {
 	if (p->next && !last)
