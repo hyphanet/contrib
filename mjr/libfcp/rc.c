@@ -20,7 +20,7 @@ run (char *uri, FILE *dest, int threads, int htl)
     fcp_document *d = fcp_document_new();
     char buf[1024];
     
-    int len = fcp_request(m, d, uri, threads, htl);
+    int len = fcp_request(m, d, uri, htl, threads);
     
     if (len < 0) {
 	fprintf(stderr, "Request failed: %s.\n",
@@ -63,7 +63,7 @@ main (int argc, char **argv)
             htl = atoi(optarg);
             break;
         case 't':
-            threads = atoi(optarg);
+	    threads = atoi(optarg);
             break;
         case '?':
             usage(argv[0]);

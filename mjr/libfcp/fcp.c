@@ -5,6 +5,7 @@ int fcp_get (FILE *data, int *len, int *type, char *uri, int htl);
 int splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads);
 void * big_brother (void *arg);
 void * winston_smith (void *arg);
+int fcp_internal_close (fcp_document *d);
 int calc_partsize (int length);
 int calc_partcount (int partsize, int length);
 void fcp_internal_free (fcp_metadata *m);
@@ -39,6 +40,7 @@ fcp_document_new ()
     fcp_document *d = malloc(sizeof(fcp_document));
     pthread_mutex_init(&d->mutex, NULL);
     pthread_cond_init(&d->cond, NULL);
+    d->closed = 1;
     d->cur_part = 0;
     d->chunk_count = 0;
     d->keys = NULL;
@@ -48,9 +50,10 @@ fcp_document_new ()
     return d;
 }
 
+
 int
 fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
-	int threads)
+	     int threads)
 {
     if (m && m->uri && strncmp(m->uri, uri, strlen(m->uri)) == 0) {
 	int i;
@@ -59,16 +62,14 @@ fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
 	docname += 2;
 	for (i = 0 ; i < m->r_count ; i++)
 	    if (strcmp(docname, m->r[i]->document_name) == 0)
-	        return fcp_request(NULL, d, m->r[i]->target_uri, htl,
+	        return fcp_request(m, d, m->r[i]->target_uri, htl,
 			           threads);
 	for (i = 0 ; i < m->dr_count ; i++)
 	    if (strcmp(docname, m->dr[i]->document_name) == 0) {
-	        long a = time(NULL) - m->dr[i]->baseline;
-		long b = m->dr[i]->baseline + a - (a % m->dr[i]->increment);
 		char target[512];
-		sprintf(target, "%s%lx%s", m->dr[i]->predate, b,
-			m->dr[i]->postdate);
-		return fcp_request(NULL, d, target, htl, threads);
+		fcp_calc_dbr(target, m->dr[i]->predate, m->dr[i]->postdate,
+			     m->dr[i]->baseline, m->dr[i]->increment, 0);
+		return fcp_request(m, d, target, htl, threads);
 	    }
         for (i = 0 ; i < m->sf_count ; i++)
 	    if (strcmp(docname, m->sf[i]->document_name) == 0)
@@ -81,7 +82,8 @@ fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
 	if (!data) return FCP_IO_ERROR;
 	if (docname) {
 	    int n = strlen(uri) - strlen(docname);
-	    strncpy(nuri, uri, n); nuri[n] = '\0';
+	    strncpy(nuri, uri, n);
+	    nuri[n] = '\0';
 	    docname += 2;
 	} else strcpy(nuri, uri);
 	status = fcp_get(data, &len, &type, nuri, htl);
@@ -106,6 +108,7 @@ fail:	    fcp_metadata_free(m2);
 	} else { // only one part, not a splitfile
 	    pthread_mutex_init(&d->mutex, NULL);
 	    pthread_cond_init(&d->cond, NULL);
+	    d->closed = 0;
 	    d->cur_part = 0;
 	    d->chunk_count = 1;
 	    d->keys = malloc(sizeof(char *));
@@ -126,6 +129,7 @@ splitfile_get (fcp_document *d, splitfile *sf, int htl, int threads)
     int i;
     pthread_t thread;
     d->document_name = strdup(sf->document_name);
+    d->closed = 0;
     d->cur_part = 0;
     d->htl = htl;
     d->threads = threads;
@@ -156,10 +160,28 @@ big_brother (void *arg)
     fcp_document *d = (fcp_document *) arg;
     for (i = 0 ; i < d->chunk_count ; i++) {
 	rtargs *r = malloc(sizeof(rtargs));
-	r->part = i; r->d = d;
+	r->part = i;
+	r->d = d;
 	pthread_create(&thread, NULL, winston_smith, (void *) r);
 	d->activethreads++;
-	while (d->activethreads == d->threads) usleep(10);
+	while (d->activethreads == d->threads) {
+	    pthread_mutex_lock(&d->mutex);
+	    pthread_cond_wait(&d->cond, &d->mutex);
+	    if (d->closed) { // clean up, exit
+		fcp_internal_close(d);
+		pthread_exit(NULL);
+	    }
+	    pthread_mutex_unlock(&d->mutex);
+	}   
+    }
+    while (d->activethreads) {
+	pthread_mutex_lock(&d->mutex);
+	pthread_cond_wait(&d->cond, &d->mutex);
+	if (d->closed) { // clean up, exit
+	    fcp_internal_close(d);
+	    pthread_exit(NULL);
+	}
+	pthread_mutex_unlock(&d->mutex);
     }
     pthread_exit(NULL);
 }
@@ -173,6 +195,7 @@ winston_smith (void *arg)
 	rewind(r->d->streams[r->part]);
 	status = fcp_get(r->d->streams[r->part], &len, &type,
 			 r->d->keys[r->part], r->d->htl);
+	if (r->d->closed) status = FCP_SUCCESS;
     }
     pthread_mutex_lock(&r->d->mutex);
     r->d->status[r->part] = status;
@@ -185,14 +208,22 @@ winston_smith (void *arg)
 int
 fcp_close (fcp_document *d)
 {
+    if (d->closed) return FCP_SUCCESS;
+    pthread_mutex_lock(&d->mutex);
+    d->closed = 1;
+    pthread_cond_broadcast(&d->cond);
+    pthread_mutex_unlock(&d->mutex);
+    return FCP_SUCCESS;
+}
+
+int
+fcp_internal_close (fcp_document *d)
+{
     int i;
     if (!d->status) goto end;
     for (i = 0 ; i < d->chunk_count ; i++) {
-	if (d->status[i] == 1) {
-	    pthread_mutex_lock(&d->mutex);
+	if (d->status[i] > 0)
 	    pthread_cond_wait(&d->cond, &d->mutex);
-	    pthread_mutex_unlock(&d->mutex);
-	}
 	free(d->keys[i]);
 	fclose(d->streams[i]);
     }
@@ -727,7 +758,7 @@ fcp_metadata_insert (fcp_metadata *m, char *uri, int htl)
 }
 
 char *
-fcp_lookup(fcp_metadata *m, fcp_document *d, char *field)
+fcp_lookup (fcp_metadata *m, fcp_document *d, char *field)
 {
     int i, j;
     if (!d->document_name) return NULL;
@@ -737,6 +768,16 @@ fcp_lookup(fcp_metadata *m, fcp_document *d, char *field)
 		if (strcmp(m->i[i]->fields[j][0], field) == 0)
 		    return m->i[i]->fields[j][1];
     return NULL;
+}
+
+int
+fcp_calc_dbr (char *uri, char *predate, char *postdate, long baseline,
+	      int increment, int offset)
+{
+    long a = time(NULL) - baseline;
+    long b = baseline + a - (a % increment) + (offset * increment);
+    sprintf(uri, "%s%lx%s", predate, b, postdate);
+    return FCP_SUCCESS;
 }
 
 void

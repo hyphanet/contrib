@@ -71,6 +71,7 @@ typedef struct {
     int htl;
     int threads;
     int activethreads;
+    int closed;
 } fcp_document;
 
 // return a pointer to a new, nulled fcp_metadata
@@ -82,7 +83,7 @@ fcp_document * fcp_document_new ();
 // start a request. returns length of data, or error (<0)
 // if !m, metadata will not be saved for later use.
 int fcp_request (fcp_metadata *m, fcp_document *d, char *uri, int htl,
-	int threads);
+ 	         int threads);
 
 // read up to length bytes into buf. returns bytes read, or error (<0)
 int fcp_read (fcp_document *d, char *buf, int length);
@@ -92,7 +93,7 @@ int fcp_close (fcp_document *d);
 
 // insert length bytes from in. returns 0 on success, or error (<0)
 int fcp_insert (fcp_metadata *m, char *document_name, FILE *in, int length,
-	int htl, int threads);
+	        int htl, int threads);
 
 // insert a single-part file. returns 0 on success, or error (<0)
 // type may be DATA or CONTROL
@@ -104,7 +105,7 @@ int fcp_redirect (fcp_metadata *m, char *document_name,	char *target_uri);
 
 // create a date-based redirect
 int fcp_date_redirect (fcp_metadata *m, char *document_name, char *predate,
-	char *postdate, long baseline, long increment);
+	               char *postdate, long baseline, long increment);
 
 // add an info field for document_name in metadata
 int fcp_info (fcp_metadata *m, char *document_name, char *name, char *value);
@@ -122,4 +123,9 @@ char * fcp_status_to_string (int code);
 // lookup a value in the info field for document
 // returns null if field not found
 char * fcp_lookup(fcp_metadata *m, fcp_document *d, char *field);
+
+// calculate a target URI from date-based-redirect info
+// saves target uri in uri, which must be big enough to hold it
+int fcp_calc_dbr (char *uri, char *predate, char *postdate, long baseline,
+                  int increment, int offset);
 
