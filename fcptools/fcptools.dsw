@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "ezFCPlib"=.\ezFCPlib\ezFCPlib.dsp - Package Owner=<4>
+Project: "ezFCPlib"=".\ezFCPlib\ezFCPlib.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -15,7 +15,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "fcpcommon"=.\fcpcommon\fcpcommon.dsp - Package Owner=<4>
+Project: "fcpcommon"=".\fcpcommon\fcpcommon.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "fcpget"=.\fcpget\fcpget.dsp - Package Owner=<4>
+Project: "fcpget"=".\fcpget\fcpget.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -39,7 +39,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "fcpput"=.\fcpput\fcpput.dsp - Package Owner=<4>
+Project: "fcpput"=".\fcpput\fcpput.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -51,7 +51,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "fcpputsite"=.\fcpputsite\fcpputsite.dsp - Package Owner=<4>
+Project: "fcpputsite"=".\fcpputsite\fcpputsite.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -63,7 +63,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "fcptools"=.\fcptools.dsp - Package Owner=<4>
+Project: "fcptools"=".\fcptools.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -75,7 +75,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "fcpx"=.\fcpx\fcpx.dsp - Package Owner=<4>
+Project: "fcpx"=".\fcpx\fcpx.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
