@@ -1,14 +1,24 @@
 /*
-  This code is part of FreeWeb - an FCP-based client for Freenet
-
-  Designed and implemented by David McNab, david@rebirthing.co.nz
+  This code is part of FCPTools - an FCP-based client library for Freenet
+	
+  Designed and implemented by David McNab <david@rebirthing.co.nz>
   CopyLeft (c) 2001 by David McNab
-
-  The FreeWeb website is at http://freeweb.sourceforge.net
-  The website for Freenet is at http://freenet.sourceforge.net
-
-  This code is distributed under the GNU Public Licence (GPL) version 2.
-  See http://www.gnu.org/ for further details of the GPL.
+	
+	Currently maintained by Jay Oliveri <ilnero@gmx.net>
+	
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "ezFCPlib.h"
@@ -28,121 +38,74 @@ extern char    _fcpID[];
 static int      fcpCloseKeyRead(hFCP *hfcp);
 static int      fcpCloseKeyWrite(hFCP *hfcp);
 
-/*
-  Function:    fcpCloseKey()
 
-  Arguments:   hfcp
-
-  Returns:     0 if successful
-  -1 if error occurred
-
-  Description: finalises all operations on a key, depending on whether the
-  key was opened for reading or writing
-*/
 int fcpCloseKey(hFCP *hfcp)
 {
   if (hfcp->key->openmode & _FCP_O_READ)
 	 return fcpCloseKeyRead(hfcp);
+
   else if (hfcp->key->openmode & _FCP_O_WRITE)
 	 return fcpCloseKeyWrite(hfcp);
+
   else
 	 return -1;
 }
 
 
-/*
-  Function:    fcpCloseKeyRead()
-
-  Arguments:   hfcp
-
-  Description: closes a key after reading is complete
-*/
 static int fcpCloseKeyRead(hFCP *hfcp)
 {
-  hfcp->key->openmode = 0;
-  _fcpSockDisconnect(hfcp);
-
   return 0;
 }
 
 
-/*
-  Function:    fcpCloseKeyWrite()
-
-  Arguments:   hfcp
-
-  Description: closes a key's data and metadata temporary files
-  performs the full insertion protocol sequence
-  deletes the temporary files used
-*/
-
-/*
 static int fcpCloseKeyWrite(hFCP *hfcp)
 {
-  char buf[1024];
-  int fd, count, n;
+	int rc;
 
-  close(hfcp->wr_info.fd_data);
-  if (hfcp->raw) close(hfcp->wr_info.fd_meta);
+ /* expecting a success response */
+  rc = _fcpRecvResponse(hfcp);
 
-  if (_fcpSockConnect(hfcp) != 0) return -1;
+  switch (rc) {
+  case FCPRESP_TYPE_SUCCESS:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): SUCCESS");
+    break;
 
-  _fcpSockSend(hfcp, _fcpID, 4);
+  case FCPRESP_TYPE_FORMATERROR:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): FORMATERROR");
+    break;
 
-  if (hfcp->wr_info.num_meta_wr > 0) {
-	 sprintf(buf,
-				"ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
-				hfcp->wr_info.uri->uri_str,
-				hfcp->htl,
-				hfcp->wr_info.num_data_wr + hfcp->wr_info.num_meta_wr,
-				hfcp->wr_info.num_meta_wr);
-  }
-  else {
-	 sprintf(buf,
-				"ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
-				hfcp->wr_info.uri->uri_str,
-				hfcp->htl,
-				hfcp->wr_info.num_data_wr
-				);
-  }
-  
-  count = strlen(buf);
-  n = _fcpSockSend(hfcp, buf, count);
-  if (n < count) {
-	 _fcpSockDisconnect(hfcp);
-	 return -1;
-  }
-  
-  if (hfcp->wr_info.num_meta_wr > 0) {
-	 fd = open(hfcp->wr_info.meta_temp_file, OPEN_MODE_READ);
-	 
-	 while ((count = read(fd, buf, 1024)) > 0)
-		_fcpSockSend(hfcp, buf, count);
-	 
-	 close(fd);
-  }
-  
-  if (hfcp->wr_info.num_data_wr > 0) {
-	 fd = open(hfcp->wr_info.data_temp_file, OPEN_MODE_READ);
-	 
-	 while ((count = read(fd, buf, 1024)) > 0)
-		_fcpSockSend(hfcp, buf, count);
+  case FCPRESP_TYPE_FAILED:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): FAILED");
+    break;
 
-	 close(fd);
-  }
-  
-  unlink(hfcp->wr_info.meta_temp_file);
-  unlink(hfcp->wr_info.meta_temp_file);
+  case FCPRESP_TYPE_URIERROR:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): URIERROR");
+    break;
 
-  if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_SUCCESS) {
-	 _fcpSockDisconnect(hfcp);
-	
-	 return -1;
+  case FCPRESP_TYPE_RESTARTED:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): RESTARTED");
+    break;
+
+  case FCPRESP_TYPE_ROUTENOTFOUND:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): ROUTENOTFOUND");
+    break;
+
+  case FCPRESP_TYPE_KEYCOLLISION:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): KEYCOLLISION");
+    break;
+
+  case FCPRESP_TYPE_PENDING:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): PENDING");
+    break;
+
+  default:
+    _fcpLog(FCP_LOG_DEBUG, "fcpCloseKeyWrite(): BAD - received unknown response message from node");
+    return -1;
   }
 
-  _fcpSockDisconnect(hfcp);
+  /* finished with connection */
+  crSockDisconnect(hfcp);
 
   return 0;
 }
-*/
 

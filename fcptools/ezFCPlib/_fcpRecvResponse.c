@@ -188,6 +188,8 @@ static int getrespHello(hFCP *hfcp)
 {
 	int len;
 
+	_fcpLog(FCP_LOG_DEBUG, "parsing NodeHello response");
+
 	while (!getrespline(hfcp)) {
 
 		if (!strncmp(respline, "Protocol=", 9)) {
@@ -202,10 +204,12 @@ static int getrespHello(hFCP *hfcp)
 			strncpy(hfcp->description, respline+5, len);
 		}
 
-		else if (!strncmp(respline, "EndMessage", 10))
+		else if (!strncmp(respline, "EndMessage", 10)) {
+			_fcpLog(FCP_LOG_DEBUG, "successfully parsed NodeHello response");
 			return FCPRESP_TYPE_NODEHELLO;
+		}
 	}
-	
+
 	return -1;
 }
 
@@ -216,6 +220,8 @@ static int getrespHello(hFCP *hfcp)
 static int getrespSuccess(hFCP *hfcp)
 {
 	int len;
+
+	_fcpLog(FCP_LOG_DEBUG, "parsing Success response");
 
   while (!getrespline(hfcp)) {
 
@@ -235,8 +241,10 @@ static int getrespSuccess(hFCP *hfcp)
 			strncpy(hfcp->response.success.privatekey, respline + 11, 39);
 		}
 		
-		else if (!strncmp(respline, "EndMessage", 10))
+		else if (!strncmp(respline, "EndMessage", 10)) {
+			_fcpLog(FCP_LOG_DEBUG, "successfully parsed Success response");
 			return FCPRESP_TYPE_SUCCESS;
+		}
   }
 	
   return -1;

@@ -26,6 +26,8 @@
 #include <sys/stat.h>
 
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 #define _GNU_SOURCE
 #include "getopt.h"
@@ -34,7 +36,6 @@
 
 
 void  parse_args(int argc, char *argv[]);
-char *stdin_keydata(void);
 void  usage(char *);
 
 extern char *crTmpFilename(void);
@@ -52,8 +53,6 @@ int main(int argc, char* argv[])
 	char buf[L_FD_BLOCKSIZE];
 	int fd;
 
-	struct stat put_file;
-
 	/* Must occur before any FCP related calls to set parameters prior */
 	parse_args(argc, argv);
 	
@@ -63,47 +62,31 @@ int main(int argc, char* argv[])
 	}
 
 	/* If file is not specified, read key data from stdin */
-	if (!keyfile) keyfile = stdin_keydata();
+	if (!keyfile) fd = STDIN_FILENO;
+	else fd = open(keyfile, O_RDONLY, S_IRUSR);
 
-  if (stat(keyfile, &put_file)) return -1;
+	if (fd == -1) {
+		printf("Error\n");
+		return 1;
+	}
+
 	hfcp = _fcpCreateHFCP();
 
-	if (!(rc = fcpOpenKeyWrite(hfcp, keyuri, keyfile)))	{
+	if (rc = fcpOpenKeyWrite(hfcp, keyuri))	{
 		_fcpLog(FCP_LOG_CRITICAL, "fcpput: cannot open key writing");
 		return 1;
 	}
 
-	/* Now write the key to Freenet */
-	if ((fd = open(keyfile, O_RDONLY, S_IRUSR)) == -1) return 1;
-
 	while ((rc = read(fd, buf, L_FD_BLOCKSIZE)) > 0)
-		fcpWriteKey(hfcp, buf, 8192);
+		fcpWriteKey(hfcp, buf, rc);
 
-	/* Clean it up for demo purposes */
+	/* Clean it up */
 	fcpCloseKey(hfcp);
-	fcpTerminate();
 	_fcpDestroyHFCP(hfcp);
 
+	fcpTerminate();
+
 	return 0;
-}
-
-
-char *stdin_keydata(void)
-{
-	char *filename = 0;
-	int fd_tmpfile;
-	int i;
-
-	char buf[L_FD_BLOCKSIZE + 1];
-
-	filename = crTmpFilename();
-	if ((fd_tmpfile = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) == -1) return 0;
-
-	while ((i = read(STDIN_FILENO, buf, L_FD_BLOCKSIZE)) > 0)
-		write(fd_tmpfile, buf, i);
-
-	close(fd_tmpfile);
-	return filename;
 }
 
 

@@ -38,53 +38,27 @@ int fcpOpenKeyRead(hFCP *hfcp, char *key, char *filename)
 }
 
 
-/*
-	If filename is NULL, then set file description to read from STDIN.
-*/
-int fcpOpenKeyWrite(hFCP *hfcp, char *keyname, char *filename)
+int fcpOpenKeyWrite(hFCP *hfcp, char *keyname)
 {
   int   rc;
-	int   fd;
 	char  buf[4096 + 1];
 	int   len;
 
 	hURI *uri = 0;
-
-	if (filename) {
-		struct stat st;
-		
-		if (!stat(filename, &st)) return -1;
-		
-		if ((fd = open(filename, O_RDONLY)) == -1) return -1;
-
-		/* Allocate hKey handle */
-		if (hfcp->key) _fcpDestroyHKey(hfcp->key);
-		hfcp->key = (hKey *)malloc(sizeof(hKey));
-		
-		hfcp->key->filename = malloc(strlen(filename) + 1);
-		strcpy(hfcp->key->filename, filename);
-		
-		hfcp->key->size = st.st_size;
-		hfcp->key->fd = fd;
-		
-	} else {
-		/* Allocate hKey handle */
-		if (hfcp->key) _fcpDestroyHKey(hfcp->key);
-		hfcp->key = (hKey *)malloc(sizeof(hKey));
-		
-		hfcp->key->size = -1; /* Should handle this properly elsewhere */
-		hfcp->key->fd = -1; /* @@@ FIX @@@ */
-	}
 	
-	if (hfcp->key->size > SPLIT_BLOCK_SIZE) {
-		printf("Can't do splitfile!\n");
-		
-		return -1;
-	}
+	/* Allocate hKey handle */
+	if (hfcp->key) _fcpDestroyHKey(hfcp->key);
+	hfcp->key = (hKey *)malloc(sizeof(hKey));
+
+	hfcp->key->chunkCount = 1;
+	hfcp->key->chunks = _fcpCreateHChunk();
+
+	/* Initialize the first (and potentially only) chunk */
+	hfcp->key->chunks[0]->filename = crTmpFilename();
+	hfcp->key->chunks[0]->fd = open(hfcp->key->chunks[0]->filename, O_CREAT);
 	
 	uri = _fcpCreateHURI();
-	
-	/* If the key uri isn't valid, we're gone */
+
 	if (_fcpParseURI(uri, keyname)) {
 		_fcpDestroyHURI(uri);
 		return -1;
@@ -108,24 +82,6 @@ int fcpOpenKeyWrite(hFCP *hfcp, char *keyname, char *filename)
 		
   _fcpSockDisconnect(hfcp);
 
-	snprintf(buf,
-					 4096,
-					 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
-					 hfcp->key->uri->uri_str,
-					 hfcp->htl,
-					 hfcp->key->size
-					 );
-
-	if (crSockConnect(hfcp)) return -1;
-  if (send(hfcp->socket, _fcpID, 4, 0) != 4) return -1;
-
-	len = strlen(buf);
-	rc = send(hfcp->socket, buf, len, 0);
-
-  if (rc < len) {
-    crSockDisconnect(hfcp);
-		return -1;
-	}
 
 	/* Beginning of PUT successful */
   return 0;

@@ -78,6 +78,26 @@ void _fcpDestroyHURI(hURI *h)
 }
 
 
+hChunk *_fcpCreateHChunk(void)
+{
+	hChunk *h;
+
+	h = (hChunk *)malloc(sizeof (hChunk));
+	memset(h, 0, sizeof(hChunk));
+
+	return h;
+}
+
+
+void _fcpDestroyHChunk(hChunk *h)
+{
+	if (h) {
+	}
+
+	free(h);
+}
+
+
 hKey *_fcpCreateHKey(void)
 {
 	hKey *h;
@@ -118,6 +138,9 @@ int _fcpParseURI(hURI *uri, char *key)
   /* skip 'freenet:' */
   if (!strncmp(key, "freenet:", 8))
     key += 8;
+
+	/* for "xxK@" initially.. */
+	uri->uri_str = (char *)malloc(5);
   
   /* classify key header */
   if (!strncmp(key, "SSK@", 4)) {
@@ -158,6 +181,10 @@ int _fcpParseURI(hURI *uri, char *key)
 
 		strncpy(uri->file, key, len);
 		*(uri->file + len) = 0;
+
+		/* the +10 really is +8:  "SSK@ + / + //"  */
+		realloc(uri->uri_str, strlen(uri->keyid) + strlen(uri->path) + strlen(uri->file) + 10);
+		sprintf(uri->uri_str, "SSK@%s/%s//%s", uri->keyid, uri->path, uri->file); 
   }
 
 	/* freenet:CHK@fkjdfjglsdjgslkgdjfghsdjkflgskdjfghdjfksl */
@@ -165,14 +192,23 @@ int _fcpParseURI(hURI *uri, char *key)
   else if (!strncmp(key, "CHK@", 4)) {
 
     uri->type = KEY_TYPE_CHK;
+		strcpy(uri->uri_str, "CHK@");
+
 		key += 4;
     
 		for (p = key; *p; p++);
 		len = p-key;
 
-		uri->keyid = (char *)malloc(len + 1);
-		strncpy(uri->keyid, key, len);
-		*(uri->keyid + len) = 0;
+		_fcpLog(FCP_LOG_DEBUG, "length is: %d", len);
+
+		if (len) {
+			uri->keyid = (char *)malloc(len + 1);
+			strncpy(uri->keyid, key, len);
+			*(uri->keyid + len) = 0;
+
+			realloc(uri->uri_str, strlen(uri->keyid) + 5);
+			strcat(uri->uri_str, uri->keyid);
+		}
   }
   
 	/* freenet:KSK@freetext.html */
@@ -180,6 +216,8 @@ int _fcpParseURI(hURI *uri, char *key)
   else if (!strncmp(key, "KSK@", 4)) {
 
     uri->type = KEY_TYPE_KSK;
+		strcpy(uri->uri_str, "KSK@");
+
     key += 4;
 
 		for (p = key; *p; p++);
@@ -188,12 +226,24 @@ int _fcpParseURI(hURI *uri, char *key)
 		uri->keyid = (char *)malloc(len + 1);
 		strncpy(uri->keyid, key, len);
 		*(uri->keyid + len) = 0;
+
+		realloc(uri->uri_str, strlen(uri->keyid) + 5);
+		strcat(uri->uri_str, uri->keyid);
   }
   
   else {
     return 1;
   }
-  
+
+	_fcpLog(FCP_LOG_DEBUG, "uri data follows");
+
+	_fcpLog(FCP_LOG_DEBUG, "uri->keyid: %s",uri->keyid );
+	_fcpLog(FCP_LOG_DEBUG, "uri->path: %s", uri->path);
+	_fcpLog(FCP_LOG_DEBUG, "uri->file: %s", uri->file);
+	_fcpLog(FCP_LOG_DEBUG, "uri->uri_str: %s", uri->uri_str);
+
+	_fcpLog(FCP_LOG_DEBUG, "end of uri data");
+
   return 0;
 }
 

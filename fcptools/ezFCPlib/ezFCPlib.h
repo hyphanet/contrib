@@ -117,7 +117,7 @@
 #define FCPRESP_BUFSIZE  2048
 
 
-#define SPLIT_BLOCK_SIZE       262144    /* default split part size (256*1024) */
+#define CHUNK_BLOCK_SIZE       262144    /* default split part size (256*1024) */
 #define FCP_MAX_SPLIT_THREADS  8
 
 #define SPLIT_INSSTAT_IDLE     0        /* no splitfile insert requested */
@@ -300,17 +300,31 @@ typedef struct {
 
 
 typedef struct {
-	int    type;
+	char  *file_name;
+	int    fd;
+
+	int    file_size;
+	int    file_offset;
 
 	hURI  *uri;
 
-	int    openmode;
-	char  *mimetype;
+} hChunk;
 
-	char  *filename;
-	int    fd;
-	int    fi;
-	int    size;
+
+typedef struct {
+	int       type;
+
+	hURI     *uri;
+
+	int       openmode;
+	int       header_sent;
+	char     *mimetype;
+
+	int       size;
+	int       offset;
+
+	int       chunkCount;
+	hChunk  **chunks;
 } hKey;
 
 
@@ -374,22 +388,22 @@ void           fcpTerminate(void);
 /* Handle management functions */
 hFCP         *_fcpCreateHFCP(void);
 hURI         *_fcpCreateHURI(void);
+	hChunk       *_fcpCreateHChunk(void);
 hKey         *_fcpCreateHKey(void);
 
 int           _fcpParseURI(hURI *uri, char *key);
 
 
-int _fcpParseUri(hKey *key);
-
 /* Handle destruction functions */
 void  _fcpDestroyHFCP(hFCP *);
 void  _fcpDestroyHURI(hURI *);
+void  _fcpDestroyHChunk(hChunk *);
 void  _fcpDestroyHKey(hKey *);
 /* void  _fcpDestroyHSplitChunk(hSplitChunk *); */
 
 /* Key open/close functions */
 int    fcpOpenKeyRead(hFCP *hfcp, char *keyname, char *filename);
-int    fcpOpenKeyWrite(hFCP *hfcp, char *keyname, char *filename);
+int    fcpOpenKeyWrite(hFCP *hfcp, char *keyname);
 
 int    fcpReadKey(hFCP *hfcp, char *buf, int len);
 int    fcpCloseKey(hFCP *hfcp);

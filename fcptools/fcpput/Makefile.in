@@ -81,6 +81,8 @@ am__quote = @am__quote@
 install_sh = @install_sh@
 
 INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
+CFLAGS = -ansi -W -Wall -pedantic -g
+
 bin_PROGRAMS = fcpput
 
 fcpput_LDFLAGS = -L$(top_srcdir)/ezFCPlib -L$(top_srcdir)/fcpcommon
@@ -110,7 +112,6 @@ LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-CFLAGS = @CFLAGS@
 DIST_SOURCES = $(fcpput_SOURCES)
 DIST_COMMON = Makefile.am Makefile.in compile
 SOURCES = $(fcpput_SOURCES)
