@@ -13,9 +13,8 @@
 #define FPROXYRC ".\\.fproxyrc"
 #define OPTIONSTR " -serverAddress "
 #define DEFAULT_IP "tcp/127.0.0.1"
-
-  const char FNetSec[] = "Freenet node";
-  const char FLaunchSec[] = "Freenet Launcher";
+#define FNetSec "Freenet node"
+#define FLaunchSec "Freenet Launcher"
 
 /*----------------------------------------------------------------*/
 void SetCurrentExePath(char *argv){
@@ -119,6 +118,7 @@ int main(int argc,char *argv[])
 	 /* If Listenport is not in Freenet.ini exit without doing anything */
 	if(GetParam(s,"ListenPort",FNetSec, CFGFILE) == NULL) {
 		printf("Error, no port specified, what should I configure then?\n");
+        exit(1);
 	}
 	strcat(appendString,s);
 
@@ -132,7 +132,6 @@ int main(int argc,char *argv[])
 	changeAddress(s,"finsert",FLaunchSec,FLAUNCHER);
 	changeAddress(s,"frequest",FLaunchSec,FLAUNCHER);
 	changeAddress(s,"fproxy",FLaunchSec,FLAUNCHER);
-	WriteParam(appendString,"serverAddress","FProxy",".\\.fproxyrc");
 
 /*As a temporary measure (as long as JavaSearch can't handle this, just set Javaw to the same directory as Java*/
     SetJavawToJavaPath();
