@@ -138,7 +138,7 @@ LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 CFLAGS = @CFLAGS@
 DIST_SOURCES = $(fcpput_SOURCES)
-DIST_COMMON = Makefile.am Makefile.in
+DIST_COMMON = Makefile.am Makefile.in compile
 SOURCES = $(fcpput_SOURCES)
 
 all: all-am

@@ -11,16 +11,35 @@ libezfcp_la_LDFLAGS = -version-info 0:0:0
 
 include_HEADERS = ezFCPlib.h compat.h
 
-FCP_SOURCE = \
-	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c \
-	_fcpRecvResponse.c _fcpSock.c _fcpUtil.c fcpCloseKey.c \
-	fcpCreateHandle.c fcpDestroyHandle.c fcpGetKeyToFile.c \
-	fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c \
-	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c \
-	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c \
-	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c \
-	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c \
-	metaParse.c mimetype.c safeMalloc.c
+FCP_SOURCE = "\
+_fcpLog.c \
+_fcpGlobals.c \
+_fcpPutSplit.c \
+_fcpReadBlk.c \
+_fcpSock.c \
+_fcpRecvResponse.c \
+_fcpUtil.c \
+fcpOpenKey.c \
+ezFCPlib.h \
+fcpCloseKey.c \
+fcpDestroyHandle.c \
+fcpGetKeyToFile.c \
+fcpGetKeyToMem.c \
+fcpMakChkFromMem.c \
+fcpMakeChkFromFile.c \
+fcpMakeSvkKeypair.c \
+fcpStartup.c \
+fcpOpenKeyIndex.c \
+fcpPutKeyFromFile.c \
+fcpPutKeyFromMem.c \
+_fcpCompat.c \
+fcpReadKey.c \
+fcpReadKeyIndex.c \
+fcpWriteKey.c \
+fcpCreation.c \
+fcpWriteKeyIndex.c \
+mimetype.c \
+"
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
 libezfcp_la_SOURCES = $(FCP_SOURCE)
