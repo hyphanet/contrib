@@ -38,6 +38,9 @@ void fcpDestroyHandle(HFCP *hfcp)
 	 if (hfcp->wr_info.uri != NULL)
 		free(hfcp->wr_info.uri);
 
+	 if (hfcp->conn.socket >= 0)
+		_fcpSockDisconnect(hfcp);
+
 	 if (hfcp->malloced)
 		free(hfcp);
   }

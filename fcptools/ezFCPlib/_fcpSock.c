@@ -170,14 +170,17 @@ int _fcpSockConnect(HFCP *hfcp)
 
 void _fcpSockDisconnect(HFCP *hfcp)
 {
+  if (hfcp->conn.socket >= 0)
+  {
 #ifdef WINDOWS
     closesocket(hfcp->conn.socket);
 #else
-  close(hfcp->conn.socket);
+    close(hfcp->conn.socket);
 #endif
-  hfcp->conn.socket = -1;
+    hfcp->conn.socket = -1;
+    _fcpNumOpenSockets--;
+  }
 
-  _fcpNumOpenSockets--;
   _fcpLog(FCP_LOG_DEBUG, "%d open sockets", _fcpNumOpenSockets);
 
 }       // 'fcpClose()'
