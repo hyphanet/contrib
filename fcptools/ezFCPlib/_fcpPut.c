@@ -882,7 +882,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		snprintf(buf, 512,
 						 "SegmentHeader\nFECAlgorithm=OnionFEC_a_1_2\nFileLength=%x\nOffset=%lx\n" \
 						 "BlockCount=%x\nBlockSize=%x\nDataBlockOffset=%x\nCheckBlockCount=%x\n" \
-						 "CheckBlockSize=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
+						 "CheckBlockSize=%x\nCheckBlockOffset=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
 						 
 						 segment->filelength,
 						 segment->offset,
@@ -891,6 +891,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 						 segment->datablock_offset,
 						 segment->checkblock_count,
 						 segment->checkblock_size,
+						 segment->checkblock_offset,
 						 segment->segments,
 						 segment->segment_num,
 						 segment->blocks_required);
