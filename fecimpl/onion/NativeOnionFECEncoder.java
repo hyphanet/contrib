@@ -56,7 +56,7 @@ public class NativeOnionFECEncoder implements FECEncoder {
 
         if (len < C_128M) {
             k = len / blockSize;
-            if ((k % blockSize) != 0) {
+            if ((len % blockSize) != 0) {
                 k++;
             }
         }
