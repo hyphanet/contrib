@@ -10,6 +10,7 @@ that can be implemented by any competent C programmer.
 General
 ----------------
 
++ Test fcpget for all kinds of keys
 + Remove the POSIX dependancy (ugh).
 + Add -ansi for linux platform (development) and restrict everywhere else.
 + Make sure the "undocumented" switches are documented at least in fcpput, fcpget, etc.

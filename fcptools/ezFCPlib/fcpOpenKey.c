@@ -41,27 +41,27 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
 
 int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKey() - mode: %d", mode);
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpOpenKey() - mode: %d", mode);
 
   /* Validate flags */
-  if ((mode & FCP_MODE_O_READ) && (mode & FCP_MODE_O_WRITE))
+  if ((mode & FCPT_MODE_O_READ) && (mode & FCPT_MODE_O_WRITE))
     return -1; /* read/write access is impossible */
   
-  if ((mode & (FCP_MODE_O_READ | FCP_MODE_O_WRITE)) == 0)
+  if ((mode & (FCPT_MODE_O_READ | FCPT_MODE_O_WRITE)) == 0)
     return -1; /* neither selected - illegal */
   
-  if (mode & FCP_MODE_RAW)
+  if (mode & FCPT_MODE_RAW)
     hfcp->options->noredirect = 1;
 
   /* Now perform the read/write specific open */
-  if (mode & FCP_MODE_O_READ)
+  if (mode & FCPT_MODE_O_READ)
     return fcpOpenKeyRead(hfcp, key_uri);
 
-  else if (mode & FCP_MODE_O_WRITE)
+  else if (mode & FCPT_MODE_O_WRITE)
     return fcpOpenKeyWrite(hfcp, key_uri);
   
   else { /* Who knows what's wrong here.. */
-    _fcpLog(FCP_LOG_DEBUG, "invalid file open mode specified: %d", mode);
+    _fcpLog(FCPT_LOG_DEBUG, "invalid file open mode specified: %d", mode);
     return -1;
   }
 }
@@ -79,13 +79,13 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
   int rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKeyRead()");
-	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s", key_uri);
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpOpenKeyRead()");
+	_fcpLog(FCPT_LOG_DEBUG, "key_uri: %s", key_uri);
 
 	/* function must get the key, then determine if it's a normal
 	key or a manifest for a splitfile */
 
-  hfcp->key->openmode = FCP_MODE_O_READ;
+  hfcp->key->openmode = FCPT_MODE_O_READ;
 
   /* store final key uri for later usage */
   if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;
@@ -94,11 +94,11 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 	rc = _fcpGetKeyToFile(hfcp, key_uri, hfcp->key->tmpblock->filename, hfcp->key->metadata->tmpblock->filename);
 	
 	if (rc) { /* bail after cleaning up */
-		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
+		_fcpLog(FCPT_LOG_VERBOSE, "Error retrieving key: %s", hfcp->key->target_uri->uri_str);
 		return -1;
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "retrieved key into tmpblocks: %s", hfcp->key->target_uri->uri_str);
+	_fcpLog(FCPT_LOG_DEBUG, "retrieved key into tmpblocks: %s", hfcp->key->target_uri->uri_str);
 
 	/* now link the files, so that next fcpReadKey() is primed */
 	_fcpBlockLink(hfcp->key->tmpblock, _FCP_READ);
@@ -109,10 +109,10 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 
 static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpOpenKeyWrite()");
-	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s", key_uri);
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpOpenKeyWrite()");
+	_fcpLog(FCPT_LOG_DEBUG, "key_uri: %s", key_uri);
 
-  hfcp->key->openmode = FCP_MODE_O_WRITE;
+  hfcp->key->openmode = FCPT_MODE_O_WRITE;
   
   /* store final key uri for later usage */
   if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;

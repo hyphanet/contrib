@@ -51,11 +51,11 @@ void track(const char *file, const unsigned int line,
 
 /* Global vars to fcpput */
 char           *host;
-unsigned short  port = EZFCP_DEFAULT_PORT;
+unsigned short  port = FCPT_DEF_PORT;
 
-int   verbosity   = FCP_LOG_NORMAL;
-int   htl         = EZFCP_DEFAULT_HTL;
-int   retry       = EZFCP_DEFAULT_RETRY;
+int   verbosity   = FCPT_LOG_NORMAL;
+int   htl         = FCPT_DEF_HTL;
+int   retry       = FCPT_DEF_RETRY;
 int   optmask     = 0;
 int   future      = 0;
 int   min_timeout = 0; /* mininum timeout value */
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
 #endif
 
 	/* set this to the default, and then parse the command line */
-  host = strdup(EZFCP_DEFAULT_HOST);
+  host = strdup(FCPT_DEF_HOST);
 
 	/* now parse switches */
   parse_args(argc, argv);
@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
     int kfd;
     int mfd;
     
-    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_WRITE)) {
+    if (fcpOpenKey(hfcp, keyuri, FCPT_MODE_O_WRITE)) {
 			rc = -1;
 			goto cleanup;
 		}
@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
     /* read the key data from stdin */
     int fd;
     
-    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_WRITE)) {
+    if (fcpOpenKey(hfcp, keyuri, FCPT_MODE_O_WRITE)) {
 			rc = -1;
 			goto cleanup;
 		}
@@ -319,8 +319,6 @@ static void parse_args(int argc, char *argv[])
     {"future-days", 1, 0, 'f'},
     {"min-timeout", 1, 0, 't'},
 
-		{"meta-redirect", 0, 0, 'M'},
-
     {"verbosity", 1, 0, 'v'},
     {"genkeys", 0, 0, 'g'},
 
@@ -332,7 +330,7 @@ static void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:o:sa:Ddf:t:Mv:gVh1";
+  char short_options[] = "n:p:l:m:o:sa:Ddf:t:v:gVh1";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -377,11 +375,11 @@ static void parse_args(int argc, char *argv[])
 			break;
 
     case 'D':
-      optmask |= FCP_MODE_REMOVE_LOCAL;
+      optmask |= FCPT_MODE_REMOVE_LOCAL;
       break;
 			
     case 'd':
-      optmask |= FCP_MODE_DBR;
+      optmask |= FCPT_MODE_DBR;
       break;
 			
 		case 'f':
@@ -393,10 +391,6 @@ static void parse_args(int argc, char *argv[])
 			i = atoi( optarg );
 			if (i > 0) min_timeout = i;
 			break;
-
-		case 'M':
-      optmask |= FCP_MODE_REDIRECT_METADATA;
-      break;
 
     case 'v':
       i = atoi( optarg );

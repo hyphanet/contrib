@@ -48,12 +48,12 @@ int checkjob(PutJob *job) {
 		case INSERT_THREAD_RUNNING:
 #if 0
 			if (( job->starttime + insertTimeout ) < lstart_time ) {
-				_fcpLog(FCP_LOG_CRITICAL, "Cancelling thread operating on %s (timeout after %d seconds)", 
+				_fcpLog(FCPT_LOG_CRITICAL, "Cancelling thread operating on %s (timeout after %d seconds)", 
 					job->fileSlot->filename,  lstart_time - job->starttime);
 				crCancelThread(job->ticket);
 				if (job->fileSlot->insertStatus == INSERT_FILE_SAVEDATA) {
 					if (job->threadStatus != INSERT_THREAD_IDLE) {
-						_fcpLog(FCP_LOG_CRITICAL, "fileSlot DONE but thread not IDLE for %s",
+						_fcpLog(FCPT_LOG_CRITICAL, "fileSlot DONE but thread not IDLE for %s",
 								job->fileSlot->filename);
 						job->threadStatus = INSERT_THREAD_IDLE;
 					}
@@ -104,7 +104,7 @@ int writekey(SiteFile * file) {
 		fclose(fp);
 	}
 
-	_fcpLog(FCP_LOG_VERBOSE, "%s:%08x:%08x:%08x:%s\n", 
+	_fcpLog(FCPT_LOG_VERBOSE, "%s:%08x:%08x:%08x:%s\n", 
 		file->chk, time(NULL), file->ctime, file->size, file->filename);
 	fprintf(nfp, "%s:%08x:%08x:%08x:%s\n", 
 		file->chk, time(NULL), file->ctime, file->size, file->filename);
@@ -195,7 +195,7 @@ int freshen_files(SiteFile * file, int numfiles)
 				}
 			   	else 
 				{
-					_fcpLog(FCP_LOG_VERBOSE, "\t%s: Changed, re-uploading.",
+					_fcpLog(FCPT_LOG_VERBOSE, "\t%s: Changed, re-uploading.",
 						tf->filename);
 							
 				}
@@ -237,7 +237,7 @@ int insertFreesite(PutSiteOptions * _opts)
 	/* scan the directory recursively and get a list of files */
 	if ((files = scan_dir(opts->siteDir, &numFiles)) == NULL)
 	{
-		_fcpLog(FCP_LOG_CRITICAL, "insertFreesite: can't read directory '%s'", opts->siteDir);
+		_fcpLog(FCPT_LOG_CRITICAL, "insertFreesite: can't read directory '%s'", opts->siteDir);
 		return -1;
 	}
 
@@ -252,32 +252,32 @@ int insertFreesite(PutSiteOptions * _opts)
 
 	if (defaultIndex == -1)
 	{
-		_fcpLog(FCP_LOG_CRITICAL, "FATAL: default file '%s' not found", opts->defaultFile);
+		_fcpLog(FCPT_LOG_CRITICAL, "FATAL: default file '%s' not found", opts->defaultFile);
 		free(files);
 		return -1;
 	}
 	freshen_files(files, numFiles);
 
 	/* ok - we can go ahead with the job */
-	_fcpLog(FCP_LOG_VERBOSE, "--------------------------------------------------");
-	_fcpLog(FCP_LOG_VERBOSE, "Inserting site:   %s", opts->siteName);
-	_fcpLog(FCP_LOG_VERBOSE, "--------------------------------------------------");
-	_fcpLog(FCP_LOG_VERBOSE, "Directory:        %s", opts->siteDir);
-	_fcpLog(FCP_LOG_VERBOSE, "Public Key:       %s", opts->pubKey);
-	_fcpLog(FCP_LOG_VERBOSE, "Private Key:      %s", opts->privKey);
-	_fcpLog(FCP_LOG_VERBOSE, "Default file:     %s", opts->defaultFile);
-	_fcpLog(FCP_LOG_VERBOSE, "Days ahead:       %d", opts->daysAhead);
-	_fcpLog(FCP_LOG_VERBOSE, "DBR:              %s", opts->dodbr ? "yes" : "no");
-	_fcpLog(FCP_LOG_VERBOSE, "Maximum threads:  %d", opts->maxThreads);
-	_fcpLog(FCP_LOG_VERBOSE, "Maximum attempts: %d", opts->maxRetries);
+	_fcpLog(FCPT_LOG_VERBOSE, "--------------------------------------------------");
+	_fcpLog(FCPT_LOG_VERBOSE, "Inserting site:   %s", opts->siteName);
+	_fcpLog(FCPT_LOG_VERBOSE, "--------------------------------------------------");
+	_fcpLog(FCPT_LOG_VERBOSE, "Directory:        %s", opts->siteDir);
+	_fcpLog(FCPT_LOG_VERBOSE, "Public Key:       %s", opts->pubKey);
+	_fcpLog(FCPT_LOG_VERBOSE, "Private Key:      %s", opts->privKey);
+	_fcpLog(FCPT_LOG_VERBOSE, "Default file:     %s", opts->defaultFile);
+	_fcpLog(FCPT_LOG_VERBOSE, "Days ahead:       %d", opts->daysAhead);
+	_fcpLog(FCPT_LOG_VERBOSE, "DBR:              %s", opts->dodbr ? "yes" : "no");
+	_fcpLog(FCPT_LOG_VERBOSE, "Maximum threads:  %d", opts->maxThreads);
+	_fcpLog(FCPT_LOG_VERBOSE, "Maximum attempts: %d", opts->maxRetries);
 	if (opts->recordFile)
-	_fcpLog(FCP_LOG_VERBOSE, "Record file:      %s", opts->recordFile);
+	_fcpLog(FCPT_LOG_VERBOSE, "Record file:      %s", opts->recordFile);
 #if 0
 	/* print out list of files */
-	_fcpLog(FCP_LOG_VERBOSE, "Files in directory '%s' are:", opts->siteDir);
+	_fcpLog(FCPT_LOG_VERBOSE, "Files in directory '%s' are:", opts->siteDir);
 	for (i = 0; i < numFiles; i++)
 		if (files[i].insertStatus != INSERT_FILE_DONE)
-			_fcpLog(FCP_LOG_VERBOSE, " %9d %s",
+			_fcpLog(FCPT_LOG_VERBOSE, " %9d %s",
 					files[i].size, files[i].relpath);
 #endif
 
@@ -325,7 +325,7 @@ int insertFreesite(PutSiteOptions * _opts)
 				break;
 		}		
 		
-		_fcpLog(FCP_LOG_VERBOSE, "%d of %d files left",
+		_fcpLog(FCPT_LOG_VERBOSE, "%d of %d files left",
 						jobsToDo, numFiles);
 		
 		if (firstWaitingFile == numFiles) {
@@ -355,20 +355,20 @@ int insertFreesite(PutSiteOptions * _opts)
 			/* no - wait a while and restart */
 			bclicks++;
 			if (!(bclicks % 180)) {
-				_fcpLog(FCP_LOG_DEBUG, "fcpputsite: all thread slots full");
+				_fcpLog(FCPT_LOG_DEBUG, "fcpputsite: all thread slots full");
 			}
 
 			if (!(bclicks % 5))	{
 				/* every Nth iteration */
-				_fcpLog(FCP_LOG_VERBOSE, "Busy clicks: %d", bclicks);
-				_fcpLog(FCP_LOG_DEBUG, "Id Status  Time Filename");
+				_fcpLog(FCPT_LOG_VERBOSE, "Busy clicks: %d", bclicks);
+				_fcpLog(FCPT_LOG_DEBUG, "Id Status  Time Filename");
 
 				for (i=0; i < opts->maxThreads; i++) {
 					int status = job[i].threadStatus;
 					static char *status_str[4] =
 						{ "Idle", "Running", "Done", "Failed" };
 					
-					_fcpLog(FCP_LOG_DEBUG, "%2d%8s %4d %s", i,
+					_fcpLog(FCPT_LOG_DEBUG, "%2d%8s %4d %s", i,
 									status_str[status],
 									(status == INSERT_THREAD_RUNNING ) ? lstart_time - job[i].starttime : 0,
 									(status == INSERT_THREAD_RUNNING ) ? job[i].fileSlot->filename : "");
@@ -378,7 +378,7 @@ int insertFreesite(PutSiteOptions * _opts)
 			continue;
 		}
 		
-		_fcpLog(FCP_LOG_DEBUG, "fcpputsite: found thread slot for inserting %s",
+		_fcpLog(FCPT_LOG_DEBUG, "fcpputsite: found thread slot for inserting %s",
 						strrchr(files[firstWaitingFile].filename, '/')+1);
 		
 		/* Fill out a job form and launch thread */
@@ -395,7 +395,7 @@ int insertFreesite(PutSiteOptions * _opts)
 	}			/* 'while (inserting files)' */
 	
 	
-	_fcpLog(FCP_LOG_DEBUG, "fcpputsite: broke main insert loop");
+	_fcpLog(FCPT_LOG_DEBUG, "fcpputsite: broke main insert loop");
 
 	/* All files are either in progress or done - wait for all to complete */
 
@@ -404,16 +404,16 @@ int insertFreesite(PutSiteOptions * _opts)
 
 		if (files[i].insertStatus != INSERT_FILE_DONE) {
 			if (files[i].insertStatus != INSERT_FILE_FAILED)
-				_fcpLog(FCP_LOG_CRITICAL, "Insane status for '%s'",
+				_fcpLog(FCPT_LOG_CRITICAL, "Insane status for '%s'",
 								files[i].relpath);
 			else
-				_fcpLog(FCP_LOG_CRITICAL, "Failed to insert '%s'",
+				_fcpLog(FCPT_LOG_CRITICAL, "Failed to insert '%s'",
 								files[i].relpath);
 		}
 	}
 	
 	if (jobsFailed) {
-		_fcpLog(FCP_LOG_CRITICAL, "One or more inserts failed - aborting");
+		_fcpLog(FCPT_LOG_CRITICAL, "One or more inserts failed - aborting");
 		return -1;
 	}
 	else {
@@ -431,7 +431,7 @@ int insertFreesite(PutSiteOptions * _opts)
 
 		hfcp = fcpCreateHandle();
 
-		_fcpLog(FCP_LOG_VERBOSE,
+		_fcpLog(FCPT_LOG_VERBOSE,
 			"insertFreesite: file inserts succeeded, inserting metadata");
 
 		/* create a DBR root */
@@ -491,13 +491,13 @@ int insertFreesite(PutSiteOptions * _opts)
 		} /* 'for (each file written to mapfile)' */
 		metaMap = strsav(metaMap, &mapLen, "End\n");
 
-		_fcpLog(FCP_LOG_NORMAL, "METADATA IS %d BYTES LONG", mapLen);
-		/* _fcpLog(FCP_LOG_DEBUG, "METADATA Follows: \n%s", metaMap); */
+		_fcpLog(FCPT_LOG_NORMAL, "METADATA IS %d BYTES LONG", mapLen);
+		/* _fcpLog(FCPT_LOG_DEBUG, "METADATA Follows: \n%s", metaMap); */
 
 		/* insert DBR root */
 		if (opts->dodbr && fcpPutKeyFromMem(hfcp, dbrRootUri, NULL, metaRoot, 0) != 0)
 		{
-			_fcpLog(FCP_LOG_CRITICAL, "Failed to insert DBR root - aborting");
+			_fcpLog(FCPT_LOG_CRITICAL, "Failed to insert DBR root - aborting");
 			return 1;
 		}
 
@@ -507,7 +507,7 @@ int insertFreesite(PutSiteOptions * _opts)
 			if (_fcpPutKeyFromMem(hfcp, dbrTargetUri,
 					NULL, metaMap, 0, mapLen) != 0)
 			{
-				_fcpLog(FCP_LOG_CRITICAL,
+				_fcpLog(FCPT_LOG_CRITICAL,
 					"Failed to insert mapfile at '%s'", dbrTargetUri);
 				return -1;
 			}
@@ -515,14 +515,14 @@ int insertFreesite(PutSiteOptions * _opts)
 		else
 		{
 			/* too big for a ssk, insert map as a chk and redirect to that */
-			_fcpLog(FCP_LOG_CRITICAL,
+			_fcpLog(FCPT_LOG_CRITICAL,
 				"Metadata map at %d bytes is too large - adding CHK step",
 				mapLen);
 			fcpDestroyHandle(hfcp);
 			hfcp = fcpCreateHandle();
 			if (fcpPutKeyFromMem(hfcp, "CHK@", NULL, metaMap, 0) != 0)
 			{
-				_fcpLog(FCP_LOG_CRITICAL, "Failed to insert large mapfile as CHK");
+				_fcpLog(FCPT_LOG_CRITICAL, "Failed to insert large mapfile as CHK");
 				return -1;
 			}
 
@@ -540,15 +540,15 @@ int insertFreesite(PutSiteOptions * _opts)
 			/* now insert at DBR target a redirect to mapfile CHK */
 			if (fcpPutKeyFromMem(hfcp, dbrTargetUri, NULL, metaChk, 0) != 0)
 			{
-				_fcpLog(FCP_LOG_CRITICAL, "Failed to insert large mapfile as CHK");
+				_fcpLog(FCPT_LOG_CRITICAL, "Failed to insert large mapfile as CHK");
 				return -1;
 			}
 		}
 
 		/* should be ok now */
 
-		_fcpLog(FCP_LOG_NORMAL, "============================================");
-		_fcpLog(FCP_LOG_NORMAL,	"Successfully inserted freenet:SSK@%sPAgM/%s// - %d days ahead", opts->pubKey, opts->siteName, opts->daysAhead);
+		_fcpLog(FCPT_LOG_NORMAL, "============================================");
+		_fcpLog(FCPT_LOG_NORMAL,	"Successfully inserted freenet:SSK@%sPAgM/%s// - %d days ahead", opts->pubKey, opts->siteName, opts->daysAhead);
 
 		return 0;
 	} /* !jobsfailed */
@@ -573,11 +573,11 @@ void putsiteThread(void *arg)
 
 	if (job->metadata == NULL)
 	{
-		_fcpLog(FCP_LOG_VERBOSE, "inserting '%s'", job->fileSlot->relpath);
+		_fcpLog(FCPT_LOG_VERBOSE, "inserting '%s'", job->fileSlot->relpath);
 		for (i = job->fileSlot->retries; i < opts->maxRetries; i++)
 		{
 			if (i > 0)
-				_fcpLog(FCP_LOG_NORMAL, "retry %d for file %s",
+				_fcpLog(FCPT_LOG_NORMAL, "retry %d for file %s",
 						i, job->fileSlot->filename);
 
 			if ((status = fcpPutKeyFromFile(hfcp, "CHK@",
@@ -585,7 +585,7 @@ void putsiteThread(void *arg)
 			{
 				/* successful insert */
 				strcpy(job->fileSlot->chk, hfcp->created_uri);
-				_fcpLog(FCP_LOG_NORMAL,
+				_fcpLog(FCPT_LOG_NORMAL,
 						"Successfully inserted %s with %d retries",
 						job->fileSlot->filename, i);
 				break;
@@ -593,7 +593,7 @@ void putsiteThread(void *arg)
 		}
 		if (status != 0)
 		{
-			_fcpLog(FCP_LOG_CRITICAL, "Insert failed after %d retries: %s", opts->maxRetries, job->fileSlot->filename);
+			_fcpLog(FCPT_LOG_CRITICAL, "Insert failed after %d retries: %s", opts->maxRetries, job->fileSlot->filename);
 			job->fileSlot->insertStatus = INSERT_FILE_FAILED;
 			job->threadStatus = INSERT_THREAD_FAILED;
 		}
@@ -605,17 +605,17 @@ void putsiteThread(void *arg)
 	}
 	else
 		{	/* inserting metadata against a given key */
-		_fcpLog(FCP_LOG_VERBOSE, "Inserting metadata at %s", job->key);
-		_fcpLog(FCP_LOG_DEBUG, job->metadata);
+		_fcpLog(FCPT_LOG_VERBOSE, "Inserting metadata at %s", job->key);
+		_fcpLog(FCPT_LOG_DEBUG, job->metadata);
 
 		for (i = job->fileSlot->retries; i < opts->maxRetries; i++)
 		{
 			if (i > 0)
-			_fcpLog(FCP_LOG_NORMAL, "retry %d for key %s", i, job->metadata);
+			_fcpLog(FCPT_LOG_NORMAL, "retry %d for key %s", i, job->metadata);
 
 			if ((status = fcpPutKeyFromMem(hfcp, job->key, NULL, job->metadata, 0)) == 0)
 				{	/* successful insert */
-				_fcpLog(FCP_LOG_NORMAL,
+				_fcpLog(FCPT_LOG_NORMAL,
 						"Successfully inserted key %s with %d retries",
 						job->key, i);
 				break;
@@ -623,7 +623,7 @@ void putsiteThread(void *arg)
 		}
 		if (status != 0)
 		{
-			_fcpLog(FCP_LOG_CRITICAL, "Insert failed after %d retries: %s",
+			_fcpLog(FCPT_LOG_CRITICAL, "Insert failed after %d retries: %s",
 				opts->maxRetries, job->key);
 			job->threadStatus = INSERT_THREAD_FAILED;
 		} else 

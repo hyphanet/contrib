@@ -47,33 +47,32 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 	memset(h, 0, sizeof (hFCP));
 
 	if (!host) {
-		h->host = malloc(sizeof(EZFCP_DEFAULT_HOST + 1));
-		strcpy(h->host, EZFCP_DEFAULT_HOST);
+		h->host = malloc(sizeof(FCPT_DEF_HOST + 1));
+		strcpy(h->host, FCPT_DEF_HOST);
 	}
 	else {
 		h->host = malloc(strlen(host) + 1);
 		strcpy(h->host, host);
 	}
 
-	h->port = (port == 0 ? EZFCP_DEFAULT_PORT : port );
-	h->htl =  (htl  < 0 ? EZFCP_DEFAULT_HTL  : htl  );
+	h->port = (port == 0 ? FCPT_DEF_PORT : port );
+	h->htl =  (htl  < 0 ? FCPT_DEF_HTL  : htl  );
 	
 	h->options = _fcpCreateHOptions();
 
 	/* do the handle option mask */
-	h->options->noredirect       = (optmask & FCP_MODE_RAW ? FCP_MODE_RAW : 0);
-	h->options->remove_local  = (optmask & FCP_MODE_REMOVE_LOCAL ? FCP_MODE_REMOVE_LOCAL : 0);
-	h->options->dbr           = (optmask & FCP_MODE_DBR ? FCP_MODE_DBR : 0);
-	h->options->meta_redirect = (optmask & FCP_MODE_REDIRECT_METADATA ? FCP_MODE_REDIRECT_METADATA : 0);
+	h->options->noredirect       = (optmask & FCPT_MODE_RAW ? FCPT_MODE_RAW : 0);
+	h->options->remove_local  = (optmask & FCPT_MODE_REMOVE_LOCAL ? FCPT_MODE_REMOVE_LOCAL : 0);
+	h->options->dbr           = (optmask & FCPT_MODE_DBR ? FCPT_MODE_DBR : 0);
 
-	_fcpLog(FCP_LOG_DEBUG, "noredirect: %u, remove_local: %u, dbr: %u, meta_redirect: %u",
+	_fcpLog(FCPT_LOG_DEBUG, "noredirect: %u, remove_local: %u, dbr: %u",
 					h->options->noredirect,
 					h->options->remove_local,
-					h->options->dbr,
-					h->options->meta_redirect);
+					h->options->dbr);
 	
-	h->key = _fcpCreateHKey();
-	
+	h->key    = _fcpCreateHKey();
+	h->socket = FCPT_SOCKET_DISCONNECTED;
+		
 	return h;
 }
 
@@ -88,8 +87,7 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl,
 		                hfcp->options->noredirect |
 										hfcp->options->remove_local |
-		                hfcp->options->dbr |
-		                hfcp->options->meta_redirect);
+		                hfcp->options->dbr);
 
 	/* copy over any other options */
 	h->options->timeout = hfcp->options->timeout;
@@ -103,7 +101,7 @@ void fcpDestroyHFCP(hFCP *h)
 {
 	if (h) {
 
-		if (h->socket != FCP_SOCKET_DISCONNECTED) _fcpSockDisconnect(h);
+		if (h->socket != FCPT_SOCKET_DISCONNECTED) _fcpSockDisconnect(h);
 
 		if (h->host) free(h->host);
 		if (h->description) free(h->description);
@@ -118,7 +116,7 @@ void fcpDestroyHFCP(hFCP *h)
 
 		_fcpDestroyResponse(h);
 
-		h->socket = FCP_SOCKET_DISCONNECTED;
+		h->socket = FCPT_SOCKET_DISCONNECTED;
 
 		/* let caller free 'h' */
 	}
@@ -131,13 +129,13 @@ hOptions *_fcpCreateHOptions(void)
 	h = malloc(sizeof (hOptions));
 	memset(h, 0, sizeof (hOptions));
 
-	h->logstream = EZFCP_DEFAULT_LOGSTREAM;		
-	h->remove_local = EZFCP_DEFAULT_DELETELOCAL;
-	h->regress = EZFCP_DEFAULT_REGRESS;
-	h->retry = EZFCP_DEFAULT_RETRY;
-	h->splitblock = EZFCP_DEFAULT_BLOCKSIZE;
-	h->timeout = EZFCP_DEFAULT_TIMEOUT;
-	h->verbosity = EZFCP_DEFAULT_VERBOSITY;
+	h->logstream = FCPT_DEF_LOGSTREAM;		
+	h->remove_local = FCPT_DEF_DELETELOCAL;
+	h->regress = FCPT_DEF_REGRESS;
+	h->retry = FCPT_DEF_RETRY;
+	h->splitblock = FCPT_DEF_BLOCKSIZE;
+	h->timeout = FCPT_DEF_TIMEOUT;
+	h->verbosity = FCPT_DEF_VERBOSITY;
 
 	return h;
 }
@@ -237,7 +235,7 @@ hBlock *_fcpCreateHBlock(void)
 	h->uri = fcpCreateHURI();
 
 	if (_fcpTmpfile(h->filename) != 0) {
-		_fcpLog(FCP_LOG_DEBUG, "could not create temp file %s", h->filename);
+		_fcpLog(FCPT_LOG_DEBUG, "could not create temp file %s", h->filename);
 		return 0;
 	}		
 
@@ -461,19 +459,19 @@ int main(int c, char *argv[])
 	fcpParseHURI(uri, argv[1]);
 
 	switch (uri->type) {
-	case KEY_TYPE_CHK:
+	case FN_KEY_CHK:
 
 		printf("Type CHK\n\n");
 		break;
 
-	case KEY_TYPE_SSK:
+	case FN_KEY_SSK:
 		
 		printf("Type SSK\n\n");
 		printf("*   metastring :%s:\n", uri->metastring);
 		
 		break;
 		
-	case KEY_TYPE_KSK:
+	case FN_KEY_KSK:
 
 		printf("Type KSK\n");
 		printf("*   metastring :%s:\n", uri->metastring);

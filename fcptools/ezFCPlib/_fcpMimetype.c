@@ -365,7 +365,7 @@ char *_fcpGetMimetype(char *filename)
 		}
 	}
 	
-	_fcpLog(FCP_LOG_DEBUG, "no mimetype found in table: returning default");
+	_fcpLog(FCPT_LOG_DEBUG, "no mimetype found in table: returning default");
   
   /* no mimetype found */
   return "application/octet-stream";

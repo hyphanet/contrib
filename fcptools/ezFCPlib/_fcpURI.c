@@ -68,7 +68,7 @@ int fcpParseHURI(hURI *uri, char *key)
 	char *p_key;
 
 	if (strlen(key) >= L_URI) {
-		_fcpLog(FCP_LOG_DEBUG, "uri too large; maximum length is %d", L_URI);
+		_fcpLog(FCPT_LOG_DEBUG, "uri too large; maximum length is %d", L_URI);
 		
 		rc = 1;
 		goto cleanup;
@@ -92,30 +92,30 @@ int fcpParseHURI(hURI *uri, char *key)
   /* classify key header */
   if (!strncasecmp(key, "CHK@", 4)) {
 
-    uri->type = KEY_TYPE_CHK;
+    uri->type = FN_KEY_CHK;
 		key += 4;
 	}
 
   else if (!strncasecmp(key, "SSK@", 4)) {
-    uri->type = KEY_TYPE_SSK;
+    uri->type = FN_KEY_SSK;
 		key += 4;
 	}
 
   else if (!strncasecmp(key, "KSK@", 4)) {
-    uri->type = KEY_TYPE_KSK;
+    uri->type = FN_KEY_KSK;
 		key += 4;
 	}
 		
 	/* when in doubt assume it's a KSK */
   else
-    uri->type = KEY_TYPE_KSK;
+    uri->type = FN_KEY_KSK;
 
 	/*******************************************************************/
 	
 	if (doRoutingKeySection(uri, &key) != 0)
 		goto error;
 	
-	if (uri->type == KEY_TYPE_KSK) {
+	if (uri->type == FN_KEY_KSK) {
 
 		if (*key=='/' && *(key+1)=='/') {
 		
@@ -126,7 +126,7 @@ int fcpParseHURI(hURI *uri, char *key)
 		}
 	}
 	
-	else if (uri->type == KEY_TYPE_CHK) {
+	else if (uri->type == FN_KEY_CHK) {
 	
 		if (*key==',') {
 			
@@ -145,7 +145,7 @@ int fcpParseHURI(hURI *uri, char *key)
 		}
 	}
 		
-	else if (uri->type == KEY_TYPE_SSK) {
+	else if (uri->type == FN_KEY_SSK) {
 		
 		if (*key==',') {
 			
@@ -182,14 +182,14 @@ int fcpParseHURI(hURI *uri, char *key)
 	/* copy over the raw string (p_key holds original address of key) */
 	uri->uri_str = strdup(p_key);
 	
-	_fcpLog(FCP_LOG_DEBUG, "uri: %s", uri->uri_str);
+	_fcpLog(FCPT_LOG_DEBUG, "uri: %s", uri->uri_str);
 	rc = 0;
 
 	goto cleanup;
 
  error:
 	
-	_fcpLog(FCP_LOG_DEBUG, "error parsing invalid Freenet URI");
+	_fcpLog(FCPT_LOG_DEBUG, "error parsing invalid Freenet URI");
 	rc = -1;
 	
  cleanup:
@@ -218,12 +218,12 @@ char *_fcpDBRString(hURI *uri, int future)
 
 	switch (uri->type) {
 
-	case KEY_TYPE_SSK:
+	case FN_KEY_SSK:
 
 		snprintf(uri_str, 1024, "freenet:SSK@%s/%x-%s//", uri->routingkey, (unsigned)days_t, uri->filename);
 		break;
 
-	case KEY_TYPE_KSK:
+	case FN_KEY_KSK:
 
 		snprintf(uri_str, 1024, "freenet:KSK@%x-%s", (unsigned)days_t, uri->routingkey);
 		break;
@@ -250,7 +250,7 @@ static int doRoutingKeySection(hURI *uri, char **key) {
 	
 	uri->routingkey = malloc(L_KEY+1);
 	
-	if (uri->type == KEY_TYPE_KSK) {
+	if (uri->type == FN_KEY_KSK) {
 		
 		i = 0;
 		while (i < L_KEY) {
@@ -269,7 +269,7 @@ static int doRoutingKeySection(hURI *uri, char **key) {
 		*key += i;
 	}
 	
-	else if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_CHK)) {
+	else if ((uri->type == FN_KEY_SSK) || (uri->type == FN_KEY_CHK)) {
 	
 		i = 0;
 		while (i < L_KEY) {
@@ -298,7 +298,7 @@ static int doCryptoKeySection(hURI *uri, char **key) {
 	
 	uri->cryptokey = malloc(L_KEY+1);
 	
-	if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_CHK)) {
+	if ((uri->type == FN_KEY_SSK) || (uri->type == FN_KEY_CHK)) {
 
 		i = 0;
 		while (i < L_KEY) {
@@ -327,7 +327,7 @@ static int doDocnameSection(hURI *uri, char **key) {
 
 	uri->filename = malloc(L_KEY+1);
 	
-	if ((uri->type == KEY_TYPE_SSK) || (uri->type == KEY_TYPE_CHK)) {
+	if ((uri->type == FN_KEY_SSK) || (uri->type == FN_KEY_CHK)) {
 
 		i = 0;
 		while (i < L_KEY) {

@@ -43,10 +43,10 @@ int fcpReadKey(hFCP *hfcp, char *buf, int len)
 
 	rc = _fcpRead(hfcp->key->tmpblock->fd, buf, len);
 	
-	_fcpLog(FCP_LOG_DEBUG, "rc from ReadKey: %d", rc);
+	_fcpLog(FCPT_LOG_DEBUG, "rc from ReadKey: %d", rc);
 	
 	if (rc < 0) {
-		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadKey()");
+		_fcpLog(FCPT_LOG_DEBUG, "error during call to fcpReadKey()");
 		return -1;
 	}
 	
@@ -63,7 +63,7 @@ int fcpReadMetadata(hFCP *hfcp, char *buf, int len)
 	rc = _fcpRead(hfcp->key->metadata->tmpblock->fd, buf, len);
 		
 	if (rc < 0) {
-		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpReadMetadata()");
+		_fcpLog(FCPT_LOG_DEBUG, "error during call to fcpReadMetadata()");
 		return -1;
 	}
 	

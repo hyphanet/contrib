@@ -369,16 +369,16 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 	int recvBytes=0;
     FcpGetJob  *pGetJob;
 
-    _fcpLog(FCP_LOG_VERBOSE, "This is a splitfile");
+    _fcpLog(FCPT_LOG_VERBOSE, "This is a splitfile");
 
 	s3= cdocLookupKey( hfcp->fields, "SplitFile.Size");
 	size= strtol(s3, NULL, 16);
-    _fcpLog(FCP_LOG_VERBOSE, "Size: %d", size);
+    _fcpLog(FCPT_LOG_VERBOSE, "Size: %d", size);
 
 	s3= cdocLookupKey( hfcp->fields, "SplitFile.BlockCount");
 	nb= strtol(s3, NULL, 16);
 	endBlock= nb;
-    _fcpLog(FCP_LOG_VERBOSE, "Blocks: %d", nb);
+    _fcpLog(FCPT_LOG_VERBOSE, "Blocks: %d", nb);
 
 
 
@@ -424,7 +424,7 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 
 			// forking
 
-		    _fcpLog(FCP_LOG_VERBOSE, "Requesting block number %d : %s", lastrequestedblock+1, s3);
+		    _fcpLog(FCPT_LOG_VERBOSE, "Requesting block number %d : %s", lastrequestedblock+1, s3);
 
 			threadStatus[lastrequestedblock+1]=1;
 	        pGetJob = safeMalloc(sizeof(FcpGetJob));
@@ -438,7 +438,7 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 			lastrequestedblock++;
 
 
-   		    _fcpLog(FCP_LOG_VERBOSE, "working: %d | waiting: %d \n", nowSplitWorkingThreads, nowSplitWaitingThreads);
+   		    _fcpLog(FCPT_LOG_VERBOSE, "working: %d | waiting: %d \n", nowSplitWorkingThreads, nowSplitWaitingThreads);
 		}
 
 		// checking all thread slots for an error and counting them
@@ -447,7 +447,7 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 			// this block had an error... putting all status to -2 so the childs know they have to stop
 			if( threadStatus[i]==-1)
 			{
-     		    _fcpLog(FCP_LOG_VERBOSE, "error on block %d. stopping request.", i);
+     		    _fcpLog(FCPT_LOG_VERBOSE, "error on block %d. stopping request.", i);
 				for(i=0; i<nb+1; i++)
 				{
 					threadStatus[i]=-2;
@@ -496,7 +496,7 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 			lastsentblock++;
 
 			if( i>= startBlock && i<=endBlock) {
-			    _fcpLog(FCP_LOG_VERBOSE, "Sending data from block %d : %d bytes", i, blocksizes[i]);
+			    _fcpLog(FCPT_LOG_VERBOSE, "Sending data from block %d : %d bytes", i, blocksizes[i]);
 				recvBytes+=blocksizes[i];
 				if( i==endBlock) {
 
@@ -555,9 +555,9 @@ void splitblockThread( void *job)
 	pMetadata=NULL;
 
 	// requests key
-	_fcpLog(FCP_LOG_VERBOSE, "thread: seeking key '%s'", params->key);
+	_fcpLog(FCPT_LOG_VERBOSE, "thread: seeking key '%s'", params->key);
 	current=fcpGetKeyToMem(hfcpLocal, params->key, params->buffer, &pMetadata);
-	_fcpLog(FCP_LOG_VERBOSE, "thread: retcode %d fetching '%s'", params->key);
+	_fcpLog(FCPT_LOG_VERBOSE, "thread: retcode %d fetching '%s'", params->key);
 
 
 	if( current<0) { // error in request
@@ -579,12 +579,12 @@ void splitblockThread( void *job)
 				 free( *(params->buffer));
 			}
 			nowSplitWaitingThreads--;
-   		    _fcpLog(FCP_LOG_VERBOSE, "working: %d | waiting: %d \n", nowSplitWorkingThreads, nowSplitWaitingThreads);
+   		    _fcpLog(FCPT_LOG_VERBOSE, "working: %d | waiting: %d \n", nowSplitWorkingThreads, nowSplitWaitingThreads);
 			return;
 		}
 	} // waits the father to send back the data to the browser
 	nowSplitWaitingThreads--;
-    _fcpLog(FCP_LOG_VERBOSE, "working: %d | waiting: %d \n", nowSplitWorkingThreads, nowSplitWaitingThreads);
+    _fcpLog(FCPT_LOG_VERBOSE, "working: %d | waiting: %d \n", nowSplitWorkingThreads, nowSplitWaitingThreads);
 }
 
 
@@ -639,7 +639,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
 
         if ((fd = open(fcpreq_gateway, 0)) < 0)
         {
-            _fcpLog(FCP_LOG_CRITICAL, "Can't find default page at '%s'", fcpreq_gateway);
+            _fcpLog(FCPT_LOG_CRITICAL, "Can't find default page at '%s'", fcpreq_gateway);
             fcpreq_404(sock, fcpreq_gateway);
             return -1;
         }
@@ -649,7 +649,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
         while ((len = read(fd, buf, 1024)) > 0)
             send(sock, buf, len, 0);
         close(fd);
-        _fcpLog(FCP_LOG_NORMAL, "No key - sending default gateway page");
+        _fcpLog(FCPT_LOG_NORMAL, "No key - sending default gateway page");
         return 0;
     }
 
@@ -705,7 +705,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
     // END OF FILTHY HACK
 
     // Open Freenet key
-    if (fcpOpenKey(hfcp, freenet_key, _FCP_MODE_O_READ) < 0)
+    if (fcpOpenKey(hfcp, freenet_key, _FCPT_MODE_O_READ) < 0)
     {
         fcpreq_404(sock, freenet_key);
         return -1;
@@ -727,7 +727,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
         send(sock, http_200, strlen(http_200), 0);
 
 		// if its a splitfile, send the length of it to the browser
-		if(hfcp->fields != NULL && hfcp->fields->type == META_TYPE_04_SPLIT)
+		if(hfcp->fields != NULL && hfcp->fields->type == FN_META_04_SPLIT)
 		{
 			sprintf(buf, "Content-Length: %ld\n", strtol(cdocLookupKey( hfcp->fields, "SplitFile.Size"), NULL, 16));
             send(sock, buf, strlen(buf), 0);
@@ -764,7 +764,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
             send(sock, buf, strlen(buf), 0);
         }
 
-		if(hfcp->fields != NULL && hfcp->fields->type == META_TYPE_04_SPLIT)
+		if(hfcp->fields != NULL && hfcp->fields->type == FN_META_04_SPLIT)
 		{
 			// its a splitfile !
 			bytesRcvd= fcpreq_getsplitfile( hfcp, splitWorkThreads, splitMaxThreads, sock, splitStart, splitEnd);
@@ -780,7 +780,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
 	        }
 		}
 
-        _fcpLog(FCP_LOG_VERBOSE, "Total %d bytes from %s", bytesRcvd, freenet_key);
+        _fcpLog(FCPT_LOG_VERBOSE, "Total %d bytes from %s", bytesRcvd, freenet_key);
         fcpCloseKey(hfcp);
     }
 

@@ -61,9 +61,9 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	int rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
-	_fcpLog(FCP_LOG_DEBUG, "Function parameters:");
-	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s, key_filename: %s, meta_filename: %s",
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
+	_fcpLog(FCPT_LOG_DEBUG, "Function parameters:");
+	_fcpLog(FCPT_LOG_DEBUG, "key_uri: %s, key_filename: %s, meta_filename: %s",
 					key_uri,
 					key_filename,
 					meta_filename
@@ -72,8 +72,8 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	/* put the target uri away */
 	fcpParseHURI(hfcp->key->target_uri, key_uri);
 
-	if ((hfcp->key->target_uri->type == KEY_TYPE_CHK) && (hfcp->options->dbr)) {
-		_fcpLog(FCP_LOG_CRITICAL, "Cannot insert a date-based redirect for a CHK");
+	if ((hfcp->key->target_uri->type == FN_KEY_CHK) && (hfcp->options->dbr)) {
+		_fcpLog(FCPT_LOG_CRITICAL, "Cannot insert a date-based redirect for a CHK");
 		return -1;
 	}
 
@@ -81,7 +81,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	if (key_filename) {
 		if ((ul = _fcpFilesize(key_filename)) == (unsigned)~0L) { /* one's complement of zero is error indicator */
 
-			_fcpLog(FCP_LOG_CRITICAL, "Key file not found: %s", key_filename);
+			_fcpLog(FCPT_LOG_CRITICAL, "Key file not found: %s", key_filename);
 			rc = -1;
 			goto cleanup;
 		}
@@ -93,7 +93,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 			_fcpDeleteBlockFile(hfcp->key->tmpblock);
 			
 			if (_fcpBlockSetFilename(hfcp->key->tmpblock, key_filename) != 0) {
-				_fcpLog(FCP_LOG_CRITICAL, "Could not link to key file %s", key_filename);
+				_fcpLog(FCPT_LOG_CRITICAL, "Could not link to key file %s", key_filename);
 				
 				rc = -1;
 				goto cleanup;
@@ -106,7 +106,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	if (meta_filename) {
 		if ((ul = _fcpFilesize(meta_filename)) == (unsigned)~0L) { /* one's complement of zero is error indicator */
 			
-			_fcpLog(FCP_LOG_CRITICAL, "Metadata file not found: %s", meta_filename);
+			_fcpLog(FCPT_LOG_CRITICAL, "Metadata file not found: %s", meta_filename);
 			rc = -1;
 			goto cleanup;
 		}
@@ -117,7 +117,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 			_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 			
 			if (_fcpBlockSetFilename(hfcp->key->metadata->tmpblock, meta_filename) != 0) {
-				_fcpLog(FCP_LOG_CRITICAL, "Could not link to metadata file %s", meta_filename);
+				_fcpLog(FCPT_LOG_CRITICAL, "Could not link to metadata file %s", meta_filename);
 				
 				rc = -1;
 				goto cleanup;
@@ -135,7 +135,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		hfcp->key->mimetype = strdup(_fcpGetMimetype(key_filename));
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
+	_fcpLog(FCPT_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
 
 #ifdef DMALLOC
 	dmalloc_verify(0);
@@ -147,7 +147,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		 encoded splitfile. */
 
 	if (hfcp->key->size > hfcp->options->splitblock) {
-		_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
+		_fcpLog(FCPT_LOG_VERBOSE, "Starting FEC-Encoded insert");
 
 		rc = _fcpPutSplitfile(hfcp);
 
@@ -155,7 +155,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	}
 	
 	else { /* Otherwise, insert as a normal key */
-		_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
+		_fcpLog(FCPT_LOG_VERBOSE, "Starting single file insert");
 
 		rc = _fcpPutBlock(hfcp,
 											hfcp->key->tmpblock,
@@ -169,7 +169,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	}
 
 	if (rc) { /* bail after cleaning up */
-		_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
+		_fcpLog(FCPT_LOG_VERBOSE, "Error inserting file");
 		goto cleanup;
 	}
 
@@ -177,7 +177,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		 re-direct if necessary */
 
 	/* if it's a CHK with NO metadata, skip insertion of the root key */
-	if ((hfcp->key->target_uri->type == KEY_TYPE_CHK) && (hfcp->key->metadata->size == 0)) {
+	if ((hfcp->key->target_uri->type == FN_KEY_CHK) && (hfcp->key->metadata->size == 0)) {
 
 		/* copy over new CHK */
 		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
@@ -186,7 +186,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		
 		if ((rc = _fcpInsertRoot(hfcp)) != 0) {
 
-			_fcpLog(FCP_LOG_DEBUG, "could not insert root key/map file");
+			_fcpLog(FCPT_LOG_DEBUG, "could not insert root key/map file");
 
 			rc = -1;
 			goto cleanup;
@@ -195,7 +195,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 
 	/*fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);*/
 
-	_fcpLog(FCP_LOG_DEBUG, "successfully inserted key %s from file %s", hfcp->key->target_uri->uri_str, key_filename);
+	_fcpLog(FCPT_LOG_DEBUG, "successfully inserted key %s from file %s", hfcp->key->target_uri->uri_str, key_filename);
 	rc = 0;
 
  cleanup: /* rc should be set to an FCP_ERR code (or zero) */
@@ -204,7 +204,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpDeleteBlockFile(hfcp->key->tmpblock);
 	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
-	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
+	_fcpLog(FCPT_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
 
 	return rc;
 }
@@ -236,7 +236,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 	char      *dbr;
 	int        rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpInsertRoot()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered _fcpInsertRoot()");
 
 	/* first let's be careful w/ our pointers, eh? */
 	tmp_hfcp     = 0;
@@ -263,7 +263,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 		
 		/* parse */
 		if (_fcpMetaParse(meta, metadata_raw) != 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Error parsing custom metadata");
+			_fcpLog(FCPT_LOG_CRITICAL, "Error parsing custom metadata");
 			
 			rc = -1;
 			goto cleanup;
@@ -290,7 +290,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 			goto cleanup;
 		}
 
-		_fcpLog(FCP_LOG_DEBUG, "dbr: %s", dbr);
+		_fcpLog(FCPT_LOG_DEBUG, "dbr: %s", dbr);
 		
 		/* store the dbr uri over target_uri */
 		uri = strdup(dbr);
@@ -302,7 +302,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 	}
 	
 	/* open the regular *or* date-coded key (depends on above) */
-	fcpOpenKey(tmp_hfcp, uri, FCP_MODE_O_WRITE);
+	fcpOpenKey(tmp_hfcp, uri, FCPT_MODE_O_WRITE);
 	
 	if (metadata_raw) free(metadata_raw);
 	metadata_raw = _fcpMetaString(meta);
@@ -318,7 +318,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 										tmp_hfcp->key->metadata->tmpblock,
 										tmp_hfcp->key->target_uri->uri_str);
 
-	_fcpLog(FCP_LOG_DEBUG, "inserted redirect key");
+	_fcpLog(FCPT_LOG_DEBUG, "inserted redirect key");
 	
 	/* for DBR's, need to insert root key with DateRedirect.Target cdoc */
 	if (hfcp->options->dbr) {
@@ -328,7 +328,7 @@ int _fcpInsertRoot(hFCP *hfcp)
 
 		tmp_hfcp = fcpInheritHFCP(hfcp);
 		
-		fcpOpenKey(tmp_hfcp, hfcp->key->target_uri->uri_str, FCP_MODE_O_WRITE);
+		fcpOpenKey(tmp_hfcp, hfcp->key->target_uri->uri_str, FCPT_MODE_O_WRITE);
 		
 		snprintf(buf, 8192, "Version\nRevision=1\nEndPart\nDocument\nDateRedirect.Target=%s\nEnd", hfcp->key->target_uri->uri_str);
 		fcpWriteMetadata(tmp_hfcp, buf, strlen(buf));

@@ -56,12 +56,12 @@ void track(const char *file, const unsigned int line,
 	fcpget globals
 */
 char           *host;
-unsigned short  port = EZFCP_DEFAULT_PORT;
+unsigned short  port = FCPT_DEF_PORT;
 
-int   verbosity = FCP_LOG_NORMAL;
-int   htl       = EZFCP_DEFAULT_HTL;
-int   retry     = EZFCP_DEFAULT_RETRY;
-int   regress   = EZFCP_DEFAULT_REGRESS;
+int   verbosity = FCPT_LOG_NORMAL;
+int   htl       = FCPT_DEF_HTL;
+int   retry     = FCPT_DEF_RETRY;
+int   regress   = FCPT_DEF_REGRESS;
 int   optmask   = 0;
 
 char *logfile = 0; /* filename for logfile (if not stdin) */
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
   rc = 0;
 
 	/* set this to the default, and then parse the command line */
-  host = strdup(EZFCP_DEFAULT_HOST);
+  host = strdup(FCPT_DEF_HOST);
   
 	/* now parse switches */
   parse_args(argc, argv);
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
     int fd;
 
     /* this call will fetch the key to local datastore */
-    if (fcpOpenKey(hfcp, keyuri, FCP_MODE_O_READ)) {
+    if (fcpOpenKey(hfcp, keyuri, FCPT_MODE_O_READ)) {
 			rc = -1;
 			goto cleanup;
 		}
@@ -261,7 +261,7 @@ static void parse_args(int argc, char *argv[])
       break;
 			
     case 'r':
-      optmask |= FCP_MODE_RAW;
+      optmask |= FCPT_MODE_RAW;
       break;
       
     case 'm':
@@ -283,7 +283,7 @@ static void parse_args(int argc, char *argv[])
       if (i > 0) regress = i;
       
     case 'D':
-      optmask |= FCP_MODE_REMOVE_LOCAL;
+      optmask |= FCPT_MODE_REMOVE_LOCAL;
       break;
 			
     case 'v':

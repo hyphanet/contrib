@@ -51,7 +51,7 @@ int _fcpBlockLink(hBlock *h, int access)
 	int flag;
 
 	if (h->fd != -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpBlockLink(): %s - fd != -1", h->filename);
+		_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockLink(): %s - fd != -1", h->filename);
 		return -1;
 	}
 
@@ -78,41 +78,41 @@ int _fcpBlockLink(hBlock *h, int access)
 			break;
 
 		default:
-			_fcpLog(FCP_LOG_DEBUG, "_fcpBlockLink(): %s - access mode invalid", h->filename);
+			_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockLink(): %s - access mode invalid", h->filename);
 			return -2;
 	}
 
 	if (h->fd == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "_fcpBlockLink(): %s - open() returned -1", h->filename);
+		_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockLink(): %s - open() returned -1", h->filename);
 		return -1;
 	}
 
 	/* if we reach here, life is peachy */
-	/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockLink(): %s - LINKED", h->filename);*/
+	/*_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockLink(): %s - LINKED", h->filename);*/
 	return 0;
 }
 
 void _fcpBlockUnlink(hBlock *h)
 {
 	if (h->fd == 0) {
-		/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): fd == 0");*/
+		/*_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockUnlink(): fd == 0");*/
 		h->fd = -1;
 		return;
 	}
 
 	if (h->fd == -1) {
-		/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - fd already closed / not opened", h->filename);*/
+		/*_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockUnlink(): %s - fd already closed / not opened", h->filename);*/
 		h->fd = -1;
 		return;
 	}
 
 	if (close(h->fd) == -1) {
-		/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - close() returned -1", h->filename);*/
+		/*_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockUnlink(): %s - close() returned -1", h->filename);*/
 		h->fd = -1;
 		return;
 	}
 
-	/*_fcpLog(FCP_LOG_DEBUG, "_fcpBlockUnlink(): %s - UN*LINKED", h->filename);*/
+	/*_fcpLog(FCPT_LOG_DEBUG, "_fcpBlockUnlink(): %s - UN*LINKED", h->filename);*/
 	h->fd = -1;
 }
 
@@ -145,11 +145,11 @@ int _fcpDeleteBlockFile(hBlock *h)
 	if (h->m_delete) {
 
 		if (h->fd == 0) {
-			_fcpLog(FCP_LOG_DEBUG, "fd==0; this condition should never be reached");
+			_fcpLog(FCPT_LOG_DEBUG, "fd==0; this condition should never be reached");
 			return -1;
 		}
 		if (h->fd > 0) {
-			_fcpLog(FCP_LOG_DEBUG, "fd>0; this file needs to be closed first");
+			_fcpLog(FCPT_LOG_DEBUG, "fd>0; this file needs to be closed first");
 			
 			close(h->fd);
 			h->fd = -1;
@@ -166,18 +166,18 @@ int _fcpDeleteBlockFile(hBlock *h)
 #endif
 			
 		}
-		else _fcpLog(FCP_LOG_DEBUG, "tmpfile doesn't exist apparantly");
+		else _fcpLog(FCPT_LOG_DEBUG, "tmpfile doesn't exist apparantly");
 		
 		if (rc != 0) {
-			_fcpLog(FCP_LOG_DEBUG, "error %d in _fcpDeleteBlockFile(): %s", rc, h->filename);
+			_fcpLog(FCPT_LOG_DEBUG, "error %d in _fcpDeleteBlockFile(): %s", rc, h->filename);
 			return -1;
 		}
 		
-		_fcpLog(FCP_LOG_DEBUG, "deleted file: %s", h->filename);
+		_fcpLog(FCPT_LOG_DEBUG, "deleted file: %s", h->filename);
 	}
 
 	else
-		_fcpLog(FCP_LOG_DEBUG, "file marked for keep.. not deleting %s", h->filename);
+		_fcpLog(FCPT_LOG_DEBUG, "file marked for keep.. not deleting %s", h->filename);
 		
 		
 	h->filename[0] = 0;

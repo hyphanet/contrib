@@ -62,9 +62,9 @@ void track(const char *file, const unsigned int line,
 	 command line should be initialized to "", a zero-length string.
 */
 char           *host;
-unsigned short  port = EZFCP_DEFAULT_PORT;
+unsigned short  port = FCPT_DEF_PORT;
 
-int    verbosity = FCP_LOG_NORMAL;
+int    verbosity = FCPT_LOG_NORMAL;
 char  *logfile = 0;
 FILE  *logstream = 0;
 char  *command = 0;
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 #endif
 	
 	/* set the host first, before parsing command line */
-	host = strdup(EZFCP_DEFAULT_HOST);
+	host = strdup(FCPT_DEF_HOST);
 	
 	/* go thru command line args */
 	parse_args(argc, argv);

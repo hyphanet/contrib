@@ -55,7 +55,7 @@ int fcpStartup(FILE *logstream, int verbosity)
 #endif
 
 	_fcpOpenLog(logstream, verbosity);
-	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpStartup() successfully");
+	_fcpLog(FCPT_LOG_DEBUG, "Exiting fcpStartup() successfully");
 
 	return 0;
 }
@@ -63,7 +63,7 @@ int fcpStartup(FILE *logstream, int verbosity)
 void fcpTerminate(void)
 {
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpTerminate()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpTerminate()");
 	_fcpCloseLog();
 
 #ifdef WIN32

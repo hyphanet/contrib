@@ -1,4 +1,4 @@
-char *jcc_rcs = "$Id: proxy.c,v 1.3 2001/12/02 20:12:32 joliveri Exp $";
+char *jcc_rcs = "$Id: proxy.c,v 1.4 2004/11/08 19:48:04 joliveri Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
@@ -651,7 +651,7 @@ void proxy(int port, int extproxyenabled, char *extproxyaddr, int extproxyport)
 	sprintf(configfile, "%s/.fcpproxyrc", homedir);
 #endif
 
-	_fcpLog(FCP_LOG_VERBOSE, "Sourcing config from file '%s'", configfile);
+	_fcpLog(FCPT_LOG_VERBOSE, "Sourcing config from file '%s'", configfile);
 
 	if((configfp = fopen(configfile, "r")) == NULL)
 	{

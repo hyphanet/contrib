@@ -31,9 +31,6 @@
 
 #include "ez_sys.h"
 
-/* suppress a compiler warning */
-/*char *strdup(const char *s); DELETE ? */
-
 static int  getrespHello(hFCP *);
 static int  getrespInfo(hFCP *);
 static int  getrespSuccess(hFCP *);
@@ -69,85 +66,85 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 		/* return -1 on error, except if it's a TIMEOUT */
 		if (rc <= 0)
-			return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+			return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 
 		else if (rc == 0)
 			return 0;
 	
 		if (!strncmp(resp, "NodeHello", 9)) {
-			hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
+			hfcp->response.type = FCPT_RESPONSE_NODEHELLO;
 			return getrespHello(hfcp);
 		}
 		else if (!strncmp(resp, "NodeInfo", 8)) {
-			hfcp->response.type = FCPRESP_TYPE_NODEINFO;
+			hfcp->response.type = FCPT_RESPONSE_NODEINFO;
 			return getrespInfo(hfcp);
 		}
 		else if (!strcmp(resp, "Success")) {
-			hfcp->response.type = FCPRESP_TYPE_SUCCESS;
+			hfcp->response.type = FCPT_RESPONSE_SUCCESS;
 			return getrespSuccess(hfcp);
 		}
 		
 		else if (!strcmp(resp, "DataFound")) {
-			hfcp->response.type = FCPRESP_TYPE_DATAFOUND;
+			hfcp->response.type = FCPT_RESPONSE_DATAFOUND;
 			return getrespDataFound(hfcp);
 		}
 		else if (!strcmp(resp, "DataChunk")) {
-			hfcp->response.type = FCPRESP_TYPE_DATACHUNK;
+			hfcp->response.type = FCPT_RESPONSE_DATACHUNK;
 			return getrespDataChunk(hfcp);
 		}
 		else if (!strcmp(resp, "DataNotFound")) {
-			hfcp->response.type = FCPRESP_TYPE_DATANOTFOUND;
+			hfcp->response.type = FCPT_RESPONSE_DATANOTFOUND;
 			return getrespDataNotFound(hfcp);
 		}
 		else if (!strcmp(resp, "RouteNotFound")) {
-			hfcp->response.type = FCPRESP_TYPE_ROUTENOTFOUND;
+			hfcp->response.type = FCPT_RESPONSE_ROUTENOTFOUND;
 			return getrespRouteNotFound(hfcp);
 		}
 		
 		else if (!strcmp(resp, "URIError")) {
-			hfcp->response.type = FCPRESP_TYPE_URIERROR;
+			hfcp->response.type = FCPT_RESPONSE_URIERROR;
 			return getrespUriError(hfcp);
 		}
 		else if (!strcmp(resp, "Restarted")) {
-			hfcp->response.type = FCPRESP_TYPE_RESTARTED;
+			hfcp->response.type = FCPT_RESPONSE_RESTARTED;
 			return getrespRestarted(hfcp);
 		}
 		
 		else if (!strcmp(resp, "KeyCollision")) {
-			hfcp->response.type = FCPRESP_TYPE_KEYCOLLISION;
+			hfcp->response.type = FCPT_RESPONSE_KEYCOLLISION;
 			return getrespKeyCollision(hfcp);
 		}
 		else if (!strcmp(resp, "Pending")) {
-			hfcp->response.type = FCPRESP_TYPE_PENDING;
+			hfcp->response.type = FCPT_RESPONSE_PENDING;
 			return getrespPending(hfcp);
 		}
 		
 		else if (!strcmp(resp, "FormatError")) {
-			hfcp->response.type = FCPRESP_TYPE_FORMATERROR;
+			hfcp->response.type = FCPT_RESPONSE_FORMATERROR;
 			return getrespFormatError(hfcp);
 		}
 		else if (!strcmp(resp, "Failed")) {
-			hfcp->response.type = FCPRESP_TYPE_FAILED;
+			hfcp->response.type = FCPT_RESPONSE_FAILED;
 			return getrespFailed(hfcp);
 		}
 		
 		/* FEC specific */
 		else if (!strcmp(resp, "SegmentHeader")) {
-			hfcp->response.type = FCPRESP_TYPE_SEGMENTHEADER;
+			hfcp->response.type = FCPT_RESPONSE_SEGMENTHEADER;
 			return getrespSegmentHeaders(hfcp);
 		}
 		else if (!strcmp(resp, "BlocksEncoded")) {
-			hfcp->response.type = FCPRESP_TYPE_BLOCKSENCODED;
+			hfcp->response.type = FCPT_RESPONSE_BLOCKSENCODED;
 			return getrespBlocksEncoded(hfcp);
 		}
 		else if (!strcmp(resp, "MadeMetadata")) {
-			hfcp->response.type = FCPRESP_TYPE_MADEMETADATA;
+			hfcp->response.type = FCPT_RESPONSE_MADEMETADATA;
 			return getrespMadeMetadata(hfcp);
 		}
 		
 		/* Else, send a warning; a little loose, but this is still in development */
 		else {
-			_fcpLog(FCP_LOG_DEBUG, "_fcpRecvResponse() - received unknown message \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "_fcpRecvResponse() - received unknown message \"%s\"", resp);
 		}
 	}
 	
@@ -165,7 +162,7 @@ static int getrespHello(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received NodeHello response");
+	_fcpLog(FCPT_LOG_DEBUG, "received NodeHello response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -188,14 +185,14 @@ static int getrespHello(hFCP *hfcp)
 		}
 
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_NODEHELLO;
+			return FCPT_RESPONSE_NODEHELLO;
 
 		else
-		_fcpLog(FCP_LOG_DEBUG, "getrespHello() - received unhandled field \"%s\"", resp);
+		_fcpLog(FCPT_LOG_DEBUG, "getrespHello() - received unhandled field \"%s\"", resp);
 	}
 
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -206,7 +203,7 @@ static int getrespInfo(hFCP *hfcp)
 	int  rc;
 
 	rc = 0;
-	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response");
+	_fcpLog(FCPT_LOG_DEBUG, "received NodeInfo response");
 
 	if (hfcp->response.nodeinfo.architecture) free(hfcp->response.nodeinfo.architecture);
 	if (hfcp->response.nodeinfo.operatingsystem) free(hfcp->response.nodeinfo.operatingsystem);
@@ -290,14 +287,14 @@ static int getrespInfo(hFCP *hfcp)
 			hfcp->response.nodeinfo.activejobs = xtol(resp+11);
 		}
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_NODEINFO;
+			return FCPT_RESPONSE_NODEINFO;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespInfo() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespInfo() - received unhandled field \"%s\"", resp);
 	}
 
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -307,7 +304,7 @@ static int getrespSuccess(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received Success response");
+	_fcpLog(FCPT_LOG_DEBUG, "received Success response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -337,15 +334,15 @@ static int getrespSuccess(hFCP *hfcp)
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10)) {
-			return FCPRESP_TYPE_SUCCESS;
+			return FCPT_RESPONSE_SUCCESS;
 		}
 
 		else
-		_fcpLog(FCP_LOG_DEBUG, "getrespSuccess() - received unhandled field \"%s\"", resp);
+		_fcpLog(FCPT_LOG_DEBUG, "getrespSuccess() - received unhandled field \"%s\"", resp);
   }
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -356,7 +353,7 @@ static int getrespDataFound(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received DataFound response");
+	_fcpLog(FCPT_LOG_DEBUG, "received DataFound response");
 
 	hfcp->response.datafound.datalength = 0;
 	hfcp->response.datafound.metadatalength = 0;
@@ -376,18 +373,18 @@ static int getrespDataFound(hFCP *hfcp)
 
 		else if (strncmp(resp, "Timeout=", 8) == 0) {
 			hfcp->options->timeout = hfcp->response.datafound.timeout = (unsigned short)xtol(resp + 8);
-			/*_fcpLog(FCP_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
+			/*_fcpLog(FCPT_LOG_DEBUG, "Timeout: %u", hfcp->options->timeout);*/
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_DATAFOUND;
+			return FCPT_RESPONSE_DATAFOUND;
 
 		else
-		_fcpLog(FCP_LOG_DEBUG, "getrespDataFound() - received unhandled field \"%s\"", resp);
+		_fcpLog(FCPT_LOG_DEBUG, "getrespDataFound() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -408,7 +405,7 @@ static int getrespDataChunk(hFCP *hfcp)
 
 		if (hfcp->response.datachunk.length == 0) {
 
-			_fcpLog(FCP_LOG_DEBUG, "initial allocation of data block");
+			_fcpLog(FCPT_LOG_DEBUG, "initial allocation of data block");
 			hfcp->response.datachunk.data = malloc(len+1);
 		}
 
@@ -420,7 +417,7 @@ static int getrespDataChunk(hFCP *hfcp)
 		hfcp->response.datachunk.length = len;
 	}
 	else {
-		_fcpLog(FCP_LOG_DEBUG, "did not receive expected Length property");
+		_fcpLog(FCPT_LOG_DEBUG, "did not receive expected Length property");
 		return -1;
 	}
 
@@ -428,15 +425,15 @@ static int getrespDataChunk(hFCP *hfcp)
 	rc = _fcpSockRecvln(hfcp, resp, 8192);
 
 	if (strncmp(resp, "Data", 4)) {
-		_fcpLog(FCP_LOG_DEBUG, "did not receive expected Data response line");
+		_fcpLog(FCPT_LOG_DEBUG, "did not receive expected Data response line");
 		return -1;
 	}
 	
 	/* get len bytes of data */
 	if ((rc = _fcpSockRecv(hfcp, hfcp->response.datachunk.data, len)) <= 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 
-	return FCPRESP_TYPE_DATACHUNK;
+	return FCPT_RESPONSE_DATACHUNK;
 }
 
 
@@ -445,19 +442,19 @@ static int getrespDataNotFound(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received DataNotFound response");
+	_fcpLog(FCPT_LOG_DEBUG, "received DataNotFound response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_DATANOTFOUND;
+			return FCPT_RESPONSE_DATANOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespDataNotFound() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespDataNotFound() - received unhandled field \"%s\"", resp);
 	}
 
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -468,7 +465,7 @@ static int getrespRouteNotFound(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received RouteNotFound response");
+	_fcpLog(FCPT_LOG_DEBUG, "received RouteNotFound response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -490,14 +487,14 @@ static int getrespRouteNotFound(hFCP *hfcp)
 			hfcp->response.routenotfound.backedoff = (unsigned short)xtol(resp + 10);
 
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_ROUTENOTFOUND;
+			return FCPT_RESPONSE_ROUTENOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespRouteNotFound() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespRouteNotFound() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -508,7 +505,7 @@ static int getrespUriError(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received URIError response");
+	_fcpLog(FCPT_LOG_DEBUG, "received URIError response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -518,14 +515,14 @@ static int getrespUriError(hFCP *hfcp)
 		}
 
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_URIERROR;
+			return FCPT_RESPONSE_URIERROR;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespUriError() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespUriError() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -543,7 +540,7 @@ static int getrespRestarted(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received Restarted response");
+	_fcpLog(FCPT_LOG_DEBUG, "received Restarted response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -559,14 +556,14 @@ static int getrespRestarted(hFCP *hfcp)
 		}
 
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_RESTARTED;
+			return FCPT_RESPONSE_RESTARTED;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespRestarted() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespRestarted() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -577,7 +574,7 @@ static int getrespKeyCollision(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received KeyCollision response");
+	_fcpLog(FCPT_LOG_DEBUG, "received KeyCollision response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -595,14 +592,14 @@ static int getrespKeyCollision(hFCP *hfcp)
 		}
 
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_KEYCOLLISION;
+			return FCPT_RESPONSE_KEYCOLLISION;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespKeyCollision() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespKeyCollision() - received unhandled field \"%s\"", resp);
   }
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -622,7 +619,7 @@ static int getrespPending(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received Pending response");
+	_fcpLog(FCPT_LOG_DEBUG, "received Pending response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -645,14 +642,14 @@ static int getrespPending(hFCP *hfcp)
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_PENDING;
+			return FCPT_RESPONSE_PENDING;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespPending() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespPending() - received unhandled field \"%s\"", resp);
   }
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -663,7 +660,7 @@ static int getrespPending(hFCP *hfcp)
 
   Arguments    hfcpconn - Freenet FCP handle
 
-  Returns      FCPRESP_TYPE_SUCCESS if successful, -1 otherwise
+  Returns      FCPT_RESPONSE_SUCCESS if successful, -1 otherwise
 
   Description: reads in and processes details of Failed response
 */
@@ -673,7 +670,7 @@ static int getrespFailed(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received Failed response");
+	_fcpLog(FCPT_LOG_DEBUG, "received Failed response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -684,14 +681,14 @@ static int getrespFailed(hFCP *hfcp)
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_FAILED;
+			return FCPT_RESPONSE_FAILED;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespFailed() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespFailed() - received unhandled field \"%s\"", resp);
   }
   
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -712,7 +709,7 @@ static int getrespFormatError(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received FormatError response");
+	_fcpLog(FCPT_LOG_DEBUG, "received FormatError response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -722,14 +719,14 @@ static int getrespFormatError(hFCP *hfcp)
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_FORMATERROR;
+			return FCPT_RESPONSE_FORMATERROR;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespFormatError() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespFormatError() - received unhandled field \"%s\"", resp);
   }
   
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -740,80 +737,80 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received SegmentHeader response");
+	_fcpLog(FCPT_LOG_DEBUG, "received SegmentHeader response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
 		if (!strncmp(resp, "FECAlgorithm=", 13)) {
 			strncpy(hfcp->response.segmentheader.fec_algorithm, resp + 13, L_KEY);
-			_fcpLog(FCP_LOG_DEBUG, "FECAlgorithm: %s", hfcp->response.segmentheader.fec_algorithm);
+			/*_fcpLog(FCPT_LOG_DEBUG, "FECAlgorithm: %s", hfcp->response.segmentheader.fec_algorithm);*/
 		}
 
 		else if (!strncmp(resp, "FileLength=", 11)) {
 			hfcp->response.segmentheader.filelength = xtol(resp + 11);
-			_fcpLog(FCP_LOG_DEBUG, "FileLength: %lu", hfcp->response.segmentheader.filelength);
+			/*_fcpLog(FCPT_LOG_DEBUG, "FileLength: %lu", hfcp->response.segmentheader.filelength);*/
 		}
 
 		else if (!strncmp(resp, "Offset=", 7)) {
 			hfcp->response.segmentheader.offset = xtol(resp + 7);
-			_fcpLog(FCP_LOG_DEBUG, "Offset: %lu", hfcp->response.segmentheader.offset);
+			/*_fcpLog(FCPT_LOG_DEBUG, "Offset: %lu", hfcp->response.segmentheader.offset);*/
 		}
 
 		else if (!strncmp(resp, "BlockCount=", 11)) {
 			hfcp->response.segmentheader.block_count = xtol(resp + 11);
-			_fcpLog(FCP_LOG_DEBUG, "BlockCount: %lu", hfcp->response.segmentheader.block_count);
+			/*_fcpLog(FCPT_LOG_DEBUG, "BlockCount: %lu", hfcp->response.segmentheader.block_count);*/
 		}
 
 		else if (!strncmp(resp, "BlockSize=", 10)) {
 			hfcp->response.segmentheader.block_size = xtol(resp + 10);
-			_fcpLog(FCP_LOG_DEBUG, "BlockSize: %lu", hfcp->response.segmentheader.block_size);
+			/*_fcpLog(FCPT_LOG_DEBUG, "BlockSize: %lu", hfcp->response.segmentheader.block_size);*/
 		}
 
 		else if (!strncmp(resp, "DataBlockOffset=", 16)) {
 			hfcp->response.segmentheader.datablock_offset = xtol(resp + 16);
-			_fcpLog(FCP_LOG_DEBUG, "DataBlockOffset: %lu", hfcp->response.segmentheader.datablock_offset);
+			/*_fcpLog(FCPT_LOG_DEBUG, "DataBlockOffset: %lu", hfcp->response.segmentheader.datablock_offset);*/
 		}
 
 		else if (!strncmp(resp, "CheckBlockCount=", 16)) {
 			hfcp->response.segmentheader.checkblock_count = xtol(resp + 16);
-			_fcpLog(FCP_LOG_DEBUG, "CheckBlockCount: %lu", hfcp->response.segmentheader.checkblock_count);
+			/*_fcpLog(FCPT_LOG_DEBUG, "CheckBlockCount: %lu", hfcp->response.segmentheader.checkblock_count);*/
 		}
 
 		else if (!strncmp(resp, "CheckBlockSize=", 15)) {
 			hfcp->response.segmentheader.checkblock_size = xtol(resp + 15);
-			_fcpLog(FCP_LOG_DEBUG, "CheckBlockSize: %lu", hfcp->response.segmentheader.checkblock_size);
+			/*_fcpLog(FCPT_LOG_DEBUG, "CheckBlockSize: %lu", hfcp->response.segmentheader.checkblock_size);*/
 		}
 
 		else if (!strncmp(resp, "CheckBlockOffset=", 17)) {
 			hfcp->response.segmentheader.checkblock_offset = xtol(resp + 17);
-			_fcpLog(FCP_LOG_DEBUG, "CheckBlockOffset: %lu", hfcp->response.segmentheader.checkblock_offset);
+			/*_fcpLog(FCPT_LOG_DEBUG, "CheckBlockOffset: %lu", hfcp->response.segmentheader.checkblock_offset);*/
 		}
 
 		else if (!strncmp(resp, "Segments=", 9)) {
 			hfcp->response.segmentheader.segments = xtol(resp + 9);
-			_fcpLog(FCP_LOG_DEBUG, "Segments: %lu", hfcp->response.segmentheader.segments);
+			/*_fcpLog(FCPT_LOG_DEBUG, "Segments: %lu", hfcp->response.segmentheader.segments);*/
 		}
 
 		else if (!strncmp(resp, "SegmentNum=", 11)) {
 			hfcp->response.segmentheader.segment_num = xtol(resp + 11);
-			_fcpLog(FCP_LOG_DEBUG, "SegmentNum: %lu", hfcp->response.segmentheader.segment_num);
+			/*_fcpLog(FCPT_LOG_DEBUG, "SegmentNum: %lu", hfcp->response.segmentheader.segment_num);*/
 		}
 
 		else if (!strncmp(resp, "BlocksRequired=", 15)) {
 			hfcp->response.segmentheader.blocks_required = xtol(resp + 15);
-			_fcpLog(FCP_LOG_DEBUG, "BlocksRequired: %lu", hfcp->response.segmentheader.blocks_required);
+			/*_fcpLog(FCPT_LOG_DEBUG, "BlocksRequired: %lu", hfcp->response.segmentheader.blocks_required);*/
 		}
 
  		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_SEGMENTHEADER;
+			return FCPT_RESPONSE_SEGMENTHEADER;
 		
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespSegmentHeaders() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespSegmentHeaders() - received unhandled field \"%s\"", resp);
   }
 	
   /* oops.. there's been a socket error of sorts */
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	
 	else
 		return 0;
@@ -825,7 +822,7 @@ static int getrespBlocksEncoded(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received BlocksEncoded response");
+	_fcpLog(FCPT_LOG_DEBUG, "received BlocksEncoded response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -836,14 +833,14 @@ static int getrespBlocksEncoded(hFCP *hfcp)
 			hfcp->response.blocksencoded.block_size = xtol(resp + 10);
 
  		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_BLOCKSENCODED;
+			return FCPT_RESPONSE_BLOCKSENCODED;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespBlocksEncoded() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespBlocksEncoded() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }
@@ -853,7 +850,7 @@ static int getrespMadeMetadata(hFCP *hfcp)
 	char resp[8193];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "received MadeMetadata response");
+	_fcpLog(FCPT_LOG_DEBUG, "received MadeMetadata response");
 
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
@@ -861,14 +858,14 @@ static int getrespMadeMetadata(hFCP *hfcp)
 			hfcp->response.mademetadata.datalength = xtol(resp + 11);
 
 		else if (!strncmp(resp, "EndMessage", 10))
-			return FCPRESP_TYPE_MADEMETADATA;
+			return FCPT_RESPONSE_MADEMETADATA;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "getrespMadeMetadata() - received unhandled field \"%s\"", resp);
+			_fcpLog(FCPT_LOG_DEBUG, "getrespMadeMetadata() - received unhandled field \"%s\"", resp);
 	}
 	
 	if (rc < 0)
-		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+		return (rc == FCPT_ERR_SOCKET_TIMEOUT ? FCPT_ERR_SOCKET_TIMEOUT : -1);
 	else
 		return 0;
 }

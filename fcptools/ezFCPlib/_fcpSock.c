@@ -62,7 +62,13 @@ int _fcpSockConnect(hFCP *hfcp)
 	struct in_addr  in_address;
 	
 	char fcpID[4] = { 0, 0, 0, 2 };
-	
+
+	/* first ensure we're not re-connecting before a disconnect */
+	if (hfcp->socket != FCPT_SOCKET_DISCONNECTED) {
+		_fcpLog(FCPT_LOG_CRITICAL, "socket already connected.. disconnect first");
+		return -1;
+	}
+		
 	if (host_is_numeric(hfcp->host)) {
 		in_address.s_addr = inet_addr(hfcp->host);
 	}
@@ -88,7 +94,7 @@ int _fcpSockConnect(hFCP *hfcp)
 #endif
 	
 	if (hfcp->socket < 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not create socket");
+		_fcpLog(FCPT_LOG_CRITICAL, "Could not create socket");
 		
 		return -1;
 	}
@@ -106,7 +112,7 @@ int _fcpSockConnect(hFCP *hfcp)
 #endif
 	
 	if (rc != 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not bind to port %u", hfcp->port);
+		_fcpLog(FCPT_LOG_CRITICAL, "Could not bind to port %u", hfcp->port);
 		_fcpSockDisconnect(hfcp);
 		
 		return -1;
@@ -121,7 +127,7 @@ int _fcpSockConnect(hFCP *hfcp)
 #endif
 	
 	if (rc != 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not connect to server %s:%u", hfcp->host, hfcp->port);
+		_fcpLog(FCPT_LOG_CRITICAL, "Could not connect to server %s:%u", hfcp->host, hfcp->port);
 		_fcpSockDisconnect(hfcp);
 		
 		return -1;
@@ -129,24 +135,27 @@ int _fcpSockConnect(hFCP *hfcp)
 	
 	/* Send fcpID */
 	if ((rc = _fcpSend(hfcp->socket, fcpID, 4)) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not send 4-byte ID");
+		_fcpLog(FCPT_LOG_CRITICAL, "Could not send 4-byte ID");
 		_fcpSockDisconnect(hfcp);
 		
 		return -1;
 	}
 	
-	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%u", hfcp->host, hfcp->port);
+	_fcpLog(FCPT_LOG_DEBUG, "_fcpSockConnect() - host: %s:%u", hfcp->host, hfcp->port);
 
 	/* reset the timeout to the default to avoid waiting on the same interval
 	 over and over and over and over again.. */
-	hfcp->options->timeout = EZFCP_DEFAULT_TIMEOUT;
+	hfcp->options->timeout = FCPT_DEF_TIMEOUT;
 
 	return 0;
 }
 
 void _fcpSockDisconnect(hFCP *hfcp)
 {
-	if (hfcp->socket == FCP_SOCKET_DISCONNECTED) return;
+	if (hfcp->socket == FCPT_SOCKET_DISCONNECTED) {
+		_fcpLog(FCPT_LOG_DEBUG, "socket already disconnected by previous call");
+		return;
+	}
 	
 #ifdef WIN32
 	shutdown(hfcp->socket, 2);
@@ -156,8 +165,8 @@ void _fcpSockDisconnect(hFCP *hfcp)
 	close(hfcp->socket);
 #endif
 	
-	hfcp->socket = FCP_SOCKET_DISCONNECTED;
-	_fcpLog(FCP_LOG_DEBUG, "_fcpSockDisconnect()");
+	hfcp->socket = FCPT_SOCKET_DISCONNECTED;
+	_fcpLog(FCPT_LOG_DEBUG, "_fcpSockDisconnect()");
 }
 
 /*******************************************************************/
@@ -203,9 +212,9 @@ int _fcpSend(FCPSOCKET fcpsock, char *buf, int len)
 		if (rc < 0) {
 
 #ifdef WIN32
-			_fcpLog(FCP_LOG_DEBUG, "send() returned error code: %d", WSAGetLastError());
+			_fcpLog(FCPT_LOG_DEBUG, "send() returned error code: %d", WSAGetLastError());
 #else
-			_fcpLog(FCP_LOG_DEBUG, "send() returned error");
+			_fcpLog(FCPT_LOG_DEBUG, "send() returned error");
 #endif
 
 			return -1;
@@ -230,7 +239,7 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 
 	if (hfcp->options->timeout < (hfcp->options->min_timeout * 1000)) {
 		tv.tv_sec = hfcp->options->min_timeout;
-		_fcpLog(FCP_LOG_DEBUG, "raised timeout to mininum value: %u seconds", hfcp->options->min_timeout);
+		_fcpLog(FCPT_LOG_DEBUG, "raised timeout to mininum value: %u seconds", hfcp->options->min_timeout);
 	}
 	else
 		tv.tv_sec = hfcp->options->timeout / 1000;
@@ -243,11 +252,11 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 
 	/* handle this popular case first */	
 	if (rc == -1) {
-		return EZERR_GENERAL;
+		return FCPT_ERR_GENERAL;
 	}
 	/* check for socket timeout */
 	else if (rc == 0) {
-		return EZERR_SOCKET_TIMEOUT;
+		return FCPT_ERR_SOCKET_TIMEOUT;
 	}
 
 	/* otherwise, rc *should* be 1, but any non-zero positive
@@ -261,7 +270,7 @@ int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
 	rc = _fcpRecv(hfcp->socket, buf, len);
 
 	if (rc == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
+		_fcpLog(FCPT_LOG_DEBUG, "unexpectedly lost connection to node");
 		return -1;
 	}
 	else
@@ -281,7 +290,7 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 
 	if (hfcp->options->timeout < (hfcp->options->min_timeout * 1000)) {
 		tv.tv_sec = hfcp->options->min_timeout;
-		_fcpLog(FCP_LOG_DEBUG, "raised timeout to mininum value: %u seconds", hfcp->options->min_timeout);
+		_fcpLog(FCPT_LOG_DEBUG, "raised timeout to mininum value: %u seconds", hfcp->options->min_timeout);
 	}
 	else
 		tv.tv_sec = hfcp->options->timeout / 1000;
@@ -296,11 +305,11 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 
 	/* handle this popular case first */	
 	if (rc == -1) {
-		return EZERR_GENERAL;
+		return FCPT_ERR_GENERAL;
 	}
 	/* check for socket timeout */
 	else if (rc == 0) {
-		return EZERR_SOCKET_TIMEOUT;
+		return FCPT_ERR_SOCKET_TIMEOUT;
 	}
 
 	/* otherwise, rc *should* be 1, but any non-zero positive
@@ -312,12 +321,12 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 		rc = _fcpRecv(hfcp->socket, buf+rcvd, 1);
 
 		if (rc == 0) {
-			_fcpLog(FCP_LOG_DEBUG, "_fcpRecv() returned 0 (indicated an extraneous call)");
+			_fcpLog(FCPT_LOG_DEBUG, "_fcpRecv() returned 0 (indicated an extraneous call)");
 			return 0;
 		}
 
 		if (rc == -1) {
-			_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
+			_fcpLog(FCPT_LOG_DEBUG, "unexpectedly lost connection to node");
 			return -1;
 		}
 
@@ -329,10 +338,10 @@ int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
 			/* put the null bytes on the last char allocated in the array */
 			buf[--rcvd] = 0;
 
-			_fcpLog(FCP_LOG_DEBUG, "truncated line at %u bytes", rcvd);
+			_fcpLog(FCPT_LOG_DEBUG, "truncated line at %u bytes", rcvd);
 
 			snprintf(s, 40, "*%s*", buf);
-			_fcpLog(FCP_LOG_DEBUG, "1st 40 bytes: %s", s);
+			_fcpLog(FCPT_LOG_DEBUG, "1st 40 bytes: %s", s);
 			return rcvd;
 		}
 		else {

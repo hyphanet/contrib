@@ -37,24 +37,24 @@ int fcpClientHello(hFCP *hfcp)
 	char buf[L_FILE_BLOCKSIZE+1];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpSendHello()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpSendHello()");
 
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
 	
 	rc = snprintf(buf, L_FILE_BLOCKSIZE, "ClientHello\nEndMessage\n");
 	
-	_fcpLog(FCP_LOG_DEBUG, "sending ClientHello message");
+	_fcpLog(FCPT_LOG_DEBUG, "sending ClientHello message");
 	
 	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not send ClientHello message to node");
+		_fcpLog(FCPT_LOG_CRITICAL, "Could not send ClientHello message to node");
 		_fcpSockDisconnect(hfcp);
 
 		return -1;
 	}
 	
 	/* expecting a NodeHello response */
-	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEHELLO) {
-		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected NodeHello response");
+	if ((rc = _fcpRecvResponse(hfcp)) != FCPT_RESPONSE_NODEHELLO) {
+		_fcpLog(FCPT_LOG_CRITICAL, "Did not receive expected NodeHello response");
 		_fcpSockDisconnect(hfcp);
 
 		return -1;
@@ -80,23 +80,23 @@ int fcpClientInfo(hFCP *hfcp)
 	char buf[L_FILE_BLOCKSIZE+1];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpClientInfo()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpClientInfo()");
 
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
 	
 	rc = snprintf(buf, L_FILE_BLOCKSIZE, "ClientInfo\nEndMessage\n");
 	
-	_fcpLog(FCP_LOG_DEBUG, "sending ClientInfo message");
+	_fcpLog(FCPT_LOG_DEBUG, "sending ClientInfo message");
 	
 	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
-		_fcpLog(FCP_LOG_CRITICAL, "Could not send ClientHello message to node");
+		_fcpLog(FCPT_LOG_CRITICAL, "Could not send ClientHello message to node");
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
 	
 	/* expecting a NodeInfo response */
-	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEINFO) {
-		_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected NodeInfo response");
+	if ((rc = _fcpRecvResponse(hfcp)) != FCPT_RESPONSE_NODEINFO) {
+		_fcpLog(FCPT_LOG_CRITICAL, "Did not receive expected NodeInfo response");
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
@@ -112,25 +112,25 @@ int fcpInvertPrivateKey(hFCP *hfcp)
 	char buf[L_FILE_BLOCKSIZE+1];
 	int  rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpInvertPrivateKey()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpInvertPrivateKey()");
 
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
 	
 	rc = snprintf(buf, L_FILE_BLOCKSIZE, "InvertPrivateKey\nPrivate=%s\nEndMessage\n",
 		hfcp->key->private_key);
 	
-	_fcpLog(FCP_LOG_DEBUG, "sending InvertPrivateKey message");
+	_fcpLog(FCPT_LOG_DEBUG, "sending InvertPrivateKey message");
 	
 	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not send InvertPrivateKey message");
+		_fcpLog(FCPT_LOG_VERBOSE, "Could not send InvertPrivateKey message");
 		
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
 	
 	/* expecting a Success response */
-	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_SUCCESS) {
-		_fcpLog(FCP_LOG_VERBOSE, "fcpInvertPrivateKey(): error returned from node: %d", rc);
+	if ((rc = _fcpRecvResponse(hfcp)) != FCPT_RESPONSE_SUCCESS) {
+		_fcpLog(FCPT_LOG_VERBOSE, "fcpInvertPrivateKey(): error returned from node: %d", rc);
 
 		_fcpSockDisconnect(hfcp);
 		return -1;

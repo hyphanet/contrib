@@ -43,7 +43,7 @@ static int   verbosity;
 */
 void _fcpLog(int level, char *format, ...)
 {
-	char  buf[FCP_LOG_MESSAGE_SIZE + 1];
+	char  buf[FCPT_LOG_MESSAGE_SIZE + 1];
 
 	/* thanks mjr for the idea */
 	va_list ap;
@@ -52,23 +52,23 @@ void _fcpLog(int level, char *format, ...)
 	if (level > verbosity) return;
 	
 	va_start(ap, format);
-	vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
+	vsnprintf(buf, FCPT_LOG_MESSAGE_SIZE, format, ap);
 	va_end(ap);
 
 	switch (level) {
-	case FCP_LOG_CRITICAL: /*1*/
+	case FCPT_LOG_CRITICAL: /*1*/
 		fprintf(logstream, "%s\n", buf);
 		break;
 		
-	case FCP_LOG_NORMAL: /*2*/
+	case FCPT_LOG_NORMAL: /*2*/
 		fprintf(logstream, "%s\n", buf);
 		break;
 		
-	case FCP_LOG_VERBOSE: /*3*/
+	case FCPT_LOG_VERBOSE: /*3*/
 		fprintf(logstream, "+ %s\n", buf);
 		break;
 		
-	case FCP_LOG_DEBUG: /*4*/
+	case FCPT_LOG_DEBUG: /*4*/
 		fprintf(logstream, "D %s\n", buf);
 		break;
 	}
@@ -78,7 +78,7 @@ void _fcpLog(int level, char *format, ...)
 
 void _fcpOpenLog(FILE *f, int v)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpOpenLog()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered _fcpOpenLog()");
 
 	logstream = f;
 	verbosity = v;
@@ -86,6 +86,6 @@ void _fcpOpenLog(FILE *f, int v)
 
 void _fcpCloseLog(void)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpCloseLog() [empty function]");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered _fcpCloseLog() [empty function]");
 }
 

@@ -46,7 +46,7 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 	rc = _fcpWrite(hfcp->key->tmpblock->fd, buf, len);
 		
 	if (rc < 0) {
-		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteKey()");
+		_fcpLog(FCPT_LOG_DEBUG, "error during call to fcpWriteKey()");
 		return -1;
 	}
 	
@@ -66,7 +66,7 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 	rc = _fcpWrite(hfcp->key->metadata->tmpblock->fd, buf, len);
 	
 	if (rc < 0) {
-		_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteMetadata()");
+		_fcpLog(FCPT_LOG_DEBUG, "error during call to fcpWriteMetadata()");
 		return -1;
 	}
 	

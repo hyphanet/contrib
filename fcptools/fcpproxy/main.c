@@ -40,7 +40,7 @@ int nowSplitWaitingThreads=0; // total number of splitfiles chunks being request
 char *nodeAddr = "localhost";
 int nodePort = 8481;
 int browsePort = -1;
-int verbosity = FCP_LOG_NORMAL;
+int verbosity = FCPT_LOG_NORMAL;
 
 char *webBlockPass = NULL;         // password for 'http://free/[no]block?password'
 

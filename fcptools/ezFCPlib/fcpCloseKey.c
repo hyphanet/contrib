@@ -39,10 +39,10 @@ static int fcpCloseKeyWrite(hFCP *hfcp);
 
 int fcpCloseKey(hFCP *hfcp)
 {
-  if (hfcp->key->openmode & FCP_MODE_O_READ)
+  if (hfcp->key->openmode & FCPT_MODE_O_READ)
 	 return fcpCloseKeyRead(hfcp);
 
-  else if (hfcp->key->openmode & FCP_MODE_O_WRITE)
+  else if (hfcp->key->openmode & FCPT_MODE_O_WRITE)
 	 return fcpCloseKeyWrite(hfcp);
 
   else
@@ -52,7 +52,7 @@ int fcpCloseKey(hFCP *hfcp)
 
 static int fcpCloseKeyRead(hFCP *hfcp)
 {
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyRead()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpCloseKeyRead()");
 
 	/* unlink both files */
 	_fcpBlockUnlink(hfcp->key->tmpblock);
@@ -62,7 +62,7 @@ static int fcpCloseKeyRead(hFCP *hfcp)
 	_fcpDeleteBlockFile(hfcp->key->tmpblock);
 	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
-	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpCloseKeyRead()");
+	_fcpLog(FCPT_LOG_DEBUG, "Exiting fcpCloseKeyRead()");
 
   return 0;
 }
@@ -80,7 +80,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	unsigned long key_size;
 	unsigned long meta_size;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
 
 	/* unlink both files */
 	_fcpBlockUnlink(hfcp->key->tmpblock);
@@ -91,7 +91,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 
 	if (!hfcp->key->mimetype) fcpSetMimetype(hfcp->key, "application/octet-stream");
 
-	_fcpLog(FCP_LOG_DEBUG, "mimetype: %s", hfcp->key->mimetype);
+	_fcpLog(FCPT_LOG_DEBUG, "mimetype: %s", hfcp->key->mimetype);
 
 #ifdef DMALLOC
 	dmalloc_verify(0);
@@ -99,12 +99,12 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 #endif
 
 	if (key_size > hfcp->options->splitblock) {
-		_fcpLog(FCP_LOG_VERBOSE, "Starting FEC-Encoded insert");
+		_fcpLog(FCPT_LOG_VERBOSE, "Starting FEC-Encoded insert");
 		
 		rc = _fcpPutSplitfile(hfcp);
 	}
 	else {
-		_fcpLog(FCP_LOG_VERBOSE, "Starting single file insert");
+		_fcpLog(FCPT_LOG_VERBOSE, "Starting single file insert");
 		
 		rc = _fcpPutBlock(hfcp,
 											hfcp->key->tmpblock,
@@ -113,7 +113,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	}
 	
 	if (rc) { /* bail after cleaning up */
-		_fcpLog(FCP_LOG_VERBOSE, "Error inserting file");
+		_fcpLog(FCPT_LOG_VERBOSE, "Error inserting file");
 		goto cleanup;
 	}
 
@@ -124,7 +124,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		 re-direct if necessary */
 
 	/* if it's a CHK with NO metadata, skip insertion of the root key */
-	if ((hfcp->key->target_uri->type == KEY_TYPE_CHK) && (meta_size == 0)) {
+	if ((hfcp->key->target_uri->type == FN_KEY_CHK) && (meta_size == 0)) {
 
 		/* copy over new CHK */
 		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
@@ -133,14 +133,14 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		
 		if ((rc = _fcpInsertRoot(hfcp)) != 0) {
 
-			_fcpLog(FCP_LOG_DEBUG, "could not insert root key/map file");
+			_fcpLog(FCPT_LOG_DEBUG, "could not insert root key/map file");
 
 			rc = -1;
 			goto cleanup;
 		}
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "successfully inserted key %s", hfcp->key->target_uri->uri_str);
+	_fcpLog(FCPT_LOG_DEBUG, "successfully inserted key %s", hfcp->key->target_uri->uri_str);
 	rc = 0;
 
  cleanup: /* rc should be set to an FCP_ERR code (or zero) */
@@ -149,7 +149,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	_fcpDeleteBlockFile(hfcp->key->tmpblock);
 	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
-	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpCloseKeyWrite()");
+	_fcpLog(FCPT_LOG_DEBUG, "Exiting fcpCloseKeyWrite()");
 	return rc;
 }
 

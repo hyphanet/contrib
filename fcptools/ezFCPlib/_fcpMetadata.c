@@ -76,11 +76,11 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 	int   rc;
 
 	if (!meta) {
-		_fcpLog(FCP_LOG_DEBUG, "meta is NULL");
+		_fcpLog(FCPT_LOG_DEBUG, "meta is NULL");
 		return -1;
 	}
 	
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpMetaParse()");
+	_fcpLog(FCPT_LOG_DEBUG, "Entered _fcpMetaParse()");
 
 	/* here's the silly use of _start; holds the 'start' value so that we can
 		 return a 'state' value as well */
@@ -96,7 +96,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 			rc = parse_version(meta, buf);
 
 			if ((rc != STATE_WAIT_DOCUMENT) && (rc != STATE_END)) {
-				_fcpLog(FCP_LOG_DEBUG, "expected Version body");
+				_fcpLog(FCPT_LOG_DEBUG, "expected Version body");
 				return -1;
 			}
 		}
@@ -105,7 +105,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 			rc = parse_document(meta, buf);
 
 			if ((rc != STATE_WAIT_DOCUMENT) && (rc != STATE_END)) {
-				_fcpLog(FCP_LOG_DEBUG, "expected Document body");
+				_fcpLog(FCPT_LOG_DEBUG, "expected Document body");
 				return -1;
 			}
 		}
@@ -114,7 +114,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 			
 			/* if there's a rest section to merge with another rest section, bail */
 			if ((meta->rest) && (buf[meta->_start] != 0)) {
-				_fcpLog(FCP_LOG_CRITICAL, "Cannot merge 2 sets of 'REST' section metadata");
+				_fcpLog(FCPT_LOG_CRITICAL, "Cannot merge 2 sets of 'REST' section metadata");
 				return -1;
 			}
 			
@@ -132,7 +132,7 @@ int _fcpMetaParse(hMetadata *meta, char *buf)
 	if (meta->raw) free(meta->raw);
 	meta->raw = strdup(buf);
 	
-	_fcpLog(FCP_LOG_DEBUG, "Exiting _fcpMetaParse()");
+	_fcpLog(FCPT_LOG_DEBUG, "Exiting _fcpMetaParse()");
 	return 0;
 }
 
@@ -253,7 +253,7 @@ int cdocAddKey(hDocument *doc, char *key, char *val)
 	doc->data[field_index]   = strdup(key);
 	doc->data[field_index+1] = strdup(val);
 	
-	_fcpLog(FCP_LOG_DEBUG, "stored %s/%s in locations %d,%d", key, val, field_index, field_index+1);
+	_fcpLog(FCPT_LOG_DEBUG, "stored %s/%s in locations %d,%d", key, val, field_index, field_index+1);
 	
 	return 0;
 }
@@ -387,7 +387,7 @@ static int getLine(char *line, char *buf, int start)
 	line[line_index] = 0;
 
 	if (line_index > 512)
-		_fcpLog(FCP_LOG_DEBUG, "warning; line of metadata truncated at 512 bytes");
+		_fcpLog(FCPT_LOG_DEBUG, "warning; line of metadata truncated at 512 bytes");
 
 	if (buf[start + line_index] == '\n') line_index++;
 
@@ -405,37 +405,37 @@ static int parse_version(hMetadata *meta, char *buf)
 	
 	while ((meta->_start = getLine(line, buf, meta->_start)) >= 0) {
 
-		_fcpLog(FCP_LOG_DEBUG, "read line \"%s\"", line);
+		_fcpLog(FCPT_LOG_DEBUG, "read line \"%s\"", line);
 
 		if (!strncasecmp(line, "Revision=", 9)) {
 
 			if (splitLine(line, key, val)) {
-				_fcpLog(FCP_LOG_DEBUG, "expected value for Revision key");
+				_fcpLog(FCPT_LOG_DEBUG, "expected value for Revision key");
 				return -1;
 			}
 
 			l = xtol(val);
 
 			if ((meta->revision != 0) && (meta->revision != l)) {
-				_fcpLog(FCP_LOG_CRITICAL, "Metadata versions do not match");
+				_fcpLog(FCPT_LOG_CRITICAL, "Metadata versions do not match");
 				return -1;
 			}
 
 			meta->revision = l; /* redundant but ok */
 
-			_fcpLog(FCP_LOG_DEBUG, "key Revision; val \"%s\"", val);
+			_fcpLog(FCPT_LOG_DEBUG, "key Revision; val \"%s\"", val);
 		}
 	
 		else if (!strncasecmp(line, "Encoding=", 9)) {
 			
 			if (splitLine(line, key, val)) {
-				_fcpLog(FCP_LOG_DEBUG, "expected value for Encoding key");
+				_fcpLog(FCPT_LOG_DEBUG, "expected value for Encoding key");
 				return -1;
 			}
 
 			meta->encoding = strdup(val);
 
-			_fcpLog(FCP_LOG_DEBUG, "key Encoding; val \"%s\"", val);
+			_fcpLog(FCPT_LOG_DEBUG, "key Encoding; val \"%s\"", val);
 		}
 
 		else if (!strncasecmp(line, "EndPart", 7)) {
@@ -447,7 +447,7 @@ static int parse_version(hMetadata *meta, char *buf)
 		}
 
 		else {
-			_fcpLog(FCP_LOG_DEBUG, "encountered unhandled pair; \"%s\"", line);
+			_fcpLog(FCPT_LOG_DEBUG, "encountered unhandled pair; \"%s\"", line);
 		}
 	}
 
@@ -510,13 +510,13 @@ static int parse_document(hMetadata *meta, char *buf)
 			if (doc->type == 0) {
 
 				if (!strncasecmp(key, "Redirect.", 9))
-					doc->type = META_TYPE_REDIRECT;
+					doc->type = FN_META_REDIRECT;
 				
 				else if (!strncasecmp(key, "DateRedirect.", 13))
-					doc->type = META_TYPE_DBR;
+					doc->type = FN_META_DBR;
 				
 				else if (!strncasecmp(key, "SplitFile.", 10))
-					doc->type = META_TYPE_SPLITFILE;
+					doc->type = FN_META_SPLITFILE;
 			}
 
 		} /* end of processing key/val pairs */
@@ -537,7 +537,7 @@ static int parse_document(hMetadata *meta, char *buf)
 			}
 			
 			else {
-				_fcpLog(FCP_LOG_DEBUG, "encountered unexpected token; \"%s\"", line);
+				_fcpLog(FCPT_LOG_DEBUG, "encountered unexpected token; \"%s\"", line);
 			}
 		}
 	}

@@ -40,9 +40,9 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 {
 	int rc;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered fcpGetKeyToFile()");
-	_fcpLog(FCP_LOG_DEBUG, "Function parameters:");
-	_fcpLog(FCP_LOG_DEBUG, "key_uri: %s, key_filename: %s, meta_filename: %s",
+	_fcpLog(FCPT_LOG_DEBUG, "Entered fcpGetKeyToFile()");
+	_fcpLog(FCPT_LOG_DEBUG, "Function parameters:");
+	_fcpLog(FCPT_LOG_DEBUG, "key_uri: %s, key_filename: %s, meta_filename: %s",
 					key_uri,
 					key_filename,
 					meta_filename
@@ -57,7 +57,7 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	if (key_filename) {
 		
 		if (_fcpBlockSetFilename(hfcp->key->tmpblock, key_filename) != 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not link to key file %s", key_filename);
+			_fcpLog(FCPT_LOG_CRITICAL, "Could not link to key file %s", key_filename);
 			
 			rc = -1;
 			goto cleanup;
@@ -70,7 +70,7 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	if (meta_filename) {
 		
 		if (_fcpBlockSetFilename(hfcp->key->metadata->tmpblock, meta_filename) != 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "Could not link to metadata file %s", meta_filename);
+			_fcpLog(FCPT_LOG_CRITICAL, "Could not link to metadata file %s", meta_filename);
 			
 			rc = -1;
 			goto cleanup;
@@ -88,7 +88,7 @@ cleanup:
 	_fcpDeleteBlockFile(hfcp->key->tmpblock);
 	_fcpDeleteBlockFile(hfcp->key->metadata->tmpblock);
 
-	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
+	_fcpLog(FCPT_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
 
 	return rc;
 }
@@ -105,15 +105,15 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 	doc      = 0;
 	next_uri = 0;
 
-	_fcpLog(FCP_LOG_VERBOSE, "Fetching first block");
+	_fcpLog(FCPT_LOG_VERBOSE, "Fetching first block");
 
 	if (hfcp->options->noredirect != 0) {
+		
 		get_next = 0;		
-		_fcpLog(FCP_LOG_VERBOSE, "Starting single retrieve (no redirects)");
+		_fcpLog(FCPT_LOG_VERBOSE, "Starting single retrieve (no redirects)");
 	}
-	else {
+	else
 		get_next = 1;
-	}
 	
 	rc = _fcpGetBLock(hfcp,
 										hfcp->key->tmpblock,
@@ -121,13 +121,13 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 										key_uri);
 	
 	if (rc) { /* bail after cleaning up */
-		_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key");
+		_fcpLog(FCPT_LOG_VERBOSE, "Error retrieving key");
 
 		rc = -1;
 		goto cleanup;
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "successfully retrieved the 1st block..");
+	_fcpLog(FCPT_LOG_DEBUG, "successfully retrieved the 1st block..");
 	
 	/* Here, the key and meta data is within the tmpblocks */
 	
@@ -136,7 +136,7 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 		doc = cdocFindDoc(hfcp->key->metadata, hfcp->key->target_uri->metastring);
 
 		if (doc)
-			_fcpLog(FCP_LOG_DEBUG, "docname: %s, format: %s, description: %s\n",
+			_fcpLog(FCPT_LOG_DEBUG, "docname: %s, format: %s, description: %s\n",
 				doc->name, doc->format, doc->description);
 			
 		if (!doc)
@@ -150,20 +150,20 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 
 			switch (doc->type) {
 
-			case META_TYPE_REDIRECT:
+			case FN_META_REDIRECT:
 				next_uri = strdup(cdocLookupKey(doc, "Redirect.Target"));
 				break;
 				
-			case META_TYPE_DBR:
+			case FN_META_DBR:
 				next_uri = _fcpDBRString(hfcp->key->target_uri, hfcp->options->future);
 				break;
 				
-			case META_TYPE_SPLITFILE:
+			case FN_META_SPLITFILE:
 				rc = _fcpGetSplitfile(hfcp);
 				break;
 	
 			default:
-				_fcpLog(FCP_LOG_DEBUG, "note: unhandled doctype: %d", doc->type);
+				_fcpLog(FCPT_LOG_DEBUG, "note: unhandled doctype: %d", doc->type);
 				break;
 			}
 		}
@@ -176,7 +176,7 @@ int _fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_f
 												next_uri);
 			
 			if (rc) { /* bail after cleaning up */
-				_fcpLog(FCP_LOG_VERBOSE, "Error retrieving key");
+				_fcpLog(FCPT_LOG_VERBOSE, "Error retrieving key");
 				
 				rc = -1;
 				goto cleanup;
@@ -190,6 +190,6 @@ cleanup:
 
 	if (next_uri) free(next_uri);
 
-	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
+	_fcpLog(FCPT_LOG_DEBUG, "Exiting fcpGetKeyToFile()");
 	return rc;
 }

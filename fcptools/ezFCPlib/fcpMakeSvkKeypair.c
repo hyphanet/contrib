@@ -42,7 +42,7 @@ int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *crypt_key
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
 
-	_fcpLog(FCP_LOG_VERBOSE, "Entered GenerateSVKPair()");
+	_fcpLog(FCPT_LOG_VERBOSE, "Entered GenerateSVKPair()");
 
 	/* try to connect first.. bomb otherwise */
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
@@ -50,12 +50,12 @@ int fcpMakeSvkKeypair(hFCP *hfcp, char *pub_key, char *priv_key, char *crypt_key
 	strcpy(buf, "GenerateSVKPair\nEndMessage\n");
 	
 	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
-		_fcpLog(FCP_LOG_VERBOSE, "Could not send GenerateSVKPair message");
+		_fcpLog(FCPT_LOG_VERBOSE, "Could not send GenerateSVKPair message");
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
   
-  if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_SUCCESS) {
+  if ((rc = _fcpRecvResponse(hfcp)) != FCPT_RESPONSE_SUCCESS) {
     _fcpSockDisconnect(hfcp);
     return -1;
   }

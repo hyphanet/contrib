@@ -100,102 +100,89 @@ typedef int FCPSOCKET;
 #include <stdio.h>
 
 /*************************************************************************/
+/* Reasonable defaults */
+/*************************************************************************/
+#define FCPT_DEF_HOST         "127.0.0.1"
+#define FCPT_DEF_PORT         8481
+#define FCPT_DEF_HTL          3
+#define FCPT_DEF_VERBOSITY    FCPT_LOG_NORMAL
+#define FCPT_DEF_LOGSTREAM    stdout
+#define FCPT_DEF_BLOCKSIZE    262144  /* default split part size (256kB) */
+#define FCPT_DEF_RETRY        5
+#define FCPT_DEF_REGRESS      0
+#define FCPT_DEF_DELETELOCAL  0
+#define FCPT_DEF_SKIPLOCAL    0
+#define FCPT_DEF_RAWMODE      0
+#define FCPT_DEF_TIMEOUT      420000 /* 7 minutes in milliseconds */
+/*************************************************************************/
+
+/* Log verbosity values */
+#define FCPT_LOG_SILENT        0
+#define FCPT_LOG_CRITICAL      1
+#define FCPT_LOG_NORMAL        2
+#define FCPT_LOG_VERBOSE       3
+#define FCPT_LOG_DEBUG         4
+#define FCPT_LOG_MESSAGE_SIZE  4096
+
+/* Option flags; these must be powers of 2 */
+#define FCPT_MODE_O_READ              0x0001 /* 0000 0001 */
+#define FCPT_MODE_O_WRITE             0x0002 /* 0000 0010 */
+#define FCPT_MODE_RAW                 0x0004 /* 0000 0100 */
+#define FCPT_MODE_REMOVE_LOCAL        0x0008 /* 0000 1000 */
+#define FCPT_MODE_DBR                 0x0020 /* 0001 0000 */
+
+/* Tokens for response types */
+#define FCPT_RESPONSE_SUCCESS         1
+#define FCPT_RESPONSE_NODEHELLO       10
+#define FCPT_RESPONSE_NODEINFO        11
+#define FCPT_RESPONSE_DATAFOUND       20
+#define FCPT_RESPONSE_DATACHUNK       21
+#define FCPT_RESPONSE_DATANOTFOUND    22
+#define FCPT_RESPONSE_ROUTENOTFOUND   30
+#define FCPT_RESPONSE_URIERROR        40
+#define FCPT_RESPONSE_RESTARTED       50
+#define FCPT_RESPONSE_KEYCOLLISION    60
+#define FCPT_RESPONSE_PENDING         70
+#define FCPT_RESPONSE_FAILED          80
+#define FCPT_RESPONSE_FORMATERROR     90
+#define FCPT_RESPONSE_SEGMENTHEADER   100
+#define FCPT_RESPONSE_BLOCKMAP        110
+#define FCPT_RESPONSE_BLOCKSENCODED   111
+#define FCPT_RESPONSE_BLOCKSDECODED   112
+#define FCPT_RESPONSE_MADEMETADATA    120
+
+/* Handled key types */
+#define FN_KEY_SSK  1
+#define FN_KEY_CHK  2
+#define FN_KEY_KSK  3
+
+/* Supported types of metadata */
+#define FN_META_REDIRECT    'r'
+#define FN_META_DBR         'd'
+#define FN_META_SPLITFILE   's'
+#define FN_META_INFO        'i'
+#define FN_META_EXTINFO     'e'
+
+/* Error codes; just negative numbers */
+#define FCPT_ERR_GENERAL           -1
+#define FCPT_ERR_SOCKET_TIMEOUT    -100
 
 /*
-  Threshold levels for the user-provided fcpLogCallback() function
-  fcpLogCallback will be called with a verbosity argument, which will
-  be one of these values. This allows the client program to screen log
-  messages according to importance.
+#define FCPT_ERR_
+#define FCPT_ERR_
+#define FCPT_ERR_
+#define FCPT_ERR_
 */
-#define FCP_LOG_SILENT        0
-#define FCP_LOG_CRITICAL      1
-#define FCP_LOG_NORMAL        2
-#define FCP_LOG_VERBOSE       3
-#define FCP_LOG_DEBUG         4
-#define FCP_LOG_MESSAGE_SIZE  4096   /* Was 65K */
 
-#define FCP_SOCKET_DISCONNECTED -99
+/* Value to set hfcp->socket when not connected */
+#define FCPT_SOCKET_DISCONNECTED   -99
 
-/*
-  Lengths of allocated strings/arrays.
-*/
+/* Lengths of strings/arrays */
 #define L_KEY               128
 #define L_FILENAME          1024
 #define L_URI               1024
 #define L_RAW_METADATA      65536
 #define L_FILE_BLOCKSIZE    8192
-
-#define KEY_TYPE_SSK  1
-#define KEY_TYPE_CHK  2
-#define KEY_TYPE_KSK  3
-
-/*
-	0 is the "unset" value
-*/
-#define META_TYPE_REDIRECT  'r'
-#define META_TYPE_DBR       'd'
-#define META_TYPE_SPLITFILE 's'
-#define META_TYPE_INFO      'i'
-#define META_TYPE_EXTINFO   'e'
-
-/*
-	option flags
-	these must be powers of 2; they're bitmasks
-*/
-#define FCP_MODE_O_READ              0x0001 /* 0000 0001 */
-#define FCP_MODE_O_WRITE             0x0002 /* 0000 0010 */
-#define FCP_MODE_RAW                 0x0004 /* 0000 0100 */
-#define FCP_MODE_REMOVE_LOCAL        0x0008 /* 0000 1000 */
-#define FCP_MODE_DBR                 0x0020 /* 0001 0000 */
-#define FCP_MODE_REDIRECT_METADATA   0x0040 /* 0010 0000 */
-
-/*
-	Reasonable defaults
-*/
-#define EZFCP_DEFAULT_HOST         "127.0.0.1"
-#define EZFCP_DEFAULT_PORT         8481
-#define EZFCP_DEFAULT_HTL          3
-#define EZFCP_DEFAULT_VERBOSITY    FCP_LOG_NORMAL
-#define EZFCP_DEFAULT_LOGSTREAM    stdout
-#define EZFCP_DEFAULT_BLOCKSIZE    262144  /* default split part size (256kB) */
-#define EZFCP_DEFAULT_RETRY        5
-#define EZFCP_DEFAULT_REGRESS      0
-#define EZFCP_DEFAULT_DELETELOCAL  0
-#define EZFCP_DEFAULT_SKIPLOCAL    0
-#define EZFCP_DEFAULT_RAWMODE      0
-#define EZFCP_DEFAULT_TIMEOUT      420000 /* 7 minutes in milliseconds */
-
-/* error codes; just negative numbers; group together
-*/
-#define EZERR_GENERAL -1
-#define EZERR_SOCKET_TIMEOUT -100
-
-/*
-	Tokens for response types.
-*/
-#define FCPRESP_TYPE_SUCCESS        1
-#define FCPRESP_TYPE_NODEHELLO      10
-#define FCPRESP_TYPE_NODEINFO       11
-#define FCPRESP_TYPE_DATAFOUND      20
-#define FCPRESP_TYPE_DATACHUNK      21
-#define FCPRESP_TYPE_DATANOTFOUND   22
-#define FCPRESP_TYPE_ROUTENOTFOUND  30
-#define FCPRESP_TYPE_URIERROR       40
-#define FCPRESP_TYPE_RESTARTED      50
-#define FCPRESP_TYPE_KEYCOLLISION   60
-#define FCPRESP_TYPE_PENDING        70
-#define FCPRESP_TYPE_FAILED         80
-#define FCPRESP_TYPE_FORMATERROR    90
-#define FCPRESP_TYPE_SEGMENTHEADER  100
-#define FCPRESP_TYPE_BLOCKMAP       110
-#define FCPRESP_TYPE_BLOCKSENCODED  111
-#define FCPRESP_TYPE_BLOCKSDECODED  112
-#define FCPRESP_TYPE_MADEMETADATA   120
-
-/* Tokens for receive states
-*/
-#define RECV_STATE_WAITING      0
-#define RECV_STATE_GOTHEADER    1
 
 
 /***********************************************************************

@@ -48,14 +48,14 @@ static char  keyUri[L_URI];
 static char  keyFile[L_FILENAME] = "";
 static char  metaFile[L_FILENAME] = "";
 
-static char  nodeAddr[L_HOST] = EZFCP_DEFAULT_HOST;
-static int   nodePort = EZFCP_DEFAULT_PORT;
-static int   htlVal = EZFCP_DEFAULT_HTL;
+static char  nodeAddr[L_HOST] = FCPT_DEF_HOST;
+static int   nodePort = FCPT_DEF_PORT;
+static int   htlVal = FCPT_DEF_HTL;
 
-static int   regress = EZFCP_DEFAULT_REGRESS;
-static int   rawMode = EZFCP_DEFAULT_RAWMODE;
+static int   regress = FCPT_DEF_REGRESS;
+static int   rawMode = FCPT_DEF_RAWMODE;
 
-static int   verbosity = FCP_LOG_NORMAL;
+static int   verbosity = FCPT_LOG_NORMAL;
 static int   genKeypair = 0;           // flag requiring keypair generation only
 static int   dodelete = 0;				// set HFCP->delete flag.
 static int	 fcpSplitChunkSize;
@@ -199,9 +199,9 @@ static void usage(char *s)
 	printf("Usage: fcpputsite [OPTIONS] name dir pubkey prvkey\n\n");
 
 	printf("Options:\n\n");
-	printf("  -n, --address host        Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
-	printf("  -p, --port num            Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
-	printf("  -l, --htl num             Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
+	printf("  -n, --address host        Freenet node address (default \"%s\")\n", FCPT_DEF_HOST);
+	printf("  -p, --port num            Freenet node port (default %d)\n", FCPT_DEF_PORT);
+	printf("  -l, --htl num             Hops to live (default %d)\n", FCPT_DEF_HTL);
 	printf("  -r, --raw                 Raw mode - don't follow redirects\n\n");
 
 	printf("  -a, --attempts num        Attempts to insert each file (default %d)\n", FCPPUTSITE_ATTEMPTS);

@@ -74,7 +74,7 @@ int _fcpTmpfile(char *filename)
 	/* set the filename parameter to the newly generated Tmp filename */
 
 	strncpy(filename, tempfile, L_FILENAME);
-	/*_fcpLog(FCP_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);*/
+	/*_fcpLog(FCPT_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);*/
 	
 	/* I think creating the file right here is good in avoiding
 		 race conditions.  Let the caller close the file (leaving a
@@ -83,13 +83,13 @@ int _fcpTmpfile(char *filename)
 	
 	rc = open(filename, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE);
 	if (rc == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not re-open temp file");
+		_fcpLog(FCPT_LOG_DEBUG, "could not re-open temp file");
 		return -1;
 	}
 
 	/* close the file before exiting */
 	if (close(rc) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not close temp file");
+		_fcpLog(FCPT_LOG_DEBUG, "could not close temp file");
 		return -1;
 	}
 
@@ -155,12 +155,12 @@ unsigned long _fcpFilesize(char *filename)
 
 int _fcpCopyFile(char *dest, char *src)
 {
-	_fcpLog(FCP_LOG_DEBUG, "CopyFile(): %s => %s", src, dest);
+	_fcpLog(FCPT_LOG_DEBUG, "CopyFile(): %s => %s", src, dest);
 
 #ifdef WIN32
 
 	if (CopyFile(src, dest, FALSE) == 0) {
-		_fcpLog(FCP_LOG_DEBUG, "couldn't CopyFile()");
+		_fcpLog(FCPT_LOG_DEBUG, "couldn't CopyFile()");
 		return -1;
 	}
 
@@ -180,22 +180,22 @@ int _fcpCopyFile(char *dest, char *src)
 		dfd = sfd = -1;
 		
 		if (!dest) {
-			_fcpLog(FCP_LOG_DEBUG, "OOPS: dest: %s", dest);
+			_fcpLog(FCPT_LOG_DEBUG, "OOPS: dest: %s", dest);
 			return -1;
 		}
 		
 		if (!src) {
-			_fcpLog(FCP_LOG_DEBUG, "OOPS: src: %s", src);
+			_fcpLog(FCPT_LOG_DEBUG, "OOPS: src: %s", src);
 			return -1;
 		}
 		
 		if ((dfd = open(dest, _FCP_WRITEFILE_FLAGS, _FCP_CREATEFILE_MODE)) == -1) {
-			_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", dest);
+			_fcpLog(FCPT_LOG_DEBUG, "couldn't open destination file: %s", dest);
 			return -1;
 		}
 		
 		if ((sfd = open(src, _FCP_READFILE_FLAGS, _FCP_READFILE_MODE)) == -1) {
-			_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", src);
+			_fcpLog(FCPT_LOG_DEBUG, "couldn't open destination file: %s", src);
 			goto cleanup;
 		}
 		
@@ -203,11 +203,11 @@ int _fcpCopyFile(char *dest, char *src)
 			_fcpWrite(dfd, buf, count);
 		
 		if (count == -1) {
-			_fcpLog(FCP_LOG_DEBUG, "a read returned an error");
+			_fcpLog(FCPT_LOG_DEBUG, "a read returned an error");
 			goto cleanup;
 		}
 		
-		_fcpLog(FCP_LOG_DEBUG, "_fcpCopyFile() copied %u bytes", bytes);
+		_fcpLog(FCPT_LOG_DEBUG, "_fcpCopyFile() copied %u bytes", bytes);
 		
 		if (sfd != -1) close(sfd);
 		if (dfd != -1) close(dfd);

@@ -35,7 +35,7 @@
 #include "ez_sys.h"
 
 
-/* Log messages should be FCP_LOG_VERBOSE or FCP_LOG_DEBUG only in this module */
+/* Log messages should be FCPT_LOG_VERBOSE or FCPT_LOG_DEBUG only in this module */
 
 /*
 	FUNCTION:_fcpGetBLock()
@@ -82,7 +82,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 	char         *meta_str;
 
-	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpGetBLock(key: \"%s\")", uri);
+	_fcpLog(FCPT_LOG_DEBUG, "Entered _fcpGetBLock(key: \"%s\")", uri);
 
 	/* first thing, clear out the metadata structure
 		 to make way for new and improved data ! */
@@ -114,25 +114,25 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		/* connect to Freenet FCP */
 		if ((rc = _fcpSockConnect(hfcp)) != 0) goto cleanup;
 
-		_fcpLog(FCP_LOG_VERBOSE, "sending ClientGet message to %s:%u, htl=%u, remove_local=%s",
+		_fcpLog(FCPT_LOG_VERBOSE, "sending ClientGet message to %s:%u, htl=%u, remove_local=%s",
 						hfcp->host,
 						hfcp->port,
 						hfcp->htl,
 						(hfcp->options->remove_local ? "Yes" : "No"));
 
 		
-		_fcpLog(FCP_LOG_DEBUG, "other information.. regress=%u, keysize=%u, metasize=%u",
+		_fcpLog(FCPT_LOG_DEBUG, "other information.. regress=%u, keysize=%u, metasize=%u",
 						hfcp->options->regress,
 						hfcp->key->size,
 						hfcp->key->metadata->size);
 
 		/* Send ClientGet command */
 		if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
-			_fcpLog(FCP_LOG_CRITICAL, "Error sending ClientGet message");
+			_fcpLog(FCPT_LOG_CRITICAL, "Error sending ClientGet message");
 			goto cleanup;
 		}
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Waiting for response from node - timeout in %u minutes %u seconds)",
+		_fcpLog(FCPT_LOG_VERBOSE, "Waiting for response from node - timeout in %u minutes %u seconds)",
 						minutes, seconds);
 
 		/* expecting a success response */
@@ -140,23 +140,23 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		
 		switch (rc) {
 
-		case FCPRESP_TYPE_DATAFOUND:
-			_fcpLog(FCP_LOG_VERBOSE, "Received DataFound message");
-			_fcpLog(FCP_LOG_DEBUG, "keysize: %u, metadata size: %u",
+		case FCPT_RESPONSE_DATAFOUND:
+			_fcpLog(FCPT_LOG_VERBOSE, "Received DataFound message");
+			_fcpLog(FCPT_LOG_DEBUG, "keysize: %u, metadata size: %u",
 							hfcp->response.datafound.datalength - hfcp->response.datafound.metadatalength,
 							hfcp->response.datafound.metadatalength
 							);
 
-			_fcpLog(FCP_LOG_DEBUG, "timeout value: %u seconds", (int)(hfcp->options->timeout / 1000));
+			_fcpLog(FCPT_LOG_DEBUG, "timeout value: %u seconds", (int)(hfcp->options->timeout / 1000));
 			break;
 			
-		case FCPRESP_TYPE_URIERROR:
-			_fcpLog(FCP_LOG_VERBOSE, "Received URIError message");
+		case FCPT_RESPONSE_URIERROR:
+			_fcpLog(FCPT_LOG_VERBOSE, "Received URIError message");
 			break;
 			
-		case FCPRESP_TYPE_RESTARTED:
-			_fcpLog(FCP_LOG_VERBOSE, "Received Restarted message: %s", hfcp->response.restarted.reason);
-			_fcpLog(FCP_LOG_DEBUG, "timeout value: %u seconds", (int)(hfcp->options->timeout / 1000));
+		case FCPT_RESPONSE_RESTARTED:
+			_fcpLog(FCPT_LOG_VERBOSE, "Received Restarted message: %s", hfcp->response.restarted.reason);
+			_fcpLog(FCPT_LOG_DEBUG, "timeout value: %u seconds", (int)(hfcp->options->timeout / 1000));
 			
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
@@ -166,14 +166,14 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 			
 			break;
 
-		case FCPRESP_TYPE_DATANOTFOUND:
-			_fcpLog(FCP_LOG_CRITICAL, "Received DataNotFound message");
+		case FCPT_RESPONSE_DATANOTFOUND:
+			_fcpLog(FCPT_LOG_CRITICAL, "Received DataNotFound message");
 			break;
 
-		case FCPRESP_TYPE_ROUTENOTFOUND: /* Unreachable, Restarted, Rejected */
-			_fcpLog(FCP_LOG_VERBOSE, "Received RouteNotFound message");
+		case FCPT_RESPONSE_ROUTENOTFOUND: /* Unreachable, Restarted, Rejected */
+			_fcpLog(FCPT_LOG_VERBOSE, "Received RouteNotFound message");
 
-			_fcpLog(FCP_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u, backed off: %u",
+			_fcpLog(FCPT_LOG_DEBUG, "unreachable: %u, restarted: %u, rejected: %u, backed off: %u",
 							hfcp->response.routenotfound.unreachable,
 							hfcp->response.routenotfound.restarted,
 							hfcp->response.routenotfound.rejected,
@@ -186,52 +186,52 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 			retry = hfcp->options->retry;
 			
 			/* this will route us to a restart */
-			rc = FCPRESP_TYPE_RESTARTED;
+			rc = FCPT_RESPONSE_RESTARTED;
 
 			break;
 
 		/* returned when there's an abnormal socket termination */
-		case EZERR_SOCKET_TIMEOUT:
+		case FCPT_ERR_SOCKET_TIMEOUT:
 			retry--;
 			
-			_fcpLog(FCP_LOG_VERBOSE, "Received timeout waiting for response");
+			_fcpLog(FCPT_LOG_VERBOSE, "Received timeout waiting for response");
 			
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
 			/* this will route us to a restart */
-			rc = FCPRESP_TYPE_RESTARTED;
+			rc = FCPT_RESPONSE_RESTARTED;
 			
 			break;
 			
-		case FCPRESP_TYPE_FORMATERROR:
-			_fcpLog(FCP_LOG_CRITICAL, "Received FormatError message: %s", hfcp->response.formaterror.reason);
+		case FCPT_RESPONSE_FORMATERROR:
+			_fcpLog(FCPT_LOG_CRITICAL, "Received FormatError message: %s", hfcp->response.formaterror.reason);
 			break;
 			
-		case FCPRESP_TYPE_FAILED:
-			_fcpLog(FCP_LOG_CRITICAL, "Received Failed message: %s", hfcp->response.failed.reason);
+		case FCPT_RESPONSE_FAILED:
+			_fcpLog(FCPT_LOG_CRITICAL, "Received Failed message: %s", hfcp->response.failed.reason);
 			break;
 			
 		default:
-			_fcpLog(FCP_LOG_DEBUG, "_fcpGetBLock() - received unknown response code: %d", rc);
+			_fcpLog(FCPT_LOG_DEBUG, "_fcpGetBLock() - received unknown response code: %d", rc);
 			break;
 
 		} /* switch (rc) */			
 
-	} while ((rc == FCPRESP_TYPE_RESTARTED) && (retry >= 0));
+	} while ((rc == FCPT_RESPONSE_RESTARTED) && (retry >= 0));
 
 	/* if we've exhausted our retries, then return a be-all Timeout error */
 	if (retry < 0) {
-		_fcpLog(FCP_LOG_CRITICAL, "Failed to retrieve file after %u retries", hfcp->options->retry);
+		_fcpLog(FCPT_LOG_CRITICAL, "Failed to retrieve file after %u retries", hfcp->options->retry);
 
-		rc = EZERR_SOCKET_TIMEOUT;
+		rc = FCPT_ERR_SOCKET_TIMEOUT;
 		goto cleanup;
 	}
 	
 	/* If data is not found, bail */
 	
-  if (rc != FCPRESP_TYPE_DATAFOUND) {
-		_fcpLog(FCP_LOG_CRITICAL, "Failed to retrieve file");
+  if (rc != FCPT_RESPONSE_DATAFOUND) {
+		_fcpLog(FCPT_LOG_CRITICAL, "Failed to retrieve file");
 
 		rc = -1;
     goto cleanup;
@@ -257,15 +257,15 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 	/* setup the keydata here so that later we can just use it */
 	if (key_bytes) {
-		_fcpLog(FCP_LOG_DEBUG, "link key file");
+		_fcpLog(FCPT_LOG_DEBUG, "link key file");
 		_fcpBlockLink(keyblock, _FCP_WRITE);
 	}
 	
 	while (meta_bytes > 0) {
 		meta_str = malloc(meta_bytes+1);
 		
-		if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATACHUNK) {
-			_fcpLog(FCP_LOG_DEBUG, "expected DataChunk");
+		if (_fcpRecvResponse(hfcp) != FCPT_RESPONSE_DATACHUNK) {
+			_fcpLog(FCPT_LOG_DEBUG, "expected DataChunk");
 			
 			rc = -1;
 			goto cleanup;
@@ -284,7 +284,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		/* and adjust count of remaining total metadata bytes to process */
 		meta_bytes -= meta_count;
 
-		_fcpLog(FCP_LOG_DEBUG, "meta_bytes remaining: %d", meta_bytes);
+		_fcpLog(FCPT_LOG_DEBUG, "meta_bytes remaining: %d", meta_bytes);
 	}
 
 	/* if there was metadata, cleanup */
@@ -292,13 +292,13 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 		
 		/* null the buffer */
 		meta_str[meta_str_len] = 0;
-		/*_fcpLog(FCP_LOG_DEBUG, "raw metadata: %s", meta_str);*/
+		/*_fcpLog(FCPT_LOG_DEBUG, "raw metadata: %s", meta_str);*/
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Read %d bytes of metadata", hfcp->key->metadata->size);
+		_fcpLog(FCPT_LOG_VERBOSE, "Read %d bytes of metadata", hfcp->key->metadata->size);
 		_fcpBlockUnlink(metablock);
 
 		/* parse the metadata */
-		_fcpLog(FCP_LOG_DEBUG, "parsing the metadata");
+		_fcpLog(FCPT_LOG_DEBUG, "parsing the metadata");
 
 		_fcpMetaParse(hfcp->key->metadata, meta_str);
 
@@ -322,9 +322,9 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 	while (key_bytes > 0) {
 		
 		/* the remaining data chunks should be just key data */
-		if ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
+		if ((rc = _fcpRecvResponse(hfcp)) == FCPT_RESPONSE_DATACHUNK) {
 			
-			/*_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");*/
+			/*_fcpLog(FCPT_LOG_DEBUG, "retrieved datachunk");*/
 
 			key_count = hfcp->response.datachunk.length;
 			_fcpWrite(keyblock->fd, hfcp->response.datachunk.data, key_count);
@@ -332,7 +332,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 			key_bytes -= key_count;
 		}
 		else {
-			_fcpLog(FCP_LOG_DEBUG, "expected missing datachunk message");
+			_fcpLog(FCPT_LOG_DEBUG, "expected missing datachunk message");
 
 			rc = -1;
 			goto cleanup;
@@ -341,12 +341,12 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 
 	if (hfcp->key->size > 0) {
 		
-		_fcpLog(FCP_LOG_VERBOSE, "Read key data");
+		_fcpLog(FCPT_LOG_VERBOSE, "Read key data");
 		_fcpBlockUnlink(keyblock);
 	}
 
   _fcpSockDisconnect(hfcp);
-	_fcpLog(FCP_LOG_DEBUG, "_fcpGetBLock() - retrieved key: %s", uri);
+	_fcpLog(FCPT_LOG_DEBUG, "_fcpGetBLock() - retrieved key: %s", uri);
 
 	return 0;
 
@@ -357,7 +357,7 @@ int _fcpGetBLock(hFCP *hfcp, hBlock *keyblock, hBlock *metablock, char *uri)
 	_fcpBlockUnlink(metablock);
 
   _fcpSockDisconnect(hfcp);
-	_fcpLog(FCP_LOG_DEBUG, "abnormal termination");
+	_fcpLog(FCPT_LOG_DEBUG, "abnormal termination");
 
 	return rc;
 }
@@ -367,6 +367,7 @@ int _fcpGetSplitfile(hFCP *hfcp)
 {
 	hfcp = hfcp;
 
+	_fcpLog(FCPT_LOG_DEBUG, "Entered _fcpGetSplitfile()");
 	return -1;
 }
 
