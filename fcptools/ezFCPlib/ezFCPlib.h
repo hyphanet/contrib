@@ -209,22 +209,24 @@ typedef struct {
 	char  *javaname;
 	char  *javaversion;
 
-	int    maximummemory;
-	int    allocatedmemory;
-	int    freememory;
-
-	int    estimatedload;
-	int    datastoremax;
-	int    datastorefree;
-	int    datastoreused;
-
-	int    maxfilesize;
-	int    mostrecenttimestamp;
-	int    leastrecenttimestamp;
-	int    routingtime;
+	long   maximummemory;
+	long   maxfilesize;
+	long   allocatedmemory;
+	long   freememory;
+	int    processors;
 	int    availablethreads;
-	int    istransient;
 	int    activejobs;
+
+	long   datastoremax;
+	long   datastorefree;
+	long   datastoreused;
+	long   estimatedload;
+	long   estimateratelimitingload;
+
+	char  *istransient;
+	long   mostrecenttimestamp;
+	long   leastrecenttimestamp;
+	long   routingtime;
 } FCPRESP_NODEINFO;
 
 typedef struct {

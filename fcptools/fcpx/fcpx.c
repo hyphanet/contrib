@@ -33,6 +33,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef DMALLOC
+#include <dmalloc.h>
+extern int _fcpDMALLOC;
+#endif
+
 /*
   PRIVATE DECLARATIONS
 */
@@ -41,6 +46,15 @@ static void usage(char *msg);
 
 static int  clienthello(hFCP *hfcp);
 static int  clientinfo(hFCP *hfcp);
+
+#ifdef DMALLOC
+void track(const char *file, const unsigned int line,
+					 const int func_id,
+					 const DMALLOC_SIZE byte_size,
+					 const DMALLOC_SIZE alignment,
+					 const DMALLOC_PNT old_addr,
+					 const DMALLOC_PNT new_addr);
+#endif
 
 /* Configurable command-line parameters
 	 Strings/Arrays that have default values if not set explicitly from the
@@ -59,17 +73,22 @@ int main(int argc, char* argv[])
 {
 	hFCP *hfcp;
 	int   rc;
-
+	
+#ifdef DMALLOC
+	/*dmalloc_track(track);*/
+	_fcpDMALLOC = dmalloc_mark();
+#endif
+	
 	/* set the host first, before parsing command line */
 	host = strdup(EZFCP_DEFAULT_HOST);
-
+	
 	/* go thru command line args */
 	parse_args(argc, argv);
-
+	
 	if (!command) usage("Did not specifiy an FCP command");
-
+	
 	if (logfile) {
-
+		
 		/* if there's an error opening the file, default to stdout */
 		if (!(logstream = fopen(logfile, "w"))) {
 			fprintf(stdout, "Could not open logfile.. using stdout\n");
@@ -86,30 +105,65 @@ int main(int argc, char* argv[])
 		rc = -1;
 		goto cleanup;
 	}
-
+	
 	/* Make sure all input args are sent to ezFCPlib as advertised */
 	hfcp = fcpCreateHFCP(host, port, 0, 0);
-
+	
 	if (!strncasecmp(command, "hello", 11)) {
 		rc = clienthello(hfcp);
 	}
-
 	else if (!strncasecmp(command, "info", 10)) {
 		rc = clientinfo(hfcp);
 	}
-
 	else {
 		usage("Did not specify a supported FCP command");
 	}
-
-	if (logfile) fclose(logstream);
-	return 0;
-
+	
+	rc = 0;
+	
  cleanup:
-
-	if (logfile) fclose(logstream);
-	return 1;
+	
+	if (logfile) {
+		fclose(logstream);
+		free(logfile);
+	}
+	
+	fcpDestroyHFCP(hfcp);
+	free(hfcp);
+	
+  fcpTerminate();
+	
+#ifdef DMALLOC
+	dmalloc_verify(0);
+	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
+	
+	dmalloc_shutdown();
+#endif
+	
+	return rc;
 }
+
+
+#ifdef DMALLOC
+void track(const char *file, const unsigned int line,
+											const int func_id,
+											const DMALLOC_SIZE byte_size,
+											const DMALLOC_SIZE alignment,
+											const DMALLOC_PNT old_addr,
+											const DMALLOC_PNT new_addr)
+{
+	char f[33];
+
+	if (!file) strcpy(f, "NULL");
+	else strncpy(f, file, 32);
+
+	if ((!strcmp(file, "fcpCreation.c")) && (line == 187)) {
+		printf("|| %s:%d, size %d, old_addr: %x, new_addr: %x ||\n", f, line, byte_size, old_addr, new_addr);
+	}
+
+	return;
+}
+#endif
 
 
 /* IMPORTANT
@@ -219,7 +273,6 @@ static int clienthello(hFCP *hfcp)
 	fprintf(stdout, "HighestSeenBuild: %d\n", hfcp->highest_build);
 	fprintf(stdout, "MaxFileSize: %d\n", hfcp->max_filesize);
 
-	fcpDestroyHFCP(hfcp);
 	return 0;
 }
 
@@ -234,8 +287,29 @@ static int clientinfo(hFCP *hfcp)
 	/* Now dump the info */
 	fprintf(stdout, "Architecture: %s\n", hfcp->response.nodeinfo.architecture);
 	fprintf(stdout, "OperatingSystem: %s\n", hfcp->response.nodeinfo.operatingsystem);
+	fprintf(stdout, "OperatingSystemVersion: %s\n", hfcp->response.nodeinfo.operatingsystemversion);
+	fprintf(stdout, "NodeAddress: %s\n", hfcp->response.nodeinfo.nodeaddress);
+	fprintf(stdout, "NodePort: %d\n", hfcp->response.nodeinfo.nodeport);
+	fprintf(stdout, "JavaVendor: %s\n", hfcp->response.nodeinfo.javavendor);
+	fprintf(stdout, "JavaName: %s\n", hfcp->response.nodeinfo.javaname);
+	fprintf(stdout, "JavaVersion: %s\n", hfcp->response.nodeinfo.javaversion);
+	fprintf(stdout, "Processors: %d\n", hfcp->response.nodeinfo.processors);
+	fprintf(stdout, "MaximumMemory: %d\n", hfcp->response.nodeinfo.maximummemory);
+	fprintf(stdout, "AllocatedMemory: %d\n", hfcp->response.nodeinfo.allocatedmemory);
+	fprintf(stdout, "FreeMemory: %d\n", hfcp->response.nodeinfo.freememory);
+	fprintf(stdout, "EstimatedLoad: %d\n", hfcp->response.nodeinfo.estimatedload);
+	fprintf(stdout, "EstimateRateLimitingLoad: %d\n", hfcp->response.nodeinfo.estimateratelimitingload);
+	fprintf(stdout, "DatastoreMax: %d\n", hfcp->response.nodeinfo.datastoremax);
+	fprintf(stdout, "DatastoreFree: %d\n", hfcp->response.nodeinfo.datastorefree);
+	fprintf(stdout, "DatastoreUsed: %d\n", hfcp->response.nodeinfo.datastoreused);
+	fprintf(stdout, "MaxFileSize: %d\n", hfcp->response.nodeinfo.maxfilesize);
+	fprintf(stdout, "MostRecentTimestamp: %d\n", hfcp->response.nodeinfo.mostrecenttimestamp);
+	fprintf(stdout, "LeastRecentTimestamp: %d\n", hfcp->response.nodeinfo.leastrecenttimestamp);
+	fprintf(stdout, "RoutingTime: %d\n", hfcp->response.nodeinfo.routingtime);
+	fprintf(stdout, "AvailableThreads: %d\n", hfcp->response.nodeinfo.availablethreads);
+	fprintf(stdout, "IsTransient: %s\n", hfcp->response.nodeinfo.istransient);
+	fprintf(stdout, "ActiveJobs: %d\n", hfcp->response.nodeinfo.activejobs);
 
-	fcpDestroyHFCP(hfcp);
 	return 0;
 }
 

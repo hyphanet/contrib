@@ -220,6 +220,15 @@ static void _fcpDestroyResponse(hFCP *h)
 		if (h->response.urierror.reason) free(h->response.urierror.reason);
 		if (h->response.routenotfound.reason) free(h->response.routenotfound.reason);
 		if (h->response.formaterror.reason) free(h->response.formaterror.reason);
+
+		if (h->response.nodeinfo.architecture) free(h->response.nodeinfo.architecture);
+		if (h->response.nodeinfo.operatingsystem) free(h->response.nodeinfo.operatingsystem);
+		if (h->response.nodeinfo.operatingsystemversion) free(h->response.nodeinfo.operatingsystemversion);
+		if (h->response.nodeinfo.nodeaddress) free(h->response.nodeinfo.nodeaddress);
+		if (h->response.nodeinfo.javavendor) free(h->response.nodeinfo.javavendor);
+		if (h->response.nodeinfo.javaname) free(h->response.nodeinfo.javaname);
+		if (h->response.nodeinfo.javaversion) free(h->response.nodeinfo.javaversion);
+		if (h->response.nodeinfo.istransient) free(h->response.nodeinfo.istransient);
 	}
 }
 
@@ -313,7 +322,7 @@ hURI *fcpCreateHURI(void)
 {
 	hURI *h;
 
-	h = (hURI *)malloc(sizeof (hURI)); /* 2nd ! */
+	h = (hURI *)malloc(sizeof (hURI));
 	memset(h, 0, sizeof (hURI));
 
 	return h;

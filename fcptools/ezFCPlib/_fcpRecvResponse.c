@@ -206,15 +206,12 @@ static int getrespInfo(hFCP *hfcp)
 	int  rc;
 
 	rc = 0;
-	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response");
+	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response\n");
 
-#if 0
 	while ((rc = _fcpSockRecvln(hfcp, resp, 8192)) > 0) {
 
-		_fcpLog(FCP_LOG_DEBUG, "%s", resp);
-
 		if (!strncmp(resp, "Architecture=", 13)) {
-			
+
 			if (hfcp->response.nodeinfo.architecture) free(hfcp->response.nodeinfo.architecture);
 			hfcp->response.nodeinfo.architecture = strdup(resp+13);
 		}
@@ -228,14 +225,14 @@ static int getrespInfo(hFCP *hfcp)
 			if (hfcp->response.nodeinfo.operatingsystemversion) free(hfcp->response.nodeinfo.operatingsystemversion);
 			hfcp->response.nodeinfo.operatingsystemversion = strdup(resp+23);
 		}
-		else if (!strncmp(resp, "NodePort=", 9)) {
-			
-			hfcp->response.nodeinfo.nodeport = atoi(resp+9);
-		}
-		else if (!strncmp(resp, "NodeAddress=", 9)) {
+		else if (!strncmp(resp, "NodeAddress=", 12)) {
 
 			if (hfcp->response.nodeinfo.nodeaddress) free(hfcp->response.nodeinfo.nodeaddress);
-			hfcp->response.nodeinfo.nodeaddress = strdup(resp+9);
+			hfcp->response.nodeinfo.nodeaddress = strdup(resp+12);
+		}
+		else if (!strncmp(resp, "NodePort=", 9)) {
+			
+			hfcp->response.nodeinfo.nodeport = xtol(resp+9);
 		}
 		else if (!strncmp(resp, "JavaVendor=", 11)) {
 
@@ -244,53 +241,78 @@ static int getrespInfo(hFCP *hfcp)
 		}
 		else if (!strncmp(resp, "JavaName=", 9)) {
 
-			if (hfcp->response.nodeinfo.javavendor) free(hfcp->response.nodeinfo.javavendor);
-			hfcp->response.nodeinfo.javavendor = strdup(resp+11);
+			if (hfcp->response.nodeinfo.javaname) free(hfcp->response.nodeinfo.javaname);
+			hfcp->response.nodeinfo.javaname = strdup(resp+9);
 		}
 		else if (!strncmp(resp, "JavaVersion=", 12)) {
 
+			if (hfcp->response.nodeinfo.javaversion) free(hfcp->response.nodeinfo.javaversion);
+			hfcp->response.nodeinfo.javaversion = strdup(resp+12);
+		}
+		else if (!strncmp(resp, "Processors=", 11)) {
+
+			hfcp->response.nodeinfo.processors = xtol(resp+11);
 		}
 		else if (!strncmp(resp, "MaximumMemory=", 14)) {
 
+			hfcp->response.nodeinfo.maximummemory = xtol(resp+14);
 		}
 		else if (!strncmp(resp, "AllocatedMemory=", 16)) {
 
+			hfcp->response.nodeinfo.allocatedmemory = xtol(resp+16);
 		}
 		else if (!strncmp(resp, "FreeMemory=", 11)) {
 
+			hfcp->response.nodeinfo.freememory = xtol(resp+11);
 		}
 		else if (!strncmp(resp, "EstimatedLoad=", 14)) {
 
+			hfcp->response.nodeinfo.estimatedload = xtol(resp+14);
+		}
+		else if (!strncmp(resp, "EstimateRateLimitingLoad=", 25)) {
+
+			hfcp->response.nodeinfo.estimateratelimitingload = xtol(resp+25);
 		}
 		else if (!strncmp(resp, "DatastoreMax=", 13)) {
 
+			hfcp->response.nodeinfo.datastoremax = xtol(resp+13);
 		}
 		else if (!strncmp(resp, "DatastoreFree=", 14)) {
 
+			hfcp->response.nodeinfo.datastorefree = xtol(resp+14);
 		}
 		else if (!strncmp(resp, "DatastoreUsed=", 14)) {
 
+			hfcp->response.nodeinfo.datastoreused = xtol(resp+14);
 		}
 		else if (!strncmp(resp, "MaxFileSize=", 12)) {
 
+			hfcp->response.nodeinfo.maxfilesize = xtol(resp+12);
 		}
-		else if (!strncmp(resp, "MostRecentTimestamp=", 11)) {
+		else if (!strncmp(resp, "MostRecentTimestamp=", 20)) {
 
+			hfcp->response.nodeinfo.mostrecenttimestamp = xtol(resp+20);
 		}
-		else if (!strncmp(resp, "LeastRecentTimestamp=", 11)) {
+		else if (!strncmp(resp, "LeastRecentTimestamp=", 21)) {
 
+			hfcp->response.nodeinfo.leastrecenttimestamp = xtol(resp+21);
 		}
-		else if (!strncmp(resp, "RoutingTime=", 11)) {
+		else if (!strncmp(resp, "RoutingTime=", 12)) {
 
+			hfcp->response.nodeinfo.routingtime = xtol(resp+12);
 		}
-		else if (!strncmp(resp, "AvailableThreads=", 11)) {
+		else if (!strncmp(resp, "AvailableThreads=", 17)) {
 
+			hfcp->response.nodeinfo.availablethreads = xtol(resp+17);
 		}
 		else if (!strncmp(resp, "IsTransient=", 12)) {
 
+			if (hfcp->response.nodeinfo.istransient) free(hfcp->response.nodeinfo.istransient);
+			hfcp->response.nodeinfo.istransient = strdup(resp+12);
 		}
 		else if (!strncmp(resp, "ActiveJobs=", 11)) {
 
+			hfcp->response.nodeinfo.activejobs = xtol(resp+11);
 		}
 		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_NODEINFO;
@@ -298,7 +320,6 @@ static int getrespInfo(hFCP *hfcp)
 		else
 			_fcpLog(FCP_LOG_DEBUG, "getrespInfo() - received unhandled field \"%s\"", resp);
 	}
-#endif
 
 	if (rc < 0)
 		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
