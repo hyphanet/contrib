@@ -262,6 +262,7 @@ logfunc (article *a, char *uri)
 {
     fprintf(log, "%s\t%s\t%s\t%s\t%s\t%s\t%d\n", a->filename, uri,
 	    a->subject, a->author, a->date, a->id, a->bytes);
+    fflush(log);
 }
 
 int
@@ -470,18 +471,18 @@ main (int argc, char **argv)
     if (!strlen(foo))
 	strcpy(foo, argv[optind]);
     
-    log = strcmp(foo, "-") == 0 ? stdout : fopen(foo, "w");
+    log = (strcmp(foo, "-") == 0) ? stdout : fopen(foo, "w");
     if (!log) {
 	fprintf(stderr, "Can't open log file %s to append to!\n", foo);
 	exit(1);
     }
 
+    sprintf(foo, "%s/.saturn", getenv("HOME"));
+    mkdir(foo, 0755); // so I'm lazy! blum blum shub to you, too.
+    
+    sprintf(foo, "%s/.saturn/%s", getenv("HOME"), argv[optind]);
     stamp = 0;
     if (!all) {
-        sprintf(foo, "%s/.saturn", getenv("HOME"));
-        mkdir(foo, 0755); // so I'm lazy! blum blum shub to you, too.
-    
-        sprintf(foo, "%s/.saturn/%s", getenv("HOME"), argv[optind]);
         last = fopen(foo, "r");
         if (last) {
             fscanf(last, "%d", &stamp);
