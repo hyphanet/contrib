@@ -74,6 +74,7 @@ typedef int FCPSOCKET;
   GENERIC (place anything that must happen after the above decl's here)
 **************************************************************************/
 
+/* bah: REMOVE */
 #include <stdio.h>
 
 /*************************************************************************/
