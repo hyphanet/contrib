@@ -43,6 +43,7 @@
 #define IDC_TEXT1                       1009
 #define IDC_TEXT2                       1010
 #define IDC_TEXT3                       1011
+#define IDM_HELP                        1012
 
 // Next default values for new objects
 // 

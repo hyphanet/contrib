@@ -47,6 +47,7 @@ char szRestartString[]="Stop and &Restart Freenet";
 char szStartString[]="&Start Freenet";
 char szGatewayString[]="Open &Gateway";
 char szConfigureString[]="&Configure";
+char szHelpString[]="&Help";
 char szExitString[]="E&xit";
 char szImportString[]="&Import Refs";
 char szExportString[]="&Export Refs";
@@ -965,6 +966,7 @@ MENUITEMINFO gatewayitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYP
 MENUITEMINFO startstopitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_STARTSTOP, NULL,NULL,NULL,0,szStartString, 0 };
 MENUITEMINFO restartitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_GRAYED, IDM_RESTART, NULL,NULL,NULL,0,szRestartString, 0 };
 MENUITEMINFO configitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_CONFIGURE, NULL,NULL,NULL,0,szConfigureString, 0 };
+MENUITEMINFO helpitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_HELP, NULL,NULL,NULL,0,szHelpString, 0 };
 MENUITEMINFO exititem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXIT, NULL,NULL,NULL,0,szExitString, 0 };
 MENUITEMINFO importrefitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_IMPORT, NULL,NULL,NULL,0,szImportString, 0 };
 MENUITEMINFO exportrefitem = {sizeof(MENUITEMINFO), MIIM_ID | MIIM_DATA | MIIM_TYPE | MIIM_STATE, MFT_STRING, MFS_ENABLED, IDM_EXPORT, NULL,NULL,NULL,0,szExportString, 0 };
@@ -993,6 +995,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			InsertMenuItem(hPopupMenu, c, TRUE, &restartitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &configitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &separatoritem); ++c;
+			InsertMenuItem(hPopupMenu, c, TRUE, &helpitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &exititem); ++c;
 		       
 			/* see MSDN - we need to do this to safeguard against the systray icon
@@ -1087,6 +1090,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 						case IDM_VIEWLOGFILE: // menu choice View LogFile...
 							CreateLogfileViewer(hWnd);
+							break;
+
+						case IDM_HELP:	// show the help file
+							ShellExecute(hWnd,"open",".\\docs\\Freenet.hlp",NULL,NULL,SW_SHOWNORMAL);
 							break;
 
 						case IDM_EXIT: // otherwise menu choice exit, exiting
