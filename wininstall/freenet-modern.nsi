@@ -732,17 +732,26 @@ Function DetectJava
       jredownloadsuccess:
       DetailPrint "Installing JAVA ..."
       ExecWait "$R0\freenet-install\jre-win32-latest.exe"
-      Delete "$R0\freenet-install\jre-win32-latest.exe"
     !endif
   !endif
       
   goto RunJavaFind
 
   AbortJava:
-  MessageBox MB_OK|MB_ICONSTOP "I still can't find any Java interpreter. Did you really installed the JRE?$\r$\nInstallation will now stop."
+  MessageBox MB_YESNO|MB_ICONSTOP "I still can't find any Java interpreter. If the installation of the JRE failed,$\r$\nyou can retry installing it by clicking YES.$\r$\nClick NO to abort the Freenet installation." IDNO DontRerunJREInstaller
+  ExecWait "$R0\freenet-install\jre-win32-latest.exe"
+  StrCpy $5 "No" # fools JavaFind into running again
+  goto RunJavaFind
+  DontRerunJREInstaller:  
   Call AbortCleanup
   
 End:
+
+  # delete the jre installer if we used it successfully to great effect
+  SetDetailsPrint none
+  Delete "$R0\freenet-install\jre-win32-latest.exe"
+  SetDetailsPrint both
+
   # Restore $0, $2, $5 and $6
   Pop $6
   Pop $5
