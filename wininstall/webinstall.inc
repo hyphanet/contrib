@@ -8,14 +8,16 @@ Function DownloadFile
   ; make the call to download
   Push $1
   Push $2
-  CallInstDLL $TEMP\Freenet\nsisdl.dll download ; for a quiet install, use download_quiet
-
+  CallInstDLL $TEMP\freenet\nsisdl.dll download ; for a quiet install, use download_quiet
+  NSISdl::download "$1" "$2"
+  
+  Pop $R9
   ; check if download succeeded
-  StrCmp $0 "success" successful
-  StrCmp $0 "cancel" cancelled
+  StrCmp $R9 "success" successful
+  StrCmp $R9 "cancel" cancelled
 
   ; we failed
-    DetailPrint "Download failed: $0"
+    DetailPrint "Download failed: $R9"
     Messagebox MB_OK "Download of$\r$\n$1$\r$\nfailed. Aborting installation..."
     Abort
 
