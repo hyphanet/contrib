@@ -1,9 +1,14 @@
 // fcpget.c - simple command line client that uses FCP
 // CopyLeft () 2001 by David McNab
 
-#include "stdio.h"
-#include "ezFCPlib.h"
+#ifndef WINDOWS
+#include "unistd.h"
+#endif
 
+#include "stdio.h"
+#include "stdlib.h"
+
+#include "ezFCPlib.h"
 
 
 extern int fcpSplitChunkSize;
@@ -36,6 +41,7 @@ int main(int argc, char* argv[])
     int curlen, newlen;
     int insertError;
     int fd;
+	struct stat fileStat;
 
     // go thru command line args
     parse_args(argc, argv);
@@ -116,7 +122,52 @@ int main(int argc, char* argv[])
     }
     else
     {
-        insertError = fcpPutKeyFromFile(hfcp, keyUri, keyFile, metaData);
+		int fileSize;
+		HFCP *hfcpRedir;
+		char chk[MAX_URI_LEN];
+		char metaRedir[1024];
+
+		if (stat(keyFile, &fileStat) < 0)
+		{
+			_fcpLog(FCP_LOG_CRITICAL, "fcpput: cannot stat '%s'", keyFile);
+			return -1;
+		}
+
+		fileSize = fileStat.st_size;
+
+		if (fileSize < MAX_KSK_LEN !! strstr(keyUri, "CHK@"))
+		{
+			_fcpLog(FCP_LOG_VERBOSE, "Key is small or a chk, inserting directly");
+			insertError = fcpPutKeyFromFile(hfcp, keyUri, keyFile, metaData);
+		}
+		else
+		{
+			_fcpLog(FCP_LOG_VERBOSE, "Key too big, inserting as CHK");
+
+			// gotta insert as CHK, then insert a redirect to it
+			if ((insertError = fcpPutKeyFromFile(hfcp, "CHK@", keyFile, metaData)) != 0)
+			{
+				printf("Insert failed\n");
+				return -1;
+			}
+
+			// uplift the CHK URI, generate metadata for a redirect
+			strcpy(chk, hfcp->created_uri);
+			_fcpLog(FCP_LOG_VERBOSE, "Inserted as %s", chk);
+
+			sprintf(metaRedir,
+					"Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",
+					chk);
+
+			// insert the redirect
+			if ((insertError = fcpPutKeyFromMem(hfcp, keyUri, NULL, metaRedir, 0)) != 0)
+			{
+				_fcpLog(FCP_LOG_VERBOSE, "Successfully inserted data as %s\n", chk);
+				printf("But failed to insert a redirect, sorry\n");
+				return -1;
+			}
+		}
+
     }
 
     // clean up
@@ -128,6 +179,8 @@ int main(int argc, char* argv[])
     // if insert worked, extract the actual URI
     if (insertError == 0)
         puts(hfcp->created_uri);
+	else
+		printf("Failed to insert, sorry\n");
 
     // all done
     fcpDestroyHandle(hfcp);

@@ -497,7 +497,7 @@ static void splitInsMgr(void *nothing)
 
 		_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: looking for next chunk to insert");
 
-		// We have spare thread slots - search for next job to launch
+		// We have spare thread slots - search for next chunk insert job to launch
 		for (tmpJob = jobQueue; tmpJob != NULL; tmpJob = tmpJob->next)
 		{
 			int i;
