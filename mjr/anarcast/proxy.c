@@ -1,17 +1,3 @@
-#include <err.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/socket.h>
-#include <sys/sendfile.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
 #include <pthread.h>
 #include "anarcast.h"
 #include "sha.c"
@@ -21,6 +7,7 @@ void * run_thread (void *arg);
 void insert (int c);
 void request (int c);
 void inform ();
+inline void addref (char p[20]);
 
 int
 main (int argc, char **argv)
@@ -33,6 +20,8 @@ main (int argc, char **argv)
     mkdir(b, 0755);
     if (chdir(b) == -1)
 	err(1, "can't change to %s", b);
+    
+    inform(argv[1] ? argv[1] : DEFAULT_INFORM_SERVER);
     
     if ((l = listening_socket(PROXY_SERVER_PORT)) == -1)
 	err(1, "can't grab port %d", PROXY_SERVER_PORT);
@@ -102,46 +91,51 @@ request (int c)
 void
 inform (char *server)
 {
-    int c, d, i, t;
-    off_t o = 0;
-    char b[1024];
+    int c, n, m, i;
+    char b[20];
     struct sockaddr_in a;
-    struct hostent *h = gethostbyname(server);
-    if (!h) {
-	warn("can't lookup %s", server);
-	return;
-    }
+    struct hostent *h;
+    
+    if (!(h = gethostbyname(server)))
+	err(1, "can't lookup %s", server);
+    
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
     a.sin_port = htons(INFORM_SERVER_PORT);
     a.sin_addr.s_addr = *h->h_addr;
+    
     if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	err(1, "socket(2) failed");
-    if (connect(c, &a, sizeof(a)) == -1) {
-	warn("can't connect to %s", server);
-	return;
+    
+    if (connect(c, &a, sizeof(a)) == -1)
+	err(1, "can't connect to %s", server);
+
+    if (read(c, &n, 4) != 4)
+	err(1, "read of length failed");
+    
+    if (n < 0 || n > 100000) {
+	printf("Invalid server count: %d.\n", n);
+	exit(1);
     }
-    strcpy(b, "/tmp/anarcast-XXXXXX");
-    if ((d = mkstemp(b)) == -1)
-	err(1, "mkstemp(3) failed");
-    t = 0;
-    while ((i = read(c, b, sizeof(b))) > 0) {
-	if (write(d, b, i) != i)
-	    err(1, "write(2) to server list failed");
-	t += i;
+    
+    if (!n) {
+	puts("No servers in network. :(");
+	exit(1);
     }
-    close(c);
-    if (t % 4) {
-	warn("transfer from inform server ended prematurely (list not updated)");
-        close(d);
-	return;
+    
+    m = n;
+    while (n--) {
+	if (read(c, &i, 4) != 4)
+	    err(1, "read from inform server failed");
+       	sha_buffer((char *)&i, 4, b);
+	addref(b);
     }
-    if ((i = open("servers", O_WRONLY, O_CREAT | O_TRUNC)) == -1)
-	err(1, "can't open servers file");
-    if (sendfile(i, d, &o, t) == -1)
-	err(1, "sendfile(2) failed");
-    close(d);
-    close(i);
-    printf("%d known servers.\n", t / 4);
+
+    printf("%d Anarcast servers loaded.\n", m);
+}
+
+inline void
+addref (char p[20])
+{
 }
 
