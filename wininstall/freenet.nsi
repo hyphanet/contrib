@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "14102001snapshot"
+!define VERSION "16102001snapshot"
 
 Name "Freenet ${VERSION}"
 !ifdef embedJava
