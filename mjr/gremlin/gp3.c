@@ -2,6 +2,8 @@
 #include <curses.h>
 #include <pthread.h>
 #include <getopt.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <fcp.h>
 #include "gt.h"
 
@@ -13,6 +15,7 @@ void load_config (int argc, char **argv);
 void load_root ();
 void refresh_left ();
 void refresh_right ();
+void dialog (char *message);
 void update_list ();
 void pl_add (char *name, char *uri);
 void pl_update ();
@@ -59,6 +62,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 int pl_len, paused, counter;
 struct pl_item *head = NULL, *tail;
+long last_del;
 
 void
 curses_init ()
@@ -102,11 +106,15 @@ load_config (int argc, char **argv)
     };
 
     char *uri = NULL;
-
+    DIR *dir;
+    
     htl = 20;
     threads = 20;
     buffer = 2;
-
+     
+    last_del = 0;
+    sprintf(home, "%s/.gp3", getenv("HOME"));
+    
     while ((c = getopt_long(argc, argv,
 		    "h:t:b:c:", long_options, NULL)) != EOF) {
 	switch (c) {
@@ -143,6 +151,18 @@ load_config (int argc, char **argv)
 	exit(2);
     }
 
+    dir = opendir(home);
+    if (!dir) {
+        printf("Creating directory %s... ", home);
+        if (mkdir(home, 0755) == 0) {
+	    printf("done.\n");
+	} else {
+	    printf("failed!\n");
+	    exit(1);
+	}
+    }
+    closedir(dir);
+    
     if (uri) {
 	FILE *f, *data = tmpfile();
 	char buf[1024];
@@ -172,7 +192,6 @@ load_config (int argc, char **argv)
 	    printf("Not a catalog file!\n");
 	    exit(1);
 	}
-	sprintf(home, "%s/.gp3", getenv("HOME"));
 	printf("Adding %s to %s... ", g.names[0], home);
 	sprintf(buf, "%s/%s", home, g.names[0]);
 	gt_close(&g);
@@ -195,8 +214,6 @@ load_root ()
     struct dirent **namelist;
     
     gt = NULL;
-    sprintf(home, "%s/.gp3", getenv("HOME"));
-   
     if (catalogs) {
 	for (i = 0 ; catalogs[i] ; i++) free(catalogs[i]);
 	free(catalogs);
@@ -214,7 +231,10 @@ load_root ()
     curline = 0;
     offset = 0;
     werase(pad_left);
-    if (!catalogs[0]) return;
+    if (!catalogs[0]) {
+	dialog("No catalogs. Quit and try gp3 --help for instructions.");
+	return;
+    }
     wattron(pad_left, A_REVERSE);
     mvwaddstr(pad_left, 0, 0, catalogs[0]);
     wattroff(pad_left, A_REVERSE);
@@ -237,6 +257,21 @@ update_list ()
     wattroff(pad_left, A_REVERSE);
     for (i = 1 ; ls[i].name ; i++)
 	mvwaddstr(pad_left, i, 0, ls[i].name);
+}
+
+void
+dialog (char *message)
+{
+    char s[] = "Press any key to continue.";
+    WINDOW *dialog = newwin(LINES/8, COLS, LINES/2 - LINES/8, 0);
+    box(dialog, 0, 0);
+    mvwaddstr(dialog, 1, COLS/2 - strlen(message)/2, message);
+    mvwaddstr(dialog, LINES/8 - 2, COLS/2 - strlen(s)/2, s);
+    wrefresh(dialog);
+    getch();
+    box(win_left, 0, 0); box(win_right, 0, 0);
+    wnoutrefresh(stdscr); wnoutrefresh(win_left); wrefresh(win_right);
+    refresh_left(); refresh_right();
 }
 
 void
@@ -271,7 +306,7 @@ main (int argc, char **argv)
 	    case 'd':           key_add_all();   break; // queue all songs in dir
 	    case 'p':           key_pause();     break; // pause
 	    case 'q':           key_quit();      break; // quit
-	    default: break;
+	    default:            beep();          break;
 	}
     }
 }
@@ -364,13 +399,15 @@ key_enter ()
 	sprintf(path, "%s/%s", home, catalogs[curline]);
 	in = fopen(path, "r");
 	if (!in) {
-	    printf("Can't open catalog %s!\n", catalogs[curline]);
+	    sprintf(path, "Can't open catalog ~/.gp3/%s!", catalogs[curline]);
+	    dialog(path);
 	    return;
 	}
 	gt = malloc(sizeof(gremlin_tree));
 	status = gt_init(gt, in);
 	if (status != 0) {
-	    printf("Invalid catalog: %s!\n", catalogs[curline]);
+	    sprintf(path, "Invalid catalog ~/.gp3/%s!", catalogs[curline]);
+	    dialog(path);
 	    free(gt); gt = NULL; return;
 	}
 	ls = gt_ls(gt);
@@ -467,8 +504,9 @@ key_backspace ()
 	    if (pli->mpg123) pclose(pli->mpg123);
 	    free(pli->name); free(pli->uri); free(pli);
     	    pl_update();
-	    pthread_mutex_unlock(&mutex); // FIXME !!!!
+	    pthread_mutex_unlock(&mutex);
 	    pthread_cond_broadcast(&cond);
+	    last_del = time(NULL);
 	    break;
 	}
 	last = pli;
@@ -531,8 +569,15 @@ pl_thread (void *args)
     int n, length;    
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
     while (head->id < pli->id - buffer) my_wait();
+    while (time(NULL) < last_del + 3) sleep(1);
     pli->d = fcp_document_new();
     length = fcp_request(NULL, pli->d, pli->uri, htl, threads);
+    pthread_mutex_lock(&mutex);
+    while (length == FCP_CONNECT_FAILED) {
+	dialog("Connection to local Freenet node failed. Will retry.");
+	length = fcp_request(NULL, pli->d, pli->uri, htl, threads);
+    }
+    pthread_mutex_unlock(&mutex);
     while (pli != head) my_wait();
     pli->mpg123 = popen("mpg123 - &>/dev/null", "w");
     if (!pli->mpg123) length = 0;

@@ -10,9 +10,11 @@ FILE *in, *out;
 void
 usage (char *me)
 {
-    fprintf(stderr, "Usage: %s infile outfile\n"
-	    	    "Gremlin Tree Compiler\n"
-	            "If outfile is a Freenet URI, the compiled data will be inserted.\n",
+    fprintf(stderr, "Usage: %s [options] infile outfile\n\n"
+	            "  -t --threads       Concurrency for insert.\n"
+		    "  -h --htl           Hops to live for insert.\n\n"
+	            "If outfile is a Freenet URI, the compiled data will be inserted respecting\n"
+		    "the above parameters.\n",
 		    me);
     exit(1);
 }
