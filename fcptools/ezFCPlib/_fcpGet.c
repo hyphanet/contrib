@@ -32,8 +32,6 @@
 #include <string.h>
 #include <errno.h>
 
-/*#include <math.h> DEPRECATE */
-
 #include "ez_sys.h"
 
 /* Private functions for internal use */
@@ -239,9 +237,12 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 
 	hfcp->key->metadata->raw_metadata = (char *)malloc(meta_bytes+1);
 	
-	/* grab all the metadata from the datachunks first */
+	/* keep writing metadata as long as there's metadata to write..
+		 fetching more datachunks when required */
 
 	_fcpLog(FCP_LOG_DEBUG, "retrieve metadata");
+
+	/* index traverses through the raw metadata (char *) */
 	index = 0;
 
 	while ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
@@ -260,7 +261,8 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		
 		if (mfd != -1)
 			write(mfd, hfcp->response.datachunk.data, meta_count);
-		
+
+		/* copy over the raw metadata for handling later */
 		memcpy(hfcp->key->metadata->raw_metadata + index,
 					 hfcp->response.datachunk.data,
 					 meta_count);
@@ -268,7 +270,9 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		meta_bytes -= meta_count;
 		index += meta_count;
 
+		/* if we're done, break out to avoid fetching another chunk prematurely */
 		if (meta_bytes == 0) {
+
 			_fcpLog(FCP_LOG_DEBUG, "finished metadata");
 			break;
 		}
@@ -283,7 +287,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		goto cleanup;
 	}
 
-	/* check for trailing key data */
+	/* check for trailing key data in most recent data chunk */
 
 	if (meta_count < hfcp->response.datachunk.length) {
 
@@ -308,6 +312,11 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		_fcpLog(FCP_LOG_DEBUG, "key_bytes remaining: %d", key_bytes);
 	}
 
+	/* here, all metadata has been written, and some key data has been written;
+		 result is the most recent data chunk is exhausted of whatever key data
+		 it had (both key and meta), so fetch more chunks and write them to the
+		 keyfile */
+
 	hfcp->key->metadata->raw_metadata[index] = 0;
 
 	while (key_bytes > 0) {
@@ -315,7 +324,7 @@ int get_file(hFCP *hfcp, char *uri, char *key_filename, char *meta_filename)
 		/* the remaining data chunks should be just key data */
 		if ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
 			
-			/*_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");*/
+			_fcpLog(FCP_LOG_DEBUG, "retrieved datachunk");
 
 			key_count = hfcp->response.datachunk.length;
 			
