@@ -12,20 +12,27 @@
 struct node {
     unsigned int addr;
     char hash[HASHLEN];
-    struct node *prev, *next;
+    struct node *next;
 };
 
-// use this when i'm adding or removing addresses
+// use this when fucking with the address database
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// these are used when we're considering updating our database
+int active_threads;
+int database_update;
 
 // the head of our linked list of servers
 struct node *head;
 
-// our inform server hostname
-char *inform_server;
+// write our pid to .anarcast.pid
+void save_pid ();
 
-// connect to the inform server and populate our lovely AVL tree
-void inform ();
+// does nothing
+void noop () {};
+
+// load our address database (which is updated by another daemon)
+void load_address_database ();
 
 // read the transaction type, call the right function, and close the connection
 void * run_thread (void *arg);
@@ -33,7 +40,7 @@ void * run_thread (void *arg);
 // mandatory variadic function
 void alert (const char *s, ...);
 
-// check if bit (db * cb) is set in g->graph
+// check if bit is set in g->graph
 int is_set (struct graph *g, int db, int cb);
 
 // read data, send back key, insert blocks, etc
@@ -48,10 +55,10 @@ void request (int c);
 // download all the blocks i can get, set mask[block] = 1 for each begot block
 void do_request (char *blocks, char *mask, int blockcount, int blocksize, const char *hashes);
 
-// add a reference to our lovely AVL tree. it better not be a duplicate!
+// add a reference. it better not be a duplicate!
 void addref (unsigned int addr);
 
-// remove a reference to our lovely AVL tree. it better be there!
+// remove a reference. it better be there!
 void rmref (unsigned int addr);
 
 // return the address of the proper host for hash
@@ -61,27 +68,76 @@ int
 main (int argc, char **argv)
 {
     int l, c;
+    fd_set r;
     pthread_t t;
     
-    if (argc != 2) {
-	fprintf(stderr, "Usage: %s <inform server>\n", argv[0]);
+    if (argc != 1) {
+	fprintf(stderr, "Usage: %s (no arguments)\n", argv[0]);
         exit(2);
     }
     
     chdir_to_home();
-    inform((inform_server = argv[1]));
+    
+    // save our pid so we can be signaled
+    save_pid();
+
+    // override the default action for SIGHUP
+    signal(SIGHUP, noop);
+    
+    // load initial addresses
+    head = NULL;
+    load_address_database();
+    
+    // listen for connections
     l = listening_socket(PROXY_SERVER_PORT, INADDR_LOOPBACK);
+    set_nonblock(l);
+    FD_ZERO(&r);
+    FD_SET(l, &r);
+    active_threads = 0;
     
     // accept connections and spawn a thread for each
-    for (;;)
-	if ((c = accept(l, NULL, 0)) != -1) {
+    for (;;) {
+	struct timeval tv = {60, 0};
+	
+	if (select(l + 1, &r, NULL, NULL, &tv) == -1) {
+	    extern int errno;
+	    if (errno != EINTR)
+		die("select() failed");
+	    database_update = 1;
+	    alert("Address database was updated. Scheduling reload.\n");
+	}
+	
+	if (FD_ISSET(l, &r) && (c = accept(l, NULL, 0)) != -1) {
 	    int *i = malloc(4);
 	    *i = c;
+	    active_threads++;
 	    if (pthread_create(&t, NULL, run_thread, i) != 0)
 		die("pthread_create() failed");
 	    if (pthread_detach(t) != 0)
 		die("pthread_detach() failed");
+	} else if (database_update && !active_threads) {
+	    load_address_database();
+	    database_update = 0;
 	}
+    }
+	    
+}
+
+void
+save_pid ()
+{
+    int fd;
+    pid_t pid;
+
+    if ((fd = open(".anarcast.pid", O_WRONLY|O_CREAT|O_TRUNC, 0644)) == -1)
+	die("cannot open .anarcast.pid");
+
+    pid = getpid();
+    if (write(fd, &pid, sizeof(pid)) != sizeof(pid))
+	die("error writing pid to .anarcast.pid");
+
+    if (close(fd) == -1)
+	die("close() failed");
 }
 
 void *
@@ -100,6 +156,7 @@ run_thread (void *arg)
     if (close(c) == -1)
 	die("close() failed");
     free(arg);
+    active_threads--;
     pthread_exit(NULL);
 }
 
@@ -676,59 +733,45 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     }
 }
 
-//=== inform ================================================================
+//=== routing ===============================================================
 
 void
-inform ()
+load_address_database ()
 {
-    int c, n;
-    unsigned int count;
-    struct sockaddr_in a;
-    struct hostent *h;
-    extern int h_errno;
+    int fd;
+    unsigned int i, address, count;
+
+    if ((fd = open("address_database", O_RDONLY)) == -1)
+	die("cannot open address database");
     
-    if (!(h = gethostbyname(inform_server))) {
-	alert("%s: %s.", inform_server, hstrerror(h_errno));
+    if (read(fd, &address, 4) != 4 || read(fd, &count, 4) != 4)
+	die("read from address database failed");
+    
+    if (!count) {
+	alert("No addresses in database. Exiting.\n");
 	exit(1);
     }
     
-    memset(&a, 0, sizeof(a));
-    a.sin_family = AF_INET;
-    a.sin_port = htons(INFORM_SERVER_PORT);
-    a.sin_addr.s_addr = ((struct in_addr *)h->h_addr)->s_addr;
-    
-    if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	die("socket() failed");
-    
-    if (connect(c, &a, sizeof(a)) == -1)
-	die("connect() failed");
-    
-    // how many friends do we have?
-    if (readall(c, &count, 4) != 4)
-	die("inform server hung up unexpectedly");
-    
-    if (!count) {
-	puts("No servers, exiting.");
-	exit(0);
-    }
-    
-    head = NULL;
-    
-    // read and insert our friends
-    for (n = 0 ; n < count ; n++) {
-	unsigned int i;
-	if (readall(c, &i, 4) != 4)
-	    die("inform server hung up unexpectedly");
-	addref(i);
+    // purge old addresses
+    while (head) {
+	struct node *n = head;
+	head = head->next;
+	free(n);
     }
 
-    if (close(c) == -1)
+    // add new addresses
+    for (i = 0 ; i < count ; i++) {
+	unsigned int addr;
+	if (read(fd, &addr, 4) != 4)
+	    die("read from address database failed");
+	addref(addr);
+    }
+
+    if (close(fd) == -1)
 	die("close() failed");
 
-    alert("%d Anarcast servers loaded.\n", count);
+    alert("Loaded %d addresses.\n", count);
 }
-
-//=== routing ===============================================================
 
 void
 refop (char op, char *hash, unsigned int addr)

@@ -1,12 +1,6 @@
 #include "anarcast.h"
 #include "crypt.c"
 
-// re-register with the inform server every hour
-#define REGISTER_INTERVAL (60*60)
-
-// mongolian cluster-fuck! sorry, i had to get that in somewhere
-void touch_inform_server (char *server);
-
 // our splendid states
 struct {
     char type, hash[HASHLEN], *data;
@@ -17,21 +11,15 @@ int
 main (int argc, char **argv)
 {
     int m, l;
-    long last_register;
-    char *inform_server;
     fd_set r, w;
     
-    if (argc != 2) {
-	fprintf(stderr, "Usage: %s <inform server>\n", argv[0]);
+    if (argc != 1) {
+	fprintf(stderr, "Usage: %s (no options)\n", argv[0]);
 	exit(2);
     }
     
     chdir_to_home();
     l = listening_socket(ANARCAST_SERVER_PORT, INADDR_ANY);
-    
-    inform_server = argv[1];
-    touch_inform_server(inform_server);
-    last_register = time(NULL);
     
     puts("Server started.");
     
@@ -47,11 +35,6 @@ main (int argc, char **argv)
 	fd_set s = r, x = w;
 	struct timeval tv = {60, 0};
         
-	if (time(NULL) > last_register + REGISTER_INTERVAL) {
-	    touch_inform_server(inform_server);
-	    last_register = time(NULL);
-	}
-	
 	i = select(m, &s, &x, NULL, &tv);
 	if (i == -1) die("select() failed");
 	if (!i) continue;
@@ -77,9 +60,7 @@ main (int argc, char **argv)
 	// read type
 	if (!a[n].type) {
 	    c = read(n, &a[n].type, 1);
-	    if (a[n].type != 'r' && a[n].type != 'i') {
-		if (c) // the inform server will connect and hang up
-		    puts("Format Error: Unrecognized transaction type.");
+	    if (c && a[n].type != 'r' && a[n].type != 'i') {
 		FD_CLR(n, &r);
 		if (close(n) == -1)
 		    die("close() failed");
@@ -210,33 +191,5 @@ write:	//=== write =========================================================
 		die("munmap() failed");
 	}
     }
-}
-
-void
-touch_inform_server (char *server)
-{
-    struct sockaddr_in a;
-    struct hostent *h;
-    int c;
-
-    if (!(h = gethostbyname(server))) {
-	printf("Warning: %s: %s.\n", server, hstrerror(h_errno));
-	return;
-    }
-    
-    memset(&a, 0, sizeof(a));
-    a.sin_family = AF_INET;
-    a.sin_port = htons(INFORM_SERVER_PORT);
-    a.sin_addr.s_addr = ((struct in_addr *)h->h_addr)->s_addr;
-    
-    if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	die("socket() failed");
-    
-    if (connect(c, &a, sizeof(a)) == -1)
-	printf("Warning: connect() to %s failed.\n", server);
-    
-    // we don't need to read any addresses. we're just a server, buddy.
-    if (close(c) == -1)
-	die("close() failed");
 }
 
