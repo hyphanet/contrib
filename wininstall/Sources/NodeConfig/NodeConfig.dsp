@@ -181,6 +181,10 @@ SOURCE=.\Resource.h
 
 SOURCE=.\StdAfx.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\UpdateSpin.h
+# End Source File
 # End Group
 # Begin Group "Resource Files"
 

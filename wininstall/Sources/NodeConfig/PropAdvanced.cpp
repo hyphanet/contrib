@@ -6,6 +6,7 @@
 #include "stdafx.h"
 #include "NodeConfig.h"
 #include "PropAdvanced.h"
+#include "UpdateSpin.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -78,20 +79,15 @@ void CPropAdvanced::OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	if (pNMUpDown->iDelta < 0)
+	UINT BandwidthLimitDiv1024 = m_bandwidthLimit/1024;
+	CUpdateSpin<UINT> cus(BandwidthLimitDiv1024, 0, (0xffffffff)/1024);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-		m_bandwidthLimit = ((m_bandwidthLimit/1024)*1024) + 1024;
-	}
-	else
-	{
-		if (m_bandwidthLimit >= 1024)
-		{
-			m_bandwidthLimit = ((m_bandwidthLimit/1024)*1024) - 1024;;
-		}
-	}
-
-	if (m_bandwidthLimit > 0)
+		m_bandwidthLimit = BandwidthLimitDiv1024 * 1024;
+		if (m_bandwidthLimit > 0)
 			m_inputBandwidthLimit = m_outputBandwidthLimit = 0;
+		UpdateData(FALSE);
+	}
 	UpdateData(FALSE);
 	*pResult = 0;
 }
@@ -100,17 +96,12 @@ void CPropAdvanced::OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	if (pNMUpDown->iDelta < 0)
+	UINT outputBandwidthLimitDiv1024 = m_outputBandwidthLimit/1024;
+	CUpdateSpin<UINT> cus(outputBandwidthLimitDiv1024, 0, (0xffffffff)/1024);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-		m_bandwidthLimit = 0;
-		m_outputBandwidthLimit = ((m_outputBandwidthLimit/1024)*1024) + 1024;
-	}
-	else
-	{
-		if (m_outputBandwidthLimit >= 1024)
-		{
-			m_outputBandwidthLimit = ((m_outputBandwidthLimit/1024)*1024) - 1024;
-		}
+		m_outputBandwidthLimit = outputBandwidthLimitDiv1024 * 1024;
+		UpdateData(FALSE);
 	}
 	UpdateData(FALSE);
 	*pResult = 0;
@@ -120,19 +111,13 @@ void CPropAdvanced::OnInputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	if (pNMUpDown->iDelta < 0)
+	UINT inputBandwidthLimitDiv1024 = m_inputBandwidthLimit/1024;
+	CUpdateSpin<UINT> cus(inputBandwidthLimitDiv1024, 0, (0xffffffff)/1024);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-		m_bandwidthLimit = 0;
-		m_inputBandwidthLimit = ((m_inputBandwidthLimit/1024)*1024) + 1024;
+		m_inputBandwidthLimit = inputBandwidthLimitDiv1024 * 1024;
+		UpdateData(FALSE);
 	}
-	else
-	{
-		if (m_inputBandwidthLimit >= 1024)
-		{
-			m_inputBandwidthLimit = ((m_inputBandwidthLimit/1024)*1024) - 1024;
-		}
-	}
-	UpdateData(FALSE);
 	*pResult = 0;
 }
 
@@ -140,22 +125,14 @@ void CPropAdvanced::OnInitialRequestHTLspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	if (pNMUpDown->iDelta < 0)
+	CUpdateSpin<UINT> cus(m_initialRequestHTL, 1, 25);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-		if (m_initialRequestHTL < 25)
+		if (m_initialRequestHTL > m_maxHopsToLive)
 		{
-			if (++m_initialRequestHTL > m_maxHopsToLive)
-				m_maxHopsToLive = m_initialRequestHTL;
-			UpdateData(FALSE);
+			m_maxHopsToLive = m_initialRequestHTL;
 		}
-	}
-	else
-	{
-		if (m_initialRequestHTL > 0)
-		{
-			m_initialRequestHTL--;
-			UpdateData(FALSE);
-		}
+		UpdateData(FALSE);
 	}
 	*pResult = 0;
 }
@@ -164,22 +141,14 @@ void CPropAdvanced::OnMaxHopsToLivespin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	if (pNMUpDown->iDelta < 0)
+	CUpdateSpin<UINT> cus(m_maxHopsToLive, 1, 50);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-		if (m_maxHopsToLive < 50)
+		if (m_maxHopsToLive < m_initialRequestHTL)
 		{
-			m_maxHopsToLive++;
-			UpdateData(FALSE);
+			m_initialRequestHTL = m_maxHopsToLive;
 		}
-	}
-	else
-	{
-		if (m_maxHopsToLive > 0)
-		{
-			if (--m_maxHopsToLive < m_initialRequestHTL)
-				m_initialRequestHTL = m_maxHopsToLive;
-			UpdateData(FALSE);
-		}
+		UpdateData(FALSE);
 	}
 	*pResult = 0;
 }
@@ -188,21 +157,11 @@ void CPropAdvanced::OnMaximumThreadsspin(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	if (pNMUpDown->iDelta < 0)
+	CUpdateSpin<UINT> cus(m_maximumThreads, 1, 1024);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-		if (m_maximumThreads < 1024)
-		{
-			m_maximumThreads++;
-		}
+		UpdateData(FALSE);
 	}
-	else
-	{
-		if (m_maximumThreads > 0)
-		{
-			m_maximumThreads--;
-		}
-	}
-	UpdateData(FALSE);
 	*pResult = 0;
 }
 
@@ -210,18 +169,13 @@ void CPropAdvanced::OnchangedmaxNodeConnectionsspin(NMHDR* pNMHDR, LRESULT* pRes
 {
 	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
 	UpdateData(TRUE);
-	if (pNMUpDown->iDelta < 0)
+	CUpdateSpin<UINT> cus(m_maxNodeConnections, 1, 0xffffffff);
+	if (cus.Update(pNMUpDown->iDelta) )
 	{
-			m_maxNodeConnections++;
+		UpdateData(FALSE);
 	}
-	else
-	{
-		if (m_maxNodeConnections > 0)
-		{
-			m_maxNodeConnections--;
-			
-		}
-	}
-	UpdateData(FALSE);
 	*pResult = 0;
 }
+
+
+
