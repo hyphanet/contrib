@@ -152,11 +152,11 @@ void MonitorThreadRunFserve()
 							SW_HIDE,
 							0,NULL,
 							NULL,NULL,NULL};
-	char szexecbuf[sizeof(szjavawpath)+sizeof(szfserveexec)+2];
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
 
 	lstrcpy(szexecbuf, szjavawpath);
 	lstrcat(szexecbuf, " ");
-	lstrcat(szexecbuf, szfserveexec); 
+	lstrcat(szexecbuf, szfservecliexec); 
 
 	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartInfo, &prcInfo) )
 	{

@@ -35,7 +35,7 @@ extern const char szWindowClassName[];
 extern const char szAppName[];
 
 extern char szjavawpath[JAVAWMAXLEN];	/* used to read Javaw= definition out of FLaunch.ini */
-extern char szfserveexec[BUFLEN];		/* used to read Fserve= definition out of FLaunch.ini */
+extern char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out of FLaunch.ini */
 
 /*		flags, etc... */
 extern FREENET_MODE nFreenetMode;

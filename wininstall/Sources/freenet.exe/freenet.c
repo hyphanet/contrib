@@ -61,9 +61,9 @@ const char szflfile[]="./FLaunch.ini"; /* ie name of file */
 const char szflsec[]="Freenet Launcher"; /* ie [Freenet Launcher] subsection text */
 const char szjavakey[]="Javaexec"; /* ie Javaexec=java.exe */
 const char szjavawkey[]="Javaw"; /* ie Javaw=g:\winnt\system32\jview.exe */
-const char szfserveexeckey[]="fserve"; /* ie Fserve=Freenet.node.Node */
+const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Node */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
-const char szfservedefaultexec[]="Freenet.node.Node"; /* default for above */
+const char szfserveclidefaultexec[]="Freenet.node.Node"; /* default for above */
 const char szfconfigdefaultexec[]="Freenet.node.gui.Config freenet.ini"; /* default for above */
 
 
@@ -83,7 +83,7 @@ const char szConfigProcName[]="Config"; /* ie name of Config function */
  ******************************************************/
 /*		strings, etc... */
 char szjavawpath[JAVAWMAXLEN];		/* used to read Javaw= definition out of FLaunch.ini */
-char szfserveexec[BUFLEN];			/* used to read Fserve= definition out of FLaunch.ini */
+char szfservecliexec[BUFLEN];			/* used to read Fservecli= definition out of FLaunch.ini */
 char szfconfigexec[BUFLEN];			/* used to read Fconfig= definition out of FLaunch.ini */
 char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8081" after the 8081 bit has been read from freenet.ini */
 
@@ -430,8 +430,8 @@ void Initialise(void)
 		GetPrivateProfileString(szflsec, szjavakey, szempty, szjavawpath, JAVAWMAXLEN, szflfile);
 	}
 
-	/* get the fserve launch string from flaunch.ini */
-	GetPrivateProfileString(szflsec, szfserveexeckey, szfservedefaultexec, szfserveexec, BUFLEN, szflfile);
+	/* get the fservecli launch string from flaunch.ini */
+	GetPrivateProfileString(szflsec, szfservecliexeckey, szfserveclidefaultexec, szfservecliexec, BUFLEN, szflfile);
 
 	/* get the fconfig launch string from flaunch.ini */
 	GetPrivateProfileString(szflsec, szfconfigexeckey, szfconfigdefaultexec, szfconfigexec, BUFLEN, szflfile);
