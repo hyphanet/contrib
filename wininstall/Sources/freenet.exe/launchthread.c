@@ -10,6 +10,8 @@
 #include "types.h"
 #include "launchthread.h"
 #include "shared_data.h"
+#include <stdlib.h>
+#include <string.h>
 
 /******************************************************
  *  G L O B A L S                                     *
@@ -25,6 +27,14 @@ const char szerrTitle[]="Error starting node";
 
 const char szFCPerrMsg[]=	"Couldn't launch FCPProxy\n";
 const char szFCPerrTitle[]=	"Error launching FCPProxy";
+
+
+const char sztempdir1[]="FECTempDir"; /* ie FECTempDir=C:\windows\temp\freenet */
+const char sztempdir2[]="mainport.params.servlet.1.params.tempDir"; /* see sztempdir1 */
+
+extern const char szfinifile[];
+extern const char szfinisec[];
+
 
 /* handles, etc. */
 PROCESS_INFORMATION FredPrcInfo;	/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
@@ -134,12 +144,14 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 					switch (msg.message)
 					{
 					case WM_BEGINMONITORING:
+						ClearTempDirectories();
 						/* fire up the node! */
 						MonitorThreadRunFserve();
 						break;
 
 					case WM_ENDMONITORING:
 						MonitorThreadKillFserve();
+						ClearTempDirectories();
 						break;
 
 					case WM_QUITMONITORINGTHREAD:
@@ -412,4 +424,49 @@ void LoadFCPProxy(void)
 	{
 		ZeroMemory(&FCPProxyPrcInfo, sizeof(PROCESS_INFORMATION));
 	}
+}
+
+void DeleteFilesInDirectory(char* directory)
+{
+	HANDLE find;
+	WIN32_FIND_DATA file;
+
+	// search all files in directory
+	char search[MAX_PATH];
+	lstrcpyn(search, directory, MAX_PATH - 3); 
+    lstrcat(search, "*.*");
+	find = FindFirstFile(search, &file);
+	if(find == INVALID_HANDLE_VALUE)
+		return;
+
+	do {
+		char* filename = malloc(sizeof(directory) + sizeof(file.cFileName) + 1);
+		if(!filename) return; //we have bigger problems then, so don't bother
+		lstrcpyn(filename, directory, MAX_PATH - 3);
+		lstrcat(filename, file.cFileName);
+		DeleteFile(filename);
+		free(filename);
+	} while(FindNextFile(find, &file));
+	FindClose(find);
+}
+
+void ClearTempDirectories(void)
+{
+	// this should be done every time the node is started or stopped (while the node is not running preferably)
+	char tempdir1[MAX_PATH], tempdir2[MAX_PATH];
+
+	SetCurrentDirectory(szHomeDirectory);
+
+	// FIXME: this shoudln't be committed liek this
+	GetPrivateProfileString(szfinisec, sztempdir1, szempty, tempdir1, MAX_PATH, szfinifile);
+	GetPrivateProfileString(szfinisec, sztempdir2, szempty, tempdir2, MAX_PATH, szfinifile);
+
+	//todo: automatically use win2k security if in win2k
+	CreateDirectory(tempdir1, NULL);
+	CreateDirectory(tempdir2, NULL);
+
+	if(strlen(tempdir1))
+		DeleteFilesInDirectory(tempdir1);
+	if(strlen(tempdir2))
+		DeleteFilesInDirectory(tempdir2);
 }

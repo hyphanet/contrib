@@ -100,6 +100,7 @@ const char szfinisec[]="Freenet node"; /* ie [Freenet node] subsection text */
 const char szfprxkey[]="mainport.port"; /* ie fproxy.port=8081 */
 const char szserviceskey[]="services"; /* ie services=fproxy,nodestatus */
 
+
 /* for launching configuration dll */
 const char szConfigDLLName[]="config.dll"; /* ie name of file */
 const char szConfigProcName[]="InvokeConfig"; /* name of Config function */
@@ -1080,7 +1081,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							}
 							else
 							{
-								// we now 'own' the configurator semaphore object
+								// we now 'own' the configurator semaphore object+
 								StartConfig();
 								/* StartConfig will automatically cause RestartFserve() to run when completed */
 								/* it will also release the semaphore */

@@ -13,6 +13,7 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null);
 /****************************************************************************************/
 void MonitorThreadRunFserve(void);
 void MonitorThreadKillFserve(void);
+void ClearTempDirectories(void);
 /* following function is a callback used to kill off (cleanly!) the freenet node */
 BOOL CALLBACK KillWindowByProcessId(HWND hWnd, LPARAM lParam);
 
