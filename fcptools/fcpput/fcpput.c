@@ -35,9 +35,9 @@
 
 #ifdef DMALLOC
 #include <dmalloc.h>
-#endif
 
 extern int _fcpDMALLOC;
+#endif
 
 /* Cheat here and import ez_sys.h function(s) */
 extern long   file_size(char *filename);

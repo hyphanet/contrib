@@ -57,8 +57,8 @@
 
 typedef SOCKET FCPSOCKET;
 
-#define FCP_WRITEFILE_FLAGS (_O_CREAT | _O_BINARY | _O_WRONLY)
-#define FCP_CREATEFILE_MODE (_S_IWRITE)
+#define FCP_WRITEFILE_FLAGS (_O_CREAT | _O_WRONLY | _O_TRUNC | _O_BINARY)
+#define FCP_CREATEFILE_MODE (_S_IWRITE | _S_IREAD)
 
 #define FCP_READFILE_FLAGS (_O_BINARY | _O_RDONLY)
 
@@ -79,13 +79,10 @@ typedef SOCKET FCPSOCKET;
 
 typedef int FCPSOCKET;
 
-#define FCP_CREATEFILE_FLAGS (O_CREAT | S_IRUSR | S_IWUSR)
-#if 0
-#define FCP_CREATEFILE_MODE
+#define FCP_WRITEFILE_FLAGS (O_CREAT | O_WRONLY | O_TRUNC)
+#define FCP_CREATEFILE_MODE (S_IWUSR | S_IRUSR)
 
-#define FCP_READFILE_FLAGS
-#define FCP_WRITEFILE_FLAGS
-#endif
+#define FCP_READFILE_FLAGS (O_RDONLY)
 
 #define FCP_DIR_SEP '/'
 
@@ -354,16 +351,6 @@ typedef struct {
 	
 	char *tempdir;
 	char *homedir;
-
-} hOptions;
-
-typedef struct {
-	int   type;                        /* CHK@, KSK@, SSK@ */
-
-	FILE *logstream;   /* stream used to send log messages; may be file or stdin */
-	
-	char  tmpdir[L_FILENAME+1];    /* temporary file directory (depends on WIN32/!WIN32) */
-	char  homedir[L_FILENAME+1];   /* Home directory */
 
 } hOptions;
 

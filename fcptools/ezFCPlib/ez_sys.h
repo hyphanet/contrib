@@ -33,6 +33,8 @@
 
 #ifdef DMALLOC
 #include "dmalloc.h"
+
+extern int _fcpDMALLOC;
 #endif
 
 /* Global vars

@@ -471,7 +471,7 @@ static int fec_segment_file(hFCP *hfcp)
 		hfcp->key->segments[index]->check_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[index]->cb_count);
 
 		snprintf(buf, L_FILE_BLOCKSIZE,
-						 "SegmentHeader\nFECAlgorithm=%s\nFileLength=%x\nOffset=%x\n" \
+						 "SegmentHeader\nFECAlgorithm=%s\nFileLength=%x\nOffset=%lx\n" \
 						 "BlockCount=%x\nBlockSize=%x\nDataBlockOffset=%x\nCheckBlockCount=%x\n" \
 						 "CheckBlockSize=%x\nCheckBlockOffset=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
 
@@ -574,6 +574,8 @@ static int fec_encode_segment(hFCP *hfcp, int index)
 	/* Open file we are about to send */
 	if ((fd = open(hfcp->key->tmpblock->filename, FCP_READFILE_FLAGS)) == -1) {
 		rc = -1;
+
+		_fcpLog(FCP_LOG_DEBUG, "OOPS: %s", strerror(errno));
 		goto cleanup;
 	}
 	

@@ -32,7 +32,9 @@
 
 #include "ez_sys.h"
 
-/*static int toUnix(char *path);*/
+#ifdef DMALLOC
+int _fcpDMALLOC;
+#endif
 
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 

@@ -35,6 +35,9 @@
 #include <stdlib.h>
 #include <errno.h>
 
+/* why? */
+/*#include <time.h>*/
+
 #include "ez_sys.h"
 
 /* WARNING * Multithreaded programs should mutex this function */

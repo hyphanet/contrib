@@ -15,8 +15,6 @@ noinst_LIBRARIES = libezfcp.a
 include_HEADERS = ezFCPlib.h
 
 FCP_SOURCE = "\
-_fcpGlobals.c \
-_fcpCompat.c \
 _fcpLog.c \
 _fcpRecvResponse.c \
 _fcpSock.c \
