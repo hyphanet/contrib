@@ -68,11 +68,10 @@ RANLIB = @RANLIB@
 VERSION = @VERSION@
 
 INCLUDES = -I$(srcdir)
-CFLAGS = -g
 
 noinst_LIBRARIES = libezfcp.a
 
-libezfcp_a_SOURCES = fcpStartup.c fcpCreateHandle.c fcpInitHandle.c 	fcpDestroyHandle.c fcpRawMode.c fcpSetHtl.c fcpSetParam.c fcpGetKeyToFile.c 	fcpGetKeyToMem.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKeyIndex.c 	fcpReadKeyIndex.c fcpWriteKeyIndex.c fcpOpenKey.c fcpReadKey.c 	fcpWriteKey.c fcpCloseKey.c metaParse.c _fcpSock.c _fcpReadBlk.c 	_fcpRecvResponse.c _fcpGlobals.c _fcpUtil.c _fcpLog.c _fcpPutSplit.c
+libezfcp_a_SOURCES =  	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c _fcpRecvResponse.c 	_fcpSock.c _fcpUtil.c fcpCloseKey.c fcpCreateHandle.c fcpDestroyHandle.c 	fcpGetKeyToFile.c fcpGetKeyToMem.c fcpInitHandle.c fcpMakChkFromMem.c 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c fcpOpenKeyIndex.c 	fcpPutKeyFromFile.c fcpPutKeyFromMem.c fcpRawMode.c fcpReadKey.c 	fcpReadKeyIndex.c fcpSetParam.c fcpStartup.c fcpWriteKey.c 	fcpWriteKeyIndex.c metaParse.c mimetype.c template.c 	test.c 	unix.c
 
 
 noinst_HEADERS = ezFCPlib.h
@@ -86,15 +85,16 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 libezfcp_a_LIBADD = 
-libezfcp_a_OBJECTS =  fcpStartup.o fcpCreateHandle.o fcpInitHandle.o \
-fcpDestroyHandle.o fcpRawMode.o fcpSetHtl.o fcpSetParam.o \
-fcpGetKeyToFile.o fcpGetKeyToMem.o fcpPutKeyFromFile.o \
-fcpPutKeyFromMem.o fcpMakChkFromMem.o fcpMakeChkFromFile.o \
-fcpMakeSvkKeypair.o fcpOpenKeyIndex.o fcpReadKeyIndex.o \
-fcpWriteKeyIndex.o fcpOpenKey.o fcpReadKey.o fcpWriteKey.o \
-fcpCloseKey.o metaParse.o _fcpSock.o _fcpReadBlk.o _fcpRecvResponse.o \
-_fcpGlobals.o _fcpUtil.o _fcpLog.o _fcpPutSplit.o
+libezfcp_a_OBJECTS =  _fcpGlobals.o _fcpLog.o _fcpPutSplit.o \
+_fcpReadBlk.o _fcpRecvResponse.o _fcpSock.o _fcpUtil.o fcpCloseKey.o \
+fcpCreateHandle.o fcpDestroyHandle.o fcpGetKeyToFile.o fcpGetKeyToMem.o \
+fcpInitHandle.o fcpMakChkFromMem.o fcpMakeChkFromFile.o \
+fcpMakeSvkKeypair.o fcpOpenKey.o fcpOpenKeyIndex.o fcpPutKeyFromFile.o \
+fcpPutKeyFromMem.o fcpRawMode.o fcpReadKey.o fcpReadKeyIndex.o \
+fcpSetParam.o fcpStartup.o fcpWriteKey.o fcpWriteKeyIndex.o metaParse.o \
+mimetype.o template.o test.o unix.o
 AR = ar
+CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
@@ -116,9 +116,9 @@ DEP_FILES =  .deps/_fcpGlobals.P .deps/_fcpLog.P .deps/_fcpPutSplit.P \
 .deps/fcpMakeChkFromFile.P .deps/fcpMakeSvkKeypair.P .deps/fcpOpenKey.P \
 .deps/fcpOpenKeyIndex.P .deps/fcpPutKeyFromFile.P \
 .deps/fcpPutKeyFromMem.P .deps/fcpRawMode.P .deps/fcpReadKey.P \
-.deps/fcpReadKeyIndex.P .deps/fcpSetHtl.P .deps/fcpSetParam.P \
-.deps/fcpStartup.P .deps/fcpWriteKey.P .deps/fcpWriteKeyIndex.P \
-.deps/metaParse.P
+.deps/fcpReadKeyIndex.P .deps/fcpSetParam.P .deps/fcpStartup.P \
+.deps/fcpWriteKey.P .deps/fcpWriteKeyIndex.P .deps/metaParse.P \
+.deps/mimetype.P .deps/template.P .deps/test.P .deps/unix.P
 SOURCES = $(libezfcp_a_SOURCES)
 OBJECTS = $(libezfcp_a_OBJECTS)
 
