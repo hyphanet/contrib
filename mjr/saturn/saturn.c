@@ -417,19 +417,19 @@ read_stduu (FILE *in)
         if (n <= 0) break;
         for (++p; n > 0; p += 4, n -= 3) {
             if (n >= 3) {
-                ch = DEC(p[0]) << 2 | DEC (p[1]) >> 4;
+                ch = DEC(p[0]) << 2 | DEC(p[1]) >> 4;
                 fputc(ch, out);
-                ch = DEC(p[1]) << 4 | DEC (p[2]) >> 2;
+                ch = DEC(p[1]) << 4 | DEC(p[2]) >> 2;
                 fputc(ch, out);
-                ch = DEC(p[2]) << 6 | DEC (p[3]);
+                ch = DEC(p[2]) << 6 | DEC(p[3]);
                 fputc(ch, out);
             } else {
                 if (n >= 1) {
-                    ch = DEC(p[0]) << 2 | DEC (p[1]) >> 4;
+                    ch = DEC(p[0]) << 2 | DEC(p[1]) >> 4;
                     fputc(ch, out);
                 }
                 if (n >= 2) {
-                    ch = DEC(p[1]) << 4 | DEC (p[2]) >> 2;
+                    ch = DEC(p[1]) << 4 | DEC(p[2]) >> 2;
                     fputc(ch, out);
                 }
             }
