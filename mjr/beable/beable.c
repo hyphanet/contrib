@@ -13,10 +13,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <pthread.h>
 #include <ctype.h>
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#define __USE_UNIX98
+#include <pthread.h>
+
+pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
 
 struct item {
     char *key;
@@ -69,11 +71,11 @@ main ()
 	    fprintf(stderr, "Error opening database for write.\n");
 	    continue;
 	}
-	pthread_mutex_lock(&mutex);
+	pthread_rwlock_wrlock(&lock);
 	for (i = database; i ; i = i->next)
 	    fprintf(data, "%s\n%s\n%s\n%lx\nEND\n",
 		    i->key, i->name, i->desc, i->ctime);
-	pthread_mutex_unlock(&mutex);
+	pthread_rwlock_unlock(&lock);
 	fclose(data);
     }
 }
@@ -245,7 +247,7 @@ send_index (FILE *socket)
     int i;
     
     fputs(one, socket);
-    pthread_mutex_lock(&mutex);
+    pthread_rwlock_rdlock(&lock);
     for (i = 0 ; recent_additions[i] && i < RECENT_ADDITIONS_LENGTH ; i++)
 	fprintf(socket, "  <tr>"
 			"\n    <td><a href=\"%s%s\">%s</a></td>"
@@ -255,7 +257,7 @@ send_index (FILE *socket)
 			recent_additions[i]->key,
 			recent_additions[i]->name,
 			recent_additions[i]->desc);
-    pthread_mutex_unlock(&mutex);
+    pthread_rwlock_unlock(&lock);
     fputs(two, socket);
 }
 
@@ -328,7 +330,7 @@ run_search (FILE *socket, char *url)
 	
     
     fputs(one, socket);
-    pthread_mutex_lock(&mutex);
+    pthread_rwlock_rdlock(&lock);
     for (i = database ; i ; i = i->next) {
 	int nlen = strlen(i->name);
 	int dlen = strlen(i->desc);
@@ -351,7 +353,7 @@ run_search (FILE *socket, char *url)
 			i->name,
 			i->desc);
     }
-    pthread_mutex_unlock(&mutex);
+    pthread_rwlock_unlock(&lock);
     fputs(two, socket);
 }
 
@@ -408,7 +410,7 @@ run_add (FILE *socket, char *url)
     j->desc = strdup(desc);
     j->ctime = time(NULL);
     
-    pthread_mutex_lock(&mutex);
+    pthread_rwlock_wrlock(&lock);
     if (!database) {
 	database = j;
 	j->next = NULL;
@@ -429,10 +431,11 @@ run_add (FILE *socket, char *url)
     for (n = RECENT_ADDITIONS_LENGTH ; n > 0 ; n--)
 	recent_additions[n] = recent_additions[n-1];
     recent_additions[0] = j;
+    pthread_rwlock_unlock(&lock);
+    
     fprintf(socket, "HTTP/1.0 301 Moved Permanently"
 	            "\nConnection: close"
 		    "\nLocation: /\n\n");
-    pthread_mutex_unlock(&mutex);
 
 fof:
     send_error_404(socket);
@@ -466,7 +469,7 @@ send_data (FILE *socket)
     struct item *i;
     
     fputs(one, socket);
-    pthread_mutex_lock(&mutex);
+    pthread_rwlock_rdlock(&lock);
     for (i = database ; i ; i = i->next)
 	fprintf(socket, "  <tr>"
 			"\n    <td><a href=\"%s%s\">%s</a></td>"
@@ -476,7 +479,7 @@ send_data (FILE *socket)
 			i->key,
 			i->name,
 			i->desc);
-    pthread_mutex_unlock(&mutex);
+    pthread_rwlock_unlock(&lock);
     fputs(two, socket);
 }
 
