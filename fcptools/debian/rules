@@ -51,9 +51,6 @@ clean:
 	dh_testroot
 	rm -f build-stamp
 
-	rm -f config.cache
-	rm -f config-stamp
-
 	# Add here commands to clean up after the build process.
 	-$(MAKE) distclean
 	-test -r /usr/share/misc/config.sub && \
