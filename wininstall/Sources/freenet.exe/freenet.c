@@ -991,15 +991,15 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_CREATE:
 
 			hPopupMenu = CreatePopupMenu();
-			InsertMenuItem(hPopupMenu, c, TRUE, &viewlogfileitem); ++c;
+			InsertMenuItem(hPopupMenu, c, TRUE, &gatewayitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &separatoritem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &importrefitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &exportrefitem); ++c;
+			InsertMenuItem(hPopupMenu, c, TRUE, &configitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &separatoritem); ++c;
-			InsertMenuItem(hPopupMenu, c, TRUE, &gatewayitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &startstopitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &restartitem); ++c;
-			InsertMenuItem(hPopupMenu, c, TRUE, &configitem); ++c;
+			InsertMenuItem(hPopupMenu, c, TRUE, &viewlogfileitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &separatoritem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &helpitem); ++c;
 			InsertMenuItem(hPopupMenu, c, TRUE, &exititem); ++c;
