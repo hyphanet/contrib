@@ -1,18 +1,24 @@
 # installer generator script for Freenet:
-!define VERSION "Dec11-2001snapshot"
+!define VERSION "Dec21-2001snapshot"
+#!define LANGUAGE "German"
 
 Name "Freenet ${VERSION}"
+
+# include language specific installer data
+!ifdef LANGUAGE
+  !include "${LANGUAGE}.inc"
+!else
+  !include "Def_lang.inc"
+!endif
+
+# are we including Java?
 !ifdef embedJava
   OutFile "Freenet_setup-${VERSION}-Java.exe"
 !else
   OutFile "Freenet_setup-${VERSION}.exe"
 !endif
-ComponentText "This will install Freenet ${VERSION} on your system."
 
-LicenseText "Freenet is published under the GNU general public license:" "I agree"
 LicenseData GNU.txt
-
-DirText "Please choose the directory in which Freenet should be installed"
 
  InstType Minimal
  InstType Normal
