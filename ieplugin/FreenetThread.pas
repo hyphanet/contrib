@@ -33,6 +33,7 @@ type
     FProtSink: IInternetProtocolSink;
     FBindInfo: IInternetBindInfo;
     FID: Integer;
+    FHost: String;
   protected
     procedure Execute; override;
   public
@@ -41,6 +42,7 @@ type
     function Read (buf: PChar; bsize: cardinal; out bRead: cardinal): integer;
     property Request: String read FRequest write FRequest;
     property ID: Integer read FID write FID;
+    property Host: String read FHost write FHost;
   end;
 
 implementation
@@ -74,8 +76,6 @@ var
   wbuf: array [0..1000] of char;
   cBINDF: cardinal;
   bindinfo: _tagBINDINFO;
-const
-  FHost = 'http://localhost:8081/';
 begin
   FBindInfo.GetBindInfo (cBINDF, bindinfo);
   LogMessage ('GetBindInfo returned:'+inttohex (cBINDF, 8), FID);

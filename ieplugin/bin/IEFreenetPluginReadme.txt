@@ -20,12 +20,12 @@ Features
 1)allows read-only access to freenet
 2)supports ie security manager (like https)
   ie warns if there are insecure items (eg. images on a we server) within a freenet page
+3)plugin reads fproxy port from freenet.ini
 
 Known Bugs
 ==========
-1)fproxy port is hard-coded (8081)
-2)downloads limited to text and html
-3)uploads do not work
+1)downloads limited to text and html
+2)uploads do not work
 the following bugs/limitations are known:
 ->fproxy must be running on localhost on port 8081
 ->downloads do not work

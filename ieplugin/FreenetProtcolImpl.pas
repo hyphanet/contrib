@@ -87,7 +87,10 @@ function TFreeNetProtocol.Start(szUrl : LPCWStr;
                                        OIProtSink : IInternetProtocolSink;
                                        OIBindInfo : IInternetBindInfo;
                                        grfPI,dwReserved : DWord) : HREsult;
-var sReq : String;
+var
+  sReq : String;
+  buf: array[0..99] of char;
+  sDLLName: String;
 begin
   sReq := WideCharToString(szURL);
   LogMessage('Start URL="'+sReq+'" grPI='+IntToStr(grfPI),FID);
@@ -97,6 +100,12 @@ begin
   fnt := TFreenetThread.Create (OIProtSink, OIBindInfo);
   fnt.Request := sReq;
   fnt.ID := FID;
+  SetLength (sDLLName, 200);
+
+  GetModuleFileName (hInstance, @sDLLName[1], length (sDLLName));
+  sDLLName := ExtractFilePath (sDLLName);
+  GetPrivateProfileString ('Freenet node', 'services.fproxy.port', '8081', buf, sizeof (buf), PChar (sDLLName+'\freenet.ini'));
+  fnt.Host := 'http://localhost:'+buf;
   fnt.Resume;
   Result := HResult (E_PENDING);
 end;
@@ -313,7 +322,7 @@ begin
   LogMessage('Initialize',FID);
 end;
 
-Initialization
+initialization
   randomize;
   TComObjectFactory.Create(ComServer,TFreeNetProtocol,
                            CLSID_FreeNetProtocol,

@@ -1,4 +1,4 @@
-IE plugin is written in with Borland Delphi 5.0
+IE plugin is written with Borland Delphi 5.0
 
 more to come here
 
