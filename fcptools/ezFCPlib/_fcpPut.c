@@ -384,6 +384,9 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 
 	char  buf[513];
 	int   rc;
+
+	_fcpLog(FCP_LOG_DEBUG, "Entered put_redirect()");
+	_fcpLog(FCP_LOG_DEBUG, "uri_src: %s, uri_destination: %s", uri_src, uri_dest);
 	
 	rc = snprintf(buf, 512,
 								"Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",
@@ -394,25 +397,19 @@ int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest)
 	
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 	
-	fcpOpenKey(tmp_hfcp, uri_src, _FCP_O_WRITE);
+	fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE);
 	fcpWriteMetadata(tmp_hfcp, buf, strlen(buf));
 	
-	close(tmp_hfcp->key->metadata->tmpblock->fd);
-	tmp_hfcp->key->metadata->tmpblock->fd = -1;
+	unlink_key(tmp_hfcp->key);
 
 	rc = 0;
 	
 	/* now insert the metadata which contains the redirect info */
-	rc = put_file(tmp_hfcp, 0, tmp_hfcp->key->metadata->tmpblock->filename, uri_dest);
+	rc = put_file(tmp_hfcp, 0, tmp_hfcp->key->metadata->tmpblock->filename, uri_src);
 	
 	_fcpLog(FCP_LOG_DEBUG, "put_file() - rc: %d, URI: %s", rc, tmp_hfcp->key->uri->uri_str);
 	
 	fcpParseURI(hfcp->key->target_uri, tmp_hfcp->key->uri->uri_str);
-	
-	/* call this function to close the block tempfiles
-		 (for key and meta if necessary) */
-	unlink_key(tmp_hfcp->key);
-	
 	fcpDestroyHFCP(tmp_hfcp);
 	
 	return rc;
@@ -500,7 +497,7 @@ static int fec_segment_file(hFCP *hfcp)
 		hfcp->key->segments[index]->check_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[index]->cb_count);
 
 		snprintf(buf, L_FILE_BLOCKSIZE,
-						 "SegmentHeader\nFECAlgorithm=%s\nFileLength=%x\nOffset=%x\n" \
+						 "SegmentHeader\nFECAlgorithm=%s\nFileLength=%x\nOffset=%lx\n" \
 						 "BlockCount=%x\nBlockSize=%x\nDataBlockOffset=%x\nCheckBlockCount=%x\n" \
 						 "CheckBlockSize=%x\nCheckBlockOffset=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
 
@@ -849,13 +846,8 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	char buf[513];
 	char block[L_FILE_BLOCKSIZE];
 
-	FILE *mfile;
-	char *mfilename;
-
 	FILE *kfile;
-
 	int   kfd = -1;
-	int   mfd = -1;
 
 	int rc;
 	int bi;
@@ -888,7 +880,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		segment = hfcp->key->segments[index];
 
 		snprintf(buf, 512,
-						 "SegmentHeader\nFECAlgorithm=OnionFEC_a_1_2\nFileLength=%x\nOffset=%x\n" \
+						 "SegmentHeader\nFECAlgorithm=OnionFEC_a_1_2\nFileLength=%x\nOffset=%lx\n" \
 						 "BlockCount=%x\nBlockSize=%x\nDataBlockOffset=%x\nCheckBlockCount=%x\n" \
 						 "CheckBlockSize=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
 						 
@@ -928,13 +920,13 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		index++;
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "write FECMakeMetadata message to temporary file");
+	_fcpLog(FCP_LOG_DEBUG, "wrote FECMakeMetadata message to temporary file");
 
 	unlink_key(tmp_hfcp->key);
 	meta_len = tmp_hfcp->key->size;
-	
-  /* connect to Freenet FCP */
-  if (_fcpSockConnect(tmp_hfcp) != 0) {
+
+  /* connect to Freenet FCP (use hfcp) */
+  if (_fcpSockConnect(hfcp) != 0) {
 		snprintf(hfcp->error, L_ERROR_STRING, "could not make socket connection to node");
     return -1;
 	}
@@ -946,15 +938,14 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 
 	_fcpLog(FCP_LOG_DEBUG, "\n%s", buf);
 	
-	if (send(tmp_hfcp->socket, buf, strlen(buf), 0) == -1) {
+	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		snprintf(hfcp->error, L_ERROR_STRING, "Could not send FECMakeMetadata message");
 		return -1;
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "sent FECMakeMetadata command to node");
 
-	/* TODO: use fcpReadKey() */
-
+	/* open tmp file in tmp key */
 	if (!(kfile = fopen(tmp_hfcp->key->tmpblock->filename, "rb"))) {
 		return -1;
 	}
@@ -972,7 +963,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 			printf("%c", block[i]);
 		}
 	
-		if (send(tmp_hfcp->socket, block, byte_count, 0) == -1) {
+		if (send(hfcp->socket, block, byte_count, 0) == -1) {
 			snprintf(hfcp->error, L_ERROR_STRING, "Could not send metadata information");
 			return -1;
 		}
@@ -984,11 +975,11 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	_fcpLog(FCP_LOG_DEBUG, "ready to receive FEC valid metadata from node");
 	
 	/* expecting a mademetadata response */
-	rc = _fcpRecvResponse(tmp_hfcp);
+	rc = _fcpRecvResponse(hfcp);
 	
 	switch (rc) {
 	case FCPRESP_TYPE_MADEMETADATA:
-		meta_len = tmp_hfcp->response.mademetadata.datalength;
+		meta_len = hfcp->response.mademetadata.datalength;
 		_fcpLog(FCP_LOG_DEBUG, "bytes of metadata to process: %d", meta_len);
 
 		break;
@@ -996,43 +987,47 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	default:
 		snprintf(hfcp->error, L_ERROR_STRING, "unknown response code from node: %d", rc);
 
-		_fcpSockDisconnect(tmp_hfcp);
+		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
-
 
 	/* now read metadata from freenet and write to tmp file,
 		 and then finally write the metadata into Freenet (via put_file) */
 
-	/*
-	while (bytes < meta_len) {
-		char *p;
+	unlink_key(tmp_hfcp->key);
+	fcpDestroyHFCP(tmp_hfcp);
 
-		if ((rc = _fcpRecvResponse(tmp_hfcp)) != FCPRESP_TYPE_DATACHUNK) {
-			_fcpSockDisconnect(tmp_hfcp);
+	tmp_hfcp = fcpInheritHFCP(hfcp);
+	fcpOpenKey(tmp_hfcp, "CHK@", _FCP_O_WRITE);
+
+	/* write metadata to tmp file */
+
+	while (bytes < meta_len) {
+
+		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
+			_fcpSockDisconnect(hfcp);
 			return -1;
 		}
-
-		write(mfd, tmp_hfcp->response.datachunk.data, tmp_hfcp->response.datachunk.length);
-		bytes += tmp_hfcp->response.datachunk.length;
-
-		p = (char *)malloc(tmp_hfcp->response.datachunk.length + 1);
-		memcpy(p, tmp_hfcp->response.datachunk.data, tmp_hfcp->response.datachunk.length);
-		p[hfcp->response.datachunk.length] = 0;
-
-		_fcpLog(FCP_LOG_DEBUG, "DataChunk follows:");
-		_fcpLog(FCP_LOG_DEBUG, "%s\n", p);
-
-		free(p);
+		
+		fcpWriteKey(tmp_hfcp, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
+		bytes += hfcp->response.datachunk.length;
 	}
-	close(mfd);
+	
+	unlink_key(tmp_hfcp->key);
 
-	if (rc < 0) _fcpLog(FCP_LOG_DEBUG, "DataChunk returned an error");
+	/* put the file */
+	rc = put_file(hfcp, 0, tmp_hfcp->key->tmpblock->filename, "CHK@");
+	
+	/* kill the tmp handle */
+	fcpDestroyHFCP(tmp_hfcp);
 
-	_fcpLog(FCP_LOG_DEBUG, "read %d metadata bytes from socket and wrote locally", bytes);
-	_fcpSockDisconnect(tmp_hfcp);
-*/
+	if (rc < 0) {
+		_fcpLog(FCP_LOG_DEBUG, "fec_make_metadata() returned an error");
+		return -1;
+	}
 
+	_fcpLog(FCP_LOG_DEBUG, "fec_make_metadata() was successful; inserted key: %s", hfcp->key->uri->uri_str);
+	
 	return 0;
 }
 

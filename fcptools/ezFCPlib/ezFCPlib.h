@@ -211,7 +211,7 @@ typedef struct {
 	char  fec_algorithm[L_KEY+1];
  
 	int   filelength;
-	int   offset;
+	long  offset;
 	int   block_count;
 	int   block_size;
 	int   datablock_offset;
@@ -333,6 +333,7 @@ typedef struct {
 
 	int    filelength;
 	long   offset;
+
 	int    block_count;
 	int    block_size;
 	int    datablock_offset;

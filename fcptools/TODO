@@ -47,6 +47,7 @@ ezFCPlib specific
 + Ensure the hfcp->error thing is only set in and before a fcp*() function returns to the -end user (developer)-.
 + Use OpenKey() and WriteKey() instead of manually creating the FCP messages wherever possible.
 + Differentiate between splitfile size known by fcptools and the one returned by Fred's FEC commands.
++ Add logic to _fcpDestroyHBlock to delete old tmp files.
 
 - Make FEC_CHUNK_SIZE configurable; default to 1M (Fred computes this afaik).
 - Add logic like fcpTmpDir for an 'fcpHomeDir'; /home/$user on nix, %USERPROFILE%\My Documents for Win32.

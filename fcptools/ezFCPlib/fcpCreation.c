@@ -103,6 +103,8 @@ hBlock *_fcpCreateHBlock(void)
 	return h;
 }
 
+/* TODO: add delete_file logic (here and unlink_key() as well). */
+
 void _fcpDestroyHBlock(hBlock *h)
 {
 	if (h) {

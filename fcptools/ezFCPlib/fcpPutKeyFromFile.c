@@ -35,7 +35,7 @@ extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *u
 extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
 extern int put_date_redirect(hFCP *hfcp, char *uri);
-extern int put_redirect(hFCP *hfcp, char *uri);
+extern int put_redirect(hFCP *hfcp, char *uri_src, char *uri_dest);
 
 extern long file_size(char *filename);
 extern void unlink_key(hFCP *hfcp);
@@ -132,14 +132,16 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	case KEY_TYPE_SSK:
 	case KEY_TYPE_KSK:
 		
-		put_redirect(hfcp, key_uri);
+		put_redirect(hfcp, hfcp->key->target_uri->uri_str, hfcp->key->uri->uri_str);
 		break;
 	}
 	
-	/* on exit, hfcp->key->uri holds the CHK value,
-		 and hfcp->key->target_uri is the final URI. */
+	_fcpLog(FCP_LOG_DEBUG, "fcpPutKeyFromFile() exiting; uri: %s, target_uri: %s",
+					hfcp->key->uri->uri_str,
+					hfcp->key->target_uri->uri_str);
+	
 	return 0;
-
+	
 
  cleanup:
 	if (!hfcp->error[0]) {
