@@ -7,7 +7,6 @@
 #include <pthread.h>
 #include "anarcast.h"
 #include "sha.c"
-#include "aes.c"
 
 struct graph {
     unsigned short dbc; // data block count
@@ -34,7 +33,7 @@ void alert (const char *s, ...);
 int is_set (struct graph *g, int db, int cb);
 
 void insert (int c);
-void do_insert (char *blocks, int blockcount, int blocksize, char *hashes);
+void do_insert (char *blocks, char *mask, int blockcount, int blocksize, char *hashes);
 
 void request (int c);
 
@@ -154,8 +153,6 @@ insert (int c)
     unsigned int i, j;
     unsigned int blocksize, len, hlen, dlen, clen;
     struct graph g;
-    //keyInstance key;
-    //cipherInstance cipher;
     
     // read data length in bytes
     if (readall(c, &i, 4) != 4) {
@@ -196,15 +193,9 @@ insert (int c)
 	return;
     }
     
-    // encrypt data with its hash
-    alert("Hashing and encrypting data.");
+    // hash data
+    alert("Hashing data.");
     sha_buffer(blocks, dlen, hashes);
-//    if (cipherInit(&cipher, MODE_CFB1, NULL) != TRUE)
-//	die("cipherInit() failed");
-//    if (makeKey(&key, DIR_ENCRYPT, 128, hashes) != TRUE)
-//	die("makeKey() failed");
-//    if (blockEncrypt(&cipher, &key, blocks, dlen, blocks) <= 0)
-//	die("blockEncrypt() failed");
     
     // generate check blocks
     alert("Generating %d check blocks for %d data blocks.", g.cbc, g.dbc);
@@ -246,7 +237,9 @@ insert (int c)
     }
 
     // actually insert the blocks
-    do_insert(blocks, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
+    alert("Inserting %d blocks of %d bytes each.", g.dbc + g.cbc, blocksize);
+    do_insert(blocks, NULL, g.dbc + g.cbc, blocksize, &hashes[HASHLEN]);
+    alert("Insert completed.");
 
     if (munmap(blocks, len) == -1)
 	die("munmap() failed");
@@ -281,7 +274,7 @@ hookup (char hash[HASHLEN])
 }
 
 void
-do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
+do_insert (char *blocks, char *mask, int blockcount, int blocksize, char *hashes)
 {
     int m, next, active;
     fd_set w;
@@ -290,8 +283,6 @@ do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
 	int num;
 	int off;
     } xfers[FD_SETSIZE];
-    
-    alert("Inserting %d blocks of %d bytes each.", blockcount, blocksize);
     
     FD_ZERO(&w);
     next = active = 0;
@@ -308,7 +299,12 @@ do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
 	}
 
 	while (active < CONCURRENCY && next < blockcount) {
-	    int c = hookup(&hashes[next*HASHLEN]);
+	    int c;
+	    if (mask && !mask[next]) { // skip this part
+		next++;
+		continue;
+	    }
+	    c = hookup(&hashes[next*HASHLEN]);
 	    FD_SET(c, &w);
 	    if (c >= m) m = c + 1;
 	    xfers[c].num = next;
@@ -353,8 +349,6 @@ do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
 	if (!active && next == blockcount)
 	    break;
     }
-
-    alert("Insert completed.");
 }
 
 //=== request ===============================================================
