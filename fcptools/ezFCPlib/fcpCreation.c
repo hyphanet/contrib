@@ -338,9 +338,9 @@ void fcpDestroyHURI(hURI *h)
 {
 	if (h) {
 		if (h->uri_str) free(h->uri_str);
-		if (h->keyid) free(h->keyid);
+		if (h->routingkey) free(h->routingkey);
 		if (h->filename) free(h->filename);
-		if (h->docname) free(h->docname);
+		if (h->metastring) free(h->metastring);
 	}
 }
 
@@ -350,20 +350,47 @@ void fcpDestroyHURI(hURI *h)
 	This function parses a string containing a fully-qualified Freenet URI
 	into simpler components.  It is written to be re-entrant on the same
 	hURI pointer (it can be called repeatedly without being re-created.
+	
+	FreenetURI handles parsing and creation of the Freenet URI format, defined
+	as follows:
+	
+	freenet:[KeyType@]RoutingKey[,CryptoKey][,n1=v1,n2=v2,...][/docname][//metastring]
+	
+	where KeyType is the TLA of the key (currently SVK, SSK, KSK, or CHK). If
+	omitted, KeyType defaults to KSK.
+	
+	For KSKs, the string keyword (docname) takes the RoutingKey position and the
+	remainder of the fields are inapplicable (except metastring). Examples:
+	freenet:KSK@foo//bar freenet:KSK@test.html freenet:test.html
+	
+	RoutingKey is the modified Base64 encoded key value. CryptoKey is the
+	modified Base64 encoded decryption key.
+	
+	Following the RoutingKey and CryptoKey there may be a series of
+	name=value pairs representing URI meta-information.
+	
+	The docname is only meaningful for SSKs, and is hashed with the PK
+	fingerprint to get the key value.
+	
+	The metastring is meant to be passed to the metadata processing systems that
+	act on the retrieved document.
 */
 int fcpParseHURI(hURI *uri, char *key)
 {
+	int rc;
 	int len;
 
 	char *p_key;
-	char *string_end;
-	char  uri_s[513];
+	char *uri_s;
+
+	uri_s = malloc(strlen(key)+128);
 
 	/* clear out the dynamic arrays before attempting to parse a new uri */
-	if (uri->uri_str) free(uri->uri_str);
-  if (uri->keyid) free(uri->keyid);
+  if (uri->routingkey) free(uri->routingkey);
+  if (uri->cryptokey) free(uri->cryptokey);
 	if (uri->filename) free(uri->filename);
-	if (uri->docname) free(uri->docname);
+	if (uri->metastring) free(uri->metastring);
+	if (uri->uri_str) free(uri->uri_str);
 	
 	/* save the key root */
 	p_key = key;
@@ -377,60 +404,150 @@ int fcpParseHURI(hURI *uri, char *key)
 	
   /* classify key header */
   if (!strncmp(key, "SSK@", 4)) {
+		int i;
 		
     uri->type = KEY_TYPE_SSK;
 		strcpy(uri_s, "freenet:SSK@");
 
 		key += 4;
-		string_end = strstr(key, "/");
 
-		/* check for case where there's nothing after the key id */
-		if (!string_end) {
-			uri->keyid = strdup(key);
-			strcat(uri_s, uri->keyid);
+		/* next character can be {',', '/', '//', '\0'} */
+
+		/* copy all the characters in the RoutingKey section */
+		uri->routingkey = malloc(L_KEY+1);
+
+		for (i=0; (*key != ',') && (*key != '/') && (*key != 0); key++)
+			uri->routingkey[i++] = *key;
+
+		/* grab the routingkey/RoutingKey */
+		uri->routingkey[i] = 0;
+		strcat(uri_s, uri->routingkey);
+
+		/* if we're on a ',', then we either next have to parse a
+			 CryptoKey or n1=v1 pair */
+		if (*key == ',') {
+			int doNameValPairs;
+
+			key++;
+			doNameValPairs = 0;
+
+			/* test the current section to see if it's a CryptoKey */
+			for (i=0; key[i] != '\0'; i++) {
+
+				if (key[i] == ',') { /* we have a CryptoKey, *and* n1=v1 pairs */
+
+					uri->cryptokey = malloc(i+1);
+					memcpy(uri->cryptokey, key, i);
+					uri->cryptokey[i] = 0;
+
+					/* build the uri_s version */
+					strcat(uri_s, ",");
+					strcat(uri_s, uri->cryptokey);
+
+					key += i;
+
+					/* set so that in next section we look for the name/val pairs */
+					doNameValPairs = 1;
+
+					break;
+				}
+				
+				if (key[i] == '/') { /* we have a CryptoKey, and we have *no* n1=v1 pairs */
+
+					uri->cryptokey = malloc(i+1);
+					
+					memcpy(uri->cryptokey, key, i);
+					uri->cryptokey[i] = 0;
+
+					/* build the uri_s version */
+					strcat(uri_s, ",");
+					strcat(uri_s, uri->cryptokey);
+
+					key += i;
+
+					break;
+				}
+
+				if (key[i] == '=') { /* we have *no* CryptoKey, but only n1=v1 pairs */
+
+					/* set so that in next section we look for the name/val pairs */
+					doNameValPairs = 1;
+
+					break;
+				}
+			}
+
+			/* if we hit a NULL char then we have a crypto key and that's it! */
+			if (*key=='\0') {
+				
+				uri->cryptokey = malloc(i+1);
+				memcpy(uri->cryptokey, key, i);
+				uri->cryptokey[i] = '\0';
+
+				/* build the uri_s version */
+				strcat(uri_s, ",");
+				strcat(uri_s, uri->cryptokey);
+				
+				goto success;
+			}
+
+			/* we have the crypto key (if there was one); process the name/val
+				 pairs*/
+
+			if (doNameValPairs) {
+
+				/* parse em */
+				/* ensure key points to a '/' or '\0' */
+			}
 		}
 
-		else {
-			/* string_end points to the '/' character */
+		/* here, key points to the start of the docname section, the start of the
+			 metastring section or '\0' */
 
-			uri->keyid = malloc(string_end - key + 1);
-			strncpy(uri->keyid, key, string_end - key);
+		/* check if key is a '/' */
+		if ((*key == '/') && (*(key+1) != '/')) {
 
-			strcat(uri_s, uri->keyid);
+			key++;
+			if (*key == '\0') {
+
+				rc = -1;
+				goto cleanup;
+			}
+
+			/* iterate through docname and stop at '//' or '\0' */
+			for (i=0; key[i] != '\0'; i++) {
+
+				/* if key is a '//' then break */
+				if ((key[i]=='/') && (key[i+1]== '/')) break;
+			}					
+
+			uri->filename = malloc(i+1);
+			memcpy(uri->filename, key, i);
+			uri->filename[i] = '\0';
+
+			/* build the uri_s version */
 			strcat(uri_s, "/");
+			strcat(uri_s, uri->filename);
+		}
 		
-			/* point key to the first char after the '/' */
-			key = (string_end + 1);
-			
-			string_end = strstr(key, "//");
-			
-			/* if there's nothing after the '/' */
-			if (!string_end) {
-				uri->filename = strdup(key);
-				strcat(uri_s, uri->filename);
-			}
+		/* advance past the actual filename part */
+		key += i;
+		
+		/* if we also have a metastring.. */
+		if ((*key=='/') && (*(key+1)=='/')) {
 
-			/* TODO: handle multiple '//' characters with docnames */
+			/* position after the '//' */
+			key += 2;
+
+			/* copy over the metastring */
+			uri->metastring = strdup(key);
 			
-			/* if there's a '//' character */
-			else {
-
-				uri->filename = malloc(string_end - key + 1);
-				strncpy(uri->filename, key, string_end - key);
-
-				strcat(uri_s, uri->filename);
-				strcat(uri_s, "//");
-				
-				/* point key to char after '//' */
-				key = (string_end + 2);
-				
-				/* take the rest as the metadata control document name */
-				uri->docname = strdup(key);
-				strcat(uri_s, uri->docname);
-			}
+			/* build the uri_s version */
+			strcat(uri_s, "//");
+			strcat(uri_s, uri->metastring);
 		}
 	}
-		
+	
   else if (!strncmp(key, "CHK@", 4)) {
 	
 		uri->type = KEY_TYPE_CHK;
@@ -441,37 +558,40 @@ int fcpParseHURI(hURI *uri, char *key)
 		len = strlen(key);
 
 		if (len) {
+			int i;
 
-			string_end = strstr(key, "/");
+			for (i=0; (key[i]!='\0') && (key[i]!=',') && (key[i]!='/'); i++);
 			
-			/* check for the case where there's nothing after the CHK@key part */
-			if (!string_end) {
-				uri->keyid = strdup(key);
-				strcat(uri_s, uri->keyid);
+			uri->routingkey = malloc(i+1);
+			memcpy(uri->routingkey, key, i);
+			uri->routingkey[i] = '\0';
+
+			strcat(uri_s, uri->routingkey);
+			
+			if (key[i]=='\0') goto success;
+			
+			/* get the CryptoKey if it exists */
+			if (key[i]==',') {
+				
+				key += i+1;
+				
+				for (i=0; (key[i]!='\0') && (key[i]!='/'); i++);
+
+				uri->cryptokey = malloc(i+1);
+				memcpy(uri->cryptokey, key, i);
+				uri->cryptokey[i] = '\0';				
+
+				strcat(uri_s, ",");
+				strcat(uri_s, uri->cryptokey);
 			}
 			
-			else {
-				/* string_end points to the '/' character */
-				uri->keyid = malloc(string_end - key + 1);
-				strncpy(uri->keyid, key, string_end - key);
-
-				strcat(uri_s, "/");
-
-				/* point key to the first char after the '/' */
-				key = (string_end + 1);
-				
-				string_end = strstr(key, "//");
-				
-				/* check for the case where there's nothing after the CHK@key/filename part :) */
-				if (!string_end) {
-					uri->filename = strdup(key);
-					strcat(uri_s, uri->filename);
-				}
-				
-				else { /* this shouldn't happen for CHK's */
-					_fcpLog(FCP_LOG_DEBUG, "there's a metastring after the filename hint in the CHK@.. not supported");
-				}
-			}
+			if (key[i]=='\0') goto success;
+			
+			key += i;
+			uri->filename = strdup(key);
+			
+			strcat(uri_s, "/");
+			strcat(uri_s, uri->filename);
 		}
 	}
 	
@@ -483,19 +603,29 @@ int fcpParseHURI(hURI *uri, char *key)
 		strcpy(uri_s, "freenet:KSK@");
     key += 4;
 
-		uri->keyid = strdup(key);
-		strcat(uri_s, uri->keyid);
+		uri->routingkey = strdup(key);
+		strcat(uri_s, uri->routingkey);
+
+		/* TODO add logic for handling 'metastring' */
   }
   
   else {
 		_fcpLog(FCP_LOG_CRITICAL, "Error attempting to parse invalid key: %s", p_key);
-    return -1;
+    rc = -1;
+		goto cleanup;
   }
 
-	uri->uri_str = strdup(uri_s);
-	_fcpLog(FCP_LOG_DEBUG, "uri_str: %s", uri->uri_str);
+ success:
 
-  return 0;
+	uri->uri_str = strdup(uri_s);
+	_fcpLog(FCP_LOG_DEBUG, "uri: %s", uri->uri_str);
+
+	rc = 0;
+	
+ cleanup:
+
+	free(uri_s);
+  return rc;
 }
 
 
@@ -556,16 +686,50 @@ void _fcpDestroyHSegments(hKey *key)
 
 int main(int c, char *argv[])
 {
-	char  s[513];
 	hURI *uri;
 
+	if (c != 2) {
+		printf("Include a Freenet URI\n");
+		return -1;
+	}
+
+	_fcpOpenLog(stdout, 2);
+
 	uri = fcpCreateHURI();
-	strcpy(s, "SSK@TDtkQZpHTMbhGoSxWfR-ly8BTa4PAgM,phJ~IgAADJkijtDO7iAeSw/toad/1//index.html");
+	printf("URI:%s\n", argv[1]);
 	
-	fcpParseHURI(uri, s);
+	fcpParseHURI(uri, argv[1]);
+
+	switch (uri->type) {
 		
-	printf(":%s:\n", uri->uri_str);
-	
+	case KEY_TYPE_CHK:
+
+		printf("*   routingkey:%s:\n", uri->routingkey);
+		printf("*   cryptokey:%s:\n", uri->cryptokey);
+		printf("*   filename:%s:\n", uri->filename);
+		printf("*   uri_str:%s:\n", uri->uri_str);
+
+		break;
+
+	case KEY_TYPE_SSK:
+		
+		printf("*   routingkey:%s:\n", uri->routingkey);
+		printf("*   cryptokey:%s:\n", uri->cryptokey);
+		printf("*   filename:%s:\n", uri->filename);
+		printf("*   metastring:%s:\n", uri->metastring);
+		printf("*   uri_str:%s:\n", uri->uri_str);
+		
+		break;
+		
+	case KEY_TYPE_KSK:
+
+		printf("*   routingkey:%s:\n", uri->routingkey);
+		printf("*   metastring:%s:\n", uri->metastring);
+		printf("*   uri_str:%s:\n", uri->uri_str);
+
+		break;
+	}
+		
 	return 0;
 }
 
