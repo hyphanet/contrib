@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /GB /Gr /Zp1 /MD /W3 /vd0 /O1 /Oy /Gf /Gy /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN" /FAcs /YX /FD /c
+# ADD CPP /nologo /Gr /Zp1 /MD /W3 /vd0 /O1 /Oy /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "VC_EXTRALEAN" /D "WIN32_LEAN_AND_MEAN" /FAcs /YX /FD /c
 # SUBTRACT CPP /WX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
@@ -70,7 +70,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /ZI /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /Gf /Gy /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FAcs /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
@@ -183,6 +183,13 @@ SOURCE=.\res\tbolt.ico
 # Begin Source File
 
 SOURCE=.\rsrc.rc
+
+!IF  "$(CFG)" == "freenet - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "freenet - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # End Group
 # End Target
