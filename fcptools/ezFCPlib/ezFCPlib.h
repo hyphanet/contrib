@@ -24,7 +24,7 @@
 #ifdef WINDOWS
 
 /* VERSION is defined by automake for non-Win platforms. */
-#define VERSION "0.4.6"
+#define VERSION "0.4.7"
 
 #define write _write
 #define open _open
