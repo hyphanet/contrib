@@ -29,13 +29,13 @@ ezFCPlib
 -----------------
 
 General:
-+ Test inserts with files > 128M (>1 segment)
 + Implement anonymity filtering.
 + Implement charset & mimetype handling.
 + Clean up Verbose log messages; verify *all* command line options are re-iterated.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 + Warn user if HighestSeenBuild is higher than current node's build; and option to disable warning.
 
+= Test inserts with files > 128M (>1 segment)
 = Make hDocument->data & hMetadata->cdocs fields dynamic.
 = Append the filename to the filename-hint section of the returned URI for CHK's.
 = fcpParseHURI() is now crazy redundant; prune some of the replicated code and make it more generic
