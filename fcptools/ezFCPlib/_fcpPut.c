@@ -289,7 +289,9 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 			break;
 			
 		default:
-			hfcp->error = strdup("unknown response code from node");
+			snprintf(msg, 512, "unknown response code from node: %d", rc);
+			hfcp->error = strdup(msg);
+
 			break;
 		}
 
@@ -321,9 +323,9 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	Function will	check	and validate the size of both file arguments.
 
 	The FEC logic is running within Fred and made accessable by Gianni's
-	FEC-specific FCP commands. The initial proposal is at:
+	FEC-specific FCP commands.
 	
-	http://hawk.freenetproject.org:8080/pipermail/devl/2002-September/001053.html
+	FEC spec: http://www.freenetproject.org/index.php?page=fec
 
 	function expects the following members in hfcp to be set:
 
@@ -416,6 +418,8 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 	char buf[L_FILE_BLOCKSIZE+1];
 	char meta_buf[L_FILE_BLOCKSIZE+1];
 
+	char msg[513];
+
 	int meta_bytes;
 	int rc;
 
@@ -469,7 +473,8 @@ int put_redirect(hFCP *hfcp, char *uri_dest)
 		break;
 		
 	default:
-		_fcpLog(FCP_LOG_DEBUG, "put_redirect(): unhandled response from _fcpRecvResponse()");
+		snprintf(msg, 512, "unknown response code from node: %d", rc);
+		hfcp->error = strdup(msg);
 	}
 
 	_fcpSockDisconnect(hfcp);
@@ -539,7 +544,10 @@ static int fec_segment_file(hFCP *hfcp)
 		return -1;
 
 	default:
-		hfcp->error = strdup("unknown response code from node");
+		snprintf(msg, 512, "unknown response code from node: %d", rc);
+		hfcp->error = strdup(msg);
+
+    _fcpSockDisconnect(hfcp);
 		return -1;
 	}
 
@@ -898,6 +906,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		node_rc = _fcpRecvResponse(tmp_hfcp);
 		
 		switch (node_rc) {
+
 		case FCPRESP_TYPE_SUCCESS:
 			segment->data_blocks[bi] = _fcpCreateHBlock();
 			fcpParseURI(segment->data_blocks[bi]->uri, tmp_hfcp->response.success.uri);
@@ -935,7 +944,9 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 			break;
 			
 		default:
-			hfcp->error = strdup("unknown response code from node");
+			snprintf(msg, 512, "unknown response code from node: %d", rc);
+			hfcp->error = strdup(msg);
+
 			break;
 		}
 		
@@ -1028,7 +1039,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	index = 0;
 
 	while (index < segment_count) {
-		/* build SegmentHeader and BlocMap pairs */
+		/* build SegmentHeader and BlockMap pairs */
 
 		/* helper pointer */
 		segment = hfcp->key->segments[index];
@@ -1068,6 +1079,8 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 					hfcp->key->mimetype,
 					strlen(buf));
 
+	_fcpLog(FCP_LOG_DEBUG, "\n%s\n", buf);
+
 	if (send(hfcp->socket, buf_s, strlen(buf_s), 0) == -1) {
 		hfcp->error = strdup("Could not send FECMakeMetadata message");
 		return -1;
@@ -1085,6 +1098,8 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	switch (rc) {
 	case FCPRESP_TYPE_MADEMETADATA:
 		meta_len = hfcp->response.mademetadata.datalength;
+		_fcpLog(FCP_LOG_DEBUG, "bytes of metadata to process: %d", meta_len);
+
 		break;
 
 	case FCPRESP_TYPE_FAILED:
@@ -1095,7 +1110,9 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		return -1;
 
 	default:
-		hfcp->error = strdup("unknown response code from node");
+		snprintf(msg, 512, "unknown response code from node: %d", rc);
+		hfcp->error = strdup(msg);
+
 		_fcpSockDisconnect(hfcp);
 
 		return -1;
@@ -1106,16 +1123,44 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	mfilename = (char *)malloc(257);
 	mfd = _fcpTmpfile(mfilename, 257);
 
-	/*
-	mfile = fopen(mfilename, "wb");
-	mfd = fileno(mfile);
-	*/
-	
 	/* barf all the data into the file */
+
+	/* This shit isn't working... */
+	bytes = 0;
+
 	while ((rc = _fcpRecvResponse(hfcp)) == FCPRESP_TYPE_DATACHUNK) {
 		write(mfd, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
+		bytes += hfcp->response.datachunk.length;
+
+		snprintf(msg, 512, "DataChunk: \n%s\n", hfcp->response.datachunk.data);
+		_fcpLog(FCP_LOG_DEBUG, msg); 
 	}
 	close(mfd);
+
+	if (rc < 0) _fcpLog(FCP_LOG_DEBUG, "DataChunk returned an error");
+
+	_fcpLog(FCP_LOG_DEBUG, "read %d metadata bytes from socket and wrote locally", bytes);
+
+	/*
+	bytes = meta_len;
+	while (bytes) {
+		byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
+		
+		if ((rc = read(mfd, buf, byte_count)) <= 0) {
+			hfcp->error = strdup("could not read metadata from socket");
+			
+			_fcpSockDisconnect(hfcp);
+			return -1;
+		}
+	
+		write(mfd, buf, byte_count);
+		bytes -= byte_count;
+	}
+
+	close(mfd);
+	*/
+
+	_fcpSockDisconnect(hfcp);
 
 	/* now re-open the file and re-barf it back into freenet as actual
 		 key metadata */
@@ -1187,7 +1232,8 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		break;
 
 	default:
-		_fcpLog(FCP_LOG_DEBUG, "weird error");
+		_fcpLog(FCP_LOG_DEBUG, "unknown response code from node: %d", rc);
+		break;
 	}
 
 	_fcpSockDisconnect(hfcp);

@@ -72,8 +72,6 @@ int fcpStartup(void)
 			 Let's set some reasonable defaults:
 	 ***/
 
-	/* this is like so because of perhaps an undefined behaviour on Win with
-		 realloc'ed null pointers */
 	_fcpHost = strdup(EZFCP_DEFAULT_HOST);
 
 	_fcpPort = EZFCP_DEFAULT_PORT;

@@ -213,13 +213,11 @@ void parse_args(int argc, char *argv[])
 			host = (char *)malloc(strlen(optarg) + 1);
 			
       strcpy(host, optarg);
-      _fcpLog(FCP_LOG_DEBUG, "parse_args() using host %s", host);
       break;
 			
     case 'p':
       i = atoi( optarg );
-      if (i > 0) port = i;
-      _fcpLog(FCP_LOG_DEBUG, "parse_args() using port %d", port);
+			if (i > 0) port = i;
       break;
 			
     case 'l':
