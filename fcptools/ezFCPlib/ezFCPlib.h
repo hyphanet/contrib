@@ -27,6 +27,9 @@
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
+/* this keeps warnings on other systems from generating unnecessarily */
+#define _GNU_SOURCE
+
 /* Generic <sys/> includes here so they are first. */
 #include <sys/types.h>
 #include <sys/stat.h>
