@@ -775,7 +775,7 @@ void ReloadSettings(void)
 
 	/* get the memory amount from flaunch.ini */
 	// Following two statements are necessary to fix up a propagated blunder
-	njavamem = GetPrivateProfileInt(szflsec, "Java Mem", 192, szflfile);
+	njavamem = GetPrivateProfileInt(szflsec, "Java Mem", 0, szflfile);
 	if (njavamem==192)
 	{
 		// Previous code would put Java Mem=192 into flaunch.ini AUTOMATICALLY - 
@@ -786,7 +786,7 @@ void ReloadSettings(void)
 		WritePrivateProfileString(szflsec, "Java Mem", NULL, szflfile); // removes "Java Mem" ('with-a-space') setting from flaunch.ini
 	}
 
-	njavamem = GetPrivateProfileInt(szflsec, szjavamemkey, njavamemdefault, szflfile);
+	njavamem = GetPrivateProfileInt(szflsec, szjavamemkey, 0, szflfile);
 	if (njavamem<=0)
 	{
 		njavamem = njavamemdefault;
