@@ -34,7 +34,7 @@ public class SimpleTestRunner {
             tr.addListener(tl);
             ts.run(tr);
             if (tr.wasSuccessful()) {
-                System.exit(1);
+                System.exit(0);
             }
         } catch (Exception e) {
             e.printStackTrace(System.out);
