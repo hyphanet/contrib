@@ -570,7 +570,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 	
 	/* Send SegmentHeader */
 	if (send(hfcp->socket, segment->header_str, strlen(segment->header_str), 0) == -1) {
-		hfcp->error = strdup("could not write initial SegmentHeader message");
+		hfcp->error = strdup("could not write initial SegmentHeader .essage");
 		return -1;
 	}
 
