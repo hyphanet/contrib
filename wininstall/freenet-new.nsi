@@ -11,7 +11,7 @@
 # (and some files (e.g. freenet-latest.jar / freenet.jar) are aliases so count as 1)
 
 
-!define NUMBER_OF_DOWNLOADABLE_FILES 4
+!define NUMBER_OF_DOWNLOADABLE_FILES 5
 
 
 !include "MUI.nsh"
@@ -235,6 +235,7 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   IfFileExists "$2\freenet-ext.jar" FoundLocalFiles
   IfFileExists "$2\freenet.jar" FoundLocalFiles
   IfFileExists "$2\freenet-latest.jar" FoundLocalFiles
+  IfFileExists "$2\UpdateSnapshot.exe" FoundLocalFiles
 
   # if we get here there's no local files to install
   goto NoLocalFilesToInstall
@@ -265,6 +266,13 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   IntOp $R3 $R3 + 1
   #Delete "$2\NodeConfig.exe"
   nodeconfignotinstalled:
+  IfFileExists "$2\UpdateSnapshot.exe" 0 updaternotinstalled
+  ClearErrors
+  CopyFiles "$2\UpdateSnapshot.exe" "$R0\freenet-install\UpdateSnapshot.exe"
+  IfErrors DiskWriteError
+  IntOp $R3 $R3 + 1
+  #Delete "$2\UpdateSnapshot.exe"
+  updaternotinstalled:
   IfFileExists "$2\freenet.exe" 0 freenetexenotinstalled
   ClearErrors
   CopyFiles "$2\freenet.exe" "$R0\freenet-install\freenet.exe"
@@ -388,6 +396,13 @@ Section "Freenet Node" SecFreenetNode
   Call GetFile
   IfErrors DiskWriteError
 
+  Push "http://freenetproject.org/snapshots/UpdateSnapshot.exe"
+  Push "$R0\freenet-install"
+  Push "UpdateSnapshot.exe"
+  Call GetFile
+  IfErrors DiskWriteError
+
+
   DoneGettingFiles:
 
   # when we get here, the stack contains a list of files that have been successfully downloaded
@@ -433,7 +448,7 @@ Section "Freenet Node" SecFreenetNode
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$1\freenet.exe" 0
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$1\Uninstall.exe" 0
     WriteINIStr "$SMPROGRAMS\$STARTMENU_FOLDER\Freenet Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"
-    CreateShortcut "$SMPROGRAMS\$STARTMENU_FOLDER\Update Snapshot.lnk" "$INSTDIR\freenet-webinstall.exe" "" "$1\freenet-webinstall.exe" 0
+    CreateShortcut "$SMPROGRAMS\$STARTMENU_FOLDER\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot.exe" "" "$1\UpdateSnapshot.exe" 0
 
     ; launch freenet on Startup - this will be setup automatically if user asks for Start Menu options
     CreateShortCut "$SMSTARTUP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$1\freenet.exe" 0
