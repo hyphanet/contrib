@@ -62,23 +62,23 @@ void Bug(DWORD dwErrorCode)
 	const char * code;
 	switch(dwErrorCode)
 	{
-	case CDERR_DIALOGFAILURE:	code = "CDERR_DIALOGFAILURE";
-	case CDERR_FINDRESFAILURE:	code = "CDERR_FINDRESFAILURE";
-	case CDERR_INITIALIZATION:	code = "CDERR_INITIALIZATION";
-	case CDERR_LOADRESFAILURE:	code = "CDERR_LOADRESFAILURE";
-	case CDERR_LOADSTRFAILURE:	code = "CDERR_LOADSTRFAILURE";
-	case CDERR_LOCKRESFAILURE:	code = "CDERR_LOCKRESFAILURE";
-	case CDERR_MEMALLOCFAILURE:	code = "CDERR_MEMALLOCFAILURE";
-	case CDERR_MEMLOCKFAILURE:	code = "CDERR_MEMLOCKFAILURE";
-	case CDERR_NOHINSTANCE:		code = "CDERR_NOHINSTANCE";
-	case CDERR_NOHOOK:			code = "CDERR_NOHOOK";
-	case CDERR_NOTEMPLATE:		code = "CDERR_NOTEMPLATE";
-	case CDERR_REGISTERMSGFAIL:	code = "CDERR_REGISTERMSGFAIL";
-	case CDERR_STRUCTSIZE:		code = "CDERR_STRUCTSIZE";
-	case FNERR_BUFFERTOOSMALL:	code = "FNERR_BUFFERTOOSMALL";
-	case FNERR_INVALIDFILENAME:	code = "FNERR_INVALIDFILENAME";
-	case FNERR_SUBCLASSFAILURE:	code = "FNERR_SUBCLASSFAILURE";
-	default:					code = num; sprintf(num, "%08x", dwErrorCode);
+	case CDERR_DIALOGFAILURE:	code = "CDERR_DIALOGFAILURE";	break;
+	case CDERR_FINDRESFAILURE:	code = "CDERR_FINDRESFAILURE";	break;
+	case CDERR_INITIALIZATION:	code = "CDERR_INITIALIZATION";	break;
+	case CDERR_LOADRESFAILURE:	code = "CDERR_LOADRESFAILURE";	break;
+	case CDERR_LOADSTRFAILURE:	code = "CDERR_LOADSTRFAILURE";	break;
+	case CDERR_LOCKRESFAILURE:	code = "CDERR_LOCKRESFAILURE";	break;
+	case CDERR_MEMALLOCFAILURE:	code = "CDERR_MEMALLOCFAILURE";	break;
+	case CDERR_MEMLOCKFAILURE:	code = "CDERR_MEMLOCKFAILURE";	break;
+	case CDERR_NOHINSTANCE:		code = "CDERR_NOHINSTANCE";		break;
+	case CDERR_NOHOOK:			code = "CDERR_NOHOOK";			break;
+	case CDERR_NOTEMPLATE:		code = "CDERR_NOTEMPLATE";		break;
+	case CDERR_REGISTERMSGFAIL:	code = "CDERR_REGISTERMSGFAIL";	break;
+	case CDERR_STRUCTSIZE:		code = "CDERR_STRUCTSIZE";		break;
+	case FNERR_BUFFERTOOSMALL:	code = "FNERR_BUFFERTOOSMALL";	break;
+	case FNERR_INVALIDFILENAME:	code = "FNERR_INVALIDFILENAME";	break;
+	case FNERR_SUBCLASSFAILURE:	code = "FNERR_SUBCLASSFAILURE";	break;
+	default:					code = num; sprintf(num, "%08x", dwErrorCode); break;
 	}
 
 	sprintf(msg, "* mailto: support@freenetproject.org *\nQuote \"Freenet Tray oops\" and the following\nerror number: %s\nAlso please describe *precisely* what you were doing when you saw this message", code);
