@@ -10,6 +10,7 @@ that can be implemented by any competent C programmer.
 FCPtools generic
 ----------------
 
++ ADD fcpGet FILES TO MSVC PROJECT FILES
 + Confirm OS X functionality.
 + Confirm *BSD functionality.
 + Confirm Solaris functionality.
