@@ -173,7 +173,7 @@ xor (void *a, const void *b, int len)
     for (i = 0 ; i < len / 4 ; i++)
 	((int *)a)[i] ^= ((int *)b)[i];
     
-    i = len % 4;
+    if (!(i = len % 4)) return;
     do ((char *)a)[len-i] ^= ((char *)b)[len-i];
     while (--i);
 }

@@ -31,7 +31,7 @@ main (int argc, char **argv)
     
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
-    a.sin_port = htons(ANARCAST_SERVER_PORT);
+    a.sin_port = htons(PROXY_SERVER_PORT);
     a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     
     if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -40,7 +40,8 @@ main (int argc, char **argv)
     if (connect(s, &a, sizeof(a)) == -1)
 	die("connect() to server failed");
     
-    if (writeall(s, "r", 1) != 1 || writeall(s, key, i/2) != i/2)
+    l = i/2;
+    if (writeall(s, "r", 1) != 1 || writeall(s, &l, 4) != 4 || writeall(s, key, l) != l)
 	die("writeall() of request to server failed");
     
     if (readall(s, &l, 4) != 4)

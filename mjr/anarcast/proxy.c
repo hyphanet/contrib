@@ -127,7 +127,7 @@ load_graphs ()
 	if ((graphs[i].dbc * graphs[i].cbc) % 8)
 	    n++;
 	alert("Graph %d: %d x %d.", i+1, graphs[i].dbc, graphs[i].cbc);
-/*	{
+	/*{
 	    int j, p;
 	    for (j = 0 ; j < graphs[i].dbc ; j++) {
 		for (p = 0 ; p < graphs[i].cbc ; p++)
@@ -169,7 +169,7 @@ insert (int c)
 	alert("I do not have a graph for %d data blocks!", i/blocksize);
 	return;
     }
-    g = graphs[i/blocksize];
+    g = graphs[i/blocksize-1];
     
     // allocate space for plaintext hash and data- and check-block hashes
     hlen = (1 + g.dbc + g.cbc) * HASHLEN;
@@ -234,7 +234,8 @@ insert (int c)
     
     // send the URI to the client
     alert("Writing key to client.");
-    if (writeall(c, &hlen, 4) != 4 ||
+    i = hlen + 4;
+    if (writeall(c, &i, 4) != 4 ||
 	writeall(c, &blocksize, 4) != 4 ||
 	writeall(c, hashes, hlen) != hlen) {
 	ioerror();
@@ -294,7 +295,7 @@ do_insert (char *blocks, int blockcount, int blocksize, char *hashes)
 	int off;
     } xfers[FD_SETSIZE];
     
-    alert("Inserting %d blocks.", blockcount);
+    alert("Inserting %d blocks of %d bytes each.", blockcount, blocksize);
     
     FD_ZERO(&w);
     next = active = 0;
@@ -390,7 +391,14 @@ request (int c)
 	return;
     }
 
-    blockcount = i / HASHLEN;
+    blockcount = (i-1) / HASHLEN;
+    if (blockcount > GRAPHCOUNT) {
+	alert("I do not have a graph for %d data blocks!", blockcount);
+        free(hashes);
+	return;
+    }
+    
+    g = graphs[blockcount-1];
     
     data = mbuf(blockcount * blocksize);
     
