@@ -547,7 +547,7 @@ int insertFreesite(PutSiteOptions * _opts)
 		/* should be ok now */
 
 		_fcpLog(FCP_LOG_NORMAL, "============================================");
-		_fcpLog(FCP_LOG_NORMAL,	"Successfully inserted %s - %d days ahead", hfcp->created_uri);
+		_fcpLog(FCP_LOG_NORMAL,	"Successfully inserted %s - %d days ahead", hfcp->created_uri, opts->daysAhead);
 
 		return 0;
 	} /* !jobsfailed */
