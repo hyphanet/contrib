@@ -51,7 +51,7 @@ char* ReadIntoFileBuffer(HANDLE hFile, ULARGE_INTEGER *pulCurrentFilePosition, c
 	DWORD dwBytesToRead, dwBytesReadBefore, dwBytesReadAfter;
 	ULARGE_INTEGER ulReadStartOffset;
 	ULARGE_INTEGER ulActualCurrentPosition;
-	BOOL bReadSuccess;
+	BOOL bReadSuccess = FALSE;
 	char * szRunner;
 
 	// we always want a nul-terminated buffer
@@ -97,7 +97,7 @@ char* ReadIntoFileBuffer(HANDLE hFile, ULARGE_INTEGER *pulCurrentFilePosition, c
 	// now read from the current file position too:
 	dwBytesToRead = dwBytesAfter;
 	dwBytesReadAfter=0;
-	ReadFile(hFile,pCurrentPointer,dwBytesToRead,&dwBytesReadAfter,NULL);
+	bReadSuccess = ReadFile(hFile,pCurrentPointer,dwBytesToRead,&dwBytesReadAfter,NULL);
 
 	*(pCurrentPointer + dwBytesReadAfter) = '\0'; // nul-terminate buffer
 	
@@ -407,17 +407,17 @@ void UpdateLogfileWindow (HWND hwndEditBox, HWND hwndScrollBar, const char * pTe
 		char * szNewline = strchr(szRunner, '\n');
 		if (szNewline==NULL || *szNewline!='\n')
 			break;
-		if ( (szRunner==szNewline) || (*(szNewline-1) != '\r') )
+		if ( (szRunner==szNewline) || ( ( szNewline > szRunner) && ( *(szNewline-1) != '\r') ) )
 		{
 			szRunner = szNewline;
 			if (szBufferLen < 32766)
 			{
-				memmove(szRunner+1, szRunner, szBufferLen);
+				memmove(szRunner+1, szRunner, szBufferLen - (szRunner - szBuffer ) );
 				++szBufferLen;
 			}
 			else
 			{
-				memmove(szRunner+1, szRunner, szBufferLen-1);
+				memmove(szRunner+1, szRunner, szBufferLen-1 - (szRunner - szBuffer ) );
 				szBuffer[32766]='\0';
 			}
 			*szRunner = '\r';

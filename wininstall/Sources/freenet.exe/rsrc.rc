@@ -54,7 +54,7 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,5,2,7
+ FILEVERSION 0,5,2,8
  PRODUCTVERSION 0,5,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
@@ -70,10 +70,10 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "Comments", "http://www.freenetproject.org\r\nsupport@freenetproject.org\r\nWritten / Maintained by Dave Hooper\r\n30 Sep 2003\0"
+            VALUE "Comments", "http://www.freenetproject.org\r\nsupport@freenetproject.org\r\nWritten / Maintained by Dave Hooper\r\n14 Mar 2004\0"
             VALUE "CompanyName", "\0"
             VALUE "FileDescription", "Freenet Systray Application\0"
-            VALUE "FileVersion", "0.5.2.7\0"
+            VALUE "FileVersion", "0.5.2.8\0"
             VALUE "InternalName", "freenet.exe\0"
             VALUE "LegalCopyright", "Written / Maintained by Dave Hooper\0"
             VALUE "LegalTrademarks", "\0"
@@ -127,7 +127,6 @@ CAPTION "View Freenet.log"
 FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,369,186,50,14
-    PUSHBUTTON      "&Copy Selection to Clipboard",IDCOPY,139,186,143,14
     EDITTEXT        IDC_EDIT1,7,7,400,178,ES_MULTILINE | ES_READONLY | 
                     WS_HSCROLL,WS_EX_TRANSPARENT
     CONTROL         "Auto-Scroll to new messages",IDC_TRACKCHANGES,"Button",
@@ -162,7 +161,7 @@ BEGIN
                     WS_EX_TRANSPARENT
     LTEXT           "Freenet for Windows® support software maintained by Dave Hooper.",
                     IDC_STATIC,55,20,149,18
-    LTEXT           "Version 0.5.2.7 (30th Sep 2003)",IDC_STATIC,55,40,165,
+    LTEXT           "Version 0.5.2.8 (14th Mar 2004)",IDC_STATIC,55,40,165,
                     10
     LTEXT           "Node info:",IDC_STATIC,13,49,207,8
     LTEXT           "",IDC_STATIC_ABOUT_NODEINFO,13,59,207,31
