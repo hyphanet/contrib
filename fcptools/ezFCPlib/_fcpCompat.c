@@ -42,7 +42,7 @@ void _fcpSockDisconnect(hFCP *hfcp)
   if (hfcp->socket == FCP_SOCKET_DISCONNECTED)
 		return;
 
-#ifdef WIN32
+#ifdef WINDOWS
 	closesocket(hfcp->socket);
 #else
 	close(hfcp->socket);
@@ -73,7 +73,7 @@ int _fcpTmpfile(char **filename)
 	*filename = (char *)malloc(strlen(s) + 1);
 	strcpy(*filename, s);
 
-#ifdef WIN32
+#ifdef WINDOWS
 	/* this call should inherit permissions from the parent dir */
 	return creat(*filename, O_CREAT);
 

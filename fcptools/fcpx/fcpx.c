@@ -213,11 +213,12 @@ static int clienthello(hFCP *hfcp)
 
 static int clientinfo(hFCP *hfcp)
 {
-	/*
 	if (fcpClientInfo(hfcp) != 0) {
 		fprintf(stdout, "Could not send ClientInfo message to node\n");
 		return -1;
 	}
-	*/
+
+	fcpDestroyHFCP(hfcp);
+	return 0;
 }
 

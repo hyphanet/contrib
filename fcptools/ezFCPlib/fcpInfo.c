@@ -76,9 +76,9 @@ int fcpClientInfo(hFCP *hfcp)
 
 	if (_fcpSockConnect(hfcp) != 0)	return -1;
 	
-	rc = snprintf(buf, L_FILE_BLOCKSIZE, "ClientHello\nEndMessage\n");
+	rc = snprintf(buf, L_FILE_BLOCKSIZE, "ClientInfo\nEndMessage\n");
 	
-	_fcpLog(FCP_LOG_DEBUG, "sending ClientHello message");
+	_fcpLog(FCP_LOG_DEBUG, "sending ClientInfo message");
 	
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
@@ -87,17 +87,14 @@ int fcpClientInfo(hFCP *hfcp)
 		return -1;
 	}
 	
-	/* expecting a NodeHello response */
-	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEHELLO) {
-		_fcpLog(FCP_LOG_VERBOSE, "fcpSendHello(): error returned from node: %d", rc);
+	/* expecting a NodeInfo response */
+	if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_NODEINFO) {
+		_fcpLog(FCP_LOG_VERBOSE, "fcpClientInfo(): error returned from node: %d", rc);
 
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
 	
-	/* Note: inside getrespHello() the fields hfcp->node and hfcp->protocol
-		 are set */
-
 	_fcpSockDisconnect(hfcp);
 	return 0;
 }

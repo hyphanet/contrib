@@ -40,7 +40,7 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
 	_fcpRetry     = (retry >= 0 ? retry : 0);
 
-#ifdef WIN32
+#ifdef WINDOWS
 	{
 		WORD wVersionRequested;
 		WSADATA wsaData;
@@ -84,7 +84,14 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 
 void fcpTerminate(void)
 {
+
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpTerminate()");
+
+#ifdef WINDOWS
+	{
+	/* on Win32, we gotta call the winsock exit function */
+	}
+#endif
 
 	if (_fcpTmpDir) free(_fcpTmpDir);
 	if (_fcpHomeDir) free(_fcpHomeDir);

@@ -35,6 +35,7 @@
 char *strdup(const char *s);
 
 static int  getrespHello(hFCP *);
+static int  getrespInfo(hFCP *);
 static int  getrespSuccess(hFCP *);
 
 static int  getrespDataFound(hFCP *);
@@ -75,6 +76,10 @@ int _fcpRecvResponse(hFCP *hfcp)
 		if (!strncmp(resp, "NodeHello", 9)) {
 			hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
 			return getrespHello(hfcp);
+		}
+		else if (!strncmp(resp, "NodeInfo", 8)) {
+			hfcp->response.type = FCPRESP_TYPE_NODEINFO;
+			return getrespInfo(hfcp);
 		}
 		else if (!strcmp(resp, "Success")) {
 			hfcp->response.type = FCPRESP_TYPE_SUCCESS;
@@ -194,6 +199,100 @@ static int getrespHello(hFCP *hfcp)
 		return 0;
 }
 
+static int getrespInfo(hFCP *hfcp)
+{
+	char resp[1025];
+	int  rc;
+
+	_fcpLog(FCP_LOG_DEBUG, "received NodeInfo response");
+
+	while ((rc = _fcpSockRecvln(hfcp, resp, 1024)) > 0) {
+
+		if (!strncmp(resp, "Architecture=", 13)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+
+			/*
+			if (hfcp->response.nodeinfo.architecture)
+				free(hfcp->response.nodeinfo.architecture);
+
+			hfcp->response.nodeinfo.architecture = strdup(resp+5);
+			*/
+		}
+		else if (!strncmp(resp, "OperatingSystem=", 16)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "OperatingSystemVersion=", 23)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "NodePort=", 9)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "NodeAddress=", 9)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "JavaVendor=", 11)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "JavaName=", 9)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "JavaVersion=", 12)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "MaximumMemory=", 14)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "AllocatedMemory=", 16)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "FreeMemory=", 11)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "EstimatedLoad=", 14)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "DatastoreMax=", 13)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "DatastoreFree=", 14)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "DatastoreUsed=", 14)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "MaxFileSize=", 12)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "MostRecentTimestamp=", 11)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "LeastRecentTimestamp=", 11)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "RoutingTime=", 11)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "AvailableThreads=", 11)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "IsTransient=", 12)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "ActiveJobs=", 11)) {
+			_fcpLog(FCP_LOG_DEBUG, resp);
+		}
+		else if (!strncmp(resp, "EndMessage", 10))
+			return FCPRESP_TYPE_NODEINFO;
+
+		else
+		_fcpLog(FCP_LOG_DEBUG, "getrespInfo() - received unhandled field \"%s\"", resp);
+	}
+
+	if (rc < 0)
+		return (rc == EZERR_SOCKET_TIMEOUT ? EZERR_SOCKET_TIMEOUT : -1);
+	else
+		return 0;
+}
 
 static int getrespSuccess(hFCP *hfcp)
 {

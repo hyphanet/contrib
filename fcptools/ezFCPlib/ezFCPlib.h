@@ -37,7 +37,7 @@
 /**************************************************************************
   MS-WINDOWS specifics
 **************************************************************************/
-#ifdef WIN32
+#ifdef WINDOWS
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
@@ -152,24 +152,24 @@
 /*
 	Tokens for response types.
 */
-#define FCPRESP_TYPE_NODEHELLO      1
-#define FCPRESP_TYPE_SUCCESS        2
-#define FCPRESP_TYPE_DATAFOUND      3
-#define FCPRESP_TYPE_DATACHUNK      4
-#define FCPRESP_TYPE_DATANOTFOUND   5
-#define FCPRESP_TYPE_ROUTENOTFOUND  6
-#define FCPRESP_TYPE_URIERROR       7
-#define FCPRESP_TYPE_RESTARTED      8
-#define FCPRESP_TYPE_KEYCOLLISION   9
-#define FCPRESP_TYPE_PENDING        10
-#define FCPRESP_TYPE_FAILED         11
-#define FCPRESP_TYPE_FORMATERROR    12
-
-#define FCPRESP_TYPE_SEGMENTHEADER  13
-#define FCPRESP_TYPE_BLOCKMAP       14
-#define FCPRESP_TYPE_BLOCKSENCODED  15
-#define FCPRESP_TYPE_BLOCKSDECODED  16
-#define FCPRESP_TYPE_MADEMETADATA   17
+#define FCPRESP_TYPE_SUCCESS        1
+#define FCPRESP_TYPE_NODEHELLO      10
+#define FCPRESP_TYPE_NODEINFO       11
+#define FCPRESP_TYPE_DATAFOUND      20
+#define FCPRESP_TYPE_DATACHUNK      21
+#define FCPRESP_TYPE_DATANOTFOUND   22
+#define FCPRESP_TYPE_ROUTENOTFOUND  30
+#define FCPRESP_TYPE_URIERROR       40
+#define FCPRESP_TYPE_RESTARTED      50
+#define FCPRESP_TYPE_KEYCOLLISION   60
+#define FCPRESP_TYPE_PENDING        70
+#define FCPRESP_TYPE_FAILED         80
+#define FCPRESP_TYPE_FORMATERROR    90
+#define FCPRESP_TYPE_SEGMENTHEADER  100
+#define FCPRESP_TYPE_BLOCKMAP       110
+#define FCPRESP_TYPE_BLOCKSENCODED  111
+#define FCPRESP_TYPE_BLOCKSDECODED  112
+#define FCPRESP_TYPE_MADEMETADATA   120
 
 /* Tokens for receive states
 */
@@ -186,6 +186,10 @@ typedef struct {
 	char  publickey[L_KEY+1];
 	char  privatekey[L_KEY+1];
 } FCPRESP_SUCCESS;
+
+typedef struct {
+	char architecture[10];
+} FCPRESP_NODEINFO;
 
 typedef struct {
   int datalength;
@@ -278,6 +282,7 @@ typedef struct {
   int type;
 
 	FCPRESP_SUCCESS         success;
+	FCPRESP_NODEINFO        nodeinfo;
 	FCPRESP_DATAFOUND       datafound;
 	FCPRESP_DATACHUNK       datachunk;
 	FCPRESP_KEYCOLLISION    keycollision;
