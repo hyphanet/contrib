@@ -1,6 +1,3 @@
-#define LISTEN_PORT           6666
-#define HASH_LEN              20
-
 #include <err.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -15,6 +12,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include "anarcast.h"
 #include "sha.c"
 
 struct state {
@@ -38,7 +36,7 @@ main (int argc, char **argv)
 	err(1, "can't change to %s", b);
     
     if ((l = listening_socket()) == -1)
-	err(1, "can't grab port %d", LISTEN_PORT);
+	err(1, "can't grab port %d", ANARCAST_SERVER_PORT);
     
     FD_ZERO(&r);
     FD_ZERO(&w);
@@ -218,7 +216,7 @@ listening_socket ()
 
     memset(&a, 0, sizeof(a));
     a.sin_family = AF_INET;
-    a.sin_port = htons(LISTEN_PORT);
+    a.sin_port = htons(ANARCAST_SERVER_PORT);
     a.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
