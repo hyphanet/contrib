@@ -145,9 +145,9 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpLog(FCP_LOG_VERBOSE, "Key: %s\n  Uri: %s", key_filename, hfcp->key->target_uri->uri_str);
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
 
-	/* delete the tmpblocks before exiting */
+	/* delete the tmpblocks before exiting
 	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock); */
 
 	return 0;
 
@@ -156,9 +156,9 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file: %s", key_filename);
 	_fcpLog(FCP_LOG_DEBUG, "Exiting fcpPutKeyFromFile()");
 
-	/* delete the tmpblocks before exiting */
+	/* delete the tmpblocks before exiting
 	_fcpDeleteFile(hfcp->key->tmpblock);
-	_fcpDeleteFile(hfcp->key->metadata->tmpblock);
+	_fcpDeleteFile(hfcp->key->metadata->tmpblock); */
 
 	return rc;
 }

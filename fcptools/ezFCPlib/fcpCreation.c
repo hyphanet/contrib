@@ -242,14 +242,9 @@ void _fcpDestroyHBlock(hBlock *h)
 {
 	if (h) {
 		
-#if 0 /* i think this would be unecessary.. DEPRECATE? */
-		/* close the file */
-
+		/* close and delete the file */
 		_fcpUnlink(h);
-
-		_fcpDeleteFile(hfcp->key->tmpblock);
-		_fcpDeleteFile(hfcp->key->metadata->tmpblock);
-#endif
+		_fcpDeleteFile(h);
 		
 		if (h->uri) {
 			fcpDestroyHURI(h->uri);

@@ -227,7 +227,6 @@ int _fcpLink(hBlock *h, int access)
 		return -1;
 	}
 
-	/* amazing the shit one must perform in order for Windows to be "happy" */
 #ifdef WIN32
 	flag = h->binary_mode ? O_BINARY : 0;
 #else

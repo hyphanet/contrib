@@ -45,10 +45,11 @@
 #endif
 #endif
 
-/* eww.. i thought this *might* help ;)  joliveri */
+#ifdef WIN32 /* eww.. i thought this *might* help ;)  joliveri */
 extern int strcmp(const char *, const char *);
 extern int strncmp(const char *, const char *, int);
 extern int strlen(const char *);
+#endif
 
 #include <stdio.h>
 
