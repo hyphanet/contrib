@@ -132,13 +132,20 @@ void CConfigFile::Load()
 	pFProxy->m_fproxy_splitinchtl = 20;
 	pFProxy->m_fproxy_splitretries = 1;
 	pFProxy->m_fproxy_splitthreads = 10;
+	pFProxy->m_bShowNewBuildWarning = TRUE;
 
 	pDiagnostics->m_diagnosticsPath = ".freenet/stats";
 	pDiagnostics->m_doDiagnostics = TRUE;
 	pDiagnostics->m_logFile = "freenet.log";
 	pDiagnostics->m_logLevel = "normal";
 	pDiagnostics->m_logFormat = "d (c, t): m";
-	
+	pDiagnostics->m_bLogInboundContacts = FALSE;
+	pDiagnostics->m_bLogInboundRequests = FALSE;
+	pDiagnostics->m_bLogOutboundContacts = FALSE;
+	pDiagnostics->m_bLogOutboundRequests = FALSE;
+	pDiagnostics->m_nFailureTableEntries = 1000;
+	pDiagnostics->m_nFailureTableTimeSeconds = 1800;
+
 	// the following are fixed up later as the obsolete
 	// "nodestatus" settings are absorbed and converted by NodeConfig
 	pDiagnostics->m_nodeinfoservlet = true;
@@ -429,6 +436,10 @@ void CConfigFile::Save()
 	fprintf(fp, "# This will eat some gratuitous memory and cpubut may let you provide valuable data to the project.\n");
 	fprintf(fp, "doDiagnostics=%s\n", pDiagnostics->m_doDiagnostics ? "yes" : "no");
 	fprintf(fp, "\n");
+	fprintf(fp, "logInboundContacts=%s\n",pDiagnostics->m_bLogInboundContacts?"true":"false");
+	fprintf(fp, "logOutboundContacts=%s\n",pDiagnostics->m_bLogOutboundContacts?"true":"false");
+	fprintf(fp, "logInboundRequests=%s\n",pDiagnostics->m_bLogInboundRequests?"true":"false");
+	fprintf(fp, "logOutboundRequests=%s\n",pDiagnostics->m_bLogOutboundRequests?"true":"false");
 	fprintf(fp, "\n\n");
 
 	fprintf(fp, "########################\n");
@@ -452,14 +463,17 @@ void CConfigFile::Save()
 	fprintf(fp, "fproxy.params.splitFileRetryHtlIncrement=%d\n",pFProxy->m_fproxy_splitinchtl);
 	fprintf(fp, "fproxy.params.splitFileRetries=%d\n",pFProxy->m_fproxy_splitretries);
 	fprintf(fp, "fproxy.params.splitFileThreads=%d\n",pFProxy->m_fproxy_splitthreads);
+	fprintf(fp, "fproxy.params.showNewBuildWarning=%s\n", pFProxy->m_bShowNewBuildWarning?"true":"false");
 	fprintf(fp, "\n");
 
-	// FProxy settings
+	// Node info servlet settings
 	fprintf(fp, "########################\n");
 	fprintf(fp, "# Node information servlet settings\n");
 	fprintf(fp, "########################\n");
 	fprintf(fp, "nodeinfo.class=%s\n",pDiagnostics->m_nodeinfoclass);
 	fprintf(fp, "nodeinfo.port=%d\n",pDiagnostics->m_nodeinfoport);
+	fprintf(fp, "failureTableSize=%d\n",pDiagnostics->m_nFailureTableEntries);
+	fprintf(fp, "failureTableTime=%lu000\n",pDiagnostics->m_nFailureTableTimeSeconds);
 	fprintf(fp, "\n");
 
 	// Write out unknown parameters
@@ -622,6 +636,9 @@ void CConfigFile::processItem(char *tok, char *val)
 		pFProxy->m_fproxy_splitretries = atoi(val);
 	else if (!strcmp(tok, "fproxy.params.splitFileThreads"))
 		pFProxy->m_fproxy_splitthreads = atoi(val);
+	else if (!strcmp(tok, "fproxy.params.showNewBuildWarning"))
+		pFProxy->m_bShowNewBuildWarning = atobool(val);
+
 	else if (!strcmp(tok, "logFile"))
 		pDiagnostics->m_logFile = val;
 	else if (!strcmp(tok, "logLevel"))
@@ -632,6 +649,16 @@ void CConfigFile::processItem(char *tok, char *val)
 		pDiagnostics->m_diagnosticsPath = val;
 	else if (!strcmp(tok, "doDiagnostics"))
 		pDiagnostics->m_doDiagnostics = atobool(val);
+
+	else if (!strcmp(tok, "logInboundContacts"))
+		pDiagnostics->m_bLogInboundContacts = atobool(val);
+	else if (!strcmp(tok, "logInboundRequests"))
+		pDiagnostics->m_bLogInboundRequests = atobool(val);
+	else if (!strcmp(tok, "logOutboundContacts"))
+		pDiagnostics->m_bLogOutboundContacts = atobool(val);
+	else if (!strcmp(tok, "logOutboundRequests"))
+		pDiagnostics->m_bLogOutboundRequests = atobool(val);
+
 		// absorb obsoleted 'nodestatus' settings
 	else if (!strcmp(tok, "nodestatus.port"))
 	{
@@ -648,6 +675,11 @@ void CConfigFile::processItem(char *tok, char *val)
 		pDiagnostics->m_nodeinfoport = atoi(val);
 	else if (!strcmp(tok, "nodeinfo.class"))
 		pDiagnostics->m_nodeinfoclass = val;
+
+	else if (!strcmp(tok, "failureTableSize"))
+		pDiagnostics->m_nFailureTableEntries = atoi(val);
+	else if (!strcmp(tok, "failureTableTime"))
+		pDiagnostics->m_nFailureTableTimeSeconds = atoi(val)/1000;
 
 	else
 	{

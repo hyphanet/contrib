@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "nodeconfig.h"
 #include "PropDiagnostics.h"
+#include "UpdateSpin.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -19,6 +20,8 @@ IMPLEMENT_DYNCREATE(CPropDiagnostics, CPropertyPage)
 CPropDiagnostics::CPropDiagnostics() : CPropertyPage(CPropDiagnostics::IDD)
 {
 	//{{AFX_DATA_INIT(CPropDiagnostics)
+	m_nFailureTableEntries = 0;
+	m_nFailureTableTimeSeconds = 0;
 	//}}AFX_DATA_INIT
 }
 
@@ -38,6 +41,14 @@ void CPropDiagnostics::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_logLevel, m_logLevel);
 	DDX_Text(pDX, IDC_diagnosticsPath, m_diagnosticsPath);
 	DDX_Check(pDX, IDC_doDiagnostics, m_doDiagnostics);
+	DDX_Check(pDX, IDC_BINBOUNDCONTACTS, m_bLogInboundContacts);
+	DDX_Check(pDX, IDC_BINBOUNDREQUESTS, m_bLogInboundRequests);
+	DDX_Check(pDX, IDC_BOUTBOUNDCONTACTS, m_bLogOutboundContacts);
+	DDX_Check(pDX, IDC_BOUTBOUNDREQUESTS, m_bLogOutboundRequests);
+	DDX_Text(pDX, IDC_FAILURETABENTRIES, m_nFailureTableEntries);
+	DDV_MinMaxUInt(pDX, m_nFailureTableEntries, 1, 32768);
+	DDX_Text(pDX, IDC_FAILURETABTIME, m_nFailureTableTimeSeconds);
+	DDV_MinMaxUInt(pDX, m_nFailureTableTimeSeconds, 1, 14400);
 	//}}AFX_DATA_MAP
 }
 
@@ -45,6 +56,8 @@ void CPropDiagnostics::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CPropDiagnostics, CPropertyPage)
 	//{{AFX_MSG_MAP(CPropDiagnostics)
 	ON_BN_CLICKED(IDC_NODEINFOSERVLET, OnNodeinfoservlet)
+	ON_NOTIFY(UDN_DELTAPOS, IDC_FAILURETABENTRIESSPIN, OnFailureTabEntriesSpin)
+	ON_NOTIFY(UDN_DELTAPOS, IDC_FAILURETABTIMESPIN, OnFailureTabTimeSpin)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -64,4 +77,28 @@ BOOL CPropDiagnostics::OnSetActive()
 	GetDlgItem(IDC_NODEINFOCLASS)->EnableWindow(m_nodeinfoservlet);
 	GetDlgItem(IDC_NODEINFOPORT)->EnableWindow(m_nodeinfoservlet);
 	return CPropertyPage::OnSetActive();
+}
+
+void CPropDiagnostics::OnFailureTabEntriesSpin(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
+	UpdateData(TRUE);
+	CUpdateSpin<UINT> cus(m_nFailureTableEntries, 1, 32768);
+	if (cus.Update(pNMUpDown->iDelta) )
+	{
+		UpdateData(FALSE);
+	}
+	*pResult = 0;
+}
+
+void CPropDiagnostics::OnFailureTabTimeSpin(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	NM_UPDOWN* pNMUpDown = (NM_UPDOWN*)pNMHDR;
+	UpdateData(TRUE);
+	CUpdateSpin<UINT> cus(m_nFailureTableTimeSeconds, 1, 14400);
+	if (cus.Update(pNMUpDown->iDelta) )
+	{
+		UpdateData(FALSE);
+	}
+	*pResult = 0;
 }

@@ -8,7 +8,6 @@
 #include "stdafx.h"
 #include "resource.h"
 
-
 /////////////////////////////////////////////////////////////////////////////
 // CPropDiagnostics dialog
 
@@ -32,6 +31,12 @@ public:
 	CString	m_logLevel;
 	CString	m_diagnosticsPath;
 	BOOL	m_doDiagnostics;
+	BOOL	m_bLogInboundContacts;
+	BOOL	m_bLogInboundRequests;
+	BOOL	m_bLogOutboundContacts;
+	BOOL	m_bLogOutboundRequests;
+	UINT	m_nFailureTableEntries;
+	UINT	m_nFailureTableTimeSeconds;
 	//}}AFX_DATA
 
 
@@ -49,6 +54,8 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(CPropDiagnostics)
 	afx_msg void OnNodeinfoservlet();
+	afx_msg void OnFailureTabEntriesSpin(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnFailureTabTimeSpin(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

@@ -30,6 +30,7 @@ CPropFProxy::CPropFProxy() : CPropertyPage(CPropFProxy::IDD)
 	m_fproxy_splitretries = 0;
 	m_fproxy_splitthreads = 0;
 	m_fproxy_pollDroppedConnection = FALSE;
+	m_bShowNewBuildWarning = FALSE;
 	//}}AFX_DATA_INIT
 }
 
@@ -52,6 +53,7 @@ void CPropFProxy::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_fproxy_splitretries, m_fproxy_splitretries);
 	DDX_Text(pDX, IDC_fproxy_splitthreads, m_fproxy_splitthreads);
 	DDX_Check(pDX, IDC_FPROXYDROPPEDCONN, m_fproxy_pollDroppedConnection);
+	DDX_Check(pDX, IDC_BSHOWNEWBUILDWARNING, m_bShowNewBuildWarning);
 	//}}AFX_DATA_MAP
 }
 

@@ -75,6 +75,7 @@
 #define IDC_FPROXYDROPPEDCONN           1068
 #define IDC_fproxy_splitthreads         1069
 #define IDC_SEEDFILE                    1070
+#define IDC_BSHOWNEWBUILDWARNING        1070
 #define IDC_NODEINFOSERVLET             1071
 #define IDC_useDefaultNodeRefs          1072
 #define IDC_NODEINFOPORT                1073
@@ -95,6 +96,14 @@
 #define IDC_slider_CPUPriority          1088
 #define IDC_Static_CPUPriority          1089
 #define IDC_storePath_browse            1090
+#define IDC_FAILURETABENTRIES           1091
+#define IDC_FAILURETABENTRIESSPIN       1092
+#define IDC_BINBOUNDCONTACTS            1093
+#define IDC_FAILURETABTIME              1095
+#define IDC_FAILURETABTIMESPIN          1096
+#define IDC_BOUTBOUNDCONTACTS           1097
+#define IDC_BINBOUNDREQUESTS            1098
+#define IDC_BOUTBOUNDREQUESTS           1099
 
 // Next default values for new objects
 // 
@@ -102,7 +111,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1091
+#define _APS_NEXT_CONTROL_VALUE         1094
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -35,6 +35,7 @@ public:
 	UINT	m_fproxy_splitretries;
 	UINT	m_fproxy_splitthreads;
 	BOOL	m_fproxy_pollDroppedConnection;
+	BOOL	m_bShowNewBuildWarning;
 	//}}AFX_DATA
 
 

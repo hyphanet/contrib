@@ -284,9 +284,9 @@ FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "FProxy port",IDC_FPROXYPORT_TITLE,15,40,51,8
     EDITTEXT        IDC_fproxy_port,15,50,27,12,ES_NUMBER
-    GROUPBOX        "Advanced",IDC_STATIC,99,78,213,48
-    LTEXT           "FProxy class",IDC_STATIC,106,96,51,8
-    EDITTEXT        IDC_fproxy_class,105,106,200,12,ES_AUTOHSCROLL
+    GROUPBOX        "Advanced",IDC_STATIC,99,139,213,72
+    LTEXT           "FProxy class",IDC_STATIC,106,181,51,8
+    EDITTEXT        IDC_fproxy_class,105,191,200,12,ES_AUTOHSCROLL
     EDITTEXT        IDC_fproxy_inserthtl,65,87,22,14,ES_AUTOHSCROLL | 
                     ES_NUMBER
     EDITTEXT        IDC_fproxy_requesthtl,65,106,22,14,ES_AUTOHSCROLL | 
@@ -313,7 +313,10 @@ BEGIN
     LTEXT           "Retries",IDC_STATIC,16,172,41,8
     LTEXT           "Retry HTL increment",IDC_STATIC,15,189,44,18
     CONTROL         "Poll for dropped connection",IDC_FPROXYDROPPEDCONN,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,105,86,199,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,106,151,199,10
+    CONTROL         "Show a warning if a newer version of Freenet is available",
+                    IDC_BSHOWNEWBUILDWARNING,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,106,166,199,10
 END
 
 IDD_PP_DIAGNOSTICS DIALOG DISCARDABLE  0, 0, 319, 274
@@ -330,11 +333,11 @@ BEGIN
     EDITTEXT        IDC_NODEINFOCLASS,77,136,160,14,ES_AUTOHSCROLL
     LTEXT           "The node information servlet enables a web interface to view diagnostics data in a web browser.",
                     IDC_STATIC,22,118,269,18
-    GROUPBOX        "Diagnostics",IDC_STATIC,108,7,93,81
+    GROUPBOX        "Diagnostics",IDC_STATIC,108,7,204,81
     CONTROL         "Enable",IDC_doDiagnostics,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,115,24,38,10
-    LTEXT           "Path",IDC_STATIC,115,45,16,8
-    EDITTEXT        IDC_diagnosticsPath,132,43,58,12,ES_AUTOHSCROLL
+    LTEXT           "Path",IDC_STATIC,172,25,16,8
+    EDITTEXT        IDC_diagnosticsPath,194,23,108,12,ES_AUTOHSCROLL
     GROUPBOX        "Logging",IDC_STATIC,7,7,92,81
     LTEXT           "File",IDC_STATIC,15,24,12,8
     EDITTEXT        IDC_logFile,41,22,48,12,ES_AUTOHSCROLL
@@ -342,7 +345,27 @@ BEGIN
     COMBOBOX        IDC_logLevel,41,43,49,54,CBS_DROPDOWN | WS_TABSTOP
     LTEXT           "Format",IDC_STATIC,15,69,22,8
     EDITTEXT        IDC_logFormat,41,65,48,14,ES_AUTOHSCROLL
-    GROUPBOX        "Node Information Servlet",IDC_STATIC,15,106,287,51
+    GROUPBOX        "Node Information Servlet",IDC_STATIC,15,106,287,72
+    LTEXT           "Size of 'Failure Table' :",IDC_STATIC,22,159,73,11
+    EDITTEXT        IDC_FAILURETABENTRIES,101,157,28,13,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    CONTROL         "Spin1",IDC_FAILURETABENTRIESSPIN,"msctls_updown32",
+                    UDS_ARROWKEYS,130,157,11,13
+    LTEXT           "entries, and",IDC_STATIC,145,159,41,11
+    EDITTEXT        IDC_FAILURETABTIME,195,157,28,13,ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    CONTROL         "Spin1",IDC_FAILURETABTIMESPIN,"msctls_updown32",
+                    UDS_ARROWKEYS,224,157,11,13
+    LTEXT           "seconds",IDC_STATIC,239,159,33,11
+    LTEXT           "Store additional diagnostics:",IDC_STATIC,115,43,185,9
+    CONTROL         "Inbound contacts",IDC_BINBOUNDCONTACTS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,115,54,75,12
+    CONTROL         "Outbound contacts",IDC_BOUTBOUNDCONTACTS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,115,68,75,12
+    CONTROL         "Inbound requests",IDC_BINBOUNDREQUESTS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,198,54,75,12
+    CONTROL         "Outbound requests",IDC_BOUTBOUNDREQUESTS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,198,68,75,12
 END
 
 
@@ -391,7 +414,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 312
         TOPMARGIN, 7
-        BOTTOMMARGIN, 234
+        BOTTOMMARGIN, 263
     END
 
     IDD_PP_DIAGNOSTICS, DIALOG
