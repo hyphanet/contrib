@@ -730,12 +730,15 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 		segment->check_blocks[bi] = _fcpCreateHBlock();
 		segment->check_blocks[bi]->filename = _fcpTmpFilename();
 		segment->check_blocks[bi]->size = block_len;
-		
-		if (!(file = fopen(segment->check_blocks[bi]->filename, "wb"))) {
-			snprintf(msg, 512, "could not open file for writing check block %d", bi);
+
+		if (creat(segment->check_blocks[bi]->filename, 0600) == -1) {
+			snprintf(msg, 512, "could not open temp file for writing check block %d", bi);
 			hfcp->error = strdup(msg);
+
 			return -1;
 		}
+		
+		file = fopen(segment->check_blocks[bi]->filename, "wb");
 		fd = fileno(file);
 		
 		for (fi=0; fi < block_len; ) {
