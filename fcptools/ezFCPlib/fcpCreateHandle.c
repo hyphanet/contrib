@@ -60,7 +60,11 @@ HFCP *fcpCreateHandle()
     hfcp->wr_info.num_meta_wr = 0;
     hfcp->wr_info.uri = NULL;
 
-    return hfcp;
+	// Initialise splitfile insert control block
+	hfcp->split.status = SPLIT_INSSTAT_IDLE;
+
+    // Success - return handle
+	return hfcp;
 
 }       // 'fcpCreateHandle()'
 

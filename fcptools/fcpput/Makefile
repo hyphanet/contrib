@@ -10,7 +10,7 @@ default:
 
 linux: fcpput.o ../ezFCPlib/ezFCPlib.a
 	cd ../ezFCPlib; make ezFCPlib.a
-	gcc -o fcpput $^
+	gcc -o fcpput $^ /usr/lib/libpthread.a
 
 cygwin: fcpput.o ../ezFCPlib/ezFCPlib.a
 	cd ../ezFCPlib; make cygwin

@@ -57,19 +57,3 @@ void fcpSetRegress(HFCP *hfcp, int regress)
 }       // 'fcpDestroyHandle()'
 
 
-//
-// Function:    fcpSetSplitSize
-//
-// Arguments:   hfcp		pointer to FCP handle, created with fcpCreateHandle()
-//				splitsize	size of splitfile chunks, default defined in ezFCPlib.h
-//
-// Description: Sets the number of days to regress in retrying failed date redirects
-//				call with chunkSize=0 to disable splitting of inserted files
-//
-
-void fcpSetSplitSize(HFCP *hfcp, int chunkSize)
-{
-	hfcp->split.chunkSize = chunkSize;
-}
-
-

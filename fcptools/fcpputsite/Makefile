@@ -16,6 +16,7 @@ linux:  fcpputsite.o \
 		scanDir.o \
 		mimeType.o \
 		../ezFCPlib/ezFCPlib.a
+	cd ../ezFCPlib; make linux
 	gcc -o fcpputsite $^ -pthread
 
 

@@ -13,6 +13,9 @@
 extern int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
                           char *defaultFile, int daysFuture, int maxThreads, int maxRetries);
 
+extern int fcpSplitChunkSize;
+
+
 //
 // EXPORTED DECLARATIONS
 //
@@ -44,6 +47,8 @@ static int  generateKeys = 0;           // flag requiring keypair generation onl
 static int  maxThreads = 5;             // maximum number of concurrent insert threads
 static int  maxAttempts = 3;                // maximum number of insert attempts
 
+static int	maxSplitThreads = 0;
+
 
 int main(int argc, char* argv[])
 {
@@ -53,7 +58,7 @@ int main(int argc, char* argv[])
     parse_args(argc, argv);
 
     // try and fire up FCP library
-    if (fcpStartup(nodeAddr, nodePort, htlVal, 0) != 0)
+    if (fcpStartup(nodeAddr, nodePort, htlVal, 0, maxSplitThreads) != 0)
     {
         _fcpLog(FCP_LOG_CRITICAL, "Unable to connect with Freenet node's FCP interface\n");
         return 1;
@@ -118,6 +123,14 @@ static void parse_args(int argc, char *argv[])
             verbosity = (++i < argc)
                         ? atoi(argv[i])
                         : (int)usage("missing verbosity level");
+        else if (!strcmp(argv[i], "-ss"))
+            fcpSplitChunkSize = (++i < argc)
+                        ? parse_num(argv[i])
+                        : (int)usage("missing splitfile chunk size");
+        else if (!strcmp(argv[i], "-st"))
+            maxSplitThreads = (++i < argc)
+                        ? atoi(argv[i])
+                        : (int)usage("missing max splitfile threads");
         else if (!strcmp(argv[i], "-f"))
             daysFuture = (++i < argc)
                         ? atoi(argv[i])
@@ -167,6 +180,8 @@ static int usage(char *s)
     printf("  -v level:    verbosity of logging messages:\n");
     printf("               0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
     printf("               default is 2\n");
+	printf("  -ss:         size of splitfile chunks, default %d\n", SPLIT_BLOCK_SIZE);
+	printf("  -st:         max number of splitfile threads, default %d\n", FCP_MAX_SPLIT_THREADS);
     printf("  -g:          DON'T insert a site - just create an SVK keypair instead\n");
     printf("  -f numDays:  insert a map file numDays in the future, default 0 (today)\n");
     printf("  -def file:   name of site's 'default' file, default is index.html\n");
@@ -243,5 +258,36 @@ static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len)
 
     memcpy(p + old_len, buf_to_append, add_len);
     return(p);
+}
+
+
+//
+// extension of atoi()
+//
+// this func recognises suffices on numbers
+//
+// eg '64k' will get parsed as 65536
+//
+// recognises the suffices 'k', 'K', 'm', 'M', 'g', 'G'
+//
+// Thanks to mjr for this lovely snippet
+
+static int parse_num(char *s)
+{
+	int n = atoi(s);
+	switch (s[strlen(s)-1])
+	{
+	case 'G':
+	case 'g':
+		return n << 30;
+	case 'M':
+	case 'm':
+		return n << 20;
+	case 'K':
+	case 'k':
+		return n << 10;
+	default:
+		return n;
+   }
 }
 

@@ -49,6 +49,14 @@
 #endif
 
 
+#define MAX_URI_LEN         256
+#define MAX_FILENAME_LEN    128
+#define MAX_STRING_LEN      256
+#define MAX_KEY_LEN         128
+#define MAX_KEYINDEX_LEN    128
+#define MAX_KSK_LEN			32768
+
+
 ////////////////////////////////////////////////
 //
 // Splitfiles handling definitions
@@ -67,24 +75,58 @@ typedef struct
 fcpPutJob;
 
 
-#define SPLIT_BLOCK_SIZE (512*1024)		//default split part size
+#define SPLIT_BLOCK_SIZE		(256*1024)		//default split part size
+#define FCP_MAX_SPLIT_THREADS	8
 
-#define SPLIT_INSSTAT_WAITING	0	// waiting for mgr thread to pick up
-#define SPLIT_INSSTAT_INPROG	1	// in progress
-#define SPLIT_INSSTAT_SUCCESS	2	// full insert completed successfully
-#define SPLIT_INSSTAT_FAILED	3	// insert failed somewhere
+#define SPLIT_INSSTAT_IDLE		0	// no splitfile insert requested
+#define SPLIT_INSSTAT_WAITING	1	// waiting for mgr thread to pick up
+#define SPLIT_INSSTAT_INPROG	2	// in progress
+#define SPLIT_INSSTAT_BADNEWS	3	// failure - awaiting cleanup
+#define SPLIT_INSSTAT_SUCCESS	4	// full insert completed successfully
+#define SPLIT_INSSTAT_FAILED	5	// insert failed somewhere
 
 
-// Splitfile Insert Control Block
+// Splitfile Insert Control Blocks
 
-typedef struct
+typedef struct _splitChunk
 {
+	char	key[MAX_URI_LEN];		// CHK key of inserted chunk
+	char	status;					// insert status of this chunk
+	char	*chunk;					// byte-image of chunk to insert - malloc()'ed
+	int		size;					// SIZE of this chunk
+}
+splitChunkIns;
+
+
+typedef struct _splitJob
+{
+	char	key[MAX_URI_LEN];
+
 	char	status;		// status as advised by splitmgr thread
-	int		chunkSize;	// size of splitfiles chunks
+	int		fd;			// fd of file we're inserting from, if applicable
+	int		numChunks;	// total number of chunks to insert
+	int		doneChunks;	// number of chunks successfully inserted
+	int		totalSize;	// total number of bytes to insert
+	char	*fileName;	// path of file being inserted
+	char	*mimeType;
+
+	splitChunkIns *chunk;	// malloc()'ed array of split chunk control blocks
+
+	struct _splitJobIns *next;	// next on linked list
+
 }
 splitJobIns;
 
 
+//
+// Macro to implement a platform-independent sleep function
+//
+
+#ifdef WINDOWS
+#define mysleep(msecs)  Sleep(msecs)
+#else
+#define mysleep(msecs)  usleep((msecs) * 1000)
+#endif
 
 
 ////////////////////////////////////////////////
@@ -110,16 +152,6 @@ splitJobIns;
 #define _FCP_O_READ         0x100
 #define _FCP_O_WRITE        0x200
 #define _FCP_O_RAW          0x400       // disable automatic metadata handling
-
-
-//#define YYDEBUG 1     // for debugging parser
-
-#define MAX_URI_LEN         256
-#define MAX_FILENAME_LEN    128
-#define MAX_STRING_LEN      256
-#define MAX_KEY_LEN         128
-#define MAX_KEYINDEX_LEN    128
-
 
 
 // defs for metadata structure
@@ -475,13 +507,15 @@ HFCP;
 #define _C_
 #endif
 
-extern _C_ int      fcpStartup(char *host, int port, int defaultHtl, int raw);
+extern _C_ int      fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads);
 extern _C_ HFCP     *fcpCreateHandle();
 extern _C_ void     fcpInitHandle(HFCP *hfcp);
 extern _C_ int      fcpMakeSvkKeypair(HFCP *hfcp, char *pubkey, char *privkey);
 extern _C_ void     fcpSetHtl(HFCP *hfcp, int htl);
 extern _C_ void     fcpSetVerbose(HFCP *hfcp, int verbose);
 extern _C_ void     fcpSetRegress(HFCP *hfcp, int regress);
+extern _C_ void		fcpSetSplitSize(int chunkSize);
+extern _C_ void		fcpSetSplitThreads(int threads);
 extern _C_ int      fcpRawMode(HFCP *hfcp, int flag);
 extern _C_ void     fcpDestroyHandle(HFCP *hfcp);
 extern _C_ int      fcpGetKeyToMem(HFCP *hfcp, char *keyname, char **pdata, char **metadata);
@@ -493,6 +527,9 @@ extern _C_ int      fcpReadKey(HFCP *hfcp, char *buf, int len);
 extern _C_ int      fcpCloseKey(HFCP *hfcp);
 extern _C_ int      fcpWriteKey(HFCP *hfcp, char *buf, int len);
 extern _C_ int      fcpWriteKeyMeta(HFCP *hfcp, char *buf, int len);
+
+extern _C_ int		fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metadata);
+
 extern _C_ int      fcpOpenKeyIndex(HFCP *hfcp, char *name, char *date, int start);
 extern _C_ int      fcpReadKeyIndex(HFCP *hfcp, char **pdata, int keynum);
 extern _C_ int      fcpWriteKeyIndex(HFCP *hfcp, char *data);
@@ -508,6 +545,8 @@ extern _C_ int      _fcpReadBlk(HFCP *hfcp, char *buf, int len);
 extern _C_ FCP_URI  *_fcpParseUri(char *key);
 extern _C_ void     _fcpFreeUri(FCP_URI *uri);
 extern _C_ void     _fcpLog(int level, char *format,...);
+extern _C_ void		_fcpInitSplit(int maxThreads);
+
 
 extern _C_ META04   *parseMeta(char *buf);
 extern _C_ void     freeMeta(META04 *meta);

@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
     // try and fire up FCP library
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
 
-    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode) != 0)
+    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, 0) != 0)
     {
         _fcpLog(FCP_LOG_CRITICAL, "Failed to connect to node - aborting");
         return 1;

@@ -427,6 +427,10 @@ SOURCE=.\metaParse.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\mimetype.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\template.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"

@@ -24,8 +24,7 @@ ezFCPlib.a: fcpStartup.o \
 		fcpInitHandle.o \
 		fcpDestroyHandle.o \
 		fcpRawMode.o \
-		fcpSetHtl.o \
-		fcpSetHost.o \
+		fcpSetParam.o \
 		fcpGetKeyToFile.o \
 		fcpGetKeyToMem.o \
 		fcpPutKeyFromFile.o \
@@ -42,8 +41,9 @@ ezFCPlib.a: fcpStartup.o \
 		fcpCloseKey.o \
 		metaParse.o \
 		_fcpSock.o _fcpReadBlk.o _fcpRecvResponse.o _fcpGlobals.o \
-		_fcpUtil.o \
-		_fcpLog.o
+		_fcpUtil.o _fcpPutSplit.o \
+		_fcpLog.o \
+		mimetype.o
 	ar -rc $@ $^
 
 %.o:%.c

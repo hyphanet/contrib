@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
     printf("Splitting into %d parts\n", blockCount);
 
     // try and fire up FCP library
-    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode) != 0)
+    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, maxthreads) != 0)
         return 1;
 
     // create an FCP handle

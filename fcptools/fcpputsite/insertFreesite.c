@@ -19,13 +19,6 @@
 #include "fcpputsite.h"
 
 
-#ifdef WINDOWS
-#define mysleep(msecs)  Sleep(msecs)
-#else
-#define mysleep(msecs)  usleep((msecs) * 1000)
-#endif
-
-
 //
 // IMPORTED DECLARATIONS
 //

@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 
     printf("fcpproxy: attempting secret handshake with freenet node at %s:%d ...\n", nodeAddr, nodePort);
 
-    while (fcpStartup(nodeAddr, nodePort, htlVal, 0) != 0)
+    while (fcpStartup(nodeAddr, nodePort, htlVal, 0, 0) != 0)
     {
 	if (++numAttempts >= maxAttempts)
         {

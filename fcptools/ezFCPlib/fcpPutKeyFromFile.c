@@ -30,6 +30,7 @@ extern char     _fcpID[];
 // IMPORTED DECLARATIONS
 //
 
+extern int fcpSplitChunkSize;
 
 
 //
@@ -60,13 +61,16 @@ int fcpPutKeyFromFile(HFCP *hfcp, char *key, char *file, char *metadata)
         // failure - cannot open
         return -1;
 
-
     // how big's this file?
     //filesize = _filelength(fd);
     stat(file, &st);
     filesize = st.st_size;
 
-    // connect to Freenet FCP
+	// if it's too big, insert it as splitfile
+	if (filesize > fcpSplitChunkSize)
+		return fcpInsSplitFile(hfcp, key, file, metadata);
+
+	// connect to Freenet FCP
     if (_fcpSockConnect(hfcp) != 0)
         return -1;
 

@@ -555,7 +555,9 @@ void splitblockThread( void *job)
 	pMetadata=NULL;
 
 	// requests key
+	_fcpLog(FCP_LOG_VERBOSE, "thread: seeking key '%s'", params->key);
 	current=fcpGetKeyToMem(hfcpLocal, params->key, params->buffer, &pMetadata);
+	_fcpLog(FCP_LOG_VERBOSE, "thread: retcode %d fetching '%s'", params->key);
 
 
 	if( current<0) { // error in request

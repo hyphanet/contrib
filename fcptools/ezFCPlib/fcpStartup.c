@@ -38,16 +38,18 @@ extern int  _fcpRegress;
 //
 // Function:    fcpStartup()
 //
-// Arguments:   host        string containing hostname. NULL arg uses default of "127.0.0.1"
-//              port        port number to communicate with FCP on. <= 0 defaults to Freenet standard 8082
-//              defaultHtl  default hops to live. if 0, gets set to EZFCP_HTL_DEFAULT
-//              raw         set to disable automatic metadata handling
+// Arguments:   host			string containing hostname. NULL arg uses default of "127.0.0.1"
+//              port			port number to communicate with FCP on. <= 0 defaults to Freenet standard 8082
+//              defaultHtl		default hops to live. if 0, gets set to EZFCP_HTL_DEFAULT
+//              raw				set to disable automatic metadata handling
+//				maxSplitThreads	maximum number of splitfile insert threads,
+//								if 0 defaults to FCP_MAX_SPLIT_THREADS
 //
 // Returns:     0 if successful
 //              -1 if failed
 //
 
-int fcpStartup(char *host, int port, int defaultHtl, int raw)
+int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThreads)
 {
 #ifdef WINDOWS
     char *exename;
@@ -125,6 +127,11 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw)
     _fcpLog(FCP_LOG_DEBUG, "fcpStartup: got response");
 
     _fcpSockDisconnect(hfcp);
+
+	// All ok - now fire up splitfile insert manager
+	_fcpInitSplit(maxSplitThreads);
+
+	// success
     return 0;
 
 }       // 'fcpStartup()'

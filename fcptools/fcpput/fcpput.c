@@ -5,10 +5,14 @@
 #include "ezFCPlib.h"
 
 
+
+extern int fcpSplitChunkSize;
+
 static void parse_args(int argc, char *argv[]);
 static void *usage(char *msg);
 static char *strsav(char *old, char *text_to_append);
 static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len);
+static int parse_num(char *s);
 
 char        *keyUri = NULL;
 char        *keyFile = NULL;
@@ -20,6 +24,8 @@ char        *metaData = NULL;
 int         rawMode = 0;
 int         silentMode = 0;
 int         verbosity = FCP_LOG_NORMAL;
+
+int			maxSplitThreads = FCP_MAX_SPLIT_THREADS;
 
 
 int main(int argc, char* argv[])
@@ -34,8 +40,11 @@ int main(int argc, char* argv[])
     // go thru command line args
     parse_args(argc, argv);
 
+	//printf("chose splitfile chunk size of %d\n", fcpSplitChunkSize);
+	//getchar();
+
     // try and fire up FCP library
-    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode) != 0)
+    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, maxSplitThreads) != 0)
         return 1;
 
     // create an FCP handle
@@ -156,10 +165,18 @@ static void parse_args(int argc, char *argv[])
             nodePort = (++i < argc)
                         ? atoi(argv[i])
                         : (int)usage("missing port number");
+        else if (!strcmp(argv[i], "-ss"))
+            fcpSplitChunkSize = (++i < argc)
+                        ? parse_num(argv[i])
+                        : (int)usage("missing splitfile chunk size");
+        else if (!strcmp(argv[i], "-st"))
+            maxSplitThreads = (++i < argc)
+                        ? atoi(argv[i])
+                        : (int)usage("missing max splitfile threads");
         else if (!strcmp(argv[i], "-v"))
             verbosity = (++i < argc)
                         ? atoi(argv[i])
-                        : (int)usage("missing verbosity level");
+                        : (int)usage("missing verbosity parm");
         else if (!strcmp(argv[i], "-m"))
             metaFile = (++i < argc)
                         ? argv[i]
@@ -193,6 +210,8 @@ static void *usage(char *s)
     printf("-p nodePort: FCP port for your freenet 0.4 node, default 8481\n");
     printf("-m file:     get key's metadata from file, 'stdin' means stdin\n");
     printf("-r:          raw mode - don't create redirects\n");
+	printf("-ss:         size of splitfile chunks, default %d\n", SPLIT_BLOCK_SIZE);
+	printf("-st:         max number of splitfile threads, default %d\n", FCP_MAX_SPLIT_THREADS);
     printf("-v level:    verbosity of logging messages:\n");
     printf("             0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
     printf("             default is 2\n");
@@ -269,5 +288,36 @@ static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len)
 
     memcpy(p + old_len, buf_to_append, add_len);
     return(p);
+}
+
+
+//
+// extension of atoi()
+//
+// this func recognises suffices on numbers
+//
+// eg '64k' will get parsed as 65536
+//
+// recognises the suffices 'k', 'K', 'm', 'M', 'g', 'G'
+//
+// Thanks to mjr for this lovely snippet
+
+static int parse_num(char *s)
+{
+	int n = atoi(s);
+	switch (s[strlen(s)-1])
+	{
+	case 'G':
+	case 'g':
+		return n << 30;
+	case 'M':
+	case 'm':
+		return n << 20;
+	case 'K':
+	case 'k':
+		return n << 10;
+	default:
+		return n;
+   }
 }
 

@@ -9,7 +9,7 @@ default:
 
 linux: fcpget.o ../ezFCPlib/ezFCPlib.a
 	cd ../ezFCPlib; make ezFCPlib.a
-	gcc -o fcpget $^
+	gcc -o fcpget $^ /usr/lib/libpthread.a
 
 cygwin: fcpget.o ../ezFCPlib/ezFCPlib.a
 	cd ../ezFCPlib; make cygwin
