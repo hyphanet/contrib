@@ -67,7 +67,7 @@ WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet CLSID {CDDCA3BE-697E-4BE
 WriteRegStr HKEY_CLASSES_ROOT PROTOCOLS\Handler\freenet '' 'freenet: Asychronous Pluggable Protocol Handler'
 WriteRegStr HKEY_CLASSES_ROOT freenet '' 'URL:freenet protocol'
 WriteRegStr HKEY_CLASSES_ROOT freenet 'URL Protocol' ''
-RegDLL $INSTDIR\IEplugin\FreenetProtocol.dll
+RegDLL $INSTDIR\FreenetProtocol.dll
 
 #Section "NS6/Mozilla plugin"
 #SectionIn 2
