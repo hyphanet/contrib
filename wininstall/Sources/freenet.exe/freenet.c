@@ -94,6 +94,7 @@ const char szfseeddefaultexportpostcmd[]="";
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
 const char szfinisec[]="Freenet node"; /* ie [Freenet node] subsection text */
 const char szfprxkey[]="fproxy.port"; /* ie fproxy.port=8081 */
+const char szserviceskey[]="services"; /* ie services=fproxy,nodestatus */
 
 /* for launching configuration dll */
 const char szConfigDLLName[]="config.dll"; /* ie name of file */
@@ -133,6 +134,7 @@ FREENET_MODE nFreenetMode=FREENET_STOPPED;
 bool bOpenGatewayOnStartup=false;	/* was freenet.exe called with the -open option?  */
 UINT g_uintTaskbarExplodedMsg=0;	/* see MSDN - "Taskbar Creation Notification" */
 bool bFConfigExecUseJava=false;
+bool bUsingFProxy=false;			/* is FProxy set to run with Fred? */
 
 /*		handles, etc... */
 HANDLE hSemaphore=NULL;				/* unique handle used to guarantee only one instance of freenet.exe app is ever running at one time */
@@ -239,9 +241,6 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPSTR lpszCommandLi
 		/* Note, if app was already running, the call to OnlyOneInsyance will have
 		   caused the existing running copy to load up the Gateway page */
 	}
-
-//!!! TEMPORARY STARTING FCPPROXY UNTIL WE GET A NATIVE FPROXY BACK
-WinExec("fcpproxy.exe",SW_MINIMIZE);	
 
 	/* load in icons from resource table */
 	hHopsEnabledIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_HOPSENABLED), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
@@ -711,6 +710,13 @@ void ReloadSettings(void)
 	/* then append the port number of fproxy, looked up from freenet.ini */
 	GetPrivateProfileString(szfinisec, szfprxkey, szempty, szgatewayURI+lstrlen(szgatewayURI), 6, szfinifile);
 
+
+	/* find out whether fproxy is supposed to be running */
+	/* (if not, fcpproxy will be loaded by default) */
+	ZeroMemory(szbuffer,sizeof(szbuffer));
+	GetPrivateProfileString(szfinisec, szfprxkey, szempty, szbuffer, sizeof(szbuffer)-1, szfinifile);
+	szbuffer[sizeof(szbuffer)-1]='\0';
+	bUsingFProxy = (strstr(szbuffer,"fproxy") != NULL);
 }
 
 

@@ -23,9 +23,16 @@ const char szerrMsg[]=	"Couldn't start the node,\n"
 						"an entry Javaexec= pointing to a Java Runtime binary (jview.exe/java.exe)";
 const char szerrTitle[]="Error starting node";
 
+const char szFCPerrMsg[]=	"Couldn't launch FCPProxy\n";
+const char szFCPerrTitle[]=	"Error launching FCPProxy";
 
 /* handles, etc. */
-PROCESS_INFORMATION prcInfo;		/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
+PROCESS_INFORMATION FredPrcInfo;	/* handles to java interpreter running freenet node - process handle, thread handle, and identifiers of both */
+PROCESS_INFORMATION FCPProxyPrcInfo;	/* handles to FCPProxy console app, and identifiers */
+
+
+// forward references:  (for this not external and not in launchthread.h)
+void LoadFCPProxy(void);
 
 
 BOOL TestGateway(void)
@@ -87,7 +94,7 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 			// New - use a timeout of 2000 milliseconds i.e. two seconds
 			// This allows us to perform our regular checks on the internet connection and on the gateway
 			// and update the status icon accordingly
-			phobjectlist[0] = prcInfo.hProcess;
+			phobjectlist[0] = FredPrcInfo.hProcess;
 			dwTimeout = 2000;
 			break;
 		
@@ -155,7 +162,7 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 				{
 					// thread has died - begin flashing icon:
 					DWORD dwError;
-					GetExitCodeProcess(prcInfo.hProcess, &dwError);
+					GetExitCodeProcess(FredPrcInfo.hProcess, &dwError);
 					nFreenetMode=FREENET_CANNOT_START;
 				}
 				//break;  NO BREAK - FALL THROUGH!
@@ -212,78 +219,26 @@ DWORD WINAPI _stdcall MonitorThread(LPVOID null)
 	return 0;
 }
 
-
-/* note - ONLY TO BE CALLED FROM ASYNCHRONOUS THREAD LEVEL - i.e. Monitor Thread */
-
-STARTUPINFO StartInfo={	sizeof(STARTUPINFO),
-						NULL,NULL,NULL,
-						0,0,0,0,0,0,0,
-						STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
-						SW_HIDE,
-						0,NULL,
-						NULL,NULL,NULL};
-
-void MonitorThreadRunFserve()
+void KillProcessNicely(PROCESS_INFORMATION *prcinfo)
 {
-	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
+	/* get the window handle from the process ID by matching all
+	   known windows against it (not really ideal but no alternative) */
+	EnumWindows(KillWindowByProcessId, (LPARAM)(prcinfo->dwProcessId) );
 
-	lstrcpy(szexecbuf, szjavawpath);
-	lstrcat(szexecbuf, " ");
-	lstrcat(szexecbuf, szfservecliexec); 
-
-	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &StartInfo, &prcInfo) )
+	/* wait for the process to shutdown (we give it five seconds) */
+	if (WaitForSingleObject(prcinfo->hProcess,5000) == WAIT_TIMEOUT)
 	{
-		MessageBox(NULL, szerrMsg, szerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
-		nFreenetMode=FREENET_CANNOT_START;
-		ModifyIcon();
+		/* OH MY, nothing worked - ok then, brutally terminate the process: */
+		TerminateProcess(prcinfo->hProcess,0);
+		WaitForSingleObject(prcinfo->hProcess,INFINITE);
 	}
-	else
-	{
-		/* (... the process object will be 'watched' to check that the java interpreter launched correctly
-			and that the freenet node is indeed running... ) */
-		nFreenetMode=FREENET_RUNNING;
-		ModifyIcon();
-	}
+	CloseHandle(prcinfo->hThread);
+	CloseHandle(prcinfo->hProcess);
+	prcinfo->hThread=NULL;
+	prcinfo->hProcess=NULL;
+	prcinfo->dwThreadId=0;
+	prcinfo->dwProcessId=0;
 }
-
-/* note - ONLY TO BE CALLED FROM ASYNCHRONOUS THREAD LEVEL - i.e. Monitor Thread */
-void MonitorThreadKillFserve()
-{
-	if ( (prcInfo.hProcess!=NULL) || (prcInfo.hThread!=NULL) )
-	{
-		/* set nFreenetMode to FREENET_STOPPING only if we didn't get here because of RestartFserve */
-		LOCK(NFREENETMODE);
-		if (nFreenetMode!=FREENET_RESTARTING)
-		{
-			nFreenetMode=FREENET_STOPPING;
-		}
-		UNLOCK(NFREENETMODE);
-		ModifyIcon();
-
-		/* best effort at closing down the node: */
-
-		/* get the window handle from the process ID by matching all
-		   known windows against it (not really ideal but no alternative) */
-		EnumWindows(KillWindowByProcessId, (LPARAM)(prcInfo.dwProcessId) );
-
-		/* wait for the node to shutdown (five seconds) */
-		if (WaitForSingleObject(prcInfo.hProcess,5000) == WAIT_TIMEOUT)
-		{
-			/* OH MY, nothing worked - ok then, brutally close the node: */
-			TerminateProcess(prcInfo.hProcess,0);
-			WaitForSingleObject(prcInfo.hProcess,INFINITE);
-		}
-		CloseHandle(prcInfo.hThread);
-		CloseHandle(prcInfo.hProcess);
-		prcInfo.hThread=NULL;
-		prcInfo.hProcess=NULL;
-		prcInfo.dwThreadId=0;
-		prcInfo.dwProcessId=0;
-	}
-	nFreenetMode=FREENET_STOPPED;
-	ModifyIcon();
-}
-
 
 /* If this looks confusing see article Q178893 in MSDN.
    All I'm doing is enumerating ALL the top-level windows in the system and matching
@@ -309,10 +264,9 @@ BOOL CALLBACK KillWindowByProcessId(HWND hWnd, LPARAM lParam)
 		return TRUE;
 	}
 
-	/* This window WAS created by the process - but is it the node window? */
-
-	/*	Is this a console window?  Console windows are generally characterised by the
-		fact that they have no WindowProc.  We can find this out! */
+	/* This window WAS created by the process - try and close the window */
+	/* Is this a console window?  Console windows are generally characterised by the
+	   fact that they have no WindowProc.  We can find this out! */
 	dwWndProc = GetWindowLong(hWnd, GWL_WNDPROC);
 	if (dwWndProc==0)
 	{
@@ -333,36 +287,7 @@ BOOL CALLBACK KillWindowByProcessId(HWND hWnd, LPARAM lParam)
 		}
 	}
 
-
-	/* Do a string comparison on the window to see if it begins with the text "Freenet node"
-		(case insensitive) */
-	/* Oh boy, you know what?  The PREVIOUS test is so effective, we don't even need to do this ! */
-	/*
-	{
-		char szWindowText[256];
-		GetWindowText(hWnd, szWindowText, 256);
-		if (lstrlen(szWindowText) < 12)
-		{
-			// Window title too short - shorter than "Freenet node"
-			return TRUE;
-		}
-	
-		if (CompareString(	LOCALE_SYSTEM_DEFAULT,
-							NORM_IGNORECASE | SORT_STRINGSORT | NORM_IGNOREWIDTH,
-							szWindowText,
-							12, // compare first 12 characters only, i.e. substring match
-							"Freenet node",
-							-1) != 2 )
-		{
-			// Confused?  CompareString returns '2' if the strings are identical
-			// Clearly this window's title doesn't begin with "Freenet node" so skip this window
-			// Keep enumerating
-			return TRUE;
-		}
-	}
-	*/
-	
-	/* Finally - this is a freenet node window. Sned it a swift "WM_SYSCOMMAND(SC_CLOSE)" message to tell
+	/* This window has a WndProc so send it a swift "WM_SYSCOMMAND(SC_CLOSE)" message to tell
 		the window to close the underlying app */
 	SendMessage(hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
 	
@@ -370,3 +295,102 @@ BOOL CALLBACK KillWindowByProcessId(HWND hWnd, LPARAM lParam)
 	return TRUE;
 }
  
+
+
+
+/* note - ONLY TO BE CALLED FROM ASYNCHRONOUS THREAD LEVEL - i.e. Monitor Thread */
+
+STARTUPINFO FredStartInfo={	sizeof(STARTUPINFO),
+							NULL,NULL,NULL,
+							0,0,0,0,0,0,0,
+							STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+							SW_HIDE,
+							0,NULL,
+							NULL,NULL,NULL};
+
+STARTUPINFO FCPProxyStartInfo=
+						{	sizeof(STARTUPINFO),
+							NULL,NULL,NULL,
+							0,0,0,0,0,0,0,
+							STARTF_USESHOWWINDOW | STARTF_FORCEONFEEDBACK,
+							SW_HIDE,
+							0,NULL,
+							NULL,NULL,NULL};
+
+void MonitorThreadRunFserve()
+{
+	char szexecbuf[sizeof(szjavawpath)+sizeof(szfservecliexec)+2];
+
+	lstrcpy(szexecbuf, szjavawpath);
+	lstrcat(szexecbuf, " ");
+	lstrcat(szexecbuf, szfservecliexec); 
+
+	if (!CreateProcess(szjavawpath, (char*)(szexecbuf), NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &FredStartInfo, &FredPrcInfo) )
+	{
+		MessageBox(NULL, szerrMsg, szerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
+		nFreenetMode=FREENET_CANNOT_START;
+		ModifyIcon();
+	}
+	else
+	{
+		/* (... the process object will be 'watched' to check that the java interpreter launched correctly
+			and that the freenet node is indeed running... ) */
+		nFreenetMode=FREENET_RUNNING;
+		ModifyIcon();
+		LoadFCPProxy();
+	}
+}
+
+/* note - ONLY TO BE CALLED FROM ASYNCHRONOUS THREAD LEVEL - i.e. Monitor Thread */
+void MonitorThreadKillFserve()
+{
+	if ( (FredPrcInfo.hProcess!=NULL) || (FredPrcInfo.hThread!=NULL) )
+	{
+		/* set nFreenetMode to FREENET_STOPPING only if we didn't get here because of RestartFserve */
+		LOCK(NFREENETMODE);
+		if (nFreenetMode!=FREENET_RESTARTING)
+		{
+			nFreenetMode=FREENET_STOPPING;
+		}
+		UNLOCK(NFREENETMODE);
+		ModifyIcon();
+
+		KillProcessNicely(&FredPrcInfo);
+	}
+	nFreenetMode=FREENET_STOPPED;
+	ModifyIcon();
+
+	if ( (FCPProxyPrcInfo.hProcess != NULL)  || (FCPProxyPrcInfo.hThread != NULL) )
+	{
+		KillProcessNicely(&FCPProxyPrcInfo);
+	}		
+}
+
+
+
+void LoadFCPProxy(void)
+{
+	// should FCPProxy be loaded:
+	// ONLY IF Fproxy is not supposed to be loaded.
+	if (!bUsingFProxy)
+	{
+		char szexecbuf[sizeof(szHomeDirectory)+32];
+
+		lstrcpy(szexecbuf, szHomeDirectory);
+		lstrcat(szexecbuf, "\\fcpproxy.exe");
+
+		if (!CreateProcess(szexecbuf, NULL, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE | CREATE_NO_WINDOW, NULL, NULL, &FCPProxyStartInfo, &FCPProxyPrcInfo) )
+		{
+			DWORD dwError = GetLastError();
+			// if error was FileNotFound then that's ok, it means the user didn't install FCPProxy
+			if (dwError != ERROR_FILE_NOT_FOUND && dwError != ERROR_PATH_NOT_FOUND)
+			{
+				MessageBox(NULL, szFCPerrMsg, szFCPerrTitle, MB_OK | MB_ICONERROR | MB_TASKMODAL);
+			}
+		}
+	}
+	else
+	{
+		ZeroMemory(&FCPProxyPrcInfo, sizeof(PROCESS_INFORMATION));
+	}
+}
