@@ -106,14 +106,31 @@ public class Cachedot {
 	 *@param  s  Description of the Parameter
 	 */
 	public static void grabStory(Story s) {
+		StringBuffer  index  = new StringBuffer();
 		if (mirrorDir.exists())
 			Util.recursDel(mirrorDir);
 		mirrorDir.mkdir();
+		index.append("<html><head><title>Cachedot Mirror of \"" + s.getTitle() + "\"</title></head>\n");
+		index.append("<body><h3>Cachedot Mirror of \"" + s.getTitle() + "\"</h3>\n");
+		index.append("<ul>");
+		for (Enumeration urls = s.getUrls(); urls.hasMoreElements(); ) {
+			String  url      = (String) urls.nextElement();
+			String  urlName  = s.getText(url);
+			index.append("<li><a href=\"");
+			index.append(url.substring(7, url.length()));
+			index.append("\">" + urlName + "</a><br>");
+			Util.wget(url, mirrorDir, 1);
+		}
+		index.append("</ul></body></html>");
 
-		for (Enumeration urls = s.getUrls(); urls.hasMoreElements(); )
-			Util.wget((String) urls.nextElement(), mirrorDir, 1);
-
-//		Util.fcpInsert(mirrorDir, s.getId());
+		try {
+			PrintWriter  pw  = new PrintWriter(new FileOutputStream(new File(mirrorDir, "index.html")));
+			pw.print(index.toString());
+			pw.close();
+		}
+		catch (Exception e) {
+			Cachedot.log("Error writing index file: " + e);
+		}
 	}
 
 
@@ -168,6 +185,16 @@ class Story {
 	 */
 	public String getId() {
 		return this.id;
+	}
+
+
+	/**
+	 *  Gets the title attribute of the Story object
+	 *
+	 *@return    The title value
+	 */
+	public String getTitle() {
+		return this.title;
 	}
 
 
