@@ -10,11 +10,11 @@
 # Stuff all external dependencies into one
 # jar.  
 
-#JAVAC=javac
-#JAVAC_OPTS=-target 1.1 -classpath .
+JAVAC=javac
+JAVAC_OPTS=-target 1.1 -classpath .
 
-JAVAC=jikes
-JAVAC_OPTS=-classpath ${JIKESPATH}:.
+#JAVAC=jikes
+#JAVAC_OPTS=-classpath ${JIKESPATH}:.
 
 
 freenet-ext:	servlet onion
