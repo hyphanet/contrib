@@ -36,15 +36,9 @@
 */
 
 /* Common FCP related default protocol values */
-char *_fcpHost;
-
-unsigned short _fcpPort;
-int   _fcpHtl;
-int   _fcpRawmode;
-
 int   _fcpVerbosity;
 FILE *_fcpLogStream;
 
-int   _fcpRegress;
-int   _fcpDeleteLocal;
 char *_fcpTmpDir;
+char *_fcpHomeDir;
+

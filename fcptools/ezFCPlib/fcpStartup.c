@@ -31,25 +31,26 @@
 #include <string.h>
 
 
-extern char *_fcpHost;
-extern char *_fcpTmpDir;
-
-extern unsigned short _fcpPort;
-extern int   _fcpHtl;
-extern int   _fcpRawmode;
 extern int   _fcpVerbosity;
 extern FILE *_fcpLogStream;
 
-extern int   _fcpRegress;
-extern int   _fcpDeleteLocal;
+extern char *_fcpTmpDir;
+extern char *_fcpHomeDir;
 
 
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 
-int fcpStartup(void)
+int fcpStartup(char *logfile, int log_verbosity)
 {
+	/* pass a bum value here and it's set to SILENT */
+	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
+
+	if (logfile) {
+		if (!(_fcpLogStream = fopen(logfile, "a")))
+			return -1;
+	}
+
 #ifdef WIN32
-	/* define our Win32 specific vars here :) */
 
 	WORD wVersionRequested;
 	WSADATA wsaData;
@@ -60,38 +61,32 @@ int fcpStartup(void)
 	if (WSAStartup(wVersionRequested, &wsaData) != 0)
 		return -1;
 
-	/* Get TEMP value from the Environment */
+	/* TODO: arrange me !!
 	_fcpTmpDir = strdup(getenv("TEMP"));
+	_fcpHomeDir = getenv("USERPROFILE");
+	*/
 
 #else
+
 	_fcpTmpDir = strdup("/tmp");
+	_fcpHomeDir = getenv("HOME");
 
 #endif
 
-	/*** This section is for both platforms
-			 Let's set some reasonable defaults:
-	 ***/
-
-	_fcpHost = strdup(EZFCP_DEFAULT_HOST);
-
-	_fcpPort = EZFCP_DEFAULT_PORT;
-  _fcpHtl = EZFCP_DEFAULT_HTL;
-	_fcpRawmode = EZFCP_DEFAULT_RAWMODE;
-	_fcpVerbosity = EZFCP_DEFAULT_VERBOSITY;
-	_fcpLogStream = EZFCP_DEFAULT_LOGSTREAM;
-	_fcpRegress = EZFCP_DEFAULT_REGRESS;
-	_fcpDeleteLocal = EZFCP_DEFAULT_DELETELOCAL;
-
 	return 0;
 }
-
 
 void fcpTerminate(void)
 {
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpTerminate()");
 
-	free(_fcpTmpDir);
-	free(_fcpHost);
+	if (_fcpTmpDir) free(_fcpTmpDir);
+	if (_fcpHomeDir) free(_fcpHomeDir);
 
+	if (_fcpLogStream) {
+		fclose(_fcpLogStream);
+		_fcpLogStream = 0;
+	}
+	
 	return;
 }

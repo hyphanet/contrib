@@ -148,6 +148,9 @@
 #define EZFCP_DEFAULT_DELETELOCAL  0
 #define EZFCP_DEFAULT_RAWMODE      0
 
+#define HOPT_DELETE_LOCAL  1
+#define HOPT_RAW           2
+
 
 /***********************************************************************
 	Connection handling structgures and definitions.
@@ -288,8 +291,15 @@ typedef struct {
 
 
 /**********************************************************************
-  Freenet Client Protocol Handle Definition Section :)
+  Freenet Client Protocol Handle Definition Section
 */
+typedef struct {
+	int    verbosity;
+	FILE  *logstream;
+
+} hFCPConfig;
+
+
 typedef struct {
   int    type; /* CHK@, KSK@, SSK@ */
 
@@ -348,7 +358,7 @@ typedef struct {
 
 	int    field_count;
 
-	/* should change this to be completely dynamic.. short cut until i figure
+	/* TODO: change this to be completely dynamic.. short cut until i figure
 		 out why the realloc callkeeps crashing.. */
 	char *data[128];
 	
@@ -403,7 +413,7 @@ typedef struct {
   char *protocol;
 	int   highest_build;
 	int   max_filesize;
-
+	
   int   socket;
 
   char *error;
@@ -424,7 +434,7 @@ extern "C" {
 	
 	/* Handle management functions */
 	hFCP   *fcpCreateDefHFCP(void);
-	hFCP   *fcpCreateHFCP(char *host, int port, int htl, int delete_local, int regress, int rawmode);
+	hFCP   *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask);
 
 	void    fcpDestroyHFCP(hFCP *);
 
@@ -463,7 +473,7 @@ extern "C" {
 	int   _fcpRecvResponse(hFCP *hfcp);
 
 	/* Startup and shutdown functions */
-	int   fcpStartup(void);
+	int   fcpStartup(char *logfile, int log_verbosity);
 	void  fcpTerminate(void);
 
 	/* Generate Key/Value pair */

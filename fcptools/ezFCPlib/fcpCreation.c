@@ -31,45 +31,11 @@
 
 extern void _fcpSockDisconnect(hFCP *hfcp);
 
-extern char *_fcpHost;
-extern unsigned short _fcpPort;
-extern int _fcpHtl;
-extern int _fcpRegress;
-extern int _fcpRawmode;
-extern int _fcpDeleteLocal;
-
-
-/*
-	Create a HFCP structure with default information
-*/
-hFCP *fcpCreateDefHFCP(void)
-{
-  hFCP *h;
-
-	h = (hFCP *)malloc(sizeof (hFCP));
-	memset(h, 0, sizeof (hFCP));
-
-	h->host = malloc(strlen(_fcpHost) + 1);
-	strcpy(h->host, _fcpHost);
-
-	h->port = _fcpPort;
-	h->htl = _fcpHtl;
-	h->regress = _fcpRegress;
-	h->rawmode = _fcpRawmode;
-	h->delete_local = _fcpDeleteLocal;
-
-	_fcpLog(FCP_LOG_DEBUG, "created new HFCP structure\n     host: %s, port: %d, htl: %d",
-					h->host, h->port, h->htl);
-
-	return h;
-}
 
 /*
 	This version requires certain variables to be specified as arguments.
-
-	host, port and htl can be passed zero/nul, and defaults will be used.
 */
-hFCP *fcpCreateHFCP(char *host, int port, int htl, int delete_local, int regress, int rawmode)
+hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 {
   hFCP *h;
 
@@ -77,7 +43,7 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int delete_local, int regress
 	memset(h, 0, sizeof (hFCP));
 
 	if (!host) {
-		h->host = malloc(10);
+		h->host = malloc(sizeof(EZFCP_DEFAULT_HOST + 1));
 		strcpy(h->host, EZFCP_DEFAULT_HOST);
 	}
 	else {
@@ -88,17 +54,12 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int delete_local, int regress
 	h->port = (port == 0 ? EZFCP_DEFAULT_PORT : port );
 	h->htl =  (htl  < 0 ? EZFCP_DEFAULT_HTL  : htl  );
 	
-	/* set the all-around default value for htl */
-	/* this *should* mean that once a handle is created with a specific htl,
-		 future ones will have the same htl automatically */
-	_fcpHtl = h->htl;
-
-	h->regress = regress;
-	h->rawmode = rawmode;
-	h->delete_local = delete_local;
-
-	_fcpDeleteLocal = h->delete_local;
-
+	if (regress >= 0) h->regress = regress;
+	
+	/* do the handle option mask */
+	h->rawmode =       (optmask & HOPT_RAW ? 1 : 0);
+	h->delete_local =  (optmask & HOPT_DELETE_LOCAL ? 1 : 0);
+	
 	_fcpLog(FCP_LOG_DEBUG, "created new HFCP structure\n     host: %s, port: %d, htl: %d",
 					h->host, h->port, h->htl);
 

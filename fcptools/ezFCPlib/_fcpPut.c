@@ -830,7 +830,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 		/* seek to the location relative to the segment (if needed) */
 		if (segment->offset > 0) lseek(kfd, segment->offset, SEEK_SET);
 		
-		tmp_hfcp = fcpCreateDefHFCP();
+		tmp_hfcp = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress, 0);
 		tmp_hfcp->key = _fcpCreateHKey();
 		tmp_hfcp->key->size = segment->block_size;
 		
@@ -982,7 +982,7 @@ static int fec_insert_segment(hFCP *hfcp, char *key_filename, int index)
 	/* insert check blocks next */
 
 	for (bi=0; bi < segment->cb_count; bi++) {
-		tmp_hfcp = fcpCreateDefHFCP();
+		tmp_hfcp = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress, 0);
 		
 		_fcpLog(FCP_LOG_DEBUG, "inserting check block %d", bi);
 		rc = put_file(tmp_hfcp, segment->check_blocks[bi]->filename, 0);

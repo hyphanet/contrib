@@ -47,21 +47,22 @@ void  usage(char *);
 
 /* Global vars to fcpput */
 char           *host;
-unsigned short  port;
+unsigned short  port = EZFCP_DEFAULT_PORT;
 
-int htl = 3;
-int regress = 0;
-int delete_local = 0;
-int verbosity = -1;
+int  verbosity = FCP_LOG_NORMAL;
+int  htl       = EZFCP_DEFAULT_HTL;
+int  regress   = EZFCP_DEFAULT_REGRESS;
+int  optmask   = 0;
 
-char  *keyuri = 0;
-char  *keyfile = 0;
-char  *metafile = 0;
+char *logfile = 0;
 
-int    b_stdin = 0;
+char  *keyuri    = 0;
+char  *keyfile   = 0;
+char  *metafile  = 0;
+
+int    b_stdin   = 0;
 int    b_genkeys = 0;
 
-/* @TODO: create a main_sub.. for error-handling */
 
 int main(int argc, char* argv[])
 {
@@ -83,19 +84,18 @@ int main(int argc, char* argv[])
 		 accurate diagnostics from users.
 	*/
 
+	host = strdup(EZFCP_DEFAULT_HOST);
+
 	parse_args(argc, argv);
 
 	/* Call before calling *any* other ?fcp* routines */
-	if (fcpStartup()) {
+	if (fcpStartup(logfile, verbosity)) {
 		_fcpLog(FCP_LOG_CRITICAL, "Failed to initialize ezFCP library");
 		return -1;
 	}
 
-	/* set log verbosity before anything (if it was changed from default) */
-	if (verbosity != -1) fcpSetLogVerbosity(verbosity);
-
 	/* Make sure all input args are sent to ezFCPlib as advertised */
-	hfcp = fcpCreateHFCP(host, port, htl, delete_local, regress, 0);
+	hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
 
 	if (b_genkeys) {
 
@@ -196,6 +196,7 @@ void parse_args(int argc, char *argv[])
     {"delete_local", 0, 0, 'D'},
 
     {"verbosity", 1, 0, 'v'},
+    {"logfile", 1, 0, 'f'},
     {"genkeysy", 0, 0, 'g'},
 
     {"version", 0, 0, 'V'},
@@ -203,7 +204,7 @@ void parse_args(int argc, char *argv[])
 
     {0, 0, 0, 0}
   };
-  char short_options[] = "n:p:l:m:se:Dv:gVh";
+  char short_options[] = "n:p:l:m:se:Dv:f:gVh";
 
   /* c is the option code; i is buffer storage for an int */
   int c, i;
@@ -243,12 +244,19 @@ void parse_args(int argc, char *argv[])
 			if (i > 0) regress = i;
 			
     case 'D':
-      delete_local = 1;
+      optmask &= HOPT_DELETE_LOCAL;
       break;
 			
     case 'v':
       i = atoi( optarg );
       if ((i >= 0) && (i <= 4)) verbosity = i;
+      break;
+
+    case 'f':
+			if (logfile) free(logfile);
+			logfile = (char *)malloc(strlen(optarg) + 1);
+			
+      strcpy(logfile, optarg);
       break;
 
     case 'g':
@@ -317,7 +325,8 @@ void usage(char *s)
 	printf("   D, --delete-local     Delete key from local datastore on insert\n\n");
 
 	printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
-	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+	printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n");
+	printf("  -f, --logfile file     Full pathname for the output log file (default stdout)\n\n");
 
 	printf("  -g, --genkeys          Generate a keypair then exit\n\n");
 

@@ -44,7 +44,8 @@ extern FILE *_fcpLogStream;
 */
 void _fcpLog(int level, char *format, ...)
 {
-	char buf[FCP_LOG_MESSAGE_SIZE + 1];
+	char  buf[FCP_LOG_MESSAGE_SIZE + 1];
+	FILE *stream;
 
 	/* thanks mjr for the idea */
 	va_list ap;
@@ -56,66 +57,23 @@ void _fcpLog(int level, char *format, ...)
 	vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
 	va_end(ap);
 
+	stream = (_fcpLogStream ? _fcpLogStream : stdout);
+
 	switch (level) {
 	case FCP_LOG_CRITICAL: /*1*/
-		fprintf(_fcpLogStream, "CRITICAL: %s\n", buf);
+		fprintf(stream, "! %s\n", buf);
 		break;
 		
 	case FCP_LOG_NORMAL: /*2*/
-		fprintf(_fcpLogStream, "%s\n", buf);
+		fprintf(stream, "%s\n", buf);
 		break;
 		
 	case FCP_LOG_VERBOSE: /*3*/
-		fprintf(_fcpLogStream, "%s\n", buf);
+		fprintf(stream, "+ %s\n", buf);
 		break;
 		
 	case FCP_LOG_DEBUG: /*4*/
-		fprintf(_fcpLogStream, "dbg: %s\n", buf);
+		fprintf(stream, "D %s\n", buf);
 		break;
 	}
 }
-
-
-/*
-  Function: fcpSetLogVerbosity(int verbosity)
-*/
-void fcpSetLogVerbosity(int verbosity)
-{
-	if ((verbosity >= 0) && (verbosity <= 4)) {
-		_fcpVerbosity = verbosity;
-		_fcpLog(FCP_LOG_DEBUG, "Log verbosity changed to %d", _fcpVerbosity);
-	}
-
-	return;
-}
-
-/*
-  Function: fcpSetLog(char *s)
-
-	is stream==NULL, then tie the log to STDOUT
-*/
-int fcpSetLogStream(FILE *stream)
-{
-	int ifile = 0;
-	
-	/* If we have an address, use it as a file */
-	if (stream) {
-
-/* Ayyyy Windoze !!! */
-
-/* Must add logic HERE to create file in users home directory */
-
-#ifdef WIN32
-		ifile = creat("fcptools.log", O_CREAT | O_APPEND);
-#else
-		ifile = creat("/tmp/fcptools.log",  O_CREAT | O_APPEND | S_IRUSR | S_IWUSR);
-#endif
-		
-	}
-	else {
-		_fcpLogStream = stdout;
-	}
-
-	return ifile;
-}
-
