@@ -54,11 +54,11 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
+#define S_IRUSR _S_IRUSR
+#define S_IWUSR _S_IWUSR
+
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
-
-#define S_IREAD _S_IREAD
-#define S_IWRITE _S_IWRITE
 
 
 /**************************************************************************
@@ -72,8 +72,6 @@
 /* Keep 'sys' files first in include order */
 
 #include <unistd.h>
-
-#define OPEN_PERMS (S_IRUSR | S_IWUSR)
 
 #endif
 
@@ -101,6 +99,12 @@
 #define FCP_LOG_MESSAGE_SIZE  4096   /* Was 65K */
 
 #define FCP_SOCKET_DISCONNECTED -99
+
+/* Defined for portability, and usage by _fcpCreateFile() */
+#define FCP_CREATE_READ       1
+#define FCP_CREATE_WRITE      2
+#define FCP_CREATE_APPEND     4
+
 
 /*
   Lengths of allocated strings/arrays.
@@ -496,7 +500,7 @@ extern "C" {
 	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_uri, char *key_filename, char *meta_filename);
 
 	char *GetMimeType(char *pathname);
-	
+
 #ifdef __cplusplus
 }
 #endif

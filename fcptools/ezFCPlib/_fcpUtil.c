@@ -26,8 +26,11 @@
 
 #include "ezFCPlib.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <time.h>
+#include <winbase.h>
+
+
+extern char *_fcpTmpDir;
 
 
 /*
@@ -79,5 +82,27 @@ char *str_reset(char *dest, char *src)
 	/* on function exit, dest *may* not point to the same location it did when
 		 the function was originally called.  Use the returned value instead. */
 	return dest;
+}
+
+
+int _fcpTmpfile(char *filename, int size)
+{
+	int search = 1;
+
+	struct stat st;
+  time_t seedseconds;
+
+	time(&seedseconds);
+	srand((unsigned int)seedseconds);
+
+	while (search) {
+		snprintf(filename, size - 1, "%s/eztmp_%x", _fcpTmpDir, (unsigned int)rand());
+
+		if (stat(filename, &st) == -1)
+			if (errno == ENOENT) search = 0;
+	}
+
+	/* One way or another, we have a filename.. attempt to create the file */
+	return creat(filename, O_CREAT | S_IRUSR | S_IWUSR);
 }
 

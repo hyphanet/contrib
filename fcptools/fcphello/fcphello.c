@@ -38,6 +38,9 @@
 #include "ezFCPlib.h"
 
 
+extern int _fcpTmpfile(char *filename, int size);
+
+
 /*
   PRIVATE DECLARATIONS
 */
@@ -58,6 +61,9 @@ char *logfile = 0;
 int main(int argc, char* argv[])
 {
 	hFCP *hfcp;
+	
+	char *s;
+	int i;
 
 	host = strdup(EZFCP_DEFAULT_HOST);
 
@@ -69,6 +75,10 @@ int main(int argc, char* argv[])
 		_fcpLog(FCP_LOG_CRITICAL, "Failed to initialize ezFCP library");
 		return -1;
 	}
+
+	s = (char *)malloc(200);
+	i = _fcpTmpfile(s, 199);
+	return i;
 
 	/* Make sure all input args are sent to ezFCPlib as advertised */
 	hfcp = fcpCreateHFCP(host, port, 0, 0, 0);

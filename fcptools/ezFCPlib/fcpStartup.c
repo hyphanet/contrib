@@ -51,15 +51,16 @@ int fcpStartup(char *logfile, int log_verbosity)
 	}
 
 #ifdef WIN32
+	{
+		WORD wVersionRequested;
+		WSADATA wsaData;
 
-	WORD wVersionRequested;
-	WSADATA wsaData;
+		SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
+		wVersionRequested = MAKEWORD(2, 0);
 
-	SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-	wVersionRequested = MAKEWORD(2, 0);
-
-	if (WSAStartup(wVersionRequested, &wsaData) != 0)
-		return -1;
+		if (WSAStartup(wVersionRequested, &wsaData) != 0)
+			return -1;
+	}
 
 	/* TODO: arrange me !!
 	_fcpTmpDir = strdup(getenv("TEMP"));
