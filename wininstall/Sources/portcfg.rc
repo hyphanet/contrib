@@ -1,0 +1,20 @@
+/* Wedit generated resource file */
+#include <windows.h>
+#include "d:\dokumente\source\portcfg\portcfgres.h"
+
+
+IDD_MAINDIALOG DIALOG 7, 20, 177, 56
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Freenet port"
+FONT 8, "Helv"
+BEGIN
+    DEFPUSHBUTTON   "OK", IDOK, 123, 13, 40, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 123, 33, 40, 14
+    LTEXT           "Free port found. Should we use it?", 101, 11, 10, 112, 
+                    11
+    EDITTEXT        102, 49, 32, 38, 12, ES_NUMBER
+    LTEXT           "Use port:", 103, 12, 33, 36, 8
+    LTEXT           "Otherwise modify it to your choice.", 104, 11, 20, 109, 
+                    12
+END
