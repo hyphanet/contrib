@@ -51,6 +51,11 @@ END_MESSAGE_MAP()
 
 CNodeConfigApp::CNodeConfigApp()
 {
+	// Derive pathname of executable program's directory
+	char *exename;
+	lstrcpyn(progPath, _pgmptr,256);
+    exename = strrchr(progPath, '\\'); // point to slash between path and filename
+    *++exename = '\0'; // point to filename partand split the string
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -64,19 +69,16 @@ CNodeConfigApp theApp;
 BOOL CNodeConfigApp::InitInstance()
 {
 
-	// Why would we need sockets in this program??? Disabling for now (Sebastian Späth)
-	//if (!AfxSocketInit())
-	//{
-	//	AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
-	//	return FALSE;
-	//}
+	#ifdef _AFXDLL
+	Enable3dControls();			// Call this when using MFC in a shared DLL
+	#else
+	Enable3dControlsStatic();	// Call this when linking to MFC statically
+	#endif
 
-	// Derive pathname of executable program's directory
-	char *exename;
-	lstrcpyn(progPath, _pgmptr,256);
-    exename = strrchr(progPath, '\\'); // point to slash between path and filename
-    *++exename = '\0'; // point to filename partand split the string
-
+	if (!AfxSocketInit())
+	{
+		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
+	}
 
 	// Changing the help file to point to "/docs/freenet.hlp"
 	//The string is allocated before InitInstance is called.
@@ -86,17 +88,8 @@ BOOL CNodeConfigApp::InitInstance()
 	strcat ((char*)m_pszHelpFilePath,"docs\\freenet.hlp");
 	
 
-	// "Are weusing ActiveX controls? I think no, disabling for now" (Sebastian Späth)
-	//AfxEnableControlContainer();
-
-#ifdef _AFXDLL
-	Enable3dControls();			// Call this when using MFC in a shared DLL
-#else
-	Enable3dControlsStatic();	// Call this when linking to MFC statically
-#endif
-
-	CNodeConfigDlg dlg;
-	CPropertySheet propdlg;
+	//CNodeConfigDlg dlg;
+	CPropertySheet propdlg(IDS_TITLE);
 
 	CPropNormal Normal;
 	CPropAdvanced Advanced;
@@ -112,7 +105,9 @@ BOOL CNodeConfigApp::InitInstance()
 	propdlg.AddPage(pAdvanced);
 	propdlg.AddPage(pGeek);
 
-	propdlg.SetTitle("Freenet Node Properties", 0);
+	propdlg.m_psh.dwFlags	|= PSH_NOAPPLYNOW|PSH_USEHICON;
+	propdlg.m_psh.hInstance = m_hInstance;
+	propdlg.m_psh.hIcon	= LoadIcon(IDR_MAINFRAME);
 
 	// Set up file class
 	CConfigFile *pConfigFile = new CConfigFile;
@@ -121,8 +116,6 @@ BOOL CNodeConfigApp::InitInstance()
 
 	// Load existing configuration from file
 	pConfigFile->Load();
-
-	//pNormal->m_storeCacheSize = 5;
 
 	// Launch the UI
 	if (propdlg.DoModal() == IDOK)

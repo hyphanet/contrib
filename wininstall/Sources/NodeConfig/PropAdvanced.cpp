@@ -21,17 +21,17 @@ IMPLEMENT_DYNCREATE(CPropAdvanced, CPropertyPage)
 CPropAdvanced::CPropAdvanced() : CPropertyPage(CPropAdvanced::IDD)
 {
 	//{{AFX_DATA_INIT(CPropAdvanced)
-	m_adminPassword = _T("");
-	m_bandwidthLimit = 0;
-	m_clientPort = 0;
-	m_doAnnounce = FALSE;
-	m_fcpHosts = _T("");
-	m_initialRequestHTL = 0;
-	m_inputBandwidthLimit = 0;
-	m_maxHopsToLive = 0;
-	m_maximumConnectionThreads = 0;
-	m_outputBandwidthLimit = 0;
-	m_seedNodes = _T("");
+	//m_adminPassword = _T("");
+	//m_bandwidthLimit = 0;
+	//m_clientPort = 0;
+	//m_doAnnounce = FALSE;
+	//m_fcpHosts = _T("");
+	//m_initialRequestHTL = 0;
+	//m_inputBandwidthLimit = 0;
+	//m_maxHopsToLive = 0;
+	//m_maximumConnectionThreads = 0;
+	//m_outputBandwidthLimit = 0;
+	//m_seedNodes = _T("");
 	//}}AFX_DATA_INIT
 }
 

@@ -21,31 +21,31 @@ IMPLEMENT_DYNCREATE(CPropGeek, CPropertyPage)
 CPropGeek::CPropGeek() : CPropertyPage(CPropGeek::IDD)
 {
 	//{{AFX_DATA_INIT(CPropGeek)
-	m_announcementAttempts = 0;
-	m_announcementDelay = 0;
-	m_announcementDelayBase = 0;
-	m_announcementPeers = 0;
-	m_authTimeout = 0;
-	m_blockSize = 0;
-	m_checkPointInterval = 0;
-	m_connectionTimeout = 0;
-	m_diagnosticsPath = _T("");
-	m_doDiagnostics = FALSE;
-	m_hopTimeDeviation = 0;
-	m_hopTimeExpected = 0;
-	m_initialRequests = 0;
-	m_localAnnounceTargets = _T("");
-	m_logFile = _T("");
-	m_messageStoreSize = 0;
-	m_minCacheCount = 0;
-	m_routeConnectTimeout = 0;
-	m_rtMaxNodes = 0;
-	m_rtMaxRefs = 0;
-	m_storeCacheFile = _T("");
-	m_storeDataFile = _T("");
-	m_streamBufferSize = 0;
-	m_logLevel = _T("");
-	m_logVerbosity = _T("");
+	//m_announcementAttempts = 0;
+	//m_announcementDelay = 0;
+	//m_announcementDelayBase = 0;
+	//m_announcementPeers = 0;
+	//m_authTimeout = 0;
+	//m_blockSize = 0;
+	//m_checkPointInterval = 0;
+	//m_connectionTimeout = 0;
+	//m_diagnosticsPath = _T("");
+	//m_doDiagnostics = FALSE;
+	//m_hopTimeDeviation = 0;
+	//m_hopTimeExpected = 0;
+	//m_initialRequests = 0;
+	//m_localAnnounceTargets = _T("");
+	//m_logFile = _T("");
+	//m_messageStoreSize = 0;
+	//m_minCacheCount = 0;
+	//m_routeConnectTimeout = 0;
+	//m_rtMaxNodes = 0;
+	//m_rtMaxRefs = 0;
+	//m_storeCacheFile = _T("");
+	//m_storeDataFile = _T("");
+	//m_streamBufferSize = 0;
+	//m_logLevel = _T("");
+	//m_logVerbosity = _T("");
 	//}}AFX_DATA_INIT
 }
 

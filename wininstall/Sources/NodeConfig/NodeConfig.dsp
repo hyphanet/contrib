@@ -106,10 +106,6 @@ SOURCE=.\NodeConfig.rc
 # End Source File
 # Begin Source File
 
-SOURCE=.\NodeConfigDlg.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\PropAdvanced.cpp
 # End Source File
 # Begin Source File
@@ -143,10 +139,6 @@ SOURCE=.\NodeConfig.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\NodeConfigDlg.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\PropAdvanced.h
 # End Source File
 # Begin Source File
@@ -169,6 +161,10 @@ SOURCE=.\StdAfx.h
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\idr_main.ico
+# End Source File
 # Begin Source File
 
 SOURCE=.\res\NodeConfig.ico

@@ -33,7 +33,24 @@ extern CPropGeek		*pGeek;
 
 CConfigFile::CConfigFile()
 {
+	 char name[255];
+     //CString ip;
+     PHOSTENT hostinfo;
+	
+	//Try to guess the own host name
+	pNormal->m_ipAddress = "undefined";
+
+	if(!gethostname ( name, sizeof(name)))
+    {
+		if(hostinfo = gethostbyname(name))
+        {
+			pNormal->m_ipAddress = hostinfo->h_name;
+            //ip = inet_ntoa (*(struct in_addr *)*hostinfo->h_addr_list);
+        }
+    }
+
 }
+
 
 CConfigFile::~CConfigFile()
 {
@@ -60,7 +77,7 @@ void CConfigFile::Load()
 	pNormal->m_useDefaultNodeRefs = true;
 	pNormal->m_transient = FALSE;
 	pNormal->m_notTransient = !pNormal->m_transient;
-	pNormal->m_ipAddress = "";
+	// the ipAddrress is determined in the constructor: pNormal->m_ipAddress;
 	srand( (unsigned)time( NULL ) );
 	pNormal->m_listenPort = rand() + 1024;	// random port number
 	pNormal->warnPerm = TRUE;

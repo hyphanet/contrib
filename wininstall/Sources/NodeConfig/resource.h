@@ -7,6 +7,7 @@
 #define IDS_ABOUTBOX                    101
 #define IDD_NODECONFIG_DIALOG           102
 #define IDP_SOCKETS_INIT_FAILED         103
+#define IDS_TITLE                       104
 #define IDD_PP_NORMAL                   107
 #define IDD_PP_ADVANCED                 108
 #define IDD_PP_GEEK                     109
@@ -74,7 +75,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        131
+#define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1057
 #define _APS_NEXT_SYMED_VALUE           101

@@ -28,13 +28,13 @@ IMPLEMENT_DYNCREATE(CPropNormal, CPropertyPage)
 CPropNormal::CPropNormal() : CPropertyPage(CPropNormal::IDD)
 {
 	//{{AFX_DATA_INIT(CPropNormal)
-	m_storeCacheSize = 0;
-	m_storePath = _T("");
-	m_useDefaultNodeRefs = FALSE;
-	m_transient = FALSE;
-	m_ipAddress = _T("");
-	m_listenPort = 0;
-	m_notTransient = FALSE;
+	//m_storeCacheSize = 0;
+	//m_storePath = _T("");
+	//m_useDefaultNodeRefs = FALSE;
+	//m_transient = FALSE;
+	//m_ipAddress = _T("");
+	//m_listenPort = 0;
+	//m_notTransient = FALSE;
 	//}}AFX_DATA_INIT
 }
 
@@ -68,6 +68,9 @@ BEGIN_MESSAGE_MAP(CPropNormal, CPropertyPage)
 	ON_BN_CLICKED(IDC_transient, OntransientClick)
 	ON_WM_CREATE()
 	ON_WM_SHOWWINDOW()
+	ON_WM_DESTROY()
+	ON_WM_KILLFOCUS()
+	ON_WM_CLOSE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
