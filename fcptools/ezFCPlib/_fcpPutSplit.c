@@ -77,7 +77,9 @@ static int			insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *fi
 
 static void			splitAddJob(splitJobIns *job);
 
-static void			LaunchThread(void (*func)(void *), void *parg);
+static int			LaunchThread(void (*func)(void *), void *parg);
+static void			QuitThread();
+
 static void			splitInsMgr(void *nothing);
 
 static void			chunkThread(chunkThreadParams *params);
@@ -421,6 +423,7 @@ static void splitInsMgr(void *nothing)
 
 	splitJobIns *tmp1;
 	int clicks = 0;
+	int breakloop = 0;
 
 	// Indicate we're running
 	splitMgrRunning = 1;
@@ -434,8 +437,9 @@ static void splitInsMgr(void *nothing)
 	{
 		// let things breathe a bit
 		mysleep(1000);
+		breakloop = 0;
 
-		if (++clicks == 60)
+		if (++clicks == 300)
 		{
 			clicks = 0;
 			_fcpLog(FCP_LOG_DEBUG, "%d threads running, %d clients, queue dump follows",
@@ -528,7 +532,7 @@ static void splitInsMgr(void *nothing)
 		//_fcpLog(FCP_LOG_DEBUG, "splitInsMgr: looking for next chunk to insert");
 
 		// We have spare thread slots - search for next chunk insert job to launch
-		for (tmpJob = jobQueue; tmpJob != NULL; tmpJob = tmpJob->next)
+		for (tmpJob = jobQueue; tmpJob != NULL && !breakloop; tmpJob = tmpJob->next)
 		{
 			int i;
 
@@ -554,6 +558,7 @@ static void splitInsMgr(void *nothing)
 						chunk->size = tmpJob->totalSize - (i * fcpSplitChunkSize);
 
 					params->chunk = chunk;
+					params->chunk->index = i;
 					params->key = tmpJob;
 
 					// load in a chunk of the key
@@ -564,11 +569,26 @@ static void splitInsMgr(void *nothing)
 					lseek(tmpJob->fd, i * fcpSplitChunkSize, 0);
 					read(tmpJob->fd, buf, fcpSplitChunkSize);
 
-					// Add to tally of running threads
-					runningThreads++;
+					_fcpLog(FCP_LOG_DEBUG, "splitmgr: launching thread for chunk %d, file %s",
+							i, params->key->fileName);
 
 					// fire up a thread to insert this chunk
-					LaunchThread(chunkThread, params);
+					if (LaunchThread(chunkThread, params) != 0)
+					{
+						// failed thread launch - force restart of main loop
+						_fcpLog(FCP_LOG_CRITICAL, "thread launch failed: chunk %d, file %s",
+								i, params->key->fileName);
+						breakloop = 1;
+						chunk->status = SPLIT_INSSTAT_WAITING;
+						free(buf);
+						free(params);
+						break;
+					}
+					else
+						chunk->status = SPLIT_INSSTAT_INPROG;
+
+					// Successful launch - Add to tally of running threads
+					runningThreads++;
 				}
 			}
 		}
@@ -646,18 +666,24 @@ static void chunkThread(chunkThreadParams *params)
 	static int keynum = 0;
 	char mem[1024];
 	HFCP *hfcp = fcpCreateHandle();
+	int mypid = getpid();
 
-	_fcpLog(FCP_LOG_DEBUG, "chunkThread: inserting chunk %d/%d of %s",
-			params->key->doneChunks, params->key->numChunks,
+	_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserting chunk index %d of %s",
+			mypid,
+			params->chunk->index,
 			params->key->fileName);
 
 	if (fcpPutKeyFromMem(hfcp, "CHK@", params->chunk->chunk, NULL, params->chunk->size)
 		!= 0)
 	{
-		_fcpLog(FCP_LOG_NORMAL, "chunkThread: failed to insert chunk");
+		_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: failed to insert chunk index %d of %s",
+			mypid,
+			params->chunk->index,
+			params->key->fileName);
 		params->chunk->status = SPLIT_INSSTAT_FAILED;
 		params->key->status = SPLIT_INSSTAT_BADNEWS;
 		runningThreads--;
+		QuitThread();
 		return;
 	}
 
@@ -675,33 +701,49 @@ static void chunkThread(chunkThreadParams *params)
 
 	free(params->chunk->chunk);
 
-	_fcpLog(FCP_LOG_VERBOSE,
-			"chunkThread: %s: inserted chunk %d/%d",
-			strrchr(params->key->fileName, DIRDELIMCHAR)+1,
-			params->key->doneChunks, params->key->numChunks);
-	_fcpLog(FCP_LOG_VERBOSE, "key is %s", params->chunk->key);
+	_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserted chunk index %d of %s\nkey=%s",
+			mypid,
+			params->chunk->index,
+			params->key->fileName,
+			params->chunk->key);
 
 	free(params);
 	fcpDestroyHandle(hfcp);
 
 	// only decrement thread count if we're not ready to write the manifest
 	runningThreads--;
+	_fcpLog(FCP_LOG_DEBUG, "%d:chunkThread: %d threads now running",
+			mypid, runningThreads);
+	QuitThread();
 	return;
 }
 
 
-static void LaunchThread(void (*func)(void *), void *parg)
+static int LaunchThread(void (*func)(void *), void *parg)
 {
 #ifdef SINGLE_THREAD_DEBUG
     (*func)(parg);
     return;
 #else
 #ifdef WINDOWS
-    _beginthread(func, 0, parg);
+    return _beginthread(func, 0, parg);
 #else
     pthread_t pth;
-    pthread_create(&pth, NULL, (void *(*)(void *))func, parg);
+	pthread_attr_t attr;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	return pthread_create(&pth, &attr, (void *(*)(void *))func, parg);
 #endif
 #endif
 }               // 'LaunchThread()'
 
+
+static void QuitThread()
+{
+#ifdef WINDOWS
+	_endthread();
+#else
+	pthread_exit("");
+#endif
+}

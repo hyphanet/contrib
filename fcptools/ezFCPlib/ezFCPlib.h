@@ -96,6 +96,7 @@ typedef struct _splitChunk
 {
 	char	key[MAX_URI_LEN];		// CHK key of inserted chunk
 	char	status;					// insert status of this chunk
+	char	index;					// index num of this chunk
 	char	*chunk;					// byte-image of chunk to insert - malloc()'ed
 	int		size;					// SIZE of this chunk
 }

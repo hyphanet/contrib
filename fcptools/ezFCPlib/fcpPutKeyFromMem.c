@@ -91,8 +91,12 @@ int fcpPutKeyFromMem(HFCP *hfcp, char *name, char *data, char *metadata, int dat
     if (datalen > 0)
         _fcpSockSend(hfcp, data, datalen);
 
+	_fcpLog(FCP_LOG_DEBUG, "%d: fcpPutKeyFromMem: waiting for response", getpid());
+
     // expecting a success response
     status = _fcpRecvResponse(hfcp);
+
+	_fcpLog(FCP_LOG_DEBUG, "%d: fcpPutKeyFromMem: got response", getpid());
 
     switch (status)
     {
