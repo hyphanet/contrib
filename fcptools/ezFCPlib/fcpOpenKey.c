@@ -193,7 +193,7 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
             meta = NULL;
             if ((metaLen = hfcp->conn.response.body.datafound.metaLength) > 0)
             {
-                char *ptr = malloc(metaLen + 1);    // extra byte for '\0'
+                char *ptr = safeMalloc(metaLen + 1);    // extra byte for '\0'
                 int count;
 
                 // get all the metadata
@@ -442,7 +442,7 @@ static int fcpOpenKeyWrite(HFCP *hfcp, char *key)
 FCP_URI *_fcpParseUri(char *key)
 {
     //char skip_keytype = 1;
-    FCP_URI *uri = malloc(sizeof(FCP_URI));
+    FCP_URI *uri = safeMalloc(sizeof(FCP_URI));
 
     char *dupkey = strdup(key);
     char *oldkey = dupkey;

@@ -122,7 +122,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
     //
 
     // create and initialise status tables
-    threadStatus = malloc(maxThreads);
+    threadStatus = safeMalloc(maxThreads);
     for (i = 0; i < maxThreads; i++)
         threadStatus[i] = INSERT_THREAD_IDLE;
 
@@ -182,7 +182,7 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         //numthreads++;
         files[firstWaitingFile].insertStatus = INSERT_FILE_INPROG;
         threadStatus[firstThreadSlot] = INSERT_THREAD_RUNNING;
-        pPutJob = malloc(sizeof(PutJob));
+        pPutJob = safeMalloc(sizeof(PutJob));
         pPutJob->fileSlot = files + firstWaitingFile;
         pPutJob->threadSlot = threadStatus + firstThreadSlot;
         pPutJob->metadata = NULL;

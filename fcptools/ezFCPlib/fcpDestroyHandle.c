@@ -25,7 +25,7 @@ extern void    metaFree(META04 *meta);
 //
 // Arguments:   fcpconn
 //
-// Description: destroys a previously created FCP handle, and frees all the malloc'ed
+// Description: destroys a previously created FCP handle, and frees all the safeMalloc'ed
 //              memory blocks it was using
 //
 

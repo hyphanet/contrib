@@ -20,7 +20,7 @@
 //
 // Arguments:   fcpconn
 //
-// Description: destroys a previously created FCP handle, and frees all the malloc'ed
+// Description: destroys a previously created FCP handle, and frees all the safeMalloc'ed
 //              memory blocks it was using
 //
 
@@ -46,11 +46,11 @@ int fcpGetKeyToMem(HFCP *hfcp, char *key, char **pData, char **pMetadata)
         if (size_expected > 0)
         {
             // try to allocate a sufficiently large chunk of memory
-            data_recvd = malloc(size_expected + 1);
+            data_recvd = safeMalloc(size_expected + 1);
 
             if (data_recvd != NULL)
             {
-                // malloc successful - now suck it into memory
+                // safeMalloc successful - now suck it into memory
                 size_received = fcpReadKey(hfcp, data_recvd, size_expected);
                 data_recvd[size_received] = '\0';
                 *pData = data_recvd;

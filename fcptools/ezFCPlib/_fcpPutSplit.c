@@ -222,7 +222,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	job->totalSize = fileStat.st_size;
 	job->doneChunks = 0;
 	job->numChunks = (job->totalSize / fcpSplitChunkSize) + ((job->totalSize % fcpSplitChunkSize) ? 1 : 0);
-	job->chunk = malloc(job->numChunks * sizeof(splitChunkIns));
+	job->chunk = safeMalloc(job->numChunks * sizeof(splitChunkIns));
 	job->status = SPLIT_INSSTAT_WAITING;
 	job->fd = fd;
 	job->next = NULL;
@@ -297,7 +297,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 	runningThreads++;
 
 	// Create mem block for metadata
-    splitManifest = malloc(256 + 1024 * hfcp->split.numChunks);
+    splitManifest = safeMalloc(256 + 1024 * hfcp->split.numChunks);
 
 	// Add header info
     strcpy(splitManifest, "Version\nRevision=1\nEndPart\nDocument\n");
@@ -444,7 +444,7 @@ static void splitInsMgr(void *nothing)
 			clicks = 0;
 			_fcpLog(FCP_LOG_DEBUG, "%d threads running, %d clients, queue dump follows",
 					runningThreads, clientThreads);
-			dumpQueue();
+			//dumpQueue();
 		}
 
 		// de-queue any freshly completed or failed jobs
@@ -548,7 +548,7 @@ static void splitInsMgr(void *nothing)
 
 				if (chunk->status == SPLIT_INSSTAT_WAITING)
 				{
-					chunkThreadParams *params = malloc(sizeof(chunkThreadParams));
+					chunkThreadParams *params = safeMalloc(sizeof(chunkThreadParams));
 
 					chunk->status = SPLIT_INSSTAT_INPROG;
 
@@ -563,7 +563,7 @@ static void splitInsMgr(void *nothing)
 
 					// load in a chunk of the key
 					// create a buf, and read in the part of the file
-					buf = malloc(fcpSplitChunkSize);
+					buf = safeMalloc(fcpSplitChunkSize);
 					params->chunk->chunk = buf;
 
 					lseek(tmpJob->fd, i * fcpSplitChunkSize, 0);

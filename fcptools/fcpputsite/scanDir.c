@@ -55,7 +55,7 @@ SiteFile *scan_dir(char *dirname, int *pNumFiles)
     if (filelist != NULL)
     {
         // yes - convert the linked list into an array, and derive relative pathnames
-        fileArray = malloc(sizeof(SiteFile) * numFiles);
+        fileArray = safeMalloc(sizeof(SiteFile) * numFiles);
         for (i = 0; i < numFiles; i++)
         {
             SiteFile *temp = filelist;
@@ -152,7 +152,7 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
         else
         {
             // normal file - append to list
-            filelist_temp = (SiteFile *)malloc(sizeof(SiteFile));
+            filelist_temp = (SiteFile *)safeMalloc(sizeof(SiteFile));
             strcpy(filelist_temp->filename, subpath);
             filelist_temp->next = filelist;
             filelist_temp->chk[0] = '\0';

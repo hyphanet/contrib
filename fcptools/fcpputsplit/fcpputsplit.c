@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 
 
     if( !insertError) { // no error? insert the metadata
-        metaData= malloc( 100+KEYSIZE*blockCount);
+        metaData= safeMalloc( 100+KEYSIZE*blockCount);
         strcpy( metaData, "Version\nRevision=1\nEndPart\nDocument\n");
         sprintf( s, "SplitFile.Size=%x\n", fileSize);
         strcat( metaData, s);
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
 
             // inserted ok as CHK - now build a redirect to that CHK
             free(metaData);
-            metaData= malloc( 8096);
+            metaData= safeMalloc( 8096);
             sprintf( metaData, "Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",hfcp->created_uri);
 
             fcpDestroyHandle(hfcp);
@@ -286,19 +286,19 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
     fcpPutJob  *pfcpPutJob;
 
 
-    threadStatus= malloc( sizeof(int)*(blockCount+2));
+    threadStatus= safeMalloc( sizeof(int)*(blockCount+2));
     for (i = 0; i <= blockCount+1; i++)
         threadStatus[i] = 0; // 0 idle   1 working     2 done -1 error
 
-    buffers=malloc( sizeof(char*)*(blockCount+2));
+    buffers=safeMalloc( sizeof(char*)*(blockCount+2));
     for (i = 0; i <= blockCount+1; i++)
         buffers[i] = NULL;
 
-    blockSizes=malloc( sizeof(int)*(blockCount+2));
+    blockSizes=safeMalloc( sizeof(int)*(blockCount+2));
     for (i = 0; i <= blockCount+1; i++)
         blockSizes[i] = 0;
 
-    blockCHK=malloc( sizeof(int)*(blockCount+2));
+    blockCHK=safeMalloc( sizeof(int)*(blockCount+2));
     for (i = 0; i <= blockCount+1; i++)
         blockCHK[i] = NULL;
 
@@ -322,12 +322,12 @@ int putsplitfile( HFCP *hfcp, int workingThreads, int file)
             lseek( file, partsize*(lastrequestedblock), 0);
 
             // reading it to memory
-            buffers[lastrequestedblock]= malloc( blockSizes[lastrequestedblock]);
+            buffers[lastrequestedblock]= safeMalloc( blockSizes[lastrequestedblock]);
             size= read( file, buffers[lastrequestedblock], blockSizes[lastrequestedblock]);
 
             // forking
             threadStatus[lastrequestedblock]=1;
-            pfcpPutJob = malloc(sizeof(fcpPutJob));
+            pfcpPutJob = safeMalloc(sizeof(fcpPutJob));
             pfcpPutJob->buffer = buffers[lastrequestedblock];
             pfcpPutJob->threadSlot = &(threadStatus[lastrequestedblock]);
             pfcpPutJob->blocksize= blockSizes[lastrequestedblock];
@@ -426,7 +426,7 @@ void splitblockThread( void *job)
 
         if( error == 0) {
             *(params->threadSlot)=2;
-            *(params->key)= malloc( strlen( hfcpLocal->created_uri)+1);
+            *(params->key)= safeMalloc( strlen( hfcpLocal->created_uri)+1);
             strcpy( *(params->key), hfcpLocal->created_uri);
             fcpDestroyHandle(hfcpLocal);
             return;

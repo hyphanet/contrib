@@ -33,7 +33,7 @@ extern int  _fcpRegress;
 
 HFCP *fcpCreateHandle()
 {
-    HFCP *hfcp = malloc(sizeof(HFCP));
+    HFCP *hfcp = safeMalloc(sizeof(HFCP));
 
     hfcp->created_uri[0] = '\0';
     hfcp->privkey[0] = '\0';

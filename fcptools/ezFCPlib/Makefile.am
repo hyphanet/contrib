@@ -13,7 +13,7 @@ libezfcp_a_SOURCES = \
 	fcpMakeChkFromFile.c fcpMakeSvkKeypair.c fcpOpenKey.c fcpOpenKeyIndex.c \
 	fcpPutKeyFromFile.c fcpPutKeyFromMem.c fcpRawMode.c fcpReadKey.c \
 	fcpReadKeyIndex.c fcpSetParam.c fcpStartup.c fcpWriteKey.c \
-	fcpWriteKeyIndex.c metaParse.c mimetype.c template.c
+	fcpWriteKeyIndex.c metaParse.c mimetype.c template.c safeMalloc.c
 
 test_SOURCES = \
 	test.c

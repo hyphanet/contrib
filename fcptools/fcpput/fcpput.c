@@ -313,9 +313,9 @@ static char *strsav(char *old, char *text_to_append)
             exit(1);
         }
     } else {
-        if((p = (char *)malloc(new_len)) == NULL) {
-//          fprintf(logfp, "%s: malloc(%d) bytes for proxy_args failed!\n", prog, new_len);
-            printf("malloc(%d) bytes for proxy_args failed!\n", new_len);
+        if((p = (char *)safeMalloc(new_len)) == NULL) {
+//          fprintf(logfp, "%s: safeMalloc(%d) bytes for proxy_args failed!\n", prog, new_len);
+            printf("safeMalloc(%d) bytes for proxy_args failed!\n", new_len);
             exit(1);
         }
     }
@@ -345,9 +345,9 @@ static char *bufsav(char *old, int old_len, char *buf_to_append, int add_len)
             exit(1);
         }
     } else {
-        if((p = (char *)malloc(new_len)) == NULL) {
-//          fprintf(logfp, "%s: malloc(%d) bytes for proxy_args failed!\n", prog, new_len);
-            printf("malloc(%d) bytes for proxy_args failed!\n", new_len);
+        if((p = (char *)safeMalloc(new_len)) == NULL) {
+//          fprintf(logfp, "%s: safeMalloc(%d) bytes for proxy_args failed!\n", prog, new_len);
+            printf("safeMalloc(%d) bytes for proxy_args failed!\n", new_len);
             exit(1);
         }
     }

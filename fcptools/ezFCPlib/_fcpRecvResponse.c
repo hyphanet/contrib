@@ -365,7 +365,7 @@ static int getrespDatachunk(HFCP *hfcp)
             char *temp;
 
             // allocate buf for incoming data
-            temp = malloc(hfcp->conn.response.body.datachunk.length);
+            temp = safeMalloc(hfcp->conn.response.body.datachunk.length);
             hfcp->conn.response.body.datachunk.data = temp;
 
             // get n bytes of data
@@ -578,7 +578,7 @@ static int getrespblock(HFCP *hfcp, char *respblock, int bytesreqd)
 // Arguments:   fcpconn - connection block
 //              buf - pointer to a buffer into which to receive line
 //
-// Returns:     malloc'ed string, or NULL if none found
+// Returns:     safeMalloc'ed string, or NULL if none found
 //
 // Description: Reads a single line of text from response buffer
 

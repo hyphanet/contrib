@@ -1,4 +1,4 @@
-char *filters_rcs = "$Id: filters.c,v 1.1 2001/09/29 01:30:53 heretic108 Exp $";
+char *filters_rcs = "$Id: filters.c,v 1.2 2001/10/14 01:14:43 heretic108 Exp $";
 /* Written and copyright 1997 Anonymous Coders and Junkbusters Corporation.
  * Distributed under the GNU General Public License; see the README file.
  * This code comes with NO WARRANTY. http://www.junkbusters.com/ht/en/gpl.html
@@ -111,7 +111,7 @@ block_url(struct http_request *http, struct client_state *csp)
 					n += strlen(path);
 					n += strlen(spec);
 
-					p = malloc(n);
+					p = safeMalloc(n);
 
 					sprintf(p, CBLOCK,
 						hostport, path, spec);
@@ -182,7 +182,7 @@ trust_url(struct http_request *http, struct client_state *csp)
 					n += strlen(path);
 					n += strlen(referrer);
 
-					p = malloc(n);
+					p = safeMalloc(n);
 
 					sprintf(p, CTRUST,
 						hostport, path, referrer);
@@ -296,7 +296,7 @@ trust_url_not_trusted:
 	n += strlen(path);
 	n += strlen(referrer);
 
-	p = malloc(n);
+	p = safeMalloc(n);
 	sprintf(p, CTRUST, hostport, path, referrer);
 
 	freez(hostport);
@@ -449,7 +449,7 @@ dsplit(char *domain)
 	/* save a copy of the pointers in dvec */
 	size = ret->dcnt * sizeof(*ret->dvec);
 		
-	if((ret->dvec = malloc(size))) {
+	if((ret->dvec = safeMalloc(size))) {
 		memcpy(ret->dvec, v, size);
 	}
 
@@ -570,7 +570,7 @@ ij_blocked_url(struct http_request *http, struct client_state *csp)
 	n += strlen(path    );
 	n += strlen(pattern );
 
-	if((p = malloc(n))) {
+	if((p = safeMalloc(n))) {
 		sprintf(p, template, hostport, path, pattern);
 	}
 
@@ -626,7 +626,7 @@ ij_untrusted_url(struct http_request *http, struct client_state *csp)
 	n += strlen(hostport);
 	n += strlen(path    );
 
-	if((p = malloc(n))) {
+	if((p = safeMalloc(n))) {
 		sprintf(p, template, hostport, path);
 	}
 

@@ -552,6 +552,7 @@ extern _C_ void     _fcpFreeUri(FCP_URI *uri);
 extern _C_ void     _fcpLog(int level, char *format,...);
 extern _C_ void		_fcpInitSplit(int maxThreads);
 
+extern _C_ void		*safeMalloc(int nbytes);
 
 extern _C_ META04   *parseMeta(char *buf);
 extern _C_ void     freeMeta(META04 *meta);

@@ -77,7 +77,7 @@ META04 *metaParse(char *buf)
     char    *key;
     char    *val;
 
-    META04  *meta = malloc(sizeof(META04));
+    META04  *meta = safeMalloc(sizeof(META04));
 
     int     state = STATE_BEGIN;
     int     thisdoc = 0;
@@ -144,7 +144,7 @@ META04 *metaParse(char *buf)
                 // create empty fieldset struct
                 thisdoc = meta->numDocs++;
                 meta = realloc(meta, sizeof(META04) + sizeof(FLDSET *) * meta->numDocs);
-                meta->cdoc[thisdoc] = malloc(sizeof(FLDSET));
+                meta->cdoc[thisdoc] = safeMalloc(sizeof(FLDSET));
                 meta->cdoc[thisdoc]->type = META_TYPE_04_NONE;
                 meta->cdoc[thisdoc]->numFields = 0;
                 state = STATE_INDOC;

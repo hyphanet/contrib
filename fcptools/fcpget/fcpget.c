@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     int i;
 
 /**
-    blk = malloc(100);
+    blk = safeMalloc(100);
     blk = realloc(blk, 120);
     free(blk);
 **/

@@ -118,7 +118,7 @@ typedef struct
     char 	    **buffer;
     char        *threadSlot;
 	int			*blocksize;
-    char        *metadata;          // malloc()'ed metadata to insert
+    char        *metadata;          // safeMalloc()'ed metadata to insert
     char        key[4096];           // key URI, if inserting metadata
 }
 FcpGetJob;
@@ -382,8 +382,8 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 
 
 
-	// mallocing some stuff
-	threadStatus= malloc( sizeof(int)*(nb+2));
+	// safeMallocing some stuff
+	threadStatus= safeMalloc( sizeof(int)*(nb+2));
     for (i = 0; i <= nb+1; i++)
         threadStatus[i] = 0;
 		// 0 idle
@@ -393,11 +393,11 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 	    // -1 error on block
 
 
-	buffers=malloc( sizeof(char*)*(nb+2));
+	buffers=safeMalloc( sizeof(char*)*(nb+2));
     for (i = 0; i <= nb+1; i++)
         buffers[i] = NULL;
 
-	blocksizes=malloc( sizeof(int)*(nb+2));
+	blocksizes=safeMalloc( sizeof(int)*(nb+2));
     for (i = 0; i <= nb+1; i++)
         blocksizes[i] = 0;
 
@@ -427,7 +427,7 @@ int fcpreq_getsplitfile( HFCP *hfcp, int workingThreads, int maxThreads, int soc
 		    _fcpLog(FCP_LOG_VERBOSE, "Requesting block number %d : %s", lastrequestedblock+1, s3);
 
 			threadStatus[lastrequestedblock+1]=1;
-	        pGetJob = malloc(sizeof(FcpGetJob));
+	        pGetJob = safeMalloc(sizeof(FcpGetJob));
 	        pGetJob->buffer = &(buffers[lastrequestedblock+1]);
 	        pGetJob->threadSlot = &(threadStatus[lastrequestedblock+1]);
 	        pGetJob->metadata = NULL;
@@ -608,7 +608,7 @@ static int fcpreq_fproxy_req(char *host, char *docpath, char *range, int sock)
 	int splitStart, splitEnd;
 
     // deliberate memory leak for testing
-    //malloc(8192);
+    //safeMalloc(8192);
 
     // delete '?key='
     if (*docpath && !strncmp(docpath, "?key=", 5))
@@ -1048,7 +1048,7 @@ static void fcpreq_getrange( int *start, int *end, char *range)
 //		printf("no range\n");
 	} else {
 //		printf("range: %s\n", range);
-		rangetmp= malloc( strlen( range)+1);
+		rangetmp= safeMalloc( strlen( range)+1);
 		p1=range;
 		p2=rangetmp;
 
