@@ -60,7 +60,6 @@ clean:
 	-test -r /usr/share/misc/config.guess && \
 	  cp -f /usr/share/misc/config.guess config.guess
 
-
 	dh_clean
 
 install: build
