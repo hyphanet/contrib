@@ -802,9 +802,9 @@ get_content_type (char *filename)
 {
     int i;
     char *suffix = rindex(filename, '.');
-    if (!suffix) return "application/unknown";
+    if (!suffix) return "image/jpeg";
     for (i = 0 ; associations[i].ext ; i++)
 	if (strcasecmp(associations[i].ext, suffix + 1) == 0)
 	    return associations[i].type;
-    return "application/unknown";
+    return "image/jpeg";
 }
