@@ -16,6 +16,8 @@
 
 class CUnknownDlg : public CDialog
 {
+friend class CPropGeek;
+
 // Construction
 public:
 	CUnknownDlg(CWnd* pParent = NULL);   // standard constructor
@@ -26,7 +28,6 @@ public:
 	CButton	m_addbutton;
 	CListBox	m_listbox;
 	CString	m_addthis;
-	CString	m_selected;
 	//}}AFX_DATA
 
 
@@ -39,6 +40,8 @@ public:
 
 // Implementation
 protected:
+	CString m_unknowns;
+
 	// Generated message map functions
 	//{{AFX_MSG(CUnknownDlg)
 	virtual BOOL OnInitDialog();

@@ -24,7 +24,6 @@ CUnknownDlg::CUnknownDlg(CWnd* pParent /*=NULL*/)
 {
 	//{{AFX_DATA_INIT(CUnknownDlg)
 	m_addthis = _T("");
-	m_selected = _T("");
 	//}}AFX_DATA_INIT
 }
 
@@ -36,7 +35,6 @@ void CUnknownDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_ADDIT, m_addbutton);
 	DDX_Control(pDX, IDC_LISTOFUNKNOWN, m_listbox);
 	DDX_Text(pDX, IDC_ADDTHIS, m_addthis);
-	DDX_Text(pDX, IDC_SELECTED, m_selected);
 	//}}AFX_DATA_MAP
 }
 
@@ -64,25 +62,38 @@ BOOL CUnknownDlg::OnInitDialog()
 	CDialog::OnInitDialog();
 	//Loads in unknown settings
 	CString unknowns;
-	int pos, cur;	
+	int pos;
+	int cur=0;
 	CString item;
-	CConfigFile thisOne;
-	unknowns = thisOne.GetUnknowns();
-	while(!unknowns.IsEmpty())
+	unknowns = m_unknowns;
+	while(cur != -1)
 	{
-		pos = unknowns.Find('\n');
-		item.Empty();
+		pos = unknowns.Find("\n",cur);
 		if(pos != -1)
 		{
-			for(cur = 0; cur < pos; cur++)
-				item.Insert(cur, unknowns[cur]);
-			unknowns.Delete(0, pos + 1);
+			item=unknowns.Mid(cur,pos-cur);
 			m_listbox.AddString(item);
-		}	
-		
+			cur = pos+1;
+		}
+		else
+		{
+			cur = -1;
+		}
 	}
 	UpdateData(FALSE);
-	
+
+	if (m_listbox.GetCount()==0)
+	{
+		m_listbox.SetCurSel(-1);
+		GetDlgItem(IDC_MOVEUP)->EnableWindow(FALSE);
+		GetDlgItem(IDC_MOVEDOWN)->EnableWindow(FALSE);
+		GetDlgItem(IDC_DELETE)->EnableWindow(FALSE);
+	}
+	else
+	{
+		m_listbox.SetCurSel(0);
+	}
+
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
@@ -99,7 +110,20 @@ void CUnknownDlg::OnAddit()
 	}
 	else
 	{
-		m_listbox.AddString(m_addthis);
+		// see if there's already a string matching this one:
+		CString key = m_addthis.Left(m_addthis.Find("=")-1);
+		int nFirstIndex = m_listbox.FindString(-1,key);
+		int nIndex = nFirstIndex;
+		while ( nIndex != LB_ERR )
+		{
+			m_listbox.DeleteString(nIndex);
+			nIndex = m_listbox.FindString(-1,key);
+		}
+		nIndex = m_listbox.InsertString(nFirstIndex,m_addthis);
+		m_listbox.SetCurSel(nIndex); // select the item we just added
+		GetDlgItem(IDC_MOVEUP)->EnableWindow(TRUE);
+		GetDlgItem(IDC_MOVEDOWN)->EnableWindow(TRUE);
+		GetDlgItem(IDC_DELETE)->EnableWindow(TRUE);
 		m_addthis.Empty();
 		UpdateData(FALSE);
 	}
@@ -111,29 +135,48 @@ void CUnknownDlg::OnDelete()
 	// Deletes the selected item.
 	UpdateData(TRUE);
 	m_listbox.GetText(m_listbox.GetCurSel(), m_addthis);
-	m_listbox.DeleteString(m_listbox.GetCurSel());
-	m_selected.Empty();
+	int nIndex = m_listbox.GetCurSel();
+	m_listbox.DeleteString(nIndex);
+	if (m_listbox.GetCount()==0)
+	{
+		m_listbox.SetCurSel(-1);
+		GetDlgItem(IDC_MOVEUP)->EnableWindow(FALSE);
+		GetDlgItem(IDC_MOVEDOWN)->EnableWindow(FALSE);
+		GetDlgItem(IDC_DELETE)->EnableWindow(FALSE);
+	}
+	else
+	{
+		if (nIndex < m_listbox.GetCount())
+		{
+			m_listbox.SetCurSel(nIndex);
+		}
+		else
+		{
+			m_listbox.SetCurSel(m_listbox.GetCount());
+		}
+	}
 	UpdateData(FALSE);
 }
 
 void CUnknownDlg::OnOK() 
 {
 	// The user clicked ok so we will copy the list box
-	// contents into UnknownParms
+	// contents into m_unknowns
 	CString temp;
-	UnknownParms.Empty();
+	m_unknowns.Empty();
 	for(int num = 0; num < m_listbox.GetCount(); num++)
 	{
 		m_listbox.GetText(num, temp);
-		UnknownParms+=temp;
-		UnknownParms+="\n";
+		m_unknowns+=temp;
+		m_unknowns+="\n";
 	}
 	CDialog::OnOK();
 }
 
 void CUnknownDlg::OnCancel() 
 {
-	// TODO: Add your control notification handler code here
+	// m_unknowns is unchanged
+
 	CDialog::OnCancel();
 }
 
@@ -141,7 +184,10 @@ void CUnknownDlg::OnSelchangeListofunknown()
 {
 	// Puts the currently selected item into the selected box.
 	UpdateData(TRUE);
-	m_listbox.GetText(m_listbox.GetCurSel(), m_selected);
+	m_listbox.GetText(m_listbox.GetCurSel(), m_addthis);
+	GetDlgItem(IDC_MOVEUP)->EnableWindow(TRUE);
+	GetDlgItem(IDC_MOVEDOWN)->EnableWindow(TRUE);
+	GetDlgItem(IDC_DELETE)->EnableWindow(TRUE);
 	UpdateData(FALSE);
 }
 
@@ -154,8 +200,8 @@ void CUnknownDlg::OnMovedown()
 	if(m_listbox.GetCount() > 1 && sel != m_listbox.GetCount() - 1)
 	{
 		m_listbox.GetText(sel, temp);
-		m_listbox.InsertString(sel+2, temp);
 		m_listbox.DeleteString(sel);
+		m_listbox.InsertString(sel+1, temp);
 		m_listbox.SetCurSel(sel+1);
 	}
 	UpdateData(FALSE);

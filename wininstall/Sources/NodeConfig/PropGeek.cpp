@@ -4,8 +4,6 @@
 #include "stdafx.h"
 #include "NodeConfig.h"
 #include "PropGeek.h"
-#include "PropNormal.h"
-#include "PropAdvanced.h"
 #include "UnknownDlg.h"
 #include "ConfigFile.h"
 
@@ -18,28 +16,22 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPropGeek property page
 
-
 IMPLEMENT_DYNCREATE(CPropGeek, CPropertyPage)
 
 CPropGeek::CPropGeek() : CPropertyPage(CPropGeek::IDD)
 {
 	//{{AFX_DATA_INIT(CPropGeek)
-	m_unknowns = _T("");
+	m_strNumUnknowns = _T("");
 	//}}AFX_DATA_INIT
 }
-
 
 CPropGeek::~CPropGeek()
 {
 
 }
 
-
-
 void CPropGeek::DoDataExchange(CDataExchange* pDX)
-
 {
-
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropGeek)
 	DDX_Text(pDX, IDC_announcementAttempts, m_announcementAttempts);
@@ -79,7 +71,7 @@ void CPropGeek::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_storeCipherName, m_storeCipherName);
 	DDX_Text(pDX, IDC_storeCipherWidth, m_storeCipherWidth);
 	DDX_Text(pDX, IDC_maximumPadding, m_maximumPadding);
-	DDX_Text(pDX, IDC_NUMUNKNOWN, m_unknowns);
+	DDX_Text(pDX, IDC_NUMUNKNOWN, m_strNumUnknowns);
 	//}}AFX_DATA_MAP
 }
 
@@ -99,9 +91,10 @@ void CPropGeek::OnUnknown()
 	int temp;
 	UpdateData(TRUE);
 	CUnknownDlg pUnknownDlg;
+	pUnknownDlg.m_unknowns = m_unknowns;
 	temp = pUnknownDlg.DoModal();
+	m_unknowns = pUnknownDlg.m_unknowns;
 	UpdateNumofUnknowns();
-	
 }
 
 BOOL CPropGeek::OnInitDialog() 
@@ -117,17 +110,14 @@ void CPropGeek::UpdateNumofUnknowns()
 {
 	// Updates the number of unknowns displayed on the Geek Page
 	UpdateData(TRUE);
-	CConfigFile configfile;
-	CString theUnknowns = configfile.GetUnknowns();
-	int unknowns = 0;
+	int nUnknowns = 0;
 	int lastfound = 0;
-	while(theUnknowns.Find("\n", lastfound) != -1)
+	while(m_unknowns.Find("\n", lastfound) != -1)
 	{
-		lastfound = theUnknowns.Find("\n", lastfound);
+		lastfound = m_unknowns.Find("\n", lastfound);
 		lastfound++;
-		unknowns++;
+		nUnknowns++;
 	}
-	m_unknowns.Format("%d", unknowns);
+	m_strNumUnknowns.Format("%d", nUnknowns);
 	UpdateData(FALSE);
 }
-

@@ -15,7 +15,7 @@ class CPropGeek : public CPropertyPage
 {
 	DECLARE_DYNCREATE(CPropGeek)
 		// Construction
-		
+	
 public:
 	
 	CPropGeek();	
@@ -45,27 +45,21 @@ public:
 	CString	m_storeCipherName;
 	UINT	m_storeCipherWidth;
 	UINT	m_maximumPadding;
-	CString	m_unknowns;
+	UINT	m_nUnknowns;
+	CString	m_strNumUnknowns;
 	//}}AFX_DATA
-	
+
+	CString	m_unknowns;
+
 	// Overrides
-	
 	// ClassWizard generate virtual function overrides
-	
 	//{{AFX_VIRTUAL(CPropGeek)
-	
 protected:
-	
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	
 	//}}AFX_VIRTUAL
 	
-	
-	
 	// Implementation
-	
 protected:
-	
 	// Generated message map functions
 	//{{AFX_MSG(CPropGeek)
 	afx_msg void OnUnknown();
