@@ -35,13 +35,13 @@ hFCP *_fcpCreateHFCP(void)
 	h = (hFCP *)malloc(sizeof (hFCP));
   memset(h, 0, sizeof (hFCP));
 
-	h->host = malloc(strlen(EZFCP_DEFAULT_HOST) + 1);
-	strcpy(h->host, EZFCP_DEFAULT_HOST);
+	h->host = malloc(strlen(_fcpHost) + 1);
+	strcpy(h->host, _fcpHost);
 
-	h->port = EZFCP_DEFAULT_PORT;
-	h->htl = EZFCP_DEFAULT_HTL;
-	h->regress = EZFCP_DEFAULT_REGRESS;
-	h->rawmode = EZFCP_DEFAULT_RAWMODE;
+	h->port = _fcpPort;
+	h->htl = _fcpHtl;
+	h->regress = _fcpRegress;
+	h->rawmode = _fcpRawmode;
 
 	h->socket = -1;
 
@@ -65,6 +65,8 @@ hBlock *_fcpCreateHBlock(void)
 
 	h = (hBlock *)malloc(sizeof (hBlock));
 	memset(h, 0, sizeof (hBlock));
+
+	h->uri = _fcpCreateHURI();
 
 	return h;
 }
@@ -95,17 +97,13 @@ hKey *_fcpCreateHKey(void)
 void _fcpDestroyHKey(hKey *h)
 {
 	if (h) {
-		int i = 0;
+		int i;
 
 		if (h->uri) _fcpDestroyHURI(h->uri);
 		if (h->mimetype) free(h->mimetype);
 		if (h->tmpblock) free(h->tmpblock);
-		if (h->metadata) free(h->metadata);
 
-		/*
-		while (i < h->segment_count)
-			_fcpDestroyHBlock(h->chunks[i++]);
-		*/
+		for (i=0; i < h->segment_count; _fcpDestroyHSegment(h->segments[i++]));
 
 		free(h);
 	}
@@ -276,15 +274,15 @@ hSegment *_fcpCreateHSegment(void)
 
 void _fcpDestroyHSegment(hSegment *h)
 {
-	int i;
-
 	if (h) {
+		int i;
+
 		if (h->header_str) free(h->header_str);
 
-		if (h->db_count > 0)
+		if (h->db_count)
 			for (i=0; i < h->db_count; _fcpDestroyHBlock(h->data_blocks[i++]));
 
-		if (h->cb_count > 0)
+		if (h->cb_count)
 			for (i=0; i < h->cb_count; _fcpDestroyHBlock(h->check_blocks[i++]));
 
 		free(h);

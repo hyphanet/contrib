@@ -351,8 +351,9 @@ typedef struct {
 
 
 typedef struct {
-	char    *host;
-	int      port;
+	char           *host;
+	int             port;
+
 	int      htl;
 	int      regress;
 	int      rawmode;

@@ -1,3 +1,4 @@
+
 /*
   This code is part of FCPTools - an FCP based client library for Freenet.
 
@@ -13,12 +14,17 @@
 
 #include <sys/types.h>
 
-#include <string.h>
 #include <stdlib.h>
+
+#define _GNU_SOURCE
+#include <string.h>
 
 #include "ezFCPlib.h"
 
 extern long xtoi(char *);
+
+/* suppress a compiler warning for jesus */
+char *strdup(const char *s);
 
 /*
 	There are 12 possible unique Node responses (2002-08-27)
@@ -92,7 +98,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 		else if (!strcmp(resp, "Pending")) {
 			getrespPending(hfcp);
-		}
+	}
 
 		else break;
 	}
@@ -183,7 +189,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 	/* Else, send a warning; a little loose, but this is still in development */
   else {
-		_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown response; \"%s\"", resp);
+		_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
   }
  
   return 0;
@@ -216,7 +222,7 @@ static int getrespHello(hFCP *hfcp)
 		}
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+		_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 
 	return -1;
@@ -252,7 +258,7 @@ static int getrespSuccess(hFCP *hfcp)
 		}
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+		_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
   }
 	
   return -1;
@@ -281,7 +287,7 @@ static int getrespDataFound(hFCP *hfcp)
 			return FCPRESP_TYPE_DATAFOUND;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+		_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 	
 	return -1;
@@ -314,7 +320,7 @@ static int getrespDataChunk(hFCP *hfcp)
 		}
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 
 	return -1;
@@ -333,7 +339,7 @@ static int getrespDataNotFound(hFCP *hfcp)
 			return FCPRESP_TYPE_DATANOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 
 	return -1;
@@ -352,7 +358,7 @@ static int getrespRouteNotFound(hFCP *hfcp)
 			return FCPRESP_TYPE_ROUTENOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 	
 	return -1;
@@ -371,7 +377,7 @@ static int getrespUriError(hFCP *hfcp)
 			return FCPRESP_TYPE_URIERROR;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 	
 	return -1;
@@ -380,8 +386,6 @@ static int getrespUriError(hFCP *hfcp)
 
 static int getrespRestarted(hFCP *hfcp)
 {
-	char resp[1025];
-
 	_fcpLog(FCP_LOG_DEBUG, "received Restarted response");
 
 	return FCPRESP_TYPE_RESTARTED;
@@ -416,7 +420,7 @@ static int getrespKeycollision(hFCP *hfcp)
 			return FCPRESP_TYPE_KEYCOLLISION;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
   }
 	
   return -1;
@@ -434,7 +438,7 @@ static int getrespPending(hFCP *hfcp)
 	char resp[1025];
 	int len;
 
-	_fcpLog(FCP_LOG_DEBUG, "received KeyCollision response");
+	_fcpLog(FCP_LOG_DEBUG, "received Pending response");
 
   while (!getrespline(hfcp, resp)) {
 
@@ -458,7 +462,7 @@ static int getrespPending(hFCP *hfcp)
 			return FCPRESP_TYPE_PENDING;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
   }
 	
   return -1;
@@ -496,7 +500,7 @@ static int getrespFailed(hFCP *hfcp)
 			return FCPRESP_TYPE_FAILED;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
   }
   
   return -1;
@@ -534,7 +538,7 @@ static int getrespFormatError(hFCP *hfcp)
 			return FCPRESP_TYPE_FORMATERROR;
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
   }
   
   return -1;
@@ -605,7 +609,7 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 		}
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
   }
 
   /* oops.. there's been a socket error of sorts */
@@ -637,7 +641,7 @@ static int  getrespBlocksEncoded(hFCP *hfcp)
 		}
 
 		else
-			_fcpLog(FCP_LOG_VERBOSE, "warning: received unknown field; \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 	
 	return -1;

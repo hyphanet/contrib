@@ -40,7 +40,7 @@
 /* Why isn't this defined where the manpage claims it is? */
 extern int    snprintf(char *str, size_t size, const char *format, ...);
 
-extern int    crSockConnect(hFCP *hfcp);
+extern int    _fcpSockConnect(hFCP *hfcp);
 extern void   crSockDisconnect(hFCP *hfcp);
 extern char  *crTmpFilename(void);
 

@@ -53,7 +53,7 @@ void _fcpLog(int level, char *format, ...)
 		break;
 		
 	case FCP_LOG_DEBUG: /*4*/
-		printf("DEBUG: %s\n", buf);
+		printf("dbg: %s\n", buf);
 		break;
 	}
 }
