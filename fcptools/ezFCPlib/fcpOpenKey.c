@@ -180,14 +180,14 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 				
 			// get all the metadata
 			_fcpReadBlk(hfcp, ptr, metaLen);
-			ptr[metaLen] = 0;
+			ptr[metaLen++] = 0;
 
 			// parse metadata into META04 struct, then copy into HFCP
 			// check end of this function for code that sets hfcp->meta.
 			meta = (META04 *) malloc( sizeof(META04) );
 			metaParse(meta, ptr);
 
-			hfcp->rawMetadata = (char *) malloc(metaLen);
+			hfcp->rawMetadata = (char *) malloc(metaLen + 1);
 			memcpy(hfcp->rawMetadata, ptr, metaLen);
 
 			_fcpLog(FCP_LOG_DEBUG, "Metadata:\n--------\n%s\n--------", ptr);
