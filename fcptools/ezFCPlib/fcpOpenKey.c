@@ -1,97 +1,90 @@
-//
-//  This code is part of FreeWeb - an FCP-based client for Freenet
-//
-//  Designed and implemented by David McNab, david@rebirthing.co.nz
-//  CopyLeft (c) 2001 by David McNab
-//
-//  The FreeWeb website is at http://freeweb.sourceforge.net
-//  The website for Freenet is at http://freenet.sourceforge.net
-//
-//  This code is distributed under the GNU Public Licence (GPL) version 2.
-//  See http://www.gnu.org/ for further details of the GPL.
-//
+/*
+	This code is part of FreeWeb - an FCP-based client for Freenet
+
+	Designed and implemented by David McNab, david@rebirthing.co.nz
+	CopyLeft (c) 2001 by David McNab
+
+	The FreeWeb website is at http://freeweb.sourceforge.net
+	The website for Freenet is at http://freenet.sourceforge.net
+
+	This code is distributed under the GNU Public Licence (GPL) version 2.
+	See http://www.gnu.org/ for further details of the GPL.
+*/
 
 #include "ezFCPlib.h"
 
-//
-// IMPORTED DECLARATIONS
-//
-
-extern int     *metaParse(META04 *, char *);
-extern void     metaFree(META04 *);
+/*
+	IMPORTED DECLARATIONS
+*/
+extern int      *metaParse(META04 *, char *);
+extern void      metaFree(META04 *);
 
 extern time_t   _mkgmtime(struct tm *p_tm); // thank God for this gem of a function!
-extern long     xtoi(char *s);
+extern long      xtoi(char *s);
 
-extern char     *_fcpHost;
+extern char     _fcpHost[];
 extern int      _fcpPort;
 extern int      _fcpHtl;
-//extern char     *_fcpProgPath;
-//extern int      _fcpFileNum;    // temporary file count
+extern int      _fcpRawMode;
 extern char     _fcpID[];
 
-
-//
-// PRIVATE DECLARATIONS
-//
-
+/*
+	PRIVATE DECLARATIONS
+*/
 static int      fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress);
 static int      fcpOpenKeyWrite(HFCP *hfcp, char *key);
 static int      calc_new_date(char *newdate, char *baseline, int increment, int regress);
 static time_t   date_to_secs(char *datestr);
 
-#ifdef YYDEBUG
-extern int meta_debug;
-#endif
 
+/*
+	Function:    fcpOpenKey()
 
-//
-// Function:    fcpOpenKey()
-//
-// Arguments:   hfcp - hfcp handle, previously opened by call to fcpCreateHandle()
-//
-//              key - freenet URI of the key to be opened
-//
-//              mode -  _FCP_O_READ - open an existing Freenet key for reading
-//                      _FCP_O_WRITE - create a new Freenet key for writing
-//                      _FCP_O_RAW - disable automatic handling of metadata
-//                                   (enabled by default)
-//                      read and write access are mutually exclusive
-//
-// Description: This is really two functions in one, because opening keys for reading and
-//              opening keys for writing are two completely different operations.
-//
-// Returns:     0 if successful
-//              -1 if failed
-//
+	Arguments:
+	  hfcp - hfcp handle, previously opened by call to fcpCreateHandle()
+		key - freenet URI of the key to be opened
+
+		mode -  _FCP_O_READ - open an existing Freenet key for reading
+   	        _FCP_O_WRITE - create a new Freenet key for writing
+						_FCP_O_RAW - disable automatic handling of metadata
+						(enabled by default)
+
+		read and write access are mutually exclusive
+	
+	Description: This is really two functions in one, because opening keys for reading and
+	opening keys for writing are two completely different operations.
+	
+	Returns:     0 if successful
+	-1 if failed
+*/
 
 int fcpOpenKey(HFCP *hfcp, char *key, int mode)
 {
-    // Validate flags
-    if ((mode & _FCP_O_READ) && (mode & _FCP_O_WRITE))
-        return -1;      // read/write access is impossible
-    if ((mode & (_FCP_O_READ | _FCP_O_WRITE)) == 0)
-        return -1;      // neither selected - illegal
-    if (mode & _FCP_O_RAW)
-        hfcp->raw = 1;
+	// Validate flags
+	if ((mode & _FCP_O_READ) && (mode & _FCP_O_WRITE))
+		return -1;      // read/write access is impossible
 
-    if (mode & _FCP_O_READ)
-    {
-        hfcp->mimeType[0] = '\0';
+	if ((mode & (_FCP_O_READ | _FCP_O_WRITE)) == 0)
+		return -1;      // neither selected - illegal
+
+	if (mode & _FCP_O_RAW)
+		hfcp->raw = 1;
+	
+	if (mode & _FCP_O_READ) {
+		hfcp->mimeType[0] = '\0';
 		hfcp->openmode = mode;
-        return fcpOpenKeyRead(hfcp, key, hfcp->regress);
-    }
-    else
-        return fcpOpenKeyWrite(hfcp, key);
+		return fcpOpenKeyRead(hfcp, key, hfcp->regress);
+	}
+	else
+		return fcpOpenKeyWrite(hfcp, key);
 
-}       // 'fcpOpenKey()'
-
-
+} // 'fcpOpenKey()'
 
 
 static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 {
   char     buf[1024];
+	char    *ptr;         /* pointer to unparsed metadata */
   int      n;
 	int      j;
   int      len;
@@ -173,23 +166,35 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 		// suck in the metadata, if any
 		meta = NULL;
 		if ((metaLen = hfcp->conn.response.body.datafound.metaLength) > 0) {
-			char *ptr = safeMalloc(metaLen + 1);    // extra byte for '\0'
-			int count;
+			ptr = (char *) malloc(metaLen + 1);    // extra byte for '\0'
 				
 			// get all the metadata
 			hfcp->conn.response.body.datafound.metaData = ptr;
-			count = _fcpReadBlk(hfcp, ptr, metaLen);
-			ptr[count] = '\0';
+			_fcpReadBlk(hfcp, ptr, metaLen);
+			ptr[metaLen] = '\0';
 				
 			_fcpLog(FCP_LOG_DEBUG, "Metadata:\n--------\n%s\n--------", ptr);
 				
 			fflush(stdout);
-
-			meta = safeMalloc(sizeof(META04));
-			metaParse(meta, ptr);
-			free(ptr);
 		}
 
+		/* if rawmode is set, copy the raw metadata to the appropriate HFCP
+			 member, then break out of the redirecting loop and return to caller */
+		if (_fcpRawMode) {
+			hfcp->rawMetadata = (char *) malloc(metaLen + 1);
+			memcpy( hfcp->rawMetadata, ptr, metaLen );
+			free(ptr);
+
+			redirecting = 0;
+			continue;
+		}
+		else {
+			meta = (META04 *) malloc( sizeof(META04) );
+			metaParse(meta, ptr);
+
+			free(ptr);
+		}
+		
 		/* Dump the metadata information from META04 (debug) */
 		/*
 		for (n=0; n < meta->count; n++) {
@@ -202,16 +207,14 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 
 		timeNow = (long)time(NULL);
 
-		/* Parse metadata into the field set struct */
-		/* Note that cdocFindDoc returns NULL when passed that value for meta */
-		fldSet = cdocFindDoc(meta, NULL);
+		//fldSet = cdocFindDoc(meta, NULL);
 
 		/* If fldSet is NULL, there's no useful metadata */
 		/* Effectively break out of the for loop and prepare return to caller */
-		if (!fldSet) {
-			redirecting = 0;
-			continue;
-		}
+		//		if (!fldSet) {
+		//	redirecting = 0;
+		//	continue;
+		//}
 		
 		/* Get the mimetype if it exists */
 		if ((s = cdocLookupKey(fldSet, "Info.Format")) != NULL)
@@ -289,8 +292,12 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 	
   /* If execution reaches here, we've succeeded in opening the key and
 		 retrieving it's metadata.  Yay! */
-  hfcp->meta = meta;
-  hfcp->fields = fldSet;
+
+	// YO!! MALLOC PLEASE !!
+	//memcpy( hfcp->meta, meta, sizeof (META04) );
+
+	hfcp->meta = meta;
+	hfcp->fields = fldSet;
   _fcpFreeUri(uri);
   hfcp->keysize = hfcp->conn.response.body.datafound.dataLength;
   return 0;
@@ -406,60 +413,18 @@ void _fcpFreeUri(FCP_URI *uri)
 }
 
 
-static int calc_new_date(char *newdate, char *baseline, int increment, int daysRegress)
-{
-    struct tm tm_lastupdate;
+/*
+	warning - revolting function follows
 
-    time_t secs_now;
-    time_t secs_baseline;
-    time_t secs_last_update;
-    time_t secs_since_baseline;
-
-    // get current time in seconds since epoch
-    time(&secs_now);                 /* Get time in seconds */
-
-    // convert baseline to tm format
-	 //  sscanf(baseline, "%04d%02d%02d%02d%02d%02d",
-	 //                  &tmb.tm_year, &tmb.tm_mon, &tmb.tm_mday, &tmb.tm_hour, &tmb.tm_min, &tmb.tm_sec);
-	 //  tmb.tm_mon--;
-	 //  tmb.tm_year -= 1900;
-
-	 // convert baseline AS GMT to seconds since epoch
-	 //  secs_baseline = mktime(&tmb);
-	 //  secs_baseline = _mkgmtime(&tmb);    // thank God for this gem of a function!
-
-    secs_baseline = date_to_secs(baseline);
-
-    // calculate time of last update as seconds since epoch
-    secs_since_baseline = secs_now - secs_baseline;
-    secs_last_update = (secs_since_baseline / increment) * increment + secs_baseline;
-
-    // go back zero or more days according to daysRegress
-    secs_last_update -= daysRegress * 24 * 60 * 60;
-
-    // now convert to a tm structure as GMT
-    memcpy(&tm_lastupdate, gmtime(&secs_last_update), sizeof(struct tm));
-
-    // Finally, convert to freenet format date-time string yyyymmddhhmmss
-    strftime(newdate, 16, "%Y%m%d%H%M%S", &tm_lastupdate);
-
-    return 0;
-}
-
-
-//
-// warning - revolting function follows
-//
-// this is made necessary because unix lacks a GMT equivalent of mktime(),
-// so we have to manually convert a date string to seconds since epoch
-//
+	this is made necessary because unix lacks a GMT equivalent of mktime(),
+	so we have to manually convert a date string to seconds since epoch
+*/
 
 // How about gmtime() ?
 
 static time_t date_to_secs(char *datestr)
 {
     static int mon_days[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-//  struct tm acttm;
     time_t basesecs;
     int basedays;
     int year, mon, day, hour, min, sec;
@@ -481,10 +446,6 @@ static time_t date_to_secs(char *datestr)
     }
 
     basesecs = basedays * 86400 + hour * 3600 + min * 60 + sec;
-
-//  memcpy(&acttm, gmtime(&basesecs), sizeof(struct tm));
-//  _fcpLog("datestr = '%s', basedays = %d, basesecs = %ld\n", datestr, basedays, basesecs);
-//  _fcpLog("%04d-%02d-%02d %02d:%02d:%02d\n", acttm.tm_year+1900, acttm.tm_mon+1, acttm.tm_mday, acttm.tm_hour, acttm.tm_min, acttm.tm_sec);
 
     return basesecs;
 }

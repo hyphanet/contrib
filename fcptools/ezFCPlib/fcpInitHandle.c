@@ -16,7 +16,7 @@
 #include "ezFCPlib.h"
 
 
-extern char *_fcpHost;
+extern char _fcpHost[];
 extern int  _fcpPort;
 extern int  _fcpHtl;
 extern int  _fcpRawMode;

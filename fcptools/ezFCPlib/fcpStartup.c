@@ -20,8 +20,8 @@
 */
 
 extern char  _fcpHost[];
-extern char *_pHost;
-extern char *_pProg;
+//extern char *_pHost;
+//extern char *_pProg;
 extern int   _fcpPort;
 extern int   _fcpHtl;
 extern int   _fcpRawMode;
@@ -60,17 +60,8 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   int  n;
   int  len;
 
-  // Create an empty signal set, then add the individual signals we need to
-  // ignore, handle, etc..
-  //sigemptyset( &sigset );
-  //sigaddset( &sigset, SIGPIPE );
-  
-  // Union between current blocked signal set and contents of 'sigset' becomes
-  // the updated set of blocked signals.
-  //sigprocmask(SIG_BLOCK, &sigset, NULL);
- 
   // set global parms
-  strcpy(_fcpHost, (host == NULL) ? EZFCP_DEFAULT_HOST : host);
+  strcpy(_fcpHost, host ? host: EZFCP_DEFAULT_HOST);
   _fcpPort = (port > 0) ? port : EZFCP_DEFAULT_PORT;
   _fcpHtl = (defaultHtl >= 0) ? defaultHtl : EZFCP_DEFAULT_HTL;
   _fcpRawMode = (raw > 0) ? 1 : 0;
@@ -124,4 +115,4 @@ int fcpStartup(char *host, int port, int defaultHtl, int raw, int maxSplitThread
   // success
   return 0;
   
-}       // 'fcpStartup()'
+} // 'fcpStartup()'

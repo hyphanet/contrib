@@ -61,5 +61,3 @@ void fcpSetRegress(HFCP *hfcp, int regress)
     hfcp->regress = regress;
 
 }       // 'fcpDestroyHandle()'
-
-

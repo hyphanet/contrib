@@ -14,12 +14,11 @@
 
 #include "ezFCPlib.h"
 
-
-extern char     *_fcpHost;
-extern int      _fcpPort;
-extern int      _fcpHtl;
-extern int      _fcpRawMode;
-extern char     _fcpID[];
+extern char    _fcpHost[];
+extern int     _fcpPort;
+extern int     _fcpHtl;
+extern int     _fcpRawMode;
+extern char    _fcpID[];
 
 static int      fcpCloseKeyRead(HFCP *hfcp);
 static int      fcpCloseKeyWrite(HFCP *hfcp);
