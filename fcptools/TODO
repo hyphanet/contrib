@@ -23,6 +23,8 @@ ezFCPlib specific
 + Implement SkipDS logic.
 + Add logic for processing Info.Format and Info.Description metadata key/val pairs.
 = Add keygen code.
++ Implement CheckBlockOffset and DataBlockOffset in handling of fec segment headers.
+  (it's causing the java.lang.NumberFormatException messages in the log).
 
 ------
 fcpput
