@@ -76,13 +76,13 @@ void CPropAdvanced::OnBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	UpdateData(TRUE);
 	if (pNMUpDown->iDelta < 0)
 	{
-		m_bandwidthLimit += 1000;
+		m_bandwidthLimit = ((m_bandwidthLimit/1024)*1024) + 1024;
 	}
 	else
 	{
-		if (m_bandwidthLimit >= 1000)
+		if (m_bandwidthLimit >= 1024)
 		{
-			m_bandwidthLimit -= 1000;
+			m_bandwidthLimit = ((m_bandwidthLimit/1024)*1024) - 1024;;
 		}
 	}
 
@@ -99,13 +99,13 @@ void CPropAdvanced::OnOutputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	if (pNMUpDown->iDelta < 0)
 	{
 		m_bandwidthLimit = 0;
-		m_outputBandwidthLimit += 1000;
+		m_outputBandwidthLimit = ((m_outputBandwidthLimit/1024)*1024) + 1024;
 	}
 	else
 	{
-		if (m_outputBandwidthLimit >= 1000)
+		if (m_outputBandwidthLimit >= 1024)
 		{
-			m_outputBandwidthLimit -= 1000;
+			m_outputBandwidthLimit = ((m_outputBandwidthLimit/1024)*1024) - 1024;
 		}
 	}
 	UpdateData(FALSE);
@@ -119,13 +119,13 @@ void CPropAdvanced::OnInputBandwidthLimitspin(NMHDR* pNMHDR, LRESULT* pResult)
 	if (pNMUpDown->iDelta < 0)
 	{
 		m_bandwidthLimit = 0;
-		m_inputBandwidthLimit += 1000;
+		m_inputBandwidthLimit = ((m_inputBandwidthLimit/1024)*1024) + 1024;
 	}
 	else
 	{
-		if (m_inputBandwidthLimit >= 1000)
+		if (m_inputBandwidthLimit >= 1024)
 		{
-			m_inputBandwidthLimit -= 1000;
+			m_inputBandwidthLimit = ((m_inputBandwidthLimit/1024)*1024) - 1024;
 		}
 	}
 	UpdateData(FALSE);
