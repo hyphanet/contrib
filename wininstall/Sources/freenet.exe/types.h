@@ -28,7 +28,4 @@ typedef enum _tagfreenetmode
 } FREENET_MODE;
 
 
-
-
-
 #endif /*FREENET_TRAY_TYPES_H_INCLUDED*/

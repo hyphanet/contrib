@@ -11,7 +11,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 /* startup code: */
 bool OnlyOneInstance(void);
-void Initialise(void);
+BOOL Initialise(void);  /* reads basic settings, also acts on command line */
 void GetAppDirectory(char * szbuffer);
 
 /* Reloading settings from flaunch.ini, etc.  */
@@ -41,4 +41,3 @@ void GetFirstToken(LPSTR szCurrentPointer, LPSTR *pszEndPointer);
 LPSTR GetNextToken(LPSTR szCurrentPointer, const LPSTR szEndPointer);
 void GetToken(LPSTR szCurrentPointer);
 LPSTR SkipSpace(LPSTR szString);
-

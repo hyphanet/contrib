@@ -26,8 +26,14 @@ extern const char szempty[];
 extern const char szWindowClassName[];
 extern const char szAppName[];
 
+extern char szHomeDirectory[MAX_PATH];
 extern char szjavawpath[JAVAWMAXLEN];	/* used to read Javaexec= definition out of FLaunch.ini */
 extern char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out of FLaunch.ini */
+extern char szFserveSeedExec[BUFLEN];		/* used to store "fserve.exe" */
+extern char szFserveSeedCmdPre[BUFLEN];		/* used to store "--seed" */
+extern char szFserveSeedCmdPost[BUFLEN];		/* used to store "" */
+extern char szFserveExportCmdPre[BUFLEN];		/* used to store "--export" */
+extern char szFserveExportCmdPost[BUFLEN];		/* used to store "" */
 
 /*		flags, etc... */
 extern FREENET_MODE nFreenetMode;
@@ -38,13 +44,16 @@ extern FREENET_MODE nFreenetMode;
 /*      systray structure: GLOBAL BECAUSE IT IS UPDATED BY/FROM MULTIPLE THREADS */
 extern NOTIFYICONDATA note;
 
+/*		function pointers  (for runtime linking of platform-specific APIs), etc... */
+extern FARPROC InetIsOffline;
 
 
 /*		lock objects for critical sections */
 enum LOCKCONTEXTS
 {
 	NFREENETMODE=0,
-	SYSTRAY=1
+	SYSTRAY=1,
+	DIALOGBOXES=2
 };
 extern HANDLE * LOCKOBJECTS[];
 
