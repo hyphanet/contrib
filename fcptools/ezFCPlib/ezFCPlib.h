@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+
 /**************************************************************************
   MS-WINDOWS specifics
 **************************************************************************/
@@ -43,11 +44,15 @@
 #define OPEN_MODE_READ  (_O_RDONLY | _O_BINARY)
 #define OPEN_MODE_WRITE 0
 
+#include <sys/time.h>
+#include <unistd.h>
+
 #include <malloc.h>
 #include <process.h>
 #include <winsock.h>
 #include <io.h>
 #include <string.h>
+
 
 /**************************************************************************
   NON MS-WINDOWS (Linux, BSD, ...)
@@ -58,7 +63,7 @@
 #define OPEN_MODE_READ  0
 #define OPEN_MODE_WRITE 0
 
-// Keep <sys/> files first in #include order
+/* Keep 'sys' files first in include order */
 #include <sys/socket.h>
 
 #include <netinet/in.h>
@@ -79,7 +84,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <time.h> 
+/*#include <time.h>*/
+
 
 /*
   Threshold levels for the user-provided fcpLogCallback() function
@@ -262,8 +268,6 @@ typedef struct {
   int dataLength;  /* count of: (metadata + data) */
   int metaLength;  /* number of bytes of metadata */
 
-  //char *metaData; // DEPRACATE
-  //char *metaPtr;  // DEPRACATE
 } FCPRESP_DATAFOUND;
 
 
@@ -321,7 +325,6 @@ typedef struct {
   char    type;
   char   *keyid;     /* malloc */
   char   *path;      /* malloc - only used with SSKs */
-	//char  **docname;           /* DEPRECATE */
   char   *uri_str;   /* malloc - raw uri string */
   int     numdocs;       /* number of documents */
 } FCP_URI;

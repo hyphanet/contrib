@@ -1,9 +1,13 @@
 # Makefile.am for ezFCPlib
 
-#INCLUDES= -I$(top_srcdir)/include
+# Keep these flags since this directory may be used in other projects.
+# KDE for example requires strict ansi compliance (these params actually).
+CFLAGS=-ansi -W -Wall -pedantic
 
-noinst_LIBRARIES = libezfcp.a
-noinst_HEADERS = ezFCPlib.h compat.h
+lib_LTLIBRARIES = libezfcp.la
+libezfcp_la_LDFLAGS = -version-info 0:0:0
+
+include_HEADERS = ezFCPlib.h compat.h
 
 FCP_SOURCE = \
 	_fcpGlobals.c _fcpLog.c _fcpPutSplit.c _fcpReadBlk.c \
@@ -14,6 +18,8 @@ FCP_SOURCE = \
 	fcpOpenKeyIndex.c fcpPutKeyFromFile.c fcpPutKeyFromMem.c \
 	fcpRawMode.c fcpReadKey.c fcpReadKeyIndex.c fcpSetParam.c \
 	fcpStartup.c fcpWriteKey.c fcpWriteKeyIndex.c \
-	metaParse.c mimetype.c template.c safeMalloc.c 
+	metaParse.c mimetype.c template.c safeMalloc.c
 
-libezfcp_a_SOURCES = $(FCP_SOURCE)
+#libezfcp_a_SOURCES = $(FCP_SOURCE)
+libezfcp_la_SOURCES = $(FCP_SOURCE)
+

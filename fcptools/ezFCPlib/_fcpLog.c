@@ -31,7 +31,7 @@ void _fcpLog(int level, char *format, ...)
 {
     char buf[FCP_LOG_MESSAGE_SIZE];
 
-    // thanks mjr for the idea
+    /* thanks mjr for the idea */
     va_list ap;
     va_start(ap, format);
 

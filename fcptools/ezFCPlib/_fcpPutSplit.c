@@ -13,10 +13,10 @@
   Module: _fcpPutSplit
 
   Description:
-    - invoked at ezFCPlib startup
-	 - creates a thread which manages all splitfile inserts
-	   across all threads within the calling process
-	 - manages queueing of splitfile insert jobs
+	- invoked at ezFCPlib startup
+	- creates a thread which manages all splitfile inserts
+	  across all threads within the calling process
+	- manages queueing of splitfile insert jobs
 */
 
 #include "ezFCPlib.h"
@@ -115,7 +115,7 @@ void _fcpInitSplit(int maxSplitThreads)
 	_fcpLog(FCP_LOG_VERBOSE, "_fcpInitSplit: launching splitfile insert manager");
 
 
-	// Launch manager thread
+	/* Launch manager thread */
 	crLaunchThread(splitMgrThread, NULL);
 
 	while (!splitMgrRunning)
@@ -124,19 +124,18 @@ void _fcpInitSplit(int maxSplitThreads)
 	_fcpLog(FCP_LOG_VERBOSE,
 			"_fcpInitSplit: splitfile insert manager now running, max %d threads",
 			maxThreads);
+}
 
-}				// '_fcpInitSplit()
 
+/*
+	Function:    fcpSetSplitSize
 
-//
-// Function:    fcpSetSplitSize
-//
-// Arguments:   hfcp		pointer to FCP handle, created with fcpCreateHandle()
-//				splitsize	size of splitfile chunks, default defined in ezFCPlib.h
-//
-// Description: Sets the number of days to regress in retrying failed date redirects
-//				call with fcpSplitChunkSize=0 to disable splitting of inserted files
-//
+	Arguments:   hfcp		pointer to FCP handle, created with fcpCreateHandle()
+	splitsize	size of splitfile chunks, default defined in ezFCPlib.h
+
+	Description: Sets the number of days to regress in retrying failed date redirects
+	call with fcpSplitChunkSize=0 to disable splitting of inserted files
+*/
 
 void fcpSetSplitSize(_chunkSize)
 {
@@ -144,14 +143,14 @@ void fcpSetSplitSize(_chunkSize)
 }
 
 
-//
-// Function:    fcpSetSplitThreads
-//
-// Arguments:   maxThreads		maximum number of concurrent split threads
-//
-// Description: Must be called before fcpStartup()
-//				sets limit on number of concurrent splitfile insert threads
-//
+/*
+	Function:    fcpSetSplitThreads
+
+	Arguments:   maxThreads		maximum number of concurrent split threads
+
+	Description: Must be called before fcpStartup()
+	sets limit on number of concurrent splitfile insert threads
+*/
 
 void fcpSetSplitThreads(int _maxThreads)
 {
@@ -166,17 +165,17 @@ void fcpSetSplitThreads(int _maxThreads)
 }
 
 
-//
-// fcpInsSplitFile()
-//
-// Enqueue a file for inserting with split
-//
-// Arguments:	hfcp		standard ezFCPlib handle created with fcpCreateHandle()
-//				fileName	pathname of file to insert
-//
-// Returns:		0		if file was successfully split up and inserted
-//				-1		some kind of failure happened (see log)
+/*
+	fcpInsSplitFile()
 
+	Enqueue a file for inserting with split
+
+	Arguments:	hfcp		standard ezFCPlib handle created with fcpCreateHandle()
+	fileName	pathname of file to insert
+
+	Returns:		0		if file was successfully split up and inserted
+	-1		some kind of failure happened (see log)
+*/
 
 int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 {
@@ -215,15 +214,15 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	job->mimeType =(hfcp->mimeType != NULL) ? hfcp->mimeType: GetMimeType(key);
 
 	if (maxThreads > 0) {
-		// enqueue this insert job
+		/* enqueue this insert job */
 		splitAddJob(job);
 		clientThreads++;
 
-		// wait for it to finish
+		/* wait for it to finish */
 		while (job->status != SPLIT_INSSTAT_MANIFEST 
 				&& job->status != SPLIT_INSSTAT_FAILED)
 			crSleep( 1, 0 );
-		// now drop to the bottom to see if it worked.
+		/* now drop to the bottom to see if it worked. */
 	} else {
 
 		char * buf;
@@ -234,7 +233,7 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	
 		
 		for (i=0; i< job->numChunks; i++)
-			job->chunk[i].key[0]=0;  // zero all keys, just to be safe.
+			job->chunk[i].key[0]=0;  /* zero all keys, just to be safe. */
 	
 	
 		for (i=0; i< job->numChunks; i++) {
@@ -269,34 +268,34 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 	
 				} else {
 	
-					strcpy(job->chunk[i].key, hfcp->created_uri);		// correct code
+					strcpy(job->chunk[i].key, hfcp->created_uri);		/* correct code */
 	
 					_fcpLog(FCP_LOG_VERBOSE, "inserted chunk index %d of %s\nkey=%s",
 						i,
 						job->fileName,
 						job->chunk[i].key);
 					break;
-				} // insert successful.
+				} /* insert successful. */
 	
-			} //  retry
+			} /* retry */
 	
 			if (retry==3) {
 				job->status = SPLIT_INSSTAT_FAILED;
 				break;
 			}
 		}
-		// if done, promote to manifest.
-		//
+
+		/* if done, promote to manifest. */
 		if ((i == job->numChunks) && (job->status == SPLIT_INSSTAT_WAITING)) 
 			job->status=SPLIT_INSSTAT_MANIFEST;
 
-		// clean up some
+		/* clean up some */
 		free(buf);
 	}
 
 	close(fd);
 
-	// any good?
+	/* any good? */
 	if (job->status == SPLIT_INSSTAT_FAILED)
 	{
 		_fcpLog(FCP_LOG_NORMAL, "fcpInsSplitFile: insert of '%s' failed", fileName);
@@ -305,35 +304,35 @@ int fcpInsSplitFile(HFCP *hfcp, char *key, char *fileName, char *metaData)
 		return -1;
 	}
 
-	// create a manifest for all the inserted chunks
+	/* create a manifest for all the inserted chunks */
 	_fcpLog(FCP_LOG_VERBOSE, "fcpInsSplitFile: insert of '%s' successful", fileName);
 
-	// insert this manifest
+	/* insert this manifest */
 	result = insertSplitManifest(hfcp, key, metaData, strrchr(fileName, '/'));
 
-	// update status for manager thread
+	/* update status for manager thread */
 	job->status = (result == 0) ? SPLIT_INSSTAT_SUCCESS : SPLIT_INSSTAT_FAILED;
 
 
-	// return to caller
+	/* return to caller */
 	free(job->chunk);
 	clientThreads--;
 
 	return result;
-}					// fcpInsSplitFile()
+}
 
 
-//
-// insertSplitManifest()
-//
-// Called after all split chunks are inserted
-// Creates a manifest file and inserts that
-//
-// Arguments:	hfcp	standard ezFCPlib handle
-//
-// Returns:		0		if successful
-//				-1		if failed
-//
+/*
+	insertSplitManifest()
+
+	Called after all split chunks are inserted
+	Creates a manifest file and inserts that
+	
+	Arguments:	hfcp	standard ezFCPlib handle
+
+	Returns:		0		if successful
+	-1		if failed
+*/
 
 static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file)
 {
@@ -350,50 +349,46 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 
 	runningThreads++;
 
-	// Create mem block for metadata
-    splitManifest = safeMalloc(256 + 1024 * hfcp->split.numChunks);
+	/* Create mem block for metadata */
+	splitManifest = safeMalloc(256 + 1024 * hfcp->split.numChunks);
 
-	// Add header info
-    strcpy(splitManifest, "Version\nRevision=1\nEndPart\nDocument\n");
+	/* Add header info */
+	strcpy(splitManifest, "Version\nRevision=1\nEndPart\nDocument\n");
 
-    sprintf(s, "SplitFile.Size=%x\n", hfcp->split.totalSize);
-    strcat(splitManifest, s);
+	sprintf(s, "SplitFile.Size=%x\n", hfcp->split.totalSize);
+	strcat(splitManifest, s);
 
-    sprintf(s, "SplitFile.BlockCount=%x\n", hfcp->split.numChunks);
-    strcat(splitManifest, s);
+	sprintf(s, "SplitFile.BlockCount=%x\n", hfcp->split.numChunks);
+	strcat(splitManifest, s);
 
-	// Add the chunk records
-    for(i = 0; i < hfcp->split.numChunks; i++)
-    {
-		//printf("### chunk[%d] = %x\n", i, &hfcp->split.chunk[i]);
-		//printf("** hfcp->split.chunk[i].key = '%s'\n", hfcp->split.chunk[i].key);
-        sprintf(s, "SplitFile.Block.%x=%s\n", i + 1, hfcp->split.chunk[i].key);
-        strcat(splitManifest, s);
-    }
+	/* Add the chunk records */
+	for(i = 0; i < hfcp->split.numChunks; i++) {
+		/*printf("### chunk[%d] = %x\n", i, &hfcp->split.chunk[i]);*/
+		/*printf("** hfcp->split.chunk[i].key = '%s'\n", hfcp->split.chunk[i].key);*/
+		sprintf(s, "SplitFile.Block.%x=%s\n", i + 1, hfcp->split.chunk[i].key);
+		strcat(splitManifest, s);
+	}
 
 	if (hfcp->split.mimeType != NULL)
-	    sprintf(s, "Info.Format=%s\n", hfcp->split.mimeType);
+		sprintf(s, "Info.Format=%s\n", hfcp->split.mimeType);
 
-    strcat( splitManifest, s);
-    strcat( splitManifest, "End\n");
+	strcat( splitManifest, s);
+	strcat( splitManifest, "End\n");
 
 	_fcpLog(FCP_LOG_DEBUG, "%s: Inserting manifest:\n%s", file, splitManifest);
 
-	//
-	// is the splitfile manifest too big to insert directly under key?
-	//
+	/* is the splitfile manifest too big to insert directly under key? */
 
-	// skip leading 'freenet:' if any
+	/* skip leading 'freenet:' if any */
 	if (!strncmp(key, "freenet:", 8))
 		key += 8;
 
-	if ((strncmp(key, "CHK@", 4) != 0) && (strlen(splitManifest) > L_KSK))
-	{
-		// insert split manifest as chk, then redirect to it
+	if ((strncmp(key, "CHK@", 4) != 0) && (strlen(splitManifest) > L_KSK)) {
+		/* insert split manifest as chk, then redirect to it */
 		HFCP *hfcp1 = fcpCreateHandle();
 		char redirMeta[256];
 
-		// insert splitfile manifest
+		/* insert splitfile manifest */
 		if (fcpPutKeyFromMem(hfcp1, "CHK@", splitManifest, splitManifest, 0) != 0)
 		{
 			_fcpLog(FCP_LOG_NORMAL, "insertSplitManifest(): failed to insert manifest");
@@ -401,12 +396,12 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 			return -1;
 		}
 
-		// create redirect to this manifest
+		/* create redirect to this manifest */
 		sprintf(redirMeta,
 				"Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",
 				hfcp1->created_uri);
 
-		// Now insert this redirect key
+		/* Now insert this redirect key */
 		if (fcpPutKeyFromMem(hfcp, key, NULL, redirMeta, 0) != 0)
 		{
 			_fcpLog(FCP_LOG_NORMAL, "insertSplitManifest(): failed to insert redirect to split manifest");
@@ -416,7 +411,7 @@ static int insertSplitManifest(HFCP *hfcp, char *key, char *metaData, char *file
 	}
 	else
 	{
-		// insert split manifest directly
+		/* insert split manifest directly */
 		if (fcpPutKeyFromMem(hfcp, key, NULL, splitManifest, 0) != 0)
 		if (0)
 		{
@@ -477,17 +472,17 @@ static void splitMgrThread(void *nothing)
 	int clicks = 0;
 	int breakloop = 0;
 
-	// Indicate we're running
+	/* Indicate we're running */
 	splitMgrRunning = 1;
 
-	// initialise queue
+	/* initialise queue */
 	newJob = NULL;
 	jobQueue = jobQueueEnd = NULL;
 
-	// endless loop, taking care of inserts
+	/* endless loop, taking care of inserts */
 	while (1)
 	{
-		// let things breathe a bit
+		/* let things breathe a bit */
 		crSleep( 1, 0 );
 		breakloop = 0;
 
@@ -496,17 +491,17 @@ static void splitMgrThread(void *nothing)
 			clicks = 0;
 			_fcpLog(FCP_LOG_DEBUG, "%d threads running, %d clients, queue dump follows",
 					runningThreads, clientThreads);
-			//dumpQueue();
+			/*dumpQueue();*/
 		}
 
-		// de-queue any freshly completed or failed jobs
+		/* de-queue any freshly completed or failed jobs */
 		for (tmpJob = jobQueue; tmpJob != NULL; tmpJob = tmpJob->next)
 		{
 			if (tmpJob->status == SPLIT_INSSTAT_BADNEWS)
-				// mark as failed so client thread can pick it up
+				/* mark as failed so client thread can pick it up */
 				tmpJob->status = SPLIT_INSSTAT_FAILED;
 
-			// skip if we haven't reached a completion state
+			/* skip if we haven't reached a completion state */
 			if (tmpJob->status != SPLIT_INSSTAT_SUCCESS
 				&& tmpJob->status != SPLIT_INSSTAT_FAILED
 				&& tmpJob->doneChunks < tmpJob->numChunks
@@ -516,22 +511,22 @@ static void splitMgrThread(void *nothing)
 				continue;
 			}
 
-			// job at tmpJob is complete, dequeue it
+			/* job at tmpJob is complete, dequeue it */
 			_fcpLog(FCP_LOG_DEBUG, "Queue dump: before ditching job for '%s'",
 					tmpJob->fileName);
 			dumpQueue();
 
-			// is this job done?
+			/* is this job done? */
 			if (tmpJob->doneChunks >= tmpJob->numChunks
 				&& tmpJob->status == SPLIT_INSSTAT_INPROG)
-				// yes - promote to 'manifest' stage so client thread can pick it up
+				/* yes - promote to 'manifest' stage so client thread can pick it up */
 				tmpJob->status = SPLIT_INSSTAT_MANIFEST;
 				prevJob = tmpJob;
 
-			// now de-queue it
+				/* now de-queue it */
 			if (tmpJob == jobQueue)
 			{
-				// trivial case - we're at head of queue
+				/* trivial case - we're at head of queue */
 				tmpJob = jobQueue = jobQueue->next;
 				if (jobQueue == NULL)
 				{
@@ -541,11 +536,11 @@ static void splitMgrThread(void *nothing)
 			}
 			else
 			{
-				// use 'prev' ptr to unlink this job
+				/* use 'prev' ptr to unlink this job */
 				prevJob->next = tmpJob->next;
 				if (tmpJob == jobQueueEnd)
-					// we're ditching last in queue, so we need to
-					// point jobQueueEnd to previous item
+					/* we're ditching last in queue, so we need to
+						 point jobQueueEnd to previous item */
 					jobQueueEnd = prevJob;
 			}
 
@@ -553,12 +548,12 @@ static void splitMgrThread(void *nothing)
 			dumpQueue();
 		}
 
-		// Check for any new jobs
+		/* Check for any new jobs */
 		if (newJob != NULL)
 		{
 			splitJobIns *temp = newJob->next;
 
-			// Add this job to main queue
+			/* Add this job to main queue */
 			_fcpLog(FCP_LOG_DEBUG, "splitMgrThread: got req to insert file '%s'",
 					newJob->fileName);
 
@@ -583,26 +578,22 @@ static void splitMgrThread(void *nothing)
 			continue;
 		}
 
-		// No more to do if thread quota is maxed out
+		/* No more to do if thread quota is maxed out */
 		if (runningThreads >= maxThreads)
 			continue;
 
-		//if (jobQueue == NULL)
-		//	_fcpLog(FCP_LOG_DEBUG, "Job queue is empty");
-		//_fcpLog(FCP_LOG_DEBUG, "splitMgrThread: looking for next chunk to insert");
-
-		// We have spare thread slots - search for next chunk insert job to launch
+		/* We have spare thread slots - search for next chunk insert job to launch */
 		for (tmpJob = jobQueue; tmpJob != NULL && !breakloop; tmpJob = tmpJob->next)
 		{
 			int i;
 
-			// everything on queue is incomplete
+			/* everything on queue is incomplete */
 			for (i = 0; i < tmpJob->numChunks; i++)
 			{
 				splitChunkIns *chunk = &tmpJob->chunk[i];
 				char *buf;
 
-				// bail if we've maxed out thread limit
+				/* bail if we've maxed out thread limit */
 				if (runningThreads >= maxThreads)
 					continue;
 
@@ -610,7 +601,7 @@ static void splitMgrThread(void *nothing)
 				{
 					chunkThreadParams *params = safeMalloc(sizeof(chunkThreadParams));
 
-					chunk->status = SPLIT_INSSTAT_INPROG;		// correct code
+					chunk->status = SPLIT_INSSTAT_INPROG;		/* correct code */
 
 					if (i + 1 < tmpJob->numChunks)
 						chunk->size = fcpSplitChunkSize;
@@ -621,8 +612,8 @@ static void splitMgrThread(void *nothing)
 					params->chunk->index = i;
 					params->key = tmpJob;
 
-					// load in a chunk of the key
-					// create a buf, and read in the part of the file
+					/* load in a chunk of the key
+						 create a buf, and read in the part of the file */
 					buf = safeMalloc(fcpSplitChunkSize);
 					params->chunk->chunk = buf;
 
@@ -632,10 +623,10 @@ static void splitMgrThread(void *nothing)
 					_fcpLog(FCP_LOG_DEBUG, "splitmgr: launching thread for chunk %d, file %s",
 							i, params->key->fileName);
 
-					// fire up a thread to insert this chunk
+					/* fire up a thread to insert this chunk */
 					if (crLaunchThread(chunkThread, params) != 0)
 					{
-						// failed thread launch - force restart of main loop
+						/* failed thread launch - force restart of main loop */
 						_fcpLog(FCP_LOG_CRITICAL, "thread launch failed: chunk %d, file %s",
 								i, params->key->fileName);
 						breakloop = 1;
@@ -647,7 +638,7 @@ static void splitMgrThread(void *nothing)
 					else
 						chunk->status = SPLIT_INSSTAT_INPROG;
 
-					// Successful launch - Add to tally of running threads
+					/* Successful launch - Add to tally of running threads */
 					runningThreads++;
 				}
 			}				/* for each splitfile chunk */
@@ -717,11 +708,11 @@ static int dumpQueue()
 }
 
 
-//
-// chunkThread()
-//
-// Thread to insert a single chunk
-//
+/*
+	chunkThread()
+
+	Thread to insert a single chunk
+*/
 
 static void chunkThread(void *params)
 {
@@ -730,7 +721,7 @@ static void chunkThread(void *params)
   HFCP *hfcp = fcpCreateHandle();
   int mypid = getpid();
 
-  // eliminates ANSI-C "incompatible pointer type" warning
+  /* eliminates ANSI-C "incompatible pointer type" warning */
   chunkThreadParams *chunkParams = (chunkThreadParams *)params;
 
 
@@ -761,7 +752,7 @@ static void chunkThread(void *params)
 	chunkParams->chunk->status = SPLIT_INSSTAT_MANIFEST;
 	chunkParams->key->doneChunks++;
 
-	strcpy(chunkParams->chunk->key, hfcp->created_uri);		// correct code
+	strcpy(chunkParams->chunk->key, hfcp->created_uri); /* correct code */
 
 	_fcpLog(FCP_LOG_VERBOSE, "%d:chunkThread: inserted chunk index %d of %s\nkey=%s",
 			mypid,
@@ -773,7 +764,7 @@ static void chunkThread(void *params)
 	free(chunkParams);
 	fcpDestroyHandle(hfcp);
 
-	// only decrement thread count if we're not ready to write the manifest
+	/* only decrement thread count if we're not ready to write the manifest */
 	runningThreads--;
 	_fcpLog(FCP_LOG_DEBUG, "%d:chunkThread: %d threads now running",
 			mypid, runningThreads);

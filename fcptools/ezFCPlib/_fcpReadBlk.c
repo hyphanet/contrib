@@ -31,79 +31,79 @@
 
 int _fcpReadBlk(HFCP *hfcp, char *buf, int len)
 {
-  //char  *ptr = buf;
   char    *tmp0, *tmp1, *tmpend;
   int     needed = len;
 
-  // if there's anything sitting in buffer, add it
+  /* if there's anything sitting in buffer, add it */
   if ((tmp0 = hfcp->conn.response.body.datachunk.data) != NULL) {
 	 tmp1 = hfcp->conn.response.body.datachunk.dataptr;
 	 tmpend = hfcp->conn.response.body.datachunk.dataend;
 	 
-	 // copy available data, or reqd data, whichever is smaller
+	 /* copy available data, or reqd data, whichever is smaller */
 	 if (tmpend - tmp1 >= needed) {
-		// trivial - got enough in buffer
-		memcpy(buf, tmp1, needed);
-		hfcp->conn.response.body.datachunk.dataptr += needed;
+
+		 /* trivial - got enough in buffer */
+		 memcpy(buf, tmp1, needed);
+		 hfcp->conn.response.body.datachunk.dataptr += needed;
 		
-		// didch block if it's exhausted
-		if (tmpend - tmp1 == needed) {
-		  free(hfcp->conn.response.body.datachunk.data);
-		  hfcp->conn.response.body.datachunk.data = NULL;
-		}
-		
-		return needed;      // all done - see ya next time
+		 /* didch block if it's exhausted */
+		 if (tmpend - tmp1 == needed) {
+			 free(hfcp->conn.response.body.datachunk.data);
+			 hfcp->conn.response.body.datachunk.data = NULL;
+		 }
+		 
+		 return needed;      /* all done - see ya next time */
 	 }
 	 
-	 // non-trivial - we need to drain what we have, then get some more
+	 /* non-trivial - we need to drain what we have, then get some more */
 	 memcpy(buf, tmp1, tmpend - tmp1);
 	 hfcp->conn.response.body.datachunk.dataptr += tmpend - tmp1;
 	 buf += tmpend - tmp1;
 	 needed -= tmpend - tmp1;
 	 
-	 // ditch the data pointer
+	 /* ditch the data pointer */
 	 free(hfcp->conn.response.body.datachunk.data);
 	 hfcp->conn.response.body.datachunk.data = NULL;
 	 
-  }   // drop thru
+  } /* drop thru */
 
 
-  // read fresh data - XXXXXXXXXXXXXXXX - fix all this!!!
+  /* read fresh data - XXXXXXXXXXXXXXXX - fix all this!!! */
   while (needed > 0) {
+		
+		/* try to pull a DataChunk message */
+		if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATACHUNK) {
+			
+			/*free(hfcp->conn.response.body.datachunk.data);*/
+			hfcp->conn.response.body.datachunk.data = NULL;
+			break;
+		}
+		if (hfcp->conn.response.body.datachunk.length >= needed) {
+			
+			/* easy case - we've got enough data */
+			memcpy(buf, hfcp->conn.response.body.datachunk.dataptr, needed);
+			hfcp->conn.response.body.datachunk.dataptr += needed;
+			needed = 0;
+		} else {
+			/* pain in the ass - grab and everything in this datachunk */
+			memcpy(buf,
+						 hfcp->conn.response.body.datachunk.dataptr,
+						 hfcp->conn.response.body.datachunk.length);
+			needed -= hfcp->conn.response.body.datachunk.length;
+			buf += hfcp->conn.response.body.datachunk.length;
+			
+			/* turf this data */
+			free(hfcp->conn.response.body.datachunk.data);
+			hfcp->conn.response.body.datachunk.data = NULL;
+		}
 	 
-	 // try to pull a DataChunk message
-	 if (_fcpRecvResponse(hfcp) != FCPRESP_TYPE_DATACHUNK) {
-		
-		//free(hfcp->conn.response.body.datachunk.data);
-		hfcp->conn.response.body.datachunk.data = NULL;
-		break;
-	 }
-	 if (hfcp->conn.response.body.datachunk.length >= needed) {
-		
-		// easy case - we've got enough data
-		memcpy(buf, hfcp->conn.response.body.datachunk.dataptr, needed);
-		hfcp->conn.response.body.datachunk.dataptr += needed;
-		needed = 0;
-	 } else {
-		// pain in the ass - grab and everything in this datachunk
-		memcpy(buf,
-				 hfcp->conn.response.body.datachunk.dataptr,
-				 hfcp->conn.response.body.datachunk.length);
-		needed -= hfcp->conn.response.body.datachunk.length;
-		buf += hfcp->conn.response.body.datachunk.length;
-		
-		// turf this data
-		free(hfcp->conn.response.body.datachunk.data);
-		hfcp->conn.response.body.datachunk.data = NULL;
-	 }
-	 
-	 // ditch data if it's exhausted
-	 if (hfcp->conn.response.body.datachunk.dataptr >= \
-		  hfcp->conn.response.body.datachunk.dataend) {
-		free(hfcp->conn.response.body.datachunk.data);
-		hfcp->conn.response.body.datachunk.data = NULL;
-	 }
+		/* ditch data if it's exhausted */
+		if (hfcp->conn.response.body.datachunk.dataptr >=
+				hfcp->conn.response.body.datachunk.dataend) {
+			free(hfcp->conn.response.body.datachunk.data);
+			hfcp->conn.response.body.datachunk.data = NULL;
+		}
   }
   
   return len - needed;
-}       // '_fcpReadBlk()'
+} /* '_fcpReadBlk()' */
