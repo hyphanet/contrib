@@ -1,5 +1,4 @@
-#include "\masm32\include\resource.h"
-#include "d:\masm32\freenet\rsrc.h"
+#include "rsrc.h"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -9,6 +8,8 @@
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-500                     ICON    DISCARDABLE     "Freenet.ico"
-501                     ICON    DISCARDABLE     "noFnet.ico"
+IDI_HOPSENABLED         ICON    DISCARDABLE     "Freenet.ico"
+IDI_HOPSDISABLED        ICON    DISCARDABLE     "noFnet.ico"
+IDI_ALERT               ICON    DISCARDABLE     "alert.ico"
+IDI_RESTARTING          ICON    DISCARDABLE     "restart.ico"
 /////////////////////////////////////////////////////////////////////////////
