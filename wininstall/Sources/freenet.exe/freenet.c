@@ -76,13 +76,11 @@ const char szprioritykey[]="Priority"; /* ie Priority=0 */
 const int  nDefaultPriority = THREAD_PRIORITY_NORMAL;
 const char szpriorityclasskey[]="PriorityClass"; /* ie PriorityClass=32 */
 const int  nDefaultPriorityClass = NORMAL_PRIORITY_CLASS;
-const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Node */
-const char szfserveclidefaultexec[]="Freenet.node.gui.GUINode"; /* default for above */
+const char szfservecliexeckey[]="fservecli"; /* ie Fservecli=Freenet.node.Main */
+const char szfserveclidefaultexec[]="freenet.node.Main"; /* default for above */
 const char szfconfigexeckey[]="fconfig"; /* ie Fconfig=Freenet.node.gui.Config */
-const char szfconfigdefaultexec[]="Freenet.node.gui.Config freenet.ini"; /* default for above */
+const char szfconfigdefaultexec[]="NodeConfig.exe"; /* default for above */
 const char szfconfigisjavakey[]="fconfigUseJava"; /* ie fconfigUseJava=0 to run fconfigexec as an app, or fconfigUseJava=1 to run "java %fconfigexec%" */
-const char szfseedexeckey[]="FSeed"; /* ie FSeed="fserve.exe" */
-const char szfseeddefaultexec[]="fserve.exe";
 const char szfseedcmdprekey[]="seedcmdpre"; /* ie seedcmdpre="--seed" */
 const char szfseeddefaultprecmd[]="--seed";
 const char szfseedcmdpostkey[]="seedcmdpost"; /* ie seedcmdpost="" */
@@ -92,11 +90,13 @@ const char szfseeddefaultexportprecmd[]="--export";
 const char szfseedexportcmdpostkey[]="exportcmdpost"; /* ie exportcmdpost="" */
 const char szfseeddefaultexportpostcmd[]="";
 const char* szTempDirs[]={"FECTempDir","mainport.params.servlet.1.params.tempDir","tempDir",NULL}; /* ie FECTempDir=C:\windows\temp\freenet , etc*/ 
+const char szClasspathExtraKey[]="Classpath Extra"; /* ie ClasspathExtra="F:\Something\Whatsit.jar" "G:\SomethingElse\Doodad.jar" */
 
 /* string constants for use with the freenet.ini file */
 const char szfinifile[]="./freenet.ini"; /* ie name of file */
 const char szfinisec[]="Freenet node"; /* ie [Freenet node] subsection text */
-const char szfprxkey[]="mainport.port"; /* ie mainport.port=8081 */
+const char szfprxkey[]="mainport.port"; /* ie mainport.port=8888 */
+const char szfprxdefaultvalue[]="8888"; 
 
 /* for launching configuration dll */
 const char szConfigDLLName[]="config.dll"; /* ie name of file */
@@ -122,14 +122,14 @@ char szHomeDirectory[MAX_PATH];		/* used to store the directory in which freenet
 
 char szjavapath[JAVAWMAXLEN];		/* used to read Javaexec= definition out of FLaunch.ini */
 char szjavawpath[JAVAWMAXLEN];		/* used to read Javaw= definition out of FLaunch.ini */
-char szfservecliexec[BUFLEN];			/* used to read Fservecli= definition out of FLaunch.ini */
+char szfservecliexec[BUFLEN];		/* used to read Fservecli= definition out of FLaunch.ini */
 char szfconfigexec[BUFLEN];			/* used to read Fconfig= definition out of FLaunch.ini */
-char szFserveSeedExec[BUFLEN];		/* used to store "fserve.exe" */
-char szFserveSeedCmdPre[BUFLEN];		/* used to store "--seed" */
-char szFserveSeedCmdPost[BUFLEN];		/* used to store "" */
-char szFserveExportCmdPre[BUFLEN];		/* used to store "--export" */
-char szFserveExportCmdPost[BUFLEN];		/* used to store "" */
-char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8081" after the 8081 bit has been read from freenet.ini */
+char szFserveSeedCmdPre[BUFLEN];	/* used to store "--seed" */
+char szFserveSeedCmdPost[BUFLEN];	/* used to store "" */
+char szFserveExportCmdPre[BUFLEN];	/* used to store "--export" */
+char szFserveExportCmdPost[BUFLEN];	/* used to store "" */
+char szgatewayURI[GATEWLEN];		/* used to store "http://127.0.0.1:8888" after the 8888 bit has been read from freenet.ini */
+char szClasspathExtra[65536];       /* used to store additional jars to put into the CLASSPATH env variable */
 
 /*		flags, etc... */
 FREENET_MODE nFreenetMode=FREENET_STOPPED;
@@ -504,21 +504,22 @@ BOOL ParseCommandLine (char * szCommandLinePtr)
 	return TRUE;
 }
 
-
-
-/* One-time initialisation - ONLY DO THIS ONCE.  'refreshing settings' is performed by calling ReloadSettings */
-BOOL Initialise(void)
+void SetClasspathEnvForThisThread(void)
 {
-	char szbuffer[MAX_PATH*2+2048];
+	char szbuffer[MAX_PATH*2+2048+65536];
 	char szShortPathbuffer[MAX_PATH+1];
 	DWORD getenv;
 	DWORD buffersize,dwStrlen;
 	char dummy[1];
+
 	char *szCLASSPATH;
 
-	GetAppDirectory(szHomeDirectory);
+	/* set the current directory to the path name so we can use GetProfile commands in the current directory */
+	SetCurrentDirectory(szHomeDirectory);
+	/* Get any additional CLASSPATH jars specified by the user in the .ini file:  */
+	GetPrivateProfileString(szflsec, szClasspathExtraKey, szempty, szClasspathExtra, 65536, szflfile);
+
 	lstrcpy(szbuffer,szHomeDirectory);
-	SetCurrentDirectory(szbuffer);
     GetShortPathName(szbuffer, szShortPathbuffer, sizeof(szShortPathbuffer)-1);
 
 	/* set up the environment variable for CLASSPATH: */
@@ -530,9 +531,14 @@ BOOL Initialise(void)
    	lstrcat(szbuffer,"\\");
     lstrcat(szbuffer,szFreenetExtJar);
 
-    /* simply add the external helper .jar for now, ideally we  want to append the path name to it as well;*/
+	if (lstrlen(szClasspathExtra))
+	{
+		lstrcat(szbuffer,";");
+		lstrcat(szbuffer,szClasspathExtra);
+	}
+
 	dwStrlen = lstrlen(szbuffer);
-	/* buffer now holds, e.g., "G:\Progra~1\Freenet\Freenet.jar" 
+	/* buffer now holds, e.g., "G:\Progra~1\Freenet\Freenet.jar;G:\Progra~1\Freenet\Freenet-ext.jar" 
 		where G:\Program Files\Freenet in this example is the current directory */
 	/* dwStrlen equals the length of this string */
 	/* bump up the size of dwStrlen to account for the fact that we need to add
@@ -609,10 +615,19 @@ BOOL Initialise(void)
 		}
 	}
 
+	WinExec("cmd.exe", SW_NORMAL);
+}
+
+/* One-time initialisation - ONLY DO THIS ONCE.  'refreshing settings' is performed by calling ReloadSettings */
+BOOL Initialise(void)
+{
+	GetAppDirectory(szHomeDirectory);
+	SetCurrentDirectory(szHomeDirectory);
+
+	SetClasspathEnvForThisThread();
 
 	/*  Load in settings from flaunch.ini etc.  */
 	ReloadSettings();
-
 
 	/* Map the InetIsOffline function from shell32.dll (winme/2k/xp/etc) or url.dll(win9x) */
 	hURLDLL = LoadLibrary("shell32.dll");
@@ -712,10 +727,6 @@ void ReloadSettings(void)
 		}
 	}
 
-	/* get the fserve launch string from flaunch.ini */
-	GetPrivateProfileString(szflsec, szfseedexeckey, szfseeddefaultexec, szbuffer, BUFLEN, szflfile);
-	/* convert to short filename format, because we want one SIMPLE string for exe path */
-	GetShortPathName(szbuffer, szFserveSeedExec, sizeof(szFserveSeedExec) );
 	/* get the fserve seed command string from flaunch.ini */
 	GetPrivateProfileString(szflsec, szfseedcmdprekey, szfseeddefaultprecmd, szFserveSeedCmdPre, BUFLEN, szflfile);
 	GetPrivateProfileString(szflsec, szfseedcmdpostkey, szfseeddefaultpostcmd, szFserveSeedCmdPost, BUFLEN, szflfile);
@@ -730,7 +741,7 @@ void ReloadSettings(void)
 	/* form the gateway string - the "http://127.0.0.1:" is constant */
 	lstrcpy(szgatewayURI, szgatewayURIdef);
 	/* then append the port number of fproxy, looked up from freenet.ini */
-	GetPrivateProfileString(szfinisec, szfprxkey, szempty, szgatewayURI+lstrlen(szgatewayURI), 6, szfinifile);
+	GetPrivateProfileString(szfinisec, szfprxkey, szfprxdefaultvalue, szgatewayURI+lstrlen(szgatewayURI), 6, szfinifile);
 }
 
 
