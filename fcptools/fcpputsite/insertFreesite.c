@@ -72,8 +72,6 @@ int writekey(SiteFile * file) {
 	FILE * nfp;
 	char buf[1024];
 	char nfp_n[1024];
-	char *key;
-	char *s_time;
 	char *filename;
 
 	if (file->insertStatus != INSERT_FILE_SAVEDATA)
@@ -131,7 +129,6 @@ int freshen_files(SiteFile * file, int numfiles)
 	SiteFile ** sf;
 	FILE *fp;
 	int i;
-	int touched;
 	char *chk;
 	char *filename;
 	char buf[1024];
@@ -185,7 +182,7 @@ int freshen_files(SiteFile * file, int numfiles)
 				sscanf(s_size, "%08x", &size);
 				if ((tf->ctime==ctime) && 
 						((tf->size < (256 * 1024)) ||
-						(size == tf->size)))
+						(size == (unsigned int)tf->size)))
 				{
 					if  (tf->insertStatus != INSERT_FILE_DONE)
 					{
@@ -311,7 +308,7 @@ int insertFreesite(PutSiteOptions * _opts)
 			if (files[firstWaitingFile].insertStatus == INSERT_FILE_SAVEDATA)
 				{
 					writekey(files + firstWaitingFile);
-					files[firstWaitingFile].insertStatus == INSERT_FILE_DONE;
+					files[firstWaitingFile].insertStatus = INSERT_FILE_DONE;
 				}
 
 			if (files[firstWaitingFile].insertStatus != INSERT_FILE_DONE)
@@ -424,7 +421,6 @@ int insertFreesite(PutSiteOptions * _opts)
 
 		char dbrRootUri[128];
 		char dbrTargetUri[128];
-		char mapChkUri[128];
 
 		int mapLen;
 		HFCP *hfcp;

@@ -10,7 +10,10 @@
 #include "ezFCPlib.h"
 #include "compat.h"
 
+#ifndef WINDOWS
 #include <unistd.h>
+#endif
+
 #include <stdio.h>
 
 #define MAXRETRIES 10
@@ -85,7 +88,7 @@ int main(int argc, char* argv[])
     if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, maxthreads) != 0)
         return 1;
 
-    /* create an FCP handle
+    /* create an FCP handle */
     hfcp = fcpCreateHandle();
     fcpSetHtl(hfcp, htlVal);
 
@@ -260,6 +263,7 @@ static void *usage(char *s)
     printf("             default is 2\n");
     printf("-t nb:       number of blocks to insert at the same time, default is 8\n");
     printf("-s partsize: size of each chunk, in KB\n");
+
     printf("key          a Freenet key URI [freenet:]XXX@blah[/blah][/*[path]]\n");
     printf("file         a file to take key data from - uses stdin if no filename\n");
     exit(-1);

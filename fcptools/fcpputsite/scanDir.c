@@ -11,10 +11,9 @@
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
 
-#include <unistd.h>
-
 #ifndef WINDOWS
 #include <dirent.h>
+#include <unistd.h>
 #endif
 
 /*
@@ -139,8 +138,14 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
         strcat(subpath, dirEntry->d_name);
 #endif
         stat(subpath, &fileStat);
-	if ( S_ISDIR(fileStat.st_mode) )
-        {
+
+/* Bad kluge until I think of something better */
+#ifdef WINDOWS
+		if ( fileStat.st_mode == _S_IFDIR )
+#else
+		if ( S_ISDIR(fileStat.st_mode) )
+#endif
+		{
 					/* directory - recurse into it */
             filelist_temp = scan_dir_recurse(subpath, filelist);
             filelist = filelist_temp;

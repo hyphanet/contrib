@@ -18,7 +18,8 @@
 #define FCPPUTSITE_INSERT_THREADS  5
 #define FCPPUTSITE_DEFAULT_FILE    "index.html"
 
-typedef struct
+typedef struct _sitefile SiteFile;
+struct _sitefile
 {
 	char    filename[MAXFILELEN];   /* obvious */
 	char    relpath[MAXFILELEN];    /* relative path for URL purposes */
@@ -28,8 +29,8 @@ typedef struct
 	int		size;					            /* size of file */
 	int     insertStatus;
 	int		retries;
-	struct _sitefile *next;         /* next file in chain */
-} SiteFile;
+	SiteFile	*next;         /* next file in chain */
+};
 
 typedef struct
 {

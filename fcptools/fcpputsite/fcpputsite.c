@@ -5,13 +5,17 @@
 	CopyLeft () 2001 by David McNab
 */
 
-#include <unistd.h>
-
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
 
 #define _GNU_SOURCE
 #include "getopt.h"
+
+#ifndef WINDOWS
+#include <unistd.h>
+#endif
+
+#include <stdio.h>
 
 /*
 	PRIVATE DECLARATIONS
@@ -66,7 +70,6 @@ int main(int argc, char* argv[])
 		_fcpLog(FCP_LOG_CRITICAL, "Unable to connect with Freenet node's FCP interface\n");
 		return 1;
 	}
-	fcpSetDelete(dodelete);
 
 	// Does the user just want a keypair?
 	if (genKeypair)

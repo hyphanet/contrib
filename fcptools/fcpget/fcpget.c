@@ -5,14 +5,15 @@
 */
 
 
-#include "ezFCPlib.h"
-
 #include <sys/stat.h>
+
+#include "ezFCPlib.h"
 
 #define _GNU_SOURCE
 #include "getopt.h"
 
 #include <fcntl.h>
+#include <stdio.h>
 
 int fcpLogCallback(int level, char *buf);
 
@@ -41,12 +42,11 @@ int   verbosity = FCP_LOG_NORMAL;
 
 int main(int argc, char* argv[])
 {
-    HFCP *hfcp;
+	HFCP *hfcp;
     char buf[1024];
     int count;
     int fd;
 
-    void *blk;
     int numtimes = 3;
     int i;
 
@@ -56,112 +56,101 @@ int main(int argc, char* argv[])
     /* try and fire up FCP library */
     _fcpLog(FCP_LOG_VERBOSE, "Attempting secret handshake with %s:%d", nodeAddr, nodePort);
 
-    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, 0) != 0)
-    {
-        _fcpLog(FCP_LOG_CRITICAL, "Failed to connect to node - aborting");
-        return 1;
+    if (fcpStartup(nodeAddr, nodePort, htlVal, rawMode, 0) != 0) {
+	_fcpLog(FCP_LOG_CRITICAL, "Failed to connect to node - aborting");
+	return 1;
     }
 
     _fcpLog(FCP_LOG_VERBOSE, "Successfully connected to node");
 
-		/* create an FCP handle */
-		hfcp=fcpCreateHandle();
-		fcpSetHtl(hfcp, htlVal);
-    
-		/* repeat many times - hunting mem leaks */
+	/* create an FCP handle */
+	hfcp = fcpCreateHandle();
+	fcpSetHtl(hfcp, htlVal);
+
+	/* repeat many times - hunting mem leaks */
     for (i = 0; i < numtimes; i++) {
-			int res;
-			/* try to get the key open */
-			_fcpLog(FCP_LOG_VERBOSE, "Trying to open '%s'", keyUri);
-			res=fcpOpenKey(hfcp, keyUri, 
-										 (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0)));
-			if (res != 0)
-				_fcpLog(FCP_LOG_CRITICAL, "Failed to open '%s', retry %d", 
-								keyUri, i);
-			else
-				break;
-		}
-		if (i<numtimes) {
-    
-			/* output key data, if any */
-        if (hfcp->keysize > 0)
-        {
-					/* nuke file if it exists */
-            if (keyFile[0])
-            {
-                unlink(keyFile);
+		int res;
+
+		/* try to get the key open */
+		_fcpLog(FCP_LOG_VERBOSE, "Trying to open '%s'", keyUri);
+		res = fcpOpenKey(hfcp, keyUri, (_FCP_O_READ | (hfcp->raw ? _FCP_O_RAW : 0)));
+
+		if (res != 0)
+			_fcpLog(FCP_LOG_CRITICAL, "Failed to open '%s', retry %d", keyUri, i);
+		else
+			break;
+	}
+
+	if (i<numtimes) {
+
+		/* output key data, if any */
+		if (hfcp->keysize > 0) {
+
+			/* nuke file if it exists */
+	    if (keyFile[0]) {
+				unlink(keyFile);
+
 #ifdef WINDOWS
-                /* open a file to write the key to */
-                if ((fd = open(keyFile, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0)
-                {
-                    printf("Cannot create file '%s'\n", keyFile);
-                    return -1;
-                }
-#else
-                /* open a file to write the key to */
-                if ((fd = open(keyFile, O_CREAT| O_WRONLY, S_IRUSR | S_IWUSR)) < 0)
-                {
-                    printf("Cannot create file '%s'\n", keyFile);
-                    return -1;
-                }
-#endif
-            }
-            else
-                fd = 1;
-    
-            /* suck all of key's data into this file */
-            while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
-                write(fd, buf, count);
-
-            if (fd != 1)
-                close(fd);
+		/* open a file to write the key to */
+		if ((fd = open(keyFile, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0) {
+		    printf("Cannot create file '%s'\n", keyFile);
+		    return -1;
 		}
+#else
+		/* open a file to write the key to */
+		if ((fd = open(keyFile, O_CREAT| O_WRONLY, S_IRUSR | S_IWUSR)) < 0) {
+		    printf("Cannot create file '%s'\n", keyFile);
+		    return -1;
+		}
+#endif
+	    } /* if (keyFile[0]) */
+	    else
+		fd = 1; /* I believe fd==1 is STDOUT */
 
-        if (hfcp->rawMetadata)
-        {
+	    /* suck all of key's data into this file */
+	    while ((count = fcpReadKey(hfcp, buf, 1024)) > 0)
+		write(fd, buf, count);
 
-            if (metaFile[0])
-            {
+	    if (fd != 1) close(fd);
+		} /* if (hfcp->keysize > 0) */
+
+	if (hfcp->rawMetadata) {
+
+	    if (metaFile[0]) {
 				if ((metaFile[0]== '-') && (metaFile[1]=='\0'))
-					fd=1;
+					fd = 1;
+
 				else {
 					/* nuke file if it exists */
-	                unlink(metaFile);
+			unlink(metaFile);
 #ifdef WINDOWS
-									/* open a file to write the key to */
-			        if ((fd = open(metaFile, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0)
-				    {
+					/* open a file to write the key to */
+				if ((fd = open(metaFile, _O_CREAT | _O_RDWR | _O_BINARY, _S_IREAD | _S_IWRITE)) < 0) {
 					    printf("Cannot create file '%s'\n", metaFile);
 					    return -1;
 					}
 #else
-							/* open a file to write the key to */
-					if ((fd = open(metaFile, O_CREAT| O_WRONLY, S_IREAD | S_IWRITE)) < 0)
-					{
+					/* open a file to write the key to */
+					if ((fd = open(metaFile, O_CREAT| O_WRONLY, S_IREAD | S_IWRITE)) < 0) {
 							printf("Cannot create file '%s'\n", metaFile);
 					     return -1;
 					}
-				}
 #endif
+				}
 				/* suck all of key's data into this file */
 				write(fd, hfcp->rawMetadata, strlen(hfcp->rawMetadata));
 
-				if(fd != 1)
-					close(fd);
-            }
-    
+				if(fd != 1) close(fd);
+			} /* if (metaFile[0]) */
+	} /* if (hfcp->rawMetadata) */
 
-    
-        }
-    
-        /* all done */
-        fcpCloseKey(hfcp);
-        fcpDestroyHandle(hfcp);
+	/* all done */
+	fcpCloseKey(hfcp);
+	fcpDestroyHandle(hfcp);
 
-    }
+    } /* if (i<numtimes) */
 
     return 0;
-
 }
 
 /* IMPORTANT
@@ -198,7 +187,7 @@ static void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if (i > 0) nodePort = i;
       break;
-      
+
     case 'l':
       i = atoi( optarg );
       if (i > 0) htlVal = i;
@@ -208,24 +197,24 @@ static void parse_args(int argc, char *argv[])
       i = atoi( optarg );
       if (i > 0) regress = i;
       break;
-      
+
     case 'r':
       rawMode = 1;
       break;
-      
+
     case 'm':
       strncpy( metaFile, optarg, L_FILENAME );
       break;
-      
+
     case 'v':
       i = atoi( optarg );
       if ((i >= 0) && (i <= 4)) verbosity = i;
       break;
-      
+
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
       exit(0);
-      
+
     case 'h':
       usage(0);
       break;
@@ -254,20 +243,20 @@ static void usage(char *s)
 
     printf("Options:\n\n");
     printf("  -n, --address host     Freenet node address (default \"%s\")\n", EZFCP_DEFAULT_HOST);
-    printf("  -p, --port num         Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
-    printf("  -l, --htl num          Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
-		printf("  -e, --regress num      Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
-    printf("  -r, --raw              Raw mode - don't follow redirects\n\n");
+    printf("  -p, --port num	     Freenet node port (default %d)\n", EZFCP_DEFAULT_PORT);
+    printf("  -l, --htl num	     Hops to live (default %d)\n", EZFCP_DEFAULT_HTL);
+		printf("  -e, --regress num	 Number of days to regress (default %d)\n", EZFCP_DEFAULT_REGRESS);
+    printf("  -r, --raw 	     Raw mode - don't follow redirects\n\n");
 
     printf("  -m, --metadata file    Write key's metadata to file (default \"stdout\")\n");
     printf("  -v, --verbosity num    Verbosity of log messages (default 2)\n");
-    printf("                         0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
+    printf("			     0=silent, 1=critical, 2=normal, 3=verbose, 4=debug\n\n");
 
-    printf("  -V, --version          Output version information and exit\n");
-    printf("  -h, --help             Display this help and exit\n\n");
+    printf("  -V, --version	     Output version information and exit\n");
+    printf("  -h, --help	     Display this help and exit\n\n");
 
-    printf("  key                    Freenet key (freenet:KSK@gpl.txt)\n");
-    printf("  file                   Write key's data to file (default \"stdout\")\n\n");
+    printf("  key		     Freenet key (freenet:KSK@gpl.txt)\n");
+    printf("  file		     Write key's data to file (default \"stdout\")\n\n");
 
     exit(0);
 }

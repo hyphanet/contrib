@@ -11,7 +11,10 @@
 #define _GNU_SOURCE
 #include "getopt.h"
 
+#ifndef WINDOWS
 #include <unistd.h>
+#endif
+
 #include <stdio.h>
 
 #define FCPPUT_ATTEMPTS 3
@@ -132,7 +135,6 @@ int main(int argc, char* argv[])
     else
     {
 		int fileSize;
-		HFCP *hfcpRedir;
 		char chk[L_URI];
 		char metaRedir[1024];
 
