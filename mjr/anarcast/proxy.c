@@ -333,13 +333,7 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
     
     for (;;) {
 	int i;
-	fd_set x = w;
-
-	if (active) {
-	    i = select(m, NULL, &x, NULL, NULL);
-	    if (i == -1) die("select() failed");
-	    if (!i) continue;
-	}
+	fd_set x;
 
 	// make new connections
 	while (active < CONCURRENCY && next < blockcount) {
@@ -360,6 +354,11 @@ do_insert (const char *blocks, const char *mask, int blockcount, int blocksize, 
 	    active++;
 	    next++;
 	}
+        
+	x = w;
+	i = select(m, NULL, &x, NULL, NULL);
+	if (i == -1) die("select() failed");
+	if (!i) continue;
 
 	// send data to eligible servers
 	for (i = 0 ; i < m ; i++)
@@ -617,13 +616,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
     
     for (;;) {
 	int i;
-	fd_set s = r, x = w;
-
-	if (active) {
-	    i = select(m, &s, &x, NULL, NULL);
-	    if (i == -1) die("select() failed");
-	    if (!i) continue;
-	}
+	fd_set s, x;
 
 	// make new connections
 	while (active < CONCURRENCY && next < blockcount) {
@@ -644,6 +637,11 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 	    active++;
 	    next++;
 	}
+
+	s = r, x = w;
+	i = select(m, &s, &x, NULL, NULL);
+	if (i == -1) die("select() failed");
+	if (!i) continue;
 
 	// send request to eligible servers
 	for (i = 0 ; i < m ; i++)
