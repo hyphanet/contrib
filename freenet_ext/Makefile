@@ -25,6 +25,16 @@ freenet-ext:	servlet onion
 		cd build_dir; jar -cf ../freenet_ext.jar `find -type f`
 		rm -rf build_dir
 
+# zip up all the sources that were used to build the jar.
+freenet-ext-src:
+		rm -rf build_dir
+		cd ..; `find javax -name '*.class' -exec rm -f {} \;` 
+		make -C ../fecimpl/onion clean
+		rm -f freenet_ext.jar
+		rm -f freenet_ext_src.zip
+		cd ..; zip -r freenet_ext_src.zip javax/ fecimpl/ freenet_ext/; \
+                   mv freenet_ext_src.zip freenet_ext/
+
 # build the javax.servlet.* classes
 servlet:
 		cd ..; rm -f `find javax -name '*.class'`; javac -target 1.1 `find javax -name '*.java'`
@@ -34,4 +44,10 @@ onion:
 		make -C ../fecimpl/onion clean
 		make -C ../fecimpl/onion classes
 
-.PHONY:		servlet onion freenet-ext
+clean:
+		rm -f freenet_ext.jar
+		rm -f freenet_ext_src.zip
+
+.PHONY:		servlet onion freenet-ext freenet-ext-src clean
+
+
