@@ -1,3 +1,5 @@
+!define UnbundledSunJRENotAllowed
+
 ; Global note:
 ; $3 is used to store the number of files installed from local.
 ; This is necessary to determine which and how many files to download from freenetproject's server
@@ -15,8 +17,9 @@
 
 
 !define MUI_PRODUCT "Freenet"
-!define WEBINSTALL
+!define WEBINSTALL  #  the default install type
 !define BUILDDATE 20030218
+!define JAVAINSTALLER "jre-win32-latest.exe"
 
 !ifdef WEBINSTALL
   !define MUI_VERSION "Webinstall"
@@ -54,9 +57,9 @@
   ;Installer name:
   # are we including Java?
   !ifdef embedJava
-    OutFile "Freenet-Java-${MUI_VERSION}.exe"
+    OutFile "freenet-Java-${MUI_VERSION}.exe"
   !else
-    OutFile "Freenet-${MUI_VERSION}.exe"
+    OutFile "freenet-${MUI_VERSION}.exe"
   !endif
 
   ;Folder selection page
@@ -629,7 +632,7 @@ Function DetectJava
   StrCpy $0 "SOFTWARE\JavaSoft\Java Runtime Environment"
   # Get JRE installed version
   # Hack - enforce compatibility with SUN JRE 1.4(.xxx) only
-  # Hack will be removed shortly (days...)
+  # Hack will be removed shortly (days... probably... )
   # Get JRE path
   ReadRegStr $6 HKLM "$0\1.4" "JavaHome"
   StrCmp $6 "" DetectTry2
@@ -641,11 +644,9 @@ Function DetectJava
   # we did not get a JRE, but there might be a SDK installed
   StrCpy $0 "Software\JavaSoft\Java Development Kit"
   # Get JRE installed version
-  ReadRegStr $2 HKLM $0 "CurrentVersion"
-  StrCmp $2 "" RunJavaFind
 
   # Get JRE path
-  ReadRegStr $6 HKLM "$0\$2" "JavaHome"
+  ReadRegStr $6 HKLM "$0\1.4" "JavaHome"
   StrCmp $6 "" RunJavaFind
   
   GetJRE:
@@ -669,6 +670,18 @@ Function DetectJava
   # If we've already tried looking once (e.g. failed to find it, installed JRE, and now STILL failed to find it)
   # then the JRE installation may have cocked up.  Ask the user if they want to try running the JRE installer again
   # or just abort the installation
+
+  !ifdef webinstall
+    !ifdef embedJava
+      # don't do anything
+    !else
+      !ifdef UnbundledSunJRENotAllowed
+        MessageBox MB_OK "I could not find a compatible Java Runtime Environment installed on this machine$\r$\nEither download and run 'freenet-java-webinstall.exe' instead, or download a compatible$\r$\nJava Runtime Environment separately and then rerun this installer$\r$\n$\r$\nClick OK to EXIT this installation"
+        Call AbortCleanup
+      !endif
+    !endif	
+  !endif	
+
   StrCmp $5 "Yes" RetryJREInstaller
   # Put 'Yes' in $5 to state that is no longer the first time we've looked for the JRE on the local machine
   StrCpy $5 "Yes"
@@ -680,24 +693,23 @@ Function DetectJava
     # Install Java runtime only if not found
     DetailPrint "Lauching Sun's Java Runtime Environment installation..."
     File ${JAVAINSTALLER}
-    ExecWait "$TEMP\${JAVAINSTALLER}"
-    Delete "$TEMP\${JAVAINSTALLER}"
-    Goto StartCheck
+    ExecWait "$R0\freenet-install\${JAVAINSTALLER}"
+    Delete "$R0\freenet-install\${JAVAINSTALLER}"
   !else
     !ifdef WEBINSTALL
       DetailPrint "You do not have Sun Java 1.4 or compatible installed -"
       RetryJavaDownload:
       DetailPrint "Downloading Java Runtime Environment ..."
-      Push "http://freenetproject.org/snapshots/jre-win32-latest.exe"
+      Push "http://freenetproject.org/snapshots/${JAVAINSTALLER}"
       Push "$R0\freenet-install"
       Push "jre-win32-latest.exe"
       Call RetryableDownload
       StrCmp $0 "success" jredownloadsuccess
       MessageBox MB_RETRYCANCEL "I could not find a compatible Java Runtime Environment installed and I couldn't download one from$\r$\nThe Free Net Project's servers.  Installation has failed.  You could try downloading$\r$\nJava Runtime Environment ('JRE') from http://java.sun.com/getjava/ or you could just try running$\r$\nthis installer again later.  Click cancel to EXIT this installation" IDRETRY RetryJavaDownload
-      call AbortCleanup
+      Call AbortCleanup
       jredownloadsuccess:
       DetailPrint "Installing JAVA ..."
-      ExecWait "$R0\freenet-install\jre-win32-latest.exe"
+      ExecWait "$R0\freenet-install\${JAVAINSTALLER}"
     !endif
   !endif
       
@@ -705,7 +717,7 @@ Function DetectJava
 
   RetryJREInstaller:
   MessageBox MB_YESNO|MB_ICONSTOP "I still can't find any Java interpreter. If the installation of the JRE failed,$\r$\nyou can retry installing it by clicking YES.$\r$\nClick NO to abort the Freenet installation." IDNO DontRerunJREInstaller
-  ExecWait "$R0\freenet-install\jre-win32-latest.exe"
+  ExecWait "$R0\freenet-install\${JAVAINSTALLER}"
   StrCpy $5 "No" # fools JavaFind into running again
   goto DetectAgain
   DontRerunJREInstaller:  
