@@ -68,7 +68,7 @@ Because searching is not yet implemented, or even designed, there are
 key index servers where you can register keys that exist on Freenet.
 
 A list of known public key index servers is available at
-http://uts.cc.utexas.edu/~blanu/keyindex.html.
+http://www.thalassocracy.org/keyindex/. Another work in progress for an web and In-Freenet index is http://freegle.com.
 
 
 FOR MORE INFORMATION
