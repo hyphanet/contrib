@@ -37,6 +37,7 @@ public class SimpleTestRunner {
                 System.exit(1);
             }
         } catch (Exception e) {
+            e.printStackTrace(System.out);
             System.exit(1);
         }
     }
