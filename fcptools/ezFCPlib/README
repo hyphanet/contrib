@@ -1,0 +1,7 @@
+
+**
+
+- fcpOpenKey() will create the key and metadata structs, while other methods
+	will require both members to be created before calling (like put_file).
+	This is part of the move to put_file() for *all* inserting.
+

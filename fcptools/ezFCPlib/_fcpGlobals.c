@@ -39,3 +39,4 @@ FILE *_fcpLogStream;
 char *_fcpTmpDir;
 char *_fcpHomeDir;
 
+int   _fcpSplitblock;

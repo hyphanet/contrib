@@ -154,14 +154,13 @@ int main(int argc, char* argv[])
 		/* use keyfile as the filename of key data */
 		if (fcpPutKeyFromFile(hfcp, keyuri, keyfile, metafile)) {
 
-
 			_fcpLog(FCP_LOG_CRITICAL, "Could not insert \"%s\" into freenet from file \"%s\"", keyuri, keyfile);
 			return -1;
 		}
 	}
 
 	_fcpLog(FCP_LOG_VERBOSE, "Operation Successful!");
-	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->uri->uri_str);
+	_fcpLog(FCP_LOG_NORMAL, "%s", hfcp->key->target_uri->uri_str);
 
 	fcpDestroyHFCP(hfcp);
 	fcpTerminate();

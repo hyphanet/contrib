@@ -28,8 +28,6 @@
 
 #include <string.h>
 
-char *GetMimeType(char *pathname);
-
 static struct mimeTabEnt
 {
   char *ext;
@@ -213,25 +211,35 @@ MimeTab[] = {
   { 0, 0 }
 };
 
-char *GetMimeType(char *pathname)
+char *fcpGetMimetype(char *filename)
 {
-  int i;
-  char buf[128];
+  int   i;
   char *s;
   
-  strcpy(buf, pathname);
-  
   /* find final slash */
-  if ((s = strrchr(buf, '/')) == 0)
-    s = buf;
-  
-  if ((s = strrchr(s, '.')) == 0)
-    return "application/octet-stream"; /* no file extension - return default mimetype */
+  if ((s = strrchr(filename, '/')) == 0)
+    s = filename;
+
+	/* now s points to the last '/' */
+
+  if ((s = strrchr(s, '.')) == 0) {
+
+		/* no file extension - return default mimetype */
+    return "application/octet-stream";
+	}
+
   s++;    /* skip the '.' */
   
-  for (i = 0; MimeTab[i].ext != 0; i++)
-    if (!strcasecmp(s, MimeTab[i].ext))
-      return MimeTab[i].mimetype; /* found mimetype */
+  for (i=0; MimeTab[i].ext != 0; i++) {
+
+    if (!strcasecmp(s, MimeTab[i].ext)) {
+			/* found mimetype */
+			
+      return MimeTab[i].mimetype;
+		}
+	}
+
+	_fcpLog(FCP_LOG_DEBUG, "no mimetype found in table: returning default");
   
   /* no mimetype found */
   return "application/octet-stream";

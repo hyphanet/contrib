@@ -99,7 +99,7 @@
 */
 #define L_BLOCK_SIZE        1024000  /* default split part size (1,000 * 1,024) */
 #define L_FILE_BLOCKSIZE    8192
-#define L_RESPONSE_BUFFER   2048
+#define L_ERROR_STRING      512
 
 /* TODO: deprecate */
 #define L_KEY               40
@@ -148,6 +148,9 @@
 #define HOPT_DELETE_LOCAL  1
 #define HOPT_RAW           2
 
+/* error codes */
+#define FCP_ERR_GENERAL -1
+
 
 /***********************************************************************
 	Connection handling structgures and definitions.
@@ -187,6 +190,14 @@ typedef struct {
 typedef struct {
   char *reason;   /* [Reason=<descriptive string>] */
 } FCPRESP_FAILED;
+
+typedef struct {
+  char *reason;
+
+	int   unreachable;
+	int   rejected;
+	int   restarted;
+} FCPRESP_ROUTENOTFOUND;
 
 typedef struct {
   int  timeout;
@@ -247,6 +258,7 @@ typedef struct {
 	FCPRESP_KEYCOLLISION    keycollision;
 	FCPRESP_PENDING         pending;
 	FCPRESP_RESTARTED       restarted;
+	FCPRESP_ROUTENOTFOUND   routenotfound;
 	FCPRESP_FAILED          failed;
 	FCPRESP_FORMATERROR     formaterror;
 
@@ -406,7 +418,7 @@ typedef struct {
 	
   int   socket;
 
-  char *error;
+  char  error[L_ERROR_STRING + 1];
 
 	hKey *key;
 		
@@ -481,7 +493,7 @@ extern "C" {
 	/* Client functions for operations between files on disk and freenet */
 	int   fcpPutKeyFromFile(hFCP * hfcp, char *key_uri, char *key_filename, char *meta_filename);
 
-	char *GetMimeType(char *pathname);
+	char *fcpGetMimetype(char *pathname);
 
 #ifdef __cplusplus
 }

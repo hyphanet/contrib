@@ -44,12 +44,6 @@ static int    fcpOpenKeyWrite(hFCP *hfcp, char *key_uri);
 
 int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 {
-	/* clear the error field */
-	if (hfcp->error) {
-		free(hfcp->error);
-		hfcp->error = 0;
-	}
-	
   /* Validate flags */
   if ((mode & _FCP_O_READ) && (mode & _FCP_O_WRITE))
     return -1;      /* read/write access is impossible */
@@ -68,7 +62,7 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
     return fcpOpenKeyWrite(hfcp, key_uri);
 
 	else { /* Who knows what's wrong here.. */
-		hfcp->error = strdup("invalid mode specified");
+		snprintf(hfcp->error, L_ERROR_STRING, "invalid mode specified");
 		return -1;
 	}
 }
@@ -76,6 +70,7 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
 
 static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
 {
+
 	_fcpLog(FCP_LOG_VERBOSE, "Entered fcpOpenKeyRead()");
 
 	hfcp->key->openmode = _FCP_O_READ;
@@ -95,10 +90,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
 	hfcp->key->openmode = _FCP_O_WRITE;
 
 	/* store final key uri for later usage */
-	if (fcpParseURI(hfcp->key->target_uri, key_uri)) {
-		hfcp->error = strdup("invalid freenet uri");
-		return -1;
-	}
+	if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
 	
 	/* prepare the tmpblock for key data */
 	hfcp->key->tmpblock = _fcpCreateHBlock();

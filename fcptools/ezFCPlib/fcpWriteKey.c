@@ -52,7 +52,7 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 		rc = write(hfcp->key->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
-			hfcp->error = strdup("error during call to fcpWriteKey()");
+			snprintf(hfcp->error, L_ERROR_STRING, "error during call to fcpWriteKey()");
 			return -1;
 		}
 
@@ -80,7 +80,7 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 		rc = write(hfcp->key->metadata->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
-			hfcp->error = strdup("error during call to fcpWriteMetadata()");
+			snprintf(hfcp->error, L_ERROR_STRING, "error during call to fcpWriteMetadata()");
 			return -1;
 		}
 

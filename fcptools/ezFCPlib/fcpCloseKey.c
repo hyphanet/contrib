@@ -26,10 +26,8 @@
 
 #include "ezFCPlib.h"
 
-#include <fcntl.h>
-#include <stdlib.h>
 #include <stdio.h>
-
+#include <string.h>
 
 extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
 extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
@@ -41,6 +39,7 @@ extern long file_size(char *filename);
 static int fcpCloseKeyRead(hFCP *hfcp);
 static int fcpCloseKeyWrite(hFCP *hfcp);
 
+
 int fcpCloseKey(hFCP *hfcp)
 {
   if (hfcp->key->openmode & _FCP_O_READ)
@@ -51,6 +50,21 @@ int fcpCloseKey(hFCP *hfcp)
 
   else
 	 return -1;
+}
+
+
+void unlink_key(hKey *hKey)
+{
+	/* close the temporary key file */
+	if (hKey->tmpblock->fd != -1) close(hKey->tmpblock->fd);
+
+	/* close the temporary metadata file */
+	if (hKey->metadata->tmpblock->fd != -1) close(hKey->metadata->tmpblock->fd);
+
+	hKey->tmpblock->fd = -1;
+	hKey->metadata->tmpblock->fd = -1;
+	
+	_fcpLog(FCP_LOG_DEBUG, "unlinked key, closed temporary files");
 }
 
 
@@ -68,11 +82,14 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	int rc;
 	int size;
 
+	_fcpLog(FCP_LOG_DEBUG, "Entered fcpCloseKeyWrite()");
+
 	/* close the temporary key file */
-	fclose(hfcp->key->tmpblock->file);
+	close(hfcp->key->tmpblock->fd);
 
 	/* close the temporary metadata file */
-	fclose(hfcp->key->metadata->tmpblock->file);
+	close(hfcp->key->metadata->tmpblock->fd);
+
 	tmp_hfcp = fcpInheritHFCP(hfcp);
 
 	size = file_size(hfcp->key->tmpblock->filename);
@@ -95,7 +112,6 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	}
 
 	/* tmp_hfcp->key->uri is the CHK@ of the file we've just inserted */
-	/* the target_uri was set in fcpOpenKeyRead() */
 
 	switch (hfcp->key->target_uri->type) {
 
@@ -109,30 +125,29 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	case KEY_TYPE_KSK:
 		
 		{ /* insert a redirect to point to hfcp->key->uri */
-			/* code here is identical to code in fcpPutKeyFromFile.c:111 */
-			
+
 			hFCP *hfcp_meta;
+			char  buf[513];
 			
 			hfcp_meta = fcpInheritHFCP(hfcp);
-			hfcp_meta->key = _fcpCreateHKey();
 			
-			/* uri was already checked above for validity */
-			fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
+			rc = snprintf(buf, 512,
+										"Version\nRevision=1\nEndPart\nDocument\nRedirect.Target=%s\nEnd\n",
+										tmp_hfcp->key->uri->uri_str
+										);
+
+			hfcp_meta = fcpInheritHFCP(hfcp);
 			
-			if (put_redirect(hfcp_meta, tmp_hfcp->key->uri->uri_str)) {
-				
-				_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
-				fcpDestroyHFCP(hfcp_meta);
-				
-				return -1;
-			}
-			else { /* congrads.. successful insert into Freenet */
-				_fcpLog(FCP_LOG_NORMAL, "%s", hfcp_meta->key->uri->uri_str);
-			}
-			
-			fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
+			if (fcpOpenKey(hfcp_meta, hfcp->key->uri->uri_str, _FCP_O_WRITE)) return -1;
+
+			_fcpLog(FCP_LOG_DEBUG, "writing key to ezfcplib");
+			fcpWriteKey(hfcp_meta, buf, strlen(buf));
+
+			_fcpLog(FCP_LOG_DEBUG, "closing key to prepare writing");
+			fcpCloseKey(hfcp_meta);
+
 			fcpDestroyHFCP(hfcp_meta);
-			
+
 			break;
 		}
 	}

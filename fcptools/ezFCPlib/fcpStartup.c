@@ -36,12 +36,14 @@ extern FILE *_fcpLogStream;
 
 extern char *_fcpTmpDir;
 extern char *_fcpHomeDir;
-
+extern int   _fcpSplitblock;
 
 /* I'm not sure it's a good idea to allow logging in fcpStartup */
 
 int fcpStartup(char *logfile, int log_verbosity)
 {
+	char buf[513];
+
 	/* pass a bum value here and it's set to SILENT */
 	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
 
@@ -71,15 +73,22 @@ int fcpStartup(char *logfile, int log_verbosity)
 	_fcpHomeDir = strdup(getenv("HOME"));
 
 #endif
-
+	
 	/* now finish initialization of the logfile, after the settings above */
-		if (logfile) {
-		if (!(_fcpLogStream = fopen(logfile, "a")))
+	if (logfile) {
+		if (!(_fcpLogStream = fopen(logfile, "a"))) {
+			snprintf(buf, 512, "Could not open logfile \"%s\"", logfile);
+
+			_fcpLog(FCP_LOG_VERBOSE, buf);
 			return -1;
+		}
 	}
+
+	_fcpSplitblock = L_BLOCK_SIZE;
 
 	return 0;
 }
+
 
 void fcpTerminate(void)
 {

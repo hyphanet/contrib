@@ -98,6 +98,7 @@ hBlock *_fcpCreateHBlock(void)
 	memset(h, 0, sizeof (hBlock));
 
 	h->uri = fcpCreateHURI();
+	h->fd  = -1;
 
 	return h;
 }
@@ -107,6 +108,11 @@ void _fcpDestroyHBlock(hBlock *h)
 	if (h) {
 		if (h->filename) free(h->filename);
 		if (h->uri) fcpDestroyHURI(h->uri);
+
+		if (h->fd != -1) {
+			fclose(h->file);
+			h->fd = -1;
+		}
 
 		free(h);
 	}

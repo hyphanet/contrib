@@ -45,7 +45,6 @@ static int host_is_numeric(char *host);
 
 int _fcpSockConnect(hFCP *hfcp)
 {
-	char msg[513];
   int  rc;
 	
   struct sockaddr_in sa_local_addr;
@@ -87,10 +86,8 @@ int _fcpSockConnect(hFCP *hfcp)
   rc = bind(hfcp->socket, (struct sockaddr *) &sa_local_addr, sizeof(struct sockaddr));
 
   if (rc < 0) {
-		snprintf(msg, 512, "error binding to port %d: %s", hfcp->port, strerror(errno));
-
-		_fcpLog(FCP_LOG_DEBUG, "%s", msg);
-		hfcp->error = strdup(msg);
+		snprintf(hfcp->error, L_ERROR_STRING, "error binding to port %d: %s", hfcp->port, strerror(errno));
+		_fcpLog(FCP_LOG_DEBUG, hfcp->error);
 
 		_fcpSockDisconnect(hfcp);
     return -1;
@@ -99,10 +96,8 @@ int _fcpSockConnect(hFCP *hfcp)
   /* connect to server */
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
   if (rc < 0) {
-		snprintf(msg, 512, "error connecting to server %s: %s", hfcp->host, strerror(errno));
-
-		_fcpLog(FCP_LOG_DEBUG, "%s", msg);
-		hfcp->error = strdup(msg);
+		snprintf(hfcp->error, L_ERROR_STRING, "error connecting to server %s: %s", hfcp->host, strerror(errno));
+		_fcpLog(FCP_LOG_DEBUG, hfcp->error);
 
 		_fcpSockDisconnect(hfcp);
 		return -1;

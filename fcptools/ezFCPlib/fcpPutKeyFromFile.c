@@ -31,129 +31,126 @@
 #include <string.h>
 
 
-extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename);
+extern int put_file(hFCP *hfcp, char *key_filename, char *meta_filename, char *uri);
 extern int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename);
 
 extern int put_date_redirect(hFCP *hfcp, char *uri);
 extern int put_redirect(hFCP *hfcp, char *uri);
 
 extern long file_size(char *filename);
+extern void unlink_key(hFCP *hfcp);
+
+extern int _fcpSplitblock;
 
 /*
 	fcpPutKeyFromFile()
 
-	function will test the validity of the arguments from caller.
+	Function tests the validity of it's arguments.
 
-	function returns:
-	- zero on success
-	- non-zero on error
+	Function returns:
+	- Zero on success
+	- Negative integer on ERROR.
+
+	- hfcp->key->uri: set to CHK@ of key data (irrelevant of key uri).
+	- hfcp->key->target_uri: set to actual URI (CHK, SSK, KSK).
+
+	On a return code < 0, hFCP->error is set to error description (or NULL if no desc).
 */
 int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename)
 {
+	char buf[513];
+
 	int key_size;
 	int meta_size;
 	int rc;
 
 	_fcpLog(FCP_LOG_DEBUG, "Entered fcpPutKeyFromFile()");
 
-	/* clear the error string */
-	if (hfcp->error) {
-		free(hfcp->error);
-		hfcp->error = 0;
-	}
+	if (key_filename) {
+		if ((key_size = file_size(key_filename)) < 0) {
+			snprintf(hfcp->error, L_ERROR_STRING, "Key data not found in file \"%s\"", key_filename);
 
-	if ((rc = file_size(key_filename)) < 0) {
-		_fcpLog(FCP_LOG_VERBOSE, "Key data not found in file \"%s\"", key_filename);
-
-		hfcp->error = strdup("could not open key file");
-		return -1;
-	}
-
-	key_size = rc;
-
-	if (meta_filename) {
-		meta_size = file_size(meta_filename);
-
-		if (meta_size < 0) {
-			_fcpLog(FCP_LOG_VERBOSE, "Could not open metadata file");
-			
-			/* set the proper error string always on return to non-ez code */
-			hfcp->error = strdup("could not open metadata file");
-			
+			_fcpLog(FCP_LOG_VERBOSE, hfcp->error);
 			return -1;
 		}
 	}
-	else /* there's no metadata filename; no metadata */
+	else
+		key_size = 0;
+
+	if (meta_filename) {
+		if ((meta_size = file_size(meta_filename)) < 0) {
+			snprintf(hfcp->error, L_ERROR_STRING, "Metadata not found in file \"%s\"", meta_filename);
+
+			_fcpLog(FCP_LOG_VERBOSE, buf);
+			return -1;
+		}
+	}
+	else
 		meta_size = 0;
 
-	/* meta_size should be properly set at this point */
+	/* key_size and meta_size should be properly set at this point */
 
+	hfcp->key = _fcpCreateHKey();
+	hfcp->key->metadata = _fcpCreateHMetadata();
+
+	/* set the mimetype if the key exists */
+	if (key_size)
+		hfcp->key->mimetype = strdup(fcpGetMimetype(key_filename));
+
+	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
+	
 	/* Now insert the key data as a CHK@, and later we'll insert a redirect
 		 if necessary. If it's larger than L_BLOCK_SIZE, insert as an FEC
 		 encoded splitfile. */
 
-	if (key_size > L_BLOCK_SIZE)
+	if (key_size > _fcpSplitblock)
 		rc = put_fec_splitfile(hfcp, key_filename, meta_filename);
 	
 	else /* Otherwise, insert as a normal key */
-		rc = put_file(hfcp, key_filename, meta_filename);
-	
-	if (rc) {
-		_fcpLog(FCP_LOG_VERBOSE, "Insert error; \"%s\"", (hfcp->error ? hfcp->error: "unspecified error"));
+		rc = put_file(hfcp, key_filename, meta_filename, "CHK@");
 
-		/* destroy the key since we didn't actually insert it properly */
-		_fcpDestroyHKey(hfcp->key);
-		hfcp->key = 0;
-
-		return -1;
-	}
+	if (rc) /* bail after cleaning up, setting hfcp->error */
+		goto cleanup;
 
 	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */
 	/* create the final key as a re-direct to the inserted CHK@ */
 
-	if (fcpParseURI(hfcp->key->target_uri, key_uri)) {
+	if (fcpParseURI(hfcp->key->target_uri, key_uri)) goto cleanup;
 
-		/* set the proper error string always on return to non-ez code */
-		hfcp->error = strdup("target uri is invalid");
-		return -1;
-	}
+	/* at this point, both the CHK@ and specified URIs (CHK, SSK, KSK) have been
+		 set in struct hFCP. */
 
 	switch (hfcp->key->target_uri->type) {
 
 	case KEY_TYPE_CHK: /* for CHK's */
+
+		/* the key's uri is already in hfcp->key->uri */
+		fcpParseURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
+
 		break;
 
 	case KEY_TYPE_SSK:
 	case KEY_TYPE_KSK:
-
-		{ /* insert a redirect to point to hfcp->key->uri */
-			/* code here is identical to code in fcpCloseKey.c:105 */
-			
-			hFCP *hfcp_meta;
-			
-			hfcp_meta = fcpInheritHFCP(hfcp);
-			hfcp_meta->key = _fcpCreateHKey();
-			
-			/* uri was already checked above for validity */
-			fcpParseURI(hfcp_meta->key->uri, hfcp->key->target_uri->uri_str);
-			
-			if (put_redirect(hfcp_meta, hfcp->key->uri->uri_str)) {
-				
-				_fcpLog(FCP_LOG_VERBOSE, "Could not insert redirect \"%s\"", hfcp_meta->key->uri->uri_str);
-				fcpDestroyHFCP(hfcp_meta);
-				
-				return -1;
-			}
-			
-			/* success inserting the re-direct */
-			fcpParseURI(hfcp->key->uri, hfcp_meta->key->uri->uri_str);
-			fcpDestroyHFCP(hfcp_meta);
-			
-			break;
-		}
+		
+		put_redirect(hfcp, key_uri);
+		break;
 	}
 	
-	/* on exit, hfcp->key->uri holds the inserted final uri */
+	/* on exit, hfcp->key->uri holds the CHK value,
+		 and hfcp->key->target_uri is the final URI. */
 	return 0;
+
+
+ cleanup:
+	if (!hfcp->error[0]) {
+
+		/* this should preferably not happen.. but it probably will somehow */
+		strncpy(hfcp->error, "Unspecified", L_ERROR_STRING);
+	}
+
+	_fcpLog(FCP_LOG_VERBOSE, "Error inserting file: %s", hfcp->error);
+
+	/* maybe return rc instead? */
+	return -1;
 }
 

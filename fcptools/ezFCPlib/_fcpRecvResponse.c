@@ -69,15 +69,13 @@ int _fcpRecvResponse(hFCP *hfcp)
 
 		if (getrespline(hfcp, resp) < 0) return -1;
 		
-		if (!strcmp(resp, "Restarted"))
-			getrespRestarted(hfcp);
-
-		else if (!strcmp(resp, "Pending"))
+		if (!strcmp(resp, "Pending")) {
 			getrespPending(hfcp);
- 		
-		else break;
+		} 		
+		else
+			break;
 	}
-	
+
   if (!strcmp(resp, "NodeHello")) {
 		hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
 		return getrespHello(hfcp);
@@ -321,7 +319,21 @@ static int getrespRouteNotFound(hFCP *hfcp)
 
 	while (!getrespline(hfcp, resp)) {
 
-		if (!strncmp(resp, "EndMessage", 10))
+		if (!strncmp(resp, "Reason=", 7)) {
+			if (hfcp->response.routenotfound.reason) free(hfcp->response.routenotfound.reason);
+			hfcp->response.routenotfound.reason = strdup(resp + 7);
+		}
+
+		else if (!strncmp(resp, "Unreachable=", 12))
+			hfcp->response.routenotfound.unreachable = xtoi(resp + 12);
+
+		else if (!strncmp(resp, "Restarted=", 10))
+			hfcp->response.routenotfound.restarted = xtoi(resp + 10);
+
+		else if (!strncmp(resp, "Rejected=", 9))
+			hfcp->response.routenotfound.rejected = xtoi(resp + 9);
+
+		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_ROUTENOTFOUND;
 
 		else
@@ -647,7 +659,7 @@ static int getrespblock(hFCP *hfcp, char *respblock, int bytesreqd)
 	while (bytesreqd > 0) {
 		/* now, try to get and return desired number of bytes */
 
-		if ((i = recv(hfcp->socket, cp, bytesreqd, 0))) {
+		if ((i = recv(hfcp->socket, cp, bytesreqd, 0)) > 0) {
 			/* Increment current pointer (cp), and decrement bytes required
 				 to read.
 			*/
@@ -680,7 +692,8 @@ static int getrespline(hFCP *hfcp, char *resp)
 	int   j;
 
 	for (i = 0; i<1024; i++) {
-		if ((j = recv(hfcp->socket, p, 1, 0)) == -1) return -1;
+
+		if ((j = recv(hfcp->socket, p, 1, 0)) <= 0) return -1;
 		if (*p == '\n') break;
 
 		/* Finally, point to the char after the most-recently read. */
