@@ -136,6 +136,9 @@ XPStyle on
 ;     (Prompting user if such files actually exist)
 Section "-Local Lib Install" SecLocalLibInstall # hidden
 
+  SetOutPath "$INSTDIR"
+  WriteRegStr HKLM "Software\${MUI_PRODUCT}" "instpath" "$INSTDIR"
+
   Call DetectJava
 
   IntOp $3 0 + 0 # set to zero - is there no other way?
@@ -164,18 +167,14 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   !endif
   MfcDLLExists:
   
-  SetOutPath "$1"
-
-  WriteRegStr HKLM "Software\${MUI_PRODUCT}" "instpath" "$1"
-
-  IfFileExists "$1\flaunch.ini" dontInstallFlaunch InstallFlaunch
+  IfFileExists "$INSTDIR\flaunch.ini" dontInstallFlaunch InstallFlaunch
   InstallFlaunch:
   File ".\Freenet\FLaunch.ini"
   dontInstallFlaunch:
 
   !ifdef WEBINSTALL
   # copy self to main directory
-  CopyFiles "$2\freenet-webinstall.exe" "$1\freenet-webinstall.exe"
+  CopyFiles "$2\freenet-webinstall.exe" "$INSTDIR\freenet-webinstall.exe"
   !else
   # monolithic installer includes a copy of webinstaller
   File ".\Freenet\tools\freenet-webinstall.exe"
@@ -188,16 +187,16 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   IntOp $R1 0 + 0 # a flag to see if any local files are to be installed
   # Check that the install dir and the exec dir are not the same -
   # if they are then don't do this check
-  IfFileExists "$1\__dir__" 0 testlock1
-  Delete "$1\__dir__"
+  IfFileExists "$INSTDIR\__dir__" 0 testlock1
+  Delete "$INSTDIR\__dir__"
   testlock1:
-  IfFileExists "$2\__dir__" 0 testlock2
-  Delete "$2\__dir__"
+  IfFileExists "$EXEDIR\__dir__" 0 testlock2
+  Delete "$EXEDIR\__dir__"
   testlock2:
-  FileOpen $R2 "$1\__dir__" "w"
-  IfFileExists "$2\__dir__" SkipLibInstallTest
+  FileOpen $R2 "$INSTDIR\__dir__" "w"
+  IfFileExists "$EXEDIR\__dir__" SkipLibInstallTest
   FileClose $R2
-  Delete "$1\__dir__"
+  Delete "$INSTDIR\__dir__"
   # potentially test to see if the name of the current dir is "freenet-distribution"
   # I think that's a bit too limiting so I'm not going to do that
   #ifFileExists "$2\freenet-distribution\*.*" 0 FinishedLibInstall
@@ -234,11 +233,11 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
 
   # note - seednodes.ref is installed completely silently, if present
   IfFileExists "$2\seednodes.ref" 0 seednotinstalled
-  CopyFiles "$2\seednodes.ref" "$1\seednodes.ref"
+  CopyFiles "$2\seednodes.ref" "$INSTDIR\seednodes.ref"
   seednotinstalled:
   # note - updated README is installed completely silently, if present
   IfFileExists "$2\README" 0 readmenotinstalled
-  CopyFiles "$2\README" "$1\README"
+  CopyFiles "$2\README" "$INSTDIR\README"
   readmenotinstalled:
 
   Push $3
@@ -284,12 +283,13 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
   # used to clear up the temp file handle that we created earlier (to see if the install dir and the exec
   # dir are one and the same)
   FileClose $R2
-  Delete "$1\__dir__"
+  Delete "$INSTDIR\__dir__"
+  goto FinishedLibInstall
 
   FinishedLibInstall:
 
-
 SectionEnd
+
 
 ; 2.  Freenet Node Install
 ;     For webinstall, downloads the files from freenetproject.org
@@ -336,7 +336,7 @@ Section "Freenet Node" SecFreenetNode
   !ifdef WEBINSTALL
     NSISdl::download "http://freenetproject.org/snapshots/NodeConfig.exe" "$R0\freenet-install\NodeConfig.exe"
 	StrCmp $0 "success" Success4
-	IfFileExists "$1\NodeConfig.exe" PreExistingDownload4 FailedDownload4
+	IfFileExists "$INSTDIR\NodeConfig.exe" PreExistingDownload4 FailedDownload4
 	FailedDownload4:
     Delete "$R0\freenet-install\NodeConfig.exe"
 	MessageBox MB_OK "Download of NodeConfig.exe failed.  Installation aborted at this time"
@@ -350,7 +350,7 @@ Section "Freenet Node" SecFreenetNode
 	File ".\Freenet\tools\NodeConfig.exe" /ofile="$R0\freenet-install\NodeConfig.exe"
     IfErrors TestPreExistingFailedExtract4 Success4
 	TestPreExistingFailedExtract4:
-	IfFileExists "$1\NodeConfig.exe" PreExistingExtract4 DiskWriteError
+	IfFileExists "$INSTDIR\NodeConfig.exe" PreExistingExtract4 DiskWriteError
 	PreExistingExtract4:
 	MessageBox MB_YESNO "Couldn't extract NodeConfig.exe - Carry on installation?$\r$\n(This will use your pre-existing NodeConfig.exe)" IDYES NoFailed4
 	goto DiskWriteError
@@ -364,7 +364,7 @@ Section "Freenet Node" SecFreenetNode
   !ifdef WEBINSTALL
     NSISdl::download "http://freenetproject.org/snapshots/freenet.exe" "$R0\freenet-install\freenet.exe"
 	StrCmp $0 "success" Success3
-	IfFileExists "$1\freenet.exe" PreExisting3 Failed3
+	IfFileExists "$INSTDIR\freenet.exe" PreExisting3 Failed3
 	Failed3:
     Delete "$R0\freenet-install\freenet.exe"
 	MessageBox MB_OK "Download of freenet.exe failed.  Installation aborted at this time"
@@ -378,7 +378,7 @@ Section "Freenet Node" SecFreenetNode
 	File ".\Freenet\tools\freenet.exe" /ofile="$R0\freenet-install\freenet.exe"
     IfErrors TestPreExistingFailedExtract3 Success3
 	TestPreExistingFailedExtract3:
-	IfFileExists "$1\freenet.exe" PreExistingExtract3 DiskWriteError
+	IfFileExists "$INSTDIR\freenet.exe" PreExistingExtract3 DiskWriteError
 	PreExistingExtract3:
 	MessageBox MB_YESNO "Couldn't extract freenet.exe - Carry on installation?$\r$\n(This will use your pre-existing freenet.exe)" IDYES NoFailed3
 	goto DiskWriteError
@@ -392,7 +392,7 @@ Section "Freenet Node" SecFreenetNode
   !ifdef WEBINSTALL
     NSISdl::download "http://freenetproject.org/snapshots/freenet-ext.jar" "$R0\freenet-install\freenet-ext.jar"
 	StrCmp $0 "success" Success2
-	IfFileExists "$1\freenet-ext.jar" PreExisting2 Failed2
+	IfFileExists "$INSTDIR\freenet-ext.jar" PreExisting2 Failed2
 	Failed2:
     Delete "$R0\freenet-install\freenet-ext.jar"
 	MessageBox MB_OK "Download of freenet-ext.jar failed.  Installation aborted at this time"
@@ -406,7 +406,7 @@ Section "Freenet Node" SecFreenetNode
 	File ".\Freenet\jar\freenet-ext.jar" /ofile="$R0\freenet-install\freenet-ext.jar"
     IfErrors TestPreExistingFailedExtract2 Success2
 	TestPreExistingFailedExtract2:
-	IfFileExists "$1\freenet-ext.jar" PreExistingExtract2 DiskWriteError
+	IfFileExists "$INSTDIR\freenet-ext.jar" PreExistingExtract2 DiskWriteError
 	PreExistingExtract2:
 	MessageBox MB_YESNO "Couldn't extract freenet-ext.jar - Carry on installation?$\r$\n(This will use your pre-existing freenet-ext.jar)" IDYES NoFailed2
 	goto DiskWriteError
@@ -420,7 +420,7 @@ Section "Freenet Node" SecFreenetNode
   !ifdef WEBINSTALL
     NSISdl::download "http://freenetproject.org/snapshots/freenet-latest.jar" "$R0\freenet-install\freenet.jar"
 	StrCmp $0 "success" Success1
-	IfFileExists "$1\freenet.jar" PreExisting1 Failed1
+	IfFileExists "$INSTDIR\freenet.jar" PreExisting1 Failed1
 	Failed1:
     Delete "$R0\freenet-install\freenet.jar"
 	MessageBox MB_OK "Download of freenet-latest.jar failed.  Installation aborted at this time"
@@ -434,7 +434,7 @@ Section "Freenet Node" SecFreenetNode
 	File ".\Freenet\jar\freenet.jar" /ofile="$R0\freenet-install\freenet.jar"
     IfErrors TestPreExistingFailedExtract1 Success1
 	TestPreExistingFailedExtract1:
-	IfFileExists "$1\freenet.jar" PreExistingExtract1 DiskWriteError
+	IfFileExists "$INSTDIR\freenet.jar" PreExistingExtract1 DiskWriteError
 	PreExistingExtract1:
 	MessageBox MB_YESNO "Couldn't extract freenet.jar - Carry on installation?$\r$\n(This will use your pre-existing freenet.jar)" IDYES NoFailed1
 	goto DiskWriteError
@@ -457,17 +457,17 @@ Section "Freenet Node" SecFreenetNode
   NotRunning:
   # Step 2- copy the files
   ClearErrors
-  CopyFiles "$R0\freenet-install\*.*" "$1"
+  CopyFiles "$R0\freenet-install\*.*" "$INSTDIR"
   IfErrors DiskWriteError
   # Step 3- Merge ini files
   # Step 3a - create a default .ini file
-  IfFileExists "$1\default.ini" 0 NoFreenetIniDefaults
-  Delete "$1\default.ini" # prevents freenet node from trying to 'update' an existing config (experience shows it will cock it up horribly)
+  IfFileExists "$INSTDIR\default.ini" 0 NoFreenetIniDefaults
+  Delete "$INSTDIR\default.ini" # prevents freenet node from trying to 'update' an existing config (experience shows it will cock it up horribly)
   NoFreenetIniDefaults:
   ExecWait "$1\freenet.exe -createconfig $1\default.ini"
   # Step 3b - Merge the existing .ini with the defaults, or use the defaults if there is no existing .ini
-  IfFileExists "$1\freenet.ini" MergeIniStuff
-  CopyFiles "$1\default.ini" "$1\freenet.ini"
+  IfFileExists "$INSTDIR\freenet.ini" MergeIniStuff
+  CopyFiles "$INSTDIR\default.ini" "$INSTDIR\freenet.ini"
   goto DoneMergeIniStuff
   MergeIniStuff:
   ExecWait "$1\freenet.exe -mergeconfig $1\freenet.ini $1\default.ini"
@@ -477,10 +477,10 @@ Section "Freenet Node" SecFreenetNode
     
     ;Create shortcuts
     CreateDirectory "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}"
-    CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Freenet.lnk" "$1\freenet.exe"
-    CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Uninstall.lnk" "$1\Uninstall.exe"
+    CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$1\freenet.exe" 0
+    CreateShortCut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$1\Uninstall.exe" 0
     WriteINIStr "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Freenet Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"
-    CreateShortcut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Update Snapshot.lnk" "$1\freenet-webinstall.exe" "" "" 0
+    CreateShortcut "$SMPROGRAMS\${MUI_STARTMENU_VARIABLE}\Update Snapshot.lnk" "$INSTDIR\freenet-webinstall.exe" "" "$1\freenet-webinstall.exe" 0
 
     ; launch freenet on Startup - this will be setup automatically if user asks for Start Menu options
     CreateShortCut "$SMSTARTUP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$1\freenet.exe" 0
@@ -498,8 +498,7 @@ Section "Freenet Node" SecFreenetNode
   goto InstComplete
 
   DiskWriteError:
-  MessageBox MB_OK "Unable to write a file to disk.  Check that the disk is not full, or write-protected,$\r$\nand that you have the rights to install files.  The installer will now exit."
-  Call AbortCleanup
+  Call funDiskWriteError
   
   Cancel:
   MessageBox MB_OK "Installation Cancelled"
@@ -510,8 +509,8 @@ Section "Freenet Node" SecFreenetNode
   RMDir "$R0\freenet-install"
 
   ; Also tidy up 'old' files from target folder
-  Delete "$1\UpdateSnapshot.exe"
-  Delete "$1\FindJava.exe"
+  Delete "$INSTDIR\UpdateSnapshot.exe"
+  Delete "$INSTDIR\FindJava.exe"
 
 SectionEnd
 
@@ -553,28 +552,28 @@ Section "Uninstall"
   goto CheckRunning
   NotRunning:
 
-  Delete "$1\freenet.exe"
-  Delete "$1\NodeConfig.exe"
-  Delete "$1\freenet-ext.jar"
-  Delete "$1\freenet.jar"
-  Delete "$1\freenet-webinstall.exe"
-  Delete "$1\README"
-  Delete "$1\default.ini"
-  Delete "$1\freenet.log"
-  Delete "$1\node-temp"
-  Delete "$1\install.log"
-  Delete "$1\fserve.exe"
-  Delete "$1\fservew.exe"
-  Delete "$1\fclient.exe"
-  Delete "$1\cfgclient.exe"
-  Delete "$1\COPYING.TXT"
-  Delete "$1\docs\freenet.hlp"
-  Delete "$1\docs\freenet.gid"
-  Delete "$1\docs\freenet.cnt"
-  Delete "$1\docs\readme.txt"
-  RMDir /r "$1\stats"
-  RMDir /r "$1\distrib"
-  RMDir "$1\docs"
+  Delete "$INSTDIR\freenet.exe"
+  Delete "$INSTDIR\NodeConfig.exe"
+  Delete "$INSTDIR\freenet-ext.jar"
+  Delete "$INSTDIR\freenet.jar"
+  Delete "$INSTDIR\freenet-webinstall.exe"
+  Delete "$INSTDIR\README"
+  Delete "$INSTDIR\default.ini"
+  Delete "$INSTDIR\freenet.log"
+  Delete "$INSTDIR\node-temp"
+  Delete "$INSTDIR\install.log"
+  Delete "$INSTDIR\fserve.exe"
+  Delete "$INSTDIR\fservew.exe"
+  Delete "$INSTDIR\fclient.exe"
+  Delete "$INSTDIR\cfgclient.exe"
+  Delete "$INSTDIR\COPYING.TXT"
+  Delete "$INSTDIR\docs\freenet.hlp"
+  Delete "$INSTDIR\docs\freenet.gid"
+  Delete "$INSTDIR\docs\freenet.cnt"
+  Delete "$INSTDIR\docs\readme.txt"
+  RMDir /r "$INSTDIR\stats"
+  RMDir /r "$INSTDIR\distrib"
+  RMDir "$INSTDIR\docs"
   
   ;Remove shortcut
   ReadRegStr ${TEMP} HKLM "Software\${MUI_PRODUCT}" "Start Menu Folder"
@@ -598,23 +597,23 @@ Section "Uninstall"
 
   # NOTE this does NOT just kill *.*.  It selective deletes what's installed.  This avoids the luser-deleting-
   # all-the-mpegs-he-put-in-his-datastore-folder problem...
-  Delete "$1\flaunch.ini"
-  Delete "$1\freenet.ini"
-  Delete "$1\seednodes.ref"
-  Delete "$1\prng.seed"
-  RMDir /r "$1\store"
-  Delete "$1\lsnodes*"
-  Delete "$1\rtnodes*"
-  Delete "$1\rtprops*"
+  Delete "$INSTDIR\flaunch.ini"
+  Delete "$INSTDIR\freenet.ini"
+  Delete "$INSTDIR\seednodes.ref"
+  Delete "$INSTDIR\prng.seed"
+  RMDir /r "$INSTDIR\store"
+  Delete "$INSTDIR\lsnodes*"
+  Delete "$INSTDIR\rtnodes*"
+  Delete "$INSTDIR\rtprops*"
+  DeleteRegValue HKLM "Software\${MUI_PRODUCT}" "Start Menu Folder"
+  DeleteRegValue HKLM "Software\${MUI_PRODUCT}" "instpath"
   
   DontKillEverything:
 
-  Delete "$1\Uninstall.exe"
+  Delete "$INSTDIR\Uninstall.exe"
 
-  RMDir "$1"  ; only if empty, so it won't delete the Freenet folder if it's got user stuff in it
+  RMDir "$INSTDIR"  ; only if empty, so it won't delete the Freenet folder if it's got user stuff in it
   
-  DeleteRegValue HKLM "Software\${MUI_PRODUCT}" "Start Menu Folder"
-  DeleteRegValue HKLM "Software\${MUI_PRODUCT}" "instpath"
   DeleteRegKey /ifempty HKLM "Software\${MUI_PRODUCT}"
 
   ;Display the Finish header
@@ -745,6 +744,13 @@ Function AbortCleanup
     Abort
 FunctionEnd
 
+
+Function funDiskWriteError
+
+  MessageBox MB_OK "Unable to write a file to disk.  Check that the disk is not full, or write-protected,$\r$\nand that you have the rights to install files.  The installer will now exit."
+  Call AbortCleanup
+
+FunctionEnd
 
 ; -------------------------------
 ; callbacks
