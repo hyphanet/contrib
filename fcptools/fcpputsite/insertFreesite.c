@@ -345,13 +345,9 @@ void putsiteThread(void *arg)
                 _fcpLog(FCP_LOG_NORMAL, "retry %d for file %s", i, job->fileSlot->filename);
 
             if ((status = fcpPutKeyFromFile(hfcp, "CHK@", job->fileSlot->filename, meta)) == 0)
-            //if ((status = 0) == 0)
             {
                 // successful insert
                 strcpy(job->fileSlot->chk, hfcp->created_uri);
-                //mysleep(2000L);
-                //sprintf(job->fileSlot->chk, "CHK@<<<%s>>>", job->fileSlot->relpath);
-
                 job->fileSlot->insertStatus = INSERT_FILE_DONE;
                 _fcpLog(FCP_LOG_NORMAL, "Successfully inserted %s with %d retries",
                                         job->fileSlot->filename, i);

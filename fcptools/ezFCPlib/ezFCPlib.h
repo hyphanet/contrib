@@ -43,9 +43,11 @@
 #ifdef WINDOWS
 #include <io.h>
 #include <windows.h>
+#define DIRDELIMCHAR '\\'
 #else
 #include <sys/socket.h>
 #include <unistd.h>
+#define DIRDELIMCHAR '/'
 #endif
 
 
@@ -82,8 +84,9 @@ fcpPutJob;
 #define SPLIT_INSSTAT_WAITING	1	// waiting for mgr thread to pick up
 #define SPLIT_INSSTAT_INPROG	2	// in progress
 #define SPLIT_INSSTAT_BADNEWS	3	// failure - awaiting cleanup
-#define SPLIT_INSSTAT_SUCCESS	4	// full insert completed successfully
-#define SPLIT_INSSTAT_FAILED	5	// insert failed somewhere
+#define SPLIT_INSSTAT_MANIFEST	4	// inserting splitfile manifest
+#define SPLIT_INSSTAT_SUCCESS	5	// full insert completed successfully
+#define SPLIT_INSSTAT_FAILED	6	// insert failed somewhere
 
 
 // Splitfile Insert Control Blocks
