@@ -14,7 +14,7 @@
 
 		This file contains the entry point and the message pump */
 
-
+//!!!ToDo: take the WinExec call for FCPProxy out once FProxy works again
 #undef UNICODE
 #include "windows.h"
 #include "shellapi.h"
@@ -356,15 +356,15 @@ void Initialise(void)
 	DWORD buffersize,dwStrlen;
 	char dummy[1];
 	char *szCLASSPATH;
-
 	LPSTR szCommandLinePtr, szEndPointer;
 	
 	GetAppDirectory(szbuffer);
-
 	SetCurrentDirectory(szbuffer);
 
-	/* set up the environment variable for CLASSPATH: */
+//!!! TEMPORY STARTING FCPPROXY UNTIL WE GET A NATIVE FPROXY BACK
+WinExec("fcpproxy.exe",SW_MINIMIZE);
 
+	/* set up the environment variable for CLASSPATH: */
 	lstrcat(szbuffer,"\\");
 	lstrcat(szbuffer,szFreenetJar);
 	GetShortPathName(szbuffer, szShortPathbuffer, sizeof(szShortPathbuffer)-1);
