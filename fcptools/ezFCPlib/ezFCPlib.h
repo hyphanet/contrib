@@ -222,6 +222,10 @@ typedef struct {
 	int   data_length;
 } FCPRESP_BLOCKSDECODED;
 
+typedef struct {
+  int datalength;
+} FCPRESP_MADEMETADATA;
+
 
 /**********************************************************************
   Now bundle all these together.
@@ -242,6 +246,7 @@ typedef struct {
 	FCPRESP_BLOCKMAP        blockmap;
 	FCPRESP_BLOCKSENCODED   blocksencoded;
 	FCPRESP_BLOCKSDECODED   blocksdecoded;
+	FCPRESP_MADEMETADATA    mademetadata;
 
 } FCPRESP;
 
@@ -266,7 +271,7 @@ typedef struct {
 #define FCPRESP_TYPE_BLOCKMAP       14
 #define FCPRESP_TYPE_BLOCKSENCODED  15
 #define FCPRESP_TYPE_BLOCKSDECODED  16
-
+#define FCPRESP_TYPE_MADEMETADATA   17
 
 /* Tokens for receive states */
 #define RECV_STATE_WAITING      0
@@ -334,13 +339,13 @@ typedef struct {
 typedef struct {
 	int  type;
 
-	hURI     *uri;
+	hURI      *uri;
 
-	int       openmode;
-	char     *mimetype;
-	int       size;
+	int        openmode;
+	char      *mimetype;
+	int        size;
 
-	hBlock   *tmpblock;
+	hBlock    *tmpblock;
 
 	hMetadata *metadata;
 

@@ -26,27 +26,6 @@ extern long xtoi(char *);
 /* suppress a compiler warning for jesus */
 char *strdup(const char *s);
 
-/*
-	There are 12 possible unique Node responses (2002-08-27)
-
-	NodeHello
-	Success
-
-	DataFound
-	DataChunk
-	DataNotFound
-	RouteNotFound
-
-	URIError
-	Restarted
-
-	KeyCollision
-	Pending
-
-	Failed
-	FormatError
-*/
-
 static int  getrespHello(hFCP *);
 static int  getrespSuccess(hFCP *);
 
@@ -66,64 +45,28 @@ static int  getrespFormatError(hFCP *);
 /* FEC specific responses */
 static int  getrespSegmentHeaders(hFCP *);
 static int  getrespBlocksEncoded(hFCP *);
+static int  getrespMadeMetadata(hFCP *);
 
 /* Utility functions.. not directly part of the protocol */
 static int  getrespblock(hFCP *, char *respblock, int bytesreqd);
 static int  getrespline(hFCP *, char *respline);
 
 
-/*
-  Function:    _fcpRecvResponse
-
-  Arguments:   fcpconn
-
-	Returns:     Negative integer if error condition.
-	             Zero on success.
-*/
-
 int _fcpRecvResponse(hFCP *hfcp)
 {
 	char resp[1025];
-	int  doAgain = 1;
 	int rc;
 
-	while (doAgain) {
+	while (1) {
 
-		if (getrespline(hfcp, resp) < 0) {
-			return -1;
-		}
+		if (getrespline(hfcp, resp) < 0) return -1;
 		
-		if (!strcmp(resp, "Restarted")) {
-			getrespRestarted(hfcp);
-		}
+		if (!strcmp(resp, "Restarted"))	getrespRestarted(hfcp);
 
-		else if (!strcmp(resp, "Pending")) {
-			getrespPending(hfcp);
-	}
-
+		else if (!strcmp(resp, "Pending")) getrespPending(hfcp);
+ 		
 		else break;
 	}
-	
-	/*
-		There are 12 possible unique Node responses:
-		
-		NodeHello
-		Success
-		
-		DataFound
-		DataChunk
-		DataNotFound
-		RouteNotFound
-		
-		UriError
-		Restarted
-		
-		KeyCollision
-		Pending
-		
-		Failed
-		FormatError
-	*/
 	
   if (!strcmp(resp, "NodeHello")) {
 		hfcp->response.type = FCPRESP_TYPE_NODEHELLO;
@@ -170,16 +113,28 @@ int _fcpRecvResponse(hFCP *hfcp)
   }
 
   else if (!strcmp(resp, "FormatError")) {
+		rc = getrespFormatError(hfcp);
 		hfcp->response.type = FCPRESP_TYPE_FORMATERROR;
-		return getrespFormatError(hfcp);
+
+		if (hfcp->error) free(hfcp->error);
+
+		if (hfcp->response.formaterror.reason)
+			hfcp->error = strdup(hfcp->response.formaterror.reason);
+		else
+			hfcp->error = 0;
+
+		return rc;
   }
   else if (!strcmp(resp, "Failed")) {
 		rc = getrespFailed(hfcp);
 		hfcp->response.type = FCPRESP_TYPE_FAILED;
 
 		if (hfcp->error) free(hfcp->error);
-		hfcp->error = (char *)malloc(strlen(hfcp->response.failed.reason));
-		strcpy(hfcp->error, hfcp->response.failed.reason);
+
+		if (hfcp->response.failed.reason)
+			hfcp->error = strdup(hfcp->response.failed.reason);
+		else
+			hfcp->error = 0;
 
 		return rc;
   }
@@ -192,6 +147,10 @@ int _fcpRecvResponse(hFCP *hfcp)
   else if (!strcmp(resp, "BlocksEncoded")) {
 		hfcp->response.type = FCPRESP_TYPE_BLOCKSENCODED;
 		return getrespBlocksEncoded(hfcp);
+	}
+  else if (!strcmp(resp, "MadeMetadata")) {
+		hfcp->response.type = FCPRESP_TYPE_MADEMETADATA;
+		return getrespMadeMetadata(hfcp);
 	}
 
 	/* Else, send a warning; a little loose, but this is still in development */
@@ -365,7 +324,7 @@ static int getrespRouteNotFound(hFCP *hfcp)
 			return FCPRESP_TYPE_ROUTENOTFOUND;
 
 		else
-			_fcpLog(FCP_LOG_DEBUG, "recei.ed unhandled field \"%s\"", resp);
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
 	}
 	
 	return -1;
@@ -452,9 +411,9 @@ static int getrespPending(hFCP *hfcp)
 		if (!strncmp(resp, "URI=", 4)) {
 			if (hfcp->response.pending.uri) free(hfcp->response.pending.uri);
 
-			len = strlen(resp) - 4;
-			hfcp->response.pending.uri = (char *)malloc(len + 1);
-			strncpy(hfcp->response.pending.uri, resp + 4, len);
+			hfcp->response.pending.uri = strdup(resp+4);
+
+			_fcpLog(FCP_LOG_DEBUG, "getrespPending: uri=%s", hfcp->response.pending.uri);
 		}
 		
 		else if (!strncmp(resp, "PublicKey=", 10)) {
@@ -533,9 +492,7 @@ static int getrespFormatError(hFCP *hfcp)
 		if (!strncmp(resp, "Reason=", 7)) {
 			if (hfcp->response.formaterror.reason) free(hfcp->response.formaterror.reason);
 			
-			len = strlen(resp) - 7;
-			hfcp->response.formaterror.reason = (char *)malloc(len + 1);
-			strncpy(hfcp->response.formaterror.reason, resp + 7, len);
+			hfcp->response.formaterror.reason = strdup(resp + 7);
 		}
 		
 		else if (strncmp(resp, "EndMessage", 10))
@@ -557,60 +514,38 @@ static int  getrespSegmentHeaders(hFCP *hfcp)
 
   while (!getrespline(hfcp, resp)) {
 
-		if (!strncmp(resp, "FECAlgorithm=", 13)) {
+		if (!strncmp(resp, "FECAlgorithm=", 13))
 			strncpy(hfcp->response.segmentheader.fec_algorithm, resp + 13, L_KEY);
-			_fcpLog(FCP_LOG_DEBUG, "FECAlgorithm: %s", hfcp->response.segmentheader.fec_algorithm);
-		}
 
-		else if (!strncmp(resp, "FileLength=", 11)) {
+		else if (!strncmp(resp, "FileLength=", 11))
 			hfcp->response.segmentheader.filelength = xtoi(resp + 11);
-			_fcpLog(FCP_LOG_DEBUG, "FileLength: %d", hfcp->response.segmentheader.filelength);
-		}
 
-		else if (!strncmp(resp, "Offset=", 7)) {
+		else if (!strncmp(resp, "Offset=", 7))
 			hfcp->response.segmentheader.offset = xtoi(resp + 7);
-			_fcpLog(FCP_LOG_DEBUG, "Offset: %d", hfcp->response.segmentheader.offset);
-		}
 
-		else if (!strncmp(resp, "BlockCount=", 11)) {
+		else if (!strncmp(resp, "BlockCount=", 11))
 			hfcp->response.segmentheader.block_count = xtoi(resp + 11);
-			_fcpLog(FCP_LOG_DEBUG, "BlockCount: %d", hfcp->response.segmentheader.block_count);
-		}
 
-		else if (!strncmp(resp, "BlockSize=", 10)) {
+		else if (!strncmp(resp, "BlockSize=", 10))
 			hfcp->response.segmentheader.block_size = xtoi(resp + 10);
-			_fcpLog(FCP_LOG_DEBUG, "BlockSize: %d", hfcp->response.segmentheader.block_size);
-		}
 
-		else if (!strncmp(resp, "CheckBlockCount=", 16)) {
+		else if (!strncmp(resp, "CheckBlockCount=", 16))
 			hfcp->response.segmentheader.checkblock_count = xtoi(resp + 16);
-			_fcpLog(FCP_LOG_DEBUG, "CheckBlockCount: %d", hfcp->response.segmentheader.checkblock_count);
-		}
 
-		else if (!strncmp(resp, "CheckBlockSize=", 15)) {
+		else if (!strncmp(resp, "CheckBlockSize=", 15))
 			hfcp->response.segmentheader.checkblock_size = xtoi(resp + 15);
-			_fcpLog(FCP_LOG_DEBUG, "CheckBlockSize: %d", hfcp->response.segmentheader.checkblock_size);
-		}
 
-		else if (!strncmp(resp, "Segments=", 9)) {
+		else if (!strncmp(resp, "Segments=", 9))
 			hfcp->response.segmentheader.segments = xtoi(resp + 9);
-			_fcpLog(FCP_LOG_DEBUG, "Segments: %d", hfcp->response.segmentheader.segments);
-		}
 
-		else if (!strncmp(resp, "SegmentNum=", 11)) {
+		else if (!strncmp(resp, "SegmentNum=", 11))
 			hfcp->response.segmentheader.segment_num = xtoi(resp + 11);
-			_fcpLog(FCP_LOG_DEBUG, "SegmentNum: %d", hfcp->response.segmentheader.segment_num);
-		}
 
-		else if (!strncmp(resp, "BlocksRequired=", 15)) {
+		else if (!strncmp(resp, "BlocksRequired=", 15))
 			hfcp->response.segmentheader.blocks_required = xtoi(resp + 15);
-			_fcpLog(FCP_LOG_DEBUG, "BlocksRequired: %d", hfcp->response.segmentheader.blocks_required);
-		}
 
- 		else if (!strncmp(resp, "EndMessage=", 10)) {
-			_fcpLog(FCP_LOG_DEBUG, "%s", resp);
+ 		else if (!strncmp(resp, "EndMessage=", 10))
 			return FCPRESP_TYPE_SEGMENTHEADER;
-		}
 
 		else
 			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
@@ -629,20 +564,35 @@ static int  getrespBlocksEncoded(hFCP *hfcp)
 
   while (!getrespline(hfcp, resp)) {
 
-		if (!strncmp(resp, "BlockCount=", 11)) {
+		if (!strncmp(resp, "BlockCount=", 11))
 			hfcp->response.blocksencoded.block_count = xtoi(resp + 11);
-			_fcpLog(FCP_LOG_DEBUG, "BlockCount: %d", hfcp->response.blocksencoded.block_count);
-		}
 
-		else if (!strncmp(resp, "BlockSize=", 10)) {
+		else if (!strncmp(resp, "BlockSize=", 10))
 			hfcp->response.blocksencoded.block_size = xtoi(resp + 10);
-			_fcpLog(FCP_LOG_DEBUG, "BlockSize: %d", hfcp->response.blocksencoded.block_size);
-		}
 
- 		else if (!strncmp(resp, "EndMessage=", 10)) {
-			_fcpLog(FCP_LOG_DEBUG, "%s", resp);
+ 		else if (!strncmp(resp, "EndMessage=", 10))
 			return FCPRESP_TYPE_BLOCKSENCODED;
-		}
+
+		else
+			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);
+	}
+	
+	return -1;
+}
+
+static int getrespMadeMetadata(hFCP *hfcp)
+{
+	char resp[1025];
+
+	_fcpLog(FCP_LOG_DEBUG, "received MadeMetadata response");
+
+  while (!getrespline(hfcp, resp)) {
+
+		if (!strncmp(resp, "DataLength=", 11))
+			hfcp->response.mademetadata.datalength = xtoi(resp + 11);
+
+ 		else if (!strncmp(resp, "EndMessage=", 10))
+			return FCPRESP_TYPE_MADEMETADATA;
 
 		else
 			_fcpLog(FCP_LOG_DEBUG, "received unhandled field \"%s\"", resp);

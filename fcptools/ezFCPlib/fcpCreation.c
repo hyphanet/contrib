@@ -205,9 +205,9 @@ int _fcpParseURI(hURI *uri, char *key)
 		strncpy(uri->file, key, len);
 		*(uri->file + len) = 0;
 
-		/* the +10 really is +8:  "SSK@ + / + //"  */
-		uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->path) + strlen(uri->file) + 10);
-		sprintf(uri->uri_str, "SSK@%s/%s//%s", uri->keyid, uri->path, uri->file); 
+		/* the +18 really is +16:  "freenet:SSK@ + / + //"  */
+		uri->uri_str = malloc(strlen(uri->keyid) + strlen(uri->path) + strlen(uri->file) + 18);
+		sprintf(uri->uri_str, "freenet:SSK@%s/%s//%s", uri->keyid, uri->path, uri->file); 
   }
 
   else if (!strncmp(key, "CHK@", 4)) {
@@ -223,12 +223,12 @@ int _fcpParseURI(hURI *uri, char *key)
 		}
 		
 		if (uri->keyid) {
-			uri->uri_str = (char *)malloc(strlen(uri->keyid) + 5);
-			sprintf(uri->uri_str, "CHK@%s", uri->keyid);
+			uri->uri_str = (char *)malloc(strlen(uri->keyid) + 13);
+			sprintf(uri->uri_str, "freenet:CHK@%s", uri->keyid);
 		}
 		else {
-			uri->uri_str = (char *)malloc(5);
-			strcpy(uri->uri_str, "CHK@");
+			uri->uri_str = (char *)malloc(13);
+			strcpy(uri->uri_str, "freenet:CHK@");
 		}
   }
   
@@ -246,8 +246,8 @@ int _fcpParseURI(hURI *uri, char *key)
 		strcpy(uri->keyid, key);
 		*(uri->keyid + len) = 0;
 
-		uri->uri_str = (char *)malloc(strlen(uri->keyid) + 5);
-		sprintf(uri->uri_str, "KSK@%s", uri->keyid);
+		uri->uri_str = (char *)malloc(strlen(uri->keyid) + 13);
+		sprintf(uri->uri_str, "freenet:KSK@%s", uri->keyid);
   }
   
   else {
