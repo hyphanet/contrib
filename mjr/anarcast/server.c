@@ -1,6 +1,8 @@
 #include "anarcast.h"
 #include "sha.c"
 
+void touch_inform_server (char *server);
+
 struct state {
     char type, hash[HASH_LEN], *data;
     unsigned int off, len;
@@ -12,7 +14,13 @@ main (int argc, char **argv)
     int m, l;
     fd_set r, w;
     
+    if (argc != 2) {
+	fprintf(stderr, "Usage: %s <inform server>\n", argv[0]);
+	exit(2);
+    }
+    
     chdir_to_home();
+    touch_inform_server(argv[1]);
     l = listening_socket(ANARCAST_SERVER_PORT);
     
     FD_ZERO(&r);
@@ -171,5 +179,32 @@ write:	//=== write =========================================================
 	    }
 	}
     }
+}
+
+void
+touch_inform_server (char *server)
+{
+    struct sockaddr_in a;
+    struct hostent *h;
+    int c;
+
+    if (!(h = gethostbyname(server))) {
+	printf("Warning: %s: %s.\n", server, hstrerror(h_errno));
+	return;
+    }
+    
+    memset(&a, 0, sizeof(a));
+    a.sin_family = AF_INET;
+    a.sin_port = htons(INFORM_SERVER_PORT);
+    a.sin_addr.s_addr = ((struct in_addr *)h->h_addr)->s_addr;
+    
+    if ((c = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	err(1, "socket() failed");
+    
+    if (connect(c, &a, sizeof(a)) == -1)
+	printf("Warning: connect() to %s failed.\n", server);
+    
+    if (close(c) == -1)
+	err(1, "close() failed");
 }
 
