@@ -22,136 +22,65 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifndef WINDOWS
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
 
-#include <unistd.h>
-#endif
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #include "ezFCPlib.h"
 
-#ifndef WINDOWS
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
-#include <netdb.h>
-#endif
-
-#include <errno.h>
-#include <fcntl.h>
-
-/*
-	IMPORTED DECLARATIONS
-*/
-extern char *_fcpHost;
-extern int   _fcpPort;
-extern int	 _fcpNumOpenSockets;
-
-
-#ifdef WINDOWS
-static int GetAddr(const char* HostName, int Port, struct sockaddr* Result);
-static struct sockaddr  _fcpSockAddr;
-#else
-struct sockaddr_in server;
-struct hostent* hp;
-#endif
-
-
-#ifdef WINDOWS
-
-/* windows version */
-
-int _fcpSockInit()
+int crSockConnect(hFCP *hfcp)
 {
-  WORD wVersionRequested;
-  WSADATA wsaData;
-  
-  /* start up sockets iterface just in case it hasn't been done already */
-  SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-  wVersionRequested = MAKEWORD(2, 0);
-  if (WSAStartup(wVersionRequested, &wsaData) != 0)
+  int rc, i;
+
+  struct sockaddr_in localAddr, servAddr;
+  struct hostent *h;
+
+  if (!(h = gethostbyname(hfcp->host))) return -1;
+
+  servAddr.sin_family = h->h_addrtype;
+  memcpy((char *) &servAddr.sin_addr.s_addr, h->h_addr_list[0], h->h_length);
+  servAddr.sin_port = htons(_fcpPort);
+
+  /* create socket */
+  hfcp->socket = socket(AF_INET, SOCK_STREAM, 0);
+
+  if (hfcp->socket < 0) return -1;
+
+  /* bind any port number */
+  localAddr.sin_family = AF_INET;
+  localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  localAddr.sin_port = htons(0);
+	
+	_fcpLog(FCP_LOG_DEBUG, "binding to TCP port: %d", _fcpPort);
+
+  rc = bind(hfcp->socket, (struct sockaddr *) &localAddr, sizeof(localAddr));
+  if (rc < 0) {
+		_fcpLog(FCP_LOG_DEBUG, "crSockConnect(): error binding to port %d", _fcpPort);
+		_fcpLog(FCP_LOG_DEBUG, strerror(errno));
+
+		crSockDisconnect(hfcp);
     return -1;
-  
-  /* locate Freenet FCP port */
-  if (GetAddr(_fcpHost, _fcpPort, &_fcpSockAddr) == 0)
-    return -1;
-  
+  }
+
+  /* connect to server */
+  rc = connect(hfcp->socket, (struct sockaddr *) &servAddr, sizeof(servAddr));
+  if (rc < 0) {
+		_fcpLog(FCP_LOG_DEBUG, "crSockConnect(): error connecting to server %s", _fcpHost);
+		_fcpLog(FCP_LOG_DEBUG, strerror(errno));
+		
+		crSockDisconnect(hfcp);
+		return -1;
+	}
+
+  /* OK - we're in :) */
+  _fcpNumOpenSockets++;
+
+	_fcpLog(FCP_LOG_DEBUG, "Connected to server %s:%d", _fcpHost, _fcpPort);
   return 0;
 }
 
-
-static int GetAddr(const char* HostName, int Port, struct sockaddr* Result)
-{
-	struct hostent*     Host;
-	SOCKADDR_IN         Address;
-	
-	memset(Result, 0, sizeof(*Result));
-	memset(&Address, 0, sizeof(Address));
-	
-	Host = gethostbyname(HostName);
-	if(Host != NULL)
-    {
-			Address.sin_family  = AF_INET;
-			Address.sin_port    = htons((short)Port);
-			memcpy(&Address.sin_addr, Host->h_addr_list[0], Host->h_length);
-			memcpy(Result, &Address, sizeof(Address));
-    }
-	return Host != NULL;
-}
-
-
-#else
-
-/* unix version */
-
-int _fcpSockInit()
-{
-  server.sin_family=AF_INET;
-  server.sin_port=htons((unsigned short)_fcpPort);
-	
-  hp=gethostbyname(_fcpHost);
-	
-	if(!hp)
-    {
-			long int addr=inet_addr(_fcpHost);
-			if(addr!=-1)
-				hp=gethostbyaddr((char*)addr,sizeof(addr),AF_INET);
-			
-			if(!hp)
-        {
-					if(errno!=ETIMEDOUT)
-						errno=-1; /* use h_errno */
-					_fcpLog(FCP_LOG_CRITICAL, "Unknown host '%s'", _fcpHost);
-					return(-1);
-				}
-		}
-	
-  memcpy((char*)&server.sin_addr,(char*)hp->h_addr,sizeof(server.sin_addr));
-  
-  return 0;
-}
-
-
-#endif
-
-
-int _fcpSockReceive(HFCP *hfcp, char *buf, int len)
-{
-#ifdef WINDOWS
-	return recv(hfcp->conn.socket, buf, len, 0);
-#else
-  return read(hfcp->conn.socket, buf, len);
-#endif
-}
-
-
-int _fcpSockSend(HFCP *hfcp, char *buf, int len)
-{
-#ifdef WINDOWS
-  return send(hfcp->conn.socket, buf, len, 0);
-#else
-  return write(hfcp->conn.socket, buf, len);
-#endif
-}
