@@ -63,12 +63,12 @@ int metaParse(META04 *meta, char *buf)
 	char  val[128];
 	int		metacdoclen=64;
 
-	meta->cdoc=malloc(64 * sizeof(meta->cdoc));
-	meta->count=0;
-	
 	int   state = STATE_BEGIN;
 	int   thisdoc = 0;
 	int   thiskey = 0;
+
+	meta->cdoc=malloc(64 * sizeof(meta->cdoc));
+	meta->count=0;
 	
 	// init metadata structure
 	meta->vers[0] = 0;
