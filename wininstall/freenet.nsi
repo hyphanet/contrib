@@ -1,5 +1,5 @@
 # installer generator script for Freenet:
-!define VERSION "20020210"
+#!define VERSION "20020225"
 !define WEBINSTALL
 #!define LANGUAGE "Dutch"
 
@@ -41,8 +41,7 @@ InstallDir "$PROGRAMFILES\Freenet0.4"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 ShowInstDetails show
 InstProgressFlags smooth
-EnabledBitmap Yes.bmp
-DisabledBitmap No.bmp
+CheckBitmap "checked.bmp"
 BGGradient
 AutoCloseWindow true
 ;-----------------------------------------------------------------------------------
@@ -170,6 +169,12 @@ Section
   !endif
   MfcDLLExists:
   
+  # create the configuration file now
+  # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
+  IfFileExists "$INSTDIR\freenet.ini" iniFileExisted
+  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
+  iniFileExisted:
+  
   # Copying the Freenet files to the install dir
   DetailPrint "Copying Freenet files"
   SetOutPath "$INSTDIR\docs"
@@ -180,6 +185,18 @@ Section
   # copying the real Freenet files now
   File freenet\*.*
   WriteUninstaller "Uninstall-Freenet.exe"
+  
+  # look if there is a freenet.jar and an ext-freenet.jar in the same directory and use this
+  IfFileExists "$EXEDIR\lib\freenet.jar" 0 checkedForFiles
+
+  # copy the local files and use these instead
+  CopyFiles "$EXEDIR\lib\freenet.jar" "$INSTDIR\freenet.jar"
+  CopyFiles "$EXEDIR\lib\freenet-ext.jar" "$INSTDIR\freenet-ext.jar"
+  CopyFiles "$EXEDIR\seednodes.ref" "$INSTDIR\seednodes.ref"
+
+  Goto getFilesDone
+
+ checkedForFiles:
   !ifdef WEBINSTALL
     # download the necessary files
     AddSize 950 ; add 950kb for Freenet.jar
@@ -197,6 +214,9 @@ Section
     # copying the .jar files now
     File freenet\jar\*.*
   !endif
+
+  getFilesDone:
+
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\fclient.exe" 6
   SetDetailsPrint none
   CopyFiles /silent "$INSTDIR\fserve.exe" "$INSTDIR\cfgnode.exe" 6
@@ -237,11 +257,6 @@ Section
 
   Call DetectJava
 
-  # create the configuration file now
-  # set the diskstoresize to 0 to tell NodeConfig, to propose a value lateron
-  IfFileExists "$INSTDIR\freenet.ini" iniFileExisted
-  WriteINIStr "$INSTDIR\freenet.ini" "Freenet Node" "storeCacheSize" "0"
-  iniFileExisted:
   # turn on FProxy by default
   ClearErrors
   ExecWait '"$INSTDIR\cfgnode.exe" freenet.ini --silent'
@@ -277,10 +292,7 @@ Section
  
  End:
 SectionEnd
-
-;-------------------------------------------------------------------------------
- SectionDivider
-;-------------------------------------------------------------------------------
+;---------------------------------------------------------------------------------------
 #Plugin for Internet-Explorer
 #Section "IE browser plugin"
 #SectionIn 2
