@@ -1,11 +1,11 @@
-Name "Freenet 0.3.2"
+Name "Freenet 0.3.3"
 LicenseText "Freenet is published under the GNU general public license:"
-LicenseData freenet/COPYING.txt
+LicenseData GNU.txt
 # Icon main.ico
-OutFile Freenet_setup0.3.2.exe
+OutFile Freenet_setup0.3.3.1.exe
 UninstallText "This uninstalls Freenet and all files on this node. SHUT THE RUNNING NODE DOWN BEFORE UNINSTALLING!"
 UninstallExeName Uninstall-Freenet.exe
-ComponentText "This will install Freenet 0.3.2 on your system. Select which options you want to set up."
+ComponentText "This will install Freenet 0.3.3 on your system. Select which options you want to set up."
 DirText "Select a directory to install Freenet in."
 # InstType Normal
 
@@ -16,7 +16,7 @@ InstallDir "$PROGRAMFILES\Freenet"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 SetOverwrite on
 
-Section "Freenet 0.3.2 (required)"
+Section "Freenet 0.3.3 (required)"
 
 # FindWindow prompt "FreenetWindowTitleName" "Freenet is currently running. Please close before installing."
 
@@ -28,15 +28,19 @@ File freenet\*.*
 # SetOutPath $INSTDIR\Program\Res\3.0_maxi_player
 # File Program\Res\3.0_maxi_player\*.*
 
-WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet 0.3.2 (remove only)"
+WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "DisplayName" "Freenet 0.3.3 (remove only)"
 WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\Freenet" "UninstallString" '"$INSTDIR\Uninstall-Freenet.exe"'
 
 Exec wait '"$INSTDIR\findjava.exe"'
-Delete "$INSTDIR\findjava.exe"
+#Delete "$INSTDIR\findjava.exe"
+Exec wait '"$INSTDIR\confignode.exe" simple'
+Exec wait "$INSTDIR\configclient.exe"
+#Delete "$INSTDIR\configclient.exe"
 
 # naah, we don't wanna write more than uninstall info in the registry.
 # WriteRegStr HKEY_LOCAL_MACHINE "Software\Freenet" "instpath" $INSTDIR
 
+# Leaving the samples in there. Might be useful one day
 # WriteRegDword HKEY_CURRENT_USER "Software\Spinner Plus\spinner" "Registered" 0
 # WriteRegStr HKEY_CURRENT_USER "Software\Spinner Plus\spinner\Options" "SpinnerInstallSuccessful" "1"
 # WriteRegStr HKEY_CURRENT_USER "Software\Spinner Plus\spinner\Options" "application/vnd.spinnerplus" "$INSTDIR\Program\spinner.exe"
@@ -49,10 +53,15 @@ Delete "$INSTDIR\findjava.exe"
 
  Section "Startmenu and Desktop Icons"
  SectionIn 1
- CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\fserve.exe" "" "$INSTDIR\freenet.ico" 0
+ CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\fserve.exe" "" "$INSTDIR\freenet2.ico" 0
  CreateShortCut "$STARTMENU\Freenet.lnk" "$INSTDIR\fserve.exe" "" "$INSTDIR\freenet.ico" 0
- #CreateShortCut "$QUICKLAUNCH\Freenet.lnk" 'start /min "$INSTDIR\fserve.exe"' "" "$INSTDIR\freenet.ico" 0
+
  
+ Section "Freenet Client (FProxy)"
+ SectionIn 1
+ CreateShortCut "$DESKTOP\FProxy.lnk" "http://localhost:8080" "" "$INSTDIR\freenet.ico" 0
+ CreateShortCut "$QUICKLAUNCH\FProxy.lnk" "http://localhost:8080" "" "$INSTDIR\freenet.ico" 0
+
 # Section "System tray support"
 # SectionIn 1
 # SetOutPath $INSTDIR\trayit!
@@ -94,5 +103,6 @@ RMDir $INSTDIR
 
 Delete "$STARTMENU\Freenet.lnk"
 Delete "$DESKTOP\Freenet.lnk"
+Delete "$DESKTOP\FProxy.lnk"
 Delete "$STARTMENU\Autostart\Freenet.lnk"
-#Delete "$QUICKLAUNCH\Freenet.lnk"
+Delete "$QUICKLAUNCH\FProxy.lnk"
