@@ -216,7 +216,7 @@ end:
 void
 send_index (FILE *socket)
 {
-    char one[]=
+    static char one[]=
 	"HTTP/1.1 200 OK"
 	"\nContent-Type: text/html"
 	"\nCache-control: no-cache"
@@ -251,7 +251,7 @@ send_index (FILE *socket)
 	"\n    <td><b>Description</b></td>"
 	"\n  </tr>\n";
     
-    char two[]=
+    static char two[]=
 	"</table>"
 	"\n</center>"
 	"\n</body>"
@@ -289,7 +289,7 @@ send_index (FILE *socket)
 void
 run_search (FILE *socket, char *url)
 {
-    char one[]=
+    static char one[]=
 	"HTTP/1.1 200 OK"
 	"\nContent-Type: text/html"
 	"\n"
@@ -305,7 +305,7 @@ run_search (FILE *socket, char *url)
 	"\n    <td><b>Description</b></td>"
 	"\n  </tr>\n";
     
-    char two[]=
+    static char two[]=
 	"</table>"
 	"\n</center>"
 	"\n</body>"
@@ -400,7 +400,7 @@ run_search (FILE *socket, char *url)
 void
 run_add (FILE *socket, char *url)
 {
-    char form[]=
+    static char form[]=
 	"HTTP/1.1 200 OK"
 	"\nContent-Type: text/html"
 	"\n"
@@ -492,7 +492,7 @@ fof:
 void
 send_data (FILE *socket)
 {
-    char one[]=
+    static char one[]=
 	"HTTP/1.1 200 OK"
 	"\nContent-Type: text/html"
 	"\n"
@@ -507,7 +507,7 @@ send_data (FILE *socket)
 	"\n    <td><b>Description</b></td>"
 	"\n  </tr>\n";
     
-    char two[]=
+    static char two[]=
 	"</table>"
 	"\n</center>"
 	"\n</body>"
@@ -545,7 +545,7 @@ send_data (FILE *socket)
 void
 send_error_404 (FILE *socket)
 {
-    char message[]=
+    static char message[]=
 	"HTTP/1.1 404 Not Found"
 	"\nContent-Type: text/html"
 	"\n"
