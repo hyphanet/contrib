@@ -460,7 +460,7 @@ request (int c)
     }
     
     // write data to client
-    if (writeall(c, &i, 4) != 4 || writeall(c, blocks, i) != i) {
+    if (writeall(c, &datalength, 4) != 4 || writeall(c, blocks, datalength) != datalength) {
 	ioerror();
 	goto out;
     }
@@ -512,7 +512,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 	    FD_SET(c, &w);
 	    if (c >= m) m = c + 1;
 	    xfers[c].num = next;
-	    xfers[c].off = -(1+HASHLEN); // 'r' + hash
+	    xfers[c].off = -1; // 'r'
 	    active++;
 	    next++;
 	}
@@ -521,12 +521,12 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 	for (i = 0 ; i < m ; i++)
 	    if (FD_ISSET(i, &x)) {
 		int n = xfers[i].off;
-		if (n == -(1+HASHLEN))
+		if (n == -1)
 		    // command
 		    n = writeall(i, "r", 1);
 		else
 		    // hash
-		    n = writeall(i, &hashes[xfers[i].num*HASHLEN+n], -n);
+		    n = writeall(i, &hashes[xfers[i].num*HASHLEN+n], HASHLEN-n);
 
 		// io error
 		if (n <= 0) {
@@ -539,12 +539,11 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		    c = hookup(&hashes[xfers[i].num*HASHLEN]);
 		    FD_SET(c, &w);
 		    xfers[c].num = xfers[i].num;
-		    xfers[c].off = -(1+HASHLEN); // 'r' + hash
+		    xfers[c].off = -1; // 'r'
 		}
 		
 		// are we done sending our request?
-		xfers[i].off += n;
-		if (!xfers[i].off) {
+		if ((xfers[i].off += n) == HASHLEN) {
 		    FD_CLR(i, &w); // no more sending data...
 		    FD_SET(i, &r); // reading is good fer yer brane!
 		    xfers[i].off = -4; // datalength
@@ -598,10 +597,7 @@ do_request (char *blocks, char *mask, int blockcount, int blocksize, const char 
 		// are we done reading the data?
 		if (xfers[i].off == blocksize) {
 		    char hash[HASHLEN];
-		    char hex[HASHLEN*2+1];
 		    sha_buffer(&blocks[xfers[i].num*blocksize], blocksize, hash);
-		    bytestohex(hex, hash, HASHLEN); alert("HASH: %s", hex);
-		    bytestohex(hex, &hashes[xfers[i].num*HASHLEN], HASHLEN); alert("%d: %s", xfers[i].num, hex);
 		    if (memcmp(&hashes[xfers[i].num*HASHLEN], hash, HASHLEN))
 			alert("Block %d is corrupt!", xfers[i].num+1);
 		    else

@@ -23,7 +23,7 @@ main (int argc, char **argv)
 	exit(1);
     }
 
-    if ((f = open(argv[1], O_RDWR)) == -1)
+    if ((f = open(argv[1], O_RDONLY)) == -1)
 	die("open() failed");
 
     memset(&a, 0, sizeof(a));
@@ -47,15 +47,12 @@ main (int argc, char **argv)
     if (readall(s, &l, 4) != 4)
 	die("readall() of data length from proxy failed");
     
-    if (ftruncate(f, l) == -1)
-	die("ftruncate() failed");
-    
-    data = mmap(0, l, PROT_WRITE, MAP_SHARED, f, 0);
-    if (data == MAP_FAILED)
-	die("mmap() failed");
-    
+    data = mbuf(l);
     if (readall(s, data, l) != l)
 	die("readall() of data from proxy failed");
+
+    if (writeall(1, data, l) != l)
+	die("writeall() of data to stdout failed");
     
     return 0;
 }
