@@ -13,9 +13,6 @@
 
 #include "ezFCPlib.h"
 
-extern long xtoi(char *s);
-
-//static int    getrespchar(HFCP *hfcp);
 static int  getrespHello(HFCP *hfcpconn);
 static int  getrespSuccess(HFCP *hfcpconn);
 static int  getrespFailed(HFCP *hfcp);
@@ -28,7 +25,6 @@ static int  getrespKeycollision(HFCP *hfcp);
 static int  getrespRouteNotFound(HFCP *hfcp);
 static int  getrespblock(HFCP *hfcp, char *respblock, int bytesreqd);
 static int  getrespline(HFCP *hfcp, char *buf);
-//static int  htoi(char *s);
 
 
 /*
@@ -558,39 +554,5 @@ static int getrespline(HFCP *hfcp, char *buf)
     return -1;
 
 }       // 'getrespline()'
-
-
-//
-//  Function:       htoi
-//
-//  Argument:       pointer to string
-//
-//  Returns:        int value of string
-//
-//  Description:    converts a string to its hex numerical value
-
-/*
-static int htoi(char *s)
-{
-    int val = 0;
-
-    while (*s)
-    {
-        if (isdigit(*s))
-            val = val * 16 + (*s - '0');
-        else if (*s >= 'a' && *s <= 'f')
-            val = val * 16 + (*s - 'a' + 10);
-        else if (*s >= 'A' && *s <= 'F')
-            val = val * 16 + (*s - 'A' + 10);
-        else
-            return val;
-
-        s++;
-    }
-
-    return val;
-
-}       // 'htoi()'
-*/
 
 /* force cvs update */
