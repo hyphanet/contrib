@@ -1,7 +1,7 @@
 This is the TODO file for FCPtools.
 
-*2001-11-16: joliveri
-
-Need to streamline the check for pthreads (POSIX.1 in general) done during
+- Need to streamline the check for pthreads (POSIX.1 in general) done during
 automake.
 
+- Move away from POSIX Threads towards State Threads for all UNIX platforms.
+Win32 platform will use native Win32 Threading.
