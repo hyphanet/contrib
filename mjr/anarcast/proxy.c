@@ -725,31 +725,6 @@ inform ()
 	die("close() failed");
 
     alert("%d Anarcast servers loaded.\n", count);
-
-    for (c = 0 ; c < 10000 ; c++) 
-	addref(c);
-    
-    {
-	struct node *p, *l;
-	char hex[HASHLEN*2+1];
-	int i=0;puts("");
-	for (p = head ; p ; l = p, p = p->next) {
-	    bytestohex(hex, p->hash, HASHLEN);
-	    printf("%d: %s\n", i++, hex);
-	}
-    }
-    for (c = 0 ; c < 10000 ; c++)
-        rmref(c);
-
-    {
-	struct node *p;
-	char hex[HASHLEN*2+1];
-	int i=0;puts("");
-	for (p = head ; p ; p = p->next) {
-	    bytestohex(hex, p->hash, HASHLEN);
-	    printf("%d: %s\n", i++, hex);
-	}
-    }
 }
 
 //=== routing ===============================================================
@@ -863,6 +838,6 @@ route (const char hash[HASHLEN], int off)
     
     refop('*', p->hash, p->addr);
     
-    return 1;
+    return p->addr;
 }
 
