@@ -1,16 +1,32 @@
-To Build:
+TO BUILD:
+Type:
 make
 
-To install:
+TO INSTALL:
 su
+[enter your root password]
 make install
 
-Before running:
+BEFORE RUNNING:
 
-You must add this line to your /etc/services file:
+Saturn requires that the NNTPSERVER environment variable be set to your 
+USENET server.  If you haven't got a USENET server, you will need one.    
+Check the docs that your ISP sent you, or phone their tech support.
+Alternatively find a public Usenet server, although be warned - these are
+increasingly rare.  You should add a line such as:
 
-fcp             8082/tcp                        # Freenet Client Protocol
+export NNTPSERVER=my.nntp.server
 
-Or if fcp is on a port other than 8082 then make the appropriate 
-modification.
+To your .bashrc or /etc/profile and restart your shell.  Alternatively, 
+you can launch saturn as follows:
 
+NNTPSERVER=my.nntp.server saturn xxx
+
+OTHER NOTES:
+
+If FCP is running on a port other than 8082 (the default) you must add 
+this line to your /etc/services file:
+
+fcp             XXXX/tcp                        # Freenet Client Protocol
+
+Where XXXX is the port on which FCP is running.

@@ -1,0 +1,58 @@
+Saturn - USENET Binary Snarfer
+Code by Mark J Roberts
+This doc by Ian Clarke
+
+INTRODUCTION:
+
+Saturn is a small C program designed to work with Freenet (see 
+http://freenetproject.org/.  Saturn requires a version of Freenet which 
+supports the Freenet Client Protocol (FCP), this means that it should be 
+Freenet 0.3.9.1 at a minimum.  Saturn has been tested in Redhat Linux 7.1, 
+but should compile and run in any sane Unix environment.
+
+INSTALLATION:
+
+Please refer to the INSTALL file.
+
+USAGE:
+
+NOTE: Before running Saturn, a Freenet node must be running, you can 
+download Freenet from http://freenetproject.org/
+
+To use saturn type:
+
+saturn some.news.group
+
+You will see Saturn download a number of articles, check them for attached
+files, and insert them into Freenet.  When saturn is finished, you will
+notice that it has created a file in the current directory with the same
+name as the newsgroup you ran it on.  If you look at this file in a text 
+editor you will see that it contains a number of lines of the form:
+
+filename=freenet:CHK@...
+
+Where filename is the name of a file snarfed from a Usenet post, and the 
+freenet:CHK@... is the key with which it has been inserted into Freenet.  
+This file is in a deliberately simple format so that it can be processed 
+by scripts which will, for example, create HTML indexes within Freenet.
+
+COMMAND LINE OPTIONS:
+
+Saturn supports the following command line options:
+
+Option	Description
+-h xx  	The "hops to live" for inserts.  This should be low (20),
+	but could be increased if others cannot reach the files
+	that you are inserting.  Making the htl Greater than 100 
+	won't make any difference.
+-t xx	Maximum number of simultaenous inserts to attempt.  Generally 10 
+	is a good number.  Trying to do too much at once isn't a good idea
+	as Freenet will place its own limits on the maximum number of
+	threads.
+-r xx	Only insert articles whose names match a regular expression.
+	This allows you to filter articles based on their subject lines.
+-c xx	Terminate after xx collisions.  This will cause saturn to stop
+	if it finds that files have already been inserted into Freenet,
+	suggesting that someone else has already snarfed the newsgroup.
+-s xx	Skip xx newest articles
+-m xx	Skips articles less than xx bytes	
