@@ -4,8 +4,10 @@
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
-// PropDiagnostics.h : header file
-//
+
+#include "stdafx.h"
+#include "resource.h"
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropDiagnostics dialog
