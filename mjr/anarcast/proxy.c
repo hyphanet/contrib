@@ -234,7 +234,9 @@ insert (int c)
     
     // send the URI to the client
     alert("Writing key to client.");
-    if (writeall(c, &hlen, 4) != 4 || writeall(c, hashes, hlen) != hlen) {
+    if (writeall(c, &hlen, 4) != 4 ||
+	writeall(c, &blocksize, 4) != 4 ||
+	writeall(c, hashes, hlen) != hlen) {
 	ioerror();
 	if (munmap(blocks, len) == -1)
 	    die("munmap() failed");
@@ -364,26 +366,39 @@ void
 request (int c)
 {
     int i;
-    char *hashes;
-
+    unsigned int blockcount, blocksize;
+    char *data, *hashes;
+    struct graph g;
+    
     if (readall(c, &i, 4) != 4) {
 	ioerror();
 	return;
     }
-
+    
+    i -= 4;
     if (i % HASHLEN) {
 	alert("Bad key length: %s.", i);
 	return;
     }
 
-    if (!(hashes = malloc(i)))
+    if (!(hashes = malloc(i-4)))
 	die("malloc() failed");
     
-    if (readall(c, hashes, i) != i) {
+    if (readall(c, &blocksize, 4) != 4 || readall(c, hashes, i) != i) {
 	ioerror();
 	free(hashes);
 	return;
     }
+
+    blockcount = i / HASHLEN;
+    
+    data = mbuf(blockcount * blocksize);
+    
+    alert("Requesting %d blocks of %d bytes each.", blockcount, blocksize);
+
+    if (munmap(data, blockcount * blocksize) == -1)
+	die("munmap() failed");
+    free(hashes);
 }
 
 //=== inform ================================================================

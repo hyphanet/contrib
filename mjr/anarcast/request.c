@@ -14,7 +14,7 @@ main (int argc, char **argv)
 
     i = strlen(argv[1]);
     
-    if (i % 40)
+    if ((i-8) % HASHLEN)
 	die("bad key length");
     
     if (!(key = malloc(i/2)))
