@@ -76,6 +76,7 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 	if (_fcpParseURI(hfcp->key->uri, key))
 		return -1;
 
+	/* prepare the tmpblock for key data */
 	hfcp->key->tmpblock = _fcpCreateHBlock();
 
 	/* Tie it to a unique temporary file */
@@ -85,6 +86,17 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key)
 
 	hfcp->key->tmpblock->fd = fileno(hfcp->key->tmpblock->file);
 
+	/* now prepare the tmpblock for key *meta* data */
+	hfcp->key->metadata = _fcpCreateHMetadata();
+	hfcp->key->metadata->tmpblock = _fcpCreateHBlock();
+
+	hfcp->key->metadata->tmpblock->filename = _fcpTmpFilename();
+	if (!(hfcp->key->metadata->tmpblock->file = fopen(hfcp->key->metadata->tmpblock->filename, "wb")))
+		return -1;
+
+	hfcp->key->metadata->tmpblock->fd = fileno(hfcp->key->metadata->tmpblock->file);
+
+	/* im wanna go to hawaii, yayy!! */
 	_fcpLog(FCP_LOG_DEBUG, "successfully opened key for writing");
 
 	return 0;

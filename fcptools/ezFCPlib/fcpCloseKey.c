@@ -58,18 +58,22 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	hFCP *tmp_hfcp;
 	int   rc;
 
-	/* close the temporary file */
+	/* close the temporary key file */
 	fclose(hfcp->key->tmpblock->file);
+
+	/* close the temporary metadata file */
+	fclose(hfcp->key->metadata->tmpblock->file);
 
 	/* insert the 'ol bugger */
 	tmp_hfcp = _fcpCreateHFCP();
-	
 	tmp_hfcp->key = _fcpCreateHKey();
-	tmp_hfcp->key->size = hfcp->key->size;
 	
 	_fcpParseURI(tmp_hfcp->key->uri, "CHK@");
-	
-	rc = put_file(tmp_hfcp, hfcp->key->tmpblock->filename, 0);
+
+	rc = put_file(tmp_hfcp,
+								hfcp->key->tmpblock->filename,
+								hfcp->key->metadata->tmpblock->filename
+								);
 	
 	if (rc != 0) {
 		_fcpLog(FCP_LOG_DEBUG, "could not insert");

@@ -78,16 +78,16 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 	/* While there's still data to write from caller.. */
 	while (len) {
 
-		rc = write(hfcp->key->tmpblock->fd, buf, count);
+		rc = write(hfcp->key->metadata->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
 			_fcpLog(FCP_LOG_CRITICAL, "fcpWriteKey ERROR: Error writing %d byte block to %s",
-							count, hfcp->key->tmpblock->filename);
+							count, hfcp->key->metadata->tmpblock->filename);
 			return -1;
 		}
 
 		/* Info was written.. update indexes */
-		hfcp->key->size += count;
+		hfcp->key->metadata->size += count;
 
 		len -= count;
 		buf += count;

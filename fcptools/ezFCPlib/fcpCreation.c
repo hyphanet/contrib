@@ -257,6 +257,24 @@ int _fcpParseURI(hURI *uri, char *key)
   return 0;
 }
 
+hMetadata *_fcpCreateHMetadata(void)
+{
+	hMetadata *h;
+
+	h = (hMetadata *)malloc(sizeof (hMetadata));
+	memset(h, 0, sizeof (hMetadata));
+
+	return h;
+}
+
+void _fcpDestroyHMetadata(hMetadata *h)
+{
+	if (h) {
+	}
+
+	return;
+}
+
 
 /*************************************************************************/
 /* FEC specific */

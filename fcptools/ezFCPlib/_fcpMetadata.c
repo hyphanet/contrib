@@ -37,9 +37,11 @@
   EXPORTED DEFINITIONS
 */
 
+#if 0
 long       cdocIntVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
 long       cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long  defVal);
 char      *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal);
+#endif
 
 hDocument *cdocFindDoc(hMetadata *meta, char *cdocName);
 char      *cdocLookupKey(hDocument *doc, char *keyName);
@@ -136,6 +138,7 @@ void _fcpMetaDestroy(hMetadata *meta)
 
 /**********************************************************************/
 
+#if 0
 /*
   Metadata lookup routines
 */
@@ -151,13 +154,56 @@ long cdocHexVal(hMetadata *meta, char *cdocName, char *keyName, long defVal)
 char *cdocStrVal(hMetadata *meta, char *cdocName, char *keyName, char *defVal)
 {
 }
+#endif
 
+/*
+	Given a document name (null for default doc), return a pointer to the
+	hDocument struct.
+*/
 hDocument *cdocFindDoc(hMetadata *meta, char *cdocName)
 {
+	int i;
+
+	for (i=0; i < meta->cdoc_count; i++) {
+
+		/* check for the default document, to be overly safe about NULL prts */
+		if (!cdocName) {
+			if (!meta->cdocs[i]->name) {
+				return meta->cdocs[i];
+			}
+		}
+
+		/* check for the case where stored docname is NULL for the def doc */
+		else if (!meta->cdocs[i]->name) {
+			if (!cdocName) return meta->cdocs[i];
+		}
+
+		/* finally the case where cdocName perhaps matches the stored docname */
+		else if (!strncasecmp(meta->cdocs[i]->name, cdocName, strlen(meta->cdocs[i]->name)))					 
+			return meta->cdocs[i];
+	}
+	
+	/* here, we didn't find it in the doc list.. return null */
+	return 0;
 }
 
+/*
+	Given a keyName for a particular document, return a pointer to the value.
+*/
 char *cdocLookupKey(hDocument *doc, char *keyName)
 {
+	int i;
+
+	/* loop from 0 through field_count*2 (key/val pairs) */
+	for (i=0; i < (doc->field_count << 1); i += 2) {
+
+		/* found it? return a pointer to the value */
+		if (!strncasecmp(doc->data[i], keyName, strlen(doc->data[i])))
+			return doc->data[i+1];
+	}
+
+	/* here, we didn't find the key in the specified doc.. return null */
+	return 0;
 }
 
 /**********************************************************************/
@@ -352,19 +398,6 @@ static int parse_document(hMetadata *meta, char *buf)
 				/* add one to the field counter */
 				meta->cdocs[doc_index]->field_count++;
 
-/* the following code block crashes.. hence the hardcoded field
-	 count of	128 as defined in ezFCPlib.h:hDocument */
-#if 0
-				/* (re)allocate (field_count * 2) locations (key & val) */
-				if (meta->cdocs[doc_index]->field_count == 1)
-					meta->cdocs[doc_index]->data = (char **)malloc(sizeof (char *) * 2);
-
-				else {
-					/* allocate "field_count char pointers * 2" (2 = 1 key equated with 1 val) */
-					realloc(meta->cdocs[doc_index]->data, meta->cdocs[doc_index]->field_count * sizeof (char **) * 2);
-				}
-#endif
-				
 				/* finally add the key and val */
 				meta->cdocs[doc_index]->data[field_index]   = strdup(key);
 				meta->cdocs[doc_index]->data[field_index+1] = strdup(val);
@@ -397,7 +430,10 @@ static int parse_document(hMetadata *meta, char *buf)
 int main(int argc, char *argv[])
 {
 	char *mdata;
-	hMetadata *hm;
+	char *val;
+
+	hMetadata *meta;
+	hDocument *doc;
 
 	int rc;
 
@@ -425,15 +461,30 @@ int main(int argc, char *argv[])
     "DateRedirect.Target=SSK@aabbccddee/something\n" \
     "End\n";
       
-	printf("%s\n", mdata);
+	meta = (hMetadata *)malloc(sizeof (hMetadata));
+	memset(meta, 0, sizeof (hMetadata));
 
-	hm = (hMetadata *)malloc(sizeof (hMetadata));
-	memset(hm, 0, sizeof (hMetadata));
+	rc = _fcpMetaParse(meta, mdata);
+	if (rc != 0) {
+		printf("_fcpMetaParse returned error: %d\n", rc);
+		return 1;
+	}
 
-	rc = _fcpMetaParse(hm, mdata);
-	printf("returning %d\n", rc);
+	/* test doc lookup */
+	if (!(doc = cdocFindDoc(meta, "date-redirect"))) {
+		printf("cdocFindDoc returned NULL");
+		return -1;
+	}
 
-	return rc;
+	/* test field lookup within doc */
+	if (!(val = cdocLookupKey(doc, "DateRedirect.Target"))) {
+		printf("cdocLookupKey returned NULL");
+		return -1;
+	}
+
+	printf("val: %s\n", val);
+
+	return 0;
 }
 
 #endif

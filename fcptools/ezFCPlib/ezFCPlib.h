@@ -140,6 +140,7 @@
 #define EZFCP_DEFAULT_VERBOSITY  FCP_LOG_NORMAL
 
 /*
+
   flags for fcpOpenKey()
 */
 #define _FCP_O_READ         0x100
@@ -349,6 +350,8 @@ typedef struct {
 	int  revision;
 	int  encoding;
 
+	hBlock     *tmpblock;
+
 	int         cdoc_count;
 	hDocument **cdocs;
 
@@ -442,7 +445,9 @@ extern "C" {
 	/* Metadata handling functions */
 	int   _fcpMetaParse(hMetadata *, char *buf);
 	void  _fcpMetaFree(hMetadata *);
-	
+
+	hMetadata  *_fcpCreateHMetadata(void);
+	void        _fcpDestroyHMetadata(hMetadata *);
 
 	/* fcpLog */
 	void  _fcpLog(int level, char *format, ...);

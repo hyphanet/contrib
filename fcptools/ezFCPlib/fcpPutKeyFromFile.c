@@ -69,13 +69,11 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 			return -1;
 		}
-
 		/* otherwise, we've found a file supposed metadata in it */
-		hfcp->key->metadata->size = rc;
 	}
 
 	/* key not specified, then generate a CHK */
-	if (!hfcp->key->uri) _fcpParseURI(hfcp->key->uri, "CHK@");
+	if (!hfcp->key->uri->uri_str) _fcpParseURI(hfcp->key->uri, "CHK@");
 	
 	/* If it's larger than L_BLOCK_SIZE, insert as an FEC encoded splitfile */
 	if (hfcp->key->size > L_BLOCK_SIZE) {

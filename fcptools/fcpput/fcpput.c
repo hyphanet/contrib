@@ -53,6 +53,8 @@ int main(int argc, char* argv[])
 	int rc;
 	char buf[100];
 
+	rc = 0;
+
 	if (fcpStartup()) {
 		printf("Call to fcpStartup() failed\n");
 		return 1;
@@ -61,22 +63,44 @@ int main(int argc, char* argv[])
 	/* must occur after fcpStartup() since it changes _fcp* variables */
 	parse_args(argc, argv);
 
-#if 0
+#if 1
 	hfcp = _fcpCreateHFCP();
 
 	if (fcpOpenKey(hfcp, "CHK@", _FCP_O_WRITE)) {
-		_fcpLog(FCP_LOG_DEBUG, "could not open metadata key for writing");
+		_fcpLog(FCP_LOG_DEBUG, "could not open key for writing");
 		return -1;
 	}
 	
-	fcpWriteKey(hfcp, buf, 90);
+	_fcpLog(FCP_LOG_DEBUG, "opened key for writing..");
+	
+	strcpy(buf, "123456789-10! suprise\n\n");
+	fcpWriteKey(hfcp, buf, strlen(buf));
+
+	_fcpLog(FCP_LOG_DEBUG, "wrote key");
+
+	strcpy(buf,
+
+				 "Version\n" \
+				 "Revision=1\n" \
+				 "EndPart\n" \
+				 "Document\n" \
+				 "Name=test\n" \
+				 "Info.Format=text/plain\n" \
+				 "End\n"
+				 );
+	fcpWriteMetadata(hfcp, buf, strlen(buf));
+
+	_fcpLog(FCP_LOG_DEBUG, "wrote key metadata:\n%s\n", buf);
+
+	_fcpLog(FCP_LOG_DEBUG, "now beginning network insert of file data..");
 	fcpCloseKey(hfcp);
+	_fcpLog(FCP_LOG_DEBUG, "wrote key to Freenet");
 
 	_fcpDestroyHFCP(hfcp);
 	fcpTerminate();
 #endif
 
-#if 1	
+#if 0
 	hfcp = _fcpCreateHFCP();
 	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
 

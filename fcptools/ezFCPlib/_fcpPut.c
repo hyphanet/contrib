@@ -96,52 +96,119 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 		free(hfcp->error);
 		hfcp->error = 0;
 	}
+	
+	/* pre-handle the key and metadata filenames to simplify the logic here
+		 if at all possible */
+
+	if (key_filename) {
+		if (!(kfile = fopen(key_filename, "rb"))) {
+			hfcp->error = strdup("could not open key data file");
+			return -1;
+		}
+	}
+	else {
+		hfcp->error = strdup("key data filename is NULL");
+		return -1;
+	}
+
+	/* ok, the key filename looks valid */
+	kfd = fileno(kfile);
+
+	/* set the key size */
+	hfcp->key->size = file_size(key_filename);
+
+	/* set to zero; meaning so far, zero bytes of metadata to process */
+	bytes = 0;
+
+	/* and now the same for the metadata */
+	if (meta_filename) {
+		if (!(mfile = fopen(meta_filename, "rb"))) {
+			hfcp->error = strdup("could not open metadata file");
+			return -1;
+		}
+		mfd = fileno(mfile);
+		
+		hfcp->key->metadata = _fcpCreateHMetadata();
+		hfcp->key->metadata->size = file_size(meta_filename);	
+
+		/* re-set bytes to metadata size */
+		bytes = hfcp->key->metadata->size;
+	}
 
 	/* let's loop this until we stop receiving Restarted messages */
-
+	
 	do {
-		/* send the first part of the ClientPut message */
-		rc = send_clientput(hfcp);
-		
-		/* Open metadata file */
-		if (meta_filename) {
-			if (!(mfile = fopen(meta_filename, "rb"))) {
-				hfcp->error = strdup("could not open metadata file");
-				return -1;
-			}
-			mfd = fileno(mfile);
-			
-			/* send metadata */
-			bytes = hfcp->key->metadata->size;
+		/* @@@ perhaps perform lseeks() to handle Restarted messages.. */
 
+		/* connect to Freenet FCP */
+		if (_fcpSockConnect(hfcp) != 0)
+			return -1;
+		
+		/* create a put message (depending on existance of metadata) */
+		if (bytes) {
+			rc = snprintf(buf, L_FILE_BLOCKSIZE,
+										"ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
+										hfcp->key->uri->uri_str,
+										hfcp->htl,
+										hfcp->key->size + bytes,
+										bytes
+										);
+		}
+		else {
+			rc = snprintf(buf, L_FILE_BLOCKSIZE,
+										"ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nData\n",
+										hfcp->key->uri->uri_str,
+										hfcp->htl,
+										hfcp->key->size
+										);
+		}
+		_fcpLog(FCP_LOG_DEBUG, "sending message..\n%s", buf);
+
+		/* Send fcpID */
+		send(hfcp->socket, _fcpID, 4, 0);
+		
+		/* Send ClientPut command */
+		if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+			_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientPut message");
+			
+			_fcpSockDisconnect(hfcp);
+			return -1;
+		}
+		
+		/* now send any metadata that's available first.. */
+		if (bytes) {
 			while (bytes) {
 				byte_count = (bytes > L_FILE_BLOCKSIZE ? L_FILE_BLOCKSIZE: bytes);
-			
+				
 				if ((rc = read(mfd, buf, byte_count)) <= 0) {
 					hfcp->error = strdup("could not read metadata from file");
+					
+					_fcpSockDisconnect(hfcp);
 					return -1;
 				}
-
+				
 				if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
 					hfcp->error = strdup("could not write metadata to socket");
+					
+					_fcpSockDisconnect(hfcp);
 					return -1;
 				}
 				
 				/* decrement number of bytes written */
 				bytes -= byte_count;
-			}
-			
+				
+			} /* finished writing metadata (if any) */
+
 			_fcpLog(FCP_LOG_VERBOSE, "Wrote metadata to socket");
 			fclose(mfile);
-		} /* finished writing metadata (if any) */
-		
-		/* now write key data */
-		if (!(kfile = fopen(key_filename, "rb"))) {
-			hfcp->error = strdup("could not open key data file");
-			return -1;
 		}
 		
-		kfd = fileno(kfile);
+		/* @@@ perhaps we should make sure *all* the metadata was written? */
+
+		/* now write key data
+			 at this point, the socket *is* connected to the node and the ClientPut
+			 command *has* been sent in either case (metadata, no-metadata) */
+
 		bytes = hfcp->key->size;
 		
 		while (bytes) {
@@ -150,12 +217,26 @@ int put_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 			/* read from source */
 			if ((rc = read(kfd, buf, byte_count)) <= 0) {
 				hfcp->error = strdup("could not read key data from file");
+
+				_fcpSockDisconnect(hfcp);
 				return -1;
 			}
+
+			/* connect to the local socket (if not already connected
+				 from metadata section */
+			if (hfcp->socket < 0)
+				if (_fcpSockConnect(hfcp)) {
+					hfcp->error = strdup("could not connect to socket");
+
+					_fcpSockDisconnect(hfcp);
+					return -1;
+				}
 			
 			/* write to socket */
 			if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
 				hfcp->error = strdup("could not write key data to socket");
+
+				_fcpSockDisconnect(hfcp);
 				return -1;
 			}
 			
@@ -284,11 +365,11 @@ static int send_clientput(hFCP *hfcp)
     rc = snprintf(buf, L_FILE_BLOCKSIZE,
 						 "ClientPut\nURI=%s\nHopsToLive=%x\nDataLength=%x\nMetadataLength=%x\nData\n",
 						 hfcp->key->uri->uri_str,
-
 						 hfcp->htl,
 						 hfcp->key->size + hfcp->key->metadata->size,
 						 hfcp->key->metadata->size
 						 );
+		_fcpLog(FCP_LOG_DEBUG, "sending message..\n%s", buf);
 	}
 	else {
     rc = snprintf(buf, L_FILE_BLOCKSIZE,
@@ -297,6 +378,7 @@ static int send_clientput(hFCP *hfcp)
 						 hfcp->htl,
 						 hfcp->key->size
 						 );
+		_fcpLog(FCP_LOG_DEBUG, "sending message..\n%s", buf);
   }
 
 	/* Send fcpID */
@@ -819,7 +901,6 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	hFCP *tmp_hfcp;
 
 	int rc;
-	int fi;
 	int bi;
 	int meta_len;
 
