@@ -83,7 +83,14 @@ load_key_database ()
     struct item *tail;
     char key[256], name[256], desc[1024], end[256];
     FILE *data = fopen("beable_database", "r");
-    if (!data) return -1;
+    if (!data) {
+	data = fopen("beable_database", "w");
+	if (!data) return -1;
+	fprintf(data, "freenet:KSK@test.html\nThe Infamous test.html\nThis has been swarming around the Freenet for a long time. Nobody knows who inserted it. This entry is just some nonsense to make my braindead software happy. Oh well.\nEND\n");
+	fclose(data);
+	data = fopen("beable_database", "r");
+	if (!data) return -1;
+    }
     
     while (!feof(data)) {
 	i = fscanf(data, "%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n", key, name, desc, end);
