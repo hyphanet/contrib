@@ -44,9 +44,8 @@ int fcpClientHello(hFCP *hfcp)
 	
 	_fcpLog(FCP_LOG_DEBUG, "sending ClientHello message");
 	
-	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
 		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
-
 		_fcpSockDisconnect(hfcp);
 		return -1;
 	}
@@ -80,7 +79,7 @@ int fcpClientInfo(hFCP *hfcp)
 	
 	_fcpLog(FCP_LOG_DEBUG, "sending ClientInfo message");
 	
-	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+	if ((rc = _fcpSend(hfcp->socket, buf, strlen(buf))) == -1) {
 		_fcpLog(FCP_LOG_VERBOSE, "Could not send ClientHello message");
 		
 		_fcpSockDisconnect(hfcp);

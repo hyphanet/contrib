@@ -38,14 +38,8 @@
 
 int fcpStartup(char *logfile, int retry, int log_verbosity)
 {
-	/* pass a bum value here and it's set to SILENT */
-	_fcpVerbosity = (((log_verbosity >= 0) && (log_verbosity <= 4)) ? log_verbosity : FCP_LOG_SILENT);
-	_fcpRetry     = (retry >= 0 ? retry : 0);
-
 #ifdef WIN32
 	{
-		char buf[L_FILENAME+1];
-	
 		WORD wVersionRequested;
 		WSADATA wsaData;
 
@@ -54,41 +48,10 @@ int fcpStartup(char *logfile, int retry, int log_verbosity)
 		
 		if (WSAStartup(wVersionRequested, &wsaData) != 0)
 			return -1;
-		
-		snprintf(buf, L_FILENAME, "%s", getenv("USERPROFILE"));
-		strncpy(_fcpHomeDir, buf, L_FILENAME);
-		
-		snprintf(buf, L_FILENAME, "%s\\local settings\\temp", _fcpHomeDir);
-		strncpy(_fcpTmpDir, buf, L_FILENAME);
 	}
 	
-	/* both of these paths must have their \'s converted to /'s */
-	/*
-	toUnix(_fcpTmpDir);
-	toUnix(_fcpHomeDir);
-	*/
-
-#else
-
-	_fcpTmpDir = strdup("/tmp");
-	_fcpHomeDir = strdup(getenv("HOME"));
-
 #endif
 	
-	/* now finish initialization of the logfile, after the settings above */
-	if (logfile) {
-		if (!(_fcpLogStream = fopen(logfile, "a"))) {
-
-			_fcpLog(FCP_LOG_VERBOSE, "Could not open logfile \"%s\"", logfile);
-			return -1;
-		}
-	}
-
-	_fcpLog(FCP_LOG_DEBUG, "Home Directory: %s", _fcpHomeDir);
-	_fcpLog(FCP_LOG_DEBUG, "Temp Directory: %s", _fcpTmpDir);
-
-	_fcpSplitblock = L_BLOCK_SIZE;
-
 	return 0;
 }
 
@@ -102,11 +65,4 @@ void fcpTerminate(void)
 	/* on Win32, we gotta call the winsock exit function */
 	}
 #endif
-
-	if (_fcpLogStream) {
-		fclose(_fcpLogStream);
-		_fcpLogStream = 0;
-	}
-	
-	return;
 }

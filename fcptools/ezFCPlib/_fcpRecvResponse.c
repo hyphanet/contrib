@@ -361,7 +361,7 @@ static int getrespDataFound(hFCP *hfcp)
 		}
 
 		else if (strncmp(resp, "Timeout=", 8) == 0) {
-			hfcp->timeout = hfcp->response.datafound.timeout = xtol(resp + 8);
+			hfcp->options->timeout = hfcp->response.datafound.timeout = xtol(resp + 8);
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))
@@ -518,7 +518,7 @@ static int getrespUriError(hFCP *hfcp)
   Arguments    hfcpconn - Freenet FCP handle
 
 	Notes:
-	- Response will set hfcp->timeout before returning.
+	- Response will set hfcp->options->timeout before returning.
 */
 static int getrespRestarted(hFCP *hfcp)
 {
@@ -531,7 +531,7 @@ static int getrespRestarted(hFCP *hfcp)
 
 		if (!strncmp(resp, "Timeout=", 8)) {
 			hfcp->response.restarted.timeout = xtol(resp + 8);
-			hfcp->timeout = hfcp->response.restarted.timeout;
+			hfcp->options->timeout = hfcp->response.restarted.timeout;
 		}
 
 		else if (!strncmp(resp, "EndMessage", 10))
@@ -590,7 +590,7 @@ static int getrespKeyCollision(hFCP *hfcp)
   Arguments    hfcpconn - Freenet FCP handle
 
 	Notes:
-	- Response will set hfcp->timeout before returning.
+	- Response will set hfcp->options->timeout before returning.
 */
 
 static int getrespPending(hFCP *hfcp)
@@ -617,7 +617,7 @@ static int getrespPending(hFCP *hfcp)
 
 		else if (!strncmp(resp, "Timeout=", 8)) { /* milliseconds */
 			hfcp->response.pending.timeout = xtol(resp + 8);
-			hfcp->timeout = hfcp->response.pending.timeout;
+			hfcp->options->timeout = hfcp->response.pending.timeout;
 		}
 		
 		else if (!strncmp(resp, "EndMessage", 10))

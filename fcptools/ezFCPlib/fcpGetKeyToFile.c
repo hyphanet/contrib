@@ -52,11 +52,11 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 
 	/* new fcpCreation.c routines create everything in fcpCreateHFCP() */
 
-	fcpParseURI(hfcp->key->target_uri, key_uri);
-	fcpParseURI(hfcp->key->tmpblock->uri, key_uri);
+	fcpParseHURI(hfcp->key->target_uri, key_uri);
+	fcpParseHURI(hfcp->key->tmpblock->uri, key_uri);
 
 	/* if in normal mode, follow the redirects */
-	if (hfcp->rawmode == 0) {
+	if (hfcp->options->rawmode == 0) {
 		
 		_fcpLog(FCP_LOG_VERBOSE, "starting recursive retrieve");
 		rc = get_follow_redirects(hfcp, key_uri);
@@ -75,18 +75,20 @@ int fcpGetKeyToFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_fi
 	
 	/* Here, the key and meta data is within the tmpblocks */
 
-	fcpParseURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
+	fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 	tmpfile_unlink(hfcp->key);
 	
 	/* TODO: check metadata to detect splitfiles */
 
 	_fcpLog(FCP_LOG_VERBOSE, "Copying tmp files");
-	
-	if (copy_file(key_filename, hfcp->key->tmpblock->filename) < 0)
-		return -1;
-	
-	if (copy_file(meta_filename, hfcp->key->metadata->tmpblock->filename) < 0)
-		return -1;
+
+	if (key_filename)
+		if (copy_file(key_filename, hfcp->key->tmpblock->filename) < 0)
+			return -1;
+
+	if (meta_filename)
+		if (copy_file(meta_filename, hfcp->key->metadata->tmpblock->filename) < 0)
+			return -1;
 
 	_fcpLog(FCP_LOG_VERBOSE, "Retrieved key: %s", hfcp->key->target_uri->uri_str);
 

@@ -39,7 +39,7 @@ static void _fcpDestroyResponse(hFCP *h);
 /*
 	This version requires certain variables to be specified as arguments.
 */
-hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
+hFCP *fcpCreateHFCP(char *host, int port, int htl, int optmask)
 {
   hFCP *h;
 
@@ -57,14 +57,13 @@ hFCP *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask)
 
 	h->port = (port == 0 ? EZFCP_DEFAULT_PORT : port );
 	h->htl =  (htl  < 0 ? EZFCP_DEFAULT_HTL  : htl  );
-	h->timeout = EZFCP_DEFAULT_TIMEOUT;
 	
-	if (regress >= 0) h->regress = regress;
-	
+	h->options = _fcpCreateHOptions();
+
 	/* do the handle option mask */
-	h->rawmode =      (optmask & FCP_MODE_RAW ? 1 : 0);
-	h->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? 1 : 0);
-	h->skip_local =   (optmask & FCP_MODE_SKIP_LOCAL ? 1 : 0);
+	h->options->rawmode =               (optmask & FCP_MODE_RAW ? 1 : 0);
+	h->options->delete_local = (optmask & FCP_MODE_DELETE_LOCAL ? 1 : 0);
+	h->options->skip_local =   (optmask & FCP_MODE_SKIP_LOCAL ? 1 : 0);
 	
 	h->key = _fcpCreateHKey();
 	
@@ -79,10 +78,10 @@ hFCP *fcpInheritHFCP(hFCP *hfcp)
 
 	if (!hfcp) return 0;
 
-	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl, hfcp->regress,
-		                hfcp->rawmode | hfcp->delete_local | hfcp->skip_local);
+	h = fcpCreateHFCP(hfcp->host, hfcp->port, hfcp->htl,
+		                hfcp->options->rawmode | hfcp->options->delete_local | hfcp->options->skip_local);
 
-	h->timeout = hfcp->timeout;
+	h->options->timeout = hfcp->options->timeout;
 
 	return h;
 }
@@ -103,11 +102,44 @@ void fcpDestroyHFCP(hFCP *h)
 			free(h->key);
 		}
 
+		_fcpDestroyHOptions(h->options);
 		_fcpDestroyResponse(h);
 
 		h->socket = FCP_SOCKET_DISCONNECTED;
 
 		/* let caller free 'h' */
+	}
+}
+
+hOptions *_fcpCreateHOptions(void)
+{
+	hOptions *h;
+
+	h = (hOptions *)malloc(sizeof (hOptions));
+	memset(h, 0, sizeof (hOptions));
+
+	/* set the home and temp dirs */
+
+	h->logstream = EZFCP_DEFAULT_LOGSTREAM;		
+	h->delete_local = EZFCP_DEFAULT_DELETELOCAL;
+	h->regress = EZFCP_DEFAULT_REGRESS;
+	h->retry = EZFCP_DEFAULT_RETRY;
+	h->skip_local = EZFCP_DEFAULT_SKIPLOCAL;
+	h->splitblock = EZFCP_DEFAULT_BLOCKSIZE;
+	h->timeout = EZFCP_DEFAULT_TIMEOUT;
+	h->verbosity = EZFCP_DEFAULT_VERBOSITY;
+
+	return h;
+}
+
+void _fcpDestroyHOptions(hOptions *h)
+{
+	if (h) {
+		if (h->homedir) free(h->homedir);
+		if (h->tempdir) free(h->tempdir);
+		
+		if (h->logstream)
+			if (h->logstream != stdout) fclose(h->logstream);
 	}
 }
 
@@ -300,13 +332,13 @@ void fcpDestroyHURI(hURI *h)
 }
 
 /*
-	fcpParseURI()
+	fcpParseHURI()
 
 	This function parses a string containing a fully-qualified Freenet URI
 	into simpler components.  It is written to be re-entrant on the same
 	hURI pointer (it can be called repeatedly without being re-created.
 */
-int fcpParseURI(hURI *uri, char *key)
+int fcpParseHURI(hURI *uri, char *key)
 {
 	int len;
 	

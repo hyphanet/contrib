@@ -37,6 +37,7 @@
 
 /* Global vars
  */
+#if 0
 extern int   _fcpVerbosity;   /* verbosity of log messages; ranges from 0 through 4 */
 extern FILE *_fcpLogStream;   /* stream used to send log messages; may be file or stdin */
 
@@ -48,6 +49,7 @@ extern int   _fcpSplitblock;  /* Mininum size necessary to begin splitfile inser
 
 extern int   _fcpRetry;       /* Nuber of times to retry on Timeout message */
 extern int   _fcpDMALLOC;
+#endif
 
 /*
 	Function prototypes
@@ -58,6 +60,9 @@ extern void    _fcpDestroyHBlock(hBlock *);
 
 extern hKey   *_fcpCreateHKey(void);
 extern void    _fcpDestroyHKey(hKey *);
+
+extern hOptions *_fcpCreateHOptions(void);
+extern void      _fcpDestroyHOptions(hOptions *);
 
 /* Metadata handling functions */
 extern int     _fcpMetaParse(hMetadata *, char *buf);
@@ -82,13 +87,19 @@ extern int   _fcpRecvResponse(hFCP *hfcp);
 extern int   _fcpSockRecv(hFCP *hfcp, char *buf, int len);
 extern int   _fcpSockRecvln(hFCP *hfcp, char *resp, int len);
 
-extern int   _fcpRecv(int socket, char *buf, int len);
+/* send/recv substitutes */
+extern int   _fcpRecv(FCPSOCKET socket, char *buf, int len);
+extern int   _fcpSend(FCPSOCKET socket, char *buf, int len);
+
+/* read/write substitutes */
+extern int   _fcpRead(int fd, char *buf, int len);
+extern int   _fcpWrite(int fd, char *buf, int len);
 
 /* Others */
 extern char *_fcpGetMimetype(char *pathname);
 
 extern int   _fcpTmpfile(char *filename);
-extern long  file_size(char *filename);
+extern long  _fcpFilesize(char *filename);
 
 extern int   tmpfile_link(hKey *h, int flags);
 extern void  tmpfile_unlink(hKey *h);

@@ -58,10 +58,10 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	tmpfile_unlink(hfcp->key);
 
 	/* put the target uri away */
-	fcpParseURI(hfcp->key->target_uri, key_uri);
+	fcpParseHURI(hfcp->key->target_uri, key_uri);
 
 	if (key_filename) {
-		if ((hfcp->key->size = file_size(key_filename)) < 0) {
+		if ((hfcp->key->size = _fcpFilesize(key_filename)) < 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "Key data not found in file \"%s\"", key_filename);
 			return -1;
@@ -71,7 +71,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 		hfcp->key->size = 0;
 
 	if (meta_filename) {
-		if ((hfcp->key->metadata->size = file_size(meta_filename)) < 0) {
+		if ((hfcp->key->metadata->size = _fcpFilesize(meta_filename)) < 0) {
 
 			_fcpLog(FCP_LOG_CRITICAL, "Metadata not found in file \"%s\"", meta_filename);
 			return -1;
@@ -91,14 +91,13 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	_fcpLog(FCP_LOG_DEBUG, "returned mimetype: %s", hfcp->key->mimetype);
 	_fcpLog(FCP_LOG_VERBOSE, "Copying tmp files");
 
-	if (copy_file(hfcp->key->tmpblock->filename, key_filename) < 0)
-		return -1;
+	if (key_filename)
+		if (copy_file(hfcp->key->tmpblock->filename, key_filename) < 0)
+			return -1;
 
-	if (hfcp->key->metadata->size) {
+	if (meta_filename)
 		if (copy_file(hfcp->key->metadata->tmpblock->filename, meta_filename) < 0)
 			return -1;
-	}
-
 
 	tmpfile_link(hfcp->key, O_RDONLY);
 
@@ -111,7 +110,7 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	dmalloc_log_changed(_fcpDMALLOC, 1, 1, 1);
 #endif
 
-	if (hfcp->key->size > _fcpSplitblock) {
+	if (hfcp->key->size > hfcp->options->splitblock) {
 
 		_fcpLog(FCP_LOG_VERBOSE, "Start FEC encoded insert");
 		rc = put_fec_splitfile(hfcp);
@@ -129,12 +128,12 @@ int fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_
 	/* now check if it's KSK or SSK and insert redirect to hfcp->key->uri */
 	/* create the final key as a re-direct to the inserted CHK@ */
 
-	fcpParseURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
+	fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
 	switch (hfcp->key->target_uri->type) {
 	case KEY_TYPE_CHK: /* for CHK's */
 
-		fcpParseURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
+		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
 		break;
 
 	case KEY_TYPE_SSK:

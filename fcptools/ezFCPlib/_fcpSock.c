@@ -34,6 +34,9 @@
 #include <netdb.h>
 #endif
 
+#include <time.h>
+
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -44,6 +47,9 @@
 /* private helper functions */
 static int host_is_numeric(char *host);
 
+/*******************************************************************/
+/* Socket Connect/Disconnect functions */
+/*******************************************************************/
 
 int _fcpSockConnect(hFCP *hfcp)
 {
@@ -102,15 +108,188 @@ int _fcpSockConnect(hFCP *hfcp)
 	}
 
 	/* Send fcpID */
-	send(hfcp->socket, fcpID, 4, 0);
+	rc = _fcpSend(hfcp->socket, fcpID, 4);
 
 	_fcpLog(FCP_LOG_DEBUG, "_fcpSockConnect() - host: %s:%d", hfcp->host, hfcp->port);
 
   return 0;
 }
 
+void _fcpSockDisconnect(hFCP *hfcp)
+{
+  if (hfcp->socket == FCP_SOCKET_DISCONNECTED)
+		return;
 
-/*********************************************************************/
+#ifdef WIN32
+	closesocket(hfcp->socket);
+#else
+	close(hfcp->socket);
+#endif
+
+	hfcp->socket = FCP_SOCKET_DISCONNECTED;
+}
+
+/*******************************************************************/
+/* Substitutes for recv() and send() */
+/*******************************************************************/
+
+/* This recv() handles cases where returned byte count is less than
+	the expected count */
+
+int _fcpRecv(FCPSOCKET socket, char *buf, int len)
+{
+	int rc;
+	int bs;
+
+	bs = 0;
+	while (len) {
+
+#ifdef WIN32
+		rc = recv(socket, buf+bs, len, 0);
+#else
+		rc = read(socket, buf+bs, len);
+#endif
+
+		len -= rc;
+		bs += rc;
+	}
+
+	if (rc < 0) return -1;
+	else return bs;
+}
+
+int _fcpSend(FCPSOCKET socket, char *buf, int len)
+{
+	int rc;
+	int bs;
+
+	bs = 0;
+	while (len) {
+
+		/* this function is the same on win and BSD-systems */
+		rc = send(socket, buf+bs, len, 0);
+
+		len -= rc;
+		bs += rc;
+	}
+
+	if (rc < 0) return -1;
+	else return bs;
+}
+
+int _fcpSockRecv(hFCP *hfcp, char *buf, int len)
+{
+	int rc;
+
+	struct timeval tv;
+	fd_set readfds;
+
+	tv.tv_usec = 0;
+	tv.tv_sec  = hfcp->options->timeout / 1000;
+
+	FD_ZERO(&readfds);
+	FD_SET(hfcp->socket, &readfds);
+	
+	/* 1st param is ignored by Winsock */
+	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
+
+	/* handle this popular case first */	
+	if (rc == -1) {
+		return EZERR_GENERAL;
+	}
+	/* check for socket timeout */
+	else if (rc == 0) {
+		return EZERR_SOCKET_TIMEOUT;
+	}
+
+	/* otherwise, rc *should* be 1, but any non-zero positive
+	integer is acceptable, meaning all is well */
+
+#ifdef DMALLOC
+	dmalloc_verify(0);
+#endif
+
+	/* grab the whole chunk */
+	rc = _fcpRecv(hfcp->socket, buf, len);
+
+	if (rc == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
+		return -1;
+	}
+	else
+		return rc;
+}
+
+
+int _fcpSockRecvln(hFCP *hfcp, char *buf, int len)
+{
+	int rc;
+	int rcvd = 0;
+
+	struct timeval tv;
+	fd_set readfds;
+
+	tv.tv_usec = 0;
+	tv.tv_sec  = hfcp->options->timeout / 1000;
+
+	FD_ZERO(&readfds);
+	FD_SET(hfcp->socket, &readfds);
+
+	buf[0] = 0;
+
+	/* 1st param is ignored by Winsock */
+	rc = select(hfcp->socket+1, &readfds, NULL, NULL, &tv);
+
+	/* handle this popular case first */	
+	if (rc == -1) {
+		return EZERR_GENERAL;
+	}
+	/* check for socket timeout */
+	else if (rc == 0) {
+		return EZERR_SOCKET_TIMEOUT;
+	}
+
+	/* otherwise, rc *should* be 1, but any non-zero positive
+	integer is acceptable, meaning all is well */
+
+	while (1) {
+		char s[41];
+
+		rc = _fcpRecv(hfcp->socket, buf+rcvd, 1);
+
+		if (rc == 0) {
+			_fcpLog(FCP_LOG_DEBUG, "_fcpRecv() returned 0 (indicated an extraneous call)");
+			return 0;
+		}
+
+		if (rc == -1) {
+			_fcpLog(FCP_LOG_DEBUG, "unexpectedly lost connection to node");
+			return -1;
+		}
+
+		if (buf[rcvd] == '\n') {
+			buf[rcvd] = 0;
+			return rcvd;
+		}
+		else if (rcvd >= len) {
+			/* put the null bytes on the last char allocated in the array */
+			buf[--rcvd] = 0;
+
+			_fcpLog(FCP_LOG_DEBUG, "truncated line at %d bytes", rcvd);
+
+			snprintf(s, 40, "*%s*", buf);
+			_fcpLog(FCP_LOG_DEBUG, "1st 40 bytes: %s", s);
+			return rcvd;
+		}
+		else {
+			/* the char is already 'received' so increment the byte counter and
+			fetch another */
+			rcvd++;
+		}
+	}
+}
+
+/*******************************************************************/
 
 static int host_is_numeric(char *host)
 {

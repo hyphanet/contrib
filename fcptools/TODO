@@ -30,6 +30,7 @@ FCPtools generic
 ezFCPlib specific
 -----------------
 
++ Remove the need for _fcpGlobals.c & _fcpCompat.c
 + Verify that OpenKey/CloseKey do *not* need to be Destroyed then Recreated
   (make them re-usable after "closing" without destroying)
   ++ Make this true also for put_file/get_file

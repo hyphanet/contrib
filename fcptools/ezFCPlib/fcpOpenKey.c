@@ -49,7 +49,7 @@ int fcpOpenKey(hFCP *hfcp, char *key_uri, int mode)
     return -1; /* neither selected - illegal */
   
   if (mode & FCP_MODE_RAW)
-    hfcp->rawmode = 1;
+    hfcp->options->rawmode = 1;
 
   /* Now perform the read/write specific open */
   if (mode & FCP_MODE_O_READ)
@@ -76,11 +76,11 @@ static int fcpOpenKeyRead(hFCP *hfcp, char *key_uri)
   hfcp->key->openmode = FCP_MODE_O_READ;
 
   /* store final key uri for later usage */
-  if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
-	if (fcpParseURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
+  if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;
+	if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
 
 	/* if in normal mode, follow the redirects */
-	if (hfcp->rawmode == 0) {
+	if (hfcp->options->rawmode == 0) {
 		
 		_fcpLog(FCP_LOG_VERBOSE, "starting recursive retrieve");
 		rc = get_follow_redirects(hfcp, key_uri);
@@ -114,8 +114,8 @@ static int fcpOpenKeyWrite(hFCP *hfcp, char *key_uri)
   hfcp->key->openmode = FCP_MODE_O_WRITE;
   
   /* store final key uri for later usage */
-  if (fcpParseURI(hfcp->key->target_uri, key_uri)) return -1;
-  if (fcpParseURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
+  if (fcpParseHURI(hfcp->key->target_uri, key_uri)) return -1;
+  if (fcpParseHURI(hfcp->key->tmpblock->uri, key_uri)) return -1;
 	
 	/* that's it for now */
   

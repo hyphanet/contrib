@@ -24,6 +24,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#if 0
 #include "ezFCPlib.h"
 
 #include <stdio.h>
@@ -38,15 +39,5 @@
 
 /* Common FCP related default protocol values */
 
-int   _fcpVerbosity;   /* verbosity of log messages; ranges from 0 through 4 */
 FILE *_fcpLogStream;   /* stream used to send log messages; may be file or stdin */
-
-char  _fcpTmpDir[L_FILENAME+1];    /* temporary file directory (depends on WIN32/!WIN32) */
-char  _fcpHomeDir[L_FILENAME+1];   /* Home directory; not currently used */
-
-int   _fcpSplitblock;  /* Mininum size necessary to begin splitfile insertion
-                          (may not be the same as size returned by Fred FEC routines */
-
-int   _fcpRetry;       /* Nuber of times to retry on Timeout message */
-int   _fcpDMALLOC;
-
+#endif

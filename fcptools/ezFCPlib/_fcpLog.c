@@ -29,9 +29,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-extern int   _fcpVerbosity;
-extern FILE *_fcpLogStream;
-
 
 /*
   Function:    _fcpLog()
@@ -49,13 +46,14 @@ void _fcpLog(int level, char *format, ...)
 	va_list ap;
 
 	/* exit if the message wishes to be ignored */
-	if (level > _fcpVerbosity) return;
+	/*if (level > _fcpVerbosity) return;*/
 	
 	va_start(ap, format);
 	vsnprintf(buf, FCP_LOG_MESSAGE_SIZE, format, ap);
 	va_end(ap);
 
-	stream = (_fcpLogStream ? _fcpLogStream : stdout);
+	/*stream = (_fcpLogStream ? _fcpLogStream : stdout);*/
+	stream = stdout;
 
 	switch (level) {
 	case FCP_LOG_CRITICAL: /*1*/

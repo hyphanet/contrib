@@ -47,18 +47,22 @@
 /* VERSION is defined by automake for non-Win platforms. */
 #define VERSION "0.4.9w"
 
-#define write _write
-#define open _open
-#define read _read
-#define close _close
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
+#define open _open
+#define close _close
 
 #define strcasecmp strcmpi
 #define strncasecmp strnicmp
 
-#define DIR_SEP '\\'
-#define FCP_CREATE_FLAGS O_CREAT
+typedef SOCKET FCPSOCKET;
+
+#define FCP_WRITEFILE_FLAGS (_O_CREAT | _O_BINARY | _O_WRONLY)
+#define FCP_CREATEFILE_MODE (_S_IWRITE)
+
+#define FCP_READFILE_FLAGS (_O_BINARY | _O_RDONLY)
+
+#define FCP_DIR_SEP '\\'
 
 /**************************************************************************
   UNIX specifics
@@ -73,10 +77,17 @@
 
 #include <unistd.h>
 
-#define DIR_SEP '/'
+typedef int FCPSOCKET;
 
-/* on *nix, this creates a file with perms "rw-------" (600) */
-#define FCP_CREATE_FLAGS (O_CREAT | S_IRUSR | S_IWUSR)
+#define FCP_CREATEFILE_FLAGS (O_CREAT | S_IRUSR | S_IWUSR)
+#if 0
+#define FCP_CREATEFILE_MODE
+
+#define FCP_READFILE_FLAGS
+#define FCP_WRITEFILE_FLAGS
+#endif
+
+#define FCP_DIR_SEP '/'
 
 #endif
 
@@ -116,7 +127,6 @@
 #define L_RAW_METADATA      65536
 
 /* rework */
-#define L_BLOCK_SIZE        1024000  /* default split part size (1,000 * 1,024) */
 #define L_FILE_BLOCKSIZE    8192
 /* ~rework */
 
@@ -154,9 +164,11 @@
 #define EZFCP_DEFAULT_HTL          3
 #define EZFCP_DEFAULT_VERBOSITY    FCP_LOG_NORMAL
 #define EZFCP_DEFAULT_LOGSTREAM    stdout
+#define EZFCP_DEFAULT_BLOCKSIZE    1024000  /* default split part size (1,000 * 1,024) */
 #define EZFCP_DEFAULT_RETRY        5
 #define EZFCP_DEFAULT_REGRESS      0
 #define EZFCP_DEFAULT_DELETELOCAL  0
+#define EZFCP_DEFAULT_SKIPLOCAL    0
 #define EZFCP_DEFAULT_RAWMODE      0
 #define EZFCP_DEFAULT_TIMEOUT      300000 /* 5 minutes in milliseconds */
 
@@ -329,6 +341,24 @@ typedef struct {
   Freenet Client Protocol Handle Definition Section
 */
 typedef struct {
+	int   verbosity;
+	int   splitblock;
+	int   retry;
+
+	int   regress;
+	int   delete_local;
+	int   skip_local;
+	int   timeout;
+	int   rawmode;
+
+	FILE *logstream;
+	
+	char *tempdir;
+	char *homedir;
+
+} hOptions;
+
+typedef struct {
   int   type;                        /* CHK@, KSK@, SSK@ */
 
 	char  *uri_str;     /* the unparsed uri */
@@ -428,23 +458,18 @@ typedef struct {
 
 typedef struct {
 	char    *host;
+
 	unsigned short port;
+	int            htl;
 
-	int   htl;
-	int   regress;
-	int   rawmode;
-
-	int   delete_local;
-	int   skip_local;
+	hOptions *options;
 
 	char *description;
   char *protocol;
 	int   highest_build;
 	int   max_filesize;  /* returned from fcphello */
-	
-  int   socket;
-	int   timeout;
 
+  FCPSOCKET socket;
 	hKey *key;
 		
   FCPRESP response;
@@ -468,7 +493,7 @@ extern "C" {
 	void   fcpTerminate(void);
 
 	/* HFCP handle management functions */
-	hFCP  *fcpCreateHFCP(char *host, int port, int htl, int regress, int optmask);
+	hFCP  *fcpCreateHFCP(char *host, int port, int htl, int optmask);
 	hFCP  *fcpInheritHFCP(hFCP *hfcp);
 	void   fcpDestroyHFCP(hFCP *hfcp);
 
@@ -476,7 +501,7 @@ extern "C" {
 	hURI  *fcpCreateHURI(void);
 	void   fcpDestroyHURI(hURI *uri);
 
-	int    fcpParseURI(hURI *uri, char *key);
+	int    fcpParseHURI(hURI *uri, char *key);
 
 	/* Client functions for operations between files on disk and freenet */
 	int    fcpPutKeyFromFile(hFCP *hfcp, char *key_uri, char *key_filename, char *meta_filename);

@@ -69,13 +69,13 @@ int get_file(hFCP *hfcp, char *uri)
 
 	rc = snprintf(get_command, L_FILE_BLOCKSIZE,
 								"ClientGet\nRemoveLocalKey=%s\nURI=%s\nHopsToLive=%x\nEndMessage\n",
-								(hfcp->skip_local == 0 ? "false" : "true"),
+								(hfcp->options->skip_local == 0 ? "false" : "true"),
 								uri,
 								hfcp->htl
 								);
 
-	retry = _fcpRetry;
-	fcpParseURI(hfcp->key->tmpblock->uri, uri);
+	retry = hfcp->options->retry;
+	fcpParseHURI(hfcp->key->tmpblock->uri, uri);
 
 	/********************************************************************/
 
@@ -83,21 +83,19 @@ int get_file(hFCP *hfcp, char *uri)
 		int minutes;
 		int seconds;
 
-		minutes = (int)(hfcp->timeout / 1000 / 60);
-		seconds = ((hfcp->timeout / 1000) - (minutes * 60));
+		minutes = (int)(hfcp->options->timeout / 1000 / 60);
+		seconds = ((hfcp->options->timeout / 1000) - (minutes * 60));
 
 		/* connect to Freenet FCP */
 		if (_fcpSockConnect(hfcp) != 0)	return -1;
 
 		_fcpLog(FCP_LOG_DEBUG, "sending ClientGet message - htl: %d, regress: %d, "
 						"timeout: %d, keysize: n/a, metasize: n/a, skip_local: %d, rawmode: %d",
-						hfcp->htl, hfcp->regress, hfcp->timeout, hfcp->skip_local, hfcp->rawmode);
+						hfcp->htl, hfcp->options->regress, hfcp->options->timeout, hfcp->options->skip_local, hfcp->options->rawmode);
 		
 		/* Send ClientGet command */
-		if (send(hfcp->socket, get_command, strlen(get_command), 0) == -1) {
+		if ((rc = _fcpSend(hfcp->socket, get_command, strlen(get_command))) == -1) {
 			_fcpLog(FCP_LOG_CRITICAL, "Could not send Get message");
-
-			rc = -1;
 			goto cleanup;
 		}
 		
@@ -116,7 +114,7 @@ int get_file(hFCP *hfcp, char *uri)
 							hfcp->response.datafound.metadatalength
 							);
 
-			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->timeout / 1000));
+			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
 			break;
 			
 		case FCPRESP_TYPE_URIERROR:
@@ -125,13 +123,13 @@ int get_file(hFCP *hfcp, char *uri)
 			
 		case FCPRESP_TYPE_RESTARTED:
 			_fcpLog(FCP_LOG_VERBOSE, "Received restarted message");
-			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->timeout / 1000));
+			_fcpLog(FCP_LOG_DEBUG, "timeout value: %d seconds", (int)(hfcp->options->timeout / 1000));
 			
 			/* disconnect from the socket */
 			_fcpSockDisconnect(hfcp);
 			
 			/* re-set retry count to initial value */
-			retry = _fcpRetry;
+			retry = hfcp->options->retry;
 			
 			break;
 
@@ -239,7 +237,7 @@ int get_file(hFCP *hfcp, char *uri)
 		}
 
 		_fcpLog(FCP_LOG_DEBUG, "writing metadata block");
-		write(hfcp->key->metadata->tmpblock->fd, hfcp->response.datachunk.data, meta_count);
+		_fcpWrite(hfcp->key->metadata->tmpblock->fd, hfcp->response.datachunk.data, meta_count);
 
 		/* copy over the raw metadata for handling later */
 		memcpy(hfcp->key->metadata->raw_metadata + index,
@@ -282,7 +280,7 @@ int get_file(hFCP *hfcp, char *uri)
 		/* key_count is the chunk length minus the metadata written within it */
 		key_count = (hfcp->response.datachunk.length - meta_count);
 
-		write(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data + meta_count, key_count);
+		_fcpWrite(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data + meta_count, key_count);
 		
 		key_bytes -= key_count;
 		index += key_count;
@@ -304,7 +302,7 @@ int get_file(hFCP *hfcp, char *uri)
 
 			key_count = hfcp->response.datachunk.length;
 			
-			write(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data, key_count);
+			_fcpWrite(hfcp->key->tmpblock->fd, hfcp->response.datachunk.data, key_count);
 			
 			key_bytes -= key_count;
 			index += key_count;
@@ -368,7 +366,7 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 			
 			_fcpLog(FCP_LOG_DEBUG, "no metadata?  got data!");
 
-			fcpParseURI(hfcp->key->tmpblock->uri, get_uri);
+			fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
 			break;
 		}
 		else { /* check for the case where there's metadata, but no redirect */
@@ -382,7 +380,7 @@ int get_follow_redirects(hFCP *hfcp, char *uri)
 				
 				_fcpLog(FCP_LOG_DEBUG, "metadata, but no redirect key.. got data");
 
-				fcpParseURI(hfcp->key->tmpblock->uri, get_uri);
+				fcpParseHURI(hfcp->key->tmpblock->uri, get_uri);
 				break;
 			}
 			else { /* key/val pair is redirect */

@@ -441,7 +441,7 @@ int main(int argc, char *argv[])
 
 	int rc;
 
-	rc = file_size("meta.dat");
+	rc = _fcpFilesize("meta.dat");
 
 	str = (char *)malloc(rc + 1);
 

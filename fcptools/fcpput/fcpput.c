@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
   }
   
   /* Make sure all input args are sent to ezFCPlib as advertised */
-  hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
+  hfcp = fcpCreateHFCP(host, port, htl, optmask);
   
   if (b_genkeys) {
     
@@ -143,6 +143,7 @@ int main(int argc, char* argv[])
     if (metafile) {
       int mfd;
       
+			/* change the next line to open file in binary mode */
       if ((mfd = open(metafile, O_RDONLY)) == -1) {
 				fprintf(stdout, "Could not open metadata file \"%s\"\n", metafile);				
 				return -1;

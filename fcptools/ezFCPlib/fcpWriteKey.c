@@ -35,16 +35,19 @@
 
 #include "ez_sys.h"
 
+/* On success, return the number of bytes written */
 int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 {
 	int count;
+	int bytes;
 	int rc;
 
 	/* While there's still data to write from caller.. */
+	bytes = 0;
 	while (len) {
 
 		count = (len > 8192 ? 8192 : len);
-		rc = write(hfcp->key->tmpblock->fd, buf, count);
+		rc = _fcpWrite(hfcp->key->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
 			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteKey()");
@@ -52,26 +55,29 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 		}
 
 		/* Info was written.. update indexes */
-		hfcp->key->size += count;
+		hfcp->key->size += rc;
+		bytes += rc;
 
-		len -= count;
-		buf += count;
+		len -= rc;
+		buf += rc;
 	}
 	
-	return 0;
+	return bytes;
 }
 
 
 int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 {
 	int count;
+	int bytes;
 	int rc;
 
 	/* While there's still data to write from caller.. */
+	bytes = 0;
 	while (len) {
 
 		count = (len > 8192 ? 8192 : len);
-		rc = write(hfcp->key->metadata->tmpblock->fd, buf, count);
+		rc = _fcpWrite(hfcp->key->metadata->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
 			_fcpLog(FCP_LOG_DEBUG, "error during call to fcpWriteMetadata()");
@@ -79,12 +85,13 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 		}
 
 		/* Info was written.. update indexes */
-		hfcp->key->metadata->size += count;
+		hfcp->key->metadata->size += rc;
+		bytes += rc;
 
-		len -= count;
-		buf += count;
+		len -= rc;
+		buf += rc;
 	}
 	
-	return 0;
+	return bytes;
 }
 

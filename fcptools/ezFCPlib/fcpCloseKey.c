@@ -76,7 +76,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	key_size  = hfcp->key->size;
 	meta_size = hfcp->key->metadata->size;
 
-	if (key_size > L_BLOCK_SIZE)
+	if (key_size > hfcp->options->splitblock)
 		rc = put_fec_splitfile(hfcp);
 
 	else /* Otherwise, insert as a normal key */
@@ -86,7 +86,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 		goto cleanup;
 
 	tmpfile_unlink(hfcp->key);
-	fcpParseURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
+	fcpParseHURI(hfcp->key->uri, hfcp->key->tmpblock->uri->uri_str);
 
 #ifdef DMALLOC
 	dmalloc_verify(0);
@@ -96,7 +96,7 @@ static int fcpCloseKeyWrite(hFCP *hfcp)
 	switch (hfcp->key->target_uri->type) {
 	case KEY_TYPE_CHK: /* for CHK's, copy over the generated CHK to the target_uri field */
 
-		fcpParseURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
+		fcpParseHURI(hfcp->key->target_uri, hfcp->key->uri->uri_str);
 		break;
 
 	case KEY_TYPE_SSK:

@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 
   
   /* Make sure all input args are sent to ezFCPlib as advertised */
-  hfcp = fcpCreateHFCP(host, port, htl, regress, optmask);
+  hfcp = fcpCreateHFCP(host, port, htl, optmask);
 
   if (b_stdout) {
     /* write data to stdout */

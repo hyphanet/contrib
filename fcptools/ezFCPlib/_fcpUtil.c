@@ -26,11 +26,116 @@
 
 #include "ezFCPlib.h"
 
+#ifdef WIN32
+#include <winbase.h>
+#endif
+
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "ez_sys.h"
+
+/* WARNING * Multithreaded programs should mutex this function */
+
+int _fcpTmpfile(char *filename)
+{
+	char tempdir[L_FILENAME+1];
+	char tempfile[L_FILENAME+1];
+
+	int search = 1;
+	int rc;
+
+	struct stat st;
+	time_t seedseconds;
+
+	_fcpLog(FCP_LOG_DEBUG, "Entered _fcpTmpfile()");
+
+	time(&seedseconds);
+	srand((unsigned int)seedseconds);
+
+#ifdef WIN32
+	snprintf(tempdir, L_FILENAME, "%s\\local settings\\temp", getenv("USERPROFILE"));
+#else
+	strcpy(tempdir, "/tmp");
+#endif
+
+	while (search) {
+		snprintf(tempfile, L_FILENAME, "%s%ceztmp_%x", tempdir, FCP_DIR_SEP, (unsigned int)rand());
+
+		if (stat(tempfile, &st))
+			if (errno == ENOENT) search = 0;
+	}
+
+	/* set the filename parameter to the newly generated Tmp filename */
+
+	strncpy(filename, tempfile, L_FILENAME);
+	_fcpLog(FCP_LOG_DEBUG, "_fcpTmpfile() filename: %s", filename);
+	
+	/* I think creating the file right here is good in avoiding
+		 race conditions.  Let the caller close the file (leaving a
+		 zero-length file behind) if it needs to be re-opened
+		 (ie when calling fcpGet()) */
+	
+	rc = open(filename, FCP_WRITEFILE_FLAGS, FCP_CREATEFILE_MODE);
+	/*_fcpWrite(rc, "*", 1);*/
+
+	return rc;
+}
+
+/*******************************************************************/
+/* substitutes for read() and write() */
+/*******************************************************************/
+
+int _fcpRead(int fd, char *buf, int len)
+{
+	int rc;
+	int bs;
+
+	bs = 0; rc = 1;
+	while (len && (rc != 0)) {
+
+		rc = read(fd, buf+bs, len);
+
+		len -= rc;
+		bs += rc;
+	}
+
+	if (rc < 0) return -1;
+	else return bs;
+}
+
+int _fcpWrite(int fd, char *buf, int len)
+{
+	int rc;
+	int bs;
+
+	bs = 0; rc = 1;
+	while (len && (rc != 0)) {
+
+		rc = write(fd, buf+bs, len);
+
+		len -= rc;
+		bs += rc;
+	}
+
+	if (rc < 0) return -1;
+	else return bs;
+}
+
+long _fcpFilesize(char *filename)
+{
+	int size;
+
+	struct stat fstat;
+	
+	if (!filename) size = -1;
+	else if (stat(filename, &fstat)) size = -1;
+	else size = fstat.st_size;
+	
+	return size;
+}
 
 /*
   function xtol()
@@ -96,19 +201,29 @@ int copy_file(char *dest, char *src)
 	int count;
 	int bytes;
 
-	if ((dfd = creat(dest, FCP_CREATE_FLAGS)) == -1) {
+	if (!dest) {
+		_fcpLog(FCP_LOG_DEBUG, "OOPS: dest: %s", dest);
+		return 0;
+	}
+
+	if (!src) {
+		_fcpLog(FCP_LOG_DEBUG, "OOPS: src: %s", src);
+		return 0;
+	}
+
+	if ((dfd = open(dest, FCP_WRITEFILE_FLAGS, FCP_CREATEFILE_MODE)) == -1) {
 
 		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", dest);
 		return -1;
 	}
 
-	if ((sfd = open(src, O_RDONLY)) == -1) {
+	if ((sfd = open(src, FCP_READFILE_FLAGS)) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "couldn't open destination file: %s", src);
 		return -1;
 	}
 	
 	for (bytes = 0; (count = read(sfd, buf, 8192)) > 0; bytes += count)
-		write(dfd, buf, count);
+		_fcpWrite(dfd, buf, count);
 
 	if (count == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "a read returned an error");
@@ -116,23 +231,26 @@ int copy_file(char *dest, char *src)
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "copy_file copied %d bytes", bytes);
+
+	close(sfd);
+	close(dfd);
+
 	return bytes;
 }
-
 
 int tmpfile_link(hKey *h, int flags)
 {
 	if ((h->tmpblock->fd = open(h->tmpblock->filename, flags)) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not link tmp files to key data");
+		_fcpLog(FCP_LOG_DEBUG, "could not link to key tmpfile: %s", h->tmpblock->filename);
 		return -1;
 	}
 	
 	if ((h->metadata->tmpblock->fd = open(h->metadata->tmpblock->filename, flags)) == -1) {
-		_fcpLog(FCP_LOG_DEBUG, "could not link tmp files to key data");
+		_fcpLog(FCP_LOG_DEBUG, "could not link to meta tmpfile: ", h->metadata->tmpblock->filename);
 		return -1;
 	}
 
-	_fcpLog(FCP_LOG_DEBUG, "linked keys");
+	_fcpLog(FCP_LOG_DEBUG, "LINKED - key: %s, meta: %s", h->tmpblock->filename, h->metadata->tmpblock->filename);
 	return 0;
 }
 
@@ -141,19 +259,19 @@ void tmpfile_unlink(hKey *h)
 {
 	/* close the temporary key file */
 	if (h->tmpblock->fd != -1) {
-		_fcpLog(FCP_LOG_DEBUG, "key: %s", h->tmpblock->filename);
+		_fcpLog(FCP_LOG_DEBUG, "could not un*link from key tmpfile: %s", h->tmpblock->filename);
 		close(h->tmpblock->fd);
 	}
 
 	/* close the temporary metadata file */
 	if (h->metadata->tmpblock->fd != -1) {
-		_fcpLog(FCP_LOG_DEBUG, "meta: %s", h->metadata->tmpblock->filename);
+		_fcpLog(FCP_LOG_DEBUG, "could not un*link from meta tmpfile: ", h->metadata->tmpblock->filename);
 		close(h->metadata->tmpblock->fd);
 	}
 
 	h->tmpblock->fd = -1;
 	h->metadata->tmpblock->fd = -1;
 	
-	_fcpLog(FCP_LOG_DEBUG, "unlinked key, closed temporary files");
+	_fcpLog(FCP_LOG_DEBUG, "UN*LINKED - key: %s, meta: %s", h->tmpblock->filename, h->metadata->tmpblock->filename);
 }
 
