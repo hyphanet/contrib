@@ -192,7 +192,6 @@ main (int argc, char **argv)
 		s = strip(name);
 		write_array(s, strlen(s));
 		write_chk(key);
-		//		write_array(key, strlen(key));
 	    }
 	    fseek(in, 0 - strlen(line), SEEK_CUR); // back up, we read one line too many
 	    t = &last; last = this; this = *t; // swap the offset arrays
@@ -219,7 +218,7 @@ main (int argc, char **argv)
 	split(line, name, key);
 	s = strip(name);
 	write_array(s, strlen(s));
-	write_array(key, strlen(key));
+	write_chk(key);
     }
     
     // update the header to point to the root node

@@ -272,7 +272,7 @@ com_state (char *arg)
 	printf("No active transfers.\n");
 	goto end;
     }
-    printf("\033[31;40m%-*s  %% Complete  K/s      Time Remaining\033[m\n", len, "Name");
+    printf("\033[1;31;40m%-*s  %% Complete  K/s      Time Remaining\033[m\n", len, "Name");
     for (i = 0 ; i < xfer_count ; i++) {
 	if (!xfers[i]) continue;
 	kbps = xfers[i]->size ? (double) (xfers[i]->read / 1000)
