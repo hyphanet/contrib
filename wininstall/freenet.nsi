@@ -35,7 +35,7 @@ LicenseData GNU.txt
 ;!packhdr will further optimize your installer package if you have upx.exe in your directory
 !packhdr temp.dat "upx.exe -9 temp.dat"
 
-InstallDir "$PROGRAMFILES\Freenet 0.5rc1"
+InstallDir "$PROGRAMFILES\Freenet 0.5"
 InstallDirRegKey HKEY_LOCAL_MACHINE "Software\Freenet" "instpath"
 ShowInstDetails show
 InstProgressFlags smooth
@@ -263,12 +263,12 @@ SectionIn 1,2
    CreateShortCut "$DESKTOP\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
    
    # Start->Programs->Freenet
-   CreateDirectory "$SMPROGRAMS\Freenet 0.5rc1"
-   CreateShortCut "$SMPROGRAMS\Freenet 0.5rc1\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
-   WriteINIStr "$SMPROGRAMS\Freenet 0.5rc1\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
-   ;WriteINIStr "$SMPROGRAMS\Freenet 0.5rc1\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
-   CreateShortcut "$SMPROGRAMS\Freenet 0.5rc1\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot.exe" "" "" 0
-   CreateShortCut "$SMPROGRAMS\Freenet 0.5rc1\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
+   CreateDirectory "$SMPROGRAMS\Freenet 0.5"
+   CreateShortCut "$SMPROGRAMS\Freenet 0.5\Freenet.lnk" "$INSTDIR\freenet.exe" "" "$INSTDIR\freenet.exe" 0
+   WriteINIStr "$SMPROGRAMS\Freenet 0.5\FN Homepage.url" "InternetShortcut" "URL" "http://www.freenetproject.org"  
+   ;WriteINIStr "$SMPROGRAMS\Freenet 0.5\FNGuide.url" "InternetShortcut" "URL" "http://www.freenetproject.org/quickguide" 
+   CreateShortcut "$SMPROGRAMS\Freenet 0.5\Update Snapshot.lnk" "$INSTDIR\UpdateSnapshot.exe" "" "" 0
+   CreateShortCut "$SMPROGRAMS\Freenet 0.5\Uninstall.lnk" "$INSTDIR\Uninstall-Freenet.exe" "" "$INSTDIR\Uninstall-Freenet.exe" 0
  SectionEnd
  
  ;---------------------------------------------------------------------------------------
