@@ -25,8 +25,6 @@
   #define P_tmpdir "/tmp"
 #endif
 
-#define S_IFDIR __S_IFDIR
-
 /*
   xtoi()
 

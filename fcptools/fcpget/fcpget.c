@@ -7,6 +7,8 @@
 
 #include "ezFCPlib.h"
 
+#include <sys/stat.h>
+
 #define _GNU_SOURCE
 #include "getopt.h"
 
