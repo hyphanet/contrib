@@ -158,10 +158,6 @@ SOURCE=.\_fcpUtil.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\compat.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\fcpCloseKey.c
 
 !IF  "$(CFG)" == "ezFCPlib - Win32 Release"
@@ -436,6 +432,14 @@ SOURCE=.\safeMalloc.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\compat.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ezFCPlib.h
+# End Source File
 # End Group
 # Begin Source File
 

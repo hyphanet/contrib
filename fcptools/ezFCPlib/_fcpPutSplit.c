@@ -22,6 +22,8 @@
 #include "ezFCPlib.h"
 #include "compat.h"
 
+#include <sys/stat.h>
+
 typedef struct
 {
 	splitJobIns		*key;

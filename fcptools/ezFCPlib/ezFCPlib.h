@@ -14,6 +14,8 @@
 #ifndef _EZFCPLIB_H
 #define _EZFCPLIB_H 
 
+/* Place <sys/> includes here so they are first. */
+#include <sys/stat.h>
 
 /**************************************************************************
   MS-WINDOWS specifics
@@ -31,6 +33,9 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
+#define S_IREAD _S_IREAD 
+#define S_IWRITE _S_IWRITE
+
 #define OPEN_MODE_READ  (_O_RDONLY | _O_BINARY)
 #define OPEN_MODE_WRITE 0
 
@@ -38,8 +43,6 @@
 #include <process.h>
 #include <winsock.h>
 #include <io.h>
-//#include <stdint.h> Remove if not needed under win (not needed under *nix)
-
 
 /**************************************************************************
   NON MS-WINDOWS (Linux, BSD, ...)
@@ -53,7 +56,6 @@
 // Keep <sys/> files first in #include order
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
