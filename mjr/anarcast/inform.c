@@ -75,9 +75,9 @@ main ()
 		if (!memmem(hosts, end-hosts, &a.sin_addr.s_addr, 4)) {
 		    memcpy(end, &a.sin_addr.s_addr, 4);
 		    end += 4;
-		    printf("%-16s Added.\n", inet_ntoa(a.sin_addr));
+		    printf("%-15s Added.\n", inet_ntoa(a.sin_addr));
 		} else
-		    printf("%-16s Already known.\n", inet_ntoa(a.sin_addr));
+		    printf("%-15s Already known.\n", inet_ntoa(a.sin_addr));
 	    }
 
 	for (n = 3 ; n < m ; n++)
