@@ -21,6 +21,7 @@ extern void      metaFree(META04 *);
 
 extern time_t   _mkgmtime(struct tm *p_tm); // thank God for this gem of a function!
 extern long      xtoi(char *s);
+extern int       opentemp(char []);
 
 extern char     _fcpHost[];
 extern int      _fcpPort;
@@ -102,7 +103,6 @@ static int fcpOpenKeyRead(HFCP *hfcp, char *key, int maxRegress)
 
   char    *s;
   char    *path;
-  int      docFound;
   int      redirecting;
 
   long     offset = 0;

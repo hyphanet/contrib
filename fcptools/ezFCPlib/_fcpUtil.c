@@ -13,6 +13,8 @@
 
 #include "ezFCPlib.h"
 
+#include <errno.h>
+
 #ifndef P_tmpdir
  #define P_tmpdir "/tmp"
 #endif
@@ -65,7 +67,11 @@ int opentemp(char filename[])
 	do {
 		/* Normally this will only be done once so it shouldn't
 		 * be a problem to put this inside the loop */
-		if (!stat(P_tmpdir, &dirstats) && dirstats.st_mode & (S_IFDIR|S_IWUSR|S_IXUSR))
+		#ifdef WINDOWS
+			if (!stat(P_tmpdir, &dirstats) && dirstats.st_mode & (S_IFDIR))
+		#else			
+			if (!stat(P_tmpdir, &dirstats) && dirstats.st_mode & (S_IFDIR|S_IWUSR|S_IXUSR))
+		#endif
 			sprintf(filename, "%s/eztmp%x", P_tmpdir, (unsigned int)rand());
 		else
 			/* If P_tmpdir is not accessible, use current working dir */

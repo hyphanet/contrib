@@ -13,6 +13,8 @@
 
 #include "ezFCPlib.h"
 
+extern long xtoi(char *);
+
 static int  getrespHello(HFCP *hfcpconn);
 static int  getrespSuccess(HFCP *hfcpconn);
 static int  getrespFailed(HFCP *hfcp);

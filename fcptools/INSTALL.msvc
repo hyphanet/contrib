@@ -3,6 +3,12 @@ Basic Installation for Microsoft Visual C++ 6.0
 
 These are Win/MSVC++ specific installation instructions.
 
-Compiling FCPTools on Windows is easy with Visual C++.  
+Compiling FCPTools on Windows is easy with Visual C++.  Open the project
+workspace fcptools.dsw, then do either a Batch Build or Rebuild All to
+compile the ezFCPlib library and command line tools.
+
+If the build process is more complicated than this, there is a problem
+and should be reported to either myself <ilnero@gmx.net> or Freenet-dev
+when all else fails.
 
 -joliveri

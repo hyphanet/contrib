@@ -15,6 +15,7 @@
 #define _EZFCPLIB_H 
 
 /* Place <sys/> includes here so they are first. */
+#include <sys/types.h>
 #include <sys/stat.h>
 
 /**************************************************************************
@@ -33,7 +34,8 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
-#define strcasecmp(s1, s2) strcmpi(s1, s2)
+#define strcasecmp strcmpi
+#define strncasecmp strnicmp
 
 #define S_IREAD _S_IREAD 
 #define S_IWRITE _S_IWRITE
@@ -45,6 +47,7 @@
 #include <process.h>
 #include <winsock.h>
 #include <io.h>
+#include <string.h>
 
 /**************************************************************************
   NON MS-WINDOWS (Linux, BSD, ...)
@@ -57,7 +60,6 @@
 
 // Keep <sys/> files first in #include order
 #include <sys/socket.h>
-#include <sys/types.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>

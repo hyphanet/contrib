@@ -59,5 +59,25 @@ MTL=midl.exe
 
 # Name "fcptools - Win32 Release"
 # Name "fcptools - Win32 Debug"
+# Begin Source File
+
+SOURCE=.\AUTHORS
+# End Source File
+# Begin Source File
+
+SOURCE=.\COPYING
+# End Source File
+# Begin Source File
+
+SOURCE=.\INSTALL.msvc
+# End Source File
+# Begin Source File
+
+SOURCE=.\README.win
+# End Source File
+# Begin Source File
+
+SOURCE=.\TODO
+# End Source File
 # End Target
 # End Project
