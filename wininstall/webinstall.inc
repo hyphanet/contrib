@@ -8,7 +8,7 @@ Function DownloadFile
   ; make the call to download
   Push $1
   Push $2
-  CallInstDLL $TEMP\freenet\nsisdl.dll download ; for a quiet install, use download_quiet
+;  CallInstDLL $TEMP\freenet\nsisdl.dll download ; for a quiet install, use download_quiet
   NSISdl::download "$1" "$2"
   
   Pop $R9
