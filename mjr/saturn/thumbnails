@@ -7,8 +7,6 @@ $tableheight     = "0";
 $backgroundcolor = "black"; 
 $imagedimensions = "256x256";
 
-&usage if @ARGV < 2;
-
 for (@ARGV) {
     /^-w$/ and do { push @nextargv, \$tablewidth;      next };
     /^-h$/ and do { push @nextargv, \$tableheight;     next };

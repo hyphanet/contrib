@@ -28,19 +28,17 @@ saturn some.news.group
 You will see Saturn download a number of articles, check them for attached
 files, and insert them into Freenet.  When saturn is finished, you will
 notice that it has created a file in the current directory with the same
-name as the newsgroup you ran it on.  If you look at this file in a text 
-editor you will see that it contains a number of lines of the form:
+name as the newsgroup you ran it on.  Each line of the file contains seven
+tab-delimited fields:
 
-filename=freenet:CHK@...
+filename    CHK    subject    author    date    message_id    bytes
 
-Where filename is the name of a file snarfed from a Usenet post, and the 
-freenet:CHK@... is the key with which it has been inserted into Freenet.  
 This file is in a deliberately simple format so that it can be processed 
 by scripts which will, for example, create HTML indexes within Freenet.
 
 Saturn will save the article number of the last downloaded article to a
-file in ~/.saturn.  When you run Saturn again, it will automatically stop
-at that point. You can override this, and reinsert articles, with the -a
+file in ~/.saturn.  When you run Saturn again, it will automatically start
+from that point. You can override this, and reinsert articles, with the -a
 switch.
 
 COMMAND LINE OPTIONS:
@@ -64,4 +62,15 @@ Option	Description
 -m xx	Skips articles less than xx bytes.
 -a      Insert all articles, regardless of what has been already inserted.
 -o xx   Output log to xx. If xx is "-" log to stdout.
+
+SCRIPTS
+
+Saturn is distributed with a set of simple Perl scripts, which process its
+raw output into (one hopes!) more pleasant forms.
+
+	"thumbnails" creates HTML tables of thumbnails.
+
+	"index" creates a sorted HTML index page.
+
+See a script's usage printout and source code for additional information.
 
