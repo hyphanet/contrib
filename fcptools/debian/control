@@ -25,4 +25,4 @@ Description: Freenet Client Protocol Tools - development
  from Freenet, a peer-to-peer network for anonymous publishing.
  .
  This package includes the development files required to compile
- programs that use the library.
+ programs that use the ezFCPlib library.
