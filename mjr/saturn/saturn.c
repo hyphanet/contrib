@@ -43,7 +43,7 @@ typedef struct {
 article **articles; // article_count articles, sans filename
 
 void nntp_connect (char *nntpserver);
-void nntp_xover (char *group, int start);
+void nntp_xover (char *group, int begin, int end);
 void * fcp_put_thread (void *args);
 void logfunc (article *a, char *uri);
 int get_article (article *a);
@@ -91,10 +91,10 @@ nntp_connect (char *nntpserver)
 }
 
 void
-nntp_xover (char *group, int begin)
+nntp_xover (char *group, int begin, int end)
 {
     char line[1024], a[256], b[256], c[256], d[256];
-    int t, i, n, count, start, end, status, unmatched, too_small;
+    int t, i, n, count, start, stop, status, unmatched, too_small;
     article *r;
     
     fgets(line, 1024, nntp);
@@ -104,16 +104,17 @@ nntp_xover (char *group, int begin)
     fprintf(nntp, "group %s\r\n", group);
     
     fgets(line, 1024, nntp);
-    status = sscanf(line, "211 %d %d %d %*s\r\n", &count, &start, &end);
+    status = sscanf(line, "211 %d %d %d %*s\r\n", &count, &start, &stop);
     if (status != 3)
 	goto badreply;
+
+    fprintf(stderr, "Articles on server: %d-%d\n", start, stop);
     
-    if (begin) {
-	start = ++begin;
-	count -= begin - start;
-    }
-    
-    fprintf(nntp, "xover %d-%d\r\n", start, end);
+    if (!begin) begin = start;
+    if (!end) end = stop;
+    count = end - begin;
+
+    fprintf(nntp, "xover %d-%d\r\n", begin, end);
 
     fgets(line, 1024, nntp);
     if (strncmp(line, "224", 3) != 0)
@@ -175,7 +176,7 @@ nntp_xover (char *group, int begin)
 	fprintf(stderr, " %d unmatched.", unmatched);
     if (min_bytes && too_small)
 	fprintf(stderr, " %d too small.", too_small);
-    fprintf(stderr, "\n\n");
+    fprintf(stderr, "\n");
     
     return;
 
@@ -341,13 +342,14 @@ void
 usage (char *me)
 {
     fprintf(stderr, "Usage %s [options] some.news.group\n\n"
-                    "  -h --htl           The hops to live for inserts. (default 10)\n"
-		    "  -t --threads       The maximum number of concurrent inserts. (default 10)\n"
-		    "  -m --min           Skip articles less than x bytes.\n"
-		    "  -a --all           Insert all articles, even those already inserted.\n"
-		    "  -o --output        Location of an alternative log file (or - for stdout).\n"
-		    "  -c --collisions    Maximum number of collisions before exiting.\n"
-		    "  -s --subject       Only insert articles whose subjects match regex.\n\n",
+                    "  -h --htl x        The hops to live for inserts. (default 10)\n"
+		    "  -t --threads x    The maximum number of concurrent inserts. (default 10)\n"
+		    "  -m --min x        Skip articles less than x bytes.\n"
+		    "  -o --output s     Location of an alternative log file (or - for stdout).\n"
+		    "  -c --collisions x Maximum number of collisions before exiting.\n"
+		    "  -s --subject s    Only insert articles whose subjects match regex.\n"
+		    "  -r --range x/x    Insert articles within range. Use 0 if open-ended.\n"
+		    "  -a --all          Insert all articles, even those already inserted.\n\n",
 		    me);
     exit(2);
 }
@@ -367,9 +369,10 @@ main (int argc, char **argv)
            max_collisions, // maximum collision count before exit
 	   all,            // ignore begin marker?
 	   begin,          // where to start
-	   cur_num;
+	   end,            // where to stop
+	   cur_num;        // where we are
 
-    char *nntpserver, foo[256], regex_string[256];
+    char *nntpserver, foo[256], regex_string[256], range_string[256];
     FILE *state;
     extern int optind;
     extern char *optarg;
@@ -380,6 +383,7 @@ main (int argc, char **argv)
 	{"subject",    1, NULL, 's'},
 	{"min",        1, NULL, 'm'},
 	{"collisions", 1, NULL, 'c'},
+	{"range",      1, NULL, 'r'},
 	{"all",        0, NULL, 'a'},
 	{0, 0, 0, 0}
     };
@@ -396,13 +400,16 @@ main (int argc, char **argv)
     max_threads = 10;
     foo[0] = '\0';
     regex_string[0] = '\0';
+    range_string[0] = '\0';
     terminate = 0;
     min_bytes = 0;
     max_collisions = 0;
     collisions = 0;
     all = 0;
+    begin = 0;
+    end = 0;
     
-    while ((c = getopt_long(argc, argv, "o:h:t:s:m:c:a",
+    while ((c = getopt_long(argc, argv, "o:h:t:s:m:c:r:a",
 		            long_options, NULL)) != EOF) {
         switch (c) {
 	case 'o':
@@ -422,6 +429,9 @@ main (int argc, char **argv)
 	    break;
 	case 'c':
 	    max_collisions = atoi(optarg);
+	    break;
+	case 'r':
+	    strncpy(range_string, optarg, 256);
 	    break;
 	case 'a':
 	    all = 1;
@@ -463,6 +473,14 @@ main (int argc, char **argv)
 	    exit(2);
 	}
     }
+
+    if (strlen(range_string)) {
+	if (sscanf(range_string, "%d/%d", &begin, &end) != 2
+		|| begin < 0 || end < 0) {
+	    fprintf(stderr, "Invalid range: %s\n", range_string);
+	    exit(2);
+	}
+    }
     
     if (!strlen(foo))
 	strcpy(foo, argv[optind]);
@@ -478,17 +496,17 @@ main (int argc, char **argv)
     
     sprintf(foo, "%s/.saturn/%s", getenv("HOME"), argv[optind]);
     
-    begin = 0;
-    if (!all) {
+    if (!all && !begin && !end) {
         state = fopen(foo, "r");
         if (state) {
             fscanf(state, "%d", &begin);
             fclose(state);
+	    begin++;
         }
     }
     
     nntp_connect(nntpserver);
-    nntp_xover(argv[optind], begin);
+    nntp_xover(argv[optind], begin, end);
     
     if (!article_count) {
 	fprintf(stderr, "No articles in group.\n");
@@ -496,6 +514,7 @@ main (int argc, char **argv)
     }
 
     signal(SIGINT, signal_handler);
+    fprintf(stderr, "\n");
     
     for (c = 0 ; c < article_count ; c++) {	
         
