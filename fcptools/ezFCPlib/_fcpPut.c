@@ -998,7 +998,7 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 						 segment->segment_num,
 						 segment->blocks_required);
 		
-		/* copy the segment header; storing it there turned out to be a good idea :) */
+		/* copy the segment header */
 		fcpWriteKey(tmp_hfcp, buf, strlen(buf));
 		
 		fcpWriteKey(tmp_hfcp, "BlockMap\n", strlen("BlockMap\n"));
@@ -1024,6 +1024,8 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	}
 
 	_fcpLog(FCP_LOG_DEBUG, "wrote FECMakeMetadata message to temporary file");
+
+	/* the MakeMetadata message is now in the key tmp file for tmp_hfcp */
 
 	unlink_key(tmp_hfcp->key);
 	meta_len = tmp_hfcp->key->size;
@@ -1070,6 +1072,9 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		/* decrement by number of bytes written to the socket */
 		bytes -= byte_count;
 	}
+
+	/* close the tmp file */
+	unlink_key(tmp_hfcp->key);
 	
 	/* expecting a mademetadata response */
 	rc = _fcpRecvResponse(hfcp);
@@ -1098,8 +1103,11 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 	fcpOpenKey(tmp_hfcp, "CHK@", FCP_O_WRITE);
 
 	/* write metadata to tmp file */
+	_fcpLog(FCP_LOG_DEBUG, "writing prepared metadata to temporary file for insertion");
 
-	while (bytes < meta_len) {
+	bytes = meta_len;
+
+	while (bytes) {
 
 		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
 			_fcpLog(FCP_LOG_CRITICAL, "Did not receive expected message");
@@ -1110,9 +1118,10 @@ static int fec_make_metadata(hFCP *hfcp, char *meta_filename)
 		}
 		
 		fcpWriteKey(tmp_hfcp, hfcp->response.datachunk.data, hfcp->response.datachunk.length);
-		bytes += hfcp->response.datachunk.length;
+		bytes -= hfcp->response.datachunk.length;
 	}
-	
+
+	_fcpLog(FCP_LOG_DEBUG, "metadata written to temporary file");
 	unlink_key(tmp_hfcp->key);
 
 	/* put the file */

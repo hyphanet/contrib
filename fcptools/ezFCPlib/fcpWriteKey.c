@@ -40,11 +40,10 @@ int fcpWriteKey(hFCP *hfcp, char *buf, int len)
 	int count;
 	int rc;
 
-	count = (len > 8192 ? 8192 : len);
-
 	/* While there's still data to write from caller.. */
 	while (len) {
 
+		count = (len > 8192 ? 8192 : len);
 		rc = write(hfcp->key->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
@@ -68,11 +67,10 @@ int fcpWriteMetadata(hFCP *hfcp, char *buf, int len)
 	int count;
 	int rc;
 
-	count = (len > 8192 ? 8192 : len);
-
 	/* While there's still data to write from caller.. */
 	while (len) {
 
+		count = (len > 8192 ? 8192 : len);
 		rc = write(hfcp->key->metadata->tmpblock->fd, buf, count);
 		
 		if (rc != count) {
