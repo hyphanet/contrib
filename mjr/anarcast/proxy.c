@@ -553,7 +553,7 @@ verify:
     hashdata(blocks, datalength, hash);
     if (memcmp(hash, hashes, HASHLEN)) {
 	alert("Data integrity did not verify.");
-//	goto out;
+	goto out;
     }
     alert("Data integrity verified.");
     
