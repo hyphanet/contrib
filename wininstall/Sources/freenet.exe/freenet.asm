@@ -310,12 +310,12 @@ WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             mov note.uID,IDI_TRAY 
             mov note.uFlags,NIF_ICON+NIF_MESSAGE+NIF_TIP 
             mov note.uCallbackMessage,WM_SHELLNOTIFY 
-            mov ax, 501                                 ; decide whether to load resource 500 or 501
+            mov eax, 501                                ; decide whether to load resource 500 or 501
             cmp fRunning, 0                             ; to display a Running/Norunning Freenet icon
             jz @F                                      ; Running? then take 500 instead of 501
-            dec ax
+            dec eax
             @@:
-            invoke LoadIcon,hInstance, ax               ;Load freenet icon (500 or 501) for system tray
+            invoke LoadIcon,hInstance, eax               ;Load freenet icon (500 or 501) for system tray
             mov note.hIcon,eax 
             invoke lstrcpy,addr note.szTip,addr AppName
             invoke ShowWindow,hWnd,SW_HIDE 
