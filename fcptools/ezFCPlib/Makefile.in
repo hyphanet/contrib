@@ -109,10 +109,10 @@ noinst_LIBRARIES = libezfcp.a
 
 include_HEADERS = ezFCPlib.h
 
-FCP_SOURCE = " _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpBlock.c _fcpUtil.c _fcpFile.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c mktime.c "
+FCP_SOURCE = " _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpBlock.c _fcpUtil.c _fcpFile.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
 
 
-FCP_TEST = " _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpBlock.c _fcpUtil.c _fcpFile.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpTest.c fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c mktime.c "
+FCP_TEST = " _fcpLog.c _fcpRecvResponse.c _fcpSock.c _fcpBlock.c _fcpUtil.c _fcpFile.c _fcpMetadata.c _fcpMimetype.c _fcpGet.c _fcpPut.c ezFCPlib.h fcpTest.c fcpCreation.c fcpInfo.c fcpOpenKey.c fcpCloseKey.c fcpPutKeyFromFile.c fcpGetKeyToFile.c fcpReadKey.c fcpMakeSvkKeypair.c fcpStartup.c fcpWriteKey.c "
 
 
 libezfcp_a_SOURCES = $(FCP_SOURCE)
@@ -132,7 +132,7 @@ _fcpGet.$(OBJEXT) _fcpPut.$(OBJEXT) fcpCreation.$(OBJEXT) \
 fcpInfo.$(OBJEXT) fcpOpenKey.$(OBJEXT) fcpCloseKey.$(OBJEXT) \
 fcpPutKeyFromFile.$(OBJEXT) fcpGetKeyToFile.$(OBJEXT) \
 fcpReadKey.$(OBJEXT) fcpMakeSvkKeypair.$(OBJEXT) fcpStartup.$(OBJEXT) \
-fcpWriteKey.$(OBJEXT) mktime.$(OBJEXT)
+fcpWriteKey.$(OBJEXT)
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -152,7 +152,7 @@ DEP_FILES =  .deps/_fcpBlock.P .deps/_fcpFile.P .deps/_fcpGet.P \
 .deps/_fcpUtil.P .deps/fcpCloseKey.P .deps/fcpCreation.P \
 .deps/fcpGetKeyToFile.P .deps/fcpInfo.P .deps/fcpMakeSvkKeypair.P \
 .deps/fcpOpenKey.P .deps/fcpPutKeyFromFile.P .deps/fcpReadKey.P \
-.deps/fcpStartup.P .deps/fcpWriteKey.P .deps/mktime.P
+.deps/fcpStartup.P .deps/fcpWriteKey.P
 SOURCES = $(libezfcp_a_SOURCES)
 OBJECTS = $(libezfcp_a_OBJECTS)
 

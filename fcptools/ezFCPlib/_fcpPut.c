@@ -640,21 +640,17 @@ char *_fcpDBRString(hURI *uri, int future)
 {
 	char *uri_str;
 
-	struct tm *t_tm;
-	time_t t_t;
+	time_t now_t;
+	time_t days_t;
 	
-	time(&t_t);
-	t_tm = gmtime(&t_t);
+	time(&now_t);
 
-	t_tm->tm_hour = 0;
-	t_tm->tm_min = 0;
-	t_tm->tm_sec = 0;
+	/* calculate today */
+	days_t = (now_t - (now_t % 86400));
 
-	/* use future to adjust number of days.. */
-	t_tm->tm_mday += future;
-
-	t_t = mkgmtime(t_tm);
-
+	/* then add the number of 'future' days in DBR */
+	days_t += (future * 86400);
+	
 	/* now use this number (in hex) and build up the new URI */
 	uri_str = malloc(1025);
 
@@ -662,12 +658,12 @@ char *_fcpDBRString(hURI *uri, int future)
 
 	case KEY_TYPE_SSK:
 
-		snprintf(uri_str, 1024, "freenet:SSK@%s-%x/%s//", uri->keyid, (unsigned)t_t, uri->docname);
+		snprintf(uri_str, 1024, "freenet:SSK@%s/%ux-%s//", uri->keyid, (unsigned)days_t, uri->docname);
 		break;
 
 	case KEY_TYPE_KSK:
 
-		snprintf(uri_str, 1024, "freenet:KSK@%s-%x", uri->keyid, (unsigned)t_t);
+		snprintf(uri_str, 1024, "freenet:KSK@%s-%ux", uri->keyid, (unsigned)days_t);
 		break;
 
 	default:
