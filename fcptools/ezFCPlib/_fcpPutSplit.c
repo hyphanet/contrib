@@ -587,6 +587,11 @@ static void splitInsMgr(void *nothing)
 					else
 						chunk->status = SPLIT_INSSTAT_INPROG;
 
+//					_fcpLog(FCP_LOG_CRITICAL, "SLEEPING!!!!");
+
+					mysleep(30000);
+
+
 					// Successful launch - Add to tally of running threads
 					runningThreads++;
 				}
@@ -726,7 +731,9 @@ static int LaunchThread(void (*func)(void *), void *parg)
     return;
 #else
 #ifdef WINDOWS
-    return _beginthread(func, 0, parg);
+	chunkThreadParams *params = parg;
+
+    return _beginthread(func, 0, parg) == -1 ? -1 : 0;
 #else
     pthread_t pth;
 	pthread_attr_t attr;

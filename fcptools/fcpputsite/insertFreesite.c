@@ -190,7 +190,10 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         LaunchThread(putsiteThread, (void *)pPutJob);
         //sucksite_thread(pPutJob);
 
-    }           // 'while (inserting files)'
+    }			// 'while (inserting files)'
+
+
+	_fcpLog(FCP_LOG_DEBUG, "fcpputsite: broke main insert loop");
 
     // did file inserts all succeed?
     for (i = 0; i < numFiles; i++)
@@ -223,6 +226,9 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         time_t timeNow;
 
         hfcp = fcpCreateHandle();
+
+		_fcpLog(FCP_LOG_VERBOSE,
+			"insertFreesite: file inserts succeeded, inserting metadata");
 
         // create a DBR root
         sprintf(dbrRootUri, "SSK@%s/%s", privKey, siteName);
@@ -273,8 +279,10 @@ int insertFreesite(char *siteName, char *siteDir, char *pubKey, char *privKey,
         }       // 'for (each file written to mapfile)'
         metaMap = strsav(metaMap, "End\n");
         mapLen = strlen(metaMap);
+
         _fcpLog(FCP_LOG_NORMAL, "METADATA IS %d BYTES LONG", mapLen);
-         // insert DBR root
+
+		// insert DBR root
         if (fcpPutKeyFromMem(hfcp, dbrRootUri, NULL, metaRoot, 0) != 0)
         {
             _fcpLog(FCP_LOG_CRITICAL, "Failed to insert DBR root - aborting");

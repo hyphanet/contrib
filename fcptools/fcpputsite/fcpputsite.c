@@ -84,6 +84,8 @@ int main(int argc, char* argv[])
     // all ok - now go off and try to insert the site
     error = insertFreesite(siteName, siteDir, pubKey, privKey,
                             defaultFile, daysFuture, maxThreads, maxAttempts);
+	_fcpLog(FCP_LOG_DEBUG, "fcpputsite: returned from insertFreesite");
+
     return error;
 }
 
