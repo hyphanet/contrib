@@ -26,7 +26,7 @@ list (gremlin_tree *gt, int depth)
 	if (ls[i].type == GT_DIR) {
 	    fprintf(out, "\n");
 	    printf("Changing to %s\n", ls[i].name);
-	    if (i < 2) gt_cd(gt, ls[i].name, ls[i].data);
+	    gt_cd(gt, ls[i].name, ls[i].data);
 	    list(gt, depth + 1);
 	    gt_cd(gt, "..", NULL);
 	} else {

@@ -149,8 +149,8 @@ main (int argc, char **argv)
 
     // write the nodes out from deepest on up, because parents need the offsets of their children
     // store the file offsets in /this/, and use /last/ to set the offsets of any children
-    this = calloc(65536, sizeof(uint16_t));
-    last = calloc(65536, sizeof(uint16_t));
+    this = calloc(65536, sizeof(uint32_t));
+    last = calloc(65536, sizeof(uint32_t));
     do {
 	i = 0; j = 0; // reset the indexes of this and last, respectively
 	while (fgets(line, 256, in)) {
