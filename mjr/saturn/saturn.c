@@ -238,7 +238,7 @@ get_article (uint32_t msg_num)
     }
 
     if (!strlen(name)) {
-	fprintf(stderr, "Decoding error on article %d: no name found!\n", msg_num);
+	fprintf(stderr, "Decoding error on article %d: no data found!\n", msg_num);
 	return NULL;
     }
     
