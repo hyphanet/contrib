@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "ezFCPlib.h"
 
@@ -180,17 +181,25 @@ static int put_splitfile(hFCP *hfcp)
 
 static int put_fec_splitfile(hFCP *hfcp)
 {
+	/* Some slightly redundant declarations for readability sake
+		 (which in C is a sometimes a ridiculous goal */
+
 	char buf[8193];
 	int fd;
 	int rc;
-	int i;
-	int count;
+	int i, j, k, l;  /* remember FORTRAN? */
+
+	int byte_count;
+	int segment_count;
+
+	int data_len;
+	int metadata_len;
+	int pad_len;
 	
 	hChunk *chunk;
-	
+
   /* connect to Freenet FCP */
-  if (crSockConnect(hfcp) != 0)
-    return -1;
+  if (crSockConnect(hfcp) != 0) return -1;
 	
   if (hfcp->key->metadata != NULL) {
 		/* Code for inserting with metadata */
@@ -204,14 +213,15 @@ static int put_fec_splitfile(hFCP *hfcp)
   }
 
 	/* Send fcpID */
-	if (send(hfcp->socket, _fcpID, 4, 0) == -1)
-		 return -1;
+	if (send(hfcp->socket, _fcpID, 4, 0) == -1) return -1;
 		 
 	/* Send FECSegmentFile command */
 	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "Could not send FECSegmentFile command");
 		return -1;
 	}
+
+	_fcpLog(FCP_LOG_DEBUG, "sent FECSegmentFile message");
 
 	rc = _fcpRecvResponse(hfcp);
 	if (rc != FCPRESP_TYPE_SEGMENTHEADER) {
@@ -224,10 +234,13 @@ static int put_fec_splitfile(hFCP *hfcp)
 	hfcp->key->segments = (hSegment **)malloc(sizeof (hSegment *) * hfcp->key->segment_count);
 
 	/* Loop while there's more segments to receive */
-	count = hfcp->key->segment_count;
+	segment_count = hfcp->key->segment_count;
 	i = 0;
 
-	while (i < count) {
+	_fcpLog(FCP_LOG_DEBUG, "retrieving %d segments..", segment_count);
+
+	/* Loop through all segments and store information */
+	while (i < segment_count) {
 		hfcp->key->segments[i] = (hSegment *)malloc(sizeof (hSegment));
 
 		/* get counts of data and check blocks */
@@ -235,47 +248,149 @@ static int put_fec_splitfile(hFCP *hfcp)
 		hfcp->key->segments[i]->cb_count = hfcp->response.segmentheader.checkblock_count;
 
 		/* allocate space for data and check block handles */
-		hfcp->key->segments[i]->data_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[rc]->db_count);
-		hfcp->key->segments[i]->check_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[rc]->cb_count);
+		hfcp->key->segments[i]->data_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[i]->db_count);
+		hfcp->key->segments[i]->check_blocks = (hBlock **)malloc(sizeof (hBlock *) * hfcp->key->segments[i]->cb_count);
 
-		/* Copy the entire SegmentHeader for re-use later */
-		/* This is a shallow copy, but not a problem */
+		snprintf(buf, 8192,
+						 "SegmentHeader\nFECAlgorithm=%s\nFileLength=%x\nOffset=%x\n" \
+						 "BlockCount=%x\nBlockSize=%x\nCheckBlockCount=%x\n" \
+						 "CheckBlockSize=%x\nSegments=%x\nSegmentNum=%x\nBlocksRequired=%x\nEndMessage\n",
 
-		memcpy(&hfcp->key->segments[i]->header, &hfcp->response.segmentheader, sizeof (FCPRESP_SEGMENTHEADER));
+						 hfcp->response.segmentheader.fec_algorithm,
+						 hfcp->response.segmentheader.filelength,
+						 hfcp->response.segmentheader.offset,
+						 hfcp->response.segmentheader.block_count,
+						 hfcp->response.segmentheader.block_size,
+						 hfcp->response.segmentheader.checkblock_count,
+						 hfcp->response.segmentheader.checkblock_size,
+						 hfcp->response.segmentheader.segments,
+						 hfcp->response.segmentheader.segment_num,
+						 hfcp->response.segmentheader.blocks_required
+						 );
+
+		hfcp->key->segments[i]->header_str = (char *)malloc(strlen(buf) + 1);
+		strcpy(hfcp->key->segments[i]->header_str, buf);
+		
+		hfcp->key->segments[i]->filelength       = hfcp->response.segmentheader.filelength;
+		hfcp->key->segments[i]->offset           = hfcp->response.segmentheader.offset;
+		hfcp->key->segments[i]->block_count      = hfcp->response.segmentheader.block_count;
+		hfcp->key->segments[i]->block_size       = hfcp->response.segmentheader.block_size;
+		hfcp->key->segments[i]->checkblock_count = hfcp->response.segmentheader.checkblock_count;
+		hfcp->key->segments[i]->checkblock_size  = hfcp->response.segmentheader.checkblock_size;
+		hfcp->key->segments[i]->segments         = hfcp->response.segmentheader.segments;
+		hfcp->key->segments[i]->segment_num      = hfcp->response.segmentheader.segment_num;
+		hfcp->key->segments[i]->blocks_required  = hfcp->response.segmentheader.blocks_required;
+		
+		_fcpLog(FCP_LOG_DEBUG, "got segment %d", i+1);
 
 		i++;
 
 		/* Only if we're expecting more SegmentHeader messages
 			 should we attempt to retrieve one ! */
-		if (i < count) rc = _fcpRecvResponse(hfcp);
-	}			
+		if (i < segment_count) rc = _fcpRecvResponse(hfcp);
 
+	} /* End While - all segments now in hfcp container */
+
+	/* Disconnect this connection.. its outlived it's purpose */
+	crSockDisconnect(hfcp);
+
+	/***********************************************************************/
+	/* Begin phase 2: Liquid Goo Phase (only handles the first segment) */
+	/***********************************************************************/
+
+	_fcpLog(FCP_LOG_DEBUG, "preparing %d segments to encode", segment_count);
+
+	data_len = hfcp->key->segments[0]->filelength;
+	metadata_len = strlen(hfcp->key->segments[0]->header_str);
+	pad_len = (hfcp->key->segments[0]->block_count * hfcp->key->segments[0]->block_size) - data_len;
+
+	_fcpLog(FCP_LOG_DEBUG, "status; data_len=%d, metadata_len=%d, pad_len=%d, blocksize*count=%d",
+					data_len,
+					metadata_len,
+					pad_len,
+					hfcp->key->segments[0]->block_count * hfcp->key->segments[0]->block_size
+					);
+
+	/* new connection to Freenet FCP */
+	if (crSockConnect(hfcp) != 0) return -1;
+	
+	/* Send fcpID */
+	if (send(hfcp->socket, _fcpID, 4, 0) == -1) return -1;
+
+	snprintf(buf, 8192,
+					 "FECEncodeSegment\nDataLength=%x\nMetadataLength=%x\nData\n",
+					 data_len + metadata_len + pad_len,
+					 metadata_len
+					 );
+
+	/* Send FECEncodeSegment message */
+	if (send(hfcp->socket, buf, strlen(buf), 0) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "could not write FECEncodeSegment message");
+
+		return -1;
+	}
+
+	_fcpLog(FCP_LOG_DEBUG, "sending %s..", buf);
+	
+	/* Send SegmentHeader */
+	if (send(hfcp->socket, hfcp->key->segments[0]->header_str, strlen(hfcp->key->segments[0]->header_str), 0) == -1) {
+		_fcpLog(FCP_LOG_DEBUG, "could not write initial SegmentHeader message");
+
+		return -1;
+	}
+	
+	_fcpLog(FCP_LOG_DEBUG, "sent initial SegmentHeader");
+	
 	/* Open file we are about to send */
 	chunk = hfcp->key->chunks[0];
 	if (!(chunk->file = fopen(chunk->filename, "rb"))) {
+
 		_fcpLog(FCP_LOG_DEBUG, "Could not open chunk for reading in order to insert into Freenet");
 		return -1;
 	}
 	fd = fileno(chunk->file);
-
-	/* Perform the writing in 8K blocks */
-
-	i = hfcp->key->size;
+	
+	/* Write the data from the file, then write the pad blocks */
+	/* data_len is the total length of the data file we're inserting */
+	
+	i = data_len;
 	while (i) {
+		int bytes;
 		
 		/* How many bytes are we writing this pass? */
-		count = (i > 8192 ? 8192: i);
-		
-		/* Now send data */
-		rc = read(fd, buf, count);
-			
-		if (send(hfcp->socket, buf, count, 0) < 0) {
-			_fcpLog(FCP_LOG_DEBUG, "Could not write key data to Freenet");
+		byte_count = (i > 8192 ? 8192: i);
+
+		/* read byte_count bytes from the file we're inserting */
+		bytes = read(fd, buf, byte_count);
+
+		if ((rc = send(hfcp->socket, buf, bytes, 0)) < 0) {
+			_fcpLog(FCP_LOG_DEBUG, "Could not write key data to Freenet: %s", strerror(errno));
 			return -1;
 		}
+		_fcpLog(FCP_LOG_DEBUG, "wrote %d bytes this pass; %d/%d bytes left to write", bytes, i, data_len);
 
 		/* decrement i by number of bytes written to the socket */
-		i -= count;
+		i -= byte_count;
+	}
+
+	/* now write the pad bytes and end transmission.. */
+
+	/* set the buffer to all zeroes so we can send 'em */
+	memset(buf, 0, 8192);
+
+	i = pad_len;
+	while (i) {
+		/* how many bytes are we writing this pass? */
+		byte_count = (i > 8192 ? 8192: i);
+
+		if ((rc = send(hfcp->socket, buf, byte_count, 0)) < 0) {
+			_fcpLog(FCP_LOG_DEBUG, "Could not write zero-padded data to Freenet: %s", strerror(errno));
+			return -1;
+		}
+		_fcpLog(FCP_LOG_DEBUG, "wrote %d zero bytes this pass; %d/%d bytes left to write", byte_count, i, pad_len);
+
+		/* decrement i by number of bytes written to the socket */
+		i -= byte_count;
 	}
 
   rc = _fcpRecvResponse(hfcp);

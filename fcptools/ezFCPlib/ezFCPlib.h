@@ -322,11 +322,20 @@ typedef struct {
 
 
 typedef struct {
-	FCPRESP_SEGMENTHEADER  header;
+	char  *header_str;
+
+	int    filelength;
+	int    offset;
+	int    block_count;
+	int    block_size;
+	int    checkblock_count;
+	int    checkblock_size;
+	int    segments;
+	int    segment_num;
+	int    blocks_required;
 
 	int      db_count;
 	hBlock **data_blocks;
-
 
 	int      cb_count;
 	hBlock **check_blocks;
