@@ -13,6 +13,62 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
+// Neutral resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+#ifdef _WIN32
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_GETSEEDDLG DIALOGEX 0, 0, 255, 122
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "GetSeed"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "&Download References",IDC_GETSEED,9,31,79,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,7,101,50,14
+    PUSHBUTTON      "Get &Local References",IDC_GETLOCALSEED,9,14,79,14
+    PUSHBUTTON      "&Help",ID_HELP,75,101,50,14
+    EDITTEXT        IDC_SEEDURL,92,31,152,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SEEDFILE,10,77,234,14,ES_AUTOHSCROLL | WS_DISABLED | 
+                    NOT WS_TABSTOP
+    LTEXT           "Destination file",IDC_STATIC,11,68,62,8
+    GROUPBOX        "Initial Freenet references",IDC_STATIC,6,3,242,92
+    CONTROL         "Progress1",IDC_DLOADPROGRESS,"msctls_progress32",
+                    WS_BORDER,9,49,234,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_GETSEEDDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 248
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 115
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // Neutral resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
 // Neutral (Default) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
@@ -203,8 +259,8 @@ BEGIN
                     IDC_STATIC,13,151,290,26
     CTEXT           "If you suspect your access to Freenet is blocked, then DON'T choose the default Node Refs, because this may expose you as a Freenet user. Instead, get someone to send you a ref to their own node, and click on the 'Import New Node Ref' button below",
                     IDC_STATIC,15,176,290,26
-    CONTROL         "Use Default Node Refs",IDC_useDefaultNodeRefs,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,60,202,89,10
+    CONTROL         "Get Default Node Refs",IDC_useDefaultNodeRefs,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,60,202,88,10
     PUSHBUTTON      "Import new Node Ref",IDC_importNewNodeRef,174,202,89,10
     CONTROL         "Spin1",IDC_storeCacheSize_spin,"msctls_updown32",
                     UDS_ARROWKEYS,67,35,12,16
@@ -262,49 +318,6 @@ BEGIN
 END
 
 
-#ifndef _MAC
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1
- PRODUCTVERSION 1,0,0,1
- FILEFLAGSMASK 0x3fL
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x4L
- FILETYPE 0x1L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "040904B0"
-        BEGIN
-            VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "NodeConfig MFC Application\0"
-            VALUE "FileVersion", "1, 0, 0, 1\0"
-            VALUE "InternalName", "NodeConfig\0"
-            VALUE "LegalCopyright", "Copyright (C) 2001\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "NodeConfig.EXE\0"
-            VALUE "ProductName", "NodeConfig Application\0"
-            VALUE "ProductVersion", "1, 0, 0, 1\0"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x409, 1200
-    END
-END
-
-#endif    // !_MAC
-
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // DESIGNINFO
@@ -356,6 +369,49 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "\0"
+            VALUE "FileDescription", "NodeConfig MFC Application\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
+            VALUE "InternalName", "NodeConfig\0"
+            VALUE "LegalCopyright", "Copyright (C) 2001\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "NodeConfig.EXE\0"
+            VALUE "ProductName", "NodeConfig Application\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+#endif    // !_MAC
+
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog Info
@@ -392,8 +448,10 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDP_SOCKETS_INIT_FAILED "Failed to initialize the Windows socket. We will not be able to automatically determine your IP address"
+    IDP_SOCKETS_INIT_FAILED "Windows sockets initialization failed. We won't be able to retrieve Node references from the Internet!!"
     IDS_TITLE               "Freenet node properties"
+    IDS_NOTCONNECTED        "No Internet connection was detected.\r\nShould a connection be established?"
+    IDS_ERR_GETSEED         "Error while retrieving the seed file!"
 END
 
 #endif    // English (U.S.) resources

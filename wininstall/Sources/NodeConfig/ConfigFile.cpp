@@ -72,7 +72,7 @@ void CConfigFile::Load()
 		GetDiskFreeSpaceEx(NULL,&FreeBytes,&TotalBytes,NULL);
 	pNormal->m_storeCacheSize = __max(10,__min(2047,(unsigned int)(.2*(unsigned int)((FreeBytes.QuadPart>>20)))));
 	pNormal->m_storePath = ".freenet";
-	pNormal->m_useDefaultNodeRefs = true;
+	pNormal->m_useDefaultNodeRefs = FALSE; // this will be modified in the ctor of CPropNormal
 	pNormal->m_transient = FALSE;
 	pNormal->m_notTransient = !pNormal->m_transient;
 	// the ipAddrress is determined in the constructor: pNormal->m_ipAddress;

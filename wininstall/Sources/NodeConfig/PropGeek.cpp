@@ -1,6 +1,5 @@
 // PropGeek.cpp : implementation file
 //
-//cvs
 
 
 #include "stdafx.h"

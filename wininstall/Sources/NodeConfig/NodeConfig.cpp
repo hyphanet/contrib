@@ -54,6 +54,7 @@ CNodeConfigApp::CNodeConfigApp()
 	lstrcpyn(progPath, _pgmptr,256);
     exename = strrchr(progPath, '\\'); // point to slash between path and filename
     *++exename = '\0'; // point to filename partand split the string
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -72,6 +73,11 @@ BOOL CNodeConfigApp::InitInstance()
 	#else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 	#endif
+
+	// Try to load the language .dll and fallback to English if not existing
+	HINSTANCE hInst = LoadLibrary("localres.dll");
+	if (hInst != NULL) AfxSetResourceHandle(hInst);
+
 
 	if (!AfxSocketInit())
 	{

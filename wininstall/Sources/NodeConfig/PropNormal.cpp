@@ -7,7 +7,7 @@
 #include "NodeConfig.h"
 #include "PropNormal.h"
 #include "PropAdvanced.h"
-
+#include "GetSeedDlg.h"
 #include "DlgWarnPerm.h"
 
 #ifdef _DEBUG
@@ -68,6 +68,7 @@ BEGIN_MESSAGE_MAP(CPropNormal, CPropertyPage)
 	ON_BN_CLICKED(IDC_transient, OntransientClick)
 	ON_WM_CREATE()
 	ON_WM_SHOWWINDOW()
+	ON_BN_CLICKED(IDC_importNewNodeRef, OnImportNewNodeRef)
 	ON_WM_DESTROY()
 	ON_WM_KILLFOCUS()
 	ON_WM_CLOSE()
@@ -161,9 +162,42 @@ int CPropNormal::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CPropNormal::OnShowWindow(BOOL bShow, UINT nStatus) 
 {
+	HANDLE hfile;
+
 	CPropertyPage::OnShowWindow(bShow, nStatus);
-	
+
 	// hide node ip address/port fields if transient
 	showNodeAddrFields(!m_transient);
-	
+
+	//activate "use default seed" if the specified seed files does not exist
+	if ((hfile = CreateFile(pAdvanced->m_seedNodes,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,NULL,NULL)) == INVALID_HANDLE_VALUE)
+	{
+		m_useDefaultNodeRefs = TRUE;
+	}
+	else
+		CloseHandle(hfile);
+
+	UpdateData(FALSE);	
+}
+
+void CPropNormal::OnImportNewNodeRef() 
+{
+	// uncheck the "get default node refs"
+	m_useDefaultNodeRefs = FALSE;
+
+	UpdateData(FALSE);
+
+	CGetSeedDlg getseeddlg(FALSE);
+	getseeddlg.DoModal();
+}
+
+void CPropNormal::OnDestroy() 
+{
+	if (m_useDefaultNodeRefs)
+	{
+		CGetSeedDlg Getseeddlg(TRUE);
+		Getseeddlg.DoModal();
+	}
+
+	CPropertyPage::OnDestroy();
 }
