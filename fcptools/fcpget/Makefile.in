@@ -88,13 +88,15 @@ RC = @RC@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
-INCLUDES = `pkg-config --cflags glib` -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
+INCLUDES = -I$(top_srcdir)/ezFCPlib -I$(top_srcdir)/include
+CFLAGS = -ansi -W -Wall -pedantic -g
 
 bin_PROGRAMS = fcpget
 
-fcpget_LDFLAGS = `pkg-config --libs glib` -L$(top_srcdir)/ezFCPlib -L$(top_srcdir)/fcpcommon
-fcpget_LDADD = -lezfcp -lfcpcommon
-fcpget_SOURCES = fcpget.c
+fcpget_LDFLAGS = -L$(top_srcdir)/ezFCPlib -L$(top_srcdir)/fcpcommon
+#fcpget_LDADD    = -lezfcp -lfcpcommon
+fcpget_LDADD = ../ezFCPlib/libezfcp.a -lfcpcommon
+fcpget_SOURCES = fcpget.c libezfcp.a
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 bin_PROGRAMS =  fcpget$(EXEEXT)
@@ -105,8 +107,7 @@ DEFS = @DEFS@ -I. -I$(srcdir)
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 fcpget_OBJECTS =  fcpget.$(OBJEXT)
-fcpget_DEPENDENCIES = 
-CFLAGS = @CFLAGS@
+fcpget_DEPENDENCIES =  ../ezFCPlib/libezfcp.a
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)

@@ -19290,7 +19290,7 @@ done
 
 
 
-                                                            ac_config_files="$ac_config_files Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpputsite/Makefile fcpx/Makefile fcpput/Makefile"
+                                                                      ac_config_files="$ac_config_files Makefile fcpcommon/Makefile ezFCPlib/Makefile fcpx/Makefile fcpput/Makefile fcpget/Makefile fcpputsite/Makefile"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -19844,9 +19844,10 @@ do
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "fcpcommon/Makefile" ) CONFIG_FILES="$CONFIG_FILES fcpcommon/Makefile" ;;
   "ezFCPlib/Makefile" ) CONFIG_FILES="$CONFIG_FILES ezFCPlib/Makefile" ;;
-  "fcpputsite/Makefile" ) CONFIG_FILES="$CONFIG_FILES fcpputsite/Makefile" ;;
   "fcpx/Makefile" ) CONFIG_FILES="$CONFIG_FILES fcpx/Makefile" ;;
   "fcpput/Makefile" ) CONFIG_FILES="$CONFIG_FILES fcpput/Makefile" ;;
+  "fcpget/Makefile" ) CONFIG_FILES="$CONFIG_FILES fcpget/Makefile" ;;
+  "fcpputsite/Makefile" ) CONFIG_FILES="$CONFIG_FILES fcpputsite/Makefile" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;

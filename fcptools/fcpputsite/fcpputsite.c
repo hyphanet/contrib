@@ -15,6 +15,7 @@
 #include "ezFCPlib.h"
 #include "fcpputsite.h"
 
+#if 0
 
 /*
 	PRIVATE DECLARATIONS
@@ -47,64 +48,14 @@ static int	 maxSplitThreads;
 
 static PutSiteOptions siteOptions;
 
+#endif
 
 int main(int argc, char* argv[])
 {
-	int error;
-
-	memset(&siteOptions, 0, sizeof(siteOptions));
-	siteOptions.defaultFile = "index.html";
-	siteOptions.maxRetries = FCPPUTSITE_ATTEMPTS;
-	siteOptions.maxThreads = FCPPUTSITE_INSERT_THREADS;
-	siteOptions.daysAhead = 0;
-	siteOptions.dodbr=1;
-
-	// go thru command line args
-	parse_args(argc, argv);
-
-	// try and fire up FCP library
-	if (fcpStartup(nodeAddr, nodePort, htlVal, 0,
-			maxSplitThreads) != 0)
-	{
-		_fcpLog(FCP_LOG_CRITICAL, "Unable to connect with Freenet node's FCP interface\n");
-		return 1;
-	}
-
-	// Does the user just want a keypair?
-	if (genKeypair)
-	{
-		HFCP *hfcp = fcpCreateHandle();
-
-		siteOptions.pubKey = (char *) malloc(L_KEY);
-		siteOptions.privKey = (char *) malloc(L_KEY);
-
-		if (fcpMakeSvkKeypair(hfcp, siteOptions.pubKey,
-				siteOptions.privKey) != 0) {
-			_fcpLog(FCP_LOG_CRITICAL, "ERROR - failed to generate keypair\n");
-			exit(1);
-		}
-
-		printf("Here's your keypair:\n");
-		printf("Public:  %s\n", siteOptions.pubKey);
-		printf("Private: %s\n", siteOptions.privKey);
-		exit(0);
-	}
-	
-	// all ok - now go off and try to insert the site
-	
-	error = insertFreesite(&siteOptions);
-	_fcpLog(FCP_LOG_DEBUG, "fcpputsite: returned from insertFreesite");
-
-	return error;
+	printf(";)\n");
+	return -1;
 }
 
-int fcpLogCallback(int level, char *buf)
-{
-	if (level <= verbosity)
-		printf("%s\n", buf);
-
-	return 0;
-}
 
 static void parse_args(int argc, char *argv[])
 {
@@ -133,10 +84,12 @@ static void parse_args(int argc, char *argv[])
 	/* c is the option code; i is buffer storage for an int */
 	int c, i;
 
+	#if 0
+
 	while ((c = getopt(argc, argv, short_options)) != -1)
-	{
+	{ /* while */
 		switch (c)
-		{
+		{ /* switch */
 			case 'n':
 				strncpy( nodeAddr, optarg, L_HOST );
 				break;
@@ -212,24 +165,13 @@ static void parse_args(int argc, char *argv[])
 				siteOptions.recordFile=strdup(optarg);
 				break;
 		}
-
 	}
 
-	/* Process NAME, DIR, PUB, PRV parameters here */
+#endif
 
-	if (optind < argc) siteOptions.siteName = strdup(argv[optind++]);
-	else usage("You must specify a site name");
-
-	if (optind < argc) siteOptions.siteDir = strdup(argv[optind++]);
-	else usage("You must specify a directory");
-
-	if (optind < argc) siteOptions.pubKey = strdup(argv[optind++]);
-	else usage("You must specify a public key");
-
-	if (optind < argc) siteOptions.privKey = strdup(argv[optind++]);
-	else usage("You must specify a private key");
 }
 
+#if 0
 static void usage(char *s)
 {
 	if (s)
@@ -376,3 +318,4 @@ static int parse_num(char *s)
 	 }
 }
 
+#endif

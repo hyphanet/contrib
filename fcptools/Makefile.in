@@ -13,8 +13,6 @@
 # order is important here (for now)
 # fcpproxy not included.. under development
 
-#SUBDIRS = fcpcommon ezFCPlib fcpx fcpput fcpputsite fcpget
-
 
 SHELL = @SHELL@
 
@@ -94,7 +92,7 @@ RC = @RC@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
-SUBDIRS = fcpcommon ezFCPlib fcpx fcpput fcpget
+SUBDIRS = fcpcommon ezFCPlib fcpx fcpput fcpget fcpputsite
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 

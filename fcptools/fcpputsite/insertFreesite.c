@@ -1,3 +1,5 @@
+#if 0
+
 /*
 	insertFreesite.c - part of fcpputsite
 
@@ -629,3 +631,5 @@ void putsiteThread(void *arg)
 	}
 	/* free(job); */
 } /* 'putsiteThread()' */
+
+#endif

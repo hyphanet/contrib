@@ -1,3 +1,5 @@
+#if 0
+
 /*
   insertFreesite.c - part of fcpputsite
   This module is the engine that does the inserting
@@ -176,3 +178,5 @@ static SiteFile *scan_dir_recurse(char *dirname, SiteFile *curlist)
 
     return filelist;
 } /* 'scan_dir_recurse()' */
+
+#endif

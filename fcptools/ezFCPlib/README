@@ -45,10 +45,10 @@ available (because it's simply not implemented yet).
 *) Low Level Freenet Functions
 
    - fcpOpenKey
-   - fcpWriteKey
    - fcpReadKey(n/a)
-   - fcpWriteMetadata
+   - fcpWriteKey
    - fcpReadMetadata(n/a)
+   - fcpWriteMetadata
    - fcpCloseKey
 
 *) Protocol Functions

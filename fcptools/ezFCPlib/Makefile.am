@@ -21,6 +21,7 @@ _fcpSock.c \
 _fcpUtil.c \
 _fcpMetadata.c \
 _fcpMimetype.c \
+_fcpGet.c \
 _fcpPut.c \
 ezFCPlib.h \
 fcpCloseKey.c \
