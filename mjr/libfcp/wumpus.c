@@ -56,6 +56,7 @@ insert (char *file, int depth)
     FILE *data;
     char uri[128], *t = rindex(file, '/');
     int status;
+    int r = retries + 1;
     struct stat s;
     status = stat(file, &s);
     if (status != 0) {
@@ -68,7 +69,6 @@ insert (char *file, int depth)
 	pthread_exit(NULL);
     }
     strcpy(uri, "freenet:CHK@");
-    int r = retries + 1;
     if (s.st_size < 128 * 1024) {
 	status = -1;
 	while (status != FCP_SUCCESS && r--)
