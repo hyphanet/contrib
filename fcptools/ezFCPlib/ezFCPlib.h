@@ -351,8 +351,8 @@ typedef struct {
 
 
 typedef struct {
-	char           *host;
-	int             port;
+	char    *host;
+	unsigned short port;
 
 	int      htl;
 	int      regress;
@@ -362,7 +362,7 @@ typedef struct {
 	int      protocol;
   int      socket;
 
-  char     error[L_ERROR_MESSAGE];
+  char    *error;
 
 	hKey    *key;
 		

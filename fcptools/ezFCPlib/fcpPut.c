@@ -274,7 +274,25 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 	_fcpLog(FCP_LOG_DEBUG, "sent FECSegmentFile message");
 
 	rc = _fcpRecvResponse(hfcp);
-	if (rc != FCPRESP_TYPE_SEGMENTHEADER) {
+
+  switch (rc) {
+  case FCPRESP_TYPE_SEGMENTHEADER:
+    _fcpLog(FCP_LOG_DEBUG, "node returned SegmentHeader message");
+		break;
+		
+  case FCPRESP_TYPE_FORMATERROR:
+    _fcpLog(FCP_LOG_DEBUG, "node returned FormatError message");
+    crSockDisconnect(hfcp);
+		return -1;
+
+  case FCPRESP_TYPE_FAILED:
+    _fcpLog(FCP_LOG_DEBUG, "node returned Failed message: %s", hfcp->error);
+    _fcpLog(FCP_LOG_DEBUG, "reason - %s", hfcp->error);
+
+    crSockDisconnect(hfcp);
+		return -1;
+
+	default:
 		_fcpLog(FCP_LOG_DEBUG, "did not receive expected SegmentHeader response");
 		return -1;
 	}

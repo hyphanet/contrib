@@ -32,6 +32,8 @@
 #include <netdb.h>
 #endif
 
+#include <string.h>
+
 #include "ezFCPlib.h"
 
 /* imports */
@@ -86,6 +88,7 @@ int _fcpSockConnect(hFCP *hfcp)
   rc = connect(hfcp->socket, (struct sockaddr *) &sa_serv_addr, sizeof(struct sockaddr));
   if (rc < 0) {
 		_fcpLog(FCP_LOG_DEBUG, "error connecting to server %s", hfcp->host);
+		_fcpLog(FCP_LOG_DEBUG, "connect returned \"%s\"", strerror(errno));
 		crSockDisconnect(hfcp);
 		return -1;
 	}

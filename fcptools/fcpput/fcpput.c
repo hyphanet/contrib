@@ -49,14 +49,13 @@ int main(int argc, char* argv[])
 	hFCP *hfcp;
 	int rc;
 
-	/* Must occur before any FCP related calls to set parameters prior */
-	parse_args(argc, argv);
-	
 	if (fcpStartup()) {
 		printf("Call to fcpStartup() failed\n");
 		return 1;
 	}
 
+	parse_args(argc, argv);
+	
 	hfcp = _fcpCreateHFCP();
 	rc = fcpPutKeyFromFile(hfcp, keyfile, metafile);
 
@@ -102,61 +101,63 @@ void parse_args(int argc, char *argv[])
 
   while ((c = getopt_long(argc, argv, short_options, long_options, 0)) != EOF) {
     switch (c) {
-
+			
     case 'n':
 			if (_fcpHost) free(_fcpHost);
 			_fcpHost = (char *)malloc(strlen(optarg) + 1);
-
+			
       strcpy( _fcpHost, optarg);
+      _fcpLog(FCP_LOG_DEBUG, "parse_args() using host %s", _fcpHost);
       break;
-
+			
     case 'p':
       i = atoi( optarg );
       if (i > 0) _fcpPort = i;
+      _fcpLog(FCP_LOG_DEBUG, "parse_args() using port %d", _fcpPort);
       break;
-
+			
     case 'l':
       i = atoi( optarg );
       if (i >= 0) _fcpHtl = i;
       break;
-
+			
 		case 'e':
 			i = atoi( optarg );
 			if (i > 0) _fcpRegress = i;
-
+			
     case 'r':
       _fcpRawmode = 1;
       break;
-
+			
     case 'k':
 			keyuri = (char *)malloc(strlen(optarg) + 1);
       strcpy(keyuri, optarg);
       break;
-
-			case 'm':
+			
+		case 'm':
 			metafile = (char *)malloc(strlen(optarg) + 1);
       strcpy(metafile, optarg);
       break;
-
+			
     case 'v':
       i = atoi( optarg );
       if ((i >= 0) && (i <= 4)) _fcpVerbosity = i;
       break;
-
+			
 		case 'a':
 			i = atoi( optarg );
 			break;
-
+			
     case 'V':
       printf( "FCPtools Version %s\n", VERSION );
       exit(0);
-
+			
     case 'h':
       usage(0);
       exit(0);
 		}
 	}
-
+	
   if (optind < argc) {
 		keyfile = (char *)malloc(strlen(argv[optind]) + 1);
 		strcpy(keyfile, argv[optind++]);
@@ -168,7 +169,7 @@ void parse_args(int argc, char *argv[])
 			exit(1);
 		}
 	}
-
+	
 	if (!keyuri) {
 		keyuri = (char *)malloc(5);
 		strcpy(keyuri, "CHK@");

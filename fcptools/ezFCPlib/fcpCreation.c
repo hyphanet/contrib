@@ -33,7 +33,7 @@ hFCP *_fcpCreateHFCP(void)
   hFCP *h;
 
 	h = (hFCP *)malloc(sizeof (hFCP));
-  memset(h, 0, sizeof (hFCP));
+	memset(h, 0, sizeof (hFCP));
 
 	h->host = malloc(strlen(_fcpHost) + 1);
 	strcpy(h->host, _fcpHost);
@@ -45,7 +45,9 @@ hFCP *_fcpCreateHFCP(void)
 
 	h->socket = -1;
 
-  return h;
+	_fcpLog(FCP_LOG_DEBUG, "using address %s:%d", h->host, h->port);
+
+	return h;
 }
 
 void _fcpDestroyHFCP(hFCP *h)

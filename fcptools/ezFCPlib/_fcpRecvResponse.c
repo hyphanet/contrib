@@ -85,6 +85,7 @@ int _fcpRecvResponse(hFCP *hfcp)
 {
 	char resp[1025];
 	int  doAgain = 1;
+	int rc;
 
 	while (doAgain) {
 
@@ -173,8 +174,14 @@ int _fcpRecvResponse(hFCP *hfcp)
 		return getrespFormatError(hfcp);
   }
   else if (!strcmp(resp, "Failed")) {
+		rc = getrespFailed(hfcp);
 		hfcp->response.type = FCPRESP_TYPE_FAILED;
-		return getrespFailed(hfcp);
+
+		if (hfcp->error) free(hfcp->error);
+		hfcp->error = (char *)malloc(strlen(hfcp->response.failed.reason));
+		strcpy(hfcp->error, hfcp->response.failed.reason);
+
+		return rc;
   }
 
 	/* FEC specific */
@@ -496,7 +503,7 @@ static int getrespFailed(hFCP *hfcp)
 			strncpy(hfcp->response.failed.reason, resp + 7, len);
 		}
 		
-		else if (strncmp(resp, "EndMessage", 10))
+		else if (!strncmp(resp, "EndMessage", 10))
 			return FCPRESP_TYPE_FAILED;
 
 		else
