@@ -170,7 +170,7 @@ MPN::mul (jintArray idest, jintArray ix, jint xlen, jintArray iy, jint ylen)
  * Assumes (unsigned int)(N>>32) < (unsigned int)D.
  * Code transcribed from gmp-2.0's mpn_udiv_w_sdiv function.
  */
-
+#if 0
 jlong
 MPN::udiv_qrnnd (jlong N, jint D)
 {
@@ -252,7 +252,7 @@ MPN::udiv_qrnnd (jlong N, jint D)
     }
   return (r << 32) | (q & (jlong)0xFFFFFFFFl);
 }
-
+#endif
 /** Divide divident[0:len-1] by (unsigned int)divisor.
  * Write result into quotient[0:len-1.
  * Return the one-word (uint32_t) remainder.
@@ -306,7 +306,7 @@ MPN::submul_1 (jintArray idest, jint offset, jintArray ix, jint len, jint y)
     {
       jlong prod = ((jlong) x[j] & (jlong)0xffffffffL) * yl;
       jint prod_low = (jint) prod;
-      jint prod_high = (jint) (prod >> 32);
+      jint prod_high = (jint) ((uint64_t) prod >> 32);
       prod_low += carry;
       // Invert the high-order bit, because: (uint32_t) X > (uint32_t) Y
       // iff: (jint) (X^0x80000000) > (jint) (Y^0x80000000).

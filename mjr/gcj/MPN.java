@@ -15,7 +15,7 @@ public class MPN
   public static native int sub_n (int[] dest, int[] X, int[] Y, int size);
   public static native int mul_1 (int[] dest, int[] x, int len, int y);
   public static native void mul (int[] dest, int[] x, int xlen, int[] y, int ylen);
-  public static native long udiv_qrnnd (long N, int D);
+//  public static native long udiv_qrnnd (long N, int D);
   public static native int divmod_1 (int[] quotient, int[] dividend, int len, int divisor);
   public static native int submul_1 (int[] dest, int offset, int[] x, int len, int y);
   public static native void divide (int[] zds, int nx, int[] y, int ny);
@@ -33,7 +33,89 @@ public class MPN
 //  public static native int gcd (int[] x, int[] y, int len);
   public static native int intLength (int i);
   public static native int intLength (int[] words, int len);
-  
+
+  /* Divide (unsigned long) N by (unsigned int) D.
+   * Returns (remainder << 32)+(unsigned int)(quotient).
+   * Assumes (unsigned int)(N>>32) < (unsigned int)D.
+   * Code transcribed from gmp-2.0's mpn_udiv_w_sdiv function.
+   */
+  public static long udiv_qrnnd (long N, int D)
+  {
+    long q, r;
+    long a1 = N >>> 32;
+    long a0 = N & 0xffffffffL;
+    if (D >= 0)
+      {
+        if (a1 < ((D - a1 - (a0 >>> 31)) & 0xffffffffL))
+          {
+            /* dividend, divisor, and quotient are nonnegative */
+            q = N / D;
+            r = N % D;
+          }
+        else
+          {
+            /* Compute c1*2^32 + c0 = a1*2^32 + a0 - 2^31*d */
+            long c = N - ((long) D << 31);
+            /* Divide (c1*2^32 + c0) by d */
+            q = c / D;
+            r = c % D;
+            /* Add 2^31 to quotient */
+            q += 1 << 31;
+          }
+      }
+    else
+      {
+        long b1 = D >>> 1;      /* d/2, between 2^30 and 2^31 - 1 */
+        //long c1 = (a1 >> 1); /* A/2 */
+        //int c0 = (a1 << 31) + (a0 >> 1);
+        long c = N >>> 1;
+        if (a1 < b1 || (a1 >> 1) < b1)
+          {
+            if (a1 < b1)
+              {
+                q = c / b1;
+                r = c % b1;
+              }
+            else /* c1 < b1, so 2^31 <= (A/2)/b1 < 2^32 */
+              {
+                c = ~(c - (b1 << 32));
+                q = c / b1;  /* (A/2) / (d/2) */
+                r = c % b1;
+                q = (~q) & 0xffffffffL;    /* (A/2)/b1 */
+                r = (b1 - 1) - r; /* r < b1 => new r >= 0 */
+              }
+            r = 2 * r + (a0 & 1);
+            if ((D & 1) != 0)
+              {
+                if (r >= q) {
+                        r = r - q;
+                } else if (q - r <= ((long) D & 0xffffffffL)) {
+                       r = r - q + D;
+                        q -= 1;
+                } else {
+                       r = r - q + D + D;
+                        q -= 2;
+                }
+              }
+          }
+        else                            /* Implies c1 = b1 */
+          {                             /* Hence a1 = d - 1 = 2*b1 - 1 */
+            if (a0 >= ((long)(-D) & 0xffffffffL))
+              {
+                q = -1;
+                r = a0 + D;
+              }
+            else
+              {
+                q = -2;
+                r = a0 + D + D;
+              }
+          }
+      }
+
+    return (r << 32) | (q & 0xFFFFFFFFl);
+  }
+ 
   public static int gcd (int[] x, int[] y, int len)
   {
     int i, word;
