@@ -204,8 +204,6 @@ int put_fec_splitfile(hFCP *hfcp, char *key_filename, char *meta_filename)
 
 static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 {
-	/* TRIM */
-
 	char buf[L_FILE_BLOCKSIZE+1];
 	int rc;
 
@@ -304,16 +302,12 @@ static int fec_segment_file(hFCP *hfcp, char *key_filename, char *meta_filename)
 }
 
 
-static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
+static int fec_encode_segment(hFCP *hfcp, char *key_filename, int index)
 {
-	/* TRIM */
-
 	char buf[L_FILE_BLOCKSIZE+1];
 	int fd;
 	int rc;
 
-	int i, j; /* general purpose */
-	int index;   /* segment index */
 	int fi;   /* file index */
 	int bi;   /* block index */
 
@@ -326,16 +320,15 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 	int metadata_len;
 	int pad_len;
 
-	hFCP *hfcp_tmp;
-	FILE *file;
+	hSegment  *segment;
+	FILE      *file;
 
-
-	data_len     = hfcp->key->segments[segment]->filelength;
-	metadata_len = strlen(hfcp->key->segments[segment]->header_str);
-	pad_len      = (hfcp->key->segments[segment]->block_count * hfcp->key->segments[segment]->block_size) - data_len;
+	/* Helper pointer since we're encoding 1 segment at a time */
+	segment = hfcp->key->segments[index];
 	
-	_fcpLog(FCP_LOG_DEBUG, "data_len=%d metadata_len=%d pad_len=%d total=%d",
-					data_len, metadata_len, pad_len, data_len + metadata_len + pad_len);
+	data_len     = segment->filelength;
+	metadata_len = strlen(segment->header_str);
+	pad_len      = (segment->block_count * segment->block_size) - data_len;
 	
 	/* new connection to Freenet FCP */
 	if (crSockConnect(hfcp) != 0) return -1;
@@ -344,8 +337,9 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 	if (send(hfcp->socket, _fcpID, 4, 0) == -1) return -1;
 	
 	snprintf(buf, L_FILE_BLOCKSIZE,
-					 "FECEncodeSegment\nDataLength=%x\nData\n",
-					 data_len + metadata_len + pad_len
+					 "FECEncodeSegment\nDataLength=%x\nMetadataLength=%x\nData\n",
+					 data_len + metadata_len + pad_len,
+					 metadata_len
 					 );
 	
 	/* Send FECEncodeSegment message */
@@ -355,7 +349,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 	}
 	
 	/* Send SegmentHeader */
-	if (send(hfcp->socket, hfcp->key->segments[segment]->header_str, strlen(hfcp->key->segments[segment]->header_str), 0) == -1) {
+	if (send(hfcp->socket, segment->header_str, strlen(segment->header_str), 0) == -1) {
 		_fcpLog(FCP_LOG_DEBUG, "could not write initial SegmentHeader message");
 		return -1;
 	}
@@ -380,17 +374,15 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 		/* read byte_count bytes from the file we're inserting */
 		bytes = read(fd, buf, byte_count);
 		
-		_fcpLog(FCP_LOG_DEBUG, "read %d bytes; %d bytes total so far..", bytes, data_len - fi);
-		
 		if ((rc = send(hfcp->socket, buf, bytes, 0)) < 0) {
 			_fcpLog(FCP_LOG_DEBUG, "could not write key data to socket: %s", strerror(errno));
 			return -1;
 		}
 		
-		_fcpLog(FCP_LOG_DEBUG, "wrote %d bytes to socket", bytes);
-		
 		/* decrement by number of bytes written to the socket */
 		fi -= byte_count;
+
+		_fcpLog(FCP_LOG_DEBUG, "wrote %d data bytes to socket..", data_len - fi);
 	}
 	
 	/* now write the pad bytes and end transmission.. */
@@ -409,10 +401,10 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 			return -1;
 		}
 		
-		_fcpLog(FCP_LOG_DEBUG, "sent %d bytes..", byte_count);
-		
 		/* decrement i by number of bytes written to the socket */
 		fi -= byte_count;
+
+		_fcpLog(FCP_LOG_DEBUG, "wrote %d zero bytes to socket..", pad_len - fi);
 	}
 	
 	/* if the response isn't BlocksEncoded, we have a problem */
@@ -424,7 +416,7 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 	/* it is a BlocksEncoded message.. get the check blocks */
 	block_len = hfcp->response.blocksencoded.block_size;
 	
-	for (bi=0; bi < hfcp->key->segments[segment]->cb_count; bi++) {
+	for (bi=0; bi < segment->cb_count; bi++) {
 		
 		/* We're expecting a DataChunk message */
 		if ((rc = _fcpRecvResponse(hfcp)) != FCPRESP_TYPE_DATACHUNK) {
@@ -432,13 +424,13 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 			return -1;
 		}
 		
-		hfcp->key->segments[segment]->check_blocks[bi] = _fcpCreateHBlock();
-		hfcp->key->segments[segment]->check_blocks[bi]->filename = crTmpFilename();
+		segment->check_blocks[bi] = _fcpCreateHBlock();
+		segment->check_blocks[bi]->filename = crTmpFilename();
 		
-		if (!(file = fopen(hfcp->key->segments[segment]->check_blocks[bi]->filename, "wb"))) {
+		if (!(file = fopen(segment->check_blocks[bi]->filename, "wb"))) {
 			
 			_fcpLog(FCP_LOG_DEBUG, "could not open file \"%s\" for writing check block %d",
-							hfcp->key->segments[segment]->check_blocks[bi]->filename, bi);
+							segment->check_blocks[bi]->filename, bi);
 			return -1;
 		}
 		fd = fileno(file);
@@ -469,6 +461,8 @@ static int fec_encode_segment(hFCP *hfcp, char *key_filename, int segment)
 		/* Close the check block file */
 		fclose(file);
 	}
+
+	_fcpLog(FCP_LOG_DEBUG, "successfully received %d check blocks", bi);
 
 	return 0;
 }
