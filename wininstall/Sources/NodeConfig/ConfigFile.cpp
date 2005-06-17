@@ -87,6 +87,9 @@ void CConfigFile::Load()
 	char buf[4096];
 	char *pValue;
 
+	OSVERSIONINFOEX os_version;	// For OS version detection
+	BOOL bOsVersionInfoEx;
+
 	/////////////////////////////
 	//
 	// Create default values
@@ -151,7 +154,63 @@ void CConfigFile::Load()
 	pAdvanced->m_inputBandwidthLimit = 0;
 	pAdvanced->m_maxHopsToLive = 25;
 	pAdvanced->m_maximumThreads = 120;
+
+
+	// Bob H 1/06/05: See what kind of windows we're on to decide on maxNodeConnections. Previously
+	// we always defaulted to 60 even on NT / 2000 / XP which have considerably better networking.
+	//
+	// Init OS version info structure
+	ZeroMemory( &os_version, sizeof(OSVERSIONINFOEX) );
+	os_version.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
+	
+	// GetVersionEx can only handle an OSVERSIONINFOEX structure on NT 4 SP6 and later, so see if
+	// call worked and fall back to OSVERSIONINFO if not.
+	if( !(bOsVersionInfoEx = GetVersionEx ((OSVERSIONINFO *) &os_version)) )
+	{
+		os_version.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);	// failed, try OSVERSIONINFO
+		if (! GetVersionEx ( (OSVERSIONINFO *) &os_version) )
+			os_version.dwPlatformId = -1;			// if even _that_ doesn't work who knows what we're running on,
+	}												// maybe a broken WINE :) Set version to -1 to indicate error ...
+
+	CString msg = "";
+	switch ( os_version.dwPlatformId )	// What "family" of windows are we on?
+	{
+		// NT, 2000, XP, Server 2003. 
+		// OSVERSIONEX documentation implies this may also apply for "and later" versions too
+		// e.g. Longhorn. Anyway, all these ought to be able to handle 200 connections.
+		// Apparently this should work on XP Pro 64 bit too (untested.)
+		case VER_PLATFORM_WIN32_NT:
+			pAdvanced->m_maxNodeConnections = 200;
+			break;
+
+		// 95, 98, Me. These have crappy stacks so use old limit of 60.
+		case VER_PLATFORM_WIN32_WINDOWS:
+			pAdvanced->m_maxNodeConnections = 60;
+			break;
+
+		// wtf, they seem to be kicking it old skool with Win32s ?!?
+		// If someone actually manages to get Freenet working on Win 3.1 I will be impressed :)
+		case VER_PLATFORM_WIN32s:
 	pAdvanced->m_maxNodeConnections = 60;
+			msg = "Warning, you appear to be trying to run Freenet on a 16-bit version of Windows,\n";
+			msg += "such as Windows 3.11.\n\n";
+			msg += "This is VERY unlikely to work!\n\n";
+			msg += "We recommend you upgrade to a modern operating system, such as Windows XP or Linux.\n";
+			AfxMessageBox( msg );
+			break;
+
+		// Get here if both GetVersionEx calls failed or we otherwise get an unknown platform ID
+		default:
+			pAdvanced->m_maxNodeConnections = 200;
+			msg = "I couldn't tell what version of Windows you are using.\n";
+			msg	+= "I will set maximum node connections to 200.\n\n";
+			msg	+= "This will probably be OK, but please report this message and what kind of Windows\n";
+			msg	+= "you are using to devl@freenetproject.org so we can fix the installer. Thanks!\n";
+			AfxMessageBox( msg, MB_OK|MB_ICONINFORMATION );
+			break;
+	}
+
+
 	pAdvanced->m_outputBandwidthLimit = 0;
 	pAdvanced->m_seedFile = "seednodes.ref";
 	pAdvanced->SetCPUPrioritySlider(THREAD_PRIORITY_IDLE, IDLE_PRIORITY_CLASS);
@@ -665,6 +724,12 @@ void CConfigFile::processItem(char *tok, char *val)
 			case 'P':	v *= 1073741824;				break;
 			case 'E':	v *= 1073741824;	v *= 1024;	break;
 			case 'k':	v /= 1000;						break;
+			//
+			// N.B : If the below cases fail to compile with 
+			// "error C2520: conversion from unsigned __int64 to double not implemented, use signed __int64"
+			// in VS6 then you need VS service pack 5 (NOT 6!) and the 'Processor Pack'.
+			// http://msdn.microsoft.com/vstudio/downloads/updates/sp/vs6/sp5/sp5_en.aspx
+			// http://msdn.microsoft.com/vstudio/downloads/tools/ppack/download.aspx			
 			case 'm':	v =  (DWORDLONG)(float(v)*0.9765625);	break;
 			case 'g':	v =  (DWORDLONG)(float(v)*976.5625);	break;
 			case 't':	v =  (DWORDLONG)(float(v)*976562.5);	break;
