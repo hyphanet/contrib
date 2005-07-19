@@ -50,5 +50,3 @@ else
 	echo "Build failed!" >&2
 	exit 1
 fi
- 
-
