@@ -29,9 +29,6 @@ CXXFLAGS="-shared -static -static-libgcc"
 OS="$(uname -s|tr "[A-Z]" "[a-z]")" 	# convert any uppercase to lowercase
 ARCH=$(uname -m)
 
-# convert machine type of "i386" to "x86"
-[ "${ARCH}" = "i386" ] && ARCH="x86"
-
 # amd64 machine type requires an additional compiler flag to build successfully
 [ "${ARCH}" = "amd64" ] && CXXFLAGS="${CXXFLAGS} -fPIC"
 
