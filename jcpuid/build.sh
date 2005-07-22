@@ -36,7 +36,7 @@ ARCH=$(uname -m)
 [ "${ARCH}" = "amd64" ] && CXXFLAGS="${CXXFLAGS} -fPIC"
 
 # OK, now we can generate our object file's name and the proper include paths
-OBJ="libjcpuid-${ARCH}-${OS}.so"
+OBJ="libjcpuid-x86-${OS}.so"
 INCLUDES="-Iinclude -I${JAVA_HOME}/include -I${JAVA_HOME}/include/${OS}"
 
 # Finally, do the actual compile
