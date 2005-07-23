@@ -1,62 +1,111 @@
 #/bin/sh
+#
+# build.sh -- main script for building jbigi libraries
+#
+# depends on the accompanying script build_jbigi.sh (which should *not*
+# be run directly)
+#
 
-case `uname -sr` in
+GMP_VERSION="4.1.3"
+
+OS=$(uname -s)
+
+case ${OS} in
 MINGW*)
-	echo "Building windows .dll's";;
+	echo "Building Windows .dll files"
+	;;
 Linux*)
-	echo "Building linux .so's";;
+	echo "Building Linux .so files"
+	;;
 FreeBSD*)
-	echo "Building linux .so's";;
+	echo "Building FreeBSD .so files"
+	;;
 *)
-	echo "Unsupported build environment"
-	exit;;
+	echo "Sorry, unsupported OS/build environment, exiting"
+	exit
+	;;
 esac
 
-echo "Extracting GMP..."
-tar -xzf gmp-4.1.3.tar.gz
-echo "Building..."
-mkdir bin
-mkdir lib
-mkdir lib/net
-mkdir lib/net/i2p
-mkdir lib/net/i2p/util
-for x in none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon
+# Don't extract gmp if it's already been done
+
+if [ ! -d gmp-${GMP_VERSION} ]
+then
+	echo "Extracting sources for GNU MP library version ${GMP_VERSION}..."
+	tar -xzf gmp-${GMP_VERSION}.tar.gz
+fi
+
+# (Re)create directories for jbigi build output
+#
+# Use "mkdir -p" for all directory creates, to avoid error message
+# if directory already exists.  Also allows for multiple levels of
+# directories to be created all at once.
+
+echo "(Re)creating directories for jbigi build output"
+mkdir -pv bin
+mkdir -pv lib/net/i2p/util
+
+# Build a library version for each of the enumerated CPU types
+#
+# "none" = a generic build with no specific CPU type indicated to the 
+# compiler
+#
+# TODO: add build for athlon64 (requires some conditional tests, as 64-bit 
+# code cannot be built on 32-bit platforms, as well as some patches for gmp)
+
+for CPU in none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon
 do
-	mkdir bin/$x
-	cd bin/$x
-	../../gmp-4.1.3/configure --build=$x
+	mkdir -p bin/${CPU}
+	cd bin/${CPU}
+
+	# Build a CPU-specific version of gmp first
+
+	echo "Building GNU MP library for ${CPU}..."
+
+	../../gmp-${GMP_VERSION}/configure --build=${CPU}
 	make
+
+	# Now build a CPU-specific jbigi library
+	# linked with the CPU-specific gmp we just built
+
+	echo "Building statically linked jbigi library for ${CPU}..."
+
 	../../build_jbigi.sh static
-	case `uname -sr` in
+
+	# Copy library to its final location with CPU-specific name
+	
+	case ${OS} in
 	MINGW*)
-		cp jbigi.dll ../../lib/net/i2p/util/jbigi-windows-$x.dll;;
+		cp jbigi.dll ../../lib/net/i2p/util/jbigi-windows-${CPU}.dll
+		;;
 	Linux*)
-		cp libjbigi.so ../../lib/net/i2p/util/libjbigi-linux-$x.so;;
+		cp libjbigi.so ../../lib/net/i2p/util/libjbigi-linux-${CPU}.so
+		;;
 	FreeBSD*)
-		cp libjbigi.so ../../lib/net/i2p/util/libjbigi-freebsd-$x.so;;
+		cp libjbigi.so ../../lib/net/i2p/util/libjbigi-freebsd-${CPU}.so
+		;;
 	esac
-	cd ..
-	cd ..
+
+	echo "Done!"
+	
+	# return to original directory for next build
+	# (or return user to original directory upon exit)
+	cd ../..
 done
 
-#if `uname -sr`  startswith MINGW
-#then
-# exit
-#fi
+#mkdir -p bin/dynamic
+#cd bin/dynamic
+#../../gmp-${GMP_VERSION}/configure
+#make
+#../../build_jbigi.sh dynamic
+#case ${OS} in
+#MINGW*)
+#	cp jbigi.dll ../../lib/jbigi-windows-dynamic.dll;;
+#Linux*)
+#	cp libjbigi.so ../../lib/libjbigi-linux-dynamic.so;;
+#FreeBSD*)
+#	cp libjbigi.so ../../lib/libjbigi-freebsd-dynamic.so;;
+#esac
 
-mkdir bin/dynamic
-cd bin/dynamic
-../../gmp-4.1.3/configure
-make
-../../build_jbigi.sh dynamic
-case `uname -sr` in
-MINGW*)
-	cp jbigi.dll ../../lib/jbigi-windows-dynamic.dll;;
-Linux*)
-	cp libjbigi.so ../../lib/libjbigi-linux-dynamic.so;;
-FreeBSD*)
-	cp libjbigi.so ../../lib/libjbigi-freebsd-dynamic.so;;
-esac
-cd ..
-cd ..
-
+# return to original directory for next build
+# (or return user to original directory upon exit)
+#cd ../..
