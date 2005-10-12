@@ -20,6 +20,9 @@ Linux*)
 FreeBSD*)
 	echo "Building FreeBSD .so files"
 	;;
+Darwin*)
+	echo "Building osx .jnilib's"
+	;;
 *)
 	echo "Sorry, unsupported OS/build environment, exiting"
 	exit
@@ -44,7 +47,11 @@ echo "(Re)creating directories for jbigi build output"
 mkdir -pv bin
 mkdir -pv lib/net/i2p/util
 
-# Build a library version for each of the enumerated CPU types
+# Break out build into Darwin and everything else.
+if test ! `uname` == "Darwin"
+then
+
+# Build a library version for each of the enumerated (x86) CPU types
 #
 # "none" = a generic build with no specific CPU type indicated to the 
 # compiler
@@ -91,6 +98,22 @@ do
 	# (or return user to original directory upon exit)
 	cd ../..
 done
+
+
+# Otherwise we are building for Darwin
+else
+# Darwin build script
+# --with-pic is required for static linking
+# Only build static library since it would be rare for OSX user to have gmp installed.
+mkdir -p bin/none
+cd bin/none
+../../gmp-4.1.3/configure --with-pic
+make
+sh ../../build_jbigi.sh static
+cp libjbigi.jnilib ../../lib/net/i2p/util/libjbigi-osx-none.jnilib
+cd ../..
+fi
+
 
 #mkdir -p bin/dynamic
 #cd bin/dynamic

@@ -1,6 +1,7 @@
 #!/bin/sh
 # When executed in Mingw: Produces an jbigi.dll
 # When executed in Linux: Produces an libjbigi.so
+# When executed in OSX: Produces an libjbigi.jnilib
 
 CC="gcc"
 
@@ -11,6 +12,12 @@ MINGW*)
 	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include/win32/ -I$JAVA_HOME/include/"
 	LINKFLAGS="-shared -Wl,--kill-at"
 	LIBFILE="jbigi.dll";;
+Darwin*)
+	JAVA_HOME="/Library/Java/Home"
+	COMPILEFLAGS="-Wall"
+	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include"
+	LINKFLAGS="-dynamiclib -framework JavaVM"
+	LIBFILE="libjbigi.jnilib";;
 *)
 	COMPILEFLAGS="-fPIC -Wall"
 	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
