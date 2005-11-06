@@ -26,7 +26,7 @@
 !define PRODUCT_NAME "Freenet"
 !define WEBINSTALL  #  the default install type
 !define BUILDDATE 20041124
-!define JAVAINSTALLER "jre-win32-latest.exe"
+# !define JAVAINSTALLER "jre-win32-latest.exe"
 
 !ifdef WEBINSTALL
  !define PRODUCT_VERSION "Webinstall"
@@ -164,6 +164,8 @@ Section "-Local Lib Install" SecLocalLibInstall # hidden
  GetFullPathName /SHORT $1 $INSTDIR # convert INSTDIR into short form and put into $1
  GetFullPathName /SHORT $2 $EXEDIR # same for EXEDIR into $2
  GetFullPathName /SHORT $R0 $TEMP # same for TEMP into $R0
+
+# MessageBox MB_OK "Temp is $R0, Exedir is $2"
 
  # make sure the files we're downloading don't already exist in the temp dir:
  SetDetailsPrint none
@@ -344,10 +346,10 @@ Section "Freenet Node" SecFreenetNode
  IfFileExists "$R0\freenet-install\seednodes.ref" NoDownloadSeednodes
  # if "Don't Prompt Me" is selected the following message box will not appear and seed download will be automatic
  # ###TODO
- MessageBox MB_YESNO "To connect to the Freenet network, your Freenet node needs to know about at least one other Freenet node.$\r$\nThis is called a 'Node Reference' or 'seednodes.ref' file.$\r$\nDo you want to download 'seednodes.ref' from the Free Net Project's servers?$\r$\nYou may want to say NO if you have been given a .ref file by a friend,$\r$\nor if you have installed Freenet before and still have the file named seednodes.ref" IDNO NoDownloadSeedNodes
- Push "http://freenetproject.org/snapshots/seednodes.ref"
+ MessageBox MB_YESNO "To connect to the Freenet network, your Freenet node needs to know about at least one other Freenet node.$\r$\nThis is called a 'Node Reference' or 'seednodes.ref' file.$\r$\nDo you want to download a compressed 'seednodes.ref' from the Free Net Project's servers?$\r$\nYou may want to say NO if you have been given a .ref file by a friend,$\r$\nor if you have installed Freenet before and still have the file named seednodes.ref" IDNO NoDownloadSeedNodes
+ Push "http://freenetproject.org/snapshots/seednodes.zip"
  Push "$R0\freenet-install"
- Push "seednodes.ref"
+ Push "seednodes.zip"
  Call RetryableDownload
  StrCmp $0 "success" seedsuccess
  MessageBox MB_YESNO "Couldn't download seednodes.ref - Without this file Freenet will not work.$\r$\nDo you want to continue installation anyway?  (You will still need to download seednodes.ref yourself)" IDYES NoDownloadSeedNodes
@@ -355,6 +357,8 @@ Section "Freenet Node" SecFreenetNode
 
  seedsuccess:
  ClearErrors
+
+# Should have seednodes.zip if we're here
 
  NoDownloadSeedNodes:
 
@@ -408,6 +412,28 @@ Section "Freenet Node" SecFreenetNode
  CopyFiles "$R0\freenet-install\*.*" "$INSTDIR"
  File update\UpdateSnapshot.exe
  IfErrors DiskWriteError
+
+
+IfFileExists "$INSTDIR\seednodes.zip" unzipSeednodes
+
+# If we haven't got it for some reason, jump to error handler
+goto unzipSeednodesDownloadError
+
+# Bob H : We've got seednodes, unzip them
+# We must run before NodeConfig, or it will "helpfully" go and download the uncompressed seednodes.ref itself without asking!
+unzipSeednodes:
+DetailPrint "Decompressing seednodes, please wait ..."
+	# We extract it to temp install dir first, to stop NodeConfig downloading seednodes.ref
+ZipDLL::extractall "$R0\freenet-install\seednodes.zip" "$R0\freenet-install"
+	# Then copy to final install dir
+CopyFiles "$R0\freenet-install\seednodes.ref" "$INSTDIR"
+ goto seednodesUnzipped
+
+unzipSeednodesDownloadError:
+MessageBox MB_OK "Sorry, the compressed seednodes 'seednodes.zip' could not be found.$\r$\nA seednodes file is needed for freenet to work.$\r$\nYou could try downloading seednodes manually from :$\r$\n http://freenetproject.org/snapshots/"
+
+seednodesUnzipped:
+
 
  # Step 3- Merge ini files
  # Step 3a - create a default .ini file
@@ -582,6 +608,8 @@ Section "Uninstall"
   Delete "$INSTDIR\flaunch.ini"
   Delete "$INSTDIR\freenet.ini"
   Delete "$INSTDIR\seednodes.ref"
+# Bob H : Cleanup zipped seednodes too
+  Delete "$INSTDIR\seednodes.zip"
   Delete "$INSTDIR\prng.seed"
   RMDir /r "$INSTDIR\store"
   Delete "$INSTDIR\lsnodes*"
@@ -693,6 +721,7 @@ Function DetectJava
   SetDetailsPrint none
   SetOutPath "$R0\freenet-install"
   SetDetailsPrint both
+
 
   !ifdef embedJava
    # Install Java runtime only if not found

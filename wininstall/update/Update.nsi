@@ -5,6 +5,8 @@
 ; start the node again
 ;
 
+# Bob H, Nov 2005 : Made it grab and decompress zipped seednodes instead of raw ones.
+
 !include ..\webinstall.inc
 !include "MUI.nsh"
 !include "WinMessages.nsh"
@@ -82,12 +84,16 @@ ClosedFreenet:
  Delete "$INSTDIR\freenet.jar"
  Rename "$INSTDIR\freenet.jar.new" "$INSTDIR\freenet.jar"
 
- StrCpy $1 "http://freenetproject.org/snapshots/seednodes.ref"
- StrCpy $2 "$INSTDIR\seednodes.ref.new"
+ StrCpy $1 "http://freenetproject.org/snapshots/seednodes.zip"
+ StrCpy $2 "$INSTDIR\seednodes.zip"
  Call DownloadFile
 
  Delete "$INSTDIR\seednodes.ref"
- Rename "$INSTDIR\seednodes.ref.new" "$INSTDIR\seednodes.ref"  
+# Rename "$INSTDIR\seednodes.ref.new" "$INSTDIR\seednodes.ref"  
+
+# Bob H : Unzip seednodes (to seednodes.ref)
+ZipDLL::extractall "$INSTDIR\seednodes.zip" "$INSTDIR"
+
  
  # update finished, starting the node if it ran before
  IntCmp $9 1 0 StartedFreenet

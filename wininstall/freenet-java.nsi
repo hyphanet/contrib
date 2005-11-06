@@ -10,7 +10,10 @@
 # You still need to add the javaexecutable yourself
 # Created April 2001 by David McNab and improved by various others :-)
 
+# Bob H, Nov 2005 : Resurrected, now uses freenet-modern.nsi instead of
+# freenet.nsi. Thus inherits zipped seednode support I added.
+
 !define embedJava
-!define JAVAINSTALLER j2re-1_3_1_01-win.exe
-!include freenet.nsi
+!define JAVAINSTALLER jre-1_5_0_05-windows-i586-p.exe
+!include freenet-modern.nsi
 
