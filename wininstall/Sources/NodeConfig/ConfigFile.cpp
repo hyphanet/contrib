@@ -725,11 +725,12 @@ void CConfigFile::processItem(char *tok, char *val)
 			case 'E':	v *= 1073741824;	v *= 1024;	break;
 			case 'k':	v /= 1000;						break;
 			//
-			// N.B : If the below cases fail to compile with 
+			// Bob H note : If the below cases fail to compile with 
 			// "error C2520: conversion from unsigned __int64 to double not implemented, use signed __int64"
 			// in VS6 then you need VS service pack 5 (NOT 6!) and the 'Processor Pack'.
-			// http://msdn.microsoft.com/vstudio/downloads/updates/sp/vs6/sp5/sp5_en.aspx
-			// http://msdn.microsoft.com/vstudio/downloads/tools/ppack/download.aspx			
+			// http://msdn.microsoft.com/vstudio/downloads/updates/sp/vs6/sp5/default.aspx
+			// http://msdn.microsoft.com/vstudio/downloads/tools/ppack/
+
 			case 'm':	v =  (DWORDLONG)(float(v)*0.9765625);	break;
 			case 'g':	v =  (DWORDLONG)(float(v)*976.5625);	break;
 			case 't':	v =  (DWORDLONG)(float(v)*976562.5);	break;

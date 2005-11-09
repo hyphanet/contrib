@@ -8,7 +8,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#define DEFSEEDURL "http://freenetproject.org/snapshots/seednodes.ref"
+//#define DEFSEEDURL "http://freenetproject.org/snapshots/seednodes.ref"
+// Bob H : GetSeed is rarely used now, so use Emu mirror with fallback to SourceForge since Emu is faster / reliable
+#define DEFSEEDURL "http://emu.freenetproject.org/downloads/seednodes/seednodes.ref"
 #define DEFSEEDFILE "seednodes.ref"
 
 /////////////////////////////////////////////////////////////////////////////

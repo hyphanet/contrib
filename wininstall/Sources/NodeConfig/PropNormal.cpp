@@ -18,6 +18,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+
 //extern CDlgWarnPerm		*pWarnPerm;
 extern CPropAdvanced	*pAdvanced;
 
@@ -183,8 +184,38 @@ void CPropNormal::OnDestroy()
 {
 	if (m_useDefaultNodeRefs)
 	{
-		CGetSeedDlg Getseeddlg(TRUE);
+		// Bob H : We get here if NodeConfig can't find a seednodes.ref .
+		// Used to be Getseeddlg(TRUE) which put Getseeddlg in "silent mode", where it automatically downloads seednodes.
+		// At least on win2k and XP this doesn't work correctly, the dialog never inits properly and is invisible,
+		// so I changed it to FALSE; user now has to press the download button. Also, it didn't use to prompt if they wanted
+		// to download. This caused a long-standing "hanging" problem during install after OK'ing the initial NodeConfig,
+		// because NodeConfig.exe was initially in a different directory to where the installer downloaded the seednodes
+		// and therefore always invisibly downloaded them AGAIN itself! (I fixed this in the wininstaller.)
+		// This happened even when the user chose NOT to download seednodes because they already had some e.g. from a friend,
+		// not a good thing (hi freenet-china.) For extra fun recently SourceForge has been randomly throttling big 
+		// freenetproject.org downloads to 0.2Kb/s - 0.3Kb/s, making the invisible download hang the installer for HOURS.
+
+		CString prompt = "The Freenet node configuration utility couldn't find \"seednodes.ref\".";
+		prompt += "\nThis file is needed for freenet to work\n(it provides it with addresses";
+		prompt += " of other nodes to connect to initially.)\n\n";
+		prompt += "** If you chose NOT to download seednodes.ref, this is normal! **\n";
+		prompt += "Please answer NO to this, place your seednodes.ref in the directory\n";
+		prompt += "where freenet is installed (e.g. c:\\Program Files\\Freenet)";
+		prompt += "\nand then run Freenet.\n\n";  // because compressed so it should be faster, even though dl jars too
+		prompt += "We recommend you try \"Update Snapshot\" (once Freenet is\n";
+		prompt += "installed) to fix this.\n";
+		prompt += "Answer NO, then do Start->Programs->Freenet->Update Snapshot.\n\n";
+		prompt += "If that doesn't work, I can try to download the seednodes myself.\n";
+		prompt += "Do you want me to try to download them myself now?";
+
+		if( IDYES == AfxMessageBox( prompt, MB_YESNO|MB_ICONQUESTION ) )
+		{
+			// Cheesey I know ... presumably some way to trigger download that works properly
+			AfxMessageBox("Please press \"Download References\" on the next screen.\nThe download may take a while.",
+												MB_OK|MB_ICONINFORMATION );
+			CGetSeedDlg Getseeddlg(FALSE);
 		Getseeddlg.DoModal();
+	}
 	}
 
 	if (m_pGeek)
