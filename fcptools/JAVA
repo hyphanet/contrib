@@ -1,6 +1,0 @@
-Java primitive data types and their C counterparts:
-
-Java (size)  <=> C (size) : C (format)
-=============================================
-long (64bS)  <=> unsigned long (32bU)  : %lu
-char (16bU)  <=> unsigned short (16bU) : %u
