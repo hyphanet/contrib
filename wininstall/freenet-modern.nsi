@@ -347,7 +347,7 @@ Section "Freenet Node" SecFreenetNode
  # if "Don't Prompt Me" is selected the following message box will not appear and seed download will be automatic
  # ###TODO
  MessageBox MB_YESNO "To connect to the Freenet network, your Freenet node needs to know about at least one other Freenet node.$\r$\nThis is called a 'Node Reference' or 'seednodes.ref' file.$\r$\nDo you want to download a compressed 'seednodes.ref' from the Free Net Project's servers?$\r$\nYou may want to say NO if you have been given a .ref file by a friend,$\r$\nor if you have installed Freenet before and still have the file named seednodes.ref" IDNO NoDownloadSeedNodes
- Push "http://freenetproject.org/snapshots/seednodes.zip"
+ Push "http://downloads.freenetproject.org/seednodes/seednodes.ref.zip"
  Push "$R0\freenet-install"
  Push "seednodes.zip"
  Call RetryableDownload
@@ -365,28 +365,28 @@ Section "Freenet Node" SecFreenetNode
  StrCmp "$3" "${NUMBER_OF_DOWNLOADABLE_FILES}" DoneGettingFiles
 
 ;  Push ".\Freenet\tools\NodeConfig.exe"
- Push "http://freenetproject.org/snapshots/NodeConfig.exe"
+ Push "http://downloads.freenetproject.org/NodeConfig.exe"
  Push "$R0\freenet-install"
  Push "NodeConfig.exe"
  Call GetFile
  IfErrors DiskWriteError
 
 ;  Push ".\Freenet\tools\freenet.exe"
- Push "http://freenetproject.org/snapshots/freenet.exe"
+ Push "http://downloads.freenetproject.org/freenet.exe"
  Push "$R0\freenet-install"
  Push "freenet.exe"
  Call GetFile
  IfErrors DiskWriteError
 
 ;  Push ".\Freenet\jar\freenet-ext.jar"
- Push "http://freenetproject.org/snapshots/freenet-ext.jar"
+ Push "http://downloads.freenetproject.org/freenet-ext.jar"
  Push "$R0\freenet-install"
  Push "freenet-ext.jar"
  Call GetFile
  IfErrors DiskWriteError
 
 ;  Push ".\Freenet\jar\freenet.jar"
- Push "http://freenetproject.org/snapshots/freenet-latest.jar"
+ Push "http://downloads.freenetproject.org/freenet-stable-latest.jar"
  Push "$R0\freenet-install"
  Push "freenet.jar"
  Call GetFile
@@ -430,7 +430,7 @@ CopyFiles "$R0\freenet-install\seednodes.ref" "$INSTDIR"
  goto seednodesUnzipped
 
 unzipSeednodesDownloadError:
-MessageBox MB_OK "Sorry, the compressed seednodes 'seednodes.zip' could not be found.$\r$\nA seednodes file is needed for freenet to work.$\r$\nYou could try downloading seednodes manually from :$\r$\n http://freenetproject.org/snapshots/"
+MessageBox MB_OK "Sorry, the compressed seednodes 'seednodes.zip' could not be found.$\r$\nA seednodes file is needed for freenet to work.$\r$\nYou could try downloading seednodes manually from :$\r$\n http://downloads.freenetproject.org/seednodes/"
 
 seednodesUnzipped:
 
@@ -615,6 +615,18 @@ Section "Uninstall"
   Delete "$INSTDIR\lsnodes*"
   Delete "$INSTDIR\rtnodes*"
   Delete "$INSTDIR\rtprops*"
+
+  # Bob H : A load of generated node files weren't being deleted
+  # This still leaves the .freenet\ directory hierarchy .. what should we do with this?
+  # Personally I'm somewhat inclined to just nuke $INSTDIR and be done with it :)
+  Delete "$INSTDIR\lock.lck"
+  Delete "$INSTDIR\.freenet"
+  Delete "$INSTDIR\ratedata_a"
+  Delete "$INSTDIR\ngrt_global_a"
+  Delete "$INSTDIR\ngrt_global_b"
+  Delete "$INSTDIR\ratedata_b"
+  Delete "$INSTDIR\node"
+
   DeleteRegValue HKLM "Software\${PRODUCT_NAME}" "Start Menu Folder"
   DeleteRegValue HKLM "Software\${PRODUCT_NAME}" "instpath"
   

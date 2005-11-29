@@ -6,6 +6,7 @@
 ;
 
 # Bob H, Nov 2005 : Made it grab and decompress zipped seednodes instead of raw ones.
+# Bob H, later : New emu / coralcache file locations, UPX path fix
 
 !include ..\webinstall.inc
 !include "MUI.nsh"
@@ -25,7 +26,7 @@ InstallDir $EXEDIR
 ;AutoCloseWindow true 
 ShowInstDetails show
 
-!packhdr temp.dat "..\upx.exe -9 temp.dat"
+!packhdr temp.dat "upx.exe -9 temp.dat"
 
 ;--------------------------------
 ;Modern UI Configuration
@@ -77,14 +78,14 @@ CloseFreenet:
   Goto CloseFreenet
 
 ClosedFreenet:
- StrCpy $1 "http://freenetproject.org/snapshots/freenet.jar"
+ StrCpy $1 "http://downloads.freenetproject.org/freenet-stable-latest.jar"
  StrCpy $2 "$INSTDIR\freenet.jar.new"
  Call DownloadFile
 
  Delete "$INSTDIR\freenet.jar"
  Rename "$INSTDIR\freenet.jar.new" "$INSTDIR\freenet.jar"
 
- StrCpy $1 "http://freenetproject.org/snapshots/seednodes.zip"
+ StrCpy $1 "http://downloads.freenetproject.org/seednodes/seednodes.ref.zip"
  StrCpy $2 "$INSTDIR\seednodes.zip"
  Call DownloadFile
 
@@ -92,8 +93,8 @@ ClosedFreenet:
 # Rename "$INSTDIR\seednodes.ref.new" "$INSTDIR\seednodes.ref"  
 
 # Bob H : Unzip seednodes (to seednodes.ref)
+# Note that our local copy will still be seednodes.zip because download chooses name
 ZipDLL::extractall "$INSTDIR\seednodes.zip" "$INSTDIR"
-
  
  # update finished, starting the node if it ran before
  IntCmp $9 1 0 StartedFreenet
@@ -112,6 +113,6 @@ SectionEnd
 Function .onInstFailed
  RMDir /r $TEMP\freenet
  Delete "$INSTDIR\freenet.jar.new" 
- Delete "$INSTDIR\seednodes.ref.new" 
+ Delete "$INSTDIR\seednodes.ref.zip" 
 FunctionEnd
 
