@@ -14,6 +14,5 @@
 # freenet.nsi. Thus inherits zipped seednode support I added.
 
 !define embedJava
-!define JAVAINSTALLER jre-1_5_0_05-windows-i586-p.exe
+!define JAVAINSTALLER jre-1_5_0_06-windows-i586-p.exe
 !include freenet-modern.nsi
-

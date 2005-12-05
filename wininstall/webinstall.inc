@@ -31,3 +31,52 @@ Function DownloadFile
 
 FunctionEnd
 ;-----------------------------------------------------------------------------------
+
+# Bob H - Retryable download, moved from freenet-modern.nsi so it can be shared
+
+Function RetryableDownload
+ POP $R2 # local filename
+ POP $R3 # local dir
+ POP $R4 # remote dir+filename
+
+ StrCpy $R5 "$R3\$R2"
+
+ DetailPrint "Downloading $R2 from $R4 ..."
+
+ DoDownload:
+ NSISdl::download /TIMEOUT=150000 "$R4" "$R5"
+ Pop $R9
+ StrCmp $R9 "success" Success
+ DetailPrint "Download of $R2 failed: $R9"
+ SetDetailsPrint none
+ Delete "$R5"
+ SetDetailsPrint both
+ MessageBox MB_YESNO "Download of $R2 failed: '$R9'. Retry?" IDYES Retry
+ IfFileExists "$INSTDIR\$R2" PreExistingDownload
+ goto Aborted
+
+ PreExistingDownload:
+  MessageBox MB_YESNO "Download of $R2 failed - Continue with installation?$\r$\n(This will use your pre-existing $R2 file)" IDYES NoFailed
+  goto Aborted
+
+ Retry:
+  DetailPrint "Retrying download of $R2 ..."
+  goto DoDownload
+
+ NoFailed:
+  DetailPrint "Using preexisting $R2"
+  StrCpy $0 "preexisting"
+  goto end
+
+ Success:
+  DetailPrint "Downloaded $R2 successfully"
+  StrCpy $0 "success"
+  goto end
+
+ Aborted:
+  DetailPrint "Download of $R2 aborted"
+  StrCpy $0 "aborted"
+  goto end
+
+  end:
+FunctionEnd

@@ -7,6 +7,9 @@
 
 # Bob H, Nov 2005 : Made it grab and decompress zipped seednodes instead of raw ones.
 # Bob H, later : New emu / coralcache file locations, UPX path fix
+# Bob H, 1/12/2005 : Now uses the RetryableDownload function that the main 
+#                    wininstaller does, since in my experience Coral-Cache latency
+#                    could make the old DownloadFile method time out
 
 !include ..\webinstall.inc
 !include "MUI.nsh"
@@ -78,16 +81,24 @@ CloseFreenet:
   Goto CloseFreenet
 
 ClosedFreenet:
- StrCpy $1 "http://downloads.freenetproject.org/freenet-stable-latest.jar"
- StrCpy $2 "$INSTDIR\freenet.jar.new"
- Call DownloadFile
+#> StrCpy $1 "http://downloads.freenetproject.org/freenet-stable-latest.jar"
+#> StrCpy $2 "$INSTDIR\freenet.jar.new"
+#> Call DownloadFile
+  Push "http://downloads.freenetproject.org/freenet-stable-latest.jar"
+  Push "$INSTDIR"
+  Push "freenet.jar.new"
+  Call RetryableDownload
 
  Delete "$INSTDIR\freenet.jar"
  Rename "$INSTDIR\freenet.jar.new" "$INSTDIR\freenet.jar"
 
- StrCpy $1 "http://downloads.freenetproject.org/seednodes/seednodes.ref.zip"
- StrCpy $2 "$INSTDIR\seednodes.zip"
- Call DownloadFile
+#> StrCpy $1 "http://downloads.freenetproject.org/seednodes/seednodes.ref.zip"
+#> StrCpy $2 "$INSTDIR\seednodes.zip"
+#> Call DownloadFile
+  Push "http://downloads.freenetproject.org/seednodes/seednodes.ref.zip"
+  Push  "$INSTDIR"
+  Push "seednodes.zip"
+  Call RetryableDownload
 
  Delete "$INSTDIR\seednodes.ref"
 # Rename "$INSTDIR\seednodes.ref.new" "$INSTDIR\seednodes.ref"  
