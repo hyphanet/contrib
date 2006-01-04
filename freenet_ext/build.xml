@@ -71,6 +71,7 @@
     <jar jarfile="${jar.location}" basedir="${build}" includes="**">
       <zipfileset src="../fecimpl/onion/alien/onion-common.jar"/>
       <zipfileset src="../fecimpl/onion/alien/fec-native.jar"/>
+      <zipfileset src="../je-2.0.90.jar"/>
     </jar>
   </target>
 </project>
