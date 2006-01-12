@@ -12,38 +12,18 @@
     <mkdir dir="${build}"/>
   </target>
 
-  <target name="servlet" depends="init"
-    description="Build the javax.servlet.* classes">
-    <javac destdir="${build}">
-      <src path="../javax"/>
-    </javac>
-    <copy todir="${build}">
-      <fileset dir=".." includes="javax/**/*.properties"/>
-    </copy>
-  </target>
-
   <target name="fec" depends="init"
     description="build the FECEncoder/Decoder plugins for fproxy.">
     <javac destdir="${build}">
-      <src path="../fecimpl/onion/alien/fec_src"/>
-      <classpath path="../fecimpl/onion/alien/onion-common.jar"/>
+      <src path="../fec_src"/>
+      <classpath path="../onion-common.jar"/>
     </javac>
     <copy todir="${build}">
-      <fileset dir="../fecimpl/onion/alien/fec_src">
+      <fileset dir="../fec_src">
         <include name="**/*.properties"/>
       </fileset>
     </copy>
-  </target>
-
-  <target name="onion" depends="fec"
-    description="build the FECEncoder/Decoder plugins for fproxy.">
-    <javac destdir="${build}">
-      <src path="../fecimpl/onion"/>
-      <classpath path="../fecimpl/onion/alien/onion-common.jar"/>
-      <classpath path="${classpath}"/>
-      <exclude name="alien/**"/>
-    </javac>
-    <copy file="../fecimpl/onion/alien/onion_LICENSE" todir="${build}"/>
+    <copy file="../onion_LICENSE" todir="${build}"/>
   </target>
 
   <target name="jcpuid" depends="init">
@@ -66,11 +46,11 @@
     <delete file="${jar.location}"/>
   </target>
 
-  <target name="jar" depends="servlet,onion,jcpuid,bigint"
+  <target name="jar" depends="jcpuid,bigint"
     description="Create a .jar">
     <jar jarfile="${jar.location}" basedir="${build}" includes="**">
-      <zipfileset src="../fecimpl/onion/alien/onion-common.jar"/>
-      <zipfileset src="../fecimpl/onion/alien/fec-native.jar"/>
+      <zipfileset src="../onion-common.jar"/>
+      <zipfileset src="../fec-native.jar"/>
       <zipfileset src="../je-2.0.90.jar"/>
     </jar>
   </target>

@@ -1,4 +1,0 @@
-LIBRARY config
-EXPORTS
-_Config=Config
-_LibMain@12
