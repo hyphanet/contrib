@@ -19,11 +19,6 @@
       <classpath path="../onion-common.jar"/>
     </javac>
     <copy file="../onion_LICENSE" todir="${build}"/>
-    <copy todir="${build}">
-      <fileset dir="../fec_src">
-        <include name="**/*.properties"/>
-      </fileset>
-    </copy>
   </target>
 
   <target name="jcpuid" depends="init">
@@ -49,7 +44,7 @@
     <delete file="${jar.location}"/>
   </target>
 
-  <target name="jar" depends="jcpuid,bigint"
+  <target name="jar" depends="fec,jcpuid,bigint"
     description="Create a .jar">
     <jar jarfile="${jar.location}" basedir="${build}" includes="**">
       <zipfileset src="../onion-common.jar"/>
