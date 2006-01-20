@@ -18,12 +18,12 @@
       <src path="../fec_src"/>
       <classpath path="../onion-common.jar"/>
     </javac>
+    <copy file="../onion_LICENSE" todir="${build}"/>
     <copy todir="${build}">
       <fileset dir="../fec_src">
         <include name="**/*.properties"/>
       </fileset>
     </copy>
-    <copy file="../onion_LICENSE" todir="${build}"/>
   </target>
 
   <target name="jcpuid" depends="init">
@@ -40,7 +40,10 @@
     </copy>
   </target>
 
-  <target name="clean"
+  <target name="clean" depends="distclean">
+  </target>
+
+  <target name="distclean"
     description="Delete the build directory and archives">
     <delete dir="${build}"/>
     <delete file="${jar.location}"/>
