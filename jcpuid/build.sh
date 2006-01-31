@@ -23,14 +23,16 @@ fi
 # platform-independent variables
 SRC="src/jcpuid.cpp"
 OBJDIR="lib/freenet/support/CPUInformation"
-CXXFLAGS="-shared  -static-libgcc -fPIC"
+CXXFLAGS="-shared  -static -static -libgcc"
 
 # determine the operating system and machine type
 OS="$(uname -s|tr "[A-Z]" "[a-z]")" 	# convert any uppercase to lowercase
 ARCH=$(uname -m)
 
-# amd64 machine type requires an additional compiler flag to build successfully
-[ "${ARCH}" = "x86_64" ] && CXXFLAGS="-shared -static-libgcc -fPIC"
+# amd64 machine type requires an additional compiler flag to build 
+# successfully it won't works as -shared and -static are curently 
+# incompatible
+[ "${ARCH}" = "x86_64" ] && CXXFLAGS="-shared -static -static-libgcc -fPIC"
 
 # OK, now we can generate our object file's name and the proper include paths
 OBJ="libjcpuid-x86-${OS}.so"

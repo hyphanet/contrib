@@ -146,7 +146,7 @@ void convert_mp2j(JNIEnv* env, mpz_t mvalue, jbyteArray* jvalue)
         jsize size;
         jbyte* buffer;
         jboolean copy;
-		//int i;
+	//	int i;
 
         copy = JNI_FALSE;
 
@@ -158,15 +158,17 @@ void convert_mp2j(JNIEnv* env, mpz_t mvalue, jbyteArray* jvalue)
         buffer[0] = 0x00;
 		//Uncomment the comments below to support negative integer values,
 		//not very well-tested though..
-		//if(mpz_sgn(mvalue) >=0){
+		//	if(mpz_sgn(mvalue) >=0){
 		mpz_export((void*)&buffer[1], &size, 1, sizeof(jbyte), 1, 0, mvalue);
-		//}else{
-		//	mpz_add_ui(mvalue,mvalue,1);
-		//	mpz_export((void*)&buffer[1], &size, 1, sizeof(jbyte), 1, 0, mvalue);
-		//	for(i =0;i<=size;i++){ //This could be done more effectively
-		//		buffer[i]=~buffer[i];
-		//	}
-		//}
+		//	}else{
+			//	mpz_add_ui(mvalue,mvalue,1);
+			//	mpz_export((void*)&buffer[1], &size, 1, 
+			// sizeof(jbyte), 1, 0, mvalue);
+			//	for(i =0;i<=size;i++){ 
+			//This could be done more effectively
+			//	buffer[i]=~buffer[i];
+			//	}
+			//}
 
 		/* mode has (supposedly) no effect if elems is not a copy of the
          * elements in array
