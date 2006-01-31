@@ -27,7 +27,7 @@ esac
 
 #To link dynamically to GMP (use libgmp.so or gmp.lib), uncomment the first line below
 #To link statically to GMP, uncomment the second line below
-if test $1 = "dynamic"
+if [[ $1 == "dynamic" ]]
 then
 	echo "Building jbigi lib that is dynamically linked to GMP" 
 	LIBPATH="-L.libs"

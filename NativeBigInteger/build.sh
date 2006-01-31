@@ -29,6 +29,13 @@ Darwin*)
 	;;
 esac
 
+# We need -fPIC on x86_64
+if [[ $(uname -m) == "x86_64" ]]
+then
+	export CFLAGS="-fPIC"
+fi
+
+
 # Don't extract gmp if it's already been done
 
 if [ ! -d gmp-${GMP_VERSION} ]
@@ -55,11 +62,8 @@ then
 #
 # "none" = a generic build with no specific CPU type indicated to the 
 # compiler
-#
-# TODO: add build for athlon64 (requires some conditional tests, as 64-bit 
-# code cannot be built on 32-bit platforms, as well as some patches for gmp)
 
-for CPU in none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon
+for CPU in none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon x86_64
 do
 	mkdir -p bin/${CPU}
 	cd bin/${CPU}
@@ -76,7 +80,7 @@ do
 
 	echo "Building statically linked jbigi library for ${CPU}..."
 
-	../../build_jbigi.sh static
+	sh ../../build_jbigi.sh static
 
 	# Copy library to its final location with CPU-specific name
 	
