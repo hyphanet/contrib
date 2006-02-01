@@ -3,53 +3,50 @@
 <!-- Please download and install ant from http://ant.apache.org/          -->
 <!-- ==================================================================== -->
 <project name="Freenet-ext" default="jar">
+	<property name="build" location="build_dir"/>
+	<property name="jar.location" location="freenet-ext.jar"/>
 
-  <property name="build" location="build_dir"/>
-  <property name="jar.location" location="freenet-ext.jar"/>
+	<target name="init" description="Create build directory">
+		<mkdir dir="${build}"/>
+	</target>
 
-  <target name="init" 
-   description="Create build directory">
-    <mkdir dir="${build}"/>
-  </target>
+	<target name="fec" depends="init" description="build the FECEncoder/Decoder plugins for fproxy.">
+		<javac destdir="${build}">
+			<src path="../fec_src"/>
+			<classpath path="../onion-common.jar"/>
+		</javac>
+		<copy file="../onion_LICENSE" todir="${build}"/>
+		<copy todir="${build}">
+			<fileset dir="../fec_src">
+				<include name="**/*.properties"/>
+			</fileset>
+		</copy>
+	</target>
 
-  <target name="fec" depends="init"
-    description="build the FECEncoder/Decoder plugins for fproxy.">
-    <javac destdir="${build}">
-      <src path="../fec_src"/>
-      <classpath path="../onion-common.jar"/>
-    </javac>
-    <copy file="../onion_LICENSE" todir="${build}"/>
-  </target>
+	<target name="jcpuid" depends="init">
+		<copy todir="${build}">
+			<fileset dir="../jcpuid/lib" includes="freenet/**" />
+		</copy>
+	</target>
 
-  <target name="jcpuid" depends="init">
-    <copy todir="${build}">
-      <fileset dir="../jcpuid/lib" includes="freenet/**">
-      </fileset>
-    </copy>
-  </target>
+	<target name="bigint" depends="init">
+		<copy todir="${build}">
+			<fileset dir="../NativeBigInteger/lib" includes="net/**" />
+		</copy>
+	</target>
 
-  <target name="bigint" depends="init">
-    <copy todir="${build}">
-      <fileset dir="../NativeBigInteger/lib" includes="net/**">
-      </fileset>
-    </copy>
-  </target>
+	<target name="clean" depends="distclean"/>
 
-  <target name="clean" depends="distclean">
-  </target>
+	<target name="distclean" description="Delete the build directory and archives">
+		<delete dir="${build}"/>
+		<delete file="${jar.location}"/>
+	</target>
 
-  <target name="distclean"
-    description="Delete the build directory and archives">
-    <delete dir="${build}"/>
-    <delete file="${jar.location}"/>
-  </target>
-
-  <target name="jar" depends="fec,jcpuid,bigint"
-    description="Create a .jar">
-    <jar jarfile="${jar.location}" basedir="${build}" includes="**">
-      <zipfileset src="../onion-common.jar"/>
-      <zipfileset src="../fec-native.jar"/>
-      <zipfileset src="../je-2.0.90.jar"/>
-    </jar>
-  </target>
+	<target name="jar" depends="fec,jcpuid,bigint" description="Create a .jar">
+		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
+			<zipfileset src="../onion-common.jar"/>
+			<zipfileset src="../fec-native.jar"/>
+			<zipfileset src="../je-2.0.90.jar"/>
+		</jar>
+	</target>
 </project>
