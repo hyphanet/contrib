@@ -16,7 +16,7 @@ Darwin*)
 	JAVA_HOME="/Library/Java/Home"
 	COMPILEFLAGS="-Wall"
 	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include"
-	LINKFLAGS="-dynamiclib -framework JavaVM"
+	LINKFLAGS="-dynamiclib JavaVM"/ LINKFLAGS="-dynamiclib"
 	LIBFILE="libjbigi.jnilib";;
 *)
 	COMPILEFLAGS="-fPIC -Wall"
