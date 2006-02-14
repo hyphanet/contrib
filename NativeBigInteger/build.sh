@@ -6,7 +6,7 @@
 # be run directly)
 #
 
-GMP_VERSION="4.1.3"
+GMP_VERSION="4.1.4"
 
 OS=$(uname -s)
 
