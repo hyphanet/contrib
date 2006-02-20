@@ -27,6 +27,7 @@ public class Native8Code extends FECCode {
             System.load(path);
         } else {
             System.out.println("Unable to find native library for fec8 for platform "+NativeDeployer.OS_ARCH);
+	    System.out.println(path);
         }
     }
     
