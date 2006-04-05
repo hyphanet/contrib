@@ -44,7 +44,6 @@ XPStyle on
 #!insertmacro MUI_PAGE_FINISH
    
 !define MUI_ABORTWARNING
-# define MUI_UNINSTALLER
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_UNPAGE_FINISH
@@ -105,7 +104,7 @@ InstallJava:
 !else
 DownloadAndInstallJava:
   # If they don't want to download/install Java, finish
-  MessageBox MB_YESNO "You don't seem to have Java installed, which is needed by Freenet.$\r$\n$\r$\nDo you want me to download and install Java now?" IDNO InstallDone
+  MessageBox MB_YESNO "You don't seem to have Java installed, which is needed by Freenet.$\r$\n$\r$\nDo you want me to download and install Java now?" IDNO JavaInstallAborted
   # Otherwise fetch JRE to user's temp and run it
   GetFullPathName /SHORT $R1 $TEMP # get (user's) TEMP dir into $R1
   SetOutPath "$R1"
@@ -118,6 +117,15 @@ DownloadAndInstallJava:
 
   GoTo InstallStart    # Should now have Java installed so try to detect again
 !endif
+
+GoTo InstallDone  # normally skip the following message
+
+JavaInstallAborted:
+DetailPrint "Java installation cancelled, Freenet installation cannot continue."
+DetailPrint "Java is required by Freenet."
+DetailPrint "If the installer has trouble downloading it, you should be able"
+DetailPrint "to download it from www.java.com"
+MessageBox MB_OK "Installation of Freenet was cancelled.$\r$\n$\r$\nFreenet requires Java. You can let this installer get it,$\r$\nor download it yourself from www.java.com"
 
 InstallDone:
 SectionEnd 
