@@ -1,21 +1,16 @@
 # Freenet 0.7 (testing) JRE wrapper installer
 # Bob Hayes 
 #
-# - Run Java detection
-# - If (suitable) JRE installed, invoke NextGen$ installer
-#   currently at http://emu.freenetproject.org/~nextgens/freenet.jnlp
-# - Otherwise install JRE, then invoke it.
-# - Don't have an "already have Java" installer like for 0.5x since in that case user
-#   is directed to just open the jnlp
-#
-# Continued web-dependence arguably not such a great thing :/  Could we just embed jars?
+# Can now be built with or without Java bundled.
+# If it is, installs it if neccessary. If not, downloads + installs it if neccessary.
+# Then just invokes the funky Java installer via javaws which does the real work.
 
-# !include "webinstall.inc"    # download functions
+!include "webinstall.inc"    # download functions
 !include "MUI.nsh"           # various wizard stuff
 
-!define JAVAINSTALLER jre-1_5_0_06-windows-i586-p.exe   # JRE installer to bundle
+#!define JAVAINSTALLER jre-1_5_0_06-windows-i586-p.exe   # JRE installer to bundle
 # JNLP that invokes the real 0.7 installer
-!define JNLP_PATH "http://emu.freenetproject.org/~nextgens/freenet.jnlp"
+!define JNLP_PATH "http://downloads.freenetproject.org/alpha/installer/freenet.jnlp"
 
 # Extra installer compression, requires upx.exe is in $PATH
 !packhdr temp.dat "upx.exe -9 temp.dat"
@@ -24,7 +19,7 @@
 ;Configuration
 
 ;General
-Name "Freenet 0.7 pre-alpha"
+Name "Freenet 0.7 alpha"
 !define PRODUCT_NAME "Freenet07alpha"
 !define PRODUCT_VERSION "pre-07-alpha"
 
@@ -86,7 +81,11 @@ JWSfileExists:
   GoTo InstallDone
 
 JWSnotFound:
-  # We couldn't find Java installed, offer to install
+!ifndef JAVAINSTALLER
+  # Couldn't find javaws and not bundled with Java, offer to get it
+  GoTo DownloadAndInstallJava
+!endif
+  # We couldn't find Java installed but seem to be bundled with it, offer to install
   MessageBox MB_YESNO "You don't seem to have Java installed, which is needed by Freenet.$\r$\n$\r$\nInstall it now?" IDYES InstallJava
 
   # They don't want to install Java, abort
@@ -94,8 +93,7 @@ JWSnotFound:
   GoTo InstallDone
 
 InstallJava:
-# Should be built with bundled Java, so extract and call the installer
-!ifdef JAVAINSTALLER
+!ifdef JAVAINSTALLER    # If built with bundled Java, extract and call the installer
   DetailPrint "Lauching Sun's Java Runtime Environment installation..."
   GetFullPathName /SHORT $R1 $TEMP # get (user's) TEMP dir into $R1
   SetOutPath "$R1"
@@ -105,7 +103,20 @@ InstallJava:
 
   GoTo InstallStart    # Should now have Java installed so try to detect again
 !else
-  MessageBox MB_OK "Error: JAVAINSTALLER variable not set, no JRE bundled!"
+DownloadAndInstallJava:
+  # If they don't want to download/install Java, finish
+  MessageBox MB_YESNO "You don't seem to have Java installed, which is needed by Freenet.$\r$\n$\r$\nDo you want me to download and install Java now?" IDNO InstallDone
+  # Otherwise fetch JRE to user's temp and run it
+  GetFullPathName /SHORT $R1 $TEMP # get (user's) TEMP dir into $R1
+  SetOutPath "$R1"
+  Push "http://downloads.freenetproject.org/jre-latest.exe"
+  Push "$R1"
+  Push "jre-latest.exe"
+  Call RetryableDownload
+  ExecWait "$R1\jre-latest.exe"         # run it, block  
+  Delete "$R1\jre-latest.exe"           # delete
+
+  GoTo InstallStart    # Should now have Java installed so try to detect again
 !endif
 
 InstallDone:
