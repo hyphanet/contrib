@@ -3,6 +3,7 @@
 #
 # Can now be built with or without Java bundled.
 # If it is, installs it if neccessary. If not, downloads + installs it if neccessary.
+# (What's actually downloaded is a wrapped/compressed JRE to comply with redist license.)
 # Then just invokes the funky Java installer via javaws which does the real work.
 
 !include "webinstall.inc"    # download functions
@@ -108,12 +109,12 @@ DownloadAndInstallJava:
   # Otherwise fetch JRE to user's temp and run it
   GetFullPathName /SHORT $R1 $TEMP # get (user's) TEMP dir into $R1
   SetOutPath "$R1"
-  Push "http://downloads.freenetproject.org/jre-latest.exe"
+  Push "http://downloads.freenetproject.org/jre_wrapper_latest.exe"
   Push "$R1"
-  Push "jre-latest.exe"
+  Push "jre_wrapper_latest.exe"
   Call RetryableDownload
-  ExecWait "$R1\jre-latest.exe"         # run it, block  
-  Delete "$R1\jre-latest.exe"           # delete
+  ExecWait "$R1\jre_wrapper_latest.exe"         # run it, block  
+  Delete "$R1\jre_wrapper_latest.exe"           # delete
 
   GoTo InstallStart    # Should now have Java installed so try to detect again
 !endif
