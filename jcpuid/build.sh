@@ -23,7 +23,7 @@ fi
 # platform-independent variables
 SRC="src/jcpuid.cpp"
 OBJDIR="lib/freenet/support/CPUInformation"
-CXXFLAGS="-shared  -static -static -libgcc"
+CXXFLAGS="-shared  -static -static-libgcc"
 
 # determine the operating system and machine type
 OS="$(uname -s|tr "[A-Z]" "[a-z]")" 	# convert any uppercase to lowercase
