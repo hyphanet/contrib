@@ -48,7 +48,7 @@
 	<target name="jar" depends="fec,jcpuid,bigint" description="Create a .jar">
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
 			<zipfileset src="../onion-common.jar"/>
-			<zipfileset src="../je-2.0.90.jar"/>
+			<zipfileset src="../je.jar"/>
 			<zipfileset src="../wrapper.jar"/>
 		</jar>
 	</target>
