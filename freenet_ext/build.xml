@@ -5,11 +5,19 @@
 <project name="Freenet-ext" default="jar">
 	<property name="build" location="build_dir"/>
 	<property name="jar.location" location="freenet-ext.jar"/>
+	<property name="svn.revision" value="@custom@"/>
 
 	<target name="init" description="Create build directory">
 		<mkdir dir="${build}"/>
 		<mkdir dir="${build}/freenet/node/"/>
-		<copy file="ExtVersion.java" todir="${build}/freenet/node/"/>
+		
+		<!-- Update the Version file -->
+		<replace file="ExtVersion.java">
+			<replacefilter token="@custom@" value="${svn.revision}"/>
+		</replace>
+		<javac srcdir="." destdir="${build}">
+			<include name="ExtVersion.java"/>
+		</javac>
 	</target>
 
 	<target name="fec" depends="init" description="build the FECEncoder/Decoder plugins for fproxy.">
@@ -47,7 +55,7 @@
 		<delete file="${jar.location}"/>
 	</target>
 
-	<target name="jar" depends="fec,jcpuid,bigint" description="Create a .jar">
+	<target name="jar" depends="clean,fec,jcpuid,bigint" description="Create a .jar">
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
 			<zipfileset src="../onion-common.jar"/>
 			<zipfileset src="../je.jar"/>
