@@ -8,6 +8,8 @@
 
 	<target name="init" description="Create build directory">
 		<mkdir dir="${build}"/>
+		<mkdir dir="${build}/freenet/node/"/>
+		<copy file="ExtVersion.java" todir="${build}/freenet/node/"/>
 	</target>
 
 	<target name="fec" depends="init" description="build the FECEncoder/Decoder plugins for fproxy.">
