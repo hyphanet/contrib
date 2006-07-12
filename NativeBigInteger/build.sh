@@ -112,7 +112,7 @@ else
 # Only build static library since it would be rare for OSX user to have gmp installed.
 mkdir -p bin/none
 cd bin/none
-../../gmp-4.1.3/configure --with-pic
+../../gmp-${GMP_VERSION}/configure --with-pic
 make
 sh ../../build_jbigi.sh static
 cp libjbigi.jnilib ../../lib/net/i2p/util/libjbigi-osx-none.jnilib
