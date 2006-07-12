@@ -6,7 +6,7 @@
 # be run directly)
 #
 
-GMP_VERSION="4.1.4"
+GMP_VERSION="4.2.1"
 
 OS=$(uname -s)
 
@@ -37,6 +37,7 @@ fi
 
 
 # Don't extract gmp if it's already been done
+wget -c ftp://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.gz
 
 if [ ! -d gmp-${GMP_VERSION} ]
 then
