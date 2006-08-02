@@ -64,7 +64,14 @@ then
 # "none" = a generic build with no specific CPU type indicated to the 
 # compiler
 
-for CPU in none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon x86_64
+if [ -n "$1" ]
+then
+	TARGT="$1"
+else
+	TARGT="none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon x86_64"
+fi
+
+for CPU in $TARGT
 do
 	mkdir -p bin/${CPU}
 	cd bin/${CPU}
