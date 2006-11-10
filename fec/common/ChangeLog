@@ -1,0 +1,58 @@
+9/26/2002:
+
+o AsyncPersistentProps properly throws Exceptions.
+o safeOnionFile now ensures file existance.
+
+5/29/2002:
+
+o JoiningInputStream added
+
+5/08/2002:
+
+o LazyRenameRAF refactored out of ScratchRAF
+o BlockingRAF is now a FilterRAF
+
+5/07/2002:
+
+o FilterRAF created
+o RAF.getFile() added
+o Journal created
+o JournalingRAF created
+o getUserTempDir and createTempFile moved to FileUtil from ScratchRAF
+
+5/03/2002:
+
+o contains(Range) added to RangeSet
+
+4/28/2002:
+
+o BlockingRAF now supports look-aside buffers.  Thus, increasing the size
+of the buffers passed into a WebRAID InputStream can significantly decrease
+the amount of IO that takes place while streaming.
+
+o ReflectiveEventDispatch CPU utilization has been improved significantly.
+
+3/12/2002: 
+
+Added RAF.length()
+Optimized RAFInputStream.skip()
+ 
+bourbon-14:
+
+o clear() added to AsyncPersistentProps
+o Fixed RangeSet AIOOB when RangeSet is empty.
+
+bourbon-12:
+
+o Check for min > max in RangeSet.add added.
+o ReflectiveEventDispatcher now uses ExceptionHandler.
+
+bourbon-11:
+
+o ExceptionHandler interface added.
+
+bourbon-6:
+
+o NativeDeployer now threadsafe
+o Revamped NativeDeployer properties format.
+

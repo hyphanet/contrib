@@ -1,0 +1,91 @@
+<!--
+The default target is "test", which will build all tests and run them.
+
+Other targets:
+
+  clean         - Remove all generated files.
+  prepare       - Set up build directory structure.
+-->
+
+<project name="Tests" default="test" basedir="..">
+
+  <property environment="env"/>
+
+  <!-- ==================================================================== -->
+  <target name="prepare">
+    <mkdir dir="${test.classes}" />
+    <mkdir dir="${test.results}" />
+    <available property="junit.task.available" 
+               classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask" />
+    <available property="junit.available" 
+               classname="junit.framework.Test" />
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="tidy">
+    <delete dir="${test.classes}" quiet="true"/>
+    <delete dir="${test.results}" quiet="true"/>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="clean" depends="tidy">
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="classes" depends="prepare">
+    <javac srcdir="${test.src}"
+           destdir="${test.classes}"
+	   classpath="${test.classpath}"
+           debug="true"
+           optimize="false"
+           deprecation="${javac.deprecation}">
+       <include name="**/*.java"/>
+    </javac>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="test" depends="junit"/>
+
+  <!-- ==================================================================== -->
+  <target name="junit" depends="prepare,check.junit.task,check.junit,classes">
+    <echo>
+Test results in ${test.results}
+    </echo>
+    <delete file="${test.results}/*" quiet="true" />
+    <junit fork="no" printsummary="yes" haltonerror="yes" haltonfailure="yes" >
+      <formatter type="plain" usefile="true" />                  
+      <classpath> 
+         <pathelement path="${test.classpath}" />
+         <pathelement location="${junit.jar}" />     
+         <pathelement location="${test.classes}" />     
+      </classpath>        
+      <batchtest fork="no" todir="${test.results}">
+        <fileset dir="${test.src}">
+          <include name="**/*Test*.java" />
+        </fileset>
+      </batchtest>   
+    </junit>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="check.junit.task" unless="junit.task.available" >
+    <fail message="
+ The &lt;junit&gt; task is not available.
+ You need to install the Ant optional tasks .jar in the [ant]/lib directory."
+   />
+  </target>
+
+  <target name="check.junit" unless="junit.available" >
+    <fail message="
+  The junit .jar is not in the Ant class path.
+  You need to place a copy junit.jar in the [ant]/lib directoy." 
+    />
+  </target>
+</project>
+
+
+
+
+
+
+

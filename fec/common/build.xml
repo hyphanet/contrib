@@ -1,0 +1,143 @@
+<!--
+The default target is "all".
+
+Other targets:
+
+  clean         - Remove all generated files.
+  classes       - Builds the classes.
+  jars          - Creates the jars.
+  all           - builds everything
+  prepare       - Set up build directory structure.
+  dist          - Constructs a distribution file.
+  javadoc       - Builds the API documentation.
+  demo          - Runs the demo application.
+  test          - Runs the junit test harnesses.
+
+-->
+<project name="Common" default="all" basedir=".">
+  <property environment="env"/>
+  <property file="build.properties"/>
+
+  <!-- ==================================================================== -->
+  <target name="prepare">
+    <mkdir dir="${javadoc}" />
+    <mkdir dir="${classes}" />
+    <mkdir dir="${lib}" />
+
+    <available property="jdk1.4.available" 
+	       classname="java.util.logging.Handler" />
+
+    <available property="jsse.available" 
+	       classname="com.sun.net.ssl.internal.ssl.Provider" />
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="all" depends="jars,tools"/>
+
+  <!-- ==================================================================== -->
+  <target name="tidy"
+	  description="Remove generated files not needed for running">
+
+    <delete dir="${classes}" quiet="true"/>
+    <ant dir="${test}" inheritAll="true" target="tidy"/>
+    <ant dir="${tools}" inheritAll="true" target="tidy"/>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="clean" depends="tidy"
+	  description="Remove generated files">
+        
+    <delete dir="${javadoc}" quiet="true"/>
+    <delete file="${app.jar}" quiet="true"/>
+
+    <ant dir="${test}" inheritAll="true" target="clean"/>
+    <ant dir="${tools}" inheritAll="true" target="clean"/>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="classes" depends="prepare"
+   description="Compile the java classes" >
+    <copy todir="${classes}">
+      <fileset dir="${src}">
+        <include name="**/*.properties" />
+      </fileset>
+    </copy>
+    <javac srcdir="${src}"
+           destdir="${classes}"
+	   classpath="${classpath}"
+	   debug="${javac.debug}"
+           optimize="${javac.optimize}"
+           deprecation="${javac.deprecation}"
+           >
+       <include name="**/*.java"/>
+    </javac>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="classes1.4" depends="prepare" if="jdk1.4.available"
+   description="Compile the java 1.4 classes" >
+
+    <copy todir="${classes}">
+      <fileset dir="${src1.4}">
+        <include name="**/*.properties" />
+      </fileset>
+    </copy>
+    <javac srcdir="${src1.4}"
+           destdir="${classes}"
+	   classpath="${classpath}"
+           debug="${javac.debug}"
+           optimize="${javac.optimize}"
+           deprecation="${javac.deprecation}"
+           >
+       <include name="**/*.java"/>
+    </javac>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="jars" depends="classes"
+	  description="Build the jar files">
+    <jar jarfile="${app.jar}" basedir="${classes}"> 
+<!--	 manifest="${src}/MANIFEST.MF" -->
+
+       <include name="${packagepath}/**"/>
+    </jar>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="javadoc" depends="jars"
+   description="Build the javadoc">
+    <mkdir dir="${javadoc}"/>
+    <javadoc packagenames="${package}.*"
+             sourcepath="${src}"
+	     classpath="${classpath}"
+             destdir="${javadoc}"
+             author="true"
+             version="true"
+             public="true"
+             windowtitle="${ant.project.name} API"
+             doctitle="${ant.project.name}"
+             bottom="Copyright &#169; 2002 Onion Networks. All Rights Reserved.">
+      <link href="http://onionnetworks.com/fec/javadoc/"/>
+      <link href="http://java.sun.com/products/jdk/1.3/docs/api/"/>
+    </javadoc>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="test" depends="jars"
+   description="Build and run the test harnesses">
+    <ant dir="${test}" inheritAll="true" target="test"/>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="tools" depends="jars"
+	  description="builds the tools">
+    <ant dir="${tools}" inheritAll="true" target="jars"/>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="demo" depends="tools" 
+	  description="Build and run the demo">
+    
+    <ant dir="${tools}" inheritAll="true" target="demo"/>
+  </target>
+</project>

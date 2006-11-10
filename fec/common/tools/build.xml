@@ -1,0 +1,101 @@
+<!--
+The default target is "jars".
+
+Other targets:
+
+  clean         - Remove all generated files.
+  classes       - Builds the classes.
+  jars          - Creates the jars.
+  prepare       - Set up build directory structure.
+  javadoc       - Builds the API documentation.
+  demo          - Runs the demo application.
+
+-->
+<project name="Tools" default="jars" basedir="..">
+  <property environment="env"/>
+
+  <!-- ==================================================================== -->
+  <target name="prepare">
+    <mkdir dir="${tools.javadoc}" />
+    <mkdir dir="${tools.classes}" />
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="tidy"
+	  description="Remove generated files not needed for running">
+
+    <delete dir="${tools.classes}" quiet="true"/>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="clean" depends="tidy"
+	  description="Remove generated files">
+        
+    <delete dir="${tools.javadoc}" quiet="true"/>
+    <delete file="${tools.jar}" quiet="true"/>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="classes" depends="prepare"
+   description="Compile the java classes" >
+    <copy todir="${tools.classes}">
+      <fileset dir="${tools.src}">
+        <include name="**/*.properties" />
+      </fileset>
+    </copy>
+    <javac srcdir="${tools.src}"
+           destdir="${tools.classes}"
+	   classpath="${tools.classpath}"
+           debug="${javac.debug}"
+           optimize="${javac.optimize}"
+           deprecation="${javac.deprecation}"
+           >
+       <include name="**/*.java"/>
+    </javac>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="jars" depends="classes"
+	  description="Build the jar files">
+    <jar jarfile="${tools.jar}" basedir="${tools.classes}"> 
+
+       <include name="${packagepath}/**"/>
+    </jar>
+  </target>
+
+  <!-- ==================================================================== -->
+  <target name="javadoc" depends="jars"
+   description="Build the javadoc">
+    <mkdir dir="${tools.javadoc}"/>
+    <javadoc packagenames="${tools.package}.*"
+             sourcepath="${tools.src}"
+             destdir="${tools.javadoc}"
+	     classpath="${tools.classpath}"
+             author="true"
+             version="true"
+             public="true"
+             windowtitle="${ant.project.name} API"
+             doctitle="${ant.project.name}"
+             bottom="Copyright &#169; 2002 Onion Networks. All Rights Reserved.">
+      <link href="http://java.sun.com/products/jdk/1.3/docs/api/"/>
+    </javadoc>
+  </target>
+
+  <target name="demo" depends="jars" 
+   description="Build and run the demo">
+    <java classname="${tools.package}.Demo"
+          dir="${basedir}"
+	  classpath="${env.CLASSPATH};${tools.classpath}"
+          fork="yes"
+          failonerror="yes"
+          >
+    </java>
+  </target>
+</project>
+
+
+
+
+
+
+
