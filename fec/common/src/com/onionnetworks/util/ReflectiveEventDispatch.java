@@ -10,20 +10,20 @@ public class ReflectiveEventDispatch implements Runnable {
 
     public static final int DEFAULT_WARNING_TIME = 10;
 
-    private Thread t;
+    private final Thread thread;
     private HashMap methodCache = new HashMap();
     private HashMap listeners = new HashMap();
     private LinkedList eventQueue = new LinkedList();
     private ExceptionHandler handler;
 
     public ReflectiveEventDispatch() {
-        t = new Thread(this,"Reflective Dispatch#" + hashCode());
-	t.setDaemon(true);
-        t.start();
+        thread = new Thread(this,"Reflective Dispatch#" + hashCode());
+	thread.setDaemon(true);
+        thread.start();
     }
 
     public void setPriority(int priority) {
-        t.setPriority(priority);
+        thread.setPriority(priority);
     }
 
     public void setExceptionHandler(ExceptionHandler h) {

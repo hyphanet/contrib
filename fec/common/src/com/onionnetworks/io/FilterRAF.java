@@ -4,66 +4,66 @@ import java.io.*;
 
 public abstract class FilterRAF extends RAF {
 
-    protected RAF raf;
+    protected final RAF _raf;
 
     public FilterRAF(RAF raf) {
-        this.raf = raf;
+        this._raf = raf;
     }
 
     public synchronized void seekAndWrite(long pos, byte[] b, int off, 
                                           int len) throws IOException {
-	raf.seekAndWrite(pos,b,off,len);
+	_raf.seekAndWrite(pos,b,off,len);
     }
 
     public synchronized int seekAndRead(long pos, byte[] b, int off, int len) 
 	throws IOException {
 	
-	return raf.seekAndRead(pos,b,off,len);
+	return _raf.seekAndRead(pos,b,off,len);
     }
 
     public synchronized void seekAndReadFully(long pos, byte[] b, int off,
                                               int len) throws IOException {
-	raf.seekAndReadFully(pos,b,off,len);
+	_raf.seekAndReadFully(pos,b,off,len);
     }
 
     public synchronized void renameTo(File destFile) throws IOException {
-	raf.renameTo(destFile);
+	_raf.renameTo(destFile);
     }
 
     public synchronized String getMode() {
-	return raf.getMode();
+	return _raf.getMode();
     }
 
     public synchronized boolean isClosed() {
-	return raf.isClosed();
+	return _raf.isClosed();
     }
 
     public synchronized File getFile() {
-	return raf.getFile();
+	return _raf.getFile();
     }
 
     public synchronized void setReadOnly() throws IOException {
-	raf.setReadOnly();
+	_raf.setReadOnly();
     }
 
     public synchronized void deleteOnClose() {
-	raf.deleteOnClose();
+	_raf.deleteOnClose();
     }
 
 
     public synchronized void setLength(long len) throws IOException {
-        raf.setLength(len);
+        _raf.setLength(len);
     }
 
     public synchronized long length() throws IOException {
-	return raf.length();
+	return _raf.length();
     }
 
     public synchronized void close() throws IOException {
-        raf.close();
+        _raf.close();
     }
 
     public String toString() {
-	return raf.toString();
+	return _raf.toString();
     }
 }

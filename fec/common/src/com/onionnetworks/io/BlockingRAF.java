@@ -25,7 +25,7 @@ public class BlockingRAF extends FilterRAF {
 	    throw e;
 	}	
 
-	raf.seekAndWrite(pos,b,off,len);
+	_raf.seekAndWrite(pos,b,off,len);
 
 	// call this after seekAndWrite() to allow exceptions to be thrown, if
 	// there are any.
@@ -111,7 +111,7 @@ public class BlockingRAF extends FilterRAF {
 		} else {
 		    // (int) cast is safe because size() can't be larger than 
 		    // len
-		    return raf.seekAndRead(pos,b,off,(int) first.size());
+		    return _raf.seekAndRead(pos,b,off,(int) first.size());
 		}
 	    } else {
 
@@ -129,8 +129,8 @@ public class BlockingRAF extends FilterRAF {
 
 		try {
 		    this.wait();
-		} catch (InterruptedException e) {
-		    throw new InterruptedIOException(e.getMessage());
+		} catch (InterruptedException ie) {
+		    throw new InterruptedIOException(ie.getMessage());
 		} finally {
 		    buffers.remove(key);
 		}
@@ -145,7 +145,7 @@ public class BlockingRAF extends FilterRAF {
 	// We only block during r/w mode.  For read-only we use the
 	// normal behavior.
 	if (getMode().equals("r")) {
-	    return raf.seekAndRead(pos,b,off,len);
+	    return _raf.seekAndRead(pos,b,off,len);
 	}
 
 	// RAF closed
@@ -164,7 +164,7 @@ public class BlockingRAF extends FilterRAF {
     }
     
     public synchronized void setReadOnly() throws IOException {
-	raf.setReadOnly();
+	_raf.setReadOnly();
 	this.notifyAll();
     }
     
@@ -174,7 +174,7 @@ public class BlockingRAF extends FilterRAF {
     }
 
     public synchronized void close() throws IOException {
-	raf.close();
+	_raf.close();
 	this.notifyAll();
     }
 }

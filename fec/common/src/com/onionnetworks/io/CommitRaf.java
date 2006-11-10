@@ -37,7 +37,7 @@ public class CommitRaf extends FilterRAF {
 	    }
 	}
 	
-	raf.seekAndWrite(pos,b,off,len);
+	_raf.seekAndWrite(pos,b,off,len);
 	
 	// call this after seekAndWrite() to allow exceptions to be thrown, if
 	// there are any.
@@ -116,7 +116,7 @@ public class CommitRaf extends FilterRAF {
 		(length() == 0 || 
 		 committed.equals(new RangeSet(new Range(0,length()-1))))) {
 		
-		return raf.seekAndRead(pos,b,off,len);
+		return _raf.seekAndRead(pos,b,off,len);
 	    }
 
 	    if (r == null) {
@@ -141,7 +141,7 @@ public class CommitRaf extends FilterRAF {
 		} else {
 		    // (int) cast is safe because size() can't be larger than 
 		    // len
-		    return raf.seekAndRead(pos,b,off,(int) first.size());
+		    return _raf.seekAndRead(pos,b,off,(int) first.size());
 		}
 	    } else {
 
@@ -159,8 +159,8 @@ public class CommitRaf extends FilterRAF {
 
 		try {
 		    this.wait();
-		} catch (InterruptedException e) {
-		    throw new InterruptedIOException(e.getMessage());
+		} catch (InterruptedException ie) {
+		    throw new InterruptedIOException(ie.getMessage());
 		} finally {
 		    buffers.remove(key);
 		}
@@ -193,7 +193,7 @@ public class CommitRaf extends FilterRAF {
     }
 
     public synchronized void close() throws IOException {
-	raf.close();
+	_raf.close();
 	this.notifyAll();
     }
 }

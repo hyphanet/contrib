@@ -39,9 +39,9 @@ public class JournalingRAF extends FilterRAF {
 
 	// Can be null from deleteJournal()
 	if (journal != null) {
-	    // Use raf.getFile() because renameTo() may have failed and was
+	    // Use _raf.getFile() because renameTo() may have failed and was
 	    // forced to fall back.
-	    journal.setTargetFile(raf.getFile());
+	    journal.setTargetFile(_raf.getFile());
 
 	    // flush here because it is important that the journal stay in
 	    // sync on this operation.
@@ -70,12 +70,12 @@ public class JournalingRAF extends FilterRAF {
     }
 
     private void deleteJournal() {
-	File f = journal.getFile();
+	File file = journal.getFile();
 	try {
 	    journal.close();
 	} catch (IOException e) {e.printStackTrace();}
 	//FIX maybe throw exception on failed delete?
-	f.delete();
+	file.delete();
 	journal = null;
     }
 }

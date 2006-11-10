@@ -36,23 +36,23 @@ public class LazyRenameRAF extends FilterRAF {
 	this.destFile = newFile;
 
 	if (getMode().equals("r")) {
-	    raf.renameTo(destFile);
+	    _raf.renameTo(destFile);
 	} else {
 	    // create a temp file in the same directory as destFile, if 
 	    // destFile is null, then try to create a temp file in the
 	    // user temp directory, then fall back to the system temp dir.
 	    File newTemp = FileUtil.createTempFile(destFile);
 
-	    raf.renameTo(newTemp);   
+	    _raf.renameTo(newTemp);   
 	}
     }
 
     // This should at least by in read-only mode when it bombs, should
     // FIX parent.setReadOnly to revert as well.
     public synchronized void setReadOnly() throws IOException {
-	raf.setReadOnly();
+	_raf.setReadOnly();
 	if (destFile != null) {
-	    raf.renameTo(destFile);
+	    _raf.renameTo(destFile);
 	}
     }
 }
