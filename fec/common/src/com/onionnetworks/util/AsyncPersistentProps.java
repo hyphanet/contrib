@@ -19,12 +19,14 @@ public class AsyncPersistentProps implements Runnable {
      * does not exist then the file and an empty Properties will be created
      */
     public AsyncPersistentProps(File f) throws IOException {
-        this.f = f;
-        p = new Properties();
-        if (f.exists()) {
-            p.load(new FileInputStream(f));
-        }
-        new Thread(this,"Props Writer :"+f.getName()).start();
+	    this.f = f;
+	    p = new Properties();
+	    if (f.exists()) {
+		    p.load(new FileInputStream(f));
+	    }
+	    final Thread thread = new Thread(this,"Props Writer :"+f.getName());
+	    thread.setDaemon(true);
+	    thread.start();
     }
 
     public Properties getProperties() {
