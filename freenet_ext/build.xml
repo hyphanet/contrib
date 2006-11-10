@@ -22,7 +22,7 @@
 
 	<target name="fec" depends="init" description="build the FECEncoder/Decoder plugins for fproxy.">
 		<javac destdir="${build}">
-			<src path="../fec_src"/>
+			<src path="../fec/fec_src"/>
 			<classpath path="../onion-common.jar"/>
 		</javac>
 		<copy file="../onion_LICENSE" todir="${build}"/>
