@@ -57,21 +57,26 @@
 	<target name="bdb" depends="init" description="Build the BDB provider">
 		<ant antfile="build.xml" dir="../bdb/"/>
 	</target>
+	
+	<target name="wrapper" depends="init" description="Build the java wrapper">
+		<ant antfile="build.xml" dir="../wrapper/"/>
+	</target>
 
 	<target name="clean" depends="distclean"/>
 
 	<target name="distclean" description="Cleanup the build directory">
 		<ant antfile="build.xml" target="clean" dir="../fec/common/"/>
 		<ant antfile="build.xml" target="clean" dir="../bdb/"/>
+		<ant antfile="build.xml" target="clean" dir="../wrapper/"/>
 		<delete dir="${build}"/>
 		<delete file="${jar.location}"/>
 	</target>
 
-	<target name="jar" depends="clean,fec,jcpuid,bigint,bdb" description="Create the jar file">
+	<target name="jar" depends="clean,fec,jcpuid,bigint,bdb,wrapper" description="Create the jar file">
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
 			<zipfileset src="../bdb/lib/je.jar"/>
-			<zipfileset src="../wrapper.jar"/>
+			<zipfileset src="../wrapper/lib/wrapper.jar"/>
 		</jar>
 	</target>
 </project>
