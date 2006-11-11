@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Transactions Example</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="transaction.html" title="Chapter 7. Transactions" />
+    <link rel="previous" href="transactionConcurrency.html" title="Transactions and Concurrency" />
+    <link rel="next" href="backuprestore.html" title="Chapter 8. Backing up and Restoring Berkeley DB Java Edition Applications" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Transactions Example</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="transactionConcurrency.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Transactions</th>
+          <td width="20%" align="right"> <a accesskey="n" href="backuprestore.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="txnUsage"></a>Transactions Example</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+        In the <a href="indexusage.html">Secondary Database Example</a> we updated the 
+        <tt class="classname">MyDbEnv</tt> example class to support secondary databases. We will now update it to support
+        opening environments and databases such that transactions can be used. We will then update 
+        <tt class="classname">ExampleDatabasePut</tt>
+        to transactionally protect its database writes.
+    </p>
+      <p>
+        Note that we will not update <tt class="classname">ExampleInventoryRead</tt> in this example. That application only
+        performs single-threaded reads and there is nothing to be gained by transactionally protecting those reads.
+    </p>
+      <div class="example">
+        <a id="mydbenvTransaction"></a>
+        <p class="title">
+          <b>Example 7.1 Transaction Management with MyDbEnv</b>
+        </p>
+        <p>
+        All updates to <tt class="classname">MyDbEnv</tt> are performed in the
+        <tt class="methodname">MyDbEnv.setup()</tt>. What we do is determine if the environment is open 
+		for write access. If it is,
+        then we open our databases to support transactions. Doing this is required if
+        transactions are to be used with them. Once the databases are configured to supported
+        transactions, then autocommit is automatically used to perform the database opens from
+        within transactions. This, in turn, allows subsequent operations performed on those
+        databases to use transactions.
+    </p>
+        <p>
+        Note that we could have chosen to open all our databases with a single transaction, but autocommit
+        is the easiest way for us to enable transactional usage of our databases.
+    </p>
+        <p>
+        In other words, the only thing we have to do here is enable transactions for our environment, 
+        and then we enable transactions for our databases.
+    </p>
+        <a id="je_txn8"></a>
+        <pre class="programlisting">    public void setup(File envHome, boolean readOnly)
+        throws DatabaseException {
+        
+        EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+        DatabaseConfig myDbConfig = new DatabaseConfig();
+        SecondaryConfig mySecConfig = new SecondaryConfig();
+
+        // If the environment is read-only, then
+        // make the databases read-only too.
+        myEnvConfig.setReadOnly(readOnly);
+        myDbConfig.setReadOnly(readOnly);
+        mySecConfig.setReadOnly(readOnly);
+                                                                                                                                  
+        // If the environment is opened for write, then we want to be
+        // able to create the environment and databases if
+        // they do not exist.
+        myEnvConfig.setAllowCreate(!readOnly);
+        myDbConfig.setAllowCreate(!readOnly);
+        mySecConfig.setAllowCreate(!readOnly);
+                                                                                                                                  
+        <b class="userinput"><tt>// Allow transactions if we are writing to the database
+        myEnvConfig.setTransactional(!readOnly);
+        myDbConfig.setTransactional(!readOnly);
+        mySecConfig.setTransactional(!readOnly);</tt></b> </pre>
+        <p>
+        This completes our update to <tt class="classname">MyDbEnv</tt>. Again, you can see the complete implementation for
+        this class:
+    </p>
+        <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/examples/je/gettingStarted/MyDbEnv.java </pre>
+        <p>
+        where <tt class="literal"><span class="emphasis"><em>JE_HOME</em></span></tt> is the location where you
+        placed your JE distribution.
+    </p>
+        <p>
+        Next we want to take advantage of transactions when we load our inventory and vendor databases. To do this, we
+        have to modify <tt class="classname">ExampleDatabasePut</tt> to use transactions with our database puts.
+    </p>
+      </div>
+      <div class="example">
+        <a id="exampledatabaseputTransaction"></a>
+        <p class="title">
+          <b>Example 7.2 Using Transactions in ExampleDatabasePut</b>
+        </p>
+        <p>
+                We start by importing the requisite new class:
+            </p>
+        <a id="je_txn9"></a>
+        <pre class="programlisting">package je.gettingStarted;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+                                                                                                                                  
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
+<b class="userinput"><tt>import com.sleepycat.je.Transaction;</tt></b>
+                                                                                                                                  
+import com.sleepycat.bind.EntryBinding;
+import com.sleepycat.bind.serial.SerialBinding;
+import com.sleepycat.bind.tuple.TupleBinding;</pre>
+        <p>
+                In this example, we choose to allow <tt class="methodname">ExampleDatabasePut.loadVendorsDb()</tt>
+                to use autocommit to transactionally protect each record that we put into the database.
+                What this means is, we do not actually have to change
+                <tt class="methodname">ExampleDatabasePut.loadVendorsDb()</tt> because the simple action of enabling
+                transactions for that database is enough to cause autocommit to be used for all modifications to
+                the database that do not explicitly provide a <tt class="classname">Transaction</tt> object.
+            </p>
+        <p>
+                For our inventory data, however, we want to load everything inside a single transaction.
+                This means we need to explicitly commit the transaction when we get done loading our data, 
+                we also have to explicitly abort the transaction in the event of an error:
+            </p>
+        <a id="je_txn10"></a>
+        <pre class="programlisting">    private void loadInventoryDb() 
+        throws DatabaseException {
+
+        // loadFile opens a flat-text file that contains our data
+        // and loads it into a list for us to work with. The integer
+        // parameter represents the number of fields expected in the
+        // file.
+        ArrayList inventoryArray = loadFile(inventoryFile, 6);
+                                                                                                                                  
+        // Now load the data into the database. The item's sku is the
+        // key, and the data is an Inventory class object.
+                                                                                                                                  
+        // Need a tuple binding for the Inventory class.
+        TupleBinding inventoryBinding = new InventoryBinding();
+                                                                                                                                  
+        <b class="userinput"><tt>// Start a transaction. All inventory items get loaded using a
+        // single transaction.
+        Transaction txn = myDbEnv.getEnv().beginTransaction(null, null);</tt></b>
+                                                                                                                                  
+        for (int i = 0; i &lt; inventoryArray.size(); i++) {
+            String[] sArray = (String[])inventoryArray.get(i);
+            String sku = sArray[1];
+            theKey = new DatabaseEntry(sku.getBytes(&quot;UTF-8&quot;));
+                                                                                                                                  
+            Inventory theInventory = new Inventory();
+            theInventory.setItemName(sArray[0]);
+            theInventory.setSku(sArray[1]);
+            theInventory.setVendorPrice((new Float(sArray[2])).floatValue());
+            theInventory.setVendorInventory(
+                            (new Integer(sArray[3])).intValue());
+            theInventory.setCategory(sArray[4]);
+            theInventory.setVendor(sArray[5]);
+                                                                                                                                  
+            // Place the Vendor object on the DatabaseEntry object using our
+            // the tuple binding we implemented in InventoryBinding.java
+            inventoryBinding.objectToEntry(theInventory, theData);
+                                                                                                                                  
+            // Put it in the database. Note that this causes our 
+            // secondary database to be automatically updated for us.
+            try {
+                <b class="userinput"><tt>myDbEnv.getInventoryDB().put(txn, theKey, theData); </tt></b>
+            } catch (DatabaseException dbe) {
+                System.out.println(&quot;Error putting entry &quot; + sku.getBytes());
+                txn.abort();
+                throw dbe;
+            }
+        }
+        // Commit the transaction. The data is now safely written to the 
+        // inventory database.
+        <b class="userinput"><tt>txn.commit();</tt></b>
+    }</pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="transactionConcurrency.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="transaction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="backuprestore.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Transactions and Concurrency </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 8. Backing up and Restoring Berkeley DB Java Edition Applications</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

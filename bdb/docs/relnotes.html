@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+  <title>Berkeley DB Java Edition Release Notes</title>
+</head>
+
+<body>
+
+<div class="docMain">
+<center>
+<h1>Berkeley DB Java Edition<br>
+Release Notes</h1>
+</center>
+
+<!-- Note: RELEASE_VERSION and DATE are set by ant -->
+<p class="releaseInfo">3.1.0, September 27, 2006</p>
+<p>These release notes contain:</p>
+<ul>
+  <li><a href="#overview">Overview</a></li>
+  <li><a href="#new">New in this Release</a></li>
+</ul>
+
+<h2><a name="overview">Overview</a></h2>
+<p>
+Berkeley DB Java Edition (JE) is a 100% pure Java implementation of
+Berkeley DB. It implements a transactional store model based on a
+B+Tree access method.
+</p>
+<p>The documentation set for JE includes:</p>
+<ul>
+<li>JE's capabilities and features are described in the <a
+ href="http://www.oracle.com/technology/documentation/berkeley-db/je/GettingStartedGuide/index.html">Getting
+Started with Berkeley DB Java Edition</a> guide. That document also
+introduces the JE API set.</li>
+
+<li>For a description of how to use JE and the new Direct Persistence Layer, see the <a
+ href="http://www.oracle.com/technology/documentation/berkeley-db/je/PersistenceAPI/index.html">Getting
+Started with the Direct Persistence Layer</a> guide.</li>
+
+<li>For a description of how to use JE and the Sleepycat Java Collections
+API, see the <a href="http://www.oracle.com/technology/documentation/berkeley-db/je/collections/tutorial/index.html">collections
+tutorial</a>.</li>
+
+<li>For an overview on using transactions, see <a 
+ href="http://www.oracle.com/technology/documentation/berkeley-db/je/TransactionGettingStarted/index.html">Writing
+ Transactional Applications with Berkeley DB, Java Edition</a></li>
+
+<li>For a complete description of the JE API set, see the <a
+href="http://www.oracle.com/technology/documentation/berkeley-db/je/java/index.html">Javadoc</a>.</li>
+</ul>
+
+<h2><a name="new">New in this Release</a></h2>
+
+<p>This is release 3.1.0 of Berkeley DB Java Edition, and the
+first release in the JE 3.1 line. This is the GA release of the Direct
+Persistence Layer, which is the Plain Old Java Object (POJO)-based
+persistent object model introduced in JE 3.0.11.
+<p>
+Key changes since version JE 3.0.12
+are described below; the complete list of changes can also be found in <a
+href="changeLog.html">the change log page</a>.<br>
+</p>
+<p>Note: If you are using Mac OS X, please be aware of the following
+issue. Java version 1.4.2 on Mac OS X reports the wrong value for
+Runtime.maxMemory. JE calculates the default cache size as a percentage
+of maxMemory.&nbsp; Because of this, for Java 1.4.2 on Mac OS X only,
+JE will assume that the Java maxMemory value is 64 MB.&nbsp; With the
+default je.maxMemoryPercent configuration parameter (60%) the default
+JE cache size will be approximately 38 MB.&nbsp; This default is fixed
+-- it does not change if the Java memory size is different than 64
+MB.&nbsp; To specify a different JE cache size, you must explicitly set
+the je.maxMemory configuration property.&nbsp; The je.maxMemory
+property can be specified in the je.properties file or by calling
+EnvironmentConfig.setCacheSize.
+</p>
+<h3>Log File On-Disk Format Changes:</h3>
+None.
+
+<h3>New Features:</h3>
+<ol>
+<li>
+<p>
+In this release, class evolution is implemented in the Direct
+Persistence Layer, which completes the functionality of the DPL package.
+Class evolution allows changing persistent classes and
+performing lazy or eager evolution of the persistent instance data.
+For more information please see the package specification for the
+com.sleepycat.persist.evolve package.
+<p>
+NOTE: If you have deployed a store using the JE 3.0.12 beta release,,
+before changing your persistent classes for the first time you must
+open and close your store using the JE 3.1 release.  To do this, you
+can simply open and close your application as usual, or you can write
+a small conversion program that constructs an EntityStore and calls
+its close method.  The critical points are:
+<p>
+<ol>
+<li>
+Your EntityStore must be opened and closed before any persistent
+classes are changed.  Do not put changed versions of persistent
+classes in the classpath during this procedure.
+</li><li>
+The JE 3.1 jar file must be used instead of the JE 3.0.12 jar file.
+</li>
+</ol>
+Once this has been done, your persistent class metadata will be
+updated and ready for class evolution to occur.  You can then evolve
+your persistent classes as described in the documentation.  This
+conversion is a one-time procedure for stores that were deployed using
+the JE 3.0.12 beta release.  This procedure will not have to be done
+in future releases.
+</li><br>
+<li>
+JE now provides the ability to get a count of database records. The
+new count method has been optimized to execute faster than the count
+obtained from a database scan, but may not be accurate in the face of
+concurrent updates.
+</li>
+</ol>
+
+<p>
+See the <a href="changeLog.html">change log</a> for the complete and detailed description of
+all bug fixes.
+</p>
+<font size="1">Copyright (c) 1996-2006, Oracle Corporation - All rights reserved.</font>
+</div>
+<!-- end docMain -->
+</body>
+</html>

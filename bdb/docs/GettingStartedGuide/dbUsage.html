@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Database Example</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="DB.html" title="Chapter 3. Databases" />
+    <link rel="previous" href="DBAdmin.html" title="Administrative Methods" />
+    <link rel="next" href="DBEntry.html" title="Chapter 4. Database Records" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Database Example</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="DBAdmin.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Databases</th>
+          <td width="20%" align="right"> <a accesskey="n" href="DBEntry.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="dbUsage"></a>Database Example</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>In <a href="dbenvUsageExample.html">Database Environment Management Example</a> we created a class that manages an
+    <tt class="classname">Environment</tt>. We now extend that class to allow it
+    to open and manage multiple databases. Again, remember that you can find
+    this class in:
+    </p>
+      <pre class="programlisting"><span class="emphasis"><em>JE_HOME</em></span>/je/gettingStarted/MyDbEnv.java</pre>
+      <p>
+        where <tt class="literal"><span class="emphasis"><em>JE_HOME</em></span></tt> is the location where you
+        placed your JE distribution.
+    </p>
+      <div class="example">
+        <a id="mydbenvWDatabase"></a>
+        <p class="title">
+          <b>Example 3.1 Database Management with MyDbEnv</b>
+        </p>
+        <p>First, we need to import a few additional classes, and setup some global variables to support databases.
+      The databases that we are configuring and creating here are used by applications developed in examples later in this guide.</p>
+        <a id="je_db10"></a>
+        <pre class="programlisting">// File MyDbEnv.java
+
+package je.gettingStarted;
+
+import com.sleepycat.je.DatabaseException;
+<b class="userinput"><tt>import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.Database; </tt></b>
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Environment;
+
+import java.io.File;
+
+public class MyDbEnv {
+    
+    private Environment myEnv;
+    <b class="userinput"><tt>private Database vendorDb;
+    private Database inventoryDb;</tt></b>
+
+    public MyDbEnv() {} </pre>
+        <p>
+
+      Next we need to update the <tt class="methodname">MyDbEnv.setup()</tt> method to instantiate a
+      <tt class="classname">DatabaseConfig</tt> object. We also need to set some properties on that object. These property
+      values are determined by the value of the <tt class="literal">readOnly</tt> parameter. We want our databases to be
+      read-only if the environment is also read-only. We also want to allow our databases to be created if the databases
+      are not read-only.
+
+      </p>
+        <a id="je_db11"></a>
+        <pre class="programlisting">    public void setup(File envHome, boolean readOnly)
+            throws DatabaseException {
+                                                                                                                                                                       
+        // Instantiate an environment <b class="userinput"><tt>and database</tt></b> configuration object
+        EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+        <b class="userinput"><tt>DatabaseConfig myDbConfig = new DatabaseConfig();</tt></b>
+        // Configure the environment <b class="userinput"><tt>and databases</tt></b> for the read-only
+        // state as identified by the readOnly parameter on this 
+        // method call.
+        myEnvConfig.setReadOnly(readOnly);
+        <b class="userinput"><tt>myDbConfig.setReadOnly(readOnly);</tt></b>
+        // If the environment is opened for write, then we want to be
+        // able to create the environment <b class="userinput"><tt>and databases</tt></b> if 
+        // they do not exist.
+        myEnvConfig.setAllowCreate(!readOnly);
+        <b class="userinput"><tt>myDbConfig.setAllowCreate(!readOnly);</tt></b>
+                                                                                                                                                                       
+        // Instantiate the Environment. This opens it and also possibly
+        // creates it.
+        myEnv = new Environment(envHome, myEnvConfig);
+
+        <b class="userinput"><tt>// Now create and open our databases.
+        vendorDb = myEnv.openDatabase(null,
+                                       &quot;VendorDB&quot;,
+                                       myDbConfig); 
+                                                                                                                                  
+        inventoryDb = myEnv.openDatabase(null,
+                                         &quot;InventoryDB&quot;,
+                                         myDbConfig);</tt></b>
+    } </pre>
+        <p>
+        Next we need some additional getter methods used to return our database handles.
+      </p>
+        <a id="je_db12"></a>
+        <pre class="programlisting">     // Getter methods
+    public Environment getEnvironment() {
+        return myEnv;
+    }
+
+    <b class="userinput"><tt>public Database getVendorDB() {
+        return vendorDb;
+    }
+                                                                                                                                  
+    public Database getInventoryDB() {
+        return inventoryDb;
+    }</tt></b> </pre>
+        <p>
+        Finally, we need to update the <tt class="methodname">MyDbEnv.close()</tt> method to close our databases.
+      </p>
+        <a id="je_db13"></a>
+        <pre class="programlisting">    // Close the environment
+    public void close() {
+        if (myEnv != null) {
+            try {
+                <b class="userinput"><tt>vendorDb.close();
+                inventoryDb.close();</tt></b>
+                myEnv.close();
+            } catch(DatabaseException dbe) {
+                System.err.println(&quot;Error closing MyDbEnv: &quot; + 
+                                    dbe.toString());
+                System.exit(-1);
+            }
+        }
+    }
+}</pre>
+        <p>We can now use <tt class="classname">MyDbEnv</tt> to open and close
+      both database environments and databases from the appropriate place in
+      our application. For example:</p>
+        <a id="je_db14"></a>
+        <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.DatabaseException;
+<b class="userinput"><tt>import com.sleepycat.je.Database;</tt></b>
+
+import java.io.File;
+
+...
+
+MyDbEnv exampleDbEnv = new MyDbEnv();
+                                                                                                                                                                       
+try {
+    exampleDbEnv.setup(new File(&quot;/directory/currently/exists&quot;), true);
+    <b class="userinput"><tt>Database vendorDb = exampleDbEnv.getVendorDB();
+    Database inventoryDB = exampleDbEnv.getInventoryDB();</tt></b>
+
+    ...
+
+} catch(DatabaseException dbe) {
+    // Error code goes here
+} finally {
+    exampleDbEnv.close();
+} </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="DBAdmin.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="DB.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="DBEntry.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Administrative Methods </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 4. Database Records</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

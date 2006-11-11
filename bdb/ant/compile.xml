@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+
+<!-- ======================================================= -->
+<!-- Ant Build File for Berkeley DB Java Edition compilation -->
+<!-- ======================================================= -->
+
+<project name="compile" default="compile" basedir=".">
+    <description>Compile java code.</description>
+
+    <property name="srcdir" value="${basedir}/src"/>
+    <property name="builddir" value="${basedir}/build"/>
+    <property name="destdir" value="${builddir}/classes"/>
+    <property name="build.debug" value="on"/>
+    <property name="build.deprecation" value="off"/>
+    <property name="include" value="com/sleepycat/**/*.java"/>
+    <property name="java15files1" value=""/>
+    <property name="java15files2" value=""/>
+    <property name="exclude1" value="com/sleepycat/**/jca/**/*.java"/>
+    <property name="exclude2" value="com/sleepycat/**/jmx/**/*.java"/>
+
+    <target name="compile">
+        <javac srcdir="${srcdir}"
+               destdir="${destdir}" 
+               debug="${build.debug}"
+               deprecation="${build.deprecation}" 
+               optimize="on"
+               source="1.4">
+            <classpath refid="compile.classpath"/>
+            <include name="${include}"/>
+            <exclude name="${java15files1}"/>
+            <exclude name="${java15files2}"/>
+	    <exclude name="${exclude1}"/>
+	    <exclude name="${exclude2}"/>
+        </javac>
+        <javac srcdir="${srcdir}"
+               destdir="${destdir}" 
+               debug="${build.debug}"
+               deprecation="${build.deprecation}" 
+               optimize="on"
+               source="1.5">
+            <classpath refid="compile.classpath"/>
+            <include name="${java15files1}"/>
+            <include name="${java15files2}"/>
+	    <exclude name="${exclude1}"/>
+	    <exclude name="${exclude2}"/>
+            <!--
+            <compilerarg value="-Xlint:unchecked"/>
+            -->
+        </javac>
+    </target>
+</project>

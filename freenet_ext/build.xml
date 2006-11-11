@@ -53,19 +53,24 @@
 			<fileset dir="../NativeBigInteger/lib" includes="net/**" />
 		</copy>
 	</target>
+	
+	<target name="bdb" depends="init" description="Build the BDB provider">
+		<ant antfile="build.xml" dir="../bdb/"/>
+	</target>
 
 	<target name="clean" depends="distclean"/>
 
-	<target name="distclean" description="Delete the build directory and archives">
+	<target name="distclean" description="Cleanup the build directory">
 		<ant antfile="build.xml" target="clean" dir="../fec/common/"/>
+		<ant antfile="build.xml" target="clean" dir="../bdb/"/>
 		<delete dir="${build}"/>
 		<delete file="${jar.location}"/>
 	</target>
 
-	<target name="jar" depends="clean,fec,jcpuid,bigint" description="Create a .jar">
+	<target name="jar" depends="clean,fec,jcpuid,bigint,bdb" description="Create the jar file">
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
-			<zipfileset src="../je.jar"/>
+			<zipfileset src="../bdb/lib/je.jar"/>
 			<zipfileset src="../wrapper.jar"/>
 		</jar>
 	</target>

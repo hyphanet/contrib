@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Transactional Cursors</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="transaction.html" title="Chapter 7. Transactions" />
+    <link rel="previous" href="commitAbort.html" title="Committing and Aborting Transactions" />
+    <link rel="next" href="dirtyReads.html" title="Configuring Read Uncommitted Isolation" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Transactional Cursors</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="commitAbort.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Transactions</th>
+          <td width="20%" align="right"> <a accesskey="n" href="dirtyReads.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="transactionCursor"></a>Transactional Cursors</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+        You transactionally protect a cursor by opening it using a transaction. All operations performed with that cursor
+        are subsequently performed within the scope of that transaction. You must be sure to close the cursor before
+        committing the transaction. 
+    </p>
+      <p>
+        For example:
+    </p>
+      <a id="je_txn4"></a>
+      <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.Cursor;
+import com.sleepycat.je.Transaction;
+
+...   
+
+Cursor cursor = null;
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+    ...
+    // Environment and database opens omitted for brevity
+    ...
+    DatabaseEntry key1 = 
+        new DatabaseEntry((new String(&quot;key1&quot;)).getBytes(&quot;UTF-8&quot;));
+    DatabaseEntry data1 = 
+        new DatabaseEntry((new String(&quot;data1&quot;)).getBytes(&quot;UTF-8&quot;));
+    DatabaseEntry key2 = 
+        new DatabaseEntry((new String(&quot;key2&quot;)).getBytes(&quot;UTF-8&quot;));
+    DatabaseEntry data2 = 
+        new DatabaseEntry((new String(&quot;data2&quot;)).getBytes(&quot;UTF-8&quot;));
+
+    // Start a transaction
+    txn = myEnv.beginTransaction(null, null);
+    // Open a cursor using the transaction
+    cursor = myDb.openCursor(txn, null);
+
+    // Put the data. This is transactionally protected
+    cursor.put(key1, data1);
+    cursor.put(key2, data2);
+    // Close the cursor and then commit the transaction
+    if (cursor != null) {
+        cursor.close();
+        cursor = null;
+     }
+
+     if (txn != null) {
+        txn.commit();
+        txn = null;
+     }
+} catch (Exception e) {
+    // If an error occurs, close the cursor and abort.
+    // None of the write operations performed by this cursor
+    // will appear in the Database.
+    System.err.println(&quot;Error putting data: &quot; + e.toString());
+    try {
+        if (cursor != null) {
+            cursor.close();
+            cursor = null;
+        }
+
+        if (txn != null) {
+            txn.abort();
+            txn = null;
+        }
+    } catch (DatabaseException dbe) {
+        // Error reporting goes here
+    }
+}</pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="commitAbort.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="transaction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="dirtyReads.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Committing and Aborting Transactions </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Configuring Read Uncommitted Isolation</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

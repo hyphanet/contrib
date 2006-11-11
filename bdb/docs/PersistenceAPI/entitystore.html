@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Entity Stores</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with the Berkeley DB, Java Edition&#10;                  Direct Persistence Layer" />
+    <link rel="up" href="beginningApp.html" title="Chapter 3. Getting Going with the Direct Persistence Layer" />
+    <link rel="previous" href="beginningApp.html" title="Chapter 3. Getting Going with the Direct Persistence Layer" />
+    <link rel="next" href="indexaccess.html" title="Accessing Indices" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Entity Stores</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="beginningApp.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Getting Going with the Direct Persistence Layer</th>
+          <td width="20%" align="right"> <a accesskey="n" href="indexaccess.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="entitystore"></a>Entity Stores</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+                All entity and persistent objects are saved to and
+                retrieved from an <span class="emphasis"><em>entity store</em></span>. Entity
+                stores can contain multiple class types. In fact, you
+                typically only need one entity store for a given
+                application.
+            </p>
+      <p>
+                To use an entity store, you must first open an environment
+                and then provide that environment handle to the
+                <tt class="classname">EntityStore</tt> constructor.
+                When you shutdown your application, first close your entity
+                store and then close your environment.
+            </p>
+      <p>
+                Entity stores have configurations in the same way that
+                environments have configurations. You can use a
+                <tt class="classname">StoreConfig</tt> object to identify store
+                properties, 
+                such as whether is it allowed to create the store if it
+                does not currently exist or if the store is read-only. You
+                also use the <tt class="classname">StoreConfig</tt>
+                to declare whether the store is transactional.
+            </p>
+      <p>
+                <tt class="classname">EntityStore</tt> objects also provide
+                methods for retrieving information about the store, such as
+                the store's name or a handle to the underlying
+                environment. You can also use the
+                <tt class="classname">EntityStore</tt> to retrieve all the
+                primary and secondary indices related to a given type of entity
+                object contained in the store. See
+                <a href="indexaccess.html">Accessing Indices</a>
+                for more information.
+            </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="mydbenv-persist"></a>MyDbEnv</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+                The applications that we are building for our example both
+                must open and close environments and entity stores. One
+                of our applications is writing to the entity store, so this
+                application needs to open the store as read-write. It also
+                wants the store to be transactional, and it wants to be able
+                to create the store if it does not exist.
+            </p>
+        <p>
+                Our second application only reads from the store. In this
+                case, the store should be opened as read-only.
+            </p>
+        <p>
+                We perform these activities by creating a single class that
+                is responsible for opening and closing our store and
+                environment. This class is shared by both our applications.
+                To use it, callers need to only provide the path to the
+                environment home directory, and to indicate whether the
+                object is meant to be read-only. The class implementation
+                is as follows:
+            </p>
+        <pre class="programlisting">package persist.gettingStarted;
+
+import java.io.File;
+
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.StoreConfig;
+
+public class MyDbEnv {
+
+    private Environment myEnv;
+    private EntityStore store;
+
+    // Our constructor does nothing
+    public MyDbEnv() {}
+
+    // The setup() method opens the environment and store
+    // for us.
+    public void setup(File envHome, boolean readOnly)
+        throws DatabaseException {
+
+        EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+        StoreConfig storeConfig = new StoreConfig();
+
+        myEnvConfig.setReadOnly(readOnly);
+        storeConfig.setReadOnly(readOnly);
+
+        // If the environment is opened for write, then we want to be 
+        // able to create the environment and entity store if 
+        // they do not exist.
+        myEnvConfig.setAllowCreate(!readOnly);
+        storeConfig.setAllowCreate(!readOnly);
+
+        // Allow transactions if we are writing to the store.
+        myEnvConfig.setTransactional(!readOnly);
+        storeConfig.setTransactional(!readOnly);
+
+        // Open the environment and entity store
+        myEnv = new Environment(envHome, myEnvConfig);
+        store = new EntityStore(myEnv, &quot;EntityStore&quot;, storeConfig);
+
+    }
+
+    // Return a handle to the entity store
+    public EntityStore getEntityStore() {
+        return store;
+    }
+
+    // Return a handle to the environment
+    public Environment getEnv() {
+        return myEnv;
+    }
+
+    // Close the store and environment.
+    public void close() {
+        if (store != null) {
+            try {
+                store.close();
+            } catch(DatabaseException dbe) {
+                System.err.println(&quot;Error closing store: &quot; +
+                                    dbe.toString());
+               System.exit(-1);
+            }
+        }
+
+        if (myEnv != null) {
+            try {
+                // Finally, close environment.
+                myEnv.close();
+            } catch(DatabaseException dbe) {
+                System.err.println(&quot;Error closing MyDbEnv: &quot; +
+                                    dbe.toString());
+               System.exit(-1);
+            }
+        }
+    }
+} </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="beginningApp.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="beginningApp.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="indexaccess.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 3. Getting Going with the Direct Persistence Layer </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Accessing Indices</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

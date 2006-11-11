@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Committing and Aborting Transactions</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="transaction.html" title="Chapter 7. Transactions" />
+    <link rel="previous" href="transaction.html" title="Chapter 7. Transactions" />
+    <link rel="next" href="transactionCursor.html" title="Transactional Cursors" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Committing and Aborting Transactions</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="transaction.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Transactions</th>
+          <td width="20%" align="right"> <a accesskey="n" href="transactionCursor.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="commitAbort"></a>Committing and Aborting Transactions</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+        When you have completed all database operations that you want to perform from within a transaction, you must
+        commit the transaction. Committing the transaction causes the database modifications to be permanently written
+        to the database. In most cases, committing the transaction also causes the database modifications to be flushed
+        to stable storage.
+    </p>
+      <p>
+        Once a transaction has been committed, you can no longer use that same transaction handle for subsequent
+        database operations. 
+    </p>
+      <p>
+        Use one of the following methods to commit a transaction:
+    </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+                <tt class="methodname">Transaction.commit()</tt>
+            </p>
+            <p>
+                Ends the transaction and writes the modifications to your database(s).  
+                The database changes may or may not be flushed to stable storage
+                depending on the transaction commit behavior configured for your environment. By default, the changes
+                are flushed to stable storage. This behavior is configurable using
+                <tt class="methodname">EnvironmentMutableConfig.setTxnNoSync()</tt> or
+                <tt class="methodname">EnvironmentMutableConfig.setTxnWriteNoSync()</tt>.
+            </p>
+          </li>
+          <li>
+            <p>
+                <tt class="methodname">Transaction.commitSync()</tt>
+            </p>
+            <p>
+                Ends the transaction and writes the modifications to your database(s). The database modifications are
+                flushed to stable storage. That is, the modifications are immediately written to the OS's file system
+                buffers and then <tt class="literal">fsync()</tt> is called to cause the contents of those buffers to be
+                immediately written to disk. This form of commit provides the strongest possible durability guarantee,
+                but it does so at the expense of higher I/O costs than is incurred by other forms of commit.
+            </p>
+          </li>
+          <li>
+            <p>
+                <tt class="methodname">Transaction.commitWriteNoSync()</tt>
+            </p>
+            <p>
+                Ends the transaction and writes the modifications to your database(s). In this case, the modifications
+                are written to the OS's file system buffers so that they will eventually be written to disk. This
+                protects your data against JVM crashes, but not OS crashes.
+             </p>
+            <p>
+                This method is faster than 
+                <tt class="methodname">Transaction.commitSync()</tt>, 
+                but also more dangerous. Use of this
+                method might mean losing the durability aspect of the transactional subsystem, because a system crash
+                could cause the loss of any modifications held only in memory.
+            </p>
+          </li>
+          <li>
+            <p>
+                <tt class="methodname">Transaction.commitNoSync()</tt>
+            </p>
+            <p>
+                Ends the transaction but does not write the modifications. That is, the modifications are held entirely
+                inside the JVM and no attempt is made to pass the modifications to the file system for long-term
+                storage. This form of a commit provides the weakest durability guarantee as data loss can occur due to
+                either a JVM or OS crash.
+            </p>
+          </li>
+        </ul>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="abortTransaction"></a>Aborting Transactions</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+            If for some reason you do not want to commit a transaction, then call
+            <tt class="methodname">Transaction.abort()</tt>. Aborting the transaction causes JE to discard all 
+			modifications made to the database during the course of the transaction.
+        </p>
+        <p>
+            Most frequently you will want to call <tt class="methodname">Transaction.abort()</tt> as a part of your 
+			exception handling activity. The circumstances that require you to call 
+			<tt class="methodname">Transaction.abort()</tt> will vary depending on
+            your application's activities. Certainly any time your application catches a
+            <tt class="classname">DatabaseException</tt>, the transaction should probably be aborted.
+        </p>
+        <p>
+            Note that any time your application receives a <tt class="classname">DeadlockException</tt>, 
+            you must close any
+            cursors opened for the transaction, abort the transaction and, optionally,  start over again. For more
+            information, see  <a href="transactionConcurrency.html#deadlockProtection">Transactions and Deadlocks</a>.
+        </p>
+        <p>
+            For example:
+        </p>
+        <a id="je_txn2"></a>
+        <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.Transaction;
+
+...
+
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+    // Environment open omitted ...
+    txn = myEnv.beginTransaction(null, null);
+    myDb = myEnv.openDatabase(txn, &quot;myDbName&quot;, null);
+    txn.commit();
+} catch (DatabaseException dbe) {
+    if (txn != null) {
+        try {
+            txn.abort();
+        } catch (DatabaseException txnError) {
+            // Error reporting goes here
+        }
+    }
+} </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="autocommit"></a>Using Autocommit</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+            If your application does not require atomicity for multiple database operations, then you can 
+            use JE's autocommit feature to
+            transactionally protect your database operations. Essentially, autocommit is a convenience feature that
+            causes JE to automatically use a
+            transaction for those write operations that do not provide a transaction handle.
+        </p>
+        <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+          <h3 class="title">Note</h3>
+          <p>
+                Autocommit cannot be used when performing write operations using a cursor.
+            </p>
+        </div>
+        <p>
+            To use autocommit:
+        </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                    Open your environment and database such that they support transactions. See
+                    <a href="transaction.html#txnopen">Enabling and Starting Transactions</a> for a description of how to do this.
+                </p>
+            </li>
+            <li>
+              <p>
+                    Do not provide a transaction handle for the database put or delete operation. Instead, simply
+                    specify <tt class="literal">null</tt> for the transaction parameter.
+                </p>
+            </li>
+          </ol>
+        </div>
+        <p>
+            Note that when you use autocommit, there is no opportunity for you to explicitly abort the operation. 
+            JE, however, will abort the operation if it encounters an error during the write.
+        </p>
+        <p>
+            For example:
+        </p>
+        <a id="je_txn3"></a>
+        <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.Database;
+
+import java.io.File;
+
+...
+
+// Open the environment and database such that transactions 
+// are supported
+EnvironmentConfig myEnvConfig = new EnvironmentConfig();
+DatabaseConfig myDbConfig = new DatabaseConfig();
+myEnvConfig.setTransactional(true);
+myDbConfig.setTransactional(true);
+
+Database myDb = null;
+Environment myEnv = null;
+
+try {
+    myEnv = 
+        new Environment(new File(&quot;/my/env/home&quot;), myEnvConfig);
+
+    // This database is opened from within a transaction using autocommit
+    // because the database configuration specifies transactions.
+    // As a result follow-on database operations can use transactions.
+    myDb = myEnv.openDatabase(null, &quot;myDbName&quot;, myDbConfig);
+
+    String aKey = &quot;myFirstKey&quot;;
+    String aData = &quot;myFirstData&quot;;
+
+    DatabaseEntry theKey = new DatabaseEntry(aKey.getBytes(&quot;UTF-8&quot;));
+    DatabaseEntry theData = new DatabaseEntry(aData.getBytes(&quot;UTF-8&quot;));
+
+    // This database put is also transactionally protected
+    // using autocommit.
+    myDb.put(null, theKey, theData); 
+} catch (Exception e) {
+    // Exception handling goes here.
+}</pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="transaction.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="transaction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="transactionCursor.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 7. Transactions </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Transactional Cursors</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

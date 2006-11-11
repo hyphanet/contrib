@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Retrieving Multiple Objects</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with the Berkeley DB, Java Edition&#10;                  Direct Persistence Layer" />
+    <link rel="up" href="readingstores.html" title="Chapter 5. Reading Data From Entity Stores" />
+    <link rel="previous" href="readingstores.html" title="Chapter 5. Reading Data From Entity Stores" />
+    <link rel="next" href="exampleinventoryread.html" title="ExampleInventoryRead.class" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Retrieving Multiple Objects</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="readingstores.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 5. Reading Data From Entity Stores</th>
+          <td width="20%" align="right"> <a accesskey="n" href="exampleinventoryread.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="multipleobjectread"></a>Retrieving Multiple Objects</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+                   Some indices result in the retrieval of multiple
+                   objects. For example, <tt class="literal">MANY_TO_ONE</tt>
+                   indices can result in more than one object for any given
+                   key. When this is the case, you must iterate
+                   over the resulting set of objects in order to examine
+                   each object in turn.
+           </p>
+      <p>
+                   To retrieve a set of objects, use the
+                   <tt class="methodname">SecondaryIndex.subIndex()</tt>
+                   method to return an <tt class="classname">EntityIndex</tt>
+                   class object. Then, use that object's
+                   <tt class="methodname">entities()</tt>
+                   method to obtain an <tt class="classname">EntityCursor</tt>.
+                   This cursor allows you to iterate over the object set.
+           </p>
+      <p>
+                   For example:
+           </p>
+      <pre class="programlisting">PrimaryIndex&lt;String,Inventory&gt; inventoryBySku =
+    store.getPrimaryIndex(String.class, Inventory.class);
+
+SecondaryIndex&lt;String,String,Inventory&gt; inventoryByName = 
+    store.getSecondaryIndex(inventoryBySku, String.class, &quot;itemName&quot;);
+
+EntityCursor&lt;Inventory&gt; items = 
+    inventoryByName.subIndex(&quot;Lemon&quot;).entities(); </pre>
+      <p>
+            Now that we have the entity cursor, we can iterate over the
+            resulting objects. Here we use the new Java 1.5 enhanced
+            <tt class="literal">for</tt> notation to perform the iteration:
+    </p>
+      <pre class="programlisting">try {
+    for (Inventory item : items) {
+        // do something with each Inventory object &quot;item&quot;
+    }
+// Always make sure the cursor is closed when we are done with it.
+} finally {
+    items.close();
+} </pre>
+      <p>
+            Note that it is also possible to iterate over every entity
+            object of a given type in the entity store. You do this using
+            the entity's primary index, and then call its
+            <tt class="methodname">entities()</tt> method to obtain an
+            <tt class="classname">EntityCursor</tt>:
+    </p>
+      <pre class="programlisting">PrimaryIndex&lt;String,Inventory&gt; inventoryBySku =
+    store.getPrimaryIndex(String.class, Inventory.class);
+
+EntityCursor&lt;Inventory&gt; items = inventoryBySku.entities(); 
+            
+try {
+    for (Inventory item : items) {
+        // do something with each Inventory object &quot;item&quot;
+    }
+// Always make sure the cursor is closed when we are done with it.
+} finally {
+    items.close();
+} </pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="readingstores.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="readingstores.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="exampleinventoryread.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 5. Reading Data From Entity Stores </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> ExampleInventoryRead.class</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

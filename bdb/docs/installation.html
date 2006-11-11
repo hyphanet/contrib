@@ -1,0 +1,432 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Berkeley DB Java Edition Installation Notes</title>
+  <link rel="stylesheet" href="sleepycat-idoc.css" type="text/css">
+</head>
+<body>
+<p align=center>
+<img src="images/Oracle_BerkeleyDB_small.png" alt="Oracle Corporation.">
+</p>
+
+<center>
+<h1>Berkeley DB Java Edition<br>
+Installation Notes</h1>
+</center>
+<!-- Note: RELEASE_VERSION and DATE are set by ant -->
+<p class="releaseInfo">3.1.0, September 27, 2006</p>
+<p>These installation notes describe:</p>
+<ul>
+  <li><a href="#installJE">Installing JE</a></li>
+  <li><a href="#usingJE">Using JE</a></li>
+  <li><a href="#uninstallJE">Uninstalling JE</a></li>
+  <li><a href="#examples">Building and running JE examples</a></li>
+  <ul>
+    <li><a href="#simpleexample">Basic Examples</a></li>
+    <li><a href="#collections">Collections Example</a></li>
+    <li><a href="#gsg">Getting Started Examples</a></li>
+    <li><a href="#txn">Writing Transactional Applications Examples</a></li>
+  </ul>
+  <li><a href="#building">Building JE</a></li>
+  <ul>
+    <li><a href="#unittests">Building with the Unit Tests</a></li>
+    <li><a href="#buildoptions">Build Options</a></li>
+  </ul>
+  <li><a href="#JCA">Using JE with J2EE/JCA</a></li>
+  <li><a href="#JMX">Using JE with JMX</a></li>
+</ul>
+<h2><a name="installJE">Installing JE</a></h2>
+<p>JE requires J2SE JDK version 1.4.2 or later. You can download this
+from:</p>
+<blockquote> <a href="http://java.sun.com/j2se/1.4.2/download.html">J2SE
+1.4.2</a>
+</blockquote>
+<p>
+JE may also be used with BEA's JRockit JVM. Version 1.4.1_01-b01 has
+been tested. Note that you must pass <tt>-Xmx</tt> parameter to
+JRockit when
+using JE.
+</p>
+<p>To install JE, use unzip or tar to unpack the JE distribution. If
+you are using unzip, be
+sure to use the -U option to preserve case in file names. For example:</p>
+<blockquote>
+  <pre>unzip -U je-M.N.P.zip</pre>
+</blockquote>
+<p>or</p>
+<blockquote>
+  <pre>gunzip je-M.N.P.tar.gz<br>tar xvf je-M.N.P.tar</pre>
+</blockquote>
+<p>Unpacking the distribution creates a je-M.N.P directory
+on disk, where M.N.P is the release's version number. This directory
+contains
+the following contents:</p>
+<blockquote>
+  <pre>bin/<br>docs/<br>examples/<br>lib/<br>src/<br>test/<br></pre>
+</blockquote>
+<p>The remainder of this document refers to the <code>je-M.N.P/</code>
+directory
+created in this step as JE_HOME.</p>
+
+<h2><a name="usingJE">Using JE</a></h2>
+<p>To compile and run a program using JE, you only need the <code>je-M.N.P.jar</code>
+file in your class path. This file can be found at:</p>
+<blockquote>
+  <pre>JE_HOME/lib/je-M.N.P.jar<br></pre>
+</blockquote>
+When using JE within a web container, note that it is important that
+the JE jar file and your application jar files -- in
+particular the classes that are being serialized by SerialBinding --
+are loaded under the same class loader. For running in a servlet, this
+typically means that you would place the JE jar file and your application jars
+in the same directory.<br>
+<br>
+Additionally, it is important to not place the JE jar file in the
+extensions directory for your JVM. Instead place the JE jar file in
+the same location as your application jars. The extensions directory
+is reserved for
+privileged library code.<br>
+<h2><a name="uninstallJE">Uninstalling JE</a></h2>
+<p>To uninstall, just remove the directory that you unzipped into.</p>
+<h2><a name="examples">Examples</a></h2>
+<p>The JE distribution comes with examples that illustrate the
+basic database engine, the collections API, and scenarios from
+the Getting Started Guide and Transactional Applications Guide.
+</p>
+<h3><a name="simpleexample">Building and Running the Basic Examples</a></h3>
+<ul>
+<li>
+<code>SimpleExample</code> does basic data insertion and retrieval.
+</li>
+<li>
+<code>BindingExample</code> shows how to use com.sleepycat.bind to
+convert between Java objects and JE data records.
+</li>
+<li>
+<code>SecondaryExample</code> illustrates the use of secondary indices.
+</li>
+<li>
+<code>SequenceExample</code> demonstrates the use of Sequence objects.
+</li>
+<li>
+<code>ToManyExample</code> shows how to use multi-key secondary
+indices to support many-many and one-many primary/secondary key 
+relationships.
+</li>
+</ul>
+<p>These examples can also serve as a sanity check of the
+installation. You can find the source for these examples at:
+</p>
+<blockquote>
+  <pre>JE_HOME/examples/je</pre>
+</blockquote>
+<p>
+Assuming you have installed the J2SE JDK and have verified that you
+have a
+working Java compiler, you can build <code>SimpleExample</code> as
+follows.
+</p>
+<ol>
+  <li>Change to the
+    <pre>JE_HOME/examples</pre>
+directory.</li>
+  <br>
+  <li>Set your CLASSPATH to include both
+    <pre>JE_HOME/lib/je-M.N.P.jar</pre>
+and the
+    <pre>JE_HOME/examples</pre>
+directory.</li>
+  <br>
+  <li>Compile <code>SimpleExample.java</code> with the following
+command:
+    <pre>javac je/SimpleExample.java</pre>
+or on Windows:
+    <pre>javac je\SimpleExample.java</pre>
+  </li>
+</ol>
+<p>
+<code>SimpleExample</code> can either add records to or retrieve
+records from a
+database. To insert records into a database, use the following command,
+specifying an environment directory for the data generated by the
+example:
+</p>
+<blockquote>
+  <pre>java je.SimpleExample &lt;environment directory&gt; insert 10 0</pre>
+</blockquote>
+For example, using <code>"."</code> for the first parameter will write
+the
+database files into the current directory. You'll notice that a
+<code>00000000.jdb</code> file and and <code>je.lck</code> file are
+created.
+This is the first log file in the environment and a lock file. If you
+need to
+delete the environment for running a different example, simply delete
+these
+two files.
+<p>This command above inserted 10 records starting with key "0". To
+insert more
+records, specify a count and a key value starting point. For example:
+</p>
+<blockquote>
+  <pre>java je.SimpleExample &lt;environment directory&gt; insert 10 10</pre>
+</blockquote>
+and so on. To retrieve and print all records:
+<blockquote>
+  <pre>java je.SimpleExample &lt;environment directory&gt; retrieve</pre>
+</blockquote>
+While this is not a very entertaining program, it is enough to test
+that you
+have installed JE correctly.
+<h3><a name="collections">Running the Java Collections Examples</a></h3>
+Accessing data in a JE database may be performed using the
+<code>com.sleepycat.je</code> classes directly, or indirectly using the
+standard Java Collections API. A number of examples in the
+<code>examples/collections</code> directory show
+how to
+use Java collections with JE.
+<p>The collections examples can be compiled in the same way as is
+described for SimpleExample above. However, by default these
+collections examples use <code>"./tmp"</code>
+as the environment home directory. You should create the tmp directory
+before running
+the example. To compile and run the <code>HelloDatabaseWorld</code>
+example:
+</p>
+<blockquote>
+  <pre>javac collections/hello/HelloDatabaseWorld.java</pre>
+  <pre>java collections.hello.HelloDatabaseWorld</pre>
+</blockquote>
+The first time this example is run it will print:
+<blockquote>
+  <pre>Writing data<br>Reading data<br>0 Hello<br>1 Database<br>2 World</pre>
+</blockquote>
+If run again, it will not print <code>"Writing data"</code> since the
+data will
+already exist.
+<p>A series of examples based on a shipment database can be found in
+the
+<code>examples/collections/ship</code>
+directory.
+Each of these examples is compiled and run in the same way. They build
+on
+each other to illustrate the use of different types of
+object-to-database
+bindings.
+</p>
+<ul>
+  <li><code>basic</code> - The shipment program.</li>
+  <li><code>index</code> - Secondary indices.</li>
+  <li><code>entity</code> - Combining the key and value in a single
+object.</li>
+  <li><code>tuple</code> - Compact ordered keys.</li>
+  <li><code>sentity</code> - (Serializable Entity) One serializable
+class for entities and values.</li>
+  <li><code>marshal</code> - Internal bindings in the key and value
+classes.</li>
+  <li><code>factory</code> - The marshaled tuple-serial factory.</li>
+</ul>
+As with the prior example, the home directory is <code>"./tmp"</code>
+so that
+directory must exist prior to running the example. To compile and run
+the
+<code>basic</code> example:
+<blockquote>
+  <pre>javac collections/ship/basic/Sample.java</pre>
+  <pre>java collections.ship.basic.Sample</pre>
+</blockquote>
+The sample will add shipment records to the database and print their
+contents.
+<p>The other shipment examples are compiled and run in the same way.
+However, all
+shipment examples use the same database name, and therefore the
+database must
+be cleared in between running different examples. Clear the database by
+deleting the contents of the <code>"./tmp"</code> directory.
+<h3><a name="gsg">Running the Getting Started Examples</a></h3>
+<p>As described in the <em>Berkeley DB Java Edition Getting Started
+Guide</em>, the final examples in every chapter exist in the JE package. You can
+build and run these examples as follows:</p>
+<ul>
+<li>Change to the
+  <pre>JE_HOME/examples</pre>
+directory.</li>
+<br>
+<li>Set your CLASSPATH to include both
+  <pre>JE_HOME/lib/je-M.N.P.jar</pre>
+and the
+  <pre>JE_HOME/examples</pre>
+directories.</li>
+<br>
+<li>Compile the Getting Started examples with the following commands:
+  <pre>javac je/gettingStarted/*.java</pre>
+or on Windows:
+  <pre>javac je\gettingStarted\*.java</pre>
+</li>
+<li>Make a directory to contain your database environment:
+  <pre>mkdir gsgEnv</pre>
+</li>
+<li>Load your sample database:
+  <pre>java je.gettingStarted.ExampleDatabasePut -h gsgEnv -i je/gettingStarted/inventory.txt  -v je/gettingStarted/vendors.txt</pre>
+</li>
+<li>Perform queries against your database. To see everything in the
+database, use:
+  <pre>java je.gettingStarted.ExampleInventoryRead -h gsgEnv</pre>
+To perform a query based on an inventory item's name, use:
+  <pre>java je.gettingStarted.ExampleInventoryRead -h gsgEnv -s Upo</pre>
+</li>
+</ul>
+
+<h3><a name="txn">Running the Writing Transactional Applications Examples</a></h3>
+<p>The examples in <em>Writing Transactional Applications with
+Berkeley DB, Java Edition guide</em>, the exist in the JE package. You can
+build and run these examples as follows:</p>
+<ul>
+<li>Change to the
+  <pre>JE_HOME/examples</pre>
+directory.</li>
+<br>
+<li>Set your CLASSPATH to include both
+  <pre>JE_HOME/lib/je-M.N.P.jar</pre>
+and the
+  <pre>JE_HOME/examples</pre>
+directories.</li>
+<br>
+<li>Compile the Transactional Applications examples with the following commands:
+  <pre>javac je/txn/*.java</pre>
+or on Windows:
+  <pre>javac je\txn\*.java</pre>
+</li>
+<li>Make a directory to contain your database environment:
+  <pre>mkdir txnEx</pre>
+</li>
+<li>Run the transactional example.
+  <pre>java je.txn.TxnGuide -h txnEx</pre>
+</li>
+</ul>
+<h2><a name="building">Building JE</a></h2>
+<p>
+JE must be built with Java 1.5, but will produce a .jar file
+compatible with both Java 1.4 and Java 1.5. To build JE from the provided source, you need to download and install
+ant 1.6.0 or later and JUnit:
+</p>
+<blockquote> <a href="http://ant.apache.org/bindownload.cgi">Apache Ant</a>
+</blockquote>
+<p>See the next section for downloading JUnit. Once ant and JUnit are
+installed, you can build JE using the following command:</p>
+<blockquote>
+  <pre>cd JE_HOME</pre>
+  <pre>ant clean jar<br></pre>
+</blockquote>
+The JE jar file will appear in JE_HOME/build/lib/je-M.N.P.jar.<br>
+<br>
+By default, JE is compiled with both -O for optimization and -g for
+debug symbols. Compiling without the -g will give you the smallest
+possible JE jar file. To do so, edit the JE_HOME/ant/compile.xml file
+and change the build.debug property from "on" to "off".<br>
+
+<h3><a name="unittests">Building and Running the Unit Tests</a></h3>
+<p>If you want to build and run the included unit tests, you must
+download JUnit: </p>
+<blockquote> <a
+ href="http://prdownloads.sourceforge.net/junit/junit3.8.1.zip?download">JUnit/SourceForge</a>
+</blockquote>
+<p>
+Once JUnit is installed on your system, you must make sure that ant
+knows about it.
+The simplest way to do this is to copy the <tt>junit.jar</tt> file
+into your ant's lib dir. You then must build JE as
+follows:
+</p>
+<blockquote>
+  <pre>cd JE_HOME</pre>
+  <pre>ant clean compile</pre>
+</blockquote>
+<p>
+Once it is compiled, you can run the unit tests using the command: <code>"ant
+test"</code>.
+The unit tests usually take between 20 to 50 minutes to run, depending
+on platform. On some platforms, notably Windows,
+you may see OutOfMemoryErrors while running the unit tests. To avoid
+this, increase the JVM maximum memory size by setting the ANT_OPTS
+environment variable so that it includes <tt>-Xmx256M</tt>.
+</p>
+<p>
+If you are running the unit tests with JRockit, the
+<tt>DatabaseConfigTest.testComparator()</tt> test will fail with a
+<tt>NullPointerException</tt>. This is due to a known problem in
+JRockit that
+has been fixed in JRockit version 1.4.2_04 and later. You will also
+need to pass a <tt>-Xmx</tt> value to JRockit. In the <tt>build.xml</tt>,
+uncomment the
+<tt>-Xmx256M</tt> "jvmarg".<br>
+</p>
+
+<h3><a name="buildoptions">Build Options</a></h3>
+<p>You can use the following build options when building JE:</p>
+<table>
+  <tbody>
+    <tr>
+      <th align="left">Option</th>
+      <th>Description</th>
+    </tr>
+    <tr valign="top">
+      <td width="20%"><tt>clean</tt></td>
+      <td>Removes any previously built classes and jar files.</td>
+    </tr>
+    <tr valign="top">
+      <td><tt>compile</tt></td>
+      <td>Compiles JE and the included unit tests. This requires JUnit
+be downloaded and installed on your system. See <a href="#unittests">Building
+and Running the Unit Tests</a> for more information.</td>
+    </tr>
+    <tr valign="top">
+      <td><tt>compile-src</tt></td>
+      <td>Compiles JE. The unit tests are not compiled.</td>
+    </tr>
+    <tr>
+      <td valign="top"><tt>jar</tt><br>
+      </td>
+      <td valign="top">Creates the JE jar file in build/lib/je-M.N.P.jar.<br>
+      </td>
+    </tr>
+    <tr valign="top">
+      <td><tt>test</tt></td>
+      <td>Runs unit tests.</td>
+    </tr>
+    <tr valign="top">
+      <td><tt>install</tt></td>
+      <td>Unix systems only. Causes the JE <tt>bin</tt>, <tt>lib</tt>,
+and <tt>docs</tt> directories to be installed to:<br>
+      <pre>   /usr/lib/JE.&lt;major&gt;.&lt;minor&gt;</pre>
+where &lt;major&gt; is the JE major release number, and &lt;minor&gt;
+is the JE minor release number.<br>
+      <br>
+If you do not want JE installed into <tt>/usr/lib</tt>, then you can
+change the base installation directory using <tt>-Dinstalldir</tt>.
+For example:<br>
+      <pre>  ant install -Dinstalldir=/usr/local</pre>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2><a name="JCA">Using JE with J2EE/JCA</a></h2>
+<p>
+JE can be used as a J2EE/JCA Resource Adapter.  It has been tested
+with JBoss 3.2.6 and Sun Java System Application Server 8.1.  For
+cookbook style "HOWTO's" using the JE J2EE/JCA Resource Adapter see <tt>
+JE_HOME/examples/jca/HOWTO-jboss.txt</tt> and <tt>JE_HOME/examples/jca/HOWTO-sjsas.txt</tt>.
+
+<h2><a name="JMX">Using JE with JMX</a></h2>
+<p>
+JE supplies a ready to install JMX (Java Management Extensions) MBean
+as well as support for adding JE monitoring to an application's custom
+MBean. See <tt>JE_HOME/examples/jmx/README.txt</tt>.
+<p>
+<font size="1"><a href="sleepycat/legal.html">Copyright (c) 1996-2006</a>
+Oracle Corporation. - All rights reserved.</font>
+</p>
+
+</body>
+</html>

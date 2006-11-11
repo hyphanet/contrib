@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Administrative Methods</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="DB.html" title="Chapter 3. Databases" />
+    <link rel="previous" href="DBConfig.html" title="Database Properties" />
+    <link rel="next" href="dbUsage.html" title="Database Example" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Administrative Methods</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="DBConfig.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Databases</th>
+          <td width="20%" align="right"> <a accesskey="n" href="dbUsage.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="DBAdmin"></a>Administrative Methods</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+        Both the <tt class="classname">Environment</tt> and
+        <tt class="classname">Database</tt> classes provide methods that are useful
+        for manipulating databases. These methods are:
+    </p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+              <tt class="methodname">Database.getDatabaseName()</tt>
+            </p>
+            <p>Returns the database's name.</p>
+            <a id="je_db3.1"></a>
+            <pre class="programlisting">String dbName = myDatabase.getDatabaseName();</pre>
+            <span>
+        </span>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">Database.getEnvironment()</tt>
+            </p>
+            <p>Returns the <tt class="classname">Environment</tt> that contains this database.</p>
+            <a id="je_db4"></a>
+            <pre class="programlisting">Environment theEnv = myDatabase.getEnvironment();</pre>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">Database.preload()</tt>
+            </p>
+            <p>Preloads the database into the in-memory cache. Optionally takes
+        a <tt class="literal">long</tt> that identifies the maximum number of bytes to load into the
+        cache. If this parameter is not supplied, the maximum memory usage
+        allowed by the evictor thread is used. 
+        </p>
+            <a id="je_db6"></a>
+            <pre class="programlisting">myDatabase.preload(1048576l); // 1024*1024</pre>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">Environment.getDatabaseNames()</tt>
+            </p>
+            <p>Returns a list of Strings of all the databases contained by the
+        environment.</p>
+            <a id="je_db7"></a>
+            <pre class="programlisting">import java.util.List;
+...
+List myDbNames = myDbEnv.getDatabaseNames();
+for(int i=0; i &lt; myDbNames.size(); i++) {
+    System.out.println(&quot;Database Name: &quot; + (String)myDbNames.get(i));
+}</pre>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">Environment.removeDatabase()</tt>
+            </p>
+            <p>Deletes the database. The database must be closed when you
+        perform this action on it.</p>
+            <a id="je_db8"></a>
+            <pre class="programlisting">String dbName = myDatabase.getDatabaseName();
+myDatabase.close();
+myDbEnv.removeDatabase(null, dbName);</pre>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">Environment.renameDatabase()</tt>
+            </p>
+            <p>Renames the database. The database must be closed when you
+        perform this action on it.</p>
+            <a id="je_db9"></a>
+            <pre class="programlisting">String oldName = myDatabase.getDatabaseName();   
+String newName = new String(oldName + &quot;.new&quot;, &quot;UTF-8&quot;);
+myDatabase.close();
+myDbEnv.renameDatabase(null, oldName, newName);</pre>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">Environment.truncateDatabase()</tt>
+            </p>
+            <p>
+            Deletes every record in the database and optionally returns the
+            number of records that were deleted. Note that it is much less
+            expensive to truncate a database without counting the number of
+            records deleted than it is to truncate and count.
+        </p>
+            <a id="je_db5"></a>
+            <pre class="programlisting">int numDiscarded = 
+    myEnv.truncate(null,                          // txn handle
+                   myDatabase.getDatabaseName(),  // database name
+                   true);                         // If true, then the 
+                                                  // number of records 
+                                                  // deleted are counted.
+System.out.println(&quot;Discarded &quot; + numDiscarded +
+                   &quot; records from database &quot; + 
+                   myDatabase.getDatabaseName()); </pre>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="DBConfig.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="DB.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="dbUsage.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Database Properties </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Database Example</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

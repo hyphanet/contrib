@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>
+    JE Exceptions</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="introduction.html" title="Chapter 1. Introduction to Berkeley DB Java Edition " />
+    <link rel="previous" href="gettingit.html" title="Getting and Using &#10;&#9;JE&#10;" />
+    <link rel="next" href="logfilesrevealed.html" title="Six Things Everyone Should Know about JE Log Files" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">
+    JE Exceptions</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="gettingit.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 1. Introduction to Berkeley DB Java Edition </th>
+          <td width="20%" align="right"> <a accesskey="n" href="logfilesrevealed.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="jeexceptions"></a>
+    JE Exceptions</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+    Before describing the Java API usage, it is first useful to examine  the
+    exceptions thrown by those APIs.  So, briefly, this section describes the
+    exceptions that you can expect to encounter when writing JE
+    applications.
+  </p>
+      <p>All of the JE APIs throw <tt class="classname">DatabaseException</tt>. 
+  <tt class="classname">DatabaseException</tt>
+  extends <tt class="classname">java.lang.Exception</tt>. Also, the following
+  classes are subclasses of <tt class="classname">DatabaseException</tt>:</p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+              <tt class="classname">DatabaseNotFoundException</tt>
+            </p>
+            <p>Thrown whenever an operation requires a database, and that
+      database cannot be found.</p>
+          </li>
+          <li>
+            <p>
+              <tt class="classname">DeadlockException</tt>
+            </p>
+            <p>Thrown whenever a transaction is selected to resolve a deadlock.
+      Upon receiving this exception, any open cursors must be closed and the
+      enclosing transaction aborted. Transactions are described in 
+      the <i class="citetitle">Berkeley DB Java Edition Getting Started with Transaction Processing</i> guide.
+      </p>
+          </li>
+          <li>
+            <p>
+              <tt class="classname">RunRecoveryException</tt>
+            </p>
+            <p>
+        Thrown whenever JE experiences a catastrophic error such that recovery needs to be run on the database. 
+    If you receive this exception, you must reopen your environment so as to allow normal recovery to run. 
+    See <a href="backuprestore.html#databaselogs">Databases and Log Files</a> for more information on how normal recovery
+    works.
+    </p>
+            <p>
+		Note that when reopening your environment, you should stop all database read and write activities, close all your
+		cursors, close all your databases, and then close and reopen your environment.
+	</p>
+          </li>
+        </ul>
+      </div>
+      <p>
+    Note that <tt class="classname">DatabaseException</tt> and its subclasses belong to the
+    <tt class="literal">com.sleepycat.je</tt> package.
+  </p>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="gettingit.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="introduction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="logfilesrevealed.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Getting and Using 
+	JE
+ </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Six Things Everyone Should Know about JE Log Files</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

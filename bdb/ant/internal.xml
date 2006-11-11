@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+
+<!-- =================================================== -->
+<!-- Internal build targets for Berkeley DB Java Edition -->
+<!-- =================================================== -->
+<!-- ============================================ -->
+
+<project name="JEInternal" default="jar" basedir=".">
+<description>Internal targets for JE</description>
+
+    <property name="regress.srcdir" value="${basedir}/test/regress"/>
+    <property name="regress.dir" value="${builddir}/test/regress"/>
+    <property name="regress.destdir" value="${regress.dir}/classes"/>
+    <property name="regress.datadir" value="${regress.dir}/data"/>
+    <property name="rpcserver.srcdir" value="${basedir}/test/rpcserver"/>
+    <property name="rpcserver.libdir" value="${rpcserver.srcdir}/lib"/>
+    <property name="rpcserver.builddir" value="${builddir}/test/rpcserver"/>
+    <property name="rpcserver.destdir" value="${rpcserver.builddir}/classes"/>
+
+
+    <path id="regress.classpath">
+      <pathelement location="${destdir}"/>
+      <pathelement location="."/>
+      <pathelement location="${unittest.destdir}"/>
+      <pathelement location="${regress.destdir}"/>
+    </path>
+
+    <path id="rpcserver.classpath">
+      <pathelement location="${destdir}"/>
+      <pathelement location="."/>
+      <pathelement path="${rpcserver.libdir}/oncrpc.jar"/>
+    </path>
+
+    <!-- bozo: duplicate of build.xml -->
+    <path id="clover.classpath">
+      <pathelement path="${clover.libdir}/clover.jar"/>
+      <pathelement path="${clover.libdir}/velocity.jar"/>
+    </path>
+
+    <!-- ============================================================ -->
+    <!-- Global Targets                                               -->
+    <!-- ============================================================ -->
+
+    <target name="init">
+        <mkdir dir="${regress.dir}"/>
+        <mkdir dir="${regress.destdir}"/>
+        <mkdir dir="${rpcserver.destdir}"/>
+        <mkdir dir="${rpcserver.srcdir}"/>
+    </target>
+
+    <target name="clean" depends="clean-regress,
+                                  clean-rpcserver"/>
+    <target name="compile" depends="compile-regress,
+                                    compile-rpcserver"/>
+
+    <target name="clean-regress" depends="init">
+        <delete dir="${regress.destdir}"/>
+        <mkdir dir="${regress.destdir}"/>
+    </target>
+
+    <!-- ============================================================ 
+         Internal Use Only: Regression       
+         Do one of the following:
+
+         ant regress -Dtestcase=com.sleepycat.je.recovery.XXXTest(run one test)
+         ant suite-regress -Dsuite=db   (run one package)
+	 ant regress                    (run all tests)               
+         ============================================================ -->
+    <target name="init-regress" depends="init">
+        <delete dir="${regress.datadir}"/>
+        <mkdir dir="${regress.datadir}"/>
+    </target>
+
+    <target name="compile-regress" depends="init-regress">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <property name="srcdir" value="${regress.srcdir}"/>
+            <property name="destdir" value="${regress.destdir}"/>
+            <reference refid="regress.classpath"
+	               torefid="compile.classpath"/>
+        </ant>
+    </target>
+
+    <target name="regress"
+            depends="compile-regress, all-regress, suite-regress"/>
+
+    <target name="all-regress">
+        <property name="allregress" value="true"/>
+    </target>
+
+    <target name="suite-regress" depends="compile-regress, init-regress">
+      <property name="start" value="0"/>
+      <junit printsummary="false"
+             errorProperty="regress.failed"
+             failureProperty="regress.failed"
+	     haltOnFailure="false"
+             fork="yes">
+        <jvmarg value="-ea"/>
+        <classpath refid="regress.classpath"/>
+        <classpath refid="clover.classpath"/>
+        <sysproperty key="testdestdir" value="${regress.destdir}"/>
+        <sysproperty key="txnnosync" value="true"/>
+        <sysproperty key="start" value="${start}"/>
+        <formatter type="plain" usefile="false"/>
+        <formatter type="xml"/>
+        <test name="${testcase}" todir="${regress.datadir}" if="testcase"/>
+        <batchtest todir="${regress.datadir}"
+                   if="allregress" unless="testcase">
+          <fileset dir="${regress.destdir}" includes="**/*Test.class"/>
+        </batchtest>
+	<batchtest todir="${regress.datadir}" if="suite">
+          <fileset dir="${regress.destdir}"
+                   includes="**/${suite}/*Test.class"/>
+         </batchtest>
+      </junit>
+
+      <fail message="Regression failed. Check log and/or reports."
+            if="regress.failed"/>
+    </target>
+
+    <!-- ============================================================ 
+         Internal Use Only: Rpcserver
+         ============================================================  -->
+
+    <target name="clean-rpcserver" depends="init">
+        <delete dir="${rpcserver.destdir}"/>
+        <mkdir dir="${rpcserver.destdir}"/>
+    </target>
+
+    <target name="compile-rpcserver">
+        <ant antfile="ant/compile.xml" dir="." inheritall="false">
+            <property name="srcdir" value="${rpcserver.srcdir}"/>
+            <property name="destdir" value="${rpcserver.destdir}"/>
+            <reference refid="rpcserver.classpath"
+	               torefid="compile.classpath"/>
+        </ant>
+    </target>
+
+
+
+
+</project>

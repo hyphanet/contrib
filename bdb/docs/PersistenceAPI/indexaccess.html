@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Accessing Indices</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with the Berkeley DB, Java Edition&#10;                  Direct Persistence Layer" />
+    <link rel="up" href="beginningApp.html" title="Chapter 3. Getting Going with the Direct Persistence Layer" />
+    <link rel="previous" href="entitystore.html" title="Entity Stores" />
+    <link rel="next" href="writingstores.html" title="Chapter 4. Writing to Entity Stores" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Accessing Indices</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="entitystore.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Getting Going with the Direct Persistence Layer</th>
+          <td width="20%" align="right"> <a accesskey="n" href="writingstores.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="indexaccess"></a>Accessing Indices</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+                Before we write the main parts of our example programs,
+                there is one last common piece of code that we need. Both
+                our examples are required to work with primary and secondary
+                indices contained within our
+                <tt class="classname">EntityStore</tt>. We could just refer to
+                these directly every time we need to access a primary or
+                secondary index, but instead we choose to encapsulate this
+                information in a class so as to share that code between the
+                applications.
+            </p>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="primaryindexaccess"></a>Accessing Primary Indices</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+                            You retrieve a primary index using the
+                            <tt class="methodname">EntityStore.getPrimaryIndex()</tt>
+                            method. To do this, you indicate the index key type
+                            (that is, whether it is a String, Integer, and
+                            so forth) and the class of the entities stored
+                            in the index.
+                    </p>
+        <p>
+                        For example, the following retrieves the
+                        primary index for the <tt class="classname">Inventory</tt>
+                        class. These index keys are of type
+                        <tt class="classname">String</tt>.
+                    </p>
+        <pre class="programlisting">PrimaryIndex&lt;String,Inventory&gt; inventoryBySku = 
+    store.getPrimaryIndex(String.class, Inventory.class); </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="secondaryindexaccess"></a>Accessing Secondary Indices</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+                            You retrieve a secondary index using the 
+                            <tt class="methodname">EntityStore.getSecondaryIndex()</tt>
+                            method. Because secondary indices actually
+                            refer to a primary index somewhere in your data
+                            store, to access a secondary index you:
+                    </p>
+        <div class="orderedlist">
+          <ol type="1">
+            <li>
+              <p>
+                                            Provide the primary index as
+                                            returned by
+                                            <tt class="methodname">EntityStore.getPrimaryIndex()</tt>.
+                                    </p>
+            </li>
+            <li>
+              <p>
+                                            Identify the key data type used by
+                                            the secondary index
+                                            (<tt class="classname">String</tt>,
+                                            <tt class="classname">Long</tt>,
+                                            and so forth).
+                                    </p>
+            </li>
+            <li>
+              <p>
+                                            Identify the name of the 
+                                            secondary key field. 
+                                            When you declare the
+                                            <tt class="classname">SecondaryIndex</tt>
+                                            object, you identify the entity class
+                                            to which the secondary index
+                                            must refer.
+                                    </p>
+            </li>
+          </ol>
+        </div>
+        <p>
+                        For example, the following first retrieves the
+                        primary index, and then uses that to retrieve a secondary
+                        index. The secondary key is held by the
+                        <tt class="literal">itemName</tt> field of the
+                        <tt class="classname">Inventory</tt> class.
+                    </p>
+        <pre class="programlisting">PrimaryIndex&lt;String,Inventory&gt; inventoryBySku = 
+store.getPrimaryIndex(String.class, Inventory.class); 
+
+SecondaryIndex&lt;String,String,Inventory&gt; inventoryByName = 
+    store.getSecondaryIndex(inventoryBySku, String.class, &quot;itemName&quot;); </pre>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="dataaccessorclass"></a>DataAccessor.class</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+                            Now that you understand how to retrieve primary
+                            and secondary indices, we can implement our
+                            <tt class="classname">DataAccessor</tt>
+                            class. Again, this class is shared by both our
+                            example programs and it is used to access the
+                            primary and secondary indices that our programs
+                            use.
+                    </p>
+        <p>
+                        If you compare this class against our
+                        <tt class="classname">Vendor</tt> and 
+                        <tt class="classname">Inventory</tt>
+                        class implementations, you will see that the
+                        primary and secondary indices declared there are
+                        referenced by this class.
+                    </p>
+        <p>
+                            See <a href="beginningApp.html#vendorclass">Vendor.class</a>
+                        and
+                        <a href="beginningApp.html#inventoryclass">Inventory.class</a>
+                        for those implementations.
+                    </p>
+        <pre class="programlisting">package persist.gettingStarted;
+
+import java.io.File;
+
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.SecondaryIndex;
+
+public class DataAccessor {
+    // Open the indices
+    public DataAccessor(EntityStore store)
+        throws DatabaseException {
+
+        // Primary key for Inventory classes
+        inventoryBySku = store.getPrimaryIndex(
+            String.class, Inventory.class);
+
+        // Secondary key for Inventory classes
+        // Last field in the getSecondaryIndex() method must be
+        // the name of a class member; in this case, an Inventory.class
+        // data member.
+        inventoryByName = store.getSecondaryIndex(
+            inventoryBySku, String.class, &quot;itemName&quot;);
+
+        // Primary key for Vendor class
+        vendorByName = store.getPrimaryIndex(
+            String.class, Vendor.class);
+    }
+
+    // Inventory Accessors
+    PrimaryIndex&lt;String,Inventory&gt; inventoryBySku;
+    SecondaryIndex&lt;String,String,Inventory&gt; inventoryByName;
+
+    // Vendor Accessors
+    PrimaryIndex&lt;String,Vendor&gt; vendorByName;
+} </pre>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="entitystore.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="beginningApp.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="writingstores.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Entity Stores </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Chapter 4. Writing to Entity Stores</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

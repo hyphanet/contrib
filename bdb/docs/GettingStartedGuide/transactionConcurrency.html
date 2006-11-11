@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Transactions and Concurrency</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="transaction.html" title="Chapter 7. Transactions" />
+    <link rel="previous" href="serializable.html" title="Configuring Serializable Isolation" />
+    <link rel="next" href="txnUsage.html" title="Transactions Example" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Transactions and Concurrency</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="serializable.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Transactions</th>
+          <td width="20%" align="right"> <a accesskey="n" href="txnUsage.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="transactionConcurrency"></a>Transactions and Concurrency</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+        Multi-threaded transactional systems measure the protection that they offer to 
+        the data accessed by their threads of control in terms of degrees or
+        levels of of isolation. Sleepycat supports the ANSI 4 levels of
+        isolation:
+    </p>
+      <div class="informaltable">
+        <table border="1" width="80%">
+          <colgroup>
+            <col />
+            <col />
+            <col />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Degree</th>
+              <th>ANSI Term</th>
+              <th>Definition</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>0</td>
+              <td>(undefined)</td>
+              <td>
+                    Degree 0 isolation means that one transaction will never
+                    overwrite another transaction's dirty data.  Dirty data is
+                    data that a transaction has modified but not yet committed
+                    to the underlying data store.
+                </td>
+            </tr>
+            <tr>
+              <td>1</td>
+              <td>READ UNCOMMITTED</td>
+              <td>
+                    Degree 1 isolation means that degree 0 is observed, plus a
+                    transaction is guaranteed to not commit any modifications
+                    until the transaction ends. Degree 1 also means that a transaction can read data modified but not
+                    yet committed by another transaction. For information on configuring uncommitted reads, see
+                    <a href="dirtyReads.html">Configuring Read Uncommitted Isolation</a>.
+                </td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>READ COMMITTED</td>
+              <td>
+                    Degree 2 isolation means that degree 1 is observed, plus no
+                    transaction will ever see data dirtied by another
+                    transaction. For information on configuring read committed isolation, see
+                    <a href="readcommitted.html">Configuring Read Committed Isolation</a>.
+                </td>
+            </tr>
+            <tr>
+              <td>(undefined)</td>
+              <td>REPEATABLE READ</td>
+              <td>
+                    Degree 2 is observed, plus the data read by a transaction, T,  
+                    will never be dirtied by another transaction before T completes.
+                    This is Sleepycat's default isolation level.
+                </td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>SERIALIZABLE</td>
+              <td>
+                    Degree 3 isolation means that Repeatable Read is observed, 
+                    plus no transactions will see phantoms. Phantoms are records 
+                    returned as a result of a search, but which were not seen by 
+                    the same transaction when the identical
+                    search criteria was previously used. For information on configuring
+                    serializable reads, see <a href="serializable.html">Configuring Serializable Isolation</a>.
+                </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="deadlockProtection"></a>Transactions and Deadlocks</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+        Transactions acquire locks on database records throughout their lifetimes, and they do not release 
+        those locks until commit or abort time. This is how JE provides isolation for its transactions.
+        When a transaction locks a record for write access, no other transaction can access that record for write (and by
+        default for read) until the lock is released. When a record is locked for read access, no other transaction can
+        lock it for write access.
+    </p>
+        <p>
+        The result of this locking activity is that two threads of control can
+        deadlock &#8211; that is, attempt to simultaneously lock the same record. When this happens, 
+        a <tt class="classname">DeadlockException</tt> is thrown for one of the deadlocked threads. 
+     </p>
+        <p>
+        When a thread catches a <tt class="classname">DeadlockException</tt>, then that thread must release its locks in order
+        to resolve the deadlock. The thread releases its locks by closing any cursors involved in the
+        transaction and then aborting the transaction. The thread may then optionally begin a new transaction and 
+        retry the operation that it just aborted.
+     </p>
+      </div>
+      <div class="sect2" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h3 class="title"><a id="concurrencyPerformance"></a>Performance Considerations</h3>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+        Any number of operations on any number of <tt class="classname">Database</tt> handles can be included in a single
+        transaction. When many operations are grouped together in a transaction, then that is considered to be a complex
+        transaction. There is a trade-off between the number of operations included in a complex transaction
+        and your application's throughput as well as the possibility of deadlock. 
+    </p>
+        <p>
+        Because transactions acquire locks throughout their lifetimes, the likelihood of a deadlock occurring increases
+        as the number of operations performed by a transaction increases. The likelihood of deadlock occurring also
+        increases as the number of threads performing database operations increases.
+        If your transactions become complex enough and the number of threads operating on your databases increases high
+        enough, your application can find itself spending more time resolving deadlocks that it does
+        performing useful work. 
+    </p>
+        <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+          <h3 class="title">Note</h3>
+          <p>
+        JE applications will only see deadlocks when multiple transactions
+        attempt simultaneous access of the same database records. JE performs record-level locking only. You can have
+        multiple simultaneous complex transactions without any deadlock concerns so long as the number of records
+        simultaneously accessed by those transactions is small.
+    </p>
+        </div>
+        <p>
+        On the other hand, a transaction commit usually results in synchronous disk I/O (this is not true for 
+        <tt class="methodname">Transaction.commitNoSync()</tt>  or
+        <tt class="methodname">Transaction.commitWriteNoSync()</tt>
+		&#8211; see <a href="commitAbort.html">Committing and Aborting Transactions</a> for details).
+        As a result, having longer-lived transactions or more operations in a transaction can improve your application's
+        performance by avoiding disk I/O. 
+    </p>
+        <p>
+        Obviously you will have to study the workload expected of your application in order to decide on how to best
+        resolve the trade-off between reduced disk I/O and the potential for deadlocks. Consider the following as you
+        study this problem:
+    </p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+                If you do decide to use complex transactions, then try to avoid running multiple complex transactions
+                that perform simultaneous access of the same database records. Instead, try to organize your transactions
+                so that they do not overlap in the records that they want to access. If this is not feasible, then limit
+                yourself to a small number of threads running complex transactions so as to avoid deadlock problems. How
+                many threads you can have accessing overlapping sets of database records will depend on the
+                length and complexity of your transactions. Ultimately, only performance and stress testing can help you
+                determine the mixture of numbers of threads versus transactional complexity that is
+                appropriate for your application.
+            </p>
+            </li>
+            <li>
+              <p>
+                Try to access your <tt class="classname">Database</tt> handles, and the records in your databases, in the
+                same order for all transactions. Accessing databases and records in different order in multiple
+                transactions greatly increases the likelihood of deadlocks.
+            </p>
+            </li>
+            <li>
+              <p>
+                Most likely your application will have at least one (and probably many) threads that perform read-only
+                operations. You should avoid using transactions for operations that just perform
+                reads as transactionally protecting read-only operations can cause performance problems. For example, a
+                transactionally protected cursor walking your database will eventually lock all of the records in your
+                database. In this situation, your other threads have to wait until the read-only transaction completes
+                before they can obtain a lock for their own operations.
+            </p>
+              <p>
+                Note, however, that read-only operations occurring in an application with one or more threads performing
+                writes should be prepared to catch and respond to deadlock exceptions. By default read-only operations
+                lock records that they are reading for the duration of that read. The exception to this is if you are
+                performing uncommitted reads. See <a href="dirtyReads.html">Configuring Read Uncommitted Isolation</a> for more information.  
+            </p>
+              <p>
+                Also, if your read operations are not transactionally protected, then there is no guarantee as to the
+                stability of the records read in the database. Repeatedly reading the same record can cause different
+                data to return if there are other threads writing and committing changes to the database. If your read
+                operations require stability for their reads, then you must transactionally protect them.
+            </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="serializable.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="transaction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="txnUsage.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Configuring Serializable Isolation </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Transactions Example</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

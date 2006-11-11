@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Configuring Serializable Isolation</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="transaction.html" title="Chapter 7. Transactions" />
+    <link rel="previous" href="readcommitted.html" title="Configuring Read Committed Isolation" />
+    <link rel="next" href="transactionConcurrency.html" title="Transactions and Concurrency" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Configuring Serializable Isolation</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="readcommitted.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 7. Transactions</th>
+          <td width="20%" align="right"> <a accesskey="n" href="transactionConcurrency.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="serializable"></a>Configuring Serializable Isolation</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>
+        You can configure JE to use serializable isolation
+        (see <a href="transactionConcurrency.html">Transactions and Concurrency</a>). 
+    
+        Serializable isolation prevents transactions from seeing
+        <span class="emphasis"><em>phantoms</em></span>. Phantoms occur when a transaction obtains
+        inconsistent results when performing a given query.
+    </p>
+      <p>
+        Suppose a transaction performs a search, S, and as a result of
+        that search NOTFOUND is returned. If you are using only repeatable read
+        isolation (the default isolation level), it is possible for the same
+        transaction to perform S at a later point in time and
+        return SUCCESS instead of NOTFOUND. This can occur if another thread of
+        control modified the database in such a way as to cause S to
+        successfully locate data, where before no data was found. 
+        When this situation occurs, the results
+        returned by S are said to be a <span class="emphasis"><em>phantom.</em></span>
+    </p>
+      <p>
+        To prevent phantoms, you can use serializable isolation. Note that this
+        causes JE to perform additional locking in order to prevent keys
+        from being inserted until the transaction ends. However, this additional
+        locking can also result in reduced concurrency for your application,
+        which means that your database access can be slowed.
+    </p>
+      <p>
+        You configure serializable isolation for all transactions in your
+        environment by using
+        <tt class="methodname">EnvironmentConfig.setTxnSerializableIsolation()</tt>:
+    </p>
+      <a id="je_txn_serializeable1"></a>
+      <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.LockMode;
+
+...
+
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Open an environment
+    EnvironmentConfig envConfig = new EnvironmentConfig();
+    envConfig.setAllowCreate(true);
+    envConfig.setTransactional(true);
+
+    // Use serializable isolation
+    envConfig.setTxnSerializableIsolation(true);     
+
+    myEnv = new Environment(myHomeDirectory, envConfig);
+
+    // Database open omitted
+
+    ...
+
+    txn = myEnv.beginTransaction(null, null);
+
+    DatabaseEntry theKey = 
+        new DatabaseEntry((new String(&quot;theKey&quot;)).getBytes(&quot;UTF-8&quot;));
+    DatabaseEntry theData = new DatabaseEntry();
+
+    myDb.get(txn, theKey, theData, LockMode.DEFAULT); 
+} catch (Exception e) {
+    // Exception handling goes here
+}
+</pre>
+      <p>
+        If you do not configure serializable isolation for all transactions, you
+        can configure serializable isolation for a specific transaction using
+        <tt class="methodname">TransactionConfig.setSerializableIsolation()</tt>:
+    </p>
+      <a id="je_txn_serializeable2"></a>
+      <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.LockMode;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.je.TransactionConfig;
+
+...
+
+Database myDb = null;
+Environment myEnv = null;
+Transaction txn = null;
+
+try {
+
+    // Environment and database open omitted
+
+    ...
+
+    TransactionConfig tc = new TransactionConfig();
+    tc.setSerializableIsolation(true); // Use serializable isolation
+    txn = myEnv.beginTransaction(null, tc);
+
+    DatabaseEntry theKey = 
+        new DatabaseEntry((new String(&quot;theKey&quot;)).getBytes(&quot;UTF-8&quot;));
+    DatabaseEntry theData = new DatabaseEntry();
+
+    myDb.get(txn, theKey, theData, LockMode.DEFAULT); 
+} catch (Exception e) {
+    // Exception handling goes here
+}</pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="readcommitted.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="transaction.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="transactionConcurrency.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Configuring Read Committed Isolation </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Transactions and Concurrency</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

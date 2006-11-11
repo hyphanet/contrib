@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Chapter 1. Introduction to Berkeley DB Java Edition </title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="previous" href="preface.html" title="Preface" />
+    <link rel="next" href="applicationoverview.html" title="The JE Application" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Chapter 1. Introduction to Berkeley DB Java Edition </th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="preface.html">Prev</a> </td>
+          <th width="60%" align="center"> </th>
+          <td width="20%" align="right"> <a accesskey="n" href="applicationoverview.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="chapter" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title"><a id="introduction"></a>Chapter 1. Introduction to Berkeley DB Java Edition </h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <div class="toc">
+        <p>
+          <b>Table of Contents</b>
+        </p>
+        <dl>
+          <dt>
+            <span class="sect1">
+              <a href="introduction.html#features">Features</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="applicationoverview.html">The JE Application</a>
+            </span>
+          </dt>
+          <dd>
+            <dl>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#dbIntro">Databases and Database Environments</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#recordsIntro">Database Records</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#storageretrievalIntro">Putting and Getting Database Records</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#duplicatesIntro">Duplicate Data</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#replacedeleteIntro">Replacing and Deleting Entries</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#secondary">Secondary Databases</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#transactionIntro">Transactions</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#resourcesIntro">JE Resources</a>
+                </span>
+              </dt>
+              <dt>
+                <span class="sect2">
+                  <a href="applicationoverview.html#applicationConsiderations">
+        Application Considerations
+       </a>
+                </span>
+              </dt>
+            </dl>
+          </dd>
+          <dt>
+            <span class="sect1">
+              <a href="restore.html">JE Backup and Restore</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="jca.html">JCA Support</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="jmx.html">JMX Support</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="gettingit.html">Getting and Using 
+	JE
+</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="jeexceptions.html">
+    JE Exceptions</a>
+            </span>
+          </dt>
+          <dt>
+            <span class="sect1">
+              <a href="logfilesrevealed.html">Six Things Everyone Should Know about JE Log Files</a>
+            </span>
+          </dt>
+        </dl>
+      </div>
+      <p>
+  Welcome to Berkeley DB Java Edition (JE).  JE is a general-purpose, transaction-protected, embedded database written in 100%
+  Java (JE makes no JNI calls). As such, it offers the Java developer safe and efficient in-process storage and
+  management of arbitrary data.
+  </p>
+      <p>JE requires Java J2SE 1.4.2 or later.</p>
+      <div class="note" style="margin-left: 0.5in; margin-right: 0.5in;">
+        <h3 class="title">Note</h3>
+        <p>
+          In addition to the APIs described in this book, JE also
+          offers the Direct Persistence Layer (DPL). The DPL is implemented as
+          a layer on top of JE. Using it, you can cause any Java type
+          to be persistent without implementing special interfaces.
+    </p>
+        <p>
+            We recommend that you use the
+            DPL if all you want is to make classes with
+            relatively static schemas to be persistent.
+    </p>
+        <p>
+            The only caveat to this recommendation is that the DPL
+            requires Java 1.5, while JE does not. If you want to
+            use Java 1.4, you must use the JE APIs.
+    </p>
+        <p>
+            You can find a brief introduction to the DPL
+            in the <i class="citetitle">Berkeley DB Java Edition Getting Started with the Direct Persistence Layer</i> guide.
+    </p>
+      </div>
+      <div class="sect1" lang="en" xml:lang="en">
+        <div class="titlepage">
+          <div>
+            <div>
+              <h2 class="title" style="clear: both"><a id="features"></a>Features</h2>
+            </div>
+          </div>
+          <div></div>
+        </div>
+        <p>
+        JE provides an enterprise-class Java-based data management solution. You use JE through a series of
+        Java APIs.  All you need to get started is to add a single jar file to your application's classpath. See
+        <a href="gettingit.html">Getting and Using 
+	JE
+</a> for more information.
+    </p>
+        <p>
+	JE offers the following major features:</p>
+        <div class="itemizedlist">
+          <ul type="disc">
+            <li>
+              <p>
+        Large database support.  JE databases efficiently scale from one to millions of records. 
+        The size of your JE databases are likely to be limited
+        more by hardware resources than by any limits imposed upon you by JE.
+        </p>
+              <p>Databases are described in <a href="DB.html">Databases</a>.</p>
+            </li>
+            <li>
+              <p>
+            Multiple thread and process support.  JE is designed for multiple threads of control.
+            Both read and write operations can be performed by multiple threads.  JE uses record-level locking for
+            high concurrency in threaded applications.  Further, JE uses
+            timeouts for deadlock detection to help you
+            ensure that two threads of control do not deadlock indefinitely.
+        </p>
+              <p>
+        Moreover, JE allows multiple processes to access the same databases. However, in this
+        configuration JE requires that there be no more than one process allowed to write to the
+        database. Read-only processes are guaranteed a consistent, although
+        potentially out of date, view of the stored data as of the time that the
+        environment is opened.
+        </p>
+            </li>
+            <li>
+              <p>Database records. All database records are organized as simple
+        key/data pairs. Both keys and data can be anything from primitive Java
+        types to the most complex of Java objects.
+        </p>
+              <p>Database records are described in <a href="DBEntry.html">Database Records</a>.</p>
+            </li>
+            <li>
+              <p>Transactions. Transactions allow you to treat one or more
+        operations on one or more databases as a single unit of work. 
+		JE transactions offer the application developer recoverability, atomicity, and
+        isolation for your database operations.
+        </p>
+              <p>Note that transaction protection is optional. Transactions are
+                described in the <i class="citetitle">Berkeley DB Java Edition Getting Started with Transaction Processing</i> guide.</p>
+            </li>
+            <li>
+              <p>Indexes.  JE allows you to easily create and maintain
+        secondary indices for your primary data through the use of secondary databases. 
+        In this way, you can obtain rapid access to your data through the use of an alternative, or secondary, key.
+        </p>
+              <p>Indexes are described in <a href="indexes.html">Secondary Databases</a>.</p>
+            </li>
+            <li>
+              <p>In-memory cache. The cache allows for high speed database access
+        for both read and write operations by avoiding unnecessary disk I/O.
+        The cache will grow on demand up to a pre-configured maximum size. To improve your application's
+        performance immediately after startup time, you can preload your cache in order to avoid disk I/O
+        for production requests of your data.
+        </p>
+              <p>Cache management is described in <a href="cachesize.html">Sizing the Cache</a>.</p>
+            </li>
+            <li>
+              <p>
+            Log files. JE databases are stored in one
+            or more sequential numerically-named log files in the environment
+            directory.  The log files are write-once and are
+            portable across platforms with different endian-ness.
+        </p>
+              <p>
+            Note that unlike other database implementations, there is no
+            distinction between database files (that is, the &quot;material
+            database&quot;) and log files. Instead JE employs a log-based storage
+            system to protect database modifications. Before any
+            change is made to a database, JE writes information about the
+            change to the log file.
+        </p>
+              <p>
+            Note that JE's log files are not binary compatible with Berkeley
+            DB's database files. However, both products provide dump and load
+            utilities, and the files that these operate on are compatible across
+            product lines.
+        </p>
+              <p>
+            JE's log files are described in more detail in 
+            <a href="backuprestore.html">Backing up and Restoring Berkeley DB Java Edition Applications</a>.
+            For information on using JE's dump and load utilities,
+            see <a href="commandlinetools.html">The Command Line Tools</a>.
+            Finally, for a short list of things to know about log files while you are learning JE,
+            see <a href="logfilesrevealed.html">Six Things Everyone Should Know about JE Log Files</a>.
+        </p>
+            </li>
+            <li>
+              <p>Background threads.  JE provides several threads that manage internal 
+        resources for you.  The checkpointer is responsible for flushing database data to disk that was
+        written to cache as the result of a transaction commit (this is done in order to shorten 
+        recovery time).  The compressor thread removes subtrees from the
+        database that are empty because of deletion activity. Finally,
+        the cleaner thread is responsible for cleaning and removing unneeded
+        log files, thereby helping you to save on disk space.</p>
+              <p>Background thread management is described in 
+        <a href="backgroundthreads.html">Managing the Background Threads</a>.
+        </p>
+            </li>
+            <li>
+              <p>Database environments. Database environments provide a unit of
+        encapsulation and management for one or more databases. In addition,
+        an environment is the unit of management for internal resources such
+        as the in-memory cache and the background threads. Environments are also
+        used to manage concurrency and transactions. Note that all
+        applications using JE are required to use database environments.</p>
+              <p>Database environments are described in <a href="Env.html">Database Environments</a>.</p>
+            </li>
+            <li>
+              <p>Backup and restore.  JE's backup procedure consists of simply copying JE's 
+        log files to a safe location for storage.
+        To recover from a catastrophic failure, you copy your archived log files 
+        back to your production location on
+        disk and reopen the JE environment.
+        </p>
+              <p>
+            Note that JE always performs <span class="emphasis"><em>normal recovery</em></span> when it opens a database environment.
+            Normal recovery brings the database to a consistent state based on change information found in the database
+            log files.
+        </p>
+              <p>
+		    JE's backup and recovery mechanisms are described in 
+            <a href="backuprestore.html">Backing up and Restoring Berkeley DB Java Edition Applications</a>.
+        </p>
+            </li>
+            <li>
+              <p>
+            JCA. JE provides support for the Java Connector Architecture. See
+            <a href="jca.html">JCA Support</a> for more information.
+        </p>
+            </li>
+            <li>
+              <p>
+            JMX. JE provides support for Java Management Extensions.
+            See <a href="jmx.html">JMX Support</a> for more information.
+        </p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="preface.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="index.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="applicationoverview.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Preface </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> The JE Application</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+    <title>Database Properties</title>
+    <link rel="stylesheet" href="gettingStarted.css" type="text/css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.62.4" />
+    <link rel="home" href="index.html" title="Getting Started with Berkeley DB Java Edition" />
+    <link rel="up" href="DB.html" title="Chapter 3. Databases" />
+    <link rel="previous" href="DB.html" title="Chapter 3. Databases" />
+    <link rel="next" href="DBAdmin.html" title="Administrative Methods" />
+  </head>
+  <body>
+    <div class="navheader">
+      <table width="100%" summary="Navigation header">
+        <tr>
+          <th colspan="3" align="center">Database Properties</th>
+        </tr>
+        <tr>
+          <td width="20%" align="left"><a accesskey="p" href="DB.html">Prev</a> </td>
+          <th width="60%" align="center">Chapter 3. Databases</th>
+          <td width="20%" align="right"> <a accesskey="n" href="DBAdmin.html">Next</a></td>
+        </tr>
+      </table>
+      <hr />
+    </div>
+    <div class="sect1" lang="en" xml:lang="en">
+      <div class="titlepage">
+        <div>
+          <div>
+            <h2 class="title" style="clear: both"><a id="DBConfig"></a>Database Properties</h2>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <p>You can set database properties using the <tt class="classname">DatabaseConfig</tt>
+    class. For each of the properties that you can set, there is a
+    corresponding getter method. Also, you can always retrieve the
+    <tt class="classname">DatabaseConfig</tt> object used by your database using
+    the <tt class="methodname">Database.getConfig()</tt> method.</p>
+      <p>The database properties that you can set are:</p>
+      <div class="itemizedlist">
+        <ul type="disc">
+          <li>
+            <p>
+              <tt class="methodname">DatabaseConfig.setAllowCreate()</tt>
+            </p>
+            <p>If <tt class="literal">true</tt>, the database is created when it is
+        opened. If false, the database open fails if the database does not
+        exist. This property has no meaning if the database currently exists.
+        Default is <tt class="literal">false</tt>.</p>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">DatabaseConfig.setBtreeComparator()</tt>
+            </p>
+            <p>Sets the class that is used to compare the keys found on two
+        database records. This class is used to determine the sort order for
+        two records in the database. By default, byte for byte comparison is
+        used.
+        For more information, see 
+        <span><a href="comparator.html">Using Comparators</a>.</span>
+        
+        </p>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">DatabaseConfig.setDuplicateComparator()</tt>
+            </p>
+            <p>
+            Sets the class that is used to compare two duplicate records in
+            the database.  For more information, see 
+            <span><a href="comparator.html">Using Comparators</a>.</span>
+            
+        </p>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">DatabaseConfig.setSortedDuplicates()</tt>
+            </p>
+            <p>If <tt class="literal">true</tt>, duplicate records are allowed in the
+        database.  If this value is <tt class="literal">false</tt>, then putting a duplicate record into the database
+        results in an error return from the put call.
+        Note that this property can be set only at database creation time. Default is <tt class="literal">false</tt>. 
+        </p>
+            <p>
+            Note that your database must not support duplicates if it is to be associated with one or more 
+            secondary indices. Secondaries are described in <a href="indexes.html">Secondary Databases</a>.
+        </p>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">DatabaseConfig.setExclusiveCreate()</tt>
+            </p>
+            <p>If <tt class="literal">true</tt>, the database open fails if the
+        database currently exists. That is, the open must result in the
+        creation of a new database. Default is <tt class="literal">false</tt>.</p>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">DatabaseConfig.setReadOnly()</tt>
+            </p>
+            <p>If true, the database is opened for read activities only.
+        Default is <tt class="literal">false</tt>.</p>
+          </li>
+          <li>
+            <p>
+              <tt class="methodname">DatabaseConfig.setTransactional()</tt>
+            </p>
+            <p>If true, the database supports transactions.
+        Default is <tt class="literal">false</tt>. Note that a database cannot support
+        transactions if the environment is non-transactional.</p>
+          </li>
+        </ul>
+      </div>
+      <p>For example:</p>
+      <a id="je_db3"></a>
+      <pre class="programlisting">package je.gettingStarted;
+
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+
+...
+// Environment open omitted for brevity
+...
+
+Database myDatabase = null;
+try {
+    DatabaseConfig dbConfig = new DatabaseConfig();
+    dbConfig.setAllowCreate(true);
+    dbConfig.setSortedDuplicates(true);
+    myDatabase = 
+        myDbEnv.openDatabase(null, 
+                             &quot;sampleDatabase&quot;, 
+                             dbConfig); 
+} catch (DatabaseException dbe) {
+    // Exception handling goes here.
+}</pre>
+    </div>
+    <div class="navfooter">
+      <hr />
+      <table width="100%" summary="Navigation footer">
+        <tr>
+          <td width="40%" align="left"><a accesskey="p" href="DB.html">Prev</a> </td>
+          <td width="20%" align="center">
+            <a accesskey="u" href="DB.html">Up</a>
+          </td>
+          <td width="40%" align="right"> <a accesskey="n" href="DBAdmin.html">Next</a></td>
+        </tr>
+        <tr>
+          <td width="40%" align="left" valign="top">Chapter 3. Databases </td>
+          <td width="20%" align="center">
+            <a accesskey="h" href="index.html">Home</a>
+          </td>
+          <td width="40%" align="right" valign="top"> Administrative Methods</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>
