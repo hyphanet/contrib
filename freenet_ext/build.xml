@@ -59,7 +59,10 @@
 	</target>
 	
 	<target name="wrapper" depends="init" description="Build the java wrapper">
-		<ant antfile="build.xml" dir="../wrapper/"/>
+		<ant antfile="build.xml" dir="../wrapper/">
+			<!-- detect it! -->
+			<property name="bits" value="32"/>
+		</ant>
 	</target>
 
 	<target name="clean" depends="distclean"/>
@@ -67,7 +70,10 @@
 	<target name="distclean" description="Cleanup the build directory">
 		<ant antfile="build.xml" target="clean" dir="../fec/common/"/>
 		<ant antfile="build.xml" target="clean" dir="../bdb/"/>
-		<ant antfile="build.xml" target="clean" dir="../wrapper/"/>
+		<ant antfile="build.xml" target="clean" dir="../wrapper/">
+			<!-- detect it! -->
+			<property name="bits" value="32"/>
+		</ant>
 		<delete dir="${build}"/>
 		<delete file="${jar.location}"/>
 	</target>
