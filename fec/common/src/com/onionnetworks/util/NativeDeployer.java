@@ -50,15 +50,13 @@ public class NativeDeployer {
 
 	public final static String OS_ARCH;
 	static {
-		if(System.getProperty("os.name").startsWith("Windows "))
-			OS_ARCH="win32-x32";
-		else{
-			if(System.getProperty("os.arch").toLowerCase().matches("(i?[x0-9]86_64|amd64)"))
-				OS_ARCH=System.getProperty("os.name").toLowerCase()+"-x86_64";
-			else if(System.getProperty("os.arch").toLowerCase().indexOf("86") != -1)
-				OS_ARCH=System.getProperty("os.name").toLowerCase()+"-x86";
-			else
-				OS_ARCH=System.getProperty("os.name").toLowerCase()+"-"+System.getProperty("os.arch").toLowerCase();
+		final String OS = System.getProperty("os.name").startsWith("Windows ") ? "win32" : System.getProperty("os.name").toLowerCase();
+		if(System.getProperty("os.arch").toLowerCase().matches("(i?[x0-9]86_64|amd64)"))
+			OS_ARCH=OS+"-x86_64";
+		else if(System.getProperty("os.arch").toLowerCase().indexOf("86") != -1)
+			OS_ARCH=OS+"-x86";
+		else
+			OS_ARCH=OS+"-"+System.getProperty("os.arch").toLowerCase();
 		}
 	}
 
