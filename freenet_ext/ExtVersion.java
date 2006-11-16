@@ -6,7 +6,7 @@ package freenet.node;
 public abstract class ExtVersion {
 
 	/** The build number of the current revision */
-	private static final int buildNumber = 6;
+	private static final int buildNumber = 8;
 
 	public static final int buildNumber() {
 		return buildNumber;
