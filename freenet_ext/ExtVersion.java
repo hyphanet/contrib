@@ -13,5 +13,9 @@ public abstract class ExtVersion {
 	}
 	
 	/** Revision number of Version.java as read from CVS */
-	public static final String cvsRevision = "@custom@";
+	private static final String cvsRevision = "@custom@";
+
+	public static final String cvsRevision() {
+		return cvsRevision;
+	}
 }
