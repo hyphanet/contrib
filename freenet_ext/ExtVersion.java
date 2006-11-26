@@ -6,16 +6,24 @@ package freenet.node;
 public abstract class ExtVersion {
 
 	/** The build number of the current revision */
-	private static final int buildNumber = 8;
+	private static final int buildNumber = 8;  // This is the freenet-ext.jar build the node was built with
 
 	public static final int buildNumber() {
+		return -42;  // This value indicates that the freenet-ext.jar the node is using at runtime has extBuildNumber() and extRevisionNumber() methods
+	}
+
+	public static final int extBuildNumber() {  // This returns the freenet-ext.jar build the node is using at runtime
 		return buildNumber;
 	}
 	
-	/** Revision number of Version.java as read from CVS */
-	public static final String cvsRevision = "-2";
+	/** Revision number of ExtVersion.java as read from SVN */
+	public static final String cvsRevision = "11056M";  // This is the freenet-ext.jar revision the node was built with
 
-	public static final String cvsRevision() {
-		return "@custom@";
+	public static final String cvsRevision() {  // This method is here for backwards compatability with a few node testing builds between 999 and 1000
+		return cvsRevision;
+	}
+
+	public static final String extRevisionNumber() {  // This returns the freenet-ext.jar revision the node is using at runtime
+		return cvsRevision;
 	}
 }
