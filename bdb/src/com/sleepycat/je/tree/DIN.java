@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DIN.java,v 1.74 2006/09/12 19:16:56 cwl Exp $
+ * $Id: DIN.java,v 1.78 2006/11/17 23:47:27 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -236,6 +235,7 @@ public final class DIN extends IN {
         long oldLsn = dupCountLNRef.getLsn();
         lockResult.setAbortLsn(oldLsn, dupCountLNRef.isKnownDeleted());
         DupCountLN dupCountLN = getDupCountLN();
+        int oldSize = dupCountLN.getTotalLastLoggedSize(key);
         if (increment) {
             dupCountLN.incDupCount();
         } else {
@@ -244,7 +244,7 @@ public final class DIN extends IN {
         }
         DatabaseImpl db = getDatabase();
         long newCountLSN = dupCountLN.optionalLog
-            (db.getDbEnvironment(), db, key, oldLsn, locker);
+            (db.getDbEnvironment(), db, key, oldLsn, oldSize, locker);
         updateDupCountLNRef(newCountLSN);
             
     }
@@ -338,6 +338,7 @@ public final class DIN extends IN {
 			       boolean allowDeltas,
 			       boolean isProvisional,
                                boolean proactiveMigration,
+                               boolean backgroundIO,
                                IN parent)
         throws DatabaseException {
 
@@ -350,13 +351,15 @@ public final class DIN extends IN {
 
                 /* 
                  * If deferred write, write any dirty LNs now. The old LSN
-                 * field is null, a  no-opt in non-txnal deferred write mode.
+                 * is NULL_LSN, a no-opt in non-txnal deferred write mode.
                  */
                 long newLsn = dupCntLN.log(envImpl,
                                            getDatabaseId(),
                                            dupKey,
-                                           DbLsn.NULL_LSN,/* old lsn */
-                                           null);         /* locker */
+                                           DbLsn.NULL_LSN,// old lsn
+                                           0,             // obsolete size
+                                           null,          // locker
+                                           false);        // backgroundIO
                 dupCountLNRef.setLsn(newLsn);
             } else {
 
@@ -372,7 +375,7 @@ public final class DIN extends IN {
 
         return super.logInternal
             (logManager, allowDeltas, isProvisional, proactiveMigration,
-             parent);
+             backgroundIO, parent);
     }
 
     /**

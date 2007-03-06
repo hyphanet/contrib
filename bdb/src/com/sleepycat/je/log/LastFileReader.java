@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LastFileReader.java,v 1.45 2006/09/12 19:16:51 cwl Exp $
+ * $Id: LastFileReader.java,v 1.47 2006/11/27 18:38:25 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -57,8 +56,8 @@ public class LastFileReader extends FileReader {
         lastOffsetSeen = new HashMap();
 
         lastValidOffset = 0;
-        nextUnprovenOffset = 0;
 	anticipateChecksumErrors = true;
+        nextUnprovenOffset = nextEntryOffset;
     }
 
     /**
@@ -78,8 +77,8 @@ public class LastFileReader extends FileReader {
         lastOffsetSeen = new HashMap();
 
         lastValidOffset = 0;
-        nextUnprovenOffset = 0;
 	anticipateChecksumErrors = true;
+        nextUnprovenOffset = nextEntryOffset;
     }
 
     /**
@@ -114,16 +113,19 @@ public class LastFileReader extends FileReader {
                     /*
                      * Check the size of this file. If it opened successfully
                      * but only held a header or is 0 length, backup to the
-                     * next "last" file. Note that an incomplete header will
-                     * end up throwing a checksum exception, but a 0 length
-                     * file will open successfully in read only mode.
+                     * next "last" file unless this is the only file in the
+                     * log. Note that an incomplete header will end up throwing
+                     * a checksum exception, but a 0 length file will open
+                     * successfully in read only mode.
                      */
                     fileLen = fileHandle.getFile().length();
                     if (fileLen <= FileManager.firstLogEntryOffset()) {
                         lastNum = fileManager.getFollowingFileNum
 			    (lastNum.longValue(), false);
-                        fileHandle.release();
-                        fileHandle = null;
+                        if (lastNum != null) {
+                            fileHandle.release();
+                            fileHandle = null;
+                        }
                     }
                 } catch (DatabaseException e) {
                     lastNum = attemptToMoveBadFile(e);
@@ -239,7 +241,6 @@ public class LastFileReader extends FileReader {
         throws DatabaseException, IOException {
 
         boolean foundEntry = false;
-        nextUnprovenOffset = nextEntryOffset;
 
         try {
 
@@ -260,6 +261,7 @@ public class LastFileReader extends FileReader {
              * we're at a file with a valid file header entry.
              */
             lastValidOffset = currentEntryOffset;
+            nextUnprovenOffset = nextEntryOffset;
         } catch (DbChecksumException e) {
             Tracer.trace(Level.INFO,
                          env, "Found checksum exception while searching " +
@@ -267,7 +269,7 @@ public class LastFileReader extends FileReader {
                          DbLsn.toString
 			 (DbLsn.makeLsn(readBufferFileNum, lastValidOffset)) +
                          " Bad entry is at " +
-                         DbLsn.makeLsn(readBufferFileNum, currentEntryOffset));
+                         DbLsn.makeLsn(readBufferFileNum, nextUnprovenOffset));
         }
         return foundEntry;
     }

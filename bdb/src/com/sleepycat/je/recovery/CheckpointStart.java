@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: CheckpointStart.java,v 1.26 2006/09/12 19:16:53 cwl Exp $
+ * $Id: CheckpointStart.java,v 1.27 2006/10/30 21:14:22 bostic Exp $
  */
 
 package com.sleepycat.je.recovery;

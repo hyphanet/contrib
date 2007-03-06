@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: MapLN.java,v 1.66 2006/09/12 19:16:56 cwl Exp $
+ * $Id: MapLN.java,v 1.68 2006/11/17 23:47:28 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -131,11 +130,27 @@ public final class MapLN extends LN {
     }
 
     /**
+     * Overrides this method in order to get the true last logged size of the
+     * DatabaseImpl, which is specially computed by calling
+     * Tree.getLastLoggedSize().
+     *
+     * @see LN#getLastLoggedSize
+     */
+    public int getLastLoggedSize() {
+        return getLogSizeInternal(true);
+    }
+
+    /**
      * @see LN#getLogSize
      */
     public int getLogSize() {
+        return getLogSizeInternal(false);
+    }
+
+    private int getLogSizeInternal(boolean lastLogged) {
         return super.getLogSize() +
-            databaseImpl.getLogSize() +
+            (lastLogged ? databaseImpl.getLastLoggedSize()
+                        : databaseImpl.getLogSize()) +
             LogUtils.getBooleanLogSize();
     }
 

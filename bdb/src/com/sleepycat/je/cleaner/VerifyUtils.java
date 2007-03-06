@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2006 Oracle.  All rights reserved.
  *
- * $Id: VerifyUtils.java,v 1.5 2006/09/12 19:16:43 cwl Exp $
+ * $Id: VerifyUtils.java,v 1.8 2006/11/03 03:07:48 mark Exp $
  */
 
 package com.sleepycat.je.cleaner; 
@@ -23,6 +22,7 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.SortedLSNTreeWalker;
 import com.sleepycat.je.dbi.SortedLSNTreeWalker.TreeNodeProcessor;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
@@ -156,7 +156,10 @@ public class VerifyUtils {
     private static class GatherLSNs implements TreeNodeProcessor {
         private Set lsns = new HashSet();
     
-        public void processLSN(long childLSN, LogEntryType childType)
+        public void processLSN(long childLSN,
+			       LogEntryType childType,
+			       Node ignore,
+			       byte[] ignore2)
 	    throws DatabaseException {
 
             lsns.add(new Long(childLSN));

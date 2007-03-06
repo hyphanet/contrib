@@ -1,18 +1,17 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentConfig.java,v 1.32 2006/09/12 19:16:42 cwl Exp $
+ * $Id: EnvironmentConfig.java,v 1.35 2006/11/20 15:46:58 cwl Exp $
  */
 
 package com.sleepycat.je;
 
 import java.util.Properties;
 
-import com.sleepycat.je.config.ConfigParam;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DbConfigManager;
 
 /**
  * Javadoc for this public class is generated
@@ -23,7 +22,7 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      * For internal use, to allow null as a valid value for
      * the config parameter.
      */
-    static EnvironmentConfig DEFAULT = new EnvironmentConfig();
+    public static final EnvironmentConfig DEFAULT = new EnvironmentConfig();
 
     /**
      * For unit testing, to prevent creating the utilization profile DB.
@@ -87,7 +86,10 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
     public void setLockTimeout(long timeout) 
         throws IllegalArgumentException {
 
-        setVal(EnvironmentParams.LOCK_TIMEOUT, Long.toString(timeout));
+        DbConfigManager.setVal(props,
+                               EnvironmentParams.LOCK_TIMEOUT,
+                               Long.toString(timeout), 
+                               validateParams);
     }
 
     /**
@@ -96,7 +98,8 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public long getLockTimeout() {
 
-        String val = getVal(EnvironmentParams.LOCK_TIMEOUT);
+        String val = DbConfigManager.getVal(props,
+                                            EnvironmentParams.LOCK_TIMEOUT);
         long timeout = 0;
         try {
             timeout = Long.parseLong(val);
@@ -113,7 +116,10 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public void setReadOnly(boolean readOnly) {
 
-        setVal(EnvironmentParams.ENV_RDONLY, Boolean.toString(readOnly));
+        DbConfigManager.setVal(props,
+                               EnvironmentParams.ENV_RDONLY,
+                               Boolean.toString(readOnly),
+                               validateParams);
     } 
 
     /**
@@ -122,7 +128,8 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public boolean getReadOnly() {
 
-        String val = getVal(EnvironmentParams.ENV_RDONLY);
+        String val = DbConfigManager.getVal(props,
+                                            EnvironmentParams.ENV_RDONLY);
         return (Boolean.valueOf(val)).booleanValue();
     } 
 
@@ -132,8 +139,10 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public void setTransactional(boolean transactional) {
 
-        setVal(EnvironmentParams.ENV_INIT_TXN,
-	       Boolean.toString(transactional));
+        DbConfigManager.setVal(props,
+                               EnvironmentParams.ENV_INIT_TXN,
+                               Boolean.toString(transactional),
+                               validateParams);
     } 
 
     /**
@@ -142,7 +151,8 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public boolean getTransactional() {
 
-        String val = getVal(EnvironmentParams.ENV_INIT_TXN);
+        String val = DbConfigManager.getVal(props,
+                                            EnvironmentParams.ENV_INIT_TXN);
         return (Boolean.valueOf(val)).booleanValue();
     }
 
@@ -152,8 +162,10 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public void setLocking(boolean locking) {
 
-        setVal(EnvironmentParams.ENV_INIT_LOCKING,
-	       Boolean.toString(locking));
+        DbConfigManager.setVal(props,
+                               EnvironmentParams.ENV_INIT_LOCKING,
+                               Boolean.toString(locking),
+                               validateParams);
     } 
 
     /**
@@ -162,7 +174,8 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public boolean getLocking() {
 
-        String val = getVal(EnvironmentParams.ENV_INIT_LOCKING);
+        String val =
+            DbConfigManager.getVal(props, EnvironmentParams.ENV_INIT_LOCKING);
         return (Boolean.valueOf(val)).booleanValue();
     }
 
@@ -173,7 +186,10 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
     public void setTxnTimeout(long timeout) 
         throws IllegalArgumentException {
 
-        setVal(EnvironmentParams.TXN_TIMEOUT, Long.toString(timeout));
+        DbConfigManager.setVal(props,
+                               EnvironmentParams.TXN_TIMEOUT,
+                               Long.toString(timeout),
+                               validateParams);
     }
 
     /**
@@ -182,7 +198,8 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public long getTxnTimeout() {
 
-        String val = getVal(EnvironmentParams.TXN_TIMEOUT);
+        String val = DbConfigManager.getVal(props,
+                                            EnvironmentParams.TXN_TIMEOUT);
         long timeout = 0;
         try {
             timeout = Long.parseLong(val);
@@ -199,8 +216,10 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public void setTxnSerializableIsolation(boolean txnSerializableIsolation) {
         
-        setVal(EnvironmentParams.TXN_SERIALIZABLE_ISOLATION,
-	       Boolean.toString(txnSerializableIsolation));
+        DbConfigManager.setVal(props,
+                               EnvironmentParams.TXN_SERIALIZABLE_ISOLATION,
+                               Boolean.toString(txnSerializableIsolation),
+                               validateParams);
     } 
 
     /**
@@ -209,7 +228,9 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
      */
     public boolean getTxnSerializableIsolation() {
 
-        String val = getVal(EnvironmentParams.TXN_SERIALIZABLE_ISOLATION);
+        String val =
+            DbConfigManager.getVal(props,
+                                   EnvironmentParams.TXN_SERIALIZABLE_ISOLATION);
         return (Boolean.valueOf(val)).booleanValue();
     } 
 
@@ -253,18 +274,12 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
 			       String value) 
         throws IllegalArgumentException {
 
-        /* Override this method to allow setting immutable properties. */
-        
-        /* Is this a valid property name? */
-        ConfigParam param =
-            (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(paramName);
-        if (param == null) {
-            throw new IllegalArgumentException
-		(paramName +
-		 " is not a valid BDBJE environment configuration");
-        }
-
-        setVal(param, value);
+        DbConfigManager.setConfigParam(props,
+                                       paramName,
+                                       value,
+                                       false, /* requireMutablity */
+                                       validateParams,
+                                       false  /* forReplication */);
     }
 
     /**

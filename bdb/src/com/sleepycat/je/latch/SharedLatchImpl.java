@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SharedLatchImpl.java,v 1.7 2006/09/12 19:16:50 cwl Exp $
+ * $Id: SharedLatchImpl.java,v 1.9 2006/11/02 23:28:55 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -123,7 +122,7 @@ public class SharedLatchImpl implements SharedLatch {
 	}
     }
 
-    public boolean acquireExclusiveNoWait()
+    public synchronized boolean acquireExclusiveNoWait()
 	throws DatabaseException {
 
         try {

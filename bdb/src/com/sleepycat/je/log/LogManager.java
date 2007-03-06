@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LogManager.java,v 1.155 2006/09/12 19:16:52 cwl Exp $
+ * $Id: LogManager.java,v 1.162 2006/11/27 23:15:03 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -26,6 +25,7 @@ import com.sleepycat.je.cleaner.UtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.dbi.Operation;
 import com.sleepycat.je.latch.Latch;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.log.entry.LogEntry;
@@ -45,7 +45,7 @@ abstract public class LogManager {
     /*
      * Log entry header field sizes
      */
-    static final int HEADER_BYTES = 14;            // size of entry header
+    public static final int HEADER_BYTES = 14;     // size of entry header
     static final int CHECKSUM_BYTES = 4;           // size of checksum field
     static final int PREV_BYTES = 4;               // size of previous field
     static final int HEADER_CONTENT_BYTES =
@@ -54,13 +54,12 @@ abstract public class LogManager {
     static final int HEADER_ENTRY_TYPE_OFFSET = 4;
     static final int HEADER_VERSION_OFFSET = 5;
     static final int HEADER_PREV_OFFSET = 6;
-    static final int HEADER_SIZE_OFFSET = 10;
+    public static final int HEADER_SIZE_OFFSET = 10;
 
     protected LogBufferPool logBufferPool; // log buffers
     protected Latch logWriteLatch;           // synchronizes log writes
     private boolean doChecksumOnRead;      // if true, do checksum on read
     private FileManager fileManager;       // access to files
-    private CheckpointMonitor checkpointMonitor;
     protected EnvironmentImpl envImpl;
     private boolean readOnly;
     private int readBufferSize; // how many bytes to read when faulting in.
@@ -105,7 +104,6 @@ abstract public class LogManager {
         logWriteLatch = LatchSupport.makeLatch(DEBUG_NAME, envImpl);
         readBufferSize =
 	    configManager.getInt(EnvironmentParams.LOG_FAULT_READ_SIZE);
-        checkpointMonitor = new CheckpointMonitor(envImpl);
     }
 
     public boolean getChecksumOnRead() {
@@ -149,7 +147,9 @@ abstract public class LogManager {
                    true,  // flush required
                    fsyncRequired,
 		   false, // forceNewLogFile
-                   DbLsn.NULL_LSN); // oldNodeLsn, for obsolete counting.
+		   false, // backgroundIO
+                   DbLsn.NULL_LSN,  // old lsn
+                   0);              // old size
     }
 
     /**
@@ -166,7 +166,9 @@ abstract public class LogManager {
                    true,  // flush required
                    false, // fsync required
 		   true,  // forceNewLogFile
-                   DbLsn.NULL_LSN); // oldNodeLsn, for obsolete counting.
+		   false, // backgroundIO
+                   DbLsn.NULL_LSN,  // old lsn
+                   0);              // old size
     }
 
     /**
@@ -181,7 +183,9 @@ abstract public class LogManager {
                    false,           // flush required
                    false,           // fsync required
 		   false,           // forceNewLogFile
-                   DbLsn.NULL_LSN); // old lsn
+		   false,           // backgroundIO
+                   DbLsn.NULL_LSN,  // old lsn
+                   0);              // old size
     }
 
     /**
@@ -190,7 +194,9 @@ abstract public class LogManager {
      */
     public long log(LoggableObject item,
 		    boolean isProvisional,
-		    long oldNodeLsn)
+		    boolean backgroundIO,
+		    long oldNodeLsn,
+                    int oldNodeSize)
 	throws DatabaseException {
 
         return log(item,
@@ -198,7 +204,9 @@ abstract public class LogManager {
                    false, // flush required
                    false, // fsync required
 		   false, // forceNewLogFile
-                   oldNodeLsn);
+		   backgroundIO,
+                   oldNodeLsn,
+                   oldNodeSize);
     }
 
     /**
@@ -209,8 +217,15 @@ abstract public class LogManager {
      * @param flushRequired if true, write the log to the file after
      * adding the item. i.e. call java.nio.channel.FileChannel.write().
      * @param fsyncRequired if true, fsync the last file after adding the item.
+     * @param forceNewLogFile if true, flip to a new log file before logging
+     * the item.
+     * @param backgroundIO if true, sleep when the backgroundIOLimit is
+     * exceeded.
      * @param oldNodeLsn is the previous version of the node to be counted as
-     * obsolete, or null if the item is not a node or has no old LSN.
+     * obsolete, or NULL_LSN if the item is not a node or has no old LSN.
+     * @param oldNodeSize is the log size of the previous version of the node
+     * when oldNodeLsn is not NULL_LSN and the old node is an LN.  For old INs,
+     * zero must be specified.
      * @return LSN of the new log entry
      */
     private long log(LoggableObject item,
@@ -218,7 +233,9 @@ abstract public class LogManager {
                      boolean flushRequired,
                      boolean fsyncRequired,
 		     boolean forceNewLogFile,
-                     long oldNodeLsn)
+		     boolean backgroundIO,
+                     long oldNodeLsn,
+                     int oldNodeSize)
 	throws DatabaseException {
 
 	if (readOnly) {
@@ -247,7 +264,7 @@ abstract public class LogManager {
             }
 
             logResult = logItem(item, isProvisional, flushRequired,
-                                forceNewLogFile, oldNodeLsn,
+                                forceNewLogFile, oldNodeLsn, oldNodeSize,
                                 marshallOutsideLatch, marshalledBuffer,
                                 tracker);
 
@@ -291,11 +308,15 @@ abstract public class LogManager {
          * Periodically, as a function of how much data is written, ask the
 	 * checkpointer or the cleaner to wake up.
          */
-        if (logResult.wakeupCheckpointer) {
-            checkpointMonitor.activate();
-        }
+        envImpl.getCheckpointer().wakeupAfterWrite();
         if (logResult.wakeupCleaner) {
             tracker.activateCleaner();
+        }
+
+        /* Update background writes. */
+        if (backgroundIO) {
+            envImpl.updateBackgroundWrites
+                (logResult.entrySize, logBufferPool.getLogBufferSize());
         }
 
         return logResult.currentLsn;
@@ -306,6 +327,7 @@ abstract public class LogManager {
                                          boolean flushRequired,
 					 boolean forceNewLogFile,
                                          long oldNodeLsn,
+                                         int oldNodeSize,
                                          boolean marshallOutsideLatch,
                                          ByteBuffer marshalledBuffer,
                                          UtilizationTracker tracker)
@@ -319,6 +341,7 @@ abstract public class LogManager {
                                     boolean flushRequired,
 				    boolean forceNewLogFile,
                                     long oldNodeLsn,
+                                    int oldNodeSize,
                                     boolean marshallOutsideLatch,
                                     ByteBuffer marshalledBuffer,
                                     UtilizationTracker tracker)
@@ -332,7 +355,7 @@ abstract public class LogManager {
          */
         LogEntryType entryType = item.getLogType();
         if (oldNodeLsn != DbLsn.NULL_LSN) {
-            tracker.countObsoleteNode(oldNodeLsn, entryType);
+            tracker.countObsoleteNode(oldNodeLsn, entryType, oldNodeSize);
         }
 
         /*
@@ -381,7 +404,8 @@ abstract public class LogManager {
              * are obsolete.
              */
             if (item.countAsObsoleteWhenLogged()) {
-                tracker.countObsoleteNodeInexact(currentLsn, entryType);
+                tracker.countObsoleteNodeInexact
+                    (currentLsn, entryType, entrySize);
             }
 
             /* 
@@ -441,6 +465,20 @@ abstract public class LogManager {
             } finally {
                 useLogBuffer.release();
             }
+
+            /* 
+             * If this is a replicated log entry and this site is part of a
+             * replication group, send this operation to other sites.
+             * The replication logic takes care of deciding whether this site
+             * is a master.
+             */
+            if (envImpl.isReplicated()) {
+                if (item.getLogType().isReplicated()) {
+                    envImpl.getReplicator().replicateOperation(
+                                        Operation.PLACEHOLDER,
+                                        marshalledBuffer);
+                }
+            }
 	    success = true;
         } finally {
 	    if (!success) {
@@ -479,10 +517,7 @@ abstract public class LogManager {
          */
         item.postLogWork(currentLsn);
 
-        boolean wakeupCheckpointer =
-            checkpointMonitor.recordLogWrite(entrySize, item);
-
-        return new LogResult(currentLsn, wakeupCheckpointer, wakeupCleaner);
+        return new LogResult(currentLsn, wakeupCleaner, entrySize);
     }
 
     /**
@@ -734,8 +769,9 @@ abstract public class LogManager {
 
     /**
      * Find the LSN, whether in a file or still in the log buffers.
+     * Is public for unit testing.
      */
-    private LogSource getLogSource(long lsn)
+    public LogSource getLogSource(long lsn)
         throws DatabaseException {
 
         /*
@@ -766,12 +802,21 @@ abstract public class LogManager {
     public void flush()
 	throws DatabaseException {
 
-	if (readOnly) {
-	    return;
+	if (!readOnly) {
+            flushInternal();
+            fileManager.syncLogEnd();
 	}
+    }
 
-        flushInternal();
-        fileManager.syncLogEnd();
+    /**
+     * May be used to avoid sync to speed unit tests.
+     */
+    public void flushNoSync()
+	throws DatabaseException {
+
+	if (!readOnly) {
+            flushInternal();
+	}
     }
 
     abstract protected void flushInternal()
@@ -811,15 +856,18 @@ abstract public class LogManager {
      * because the log write latch is managed here, and all utilization
      * counting must be performed under the log write latch.
      */
-    abstract public void countObsoleteNode(long lsn, LogEntryType type)
+    abstract public void countObsoleteNode(long lsn,
+                                           LogEntryType type,
+                                           int size)
         throws DatabaseException;
 
     protected void countObsoleteNodeInternal(UtilizationTracker tracker,
                                              long lsn,
-                                             LogEntryType type)
+                                             LogEntryType type,
+                                             int size)
         throws DatabaseException {
         
-        tracker.countObsoleteNode(lsn, type);
+        tracker.countObsoleteNode(lsn, type, size);
     }
 
     /**
@@ -851,7 +899,8 @@ abstract public class LogManager {
 
         for (int i = 0; i < lsnList.size(); i += 1) {
             Long offset = (Long) lsnList.get(i);
-            tracker.countObsoleteNode(offset.longValue(), LogEntryType.LOG_IN);
+            tracker.countObsoleteNode
+                (offset.longValue(), LogEntryType.LOG_IN, 0);
         }
     }
 
@@ -865,15 +914,15 @@ abstract public class LogManager {
      */
     static class LogResult {
         long currentLsn;
-        boolean wakeupCheckpointer;
         boolean wakeupCleaner;
+        int entrySize;
 
         LogResult(long currentLsn,
-                  boolean wakeupCheckpointer,
-                  boolean wakeupCleaner) {
+                  boolean wakeupCleaner,
+                  int entrySize) {
             this.currentLsn = currentLsn;
-            this.wakeupCheckpointer = wakeupCheckpointer;
             this.wakeupCleaner = wakeupCleaner;
+            this.entrySize = entrySize;
         }
     }
 }

@@ -1,16 +1,16 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: EvolveClasses.java,v 1.7 2006/09/22 05:28:52 mark Exp $
+ * $Id: EvolveClasses.java,v 1.11 2006/11/15 00:17:08 mark Exp $
  */
 package com.sleepycat.persist.test;
 
 import static com.sleepycat.persist.model.Relationship.ONE_TO_ONE;
 import static com.sleepycat.persist.model.Relationship.MANY_TO_ONE;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -106,32 +106,36 @@ if (true) {
         ALL.add(DisallowNonKeyField_Long2long.class);
         ALL.add(DisallowNonKeyField_Float2float.class);
         ALL.add(DisallowNonKeyField_Double2double.class);
+        ALL.add(DisallowNonKeyField_float2BigInt.class);
+        ALL.add(DisallowNonKeyField_BigInt2long.class);
         ALL.add(DisallowSecKeyField_byte2short.class);
         ALL.add(DisallowSecKeyField_char2int.class);
         ALL.add(DisallowSecKeyField_short2int.class);
         ALL.add(DisallowSecKeyField_int2long.class);
         ALL.add(DisallowSecKeyField_long2float.class);
         ALL.add(DisallowSecKeyField_float2double.class);
-        ALL.add(DisallowSecKeyField_Byte2short.class);
+        ALL.add(DisallowSecKeyField_Byte2short2.class);
         ALL.add(DisallowSecKeyField_Character2int.class);
-        ALL.add(DisallowSecKeyField_Short2int.class);
+        ALL.add(DisallowSecKeyField_Short2int2.class);
         ALL.add(DisallowSecKeyField_Integer2long.class);
-        ALL.add(DisallowSecKeyField_Long2float.class);
-        ALL.add(DisallowSecKeyField_Float2double.class);
+        ALL.add(DisallowSecKeyField_Long2float2.class);
+        ALL.add(DisallowSecKeyField_Float2double2.class);
+        ALL.add(DisallowSecKeyField_int2BigInt.class);
         ALL.add(DisallowPriKeyField_byte2short.class);
         ALL.add(DisallowPriKeyField_char2int.class);
         ALL.add(DisallowPriKeyField_short2int.class);
         ALL.add(DisallowPriKeyField_int2long.class);
         ALL.add(DisallowPriKeyField_long2float.class);
         ALL.add(DisallowPriKeyField_float2double.class);
-        ALL.add(DisallowPriKeyField_Byte2short.class);
+        ALL.add(DisallowPriKeyField_Byte2short2.class);
         ALL.add(DisallowPriKeyField_Character2int.class);
-        ALL.add(DisallowPriKeyField_Short2int.class);
+        ALL.add(DisallowPriKeyField_Short2int2.class);
         ALL.add(DisallowPriKeyField_Integer2long.class);
-        ALL.add(DisallowPriKeyField_Long2float.class);
-        ALL.add(DisallowPriKeyField_Float2double.class);
+        ALL.add(DisallowPriKeyField_Long2float2.class);
+        ALL.add(DisallowPriKeyField_Float2double2.class);
+        ALL.add(DisallowPriKeyField_Long2BigInt.class);
         ALL.add(DisallowCompositeKeyField_byte2short.class);
-        ALL.add(AllowPriKeyField_Byte2byte.class);
+        ALL.add(AllowPriKeyField_Byte2byte2.class);
         ALL.add(AllowPriKeyField_byte2Byte.class);
         ALL.add(AllowFieldTypeChanges.class);
         ALL.add(ConvertExample1_Entity.class);
@@ -2268,7 +2272,6 @@ if (true) {
         @PrimaryKey
         int key = 99;
 
-        @SecondaryKey(relate=ONE_TO_ONE)
         byte ff;
 
         @Override
@@ -2278,7 +2281,7 @@ if (true) {
 
         @Override
         void checkUnevolvedModel(EntityModel model, Environment env) {
-            checkEntity(true, model, env, NAME, 0, "ff");
+            checkEntity(true, model, env, NAME, 0, null);
             checkVersions(model, NAME, 0);
         }
 
@@ -2306,7 +2309,6 @@ if (true) {
         @PrimaryKey
         int key = 99;
 
-        @SecondaryKey(relate=ONE_TO_ONE)
         char ff;
 
         @Override
@@ -2316,7 +2318,7 @@ if (true) {
 
         @Override
         void checkUnevolvedModel(EntityModel model, Environment env) {
-            checkEntity(true, model, env, NAME, 0, "ff");
+            checkEntity(true, model, env, NAME, 0, null);
             checkVersions(model, NAME, 0);
         }
 
@@ -2344,7 +2346,6 @@ if (true) {
         @PrimaryKey
         int key = 99;
 
-        @SecondaryKey(relate=ONE_TO_ONE)
         short ff;
 
         @Override
@@ -2354,7 +2355,7 @@ if (true) {
 
         @Override
         void checkUnevolvedModel(EntityModel model, Environment env) {
-            checkEntity(true, model, env, NAME, 0, "ff");
+            checkEntity(true, model, env, NAME, 0, null);
             checkVersions(model, NAME, 0);
         }
 
@@ -2382,7 +2383,6 @@ if (true) {
         @PrimaryKey
         int key = 99;
 
-        @SecondaryKey(relate=ONE_TO_ONE)
         int ff;
 
         @Override
@@ -2392,7 +2392,7 @@ if (true) {
 
         @Override
         void checkUnevolvedModel(EntityModel model, Environment env) {
-            checkEntity(true, model, env, NAME, 0, "ff");
+            checkEntity(true, model, env, NAME, 0, null);
             checkVersions(model, NAME, 0);
         }
 
@@ -2420,7 +2420,6 @@ if (true) {
         @PrimaryKey
         int key = 99;
 
-        @SecondaryKey(relate=ONE_TO_ONE)
         long ff;
 
         @Override
@@ -2430,7 +2429,7 @@ if (true) {
 
         @Override
         void checkUnevolvedModel(EntityModel model, Environment env) {
-            checkEntity(true, model, env, NAME, 0, "ff");
+            checkEntity(true, model, env, NAME, 0, null);
             checkVersions(model, NAME, 0);
         }
 
@@ -2458,7 +2457,6 @@ if (true) {
         @PrimaryKey
         int key = 99;
 
-        @SecondaryKey(relate=ONE_TO_ONE)
         float ff;
 
         @Override
@@ -2468,7 +2466,7 @@ if (true) {
 
         @Override
         void checkUnevolvedModel(EntityModel model, Environment env) {
-            checkEntity(true, model, env, NAME, 0, "ff");
+            checkEntity(true, model, env, NAME, 0, null);
             checkVersions(model, NAME, 0);
         }
 
@@ -2496,7 +2494,6 @@ if (true) {
         @PrimaryKey
         int key = 99;
 
-        @SecondaryKey(relate=ONE_TO_ONE)
         double ff;
 
         @Override
@@ -2506,7 +2503,7 @@ if (true) {
 
         @Override
         void checkUnevolvedModel(EntityModel model, Environment env) {
-            checkEntity(true, model, env, NAME, 0, "ff");
+            checkEntity(true, model, env, NAME, 0, null);
             checkVersions(model, NAME, 0);
         }
 
@@ -2521,6 +2518,80 @@ if (true) {
             }
             RawObject obj = readRaw(store, 99, NAME, 0, CASECLS, 0);
             checkRawFields(obj, "key", 99, "ff", (double) 88);
+        }
+    }
+
+    @Entity(version=1)
+    static class DisallowNonKeyField_float2BigInt
+        extends EvolveCase {
+
+        private static final String NAME =
+            DisallowNonKeyField_float2BigInt.class.getName();
+
+        @PrimaryKey
+        int key = 99;
+
+        BigInteger ff;
+
+        @Override
+        public String getStoreOpenException() {
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowNonKeyField_float2BigInt version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowNonKeyField_float2BigInt version: 1 Error: Old field type: float is not compatible with the new type: java.math.BigInteger for field: ff";
+        }
+
+        @Override
+        void checkUnevolvedModel(EntityModel model, Environment env) {
+            checkEntity(true, model, env, NAME, 0, null);
+            checkVersions(model, NAME, 0);
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            if (expectEvolved) {
+                TestCase.fail();
+            }
+            RawObject obj = readRaw(store, 99, NAME, 0, CASECLS, 0);
+            checkRawFields(obj, "key", 99, "ff", (float) 88);
+        }
+    }
+
+    @Entity(version=1)
+    static class DisallowNonKeyField_BigInt2long
+        extends EvolveCase {
+
+        private static final String NAME =
+            DisallowNonKeyField_BigInt2long.class.getName();
+
+        @PrimaryKey
+        int key = 99;
+
+        long ff;
+
+        @Override
+        public String getStoreOpenException() {
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowNonKeyField_BigInt2long version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowNonKeyField_BigInt2long version: 1 Error: Old field type: java.math.BigInteger is not compatible with the new type: long for field: ff";
+        }
+
+        @Override
+        void checkUnevolvedModel(EntityModel model, Environment env) {
+            checkEntity(true, model, env, NAME, 0, null);
+            checkVersions(model, NAME, 0);
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            if (expectEvolved) {
+                TestCase.fail();
+            }
+            RawObject obj = readRaw(store, 99, NAME, 0, CASECLS, 0);
+            checkRawFields(obj, "key", 99, "ff", BigInteger.valueOf(88));
         }
     }
 
@@ -2753,11 +2824,11 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowSecKeyField_Byte2short
+    static class DisallowSecKeyField_Byte2short2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowSecKeyField_Byte2short.class.getName();
+            DisallowSecKeyField_Byte2short2.class.getName();
 
         @PrimaryKey
         int key = 99;
@@ -2767,7 +2838,7 @@ if (true) {
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Byte2short version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Byte2short version: 1 Error: Old field type: java.lang.Byte is not compatible with the new type: short for field: ff";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Byte2short2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Byte2short2 version: 1 Error: Old field type: java.lang.Byte is not compatible with the new type: short for field: ff";
         }
 
         @Override
@@ -2829,11 +2900,11 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowSecKeyField_Short2int
+    static class DisallowSecKeyField_Short2int2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowSecKeyField_Short2int.class.getName();
+            DisallowSecKeyField_Short2int2.class.getName();
 
         @PrimaryKey
         int key = 99;
@@ -2843,7 +2914,7 @@ if (true) {
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Short2int version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Short2int version: 1 Error: Old field type: java.lang.Short is not compatible with the new type: int for field: ff";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Short2int2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Short2int2 version: 1 Error: Old field type: java.lang.Short is not compatible with the new type: int for field: ff";
         }
 
         @Override
@@ -2905,11 +2976,11 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowSecKeyField_Long2float
+    static class DisallowSecKeyField_Long2float2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowSecKeyField_Long2float.class.getName();
+            DisallowSecKeyField_Long2float2.class.getName();
 
         @PrimaryKey
         int key = 99;
@@ -2919,7 +2990,7 @@ if (true) {
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Long2float version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Long2float version: 1 Error: Old field type: java.lang.Long is not compatible with the new type: float for field: ff";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Long2float2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Long2float2 version: 1 Error: Old field type: java.lang.Long is not compatible with the new type: float for field: ff";
         }
 
         @Override
@@ -2943,11 +3014,11 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowSecKeyField_Float2double
+    static class DisallowSecKeyField_Float2double2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowSecKeyField_Float2double.class.getName();
+            DisallowSecKeyField_Float2double2.class.getName();
 
         @PrimaryKey
         int key = 99;
@@ -2957,7 +3028,7 @@ if (true) {
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Float2double version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Float2double version: 1 Error: Old field type: java.lang.Float is not compatible with the new type: double for field: ff";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Float2double2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_Float2double2 version: 1 Error: Old field type: java.lang.Float is not compatible with the new type: double for field: ff";
         }
 
         @Override
@@ -2977,6 +3048,44 @@ if (true) {
             }
             RawObject obj = readRaw(store, 99, NAME, 0, CASECLS, 0);
             checkRawFields(obj, "key", 99, "ff", (float) 88);
+        }
+    }
+
+    @Entity(version=1)
+    static class DisallowSecKeyField_int2BigInt
+        extends EvolveCase {
+
+        private static final String NAME =
+            DisallowSecKeyField_int2BigInt.class.getName();
+
+        @PrimaryKey
+        int key = 99;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        BigInteger ff;
+
+        @Override
+        public String getStoreOpenException() {
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_int2BigInt version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowSecKeyField_int2BigInt version: 1 Error: Old field type: int is not compatible with the new type: java.math.BigInteger for field: ff";
+        }
+
+        @Override
+        void checkUnevolvedModel(EntityModel model, Environment env) {
+            checkEntity(true, model, env, NAME, 0, "ff");
+            checkVersions(model, NAME, 0);
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            if (expectEvolved) {
+                TestCase.fail();
+            }
+            RawObject obj = readRaw(store, 99, NAME, 0, CASECLS, 0);
+            checkRawFields(obj, "key", 99, "ff", 88);
         }
     }
 
@@ -3193,18 +3302,18 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowPriKeyField_Byte2short
+    static class DisallowPriKeyField_Byte2short2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowPriKeyField_Byte2short.class.getName();
+            DisallowPriKeyField_Byte2short2.class.getName();
 
         @PrimaryKey
         short key;
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Byte2short version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Byte2short version: 1 Error: Old field type: java.lang.Byte is not compatible with the new type: short for field: key";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Byte2short2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Byte2short2 version: 1 Error: Old field type: java.lang.Byte is not compatible with the new type: short for field: key";
         }
 
         @Override
@@ -3263,18 +3372,18 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowPriKeyField_Short2int
+    static class DisallowPriKeyField_Short2int2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowPriKeyField_Short2int.class.getName();
+            DisallowPriKeyField_Short2int2.class.getName();
 
         @PrimaryKey
         int key;
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Short2int version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Short2int version: 1 Error: Old field type: java.lang.Short is not compatible with the new type: int for field: key";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Short2int2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Short2int2 version: 1 Error: Old field type: java.lang.Short is not compatible with the new type: int for field: key";
         }
 
         @Override
@@ -3333,18 +3442,18 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowPriKeyField_Long2float
+    static class DisallowPriKeyField_Long2float2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowPriKeyField_Long2float.class.getName();
+            DisallowPriKeyField_Long2float2.class.getName();
 
         @PrimaryKey
         float key;
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Long2float version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Long2float version: 1 Error: Old field type: java.lang.Long is not compatible with the new type: float for field: key";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Long2float2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Long2float2 version: 1 Error: Old field type: java.lang.Long is not compatible with the new type: float for field: key";
         }
 
         @Override
@@ -3368,18 +3477,18 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class DisallowPriKeyField_Float2double
+    static class DisallowPriKeyField_Float2double2
         extends EvolveCase {
 
         private static final String NAME =
-            DisallowPriKeyField_Float2double.class.getName();
+            DisallowPriKeyField_Float2double2.class.getName();
 
         @PrimaryKey
         double key;
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Float2double version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Float2double version: 1 Error: Old field type: java.lang.Float is not compatible with the new type: double for field: key";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Float2double2 version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Float2double2 version: 1 Error: Old field type: java.lang.Float is not compatible with the new type: double for field: key";
         }
 
         @Override
@@ -3399,6 +3508,41 @@ if (true) {
             }
             RawObject obj = readRaw(store, (float) 99, NAME, 0, CASECLS, 0);
             checkRawFields(obj, "key", (float) 99);
+        }
+    }
+
+    @Entity(version=1)
+    static class DisallowPriKeyField_Long2BigInt
+        extends EvolveCase {
+
+        private static final String NAME =
+            DisallowPriKeyField_Long2BigInt.class.getName();
+
+        @PrimaryKey
+        BigInteger key;
+
+        @Override
+        public String getStoreOpenException() {
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Type may not be changed for a primary key field or composite key class field when evolving class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Long2BigInt version: 0 to class: com.sleepycat.persist.test.EvolveClasses$DisallowPriKeyField_Long2BigInt version: 1 Error: Old field type: java.lang.Long is not compatible with the new type: java.math.BigInteger for field: key";
+        }
+
+        @Override
+        void checkUnevolvedModel(EntityModel model, Environment env) {
+            checkEntity(true, model, env, NAME, 0, null);
+            checkVersions(model, NAME, 0);
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            if (expectEvolved) {
+                TestCase.fail();
+            }
+            RawObject obj = readRaw(store, 99L, NAME, 0, CASECLS, 0);
+            checkRawFields(obj, "key", 99L);
         }
     }
 
@@ -3529,11 +3673,11 @@ if (true) {
     }
 
     @Entity(version=1)
-    static class AllowPriKeyField_Byte2byte
+    static class AllowPriKeyField_Byte2byte2
         extends EvolveCase {
 
         private static final String NAME =
-            AllowPriKeyField_Byte2byte.class.getName();
+            AllowPriKeyField_Byte2byte2.class.getName();
 
         @PrimaryKey
         byte key = 99;
@@ -3554,11 +3698,11 @@ if (true) {
         void readObjects(EntityStore store, boolean doUpdate)
             throws DatabaseException {
 
-            PrimaryIndex<Byte,AllowPriKeyField_Byte2byte>
+            PrimaryIndex<Byte,AllowPriKeyField_Byte2byte2>
                 index = store.getPrimaryIndex
                     (Byte.class,
-                     AllowPriKeyField_Byte2byte.class);
-            AllowPriKeyField_Byte2byte obj = index.get(key);
+                     AllowPriKeyField_Byte2byte2.class);
+            AllowPriKeyField_Byte2byte2 obj = index.get(key);
             TestCase.assertNotNull(obj);
             TestCase.assertEquals((byte) 99, obj.key);
 
@@ -3571,12 +3715,12 @@ if (true) {
         void copyRawObjects(RawStore rawStore, EntityStore newStore)
             throws DatabaseException {
 
-            PrimaryIndex<Byte,AllowPriKeyField_Byte2byte>
+            PrimaryIndex<Byte,AllowPriKeyField_Byte2byte2>
                 index = newStore.getPrimaryIndex
                     (Byte.class,
-                     AllowPriKeyField_Byte2byte.class);
+                     AllowPriKeyField_Byte2byte2.class);
             RawObject raw = rawStore.getPrimaryIndex(NAME).get((byte) 99);
-            index.put((AllowPriKeyField_Byte2byte)
+            index.put((AllowPriKeyField_Byte2byte2)
                       newStore.getModel().convertRawObject(raw));
         }
 
@@ -3786,6 +3930,17 @@ if (true) {
         Float f58;
         Double f59;
         Double f60;
+
+        BigInteger f70;
+        BigInteger f71;
+        BigInteger f72;
+        BigInteger f73;
+        BigInteger f74;
+        BigInteger f75;
+        BigInteger f76;
+        BigInteger f77;
+        BigInteger f78;
+        BigInteger f79;
 
         int f_long2int;
         long f_String2long;
@@ -4002,6 +4157,17 @@ if (true) {
             TestCase.assertEquals(obj.f59, Double.valueOf((long) 59));
             TestCase.assertEquals(obj.f60, Double.valueOf((float) 60));
 
+            TestCase.assertEquals(obj.f70, BigInteger.valueOf(70));
+            TestCase.assertEquals(obj.f71, BigInteger.valueOf(71));
+            TestCase.assertEquals(obj.f72, BigInteger.valueOf(72));
+            TestCase.assertEquals(obj.f73, BigInteger.valueOf(73));
+            TestCase.assertEquals(obj.f74, BigInteger.valueOf(74));
+            TestCase.assertEquals(obj.f75, BigInteger.valueOf(75));
+            TestCase.assertEquals(obj.f76, BigInteger.valueOf(76));
+            TestCase.assertEquals(obj.f77, BigInteger.valueOf(77));
+            TestCase.assertEquals(obj.f78, BigInteger.valueOf(78));
+            TestCase.assertEquals(obj.f79, BigInteger.valueOf(79));
+
             TestCase.assertEquals(obj.f_long2Integer, Integer.valueOf(111));
             TestCase.assertEquals(obj.f_String2Long, Long.valueOf(222));
             TestCase.assertEquals(obj.f_long2int, 333);
@@ -4109,6 +4275,17 @@ if (true) {
                                "f59", (double) 59,
                                "f60", (double) 60,
 
+                               "f70", BigInteger.valueOf(70),
+                               "f71", BigInteger.valueOf(71),
+                               "f72", BigInteger.valueOf(72),
+                               "f73", BigInteger.valueOf(73),
+                               "f74", BigInteger.valueOf(74),
+                               "f75", BigInteger.valueOf(75),
+                               "f76", BigInteger.valueOf(76),
+                               "f77", BigInteger.valueOf(77),
+                               "f78", BigInteger.valueOf(78),
+                               "f79", BigInteger.valueOf(79),
+
                                "f_long2int", 333,
                                "f_String2long", 444L);
                 checkRawFields(obj.getSuper(),
@@ -4186,6 +4363,17 @@ if (true) {
                                "f58", (long) 58,
                                "f59", (long) 59,
                                "f60", (float) 60,
+
+                               "f70", (byte) 70,
+                               "f71", (short) 71,
+                               "f72", (char) 72,
+                               "f73", 73,
+                               "f74", (long) 74,
+                               "f75", (byte) 75,
+                               "f76", (short) 76,
+                               "f77", (char) 77,
+                               "f78", 78,
+                               "f79", (long) 79,
 
                                "f_long2int", 333L,
                                "f_String2long", "444");

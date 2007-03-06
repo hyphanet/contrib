@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: CheckpointConfig.java,v 1.12 2006/09/12 19:16:40 cwl Exp $
+ * $Id: CheckpointConfig.java,v 1.14 2006/11/20 15:46:58 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -18,7 +17,7 @@ public class CheckpointConfig  {
      * For internal use, to allow null as a valid value for the config
      * parameter.
      */
-    public final static CheckpointConfig DEFAULT = new CheckpointConfig();
+    public static final CheckpointConfig DEFAULT = new CheckpointConfig();
 
     private boolean force = false;
     private int kbytes = 0;

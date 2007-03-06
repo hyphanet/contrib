@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EntityInput.java,v 1.14 2006/09/19 06:22:58 mark Exp $
+ * $Id: EntityInput.java,v 1.16 2006/11/14 23:30:49 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
+
+import java.math.BigInteger;
 
 /**
  * Used for reading object fields.
@@ -88,4 +89,5 @@ public interface EntityInput {
     long readLong();
     float readSortedFloat();
     double readSortedDouble();
+    BigInteger readBigInteger();
 }

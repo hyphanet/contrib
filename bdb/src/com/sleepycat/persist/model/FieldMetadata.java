@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FieldMetadata.java,v 1.8 2006/09/12 19:17:04 cwl Exp $
+ * $Id: FieldMetadata.java,v 1.10 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -71,5 +70,12 @@ public class FieldMetadata implements Serializable {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return ClassMetadata.hashCode(name) +
+               ClassMetadata.hashCode(className) +
+               ClassMetadata.hashCode(declaringClassName);
     }
 }

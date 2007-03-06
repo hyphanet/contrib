@@ -13,6 +13,16 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <BugCode name="MS" />
      </Match>
 
+     <Match class="com.sleepycat.je.DatabaseEntry">
+       <BugCode name="MS" />
+       <Field name="MAX_DUMP_BYTES" />
+     </Match>
+
+     <Match class="com.sleepycat.persist.impl.PersistCatalog">
+       <BugCode name="MS" />
+       <Field name="expectNoClassChanges" />
+     </Match>
+
      <Match class="com.sleepycat.je.txn.LockType">
        <BugCode name="IC" />
      </Match>
@@ -33,8 +43,33 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <BugCode name="ST" />
      </Match>
 
+     <Match class="com.sleepycat.je.log.ScavengerFileReader">
+       <BugCode name="NP" />
+       <Method name="resyncReader"/>
+     </Match>
+
+     <Match class="com.sleepycat.persist.impl.Evolver">
+       <BugCode name="NP" />
+       <Method name="evolveRequiredKeyField"/>
+     </Match>
+
+     <Match class="com.sleepycat.persist.impl.Evolver">
+       <BugCode name="NP" />
+       <Method name="evolveFormatInternal"/>
+     </Match>
+
      <Match class="com.sleepycat.je.dbi.EnvironmentImpl">
        <BugCode name="ST" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.EnvironmentImpl">
+       <BugCode name="ICAST" />
+       <Method name="updateBackgroundWrites"/>
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.EnvironmentImpl">
+       <BugCode name="SWL" />
+       <Method name="sleepAfterBackgroundIO"/>
      </Match>
 
      <Match class="com.sleepycat.je.TransactionStats$Active">
@@ -155,6 +190,21 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <Method name="validateINList" />
      </Match>
 
+     <Match class="com.sleepycat.je.tree.Tree">
+       <BugCode name="NP" />
+       <Method name="deleteDupSubtree" />
+     </Match>
+
+     <Match class="com.sleepycat.je.tree.Tree">
+       <BugCode name="NP" />
+       <Method name="splitRoot" />
+     </Match>
+
+     <Match class="com.sleepycat.je.tree.Tree">
+       <BugCode name="NP" />
+       <Method name="searchSplitsAllowed" />
+     </Match>
+
      <Match class="com.sleepycat.je.txn.Txn">
        <BugCode name="MS" />
      </Match>
@@ -189,6 +239,11 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <Method name="run"/>
      </Match>
 
+     <Match class="com.sleepycat.je.util.DbRunAction">
+       <BugCode name="REC" />
+       <Method name="main"/>
+     </Match>
+
      <Match classregex="com.sleepycat.je.util.*" >
        <BugCode name="Dm" />
      </Match>
@@ -206,8 +261,28 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <BugCode name="SnVI" />
      </Match>
 
+     <Match class="com.sleepycat.persist.impl.ComplexFormat$SkipFieldReader">
+       <BugCode name="Se" />
+       <Field name="endField" />
+     </Match>
+
+     <Match class="com.sleepycat.persist.impl.EnumFormat" >
+       <BugCode name="Se" />
+       <Field name="values" />
+     </Match>
+
+     <Match class="com.sleepycat.persist.impl.FieldInfo" >
+       <BugCode name="Se" />
+       <Field name="cls" />
+     </Match>
+
      <Match classregex=".*" >
        <BugCode name="EI,EI2,CD" />
+     </Match>
+
+     <Match class="com.sleepycat.asm.Handler" >
+       <BugCode name="UrF" />
+       <Field name="desc" />
      </Match>
 
      <!-- Match all doublecheck violations in these methods of "AnotherClass". 

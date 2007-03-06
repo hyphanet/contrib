@@ -1,18 +1,19 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Txn.java,v 1.142 2006/09/12 19:16:58 cwl Exp $
+ * $Id: Txn.java,v 1.147 2006/11/17 23:47:28 mark Exp $
  */
 
 package com.sleepycat.je.txn;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -52,6 +53,12 @@ public class Txn extends Locker implements LogWritable, LogReadable {
     public static final byte TXN_WRITE_NOSYNC = 1;
     public static final byte TXN_SYNC = 2;
 
+    /**
+     * Static log size used by LNLogEntry.getStaticLogSize.
+     */
+    public static int LOG_SIZE = LogUtils.LONG_BYTES + // id
+                                 LogUtils.LONG_BYTES;  // lastLoggedLsn
+
     private static final String DEBUG_NAME =
         Txn.class.getName();
 
@@ -82,7 +89,8 @@ public class Txn extends Locker implements LogWritable, LogReadable {
 
     private final int READ_LOCK_OVERHEAD = MemoryBudget.HASHSET_ENTRY_OVERHEAD;
     private final int WRITE_LOCK_OVERHEAD =
-	MemoryBudget.HASHMAP_ENTRY_OVERHEAD + MemoryBudget.LONG_OVERHEAD;
+	MemoryBudget.HASHMAP_ENTRY_OVERHEAD +
+	MemoryBudget.WRITE_LOCKINFO_OVERHEAD;
 
     /* 
      * We have to keep a set of DatabaseCleanupInfo objects so after 
@@ -375,14 +383,32 @@ public class Txn extends Locker implements LogWritable, LogReadable {
                          " commit failed because there were open cursors.");
                 }
 
+                /*
+                 * Save transferred write locks, if any.  Their abort LSNs are
+                 * counted as obsolete further below.  Create the list lazily
+                 * to avoid creating it in the normal case (no handle locks).
+                 */
+                List transferredWriteLockInfo = null;
+
                 /* Transfer handle locks to their owning handles. */
                 if (handleLockToHandleMap != null) {
                     Iterator handleLockIter =
                         handleLockToHandleMap.entrySet().iterator(); 
                     while (handleLockIter.hasNext()){
                         Map.Entry entry = (Map.Entry) handleLockIter.next();
-                        transferHandleLockToHandleSet((Long) entry.getKey(),
-                                                      (Set) entry.getValue());
+                        Long nodeId = (Long) entry.getKey();
+                        if (writeInfo != null) {
+                            WriteLockInfo info =
+                                (WriteLockInfo) writeInfo.get(nodeId);
+                            if (info != null) {
+                                if (transferredWriteLockInfo == null) {
+                                    transferredWriteLockInfo = new ArrayList();
+                                }
+                                transferredWriteLockInfo.add(info);
+                            }
+                        }
+                        transferHandleLockToHandleSet
+                            (nodeId, (Set) entry.getValue());
                     }
                 }
 
@@ -436,23 +462,21 @@ public class Txn extends Locker implements LogWritable, LogReadable {
                     while (iter.hasNext()) {
                         WriteLockInfo info = (WriteLockInfo) iter.next();
                         lockManager.release(info.lock, this);
-
-                        /* 
-                         * Count the abortLSN as obsolete.  Do not count if a
-                         * slot with a deleted LN was reused
-                         * (abortKnownDeleted), to avoid double counting.
-                         */
-                        if (info.abortLsn != DbLsn.NULL_LSN && 
-                            !info.abortKnownDeleted) {
-                            Long longLsn = new Long(info.abortLsn);
-                            if (!alreadyCountedLsnSet.contains(longLsn)) {
-                                logManager.countObsoleteNode
-                                    (info.abortLsn, null);
-                                alreadyCountedLsnSet.add(longLsn);
-                            }
-                        }
+                        /* Count obsolete LSNs for released write locks. */
+                        countWriteAbortLSN(info, alreadyCountedLsnSet);
                     }
                     writeInfo = null;
+
+                    /* Count obsolete LSNs for transferred write locks. */
+                    if (transferredWriteLockInfo != null) {
+                        for (int i = 0;
+                             i < transferredWriteLockInfo.size();
+                             i += 1) {
+                            WriteLockInfo info = (WriteLockInfo)
+                                transferredWriteLockInfo.get(i);
+                            countWriteAbortLSN(info, alreadyCountedLsnSet);
+                        }
+                    }
 
                     /* Unload delete info, but don't wake up the compressor. */
                     if ((deleteInfo != null) && deleteInfo.size() > 0) {
@@ -516,6 +540,26 @@ public class Txn extends Locker implements LogWritable, LogReadable {
                 ("Failed while attempting to commit transaction " + id +
                  ", aborted instead. Original exception = " +
                  t.getMessage(), t);
+        }
+    }
+
+    /**
+     * Count the abortLSN as obsolete.  Do not count if a slot with a deleted
+     * LN was reused (abortKnownDeleted), to avoid double counting.  And count
+     * each abortLSN only once.
+     */
+    private void countWriteAbortLSN(WriteLockInfo info,
+                                    Set alreadyCountedLsnSet)
+        throws DatabaseException {
+
+        if (info.abortLsn != DbLsn.NULL_LSN && 
+            !info.abortKnownDeleted) {
+            Long longLsn = new Long(info.abortLsn);
+            if (!alreadyCountedLsnSet.contains(longLsn)) {
+                envImpl.getLogManager().countObsoleteNode
+                    (info.abortLsn, null, info.abortLogSize);
+                alreadyCountedLsnSet.add(longLsn);
+            }
         }
     }
 
@@ -687,11 +731,14 @@ public class Txn extends Locker implements LogWritable, LogReadable {
                     }
             
                     /*
-                     * The LN undone is counted as obsolete if it was not
-                     * deleted.
+                     * The LN undone is counted as obsolete if it is not a
+                     * deleted LN.  Deleted LNs are counted as obsolete when
+                     * they are logged.
                      */
                     if (!undoLN.isDeleted()) {
-                        logManager.countObsoleteNode(undoLsn, null);
+                        logManager.countObsoleteNode
+                            (undoLsn, null,
+                             undoEntry.getLogSize() + LogManager.HEADER_BYTES);
                     }
                 }
 
@@ -1282,8 +1329,7 @@ public class Txn extends Locker implements LogWritable, LogReadable {
      * @see LogWritable#getLogSize
      */
     public int getLogSize() {
-	/* id and lastLoggedLsn */
-        return LogUtils.LONG_BYTES + LogUtils.LONG_BYTES;
+        return LOG_SIZE;
     }
 
     /**

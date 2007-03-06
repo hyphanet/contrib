@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LNFileReaderTest.java,v 1.82 2006/09/12 19:17:20 cwl Exp $
+ * $Id: LNFileReaderTest.java,v 1.85 2006/11/03 03:08:05 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -321,7 +320,9 @@ public class LNFileReaderTest extends TestCase {
                          DbInternal.dbGetDatabaseImpl(db).getId(),
                          key,
                          DbLsn.NULL_LSN,
-                         userTxn);
+                         0,
+                         userTxn,
+                         false);
 
             if (trackLNs) {
                 checkList.add(new CheckInfo(lsn, ln, key,
@@ -352,7 +353,7 @@ public class LNFileReaderTest extends TestCase {
             LN nonTxnalLN = new LN(data);
             nonTxnalLN.log(envImpl,
 			   DbInternal.dbGetDatabaseImpl(db).getId(),
-			   key, DbLsn.NULL_LSN, null);
+			   key, DbLsn.NULL_LSN, 0, null, false);
 
             /* Add a MapLN. */
             MapLN mapLN = new MapLN(DbInternal.dbGetDatabaseImpl(db));
@@ -361,7 +362,7 @@ public class LNFileReaderTest extends TestCase {
                  DbInternal.dbGetDatabaseImpl(db));
             lsn = mapLN.log(envImpl,
                             DbInternal.dbGetDatabaseImpl(db).getId(),
-                            key, DbLsn.NULL_LSN, userTxn);
+                            key, DbLsn.NULL_LSN, 0, userTxn, false);
             if (!trackLNs) {
                 checkList.add(new CheckInfo(lsn, mapLN, key,
                                             mapLN.getData(),

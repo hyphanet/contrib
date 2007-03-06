@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: TupleInput.java,v 1.26 2006/09/13 15:48:16 mark Exp $
+ * $Id: TupleInput.java,v 1.29 2006/11/15 14:01:02 mark Exp $
  */
 
 package com.sleepycat.bind.tuple;
+
+import java.math.BigInteger;
 
 import com.sleepycat.util.FastInputStream;
 import com.sleepycat.util.PackedInteger;
@@ -26,7 +27,8 @@ import com.sleepycat.util.UtfOps;
  * first) order with their sign bit (high-order bit) inverted to cause negative
  * numbers to be sorted first when comparing values as unsigned byte arrays,
  * as done in a database.  Unsigned numbers, including characters, are stored
- * in MSB order with no change to their sign bit.</p>
+ * in MSB order with no change to their sign bit.  BigInteger values are stored
+ * with a preceding length having the same sign as the value.</p>
  *
  * <p>Strings and character arrays are stored either as a fixed length array of
  * unicode characters, where the length must be known by the application, or as
@@ -615,5 +617,36 @@ public class TupleInput extends FastInputStream {
      */
     public final int getPackedIntByteLength() {
         return PackedInteger.getReadIntLength(buf, off);
+    }
+
+    /**
+     * Reads a {@code BigInteger}.
+     *
+     * @see TupleOutput#writeBigInteger
+     */
+    public final BigInteger readBigInteger() {
+        int len = readShort();
+        if (len < 0) {
+            len = (- len);
+        }
+        byte[] a = new byte[len];
+        a[0] = readByte();
+        readFast(a, 1, a.length - 1);
+        return new BigInteger(a);
+    }
+
+    /**
+     * Returns the byte length of a {@code BigInteger}.
+     *
+     * @see TupleOutput#writeBigInteger
+     */
+    public final int getBigIntegerByteLength() {
+        int saveOff = off;
+        int len = readShort();
+        off = saveOff;
+        if (len < 0) {
+            len = (- len);
+        }
+        return len + 2;
     }
 }

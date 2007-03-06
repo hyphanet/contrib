@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Enhanced1.java,v 1.6 2006/09/19 06:23:00 mark Exp $
+ * $Id: Enhanced1.java,v 1.7 2006/10/30 21:14:55 bostic Exp $
  */
 
 package com.sleepycat.persist.test;

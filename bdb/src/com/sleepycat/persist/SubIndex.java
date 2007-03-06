@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SubIndex.java,v 1.10 2006/09/21 15:34:33 mark Exp $
+ * $Id: SubIndex.java,v 1.12 2006/10/30 21:14:30 bostic Exp $
  */
 
 package com.sleepycat.persist;
@@ -19,6 +18,7 @@ import com.sleepycat.je.Cursor;
 import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryCursor;
@@ -145,8 +145,11 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
         pkeyBinding.objectToEntry(key, pkeyEntry);
 
         boolean autoCommit = false;
-        if (transactional && txn == null) {
-            txn = db.getEnvironment().beginTransaction(null, null);
+	Environment env = db.getEnvironment();
+        if (transactional &&
+	    txn == null &&
+	    env.getThreadTransaction() == null) {
+            txn = env.beginTransaction(null, null);
             autoCommit = true;
         }
 

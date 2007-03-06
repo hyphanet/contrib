@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SubclassIndexTest.java,v 1.3 2006/09/22 05:28:52 mark Exp $
+ * $Id: SubclassIndexTest.java,v 1.5 2006/11/16 04:18:21 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -75,11 +74,6 @@ public class SubclassIndexTest extends TestCase {
         PrimaryIndex<String, Employee> employeesById =
             store.getPrimaryIndex(String.class, Employee.class);
 
-        /* Normal use: Subclass index for a key in the subclass. */
-        SecondaryIndex<String, String, Manager> managersByDept =
-            store.getSubclassIndex
-                (employeesById, Manager.class, String.class, "dept"); 
-
         employeesById.put(new Employee("1"));
         employeesById.put(new Manager("2", "a"));
         employeesById.put(new Manager("3", "a"));
@@ -91,6 +85,15 @@ public class SubclassIndexTest extends TestCase {
         e = employeesById.get("1");
         assertNotNull(e);
         assertTrue(!(e instanceof Manager));
+
+        /* Ensure DB exists BEFORE calling getSubclassIndex. [#15247] */
+        PersistTestUtils.assertDbExists
+            (true, env, "foo", Employee.class.getName(), "dept");
+
+        /* Normal use: Subclass index for a key in the subclass. */
+        SecondaryIndex<String, String, Manager> managersByDept =
+            store.getSubclassIndex
+                (employeesById, Manager.class, String.class, "dept"); 
 
         m = managersByDept.get("a");
         assertNotNull(m);
@@ -133,7 +136,6 @@ public class SubclassIndexTest extends TestCase {
         env.close();
         env = null;
     }
-
         
     @Entity
     private static class Employee {

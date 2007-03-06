@@ -1,16 +1,16 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTest.java,v 1.18 2006/09/12 19:17:14 cwl Exp $
+ * $Id: UtilizationTest.java,v 1.21 2006/11/17 23:47:28 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Enumeration;
 
 import junit.framework.Test;
@@ -30,8 +30,13 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.log.FileHeader;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.LogManager;
+import com.sleepycat.je.log.LogSource;
+import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.je.utilint.DbLsn;
 
 public class UtilizationTest extends TestCase {
 
@@ -40,9 +45,23 @@ public class UtilizationTest extends TestCase {
     private static final String OP_NONE = "op-none";
     private static final String OP_CHECKPOINT = "op-checkpoint";
     private static final String OP_RECOVER = "op-recover";
+    //private static final String[] OPERATIONS = { OP_NONE, };
+    //*
     private static final String[] OPERATIONS = { OP_NONE,
                                                  OP_CHECKPOINT,
+                                                 OP_RECOVER,
                                                  OP_RECOVER };
+    //*/
+
+    /*
+     * Set fetchObsoleteSize=true only for the second OP_RECOVER test.
+     * We check that OP_RECOVER works with without fetching, but with fetching
+     * we check that all LN sizes are counted.
+     */
+    private static final boolean[] FETCH_OBSOLETE_SIZE = { false,
+                                                           false,
+                                                           false,
+                                                           true };
 
     private static final CheckpointConfig forceConfig = new CheckpointConfig();
     static {
@@ -57,6 +76,7 @@ public class UtilizationTest extends TestCase {
     private DatabaseEntry dataEntry = new DatabaseEntry();
     private String operation;
     private long lastFileSeen;
+    private boolean fetchObsoleteSize;
 
     public static Test suite() {
         TestSuite allTests = new TestSuite();
@@ -65,7 +85,7 @@ public class UtilizationTest extends TestCase {
             Enumeration e = suite.tests();
             while (e.hasMoreElements()) {
                 UtilizationTest test = (UtilizationTest) e.nextElement();
-                test.init(OPERATIONS[i]);
+                test.init(OPERATIONS[i], FETCH_OBSOLETE_SIZE[i]);
                 allTests.addTest(test);
             }
         }
@@ -76,8 +96,9 @@ public class UtilizationTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 
-    private void init(String operation) {
+    private void init(String operation, boolean fetchObsoleteSize) {
         this.operation = operation;
+        this.fetchObsoleteSize = fetchObsoleteSize;
     }
 
     public void setUp()
@@ -91,7 +112,9 @@ public class UtilizationTest extends TestCase {
         throws IOException, DatabaseException {
         
         /* Set test name for reporting; cannot be done in the ctor or setUp. */
-        setName(operation + ':' + getName());
+        setName(operation +
+                (fetchObsoleteSize ? "-fetch" : "") +
+                ':' + getName());
 
         try {
             if (env != null) {
@@ -102,7 +125,7 @@ public class UtilizationTest extends TestCase {
         }
                 
         try {
-            /*
+            //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
             TestUtils.removeFiles("tearDown", envHome, FileManager.DEL_SUFFIX);
             //*/
@@ -143,6 +166,14 @@ public class UtilizationTest extends TestCase {
         /* Don't use NIO direct buffers or we run out of memory. */
         config.setConfigParam
             (EnvironmentParams.LOG_DIRECT_NIO.getName(), "false");
+        
+        /* Obsolete LN size counting is optional per test. */
+        if (fetchObsoleteSize) {
+            config.setConfigParam
+                (EnvironmentParams.CLEANER_FETCH_OBSOLETE_SIZE.getName(),
+                 "true");
+        }
+
         env = new Environment(envHome, config);
 
         /* Speed up test that uses lots of very small files. */
@@ -171,6 +202,12 @@ public class UtilizationTest extends TestCase {
      */
     private void closeEnv(boolean doCheckpoint)
         throws DatabaseException {
+
+        /* Verify utilization using UtilizationFileReader. */
+        CleanerTestUtils.verifyUtilization
+            (DbInternal.envGetEnvironmentImpl(env),
+             true, // expectAccurateObsoleteLNCount
+             expectAccurateObsoleteLNSize());
 
         if (db != null) {
             db.close();
@@ -1111,6 +1148,30 @@ public class UtilizationTest extends TestCase {
                      1, summary.totalLNCount);
         assertEquals("obsoleteLNCount",
                      obsolete ? 1 : 0, summary.obsoleteLNCount);
+
+        if (obsolete) {
+            if (expectAccurateObsoleteLNSize()) {
+                assertTrue(summary.obsoleteLNSize > 0);
+                assertEquals(1, summary.obsoleteLNSizeCounted);
+            }
+            /* If we counted the size, make sure it is the actual LN size. */
+            if (summary.obsoleteLNSize > 0) {
+                assertEquals(getLNSize(file), summary.obsoleteLNSize);
+            }
+        } else {
+            assertEquals(0, summary.obsoleteLNSize);
+            assertEquals(0, summary.obsoleteLNSizeCounted);
+        }
+    }
+
+    /**
+     * If an LN is obsolete, expect the size to be counted unless we ran
+     * recovery and we did NOT configure fetchObsoleteSize=true.  In that
+     * case, the size may or may not be counted depending on how the redo
+     * or undo was processed during reocvery.
+     */
+    private boolean expectAccurateObsoleteLNSize() {
+        return fetchObsoleteSize || !OP_RECOVER.equals(operation);
     }
 
     private long doPut(int key, boolean commit)
@@ -1246,5 +1307,28 @@ public class UtilizationTest extends TestCase {
                       .getUtilizationProfile()
                       .getFileSummaryMap(true)
                       .get(new Long(file));
+    }
+
+    /**
+     * Peek into the file to get the total size of the first entry past the
+     * file header, which is known to be the LN log entry.
+     */
+    private int getLNSize(long file)
+        throws DatabaseException {
+
+        try {
+            long offset = LogManager.HEADER_BYTES + FileHeader.entrySize();
+            long lsn = DbLsn.makeLsn(file, offset);
+            LogManager lm =
+                DbInternal.envGetEnvironmentImpl(env).getLogManager();
+            LogSource src = lm.getLogSource(lsn);
+            ByteBuffer buf =
+                src.getBytes(offset + LogManager.HEADER_SIZE_OFFSET);
+            int size = LogUtils.readInt(buf);
+            src.release();
+            return size + LogManager.HEADER_BYTES;
+        } catch (IOException e) {
+            throw new DatabaseException(e);
+        }
     }
 }

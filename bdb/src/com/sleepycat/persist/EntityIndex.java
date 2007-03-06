@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EntityIndex.java,v 1.13 2006/09/21 15:34:33 mark Exp $
+ * $Id: EntityIndex.java,v 1.16 2006/12/04 02:49:52 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -233,6 +232,18 @@ import com.sleepycat.je.Transaction;
  * <p>For more information on using cursors and cursor ranges, see {@link
  * EntityCursor}.</p>
  *
+ * <p>Note that when using an index, keys and values are stored and retrieved
+ * by value not by reference.  In other words, if an entity object is stored
+ * and then retrieved, or retrieved twice, each object will be a separate
+ * instance.  For example, in the code below the assertion will always
+ * fail.</p>
+ * <pre class="code">
+ * MyKey key = ...;
+ * MyEntity entity1 = index.get(key);
+ * MyEntity entity2 = index.get(key);
+ * assert entity1 == entity2; // always fails!
+ * </pre>
+ *
  * <h3>Deleting from the Index</h3>
  *
  * <p>Any type of index may be used to delete entities with a specified key by
@@ -320,8 +331,9 @@ import com.sleepycat.je.Transaction;
  *
  * <p>For a transactional store, storage and deletion operations are always
  * transaction protected, whether or not a transaction is explicitly used.  A
- * null transaction argument means to perform the operation using auto-commit.
- * A transaction is automatically started as part of the operation and is
+ * null transaction argument means to perform the operation using auto-commit,
+ * or the implied thread transaction if an XAEnvironment is being used.  A
+ * transaction is automatically started as part of the operation and is
  * automatically committed if the operation completes successfully.  The
  * transaction is automatically aborted if an exception occurs during the
  * operation, and the exception is re-thrown to the caller.  For example, each
@@ -336,10 +348,11 @@ import com.sleepycat.je.Transaction;
  * <p>When retrieving entities, a null transaction argument means to perform
  * the operation non-transactionally.  The operation is performed outside the
  * scope of any transaction, without providing transactional ACID guarantees.
- * When a non-transactional store is used, transactional ACID guarantees are
- * also not provided.</p>
+ * If an implied thread transaction is present (i.e. if an XAEnvironment is
+ * being used), that transaction is used.  When a non-transactional store is
+ * used, transactional ACID guarantees are also not provided.</p>
  *
- * <p>For non-transaction and auto-commit usage, overloaded signatures for
+ * <p>For non-transactional and auto-commit usage, overloaded signatures for
  * retrieval, storage and deletion methods are provided to avoid having to pass
  * a null transaction argument.  For example, {@link #delete} may be called
  * instead of {@link #delete(Transaction,Object)}.  For example, the following
@@ -496,7 +509,9 @@ import com.sleepycat.je.Transaction;
  * href="{@docRoot}/../TransactionGettingStarted/index.html">Writing
  * Transactional Applications</a>.  To go along with that material, here we
  * show a deadlock handling loop in the context of the Direct Persistence
- * Layer:</p>
+ * Layer.  The example below shows deleting all entities in a primary index in
+ * a single transaction.  If a deadlock occurs, the transaction is aborted and
+ * the operation is retried.</p>
  *
  * <pre class="code">
  * int retryCount = 0;
@@ -531,14 +546,14 @@ import com.sleepycat.je.Transaction;
  *
  * <h3>Low Level Access</h3>
  *
- * <p>An index is associated with an underlying {@link Database} or {@link
- * SecondaryDatabase} defined in the {@link com.sleepycat.je Base API}.  At
- * this level, an index is a Btree managed by the Berkeley DB Java Edition
- * transactional storage engine.  Although you may never need to work at the
- * {@code Base API} level, keep in mind that some types of performance tuning
- * can be done by configuring the underlying databases.  See the {@link
- * EntityStore} class for more information on database and sequence
- * configuration.</p>
+ * <p>Each Direct Persistence Layer index is associated with an underlying
+ * {@link Database} or {@link SecondaryDatabase} defined in the {@link
+ * com.sleepycat.je Base API}.  At this level, an index is a Btree managed by
+ * the Berkeley DB Java Edition transactional storage engine.  Although you may
+ * never need to work at the {@code Base API} level, keep in mind that some
+ * types of performance tuning can be done by configuring the underlying
+ * databases.  See the {@link EntityStore} class for more information on
+ * database and sequence configuration.</p>
  *
  * <p>If you wish to access an index using the {@code Base API}, you may call
  * the {@link PrimaryIndex#getDatabase} or {@link SecondaryIndex#getDatabase}

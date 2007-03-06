@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LatchedLogManager.java,v 1.14 2006/09/12 19:16:51 cwl Exp $
+ * $Id: LatchedLogManager.java,v 1.16 2006/11/03 03:07:50 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -38,6 +37,7 @@ public class LatchedLogManager extends LogManager {
                                 boolean flushRequired,
 				boolean forceNewLogFile,
                                 long oldNodeLsn,
+                                int oldNodeSize,
                                 boolean marshallOutsideLatch,
                                 ByteBuffer marshalledBuffer,
                                 UtilizationTracker tracker)
@@ -45,10 +45,10 @@ public class LatchedLogManager extends LogManager {
 
         logWriteLatch.acquire();
         try {
-            return logInternal(item, isProvisional,
-                               flushRequired, forceNewLogFile, oldNodeLsn, 
-                               marshallOutsideLatch, marshalledBuffer,
-                               tracker);
+            return logInternal
+                (item, isProvisional, flushRequired, forceNewLogFile,
+                 oldNodeLsn, oldNodeSize, marshallOutsideLatch,
+                 marshalledBuffer, tracker);
         } finally {
             logWriteLatch.release();
         }
@@ -84,13 +84,13 @@ public class LatchedLogManager extends LogManager {
     /**
      * @see LogManager#countObsoleteLNs
      */
-    public void countObsoleteNode(long lsn, LogEntryType type)
+    public void countObsoleteNode(long lsn, LogEntryType type, int size)
         throws DatabaseException {
 
         UtilizationTracker tracker = envImpl.getUtilizationTracker();
         logWriteLatch.acquire();
         try {
-            countObsoleteNodeInternal(tracker, lsn, type);
+            countObsoleteNodeInternal(tracker, lsn, type, size);
         } finally {
             logWriteLatch.release();
         }

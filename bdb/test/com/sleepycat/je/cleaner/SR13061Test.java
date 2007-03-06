@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2005,2006 Oracle.  All rights reserved.
  *
- * $Id: SR13061Test.java,v 1.3 2006/09/12 19:17:14 cwl Exp $
+ * $Id: SR13061Test.java,v 1.4 2006/10/30 21:14:42 bostic Exp $
  */
 
 package com.sleepycat.je.cleaner;

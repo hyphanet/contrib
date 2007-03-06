@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: INLogEntry.java,v 1.34 2006/09/12 19:16:52 cwl Exp $
+ * $Id: INLogEntry.java,v 1.36 2006/11/17 23:47:24 mark Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -236,7 +235,7 @@ public class INLogEntry
      */
     public DatabaseId getDbId() {
 
-        return (DatabaseId) dbId;
+        return dbId;
     }
 
     /**

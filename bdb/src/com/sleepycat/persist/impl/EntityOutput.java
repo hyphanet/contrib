@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EntityOutput.java,v 1.11 2006/09/13 15:48:21 mark Exp $
+ * $Id: EntityOutput.java,v 1.13 2006/11/14 23:30:49 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
+
+import java.math.BigInteger;
 
 import com.sleepycat.bind.tuple.TupleOutput;
 
@@ -71,4 +72,5 @@ public interface EntityOutput {
     TupleOutput writeLong(long val);
     TupleOutput writeSortedFloat(float val);
     TupleOutput writeSortedDouble(double val);
+    TupleOutput writeBigInteger(BigInteger val);
 }

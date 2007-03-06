@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FileReader.java,v 1.95 2006/09/12 19:16:51 cwl Exp $
+ * $Id: FileReader.java,v 1.98 2006/11/03 03:07:50 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -62,6 +61,9 @@ public abstract class FileReader {
      * large for the read buffer.
      */
     private long nRepeatIteratorReads; 
+
+    /* Number of reads since the last time getAndResetNReads was called. */
+    private int nReadOperations;
                                  
     /* Info about the last entry seen. */
     protected byte currentEntryTypeNum;
@@ -211,6 +213,13 @@ public abstract class FileReader {
      */
     public long getLastLsn() {
         return DbLsn.makeLsn(readBufferFileNum, currentEntryOffset);
+    }
+
+    /**
+     * Returns the total size (including header) of the last entry read.
+     */
+    public int getLastEntrySize() {
+        return LogManager.HEADER_BYTES + currentEntrySize;
     }
 
     /**
@@ -438,6 +447,7 @@ public abstract class FileReader {
                     readBuffer.clear();
                     fileManager.readFromFile(fileHandle.getFile(), readBuffer,
                                              readBufferFileStart);
+                    nReadOperations += 1;
 
 		    assert EnvironmentImpl.maybeForceYield();
                 } finally {
@@ -720,6 +730,7 @@ public abstract class FileReader {
                 readBuffer.clear();
 		fileManager.readFromFile(fileHandle.getFile(), readBuffer,
                                          readBufferFileEnd);
+                nReadOperations += 1;
 
 		assert EnvironmentImpl.maybeForceYield();
 
@@ -741,6 +752,15 @@ public abstract class FileReader {
                 fileHandle.release();
             }
         }
+    }
+
+    /**
+     * Returns the number of reads since the last time this method was called.
+     */
+    public int getAndResetNReads() {
+        int tmp = nReadOperations;
+        nReadOperations = 0;
+        return tmp;
     }
 
     /** 

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: ShortBinding.java,v 1.9 2006/09/12 19:16:38 cwl Exp $
+ * $Id: ShortBinding.java,v 1.10 2006/10/30 21:14:08 bostic Exp $
  */
 
 package com.sleepycat.bind.tuple;

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: ConfigParam.java,v 1.23 2006/09/12 19:16:44 cwl Exp $
+ * $Id: ConfigParam.java,v 1.26 2006/11/07 04:37:20 linda Exp $
  */
 
 package com.sleepycat.je.config;
@@ -21,21 +20,26 @@ public class ConfigParam {
     // Delimiter used for string parameters that hold multiple values
     public static final String CONFIG_DELIM = ";";
 
-    String name;
+    protected String name;
     private String defaultValue;
     private String description;
     private boolean mutable;
+    private boolean forReplication;
 
     /*
      * Create a String parameter.
      */
-    ConfigParam(String configName, String configDefault, boolean mutable,
-                String description)
+    public ConfigParam(String configName,
+                       String configDefault,
+                       boolean mutable,
+                       boolean forReplication,
+                       String description)
         throws IllegalArgumentException {
         name = configName;
         defaultValue = configDefault;
         this.mutable = mutable;
         this.description = description;
+        this.forReplication = forReplication;
 
         /* Check that the name and default value are valid */
         validateName(configName);
@@ -68,6 +72,14 @@ public class ConfigParam {
         return mutable;
     }
 
+    public boolean isForReplication() {
+        return forReplication;
+    }
+
+    public void setForReplication(boolean forReplication) {
+        this.forReplication = forReplication;
+    }
+	
     /**
      * Validate yourself.
      */

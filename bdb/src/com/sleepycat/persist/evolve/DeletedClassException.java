@@ -1,15 +1,13 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DeletedClassException.java,v 1.5 2006/09/21 13:35:57 mark Exp $
+ * $Id: DeletedClassException.java,v 1.7 2006/10/30 21:14:31 bostic Exp $
  */
 
 package com.sleepycat.persist.evolve;
 
-import com.sleepycat.je.DatabaseException;
 
 /**
  * While reading from an index, an instance of a deleted class version was

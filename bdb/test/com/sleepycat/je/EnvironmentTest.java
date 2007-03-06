@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentTest.java,v 1.177 2006/09/14 01:21:51 linda Exp $
+ * $Id: EnvironmentTest.java,v 1.186 2006/12/05 15:56:59 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -89,7 +88,7 @@ public class EnvironmentTest extends TestCase {
         throws Throwable {
 
         try {
-            assertEquals("Checking version", "3.1.0",
+            assertEquals("Checking version", "3.2.13",
                          JEVersion.CURRENT_VERSION.getVersionString());
 
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -239,6 +238,38 @@ public class EnvironmentTest extends TestCase {
             t.printStackTrace();
             throw t;
         }
+    }
+
+    /*
+     * Tests memOnly mode with a home dir that does not exist. [#15255]
+     */
+    public void testMemOnly()
+        throws Throwable {
+
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        envConfig.setTransactional(true);
+        envConfig.setConfigParam
+            (EnvironmentParams.LOG_MEMORY_ONLY.getName(), "true");
+
+        File noHome = new File("fileDoesNotExist");
+        assertTrue(!noHome.exists());
+        env1 = new Environment(noHome, envConfig);
+
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        dbConfig.setTransactional(true);
+        Database db = env1.openDatabase(null, "foo", dbConfig);
+
+        Transaction txn = env1.beginTransaction(null, null);
+        Cursor cursor = db.openCursor(txn, null);
+        doSimpleCursorPutAndDelete(cursor, false);
+        cursor.close();
+        txn.commit();
+        db.close();
+
+        env1.close();
+        assertTrue(!noHome.exists());
     }
 
     /**

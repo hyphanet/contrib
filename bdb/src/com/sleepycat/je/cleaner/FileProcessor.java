@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FileProcessor.java,v 1.14 2006/09/12 19:16:43 cwl Exp $
+ * $Id: FileProcessor.java,v 1.17 2006/10/30 21:14:13 bostic Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -117,6 +116,21 @@ class FileProcessor extends DaemonThread {
     }
 
     /**
+     * Adds a sentinal object to the work queue to force onWakeup to be
+     * called immediately after setting je.env.runCleaner=true.  We want to
+     * process any backlog immediately.
+     */
+    void addSentinalWorkObject() {
+        try {
+            workQueueLatch.acquire();
+            workQueue.add(new Object());
+            workQueueLatch.release();
+        } catch (DatabaseException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
      * Return the number of retries when a deadlock exception occurs.
      */
     protected int nDeadlockRetries()
@@ -146,6 +160,11 @@ class FileProcessor extends DaemonThread {
         doClean(true,   // invokedFromDaemon
                 true,   // cleanMultipleFiles
                 false); // forceCleaning
+
+        /* Remove the sentinal -- see addSentinalWorkObject. */
+        workQueueLatch.acquire();
+        workQueue.clear();
+        workQueueLatch.release();
     }
 
     /**
@@ -182,8 +201,8 @@ class FileProcessor extends DaemonThread {
                 break;
             }
 
-            /* Stop if the daemon is shut down. */
-            if (env.isClosing()) {
+            /* Stop if the daemon is paused or the environment is closing. */
+            if ((invokedFromDaemon && isPaused()) || env.isClosing()) {
                 break;
             }
 
@@ -334,7 +353,7 @@ class FileProcessor extends DaemonThread {
 
         /* Evict after updating the budget. */
         if (Cleaner.DO_CRITICAL_EVICTION) {
-            env.getEvictor().doCriticalEviction();
+            env.getEvictor().doCriticalEviction(true); // backgroundIO
         }
 
         /*
@@ -383,6 +402,15 @@ class FileProcessor extends DaemonThread {
                 if (env.isClosing()) {
                     return false;
                 }
+
+                /* Update background reads. */
+                int nReads = reader.getAndResetNReads();
+                if (nReads > 0) {
+                    env.updateBackgroundReads(nReads);
+                }
+
+                /* Sleep if background read/write limit was exceeded. */
+                env.sleepAfterBackgroundIO();
 
                 /* Check for a known obsolete node. */
                 while (nextObsolete < fileOffset && obsoleteIter.hasNext()) {
@@ -443,7 +471,7 @@ class FileProcessor extends DaemonThread {
 
                 /* Evict before processing each entry. */
                 if (Cleaner.DO_CRITICAL_EVICTION) {
-                    env.getEvictor().doCriticalEviction();
+                    env.getEvictor().doCriticalEviction(true); // backgroundIO
                 }
 
                 /* The entry is not known to be obsolete -- process it now. */
@@ -493,10 +521,12 @@ class FileProcessor extends DaemonThread {
             /* Process remaining queued LNs. */
             while (!lookAheadCache.isEmpty()) {
                 if (Cleaner.DO_CRITICAL_EVICTION) {
-                    env.getEvictor().doCriticalEviction();
+                    env.getEvictor().doCriticalEviction(true); // backgroundIO
                 }
                 processLN(fileNum, location, lookAheadCache, dbCache,
                           deferredWriteDbs);
+                /* Sleep if background read/write limit was exceeded. */
+                env.sleepAfterBackgroundIO();
             }
 
             /* Update the pending DB set. */

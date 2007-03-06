@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LogUtilsTest.java,v 1.18 2006/09/12 19:17:20 cwl Exp $
+ * $Id: LogUtilsTest.java,v 1.19 2006/10/30 21:14:47 bostic Exp $
  */
 
 package com.sleepycat.je.log;

@@ -14,12 +14,7 @@ Release Notes</h1>
 </center>
 
 <!-- Note: RELEASE_VERSION and DATE are set by ant -->
-<p class="releaseInfo">3.1.0, September 27, 2006</p>
-<p>These release notes contain:</p>
-<ul>
-  <li><a href="#overview">Overview</a></li>
-  <li><a href="#new">New in this Release</a></li>
-</ul>
+<p class="releaseInfo">3.2.13, December 06, 2006</p>
 
 <h2><a name="overview">Overview</a></h2>
 <p>
@@ -38,7 +33,7 @@ introduces the JE API set.</li>
  href="http://www.oracle.com/technology/documentation/berkeley-db/je/PersistenceAPI/index.html">Getting
 Started with the Direct Persistence Layer</a> guide.</li>
 
-<li>For a description of how to use JE and the Sleepycat Java Collections
+<li>For a description of how to use JE and the Berkeley DB Java Collections
 API, see the <a href="http://www.oracle.com/technology/documentation/berkeley-db/je/collections/tutorial/index.html">collections
 tutorial</a>.</li>
 
@@ -50,16 +45,14 @@ tutorial</a>.</li>
 href="http://www.oracle.com/technology/documentation/berkeley-db/je/java/index.html">Javadoc</a>.</li>
 </ul>
 
-<h2><a name="new">New in this Release</a></h2>
-
-<p>This is release 3.1.0 of Berkeley DB Java Edition, and the
-first release in the JE 3.1 line. This is the GA release of the Direct
-Persistence Layer, which is the Plain Old Java Object (POJO)-based
-persistent object model introduced in JE 3.0.11.
+<p>This is release 3.2.13 of Berkeley DB Java Edition, and
+the first release in the JE 3.2 line. The changes introduced in 3.2.13
+mainly encompass bug fixes and efficiency improvements, but also
+include a forward-compatible file format change.
 <p>
-Key changes since version JE 3.0.12
-are described below; the complete list of changes can also be found in <a
-href="changeLog.html">the change log page</a>.<br>
+Key changes since version JE 3.1.0
+are summarized below; the complete list of changes can also be found in <a
+href="changelog.html">the change log page</a>.<br>
 </p>
 <p>Note: If you are using Mac OS X, please be aware of the following
 issue. Java version 1.4.2 on Mac OS X reports the wrong value for
@@ -75,55 +68,29 @@ property can be specified in the je.properties file or by calling
 EnvironmentConfig.setCacheSize.
 </p>
 <h3>Log File On-Disk Format Changes:</h3>
-None.
+<p>
+JE 3.2.13 has moved to on-disk file format 5.
+<p>
+The change is forward compatible in that JE files created with release
+3.1.0 and earlier can be read when opened with JE 3.2.13. The change
+is not backward compatible in that files created with JE 3.2.13
+cannot be read by earlier releases. Note that if an existing environment is
+opened read/write, a new log file is written by JE 3.2.13 and the
+environment can no longer be read by earlier releases.[#15195]
+<br>
 
-<h3>New Features:</h3>
-<ol>
-<li>
+<h3>Other Changes:</h3>
+JE 3.2.13 includes
+<ul>
+<li>New configuration properties to control background I/O.</li>
+<li>Tuple binding support and DPL support for BigInteger.</li>
+<li>A variety of bug fixes and documentation enhancements.</li>
+</ul>
 <p>
-In this release, class evolution is implemented in the Direct
-Persistence Layer, which completes the functionality of the DPL package.
-Class evolution allows changing persistent classes and
-performing lazy or eager evolution of the persistent instance data.
-For more information please see the package specification for the
-com.sleepycat.persist.evolve package.
-<p>
-NOTE: If you have deployed a store using the JE 3.0.12 beta release,,
-before changing your persistent classes for the first time you must
-open and close your store using the JE 3.1 release.  To do this, you
-can simply open and close your application as usual, or you can write
-a small conversion program that constructs an EntityStore and calls
-its close method.  The critical points are:
-<p>
-<ol>
-<li>
-Your EntityStore must be opened and closed before any persistent
-classes are changed.  Do not put changed versions of persistent
-classes in the classpath during this procedure.
-</li><li>
-The JE 3.1 jar file must be used instead of the JE 3.0.12 jar file.
-</li>
-</ol>
-Once this has been done, your persistent class metadata will be
-updated and ready for class evolution to occur.  You can then evolve
-your persistent classes as described in the documentation.  This
-conversion is a one-time procedure for stores that were deployed using
-the JE 3.0.12 beta release.  This procedure will not have to be done
-in future releases.
-</li><br>
-<li>
-JE now provides the ability to get a count of database records. The
-new count method has been optimized to execute faster than the count
-obtained from a database scan, but may not be accurate in the face of
-concurrent updates.
-</li>
-</ol>
-
-<p>
-See the <a href="changeLog.html">change log</a> for the complete and detailed description of
-all bug fixes.
+See the <a href="changelog.html">change log</a> for the complete and
+detailed description of all changes.
 </p>
-<font size="1">Copyright (c) 1996-2006, Oracle Corporation - All rights reserved.</font>
+<font size="1">Copyright 1996,2006 Oracle.  All rights reserved.</font>
 </div>
 <!-- end docMain -->
 </body>

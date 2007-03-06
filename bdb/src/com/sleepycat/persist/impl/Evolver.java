@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Evolver.java,v 1.5 2006/09/22 07:21:41 mark Exp $
+ * $Id: Evolver.java,v 1.7 2006/12/04 18:47:42 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -410,6 +409,7 @@ class Evolver {
             if (needDeleter) {
                 if (newFormat == null) {
                     assert newFormatException != null;
+		    /* FindBugs newFormat known to be null excluded. */
                     addMissingMutation
                         (oldFormat, newFormat, newFormatException);
                 } else {

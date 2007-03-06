@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 1997-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 1997,2006 Oracle.  All rights reserved.
  *
- * $Id: AccessExample.java,v 1.20 2006/09/12 19:16:23 cwl Exp $
+ * $Id: AccessExample.java,v 1.22 2006/10/31 19:56:10 mark Exp $
  */
 
 package collections.access;
@@ -19,7 +18,6 @@ import java.util.Map;
 import java.util.SortedMap;
 
 import com.sleepycat.bind.ByteArrayBinding;
-import com.sleepycat.collections.StoredIterator;
 import com.sleepycat.collections.StoredSortedMap;
 import com.sleepycat.collections.TransactionRunner;
 import com.sleepycat.collections.TransactionWorker;
@@ -202,19 +200,13 @@ public class AccessExample
         // Do the work to traverse and print the HashMap key/data
         // pairs here get iterator over map entries.
         Iterator iter = map.entrySet().iterator();
-        try {
-            System.out.println("Reading data");
-            while (iter.hasNext()) {
-                Map.Entry entry = (Map.Entry) iter.next();
-                log("found \"" +
-		    new String((byte[]) entry.getKey()) +
-		    "\" key with data \"" +
-		    new String((byte[]) entry.getValue()) + "\"");
-            }
-        } finally {
-            // Ensure that all database iterators are closed.  This is very
-            // important.
-            StoredIterator.close(iter);
+        System.out.println("Reading data");
+        while (iter.hasNext()) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            log("found \"" +
+                new String((byte[]) entry.getKey()) +
+                "\" key with data \"" +
+                new String((byte[]) entry.getValue()) + "\"");
         }
     }
 

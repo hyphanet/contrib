@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: RecoveryManager.java,v 1.205 2006/09/12 19:16:54 cwl Exp $
+ * $Id: RecoveryManager.java,v 1.211 2006/12/04 18:47:41 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -38,6 +37,7 @@ import com.sleepycat.je.log.INFileReader;
 import com.sleepycat.je.log.LNFileReader;
 import com.sleepycat.je.log.LastFileReader;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.log.LogFileNotFoundException;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.DIN;
@@ -223,6 +223,10 @@ public class RecoveryManager {
                     (config,
                      false, // flushAll
                      "recovery");
+            } else {
+                /* Initialze intervals when there is no initial checkpoint. */
+                env.getCheckpointer().initIntervals
+                    (info.checkpointEndLsn, System.currentTimeMillis());
             }
 
         } catch (IOException e) {
@@ -264,6 +268,11 @@ public class RecoveryManager {
             }
         }
 
+        /*
+         * The last valid lsn should point to the start of the last valid log entry,
+         * while the end of the log should point to the first byte of blank space,
+         * so these two should not be the same.
+         */
         assert (reader.getLastValidLsn() != reader.getEndOfLog()):
             "lastUsed=" + DbLsn.getNoFormatString(reader.getLastValidLsn()) +
             " end=" + DbLsn.getNoFormatString(reader.getEndOfLog());
@@ -375,7 +384,7 @@ public class RecoveryManager {
                 (checkpointEnd.getFirstActiveLsn());
         }
         if (info.useRootLsn == DbLsn.NULL_LSN) {
-            throw new RecoveryException
+            throw new NoRootException
 		(env,
 		 "This environment's log file has no root. Since the root " +
 		 "is the first entry written into a log at environment " +
@@ -952,6 +961,7 @@ public class RecoveryManager {
 					      txnId.longValue());
 			    undoUtilizationInfo(ln, logLsn, abortLsn,
 						abortKnownDeleted,
+                                                reader.getLastEntrySize(),
 						txnNodeId,
 						countedFileSummaries,
 						countedAbortLsnNodes);
@@ -996,7 +1006,7 @@ public class RecoveryManager {
                 }
             }
             info.nRepeatIteratorReads += reader.getNRepeatIteratorReads();
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             traceAndThrowException(reader.getLastLsn(), "undoLNs", e);
         }
     }
@@ -1112,6 +1122,8 @@ public class RecoveryManager {
                         redoUtilizationInfo(logLsn, treeLsn,
                                             reader.getAbortLsn(),
                                             reader.getAbortKnownDeleted(),
+                                            reader.getLastEntrySize(),
+                                            reader.getKey(),
                                             ln, txnNodeId,
                                             countedAbortLsnNodes);
                     }
@@ -1647,7 +1659,7 @@ public class RecoveryManager {
      * tree 
      * @param logLsn is the LSN from the just-read log entry
      * @param info is a recovery stats object.
-     * @return the LSN found in the tree, or null if not found.
+     * @return the LSN found in the tree, or NULL_LSN if not found.
      */
     private long redo(DatabaseImpl db,
 		      TreeLocation location,
@@ -2022,9 +2034,12 @@ public class RecoveryManager {
 				     long treeLsn,
                                      long abortLsn,
 				     boolean abortKnownDeleted,
+                                     int logEntrySize,
+                                     byte[] key,
                                      LN ln,
 				     TxnNodeId txnNodeId,
-                                     Set countedAbortLsnNodes) {
+                                     Set countedAbortLsnNodes)
+        throws DatabaseException {
 
         UtilizationTracker tracker = env.getUtilizationTracker();
 
@@ -2040,7 +2055,7 @@ public class RecoveryManager {
 		(fileSummaryLsn != DbLsn.NULL_LSN) ?
 		DbLsn.compareTo(fileSummaryLsn, logLsn) : -1;
             if (cmpFsLsnToLogLsn < 0) {
-                tracker.countObsoleteNode(logLsn, null);
+                tracker.countObsoleteNode(logLsn, null, logEntrySize);
             }
         }
 
@@ -2063,7 +2078,19 @@ public class RecoveryManager {
 		    (oldFsLsn != DbLsn.NULL_LSN) ?
 		    DbLsn.compareTo(oldFsLsn, newLsn) : -1;
                 if (cmpOldFsLsnToNewLsn < 0) {
-                    tracker.countObsoleteNode(oldLsn, null);
+                    /* Fetch the LN only if necessary and so configured. */
+                    int oldSize = 0;
+                    if (oldLsn == logLsn) {
+                        oldSize = logEntrySize;
+                    } else if (env.getCleaner().getFetchObsoleteSize()) {
+                        try {
+                            LN oldLn = (LN) env.getLogManager().get(oldLsn);
+                            oldSize = oldLn.getTotalLastLoggedSize(key);
+                        } catch (LogFileNotFoundException e) {
+                            /* Ignore errors if the file was cleaned. */
+                        }
+                    }
+                    tracker.countObsoleteNode(oldLsn, null, oldSize);
                 }
             }
 
@@ -2090,9 +2117,10 @@ public class RecoveryManager {
                     /*
                      * logLsn follows the FileSummaryLN of the abortLsn.  The
                      * abortLsn is only an approximation of the prior LSN, so
-                     * use inexact counting.
+                     * use inexact counting.  Since this is relatively rare,
+                     * a zero entry size (use average size) is acceptable.
                      */
-                    tracker.countObsoleteNodeInexact(abortLsn, null);
+                    tracker.countObsoleteNodeInexact(abortLsn, null, 0);
 
                     /* Don't count this abortLsn (this node) again. */
                     countedAbortLsnNodes.add(txnNodeId);
@@ -2108,6 +2136,7 @@ public class RecoveryManager {
 				     long logLsn,
 				     long abortLsn,
                                      boolean abortKnownDeleted,
+                                     int logEntrySize,
                                      TxnNodeId txnNodeId,
                                      Map countedFileSummaries,
                                      Set countedAbortLsnNodes) {
@@ -2126,7 +2155,7 @@ public class RecoveryManager {
          * file of its Lsn.
          */
         if (cmpFsLsnToLogLsn < 0) {
-            tracker.countObsoleteNode(logLsn, null);
+            tracker.countObsoleteNode(logLsn, null, logEntrySize);
         }
 
         /*
@@ -2144,7 +2173,7 @@ public class RecoveryManager {
                  * logLsn.
                  */
                 if (!ln.isDeleted()) {
-                    tracker.countObsoleteNode(logLsn, null);
+                    tracker.countObsoleteNode(logLsn, null, logEntrySize);
                 }
                 /* Don't count this file again. */
                 countedFileSummaries.put(txnNodeId, logFileNum);

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: PartData.java,v 1.11 2006/09/12 19:16:33 cwl Exp $
+ * $Id: PartData.java,v 1.12 2006/10/30 21:14:02 bostic Exp $
  */
 
 package collections.ship.tuple;

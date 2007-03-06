@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: IndexTest.java,v 1.14 2006/09/21 15:34:34 mark Exp $
+ * $Id: IndexTest.java,v 1.15 2006/10/30 21:14:55 bostic Exp $
  */
 
 package com.sleepycat.persist.test;

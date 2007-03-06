@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: CleanerTest.java,v 1.84 2006/09/12 19:17:13 cwl Exp $
+ * $Id: CleanerTest.java,v 1.87 2006/12/05 21:34:20 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -405,6 +404,75 @@ public class CleanerTest extends TestCase {
 	db1 = env.openDatabase(null, "db1", dbConfig);
 	db1.get(null, key, data, null);
 	db1.close();
+	env.close();
+    }
+
+    /**
+     * Tests that setting je.env.runCleaner=false stops the cleaner from
+     * processing more files even if the target minUtilization is not met
+     * [#15158].
+     */
+    public void testCleanerStop()
+	throws Throwable {
+
+        final int fileSize = 1000000;
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        envConfig.setConfigParam
+	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.LOG_FILE_MAX.getName(),
+             Integer.toString(fileSize));
+        envConfig.setConfigParam
+	    (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
+        Environment env = new Environment(envHome, envConfig);
+
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        Database db = env.openDatabase(null, "CleanerStop", dbConfig);
+
+        DatabaseEntry key = new DatabaseEntry(new byte[1]);
+        DatabaseEntry data = new DatabaseEntry(new byte[fileSize]);
+        for (int i = 0; i <= 10; i += 1) {
+            db.put(null, key, data);
+        }
+        env.checkpoint(forceConfig);
+
+        EnvironmentStats stats = env.getStats(null);
+        assertEquals(0, stats.getNCleanerRuns());
+
+        envConfig = env.getConfig();
+        envConfig.setConfigParam
+	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "true");
+        env.setMutableConfig(envConfig);
+
+        int iter = 0;
+        while (stats.getNCleanerRuns() == 0) {
+            iter += 1;
+            if (iter == 20) {
+                fail("Cleaner did not run after " + iter + " tries");
+            }
+            Thread.yield();
+            Thread.sleep(1);
+            stats = env.getStats(null);
+        }
+
+        envConfig.setConfigParam
+	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+        env.setMutableConfig(envConfig);
+
+        int prevNFiles = stats.getNCleanerRuns();
+        stats = env.getStats(null);
+        int currNFiles = stats.getNCleanerRuns();
+        if (currNFiles - prevNFiles > 5) {
+            fail("Expected less than 5 files cleaned," +
+                 " prevNFiles=" + prevNFiles +
+                 " currNFiles=" + currNFiles);
+        }
+
+        //System.out.println("Num runs: " + stats.getNCleanerRuns());
+
+	db.close();
 	env.close();
     }
 

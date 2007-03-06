@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FileManagerTest.java,v 1.63 2006/09/12 19:17:20 cwl Exp $
+ * $Id: FileManagerTest.java,v 1.65 2006/11/27 02:06:45 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -76,8 +75,10 @@ public class FileManagerTest extends TestCase {
     protected void tearDown()
         throws IOException, DatabaseException {
 
-        fileManager.clear();
-        fileManager.close();
+        if (fileManager != null) {
+            fileManager.clear();
+            fileManager.close();
+        }
         TestUtils.removeFiles("TearDown", envHome, FileManager.JE_SUFFIX);
     }
 
@@ -520,6 +521,17 @@ public class FileManagerTest extends TestCase {
 
     public void testFlipFile()
 	throws Throwable {
+
+        /*
+         * The setUp() method opens a standalone FileManager, but in this test
+         * case we need a regular Environment.  On Windows, we can't lock the
+         * file range twice in FileManager.lockEnvironment, so we must close
+         * the standalone FileManager here before opening a regular
+         * environment.
+         */
+        fileManager.clear();
+        fileManager.close();
+        fileManager = null;
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setAllowCreate(true);

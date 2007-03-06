@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: CursorConfig.java,v 1.16 2006/09/12 19:16:41 cwl Exp $
+ * $Id: CursorConfig.java,v 1.18 2006/11/20 15:46:58 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -19,26 +18,26 @@ public class CursorConfig implements Cloneable {
      * Javadoc for this public instance is generated via
      * the doc templates in the doc_src directory.
      */
-    public final static CursorConfig DEFAULT = new CursorConfig();
+    public static final CursorConfig DEFAULT = new CursorConfig();
 
     /**
      * Javadoc for this public instance is generated via
      * the doc templates in the doc_src directory.
      */
-    public final static CursorConfig READ_UNCOMMITTED = new CursorConfig();
+    public static final CursorConfig READ_UNCOMMITTED = new CursorConfig();
 
     /**
      * Javadoc for this public instance is generated via
      * the doc templates in the doc_src directory.
      * @deprecated
      */
-    public final static CursorConfig DIRTY_READ = READ_UNCOMMITTED;
+    public static final CursorConfig DIRTY_READ = READ_UNCOMMITTED;
 
     /**
      * Javadoc for this public instance is generated via
      * the doc templates in the doc_src directory.
      */
-    public final static CursorConfig READ_COMMITTED = new CursorConfig();
+    public static final CursorConfig READ_COMMITTED = new CursorConfig();
     
     static {
         READ_UNCOMMITTED.setReadUncommitted(true);

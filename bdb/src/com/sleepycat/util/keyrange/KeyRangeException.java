@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: KeyRangeException.java,v 1.2 2006/09/12 19:17:06 cwl Exp $
+ * $Id: KeyRangeException.java,v 1.3 2006/10/30 21:14:35 bostic Exp $
  */
 
 package com.sleepycat.util.keyrange;

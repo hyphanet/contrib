@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: EvolveTest.java,v 1.5 2006/09/22 05:28:52 mark Exp $
+ * $Id: EvolveTest.java,v 1.6 2006/10/30 21:14:55 bostic Exp $
  */
 package com.sleepycat.persist.test;
 

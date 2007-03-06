@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: BasicIndex.java,v 1.7 2006/09/21 15:34:33 mark Exp $
+ * $Id: BasicIndex.java,v 1.9 2006/10/30 21:14:29 bostic Exp $
  */
 
 package com.sleepycat.persist;
@@ -166,8 +165,10 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
     }
 
     public EntityCursor<K> keys(Transaction txn,
-                                K fromKey, boolean fromInclusive,
-                                K toKey, boolean toInclusive,
+                                K fromKey,
+				boolean fromInclusive,
+                                K toKey,
+				boolean toInclusive,
                                 CursorConfig config)
         throws DatabaseException {
 
@@ -184,8 +185,10 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
     }
 
     public EntityCursor<E> entities(Transaction txn,
-                                    K fromKey, boolean fromInclusive,
-                                    K toKey, boolean toInclusive,
+                                    K fromKey,
+				    boolean fromInclusive,
+                                    K toKey,
+				    boolean toInclusive,
                                     CursorConfig config)
         throws DatabaseException {
 
@@ -224,8 +227,10 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
     */
 
     private <V> EntityCursor<V> cursor(Transaction txn,
-                                       K fromKey, boolean fromInclusive,
-                                       K toKey, boolean toInclusive,
+                                       K fromKey,
+				       boolean fromInclusive,
+                                       K toKey,
+				       boolean toInclusive,
                                        ValueAdapter<V> adapter,
                                        CursorConfig config)
         throws DatabaseException {

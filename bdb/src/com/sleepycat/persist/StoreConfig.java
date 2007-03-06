@@ -1,16 +1,16 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: StoreConfig.java,v 1.10 2006/09/21 13:35:57 mark Exp $
+ * $Id: StoreConfig.java,v 1.13 2006/11/29 21:23:27 mark Exp $
  */
 
 package com.sleepycat.persist;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DatabaseNotFoundException;
+import com.sleepycat.je.Environment; // for javadoc
 import com.sleepycat.persist.evolve.IncompatibleClassException;
 import com.sleepycat.persist.evolve.Mutations;
 import com.sleepycat.persist.model.AnnotationModel;
@@ -41,6 +41,7 @@ public class StoreConfig implements Cloneable {
     private boolean exclusiveCreate;
     private boolean transactional;
     private boolean readOnly;
+    private boolean deferredWrite;
     private EntityModel model;
     private Mutations mutations;
 
@@ -135,6 +136,33 @@ public class StoreConfig implements Cloneable {
      */
     public boolean getReadOnly() {
         return readOnly;
+    }
+
+    /**
+     * Sets the deferred-write configuration property.  By default this
+     * property is false.
+     *
+     * <p>This property is true to open all store index databases for
+     * deferred-write access.  True may not be specified if the store is
+     * transactional.</p>
+     *
+     * <p>Deferred write stores avoid disk I/O and are not guaranteed to be
+     * persistent until {@link EntityStore#sync} or {@link Environment#sync} is
+     * called. This mode is particularly geared toward temporary stores, or
+     * stores that frequently modify and delete data records. See the Getting
+     * Started Guide, Database chapter for a full description of the mode.</p>
+     *
+     * @see #setTransactional
+     */
+    public void setDeferredWrite(boolean deferredWrite) {
+        this.deferredWrite = deferredWrite;
+    }
+
+    /**
+     * Returns the deferred-write configuration property.
+     */
+    public boolean getDeferredWrite() {
+        return deferredWrite;
     }
 
     /**

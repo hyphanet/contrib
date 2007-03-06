@@ -76,6 +76,9 @@ primitive wrapper types, or to the wrapper type for a widened primitive type.
 However, changing from a primitive wrapper type to a primitive type is not a
 compatible change since existing null values could not be represented.</p>
 
+<p>Integer primitive types (byte, short, char, int, long) and their primitive
+wrapper types may be compatibly changed to the BigInteger type.</p>
+
 <p>In addition, adding fields to a class is a compatible change.  When a
 persistent instance of a class is read that does not contain the new field, the
 new field is initialized by the default constructor.</p>

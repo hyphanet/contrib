@@ -1,24 +1,25 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: WidenerInput.java,v 1.1 2006/09/19 06:22:58 mark Exp $
+ * $Id: WidenerInput.java,v 1.3 2006/11/14 23:30:49 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
+
+import java.math.BigInteger;
 
 /**
  * Widens a value returned by another input when any readXxx method is called.
  * Used to cause an Accessor to read a widened value.
  *
  * For non-key fields we support all Java primitive widening:
- * - byte to short, int, long, float, or double
- * - short to int, long, float, or double
- * - char to int, long, float, or double
- * - int to long, float, or double
- * - long to float or double
+ * - byte to short, int, long, float, double or BigInteger
+ * - short to int, long, float, double or BigInteger
+ * - char to int, long, float, double or BigInteger
+ * - int to long, float, double or BigInteger
+ * - long to float, double or BigInteger
  * - float to double 
  *
  * For non-key fields we also support:
@@ -77,6 +78,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -88,6 +90,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_LONG_W:
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -104,6 +107,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -114,6 +118,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_LONG_W:
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -128,6 +133,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -137,6 +143,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_LONG_W:
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -149,6 +156,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -157,6 +165,7 @@ class WidenerInput extends AbstractInput {
             switch (toFormatId) {
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -197,6 +206,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -207,6 +217,7 @@ class WidenerInput extends AbstractInput {
             case Format.ID_LONG_W:
             case Format.ID_FLOAT_W:
             case Format.ID_DOUBLE_W:
+            case Format.ID_BIGINT:
                 return !isSecKeyField;
             default:
                 return false;
@@ -310,6 +321,8 @@ class WidenerInput extends AbstractInput {
         case Format.ID_DOUBLE:
         case Format.ID_DOUBLE_W:
             return Double.valueOf(v);
+        case Format.ID_BIGINT:
+            return BigInteger.valueOf(v);
         default:
             throw new IllegalStateException(String.valueOf(toFormatId));
         }
@@ -332,6 +345,8 @@ class WidenerInput extends AbstractInput {
         case Format.ID_DOUBLE:
         case Format.ID_DOUBLE_W:
             return Double.valueOf(v);
+        case Format.ID_BIGINT:
+            return BigInteger.valueOf(v);
         default:
             throw new IllegalStateException(String.valueOf(toFormatId));
         }
@@ -351,6 +366,8 @@ class WidenerInput extends AbstractInput {
         case Format.ID_DOUBLE:
         case Format.ID_DOUBLE_W:
             return Double.valueOf(v);
+        case Format.ID_BIGINT:
+            return BigInteger.valueOf(v);
         default:
             throw new IllegalStateException(String.valueOf(toFormatId));
         }
@@ -367,6 +384,8 @@ class WidenerInput extends AbstractInput {
         case Format.ID_DOUBLE:
         case Format.ID_DOUBLE_W:
             return Double.valueOf(v);
+        case Format.ID_BIGINT:
+            return BigInteger.valueOf(v);
         default:
             throw new IllegalStateException(String.valueOf(toFormatId));
         }
@@ -402,6 +421,8 @@ class WidenerInput extends AbstractInput {
         case Format.ID_DOUBLE:
         case Format.ID_DOUBLE_W:
             return Double.valueOf(v);
+        case Format.ID_BIGINT:
+            return BigInteger.valueOf(v);
         default:
             throw new IllegalStateException(String.valueOf(toFormatId));
         }
@@ -492,6 +513,24 @@ class WidenerInput extends AbstractInput {
             return input.readSortedFloat();
         case Format.ID_CHAR:
             return input.readChar();
+        default:
+            throw new IllegalStateException(String.valueOf(fromFormatId));
+        }
+    }
+
+    public BigInteger readBigInteger() {
+        checkToFormat(Format.ID_BIGINT);
+        switch (fromFormatId) {
+        case Format.ID_BYTE:
+            return BigInteger.valueOf(input.readByte());
+        case Format.ID_SHORT:
+            return BigInteger.valueOf(input.readShort());
+        case Format.ID_INT:
+            return BigInteger.valueOf(input.readInt());
+        case Format.ID_LONG:
+            return BigInteger.valueOf(input.readLong());
+        case Format.ID_CHAR:
+            return BigInteger.valueOf(input.readChar());
         default:
             throw new IllegalStateException(String.valueOf(fromFormatId));
         }

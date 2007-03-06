@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: IN.java,v 1.291 2006/09/12 19:16:56 cwl Exp $
+ * $Id: IN.java,v 1.294 2006/11/03 03:07:56 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -2076,7 +2075,7 @@ public class IN extends Node
 
         /* Count as obsolete. */
         if (lastFullVersion != DbLsn.NULL_LSN) {
-            tracker.countObsoleteNode(lastFullVersion, getLogType());
+            tracker.countObsoleteNode(lastFullVersion, getLogType(), 0);
         }
 
         /*
@@ -2509,6 +2508,7 @@ public class IN extends Node
                                       false, // allow deltas 
                                       true,  // is provisional 
                                       false, // proactive migration
+                                      true,  // backgroundIO
                                       this); // provisional parent 
                         updateEntry(i, childLsn);
                     }
@@ -2529,6 +2529,7 @@ public class IN extends Node
                            false,  // allowDeltas
                            false,  // isProvisional
                            false,  // proactiveMigration
+                           false,  // backgroundIO
                            null);  // parent
     }
 
@@ -2539,6 +2540,7 @@ public class IN extends Node
                     boolean allowDeltas,
                     boolean isProvisional,
                     boolean proactiveMigration,
+                    boolean backgroundIO,
                     IN parent) // for provisional
         throws DatabaseException {
 
@@ -2546,6 +2548,7 @@ public class IN extends Node
                            allowDeltas,
                            isProvisional,
                            proactiveMigration,
+                           backgroundIO,
                            parent);
     }
 
@@ -2562,6 +2565,7 @@ public class IN extends Node
                                false,  // allowDeltas
                                false,  // isProvisional
                                false,  // proactiveMigration
+                               false,  // backgroundIO
                                null);  // parent
         }
     }
@@ -2582,6 +2586,7 @@ public class IN extends Node
                                false,  // allowDeltas
                                true,   // isProvisional
                                false,  // proactiveMigration
+                               false,  // backgroundIO
                                parent);
         }
     }
@@ -2594,6 +2599,7 @@ public class IN extends Node
 			       boolean allowDeltas,
                                boolean isProvisional,
                                boolean proactiveMigration,
+                               boolean backgroundIO,
                                IN parent)
         throws DatabaseException {
 
@@ -2606,8 +2612,8 @@ public class IN extends Node
          * non-provisionally, so propagate obsolete lsns upwards.
          */
         long lsn = logManager.log
-            (new INLogEntry(this), isProvisional,
-             isProvisional ? DbLsn.NULL_LSN : lastFullVersion);
+            (new INLogEntry(this), isProvisional, backgroundIO,
+             isProvisional ? DbLsn.NULL_LSN : lastFullVersion, 0);
 
         if (isProvisional) {
             if (parent != null) {

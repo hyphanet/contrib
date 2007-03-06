@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SecondaryIndex.java,v 1.11 2006/09/12 19:17:01 cwl Exp $
+ * $Id: SecondaryIndex.java,v 1.14 2006/12/04 18:52:56 linda Exp $
  */
 
 package com.sleepycat.persist;
@@ -34,8 +33,11 @@ import com.sleepycat.persist.model.SecondaryKey;
  * safely call the methods of a shared {@code SecondaryIndex} object.</p>
  *
  * <p>{@code SecondaryIndex} implements {@link EntityIndex} to map the
- * secondary key type (SK) to the entity type (E).  The {@link SecondaryKey}
- * annotation may be used to define a secondary key.  For example:</p>
+ * secondary key type (SK) to the entity type (E).  In other words, entities
+ * are accessed by secondary key values.</p>
+ *
+ * <p>The {@link SecondaryKey} annotation may be used to define a secondary key
+ * as shown in the following example.</p>
  *
  * <pre class="code">
  * {@literal @Entity}
@@ -51,9 +53,6 @@ import com.sleepycat.persist.model.SecondaryKey;
  *
  *     private Employee() {}
  * }</pre>
- *
- * <p>For more information on defining secondary keys, see {@link
- * SecondaryKey}.</p>
  *
  * <p>Before obtaining a {@code SecondaryIndex}, the {@link PrimaryIndex} must
  * be obtained for the entity class.  To obtain the {@code SecondaryIndex} call
@@ -80,11 +79,11 @@ import com.sleepycat.persist.model.SecondaryKey;
  * PrimaryIndex}.</p>
  *
  * <p>Note that a {@code SecondaryIndex} has three type parameters {@code
- * <String,Long,Employee>} while a {@link PrimaryIndex} has only two type
- * parameters {@code <Long,Employee>}.  This is because a {@code
- * SecondaryIndex} has an extra level of mapping:  It maps from secondary key
- * to primary key, and then from primary key to entity.  For example, consider
- * this entity:</p>
+ * <SK,PK,E>} or in the example {@code <String,Long,Employee>} while a {@link
+ * PrimaryIndex} has only two type parameters {@code <PK,E>} or {@code
+ * <Long,Employee>}.  This is because a {@code SecondaryIndex} has an extra
+ * level of mapping:  It maps from secondary key to primary key, and then from
+ * primary key to entity.  For example, consider this entity:</p>
  *
  * <p><table class="code" border="1">
  *   <tr><th>ID</th><th>Department</th><th>Name</th></tr>
@@ -124,6 +123,18 @@ import com.sleepycat.persist.model.SecondaryKey;
  * PrimaryIndex}, are shown using example data in the {@link EntityIndex}
  * interface documentation.  See {@link EntityIndex} for more information.</p>
  *
+ * <p>Note that when using an index, keys and values are stored and retrieved
+ * by value not by reference.  In other words, if an entity object is stored
+ * and then retrieved, or retrieved twice, each object will be a separate
+ * instance.  For example, in the code below the assertion will always
+ * fail.</p>
+ * <pre class="code">
+ * MyKey key = ...;
+ * MyEntity entity1 = index.get(key);
+ * MyEntity entity2 = index.get(key);
+ * assert entity1 == entity2; // always fails!
+ * </pre>
+ *
  * <h3>One-to-One Relationships</h3>
  *
  * <p>A {@link Relationship#ONE_TO_ONE ONE_TO_ONE} relationship, although less
@@ -151,7 +162,7 @@ import com.sleepycat.persist.model.SecondaryKey;
  *
  * <p>With a {@link Relationship#ONE_TO_ONE ONE_TO_ONE} relationship, the
  * secondary key must be unique; in other words, no two entities may have the
- * same secondary key value.  If an attempt is made to store and entity having
+ * same secondary key value.  If an attempt is made to store an entity having
  * the same secondary key value as another existing entity, a {@link
  * DatabaseException} will be thrown.</p>
  *
@@ -230,7 +241,7 @@ import com.sleepycat.persist.model.SecondaryKey;
  * <p>With a {@link Relationship#ONE_TO_MANY ONE_TO_MANY} relationship, the
  * secondary key must be unique; in other words, no two entities may have the
  * same secondary key value.  In this example, no two employees may have the
- * same email address.  If an attempt is made to store and entity having the
+ * same email address.  If an attempt is made to store an entity having the
  * same secondary key value as another existing entity, a {@link
  * DatabaseException} will be thrown.</p>
  *
@@ -252,7 +263,7 @@ import com.sleepycat.persist.model.SecondaryKey;
  *
  * <h3>Many-to-Many Relationships</h3>
  *
- * <p>In a {@link Relationship#MANY_TO_MANY MANY_TO_MANY} relationship, a one
+ * <p>In a {@link Relationship#MANY_TO_MANY MANY_TO_MANY} relationship, one
  * or more entities is related to one or more secondary key values.  For
  * example:</p>
  *
@@ -303,7 +314,7 @@ import com.sleepycat.persist.model.SecondaryKey;
  * employee.organizations.remove(myOldOrg); // Remove an organization
  * primaryIndex.putNoReturn(1, employee);   // Update the entity</pre>
  *
- * <h3>Foreign Key Constraints</h3>
+ * <h3>Foreign Key Constraints for Related Entities</h3>
  *
  * <p>In all the examples above the secondary key is treated only as a simple
  * value, such as a {@code String} department field.  In many cases, that is
@@ -385,8 +396,8 @@ import com.sleepycat.persist.model.SecondaryKey;
  * updated to refer to a different existing department, or set to null.  This
  * is the responsibility of the application.</p>
  *
- * <p>There are two alternatives for handling deletion of a Department entity.
- * These alternatives are configured using the {@link
+ * <p>There are two additional ways of handling deletion of a Department
+ * entity.  These alternatives are configured using the {@link
  * SecondaryKey#onRelatedEntityDelete} annotation property.  Setting this
  * property to {@link DeleteAction#NULLIFY} causes the Employee department
  * field to be automatically set to null when the department they refer to is
@@ -446,6 +457,308 @@ import com.sleepycat.persist.model.SecondaryKey;
  * "child" OrderItem entities.</p>
  *
  * <p>For more information, see {@link SecondaryKey#onRelatedEntityDelete}.</p>
+ *
+ * <h3>One-to-Many versus Many-to-One for Related Entities</h3>
+ *
+ * <p>When there is a conceptual Many-to-One relationship such as Employee to
+ * Department as illustrated in the examples above, the relationship may be
+ * implemented either as Many-to-One in the Employee class or as One-to-Many in
+ * the Department class.</p>
+ *
+ * <p>Here is the Many-to-One approach.</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Employee {
+ *
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_ONE, relatedEntity=Department.class)}
+ *     String department;
+ *
+ *     String name;
+ *
+ *     private Employee() {}
+ * }
+ *
+ * {@literal @Entity}
+ * class Department {
+ *
+ *     {@literal @PrimaryKey}
+ *     String name;
+ *
+ *     String missionStatement;
+ *
+ *     private Department() {}
+ * }</pre>
+ *
+ * <p>And here is the One-to-Many approach.</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Employee {
+ *
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *
+ *     String name;
+ *
+ *     private Employee() {}
+ * }
+ *
+ * {@literal @Entity}
+ * class Department {
+ *
+ *     {@literal @PrimaryKey}
+ *     String name;
+ *
+ *     String missionStatement;
+ *
+ *     {@literal @SecondaryKey(relate=ONE_TO_MANY, relatedEntity=Employee.class)}
+ *     {@literal Set<Long> employees = new HashSet<Long>;}
+ *
+ *     private Department() {}
+ * }</pre>
+ *
+ * <p>Which approach is best?  The Many-to-One approach better handles large
+ * number of entities on the to-Many side of the relationship because it
+ * doesn't store a collection of keys as an entity field.  With Many-to-One a
+ * Btree is used to store the collection of keys and the Btree can easily
+ * handle very large numbers of keys.  With One-to-Many, each time a related
+ * key is added or removed the entity on the One side of the relationship,
+ * along with the complete collection of related keys, must be updated.
+ * Therefore, if large numbers of keys may be stored per relationship,
+ * Many-to-One is recommended.</p>
+ *
+ * <p>If the number of entities per relationship is not a concern, then you may
+ * wish to choose the approach that is most natural in your application data
+ * model.  For example, if you think of a Department as containing employees
+ * and you wish to modify the Department object each time an employee is added
+ * or removed, then you may wish to store a collection of Employee keys in the
+ * Department object (One-to-Many).</p>
+ *
+ * <p>Note that if you have a One-to-Many relationship and there is no related
+ * entity, then you don't have a choice -- you have to use One-to-Many because
+ * there is no entity on the to-Many side of the relationship where a
+ * Many-to-One key could be defined.  An example is the Employee to email
+ * addresses relationship discussed above:</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Employee {
+ *
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *
+ *     {@literal @SecondaryKey(relate=ONE_TO_MANY)}
+ *     {@literal Set<String> emailAddresses = new HashSet<String>;}
+ *
+ *     String name;
+ *
+ *     private Employee() {}
+ * }</pre>
+ *
+ * <p>For sake of argument imagine that each employee has thousands of email
+ * addresses and employees frequently add and remove email addresses.  To
+ * avoid the potential performance problems associated with updating the
+ * Employee entity every time an email address is added or removed, you could
+ * create an EmployeeEmailAddress entity and use a Many-to-One relationship as
+ * shown below:</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Employee {
+ *
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *
+ *     String name;
+ *
+ *     private Employee() {}
+ * }
+ *
+ * {@literal @Entity}
+ * class EmployeeEmailAddress {
+ *
+ *     {@literal @PrimaryKey}
+ *     String emailAddress;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_ONE, relatedEntity=Employee.class)}
+ *     long employeeId;
+ *
+ *     private EmployeeEmailAddress() {}
+ * }</pre>
+ *
+ * <h3>Key Placement with Many-to-Many for Related Entities</h3>
+ *
+ * <p>As discussed in the section above, one drawback of a to-Many relationship
+ * (One-to-Many was discussed above and Many-to-Many is discussed here) is that
+ * it requires storing a collection of keys in an entity.  Each time a key is
+ * added or removed, the containing entity must be updated.  This has potential
+ * performance problems when there are large numbers of entities on the to-Many
+ * side of the relationship, in other words, when there are large numbers of
+ * keys in each secondary key field collection.</p>
+ *
+ * <p>If you have a Many-to-Many relationship with a reasonably small number of
+ * entities on one side of the relationship and a large number of entities on
+ * the other side, you can avoid the potential performance problems by defining
+ * the secondary key field on the side with a small number of entities.</p>
+ *
+ * <p>For example, in an Employee-to-Organization relationship, the number of
+ * organizations per employee will normally be reasonably small but the number
+ * of employees per organization may be very large.  Therefore, to avoid
+ * potential performance problems, the secondary key field should be defined in
+ * the Employee class as shown below.</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Employee {
+ *
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_MANY, relatedEntity=Organization.class)}
+ *     {@literal Set<String> organizations = new HashSet<String>;}
+ *
+ *     String name;
+ *
+ *     private Employee() {}
+ * }
+ *
+ * {@literal @Entity}
+ * class Organization {
+ *
+ *     {@literal @PrimaryKey}
+ *     String name;
+ *     
+ *     String description;
+ * }</pre>
+ *
+ * <p>If instead a {@code Set<Long> members} key had been defined in the
+ * Organization class, this set could potentially have a large number of
+ * elements and performance problems could result.</p>
+ *
+ * <h3>Many-to-Many Versus a Relationship Entity</h3>
+ *
+ * <p>If you have a Many-to-Many relationship with a large number of entities
+ * on <em>both</em> sides of the relationship, you can avoid the potential
+ * performance problems by using a <em>relationship entity</em>.  A
+ * relationship entity defines the relationship between two other entities
+ * using two Many-to-One relationships.</p>
+ *
+ * <p>Imagine a relationship between cars and trucks indicating whenever a
+ * particular truck was passed on the road by a particular car.  A given car
+ * may pass a large number of trucks and a given truck may be passed by a large
+ * number of cars.  First look at a Many-to-Many relationship between these two
+ * entities:</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Car {
+ *
+ *     {@literal @PrimaryKey}
+ *     String licenseNumber;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_MANY, relatedEntity=Truck.class)}
+ *     {@literal Set<String> trucksPassed = new HashSet<String>;}
+ *
+ *     String color;
+ *
+ *     private Car() {}
+ * }
+ *
+ * {@literal @Entity}
+ * class Truck {
+ *
+ *     {@literal @PrimaryKey}
+ *     String licenseNumber;
+ *
+ *     int tons;
+ *
+ *     private Truck() {}
+ * }</pre>
+ *
+ * <p>With the Many-to-Many approach above, the {@code trucksPassed} set could
+ * potentially have a large number of elements and performance problems could
+ * result.</p>
+ *
+ * <p>To apply the relationship entity approach we define a new entity class
+ * named CarPassedTruck representing a single truck passed by a single car.  We
+ * remove the secondary key from the Car class and use two secondary keys in
+ * the CarPassedTruck class instead.</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Car {
+ *
+ *     {@literal @PrimaryKey}
+ *     String licenseNumber;
+ *
+ *     String color;
+ *
+ *     private Car() {}
+ * }
+ *
+ * {@literal @Entity}
+ * class Truck {
+ *
+ *     {@literal @PrimaryKey}
+ *     String licenseNumber;
+ *
+ *     int tons;
+ *
+ *     private Truck() {}
+ * }
+ *
+ * {@literal @Entity}
+ * class CarPassedTruck {
+ *
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_ONE, relatedEntity=Car.class)}
+ *     String carLicense;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_ONE, relatedEntity=Truck.class)}
+ *     String truckLicense;
+ *
+ *     private CarPassedTruck() {}
+ * }</pre>
+ *
+ * <p>The CarPassedTruck entity can be used to access the relationship by car
+ * license or by truck license.</p>
+ *
+ * <p>You may use the relationship entity approach because of the potential
+ * performance problems mentioned above.  Or, you may choose to use this
+ * approach in order to store other information about the relationship.  For
+ * example, if for each car that passes a truck you wish to record how much
+ * faster the car was going than the truck, then a relationship entity is the
+ * logical place to store that property.  In the example below the
+ * speedDifference property is added to the CarPassedTruck class.</p>
+ *
+ * <pre class="code">
+ * {@literal @Entity}
+ * class CarPassedTruck {
+ *
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_ONE, relatedEntity=Car.class)}
+ *     String carLicense;
+ *
+ *     {@literal @SecondaryKey(relate=MANY_TO_ONE, relatedEntity=Truck.class)}
+ *     String truckLicense;
+ *
+ *     int speedDifference;
+ *
+ *     private CarPassedTruck() {}
+ * }</pre>
+ *
+ * <p>Be aware that the relationship entity approach adds overhead compared to
+ * Many-to-Many.  There is one additional entity and one additional secondary
+ * key.  These factors should be weighed against its advantages and the
+ * relevant application access patterns should be considered.</p>
  *
  * @author Mark Hayes
  */

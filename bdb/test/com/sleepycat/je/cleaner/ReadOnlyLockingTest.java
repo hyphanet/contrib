@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ReadOnlyLockingTest.java,v 1.7 2006/09/12 19:17:14 cwl Exp $
+ * $Id: ReadOnlyLockingTest.java,v 1.9 2006/11/22 23:54:49 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -36,6 +35,7 @@ import com.sleepycat.je.util.TestUtils;
 public class ReadOnlyLockingTest extends TestCase {
 
     private static final int FILE_SIZE = 4096;
+    private static final int READER_STARTUP_SECS = 30;
 
     private static final CheckpointConfig forceConfig = new CheckpointConfig();
     static {
@@ -48,6 +48,25 @@ public class ReadOnlyLockingTest extends TestCase {
     private Database db;
     private Process readerProcess;
 
+    private static File getProcessFile() {
+        return new File(System.getProperty(TestUtils.DEST_DIR),
+                        "ReadOnlyProcessFile");
+    }
+
+    private static void deleteProcessFile() {
+        File file = getProcessFile();
+        file.delete();
+        TestCase.assertTrue(!file.exists());
+    }
+
+    static void createProcessFile()
+        throws IOException {
+            
+        File file = getProcessFile();
+        TestCase.assertTrue(file.createNewFile());
+        TestCase.assertTrue(file.exists());
+    }
+
     public ReadOnlyLockingTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
@@ -55,12 +74,16 @@ public class ReadOnlyLockingTest extends TestCase {
     public void setUp()
         throws IOException, DatabaseException {
 
+        deleteProcessFile();
+
         TestUtils.removeLogFiles("Setup", envHome, false);
         TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
     }
 
     public void tearDown()
         throws IOException, DatabaseException {
+
+        deleteProcessFile();
 
         try {
             stopReaderProcess();
@@ -219,10 +242,23 @@ public class ReadOnlyLockingTest extends TestCase {
             ReadOnlyProcess.class.getName(),
         };
 
-        /* Start it and give it a chance to open the environment. */
+        /* Start it and wait for it to open the environment. */
         readerProcess = Runtime.getRuntime().exec(cmd);
-        Thread.sleep(2000);
+        long startTime = System.currentTimeMillis();
+        boolean running = false;
+        while (!running &&
+               ((System.currentTimeMillis() - startTime) <
+                (READER_STARTUP_SECS * 1000))) {
+            if (getProcessFile().exists()) {
+                running = true;
+            } else {
+                Thread.sleep(10);
+            }
+        }
         //printReaderStatus();
+        assertTrue("ReadOnlyProcess did not start after " +
+                   READER_STARTUP_SECS + " + secs",
+                   running);
     }
 
     private void stopReaderProcess()

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DbTree.java,v 1.165 2006/09/12 19:16:45 cwl Exp $
+ * $Id: DbTree.java,v 1.169 2006/11/28 13:52:05 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -58,12 +57,14 @@ public class DbTree implements LoggableObject, LogReadable {
     private static final String ID_DB_NAME = "_jeIdMap";
     private static final String NAME_DB_NAME = "_jeNameMap";
     public static final String UTILIZATION_DB_NAME = "_jeUtilization";
+    public static final String REP_OPERATIONS_NAME = "_jeRepOp";
 
     /* Reserved database names. */
     private static final String[] RESERVED_DB_NAMES = {
         ID_DB_NAME,
         NAME_DB_NAME,
         UTILIZATION_DB_NAME,
+        REP_OPERATIONS_NAME
     };
 
     /* Database id counter, must be accessed w/synchronization. */
@@ -151,29 +152,18 @@ public class DbTree implements LoggableObject, LogReadable {
 
     /**
      * Create a database.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
+     *
+     * @param locker owning locker
+     * @param databaseName identifier for database
+     * @param dbConfig
      */
     public synchronized DatabaseImpl createDb(Locker locker, 
                                               String databaseName,
                                               DatabaseConfig dbConfig,
                                               Database databaseHandle)
-        throws DatabaseException {
-
-        return createDb(locker, databaseName, dbConfig, databaseHandle, true);
-    }
-
-    /**
-     * Create a database.
-     * @param locker owning locker
-     * @param databaseName identifier for database
-     * @param dbConfig
-     * @param allowEviction is whether eviction is allowed during cursor
-     * operations.
-     */
-    public synchronized DatabaseImpl createDb(Locker locker, 
-                                              String databaseName,
-                                              DatabaseConfig dbConfig,
-                                              Database databaseHandle,
-                                              boolean allowEviction)
         throws DatabaseException {
 
         /* Create a new database object. */
@@ -189,7 +179,6 @@ public class DbTree implements LoggableObject, LogReadable {
         try {
             /* Insert it into name -> id db. */
             nameCursor = new CursorImpl(nameDatabase, locker);
-            nameCursor.setAllowEviction(allowEviction);
             LN nameLN = new NameLN(newId);
             nameCursor.putLN(databaseName.getBytes("UTF-8"),
 			     nameLN, false);
@@ -205,7 +194,6 @@ public class DbTree implements LoggableObject, LogReadable {
             /* Insert it into id -> name db, in auto commit mode. */
             idDbLocker = new BasicLocker(envImpl);
             idCursor = new CursorImpl(idDatabase, idDbLocker);
-            idCursor.setAllowEviction(allowEviction);
             idCursor.putLN(newId.getBytes(), new MapLN(newDb), false);
             operationOk = true;
 	} catch (UnsupportedEncodingException UEE) {
@@ -248,6 +236,9 @@ public class DbTree implements LoggableObject, LogReadable {
      * database and it's not a deferred write db, we will write the MapLn that
      * represents this db to the log. If the tree is one of the mapping dbs,
      * we'll write the dbtree to the log.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
      *
      * @param db the target db
      */
@@ -330,6 +321,9 @@ public class DbTree implements LoggableObject, LogReadable {
     /*
      * Helper for database operations. This method positions a cursor
      * on the NameLN that represents this database and write locks it.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
      */
     private NameLockResult lockNameLN(Locker locker,
                                       String databaseName,
@@ -478,6 +472,10 @@ public class DbTree implements LoggableObject, LogReadable {
     /**
      * To truncate, remove the database named by databaseName and
      * create a new database in its place.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
+     *
      * @param returnCount if true, must return the count of records in the
      * database, which can be an expensive option.
      */
@@ -565,6 +563,9 @@ public class DbTree implements LoggableObject, LogReadable {
 
     /*
      * Remove the mapLN that refers to this database.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
      */
     void deleteMapLN(DatabaseId id) 
         throws DatabaseException {
@@ -602,6 +603,9 @@ public class DbTree implements LoggableObject, LogReadable {
      * Truncate a database named by databaseName. Return the new DatabaseImpl
      * object that represents the truncated database.  The old one is marked as
      * deleted.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
      *
      * @deprecated This method used by Database.truncate()
      */
@@ -704,28 +708,18 @@ public class DbTree implements LoggableObject, LogReadable {
 
     /**
      * Get a database object given a database name.
-     */
-    public DatabaseImpl getDb(Locker nameLocker,
-                              String databaseName,
-                              Database databaseHandle)
-        throws DatabaseException {
-
-        return getDb(nameLocker, databaseName, databaseHandle, true);
-    }
-
-    /**
-     * Get a database object given a database name.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
+     *
      * @param nameLocker is used to access the NameLN. As always, a NullTxn
      *  is used to access the MapLN.
      * @param databaseName target database
      * @return null if database doesn't exist
-     * @param allowEviction is whether eviction is allowed during cursor
-     * operations.
      */
     public DatabaseImpl getDb(Locker nameLocker,
                               String databaseName,
-                              Database databaseHandle,
-                              boolean allowEviction)
+                              Database databaseHandle)
         throws DatabaseException {
 
         try {
@@ -744,7 +738,6 @@ public class DbTree implements LoggableObject, LogReadable {
             try {
 
                 nameCursor = new CursorImpl(nameDatabase, nameLocker);
-                nameCursor.setAllowEviction(allowEviction);
                 DatabaseEntry keyDbt =
 		    new DatabaseEntry(databaseName.getBytes("UTF-8"));
                 boolean found =
@@ -781,7 +774,7 @@ public class DbTree implements LoggableObject, LogReadable {
             if (id == null) {
                 return null;
             } else {
-                return getDb(id, -1, allowEviction, databaseName);
+                return getDb(id, -1, databaseName);
             }
 	} catch (UnsupportedEncodingException UEE) {
 	    throw new DatabaseException(UEE);
@@ -808,7 +801,7 @@ public class DbTree implements LoggableObject, LogReadable {
     public DatabaseImpl getDb(DatabaseId dbId, long lockTimeout)
         throws DatabaseException {
 
-        return getDb(dbId, lockTimeout, true, null);
+        return getDb(dbId, lockTimeout, (String) null);
     }
 
     /**
@@ -821,7 +814,7 @@ public class DbTree implements LoggableObject, LogReadable {
         if (dbCache.containsKey(dbId)) {
             return (DatabaseImpl) dbCache.get(dbId);
         } else {
-            DatabaseImpl db = getDb(dbId, lockTimeout, true, null);
+            DatabaseImpl db = getDb(dbId, lockTimeout, (String) null);
             dbCache.put(dbId, db);
             return db;
         }
@@ -832,12 +825,12 @@ public class DbTree implements LoggableObject, LogReadable {
      * use, or -1 to use the default timeout.  A timeout should normally only
      * be specified by daemons with their own timeout configuration.  public
      * for unit tests.
-     * @param allowEviction is whether eviction is allowed during cursor
-     * operations.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
      */
     public DatabaseImpl getDb(DatabaseId dbId,
                               long lockTimeout,
-                              boolean allowEviction,
                               String dbNameIfAvailable)
         throws DatabaseException {
 
@@ -863,7 +856,6 @@ public class DbTree implements LoggableObject, LogReadable {
 	     */
 	    while (true) {
                 idCursor = new CursorImpl(idDatabase, locker);
-                idCursor.setAllowEviction(allowEviction);
 		try {
 		    DatabaseEntry keyDbt = new DatabaseEntry(dbId.getBytes());
 		    boolean found =
@@ -886,7 +878,6 @@ public class DbTree implements LoggableObject, LogReadable {
 			locker.setLockTimeout(lockTimeout);
 		    }
 		    idCursor = new CursorImpl(idDatabase, locker);
-                    idCursor.setAllowEviction(allowEviction);
 		    continue;
 		} finally {
 		    idCursor.releaseBIN();
@@ -982,6 +973,8 @@ public class DbTree implements LoggableObject, LogReadable {
 	    try {
 		locker = new BasicLocker(envImpl);
 		cursor = new CursorImpl(idDatabase, locker);
+                /* Perform eviction when performing multiple operations. */
+                cursor.setAllowEviction(true);
 		if (cursor.positionFirstOrLast(true, null)) {
                     MapLN mapLN = (MapLN) cursor.
                         getCurrentLNAlreadyLatched(lockType);
@@ -1028,6 +1021,9 @@ public class DbTree implements LoggableObject, LogReadable {
     /**
      * Return the database name for a given db. Slow, must traverse. Used by
      * truncate and for debugging.
+     *
+     * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
+     * level DbTree operation. [#15176]
      */
     public String getDbName(DatabaseId id) 
         throws DatabaseException { 
@@ -1093,6 +1089,8 @@ public class DbTree implements LoggableObject, LogReadable {
         try {
             locker = new BasicLocker(envImpl);
             cursor = new CursorImpl(nameDatabase, locker);
+            /* Perform eviction when performing multiple operations. */
+            cursor.setAllowEviction(true);
             DatabaseEntry keyDbt = new DatabaseEntry();
             DatabaseEntry dataDbt = new DatabaseEntry();
             if (cursor.positionFirstOrLast(true, null)) {

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Renamer.java,v 1.6 2006/09/21 13:35:57 mark Exp $
+ * $Id: Renamer.java,v 1.8 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.evolve;
@@ -89,6 +88,11 @@ public class Renamer extends Mutation {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return newName.hashCode() + super.hashCode();
     }
 
     @Override

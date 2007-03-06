@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: INFileReaderTest.java,v 1.68 2006/09/12 19:17:20 cwl Exp $
+ * $Id: INFileReaderTest.java,v 1.71 2006/11/03 03:08:05 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -84,6 +83,9 @@ public class INFileReaderTest extends TestCase {
         DbInternal.setCreateUP(envConfig, false);
         /* Don't checkpoint utilization info for this test. */
         DbInternal.setCheckpointUP(envConfig, false);
+        /* Don't run the cleaner without a UtilizationProfile. */
+        envConfig.setConfigParam
+	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 
         env = new Environment(envHome, envConfig);
 
@@ -269,6 +271,7 @@ public class INFileReaderTest extends TestCase {
         	          false, // allowDeltas,
         	          true,  // isProvisional,
         	          false, // proactiveMigration,
+        	          false, // backgroundIO
         	          in);
 
 	    bin.releaseLatch();
@@ -277,7 +280,7 @@ public class INFileReaderTest extends TestCase {
             LN ln = new LN(data);
             lsn = ln.log(envImpl,
                          DbInternal.dbGetDatabaseImpl(db).getId(),
-                         key, DbLsn.NULL_LSN, null);
+                         key, DbLsn.NULL_LSN, 0, null, false);
 
             /* 
 	     * Add an IN delete entry, it should get picked up by the reader.
@@ -305,6 +308,7 @@ public class INFileReaderTest extends TestCase {
         	            	  false, // allowDeltas,
         	          	  true,  // isProvisional,
         	          	  false, // proactiveMigration,
+                                  false, // backgroundIO
         	          	  in);   // parent
 
             /* Modify the bin with one entry so there can be a delta. */
@@ -320,6 +324,7 @@ public class INFileReaderTest extends TestCase {
         	                       true, // allowDeltas
         	                       false, // isProvisional
         	                       false, // proactiveMigration,
+                                       false, // backgroundIO
         	                       in) ==
 		       DbLsn.NULL_LSN);
             lsn = binDeltaBin.getLastDeltaVersion();

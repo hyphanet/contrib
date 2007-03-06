@@ -37,8 +37,8 @@
       <p>
         Multi-threaded transactional systems measure the protection that they offer to 
         the data accessed by their threads of control in terms of degrees or
-        levels of of isolation. Sleepycat supports the ANSI 4 levels of
-        isolation:
+        levels of of isolation. Java Edition supports the standard 4 levels of
+        ANSI isolation:
     </p>
       <div class="informaltable">
         <table border="1" width="80%">
@@ -92,7 +92,7 @@
               <td>
                     Degree 2 is observed, plus the data read by a transaction, T,  
                     will never be dirtied by another transaction before T completes.
-                    This is Sleepycat's default isolation level.
+                    This is the default isolation level.
                 </td>
             </tr>
             <tr>

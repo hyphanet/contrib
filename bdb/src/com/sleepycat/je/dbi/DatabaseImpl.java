@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DatabaseImpl.java,v 1.151 2006/09/18 16:54:37 linda Exp $
+ * $Id: DatabaseImpl.java,v 1.156 2006/11/27 22:44:19 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -58,6 +57,7 @@ import com.sleepycat.je.tree.DBIN;
 import com.sleepycat.je.tree.DIN;
 import com.sleepycat.je.tree.DupCountLN;
 import com.sleepycat.je.tree.IN;
+import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.tree.Tree;
 import com.sleepycat.je.tree.TreeUtils;
@@ -440,7 +440,7 @@ public class DatabaseImpl
     /**
      * Flush all dirty nodes for this database to disk.
      */
-    public synchronized void sync() 
+    public synchronized void sync(boolean flushLog) 
         throws DatabaseException {
 
         if (!isDeferredWrite()) {
@@ -449,7 +449,7 @@ public class DatabaseImpl
         }
 
 	if (tree.rootExists()) {
-	    Checkpointer.syncDatabase(envImpl, this);
+	    Checkpointer.syncDatabase(envImpl, this, flushLog);
 	}
     }
 
@@ -557,22 +557,23 @@ public class DatabaseImpl
 
                 UtilizationTracker snapshot = new UtilizationTracker(envImpl);
 
-                /* Start by recording the lsn of the root IN as obsolete. */
-                snapshot.countObsoleteNodeInexact(rootLsn,
-                                                  LogEntryType.LOG_IN);
-        
+                /*
+                 * Start by recording the lsn of the root IN as obsolete.  A
+                 * zero size is passed for the last parameter because it is too
+                 * expensive to fetch the node.
+                 */
+                snapshot.countObsoleteNodeInexact
+                    (rootLsn, LogEntryType.LOG_IN, 0);
+
+                /* Fetch LNs to count LN sizes only if so configured. */
+                boolean fetchLNSize =
+                    envImpl.getCleaner().getFetchObsoleteSize();
 
                 /* Use the tree walker to visit every child lsn in the tree. */
                 ObsoleteProcessor obsoleteProcessor =
                     new ObsoleteProcessor(snapshot);
-                SortedLSNTreeWalker walker =
-                    new SortedLSNTreeWalker(this, 
-                                            true,  // remove INs from INList
-                                            true,  // set INList finish harvest
-                                            rootLsn,
-                                            obsoleteProcessor,
-                                            null,  /* savedException */
-					    null); /* exception predicate */
+                SortedLSNTreeWalker walker = new ObsoleteTreeWalker
+                    (this, rootLsn, fetchLNSize, obsoleteProcessor);
 
                 /* 
                  * Delete MapLN before the walk. Note that the processing of
@@ -613,6 +614,26 @@ public class DatabaseImpl
         }
     }
 
+    private static class ObsoleteTreeWalker extends SortedLSNTreeWalker {
+
+        private ObsoleteTreeWalker(DatabaseImpl dbImpl,
+                                   long rootLsn,
+                                   boolean fetchLNSize,
+                                   TreeNodeProcessor callback)
+            throws DatabaseException {
+
+            super(dbImpl, 
+                  true,  // remove INs from INList
+                  true,  // set INList finish harvest
+                  rootLsn,
+                  callback,
+                  null,  /* savedException */
+                  null); /* exception predicate */
+
+	    accumulateLNs = fetchLNSize;
+        }
+    }
+
     /* Mark each LSN obsolete in the utilization tracker. */
     private static class ObsoleteProcessor implements TreeNodeProcessor {
 
@@ -622,11 +643,21 @@ public class DatabaseImpl
             this.tracker = tracker;
         }
 
-        public void processLSN(long childLsn, LogEntryType childType)
+        public void processLSN(long childLsn,
+			       LogEntryType childType,
+			       Node node,
+                               byte[] lnKey)
 	    throws DatabaseException {
 
             assert childLsn != DbLsn.NULL_LSN;
-            tracker.countObsoleteNodeInexact(childLsn, childType);
+            
+            /* Count the LN log size if an LN node and key are available. */
+            int size = 0;
+            if (lnKey != null && node instanceof LN) {
+                size = ((LN) node).getTotalLastLoggedSize(lnKey);
+            }
+
+            tracker.countObsoleteNodeInexact(childLsn, childType, size);
         }
 
 	public void processDupCount(long ignore) {
@@ -1031,7 +1062,10 @@ public class DatabaseImpl
 	/**
 	 * Called for each LSN that the SortedLSNTreeWalker encounters.
 	 */
-        public void processLSN(long childLsn, LogEntryType childType)
+        public void processLSN(long childLsn,
+			       LogEntryType childType,
+			       Node ignore,
+			       byte[] ignore2)
 	    throws DatabaseException {
 
             assert childLsn != DbLsn.NULL_LSN;
@@ -1151,8 +1185,11 @@ public class DatabaseImpl
 	 * Process an LSN.  Get & remove its INEntry from the map, then fetch
 	 * the target at the INEntry's IN/index pair.  This method will be
 	 * called in sorted LSN order.
+         *
+         * We do not bother to set the lnkeyEntry because we never use the
+         * lnKey parameter in the processLSN method.
 	 */
-	protected Node fetchLSN(long lsn)
+	protected Node fetchLSN(long lsn, DatabaseEntry lnKeyEntry)
 	    throws DatabaseException {
 
 	    INEntry inEntry = (INEntry) lsnINMap.remove(new Long(lsn));
@@ -1234,7 +1271,10 @@ public class DatabaseImpl
 	/**
 	 * Called for each LSN that the SortedLSNTreeWalker encounters.
 	 */
-        public void processLSN(long childLsn, LogEntryType childType)
+        public void processLSN(long childLsn,
+			       LogEntryType childType,
+			       Node ignore,
+                               byte[] ignore2)
 	    throws DatabaseException {
 
 	    /* Count entry types to return in the PreloadStats. */
@@ -1331,12 +1371,26 @@ public class DatabaseImpl
      */
 
     /**
+     * Returns the true last logged size by calling Tree.getLastLoggedSize().
+     *
+     * @see MapLN#getLastLoggedSize
+     * @see Tree#getLastLoggedSize
+     */
+    public int getLastLoggedSize() {
+        return getLogSizeInternal(true);
+    }
+
+    /**
      * @see LogWritable#getLogSize
      */
     public int getLogSize() {
+        return getLogSizeInternal(false);
+    }
+
+    private int getLogSizeInternal(boolean lastLogged) {
         return 
             id.getLogSize() +
-            tree.getLogSize() +
+            (lastLogged ? tree.getLastLoggedSize() : tree.getLogSize()) +
             LogUtils.getBooleanLogSize() +
             LogUtils.getByteArrayLogSize(btreeComparatorBytes) +
             LogUtils.getByteArrayLogSize(duplicateComparatorBytes) +

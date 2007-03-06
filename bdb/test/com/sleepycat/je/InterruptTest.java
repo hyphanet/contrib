@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: InterruptTest.java,v 1.9 2006/09/12 19:17:13 cwl Exp $
+ * $Id: InterruptTest.java,v 1.11 2006/11/28 19:29:42 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -169,8 +168,9 @@ public class InterruptTest extends TestCase {
             } catch (RunRecoveryException e) {
                 /* possible outcome. */
             } catch (DatabaseException e) {
-                System.out.println("Put to " + i);
-                e.printStackTrace();
+                /* possible outcome. */
+                //System.out.println("Put to " + i);
+                //e.printStackTrace();
             } finally {
                 try {
                     if (txn != null) {

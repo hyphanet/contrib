@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: TestDataBinding.java,v 1.23 2006/09/12 19:17:10 cwl Exp $
+ * $Id: TestDataBinding.java,v 1.24 2006/10/30 21:14:39 bostic Exp $
  */
 
 package com.sleepycat.collections.test;

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SecondaryKeyMetadata.java,v 1.11 2006/09/12 19:17:04 cwl Exp $
+ * $Id: SecondaryKeyMetadata.java,v 1.13 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -109,5 +108,15 @@ public class SecondaryKeyMetadata extends FieldMetadata {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode() +
+               relationship.hashCode() +
+               deleteAction.hashCode() +
+               ClassMetadata.hashCode(keyName) +
+               ClassMetadata.hashCode(elementClassName) +
+               ClassMetadata.hashCode(relatedEntity);
     }
 }

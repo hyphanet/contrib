@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Entity.java,v 1.9 2006/09/21 13:36:00 mark Exp $
+ * $Id: Entity.java,v 1.11 2006/11/14 23:30:50 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -105,9 +104,9 @@ import com.sleepycat.persist.evolve.Mutations;
  * float, double}</p>
  * <li>The wrapper classes for Java primitive types</p>
  * <!--
- * <li>{@link java.math.BigInteger}</p>
  * <li>{@link java.math.BigDecimal}</p>
  * -->
+ * <li>{@link java.math.BigInteger}</p>
  * <li>{@link java.lang.String}</p>
  * <li>{@link java.util.Date}</p>
  * </ul>

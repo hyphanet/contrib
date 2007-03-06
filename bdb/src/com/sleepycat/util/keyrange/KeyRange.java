@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: KeyRange.java,v 1.2 2006/09/12 19:17:06 cwl Exp $
+ * $Id: KeyRange.java,v 1.4 2006/11/20 22:18:37 cwl Exp $
  */
 
 package com.sleepycat.util.keyrange;
@@ -269,10 +268,19 @@ public class KeyRange {
      * non-zero.
      */
     public static byte[] getByteArray(DatabaseEntry entry) {
+	return getByteArrayInternal(entry, Integer.MAX_VALUE);
+    }
+
+    public static byte[] getByteArray(DatabaseEntry entry, int maxBytes) {
+	return getByteArrayInternal(entry, maxBytes);
+    }
+
+    private static byte[] getByteArrayInternal(DatabaseEntry entry,
+					       int maxBytes) {
 
         byte[] bytes = entry.getData();
         if (bytes == null) return null;
-        int size = entry.getSize();
+        int size = Math.min(entry.getSize(), maxBytes);
 	byte[] data;
 	if (size == 0) {
 	    data = ZERO_LENGTH_BYTE_ARRAY;

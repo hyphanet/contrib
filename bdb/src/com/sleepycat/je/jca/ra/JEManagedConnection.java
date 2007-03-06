@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: JEManagedConnection.java,v 1.12 2006/09/15 11:12:14 cwl Exp $
+ * $Id: JEManagedConnection.java,v 1.13 2006/10/30 21:14:18 bostic Exp $
  */
 
 package com.sleepycat.je.jca.ra;

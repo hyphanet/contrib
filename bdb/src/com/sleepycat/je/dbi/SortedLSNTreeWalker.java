@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalker.java,v 1.13 2006/09/12 19:16:46 cwl Exp $
+ * $Id: SortedLSNTreeWalker.java,v 1.16 2006/11/03 03:07:50 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -15,14 +14,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.cleaner.OffsetList;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.log.entry.LNLogEntry;
+import com.sleepycat.je.log.entry.LogEntry;
+import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.DBIN;
 import com.sleepycat.je.tree.DIN;
 import com.sleepycat.je.tree.DupCountLN;
 import com.sleepycat.je.tree.IN;
+import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -54,7 +58,10 @@ public class SortedLSNTreeWalker {
      * The interface for calling back to the user with each LSN.
      */
     public interface TreeNodeProcessor {
-	void processLSN(long childLSN, LogEntryType childType)
+	void processLSN(long childLSN,
+                        LogEntryType childType,
+                        Node theNode,
+                        byte[] lnKey)
 	    throws DatabaseException;
 
 	/* Used when processing DW dbs where there are no LSNs. */
@@ -139,6 +146,9 @@ public class SortedLSNTreeWalker {
     private List savedExceptions;
     
     private ExceptionPredicate excPredicate;
+
+    /* Holder for returning LN key from fetchLSN. */
+    private DatabaseEntry lnKeyEntry = new DatabaseEntry();
 
     /*
      * @param rootLsn is passed in addition to the dbImpl, because the
@@ -323,9 +333,10 @@ public class SortedLSNTreeWalker {
          * then there's no need to accumulate any more LSNs, but we still need
          * to callback with each of them.
          */
-	if (!accumulateLNs) {
-	    if ((!dups && (in instanceof BIN)) ||
-		(in instanceof DBIN)) {
+	boolean childIsLN = (!dups && (in instanceof BIN)) ||
+	    (in instanceof DBIN);
+	if (childIsLN) {
+	    if (!accumulateLNs) {
 
 		/*
 		 * No need to accumulate the LSNs of a non-dup BIN or a DBIN.
@@ -374,9 +385,13 @@ public class SortedLSNTreeWalker {
 		     * If the child is resident, use that log type, else we can
 		     * assume it's a LN.
 		     */
+                    byte[] lnKey = (node == null || node instanceof LN) ?
+                        in.getKey(i) : null;
 		    callback.processLSN(lsn,
 					(node == null) ? LogEntryType.LOG_LN :
-					node.getLogType());
+					node.getLogType(),
+					node,
+                                        lnKey);
 		}
 	    }
 	}
@@ -384,12 +399,16 @@ public class SortedLSNTreeWalker {
         /* Handle the DupCountLN for a DIN root. */
         if (isDINRoot) {
 	    DIN din = (DIN) in;
-	    long lsn = din.getDupCountLNRef().getLsn();
+	    ChildReference dupCountLNRef = din.getDupCountLNRef();
+	    long lsn = dupCountLNRef.getLsn();
 	    if (lsn == DbLsn.NULL_LSN) {
 		DupCountLN dcl = (DupCountLN) din.getDupCountLN();
 		callback.processDupCount(dcl.getDupCount());
 	    } else {
-		callback.processLSN(lsn, LogEntryType.LOG_DUPCOUNTLN);
+		Node node = fetchLSN(lsn, lnKeyEntry);
+		callback.processLSN
+                    (lsn, LogEntryType.LOG_DUPCOUNTLN, node,
+                     dupCountLNRef.getKey());
 	    }
         }
     }
@@ -402,9 +421,11 @@ public class SortedLSNTreeWalker {
 	throws DatabaseException {
 
         try {
-            Node node = fetchLSN(lsn);
+            lnKeyEntry.setData(null);
+            Node node = fetchLSN(lsn, lnKeyEntry);
             if (node != null) {
-                callback.processLSN(lsn, node.getLogType());
+                callback.processLSN
+                    (lsn, node.getLogType(), node, lnKeyEntry.getData());
                 
                 if (node instanceof IN) {
                     accumulateLSNs((IN) node);
@@ -449,10 +470,14 @@ public class SortedLSNTreeWalker {
     protected void addToLsnINMap(Long lsn, IN in, int index) {
     }
 
-    protected Node fetchLSN(long lsn)
+    protected Node fetchLSN(long lsn, DatabaseEntry lnKeyEntry)
 	throws DatabaseException {
 
-	return (Node) envImpl.getLogManager().get(lsn);
+        LogEntry entry = envImpl.getLogManager().getLogEntry(lsn);
+        if (entry instanceof LNLogEntry) {
+            lnKeyEntry.setData(((LNLogEntry) entry).getKey());
+        }
+        return (Node) entry.getMainItem();
     }
 
     public List getSavedExceptions() {

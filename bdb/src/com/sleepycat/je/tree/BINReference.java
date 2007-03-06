@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: BINReference.java,v 1.17 2006/09/12 19:16:56 cwl Exp $
+ * $Id: BINReference.java,v 1.18 2006/10/30 21:14:25 bostic Exp $
  */
 
 package com.sleepycat.je.tree;

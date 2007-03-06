@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: UtilizationProfile.java,v 1.47 2006/09/12 19:16:43 cwl Exp $
+ * $Id: UtilizationProfile.java,v 1.52 2006/11/28 13:52:05 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -606,6 +605,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         try {
             locker = new BasicLocker(env);
             cursor = new CursorImpl(fileSummaryDb, locker);
+            /* Perform eviction in unsynchronized methods. */
+            cursor.setAllowEviction(true);
 
             DatabaseEntry keyEntry = new DatabaseEntry();
             DatabaseEntry dataEntry = new DatabaseEntry();
@@ -622,7 +623,7 @@ public class UtilizationProfile implements EnvConfigObserver {
             while (status == OperationStatus.SUCCESS) {
 
                 /* Perform eviction once per operation. */
-                env.getEvictor().doCriticalEviction();
+                env.getEvictor().doCriticalEviction(true); // backgroundIO
 
                 FileSummaryLN ln = (FileSummaryLN)
                     cursor.getCurrentLN(LockType.NONE);
@@ -787,6 +788,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         try {
             locker = new BasicLocker(env);
             cursor = new CursorImpl(fileSummaryDb, locker);
+            /* Perform eviction in unsynchronized methods. */
+            cursor.setAllowEviction(true);
 
             DatabaseEntry keyEntry = new DatabaseEntry();
             DatabaseEntry dataEntry = new DatabaseEntry();
@@ -802,7 +805,7 @@ public class UtilizationProfile implements EnvConfigObserver {
             while (status == OperationStatus.SUCCESS) {
 
                 /* Perform eviction once per operation. */
-                env.getEvictor().doCriticalEviction();
+                env.getEvictor().doCriticalEviction(true); // backgroundIO
 
                 FileSummaryLN ln = (FileSummaryLN)
                     cursor.getCurrentLN(LockType.NONE);
@@ -908,6 +911,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         try {
             locker = new BasicLocker(env);
             cursor = new CursorImpl(fileSummaryDb, locker);
+            /* Perform eviction in unsynchronized methods. */
+            cursor.setAllowEviction(true);
 
             DatabaseEntry keyEntry = new DatabaseEntry();
             DatabaseEntry dataEntry = new DatabaseEntry();
@@ -927,8 +932,12 @@ public class UtilizationProfile implements EnvConfigObserver {
 
                 while (status == OperationStatus.SUCCESS) {
 
-                    /* Perform eviction once per operation. */
-                    env.getEvictor().doCriticalEviction();
+                    /*
+                     * Perform eviction once per operation.  Pass false for
+                     * backgroundIO because this is done during recovery and
+                     * there is no reason to sleep.
+                     */
+                    env.getEvictor().doCriticalEviction(false); // backgroundIO
 
                     FileSummaryLN ln = (FileSummaryLN)
                         cursor.getCurrentLN(LockType.NONE);
@@ -1062,6 +1071,9 @@ public class UtilizationProfile implements EnvConfigObserver {
             return true;
         }
 
+        /* Always evict after using a file summary LN. */
+        cursor.evict(!exactKeyMatch); // alreadyLatched
+
         OperationStatus status = cursor.getNext
             (keyEntry, dataEntry, lockType,
              true,             // forward
@@ -1088,16 +1100,14 @@ public class UtilizationProfile implements EnvConfigObserver {
         try {
             autoTxn = new AutoTxn(env, new TransactionConfig());
             DatabaseImpl db = dbTree.getDb
-                (autoTxn, DbTree.UTILIZATION_DB_NAME, null,
-                 true /* Eviction allowed. */);
+                (autoTxn, DbTree.UTILIZATION_DB_NAME, null);
             if (db == null) {
                 if (env.isReadOnly()) {
                     return false;
                 }
                 db = dbTree.createDb
                     (autoTxn, DbTree.UTILIZATION_DB_NAME,
-                     new DatabaseConfig(), null,
-                     true /* Eviction allowed */);
+                     new DatabaseConfig(), null);
             }
             fileSummaryDb = db;
             operationOk = true;
@@ -1125,9 +1135,6 @@ public class UtilizationProfile implements EnvConfigObserver {
         try {
             locker = new BasicLocker(env);
             cursor = new CursorImpl(fileSummaryDb, locker);
-
-            /* Do not allow eviction in a synchronized method. */
-            cursor.setAllowEviction(false);
 
             /* Insert the LN. */
             OperationStatus status = cursor.putLN(keyBytes, ln, false);
@@ -1172,6 +1179,7 @@ public class UtilizationProfile implements EnvConfigObserver {
         try {
             locker = new BasicLocker(env);
             cursor = new CursorImpl(fileSummaryDb, locker);
+            cursor.setAllowEviction(true);
 
             if (cursor.positionFirstOrLast(true, null)) {
 
@@ -1182,7 +1190,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                 while (status == OperationStatus.SUCCESS) {
 
                     /* Perform eviction once per operation. */
-                    env.getEvictor().doCriticalEviction();
+                    env.getEvictor().doCriticalEviction(true); // backgroundIO
 
                     FileSummaryLN ln = (FileSummaryLN)
                         cursor.getCurrentLN(LockType.NONE);

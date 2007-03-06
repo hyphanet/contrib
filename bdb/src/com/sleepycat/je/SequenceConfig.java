@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2005,2006 Oracle.  All rights reserved.
  *
- * $Id: SequenceConfig.java,v 1.5 2006/09/12 19:16:43 cwl Exp $
+ * $Id: SequenceConfig.java,v 1.6 2006/10/30 21:14:12 bostic Exp $
  */
 
 package com.sleepycat.je;

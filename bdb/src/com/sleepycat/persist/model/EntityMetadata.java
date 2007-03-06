@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EntityMetadata.java,v 1.9 2006/09/19 06:22:59 mark Exp $
+ * $Id: EntityMetadata.java,v 1.11 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -77,5 +76,12 @@ public class EntityMetadata implements Serializable {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return ClassMetadata.hashCode(className) +
+               ClassMetadata.hashCode(primaryKey) +
+               ClassMetadata.hashCode(secondaryKeys);
     }
 }

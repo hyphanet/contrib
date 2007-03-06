@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: RecordNumberBinding.java,v 1.27 2006/09/12 19:16:36 cwl Exp $
+ * $Id: RecordNumberBinding.java,v 1.28 2006/10/30 21:14:06 bostic Exp $
  */
 
 package com.sleepycat.bind;

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LogEntryVersionTest.java,v 1.10 2006/09/12 19:17:21 cwl Exp $
+ * $Id: LogEntryVersionTest.java,v 1.12 2006/11/03 02:38:54 mark Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -127,10 +126,26 @@ public class LogEntryVersionTest extends TestCase {
         doTest("1.7.0");
     }
 
+    /**
+     * JE 2.0: FileHeader version 3.
+     */
     public void test_2_0_0()
         throws DatabaseException, IOException {
 
         doTest("2.0.0");
+    }
+
+    /**
+     * JE 3.0.12: FileHeader version 4.
+     */
+    public void test_3_0_12()
+        throws DatabaseException, IOException {
+
+        /*
+         * The test was not run until JE 3.1.25, but no format changes were
+         * made between 3.0.12 and 3.1.25.
+         */
+        doTest("3.1.25");
     }
 
     private void doTest(String jeVersion)

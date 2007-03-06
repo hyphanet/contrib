@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EntityModel.java,v 1.12 2006/09/21 13:36:00 mark Exp $
+ * $Id: EntityModel.java,v 1.14 2006/12/04 18:52:56 linda Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -62,7 +61,7 @@ public abstract class EntityModel {
     }
 
     /**
-     * Returns whether the model is asociated with an open store.
+     * Returns whether the model is associated with an open store.
      *
      * <p>The {@link #registerClass} method may only be called when the model
      * is not yet open.  Certain other methods may only be called when the

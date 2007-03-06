@@ -1,14 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: RawAbstractInput.java,v 1.4 2006/09/22 05:28:52 mark Exp $
+ * $Id: RawAbstractInput.java,v 1.6 2006/11/14 23:30:49 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
 
+import java.math.BigInteger;
 import java.util.IdentityHashMap;
 
 import com.sleepycat.persist.raw.RawObject;
@@ -190,5 +190,9 @@ abstract class RawAbstractInput extends AbstractInput {
 
     public double readSortedDouble() {
         return ((Double) readNext()).doubleValue();
+    }
+    
+    public BigInteger readBigInteger() {
+        return (BigInteger) readNext();
     }
 }

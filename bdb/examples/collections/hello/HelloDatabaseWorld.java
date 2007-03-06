@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: HelloDatabaseWorld.java,v 1.21 2006/09/12 19:16:25 cwl Exp $
+ * $Id: HelloDatabaseWorld.java,v 1.23 2006/10/31 19:56:10 mark Exp $
  */
 
 package collections.hello;
@@ -18,7 +17,6 @@ import com.sleepycat.bind.serial.ClassCatalog;
 import com.sleepycat.bind.serial.SerialBinding;
 import com.sleepycat.bind.serial.StoredClassCatalog;
 import com.sleepycat.bind.tuple.TupleBinding;
-import com.sleepycat.collections.StoredIterator;
 import com.sleepycat.collections.StoredSortedMap;
 import com.sleepycat.collections.TransactionRunner;
 import com.sleepycat.collections.TransactionWorker;
@@ -144,16 +142,11 @@ public class HelloDatabaseWorld implements TransactionWorker {
         }
         // get iterator over map entries
         Iterator iter = map.entrySet().iterator();
-        try {
-            System.out.println("Reading data");
-            while (iter.hasNext()) {
-                Map.Entry entry = (Map.Entry) iter.next();
-                System.out.println(entry.getKey().toString() + ' ' +
-                                   entry.getValue());
-            }
-        } finally {
-            // all database iterators must be closed!!
-            StoredIterator.close(iter);
+        System.out.println("Reading data");
+        while (iter.hasNext()) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            System.out.println(entry.getKey().toString() + ' ' +
+                               entry.getValue());
         }
     }
 }

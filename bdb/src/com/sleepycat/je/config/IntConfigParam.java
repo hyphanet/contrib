@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: IntConfigParam.java,v 1.23 2006/09/12 19:16:44 cwl Exp $
+ * $Id: IntConfigParam.java,v 1.25 2006/11/06 20:36:56 linda Exp $
  */
 
 package com.sleepycat.je.config;
@@ -24,10 +23,11 @@ public class IntConfigParam extends ConfigParam {
                           Integer maxVal,
                           Integer defaultValue,
                           boolean mutable,
+                          boolean forReplication,
                           String description) {
         // defaultValue must not be null
-        super(configName, defaultValue.toString(), mutable, description);
-
+        super(configName, defaultValue.toString(), mutable,
+              forReplication, description);
         min = minVal;
         max = maxVal;
     }

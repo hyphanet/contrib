@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: TupleSerialKeyCreator.java,v 1.29 2006/09/12 19:16:37 cwl Exp $
+ * $Id: TupleSerialKeyCreator.java,v 1.30 2006/10/30 21:14:07 bostic Exp $
  */
 
 package com.sleepycat.bind.serial;

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: JoinConfig.java,v 1.4 2006/09/12 19:16:43 cwl Exp $
+ * $Id: JoinConfig.java,v 1.6 2006/11/20 15:46:58 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -19,7 +18,7 @@ public class JoinConfig implements Cloneable {
      * For internal use, to allow null as a valid value for
      * the config parameter.
      */
-    static JoinConfig DEFAULT = new JoinConfig();
+    public static final JoinConfig DEFAULT = new JoinConfig();
 
     private boolean noSort;
 

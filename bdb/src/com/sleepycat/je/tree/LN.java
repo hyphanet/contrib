@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LN.java,v 1.120 2006/09/12 19:16:56 cwl Exp $
+ * $Id: LN.java,v 1.124 2006/11/17 23:47:28 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -45,9 +44,13 @@ public class LN extends Node implements LoggableObject, LogReadable {
      * States: bit fields
      * 
      * Dirty means that the in-memory version is not present on disk.
+     *
+     * Transactional means that the LN was logged in a transactional log entry.
      */
     private static final byte DIRTY_BIT = 0x1;
     private static final byte CLEAR_DIRTY_BIT = ~0x1;
+    private static final byte TXN_BIT = 0x2;
+    private static final byte CLEAR_TXN_BIT = ~0x2;
     private byte state; // not persistent
 
     /**
@@ -135,6 +138,18 @@ public class LN extends Node implements LoggableObject, LogReadable {
         state &= CLEAR_DIRTY_BIT;
     }
 
+    private boolean wasLastLoggedTransactionally() {
+        return ((state & TXN_BIT) != 0);
+    }
+
+    public void setLastLoggedTransactionally() {
+        state |= TXN_BIT;
+    }
+
+    public void clearLastLoggedTransactionally() {
+        state &= CLEAR_TXN_BIT;
+    }
+
     /* 
      * If you get to an LN, this subtree isn't valid for delete. True, the LN
      * may have been deleted, but you can't be sure without taking a lock, and
@@ -170,6 +185,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
 		       Locker locker)
         throws DatabaseException {
 
+        int oldSize = getTotalLastLoggedSize(lnKey);
         makeDeleted();
         setDirty();
 
@@ -188,64 +204,18 @@ public class LN extends Node implements LoggableObject, LogReadable {
                 oldLsn == DbLsn.NULL_LSN) {
                 clearDirty();
             } else {
-                                                
-                /*
-                 * Deleted Duplicate LNs are logged with two keys -- the one
-                 * that identifies the main tree (the dup key) and the one that
-                 * places them in the duplicate tree (really the data) since we
-                 * can't recreate the latter because the data field has been
-                 * nulled. Note that the dupKey is passed to the log manager
-                 * FIRST, because the dup key is the one that navigates us in
-                 * the main tree. The "key" is the one that navigates us in the
-                 * duplicate tree. Also, we must check if this is a
-                 * transactional entry that must be rolled back or one done on
-                 * the behalf of a null txn.
-                 */
-                LogEntryType entryType;
-                long logAbortLsn;
-                boolean logAbortKnownDeleted;
-                Txn logTxn;
-                if (locker.isTransactional()) {
-                    entryType = LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL;
-                    WriteLockInfo info = locker.getWriteLockInfo(getNodeId());
-                    logAbortLsn = info.getAbortLsn();
-                    logAbortKnownDeleted = info.getAbortKnownDeleted();
-                    logTxn = locker.getTxnLocker();
-                } else {
-                    entryType = LogEntryType.LOG_DEL_DUPLN;
-                    logAbortLsn = DbLsn.NULL_LSN;
-                    logAbortKnownDeleted = true;
-                    logTxn = null;
-                }
-
-                /* 
-                 * Don't count abortLsn as obsolete, this is done during
-                 * commit. 
-                 */
-                if (oldLsn == logAbortLsn) {
-                    oldLsn = DbLsn.NULL_LSN;
-                }
-
-                DeletedDupLNLogEntry logEntry =
-                    new DeletedDupLNLogEntry(entryType,
-                                             this,
-                                             database.getId(),
-                                             dupKey,
-                                             lnKey,
-                                             logAbortLsn,
-                                             logAbortKnownDeleted,
-                                             logTxn);
-
-                LogManager logManager = env.getLogManager();
-                newLsn = logManager.log(logEntry, false, oldLsn);
-                clearDirty();
+                /* Log as a deleted duplicate LN by passing dupKey. */
+                newLsn = log(env, database.getId(), lnKey, dupKey, oldLsn,
+                             oldSize, locker,
+                             false,  // isProvisional
+                             false); // backgroundIO
             }
         } else {
 
             /*
              * Non duplicate LN, just log the normal way.
              */
-            newLsn = optionalLog(env, database, lnKey, oldLsn, locker);
+            newLsn = optionalLog(env, database, lnKey, oldLsn, oldSize, locker);
         }
         return newLsn;
     }
@@ -260,12 +230,14 @@ public class LN extends Node implements LoggableObject, LogReadable {
 		       Locker locker)
         throws DatabaseException {
 
+        int oldSize = getTotalLastLoggedSize(lnKey);
         data = newData;
         setDirty();
 
         /* Log the new LN. */
         EnvironmentImpl env = database.getDbEnvironment();
-        long newLsn = optionalLog(env, database, lnKey, oldLsn, locker);
+        long newLsn =
+            optionalLog(env, database, lnKey, oldLsn, oldSize, locker);
         return newLsn;
     }
 
@@ -344,39 +316,51 @@ public class LN extends Node implements LoggableObject, LogReadable {
      * @param dbId database id of this node. (Not stored in LN)
      * @param key key of this node. (Not stored in LN)
      * @param oldLsn is the LSN of the previous version or null.
+     * @param oldSize is the size of the previous version or zero.
      * @param locker owning locker.
      */
     public long log(EnvironmentImpl env,
 		    DatabaseId dbId,
 		    byte[] key,
 		    long oldLsn,
-		    Locker locker)
+                    int oldSize,
+		    Locker locker,
+                    boolean backgroundIO)
         throws DatabaseException {
 
-        return log(env, dbId, key, oldLsn, locker, false);
+        return log(env, dbId, key,
+                   null,   // delDupKey
+                   oldLsn, oldSize, locker, backgroundIO,
+                   false); // provisional
     }
 
     /**
-     * Log this LN if it's not part of a deferred-write db. Clear the dirty bit
-     * Whether it's logged as a transactional entry or not depends on the type
-     * of locker.
+     * Log this LN if it's not part of a deferred-write db.  Whether it's
+     * logged as a transactional entry or not depends on the type of locker.
      * @param env the environment.
      * @param dbId database id of this node. (Not stored in LN)
      * @param key key of this node. (Not stored in LN)
-     * @param oldLsn is the LSN of the previous version or null.
+     * @param oldLsn is the LSN of the previous version or NULL_LSN.
+     * @param oldSize is the size of the previous version or zero.
      * @param locker owning locker.
      */
     public long optionalLog(EnvironmentImpl env,
                             DatabaseImpl databaseImpl,
                             byte[] key,
                             long oldLsn,
+                            int oldSize,
                             Locker locker)
         throws DatabaseException {
 
         if (databaseImpl.isDeferredWrite()) {
             return DbLsn.NULL_LSN;
         } else {
-            return log(env, databaseImpl.getId(), key, oldLsn, locker, false);
+            return log
+                (env, databaseImpl.getId(), key,
+                 null,   // delDupKey
+                 oldLsn, oldSize, locker,
+                 false,  // backgroundIO
+                 false); // provisional
         }
     }
 
@@ -385,18 +369,26 @@ public class LN extends Node implements LoggableObject, LogReadable {
      * @param env the environment.
      * @param dbId database id of this node. (Not stored in LN)
      * @param key key of this node. (Not stored in LN)
-     * @param oldLsn is the LSN of the previous version or null.
+     * @param oldLsn is the LSN of the previous version or NULL_LSN.
+     * @param oldSize is the size of the previous version or zero.
      */
     public long optionalLogProvisional(EnvironmentImpl env,
                                        DatabaseImpl databaseImpl,
                                        byte[] key, 
-                                       long oldLsn)
+                                       long oldLsn,
+                                       int oldSize)
         throws DatabaseException {
 
         if (databaseImpl.isDeferredWrite()) {
             return DbLsn.NULL_LSN;
         } else {
-            return log(env, databaseImpl.getId(), key, oldLsn, null, true);
+            return log
+                (env, databaseImpl.getId(), key,
+                 null,   // delDupKey
+                 oldLsn, oldSize,
+                 null,  // locker
+                 false, // backgroundIO
+                 true); // provisional
         }
     }
 
@@ -406,30 +398,41 @@ public class LN extends Node implements LoggableObject, LogReadable {
      * @param env the environment.
      * @param dbId database id of this node. (Not stored in LN)
      * @param key key of this node. (Not stored in LN)
-     * @param oldLsn is the LSN of the previous version or null.
+     * @param delDupKey if non-null, the dupKey for deleting the LN.
+     * @param oldLsn is the LSN of the previous version or NULL_LSN.
+     * @param oldSize is the size of the previous version or zero.
      * @param locker owning locker.
      */
     long log(EnvironmentImpl env,
              DatabaseId dbId,
              byte[] key,
+             byte[] delDupKey,
              long oldLsn,
+             int oldSize,
              Locker locker,
+             boolean backgroundIO,
              boolean isProvisional)
         throws DatabaseException {
 
+        boolean isDelDup = (delDupKey != null);
         LogEntryType entryType;
         long logAbortLsn;
 	boolean logAbortKnownDeleted;
         Txn logTxn;
         if (locker != null && locker.isTransactional()) {
-            entryType = getTransactionalLogType();
+            entryType = isDelDup ? LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL
+                                 : getTransactionalLogType();
 	    WriteLockInfo info = locker.getWriteLockInfo(getNodeId());
 	    logAbortLsn = info.getAbortLsn();
 	    logAbortKnownDeleted = info.getAbortKnownDeleted();
             logTxn = locker.getTxnLocker();
             assert logTxn != null;
+            if (oldLsn == logAbortLsn) {
+                info.setAbortLogSize(oldSize);
+            }
         } else {
-            entryType = getLogType();
+            entryType = isDelDup ? LogEntryType.LOG_DEL_DUPLN
+                                 : getLogType();
             logAbortLsn = DbLsn.NULL_LSN;
 	    logAbortKnownDeleted = false;
             logTxn = null;
@@ -440,16 +443,42 @@ public class LN extends Node implements LoggableObject, LogReadable {
             oldLsn = DbLsn.NULL_LSN;
         }
 
-        LNLogEntry logEntry = new LNLogEntry(entryType, 
-                                             this,
-                                             dbId,
-                                             key,
-                                             logAbortLsn,
-					     logAbortKnownDeleted,
-                                             logTxn);
+        LNLogEntry logEntry;
+        if (isDelDup) {
+
+            /*
+             * Deleted Duplicate LNs are logged with two keys -- the one
+             * that identifies the main tree (the dup key) and the one that
+             * places them in the duplicate tree (really the data) since we
+             * can't recreate the latter because the data field has been
+             * nulled. Note that the dupKey is passed to the log manager
+             * FIRST, because the dup key is the one that navigates us in
+             * the main tree. The "key" is the one that navigates us in the
+             * duplicate tree.
+             */
+            logEntry =
+                new DeletedDupLNLogEntry(entryType,
+                                         this,
+                                         dbId,
+                                         delDupKey,
+                                         key,
+                                         logAbortLsn,
+                                         logAbortKnownDeleted,
+                                         logTxn);
+        } else {
+            /* Not a deleted duplicate LN -- use a regular LNLogEntry. */
+            logEntry = new LNLogEntry(entryType, 
+                                      this,
+                                      dbId,
+                                      key,
+                                      logAbortLsn,
+                                      logAbortKnownDeleted,
+                                      logTxn);
+        }
 
         LogManager logManager = env.getLogManager();
-        long lsn = logManager.log(logEntry, isProvisional, oldLsn);
+        long lsn = logManager.log(logEntry, isProvisional,
+                                  backgroundIO, oldLsn, oldSize);
         clearDirty();
         return lsn;
     }
@@ -473,6 +502,39 @@ public class LN extends Node implements LoggableObject, LogReadable {
      */
     public LogEntryType getLogType() {
         return LogEntryType.LOG_LN;
+    }
+
+    /**
+     * Returns the total last logged log size, including the LNLogEntry
+     * overhead of this LN when it was last logged and the fixed log entry
+     * header.  Used for computing obsolete size when an LNLogEntry is not in
+     * hand.
+     */
+    public int getTotalLastLoggedSize(byte[] lnKey) {
+
+        /*
+         * This method is never called for a deleted LN.  We assert if this
+         * occurs by mistake, because we do not calculate the size of a
+         * DeletedDupLNLogEntry.
+         */
+        assert !isDeleted();
+
+        return LNLogEntry.getStaticLogSize
+                    (getLastLoggedSize(), lnKey,
+                     wasLastLoggedTransactionally()) +
+               LogManager.HEADER_BYTES;
+    }
+
+    /**
+     * Return the size of this LN as last logged, when called before modifying
+     * the persistent state in modify() and delete().  By default this method
+     * return getLogSize(), but sometimes the size last logged is not the same
+     * value returned by getLogSize(), if the state of the persistent data is
+     * changed before calling modify() or delete().  In those cases (e.g.,
+     * MapLN) this method can be overidden.
+     */
+    public int getLastLoggedSize() {
+        return getLogSize();
     }
 
     /**

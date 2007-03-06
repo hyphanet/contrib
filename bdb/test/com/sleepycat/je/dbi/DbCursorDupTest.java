@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDupTest.java,v 1.27 2006/09/12 19:17:15 cwl Exp $
+ * $Id: DbCursorDupTest.java,v 1.29 2006/10/30 21:14:43 bostic Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -33,6 +32,7 @@ public class DbCursorDupTest extends DbCursorTestBase {
 
     public void testCursorDupAndCloseDb()
 	throws DatabaseException {
+
         initEnv(false);
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudget.java,v 1.50 2006/09/12 19:16:46 cwl Exp $
+ * $Id: MemoryBudget.java,v 1.54 2006/11/03 19:30:45 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -139,6 +138,10 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int LOCKINFO_OVERHEAD_32 = 16;
     private final static int LOCKINFO_OVERHEAD_64 = 32;
 
+    // 37
+    private final static int WRITE_LOCKINFO_OVERHEAD_32 = 32;
+    private final static int WRITE_LOCKINFO_OVERHEAD_64 = 40;
+
     /* 
      * Txn memory is the size for the Txn + a hashmap entry
      * overhead for being part of the transaction table. 
@@ -158,8 +161,8 @@ public class MemoryBudget implements EnvConfigObserver {
 
     /* The per-log-file bytes used in UtilizationProfile. */
     // 29 / 500
-    private final static int UTILIZATION_PROFILE_ENTRY_32 = 88;
-    private final static int UTILIZATION_PROFILE_ENTRY_64 = 136;
+    private final static int UTILIZATION_PROFILE_ENTRY_32 = 96;
+    private final static int UTILIZATION_PROFILE_ENTRY_64 = 144;
 
     /* Tracked File Summary overheads. */
     // 31
@@ -200,6 +203,7 @@ public class MemoryBudget implements EnvConfigObserver {
     public final static int KEY_OVERHEAD;
     public final static int LOCK_OVERHEAD;
     public final static int LOCKINFO_OVERHEAD;
+    public final static int WRITE_LOCKINFO_OVERHEAD;
     public final static int TXN_OVERHEAD;
     public final static int CHECKPOINT_REFERENCE_SIZE;
     public final static int UTILIZATION_PROFILE_ENTRY;
@@ -258,6 +262,7 @@ public class MemoryBudget implements EnvConfigObserver {
 	    KEY_OVERHEAD = KEY_OVERHEAD_64;
 	    LOCK_OVERHEAD = LOCK_OVERHEAD_64;
 	    LOCKINFO_OVERHEAD = LOCKINFO_OVERHEAD_64;
+	    WRITE_LOCKINFO_OVERHEAD = WRITE_LOCKINFO_OVERHEAD_64;
 	    UTILIZATION_PROFILE_ENTRY = UTILIZATION_PROFILE_ENTRY_64;
 	    TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_64;
 	    TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_64;
@@ -296,6 +301,7 @@ public class MemoryBudget implements EnvConfigObserver {
 	    KEY_OVERHEAD = KEY_OVERHEAD_32;
 	    LOCK_OVERHEAD = LOCK_OVERHEAD_32;
 	    LOCKINFO_OVERHEAD = LOCKINFO_OVERHEAD_32;
+	    WRITE_LOCKINFO_OVERHEAD = WRITE_LOCKINFO_OVERHEAD_32;
 	    UTILIZATION_PROFILE_ENTRY = UTILIZATION_PROFILE_ENTRY_32;
 	    TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_32;
 	    TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_32;

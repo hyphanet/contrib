@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2004,2006 Oracle.  All rights reserved.
  *
- * $Id: BindingExample.java,v 1.16 2006/09/12 19:16:33 cwl Exp $
+ * $Id: BindingExample.java,v 1.17 2006/10/30 21:14:03 bostic Exp $
  */
 
 package je;

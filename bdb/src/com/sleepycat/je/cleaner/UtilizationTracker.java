@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTracker.java,v 1.17 2006/09/12 19:16:43 cwl Exp $
+ * $Id: UtilizationTracker.java,v 1.19 2006/11/03 03:07:48 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -200,11 +199,11 @@ public class UtilizationTracker {
      *
      * <p>Must be called under the log write latch.</p>
      */
-    public void countObsoleteNode(long lsn, LogEntryType type) {
+    public void countObsoleteNode(long lsn, LogEntryType type, int size) {
 
         TrackedFileSummary file = getFile(DbLsn.getFileNumber(lsn));
 
-        countOneNode(file, type);
+        countOneNode(file, type, size);
 
         file.trackObsolete(DbLsn.getFileOffset(lsn));
     }
@@ -218,25 +217,34 @@ public class UtilizationTracker {
      *
      * <p>Must be called under the log write latch.</p>
      */
-    public void countObsoleteNodeInexact(long lsn, LogEntryType type) {
+    public void countObsoleteNodeInexact(long lsn,
+                                         LogEntryType type,
+                                         int size) {
 
         TrackedFileSummary file = getFile(DbLsn.getFileNumber(lsn));
 
-        countOneNode(file, type);
+        countOneNode(file, type, size);
     }
 
     /**
-     * Counts a change in the obsolete status of an node, incrementing the
-     * obsolete count if obsolete is true and decrementing it if obsolete is
-     * false.
+     * Counts an obsolete node by incrementing the obsolete count and size.
      */
-    private void countOneNode(TrackedFileSummary file, LogEntryType type) {
+    private void countOneNode(TrackedFileSummary file,
+                              LogEntryType type,
+                              int size) {
 
         if (type == null || type.isNodeType()) {
             if (type == null || !inArray(type, LogEntryType.IN_TYPES)) {
                 file.obsoleteLNCount += 1;
+                /* The size is optional when tracking obsolete LNs. */
+                if (size > 0) {
+                    file.obsoleteLNSize += size;
+                    file.obsoleteLNSizeCounted += 1;
+                }
             } else {
                 file.obsoleteINCount += 1;
+                /* The size is not allowed when tracking obsolete INs. */
+                assert size == 0;
             }
         }
     }

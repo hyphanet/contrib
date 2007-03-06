@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: WriteLockInfo.java,v 1.11 2006/09/12 19:16:58 cwl Exp $
+ * $Id: WriteLockInfo.java,v 1.14 2006/11/03 19:30:46 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -31,6 +30,12 @@ public class WriteLockInfo {
     boolean abortKnownDeleted;
 
     /*
+     * Size of the original log entry, or zero if abortLsn is NULL_LSN or if
+     * the size is not known.
+     */
+    int abortLogSize;
+
+    /*
      * True if the node has never been locked before. Used so we can determine
      * when to set abortLsn.
      */
@@ -52,7 +57,8 @@ public class WriteLockInfo {
 	createdThisTxn = false;
     }
 
-    WriteLockInfo() {
+    /* public for Sizeof program. */
+    public WriteLockInfo() {
 	this.lock = null;
 	abortLsn = DbLsn.NULL_LSN;
 	abortKnownDeleted = true;
@@ -66,5 +72,9 @@ public class WriteLockInfo {
 
     public long getAbortLsn() {
 	return abortLsn;
+    }
+
+    public void setAbortLogSize(int logSize) {
+        abortLogSize = logSize;
     }
 }

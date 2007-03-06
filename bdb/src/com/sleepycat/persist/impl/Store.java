@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Store.java,v 1.14 2006/09/21 13:35:59 mark Exp $
+ * $Id: Store.java,v 1.20 2006/12/04 18:47:43 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -13,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +20,7 @@ import java.util.WeakHashMap;
 
 import com.sleepycat.bind.EntityBinding;
 import com.sleepycat.bind.tuple.StringBinding;
+import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
@@ -75,6 +76,9 @@ public class Store {
     private static Map<Environment,Map<String,PersistCatalog>> catalogPool =
         new WeakHashMap<Environment,Map<String,PersistCatalog>>();
 
+    /* For unit testing. */
+    private static SyncHook syncHook;
+
     private Environment env;
     private boolean rawAccess;
     private PersistCatalog catalog;
@@ -91,6 +95,7 @@ public class Store {
     private Map<String,Sequence> sequenceMap;
     private Map<String,SequenceConfig> sequenceConfigMap;
     private Database sequenceDb;
+    private IdentityHashMap<Database,Object> deferredWriteDatabases;
 
     public Store(Environment env,
                  String storeName,
@@ -111,7 +116,7 @@ public class Store {
             mutations = config.getMutations();
         }
         if (config == null) {
-            storeConfig = config = StoreConfig.DEFAULT;
+            storeConfig = StoreConfig.DEFAULT;
         } else {
             storeConfig = config.cloneConfig();
         }
@@ -124,6 +129,7 @@ public class Store {
         keyBindingMap = new HashMap<String,PersistKeyBinding>();
         sequenceMap = new HashMap<String,Sequence>();
         sequenceConfigMap = new HashMap<String,SequenceConfig>();
+        deferredWriteDatabases = new IdentityHashMap<Database,Object>();
 
         if (rawAccess) {
             /* Open a read-only catalog that uses the stored model. */
@@ -137,7 +143,7 @@ public class Store {
                 (storeConfig.getTransactional());
             catalog = new PersistCatalog
                 (null, env, storePrefix, storePrefix + CATALOG_DB, dbConfig,
-                 model, mutations, rawAccess);
+                 model, mutations, rawAccess, this);
         } else {
             /* Open the shared catalog that uses the current model. */
             synchronized (catalogPool) {
@@ -151,7 +157,8 @@ public class Store {
                     catalog.openExisting();
                 } else {
                     Transaction txn = null;
-                    if (storeConfig.getTransactional()) {
+                    if (storeConfig.getTransactional() &&
+			env.getThreadTransaction() == null) {
                         txn = env.beginTransaction(null, null);
                     }
                     boolean success = false;
@@ -163,7 +170,7 @@ public class Store {
                             (storeConfig.getTransactional());
                         catalog = new PersistCatalog
                             (txn, env, storePrefix, storePrefix + CATALOG_DB,
-                             dbConfig, model, mutations, rawAccess);
+                             dbConfig, model, mutations, rawAccess, this);
                         catalogMap.put(storeName, catalog);
                         success = true;
                     } finally {
@@ -294,7 +301,8 @@ public class Store {
             /* Use a single transaction for all opens. */
             Transaction txn = null;
             DatabaseConfig dbConfig = getPrimaryConfig(entityMeta);
-            if (dbConfig.getTransactional()) {
+            if (dbConfig.getTransactional() &&
+		env.getThreadTransaction() == null) {
                 txn = env.beginTransaction(null, null);
             }
             boolean success = false;
@@ -307,22 +315,16 @@ public class Store {
                 priIndex = new PrimaryIndex
                     (db, primaryKeyClass, keyBinding, entityClass,
                      entityBinding);
+
+                /* Update index and database maps. */
                 priIndexMap.put(entityClassName, priIndex);
+                if (DbCompat.getDeferredWrite(dbConfig)) {
+                    deferredWriteDatabases.put(db, null);
+                }
 
                 /* If not read-only, open all associated secondaries. */
                 if (!dbConfig.getReadOnly()) {
-                    for (SecondaryKeyMetadata secKeyMeta :
-                         entityMeta.getSecondaryKeys().values()) {
-                        String keyClassName = getSecKeyClass(secKeyMeta);
-                        /* XXX: should not require class in raw mode. */
-                        Class keyClass =
-                            SimpleCatalog.keyClassForName(keyClassName);
-                        openSecondaryIndex
-                            (txn, priIndex, entityClass, entityMeta,
-                             keyClass, keyClassName, secKeyMeta,
-                             makeSecName
-                                (entityClassName, secKeyMeta.getKeyName()));
-                    }
+                    openSecondaryIndexes(entityMeta);
                 }
                 success = true;
             } finally {
@@ -357,18 +359,14 @@ public class Store {
 
         checkOpen();
 
-        boolean haveMeta = false;
         EntityMetadata entityMeta = null;
         SecondaryKeyMetadata secKeyMeta = null;
 
         /* Validate the subclass for a subclass index. */
         if (entityClass != primaryIndex.getEntityClass()) {
-            if (!haveMeta) {
-                entityMeta = model.getEntityMetadata(entityClassName);
-                assert entityMeta != null;
-                secKeyMeta = checkSecKey(entityMeta, keyName);
-                haveMeta = true;
-            }
+            entityMeta = model.getEntityMetadata(entityClassName);
+            assert entityMeta != null;
+            secKeyMeta = checkSecKey(entityMeta, keyName);
             String subclassName = entityClass.getName();
             String declaringClassName = secKeyMeta.getDeclaringClassName();
             if (!subclassName.equals(declaringClassName)) {
@@ -388,19 +386,19 @@ public class Store {
         String secName = makeSecName(entityClassName, keyName);
         SecondaryIndex<SK,PK,E2> secIndex = secIndexMap.get(secName);
         if (secIndex == null) {
-            if (!haveMeta) {
+            if (entityMeta == null) {
                 entityMeta = model.getEntityMetadata(entityClassName);
                 assert entityMeta != null;
+            }
+            if (secKeyMeta == null) {
                 secKeyMeta = checkSecKey(entityMeta, keyName);
-                haveMeta = true;
             }
 
             /* Check metadata. */
             if (keyClassName == null) {
                 keyClassName = getSecKeyClass(secKeyMeta);
             } else {
-                String expectClsName =
-                    SimpleCatalog.keyClassName(secKeyMeta.getClassName());
+                String expectClsName = getSecKeyClass(secKeyMeta);
                 if (!keyClassName.equals(expectClsName)) {
                     throw new IllegalArgumentException
                         ("Wrong secondary key class: " + keyClassName +
@@ -413,6 +411,42 @@ public class Store {
                  keyClass, keyClassName, secKeyMeta, secName);
         }
         return secIndex;
+    }
+
+    /**
+     * Opens any secondary indexes defined in the given entity metadata that
+     * are not already open.  This method is called when a new entity subclass
+     * is encountered when an instance of that class is stored, and the
+     * EntityStore.getSubclassIndex has not been previously called for that
+     * class. [#15247]
+     */
+    synchronized void openSecondaryIndexes(EntityMetadata entityMeta)
+        throws DatabaseException {
+
+        String entityClassName = entityMeta.getClassName();
+        PrimaryIndex<Object,Object> priIndex =
+            priIndexMap.get(entityClassName);
+        assert priIndex != null;
+        Class<Object> entityClass = priIndex.getEntityClass();
+
+        for (SecondaryKeyMetadata secKeyMeta :
+             entityMeta.getSecondaryKeys().values()) {
+            String keyName = secKeyMeta.getKeyName();
+            String secName = makeSecName(entityClassName, keyName);
+            SecondaryIndex<Object,Object,Object> secIndex =
+                secIndexMap.get(secName);
+            if (secIndex == null) {
+                String keyClassName = getSecKeyClass(secKeyMeta);
+                /* XXX: should not require class in raw mode. */
+                Class keyClass =
+                    SimpleCatalog.keyClassForName(keyClassName);
+                openSecondaryIndex
+                    (null, priIndex, entityClass, entityMeta,
+                     keyClass, keyClassName, secKeyMeta,
+                     makeSecName
+                        (entityClassName, secKeyMeta.getKeyName()));
+            }
+        }
     }
 
     /**
@@ -431,7 +465,6 @@ public class Store {
         throws DatabaseException {
 
         assert !secIndexMap.containsKey(secName);
-        String keyName = secKeyMeta.getKeyName();
         String dbName = storePrefix + secName;
         SecondaryConfig config =
             getSecondaryConfig(secName, entityMeta, keyClassName, secKeyMeta);
@@ -473,11 +506,13 @@ public class Store {
         }
 
         if (config.getTransactional() != priConfig.getTransactional() ||
+            DbCompat.getDeferredWrite(config) !=
+            DbCompat.getDeferredWrite(priConfig) ||
             config.getReadOnly() != priConfig.getReadOnly()) {
             throw new IllegalArgumentException
                 ("One of these properties was changed to be inconsistent" +
                  " with the associated primary database: " +
-                 " Transactional, ReadOnly");
+                 " Transactional, DeferredWrite, ReadOnly");
         }
 
         PersistKeyBinding keyBinding = getKeyBinding(keyClassName);
@@ -486,8 +521,34 @@ public class Store {
             env.openSecondaryDatabase(txn, dbName, priDb, config);
         SecondaryIndex<SK,PK,E2> secIndex = new SecondaryIndex
             (db, null, primaryIndex, keyClass, keyBinding);
+
+        /* Update index and database maps. */
         secIndexMap.put(secName, secIndex);
+        if (DbCompat.getDeferredWrite(config)) {
+            deferredWriteDatabases.put(db, null);
+        }
         return secIndex;
+    }
+
+    public void sync()
+        throws DatabaseException {
+        
+        List<Database> dbs = new ArrayList<Database>();
+        synchronized (this) {
+            dbs.addAll(deferredWriteDatabases.keySet());
+        }
+        int nDbs = dbs.size();
+        if (nDbs > 0) {
+            for (int i = 0; i < nDbs; i += 1) {
+                Database db = dbs.get(i);
+                boolean flushLog = (i == nDbs - 1);
+                DbCompat.syncDeferredWrite(db, flushLog);
+                /* Call hook for unit testing. */
+                if (syncHook != null) {
+                    syncHook.onSync(db, flushLog);
+                }
+            }
+        }
     }
 
     public void truncateClass(Class entityClass)
@@ -560,17 +621,19 @@ public class Store {
                 String secName = makeSecName(clsName, keyMeta.getKeyName());
                 SecondaryIndex secIndex = secIndexMap.get(secName);
                 if (secIndex != null) {
-                    firstException =
-                        closeDb(secIndex.getDatabase(), firstException);
+                    Database db = secIndex.getDatabase();
+                    firstException = closeDb(db, firstException);
                     firstException =
                         closeDb(secIndex.getKeysDatabase(), firstException);
                     secIndexMap.remove(secName);
+                    deferredWriteDatabases.remove(db);
                 }
             }
             /* Close the primary last. */
-            firstException =
-                closeDb(priIndex.getDatabase(), firstException);
+            Database db = priIndex.getDatabase();
+            firstException = closeDb(db, firstException);
             priIndexMap.remove(clsName);
+            deferredWriteDatabases.remove(db);
 
             /* Throw the first exception encountered. */
             if (firstException != null) {
@@ -680,6 +743,7 @@ public class Store {
             config.setTransactional(storeConfig.getTransactional());
             config.setAllowCreate(!storeConfig.getReadOnly());
             config.setReadOnly(storeConfig.getReadOnly());
+            DbCompat.setDeferredWrite(config, storeConfig.getDeferredWrite());
             setBtreeComparator(config, meta.getPrimaryKey().getClassName());
             priConfigMap.put(clsName, config);
         }
@@ -730,6 +794,8 @@ public class Store {
             config.setTransactional(priConfig.getTransactional());
             config.setAllowCreate(!priConfig.getReadOnly());
             config.setReadOnly(priConfig.getReadOnly());
+            DbCompat.setDeferredWrite
+                (config, DbCompat.getDeferredWrite(priConfig));
             /* Set secondary properties based on metadata. */
             config.setAllowPopulate(true);
             Relationship rel = secKeyMeta.getRelationship();
@@ -1023,5 +1089,19 @@ public class Store {
             data.setData(bytes, off, size);
             return true;
         }
+    }
+
+    /**
+     * For unit testing.
+     */
+    public static void setSyncHook(SyncHook hook) {
+        syncHook = hook;
+    }
+
+    /**
+     * For unit testing.
+     */
+    public interface SyncHook {
+        void onSync(Database db, boolean flushLog);
     }
 }

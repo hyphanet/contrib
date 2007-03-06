@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2004,2006 Oracle.  All rights reserved.
  *
- * $Id: CheckBINDeltaTest.java,v 1.11 2006/09/12 19:17:22 cwl Exp $
+ * $Id: CheckBINDeltaTest.java,v 1.13 2006/10/30 21:14:48 bostic Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -138,9 +137,9 @@ public class CheckBINDeltaTest extends CheckBase {
         
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
         BIN bin = (BIN)tree.getFirstNode();
-        bin.log(envImpl.getLogManager(), true, false, false, null);
+        bin.log(envImpl.getLogManager(), true, false, false, false, null);
         bin = tree.getNextBin(bin, false /* traverseWithinDupTree */);
-        bin.log(envImpl.getLogManager(), true, false, false, null);
+        bin.log(envImpl.getLogManager(), true, false, false, false, null);
         bin.releaseLatch();
 
         /* 

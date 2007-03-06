@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: TupleTupleMarshalledKeyCreator.java,v 1.26 2006/09/12 19:16:39 cwl Exp $
+ * $Id: TupleTupleMarshalledKeyCreator.java,v 1.27 2006/10/30 21:14:09 bostic Exp $
  */
 
 package com.sleepycat.bind.tuple;

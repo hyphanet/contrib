@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: BindingTest.java,v 1.25 2006/09/22 07:21:41 mark Exp $
+ * $Id: BindingTest.java,v 1.28 2006/11/16 04:18:20 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -17,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -133,7 +133,7 @@ public class BindingTest extends TestCase {
         dbConfig.setAllowCreate(true);
         catalog = new PersistCatalog
             (null, env, STORE_PREFIX, "catalog", dbConfig, model, null,
-             false /*rawAccess*/);
+             false /*rawAccess*/, null /*Store*/);
     }
 
     private void close()
@@ -237,7 +237,7 @@ public class BindingTest extends TestCase {
                           {"f6", "float"},
                           {"f7", "double"},
                           {"f8", "java.lang.String"},
-                          //{"f9", "java.math.BigInteger"},
+                          {"f9", "java.math.BigInteger"},
                           //{"f10", "java.math.BigDecimal"},
                           {"f11", "java.util.Date"},
                           {"f12", "java.lang.Boolean"},
@@ -267,7 +267,7 @@ public class BindingTest extends TestCase {
         private float f6 = 123.4f;
         private double f7 = 123.4;
         private String f8 = "xxx";
-        //private BigInteger f9 = BigInteger.valueOf(123);
+        private BigInteger f9 = BigInteger.valueOf(123);
         //private BigDecimal f10 = BigDecimal.valueOf(123.4);
         private Date f11 = new Date();
         private Boolean f12 = true;
@@ -296,7 +296,7 @@ public class BindingTest extends TestCase {
             TestCase.assertEquals(f6, o.f6);
             TestCase.assertEquals(f7, o.f7);
             TestCase.assertEquals(f8, o.f8);
-            //TestCase.assertEquals(f9, o.f9);
+            TestCase.assertEquals(f9, o.f9);
             //TestCase.assertEquals(f10, o.f10);
             TestCase.assertEquals(f11, o.f11);
             TestCase.assertEquals(f12, o.f12);
@@ -989,7 +989,8 @@ public class BindingTest extends TestCase {
 
         open();
 
-        CompositeKey key = new CompositeKey(123, 456L, "xyz");
+        CompositeKey key =
+            new CompositeKey(123, 456L, "xyz", BigInteger.valueOf(789));
         checkEntity(UseCompositeKey.class,
                     new UseCompositeKey(key, "one"));
 
@@ -1003,6 +1004,7 @@ public class BindingTest extends TestCase {
                         {"f1", "int"},
                         {"f2", "java.lang.Long"},
                         {"f3", "java.lang.String"},
+                        {"f4", "java.math.BigInteger"},
                       },
                       -1 /*priKeyIndex*/, null);
 
@@ -1017,19 +1019,23 @@ public class BindingTest extends TestCase {
         private Long f2;
         @KeyField(1)
         private String f3;
+        @KeyField(4)
+        private BigInteger f4;
 
         private CompositeKey() {}
 
-        CompositeKey(int f1, Long f2, String f3) {
+        CompositeKey(int f1, Long f2, String f3, BigInteger f4) {
             this.f1 = f1;
             this.f2 = f2;
             this.f3 = f3;
+            this.f4 = f4;
         }
 
         void validate(CompositeKey o) {
             TestCase.assertEquals(f1, o.f1);
             TestCase.assertTrue(nullOrEqual(f2, o.f2));
             TestCase.assertTrue(nullOrEqual(f3, o.f3));
+            TestCase.assertTrue(nullOrEqual(f4, o.f4));
         }
 
         @Override
@@ -1037,7 +1043,8 @@ public class BindingTest extends TestCase {
             CompositeKey o = (CompositeKey) other;
             return f1 == o.f1 &&
                    nullOrEqual(f2, o.f2) &&
-                   nullOrEqual(f3, o.f3);
+                   nullOrEqual(f3, o.f3) &&
+                   nullOrEqual(f4, o.f4);
         }
 
         @Override
@@ -1047,7 +1054,7 @@ public class BindingTest extends TestCase {
 
         @Override
         public String toString() {
-            return "" + f1 + ' ' + f2 + ' ' + f3;
+            return "" + f1 + ' ' + f2 + ' ' + f3 + ' ' + f4;
         }
     }
 
@@ -1236,8 +1243,8 @@ public class BindingTest extends TestCase {
                           {"g7", "double"},
                           {"f8", "java.lang.String"},
                           {"g8", "java.lang.String"},
-                          //{"f9", "java.math.BigInteger"},
-                          //{"g9", "java.math.BigInteger"},
+                          {"f9", "java.math.BigInteger"},
+                          {"g9", "java.math.BigInteger"},
                           //{"f10", "java.math.BigDecimal"},
                           //{"g10", "java.math.BigDecimal"},
                           {"f11", "java.util.Date"},
@@ -1292,7 +1299,7 @@ public class BindingTest extends TestCase {
         checkSecKey(obj, "f6", obj.f6, Float.class);
         checkSecKey(obj, "f7", obj.f7, Double.class);
         checkSecKey(obj, "f8", obj.f8, String.class);
-        //checkSecKey(obj, "f9", obj.f9, BigInteger.class);
+        checkSecKey(obj, "f9", obj.f9, BigInteger.class);
         //checkSecKey(obj, "f10", obj.f10, BigDecimal.class);
         checkSecKey(obj, "f11", obj.f11, Date.class);
         checkSecKey(obj, "f12", obj.f12, Boolean.class);
@@ -1312,7 +1319,7 @@ public class BindingTest extends TestCase {
         checkSecMultiKey(obj, "f25", toSet(obj.f25), CompositeKey.class);
 
         nullifySecKey(obj, "f8", obj.f8, String.class);
-        //nullifySecKey(obj, "f9", obj.f9, BigInteger.class);
+        nullifySecKey(obj, "f9", obj.f9, BigInteger.class);
         //nullifySecKey(obj, "f10", obj.f10, BigDecimal.class);
         nullifySecKey(obj, "f11", obj.f11, Date.class);
         nullifySecKey(obj, "f12", obj.f12, Boolean.class);
@@ -1403,9 +1410,9 @@ public class BindingTest extends TestCase {
         private String f8 = "8";
         private String g8 = "8";
 
-        //@SecondaryKey(relate=MANY_TO_ONE)
-        //private BigInteger f9;
-        //private BigInteger g9;
+        @SecondaryKey(relate=MANY_TO_ONE)
+        private BigInteger f9;
+        private BigInteger g9;
 
         //@SecondaryKey(relate=MANY_TO_ONE)
         //private BigDecimal f10;
@@ -1448,17 +1455,19 @@ public class BindingTest extends TestCase {
         private Double g19 = 19.19;
 
         @SecondaryKey(relate=MANY_TO_ONE)
-        private CompositeKey f20 = new CompositeKey(20, 20L, "20");
-        private CompositeKey g20 = new CompositeKey(20, 20L, "20");
+        private CompositeKey f20 =
+            new CompositeKey(20, 20L, "20", BigInteger.valueOf(20));
+        private CompositeKey g20 =
+            new CompositeKey(20, 20L, "20", BigInteger.valueOf(20));
 
         private static int[] arrayOfInt = { 100, 101, 102 };
 
         private static Integer[] arrayOfInteger = { 100, 101, 102 };
 
         private static CompositeKey[] arrayOfCompositeKey = {
-            new CompositeKey(100, 100L, "100"),
-            new CompositeKey(101, 101L, "101"),
-            new CompositeKey(102, 102L, "102"),
+            new CompositeKey(100, 100L, "100", BigInteger.valueOf(100)),
+            new CompositeKey(101, 101L, "101", BigInteger.valueOf(101)),
+            new CompositeKey(102, 102L, "102", BigInteger.valueOf(102)),
         };
 
         @SecondaryKey(relate=ONE_TO_MANY)
@@ -1530,7 +1539,7 @@ public class BindingTest extends TestCase {
             TestCase.assertEquals(f6, o.f6);
             TestCase.assertEquals(f7, o.f7);
             TestCase.assertEquals(f8, o.f8);
-            //TestCase.assertEquals(f9, o.f9);
+            TestCase.assertEquals(f9, o.f9);
             //TestCase.assertEquals(f10, o.f10);
             TestCase.assertEquals(f11, o.f11);
             TestCase.assertEquals(f12, o.f12);
@@ -1557,7 +1566,7 @@ public class BindingTest extends TestCase {
             TestCase.assertEquals(g6, o.g6);
             TestCase.assertEquals(g7, o.g7);
             TestCase.assertEquals(g8, o.g8);
-            //TestCase.assertEquals(g9, o.g9);
+            TestCase.assertEquals(g9, o.g9);
             //TestCase.assertEquals(g10, o.g10);
             TestCase.assertEquals(g11, o.g11);
             TestCase.assertEquals(g12, o.g12);
@@ -2117,7 +2126,7 @@ public class BindingTest extends TestCase {
          */
         PersistCatalog storedCatalog = new PersistCatalog
             (null, env, STORE_PREFIX, "catalog", null, null, null,
-             false /*useCurrentModel*/);
+             false /*useCurrentModel*/, null /*Store*/);
         EntityModel storedModel = storedCatalog.getResolvedModel();
 
         /* Check metadata/types against the stored catalog/model. */
@@ -2294,7 +2303,7 @@ public class BindingTest extends TestCase {
                clsName.equals("java.lang.Double") ||
                clsName.equals("java.lang.String") ||
                clsName.equals("java.math.BigInteger") ||
-               clsName.equals("java.math.BigDecimal") ||
+               //clsName.equals("java.math.BigDecimal") ||
                clsName.equals("java.util.Date");
     }
 

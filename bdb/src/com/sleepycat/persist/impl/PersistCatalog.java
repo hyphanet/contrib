@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: PersistCatalog.java,v 1.30 2006/09/22 07:21:41 mark Exp $
+ * $Id: PersistCatalog.java,v 1.33 2006/12/04 18:47:43 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -129,6 +128,12 @@ public class PersistCatalog implements Catalog {
     private int openCount;
 
     /**
+     * The Store is normally present but may be null in unit tests (for
+     * example, BindingTest).
+     */
+    private Store store;
+
+    /**
      * Creates a new catalog, opening the database and reading it from a given
      * catalog database if it already exists.  All predefined formats and
      * formats for the given model are added.  For modified classes, old
@@ -144,10 +149,12 @@ public class PersistCatalog implements Catalog {
                           DatabaseConfig dbConfig,
                           EntityModel modelParam,
                           Mutations mutationsParam,
-                          boolean rawAccess)
+                          boolean rawAccess,
+                          Store store)
         throws DatabaseException {
 
         this.rawAccess = rawAccess;
+        this.store = store;
         db = env.openDatabase(txn, dbName, dbConfig);
         openCount = 1;
         boolean success = false;
@@ -631,11 +638,34 @@ public class PersistCatalog implements Catalog {
         }
     }
 
+
+    /**
+     * Get a format for a given class, creating it if it does not exist.
+     *
+     * <p>This method is called for top level entity instances by
+     * PersistEntityBinding.  When a new entity subclass format is added we
+     * call Store.openSecondaryIndexes so that previously unknown secondary
+     * databases can be created, before storing the entity.  We do this here
+     * while not holding a synchronization mutex, not in addNewFormat, to avoid
+     * deadlocks. openSecondaryIndexes synchronizes on the Store. [#15247]</p>
+     */
     public Format getFormat(Class cls) {
         Format format = formatMap.get(cls.getName());
         if (format == null) {
             if (model != null) {
                 format = addNewFormat(cls);
+                /* Detect and handle new entity subclass. [#15247] */
+                if (store != null) {
+                    Format entityFormat = format.getEntityFormat();
+                    if (entityFormat != null && entityFormat != format) {
+                        try {
+                            store.openSecondaryIndexes
+                                (entityFormat.getEntityMetadata());
+                        } catch (DatabaseException e) {
+                            throw new RuntimeExceptionWrapper(e);
+                        }
+                    }
+                }
             }
             if (format == null) {
                 throw new IllegalArgumentException
@@ -811,10 +841,11 @@ public class PersistCatalog implements Catalog {
     public Object convertRawObject(RawObject o, IdentityHashMap converted) {
         Format format = (Format) o.getType();
         if (this != format.getCatalog()) {
-            format = getFormat(format.getClassName());
+	    String className = format.getClassName();
+            format = getFormat(className);
             if (format == null) {
                 throw new IllegalArgumentException
-                    ("External raw type not found: " + format.getClassName());
+                    ("External raw type not found: " + className);
             }
         }
         Format proxiedFormat = format.getProxiedFormat();

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SyncedLogManager.java,v 1.15 2006/09/12 19:16:52 cwl Exp $
+ * $Id: SyncedLogManager.java,v 1.17 2006/11/03 03:07:51 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -39,16 +38,17 @@ public class SyncedLogManager extends LogManager {
                                 boolean flushRequired,
                                 boolean forceNewLogFile,
                                 long oldNodeLsn,
+                                int oldNodeSize,
                                 boolean marshallOutsideLatch,
                                 ByteBuffer marshalledBuffer,
                                 UtilizationTracker tracker)
         throws IOException, DatabaseException {
 
         synchronized (logWriteLatch) {
-            return logInternal(item, isProvisional,
-                               flushRequired, forceNewLogFile, oldNodeLsn, 
-                               marshallOutsideLatch, marshalledBuffer,
-                               tracker);
+            return logInternal
+                (item, isProvisional, flushRequired, forceNewLogFile,
+                 oldNodeLsn, oldNodeSize, marshallOutsideLatch,
+                 marshalledBuffer, tracker);
         }
     }
 
@@ -78,12 +78,12 @@ public class SyncedLogManager extends LogManager {
     /**
      * @see LogManager#countObsoleteLNs
      */
-    public void countObsoleteNode(long lsn, LogEntryType type)
+    public void countObsoleteNode(long lsn, LogEntryType type, int size)
         throws DatabaseException {
 
         UtilizationTracker tracker = envImpl.getUtilizationTracker();
         synchronized (logWriteLatch) {
-            countObsoleteNodeInternal(tracker, lsn, type);
+            countObsoleteNodeInternal(tracker, lsn, type, size);
         }
     }
 

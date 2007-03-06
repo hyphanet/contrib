@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ReadOnlyCatalog.java,v 1.7 2006/09/21 13:35:59 mark Exp $
+ * $Id: ReadOnlyCatalog.java,v 1.8 2006/10/30 21:14:32 bostic Exp $
  */
 
 package com.sleepycat.persist.impl;

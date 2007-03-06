@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: CursorEdgeTest.java,v 1.32 2006/09/12 19:17:12 cwl Exp $
+ * $Id: CursorEdgeTest.java,v 1.35 2006/10/30 21:14:40 bostic Exp $
  */
 
 package com.sleepycat.je;
@@ -13,8 +12,10 @@ import java.io.File;
 
 import junit.framework.TestCase;
 
+import com.sleepycat.je.LockNotGrantedException;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.junit.JUnitThread;
+import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.util.TestUtils;
 
 /**
@@ -552,5 +553,116 @@ public class CursorEdgeTest extends TestCase {
             resultEntry.setData(dataEntry.getData());
             return true;
         }
+    }
+
+    /**
+     * Tests that when a LockNotGrantedException is thrown as the result of a
+     * cursor operation, all latches are released properly.  There are two
+     * cases corresponding to the two methods in CursorImpl --
+     * lockLNDeletedAllowed and lockDupCountLN, which lock leaf LNs and dup
+     * count LNs, respectively -- that handle locking and latching.  These
+     * methods optimize by not releasing latches while obtaining a non-blocking
+     * lock.  Prior to the fix for [#15142], these methods did not release
+     * latches when LockNotGrantedException, which can occur when a transaction
+     * is configured for "no wait".
+     */
+    public void testNoWaitLatchRelease()
+	throws Throwable {
+
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry();
+
+        /* Open the database. */
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setTransactional(true);
+        dbConfig.setAllowCreate(true);
+        dbConfig.setSortedDuplicates(true);
+        Database db = env.openDatabase(null, "foo", dbConfig);
+
+        /* Insert record 1. */
+        key.setData(TestUtils.getTestArray(1));  
+        data.setData(TestUtils.getTestArray(1)); 
+        db.put(null, key, data);
+
+        /* Open cursor1 with txn1 and lock record 1. */
+        Transaction txn1 = env.beginTransaction(null, null);
+        Cursor cursor1 = db.openCursor(txn1, null);
+        key.setData(TestUtils.getTestArray(1));  
+        data.setData(TestUtils.getTestArray(1)); 
+        OperationStatus status = cursor1.getSearchBoth(key, data, null);
+        assertSame(status, OperationStatus.SUCCESS);
+        assertEquals(1, TestUtils.getTestVal(key.getData()));
+        assertEquals(1, TestUtils.getTestVal(data.getData()));
+
+        /* Open cursor2 with no-wait txn2 and try to delete record 1. */
+        TransactionConfig noWaitConfig = new TransactionConfig();
+        noWaitConfig.setNoWait(true);
+        Transaction txn2 = env.beginTransaction(null, noWaitConfig);
+        Cursor cursor2 = db.openCursor(txn2, null);
+        key.setData(TestUtils.getTestArray(1));  
+        data.setData(TestUtils.getTestArray(1)); 
+        status = cursor2.getSearchBoth(key, data, null);
+        assertSame(status, OperationStatus.SUCCESS);
+        assertEquals(1, TestUtils.getTestVal(key.getData()));
+        assertEquals(1, TestUtils.getTestVal(data.getData()));
+        try {
+            cursor2.delete();
+            fail("Expected LockNotGrantedException");
+        } catch (LockNotGrantedException expected) {
+        }
+
+        /*
+         * Before the [#15142] bug fix, this could have failed.  However, that
+         * failure was not reproducible because all callers of
+         * lockLNDeletedAllowed redudantly release the BIN latches.  So this is
+         * just an extra check to ensure such a bug is never introduced.
+         */
+        assertEquals(0, LatchSupport.countLatchesHeld());
+
+        /* Close cursors and txns to release locks. */
+        cursor1.close();
+        cursor2.close();
+        txn1.commit();
+        txn2.commit();
+
+        /* Insert duplicate record 2 to create a DupCountLN. */
+        key.setData(TestUtils.getTestArray(1));  
+        data.setData(TestUtils.getTestArray(2)); 
+        db.put(null, key, data);
+
+        /* Get the cursor count with cursor1/txn1 to lock the DupCountLN. */
+        txn1 = env.beginTransaction(null, null);
+        cursor1 = db.openCursor(txn1, null);
+        key.setData(TestUtils.getTestArray(1));  
+        status = cursor1.getSearchKey(key, data, null);
+        assertSame(status, OperationStatus.SUCCESS);
+        assertEquals(1, TestUtils.getTestVal(key.getData()));
+        assertEquals(1, TestUtils.getTestVal(data.getData()));
+        assertEquals(2, cursor1.count());
+
+        /* Try to write lock the DupCountLN with txn2 by deleting record 2. */
+        txn2 = env.beginTransaction(null, noWaitConfig);
+        cursor2 = db.openCursor(txn2, null);
+        key.setData(TestUtils.getTestArray(1));  
+        data.setData(TestUtils.getTestArray(2)); 
+        status = cursor2.getSearchBoth(key, data, null);
+        assertSame(status, OperationStatus.SUCCESS);
+        assertEquals(1, TestUtils.getTestVal(key.getData()));
+        assertEquals(2, TestUtils.getTestVal(data.getData()));
+        try {
+            cursor2.delete();
+            fail("Expected LockNotGrantedException");
+        } catch (LockNotGrantedException expected) {
+        }
+
+        /* Before the [#15142] bug fix, this would fail. */
+        assertEquals(0, LatchSupport.countLatchesHeld());
+
+        /* Close all. */
+        cursor1.close();
+        cursor2.close();
+        txn1.commit();
+        txn2.commit();
+        db.close();
     }
 }

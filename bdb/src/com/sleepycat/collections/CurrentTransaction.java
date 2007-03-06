@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: CurrentTransaction.java,v 1.44 2006/09/12 19:16:39 cwl Exp $
+ * $Id: CurrentTransaction.java,v 1.46 2006/10/30 21:14:10 bostic Exp $
  */
 
 package com.sleepycat.collections;
@@ -156,8 +155,8 @@ public class CurrentTransaction {
 
     /**
      * Returns whether auto-commit may be performed by the collections API.
-     * True is returned no collections API transaction is currently active, and
-     * no XA transaction is currently active.
+     * True is returned if no collections API transaction is currently active,
+     * and no XA transaction is currently active.
      */
     boolean isAutoCommitAllowed()
 	throws DatabaseException {

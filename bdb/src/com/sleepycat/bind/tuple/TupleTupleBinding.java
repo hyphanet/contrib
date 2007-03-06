@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: TupleTupleBinding.java,v 1.23 2006/09/12 19:16:39 cwl Exp $
+ * $Id: TupleTupleBinding.java,v 1.24 2006/10/30 21:14:08 bostic Exp $
  */
 
 package com.sleepycat.bind.tuple;

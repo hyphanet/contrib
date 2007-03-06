@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: BytecodeEnhancer.java,v 1.9 2006/09/19 06:22:59 mark Exp $
+ * $Id: BytecodeEnhancer.java,v 1.11 2006/11/14 23:30:50 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -53,6 +52,7 @@ import static com.sleepycat.asm.Opcodes.POP;
 import static com.sleepycat.asm.Opcodes.PUTFIELD;
 import static com.sleepycat.asm.Opcodes.RETURN;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -706,6 +706,12 @@ class BytecodeEnhancer extends ClassAdapter {
                  "writeString",
                  "(Ljava/lang/String;)Lcom/sleepycat/bind/tuple/TupleOutput;");
             mv.visitInsn(POP);
+        } else if (fieldClassName.equals(BigInteger.class.getName())) {
+            mv.visitMethodInsn
+                (INVOKEINTERFACE, "com/sleepycat/persist/impl/EntityOutput",
+                 "writeBigInteger",
+             "(Ljava/math/BigInteger;)Lcom/sleepycat/bind/tuple/TupleOutput;");
+            mv.visitInsn(POP);
         } else {
             throw new IllegalStateException(fieldClassName);
         }
@@ -880,6 +886,12 @@ class BytecodeEnhancer extends ClassAdapter {
             mv.visitMethodInsn
                 (INVOKEINTERFACE, "com/sleepycat/persist/impl/EntityInput",
                  "readString", "()Ljava/lang/String;");
+        } else if (fieldClassName.equals(BigInteger.class.getName())) {
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitVarInsn(ALOAD, 1);
+            mv.visitMethodInsn
+                (INVOKEINTERFACE, "com/sleepycat/persist/impl/EntityInput",
+                 "readBigInteger", "()Ljava/math/BigInteger;");
         } else {
             throw new IllegalStateException(fieldClassName);
         }
@@ -1370,6 +1382,7 @@ class BytecodeEnhancer extends ClassAdapter {
      */
     static boolean isSimpleRefType(String className) {
         return (PRIMITIVE_WRAPPERS.containsKey(className) ||
+                className.equals(BigInteger.class.getName()) ||
                 className.equals(Date.class.getName()) ||
                 className.equals(String.class.getName()));
     }

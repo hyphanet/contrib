@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Cursor.java,v 1.199 2006/09/18 16:54:37 linda Exp $
+ * $Id: Cursor.java,v 1.202 2006/11/28 04:02:53 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -29,6 +28,7 @@ import com.sleepycat.je.txn.BuddyLocker;
 import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.txn.LockerFactory;
+import com.sleepycat.je.utilint.DatabaseUtil;
 import com.sleepycat.je.utilint.InternalException;
 
 /**
@@ -156,6 +156,9 @@ public class Cursor {
         cursorImpl = new CursorImpl(dbImpl,
                                     locker,
                                     false /*retainNonTxnLocks*/);
+
+        /* Perform eviction for user cursors. */
+        cursorImpl.setAllowEviction(true);
 
         readUncommittedDefault =
             cursorConfig.getReadUncommitted() ||
@@ -786,6 +789,8 @@ public class Cursor {
                 nextKeyLocker = new BuddyLocker
                     (dbImpl.getDbEnvironment(), cursorLocker);
                 nextKeyCursor = new CursorImpl(dbImpl, nextKeyLocker);
+                /* Perform eviction for user cursors. */
+                nextKeyCursor.setAllowEviction(true);
                 nextKeyCursor.lockNextKeyForInsert(key, data);
             }
 

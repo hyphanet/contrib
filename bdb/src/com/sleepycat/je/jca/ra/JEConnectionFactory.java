@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: JEConnectionFactory.java,v 1.8 2006/09/18 21:16:46 linda Exp $
+ * $Id: JEConnectionFactory.java,v 1.9 2006/10/30 21:14:18 bostic Exp $
  */
 
 package com.sleepycat.je.jca.ra;

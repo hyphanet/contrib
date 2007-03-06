@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateTest.java,v 1.51 2006/09/12 19:17:15 cwl Exp $
+ * $Id: DbCursorDuplicateTest.java,v 1.53 2006/10/30 21:14:43 bostic Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -99,8 +98,8 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 
     /**
      * Insert N_KEYS data items into a tree.  Set a reverse order
-     * btreeComparison function. Iterate through the tree in ascending
-     * order.  Ensure that the elements are returned in ascending order.
+     * btreeComparison function. Iterate through the tree in ascending order.
+     * Ensure that the elements are returned in ascending order.
      */
     public void testLargeGetForwardTraverseWithReverseComparisonFunction() 
         throws Throwable {
@@ -118,9 +117,9 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
     }
 
     /**
-     * Put a bunch of data items into the database in a specific
-     * order and ensure that when read back that we can't putNoDupData
-     * without receiving an error return code.
+     * Put a bunch of data items into the database in a specific order and
+     * ensure that when read back that we can't putNoDupData without receiving
+     * an error return code.
      */
     public void testPutNoDupData()
 	throws Throwable {
@@ -203,12 +202,11 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
     }
 
     /**
-     * Create the usual random duplicate data.  Iterate back over it
-     * calling count at each element.  Make sure the number of duplicates
-     * returned for a particular key is N_DUPLICATE_PER_KEY.  Note that
-     * this is somewhat inefficient, but cautious, in that it calls
-     * count for every duplicate returned, rather than just once for
-     * each unique key returned.
+     * Create the usual random duplicate data.  Iterate back over it calling
+     * count at each element.  Make sure the number of duplicates returned for
+     * a particular key is N_DUPLICATE_PER_KEY.  Note that this is somewhat
+     * inefficient, but cautious, in that it calls count for every duplicate
+     * returned, rather than just once for each unique key returned.
      */
     public void testDuplicateCount() 
         throws Throwable {
@@ -272,6 +270,44 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
             dw.setIgnoreDataMap(true);
             dw.walkData();
             assertTrue(dw.nEntries == 2);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
+    }
+
+    public void testDuplicateDuplicatesWithComparators() //cwl
+	throws Throwable {
+
+        try {
+            tearDown();
+            duplicateComparisonFunction = invocationCountingComparator;
+	    btreeComparisonFunction = invocationCountingComparator;
+	    invocationCountingComparator.setInvocationCount(0);
+            setUp();
+            initEnv(true);
+
+            String keyString = "aaaa";
+            String dataString = "d1d1";
+            DatabaseEntry keyDbt = new DatabaseEntry();
+            DatabaseEntry dataDbt = new DatabaseEntry();
+            keyDbt.setData(keyString.getBytes());
+            dataDbt.setData(dataString.getBytes());
+            assertTrue(cursor.put(keyDbt, dataDbt) ==
+                       OperationStatus.SUCCESS);
+            assertTrue(cursor.put(keyDbt, dataDbt) ==
+                       OperationStatus.SUCCESS);
+
+	    InvocationCountingBtreeComparator bTreeICC =
+		(InvocationCountingBtreeComparator)
+		(exampleDb.getConfig().getBtreeComparator());
+
+	    InvocationCountingBtreeComparator dupICC =
+		(InvocationCountingBtreeComparator)
+		(exampleDb.getConfig().getDuplicateComparator());
+
+            assertTrue(bTreeICC.getInvocationCount() == 1);
+            assertTrue(dupICC.getInvocationCount() == 2);
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -588,10 +624,10 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 
     /**
      * Create a bunch of random duplicate data.  Iterate over it using
-     * getNextDup until the end of the dup set.  At end of set,
-     * handleEndOfSet is called to do a getNext onto the next dup
-     * set.  Verify that ascending order is maintained and that we
-     * reach end of set the proper number of times.
+     * getNextDup until the end of the dup set.  At end of set, handleEndOfSet
+     * is called to do a getNext onto the next dup set.  Verify that ascending
+     * order is maintained and that we reach end of set the proper number of
+     * times.
      */
     public void testGetNextDup()
 	throws Throwable {
@@ -660,10 +696,10 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 
     /**
      * Create a bunch of random duplicate data.  Iterate over it using
-     * getNextDup until the end of the dup set.  At end of set,
-     * handleEndOfSet is called to do a getNext onto the next dup
-     * set.  Verify that descending order is maintained and that we
-     * reach end of set the proper number of times.
+     * getNextDup until the end of the dup set.  At end of set, handleEndOfSet
+     * is called to do a getNext onto the next dup set.  Verify that descending
+     * order is maintained and that we reach end of set the proper number of
+     * times.
      */
     public void testGetPrevDup()
 	throws Throwable {
@@ -781,9 +817,9 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 
     /**
      * Create a bunch of random duplicate data.  Iterate over it using
-     * getNextNoDup until the end of the top level set.  Verify that
-     * descending order is maintained and that we reach see the proper
-     * number of top-level keys.
+     * getNextNoDup until the end of the top level set.  Verify that descending
+     * order is maintained and that we reach see the proper number of top-level
+     * keys.
      */
     public void testGetPrevNoDup()
 	throws Throwable {
@@ -846,11 +882,15 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
     /**
      * Just use the BtreeComparator that's already available.
      */
-    static private Comparator duplicateComparator =
+    private static Comparator duplicateComparator =
 	new DuplicateAscendingComparator();
 
-    static private Comparator reverseDuplicateComparator =
+    private static Comparator reverseDuplicateComparator =
 	new DuplicateReverseComparator();
+
+    private static InvocationCountingBtreeComparator
+	invocationCountingComparator =
+	new InvocationCountingBtreeComparator();
 
     public static class DuplicateAscendingComparator
         extends BtreeComparator {
@@ -859,6 +899,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 	    super();
 	}
     }
+
     public static class DuplicateReverseComparator
         extends ReverseBtreeComparator {
 
@@ -867,13 +908,31 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 	}
     }
 
+    public static class InvocationCountingBtreeComparator
+	extends BtreeComparator {
+
+	private int invocationCount = 0;
+
+	public int compare(Object o1, Object o2) {
+	    invocationCount++;
+	    return super.compare(o1, o2);
+	}
+
+	public int getInvocationCount() {
+	    return invocationCount;
+	}
+
+	public void setInvocationCount(int invocationCount) {
+	    this.invocationCount = invocationCount;
+	}
+    }
+
     /*
-     * A special comparator that only looks at the first length-1
-     * bytes of data so that the last byte can be changed without
-     * affecting "equality".  Use this for putCurrent tests of
-     * duplicates.
+     * A special comparator that only looks at the first length-1 bytes of data
+     * so that the last byte can be changed without affecting "equality".  Use
+     * this for putCurrent tests of duplicates.
      */
-    static private Comparator truncatedComparator = new TruncatedComparator();
+    private static Comparator truncatedComparator = new TruncatedComparator();
 
     protected static class TruncatedComparator implements Comparator {
 	protected TruncatedComparator() {

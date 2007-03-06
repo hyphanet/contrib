@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: StatsConfig.java,v 1.11 2006/09/12 19:16:43 cwl Exp $
+ * $Id: StatsConfig.java,v 1.13 2006/11/16 17:18:58 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -20,7 +19,7 @@ public class StatsConfig {
      * For internal use, to allow null as a valid value for
      * the config parameter.
      */
-    static StatsConfig DEFAULT = new StatsConfig();
+    public static final StatsConfig DEFAULT = new StatsConfig();
 
     private boolean fast = false;
     private boolean clear = false;

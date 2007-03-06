@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ReadOnlyProcess.java,v 1.5 2006/09/12 19:17:14 cwl Exp $
+ * $Id: ReadOnlyProcess.java,v 1.7 2006/11/22 23:54:49 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -16,7 +15,7 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.util.TestUtils;
 
 /**
- * @see ReadOnlyLockerTest
+ * @see ReadOnlyLockingTest
  */
 public class ReadOnlyProcess {
 
@@ -36,6 +35,9 @@ public class ReadOnlyProcess {
 
             //System.err.println("Opened read-only: " + envHome);
             //System.err.println(System.getProperty("java.class.path"));
+
+            /* Notify the test that this process has opened the environment. */
+            ReadOnlyLockingTest.createProcessFile();
 
             /* Sleep until the parent process kills me. */
             Thread.sleep(Long.MAX_VALUE);

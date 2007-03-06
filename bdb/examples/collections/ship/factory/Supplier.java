@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Supplier.java,v 1.15 2006/09/12 19:16:28 cwl Exp $
+ * $Id: Supplier.java,v 1.16 2006/10/30 21:13:59 bostic Exp $
  */
 
 package collections.ship.factory;

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Accessor.java,v 1.9 2006/09/27 12:18:19 cwl Exp $
+ * $Id: Accessor.java,v 1.10 2006/10/30 21:14:31 bostic Exp $
  */
 
 package com.sleepycat.persist.impl;

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: TransactionRunner.java,v 1.42 2006/09/12 19:16:40 cwl Exp $
+ * $Id: TransactionRunner.java,v 1.44 2006/12/04 18:47:40 cwl Exp $
  */
 
 package com.sleepycat.collections;
@@ -77,7 +76,6 @@ public class TransactionRunner {
     /** The default maximum number of retries. */
     public static final int DEFAULT_MAX_RETRIES = 10;
 
-    private Environment env;
     private CurrentTransaction currentTxn;
     private int maxRetries;
     private TransactionConfig config;
@@ -109,10 +107,10 @@ public class TransactionRunner {
      * configuration.  The configuration object is not cloned, and
      * any modifications to it will impact subsequent transactions.
      */
-    public TransactionRunner(Environment env, int maxRetries,
+    public TransactionRunner(Environment env,
+			     int maxRetries,
                              TransactionConfig config) {
 
-        this.env = env;
         this.currentTxn = CurrentTransaction.getInstance(env);
         this.maxRetries = maxRetries;
         this.config = config;

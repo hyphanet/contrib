@@ -1,15 +1,12 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ConverterReader.java,v 1.4 2006/09/22 05:28:52 mark Exp $
+ * $Id: ConverterReader.java,v 1.6 2006/10/30 21:14:32 bostic Exp $
  */
 
 package com.sleepycat.persist.impl;
-
-import java.util.IdentityHashMap;
 
 import com.sleepycat.persist.evolve.Converter;
 import com.sleepycat.persist.raw.RawObject;

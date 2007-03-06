@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2005,2006 Oracle.  All rights reserved.
  *
- * $Id: DbCacheSize.java,v 1.8 2006/09/12 19:16:59 cwl Exp $
+ * $Id: DbCacheSize.java,v 1.10 2006/10/30 21:14:28 bostic Exp $
  */
 
 package com.sleepycat.je.util;
@@ -84,6 +83,72 @@ public class DbCacheSize {
     //                 12
     private static final int COLUMN_WIDTH = 14;
     private static final int COLUMN_SEPARATOR = 2;
+
+    private long records;
+    private int keySize;
+    private int dataSize;
+    private int nodeMax;
+    private int density;
+    private long overhead;
+    private long minInBtreeSize;
+    private long maxInBtreeSize;
+    private long minInCacheSize;
+    private long maxInCacheSize;
+    private long maxInBtreeSizeWithData;
+    private long maxInCacheSizeWithData;
+    private long minInBtreeSizeWithData;
+    private long minInCacheSizeWithData;
+    private int nLevels = 1;
+
+    public DbCacheSize (long records,
+			int keySize,
+			int dataSize,
+			int nodeMax,
+			int density,
+			long overhead) {
+	this.records = records;
+	this.keySize = keySize;
+	this.dataSize = dataSize;
+	this.nodeMax = nodeMax;
+	this.density = density;
+	this.overhead = overhead;
+    }
+	
+    public long getMinCacheSizeInternalNodesOnly() {
+	return minInCacheSize;
+    }
+
+    public long getMaxCacheSizeInternalNodesOnly() {
+	return maxInCacheSize;
+    }
+
+    public long getMinBtreeSizeInternalNodesOnly() {
+	return minInBtreeSize;
+    }
+
+    public long getMaxBtreeSizeInternalNodesOnly() {
+	return maxInBtreeSize;
+    }
+
+    public long getMinCacheSizeWithData() {
+	return minInCacheSizeWithData;
+    }
+
+    public long getMaxCacheSizeWithData() {
+	return maxInCacheSizeWithData;
+    }
+
+    public long getMinBtreeSizeWithData() {
+	return minInBtreeSizeWithData;
+    }
+
+    public long getMaxBtreeSizeWithData() {
+	return maxInBtreeSizeWithData;
+    }
+
+    public int getNLevels() {
+	return nLevels;
+    }
 
     public static void main(String[] args) {
 
@@ -196,8 +261,10 @@ public class DbCacheSize {
                 usage("-key not specified");
             }
 
-            printCacheSizes(System.out, records, keySize, dataSize,
-                            nodeMax, density, overhead);
+	    DbCacheSize dbCacheSize = new DbCacheSize
+		(records, keySize, dataSize, nodeMax, density, overhead);
+	    dbCacheSize.caclulateCacheSizes();
+	    dbCacheSize.printCacheSizes(System.out);
 
             if (measureDir != null) {
                 measure(System.out, measureDir, records, keySize, dataSize,
@@ -241,13 +308,39 @@ public class DbCacheSize {
         System.exit(2);
     }
 
-    private static void printCacheSizes(PrintStream out,
-                                        long records,
-                                        int keySize,
-                                        int dataSize,
-                                        int nodeMax,
-                                        int density,
-                                        long overhead) {
+    private void caclulateCacheSizes() {
+        int nodeAvg = (nodeMax * density) / 100;
+        long nBinEntries = (records * nodeMax) / nodeAvg;
+        long nBinNodes = (nBinEntries + nodeMax - 1) / nodeMax;
+
+        long nInNodes = 0;
+	long lnSize = 0;
+
+        for (long n = nBinNodes; n > 0; n /= nodeMax) {
+            nInNodes += n;
+            nLevels += 1;
+        }
+
+        minInBtreeSize = nInNodes *
+	    calcInSize(nodeMax, nodeAvg, keySize, true);
+        maxInBtreeSize = nInNodes *
+	    calcInSize(nodeMax, nodeAvg, keySize, false);
+	minInCacheSize = calculateOverhead(minInBtreeSize, overhead);
+	maxInCacheSize = calculateOverhead(maxInBtreeSize, overhead);
+
+        if (dataSize > 0) {
+            lnSize = records * calcLnSize(dataSize);
+        }
+
+	maxInBtreeSizeWithData = maxInBtreeSize + lnSize;
+	maxInCacheSizeWithData = calculateOverhead(maxInBtreeSizeWithData,
+						    overhead);
+	minInBtreeSizeWithData = minInBtreeSize + lnSize;
+	minInCacheSizeWithData = calculateOverhead(minInBtreeSizeWithData,
+						    overhead);
+    }
+
+    private void printCacheSizes(PrintStream out) {
 	
         out.println("Inputs:" +
                     " records=" + records +
@@ -257,38 +350,18 @@ public class DbCacheSize {
                     " density=" + density + '%' +
                     " overhead=" + ((overhead > 0) ? overhead : 10) + "%");
 
-        int nodeAvg = (nodeMax * density) / 100;
-        long nBinEntries = (records * nodeMax) / nodeAvg;
-        long nBinNodes = (nBinEntries + nodeMax - 1) / nodeMax;
-
-        long nInNodes = 0;
-        int nLevels = 1;
-
-        for (long n = nBinNodes; n > 0; n /= nodeMax) {
-            nInNodes += n;
-            nLevels += 1;
-        }
-
-        long minInSize = nInNodes *
-                         calcInSize(nodeMax, nodeAvg, keySize, true);
-        long maxInSize = nInNodes *
-                         calcInSize(nodeMax, nodeAvg, keySize, false);
-
-        long lnSize = 0;
-        if (dataSize > 0) {
-            lnSize = records * calcLnSize(dataSize);
-        }
-
         out.println();
         out.println(HEADER);
-        out.println(line(minInSize, overhead,
-                    "Minimum, internal nodes only"));
-        out.println(line(maxInSize, overhead,
-                    "Maximum, internal nodes only"));
+        out.println(line(minInBtreeSize, minInCacheSize,
+			 "Minimum, internal nodes only"));
+        out.println(line(maxInBtreeSize, maxInCacheSize,
+			 "Maximum, internal nodes only"));
         if (dataSize > 0) {
-            out.println(line(minInSize + lnSize, overhead,
-                        "Minimum, internal nodes and leaf nodes"));
-            out.println(line(maxInSize + lnSize, overhead,
+            out.println(line(minInBtreeSizeWithData,
+			     minInCacheSizeWithData,
+			     "Minimum, internal nodes and leaf nodes"));
+            out.println(line(maxInBtreeSizeWithData,
+			     maxInCacheSizeWithData,
                         "Maximum, internal nodes and leaf nodes"));
         } else {
             out.println("\nTo get leaf node sizing specify -data");
@@ -297,10 +370,10 @@ public class DbCacheSize {
         out.println("\nBtree levels: " + nLevels);
     }
 
-    private static int calcInSize(int nodeMax,
-                                  int nodeAvg,
-                                  int keySize,
-                                  boolean lsnCompression) {
+    private int calcInSize(int nodeMax,
+			   int nodeAvg,
+			   int keySize,
+			   boolean lsnCompression) {
 
         /* Fixed overhead */
         int size = MemoryBudget.IN_FIXED_OVERHEAD;
@@ -323,20 +396,25 @@ public class DbCacheSize {
         return size;
     }
 
-    private static int calcLnSize(int dataSize) {
+    private int calcLnSize(int dataSize) {
 
         return MemoryBudget.LN_OVERHEAD +
                MemoryBudget.byteArraySize(dataSize);
     }
 
-    private static String line(long btreeSize, long overhead, String comment) {
-
+    private long calculateOverhead(long btreeSize, long overhead) {
         long cacheSize;
         if (overhead == 0) {
             cacheSize = (100 * btreeSize) / 90;
         } else {
             cacheSize = btreeSize + overhead;
         }
+	return cacheSize;
+    }
+
+    private String line(long btreeSize,
+			long cacheSize,
+			String comment) {
 
         StringBuffer buf = new StringBuffer(100);
 
@@ -347,7 +425,7 @@ public class DbCacheSize {
         return buf.toString();
     }
 
-    private static void column(StringBuffer buf, String str) {
+    private void column(StringBuffer buf, String str) {
 
         int start = buf.length();
 

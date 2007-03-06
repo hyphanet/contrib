@@ -1,15 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DbInternal.java,v 1.42 2006/09/12 19:16:42 cwl Exp $
+ * $Id: DbInternal.java,v 1.44 2006/11/06 20:36:55 linda Exp $
  */
 
 package com.sleepycat.je;
 
 import java.io.File;
+import java.util.Properties;
 
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -206,6 +206,13 @@ public class DbInternal {
     public static void disableParameterValidation
 	(EnvironmentMutableConfig config) {
 	config.setValidateParams(false);
+    }
+
+    /**
+     * Proxy to EnvironmentMutableConfig.getProps
+     */
+    public static Properties getProps(EnvironmentMutableConfig config) {
+        return config.getProps();
     }
 
     /**

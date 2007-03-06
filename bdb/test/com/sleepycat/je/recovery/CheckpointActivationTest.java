@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: CheckpointActivationTest.java,v 1.16 2006/09/12 19:17:22 cwl Exp $
+ * $Id: CheckpointActivationTest.java,v 1.18 2006/11/27 23:15:06 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -24,6 +23,7 @@ import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
 
 public class CheckpointActivationTest extends TestCase {
@@ -53,16 +53,16 @@ public class CheckpointActivationTest extends TestCase {
     public void testLogSizeBasedCheckpoints() 
         throws Exception {
 
-        final int BYTE_INTERVAL = 5000;
+        final int CKPT_INTERVAL = 5000;
         final int TRACER_OVERHEAD = 26;
         final int N_TRACES = 100;
-        final int N_EXTRA_TRACES = 0;
         final int N_CHECKPOINTS = 10;
-        final int MIN_CHECKPOINTS_EXPECTED = 8;
+        final int WAIT_FOR_CHECKPOINT_SECS = 10;
+        final int FILE_SIZE = 20000000;
         
-        /* Init trace message with zeros. */
-        assert BYTE_INTERVAL % N_TRACES == 0;
-        int msgBytesPerTrace = (BYTE_INTERVAL / N_TRACES) - TRACER_OVERHEAD;
+        /* Init trace message with hyphens. */
+        assert CKPT_INTERVAL % N_TRACES == 0;
+        int msgBytesPerTrace = (CKPT_INTERVAL / N_TRACES) - TRACER_OVERHEAD;
         StringBuffer traceBuf = new StringBuffer();
         for (int i = 0; i < msgBytesPerTrace; i += 1) {
             traceBuf.append('-');
@@ -75,7 +75,7 @@ public class CheckpointActivationTest extends TestCase {
             envConfig.setAllowCreate(true);
             envConfig.setConfigParam(EnvironmentParams.
                                      CHECKPOINTER_BYTES_INTERVAL.getName(),
-                                     String.valueOf(BYTE_INTERVAL));
+                                     String.valueOf(CKPT_INTERVAL));
 
             /*
              * This test needs to control exactly how much goes into the log,
@@ -101,61 +101,74 @@ public class CheckpointActivationTest extends TestCase {
             stats = env.getStats(statsConfig);  // read again
             assertEquals(0, stats.getNCheckpoints());
             long lastCkptEnd = stats.getLastCheckpointEnd();
-            int actualCheckpoints = 0;
+
+            /* Wait for checkpointer thread to start and go to wait state. */
+            EnvironmentImpl envImpl =
+                DbInternal.envGetEnvironmentImpl(env);
+            Thread ckptThread = envImpl.getCheckpointer().getThread();
+            while (true) {
+                Thread.State state = ckptThread.getState();
+                if (state == Thread.State.WAITING ||
+                    state == Thread.State.TIMED_WAITING) {
+                    break;
+                }
+            }
 
             /* Run several checkpoints to ensure they occur as expected.  */
             for (int i = 0; i < N_CHECKPOINTS; i += 1) {
 
-                /* Write enough to prompt a checkpoint. */
-                EnvironmentImpl envImpl =
-                    DbInternal.envGetEnvironmentImpl(env);
                 /*
-                 * Extra traces are used to account for the fact that the
-                 * CheckpointMonitor only activates the Checkpointer every
-                 * 1/10 of the checkpoint byte interval.
+                 * Write enough to prompt a checkpoint.  20% extra bytes are
+                 * written to be sure that we exceed the chekcpoint interval.
                  */
-                for (int j = 0; j < N_TRACES + N_EXTRA_TRACES; j += 1) {
-
-                    /* Write to log to wakeup checkpointer. */
+                long lastLsn = envImpl.getFileManager().getNextLsn();
+                while (DbLsn.getNoCleaningDistance
+                        (lastLsn, envImpl.getFileManager().getNextLsn(),
+                         FILE_SIZE) < CKPT_INTERVAL + CKPT_INTERVAL/5) {
                     Tracer.trace(Level.SEVERE, envImpl, traceMsg);
+                }
 
-                    /*
-                     * Check to see if a checkpoint has started.  We take
-                     * advantage of the fact that the NCheckpoints stat is
-                     * set at the start of a checkpoint.
-                     */
+                /*
+                 * Wait for a checkpoint to start (if the test succeeds it will
+                 * start right away).  We take advantage of the fact that the
+                 * NCheckpoints stat is set at the start of a checkpoint.
+                 */
+                 long startTime = System.currentTimeMillis();
+                 boolean started = false;
+                 while (!started &&
+                        (System.currentTimeMillis() - startTime <
+                         WAIT_FOR_CHECKPOINT_SECS * 1000)) {
+                    Thread.yield();
+                    Thread.sleep(1);
                     stats = env.getStats(statsConfig);
                     if (stats.getNCheckpoints() > 0) {
-                        assertEquals(1, stats.getNCheckpoints());
-                        actualCheckpoints += 1;
+                        started = true;
+                    }
+                }
+                assertTrue("Checkpoint " + i + " did not start after " +
+                           WAIT_FOR_CHECKPOINT_SECS + " seconds",
+                           started);
 
-                        /*
-                         * Wait for the checkpointer daemon to do its work.
-                         * We do not want to continue writing until the
-                         * checkpoint is complete, because the amount of data
-                         * we write is calculated to be the correct amount
-                         * in between checkpoints.  We know the checkpoint is
-                         * finished when the LastCheckpointEnd LSN changes.
-                         */
-                        while (true) {
-                            Thread.yield();
-                            Thread.sleep(1);
-                            stats = env.getStats(statsConfig);
-                            assertEquals(0, stats.getNCheckpoints());
-                            if (lastCkptEnd != stats.getLastCheckpointEnd()) {
-                                lastCkptEnd = stats.getLastCheckpointEnd();
-                                break;
-                            }
-                        }
+                /*
+                 * Wait for the checkpointer daemon to do its work.  We do not
+                 * want to continue writing until the checkpoint is complete,
+                 * because the amount of data we write is calculated to be the
+                 * correct amount in between checkpoints.  We know the
+                 * checkpoint is finished when the LastCheckpointEnd LSN
+                 * changes.
+                 */
+                while (true) {
+                    Thread.yield();
+                    Thread.sleep(1);
+                    stats = env.getStats(statsConfig);
+                    if (lastCkptEnd != stats.getLastCheckpointEnd()) {
+                        lastCkptEnd = stats.getLastCheckpointEnd();
+                        break;
                     }
                 }
             }
-
-            //System.out.println("actual=" + actualCheckpoints);
-            assertTrue("min expected=" + MIN_CHECKPOINTS_EXPECTED +
-                       " actual=" + actualCheckpoints,
-                       actualCheckpoints >= MIN_CHECKPOINTS_EXPECTED);
         } catch (Exception e) {
+
             /* 
              * print stack trace now, else it gets subsumed in exceptions
              * caused by difficulty in removing log files.

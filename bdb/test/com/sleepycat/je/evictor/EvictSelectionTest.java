@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EvictSelectionTest.java,v 1.12 2006/09/12 19:17:16 cwl Exp $
+ * $Id: EvictSelectionTest.java,v 1.14 2006/10/30 21:14:43 bostic Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -94,7 +93,7 @@ public class EvictSelectionTest extends TestCase {
                 int expectedNScanned = getExpectedCandidates
                     (envImpl, evictor, expectedCandidates);
 
-                evictor.evictBatch("test", 1);
+                evictor.evictBatch("test", false, 1);
 
                 evictor.loadStats(statsConfig, stats);
                 assertEquals(1, stats.getNEvictPasses());

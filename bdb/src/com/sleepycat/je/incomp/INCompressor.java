@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: INCompressor.java,v 1.122 2006/09/12 19:16:47 cwl Exp $
+ * $Id: INCompressor.java,v 1.125 2006/10/30 21:14:17 bostic Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -649,7 +648,7 @@ public class INCompressor extends DaemonThread {
         IN in = tree.search
             (mainKey, SearchType.NORMAL, -1, null, false /*updateGeneration*/);
 
-        /* Couldn't find a bin, return null */
+        /* Couldn't find a BIN, return null */
         if (in == null) {
             return null;
         }
@@ -800,7 +799,7 @@ public class INCompressor extends DaemonThread {
         }
 
         /* Perform eviction before each operation. */
-        env.getEvictor().doCriticalEviction();
+        env.getEvictor().doCriticalEviction(true); // backgroundIO
 
         /* Find the BIN. */
         binSearch.bin = searchForBIN(binSearch.db, binRef);

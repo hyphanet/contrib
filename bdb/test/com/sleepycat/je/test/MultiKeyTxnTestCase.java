@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: MultiKeyTxnTestCase.java,v 1.3 2006/09/12 19:17:24 cwl Exp $
+ * $Id: MultiKeyTxnTestCase.java,v 1.4 2006/10/30 21:14:50 bostic Exp $
  */
 
 package com.sleepycat.je.test;

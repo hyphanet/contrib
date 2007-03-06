@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FileSummaryLN.java,v 1.20 2006/09/12 19:16:56 cwl Exp $
+ * $Id: FileSummaryLN.java,v 1.21 2006/10/30 21:14:26 bostic Exp $
  */
 
 package com.sleepycat.je.tree;

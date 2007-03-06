@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: TruncateAndRemoveTest.java,v 1.14 2006/09/12 19:17:14 cwl Exp $
+ * $Id: TruncateAndRemoveTest.java,v 1.17 2006/11/17 23:47:28 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -62,6 +61,7 @@ public class TruncateAndRemoveTest extends TestCase {
     private Environment env;
     private Database db;
     private JUnitThread junitThread;
+    private boolean fetchObsoleteSize;
 
     public TruncateAndRemoveTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
@@ -94,8 +94,10 @@ public class TruncateAndRemoveTest extends TestCase {
         }
                 
         try {
+            //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
             TestUtils.removeFiles("tearDown", envHome, FileManager.DEL_SUFFIX);
+            //*/
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
@@ -134,6 +136,13 @@ public class TruncateAndRemoveTest extends TestCase {
         config.setConfigParam("je.cleaner.minUtilization", "90");
         DbInternal.disableParameterValidation(config);
         config.setConfigParam("je.log.fileMax", "4000");
+        
+        /* Obsolete LN size counting is optional per test. */
+        if (fetchObsoleteSize) {
+            config.setConfigParam
+                (EnvironmentParams.CLEANER_FETCH_OBSOLETE_SIZE.getName(),
+                 "true");
+        }
 
         env = new Environment(envHome, config);
     }
@@ -186,8 +195,9 @@ public class TruncateAndRemoveTest extends TestCase {
         txn.commit();
 
         verifyUtilization(beforeCommit, 
-                          RECORD_COUNT + 2, // LNs, + MapLN + previous NameLN
-                          15);              // 1 root, 2 INs, 12 BINs
+                          RECORD_COUNT + // LNs
+                          3,   // prev MapLN + deleted MapLN + prev NameLN
+                          15); // 1 root, 2 INs, 12 BINs
 
         closeEnv();
         batchCleanAndVerify(saveId);
@@ -369,6 +379,17 @@ public class TruncateAndRemoveTest extends TestCase {
     }
 
     /**
+     * The same as testRemoveNotResident but forces fetching of obsolets LNs
+     * in order to count their sizes accurately.
+     */
+    public void testRemoveNotResidentFetchObsoleteSize()
+        throws Exception {
+
+        fetchObsoleteSize = true;
+        testRemoveNotResident();
+    }
+
+    /**
      * Test that we can properly account for a non-resident database.
      */
     public void testRemoveNotResident()
@@ -399,7 +420,8 @@ public class TruncateAndRemoveTest extends TestCase {
                           RECORD_COUNT + 3,
                           /* 15 IN for data tree, 
                              2 for re-logged INs */
-                          15 + 2);
+                          15 + 2,
+                          true);
 
         /* check record count. */
         openDb(null, DB_NAME1);
@@ -407,6 +429,17 @@ public class TruncateAndRemoveTest extends TestCase {
 
         closeEnv();
         batchCleanAndVerify(saveId);
+    }
+
+    /**
+     * The same as testRemovePartialResident but forces fetching of obsolets
+     * LNs in order to count their sizes accurately.
+     */
+    public void testRemovePartialResidentFetchObsoleteSize()
+        throws Exception {
+
+        fetchObsoleteSize = true;
+        testRemovePartialResident();
     }
 
     /**
@@ -447,7 +480,8 @@ public class TruncateAndRemoveTest extends TestCase {
                           /* LNs + old NameLN, old MapLN, delete MapLN */
                           RECORD_COUNT + 3,
                           /* 15 IN for data tree, 2 for file summary db */
-                          15 + 2);
+                          15 + 2,
+                          true);
 
         /* check record count. */
         openDb(null, DB_NAME1);
@@ -721,36 +755,66 @@ public class TruncateAndRemoveTest extends TestCase {
                       .values().toArray(new FileSummary[0]);
         int lnCount = 0;
         int inCount = 0;
+        int lnSize = 0;
+        int lnSizeCounted = 0;
         for (int i = 0; i < files.length; i += 1) {
             lnCount += files[i].obsoleteLNCount;
             inCount += files[i].obsoleteINCount;
+            lnSize += files[i].obsoleteLNSize;
+            lnSizeCounted += files[i].obsoleteLNSizeCounted;
         }
 
-        return new ObsoleteCounts(lnCount, inCount);
+        return new ObsoleteCounts(lnCount, inCount, lnSize, lnSizeCounted);
     }
 
     private class ObsoleteCounts {
         int obsoleteLNs;
         int obsoleteINs;
+        int obsoleteLNSize;
+        int obsoleteLNSizeCounted;
 
-        ObsoleteCounts(int obsoleteLNs, int obsoleteINs) {
+        ObsoleteCounts(int obsoleteLNs,
+                       int obsoleteINs,
+                       int obsoleteLNSize,
+                       int obsoleteLNSizeCounted) {
             this.obsoleteLNs = obsoleteLNs;
             this.obsoleteINs = obsoleteINs;
+            this.obsoleteLNSize = obsoleteLNSize;
+            this.obsoleteLNSizeCounted = obsoleteLNSizeCounted;
         }
 
         public String toString() {
-            return "lns=" + obsoleteLNs + " ins=" + obsoleteINs;
+            return "lns=" + obsoleteLNs + " ins=" + obsoleteINs +
+                   " lnSize=" + obsoleteLNSize +
+                   " lnSizeCounted=" + obsoleteLNSizeCounted;
         }
     }
 
-    /* 
-     * Check obsolete counts. If the expected IN count is negative, don't
-     * check.
-     */
     private ObsoleteCounts verifyUtilization(ObsoleteCounts prev,
                                              long expectedLNs,
                                              int expectedINs) 
         throws DatabaseException {
+        
+        return verifyUtilization(prev, expectedLNs, expectedINs, false);
+    }
+
+    /* 
+     * Check obsolete counts. If the expected IN count is zero, don't
+     * check the obsolete IN count.  Always check the obsolete LN count.
+     */
+    private ObsoleteCounts verifyUtilization(ObsoleteCounts prev,
+                                             long expectedLNs,
+                                             int expectedINs,
+                                             boolean expectNonResident) 
+        throws DatabaseException {
+
+        /*
+         * If all nodes are resident OR we have explicitly configured
+         * fetchObsoleteSize, then the size of every LN should have been
+         * counted.
+         */
+        boolean expectAccurateObsoleteLNSize =
+            !expectNonResident || fetchObsoleteSize;
 	
         ObsoleteCounts now = getObsoleteCounts();
         String beforeAndAfter = "before: " + prev + " now: " + now;
@@ -760,10 +824,27 @@ public class TruncateAndRemoveTest extends TestCase {
 
         assertEquals(beforeAndAfter, expectedLNs,
                      now.obsoleteLNs - prev.obsoleteLNs);
+        if (expectedLNs > 0) {
+            int size = now.obsoleteLNSize - prev.obsoleteLNSize;
+            int counted = now.obsoleteLNSizeCounted -
+                          prev.obsoleteLNSizeCounted;
+            assertTrue(String.valueOf(size), size > 0);
+
+            if (expectAccurateObsoleteLNSize) {
+                assertEquals(beforeAndAfter, counted, 
+                             now.obsoleteLNs - prev.obsoleteLNs);
+            }
+        }
         if (expectedINs > 0) {
             assertEquals(beforeAndAfter, expectedINs,
                          now.obsoleteINs - prev.obsoleteINs);
         }
+
+        /* Verify utilization using UtilizationFileReader. */
+        CleanerTestUtils.verifyUtilization
+            (DbInternal.envGetEnvironmentImpl(env),
+             true, // expectAccurateObsoleteLNCount
+             expectAccurateObsoleteLNSize);
 
         return now;
     }

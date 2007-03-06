@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Checkpointer.java,v 1.134 2006/09/27 12:17:37 cwl Exp $
+ * $Id: Checkpointer.java,v 1.139 2006/11/27 23:15:04 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -88,6 +87,16 @@ public class Checkpointer extends DaemonThread {
         flushStats = new FlushStats();
 
 	highestFlushLevel = IN.MIN_LEVEL;
+    }
+
+    /**
+     * Initializes the checkpoint intervals when no checkpoint is performed
+     * while opening the environment.
+     */
+    public void initIntervals(long lastCheckpointEnd,
+                              long lastCheckpointMillis) {
+        this.lastCheckpointEnd = lastCheckpointEnd;
+        this.lastCheckpointMillis = lastCheckpointMillis;
     }
 
     public int getHighestFlushLevel() {
@@ -207,6 +216,22 @@ public class Checkpointer extends DaemonThread {
     }
 
     /**
+     * Wakes up the checkpointer if a checkpoint log interval is configured and 
+     * the number of bytes written since the last checkpoint exeeds the size
+     * of the interval.
+     */
+    public void wakeupAfterWrite() {
+        if (logSizeBytesInterval != 0) {
+            long nextLsn = envImpl.getFileManager().getNextLsn();
+            if (DbLsn.getNoCleaningDistance
+                    (nextLsn, lastCheckpointEnd, logFileMax) >=
+                    logSizeBytesInterval) {
+                wakeup();
+            }
+        }
+    }
+
+    /**
      * Determine whether a checkpoint should be run.
      *
      * 1. If the force parameter is specified, always checkpoint. 
@@ -225,9 +250,11 @@ public class Checkpointer extends DaemonThread {
         long useBytesInterval = 0;
         long useTimeInterval = 0;
         long nextLsn = DbLsn.NULL_LSN;
+        boolean runnable = false;
         try {
             if (config.getForce()) {
-                return true;
+                runnable = true;
+                return runnable;
             } else if (config.getKBytes() != 0) {
                 useBytesInterval = config.getKBytes() << 10;
             } else if (config.getMinutes() != 0) {
@@ -248,9 +275,9 @@ public class Checkpointer extends DaemonThread {
                 if (DbLsn.getNoCleaningDistance(nextLsn, lastCheckpointEnd,
 						logFileMax) >=
                     useBytesInterval) {
-                    return true;
+                    runnable = true;
                 } else {
-                    return false;
+                    runnable = false;
                 }
             } else if (useTimeInterval != 0) {
 
@@ -262,13 +289,14 @@ public class Checkpointer extends DaemonThread {
                 if (((System.currentTimeMillis() - lastCheckpointMillis) >=
                      useTimeInterval) &&
                     (DbLsn.compareTo(lastUsedLsn, lastCheckpointEnd) != 0)) {
-                    return true;
+                    runnable = true;
                 } else {
-                    return false;
+                    runnable = false;
                 }
             } else {
-                return false;
+                runnable = false;
             }
+            return runnable;
         } finally {
             StringBuffer sb = new StringBuffer();
             sb.append("size interval=").append(useBytesInterval);
@@ -282,6 +310,7 @@ public class Checkpointer extends DaemonThread {
             }
             sb.append(" time interval=").append(useTimeInterval);
             sb.append(" force=").append(config.getForce());
+            sb.append(" runnable=").append(runnable);
             
             Tracer.trace(Level.FINEST,
                          envImpl, 
@@ -515,7 +544,8 @@ public class Checkpointer extends DaemonThread {
      * up so that parents properly represent their children.
      */ 
     public static void syncDatabase(EnvironmentImpl envImpl,
-                                    DatabaseImpl dbImpl) 
+                                    DatabaseImpl dbImpl,
+                                    boolean flushLog) 
         throws DatabaseException {
 
         if (envImpl.isReadOnly()) {
@@ -545,6 +575,10 @@ public class Checkpointer extends DaemonThread {
                             fstats,
                             false); /* cleaning deferred write dbs */
 
+            /* Make changes durable. [#15254] */
+            if (flushLog) {
+                envImpl.getLogManager().flush();
+            }
         } catch (DatabaseException e) {
             Tracer.trace(envImpl, "Checkpointer", "syncDatabase",
                          "of " + dbImpl.getDebugName(), e);
@@ -607,7 +641,8 @@ public class Checkpointer extends DaemonThread {
                      targetRef.db.isDeferredWrite())) {
 
                     /* Evict before each operation. */
-                    envImpl.getEvictor().doCriticalEviction();
+                    envImpl.getEvictor().doCriticalEviction
+                        (true); // backgroundIO
 
                     /* 
                      * Check if the db is still valid since INs of deleted
@@ -620,6 +655,9 @@ public class Checkpointer extends DaemonThread {
                                 logProvisionally, allowDeltas, checkpointStart,
                                 fstats);
                     }
+
+                    /* Sleep if background read/write limit was exceeded. */
+                    envImpl.sleepAfterBackgroundIO();
                 }
                 
                 iter.remove();
@@ -905,6 +943,7 @@ public class Checkpointer extends DaemonThread {
                                     allowDeltas,
                                     logProvisionally,
                                     true,  // proactiveMigration
+                                    true,  // backgroundIO
                                     parent);
 
                 if (allowDeltas && (newLsn == DbLsn.NULL_LSN)) {

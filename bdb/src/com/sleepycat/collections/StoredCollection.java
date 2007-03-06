@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: StoredCollection.java,v 1.37 2006/09/21 15:34:31 mark Exp $
+ * $Id: StoredCollection.java,v 1.38 2006/10/30 21:14:10 bostic Exp $
  */
 
 package com.sleepycat.collections;

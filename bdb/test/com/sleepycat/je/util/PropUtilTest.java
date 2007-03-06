@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: PropUtilTest.java,v 1.16 2006/09/12 19:17:27 cwl Exp $
+ * $Id: PropUtilTest.java,v 1.18 2006/11/28 18:16:33 mark Exp $
  */
 
 package com.sleepycat.je.util;
@@ -54,7 +53,7 @@ public class PropUtilTest extends TestCase {
             PropUtil.validateProps(props, allowedSet, "test");
             fail();
         } catch (DatabaseException e) {
-            System.out.println(e);
+            //System.out.println(e);
             assertEquals(DatabaseException.getVersionHeader() + 
                          "foo is not a valid property for test",
                          e.getMessage());

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ExceptionListenerTest.java,v 1.3 2006/09/12 19:17:28 cwl Exp $
+ * $Id: ExceptionListenerTest.java,v 1.5 2006/12/04 19:23:29 mark Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -27,7 +26,7 @@ public class ExceptionListenerTest extends TestCase {
 
     private File envHome;
 
-    private boolean exceptionSeenCalled = false;
+    private volatile boolean exceptionSeenCalled = false;
 
     private DaemonThread dt = null;
 

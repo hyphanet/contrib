@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LNLogEntry.java,v 1.35 2006/09/12 19:16:52 cwl Exp $
+ * $Id: LNLogEntry.java,v 1.38 2006/11/17 23:47:24 mark Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -125,6 +124,10 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
                     /* Locker */
                     txn = new Txn();
                     txn.readFromLog(entryBuffer, entryTypeVersion);
+
+                    ln.setLastLoggedTransactionally();
+                } else {
+                    ln.clearLastLoggedTransactionally();
                 }
             } else {
 
@@ -247,18 +250,30 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
     }
 
     /**
+     * Returns the given LN log size plus the size of the given key for the
+     * given transactional mode.  Used by LN.delete and LN.modify to calculate
+     * the total obsolete log size of the previous version of the LNLogEntry
+     * without having the LNLogEntry instance in hand.
+     */
+    public static int getStaticLogSize(int lnLogSize,
+                                       byte[] key,
+                                       boolean transactional) {
+        int size = lnLogSize +
+            DatabaseId.LOG_SIZE +
+            LogUtils.getByteArrayLogSize(key);
+        if (transactional) {
+	    size += LogUtils.getLongLogSize();
+	    size++;   // abortKnownDeleted
+            size += Txn.LOG_SIZE;
+        }
+        return size;
+    }
+
+    /**
      * @see LoggableObject#getLogSize
      */
     public int getLogSize() {
-        int size = ln.getLogSize() +
-            dbId.getLogSize() +
-            LogUtils.getByteArrayLogSize(key);
-        if (isTransactional) {
-	    size += LogUtils.getLongLogSize();
-	    size++;   // abortKnownDeleted
-            size += txn.getLogSize();
-        }
-        return size;
+        return getStaticLogSize(ln.getLogSize(), key, isTransactional);
     }
 
     /**
@@ -277,6 +292,9 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
 	    }
 	    destBuffer.put(aKD);
             txn.writeToLog(destBuffer);
+            ln.setLastLoggedTransactionally();
+        } else {
+            ln.clearLastLoggedTransactionally();
         }
     }
 

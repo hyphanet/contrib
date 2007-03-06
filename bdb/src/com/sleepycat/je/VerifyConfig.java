@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: VerifyConfig.java,v 1.9 2006/09/12 19:16:43 cwl Exp $
+ * $Id: VerifyConfig.java,v 1.11 2006/11/20 15:46:58 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -20,7 +19,7 @@ public class VerifyConfig {
      * For internal use, to allow null as a valid value for
      * the config parameter.
      */
-    static VerifyConfig DEFAULT = new VerifyConfig();
+    public static final VerifyConfig DEFAULT = new VerifyConfig();
 
     private boolean propagateExceptions = false;
     private boolean aggressive = false;

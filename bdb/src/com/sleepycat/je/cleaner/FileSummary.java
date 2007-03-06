@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FileSummary.java,v 1.15 2006/09/12 19:16:43 cwl Exp $
+ * $Id: FileSummary.java,v 1.17 2006/11/03 03:07:48 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -27,6 +26,8 @@ public class FileSummary implements LogWritable, LogReadable {
     public int totalLNSize;     // Byte size of LN log entries
     public int obsoleteINCount; // Number of obsolete IN log entries
     public int obsoleteLNCount; // Number of obsolete LN log entries
+    public int obsoleteLNSize;  // Byte size of obsolete LN log entries
+    public int obsoleteLNSizeCounted;  // Number obsolete LNs with size counted
 
     /**
      * Creates an empty summary.
@@ -46,19 +47,31 @@ public class FileSummary implements LogWritable, LogReadable {
     }
 
     /**
-     * Returns the approximate byte size of all obsolete LN entries.
+     * Returns the approximate byte size of all obsolete LN entries.  In
+     * FileSummaryLN version 3 and greater the exact tracked size is used.
      */
     public int getObsoleteLNSize() {
 
         if (totalLNCount == 0) {
             return 0;
         }
-        /* Use long arithmetic. */
-        long totalSize = totalLNSize;
-        /* Scale by 255 to reduce integer truncation error. */
-        totalSize <<= 8;
-        long avgSizePerLN = totalSize / totalLNCount;
-        return (int) ((obsoleteLNCount * avgSizePerLN) >> 8);
+
+        /*
+         * Use the tracked obsolete size for all entries for which the size was
+         * counted, plus the average size for all obsolete entries whose size
+         * was not counted.
+         */
+        int obsolete = obsoleteLNSize;
+        int notCounted = obsoleteLNCount - obsoleteLNSizeCounted;
+        if (notCounted > 0) {
+            /* Use long arithmetic. */
+            long total = totalLNSize;
+            /* Scale by 255 to reduce integer truncation error. */
+            total <<= 8;
+            long avgSizePerLN = total / totalLNCount;
+            obsolete += (int) ((notCounted * avgSizePerLN) >> 8);
+        }
+        return obsolete;
     }
 
     /**
@@ -70,10 +83,10 @@ public class FileSummary implements LogWritable, LogReadable {
             return 0;
         }
         /* Use long arithmetic. */
-        long totalSize = totalINSize;
+        long size = totalINSize;
         /* Scale by 255 to reduce integer truncation error. */
-        totalSize <<= 8;
-        long avgSizePerIN = totalSize / totalINCount;
+        size <<= 8;
+        long avgSizePerIN = size / totalINCount;
         return (int) ((obsoleteINCount * avgSizePerIN) >> 8);
     }
 
@@ -136,6 +149,8 @@ public class FileSummary implements LogWritable, LogReadable {
         totalLNSize = 0;
         obsoleteINCount = 0;
         obsoleteLNCount = 0;
+        obsoleteLNSize = 0;
+        obsoleteLNSizeCounted = 0;
     }
 
     /**
@@ -151,6 +166,8 @@ public class FileSummary implements LogWritable, LogReadable {
         totalLNSize += o.totalLNSize;
         obsoleteINCount += o.obsoleteINCount;
         obsoleteLNCount += o.obsoleteLNCount;
+        obsoleteLNSize += o.obsoleteLNSize;
+        obsoleteLNSizeCounted += o.obsoleteLNSizeCounted;
     }
 
     /**
@@ -158,7 +175,7 @@ public class FileSummary implements LogWritable, LogReadable {
      */
     public int getLogSize() {
 
-        return 8 * LogUtils.getIntLogSize();
+        return 10 * LogUtils.getIntLogSize();
     }
 
     /**
@@ -174,6 +191,8 @@ public class FileSummary implements LogWritable, LogReadable {
         LogUtils.writeInt(buf, totalLNSize);
         LogUtils.writeInt(buf, obsoleteINCount);
         LogUtils.writeInt(buf, obsoleteLNCount);
+        LogUtils.writeInt(buf, obsoleteLNSize);
+        LogUtils.writeInt(buf, obsoleteLNSizeCounted);
     }
 
     /**
@@ -198,6 +217,18 @@ public class FileSummary implements LogWritable, LogReadable {
             obsoleteINCount = totalINCount;
         }
         obsoleteLNCount = LogUtils.readInt(buf);
+
+        /*
+         * obsoleteLNSize and obsoleteLNSizeCounted were added in FileSummaryLN
+         * version 3.
+         */
+        if (entryTypeVersion >= 3) {
+            obsoleteLNSize = LogUtils.readInt(buf);
+            obsoleteLNSizeCounted = LogUtils.readInt(buf);
+        } else {
+            obsoleteLNSize = 0;
+            obsoleteLNSizeCounted = 0;
+        }
     }
 
     /**
@@ -221,6 +252,10 @@ public class FileSummary implements LogWritable, LogReadable {
         buf.append(obsoleteINCount);
         buf.append("\" obsoleteLNCount=\"");
         buf.append(obsoleteLNCount);
+        buf.append("\" obsoleteLNSize=\"");
+        buf.append(obsoleteLNSize);
+        buf.append("\" obsoleteLNSizeCounted=\"");
+        buf.append(obsoleteLNSizeCounted);
         buf.append("\"/>");
     }
 

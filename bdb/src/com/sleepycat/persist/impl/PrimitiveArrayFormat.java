@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: PrimitiveArrayFormat.java,v 1.19 2006/09/19 06:22:58 mark Exp $
+ * $Id: PrimitiveArrayFormat.java,v 1.20 2006/10/30 21:14:32 bostic Exp $
  */
 
 package com.sleepycat.persist.impl;

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: DbEnvPool.java,v 1.37 2006/09/12 19:16:45 cwl Exp $
+ * $Id: DbEnvPool.java,v 1.38 2006/10/30 21:14:15 bostic Exp $
  */
 
 package com.sleepycat.je.dbi;

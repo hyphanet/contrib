@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentImpl.java,v 1.246 2006/09/12 19:16:46 cwl Exp $
+ * $Id: EnvironmentImpl.java,v 1.255 2006/12/04 18:47:41 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -64,7 +63,10 @@ import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.txn.TxnManager;
 import com.sleepycat.je.utilint.DbLsn;
+import com.sleepycat.je.utilint.NotImplementedYetException;
 import com.sleepycat.je.utilint.PropUtil;
+import com.sleepycat.je.utilint.TestHook;
+import com.sleepycat.je.utilint.TestHookExecute;
 import com.sleepycat.je.utilint.Tracer;
 
 /**
@@ -87,6 +89,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     private boolean isTransactional; // true if env opened with DB_INIT_TRANS
     private boolean isNoLocking;   // true if env has no locking
     private boolean isReadOnly; // true if env opened with the read only flag.
+    private boolean isMemOnly;  // true if je.log.memOnly=true
     private boolean directNIO;  // true to use direct NIO buffers
     private static boolean fairLatches;// true if user wants fair latches
     private static boolean useSharedLatchesForINs;
@@ -120,6 +123,10 @@ public class EnvironmentImpl implements EnvConfigObserver {
     private Checkpointer checkpointer;
     private Cleaner cleaner;
 
+    /* Replication */
+    private boolean isReplicated;
+    private ReplicatorInstance repInstance;
+
     /* Stats, debug information */
     private RecoveryInfo lastRecoveryInfo; 
     private RunRecoveryException savedInvalidatingException;
@@ -137,6 +144,24 @@ public class EnvironmentImpl implements EnvConfigObserver {
      * The exception listener for this envimpl, if any has been specified.
      */
     private ExceptionListener exceptionListener = null;
+
+    /*
+     * Configuration and tracking of background IO limits.  Managed by the
+     * updateBackgroundReads, updateBackgroundWrites and sleepAfterBackgroundIO
+     * methods.  The limits and the backlog are volatile because we check them
+     * outside the synchronized block.  Other fields are updated and checked
+     * while synchronized on the tracking mutex object.  The sleep mutex is
+     * used to block multiple background threads while sleeping.
+     */
+    private volatile int backgroundSleepBacklog;
+    private volatile int backgroundReadLimit;
+    private volatile int backgroundWriteLimit;
+    private long backgroundSleepInterval;
+    private int backgroundReadCount;
+    private long backgroundWriteBytes;
+    private TestHook backgroundSleepHook;
+    private Object backgroundTrackingMutex = new Object();
+    private Object backgroundSleepMutex = new Object();
 
     /*
      * ThreadLocal.get() is not cheap so we want to minimize calls to it.  We
@@ -246,6 +271,8 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		configManager.getBoolean(EnvironmentParams.ENV_FAIR_LATCHES);
             isReadOnly =
 		configManager.getBoolean(EnvironmentParams.ENV_RDONLY);
+            isMemOnly =
+                configManager.getBoolean(EnvironmentParams.LOG_MEMORY_ONLY);
 	    useSharedLatchesForINs =
 		configManager.getBoolean(EnvironmentParams.ENV_SHARED_LATCHES);
 	    adler32ChunkSize = 
@@ -323,8 +350,8 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		noComparators = true;
             }
 
-            /* Start daemons after recovery. */
-            runOrPauseDaemons(configManager);
+            /* Initialize mutable properties and start daemons. */
+            envConfigUpdate(configManager);
 
             /*
              * Cache a few critical values. We keep our timeout in millis
@@ -347,6 +374,11 @@ public class EnvironmentImpl implements EnvConfigObserver {
             /* Release any environment locks if there was a problem. */
             if (fileManager != null) {
                 try {
+                    /* 
+                     * Clear again, in case an exception in logManager.flush()
+                     * caused us to skip the earlier call to clear().
+                     */
+                    fileManager.clear();
                     fileManager.close();
                 } catch (IOException IOE) {
 
@@ -366,8 +398,14 @@ public class EnvironmentImpl implements EnvConfigObserver {
     public void envConfigUpdate(DbConfigManager mgr) 
         throws DatabaseException {
 
-        /* For now only daemon run properties are mutable. */
         runOrPauseDaemons(mgr);
+        
+        backgroundReadLimit = mgr.getInt
+            (EnvironmentParams.ENV_BACKGROUND_READ_LIMIT);
+        backgroundWriteLimit = mgr.getInt
+            (EnvironmentParams.ENV_BACKGROUND_WRITE_LIMIT);
+        backgroundSleepInterval = PropUtil.microsToMillis(mgr.getLong
+            (EnvironmentParams.ENV_BACKGROUND_SLEEP_INTERVAL));
     }
     
     /**
@@ -417,7 +455,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
             /* Cleaner. Do not start it if running in-memory  */
             cleaner.runOrPause
                 (mgr.getBoolean(EnvironmentParams.ENV_RUN_CLEANER) &&
-                 !mgr.getBoolean(EnvironmentParams.LOG_MEMORY_ONLY));
+                 !isMemOnly);
 
             /* 
              * Checkpointer. Run in both transactional and non-transactional
@@ -454,6 +492,109 @@ public class EnvironmentImpl implements EnvConfigObserver {
      */
     public UtilizationProfile getUtilizationProfile() {
         return cleaner.getUtilizationProfile();
+    }
+
+    /**
+     * If a background read limit has been configured and that limit is
+     * exceeded when the cumulative total is incremented by the given number of
+     * reads, increment the sleep backlog to cause a sleep to occur.  Called by
+     * background activities such as the cleaner after performing a file read
+     * operation.
+     *
+     * @see #sleepAfterBackgroundIO
+     */
+    public void updateBackgroundReads(int nReads) {
+
+        /*
+         * Make a copy of the volatile limit field since it could change
+         * between the time we check it and the time we use it below.
+         */
+        int limit = backgroundReadLimit;
+        if (limit > 0) {
+            synchronized (backgroundTrackingMutex) {
+                backgroundReadCount += nReads;
+                if (backgroundReadCount >= limit) {
+                    backgroundSleepBacklog += 1;
+                    /* Remainder is rolled forward. */
+                    backgroundReadCount -= limit;
+                    assert backgroundReadCount >= 0;
+                }
+            }
+        }
+    }
+
+    /**
+     * If a background write limit has been configured and that limit is
+     * exceeded when the given amount written is added to the cumulative total,
+     * increment the sleep backlog to cause a sleep to occur.  Called by
+     * background activities such as the checkpointer and evictor after
+     * performing a file write operation.
+     *
+     * <p>The number of writes is estimated by dividing the bytes written by
+     * the log buffer size.  Since the log write buffer is shared by all
+     * writers, this is the best approximation possible.</p>
+     *
+     * @see #sleepAfterBackgroundIO
+     */
+    public void updateBackgroundWrites(int writeSize, int logBufferSize) {
+
+        /*
+         * Make a copy of the volatile limit field since it could change
+         * between the time we check it and the time we use it below.
+         */
+        int limit = backgroundWriteLimit;
+        if (limit > 0) {
+            synchronized (backgroundTrackingMutex) {
+                backgroundWriteBytes += writeSize;
+                int writeCount = (int) (backgroundWriteBytes / logBufferSize);
+                if (writeCount >= limit) {
+                    backgroundSleepBacklog += 1;
+                    /* Remainder is rolled forward. */
+                    backgroundWriteBytes -= (limit * logBufferSize);
+                    assert backgroundWriteBytes >= 0;
+                }
+            }
+        }
+    }
+
+    /**
+     * If the sleep backlog is non-zero (set by updateBackgroundReads or
+     * updateBackgroundWrites), sleep for the configured interval and decrement
+     * the backlog.
+     *
+     * <p>If two threads call this method and the first call causes a sleep,
+     * the call by the second thread will block until the first thread's sleep
+     * interval is over.  When the call by the second thread is unblocked, if
+     * another sleep is needed then the second thread will sleep again.  In
+     * other words, when lots of sleeps are needed, background threads may
+     * backup.  This is intended to give foreground threads a chance to "catch
+     * up" when background threads are doing a lot of IO.</p>
+     */
+    public void sleepAfterBackgroundIO() {
+        if (backgroundSleepBacklog > 0) {
+            synchronized (backgroundSleepMutex) {
+                /* Sleep. Rethrow interrupts if they occur. */
+                try {
+		    /* FindBugs: OK that we're sleeping with a mutex held. */
+                    Thread.sleep(backgroundSleepInterval);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                /* Assert has intentional side effect for unit testing. */
+                assert TestHookExecute.doHookIfSet(backgroundSleepHook);
+            }
+            synchronized (backgroundTrackingMutex) {
+                /* Decrement backlog last to make other threads wait. */
+                if (backgroundSleepBacklog > 0) {
+                    backgroundSleepBacklog -= 1;
+                }
+            }
+        }
+    }
+
+    /* For unit testing only. */
+    public void setBackgroundSleepHook(TestHook hook) {
+        backgroundSleepHook = hook;
     }
 
     /**
@@ -1173,6 +1314,10 @@ public class EnvironmentImpl implements EnvConfigObserver {
         return isReadOnly;
     }
 
+    public boolean isMemOnly() {
+        return isMemOnly;
+    }
+
     public static boolean getFairLatches() {
 	return fairLatches;
     }
@@ -1521,6 +1666,21 @@ public class EnvironmentImpl implements EnvConfigObserver {
         if (evictor != null) {
             evictor.alert();
         }
+    }
+
+    /**
+     * Return true if this environment is part of a replication group.
+     */
+    public boolean isReplicated() {
+        return isReplicated;
+    }
+
+    public ReplicatorInstance getReplicator() {
+        throw new NotImplementedYetException();
+    }
+
+    public void setReplicator(ReplicatorInstance repInstance) {
+        this.repInstance = repInstance;
     }
 
     /**

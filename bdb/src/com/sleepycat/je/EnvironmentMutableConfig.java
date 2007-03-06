@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentMutableConfig.java,v 1.25 2006/09/12 19:16:42 cwl Exp $
+ * $Id: EnvironmentMutableConfig.java,v 1.28 2006/11/07 04:37:20 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -15,6 +14,7 @@ import java.util.Properties;
 
 import com.sleepycat.je.config.ConfigParam;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 
 /**
@@ -31,11 +31,10 @@ public class EnvironmentMutableConfig implements Cloneable {
     private boolean txnWriteNoSync = false;
 
     /* 
-     * Cache size is a category of property that is calculated
-     * within the environment. It will be mutable in the future.
-     * It is only supplied when returning the cache size to the application
-     * and never used internally; internal code directly checks with
-     * the MemoryBudget class;
+     * Cache size is a category of property that is calculated within the
+     * environment.  It is only supplied when returning the cache size to the
+     * application and never used internally; internal code directly checks
+     * with the MemoryBudget class;
      */
     protected long cacheSize;
 
@@ -43,7 +42,7 @@ public class EnvironmentMutableConfig implements Cloneable {
      * Note that in the implementation we choose not to extend Properties 
      * in order to keep the configuration type safe.
      */
-    private Properties props;
+    protected Properties props;
 
     /**
      * For unit testing, to prevent loading of je.properties.
@@ -56,7 +55,7 @@ public class EnvironmentMutableConfig implements Cloneable {
      * during setVal() calls.  Only should be set to false by unit tests using
      * DbInternal.
      */
-    private boolean validateParams = true;
+    boolean validateParams = true;
 
     /**
      * Javadoc for this public method is generated via
@@ -72,7 +71,9 @@ public class EnvironmentMutableConfig implements Cloneable {
     EnvironmentMutableConfig(Properties properties)
         throws IllegalArgumentException {
 
-        validateProperties(properties);
+        DbConfigManager.validateProperties(properties, 
+                                           false,  // forReplication
+                                           this.getClass().getName());
         /* For safety, copy the passed in properties. */
         props = new Properties();
         props.putAll(properties);
@@ -117,7 +118,8 @@ public class EnvironmentMutableConfig implements Cloneable {
     public void setCacheSize(long totalBytes) 
         throws IllegalArgumentException {
 
-        setVal(EnvironmentParams.MAX_MEMORY, Long.toString(totalBytes));
+        DbConfigManager.setVal(props, EnvironmentParams.MAX_MEMORY,
+                               Long.toString(totalBytes), validateParams);
     }
 
     /**
@@ -140,8 +142,8 @@ public class EnvironmentMutableConfig implements Cloneable {
     public void setCachePercent(int percent) 
         throws IllegalArgumentException {
 
-        setVal(EnvironmentParams.MAX_MEMORY_PERCENT,
-               Integer.toString(percent));
+        DbConfigManager.setVal(props, EnvironmentParams.MAX_MEMORY_PERCENT,
+                               Integer.toString(percent), validateParams);
     }
 
     /**
@@ -150,7 +152,9 @@ public class EnvironmentMutableConfig implements Cloneable {
      */
     public int getCachePercent() {
 
-        String val = getVal(EnvironmentParams.MAX_MEMORY_PERCENT);
+        String val =
+            DbConfigManager.getVal(props,
+                                   EnvironmentParams.MAX_MEMORY_PERCENT);
         try {
             return Integer.parseInt(val);
         } catch (NumberFormatException e) {
@@ -163,26 +167,15 @@ public class EnvironmentMutableConfig implements Cloneable {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void setConfigParam(String paramName,
-			       String value) 
+    public void setConfigParam(String paramName, String value) 
         throws IllegalArgumentException {
         
-        /* Is this a valid property name? */
-        ConfigParam param =
-            (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(paramName);
-        if (param == null) {
-            throw new IllegalArgumentException
-		(paramName +
-		 " is not a valid BDBJE environment configuration");
-        }
-        /* Is this a mutable property? */
-        if (!param.isMutable()) {
-            throw new IllegalArgumentException
-		(paramName +
-		 " is not a mutable BDBJE environment configuration");
-        }
-
-        setVal(param, value);
+        DbConfigManager.setConfigParam(props,
+                                       paramName,
+                                       value,
+                                       true, /* require mutability. */
+                                       validateParams, 
+                                       false /* forReplication */);
     }
 
     /**
@@ -192,70 +185,15 @@ public class EnvironmentMutableConfig implements Cloneable {
     public String getConfigParam(String paramName)
         throws IllegalArgumentException {
         
-        /* Is this a valid property name? */
-        ConfigParam param =
-            (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(paramName);
-        if (param == null) {
-            throw new IllegalArgumentException
-		(paramName +
-		 " is not a valid BDBJE environment configuration");
-        }
-
-        return getVal(param);
+       return DbConfigManager.getConfigParam(props,
+                                             paramName);
     }
 
     /*
      * Helpers
      */
-
-    /**
-     * Gets either the value stored in this configuration or the
-     * default value for this param.
-     */   
-    String getVal(ConfigParam param) {
-        String val = props.getProperty(param.getName());
-        if (val == null) {
-            val = param.getDefault();
-        }
-        return val;
-    }
-
-    /**
-     * Sets and validates the specified parameter.
-     */
-    void setVal(ConfigParam param, String val)
-        throws IllegalArgumentException {
-
-	if (validateParams) {
-	    param.validateValue(val);
-	}
-        props.setProperty(param.getName(), val);
-    }
-    
     void setValidateParams(boolean validateParams) {
 	this.validateParams = validateParams;
-    }
-
-    /**
-     * Validate a property bag passed in a construction time.
-     */
-    void validateProperties(Properties props)
-        throws IllegalArgumentException {
-
-        /* Check that the properties have valid names and values */
-        Enumeration propNames = props.propertyNames();
-        while (propNames.hasMoreElements()) {
-            String name = (String) propNames.nextElement();
-            /* Is this a valid property name? */
-            ConfigParam param =
-                (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(name);
-            if (param == null) {
-                throw new IllegalArgumentException
-		    (name + " is not a valid BDBJE environment configuration");
-            }
-            /* Is this a valid property value? */
-            param.validateValue(props.getProperty(name));
-        }
     }
 
     /**
@@ -369,6 +307,10 @@ public class EnvironmentMutableConfig implements Cloneable {
                 props.remove(paramName);
             }
         }
+    }
+
+    Properties getProps() {
+        return props;
     }
 
     /**

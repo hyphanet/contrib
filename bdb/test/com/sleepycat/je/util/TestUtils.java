@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: TestUtils.java,v 1.73 2006/09/13 15:48:29 mark Exp $
+ * $Id: TestUtils.java,v 1.75 2006/10/30 21:14:54 bostic Exp $
  */
 
 package com.sleepycat.je.util;
@@ -496,6 +495,7 @@ public class TestUtils {
         	         false,  // allowDeltas
                          true,   // isProvisional
                          false,  // proactiveMigration
+                         false,  // backgroundIO
         	         parent);// provisional parent
         } else {
             lsn = in.log(envImpl.getLogManager());

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DatabaseId.java,v 1.29 2006/09/12 19:16:45 cwl Exp $
+ * $Id: DatabaseId.java,v 1.32 2006/12/04 18:47:41 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -21,6 +20,11 @@ import com.sleepycat.je.log.LogWritable;
  * DatabaseImpl Ids are wrapped in a class so they can be logged.
  */
 public class DatabaseId implements Comparable, LogWritable, LogReadable {
+
+    /**
+     * Static log size used by LNLogEntry.getStaticLogSize.
+     */
+    public static final int LOG_SIZE = LogUtils.INT_BYTES;
 
     /**
      * The unique id of this database.
@@ -109,7 +113,7 @@ public class DatabaseId implements Comparable, LogWritable, LogReadable {
      * @see LogWritable#getLogSize
      */
     public int getLogSize() {
-        return LogUtils.getIntLogSize();
+        return LOG_SIZE;
     }
 
     /**

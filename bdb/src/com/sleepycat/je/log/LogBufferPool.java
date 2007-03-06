@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LogBufferPool.java,v 1.69 2006/09/12 19:16:51 cwl Exp $
+ * $Id: LogBufferPool.java,v 1.72 2006/11/27 23:07:12 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -60,7 +59,7 @@ class LogBufferPool {
     private Latch bufferPoolLatch;
 
     LogBufferPool(FileManager fileManager,
-                  EnvironmentImpl envImpl) 
+                  EnvironmentImpl envImpl)
         throws DatabaseException {
         
         this.fileManager = fileManager;
@@ -70,12 +69,15 @@ class LogBufferPool {
 
         /* Configure the pool. */
         DbConfigManager configManager = envImpl.getConfigManager();
-        runInMemory =
-            configManager.getBoolean(EnvironmentParams.LOG_MEMORY_ONLY);
+        runInMemory = envImpl.isMemOnly();
         reset(configManager);
 
         /* Current buffer is the active buffer that writes go into. */
         currentWriteBuffer = (LogBuffer) bufferPool.getFirst();
+    }
+
+    final int getLogBufferSize() {
+        return logBufferSize;
     }
 
     /**

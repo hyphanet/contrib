@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FieldInfo.java,v 1.15 2006/09/22 07:21:41 mark Exp $
+ * $Id: FieldInfo.java,v 1.18 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -17,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.sleepycat.persist.raw.RawField;
-import com.sleepycat.persist.raw.RawType;
 
 /**
  * A field definition used by ComplexFormat and CompositeKeyFormat.
@@ -127,6 +125,11 @@ class FieldInfo implements RawField, Serializable, Comparable<FieldInfo> {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
     }
 
     @Override

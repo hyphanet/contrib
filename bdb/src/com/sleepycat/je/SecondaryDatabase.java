@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SecondaryDatabase.java,v 1.50 2006/09/12 19:16:43 cwl Exp $
+ * $Id: SecondaryDatabase.java,v 1.52 2006/11/06 20:36:55 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -22,6 +21,7 @@ import com.sleepycat.je.dbi.PutMode;
 import com.sleepycat.je.dbi.CursorImpl.SearchMode;
 import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.txn.LockerFactory;
+import com.sleepycat.je.utilint.DatabaseUtil;
 
 /**
  * Javadoc for this public class is generated via

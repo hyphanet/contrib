@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LatchTest.java,v 1.32 2006/09/12 19:17:19 cwl Exp $
+ * $Id: LatchTest.java,v 1.33 2006/10/30 21:14:46 bostic Exp $
  */
 
 package com.sleepycat.je.latch;

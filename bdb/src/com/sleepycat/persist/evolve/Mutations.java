@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Mutations.java,v 1.10 2006/09/21 13:35:57 mark Exp $
+ * $Id: Mutations.java,v 1.12 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.evolve;
@@ -171,6 +170,13 @@ public class Mutations implements Serializable {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return renamers.hashCode() +
+               deleters.hashCode() +
+               converters.hashCode();
     }
 
     @Override

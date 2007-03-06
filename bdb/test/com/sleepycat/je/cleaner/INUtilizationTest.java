@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: INUtilizationTest.java,v 1.19 2006/09/12 19:17:13 cwl Exp $
+ * $Id: INUtilizationTest.java,v 1.21 2006/11/17 23:47:28 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -140,11 +139,43 @@ public class INUtilizationTest extends TestCase {
         db = env.openDatabase(null, DB_NAME, dbConfig);
     }
 
-    /**
-     * Closes the environment and database.
-     */
     private void closeEnv(boolean doCheckpoint)
         throws DatabaseException {
+
+        closeEnv(doCheckpoint,
+                 true,  // expectAccurateObsoleteLNCount
+                 true); // expectAccurateObsoleteLNSize
+    }
+
+    private void closeEnv(boolean doCheckpoint,
+                          boolean expectAccurateObsoleteLNCount)
+        throws DatabaseException {
+
+        closeEnv(doCheckpoint,
+                 expectAccurateObsoleteLNCount,
+                 expectAccurateObsoleteLNCount);
+    }
+
+    /**
+     * Closes the environment and database.
+     *
+     * @param expectAccurateObsoleteLNCount should be false if
+     * performPartialCheckpoint was called previously.
+     */
+    private void closeEnv(boolean doCheckpoint,
+                          boolean expectAccurateObsoleteLNCount,
+                          boolean expectAccurateObsoleteLNSize)
+        throws DatabaseException {
+
+        /*
+         * Verify utilization using UtilizationFileReader.
+         * expectAccurateObsoleteLNCount is false if performPartialCheckpoint
+         * was called previously -- see CleanerTestUtils.verifyUtilization.
+         * expectAccurateObsoleteLNSize is false for truncate and remove tests.
+         */
+        CleanerTestUtils.verifyUtilization
+            (envImpl, expectAccurateObsoleteLNCount,
+             expectAccurateObsoleteLNSize);
 
         if (db != null) {
             db.close();
@@ -373,7 +404,7 @@ public class INUtilizationTest extends TestCase {
         /* Close with partial checkpoint and reopen. */
         cursor.close();
         txn.commit();
-        performPartialCheckpoint(true); /* Do truncate FileSummaryLNs */
+        performPartialCheckpoint(true); // truncateFileSummariesAlso
         openEnv();
         txn = env.beginTransaction(null, null);
         cursor = db.openCursor(txn, null);
@@ -399,7 +430,8 @@ public class INUtilizationTest extends TestCase {
         /* Close with partial checkpoint and reopen. */
         cursor.close();
         txn.commit();
-        performPartialCheckpoint(true); /* Do truncate FileSummaryLNs */
+        performPartialCheckpoint(true,   // truncateFileSummariesAlso
+                                 false); // expectAccurateObsoleteLNCount
         openEnv();
         txn = env.beginTransaction(null, null);
         cursor = db.openCursor(txn, null);
@@ -438,7 +470,8 @@ public class INUtilizationTest extends TestCase {
         /* Close with partial checkpoint and reopen. */
         cursor.close();
         txn.commit();
-        performPartialCheckpoint(false); /* Do not truncate FileSummaryLNs */
+        performPartialCheckpoint(false,  // truncateFileSummariesAlso
+                                 false); // expectAccurateObsoleteLNCount
         openEnv();
         txn = env.beginTransaction(null, null);
         cursor = db.openCursor(txn, null);
@@ -460,7 +493,8 @@ public class INUtilizationTest extends TestCase {
 
         cursor.close();
         txn.commit();
-        closeEnv(true);
+        closeEnv(true,   // doCheckpoint
+                 false); // expectAccurateObsoleteLNCount
     }
 
     /**
@@ -545,7 +579,7 @@ public class INUtilizationTest extends TestCase {
         expectObsolete(inFile, true);
 
         /* Close with partial checkpoint and reopen. */
-        performPartialCheckpoint(true); /* Do truncate FileSummaryLNs */
+        performPartialCheckpoint(true); // truncateFileSummariesAlso
         openEnv();
 
         /*
@@ -555,7 +589,8 @@ public class INUtilizationTest extends TestCase {
         expectObsolete(binFile, true);
         expectObsolete(inFile, true);
 
-        closeEnv(true);
+        closeEnv(true,   // doCheckpoint
+                 false); // expectAccurateObsoleteLNCount
     }
 
     /**
@@ -583,7 +618,9 @@ public class INUtilizationTest extends TestCase {
         /* Close normally and reopen. */
         cursor.close();
         txn.commit();
-        closeEnv(true);
+        closeEnv(true,   // doCheckpoint
+                 true,   // expectAccurateObsoleteLNCount
+                 false); // expectAccurateObsoleteLNSize
         openEnv();
 
         /* Truncate. */
@@ -596,14 +633,17 @@ public class INUtilizationTest extends TestCase {
         expectObsolete(inFile, true);
 
         /* Close with partial checkpoint and reopen. */
-        performPartialCheckpoint(true); /* Do truncate FileSummaryLNs */
+        performPartialCheckpoint(true,   // truncateFileSummariesAlso
+                                 true,   // expectAccurateObsoleteLNCount
+                                 false); // expectAccurateObsoleteLNSize
         openEnv();
 
         /* Expect BIN and IN are counted obsolete during recovery. */
         expectObsolete(binFile, true);
         expectObsolete(inFile, true);
 
-        closeEnv(true);
+        closeEnv(true,   // doCheckpoint
+                 false); // expectAccurateObsoleteLNCount
     }
 
     /**
@@ -620,7 +660,9 @@ public class INUtilizationTest extends TestCase {
         /* Close normally and reopen. */
         cursor.close();
         txn.commit();
-        closeEnv(true);
+        closeEnv(true,   // doCheckpoint
+                 true,   // expectAccurateObsoleteLNCount
+                 false); // expectAccurateObsoleteLNSize
         openEnv();
 
         /* Remove. */
@@ -635,14 +677,17 @@ public class INUtilizationTest extends TestCase {
         expectObsolete(inFile, true);
 
         /* Close with partial checkpoint and reopen. */
-        performPartialCheckpoint(true); /* Do truncate FileSummaryLNs */
+        performPartialCheckpoint(true,   // truncateFileSummariesAlso
+                                 true,   // expectAccurateObsoleteLNCount
+                                 false); // expectAccurateObsoleteLNSize
         openEnv();
 
         /* Expect BIN and IN are counted obsolete during recovery. */
         expectObsolete(binFile, true);
         expectObsolete(inFile, true);
 
-        closeEnv(true);
+        closeEnv(true,   // doCheckpoint
+                 false); // expectAccurateObsoleteLNCount
     }
 
     private void expectObsolete(long file, boolean obsolete)
@@ -693,13 +738,34 @@ public class INUtilizationTest extends TestCase {
                                     .get(new Long(file));
     }
 
+    private void performPartialCheckpoint(boolean truncateFileSummariesAlso)
+        throws DatabaseException, IOException {
+
+        performPartialCheckpoint(truncateFileSummariesAlso,
+                                 true,  // expectAccurateObsoleteLNCount
+                                 true); // expectAccurateObsoleteLNSize
+    }
+
+    private void performPartialCheckpoint(boolean truncateFileSummariesAlso,
+                                          boolean
+                                          expectAccurateObsoleteLNCount)
+        throws DatabaseException, IOException {
+
+        performPartialCheckpoint(truncateFileSummariesAlso,
+                                 expectAccurateObsoleteLNCount,
+                                 expectAccurateObsoleteLNCount);
+    }
+
     /**
      * Performs a checkpoint and truncates the log before the last CkptEnd.  If
      * truncateFileSummariesAlso is true, truncates before the FileSummaryLNs
      * that appear at the end of the checkpoint.  The environment should be
      * open when this method is called, and it will be closed when it returns.
      */
-    private void performPartialCheckpoint(boolean truncateFileSummariesAlso)
+    private void performPartialCheckpoint
+                    (boolean truncateFileSummariesAlso,
+                     boolean expectAccurateObsoleteLNCount,
+                     boolean expectAccurateObsoleteLNSize)
         throws DatabaseException, IOException {
 
         /* Do a normal checkpoint. */
@@ -738,7 +804,9 @@ public class INUtilizationTest extends TestCase {
          * Close without another checkpoint, although it doesn't matter since
          * we would truncate before it.
          */
-        closeEnv(false);
+        closeEnv(false, // doCheckpoint
+                 expectAccurateObsoleteLNCount,
+                 expectAccurateObsoleteLNSize);
 
         /* Truncate the log. */
         EnvironmentImpl cmdEnv =

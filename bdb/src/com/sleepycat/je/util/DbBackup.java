@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DbBackup.java,v 1.8 2006/09/20 05:23:12 linda Exp $
+ * $Id: DbBackup.java,v 1.9 2006/10/30 21:14:28 bostic Exp $
  */
 
 package com.sleepycat.je.util;

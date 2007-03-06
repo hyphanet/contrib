@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FileHeader.java,v 1.35 2006/09/12 19:16:51 cwl Exp $
+ * $Id: FileHeader.java,v 1.37 2006/11/03 03:07:50 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -36,8 +35,13 @@ public class FileHeader implements LoggableObject, LogReadable {
      * ---------
      * [#14422] Bump MapLN version from 1 to 2.  Instead of a String for the
      * comparator class name, store either a serialized string or Comparator.
+     *
+     * Version 5
+     * ---------
+     * [#15195] FileSummaryLN version 3.  Add FileSummary.obsoleteLNSize and
+     * obsoleteLNSizeCounted fields.
      */
-    private static final int LOG_VERSION = 4;
+    private static final int LOG_VERSION = 5;
 
     /* 
      * fileNum is the number of file, starting at 0. An unsigned int, so stored
@@ -125,9 +129,9 @@ public class FileHeader implements LoggableObject, LogReadable {
     }
 
     /**
-     * A header is always a known size.
+     * A header is always a known size.  Is public for unit testing.
      */
-    static int entrySize() {
+    public static int entrySize() {
         return
             LogUtils.getTimestampLogSize() + // time
             LogUtils.UNSIGNED_INT_BYTES +    // file number

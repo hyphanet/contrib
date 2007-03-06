@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: InfoFileFilter.java,v 1.10 2006/09/12 19:17:27 cwl Exp $
+ * $Id: InfoFileFilter.java,v 1.11 2006/10/30 21:14:54 bostic Exp $
  */
 
 package com.sleepycat.je.util;

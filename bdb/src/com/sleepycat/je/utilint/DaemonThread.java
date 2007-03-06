@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DaemonThread.java,v 1.53 2006/09/12 19:17:00 cwl Exp $
+ * $Id: DaemonThread.java,v 1.55 2006/10/30 21:14:28 bostic Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -272,11 +271,19 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
         throws DatabaseException;
 
     /**
-     * Returns whether shutdown has been requested.  This method should  be
+     * Returns whether shutdown has been requested.  This method should be
      * used to to terminate daemon loops.
      */
     protected boolean isShutdownRequested() {
         return shutdownRequest;
+    }
+
+    /**
+     * Returns whether the daemon is currently paused/disabled.  This method
+     * should be used to to terminate daemon loops.
+     */
+    protected boolean isPaused() {
+        return paused;
     }
 
     /** 

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: DbCompat.java,v 1.19 2006/09/21 15:34:31 mark Exp $
+ * $Id: DbCompat.java,v 1.21 2006/11/27 22:44:18 mark Exp $
  */
 
 package com.sleepycat.compat;
@@ -18,6 +17,7 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.LockMode;
@@ -99,6 +99,10 @@ public class DbCompat {
         return false;
     }
 
+    public static boolean getDeferredWrite(DatabaseConfig dbConfig) {
+        return dbConfig.getDeferredWrite();
+    }
+
     // XXX Remove this when DB and JE support CursorConfig.cloneConfig
     public static CursorConfig cloneCursorConfig(CursorConfig config) {
         CursorConfig newConfig = new CursorConfig();
@@ -127,18 +131,27 @@ public class DbCompat {
 
     public static String getDatabaseFile(Database db)
         throws DatabaseException {
+
         return null;
     }
 
     public static long getDatabaseCount(Database db)
         throws DatabaseException {
+
         return db.count();
+    }
+
+    public static void syncDeferredWrite(Database db, boolean flushLog)
+        throws DatabaseException {
+
+        DbInternal.dbGetDatabaseImpl(db).sync(flushLog);
     }
     
     public static OperationStatus getCurrentRecordNumber(Cursor cursor,
                                                          DatabaseEntry key, 
                                                          LockMode lockMode) 
         throws DatabaseException {
+
         throw new UnsupportedOperationException();
     }
     
@@ -147,6 +160,7 @@ public class DbCompat {
                                                         DatabaseEntry data,
                                                         LockMode lockMode) 
         throws DatabaseException {
+
         throw new UnsupportedOperationException();
     }
     
@@ -156,6 +170,7 @@ public class DbCompat {
                                                         DatabaseEntry data,
                                                         LockMode lockMode) 
         throws DatabaseException {
+
         throw new UnsupportedOperationException();
     }
     
@@ -163,6 +178,7 @@ public class DbCompat {
                                            DatabaseEntry key,
                                            DatabaseEntry data) 
         throws DatabaseException {
+
         throw new UnsupportedOperationException();
     }
     
@@ -170,6 +186,7 @@ public class DbCompat {
                                             DatabaseEntry key,
                                             DatabaseEntry data) 
         throws DatabaseException {
+
         throw new UnsupportedOperationException();
     }
     
@@ -178,11 +195,13 @@ public class DbCompat {
                                          DatabaseEntry key,
                                          DatabaseEntry data) 
         throws DatabaseException {
+
         throw new UnsupportedOperationException();
     }
 
     public static Transaction getThreadTransaction(Environment env)
 	throws DatabaseException {
+
         return env.getThreadTransaction();
     }
 
@@ -265,6 +284,10 @@ public class DbCompat {
         }
     }
 
+    public static void setDeferredWrite(DatabaseConfig dbConfig, boolean val) {
+        dbConfig.setDeferredWrite(val);
+    }
+
     public static void setRecordLength(DatabaseConfig dbConfig, int val) {
         if (val != 0) {
             throw new UnsupportedOperationException();
@@ -281,6 +304,7 @@ public class DbCompat {
                                         String name,
                                         DatabaseConfig config)
         throws DatabaseException, FileNotFoundException {
+
         return env.openDatabase(txn, makeDbName(file, name), config);
     }
 
@@ -292,6 +316,7 @@ public class DbCompat {
                                         Database primary,
                                         SecondaryConfig config)
         throws DatabaseException, FileNotFoundException {
+
         return env.openSecondaryDatabase(txn, makeDbName(file, name),
                                          primary, config);
     }

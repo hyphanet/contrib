@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: FileManager.java,v 1.159 2006/09/13 15:48:19 mark Exp $
+ * $Id: FileManager.java,v 1.161 2006/11/27 23:07:12 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -179,17 +178,18 @@ public class FileManager {
                  " may not be used.");
         }
 
-        lockEnvironment(readOnly, false);
+        if (!envImpl.isMemOnly()) {
+            if (!dbEnvHome.exists()) {
+                throw new LogException("Environment home " + dbEnvHome +
+                                         " doesn't exist");
+            }
+            lockEnvironment(readOnly, false);
+        }
 
         /* Cache of files. */
         fileCache = new FileCache(configManager);
         fileCacheLatch =
 	    LatchSupport.makeLatch(DEBUG_NAME + "_fileCache", envImpl);
-
-        if (!dbEnvHome.exists()) {
-            throw new LogException("Environment home " + dbEnvHome +
-                                     " doesn't exist");
-        }
 
         /* Start out as if no log existed. */
         currentFileNum = 0L;
@@ -402,7 +402,11 @@ public class FileManager {
      */
     public String[] listFiles(String[] suffixes) {
         String[] fileNames = dbEnvHome.list(new JEFileFilter(suffixes));
-        Arrays.sort(fileNames);
+        if (fileNames != null) {
+            Arrays.sort(fileNames);
+        } else {
+            fileNames = new String[0];
+        }
         return fileNames;
     }
 

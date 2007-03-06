@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalkerTest.java,v 1.8 2006/09/12 19:17:16 cwl Exp $
+ * $Id: SortedLSNTreeWalkerTest.java,v 1.11 2006/11/03 03:08:02 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -30,6 +29,7 @@ import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.SortedLSNTreeWalker.TreeNodeProcessor;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -93,12 +93,24 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
 	db.close();
 	db = null;
-	assertEquals(N_RECS, walkTree(dbImpl, false, stats));
+	assertEquals(N_RECS, walkTree(dbImpl, false, stats, true));
 	close();
     }
 
-    public void testSortedLSNTreeWalkerNoDups()
+    public void testSortedLSNTreeWalkerNoDupsLoadLNs()
         throws Throwable {
+
+	doTestSortedLSNTreeWalkerNoDups(true);
+    }
+
+    public void testSortedLSNTreeWalkerNoDupsNoLoadLNs()
+        throws Throwable {
+
+	doTestSortedLSNTreeWalkerNoDups(false);
+    }
+
+    private void doTestSortedLSNTreeWalkerNoDups(boolean loadLNs)
+	throws Throwable {
 
 	open(false);
 	writeData(false);
@@ -120,7 +132,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
         db.close();
         db = null;
-	assertEquals(N_RECS, walkTree(dbImpl, false, stats));
+	assertEquals(N_RECS, walkTree(dbImpl, false, stats, loadLNs));
 	close();
     }
 
@@ -146,12 +158,24 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
         db.close();
         db = null;
-	assertEquals(N_RECS, walkTree(dbImpl, false, stats));
+	assertEquals(N_RECS, walkTree(dbImpl, false, stats, true));
 	close();
     }
 
     public void testSortedLSNTreeWalkerDups()
         throws Throwable {
+
+	doTestSortedLSNTreeWalkerDups(true);
+    }
+
+    public void testSortedLSNTreeWalkerDupsNoLoadLNs()
+        throws Throwable {
+
+	doTestSortedLSNTreeWalkerDups(false);
+    }
+
+    private void doTestSortedLSNTreeWalkerDups(boolean loadLNs)
+	throws Throwable {
 
 	open(true);
 	writeData(true);
@@ -161,7 +185,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
         db.close();
         db = null;
-	assertEquals(N_RECS * 2, walkTree(dbImpl, true, stats));
+	assertEquals(N_RECS * 2, walkTree(dbImpl, true, stats, loadLNs));
 	close();
     }
 
@@ -177,7 +201,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
 	db.close();
 	db = null;
-	assertEquals(N_RECS * 2, walkTree(dbImpl, false, stats));
+	assertEquals(N_RECS * 2, walkTree(dbImpl, false, stats, true));
 	close();
     }
 
@@ -193,7 +217,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
 	db.close();
 	db = null;
-	assertEquals(numRecs, walkTree(dbImpl, false, stats));
+	assertEquals(numRecs, walkTree(dbImpl, false, stats, true));
 	close();
     }
 
@@ -303,29 +327,50 @@ public class SortedLSNTreeWalkerTest extends TestCase {
     }
 
     /* Return the number of keys seen in all BINs. */
-    private int walkTree(DatabaseImpl dbImpl, boolean dups, BtreeStats stats)
+    private int walkTree(DatabaseImpl dbImpl,
+			 boolean dups,
+			 BtreeStats stats,
+			 final boolean loadLNNodes)
 	throws DatabaseException {
 
 	TestingTreeNodeProcessor tnp = new TestingTreeNodeProcessor() {
-		public void processLSN(long childLSN, LogEntryType childType)
+		public void processLSN(long childLSN,
+				       LogEntryType childType,
+				       Node node,
+                                       byte[] lnKey)
 		    throws DatabaseException {
 
 		    if (DEBUG) {
 			System.out.println
 			    (childType + " " + DbLsn.toString(childLSN));
 		    }
+
 		    if (childType.equals(LogEntryType.LOG_DBIN)) {
 			dbinCount++;
+                        assertNull(lnKey);
+                        assertNotNull(node);
 		    } else if (childType.equals(LogEntryType.LOG_BIN)) {
 			binCount++;
+                        assertNull(lnKey);
+                        assertNotNull(node);
 		    } else if (childType.equals(LogEntryType.LOG_DIN)) {
 			dinCount++;
+                        assertNull(lnKey);
+                        assertNotNull(node);
 		    } else if (childType.equals(LogEntryType.LOG_IN)) {
 			inCount++;
+                        assertNull(lnKey);
+                        assertNotNull(node);
 		    } else if (childType.equals(LogEntryType.LOG_LN)) {
 			entryCount++;
+                        assertNotNull(lnKey);
+                        if (loadLNNodes) {
+                            assertNotNull(node);
+                        }
 		    } else if (childType.equals(LogEntryType.LOG_DUPCOUNTLN)) {
 			dupLNCount++;
+                        assertNotNull(lnKey);
+                        assertNotNull(node);
 		    } else {
 			throw new RuntimeException
 			    ("unknown entry type: " + childType);
@@ -335,11 +380,14 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 		public void processDupCount(long ignore) {
 		}
 	    };
+
 	SortedLSNTreeWalker walker =
 	    new SortedLSNTreeWalker(dbImpl, false, false,
                                     dbImpl.getTree().getRootLsn(), tnp,
                                     null,  /* savedExceptions */
 				    null);
+
+	walker.accumulateLNs = loadLNNodes;
 
 	walker.walk();
 
@@ -377,7 +425,10 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	int entryCount = 0;
         int dupLNCount = 0;
 
-	public void processLSN(long childLSN, LogEntryType childType)
+	public void processLSN(long childLSN,
+			       LogEntryType childType,
+			       Node ignore,
+                               byte[] ignore2)
 	    throws DatabaseException {
 
 	    throw new RuntimeException("override me please");

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DbVerify.java,v 1.40 2006/09/12 19:16:59 cwl Exp $
+ * $Id: DbVerify.java,v 1.42 2006/11/28 13:52:06 mark Exp $
  */
 
 package com.sleepycat.je.util;
@@ -251,7 +250,7 @@ public class DbVerify {
                 
                 try {
                     DatabaseImpl dbImpl = dbMapTree.getDb(null, targetDb,
-                                                          null, true);
+                                                          null);
                     if (!verifyOneDbImpl(dbImpl,  targetDb,
                                          verifyConfig, out)) {
                         ret = false;

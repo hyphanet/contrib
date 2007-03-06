@@ -1,15 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SimpleFormat.java,v 1.18 2006/09/21 13:35:59 mark Exp $
+ * $Id: SimpleFormat.java,v 1.20 2006/11/14 23:30:49 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
 
 import java.lang.reflect.Field;
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -738,6 +738,43 @@ public abstract class SimpleFormat extends Format {
         @Override
         void copySecKey(RecordInput input, RecordOutput output) {
             int len = input.getStringByteLength();
+            output.writeFast
+                (input.getBufferBytes(), input.getBufferOffset(), len);
+            input.skipFast(len);
+        }
+    }
+
+    public static class FBigInt extends SimpleFormat {
+
+        private static final long serialVersionUID = -5027098112507644563L;
+
+        FBigInt() {
+            super(BigInteger.class, false);
+        }
+
+        @Override
+        Object newArray(int len) {
+            return new BigInteger[len];
+        }
+
+        @Override
+        public Object newInstance(EntityInput input, boolean rawAccess) {
+            return input.readBigInteger();
+        }
+
+        @Override
+        void writeObject(Object o, EntityOutput output, boolean rawAccess) {
+            output.writeBigInteger((BigInteger) o);
+        }
+
+        @Override
+        void skipContents(RecordInput input) {
+            input.skipFast(input.getBigIntegerByteLength());
+        }
+
+        @Override
+        void copySecKey(RecordInput input, RecordOutput output) {
+            int len = input.getBigIntegerByteLength();
             output.writeFast
                 (input.getBufferBytes(), input.getBufferOffset(), len);
             input.skipFast(len);

@@ -1,20 +1,19 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: CursorImpl.java,v 1.313 2006/09/12 19:16:45 cwl Exp $
+ * $Id: CursorImpl.java,v 1.320 2006/11/28 04:02:55 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
 
-import java.util.Comparator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.LockNotGrantedException;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.RunRecoveryException;
@@ -103,7 +102,7 @@ public class CursorImpl implements Cloneable {
     /* State of the cursor. See CURSOR_XXX above. */
     private byte status;
 
-    private boolean allowEviction = true;
+    private boolean allowEviction;
     private TestHook testHook;
 
     private boolean nonCloning = false;
@@ -271,9 +270,10 @@ public class CursorImpl implements Cloneable {
     }
 
     /**
-     * Disables or enables eviction during cursor operations for an internal
-     * cursor.  For example, a cursor used to implement eviction should not
-     * itself perform eviction.  Eviction is enabled by default.
+     * Disables or enables eviction during cursor operations.  For example, a
+     * cursor used to implement eviction (e.g., in some UtilizationProfile and
+     * most DbTree methods) should not itself perform eviction, but eviction
+     * should be enabled for user cursors.  Eviction is disabled by default.
      */
     public void setAllowEviction(boolean allowed) {
         allowEviction = allowed;
@@ -327,7 +327,8 @@ public class CursorImpl implements Cloneable {
 
         /* Perform eviction before and after each cursor operation. */
         if (allowEviction) {
-            database.getDbEnvironment().getEvictor().doCriticalEviction();
+            database.getDbEnvironment().getEvictor().doCriticalEviction
+                (false); // backgroundIO
         }
         return ret;
     }
@@ -639,7 +640,8 @@ public class CursorImpl implements Cloneable {
 
         /* Perform eviction before and after each cursor operation. */
         if (allowEviction) {
-            database.getDbEnvironment().getEvictor().doCriticalEviction();
+            database.getDbEnvironment().getEvictor().doCriticalEviction
+                (false); // backgroundIO
         }
     }
 
@@ -663,7 +665,8 @@ public class CursorImpl implements Cloneable {
 
         /* Perform eviction before and after each cursor operation. */
         if (allowEviction) {
-            database.getDbEnvironment().getEvictor().doCriticalEviction();
+            database.getDbEnvironment().getEvictor().doCriticalEviction
+                (false); // backgroundIO
         }
     }
 
@@ -868,12 +871,28 @@ public class CursorImpl implements Cloneable {
     public void evict()
         throws DatabaseException {
 
+        evict(false); // alreadyLatched
+    }
+
+    /**
+     * Evict the LN node at the cursor position.  This is used for internal
+     * databases only.
+     */
+    public void evict(boolean alreadyLatched)
+        throws DatabaseException {
+
         try {
-            latchBINs();
+            if (!alreadyLatched) {
+                latchBINs();
+            }
             setTargetBin();
-            targetBin.evictLN(targetIndex);
+            if (targetIndex >= 0) {
+                targetBin.evictLN(targetIndex);
+            }
         } finally {
-            releaseBINs();
+            if (!alreadyLatched) {
+                releaseBINs();
+            }
         }
     }
 
@@ -1069,7 +1088,6 @@ public class CursorImpl implements Cloneable {
              */
             LN ln = (LN) targetBin.fetchTarget(targetIndex);
             byte[] lnKey = targetBin.getKey(targetIndex);
-            Comparator userComparisonFcn = targetBin.getKeyComparator();
 
             /* If fetchTarget returned null, a deleted LN was cleaned. */
 	    if (targetBin.isEntryKnownDeleted(targetIndex) ||
@@ -1159,16 +1177,20 @@ public class CursorImpl implements Cloneable {
             if (database.getSortedDuplicates()) {
 		/* Check that data compares equal before replacing it. */
 		boolean keysEqual = false;
+
 		if (foundDataBytes != null) {
                     keysEqual = Key.compareKeys
-                        (foundDataBytes, newData, userComparisonFcn) == 0;
+                        (foundDataBytes, newData,
+			 database.getDuplicateComparator()) == 0;
 		}
+
 		if (!keysEqual) {
 		    revertLock(ln, lockResult);
 		    throw new DatabaseException
 			("Can't replace a duplicate with different data.");
 		}
 	    }
+
 	    if (foundData != null) {
 		setDbt(foundData, foundDataBytes);
 	    }
@@ -2293,12 +2315,18 @@ public class CursorImpl implements Cloneable {
 
         /*
          * Try a non-blocking lock first, to avoid unlatching.  If the default
-         * is no-wait, use the standard lock method so LockNotHeldException is
-         * thrown; there is no need to try a non-blocking lock twice.
+         * is no-wait, use the standard lock method so LockNotGrantedException
+         * is thrown; there is no need to try a non-blocking lock twice.
          */
         if (locker.getDefaultNoWait()) {
-            lockResult = locker.lock
-                (ln.getNodeId(), lockType, true /*noWait*/, database);
+            try {
+                lockResult = locker.lock
+                    (ln.getNodeId(), lockType, true /*noWait*/, database);
+            } catch (LockNotGrantedException e) {
+                /* Release all latches. */
+                releaseBINs();
+                throw e;
+            }
         } else {
             lockResult = locker.nonBlockingLock
                 (ln.getNodeId(), lockType, database);
@@ -2361,12 +2389,19 @@ public class CursorImpl implements Cloneable {
 
         /*
          * Try a non-blocking lock first, to avoid unlatching.  If the default
-         * is no-wait, use the standard lock method so LockNotHeldException is
-         * thrown; there is no need to try a non-blocking lock twice.
+         * is no-wait, use the standard lock method so LockNotGrantedException
+         * is thrown; there is no need to try a non-blocking lock twice.
          */
         if (locker.getDefaultNoWait()) {
-            lockResult = locker.lock
-                (ln.getNodeId(), lockType, true /*noWait*/, database);
+            try {
+                lockResult = locker.lock
+                    (ln.getNodeId(), lockType, true /*noWait*/, database);
+            } catch (LockNotGrantedException e) {
+                /* Release all latches. */
+                dupRoot.releaseLatch();
+                releaseBINs();
+                throw e;
+            }
         } else {
             lockResult = locker.nonBlockingLock
                 (ln.getNodeId(), lockType, database);

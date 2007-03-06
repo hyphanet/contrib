@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Tree.java,v 1.411 2006/09/12 19:16:57 cwl Exp $
+ * $Id: Tree.java,v 1.417 2006/12/04 18:47:41 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -86,6 +85,13 @@ public final class Tree implements LogWritable, LogReadable {
     private int maxMainTreeEntriesPerNode;
     private int maxDupTreeEntriesPerNode;
     private boolean purgeRoot;
+
+    /*
+     * Indicates whether the root ChildReference was last logged, and used for
+     * calculating the last logged size.  Not persistent.
+     * @see #getLastLoggedSize
+     */
+    private boolean rootLastLogged;
 
     /* 
      * Latch that must be held when using/accessing the root node.  Protects
@@ -645,7 +651,7 @@ public final class Tree implements LogWritable, LogReadable {
              * writers in the tree. XXX: This seems unnecessary now, revisit.
              */
             ChildReference dclRef = duplicateRoot.getDupCountLNRef();
-            dcl = (DupCountLN)  dclRef.fetchTarget(database, duplicateRoot);
+            dcl = (DupCountLN) dclRef.fetchTarget(database, duplicateRoot);
             
             LockResult lockResult = locker.nonBlockingLock(dcl.getNodeId(),
                                                            LockType.READ,
@@ -719,13 +725,12 @@ public final class Tree implements LogWritable, LogReadable {
 	} finally {
             releaseNodeLadderLatches(nodeLadder);
 
+	    /* FindBugs -- ignore dcl possibly null warning. */
 	    if (dupCountLNLocked) {
 		locker.releaseLock(dcl.getNodeId());
 	    }
 
-            if (duplicateRoot != null) {
-                duplicateRoot.releaseLatch();
-            }
+	    duplicateRoot.releaseLatch();
 	}
 
         return subtreeRootIN;
@@ -1556,6 +1561,7 @@ public final class Tree implements LogWritable, LogReadable {
             root.setLsn(newRoot.getLastFullVersion());
 
         } finally {
+	    /* FindBugs ignore possible null pointer dereference of newRoot. */
 	    newRoot.releaseLatch();
             curRoot.releaseLatch();
         }
@@ -1949,14 +1955,25 @@ public final class Tree implements LogWritable, LogReadable {
 
             return child;
         } catch (Throwable t) {
-            if (child != null &&
-		childIsLatched) {
-                child.releaseLatchIfOwner();
-            }
 
-	    if (parent != child) {
-		parent.releaseLatchIfOwner();
-	    }
+            /*
+             * In [#14903] we encountered a latch exception below and the
+             * original exception t was lost.  Print the stack trace and
+             * rethrow the original exception if this happens again, to get
+             * more information about the problem.
+             */
+            try {
+                if (child != null &&
+                    childIsLatched) {
+                    child.releaseLatchIfOwner();
+                }
+
+                if (parent != child) {
+                    parent.releaseLatchIfOwner();
+                }
+            } catch (Throwable t2) {
+                t2.printStackTrace();
+            }
 
             if (t instanceof DatabaseException) {
                 /* don't re-wrap a DatabaseException; we may need its type. */
@@ -2182,6 +2199,7 @@ public final class Tree implements LogWritable, LogReadable {
                     child.releaseLatch();
 		    childIsLatched = false;
                     parent.releaseLatch();
+		    success = true;
                     throw splitRequiredException;
                 }
 
@@ -2503,7 +2521,7 @@ public final class Tree implements LogWritable, LogReadable {
 
 		try {
 		    newLsn = ln.optionalLog
-                        (env, database, key, DbLsn.NULL_LSN,
+                        (env, database, key, DbLsn.NULL_LSN, 0,
                          cursor.getLocker());
 		} finally {
                     if ((newLsn == DbLsn.NULL_LSN) &&
@@ -2613,7 +2631,7 @@ public final class Tree implements LogWritable, LogReadable {
                      * was deleted.
                      */
                     long newLsn = ln.optionalLog(env, database,
-					 key, DbLsn.NULL_LSN,
+					 key, DbLsn.NULL_LSN, 0,
 					 cursor.getLocker());
 
                     bin.updateEntry(index, ln, newLsn, key);
@@ -2761,7 +2779,7 @@ public final class Tree implements LogWritable, LogReadable {
                     long newLsn = DbLsn.NULL_LSN;
 		    try {
 			newLsn = newLN.optionalLog
-                            (env, database, key, DbLsn.NULL_LSN,
+                            (env, database, key, DbLsn.NULL_LSN, 0,
                              cursor.getLocker());
                     } finally {
                         if ((newLsn == DbLsn.NULL_LSN) &&
@@ -2842,7 +2860,7 @@ public final class Tree implements LogWritable, LogReadable {
                          */
                         long newLsn =
 			    newLN.optionalLog(env, database, key,
-				      DbLsn.NULL_LSN, cursor.getLocker());
+				      DbLsn.NULL_LSN, 0, cursor.getLocker());
 
                         dupBin.updateEntry(dupIndex, newLN, newLsn, newLNKey);
                         dupBin.clearKnownDeleted(dupIndex);
@@ -3083,7 +3101,8 @@ public final class Tree implements LogWritable, LogReadable {
         DupCountLN dupCountLN = new DupCountLN(startingCount);
         long firstDupCountLNLsn =
             dupCountLN.optionalLogProvisional(env, database,
-				      key, DbLsn.NULL_LSN);
+				      key, DbLsn.NULL_LSN, 0);
+        int firstDupCountLNSize = dupCountLN.getTotalLastLoggedSize(key);
 
         /* Make the duplicate root and DBIN. */
         dupRoot = new DIN(database,
@@ -3143,13 +3162,14 @@ public final class Tree implements LogWritable, LogReadable {
             lockResult.setAbortLsn(firstDupCountLNLsn, false);
 
             dupCountLN.setDupCount(2);
-            long dupCountLsn = dupCountLN.optionalLog(env, database, key,
-                                              firstDupCountLNLsn, locker);
+            long dupCountLsn = dupCountLN.optionalLog
+                (env, database, key, firstDupCountLNLsn, firstDupCountLNSize,
+                 locker);
             dupRoot.updateDupCountLNRef(dupCountLsn);
         
             /* Add the newly created LN. */
-            long newLsn =
-                newLN.optionalLog(env, database, key, DbLsn.NULL_LSN, locker);
+            long newLsn = newLN.optionalLog
+                (env, database, key, DbLsn.NULL_LSN, 0, locker);
             int dupIndex = dupBin.insertEntry1
                 (new ChildReference(newLN, newLNKey, newLsn));
             dupIndex &= ~IN.INSERT_SUCCESS;
@@ -3292,9 +3312,9 @@ public final class Tree implements LogWritable, LogReadable {
                     logLsn = rootIN.optionalLog(logManager);
                     rootIN.setDirty(true);  /*force re-logging, see [#13897]*/
 
-                    root = new ChildReference(rootIN,
-                                              new byte[0], 
-                                              logLsn);
+                    root = makeRootChildReference(rootIN,
+                                                  new byte[0], 
+                                                  logLsn);
 
 		    rootIN.releaseLatch();
 
@@ -3372,12 +3392,40 @@ public final class Tree implements LogWritable, LogReadable {
      */
 
     /**
+     * Returns the true last logged size by taking into account whether the
+     * root was null when last logged.  This is necessary because the
+     * persistent state is changed (the root is set to non-null) after being
+     * logged and before MapLN.modify is called.
+     *
+     * @see DatabaseImpl#getLastLoggedSize
+     * @see MapLN#getLastLoggedSize
+     */
+    public int getLastLoggedSize() {
+        return getLogSizeInternal(true);
+    }
+
+    /**
      * @see LogWritable#getLogSize
      */
     public int getLogSize() {
+        return getLogSizeInternal(false);
+    }
+
+    private int getLogSizeInternal(boolean lastLogged) {
         int size = LogUtils.getBooleanLogSize();  // root exists?
-        if (root != null) {      
-            size += root.getLogSize(); // root
+
+        /*
+         * Use ChildReference.ROOT_LOG_SIZE because the root field may be null
+         * even if non-null when last logged.
+         */
+        if (lastLogged) {
+            if (rootLastLogged) {      
+                size += ChildReference.ROOT_LOG_SIZE;
+            }
+        } else {
+            if (root != null) {      
+                size += ChildReference.ROOT_LOG_SIZE;
+            }
         }
         return size;
     }
@@ -3389,6 +3437,9 @@ public final class Tree implements LogWritable, LogReadable {
         LogUtils.writeBoolean(logBuffer, (root != null));
         if (root != null) {
             root.writeToLog(logBuffer);
+            rootLastLogged = true;
+        } else {
+            rootLastLogged = false;
         }
     }
 
@@ -3400,6 +3451,9 @@ public final class Tree implements LogWritable, LogReadable {
         if (rootExists) {
             root = makeRootChildReference();
             root.readFromLog(itemBuffer, entryTypeVersion);
+            rootLastLogged = true;
+        } else {
+            rootLastLogged = false;
         }
     }
 

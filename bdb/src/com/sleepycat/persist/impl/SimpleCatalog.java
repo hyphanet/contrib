@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SimpleCatalog.java,v 1.17 2006/09/21 13:35:59 mark Exp $
+ * $Id: SimpleCatalog.java,v 1.19 2006/11/14 23:30:49 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -168,11 +167,11 @@ public class SimpleCatalog implements Catalog {
         setFormat(Format.ID_CHAR,     new SimpleFormat.FChar(true));
         setFormat(Format.ID_CHAR_W,   new SimpleFormat.FChar(false));
         setFormat(Format.ID_STRING,   new SimpleFormat.FString());
+        setFormat(Format.ID_BIGINT,   new SimpleFormat.FBigInt());
         /*
-        setFormat(Format.ID_BIGINT, new SimpleFormat.FBigInt());
-        setFormat(Format.ID_BIGDEC, new SimpleFormat.FBigDec());
+        setFormat(Format.ID_BIGDEC,   new SimpleFormat.FBigDec());
         */
-        setFormat(Format.ID_DATE,   new SimpleFormat.FDate());
+        setFormat(Format.ID_DATE,     new SimpleFormat.FDate());
 
         /* Tell primitives about their wrapper class. */
         setWrapper(Format.ID_BOOL, Format.ID_BOOL_W);

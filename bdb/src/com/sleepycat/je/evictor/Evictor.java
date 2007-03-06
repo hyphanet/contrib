@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Evictor.java,v 1.84 2006/09/12 19:16:46 cwl Exp $
+ * $Id: Evictor.java,v 1.86 2006/10/30 21:14:17 bostic Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -199,7 +198,9 @@ public class Evictor extends DaemonThread {
             return;
         }
 
-        doEvict(SOURCE_DAEMON, false);
+        doEvict(SOURCE_DAEMON,
+                false, // criticalEviction
+                true); // backgroundIO
     }
 
     /**
@@ -208,7 +209,9 @@ public class Evictor extends DaemonThread {
     public void doEvict(String source) 
         throws DatabaseException {
 
-        doEvict(source, false /*evictDuringShutdown*/);
+        doEvict(source,
+                false, // criticalEviction
+                true); // backgroundIO
     }
 
     /**
@@ -216,7 +219,8 @@ public class Evictor extends DaemonThread {
      * during checkpointing and cleaner log file deletion.
      */
     private synchronized void doEvict(String source,
-                                      boolean evictDuringShutdown) 
+                                      boolean criticalEviction,
+                                      boolean backgroundIO) 
         throws DatabaseException {
 
         /*
@@ -237,9 +241,10 @@ public class Evictor extends DaemonThread {
              */
             boolean progress = true;
             while (progress &&
-                   (evictDuringShutdown || !isShutdownRequested()) &&
+                   (criticalEviction || !isShutdownRequested()) &&
                    isRunnable(source)) {
-                if (evictBatch(source, currentRequiredEvictBytes) == 0) {
+                if (evictBatch
+                    (source, backgroundIO, currentRequiredEvictBytes) == 0) {
                     progress = false;
                 }
             }
@@ -251,7 +256,7 @@ public class Evictor extends DaemonThread {
     /**
      * Do a check on whether synchronous eviction is needed.
      */
-    public void doCriticalEviction()
+    public void doCriticalEviction(boolean backgroundIO)
         throws DatabaseException {
 
         MemoryBudget mb = envImpl.getMemoryBudget();
@@ -263,7 +268,9 @@ public class Evictor extends DaemonThread {
             if (DEBUG) {
                 System.out.println("***critical detected:" + over);
             }
-            doEvict(SOURCE_CRITICAL, true /*evictDuringShutdown*/);
+            doEvict(SOURCE_CRITICAL,
+                    true, // criticalEviction
+                    backgroundIO);
         }
     }
 
@@ -275,7 +282,9 @@ public class Evictor extends DaemonThread {
      *
      * @return the number of bytes evicted, or zero if no progress was made.
      */
-    long evictBatch(String source, long requiredEvictBytes)
+    long evictBatch(String source,
+                    boolean backgroundIO,
+                    long requiredEvictBytes)
         throws DatabaseException {
 
         nNodesSelectedThisRun = 0;
@@ -333,7 +342,8 @@ public class Evictor extends DaemonThread {
                     break;
                 } else {
                     assert evictProfile.count(target);//intentional side effect
-                    evictBytes += evict(inList, target, scanIter);
+                    evictBytes += evict
+                        (inList, target, scanIter, backgroundIO);
                 }
                 nBatchSets++;
             }
@@ -594,7 +604,10 @@ public class Evictor extends DaemonThread {
      * Strip or evict this node.
      * @return number of bytes evicted.
      */
-    private long evict(INList inList, IN target, ScanIterator scanIter)
+    private long evict(INList inList,
+                       IN target,
+                       ScanIterator scanIter,
+                       boolean backgroundIO)
         throws DatabaseException {
         
 	boolean envIsReadOnly = envImpl.isReadOnly();
@@ -670,7 +683,8 @@ public class Evictor extends DaemonThread {
                         evictedBytes =  evictIN(target, result.parent,
                                                 result.index,
                                                 inList, scanIter,
-                                                envIsReadOnly);
+                                                envIsReadOnly,
+                                                backgroundIO);
                     }
                 }
             } finally {
@@ -692,7 +706,8 @@ public class Evictor extends DaemonThread {
                          int index,
                          INList inlist,
                          ScanIterator scanIter,
-			 boolean envIsReadOnly)
+			 boolean envIsReadOnly,
+                         boolean backgroundIO)
         throws DatabaseException {
 
         long evictBytes = 0;
@@ -739,6 +754,7 @@ public class Evictor extends DaemonThread {
                                      false, // allowDeltas
                                      logProvisional,
                                      true,  // proactiveMigration
+                                     backgroundIO,
                                      parent);
                                 newChildLsn = true;
                             }

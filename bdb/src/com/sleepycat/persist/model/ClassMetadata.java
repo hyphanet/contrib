@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ClassMetadata.java,v 1.9 2006/09/12 19:17:04 cwl Exp $
+ * $Id: ClassMetadata.java,v 1.11 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -136,11 +135,30 @@ public class ClassMetadata implements Serializable {
         }
     }
 
+    @Override
+    public int hashCode() {
+        return version +
+               (entityClass ? 1 : 0) +
+               hashCode(className) +
+               hashCode(proxiedClassName) +
+               hashCode(primaryKey) +
+               hashCode(secondaryKeys) +
+               hashCode(compositeKeyFields);
+    }
+
     static boolean nullOrEqual(Object o1, Object o2) {
         if (o1 == null) {
             return o2 == null;
         } else {
             return o1.equals(o2);
+        }
+    }
+
+    static int hashCode(Object o) {
+        if (o != null) {
+            return o.hashCode();
+        } else {
+            return 0;
         }
     }
 }

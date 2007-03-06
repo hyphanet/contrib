@@ -1,33 +1,29 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Environment.java,v 1.175 2006/09/12 19:16:42 cwl Exp $
+ * $Id: Environment.java,v 1.179 2006/11/06 20:36:55 linda Exp $
  */
 
 package com.sleepycat.je;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 
 import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.DbEnvPool;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.txn.LockerFactory;
+import com.sleepycat.je.utilint.DatabaseUtil;
 import com.sleepycat.je.utilint.Tracer;
 
 /**
@@ -35,12 +31,6 @@ import com.sleepycat.je.utilint.Tracer;
  * via the doc templates in the doc_src directory.
  */
 public class Environment {
-
-    /* 
-     * The name of the je properties file, to be found in the environment
-     * directory.
-     */
-    private static final String PROPFILE_NAME = "je.properties";
 
     protected EnvironmentImpl environmentImpl;
     private TransactionConfig defaultTxnConfig;
@@ -95,42 +85,58 @@ public class Environment {
         copyToHandleConfig(useConfig, useConfig);
 
         /* Look in the shared pool for this environment. */
-        DbEnvPool.EnvironmentImplInfo envInfo  =
-            DbEnvPool.getInstance().getEnvironment(envHome, useConfig);
-        environmentImpl = envInfo.envImpl;
+        DbEnvPool.EnvironmentImplInfo envInfo;
 
-        /* Check if the environmentImpl is valid. */
-        environmentImpl.checkIfInvalid();
+	/*
+	 * An Environment.close() could occur between the time we get the
+	 * envImpl out of the DbEnvPool above and the time we increment the
+	 * reference count.  If this were to happen then environmentImpl would
+	 * refer to an envImpl that was no longer in the DbEnvPool (because
+	 * when it was closed it was removed.  Check here that the envImpl we
+	 * have in hand is still in the DbEnvPool, and if not, abandon it and
+	 * try over again.  [#15200].
+	 */
+	do {
+	    envInfo =
+		DbEnvPool.getInstance().getEnvironment(envHome, useConfig);
+	    environmentImpl = envInfo.envImpl;
 
-        if (!envInfo.firstHandle && configuration != null) {
+	    /* Check if the environmentImpl is valid. */
+	    environmentImpl.checkIfInvalid();
 
-            /* Perform all environment config updates atomically. */
-            synchronized (environmentImpl) {
+	    if (!envInfo.firstHandle && configuration != null) {
 
-                /* 
-                 * If a non-null configuration parameter was passed in and this
-                 * is not the handle that created the underlying
-                 * EnvironmentImpl, check that the configuration parameters
-                 * specified for this open match those of the currently open
-                 * environment. An exception is thrown if the check fails.
-                 *
-                 * Don't do this check if this handle created the environment
-                 * because the creation might have modified the parameters,
-                 * which would create a Catch-22 in terms of validation.  For
-                 * example, je.maxMemory will be overridden if the JVM's -mx
-                 * flag is less than that setting, so the initial handle's
-                 * config object won't be the same as the passed in config.
-                 */
-                environmentImpl.checkImmutablePropsForEquality(useConfig);
-            }
-        }
+		/* Perform all environment config updates atomically. */
+		synchronized (environmentImpl) {
+
+		    /* 
+		     * If a non-null configuration parameter was passed in and
+		     * this is not the handle that created the underlying
+		     * EnvironmentImpl, check that the configuration parameters
+		     * specified for this open match those of the currently
+		     * open environment. An exception is thrown if the check
+		     * fails.
+		     *
+		     * Don't do this check if this handle created the
+		     * environment because the creation might have modified the
+		     * parameters, which would create a Catch-22 in terms of
+		     * validation.  For example, je.maxMemory will be
+		     * overridden if the JVM's -mx flag is less than that
+		     * setting, so the initial handle's config object won't be
+		     * the same as the passed in config.
+		     */
+		    environmentImpl.checkImmutablePropsForEquality(useConfig);
+		}
+	    }
             
-        if (!valid) {
-            valid = true;
-        }
+	    if (!valid) {
+		valid = true;
+	    }
 
-        /* Successful, increment reference count */
-        environmentImpl.incReferenceCount();
+	    /* Successful, increment reference count */
+	    environmentImpl.incReferenceCount();
+	} while (DbEnvPool.getInstance().
+		 getExistingEnvironment(envHome).envImpl != environmentImpl);
     }
 
     /**
@@ -146,33 +152,54 @@ public class Environment {
         valid = false;
 
         /* Look in the shared pool for this environment. */
-        DbEnvPool.EnvironmentImplInfo envInfo  =
-            DbEnvPool.getInstance().getExistingEnvironment(envHome);
+        DbEnvPool.EnvironmentImplInfo envInfo;
+	while (true) {
+	    envInfo =
+		DbEnvPool.getInstance().getExistingEnvironment(envHome);
         
-        EnvironmentImpl foundImpl = envInfo.envImpl;
-        if (foundImpl != null) {
-            /* Check if the environmentImpl is valid. */
-            foundImpl.checkIfInvalid();
+	    EnvironmentImpl foundImpl = envInfo.envImpl;
+	    if (foundImpl != null) {
+		/* Check if the environmentImpl is valid. */
+		foundImpl.checkIfInvalid();
 
-            /* Successful, increment reference count */
-            environmentImpl = foundImpl;
-            environmentImpl.incReferenceCount();
+		/* Successful, increment reference count */
+		environmentImpl = foundImpl;
+		environmentImpl.incReferenceCount();
 
-            /* 
-             * Initialize the handle's environment config, so that it's valid
-             * to call setConfig and getConfig against this handle.  Make a
-             * copy, apply je.properties, and init the handle config.
-             */
-            EnvironmentConfig useConfig =
-                EnvironmentConfig.DEFAULT.cloneConfig();
-            applyFileConfig(envHome, useConfig);
-            copyToHandleConfig(useConfig, useConfig);
+		/*
+		 * An Environment.close() could occur between the time we get
+		 * the envImpl out of the DbEnvPool above and the time we
+		 * increment the reference count.  If this were to happen then
+		 * environmentImpl would refer to an envImpl that was no longer
+		 * in the DbEnvPool (because when it was closed it was removed.
+		 * Check here that the envImpl we have in hand is still in the
+		 * DbEnvPool, and if not, abandon it and try over again.
+		 * [#15200].
+		 */
+		if (DbEnvPool.getInstance().
+		    getExistingEnvironment(envHome).envImpl !=
+		    environmentImpl) {
+		    continue;
+		}
 
-            /* Need this in order to open database handles. */
-            referringDbs = Collections.synchronizedSet(new HashSet());
+		/* 
+		 * Initialize the handle's environment config, so that it's
+		 * valid to call setConfig and getConfig against this handle.
+		 * Make a copy, apply je.properties, and init the handle
+		 * config.
+		 */
+		EnvironmentConfig useConfig =
+		    EnvironmentConfig.DEFAULT.cloneConfig();
+		applyFileConfig(envHome, useConfig);
+		copyToHandleConfig(useConfig, useConfig);
 
-            valid = true;
-        }
+		/* Need this in order to open database handles. */
+		referringDbs = Collections.synchronizedSet(new HashSet());
+
+		valid = true;
+		break;
+	    }
+	}
     }
 
     /**
@@ -185,37 +212,10 @@ public class Environment {
 
         /* Apply the je.properties file. */
         if (useConfig.getLoadPropertyFile()) {
-            File paramFile = null;
-            try {
-                paramFile = new File(envHome, PROPFILE_NAME);
-                Properties fileProps = new Properties();	 
-		FileInputStream fis = new FileInputStream(paramFile);
-                fileProps.load(fis);
-                fis.close();
-
-                /* Validate the existing file. */
-                useConfig.validateProperties(fileProps);
-                
-                /* Add them to the configuration object. */
-                Iterator iter = fileProps.entrySet().iterator();
-                while (iter.hasNext()) {
-                    Map.Entry propPair = (Map.Entry) iter.next();
-                    String name = (String) propPair.getKey();
-                    String value = (String) propPair.getValue();
-                    useConfig.setConfigParam(name, value);
-                }
-            } catch (FileNotFoundException e) {	 
-
-		/* 
-		 * Klockwork - ok
-                 * Eat the exception, okay if the file doesn't exist.
-		 */
-            } catch (IOException e) {	 
-                IllegalArgumentException e2 = new IllegalArgumentException
-                    ("An error occurred when reading " + paramFile);
-                e2.initCause(e);
-                throw e2;
-            }
+            DbConfigManager.applyFileConfig(envHome, 
+                                            DbInternal.getProps(useConfig),
+                                            false /* forReplication */,
+                                            useConfig.getClass().getName());
         }
     }
 

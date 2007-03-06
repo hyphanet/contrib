@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ChildReference.java,v 1.98 2006/09/12 19:16:56 cwl Exp $
+ * $Id: ChildReference.java,v 1.100 2006/11/17 23:47:27 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -25,6 +24,12 @@ import com.sleepycat.je.utilint.DbLsn;
  * contains a node reference, key, and LSN.
  */
 public class ChildReference implements LogWritable, LogReadable {
+
+    static final int ROOT_LOG_SIZE =
+            LogUtils.getByteArrayLogSize(new byte[0]) +   // key
+	    LogUtils.getLongLogSize() +                   // LSN
+            1;                                            // state
+
     private Node target;
     private long lsn;
     private byte[] key;

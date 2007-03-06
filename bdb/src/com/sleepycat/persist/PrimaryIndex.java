@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: PrimaryIndex.java,v 1.14 2006/09/12 19:17:01 cwl Exp $
+ * $Id: PrimaryIndex.java,v 1.17 2006/12/04 02:49:52 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -19,6 +18,7 @@ import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
@@ -34,9 +34,11 @@ import com.sleepycat.persist.model.PrimaryKey;
  * safely call the methods of a shared {@code PrimaryIndex} object.</p>
  *
  * <p>{@code PrimaryIndex} implements {@link EntityIndex} to map the primary
- * key type (PK) to the entity type (E).  The {@link Entity} annotation may be
- * used to define an entity class and the {@link PrimaryKey} annotation may be
- * used to define a primary key.  For example:</p>
+ * key type (PK) to the entity type (E).</p>
+ *
+ * <p>The {@link Entity} annotation may be used to define an entity class and
+ * the {@link PrimaryKey} annotation may be used to define a primary key as
+ * shown in the following example.</p>
  *
  * <pre class="code">
  * {@literal @Entity}
@@ -179,6 +181,19 @@ import com.sleepycat.persist.model.PrimaryKey;
  * it shares the common index methods for retrieving and deleting entities,
  * opening cursors and using transactions.  See {@link EntityIndex} for more
  * information on these topics.</p>
+ *
+ * <p>Note that when using an index, keys and values are stored and retrieved
+ * by value not by reference.  In other words, if an entity object is stored
+ * and then retrieved, or retrieved twice, each object will be a separate
+ * instance.  For example, in the code below the assertion will always
+ * fail.</p>
+ * <pre class="code">
+ * MyKey key = ...;
+ * MyEntity entity1 = new MyEntity(key, ...);
+ * index.put(entity1);
+ * MyEntity entity2 = index.get(key);
+ * assert entity1 == entity2; // always fails!
+ * </pre>
  *
  * @author Mark Hayes
  */
@@ -323,8 +338,11 @@ public class PrimaryIndex<PK,E> extends BasicIndex<PK,E> {
         assignKey(entity, keyEntry);
 
         boolean autoCommit = false;
-        if (transactional && txn == null) {
-            txn = db.getEnvironment().beginTransaction(null, null);
+	Environment env = db.getEnvironment();
+        if (transactional &&
+	    txn == null &&
+	    env.getThreadTransaction() == null) {
+            txn = env.beginTransaction(null, null);
             autoCommit = true;
         }
 

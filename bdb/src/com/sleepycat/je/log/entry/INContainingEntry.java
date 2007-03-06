@@ -1,10 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: INContainingEntry.java,v 1.15 2006/09/12 19:16:52 cwl Exp $ 
+ * $Id: INContainingEntry.java,v 1.16 2006/10/30 21:14:21 bostic Exp $ 
  */
 
 package com.sleepycat.je.log.entry;

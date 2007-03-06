@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Weight.java,v 1.8 2006/09/12 19:16:27 cwl Exp $
+ * $Id: Weight.java,v 1.9 2006/10/30 21:13:58 bostic Exp $
  */
 
 package collections.ship.entity;

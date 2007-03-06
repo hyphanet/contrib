@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: BIN.java,v 1.184 2006/09/12 19:16:55 cwl Exp $
+ * $Id: BIN.java,v 1.187 2006/11/03 03:07:55 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -838,7 +837,8 @@ public class BIN extends IN implements LoggableObject {
 
                 /* 
                  * Note that old offset will not be marked obsolete. Ideally
-                 * we'd use getLsn(index).
+                 * we'd use getLsn(index).  For DW we don't know the size of
+                 * the last logged LN, so we pass zero for the obsolete size.
                  */
                 EnvironmentImpl envImpl = dbImpl.getDbEnvironment();
                 long oldOffset = envImpl.getDeferredWriteTemp() ?
@@ -847,6 +847,7 @@ public class BIN extends IN implements LoggableObject {
                                   dbImpl.getId(),
                                   getKey(index),
                                   oldOffset, // offset tracking
+                                  0,         // obsolete size
                                   null,      // locker
                                   false);    // Is provisional.
                 updateEntry(index, lsn);
@@ -969,7 +970,9 @@ public class BIN extends IN implements LoggableObject {
 
                         /* 
                          * Note that old offset will not be marked obsolete.
-                         * Ideally we'd use getLsn(i). 
+                         * Ideally we'd use getLsn(i).   For DW we don't know
+                         * the size of the last logged LN, so we pass zero for
+                         * the obsolete size.
                          */
                         long oldOffset = envImpl.getDeferredWriteTemp() ?
                             getLsn(i) : DbLsn.NULL_LSN;
@@ -977,8 +980,9 @@ public class BIN extends IN implements LoggableObject {
                                                getDatabase().getId(),
                                                getKey(i),
                                                oldOffset, // obsolete tracking
+                                               0,         // obsolete size
                                                null,      // locker 
-                                               false);    // isprovisional
+                                               true);     // backgroundIO
                         updateEntry(i, childLsn);
                     }
 
@@ -990,10 +994,11 @@ public class BIN extends IN implements LoggableObject {
                             din.logDirtyChildren();
                             long childLsn =
                                 din.log(envImpl.getLogManager(),
-                                        false, /* allow deltas */
-                                        true,  /* is provisional */
-                                        false, /* proactive migration.*/
-                                        this); /* provisional parent */
+                                        false, // allow deltas
+                                        true,  // is provisional
+                                        false, // proactive migration
+                                        true,  // backgroundIO
+                                        this); // provisional parent
                             updateEntry(i, childLsn);
                         }
                     } finally {
@@ -1023,6 +1028,7 @@ public class BIN extends IN implements LoggableObject {
 			       boolean allowDeltas,
 			       boolean isProvisional,
                                boolean proactiveMigration,
+                               boolean backgroundIO,
                                IN parent)
         throws DatabaseException {
 
@@ -1031,7 +1037,7 @@ public class BIN extends IN implements LoggableObject {
 
         /* Allow the cleaner to migrate LNs before logging. */
         Cleaner cleaner = getDatabase().getDbEnvironment().getCleaner();
-        cleaner.lazyMigrateLNs(this, proactiveMigration);
+        cleaner.lazyMigrateLNs(this, proactiveMigration, backgroundIO);
 
         /* Check for dirty LNs in deferred-write databases. */
         if (getDatabase().isDeferredWrite()) {
@@ -1063,14 +1069,16 @@ public class BIN extends IN implements LoggableObject {
              * Don't change the dirtiness of the node -- leave it dirty. Deltas
              * are never provisional, they must be processed at recovery time.
              */
-            lastDeltaVersion = logManager.log(deltaInfo);
+            lastDeltaVersion = logManager.log
+                (deltaInfo, false, // isProvisional
+                 backgroundIO, DbLsn.NULL_LSN, 0);
             returnLsn = DbLsn.NULL_LSN;
             numDeltasSinceLastFull++;
         } else {
             /* Log a full version of the IN. */
             returnLsn = super.logInternal
                 (logManager, allowDeltas, isProvisional, proactiveMigration,
-                 parent);
+                 backgroundIO, parent);
             lastDeltaVersion = DbLsn.NULL_LSN;
             numDeltasSinceLastFull = 0;
         }
@@ -1102,15 +1110,20 @@ public class BIN extends IN implements LoggableObject {
 
                     /* 
                      * Note that old offset will not be marked obsolete.
-                     * Ideally we'd use getLsn(i). 
+                     * Ideally we'd use getLsn(i).   For DW we don't know the
+                     * size of the last logged LN, so we pass zero for the
+                     * obsolete size.
                      */
                     long oldOffset = envImpl.getDeferredWriteTemp() ?
                         getLsn(i) : DbLsn.NULL_LSN;
                     long lsn = ln.log(envImpl,
                                       dbId,
                                       getKey(i),
+                                      null,           // delDupKey
                                       oldOffset,      // obsolete tracking
+                                      0,              // obsolete size
                                       null,           // locker 
+                                      true,           // backgroundIO
                                       false);         // Is provisional. 
                     updateEntry(i, lsn);
                 }

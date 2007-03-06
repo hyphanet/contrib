@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DatabaseEntry.java,v 1.38 2006/09/13 15:48:17 mark Exp $
+ * $Id: DatabaseEntry.java,v 1.41 2006/12/04 18:47:40 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -26,14 +25,23 @@ public class DatabaseEntry {
     private int size = 0;
     private boolean partial = false; 
 
+    /* The maximum number of bytes to show when toString() is called. */
+    /* FindBugs - ignore not "final" since a user can set this. */
+    public static int MAX_DUMP_BYTES = 100;
+
     public String toString() {
 	StringBuffer sb = new StringBuffer("<DatabaseEntry");
-	sb.append(" dlen=").append(dlen);
-	sb.append(" doff=").append(doff);
-	sb.append(" doff=").append(doff);
-	sb.append(" offset=").append(offset);
-	sb.append(" size=").append(size);
-	sb.append(">");
+	sb.append(" dlen=\"").append(dlen);
+	sb.append("\" doff=\"").append(doff);
+	sb.append("\" doff=\"").append(doff);
+	sb.append("\" offset=\"").append(offset);
+	sb.append("\" size=\"").append(size);
+	sb.append("\" data=\"").append(dumpData());
+	if ((size - 1) > MAX_DUMP_BYTES) {
+	    sb.append(" ... ").append((size - MAX_DUMP_BYTES) +
+				      " bytes not shown ");
+	}
+	sb.append("\"/>");
 	return sb.toString();
     }
 
@@ -195,7 +203,8 @@ public class DatabaseEntry {
      * Dumps the data as a byte array, for tracing purposes
      */
     String dumpData() {
-        return TreeUtils.dumpByteArray(KeyRange.getByteArray(this));
+        return TreeUtils.dumpByteArray(KeyRange.getByteArray(this,
+							     MAX_DUMP_BYTES));
     }
 
     /**

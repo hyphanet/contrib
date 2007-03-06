@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 1997-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 1997,2006 Oracle.  All rights reserved.
  *
- * $Id: SequenceExample.java,v 1.6 2006/09/12 19:16:34 cwl Exp $
+ * $Id: SequenceExample.java,v 1.7 2006/10/30 21:14:03 bostic Exp $
  */
 
 package je;

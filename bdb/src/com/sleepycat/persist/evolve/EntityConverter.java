@@ -1,18 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EntityConverter.java,v 1.5 2006/09/22 05:23:07 mark Exp $
+ * $Id: EntityConverter.java,v 1.8 2006/12/05 01:35:36 mark Exp $
  */
 
 package com.sleepycat.persist.evolve;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -76,6 +73,11 @@ public class EntityConverter extends Converter {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return deletedKeys.hashCode() + super.hashCode();
     }
 
     @Override

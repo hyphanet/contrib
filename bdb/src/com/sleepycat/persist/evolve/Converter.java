@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Converter.java,v 1.7 2006/09/21 13:35:57 mark Exp $
+ * $Id: Converter.java,v 1.9 2006/12/05 01:35:36 mark Exp $
  */
 
 package com.sleepycat.persist.evolve;
@@ -110,6 +109,11 @@ public class Converter extends Mutation {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return conversion.hashCode() + super.hashCode();
     }
 
     @Override

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Key.java,v 1.59 2006/09/12 19:16:56 cwl Exp $
+ * $Id: Key.java,v 1.61 2006/11/09 22:26:30 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -132,7 +131,7 @@ public final class Key implements Comparable {
 	return (a1Len - a2Len);
     }
 
-    public static String dumpString(byte[] key, int nspaces){
+    public static String dumpString(byte[] key, int nspaces) {
 	StringBuffer sb = new StringBuffer();
         sb.append(TreeUtils.indent(nspaces));
 	sb.append("<key v=\"");

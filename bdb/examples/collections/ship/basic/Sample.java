@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *	Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Sample.java,v 1.15 2006/09/12 19:16:26 cwl Exp $
+ * $Id: Sample.java,v 1.17 2006/10/31 19:56:10 mark Exp $
  */
 
 package collections.ship.basic;
@@ -13,7 +12,6 @@ import java.io.FileNotFoundException;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.sleepycat.collections.StoredIterator;
 import com.sleepycat.collections.TransactionRunner;
 import com.sleepycat.collections.TransactionWorker;
 import com.sleepycat.je.DatabaseException;
@@ -243,25 +241,14 @@ public class Sample {
     /**
      * Print the key/value objects returned by an iterator of Map.Entry
      * objects.
-     *
-     * <p><b> IMPORTANT: All database iterators must be closed to avoid
-     * serious database problems.  If the iterator is not closed, the
-     * underlying Berkeley DB cursor is not closed either. </b></p>
      */
     private void printEntries(String label, Iterator iterator) {
 
         System.out.println("\n--- " + label + " ---");
-        try {
-            while (iterator.hasNext()) {
-                Map.Entry entry = (Map.Entry) iterator.next();
-                System.out.println(entry.getKey().toString());
-                System.out.println(entry.getValue().toString());
-            }
-        } finally {
-            // IMPORTANT: Use StoredIterator to close all database
-            // iterators.  If java.util.Iterator is in hand, you can safely
-            // close it by calling StoredIterator.close(Iterator).
-            StoredIterator.close(iterator);
+        while (iterator.hasNext()) {
+            Map.Entry entry = (Map.Entry) iterator.next();
+            System.out.println(entry.getKey().toString());
+            System.out.println(entry.getValue().toString());
         }
     }
 }

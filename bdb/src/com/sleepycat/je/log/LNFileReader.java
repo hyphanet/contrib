@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LNFileReader.java,v 1.57 2006/09/12 19:16:51 cwl Exp $
+ * $Id: LNFileReader.java,v 1.58 2006/10/30 21:14:20 bostic Exp $
  */
 
 package com.sleepycat.je.log;

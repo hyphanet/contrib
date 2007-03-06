@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: StoredModel.java,v 1.9 2006/09/13 15:48:21 mark Exp $
+ * $Id: StoredModel.java,v 1.10 2006/10/30 21:14:32 bostic Exp $
  */
 
 package com.sleepycat.persist.impl;

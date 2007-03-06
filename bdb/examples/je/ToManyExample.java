@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2004,2006 Oracle.  All rights reserved.
  *
- * $Id: ToManyExample.java,v 1.4 2006/09/12 19:16:34 cwl Exp $
+ * $Id: ToManyExample.java,v 1.5 2006/10/30 21:14:04 bostic Exp $
  */
 
 package je;

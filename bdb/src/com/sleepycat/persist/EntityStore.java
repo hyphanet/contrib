@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: EntityStore.java,v 1.24 2006/09/20 22:10:10 mark Exp $
+ * $Id: EntityStore.java,v 1.28 2006/12/04 18:52:56 linda Exp $
  */
 
 package com.sleepycat.persist;
@@ -330,6 +329,7 @@ public class EntityStore {
 
         /* Make subclass metadata available before getting the index. */
         getModel().getClassMetadata(entitySubclass.getName());
+
         return store.getSecondaryIndex
             (primaryIndex, entitySubclass,
              primaryIndex.getEntityClass().getName(),
@@ -401,6 +401,40 @@ public class EntityStore {
         throws DatabaseException {
 
         store.truncateClass(txn, entityClass);
+    }
+
+   /**
+    * Flushes each modified index to disk that was opened in deferred-write
+    * mode.
+    *
+    * <p>All indexes are opened in deferred-write mode if true was passed to
+    * {@link StoreConfig#setDeferredWrite} for the store.</p>
+    *
+    * <p>Alternatively, individual databases may be configured for deferred
+    * write using {@link DatabaseConfig#setDeferredWrite} along with {@link
+    * #getPrimaryConfig} and {@link #setPrimaryConfig}.  Caution should be used
+    * when configuring only some databases for deferred-write, since durability
+    * will be different for these databases than for other databases in the
+    * same store.</p>
+    *
+    * <p>This method is functionally equivalent to calling {@link
+    * Database#sync} for each deferred-write index Database that is open for
+    * this store.  However, while {@link Database#sync} flushes the log to disk
+    * each time it is called, this method flushes the log only once after
+    * syncing all databases; this method therefore causes less I/O than calling
+    * {@link Database#sync} multiple times.</p>
+    *
+    * <p>Instead of calling this method, {@link Environment#sync} may be used.
+    * The difference is that this method will only flush the databases for this
+    * store, while {@link Environment#sync} will sync all deferred-write
+    * databases currently open for the environment and will also perform a full
+    * checkpoint.  This method is therefore less expensive than a full sync of
+    * the environment.</p>
+    */
+    public void sync()
+        throws DatabaseException {
+
+        store.sync();
     }
 
     /**
@@ -505,6 +539,8 @@ public class EntityStore {
      * if the store is not {@link StoreConfig#setReadOnly ReadOnly}.</li>
      * <li>{@link DatabaseConfig#setReadOnly ReadOnly} is set to match
      * {@link StoreConfig#setReadOnly StoreConfig}.</li>
+     * <li>{@link DatabaseConfig#setDeferredWrite DeferredWrite} is set to
+     * match {@link StoreConfig#setDeferredWrite StoreConfig}.</li>
      * <li>{@link DatabaseConfig#setBtreeComparator BtreeComparator} is set to
      * an internal class if a key comparator is used.</li>
      * </ul>
@@ -557,6 +593,8 @@ public class EntityStore {
      * ReadOnly}.</li>
      * <li>{@link DatabaseConfig#setReadOnly ReadOnly} is set to match
      * the primary database.</li>
+     * <li>{@link DatabaseConfig#setDeferredWrite DeferredWrite} is set to
+     * match the primary database.</li>
      * <li>{@link DatabaseConfig#setBtreeComparator BtreeComparator} is set to
      * an internal class if a key comparator is used.</li>
      * <li>{@link DatabaseConfig#setSortedDuplicates SortedDuplicates} is set

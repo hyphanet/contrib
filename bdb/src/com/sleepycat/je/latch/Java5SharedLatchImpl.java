@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Java5SharedLatchImpl.java,v 1.6 2006/09/18 18:04:02 linda Exp $
+ * $Id: Java5SharedLatchImpl.java,v 1.8 2006/11/29 19:57:56 mark Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -25,7 +24,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
  * Class.forName().  LatchSupport only references this class through the
  * SharedLatch interface and only constructs this using
  *
- *    Class.forName("Java5LatchImpl").newInstance();
+ *    Class.forName("Java5SharedLatchImpl").newInstance();
  */
 class Java5SharedLatchImpl
     extends ReentrantReadWriteLock
@@ -165,6 +164,8 @@ class Java5SharedLatchImpl
 	try {
 	    if (isWriteLockedByCurrentThread()) {
 		writeLock().unlock();
+                /* Intentional side effect. */
+                assert (noteLatch ? unNoteLatch() : true);
 		return;
 	    }
 
@@ -188,12 +189,11 @@ class Java5SharedLatchImpl
 		 */
 		readLock().unlock();
 	    }
+	    /* Intentional side effect. */
+	    assert (noteLatch ? unNoteLatch() : true);
 	} catch (IllegalMonitorStateException IMSE) {
 	    IMSE.printStackTrace();
 	    return;
-	} finally {
-	    /* Intentional side effect. */
-	    assert (noteLatch ? unNoteLatch() : true);
 	}
     }
 

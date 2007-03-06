@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ScavengerFileReader.java,v 1.11 2006/09/15 10:38:04 cwl Exp $
+ * $Id: ScavengerFileReader.java,v 1.12 2006/10/30 21:14:20 bostic Exp $
  */
 
 package com.sleepycat.je.log;

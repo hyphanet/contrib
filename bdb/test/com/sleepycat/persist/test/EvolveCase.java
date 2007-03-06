@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: EvolveCase.java,v 1.6 2006/09/22 05:28:52 mark Exp $
+ * $Id: EvolveCase.java,v 1.8 2006/11/16 04:18:20 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -145,7 +144,7 @@ abstract class EvolveCase {
         TestCase.assertNull(model.getEntityMetadata(className));
         assertDbExists(false, env, className);
     }
-    
+
     /**
      * Asserts than a database expectExists or does not exist. If keyName is
      * null, checks an entity database.  If keyName is non-null, checks a
@@ -155,21 +154,8 @@ abstract class EvolveCase {
                                Environment env,
                                String entityClassName,
                                String keyName) {
-        String dbName = "persist#" + STORE_NAME + '#' + entityClassName;
-        if (keyName != null) {
-            dbName += "#" + keyName;
-        }
-        List allDbNames;
-        try {
-            allDbNames = env.getDatabaseNames();
-        } catch (DatabaseException e) {
-            throw new RuntimeException(e);
-        }
-        if (expectExists != allDbNames.contains(dbName)) {
-            TestCase.fail
-                ((expectExists ? "Does not exist: " : "Does exist: ") +
-                 dbName);
-        }
+        PersistTestUtils.assertDbExists
+            (expectExists, env, STORE_NAME, entityClassName, keyName);
     }
 
     static void checkVersions(EntityModel model, String name, int version) {

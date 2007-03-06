@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: RawType.java,v 1.8 2006/09/12 19:17:05 cwl Exp $
+ * $Id: RawType.java,v 1.10 2006/11/14 23:30:51 mark Exp $
  */
 
 package com.sleepycat.persist.raw;
@@ -50,9 +49,9 @@ public interface RawType {
     /**
      * Returns whether this is a {@link <a
      * href="../model/Entity.html#simpleTypes">simple type</a>}: primitive,
-     * primitive wrapper, String or Date.
+     * primitive wrapper, BigInteger, String or Date.
      * <!--
-     * primitive wrapper, String, BigInteger, BigDecimal or Date.
+     * primitive wrapper, BigInteger, BigDecimal, String or Date.
      * -->
      *
      * <p>If true is returned, {@link #isPrimitive} can be called for more

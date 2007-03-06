@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SecondaryCursor.java,v 1.33 2006/09/12 19:16:43 cwl Exp $
+ * $Id: SecondaryCursor.java,v 1.35 2006/11/06 20:36:55 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -18,6 +17,7 @@ import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.CursorImpl.SearchMode;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.txn.Locker;
+import com.sleepycat.je.utilint.DatabaseUtil;
 
 /**
  * Javadoc for this public class is generated via

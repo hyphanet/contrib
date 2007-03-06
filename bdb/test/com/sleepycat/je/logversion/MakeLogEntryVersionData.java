@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: MakeLogEntryVersionData.java,v 1.9 2006/09/12 19:17:21 cwl Exp $
+ * $Id: MakeLogEntryVersionData.java,v 1.11 2006/11/03 02:38:54 mark Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -103,7 +102,10 @@ public class MakeLogEntryVersionData {
         envConfig.setConfigParam
             (EnvironmentParams.BIN_DELTA_PERCENT.getName(),
              Integer.toString(75));
-        /* Force INDelete. */
+        /* Force INDelete -- only used when the root is purged. */
+        envConfig.setConfigParam
+            (EnvironmentParams.COMPRESSOR_PURGE_ROOT.getName(), "true");
+        /* Ensure that we create two BINs with N_ENTRIES LNs. */
         envConfig.setConfigParam
             (EnvironmentParams.NODE_MAX.getName(),
              Integer.toString(N_ENTRIES));
@@ -128,7 +130,6 @@ public class MakeLogEntryVersionData {
                 txn = env.beginTransaction(null, null);
             }
 
-            /* Write: {0, 0}, {0, 1}, {1, 0}, {2, 0}, {3, 0} */
             for (int j = 0; j < N_ENTRIES; j += 1) {
                 db.put(txn, Utils.entry(j), Utils.entry(0));
             }
@@ -149,7 +150,8 @@ public class MakeLogEntryVersionData {
             db.close();
         }
 
-        /* Compress to delete DBIN, DIN, BIN, IN. */
+        /* Compress twice to delete DBIN, DIN, BIN, IN. */
+        env.compress();
         env.compress();
 
         /* DB2 was not aborted and will contain: {3, 0} */
@@ -186,12 +188,11 @@ public class MakeLogEntryVersionData {
 
         /*
          * Get the set of all log entry types we expect to output.  We punt on
-         * one type -- MapLN -- because it is only a slight variant of the
-         * transactional version and because cleaning would be necessary to
-         * generate it.
+         * one type -- MapLN_TX -- because MapLN (non-transactional) is now
+         * used instead.
          */
         Set expectedTypes = LogEntryType.getAllTypes();
-        expectedTypes.remove(LogEntryType.LOG_MAPLN);
+        expectedTypes.remove(LogEntryType.LOG_MAPLN_TRANSACTIONAL);
 
         /* Open read-only and write all LogEntryType names to a text file. */
         envConfig.setReadOnly(true);

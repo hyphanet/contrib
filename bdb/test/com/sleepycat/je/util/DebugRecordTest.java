@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DebugRecordTest.java,v 1.39 2006/09/12 19:17:27 cwl Exp $
+ * $Id: DebugRecordTest.java,v 1.41 2006/10/30 21:14:53 bostic Exp $
  */
 
 package com.sleepycat.je.util;
@@ -76,6 +75,9 @@ public class DebugRecordTest extends TestCase {
 	    envConfig.setAllowCreate(true);
             /* Disable noisy UtilizationProfile database creation. */
             DbInternal.setCreateUP(envConfig, false);
+            /* Don't run the cleaner without a UtilizationProfile. */
+            envConfig.setConfigParam
+                (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 	
             env = new EnvironmentImpl(envHome, envConfig);
         

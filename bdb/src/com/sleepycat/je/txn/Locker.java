@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Locker.java,v 1.98 2006/09/12 19:16:58 cwl Exp $
+ * $Id: Locker.java,v 1.100 2006/11/17 23:47:28 mark Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -657,14 +656,6 @@ public abstract class Locker {
                 DbInternal.dbSetHandleLocker(dbHandle, destLocker);
             }
         }
-    }
-
-    /**
-     * If necessary, remember that this txn once owned a handle lock.  Done to
-     * make commit optimizations work correctly.
-     */
-    protected void rememberHandleWriteLock(Long lockId) {
-        /* by default, nothing to do. */
     }
     
     /*

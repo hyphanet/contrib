@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SecondaryConfig.java,v 1.16 2006/09/12 19:16:43 cwl Exp $
+ * $Id: SecondaryConfig.java,v 1.19 2006/11/20 15:46:58 cwl Exp $
  */
 
 package com.sleepycat.je;
+
+import com.sleepycat.je.utilint.DatabaseUtil;
 
 /**
  * Javadoc for this public class is generated via
@@ -19,7 +20,7 @@ public class SecondaryConfig extends DatabaseConfig {
      * For internal use, to allow null as a valid value for
      * the config parameter.
      */
-    static SecondaryConfig DEFAULT = new SecondaryConfig();
+    public static final SecondaryConfig DEFAULT = new SecondaryConfig();
 
     private boolean allowPopulate;
     private SecondaryKeyCreator keyCreator;

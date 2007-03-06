@@ -1,10 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: BinDeltaTest.java,v 1.42 2006/09/12 19:17:25 cwl Exp $
+ * $Id: BinDeltaTest.java,v 1.44 2006/10/30 21:14:51 bostic Exp $
  */
 package com.sleepycat.je.tree;
 
@@ -158,7 +157,8 @@ public class BinDeltaTest extends TestCase {
 
             /* Log a full version. */
 	    bin.latch();
-            long fullLsn = bin.log(logManager, true, false, false, null);
+            long fullLsn = bin.log
+                (logManager, true, false, false, false, null);
 	    bin.releaseLatch();
             assertTrue(fullLsn != DbLsn.NULL_LSN);
           
@@ -218,7 +218,8 @@ public class BinDeltaTest extends TestCase {
 
             /* Log a full version. This will reflect the delete. */
 	    bin.latch();
-            long fullLsn = bin.log(logManager, true, false, false, null);
+            long fullLsn = bin.log
+                (logManager, true, false, false, false, null);
 	    bin.releaseLatch();
             assertTrue(fullLsn != DbLsn.NULL_LSN);
           
@@ -256,7 +257,8 @@ public class BinDeltaTest extends TestCase {
          *  Log it as a delta. If the logging was done as a delta, this method
          * returns null, so we expect null
          */
-        assertTrue(targetBIN.log(logManager, true, false, false, null) ==
+        assertTrue(targetBIN.log
+                    (logManager, true, false, false, false, null) ==
 		   DbLsn.NULL_LSN);
 
         /* Read the delta back. */

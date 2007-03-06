@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Cleaner.java,v 1.178 2006/09/12 19:16:43 cwl Exp $
+ * $Id: Cleaner.java,v 1.183 2006/11/17 23:47:21 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -134,6 +133,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     Level detailedTraceLevel;
     long cleanerBytesInterval;
     boolean trackDetail;
+    boolean fetchObsoleteSize;
 
     /**
      * All files that are to-be-cleaning or being-cleaned.  Used to perform
@@ -263,6 +263,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             cleanerBytesInterval = cm.getLong
                 (EnvironmentParams.LOG_FILE_MAX) / 4;
         }
+
+        fetchObsoleteSize = cm.getBoolean
+            (EnvironmentParams.CLEANER_FETCH_OBSOLETE_SIZE);
     }
 
     public UtilizationTracker getUtilizationTracker() {
@@ -271,6 +274,10 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
     public UtilizationProfile getUtilizationProfile() {
         return profile;
+    }
+
+    public boolean getFetchObsoleteSize() {
+        return fetchObsoleteSize;
     }
 
     /*
@@ -283,8 +290,22 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     public void runOrPause(boolean run) {
 	if (!env.isNoLocking()) {
 	    for (int i = 0; i < threads.length; i += 1) {
-		if (threads[i] != null) {
-		    threads[i].runOrPause(run);
+                FileProcessor processor = threads[i];
+		if (processor != null) {
+
+                    /*
+                     * When the cleaner is set to run, we need to wake up the
+                     * thread immediately since there may be a backlog of files
+                     * to clean.  But we must not block here if a file is
+                     * currently being processing.  Therefore we force a wakeup
+                     * by adding a work item.  This functionality may
+                     * eventually be moved to DaemonThread since it applies to
+                     * other deamons.  [#15158]
+                     */
+                    if (run) {
+                        processor.addSentinalWorkObject();
+                    }
+		    processor.runOrPause(run);
 		}
 	    }
 	}
@@ -618,11 +639,14 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
                 /* Evict before processing each entry. */
                 if (DO_CRITICAL_EVICTION) {
-                    env.getEvictor().doCriticalEviction();
+                    env.getEvictor().doCriticalEviction(true); // backgroundIO
                 }
 
                 processPendingLN
                     (ln, db, key, dupKey, location);
+
+                /* Sleep if background read/write limit was exceeded. */
+                env.sleepAfterBackgroundIO();
             }
         }
 
@@ -733,6 +757,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                      true,           // wasCleaned
                      true,           // isPending
                      ln.getNodeId(), // lockedPendingNodeId
+                     true,           // backgroundIO
                      CLEAN_PENDING_LN);
             }
             completed = true;
@@ -824,7 +849,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * @param proactiveMigration perform proactive migration if needed; this is
      * false during a split, to reduce the delay in the user operation.
      */
-    public void lazyMigrateLNs(final BIN bin, boolean proactiveMigration)
+    public void lazyMigrateLNs(final BIN bin,
+                               boolean proactiveMigration,
+                               boolean backgroundIO)
         throws DatabaseException {
 
         DatabaseImpl db = bin.getDatabase();
@@ -859,6 +886,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                           migrateFlag, // wasCleaned
                           false,       // isPending
                           0,           // lockedPendingNodeId
+                          backgroundIO,
                           CLEAN_MIGRATE_LN);
                      } else {
                          if (sortedIndices == null) {
@@ -887,6 +915,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                      migrateFlag, // wasCleaned
                      false,       // isPending
                      0,           // lockedPendingNodeId
+                     backgroundIO,
                      CLEAN_MIGRATE_LN);
             }
         }
@@ -1020,6 +1049,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                            boolean wasCleaned,
                            boolean isPending,
                            long lockedPendingNodeId,
+                           boolean backgroundIO,
                            String cleanAction)
         throws DatabaseException {
 
@@ -1130,7 +1160,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             /* Migrate the LN. */
             byte[] key = getLNMainKey(bin, index);
-            long newLNLsn = ln.log(env, db.getId(), key, lsn, locker);
+            long newLNLsn = ln.log
+                (env, db.getId(), key, lsn, ln.getTotalLastLoggedSize(key),
+                 locker, backgroundIO);
             bin.updateEntry(index, newLNLsn);
             nLNsMigrated++;
             migrated = true;
@@ -1280,7 +1312,10 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             /* Migrate the LN. */
             byte[] key = parentDIN.getDupKey();
-            long newLNLsn = ln.log(env, db.getId(), key, lsn, locker);
+            long newLNLsn = ln.log
+                (env, db.getId(), key, lsn, ln.getTotalLastLoggedSize(key),
+                 locker,
+                 false); // backgroundIO
             parentDIN.updateDupCountLNRef(newLNLsn);
             nLNsMigrated++;
             migrated = true;

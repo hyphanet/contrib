@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: SecondaryKey.java,v 1.8 2006/09/13 15:48:25 mark Exp $
+ * $Id: SecondaryKey.java,v 1.9 2006/10/30 21:14:33 bostic Exp $
  */
 
 package com.sleepycat.persist.model;

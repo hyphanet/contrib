@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LogManagerTest.java,v 1.65 2006/09/12 19:17:20 cwl Exp $
+ * $Id: LogManagerTest.java,v 1.67 2006/10/30 21:14:47 bostic Exp $
  */
 
 package com.sleepycat.je.log;
@@ -109,6 +108,9 @@ public class LogManagerTest extends TestCase {
             DbInternal.setCreateUP(envConfig, false);
             /* Don't checkpoint utilization info for this test. */
             DbInternal.setCheckpointUP(envConfig, false);
+            /* Don't run the cleaner without a UtilizationProfile. */
+            envConfig.setConfigParam
+                (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 
             /* 
              * Don't run any daemons, those emit trace messages and other log
@@ -172,6 +174,9 @@ public class LogManagerTest extends TestCase {
             DbInternal.setCreateUP(envConfig, false);
             /* Don't checkpoint utilization info for this test. */
             DbInternal.setCheckpointUP(envConfig, false);
+            /* Don't run the cleaner without a UtilizationProfile. */
+            envConfig.setConfigParam
+                (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 
             /* 
              * Don't run the cleaner or the checkpointer daemons, those create
@@ -356,6 +361,9 @@ public class LogManagerTest extends TestCase {
             DbInternal.setCreateUP(envConfig, false);
             /* Don't checkpoint utilization info for this test. */
             DbInternal.setCheckpointUP(envConfig, false);
+            /* Don't run the cleaner without a UtilizationProfile. */
+            envConfig.setConfigParam
+                (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 
             /* 
              * Don't run any daemons, those emit trace messages and other log

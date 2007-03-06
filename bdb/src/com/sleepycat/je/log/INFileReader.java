@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: INFileReader.java,v 1.48 2006/09/12 19:16:51 cwl Exp $
+ * $Id: INFileReader.java,v 1.51 2006/11/17 23:47:23 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -238,10 +237,15 @@ public class INFileReader extends FileReader {
                 }
             }
 
-            /* Count all entries as new. */
-            tracker.countNewLogEntry(getLastLsn(), fromLogType,
-                                     LogManager.HEADER_BYTES +
-                                     currentEntrySize);
+            /*
+             * Count all entries except for the file header as new.
+             * UtilizationTracker does not count the file header.
+             */
+            if (!LogEntryType.LOG_FILE_HEADER.equals(fromLogType)) {
+                tracker.countNewLogEntry(getLastLsn(), fromLogType,
+                                         LogManager.HEADER_BYTES +
+                                         currentEntrySize);
+            }
 
             /*
              * Return true if this entry should be passed on to processEntry.
@@ -390,7 +394,8 @@ public class INFileReader extends FileReader {
                 if (oldLsn != DbLsn.NULL_LSN) {
                     long newLsn = getLastLsn();
                     if (!isObsoleteLsnAlreadyCounted(oldLsn, newLsn)) {
-                        tracker.countObsoleteNodeInexact(oldLsn, fromLogType);
+                        tracker.countObsoleteNodeInexact
+                            (oldLsn, fromLogType, 0);
                     }
                 }
 
@@ -408,7 +413,8 @@ public class INFileReader extends FileReader {
                 if (isProvisional && partialCkptStart != DbLsn.NULL_LSN) {
                     oldLsn = getLastLsn();
                     if (DbLsn.compareTo(partialCkptStart, oldLsn) < 0) {
-                        tracker.countObsoleteNodeInexact(oldLsn, fromLogType);
+                        tracker.countObsoleteNodeInexact
+                            (oldLsn, fromLogType, 0);
                     }
                 }
             }

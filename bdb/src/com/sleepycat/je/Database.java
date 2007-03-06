@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: Database.java,v 1.212 2006/09/12 19:16:41 cwl Exp $
+ * $Id: Database.java,v 1.216 2006/12/04 15:00:47 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -24,6 +23,7 @@ import com.sleepycat.je.dbi.TruncateResult;
 import com.sleepycat.je.dbi.CursorImpl.SearchMode;
 import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.txn.LockerFactory;
+import com.sleepycat.je.utilint.DatabaseUtil;
 import com.sleepycat.je.utilint.TinyHashSet;
 import com.sleepycat.je.utilint.Tracer;
 
@@ -309,7 +309,7 @@ public class Database {
         checkWritable("sync");
         trace(Level.FINEST, "Database.sync", null, null, null, null);
 
-        databaseImpl.sync();
+        databaseImpl.sync(true);
     }
 
     /**
@@ -416,9 +416,8 @@ public class Database {
     }
 
     /*
-     * This is private until we agree on whether this should even be in the
-     * API.  See [14264].
-     */
+     * This is commented out until we agree on whether this should even be in
+     * the API.  See [14264].
     private OperationStatus delete(Transaction txn,
 				   DatabaseEntry key,
 				   DatabaseEntry data)
@@ -449,6 +448,7 @@ public class Database {
 	    throw E;
 	}
     }
+    */
 
     /**
      * Internal version of delete() that does no parameter checking.  Notify

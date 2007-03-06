@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: RawObject.java,v 1.10 2006/09/21 13:36:01 mark Exp $
+ * $Id: RawObject.java,v 1.12 2006/12/05 01:35:37 mark Exp $
  */
 
 package com.sleepycat.persist.raw;
@@ -197,6 +196,14 @@ public class RawObject {
             }
         }
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return System.identityHashCode(type) +
+               Arrays.deepHashCode(elements) +
+               (values != null ? values.hashCode() : 0) +
+               (superObject != null ? superObject.hashCode() : 0);
     }
 
     @Override

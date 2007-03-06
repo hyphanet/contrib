@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: RecoveryCreateDupTest.java,v 1.7 2006/09/12 19:17:22 cwl Exp $
+ * $Id: RecoveryCreateDupTest.java,v 1.8 2006/10/30 21:14:48 bostic Exp $
  */
 
 package com.sleepycat.je.recovery;

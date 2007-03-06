@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: OperationTest.java,v 1.9 2006/09/19 06:23:01 mark Exp $
+ * $Id: OperationTest.java,v 1.12 2006/11/27 22:44:24 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -12,11 +11,15 @@ package com.sleepycat.persist.test;
 import static com.sleepycat.persist.model.Relationship.MANY_TO_ONE;
 import static com.sleepycat.persist.model.Relationship.ONE_TO_MANY;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import junit.framework.Test;
 
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.test.TxnTestCase;
@@ -26,6 +29,7 @@ import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.SecondaryIndex;
 import com.sleepycat.persist.StoreConfig;
+import com.sleepycat.persist.impl.Store;
 import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.KeyField;
 import com.sleepycat.persist.model.Persistent;
@@ -73,6 +77,24 @@ public class OperationTest extends TxnTestCase {
         throws DatabaseException {
 
         store.close();
+        store = null;
+    }
+    
+    /**
+     * The store must be closed before closing the environment.
+     */
+    public void tearDown()
+        throws Exception {
+
+        try {
+            if (store != null) {
+                store.close();
+            }
+        } catch (Throwable e) {
+            System.out.println("During tearDown: " + e);
+        }
+        store = null;
+        super.tearDown();
     }
     
     public void testReadOnly() 
@@ -584,6 +606,29 @@ public class OperationTest extends TxnTestCase {
         close();
     }
 
+
+    /**
+     * Test a fix for a bug where opening a TO_MANY secondary index would fail
+     * fail with "IllegalArgumentException: Wrong secondary key class: ..."
+     * when the store was opened read-only.  [#15156]
+     */
+    public void testToManyReadOnly()
+        throws DatabaseException {
+
+        open();
+        PrimaryIndex<Integer,ToManyKeyEntity> priIndex =
+            store.getPrimaryIndex(Integer.class, ToManyKeyEntity.class);
+        priIndex.put(new ToManyKeyEntity());
+        close();
+
+        openReadOnly();
+        priIndex = store.getPrimaryIndex(Integer.class, ToManyKeyEntity.class);
+        SecondaryIndex<ToManyKey,Integer,ToManyKeyEntity> secIndex =
+            store.getSecondaryIndex(priIndex, ToManyKey.class, "key2");
+        secIndex.get(new ToManyKey());
+        close();
+    }
+
     @Persistent
     static class ToManyKey {
 
@@ -604,5 +649,71 @@ public class OperationTest extends TxnTestCase {
             key2 = new HashSet<ToManyKey>();
             key2.add(new ToManyKey());
         }
+    }
+    
+    public void testDeferredWrite() 
+        throws DatabaseException {
+
+        if (envConfig.getTransactional()) {
+            /* Deferred write cannot be used with transactions. */
+            return;
+        }
+        StoreConfig storeConfig = new StoreConfig();
+        storeConfig.setDeferredWrite(true);
+        storeConfig.setAllowCreate(true);
+        open(storeConfig);
+        assertTrue(store.getConfig().getDeferredWrite());
+
+        PrimaryIndex<Integer,MyEntity> priIndex =
+            store.getPrimaryIndex(Integer.class, MyEntity.class);
+
+        SecondaryIndex<Integer,Integer,MyEntity> secIndex =
+            store.getSecondaryIndex(priIndex, Integer.class, "secKey");
+
+        DatabaseConfig dbConfig = priIndex.getDatabase().getConfig();
+        assertTrue(dbConfig.getDeferredWrite());
+        dbConfig = secIndex.getDatabase().getConfig();
+        assertTrue(dbConfig.getDeferredWrite());
+
+        MyEntity e = new MyEntity();
+        e.priKey = 1;
+        e.secKey = 1;
+        priIndex.put(e);
+
+        EntityCursor<MyEntity> cursor = secIndex.entities();
+        cursor.next();
+        assertEquals(1, cursor.count());
+        cursor.close();
+
+        e.priKey = 2;
+        priIndex.put(e);
+        cursor = secIndex.entities();
+        cursor.next();
+        assertEquals(2, cursor.count());
+        cursor.close();
+
+        class MySyncHook implements Store.SyncHook {
+
+            boolean gotFlush;
+            List<Database> synced = new ArrayList<Database>();
+
+            public void onSync(Database db, boolean flushLog) {
+                synced.add(db);
+                if (flushLog) {
+                    assertTrue(!gotFlush);
+                    gotFlush = true;
+                }
+            }
+        }
+
+        MySyncHook hook = new MySyncHook();
+        Store.setSyncHook(hook);
+        store.sync();
+        assertTrue(hook.gotFlush);
+        assertEquals(2, hook.synced.size());
+        assertTrue(hook.synced.contains(priIndex.getDatabase()));
+        assertTrue(hook.synced.contains(secIndex.getDatabase()));
+
+        close();
     }
 }

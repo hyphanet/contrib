@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: DeferredWriteTest.java,v 1.3 2006/09/12 19:17:24 cwl Exp $
+ * $Id: DeferredWriteTest.java,v 1.5 2006/11/28 04:02:56 mark Exp $
  */
 
 package com.sleepycat.je.test;
@@ -538,14 +537,22 @@ public class DeferredWriteTest extends TestCase {
     private void doCleaning(String minUtilization, String logFileSize) 
         throws DatabaseException {
 
-        /* Run with a small cache so there's plenty of logging. */
+        /*
+         * Run with a small cache so there's plenty of logging.  But use a
+         * slightly bigger cache than the minimum so that eviction during
+         * cleaning has enough working room on 64-bit systems [#15176].
+         */
+        long cacheSize = MemoryBudget.MIN_MAX_MEMORY_SIZE +
+                        (MemoryBudget.MIN_MAX_MEMORY_SIZE / 2);
 	EnvironmentConfig envConfig = getEnvConfig(true);
         DbInternal.disableParameterValidation(envConfig);
-        envConfig.setCacheSize(MemoryBudget.MIN_MAX_MEMORY_SIZE);
+        envConfig.setCacheSize(cacheSize);
         envConfig.setConfigParam("je.cleaner.minUtilization",
                                  minUtilization);
         envConfig.setConfigParam("je.log.fileMax", logFileSize);
         envConfig.setConfigParam("je.cleaner.expunge", "false");
+        /* Disable cleaner thread so batch cleaning is predictable. [#15176] */
+        envConfig.setConfigParam("je.env.runCleaner", "false");
         env = new Environment(envHome, envConfig);
         Database db = createDb(true);
 

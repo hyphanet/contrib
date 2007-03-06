@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: LogEntryType.java,v 1.72 2006/09/12 19:16:51 cwl Exp $
+ * $Id: LogEntryType.java,v 1.75 2006/11/03 03:07:50 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -62,75 +61,90 @@ public class LogEntryType {
     public static final LogEntryType LOG_LN_TRANSACTIONAL =
         new LogEntryType((byte) 1, (byte) 0, "LN_TX",
 			 new LNLogEntry(com.sleepycat.je.tree.LN.class,
-					true));
+					true),
+                         true /* isReplicated */);
 
     public static final LogEntryType LOG_LN =
         new LogEntryType((byte) 2, (byte) 0, "LN",
 			 new LNLogEntry(com.sleepycat.je.tree.LN.class,
-					false));
+					false),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_MAPLN_TRANSACTIONAL =
         new LogEntryType((byte) 3, (byte) 2, "MapLN_TX",
 			 new LNLogEntry(com.sleepycat.je.tree.MapLN.class,
-					true));
+					true),
+                         true /* isReplicated */);
 
     public static final LogEntryType LOG_MAPLN =
         new LogEntryType((byte) 4, (byte) 2, "MapLN",
 			 new LNLogEntry(com.sleepycat.je.tree.MapLN.class,
-					false));
+					false),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_NAMELN_TRANSACTIONAL =
         new LogEntryType((byte) 5, (byte) 0, "NameLN_TX",
 			 new LNLogEntry(com.sleepycat.je.tree.NameLN.class,
-					true));
+					true),
+                         true /* isReplicated */);
 
     public static final LogEntryType LOG_NAMELN =
         new LogEntryType((byte) 6, (byte) 0, "NameLN",
 			 new LNLogEntry(com.sleepycat.je.tree.NameLN.class,
-					false));
+					false),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_DEL_DUPLN_TRANSACTIONAL =
         new LogEntryType((byte) 7, (byte) 0, "DelDupLN_TX",
-			 new DeletedDupLNLogEntry(true));
+			 new DeletedDupLNLogEntry(true),
+                         true /* isReplicated */);
 
     public static final LogEntryType LOG_DEL_DUPLN =
         new LogEntryType((byte) 8, (byte) 0, "DelDupLN",
-			 new DeletedDupLNLogEntry(false));
+			 new DeletedDupLNLogEntry(false),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_DUPCOUNTLN_TRANSACTIONAL =
         new LogEntryType
 	((byte) 9, (byte) 0, "DupCountLN_TX",
-	 new LNLogEntry(com.sleepycat.je.tree.DupCountLN.class, true));
+	 new LNLogEntry(com.sleepycat.je.tree.DupCountLN.class, true),
+         true /* isReplicated */);
 
     public static final LogEntryType LOG_DUPCOUNTLN =
         new LogEntryType
 	((byte) 10, (byte) 0, "DupCountLN",
-	 new LNLogEntry(com.sleepycat.je.tree.DupCountLN.class, false));
+	 new LNLogEntry(com.sleepycat.je.tree.DupCountLN.class, false),
+         false /* isReplicated */);
 
     public static final LogEntryType LOG_FILESUMMARYLN =
         new LogEntryType
-	((byte) 11, (byte) 2, "FileSummaryLN",
-	 new LNLogEntry(com.sleepycat.je.tree.FileSummaryLN.class, false));
+	((byte) 11, (byte) 3, "FileSummaryLN",
+	 new LNLogEntry(com.sleepycat.je.tree.FileSummaryLN.class, false),
+         false /* isReplicated */);
 
     public static final LogEntryType LOG_IN =
         new LogEntryType
 	((byte) 12, (byte) 2, "IN",
-	 new INLogEntry(com.sleepycat.je.tree.IN.class));
+	 new INLogEntry(com.sleepycat.je.tree.IN.class),
+         false /* isReplicated */);
 
     public static final LogEntryType LOG_BIN =
         new LogEntryType
 	((byte) 13, (byte) 2, "BIN",
-	 new INLogEntry(com.sleepycat.je.tree.BIN.class));
+	 new INLogEntry(com.sleepycat.je.tree.BIN.class),
+         false /* isReplicated */);
 
     public static final LogEntryType LOG_DIN =
         new LogEntryType
 	((byte) 14, (byte) 2, "DIN",
-	 new INLogEntry(com.sleepycat.je.tree.DIN.class));
+	 new INLogEntry(com.sleepycat.je.tree.DIN.class),
+         false /* isReplicated */);
 
     public static final LogEntryType LOG_DBIN =
         new LogEntryType
 	((byte) 15, (byte) 2, "DBIN",
-	 new INLogEntry(com.sleepycat.je.tree.DBIN.class));
+	 new INLogEntry(com.sleepycat.je.tree.DBIN.class),
+         false /* isReplicated */);
 
     public static final LogEntryType[] IN_TYPES = {
         LogEntryType.LOG_IN,
@@ -151,66 +165,78 @@ public class LogEntryType {
     public static final LogEntryType LOG_ROOT =
 	new LogEntryType((byte) 16, (byte) 1, "Root",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.dbi.DbTree.class));
+			     (com.sleepycat.je.dbi.DbTree.class),
+                         false /* isReplicated */);
 
     /* Transactional entries */
     public static final LogEntryType LOG_TXN_COMMIT =
         new LogEntryType((byte) 17, (byte) 0, "Commit",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.txn.TxnCommit.class));
+			     (com.sleepycat.je.txn.TxnCommit.class),
+                         true /* isReplicated */);
 
     public static final LogEntryType LOG_TXN_ABORT =
         new LogEntryType((byte) 18, (byte) 0, "Abort", 
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.txn.TxnAbort.class));
+			     (com.sleepycat.je.txn.TxnAbort.class),
+                         true /* isReplicated */);
 
     public static final LogEntryType LOG_CKPT_START =
         new LogEntryType
 	((byte) 19, (byte) 0, "CkptStart",
 	 new SingleItemLogEntry
-	     (com.sleepycat.je.recovery.CheckpointStart.class));
+	     (com.sleepycat.je.recovery.CheckpointStart.class),
+         false /* isReplicated */);
 
     public static final LogEntryType LOG_CKPT_END =
         new LogEntryType((byte) 20, (byte) 0, "CkptEnd",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.recovery.CheckpointEnd.class));
+			     (com.sleepycat.je.recovery.CheckpointEnd.class),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_IN_DELETE_INFO =
         new LogEntryType((byte) 21, (byte) 0, "INDelete",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.tree.INDeleteInfo.class));
+			     (com.sleepycat.je.tree.INDeleteInfo.class),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_BIN_DELTA =
         new LogEntryType((byte) 22, (byte) 0, "BINDelta",
 			 new BINDeltaLogEntry
-			     (com.sleepycat.je.tree.BINDelta.class));
+			     (com.sleepycat.je.tree.BINDelta.class),
+                         false /* isReplicated */);
             
     public static final LogEntryType LOG_DUP_BIN_DELTA =
         new LogEntryType((byte) 23, (byte) 0, "DupBINDelta", 
 			 new BINDeltaLogEntry
-			     (com.sleepycat.je.tree.BINDelta.class));
+			     (com.sleepycat.je.tree.BINDelta.class),
+                         false /* isReplicated */);
 
     /* Administrative entries */
     public static final LogEntryType LOG_TRACE =
         new LogEntryType((byte) 24, (byte) 0, "Trace",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.utilint.Tracer.class));
+			     (com.sleepycat.je.utilint.Tracer.class),
+                         false /* isReplicated */);
 
     /* File header */
     public static final LogEntryType LOG_FILE_HEADER =
         new LogEntryType((byte) 25, (byte) 0, "FileHeader",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.log.FileHeader.class));
+			     (com.sleepycat.je.log.FileHeader.class),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_IN_DUPDELETE_INFO =
         new LogEntryType((byte) 26, (byte) 0, "INDupDelete",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.tree.INDupDeleteInfo.class));
+			     (com.sleepycat.je.tree.INDupDeleteInfo.class),
+                         false /* isReplicated */);
 
     public static final LogEntryType LOG_TXN_PREPARE =
         new LogEntryType((byte) 27, (byte) 0, "Prepare",
 			 new SingleItemLogEntry
-			     (com.sleepycat.je.txn.TxnPrepare.class));
+			     (com.sleepycat.je.txn.TxnPrepare.class),
+                         false /* isReplicated */);
 
     /*** If you add new types, be sure to update MAX_TYPE_NUM at the top.***/
 
@@ -226,6 +252,7 @@ public class LogEntryType {
     private byte version; // for upgrades
     private String displayName;
     private LogEntry logEntry;
+    private boolean isReplicated; /* If true, replicate before logging. */
 
     /*
      * Constructors 
@@ -247,12 +274,14 @@ public class LogEntryType {
     private LogEntryType(byte typeNum,
 			 byte version,
 			 String displayName,
-			 LogEntry logEntry) {
+			 LogEntry logEntry,
+                         boolean isReplicated) {
 
         this.typeNum = typeNum;
         this.version = version;
         this.logEntry = logEntry;
         this.displayName = displayName;
+        this.isReplicated = isReplicated;
 	LOG_TYPES[typeNum - 1] = this;
     }
 
@@ -376,5 +405,13 @@ public class LogEntryType {
      */
     public int hashCode() {
         return typeNum;
+    }
+
+    /**
+     * Return true if this log entry should be transmitted to other
+     * sites if the environment is part of a replication group.
+     */
+    public boolean isReplicated() {
+        return isReplicated;
     }
 }

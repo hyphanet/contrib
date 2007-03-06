@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000-2006
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2006 Oracle.  All rights reserved.
  *
- * $Id: TransactionWorker.java,v 1.14 2006/09/12 19:16:40 cwl Exp $
+ * $Id: TransactionWorker.java,v 1.15 2006/10/30 21:14:10 bostic Exp $
  */
 
 package com.sleepycat.collections;
