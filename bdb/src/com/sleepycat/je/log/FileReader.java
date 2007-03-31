@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileReader.java,v 1.98 2006/11/03 03:07:50 mark Exp $
+ * $Id: FileReader.java,v 1.99.2.2 2007/03/08 22:32:54 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -16,6 +16,7 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
 
@@ -26,7 +27,7 @@ import com.sleepycat.je.utilint.Tracer;
  */
 public abstract class FileReader {
 
-    protected EnvironmentImpl env;
+    protected EnvironmentImpl envImpl;
     protected FileManager fileManager;
 
     /* Buffering reads */
@@ -65,12 +66,15 @@ public abstract class FileReader {
     /* Number of reads since the last time getAndResetNReads was called. */
     private int nReadOperations;
                                  
-    /* Info about the last entry seen. */
-    protected byte currentEntryTypeNum;
-    protected byte currentEntryTypeVersion;
-    protected long currentEntryPrevOffset;
-    protected int  currentEntrySize;
-    protected long currentEntryChecksum;
+    /* The log entry header for the entry that was just read. */
+    protected LogEntryHeader currentEntryHeader;
+
+    /* 
+     * In general, currentEntryPrevOffset is the same as 
+     * currentEntryHeader.getPrevOffset(), but it's initialized and used before
+     * a header is read.
+     */
+    protected long currentEntryPrevOffset;  
 
     /*
      * nextEntryOffset is used to set the currentEntryOffset after we've read
@@ -93,7 +97,7 @@ public abstract class FileReader {
      * A FileReader just needs to know what size chunks to read in.
      * @param endOfFileLsn indicates the end of the log file
      */
-    public FileReader(EnvironmentImpl env,
+    public FileReader(EnvironmentImpl envImpl,
                       int readBufferSize,
                       boolean forward,
                       long startLsn,
@@ -102,9 +106,9 @@ public abstract class FileReader {
                       long finishLsn)
         throws IOException, DatabaseException {
 
-        this.env = env;
-        this.fileManager = env.getFileManager();
-        this.doValidateChecksum = env.getLogManager().getChecksumOnRead();
+        this.envImpl = envImpl;
+        this.fileManager = envImpl.getFileManager();
+        this.doValidateChecksum = envImpl.getLogManager().getChecksumOnRead();
 
         /* Allocate a read buffer. */
         this.singleFile = (singleFileNumber != null);
@@ -114,7 +118,7 @@ public abstract class FileReader {
         threadSafeBufferFlip(readBuffer);
         saveBuffer = ByteBuffer.allocate(readBufferSize);
 
-        DbConfigManager configManager = env.getConfigManager();
+        DbConfigManager configManager = envImpl.getConfigManager();
         maxReadBufferSize =
 	    configManager.getInt(EnvironmentParams. LOG_ITERATOR_MAX_SIZE);
 
@@ -219,7 +223,28 @@ public abstract class FileReader {
      * Returns the total size (including header) of the last entry read.
      */
     public int getLastEntrySize() {
-        return LogManager.HEADER_BYTES + currentEntrySize;
+        return currentEntryHeader.getSize() + currentEntryHeader.getItemSize();
+    }
+
+    /**
+     * A bottleneck for all calls to LogEntry.readEntry.  This method ensures
+     * that setLastLogSize is called after LogEntry.readEntry, and should be
+     * called by all FileReaders instead of calling LogEntry.readEntry
+     * directly.
+     */
+    void readEntry(LogEntry entry, ByteBuffer buffer, boolean readFullItem)
+        throws DatabaseException {
+
+        entry.readEntry(currentEntryHeader, buffer, readFullItem);
+
+        /*
+         * Some entries (LNs) save the last logged size.  However, we can only
+         * set the size if we have read the full item; if the full item is not
+         * read, the LN in the LNLogEntry may be null.
+         */
+        if (readFullItem) {
+            entry.setLastLoggedSize(getLastEntrySize());
+        }
     }
 
     /**
@@ -238,12 +263,17 @@ public abstract class FileReader {
                 /* Read the next header. */
                 getLogEntryInReadBuffer();
                 ByteBuffer dataBuffer =
-                    readData(LogManager.HEADER_BYTES, true);
+                    readData(LogEntryHeader.MIN_HEADER_SIZE, true);
 
-                readHeader(dataBuffer);
+                readBasicHeader(dataBuffer);
+                if (currentEntryHeader.getReplicate()) {
+                    dataBuffer = readData(currentEntryHeader.getVariablePortionSize(), true);
+                    currentEntryHeader.readVariablePortion(dataBuffer);
+                }
 
-                boolean isTargetEntry = isTargetEntry(currentEntryTypeNum,
-                                                      currentEntryTypeVersion);
+                boolean isTargetEntry =
+                    isTargetEntry(currentEntryHeader.getType(),
+                                  currentEntryHeader.getVersion());
                 boolean doValidate = doValidateChecksum &&
                     (isTargetEntry || alwaysValidateChecksum);
                 boolean collectData = doValidate || isTargetEntry;
@@ -255,10 +285,11 @@ public abstract class FileReader {
 
                 /*
                  * Read in the body of the next entry. Note that even if this
-                 * isn't a targetted entry, we have to move the buffer position
+                 * isn't a targeted entry, we have to move the buffer position
                  * along.
                  */
-                dataBuffer = readData(currentEntrySize, collectData);
+                dataBuffer = readData(currentEntryHeader.getItemSize(),
+                                      collectData);
 
                 /*
                  * We've read an entry. Move up our offsets if we're moving
@@ -268,7 +299,8 @@ public abstract class FileReader {
                 if (forward) {
                     currentEntryOffset = nextEntryOffset;
                     nextEntryOffset +=
-                        LogManager.HEADER_BYTES + currentEntrySize;
+                        currentEntryHeader.getSize() +       // header size
+                        currentEntryHeader.getItemSize();    // item size
                 }
 
                 /* Validate the log entry checksum. */
@@ -298,7 +330,7 @@ public abstract class FileReader {
                     threadSafeBufferPosition
                         (dataBuffer,
                          threadSafeBufferPosition(dataBuffer) +
-                         currentEntrySize);
+                         currentEntryHeader.getItemSize());
                 }
             }
         } catch (EOFException e) {
@@ -307,24 +339,24 @@ public abstract class FileReader {
             eof = true;
             /* Report on error. */
             LogEntryType problemType =
-                LogEntryType.findType(currentEntryTypeNum,
-				      currentEntryTypeVersion);
-            Tracer.trace(env, "FileReader", "readNextEntry",
+                LogEntryType.findType(currentEntryHeader.getType(),
+				      currentEntryHeader.getVersion());
+            Tracer.trace(envImpl, "FileReader", "readNextEntry",
 			 "Halted log file reading at file 0x" +
                          Long.toHexString(readBufferFileNum) +
                          " offset 0x" +
                          Long.toHexString(nextEntryOffset) +
                          " offset(decimal)=" + nextEntryOffset +
                          ":\nentry="+ problemType +
-                         "(typeNum=" + currentEntryTypeNum +
-                         ",version=" + currentEntryTypeVersion +
+                         "(typeNum=" + currentEntryHeader.getType() +
+                         ",version=" + currentEntryHeader.getVersion() +
                          ")\nprev=0x" +
                          Long.toHexString(currentEntryPrevOffset) +
-                         "\nsize=" + currentEntrySize +
+                         "\nsize=" + currentEntryHeader.getItemSize() +
                          "\nNext entry should be at 0x" +
                          Long.toHexString((nextEntryOffset +
-                                           LogManager.HEADER_BYTES +
-                                           currentEntrySize)) +
+                                           currentEntryHeader.getSize() +
+                                           currentEntryHeader.getItemSize())) +
                          "\n:", e);
             throw e;
         }
@@ -481,52 +513,50 @@ public abstract class FileReader {
     }
 
     /**
-     * Read the log entry header, leaving the buffer mark at the beginning of
-     * the checksummed header data.
+     * Read the basic log entry header, leaving the buffer mark at the
+     * beginning of the checksummed header data.
      */
-    private void readHeader(ByteBuffer dataBuffer) 
+    private void readBasicHeader(ByteBuffer dataBuffer) 
         throws DatabaseException  {
 
-        /* Get the checksum for this log entry. */
-        currentEntryChecksum = LogUtils.getUnsignedInt(dataBuffer);
-        dataBuffer.mark();
+        /* Read the header for this entry. */
+        currentEntryHeader =
+            new LogEntryHeader(envImpl, dataBuffer, anticipateChecksumErrors);
 
-        /* Read the log entry header. */
-        currentEntryTypeNum = dataBuffer.get();
-
-        /*
-         * Always validate the entry type, since this check is cheap.  Throw a
-         * DbChecksumException so that LastFileReader and others will recognize
-         * this as data corruption.
+        /* 
+         * currentEntryPrevOffset is a separate field, and is not obtained
+         * directly from the currentEntryHeader, because is was initialized and
+         * used before any log entry was read.
          */
-        if (!LogEntryType.isValidType(currentEntryTypeNum))
-            throw new DbChecksumException
-		((anticipateChecksumErrors ? null : env),
-                 "FileReader read invalid log entry type: " +
-                 currentEntryTypeNum);
-
-        currentEntryTypeVersion = dataBuffer.get();
-        currentEntryPrevOffset = LogUtils.getUnsignedInt(dataBuffer);
-        currentEntrySize = LogUtils.readInt(dataBuffer);
+        currentEntryPrevOffset = currentEntryHeader.getPrevOffset();
     }
 
     /**
-     * Reset the checksum and add the header bytes.  This method must be called
-     * with the entry header data at the buffer mark.
+     * Reset the checksum validator and add the new header bytes. Assumes that
+     * the data buffer is positioned at the start of the log item.
      */
     private void startChecksum(ByteBuffer dataBuffer)
         throws DatabaseException {
 
-        /* Move back up to the beginning of the cksum covered header. */
-        cksumValidator.reset();
-        int entryStart = threadSafeBufferPosition(dataBuffer);
-        dataBuffer.reset();
-        cksumValidator.update(env, dataBuffer,
-                              LogManager.HEADER_CONTENT_BYTES,
+        /* Clear out any previous data. */
+        cksumValidator.reset(); 
+
+        /* 
+         * Move back up to the beginning of portion of the log entry header
+         * covered by the checksum. 
+         */
+        int itemStart = threadSafeBufferPosition(dataBuffer);
+        int headerSizeMinusChecksum =
+            currentEntryHeader.getSizeMinusChecksum();
+        threadSafeBufferPosition(dataBuffer,
+                                 itemStart-headerSizeMinusChecksum);
+        cksumValidator.update(envImpl,
+                              dataBuffer,
+                              headerSizeMinusChecksum,
                               anticipateChecksumErrors);
         
         /* Move the data buffer back to where the log entry starts. */
-        threadSafeBufferPosition(dataBuffer, entryStart);
+        threadSafeBufferPosition(dataBuffer, itemStart);
     }
 
     /**
@@ -536,10 +566,14 @@ public abstract class FileReader {
     private void validateChecksum(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        cksumValidator.update(env, entryBuffer, currentEntrySize,
+        cksumValidator.update(envImpl,
+                              entryBuffer,
+                              currentEntryHeader.getItemSize(),
 			      anticipateChecksumErrors);
-        cksumValidator.validate(env, currentEntryChecksum,
-				readBufferFileNum, currentEntryOffset,
+        cksumValidator.validate(envImpl,
+                                currentEntryHeader.getChecksum(),
+				readBufferFileNum,
+                                currentEntryOffset,
 				anticipateChecksumErrors);
     }
 
@@ -816,7 +850,7 @@ public abstract class FileReader {
 	}
     }
 
-    private Buffer threadSafeBufferPosition(ByteBuffer buffer,
+    Buffer threadSafeBufferPosition(ByteBuffer buffer,
 					    int newPosition) {
 	while (true) {
 	    try {

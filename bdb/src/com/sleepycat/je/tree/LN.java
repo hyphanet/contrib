@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LN.java,v 1.124 2006/11/17 23:47:28 mark Exp $
+ * $Id: LN.java,v 1.125.2.4 2007/03/09 17:37:09 linda Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -21,9 +21,8 @@ import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogManager;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.log.entry.DeletedDupLNLogEntry;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.txn.Locker;
@@ -34,7 +33,7 @@ import com.sleepycat.je.utilint.DbLsn;
 /**
  * An LN represents a Leaf Node in the JE tree.
  */
-public class LN extends Node implements LoggableObject, LogReadable {
+public class LN extends Node implements Loggable {
     private static final String BEGIN_TAG = "<ln>";
     private static final String END_TAG = "</ln>";
 
@@ -43,15 +42,14 @@ public class LN extends Node implements LoggableObject, LogReadable {
     /* 
      * States: bit fields
      * 
-     * Dirty means that the in-memory version is not present on disk.
-     *
-     * Transactional means that the LN was logged in a transactional log entry.
+     * -Dirty means that the in-memory version is not present on disk.
+     * -The last logged bits store the total size of the last logged entry.
      */
-    private static final byte DIRTY_BIT = 0x1;
-    private static final byte CLEAR_DIRTY_BIT = ~0x1;
-    private static final byte TXN_BIT = 0x2;
-    private static final byte CLEAR_TXN_BIT = ~0x2;
-    private byte state; // not persistent
+    private static final int DIRTY_BIT = 0x80000000;
+    private static final int CLEAR_DIRTY_BIT = ~DIRTY_BIT;
+    private static final int LAST_LOGGED_SIZE_MASK = 0x7FFFFFFF;
+    private static final int CLEAR_LAST_LOGGED_SIZE = ~LAST_LOGGED_SIZE_MASK;
+    private int state; // not persistent
 
     /**
      * Create an empty LN, to be filled in from the log.
@@ -126,7 +124,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
         data = null;
     }
 
-    boolean isDirty() {
+    public boolean isDirty() {
         return ((state & DIRTY_BIT) != 0);
     }
 
@@ -136,18 +134,6 @@ public class LN extends Node implements LoggableObject, LogReadable {
 
     private void clearDirty() {
         state &= CLEAR_DIRTY_BIT;
-    }
-
-    private boolean wasLastLoggedTransactionally() {
-        return ((state & TXN_BIT) != 0);
-    }
-
-    public void setLastLoggedTransactionally() {
-        state |= TXN_BIT;
-    }
-
-    public void clearLastLoggedTransactionally() {
-        state &= CLEAR_TXN_BIT;
     }
 
     /* 
@@ -185,7 +171,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
 		       Locker locker)
         throws DatabaseException {
 
-        int oldSize = getTotalLastLoggedSize(lnKey);
+        int oldSize = getLastLoggedSize();
         makeDeleted();
         setDirty();
 
@@ -204,7 +190,13 @@ public class LN extends Node implements LoggableObject, LogReadable {
                 oldLsn == DbLsn.NULL_LSN) {
                 clearDirty();
             } else {
-                /* Log as a deleted duplicate LN by passing dupKey. */
+
+                /*
+                 * Log as a deleted duplicate LN by passing dupKey.  Note that
+                 * we log a deleted duplicate LN even in Deferred Write mode,
+                 * because the data (dupKey) is set to null when it is deleted,
+                 * so logging it later is not possible.
+                 */
                 newLsn = log(env, database.getId(), lnKey, dupKey, oldLsn,
                              oldSize, locker,
                              false,  // isProvisional
@@ -230,7 +222,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
 		       Locker locker)
         throws DatabaseException {
 
-        int oldSize = getTotalLastLoggedSize(lnKey);
+        int oldSize = getLastLoggedSize();
         data = newData;
         setDirty();
 
@@ -491,14 +483,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#getLogType
+     * @see Node#getLogType()
      */
     public LogEntryType getLogType() {
         return LogEntryType.LOG_LN;
@@ -506,39 +491,24 @@ public class LN extends Node implements LoggableObject, LogReadable {
 
     /**
      * Returns the total last logged log size, including the LNLogEntry
-     * overhead of this LN when it was last logged and the fixed log entry
+     * overhead of this LN when it was last logged and the log entry
      * header.  Used for computing obsolete size when an LNLogEntry is not in
      * hand.
      */
-    public int getTotalLastLoggedSize(byte[] lnKey) {
-
-        /*
-         * This method is never called for a deleted LN.  We assert if this
-         * occurs by mistake, because we do not calculate the size of a
-         * DeletedDupLNLogEntry.
-         */
-        assert !isDeleted();
-
-        return LNLogEntry.getStaticLogSize
-                    (getLastLoggedSize(), lnKey,
-                     wasLastLoggedTransactionally()) +
-               LogManager.HEADER_BYTES;
-    }
-
-    /**
-     * Return the size of this LN as last logged, when called before modifying
-     * the persistent state in modify() and delete().  By default this method
-     * return getLogSize(), but sometimes the size last logged is not the same
-     * value returned by getLogSize(), if the state of the persistent data is
-     * changed before calling modify() or delete().  In those cases (e.g.,
-     * MapLN) this method can be overidden.
-     */
     public int getLastLoggedSize() {
-        return getLogSize();
+        return state & LAST_LOGGED_SIZE_MASK;
     }
 
     /**
-     * @see LoggableObject#getLogSize
+     * Saves the last logged size.
+     */
+    public void setLastLoggedSize(int size) {
+        /* Clear the old size and OR in the new size. */
+        state = (state & CLEAR_LAST_LOGGED_SIZE) | size;
+    }
+
+    /**
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         int size = super.getLogSize();
@@ -553,7 +523,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         /* Ask ancestors to write to log. */
@@ -568,7 +538,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
         throws LogException {
@@ -582,7 +552,7 @@ public class LN extends Node implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append(beginTag());
@@ -597,22 +567,6 @@ public class LN extends Node implements LoggableObject, LogReadable {
         dumpLogAdditional(sb, verbose);
 
         sb.append(endTag());
-    }
-
-    /**
-     * Never called.
-     * @see LogReadable#logEntryIsTransactional.
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * Never called.
-     * @see LogReadable#getTransactionId
-     */
-    public long getTransactionId() {
-	return 0;
     }
 
     /*

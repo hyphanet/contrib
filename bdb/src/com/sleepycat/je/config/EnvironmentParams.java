@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentParams.java,v 1.84 2006/11/27 23:07:12 mark Exp $
+ * $Id: EnvironmentParams.java,v 1.84.2.3 2007/03/07 01:24:35 mark Exp $
  */
 
 package com.sleepycat.je.config;
@@ -370,6 +370,7 @@ public class EnvironmentParams {
                                false,          // default
                                false,          // mutable
                                false,          // forReplication
+     "# *** Experimental and may be removed in a future release. ***\n" +
      "# If true, assume that deferred write database will never be\n" +
      "# used after an environment is closed. This permits a more efficient\n" +
      "# form of logging of deferred write objects that overflow to disk\n" +
@@ -543,6 +544,14 @@ public class EnvironmentParams {
                                false,                 // forReplication
      "# If true (the default), use an LRU-only policy to select nodes for\n" +
      "# eviction.  If false, select by Btree level first, and then by LRU.");
+
+    public static final BooleanConfigParam EVICTOR_FORCED_YIELD =
+        new BooleanConfigParam("je.evictor.forcedYield",
+                               false,             // default
+                               false,             // mutable
+                               false,             // forReplication
+     "# Call Thread.yield() at each check for cache overflow. This\n" +
+     "# improves GC performance on some systems.  The default is false.");
 
     /*
      * Checkpointer

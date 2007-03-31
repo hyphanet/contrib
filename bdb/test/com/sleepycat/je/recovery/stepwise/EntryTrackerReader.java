@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntryTrackerReader.java,v 1.4 2006/10/30 21:14:49 bostic Exp $
+ * $Id: EntryTrackerReader.java,v 1.5.2.1 2007/02/01 14:50:18 cwl Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -21,7 +21,6 @@ import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.entry.DeletedDupLNLogEntry;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.log.entry.LogEntry;
-import com.sleepycat.je.log.entry.SingleItemLogEntry;
 import com.sleepycat.je.txn.TxnCommit;
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -40,6 +39,7 @@ public class EntryTrackerReader extends FileReader {
     private List entryInfo;
     private DatabaseEntry dbt = new DatabaseEntry();
     private LogEntry useLogEntry;
+    private LogEntryType useLogEntryType;
     private boolean isCommit;
 
     /**
@@ -62,27 +62,23 @@ public class EntryTrackerReader extends FileReader {
     protected boolean isTargetEntry(byte logEntryTypeNumber,
                                     byte logEntryTypeVersion) {
         isCommit = false;
+        boolean targeted = true;
+
+        useLogEntryType = null;
         
         if (LogEntryType.LOG_LN.equalsType(logEntryTypeNumber)) {
-            useLogEntry = LogEntryType.LOG_LN.getSharedLogEntry();
-            return true;
+            useLogEntryType = LogEntryType.LOG_LN;
         } else if (LogEntryType.LOG_LN_TRANSACTIONAL.equalsType(
                                                         logEntryTypeNumber)) {
-            useLogEntry =
-                LogEntryType.LOG_LN_TRANSACTIONAL.getSharedLogEntry();
-            return true;
+            useLogEntryType = LogEntryType.LOG_LN_TRANSACTIONAL;
         } else if (LogEntryType.LOG_DEL_DUPLN.equalsType(logEntryTypeNumber)) {
-            useLogEntry = LogEntryType.LOG_DEL_DUPLN.getSharedLogEntry();
-            return true;
+            useLogEntryType = LogEntryType.LOG_DEL_DUPLN;
         } else if (LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL.equalsType(
                                                      logEntryTypeNumber)) {
-            useLogEntry =
-                LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL.getSharedLogEntry();
-            return true;
+            useLogEntryType = LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL;
         } else if (LogEntryType.LOG_TXN_COMMIT.equalsType(logEntryTypeNumber)) {
-            useLogEntry = LogEntryType.LOG_TXN_COMMIT.getSharedLogEntry();
+            useLogEntryType = LogEntryType.LOG_TXN_COMMIT;
             isCommit = true;
-            return true;
         } else {
             /* 
              * Just make note, no need to process the entry, nothing to record
@@ -92,8 +88,13 @@ public class EntryTrackerReader extends FileReader {
             entryInfo.add(new LogEntryInfo(DbLsn.makeLsn(readBufferFileNum,
                                                          nextEntryOffset),
                                            0, 0));
-            return false;
+            targeted = false;
         }
+
+        if (useLogEntryType != null) {
+            useLogEntry = useLogEntryType.getSharedLogEntry();
+        }
+        return targeted;
     }
 
 
@@ -113,19 +114,20 @@ public class EntryTrackerReader extends FileReader {
          * for the LSN. 
          */
         long lsn = DbLsn.makeLsn(readBufferFileNum, currentEntryOffset);
-        useLogEntry.readEntry(entryBuffer, currentEntrySize, 
-                              currentEntryTypeVersion, true);
+        useLogEntry.readEntry(currentEntryHeader,
+                              entryBuffer, 
+                              true); // readFullItem
 
-        boolean isTxnal = useLogEntry.isTransactional();
+        boolean isTxnal = useLogEntryType.isTransactional();
         long txnId = useLogEntry.getTransactionId();
 
         if (isCommit) {
-            SingleItemLogEntry singleEntry = (SingleItemLogEntry) useLogEntry;
+            
             /* 
              * The txn id in a single item log entry is embedded within
              * the item.
              */
-            txnId = ((TxnCommit) singleEntry.getMainItem()).getId();
+            txnId = ((TxnCommit) useLogEntry.getMainItem()).getId();
             entryInfo.add(new CommitEntry(lsn, txnId));
         } else if (useLogEntry instanceof DeletedDupLNLogEntry) {
 

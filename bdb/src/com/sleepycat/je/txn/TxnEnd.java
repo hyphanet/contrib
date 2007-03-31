@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnEnd.java,v 1.32 2006/10/30 21:14:27 bostic Exp $
+ * $Id: TxnEnd.java,v 1.33.2.1 2007/02/01 14:49:53 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -11,17 +11,14 @@ package com.sleepycat.je.txn;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 
-import com.sleepycat.je.log.LogEntryType;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
  * This class writes out a transaction commit or transaction end record.
  */
-public abstract class TxnEnd
-    implements LoggableObject, LogReadable {
+public abstract class TxnEnd implements Loggable {
 
     protected long id;
     protected Timestamp time;
@@ -58,33 +55,7 @@ public abstract class TxnEnd
      */
 
     /**
-     * @see LoggableObject#getLogType
-     */
-    public abstract LogEntryType getLogType();
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return true;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#postLogWork
-     */
-    public void postLogWork(long justLoggedLsn) {
-    }
-
-    /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         return LogUtils.LONG_BYTES +
@@ -93,7 +64,7 @@ public abstract class TxnEnd
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeLong(logBuffer, id);
@@ -102,7 +73,7 @@ public abstract class TxnEnd
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion) {
         id = LogUtils.readLong(logBuffer);
@@ -111,7 +82,7 @@ public abstract class TxnEnd
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<").append(getTagName());
@@ -123,14 +94,7 @@ public abstract class TxnEnd
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return true;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return id;

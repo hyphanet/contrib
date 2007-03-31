@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalker.java,v 1.16 2006/11/03 03:07:50 mark Exp $
+ * $Id: SortedLSNTreeWalker.java,v 1.17.2.2 2007/03/07 01:24:36 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -20,8 +20,8 @@ import com.sleepycat.je.cleaner.OffsetList;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.log.entry.LogEntry;
-import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.BIN;
+import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.DBIN;
 import com.sleepycat.je.tree.DIN;
 import com.sleepycat.je.tree.DupCountLN;
@@ -62,6 +62,10 @@ public class SortedLSNTreeWalker {
                         LogEntryType childType,
                         Node theNode,
                         byte[] lnKey)
+	    throws DatabaseException;
+
+        /* Used for processing dirty (unlogged) deferred write LNs. [#15365] */
+	void processDirtyDeletedLN(long childLSN, LN ln, byte[] lnKey)
 	    throws DatabaseException;
 
 	/* Used when processing DW dbs where there are no LSNs. */
@@ -354,13 +358,23 @@ public class SortedLSNTreeWalker {
 	if (processDupTree || !in.containsDuplicates()) {
 	    for (int i = 0; i < in.getNEntries(); i++) {
 
+		long lsn = in.getLsn(i);
+		Node node = in.getTarget(i);
+
 		if (in.isEntryPendingDeleted(i) ||
 		    in.isEntryKnownDeleted(i)) {
+
+                    /* Dirty LNs (deferred write) get special treatment. */
+                    if (node instanceof LN) {
+                        LN ln = (LN) node;
+                        if (ln.isDirty()) {
+                            callback.processDirtyDeletedLN
+                                (lsn, ln, in.getKey(i));
+                        }
+                    }
 		    continue;
 		}
 
-		long lsn = in.getLsn(i);
-		Node node = in.getTarget(i);
 		if (accumulate && (node == null)) {
 		    if (accumulatedLSNFileNumbers == null) {
 			accumulatedLSNFileNumbers = new OffsetList();

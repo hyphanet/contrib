@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BIN.java,v 1.187 2006/11/03 03:07:55 mark Exp $
+ * $Id: BIN.java,v 1.188.2.3 2007/03/08 22:32:58 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -14,6 +14,7 @@ import java.util.Set;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.cleaner.Cleaner;
+import com.sleepycat.je.cleaner.UtilizationTracker;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -22,7 +23,8 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogManager;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.LockGrantType;
 import com.sleepycat.je.txn.LockResult;
@@ -33,7 +35,7 @@ import com.sleepycat.je.utilint.TinyHashSet;
 /**
  * A BIN represents a Bottom Internal Node in the JE tree.  
  */
-public class BIN extends IN implements LoggableObject {
+public class BIN extends IN implements Loggable {
 
     private static final String BEGIN_TAG = "<bin>";
     private static final String END_TAG = "</bin>";
@@ -624,14 +626,17 @@ public class BIN extends IN implements LoggableObject {
      * remaining deleted keys in the BINReference must now be in some other BIN
      * because of a split.
      */
-    public boolean compress(BINReference binRef, boolean canFetch)
+    public boolean compress(BINReference binRef,
+                            boolean canFetch,
+                            UtilizationTracker tracker) 
         throws DatabaseException {
 
         boolean ret = false;
         boolean setNewIdKey = false;
         boolean anyLocksDenied = false;
 	DatabaseImpl db = getDatabase();
-        BasicLocker lockingTxn = new BasicLocker(db.getDbEnvironment());
+        EnvironmentImpl envImpl = db.getDbEnvironment();
+        BasicLocker lockingTxn = new BasicLocker(envImpl);
 
         try {
             for (int i = 0; i < getNEntries(); i++) {
@@ -654,13 +659,13 @@ public class BIN extends IN implements LoggableObject {
 		 * insert back in.
 		 */
                 boolean deleteEntry = false;
+                Node n = null;
 
                 if (binRef == null ||
 		    isEntryPendingDeleted(i) ||
                     isEntryKnownDeleted(i) ||
                     binRef.hasDeletedKey(new Key(getKey(i)))) {
 
-                    Node n = null;
                     if (canFetch) {
                         n = fetchTarget(i);
                     } else {
@@ -718,6 +723,29 @@ public class BIN extends IN implements LoggableObject {
                          * the node will need a new idkey.
                          */
                         setNewIdKey = true;
+                    }
+
+                    /*
+                     * When deleting a deferred-write LN entry, we count the
+                     * last logged LSN as obsolete.  Use inexact counting when
+                     * je.deferredWrite.temp=false, because we cannot guarantee
+                     * obsoleteness until the parent tree is flushed. [#15365]
+                     */
+                    if (tracker != null &&
+                        db.isDeferredWrite() &&
+                        n instanceof LN) {
+                        LN ln = (LN) n;
+                        long lsn = getLsn(i);
+                        if (ln.isDirty() && lsn != DbLsn.NULL_LSN) {
+                            int obsoleteSize = ln.getLastLoggedSize();
+                            if (envImpl.getDeferredWriteTemp()) {
+                                tracker.countObsoleteNode
+                                    (lsn, null, obsoleteSize);
+                            } else {
+                                tracker.countObsoleteNodeInexact
+                                    (lsn, null, obsoleteSize);
+                            }
+                        }
                     }
 
                     boolean deleteSuccess = deleteEntry(i, true);
@@ -836,20 +864,19 @@ public class BIN extends IN implements LoggableObject {
                 assert dbImpl.isDeferredWrite();
 
                 /* 
-                 * Note that old offset will not be marked obsolete. Ideally
-                 * we'd use getLsn(index).  For DW we don't know the size of
-                 * the last logged LN, so we pass zero for the obsolete size.
+                 * For DW we don't know the size of the last logged LN, so we
+                 * pass zero for the obsolete size.
                  */
                 EnvironmentImpl envImpl = dbImpl.getDbEnvironment();
-                long oldOffset = envImpl.getDeferredWriteTemp() ?
-                    getLsn(index) : DbLsn.NULL_LSN;
+                long obsoleteLsn = getObsoleteLsnForDWLogging(envImpl, index);
+                int obsoleteSize = ln.getLastLoggedSize();
                 long lsn = ln.log(envImpl,
                                   dbImpl.getId(),
                                   getKey(index),
-                                  oldOffset, // offset tracking
-                                  0,         // obsolete size
+                                  obsoleteLsn,
+                                  obsoleteSize,
                                   null,      // locker
-                                  false);    // Is provisional.
+                                  true);     // backgroundIO
                 updateEntry(index, lsn);
             }
 
@@ -860,6 +887,24 @@ public class BIN extends IN implements LoggableObject {
         } else {
             return 0;
         }
+    }
+
+    /**
+     * Returns the old LSN to be counted as obsolete during logging of a dirty
+     * deferred-write LN.  If there is no old LSN, NULL_LSN is returned.  If
+     * je.deferredWrite.temp=false, return the file number with a zero offset
+     * so that inexact counting is used; we cannot guarantee obsoleteness until
+     * the parent tree is flushed. [#15365]
+     */
+    private long getObsoleteLsnForDWLogging(EnvironmentImpl envImpl,
+                                            int index) {
+        long lsn = getLsn(index);
+        if (lsn != DbLsn.NULL_LSN) {
+            if (!envImpl.getDeferredWriteTemp()) {
+                lsn = DbLsn.makeLsn(DbLsn.getFileNumber(lsn), 0);
+            }
+        }
+        return lsn;
     }
 
     /* For debugging.  Overrides method in IN. */
@@ -969,18 +1014,17 @@ public class BIN extends IN implements LoggableObject {
                     if (ln.isDirty()) {
 
                         /* 
-                         * Note that old offset will not be marked obsolete.
-                         * Ideally we'd use getLsn(i).   For DW we don't know
-                         * the size of the last logged LN, so we pass zero for
-                         * the obsolete size.
+                         * For DW we don't know the size of the last logged LN,
+                         * so we pass zero for the obsolete size.
                          */
-                        long oldOffset = envImpl.getDeferredWriteTemp() ?
-                            getLsn(i) : DbLsn.NULL_LSN;
+                        long obsoleteLsn =
+                            getObsoleteLsnForDWLogging(envImpl, i);
+                        int obsoleteSize = ln.getLastLoggedSize();
                         long childLsn = ln.log(envImpl,
                                                getDatabase().getId(),
                                                getKey(i),
-                                               oldOffset, // obsolete tracking
-                                               0,         // obsolete size
+                                               obsoleteLsn,
+                                               obsoleteSize,
                                                null,      // locker 
                                                true);     // backgroundIO
                         updateEntry(i, childLsn);
@@ -1010,7 +1054,7 @@ public class BIN extends IN implements LoggableObject {
     }
 
     /**
-     * @see LoggableObject#getLogType
+     * @see Node#getLogType
      */
     public LogEntryType getLogType() {
         return LogEntryType.LOG_BIN;
@@ -1070,8 +1114,11 @@ public class BIN extends IN implements LoggableObject {
              * are never provisional, they must be processed at recovery time.
              */
             lastDeltaVersion = logManager.log
-                (deltaInfo, false, // isProvisional
-                 backgroundIO, DbLsn.NULL_LSN, 0);
+                (new SingleItemEntry(getBINDeltaType(), deltaInfo),
+                 false, // isProvisional
+                 backgroundIO,
+                 DbLsn.NULL_LSN,
+                 0);
             returnLsn = DbLsn.NULL_LSN;
             numDeltasSinceLastFull++;
         } else {
@@ -1109,19 +1156,17 @@ public class BIN extends IN implements LoggableObject {
                     assert getDatabase().isDeferredWrite();
 
                     /* 
-                     * Note that old offset will not be marked obsolete.
-                     * Ideally we'd use getLsn(i).   For DW we don't know the
-                     * size of the last logged LN, so we pass zero for the
-                     * obsolete size.
+                     * For DW we don't know the size of the last logged LN, so
+                     * we pass zero for the obsolete size.
                      */
-                    long oldOffset = envImpl.getDeferredWriteTemp() ?
-                        getLsn(i) : DbLsn.NULL_LSN;
+                    long obsoleteLsn = getObsoleteLsnForDWLogging(envImpl, i);
+                    int obsoleteSize = ln.getLastLoggedSize();
                     long lsn = ln.log(envImpl,
                                       dbId,
                                       getKey(i),
                                       null,           // delDupKey
-                                      oldOffset,      // obsolete tracking
-                                      0,              // obsolete size
+                                      obsoleteLsn,
+                                      obsoleteSize,
                                       null,           // locker 
                                       true,           // backgroundIO
                                       false);         // Is provisional. 

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateDeleteTest.java,v 1.54 2006/10/30 21:14:43 bostic Exp $
+ * $Id: DbCursorDuplicateDeleteTest.java,v 1.54.2.3 2007/03/14 01:50:00 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -50,6 +50,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             DataWalker dw = new DataWalker(null) {
                     void perData(String foundKey, String foundData)
                         throws DatabaseException {
+
 			if (prevKey.equals("")) {
 			    prevKey = foundKey;
 			}
@@ -147,6 +148,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             DataWalker dw = new DataWalker(dataMap) {
                     void perData(String foundKey, String foundData)
                         throws DatabaseException {
+
                         Hashtable ht = (Hashtable) dataMap.get(foundKey);
                         if (ht == null) {
                             fail("didn't find ht " +
@@ -194,6 +196,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             dw = new DataWalker(dataMap) {
                     void perData(String foundKey, String foundData)
                         throws DatabaseException {
+
                         fail("data found after deletion: " +
 			     foundKey + "/" + foundData);
                     }
@@ -219,6 +222,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             DataWalker dw = new DataWalker(dataMap, deletedDataMap) {
                     void perData(String foundKey, String foundData)
                         throws DatabaseException {
+
                         Hashtable ht = (Hashtable) dataMap.get(foundKey);
                         if (ht == null) {
                             fail("didn't find ht " +
@@ -275,6 +279,123 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             dw = new DataWalker(dataMap, deletedDataMap) {
                     void perData(String foundKey, String foundData)
                         throws DatabaseException {
+
+                        Hashtable delht =
+			    (Hashtable) addedDataMap.get(foundKey);
+                        if (delht != null &&
+                            delht.get(foundData) != null) {
+                            fail("found deleted entry for " +
+                                 foundKey + "/" + foundData);
+                        }
+
+                        Hashtable ht = (Hashtable) dataMap.get(foundKey);
+                        if (ht == null) {
+                            fail("couldn't find hashtable for " + foundKey);
+                        }
+                        if (ht.get(foundData) == null) {
+                            fail("couldn't find entry for " +
+                                 foundKey + "/" + foundData);
+                        }
+                        ht.remove(foundData);
+                        if (ht.size() == 0) {
+                            dataMap.remove(foundKey);
+                        }
+                    }
+                };
+            dw.setIgnoreDataMap(true);
+            dw.walkData();
+            assertTrue(dataMap.size() == 0);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
+    }
+
+    public void testDuplicateDeletionAssortedSR15375()
+	throws Throwable {
+
+        try {
+            initEnv(true);
+            Hashtable dataMap = new Hashtable();
+            Hashtable deletedDataMap = new Hashtable();
+            createRandomDuplicateData(10, 1000, dataMap, false, false);
+
+            /* Use the DataWalker.addedData field for a deleted Data Map. */
+            DataWalker dw = new DataWalker(dataMap, deletedDataMap) {
+                    void perData(String foundKey, String foundData)
+                        throws DatabaseException {
+
+                        Hashtable ht = (Hashtable) dataMap.get(foundKey);
+                        if (ht == null) {
+                            fail("didn't find ht " +
+				 foundKey + "/" + foundData);
+                        }
+
+                        /* Make sure keys are ascending/descending. */
+                        assertTrue(foundKey.compareTo(prevKey) >= 0);
+
+                        /* 
+			 * Make sure duplicate items within key are asc/desc.
+			 */
+                        if (prevKey.equals(foundKey)) {
+                            if (duplicateComparisonFunction == null) {
+                                assertTrue(foundData.compareTo(prevData) >= 0);
+                            } else {
+                                assertTrue
+                                    (duplicateComparisonFunction.compare
+                                     (foundData.getBytes(),
+                                      prevData.getBytes()) >= 0);
+                            }
+                            prevData = foundData;
+                        } else {
+                            prevData = "";
+                        }
+
+                        prevKey = foundKey;
+                        if (rnd.nextInt(10) < 8) {
+                            Hashtable delht =
+                                (Hashtable) addedDataMap.get(foundKey);
+                            if (delht == null) {
+                                delht = new Hashtable();
+                                addedDataMap.put(foundKey, delht);
+                            }
+                            delht.put(foundData, foundData);
+                            assertTrue(cursor.delete() ==
+				       OperationStatus.SUCCESS);
+
+                            if (ht.get(foundData) == null) {
+                                fail("didn't find " +
+				     foundKey + "/" + foundData);
+                            }
+                            ht.remove(foundData);
+			    assertEquals(ht.size(), cursor.count());
+                            if (ht.size() == 0) {
+                                dataMap.remove(foundKey);
+                            }
+
+			    /*
+			     * Add back in a duplicate for each one deleted.
+			     */
+			    String newDupData = foundData + "x";
+			    StringDbt newDupDBT =
+				new StringDbt(newDupData);
+			    assertTrue
+				(putAndVerifyCursor
+				 (cursor,
+				  new StringDbt(foundKey),
+				  newDupDBT, true) ==
+				 OperationStatus.SUCCESS);
+			    ht.put(newDupData, newDupData);
+                        }
+                    }
+                };
+            dw.setIgnoreDataMap(true);
+            dw.walkData();
+
+            dw = new DataWalker(dataMap, deletedDataMap) {
+                    void perData(String foundKey, String foundData)
+                        throws DatabaseException {
+
                         Hashtable delht =
 			    (Hashtable) addedDataMap.get(foundKey);
                         if (delht != null &&
@@ -376,6 +497,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             dw = new DataWalker(dataMap, deletedDataMap) {
                     void perData(String foundKey, String foundData)
                         throws DatabaseException {
+
                         Hashtable delht =
 			    (Hashtable) addedDataMap.get(foundKey);
                         if (delht != null &&
@@ -415,6 +537,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
      */
     public void testSimpleSingleElementDupTree()
 	throws DatabaseException {
+
         initEnv(true);
 	StringDbt key = new StringDbt("k1");
 	StringDbt data1 = new StringDbt("d1");
@@ -472,7 +595,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
 		bin = (BIN) DbInternal.dbGetDatabaseImpl(exampleDb)
 		    .getTree()
 		    .getFirstNode(dupRoot);
-		bin.compress(null, true);
+		bin.compress(null, true, null);
 		bin.releaseLatch();
 		bin = null;
 
@@ -595,7 +718,8 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
 	    tester1.finishTest();
 	    tester2.finishTest();
 	    DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(exampleDb);
-	    assertTrue(dbImpl.verify(new VerifyConfig(), dbImpl.getEmptyStats()));
+	    assertTrue
+		(dbImpl.verify(new VerifyConfig(), dbImpl.getEmptyStats()));
 	} catch (Throwable T) {
 	    fail("testDuplicateDeadlock caught: " + T);
 	}

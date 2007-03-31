@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CollectionTest.java,v 1.53 2006/10/30 21:14:38 bostic Exp $
+ * $Id: CollectionTest.java,v 1.53.2.2 2007/03/12 17:46:06 mark Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -276,11 +276,13 @@ public class CollectionTest extends TestCase {
                     DbCompat.NESTED_TRANSACTIONS);
             TransactionRunner nullRunner = new NullTransactionRunner(env);
             readRunner = nullRunner;
-            writeIterRunner = normalRunner;
             if (isAutoCommit) {
                 writeRunner = nullRunner;
+                writeIterRunner = testStoredIterator ? normalRunner
+                                                     : nullRunner;
             } else {
                 writeRunner = normalRunner;
+                writeIterRunner = normalRunner;
             }
 
             store = testStore.open(env, "unindexed.db");

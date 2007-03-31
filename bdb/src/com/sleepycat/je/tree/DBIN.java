@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DBIN.java,v 1.69 2006/10/30 21:14:25 bostic Exp $
+ * $Id: DBIN.java,v 1.70.2.1 2007/02/01 14:49:51 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -20,12 +20,12 @@ import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 
 /**
  * A DBIN represents an Duplicate Bottom Internal Node in the JE tree.
  */
-public final class DBIN extends BIN implements LoggableObject {
+public final class DBIN extends BIN implements Loggable {
     private static final String BEGIN_TAG = "<dbin>";
     private static final String END_TAG = "</dbin>";
     
@@ -280,19 +280,19 @@ public final class DBIN extends BIN implements LoggableObject {
         return sb.toString();
     }
 
-    /*
-     * Logging support
-     */
-
     /**
-     * @see LoggableObject#getLogType
+     * @see Node#getLogType()
      */
     public LogEntryType getLogType() {
         return LogEntryType.LOG_DBIN;
     }
 
+    /*
+     * Logging support
+     */
+
     /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         int size = super.getLogSize(); // ancestors
@@ -301,7 +301,7 @@ public final class DBIN extends BIN implements LoggableObject {
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
 

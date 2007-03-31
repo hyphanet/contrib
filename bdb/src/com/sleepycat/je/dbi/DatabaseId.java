@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseId.java,v 1.32 2006/12/04 18:47:41 cwl Exp $
+ * $Id: DatabaseId.java,v 1.33.2.2 2007/03/08 22:32:54 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -12,19 +12,13 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
+import com.sleepycat.je.log.Loggable;
 
 /**
  * DatabaseImpl Ids are wrapped in a class so they can be logged.
  */
-public class DatabaseId implements Comparable, LogWritable, LogReadable {
-
-    /**
-     * Static log size used by LNLogEntry.getStaticLogSize.
-     */
-    public static final int LOG_SIZE = LogUtils.INT_BYTES;
+public class DatabaseId implements Comparable, Loggable {
 
     /**
      * The unique id of this database.
@@ -110,28 +104,28 @@ public class DatabaseId implements Comparable, LogWritable, LogReadable {
      */
 
     /**
-     * @see LogWritable#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LOG_SIZE;
+        return LogUtils.INT_BYTES;
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeInt(logBuffer, id);
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
         id = LogUtils.readInt(itemBuffer);
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<dbId id=\"");
@@ -140,14 +134,7 @@ public class DatabaseId implements Comparable, LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

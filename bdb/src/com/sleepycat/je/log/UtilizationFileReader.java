@@ -1,10 +1,10 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
+ * Copyright (c) 2002,2007
  *      Oracle Corporation.  All rights reserved.
  *
- * $Id: UtilizationFileReader.java,v 1.6 2006/11/21 02:50:25 linda Exp $
+ * $Id: UtilizationFileReader.java,v 1.7.2.2 2007/03/08 22:32:55 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -24,7 +24,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.entry.INLogEntry;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.log.entry.LogEntry;
-import com.sleepycat.je.log.entry.SingleItemLogEntry;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.tree.INDeleteInfo;
 import com.sleepycat.je.tree.INDupDeleteInfo;
 import com.sleepycat.je.tree.LN;
@@ -50,7 +50,7 @@ public class UtilizationFileReader extends FileReader {
     private List twoEntryList; // holds one [ExtendedFileSummary, LNLogEntry]
 
     private UtilizationFileReader(EnvironmentImpl env, int readBufferSize)
-	throws IOException, DatabaseException {
+        throws IOException, DatabaseException {
 
         super(env,
               readBufferSize,
@@ -78,11 +78,11 @@ public class UtilizationFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        LogEntryType lastEntryType = LogEntryType.findType
-            (currentEntryTypeNum, currentEntryTypeVersion);
-	LogEntry entry = lastEntryType.getNewLogEntry();
-        entry.readEntry(entryBuffer, currentEntrySize,
-                        currentEntryTypeVersion, true);
+        LogEntryType lastEntryType =
+            LogEntryType.findType(currentEntryHeader.getType(),
+                                  currentEntryHeader.getVersion());
+        LogEntry entry = lastEntryType.getNewLogEntry();
+        readEntry(entry, entryBuffer, true); // readFullItem
 
         Long fileNum = new Long(readBufferFileNum);
         ExtendedFileSummary summary =
@@ -100,25 +100,15 @@ public class UtilizationFileReader extends FileReader {
         if (entry instanceof LNLogEntry) {
             LNLogEntry lnEntry = (LNLogEntry) entry;
             if (DEBUG) {
-                int otherSize = getLNEntrySize(lnEntry);
+                int otherSize = lnEntry.getLN().getLastLoggedSize();
                 if (size != otherSize) {
                     System.out.println
                         ("LogReader.getLastEntrySize=" + size +
-                         " LNLogEntry.getLogSize=" + otherSize +
-                         " " + lnEntry);
-                }
-                if (!lnEntry.getLN().isDeleted()) {
-                    otherSize = lnEntry.getLN().getTotalLastLoggedSize
-                        (lnEntry.getKey());
-                    if (size != otherSize) {
-                        System.out.println
-                            ("LogReader.getLastEntrySize=" + size +
-                             " LN.getTotalLastLoggedSize=" + otherSize +
-                             " " + lnEntry);
-                    }
+                         " LN.getLastLoggedSize=" + otherSize +
+                         " " + lnEntry.getLogType());
                 }
             }
-            if (lnEntry.isTransactional()) {
+            if (lastEntryType.isTransactional()) {
                 Long txnId = new Long(lnEntry.getTransactionId());
                 List txnEntries = (List) txns.get(txnId);
                 if (txnEntries == null) {
@@ -141,8 +131,8 @@ public class UtilizationFileReader extends FileReader {
             putActiveNode(nodeId, size, summary,
                           inEntry.getDbId().getId(),
                           false);
-        } else if (entry instanceof SingleItemLogEntry) {
-            Object item = ((SingleItemLogEntry) entry).getMainItem();
+        } else if (entry instanceof SingleItemEntry) {
+            Object item = ((SingleItemEntry) entry).getMainItem();
             long deletedNodeId = -1;
             if (item instanceof INDeleteInfo) {
                 deletedNodeId = ((INDeleteInfo) item).getDeletedNodeId();
@@ -171,7 +161,7 @@ public class UtilizationFileReader extends FileReader {
             ExtendedFileSummary summary = (ExtendedFileSummary) entries.get(i);
             LNLogEntry lnEntry = (LNLogEntry) entries.get(i + 1);
             LN ln = lnEntry.getLN();
-            int size = getLNEntrySize(lnEntry);
+            int size = ln.getLastLoggedSize();
 
             summary.totalLNCount += 1;
             summary.totalLNSize += size;
@@ -249,20 +239,13 @@ public class UtilizationFileReader extends FileReader {
             }
         }
     }
-
-    /**
-     * Get the log entry size of an LNLogEntry.
-     */
-    private int getLNEntrySize(LNLogEntry lnEntry) {
-        return lnEntry.getLogSize() + LogManager.HEADER_BYTES;
-    }
     
     /**
      * Creates a UtilizationReader, reads the log, and returns the resulting
      * Map of Long file number to FileSummary.
      */
     public static Map calcFileSummaryMap(EnvironmentImpl env)
-	throws IOException, DatabaseException {
+        throws IOException, DatabaseException {
 
         int readBufferSize = env.getConfigManager().getInt
             (EnvironmentParams.LOG_ITERATOR_READ_SIZE);

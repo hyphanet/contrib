@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckpointStart.java,v 1.27 2006/10/30 21:14:22 bostic Exp $
+ * $Id: CheckpointStart.java,v 1.28.2.1 2007/02/01 14:49:48 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -12,17 +12,15 @@ import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
-import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 
 /**
  * CheckpointStart creates a log entry that marks the beginning of a
  * checkpoint.
  */
-public class CheckpointStart implements LoggableObject, LogReadable {
+public class CheckpointStart implements Loggable {
 
     private Timestamp startTime;
     private long id;
@@ -54,35 +52,7 @@ public class CheckpointStart implements LoggableObject, LogReadable {
      */
 
     /**
-     * @see LoggableObject#getLogType
-     */
-    public LogEntryType getLogType() {
-        return LogEntryType.LOG_CKPT_START;
-    }
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return true;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#postLogWork
-     */
-    public void postLogWork(long justLoggedLsn) {
-    }
-
-    /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         return LogUtils.getTimestampLogSize() +
@@ -91,7 +61,7 @@ public class CheckpointStart implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeTimestamp(logBuffer, startTime);
@@ -100,7 +70,7 @@ public class CheckpointStart implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion)
 	throws LogException {
@@ -111,7 +81,7 @@ public class CheckpointStart implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<CkptStart invoker=\"").append(invoker);
@@ -121,14 +91,7 @@ public class CheckpointStart implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

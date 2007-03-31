@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogEntryTest.java,v 1.15 2006/10/30 21:14:47 bostic Exp $
+ * $Id: LogEntryTest.java,v 1.16.2.1 2007/02/01 14:50:15 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -23,7 +23,7 @@ public class LogEntryTest extends TestCase {
         byte testTypeNum = LogEntryType.LOG_IN.getTypeNum();
         byte testVersion = LogEntryType.LOG_IN.getVersion();
         byte testProvisionalVersion =
-            LogEntryType.setProvisional(testVersion);
+            LogEntryType.setEntryProvisional(testVersion);
 
         /* Look it up by type name and version */
         LogEntryType foundType = LogEntryType.findType(testTypeNum,

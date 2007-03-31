@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorImpl.java,v 1.320 2006/11/28 04:02:55 mark Exp $
+ * $Id: CursorImpl.java,v 1.320.2.1 2007/02/01 14:49:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;

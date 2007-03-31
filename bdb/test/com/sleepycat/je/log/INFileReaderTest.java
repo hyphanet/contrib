@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INFileReaderTest.java,v 1.71 2006/11/03 03:08:05 mark Exp $
+ * $Id: INFileReaderTest.java,v 1.72.2.1 2007/02/01 14:50:14 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -27,6 +27,7 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.IN;
@@ -240,7 +241,7 @@ public class INFileReaderTest extends TestCase {
         for (int i = 0; i < numIters; i++) {
             /* Add a debug record. */
             Tracer rec = new Tracer("Hello there, rec " + (i + 1));
-            logManager.log(rec);
+            rec.log(logManager);
 
             /* Create, log, and save an IN. */
             byte[] data = new byte[i + 1];
@@ -288,7 +289,8 @@ public class INFileReaderTest extends TestCase {
             INDeleteInfo info =
                 new INDeleteInfo(i, key, DbInternal.
 				 dbGetDatabaseImpl(db).getId());
-            lsn = logManager.log(info);
+            lsn = logManager.log(
+                   new SingleItemEntry(LogEntryType.LOG_IN_DELETE_INFO, info));
             checkList.add(new CheckInfo(lsn, info));
 
             /*

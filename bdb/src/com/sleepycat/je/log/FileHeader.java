@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileHeader.java,v 1.37 2006/11/03 03:07:50 mark Exp $
+ * $Id: FileHeader.java,v 1.38.2.1 2007/02/01 14:49:47 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -18,7 +18,7 @@ import com.sleepycat.je.DatabaseException;
  * A FileHeader embodies the header information at the beginning of each log
  * file.
  */
-public class FileHeader implements LoggableObject, LogReadable {
+public class FileHeader implements Loggable {
 
     /* 
      * Version 3
@@ -100,35 +100,6 @@ public class FileHeader implements LoggableObject, LogReadable {
      */
 
     /**
-     * @see LoggableObject#getLogType
-     */
-    public LogEntryType getLogType() {
-        return LogEntryType.LOG_FILE_HEADER;
-    }
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return true;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#postLogWork
-     */
-    public void postLogWork(long justLoggedLsn) 
-        throws DatabaseException {
-    }
-
-    /**
      * A header is always a known size.  Is public for unit testing.
      */
     public static int entrySize() {
@@ -139,7 +110,7 @@ public class FileHeader implements LoggableObject, LogReadable {
             LogUtils.INT_BYTES;              // logVersion
     }
     /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      * @return number of bytes used to store this object
      */
     public int getLogSize() {
@@ -147,7 +118,7 @@ public class FileHeader implements LoggableObject, LogReadable {
     }            
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      * Serialize this object into the buffer. Update cksum with all
      * the bytes used by this object
      * @param logBuffer is the destination buffer
@@ -160,7 +131,7 @@ public class FileHeader implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      * Initialize this object from the data in itemBuf.
      * @param itemBuf the source buffer
      */
@@ -178,7 +149,7 @@ public class FileHeader implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      * @param sb destination string buffer
      * @param verbose if true, dump the full, verbose version
      */
@@ -194,14 +165,7 @@ public class FileHeader implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

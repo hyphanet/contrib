@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LastFileReaderTest.java,v 1.66 2006/10/30 21:14:47 bostic Exp $
+ * $Id: LastFileReaderTest.java,v 1.67.2.1 2007/02/01 14:50:14 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import junit.framework.TestCase;
@@ -23,7 +22,8 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.tree.LN;
+import com.sleepycat.je.log.entry.SingleItemEntry;
+import com.sleepycat.je.txn.TxnAbort;
 import com.sleepycat.je.util.BadFileFilter;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
@@ -145,10 +145,9 @@ public class LastFileReaderTest extends TestCase {
          */
         for (int i = 0; i < numIters; i++) {
             /* Add a debug record. */
-            LoggableObject loggableObj =
-                new Tracer("Hello there, rec " + (i+1));
-            testObjs.add(loggableObj);
-            testLsns.add(new Long(logManager.log(loggableObj)));
+            Tracer msg = new Tracer("Hello there, rec " + (i+1));
+            testObjs.add(msg);
+            testLsns.add(new Long(msg.log(logManager)));
         }
         /* Flush the log, files. */
 	logManager.flush();
@@ -423,22 +422,20 @@ public class LastFileReaderTest extends TestCase {
         throws Throwable {
 
         /*
-         * Create a log file full of LNs, INs and Debug Records.
+         * Create a log file full of LNs and Debug Records.
          */
         for (int i = 0; i < numIters; i++) {
             /* Add a debug record. */
-            LoggableObject loggableObj =
-                new Tracer("Hello there, rec " + (i+1));
-            testObjs.add(loggableObj);
-            testLsns.add(new Long(logManager.log(loggableObj)));
+            Tracer msg = new Tracer("Hello there, rec " + (i+1));
+            testObjs.add(msg);
+            testLsns.add(new Long(msg.log(logManager)));
 
-            /* Add an LN. */
-            byte [] data = new byte[i+1];
-            Arrays.fill(data, (byte)(i+1));
-            loggableObj = new LN(data);
-
-            testObjs.add(loggableObj);
-            testLsns.add(new Long(logManager.log(loggableObj)));
+            /* Add a txn abort */
+            TxnAbort abort = new TxnAbort(10L, 200L);
+            SingleItemEntry entry =
+                new SingleItemEntry(LogEntryType.LOG_TXN_ABORT, abort);
+            testObjs.add(abort);
+            testLsns.add(new Long(logManager.log(entry))); 
         }
 
         /* Flush the log, files. */
@@ -457,7 +454,8 @@ public class LastFileReaderTest extends TestCase {
         throws Throwable {
 
         reader.setTargetType(LogEntryType.LOG_ROOT);
-        reader.setTargetType(LogEntryType.LOG_LN);
+        reader.setTargetType(LogEntryType.LOG_TXN_COMMIT);
+        reader.setTargetType(LogEntryType.LOG_TXN_ABORT);
         reader.setTargetType(LogEntryType.LOG_TRACE);
         reader.setTargetType(LogEntryType.LOG_IN);
         reader.setTargetType(LogEntryType.LOG_LN_TRANSACTIONAL);
@@ -489,11 +487,11 @@ public class LastFileReaderTest extends TestCase {
 
         /* Check next available LSN. */
         int lastSize =
-            ((LogWritable)testObjs.get(testObjs.size()-1)).getLogSize();
+            ((Loggable)testObjs.get(testObjs.size()-1)).getLogSize();
         assertEquals("next available",
                      DbLsn.makeLsn(DbLsn.getFileNumber(lastLsn),
 				   DbLsn.getFileOffset(lastLsn) +
-				   LogManager.HEADER_BYTES + lastSize),
+				   LogEntryHeader.MIN_HEADER_SIZE + lastSize),
                      reader.getEndOfLog());
 
         /* The log should be truncated to just the right size. */
@@ -512,7 +510,7 @@ public class LastFileReaderTest extends TestCase {
 		   DbLsn.NULL_LSN);
         assertEquals(reader.getLastSeen(LogEntryType.LOG_TRACE),
                      DbLsn.longToLsn((Long) testLsns.get(numLsns-2)));
-        assertEquals(reader.getLastSeen(LogEntryType.LOG_LN),
+        assertEquals(reader.getLastSeen(LogEntryType.LOG_TXN_ABORT),
                      lastLsn);
     }
 }

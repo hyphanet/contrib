@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Locker.java,v 1.100 2006/11/17 23:47:28 mark Exp $
+ * $Id: Locker.java,v 1.101.2.1 2007/02/01 14:49:53 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -17,8 +17,8 @@ import java.util.Set;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.DbInternal;
+import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.LockNotGrantedException;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.OperationStatus;

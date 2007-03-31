@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: StoredCollection.java,v 1.38 2006/10/30 21:14:10 bostic Exp $
+ * $Id: StoredCollection.java,v 1.38.2.2 2007/03/12 17:46:05 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -137,6 +137,11 @@ public abstract class StoredCollection extends StoredContainer
      * The iterator will be read-only if the collection is read-only.
      * This method does not exist in the standard {@link Collection} interface.
      *
+     * <p>If {@code Iterater.set} or {@code Iterator.remove} will be called
+     * and the underlying Database is transactional, then a transaction must be
+     * active when calling this method and must remain active while using the
+     * iterator.</p>
+     *
      * <p><strong>Warning:</strong> The iterator returned must be explicitly
      * closed using {@link StoredIterator#close()} or {@link
      * StoredIterator#close(java.util.Iterator)} to release the underlying
@@ -155,6 +160,11 @@ public abstract class StoredCollection extends StoredContainer
      * Returns a read or read-write iterator over the elements in this
      * collection.
      * This method does not exist in the standard {@link Collection} interface.
+     *
+     * <p>If {@code Iterater.set} or {@code Iterator.remove} will be called
+     * and the underlying Database is transactional, then a transaction must be
+     * active when calling this method and must remain active while using the
+     * iterator.</p>
      *
      * <p><strong>Warning:</strong> The iterator returned must be explicitly
      * closed using {@link StoredIterator#close()} or {@link

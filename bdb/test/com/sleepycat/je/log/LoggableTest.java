@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LoggableTest.java,v 1.80 2006/10/30 21:14:47 bostic Exp $
+ * $Id: LoggableTest.java,v 1.81.2.1 2007/02/01 14:50:15 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -102,7 +102,7 @@ public class LoggableTest extends TestCase {
              * Tracer records.
              */
             Tracer dMsg = new Tracer("Hello there");
-            writeAndRead(buffer, dMsg, new Tracer());
+            writeAndRead(buffer, LogEntryType.LOG_TRACE,  dMsg, new Tracer());
 
             /*
              * LNs
@@ -110,14 +110,16 @@ public class LoggableTest extends TestCase {
             String data = "abcdef";
             LN ln = new LN(data.getBytes());
             LN lnFromLog = new LN();
-            writeAndRead(buffer, ln, lnFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_LN, ln, lnFromLog);
             lnFromLog.verify(null);
-            assertTrue(ln.marshallOutsideWriteLatch());
+            assertTrue(LogEntryType.LOG_LN.marshallOutsideLatch());
 
             FileSummaryLN fsLN = new FileSummaryLN(new FileSummary());
             FileSummaryLN fsLNFromLog = new FileSummaryLN();
-            writeAndRead(buffer, fsLN, fsLNFromLog);
-            assertFalse(fsLN.marshallOutsideWriteLatch());
+            writeAndRead(buffer, LogEntryType.LOG_FILESUMMARYLN,
+                         fsLN, fsLNFromLog);
+            assertFalse(
+                   LogEntryType.LOG_FILESUMMARYLN.marshallOutsideLatch());
 
             /*
              * INs
@@ -139,7 +141,7 @@ public class LoggableTest extends TestCase {
             /* Write it. */
             IN inFromLog = new IN();
 	    inFromLog.latch();
-            writeAndRead(buffer, in, inFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_IN, in, inFromLog);
 	    inFromLog.releaseLatch();
 	    in.releaseLatch();
 
@@ -166,7 +168,7 @@ public class LoggableTest extends TestCase {
             /* Write it. */
             inFromLog = new IN();
 	    inFromLog.latch();
-            writeAndRead(buffer, in, inFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_IN, in, inFromLog);
 	    inFromLog.releaseLatch();
 	    in.releaseLatch();
 
@@ -188,7 +190,7 @@ public class LoggableTest extends TestCase {
                                                DbLsn.makeLsn(235, 400)));
             BIN binFromLog = new BIN();
 	    binFromLog.latch();
-            writeAndRead(buffer, bin, binFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_BIN, bin, binFromLog);
             binFromLog.verify(null);
 	    binFromLog.releaseLatch();
             bin.releaseLatch();
@@ -218,7 +220,7 @@ public class LoggableTest extends TestCase {
             /* Write it. */
             DIN dinFromLog = new DIN();
 	    dinFromLog.latch();
-            writeAndRead(buffer, din, dinFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_DIN, din, dinFromLog);
 	    din.releaseLatch();
 	    dinFromLog.releaseLatch();
 
@@ -242,7 +244,7 @@ public class LoggableTest extends TestCase {
                                                 DbLsn.makeLsn(235, 400)));
             DBIN dbinFromLog = new DBIN();
 	    dbinFromLog.latch();
-            writeAndRead(buffer, dbin, dbinFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_DBIN, dbin, dbinFromLog);
             dbinFromLog.verify(null);
             dbin.releaseLatch();
 	    dbinFromLog.releaseLatch();
@@ -252,14 +254,14 @@ public class LoggableTest extends TestCase {
              */
             DbTree dbTree = new DbTree(env);
             DbTree dbTreeFromLog = new DbTree();
-            writeAndRead(buffer, dbTree, dbTreeFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_ROOT, dbTree, dbTreeFromLog);
 
             /*
              * MapLN
              */
             MapLN mapLn = new MapLN(database);
             MapLN mapLnFromLog = new MapLN();
-            writeAndRead(buffer, mapLn, mapLnFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_MAPLN, mapLn, mapLnFromLog);
 
             /*
              * UserTxn
@@ -272,7 +274,7 @@ public class LoggableTest extends TestCase {
 
 	     Txn txn = new Txn(env, new TransactionConfig());
 	     Txn txnFromLog = new Txn();
-	     writeAndRead(buffer, txn, txnFromLog);
+	     writeAndRead(buffer, LogEntryType.TXN_COMMIT, txn, txnFromLog);
 	     txn.commit();
             */
 
@@ -282,14 +284,16 @@ public class LoggableTest extends TestCase {
              */
             TxnCommit commit = new TxnCommit(111, DbLsn.makeLsn(10, 10));
             TxnCommit commitFromLog = new TxnCommit();
-            writeAndRead(buffer, commit, commitFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_TXN_COMMIT, commit,
+                         commitFromLog);
 
             /*
              * TxnAbort
              */
             TxnAbort abort = new TxnAbort(111, DbLsn.makeLsn(11, 11));
             TxnAbort abortFromLog = new TxnAbort();
-            writeAndRead(buffer, abort, abortFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_TXN_ABORT,
+                         abort, abortFromLog);
 
             /*
              * TxnPrepare
@@ -299,17 +303,20 @@ public class LoggableTest extends TestCase {
             TxnPrepare prepare =
 		new TxnPrepare(111, new LogUtils.XidImpl(1, gid, bqual));
             TxnPrepare prepareFromLog = new TxnPrepare();
-            writeAndRead(buffer, prepare, prepareFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_TXN_PREPARE, prepare,
+                         prepareFromLog);
 
             prepare =
 		new TxnPrepare(111, new LogUtils.XidImpl(1, null, bqual));
             prepareFromLog = new TxnPrepare();
-            writeAndRead(buffer, prepare, prepareFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_TXN_PREPARE, 
+                         prepare, prepareFromLog);
 
             prepare =
 		new TxnPrepare(111, new LogUtils.XidImpl(1, gid, null));
             prepareFromLog = new TxnPrepare();
-            writeAndRead(buffer, prepare, prepareFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_TXN_PREPARE, 
+                         prepare, prepareFromLog);
 
             /*
              * IN delete info
@@ -317,14 +324,16 @@ public class LoggableTest extends TestCase {
             INDeleteInfo info = new INDeleteInfo(77, new byte[1],
                                                  new DatabaseId(100));
             INDeleteInfo infoFromLog = new INDeleteInfo();
-            writeAndRead(buffer, info, infoFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_IN_DELETE_INFO,
+                         info, infoFromLog);
 
             /*
              * Checkpoint start
              */
             CheckpointStart start = new CheckpointStart(177, "test");
             CheckpointStart startFromLog = new CheckpointStart();
-            writeAndRead(buffer, start, startFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_CKPT_START,
+                         start, startFromLog);
 
             /*
              * Checkpoint end
@@ -339,7 +348,7 @@ public class LoggableTest extends TestCase {
                                   env.getTxnManager().getLastTxnId(),
                                   177);
             CheckpointEnd endFromLog = new CheckpointEnd();
-            writeAndRead(buffer, end, endFromLog);
+            writeAndRead(buffer, LogEntryType.LOG_CKPT_END,  end, endFromLog);
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -351,15 +360,14 @@ public class LoggableTest extends TestCase {
      * checks for equality and size
      */
     private void writeAndRead(ByteBuffer buffer,
-			      LogWritable orig,
-                              LogReadable fromLog)
+                              LogEntryType entryType,
+			      Loggable orig,
+                              Loggable fromLog)
         throws Exception {
 
-	byte entryTypeVersion =
-	    ((LoggableObject) orig).getLogType().getVersion();
+	byte entryTypeVersion = entryType.getVersion();
 
         /* Write it. */
-
         buffer.clear();
         orig.writeToLog(buffer);
 
@@ -372,7 +380,7 @@ public class LoggableTest extends TestCase {
 	 * objects that are readable and writable to the log.
 	 */
         fromLog.readFromLog(buffer, entryTypeVersion);
-        assertEquals(orig.getLogSize(), ((LogWritable) fromLog).getLogSize());
+        assertEquals(orig.getLogSize(), fromLog.getLogSize());
 
         assertEquals("We should have read the whole buffer for " +
                      fromLog.getClass().getName(), 
@@ -381,7 +389,7 @@ public class LoggableTest extends TestCase {
         /* Compare contents. */
         StringBuffer sb1 = new StringBuffer();
         StringBuffer sb2 = new StringBuffer();
-        ((LogReadable) orig).dumpLog(sb1, true);
+        orig.dumpLog(sb1, true);
         fromLog.dumpLog(sb2, true);
 
         if (DEBUG) {

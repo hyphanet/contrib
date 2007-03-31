@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Tree.java,v 1.417 2006/12/04 18:47:41 cwl Exp $
+ * $Id: Tree.java,v 1.418.2.2 2007/03/08 22:33:00 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -27,9 +27,8 @@ import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.latch.SharedLatch;
 import com.sleepycat.je.log.LogManager;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.recovery.RecoveryManager;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.LockGrantType;
@@ -71,7 +70,7 @@ import com.sleepycat.je.utilint.Tracer;
  * Also, search* should return the location of the slot to save us a 
  * second binary search.
  */
-public final class Tree implements LogWritable, LogReadable {
+public final class Tree implements Loggable {
 
     /* For debug tracing */
     private static final String TRACE_ROOT_SPLIT = "RootSplit:";
@@ -85,13 +84,6 @@ public final class Tree implements LogWritable, LogReadable {
     private int maxMainTreeEntriesPerNode;
     private int maxDupTreeEntriesPerNode;
     private boolean purgeRoot;
-
-    /*
-     * Indicates whether the root ChildReference was last logged, and used for
-     * calculating the last logged size.  Not persistent.
-     * @see #getLastLoggedSize
-     */
-    private boolean rootLastLogged;
 
     /* 
      * Latch that must be held when using/accessing the root node.  Protects
@@ -3102,7 +3094,7 @@ public final class Tree implements LogWritable, LogReadable {
         long firstDupCountLNLsn =
             dupCountLN.optionalLogProvisional(env, database,
 				      key, DbLsn.NULL_LSN, 0);
-        int firstDupCountLNSize = dupCountLN.getTotalLastLoggedSize(key);
+        int firstDupCountLNSize = dupCountLN.getLastLoggedSize();
 
         /* Make the duplicate root and DBIN. */
         dupRoot = new DIN(database,
@@ -3392,73 +3384,39 @@ public final class Tree implements LogWritable, LogReadable {
      */
 
     /**
-     * Returns the true last logged size by taking into account whether the
-     * root was null when last logged.  This is necessary because the
-     * persistent state is changed (the root is set to non-null) after being
-     * logged and before MapLN.modify is called.
-     *
-     * @see DatabaseImpl#getLastLoggedSize
-     * @see MapLN#getLastLoggedSize
-     */
-    public int getLastLoggedSize() {
-        return getLogSizeInternal(true);
-    }
-
-    /**
-     * @see LogWritable#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return getLogSizeInternal(false);
-    }
-
-    private int getLogSizeInternal(boolean lastLogged) {
         int size = LogUtils.getBooleanLogSize();  // root exists?
-
-        /*
-         * Use ChildReference.ROOT_LOG_SIZE because the root field may be null
-         * even if non-null when last logged.
-         */
-        if (lastLogged) {
-            if (rootLastLogged) {      
-                size += ChildReference.ROOT_LOG_SIZE;
-            }
-        } else {
-            if (root != null) {      
-                size += ChildReference.ROOT_LOG_SIZE;
-            }
+        if (root != null) {      
+            size += root.getLogSize();
         }
         return size;
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeBoolean(logBuffer, (root != null));
         if (root != null) {
             root.writeToLog(logBuffer);
-            rootLastLogged = true;
-        } else {
-            rootLastLogged = false;
         }
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
         boolean rootExists = LogUtils.readBoolean(itemBuffer);
         if (rootExists) {
             root = makeRootChildReference();
             root.readFromLog(itemBuffer, entryTypeVersion);
-            rootLastLogged = true;
-        } else {
-            rootLastLogged = false;
         }
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<root>");
@@ -3469,14 +3427,7 @@ public final class Tree implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#isTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

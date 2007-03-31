@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Operation.java,v 1.3 2006/12/04 18:47:41 cwl Exp $
+ * $Id: Operation.java,v 1.3.2.1 2007/02/01 14:49:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;

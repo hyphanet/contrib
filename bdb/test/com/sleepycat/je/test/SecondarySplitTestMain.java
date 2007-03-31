@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondarySplitTestMain.java,v 1.5 2006/10/30 21:14:50 bostic Exp $
+ * $Id: SecondarySplitTestMain.java,v 1.5.2.1 2007/02/01 14:50:20 cwl Exp $
  */
 
 package com.sleepycat.je.test;

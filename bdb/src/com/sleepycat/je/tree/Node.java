@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Node.java,v 1.93 2006/10/30 21:14:26 bostic Exp $
+ * $Id: Node.java,v 1.94.2.1 2007/02/01 14:49:51 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -17,16 +17,13 @@ import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.latch.LatchNotHeldException;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 
 /**
  * A Node contains all the common base information for any JE B-Tree node.
  */
-public abstract class Node
-    implements LoggableObject, LogReadable, LogWritable {
+public abstract class Node implements Loggable {
 
     /*
      * The last allocated id. Note that nodeids will be shared
@@ -226,54 +223,30 @@ public abstract class Node
 	return getClass().getName();
     }
 
+    /**
+     */
+    public abstract LogEntryType getLogType();
+
     /* 
      * Logging support
      */
 
     /**
-     * @see LoggableObject#getLogType
-     */
-    public abstract LogEntryType getLogType();
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * By default, nodes can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return true;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#postLogWork
-     */
-    public void postLogWork(long justLoggedLsn) 
-        throws DatabaseException {
-
-    }
-
-    /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         return LogUtils.LONG_BYTES;
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeLong(logBuffer, nodeId);
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
 	throws LogException {
@@ -282,11 +255,18 @@ public abstract class Node
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append(BEGIN_TAG);
         sb.append(nodeId);
         sb.append(END_TAG);
+    }
+
+    /**
+     * @see Loggable#getTransactionId
+     */
+    public long getTransactionId() {
+	return 0;
     }
 }

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: NoRootException.java,v 1.1 2006/11/27 18:38:26 linda Exp $
+ * $Id: NoRootException.java,v 1.1.2.1 2007/02/01 14:49:49 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;

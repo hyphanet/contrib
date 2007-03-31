@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CleanerFileReader.java,v 1.33 2006/10/30 21:14:20 bostic Exp $
+ * $Id: CleanerFileReader.java,v 1.34.2.2 2007/03/08 22:32:54 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -137,8 +137,7 @@ public class CleanerFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        targetLogEntry.readEntry(entryBuffer, currentEntrySize,
-                                 currentEntryTypeVersion, true);
+        readEntry(targetLogEntry, entryBuffer, true); // readFullItem
         return true;
     }
 
@@ -180,7 +179,7 @@ public class CleanerFileReader extends FileReader {
     public IN getIN() 
         throws DatabaseException {
 
-        return ((INLogEntry) targetLogEntry).getIN(env);
+        return ((INLogEntry) targetLogEntry).getIN(envImpl);
     }
 
     public FileHeader getFileHeader() 

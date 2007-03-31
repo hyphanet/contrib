@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeletedDupLNLogEntry.java,v 1.25 2006/10/30 21:14:21 bostic Exp $
+ * $Id: DeletedDupLNLogEntry.java,v 1.26.2.1 2007/02/01 14:49:48 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
+import com.sleepycat.je.log.LogEntryHeader;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.tree.Key;
@@ -36,8 +37,8 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
     /**
      * Constructor to read an entry.
      */
-    public DeletedDupLNLogEntry(boolean isTransactional) {
-        super(com.sleepycat.je.tree.LN.class, isTransactional);
+    public DeletedDupLNLogEntry() {
+        super(com.sleepycat.je.tree.LN.class);
     }
 
     /**
@@ -59,14 +60,12 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
      * Extends its super class to read in the extra dup key.
      * @see LNLogEntry#readEntry
      */
-    public void readEntry(ByteBuffer entryBuffer,
-			  int entrySize,
-                          byte entryTypeVersion,
-			  boolean readFullItem)
+    public void readEntry(LogEntryHeader header,
+                          ByteBuffer entryBuffer,
+                          boolean readFullItem)
         throws DatabaseException {
 
-        super.readEntry(entryBuffer, entrySize,
-                        entryTypeVersion, readFullItem);
+        super.readEntry(header, entryBuffer, readFullItem);
 
         /* Key */
         if (readFullItem) {
@@ -93,18 +92,19 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
 
     /**
      * Extend super class to add in extra key.
-     * @see LNLogEntry#getLogSize
+     * @see LNLogEntry#getSize
      */
-    public int getLogSize() {
-        return super.getLogSize() +
+    public int getSize() {
+        return super.getSize() +
 	    LogUtils.getByteArrayLogSize(dataAsKey);
     }
 
     /**
-     * @see LNLogEntry#writeToLog
+     * @see LogEntry#writeToLog
      */
-    public void writeToLog(ByteBuffer destBuffer) {
-        super.writeToLog(destBuffer);
+    public void writeEntry(LogEntryHeader header,
+                           ByteBuffer destBuffer) {
+        super.writeEntry(header, destBuffer);
         LogUtils.writeByteArray(destBuffer, dataAsKey);
     }
 

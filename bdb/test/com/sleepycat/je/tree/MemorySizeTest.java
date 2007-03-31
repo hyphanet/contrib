@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MemorySizeTest.java,v 1.21 2006/10/30 21:14:52 bostic Exp $
+ * $Id: MemorySizeTest.java,v 1.21.2.2 2007/03/07 01:24:42 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -389,7 +389,7 @@ public class MemorySizeTest extends TestCase {
                 IN in = (IN) iter.next();
 		in.latch();
                 if (in instanceof BIN) {
-                    in.compress(null, true);
+                    in.compress(null, true, null);
                 }
 		in.releaseLatch();
             }

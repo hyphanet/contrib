@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INCompressor.java,v 1.125 2006/10/30 21:14:17 bostic Exp $
+ * $Id: INCompressor.java,v 1.125.2.2 2007/03/07 01:24:37 mark Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -500,7 +500,7 @@ public class INCompressor extends DaemonThread {
                 requeued = true;
                 cursorsBinsThisRun++;
             } else {
-                requeued = bin.compress(binRef, true /* canFetch */);
+                requeued = bin.compress(binRef, true /* canFetch */, tracker);
                 if (!requeued) {
 
                     /* 
@@ -735,7 +735,7 @@ public class INCompressor extends DaemonThread {
      * Lazily compress a single BIN. Do not do any pruning. The target IN
      * should be latched when we enter, and it will be remain latched.
      */
-    public void lazyCompress(IN in) 
+    public void lazyCompress(IN in, UtilizationTracker tracker) 
         throws DatabaseException {
 
         if (!in.isCompressible()) {
@@ -757,7 +757,8 @@ public class INCompressor extends DaemonThread {
                 return;
             } else {
 
-                boolean requeued = bin.compress(binRef, false /* canFetch */);
+                boolean requeued =
+                    bin.compress(binRef, false /* canFetch */, tracker);
                 lazyProcessed++;
 
                 /* 

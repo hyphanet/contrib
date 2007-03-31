@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: UtilizationProfile.java,v 1.52 2006/11/28 13:52:05 mark Exp $
+ * $Id: UtilizationProfile.java,v 1.52.2.2 2007/03/07 00:40:24 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -967,7 +967,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                          * converted records and to ensure that later records
                          * will have a greater sequence number.
                          */
-                        if (isOldVersion) {
+                        if (isOldVersion && !env.isReadOnly()) {
                             insertFileSummary(ln, fileNum, 0);
                             cursor.latchBIN();
                             cursor.delete();
@@ -984,12 +984,14 @@ public class UtilizationProfile implements EnvConfigObserver {
                          */
                         fileSummaryMap.remove(fileNumLong);
 
-                        if (isOldVersion) {
-                            cursor.latchBIN();
-                            cursor.delete();
-                            cursor.releaseBIN();
-                        } else {
-                            deleteFileSummary(fileNumLong);
+                        if (!env.isReadOnly()) {
+                            if (isOldVersion) {
+                                cursor.latchBIN();
+                                cursor.delete();
+                                cursor.releaseBIN();
+                            } else {
+                                deleteFileSummary(fileNumLong);
+                            }
                         }
 
                         /*

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INLogEntry.java,v 1.36 2006/11/17 23:47:24 mark Exp $
+ * $Id: INLogEntry.java,v 1.37.2.1 2007/02/01 14:49:48 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -13,47 +13,60 @@ import java.nio.ByteBuffer;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.LogEntryHeader;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
 import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
- * INLogEntry embodies all IN log entries.  These entries contain an IN and a
- * databaseId. This class can both write out an entry and read one in.
+ * INLogEntry embodies all IN log entries.  
+ * On disk, an IN log entry contains:
+ * <pre>
+ *        IN
+ *        database id
+ *        obsolete LSN  -- in version 2 
+ * </pre>
  */
-public class INLogEntry
-    implements LogEntry, LoggableObject, NodeLogEntry, INContainingEntry {
+public class INLogEntry extends BaseEntry
+    implements LogEntry, NodeLogEntry, INContainingEntry {
 
-    /* Objects contained in an IN entry */
+    /* 
+     * Persistent fields in an IN entry.
+     */
     private IN in;
     private DatabaseId dbId;
-
     /*
      * obsoleteFile was added in version 1, and changed to obsoleteLsn in
      * version 2.  If the offset is zero in the LSN, we read a version 1 entry
      * since only the file number was stored.
      */
     private long obsoleteLsn;
-    
+
+    /*
+     * Transient fields
+     *
+     * Save the node id when we read the log entry from disk. Do so explicitly
+     * instead of merely returning in.getNodeId(), because we don't always
+     * instantiate the IN.
+     */
     private long nodeId;
-    private Class logClass;
+
 
     /**
      * Construct a log entry for reading.
      */
-    public INLogEntry(Class logClass) {
-        this.logClass = logClass;
+    public INLogEntry(Class INClass) {
+        super(INClass);
     }
 
     /**
      * Construct a log entry for writing to the log.
      */
     public INLogEntry(IN in) {
+        setLogType(in.getLogType());
         this.in = in;
         this.dbId = in.getDatabase().getId();
-        this.logClass = in.getClass();
         this.nodeId = in.getNodeId();
         this.obsoleteLsn = in.getLastFullVersion();
     }
@@ -65,14 +78,12 @@ public class INLogEntry
     /**
      * Read in an IN entry.
      */
-    public void readEntry(ByteBuffer entryBuffer,
-			  int entrySize,
-                          byte entryTypeVersion,
-			  boolean readFullItem)
+    public void readEntry(LogEntryHeader header,
+                          ByteBuffer entryBuffer,
+                          boolean readFullItem)
         throws DatabaseException {
 
-        entryTypeVersion &= LogEntryType.clearProvisional(entryTypeVersion);
-
+        byte entryTypeVersion = LogEntryType.getVersionValue(header.getVersion());
         try {
             if (readFullItem) {
                 /* Read IN and get node ID. */
@@ -81,7 +92,7 @@ public class INLogEntry
                 nodeId = in.getNodeId();
             } else {
                 /* Calculate position following IN. */
-                int position = entryBuffer.position() + entrySize;
+                int position = entryBuffer.position() + header.getItemSize();
                 if (entryTypeVersion == 1) {
                     /* Subtract size of obsoleteFile */
                     position -= LogUtils.UNSIGNED_INT_BYTES;
@@ -150,13 +161,6 @@ public class INLogEntry
     }
 
     /**
-     * @see LogEntry#isTransactional
-     */
-    public boolean isTransactional() {
-	return false;
-    }
-
-    /**
      * @see LogEntry#getTransactionId
      */
     public long getTransactionId() {
@@ -168,46 +172,18 @@ public class INLogEntry
      */
 
     /**
-     * @see LoggableObject#getLogType
      */
-    public LogEntryType getLogType() {
-        return in.getLogType();
-    }
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Ask the in if it can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return in.marshallOutsideWriteLatch();
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#postLogWork
-     */
-    public void postLogWork(long justLoggedLsn) {
-    }
-
-    /**
-     * @see LoggableObject#getLogSize
-     */
-    public int getLogSize() {
+    public int getSize() {
         return (in.getLogSize() +
 		dbId.getLogSize() +
                 LogUtils.LONG_BYTES);
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see LogEntry#writeEntry
      */
-    public void writeToLog(ByteBuffer destBuffer) {
+    public void writeEntry(LogEntryHeader header,
+                           ByteBuffer destBuffer) {
         in.writeToLog(destBuffer);
         dbId.writeToLog(destBuffer);
         LogUtils.writeLong(destBuffer, obsoleteLsn);

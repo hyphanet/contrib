@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LNFileReader.java,v 1.58 2006/10/30 21:14:20 bostic Exp $
+ * $Id: LNFileReader.java,v 1.59.2.2 2007/03/08 22:32:55 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -82,7 +82,7 @@ public class LNFileReader extends FileReader {
     protected boolean isTargetEntry(byte entryTypeNum,
                                     byte entryTypeVersion) {
 
-        if (LogEntryType.isProvisional(entryTypeVersion)) {
+        if (LogEntryType.isEntryProvisional(entryTypeVersion)) {
             /* Skip provisionial entries */
             targetLogEntry = null;
         } else {
@@ -101,8 +101,7 @@ public class LNFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        targetLogEntry.readEntry(entryBuffer, currentEntrySize,
-                                 currentEntryTypeVersion, true);
+        readEntry(targetLogEntry, entryBuffer, true); // readFullItem
         return true;
     }
 

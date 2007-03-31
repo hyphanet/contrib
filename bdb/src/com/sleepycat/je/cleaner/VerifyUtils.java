@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2006 Oracle.  All rights reserved.
  *
- * $Id: VerifyUtils.java,v 1.8 2006/11/03 03:07:48 mark Exp $
+ * $Id: VerifyUtils.java,v 1.8.2.1 2007/03/07 01:24:33 mark Exp $
  */
 
 package com.sleepycat.je.cleaner; 
@@ -23,6 +23,7 @@ import com.sleepycat.je.dbi.SortedLSNTreeWalker;
 import com.sleepycat.je.dbi.SortedLSNTreeWalker.TreeNodeProcessor;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.tree.Node;
+import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
@@ -163,6 +164,11 @@ public class VerifyUtils {
 	    throws DatabaseException {
 
             lsns.add(new Long(childLSN));
+        }
+	
+	/* ignore */
+        public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
+	    throws DatabaseException {
         }
     
 	/* ignore */

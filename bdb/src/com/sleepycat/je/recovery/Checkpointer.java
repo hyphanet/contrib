@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Checkpointer.java,v 1.139 2006/11/27 23:15:04 mark Exp $
+ * $Id: Checkpointer.java,v 1.140.2.2 2007/03/07 01:24:39 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -20,13 +20,16 @@ import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.cleaner.Cleaner;
 import com.sleepycat.je.cleaner.TrackedFileSummary;
 import com.sleepycat.je.cleaner.UtilizationProfile;
+import com.sleepycat.je.cleaner.UtilizationTracker;
 import com.sleepycat.je.cleaner.FileSelector.CheckpointStartCleanerState;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogManager;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.IN;
@@ -386,8 +389,10 @@ public class Checkpointer extends DaemonThread {
 	    synchronized (envImpl.getEvictor()) {
 
 		/* Log the checkpoint start. */
-		CheckpointStart startEntry =
-		    new CheckpointStart(checkpointId, invokingSource);
+		SingleItemEntry startEntry =
+		    new SingleItemEntry(LogEntryType.LOG_CKPT_START,
+                                        new CheckpointStart(checkpointId,
+                                                            invokingSource));
 		checkpointStart = logManager.log(startEntry);
 
 		/* 
@@ -449,15 +454,18 @@ public class Checkpointer extends DaemonThread {
              */
             flushUtilizationInfo();
 
-            CheckpointEnd endEntry =
-                new CheckpointEnd(invokingSource,
-                                  checkpointStart,
-                                  envImpl.getRootLsn(),
-                                  firstActiveLsn,
-                                  Node.getLastId(),
-                                  envImpl.getDbMapTree().getLastDbId(),
-                                  envImpl.getTxnManager().getLastTxnId(),
-                                  checkpointId);
+            SingleItemEntry endEntry =
+                new SingleItemEntry(LogEntryType.LOG_CKPT_END,
+                                    new CheckpointEnd(invokingSource,
+                                                      checkpointStart,
+                                                      envImpl.getRootLsn(),
+                                                      firstActiveLsn,
+                                                      Node.getLastId(),
+                                                      envImpl.getDbMapTree().
+                                                      getLastDbId(),
+                                                      envImpl.getTxnManager().
+                                                      getLastTxnId(),
+                                                      checkpointId));
 
             /* 
              * Log checkpoint end and update state kept about the last
@@ -616,6 +624,14 @@ public class Checkpointer extends DaemonThread {
          * maxFlushLevel, but are still syncing.
          */
         boolean onlyFlushDeferredWriteDbs = false;
+        
+        /*
+         * Use a tracker to count lazily compressed, deferred write, LNs as
+         * obsolete.  A separate tracker is used to accumulate tracked obsolete
+         * info so it can be added in a single call under the log write latch.
+         * [#15365]
+         */
+        UtilizationTracker tracker = new UtilizationTracker(envImpl);
 
         while (dirtyMap.getNumLevels() > 0) {
 
@@ -653,7 +669,7 @@ public class Checkpointer extends DaemonThread {
                         flushIN(envImpl, logManager,
                                 targetRef, dirtyMap, currentLevelVal,
                                 logProvisionally, allowDeltas, checkpointStart,
-                                fstats);
+                                fstats, tracker);
                     }
 
                     /* Sleep if background read/write limit was exceeded. */
@@ -679,6 +695,15 @@ public class Checkpointer extends DaemonThread {
                 }
             }
         }
+
+        /*
+         * Count obsolete nodes and write out modified file summaries for
+         * recovery.  All latches must have been released. [#15365]
+         */
+        TrackedFileSummary[] summaries = tracker.getTrackedFiles();
+        if (summaries.length > 0) {
+            envImpl.getUtilizationProfile().countAndLogSummaries(summaries);
+        }
     }
 
     /** 
@@ -692,7 +717,8 @@ public class Checkpointer extends DaemonThread {
                                 boolean logProvisionally,
                                 boolean allowDeltas,
                                 long checkpointStart,
-                                FlushStats fstats)
+                                FlushStats fstats,
+                                UtilizationTracker tracker)
         throws DatabaseException {
 
         Tree tree = targetRef.db.getTree();
@@ -784,7 +810,8 @@ public class Checkpointer extends DaemonThread {
                                                          allowDeltas,
                                                          checkpointStart,
                                                          logProvisionally,
-                                                         fstats);
+                                                         fstats,
+                                                         tracker);
                         }
                     } else {
 
@@ -899,7 +926,8 @@ public class Checkpointer extends DaemonThread {
                                                     boolean allowDeltas,
                                                     long checkpointStart,
                                                     boolean logProvisionally,
-                                                    FlushStats fstats) 
+                                                    FlushStats fstats,
+                                                    UtilizationTracker tracker)
         throws DatabaseException {
 
         long newLsn = DbLsn.NULL_LSN;
@@ -911,7 +939,7 @@ public class Checkpointer extends DaemonThread {
              * Compress this node if necessary. Note that this may dirty the
              * node.
              */
-            envImpl.lazyCompress(target);
+            envImpl.lazyCompress(target, tracker);
 
             if (target.getDirty()) {
                 if (target.getDatabase().isDeferredWrite()) {

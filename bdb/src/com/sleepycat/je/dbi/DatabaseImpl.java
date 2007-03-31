@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseImpl.java,v 1.156 2006/11/27 22:44:19 mark Exp $
+ * $Id: DatabaseImpl.java,v 1.157.2.5 2007/03/09 17:37:09 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -47,9 +47,8 @@ import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogFileNotFoundException;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.recovery.Checkpointer;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
@@ -72,8 +71,7 @@ import com.sleepycat.je.utilint.TestHook;
 /**
  * The underlying object for a given database.
  */
-public class DatabaseImpl
-    implements LogWritable, LogReadable, Cloneable {
+public class DatabaseImpl implements Loggable, Cloneable {
 
     /* 
      * Delete processing states. See design note on database deletion and 
@@ -544,62 +542,54 @@ public class DatabaseImpl
              * out the root.
              */
             long rootLsn = tree.getRootLsn();
-            if (rootLsn == DbLsn.NULL_LSN) {
 
-                /* 
-                 * There's nothing in this database. (It might be the abort of
-                 * a truncation, where we are trying to clean up the new, blank
-                 * database. Do delete the MapLN.
-                 */
-                envImpl.getDbMapTree().deleteMapLN(id);
 
-            } else {
-
-                UtilizationTracker snapshot = new UtilizationTracker(envImpl);
-
-                /*
-                 * Start by recording the lsn of the root IN as obsolete.  A
-                 * zero size is passed for the last parameter because it is too
-                 * expensive to fetch the node.
-                 */
+            /*
+             * Use a snapshot tracker that is accumulated under the log write
+             * latch when we're doing counting.  Start by recording the LSN of
+             * the root IN as obsolete.  A zero size is passed for the last
+             * parameter because it is too expensive to fetch the node.
+             */
+            UtilizationTracker snapshot = new UtilizationTracker(envImpl);
+            if (rootLsn != DbLsn.NULL_LSN) {
                 snapshot.countObsoleteNodeInexact
                     (rootLsn, LogEntryType.LOG_IN, 0);
-
-                /* Fetch LNs to count LN sizes only if so configured. */
-                boolean fetchLNSize =
-                    envImpl.getCleaner().getFetchObsoleteSize();
-
-                /* Use the tree walker to visit every child lsn in the tree. */
-                ObsoleteProcessor obsoleteProcessor =
-                    new ObsoleteProcessor(snapshot);
-                SortedLSNTreeWalker walker = new ObsoleteTreeWalker
-                    (this, rootLsn, fetchLNSize, obsoleteProcessor);
-
-                /* 
-                 * Delete MapLN before the walk. Note that the processing of
-                 * the naming tree means this MapLN is never actually
-                 * accessible from the current tree, but deleting the MapLN
-                 * will do two things:
-                 * (a) mark it properly obsolete 
-                 * (b) null out the database tree, leaving the INList the only
-                 * reference to the INs.
-                 */
-                envImpl.getDbMapTree().deleteMapLN(id);
-
-                /* 
-                 * At this point, it's possible for the evictor to find an IN
-                 * for this database on the INList. It should be ignored.
-                 */
-                walker.walk();
-
-                /*
-                 * Count obsolete nodes for a deleted database at transaction
-                 * end time.  Write out the modified file summaries for
-                 * recovery.
-                 */
-                envImpl.getUtilizationProfile().countAndLogSummaries
-                    (snapshot.getTrackedFiles());
             }
+
+            /* Fetch LNs to count LN sizes only if so configured. */
+            boolean fetchLNSize =
+                envImpl.getCleaner().getFetchObsoleteSize();
+
+            /* Use the tree walker to visit every child lsn in the tree. */
+            ObsoleteProcessor obsoleteProcessor =
+                new ObsoleteProcessor(snapshot);
+            SortedLSNTreeWalker walker = new ObsoleteTreeWalker
+                (this, rootLsn, fetchLNSize, obsoleteProcessor);
+
+            /* 
+             * Delete MapLN before the walk. Note that the processing of
+             * the naming tree means this MapLN is never actually
+             * accessible from the current tree, but deleting the MapLN
+             * will do two things:
+             * (a) mark it properly obsolete 
+             * (b) null out the database tree, leaving the INList the only
+             * reference to the INs.
+             */
+            envImpl.getDbMapTree().deleteMapLN(id);
+
+            /* 
+             * At this point, it's possible for the evictor to find an IN
+             * for this database on the INList. It should be ignored.
+             */
+            walker.walk();
+
+            /*
+             * Count obsolete nodes for a deleted database at transaction
+             * end time.  Write out the modified file summaries for
+             * recovery.
+             */
+            envImpl.getUtilizationProfile().countAndLogSummaries
+                (snapshot.getTrackedFiles());
         } finally {
             deleteState = DELETED;
         }
@@ -651,13 +641,30 @@ public class DatabaseImpl
 
             assert childLsn != DbLsn.NULL_LSN;
             
-            /* Count the LN log size if an LN node and key are available. */
+            /*
+             * Count the LN log size if an LN node and key are available.  But
+             * do not count the size if the LN is dirty, since the logged LN is
+             * not available. [#15365]
+             */
             int size = 0;
             if (lnKey != null && node instanceof LN) {
-                size = ((LN) node).getTotalLastLoggedSize(lnKey);
+                LN ln = (LN) node;
+                size = ln.getLastLoggedSize();
             }
 
             tracker.countObsoleteNodeInexact(childLsn, childType, size);
+        }
+
+        public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
+	    throws DatabaseException {
+
+            assert ln != null;
+
+            /*
+             * Do not count the size (pass zero) because the LN is dirty and
+             * the logged LN is not available.
+             */
+            tracker.countObsoleteNodeInexact(childLsn, ln.getLogType(), 0);
         }
 
 	public void processDupCount(long ignore) {
@@ -1100,6 +1107,10 @@ public class DatabaseImpl
 	    }
         }
 
+        public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
+	    throws DatabaseException {
+        }
+
 	public void processDupCount(long ignore) {
 	}
     }
@@ -1292,6 +1303,10 @@ public class DatabaseImpl
 	    }
         }
 
+        public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
+	    throws DatabaseException {
+        }
+
 	/* Used when processing Deferred Write dbs and there are no LSNs. */
 	public void processDupCount(long count) {
 	    stats.nLNsLoaded += count;
@@ -1371,26 +1386,12 @@ public class DatabaseImpl
      */
 
     /**
-     * Returns the true last logged size by calling Tree.getLastLoggedSize().
-     *
-     * @see MapLN#getLastLoggedSize
-     * @see Tree#getLastLoggedSize
-     */
-    public int getLastLoggedSize() {
-        return getLogSizeInternal(true);
-    }
-
-    /**
-     * @see LogWritable#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return getLogSizeInternal(false);
-    }
-
-    private int getLogSizeInternal(boolean lastLogged) {
         return 
             id.getLogSize() +
-            (lastLogged ? tree.getLastLoggedSize() : tree.getLogSize()) +
+            tree.getLogSize() +
             LogUtils.getBooleanLogSize() +
             LogUtils.getByteArrayLogSize(btreeComparatorBytes) +
             LogUtils.getByteArrayLogSize(duplicateComparatorBytes) +
@@ -1398,7 +1399,7 @@ public class DatabaseImpl
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         id.writeToLog(logBuffer);
@@ -1411,7 +1412,7 @@ public class DatabaseImpl
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
         throws LogException {
@@ -1492,7 +1493,7 @@ public class DatabaseImpl
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<database>");
@@ -1510,14 +1511,7 @@ public class DatabaseImpl
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

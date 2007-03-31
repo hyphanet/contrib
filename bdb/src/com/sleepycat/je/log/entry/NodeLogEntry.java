@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: NodeLogEntry.java,v 1.5 2006/10/30 21:14:22 bostic Exp $
+ * $Id: NodeLogEntry.java,v 1.5.2.1 2007/02/01 14:49:48 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;

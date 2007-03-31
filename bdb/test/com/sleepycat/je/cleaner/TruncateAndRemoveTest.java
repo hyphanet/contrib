@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TruncateAndRemoveTest.java,v 1.17 2006/11/17 23:47:28 mark Exp $
+ * $Id: TruncateAndRemoveTest.java,v 1.18.2.1 2007/02/01 14:50:06 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -950,17 +950,16 @@ public class TruncateAndRemoveTest extends TestCase {
             throws DatabaseException {
             
             /* Figure out what kind of log entry this is */
-            LogEntryType lastEntryType =
-                LogEntryType.findType(currentEntryTypeNum,
-                                      currentEntryTypeVersion);
-            boolean isNode = LogEntryType.isNodeType(currentEntryTypeNum,
-                                                     currentEntryTypeVersion);
-
+            byte type = currentEntryHeader.getType();
+            byte version = currentEntryHeader.getVersion();
+            LogEntryType lastEntryType = LogEntryType.findType(type, version);
+            boolean isNode = LogEntryType.isNodeType(type, version);
 
             /* Read the entry. */
             LogEntry entry = lastEntryType.getSharedLogEntry();
-            entry.readEntry(entryBuffer, currentEntrySize,
-                            currentEntryTypeVersion, true);
+            entry.readEntry(currentEntryHeader,
+            		        entryBuffer, 
+            		        true); // readFullItem
 
             long lsn = getLastLsn();
             if (isNode) {

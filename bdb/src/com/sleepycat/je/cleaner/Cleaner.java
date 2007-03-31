@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Cleaner.java,v 1.183 2006/11/17 23:47:21 mark Exp $
+ * $Id: Cleaner.java,v 1.183.2.2 2007/03/08 22:32:53 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -1161,8 +1161,8 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             /* Migrate the LN. */
             byte[] key = getLNMainKey(bin, index);
             long newLNLsn = ln.log
-                (env, db.getId(), key, lsn, ln.getTotalLastLoggedSize(key),
-                 locker, backgroundIO);
+                (env, db.getId(), key, lsn, ln.getLastLoggedSize(), locker,
+                 backgroundIO);
             bin.updateEntry(index, newLNLsn);
             nLNsMigrated++;
             migrated = true;
@@ -1313,8 +1313,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             /* Migrate the LN. */
             byte[] key = parentDIN.getDupKey();
             long newLNLsn = ln.log
-                (env, db.getId(), key, lsn, ln.getTotalLastLoggedSize(key),
-                 locker,
+                (env, db.getId(), key, lsn, ln.getLastLoggedSize(), locker,
                  false); // backgroundIO
             parentDIN.updateDupCountLNRef(newLNLsn);
             nLNsMigrated++;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentMutableConfig.java,v 1.28 2006/11/07 04:37:20 linda Exp $
+ * $Id: EnvironmentMutableConfig.java,v 1.29.2.1 2007/02/01 14:49:41 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -185,8 +185,7 @@ public class EnvironmentMutableConfig implements Cloneable {
     public String getConfigParam(String paramName)
         throws IllegalArgumentException {
         
-       return DbConfigManager.getConfigParam(props,
-                                             paramName);
+       return DbConfigManager.getConfigParam(props, paramName);
     }
 
     /*

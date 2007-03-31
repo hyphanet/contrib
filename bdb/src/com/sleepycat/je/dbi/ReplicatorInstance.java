@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ReplicatorInstance.java,v 1.3 2006/10/30 21:14:15 bostic Exp $
+ * $Id: ReplicatorInstance.java,v 1.4.2.1 2007/02/01 14:49:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -11,6 +11,7 @@ package com.sleepycat.je.dbi;
 import java.nio.ByteBuffer;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.utilint.VLSN;
 
 /**
  * Replication functionality is available to the core JE code through this
@@ -23,6 +24,8 @@ import com.sleepycat.je.DatabaseException;
 public interface ReplicatorInstance {
 
     public void replicateOperation(Operation op, 
-                               ByteBuffer marshalledBuffer)
+                                   ByteBuffer marshalledBuffer)
         throws DatabaseException;
+
+    public VLSN bumpVLSN();
 }

@@ -1,15 +1,17 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: OperationTest.java,v 1.12 2006/11/27 22:44:24 mark Exp $
+ * $Id: OperationTest.java,v 1.12.2.2 2007/02/10 02:58:19 mark Exp $
  */
 
 package com.sleepycat.persist.test;
 
 import static com.sleepycat.persist.model.Relationship.MANY_TO_ONE;
 import static com.sleepycat.persist.model.Relationship.ONE_TO_MANY;
+import static com.sleepycat.persist.model.Relationship.ONE_TO_ONE;
+import static com.sleepycat.persist.model.DeleteAction.CASCADE;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,6 +45,8 @@ import com.sleepycat.persist.raw.RawStore;
  * @author Mark Hayes
  */ 
 public class OperationTest extends TxnTestCase {
+
+    private static final String STORE_NAME = "test";
  
     public static Test suite() {
         return txnTestSuite(OperationTest.class, null, null);
@@ -70,7 +74,7 @@ public class OperationTest extends TxnTestCase {
         throws DatabaseException {
 
         config.setTransactional(envConfig.getTransactional());
-        store = new EntityStore(env, "test", config);
+        store = new EntityStore(env, STORE_NAME, config);
     }
 
     private void close()
@@ -606,7 +610,6 @@ public class OperationTest extends TxnTestCase {
         close();
     }
 
-
     /**
      * Test a fix for a bug where opening a TO_MANY secondary index would fail
      * fail with "IllegalArgumentException: Wrong secondary key class: ..."
@@ -715,5 +718,70 @@ public class OperationTest extends TxnTestCase {
         assertTrue(hook.synced.contains(secIndex.getDatabase()));
 
         close();
+    }
+
+    /**
+     * When Y is opened and X has a key with relatedEntity=Y.class, X should
+     * be opened automatically.  If X is not opened, foreign key constraints
+     * will not be enforced. [#15358]
+     */
+    public void testAutoOpenRelatedEntity()
+        throws DatabaseException {
+
+        PrimaryIndex<Integer,RelatedY> priY;
+        PrimaryIndex<Integer,RelatedX> priX;
+
+        /* Opening X should create (and open) Y and enforce constraints. */
+        open();
+        priX = store.getPrimaryIndex(Integer.class, RelatedX.class);
+        PersistTestUtils.assertDbExists
+            (true, env, STORE_NAME, RelatedY.class.getName(), null);
+        try {
+            priX.put(new RelatedX());
+            fail();
+        } catch (DatabaseException e) {
+            assertTrue
+                (e.getMessage().indexOf
+                 ("foreign key not allowed: it is not present") > 0);
+        }
+        priY = store.getPrimaryIndex(Integer.class, RelatedY.class);
+        priY.put(new RelatedY());
+        priX.put(new RelatedX());
+        close();
+
+        /* Delete should cascade even when X is not opened explicitly. */
+        open();
+        priY = store.getPrimaryIndex(Integer.class, RelatedY.class);
+        assertEquals(1, priY.count());
+        priY.delete(88);
+        assertEquals(0, priY.count());
+        priX = store.getPrimaryIndex(Integer.class, RelatedX.class);
+        assertEquals(0, priX.count()); /* Failed prior to [#15358] fix. */
+        close();
+    }
+
+    @Entity
+    static class RelatedX {
+
+        @PrimaryKey
+        int key = 99;
+
+        @SecondaryKey(relate=ONE_TO_ONE,
+                      relatedEntity=RelatedY.class,
+                      onRelatedEntityDelete=CASCADE)
+        int key2 = 88;
+
+        RelatedX() {
+        }
+    }
+
+    @Entity
+    static class RelatedY {
+
+        @PrimaryKey
+        int key = 88;
+
+        RelatedY() {
+        }
     }
 }

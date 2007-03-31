@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbBackup.java,v 1.9 2006/10/30 21:14:28 bostic Exp $
+ * $Id: DbBackup.java,v 1.10.2.1 2007/02/01 14:49:53 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -102,8 +102,7 @@ import com.sleepycat.je.utilint.DbLsn;
  *        // so we can copy less on the next backup
  *        lastFileCopiedInPrevBackup = backupHelper.getLastFileInBackupSet();
  *        myApplicationSaveLastFile(lastFileCopiedInBackupSet);
- *    }
- *    finally {
+ *    } finally {
  *        // Remember to exit backup mode, or all log files won't be cleaned
  *        // and disk usage will bloat.
  *       backupHelper.endBackup();

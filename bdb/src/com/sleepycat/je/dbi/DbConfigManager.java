@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: DbConfigManager.java,v 1.38 2006/11/15 23:00:02 cwl Exp $
+ * $Id: DbConfigManager.java,v 1.38.2.1 2007/02/01 14:49:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;

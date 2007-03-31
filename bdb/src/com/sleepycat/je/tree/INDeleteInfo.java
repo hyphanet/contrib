@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INDeleteInfo.java,v 1.30 2006/10/30 21:14:26 bostic Exp $
+ * $Id: INDeleteInfo.java,v 1.31.2.1 2007/02/01 14:49:51 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -16,17 +16,15 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogManager;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 
 /**
  * INDeleteInfo encapsulates the information logged about the removal of a
  * child from an IN during IN compression.
  */
-public class INDeleteInfo
-    implements LoggableObject, LogReadable, LogWritable {
+public class INDeleteInfo implements Loggable {
 
     private long deletedNodeId;
     private byte[] deletedIdKey;
@@ -73,40 +71,13 @@ public class INDeleteInfo
         throws DatabaseException {
 
         if (!dbImpl.isDeferredWrite()) {
-            logManager.log(this);
+            logManager.log(new SingleItemEntry(LogEntryType.LOG_IN_DELETE_INFO,
+                                               this));
         }
     }
 
     /**
-     * @see LoggableObject#getLogType
-     */
-    public LogEntryType getLogType() {
-        return LogEntryType.LOG_IN_DELETE_INFO;
-    }
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return true;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#postLogWork
-     */
-    public void postLogWork(long justLoggedLsn) {
-    }
-
-    /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         return LogUtils.LONG_BYTES +
@@ -115,7 +86,7 @@ public class INDeleteInfo
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
 
@@ -125,7 +96,7 @@ public class INDeleteInfo
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
 	throws LogException {
@@ -136,7 +107,7 @@ public class INDeleteInfo
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<INDeleteEntry node=\"").append(deletedNodeId);
@@ -147,14 +118,7 @@ public class INDeleteInfo
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

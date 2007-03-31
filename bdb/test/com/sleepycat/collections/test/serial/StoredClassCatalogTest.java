@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: StoredClassCatalogTest.java,v 1.35 2006/10/30 21:14:39 bostic Exp $
+ * $Id: StoredClassCatalogTest.java,v 1.35.2.1 2007/02/01 14:50:03 cwl Exp $
  */
 package com.sleepycat.collections.test.serial;
 

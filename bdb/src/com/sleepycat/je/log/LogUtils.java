@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogUtils.java,v 1.49 2006/10/30 21:14:20 bostic Exp $
+ * $Id: LogUtils.java,v 1.50.2.1 2007/02/01 14:49:47 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -214,6 +214,15 @@ public class LogUtils {
     }
 
     /**
+     * writeString and readString should both use something other than the
+     * default character encoding (e.g. UTF-8).  But since switching now might
+     * cause incompatibilities with existing databases, we need to do something
+     * more complicated than just add "UTF-8" to the getBytes and "new
+     * String()" calls below.  User-defined character strings are encoded using
+     * these methods when XA is used.  See [#15293].
+     */
+
+    /**
      * Write a string into the log. The size is stored first as an integer.
      */
     public static void writeString(ByteBuffer logBuf,
@@ -232,7 +241,7 @@ public class LogUtils {
      * @return log storage size for a string
      */
     public static int getStringLogSize(String s) {
-        return INT_BYTES + s.length();
+        return INT_BYTES + s.getBytes().length;
     }
 
     /**

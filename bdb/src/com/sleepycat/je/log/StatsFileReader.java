@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: StatsFileReader.java,v 1.14 2006/10/30 21:14:20 bostic Exp $
+ * $Id: StatsFileReader.java,v 1.15.2.1 2007/02/01 14:49:47 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -42,7 +42,7 @@ public class StatsFileReader extends DumpFileReader {
     /**
      * Create this reader to start at a given LSN.
      */
-    public StatsFileReader(EnvironmentImpl env,
+    public StatsFileReader(EnvironmentImpl envImpl,
 			   int readBufferSize, 
 			   long startLsn,
 			   long finishLsn,
@@ -51,7 +51,7 @@ public class StatsFileReader extends DumpFileReader {
 			   boolean verbose)
 	throws IOException, DatabaseException {
 
-        super(env, readBufferSize, startLsn, finishLsn,
+        super(envImpl, readBufferSize, startLsn, finishLsn,
               entryTypes, txnIds, verbose);
         entryInfoMap = new TreeMap(new LogEntryTypeComparator());
         totalLogBytes = 0;
@@ -70,14 +70,18 @@ public class StatsFileReader extends DumpFileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
+        byte currentType = currentEntryHeader.getType();
+        byte version = currentEntryHeader.getVersion();
+        int itemSize = currentEntryHeader.getItemSize();
+        int headerSize = currentEntryHeader.getSize();
+
         /* 
          * Record various stats based on the entry header, then move the buffer
          * forward to skip ahead.
          */
         LogEntryType lastEntryType =
-            LogEntryType.findType(currentEntryTypeNum,
-                                  currentEntryTypeVersion);
-        entryBuffer.position(entryBuffer.position() + currentEntrySize);
+            LogEntryType.findType(currentType, version);
+        entryBuffer.position(entryBuffer.position() + itemSize);
 
         /* 
          * Get the info object for it, if this is the first time it's seen,
@@ -92,12 +96,14 @@ public class StatsFileReader extends DumpFileReader {
         /* Update counts. */
         info.count++;
         totalCount++;
-        if (LogEntryType.isProvisional(currentEntryTypeVersion)) {
+        if (LogEntryType.isEntryProvisional(version)) {
             info.provisionalCount++;
         }
-        int size = currentEntrySize + LogManager.HEADER_BYTES;
+        int size = itemSize + headerSize;
         info.totalBytes += size;
+        info.headerBytes += headerSize;
         totalLogBytes += size;
+
         if ((info.minBytes==0) || (info.minBytes > size)) {
             info.minBytes = size;
         }
@@ -110,14 +116,13 @@ public class StatsFileReader extends DumpFileReader {
                 firstLsnRead = getLastLsn();
             } 
 
-            if (currentEntryTypeNum ==
-                LogEntryType.LOG_CKPT_END.getTypeNum()) {
+            if (currentType == LogEntryType.LOG_CKPT_END.getTypeNum()) {
                 /* start counting a new interval */
                 ckptCounter.endCkptLsn = getLastLsn();
                 ckptCounter = new CheckpointCounter();
                 ckptList.add(ckptCounter);
             } else {
-                ckptCounter.increment(this, currentEntryTypeNum);
+                ckptCounter.increment(this, currentType);
             }
         }
         
@@ -182,8 +187,9 @@ public class StatsFileReader extends DumpFileReader {
                    8 bytes txn id
                    8 bytes lastlogged LSN (backpointer for txn)
                 */
-                int overhead = LogManager.HEADER_BYTES + 46;
-                realTotalBytes += info.totalBytes-(info.count*overhead);
+                /** BOZO -- the header size is undercounted for replication */
+                int overhead = (info.count*46) + info.headerBytes;
+                realTotalBytes += (info.totalBytes-overhead);
             }
 
             /* Calculate key/data size for non-transactional LN */
@@ -196,8 +202,8 @@ public class StatsFileReader extends DumpFileReader {
                    4 bytes key size
                    4 bytes database id
                 */
-                int overhead = LogManager.HEADER_BYTES + 21;
-                realTotalBytes += info.totalBytes-(info.count*overhead);
+                int overhead = (info.count * 21) + info.headerBytes;
+                realTotalBytes += (info.totalBytes-overhead);
             }
         }
 
@@ -268,7 +274,7 @@ public class StatsFileReader extends DumpFileReader {
 
         long logFileMax;
         try {
-            logFileMax = env.getConfigManager().getLong(
+            logFileMax = envImpl.getConfigManager().getLong(
                                    EnvironmentParams.LOG_FILE_MAX);
         } catch (DatabaseException e) {
             e.printStackTrace();
@@ -297,7 +303,7 @@ public class StatsFileReader extends DumpFileReader {
                 c.endCkptLsn;
             long endToEndDistance = 0;
 
-            FileManager fileManager = env.getFileManager();
+            FileManager fileManager = envImpl.getFileManager();
             if (prevCounter == null) {
                 endToEndDistance =
                     DbLsn.getWithCleaningDistance(end,
@@ -377,6 +383,7 @@ public class StatsFileReader extends DumpFileReader {
         public int count;
         public int provisionalCount;
         public long totalBytes;
+        public int headerBytes;
         public int minBytes;
         public int maxBytes;
 
@@ -384,6 +391,7 @@ public class StatsFileReader extends DumpFileReader {
             count = 0;
             provisionalCount = 0;
             totalBytes = 0;
+            headerBytes = 0;
             minBytes = 0;
             maxBytes = 0;
         }

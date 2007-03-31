@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbScavenger.java,v 1.15 2006/10/30 21:14:28 bostic Exp $
+ * $Id: DbScavenger.java,v 1.16.2.1 2007/02/01 14:49:54 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -199,7 +199,7 @@ public class DbScavenger extends DbDump {
     private boolean checkProcessEntry(LogEntry entry,
 				      LogEntryType entryType,
 				      boolean pass2) {
-	boolean isTransactional = entry.isTransactional();
+	boolean isTransactional = entryType.isTransactional();
 
 	/* 
 	 * If entry is txnal...

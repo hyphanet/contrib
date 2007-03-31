@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseTrigger.java,v 1.8 2006/10/30 21:14:12 bostic Exp $
+ * $Id: DatabaseTrigger.java,v 1.8.2.1 2007/02/01 14:49:41 cwl Exp $
  */
 
 package com.sleepycat.je;

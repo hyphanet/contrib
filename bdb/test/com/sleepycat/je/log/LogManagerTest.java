@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogManagerTest.java,v 1.67 2006/10/30 21:14:47 bostic Exp $
+ * $Id: LogManagerTest.java,v 1.68.2.1 2007/02/01 14:50:15 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -22,6 +22,7 @@ import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
@@ -264,7 +265,7 @@ public class LogManagerTest extends TestCase {
         List testLsns = new ArrayList();
 
         for (int i = 0; i < 3; i++) {
-            long lsn = logManager.log((Tracer)testRecs.get(i));
+            long lsn = ((Tracer)testRecs.get(i)).log(logManager);
             if (DEBUG) {
                 System.out.println("i = " + i + " test LSN: file = " +
                                    DbLsn.getFileNumber(lsn) +
@@ -286,8 +287,8 @@ public class LogManagerTest extends TestCase {
 		     (DbLsn.longToLsn((Long) testLsns.get(1))));
 
         /* Intersperse logging and getting. */
-        testLsns.add(new Long(logManager.log((Tracer)testRecs.get(3))));
-        testLsns.add(new Long(logManager.log((Tracer)testRecs.get(4))));
+        testLsns.add(new Long(((Tracer)testRecs.get(3)).log(logManager)));
+        testLsns.add(new Long(((Tracer)testRecs.get(4)).log(logManager)));
 
         assertEquals((Tracer) testRecs.get(2),
                      (Tracer) logManager.get
@@ -297,9 +298,9 @@ public class LogManagerTest extends TestCase {
 		     (DbLsn.longToLsn((Long) testLsns.get(4))));
 
         /* Intersperse logging and getting. */
-        testLsns.add(new Long(logManager.log((Tracer) testRecs.get(5))));
-        testLsns.add(new Long(logManager.log((Tracer) testRecs.get(6))));
-        testLsns.add(new Long(logManager.log((Tracer) testRecs.get(7))));
+        testLsns.add(new Long(((Tracer)testRecs.get(5)).log(logManager)));
+        testLsns.add(new Long(((Tracer)testRecs.get(6)).log(logManager)));
+        testLsns.add(new Long(((Tracer)testRecs.get(7)).log(logManager)));
 
         assertEquals((Tracer) testRecs.get(7),
                      (Tracer) logManager.get
@@ -491,7 +492,7 @@ public class LogManagerTest extends TestCase {
         Tracer t = new Tracer("okay" + filler + tag );
         assertTrue(logBufferSize > t.getLogSize());
         testRecs.add(t);
-        long lsn = logManager.log(t);
+        long lsn = t.log(logManager);
         testLsns.add(new Long(lsn));
     }
 
@@ -507,15 +508,15 @@ public class LogManagerTest extends TestCase {
 
     private void attemptTooBigItem(LogManager logManager,
                                    int logBufferSize,
-                                   LoggableObject l,
+                                   Tracer big,
 				   List testRecs,
 				   List testLsns) {
-        assertTrue(l.getLogSize() > logBufferSize);
+        assertTrue(big.getLogSize() > logBufferSize);
 
         try {
-            long lsn = logManager.log(l);
+            long lsn = big.log(logManager);
 	    testLsns.add(new Long(lsn));
-	    testRecs.add(l);
+	    testRecs.add(big);
         } catch (DatabaseException expected) {
             fail("Should not have hit exception.");
         }
@@ -550,7 +551,9 @@ public class LogManagerTest extends TestCase {
                testLsns.add(new Long(fileManager.getNextLsn()));
                testRecs.add(t);
             */
-            logManager.logForceFlush(t, true);
+            logManager.logForceFlush(
+                           new SingleItemEntry(LogEntryType.LOG_TRACE, t),
+                           true);
             fail("expect io exception");
         } catch (DatabaseException expected) {
         } finally {
@@ -598,7 +601,7 @@ public class LogManagerTest extends TestCase {
                                  DbLsn.toString(prevLsn) +
                                  " current=" + DbLsn.toString(lsn), 
                                  (((Tracer) testRecs.get(i-1)).getLogSize() + 
-                                  LogManager.HEADER_BYTES),
+                                  LogEntryHeader.MIN_HEADER_SIZE),
                                  lsnOffset - prevOffset);
                 } else {
                     assertEquals(prevFile+1, lsnFile);

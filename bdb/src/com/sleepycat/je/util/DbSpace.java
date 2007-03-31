@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbSpace.java,v 1.23 2006/12/05 14:38:41 cwl Exp $
+ * $Id: DbSpace.java,v 1.23.2.2 2007/03/08 17:26:42 mark Exp $
  */
 
 package com.sleepycat.je.util;
@@ -142,7 +142,9 @@ public class DbSpace {
 
         UtilizationProfile profile = envImpl.getUtilizationProfile();
         SortedMap map = profile.getFileSummaryMap(false);
-        Map recalcMap = UtilizationFileReader.calcFileSummaryMap(envImpl);
+        Map recalcMap =
+            recalc ? UtilizationFileReader.calcFileSummaryMap(envImpl)
+                   : null;
         int fileIndex = 0;
 
         Summary totals = new Summary();

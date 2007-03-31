@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbInternal.java,v 1.44 2006/11/06 20:36:55 linda Exp $
+ * $Id: DbInternal.java,v 1.44.2.1 2007/02/01 14:49:41 cwl Exp $
  */
 
 package com.sleepycat.je;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudget.java,v 1.54 2006/11/03 19:30:45 cwl Exp $
+ * $Id: MemoryBudget.java,v 1.54.2.2 2007/02/14 19:46:42 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -554,13 +554,23 @@ public class MemoryBudget implements EnvConfigObserver {
     }
 
     /**
-     * Initialize the starting environment memory state 
+     * Initialize the starting environment memory state.
      */
     void initCacheMemoryUsage() 
         throws DatabaseException {
 
+        /* 
+         * The memoryUsageSynchronizer mutex is at the bottom of the lock
+         * hierarchy and should always be taken last. Since
+         * calcTreeCacheUsage() takes the INList latch, we get the usage value
+         * outside the mutex and then assign the value, in order to preserve
+         * correct lock hierarchy.  That said, initCacheMemoryUsage should be
+         * called while the system is quiescent, and there should be no lock
+         * conflict possible even if the locks were taken in reverse. [#15364]
+         */
+        long calculatedUsage = calcTreeCacheUsage(); 
 	synchronized (memoryUsageSynchronizer) {
-	    treeMemoryUsage = calcTreeCacheUsage();
+	    treeMemoryUsage = calculatedUsage;
 	}
         assert LatchSupport.countLatchesHeld() == 0;
     }

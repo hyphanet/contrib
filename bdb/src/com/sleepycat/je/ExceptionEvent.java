@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ExceptionEvent.java,v 1.3 2006/10/30 21:14:12 bostic Exp $
+ * $Id: ExceptionEvent.java,v 1.4.2.1 2007/02/01 14:49:41 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -12,9 +12,14 @@ public class ExceptionEvent {
     private Exception exception;
     private String threadName;
 
-    ExceptionEvent(Exception exception, String threadName) {
+    public ExceptionEvent(Exception exception, String threadName) {
 	this.exception = exception;
 	this.threadName = threadName;
+    }
+
+    public ExceptionEvent(Exception exception) {
+	this.exception = exception;
+	this.threadName = Thread.currentThread().toString();
     }
 
     public Exception getException() {

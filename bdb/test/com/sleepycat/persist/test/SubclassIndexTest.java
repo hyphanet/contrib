@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SubclassIndexTest.java,v 1.5 2006/11/16 04:18:21 mark Exp $
+ * $Id: SubclassIndexTest.java,v 1.5.2.1 2007/02/01 14:50:26 cwl Exp $
  */
 
 package com.sleepycat.persist.test;

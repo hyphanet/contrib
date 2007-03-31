@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbRunAction.java,v 1.29 2006/10/30 21:14:28 bostic Exp $
+ * $Id: DbRunAction.java,v 1.31.2.1 2007/02/01 14:49:53 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -35,13 +35,14 @@ import com.sleepycat.je.utilint.CmdUtil;
  * background activity from the command line.
  *
  *   batchClean calls Environment.cleanLog() in a loop
+ *   checkpoint calls Environment.checkpoint() with force=true
  *   compress calls Environment.compress
  *   evict calls Environment.preload, then evictMemory
  *   removeDb calls Environment.removeDatabase, but doesn't do any cleaning
  *   removeDbAndClean calls removeDatabase, then cleanLog in a loop
  *   activateCleaner wakes up the cleaner, and then the main thread waits 
  *     until you type "y" to the console before calling Environment.close().
- *     The control provide by the prompt is necessary for daemon activities
+ *     The control provided by the prompt is necessary for daemon activities
  *     because often threads check and bail out if the environment is closed.
  */
 public class DbRunAction {

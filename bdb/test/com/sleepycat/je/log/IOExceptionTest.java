@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: IOExceptionTest.java,v 1.9 2006/10/30 21:14:46 bostic Exp $
+ * $Id: IOExceptionTest.java,v 1.10.2.1 2007/02/01 14:50:14 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -205,7 +205,7 @@ public class IOExceptionTest extends TestCase {
 			throws DatabaseException {
 
 			entryBuffer.position(entryBuffer.position() +
-					     currentEntrySize);
+					     currentEntryHeader.getItemSize());
 			return true;
 		    }
 		};

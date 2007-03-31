@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorEdgeTest.java,v 1.35 2006/10/30 21:14:40 bostic Exp $
+ * $Id: CursorEdgeTest.java,v 1.35.2.1 2007/02/01 14:50:04 cwl Exp $
  */
 
 package com.sleepycat.je;

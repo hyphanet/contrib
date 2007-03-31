@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileSummaryLN.java,v 1.21 2006/10/30 21:14:26 bostic Exp $
+ * $Id: FileSummaryLN.java,v 1.22.2.2 2007/03/08 22:32:59 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -19,7 +19,6 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
 
 /**
  * A FileSummaryLN represents a Leaf Node in the UtilizationProfile database. 
@@ -294,27 +293,10 @@ public final class FileSummaryLN extends LN {
     }
 
     /**
-     * @see LN#getLogType
+     * @see Node#getLogType
      */
     public LogEntryType getLogType() {
         return LogEntryType.LOG_FILESUMMARYLN;
-    }
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * FileSummaryLNs must be marshalled within the log write latch, because
-     * that critical section is used to guarantee that all previous log
-     * entries are reflected in the summary.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
     }
 
     /**

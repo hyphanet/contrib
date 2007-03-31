@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ChildReference.java,v 1.100 2006/11/17 23:47:27 mark Exp $
+ * $Id: ChildReference.java,v 1.101.2.2 2007/03/08 22:32:59 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -14,21 +14,15 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogFileNotFoundException;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
  * A ChildReference is a reference in the tree from parent to child.  It
  * contains a node reference, key, and LSN.
  */
-public class ChildReference implements LogWritable, LogReadable {
-
-    static final int ROOT_LOG_SIZE =
-            LogUtils.getByteArrayLogSize(new byte[0]) +   // key
-	    LogUtils.getLongLogSize() +                   // LSN
-            1;                                            // state
+public class ChildReference implements Loggable {
 
     private Node target;
     private long lsn;
@@ -278,7 +272,7 @@ public class ChildReference implements LogWritable, LogReadable {
      */
 
     /**
-     * @see LogWritable#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         return
@@ -288,7 +282,7 @@ public class ChildReference implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeByteArray(logBuffer, key);  // key
@@ -298,7 +292,7 @@ public class ChildReference implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
         key = LogUtils.readByteArray(itemBuffer); // key
@@ -308,7 +302,7 @@ public class ChildReference implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<ref knownDeleted=\"").append(isKnownDeleted());
@@ -320,14 +314,7 @@ public class ChildReference implements LogWritable, LogReadable {
     }   
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

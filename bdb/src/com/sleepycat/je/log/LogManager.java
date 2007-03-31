@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogManager.java,v 1.162 2006/11/27 23:15:03 mark Exp $
+ * $Id: LogManager.java,v 1.163.2.3 2007/03/09 21:04:12 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -14,7 +14,6 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.List;
-import java.util.zip.Checksum;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.EnvironmentStats;
@@ -29,7 +28,6 @@ import com.sleepycat.je.dbi.Operation;
 import com.sleepycat.je.latch.Latch;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.log.entry.LogEntry;
-import com.sleepycat.je.utilint.Adler32;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.TestHook;
 import com.sleepycat.je.utilint.Tracer;
@@ -42,20 +40,6 @@ abstract public class LogManager {
     // no-op loggable object
     private static final String DEBUG_NAME = LogManager.class.getName();
     
-    /*
-     * Log entry header field sizes
-     */
-    public static final int HEADER_BYTES = 14;     // size of entry header
-    static final int CHECKSUM_BYTES = 4;           // size of checksum field
-    static final int PREV_BYTES = 4;               // size of previous field
-    static final int HEADER_CONTENT_BYTES =
-        HEADER_BYTES - CHECKSUM_BYTES;
-    static final int HEADER_CHECKSUM_OFFSET = 0;
-    static final int HEADER_ENTRY_TYPE_OFFSET = 4;
-    static final int HEADER_VERSION_OFFSET = 5;
-    static final int HEADER_PREV_OFFSET = 6;
-    public static final int HEADER_SIZE_OFFSET = 10;
-
     protected LogBufferPool logBufferPool; // log buffers
     protected Latch logWriteLatch;           // synchronizes log writes
     private boolean doChecksumOnRead;      // if true, do checksum on read
@@ -138,7 +122,7 @@ abstract public class LogManager {
      * @param fsyncRequired if true, log files should also be fsynced.
      * @return LSN of the new log entry
      */
-    public long logForceFlush(LoggableObject item,
+    public long logForceFlush(LogEntry item,
                               boolean fsyncRequired)
 	throws DatabaseException {
 
@@ -158,7 +142,7 @@ abstract public class LogManager {
      * @param fsyncRequired if true, log files should also be fsynced.
      * @return LSN of the new log entry
      */
-    public long logForceFlip(LoggableObject item)
+    public long logForceFlip(LogEntry item)
 	throws DatabaseException {
 
         return log(item,
@@ -175,7 +159,7 @@ abstract public class LogManager {
      * Write a log entry.
      * @return LSN of the new log entry
      */
-    public long log(LoggableObject item) 
+    public long log(LogEntry item) 
 	throws DatabaseException {
 
         return log(item,
@@ -192,7 +176,7 @@ abstract public class LogManager {
      * Write a log entry.
      * @return LSN of the new log entry
      */
-    public long log(LoggableObject item,
+    public long log(LogEntry item,
 		    boolean isProvisional,
 		    boolean backgroundIO,
 		    long oldNodeLsn,
@@ -228,7 +212,7 @@ abstract public class LogManager {
      * zero must be specified.
      * @return LSN of the new log entry
      */
-    private long log(LoggableObject item,
+    private long log(LogEntry item,
                      boolean isProvisional,
                      boolean flushRequired,
                      boolean fsyncRequired,
@@ -242,31 +226,38 @@ abstract public class LogManager {
 	    return DbLsn.NULL_LSN;
 	}
 
-        boolean marshallOutsideLatch = item.marshallOutsideWriteLatch();
+        boolean marshallOutsideLatch =
+            item.getLogType().marshallOutsideLatch();
         ByteBuffer marshalledBuffer = null;
         UtilizationTracker tracker = envImpl.getUtilizationTracker();
         LogResult logResult = null;
+        boolean shouldReplicate = envImpl.isReplicated() &&
+            item.getLogType().isTypeReplicated();
 
         try {
 
             /* 
-             * If possible, marshall this item outside the log write
-             * latch to allow greater concurrency by shortening the
-             * write critical section.
+             * If possible, marshall this item outside the log write latch to
+             * allow greater concurrency by shortening the write critical
+             * section.  Note that the header may only be created during
+             * marshalling because it calls item.getSize().
              */
+            LogEntryHeader header = null;
+
             if (marshallOutsideLatch) {
-                int itemSize = item.getLogSize();
-                int entrySize = itemSize + HEADER_BYTES;
-		marshalledBuffer = marshallIntoBuffer(item,
-                                                      itemSize,
+                header = new LogEntryHeader(item,
+                                            isProvisional,
+                                            shouldReplicate);
+                marshalledBuffer = marshallIntoBuffer(header,
+                                                      item,
                                                       isProvisional,
-                                                      entrySize);
+                                                      shouldReplicate);
             }
 
-            logResult = logItem(item, isProvisional, flushRequired,
+            logResult = logItem(header, item, isProvisional, flushRequired,
                                 forceNewLogFile, oldNodeLsn, oldNodeSize,
                                 marshallOutsideLatch, marshalledBuffer,
-                                tracker);
+                                tracker, shouldReplicate);
 
         } catch (BufferOverflowException e) {
 
@@ -322,7 +313,8 @@ abstract public class LogManager {
         return logResult.currentLsn;
     }
 
-    abstract protected LogResult logItem(LoggableObject item,
+    abstract protected LogResult logItem(LogEntryHeader header,
+                                         LogEntry item,
                                          boolean isProvisional,
                                          boolean flushRequired,
 					 boolean forceNewLogFile,
@@ -330,13 +322,15 @@ abstract public class LogManager {
                                          int oldNodeSize,
                                          boolean marshallOutsideLatch,
                                          ByteBuffer marshalledBuffer,
-                                         UtilizationTracker tracker)
+                                         UtilizationTracker tracker,
+                                         boolean shouldReplicate)
         throws IOException, DatabaseException;
 
     /**
      * Called within the log write critical section. 
      */
-    protected LogResult logInternal(LoggableObject item,
+    protected LogResult logInternal(LogEntryHeader header,
+                                    LogEntry item,
                                     boolean isProvisional,
                                     boolean flushRequired,
 				    boolean forceNewLogFile,
@@ -344,7 +338,8 @@ abstract public class LogManager {
                                     int oldNodeSize,
                                     boolean marshallOutsideLatch,
                                     ByteBuffer marshalledBuffer,
-                                    UtilizationTracker tracker)
+                                    UtilizationTracker tracker,
+                                    boolean shouldReplicate)
         throws IOException, DatabaseException {
 
         /* 
@@ -367,8 +362,11 @@ abstract public class LogManager {
         int entrySize;
         if (marshallOutsideLatch) {
             entrySize = marshalledBuffer.limit();
+            assert header != null;
         } else {
-            entrySize = item.getLogSize() + HEADER_BYTES;
+            assert header == null;
+            header = new LogEntryHeader(item, isProvisional, shouldReplicate);
+            entrySize = header.getSize() + header.getItemSize();
         }
 
         /* 
@@ -378,7 +376,6 @@ abstract public class LogManager {
          * in the log write latch -- we need to bump the LSN first, and bumping
          * the LSN must be done within the log write latch.
          */
-
 	if (forceNewLogFile) {
 	    fileManager.forceNewLogFile();
 	}
@@ -393,15 +390,16 @@ abstract public class LogManager {
             
             /* 
              * countNewLogEntry and countObsoleteNodeInexact cannot change a
-             * FileSummaryLN size, so they are safe to call after getLogSize().
+             * FileSummaryLN size, so they are safe to call after
+             * getSizeForWrite.
              */
             wakeupCleaner =
                 tracker.countNewLogEntry(currentLsn, entryType, entrySize);
 
             /*
-             * LN deletions are obsolete immediately.  Inexact counting is used
-             * to save resources because the cleaner knows that all deleted LNs
-             * are obsolete.
+             * LN deletions are obsolete immediately.  Inexact counting is
+             * used to save resources because the cleaner knows that all
+             * deleted LNs are obsolete.
              */
             if (item.countAsObsoleteWhenLogged()) {
                 tracker.countObsoleteNodeInexact
@@ -412,10 +410,10 @@ abstract public class LogManager {
              * This item must be marshalled within the log write latch.
              */
             if (!marshallOutsideLatch) {
-                marshalledBuffer = marshallIntoBuffer(item,
-                                                      entrySize-HEADER_BYTES,
+                marshalledBuffer = marshallIntoBuffer(header,
+                                                      item,
                                                       isProvisional,
-                                                      entrySize);
+                                                      shouldReplicate);
             }
 
             /* Sanity check */
@@ -436,11 +434,11 @@ abstract public class LogManager {
             LogBuffer useLogBuffer =
                 logBufferPool.getWriteBuffer(entrySize, flippedFile);
 
-            /* Add checksum to entry. */
+            /* Add checksum, prev offset, vlsn to entry. */
             marshalledBuffer =
-                addPrevOffsetAndChecksum(marshalledBuffer,
-                                         fileManager.getPrevEntryOffset(),
-                                         entrySize);
+                header.addPostMarshallingInfo(envImpl,
+                                              marshalledBuffer,
+                                              fileManager.getPrevEntryOffset());
 
 	    /*
 	     * If the LogBufferPool buffer (useBuffer) doesn't have sufficient
@@ -472,12 +470,11 @@ abstract public class LogManager {
              * The replication logic takes care of deciding whether this site
              * is a master.
              */
-            if (envImpl.isReplicated()) {
-                if (item.getLogType().isReplicated()) {
-                    envImpl.getReplicator().replicateOperation(
-                                        Operation.PLACEHOLDER,
-                                        marshalledBuffer);
-                }
+            if (shouldReplicate) {
+                envImpl.getReplicator().replicateOperation(
+                                            Operation.PLACEHOLDER,
+                                            marshalledBuffer);
+                    
             }
 	    success = true;
         } finally {
@@ -523,22 +520,22 @@ abstract public class LogManager {
     /**
      * Serialize a loggable object into this buffer.
      */
-    private ByteBuffer marshallIntoBuffer(LoggableObject item,
-                                          int itemSize,
+    private ByteBuffer marshallIntoBuffer(LogEntryHeader header,
+                                          LogEntry item,
                                           boolean isProvisional,
-                                          int entrySize)
+                                          boolean shouldReplicate)
 	throws DatabaseException {
 
+        int entrySize = header.getSize() + header.getItemSize();
+
         ByteBuffer destBuffer = ByteBuffer.allocate(entrySize);
-
-        /* Reserve 4 bytes at the head for the checksum. */
-        destBuffer.position(CHECKSUM_BYTES);
-
-        /* Write the header. */
-        writeHeader(destBuffer, item.getLogType(), itemSize, isProvisional);
+        header.writeToLog(destBuffer);
 
         /* Put the entry in. */
-        item.writeToLog(destBuffer);
+        item.writeEntry(header, destBuffer);
+
+        /* Some entries (LNs) save the last logged size. */
+        item.setLastLoggedSize(entrySize);
 
         /* Set the limit so it can be used as the size of the entry. */
         destBuffer.flip();
@@ -546,69 +543,29 @@ abstract public class LogManager {
         return destBuffer;
     }
 
-    private ByteBuffer addPrevOffsetAndChecksum(ByteBuffer destBuffer,
-                                                long lastOffset,
-                                                int entrySize) {
-
-        Checksum checksum = Adler32.makeChecksum();
-            
-        /* Add the prev pointer */
-        destBuffer.position(HEADER_PREV_OFFSET);
-        LogUtils.writeUnsignedInt(destBuffer, lastOffset);
-
-        /* Now calculate the checksum and write it into the buffer. */
-        checksum.update(destBuffer.array(), CHECKSUM_BYTES,
-                        (entrySize - CHECKSUM_BYTES));
-        destBuffer.position(0);
-        LogUtils.writeUnsignedInt(destBuffer, checksum.getValue());
-
-        /* Leave this buffer ready for copying into another buffer. */
-        destBuffer.position(0);
-
-        return destBuffer;
-    }
-
     /**
-     * Serialize a loggable object into this buffer. Return it ready for a
-     * copy.
+     * Serialize a log entry into this buffer with proper entry header. Return
+     * it ready for a copy.
      */
-    ByteBuffer putIntoBuffer(LoggableObject item,
-                             int itemSize,
-                             long prevLogEntryOffset,
-                             boolean isProvisional,
-                             int entrySize)
+    ByteBuffer putIntoBuffer(LogEntry item,
+                             long prevLogEntryOffset)
 	throws DatabaseException {
 
+        LogEntryHeader header = new LogEntryHeader(item,
+                                                   false,  // isProvisional,
+                                                   false); // shouldReplicate
+
         ByteBuffer destBuffer =
-	    marshallIntoBuffer(item, itemSize, isProvisional, entrySize);
-        return addPrevOffsetAndChecksum(destBuffer, 0, entrySize);
+	    marshallIntoBuffer(header,
+                               item, 
+                               false,  // isProvisional
+                               false); // shouldReplicate
+        
+        return header.addPostMarshallingInfo(envImpl,
+                                             destBuffer,
+                                             0); // lastOffset
     }
 
-    /**
-     * Helper to write the common entry header.
-     * @param destBuffer destination
-     * @param item object being logged
-     * @param itemSize We could ask the item for this, but are passing it
-     * as a parameter for efficiency, because it's already available
-     */
-    private void writeHeader(ByteBuffer destBuffer,
-                             LogEntryType itemType,
-                             int itemSize,
-                             boolean isProvisional) {
-        // log entry type
-        byte typeNum = itemType.getTypeNum();
-        destBuffer.put(typeNum);
-
-        // version
-        byte version = itemType.getVersion();
-        if (isProvisional)
-            version = LogEntryType.setProvisional(version);
-        destBuffer.put(version);
-
-        // entry size
-        destBuffer.position(HEADER_SIZE_OFFSET);
-        LogUtils.writeInt(destBuffer, itemSize);
-    }
 
     /*
      * Reading from the log.
@@ -660,39 +617,45 @@ abstract public class LogManager {
 
         try {
 
-            /*
-             * Read the log entry header into a byte buffer. Be sure to read it
-             * in the order that it was written, and with the same marshalling!
-             * Ideally, entry header read/write would be encapsulated in a
-             * single class, but we don't want to have to instantiate a new
-             * object in the critical path here.
-	     * XXX - false economy, change.
+            /* 
+             * Read the log entry header into a byte buffer. This assumes
+             * that the minimum size of this byte buffer (determined by
+             * je.log.faultReadSize) is always >= the maximum log entry header.
              */
             long fileOffset = DbLsn.getFileOffset(lsn);
             ByteBuffer entryBuffer = logSource.getBytes(fileOffset);
+            assert ((entryBuffer.limit() - entryBuffer.position()) >=
+                    LogEntryHeader.MAX_HEADER_SIZE);
 
-            /* Read the checksum to move the buffer forward. */
+            /* Read the header */
+            LogEntryHeader header =
+                new LogEntryHeader(envImpl,
+                                   entryBuffer,
+                                   false); //anticipateChecksumErrors
+            header.readVariablePortion(entryBuffer);
+
             ChecksumValidator validator = null;
-            long storedChecksum = LogUtils.getUnsignedInt(entryBuffer);
             if (doChecksumOnRead) {
+                /* Add header to checksum bytes */
                 validator = new ChecksumValidator();
-                validator.update(envImpl, entryBuffer,
-				 HEADER_CONTENT_BYTES, false);
+                int headerSizeMinusChecksum = header.getSizeMinusChecksum();
+                int itemStart = entryBuffer.position();
+                entryBuffer.position(itemStart -
+                                     headerSizeMinusChecksum);
+                validator.update(envImpl,
+                                 entryBuffer,
+                                 headerSizeMinusChecksum,
+                                 false); // anticipateChecksumErrors
+                entryBuffer.position(itemStart);
             }
-
-            /* Read the header. */
-            byte loggableType = entryBuffer.get(); // log entry type
-            byte version = entryBuffer.get();      // version
-            /* Read the size, skipping over the prev offset. */
-            entryBuffer.position(entryBuffer.position() + PREV_BYTES);
-            int itemSize = LogUtils.readInt(entryBuffer);
 
             /*
              * Now that we know the size, read the rest of the entry
              * if the first read didn't get enough.
              */
+            int itemSize = header.getItemSize();
             if (entryBuffer.remaining() < itemSize) {
-                entryBuffer = logSource.getBytes(fileOffset + HEADER_BYTES,
+                entryBuffer = logSource.getBytes(fileOffset + header.getSize(),
                                                  itemSize);
                 nRepeatFaultReads++;
             }
@@ -704,16 +667,22 @@ abstract public class LogManager {
             if (doChecksumOnRead) {
                 /* Check the checksum first. */
                 validator.update(envImpl, entryBuffer, itemSize, false);
-                validator.validate(envImpl, storedChecksum, lsn);
+                validator.validate(envImpl, header.getChecksum(), lsn);
             }
 
-            assert LogEntryType.isValidType(loggableType):
-                "Read non-valid log entry type: " + loggableType;
+            assert LogEntryType.isValidType(header.getType()):
+                "Read non-valid log entry type: " + header.getType();
 
             /* Read the entry. */
             LogEntry logEntry = 
-                LogEntryType.findType(loggableType, version).getNewLogEntry();
-            logEntry.readEntry(entryBuffer, itemSize, version, true);
+                LogEntryType.findType(header.getType(),
+                                      header.getVersion()).getNewLogEntry();
+            logEntry.readEntry(header,
+                               entryBuffer,
+                               true);  // readFullItem
+
+            /* Some entries (LNs) save the last logged size. */
+            logEntry.setLastLoggedSize(itemSize + header.getSize());
 
             /* For testing only; generate a read io exception. */
             if (readHook != null) {

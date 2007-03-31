@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PrintFileReader.java,v 1.11 2006/10/30 21:14:20 bostic Exp $
+ * $Id: PrintFileReader.java,v 1.12.2.2 2007/03/08 22:32:55 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -49,8 +49,8 @@ public class PrintFileReader extends DumpFileReader {
 
         /* Figure out what kind of log entry this is */
         LogEntryType lastEntryType =
-            LogEntryType.findType(currentEntryTypeNum,
-				  currentEntryTypeVersion);
+            LogEntryType.findType(currentEntryHeader.getType(),
+				  currentEntryHeader.getVersion());
 
         /* Print out a common header for each log item */
         StringBuffer sb = new StringBuffer();
@@ -59,24 +59,23 @@ public class PrintFileReader extends DumpFileReader {
         sb.append("/0x").append
             (Long.toHexString(currentEntryOffset));
         sb.append("\" type=\"").append(lastEntryType);
-        if (LogEntryType.isProvisional(currentEntryTypeVersion)) {
+        if (LogEntryType.isEntryProvisional(currentEntryHeader.getType())) {
             sb.append("\" isProvisional=\"true");
         }
         sb.append("\" prev=\"0x");
-        sb.append(Long.toHexString(currentEntryPrevOffset));
+        sb.append(Long.toHexString(currentEntryHeader.getPrevOffset()));
         if (verbose) {
-            sb.append("\" size=\"").append(currentEntrySize);
-            sb.append("\" cksum=\"").append(currentEntryChecksum);
+            sb.append("\" size=\"").append(currentEntryHeader.getItemSize());
+            sb.append("\" cksum=\"").append(currentEntryHeader.getChecksum());
         }
         sb.append("\">");
 
         /* Read the entry and dump it into a string buffer. */
 	LogEntry entry = lastEntryType.getSharedLogEntry();
-        entry.readEntry(entryBuffer, currentEntrySize,
-                        currentEntryTypeVersion, true);
+        readEntry(entry, entryBuffer, true); // readFullItem
 	boolean dumpIt = true;
 	if (targetTxnIds.size() > 0) {
-	    if (entry.isTransactional()) {
+	    if (lastEntryType.isTransactional()) {
 		if (!targetTxnIds.contains
 		    (new Long(entry.getTransactionId()))) {
 		    /* Not in the list of txn ids. */

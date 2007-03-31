@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentTest.java,v 1.186 2006/12/05 15:56:59 linda Exp $
+ * $Id: EnvironmentTest.java,v 1.187.2.7 2007/03/09 21:59:14 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -88,7 +88,7 @@ public class EnvironmentTest extends TestCase {
         throws Throwable {
 
         try {
-            assertEquals("Checking version", "3.2.13",
+            assertEquals("Checking version", "3.2.21",
                          JEVersion.CURRENT_VERSION.getVersionString());
 
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();

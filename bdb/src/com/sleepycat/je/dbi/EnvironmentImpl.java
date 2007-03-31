@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentImpl.java,v 1.255 2006/12/04 18:47:41 cwl Exp $
+ * $Id: EnvironmentImpl.java,v 1.256.2.5 2007/03/07 01:24:36 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -49,9 +49,11 @@ import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.latch.SharedLatch;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.LatchedLogManager;
+import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.SyncedLogManager;
 import com.sleepycat.je.log.TraceLogHandler;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.recovery.Checkpointer;
 import com.sleepycat.je.recovery.RecoveryInfo;
 import com.sleepycat.je.recovery.RecoveryManager;
@@ -350,9 +352,6 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		noComparators = true;
             }
 
-            /* Initialize mutable properties and start daemons. */
-            envConfigUpdate(configManager);
-
             /*
              * Cache a few critical values. We keep our timeout in millis
              * instead of microseconds because Object.wait takes millis.
@@ -364,8 +363,20 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		PropUtil.microsToMillis(configManager.getLong
 					(EnvironmentParams.TXN_TIMEOUT));
 
-            /* Initialize the environment memory usage number. */
+            /* 
+             * Initialize the environment memory usage number. Must be called
+             * after recovery, because recovery determines the starting size
+             * of the in-memory tree.
+             */
             memoryBudget.initCacheMemoryUsage();
+
+            /* 
+             * Call config observer and start daemons after the memory budget
+             * is initialized. Note that all config parameters, both mutable
+             * and non-mutable, needed by the memoryBudget have already been
+             * initialized when the configManager was instantiated.
+             */
+            envConfigUpdate(configManager);
 
             /* Mark as open. */
             open();
@@ -605,7 +616,9 @@ public class EnvironmentImpl implements EnvConfigObserver {
 
         mapTreeRootLatch.acquire();
         try {
-            mapTreeRootLsn = logManager.log(dbMapTree);
+            mapTreeRootLsn =
+                logManager.log(new SingleItemEntry(LogEntryType.LOG_ROOT,
+                                                   dbMapTree));
         } finally {
             mapTreeRootLatch.release();
         }
@@ -625,7 +638,9 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		 * The root entry targetted for cleaning is in use.  Write a
 		 * new copy.
                  */
-                mapTreeRootLsn = logManager.log(dbMapTree);
+                mapTreeRootLsn = 
+                    logManager.log(new SingleItemEntry(LogEntryType.LOG_ROOT,
+                                                       dbMapTree));
             }
         } finally {
             mapTreeRootLatch.release();
@@ -712,7 +727,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     /**
      * Do lazy compression at opportune moments.
      */
-    public void lazyCompress(IN in) 
+    public void lazyCompress(IN in, UtilizationTracker tracker) 
         throws DatabaseException {
 
         /*
@@ -720,7 +735,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
          * is shut down.
          */
         if (inCompressor != null) {
-            inCompressor.lazyCompress(in);
+            inCompressor.lazyCompress(in, tracker);
         }
     }
 
@@ -956,6 +971,9 @@ public class EnvironmentImpl implements EnvConfigObserver {
                 }
             }
         
+            /* Flush log. */
+            Tracer.trace(Level.FINE, this,
+                         "About to shutdown daemons for Env " + envHome);
 	    try {
 		shutdownDaemons();
 	    } catch (InterruptedException IE) {
@@ -963,9 +981,6 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		errors.append(IE.toString()).append("\n");
 	    }
 
-            /* Flush log. */
-            Tracer.trace(Level.FINE, this,
-                         "Env " + envHome + " daemons shutdown");
 	    try {
 		logManager.flush();
 	    } catch (DatabaseException DBE) {
@@ -1006,7 +1021,6 @@ public class EnvironmentImpl implements EnvConfigObserver {
 
 	    try {
 		checkLeaks();
-		LatchSupport.clearNotes();
 	    } catch (DatabaseException DBE) {
 		errors.append("\nException performing validity checks: ");
 		errors.append(DBE.toString()).append("\n");
@@ -1151,8 +1165,9 @@ public class EnvironmentImpl implements EnvConfigObserver {
     public long forceLogFileFlip()
 	throws DatabaseException {
 
-	Tracer newRec = new Tracer("File Flip");
-	return logManager.logForceFlip(newRec);
+	return logManager.logForceFlip(
+                      new SingleItemEntry(LogEntryType.LOG_TRACE,
+                                          new Tracer("File Flip")));
     }
 
     /**

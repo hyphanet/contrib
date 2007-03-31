@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryManager.java,v 1.211 2006/12/04 18:47:41 cwl Exp $
+ * $Id: RecoveryManager.java,v 1.211.2.2 2007/03/08 22:32:58 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -2085,7 +2085,7 @@ public class RecoveryManager {
                     } else if (env.getCleaner().getFetchObsoleteSize()) {
                         try {
                             LN oldLn = (LN) env.getLogManager().get(oldLsn);
-                            oldSize = oldLn.getTotalLastLoggedSize(key);
+                            oldSize = oldLn.getLastLoggedSize();
                         } catch (LogFileNotFoundException e) {
                             /* Ignore errors if the file was cleaned. */
                         }

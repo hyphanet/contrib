@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeltaInfo.java,v 1.20 2006/10/30 21:14:26 bostic Exp $
+ * $Id: DeltaInfo.java,v 1.21.2.1 2007/02/01 14:49:51 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -11,16 +11,15 @@ package com.sleepycat.je.tree;
 import java.nio.ByteBuffer;
 
 import com.sleepycat.je.log.LogException;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
  * DeltaInfo holds the delta for one BIN entry in a partial BIN log entry.
  * The data here is all that we need to update a BIN to its proper state.
  */
-public class DeltaInfo implements LogWritable, LogReadable {
+public class DeltaInfo implements Loggable {
     private byte[] key;
     private long lsn;
     private byte state;
@@ -39,7 +38,7 @@ public class DeltaInfo implements LogWritable, LogReadable {
     }
 
     /* 
-     * @see com.sleepycat.je.log.LogWritable#getLogSize()
+     * @see Loggable#getLogSize()
      */
     public int getLogSize() {
         return
@@ -49,7 +48,7 @@ public class DeltaInfo implements LogWritable, LogReadable {
     }
 
     /* 
-     * @see LogWritable#writeToLog(java.nio.ByteBuffer)
+     * @see Loggable#writeToLog(java.nio.ByteBuffer)
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeByteArray(logBuffer, key);
@@ -58,8 +57,7 @@ public class DeltaInfo implements LogWritable, LogReadable {
     }
 
     /* 
-     * @see com.sleepycat.je.log.LogReadable#readFromLog
-     *          (java.nio.ByteBuffer)
+     * @seeLoggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
 	throws LogException {
@@ -70,7 +68,7 @@ public class DeltaInfo implements LogWritable, LogReadable {
     }
 
     /* 
-     * @see LogReadable#dumpLog(java.lang.StringBuffer)
+     * @see Loggable#dumpLog(java.lang.StringBuffer)
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append(Key.dumpString(key, 0));
@@ -79,14 +77,7 @@ public class DeltaInfo implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

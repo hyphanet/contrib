@@ -1021,7 +1021,7 @@
                 doctitle="${name}"
                 package="true"
                 source="1.5"
-                bottom="Copyright 2004,2006 Oracle.  All rights reserved.">
+                bottom="Copyright 2004,2007 Oracle.  All rights reserved.">
 
           <link href="http://java.sun.com/j2se/1.5/docs/api"/>
         </javadoc>
@@ -1191,7 +1191,7 @@
 	  </group>
 	  <header><![CDATA[<b>Berkeley DB Java Edition</b><br><font size=\"-1\"> version ${release.version}</font>]]>
 	  </header>
-	  <bottom><![CDATA[<font size=1>Copyright 1996,2006 Oracle.  All rights reserved.</font>]]> </bottom> 
+	  <bottom><![CDATA[<font size=1>Copyright 1996,2007 Oracle.  All rights reserved.</font>]]> </bottom> 
           <package name="com.sleepycat.je"/>
           <package name="com.sleepycat.je.jmx"/>
           <package name="com.sleepycat.je.jca.ra"/>

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BINDelta.java,v 1.43 2006/10/30 21:14:25 bostic Exp $
+ * $Id: BINDelta.java,v 1.44.2.1 2007/02/01 14:49:51 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -18,9 +18,8 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
@@ -28,7 +27,7 @@ import com.sleepycat.je.utilint.DbLsn;
  * entry. It also knows how to combine a full BIN log entry and a delta to
  * generate a new BIN.
  */
-public class BINDelta implements LoggableObject, LogReadable {
+public class BINDelta implements Loggable {
         
     private DatabaseId dbId;    // owning db for this bin.
     private long lastFullLsn;   // location of last full version
@@ -168,56 +167,9 @@ public class BINDelta implements LoggableObject, LogReadable {
      * Logging support
      */
 
-    /*
-     * @see com.sleepycat.je.log.LoggableObject#getLogType()
-     */
-    public LogEntryType getLogType() {
-        return logEntryType;
-    }
-
-    /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return true;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
 
     /* 
-     * Nothing to do after the act of logging this entry.
-     * @see com.sleepycat.je.log.LoggableObject#postLogWork(
-     * com.sleepycat.je.util.DbLsn)
-     */
-    public void postLogWork(long justLoggedLsn) {
-    }
-
-    /* 
-     * @see com.sleepycat.je.log.LogReadable#readFromLog(
-     * java.nio.ByteBuffer)
-     */
-    public void readFromLog(ByteBuffer itemBuffer,byte entryTypeVersion)
-	throws LogException {
-
-        dbId.readFromLog(itemBuffer, entryTypeVersion); // database id
-	lastFullLsn = LogUtils.readLong(itemBuffer); // last version
-        int numDeltas = LogUtils.readInt(itemBuffer);
-
-        for (int i=0; i < numDeltas; i++) {      // deltas
-            DeltaInfo info = new DeltaInfo();
-            info.readFromLog(itemBuffer, entryTypeVersion);
-            deltas.add(info);
-        }
-    }
-
-    /* 
-     * @see com.sleepycat.je.log.LoggableObject#getLogSize()
+     * @see Loggable#getLogSize()
      */
     public int getLogSize() {
         int size =
@@ -234,8 +186,7 @@ public class BINDelta implements LoggableObject, LogReadable {
     }
 
     /* 
-     * @see com.sleepycat.je.log.LoggableObject#writeToLog
-     *             (java.nio.ByteBuffer)
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         dbId.writeToLog(logBuffer);                     // database id
@@ -249,7 +200,24 @@ public class BINDelta implements LoggableObject, LogReadable {
     }
 
     /* 
-     * @see LogReadable#dumpLog(java.lang.StringBuffer)
+     * @see Loggable#readFromLog()
+     */
+    public void readFromLog(ByteBuffer itemBuffer,byte entryTypeVersion)
+	throws LogException {
+
+        dbId.readFromLog(itemBuffer, entryTypeVersion); // database id
+	lastFullLsn = LogUtils.readLong(itemBuffer); // last version
+        int numDeltas = LogUtils.readInt(itemBuffer);
+
+        for (int i=0; i < numDeltas; i++) {      // deltas
+            DeltaInfo info = new DeltaInfo();
+            info.readFromLog(itemBuffer, entryTypeVersion);
+            deltas.add(info);
+        }
+    }
+
+    /* 
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         dbId.dumpLog(sb, verbose);
@@ -264,14 +232,7 @@ public class BINDelta implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;

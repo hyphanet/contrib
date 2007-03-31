@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbLsn.java,v 1.50 2006/10/30 21:14:28 bostic Exp $
+ * $Id: DbLsn.java,v 1.51.2.1 2007/02/01 14:49:54 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -11,7 +11,6 @@ package com.sleepycat.je.utilint;
 import java.util.Arrays;
 
 import com.sleepycat.je.log.FileManager;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.tree.TreeUtils;
 
 /**
@@ -181,19 +180,5 @@ public class DbLsn {
         diff += getFileOffset(laterLsn);
         diff -= getFileOffset(earlierLsn);
         return diff;
-    }
-
-    /**
-     * @see LogReadable#logEntryIsTransactional.
-     */
-    public boolean logEntryIsTransactionalX() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
-     */
-    public long getTransactionIdX() {
-	return 0;
     }
 }

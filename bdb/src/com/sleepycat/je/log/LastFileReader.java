@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LastFileReader.java,v 1.47 2006/11/27 18:38:25 linda Exp $
+ * $Id: LastFileReader.java,v 1.48.2.1 2007/02/01 14:49:47 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -221,11 +221,11 @@ public class LastFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer) {
 
         /* Skip over the data, we're not doing anything with it. */
-        entryBuffer.position(entryBuffer.position() + currentEntrySize);
+        entryBuffer.position(entryBuffer.position() + currentEntryHeader.getItemSize());
 
         /* If we're supposed to remember this lsn, record it. */
-        entryType = new LogEntryType(currentEntryTypeNum,
-                                     currentEntryTypeVersion);
+        entryType = new LogEntryType(currentEntryHeader.getType(),
+                                     currentEntryHeader.getVersion());
         if (trackableEntries.contains(entryType)) {
             lastOffsetSeen.put(entryType, new Long(currentEntryOffset));
         }
@@ -264,7 +264,7 @@ public class LastFileReader extends FileReader {
             nextUnprovenOffset = nextEntryOffset;
         } catch (DbChecksumException e) {
             Tracer.trace(Level.INFO,
-                         env, "Found checksum exception while searching " +
+                         envImpl, "Found checksum exception while searching " +
                          " for end of log. Last valid entry is at " +
                          DbLsn.toString
 			 (DbLsn.makeLsn(readBufferFileNum, lastValidOffset)) +

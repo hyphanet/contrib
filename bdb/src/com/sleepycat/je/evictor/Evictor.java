@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Evictor.java,v 1.86 2006/10/30 21:14:17 bostic Exp $
+ * $Id: Evictor.java,v 1.86.2.4 2007/03/07 01:24:37 mark Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -18,6 +18,8 @@ import java.util.logging.Logger;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.StatsConfig;
+import com.sleepycat.je.cleaner.TrackedFileSummary;
+import com.sleepycat.je.cleaner.UtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
@@ -69,6 +71,9 @@ public class Evictor extends DaemonThread {
     /* je.evictor.lruOnly */
     private boolean evictByLruOnly;
 
+    /* je.evictor.forceYield */
+    private boolean forcedYield;
+
     /* for trace messages. */
     private NumberFormat formatter; 
 
@@ -117,6 +122,8 @@ public class Evictor extends DaemonThread {
             (EnvironmentParams.EVICTOR_EVICT_BYTES);
         evictByLruOnly = configManager.getBoolean
             (EnvironmentParams.EVICTOR_LRU_ONLY);
+        forcedYield = configManager.getBoolean
+            (EnvironmentParams.EVICTOR_FORCED_YIELD);
         detailedTraceLevel = Tracer.parseLevel
             (envImpl, EnvironmentParams.JE_LOGGING_LEVEL_EVICTOR);
 
@@ -272,6 +279,10 @@ public class Evictor extends DaemonThread {
                     true, // criticalEviction
                     backgroundIO);
         }
+
+        if (forcedYield) {
+            Thread.yield();
+        }
     }
 
     /**
@@ -304,6 +315,14 @@ public class Evictor extends DaemonThread {
         INList inList = envImpl.getInMemoryINs();
         inList.latchMajor();
         int inListStartSize = inList.getSize();
+        
+        /*
+         * Use a tracker to count lazily compressed, deferred write, LNs as
+         * obsolete.  A separate tracker is used to accumulate tracked obsolete
+         * info so it can be added in a single call under the log write latch.
+         * [#15365]
+         */
+        UtilizationTracker tracker = new UtilizationTracker(envImpl);
 
         try {
 
@@ -343,7 +362,7 @@ public class Evictor extends DaemonThread {
                 } else {
                     assert evictProfile.count(target);//intentional side effect
                     evictBytes += evict
-                        (inList, target, scanIter, backgroundIO);
+                        (inList, target, scanIter, backgroundIO, tracker);
                 }
                 nBatchSets++;
             }
@@ -381,6 +400,16 @@ public class Evictor extends DaemonThread {
 
         assert LatchSupport.countLatchesHeld() == 0: "latches held = " +
             LatchSupport.countLatchesHeld();
+
+        /*
+         * Count obsolete nodes and write out modified file summaries for
+         * recovery.  All latches must have been released. [#15365]
+         */
+        TrackedFileSummary[] summaries = tracker.getTrackedFiles();
+        if (summaries.length > 0) {
+            envImpl.getUtilizationProfile().countAndLogSummaries(summaries);
+        }
+
         return evictBytes;
     }
 
@@ -475,7 +504,9 @@ public class Evictor extends DaemonThread {
                         in.getNodeId() + " not expected on INList";
                     String errMsg = (db == null) ? inInfo :
                         "Database " + db.getDebugName() + " id=" + db.getId() +
-                        inInfo;
+                        " rootLsn=" +
+                        DbLsn.getNoFormatString(db.getTree().getRootLsn()) +
+                        ' ' + inInfo;
                     throw new DatabaseException(errMsg);
                 }
 
@@ -607,7 +638,8 @@ public class Evictor extends DaemonThread {
     private long evict(INList inList,
                        IN target,
                        ScanIterator scanIter,
-                       boolean backgroundIO)
+                       boolean backgroundIO,
+                       UtilizationTracker tracker) 
         throws DatabaseException {
         
 	boolean envIsReadOnly = envImpl.isReadOnly();
@@ -646,7 +678,7 @@ public class Evictor extends DaemonThread {
             try {
                 if (target instanceof BIN) {
                     /* first attempt to compress deleted, resident children.*/
-                    envImpl.lazyCompress(target);
+                    envImpl.lazyCompress(target, tracker);
 
                     /* 
                      * Strip any resident LN targets right now. This may dirty

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FieldInfo.java,v 1.18 2006/12/05 01:35:37 mark Exp $
+ * $Id: FieldInfo.java,v 1.19.2.1 2007/02/01 14:49:56 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -19,6 +19,11 @@ import com.sleepycat.persist.raw.RawField;
 
 /**
  * A field definition used by ComplexFormat and CompositeKeyFormat.
+ *
+ * <p>Note that the equals(), compareTo() and hashCode() methods only use the
+ * name field in this class.  Comparing two FieldInfo objects is only done when
+ * both are declared in the same class, so comparing the field name is
+ * sufficient.</p>
  *
  * @author Mark Hayes
  */

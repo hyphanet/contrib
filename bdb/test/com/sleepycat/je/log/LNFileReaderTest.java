@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LNFileReaderTest.java,v 1.85 2006/11/03 03:08:05 mark Exp $
+ * $Id: LNFileReaderTest.java,v 1.86.2.1 2007/02/01 14:50:14 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -300,8 +300,8 @@ public class LNFileReaderTest extends TestCase {
         for (int i = 0; i < numIters; i++) {
             /* Add a debug record just to be filler. */
             Tracer rec = new Tracer("Hello there, rec " + (i+1));
-            logManager.log(rec);
-
+            rec.log(logManager);
+            
             /* Make a transactional LN, we expect it to be there. */
             byte[] data = new byte[i+1];
             Arrays.fill(data, (byte)(i+1));
@@ -379,7 +379,7 @@ public class LNFileReaderTest extends TestCase {
 
         /* Make a marker log entry to pose as the end of file. */
         Tracer rec = new Tracer("Pretend this is off the file");
-        long lastLsn = logManager.log(rec);
+        long lastLsn = rec.log(logManager);
         db.close();
         logManager.flush();
         envImpl.getFileManager().clear();

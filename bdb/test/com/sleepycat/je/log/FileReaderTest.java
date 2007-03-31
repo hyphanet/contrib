@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2007 Oracle.  All rights reserved.
  *
- * $Id: FileReaderTest.java,v 1.11 2006/10/30 21:14:46 bostic Exp $
+ * $Id: FileReaderTest.java,v 1.11.2.1 2007/02/01 14:50:14 cwl Exp $
  */
 
 package com.sleepycat.je.log;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeferredWriteTest.java,v 1.5 2006/11/28 04:02:56 mark Exp $
+ * $Id: DeferredWriteTest.java,v 1.5.2.2 2007/02/01 14:50:19 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -108,6 +108,52 @@ public class DeferredWriteTest extends TestCase {
         dbConfig.setDeferredWrite(deferredWrite);
         
         return env.openDatabase(null, DBNAME, dbConfig);   
+    }
+
+    /**
+     * Check that all INs are removed from the INList for a DB that is removed
+     * before it is sync'ed (or checkpointed).  Before the bug fix, INs were
+     * not removed if the DB root IN was never logged (was still null).  This
+     * caused a DatabaseException when evicting, because the evictor expects no
+     * INs for deleted DBs on the INList.
+     */
+    public void testRemoveNonPersistentDbSR15317()
+	throws Throwable {
+
+	Database db = null;
+	try {
+	    EnvironmentConfig envConfig = getEnvConfig(true);
+            /* Disable compressor for test predictability. */
+            envConfig.setConfigParam("je.env.runINCompressor", "false");
+	    env = new Environment(envHome, envConfig);
+	    db = createDb(true);
+            /* Insert some data to cause eviction later. */
+            insert(db, 
+                   null,          // txn
+                   1,             // start
+                   30000,         // end
+                   new HashSet(), // expected
+                   false);        // useRandom
+            db.close();
+            env.removeDatabase(null, DBNAME);
+
+            envConfig = env.getConfig();
+            /* Switch to a small cache to force eviction. */
+            envConfig.setCacheSize(96 * 1024);
+            env.setMutableConfig(envConfig);
+            for (int i = 0; i < 10; i += 1) {
+                env.evictMemory();
+            }
+        } finally {
+            if (env != null) {
+                try {
+                    env.close();
+                } catch (Throwable e) {
+                    System.out.println("Ignored: " + e);
+                }
+                env = null;
+            }
+        }
     }
 
     public void testEmptyDatabaseSR14744()

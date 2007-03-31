@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnPrepare.java,v 1.7 2006/10/30 21:14:27 bostic Exp $
+ * $Id: TxnPrepare.java,v 1.8.2.1 2007/02/01 14:49:53 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -12,16 +12,14 @@ import java.nio.ByteBuffer;
 
 import javax.transaction.xa.Xid;
 
-import com.sleepycat.je.log.LogEntryType;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
  * This class writes out a transaction prepare record.
  */
-public class TxnPrepare extends TxnEnd {
+public class TxnPrepare extends TxnEnd implements Loggable {
 
     private Xid xid;
 
@@ -45,19 +43,12 @@ public class TxnPrepare extends TxnEnd {
      * Log support
      */
 
-    /**
-     * @see TxnEnd#getLogType
-     */
-    public LogEntryType getLogType() {
-        return LogEntryType.LOG_TXN_PREPARE;
-    }
-
     protected String getTagName() {
         return "TxnPrepare";
     }
 
     /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         return LogUtils.LONG_BYTES +                    // id
@@ -66,7 +57,7 @@ public class TxnPrepare extends TxnEnd {
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeLong(logBuffer, id);
@@ -75,7 +66,7 @@ public class TxnPrepare extends TxnEnd {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion) {
         id = LogUtils.readLong(logBuffer);
@@ -84,7 +75,7 @@ public class TxnPrepare extends TxnEnd {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<").append(getTagName());

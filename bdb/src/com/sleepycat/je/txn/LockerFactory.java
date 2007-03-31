@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockerFactory.java,v 1.8 2006/10/30 21:14:27 bostic Exp $
+ * $Id: LockerFactory.java,v 1.8.2.1 2007/02/01 14:49:53 cwl Exp $
  */
 
 package com.sleepycat.je.txn;

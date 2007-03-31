@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileSummary.java,v 1.17 2006/11/03 03:07:48 mark Exp $
+ * $Id: FileSummary.java,v 1.18.2.1 2007/02/01 14:49:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -11,11 +11,10 @@ package com.sleepycat.je.cleaner;
 import java.nio.ByteBuffer;
 
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.log.LogReadable;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
 
-public class FileSummary implements LogWritable, LogReadable {
+public class FileSummary implements Loggable {
 
     /* Persistent fields. */
     public int totalCount;      // Total # of log entries
@@ -171,7 +170,7 @@ public class FileSummary implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogWritable#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
 
@@ -179,7 +178,7 @@ public class FileSummary implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer buf) {
 
@@ -196,7 +195,7 @@ public class FileSummary implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer buf, byte entryTypeVersion) {
 
@@ -232,7 +231,7 @@ public class FileSummary implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer buf, boolean verbose) {
 
@@ -261,18 +260,10 @@ public class FileSummary implements LogWritable, LogReadable {
 
     /**
      * Never called.
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return -1;
-    }
-
-    /**
-     * Never called.
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
     }
 
     public String toString() {

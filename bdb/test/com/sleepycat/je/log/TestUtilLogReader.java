@@ -1,9 +1,9 @@
-/*-
+ /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TestUtilLogReader.java,v 1.5 2006/10/30 21:14:47 bostic Exp $
+ * $Id: TestUtilLogReader.java,v 1.6.2.1 2007/02/01 14:50:15 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -25,7 +25,7 @@ public class TestUtilLogReader extends FileReader {
     private LogEntry entry;
 
     public TestUtilLogReader(EnvironmentImpl env)
-	throws IOException, DatabaseException {
+        throws IOException, DatabaseException {
 
         super(env,
               4096,
@@ -43,7 +43,7 @@ public class TestUtilLogReader extends FileReader {
                              Long singleFileNumber,
                              long endOfFileLsn,
                              long finishLsn)
-	throws IOException, DatabaseException {
+        throws IOException, DatabaseException {
 
         super(env,
               readBufferSize,
@@ -71,10 +71,11 @@ public class TestUtilLogReader extends FileReader {
         throws DatabaseException {
 
         entryType = LogEntryType.findType
-            (currentEntryTypeNum, currentEntryTypeVersion);
-	entry = entryType.getSharedLogEntry();
-        entry.readEntry
-            (entryBuffer, currentEntrySize, currentEntryTypeVersion, true);
+            (currentEntryHeader.getType(), currentEntryHeader.getVersion());
+        entry = entryType.getSharedLogEntry();
+        entry.readEntry(currentEntryHeader,
+                        entryBuffer,
+                        true); // readFullItem
         return true;
     }
 }

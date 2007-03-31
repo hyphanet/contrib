@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTest.java,v 1.21 2006/11/17 23:47:28 mark Exp $
+ * $Id: UtilizationTest.java,v 1.22.2.1 2007/02/01 14:50:06 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -30,11 +30,10 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
-import com.sleepycat.je.log.FileHeader;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.LogEntryHeader;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogSource;
-import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -1317,16 +1316,19 @@ public class UtilizationTest extends TestCase {
         throws DatabaseException {
 
         try {
-            long offset = LogManager.HEADER_BYTES + FileHeader.entrySize();
+            long offset = FileManager.firstLogEntryOffset();
             long lsn = DbLsn.makeLsn(file, offset);
             LogManager lm =
                 DbInternal.envGetEnvironmentImpl(env).getLogManager();
             LogSource src = lm.getLogSource(lsn);
-            ByteBuffer buf =
-                src.getBytes(offset + LogManager.HEADER_SIZE_OFFSET);
-            int size = LogUtils.readInt(buf);
+            ByteBuffer buf = src.getBytes(offset);
+            LogEntryHeader header =
+                new LogEntryHeader(null,   // envImpl, only needed for 
+                                   buf,    //      error reporting
+                                   false); // anticipateChecksumError
+            int size = header.getItemSize();
             src.release();
-            return size + LogManager.HEADER_BYTES;
+            return size + header.getSize();
         } catch (IOException e) {
             throw new DatabaseException(e);
         }

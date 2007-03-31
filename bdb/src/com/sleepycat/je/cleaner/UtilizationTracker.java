@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTracker.java,v 1.19 2006/11/03 03:07:48 mark Exp $
+ * $Id: UtilizationTracker.java,v 1.19.2.2 2007/03/07 01:24:33 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -191,8 +191,13 @@ public class UtilizationTracker {
     }
 
     /**
-     * Counts a node that has become obsolete and tracks the LSN offset to
-     * avoid a lookup during cleaning.
+     * Counts a node that has become obsolete and tracks the LSN offset, if
+     * non-zero, to avoid a lookup during cleaning.
+     *
+     * <p>A zero LSN offset is used as a special value when obsolete offset
+     * tracking is not desired. [#15365]  The file header entry (at offset
+     * zero) is never counted as obsolete, it is assumed to be obsolete by the
+     * cleaner.</p>
      *
      * <p>This method should only be called for LNs and INs (i.e, only for
      * nodes).  If type is null we assume it is an LN.</p>
@@ -205,7 +210,10 @@ public class UtilizationTracker {
 
         countOneNode(file, type, size);
 
-        file.trackObsolete(DbLsn.getFileOffset(lsn));
+        long offset = DbLsn.getFileOffset(lsn);
+        if (offset != 0) {
+            file.trackObsolete(offset);
+        }
     }
 
     /**

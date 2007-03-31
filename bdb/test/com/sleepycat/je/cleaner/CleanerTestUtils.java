@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CleanerTestUtils.java,v 1.8 2006/11/17 23:47:28 mark Exp $
+ * $Id: CleanerTestUtils.java,v 1.8.2.2 2007/03/08 22:33:01 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -115,7 +115,8 @@ public class CleanerTestUtils {
              * log before the FileSummaryLNs that are part of the checkpoint.
              */
             if (expectAccurateObsoleteLNCount) {
-                TestCase.assertEquals(recalcSummary.obsoleteLNCount,
+                TestCase.assertEquals("file=" + file,
+                                      recalcSummary.obsoleteLNCount,
                                      profileSummary.obsoleteLNCount);
 
                 /*
@@ -126,7 +127,8 @@ public class CleanerTestUtils {
                  * when fetchObsoleteSize is not set to true.
                  */
                 if (expectAccurateObsoleteLNSize) {
-                    TestCase.assertEquals(recalcSummary.getObsoleteLNSize(),
+                    TestCase.assertEquals("file=" + file,
+                                          recalcSummary.getObsoleteLNSize(),
                                          profileSummary.obsoleteLNSize);
                 }
             }

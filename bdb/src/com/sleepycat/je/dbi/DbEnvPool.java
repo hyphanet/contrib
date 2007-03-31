@@ -1,20 +1,21 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: DbEnvPool.java,v 1.38 2006/10/30 21:14:15 bostic Exp $
+ * $Id: DbEnvPool.java,v 1.38.2.2 2007/02/01 14:49:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.latch.LatchSupport;
 
 /**
  * Singleton collection of database environments.
@@ -33,7 +34,7 @@ public class DbEnvPool {
      * Enforce singleton behavior.
      */
     private DbEnvPool() {
-        envs = new Hashtable();
+        envs = new HashMap();
     }
 
     /**
@@ -118,12 +119,24 @@ public class DbEnvPool {
     /**
      * Remove a EnvironmentImpl from the pool because it's been closed.
      */
-    void remove(File envHome)
+    synchronized void remove(File envHome)
         throws DatabaseException {
+
         envs.remove(getEnvironmentMapKey(envHome));
+
+        /*
+         * Latch notes may only be cleared when there is no possibility that
+         * any environment is open.
+         */
+        if (envs.isEmpty()) {
+            LatchSupport.clearNotes();
+        }
     }
 
-    public void clear() {
+    /**
+     * For unit testing only.
+     */
+    public synchronized void clear() {
         envs.clear();
     }
 

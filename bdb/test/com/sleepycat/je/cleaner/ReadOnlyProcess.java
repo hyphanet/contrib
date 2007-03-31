@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ReadOnlyProcess.java,v 1.7 2006/11/22 23:54:49 mark Exp $
+ * $Id: ReadOnlyProcess.java,v 1.7.2.1 2007/02/01 14:50:06 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;

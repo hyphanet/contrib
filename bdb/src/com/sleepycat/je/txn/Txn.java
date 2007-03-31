@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Txn.java,v 1.147 2006/11/17 23:47:28 mark Exp $
+ * $Id: Txn.java,v 1.148.2.3 2007/03/09 17:37:09 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -33,11 +33,12 @@ import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
+import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogManager;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.log.entry.LNLogEntry;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.recovery.RecoveryManager;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.TreeLocation;
@@ -48,16 +49,10 @@ import com.sleepycat.je.utilint.Tracer;
  * A Txn is one that's created by a call to Environment.txnBegin.  This class
  * must support multithreaded use.
  */
-public class Txn extends Locker implements LogWritable, LogReadable {
+public class Txn extends Locker implements Loggable {
     public static final byte TXN_NOSYNC = 0;
     public static final byte TXN_WRITE_NOSYNC = 1;
     public static final byte TXN_SYNC = 2;
-
-    /**
-     * Static log size used by LNLogEntry.getStaticLogSize.
-     */
-    public static int LOG_SIZE = LogUtils.LONG_BYTES + // id
-                                 LogUtils.LONG_BYTES;  // lastLoggedLsn
 
     private static final String DEBUG_NAME =
         Txn.class.getName();
@@ -326,10 +321,12 @@ public class Txn extends Locker implements LogWritable, LogReadable {
 		     " prepare failed because there were open cursors.");
 	    }
 
-	    TxnPrepare prepareRecord =
-		new TxnPrepare(id, xid); /* Flush required. */
+            SingleItemEntry prepareEntry =
+                new SingleItemEntry(LogEntryType.LOG_TXN_PREPARE,
+                                    new TxnPrepare(id, xid));
+            /* Flush required. */
 	    LogManager logManager = envImpl.getLogManager();
-	    logManager.logForceFlush(prepareRecord, true); // sync required
+	    logManager.logForceFlush(prepareEntry, true); // sync required
 	}
 	setPrepared(true);
 	return XAResource.XA_OK;
@@ -428,19 +425,20 @@ public class Txn extends Locker implements LogWritable, LogReadable {
                 int numWriteLocks = 0;
                 if (writeInfo != null) {
                     numWriteLocks = writeInfo.size();
-                    TxnCommit commitRecord =
-                        new TxnCommit(id, lastLoggedLsn);
+                    SingleItemEntry commitEntry =
+                        new SingleItemEntry(LogEntryType.LOG_TXN_COMMIT,
+                                            new TxnCommit(id, lastLoggedLsn));
 		    if (flushSyncBehavior == TXN_SYNC) {
 			/* Flush and sync required. */
 			commitLsn = logManager.
-			    logForceFlush(commitRecord, true);
+			    logForceFlush(commitEntry, true);
 		    } else if (flushSyncBehavior == TXN_WRITE_NOSYNC) {
 			/* Flush but no sync required. */
 			commitLsn = logManager.
-			    logForceFlush(commitRecord, false);
+			    logForceFlush(commitEntry, false);
 		    } else {
 			/* No flush, no sync required. */
-			commitLsn = logManager.log(commitRecord);
+			commitLsn = logManager.log(commitEntry);
 		    }
                 
                     /* 
@@ -598,16 +596,18 @@ public class Txn extends Locker implements LogWritable, LogReadable {
                 checkState(true);
 
                 /* Log the abort. */
-                TxnAbort abortRecord = new TxnAbort(id, lastLoggedLsn);
+                SingleItemEntry abortEntry =
+                    new SingleItemEntry(LogEntryType.LOG_TXN_ABORT,
+                                        new TxnAbort(id, lastLoggedLsn));
                 abortLsn = DbLsn.NULL_LSN;
                 if (writeInfo != null) {
 		    if (writeAbortRecord) {
 			if (forceFlush) {
 			    abortLsn = envImpl.getLogManager().
-				logForceFlush(abortRecord, true);
+				logForceFlush(abortEntry, true);
 			} else {
 			    abortLsn =
-				envImpl.getLogManager().log(abortRecord);
+				envImpl.getLogManager().log(abortEntry);
 			}
 		    }
                 }
@@ -737,8 +737,9 @@ public class Txn extends Locker implements LogWritable, LogReadable {
                      */
                     if (!undoLN.isDeleted()) {
                         logManager.countObsoleteNode
-                            (undoLsn, null,
-                             undoEntry.getLogSize() + LogManager.HEADER_BYTES);
+                            (undoLsn,
+                             null,  // type
+                             undoLN.getLastLoggedSize());
                     }
                 }
 
@@ -1326,14 +1327,15 @@ public class Txn extends Locker implements LogWritable, LogReadable {
      */
 
     /**
-     * @see LogWritable#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LOG_SIZE;
+        return LogUtils.LONG_BYTES + // id
+               LogUtils.LONG_BYTES;  // lastLoggedLsn
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     /*
      * It's ok for FindBugs to whine about id not being synchronized.
@@ -1344,7 +1346,7 @@ public class Txn extends Locker implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      *
      * It's ok for FindBugs to whine about id not being synchronized.
      */
@@ -1354,7 +1356,7 @@ public class Txn extends Locker implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<txn id=\"");
@@ -1365,17 +1367,10 @@ public class Txn extends Locker implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return getId();
-    }
-
-    /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return true;
     }
 
     /**

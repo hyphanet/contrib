@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEVersion.java,v 1.92 2006/12/05 15:56:58 linda Exp $
+ * $Id: JEVersion.java,v 1.93.2.7 2007/03/09 21:59:13 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -19,7 +19,7 @@ public class JEVersion {
      * the doc templates in the doc_src directory.
      */
     public static final JEVersion CURRENT_VERSION =
-        new JEVersion(3, 2, 13, null);
+        new JEVersion(3, 2, 21, null);
     
     private int majorNum;
     private int minorNum;

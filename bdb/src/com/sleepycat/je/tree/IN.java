@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: IN.java,v 1.294 2006/11/03 03:07:56 mark Exp $
+ * $Id: IN.java,v 1.295.2.3 2007/03/14 01:49:45 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -32,9 +32,8 @@ import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogFileNotFoundException;
 import com.sleepycat.je.log.LogManager;
-import com.sleepycat.je.log.LogReadable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.log.entry.INLogEntry;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
@@ -42,8 +41,7 @@ import com.sleepycat.je.utilint.Tracer;
 /**
  * An IN represents an Internal Node in the JE tree.
  */
-public class IN extends Node
-    implements Comparable, LoggableObject, LogReadable {
+public class IN extends Node implements Comparable, Loggable {
 
     private static final String BEGIN_TAG = "<in>";
     private static final String END_TAG = "</in>";
@@ -1504,7 +1502,7 @@ public class IN extends Node
         throws DatabaseException {
 
 	if (nEntries >= entryTargets.length) {
-	    compress(null, true);
+	    compress(null, true, null);
 	}
 
 	if (nEntries < entryTargets.length) {
@@ -1641,7 +1639,9 @@ public class IN extends Node
     }
 
     /* Called by the incompressor. */
-    public boolean compress(BINReference binRef, boolean canFetch)
+    public boolean compress(BINReference binRef,
+                            boolean canFetch,
+                            UtilizationTracker tracker) 
         throws DatabaseException {
 
 	return false;
@@ -1769,9 +1769,8 @@ public class IN extends Node
 		if (isEntryPendingDeleted(i)) {
 		    if (!deletedEntrySeen) {
 			deletedEntrySeen = true;
-			binRef = new BINReference(newSibling.getNodeId(),
-						  databaseImpl.getId(),
-						  newIdKey);
+			assert (newSibling instanceof BIN);
+			binRef = ((BIN) newSibling).createReference();
 		    }
 		    binRef.addDeletedKey(new Key(thisKey));
 		}
@@ -2700,14 +2699,14 @@ public class IN extends Node
     }
 
     /**
-     * @see LoggableObject#getLogType
+     * @see Node#getLogType
      */
     public LogEntryType getLogType() {
         return LogEntryType.LOG_IN;
     }
 
     /**
-     * @see LoggableObject#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
         int size = super.getLogSize(); // ancestors
@@ -2732,7 +2731,7 @@ public class IN extends Node
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
 
@@ -2805,7 +2804,7 @@ public class IN extends Node
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
         throws LogException {
@@ -2885,7 +2884,7 @@ public class IN extends Node
     }
     
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append(beginTag());
@@ -2934,20 +2933,6 @@ public class IN extends Node
         dumpLogAdditional(sb);
 
         sb.append(endTag());
-    }
-
-    /**
-     * @see LogReadable#logEntryIsTransactional.
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
-     */
-    public long getTransactionId() {
-	return 0;
     }
 
     /** 

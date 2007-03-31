@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalkerTest.java,v 1.11 2006/11/03 03:08:02 mark Exp $
+ * $Id: SortedLSNTreeWalkerTest.java,v 1.11.2.2 2007/03/07 01:24:41 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -29,6 +29,7 @@ import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.SortedLSNTreeWalker.TreeNodeProcessor;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
@@ -433,6 +434,11 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 
 	    throw new RuntimeException("override me please");
 	}
+	
+        public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
+	    throws DatabaseException {
+            /* Do nothing. */
+        }
 
 	public void processDupCount(long ignore) {
 	    throw new RuntimeException("override me please");

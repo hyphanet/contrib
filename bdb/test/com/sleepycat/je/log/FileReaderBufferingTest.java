@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileReaderBufferingTest.java,v 1.11 2006/10/30 21:14:46 bostic Exp $
+ * $Id: FileReaderBufferingTest.java,v 1.12.2.1 2007/02/01 14:50:14 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -76,7 +76,7 @@ public class FileReaderBufferingTest extends TestCase {
                 100,    // starting read buffer size
                 "1000", // max read buffer size
                 11);    // expected number of overflows. This comes out to 
-                        // an odd number because one of the entires hits it
+                        // an odd number because one of the entries hits it
                         // in just the right place so as to overflow twice.
     }
 
@@ -163,7 +163,7 @@ public class FileReaderBufferingTest extends TestCase {
             String val = new String(filler);
 
             Tracer rec = new Tracer(val);
-            long lsn = logManager.log(rec);
+            long lsn = rec.log(logManager);
             expectedLsns.add(new Long(lsn));
             expectedVals.add(val);
         }

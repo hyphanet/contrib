@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: BlockIterator.java,v 1.6 2006/10/30 21:14:10 bostic Exp $
+ * $Id: BlockIterator.java,v 1.6.2.2 2007/03/12 17:46:05 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -517,18 +517,20 @@ class BlockIterator implements BaseIterator {
             throw new UnsupportedOperationException();
         }
         DataCursor cursor = null;
+        boolean doAutoCommit = coll.beginAutoCommit();
         try {
             cursor = new DataCursor(coll.view, writeAllowed);
             if (moveCursor(dataIndex, cursor)) {
                 cursor.putCurrent(value);
                 setSlot(dataIndex, cursor);
+                coll.closeCursor(cursor);
+                coll.commitAutoCommit(doAutoCommit);
             } else {
                 throw new IllegalStateException();
             }
-        } catch (DatabaseException e) {
-            throw StoredContainer.convertException(e);
-        } finally {
-            closeCursor(cursor);
+        } catch (Exception e) {
+            coll.closeCursor(cursor);
+            throw coll.handleException(e, doAutoCommit);
         }
     }
 
@@ -538,19 +540,21 @@ class BlockIterator implements BaseIterator {
             throw new IllegalStateException();
         }
         DataCursor cursor = null;
+        boolean doAutoCommit = coll.beginAutoCommit();
         try {
             cursor = new DataCursor(coll.view, writeAllowed);
             if (moveCursor(dataIndex, cursor)) {
                 cursor.delete();
                 deleteSlot(dataIndex);
                 dataObject = null;
+                coll.closeCursor(cursor);
+                coll.commitAutoCommit(doAutoCommit);
             } else {
                 throw new IllegalStateException();
             }
-        } catch (DatabaseException e) {
-            throw StoredContainer.convertException(e);
-        } finally {
-            closeCursor(cursor);
+        } catch (Exception e) {
+            coll.closeCursor(cursor);
+            throw coll.handleException(e, doAutoCommit);
         }
     }
 
@@ -565,6 +569,7 @@ class BlockIterator implements BaseIterator {
         coll.checkIterAddAllowed();
         OperationStatus status = OperationStatus.SUCCESS;
         DataCursor cursor = null;
+        boolean doAutoCommit = coll.beginAutoCommit();
         try {
             if (coll.view.keysRenumbered || !coll.areDuplicatesOrdered()) {
 
@@ -592,7 +597,7 @@ class BlockIterator implements BaseIterator {
                         cursor = new DataCursor(coll.view, writeAllowed);
                         cursor.useRangeKey();
                         status = cursor.putNoDupData(null, value, null, true);
-                        cursor.close();
+                        coll.closeCursor(cursor);
                         cursor = null;
                     } else {
                         throw new IllegalStateException
@@ -680,10 +685,12 @@ class BlockIterator implements BaseIterator {
 
             /* Prevent subsequent set() or remove() call. */
             dataObject = null;
-        } catch (DatabaseException e) {
-            throw StoredContainer.convertException(e);
-        } finally {
-            closeCursor(cursor);
+
+            coll.closeCursor(cursor);
+            coll.commitAutoCommit(doAutoCommit);
+        } catch (Exception e) {
+            coll.closeCursor(cursor);
+            throw coll.handleException(e, doAutoCommit);
         }
     }
 

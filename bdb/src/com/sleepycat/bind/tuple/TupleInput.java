@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: TupleInput.java,v 1.29 2006/11/15 14:01:02 mark Exp $
+ * $Id: TupleInput.java,v 1.29.2.1 2007/02/01 14:49:39 cwl Exp $
  */
 
 package com.sleepycat.bind.tuple;

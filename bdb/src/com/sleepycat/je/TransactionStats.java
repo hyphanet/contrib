@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: TransactionStats.java,v 1.27 2006/10/30 21:14:12 bostic Exp $
+ * $Id: TransactionStats.java,v 1.27.2.1 2007/02/01 14:49:42 cwl Exp $
  */
 
 package com.sleepycat.je;

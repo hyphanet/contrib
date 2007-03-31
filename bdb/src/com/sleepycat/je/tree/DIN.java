@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DIN.java,v 1.78 2006/11/17 23:47:27 mark Exp $
+ * $Id: DIN.java,v 1.79.2.2 2007/03/08 22:32:59 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -235,7 +235,7 @@ public final class DIN extends IN {
         long oldLsn = dupCountLNRef.getLsn();
         lockResult.setAbortLsn(oldLsn, dupCountLNRef.isKnownDeleted());
         DupCountLN dupCountLN = getDupCountLN();
-        int oldSize = dupCountLN.getTotalLastLoggedSize(key);
+        int oldSize = dupCountLN.getLastLoggedSize();
         if (increment) {
             dupCountLN.incDupCount();
         } else {
@@ -324,7 +324,7 @@ public final class DIN extends IN {
      */
 
     /**
-     * @see IN#getLogType
+     * @see Node#getLogType
      */
     public LogEntryType getLogType() {
         return LogEntryType.LOG_DIN;

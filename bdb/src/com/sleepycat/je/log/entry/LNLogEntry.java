@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LNLogEntry.java,v 1.38 2006/11/17 23:47:24 mark Exp $
+ * $Id: LNLogEntry.java,v 1.39.2.2 2007/03/08 22:32:56 mark Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -12,9 +12,9 @@ import java.nio.ByteBuffer;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
+import com.sleepycat.je.log.LogEntryHeader;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
 import com.sleepycat.je.tree.Key;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.txn.Txn;
@@ -22,96 +22,94 @@ import com.sleepycat.je.utilint.DbLsn;
 
 /**
  * LNLogEntry embodies all LN transactional log entries.
- * These entries contain:
+ * On disk, an LN log entry contains:
  * <pre>
  *   ln
  *   databaseid
  *   key            
- *   abortLsn       -- if transactional
+ *   abortLsn          -- if transactional
  *   abortKnownDeleted -- if transactional
- *   txn            -- if transactional
+ *   txn               -- if transactional
  * </pre>
  */
-public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
+public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
+    private static final byte ABORT_KNOWN_DELETED_MASK = (byte) 1;
 
-    /* Objects contained in an LN entry */
+    /* 
+     * Persistent fields in an LN entry
+     */
     private LN ln;
     private DatabaseId dbId;
     private byte[] key;
     private long abortLsn = DbLsn.NULL_LSN;
     private boolean abortKnownDeleted;
-    private Txn txn;
-    
-    private static final byte ABORT_KNOWN_DELETED_MASK = (byte) 1;
-
-    /* Class used to instantiate the main item in this entry */
-    private Class logClass;           // used for reading a log entry
-    private LogEntryType entryType; // used for writing a log entry
-    private long nodeId;
+    private Txn txn;     // conditional
 
     /* 
-     * Note: used this flag instead of splitting this class into a txnal and
-     * non-txnal version because we want to subclass it with the duplicate
-     * deleted entry, which also comes in txnal and non-txnal form.
+     * Transient fields used by the entry.
+     * 
+     * Save the node id when we read the log entry from disk. Do so explicitly
+     * instead of merely returning ln.getNodeId(), because we don't always
+     * instantiate the LN.
      */
-    private boolean isTransactional; 
+    private long nodeId;   
 
     /* Constructor to read an entry. */
-    public LNLogEntry(Class logClass, boolean isTransactional) {
-        this.logClass = logClass;
-        this.isTransactional = isTransactional;
+    public LNLogEntry(Class LNClass) {
+        super(LNClass);
     }
 
     /* Constructor to write an entry. */
     public LNLogEntry(LogEntryType entryType,
                       LN ln,
-		      DatabaseId dbId,
-		      byte[] key,
+                      DatabaseId dbId,
+                      byte[] key,
                       long abortLsn,
-		      boolean abortKnownDeleted,
-		      Txn txn) {
-        this.entryType = entryType;
+                      boolean abortKnownDeleted,
+                      Txn txn) {
+        setLogType(entryType);
         this.ln = ln;
         this.dbId = dbId;
         this.key = key;
         this.abortLsn = abortLsn;
-	this.abortKnownDeleted = abortKnownDeleted;
+        this.abortKnownDeleted = abortKnownDeleted;
         this.txn = txn;
-        this.isTransactional = (txn != null);
-        this.logClass = ln.getClass();
         this.nodeId = ln.getNodeId();
+
+        /* A txn should only be provided for transactional entry types */
+        assert(entryType.isTransactional() == (txn!=null));
     }
 
     /**
      * @see LogEntry#readEntry
      */
-    public void readEntry(ByteBuffer entryBuffer,
-			  int entrySize,
-                          byte entryTypeVersion,
-			  boolean readFullItem)
+    public void readEntry(LogEntryHeader header,
+                          ByteBuffer entryBuffer,
+                          boolean readFullItem)
         throws DatabaseException {
 
         try {
             if (readFullItem) {
+
                 /* Read LN and get node ID. */
                 ln = (LN) logClass.newInstance();
-                ln.readFromLog(entryBuffer, entryTypeVersion);
+                ln.readFromLog(entryBuffer, header.getVersion());
                 nodeId = ln.getNodeId();
 
                 /* DatabaseImpl Id */
                 dbId = new DatabaseId();
-                dbId.readFromLog(entryBuffer, entryTypeVersion);
+                dbId.readFromLog(entryBuffer, header.getVersion());
 
                 /* Key */
                 key = LogUtils.readByteArray(entryBuffer);
 
-                if (isTransactional) {
+                if (entryType.isTransactional()) {
 
                     /*
                      * AbortLsn. If it was a marker LSN that was used to fill
                      * in a create, mark it null.
                      */
-		    abortLsn = LogUtils.readLong(entryBuffer);
+                    abortLsn = LogUtils.readLong(entryBuffer);
                     if (DbLsn.getFileNumber(abortLsn) ==
                         DbLsn.getFileNumber(DbLsn.NULL_LSN)) {
                         abortLsn = DbLsn.NULL_LSN;
@@ -123,21 +121,20 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
 
                     /* Locker */
                     txn = new Txn();
-                    txn.readFromLog(entryBuffer, entryTypeVersion);
+                    txn.readFromLog(entryBuffer, header.getVersion());
 
-                    ln.setLastLoggedTransactionally();
-                } else {
-                    ln.clearLastLoggedTransactionally();
                 }
             } else {
 
                 /*
-                 * Read node ID and position to end.
-                 * We currently do not support getting the db and txn ID in
-                 * this mode, and we may want to change the log format to do
-                 * that efficiently.
+                 * Read node ID and then set buffer position to end. This takes
+                 * advantage of the fact that the node id is in a known spot,
+                 * at the beginning of the ln.  We currently do not support
+                 * getting the db and txn ID in this mode, and we may want to
+                 * change the log format to do that efficiently.
                  */
-                int endPosition = entryBuffer.position() + entrySize;
+                int currentPosition = entryBuffer.position();
+                int endPosition = currentPosition + header.getItemSize();
                 nodeId = LogUtils.readLong(entryBuffer);
                 entryBuffer.position(endPosition);
                 ln = null;
@@ -156,13 +153,13 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
         ln.dumpLog(sb, verbose);
         dbId.dumpLog(sb, verbose);
         sb.append(Key.dumpString(key, 0));
-        if (isTransactional) {
+        if (entryType.isTransactional()) {
             if (abortLsn != DbLsn.NULL_LSN) {
-		sb.append(DbLsn.toString(abortLsn));
+                sb.append(DbLsn.toString(abortLsn));
             }
-	    sb.append("<knownDeleted val=\"");
-	    sb.append(abortKnownDeleted ? "true" : "false");
-	    sb.append("\"/>");
+            sb.append("<knownDeleted val=\"");
+            sb.append(abortKnownDeleted ? "true" : "false");
+            sb.append("\"/>");
             txn.dumpLog(sb, verbose);
         }
         return sb;
@@ -183,21 +180,14 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
     }
 
     /**
-     * @see LogEntry#isTransactional
-     */
-    public boolean isTransactional() {
-	return isTransactional;
-    }
-
-    /**
      * @see LogEntry#getTransactionId
      */
     public long getTransactionId() {
-	if (isTransactional) {
-	    return txn.getId();
-	} else {
-	    return 0;
-	}
+        if (entryType.isTransactional()) {
+            return txn.getId();
+        } else {
+            return 0;
+        }
     }
 
     /**
@@ -212,23 +202,45 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
      */
 
     /**
-     * @see LoggableObject#getLogType
      */
-    public LogEntryType getLogType() {
-        return entryType;
+    public int getSize() {
+        int size = ln.getLogSize() +
+            dbId.getLogSize() +
+            LogUtils.getByteArrayLogSize(key);
+        if (entryType.isTransactional()) {
+            size += LogUtils.getLongLogSize();
+            size++;   // abortKnownDeleted
+            size += txn.getLogSize();
+        }
+        return size;
+    }
+
+    public void setLastLoggedSize(int size) {
+        ln.setLastLoggedSize(size);
     }
 
     /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Ask the ln if it can be marshalled outside the log write latch.
+     * @see LogEntry#writeEntry
      */
-    public boolean marshallOutsideWriteLatch() {
-        return ln.marshallOutsideWriteLatch();
+    public void writeEntry(LogEntryHeader header, ByteBuffer destBuffer) {
+        ln.writeToLog(destBuffer);
+        dbId.writeToLog(destBuffer);
+        LogUtils.writeByteArray(destBuffer, key);
+
+        if (entryType.isTransactional()) {
+            LogUtils.writeLong(destBuffer, abortLsn);
+            byte aKD = 0;
+            if (abortKnownDeleted) {
+                aKD |= ABORT_KNOWN_DELETED_MASK;
+            }
+            destBuffer.put(aKD);
+            txn.writeToLog(destBuffer);
+        }
     }
 
     /**
      * Returns true for a deleted LN to count it immediately as obsolete.
-     * @see LoggableObject#countAsObsoleteWhenLogged
+     * @see LogEntry#countAsObsoleteWhenLogged
      */
     public boolean countAsObsoleteWhenLogged() {
         return ln.isDeleted();
@@ -239,62 +251,13 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
      * owning transaction, within the protection of the log latch. This is a
      * callback for the log manager to do that recording.
      *
-     * @see LoggableObject#postLogWork
+     * @see LogEntry#postLogWork
      */
     public void postLogWork(long justLoggedLsn)
         throws DatabaseException {
 
-        if (isTransactional) {
+        if (entryType.isTransactional()) {
             txn.addLogInfo(justLoggedLsn);
-        }
-    }
-
-    /**
-     * Returns the given LN log size plus the size of the given key for the
-     * given transactional mode.  Used by LN.delete and LN.modify to calculate
-     * the total obsolete log size of the previous version of the LNLogEntry
-     * without having the LNLogEntry instance in hand.
-     */
-    public static int getStaticLogSize(int lnLogSize,
-                                       byte[] key,
-                                       boolean transactional) {
-        int size = lnLogSize +
-            DatabaseId.LOG_SIZE +
-            LogUtils.getByteArrayLogSize(key);
-        if (transactional) {
-	    size += LogUtils.getLongLogSize();
-	    size++;   // abortKnownDeleted
-            size += Txn.LOG_SIZE;
-        }
-        return size;
-    }
-
-    /**
-     * @see LoggableObject#getLogSize
-     */
-    public int getLogSize() {
-        return getStaticLogSize(ln.getLogSize(), key, isTransactional);
-    }
-
-    /**
-     * @see LoggableObject#writeToLog
-     */
-    public void writeToLog(ByteBuffer destBuffer) {
-        ln.writeToLog(destBuffer);
-        dbId.writeToLog(destBuffer);
-        LogUtils.writeByteArray(destBuffer, key);
-
-        if (isTransactional) {
-	    LogUtils.writeLong(destBuffer, abortLsn);
-	    byte aKD = 0;
-	    if (abortKnownDeleted) {
-		aKD |= ABORT_KNOWN_DELETED_MASK;
-	    }
-	    destBuffer.put(aKD);
-            txn.writeToLog(destBuffer);
-            ln.setLastLoggedTransactionally();
-        } else {
-            ln.clearLastLoggedTransactionally();
         }
     }
 
@@ -326,11 +289,11 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
     }
 
     public boolean getAbortKnownDeleted() {
-	return abortKnownDeleted;
+        return abortKnownDeleted;
     }
 
     public Long getTxnId() {
-        if (isTransactional) {
+        if (entryType.isTransactional()) {
             return new Long(txn.getId());
         } else {
             return null;
@@ -338,7 +301,7 @@ public class LNLogEntry implements LogEntry, LoggableObject, NodeLogEntry {
     }
 
     public Txn getUserTxn() {
-        if (isTransactional) {
+        if (entryType.isTransactional()) {
             return txn;
         } else {
             return null;

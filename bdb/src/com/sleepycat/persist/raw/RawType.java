@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RawType.java,v 1.10 2006/11/14 23:30:51 mark Exp $
+ * $Id: RawType.java,v 1.10.2.1 2007/02/01 14:49:58 cwl Exp $
  */
 
 package com.sleepycat.persist.raw;

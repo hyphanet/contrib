@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Store.java,v 1.20 2006/12/04 18:47:43 cwl Exp $
+ * $Id: Store.java,v 1.20.2.2 2007/02/10 02:58:19 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -96,6 +96,7 @@ public class Store {
     private Map<String,SequenceConfig> sequenceConfigMap;
     private Database sequenceDb;
     private IdentityHashMap<Database,Object> deferredWriteDatabases;
+    private Map<String,Set<String>> inverseRelatedEntityMap;
 
     public Store(Environment env,
                  String storeName,
@@ -204,6 +205,37 @@ public class Store {
         ModelInternal.setCatalog(model, catalog);
         for (Converter converter : mutations.getConverters()) {
             converter.getConversion().initialize(model);
+        }
+
+        /*
+         * For each existing entity with a relatedEntity reference, create an
+         * inverse map (back pointer) from the class named in the relatedEntity
+         * to the class containing the secondary key.  This is used to open the
+         * class containing the secondary key whenever we open the
+         * relatedEntity class, to configure foreign key constraints. Note that
+         * we do not need to update this map as new primary indexes are
+         * created, because opening the new index will setup the foreign key
+         * constraints. [#15358]
+         */
+        inverseRelatedEntityMap = new HashMap<String,Set<String>>();
+        List<Format> entityFormats = new ArrayList<Format>();
+        catalog.getEntityFormats(entityFormats);
+        for (Format entityFormat : entityFormats) {
+            EntityMetadata entityMeta = entityFormat.getEntityMetadata();
+            for (SecondaryKeyMetadata secKeyMeta :
+                 entityMeta.getSecondaryKeys().values()) {
+                String relatedClsName = secKeyMeta.getRelatedEntity();
+                if (relatedClsName != null) {
+                    Set<String> inverseClassNames =
+                        inverseRelatedEntityMap.get(relatedClsName);
+                    if (inverseClassNames == null) {
+                        inverseClassNames = new HashSet<String>();
+                        inverseRelatedEntityMap.put
+                            (relatedClsName, inverseClassNames);
+                    }
+                    inverseClassNames.add(entityMeta.getClassName());
+                }
+            }
         }
     }
 
@@ -325,6 +357,19 @@ public class Store {
                 /* If not read-only, open all associated secondaries. */
                 if (!dbConfig.getReadOnly()) {
                     openSecondaryIndexes(entityMeta);
+
+                    /*
+                     * To enable foreign key contratints, also open all primary
+                     * indexes referring to this class via a relatedEntity
+                     * property in another entity. [#15358]
+                     */
+                    Set<String> inverseClassNames =
+                        inverseRelatedEntityMap.get(entityClassName);
+                    if (inverseClassNames != null) {
+                        for (String relatedClsName : inverseClassNames) {
+                            getRelatedIndex(relatedClsName);
+                        }
+                    }
                 }
                 success = true;
             } finally {
@@ -338,6 +383,44 @@ public class Store {
             }
         }
         return priIndex;
+    }
+
+    /**
+     * Opens a primary index related via a foreign key (relatedEntity).
+     */
+    private PrimaryIndex getRelatedIndex(String relatedClsName)
+        throws DatabaseException {
+
+        PrimaryIndex relatedIndex = priIndexMap.get(relatedClsName);
+        if (relatedIndex == null) {
+            EntityMetadata relatedEntityMeta =
+                checkEntityClass(relatedClsName);
+            Class relatedKeyCls;
+            String relatedKeyClsName;
+            Class relatedCls;
+            if (rawAccess) {
+                relatedCls = RawObject.class;
+                relatedKeyCls = Object.class;
+                relatedKeyClsName = null;
+            } else {
+                try {
+                    relatedCls = Class.forName(relatedClsName);
+                } catch (ClassNotFoundException e) {
+                    throw new IllegalArgumentException
+                        ("Related entity class not found: " +
+                         relatedClsName);
+                }
+                relatedKeyClsName = SimpleCatalog.keyClassName
+                    (relatedEntityMeta.getPrimaryKey().getClassName());
+                relatedKeyCls =
+                    SimpleCatalog.keyClassForName(relatedKeyClsName);
+            }
+            /* XXX Check to make sure cycles are not possible here. */
+            relatedIndex = getPrimaryIndex
+                (relatedKeyCls, relatedKeyClsName,
+                 relatedCls, relatedClsName);
+        }
+        return relatedIndex;
     }
 
     /**
@@ -473,35 +556,7 @@ public class Store {
 
         String relatedClsName = secKeyMeta.getRelatedEntity();
         if (relatedClsName != null) {
-            PrimaryIndex relatedIndex = priIndexMap.get(relatedClsName);
-            if (relatedIndex == null) {
-                EntityMetadata relatedEntityMeta =
-                    checkEntityClass(relatedClsName);
-                Class relatedKeyCls;
-                String relatedKeyClsName;
-                Class relatedCls;
-                if (rawAccess) {
-                    relatedCls = RawObject.class;
-                    relatedKeyCls = Object.class;
-                    relatedKeyClsName = null;
-                } else {
-                    try {
-                        relatedCls = Class.forName(relatedClsName);
-                    } catch (ClassNotFoundException e) {
-                        throw new IllegalArgumentException
-                            ("Foreign key database class not found: " +
-                             relatedClsName);
-                    }
-                    relatedKeyClsName = SimpleCatalog.keyClassName
-                        (relatedEntityMeta.getPrimaryKey().getClassName());
-                    relatedKeyCls =
-                        SimpleCatalog.keyClassForName(relatedKeyClsName);
-                }
-                /* XXX Check to make sure cycles are not possible here. */
-                relatedIndex = getPrimaryIndex
-                    (relatedKeyCls, relatedKeyClsName,
-                     relatedCls, relatedClsName);
-            }
+            PrimaryIndex relatedIndex = getRelatedIndex(relatedClsName);
             config.setForeignKeyDatabase(relatedIndex.getDatabase());
         }
 

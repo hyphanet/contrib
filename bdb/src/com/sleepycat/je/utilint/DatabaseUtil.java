@@ -1,10 +1,10 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002-2006
+ * Copyright (c) 2002,2007
  *      Oracle Corporation.  All rights reserved.
  *
- * $Id: DatabaseUtil.java,v 1.1 2006/11/06 20:36:58 linda Exp $
+ * $Id: DatabaseUtil.java,v 1.1.2.1 2007/02/01 14:49:54 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;

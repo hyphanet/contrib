@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PackedOffsets.java,v 1.7 2006/10/30 21:14:13 bostic Exp $
+ * $Id: PackedOffsets.java,v 1.8.2.1 2007/02/01 14:49:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -11,9 +11,8 @@ package com.sleepycat.je.cleaner;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import com.sleepycat.je.log.LogReadable;
+import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LogWritable;
 
 /**
  * Stores a sorted list of LSN offsets in a packed short representation.  Each
@@ -23,7 +22,7 @@ import com.sleepycat.je.log.LogWritable;
  * the same offset follow; this works because offsets are always positive
  * values.
  */
-public class PackedOffsets implements LogWritable, LogReadable {
+public class PackedOffsets implements Loggable {
 
     private short[] data;
     private int size;
@@ -132,7 +131,7 @@ public class PackedOffsets implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogWritable#getLogSize
+     * @see Loggable#getLogSize
      */
     public int getLogSize() {
 
@@ -141,7 +140,7 @@ public class PackedOffsets implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogWritable#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer buf) {
 
@@ -157,7 +156,7 @@ public class PackedOffsets implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer buf, byte entryTypeVersion) {
 
@@ -172,7 +171,7 @@ public class PackedOffsets implements LogWritable, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer buf, boolean verbose) {
 
@@ -194,18 +193,10 @@ public class PackedOffsets implements LogWritable, LogReadable {
 
     /**
      * Never called.
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return -1;
-    }
-
-    /**
-     * Never called.
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
     }
 
     public String toString() {

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MakeLogEntryVersionData.java,v 1.11 2006/11/03 02:38:54 mark Exp $
+ * $Id: MakeLogEntryVersionData.java,v 1.11.2.1 2007/02/01 14:50:15 cwl Exp $
  */
 
 package com.sleepycat.je.logversion;

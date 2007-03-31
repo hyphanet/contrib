@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2005 Oracle.  All rights reserved.
  *
- * $Id: CheckNewRootTest.java,v 1.4 2006/10/30 21:14:48 bostic Exp $
+ * $Id: CheckNewRootTest.java,v 1.5 2006/12/13 18:55:41 linda Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -24,6 +24,8 @@ import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.TestHook;
@@ -276,10 +278,11 @@ public class CheckNewRootTest extends CheckBase {
             try {
                 EnvironmentImpl envImpl =
                     DbInternal.envGetEnvironmentImpl(env);
-		CheckpointStart startEntry =
-		    new CheckpointStart(100, "test");
+		SingleItemEntry startEntry =
+		    new SingleItemEntry(LogEntryType.LOG_CKPT_START,
+                                        new CheckpointStart(100, "test"));
 		long checkpointStart = envImpl.getLogManager().log(startEntry);
-                CheckpointEnd endEntry =
+                CheckpointEnd ckptEnd = 
                     new CheckpointEnd("test",
                                       checkpointStart,
                                       envImpl.getRootLsn(),
@@ -288,6 +291,8 @@ public class CheckNewRootTest extends CheckBase {
                                       envImpl.getDbMapTree().getLastDbId(),
                                       envImpl.getTxnManager().getLastTxnId(),
                                       100);
+                SingleItemEntry endEntry =
+                    new SingleItemEntry(LogEntryType.LOG_CKPT_END, ckptEnd);
                 envImpl.getLogManager().logForceFlush(endEntry, true);
             } catch (DatabaseException e) {
         	fail(e.getMessage());

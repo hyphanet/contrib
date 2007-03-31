@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INFileReader.java,v 1.51 2006/11/17 23:47:23 mark Exp $
+ * $Id: INFileReader.java,v 1.52.2.2 2007/03/08 22:32:54 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -98,16 +98,16 @@ public class INFileReader extends FileReader {
                         long startLsn,
                         long finishLsn,
                         boolean trackIds,
-			boolean mapDbOnly,
+                        boolean mapDbOnly,
                         long partialCkptStart,
                         Map fileSummaryLsns)
         throws IOException, DatabaseException {
 
         super(env, readBufferSize, true, startLsn, null,
-	      DbLsn.NULL_LSN, finishLsn);
+              DbLsn.NULL_LSN, finishLsn);
 
         this.trackIds = trackIds;
-	this.mapDbOnly = mapDbOnly;
+        this.mapDbOnly = mapDbOnly;
         targetEntryMap = new HashMap();
 
         if (trackIds) {
@@ -125,24 +125,24 @@ public class INFileReader extends FileReader {
 
             dbIdTrackingMap.put(LogEntryType.LOG_MAPLN_TRANSACTIONAL,
                                 LogEntryType.LOG_MAPLN_TRANSACTIONAL.
-				getNewLogEntry());
+                                getNewLogEntry());
             dbIdTrackingMap.put(LogEntryType.LOG_MAPLN,
                                 LogEntryType.LOG_MAPLN.getNewLogEntry());
             txnIdTrackingMap.put(LogEntryType.LOG_LN_TRANSACTIONAL,
                                  LogEntryType.LOG_LN_TRANSACTIONAL.
-				 getNewLogEntry());
+                                 getNewLogEntry());
             txnIdTrackingMap.put(LogEntryType.LOG_MAPLN_TRANSACTIONAL,
                                  LogEntryType.LOG_MAPLN_TRANSACTIONAL.
-				 getNewLogEntry());
+                                 getNewLogEntry());
             txnIdTrackingMap.put(LogEntryType.LOG_NAMELN_TRANSACTIONAL,
                                  LogEntryType.LOG_NAMELN_TRANSACTIONAL.
-				 getNewLogEntry());
+                                 getNewLogEntry());
             txnIdTrackingMap.put(LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL,
                                  LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL.
-				 getNewLogEntry());
+                                 getNewLogEntry());
             txnIdTrackingMap.put(LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL,
                                  LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL.
-				 getNewLogEntry());
+                                 getNewLogEntry());
         }
     }
 
@@ -172,7 +172,7 @@ public class INFileReader extends FileReader {
         nodeTrackingEntry = null;
         inTrackingEntry = null;
         fsTrackingEntry = null;
-        isProvisional = LogEntryType.isProvisional(entryTypeVersion);
+        isProvisional = LogEntryType.isEntryProvisional(entryTypeVersion);
 
         /* Get the log entry type instance we need to read the entry. */
         fromLogType = LogEntryType.findType(entryTypeNum, entryTypeVersion);
@@ -243,8 +243,8 @@ public class INFileReader extends FileReader {
              */
             if (!LogEntryType.LOG_FILE_HEADER.equals(fromLogType)) {
                 tracker.countNewLogEntry(getLastLsn(), fromLogType,
-                                         LogManager.HEADER_BYTES +
-                                         currentEntrySize);
+                                         currentEntryHeader.getSize() +
+                                         currentEntryHeader.getItemSize());
             }
 
             /*
@@ -253,9 +253,9 @@ public class INFileReader extends FileReader {
              * or if it's any kind of tracked entry or node.
              */
             return (targetLogEntry != null) ||
-		(dbIdTrackingEntry != null) ||
-		(txnIdTrackingEntry != null) ||
-		(nodeTrackingEntry != null);
+                (dbIdTrackingEntry != null) ||
+                (txnIdTrackingEntry != null) ||
+                (nodeTrackingEntry != null);
         } else {
 
             /*
@@ -279,10 +279,9 @@ public class INFileReader extends FileReader {
 
         /* If this is a targetted entry, read the entire log entry. */
         if (targetLogEntry != null) {
-            targetLogEntry.readEntry(entryBuffer, currentEntrySize,
-                                     currentEntryTypeVersion, true);
-	    DatabaseId dbId = getDatabaseId();
-	    boolean isMapDb = dbId.equals(DbTree.ID_DB_ID);
+            readEntry(targetLogEntry, entryBuffer, true); // readFullItem
+            DatabaseId dbId = getDatabaseId();
+            boolean isMapDb = dbId.equals(DbTree.ID_DB_ID);
             useEntry = (!mapDbOnly || isMapDb);
             entryLoaded = true;
         }
@@ -300,11 +299,9 @@ public class INFileReader extends FileReader {
             LNLogEntry lnEntry = null;
             if (dbIdTrackingEntry != null) {
                 /* This entry has a db id */
-		lnEntry = dbIdTrackingEntry;
-		lnEntry.readEntry(entryBuffer, currentEntrySize,
-				  currentEntryTypeVersion,
-				  true /* full load */);
-		entryLoaded = true;
+                lnEntry = dbIdTrackingEntry;
+                readEntry(lnEntry, entryBuffer, true); // readFullItem
+                entryLoaded = true;
                 MapLN mapLN = (MapLN) lnEntry.getMainItem();
                 int dbId = mapLN.getDatabase().getId().getId();
                 if (dbId > maxDbId) {
@@ -315,9 +312,7 @@ public class INFileReader extends FileReader {
                 /* This entry has a txn id */
                 if (lnEntry == null) {
                     lnEntry = txnIdTrackingEntry;
-                    lnEntry.readEntry(entryBuffer, currentEntrySize,
-                                      currentEntryTypeVersion,
-                                      true /* full load */);
+                    readEntry(lnEntry, entryBuffer, true ); // readFullItem
                     entryLoaded = true;
                 }
                 long txnId = lnEntry.getTxnId().longValue();
@@ -334,9 +329,8 @@ public class INFileReader extends FileReader {
 
                 /* Must do full load to get key from file summary LN. */
                 if (!entryLoaded) {
-                    nodeTrackingEntry.readEntry(entryBuffer, currentEntrySize,
-                                                currentEntryTypeVersion,
-                                                true /* full load */);
+                    readEntry(nodeTrackingEntry, entryBuffer,
+                              true); // readFullItem
                     entryLoaded = true;
                 }
 
@@ -370,9 +364,8 @@ public class INFileReader extends FileReader {
              */
             if (nodeTrackingEntry != null) {
                 if (!entryLoaded) {
-                    nodeTrackingEntry.readEntry(entryBuffer, currentEntrySize,
-                                                currentEntryTypeVersion,
-                                                false /* partial load */);
+                    readEntry(nodeTrackingEntry, entryBuffer,
+                              false ); // readFullItem
                     entryLoaded = true;
                 }
                 /* Keep track of the largest node id seen. */
@@ -434,9 +427,9 @@ public class INFileReader extends FileReader {
         /* If the file summary follows the new LSN, it was already counted. */
         Long fileNum = new Long(DbLsn.getFileNumber(oldLsn));
         long fileSummaryLsn =
-	    DbLsn.longToLsn((Long) fileSummaryLsns.get(fileNum));
+            DbLsn.longToLsn((Long) fileSummaryLsns.get(fileNum));
         int cmpFsLsnToNewLsn = (fileSummaryLsn != DbLsn.NULL_LSN) ?
-	    DbLsn.compareTo(fileSummaryLsn, newLsn) : -1;
+            DbLsn.compareTo(fileSummaryLsn, newLsn) : -1;
         return (cmpFsLsnToNewLsn >= 0);
     }
 
@@ -444,9 +437,9 @@ public class INFileReader extends FileReader {
      * Get the last IN seen by the reader.
      */
     public IN getIN() 
-    	throws DatabaseException {
-    		
-        return ((INContainingEntry) targetLogEntry).getIN(env);
+        throws DatabaseException {
+                
+        return ((INContainingEntry) targetLogEntry).getIN(envImpl);
     }
 
     /**
@@ -546,13 +539,5 @@ public class INFileReader extends FileReader {
      */
     public long getLsnOfIN() {
         return ((INContainingEntry) targetLogEntry).getLsnOfIN(getLastLsn());
-    }
-
-    /**
-     * Get the current log entry type.
-     */
-    public LogEntryType getLogEntryType() {
-        return LogEntryType.findType(currentEntryTypeNum,
-                                     currentEntryTypeVersion);
     }
 }

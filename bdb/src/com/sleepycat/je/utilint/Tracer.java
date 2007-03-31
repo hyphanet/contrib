@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2006 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Tracer.java,v 1.42 2006/10/30 21:14:29 bostic Exp $
+ * $Id: Tracer.java,v 1.43.2.1 2007/02/01 14:49:54 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -19,9 +19,10 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.config.ConfigParam;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogEntryType;
-import com.sleepycat.je.log.LogReadable;
+import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogUtils;
-import com.sleepycat.je.log.LoggableObject;
+import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.entry.SingleItemEntry;
 
 /**
  * The Tracer generates debug messages that are sent to the java.util.Logging
@@ -29,7 +30,7 @@ import com.sleepycat.je.log.LoggableObject;
  * log itself, an output file, and stdout (the "console").  By default, only
  * the database file is enabled.
  */
-public class Tracer implements LoggableObject, LogReadable {
+public class Tracer implements Loggable {
 
     /* 
      * Name pattern for tracing output that's been directed into a log file by
@@ -142,35 +143,16 @@ public class Tracer implements LoggableObject, LogReadable {
      */
 
     /**
-     * @see LoggableObject#getLogType
+     * Convenience method to create a log entry containing this trace msg.
      */
-    public LogEntryType getLogType() {
-        return LogEntryType.LOG_TRACE;
+    public long log(LogManager logManager) 
+        throws DatabaseException {
+        return logManager.log(new SingleItemEntry(LogEntryType.LOG_TRACE,
+                                                  this));
     }
 
     /**
-     * @see LoggableObject#marshallOutsideWriteLatch
-     * Can be marshalled outside the log write latch.
-     */
-    public boolean marshallOutsideWriteLatch() {
-        return true;
-    }
-
-    /**
-     * @see LoggableObject#countAsObsoleteWhenLogged
-     */
-    public boolean countAsObsoleteWhenLogged() {
-        return false;
-    }
-
-    /**
-     * @see LoggableObject#postLogWork
-     */
-    public void postLogWork(long justLoggedLsn) {
-    }
-
-    /**
-     * @see LoggableObject#getLogSize()
+     * @see Loggable#getLogSize()
      */
     public int getLogSize() {
         return (LogUtils.getTimestampLogSize() +
@@ -178,7 +160,7 @@ public class Tracer implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LoggableObject#writeToLog
+     * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         /* Load the header. */
@@ -187,7 +169,7 @@ public class Tracer implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#readFromLog
+     * @see Loggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
         /* See how many we want to read direct. */
@@ -196,7 +178,7 @@ public class Tracer implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#dumpLog
+     * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<Dbg time=\"");
@@ -209,14 +191,7 @@ public class Tracer implements LoggableObject, LogReadable {
     }
 
     /**
-     * @see LogReadable#logEntryIsTransactional
-     */
-    public boolean logEntryIsTransactional() {
-	return false;
-    }
-
-    /**
-     * @see LogReadable#getTransactionId
+     * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
 	return 0;
