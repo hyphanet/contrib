@@ -6,7 +6,7 @@ package freenet.node;
 public abstract class ExtVersion {
 
 	/** The build number of the current revision */
-	public static final int buildNumber = 10;  // This is the freenet-ext.jar build the node was built with
+	public static final int buildNumber = 12;  // This is the freenet-ext.jar build the node was built with
 
 	public static final int buildNumber() {
 		return -42;  // This value indicates that the freenet-ext.jar the node is using at runtime has extBuildNumber() and extRevisionNumber() methods
