@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MakeLogEntryVersionData.java,v 1.11.2.1 2007/02/01 14:50:15 cwl Exp $
+ * $Id: MakeLogEntryVersionData.java,v 1.11.2.2 2007/03/31 22:06:14 mark Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -178,9 +178,19 @@ public class MakeLogEntryVersionData {
         }
         db.close();
 
+        /*
+         * Generate an XA txn Prepare. The transaction must be non-empty in
+         * order to actually log the Prepare.
+         */
 	XidImpl xid =
 	    new XidImpl(1, "MakeLogEntryVersionData".getBytes(), null);
 	env.start(xid, XAResource.TMNOFLAGS);
+        /* Re-write the existing {3,0} record. */
+        dbConfig.setReadOnly(false);
+        dbConfig.setTransactional(true);
+        db = env.openDatabase(null, Utils.DB2_NAME, dbConfig);
+        db.put(null, Utils.entry(3), Utils.entry(0));
+        db.close();
 	env.prepare(xid);
 	env.rollback(xid);
 

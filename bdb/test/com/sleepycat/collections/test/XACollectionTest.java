@@ -3,12 +3,14 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: XACollectionTest.java,v 1.5.2.1 2007/02/01 14:50:03 cwl Exp $
+ * $Id: XACollectionTest.java,v 1.5.2.2 2007/03/28 15:53:47 cwl Exp $
  */
 
 package com.sleepycat.collections.test;
 
 import java.io.File;
+
+import javax.transaction.xa.XAResource;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -100,9 +102,11 @@ public class XACollectionTest extends CollectionTest {
                     try {
                         xaEnv.start(xid, 0);
                         worker.doWork();
-                        xaEnv.prepare(xid);
+                        int ret = xaEnv.prepare(xid);
                         xaEnv.end(xid, 0);
-                        xaEnv.commit(xid, false);
+			if (ret != XAResource.XA_RDONLY) {
+			    xaEnv.commit(xid, false);
+			}
                         return;
                     } catch (Exception e) {
                         e = ExceptionUnwrapper.unwrap(e);

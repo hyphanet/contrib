@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Txn.java,v 1.148.2.3 2007/03/09 17:37:09 linda Exp $
+ * $Id: Txn.java,v 1.148.2.5 2007/04/04 14:29:22 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -244,6 +244,10 @@ public class Txn extends Locker implements Loggable {
         return lastLoggedLsn;
     }
 
+    public boolean getPrepared() {
+	return (txnState & IS_PREPARED) != 0;
+    }
+
     public void setPrepared(boolean prepared) {
 	if (prepared) {
 	    txnState |= IS_PREPARED;
@@ -321,6 +325,11 @@ public class Txn extends Locker implements Loggable {
 		     " prepare failed because there were open cursors.");
 	    }
 
+	    setPrepared(true);
+	    if (writeInfo == null) {
+		return XAResource.XA_RDONLY;
+	    }
+
             SingleItemEntry prepareEntry =
                 new SingleItemEntry(LogEntryType.LOG_TXN_PREPARE,
                                     new TxnPrepare(id, xid));
@@ -328,7 +337,6 @@ public class Txn extends Locker implements Loggable {
 	    LogManager logManager = envImpl.getLogManager();
 	    logManager.logForceFlush(prepareEntry, true); // sync required
 	}
-	setPrepared(true);
 	return XAResource.XA_OK;
     }
 
@@ -504,7 +512,10 @@ public class Txn extends Locker implements Loggable {
 
             /* May have received a thread interrupt. */
             throw e;
-        } catch (Throwable t) {
+	} catch (Error e) {
+	    envImpl.invalidate(e);
+	    throw e;
+        } catch (Exception t) {
 
             try {
 
@@ -521,7 +532,10 @@ public class Txn extends Locker implements Loggable {
 			      !(t instanceof DatabaseException));
                 Tracer.trace(envImpl, "Txn", "commit",
                              "Commit of transaction " + id + " failed", t);
-            } catch (Throwable abortT2) {
+	    } catch (Error e) {
+		envImpl.invalidate(e);
+		throw e;
+            } catch (Exception abortT2) {
                 throw new DatabaseException
                     ("Failed while attempting to commit transaction " +
                      id +

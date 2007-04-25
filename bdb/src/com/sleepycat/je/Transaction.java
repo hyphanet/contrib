@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Transaction.java,v 1.48.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: Transaction.java,v 1.48.2.2 2007/03/28 15:53:44 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -114,6 +114,10 @@ public class Transaction {
 	throws DatabaseException {
 
         doCommit(Txn.TXN_WRITE_NOSYNC);
+    }
+
+    public boolean getPrepared() {
+	return txn.getPrepared();
     }
 
     private void doCommit(byte commitType) 

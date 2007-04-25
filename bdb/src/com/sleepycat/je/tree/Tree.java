@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Tree.java,v 1.418.2.2 2007/03/08 22:33:00 mark Exp $
+ * $Id: Tree.java,v 1.418.2.3 2007/04/04 14:28:59 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -1946,7 +1946,7 @@ public final class Tree implements Loggable {
             } while (!(parent instanceof BIN));
 
             return child;
-        } catch (Throwable t) {
+        } catch (Exception t) {
 
             /*
              * In [#14903] we encountered a latch exception below and the
@@ -1963,7 +1963,7 @@ public final class Tree implements Loggable {
                 if (parent != child) {
                     parent.releaseLatchIfOwner();
                 }
-            } catch (Throwable t2) {
+            } catch (Exception t2) {
                 t2.printStackTrace();
             }
 

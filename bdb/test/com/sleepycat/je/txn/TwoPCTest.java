@@ -3,13 +3,15 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TwoPCTest.java,v 1.5.2.1 2007/02/01 14:50:22 cwl Exp $
+ * $Id: TwoPCTest.java,v 1.5.2.2 2007/03/28 15:53:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
 
 import java.io.File;
 import java.io.IOException;
+
+import javax.transaction.xa.XAResource;
 
 import junit.framework.TestCase;
 
@@ -79,6 +81,23 @@ public class TwoPCTest extends TestCase {
 
 	    env.prepare(xid);
 	    env.commit(xid, false);
+	} catch (Exception E) {
+	    System.out.println("caught " + E);
+	}
+    }
+
+    /**
+     * Basic readonly-prepare.
+     */
+    public void testROPrepare()
+        throws Throwable {
+
+	try {
+	    Transaction txn = env.beginTransaction(null, null);
+	    XidImpl xid = new XidImpl(1, "TwoPCTest1".getBytes(), null);
+	    env.setXATransaction(xid, txn);
+
+	    assertEquals(XAResource.XA_RDONLY, env.prepare(xid));
 	} catch (Exception E) {
 	    System.out.println("caught " + E);
 	}

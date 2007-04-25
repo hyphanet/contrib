@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: XAEnvironment.java,v 1.8.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: XAEnvironment.java,v 1.8.2.2 2007/03/28 15:53:44 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -211,13 +211,22 @@ public class XAEnvironment extends Environment implements XAResource {
 		throw new XAException
 		    ("No transaction found for " + xid + " during prepare.");
 	    }
-	    txn.getTxn().prepare(xid);
+	    int ret = txn.getTxn().prepare(xid);
 
 	    if (DEBUG) {
-		System.out.println("*** prepare returning XA_OK");
+		System.out.println("*** prepare returning " + ret);
 	    }
 
-	    return XAResource.XA_OK;
+	    /*
+	     * If this transaction was R/O, then there were no writes.  We'll
+	     * commit it here because the user doesn't need to (and isn't
+	     * allowed to either).
+	     */
+	    if (ret == XAResource.XA_RDONLY) {
+		commit(xid, true);
+	    }
+
+	    return ret;
 	} catch (DatabaseException DE) {
 	    throwNewXAException(DE);
 	}
@@ -367,7 +376,8 @@ public class XAEnvironment extends Environment implements XAResource {
 		    throw new XAException(XAException.XAER_NOTA);
 		}
 
-		if (txnMgr.getTxnForThread() != null) {
+		if (txnMgr.getTxnForThread() != null ||
+		    txn.getPrepared()) {
 		    throw new XAException(XAException.XAER_PROTO);
 		}
 	    } else if (tmResume) {

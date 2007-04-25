@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileReader.java,v 1.99.2.2 2007/03/08 22:32:54 mark Exp $
+ * $Id: FileReader.java,v 1.99.2.3 2007/04/04 14:28:22 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -856,6 +856,9 @@ public abstract class FileReader {
 	    try {
 		return buffer.position(newPosition);
 	    } catch (IllegalArgumentException IAE) {
+		if (newPosition > buffer.capacity()) {
+		    throw IAE;
+		}
 		continue;
 	    }
 	}

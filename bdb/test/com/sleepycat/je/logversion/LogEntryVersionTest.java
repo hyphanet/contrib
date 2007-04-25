@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogEntryVersionTest.java,v 1.12.2.1 2007/02/01 14:50:15 cwl Exp $
+ * $Id: LogEntryVersionTest.java,v 1.12.2.2 2007/03/31 22:06:14 mark Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -146,6 +146,15 @@ public class LogEntryVersionTest extends TestCase {
          * made between 3.0.12 and 3.1.25.
          */
         doTest("3.1.25");
+    }
+
+    /**
+     * JE 3.2.22: FileHeader version 5.
+     */
+    public void test_3_2_22()
+        throws DatabaseException, IOException {
+
+        doTest("3.2.22");
     }
 
     private void doTest(String jeVersion)

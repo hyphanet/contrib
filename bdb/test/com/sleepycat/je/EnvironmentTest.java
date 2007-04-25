@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentTest.java,v 1.187.2.7 2007/03/09 21:59:14 mark Exp $
+ * $Id: EnvironmentTest.java,v 1.187.2.9 2007/04/04 14:27:33 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -88,7 +88,7 @@ public class EnvironmentTest extends TestCase {
         throws Throwable {
 
         try {
-            assertEquals("Checking version", "3.2.21",
+            assertEquals("Checking version", "3.2.23",
                          JEVersion.CURRENT_VERSION.getVersionString());
 
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Entity.java,v 1.11.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: Entity.java,v 1.11.2.2 2007/03/30 20:01:14 linda Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -179,7 +179,7 @@ import com.sleepycat.persist.evolve.Mutations;
  *
  * <p><strong>Object Graphs</strong></p>
  *
- * <p>When an entity instance is stored, the graph of objects refereneced via
+ * <p>When an entity instance is stored, the graph of objects referenced via
  * its fields is stored and retrieved as a graph.  In other words, if a single
  * instance is referenced by two or more fields when the entity is stored, the
  * same will be true when the entity is retrieved.</p>

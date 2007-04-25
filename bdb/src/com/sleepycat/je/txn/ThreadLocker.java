@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ThreadLocker.java,v 1.14.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: ThreadLocker.java,v 1.14.2.2 2007/03/28 15:53:44 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -34,10 +34,11 @@ public class ThreadLocker extends BasicLocker {
         throws DatabaseException {
 
         if (thread != Thread.currentThread()) {
-            throw new DatabaseException("A per-thread transaction was" +
-                                        " created in " + thread +
-                                        " but used in " +
-                                        Thread.currentThread());
+            throw new DatabaseException
+		("A per-thread transaction was created in " + thread +
+		 " but used in " + Thread.currentThread() +
+		 "\nPerhaps you are using a non-Transactional Cursor " +
+		 "in multiple threads.");
         }
     }
 

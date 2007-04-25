@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentImpl.java,v 1.256.2.5 2007/03/07 01:24:36 mark Exp $
+ * $Id: EnvironmentImpl.java,v 1.256.2.6 2007/04/04 18:36:07 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -849,10 +849,12 @@ public class EnvironmentImpl implements EnvConfigObserver {
     }
 
     public void invalidate(Error e) {
-	savedInvalidatingException = (RunRecoveryException)
-	    SAVED_RRE.initCause(e);
-	envState = DbEnvState.INVALID;
-	requestShutdownDaemons();
+	if (SAVED_RRE.getCause() == null) {
+	    savedInvalidatingException = (RunRecoveryException)
+		SAVED_RRE.initCause(e);
+	    envState = DbEnvState.INVALID;
+	    requestShutdownDaemons();
+	}
     }
 
     /**

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryManager.java,v 1.211.2.2 2007/03/08 22:32:58 mark Exp $
+ * $Id: RecoveryManager.java,v 1.211.2.3 2007/03/28 15:53:44 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -990,6 +990,7 @@ public class RecoveryManager {
 			Txn preparedTxn = new Txn(env, txnConf, prepareId);
 			preparedTxn.setLockTimeout(0);
 			preparedTxns.put(prepareIdL, preparedTxn);
+			preparedTxn.setPrepared(true);
 			env.getTxnManager().registerXATxn
 			    (reader.getTxnPrepareXid(), preparedTxn, true);
 			Tracer.trace(Level.INFO, env,
@@ -1093,7 +1094,6 @@ public class RecoveryManager {
 				preparedTxn.lock
                                     (ln.getNodeId(), LockType.WRITE,
                                      false /*noWait*/, db);
-				preparedTxn.setPrepared(true);
 			    }
 
                             treeLsn = redo(db,
