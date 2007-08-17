@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MapLN.java,v 1.69.2.2 2007/03/08 22:33:00 mark Exp $
+ * $Id: MapLN.java,v 1.69.2.3 2007/07/02 19:54:52 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -16,6 +16,10 @@ import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogUtils;
+import com.sleepycat.je.txn.BasicLocker;
+import com.sleepycat.je.txn.LockGrantType;
+import com.sleepycat.je.txn.LockResult;
+import com.sleepycat.je.txn.LockType;
 
 /**
  * A MapLN represents a Leaf Node in the JE DatabaseImpl Naming Tree. 
@@ -63,6 +67,62 @@ public final class MapLN extends LN {
 
     public DatabaseImpl getDatabase() {
         return databaseImpl;
+    }
+
+    /**
+     * Does a fast check without acquiring the MapLN write-lock.  This is
+     * important because the overhead of requesting the lock is significant and
+     * unnecessary if this DB is open or the root IN is resident.  When there
+     * are lots of databases open, this method will be called often during
+     * selection of BINs for eviction.  [#13415]
+     * @Override
+     */
+    boolean isEvictableInexact() {
+        return !databaseImpl.isInUse() &&
+               !databaseImpl.getTree().isRootResident();
+    }
+
+    /**
+     * Does a guaranteed check by acquiring the write-lock and then calling
+     * isEvictableInexact.  [#13415]
+     * @Override
+     */
+    boolean isEvictable()
+        throws DatabaseException {
+        
+        boolean evictable = false;
+
+        /* To prevent DB open, get a write-lock on the MapLN. */
+        BasicLocker locker = new BasicLocker(databaseImpl.getDbEnvironment());
+        try {
+            LockResult lockResult = locker.nonBlockingLock
+                (getNodeId(), LockType.WRITE, databaseImpl);
+
+            /*
+             * The isEvictableInexact result is guaranteed to hold true during
+             * LN stripping if it is still true after acquiring the write-lock.
+             */
+            if (lockResult.getLockGrant() != LockGrantType.DENIED &&
+                isEvictableInexact()) {
+
+                /* 
+                 * While holding both a write-lock on the MapLN, we are
+                 * guaranteed that the DB is not currently open.  It cannot be
+                 * subsequently opened until the BIN latch is released, since
+                 * the BIN latch will block DbTree.getDb (called during DB
+                 * open).  We will evict the LN before releasing the BIN latch.
+                 * After releasing the BIN latch, if a DB open is waiting on
+                 * getDb, then it will proceed, fetch the evicted LN and open
+                 * the DB normally.
+                 */
+                evictable = true;
+            }
+        } finally {
+            /* Release the write-lock.  The BIN latch is still held. */
+            locker.operationEnd();
+        }
+
+        return evictable;
     }
 
     /**

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Lock.java,v 1.60.2.1 2007/02/01 14:49:52 cwl Exp $
+ * $Id: Lock.java,v 1.60.2.2 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -22,7 +22,7 @@ import com.sleepycat.je.dbi.MemoryBudget;
  * A Lock embodies the lock state of a NodeId.  It includes a set of owners and
  * a list of waiters.
  */
-public class Lock {
+class Lock {
     private static final int REMOVE_LOCKINFO_OVERHEAD =
         0 - MemoryBudget.LOCKINFO_OVERHEAD;
 
@@ -52,21 +52,11 @@ public class Lock {
     private Set ownerSet; 
     private LockInfo firstWaiter;    
     private List waiterList; 
-    private Long nodeId;
 
     /**
      * Create a Lock.
      */
-    Lock(Long nodeId) {
-        this.nodeId = nodeId;
-    }
-
-    /* For the Sizeof program. */
-    public Lock() {
-    }
-
-    Long getNodeId() {
-        return nodeId;
+    Lock() {
     }
 
     /**
@@ -709,7 +699,8 @@ public class Lock {
      * Transfer a lock from one transaction to another. Make sure that this
      * destination locker is only present as a single reader or writer.
      */
-    LockType transfer(Locker currentLocker,
+    LockType transfer(Long nodeId,
+		      Locker currentLocker,
                       Locker destLocker,
                       MemoryBudget mb,
 		      int lockTableIndex) 
@@ -727,7 +718,7 @@ public class Lock {
                 firstOwner = null;
                 numRemovedLockInfos++;
             } else if (firstOwner.getLocker() == currentLocker) {
-                lockType = setNewLocker(firstOwner, destLocker);
+                lockType = setNewLocker(nodeId, firstOwner, destLocker);
             } 
         }
 
@@ -739,7 +730,7 @@ public class Lock {
                     iter.remove();
                     numRemovedLockInfos++;
                 } else if (owner.getLocker() == currentLocker) {
-                    lockType = setNewLocker(owner, destLocker);
+                    lockType = setNewLocker(nodeId, owner, destLocker);
                 }
             }
         }
@@ -766,12 +757,13 @@ public class Lock {
         return lockType;
     }
 
-    private LockType setNewLocker(LockInfo owner, Locker destLocker) 
+    private LockType setNewLocker(Long nodeId,
+				  LockInfo owner,
+				  Locker destLocker) 
         throws DatabaseException {
         	
         owner.setLocker(destLocker);
-        destLocker.addLock(nodeId, this, owner.getLockType(), 
-                           LockGrantType.NEW);
+        destLocker.addLock(nodeId, owner.getLockType(), LockGrantType.NEW);
         return owner.getLockType();
     }
 
@@ -780,7 +772,8 @@ public class Lock {
      * for case where a write handle lock is being transferred to multiple read
      * handles.
      */
-    LockType transferMultiple(Locker currentLocker,
+    LockType transferMultiple(Long nodeId,
+			      Locker currentLocker,
                               Locker[] destLockers,
                               MemoryBudget mb,
 			      int lockTableIndex)
@@ -790,7 +783,8 @@ public class Lock {
         LockInfo oldOwner = null;
 
         if (destLockers.length == 1) {
-            return transfer(currentLocker, destLockers[0], mb, lockTableIndex);
+            return transfer(nodeId, currentLocker, destLockers[0],
+			    mb, lockTableIndex);
         } else {
 
             /*
@@ -822,7 +816,8 @@ public class Lock {
              * Create the clones 
              */
             if (firstOwner != null) {
-                oldOwner = cloneLockInfo(firstOwner,
+                oldOwner = cloneLockInfo(nodeId,
+					 firstOwner,
                                          currentLocker,
                                          destLockers,
                                          mb,
@@ -833,7 +828,8 @@ public class Lock {
                 Iterator ownersIter = ownerSet.iterator();
                 while (ownersIter.hasNext()) {
                     LockInfo o = (LockInfo) ownersIter.next();
-                    oldOwner = cloneLockInfo(o,
+                    oldOwner = cloneLockInfo(nodeId,
+					     o,
                                              currentLocker,
                                              destLockers,
                                              mb,
@@ -879,7 +875,8 @@ public class Lock {
      * If oldOwner is the current owner, clone it and transform it into a dest
      * locker.
      */
-    private LockInfo cloneLockInfo(LockInfo oldOwner,
+    private LockInfo cloneLockInfo(Long nodeId,
+				   LockInfo oldOwner,
                                    Locker currentLocker,
                                    Locker[] destLockers,
                                    MemoryBudget mb,
@@ -892,8 +889,8 @@ public class Lock {
                 for (int i = 0; i < destLockers.length; i++) {
                     LockInfo clonedLockInfo = (LockInfo) oldOwner.clone();
                     clonedLockInfo.setLocker(destLockers[i]);
-                    destLockers[i].addLock(nodeId, this, lockType,
-                                           LockGrantType.NEW);
+                    destLockers[i].addLock(nodeId, lockType,
+					   LockGrantType.NEW);
                     addOwner(clonedLockInfo, mb, lockTableIndex);
                 }
                 return oldOwner;
@@ -970,7 +967,7 @@ public class Lock {
      */
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append(" NodeId:").append(nodeId);
+        sb.append(" LockAddr:").append(System.identityHashCode(this));
         sb.append(" Owners:");
         if (nOwners() == 0) {
             sb.append(" (none)");

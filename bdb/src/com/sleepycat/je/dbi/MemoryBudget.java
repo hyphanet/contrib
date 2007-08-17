@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudget.java,v 1.54.2.2 2007/02/14 19:46:42 linda Exp $
+ * $Id: MemoryBudget.java,v 1.54.2.6 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -131,16 +131,16 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int KEY_OVERHEAD_64 = 24;
 
     // 24
-    private final static int LOCK_OVERHEAD_32 = 32;
-    private final static int LOCK_OVERHEAD_64 = 56;
+    private final static int LOCK_OVERHEAD_32 = 24;
+    private final static int LOCK_OVERHEAD_64 = 48;
 
     // 25
     private final static int LOCKINFO_OVERHEAD_32 = 16;
     private final static int LOCKINFO_OVERHEAD_64 = 32;
 
     // 37
-    private final static int WRITE_LOCKINFO_OVERHEAD_32 = 32;
-    private final static int WRITE_LOCKINFO_OVERHEAD_64 = 40;
+    private final static int WRITE_LOCKINFO_OVERHEAD_32 = 24;
+    private final static int WRITE_LOCKINFO_OVERHEAD_64 = 32;
 
     /* 
      * Txn memory is the size for the Txn + a hashmap entry
@@ -347,8 +347,7 @@ public class MemoryBudget implements EnvConfigObserver {
 
     /*
      * Amount of memory cached for locks. Protected by the
-     * LockManager.lockTableLatches[lockTableIndex].  Individual elements of
-     * array may be negative, but the sum will be >= 0.
+     * LockManager.lockTableLatches[lockTableIndex].
      */
     private long[] lockMemoryUsage;
 
@@ -391,7 +390,7 @@ public class MemoryBudget implements EnvConfigObserver {
         envImpl.addConfigObserver(this);
 
         /* Peform first time budget initialization. */
-        reset(configManager);
+        reset(configManager, true);
 
         /*
          * Calculate IN and BIN overheads, which are a function of
@@ -418,7 +417,7 @@ public class MemoryBudget implements EnvConfigObserver {
          * hasn't changed, since that is expensive and may cause I/O.
          */
         long oldLogBufferBudget = logBufferBudget;
-        reset(configManager);
+        reset(configManager, false);
         if (oldLogBufferBudget != logBufferBudget) {
             envImpl.getLogManager().resetPool(configManager);
         }
@@ -427,7 +426,8 @@ public class MemoryBudget implements EnvConfigObserver {
     /**
      * Initialize at construction time and when the cache is resized.
      */
-    private void reset(DbConfigManager configManager)
+    private void reset(DbConfigManager configManager,
+		       boolean resetLockMemoryUsage)
         throws DatabaseException {
 
         /* 
@@ -530,9 +530,11 @@ public class MemoryBudget implements EnvConfigObserver {
         logBufferBudget = newLogBufferBudget;
         trackerBudget = newTrackerBudget;
         cacheBudget = newMaxMemory - newLogBufferBudget;
-	nLockTables = 
-            configManager.getInt(EnvironmentParams.N_LOCK_TABLES);
-	lockMemoryUsage = new long[nLockTables];
+	if (resetLockMemoryUsage) {
+	    nLockTables = 
+		configManager.getInt(EnvironmentParams.N_LOCK_TABLES);
+	    lockMemoryUsage = new long[nLockTables];
+	}
     }
 
     /**
@@ -644,6 +646,12 @@ public class MemoryBudget implements EnvConfigObserver {
     }
 
     public long getCacheMemoryUsage() {
+	long accLockMemoryUsage = accumulateLockUsage();
+
+	return treeMemoryUsage + miscMemoryUsage + accLockMemoryUsage;
+    }
+
+    private long accumulateLockUsage() {
 	long accLockMemoryUsage = 0;
 	if (nLockTables == 1) {
 	    accLockMemoryUsage = lockMemoryUsage[0];
@@ -652,7 +660,7 @@ public class MemoryBudget implements EnvConfigObserver {
 		accLockMemoryUsage += lockMemoryUsage[i];
 	    }
 	}
-	return treeMemoryUsage + miscMemoryUsage + accLockMemoryUsage;
+        return accLockMemoryUsage;
     }
 
     /**
@@ -660,6 +668,13 @@ public class MemoryBudget implements EnvConfigObserver {
      */
     public long getTreeMemoryUsage() {
         return treeMemoryUsage;
+    }
+
+    /**
+     * Used for unit testing.
+     */
+    public long getMiscMemoryUsage() {
+        return miscMemoryUsage;
     }
 
     public long getLogBufferBudget() {
@@ -717,5 +732,7 @@ public class MemoryBudget implements EnvConfigObserver {
 
     void loadStats(StatsConfig config, EnvironmentStats stats) {
         stats.setCacheDataBytes(getCacheMemoryUsage());
+        stats.setAdminBytes(miscMemoryUsage);
+        stats.setLockBytes(accumulateLockUsage());
     }
 }

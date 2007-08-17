@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryManager.java,v 1.211.2.3 2007/03/28 15:53:44 cwl Exp $
+ * $Id: RecoveryManager.java,v 1.211.2.4 2007/07/02 19:54:51 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -651,8 +651,12 @@ public class RecoveryManager {
                 DatabaseId dbId = reader.getDatabaseId();
                 if (dbId.equals(DbTree.ID_DB_ID)) {
                     DatabaseImpl db = dbMapTree.getDb(dbId);
-                    replayOneIN(reader, db, false, recorder);
-                    info.numMapINs++;
+                    try {
+                        replayOneIN(reader, db, false, recorder);
+                        info.numMapINs++;
+                    } finally {
+                        dbMapTree.releaseDb(db);
+                    }
                 }
             }
 
@@ -731,18 +735,24 @@ public class RecoveryManager {
                 }
                 if (isTarget) {
                     DatabaseImpl db = dbMapTree.getDb(dbId);
-                    if (db == null) {
-                        // This db has been deleted, ignore the entry.
-                    } else {
-                        replayOneIN(reader, db, requireExactMatch, recorder);
-                        numINsSeen++;
+                    try {
+                        if (db == null) {
+                            // This db has been deleted, ignore the entry.
+                        } else {
+                            replayOneIN(reader, db, requireExactMatch,
+                                        recorder);
+                            numINsSeen++;
 
-                        /*
-                         * Add any db that we encounter IN's for because
-                         * they'll be part of the in-memory tree and therefore
-                         * should be included in the INList rebuild.
-                         */
-                        inListRebuildDbIds.add(dbId);
+                            /*
+                             * Add any db that we encounter IN's for because
+                             * they'll be part of the in-memory tree and
+                             * therefore should be included in the INList
+                             * rebuild.
+                             */
+                            inListRebuildDbIds.add(dbId);
+                        }
+                    } finally {
+                        dbMapTree.releaseDb(db);
                     }
                 }
             }
@@ -787,13 +797,17 @@ public class RecoveryManager {
                 DatabaseId dbId = reader.getDatabaseId();
                 if (targetDbs.contains(dbId)) {
                     DatabaseImpl db = dbMapTree.getDb(dbId);
-                    if (db == null) {
-                        // This db has been deleted, ignore the entry.
-                    } else {
-                        replayOneIN(reader, 
-                                    db, 
-                                    true,  // requireExactMatch,
-                                    null); // level recorder
+                    try {
+                        if (db == null) {
+                            // This db has been deleted, ignore the entry.
+                        } else {
+                            replayOneIN(reader, 
+                                        db, 
+                                        true,  // requireExactMatch,
+                                        null); // level recorder
+                        }
+                    } finally {
+                        dbMapTree.releaseDb(db);
                     }
                 }
             }
@@ -934,46 +948,49 @@ public class RecoveryManager {
 			    reader.getAbortKnownDeleted();
 			DatabaseId dbId = reader.getDatabaseId();
 			DatabaseImpl db = dbMapTree.getDb(dbId);
-                        
-			/* Database may be null if it's been deleted. */
-			if (db != null) {
-			    ln.postFetchInit(db, logLsn);
-			    try {
-                                undo(detailedTraceLevel,
-                                     db,
-                                     location,
-                                     ln,
-                                     reader.getKey(),
-                                     reader.getDupTreeKey(),
-                                     logLsn, 
-                                     abortLsn,
-                                     abortKnownDeleted,
-                                     info,
-                                     true);
-			    } finally {
-				if (location.bin != null) {
-				    location.bin.releaseLatchIfOwner();
-				}
-			    }
-			    /* Undo utilization info. */
-			    TxnNodeId txnNodeId =
-				new TxnNodeId(reader.getNodeId(),
-					      txnId.longValue());
-			    undoUtilizationInfo(ln, logLsn, abortLsn,
-						abortKnownDeleted,
-                                                reader.getLastEntrySize(),
-						txnNodeId,
-						countedFileSummaries,
-						countedAbortLsnNodes);
+                        try {
+                            /* Database may be null if it's been deleted. */
+                            if (db != null) {
+                                ln.postFetchInit(db, logLsn);
+                                try {
+                                    undo(detailedTraceLevel,
+                                         db,
+                                         location,
+                                         ln,
+                                         reader.getKey(),
+                                         reader.getDupTreeKey(),
+                                         logLsn, 
+                                         abortLsn,
+                                         abortKnownDeleted,
+                                         info,
+                                         true);
+                                } finally {
+                                    if (location.bin != null) {
+                                        location.bin.releaseLatchIfOwner();
+                                    }
+                                }
+                                /* Undo utilization info. */
+                                TxnNodeId txnNodeId =
+                                    new TxnNodeId(reader.getNodeId(),
+                                                  txnId.longValue());
+                                undoUtilizationInfo(ln, logLsn, abortLsn,
+                                                    abortKnownDeleted,
+                                                    reader.getLastEntrySize(),
+                                                    txnNodeId,
+                                                    countedFileSummaries,
+                                                    countedAbortLsnNodes);
 
-			    /*
-			     * Add any db that we encounter LN's for because
-			     * they'll be part of the in-memory tree and
-			     * therefore should be included in the INList
-			     * rebuild.
-			     */
-			    inListRebuildDbIds.add(dbId);
-			}
+                                /*
+                                 * Add any db that we encounter LN's for
+                                 * because they'll be part of the in-memory
+                                 * tree and therefore should be included in the
+                                 * INList rebuild.
+                                 */
+                                inListRebuildDbIds.add(dbId);
+                            }
+                        } finally {
+                            dbMapTree.releaseDb(db);
+                        }
 		    }
                 } else if (reader.isPrepare()) {
 
@@ -1075,57 +1092,61 @@ public class RecoveryManager {
                         LN ln = reader.getLN();
                         DatabaseId dbId = reader.getDatabaseId();
                         DatabaseImpl db = dbMapTree.getDb(dbId);
-                        long logLsn = reader.getLastLsn();
-                        long treeLsn = DbLsn.NULL_LSN;
+                        try {
+                            long logLsn = reader.getLastLsn();
+                            long treeLsn = DbLsn.NULL_LSN;
 
-                        /* Database may be null if it's been deleted. */
-                        if (db != null) {
-                            ln.postFetchInit(db, logLsn);
+                            /* Database may be null if it's been deleted. */
+                            if (db != null) {
+                                ln.postFetchInit(db, logLsn);
 
-			    if (preparedTxn != null) {
-				preparedTxn.addLogInfo(logLsn);
+                                if (preparedTxn != null) {
+                                    preparedTxn.addLogInfo(logLsn);
 
-				/*
-				 * We're reconstructing a prepared, but not
-				 * finished, transaction.  We know that there
-				 * was a write lock on this LN since it exists
-				 * in the log under this txnId.
-				 */
-				preparedTxn.lock
-                                    (ln.getNodeId(), LockType.WRITE,
-                                     false /*noWait*/, db);
-			    }
+                                    /*
+                                     * We're reconstructing a prepared, but not
+                                     * finished, transaction.  We know that
+                                     * there was a write lock on this LN since
+                                     * it exists in the log under this txnId.
+                                     */
+                                    preparedTxn.lock
+                                        (ln.getNodeId(), LockType.WRITE,
+                                         false /*noWait*/, db);
+                                }
 
-                            treeLsn = redo(db,
-                                           location,
-                                           ln,
-                                           reader.getKey(),
-                                           reader.getDupTreeKey(),
-                                           logLsn,
-                                           info);
+                                treeLsn = redo(db,
+                                               location,
+                                               ln,
+                                               reader.getKey(),
+                                               reader.getDupTreeKey(),
+                                               logLsn,
+                                               info);
 
-                            /*
-                             * Add any db that we encounter LN's for because
-                             * they'll be part of the in-memory tree and
-                             * therefore should be included in the INList
-                             * rebuild.
-                             */
-                            inListRebuildDbIds.add(dbId);
+                                /*
+                                 * Add any db that we encounter LN's for
+                                 * because they'll be part of the in-memory
+                                 * tree and therefore should be included in the
+                                 * INList rebuild.
+                                 */
+                                inListRebuildDbIds.add(dbId);
+                            }
+
+                            /* Redo utilization info. */
+                            TxnNodeId txnNodeId = null;
+                            if (txnId != null) {
+                                txnNodeId = new TxnNodeId(reader.getNodeId(),
+                                                          txnId.longValue());
+                            }
+                            redoUtilizationInfo(logLsn, treeLsn,
+                                                reader.getAbortLsn(),
+                                                reader.getAbortKnownDeleted(),
+                                                reader.getLastEntrySize(),
+                                                reader.getKey(),
+                                                ln, txnNodeId,
+                                                countedAbortLsnNodes);
+                        } finally {
+                            dbMapTree.releaseDb(db);
                         }
-
-                        /* Redo utilization info. */
-                        TxnNodeId txnNodeId = null;
-                        if (txnId != null) {
-                            txnNodeId = new TxnNodeId(reader.getNodeId(),
-                                                      txnId.longValue());
-                        }
-                        redoUtilizationInfo(logLsn, treeLsn,
-                                            reader.getAbortLsn(),
-                                            reader.getAbortKnownDeleted(),
-                                            reader.getLastEntrySize(),
-                                            reader.getKey(),
-                                            ln, txnNodeId,
-                                            countedAbortLsnNodes);
                     }
                 }
             }
@@ -1152,9 +1173,13 @@ public class RecoveryManager {
             /* We already did the map tree, don't do it again. */
             if (!dbId.equals(DbTree.ID_DB_ID)) {
                 DatabaseImpl db = env.getDbMapTree().getDb(dbId);
-		if (db != null) {
-		    db.getTree().rebuildINList();
-		}
+                try {
+                    if (db != null) {
+                        db.getTree().rebuildINList();
+                    }
+                } finally {
+                    env.releaseDb(db);
+                }
             }
         }
     }

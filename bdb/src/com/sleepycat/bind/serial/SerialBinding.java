@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: SerialBinding.java,v 1.28.2.1 2007/02/01 14:49:38 cwl Exp $
+ * $Id: SerialBinding.java,v 1.28.2.3 2007/06/13 23:01:40 mark Exp $
  */
 
 package com.sleepycat.bind.serial;
@@ -76,15 +76,14 @@ public class SerialBinding extends SerialBase implements EntryBinding {
     /**
      * Returns the class loader to be used during deserialization, or null if
      * a default class loader should be used.  The default implementation of
-     * this method returns null.
+     * this method returns
+     * <code>Thread.currentThread().getContextClassLoader()</code> to use the
+     * context class loader for the current thread.
      *
      * <p>This method may be overriden to return a dynamically determined class
-     * loader.  For example,
-     * <code>Thread.currentThread().getContextClassLoader()</code> could be
-     * called to use the context class loader for the curren thread.  Or
-     * <code>getBaseClass().getClassLoader()</code> could be called to use the
-     * class loader for the base class, assuming that a base class has been
-     * specified.</p>
+     * loader.  For example, <code>getBaseClass().getClassLoader()</code> could
+     * be called to use the class loader for the base class, assuming that a
+     * base class has been specified.</p>
      *
      * <p>If this method returns null, a default class loader will be used as
      * determined by the <code>java.io.ObjectInputStream.resolveClass</code>
@@ -92,7 +91,7 @@ public class SerialBinding extends SerialBase implements EntryBinding {
      */
     public ClassLoader getClassLoader() {
 
-        return null;
+        return Thread.currentThread().getContextClassLoader();
     }
 
     /**

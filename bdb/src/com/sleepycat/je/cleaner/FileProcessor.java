@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileProcessor.java,v 1.17.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: FileProcessor.java,v 1.17.2.6 2007/07/02 19:54:48 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -25,6 +25,7 @@ import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.CleanerFileReader;
+import com.sleepycat.je.log.LogFileNotFoundException;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.DIN;
@@ -239,6 +240,7 @@ class FileProcessor extends DaemonThread {
              */
             resetPerRunCounters();
             boolean finished = false;
+            boolean fileDeleted = false;
             long fileNumValue = fileNum.longValue();
             int runId = ++cleaner.nCleanerRuns;
             try {
@@ -261,11 +263,28 @@ class FileProcessor extends DaemonThread {
                     accumulatePerRunCounters();
                     finished = true;
                 }
-            } catch (IOException IOE) {
-                Tracer.trace(env, "Cleaner", "doClean", "", IOE);
-                throw new DatabaseException(IOE);
+            } catch (LogFileNotFoundException e) {
+
+                /*
+                 * File was deleted.  Although it is possible that the file was
+                 * deleted externally it is much more likely that the file was
+                 * deleted normally after being cleaned earlier (this was
+                 * observed prior to JE 3.2.29), and that we are mistakedly
+                 * processing the file repeatedly.  Since the file does not
+                 * exist, ignore the error so that the cleaner will continue.
+                 * The tracing below will indicate that the file was deleted.
+                 * Remove the file completely from the FileSelector and
+                 * UtilizationProfile so that we don't repeatedly attempt to
+                 * process it. [#15528]
+                 */
+                fileDeleted = true;
+                profile.removeFile(fileNum);
+                fileSelector.removeAllFileReferences(fileNum);
+            } catch (IOException e) {
+                Tracer.trace(env, "Cleaner", "doClean", "", e);
+                throw new DatabaseException(e);
             } finally {
-                if (!finished) {
+                if (!finished && !fileDeleted) {
                     fileSelector.putBackFileForCleaning(fileNum);
                 }
                 String traceMsg =
@@ -273,6 +292,7 @@ class FileProcessor extends DaemonThread {
                     " on file 0x" + Long.toHexString(fileNumValue) + 
                     " invokedFromDaemon=" + invokedFromDaemon +
                     " finished=" + finished +
+                    " fileDeleted=" + fileDeleted +
                     " nEntriesRead=" + nEntriesReadThisRun +
                     " nINsObsolete=" + nINsObsoleteThisRun +
                     " nINsCleaned=" + nINsCleanedThisRun +
@@ -370,8 +390,13 @@ class FileProcessor extends DaemonThread {
          */
         Set checkPendingDbSet = new HashSet();
 
-        /* Use local caching to reduce DbTree.getDb overhead. */
+        /*
+         * Use local caching to reduce DbTree.getDb overhead.  Do not call
+         * releaseDb after getDb with the dbCache, since the entire dbCache
+         * will be released at the end of thie method.
+         */
         Map dbCache = new HashMap();
+        DbTree dbMapTree = env.getDbMapTree();
 
         try {
             /* Create the file reader. */
@@ -380,7 +405,6 @@ class FileProcessor extends DaemonThread {
             /* Validate all entries before ever deleting a file. */
             reader.setAlwaysValidateChecksum(true);
 
-            DbTree dbMapTree = env.getDbMapTree();
             TreeLocation location = new TreeLocation();
 
             int nProcessedLNs = 0;
@@ -507,7 +531,6 @@ class FileProcessor extends DaemonThread {
                     DatabaseImpl db = dbMapTree.getDb
                         (dbId, cleaner.lockTimeout, dbCache);
                     targetIN.setDatabase(db);
-                    
                     processIN(targetIN, db, logLsn, deferredWriteDbs);
                     
                 } else if (isRoot) {
@@ -545,6 +568,9 @@ class FileProcessor extends DaemonThread {
             /* Subtract the overhead of this method from the budget. */
             budget.updateMiscMemoryUsage(0 - adjustMem);
 
+            /* Release all cached DBs. */
+            dbMapTree.releaseDbs(dbCache);
+
             /* Allow flushing of TFS when cleaning is complete. */
             if (tfs != null) {
                 tfs.setAllowFlush(true);
@@ -579,6 +605,10 @@ class FileProcessor extends DaemonThread {
         long logLsn = DbLsn.makeLsn
             (fileNum.longValue(), offset.longValue());
 
+        /*
+         * Do not call releaseDb after this getDb, since the entire dbCache
+         * will be released later.
+         */
         DatabaseImpl db = env.getDbMapTree().getDb
             (info.getDbId(), cleaner.lockTimeout, dbCache);
 
@@ -1010,15 +1040,11 @@ class FileProcessor extends DaemonThread {
             long treeLsn = result.parent.getLsn(result.index);
 
             /* 
-             * Any entry that is in the log should not have a NULL_LSN in the
-             * in-memory tree, even for a deferred write database. The 
-             * in-memory tree should always have a lsn that shows the last 
-             * on-disk version.
+             * The IN in the tree is a never-written IN for a DW db so the IN
+	     * in the file is obsolete. [#15588]
              */
             if (treeLsn == DbLsn.NULL_LSN) {
-                throw new DatabaseException
-                    ("Deferred Write IN should not have a NULL_LSN " +
-                     " logLsn=" + DbLsn.getNoFormatString(logLsn));
+		return null;
             }
  
             int compareVal = DbLsn.compareTo(treeLsn, logLsn);
@@ -1106,10 +1132,12 @@ class FileProcessor extends DaemonThread {
                 return null;
             }
 
-            /* bozo, how can the root's lsn be less that the logLsn?
-               This may have been an artifact of when we didn't properly
-               propagate the logging of the rootIN up to the root
-               ChildReference. Remove? */
+            /*
+             * A root LSN less than the log LSN must be an artifact of when we
+             * didn't properly propagate the logging of the rootIN up to the
+             * root ChildReference.  We still do this for compatibility with
+             * old log versions but may be able to remove it in the future.
+             */
             if (DbLsn.compareTo(root.getLsn(), logLsn) <= 0) {
                 IN rootIN = (IN) root.fetchTarget(db, null);
                 rootIN.latch(Cleaner.UPDATE_GENERATION);
@@ -1168,16 +1196,6 @@ class FileProcessor extends DaemonThread {
         cleaner.nLNQueueHits +=         nLNQueueHitsThisRun;
         cleaner.nLNsLocked +=           nLNsLockedThisRun;
         cleaner.nRepeatIteratorReads += nRepeatIteratorReadsThisRun;
-    }
-
-    /**
-     * XXX: Was this intended to override Thread.toString()?  If so it no
-     * longer does, because we separated Thread from DaemonThread.
-     */
-    public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append("<Cleaner name=\"").append(name).append("\"/>");
-        return sb.toString();
     }
 
     /**

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentImpl.java,v 1.256.2.6 2007/04/04 18:36:07 cwl Exp $
+ * $Id: EnvironmentImpl.java,v 1.256.2.7 2007/07/02 19:54:49 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -97,6 +97,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     private static boolean useSharedLatchesForINs;
     /* true if offset tracking should be used for deferred write dbs. */
     private boolean deferredWriteTemp;
+    private boolean dbEviction;
 
     private MemoryBudget memoryBudget;
     private static int adler32ChunkSize;
@@ -277,9 +278,10 @@ public class EnvironmentImpl implements EnvConfigObserver {
                 configManager.getBoolean(EnvironmentParams.LOG_MEMORY_ONLY);
 	    useSharedLatchesForINs =
 		configManager.getBoolean(EnvironmentParams.ENV_SHARED_LATCHES);
+	    dbEviction =
+		configManager.getBoolean(EnvironmentParams.ENV_DB_EVICTION);
 	    adler32ChunkSize = 
 		configManager.getInt(EnvironmentParams.ADLER32_CHUNK_SIZE);
-
 	    exceptionListener = envConfig.getExceptionListener();
 
             /* 
@@ -1343,6 +1345,13 @@ public class EnvironmentImpl implements EnvConfigObserver {
 	return useSharedLatchesForINs;
     }
 
+    /**
+     * Returns whether DB/MapLN eviction is enabled.
+     */
+    boolean getDbEviction() {
+        return dbEviction;
+    }
+
     public boolean getDeferredWriteTemp() {
         return deferredWriteTemp;
     }
@@ -1355,7 +1364,13 @@ public class EnvironmentImpl implements EnvConfigObserver {
 	return adler32ChunkSize;
     }
 
-    /* DatabaseImpl access. */
+    /**
+     * Creates a new database object given a database name.
+     *
+     * Increments the use count of the new DB to prevent it from being evicted.
+     * releaseDb should be called when the returned object is no longer used,
+     * to allow it to be evicted.  See DatabaseImpl.isInUse.  [#13415]
+     */
     public DatabaseImpl createDb(Locker locker,
                                  String databaseName,
                                  DatabaseConfig dbConfig,
@@ -1371,6 +1386,11 @@ public class EnvironmentImpl implements EnvConfigObserver {
     /**
      * Get a database object given a database name.
      *
+     * Increments the use count of the given DB to prevent it from being
+     * evicted.  releaseDb should be called when the returned object is no
+     * longer used, to allow it to be evicted.  See DatabaseImpl.isInUse.
+     * [#13415]
+     *
      * @param databaseName target database.
      *
      * @return null if database doesn't exist.
@@ -1381,6 +1401,16 @@ public class EnvironmentImpl implements EnvConfigObserver {
         throws DatabaseException {
 
         return dbMapTree.getDb(locker, databaseName, databaseHandle);
+    }
+
+    /**
+     * Decrements the use count of the given DB, allowing it to be evicted if
+     * the use count reaches zero.  Must be called to release a DatabaseImpl
+     * that was returned by createDb or getDb.  See DatabaseImpl.isInUse.
+     * [#13415]
+     */
+    public void releaseDb(DatabaseImpl db) {
+        dbMapTree.releaseDb(db);
     }
 
     public List getDbNames()

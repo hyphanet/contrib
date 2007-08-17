@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LatchedLockManager.java,v 1.11.2.1 2007/02/01 14:49:52 cwl Exp $
+ * $Id: LatchedLockManager.java,v 1.11.2.2 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -25,6 +25,22 @@ public class LatchedLockManager extends LockManager {
     public LatchedLockManager(EnvironmentImpl envImpl) 
     	throws DatabaseException {
         super(envImpl);
+    }
+
+    /**
+     * @see LockManager#lookupLock
+     */
+    protected Lock lookupLock(Long nodeId) 
+        throws DatabaseException {
+        
+	int lockTableIndex = getLockTableIndex(nodeId);
+	Latch latch = lockTableLatches[lockTableIndex];
+        latch.acquire();
+        try {
+            return lookupLockInternal(nodeId, lockTableIndex);
+        } finally {
+            latch.release();
+        }
     }
 
     /**
@@ -79,21 +95,16 @@ public class LatchedLockManager extends LockManager {
      * @see LockManager#releaseAndNotifyTargets
      */
     protected Set releaseAndFindNotifyTargets(long nodeId,
-                                              Lock lock,
-                                              Locker locker,
-                                              boolean removeFromLocker)
+                                              Locker locker)
         throws DatabaseException {
 
 	long nid = nodeId;
-	if (nid == -1) {
-	    nid = lock.getNodeId().longValue();
-	}
 	int lockTableIndex = getLockTableIndex(nid);
 	Latch latch = lockTableLatches[lockTableIndex];
         latch.acquire(); 
         try {
             return releaseAndFindNotifyTargetsInternal
-		(nodeId, lock, locker, removeFromLocker, lockTableIndex);
+		(nodeId, locker, lockTableIndex);
         } finally {
             latch.release();
         }

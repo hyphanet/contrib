@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Cleaner.java,v 1.183.2.2 2007/03/08 22:32:53 mark Exp $
+ * $Id: Cleaner.java,v 1.183.2.5 2007/07/02 19:54:48 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -405,6 +405,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
         stat.setNPendingLNsLocked(nPendingLNsLocked);
         stat.setNCleanerEntriesRead(nEntriesRead);
         stat.setNRepeatIteratorReads(nRepeatIteratorReads);
+        stat.setTotalLogSize(profile.getTotalLogSize());
         
         if (config.getClear()) {
             nCleanerRuns = 0;
@@ -428,6 +429,13 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             nEntriesRead = 0;
             nRepeatIteratorReads = 0;
         }
+    }
+
+    /**
+     * For unit testing.
+     */
+    void injectFileForCleaning(Long fileNum) {
+        fileSelector.putBackFileForCleaning(fileNum);
     }
 
     /** 
@@ -632,18 +640,22 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
                 DatabaseId dbId = info.getDbId();
                 DatabaseImpl db = dbMapTree.getDb(dbId, lockTimeout);
+                try {
+                    byte[] key = info.getKey();
+                    byte[] dupKey = info.getDupKey();
+                    LN ln = info.getLN();
 
-                byte[] key = info.getKey();
-                byte[] dupKey = info.getDupKey();
-                LN ln = info.getLN();
+                    /* Evict before processing each entry. */
+                    if (DO_CRITICAL_EVICTION) {
+                        env.getEvictor().
+                            doCriticalEviction(true); // backgroundIO
+                    }
 
-                /* Evict before processing each entry. */
-                if (DO_CRITICAL_EVICTION) {
-                    env.getEvictor().doCriticalEviction(true); // backgroundIO
+                    processPendingLN
+                        (ln, db, key, dupKey, location);
+                } finally {
+                    dbMapTree.releaseDb(db);
                 }
-
-                processPendingLN
-                    (ln, db, key, dupKey, location);
 
                 /* Sleep if background read/write limit was exceeded. */
                 env.sleepAfterBackgroundIO();
@@ -655,8 +667,12 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             for (int i = 0; i < pendingDBs.length; i += 1) {
                 DatabaseId dbId = pendingDBs[i];
                 DatabaseImpl db = dbMapTree.getDb(dbId, lockTimeout);
-                if (db == null || db.isDeleteFinished()) {
-                    fileSelector.removePendingDB(dbId);
+                try {
+                    if (db == null || db.isDeleteFinished()) {
+                        fileSelector.removePendingDB(dbId);
+                    }
+                } finally {
+                    dbMapTree.releaseDb(db);
                 }
             }
         }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Evictor.java,v 1.86.2.4 2007/03/07 01:24:37 mark Exp $
+ * $Id: Evictor.java,v 1.86.2.6 2007/07/02 19:54:50 mark Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -31,10 +31,12 @@ import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.recovery.Checkpointer;
 import com.sleepycat.je.tree.BIN;
+import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.tree.SearchResult;
 import com.sleepycat.je.tree.Tree;
+import com.sleepycat.je.tree.WithRootLatched;
 import com.sleepycat.je.utilint.DaemonThread;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.TestHook;
@@ -131,12 +133,6 @@ public class Evictor extends DaemonThread {
         formatter = NumberFormat.getNumberInstance();
 
         active = false;
-    }
-
-    public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append("<Evictor name=\"").append(name).append("\"/>");
-        return sb.toString();
     }
 
     /**
@@ -361,8 +357,13 @@ public class Evictor extends DaemonThread {
                     break;
                 } else {
                     assert evictProfile.count(target);//intentional side effect
-                    evictBytes += evict
-                        (inList, target, scanIter, backgroundIO, tracker);
+                    if (target.isDbRoot()) {
+                        evictBytes += evictRoot
+                            (inList, target, scanIter, backgroundIO);
+                    } else {
+                        evictBytes += evict
+                            (inList, target, scanIter, backgroundIO, tracker);
+                    }
                 }
                 nBatchSets++;
             }
@@ -516,15 +517,6 @@ public class Evictor extends DaemonThread {
                 }
 
                 /* 
-                 * Don't evict the DatabaseImpl Id Mapping Tree (db 0), both
-                 * for object identity reasons and because the id mapping tree
-                 * should stay cached.
-                 */
-                if (db.getId().equals(DbTree.ID_DB_ID)) {
-                    continue;
-                }
-
-                /* 
                  * If this is a read only database and we have at least one
                  * target, skip any dirty INs (recovery dirties INs even in a
                  * read-only environment). We take at least one target so we
@@ -619,6 +611,18 @@ public class Evictor extends DaemonThread {
      * in a non-duplicate tree.  This isn't always optimimal, but is the best
      * we can do considering that BINs in duplicate trees may contain a mix of
      * LNs and DINs.
+     *
+     * BINs in the mapping tree are also assigned the same level as user DB
+     * BINs.  When doing by-level eviction (lruOnly=false), this seems
+     * counter-intuitive since we should evict user DB nodes before mapping DB
+     * nodes.  But that does occur because mapping DB INs referencing an open
+     * DB are unevictable.  The level is only used for selecting among
+     * evictable nodes.
+     *
+     * If we did NOT normalize the level for the mapping DB, then INs for
+     * closed evictable DBs would not be evicted until after all nodes in all
+     * user DBs were evicted.  If there were large numbers of closed DBs, this
+     * would have a negative performance impact.
      */
     public int normalizeLevel(IN in, int evictType) {
 
@@ -629,6 +633,75 @@ public class Evictor extends DaemonThread {
         }
 
         return level;
+    }
+
+    /**
+     * Evict this DB root node.  [#13415]
+     * @return number of bytes evicted.
+     */
+    private long evictRoot(final INList inList,
+                           final IN target,
+                           final ScanIterator scanIter,
+                           final boolean backgroundIO) 
+        throws DatabaseException {
+
+        final DatabaseImpl db = target.getDatabase();
+
+        class RootEvictor implements WithRootLatched {
+
+            boolean flushed = false;
+            long evictBytes = 0;
+
+            public IN doWork(ChildReference root)
+                throws DatabaseException {
+
+                IN rootIN = (IN) root.fetchTarget(db, null);
+                rootIN.latch(false);
+                try {
+                    /* Re-check that all conditions still hold. */
+                    if (rootIN == target &&
+                        rootIN.isDbRoot() &&
+                        rootIN.isEvictable()) {
+
+                        /* Flush if dirty. */
+                        if (!envImpl.isReadOnly() && rootIN.getDirty()) {
+                            long newLsn = rootIN.log 
+                                (envImpl.getLogManager(),
+                                 false, // allowDeltas
+                                 isProvisionalRequired(rootIN),
+                                 true,  // proactiveMigration
+                                 backgroundIO,
+                                 null); // parent
+                            root.setLsn(newLsn);
+                            flushed = true;
+                        }
+
+                        /* Take off the INList and adjust memory budget. */
+                        scanIter.mark();
+                        inList.removeLatchAlreadyHeld(rootIN);
+                        scanIter.resetToMark();
+                        evictBytes = rootIN.getInMemorySize();
+
+                        /* Evict IN. */
+                        root.clearTarget();
+                    }
+                } finally {
+                    rootIN.releaseLatch();
+                }
+                return null;
+            }
+        }
+
+        /* Attempt to evict the DB root IN. */
+        RootEvictor evictor = new RootEvictor();
+        db.getTree().withRootLatchedExclusive(evictor);
+
+        /* If the root IN was flushed, write the dirtied MapLN. */
+        if (evictor.flushed) {
+            envImpl.getDbMapTree().modifyDbRoot(db);
+        }
+
+        return evictor.evictBytes;
     }
 
     /**

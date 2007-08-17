@@ -3,12 +3,13 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentStats.java,v 1.43.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: EnvironmentStats.java,v 1.43.2.3 2007/05/23 20:31:05 mark Exp $
  */
 
 package com.sleepycat.je;
 
 import java.io.Serializable;
+import java.text.DecimalFormat;
 
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -241,6 +242,10 @@ public class EnvironmentStats implements Serializable {
     private int  nLogBuffers;    // number of existing log buffers
     private long bufferBytes;    // cache consumed by the log buffers, 
                                  // in bytes
+    private long adminBytes;     // part of cache used by transactions,
+                                 // log cleaning metadata, and other 
+                                 // administrative structures
+    private long lockBytes;      // part of cache used by locks
 
     /*
      * Log activity
@@ -271,6 +276,11 @@ public class EnvironmentStats implements Serializable {
      * chunk size controlled by je.log.iteratorReadSize is too small.
      */
     private long nRepeatIteratorReads;
+
+    /*
+     * Approximation of the total log size in bytes.
+     */
+    private long totalLogSize;
     
     /**
      * Internal use only.
@@ -344,6 +354,7 @@ public class EnvironmentStats implements Serializable {
         nRepeatFaultReads = 0;
 	nTempBufferWrites = 0;
         nRepeatIteratorReads = 0;
+        totalLogSize = 0;
     }
 
     /**
@@ -699,6 +710,23 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * The number of bytes of JE cache used for holding transaction objects,
+     * log cleaning metadata, and other administrative structures. This is a
+     * subset of cacheDataBytes.
+     */
+    public long getAdminBytes() {
+        return adminBytes;
+    }
+
+    /**
+     * The number of bytes of JE cache used for holding lock objects.
+     * This is a subset of cacheDataBytes.
+     */
+    public long getLockBytes() {
+        return lockBytes;
+    }
+
+    /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
@@ -750,6 +778,14 @@ public class EnvironmentStats implements Serializable {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
+    public long getTotalLogSize() {
+        return totalLogSize;
+    }
+
+    /**
+     * Javadoc for this public method is generated via
+     * the doc templates in the doc_src directory.
+     */
     public int getSplitBins() {
         return splitBins;
     }
@@ -759,6 +795,20 @@ public class EnvironmentStats implements Serializable {
      */
     public void setCacheDataBytes(long cacheDataBytes) {
         this.cacheDataBytes = cacheDataBytes;
+    }
+
+    /**
+     * Internal use only.
+     */
+    public void setAdminBytes(long adminBytes) {
+        this.adminBytes = adminBytes;
+    }
+
+    /**
+     * Internal use only.
+     */
+    public void setLockBytes(long lockBytes) {
+        this.lockBytes = lockBytes;
     }
 
     /**
@@ -1100,6 +1150,13 @@ public class EnvironmentStats implements Serializable {
     /**
      * Internal use only.
      */
+    public void setTotalLogSize(long val) {
+        totalLogSize = val;
+    }
+
+    /**
+     * Internal use only.
+     */
     public void setSplitBins(int val) {
         splitBins = val;
     }
@@ -1109,79 +1166,109 @@ public class EnvironmentStats implements Serializable {
      * the doc templates in the doc_src directory.
      */
     public String toString() {
+        DecimalFormat f = new DecimalFormat("###,###,###,###,###,###,###");
+
         StringBuffer sb = new StringBuffer();
-        sb.append("splitBins=").append(splitBins).append('\n');
-        sb.append("dbClosedBins=").append(dbClosedBins).append('\n');
-        sb.append("cursorsBins=").append(cursorsBins).append('\n');
-        sb.append("nonEmptyBins=").append(nonEmptyBins).append('\n');
-        sb.append("processedBins=").append(processedBins).append('\n');
-        sb.append("inCompQueueSize=").append(inCompQueueSize).append('\n');
+        sb.append("\nCompression stats\n");
+        sb.append("splitBins=").append(f.format(splitBins)).append('\n');
+        sb.append("dbClosedBins=").append(f.format(dbClosedBins)).append('\n');
+        sb.append("cursorsBins=").append(f.format(cursorsBins)).append('\n');
+        sb.append("nonEmptyBins=").append(f.format(nonEmptyBins)).append('\n');
+        sb.append("processedBins=").
+            append(f.format(processedBins)).append('\n');
+        sb.append("inCompQueueSize=").
+            append(f.format(inCompQueueSize)).append('\n');
 
         // Evictor
-        sb.append("nEvictPasses=").append(nEvictPasses).append('\n');
-        sb.append("nNodesSelected=").append(nNodesSelected).append('\n');
-        sb.append("nNodesScanned=").append(nNodesScanned).append('\n');
+        sb.append("\nEviction stats\n");
+        sb.append("nEvictPasses=").append(f.format(nEvictPasses)).append('\n');
+        sb.append("nNodesSelected=").
+            append(f.format(nNodesSelected)).append('\n');
+        sb.append("nNodesScanned=").
+            append(f.format(nNodesScanned)).append('\n');
         sb.append("nNodesExplicitlyEvicted=").
-           append(nNodesExplicitlyEvicted).append('\n');
-        sb.append("nBINsStripped=").append(nBINsStripped).append('\n');
-        sb.append("requiredEvictBytes=").append(requiredEvictBytes).
-            append('\n');
+           append(f.format(nNodesExplicitlyEvicted)).append('\n');
+        sb.append("nBINsStripped=").
+            append(f.format(nBINsStripped)).append('\n');
+        sb.append("requiredEvictBytes=").
+            append(f.format(requiredEvictBytes)).append('\n');
 
         // Checkpointer
-        sb.append("nCheckpoints=").append(nCheckpoints).append('\n');
-        sb.append("lastCheckpointId=").append(lastCheckpointId).append('\n');
-        sb.append("nFullINFlush=").append(nFullINFlush).append('\n');
-        sb.append("nFullBINFlush=").append(nFullBINFlush).append('\n');
-        sb.append("nDeltaINFlush=").append(nDeltaINFlush).append('\n');
+        sb.append("\nCheckpoint stats\n");
+        sb.append("nCheckpoints=").append(f.format(nCheckpoints)).append('\n');
+        sb.append("lastCheckpointId=").
+            append(f.format(lastCheckpointId)).append('\n');
+        sb.append("nFullINFlush=").append(f.format(nFullINFlush)).append('\n');
+        sb.append("nFullBINFlush=").
+            append(f.format(nFullBINFlush)).append('\n');
+        sb.append("nDeltaINFlush=").
+            append(f.format(nDeltaINFlush)).append('\n');
         sb.append("lastCheckpointStart=").
            append(DbLsn.getNoFormatString(lastCheckpointStart)).append('\n');
         sb.append("lastCheckpointEnd=").
            append(DbLsn.getNoFormatString(lastCheckpointEnd)).append('\n');
 
         // Cleaner
-        sb.append("cleanerBacklog=").append(cleanerBacklog).append('\n');
-        sb.append("nCleanerRuns=").append(nCleanerRuns).append('\n');
-        sb.append("nCleanerDeletions=").append(nCleanerDeletions).append('\n');
-        sb.append("nINsObsolete=").append(nINsObsolete).append('\n');
-        sb.append("nINsCleaned=").append(nINsCleaned).append('\n');
-        sb.append("nINsDead=").append(nINsDead).append('\n');
-        sb.append("nINsMigrated=").append(nINsMigrated).append('\n');
-        sb.append("nLNsObsolete=").append(nLNsObsolete).append('\n');
-        sb.append("nLNsCleaned=").append(nLNsCleaned).append('\n');
-        sb.append("nLNsDead=").append(nLNsDead).append('\n');
-        sb.append("nLNsLocked=").append(nLNsLocked).append('\n');
-        sb.append("nLNsMigrated=").append(nLNsMigrated).append('\n');
-        sb.append("nLNsMarked=").append(nLNsMarked).append('\n');
+        sb.append("\nCleaner stats\n");
+        sb.append("cleanerBacklog=").
+            append(f.format(cleanerBacklog)).append('\n');
+        sb.append("nCleanerRuns=").
+            append(f.format(nCleanerRuns)).append('\n');
+        sb.append("nCleanerDeletions=").
+            append(f.format(nCleanerDeletions)).append('\n');
+        sb.append("nINsObsolete=").append(f.format(nINsObsolete)).append('\n');
+        sb.append("nINsCleaned=").append(f.format(nINsCleaned)).append('\n');
+        sb.append("nINsDead=").append(f.format(nINsDead)).append('\n');
+        sb.append("nINsMigrated=").append(f.format(nINsMigrated)).append('\n');
+        sb.append("nLNsObsolete=").append(f.format(nLNsObsolete)).append('\n');
+        sb.append("nLNsCleaned=").append(f.format(nLNsCleaned)).append('\n');
+        sb.append("nLNsDead=").append(f.format(nLNsDead)).append('\n');
+        sb.append("nLNsLocked=").append(f.format(nLNsLocked)).append('\n');
+        sb.append("nLNsMigrated=").append(f.format(nLNsMigrated)).append('\n');
+        sb.append("nLNsMarked=").append(f.format(nLNsMarked)).append('\n');
         sb.append("nLNQueueHits=").
-            append(nLNQueueHits).append('\n');
+            append(f.format(nLNQueueHits)).append('\n');
         sb.append("nPendingLNsProcessed=").
-            append(nPendingLNsProcessed).append('\n');
+            append(f.format(nPendingLNsProcessed)).append('\n');
         sb.append("nMarkedLNsProcessed=").
-            append(nMarkedLNsProcessed).append('\n');
+            append(f.format(nMarkedLNsProcessed)).append('\n');
         sb.append("nToBeCleanedLNsProcessed=").
-            append(nToBeCleanedLNsProcessed).append('\n');
+            append(f.format(nToBeCleanedLNsProcessed)).append('\n');
         sb.append("nClusterLNsProcessed=").
-            append(nClusterLNsProcessed).append('\n');
+            append(f.format(nClusterLNsProcessed)).append('\n');
         sb.append("nPendingLNsLocked=").
-            append(nPendingLNsLocked).append('\n');
+            append(f.format(nPendingLNsLocked)).append('\n');
         sb.append("nCleanerEntriesRead=").
-           append(nCleanerEntriesRead).append('\n');
+            append(f.format(nCleanerEntriesRead)).append('\n');
 
         // Cache
-        sb.append("nNotResident=").append(nNotResident).append('\n');
-        sb.append("nCacheMiss=").append(nCacheMiss).append('\n');
-        sb.append("nLogBuffers=").append(nLogBuffers).append('\n');
-        sb.append("bufferBytes=").append(bufferBytes).append('\n');
-        sb.append("cacheDataBytes=").append(cacheDataBytes).append('\n');
-        sb.append("cacheTotalBytes=").append(getCacheTotalBytes()).
-            append('\n');
-        sb.append("nFSyncs=").append(nFSyncs).append('\n');
-        sb.append("nFSyncRequests=").append(nFSyncRequests).append('\n');
-        sb.append("nFSyncTimeouts=").append(nFSyncTimeouts).append('\n');
-        sb.append("nRepeatFaultReads=").append(nRepeatFaultReads).append('\n');
-        sb.append("nTempBufferWrite=").append(nTempBufferWrites).append('\n');
+        sb.append("\nCache stats\n");
+        sb.append("nNotResident=").append(f.format(nNotResident)).append('\n');
+        sb.append("nCacheMiss=").append(f.format(nCacheMiss)).append('\n');
+        sb.append("nLogBuffers=").append(f.format(nLogBuffers)).append('\n');
+        sb.append("bufferBytes=").append(f.format(bufferBytes)).append('\n');
+        sb.append("cacheDataBytes=").
+            append(f.format(cacheDataBytes)).append('\n');
+        sb.append("adminBytes=").append(f.format(adminBytes)).append('\n');
+        sb.append("lockBytes=").append(f.format(lockBytes)).append('\n');
+        sb.append("cacheTotalBytes=").
+            append(f.format(getCacheTotalBytes())).append('\n');
+
+        // Logging
+        sb.append("\nLogging stats\n");
+        sb.append("nFSyncs=").append(f.format(nFSyncs)).append('\n');
+        sb.append("nFSyncRequests=").
+            append(f.format(nFSyncRequests)).append('\n');
+        sb.append("nFSyncTimeouts=").
+            append(f.format(nFSyncTimeouts)).append('\n');
+        sb.append("nRepeatFaultReads=").
+            append(f.format(nRepeatFaultReads)).append('\n');
+        sb.append("nTempBufferWrite=").
+            append(f.format(nTempBufferWrites)).append('\n');
         sb.append("nRepeatIteratorReads=").
-            append(nRepeatIteratorReads).append('\n');
+            append(f.format(nRepeatIteratorReads)).append('\n');
+        sb.append("totalLogSize=").
+            append(f.format(totalLogSize)).append('\n');
 
         return sb.toString();
     }

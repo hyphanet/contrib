@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SyncedLogManager.java,v 1.18.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: SyncedLogManager.java,v 1.18.2.2 2007/06/13 03:55:37 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -75,6 +75,17 @@ public class SyncedLogManager extends LogManager {
 
         synchronized (logWriteLatch) {
             return getUnflushableTrackedSummaryInternal(file);
+        }
+    }
+    
+    /**
+     * @see LogManager#removeTrackedFile
+     */
+    public void removeTrackedFile(TrackedFileSummary tfs)
+        throws DatabaseException {
+
+        synchronized (logWriteLatch) {
+            removeTrackedFileInternal(tfs);
         }
     }
 

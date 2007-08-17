@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalker.java,v 1.17.2.2 2007/03/07 01:24:36 mark Exp $
+ * $Id: SortedLSNTreeWalker.java,v 1.17.2.3 2007/05/01 19:27:23 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -209,7 +209,7 @@ public class SortedLSNTreeWalker {
         MemoryBudget mb = envImpl.getMemoryBudget();
 	inList.latchMajor();
 	try {
-            /* consolidate the INList first. */
+            /* Consolidate the INList first. */
             inList.latchMinorAndDumpAddedINs();
 
 	    Iterator iter = inList.iterator();
@@ -419,6 +419,8 @@ public class SortedLSNTreeWalker {
 		DupCountLN dcl = (DupCountLN) din.getDupCountLN();
 		callback.processDupCount(dcl.getDupCount());
 	    } else {
+                /* Negative index signifies a DupCountLN. */
+                addToLsnINMap(new Long(lsn), in, -1);
 		Node node = fetchLSN(lsn, lnKeyEntry);
 		callback.processLSN
                     (lsn, LogEntryType.LOG_DUPCOUNTLN, node,
@@ -481,6 +483,9 @@ public class SortedLSNTreeWalker {
 	 */
     }
 
+    /**
+     * @param index a negative index signifies a DupCountLN.
+     */
     protected void addToLsnINMap(Long lsn, IN in, int index) {
     }
 

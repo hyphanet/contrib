@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PersistCatalog.java,v 1.33.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: PersistCatalog.java,v 1.33.2.3 2007/06/14 13:06:05 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -552,7 +552,8 @@ public class PersistCatalog implements Catalog {
             ClassMetadata metadata = model.getClassMetadata(className);
             if (metadata == null) {
                 throw new IllegalArgumentException
-                    ("Class is not persistent: " + className);
+                    ("Class could not be loaded or is not persistent: " +
+                     className);
             }
             if (metadata.getCompositeKeyFields() != null &&
                 (metadata.getPrimaryKey() != null ||
@@ -660,7 +661,7 @@ public class PersistCatalog implements Catalog {
                     if (entityFormat != null && entityFormat != format) {
                         try {
                             store.openSecondaryIndexes
-                                (entityFormat.getEntityMetadata());
+                                (null, entityFormat.getEntityMetadata(), null);
                         } catch (DatabaseException e) {
                             throw new RuntimeExceptionWrapper(e);
                         }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorImpl.java,v 1.320.2.1 2007/02/01 14:49:44 cwl Exp $
+ * $Id: CursorImpl.java,v 1.320.2.3 2007/06/13 21:22:17 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -646,10 +646,26 @@ public class CursorImpl implements Cloneable {
     }
 
     /**
-     * Close a cursor.
-     * @throws DatabaseException if the cursor was previously closed.
+     * Close a cursor with releaseNonTxnLocks=true.
      */
     public void close()
+        throws DatabaseException {
+
+        close(true /*releaseNonTxnLocks*/);
+    }
+
+    /**
+     * Close a cursor.
+     *
+     * @param releaseNonTxnLocks should normally be true to release
+     * non-transactional locks when a cursor is closed.  However, some
+     * operations may wish to hold non-transactional locks if the locker is
+     * re-used in another cursor.  For example, see
+     * SecondaryCursor.readPrimaryAfterGet. [#15573]
+     *
+     * @throws DatabaseException if the cursor was previously closed.
+     */
+    public void close(boolean releaseNonTxnLocks)
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
@@ -657,7 +673,7 @@ public class CursorImpl implements Cloneable {
         removeCursor();
         locker.unRegisterCursor(this);
 
-        if (!retainNonTxnLocks) {
+        if (releaseNonTxnLocks && !retainNonTxnLocks) {
             locker.releaseNonTxnLocks();
         }
 
@@ -1178,10 +1194,16 @@ public class CursorImpl implements Cloneable {
 		/* Check that data compares equal before replacing it. */
 		boolean keysEqual = false;
 
+                /*
+                 * Do not use a custom duplicate comaprator here because we do
+                 * not support replacing the data if it is different, even if
+                 * the custom comparator considers it equal.  If we were to
+                 * support this we would have to update the key in the BIN
+                 * slot. [#15527]
+                 */
 		if (foundDataBytes != null) {
-                    keysEqual = Key.compareKeys
-                        (foundDataBytes, newData,
-			 database.getDuplicateComparator()) == 0;
+                    keysEqual =
+                        Key.compareKeys(foundDataBytes, newData, null) == 0;
 		}
 
 		if (!keysEqual) {

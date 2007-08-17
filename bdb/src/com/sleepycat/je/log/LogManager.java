@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogManager.java,v 1.163.2.3 2007/03/09 21:04:12 mark Exp $
+ * $Id: LogManager.java,v 1.163.2.4 2007/06/13 03:55:37 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -818,6 +818,16 @@ abstract public class LogManager {
 
         return envImpl.getUtilizationTracker().
                        getUnflushableTrackedSummary(file);
+    }
+
+    /**
+     * Removes the tracked summary for the given file.
+     */
+    abstract public void removeTrackedFile(TrackedFileSummary tfs)
+        throws DatabaseException;
+
+    protected void removeTrackedFileInternal(TrackedFileSummary tfs) {
+        tfs.reset();
     }
 
     /**

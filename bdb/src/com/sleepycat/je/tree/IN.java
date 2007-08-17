@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: IN.java,v 1.295.2.3 2007/03/14 01:49:45 cwl Exp $
+ * $Id: IN.java,v 1.295.2.5 2007/07/02 19:54:52 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -912,7 +912,7 @@ public class IN extends Node implements Comparable, Loggable {
      * Returns true if the given state is known deleted.
      */
     static boolean isStatePendingDeleted(byte state) {
-        return ((state & KNOWN_DELETED_BIT) != 0);
+        return ((state & PENDING_DELETED_BIT) != 0);
     }
 
     /**
@@ -2368,12 +2368,21 @@ public class IN extends Node implements Comparable, Loggable {
         }
 
         /*
-         * An IN can be evicted if its resident children are all LNs, because
-         * those children can be logged and stripped before this node is
-         * evicted.
+         * An IN can be evicted only if its resident children are all evictable
+         * LNs, because those children can be logged (if dirty) and stripped
+         * before this node is evicted.  Non-LN children or pinned LNs (MapLNs
+         * for open DBs) will prevent eviction.
          */
-        if (hasNonLNChildren()) {
+        if (hasPinnedChildren()) {
             return false;
+        }
+
+        for (int i = 0; i < getNEntries(); i++) {
+	    /* Target and LSN can be null in DW. Not evictable in that case. */
+            if (getLsn(i) == DbLsn.NULL_LSN &&
+		getTarget(i) == null) {
+                return false;
+            }
         }
 
         return true;
@@ -2407,7 +2416,32 @@ public class IN extends Node implements Comparable, Loggable {
      */
     boolean isEvictionProhibited() {
 
-        return isDbRoot();
+        if (isDbRoot()) {
+
+            /*
+             * Disallow eviction of a dirty DW DB root, since logging the MapLN
+             * (via DbTree.modifyDbRoot) will make the all other changes to the
+             * DW DB effectively non-provisional (durable).  This implies that
+             * a DW DB root cannot be evicted until it is synced (or removed).
+             * [#13415]
+             */
+            if (databaseImpl.isDeferredWrite() && getDirty()) {
+                return true;
+            }
+
+            /*
+             * Disallow eviction of the mapping and naming DB roots, because
+             * the use count is not incremented for these DBs.  In addition,
+             * their eviction and re-fetching is a special case that is not
+             * worth supporting.  [#13415]
+             */
+            DatabaseId dbId = databaseImpl.getId();
+            if (dbId.equals(DbTree.ID_DB_ID) ||
+                dbId.equals(DbTree.NAME_DB_ID)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2415,7 +2449,7 @@ public class IN extends Node implements Comparable, Loggable {
      * For an IN, that equates to whether there are any resident children
      * at all.
      */
-    boolean hasNonLNChildren() {
+    boolean hasPinnedChildren() {
 
         return hasResidentChildren();
     }
@@ -2430,9 +2464,10 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     /**
-     * Returns whether any child is non-null.
+     * Returns whether any child is non-null.  Is final to indicate it is not
+     * overridden (unlike hasPinnedChildren, isEvictionProhibited, etc).
      */
-    private boolean hasResidentChildren() {
+    final boolean hasResidentChildren() {
 
         for (int i = 0; i < getNEntries(); i++) {
             if (getTarget(i) != null) {

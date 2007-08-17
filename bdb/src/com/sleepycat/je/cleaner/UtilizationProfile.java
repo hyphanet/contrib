@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: UtilizationProfile.java,v 1.52.2.2 2007/03/07 00:40:24 mark Exp $
+ * $Id: UtilizationProfile.java,v 1.52.2.7 2007/07/02 19:54:48 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -95,6 +95,7 @@ public class UtilizationProfile implements EnvConfigObserver {
     private SortedMap fileSummaryMap;   // cached fileNum -> FileSummary
     private boolean cachePopulated;
     private boolean rmwFixEnabled;
+    private long totalLogSize;
 
     /**
      * Minimum overall utilization threshold that triggers cleaning.  Is
@@ -173,6 +174,29 @@ public class UtilizationProfile implements EnvConfigObserver {
         assert cachePopulated;
 
         return fileSummaryMap.size();
+    }
+
+    /**
+     * Returns an approximation of the total log size.  Used for stats.
+     */
+    long getTotalLogSize() {
+
+        /* Start with the size known to the profile. */
+        long size = totalLogSize;
+
+        /*
+         * Add sizes that are known to the tracker but are not yet in the
+         * profile.  The FileSummary.totalSize field is the delta for new
+         * log entries added.  Typically the last log file is only one that
+         * will have a delta, but previous files may also not have been added
+         * to the profile yet.
+         */
+        TrackedFileSummary[] trackedFiles = tracker.getTrackedFiles();
+        for (int i = 0; i < trackedFiles.length; i += 1) {
+            size += trackedFiles[i].totalSize;
+        }
+
+        return size;
     }
 
     /**
@@ -582,10 +606,13 @@ public class UtilizationProfile implements EnvConfigObserver {
             assert cachePopulated;
 
             /* Remove from the cache. */
-            if (fileSummaryMap.remove(fileNum) != null) {
+            FileSummary oldSummary =
+                (FileSummary) fileSummaryMap.remove(fileNum);
+            if (oldSummary != null) {
                 MemoryBudget mb = env.getMemoryBudget();
                 mb.updateMiscMemoryUsage
                     (0 - MemoryBudget.UTILIZATION_PROFILE_ENTRY);
+                totalLogSize -= oldSummary.totalSize;
             }
         }
 
@@ -711,14 +738,29 @@ public class UtilizationProfile implements EnvConfigObserver {
 
             /*
              * An obsolete node may have been counted after its file was
-             * deleted, for example, when compressing a BIN.  Do not insert
-             * a new profile record if no corresponding log file exists.
+             * deleted, for example, when compressing a BIN.  Do not insert a
+             * new profile record if no corresponding log file exists.  But if
+             * the file number is greater than the last known file, this is a
+             * new file that has been buffered but not yet flushed to disk; in
+             * that case we should insert a new profile record.
              */
-            File file = new File
-                (env.getFileManager().getFullFileName
-                    (fileNum, FileManager.JE_SUFFIX));
-            if (!file.exists()) {
-                return null;
+            if (!fileSummaryMap.isEmpty() &&
+                fileNum < ((Long) fileSummaryMap.lastKey()).longValue()) {
+                File file = new File
+                    (env.getFileManager().getFullFileName
+                        (fileNum, FileManager.JE_SUFFIX));
+                if (!file.exists()) {
+
+                    /*
+                     * File was deleted by the cleaner.  Remove it from the
+                     * UtilizationTracker and return.  Note that a file is
+                     * normally removed from the tracker by
+                     * FileSummaryLN.writeToLog method when it is called via
+                     * insertFileSummary below. [#15512]
+                     */
+                    env.getLogManager().removeTrackedFile(tfs);
+                    return null;
+                }
             }
 
             summary = new FileSummary();
@@ -732,6 +774,7 @@ public class UtilizationProfile implements EnvConfigObserver {
         FileSummary tmp = new FileSummary();
         tmp.add(summary);
         tmp.add(tfs);
+        totalLogSize += tfs.totalSize;
         int sequence = tmp.getEntriesCounted();
 
         /* Insert an LN with the existing and tracked summary info. */
@@ -898,6 +941,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         int oldMemorySize = fileSummaryMap.size() *
             MemoryBudget.UTILIZATION_PROFILE_ENTRY;
 
+        totalLogSize = 0;
+
         /*
          * It is possible to have an undeleted FileSummaryLN in the database
          * for a deleted log file if we crash after deleting a file but before
@@ -959,7 +1004,9 @@ public class UtilizationProfile implements EnvConfigObserver {
                     if (Arrays.binarySearch(existingFiles, fileNumLong) >= 0) {
 
                         /* File exists, cache the FileSummaryLN. */
-                        fileSummaryMap.put(fileNumLong, ln.getBaseSummary());
+                        FileSummary summary = ln.getBaseSummary();
+                        fileSummaryMap.put(fileNumLong, summary);
+                        totalLogSize += summary.totalSize;
 
                         /*
                          * Update old version records to the new version.  A
@@ -1101,6 +1148,12 @@ public class UtilizationProfile implements EnvConfigObserver {
         boolean operationOk = false;
         try {
             autoTxn = new AutoTxn(env, new TransactionConfig());
+
+            /*
+             * releaseDb is not called after this getDb or createDb because we
+             * want to prohibit eviction of this database until the environment
+             * is closed.
+             */
             DatabaseImpl db = dbTree.getDb
                 (autoTxn, DbTree.UTILIZATION_DB_NAME, null);
             if (db == null) {
@@ -1256,20 +1309,21 @@ public class UtilizationProfile implements EnvConfigObserver {
         DatabaseId dbId = entry.getDbId();
         DatabaseImpl db = env.getDbMapTree().getDb(dbId);
 
-        /* 
-         * The whole database is gone, so this LN is obsolete. No need
-         * to worry about delete cleanup; this is just verification and
-         * no cleaning is done.
-         */
-        if (db == null || db.isDeleted()) {
-            return true;
-        }
-
         /*
          * Search down to the bottom most level for the parent of this LN.
          */
         BIN bin = null;
         try {
+
+            /* 
+             * The whole database is gone, so this LN is obsolete. No need
+             * to worry about delete cleanup; this is just verification and
+             * no cleaning is done.
+             */
+            if (db == null || db.isDeleted()) {
+                return true;
+            }
+
             Tree tree = db.getTree();
             TreeLocation location = new TreeLocation();
             boolean parentFound = tree.getParentBINForChildLN
@@ -1307,6 +1361,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                                " was found in tree."); 
             return false;
         } finally {
+            env.getDbMapTree().releaseDb(db);
             if (bin != null) {
                 bin.releaseLatch();
             }

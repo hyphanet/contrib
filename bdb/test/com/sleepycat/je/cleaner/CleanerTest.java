@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CleanerTest.java,v 1.87.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: CleanerTest.java,v 1.87.2.3 2007/05/31 21:55:33 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -477,6 +477,45 @@ public class CleanerTest extends TestCase {
     }
 
     /**
+     * Tests that when a file being cleaned is deleted, we ignore the error and
+     * don't repeatedly try to clean it.  This is happening when we mistakedly
+     * clean a file after it has been queued for deletion.  The workaround is
+     * to catch LogFileNotFoundException in the cleaner and ignore the error.
+     * We're testing the workaround here by forcing cleaning of deleted files.
+     * [#15528]
+     */
+    public void testUnexpectedFileDeletion()
+        throws DatabaseException, IOException {
+
+        initEnv(true, false);
+        EnvironmentMutableConfig config = exampleEnv.getMutableConfig();
+        config.setConfigParam
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "true");
+        config.setConfigParam
+	    (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
+        exampleEnv.setMutableConfig(config);
+
+        final EnvironmentImpl envImpl =
+            DbInternal.envGetEnvironmentImpl(exampleEnv);
+        final Cleaner cleaner = envImpl.getCleaner();
+
+        Map expectedMap = new HashMap();
+        doLargePut(expectedMap, 1000, 1, true);
+        checkData(expectedMap);
+
+        for (int i = 0; i < 100; i += 1) {
+            modifyData(expectedMap, 1, true);
+            checkData(expectedMap);
+            cleaner.injectFileForCleaning(new Long(0));
+            exampleEnv.cleanLog();
+            exampleEnv.checkpoint(forceConfig);
+        }
+        checkData(expectedMap);
+
+        closeEnv();
+    }
+
+    /**
      * Helper routine. Generates keys with random alpha values while data
      * is numbered numerically.
      */
@@ -577,6 +616,7 @@ public class CleanerTest extends TestCase {
             txn.abort();
         }
     }
+
     /**
      * Delete data.
      */
@@ -853,5 +893,109 @@ public class CleanerTest extends TestCase {
         }
 
         return count;
+    }
+
+    /**
+     * Checks that the memory budget is updated properly by the
+     * UtilizationTracker.  Prior to a bug fix [#15505] amounts were added to
+     * the budget but not subtraced when two TrackedFileSummary objects were
+     * merged.  Merging occurs when a local tracker is added to the global
+     * tracker.  Local trackers are used during recovery, checkpoints, lazy
+     * compression, and reverse splits.
+     */
+    public void testTrackerMemoryBudget()
+        throws DatabaseException {
+
+        /* Open environmnet. */
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        envConfig.setTransactional(true);
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_CHECK_LEAKS.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_INCOMPRESSOR.getName(), "false");
+        exampleEnv = new Environment(envHome, envConfig);
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(exampleEnv);
+        MemoryBudget budget = envImpl.getMemoryBudget();
+
+        /* Open database. */
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setTransactional(true);
+        dbConfig.setAllowCreate(true);
+        exampleDb = exampleEnv.openDatabase(null, "foo", dbConfig);
+
+        /* Insert data. */
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry();
+        for (int i = 1; i <= 200; i += 1) {
+            IntegerBinding.intToEntry(i, key);
+            IntegerBinding.intToEntry(i, data);
+            exampleDb.put(null, key, data);
+        }
+
+        /* Sav the misc budget baseline. */
+        flushTrackedFiles();
+        long misc = budget.getMiscMemoryUsage();
+
+        /*
+         * Nothing becomes obsolete when inserting and no INs are logged, so
+         * the budget does not increase.
+         */
+        IntegerBinding.intToEntry(201, key);
+        exampleDb.put(null, key, data);
+        assertEquals(misc, budget.getMiscMemoryUsage());
+        flushTrackedFiles();
+        assertEquals(misc, budget.getMiscMemoryUsage());
+
+        /*
+         * Update a record and expect the budget to increase because the old
+         * LN becomes obsolete.
+         */
+        exampleDb.put(null, key, data);
+        assertTrue(misc < budget.getMiscMemoryUsage());
+        flushTrackedFiles();
+        assertEquals(misc, budget.getMiscMemoryUsage());
+
+        /*
+         * Delete all records and expect the budget to increase because LNs
+         * become obsolete.
+         */
+        for (int i = 1; i <= 201; i += 1) {
+            IntegerBinding.intToEntry(i, key);
+            exampleDb.delete(null, key);
+        }
+        assertTrue(misc < budget.getMiscMemoryUsage());
+        flushTrackedFiles();
+        assertEquals(misc, budget.getMiscMemoryUsage());
+
+        /*
+         * Compress and expect no change to the budget.  Prior to the fix for
+         * [#15505] the assertion below failed because the baseline misc budget
+         * was not restored.
+         */
+        exampleEnv.compress();
+        flushTrackedFiles();
+        assertEquals(misc, budget.getMiscMemoryUsage());
+
+        closeEnv();
+    }
+
+    /**
+     * Flushes all tracked files to subtract tracked info from the misc memory
+     * budget.
+     */
+    private void flushTrackedFiles()
+        throws DatabaseException {
+
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(exampleEnv);
+        UtilizationTracker tracker = envImpl.getUtilizationTracker();
+        UtilizationProfile profile = envImpl.getUtilizationProfile();
+
+        TrackedFileSummary[] files = tracker.getTrackedFiles();
+        for (int i = 0; i < files.length; i += 1) {
+            profile.flushFileSummary(files[i]);
+        }
     }
 }

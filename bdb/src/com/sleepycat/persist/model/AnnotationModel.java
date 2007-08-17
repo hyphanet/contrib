@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: AnnotationModel.java,v 1.16.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: AnnotationModel.java,v 1.16.2.2 2007/05/01 04:08:36 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -86,7 +86,7 @@ public class AnnotationModel extends EntityModel {
         if (metadata == null) {
             Class<?> type;
             try {
-                type = Class.forName(className);
+                type = EntityModel.classForName(className);
             } catch (ClassNotFoundException e) {
                 return null;
             }
@@ -320,7 +320,7 @@ public class AnnotationModel extends EntityModel {
             /* Load superclass metadata. */
             Class cls;
             try {
-                cls = Class.forName(data.getClassName());
+                cls = EntityModel.classForName(data.getClassName());
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e);
             }

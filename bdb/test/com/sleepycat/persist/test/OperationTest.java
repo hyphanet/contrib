@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: OperationTest.java,v 1.12.2.2 2007/02/10 02:58:19 mark Exp $
+ * $Id: OperationTest.java,v 1.12.2.3 2007/06/14 13:06:05 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -783,5 +783,78 @@ public class OperationTest extends TxnTestCase {
 
         RelatedY() {
         }
+    }
+
+    public void testSecondaryBulkLoad1()
+        throws DatabaseException {
+
+        doSecondaryBulkLoad(true);
+    }
+
+    public void testSecondaryBulkLoad2()
+        throws DatabaseException {
+
+        doSecondaryBulkLoad(false);
+    }
+
+    private void doSecondaryBulkLoad(boolean closeAndOpenNormally)
+        throws DatabaseException {
+
+        PrimaryIndex<Integer,RelatedX> priX;
+        PrimaryIndex<Integer,RelatedY> priY;
+        SecondaryIndex<Integer,Integer,RelatedX> secX;
+
+        /* Open priX with SecondaryBulkLoad=true. */
+        StoreConfig config = new StoreConfig();
+        config.setAllowCreate(true);
+        config.setSecondaryBulkLoad(true);
+        open(config);
+
+        /* Getting priX should not create the secondary index. */
+        priX = store.getPrimaryIndex(Integer.class, RelatedX.class);
+        PersistTestUtils.assertDbExists
+            (false, env, STORE_NAME, RelatedX.class.getName(), "key2");
+
+        /* We can put records that violate the secondary key constraint. */
+        priX.put(new RelatedX());
+
+        if (closeAndOpenNormally) {
+            /* Open normally and the secondary will be populated. */
+            close();
+            open();
+            try {
+                /* Before adding the foreign key, constraint is violated. */
+                priX = store.getPrimaryIndex(Integer.class, RelatedX.class);
+            } catch (DatabaseException e) {
+                assertTrue(e.toString(),
+                           e.toString().contains("foreign key not allowed"));
+            }
+            /* Add the foreign key to avoid the constraint error. */
+            priY = store.getPrimaryIndex(Integer.class, RelatedY.class);
+            priY.put(new RelatedY());
+            priX = store.getPrimaryIndex(Integer.class, RelatedX.class);
+            PersistTestUtils.assertDbExists
+                (true, env, STORE_NAME, RelatedX.class.getName(), "key2");
+            secX = store.getSecondaryIndex(priX, Integer.class, "key2");
+        } else {
+            /* Get secondary index explicitly and it will be populated. */
+            try {
+                /* Before adding the foreign key, constraint is violated. */
+                secX = store.getSecondaryIndex(priX, Integer.class, "key2");
+            } catch (DatabaseException e) {
+                assertTrue(e.toString(),
+                           e.toString().contains("foreign key not allowed"));
+            }
+            /* Add the foreign key. */
+            priY = store.getPrimaryIndex(Integer.class, RelatedY.class);
+            priY.put(new RelatedY());
+            secX = store.getSecondaryIndex(priX, Integer.class, "key2");
+            PersistTestUtils.assertDbExists
+                (true, env, STORE_NAME, RelatedX.class.getName(), "key2");
+        }
+
+        RelatedX x = secX.get(88);
+        assertNotNull(x);
+        close();
     }
 }

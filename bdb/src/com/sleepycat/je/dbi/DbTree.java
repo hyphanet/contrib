@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbTree.java,v 1.170.2.1 2007/02/01 14:49:44 cwl Exp $
+ * $Id: DbTree.java,v 1.170.2.2 2007/07/02 19:54:49 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -12,6 +12,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +43,69 @@ import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.txn.Locker;
 
 /**
- * Represents the DatabaseImpl Naming Tree.
+ * DbTree represents the database directory for this environment. DbTree is
+ * itself implemented through two databases. The nameDatabase maps
+ * databaseName-> an internal databaseId. The idDatabase maps
+ * databaseId->DatabaseImpl.
+ * 
+ * For example, suppose we have two databases, foo and bar. We have the
+ * following structure:
+ *
+ *           nameDatabase                          idDatabase
+ *               IN                                    IN
+ *                |                                     |   
+ *               BIN                                   BIN
+ *    +-------------+--------+            +---------------+--------+      
+ *  .               |        |            .               |        |
+ * NameLNs         NameLN    NameLN      MapLNs for   MapLN        MapLN
+ * for internal    key=bar   key=foo     internal dbs key=53       key=79
+ * dbs             data=     data=                    data=        data=
+ *                 dbId79    dbId53                   DatabaseImpl DatabaseImpl
+ *                                                        |            |
+ *                                                   Tree for foo  Tree for bar
+ *                                                        |            |
+ *                                                     root IN       root IN
+ *
+ * Databases, Cursors, the cleaner, compressor, and other entities have
+ * references to DatabaseImpls. It's important that object identity is properly
+ * maintained, and that all constituents reference the same DatabaseImpl for
+ * the same db, lest they develop disparate views of the in-memory database;
+ * corruption would ensue. To ensure that, all entities must obtain their
+ * DatabaseImpl by going through the idDatabase.
+ * 
+ * DDL type operations such as create, rename, remove and truncate get their
+ * transactional semantics by transactionally locking the NameLN appropriately.
+ * A read-lock on the NameLN, called a handle lock, is maintained for all DBs
+ * opened via the public API (openDatabase).  This prevents them from being
+ * renamed or removed while open.
+ *
+ * However, for internal database operations, no handle lock on the NameLN is
+ * acacuiqred and MapLNs are locked with short-lived non-transactional Lockers.
+ * An entity that is trying to get a reference to the DatabaseImpl gets a short
+ * lived read lock just for the fetch of the MapLN. A write lock on the MapLN
+ * is taken when the database is created, deleted, or when the MapLN is
+ * evicted. (see DatabaseImpl.isInUse())
+ * 
+ * The nameDatabase operates pretty much as a regular application database in
+ * terms of eviction and recovery. The idDatabase requires special treatment
+ * for both eviction and recovery.
+ * 
+ * The issues around eviction of the idDatabase center on the need to ensure
+ * that there are no other current references to the DatabaseImpl other than
+ * that held by the mapLN. The presence of a current reference would both make
+ * the DatabaseImpl not GC'able, and more importantly, would lead to object
+ * identify confusion later on. For example, if the MapLN is evicted while
+ * there is a current reference to its DatabaseImpl, and then refetched, there
+ * will be two in-memory versions of the DatabaseImpl. Since locks on the
+ * idDatabase are short lived, DatabaseImpl.useCount acts as a reference count
+ * of active current references. DatabaseImpl.useCount must be modified and
+ * read in conjunction with appropropriate locking on the MapLN. See
+ * DatabaseImpl.isInUse() for details.
+ *
+ * This reference count checking is only needed when the entire MapLN is
+ * evicted. It's possible to evict only the root IN of the database in
+ * question, since that doesn't interfere with the DatabaseImpl object
+ * identity.
  */
 public class DbTree implements Loggable {
 
@@ -151,6 +214,10 @@ public class DbTree implements Loggable {
     /**
      * Create a database.
      *
+     * Increments the use count of the new DB to prevent it from being evicted.
+     * releaseDb should be called when the returned object is no longer used,
+     * to allow it to be evicted.  See DatabaseImpl.isInUse.  [#13415]
+     *
      * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
      * level DbTree operation. [#15176]
      *
@@ -193,6 +260,8 @@ public class DbTree implements Loggable {
             idDbLocker = new BasicLocker(envImpl);
             idCursor = new CursorImpl(idDatabase, idDbLocker);
             idCursor.putLN(newId.getBytes(), new MapLN(newDb), false);
+            /* Increment DB use count with lock held. */
+            newDb.incrementUseCount();
             operationOk = true;
 	} catch (UnsupportedEncodingException UEE) {
 	    throw new DatabaseException(UEE);
@@ -212,6 +281,7 @@ public class DbTree implements Loggable {
 
         return newDb;
     }
+
     /**
      * Called by the Tree to propagate a root change.  If the tree is a data
      * database, we will write the MapLn that represents this db to the log. If
@@ -341,9 +411,10 @@ public class DbTree implements Loggable {
                 ("Attempted to " + action + " non-existent database " +
                  databaseName);
         }
-        result.nameCursor = new CursorImpl(nameDatabase, locker);
-
+        boolean success = false;
         try {
+            result.nameCursor = new CursorImpl(nameDatabase, locker);
+
             /* Position the cursor at the specified NameLN. */
             DatabaseEntry key =
                 new DatabaseEntry(databaseName.getBytes("UTF-8"));
@@ -374,14 +445,17 @@ public class DbTree implements Loggable {
                                             databaseName + "," + handleCount + 
                                             " open Dbs exist");
             }
+            success = true;
 	} catch (UnsupportedEncodingException UEE) {
-            result.nameCursor.releaseBIN();
-            result.nameCursor.close();
 	    throw new DatabaseException(UEE);
-        } catch (DatabaseException e) {
-            result.nameCursor.releaseBIN();
-            result.nameCursor.close();
-	    throw e;
+        } finally {
+            if (!success) {
+                releaseDb(result.dbImpl);
+                if (result.nameCursor != null) {
+                    result.nameCursor.releaseBIN();
+                    result.nameCursor.close();
+                }
+            }
         }
 
         return result;
@@ -400,8 +474,8 @@ public class DbTree implements Loggable {
         throws DatabaseException {
 
         CursorImpl nameCursor = null;
+        NameLockResult result = lockNameLN(locker, databaseName, "rename");
         try {
-            NameLockResult result = lockNameLN(locker, databaseName, "rename");
             nameCursor = result.nameCursor;
             if (nameCursor == null) {
                 return false;
@@ -422,6 +496,7 @@ public class DbTree implements Loggable {
 	} catch (UnsupportedEncodingException UEE) {
 	    throw new DatabaseException(UEE);
         } finally {
+            releaseDb(result.dbImpl);
             if (nameCursor != null) {
                 nameCursor.releaseBIN();
                 nameCursor.close();
@@ -436,8 +511,8 @@ public class DbTree implements Loggable {
         throws DatabaseException {
 
         CursorImpl nameCursor = null;
+        NameLockResult result = lockNameLN(locker, databaseName, "remove");
         try {
-            NameLockResult result = lockNameLN(locker, databaseName, "remove");
             nameCursor = result.nameCursor;
             if (nameCursor == null) {
                 return;
@@ -456,6 +531,9 @@ public class DbTree implements Loggable {
                  * Schedule database for final deletion during commit. This 
                  * should be the last action taken, since this will take
                  * effect immediately for non-txnal lockers.
+                 *
+                 * Do not call releaseDb here on result.dbImpl, since that is
+                 * taken care of by markDeleteAtTxnEnd.
                  */
                 locker.markDeleteAtTxnEnd(result.dbImpl, true);
             }
@@ -484,9 +562,8 @@ public class DbTree implements Loggable {
 
         CursorImpl nameCursor = null;
         Locker idDbLocker = null;
+        NameLockResult result = lockNameLN(locker, databaseName, "truncate");
         try {
-            NameLockResult result = lockNameLN(locker, databaseName,
-                                               "truncate");
             nameCursor = result.nameCursor;
             if (nameCursor == null) {
                 return 0;
@@ -497,7 +574,8 @@ public class DbTree implements Loggable {
                  * nameLN refer to the id of the new database.
                  */
                 DatabaseId newId = new DatabaseId(getNextDbId());
-                DatabaseImpl newDb = (DatabaseImpl) result.dbImpl.clone();
+                DatabaseImpl newDb = result.dbImpl.cloneDb();
+                newDb.incrementUseCount();
                 newDb.setId(newId);
                 newDb.setTree(new Tree(newDb));
             
@@ -538,6 +616,9 @@ public class DbTree implements Loggable {
                 /* 
                  * Marking the lockers should be the last action, since
                  * it takes effect immediately for non-txnal lockers.
+                 *
+                 * Do not call releaseDb here on result.dbImpl or newDb, since
+                 * that is taken care of by markDeleteAtTxnEnd.
                  */
 
                 /* Schedule old database for deletion if txn commits. */
@@ -548,9 +629,6 @@ public class DbTree implements Loggable {
 
                 return recordCount;
             }
-
-	} catch (CloneNotSupportedException CNSE) {
-	    throw new DatabaseException(CNSE);
         } finally {
             if (nameCursor != null) {
                 nameCursor.releaseBIN();
@@ -655,9 +733,18 @@ public class DbTree implements Loggable {
              */
             DatabaseImpl newDb;
             DatabaseId newId = new DatabaseId(getNextDbId());
-	    newDb = (DatabaseImpl) oldDatabase.clone();
+	    newDb = oldDatabase.cloneDb();
+            newDb.incrementUseCount();
             newDb.setId(newId);
             newDb.setTree(new Tree(newDb));
+
+            /*
+             * The non-deprecated truncate starts with an old database with a
+             * incremented use count because lockNameLN is called, which calls
+             * getDb.  To normalize the situation here we must increment it,
+             * since we don't call lockNameLN/getDb.
+             */
+            oldDatabase.incrementUseCount();
             
             /* Insert the new db into id -> name map */
             CursorImpl idCursor = null; 
@@ -694,8 +781,6 @@ public class DbTree implements Loggable {
             nameCursor.putCurrent(dataDbt, null, null);
 
             return new TruncateResult(newDb, (int) count);
-	} catch (CloneNotSupportedException CNSE) {
-	    throw new DatabaseException(CNSE);
 	} catch (UnsupportedEncodingException UEE) {
 	    throw new DatabaseException(UEE);
         } finally {
@@ -721,6 +806,7 @@ public class DbTree implements Loggable {
         throws DatabaseException {
 
         try {
+            /* Use count is not incremented for idDatabase and nameDatabase. */
             if (databaseName.equals(ID_DB_NAME)) {
                 return idDatabase;
             } else if (databaseName.equals(NAME_DB_NAME)) {
@@ -734,7 +820,6 @@ public class DbTree implements Loggable {
             CursorImpl nameCursor = null;
             DatabaseId id = null;
             try {
-
                 nameCursor = new CursorImpl(nameDatabase, nameLocker);
                 DatabaseEntry keyDbt =
 		    new DatabaseEntry(databaseName.getBytes("UTF-8"));
@@ -824,6 +909,11 @@ public class DbTree implements Loggable {
      * be specified by daemons with their own timeout configuration.  public
      * for unit tests.
      *
+     * Increments the use count of the given DB to prevent it from being
+     * evicted.  releaseDb should be called when the returned object is no
+     * longer used, to allow it to be evicted.  See DatabaseImpl.isInUse.
+     * [#13415]
+     *
      * Do not evict (do not call CursorImpl.setAllowEviction(true)) during low
      * level DbTree operation. [#15176]
      */
@@ -866,6 +956,8 @@ public class DbTree implements Loggable {
 			    idCursor.getCurrentLNAlreadyLatched(LockType.READ);
                         assert mapLN != null; /* Should be locked. */
                         foundDbImpl =  mapLN.getDatabase();
+                        /* Increment DB use count with lock held. */
+                        foundDbImpl.incrementUseCount();
                     } 
                     break;
 		} catch (DeadlockException DE) {
@@ -893,6 +985,33 @@ public class DbTree implements Loggable {
             }
 
             return foundDbImpl;
+        }
+    }
+
+    /**
+     * Decrements the use count of the given DB, allowing it to be evicted if
+     * the use count reaches zero.  Must be called to release a DatabaseImpl
+     * that was returned by a method in this class.  See DatabaseImpl.isInUse.
+     * [#13415]
+     */
+    public void releaseDb(DatabaseImpl db) {
+        /* Use count is not incremented for idDatabase and nameDatabase. */
+        if (db != null &&
+            db != idDatabase &&
+            db != nameDatabase) {
+            db.decrementUseCount();
+        }
+    }
+
+    /**
+     * Calls releaseDb for all DBs in the given map of DatabaseId to
+     * DatabaseImpl.  See getDb(DatabaseId, long, Map). [#13415]
+     */
+    public void releaseDbs(Map dbCache) {
+        if (dbCache != null) {
+            for (Iterator i = dbCache.values().iterator(); i.hasNext();) {
+                releaseDb((DatabaseImpl) i.next());
+            }
         }
     }
 

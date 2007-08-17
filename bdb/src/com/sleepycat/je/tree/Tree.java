@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Tree.java,v 1.418.2.3 2007/04/04 14:28:59 cwl Exp $
+ * $Id: Tree.java,v 1.418.2.5 2007/07/02 19:54:52 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -217,6 +217,17 @@ public final class Tree implements Loggable {
         }
 
         return true;
+    }
+
+    /**
+     * Perform a fast check to see if the root IN is resident.  No latching is
+     * performed.  To ensure that the root IN is not loaded by another thread,
+     * this method should be called while holding a write lock on the MapLN.
+     * That will prevent opening the DB in another thread, and potentially
+     * loading the root IN. [#13415]
+     */
+    public boolean isRootResident() {
+        return root != null && root.getTarget() != null;
     }
 
     /*
@@ -2817,6 +2828,15 @@ public final class Tree implements Loggable {
                         currentLock = cursor.lockLNDeletedAllowed
                             (currentLN, LockType.WRITE);
                         currentLN = currentLock.getLN();
+
+                        /*
+                         * The BIN may have been latched while locking above.
+                         * Release the latch here because we released it above
+                         * to improve concurrency, and we will latch it again
+                         * below to increment the duplicate count. [#15574]
+                         */
+                        cursor.releaseBIN();
+
                         /* The DBIN/index may have changed while locking. */
                         dupBin = cursor.getDupBIN();
 			dupIndex = cursor.getDupIndex();

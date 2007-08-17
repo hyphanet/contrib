@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseTest.java,v 1.103.2.1 2007/02/01 14:50:04 cwl Exp $
+ * $Id: DatabaseTest.java,v 1.103.2.3 2007/06/13 13:58:40 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -1079,6 +1079,44 @@ public class DatabaseTest extends TestCase {
     }
 
     /**
+     * Preloads a dup database to verify the bug fix for preloading dups on
+     * 3.2.x. [#15365]
+     */
+    public void testPreloadDups()
+        throws Throwable {
+
+        Database myDb = initEnvAndDb
+            (false, true /*allowDuplicates*/, false, false, null);
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry();
+        key.setData(TestUtils.getTestArray(0));
+        data.setData(TestUtils.getTestArray(0));
+        assertSame(OperationStatus.SUCCESS,
+                   myDb.putNoDupData(null, key, data));
+        data.setData(TestUtils.getTestArray(1));
+        assertSame(OperationStatus.SUCCESS,
+                   myDb.putNoDupData(null, key, data));
+
+        /* Close and reopen. */
+        myDb.close();
+        env.close();
+        myDb = initEnvAndDb
+            (false, true /*allowDuplicates*/, false, false, null);
+
+        /*
+         * Preload the entire database.  Before the bug fix, an assertion would
+         * fire in DatabaseImpl.PreloadLSNTreeWalker.fetchLSN when processing
+         * the DupCountLN.
+         */
+	PreloadConfig conf = new PreloadConfig();
+	conf.setMaxBytes(100000);
+        myDb.preload(conf);
+
+        myDb.close();
+        env.close();
+    }
+
+    /**
      * Test preload(N, 0) where N > cache size (throws IllArgException).
      */
     public void testPreloadBytesExceedsCache()
@@ -1203,6 +1241,54 @@ public class DatabaseTest extends TestCase {
             t.printStackTrace();
             throw t;
         }
+    }
+
+    /**
+     * Check that the handle lock is not left behind when a non-transactional
+     * open of a primary DB fails while populating the secondary. [#15558]
+     */
+    public void testFailedNonTxnDbOpen()
+        throws DatabaseException {
+
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        env = new Environment(envHome, envConfig);
+
+        DatabaseConfig priConfig = new DatabaseConfig();
+        priConfig.setAllowCreate(true);
+        Database priDb = env.openDatabase(null, "testDB", priConfig);
+
+        priDb.put(null, new DatabaseEntry(new byte[1]),
+                        new DatabaseEntry(new byte[2]));
+
+        SecondaryConfig secConfig = new SecondaryConfig();
+        secConfig.setAllowCreate(true);
+        secConfig.setAllowPopulate(true);
+        /* Use priDb as foreign key DB for ease of testing. */
+        secConfig.setForeignKeyDatabase(priDb);
+        secConfig.setKeyCreator(new SecondaryKeyCreator() {
+            public boolean createSecondaryKey(SecondaryDatabase secondary,
+                                              DatabaseEntry key,
+                                              DatabaseEntry data,
+                                              DatabaseEntry result)
+                throws DatabaseException {
+                result.setData
+                    (data.getData(), data.getOffset(), data.getSize());
+                return true;
+            }
+        });
+        try {
+            env.openSecondaryDatabase(null, "testDB2", priDb, secConfig);
+            fail();
+        } catch (DatabaseException e) {
+            /* Fails because [0,0] does not exist as a key in priDb. */
+            assertTrue(e.toString(),
+                       e.toString().indexOf("foreign key not allowed") > 0);
+        }
+
+        priDb.close();
+        env.close();
+        env = null;
     }
 
     /**

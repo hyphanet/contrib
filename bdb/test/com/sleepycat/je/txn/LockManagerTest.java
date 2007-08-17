@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockManagerTest.java,v 1.45.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: LockManagerTest.java,v 1.45.2.2 2007/07/13 02:32:06 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -87,17 +87,20 @@ public class LockManagerTest extends TestCase {
 	    assertTrue(lockManager.nWaiters(new Long(2)) == -1);
 
             /* lock 2 doesn't exist, shouldn't affect any the existing lock */
-	    lockManager.release(2L, txn1); 
+	    lockManager.release(2L, txn1);
+	    txn1.removeLock(2L);
 	    assertTrue(lockManager.isLocked(nid));
             
             /* txn2 is not the owner, shouldn't release lock 1. */
 	    lockManager.release(1L, txn2);
+	    txn2.removeLock(1L);
 	    assertTrue(lockManager.isLocked(nid));
             assertTrue(lockManager.isOwner(nid, txn1, LockType.READ));
 	    assertTrue(lockManager.nOwners(nid) == 1);
 
             /* Now really release. */
 	    lockManager.release(1L, txn1);
+	    txn1.removeLock(1L);
 	    assertFalse(lockManager.isLocked(nid));
             assertFalse(lockManager.isOwner(nid, txn1, LockType.READ));
 	    assertFalse(lockManager.nOwners(nid) == 1);
@@ -135,6 +138,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -155,6 +159,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -175,6 +180,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn3);
+			txn3.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -211,6 +217,7 @@ public class LockManagerTest extends TestCase {
 			assertTrue(lockManager.isWaiter(nid, txn3));
 			assertFalse(lockManager.isWaiter(nid, txn1));
 			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 			assertFalse
 			    (lockManager.isOwner(nid, txn1, LockType.READ));
 		    } catch (DatabaseException DBE) {
@@ -233,6 +240,7 @@ public class LockManagerTest extends TestCase {
 			}
 			assertTrue(lockManager.isWaiter(nid, txn3));
 			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 			assertFalse
 			    (lockManager.isOwner(nid, txn2, LockType.READ));
 		    } catch (DatabaseException DBE) {
@@ -289,6 +297,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -308,6 +317,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -330,6 +340,7 @@ public class LockManagerTest extends TestCase {
 			assertTrue
 			    (lockManager.isOwner(nid, txn3, LockType.WRITE));
 			lockManager.release(1L, txn3);
+			txn3.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -349,6 +360,7 @@ public class LockManagerTest extends TestCase {
 			assertTrue
 			    (lockManager.isOwner(nid, txn4, LockType.READ));
 			lockManager.release(1L, txn4);
+			txn4.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -388,6 +400,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -410,6 +423,7 @@ public class LockManagerTest extends TestCase {
 					 false, null);
 			assertTrue(lockManager.nWaiters(nid) == 1);
 			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -429,6 +443,7 @@ public class LockManagerTest extends TestCase {
 			assertTrue
 			    (lockManager.isOwner(nid, txn3, LockType.WRITE));
 			lockManager.release(1L, txn3);
+			txn3.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -463,6 +478,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -503,6 +519,7 @@ public class LockManagerTest extends TestCase {
 			assertTrue(lockManager.nWaiters(nid) == 0);
 			assertTrue(lockManager.nOwners(nid) == 1);
 			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -536,6 +553,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -576,6 +594,7 @@ public class LockManagerTest extends TestCase {
 			assertTrue(lockManager.nWaiters(nid) == 0);
 			assertTrue(lockManager.nOwners(nid) == 1);
 			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -609,6 +628,7 @@ public class LockManagerTest extends TestCase {
 			    Thread.yield();
 			}
 			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -653,6 +673,7 @@ public class LockManagerTest extends TestCase {
 			assertTrue(lockManager.nWaiters(nid) == 0);
 			assertTrue(lockManager.nOwners(nid) == 1);
 			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("caught DatabaseException " + DBE);
@@ -691,7 +712,9 @@ public class LockManagerTest extends TestCase {
 			Thread.sleep(5000);
 
 			lockManager.release(1, txn1);
+			txn1.removeLock(1);
 			lockManager.release(2, txn1);
+			txn1.removeLock(2);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("tester1 caught DatabaseException " + DBE);
@@ -723,7 +746,9 @@ public class LockManagerTest extends TestCase {
 			Thread.sleep(5000);
 
 			lockManager.release(1, txn2);
+			txn2.removeLock(1);
 			lockManager.release(2, txn1);
+			txn1.removeLock(2);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
 			fail("tester2 caught DatabaseException " + DBE);

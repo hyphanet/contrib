@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Txn.java,v 1.148.2.5 2007/04/04 14:29:22 cwl Exp $
+ * $Id: Txn.java,v 1.148.2.7 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -79,7 +79,7 @@ public class Txn extends Locker implements Loggable {
      * A Txn can be used by multiple threads. Modification to the read and
      * write lock collections is done by synchronizing on the txn.
      */
-    private Set readLocks;
+    private Set readLocks;    // Set<Long> (nodeIds)
     private Map writeInfo;    // key=nodeid, data = WriteLockInfo
 
     private final int READ_LOCK_OVERHEAD = MemoryBudget.HASHSET_ENTRY_OVERHEAD;
@@ -399,7 +399,7 @@ public class Txn extends Locker implements Loggable {
                 if (handleLockToHandleMap != null) {
                     Iterator handleLockIter =
                         handleLockToHandleMap.entrySet().iterator(); 
-                    while (handleLockIter.hasNext()){
+                    while (handleLockIter.hasNext()) {
                         Map.Entry entry = (Map.Entry) handleLockIter.next();
                         Long nodeId = (Long) entry.getKey();
                         if (writeInfo != null) {
@@ -464,13 +464,14 @@ public class Txn extends Locker implements Loggable {
                     Set alreadyCountedLsnSet = new HashSet();
 
                     /* Release all write locks, clear lock collection. */
-                    Iterator iter = writeInfo.values().iterator();
+                    Iterator iter = writeInfo.entrySet().iterator(); 
                     while (iter.hasNext()) {
-                        WriteLockInfo info = (WriteLockInfo) iter.next();
-                        lockManager.release(info.lock, this);
-                        /* Count obsolete LSNs for released write locks. */
-                        countWriteAbortLSN(info, alreadyCountedLsnSet);
-                    }
+                        Map.Entry entry = (Map.Entry) iter.next();
+                        Long nodeId = (Long) entry.getKey();
+			lockManager.release(nodeId.longValue(), this);
+                        countWriteAbortLSN((WriteLockInfo) entry.getValue(),
+					   alreadyCountedLsnSet);
+		    }
                     writeInfo = null;
 
                     /* Count obsolete LSNs for transferred write locks. */
@@ -676,7 +677,7 @@ public class Txn extends Locker implements Loggable {
                 if (handleToHandleLockMap != null) {
                     Iterator handleIter =
                         handleToHandleLockMap.keySet().iterator(); 
-                    while (handleIter.hasNext()){
+                    while (handleIter.hasNext()) {
                         Database handle = (Database) handleIter.next();
                         DbInternal.dbInvalidate(handle);
                     }
@@ -776,11 +777,13 @@ public class Txn extends Locker implements Loggable {
 	throws DatabaseException {
 
 	int numWriteLocks = writeInfo.size();
+
 	/* Release all write locks, clear lock collection. */
-	Iterator iter = writeInfo.values().iterator();
+	Iterator iter = writeInfo.entrySet().iterator(); 
 	while (iter.hasNext()) {
-	    WriteLockInfo info = (WriteLockInfo) iter.next();
-	    lockManager.release(info.lock, this);
+	    Map.Entry entry = (Map.Entry) iter.next();
+	    Long nodeId = (Long) entry.getKey();
+	    lockManager.release(nodeId.longValue(), this);
 	}
 	writeInfo = null;
 	return numWriteLocks;
@@ -794,8 +797,8 @@ public class Txn extends Locker implements Loggable {
 	    numReadLocks = readLocks.size();
 	    Iterator iter = readLocks.iterator();
 	    while (iter.hasNext()) {
-		Lock rLock = (Lock) iter.next();
-		lockManager.release(rLock, this);
+		Long rLock = (Long) iter.next();
+		lockManager.release(rLock.longValue(), this);
 	    }
 	    readLocks = null;
 	}
@@ -860,6 +863,8 @@ public class Txn extends Locker implements Loggable {
             delta += MemoryBudget.HASHSET_ENTRY_OVERHEAD + 
                 MemoryBudget.OBJECT_OVERHEAD;
 	    updateMemoryUsage(delta);
+
+            /* releaseDb will be called by cleanupDatabaseImpls. */
         }
     }
 
@@ -888,7 +893,7 @@ public class Txn extends Locker implements Loggable {
      * operations like removeDatabase(), truncateDatabase().
      * 
      * This method must be called outside the synchronization on this txn,
-     * because it calls deleteAndReleaseINs, which gets the TxnManager's
+     * because it calls releaseDeletedINs, which gets the TxnManager's
      * allTxns latch. The checkpointer also gets the allTxns latch, and within
      * that latch, needs to synchronize on individual txns, so we must avoid a
      * latching hiearchy conflict.
@@ -906,7 +911,10 @@ public class Txn extends Locker implements Loggable {
             for (int i = 0; i < infoArray.length; i += 1) {
                 DatabaseCleanupInfo info = infoArray[i];
                 if (info.deleteAtCommit == isCommit) {
+                    /* releaseDb will be called by releaseDeletedINs. */
                     info.dbImpl.releaseDeletedINs();
+                } else {
+                    envImpl.releaseDb(info.dbImpl);
                 }
             }
             deletedDatabases = null;
@@ -917,7 +925,6 @@ public class Txn extends Locker implements Loggable {
      * Add lock to the appropriate queue.
      */
     void addLock(Long nodeId,
-		 Lock lock,
                  LockType type,
 		 LockGrantType grantStatus) 
         throws DatabaseException {
@@ -932,29 +939,29 @@ public class Txn extends Locker implements Loggable {
                 }
 
                 writeInfo.put(nodeId, 
-                              new WriteLockInfo(lock));
+                              new WriteLockInfo());
                 delta += WRITE_LOCK_OVERHEAD;
                 
                 if ((grantStatus == LockGrantType.PROMOTION) ||
                     (grantStatus == LockGrantType.WAIT_PROMOTION)) {
-                    readLocks.remove(lock);
+                    readLocks.remove(nodeId);
                     delta -= READ_LOCK_OVERHEAD;
                 }
 		updateMemoryUsage(delta);
             } else {
-                addReadLock(lock);
+                addReadLock(nodeId);
             }
         }
     }
 
-    private void addReadLock(Lock lock) {
+    private void addReadLock(Long nodeId) {
         int delta = 0;
         if (readLocks == null) {
             readLocks = new HashSet();
             delta = MemoryBudget.HASHSET_OVERHEAD;
         }
         
-        readLocks.add(lock);
+        readLocks.add(nodeId);
         delta += READ_LOCK_OVERHEAD;
 	updateMemoryUsage(delta);
     }
@@ -965,7 +972,7 @@ public class Txn extends Locker implements Loggable {
      * a lock. Usually done because the transaction doesn't need to really keep
      * the lock, i.e for a deleted record.
      */
-    void removeLock(long nodeId, Lock lock)
+    void removeLock(long nodeId)
         throws DatabaseException {
 
         /* 
@@ -978,7 +985,7 @@ public class Txn extends Locker implements Loggable {
          */
         synchronized (this) {
 	    if ((readLocks != null) &&
-		readLocks.remove(lock)) {
+		readLocks.remove(new Long(nodeId))) {
 		updateMemoryUsage(0 - READ_LOCK_OVERHEAD);
 	    } else if ((writeInfo != null) &&
 		       (writeInfo.remove(new Long(nodeId)) != null)) {
@@ -1003,7 +1010,7 @@ public class Txn extends Locker implements Loggable {
 
             assert found : "Couldn't find lock for Node " + nodeId +
                 " in writeInfo Map.";
-            addReadLock(lock);
+            addReadLock(new Long(nodeId));
         }
     }
 

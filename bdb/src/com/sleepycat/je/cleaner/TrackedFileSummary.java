@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TrackedFileSummary.java,v 1.9.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: TrackedFileSummary.java,v 1.9.2.2 2007/05/15 14:48:39 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -124,10 +124,12 @@ public class TrackedFileSummary extends FileSummary {
         add(other);
 
         /*
-         * Add the offsets.  The memory budget has already been updated for the
-         * offsets to be added, so we only need to account for a difference
-         * when we merge them.
+         * Add the offsets and the memory used [#15505] by the other tracker.
+         * The memory budget has already been updated for the offsets to be
+         * added, so we only need to account for a possible difference of one
+         * segment when we merge them.
          */
+        memSize += other.memSize;
         if (other.obsoleteOffsets != null) {
             if (obsoleteOffsets != null) {
                 /* Merge the other offsets into our list. */

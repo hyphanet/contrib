@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Environment.java,v 1.179.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: Environment.java,v 1.179.2.2 2007/07/02 19:54:48 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -402,6 +402,7 @@ public class Environment {
         validateDbConfigAgainstEnv(dbConfig, databaseName);
 
         Locker locker = null;
+        DatabaseImpl database = null;
         boolean operationOk = false;
 	boolean dbIsClosing = false;
         try {
@@ -434,12 +435,9 @@ public class Environment {
                                    locker.isTransactional();
             }
 
-            DatabaseImpl database = environmentImpl.getDb(locker,
-                                                          databaseName,
-                                                          newDb);
+            database = environmentImpl.getDb(locker, databaseName, newDb);
             boolean databaseExists =
-                (database == null) ? false : 
-                ((database.isDeleted()) ? false : true);
+                (database != null) && !database.isDeleted();
 
             if (databaseExists) {
                 if (dbConfig.getAllowCreate() &&
@@ -452,6 +450,10 @@ public class Environment {
 
                 newDb.initExisting(this, locker, database, dbConfig);
             } else {
+                /* Release deleted DB. [#13415] */
+                environmentImpl.releaseDb(database);
+                database = null;
+
                 /* No database. Create if we're allowed to. */
                 if (dbConfig.getAllowCreate()) {
 
@@ -492,6 +494,18 @@ public class Environment {
             if (locker != null) {
                 locker.setHandleLockOwner(operationOk, newDb, dbIsClosing);
                 locker.operationEnd(operationOk);
+            }
+
+            /*
+             * Normally releaseDb will be called when the DB is closed, or by
+             * abort if a transaction is used, or by setHandleLockOwner if a
+             * non-transactional locker is used.  But when the open operation
+             * fails and the Database.databaseImpl field was not initialized,
+             * we must call releaseDb here. [#13415]
+             */
+            if ((!operationOk || dbIsClosing) &&
+                newDb.getDatabaseImpl() == null) {
+                environmentImpl.releaseDb(database);
             }
         }
     }

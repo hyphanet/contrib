@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INFileReader.java,v 1.52.2.2 2007/03/08 22:32:54 mark Exp $
+ * $Id: INFileReader.java,v 1.52.2.3 2007/08/06 16:00:20 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -293,8 +293,8 @@ public class INFileReader extends FileReader {
              * Do partial load of db and txn id tracking entries if necessary.
              * Note that these entries do not overlap with targetLogEntry.
              *
-             * XXX We're doing a full load for now, since LNLogEntry does not
-             * read the db and txn id in a partial load, only the node id.
+             * We're doing a full load for now, since LNLogEntry does not read
+             * the db and txn id in a partial load, only the node id.
              */
             LNLogEntry lnEntry = null;
             if (dbIdTrackingEntry != null) {

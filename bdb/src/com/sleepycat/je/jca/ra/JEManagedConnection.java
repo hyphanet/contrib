@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEManagedConnection.java,v 1.13.2.1 2007/02/01 14:49:45 cwl Exp $
+ * $Id: JEManagedConnection.java,v 1.13.2.2 2007/05/22 20:36:39 cwl Exp $
  */
 
 package com.sleepycat.je.jca.ra;
@@ -67,7 +67,7 @@ public class JEManagedConnection implements ManagedConnection {
         throws ResourceException {
 
 	if (conn == null) {
-	    conn = new JEConnection(this);
+	    conn = new JEConnectionImpl(this);
 	}
 	return conn;
     }
@@ -115,7 +115,7 @@ public class JEManagedConnection implements ManagedConnection {
     public void associateConnection(Object connection)
 	throws ResourceException {
 
-	conn = (JEConnection) connection;
+	conn = (JEConnectionImpl) connection;
 	conn.setManagedConnection(this, savedLT);
 	savedLT = null;
     }

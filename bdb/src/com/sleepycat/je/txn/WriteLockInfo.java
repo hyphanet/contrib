@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: WriteLockInfo.java,v 1.14.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: WriteLockInfo.java,v 1.14.2.2 2007/07/13 02:32:06 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -15,8 +15,6 @@ import com.sleepycat.je.utilint.DbLsn;
  * the correct abort LSN.
  */
 public class WriteLockInfo {
-    /* Write lock for node. */
-    Lock lock;            
 
     /*
      * The original LSN. This is stored in the LN log entry.  May be null if
@@ -49,19 +47,9 @@ public class WriteLockInfo {
     static final WriteLockInfo basicWriteLockInfo =
 	new WriteLockInfo();
 
-    WriteLockInfo(Lock lock) {
-	this.lock = lock;
+    public WriteLockInfo() {
 	abortLsn = DbLsn.NULL_LSN;
 	abortKnownDeleted = false;
-	neverLocked = true;
-	createdThisTxn = false;
-    }
-
-    /* public for Sizeof program. */
-    public WriteLockInfo() {
-	this.lock = null;
-	abortLsn = DbLsn.NULL_LSN;
-	abortKnownDeleted = true;
 	neverLocked = true;
 	createdThisTxn = false;
     }

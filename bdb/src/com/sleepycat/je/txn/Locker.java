@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Locker.java,v 1.101.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: Locker.java,v 1.101.2.3 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -295,13 +295,8 @@ public abstract class Locker {
     public void releaseLock(long nodeId)
         throws DatabaseException {
 
-        /*
-         * If successful, the lock manager will call back to the transaction
-         * and remove the lock from the lock collection. Done this way because
-         * we can't get a handle on the lock without creating another object
-         * XXX: bite the bullet, new a holder object, pass it back?
-         */
         lockManager.release(nodeId, this);
+	removeLock(nodeId);
     }
 
     /**
@@ -482,7 +477,6 @@ public abstract class Locker {
      * Add a lock to set owned by this transaction.
      */
     abstract void addLock(Long nodeId,
-                          Lock lock,
                           LockType type,
                           LockGrantType grantStatus)
         throws DatabaseException;
@@ -499,7 +493,7 @@ public abstract class Locker {
      * LockManager.release, the lock manager will call this when its releasing
      * a lock.
      */
-    abstract void removeLock(long nodeId, Lock lock)
+    abstract void removeLock(long nodeId)
         throws DatabaseException;
 
     /**
@@ -560,7 +554,6 @@ public abstract class Locker {
      */
     public void addToHandleMaps(Long handleLockId, 
 				Database databaseHandle) {
-        // TODO: mutex after measurement
         Set dbHandleSet = null;
         if (handleLockToHandleMap == null) {
 

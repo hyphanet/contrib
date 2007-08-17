@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryCursor.java,v 1.35.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: SecondaryCursor.java,v 1.35.2.2 2007/06/13 21:22:17 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -704,7 +704,12 @@ public class SecondaryCursor extends Cursor {
         Locker locker = cursorImpl.getLocker();
         Cursor cursor = null;
         try {
-	    cursor = new Cursor(primaryDb, locker, null);
+
+            /*
+             * Use Cursor constructor with DatabaseImpl parameter so that the
+             * non-transactional locker is used in the primary cursor. [#15573]
+             */
+	    cursor = new Cursor(primaryDb.getDatabaseImpl(), locker, null);
             OperationStatus status =
                 cursor.search(pKey, data, lockMode, SearchMode.SET);
             if (status != OperationStatus.SUCCESS) {
@@ -779,8 +784,14 @@ public class SecondaryCursor extends Cursor {
             }
             return OperationStatus.SUCCESS;
         } finally {
+
+            /*
+             * Do not release non-transactional locks when closing the primary
+             * cursor.  They are held until all locks for this operation are
+             * released by the secondary cursor.  [#15573]
+             */
             if (cursor != null) {
-                cursor.close();
+                cursor.close(false /*releaseNonTxnLocks*/);
             }
         }
     }

@@ -391,7 +391,7 @@
              includes="bin/**,lib/**,dist/build.properties"/>
         <zip basedir="${basedir}"
              destfile="src.zip"
-	     excludes="test/rpcserver/**,test/experiments/**,test/regress/*/**,test/**/MiniStress.java,test/**/AbortStress.java,dist/,**/jca/README.txt,examples/com/**,src/com/sleepycat/je/rep/**,examples/je/rep/**,test/com/sleepycat/je/rep/**"
+	     excludes="test/rpcserver/**,test/experiments/**,test/standalone/**,test/regress/*/**,test/**/MiniStress.java,test/**/AbortStress.java,dist/,**/jca/README.txt,examples/com/**,src/com/sleepycat/je/rep/**,examples/je/rep/**,test/com/sleepycat/je/rep/**"
              includes="src/**,examples/**,test/**,docs/**,ant/**,regress/,build.xml,build.properties,example.properties,README,LICENSE,FindBugsExclude.xml"/>
         <zip basedir="${basedir}"
              destfile="${zipfile}"

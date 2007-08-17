@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RunRecoveryFailureTest.java,v 1.34.2.1 2007/02/01 14:50:05 cwl Exp $
+ * $Id: RunRecoveryFailureTest.java,v 1.34.2.2 2007/06/13 03:55:37 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -98,7 +98,12 @@ public class RunRecoveryFailureTest extends TestCase {
             DatabaseConfig dbConfig = new DatabaseConfig();
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
-            env.openDatabase(txn, "foo", dbConfig);
+            Database db = env.openDatabase(txn, "foo", dbConfig);
+            DatabaseEntry key = new DatabaseEntry(new byte[1000]);
+            DatabaseEntry data = new DatabaseEntry(new byte[1000]);
+            for (int i = 0; i < 100; i += 1) {
+                db.put(txn, key, data);
+            }
 
             env.getEnvironmentImpl().getLogManager().flush();
             env.getEnvironmentImpl().getFileManager().clear();
@@ -108,16 +113,25 @@ public class RunRecoveryFailureTest extends TestCase {
              * re-read. Should get a checksum error, which should invalidate
              * the environment.
              */
-            File file = new File(envHome, "00000001" + FileManager.JE_SUFFIX);
-            RandomAccessFile starterFile = new RandomAccessFile(file, "rw");
-            FileChannel channel = starterFile.getChannel();
-            long fileSize = channel.size();
-            channel.position(FileManager.firstLogEntryOffset());
-            ByteBuffer junkBuffer = ByteBuffer.allocate((int) fileSize);
-            int written = channel.write(junkBuffer,
-                                        FileManager.firstLogEntryOffset());
-            assertTrue(written > 0);
-            starterFile.close();
+            long currentFile = DbInternal.envGetEnvironmentImpl(env)
+                                         .getFileManager()
+                                         .getCurrentFileNum();
+            for (int fileNum = 0; fileNum <= currentFile; fileNum += 1) {
+                File file = new File
+                    (envHome, "0000000" + fileNum + FileManager.JE_SUFFIX);
+                RandomAccessFile starterFile =
+                    new RandomAccessFile(file, "rw");
+                FileChannel channel = starterFile.getChannel();
+                long fileSize = channel.size();
+                if (fileSize > FileManager.firstLogEntryOffset()) {
+                    ByteBuffer junkBuffer = ByteBuffer.allocate
+                        ((int) fileSize - FileManager.firstLogEntryOffset());
+                    int written = channel.write
+                        (junkBuffer, FileManager.firstLogEntryOffset());
+                    assertTrue(written > 0);
+                    starterFile.close();
+                }
+            }
 
             try {
                 txn.abort();

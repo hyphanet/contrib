@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DBIN.java,v 1.70.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: DBIN.java,v 1.70.2.2 2007/07/02 19:54:52 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -180,7 +180,7 @@ public final class DBIN extends BIN implements Loggable {
     /**
      * @Override
      */
-    boolean hasNonLNChildren() {
+    boolean hasPinnedChildren() {
         return false;
     }
 

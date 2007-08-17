@@ -24,7 +24,7 @@
       </connectionfactory-impl-class>
       <connection-interface>com.sleepycat.je.jca.ra.JEConnection
       </connection-interface>
-      <connection-impl-class>com.sleepycat.je.jca.ra.JEConnection
+      <connection-impl-class>com.sleepycat.je.jca.ra.JEConnectionImpl
       </connection-impl-class>
       <transaction-support>LocalTransaction</transaction-support>
       <!--

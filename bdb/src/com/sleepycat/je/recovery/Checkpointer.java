@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Checkpointer.java,v 1.140.2.2 2007/03/07 01:24:39 mark Exp $
+ * $Id: Checkpointer.java,v 1.140.2.3 2007/06/01 21:32:56 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -144,12 +144,6 @@ public class Checkpointer extends DaemonThread {
      */
     synchronized public void setCheckpointId(long lastCheckpointId) {
         checkpointId = lastCheckpointId;
-    }
-
-    public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append("<Checkpointer name=\"").append(name).append("\"/>");
-        return sb.toString();
     }
 
     /**

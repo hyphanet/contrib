@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: StoreConfig.java,v 1.13.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: StoreConfig.java,v 1.13.2.2 2007/06/14 13:06:04 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -42,6 +42,7 @@ public class StoreConfig implements Cloneable {
     private boolean transactional;
     private boolean readOnly;
     private boolean deferredWrite;
+    private boolean secondaryBulkLoad;
     private EntityModel model;
     private Mutations mutations;
 
@@ -163,6 +164,44 @@ public class StoreConfig implements Cloneable {
      */
     public boolean getDeferredWrite() {
         return deferredWrite;
+    }
+
+    /**
+     * Sets the bulk-load-secondaries configuration property.  By default this
+     * property is false.
+     *
+     * <p>This property is true to cause the initial creation of secondary
+     * indices to be performed as a bulk load.  If this property is true and
+     * {@link EntityStore#getSecondaryIndex EntityStore.getSecondaryIndex} has
+     * never been called for a secondary index, that secondary index will not
+     * be created or written as records are written to the primary index.  In
+     * addition, if that secondary index defines a foreign key constraint, the
+     * constraint will not be enforced.</p>
+     *
+     * <p>The secondary index will be populated later when the {code
+     * getSecondaryIndex} method is called for the first time for that index,
+     * or when the store is closed and re-opened with this property set to
+     * false and the primary index is obtained.  In either case, the secondary
+     * index is populated by reading through the entire primary index and
+     * adding records to the secondary index as needed.  While populating the
+     * secondary, foreign key constraints will be enforced and an exception is
+     * thrown if a constraint is violated.</p>
+     *
+     * <p>When loading a primary index along with secondary indexes from a
+     * large input data set, configuring a bulk load of the secondary indexes
+     * is sometimes more performant than updating the secondary indexes each
+     * time the primary index is updated.  The absence of foreign key
+     * constraints during the load also provides more flexibility.</p>
+     */
+    public void setSecondaryBulkLoad(boolean secondaryBulkLoad) {
+        this.secondaryBulkLoad = secondaryBulkLoad;
+    }
+
+    /**
+     * Returns the bulk-load-secondaries configuration property.
+     */
+    public boolean getSecondaryBulkLoad() {
+        return secondaryBulkLoad;
     }
 
     /**

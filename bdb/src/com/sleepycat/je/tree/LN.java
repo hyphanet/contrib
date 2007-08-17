@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LN.java,v 1.125.2.4 2007/03/09 17:37:09 linda Exp $
+ * $Id: LN.java,v 1.125.2.5 2007/07/02 19:54:52 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -145,6 +145,27 @@ public class LN extends Node implements Loggable {
      */
     boolean isValidForDelete() {
         return false;
+    }
+
+    /**
+     * Returns true by default, but is overridden by MapLN to prevent eviction
+     * of open databases.  This method is meant to be a fast but not guaranteed
+     * check and is used during selection of BINs for LN stripping.  [#13415]
+     */
+    boolean isEvictableInexact() {
+        return true;
+    }
+
+    /**
+     * Returns true by default, but is overridden by MapLN to prevent eviction
+     * of open databases.  This method is meant to be a guaranteed check and is
+     * used after a BIN has been selected for LN stripping but before actually
+     * stripping an LN. [#13415]
+     */
+    boolean isEvictable()
+        throws DatabaseException {
+
+        return true;
     }
 
     /**

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockInfo.java,v 1.28.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: LockInfo.java,v 1.28.2.2 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -17,6 +17,8 @@ import com.sleepycat.je.utilint.Tracer;
 /**
  * LockInfo is a class that embodies information about a lock instance.  The
  * holding thread and the locktype are all contained in the object.
+ *
+ * This class is public for unit tests.
  */
 public class LockInfo implements Cloneable {
     private Locker locker;

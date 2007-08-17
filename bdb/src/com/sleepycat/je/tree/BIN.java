@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BIN.java,v 1.188.2.3 2007/03/08 22:32:58 mark Exp $
+ * $Id: BIN.java,v 1.188.2.6 2007/07/02 19:54:52 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -19,6 +19,7 @@ import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
+import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
@@ -219,18 +220,42 @@ public class BIN extends IN implements Loggable {
     /**
      * @Override
      */
-    boolean hasNonLNChildren() {
+    boolean hasPinnedChildren() {
 
-        for (int i = 0; i < getNEntries(); i++) {
-            Node node = getTarget(i);
-            if (node != null) {
-                if (!(node instanceof LN)) {
-                    return true;
+	DatabaseImpl db = getDatabase();
+
+        /*
+         * For the mapping DB, if any MapLN is resident we cannot evict this
+         * BIN.  If a MapLN was not previously stripped, then the DB may be
+         * open.  [#13415]
+         */
+        if (db.getId().equals(DbTree.ID_DB_ID)) {
+            return hasResidentChildren();
+
+        /*
+         * For other DBs, if there are no duplicates allowed we can always
+         * evict this BIN because its children are limited to LNs.  When
+         * logging the BIN, any dirty LNs will be logged and non-dirty LNs can
+         * be discarded.
+         */
+        } else if (!db.getSortedDuplicates()) {
+            return false;
+
+        /*
+         * If duplicates are allowed, we disallow eviction of this BIN if it
+         * has any non-LN (DIN) children.
+         */
+        } else {
+            for (int i = 0; i < getNEntries(); i++) {
+                Node node = getTarget(i);
+                if (node != null) {
+                    if (!(node instanceof LN)) {
+                        return true;
+                    }
                 }
             }
+            return false;
         }
-
-        return false;
     }
 
     /**
@@ -244,6 +269,25 @@ public class BIN extends IN implements Loggable {
             Node node = getTarget(i);
             if (node != null) {
                 if (node instanceof LN) {
+                    LN ln = (LN) node;
+
+                    /*
+                     * If the LN is not evictable, we may neither strip the LN
+                     * nor evict the node.  isEvictableInexact is used here as
+                     * a fast check, to avoid the overhead of acquiring a
+                     * handle lock while selecting an IN for eviction.   See
+                     * evictInternal which will call LN.isEvictable to acquire
+                     * an handle lock and guarantee that another thread cannot
+                     * open the MapLN.  [#13415]
+                     */
+                    if (!ln.isEvictableInexact()) {
+                        return MAY_NOT_EVICT;
+                    }
+
+                    /*
+                     * If the cleaner allows eviction, then this LN may be
+                     * stripped.
+                     */
                     if (cleaner.isEvictable(this, i)) {
                         return MAY_EVICT_LNS;
                     }
@@ -667,7 +711,13 @@ public class BIN extends IN implements Loggable {
                     binRef.hasDeletedKey(new Key(getKey(i)))) {
 
                     if (canFetch) {
-                        n = fetchTarget(i);
+			if (db.isDeferredWrite() &&
+			    getLsn(i) == DbLsn.NULL_LSN) {
+			    /* Null LSNs are ok in DW. [#15588] */
+			    n = null;
+			} else {
+			    n = fetchTarget(i);
+			}
                     } else {
                         n = getTarget(i);
                         if (n == null) {
@@ -846,65 +896,74 @@ public class BIN extends IN implements Loggable {
 
         Node n = getTarget(index);
 
-        /* Don't strip LNs that the cleaner will be migrating. */
-        if (n instanceof LN &&
-	    cleaner.isEvictable(this, index)) {
-
-            /* Log target if necessary. */
+        if (n instanceof LN) {
             LN ln = (LN) n;
-            if (ln.isDirty()) {
-        	DatabaseImpl dbImpl = getDatabase();
 
-                /*
-                 * Only deferred write databases should have dirty LNs. This
-                 * is an overly stringent assertion, because a db can flop
-                 * between dw and durable mode, but is used currently for our
-                 * regression testing.
-                 */
-                assert dbImpl.isDeferredWrite();
+            /*
+             * Don't evict MapLNs for open databases (LN.isEvictable) [#13415].
+             * And don't strip LNs that the cleaner will be migrating
+             * (Cleaner.isEvictable).
+             */
+            if (ln.isEvictable() &&
+                cleaner.isEvictable(this, index)) {
 
-                /* 
-                 * For DW we don't know the size of the last logged LN, so we
-                 * pass zero for the obsolete size.
-                 */
-                EnvironmentImpl envImpl = dbImpl.getDbEnvironment();
-                long obsoleteLsn = getObsoleteLsnForDWLogging(envImpl, index);
-                int obsoleteSize = ln.getLastLoggedSize();
-                long lsn = ln.log(envImpl,
-                                  dbImpl.getId(),
-                                  getKey(index),
-                                  obsoleteLsn,
-                                  obsoleteSize,
-                                  null,      // locker
-                                  true);     // backgroundIO
-                updateEntry(index, lsn);
+                boolean force = getDatabase().isDeferredWrite() &&
+                    getLsn(index) == DbLsn.NULL_LSN;
+                /* Log target if necessary. */
+                logDirtyLN(index, (LN) n, force);
+
+                /* Clear target. */
+                setTarget(index, null);
+
+                return n.getMemorySizeIncludedByParent();
             }
-
-            /* Clear target. */
-            setTarget(index, null);
-
-            return n.getMemorySizeIncludedByParent();
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     /**
-     * Returns the old LSN to be counted as obsolete during logging of a dirty
-     * deferred-write LN.  If there is no old LSN, NULL_LSN is returned.  If
-     * je.deferredWrite.temp=false, return the file number with a zero offset
-     * so that inexact counting is used; we cannot guarantee obsoleteness until
-     * the parent tree is flushed. [#15365]
+     * Logs the LN at the given index if it is dirty.
      */
-    private long getObsoleteLsnForDWLogging(EnvironmentImpl envImpl,
-                                            int index) {
-        long lsn = getLsn(index);
-        if (lsn != DbLsn.NULL_LSN) {
-            if (!envImpl.getDeferredWriteTemp()) {
-                lsn = DbLsn.makeLsn(DbLsn.getFileNumber(lsn), 0);
+    private void logDirtyLN(int index, LN ln, boolean force)
+        throws DatabaseException {
+
+        if (ln.isDirty() || force) {
+            DatabaseImpl dbImpl = getDatabase();
+            EnvironmentImpl envImpl = dbImpl.getDbEnvironment();
+
+            /* Only deferred write databases should have dirty LNs. */
+            assert dbImpl.isDeferredWrite();
+
+            /* Log the LN with the main tree key. */
+            byte[] key = containsDuplicates() ? getDupKey() : getKey(index);
+
+            /*
+             * Get the old LSN to be counted as obsolete during logging of a
+             * dirty deferred-write LN.  If there is no old LSN, NULL_LSN is
+             * returned.  If je.deferredWrite.temp=false, return the file
+             * number with a zero offset so that inexact counting is used; we
+             * cannot guarantee obsoleteness until the parent tree is flushed.
+             * [#15365]
+             */
+            long obsoleteLsn = getLsn(index);
+            if (obsoleteLsn != DbLsn.NULL_LSN) {
+                if (!envImpl.getDeferredWriteTemp()) {
+                    obsoleteLsn = DbLsn.makeLsn
+                        (DbLsn.getFileNumber(obsoleteLsn), 0);
+                }
             }
+            int obsoleteSize = ln.getLastLoggedSize();
+
+            /* No need to lock, this is non-txnal. */
+            long lsn = ln.log(dbImpl.getDbEnvironment(),
+                              dbImpl.getId(),
+                              key,
+                              obsoleteLsn,
+                              obsoleteSize,
+                              null,          // locker
+                              true);         // backgroundIO
+            updateEntry(index, lsn);
         }
-        return lsn;
     }
 
     /* For debugging.  Overrides method in IN. */
@@ -1008,28 +1067,7 @@ public class BIN extends IN implements Loggable {
             if (node != null) {
 
                 if (node instanceof LN) {
-                    LN ln = (LN) node;
-
-                    /* No need to lock, this is non-txnal. */
-                    if (ln.isDirty()) {
-
-                        /* 
-                         * For DW we don't know the size of the last logged LN,
-                         * so we pass zero for the obsolete size.
-                         */
-                        long obsoleteLsn =
-                            getObsoleteLsnForDWLogging(envImpl, i);
-                        int obsoleteSize = ln.getLastLoggedSize();
-                        long childLsn = ln.log(envImpl,
-                                               getDatabase().getId(),
-                                               getKey(i),
-                                               obsoleteLsn,
-                                               obsoleteSize,
-                                               null,      // locker 
-                                               true);     // backgroundIO
-                        updateEntry(i, childLsn);
-                    }
-
+                    logDirtyLN(i, (LN) node, false);
                 } else {
                     DIN din = (DIN) node;
                     din.latch(false);
@@ -1139,39 +1177,13 @@ public class BIN extends IN implements Loggable {
         
         DatabaseId dbId = getDatabase().getId();
         EnvironmentImpl envImpl = getDatabase().getDbEnvironment();
+	boolean isDeferredWrite = getDatabase().isDeferredWrite();
                 
         for (int i = 0; i < getNEntries(); i++) {
             Node node = getTarget(i);
             if ((node != null) && (node instanceof LN)) {
-
-                LN ln = (LN) node;
-                if (ln.isDirty()) {
-
-                    /*
-                     * Only deferred write databases should have dirty
-                     * LNs. This is an overly stringent assertion, because a
-                     * db can flop between dw and durable mode, but is used
-                     * currently for our regression testing.
-                     */
-                    assert getDatabase().isDeferredWrite();
-
-                    /* 
-                     * For DW we don't know the size of the last logged LN, so
-                     * we pass zero for the obsolete size.
-                     */
-                    long obsoleteLsn = getObsoleteLsnForDWLogging(envImpl, i);
-                    int obsoleteSize = ln.getLastLoggedSize();
-                    long lsn = ln.log(envImpl,
-                                      dbId,
-                                      getKey(i),
-                                      null,           // delDupKey
-                                      obsoleteLsn,
-                                      obsoleteSize,
-                                      null,           // locker 
-                                      true,           // backgroundIO
-                                      false);         // Is provisional. 
-                    updateEntry(i, lsn);
-                }
+                logDirtyLN(i, (LN) node,
+			   (getLsn(i) == DbLsn.NULL_LSN && isDeferredWrite));
             }
         }
     }

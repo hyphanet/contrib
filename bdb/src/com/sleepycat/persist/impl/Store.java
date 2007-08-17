@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Store.java,v 1.20.2.2 2007/02/10 02:58:19 mark Exp $
+ * $Id: Store.java,v 1.20.2.5 2007/06/14 13:06:05 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -330,18 +330,27 @@ public class Store {
                     (keyBinding, entityBinding, getSequence(seqName));
             }
 
-            /* Use a single transaction for all opens. */
+            /*
+             * Use a single transaction for opening the primary DB and its
+             * secondaries.  If opening any secondary fails, abort the
+             * transaction and undo the changes to the state of the store.
+             * Also support undo if the store is non-transactional.
+             */
             Transaction txn = null;
             DatabaseConfig dbConfig = getPrimaryConfig(entityMeta);
             if (dbConfig.getTransactional() &&
 		env.getThreadTransaction() == null) {
                 txn = env.beginTransaction(null, null);
             }
+            PrimaryOpenState priOpenState =
+                new PrimaryOpenState(entityClassName);
             boolean success = false;
             try {
+        
                 /* Open the primary database. */
                 String dbName = storePrefix + entityClassName;
                 Database db = env.openDatabase(txn, dbName, dbConfig);
+                priOpenState.addDatabase(db);
 
                 /* Create index object. */
                 priIndex = new PrimaryIndex
@@ -356,7 +365,7 @@ public class Store {
 
                 /* If not read-only, open all associated secondaries. */
                 if (!dbConfig.getReadOnly()) {
-                    openSecondaryIndexes(entityMeta);
+                    openSecondaryIndexes(txn, entityMeta, priOpenState);
 
                     /*
                      * To enable foreign key contratints, also open all primary
@@ -373,12 +382,17 @@ public class Store {
                 }
                 success = true;
             } finally {
-                if (txn != null) {
-                    if (success) {
+                if (success) {
+                    if (txn != null) {
                         txn.commit();
-                    } else {
-                        txn.abort();
                     }
+                } else {
+                    if (txn != null) {
+                        txn.abort();
+                    } else {
+                        priOpenState.closeDatabases();
+                    }
+                    priOpenState.undoState();
                 }
             }
         }
@@ -386,7 +400,75 @@ public class Store {
     }
 
     /**
+     * Holds state information about opening a primary index and its secondary
+     * indexes.  Used to undo the state of this object if the transaction
+     * opening the primary and secondaries aborts.  Also used to close all
+     * databases opened during this process for a non-transactional store.
+     */
+    private class PrimaryOpenState {
+
+        private String entityClassName;
+        private IdentityHashMap<Database,Object> databases;
+        private Set<String> secNames;
+
+        PrimaryOpenState(String entityClassName) {
+            this.entityClassName = entityClassName;
+            databases = new IdentityHashMap<Database,Object>();
+            secNames = new HashSet<String>();
+        }
+
+        /**
+         * Save a database that was opening during this operation.
+         */
+        void addDatabase(Database db) {
+            databases.put(db, null);
+        }
+
+        /**
+         * Save the name of a secondary index that was opening during this
+         * operation.
+         */
+        void addSecondaryName(String secName) {
+            secNames.add(secName);
+        }
+
+        /**
+         * Close any databases opened during this operation when it fails.
+         * This method should be called if a non-transactional operation fails,
+         * since we cannot rely on the transaction abort to cleanup any
+         * databases that were opened.
+         */
+        void closeDatabases() {
+            for (Database db : databases.keySet()) {
+                try {
+                    db.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        /**
+         * Reset all state information when this operation fails.  This method
+         * should be called for both transactional and non-transsactional
+         * operation.
+         */
+        void undoState() {
+            priIndexMap.remove(entityClassName);
+            for (String secName : secNames) {
+                secIndexMap.remove(secName);
+            }
+            for (Database db : databases.keySet()) {
+                deferredWriteDatabases.remove(db);
+            }
+        }
+    }
+
+    /**
      * Opens a primary index related via a foreign key (relatedEntity).
+     * Related indexes are not opened in the same transaction used by the
+     * caller to open a primary or secondary.  It is OK to leave the related
+     * index open when the caller's transaction aborts.  It is only important
+     * to open a primary and its secondaries atomically.
      */
     private PrimaryIndex getRelatedIndex(String relatedClsName)
         throws DatabaseException {
@@ -404,7 +486,7 @@ public class Store {
                 relatedKeyClsName = null;
             } else {
                 try {
-                    relatedCls = Class.forName(relatedClsName);
+                    relatedCls = EntityModel.classForName(relatedClsName);
                 } catch (ClassNotFoundException e) {
                     throw new IllegalArgumentException
                         ("Related entity class not found: " +
@@ -415,7 +497,12 @@ public class Store {
                 relatedKeyCls =
                     SimpleCatalog.keyClassForName(relatedKeyClsName);
             }
-            /* XXX Check to make sure cycles are not possible here. */
+
+            /*
+             * Cycles are prevented here by adding primary indexes to the
+             * priIndexMap as soon as they are created, before opening related
+             * indexes.
+             */
             relatedIndex = getPrimaryIndex
                 (relatedKeyCls, relatedKeyClsName,
                  relatedCls, relatedClsName);
@@ -491,7 +578,8 @@ public class Store {
 
             secIndex = openSecondaryIndex
                 (null, primaryIndex, entityClass, entityMeta,
-                 keyClass, keyClassName, secKeyMeta, secName);
+                 keyClass, keyClassName, secKeyMeta, secName,
+                 false /*doNotCreate*/, null /*priOpenState*/);
         }
         return secIndex;
     }
@@ -503,7 +591,9 @@ public class Store {
      * EntityStore.getSubclassIndex has not been previously called for that
      * class. [#15247]
      */
-    synchronized void openSecondaryIndexes(EntityMetadata entityMeta)
+    synchronized void openSecondaryIndexes(Transaction txn,
+                                           EntityMetadata entityMeta,
+                                           PrimaryOpenState priOpenState)
         throws DatabaseException {
 
         String entityClassName = entityMeta.getClassName();
@@ -520,14 +610,16 @@ public class Store {
                 secIndexMap.get(secName);
             if (secIndex == null) {
                 String keyClassName = getSecKeyClass(secKeyMeta);
-                /* XXX: should not require class in raw mode. */
+                /* RawMode: should not require class. */
                 Class keyClass =
                     SimpleCatalog.keyClassForName(keyClassName);
                 openSecondaryIndex
-                    (null, priIndex, entityClass, entityMeta,
+                    (txn, priIndex, entityClass, entityMeta,
                      keyClass, keyClassName, secKeyMeta,
                      makeSecName
-                        (entityClassName, secKeyMeta.getKeyName()));
+                        (entityClassName, secKeyMeta.getKeyName()),
+                     storeConfig.getSecondaryBulkLoad() /*doNotCreate*/,
+                     priOpenState);
             }
         }
     }
@@ -544,7 +636,9 @@ public class Store {
                            Class<SK> keyClass,
                            String keyClassName,
                            SecondaryKeyMetadata secKeyMeta,
-                           String secName)
+                           String secName,
+                           boolean doNotCreate,
+                           PrimaryOpenState priOpenState)
         throws DatabaseException {
 
         assert !secIndexMap.containsKey(secName);
@@ -572,8 +666,33 @@ public class Store {
 
         PersistKeyBinding keyBinding = getKeyBinding(keyClassName);
         
-        SecondaryDatabase db =
-            env.openSecondaryDatabase(txn, dbName, priDb, config);
+        /*
+         * doNotCreate is true when StoreConfig.getSecondaryBulkLoad is true
+         * and we are opening a secondary as a side effect of opening a
+         * primary, i.e., getSecondaryIndex is not being called.  If
+         * doNotCreate is true and the database does not exist, we silently
+         * ignore the DatabaseNotFoundException and return null.  When
+         * getSecondaryIndex is subsequently called, the secondary database
+         * will be created and populated from the primary -- a bulk load.
+         */
+        SecondaryDatabase db;
+        boolean saveAllowCreate = config.getAllowCreate();
+        try {
+            if (doNotCreate) {
+                config.setAllowCreate(false);
+            }
+            db = env.openSecondaryDatabase(txn, dbName, priDb, config);
+        } catch (DatabaseNotFoundException e) {
+            if (doNotCreate) {
+                return null;
+            } else {
+                throw e;
+            }
+        } finally {
+            if (doNotCreate) {
+                config.setAllowCreate(saveAllowCreate);
+            }
+        }
         SecondaryIndex<SK,PK,E2> secIndex = new SecondaryIndex
             (db, null, primaryIndex, keyClass, keyBinding);
 
@@ -581,6 +700,10 @@ public class Store {
         secIndexMap.put(secName, secIndex);
         if (DbCompat.getDeferredWrite(config)) {
             deferredWriteDatabases.put(db, null);
+        }
+        if (priOpenState != null) {
+            priOpenState.addDatabase(db);
+            priOpenState.addSecondaryName(secName);
         }
         return secIndex;
     }
@@ -953,7 +1076,8 @@ public class Store {
         EntityMetadata meta = model.getEntityMetadata(clsName);
         if (meta == null) {
             throw new IllegalArgumentException
-                ("Not an entity class: " + clsName);
+                ("Class could not be loaded or is not an entity class: " +
+                 clsName);
         }
         return meta;
     }

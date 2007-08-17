@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Database.java,v 1.216.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: Database.java,v 1.216.2.2 2007/07/02 19:54:48 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -280,6 +280,7 @@ public class Database {
 
         if (databaseImpl != null) {
             databaseImpl.removeReferringHandle(this);
+            envHandle.getEnvironmentImpl().releaseDb(databaseImpl);
             databaseImpl = null;
 
             /* 
@@ -1105,6 +1106,14 @@ public class Database {
         envHandle.removeReferringHandle(this);
         if (databaseImpl != null) {
             databaseImpl.removeReferringHandle(this);
+            envHandle.getEnvironmentImpl().releaseDb(databaseImpl);
+
+            /*
+             * Database.close may be called after an abort.  By setting the
+             * databaseImpl field to null we ensure that close won't call
+             * releaseDb or endOperation. [#13415]
+             */
+            databaseImpl = null;
         }
     }
 

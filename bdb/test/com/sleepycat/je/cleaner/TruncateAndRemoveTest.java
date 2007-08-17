@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TruncateAndRemoveTest.java,v 1.18.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: TruncateAndRemoveTest.java,v 1.18.2.2 2007/07/02 19:54:54 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -60,8 +60,10 @@ public class TruncateAndRemoveTest extends TestCase {
     private File envHome;
     private Environment env;
     private Database db;
+    private DatabaseImpl dbImpl;
     private JUnitThread junitThread;
     private boolean fetchObsoleteSize;
+    private boolean dbEviction;
 
     public TruncateAndRemoveTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
@@ -103,6 +105,7 @@ public class TruncateAndRemoveTest extends TestCase {
         }
 
         db = null;
+        dbImpl = null;
         env = null;
         envHome = null;
     }
@@ -145,6 +148,10 @@ public class TruncateAndRemoveTest extends TestCase {
         }
 
         env = new Environment(envHome, config);
+
+        config = env.getConfig();
+        dbEviction = config.getConfigParam
+            (EnvironmentParams.ENV_DB_EVICTION.getName()).equals("true");
     }
 
     /**
@@ -158,6 +165,20 @@ public class TruncateAndRemoveTest extends TestCase {
         dbConfig.setTransactional(envConfig.getTransactional());
         dbConfig.setAllowCreate(true);
         db = env.openDatabase(useTxn, dbName, dbConfig);
+        dbImpl = DbInternal.dbGetDatabaseImpl(db);
+    }
+
+    /**
+     * Closes the database.
+     */
+    private void closeDb()
+        throws DatabaseException {
+
+        if (db != null) {
+            db.close();
+            db = null;
+            dbImpl = null;
+        }
     }
 
     /**
@@ -166,10 +187,8 @@ public class TruncateAndRemoveTest extends TestCase {
     private void closeEnv()
         throws DatabaseException {
 
-        if (db != null) {
-            db.close();
-            db = null;
-        }
+        closeDb();
+
         if (env != null) {
             env.close();
             env = null;
@@ -185,14 +204,21 @@ public class TruncateAndRemoveTest extends TestCase {
         openEnv(true);
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
-        DatabaseId saveId = DbInternal.dbGetDatabaseImpl(db).getId();
-        db.close();
-        db = null;
+        DatabaseImpl saveDb = dbImpl;
+        DatabaseId saveId = dbImpl.getId();
+        closeDb();
 
         Transaction txn = env.beginTransaction(null, null);
         truncate(txn, true);
         ObsoleteCounts beforeCommit = getObsoleteCounts();
         txn.commit();
+
+        /* Make sure use count is decremented when we commit. */
+        assertDbInUse(saveDb, false);
+        openDb(null, DB_NAME1);
+        saveDb = dbImpl;
+        closeDb();
+        assertDbInUse(saveDb, false);
 
         verifyUtilization(beforeCommit, 
                           RECORD_COUNT + // LNs
@@ -212,13 +238,20 @@ public class TruncateAndRemoveTest extends TestCase {
         openEnv(true);
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
-        db.close();
-        db = null;
+        DatabaseImpl saveDb = dbImpl;
+        closeDb();
 
         Transaction txn = env.beginTransaction(null, null);
         truncate(txn, true);
         ObsoleteCounts beforeAbort = getObsoleteCounts();
         txn.abort();
+
+        /* Make sure use count is decremented when we abort. */
+        assertDbInUse(saveDb, false);
+        openDb(null, DB_NAME1);
+        saveDb = dbImpl;
+        closeDb();
+        assertDbInUse(saveDb, false);
 
         /* 
          * The obsolete count should include the records inserted after
@@ -244,8 +277,7 @@ public class TruncateAndRemoveTest extends TestCase {
         openEnv(true);
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
-        db.close();
-        db = null;
+        closeDb();
 
         Transaction txn = env.beginTransaction(null, null);
         truncate(txn, true);
@@ -253,11 +285,18 @@ public class TruncateAndRemoveTest extends TestCase {
         /* populate the database with some more records. */
         openDb(txn, DB_NAME1);
         writeAndCountRecords(txn, RECORD_COUNT/4);
-        DatabaseId saveId = DbInternal.dbGetDatabaseImpl(db).getId();
-        db.close();
-        db = null;
+        DatabaseImpl saveDb = dbImpl;
+        DatabaseId saveId = dbImpl.getId();
+        closeDb();
         ObsoleteCounts beforeAbort = getObsoleteCounts();
         txn.abort();
+
+        /* Make sure use count is decremented when we abort. */
+        assertDbInUse(saveDb, false);
+        openDb(null, DB_NAME1);
+        saveDb = dbImpl;
+        closeDb();
+        assertDbInUse(saveDb, false);
 
         /* 
          * The obsolete count should include the records inserted after
@@ -286,14 +325,17 @@ public class TruncateAndRemoveTest extends TestCase {
         openEnv(true);
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
-        DatabaseId saveId = DbInternal.dbGetDatabaseImpl(db).getId();
-        db.close();
-        db = null;
+        DatabaseImpl saveDb = dbImpl;
+        DatabaseId saveId = dbImpl.getId();
+        closeDb();
 
         Transaction txn = env.beginTransaction(null, null);
         env.removeDatabase(txn, DB_NAME1);
         ObsoleteCounts beforeCommit = getObsoleteCounts();
         txn.commit();
+
+        /* Make sure use count is decremented when we commit. */
+        assertDbInUse(saveDb, false);
 
         verifyUtilization(beforeCommit,
                           /* LNs + old NameLN, old MapLN, delete MapLN */
@@ -316,11 +358,14 @@ public class TruncateAndRemoveTest extends TestCase {
         openEnv(false);
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
-        DatabaseId saveId = DbInternal.dbGetDatabaseImpl(db).getId();
-        db.close();
-        db = null;
+        DatabaseImpl saveDb = dbImpl;
+        DatabaseId saveId = dbImpl.getId();
+        closeDb();
         ObsoleteCounts beforeOperation = getObsoleteCounts();
         env.removeDatabase(null, DB_NAME1);
+
+        /* Make sure use count is decremented. */
+        assertDbInUse(saveDb, false);
 
         verifyUtilization(beforeOperation,
                           /* LNs + new NameLN, old NameLN, old MapLN, delete
@@ -345,12 +390,15 @@ public class TruncateAndRemoveTest extends TestCase {
         openEnv(true);
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
-        db.close();
-        db = null;
+        DatabaseImpl saveDb = dbImpl;
+        closeDb();
         Transaction txn = env.beginTransaction(null, null);
         env.removeDatabase(txn, DB_NAME1);
         ObsoleteCounts beforeAbort = getObsoleteCounts();
         txn.abort();
+
+        /* Make sure use count is decremented when we abort. */
+        assertDbInUse(saveDb, false);
 
         verifyUtilization(beforeAbort, 0, 0);
 
@@ -400,10 +448,7 @@ public class TruncateAndRemoveTest extends TestCase {
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
         DatabaseId saveId = DbInternal.dbGetDatabaseImpl(db).getId();
-        db.close();
-        db = null;
-        env.close();
-        env = null;
+        closeEnv();
 
         /* 
          * Open the environment and remove the database. The
@@ -453,10 +498,7 @@ public class TruncateAndRemoveTest extends TestCase {
         openDb(null, DB_NAME1);
         writeAndCountRecords(null, RECORD_COUNT);
         DatabaseId saveId = DbInternal.dbGetDatabaseImpl(db).getId();
-        db.close();
-        db = null;
-        env.close();
-        env = null;
+        closeEnv();
 
         /* 
          * Open the environment and remove the database. Pull 1 BIN in.
@@ -468,13 +510,16 @@ public class TruncateAndRemoveTest extends TestCase {
                      c.getFirst(new DatabaseEntry(), new DatabaseEntry(), 
                                 LockMode.DEFAULT));
         c.close();
-        db.close();
-        db = null;
+        DatabaseImpl saveDb = dbImpl;
+        closeDb();
 
         Transaction txn = env.beginTransaction(null, null);
         env.removeDatabase(txn, DB_NAME1);
         ObsoleteCounts beforeCommit = getObsoleteCounts();
         txn.commit();
+
+        /* Make sure use count is decremented when we commit. */
+        assertDbInUse(saveDb, false);
 
         verifyUtilization(beforeCommit,
                           /* LNs + old NameLN, old MapLN, delete MapLN */
@@ -527,11 +572,11 @@ public class TruncateAndRemoveTest extends TestCase {
         long remainingRecordCount = deleteAll ? 0 : recordCount;
         env.checkpoint(FORCE_CHECKPOINT);
         ObsoleteCounts obsoleteCounts = getObsoleteCounts();
-        DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db); 
-        db.close();
-        db = null;
-        assertTrue(!dbImpl.isDeleteFinished());
-        assertTrue(!dbImpl.isDeleted());
+        DatabaseImpl saveDb = dbImpl;
+        closeDb();
+        assertTrue(!saveDb.isDeleteFinished());
+        assertTrue(!saveDb.isDeleted());
+        assertDbInUse(saveDb, false);
 
         /* Make sure that we wrote a full file's worth of LNs. */
         assertTrue(logFiles.size() >= 3);
@@ -562,7 +607,7 @@ public class TruncateAndRemoveTest extends TestCase {
          */
         final Object lock = new Object();
 
-        dbImpl.setPendingDeletedHook(new TestHook() {
+        saveDb.setPendingDeletedHook(new TestHook() {
             public void doIOHook()
                 throws IOException {
                 throw new UnsupportedOperationException();
@@ -588,8 +633,9 @@ public class TruncateAndRemoveTest extends TestCase {
             junitThread.start();
             lock.wait();
         }
-        assertTrue(!dbImpl.isDeleteFinished());
-        assertTrue(dbImpl.isDeleted());
+        assertTrue(!saveDb.isDeleteFinished());
+        assertTrue(saveDb.isDeleted());
+        assertDbInUse(saveDb, true);
 
         /* Expect obsolete LNs: NameLN */
         obsoleteCounts = verifyUtilization(obsoleteCounts, 1, 0);
@@ -616,8 +662,9 @@ public class TruncateAndRemoveTest extends TestCase {
             e.printStackTrace();
             fail(e.toString());
         }
-        assertTrue(dbImpl.isDeleteFinished());
-        assertTrue(dbImpl.isDeleted());
+        assertTrue(saveDb.isDeleteFinished());
+        assertTrue(saveDb.isDeleted());
+        assertDbInUse(saveDb, false);
 
         /* Expect obsolete LNs: recordCount + MapLN + FSLNs (apprx). */
         verifyUtilization(obsoleteCounts, remainingRecordCount + 6, 0);
@@ -724,21 +771,26 @@ public class TruncateAndRemoveTest extends TestCase {
 
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
+        boolean opened = false;
         if (db == null) {
             openDb(useTxn, DB_NAME1);
+            opened = true;
         }
         Cursor cursor = db.openCursor(useTxn, null);
+        int count = 0;
         try {
-            int count = 0;
             OperationStatus status = cursor.getFirst(key, data, null);
             while (status == OperationStatus.SUCCESS) {
                 count += 1;
                 status = cursor.getNext(key, data, null);
             }
-            return count;
         } finally {
             cursor.close();
         }
+        if (opened) {
+            closeDb();
+        }
+        return count;
     }
 
     /**
@@ -850,6 +902,17 @@ public class TruncateAndRemoveTest extends TestCase {
     }
 
     /**
+     * Checks whether a given DB has a non-zero use count.  Does nothing if
+     * je.dbEviction is not enabled, since reference counts are only maintained
+     * if that config parameter is enabled.
+     */
+    private void assertDbInUse(DatabaseImpl db, boolean inUse) {
+        if (dbEviction) {
+            assertEquals(inUse, db.isInUse());
+        }
+    }
+
+    /**
      * Returns true if all files exist, or false if any file is deleted.
      */
     private boolean logFilesExist(Set fileNumbers) {
@@ -889,8 +952,7 @@ public class TruncateAndRemoveTest extends TestCase {
         writeAndCountRecords(null, RECORD_COUNT * 3);
         env.checkpoint(force);
 
-        db.close();
-        db = null;
+        closeDb();
 
         /* Check log files, there should be entries with this database. */
         CheckReader checker = new CheckReader(env, dbId, true);

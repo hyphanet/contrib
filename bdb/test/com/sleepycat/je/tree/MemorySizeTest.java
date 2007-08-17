@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MemorySizeTest.java,v 1.21.2.2 2007/03/07 01:24:42 mark Exp $
+ * $Id: MemorySizeTest.java,v 1.21.2.3 2007/07/02 19:54:55 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -27,6 +27,7 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.log.FileManager;
@@ -411,7 +412,8 @@ public class MemorySizeTest extends TestCase {
             Iterator iter = inList.iterator();
             while (iter.hasNext()) {
                 IN in = (IN) iter.next();
-                if (in instanceof BIN) {
+                if (in instanceof BIN &&
+                    !in.getDatabase().getId().equals(DbTree.ID_DB_ID)) {
                     BIN bin = (BIN) in;
                     bin.latch();
                     assertTrue(bin.evictLNs() > 0);

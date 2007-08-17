@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseImpl.java,v 1.157.2.5 2007/03/09 17:37:09 linda Exp $
+ * $Id: DatabaseImpl.java,v 1.157.2.7 2007/07/02 19:54:49 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -92,6 +92,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
     private BtreeStats stats;     // most recent btree stats w/ !DB_FAST_STAT
     private long eofNodeId;       // Logical EOF node for range locking
     private short deleteState;    // one of four delete states.
+    private int useCount = 0;     // If non-zero, eviction is prohibited
 
     /*
      * The user defined Btree and duplicate comparison functions, if specified.
@@ -220,13 +221,20 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     /**
-     * Clone.  For now just pass off to the super class for a field-by-field
-     * copy.
+     * Clone.  For the most part, just pass off to the super class for a
+     * field-by-field copy.
      */
-    public Object clone()
-        throws CloneNotSupportedException {
+    public DatabaseImpl cloneDb()
+        throws DatabaseException {
 
-        return super.clone();
+        try {
+            DatabaseImpl newDb = (DatabaseImpl) clone();
+            /* The cloned DB could have a non-zero use count. [#13415] */
+            newDb.useCount = 0;
+            return newDb;
+	} catch (CloneNotSupportedException e) {
+	    throw new DatabaseException(e);
+        }
     }
 
     /**
@@ -436,6 +444,69 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     /**
+     * Increments the use count of this DB to prevent it from being
+     * evicted.  Called by the DbTree.createDb/getDb methods that return a
+     * DatabaseImpl.  Must be called while holding a lock on the MapLN. See
+     * isInUse. [#13415]
+     */
+    void incrementUseCount() {
+        if (envImpl.getDbEviction()) {
+            /* Synchronize to update useCount atomically. */
+            synchronized (this) {
+                useCount += 1;
+            }
+        }
+    }
+
+    /**
+     * Decrements the use count of this DB, allowing it to be evicted if the
+     * use count reaches zero.  Called via DbTree.releaseDb to release a
+     * DatabaseImpl that was returned by a DbTree.createDb/getDb method. See
+     * isInUse. [#13415]
+     */
+    void decrementUseCount() {
+        if (envImpl.getDbEviction()) {
+            /* Synchronize to update useCount atomically. */
+            synchronized (this) {
+                assert useCount > 0;
+                useCount -= 1;
+            }
+        }
+    }
+
+    /**
+     * Returns whether this DB is in use and cannot be evicted.  Called by
+     * MapLN.isEvictable while holding a write-lock on the MapLN and a latch on
+     * its parent BIN. [#13415]
+     *
+     * When isInUse returns false (while holding a write-lock on the MapLN and
+     * a latch on the parent BIN), it guarantees that the database object
+     * is not in use and cannot be acquired by another thread (via
+     * DbTree.createDb/getDb) until both the MapLN lock and BIN latch are
+     * released.  This guarantee is due to the fact that DbTree.createDb/getDb
+     * only increment the use count while holding a read-lock on the MapLN.
+     * Therefore, it is safe to evict the MapLN when isInUse returns false.
+     *
+     * When isInUse returns true, it is possible that another thread may
+     * decrement the use count at any time, since no locking or latching is
+     * performed when calling DbTree.releaseDb (which calls decrementUseCount).
+     * Therefore, it is not guaranteed that the MapLN is in use when isInUse
+     * returns true.  A true result means: the DB may be in use, so it is not
+     * safe to evict it.
+     */
+    public boolean isInUse() {
+        if (envImpl.getDbEviction()) {
+            /* Synchronize to read the up-to-date value of useCount. */
+            synchronized (this) {
+                return (useCount > 0);
+            }
+        } else {
+            /* Always prohibit eviction when je.env.dbEviction=false. */
+            return true;
+        }
+    }
+
+    /**
      * Flush all dirty nodes for this database to disk.
      */
     public synchronized void sync(boolean flushLog) 
@@ -592,6 +663,8 @@ public class DatabaseImpl implements Loggable, Cloneable {
                 (snapshot.getTrackedFiles());
         } finally {
             deleteState = DELETED;
+            /* releaseDb to balance getDb called by truncate/remove. */
+            envImpl.releaseDb(this);
         }
     }
 
@@ -1209,10 +1282,16 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	    in.latch();
 	    try {
 		int index = inEntry.index;
-		if (in.isEntryKnownDeleted(index) ||
-		    in.getLsn(index) != lsn) {
-		    return null;
-		}
+                if (index < 0) {
+                    /* Negative index signifies a DupCountLN. */
+                    DIN din = (DIN) in;
+                    return din.getDupCountLN();
+                } else {
+                    if (in.isEntryKnownDeleted(index) ||
+                        in.getLsn(index) != lsn) {
+                        return null;
+                    }
+                }
 		return in.fetchTarget(index);
 	    } finally {
 		in.releaseLatch();

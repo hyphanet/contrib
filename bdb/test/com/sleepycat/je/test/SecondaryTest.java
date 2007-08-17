@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryTest.java,v 1.38.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: SecondaryTest.java,v 1.38.2.2 2007/06/13 21:22:18 mark Exp $
  */
 
 package com.sleepycat.je.test;
@@ -18,6 +18,7 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
@@ -27,12 +28,15 @@ import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryKeyCreator;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.junit.JUnitThread;
 import com.sleepycat.je.util.TestUtils;
 
 public class SecondaryTest extends MultiKeyTxnTestCase {
 
     private static final int NUM_RECS = 5;
     private static final int KEY_OFFSET = 100;
+
+    private JUnitThread junitThread;
 
     private static EnvironmentConfig envConfig = TestUtils.initEnvConfig();
     static {
@@ -41,12 +45,26 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(),
                                  "6");
         envConfig.setTxnNoSync(Boolean.getBoolean(TestUtils.NO_SYNC));
+        envConfig.setLockTimeout(1); // to speed up intentional deadlocks
         envConfig.setAllowCreate(true);
     }
 
     public static Test suite() {
 
         return multiKeyTxnTestSuite(SecondaryTest.class, envConfig, null);
+    }
+
+    public void tearDown()
+        throws Exception {
+
+        super.tearDown();
+        if (junitThread != null) {
+            while (junitThread.isAlive()) {
+                junitThread.interrupt();
+                Thread.yield();
+            }
+            junitThread = null;
+        }
     }
 
     public void testPutAndDelete()
@@ -275,6 +293,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -291,6 +310,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
             assertDataEquals(entry(NUM_RECS - 1 + KEY_OFFSET), secKey);
             assertDataEquals(entry(NUM_RECS - 1), key);
             assertDataEquals(entry(NUM_RECS - 1), data);
+            assertPriLocked(priDb, key);
 
             /* SecondaryCursor.getLast()/getPrev() */
             secKey.setData(null);
@@ -302,6 +322,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -318,6 +339,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
             assertDataEquals(entry(0 + KEY_OFFSET), secKey);
             assertDataEquals(entry(0), key);
             assertDataEquals(entry(0), data);
+            assertPriLocked(priDb, key);
 
             /* SecondaryCursor.getSearchKey() */
             key.setData(null);
@@ -333,6 +355,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertSame(OperationStatus.SUCCESS, status);
                 assertDataEquals(entry(i), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key);
             }
             key.setData(null);
             data.setData(null);
@@ -351,6 +374,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                                               data, LockMode.DEFAULT);
                 assertSame(OperationStatus.SUCCESS, status);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, entry(i));
             }
             data.setData(null);
             status = cursor.getSearchBoth(entry(NUM_RECS + KEY_OFFSET),
@@ -366,6 +390,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
             assertSame(OperationStatus.SUCCESS, status);
             assertDataEquals(entry(0), key);
             assertDataEquals(entry(0), data);
+            assertPriLocked(priDb, key);
             for (int i = 0; i < NUM_RECS; i += 1) {
                 key.setData(null);
                 data.setData(null);
@@ -374,6 +399,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertSame(OperationStatus.SUCCESS, status);
                 assertDataEquals(entry(i), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key);
             }
             key.setData(null);
             data.setData(null);
@@ -387,6 +413,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                                                data, LockMode.DEFAULT);
             assertSame(OperationStatus.SUCCESS, status);
             assertDataEquals(entry(1), data);
+            assertPriLocked(priDb, entry(1));
             for (int i = 0; i < NUM_RECS; i += 1) {
                 data.setData(null);
                 status = cursor.getSearchBothRange(entry(i + KEY_OFFSET),
@@ -394,6 +421,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                                                    LockMode.DEFAULT);
                 assertSame(OperationStatus.SUCCESS, status);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, entry(i));
             }
             data.setData(null);
             status = cursor.getSearchBothRange(entry(NUM_RECS + KEY_OFFSET),
@@ -422,6 +450,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key, data);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -431,6 +460,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i + KEY_OFFSET), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key, data);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -454,6 +484,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key, data);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -472,6 +503,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i + KEY_OFFSET), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key, data);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -481,6 +513,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key, data);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -504,6 +537,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
                 assertDataEquals(entry(i + KEY_OFFSET), secKey);
                 assertDataEquals(entry(i + KEY_OFFSET), key);
                 assertDataEquals(entry(i), data);
+                assertPriLocked(priDb, key, data);
                 secKey.setData(null);
                 key.setData(null);
                 data.setData(null);
@@ -1459,6 +1493,61 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
 
     private void assertDataEquals(DatabaseEntry e1, DatabaseEntry e2) {
         assertTrue(e1.equals(e2));
+    }
+
+    private void assertPriLocked(Database priDb, DatabaseEntry key) {
+        assertPriLocked(priDb, key, null);
+    }
+
+    /**
+     * Checks that the given key (or both key and data if data is non-null) is
+     * locked in the primary database.  The primary record should be locked
+     * whenever a secondary cursor is positioned to point to that primary
+     * record. [#15573]
+     */
+    private void assertPriLocked(final Database priDb,
+                                 final DatabaseEntry key,
+                                 final DatabaseEntry data) {
+
+        /*
+         * Whether the record is locked transactionally or not in the current
+         * thread, we should not be able to write lock the record
+         * non-transactionally in another thread.
+         */
+        final StringBuffer error = new StringBuffer();
+        junitThread = new JUnitThread("primary-locker") {
+            public void testBody() 
+                throws DatabaseException {
+                try {
+                    if (data != null) {
+                        priDb.getSearchBoth(null, key, data, LockMode.RMW);
+                    } else {
+                        DatabaseEntry myData = new DatabaseEntry();
+                        priDb.get(null, key, myData, LockMode.RMW);
+                    }
+                    error.append("Expected DeadlockException");
+                } catch (DeadlockException expected) {
+                }
+            }
+        };
+
+        junitThread.start();
+        Throwable t = null;
+        try {
+            junitThread.finishTest();
+        } catch (Throwable e) {
+            t = e;
+        } finally {
+            junitThread = null;
+        }
+
+        if (t != null) {
+            t.printStackTrace();
+            fail(t.toString());
+        }
+        if (error.length() > 0) {
+            fail(error.toString());
+        }
     }
 
     private static class MyKeyCreator implements SecondaryKeyCreator {

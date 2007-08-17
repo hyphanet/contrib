@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INCompressor.java,v 1.125.2.2 2007/03/07 01:24:37 mark Exp $
+ * $Id: INCompressor.java,v 1.125.2.5 2007/07/02 19:54:50 mark Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -97,12 +97,6 @@ public class INCompressor extends DaemonThread {
         binRefQueueSync = new Object();
     }
 
-    public String toString() {
-	StringBuffer sb = new StringBuffer();
-	sb.append("<INCompressor name=\"").append(name).append("\"/>");
-	return sb.toString();
-    }
-
     synchronized public void clearEnv() {
 	env = null;
     }
@@ -126,20 +120,28 @@ public class INCompressor extends DaemonThread {
 	    queueSnapshot = new ArrayList(binRefQueue.values());
         }
 
-        /* Use local caching to reduce DbTree.getDb overhead. */
+        /*
+         * Use local caching to reduce DbTree.getDb overhead.  Do not call
+         * releaseDb after each getDb, since the entire dbCache will be
+         * released at the end.
+         */
+        DbTree dbTree = env.getDbMapTree();
         Map dbCache = new HashMap();
-
-	Iterator it = queueSnapshot.iterator();
-	while (it.hasNext()) {
-	    BINReference binRef = (BINReference) it.next();
-            DatabaseImpl db = env.getDbMapTree().getDb
-                (binRef.getDatabaseId(), lockTimeout, dbCache);
-	    BIN bin = searchForBIN(db, binRef);
-	    if (bin != null) {
-		bin.verifyCursors();
-		bin.releaseLatch();
-	    }
-	}
+        try {
+            Iterator it = queueSnapshot.iterator();
+            while (it.hasNext()) {
+                BINReference binRef = (BINReference) it.next();
+                DatabaseImpl db = dbTree.getDb
+                    (binRef.getDatabaseId(), lockTimeout, dbCache);
+                BIN bin = searchForBIN(db, binRef);
+                if (bin != null) {
+                    bin.verifyCursors();
+                    bin.releaseLatch();
+                }
+            }
+        } finally {
+            dbTree.releaseDbs(dbCache);
+        }
     }
 
     /**
@@ -462,8 +464,9 @@ public class INCompressor extends DaemonThread {
                     env.getUtilizationProfile().countAndLogSummaries
                         (summaries);
                 }
-                
+
             } finally {
+                dbTree.releaseDbs(dbCache);
                 assert LatchSupport.countLatchesHeld() == 0;
                 accumulatePerRunCounters();
             }
@@ -790,7 +793,10 @@ public class INCompressor extends DaemonThread {
                                  Map dbCache) 
         throws DatabaseException {
 
-        /* Find the database. */
+        /*
+         * Find the database.  Do not call releaseDb after this getDb, since
+         * the entire dbCache will be released later.
+         */
         binSearch.db = dbTree.getDb
             (binRef.getDatabaseId(), lockTimeout, dbCache);
         if ((binSearch.db == null) ||(binSearch.db.isDeleted())) {  

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileReader.java,v 1.99.2.3 2007/04/04 14:28:22 cwl Exp $
+ * $Id: FileReader.java,v 1.99.2.4 2007/05/31 21:55:32 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -267,7 +267,8 @@ public abstract class FileReader {
 
                 readBasicHeader(dataBuffer);
                 if (currentEntryHeader.getReplicate()) {
-                    dataBuffer = readData(currentEntryHeader.getVariablePortionSize(), true);
+                    dataBuffer = readData
+                        (currentEntryHeader.getVariablePortionSize(), true);
                     currentEntryHeader.readVariablePortion(dataBuffer);
                 }
 
@@ -338,26 +339,38 @@ public abstract class FileReader {
         } catch (DatabaseException e) {
             eof = true;
             /* Report on error. */
-            LogEntryType problemType =
-                LogEntryType.findType(currentEntryHeader.getType(),
-				      currentEntryHeader.getVersion());
-            Tracer.trace(envImpl, "FileReader", "readNextEntry",
-			 "Halted log file reading at file 0x" +
-                         Long.toHexString(readBufferFileNum) +
-                         " offset 0x" +
-                         Long.toHexString(nextEntryOffset) +
-                         " offset(decimal)=" + nextEntryOffset +
-                         ":\nentry="+ problemType +
-                         "(typeNum=" + currentEntryHeader.getType() +
-                         ",version=" + currentEntryHeader.getVersion() +
-                         ")\nprev=0x" +
-                         Long.toHexString(currentEntryPrevOffset) +
-                         "\nsize=" + currentEntryHeader.getItemSize() +
-                         "\nNext entry should be at 0x" +
-                         Long.toHexString((nextEntryOffset +
+            if (currentEntryHeader != null) {
+                LogEntryType problemType =
+                    LogEntryType.findType(currentEntryHeader.getType(),
+                                          currentEntryHeader.getVersion());
+                Tracer.trace(envImpl, "FileReader", "readNextEntry",
+                             "Halted log file reading at file 0x" +
+                             Long.toHexString(readBufferFileNum) +
+                             " offset 0x" +
+                             Long.toHexString(nextEntryOffset) +
+                             " offset(decimal)=" + nextEntryOffset +
+                             ":\nentry="+ problemType +
+                             "(typeNum=" + currentEntryHeader.getType() +
+                             ",version=" + currentEntryHeader.getVersion() +
+                             ")\nprev=0x" +
+                             Long.toHexString(currentEntryPrevOffset) +
+                             "\nsize=" + currentEntryHeader.getItemSize() +
+                             "\nNext entry should be at 0x" +
+                             Long.toHexString((nextEntryOffset +
                                            currentEntryHeader.getSize() +
                                            currentEntryHeader.getItemSize())) +
-                         "\n:", e);
+                             "\n:", e);
+            } else {
+                Tracer.trace(envImpl, "FileReader", "readNextEntry",
+                             "Halted log file reading at file 0x" +
+                             Long.toHexString(readBufferFileNum) +
+                             " offset 0x" +
+                             Long.toHexString(nextEntryOffset) +
+                             " offset(decimal)=" + nextEntryOffset +
+                             " prev=0x" +
+                             Long.toHexString(currentEntryPrevOffset),
+                             e);
+            }
             throw e;
         }
         return foundEntry;

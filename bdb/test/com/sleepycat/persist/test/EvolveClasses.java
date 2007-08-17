@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: EvolveClasses.java,v 1.11.2.1 2007/02/01 14:50:24 cwl Exp $
+ * $Id: EvolveClasses.java,v 1.11.2.2 2007/05/01 04:08:36 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -326,7 +326,7 @@ if (true) {
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DeletedEntity3_AnnotRemoved_NoMutation version: 0 Error: java.lang.IllegalArgumentException: Class is not persistent: com.sleepycat.persist.test.EvolveClasses$DeletedEntity3_AnnotRemoved_NoMutation";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DeletedEntity3_AnnotRemoved_NoMutation version: 0 Error: java.lang.IllegalArgumentException: Class could not be loaded or is not persistent: com.sleepycat.persist.test.EvolveClasses$DeletedEntity3_AnnotRemoved_NoMutation";
         }
 
         @Override
@@ -391,7 +391,7 @@ if (true) {
                 TestCase.fail();
             } catch (Exception e) {
                 checkEquals
-                    ("java.lang.IllegalArgumentException: Not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedEntity4_AnnotRemoved_WithDeleter",
+                    ("java.lang.IllegalArgumentException: Class could not be loaded or is not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedEntity4_AnnotRemoved_WithDeleter",
                      e.toString());
             }
         }
@@ -493,7 +493,7 @@ if (true) {
                 TestCase.fail();
             } catch (Exception e) {
                 checkEquals
-                    ("java.lang.IllegalArgumentException: Not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedEntity6_EntityToPersist_WithDeleter",
+                    ("java.lang.IllegalArgumentException: Class could not be loaded or is not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedEntity6_EntityToPersist_WithDeleter",
                      e.toString());
             }
 
@@ -644,7 +644,7 @@ if (true) {
                 TestCase.fail();
             } catch (Exception e) {
                 checkEquals
-                    ("java.lang.IllegalArgumentException: Not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist2_ClassRemoved_WithDeleter",
+                    ("java.lang.IllegalArgumentException: Class could not be loaded or is not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist2_ClassRemoved_WithDeleter",
                      e.toString());
             }
         }
@@ -696,7 +696,7 @@ if (true) {
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist3_AnnotRemoved version: 0 Error: java.lang.IllegalArgumentException: Class is not persistent: com.sleepycat.persist.test.EvolveClasses$DeletedPersist3_AnnotRemoved";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist3_AnnotRemoved version: 0 Error: java.lang.IllegalArgumentException: Class could not be loaded or is not persistent: com.sleepycat.persist.test.EvolveClasses$DeletedPersist3_AnnotRemoved";
         }
 
         @Override
@@ -782,7 +782,7 @@ if (true) {
                 TestCase.fail();
             } catch (Exception e) {
                 checkEquals
-                    ("java.lang.IllegalArgumentException: Not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist4_AnnotRemoved_WithDeleter",
+                    ("java.lang.IllegalArgumentException: Class could not be loaded or is not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist4_AnnotRemoved_WithDeleter",
                      e.toString());
             }
         }
@@ -933,7 +933,7 @@ if (true) {
                 TestCase.fail();
             } catch (Exception e) {
                 checkEquals
-                    ("java.lang.IllegalArgumentException: Not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist6_PersistToEntity_WithDeleter",
+                    ("java.lang.IllegalArgumentException: Class could not be loaded or is not an entity class: com.sleepycat.persist.test.EvolveClasses$DeletedPersist6_PersistToEntity_WithDeleter",
                      e.toString());
             }
 
@@ -5490,7 +5490,7 @@ if (true) {
 
         @Override
         public String getStoreOpenException() {
-            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: java.lang.StringBuffer version: 0 Error: java.lang.IllegalArgumentException: Class is not persistent: java.lang.StringBuffer";
+            return "com.sleepycat.persist.evolve.IncompatibleClassException: Mutation is missing to evolve class: java.lang.StringBuffer version: 0 Error: java.lang.IllegalArgumentException: Class could not be loaded or is not persistent: java.lang.StringBuffer";
         }
     }
 

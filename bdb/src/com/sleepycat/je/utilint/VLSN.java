@@ -92,13 +92,11 @@ public class VLSN implements Loggable {
     }
 
 
-    /* BOZO, remove this. */
     public int getContentSize() {
 	return getLogSize();
     }
 
     /**
-     * BOZO, remove this
      * @param buffer is the destination buffer
      */
     public void writeToBuffer(ByteBuffer buffer) {

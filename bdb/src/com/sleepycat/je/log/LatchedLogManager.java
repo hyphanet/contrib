@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LatchedLogManager.java,v 1.17.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: LatchedLogManager.java,v 1.17.2.2 2007/06/13 03:55:37 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -79,6 +79,20 @@ public class LatchedLogManager extends LogManager {
         logWriteLatch.acquire();
         try {
             return getUnflushableTrackedSummaryInternal(file);
+        } finally {
+            logWriteLatch.release();
+        }
+    }
+    
+    /**
+     * @see LogManager#removeTrackedFile
+     */
+    public void removeTrackedFile(TrackedFileSummary tfs)
+        throws DatabaseException {
+
+        logWriteLatch.acquire();
+        try {
+            removeTrackedFileInternal(tfs);
         } finally {
             logWriteLatch.release();
         }

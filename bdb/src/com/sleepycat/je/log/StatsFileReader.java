@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: StatsFileReader.java,v 1.15.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: StatsFileReader.java,v 1.15.2.2 2007/06/04 17:03:30 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -187,7 +187,7 @@ public class StatsFileReader extends DumpFileReader {
                    8 bytes txn id
                    8 bytes lastlogged LSN (backpointer for txn)
                 */
-                /** BOZO -- the header size is undercounted for replication */
+           
                 int overhead = (info.count*46) + info.headerBytes;
                 realTotalBytes += (info.totalBytes-overhead);
             }

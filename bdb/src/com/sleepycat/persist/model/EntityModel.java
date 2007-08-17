@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntityModel.java,v 1.14.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: EntityModel.java,v 1.14.2.3 2007/06/13 23:18:02 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -88,7 +88,8 @@ public abstract class EntityModel {
      * @throws IllegalStateException if this method is called for a model that
      * is associated with an open store.
      *
-     * @throws IllegalArgumentException if the given class is not persistent.
+     * @throws IllegalArgumentException if the given class is not persistent
+     * or has a different class loader than previously registered classes.
      */
     public final void registerClass(Class persistentClass) {
         if (catalog != null) {
@@ -227,5 +228,21 @@ public abstract class EntityModel {
      */
     public final Object convertRawObject(RawObject raw) {
         return catalog.convertRawObject(raw, null);
+    }
+
+    /**
+     * Calls Class.forName with the current thread context class loader.  This
+     * method should be called by entity model implementations instead of
+     * calling Class.forName whenever loading an application class.
+     */
+    public static Class classForName(String className)
+        throws ClassNotFoundException {
+
+        try {
+            return Class.forName(className, true /*initialize*/,
+                             Thread.currentThread().getContextClassLoader());
+        } catch (ClassNotFoundException e) {
+            return Class.forName(className);
+        }
     }
 }

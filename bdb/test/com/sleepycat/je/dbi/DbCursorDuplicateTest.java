@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateTest.java,v 1.53.2.1 2007/02/01 14:50:09 cwl Exp $
+ * $Id: DbCursorDuplicateTest.java,v 1.53.2.2 2007/05/23 14:07:30 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -306,8 +306,8 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 		(InvocationCountingBtreeComparator)
 		(exampleDb.getConfig().getDuplicateComparator());
 
-            assertTrue(bTreeICC.getInvocationCount() == 1);
-            assertTrue(dupICC.getInvocationCount() == 2);
+            assertEquals(1, bTreeICC.getInvocationCount());
+            assertEquals(1, dupICC.getInvocationCount());
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -434,7 +434,12 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
         }
     }
 
-    public void testDuplicateReplacementWithComparisonFunction()
+    /**
+     * When using a duplicate comparator that does not compare all bytes,
+     * attempting to change the data for a duplicate data item should cause an
+     * error even if a byte not compared is changed. [#15527]
+     */
+    public void testDuplicateReplacementFailureWithComparisonFunction1()
 	throws Throwable {
 
         try {
@@ -464,23 +469,29 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 
                         StringDbt dataDbt = new StringDbt();
                         StringBuffer sb = new StringBuffer(foundData);
-                        sb.replace(3, 3, "3");
-                        sb.setLength(4);
+                        sb.replace(3, 4, "3");
                         dataDbt.setString(sb.toString());
-                        assertEquals(OperationStatus.SUCCESS,
-                                     cursor.putCurrent(dataDbt));
+                        try {
+                            cursor.putCurrent(dataDbt);
+                            fail("didn't catch DatabaseException");
+                        } catch (DatabaseException DBE) {
+                        }
                     }
                 };
             dw.setIgnoreDataMap(true);
             dw.walkData();
-            assertTrue(dw.nEntries == 2);
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
         }
     }
 
-    public void testDuplicateReplacementFailureWithComparisonFunction()
+    /**
+     * When using a duplicate comparator that compares all bytes, attempting to
+     * change the data for a duplicate data item should cause an error.
+     * [#15527]
+     */
+    public void testDuplicateReplacementFailureWithComparisonFunction2()
 	throws Throwable {
 
         try {
@@ -934,7 +945,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
      */
     private static Comparator truncatedComparator = new TruncatedComparator();
 
-    protected static class TruncatedComparator implements Comparator {
+    private static class TruncatedComparator implements Comparator {
 	protected TruncatedComparator() {
 	}
 

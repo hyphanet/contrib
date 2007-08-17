@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BasicLocker.java,v 1.84.2.1 2007/02/01 14:49:52 cwl Exp $
+ * $Id: BasicLocker.java,v 1.84.2.4 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -14,6 +14,7 @@ import java.util.Set;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -37,8 +38,11 @@ public class BasicLocker extends Locker {
      *
      * There's no need to track memory utilization for these non-txnal lockers,
      * because the lockers are short lived.
+     *
+     * ownedLock and ownedLockSet contains nids, not locks.  We only need locks
+     * for the stats, so we can look them up on demand.
      */
-    private Lock ownedLock;
+    private Long ownedLock;
     private Set ownedLockSet; 
 
     /**
@@ -186,14 +190,14 @@ public class BasicLocker extends Locker {
 	 * graph "display".  [#9544]
          */
         if (ownedLock != null) {
-            lockManager.release(ownedLock, this);
+            lockManager.release(ownedLock.longValue(), this);
             ownedLock  = null;
         }
         if (ownedLockSet != null) {
             Iterator iter = ownedLockSet.iterator();
             while (iter.hasNext()) {
-                Lock l = (Lock) iter.next();
-                lockManager.release(l, this);
+                Long nid = (Long) iter.next();
+                lockManager.release(nid.longValue(), this);
             }
 
             /* Now clear lock collection. */
@@ -214,14 +218,22 @@ public class BasicLocker extends Locker {
     /**
      * Transfer any MapLN locks to the db handle.
      */
-    public void setHandleLockOwner(boolean ignore /*operationOK*/,
+    public void setHandleLockOwner(boolean operationOK,
                                    Database dbHandle,
                                    boolean dbIsClosing)
 	throws DatabaseException {
 
         if (dbHandle != null) { 
-            if (!dbIsClosing) {
+            if (operationOK && !dbIsClosing) {
                 transferHandleLockToHandle(dbHandle);
+            } else {
+
+                /*
+                 * Release DB if there is a failure.  This is done by Txn abort
+                 * by calling Database.invalidate, but for a non-transactional
+                 * locker must be done here.  [#13415]
+                 */
+                envImpl.releaseDb(DbInternal.dbGetDatabaseImpl(dbHandle));
             }
             unregisterHandle(dbHandle);
         }
@@ -267,7 +279,10 @@ public class BasicLocker extends Locker {
         throws DatabaseException {
 
         if (deleteAtCommit) {
+            /* releaseDb will be called by releaseDeletedINs. */
             db.deleteAndReleaseINs();
+        } else {
+            envImpl.releaseDb(db);
         }
     }
 
@@ -275,36 +290,37 @@ public class BasicLocker extends Locker {
      * Add a lock to set owned by this transaction. 
      */
     void addLock(Long nodeId,
-                 Lock lock,
                  LockType type,
                  LockGrantType grantStatus) 
         throws DatabaseException {
 
-        if (ownedLock == lock ||
+        if ((ownedLock != null &&
+	     ownedLock.equals(nodeId)) ||
             (ownedLockSet != null &&
-	     ownedLockSet.contains(lock))) {
+	     ownedLockSet.contains(nodeId))) {
             return; // Already owned
         }
         if (ownedLock == null) {
-            ownedLock = lock;
+            ownedLock = nodeId;
         } else {
             if (ownedLockSet == null) {
                 ownedLockSet = new HashSet();
             }
-            ownedLockSet.add(lock);
+            ownedLockSet.add(nodeId);
         }
     }
     
     /**
      * Remove a lock from the set owned by this txn.
      */
-    void removeLock(long nodeId, Lock lock)
+    void removeLock(long nodeId)
         throws DatabaseException {
 
-        if (lock == ownedLock) {
+        if (ownedLock != null &&
+	    ownedLock.longValue() == nodeId) {
             ownedLock = null;
         } else if (ownedLockSet != null) {
-            ownedLockSet.remove(lock);
+            ownedLockSet.remove(new Long(nodeId));
         }
     }
 
@@ -331,22 +347,28 @@ public class BasicLocker extends Locker {
         throws DatabaseException {
 
         if (ownedLock != null) {
-            if (ownedLock.isOwnedWriteLock(this)) {
-                stats.setNWriteLocks(stats.getNWriteLocks() + 1);
-            } else {
-                stats.setNReadLocks(stats.getNReadLocks() + 1);
-            }
+	    Lock l = lockManager.lookupLock(ownedLock);
+	    if (l != null) {
+		if (l.isOwnedWriteLock(this)) {
+		    stats.setNWriteLocks(stats.getNWriteLocks() + 1);
+		} else {
+		    stats.setNReadLocks(stats.getNReadLocks() + 1);
+		}
+	    }
         }
         if (ownedLockSet != null) {
             Iterator iter = ownedLockSet.iterator();
             
             while (iter.hasNext()) {
-                Lock l = (Lock) iter.next();
-                if (l.isOwnedWriteLock(this)) {
-                    stats.setNWriteLocks(stats.getNWriteLocks() + 1);
-                } else {
-                    stats.setNReadLocks(stats.getNReadLocks() + 1);
-                }
+                Long nid = (Long) iter.next();
+                Lock l = lockManager.lookupLock(nid);
+		if (l != null) {
+		    if (l.isOwnedWriteLock(this)) {
+			stats.setNWriteLocks(stats.getNWriteLocks() + 1);
+		    } else {
+			stats.setNReadLocks(stats.getNReadLocks() + 1);
+		    }
+		}
             }
         }
         return stats;

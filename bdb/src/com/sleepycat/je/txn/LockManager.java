@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockManager.java,v 1.118.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: LockManager.java,v 1.118.2.3 2007/07/13 02:32:05 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -285,10 +285,22 @@ public abstract class LockManager implements EnvConfigObserver {
 		assert EnvironmentImpl.maybeForceYield();
 	    }
 
-            locker.addLock(nid, result.useLock, type, result.lockGrant);
+            locker.addLock(nid, type, result.lockGrant);
 
             return result.lockGrant;
         }
+    }
+
+    abstract protected Lock lookupLock(Long nodeId)
+	throws DatabaseException;
+
+    protected Lock lookupLockInternal(Long nodeId, int lockTableIndex)
+	throws DatabaseException {
+
+        /* Get the target lock. */
+	Map lockTable = lockTables[lockTableIndex];
+        Lock useLock = (Lock) lockTable.get(nodeId);
+	return useLock;
     }
 
     abstract protected LockAttemptResult
@@ -312,7 +324,7 @@ public abstract class LockManager implements EnvConfigObserver {
 	Map lockTable = lockTables[lockTableIndex];
         Lock useLock = (Lock) lockTable.get(nodeId);
         if (useLock == null) {
-            useLock = new Lock(nodeId);
+            useLock = new Lock();
             lockTable.put(nodeId, useLock);
             memoryBudget.updateLockMemoryUsage(TOTAL_LOCK_OVERHEAD,
 					       lockTableIndex);
@@ -330,7 +342,7 @@ public abstract class LockManager implements EnvConfigObserver {
         /* Was the attempt successful? */
         if ((lockGrant == LockGrantType.NEW) ||
             (lockGrant == LockGrantType.PROMOTION)) {
-            locker.addLock(nodeId, useLock, type, lockGrant);
+            locker.addLock(nodeId, type, lockGrant);
             success = true;
         } else if (lockGrant == LockGrantType.EXISTING) {
             success = true;
@@ -424,51 +436,12 @@ public abstract class LockManager implements EnvConfigObserver {
      * @return true if the lock is released successfully, false if
      * the lock is not currently being held.
      */
-    boolean release(long nodeId, Locker locker) 
-        throws DatabaseException {
-
-        return release(nodeId, null, locker, true);
-    }
-
-    /**
-     * Release a lock and possibly notify any waiters that they have been
-     * granted the lock.
-     *
-     * @param lock The lock to release
-     *
-     * @return true if the lock is released successfully, false if the lock is
-     * not currently being held.
-     */
-    boolean release(Lock lock, Locker locker)
-        throws DatabaseException {
-
-        return release(-1, lock, locker, false);
-    }
-
-    /**
-     * Do the work of releasing a lock and notifying any waiters that they have
-     * been granted the lock.
-     *
-     * @param lock The lock to release. If null, use nodeId to find lock
-     * @param nodeId The node ID of the lock to release, if lock is null. May
-     * not be valid if lock is not null. MUST be valid if removeFromLocker is
-     * true
-     * @param locker
-     * @param removeFromLocker true if we're responsible for 
-     *
-     * @return true if the lock is released successfully, false if the lock is
-     * not currently being held.
-     */
-    private boolean release(long nodeId,
-                            Lock lock,
-                            Locker locker,
-                            boolean removeFromLocker)
+    boolean release(long nodeId, Locker locker)
         throws DatabaseException {
 
 	synchronized (locker) {
 	    Set newOwners =
-		releaseAndFindNotifyTargets(nodeId, lock, locker,
-					    removeFromLocker);
+		releaseAndFindNotifyTargets(nodeId, locker);
 
             if (newOwners == null) {
                 return false;
@@ -508,9 +481,7 @@ public abstract class LockManager implements EnvConfigObserver {
      */
     protected abstract Set
         releaseAndFindNotifyTargets(long nodeId,
-                                    Lock lock,
-                                    Locker locker,
-                                    boolean removeFromLocker)
+                                    Locker locker)
         throws DatabaseException;
 
     /**
@@ -518,19 +489,13 @@ public abstract class LockManager implements EnvConfigObserver {
      */
     protected Set
 	releaseAndFindNotifyTargetsInternal(long nodeId,
-					    Lock lock,
 					    Locker locker,
-					    boolean removeFromLocker,
 					    int lockTableIndex)
         throws DatabaseException {
 
-        Lock useLock = lock;
-
 	Map lockTable = lockTables[lockTableIndex];
-        if (useLock == null) {
-	    useLock = (Lock) lockTable.get(new Long(nodeId));
-        }
-                
+	Lock useLock = (Lock) lockTable.get(new Long(nodeId));
+
         if (useLock == null) {
             /* Lock doesn't exist. */
             return null; 
@@ -543,20 +508,10 @@ public abstract class LockManager implements EnvConfigObserver {
             return null;
         }
 
-        /*
-         * If desired, remove it from the locker's bag. Used when we don't need
-         * to hang onto the lock after release -- like null txns or locks on
-         * deleted LNs.
-         */
-        if (removeFromLocker) {
-            assert nodeId != -1;
-            locker.removeLock(nodeId, useLock);
-        }
-
         /* If it's not in use at all, remove it from the lock table. */
         if ((useLock.nWaiters() == 0) &&
             (useLock.nOwners() == 0)) {
-            lockTables[lockTableIndex].remove(useLock.getNodeId());
+            lockTables[lockTableIndex].remove(new Long(nodeId));
             memoryBudget.updateLockMemoryUsage(REMOVE_TOTAL_LOCK_OVERHEAD,
 					       lockTableIndex);
         }
@@ -592,9 +547,9 @@ public abstract class LockManager implements EnvConfigObserver {
         if (demoteToRead) {
             useLock.demote(owningLocker);
         }
-	useLock.transfer(owningLocker, destLocker,
+	useLock.transfer(new Long(nodeId), owningLocker, destLocker,
 			 memoryBudget, lockTableIndex);
-        owningLocker.removeLock(nodeId, useLock);
+        owningLocker.removeLock(nodeId);
     }
     
     /**
@@ -623,9 +578,9 @@ public abstract class LockManager implements EnvConfigObserver {
             
         assert useLock != null : "Transfer, lock " + nodeId + " was null";
         useLock.demote(owningLocker);
-        useLock.transferMultiple(owningLocker, destLockers,
+        useLock.transferMultiple(new Long(nodeId), owningLocker, destLockers,
 				 memoryBudget, lockTableIndex);
-        owningLocker.removeLock(nodeId, useLock);
+        owningLocker.removeLock(nodeId);
     }
 
     /**
@@ -964,7 +919,7 @@ public abstract class LockManager implements EnvConfigObserver {
 		/* Found a cycle. */
 		StringBuffer ret = new StringBuffer();
 		ret.append("Transaction ").append(locker.toString());
-		ret.append(" owns ").append(lock.getNodeId());
+		ret.append(" owns ").append(System.identityHashCode(lock));
 		ret.append(" ").append(info).append("\n");
 		ret.append("Transaction ").append(locker.toString());
 		ret.append(" waits for ");
@@ -972,7 +927,7 @@ public abstract class LockManager implements EnvConfigObserver {
 		    ret.append(" nothing");
 		} else {
 		    ret.append(" node ");
-		    ret.append(waitsFor.getNodeId());
+		    ret.append(System.identityHashCode(waitsFor));
 		}
 		ret.append("\n");
 		return ret;
@@ -983,8 +938,8 @@ public abstract class LockManager implements EnvConfigObserver {
                                                 rootLocker);
 		if (sb != null) {
 		    String waitInfo =
-			"Transaction " + locker + " waits for node " +
-			waitsFor.getNodeId() + "\n";
+			"Transaction " + locker + " waits for " +
+			waitsFor + "\n";
 		    sb.insert(0, waitInfo);
 		    return sb;
 		}

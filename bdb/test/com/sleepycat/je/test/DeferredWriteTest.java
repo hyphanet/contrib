@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeferredWriteTest.java,v 1.5.2.2 2007/02/01 14:50:19 cwl Exp $
+ * $Id: DeferredWriteTest.java,v 1.5.2.3 2007/05/01 19:32:05 mark Exp $
  */
 
 package com.sleepycat.je.test;
@@ -377,6 +377,90 @@ public class DeferredWriteTest extends TestCase {
         } finally {
             db.close();
         }
+    }
+
+    /**
+     * Performs a basic check of deferred-write w/duplicates for verifying the
+     * fix to duplicate logging on 3.2.x. [#15365]
+     */
+    public void testDups()
+        throws DatabaseException {
+	
+        EnvironmentConfig envConfig = getEnvConfig(false);
+        env = new Environment(envHome, envConfig);
+
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        dbConfig.setDeferredWrite(true);
+        dbConfig.setSortedDuplicates(true);
+        Database db = env.openDatabase(null, DBNAME, dbConfig);   
+
+        /* Insert {0,0} and {0,1}. */
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry();
+        IntegerBinding.intToEntry(9, key);
+        IntegerBinding.intToEntry(0, data);
+        assertSame(OperationStatus.SUCCESS,
+                   db.putNoDupData(null, key, data));
+        IntegerBinding.intToEntry(1, data);
+        assertSame(OperationStatus.SUCCESS,
+                   db.putNoDupData(null, key, data));
+
+        /* Check that both exist. */
+        Cursor c = db.openCursor(null, null);
+        try {
+            assertSame(OperationStatus.SUCCESS,
+                       c.getNext(key, data, LockMode.DEFAULT));
+            assertEquals(9, IntegerBinding.entryToInt(key));
+            assertEquals(0, IntegerBinding.entryToInt(data));
+
+            assertSame(OperationStatus.SUCCESS,
+                       c.getNext(key, data, LockMode.DEFAULT));
+            assertEquals(9, IntegerBinding.entryToInt(key));
+            assertEquals(1, IntegerBinding.entryToInt(data));
+
+            assertSame(OperationStatus.NOTFOUND,
+                       c.getNext(key, data, LockMode.DEFAULT));
+        } finally {
+            c.close();
+        }
+
+        /* Close without a checkpoint to redo the LNs during recovery. */
+        db.sync();
+        db.close();
+        DbInternal.envGetEnvironmentImpl(env).close(false);
+        env = null;
+
+        /* Recover and check again. */
+        env = new Environment(envHome, envConfig);
+        db = env.openDatabase(null, DBNAME, dbConfig);   
+        c = db.openCursor(null, null);
+        try {
+            assertSame(OperationStatus.SUCCESS,
+                       c.getNext(key, data, LockMode.DEFAULT));
+
+            /*
+             * Before fixing the problem with deferred-write duplicate logging,
+             * the key read below was 0 instead of 9.  The bug was that the
+             * data (0) was being logged as the main tree key.
+             */
+            assertEquals(9, IntegerBinding.entryToInt(key));
+            assertEquals(0, IntegerBinding.entryToInt(data));
+
+            assertSame(OperationStatus.SUCCESS,
+                       c.getNext(key, data, LockMode.DEFAULT));
+            assertEquals(9, IntegerBinding.entryToInt(key));
+            assertEquals(1, IntegerBinding.entryToInt(data));
+
+            assertSame(OperationStatus.NOTFOUND,
+                       c.getNext(key, data, LockMode.DEFAULT));
+        } finally {
+            c.close();
+        }
+
+        db.close();
+        env.close();
+        env = null;
     }
 
     public void testPreloadNoSync() 

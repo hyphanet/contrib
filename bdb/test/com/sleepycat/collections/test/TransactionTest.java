@@ -3,11 +3,12 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TransactionTest.java,v 1.46.2.1 2007/02/01 14:50:03 cwl Exp $
+ * $Id: TransactionTest.java,v 1.46.2.3 2007/05/23 20:27:53 linda Exp $
  */
 
 package com.sleepycat.collections.test;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
@@ -29,9 +30,12 @@ import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.TransactionConfig;
+import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.util.RuntimeExceptionWrapper;
 
 /**
@@ -579,6 +583,73 @@ public class TransactionTest extends TestCase {
         });
         assertNull(currentTxn.getTransaction());
     }
+
+    // <!-- begin JE only -->
+
+    /**
+     * Tests that the CurrentTransaction static WeakHashMap does indeed allow
+     * GC to reclaim tine environment when it is closed.  At one point this was
+     * not working because the value object in the map has a reference to the
+     * environment.  This was fixed by wrapping the value in a WeakReference.
+     * [#15444]
+     */
+    public void testCurrentTransactionGC()
+        throws Exception {
+        
+        /* 
+         * This test can have indeterminate results because it depends on
+         * a finalize count, so it's not part of the default run.
+         */
+        if (!TestUtils.runLongTests()) {
+            return;
+        }
+
+        final StringBuffer finalizedFlag = new StringBuffer();
+
+        class MyEnv extends Environment {
+
+            MyEnv(File home, EnvironmentConfig config)
+                throws DatabaseException {
+
+                super(home, config);
+            }
+
+            protected void finalize() {
+                finalizedFlag.append('.');
+            }
+        }
+
+        MyEnv myEnv = new MyEnv(env.getHome(), env.getConfig());
+        CurrentTransaction myCurrTxn = CurrentTransaction.getInstance(myEnv);
+
+        store.close();
+        store = null;
+        map = null;
+
+        env.close();
+        env = null;
+
+        myEnv.close();
+        myEnv = null;
+
+        myCurrTxn = null;
+        currentTxn = null;
+
+        byte[] x = null;
+        try {
+             x = new byte[Integer.MAX_VALUE - 1];
+        } catch (OutOfMemoryError expected) {
+        }
+        assertNull(x);
+
+        for (int i = 0; i < 10; i += 1) {
+            System.gc();
+        }
+
+        assertTrue(finalizedFlag.length() > 0);
+    }
+
+    // <!-- end JE only -->
 
     private synchronized void doReadUncommitted(StoredSortedMap dirtyMap)
         throws Exception {

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEConnection.java,v 1.13.2.1 2007/02/01 14:49:45 cwl Exp $
+ * $Id: JEConnection.java,v 1.13.2.2 2007/05/22 20:36:39 cwl Exp $
  */
 
 package com.sleepycat.je.jca.ra;
@@ -24,82 +24,35 @@ import com.sleepycat.je.Transaction;
  * &lt;JEHOME&gt;/examples/jca/simple/SimpleBean.java for more information on 
  * how to build the resource adaptor and use a JEConnection.
  */
-public class JEConnection {
+public interface JEConnection {
 
-    private JEManagedConnection mc;
-    private JELocalTransaction txn;
+    public void setManagedConnection(JEManagedConnection mc,
+				     JELocalTransaction lt);
 
-    public JEConnection(JEManagedConnection mc) {
-        this.mc = mc;
-    }
+    public JELocalTransaction getLocalTransaction();
 
-    protected void setManagedConnection(JEManagedConnection mc,
-					JELocalTransaction lt) {
-	this.mc = mc;
-	if (txn == null) {
-	    txn = lt;
-	}
-    }
-
-    JELocalTransaction getLocalTransaction() {
-	return txn;
-    }
-
-    void setLocalTransaction(JELocalTransaction txn) {
-	this.txn = txn;
-    }
+    public void setLocalTransaction(JELocalTransaction txn);
 
     public Environment getEnvironment()
-	throws ResourceException {
-
-	return mc.getEnvironment();
-    }
+	throws ResourceException;
 
     public Database openDatabase(String name, DatabaseConfig config)
-	throws DatabaseException {
-
-	return mc.openDatabase(name, config);
-    }
+	throws DatabaseException;
 
     public SecondaryDatabase openSecondaryDatabase(String name,
 						   Database primaryDatabase,
 						   SecondaryConfig config)
-	throws DatabaseException {
-
-	return mc.openSecondaryDatabase(name, primaryDatabase, config);
-    }
+	throws DatabaseException;
 
     public void removeDatabase(String databaseName)
-	throws DatabaseException {
-
-	mc.removeDatabase(databaseName);
-    }
+	throws DatabaseException;
 
     public long truncateDatabase(String databaseName, boolean returnCount)
-	throws DatabaseException {
-
-	return mc.truncateDatabase(databaseName, returnCount);
-    }
+	throws DatabaseException;
 
     public Transaction getTransaction()
-	throws ResourceException {
-
-	if (txn == null) {
-	    return null;
-	}
-
-	try {
-	    return txn.getTransaction();
-	} catch (DatabaseException DE) {
-	    ResourceException ret = new ResourceException(DE.toString());
-	    ret.initCause(DE);
-	    throw ret;
-	}
-    }
+	throws ResourceException;
 
     public void close()
-	throws JEException {
-
-	mc.close();
-    }
+	throws JEException;
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EvictSelectionTest.java,v 1.14.2.1 2007/02/01 14:50:11 cwl Exp $
+ * $Id: EvictSelectionTest.java,v 1.14.2.2 2007/07/02 19:54:55 mark Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -236,10 +236,6 @@ public class EvictSelectionTest extends TestCase {
             nScanned += 1;
 
             if (in.getDatabase() == null || in.getDatabase().isDeleted()) {
-                continue;
-            }
-
-            if (in.getDatabase().getId().equals(DbTree.ID_DB_ID)) {
                 continue;
             }
 

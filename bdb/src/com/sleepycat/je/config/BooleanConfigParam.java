@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BooleanConfigParam.java,v 1.25.2.1 2007/02/01 14:49:43 cwl Exp $
+ * $Id: BooleanConfigParam.java,v 1.25.2.2 2007/06/04 17:03:30 linda Exp $
  */
 
 package com.sleepycat.je.config;
@@ -20,7 +20,7 @@ public class BooleanConfigParam extends ConfigParam {
      * Set a boolean parameter w/default.
      * @param configName
      * @param defaultValue
-     * @param forReplication TODO
+     * @param forReplication true if param is only used for replication
      */
     BooleanConfigParam(String configName,
                        boolean defaultValue,

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BINDelta.java,v 1.44.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: BINDelta.java,v 1.44.2.2 2007/07/02 19:54:52 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -99,59 +99,67 @@ public class BINDelta implements Loggable {
         /* Get the last full version of this BIN. */
         BIN fullBIN = (BIN) env.getLogManager().get(lastFullLsn);
         DatabaseImpl db = env.getDbMapTree().getDb(dbId);
+        try {
 
-	/* 
-	 * In effect, call fullBIN.postFetchInit(db) here.  But we don't want
-	 * to do that since it will put fullBIN on the INList.  Since this is
-	 * either recovery or during the Cleaner run, we don't want it on the
-	 * INList.
-	 */
-	fullBIN.setDatabase(db);
-        fullBIN.setLastFullLsn(lastFullLsn);
-        
-        /* Process each delta. */
-        fullBIN.latch();
-        for (int i = 0; i < deltas.size(); i++) {
-            DeltaInfo info = (DeltaInfo) deltas.get(i);                
+            /* 
+             * In effect, call fullBIN.postFetchInit(db) here.  But we don't
+             * want to do that since it will put fullBIN on the INList.  Since
+             * this is either recovery or during the Cleaner run, we don't want
+             * it on the INList.
+             */
+            fullBIN.setDatabase(db);
+            fullBIN.setLastFullLsn(lastFullLsn);
+            
+            /* Process each delta. */
+            fullBIN.latch();
+            for (int i = 0; i < deltas.size(); i++) {
+                DeltaInfo info = (DeltaInfo) deltas.get(i);                
 
-	    /*
-	     * The BINDelta holds the authoritative version of each entry.  In
-	     * all cases, its entry should supercede the entry in the full
-	     * BIN.  This is true even if the BIN Delta's entry is knownDeleted
-	     * or if the full BIN's version is knownDeleted.  Therefore we use
-	     * the flavor of findEntry that will return a knownDeleted entry if
-	     * the entry key matches (i.e. true, false) but still indicates
-	     * exact matches with the return index.  findEntry only returns
-	     * deleted entries if third arg is false, but we still need to know
-	     * if it's an exact match or not so indicateExact is true.
-	     */
-            int foundIndex = fullBIN.findEntry(info.getKey(), true, false);
-            if (foundIndex >= 0 &&
-		(foundIndex & IN.EXACT_MATCH) != 0) {
-		foundIndex &= ~IN.EXACT_MATCH;
-
-                /* 
-                 * The entry exists in the full version, update it with the
-                 * delta info.
+                /*
+                 * The BINDelta holds the authoritative version of each entry.
+                 * In all cases, its entry should supercede the entry in the
+                 * full BIN.  This is true even if the BIN Delta's entry is
+                 * knownDeleted or if the full BIN's version is knownDeleted.
+                 * Therefore we use the flavor of findEntry that will return a
+                 * knownDeleted entry if the entry key matches (i.e. true,
+                 * false) but still indicates exact matches with the return
+                 * index.  findEntry only returns deleted entries if third arg
+                 * is false, but we still need to know if it's an exact match
+                 * or not so indicateExact is true.
                  */
-                if (info.isKnownDeleted()) {
-                    fullBIN.setKnownDeleted(foundIndex);
+                int foundIndex = fullBIN.findEntry(info.getKey(), true, false);
+                if (foundIndex >= 0 &&
+                    (foundIndex & IN.EXACT_MATCH) != 0) {
+                    foundIndex &= ~IN.EXACT_MATCH;
+
+                    /* 
+                     * The entry exists in the full version, update it with the
+                     * delta info.
+                     */
+                    if (info.isKnownDeleted()) {
+                        fullBIN.setKnownDeleted(foundIndex);
+                    } else {
+                        fullBIN.updateEntry
+                            (foundIndex, info.getLsn(), info.getState());
+                    }
                 } else {
-                    fullBIN.updateEntry
-                        (foundIndex, info.getLsn(), info.getState());
+
+                    /*
+                     * The entry doesn't exist, add a new entry from the delta.
+                     */
+                    if (!info.isKnownDeleted()) {
+                        ChildReference entry =
+                            new ChildReference(null,
+                                               info.getKey(),
+                                               info.getLsn(),
+                                               info.getState());
+                        boolean insertOk = fullBIN.insertEntry(entry);
+                        assert insertOk;
+                    }
                 }
-            } else {
-                /* The entry doesn't exist, add a new entry from the delta. */
-		if (!info.isKnownDeleted()) {
-		    ChildReference entry =
-			new ChildReference(null,
-                                           info.getKey(),
-					   info.getLsn(),
-					   info.getState());
-		    boolean insertOk = fullBIN.insertEntry(entry);
-		    assert insertOk;
-		}
             }
+        } finally {
+            env.releaseDb(db);
         }
 
         /* 

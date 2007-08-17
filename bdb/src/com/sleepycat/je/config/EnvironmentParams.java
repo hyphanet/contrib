@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentParams.java,v 1.84.2.3 2007/03/07 01:24:35 mark Exp $
+ * $Id: EnvironmentParams.java,v 1.84.2.4 2007/07/02 19:54:49 mark Exp $
  */
 
 package com.sleepycat.je.config;
@@ -207,6 +207,16 @@ public class EnvironmentParams {
                                false,            // mutable
                                false,            // forReplication
      "# If true, use shared latches for Internal Nodes (INs).\n");
+    
+    public static final BooleanConfigParam ENV_DB_EVICTION =
+        new BooleanConfigParam("je.env.dbEviction",
+                               false,            // default
+                               false,            // mutable
+                               false,            // forReplication
+     "# *** Experimental and not fully tested in 3.2.x. ***\n" +
+     "# If true, enable eviction of metadata for closed databases.\n" +
+     "# The default for JE 3.2.x is false but will be changed to true\n" +
+     "# in JE 3.3 and above.");
 
     public static final IntConfigParam ADLER32_CHUNK_SIZE =
         new IntConfigParam("je.adler32.chunkSize",
