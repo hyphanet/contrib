@@ -69,6 +69,8 @@
     <target name="init-regress" depends="init">
         <delete dir="${regress.datadir}"/>
         <mkdir dir="${regress.datadir}"/>
+        <!-- Unzip may not create the empty src directory -->
+        <mkdir dir="${regress.srcdir}"/>
     </target>
 
     <target name="compile-regress" depends="init-regress">

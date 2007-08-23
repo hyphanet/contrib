@@ -24,7 +24,8 @@
                debug="${build.debug}"
                deprecation="${build.deprecation}" 
                optimize="on"
-               source="1.4">
+               source="1.4"
+               target="1.4">
             <classpath refid="compile.classpath"/>
             <include name="${include}"/>
             <exclude name="${java15files1}"/>
@@ -37,7 +38,8 @@
                debug="${build.debug}"
                deprecation="${build.deprecation}" 
                optimize="on"
-               source="1.5">
+               source="1.5"
+               target="1.5">
             <classpath refid="compile.classpath"/>
             <include name="${java15files1}"/>
             <include name="${java15files2}"/>

@@ -1,0 +1,1046 @@
+
+RCS file: /a/CVSROOT/je/src/com/sleepycat/je/log/LogManager.java,v
+Working file: LogManager.java
+head: 1.182
+branch:
+locks: strict
+access list:
+symbolic names:
+	je-3_2_26: 1.163.2.3
+	je-3_2_25: 1.163.2.3
+	je-3_2_23: 1.163.2.3
+	je-3_2_24: 1.163.2.3
+	je-3_2_21: 1.163.2.3
+	je-3_2_20: 1.163.2.2
+	je-3_2_19: 1.163.2.1
+	je-3_2_18: 1.163.2.1
+	B_je-3_2_15: 1.163.0.2
+	je-3_2_15: 1.163
+	je-2_0_100: 1.145.2.1
+	je-3_2_13: 1.162
+	je-3_2_5: 1.160
+	je-3_1_25: 1.158
+	je-3_1_24: 1.156
+	je-3_1_20: 1.155
+	je-3_1_0: 1.155
+	je-3_0_39: 1.154
+	je-3_0_36: 1.154
+	je-3_0_35: 1.154
+	je-3_0_21: 1.153
+	je-3_0_20: 1.153
+	je-3_0_12: 1.153
+	je-3_0_11: 1.153
+	je-3_0_6: 1.153
+	je-3_0_5: 1.153
+	je-3_0_4: 1.153
+	je-3_0_3: 1.153
+	int-3_0_2_apr14: 1.153
+	je-3_0_2: 1.153
+	je-3_0_1: 1.153
+	je-2_1_30: 1.153
+	je-2_1_25_RC1: 1.153
+	je-2_1_30_beta: 1.152
+	je-2_0_98: 1.145.2.1
+	je-2_1_10-Sun: 1.148
+	je-2_1_1: 1.147
+	je-2_0_94: 1.145.2.1
+	je-2_0_93: 1.145.2.1
+	je-2_0_91: 1.145
+	je-2_0_90: 1.145
+	B_je-2_0_83: 1.145.0.2
+	B_shop_com_2_0_84: 1.146.0.2
+	shop_com_2_0_84: 1.146
+	je-2_0_83: 1.145
+	int-2_0_79: 1.143
+	je-2_0_54: 1.141
+	je-1_7_1_Maya_12671_12712_12792: 1.125.2.2
+	je-2_0_42_archive_org_12562: 1.141
+	je-2_0_42: 1.141
+	je-1_7_1_Maya_12671_12712: 1.125.2.2
+	je-2_0_0_beta2: 1.140
+	je-1_7_1_with_12671_NIO_Chunks: 1.125
+	je-1_7_2_with_12671_NIO_Chunks: 1.125.2.2
+	je-2_0_0_beta1: 1.137
+	archive_org_12115_11552_2nd: 1.125.2.1
+	archive_org_12115_11552: 1.125.2.1
+	je-1_7_1: 1.125
+	je-1_7_x: 1.125.0.2
+	int_for_archive_org: 1.124
+	je-1_7_0: 1.124
+	je-1_7_0_rc1: 1.124
+	int_before_serializable_optimizations: 1.123
+	je-1_5_4: 1.117.0.2
+	int_before_phantoms: 1.122
+	je-1_5_3: 1.117
+	je-1_5_2: 1.113
+	je-1_5_1: 1.113
+	je-1_5_0_GA: 1.109
+	int_before_lock_change: 1.109
+	je-1_4_10_beta: 1.107
+	je-1_4_5_beta: 1.102
+	je-1_3_0_beta: 1.102
+	je-1_1_0: 1.82
+	je-1_0_3: 1.73
+	int_coll_index_removal: 1.73
+keyword substitution: kv
+total revisions: 189;	selected revisions: 189
+description:
+----------------------------
+revision 1.182
+date: 2007/05/03 23:46:36;  author: mark;  state: Exp;  lines: +76 -40
+Fix problems with utilization tracking for deferred write databases.  To
+accomplish this, deferred write databases must be checkpointed.  To meet the
+need for non-durable data, add a true temporary database option that operates
+in deferred write mode but is not checkpointed.  Other changes made:
++ Checkpoint to the highest dirty level of each database, not the highest dirty
+  level of all databases.
++ Don't wait for a checkpoint past firstActiveLsn to start cleaning a log file.
++ Fix deferred write logging for duplicates.
++ Fix preload for duplicates.
+[#15365]
+----------------------------
+revision 1.181
+date: 2007/04/10 16:14:45;  author: linda;  state: Exp;  lines: +24 -22
+Move replication out of log write latch
+----------------------------
+revision 1.180
+date: 2007/04/09 14:48:48;  author: cwl;  state: Exp;  lines: +4 -4
+formatting
+----------------------------
+revision 1.179
+date: 2007/04/03 04:04:17;  author: mark;  state: Exp;  lines: +2 -2
+Pass down pearam so non-zero prevLogEntryOffset values work for log entries other then the FileHeader.
+----------------------------
+revision 1.178
+date: 2007/04/03 03:36:30;  author: mark;  state: Exp;  lines: +2 -3
+Switch to a single per-environment version rather than a per-entry-type version
+to avoid problems with versioning sub-objects.  [#15365]
+----------------------------
+revision 1.177
+date: 2007/03/23 18:45:43;  author: linda;  state: Exp;  lines: +29 -14
+Send of replication message must happen later in LogManager.logItem(), so that any exceptions from the send don't invoke the file/buffer offset adjustments
+----------------------------
+revision 1.176
+date: 2007/03/20 20:41:34;  author: cwl;  state: Exp;  lines: +1 -2
+formatting
+----------------------------
+revision 1.175
+date: 2007/03/16 17:14:20;  author: cwl;  state: Exp;  lines: +1 -2
+whitespace
+----------------------------
+revision 1.174
+date: 2007/03/14 13:52:45;  author: mark;  state: Exp;  lines: +14 -22
+Code cleanup based on lastLoggedSize now stored in the LN:
++ LogEntry.readEntry/writeEntry now update the last logged size.
++ LogEntry.getLastLoggedSize returns it, so passing the size down to all the
+  log methods is no longer necessary.
+[#15365]
+----------------------------
+revision 1.173
+date: 2007/03/09 19:52:47;  author: mark;  state: Exp;  lines: +14 -9
+Fix a bug introduced in 3.2.15 where the size of an entry is not calculated
+when marshaling it under the log write mutex.  [#15365]
+----------------------------
+revision 1.172
+date: 2007/03/09 16:17:48;  author: mark;  state: Exp;  lines: +10 -3
+Add utilization tracking of LN counts and sizes for deferred write DBs.  Store
+the last logged size in the LN state field.  [#15365]
+----------------------------
+revision 1.171
+date: 2007/03/05 17:20:59;  author: linda;  state: Exp;  lines: +186 -99
+add gap fulfilling functionality
+----------------------------
+revision 1.170
+date: 2007/02/06 19:50:38;  author: linda;  state: Exp;  lines: +5 -3
+Make marshalIntoBuffer public for unit tests. Explicitly pass VLSN as part of the message portion of a log record
+----------------------------
+revision 1.169
+date: 2007/01/31 20:54:51;  author: cwl;  state: Exp;  lines: +2 -2
+copyright change to 2007
+----------------------------
+revision 1.168
+date: 2007/01/28 15:34:05;  author: cwl;  state: Exp;  lines: +4 -4
+formatting
+----------------------------
+revision 1.167
+date: 2007/01/23 17:43:49;  author: linda;  state: Exp;  lines: +1 -2
+1. Changes to TestHook to support rep.impl.StartupTest, and some cleanup of core test code:
+
+    * Added another field to the TestHook interface, called
+      hookSetup(), which is just a call to do some additional
+      action. For replication, we need a way to make sure that the
+      client is done before we do verification. There's naturally a
+      way to tell when an operation arrived (though checking
+      ReplicationStats) but there's no non-test reason to know
+      implement a thread-safe way to know that the operation
+      finished. I need that ability for unit tests, through the use of
+      a new interface method called TestHook.setupHook. StartupTest
+      now calls TestHookExecute.setupHookIfSet() and
+      TestHookExecute.doHookIfSet().
+    * Because TestHook is an interface, I had to change every other
+      TestHook, in cleaner/BackgroundIOTest.java,
+      cleaner/TruncateAndRemoveTest.java, incomp/EmptyBINTest.java,
+      recovery/CheckNewRootTest.java
+    * In core code, the test hook is not always called through an
+      assert. I changed Tree.java to change
+
+    if (hook !- null) {
+    hook.doHook()
+    }
+
+    to
+
+    assert TestHookExecute.doHookIfSet()
+
+2. I added a new class, LogEntryHeader, some time ago, but had to fix
+   LogEntryHeader.dumpLog()
+
+    * I found that its implementation of dumpLog() was not quite
+      right, so that calls to DbPrintLog were showing illegal xml, and
+      didn't show the new replication bit, and some other small
+      issue. This resulted in changes to LogEntryHeader.java and
+      PrintFileReader.java
+
+3. Added LogEntryType.getVersionStripProvisional() to give you the log
+   entry version value with the provisional bit xored off, but the
+   replicated bit still set.
+
+4. I was passing txnId to the Replicator from LogManager for
+   replicated operations, so that txn id was part of the
+   OperationMessage. This was part of the LSN->VSLN txn chaining I
+   needed before we decided that log records must be applied at the
+   point they arrive, rather than waiting for the txn commit like
+   Core. Now that I don't need it on the OperationMessage itself (it's
+   in the LogEntry party), I took it out of the interface call.
+
+Then there are a host of replication specific changes.
+
+    * added more fields to ReplicatorStats -- they're used by unit
+      test now, eventually will be useful
+    * Added ReplicationExceptionEvent to represent the failure to
+      process an incoming message
+    * Many changes to the WaitingRoom to execute operations as they
+      come in, rather than batching them up and waiting for the
+      commit. (In fact, should change the name of this class, since
+      now things usually don't wait.
+    * Take environmentId out of VLSLN. (Will need to add it to a txn
+      .. but where ...)
+    * Added more to MessageRouterTest to make sure that dumping a
+      message doesn't affect its readability and writability.
+    * Added new classes, some stubs, like ReplicatedTxn.
+----------------------------
+revision 1.166
+date: 2007/01/05 02:02:22;  author: linda;  state: Exp;  lines: +2 -1
+Update, operation messages now travel from master to client
+----------------------------
+revision 1.165
+date: 2007/01/04 18:45:11;  author: cwl;  state: Exp;  lines: +2 -4
+undo last checkin
+----------------------------
+revision 1.164
+date: 2006/12/19 23:00:42;  author: cwl;  state: Exp;  lines: +4 -2
+nullness check for checkpointer -- replication envs don't always have checkpointers
+----------------------------
+revision 1.163
+date: 2006/12/13 18:55:36;  author: linda;  state: Exp;  lines: +101 -144
+branches:  1.163.2;
+[#15623] clean up of logging interfaces
+----------------------------
+revision 1.162
+date: 2006/11/27 23:15:03;  author: mark;  state: Exp;  lines: +3 -14
+Change checkpoint monitoring to mimic Checkpointer.isRunnable logic, and do
+this outside the log write latch.  This triggers checkpoints more reliably
+than a parallel (and out of sync) counter.  This along with several test
+changes make CheckpointActivationTest run reliably.  [#15169]
+----------------------------
+revision 1.161
+date: 2006/11/17 23:47:23;  author: mark;  state: Exp;  lines: +14 -5
+Correct obsolete LN counting errors for MapLN and NameLN entries. [#15195]
+----------------------------
+revision 1.160
+date: 2006/11/03 03:07:50;  author: mark;  state: Exp;  lines: +35 -18
+Add exact counting of obsolete LN sizes.  [#15195]
+----------------------------
+revision 1.159
+date: 2006/10/30 21:14:20;  author: bostic;  state: Exp;  lines: +2 -3
+Update copyright notices to Oracle formats.
+----------------------------
+revision 1.158
+date: 2006/10/24 04:10:07;  author: linda;  state: Exp;  lines: +6 -4
+HA snapshot
+----------------------------
+revision 1.157
+date: 2006/10/19 20:42:18;  author: mark;  state: Exp;  lines: +23 -3
+Add environment properties for limiting the amount of I/O performed by JE
+background activities.  [#15158]
+----------------------------
+revision 1.156
+date: 2006/10/19 14:38:48;  author: linda;  state: Exp;  lines: +14 -1
+Add hooks for replication into core code. Java 1.5 code is segregated from the core code through the ReplicatorInstance interface
+----------------------------
+revision 1.155
+date: 2006/09/12 19:16:52;  author: cwl;  state: Exp;  lines: +2 -2
+Sleepycat -> Oracle
+----------------------------
+revision 1.154
+date: 2006/06/25 16:11:10;  author: cwl;  state: Exp;  lines: +23 -25
+[#14300] do some unwinding in a finally instead of a catch
+----------------------------
+revision 1.153
+date: 2006/01/19 20:42:31;  author: mark;  state: Exp;  lines: +18 -12
+Protect log buffers during writing using the log buffer latch.  This ensures
+that the buffer position/limit/capacity are not modified while a reader is
+accessing the buffer.  (Readers were already taking this latch while accessing
+the buffer.)  We suspect, but have not proven, that unprotected access when
+reading and writing a buffer is causing the BufferUnderflowException.  We
+suspect the exception is when the buffer is being flipped by a writer and
+dup'ed by a reader.  [#13951]
+----------------------------
+revision 1.152
+date: 2006/01/04 00:37:37;  author: cwl;  state: Exp;  lines: +2 -2
+[#13898] recompute checksum at IOException time when we convert commit records to abort records
+----------------------------
+revision 1.151
+date: 2006/01/03 22:36:14;  author: cwl;  state: Exp;  lines: +2 -2
+[#13898] flush LogUtils.putUnsignedByte()
+----------------------------
+revision 1.150
+date: 2006/01/03 21:55:49;  author: bostic;  state: Exp;  lines: +7 -7
+Add 2006 to the copyright notice, format initial comment consistently, fix a
+few creative spellings of "information".
+----------------------------
+revision 1.149
+date: 2005/12/16 02:51:41;  author: linda;  state: Exp;  lines: +1 -10
+[#12856] Eclipse cleanup
+----------------------------
+revision 1.148
+date: 2005/12/15 03:32:05;  author: mark;  state: Exp;  lines: +5 -1
+Add bulletproofing to ensure that we never silently ignore corrupt data when
+cleaning or during recovery.  This occurred for Amazon when the cleaner
+encountered a block of zeros in a corrupted file.  To guard against this we:
++ Always validate the log entry type, even for non-target entries.  We now
+  correctly consider a zero type to be invalid.
++ Add an option for the file reader to validate the checksum for non-target
+  entries.
++ Validate non-target entries in the cleaner and in the first full recovery
+  pass.
+We also now honor the je.log.checksumRead setting in the file reader, so the
+user can disable all checksum validation if they choose to.
+[#13611]
+----------------------------
+revision 1.147
+date: 2005/10/17 19:53:08;  author: cwl;  state: Exp;  lines: +3 -2
+[#13327] use Java 5 Locks for our latches when running under a Java 5 JVM
+----------------------------
+revision 1.146
+date: 2005/10/14 20:25:32;  author: cwl;  state: Exp;  lines: +2 -2
+[#13354] use java.util.zip.Adler32 if we're in Java 5 environment
+----------------------------
+revision 1.145
+date: 2005/09/21 21:47:09;  author: cwl;  state: Exp;  lines: +30 -4
+branches:  1.145.2;
+[#13191] add EnvironmentImpl.forceLogFileFlip
+----------------------------
+revision 1.144
+date: 2005/09/21 20:07:12;  author: cwl;  state: Exp;  lines: +1 -2
+formatting
+----------------------------
+revision 1.143
+date: 2005/09/07 15:58:43;  author: linda;  state: Exp;  lines: +49 -22
+[#12987] For loggable items that are marshalled inside the log write latch, make sure that getLogSize() and writeToLog() are both called within the critical section
+----------------------------
+revision 1.142
+date: 2005/08/04 20:20:52;  author: mark;  state: Exp;  lines: +3 -3
+Disable use of NIO by default. [#12820]
+----------------------------
+revision 1.141
+date: 2005/06/14 19:27:18;  author: cwl;  state: Exp;  lines: +10 -2
+add nTempBufferWrites stat
+----------------------------
+revision 1.140
+date: 2005/06/10 02:51:43;  author: cwl;  state: Exp;  lines: +13 -4
+[#12671] NIO Chunks
+----------------------------
+revision 1.139
+date: 2005/06/09 15:05:18;  author: cwl;  state: Exp;  lines: +22 -4
+[#12674] Increase min cache size to 96KB, min log buffer size to 2k, add provisions so that if log buffer isn't big enough, we use the temporary marshalling buffer to write to disk
+----------------------------
+revision 1.138
+date: 2005/06/08 15:03:16;  author: cwl;  state: Exp;  lines: +10 -8
+formatting
+----------------------------
+revision 1.137
+date: 2005/06/03 01:33:27;  author: linda;  state: Exp;  lines: +71 -46
+[#12638] Lsns must be reset if a log buffer too-small exception is thrown
+----------------------------
+revision 1.136
+date: 2005/06/01 19:26:34;  author: cwl;  state: Exp;  lines: +4 -3
+[#12650] use anticipateChecksumErrors when calling update() also
+----------------------------
+revision 1.135
+date: 2005/05/31 20:23:44;  author: cwl;  state: Exp;  lines: +2 -2
+formatting
+----------------------------
+revision 1.134
+date: 2005/05/27 19:46:18;  author: linda;  state: Exp;  lines: +3 -2
+[#11144] Fixed split race condition.
+----------------------------
+revision 1.133
+date: 2005/05/26 18:47:02;  author: cwl;  state: Exp;  lines: +2 -2
+[#11271] PREV_BYTES changed to package protection
+----------------------------
+revision 1.132
+date: 2005/05/25 16:00:45;  author: mark;  state: Exp;  lines: +23 -7
+Do not count the prior version of an IN obsolete when logging the IN
+provisionally, since the provisional version may never be used.  Instead,
+propagate the obsolete LSNs up the tree and count them when an ancestor IN is
+logged non-provisionally. [#11597]
+----------------------------
+revision 1.131
+date: 2005/05/24 14:51:10;  author: mark;  state: Exp;  lines: +15 -1
+Fix a bug where the in-memory tracked obsolete offsets were not considered
+during cleaning.  To avoid unneeded tree lookups we also consider offsets
+tracked during cleaning, since checkpointing/eviction may be actively migrating
+LNs.  [#11597]
+----------------------------
+revision 1.130
+date: 2005/05/23 18:55:37;  author: mark;  state: Exp;  lines: +10 -1
+Add the PENDING_DELETED BIN entry flag to allow deleted LNs to be cleaned more
+promptly, rather than relying on BIN compression.  If a PENDING_DELETED entry
+is fetched and the log file is missing, this is treated as if the KNOWN_DELETED
+flag were set and is not considered an error.  Deleted LNs are always
+considered to be obsolete by the cleaner, so no tracking of obsolete offsets
+for deleted LNs is needed.  [#12588]
+----------------------------
+revision 1.129
+date: 2005/05/20 04:39:34;  author: mark;  state: Exp;  lines: +17 -44
+Track offsets of obsolete LSNs and store them in a new format FileSummaryLN.
+The cleaner uses this information to skip processing of known obsolete log
+entries.  [#11597]
+----------------------------
+revision 1.128
+date: 2005/04/21 00:22:08;  author: mark;  state: Exp;  lines: +7 -1
+Safeguard against reading from corrupted buffers after the environment has
+become invalid. [#12379]
+----------------------------
+revision 1.127
+date: 2005/04/15 20:21:24;  author: linda;  state: Exp;  lines: +14 -5
+[#12227] Improve latch releasing when a read i/o exception occurs. Combine isOwner/releaseLatch checks to use a new method, releaseNoOwnerCheck, to avoid a double synchronization call
+----------------------------
+revision 1.126
+date: 2005/03/08 17:07:43;  author: cwl;  state: Exp;  lines: +11 -1
+[#11861] don't checkpoint on recovery if last record in the log is a checkpoint end
+----------------------------
+revision 1.125
+date: 2004/12/22 14:11:33;  author: linda;  state: Exp;  lines: +2 -2
+branches:  1.125.2;
+Copyright update. Changed xxxx-2004 -> xxxx-2205, changed Copyright 2004 -> Copyright 2004-2005
+----------------------------
+revision 1.124
+date: 2004/11/16 17:04:49;  author: mark;  state: Exp;  lines: +3 -4
+Stats and javadoc clean up. [#11255]
+----------------------------
+revision 1.123
+date: 2004/11/09 00:39:15;  author: mark;  state: Exp;  lines: +11 -1
+Make the environment cache size a mutable property. [#11337]
+----------------------------
+revision 1.122
+date: 2004/10/15 15:08:47;  author: linda;  state: Exp;  lines: +35 -14
+[#11131], add TxnWriteNoSync support
+----------------------------
+revision 1.121
+date: 2004/10/14 13:10:05;  author: cwl;  state: Exp;  lines: +43 -41
+[#10952] IN Smashing.  The IN.entries[] of ChildReferences has been converted to four arrays (Target[], Key[], lsn[], and state[]).  DbLsns have also been converted to longs throughout the code.
+----------------------------
+revision 1.120
+date: 2004/10/07 20:29:28;  author: mark;  state: Exp;  lines: +3 -1
+formatting
+----------------------------
+revision 1.119
+date: 2004/10/07 19:31:27;  author: mark;  state: Exp;  lines: +11 -1
+InterruptTest caught another case where we need to catch a ClosedChannelException and convert it to a RunRecoveryException.
+----------------------------
+revision 1.118
+date: 2004/09/23 21:34:14;  author: mark;  state: Exp;  lines: +19 -11
+Implement IN utilization counting to improve cleaner file selection. [#10395]
+----------------------------
+revision 1.117
+date: 2004/08/23 17:02:45;  author: linda;  state: Exp;  lines: +15 -1
+[#10749] grow log read buffers if we encounter an entry larger than the read buffer size. Add stats to show when a large object is found through both the log reader or the faulting in an object. Add unit test
+----------------------------
+revision 1.116
+date: 2004/08/18 14:02:04;  author: mark;  state: Exp;  lines: +4 -5
+Fix a bug where checkpoints occurred less frequently than the configured byte
+interval. [#10395]
+----------------------------
+revision 1.115
+date: 2004/08/13 17:33:47;  author: cwl;  state: Exp;  lines: +4 -4
+formatting
+----------------------------
+revision 1.114
+date: 2004/08/05 13:39:39;  author: cwl;  state: Exp;  lines: +25 -24
+comment formatting
+----------------------------
+revision 1.113
+date: 2004/07/23 04:13:47;  author: cwl;  state: Exp;  lines: +2 -2
+change inner classes to static inner classes
+----------------------------
+revision 1.112
+date: 2004/07/19 18:10:26;  author: cwl;  state: Exp;  lines: +2 -2
+formatting
+----------------------------
+revision 1.111
+date: 2004/07/19 18:04:48;  author: cwl;  state: Exp;  lines: +72 -74
+formatting
+----------------------------
+revision 1.110
+date: 2004/06/25 03:11:03;  author: linda;  state: Exp;  lines: +24 -2
+[#10463]: NIO closes file channels if a thread interrupt is received while i/o
+is pending. If an application uses thread interrupts as a form of
+thread communication, it will see a variety of scary exceptions from
+JE, such as ChannelClosedException.
+
+Ultimately, the answer is to not use interrupts as a communication
+mechanism.  However, to make JE more robust, we now catch a variety of
+unexpected IO exceptions and convert them to
+RunRecoveryExceptions. I/O exceptions such as out of disk are still
+not fatal.
+
+In addition, changed Environment.close to attempt to a minimal amount
+of shutdown even if the environment is in a bad state. It will attempt
+to shutdown daemons and close cached file descriptors, in order to
+better support re-opening environments in the same JVM.
+----------------------------
+revision 1.109
+date: 2004/05/27 05:31:56;  author: mark;  state: Exp;  lines: +19 -1
+Count obsolete LNs for database remove and truncate operations, so that the log
+files containing removed/truncated databases will be cleaned.  Obsolete LNs are
+counted during commit, so no abort processing is needed.  [#10299]
+
+Found some usability problems with the internal cursor layer, so I:
+
+- Added a Cursor constructor that takes a DatabaseImpl and made the cursor
+class work if no Database handle is available.  This was needed to open a
+cursor during database remove, since no Database handle is available.
+
+- Added DbInternal proxies for calling package-private methods in Cursor; if
+we stick with our javadoc approach we may just want to make these public in
+the future.
+----------------------------
+revision 1.108
+date: 2004/05/25 03:03:34;  author: linda;  state: Exp;  lines: +166 -111
+- The lock table and log write mutexes are now implemented either by
+synchronized blocks or by latch objects. A new JE parameter, je.env.fairLatches
+is set to false be default and determines whether a synchronized block or
+latch is used.
+
+- DbLoggableObjects now support a marshallOutsideLatch method. If true, the
+log entry can be marshalled outside the log write mutex. Currently, only the
+FileSummaryLN must be marshalled inside the log write mutex.
+
+- The FSyncGroupManager uses a synchronized block instead of latch.
+----------------------------
+revision 1.107
+date: 2004/05/17 19:35:14;  author: cwl;  state: Exp;  lines: +567 -567
+formatting
+----------------------------
+revision 1.106
+date: 2004/05/17 18:01:12;  author: cwl;  state: Exp;  lines: +567 -566
+formatting
+----------------------------
+revision 1.105
+date: 2004/05/17 02:59:47;  author: linda;  state: Exp;  lines: +52 -56
+Changes to make group fsync effective:
+
+Only use the file descriptor cache for read access. For write access, the
+file handle latch was proving to be a bottleneck when multiple threads
+wrote and fsynced.
+
+Now a single logical file descriptor is kept for the end of the log, and
+writes and fsync happen concurrently. Safeguarding the end of the log is
+done with the log write latch, so no extra latches were introduced.
+
+In the process of doing this change, found and fixed a variety of bugs:
+   - in the last marshalling change, the FileSummaryLN was marshalled within
+     the log write latch, but too soon.
+   - Fsyncs were happening at log buffer boundaries unnecessarily.
+   - inmemory operations were still flushing the log.
+----------------------------
+revision 1.104
+date: 2004/05/03 03:14:26;  author: linda;  state: Exp;  lines: +83 -36
+Add change to checksum one time and copy, instead of checksumming as we go. For the time being, the marshalling is within the log latch, to avoid FileSummaryLN problems
+----------------------------
+revision 1.103
+date: 2004/04/29 19:34:44;  author: linda;  state: Exp;  lines: +2 -1
+Add group commit stats to EnvironmentStats
+----------------------------
+revision 1.102
+date: 2004/03/31 18:09:50;  author: linda;  state: Exp;  lines: +9 -5
+Close window where a reading thread can collide with the writing thread that is trying to re-use a log buffer
+----------------------------
+revision 1.101
+date: 2004/03/31 16:54:26;  author: cwl;  state: Exp;  lines: +2 -3
+formatting
+----------------------------
+revision 1.100
+date: 2004/03/22 19:33:49;  author: cwl;  state: Exp;  lines: +1 -2
+whitespace
+----------------------------
+revision 1.99
+date: 2004/03/19 22:35:24;  author: mark;  state: Exp;  lines: +26 -1
+Grab the log write latch when updating utilization counts during txn abort, to
+prevent thread safely problems. [#9528]
+
+It's unfortunate to have to grab this latch just for counting, but this is the
+only extra latch we've had to use for UP counting and we only do it on abort,
+so I think it's acceptable.
+----------------------------
+revision 1.98
+date: 2004/03/19 21:47:59;  author: linda;  state: Exp;  lines: +5 -4
+Add the problem lsn to the bad-checksum error message
+----------------------------
+revision 1.97
+date: 2004/03/17 20:32:24;  author: linda;  state: Exp;  lines: +2 -2
+Evictor changes:
+- Environment wide memory usage kept.
+- Evictor now wakes up when the memory budget is overdrawn. There is no time
+  based wakeup.
+- How much is evicted is based on how much is overdrawn. The batch process
+  will repeat until enough is evicted.
+- The INList is sorted by node id, not by level.
+----------------------------
+revision 1.96
+date: 2004/03/17 03:14:11;  author: mark;  state: Exp;  lines: +20 -8
+Change from disk budget-driven cleaning to utilization-driven cleaning [#9528].
+
+- Add je.cleaner.minUtilization percentage, default=50.  Cleaning keeps total
+utilization above this threshold.
+
+- Add je.cleaner.bytesInterval, default = 1/4 of the log file size.  The
+cleaner is awoken each time this many bytes is written to the log.
+
+- Remove parameters: je.cleaner.wakeupInterval, ageWeight, sizeWeight,
+routineCleaning.  Age is no longer a factor is cleaning, with the exception of
+minAge (default=2), which prevents very young files from being cleaned.
+
+- Document parameters as experimental: je.maxDiskSpace,
+je.cleaner.maxDiskSpaceTolerance.  By defualt maxDiskSpace is MAX_LONG to
+disable it.  If used, these parameters will cause aggressive cleaning when
+reaching the tolerance, and tests are still in place for this feature.
+
+- The cleaner now cleans more than one file when invoked, if necessary to stay
+under the configured minUtilization value.  The public API for cleaning now
+returns the number of files cleaned.
+----------------------------
+revision 1.95
+date: 2004/03/10 22:55:34;  author: mark;  state: Exp;  lines: +28 -10
+Initial checkin of utilization-based cleaning. [#9528]
+----------------------------
+revision 1.94
+date: 2004/02/27 23:04:54;  author: cwl;  state: Exp;  lines: +3 -2
+whitespace
+----------------------------
+revision 1.93
+date: 2004/02/27 18:58:36;  author: cwl;  state: Exp;  lines: +4 -3
+whitespace, formatting
+----------------------------
+revision 1.92
+date: 2004/02/27 03:28:59;  author: cwl;  state: Exp;  lines: +4 -3
+formatting
+----------------------------
+revision 1.91
+date: 2004/02/25 05:40:39;  author: linda;  state: Exp;  lines: +5 -10
+First pass in memory management changes. Add a MemoryBudget object to centralize and validate memory settings. No other component should use the raw je memory related parameters, and instead should come to this object for budgets.
+Changed evictor to run off a runtime memory threshold. Added LN-only eviction from BINS, streamlined eviction process to use levels instead of parent searchs.
+----------------------------
+revision 1.90
+date: 2004/02/20 05:04:47;  author: cwl;  state: Exp;  lines: +2 -2
+remove subject arg to Latch ctor
+----------------------------
+revision 1.89
+date: 2004/02/16 03:35:55;  author: linda;  state: Exp;  lines: +20 -9
+Fix and test bug where log buffer was not always flushed before the corresponding file sync. Because of this, if the environment was not explicitly closed, a transaction that committed might not be properly fsynced to disk. If the environment is explicitly closed, all would work because the close flushes the log manager
+----------------------------
+revision 1.88
+date: 2004/02/07 05:17:37;  author: linda;  state: Exp;  lines: +8 -1
+Add checkpointing code to make time based and log sized based checkpoints work together. Make evictor.maxMemory cognizant of log buffer size. Checkpoint activation still not unit tested, test in progress, but hard to run deterministically
+----------------------------
+revision 1.87
+date: 2004/02/06 10:35:53;  author: linda;  state: Exp;  lines: +28 -13
+Change checkpointer to run as a function of log growth size instead of time. Still in progress, time-based checks not yet meshed with size-based checks. Propagate CheckpointConfig.force appropriately when deciding whether to run a checkpoint. Fix evictor params to correctly use je.maxMemory when evictor.maxMemory not specified. Added evictor-specific tracing levels. Make wakeup intervals be microsecond units in keeping with Core
+----------------------------
+revision 1.86
+date: 2004/01/29 06:30:07;  author: linda;  state: Exp;  lines: +5 -3
+Make stats reset when StatsConfig.clear is set
+----------------------------
+revision 1.85
+date: 2004/01/27 20:28:03;  author: linda;  state: Exp;  lines: +13 -4
+Add group commit
+----------------------------
+revision 1.84
+date: 2004/01/22 21:18:00;  author: linda;  state: Exp;  lines: +26 -26
+renamed log classes to remove Db prefix, renamed LockGrantAndInfo to LockResult
+----------------------------
+revision 1.83
+date: 2004/01/21 17:50:47;  author: linda;  state: Exp;  lines: +43 -21
+Take file sync out of the critical region protected by the log write latch, part of performance tuning. The writes themselves are serial, but not the flush
+----------------------------
+revision 1.82
+date: 2004/01/16 04:24:19;  author: cwl;  state: Exp;  lines: +3 -3
+change imports of com.sleepycat.je.util to utilint so that only user visible tools are in com.sleepycat.je.util
+----------------------------
+revision 1.81
+date: 2004/01/14 15:26:32;  author: linda;  state: Exp;  lines: +6 -1
+Add statistics for cacheMiss, number of times we had to instantiate an lsn
+----------------------------
+revision 1.80
+date: 2004/01/05 01:20:03;  author: linda;  state: Exp;  lines: +4 -4
+Add error checking for compatible configurations. Move static config parameter constants out of EnvironmentConfig to EnvironmentParams. Make EnvironmentParams generate a sample je properties file.
+----------------------------
+revision 1.79
+date: 2003/12/23 17:53:54;  author: linda;  state: Exp;  lines: +2 -2
+Import cleanup
+----------------------------
+revision 1.78
+date: 2003/12/19 04:11:17;  author: cwl;  state: Exp;  lines: +3 -3
+pass env to Latch ctors
+----------------------------
+revision 1.77
+date: 2003/12/18 22:17:49;  author: cwl;  state: Exp;  lines: +2 -2
+use pure java Adler32 checksum [#9376]
+----------------------------
+revision 1.76
+date: 2003/12/18 18:31:48;  author: cwl;  state: Exp;  lines: +5 -3
+formatting
+----------------------------
+revision 1.75
+date: 2003/12/18 00:57:21;  author: cwl;  state: Exp;  lines: +1 -2
+whitespace
+----------------------------
+revision 1.74
+date: 2003/12/16 04:16:17;  author: cwl;  state: Exp;  lines: +2 -2
+copyright to 2004
+----------------------------
+revision 1.73
+date: 2003/12/11 06:59:51;  author: linda;  state: Exp;  lines: +4 -4
+Make some non-public class names consistent w/new api, i.e make DbEnvironment be EnvironmentImpl to match the pattern w/cursors and databases. Change Environment.txnBegin -> Environment.transactionBegin
+----------------------------
+revision 1.72
+date: 2003/12/10 15:10:23;  author: linda;  state: Exp;  lines: +4 -4
+Put configuration parameter classes in the public api, strip CONFIG_ prefix
+----------------------------
+revision 1.71
+date: 2003/12/10 06:02:26;  author: linda;  state: Exp;  lines: +19 -19
+Change names of public classes in com.sleepycat.je as part of new API changes
+----------------------------
+revision 1.70
+date: 2003/12/10 04:39:37;  author: linda;  state: Exp;  lines: +9 -9
+remove core from package names
+----------------------------
+revision 1.69
+date: 2003/12/05 15:33:25;  author: linda;  state: Exp;  lines: +5 -5
+New API
+----------------------------
+revision 1.68
+date: 2003/10/21 02:00:37;  author: linda;  state: Exp;  lines: +5 -4
+Now that the file header is a log entry, clean up prev offset handling. The prev offset of the first log entry after the file header is 0, because that's where the previous entry is. Unfortunately, since the value is stored as an unsigned int, the file header's prev offset is also 0, which means we can't read the file headers in a backwards traverse of the log. On the other hand, we only go backwards at recovery and never have to examine file headers, so that should be okay
+----------------------------
+revision 1.67
+date: 2003/10/19 02:41:50;  author: linda;  state: Exp;  lines: +80 -40
+Make file header a type of log entry. Constitutes a file format change
+----------------------------
+revision 1.66
+date: 2003/10/01 17:59:11;  author: linda;  state: Exp;  lines: +3 -3
+Add env param to checksum updater call, improve exception message when the FileReader throws a checksum exception
+----------------------------
+revision 1.65
+date: 2003/10/01 00:29:02;  author: cwl;  state: Exp;  lines: +3 -3
+identing and formatting
+----------------------------
+revision 1.64
+date: 2003/09/29 19:41:34;  author: linda;  state: Exp;  lines: +2 -2
+Another pass of eradicating the name jdb in favor of je
+----------------------------
+revision 1.63
+date: 2003/09/27 01:46:41;  author: linda;  state: Exp;  lines: +10 -10
+midway on changing import statements to move to core.je structure
+----------------------------
+revision 1.62
+date: 2003/09/26 18:20:05;  author: linda;  state: Exp;  lines: +2 -2
+Make checksum exceptions and recovery problems throw a DbRunRecoveryException by having those exception extend DbRunRecoveryException. Invalid the environment once a RunRecoveryException is thrown. Add tests
+----------------------------
+revision 1.61
+date: 2003/09/16 18:48:23;  author: cwl;  state: Exp;  lines: +353 -342
+add readOnly data member; formatting; don't log or flush anything if readOnly is true
+----------------------------
+revision 1.60
+date: 2003/09/09 02:39:27;  author: cwl;  state: Exp;  lines: +4 -3
+formatting
+----------------------------
+revision 1.59
+date: 2003/09/05 01:54:13;  author: linda;  state: Exp;  lines: +10 -6
+Add locking when using a file handle, so that eviction from the file cache is thread safe
+----------------------------
+revision 1.58
+date: 2003/08/12 17:46:21;  author: linda;  state: Exp;  lines: +9 -6
+added tracing output on exception
+----------------------------
+revision 1.57
+date: 2003/08/12 03:01:32;  author: cwl;  state: Exp;  lines: +4 -3
+whitespace
+----------------------------
+revision 1.56
+date: 2003/08/08 02:56:20;  author: linda;  state: Exp;  lines: +3 -4
+Convert to 1.4 assertions, change build file to run unit tests with assertions enabled
+----------------------------
+revision 1.55
+date: 2003/07/28 17:52:52;  author: linda;  state: Exp;  lines: +7 -4
+Fix handling of DbLogFileNotFoundException. Don't convert into a new DbException, we need the original one so it's handled properly in cleaning
+----------------------------
+revision 1.54
+date: 2003/07/17 03:01:34;  author: linda;  state: Exp;  lines: +331 -335
+Remove obsolete import statements
+----------------------------
+revision 1.53
+date: 2003/07/07 20:44:25;  author: linda;  state: Exp;  lines: +3 -3
+Create and log a pre-transaction version of a DupCountLN so that aborting a set of inserts that created a duplicate tree will return the count to either 1 or 0, depending on if the current txn created the first record or not. Fix a bug in modifying the duplicate tree count, where the abort lsn was improperly the lsn of the DIN
+----------------------------
+revision 1.52
+date: 2003/06/22 03:40:10;  author: linda;  state: Exp;  lines: +21 -59
+Further, perhaps final? cleanup of log system. By splitting the loggable interfaces into a read, write, and log entry interface, now all reading/writing/dumping of a log entry or loggable object is in one file, removing the error prone multi-item call to the log manager. Also started checkpoint implementation.
+----------------------------
+revision 1.51
+date: 2003/05/27 23:35:36;  author: linda;  state: Exp;  lines: +59 -106
+Now that we have the log entries, unify the flavor of get that gets the whole entry and the one that gets a single item. Remove the EntryInfo class, no need to create that temp object
+----------------------------
+revision 1.50
+date: 2003/05/27 17:53:46;  author: linda;  state: Exp;  lines: +22 -29
+Checkpoint on the way to reusing the txn rollback for abort. Cleaned up log entry reading, embodied each log entry in a separate class. Now reading and dumping a log entry are in one place. Need to add writing a log entry to the log entry classes, more refactoring in log manager, hook up with abort
+----------------------------
+revision 1.49
+date: 2003/05/17 03:17:49;  author: linda;  state: Exp;  lines: +2 -2
+checkpoint on way to implementing transactional recovery. Modified FileReader so it can traverse backwards, put in start and stop points, put in txn collection in recovery manager
+----------------------------
+revision 1.48
+date: 2003/05/08 14:49:56;  author: cwl;  state: Exp;  lines: +43 -35
+nits during code review
+----------------------------
+revision 1.47
+date: 2003/04/29 16:09:34;  author: linda;  state: Exp;  lines: +3 -3
+Made file names consistently use *Txn* (some were named *Transaction* and some *Txn*). Added the ability to demote a lock from write to read, check previous lock status before releasing a lock because of a deleted record
+----------------------------
+revision 1.46
+date: 2003/04/26 02:41:31;  author: linda;  state: Exp;  lines: +15 -6
+In progress on attempting to debug log the log manager's failures. The trick is that we have to turn off the DbLoggerHandler, because we want to log to the console and the file, but not the db log. In progress.
+----------------------------
+revision 1.45
+date: 2003/04/25 03:58:33;  author: linda;  state: Exp;  lines: +134 -68
+Add abortLsn to transactional log entries
+----------------------------
+revision 1.44
+date: 2003/04/23 15:40:01;  author: linda;  state: Exp;  lines: +12 -7
+Fix bug in DumpFileReader where it was't advancing the byte buffer. Add env to all file reader constructors so FileReader can send DebugRecord messages. Make FileReader set eof when an invalid entry is found.
+----------------------------
+revision 1.43
+date: 2003/04/23 02:14:49;  author: linda;  state: Exp;  lines: +3 -36
+Move logIn methods out of DbLogManager into IN
+----------------------------
+revision 1.42
+date: 2003/04/23 00:47:49;  author: linda;  state: Exp;  lines: +15 -67
+Added transactional LN entries that are replaye in recovery, vs non-txnal which are just preserved. Moved LN specific logging out of DbLogManager into LN. LN logging is getting more complicated because the log entry type is no longer determined just by the first object. Allows for better encapsulation of the conditions when choosing transactional entries vs non transactional entries.
+----------------------------
+revision 1.41
+date: 2003/04/22 14:53:01;  author: linda;  state: Exp;  lines: +40 -21
+checkpointing code on way to implementing transaction commit
+----------------------------
+revision 1.40
+date: 2003/04/11 18:51:44;  author: linda;  state: Exp;  lines: +5 -5
+Use dupeKey as a variable name instead of dupKey for consistency w/other files
+----------------------------
+revision 1.39
+date: 2003/04/10 18:13:42;  author: linda;  state: Exp;  lines: +38 -18
+Add new log type to support deletion of duplicates. Modify delete methods to use new logging method. Percolate change into LNFileReader
+----------------------------
+revision 1.38
+date: 2003/04/07 16:43:58;  author: linda;  state: Exp;  lines: +3 -3
+beginning of tranaction manager
+----------------------------
+revision 1.37
+date: 2003/04/05 04:10:17;  author: cwl;  state: Exp;  lines: +5 -4
+nits
+----------------------------
+revision 1.36
+date: 2003/03/22 03:24:53;  author: linda;  state: Exp;  lines: +39 -22
+make checksum cover entire log entry (header too)
+----------------------------
+revision 1.35
+date: 2003/03/15 04:04:59;  author: linda;  state: Exp;  lines: +9 -7
+Add provisional logging to handle splits
+----------------------------
+revision 1.34
+date: 2003/03/13 19:26:50;  author: linda;  state: Exp;  lines: +1 -9
+New log reader that reads INs and finds largest node id
+----------------------------
+revision 1.33
+date: 2003/03/07 21:26:12;  author: linda;  state: Exp;  lines: +11 -10
+took database reference out of Node to reduce LN size by 8 bytes
+----------------------------
+revision 1.32
+date: 2003/03/07 17:09:45;  author: linda;  state: Exp;  lines: +12 -8
+incorporate review comments from cwl
+----------------------------
+revision 1.31
+date: 2003/03/07 05:44:32;  author: linda;  state: Exp;  lines: +368 -367
+convert DbException to be a checked exception
+----------------------------
+revision 1.30
+date: 2003/03/06 23:15:57;  author: cwl;  state: Exp;  lines: +49 -35
+nits
+----------------------------
+revision 1.29
+date: 2003/03/06 16:33:44;  author: linda;  state: Exp;  lines: +6 -6
+incorporate review comments from CWL
+----------------------------
+revision 1.28
+date: 2003/03/06 05:45:57;  author: linda;  state: Exp;  lines: +9 -6
+Basic log dumper in place
+----------------------------
+revision 1.27
+date: 2003/03/05 19:55:52;  author: linda;  state: Exp;  lines: +5 -21
+fixed up some comments, make recovery keep readbuffersize
+----------------------------
+revision 1.26
+date: 2003/03/03 19:46:47;  author: linda;  state: Exp;  lines: +2 -2
+limited file cache
+----------------------------
+revision 1.25
+date: 2003/03/03 03:04:03;  author: linda;  state: Exp;  lines: +29 -37
+Simply log buffering, also make Db open api conform to BDB api
+----------------------------
+revision 1.24
+date: 2003/02/28 18:50:33;  author: linda;  state: Exp;  lines: +6 -9
+Added checksum to file header, add sync of previous file, do a second read if faulted in item doesn't fit
+----------------------------
+revision 1.23
+date: 2003/02/25 18:02:09;  author: linda;  state: Exp;  lines: +41 -20
+progress on recovery, nodes log their database ids, should now be able to bring in a null mapping tree
+----------------------------
+revision 1.22
+date: 2003/02/24 16:14:16;  author: cwl;  state: Exp;  lines: +2 -6
+minor nits
+----------------------------
+revision 1.21
+date: 2003/02/24 04:55:03;  author: linda;  state: Exp;  lines: +3 -75
+Reading LNs from the log now works, all log building blocks for simple recovery should be in place
+----------------------------
+revision 1.20
+date: 2003/02/23 14:25:08;  author: linda;  state: Exp;  lines: +124 -10
+simple recovery work in progress, added LNReader
+----------------------------
+revision 1.19
+date: 2003/02/21 05:08:55;  author: linda;  state: Exp;  lines: +3 -3
+unit test recovery on an empty log
+----------------------------
+revision 1.18
+date: 2003/02/21 04:40:12;  author: cwl;  state: Exp;  lines: +4 -2
+check for ownership of latch before releasing it
+----------------------------
+revision 1.17
+date: 2003/02/21 03:13:21;  author: linda;  state: Exp;  lines: +9 -2
+Added verification for LN logging, reading. Got FileReader to the state that it can traverse the last log file and find the legitimate end of the log
+----------------------------
+revision 1.16
+date: 2003/02/20 19:16:48;  author: linda;  state: Exp;  lines: +12 -8
+Hurray, can now log various entries and then read them back from the log whether the log is on disk or in memory, or a combination
+----------------------------
+revision 1.15
+date: 2003/02/20 17:40:01;  author: linda;  state: Exp;  lines: +6 -4
+more testing/fixing of logging
+----------------------------
+revision 1.14
+date: 2003/02/20 04:56:17;  author: linda;  state: Exp;  lines: +12 -7
+unit testing of log buffer flushing
+----------------------------
+revision 1.13
+date: 2003/02/19 04:06:06;  author: linda;  state: Exp;  lines: +23 -24
+added creation of a log file
+----------------------------
+revision 1.12
+date: 2003/02/19 02:24:15;  author: linda;  state: Exp;  lines: +100 -70
+added beginning of recovery and persistence
+----------------------------
+revision 1.11
+date: 2003/02/13 21:57:32;  author: linda;  state: Exp;  lines: +9 -8
+split loggable interface into one for log entries, one for components that can write to logs
+----------------------------
+revision 1.10
+date: 2003/02/13 20:25:45;  author: linda;  state: Exp;  lines: +13 -12
+revamped loggable mechanism so not constructor oriented
+----------------------------
+revision 1.9
+date: 2003/02/12 03:05:08;  author: linda;  state: Exp;  lines: +22 -9
+Add logging ability to INs and BINs
+----------------------------
+revision 1.8
+date: 2003/02/10 19:35:15;  author: linda;  state: Exp;  lines: +40 -20
+manage LSNs across files, added unit test for this
+----------------------------
+revision 1.7
+date: 2003/02/09 03:45:05;  author: cwl;  state: Exp;  lines: +2 -2
+added code to have latches reference their 'subjects' for debugging purposes
+----------------------------
+revision 1.6
+date: 2003/02/08 04:18:20;  author: linda;  state: Exp;  lines: +69 -87
+revamped reading/writing to log
+----------------------------
+revision 1.5
+date: 2003/02/07 02:53:30;  author: linda;  state: Exp;  lines: +3 -3
+DbLogBufferPool unit test working, basic test case in log manager running
+----------------------------
+revision 1.4
+date: 2003/02/06 20:45:04;  author: linda;  state: Exp;  lines: +174 -44
+backup, log manager in progress
+----------------------------
+revision 1.3
+date: 2003/02/05 03:08:54;  author: linda;  state: Exp;  lines: +33 -40
+logging in progress, changed Latch.grab to Latch.acquire, changed LSN to DbLsn
+----------------------------
+revision 1.2
+date: 2003/02/04 04:42:15;  author: linda;  state: Exp;  lines: +64 -62
+backup, baby steps for logging
+----------------------------
+revision 1.1
+date: 2003/01/31 00:40:29;  author: linda;  state: Exp;
+checkpoint after adding debug logging system
+----------------------------
+revision 1.125.2.2
+date: 2005/06/10 02:53:21;  author: cwl;  state: Exp;  lines: +13 -4
+[#12671] NIO Chunked io
+----------------------------
+revision 1.125.2.1
+date: 2005/03/08 17:08:08;  author: cwl;  state: Exp;  lines: +11 -1
+[#11861] don't checkpoint on recovery if last record in the log is a checkpoint end
+----------------------------
+revision 1.145.2.2
+date: 2006/01/03 23:03:48;  author: cwl;  state: Exp;  lines: +2 -2
+[#13898] recompute checksum at IOException time when we convert commit records to abort records
+----------------------------
+revision 1.145.2.1
+date: 2005/11/12 14:57:42;  author: mark;  state: Exp;  lines: +2 -2
+Merge the B_shop_com_2_0_84 branch changes into the B_je-2_0_83 branch, so that
+we only need to update the 2.0.83 branch for shop.com, Turn Adv, etc. [#13333]
+----------------------------
+revision 1.163.2.3
+date: 2007/03/09 21:04:12;  author: mark;  state: Exp;  lines: +15 -10
+Fix a bug introduced in 3.2.15 where the size of an entry is not calculated
+when marshaling it under the log write mutex.  [#15365]
+----------------------------
+revision 1.163.2.2
+date: 2007/03/08 22:32:55;  author: mark;  state: Exp;  lines: +10 -3
+Add utilization tracking of LN sizes for deferred write DBs.  Store the last
+logged size in the LN state field.  [#15365]
+----------------------------
+revision 1.163.2.1
+date: 2007/02/01 14:49:47;  author: cwl;  state: Exp;  lines: +2 -2
+copyright change to 2007
+=============================================================================
