@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Enhanced3.java,v 1.5.2.1 2007/02/01 14:50:24 cwl Exp $
+ * $Id: Enhanced3.java,v 1.5.2.2 2007/11/20 13:32:52 cwl Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -61,7 +61,7 @@ class Enhanced3 implements Enhanced {
     public Object bdbNewInstance() {
         return new Enhanced3();
     }
-    
+
     public Object bdbNewArray(int len) {
         return new Enhanced3[len];
     }

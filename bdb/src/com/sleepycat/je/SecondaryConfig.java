@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryConfig.java,v 1.19.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: SecondaryConfig.java,v 1.19.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -45,7 +45,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public void setKeyCreator(SecondaryKeyCreator keyCreator) {
         this.keyCreator = keyCreator;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -53,7 +53,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public SecondaryKeyCreator getKeyCreator() {
         return keyCreator;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -61,7 +61,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public void setMultiKeyCreator(SecondaryMultiKeyCreator multiKeyCreator) {
         this.multiKeyCreator = multiKeyCreator;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -69,7 +69,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public SecondaryMultiKeyCreator getMultiKeyCreator() {
         return multiKeyCreator;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -77,7 +77,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public void setAllowPopulate(boolean allowPopulate) {
         this.allowPopulate = allowPopulate;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -85,7 +85,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public boolean getAllowPopulate() {
         return allowPopulate;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -162,7 +162,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public void setImmutableSecondaryKey(boolean immutableSecondaryKey) {
         this.immutableSecondaryKey = immutableSecondaryKey;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -170,7 +170,7 @@ public class SecondaryConfig extends DatabaseConfig {
      */
     public boolean getImmutableSecondaryKey() {
         return immutableSecondaryKey;
-    } 
+    }
 
     /*
      * For JCA Database handle caching.
@@ -194,7 +194,7 @@ public class SecondaryConfig extends DatabaseConfig {
             (config.getMultiKeyCreator(), multiKeyCreator);
 	boolean fkdMatch =
 	    (config.getForeignKeyDatabase() == foreignKeyDatabase);
-	boolean fkdaMatch = 
+	boolean fkdaMatch =
 	    (config.getForeignKeyDeleteAction() == foreignKeyDeleteAction);
 	boolean fknMatch = equalOrBothNull
 	    (config.getForeignKeyNullifier(), foreignKeyNullifier);
@@ -238,27 +238,27 @@ public class SecondaryConfig extends DatabaseConfig {
 	if (!kcMatch) {
 	    ret.append(" SecondaryKeyCreator\n");
 	}
-	    
+	
 	if (!mkcMatch) {
 	    ret.append(" SecondaryMultiKeyCreator\n");
 	}
-	    
+	
 	if (!fkdMatch) {
 	    ret.append(" ForeignKeyDelete\n");
 	}
-	    
+	
 	if (!fkdaMatch) {
 	    ret.append(" ForeignKeyDeleteAction\n");
 	}
-	    
+	
 	if (!fknMatch) {
 	    ret.append(" ForeignKeyNullifier\n");
 	}
-	    
+	
 	if (!fknMatch) {
 	    ret.append(" ForeignMultiKeyNullifier\n");
 	}
-	    
+	
 	if (!imskMatch) {
 	    ret.append(" ImmutableSecondaryKey\n");
 	}

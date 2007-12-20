@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockNotGrantedException.java,v 1.6.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: LockNotGrantedException.java,v 1.6.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -14,7 +14,7 @@ package com.sleepycat.je;
  */
 public class LockNotGrantedException extends DeadlockException {
 
-    /* 
+    /*
      * LockNotGrantedException extends DeadlockException in order to
      * support the approach that all application need only handle
      * DeadlockException. The idea is that we don't want an

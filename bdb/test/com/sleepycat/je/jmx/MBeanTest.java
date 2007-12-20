@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MBeanTest.java,v 1.14.2.1 2007/02/01 14:50:11 cwl Exp $
+ * $Id: MBeanTest.java,v 1.14.2.2 2007/11/20 13:32:45 cwl Exp $
  */
 
 package com.sleepycat.je.jmx;
@@ -46,13 +46,13 @@ import com.sleepycat.je.util.TestUtils;
  * Instantiate and exercise the JEMonitor.
  */
 public class MBeanTest extends TestCase {
-    
+
     private static final boolean DEBUG = true;
     private File envHome;
     private String environmentDir;
 
     public MBeanTest() {
-        environmentDir = System.getProperty(TestUtils.DEST_DIR); 
+        environmentDir = System.getProperty(TestUtils.DEST_DIR);
         envHome = new File(environmentDir);
     }
 
@@ -61,7 +61,7 @@ public class MBeanTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -69,20 +69,20 @@ public class MBeanTest extends TestCase {
     }
 
     /**
-     * Test an mbean which is prohibited from configuring and opening an 
+     * Test an mbean which is prohibited from configuring and opening an
      * environment.
      */
-    public void testNoOpenMBean() 
+    public void testNoOpenMBean()
         throws Throwable {
-        
+
         Environment env = null;
         try {
-            
+
             /* Environment is not open, and we can't open. */
             DynamicMBean mbean = new JEMonitor(environmentDir);
             validateGetters(mbean, 2);
             validateOperations(mbean, 0, true, null, null);
-            
+
             /* Now open the environment transactionally by other means. */
             env = openEnv(true);
             validateGetters(mbean, 2 ); // alas, takes two refreshes to
@@ -94,7 +94,7 @@ public class MBeanTest extends TestCase {
             validateGetters(mbean, 2);
             validateOperations(mbean, 0, true, null, null);
 
-            /* 
+            /*
              * Try this kind of mbean against an environment that's already
              * open.
              */
@@ -103,7 +103,7 @@ public class MBeanTest extends TestCase {
             validateGetters(mbean, 9 ); // see the change.
             validateOperations(mbean, 8, true, null, null);
 
-            /* 
+            /*
              * Getting database stats against a non-existing db ought to
              * throw an exception.
              */
@@ -142,13 +142,13 @@ public class MBeanTest extends TestCase {
                 env.close();
             }
             throw t;
-        } 
+        }
     }
 
     /**
      * MBean which can configure and open an environment.
      */
-    public void testOpenableBean() 
+    public void testOpenableBean()
         throws Throwable {
 
         Environment env = null;
@@ -160,14 +160,14 @@ public class MBeanTest extends TestCase {
             DynamicMBean mbean = new JEApplicationMBean(environmentDir);
             validateGetters(mbean, 5);
             validateOperations(mbean, 1, false, null, null); // don't invoke
-            
+
             /* Open the environment. */
             mbean.invoke(JEApplicationMBean.OP_OPEN, null, null);
-                         
+
             validateGetters(mbean, 7 );
             validateOperations(mbean, 8, true, null, null);
 
-            /* 
+            /*
              * The last call to validateOperations ended up closing the
              * environment.
              */
@@ -178,18 +178,18 @@ public class MBeanTest extends TestCase {
             checkForNoOpenHandles(environmentDir);
         } catch (Throwable t) {
             t.printStackTrace();
-            
+
             if (env != null) {
                 env.close();
             }
             throw t;
-        } 
+        }
     }
 
     /**
-     * Exercise setters. 
+     * Exercise setters.
      */
-    public void testMBeanSetters() 
+    public void testMBeanSetters()
         throws Throwable {
 
         Environment env = null;
@@ -199,8 +199,8 @@ public class MBeanTest extends TestCase {
 
             /* Open an mbean and set the environment home. */
             DynamicMBean mbean = new JEMonitor(environmentDir);
-            
-            /* 
+
+            /*
              * Try setting different attributes. Check against the
              * initial value, and the value after setting.
              */
@@ -232,7 +232,7 @@ public class MBeanTest extends TestCase {
             }
 
             throw t;
-        } 
+        }
     }
 
     private void checkAttribute(Environment env,
@@ -251,7 +251,7 @@ public class MBeanTest extends TestCase {
 
         /* check present environment config. */
         config = env.getConfig();
-        assertEquals(newValue.toString(), 
+        assertEquals(newValue.toString(),
                      configMethod.invoke(config, (Object []) null).toString());
 
         /* check through mbean. */
@@ -261,7 +261,7 @@ public class MBeanTest extends TestCase {
 
     /*
      */
-    private void validateGetters(DynamicMBean mbean, 
+    private void validateGetters(DynamicMBean mbean,
                                  int numExpectedAttributes)
         throws Throwable {
 
@@ -275,7 +275,7 @@ public class MBeanTest extends TestCase {
             String name = attrs[i].getName();
             Object result = mbean.getAttribute(name);
             if (DEBUG) {
-                System.out.println("Attribute " + i + 
+                System.out.println("Attribute " + i +
                                    " name=" + name +
                                    " result=" + result);
             }
@@ -289,18 +289,18 @@ public class MBeanTest extends TestCase {
         assertEquals(numExpectedAttributes, attributesWithValues);
     }
 
-    /* 
+    /*
      * Check that there are the expected number of operations.
      * If specified, invoke and check the results.
-     * @param tryInvoke if true, invoke the operations. 
-     * @param databaseName if not null, execute the database specific 
+     * @param tryInvoke if true, invoke the operations.
+     * @param databaseName if not null, execute the database specific
      * operations using the database name.
      */
-    private void validateOperations(DynamicMBean mbean, 
+    private void validateOperations(DynamicMBean mbean,
                                     int numExpectedOperations,
                                     boolean tryInvoke,
                                     String databaseName,
-                                    String[] expectedDatabases) 
+                                    String[] expectedDatabases)
         throws Throwable {
 
         MBeanInfo info = mbean.getMBeanInfo();
@@ -312,7 +312,7 @@ public class MBeanTest extends TestCase {
             }
         }
         assertEquals(numExpectedOperations, ops.length);
-            
+
         if (tryInvoke) {
             for (int i = 0; i < ops.length; i++) {
                 String opName = ops[i].getName();
@@ -340,7 +340,7 @@ public class MBeanTest extends TestCase {
                         ("Operation", opName, ops[i].getReturnType(), result);
                 }
 
-                /* 
+                /*
                  * Also invoke all operations with null params, to sanity
                  * check.
                  */
@@ -489,11 +489,11 @@ public class MBeanTest extends TestCase {
     }
 
     /*
-     * Helper to open an environment. 
+     * Helper to open an environment.
      */
-    private Environment openEnv(boolean openTransactionally) 
+    private Environment openEnv(boolean openTransactionally)
         throws DatabaseException {
-        
+
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(openTransactionally);

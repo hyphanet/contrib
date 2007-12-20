@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: UtilizationProfile.java,v 1.52.2.7 2007/07/02 19:54:48 mark Exp $
+ * $Id: UtilizationProfile.java,v 1.52.2.9 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -1113,7 +1113,7 @@ public class UtilizationProfile implements EnvConfigObserver {
 
         boolean exactKeyMatch = ((result & CursorImpl.EXACT_KEY) != 0);
 
-        if (exactKeyMatch && 
+        if (exactKeyMatch &&
             cursor.getCurrentAlreadyLatched
                  (keyEntry, dataEntry, lockType, true) !=
                     OperationStatus.KEYEMPTY) {
@@ -1175,6 +1175,13 @@ public class UtilizationProfile implements EnvConfigObserver {
     }
 
     /**
+     * For unit testing.
+     */
+    DatabaseImpl getFileSummaryDb() {
+        return fileSummaryDb;
+    }
+
+    /**
      * Insert the given LN with the given key values.  This method is
      * synchronized and may not perform eviction.
      */
@@ -1220,7 +1227,7 @@ public class UtilizationProfile implements EnvConfigObserver {
      *
      * @return true if no verification failures.
      */
-    public boolean verifyFileSummaryDatabase() 
+    public boolean verifyFileSummaryDatabase()
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -1230,7 +1237,7 @@ public class UtilizationProfile implements EnvConfigObserver {
         Locker locker = null;
         CursorImpl cursor = null;
         boolean ok = true;
-        
+
         try {
             locker = new BasicLocker(env);
             cursor = new CursorImpl(fileSummaryDb, locker);
@@ -1269,7 +1276,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                         }
 
                         cursor.evict();
-                        status = cursor.getNext(key, data, LockType.NONE, 
+                        status = cursor.getNext(key, data, LockType.NONE,
                                                 true,   // forward
                                                 false); // already latched
                     }
@@ -1287,10 +1294,10 @@ public class UtilizationProfile implements EnvConfigObserver {
         return ok;
     }
 
-    /* 
-     * Return true if the LN at this lsn is obsolete. 
+    /*
+     * Return true if the LN at this lsn is obsolete.
      */
-    private boolean verifyLsnIsObsolete(long lsn) 
+    private boolean verifyLsnIsObsolete(long lsn)
         throws DatabaseException {
 
         /* Read the whole entry out of the log. */
@@ -1304,7 +1311,7 @@ public class UtilizationProfile implements EnvConfigObserver {
         if (entry.getLN().isDeleted()) {
             return true;
         }
-        
+
         /* Find the owning database. */
         DatabaseId dbId = entry.getDbId();
         DatabaseImpl db = env.getDbMapTree().getDb(dbId);
@@ -1315,7 +1322,7 @@ public class UtilizationProfile implements EnvConfigObserver {
         BIN bin = null;
         try {
 
-            /* 
+            /*
              * The whole database is gone, so this LN is obsolete. No need
              * to worry about delete cleanup; this is just verification and
              * no cleaning is done.
@@ -1327,9 +1334,9 @@ public class UtilizationProfile implements EnvConfigObserver {
             Tree tree = db.getTree();
             TreeLocation location = new TreeLocation();
             boolean parentFound = tree.getParentBINForChildLN
-                (location, 
-                 entry.getKey(), 
-                 entry.getDupKey(), 
+                (location,
+                 entry.getKey(),
+                 entry.getDupKey(),
                  entry.getLN(),
                  false,  // splitsAllowed
                  true,   // findDeletedEntries
@@ -1358,7 +1365,7 @@ public class UtilizationProfile implements EnvConfigObserver {
             /* Oh no -- this lsn is in the tree. */
             /* should print, or trace? */
             System.err.println("lsn " + DbLsn.getNoFormatString(lsn)+
-                               " was found in tree."); 
+                               " was found in tree.");
             return false;
         } finally {
             env.getDbMapTree().releaseDb(db);

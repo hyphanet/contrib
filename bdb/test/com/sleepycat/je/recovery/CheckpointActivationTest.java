@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckpointActivationTest.java,v 1.18.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: CheckpointActivationTest.java,v 1.18.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -39,7 +39,7 @@ public class CheckpointActivationTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -50,7 +50,7 @@ public class CheckpointActivationTest extends TestCase {
      * Write elements to the log, check that the right number of
      * checkpoints ran.
      */
-    public void testLogSizeBasedCheckpoints() 
+    public void testLogSizeBasedCheckpoints()
         throws Exception {
 
         final int CKPT_INTERVAL = 5000;
@@ -59,7 +59,7 @@ public class CheckpointActivationTest extends TestCase {
         final int N_CHECKPOINTS = 10;
         final int WAIT_FOR_CHECKPOINT_SECS = 10;
         final int FILE_SIZE = 20000000;
-        
+
         /* Init trace message with hyphens. */
         assert CKPT_INTERVAL % N_TRACES == 0;
         int msgBytesPerTrace = (CKPT_INTERVAL / N_TRACES) - TRACER_OVERHEAD;
@@ -79,7 +79,7 @@ public class CheckpointActivationTest extends TestCase {
 
             /*
              * This test needs to control exactly how much goes into the log,
-             * so disable daemons. 
+             * so disable daemons.
              */
             envConfig.setConfigParam(EnvironmentParams.
                                      ENV_RUN_EVICTOR.getName(), "false");
@@ -89,7 +89,7 @@ public class CheckpointActivationTest extends TestCase {
                                      ENV_RUN_CLEANER.getName(), "false");
             env = new Environment(envHome, envConfig);
 
-            /* 
+            /*
              * Get a first reading on number of checkpoints run. Read once
              * to clear, then read again.
              */
@@ -169,7 +169,7 @@ public class CheckpointActivationTest extends TestCase {
             }
         } catch (Exception e) {
 
-            /* 
+            /*
              * print stack trace now, else it gets subsumed in exceptions
              * caused by difficulty in removing log files.
              */
@@ -183,7 +183,7 @@ public class CheckpointActivationTest extends TestCase {
     }
 
     /* Test programmatic call to checkpoint. */
-    public void testApiCalls() 
+    public void testApiCalls()
         throws Exception {
 
         Environment env = null;
@@ -205,7 +205,7 @@ public class CheckpointActivationTest extends TestCase {
                                      ENV_RUN_CHECKPOINTER.getName(), "false");
             env = new Environment(envHome, envConfig);
 
-            /* 
+            /*
              * Get a first reading on number of checkpoints run. Read once
              * to clear, then read again.
              */
@@ -217,7 +217,7 @@ public class CheckpointActivationTest extends TestCase {
             stats = env.getStats(statsConfig);  // read again
             assertEquals(0, stats.getNCheckpoints());
 
-            /* 
+            /*
 	     * From the last checkpoint start LSN, there should be the
 	     * checkpoint end log entry and a trace message. These take 196
 	     * bytes.
@@ -247,7 +247,7 @@ public class CheckpointActivationTest extends TestCase {
             stats = env.getStats(statsConfig);  // read again
             assertEquals(0, stats.getNCheckpoints());
 
-            /* 
+            /*
 	     * Sleep, enough time has passed for a checkpoint, but nothing was
 	     * written to the log.
              */
@@ -260,12 +260,12 @@ public class CheckpointActivationTest extends TestCase {
             Tracer.trace(Level.SEVERE,  envImpl, filler);
             env.checkpoint(checkpointConfig);
             stats = env.getStats(statsConfig);  // read again
-            // TODO: make this test more timing independent. Sometimes 
+            // TODO: make this test more timing independent. Sometimes
             // the assertion will fail.
             // assertEquals(1, stats.getNCheckpoints());
-                        
+
         } catch (Exception e) {
-            /* 
+            /*
              * print stack trace now, else it gets subsumed in exceptions
              * caused by difficulty in removing log files.
              */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbTreeTest.java,v 1.26.2.1 2007/02/01 14:50:10 cwl Exp $
+ * $Id: DbTreeTest.java,v 1.26.2.2 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -24,7 +24,7 @@ import com.sleepycat.je.util.TestUtils;
 
 public class DbTreeTest extends TestCase {
     private File envHome;
-    
+
     public DbTreeTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
@@ -66,5 +66,5 @@ public class DbTreeTest extends TestCase {
             t.printStackTrace();
             throw t;
         }
-    } 
+    }
 }

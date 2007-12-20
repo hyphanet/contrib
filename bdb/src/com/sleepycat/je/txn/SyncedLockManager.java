@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SyncedLockManager.java,v 1.11.2.2 2007/07/13 02:32:05 cwl Exp $
+ * $Id: SyncedLockManager.java,v 1.11.2.4 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -11,6 +11,7 @@ package com.sleepycat.je.txn;
 import java.util.Set;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -22,7 +23,7 @@ import com.sleepycat.je.dbi.MemoryBudget;
  */
 public class SyncedLockManager extends LockManager {
 
-    public SyncedLockManager(EnvironmentImpl envImpl) 
+    public SyncedLockManager(EnvironmentImpl envImpl)
     	throws DatabaseException {
 
         super(envImpl);
@@ -34,41 +35,41 @@ public class SyncedLockManager extends LockManager {
     protected LockAttemptResult attemptLock(Long nodeId,
                                             Locker locker,
                                             LockType type,
-                                            boolean nonBlockingRequest) 
+                                            boolean nonBlockingRequest)
         throws DatabaseException {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
         synchronized(lockTableLatches[lockTableIndex]) {
             return attemptLockInternal(nodeId, locker, type,
 				       nonBlockingRequest, lockTableIndex);
         }
     }
-        
+
     /**
      * @see LockManager#lookupLock
      */
-    protected Lock lookupLock(Long nodeId) 
+    protected Lock lookupLock(Long nodeId)
         throws DatabaseException {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
         synchronized(lockTableLatches[lockTableIndex]) {
             return lookupLockInternal(nodeId, lockTableIndex);
         }
     }
-        
+
     /**
      * @see LockManager#makeTimeoutMsg
      */
-    protected String makeTimeoutMsg(String lockOrTxn,
-                                    Locker locker,
-                                    long nodeId,
-                                    LockType type,
-                                    LockGrantType grantType,
-                                    Lock useLock,
-                                    long timeout,
-                                    long start,
-                                    long now,
-				    DatabaseImpl database) {
+    protected DeadlockException makeTimeoutMsg(String lockOrTxn,
+					       Locker locker,
+					       long nodeId,
+					       LockType type,
+					       LockGrantType grantType,
+					       Lock useLock,
+					       long timeout,
+					       long start,
+					       long now,
+					       DatabaseImpl database) {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
         synchronized(lockTableLatches[lockTableIndex]) {
@@ -82,7 +83,7 @@ public class SyncedLockManager extends LockManager {
      * @see LockManager#releaseAndNotifyTargets
      */
     protected Set releaseAndFindNotifyTargets(long nodeId,
-                                              Locker locker) 
+                                              Locker locker)
         throws DatabaseException {
 
 	long nid = nodeId;
@@ -99,7 +100,7 @@ public class SyncedLockManager extends LockManager {
     void transfer(long nodeId,
                   Locker owningLocker,
                   Locker destLocker,
-                  boolean demoteToRead) 
+                  boolean demoteToRead)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
@@ -129,7 +130,7 @@ public class SyncedLockManager extends LockManager {
      */
     void demote(long nodeId, Locker locker)
         throws DatabaseException {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
         synchronized(lockTableLatches[lockTableIndex]) {
             demoteInternal(nodeId, locker, lockTableIndex);
@@ -162,7 +163,7 @@ public class SyncedLockManager extends LockManager {
      * @see LockManager#isWaiter
      */
     boolean isWaiter(Long nodeId, Locker locker) {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
         synchronized(lockTableLatches[lockTableIndex]) {
             return isWaiterInternal(nodeId, locker, lockTableIndex);
@@ -207,7 +208,7 @@ public class SyncedLockManager extends LockManager {
      * @see LockManager#validateOwnership
      */
     protected boolean validateOwnership(Long nodeId,
-                                        Locker locker, 
+                                        Locker locker,
                                         LockType type,
                                         boolean flushFromWaiters,
 					MemoryBudget mb)
@@ -223,9 +224,9 @@ public class SyncedLockManager extends LockManager {
     /**
      * @see LockManager#dumpLockTable
      */
-    protected void dumpLockTable(LockStats stats) 
+    protected void dumpLockTable(LockStats stats)
         throws DatabaseException {
-        
+
 	for (int i = 0; i < nLockTables; i++) {
 	    synchronized(lockTableLatches[i]) {
 		dumpLockTableInternal(stats, i);

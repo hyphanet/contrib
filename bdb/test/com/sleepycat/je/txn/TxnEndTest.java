@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnEndTest.java,v 1.67.2.1 2007/02/01 14:50:22 cwl Exp $
+ * $Id: TxnEndTest.java,v 1.67.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -51,11 +51,11 @@ public class TxnEndTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 
-    public void setUp() 
+    public void setUp()
         throws IOException, DatabaseException {
 
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
-      
+
         /*
          * Run environment without in compressor on so we can check the
          * compressor queue in a deterministic way.
@@ -114,7 +114,7 @@ public class TxnEndTest extends TestCase {
     /**
      * Create cursors with this owning transaction
      */
-    private void createCursors(Transaction txn) 
+    private void createCursors(Transaction txn)
         throws DatabaseException {
 
         for (int i = 0; i < cursors.length; i++) {
@@ -132,7 +132,7 @@ public class TxnEndTest extends TestCase {
             cursors[i].close();
         }
     }
-    
+
     /**
      * Insert keys from i=start; i <end using a cursor
      */
@@ -256,7 +256,7 @@ public class TxnEndTest extends TestCase {
             }
             // should be the end of this database
             assertTrue("More data than expected",
-		       (status != OperationStatus.SUCCESS)); 
+		       (status != OperationStatus.SUCCESS));
             verifyCursor.close();
         }
     }
@@ -499,9 +499,9 @@ public class TxnEndTest extends TestCase {
             // delete data with a txn, abort
             txn = env.beginTransaction(null, null);
             dbDeleteData(numKeys, numKeys * 2, txn);
-            verifyData(numKeys, 0);  // verify w/dirty read    
+            verifyData(numKeys, 0);  // verify w/dirty read
             txn.abort();
-            
+
             closeAll();
         } catch (Throwable t) {
             t.printStackTrace();
@@ -542,7 +542,7 @@ public class TxnEndTest extends TestCase {
         // Open this database with the same txn and another handle
         Database dbC =
 	    env.openDatabase(txnA, "foo", dbConfig);
-        
+
         // Now commit txnA and txnB should be able to open this.
         txnA.commit();
 	txnB = env.beginTransaction(null, null);

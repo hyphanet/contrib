@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckSplitAuntTest.java,v 1.3.2.1 2007/02/01 14:50:16 cwl Exp $
+ * $Id: CheckSplitAuntTest.java,v 1.3.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -39,7 +39,7 @@ public class CheckSplitAuntTest extends CheckBase {
                                  "4");
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
-                                 
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
         dbConfig.setTransactional(true);
@@ -62,8 +62,8 @@ public class CheckSplitAuntTest extends CheckBase {
                     restartConfig,
                     new DatabaseConfig());
 
-        /* 
-         * Now run the test in a stepwise loop, truncate after each 
+        /*
+         * Now run the test in a stepwise loop, truncate after each
          * log entry. We start the steps before the inserts, so the base
          * expected set is empty.
          */
@@ -73,7 +73,7 @@ public class CheckSplitAuntTest extends CheckBase {
         }
     }
 
-    private void setupSplitData(Database db) 
+    private void setupSplitData(Database db)
         throws DatabaseException {
 
         setStepwiseStart();
@@ -127,7 +127,7 @@ public class CheckSplitAuntTest extends CheckBase {
 
         ckptConfig.setForce(true);
         ckptConfig.setMinimizeRecoveryTime(true);
-        env.checkpoint(ckptConfig);       
+        env.checkpoint(ckptConfig);
 
         Tracer.trace(Level.SEVERE, DbInternal.envGetEnvironmentImpl(env),
                      "before split");
@@ -142,5 +142,5 @@ public class CheckSplitAuntTest extends CheckBase {
 
         Tracer.trace(Level.SEVERE, DbInternal.envGetEnvironmentImpl(env),
                      "after split");
-    } 
+    }
 }

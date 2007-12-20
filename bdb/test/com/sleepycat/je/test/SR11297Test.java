@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SR11297Test.java,v 1.7.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: SR11297Test.java,v 1.7.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -64,7 +64,7 @@ public class SR11297Test extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome, false);
         TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -75,7 +75,7 @@ public class SR11297Test extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
@@ -158,7 +158,7 @@ public class SR11297Test extends TestCase {
         closeEnv();
     }
 
-    /** 
+    /**
      * First and only record in db1 should be {3,0}.
      */
     private void checkFirstRecord()

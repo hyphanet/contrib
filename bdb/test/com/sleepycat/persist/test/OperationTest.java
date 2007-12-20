@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: OperationTest.java,v 1.12.2.3 2007/06/14 13:06:05 mark Exp $
+ * $Id: OperationTest.java,v 1.12.2.6 2007/12/08 14:43:48 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -43,7 +43,7 @@ import com.sleepycat.persist.raw.RawStore;
  * Tests misc store and index operations that are not tested by IndexTest.
  *
  * @author Mark Hayes
- */ 
+ */
 public class OperationTest extends TxnTestCase {
 
     private static final String STORE_NAME = "test";
@@ -83,7 +83,7 @@ public class OperationTest extends TxnTestCase {
         store.close();
         store = null;
     }
-    
+
     /**
      * The store must be closed before closing the environment.
      */
@@ -100,8 +100,8 @@ public class OperationTest extends TxnTestCase {
         store = null;
         super.tearDown();
     }
-    
-    public void testReadOnly() 
+
+    public void testReadOnly()
         throws DatabaseException {
 
         open();
@@ -135,8 +135,8 @@ public class OperationTest extends TxnTestCase {
         assertEquals(1, names.size());
         assertEquals("test", names.iterator().next());
     }
-    
-    public void testUninitializedCursor() 
+
+    public void testUninitializedCursor()
         throws DatabaseException {
 
         open();
@@ -181,8 +181,8 @@ public class OperationTest extends TxnTestCase {
         txnCommit(txn);
         close();
     }
-    
-    public void testCursorCount() 
+
+    public void testCursorCount()
         throws DatabaseException {
 
         open();
@@ -215,8 +215,8 @@ public class OperationTest extends TxnTestCase {
         txnCommit(txn);
         close();
     }
-    
-    public void testCursorUpdate() 
+
+    public void testCursorUpdate()
         throws DatabaseException {
 
         open();
@@ -295,8 +295,8 @@ public class OperationTest extends TxnTestCase {
         txnCommit(txn);
         close();
     }
-    
-    public void testCursorDelete() 
+
+    public void testCursorDelete()
         throws DatabaseException {
 
         open();
@@ -398,8 +398,8 @@ public class OperationTest extends TxnTestCase {
         txnCommit(txn);
         close();
     }
-    
-    public void testDeleteFromSubIndex() 
+
+    public void testDeleteFromSubIndex()
         throws DatabaseException {
 
         open();
@@ -474,8 +474,8 @@ public class OperationTest extends TxnTestCase {
 
         private MyEntity() {}
     }
-    
-    public void testSharedSequence() 
+
+    public void testSharedSequence()
         throws DatabaseException {
 
         open();
@@ -517,8 +517,8 @@ public class OperationTest extends TxnTestCase {
         @PrimaryKey(sequence="shared")
         private Integer key;
     }
-    
-    public void testSeparateSequence() 
+
+    public void testSeparateSequence()
         throws DatabaseException {
 
         open();
@@ -561,6 +561,97 @@ public class OperationTest extends TxnTestCase {
 
         @PrimaryKey(sequence="seq2")
         private Integer key;
+    }
+    
+    public void testCompositeSequence() 
+        throws DatabaseException {
+
+        open();
+
+        PrimaryIndex<CompositeSequenceEntity1.Key,CompositeSequenceEntity1>
+            priIndex1 =
+            store.getPrimaryIndex
+                (CompositeSequenceEntity1.Key.class,
+                 CompositeSequenceEntity1.class);
+
+        PrimaryIndex<CompositeSequenceEntity2.Key,CompositeSequenceEntity2>
+            priIndex2 =
+            store.getPrimaryIndex
+                (CompositeSequenceEntity2.Key.class,
+                 CompositeSequenceEntity2.class);
+
+        Transaction txn = txnBegin();
+        CompositeSequenceEntity1 e1 = new CompositeSequenceEntity1();
+        CompositeSequenceEntity2 e2 = new CompositeSequenceEntity2();
+        priIndex1.put(txn, e1);
+        assertEquals(1, e1.key.key);
+        priIndex2.putNoOverwrite(txn, e2);
+        assertEquals(Integer.valueOf(1), e2.key.key);
+        e1.key = null;
+        priIndex1.putNoOverwrite(txn, e1);
+        assertEquals(2, e1.key.key);
+        e2.key = null;
+        priIndex2.put(txn, e2);
+        assertEquals(Integer.valueOf(2), e2.key.key);
+        txnCommit(txn);
+
+        EntityCursor<CompositeSequenceEntity1> c1 = priIndex1.entities();
+        e1 = c1.next();
+        assertEquals(2, e1.key.key);
+        e1 = c1.next();
+        assertEquals(1, e1.key.key);
+        e1 = c1.next();
+        assertNull(e1);
+        c1.close();
+
+        EntityCursor<CompositeSequenceEntity2> c2 = priIndex2.entities();
+        e2 = c2.next();
+        assertEquals(Integer.valueOf(2), e2.key.key);
+        e2 = c2.next();
+        assertEquals(Integer.valueOf(1), e2.key.key);
+        e2 = c2.next();
+        assertNull(e2);
+        c2.close();
+
+        close();
+    }
+
+    @Entity
+    static class CompositeSequenceEntity1 {
+
+        @Persistent
+        static class Key implements Comparable<Key> {
+
+            @KeyField(1)
+            private int key;
+
+            public int compareTo(Key o) {
+                /* Reverse the natural order. */
+                return o.key - key;
+            }
+        }
+
+        @PrimaryKey(sequence="seq1")
+        private Key key;
+    }
+
+    @Entity
+    static class CompositeSequenceEntity2 {
+
+        @Persistent
+        static class Key implements Comparable<Key> {
+
+            @KeyField(1)
+            private Integer key;
+
+            public int compareTo(Key o) {
+                /* Reverse the natural order. */
+                return o.key - key;
+            }
+        }
+
+        @PrimaryKey(sequence="seq2")
+        private Key key;
     }
 
     /**
@@ -653,8 +744,8 @@ public class OperationTest extends TxnTestCase {
             key2.add(new ToManyKey());
         }
     }
-    
-    public void testDeferredWrite() 
+
+    public void testDeferredWrite()
         throws DatabaseException {
 
         if (envConfig.getTransactional()) {

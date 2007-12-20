@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MultiKeyTxnTestCase.java,v 1.4.2.1 2007/02/01 14:50:19 cwl Exp $
+ * $Id: MultiKeyTxnTestCase.java,v 1.4.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -47,7 +47,7 @@ public abstract class MultiKeyTxnTestCase  extends TxnTestCase {
         }
         return suite;
     }
-    
+
     public void tearDown()
         throws Exception {
 

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INList.java,v 1.48.2.1 2007/02/01 14:49:44 cwl Exp $
+ * $Id: INList.java,v 1.48.2.2 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -20,11 +20,11 @@ import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.tree.IN;
 
 /**
- * The INList is a list of in-memory INs for a given environment. 
+ * The INList is a list of in-memory INs for a given environment.
  */
 public class INList {
     private static final String DEBUG_NAME = INList.class.getName();
-    private SortedSet ins = null; 
+    private SortedSet ins = null;
     private Set addedINs = null;
     private EnvironmentImpl envImpl;
 
@@ -62,7 +62,7 @@ public class INList {
         updateMemoryUsage = false;
     }
 
-    /* 
+    /*
      * We ignore latching on this method because it's only called from validate
      * which ignores latching anyway.
      */
@@ -70,7 +70,7 @@ public class INList {
 	return ins;
     }
 
-    /* 
+    /*
      * Don't require latching, ok to be imprecise.
      */
     public int getSize() {
@@ -88,7 +88,7 @@ public class INList {
         try {
             if (enteredWithLatchHeld) {
 
-                /* 
+                /*
                  * Don't try to acquire the major latch twice, that's not
                  * supported. If we do hold the latch, don't modify the major
                  * list, we may be faulting in an IN while iterating over the
@@ -133,7 +133,7 @@ public class INList {
             }
         }
     }
-    
+
     private void addAndSetMemory(Set set, IN in) {
         boolean addOk  = set.add(in);
 
@@ -256,7 +256,7 @@ public class INList {
      *   1. INList major latch.
      *   2. IN latch.
      * In other words, the INList major latch must be taken before any IN
-     * latches to avoid deadlock. 
+     * latches to avoid deadlock.
      */
     public void latchMajor()
 	throws DatabaseException {
@@ -292,7 +292,7 @@ public class INList {
 	}
     }
 
-    void latchMinorAndDumpAddedINs() 
+    void latchMinorAndDumpAddedINs()
         throws DatabaseException {
 
 	latchMinor();

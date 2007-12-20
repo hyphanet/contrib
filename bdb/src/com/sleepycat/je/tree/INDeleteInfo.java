@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INDeleteInfo.java,v 1.31.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: INDeleteInfo.java,v 1.31.2.2 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -58,7 +58,7 @@ public class INDeleteInfo implements Loggable {
     public byte[] getDeletedIdKey() {
         return deletedIdKey;
     }
-    
+
     public DatabaseId getDatabaseId() {
         return dbId;
     }

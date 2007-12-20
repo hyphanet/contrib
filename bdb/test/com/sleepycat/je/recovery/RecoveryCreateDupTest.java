@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryCreateDupTest.java,v 1.8.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryCreateDupTest.java,v 1.8.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -30,7 +30,7 @@ import com.sleepycat.je.utilint.DbLsn;
  */
 public class RecoveryCreateDupTest extends RecoveryTestBase {
 
-    /* 
+    /*
      * These tests insert 2 records in order to create a duplicate tree.  Then
      * they truncate the log and recover, checking that (a) the recovery was
      * able to succeed, and (b), that the results are correct.
@@ -39,22 +39,22 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
      * inserted in a single or in two txns.
      */
 
-    public void testCreateDup1() 
+    public void testCreateDup1()
         throws Throwable {
         errorHaltCase(false, true);
     }
 
-    public void testCreateDup2() 
+    public void testCreateDup2()
         throws Throwable {
         errorHaltCase(true, true);
     }
 
-    public void testCreateDup3() 
+    public void testCreateDup3()
         throws Throwable {
         errorHaltCase(false, false);
     }
 
-    public void testCreateDup4() 
+    public void testCreateDup4()
         throws Throwable {
         errorHaltCase(true, false);
     }
@@ -69,7 +69,7 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
      * If false, truncate before the first LN
      */
     private void errorHaltCase(boolean allValuesCreatedWithinTxn,
-                               boolean truncateBeforeDIN) 
+                               boolean truncateBeforeDIN)
         throws Throwable {
 
         /* test data setup. */
@@ -87,7 +87,7 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
         /* Create 1 database. */
         createEnvAndDbs(1 << 20, true, 1);
         try {
-            /* 
+            /*
              * Set up an repository of expected data. We'll be inserting
              * 2 records, varying whether they are in the same txn or not.
              */
@@ -95,7 +95,7 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
 
             Transaction txn = env.beginTransaction(null, null);
             dbs[0].put(txn, keyEntry1, dataEntry1);
-            addExpectedData(expectedData, 0, keyEntry1, dataEntry1, 
+            addExpectedData(expectedData, 0, keyEntry1, dataEntry1,
                             !allValuesCreatedWithinTxn);
 
             if (!allValuesCreatedWithinTxn) {
@@ -109,30 +109,30 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
             txn.commit();
             closeEnv();
 
-            /* 
+            /*
              * Find the location of the DIN and the location of the followon
              * LN.
              */
 
             env = new Environment(envHome, null);
             EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
-            SearchFileReader searcher = 
+            SearchFileReader searcher =
                 new SearchFileReader(envImpl, 1000, true, DbLsn.NULL_LSN,
 				     DbLsn.NULL_LSN, LogEntryType.LOG_DIN);
             searcher.readNextEntry();
             long dinLsn = searcher.getLastLsn();
 
-            searcher = 
+            searcher =
                 new SearchFileReader(envImpl, 1000, true, dinLsn,
 				     DbLsn.NULL_LSN,
                                      LogEntryType.LOG_LN_TRANSACTIONAL);
             searcher.readNextEntry();
             long lnLsn = searcher.getLastLsn();
-            
+
             env.close();
 
             /*
-             *  Truncate the log, sometimes before the DIN, sometimes after. 
+             *  Truncate the log, sometimes before the DIN, sometimes after.
              */
             EnvironmentImpl cmdEnvImpl =
                 CmdUtil.makeUtilityEnvironment(envHome, false);
@@ -145,11 +145,11 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
 
             cmdEnvImpl.close();
 
-            /* 
+            /*
              * Recover and verify that we have the expected data.
              */
             recoverAndVerify(expectedData, 1);
-            
+
 
 	} catch (Throwable t) {
             // print stacktrace before trying to clean up files
@@ -175,7 +175,7 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
      * finagling to make this happen; namely the BIN must not be compressed
      * during checkpoint.
      */
-    public void testReuseSlot() 
+    public void testReuseSlot()
         throws DatabaseException {
 
         /* Create 1 database. */
@@ -191,7 +191,7 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
         dbs[0].put(txn, key, data);
         txn.abort();
 
-        /* 
+        /*
          * Put a cursor on this bin to prevent lazy compression and preserve
          * the slot created above.
          */
@@ -208,7 +208,7 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
         c.close();
         txn.abort();
 
-        /* 
+        /*
          * Now create a duplicate tree, reusing the known deleted slot
          * in the bin.
          */

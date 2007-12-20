@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EvictSelectionTest.java,v 1.14.2.2 2007/07/02 19:54:55 mark Exp $
+ * $Id: EvictSelectionTest.java,v 1.14.2.5 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -26,7 +26,6 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
-import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.dbi.MemoryBudget;
@@ -59,7 +58,7 @@ public class EvictSelectionTest extends TestCase {
     }
 
 
-    public void testEvictPass() 
+    public void testEvictPass()
         throws Throwable {
 
         /* Create an environment, database, and insert some data. */
@@ -70,7 +69,7 @@ public class EvictSelectionTest extends TestCase {
             StatsConfig statsConfig = new StatsConfig();
             statsConfig.setClear(true);
 
-            /* 
+            /*
              * Set up the test w/a number of INs that doesn't divide evenly
              * into scan sets.
              */
@@ -80,7 +79,7 @@ public class EvictSelectionTest extends TestCase {
             Evictor evictor = envImpl.getEvictor();
             evictor.loadStats(statsConfig, stats);
 
-            /* 
+            /*
              * Test evictBatch, where each batch only evicts one node because
              * we are passing one byte for the currentRequiredEvictBytes
              * parameter.  To predict the evicted nodes when more than one
@@ -115,11 +114,11 @@ public class EvictSelectionTest extends TestCase {
         }
     }
 
-    /* 
+    /*
      * We might call evict on an empty INList if the cache is set very low
      * at recovery time.
      */
-    public void testEmptyINList() 
+    public void testEmptyINList()
         throws Throwable {
 
         /* Create an environment, database, and insert some data. */
@@ -137,10 +136,10 @@ public class EvictSelectionTest extends TestCase {
         }
     }
 
-    /* 
+    /*
      * Create an environment, database, and insert some data.
      */
-    private void initialize(boolean makeDatabase) 
+    private void initialize(boolean makeDatabase)
         throws DatabaseException {
 
         /* Environment */
@@ -179,7 +178,7 @@ public class EvictSelectionTest extends TestCase {
             DatabaseConfig dbConfig = new DatabaseConfig();
             dbConfig.setAllowCreate(true);
             Database db = env.openDatabase(null, "foo", dbConfig);
-        
+
             /* Insert enough keys to get an odd number of nodes */
 
             DatabaseEntry keyAndData = new DatabaseEntry();
@@ -201,6 +200,10 @@ public class EvictSelectionTest extends TestCase {
                                       List expected)
         throws DatabaseException {
 
+        if (!envImpl.getMemoryBudget().isTreeUsageAboveMinimum()) {
+            return 0;
+        }
+
         boolean evictByLruOnly = envImpl.getConfigManager().getBoolean
             (EnvironmentParams.EVICTOR_LRU_ONLY);
 
@@ -217,7 +220,7 @@ public class EvictSelectionTest extends TestCase {
         int targetLevel = Integer.MAX_VALUE;
         boolean targetDirty = true;
         IN target = null;
-        
+
         boolean wrapped = false;
         int nScanned = 0;
         int nCandidates = 0;

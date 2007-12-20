@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockType.java,v 1.18.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: LockType.java,v 1.18.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -19,29 +19,29 @@ public class LockType {
      * Lock types.  Indexes must be kept manually synchronized in the matrixes
      * below.
      */
-    public static final LockType READ         
+    public static final LockType READ
                   = new LockType(0, false, "READ");
-    public static final LockType WRITE        
+    public static final LockType WRITE
                   = new LockType(1, true, "WRITE");
-    public static final LockType RANGE_READ   
+    public static final LockType RANGE_READ
                   = new LockType(2, false, "RANGE_READ");
-    public static final LockType RANGE_WRITE  
+    public static final LockType RANGE_WRITE
                   = new LockType(3, true, "RANGE_WRITE");
-    public static final LockType RANGE_INSERT 
+    public static final LockType RANGE_INSERT
                   = new LockType(4, false, "RANGE_INSERT");
 
     /**
      * NONE is used for requesting a dirty read and does not appear in the
      * conflict or upgrade matrices.
      */
-    public static final LockType NONE 
+    public static final LockType NONE
                   = new LockType(5, false, "NONE");
 
     /**
      * RESTART is used for waiting for a restart and does not appear in the
      * conflict or upgrade matrices.
      */
-    public static final LockType RESTART 
+    public static final LockType RESTART
                   = new LockType(6, false, "RESTART");
 
     /**
@@ -153,7 +153,7 @@ public class LockType {
         this.name = name;
     }
 
-    /** 
+    /**
      * Returns true if this is a WRITE or RANGE_WRITE lock.  For RANGE_INSERT,
      * false is returned because RANGE_INSERT is used to lock the key following
      * the insertion key, not the insertion key itself.

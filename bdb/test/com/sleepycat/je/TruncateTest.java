@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TruncateTest.java,v 1.15.2.1 2007/02/01 14:50:05 cwl Exp $
+ * $Id: TruncateTest.java,v 1.15.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -39,7 +39,7 @@ public class TruncateTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -53,7 +53,7 @@ public class TruncateTest extends TestCase {
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
 
-    public void testEnvTruncateAbort() 
+    public void testEnvTruncateAbort()
         throws Throwable {
         doTruncateAndAdd(true,    // transactional
                          256,     // step1 num records
@@ -121,12 +121,12 @@ public class TruncateTest extends TestCase {
         doTruncate(true, false);
     }
 
-    /* 
+    /*
      * SR 10386, 11252. This used to deadlock, because the truncate did not
      * use an AutoTxn on the new mapLN, and the put operations conflicted with
      * the held write lock.
      */
-    public void testWriteAfterTruncate() 
+    public void testWriteAfterTruncate()
         throws Throwable {
 
         try {
@@ -186,7 +186,7 @@ public class TruncateTest extends TestCase {
             }
 
                 assertEquals(NUM_RECS, truncateCount);
-            
+
 
             /* Do a cursor read, make sure there's the right amount of data. */
             DatabaseConfig dbConfig = new DatabaseConfig();
@@ -279,10 +279,10 @@ public class TruncateTest extends TestCase {
             if (step2AutoCommit && transactional) {
                 txn.commit();
                 txn = null;
-            }  
+            }
 
-            /* 
-             * Before truncate, there should be two databases in the system: 
+            /*
+             * Before truncate, there should be two databases in the system:
              * the testDb database, and the FileSummary database.
              */
             countLNs(2, 2);
@@ -290,8 +290,8 @@ public class TruncateTest extends TestCase {
             assertEquals(step1NumRecs, truncateCount);
 
 
-            /* 
-             * The naming tree should always have two entries now, the 
+            /*
+             * The naming tree should always have two entries now, the
              * mapping tree might have 2 or 3, depending on abort.
              */
             if (step2AutoCommit || !transactional) {
@@ -337,7 +337,7 @@ public class TruncateTest extends TestCase {
             checkCount(myDb, null, step5NumRecs);
             myDb.close();
             env.close();
-            
+
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -367,7 +367,7 @@ public class TruncateTest extends TestCase {
         return myDb;
     }
 
-    private void checkCount(Database db, Transaction txn, int expectedCount) 
+    private void checkCount(Database db, Transaction txn, int expectedCount)
         throws DatabaseException {
 
         Cursor cursor = db.openCursor(txn, null);

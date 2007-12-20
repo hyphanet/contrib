@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogBufferPool.java,v 1.72.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: LogBufferPool.java,v 1.72.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -30,7 +30,7 @@ class LogBufferPool {
 
     private EnvironmentImpl envImpl = null;
     private int logBufferSize;      // size of each log buffer
-    private LinkedList bufferPool;  // List of log buffers 
+    private LinkedList bufferPool;  // List of log buffers
 
     /* Buffer that holds the current log end. All writes go to this buffer. */
     private LogBuffer currentWriteBuffer;
@@ -61,7 +61,7 @@ class LogBufferPool {
     LogBufferPool(FileManager fileManager,
                   EnvironmentImpl envImpl)
         throws DatabaseException {
-        
+
         this.fileManager = fileManager;
         this.envImpl = envImpl;
         bufferPoolLatch =
@@ -104,7 +104,7 @@ class LogBufferPool {
         long logBufferBudget = envImpl.getMemoryBudget().getLogBufferBudget();
 
         /* Buffers must be int sized. */
-        int newBufferSize = (int) logBufferBudget / numBuffers; 
+        int newBufferSize = (int) logBufferBudget / numBuffers;
 
         /* list of buffers that are available for log writing */
         LinkedList newPool = new LinkedList();
@@ -149,7 +149,7 @@ class LogBufferPool {
      */
     LogBuffer getWriteBuffer(int sizeNeeded, boolean flippedFile)
         throws IOException, DatabaseException {
-        
+
         /*
          * We need a new log buffer either because this log buffer is full, or
          * the LSN has marched along to the next file.  Each log buffer only
@@ -180,7 +180,7 @@ class LogBufferPool {
      * Write the contents of the currentWriteBuffer to disk.  Leave this buffer
      * in memory to be available to would be readers.  Set up a new
      * currentWriteBuffer. Assumes the log write latch is held.
-     * 
+     *
      * @param sizeNeeded is the size of the next object we need to write to
      * the log. May be 0 if this is called on behalf of LogManager.flush().
      */
@@ -211,7 +211,7 @@ class LogBufferPool {
                 bufferPoolLatch.release();
             } else {
 
-                /* 
+                /*
                  * If we're configured for writing (not memory-only situation),
                  * write this buffer to disk and find a new buffer to use.
                  */
@@ -235,9 +235,9 @@ class LogBufferPool {
                         Iterator iter = bufferPool.iterator();
                         nextToUse = (LogBuffer) iter.next();
 
-                        boolean done = bufferPool.remove(nextToUse);        
+                        boolean done = bufferPool.remove(nextToUse);
                         assert done;
-                        nextToUse.reinit(); 
+                        nextToUse.reinit();
 
                         /* Put the nextToUse buffer at the end of the queue. */
                         bufferPool.add(nextToUse);
@@ -263,7 +263,7 @@ class LogBufferPool {
     /**
      * A loggable object has been freshly marshalled into the write log buffer.
      * 1. Update buffer so it knows what LSNs it contains.
-     * 2. If this object requires a flush, write this buffer out to the 
+     * 2. If this object requires a flush, write this buffer out to the
      * backing file.
      * Assumes log write latch is held.
      */
@@ -322,7 +322,7 @@ class LogBufferPool {
         }
     }
 
-    void loadStats(StatsConfig config, EnvironmentStats stats) 
+    void loadStats(StatsConfig config, EnvironmentStats stats)
         throws DatabaseException {
 
         stats.setNCacheMiss(nCacheMiss);

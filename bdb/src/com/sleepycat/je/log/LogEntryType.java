@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogEntryType.java,v 1.76.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: LogEntryType.java,v 1.76.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -20,7 +20,7 @@ import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.log.entry.SingleItemEntry;
 
 /**
- * LogEntryType is an  enumeration of all log entry types. 
+ * LogEntryType is an  enumeration of all log entry types.
  *
  * <p>When adding a new version of a log entry type, make sure the
  * corresponding LogEntry instance is capable of reading in older versions from
@@ -38,7 +38,7 @@ public class LogEntryType {
      * this must be declared before any instances of LogEntryType, since the
      * constructor uses this map. Each statically defined LogEntryType should
      * register itself with this collection.
-     */ 
+     */
     private static final int MAX_TYPE_NUM = 27;
 
     private static LogEntryType[] LOG_TYPES = new LogEntryType[MAX_TYPE_NUM];
@@ -46,7 +46,7 @@ public class LogEntryType {
     /*
      * Enumeration of log entry types. The log entry type represents the 2
      * byte field that starts every log entry. The top byte is the log type,
-     * the bottom byte holds the version value, provisional bit, and 
+     * the bottom byte holds the version value, provisional bit, and
      * replicated bit.
      *
      *  Log type (8 bits)
@@ -56,14 +56,14 @@ public class LogEntryType {
      * lookup the LogEntryType object, while the bottom byte has
      * information about the entry (instance) of this type.  The bottom
      * byte is effectively entry header information that is common to
-     * all types and is managed by static methods in this class. 
+     * all types and is managed by static methods in this class.
      *
      * The provisional bit can be set for any log type in the log. It's an
      * indication to recovery that the entry shouldn't be processed when
      * rebuilding the tree. It's used to ensure the atomic logging of multiple
      * entries.
      *
-     * The replicated bit should only be set for log types where 
+     * The replicated bit should only be set for log types where
      * isTypeReplicated is true. This means that this particular log entry
      * did get broadcast to the replication group, and bears a VLSN tag.
      */
@@ -208,7 +208,7 @@ public class LogEntryType {
                          true); // isTypeReplicated
 
     public static final LogEntryType LOG_TXN_ABORT =
-        new LogEntryType((byte) 18, (byte) 0, "Abort", 
+        new LogEntryType((byte) 18, (byte) 0, "Abort",
                          new SingleItemEntry
                          (com.sleepycat.je.txn.TxnAbort.class),
                          true,  // isTransactional
@@ -246,9 +246,9 @@ public class LogEntryType {
                          false, // isTransactional
                          true,  // marshallOutsideLatch
                          false);// isTypeReplicated
-            
+
     public static final LogEntryType LOG_DUP_BIN_DELTA =
-        new LogEntryType((byte) 23, (byte) 0, "DupBINDelta", 
+        new LogEntryType((byte) 23, (byte) 0, "DupBINDelta",
                          new BINDeltaLogEntry
                          (com.sleepycat.je.tree.BINDelta.class),
                          false, // isTransactional
@@ -280,7 +280,7 @@ public class LogEntryType {
                          false, // isTransactional
                          true,  // marshallOutsideLatch
                          false);// isTypeReplicated
-    
+
     public static final LogEntryType LOG_TXN_PREPARE =
         new LogEntryType((byte) 27, (byte) 0, "Prepare",
                          new SingleItemEntry
@@ -308,15 +308,15 @@ public class LogEntryType {
     /* If true, the log entry holds a transactional information. */
     private boolean isTransactional;
     /* If true, marshal this type of log entry outside log write latch */
-    private boolean marshallOutsideLatch; 
+    private boolean marshallOutsideLatch;
     /* If true, replicate this type of log entry before logging. */
-    private boolean isTypeReplicated; 
+    private boolean isTypeReplicated;
 
     /*
-     * Constructors 
+     * Constructors
      */
 
-    /** 
+    /**
      * For base class support.
      */
 
@@ -331,7 +331,7 @@ public class LogEntryType {
      * @param isTransactional true if this type of log entry holds data
      * involved in a transaction. For example, transaction commit and LN data
      * records are transactional, but INs are not.
-     * @param marshallOutsideLatch true if this type of log entry may be 
+     * @param marshallOutsideLatch true if this type of log entry may be
      * serialized outside the log write latch. This is true of the majority of
      * types. Certain types like the FileSummaryLN rely on the log write latch
      * to enforce serial semantics.
@@ -459,6 +459,10 @@ public class LogEntryType {
         return displayName + "/" + version;
     }
 
+    public String toStringNoVersion() {
+        return displayName;
+    }
+
     /**
      * Check for equality without making a new object.
      */
@@ -470,7 +474,7 @@ public class LogEntryType {
         return (this.typeNum == typeNum);
     }
 
-    /* 
+    /*
      * Override Object.equals. Ignore provisional bit when checking for
      * equality.
      */
@@ -506,7 +510,7 @@ public class LogEntryType {
     /**
      * Return true if this log entry should be marshalled into a buffer
      * outside the log write latch. Currently, only the FileSummaryLN needs
-     * to be logged inside the log write latch. 
+     * to be logged inside the log write latch.
      */
     public boolean marshallOutsideLatch() {
         return marshallOutsideLatch;

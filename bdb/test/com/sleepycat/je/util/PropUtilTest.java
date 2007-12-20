@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PropUtilTest.java,v 1.18.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: PropUtilTest.java,v 1.18.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -54,7 +54,7 @@ public class PropUtilTest extends TestCase {
             fail();
         } catch (DatabaseException e) {
             //System.out.println(e);
-            assertEquals(DatabaseException.getVersionHeader() + 
+            assertEquals(DatabaseException.getVersionHeader() +
                          "foo is not a valid property for test",
                          e.getMessage());
         }

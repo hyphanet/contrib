@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FSyncManager.java,v 1.18.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: FSyncManager.java,v 1.18.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -22,7 +22,7 @@ import com.sleepycat.je.utilint.PropUtil;
  * The FsyncManager ensures that only one file fsync is issued at a time, for
  * performance optimization. The goal is to reduce the number of fsyncs issued
  * by the system by issuing 1 fsync on behalf of a number of threads.
- * 
+ *
  * For example, suppose these writes happen which all need to be fsynced to
  * disk:
  *
@@ -43,12 +43,12 @@ import com.sleepycat.je.utilint.PropUtil;
  *    thread 4 waits
  *     - before thread 5 comes, thread 1 finishes fsyncing and returns to
  *     the caller. Now another fsync can be issued that will cover threads
- *     2,3,4. One of those threads (2, 3, 4} issues the fsync, the others 
+ *     2,3,4. One of those threads (2, 3, 4} issues the fsync, the others
  *     block.
  *    thread 5 wants to fsync, but sees one going on, so will wait.
  *     - the fsync issued for 2,3,4 can't cover thread 5 because we're not sure
  *      if thread 5's write finished before that fsync call. Thread 5 will have
- *      to issue its own fsync.    
+ *      to issue its own fsync.
  *
  * Target file
  * -----------
@@ -85,8 +85,8 @@ class FSyncManager {
     private long timeout;
 
     /* Use as the target for a synchronization block. */
-    private Latch fsyncLatch;  
-                              
+    private Latch fsyncLatch;
+
     private volatile boolean fsyncInProgress;
     private FSyncGroup nextFSyncWaiters;
 
@@ -95,7 +95,7 @@ class FSyncManager {
     private long nFSyncs = 0;
     private long nTimeouts = 0;
 
-    FSyncManager(EnvironmentImpl envImpl) 
+    FSyncManager(EnvironmentImpl envImpl)
         throws DatabaseException {
         timeout = PropUtil.microsToMillis(envImpl.getConfigManager().getLong(
             EnvironmentParams.LOG_FSYNC_TIMEOUT));
@@ -113,7 +113,7 @@ class FSyncManager {
      * specified by EnvironmentParam.LOG_FSYNC_TIMEOUT that ensures that no
      * thread gets stuck here indefinitely.
      *
-     * When a thread comes in, it will find one of two things. 
+     * When a thread comes in, it will find one of two things.
      * 1. There is no fsync going on right now. This thread should go
      *    ahead and fsync.
      * 2. There is an active fsync, wait until it's over before
@@ -127,14 +127,14 @@ class FSyncManager {
      *
      * When a thread finishes a fsync, it has to:
      * 1. wake up all the threads that were waiting for its fsync call.
-     * 2. wake up one member of the next group of waiting threads (the 
+     * 2. wake up one member of the next group of waiting threads (the
      *    nextFsyncWaiters) so that thread can become the new leader
      *    and issue the next fysnc call.
      *
      * If a non-leader member of the nextFsyncWaiters times out, it will issue
      * its own fsync anyway, in case something happened to the leader.
      */
-    void fsync() 
+    void fsync()
         throws DatabaseException {
 
         boolean doFsync = false;
@@ -161,7 +161,7 @@ class FSyncManager {
 
         if (needToWait) {
 
-            /* 
+            /*
              * Note that there's no problem if we miss the notify on this set
              * of waiters. We can check state in the FSyncGroup before we begin
              * to wait.
@@ -171,11 +171,11 @@ class FSyncManager {
              * will return as the leader.
              */
             int waitStatus = myGroup.waitForFsync();
-            
+
             if (waitStatus == FSyncGroup.DO_LEADER_FSYNC) {
                 synchronized (fsyncLatch) {
 
-                    /* 
+                    /*
                      * Check if there's a fsync in progress; this might happen
                      * even if you were designated the leader if a new thread
                      * came in between the point when the old leader woke you
@@ -196,7 +196,7 @@ class FSyncManager {
                     nTimeouts++;
                 }
             }
-        } 
+        }
 
         if (doFsync) {
 
@@ -219,15 +219,15 @@ class FSyncManager {
 
             synchronized (fsyncLatch) {
                 nFSyncs++;
-                if (isLeader) {            
+                if (isLeader) {
 
-                    /* 
+                    /*
                      * Wake up the group that requested the fsync before you
                      * started. They've piggybacked off your fsync.
                      */
                     inProgressGroup.wakeupAll();
 
-                    /* 
+                    /*
                      * Wake up a single waiter, who will become the next
                      * leader.
                      */
@@ -253,7 +253,7 @@ class FSyncManager {
         return nTimeouts;
     }
 
-    void loadStats(StatsConfig config, EnvironmentStats stats) 
+    void loadStats(StatsConfig config, EnvironmentStats stats)
         throws DatabaseException {
 
         stats.setNFSyncs(nFSyncs);
@@ -271,7 +271,7 @@ class FSyncManager {
      * Put the fsync execution into this method so it can be overridden for
      * testing purposes.
      */
-    protected void executeFSync() 
+    protected void executeFSync()
         throws DatabaseException {
 
         envImpl.getFileManager().syncLogEnd();
@@ -301,7 +301,7 @@ class FSyncManager {
 
         synchronized boolean getLeader() {
             if (fsyncDone) {
-                return false; 
+                return false;
             } else {
                 if (leaderExists) {
                     return false;
@@ -336,7 +336,7 @@ class FSyncManager {
                            "Unexpected interrupt while waiting for fsync", e);
                     }
 
-                    /* 
+                    /*
                      * This thread was awoken either by a timeout, by a notify,
                      * or by an interrupt. Is the fsync done?
                      */
@@ -356,7 +356,7 @@ class FSyncManager {
                             break;
                         } else {
 
-                            /* 
+                            /*
                              * We're just a waiter. See if we're timed out or
                              * have more to wait.
                              */
@@ -365,9 +365,9 @@ class FSyncManager {
                                 /* we timed out. */
                                 status = DO_TIMEOUT_FSYNC;
                                 break;
-                            } 
+                            }
                         }
-                    } 
+                    }
                 }
             }
 

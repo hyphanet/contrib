@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockManagerTest.java,v 1.45.2.2 2007/07/13 02:32:06 cwl Exp $
+ * $Id: LockManagerTest.java,v 1.45.2.5 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -15,13 +15,14 @@ import junit.framework.TestCase;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.TransactionConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.junit.JUnitThread;
 import com.sleepycat.je.util.TestUtils;
 
 public class LockManagerTest extends TestCase {
-    
+
     private LockManager lockManager = null;
     private Locker txn1;
     private Locker txn2;
@@ -66,7 +67,7 @@ public class LockManagerTest extends TestCase {
         env.close();
     }
 
-    public void testNegatives() 
+    public void testNegatives()
         throws Exception {
 
 	try {
@@ -90,7 +91,7 @@ public class LockManagerTest extends TestCase {
 	    lockManager.release(2L, txn1);
 	    txn1.removeLock(2L);
 	    assertTrue(lockManager.isLocked(nid));
-            
+
             /* txn2 is not the owner, shouldn't release lock 1. */
 	    lockManager.release(1L, txn2);
 	    txn2.removeLock(1L);
@@ -649,7 +650,8 @@ public class LockManagerTest extends TestCase {
                                              false, null);
 			    fail("didn't time out");
 			} catch (DeadlockException e) {
-                            assertTrue(TestUtils.skipVersion(e).startsWith("Lock "));
+                            assertTrue(TestUtils.skipVersion(e).
+				       startsWith("Lock "));
 			}
 			assertFalse
 			    (lockManager.isOwner(nid, txn2, LockType.READ));
@@ -687,82 +689,170 @@ public class LockManagerTest extends TestCase {
 	tester2.finishTest();
     }
 
-    public void xtestDeadlock()
+    /**
+     * Test that DeadlockException has the correct owners and waiters when
+     * it is thrown due to a timeout.
+     *
+     * Create five threads, the first two of which take a readlock and the
+     * second two of which try for a write lock backed up behind the two
+     * read locks.  Then have a fifth thread try for a read lock which backs
+     * up behind all of them.  The first two threads (read lockers) are owners
+     * and the second two threads are waiters.  When the fifth thread catches
+     * the DeadlockException make sure that it contains the txn ids for the
+     * two readers in the owners array and the txn ids for the two writers
+     * in the waiters array.
+     */
+    public void testDeadlock()
 	throws Throwable {
 
+	/* Get rid of these inferior BasicLockers -- we want real Txns. */
+        txn1.operationEnd();
+        txn2.operationEnd();
+        txn3.operationEnd();
+        txn4.operationEnd();
+
+	TransactionConfig config = new TransactionConfig();
+	txn1 = new Txn(env, config);
+	txn2 = new Txn(env, config);
+	txn3 = new Txn(env, config);
+	txn4 = new Txn(env, config);
+	final Txn txn5 = new Txn(env, config);
+
+	sequence = 0;
 	JUnitThread tester1 =
-	    new JUnitThread("testDeadlock1") {
+	    new JUnitThread("testMultipleReaders1") {
 		public void testBody() {
 		    try {
-			lockManager.lock(1, txn1, LockType.WRITE, 0,
+			lockManager.lock(1, txn1, LockType.READ, 0,
 					 false, null);
-			System.out.println("t1 has locked 1");
 			assertTrue
-			    (lockManager.isOwner(nid, txn1, LockType.WRITE));
-			sequence++;     // bump to 1
-
-			/* wait for tester2 */
-			while (sequence < 2) {
+			    (lockManager.isOwner(nid, txn1, LockType.READ));
+			while (sequence < 1) {
 			    Thread.yield();
 			}
-
-			lockManager.lock(2, txn1, LockType.READ, 1000,
-					 false, null);
-			System.out.println("t1 about to sleep");
-			Thread.sleep(5000);
-
-			lockManager.release(1, txn1);
-			txn1.removeLock(1);
-			lockManager.release(2, txn1);
-			txn1.removeLock(2);
+			lockManager.release(1L, txn1);
+			txn1.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
-			fail("tester1 caught DatabaseException " + DBE);
-		    } catch (InterruptedException IE) {
-			fail("tester1 caught InterruptedException " + IE);
+			fail("caught DatabaseException " + DBE);
 		    }
 		}
 	    };
 
 	JUnitThread tester2 =
-	    new JUnitThread("testDeadlock2") {
+	    new JUnitThread("testMultipleReaders2") {
 		public void testBody() {
 		    try {
-			/* wait for tester1 */
+			lockManager.lock(1, txn2, LockType.READ, 0,
+					 false, null);
+			assertTrue
+			    (lockManager.isOwner(nid, txn2, LockType.READ));
 			while (sequence < 1) {
 			    Thread.yield();
 			}
-
-			lockManager.lock(2, txn2, LockType.WRITE, 0,
-					 false, null);
-			System.out.println("t2 has locked 2");
-
-			sequence++;   // bump to 2
-
-			System.out.println("t2 about to lock 1");
-			lockManager.lock(1, txn2, LockType.READ, 1000,
-					 false, null);
-			System.out.println("t2 about to sleep");
-			Thread.sleep(5000);
-
-			lockManager.release(1, txn2);
-			txn2.removeLock(1);
-			lockManager.release(2, txn1);
-			txn1.removeLock(2);
+			lockManager.release(1L, txn2);
+			txn2.removeLock(1L);
 		    } catch (DatabaseException DBE) {
                         DBE.printStackTrace();
-			fail("tester2 caught DatabaseException " + DBE);
-		    } catch (InterruptedException IE) {
-			fail("tester2 caught InterruptedException " + IE);
+			fail("caught DatabaseException " + DBE);
 		    }
+		}
+	    };
+
+	JUnitThread tester3 =
+	    new JUnitThread("testMultipleReaders3") {
+		public void testBody() {
+		    try {
+			while (lockManager.nOwners(nid) < 2) {
+			    Thread.yield();
+			}
+			lockManager.lock(1, txn3, LockType.WRITE, 0,
+					 false, null);
+			while (sequence < 1) {
+			    Thread.yield();
+			}
+			assertTrue
+			    (lockManager.isOwner(nid, txn3, LockType.WRITE));
+			lockManager.release(1L, txn3);
+			txn3.removeLock(1L);
+		    } catch (DatabaseException DBE) {
+                        DBE.printStackTrace();
+			fail("caught DatabaseException " + DBE);
+		    }
+		}
+	    };
+
+	JUnitThread tester4 =
+	    new JUnitThread("testMultipleReaders4") {
+		public void testBody() {
+		    try {
+			while (lockManager.nOwners(nid) < 2) {
+			    Thread.yield();
+			}
+			lockManager.lock(1, txn4, LockType.WRITE, 0,
+					 false, null);
+			while (sequence < 1) {
+			    Thread.yield();
+			}
+			assertTrue
+			    (lockManager.isOwner(nid, txn4, LockType.WRITE));
+			lockManager.release(1L, txn4);
+			txn4.removeLock(1L);
+		    } catch (DatabaseException DBE) {
+                        DBE.printStackTrace();
+			fail("caught DatabaseException " + DBE);
+		    }
+		}
+	    };
+
+	JUnitThread tester5 =
+	    new JUnitThread("testMultipleReaders5") {
+		public void testBody() {
+		    try {
+			while (lockManager.nWaiters(nid) < 1) {
+			    Thread.yield();
+			}
+			lockManager.lock(1, txn5, LockType.READ, 900,
+					 false, null);
+			fail("expected DeadlockException");
+		    } catch (DeadlockException DLE) {
+
+			long[] owners = DLE.getOwnerTxnIds();
+			long[] waiters = DLE.getWaiterTxnIds();
+
+			assertTrue((owners[0] == txn1.getId() &&
+				    owners[1] == txn2.getId()) ||
+				   (owners[1] == txn1.getId() &&
+				    owners[0] == txn2.getId()));
+
+			assertTrue((waiters[0] == txn3.getId() &&
+				    waiters[1] == txn4.getId()) ||
+				   (waiters[1] == txn3.getId() &&
+				    waiters[0] == txn4.getId()));
+
+		    } catch (DatabaseException DBE) {
+			fail("expected DeadlockException");
+			DBE.printStackTrace(System.out);
+		    }
+		    System.out.println("setting sequence to 1");
+		    sequence = 1;
 		}
 	    };
 
 	tester1.start();
 	tester2.start();
-	//tester3.start();
+	tester3.start();
+	tester4.start();
+	tester5.start();
 	tester1.finishTest();
 	tester2.finishTest();
-	//tester3.finishTest();
+	tester3.finishTest();
+	tester4.finishTest();
+	tester5.finishTest();
+	((Txn) txn1).abort(false);
+	((Txn) txn2).abort(false);
+	((Txn) txn3).abort(false);
+	((Txn) txn4).abort(false);
+	txn5.abort(false);
     }
 }

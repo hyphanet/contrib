@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BindingTest.java,v 1.28.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: BindingTest.java,v 1.28.2.2 2007/11/20 13:32:52 cwl Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -354,7 +354,7 @@ public class BindingTest extends TestCase {
         private Address[] f9 = {new Address("city", "state", 123),
                                 null,
                                 new Address("x", "y", 444)};
-        private boolean[][][] f10 = 
+        private boolean[][][] f10 =
         {
             {
                 {false, true},
@@ -366,7 +366,7 @@ public class BindingTest extends TestCase {
                 {false, true},
             },
         };
-        private String[][][] f11 = 
+        private String[][][] f11 =
         {
             {
                 {"xxx", null, "yyy"},
@@ -1852,23 +1852,23 @@ public class BindingTest extends TestCase {
         assertEquals(priKey, priKey2);
         assertEquals(keyEntry, keyEntry2);
     }
-    
+
     private void checkSecKey(MyEntity entity,
                              String keyName,
                              Object keyValue,
                              Class keyCls)
         throws DatabaseException {
-        
+
         checkSecKey(entity, entity.getClass(), keyName, keyValue, keyCls);
     }
-    
+
     private void checkSecKey(MyEntity entity,
                              Class entityCls,
                              String keyName,
                              Object keyValue,
                              Class keyCls)
         throws DatabaseException {
-        
+
         /* Get entity metadata. */
         EntityMetadata entityMeta =
             model.getEntityMetadata(entityCls.getName());
@@ -1878,7 +1878,7 @@ public class BindingTest extends TestCase {
         SecondaryKeyMetadata secKeyMeta =
             entityMeta.getSecondaryKeys().get(keyName);
         assertNotNull(secKeyMeta);
-        
+
         /* Create key creator/nullifier. */
         SecondaryKeyCreator keyCreator = new PersistKeyCreator
             (catalog, entityMeta, keyCls.getName(), secKeyMeta);
@@ -1906,13 +1906,13 @@ public class BindingTest extends TestCase {
             assertEquals(secKeyEntry, secKeyEntry2);
         }
     }
-    
+
     private void checkSecMultiKey(MyEntity entity,
                                   String keyName,
                                   Set keyValues,
                                   Class keyCls)
         throws DatabaseException {
-        
+
         /* Get entity metadata. */
         Class entityCls = entity.getClass();
         EntityMetadata entityMeta =
@@ -1923,7 +1923,7 @@ public class BindingTest extends TestCase {
         SecondaryKeyMetadata secKeyMeta =
             entityMeta.getSecondaryKeys().get(keyName);
         assertNotNull(secKeyMeta);
-        
+
         /* Create key creator/nullifier. */
         SecondaryMultiKeyCreator keyCreator = new PersistKeyCreator
             (catalog, entityMeta, keyCls.getName(), secKeyMeta);
@@ -1950,13 +1950,13 @@ public class BindingTest extends TestCase {
         }
         assertEquals(keyValues, keyValues2);
     }
-    
+
     private void nullifySecKey(MyEntity entity,
                               String keyName,
                               Object keyValue,
                               Class keyCls)
         throws DatabaseException {
-        
+
         /* Get entity metadata. */
         Class entityCls = entity.getClass();
         EntityMetadata entityMeta =
@@ -1967,7 +1967,7 @@ public class BindingTest extends TestCase {
         SecondaryKeyMetadata secKeyMeta =
             entityMeta.getSecondaryKeys().get(keyName);
         assertNotNull(secKeyMeta);
-        
+
         /* Create key creator/nullifier. */
         ForeignMultiKeyNullifier keyNullifier = new PersistKeyCreator
             (catalog, entityMeta, keyCls.getName(), secKeyMeta);
@@ -1999,13 +1999,13 @@ public class BindingTest extends TestCase {
         /* Do a full check after nullifying it. */
         checkSecKey(entity, keyName, null, keyCls);
     }
-    
+
     private void nullifySecMultiKey(MyEntity entity,
                                     String keyName,
                                     Object keyValue,
                                     Class keyCls)
         throws DatabaseException {
-        
+
         /* Get entity metadata. */
         Class entityCls = entity.getClass();
         EntityMetadata entityMeta =
@@ -2016,7 +2016,7 @@ public class BindingTest extends TestCase {
         SecondaryKeyMetadata secKeyMeta =
             entityMeta.getSecondaryKeys().get(keyName);
         assertNotNull(secKeyMeta);
-        
+
         /* Create key creator/nullifier. */
         ForeignMultiKeyNullifier keyNullifier = new PersistKeyCreator
             (catalog, entityMeta, keyCls.getName(), secKeyMeta);
@@ -2115,7 +2115,7 @@ public class BindingTest extends TestCase {
                                int priKeyIndex,
                                String superClsName)
         throws DatabaseException {
-        
+
         /* Check metadata/types against the live model. */
         checkMetadata
             (catalog, model, clsName, nameTypePairs, priKeyIndex,

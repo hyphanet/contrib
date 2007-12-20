@@ -3,14 +3,16 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockManager.java,v 1.118.2.3 2007/07/13 02:32:05 cwl Exp $
+ * $Id: LockManager.java,v 1.118.2.5 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,12 +34,12 @@ import com.sleepycat.je.latch.LatchSupport;
 
 /**
  * LockManager manages locks.
- * 
+ *
  * Note that locks are counted as taking up part of the JE cache;
  */
 public abstract class LockManager implements EnvConfigObserver {
 
-    /* 
+    /*
      * The total memory cost for a lock is the Lock object, plus its entry and
      * key in the lock hash table.
      *
@@ -46,7 +48,7 @@ public abstract class LockManager implements EnvConfigObserver {
      */
     static final long TOTAL_LOCK_OVERHEAD =
         MemoryBudget.LOCK_OVERHEAD +
-        MemoryBudget.HASHMAP_ENTRY_OVERHEAD + 
+        MemoryBudget.HASHMAP_ENTRY_OVERHEAD +
         MemoryBudget.LONG_OVERHEAD;
 
     private static final long REMOVE_TOTAL_LOCK_OVERHEAD =
@@ -59,8 +61,8 @@ public abstract class LockManager implements EnvConfigObserver {
     private MemoryBudget memoryBudget;
     //private Level traceLevel;
 
-    private long nRequests; // stats: number of time a request was made 
-    private long nWaits;    // stats: number of time a request blocked 
+    private long nRequests; // stats: number of time a request was made
+    private long nWaits;    // stats: number of time a request blocked
 
     private static RangeRestartException rangeRestartException =
 	new RangeRestartException();
@@ -195,7 +197,7 @@ public abstract class LockManager implements EnvConfigObserver {
             try {
                 boolean doWait = true;
 
-                /* 
+                /*
                  * Before blocking, check locker timeout. We need to check here
                  * or lock timeouts will always take precedence and we'll never
                  * actually get any txn timeouts.
@@ -205,15 +207,15 @@ public abstract class LockManager implements EnvConfigObserver {
 					  memoryBudget)) {
                         doWait = false;
                     } else {
-                        String errMsg =
+			DeadlockException DE =
 			    makeTimeoutMsg("Transaction", locker, nodeId, type,
-					   result.lockGrant, 
+					   result.lockGrant,
 					   result.useLock,
 					   locker.getTxnTimeOut(),
 					   locker.getTxnStartMillis(),
 					   System.currentTimeMillis(),
 					   database);
-                        throw new DeadlockException(errMsg);
+                        throw DE;
                     }
                 }
 
@@ -231,7 +233,7 @@ public abstract class LockManager implements EnvConfigObserver {
                     long now = System.currentTimeMillis();
                     boolean thisLockTimedOut =
                         (keepTime && (now - startTime > timeout));
-                    boolean isRestart = 
+                    boolean isRestart =
                         (result.lockGrant == LockGrantType.WAIT_RESTART);
 
                     /*
@@ -239,8 +241,8 @@ public abstract class LockManager implements EnvConfigObserver {
                      * we timed out and we don't have ownership then flush this
                      * lock from both the waiters and owners while under the
                      * lock table latch.  See SR 10103.
-                     */ 
-                    if (validateOwnership(nid, locker, type, 
+                     */
+                    if (validateOwnership(nid, locker, type,
 					  lockerTimedOut ||
                                           thisLockTimedOut ||
                                           isRestart,
@@ -257,26 +259,26 @@ public abstract class LockManager implements EnvConfigObserver {
 
                         if (thisLockTimedOut) {
 			    locker.setOnlyAbortable();
-                            String errMsg =
+			    DeadlockException DE =
                                 makeTimeoutMsg("Lock", locker, nodeId, type,
-                                               result.lockGrant, 
+                                               result.lockGrant,
                                                result.useLock,
                                                timeout, startTime, now,
 					       database);
-                            throw new DeadlockException(errMsg);            
-                        } 
+                            throw DE;
+                        }
 
                         if (lockerTimedOut) {
 			    locker.setOnlyAbortable();
-                            String errMsg =
+			    DeadlockException DE =
                                 makeTimeoutMsg("Transaction", locker,
                                                nodeId, type,
-                                               result.lockGrant, 
+                                               result.lockGrant,
                                                result.useLock,
                                                locker.getTxnTimeOut(),
                                                locker.getTxnStartMillis(),
                                                now, database);
-                            throw new DeadlockException(errMsg);
+                            throw DE;
                         }
                     }
                 }
@@ -307,9 +309,9 @@ public abstract class LockManager implements EnvConfigObserver {
         attemptLock(Long nodeId,
                     Locker locker,
                     LockType type,
-                    boolean nonBlockingRequest) 
+                    boolean nonBlockingRequest)
         throws DatabaseException;
-        
+
     protected LockAttemptResult
 	attemptLockInternal(Long nodeId,
 			    Locker locker,
@@ -357,31 +359,33 @@ public abstract class LockManager implements EnvConfigObserver {
     /**
      * Create a informative lock or txn timeout message.
      */
-    protected abstract String makeTimeoutMsg(String lockOrTxn,
-                                             Locker locker,
-                                             long nodeId,
-                                             LockType type,
-                                             LockGrantType grantType,
-                                             Lock useLock,
-                                             long timeout,
-                                             long start,
-                                             long now,
-					     DatabaseImpl database)
+    protected abstract DeadlockException
+	makeTimeoutMsg(String lockOrTxn,
+		       Locker locker,
+		       long nodeId,
+		       LockType type,
+		       LockGrantType grantType,
+		       Lock useLock,
+		       long timeout,
+		       long start,
+		       long now,
+		       DatabaseImpl database)
 	throws DatabaseException;
 
     /**
      * Do the real work of creating an lock or txn timeout message.
      */
-    protected String makeTimeoutMsgInternal(String lockOrTxn,
-                                            Locker locker,
-                                            long nodeId,
-                                            LockType type,
-                                            LockGrantType grantType,
-                                            Lock useLock,
-                                            long timeout,
-                                            long start,
-                                            long now,
-					    DatabaseImpl database) {
+    protected DeadlockException
+	makeTimeoutMsgInternal(String lockOrTxn,
+			       Locker locker,
+			       long nodeId,
+			       LockType type,
+			       LockGrantType grantType,
+			       Lock useLock,
+			       long timeout,
+			       long start,
+			       long now,
+			       DatabaseImpl database) {
 
         /*
          * Because we're accessing parts of the lock, need to have protected
@@ -417,14 +421,30 @@ public abstract class LockManager implements EnvConfigObserver {
         sb.append(" timeoutMillis=").append(timeout);
         sb.append(" startTime=").append(start);
         sb.append(" endTime=").append(now);
-        sb.append("\nOwners: ").append(useLock.getOwnersClone());
-        sb.append("\nWaiters: ").append(useLock.getWaitersListClone()).
-	    append("\n");
+	Set owners = useLock.getOwnersClone();
+	List waiters = useLock.getWaitersListClone();
+        sb.append("\nOwners: ").append(owners);
+        sb.append("\nWaiters: ").append(waiters).append("\n");
         StringBuffer deadlockInfo = findDeadlock(useLock, locker);
         if (deadlockInfo != null) {
             sb.append(deadlockInfo);
         }
-        return sb.toString();
+        DeadlockException ret = new DeadlockException(sb.toString());
+	ret.setOwnerTxnIds(getTxnIds(owners));
+	ret.setWaiterTxnIds(getTxnIds(waiters));
+	return ret;
+    }
+
+    private long[] getTxnIds(Collection c) {
+	long[] ret = new long[c.size()];
+	Iterator iter = c.iterator();
+	int i = 0;
+	while (iter.hasNext()) {
+	    LockInfo info = (LockInfo) iter.next();
+	    ret[i++] = info.getLocker().getId();
+	}
+
+	return ret;
     }
 
     /**
@@ -449,12 +469,12 @@ public abstract class LockManager implements EnvConfigObserver {
 
             if (newOwners.size() > 0) {
 
-                /* 
+                /*
                  * There is a new set of owners and/or there are restart
                  * waiters that should be notified.
                  */
                 Iterator iter = newOwners.iterator();
-                
+
                 while (iter.hasNext()) {
                     Locker lockerToNotify = (Locker) iter.next();
 
@@ -498,7 +518,7 @@ public abstract class LockManager implements EnvConfigObserver {
 
         if (useLock == null) {
             /* Lock doesn't exist. */
-            return null; 
+            return null;
         }
 
         Set lockersToNotify =
@@ -539,10 +559,10 @@ public abstract class LockManager implements EnvConfigObserver {
                                     boolean demoteToRead,
 				    int lockTableIndex)
         throws DatabaseException {
-        
+
 	Map lockTable = lockTables[lockTableIndex];
         Lock useLock = (Lock) lockTable.get(new Long(nodeId));
-        
+
         assert useLock != null : "Transfer, lock " + nodeId + " was null";
         if (demoteToRead) {
             useLock.demote(owningLocker);
@@ -551,7 +571,7 @@ public abstract class LockManager implements EnvConfigObserver {
 			 memoryBudget, lockTableIndex);
         owningLocker.removeLock(nodeId);
     }
-    
+
     /**
      * Transfer ownership a lock from one locker to a set of other txns,
      * cloning the lock as necessary. This will always be demoted to read, as
@@ -575,7 +595,7 @@ public abstract class LockManager implements EnvConfigObserver {
 
 	Map lockTable = lockTables[lockTableIndex];
         Lock useLock = (Lock) lockTable.get(new Long(nodeId));
-            
+
         assert useLock != null : "Transfer, lock " + nodeId + " was null";
         useLock.demote(owningLocker);
         useLock.transferMultiple(new Long(nodeId), owningLocker, destLockers,
@@ -633,7 +653,7 @@ public abstract class LockManager implements EnvConfigObserver {
 
         return entry.nOwners() != 0;
     }
-    
+
     /**
      * Return true if this locker owns this a lock of this type on given node.
      *
@@ -724,7 +744,7 @@ public abstract class LockManager implements EnvConfigObserver {
     }
 
     /**
-     * @return the transaction that owns the write lock for this 
+     * @return the transaction that owns the write lock for this
      */
     abstract Locker getWriteOwnerLocker(Long nodeId)
         throws DatabaseException;
@@ -757,7 +777,7 @@ public abstract class LockManager implements EnvConfigObserver {
      * @return true if you are the owner.
      */
     abstract protected boolean validateOwnership(Long nodeId,
-                                                 Locker locker, 
+                                                 Locker locker,
                                                  LockType type,
                                                  boolean flushFromWaiters,
                                                  MemoryBudget mb)
@@ -767,7 +787,7 @@ public abstract class LockManager implements EnvConfigObserver {
      * Do the real work of validateOwnershipInternal.
      */
     protected boolean validateOwnershipInternal(Long nodeId,
-                                                Locker locker, 
+                                                Locker locker,
                                                 LockType type,
                                                 boolean flushFromWaiters,
 						MemoryBudget mb,
@@ -777,7 +797,7 @@ public abstract class LockManager implements EnvConfigObserver {
         if (isOwnerInternal(nodeId, locker, type, lockTableIndex)) {
             return true;
         }
-            
+
         if (flushFromWaiters) {
             Lock entry = (Lock) lockTables[lockTableIndex].get(nodeId);
             if (entry != null) {
@@ -792,7 +812,7 @@ public abstract class LockManager implements EnvConfigObserver {
      */
     public LockStats lockStat(StatsConfig config)
         throws DatabaseException {
-                
+
         LockStats stats = new LockStats();
         stats.setNRequests(nRequests);
         stats.setNWaits(nWaits);
@@ -817,7 +837,7 @@ public abstract class LockManager implements EnvConfigObserver {
     /**
      * Dump the lock table to the lock stats.
      */
-    abstract protected void dumpLockTable(LockStats stats) 
+    abstract protected void dumpLockTable(LockStats stats)
         throws DatabaseException;
 
     /**
@@ -858,7 +878,7 @@ public abstract class LockManager implements EnvConfigObserver {
 
     public String dumpToString()
         throws DatabaseException {
-        
+
         StringBuffer sb = new StringBuffer();
 	for (int i = 0; i < nLockTables; i++) {
 	    lockTableLatches[i].acquire();

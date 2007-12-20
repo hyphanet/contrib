@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LatchTable.java,v 1.10.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: LatchTable.java,v 1.10.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -25,7 +25,7 @@ class LatchTable {
     private Map latchesByThread;
 
     LatchTable(String tableName) {
-        
+
         this.tableName = tableName;
         latchesByThread = Collections.synchronizedMap(new WeakHashMap());
     }
@@ -56,7 +56,7 @@ class LatchTable {
         Thread cur = Thread.currentThread();
 
         Set threadLatches = (Set) latchesByThread.get(cur);
-        
+
         if (threadLatches == null) {
             return false;
         } else {

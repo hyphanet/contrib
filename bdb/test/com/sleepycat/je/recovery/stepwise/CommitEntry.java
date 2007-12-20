@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CommitEntry.java,v 1.4.2.1 2007/02/01 14:50:18 cwl Exp $
+ * $Id: CommitEntry.java,v 1.4.2.2 2007/11/20 13:32:48 cwl Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -14,7 +14,7 @@ import java.util.Set;
 
 /*
  * A Commit entry signals that some records should be moved from the
- * not-yet-committed sets to the expected set. 
+ * not-yet-committed sets to the expected set.
  *
  * Note that this uses key and data values rather than node ids to check
  * existence, so a test which re-used the same key and data values may
@@ -52,6 +52,6 @@ public class CommitEntry extends LogEntryInfo {
             while (iter.hasNext()) {
                 useExpected.remove((TestData) iter.next());
             }
-        } 
+        }
     }
 }

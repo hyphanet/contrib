@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Accessor.java,v 1.10.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: Accessor.java,v 1.10.2.2 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -25,7 +25,7 @@ package com.sleepycat.persist.impl;
  * </ul>
  * <p>To support these operations, the methods for reading fields allow reading
  * specific ranges of fields as well as all fields.  For example, all fields
- * up to a deleted field could be read, and then all fields from the following 
+ * up to a deleted field could be read, and then all fields from the following
  * field onward.</p>
  *
  * @author Mark Hayes
@@ -100,7 +100,7 @@ interface Accessor {
      * @param output the output data to write to.
      */
     void writeSecKeyFields(Object o, EntityOutput output);
-    
+
     /**
      * Reads a range of secondary key field values from the given EntityInput,
      * reading fields in super classes first and in name order within class.
@@ -145,7 +145,7 @@ interface Accessor {
      * @param output the output data to write to.
      */
     void writeNonKeyFields(Object o, EntityOutput output);
-    
+
     /**
      * Reads a range of non-key field values from the given EntityInput,
      * reading fields in super classes first and in name order within class.

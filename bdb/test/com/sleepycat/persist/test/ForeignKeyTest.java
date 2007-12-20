@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: ForeignKeyTest.java,v 1.4.2.1 2007/02/01 14:50:25 cwl Exp $
+ * $Id: ForeignKeyTest.java,v 1.4.2.4 2007/12/08 14:43:48 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -27,6 +27,7 @@ import com.sleepycat.persist.SecondaryIndex;
 import com.sleepycat.persist.StoreConfig;
 import com.sleepycat.persist.model.DeleteAction;
 import com.sleepycat.persist.model.Entity;
+import com.sleepycat.persist.model.Persistent;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
 
@@ -40,24 +41,30 @@ public class ForeignKeyTest extends TxnTestCase {
         NULLIFY,
         CASCADE,
     };
+
     private static final String[] ACTION_LABELS = {
         "ABORT",
         "NULLIFY",
         "CASCADE",
     };
- 
+
     public static Test suite() {
         TestSuite suite = new TestSuite();
         for (int i = 0; i < ACTIONS.length; i += 1) {
-            TestSuite txnSuite = txnTestSuite
-                (ForeignKeyTest.class, null, null);//envConfig, txnTypes);
-            Enumeration e = txnSuite.tests();
-            while (e.hasMoreElements()) {
-                ForeignKeyTest test = (ForeignKeyTest) e.nextElement();
-                test.onDelete = ACTIONS[i];
-                test.onDeleteLabel = ACTION_LABELS[i];
-                suite.addTest(test);
-            }
+	    for (int j = 0; j < 2; j++) {
+		TestSuite txnSuite = txnTestSuite
+		    (ForeignKeyTest.class, null, null);//envConfig, txnTypes);
+		Enumeration e = txnSuite.tests();
+		while (e.hasMoreElements()) {
+		    ForeignKeyTest test = (ForeignKeyTest) e.nextElement();
+		    test.onDelete = ACTIONS[i];
+		    test.onDeleteLabel = ACTION_LABELS[i];
+		    test.useSubclass = (j == 0);
+		    test.useSubclassLabel =
+			(j == 0) ? "UseSubclass" : "UseBaseclass";
+		    suite.addTest(test);
+		}
+	    }
         }
         return suite;
     }
@@ -69,12 +76,14 @@ public class ForeignKeyTest extends TxnTestCase {
     private SecondaryIndex<String,String,Entity2> sec2;
     private DeleteAction onDelete;
     private String onDeleteLabel;
+    private boolean useSubclass;
+    private String useSubclassLabel;
     
     public void tearDown()
         throws Exception {
 
         super.tearDown();
-        setName(getName() + '-' + onDeleteLabel);
+        setName(getName() + '-' + onDeleteLabel + "-" + useSubclassLabel);
     }
 
     private void open()
@@ -111,7 +120,9 @@ public class ForeignKeyTest extends TxnTestCase {
         assertEquals(o1, pri1.get(txn, "pk1", null));
         assertEquals(o1, sec1.get(txn, "sk1", null));
 
-        Entity2 o2 = new Entity2("pk2", "pk1", onDelete);
+        Entity2 o2 = (useSubclass ?
+		      new Entity3("pk2", "pk1", onDelete) :
+		      new Entity2("pk2", "pk1", onDelete));
         assertNull(pri2.put(txn, o2));
 
         assertEquals(o2, pri2.get(txn, "pk2", null));
@@ -126,7 +137,6 @@ public class ForeignKeyTest extends TxnTestCase {
          * pri2 contains o2 with primary key "pk2" and foreign key "pk1",
          * which is the primary key of pri1.
          */
-
         if (onDelete == ABORT) {
 
             /* Test that we abort trying to delete a referenced key. */
@@ -139,21 +149,26 @@ public class ForeignKeyTest extends TxnTestCase {
                 txn = txnBegin();
             }
 
-            /* Test that we can put a record into store2 with a null foreign
-             * key value. */
-
-            o2 = new Entity2("pk2", null, onDelete);
+            /* 
+	     * Test that we can put a record into store2 with a null foreign
+             * key value.
+	     */
+            o2 = (useSubclass ?
+		  new Entity3("pk2", null, onDelete) :
+		  new Entity2("pk2", null, onDelete));
             assertNotNull(pri2.put(txn, o2));
             assertEquals(o2, pri2.get(txn, "pk2", null));
 
-            /* The index2 record should have been deleted since the key was set
-             * to null above. */
-
+            /* 
+	     * The index2 record should have been deleted since the key was set
+             * to null above.
+	     */
             assertNull(sec2.get(txn, "pk1", null));
 
-            /* Test that now we can delete the record in store1, since it is no
-             * longer referenced. */
-
+            /* 
+	     * Test that now we can delete the record in store1, since it is no
+             * longer referenced.
+	     */
             assertNotNull(pri1.delete(txn, "pk1"));
             assertNull(pri1.get(txn, "pk1", null));
             assertNull(sec1.get(txn, "sk1", null));
@@ -161,14 +176,14 @@ public class ForeignKeyTest extends TxnTestCase {
         } else if (onDelete == NULLIFY) {
 
             /* Delete the referenced key. */
-
             assertNotNull(pri1.delete(txn, "pk1"));
             assertNull(pri1.get(txn, "pk1", null));
             assertNull(sec1.get(txn, "sk1", null));
 
-            /* The store2 record should still exist, but should have an empty
-             * secondary key since it was nullified. */
-
+            /* 
+	     * The store2 record should still exist, but should have an empty
+             * secondary key since it was nullified.
+	     */
             o2 = pri2.get(txn, "pk2", null);
             assertNotNull(o2);
             assertEquals("pk2", o2.pk);
@@ -177,13 +192,11 @@ public class ForeignKeyTest extends TxnTestCase {
         } else if (onDelete == CASCADE) {
 
             /* Delete the referenced key. */
-
             assertNotNull(pri1.delete(txn, "pk1"));
             assertNull(pri1.get(txn, "pk1", null));
             assertNull(sec1.get(txn, "sk1", null));
 
             /* The store2 record should have deleted also. */
-
             assertNull(pri2.get(txn, "pk2", null));
             assertNull(sec2.get(txn, "pk1", null));
 
@@ -192,10 +205,12 @@ public class ForeignKeyTest extends TxnTestCase {
         }
 
         /*
-         * Test that a foreign key value may not be used that is not present
-         * in the foreign store. "pk2" is not in store1 in this case.
+         * Test that a foreign key value may not be used that is not present in
+         * the foreign store. "pk2" is not in store1 in this case.
          */
-        Entity2 o3 = new Entity2("pk3", "pk2", onDelete);
+	Entity2 o3 = (useSubclass ?
+		      new Entity3("pk3", "pk2", onDelete) :
+		      new Entity2("pk3", "pk2", onDelete));
         try {
             pri2.put(txn, o3);
             fail();
@@ -288,6 +303,15 @@ public class ForeignKeyTest extends TxnTestCase {
                    nullOrEqual(sk_CASCADE, o.sk_CASCADE) &&
                    nullOrEqual(sk_NULLIFY, o.sk_NULLIFY);
         }
+    }
+
+    @Persistent
+    static class Entity3 extends Entity2 {
+	Entity3() {}
+
+        Entity3(String pk, String sk, DeleteAction action) {
+	    super(pk, sk, action);
+	}
     }
 
     static boolean nullOrEqual(Object o1, Object o2) {

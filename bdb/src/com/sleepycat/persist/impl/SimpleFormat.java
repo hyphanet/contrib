@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SimpleFormat.java,v 1.20.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: SimpleFormat.java,v 1.20.2.3 2007/11/03 02:44:53 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -60,7 +60,7 @@ public abstract class SimpleFormat extends Format {
     }
 
     @Override
-    void initialize(Catalog catalog) {
+    void initialize(Catalog catalog, int initVersion) {
     }
 
     @Override
@@ -261,6 +261,11 @@ public abstract class SimpleFormat extends Format {
 
             output.writeByte(field.getByte(o));
         }
+
+        @Override
+        Format getSequenceKeyFormat() {
+            return this;
+        }
     }
 
     public static class FShort extends SimpleFormat {
@@ -333,6 +338,11 @@ public abstract class SimpleFormat extends Format {
             throws IllegalAccessException {
 
             output.writeShort(field.getShort(o));
+        }
+
+        @Override
+        Format getSequenceKeyFormat() {
+            return this;
         }
     }
 
@@ -409,6 +419,11 @@ public abstract class SimpleFormat extends Format {
 
             output.writeInt(field.getInt(o));
         }
+
+        @Override
+        Format getSequenceKeyFormat() {
+            return this;
+        }
     }
 
     public static class FLong extends SimpleFormat {
@@ -482,6 +497,11 @@ public abstract class SimpleFormat extends Format {
             throws IllegalAccessException {
 
             output.writeLong(field.getLong(o));
+        }
+
+        @Override
+        Format getSequenceKeyFormat() {
+            return this;
         }
     }
 

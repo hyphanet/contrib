@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DebugRecordTest.java,v 1.41.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: DebugRecordTest.java,v 1.41.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -34,7 +34,7 @@ import com.sleepycat.je.utilint.Tracer;
 public class DebugRecordTest extends TestCase {
     private File envHome;
     private EnvironmentImpl env;
-    
+
     public DebugRecordTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
         env = null;
@@ -46,7 +46,7 @@ public class DebugRecordTest extends TestCase {
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
         TestUtils.removeFiles(envHome, new InfoFileFilter());
     }
-    
+
     public void tearDown()
 	throws IOException {
 
@@ -54,7 +54,7 @@ public class DebugRecordTest extends TestCase {
         TestUtils.removeFiles(envHome, new InfoFileFilter());
     }
 
-    
+
     public void testDebugLogging()
 	throws DatabaseException, IOException {
 
@@ -80,9 +80,9 @@ public class DebugRecordTest extends TestCase {
                 (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 	
             env = new EnvironmentImpl(envHome, envConfig);
-        
+
             List expectedRecords = new ArrayList();
-            
+
             // Recovery itself will log two messages
             RecoveryInfo info = new RecoveryInfo();
             expectedRecords.add(new Tracer("Recovery w/no files."));
@@ -92,7 +92,7 @@ public class DebugRecordTest extends TestCase {
 				 " nDeltaINFlushThisRun=0"));
             expectedRecords.add(new Tracer("Recovery finished: "  +
 					   info.toString()));
-            
+
             // Log a message
             Tracer.trace(Level.INFO, env, "hi there");
             expectedRecords.add(new Tracer("hi there"));
@@ -101,7 +101,7 @@ public class DebugRecordTest extends TestCase {
             DatabaseException e = new DatabaseException("fake exception");
             Tracer.trace(env, "DebugRecordTest", "testException", "foo", e);
             expectedRecords.add(new Tracer("foo\n" + Tracer.getStackTrace(e)));
-                            
+
             // Log a split
             // Flush the log to disk
             env.getLogManager().flush();
@@ -118,14 +118,14 @@ public class DebugRecordTest extends TestCase {
             }
         }
     }
-    
-    /** 
+
+    /**
      * Check what's in the database log
      */
     private void checkDatabaseLog(List expectedList)
         throws DatabaseException, IOException {
 
-        SearchFileReader searcher = 
+        SearchFileReader searcher =
             new SearchFileReader(env, 1000, true, DbLsn.NULL_LSN,
 				 DbLsn.NULL_LSN, LogEntryType.LOG_TRACE);
 
@@ -137,12 +137,12 @@ public class DebugRecordTest extends TestCase {
                          dRec.getMessage());
             numSeen++;
         }
-        
+
         assertEquals("Should see this many debug records",
                      expectedList.size(), numSeen);
     }
 
-    /** 
+    /**
      * Check what's in the text file
      */
     private void checkTextFile(List expectedList)
@@ -165,7 +165,7 @@ public class DebugRecordTest extends TestCase {
                 String possibleLevel = line.substring(0, firstColon);
                 try {
                     Level.parse(possibleLevel);
-                    String expected = 
+                    String expected =
                         ((Tracer) expectedList.get(numSeen)).getMessage();
                     StringBuffer seen = new StringBuffer();
                     /*
@@ -195,7 +195,7 @@ public class DebugRecordTest extends TestCase {
                     // skip this line, not a message
                 }
                 line = br.readLine();
-            } 
+            }
             assertEquals("Should see this many debug records",
                          expectedList.size(), numSeen);
         } finally {

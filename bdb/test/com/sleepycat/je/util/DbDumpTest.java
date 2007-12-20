@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbDumpTest.java,v 1.44.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: DbDumpTest.java,v 1.44.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -35,7 +35,7 @@ import com.sleepycat.je.tree.Key;
 public class DbDumpTest extends TestCase {
 
     private File envHome;
-    
+
     private static final int N_KEYS = 100;
     private static final int N_KEY_BYTES = 1000;
     private static final String dbName = "testDB";
@@ -51,17 +51,17 @@ public class DbDumpTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
 	throws IOException {
 
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
-    
+
     /**
      * A simple test to check if JE's dump format matches Core.
      */
-    public void testMatchCore() 
+    public void testMatchCore()
         throws Throwable {
 
         try {
@@ -69,8 +69,8 @@ public class DbDumpTest extends TestCase {
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
             envConfig.setAllowCreate(true);
             env = new Environment(envHome, envConfig);
-        
-            /* 
+
+            /*
              * Make a stream holding a small dump in a format known to be
              * the same as Core DB.
              */
@@ -121,7 +121,7 @@ public class DbDumpTest extends TestCase {
 					null, true);
             dumper2.dump();
             assertEquals(dump2.toString(), dumpInfo.toString());
-            
+
             env.close();
         } catch (Throwable t) {
             t.printStackTrace();
@@ -194,7 +194,7 @@ public class DbDumpTest extends TestCase {
             dumper2.dump();
         }
         assertEquals(0, Key.compareKeys(baosba, baos2.toByteArray(), null));
-        
+
 	env.close();
     }
 

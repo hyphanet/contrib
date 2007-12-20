@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockInfo.java,v 1.28.2.2 2007/07/13 02:32:05 cwl Exp $
+ * $Id: LockInfo.java,v 1.28.2.3 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -83,13 +83,13 @@ public class LockInfo implements Cloneable {
 	return lockType;
     }
 
-    public Object clone() 
+    public Object clone()
         throws CloneNotSupportedException {
 
         return super.clone();
     }
 
-    /** 
+    /**
      * Debugging
      */
     public void dump() {

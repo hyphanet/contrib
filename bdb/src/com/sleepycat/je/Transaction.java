@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Transaction.java,v 1.48.2.2 2007/03/28 15:53:44 cwl Exp $
+ * $Id: Transaction.java,v 1.48.2.3 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -20,7 +20,7 @@ public class Transaction {
 
     private Txn txn;
     private Environment env;
-    private long id; 
+    private long id;
     private String name;
 
     /**
@@ -30,7 +30,7 @@ public class Transaction {
         this.env = env;
         this.txn = txn;
 
-        /* 
+        /*
          * Copy the id to this wrapper object so the id will be available
          * after the transaction is closed and the txn field is nulled.
          */
@@ -61,7 +61,7 @@ public class Transaction {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public long getId() 
+    public long getId()
         throws DatabaseException {
 
         return id;
@@ -120,7 +120,7 @@ public class Transaction {
 	return txn.getPrepared();
     }
 
-    private void doCommit(byte commitType) 
+    private void doCommit(byte commitType)
 	throws DatabaseException {
 
 	try {
@@ -140,7 +140,7 @@ public class Transaction {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void setTxnTimeout(long timeOut) 
+    public void setTxnTimeout(long timeOut)
         throws DatabaseException {
 
         checkEnv();
@@ -151,7 +151,7 @@ public class Transaction {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void setLockTimeout(long timeOut) 
+    public void setLockTimeout(long timeOut)
         throws DatabaseException {
 
         checkEnv();
@@ -211,7 +211,7 @@ public class Transaction {
      * and getWritableLocker methods.  The locker returned does not enforce the
      * readCommitted isolation setting.
      */
-    Locker getLocker() 
+    Locker getLocker()
         throws DatabaseException {
 
         if (txn == null) {
@@ -234,9 +234,9 @@ public class Transaction {
     /**
      * @throws RunRecoveryException if the underlying environment is invalid.
      */
-    private void checkEnv() 
+    private void checkEnv()
         throws RunRecoveryException {
-        
+
 	env.getEnvironmentImpl().checkIfInvalid();
     }
 }

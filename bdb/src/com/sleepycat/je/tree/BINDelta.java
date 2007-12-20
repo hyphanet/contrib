@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BINDelta.java,v 1.44.2.2 2007/07/02 19:54:52 mark Exp $
+ * $Id: BINDelta.java,v 1.44.2.3 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -28,13 +28,13 @@ import com.sleepycat.je.utilint.DbLsn;
  * generate a new BIN.
  */
 public class BINDelta implements Loggable {
-        
+
     private DatabaseId dbId;    // owning db for this bin.
     private long lastFullLsn;   // location of last full version
     private List deltas;        // list of key/action changes
     private LogEntryType logEntryType; // type of log entry to use
                                          // when writing to the log.
-        
+
     /**
      * Read a BIN and create the deltas.
      */
@@ -44,7 +44,7 @@ public class BINDelta implements Loggable {
         deltas = new ArrayList();
         logEntryType = bin.getBINDeltaType();
 
-        /* 
+        /*
          * Save every entry that has been modified since the last full version.
          * Note that we must rely on the dirty bit, and we can't infer any
          * dirtiness by comparing the last full version LSN and the child
@@ -54,12 +54,12 @@ public class BINDelta implements Loggable {
         for (int i = 0; i < bin.getNEntries(); i++) {
             if (bin.isDirty(i)) {
                 deltas.add(new DeltaInfo(bin.getKey(i),
-                                         bin.getLsn(i), 
+                                         bin.getLsn(i),
                                          bin.getState(i)));
             }
         }
     }
-        
+
     /**
      * For instantiating from the log.
      */
@@ -68,14 +68,14 @@ public class BINDelta implements Loggable {
         lastFullLsn = DbLsn.NULL_LSN;
         deltas = new ArrayList();
     }
-        
-    /** 
+
+    /**
      * @return a count of deltas for this BIN.
      */
     int getNumDeltas() {
         return deltas.size();
     }
-        
+
     /**
      * @return the dbId for this BIN.
      */
@@ -93,15 +93,15 @@ public class BINDelta implements Loggable {
     /**
      * Create a BIN by starting with the full version and applying the deltas.
      */
-    public BIN reconstituteBIN(EnvironmentImpl env) 
+    public BIN reconstituteBIN(EnvironmentImpl env)
         throws DatabaseException {
-                
+
         /* Get the last full version of this BIN. */
         BIN fullBIN = (BIN) env.getLogManager().get(lastFullLsn);
         DatabaseImpl db = env.getDbMapTree().getDb(dbId);
         try {
 
-            /* 
+            /*
              * In effect, call fullBIN.postFetchInit(db) here.  But we don't
              * want to do that since it will put fullBIN on the INList.  Since
              * this is either recovery or during the Cleaner run, we don't want
@@ -109,11 +109,11 @@ public class BINDelta implements Loggable {
              */
             fullBIN.setDatabase(db);
             fullBIN.setLastFullLsn(lastFullLsn);
-            
+
             /* Process each delta. */
             fullBIN.latch();
             for (int i = 0; i < deltas.size(); i++) {
-                DeltaInfo info = (DeltaInfo) deltas.get(i);                
+                DeltaInfo info = (DeltaInfo) deltas.get(i);
 
                 /*
                  * The BINDelta holds the authoritative version of each entry.
@@ -132,7 +132,7 @@ public class BINDelta implements Loggable {
                     (foundIndex & IN.EXACT_MATCH) != 0) {
                     foundIndex &= ~IN.EXACT_MATCH;
 
-                    /* 
+                    /*
                      * The entry exists in the full version, update it with the
                      * delta info.
                      */
@@ -162,7 +162,7 @@ public class BINDelta implements Loggable {
             env.releaseDb(db);
         }
 
-        /* 
+        /*
          * Reset the generation to 0, all this manipulation might have driven
          * it up.
          */
@@ -170,13 +170,13 @@ public class BINDelta implements Loggable {
         fullBIN.releaseLatch();
         return fullBIN;
     }
-        
+
     /*
      * Logging support
      */
 
 
-    /* 
+    /*
      * @see Loggable#getLogSize()
      */
     public int getLogSize() {
@@ -188,26 +188,26 @@ public class BINDelta implements Loggable {
         for (int i = 0; i < deltas.size(); i++) {    // deltas
             DeltaInfo info = (DeltaInfo) deltas.get(i);
             size += info.getLogSize();
-        }      
-        
-        return size;  
+        }
+
+        return size;
     }
 
-    /* 
+    /*
      * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
         dbId.writeToLog(logBuffer);                     // database id
 	LogUtils.writeLong(logBuffer, lastFullLsn);     // last version
         LogUtils.writeInt(logBuffer, deltas.size());  // num deltas
-        
+
         for (int i = 0; i < deltas.size(); i++) {              // deltas
             DeltaInfo info = (DeltaInfo) deltas.get(i);
             info.writeToLog(logBuffer);
-        }        
+        }
     }
 
-    /* 
+    /*
      * @see Loggable#readFromLog()
      */
     public void readFromLog(ByteBuffer itemBuffer,byte entryTypeVersion)
@@ -224,7 +224,7 @@ public class BINDelta implements Loggable {
         }
     }
 
-    /* 
+    /*
      * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
@@ -236,7 +236,7 @@ public class BINDelta implements Loggable {
         for (int i = 0; i < deltas.size(); i++) {    // deltas
             DeltaInfo info = (DeltaInfo) deltas.get(i);
             info.dumpLog(sb, verbose);
-        }      
+        }
     }
 
     /**

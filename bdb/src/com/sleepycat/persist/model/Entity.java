@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Entity.java,v 1.11.2.2 2007/03/30 20:01:14 linda Exp $
+ * $Id: Entity.java,v 1.11.2.3 2007/10/25 16:54:11 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -177,6 +177,24 @@ import com.sleepycat.persist.evolve.Mutations;
  * entity classes and subclasses may be top level instances in a primary
  * index.</p>
  *
+ * <p><strong>Embedded Objects</strong></p>
+ *
+ * <p>As stated above, the embedded (or member) non-transient non-static fields
+ * of an entity class are themselves persistent and are stored along with their
+ * parent entity object.  This allows embedded objects to be stored in an
+ * entity to an arbitrary depth.</p>
+ *
+ * <p>There is no arbitrary limit to the nesting depth of embedded objects
+ * within an entity; however, there is a practical limit.  When an entity is
+ * marshalled, each level of nesting is implemented internally via recursive
+ * method calls.  If the nesting depth is large enough, a {@code
+ * StackOverflowError} can occur.  In practice, this has been observed with a
+ * nesting depth of 12,000, using the default Java stack size.</p>
+ *
+ * <p>This restriction on the nesting depth of embedded objects does not apply
+ * to cyclic references, since these are handled specially as described
+ * below.</p>
+ *
  * <p><strong>Object Graphs</strong></p>
  *
  * <p>When an entity instance is stored, the graph of objects referenced via
@@ -184,7 +202,15 @@ import com.sleepycat.persist.evolve.Mutations;
  * instance is referenced by two or more fields when the entity is stored, the
  * same will be true when the entity is retrieved.</p>
  *
- * <p>However, the stored object graph is restricted in scope to a single
+ * <p>When a reference to a particular object is stored as a member field
+ * inside that object or one of its embedded objects, this is called a cyclic
+ * reference.  Because multiple references to a single object are stored as
+ * such, cycles are also represented correctly and do not cause infinite
+ * recursion or infinite processing loops.  If an entity containing a cyclic
+ * reference is stored, the cyclic reference will be present when the entity is
+ * retrieved.</p>
+ *
+ * <p>Note that the stored object graph is restricted in scope to a single
  * entity instance.  This is because each entity instance is stored separately.
  * If two entities have a reference to the same object when stored, they will
  * refer to two separate instances when the entities are retrieved.</p>

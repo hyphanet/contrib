@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: MultiEnvTest.java,v 1.9.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: MultiEnvTest.java,v 1.9.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -38,7 +38,7 @@ public class MultiEnvTest extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome1, false);
         TestUtils.removeLogFiles("Setup", envHome2, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -49,7 +49,7 @@ public class MultiEnvTest extends TestCase {
     public void testNodeIdsAfterRecovery()
         throws Throwable {
         try {
-            /* 
+            /*
              * Env1 will be closed w/a certain notion of what the max node id
              * is.
              */
@@ -66,9 +66,9 @@ public class MultiEnvTest extends TestCase {
             /* See what the highest node id is. */
             assertTrue(maxNodeId2 > maxNodeId1);
 
-            /* 
+            /*
              * Open env1 now. Even though this recovery finds a lower node id,
-             * must be sure not to overwrite the higher node id. 
+             * must be sure not to overwrite the higher node id.
              */
             env1 = openEnv(envHome1);
             long maxNodeId3 = Node.getLastId();
@@ -81,7 +81,7 @@ public class MultiEnvTest extends TestCase {
         }
     }
 
-    private Environment openEnv(File envHome) 
+    private Environment openEnv(File envHome)
         throws DatabaseException {
 
         /* Create an environment. */

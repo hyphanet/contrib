@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileReader.java,v 1.99.2.4 2007/05/31 21:55:32 mark Exp $
+ * $Id: FileReader.java,v 1.99.2.5 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -41,7 +41,7 @@ public abstract class FileReader {
                                      // XXX, use exception instead of status?
     private boolean forward;         // if true, we're reading forward
 
-    /* 
+    /*
      * ReadBufferFileNum, readBufferFileStart and readBufferFileEnd indicate
      * how the read buffer maps to the file. For example, if the read buffer
      * size is 100 and the read buffer was filled from file 9, starting at byte
@@ -57,31 +57,31 @@ public abstract class FileReader {
     /* stats */
     private int nRead;           // num entries we've seen
 
-    /* 
-     * The number of times we've tried to read in a log entry that was too 
+    /*
+     * The number of times we've tried to read in a log entry that was too
      * large for the read buffer.
      */
-    private long nRepeatIteratorReads; 
+    private long nRepeatIteratorReads;
 
     /* Number of reads since the last time getAndResetNReads was called. */
     private int nReadOperations;
-                                 
+
     /* The log entry header for the entry that was just read. */
     protected LogEntryHeader currentEntryHeader;
 
-    /* 
-     * In general, currentEntryPrevOffset is the same as 
+    /*
+     * In general, currentEntryPrevOffset is the same as
      * currentEntryHeader.getPrevOffset(), but it's initialized and used before
      * a header is read.
      */
-    protected long currentEntryPrevOffset;  
+    protected long currentEntryPrevOffset;
 
     /*
      * nextEntryOffset is used to set the currentEntryOffset after we've read
      * an entry.
      */
     protected long currentEntryOffset;
-    protected long nextEntryOffset; 
+    protected long nextEntryOffset;
     protected long startLsn;  // We start reading from this LSN.
     private long finishLsn; // If going backwards, read up to this LSN.
 
@@ -163,7 +163,7 @@ public abstract class FileReader {
                 }
             }
 
-            /* 
+            /*
              * After we read the first entry, the currentEntry will point here.
              */
             nextEntryOffset = readBufferFileEnd;
@@ -250,7 +250,7 @@ public abstract class FileReader {
     /**
      * readNextEntry scans the log files until either it's reached the end of
      * the log or has hit an invalid portion. It then returns false.
-     * 
+     *
      * @return true if an element has been read
      */
     public boolean readNextEntry()
@@ -398,7 +398,7 @@ public abstract class FileReader {
          */
         if (!forward) {
 
-            /* 
+            /*
              * currentEntryPrevOffset is the entry before the current entry.
              * currentEntryOffset is the entry we just read (or the end of the
              * file if we're starting out.
@@ -421,7 +421,7 @@ public abstract class FileReader {
 						readBufferFileStart));
             } else {
 
-		/* 
+		/*
 		 * If the start of the log entry is not in this read buffer,
 		 * fill the buffer again. If the target log entry is in a
 		 * different file from the current read buffer file, just start
@@ -436,7 +436,7 @@ public abstract class FileReader {
                     /* Go to another file. */
                     currentEntryPrevOffset =
                         fileManager.getFileHeaderPrevOffset(readBufferFileNum);
-                    Long prevFileNum = 
+                    Long prevFileNum =
                         fileManager.getFollowingFileNum(readBufferFileNum,
                                                         false);
                     if (prevFileNum == null) {
@@ -460,7 +460,7 @@ public abstract class FileReader {
                 } else if ((currentEntryOffset - currentEntryPrevOffset) >
                            readBuffer.capacity()) {
 
-                    /* 
+                    /*
 		     * The entry is in the same file, but is bigger than one
 		     * buffer.
 		     */
@@ -505,7 +505,7 @@ public abstract class FileReader {
 					 (int) (currentEntryPrevOffset -
 						readBufferFileStart));
             }
-            
+
             /* The current entry will start at this offset. */
             currentEntryOffset = currentEntryPrevOffset;
         } else {
@@ -529,14 +529,14 @@ public abstract class FileReader {
      * Read the basic log entry header, leaving the buffer mark at the
      * beginning of the checksummed header data.
      */
-    private void readBasicHeader(ByteBuffer dataBuffer) 
+    private void readBasicHeader(ByteBuffer dataBuffer)
         throws DatabaseException  {
 
         /* Read the header for this entry. */
         currentEntryHeader =
             new LogEntryHeader(envImpl, dataBuffer, anticipateChecksumErrors);
 
-        /* 
+        /*
          * currentEntryPrevOffset is a separate field, and is not obtained
          * directly from the currentEntryHeader, because is was initialized and
          * used before any log entry was read.
@@ -552,11 +552,11 @@ public abstract class FileReader {
         throws DatabaseException {
 
         /* Clear out any previous data. */
-        cksumValidator.reset(); 
+        cksumValidator.reset();
 
-        /* 
+        /*
          * Move back up to the beginning of portion of the log entry header
-         * covered by the checksum. 
+         * covered by the checksum.
          */
         int itemStart = threadSafeBufferPosition(dataBuffer);
         int headerSizeMinusChecksum =
@@ -567,7 +567,7 @@ public abstract class FileReader {
                               dataBuffer,
                               headerSizeMinusChecksum,
                               anticipateChecksumErrors);
-        
+
         /* Move the data buffer back to where the log entry starts. */
         threadSafeBufferPosition(dataBuffer, itemStart);
     }
@@ -591,12 +591,12 @@ public abstract class FileReader {
     }
 
     /**
-     * Try to read a specified number of bytes. 
+     * Try to read a specified number of bytes.
      * @param amountToRead is the number of bytes we need
-     * @param collectData is true if we need to actually look at the data. 
+     * @param collectData is true if we need to actually look at the data.
      *  If false, we know we're skipping this entry, and all we need to
      *  do is to count until we get to the right spot.
-     * @return a byte buffer positioned at the head of the desired portion, 
+     * @return a byte buffer positioned at the head of the desired portion,
      * or null if we reached eof.
      */
     private ByteBuffer readData(int amountToRead, boolean collectData)
@@ -607,7 +607,7 @@ public abstract class FileReader {
         saveBuffer.clear();
 
         while ((alreadyRead < amountToRead) && !eof) {
-            
+
             int bytesNeeded = amountToRead - alreadyRead;
             if (readBuffer.hasRemaining()) {
 
@@ -635,7 +635,7 @@ public abstract class FileReader {
                     /*
                      * No need to save data, just move buffer positions.
                      */
-                    int positionIncrement = 
+                    int positionIncrement =
                         (readBuffer.remaining() > bytesNeeded) ?
                         bytesNeeded : readBuffer.remaining();
 
@@ -672,7 +672,7 @@ public abstract class FileReader {
             /* We're not at the max yet. */
             if (readBufferSize < maxReadBufferSize) {
 
-                /* 
+                /*
                  * Make the buffer the minimum of amountToRead or a
                  * maxReadBufferSize.
                  */
@@ -681,14 +681,14 @@ public abstract class FileReader {
                     /* Make it a modulo of 1K */
                     int remainder = readBufferSize % 1024;
                     readBufferSize += 1024 - remainder;
-                    readBufferSize = Math.min(readBufferSize, 
+                    readBufferSize = Math.min(readBufferSize,
                     		          maxReadBufferSize);
                 } else {
                     readBufferSize = maxReadBufferSize;
                 }
                 readBuffer = ByteBuffer.allocate(readBufferSize);
             }
-            
+
             if (amountToRead > readBuffer.capacity()) {
                 nRepeatIteratorReads++;
             }
@@ -707,7 +707,7 @@ public abstract class FileReader {
         } else {
             bytesFromThisBuffer = readBuffer.remaining();
         }
-                
+
         /* Gather it all into this save buffer. */
         ByteBuffer temp;
 
@@ -746,10 +746,10 @@ public abstract class FileReader {
             adjustReadBufferSize(bytesNeeded);
 
             /* Get a file handle to read in more log. */
-            fileHandle = fileManager.getFileHandle(readBufferFileNum); 
+            fileHandle = fileManager.getFileHandle(readBufferFileNum);
             boolean fileOk = false;
 
-            /* 
+            /*
              * Check to see if we've come to the end of the file.  If so, get
              * the next file.
              */
@@ -765,12 +765,12 @@ public abstract class FileReader {
                         readBufferFileNum = nextFile.longValue();
                         fileHandle.release();
                         fileHandle =
-                            fileManager.getFileHandle(readBufferFileNum); 
+                            fileManager.getFileHandle(readBufferFileNum);
                         fileOk = true;
                         readBufferFileEnd = 0;
                         nextEntryOffset = 0;
                     }
-                } 
+                }
             }
 
             if (fileOk) {
@@ -791,7 +791,7 @@ public abstract class FileReader {
         } catch (IOException e) {
             e.printStackTrace();
             throw new DatabaseException
-		("Problem in fillReadBuffer, readBufferFileNum = " + 
+		("Problem in fillReadBuffer, readBufferFileNum = " +
 		 readBufferFileNum + ": " + e.getMessage());
 
         } finally {
@@ -810,7 +810,7 @@ public abstract class FileReader {
         return tmp;
     }
 
-    /** 
+    /**
      * @return true if this reader should process this entry, or just
      * skip over it.
      */

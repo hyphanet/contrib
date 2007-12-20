@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDupTest.java,v 1.29.2.1 2007/02/01 14:50:09 cwl Exp $
+ * $Id: DbCursorDupTest.java,v 1.29.2.2 2007/11/20 13:32:43 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -24,7 +24,7 @@ import com.sleepycat.je.util.StringDbt;
  */
 public class DbCursorDupTest extends DbCursorTestBase {
 
-    public DbCursorDupTest() 
+    public DbCursorDupTest()
         throws DatabaseException {
 
         super();
@@ -105,7 +105,7 @@ public class DbCursorDupTest extends DbCursorTestBase {
 
     /**
      * Create some duplicate data.
-     * 
+     *
      * Pass 1, walk over the data and with each iteration, dup() the
      * cursor at the same position.  Ensure that the dup points to the
      * same key/data pair.  Advance the dup'd cursor and ensure that

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbEnvState.java,v 1.17.2.1 2007/02/01 14:49:44 cwl Exp $
+ * $Id: DbEnvState.java,v 1.17.2.2 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -29,15 +29,15 @@ class DbEnvState {
     public static final DbEnvState[] VALID_FOR_OPEN =   {INIT, CLOSED};
     public static final DbEnvState[] VALID_FOR_CLOSE =  {INIT, OPEN, INVALID};
     public static final DbEnvState[] VALID_FOR_REMOVE = {INIT, CLOSED};
-    
+
     DbEnvState(String name) {
         this.name = name;
     }
-    
+
     public String toString() {
         return name;
     }
-    
+
     /* Check for valid state transitions. */
     void checkState(DbEnvState [] validPrevStates,
                     DbEnvState newState)
@@ -56,7 +56,7 @@ class DbEnvState {
         }
         if (!transitionOk) {
             throw new DatabaseException("Can't go from environment state " +
-					toString() + 
+					toString() +
 					" to " +
 					newState.toString());
         }

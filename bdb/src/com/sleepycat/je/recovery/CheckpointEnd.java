@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckpointEnd.java,v 1.29.2.1 2007/02/01 14:49:48 cwl Exp $
+ * $Id: CheckpointEnd.java,v 1.29.2.2 2007/11/20 13:32:33 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -18,18 +18,18 @@ import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
- * CheckpointEnd encapsulates the information needed by a checkpoint end 
+ * CheckpointEnd encapsulates the information needed by a checkpoint end
  * log entry.
  */
 public class CheckpointEnd implements Loggable {
-    
-    /* 
+
+    /*
      * invoker is just a way to tag each checkpoint in the
      * log for easier log based debugging. It will tell us whether the
      * checkpoint was invoked by recovery, the daemon, the api, or
      * the cleaner.
      */
-    private String invoker; 
+    private String invoker;
 
     private Timestamp endTime;
     private long checkpointStartLsn;
@@ -54,7 +54,7 @@ public class CheckpointEnd implements Loggable {
         } else {
             this.invoker = invoker;
         }
-            
+
         Calendar cal = Calendar.getInstance();
         this.endTime = new Timestamp(cal.getTime().getTime());
         this.checkpointStartLsn = checkpointStartLsn;

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LatchTest.java,v 1.33.2.1 2007/02/01 14:50:13 cwl Exp $
+ * $Id: LatchTest.java,v 1.33.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -18,7 +18,7 @@ public class LatchTest extends TestCase {
     private Latch latch2 = null;
     private JUnitThread tester1 = null;
     private JUnitThread tester2 = null;
-    
+
     static private final boolean DEBUG = false;
 
     private void debugMsg(String message) {
@@ -140,7 +140,7 @@ public class LatchTest extends TestCase {
 	tester.doTest();
     }
 
-    /* 
+    /*
      * Do a million acquire/release pairs.  The junit output will tell us how
      * long it took.
      */
@@ -314,7 +314,7 @@ public class LatchTest extends TestCase {
 			Thread.yield();
 		    }
 
-		    /* 
+		    /*
 		     * Attempt Acquire with no wait -- should succeed now that
 		     * tester1 is done.
 		     */
@@ -327,7 +327,7 @@ public class LatchTest extends TestCase {
 			fail("caught DatabaseException");
 		    }
 
-		    /* 
+		    /*
 		     * Attempt Acquire with no wait again -- should throw
 		     * exception since we already have it.
 		     */
@@ -391,7 +391,7 @@ public class LatchTest extends TestCase {
 
 		    debugMsg("acquired latch");
 
-		    /* 
+		    /*
 		     * Wait for all other testers to be waiting on the latch.
 		     */
 		    while (latch1.nWaiters() < N_WAITERS) {
@@ -424,7 +424,7 @@ public class LatchTest extends TestCase {
 			    Thread.yield();
 			}
 
-			/* 
+			/*
 			 * Wait until it's our turn to try to acquire the
 			 * latch.
 			 */

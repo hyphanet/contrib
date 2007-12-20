@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockStats.java,v 1.24.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: LockStats.java,v 1.24.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -80,7 +80,7 @@ public class LockStats implements Serializable {
      */
     public int getNTotalLocks() {
         return nTotalLocks;
-    }       
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -153,14 +153,14 @@ public class LockStats implements Serializable {
      * Internal use only.
      */
     public void setNRequests(long requests) {
-        this.nRequests = requests; 
+        this.nRequests = requests;
     }
 
     /**
      * Internal use only.
      */
     public void setNWaits(long waits) {
-        this.nWaits = waits; 
+        this.nWaits = waits;
     }
 
     /**
@@ -202,6 +202,6 @@ public class LockStats implements Serializable {
         sb.append("nRequests=").append(nRequests).append('\n');
         sb.append("nWaits=").append(nWaits).append('\n');
         sb.append("lockTableLatch:\n").append(lockTableLatchStats);
-        return sb.toString();    
+        return sb.toString();
     }
 }

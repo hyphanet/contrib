@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogBuffer.java,v 1.42.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: LogBuffer.java,v 1.42.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -33,7 +33,7 @@ class LogBuffer implements LogSource {
     /* The read latch serializes access to and modification of the LSN info. */
     private Latch readLatch;
 
-    /* 
+    /*
      * Buffer may be rewritten because an IOException previously occurred.
      */
     private boolean rewriteAllowed;
@@ -79,7 +79,7 @@ class LogBuffer implements LogSource {
     /*
      * Write support
      */
-        
+
     /**
      * Return first LSN held in this buffer. Assumes the log write latch is
      * held.
@@ -137,7 +137,7 @@ class LogBuffer implements LogSource {
     /**
      * Support for reading a log entry out of a still-in-memory log
      * @return true if this buffer holds the entry at this LSN. The
-     *         buffer will be latched for read. Returns false if 
+     *         buffer will be latched for read. Returns false if
      *         LSN is not here, and releases the read latch.
      */
     boolean containsLsn(long lsn)
@@ -151,7 +151,7 @@ class LogBuffer implements LogSource {
 	     (DbLsn.compareTo(lastLsn, lsn) >= 0))) {
             found = true;
         }
-        
+
         if (found) {
             return true;
         } else {
@@ -159,7 +159,7 @@ class LogBuffer implements LogSource {
             return false;
         }
     }
-  
+
     /**
      * When modifying the buffer, acquire the readLatch.  Call release() to
      * release the latch.  Note that containsLsn() acquires the latch for

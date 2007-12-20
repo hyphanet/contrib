@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEMonitor.java,v 1.5.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: JEMonitor.java,v 1.5.2.2 2007/11/20 13:32:30 cwl Exp $
  */
 
 package com.sleepycat.je.jmx;
@@ -28,7 +28,7 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
 
 /**
- * JEMonitor is a JMX MBean which manages a JE environment. 
+ * JEMonitor is a JMX MBean which manages a JE environment.
  * The MBean may be installed as is, or used as a starting point for building
  * a MBean which includes JE support. JEMonitor expects another component in
  * the JVM to configure and open the JE environment; it will only access a JE
@@ -56,8 +56,8 @@ import com.sleepycat.je.Environment;
  * The key implementation choice for a JE MBean is the approach taken for
  * accessing the JE environment. Some of the salient considerations are:
  * <ul>
- * <li>Applications may open one or many Environment objects per process 
- * against a given environment.</li> 
+ * <li>Applications may open one or many Environment objects per process
+ * against a given environment.</li>
  *
  * <li>All Environment handles reference the same underlying JE environment
  * implementation object.</li>
@@ -75,10 +75,10 @@ import com.sleepycat.je.Environment;
  */
 public class JEMonitor implements DynamicMBean {
 
-    private static final String DESCRIPTION = 
+    private static final String DESCRIPTION =
         "Monitor an open Berkeley DB, Java Edition environment.";
-    
-    private MBeanInfo mbeanInfo;    // this MBean's visible interface. 
+
+    private MBeanInfo mbeanInfo;    // this MBean's visible interface.
     private JEMBeanHelper jeHelper; // gets JE management interface.
 
     /**
@@ -86,7 +86,7 @@ public class JEMonitor implements DynamicMBean {
      *
      * @param environmentHome home directory of the target JE environment.
      */
-    public JEMonitor(String environmentHome) 
+    public JEMonitor(String environmentHome)
         throws MBeanException {
 
         File environmentDirectory = new File(environmentHome);
@@ -156,8 +156,8 @@ public class JEMonitor implements DynamicMBean {
                 try {
                     String name = attributes[i];
                     Object value = jeHelper.getAttribute(targetEnv, name);
-                    
-                    /* 
+
+                    /*
                      * jeHelper may notice that the environment state has
                      * changed. If so, this mbean must update its interface.
                      */
@@ -200,15 +200,15 @@ public class JEMonitor implements DynamicMBean {
                     /* Set new value. */
                     jeHelper.setAttribute(targetEnv, attr);
 
-                    /* 
+                    /*
                      * Add the name and new value to the result list. Be sure
                      * to ask the MBean for the new value, rather than simply
                      * using attr.getValue(), because the new value may not
-                     * be same if it is modified according to the JE 
+                     * be same if it is modified according to the JE
                      * implementation.
                      */
                     String name = attr.getName();
-                    Object newValue = jeHelper.getAttribute(targetEnv, name); 
+                    Object newValue = jeHelper.getAttribute(targetEnv, name);
                     results.add(new Attribute(name, newValue));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -258,7 +258,7 @@ public class JEMonitor implements DynamicMBean {
      * The JEHelper may detect a change in environment attributes that
      * results in a change in management functionality.  Reset the
      * MBeanInfo if needed and refresh the temporary environment handle.
-     * 
+     *
      * @param targetEnv the temporary JE environment handle
      * @return new environment handle to replace targetEnv. Must be released
      * by the caller.
@@ -286,13 +286,13 @@ public class JEMonitor implements DynamicMBean {
      * targetted application.
      */
     private void resetMBeanInfo(Environment targetEnv) {
-        
+
         /*
          * Get JE attributes, operation and notification information
          * from JEMBeanHelper. An application may choose to add functionality
          * of its own when constructing the MBeanInfo.
          */
-        
+
         /* Attributes. */
         List attributeList =  jeHelper.getAttributeList(targetEnv);
         MBeanAttributeInfo [] attributeInfo =
@@ -343,10 +343,10 @@ public class JEMonitor implements DynamicMBean {
     /**
      * Be sure to close Environments when they are no longer used, because
      * they pin down resources.
-     * 
+     *
      * @param targetEnv the open environment. May be null.
      */
-    protected void closeEnvironment(Environment targetEnv) 
+    protected void closeEnvironment(Environment targetEnv)
         throws MBeanException {
 
         try {

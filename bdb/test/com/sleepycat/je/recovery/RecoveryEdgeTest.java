@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryEdgeTest.java,v 1.58.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryEdgeTest.java,v 1.58.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -64,13 +64,13 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
     /**
      * Test setting of the database ids in recovery.
      */
-    public void testDbId() 
+    public void testDbId()
         throws Throwable {
 
         Transaction createTxn = null;
         try {
 
-            /* 
+            /*
              * Create an environment and three databases. The first two
              * ids are allocated to the name db and the id db.
              */
@@ -87,7 +87,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             DatabaseConfig dbConfig = new DatabaseConfig();
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
-            for (int i = 0; i < numStartDbs; i++) { 
+            for (int i = 0; i < numStartDbs; i++) {
                 Database anotherDb = env.openDatabase(createTxn, "foo" + i,
 						      dbConfig);
                 assertEquals((i+3),
@@ -96,8 +96,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             }
             createTxn.commit();
             env.close();
-        
-            /* 
+
+            /*
              * Go through a set of open, creates, and closes. Check id after
              * recovery.
              */
@@ -108,7 +108,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
                 env = new Environment(envHome, envConfig);
 
                 createTxn = env.beginTransaction(null, null);
-                Database anotherDb = env.openDatabase(createTxn, "foo" + i, 
+                Database anotherDb = env.openDatabase(createTxn, "foo" + i,
 						      dbConfig);
                 assertEquals(i+3,
                              DbInternal.dbGetDatabaseImpl(anotherDb).getId().getId());
@@ -128,7 +128,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
     /**
      * Test setting the node ids in recovery.
      */
-    public void testNodeId() 
+    public void testNodeId()
         throws Throwable {
 
         try {
@@ -154,12 +154,12 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             DbInternal.setCheckpointUP(recoveryConfig, false);
             env = new Environment(envHome, recoveryConfig);
             LN ln = new LN(new byte[0]);
-            
+
             /* Recovery should have initialized the next node id to use */
             assertTrue(maxSeenNodeId + 1 < ln.getNodeId());
             maxSeenNodeId = Node.getLastId();
 
-            /* 
+            /*
              * One more time -- this recovery will get the node id off the
              * checkpoint of the environment close. This checkpoint records
              * the fact that the node id was bumped forward by the create of
@@ -183,7 +183,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
     /**
      * Test setting the txn id.
      */
-    public void testTxnId() 
+    public void testTxnId()
         throws Throwable {
 
         try {
@@ -211,8 +211,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
                                            "false");
             recoveryConfig.setTransactional(true);
             env = new Environment(envHome, recoveryConfig);
-            
-            /* 
+
+            /*
              * Check that the next txn id is larger than the last seen.
              * A few txn ids were eaten by AutoTxns during recovery, do
              * a basic check that we didn't eat more than 11.
@@ -230,7 +230,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             long secondMaxTxnId = txn.getId();
             txn.abort();
 
-            /* 
+            /*
              * One more time -- this recovery will get the txn id off the
              * checkpoint of the second environment creation.
              */
@@ -255,8 +255,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
 
         createEnv(1024, false);
         try {
-            /* 
-             * Create a database, write into it non-txnally. Should be 
+            /*
+             * Create a database, write into it non-txnally. Should be
              * allowed
              */
             DatabaseConfig dbConfig = new DatabaseConfig();
@@ -299,7 +299,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             assertEquals(2, dbNames.size());
             assertEquals("Txnal", dbNames.get(1));
             assertEquals("NotTxnal", dbNames.get(0));
-            
+
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -311,7 +311,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
     /**
      * Test that we can recover with a bad checksum.
      */
-    public void testBadChecksum() 
+    public void testBadChecksum()
         throws Throwable {
 
         try {
@@ -351,7 +351,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
      * previous file. Also recover in read/only mode to make sure we don't
      * process the bad portion of the log.
      */
-    public void testBadChecksumReadOnlyReadPastLastFile() 
+    public void testBadChecksumReadOnlyReadPastLastFile()
         throws Throwable {
 
         try {
@@ -365,7 +365,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             txn.commit();
             env.checkpoint(forceConfig);
 
-            /* 
+            /*
              * Remember how many files we have, so we know where the last
              * checkpoint is.
              */
@@ -393,8 +393,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             throw t;
         }
     }
-    
-    private void writeBadStuffInLastFile() 
+
+    private void writeBadStuffInLastFile()
         throws IOException {
 
         String[] files =

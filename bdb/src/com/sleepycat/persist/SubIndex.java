@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SubIndex.java,v 1.12.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: SubIndex.java,v 1.12.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -198,7 +198,7 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
     public EntityCursor<E> entities(Transaction txn,
                                     CursorConfig config)
         throws DatabaseException {
-        
+
         return cursor(txn, null, entityAdapter, config);
     }
 
@@ -257,13 +257,13 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
                                           KeySelector<PK> selector,
                                           CursorConfig config)
         throws DatabaseException {
-        
+
         throw new UnsupportedOperationException();
     }
 
     public ForwardCursor<E> unsortedEntities(KeySelector<PK> selector)
         throws DatabaseException {
-            
+
         return unsortedEntities(null, selector, null);
     }
 
@@ -271,7 +271,7 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
                                              KeySelector<PK> selector,
                                              CursorConfig config)
         throws DatabaseException {
-        
+
         throw new UnsupportedOperationException();
     }
     */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PhantomTest.java,v 1.13.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: PhantomTest.java,v 1.13.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -126,7 +126,7 @@ public class PhantomTest extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome, false);
         TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -151,7 +151,7 @@ public class PhantomTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
@@ -232,7 +232,7 @@ public class PhantomTest extends TestCase {
             env = null;
         }
     }
-    
+
     public void testGetSearchKey_Success()
         throws DatabaseException, InterruptedException {
 
@@ -257,7 +257,7 @@ public class PhantomTest extends TestCase {
         readerTxn.commitNoSync();
         closeEnv();
     }
-    
+
     public void testGetSearchKey_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -283,7 +283,7 @@ public class PhantomTest extends TestCase {
         readerTxn.commitNoSync();
         closeEnv();
     }
-    
+
     public void testGetSearchKey_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -299,7 +299,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
-        
+
         /*
          * If serializable, getSearchKey should return NOTFOUND again;
          * otherwise getSearchKey should see key 2.
@@ -324,7 +324,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchKey_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -341,7 +341,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {1,1} in a writer thread. */
         startInsert(1, 1);
-        
+
         /*
          * If serializable, getSearchKey should return NOTFOUND again;
          * otherwise getSearchKey should see {1,1}.
@@ -366,7 +366,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchBoth_Success()
         throws DatabaseException, InterruptedException {
 
@@ -391,7 +391,7 @@ public class PhantomTest extends TestCase {
         readerTxn.commitNoSync();
         closeEnv();
     }
-    
+
     public void testGetSearchBoth_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -417,7 +417,7 @@ public class PhantomTest extends TestCase {
         readerTxn.commitNoSync();
         closeEnv();
     }
-    
+
     public void testGetSearchBoth_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -433,7 +433,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
-        
+
         /*
          * If serializable, getSearchBoth should return NOTFOUND again;
          * otherwise getSearchBoth should see key 2.
@@ -458,7 +458,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchBoth_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -475,7 +475,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {1,2} in a writer thread. */
         startInsert(1, 2);
-        
+
         /*
          * If serializable, getSearchBoth should return NOTFOUND again;
          * otherwise getSearchBoth should see {1,2}.
@@ -500,7 +500,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchKeyRange_Success()
         throws DatabaseException, InterruptedException {
 
@@ -523,7 +523,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
-        
+
         /*
          * If serializable, getSearchKeyRange should return key 3 again;
          * otherwise getSearchKeyRange should see key 2.
@@ -554,7 +554,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchKeyRange_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -580,7 +580,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {3,1} in a writer thread. */
         startInsert(3, 1);
-        
+
         /*
          * If serializable, getSearchKeyRange should return {3,2} again;
          * otherwise getSearchKeyRange should see {3,1}.
@@ -614,7 +614,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchKeyRange_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -635,7 +635,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 3 in a writer thread. */
         startInsert(3);
-        
+
         /*
          * If serializable, getSearchKeyRange should return NOTFOUND again;
          * otherwise getSearchKeyRange should see key 3.
@@ -666,7 +666,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchKeyRange_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -688,7 +688,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {3,1} in a writer thread. */
         startInsert(3, 1);
-        
+
         /*
          * If serializable, getSearchKeyRange should return NOTFOUND again;
          * otherwise getSearchKeyRange should see {3,1}.
@@ -721,7 +721,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     /*
      * A testGetSearchBothRange_Success test case is not possible because it is
      * not possible to insert a duplicate when only one LN for the key already
@@ -729,7 +729,7 @@ public class PhantomTest extends TestCase {
      * will deadlock with the reader thread, which has the existing LN locked.
      * This is a testing anomoly, not a bug.
      */
-    
+
     public void testGetSearchBothRange_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -756,7 +756,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {3,1} in a writer thread. */
         startInsert(3, 1);
-        
+
         /*
          * If serializable, getSearchBothRange should return {3,2} again;
          * otherwise getSearchBothRange should see {3,1}.
@@ -792,7 +792,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchBothRange_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -814,7 +814,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {3, 1} in a writer thread. */
         startInsert(3, 1);
-        
+
         /*
          * If serializable, getSearchBothRange should return NOTFOUND again;
          * otherwise getSearchBothRange should see key 3.
@@ -849,7 +849,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetSearchBothRange_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -872,7 +872,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {3,3} in a writer thread. */
         startInsert(3, 3);
-        
+
         /*
          * If serializable, getSearchBothRange should return NOTFOUND again;
          * otherwise getSearchBothRange should see {3,3}.
@@ -907,7 +907,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetFirst_Success()
         throws DatabaseException, InterruptedException {
 
@@ -928,7 +928,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 1 in a writer thread. */
         startInsert(1);
-        
+
         /*
          * If serializable, getFirst should return key 2 again; otherwise
          * getFirst should see key 1.
@@ -957,7 +957,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetFirst_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -980,7 +980,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {1,1} in a writer thread. */
         startInsert(1, 1);
-        
+
         /*
          * If serializable, getFirst should return {1,2} again; otherwise
          * getFirst should see {1,1}.
@@ -1012,7 +1012,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetFirst_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -1029,7 +1029,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 1 in a writer thread. */
         startInsert(1);
-        
+
         /*
          * If serializable, getFirst should return NOTFOUND again; otherwise
          * getFirst should see key 1.
@@ -1058,7 +1058,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetFirst_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1075,7 +1075,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {1,1} in a writer thread. */
         startInsert(1, 1);
-        
+
         /*
          * If serializable, getFirst should return NOTFOUND again; otherwise
          * getFirst should see {1,1}.
@@ -1105,7 +1105,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetLast_Success()
         throws DatabaseException, InterruptedException {
 
@@ -1133,7 +1133,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
-        
+
         /*
          * If serializable, getLast should return key 1 again; otherwise
          * getLast should see key 2.
@@ -1162,7 +1162,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetLast_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1192,7 +1192,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {1,3} in a writer thread. */
         startInsert(1, 3);
-        
+
         /*
          * If serializable, getLast should return {1,2} again; otherwise
          * getLast should see {1,3}.
@@ -1224,7 +1224,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetLast_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -1241,7 +1241,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert key 1 in a writer thread. */
         startInsert(1);
-        
+
         /*
          * If serializable, getLast should return NOTFOUND again; otherwise
          * getLast should see key 1.
@@ -1270,7 +1270,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetLast_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1287,7 +1287,7 @@ public class PhantomTest extends TestCase {
 
         /* Insert {1,1} in a writer thread. */
         startInsert(1, 1);
-        
+
         /*
          * If serializable, getLast should return NOTFOUND again; otherwise
          * getLast should see {1,1}.
@@ -1318,7 +1318,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNext_Success()
         throws DatabaseException, InterruptedException {
 
@@ -1372,7 +1372,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNext_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1430,7 +1430,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNext_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -1482,7 +1482,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNext_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1537,7 +1537,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNextDup_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1595,7 +1595,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNextDup_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1652,7 +1652,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNextNoDup_Success()
         throws DatabaseException, InterruptedException {
 
@@ -1706,7 +1706,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNextNoDup_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1766,7 +1766,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNextNoDup_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -1818,7 +1818,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetNextNoDup_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1873,7 +1873,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrev_Success()
         throws DatabaseException, InterruptedException {
 
@@ -1934,7 +1934,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrev_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -1999,7 +1999,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrev_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -2051,7 +2051,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrev_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -2106,7 +2106,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrevDup_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -2171,7 +2171,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrevDup_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -2226,7 +2226,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrevNoDup_Success()
         throws DatabaseException, InterruptedException {
 
@@ -2287,7 +2287,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrevNoDup_Success_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -2355,7 +2355,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrevNoDup_NotFound()
         throws DatabaseException, InterruptedException {
 
@@ -2407,7 +2407,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     public void testGetPrevNoDup_NotFound_Dup()
         throws DatabaseException, InterruptedException {
 
@@ -2478,7 +2478,7 @@ public class PhantomTest extends TestCase {
         }
         closeEnv();
     }
-    
+
     /*
      * In other tests we test TransactionConfig.setReadUncommitted and
      * TransactionConfig.setSerializableIsolation to make sure they result in
@@ -2560,7 +2560,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     /**
      * Tests that with a single degree 3 txn we don't obtain the extra lock
      * during insert.
@@ -2588,7 +2588,7 @@ public class PhantomTest extends TestCase {
 
         closeEnv();
     }
-    
+
     /**
      * Tests a particular getSearchBothRange bug that has come up in several
      * contexts.  This test is probably redundant with GetSearchBothTest but
@@ -2631,7 +2631,7 @@ public class PhantomTest extends TestCase {
         readerTxn.commitNoSync();
         closeEnv();
     }
-    
+
     /**
      * Tests that searchKey returns SUCCESS when it must skip over a deleted
      * duplicate.  This did not work at one point and was causing warnings
@@ -2768,7 +2768,7 @@ public class PhantomTest extends TestCase {
         insertFinished = false;
 
         writerThread = new JUnitThread("Writer") {
-            public void testBody() 
+            public void testBody()
                 throws DatabaseException {
                 DatabaseEntry key = new DatabaseEntry();
                 DatabaseEntry data = new DatabaseEntry();

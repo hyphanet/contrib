@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BitMap.java,v 1.5.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: BitMap.java,v 1.5.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -30,7 +30,7 @@ public class BitMap {
     private static final int SEGMENT_SIZE = 16;
     private static final int SEGMENT_MASK = 0xffff;
 
-    /* 
+    /*
      * Map of segment value -> bitset, where the segment value is index >>16
      */
     private Map bitSegments;
@@ -48,7 +48,7 @@ public class BitMap {
         if (index < 0) {
             throw new IndexOutOfBoundsException(index + " is negative.");
         }
-        
+
         BitSet bitset = getBitSet(index, true);
 	if (bitset == null) {
 	    throw new IllegalArgumentException(index + " is out of bounds");
@@ -60,7 +60,7 @@ public class BitMap {
     /*
      * @throws IndexOutOfBoundsException if index is negative.
      */
-    public boolean get(long index) 
+    public boolean get(long index)
         throws IndexOutOfBoundsException {
 
         if (index < 0) {
@@ -76,7 +76,7 @@ public class BitMap {
         return bitset.get(useIndex);
     }
 
-    /* 
+    /*
      * Since the BitMap is implemented by a collection of BitSets, return
      * the one which covers the numeric range for this index.
      *
@@ -109,7 +109,7 @@ public class BitMap {
         return bitSegments.size();
     }
 
-    /* 
+    /*
      * Currently for unit testing, though note that java.util.BitSet does
      * support cardinality().
      */

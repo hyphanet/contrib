@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalker.java,v 1.17.2.3 2007/05/01 19:27:23 mark Exp $
+ * $Id: SortedLSNTreeWalker.java,v 1.17.2.4 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -84,11 +84,11 @@ public class SortedLSNTreeWalker {
     protected DatabaseImpl dbImpl;
     private EnvironmentImpl envImpl;
 
-    /* 
+    /*
      * Save the root LSN at construction time, because the root may be
      * nulled out before walk() executes.
      */
-    private long rootLsn; 
+    private long rootLsn;
 
     /* Indicates whether db has allowDuplicates set. */
     private boolean dups;
@@ -142,13 +142,13 @@ public class SortedLSNTreeWalker {
      */
     private boolean passNullLSNNodes = false;
 
-    /* 
+    /*
      * If non-null, save any exceptions encountered while traversing nodes into
      * this savedException list, in order to walk as much of the tree as
-     * possible. The caller of the tree walker will handle the exceptions. 
+     * possible. The caller of the tree walker will handle the exceptions.
      */
     private List savedExceptions;
-    
+
     private ExceptionPredicate excPredicate;
 
     /* Holder for returning LN key from fetchLSN. */
@@ -234,9 +234,9 @@ public class SortedLSNTreeWalker {
 	    inList.releaseMajorLatch();
 	}
 
-        /* 
+        /*
          * Do processing outside of INList latch in order to reduce lockout
-         * of checkpointing and eviction. 
+         * of checkpointing and eviction.
          */
         if (foundSome) {
             Iterator iter = foundSet.iterator();
@@ -246,7 +246,7 @@ public class SortedLSNTreeWalker {
             }
         }
 
-        /* 
+        /*
          * Update the memory in one fell swoop after releasing all references
          * to INs in order to reduce contention on memory budget contention
          * latch. Wait until all references to INs are released.
@@ -332,7 +332,7 @@ public class SortedLSNTreeWalker {
 
 	boolean accumulate = true;
 
-        /* 
+        /*
          * If this is the bottom of the tree and we're not accumulating LNs,
          * then there's no need to accumulate any more LSNs, but we still need
          * to callback with each of them.
@@ -395,7 +395,7 @@ public class SortedLSNTreeWalker {
 		} else if (lsn != DbLsn.NULL_LSN ||
 			   passNullLSNNodes){
 
-		    /* 
+		    /*
 		     * If the child is resident, use that log type, else we can
 		     * assume it's a LN.
 		     */
@@ -442,7 +442,7 @@ public class SortedLSNTreeWalker {
             if (node != null) {
                 callback.processLSN
                     (lsn, node.getLogType(), node, lnKeyEntry.getData());
-                
+
                 if (node instanceof IN) {
                     accumulateLSNs((IN) node);
                 }
@@ -452,7 +452,7 @@ public class SortedLSNTreeWalker {
 		!excPredicate.ignoreException(e)) {
 		if (savedExceptions != null) {
 
-		    /* 
+		    /*
 		     * This LSN fetch hit a failure. Do as much of the rest of
 		     * the tree as possible.
 		     */
@@ -477,7 +477,7 @@ public class SortedLSNTreeWalker {
     protected void releaseRootIN(IN ignore)
 	throws DatabaseException {
 
-	/* 
+	/*
 	 * There's no root IN latch in a vanilla Sorted LSN Tree Walk because
 	 * we just fetched the root from the log.
 	 */

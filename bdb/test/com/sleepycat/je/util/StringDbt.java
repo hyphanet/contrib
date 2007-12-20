@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: StringDbt.java,v 1.12.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: StringDbt.java,v 1.12.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -30,7 +30,7 @@ public class StringDbt extends DatabaseEntry {
     public String getString() {
 	return new String(getData(), 0, getSize());
     }
-    
+
     public String toString() {
         return getString();
     }

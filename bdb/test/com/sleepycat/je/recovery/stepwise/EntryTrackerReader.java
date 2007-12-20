@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntryTrackerReader.java,v 1.5.2.1 2007/02/01 14:50:18 cwl Exp $
+ * $Id: EntryTrackerReader.java,v 1.5.2.2 2007/11/20 13:32:48 cwl Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -28,13 +28,13 @@ import com.sleepycat.je.utilint.DbLsn;
  * EntryTrackerReader collects a list of EntryInfo describing all log entries
  * in the truncated portion of a log.  It lets the test know where to do a log
  * truncation and remembers whether an inserted or deleted record was seen, in
- * order to update the test's set of expected records. 
+ * order to update the test's set of expected records.
  */
 public class EntryTrackerReader extends FileReader {
 
-    /* 
+    /*
      * EntryInfo is a list that corresponds to each entry in the truncated
-     * area of the log. 
+     * area of the log.
      */
     private List entryInfo;
     private DatabaseEntry dbt = new DatabaseEntry();
@@ -56,7 +56,7 @@ public class EntryTrackerReader extends FileReader {
         this.entryInfo = entryInfo;
     }
 
-    /** 
+    /**
      * @return true if this is a targeted entry that should be processed.
      */
     protected boolean isTargetEntry(byte logEntryTypeNumber,
@@ -65,7 +65,7 @@ public class EntryTrackerReader extends FileReader {
         boolean targeted = true;
 
         useLogEntryType = null;
-        
+
         if (LogEntryType.LOG_LN.equalsType(logEntryTypeNumber)) {
             useLogEntryType = LogEntryType.LOG_LN;
         } else if (LogEntryType.LOG_LN_TRANSACTIONAL.equalsType(
@@ -80,9 +80,9 @@ public class EntryTrackerReader extends FileReader {
             useLogEntryType = LogEntryType.LOG_TXN_COMMIT;
             isCommit = true;
         } else {
-            /* 
+            /*
              * Just make note, no need to process the entry, nothing to record
-             * besides the LSN. Note that the offset has not been bumped by 
+             * besides the LSN. Note that the offset has not been bumped by
              * the FileReader, so use nextEntryOffset.
              */
             entryInfo.add(new LogEntryInfo(DbLsn.makeLsn(readBufferFileNum,
@@ -101,7 +101,7 @@ public class EntryTrackerReader extends FileReader {
     /**
      * This log entry has data which affects the expected set of records.
      * We need to save each lsn and determine whether the value of the
-     * log entry should affect the expected set of records. For 
+     * log entry should affect the expected set of records. For
      * non-transactional entries, the expected set is affected right away.
      * For transactional entries, we defer updates of the expected set until
      * a commit is seen.
@@ -109,21 +109,21 @@ public class EntryTrackerReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        /* 
-         * Note that the offset has been bumped, so use currentEntryOffset 
-         * for the LSN. 
+        /*
+         * Note that the offset has been bumped, so use currentEntryOffset
+         * for the LSN.
          */
         long lsn = DbLsn.makeLsn(readBufferFileNum, currentEntryOffset);
         useLogEntry.readEntry(currentEntryHeader,
-                              entryBuffer, 
+                              entryBuffer,
                               true); // readFullItem
 
         boolean isTxnal = useLogEntryType.isTransactional();
         long txnId = useLogEntry.getTransactionId();
 
         if (isCommit) {
-            
-            /* 
+
+            /*
              * The txn id in a single item log entry is embedded within
              * the item.
              */

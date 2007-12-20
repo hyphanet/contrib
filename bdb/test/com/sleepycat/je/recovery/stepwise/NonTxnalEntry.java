@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: NonTxnalEntry.java,v 1.4.2.1 2007/02/01 14:50:18 cwl Exp $
+ * $Id: NonTxnalEntry.java,v 1.4.2.2 2007/11/20 13:32:48 cwl Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -36,7 +36,7 @@ public class NonTxnalEntry extends LogEntryInfo {
 
         IntegerBinding.intToEntry(key, keyEntry);
         IntegerBinding.intToEntry(data, dataEntry);
-        
+
         useExpected.add(new TestData(keyEntry, dataEntry));
     }
 }

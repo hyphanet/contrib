@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DumpFileReader.java,v 1.43.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: DumpFileReader.java,v 1.43.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -35,7 +35,7 @@ public abstract class DumpFileReader extends FileReader {
      * Create this reader to start at a given LSN.
      */
     public DumpFileReader(EnvironmentImpl env,
-			  int readBufferSize, 
+			  int readBufferSize,
 			  long startLsn,
 			  long finishLsn,
 			  String entryTypes,
@@ -72,7 +72,7 @@ public abstract class DumpFileReader extends FileReader {
         this.verbose = verbose;
     }
 
-    /** 
+    /**
      * @return true if this reader should process this entry, or just
      * skip over it.
      */

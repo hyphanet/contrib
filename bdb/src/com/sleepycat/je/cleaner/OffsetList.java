@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: OffsetList.java,v 1.11.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: OffsetList.java,v 1.11.2.2 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -48,7 +48,7 @@ public class OffsetList {
 
         /* Each value added should be unique. */
         if (checkDupOffsets) {
-            assert (!contains(value)) : 
+            assert (!contains(value)) :
                 Tracer.getStackTrace(new Exception("Dup Offset " +
                                                    Long.toHexString(value)));
         }

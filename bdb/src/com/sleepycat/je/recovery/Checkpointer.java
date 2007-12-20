@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Checkpointer.java,v 1.140.2.3 2007/06/01 21:32:56 mark Exp $
+ * $Id: Checkpointer.java,v 1.140.2.6 2007/12/14 01:43:26 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -52,9 +52,9 @@ public class Checkpointer extends DaemonThread {
     private EnvironmentImpl envImpl;
 
     /* Checkpoint sequence, initialized at recovery. */
-    private long checkpointId;  
+    private long checkpointId;
 
-    /* 
+    /*
      * How much the log should grow between checkpoints. If 0, we're using time
      * based checkpointing.
      */
@@ -73,19 +73,19 @@ public class Checkpointer extends DaemonThread {
 
     public Checkpointer(EnvironmentImpl envImpl,
                         long waitTime,
-                        String name) 
+                        String name)
         throws DatabaseException {
 
         super(waitTime, name, envImpl);
         this.envImpl = envImpl;
-        logSizeBytesInterval = 
+        logSizeBytesInterval =
             envImpl.getConfigManager().getLong
                 (EnvironmentParams.CHECKPOINTER_BYTES_INTERVAL);
-        logFileMax = 
+        logFileMax =
             envImpl.getConfigManager().getLong(EnvironmentParams.LOG_FILE_MAX);
         timeInterval = waitTime;
         lastCheckpointMillis = 0;
-        
+
         nCheckpoints = 0;
         flushStats = new FlushStats();
 
@@ -111,7 +111,7 @@ public class Checkpointer extends DaemonThread {
      * because we need to pass wakeup period to the superclass and need to do
      * the calcuation outside this constructor.
      */
-    public static long getWakeupPeriod(DbConfigManager configManager) 
+    public static long getWakeupPeriod(DbConfigManager configManager)
         throws IllegalArgumentException, DatabaseException {
 
         long wakeupPeriod = PropUtil.microsToMillis
@@ -149,7 +149,7 @@ public class Checkpointer extends DaemonThread {
     /**
      * Load stats.
      */
-    public void loadStats(StatsConfig config, EnvironmentStats stat) 
+    public void loadStats(StatsConfig config, EnvironmentStats stat)
         throws DatabaseException {
 
         stat.setNCheckpoints(nCheckpoints);
@@ -159,7 +159,7 @@ public class Checkpointer extends DaemonThread {
         stat.setNFullINFlush(flushStats.nFullINFlush);
         stat.setNFullBINFlush(flushStats.nFullBINFlush);
         stat.setNDeltaINFlush(flushStats.nDeltaINFlush);
-        
+
         if (config.getClear()) {
             nCheckpoints = 0;
             flushStats.nFullINFlush = 0;
@@ -167,7 +167,7 @@ public class Checkpointer extends DaemonThread {
             flushStats.nDeltaINFlush = 0;
         }
     }
-    
+
     /**
      * @return the first active LSN point of the last completed checkpoint.
      * If no checkpoint has run, return null.
@@ -198,7 +198,7 @@ public class Checkpointer extends DaemonThread {
     }
 
     /**
-     * Called whenever the DaemonThread wakes up from a sleep.  
+     * Called whenever the DaemonThread wakes up from a sleep.
      */
     protected void onWakeup()
         throws DatabaseException {
@@ -213,7 +213,7 @@ public class Checkpointer extends DaemonThread {
     }
 
     /**
-     * Wakes up the checkpointer if a checkpoint log interval is configured and 
+     * Wakes up the checkpointer if a checkpoint log interval is configured and
      * the number of bytes written since the last checkpoint exeeds the size
      * of the interval.
      */
@@ -231,7 +231,7 @@ public class Checkpointer extends DaemonThread {
     /**
      * Determine whether a checkpoint should be run.
      *
-     * 1. If the force parameter is specified, always checkpoint. 
+     * 1. If the force parameter is specified, always checkpoint.
      *
      * 2. If the config object specifies time or log size, use that.
      *
@@ -263,7 +263,7 @@ public class Checkpointer extends DaemonThread {
                 useTimeInterval = timeInterval;
             }
 
-            /* 
+            /*
              * If our checkpoint interval is defined by log size, check on how
              * much log has grown since the last checkpoint.
              */
@@ -278,7 +278,7 @@ public class Checkpointer extends DaemonThread {
                 }
             } else if (useTimeInterval != 0) {
 
-                /* 
+                /*
                  * Our checkpoint is determined by time.  If enough time has
                  * passed and some log data has been written, do a checkpoint.
                  */
@@ -308,9 +308,9 @@ public class Checkpointer extends DaemonThread {
             sb.append(" time interval=").append(useTimeInterval);
             sb.append(" force=").append(config.getForce());
             sb.append(" runnable=").append(runnable);
-            
+
             Tracer.trace(Level.FINEST,
-                         envImpl, 
+                         envImpl,
                          sb.toString());
         }
     }
@@ -319,17 +319,17 @@ public class Checkpointer extends DaemonThread {
      * The real work to do a checkpoint. This may be called by the checkpoint
      * thread when waking up, or it may be invoked programatically through the
      * api.
-     * 
+     *
      * @param flushAll if true, this checkpoint must flush all the way to
      *       the top of the dbtree, instead of stopping at the highest level
      *       last modified.
-     * @param invokingSource a debug aid, to indicate who invoked this 
+     * @param invokingSource a debug aid, to indicate who invoked this
      *       checkpoint. (i.e. recovery, the checkpointer daemon, the cleaner,
      *       programatically)
      */
     public synchronized void doCheckpoint(CheckpointConfig config,
 					  boolean flushAll,
-					  String invokingSource) 
+					  String invokingSource)
         throws DatabaseException {
 
         if (envImpl.isReadOnly()) {
@@ -366,10 +366,10 @@ public class Checkpointer extends DaemonThread {
         LogManager logManager = envImpl.getLogManager();
 
         /* dirtyMap keeps track of the INs to be written out by the ckpt. */
-        DirtyINMap dirtyMap = new DirtyINMap(envImpl); 
+        DirtyINMap dirtyMap = new DirtyINMap(envImpl);
         try {
 
-	    /* 
+	    /*
 	     * Eviction can run during checkpoint as long as it follows the
 	     * same rules for using provisional logging and for propagating
 	     * logging of the checkpoint dirty set up the tree. We have to lock
@@ -389,9 +389,9 @@ public class Checkpointer extends DaemonThread {
                                                             invokingSource));
 		checkpointStart = logManager.log(startEntry);
 
-		/* 
-		 * Note the first active LSN point. The definition of 
-                 * firstActiveLsn is that all log entries for active 
+		/*
+		 * Note the first active LSN point. The definition of
+                 * firstActiveLsn is that all log entries for active
                  * transactions are equal to or after that LSN.
 		 */
 		firstActiveLsn = envImpl.getTxnManager().getFirstActiveLsn();
@@ -409,13 +409,13 @@ public class Checkpointer extends DaemonThread {
                     (cleanerState.getDeferredWriteDbs());
 	    }
 
-            /* 
+            /*
              * Add the dirty map to the memory budget, outside the evictor
              * synchronization section.
              */
             dirtyMap.addCostToMemoryBudget();
 
-            /* 
+            /*
              * Figure out the highest flush level.  If we're flushing all for
              * cleaning, we must flush to the point that there are no nodes
              * with LSNs in the cleaned files.
@@ -439,7 +439,7 @@ public class Checkpointer extends DaemonThread {
             boolean cleaningDeferredWriteDbs =
                 (cleanerState.getDeferredWriteDbsSize() > 0);
             flushDirtyNodes(envImpl, dirtyMap, allowDeltas,
-                            checkpointStart, highestFlushLevel, 
+                            checkpointStart, highestFlushLevel,
                             flushStats, cleaningDeferredWriteDbs);
 
             /*
@@ -461,7 +461,7 @@ public class Checkpointer extends DaemonThread {
                                                       getLastTxnId(),
                                                       checkpointId));
 
-            /* 
+            /*
              * Log checkpoint end and update state kept about the last
              * checkpoint location. Send a trace message *before* the
              * checkpoint end log entry. This is done so that the normal trace
@@ -477,12 +477,11 @@ public class Checkpointer extends DaemonThread {
              * and to ensure that this checkpoint is not wasted if we crash.
              */
             lastCheckpointEnd =
-                logManager.logForceFlush(endEntry,
-                                         true); // fsync required
+		logManager.logForceFlush(endEntry, true /*fsyncRequired*/);
             lastFirstActiveLsn = firstActiveLsn;
             lastCheckpointStart = checkpointStart;
 
-	    /* 
+	    /*
 	     * Reset the highestFlushLevel so evictor activity knows there's no
 	     * further requirement for provisional logging. SR 11163.
 	     */
@@ -530,7 +529,7 @@ public class Checkpointer extends DaemonThread {
 	    (envImpl.getConfigManager().getEnvironmentConfig())) {
             return;
         }
-        
+
         UtilizationProfile profile = envImpl.getUtilizationProfile();
 
         TrackedFileSummary[] activeFiles =
@@ -544,10 +543,10 @@ public class Checkpointer extends DaemonThread {
     /**
      * Flush a given database to disk. Like checkpoint, log from the bottom
      * up so that parents properly represent their children.
-     */ 
+     */
     public static void syncDatabase(EnvironmentImpl envImpl,
                                     DatabaseImpl dbImpl,
-                                    boolean flushLog) 
+                                    boolean flushLog)
         throws DatabaseException {
 
         if (envImpl.isReadOnly()) {
@@ -557,9 +556,9 @@ public class Checkpointer extends DaemonThread {
         DirtyINMap dirtyMap = new DirtyINMap(envImpl);
         FlushStats fstats = new FlushStats();
         try {
-	    /* 
+	    /*
 	     * Lock out eviction and other checkpointing during the
-             * selection of a dirty set. 
+             * selection of a dirty set.
 	     */
 	    synchronized (envImpl.getEvictor()) {
 		/* Find the dirty set. */
@@ -570,7 +569,7 @@ public class Checkpointer extends DaemonThread {
 
             /* Write all dirtyINs out.*/
             flushDirtyNodes(envImpl,
-                            dirtyMap, 
+                            dirtyMap,
                             false, /* allowDeltas */
                             0,     /* ckpt start, only needed for allowDeltas*/
                             envImpl.getDbMapTree().getHighestLevel(dbImpl),
@@ -610,15 +609,16 @@ public class Checkpointer extends DaemonThread {
         throws DatabaseException {
 
         LogManager logManager = envImpl.getLogManager();
+        DbTree dbTree = envImpl.getDbMapTree();
 
-        /* 
+        /*
          * In general, we flush until we reach the maxFlushLevel. If we're
          * cleaning deferred write dbs, we sync only those dbs all the way up
          * to the root. onlyFlushDeferredWriteDbs is true when we're above
          * maxFlushLevel, but are still syncing.
          */
         boolean onlyFlushDeferredWriteDbs = false;
-        
+
         /*
          * Use a tracker to count lazily compressed, deferred write, LNs as
          * obsolete.  A separate tracker is used to accumulate tracked obsolete
@@ -642,7 +642,7 @@ public class Checkpointer extends DaemonThread {
                 CheckpointReference targetRef =
                     (CheckpointReference) iter.next();
 
-                /* 
+                /*
                  * Flush if we're below maxFlushLevel, or we're above and
                  * syncing cleaned deferred write dbs.
                  */
@@ -654,29 +654,39 @@ public class Checkpointer extends DaemonThread {
                     envImpl.getEvictor().doCriticalEviction
                         (true); // backgroundIO
 
-                    /* 
+                    /*
                      * Check if the db is still valid since INs of deleted
                      * databases are left on the in-memory tree until the post
-                     * transaction cleanup is finished.
+                     * transaction cleanup is finished.  Use the DatabaseImpl
+                     * returned by getDb, which may be a different object than
+                     * targetRef.db if the MapLN was evicted.
                      */
-                    if (!(targetRef.db.isDeleted())) {
-                        flushIN(envImpl, logManager,
-                                targetRef, dirtyMap, currentLevelVal,
-                                logProvisionally, allowDeltas, checkpointStart,
-                                fstats, tracker);
+                    DatabaseImpl refreshedDb = null;
+                    try {
+                        refreshedDb = dbTree.getDb(targetRef.db.getId());
+                        if (refreshedDb != null && !refreshedDb.isDeleted()) {
+                            targetRef.db = refreshedDb;
+                            flushIN
+                                (envImpl, logManager, targetRef, dirtyMap,
+                                 currentLevelVal, logProvisionally,
+                                 allowDeltas, checkpointStart, fstats,
+                                 tracker);
+                        }
+                    } finally {
+                        dbTree.releaseDb(refreshedDb);
                     }
 
                     /* Sleep if background read/write limit was exceeded. */
                     envImpl.sleepAfterBackgroundIO();
                 }
-                
+
                 iter.remove();
             }
 
             /* We're done with this level. */
             dirtyMap.removeSet(currentLevel);
 
-            /* 
+            /*
              * For all regular databases, we can stop checkpointing at the
              * previously calculated level. For deferredWriteDbs that are
              * being synced, we need to flush to the roots.
@@ -700,7 +710,7 @@ public class Checkpointer extends DaemonThread {
         }
     }
 
-    /** 
+    /**
      * Flush the target IN.
      */
     private static void flushIN(EnvironmentImpl envImpl,
@@ -725,13 +735,13 @@ public class Checkpointer extends DaemonThread {
             tree.withRootLatchedExclusive(flusher);
             boolean flushed = flusher.getFlushed();
 
-            /* 
+            /*
              * If this target isn't the root anymore, we'll have to handle it
              * like a regular node.
              */
             targetWasRoot = flusher.stillRoot();
-            
-            /* 
+
+            /*
              * Update the tree's owner, whether it's the env root or the
              * dbmapping tree.
              */
@@ -743,12 +753,12 @@ public class Checkpointer extends DaemonThread {
             }
         }
 
-        /* 
+        /*
          * The following attempt to flush applies to two cases:
-	 * 
+	 *
          * (1) the target was not ever the root
-	 * 
-         * (2) the target was the root, when the checkpoint dirty set was 
+	 *
+         * (2) the target was the root, when the checkpoint dirty set was
          * assembled but is not the root now.
          */
         if (!targetWasRoot) {
@@ -756,7 +766,7 @@ public class Checkpointer extends DaemonThread {
             /*
              * The "isRoot" param is used to stop a search in
              * BIN.descendOnParentSearch and is passed as false (never stop).
-             */ 
+             */
             SearchResult result =
                 tree.getParentINForChildIN(targetRef.nodeId,
                                            targetRef.containsDuplicates,
@@ -769,7 +779,7 @@ public class Checkpointer extends DaemonThread {
                                            null,   // trackingList
                                            false); // doFetch
 
-            /* 
+            /*
              * We must make sure that every IN that was selected for the
              * checkpointer's dirty IN set at the beginning of checkpoint is
              * written into the log and can be properly accessed from
@@ -785,7 +795,7 @@ public class Checkpointer extends DaemonThread {
                 try {
                     if (result.exactParentFound) {
 
-                        /* 
+                        /*
                          * If the child has already been evicted, don't
                          * refetch it.
                          */
@@ -812,7 +822,7 @@ public class Checkpointer extends DaemonThread {
                         /* result.exactParentFound was false. */
                         if (result.childNotResident) {
 
-                            /* 
+                            /*
                              * But it was because the child wasn't resident.
                              * To be on the safe side, we'll put the parent
                              * into the dirty set to be logged when that level
@@ -847,8 +857,8 @@ public class Checkpointer extends DaemonThread {
             }
         }
     }
-    
-    /** 
+
+    /**
      * @return true if this parent is appropriately 1 level above the child.
      */
     private static boolean checkParentChildRelationship(SearchResult result,
@@ -856,7 +866,7 @@ public class Checkpointer extends DaemonThread {
 
         if (result.childNotResident && !result.exactParentFound) {
 
-            /* 
+            /*
              * This might be coming from the #11555 clause, in which case we
              * are logging over-cautiously, but intentionally, and the levels
              * might not pass the test below.
@@ -864,7 +874,7 @@ public class Checkpointer extends DaemonThread {
             return true;
         }
 
-        /* 
+        /*
          * In the main tree or mapping tree, your parent must be in the same
          * number space, and must be 1 more than the child.  In the dup tree,
          * the parent might be a BIN from the main tree.
@@ -880,7 +890,7 @@ public class Checkpointer extends DaemonThread {
                 checkOk = true;
             }
         } else {
-            if (childLevel == 1) { 
+            if (childLevel == 1) {
                 /* A DBIN must have a level 2 DIN parent. */
                 if (parentLevel == 2) {
                     checkOk = true;
@@ -900,7 +910,7 @@ public class Checkpointer extends DaemonThread {
                                        IN parent,
                                        long childNodeId,
                                        int currentLevel,
-                                       Tree tree) 
+                                       Tree tree)
         throws DatabaseException {
 
         StringBuffer sb = new StringBuffer();
@@ -929,7 +939,7 @@ public class Checkpointer extends DaemonThread {
         target.latch(false);
         try {
 
-            /* 
+            /*
              * Compress this node if necessary. Note that this may dirty the
              * node.
              */
@@ -938,7 +948,7 @@ public class Checkpointer extends DaemonThread {
             if (target.getDirty()) {
                 if (target.getDatabase().isDeferredWrite()) {
 
-                    /* 
+                    /*
                      * Find dirty descendants to avoid logging nodes with
                      * never-logged children. See [#13936] and
                      * IN.logDirtyChildren for description of the case.
@@ -955,7 +965,7 @@ public class Checkpointer extends DaemonThread {
                     target.logDirtyChildren();
                 }
 
-                /* 
+                /*
                  * Note that target decides whether to log a delta. Only BINs
                  * that fall into the required percentages and have not been
                  * cleaned will be logged with a delta.  Cleaner migration is
@@ -972,7 +982,7 @@ public class Checkpointer extends DaemonThread {
                     fstats.nDeltaINFlushThisRun++;
                     fstats.nDeltaINFlush++;
 
-                    /* 
+                    /*
                      * If this BIN was already logged after checkpoint start
                      * and before this point (i.e. by an eviction), we must
                      * make sure that the last full version is accessible from
@@ -1001,7 +1011,7 @@ public class Checkpointer extends DaemonThread {
             }
             parent.updateEntry(index, newLsn);
         }
-        
+
         return mustLogParent;
     }
 
@@ -1028,7 +1038,7 @@ public class Checkpointer extends DaemonThread {
         /**
          * Flush the rootIN if dirty.
          */
-        public IN doWork(ChildReference root) 
+        public IN doWork(ChildReference root)
             throws DatabaseException {
 
 	    if (root == null) {
@@ -1039,7 +1049,7 @@ public class Checkpointer extends DaemonThread {
             try {
                 if (rootIN.getNodeId() == targetNodeId) {
 
-                    /* 
+                    /*
                      * Find dirty descendants to avoid logging nodes with
                      * never-logged children. See [#13936]
                      */
@@ -1047,7 +1057,7 @@ public class Checkpointer extends DaemonThread {
                         rootIN.logDirtyChildren();
                     }
 
-                    /* 
+                    /*
 		     * stillRoot handles the situation where the root was split
 		     * after it was placed in the checkpointer's dirty set.
                      */
@@ -1060,7 +1070,7 @@ public class Checkpointer extends DaemonThread {
                 }
             } finally {
                 rootIN.releaseLatch();
-            }                    
+            }
             return null;
         }
 
@@ -1073,7 +1083,7 @@ public class Checkpointer extends DaemonThread {
         }
     }
 
-    /* 
+    /*
      * CheckpointReferences are used to identify nodes that must be flushed as
      * part of the checkpoint. We don't keep an actual reference to the node
      * because that prevents nodes from being GC'ed during checkpoint.
@@ -1084,10 +1094,10 @@ public class Checkpointer extends DaemonThread {
      * containsDuplicates. The others are not and we have to handle potential
      * change:
      *
-     * isDbRoot: it's possible for isDbRoot to go from true->false, but not 
+     * isDbRoot: it's possible for isDbRoot to go from true->false, but not
      *         false->true. True->false is handled by the flushIN method
      *         by finding the root and checking if it is the target.
-     * mainTreeKey, dupTreeKey: These can change only in the event of a 
+     * mainTreeKey, dupTreeKey: These can change only in the event of a
      *         split. If they do, there is the chance that the checkpointer
      *         will find the wrong node to flush, but that's okay because
      *         the split guarantees flushing to the root, so the target will

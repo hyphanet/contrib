@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogManagerTest.java,v 1.68.2.1 2007/02/01 14:50:15 cwl Exp $
+ * $Id: LogManagerTest.java,v 1.68.2.4 2007/12/13 00:12:11 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -26,7 +26,7 @@ import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
-  
+
 /**
  * Test basic log management.
  */
@@ -50,7 +50,7 @@ public class LogManagerTest extends TestCase {
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
         TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
     }
-    
+
     public void tearDown()
 	throws IOException, DatabaseException {
 
@@ -86,7 +86,7 @@ public class LogManagerTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Force the buffers and files to be small. The log buffer is
              * actually too small, will have to grow dynamically. Each file
              * only holds one test item (each test item is 50 bytes).
@@ -104,7 +104,7 @@ public class LogManagerTest extends TestCase {
                             EnvironmentParams.NODE_MAX.getName(), "6");
             envConfig.setConfigParam
 		(EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
-            
+
             /* Disable noisy UtilizationProfile database creation. */
             DbInternal.setCreateUP(envConfig, false);
             /* Don't checkpoint utilization info for this test. */
@@ -113,14 +113,14 @@ public class LogManagerTest extends TestCase {
             envConfig.setConfigParam
                 (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 
-            /* 
+            /*
              * Don't run any daemons, those emit trace messages and other log
              * entries and mess up our accounting.
              */
             turnOffDaemons(envConfig);
             envConfig.setAllowCreate(true);
 
-            /* 
+            /*
 	     * Recreate the file manager and log manager w/different configs.
 	     */
             env = new EnvironmentImpl(envHome, envConfig);
@@ -152,7 +152,7 @@ public class LogManagerTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Force the buffers and files to be small. The log buffer is
              * actually too small, will have to grow dynamically. Each file
              * only holds one test item (each test item is 50 bytes)
@@ -170,7 +170,7 @@ public class LogManagerTest extends TestCase {
                                      "142");
             envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(),
                                      "6");
-            
+
             /* Disable noisy UtilizationProfile database creation. */
             DbInternal.setCreateUP(envConfig, false);
             /* Don't checkpoint utilization info for this test. */
@@ -179,7 +179,7 @@ public class LogManagerTest extends TestCase {
             envConfig.setConfigParam
                 (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 
-            /* 
+            /*
              * Don't run the cleaner or the checkpointer daemons, those create
              * more log entries and mess up our accounting
              */
@@ -192,7 +192,7 @@ public class LogManagerTest extends TestCase {
 
             logAndRetrieve();
 
-            /* 
+            /*
 	     * Expect 8 je files, 3 for records, 1 for root, 2 for recovery
              * message, 2 for checkpoints.
 	     */
@@ -215,7 +215,7 @@ public class LogManagerTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Force the buffers and files to be small. The log buffer is
              * actually too small, will have to grow dynamically. We read in 32
              * byte chunks, will have to re-read only holds one test item (each
@@ -269,7 +269,7 @@ public class LogManagerTest extends TestCase {
             if (DEBUG) {
                 System.out.println("i = " + i + " test LSN: file = " +
                                    DbLsn.getFileNumber(lsn) +
-                                   " offset = " + 
+                                   " offset = " +
                                    DbLsn.getFileOffset(lsn));
             }
             testLsns.add(new Long(lsn));
@@ -335,29 +335,29 @@ public class LogManagerTest extends TestCase {
      */
     public void testExceptions()
 	throws Throwable {
-        
+
         int logBufferSize = ((int) EnvironmentParams.LOG_MEM_SIZE_MIN) / 3;
         int numLogBuffers = 5;
         int logBufferMemSize = logBufferSize * numLogBuffers;
         int logFileMax = 1000;
         int okCounter = 0;
-        
+
         try {
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
 	    DbInternal.disableParameterValidation(envConfig);
             envConfig.setConfigParam(EnvironmentParams.LOG_MEM_SIZE.getName(),
                                      new Integer(logBufferMemSize).toString());
             envConfig.setConfigParam
-		(EnvironmentParams.NUM_LOG_BUFFERS.getName(), 
+		(EnvironmentParams.NUM_LOG_BUFFERS.getName(),
 		 new Integer(numLogBuffers).toString());
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_FILE_MAX.getName(), 
+		(EnvironmentParams.LOG_FILE_MAX.getName(),
 		 new Integer(logFileMax).toString());
             envConfig.setConfigParam(
                             EnvironmentParams.NODE_MAX.getName(), "6");
             envConfig.setConfigParam
 		(EnvironmentParams.JE_LOGGING_LEVEL.getName(), "SEVERE");
-            
+
             /* Disable noisy UtilizationProfile database creation. */
             DbInternal.setCreateUP(envConfig, false);
             /* Don't checkpoint utilization info for this test. */
@@ -366,7 +366,7 @@ public class LogManagerTest extends TestCase {
             envConfig.setConfigParam
                 (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
 
-            /* 
+            /*
              * Don't run any daemons, those emit trace messages and other log
              * entries and mess up our accounting.
              */
@@ -385,24 +385,24 @@ public class LogManagerTest extends TestCase {
              * - log successfully
              * - log w/failure because the item doesn't fit in the log buffer
              * - have I/O failures writing out the log
-             * Verify that all expected items can be read. Some will come 
+             * Verify that all expected items can be read. Some will come
              * from the log buffer pool.
              * Then close and re-open the environment, to verify that
              * all log items are faulted from disk
              */
-            
+
             /* Successful log. */
             addOkayItem(logManager, okCounter++,
                         testRecs, testLsns, logBufferSize);
-            
+
             /* Item that's too big for the log buffers. */
             attemptTooBigItem(logManager, logBufferSize, testRecs, testLsns);
 
             /* Successful log. */
             addOkayItem(logManager, okCounter++,
                         testRecs, testLsns, logBufferSize);
-            
-            /* 
+
+            /*
              * This verify read the items from the log buffers. Note before SR
              * #12638 existed (LSN state not restored properly after exception
              * because of too-small log buffer), this verify hung.
@@ -410,7 +410,6 @@ public class LogManagerTest extends TestCase {
             verifyOkayItems(logManager, testRecs, testLsns, true);
 
             /* More successful logs, along with a few too-big items. */
-
             for (;okCounter < 23; okCounter++) {
                 addOkayItem(logManager, okCounter, testRecs,
                             testLsns, logBufferSize);
@@ -419,18 +418,18 @@ public class LogManagerTest extends TestCase {
                     attemptTooBigItem(logManager, logBufferSize,
 				      testRecs, testLsns);
                 }
-                /* 
+                /*
                  * If we verify in the loop, sometimes we'll read from disk and
                  * sometimes from the log buffer pool.
                  */
                 verifyOkayItems(logManager, testRecs, testLsns, true);
             }
 
-            /* 
+            /*
              * Test the case where we flip files and write the old write buffer
              * out before we try getting a log buffer for the new item. We need
              * to
-             * 
+             *
              * - hit a log-too-small exceptin
              * - right after, we need to log an item that is small enough
              *   to fit in the log buffer but big enough to require that
@@ -445,7 +444,7 @@ public class LogManagerTest extends TestCase {
                         testRecs, testLsns, logBufferSize,
                         ((int)(logFileMax - fileOffset)));
             verifyOkayItems(logManager, testRecs, testLsns, true);
-            
+
             /* Invoke some i/o exceptions. */
             for (;okCounter < 50; okCounter++) {
                 attemptIOException(logManager, fileManager, testRecs,
@@ -455,7 +454,7 @@ public class LogManagerTest extends TestCase {
                 verifyOkayItems(logManager, testRecs, testLsns, false);
             }
 
-            /* 
+            /*
              * Finally, close this environment and re-open, and read all
              * expected items from disk.
              */
@@ -470,6 +469,7 @@ public class LogManagerTest extends TestCase {
             EnvironmentStats stats = new EnvironmentStats();
             StatsConfig config = new StatsConfig();
             logManager.loadStats(config, stats);
+	    assertTrue(stats.getEndOfLog() > 0);
             assertTrue(stats.getNNotResident() >= testRecs.size());
 
         } catch (Throwable t) {
@@ -485,7 +485,7 @@ public class LogManagerTest extends TestCase {
                              List testRecs,
                              List testLsns,
                              int logBufferSize,
-                             int fillerLen) 
+                             int fillerLen)
         throws DatabaseException {
 
         String filler = new String(new byte[fillerLen]);
@@ -500,7 +500,7 @@ public class LogManagerTest extends TestCase {
                              int tag,
                              List testRecs,
                              List testLsns,
-                             int logBufferSize) 
+                             int logBufferSize)
         throws DatabaseException {
 
         addOkayItem(logManager, tag, testRecs, testLsns, logBufferSize, 0);
@@ -533,13 +533,13 @@ public class LogManagerTest extends TestCase {
         attemptTooBigItem(logManager, logBufferSize, t, testRecs, testLsns);
     }
 
-    private void attemptIOException(LogManager logManager, 
+    private void attemptIOException(LogManager logManager,
                                     FileManager fileManager,
                                     List testRecs,
                                     List testLsns,
                                     boolean forceFlush) {
         Tracer t = new Tracer("ioException");
-        FileManager.IO_EXCEPTION_TESTING = true;
+        FileManager.IO_EXCEPTION_TESTING_ON_WRITE = true;
         try {
 
             /*
@@ -557,14 +557,14 @@ public class LogManagerTest extends TestCase {
             fail("expect io exception");
         } catch (DatabaseException expected) {
         } finally {
-            FileManager.IO_EXCEPTION_TESTING = false;
+            FileManager.IO_EXCEPTION_TESTING_ON_WRITE = false;
         }
     }
 
     private void verifyOkayItems(LogManager logManager,
                                  ArrayList testRecs,
                                  ArrayList testLsns,
-                                 boolean checkOrder) 
+                                 boolean checkOrder)
         throws DatabaseException {
 
         /* read forwards. */
@@ -580,7 +580,7 @@ public class LogManagerTest extends TestCase {
 
         if (checkOrder) {
 
-            /* 
+            /*
 	     * TODO: sometimes an ioexception entry will make it into the write
 	     * buffer, and sometimes it won't. It depends on whether the IO
 	     * exception was thrown when before or after the logabble item was
@@ -589,7 +589,7 @@ public class LogManagerTest extends TestCase {
 	     * of the test that issues IO exceptions.
              */
             for (int i = 1; i < testLsns.size(); i++) {
-            
+
                 long lsn = ((Long) testLsns.get(i)).longValue();
                 long lsnFile = DbLsn.getFileNumber(lsn);
                 long lsnOffset = DbLsn.getFileOffset(lsn);
@@ -599,8 +599,8 @@ public class LogManagerTest extends TestCase {
                 if (prevFile == lsnFile) {
                     assertEquals("item " + i + "prev = " +
                                  DbLsn.toString(prevLsn) +
-                                 " current=" + DbLsn.toString(lsn), 
-                                 (((Tracer) testRecs.get(i-1)).getLogSize() + 
+                                 " current=" + DbLsn.toString(lsn),
+                                 (((Tracer) testRecs.get(i-1)).getLogSize() +
                                   LogEntryHeader.MIN_HEADER_SIZE),
                                  lsnOffset - prevOffset);
                 } else {

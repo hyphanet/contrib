@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogEntryHeader.java,v 1.1.2.2 2007/03/08 22:32:55 mark Exp $
+ * $Id: LogEntryHeader.java,v 1.1.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -33,12 +33,12 @@ public class LogEntryHeader {
      * vlsn (optional) - 16 bytes
      */
 
-    static final int MIN_HEADER_SIZE = 14; 
+    static final int MIN_HEADER_SIZE = 14;
 
     /* Only used for tests and asserts. */
     static final int MAX_HEADER_SIZE = MIN_HEADER_SIZE + VLSN.LOG_SIZE;
 
-    private static final int CHECKSUM_BYTES = 4;   
+    private static final int CHECKSUM_BYTES = 4;
     private static final int ENTRYTYPE_OFFSET = 4;
     private static final int PREV_OFFSET = 6;
     private static final int ITEMSIZE_OFFSET = 10;
@@ -55,23 +55,23 @@ public class LogEntryHeader {
     private boolean isProvisional;
     private boolean replicate;
 
-    /** 
+    /**
      * For reading a log entry.
      */
     public LogEntryHeader(EnvironmentImpl envImpl,
-                          ByteBuffer entryBuffer, 
+                          ByteBuffer entryBuffer,
                           boolean anticipateChecksumErrors)
 	throws DatabaseException {
 
         checksum = LogUtils.getUnsignedInt(entryBuffer);
-        entryType = entryBuffer.get(); 
+        entryType = entryBuffer.get();
         if (!LogEntryType.isValidType(entryType))
             throw new DbChecksumException
 		((anticipateChecksumErrors ? null : envImpl),
                  "Read invalid log entry type: " +  entryType);
 
-        
-        entryVersion = entryBuffer.get(); 
+
+        entryVersion = entryBuffer.get();
         prevOffset = LogUtils.getUnsignedInt(entryBuffer);
         itemSize = LogUtils.readInt(entryBuffer);
 
@@ -143,7 +143,7 @@ public class LogEntryHeader {
      * Assumes this is called directly after the constructor, and that the
      * entryBuffer is positioned right before the VLSN.
      */
-    void readVariablePortion(ByteBuffer entryBuffer) 
+    void readVariablePortion(ByteBuffer entryBuffer)
         throws LogException {
         if (replicate) {
             vlsn = new VLSN();
@@ -171,14 +171,14 @@ public class LogEntryHeader {
         }
         entryBuffer.put(entryVersion);
 
-        /* 
+        /*
          * Leave room for the prev offset, which must be added under
          * the log write latch. Proceed to write the item size.
          */
         entryBuffer.position(ITEMSIZE_OFFSET);
         LogUtils.writeInt(entryBuffer, itemSize);
 
-        /* 
+        /*
          * Leave room for a VLSN if needed, must also be generated
          * under the log write latch.
          */
@@ -189,11 +189,11 @@ public class LogEntryHeader {
 
     /**
      * Add those parts of the header that must be calculated later.
-     * That's 
+     * That's
      * - the prev offset, which must be done within the log write latch to
      *   be sure what that lsn is
      * - the VLSN, for the same reason
-     * - the checksum, which must be added last, after all other 
+     * - the checksum, which must be added last, after all other
      *   fields are marshalled.
      */
     ByteBuffer addPostMarshallingInfo(EnvironmentImpl envImpl,
@@ -245,12 +245,12 @@ public class LogEntryHeader {
         int itemStart = entryBuffer.position();
 
         /* Back up to where the type is stored and change the type. */
-        int entryTypePosition = 
+        int entryTypePosition =
             itemStart - (getSize() - ENTRYTYPE_OFFSET);
         entryBuffer.position(entryTypePosition);
         entryBuffer.put(LogEntryType.LOG_TXN_ABORT.getTypeNum());
 
-        /* 
+        /*
          * Recalculate the checksum. This byte buffer could be large,
          * so don't just turn the whole buffer into an array to pass
          * into the checksum object.

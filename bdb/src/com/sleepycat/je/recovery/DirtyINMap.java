@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DirtyINMap.java,v 1.4.2.1 2007/02/01 14:49:49 cwl Exp $
+ * $Id: DirtyINMap.java,v 1.4.2.2 2007/11/20 13:32:33 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -42,7 +42,7 @@ class DirtyINMap {
      * Scan the INList for all dirty INs, excluding deferred write INs that
      * are not in the must-sync set.  Save them in a tree-level ordered map for
      * level ordered flushing.
-     * 
+     *
      * Take this opportunity to reset the memory budget tree value.
      */
     void selectDirtyINsForCheckpoint(Set mustSyncSet)
@@ -55,7 +55,7 @@ class DirtyINMap {
         INList inMemINs = envImpl.getInMemoryINs();
         inMemINs.latchMajor();
 
-        /* 
+        /*
 	 * Opportunistically recalculate the environment wide memory count.
 	 * Incurs no extra cost because we're walking the IN list anyway.  Not
 	 * the best in terms of encapsulation as preferably all memory
@@ -76,8 +76,8 @@ class DirtyINMap {
 
                 try {
                     totalSize = mb.accumulateNewUsage(in, totalSize);
-                    
-                    /* 
+
+                    /*
                      * Skip deferred-write nodes that are not in the must-sync
                      * set.
                      */
@@ -143,7 +143,7 @@ class DirtyINMap {
         int cost = numEntries * MemoryBudget.CHECKPOINT_REFERENCE_SIZE;
         mb.updateMiscMemoryUsage(cost);
     }
-    
+
     void removeCostFromMemoryBudget() {
         MemoryBudget mb = envImpl.getMemoryBudget();
         int cost = numEntries * MemoryBudget.CHECKPOINT_REFERENCE_SIZE;
@@ -186,21 +186,21 @@ class DirtyINMap {
         }
     }
 
-    /** 
-     * Get the lowest level currently stored in the map. 
+    /**
+     * Get the lowest level currently stored in the map.
      */
     Integer getLowestLevelSet() {
         return (Integer) dirtyMap.firstKey();
     }
 
-    /** 
+    /**
      * Get the set corresponding to this level.
      */
     Set getSet(Integer level) {
         return (Set) dirtyMap.get(level);
     }
-    
-    /** 
+
+    /**
      * Get the set corresponding to this level.
      */
     void removeSet(Integer level) {

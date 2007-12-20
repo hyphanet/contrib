@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FSyncManagerTest.java,v 1.10.2.1 2007/02/01 14:50:13 cwl Exp $
+ * $Id: FSyncManagerTest.java,v 1.10.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -24,7 +24,7 @@ import com.sleepycat.je.util.TestUtils;
 /**
  * Exercise the synchronization aspects of the sync manager.
  */
-public class FSyncManagerTest extends TestCase { 
+public class FSyncManagerTest extends TestCase {
     private File envHome;
 
     public FSyncManagerTest() {
@@ -44,7 +44,7 @@ public class FSyncManagerTest extends TestCase {
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
 
-    public void testBasic() 
+    public void testBasic()
         throws Throwable{
         Environment env = null;
 
@@ -79,7 +79,7 @@ public class FSyncManagerTest extends TestCase {
             t1.join();
             t2.join();
             t3.join();
-            
+
             /*
              * All three threads ask for fsyncs.
              * 2 do fsyncs -- the initial leader, and the leader of the
@@ -106,14 +106,14 @@ public class FSyncManagerTest extends TestCase {
             super(env);
             this.waitVal = waitVal;
         }
-        protected void executeFSync() 
+        protected void executeFSync()
             throws DatabaseException {
             try {
                 synchronized (waitVal) {
                     if (waitVal.value < 1) {
                         waitVal.wait();
                     }
-                } 
+                }
             } catch (InterruptedException e) {
                 // woken up.
             }
@@ -126,8 +126,8 @@ public class FSyncManagerTest extends TestCase {
             super("syncThread");
             this.syncManager = syncManager;
         }
-        
-        public void testBody() 
+
+        public void testBody()
             throws Throwable {
             syncManager.fsync();
         }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2005,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCacheSize.java,v 1.10.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: DbCacheSize.java,v 1.10.2.3 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -22,6 +22,7 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.OperationStatus;
+import com.sleepycat.je.PreloadConfig;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.utilint.CmdUtil;
 
@@ -49,20 +50,20 @@ import com.sleepycat.je.utilint.CmdUtil;
  * Note that the utility does not yet cover duplicate records and the API is
  * subject to change release to release.
  *
- * The only required parameters are the number of records and key size. 
+ * The only required parameters are the number of records and key size.
  * Data size, non-tree cache overhead, btree fanout, and other parameters
  * can also be provided. For example:
  *
  * $ java DbCacheSize -records 554719 -key 16 -data 100
- * Inputs: records=554719 keySize=16 dataSize=100 nodeMax=128 density=80% 
+ * Inputs: records=554719 keySize=16 dataSize=100 nodeMax=128 density=80%
  * overhead=10%
  *
- *    Cache Size      Btree Size  Description
+ *     Cache Size      Btree Size  Description
  * --------------  --------------  -----------
- *    30,547,440      27,492,696  Minimum, internal nodes only
- *    41,460,720      37,314,648  Maximum, internal nodes only
- *   114,371,644     102,934,480  Minimum, internal nodes and leaf nodes
- *   125,284,924     112,756,432  Maximum, internal nodes and leaf nodes
+ *     30,547,440      27,492,696  Minimum, internal nodes only
+ *     41,460,720      37,314,648  Maximum, internal nodes only
+ *    114,371,644     102,934,480  Minimum, internal nodes and leaf nodes
+ *    125,284,924     112,756,432  Maximum, internal nodes and leaf nodes
  *
  * Btree levels: 3
  *
@@ -70,9 +71,8 @@ import com.sleepycat.je.utilint.CmdUtil;
  * btree in cache is approximately 30MB. The maximum size to hold the entire
  * database in cache, both internal nodes and datarecords, is 125Mb.
  */
-
 public class DbCacheSize {
-    
+
     private static final NumberFormat INT_FORMAT =
         NumberFormat.getIntegerInstance();
 
@@ -155,7 +155,7 @@ public class DbCacheSize {
         try {
             long records = 0;
             int keySize = 0;
-            int dataSize = 0;
+            int dataSize = -1;
             int nodeMax = 128;
             int density = 80;
             long overhead = 0;
@@ -202,8 +202,8 @@ public class DbCacheSize {
                     } catch (NumberFormatException e) {
                         usage(val + " is not a number");
                     }
-                    if (dataSize <= 0) {
-                        usage(val + " is not a positive integer");
+                    if (dataSize < 0) {
+                        usage(val + " is not a non-negative integer");
                     }
                 } else if (name.equals("-nodemax")) {
                     if (val == null) {
@@ -328,7 +328,7 @@ public class DbCacheSize {
 	minInCacheSize = calculateOverhead(minInBtreeSize, overhead);
 	maxInCacheSize = calculateOverhead(maxInBtreeSize, overhead);
 
-        if (dataSize > 0) {
+        if (dataSize >= 0) {
             lnSize = records * calcLnSize(dataSize);
         }
 
@@ -356,7 +356,7 @@ public class DbCacheSize {
 			 "Minimum, internal nodes only"));
         out.println(line(maxInBtreeSize, maxInCacheSize,
 			 "Maximum, internal nodes only"));
-        if (dataSize > 0) {
+        if (dataSize >= 0) {
             out.println(line(minInBtreeSizeWithData,
 			     minInCacheSizeWithData,
 			     "Minimum, internal nodes and leaf nodes"));
@@ -380,13 +380,13 @@ public class DbCacheSize {
 
         /* Byte state array plus keys and nodes arrays */
         size += MemoryBudget.byteArraySize(nodeMax) +
-                (nodeMax * (2 * MemoryBudget.ARRAY_ITEM_OVERHEAD));
+                (nodeMax * (2 * MemoryBudget.OBJECT_ARRAY_ITEM_OVERHEAD));
 
         /* LSN array */
 	if (lsnCompression) {
 	    size += MemoryBudget.byteArraySize(nodeMax * 2);
 	} else {
-	    size += MemoryBudget.BYTE_ARRAY_OVERHEAD +
+	    size += MemoryBudget.ARRAY_OVERHEAD +
                     (nodeMax * MemoryBudget.LONG_OVERHEAD);
 	}
 
@@ -580,7 +580,7 @@ public class DbCacheSize {
             }
         };
         thread.start();
-        db.preload(0);
+        db.preload(PreloadConfig.DEFAULT);
         thread.interrupt();
         try {
             thread.join();
@@ -602,7 +602,9 @@ public class DbCacheSize {
         out.println("CacheSize=" +
                     INT_FORMAT.format(stats.getCacheTotalBytes()) +
                     " BtreeSize=" +
-                    INT_FORMAT.format(stats.getCacheDataBytes()));
+                    INT_FORMAT.format(stats.getCacheDataBytes()) +
+                    " NCacheMiss=" +
+                    INT_FORMAT.format(stats.getNCacheMiss()));
 
         if (stats.getNNodesScanned() > 0) {
             out.println("*** All records did not fit in the cache ***");

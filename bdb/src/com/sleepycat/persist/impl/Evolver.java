@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Evolver.java,v 1.7.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: Evolver.java,v 1.7.2.4 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -28,7 +28,7 @@ import com.sleepycat.persist.evolve.Renamer;
 import com.sleepycat.persist.model.SecondaryKeyMetadata;
 
 /**
- * Evolves each old format that is still relavent if necessary, using Mutations
+ * Evolves each old format that is still relevant if necessary, using Mutations
  * to configure deleters, renamers, and converters.
  *
  * @author Mark Hayes
@@ -45,8 +45,8 @@ class Evolver {
     private Map<String,Format> newFormats;
     private boolean forceEvolution;
     private boolean disallowClassChanges;
-    private boolean formatsChanged;
     private boolean nestedFormatsChanged;
+    private Map<Format,Format> changedFormats;
     private StringBuilder errors;
     private Set<String> deleteDbs;
     private Map<String,String> renameDbs;
@@ -67,6 +67,7 @@ class Evolver {
         this.newFormats = newFormats;
         this.forceEvolution = forceEvolution;
         this.disallowClassChanges = disallowClassChanges;
+        changedFormats = new IdentityHashMap<Format,Format>();
         errors = new StringBuilder();
         deleteDbs = new HashSet<String>();
         renameDbs = new HashMap<String,String>();
@@ -85,12 +86,19 @@ class Evolver {
      * need to be stored in the catalog.
      */
     boolean areFormatsChanged() {
-        return formatsChanged;
+        return !changedFormats.isEmpty();
+    }
+
+    /**
+     * Returns whether the given format was changed during evolution.
+     */
+    boolean isFormatChanged(Format format) {
+        return changedFormats.containsKey(format);
     }
 
     private void setFormatsChanged(Format oldFormat) {
         checkClassChangesAllowed(oldFormat);
-        formatsChanged = true;
+        changedFormats.put(oldFormat, oldFormat);
         nestedFormatsChanged = true;
         /* PersistCatalog.expectNoClassChanges is true in unit tests only. */
         if (PersistCatalog.expectNoClassChanges) {
@@ -172,7 +180,7 @@ class Evolver {
                             Mutation mutation,
                             String error) {
         checkClassChangesAllowed(oldFormat);
-        addError("Invalid mutation: " + mutation + 
+        addError("Invalid mutation: " + mutation +
                  getClassVersionLabel(oldFormat, " For") +
                  getClassVersionLabel(newFormat, " New") +
                  " Error: " + error);
@@ -190,7 +198,7 @@ class Evolver {
                  getClassVersionLabel(newFormat, " to") +
                  " Error: " + error);
     }
-    
+
     /**
      * Called by PersistCatalog for all non-entity formats.
      */
@@ -470,7 +478,7 @@ class Evolver {
         }
         setFormatsChanged(oldFormat);
     }
-    
+
     private boolean applyRenamer(Renamer renamer,
                                  Format oldFormat,
                                  Format newFormat) {
@@ -516,7 +524,7 @@ class Evolver {
              Store.makeSecDbName
                 (storePrefix, newFormat.getClassName(), newKeyName));
     }
-    
+
     private boolean applyDeleter(Deleter deleter,
                                  Format oldFormat,
                                  Format newFormat) {
@@ -554,7 +562,7 @@ class Evolver {
         deleteDbs.add(Store.makeSecDbName
             (storePrefix, oldFormat.getClassName(), keyName));
     }
-    
+
     private boolean applyConverter(Converter converter,
                                    Format oldFormat,
                                    Format newFormat) {
@@ -599,7 +607,7 @@ class Evolver {
             return true;
         }
     }
-    
+
     void renameAndRemoveDatabases(Environment env, Transaction txn)
         throws DatabaseException {
 

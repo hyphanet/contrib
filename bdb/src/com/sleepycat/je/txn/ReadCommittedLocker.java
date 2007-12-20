@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ReadCommittedLocker.java,v 1.6.2.2 2007/07/13 02:32:05 cwl Exp $
+ * $Id: ReadCommittedLocker.java,v 1.6.2.3 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -87,7 +87,7 @@ public class ReadCommittedLocker extends BuddyLocker {
      * Forwards this method to the transactional buddy.  Since the buddy
      * handles write locks, it knows whether this transaction created the node.
      */
-    public boolean createdNode(long nodeId) 
+    public boolean createdNode(long nodeId)
         throws DatabaseException {
 
         return getBuddy().createdNode(nodeId);
@@ -97,7 +97,7 @@ public class ReadCommittedLocker extends BuddyLocker {
      * Forwards this method to the transactional buddy.  The buddy handles
      * write locks and therefore handles abort information.
      */
-    public long getAbortLsn(long nodeId) 
+    public long getAbortLsn(long nodeId)
         throws DatabaseException {
 
         return getBuddy().getAbortLsn(nodeId);

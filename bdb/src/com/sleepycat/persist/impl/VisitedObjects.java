@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: VisitedObjects.java,v 1.9.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: VisitedObjects.java,v 1.9.2.2 2007/10/25 16:54:10 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -17,6 +17,23 @@ package com.sleepycat.persist.impl;
  * @author Mark Hayes
  */
 class VisitedObjects {
+
+    /*
+     * Offset to indicate that the visited object is stored in the primary key
+     * byte array.
+     */
+    static final int PRI_KEY_VISITED_OFFSET = Integer.MAX_VALUE - 1;
+
+    /* Used by RecordOutput to prevent illegal nested references. */
+    static final int PROHIBIT_REF_OFFSET = Integer.MAX_VALUE - 2;
+
+    /* Used by RecordInput to prevent illegal nested references. */
+    static final Object PROHIBIT_REF_OBJECT = new Object();
+
+    static final String PROHIBIT_NESTED_REF_MSG =
+        "Cannot embed a reference to a proxied object in the proxy; for " +
+        "example, a collection may not be an element of the collection " +
+        "because collections are proxied";
 
     private static final int INIT_LEN = 50;
 
@@ -35,8 +52,9 @@ class VisitedObjects {
 
     /**
      * Adds a visited object and offset, growing the visited arrays as needed.
+     * @return the index of the new slot.
      */
-    void add(Object o, int offset) {
+    int add(Object o, int offset) {
 
         int i = nextIndex;
         nextIndex += 1;
@@ -45,6 +63,21 @@ class VisitedObjects {
         }
         objects[i] = o;
         offsets[i] = offset;
+        return i;
+    }
+
+    /**
+     * Sets the object for an existing slot index.
+     */
+    void setObject(int index, Object o) {
+        objects[index] = o;
+    }
+
+    /**
+     * Sets the offset for an existing slot index.
+     */
+    void setOffset(int index, int offset) {
+        offsets[index] = offset;
     }
 
     /**

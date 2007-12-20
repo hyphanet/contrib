@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CleanerTest.java,v 1.87.2.3 2007/05/31 21:55:33 mark Exp $
+ * $Id: CleanerTest.java,v 1.87.2.6 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -34,11 +34,20 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.cleaner.Cleaner;
+import com.sleepycat.je.cleaner.FileSummary;
+import com.sleepycat.je.cleaner.TrackedFileSummary;
 import com.sleepycat.je.cleaner.UtilizationProfile;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.CursorImpl;
+import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.tree.BIN;
+import com.sleepycat.je.tree.FileSummaryLN;
+import com.sleepycat.je.tree.IN;
+import com.sleepycat.je.txn.BasicLocker;
+import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.util.StringDbt;
 import com.sleepycat.je.util.TestUtils;
 
@@ -47,11 +56,11 @@ public class CleanerTest extends TestCase {
     private static final int N_KEYS = 300;
     private static final int N_KEY_BYTES = 10;
 
-    /* 
+    /*
      * Make the log file size small enough to allow cleaning, but large enough
      * not to generate a lot of fsyncing at the log file boundaries.
      */
-    private static final int FILE_SIZE = 10000;  
+    private static final int FILE_SIZE = 10000;
     protected File envHome = null;
     protected Database db = null;
     private Environment exampleEnv;
@@ -121,7 +130,7 @@ public class CleanerTest extends TestCase {
         }
         exampleDb = null;
         exampleEnv = null;
-                
+
         //*
         TestUtils.removeLogFiles("TearDown", envHome, true);
         TestUtils.removeFiles("TearDown", envHome, FileManager.DEL_SUFFIX);
@@ -202,7 +211,7 @@ public class CleanerTest extends TestCase {
 
         EnvironmentStats stats = exampleEnv.getStats(TestUtils.FAST_STATS);
         assertTrue(stats.getNINsCleaned() > 0);
-                
+
 	cursor.close();
         closeEnv();
 
@@ -223,7 +232,7 @@ public class CleanerTest extends TestCase {
 
         initEnv(true, true);
         int nKeys = 200;
-        
+
         EnvironmentImpl environment =
             DbInternal.envGetEnvironmentImpl(exampleEnv);
         FileManager fileManager = environment.getFileManager();
@@ -258,7 +267,7 @@ public class CleanerTest extends TestCase {
         /* Make sure we really cleaned something.*/
         assertTrue(stats.getNINsCleaned() > 0);
         assertTrue(stats.getNLNsCleaned() > 0);
-                
+
         closeEnv();
         initEnv(false, true);
         checkData(expectedMap);
@@ -290,7 +299,7 @@ public class CleanerTest extends TestCase {
         doLargePut(expectedMap, nKeys, nDupsPerKey, true);
         checkData(expectedMap);
 
-        /* 
+        /*
          * Delete all the data, but abort. (Try to fill up the log
          * with entries we don't need.
          */
@@ -312,7 +321,7 @@ public class CleanerTest extends TestCase {
         /* Clean */
         Long lastNum = fileManager.getLastFileNum();
         exampleEnv.cleanLog();
-            
+
         /* Validate after cleaning. */
         checkData(expectedMap);
         EnvironmentStats stats = exampleEnv.getStats(TestUtils.FAST_STATS);
@@ -555,7 +564,7 @@ public class CleanerTest extends TestCase {
     }
 
     /**
-     * Increment each data value. 
+     * Increment each data value.
      */
     private void modifyData(Map expectedMap,
                             int increment,
@@ -582,7 +591,7 @@ public class CleanerTest extends TestCase {
 
                 /* If committing, adjust the expected map. */
                 if (commit) {
-                
+
                     Set dataVals = (Set) expectedMap.get(foundKeyString);
                     if (dataVals == null) {
                         fail("Couldn't find " +
@@ -595,7 +604,7 @@ public class CleanerTest extends TestCase {
                              foundKeyString + "/" + foundDataString);
                     }
                 }
- 
+
                 assertEquals(OperationStatus.SUCCESS,
                              cursor.delete());
                 assertEquals(OperationStatus.SUCCESS,
@@ -643,7 +652,7 @@ public class CleanerTest extends TestCase {
 
                 /* If committing, adjust the expected map */
                 if (commit) {
-                
+
                     Set dataVals = (Set) expectedMap.get(foundKeyString);
                     if (dataVals == null) {
                         fail("Couldn't find " +
@@ -658,9 +667,9 @@ public class CleanerTest extends TestCase {
                              foundKeyString + "/" + foundDataString);
                     }
                 }
- 
+
                 assertEquals(OperationStatus.SUCCESS, cursor.delete());
-            } 
+            }
 
             if (everyOther) {
                 toggle = toggle? false: true;
@@ -680,7 +689,7 @@ public class CleanerTest extends TestCase {
     /**
      * Check what's in the database against what's in the expected map.
      */
-    private void checkData(Map expectedMap) 
+    private void checkData(Map expectedMap)
         throws DatabaseException {
 
         StringDbt foundKey = new StringDbt();
@@ -689,7 +698,7 @@ public class CleanerTest extends TestCase {
         OperationStatus status = cursor.getFirst(foundKey, foundData,
                                                  LockMode.DEFAULT);
 
-        /* 
+        /*
          * Make a copy of expectedMap so that we're free to delete out
          * of the set of expected results when we verify.
          * Also make a set of counts for each key value, to test count.
@@ -704,7 +713,7 @@ public class CleanerTest extends TestCase {
             copySet.addAll((Set) entry.getValue());
             checkMap.put(entry.getKey(), copySet);
             countMap.put(entry.getKey(), new Integer(copySet.size()));
-        }     
+        }
 
         while (status == OperationStatus.SUCCESS) {
             String foundKeyString = foundKey.getString();
@@ -722,7 +731,7 @@ public class CleanerTest extends TestCase {
                 }
             } else {
                 fail("Couldn't find " +
-                     foundKeyString + "/" + 
+                     foundKeyString + "/" +
                      foundDataString +
                      " in data vals");
             }
@@ -752,7 +761,7 @@ public class CleanerTest extends TestCase {
             String key = (String) entry.getKey();
             Iterator dataIter = ((Set) entry.getValue()).iterator();
             while (dataIter.hasNext()) {
-                System.out.println("key=" + key + 
+                System.out.println("key=" + key +
                                    " data=" + (String) dataIter.next());
             }
         }
@@ -898,7 +907,7 @@ public class CleanerTest extends TestCase {
     /**
      * Checks that the memory budget is updated properly by the
      * UtilizationTracker.  Prior to a bug fix [#15505] amounts were added to
-     * the budget but not subtraced when two TrackedFileSummary objects were
+     * the budget but not subtracted when two TrackedFileSummary objects were
      * merged.  Merging occurs when a local tracker is added to the global
      * tracker.  Local trackers are used during recovery, checkpoints, lazy
      * compression, and reverse splits.
@@ -906,7 +915,7 @@ public class CleanerTest extends TestCase {
     public void testTrackerMemoryBudget()
         throws DatabaseException {
 
-        /* Open environmnet. */
+        /* Open environment. */
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
@@ -997,5 +1006,110 @@ public class CleanerTest extends TestCase {
         for (int i = 0; i < files.length; i += 1) {
             profile.flushFileSummary(files[i]);
         }
+    }
+
+    /**
+     * Tests that memory is budgeted correctly for FileSummaryLNs that are
+     * inserted and deleted after calling setTrackedSummary.  The size of the
+     * FileSummaryLN changes during logging when setTrackedSummary is called,
+     * and this is accounted for specially in Tree.logLNAfterInsert. [#15831]
+     */
+    public void testFileSummaryLNMemoryUsage()
+        throws DatabaseException {
+
+        /* Open environment, prevent concurrent access by daemons. */
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_INCOMPRESSOR.getName(), "false");
+        exampleEnv = new Environment(envHome, envConfig);
+
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(exampleEnv);
+        DatabaseImpl fileSummaryDb =
+            envImpl.getUtilizationProfile().getFileSummaryDb();
+        MemoryBudget memBudget = envImpl.getMemoryBudget();
+
+        BasicLocker locker = null;
+        CursorImpl cursor = null;
+        try {
+            locker = new BasicLocker(envImpl);
+            cursor = new CursorImpl(fileSummaryDb, locker);
+
+            /* Get parent BIN.  There should be only one BIN in the tree. */
+            IN root =
+                fileSummaryDb.getTree().getRootIN(true /*updateGeneration*/);
+            root.releaseLatch();
+            assertEquals(1, root.getNEntries());
+            BIN parent = (BIN) root.getTarget(0);
+
+            /* Use an artificial FileSummaryLN with a tracked summary. */
+            FileSummaryLN ln = new FileSummaryLN(new FileSummary());
+            TrackedFileSummary tfs = new TrackedFileSummary
+                (envImpl.getUtilizationTracker(), 0 /*fileNum*/,
+                 true /*trackDetail*/);
+            tfs.trackObsolete(0);
+            byte[] keyBytes =
+                FileSummaryLN.makeFullKey(0 /*fileNum*/, 123 /*sequence*/);
+            int keySize = MemoryBudget.byteArraySize(keyBytes.length);
+
+            /* Perform insert after calling setTrackedSummary. */
+            long oldSize = ln.getMemorySizeIncludedByParent();
+            long oldParentSize = parent.getInMemorySize();
+            ln.setTrackedSummary(tfs);
+            OperationStatus status =
+                cursor.putLN(keyBytes, ln, false /*allowDuplicates*/);
+            assertSame(status, OperationStatus.SUCCESS);
+            long newSize = ln.getMemorySizeIncludedByParent();
+            long newParentSize = parent.getInMemorySize();
+
+            /* The size of the LN increases during logging. */
+            assertEquals(newSize,
+                oldSize + ln.getObsoleteOffsets().getExtraMemorySize());
+
+            /* The correct size is accounted for by the parent BIN. */
+            assertEquals(newSize + keySize, newParentSize - oldParentSize);
+
+            /* Correct size is subtracted during eviction. */
+            oldParentSize = newParentSize;
+            cursor.evict();
+            newParentSize = parent.getInMemorySize();
+            assertEquals(oldParentSize - newSize, newParentSize);
+
+            /* Fetch a fresh FileSummaryLN before deleting it. */
+            oldParentSize = newParentSize;
+            ln = (FileSummaryLN) cursor.getCurrentLN(LockType.READ);
+            newSize = ln.getMemorySizeIncludedByParent();
+            newParentSize = parent.getInMemorySize();
+            assertEquals(newSize, newParentSize - oldParentSize);
+
+            /* Perform delete after calling setTrackedSummary. */
+            oldSize = newSize;
+            oldParentSize = newParentSize;
+            ln.setTrackedSummary(tfs);
+            status = cursor.delete();
+            assertSame(status, OperationStatus.SUCCESS);
+            newSize = ln.getMemorySizeIncludedByParent();
+            newParentSize = parent.getInMemorySize();
+
+            /* Size changes during delete also. */
+            assertTrue(newSize < oldSize);
+            assertTrue(oldSize - newSize >
+                       ln.getObsoleteOffsets().getExtraMemorySize());
+            assertEquals(newSize - oldSize, newParentSize - oldParentSize);
+        } finally {
+            if (cursor != null) {
+                cursor.releaseBINs();
+                cursor.close();
+            }
+            if (locker != null) {
+                locker.operationEnd();
+            }
+        }
+
+        closeEnv();
     }
 }

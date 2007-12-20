@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: StoredContainer.java,v 1.51.2.1 2007/02/01 14:49:40 cwl Exp $
+ * $Id: StoredContainer.java,v 1.51.2.2 2007/12/13 19:37:59 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -224,10 +224,12 @@ public abstract class StoredContainer implements Cloneable {
      * map.  This method conforms to the {@link java.util.Collection#size} and
      * {@link java.util.Map#size} interfaces.
      *
+     * <!-- begin JE only -->
      * <p>This operation is faster than obtaining a count by scanning the
      * collection manually, and will not perturb the current contents of the
      * cache.  However, the count is not guaranteed to be accurate if there are
      * concurrent updates.</p>
+     * <!-- end JE only -->
      *
      * @throws RuntimeExceptionWrapper if a {@link DatabaseException} is thrown.
      */

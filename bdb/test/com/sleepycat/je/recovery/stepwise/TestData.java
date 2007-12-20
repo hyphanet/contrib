@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: TestData.java,v 1.4.2.1 2007/02/01 14:50:18 cwl Exp $
+ * $Id: TestData.java,v 1.4.2.2 2007/11/20 13:32:48 cwl Exp $
  */
 package com.sleepycat.je.recovery.stepwise;
 
@@ -13,7 +13,7 @@ import com.sleepycat.bind.tuple.IntegerBinding;
 import com.sleepycat.je.DatabaseEntry;
 
 /**
- * Wrapper class that encapsulates a record in a database used for recovery 
+ * Wrapper class that encapsulates a record in a database used for recovery
  * testing.
  */
 public class TestData {
@@ -35,7 +35,7 @@ public class TestData {
         if (Arrays.equals(key.getData(), other.key.getData()) &&
             Arrays.equals(data.getData(), other.data.getData())) {
             return true;
-        } else 
+        } else
             return false;
     }
 

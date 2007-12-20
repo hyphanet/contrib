@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbVerify.java,v 1.42.2.2 2007/07/02 19:54:53 mark Exp $
+ * $Id: DbVerify.java,v 1.42.2.3 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -47,7 +47,7 @@ public class DbVerify {
     protected boolean quiet = false;
     protected boolean checkLsns = false;
     protected boolean openReadOnly = true;
-    private boolean doClose; 
+    private boolean doClose;
 
     private int progressInterval = 0;
 
@@ -68,13 +68,13 @@ public class DbVerify {
 
 	    verifier.closeEnv();
 
-            /* 
+            /*
              * Show the status, only omit if the user asked for a quiet
              * run and didn't specify a progress interval, in which case
              * we can assume that they really don't want any status output.
              *
              * If the user runs this from the command line, presumably they'd
-             * like to see the status. 
+             * like to see the status.
              */
             if ((!verifier.quiet) || (verifier.progressInterval > 0)) {
                 System.err.println("Exit status = " + ret);
@@ -139,11 +139,11 @@ public class DbVerify {
                 checkLsns = true;
             } else if (thisArg.equals("-rw")) {
 
-                /* 
+                /*
                  * Unadvertised option. Open the environment read/write
                  * so that a checkLsns pass gets an accurate root LSN to
                  * start from in the event that a recovery split the root.
-                 * A read/only environment open will keep any logging in 
+                 * A read/only environment open will keep any logging in
                  * the log buffers, and the LSNs stored in the INs will
                  * be converted to DbLsn.NULL_LSN.
                  */
@@ -197,7 +197,7 @@ public class DbVerify {
             List dbNameList = null;
             List internalDbs = null;
             DbTree dbMapTree = envImpl.getDbMapTree();
-                
+
             if (dbName == null) {
                 dbNameList = env.getDatabaseNames();
 
@@ -208,7 +208,7 @@ public class DbVerify {
                 dbNameList.add(dbName);
                 internalDbs = new ArrayList();
             }
-            
+
             /* Check application data. */
             Iterator iter = dbNameList.iterator();
             while (iter.hasNext()) {
@@ -233,12 +233,12 @@ public class DbVerify {
                     if (db != null) {
                         db.close();
                     }
-                    Tracer.trace(Level.INFO, envImpl, 
+                    Tracer.trace(Level.INFO, envImpl,
                                  "DbVerify.verify of " + targetDb + " ending");
                 }
             }
 
-            /* 
+            /*
              * Check internal databases, which don't have to be opened
              * through a Database handle.
              */
@@ -247,7 +247,7 @@ public class DbVerify {
                 String targetDb = (String) iter.next();
                 Tracer.trace(Level.INFO, envImpl,
                              "DbVerify.verify of " + targetDb + " starting");
-                
+
                 try {
                     DatabaseImpl dbImpl = dbMapTree.getDb(null, targetDb,
                                                           null);
@@ -260,7 +260,7 @@ public class DbVerify {
                         dbMapTree.releaseDb(dbImpl);
                     }
                 } finally {
-                    Tracer.trace(Level.INFO, envImpl, 
+                    Tracer.trace(Level.INFO, envImpl,
                                  "DbVerify.verify of " + targetDb + " ending");
                 }
             }
@@ -274,7 +274,7 @@ public class DbVerify {
                 closeEnv();
 	    } catch (Throwable ignored) {
 
-		/* 
+		/*
 		 * Klockwork - ok
 		 * Don't say anything about exceptions here.
 		 */
@@ -288,15 +288,15 @@ public class DbVerify {
     private boolean verifyOneDbImpl(DatabaseImpl dbImpl,
                                     String name,
                                     VerifyConfig verifyConfig,
-                                    PrintStream out) 
+                                    PrintStream out)
         throws DatabaseException {
         boolean status = true;
-        
+
         if (verifyConfig.getPrintInfo()) {
             out.println("Verifying database " + name);
         }
 
-        /* 
+        /*
          * First check the tree. Use DatabaseImpl.verify so we can get a status
          * return.
          */
@@ -306,7 +306,7 @@ public class DbVerify {
         DatabaseStats stats = dbImpl.getEmptyStats();
         status = dbImpl.verify(verifyConfig, stats);
         if (verifyConfig.getPrintInfo()) {
-            /* 
+            /*
              * Intentionally use print, not println, because stats.toString()
              * puts in a newline too.
              */

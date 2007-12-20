@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FieldInfo.java,v 1.19.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: FieldInfo.java,v 1.19.2.3 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -28,7 +28,7 @@ import com.sleepycat.persist.raw.RawField;
  * @author Mark Hayes
  */
 class FieldInfo implements RawField, Serializable, Comparable<FieldInfo> {
-    
+
     private static final long serialVersionUID = 2062721100372306296L;
 
     /**
@@ -92,7 +92,7 @@ class FieldInfo implements RawField, Serializable, Comparable<FieldInfo> {
         }
     }
 
-    void initialize(Catalog catalog) {
+    void initialize(Catalog catalog, int initVersion) {
     }
 
     Class getFieldClass() {

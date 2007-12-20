@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BaseEntry.java,v 1.1.2.2 2007/03/08 22:32:56 mark Exp $
+ * $Id: BaseEntry.java,v 1.1.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -15,7 +15,7 @@ import com.sleepycat.je.log.LogEntryType;
  * A Log entry allows you to read, write and dump a database log entry.  Each
  * entry may be made up of one or more loggable items.
  *
- * The log entry on disk consists of 
+ * The log entry on disk consists of
  *  a. a log header defined by LogManager
  *  b. a VLSN, if this entry type requires it, and replication is on.
  *  c. the specific contents of the log entry.
@@ -29,13 +29,13 @@ abstract class BaseEntry {
      */
 
     /* Used to instantiate the key objects from on-disk bytes */
-    Class logClass;  
+    Class logClass;
 
-    /* 
+    /*
      * Attributes of the entry type may be used to conditionalizing the reading
      * and writing of the entry.
      */
-    LogEntryType entryType; 
+    LogEntryType entryType;
 
     /**
      * Constructor to read an entry. The logEntryType must be set
@@ -46,7 +46,7 @@ abstract class BaseEntry {
     }
 
     /**
-     * Constructor to write an entry. 
+     * Constructor to write an entry.
      */
     BaseEntry() {
     }
@@ -59,7 +59,7 @@ abstract class BaseEntry {
     }
 
     /**
-     * @return the type of log entry 
+     * @return the type of log entry
      */
     public LogEntryType getLogType() {
         return entryType;
@@ -77,7 +77,7 @@ abstract class BaseEntry {
      * Do any processing we need to do after logging, while under the logging
      * latch.
      */
-    public void postLogWork(long justLoggedLsn) 
+    public void postLogWork(long justLoggedLsn)
         throws DatabaseException {
         /* by default, do nothing. */
     }

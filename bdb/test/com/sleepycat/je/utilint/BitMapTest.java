@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BitMapTest.java,v 1.4.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: BitMapTest.java,v 1.4.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -14,7 +14,7 @@ import junit.framework.TestCase;
 public class BitMapTest extends TestCase {
 
     public void testSegments() {
-        
+
         BitMap bmap = new BitMap();
         int startBit = 15;
         int endBit = 62;
@@ -33,7 +33,7 @@ public class BitMapTest extends TestCase {
 
         assertEquals((endBit - startBit +1), bmap.cardinality());
         assertEquals((endBit - startBit + 1), bmap.getNumSegments());
-        
+
         /* should be set. */
         for (int i = startBit; i <= endBit; i++) {
             long index = 1L << i;
@@ -54,7 +54,7 @@ public class BitMapTest extends TestCase {
 
     public void testNegative() {
         BitMap bMap = new BitMap();
-        
+
         try {
             bMap.set(-300);
             fail("should have thrown exception");

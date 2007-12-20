@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogManager.java,v 1.163.2.4 2007/06/13 03:55:37 mark Exp $
+ * $Id: LogManager.java,v 1.163.2.7 2007/12/11 18:05:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -39,7 +39,7 @@ abstract public class LogManager {
 
     // no-op loggable object
     private static final String DEBUG_NAME = LogManager.class.getName();
-    
+
     protected LogBufferPool logBufferPool; // log buffers
     protected Latch logWriteLatch;           // synchronizes log writes
     private boolean doChecksumOnRead;      // if true, do checksum on read
@@ -52,13 +52,13 @@ abstract public class LogManager {
 
     /* Stats */
 
-    /* 
+    /*
      * Number of times we have to repeat a read when we fault in an object
-     * because the initial read was too small.    
+     * because the initial read was too small.
      */
-    private int nRepeatFaultReads; 
+    private int nRepeatFaultReads;
 
-    /* 
+    /*
      * Number of times we have to use the temporary marshalling buffer to
      * write to the log.
      */
@@ -159,7 +159,7 @@ abstract public class LogManager {
      * Write a log entry.
      * @return LSN of the new log entry
      */
-    public long log(LogEntry item) 
+    public long log(LogEntry item)
 	throws DatabaseException {
 
         return log(item,
@@ -236,7 +236,7 @@ abstract public class LogManager {
 
         try {
 
-            /* 
+            /*
              * If possible, marshall this item outside the log write latch to
              * allow greater concurrency by shortening the write critical
              * section.  Note that the header may only be created during
@@ -261,7 +261,7 @@ abstract public class LogManager {
 
         } catch (BufferOverflowException e) {
 
-            /* 
+            /*
              * A BufferOverflowException may be seen when a thread is
              * interrupted in the middle of the log and the nio direct buffer
              * is mangled is some way by the NIO libraries. JE applications
@@ -287,7 +287,7 @@ abstract public class LogManager {
          * Finish up business outside of the log write latch critical section.
          */
 
-        /* 
+        /*
 	 * If this logged object needs to be fsynced, do so now using the group
 	 * commit mechanism.
          */
@@ -295,7 +295,7 @@ abstract public class LogManager {
             fileManager.groupSync();
         }
 
-        /* 
+        /*
          * Periodically, as a function of how much data is written, ask the
 	 * checkpointer or the cleaner to wake up.
          */
@@ -327,7 +327,7 @@ abstract public class LogManager {
         throws IOException, DatabaseException;
 
     /**
-     * Called within the log write critical section. 
+     * Called within the log write critical section.
      */
     protected LogResult logInternal(LogEntryHeader header,
                                     LogEntry item,
@@ -342,7 +342,7 @@ abstract public class LogManager {
                                     boolean shouldReplicate)
         throws IOException, DatabaseException {
 
-        /* 
+        /*
          * Do obsolete tracking before marshalling a FileSummaryLN into the log
          * buffer so that a FileSummaryLN counts itself.  countObsoleteNode
          * must be called before computing the entry size, since it can change
@@ -354,8 +354,8 @@ abstract public class LogManager {
         }
 
         /*
-         * If an item must be protected within the log write latch for 
-         * marshalling, take care to also calculate its size in the protected 
+         * If an item must be protected within the log write latch for
+         * marshalling, take care to also calculate its size in the protected
          * section. Note that we have to get the size *before* marshalling so
          * that the currentLsn and size are correct for utilization tracking.
          */
@@ -369,7 +369,7 @@ abstract public class LogManager {
             entrySize = header.getSize() + header.getItemSize();
         }
 
-        /* 
+        /*
          * Get the next free slot in the log, under the log write latch.  Bump
          * the LSN values, which gives us a valid previous pointer, which is
          * part of the log entry header. That's why doing the checksum must be
@@ -387,8 +387,8 @@ abstract public class LogManager {
 	boolean success = false;
         try {
             currentLsn = fileManager.getLastUsedLsn();
-            
-            /* 
+
+            /*
              * countNewLogEntry and countObsoleteNodeInexact cannot change a
              * FileSummaryLN size, so they are safe to call after
              * getSizeForWrite.
@@ -406,7 +406,7 @@ abstract public class LogManager {
                     (currentLsn, entryType, entrySize);
             }
 
-            /* 
+            /*
              * This item must be marshalled within the log write latch.
              */
             if (!marshallOutsideLatch) {
@@ -424,7 +424,7 @@ abstract public class LogManager {
                  " type=" + entryType + " currentLsn=" +
                  DbLsn.getNoFormatString(currentLsn));
             }
-                                            
+
             /*
              * Ask for a log buffer suitable for holding this new entry.  If
              * the current log buffer is full, or if we flipped into a new
@@ -434,11 +434,10 @@ abstract public class LogManager {
             LogBuffer useLogBuffer =
                 logBufferPool.getWriteBuffer(entrySize, flippedFile);
 
-            /* Add checksum, prev offset, vlsn to entry. */
-            marshalledBuffer =
-                header.addPostMarshallingInfo(envImpl,
-                                              marshalledBuffer,
-                                              fileManager.getPrevEntryOffset());
+            /* Add checksum, prev offset, VLSN to entry. */
+            marshalledBuffer = header.
+		addPostMarshallingInfo(envImpl, marshalledBuffer,
+				       fileManager.getPrevEntryOffset());
 
 	    /*
 	     * If the LogBufferPool buffer (useBuffer) doesn't have sufficient
@@ -464,30 +463,29 @@ abstract public class LogManager {
                 useLogBuffer.release();
             }
 
-            /* 
+            /*
              * If this is a replicated log entry and this site is part of a
              * replication group, send this operation to other sites.
              * The replication logic takes care of deciding whether this site
              * is a master.
              */
             if (shouldReplicate) {
-                envImpl.getReplicator().replicateOperation(
-                                            Operation.PLACEHOLDER,
-                                            marshalledBuffer);
-                    
+                envImpl.getReplicator().
+		    replicateOperation(Operation.PLACEHOLDER,
+				       marshalledBuffer);
             }
 	    success = true;
         } finally {
 	    if (!success) {
 
-		/* 
+		/*
 		 * The LSN pointer, log buffer position, and corresponding file
 		 * position march in lockstep.
 		 *
 		 * 1. We bump the LSN.
 		 * 2. We copy loggable item into the log buffer.
 		 * 3. We may try to write the log buffer.
-		 * 
+		 *
 		 * If we've failed to put the item into the log buffer (2), we
 		 * need to restore old LSN state so that the log buffer doesn't
 		 * have a hole. [SR #12638] If we fail after (2), we don't need
@@ -497,8 +495,8 @@ abstract public class LogManager {
 		fileManager.restoreLastPosition();
 	    }
 	}
-        
-	/* 
+
+	/*
 	 * Tell the log buffer pool that we finished the write.  Record the
 	 * LSN against this logbuffer, and write the buffer to disk if
 	 * needed.
@@ -557,10 +555,10 @@ abstract public class LogManager {
 
         ByteBuffer destBuffer =
 	    marshallIntoBuffer(header,
-                               item, 
+                               item,
                                false,  // isProvisional
                                false); // shouldReplicate
-        
+
         return header.addPostMarshallingInfo(envImpl,
                                              destBuffer,
                                              0); // lastOffset
@@ -576,7 +574,7 @@ abstract public class LogManager {
      * @param lsn location of entry in log.
      * @return log entry that embodies all the objects in the log entry.
      */
-    public LogEntry getLogEntry(long lsn) 
+    public LogEntry getLogEntry(long lsn)
         throws DatabaseException {
 
 	/*
@@ -612,12 +610,12 @@ abstract public class LogManager {
      * @return log entry that embodies all the objects in the log entry
      */
     private LogEntry getLogEntryFromLogSource(long lsn,
-                                              LogSource logSource) 
+                                              LogSource logSource)
         throws DatabaseException {
 
         try {
 
-            /* 
+            /*
              * Read the log entry header into a byte buffer. This assumes
              * that the minimum size of this byte buffer (determined by
              * je.log.faultReadSize) is always >= the maximum log entry header.
@@ -674,7 +672,7 @@ abstract public class LogManager {
                 "Read non-valid log entry type: " + header.getType();
 
             /* Read the entry. */
-            LogEntry logEntry = 
+            LogEntry logEntry =
                 LogEntryType.findType(header.getType(),
                                       header.getVersion()).getNewLogEntry();
             logEntry.readEntry(header,
@@ -689,7 +687,7 @@ abstract public class LogManager {
                 readHook.doIOHook();
             }
 
-            /* 
+            /*
              * Done with the log source, release in the finally clause.  Note
              * that the buffer we get back from logSource is just a duplicated
              * buffer, where the position and state are copied but not the
@@ -700,14 +698,14 @@ abstract public class LogManager {
             return logEntry;
         } catch (DatabaseException e) {
 
-            /* 
+            /*
 	     * Propagate DatabaseExceptions, we want to preserve any subtypes
              * for downstream handling.
              */
             throw e;
         } catch (ClosedChannelException e) {
 
-            /* 
+            /*
              * The channel should never be closed. It may be closed because
              * of an interrupt received by another thread. See SR [#10463]
              */
@@ -792,7 +790,7 @@ abstract public class LogManager {
         throws LogException, DatabaseException;
 
 
-    public void loadStats(StatsConfig config, EnvironmentStats stats) 
+    public void loadStats(StatsConfig config, EnvironmentStats stats)
         throws DatabaseException {
 
         stats.setNRepeatFaultReads(nRepeatFaultReads);
@@ -804,6 +802,9 @@ abstract public class LogManager {
 
         logBufferPool.loadStats(config, stats);
         fileManager.loadStats(config, stats);
+	if (!config.getFast()) {
+	    loadEndOfLogStat(stats);
+	}
     }
 
     /**
@@ -845,7 +846,7 @@ abstract public class LogManager {
                                              LogEntryType type,
                                              int size)
         throws DatabaseException {
-        
+
         tracker.countObsoleteNode(lsn, type, size);
     }
 
@@ -858,7 +859,7 @@ abstract public class LogManager {
     protected void countObsoleteNodesInternal(UtilizationTracker tracker,
                                               TrackedFileSummary[] summaries)
         throws DatabaseException {
-        
+
         for (int i = 0; i < summaries.length; i += 1) {
             TrackedFileSummary summary = summaries[i];
             tracker.addSummary(summary.getFileNumber(), summary);
@@ -873,7 +874,7 @@ abstract public class LogManager {
 
     protected void countObsoleteINsInternal(List lsnList)
         throws DatabaseException {
-        
+
         UtilizationTracker tracker = envImpl.getUtilizationTracker();
 
         for (int i = 0; i < lsnList.size(); i += 1) {
@@ -883,12 +884,19 @@ abstract public class LogManager {
         }
     }
 
+    public abstract void loadEndOfLogStat(EnvironmentStats stats)
+	throws DatabaseException;
+
+    void loadEndOfLogStatInternal(EnvironmentStats stats) {
+	stats.setEndOfLog(fileManager.getLastUsedLsn());
+    }	
+
     /* For unit testing only. */
     public void setReadHook(TestHook hook) {
         readHook = hook;
     }
 
-    /** 
+    /**
      * LogResult holds the multivalue return from logInternal.
      */
     static class LogResult {

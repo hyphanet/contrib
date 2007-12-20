@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryTest.java,v 1.38.2.2 2007/06/13 21:22:18 mark Exp $
+ * $Id: SecondaryTest.java,v 1.38.2.3 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -77,7 +77,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         DatabaseEntry key = new DatabaseEntry();
         OperationStatus status;
         Transaction txn = txnBegin();
-        
+
         /* Database.put() */
         status = priDb.put(txn, entry(1), entry(2));
         assertSame(OperationStatus.SUCCESS, status);
@@ -93,7 +93,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         assertSame(OperationStatus.SUCCESS, status);
         assertDataEquals(entry(1), key);
         assertDataEquals(entry(2), data);
-        
+
         /* Database.put() overwrite */
         status = priDb.put(txn, entry(1), entry(3));
         assertSame(OperationStatus.SUCCESS, status);
@@ -103,7 +103,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         assertSame(OperationStatus.SUCCESS, status);
         assertDataEquals(entry(1), key);
         assertDataEquals(entry(3), data);
-        
+
         /* Database.delete() */
         status = priDb.delete(txn, entry(1));
         assertSame(OperationStatus.SUCCESS, status);
@@ -111,7 +111,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         assertSame(OperationStatus.NOTFOUND, status);
         status = secDb.get(txn, entry(103), key, data, LockMode.DEFAULT);
         assertSame(OperationStatus.NOTFOUND, status);
-        
+
         /* SecondaryDatabase.delete() */
         status = priDb.put(txn, entry(1), entry(1));
         assertSame(OperationStatus.SUCCESS, status);
@@ -574,7 +574,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         /* Check that primary writes to both secondaries. */
         checkSecondaryUpdate(txn, priDb, 1, secDbDetached, true,
                                             secDb2Detached, true);
-        
+
         /* New txn before closing database. */
         txnCommit(txn);
         txn = txnBegin();
@@ -587,7 +587,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         /* Check that primary writes to 1st secondary only. */
         checkSecondaryUpdate(txn, priDb, 2, secDbDetached, true,
                                              secDb2Detached, false);
-        
+
         /* New txn before closing database. */
         txnCommit(txn);
         txn = txnBegin();
@@ -665,7 +665,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
 
         /*
          * Secondaries can be opened without a key creator if the primary is
-         * read only.  openSecondary will specify a null key creator if the 
+         * read only.  openSecondary will specify a null key creator if the
          * readOnly param is false.
          */
         Database readOnlyPriDb = openDatabase(false, "testDB", true);
@@ -689,9 +689,9 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         Transaction txn = txnBegin();
 
         /* Test population of newly created secondary database. */
-        
+
         for (int i = 0; i < NUM_RECS; i += 1) {
-            assertSame(OperationStatus.SUCCESS, 
+            assertSame(OperationStatus.SUCCESS,
                        priDb.put(txn, entry(i), entry(i)));
         }
         txnCommit(txn);
@@ -711,7 +711,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         secDb.close();
         txn = txnBegin();
         for (int i = 0; i < NUM_RECS; i += 1) {
-            assertSame(OperationStatus.SUCCESS, 
+            assertSame(OperationStatus.SUCCESS,
                        secDbDetached.delete(txn, entry(i + KEY_OFFSET)));
         }
         verifyRecords(txn, secDbDetached, 0, true);
@@ -733,7 +733,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         SecondaryDatabase secDb = initDb();
         Database priDb = secDb.getPrimaryDatabase();
         Transaction txn = txnBegin();
-        
+
         for (int i = 0; i < NUM_RECS; i += 1) {
             priDb.put(txn, entry(i), entry(i));
         }
@@ -902,7 +902,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
             env.openSecondaryDatabase(txn, "xxx", priDb, config);
             fail();
         } catch (IllegalArgumentException expected) { }
-        
+
         /* Database operations. */
 
         DatabaseEntry key = entry(1);
@@ -1441,7 +1441,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
         return priDb;
     }
 
-    private SecondaryDatabase openSecondary(Database priDb, 
+    private SecondaryDatabase openSecondary(Database priDb,
                                             boolean allowDuplicates,
                                             String dbName,
                                             boolean allowPopulate,
@@ -1516,7 +1516,7 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
          */
         final StringBuffer error = new StringBuffer();
         junitThread = new JUnitThread("primary-locker") {
-            public void testBody() 
+            public void testBody()
                 throws DatabaseException {
                 try {
                     if (data != null) {

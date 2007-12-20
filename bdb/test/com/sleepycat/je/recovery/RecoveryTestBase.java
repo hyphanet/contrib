@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryTestBase.java,v 1.109.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryTestBase.java,v 1.109.2.4 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -40,6 +40,7 @@ import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.tree.Key;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.util.TestUtils;
 
 public class RecoveryTestBase extends TestCase {
@@ -48,7 +49,7 @@ public class RecoveryTestBase extends TestCase {
     protected static final int NUM_RECS = 257;
     protected static final int N_DUPLICATES_PER_KEY = 28;
     protected static final int NUM_DBS = 3;
-        
+
     protected static final String DB_NAME = "testDb";
 
     protected File envHome;
@@ -57,7 +58,7 @@ public class RecoveryTestBase extends TestCase {
     protected EnvironmentConfig envConfig;
     protected CheckpointConfig forceConfig;
     protected Comparator btreeComparisonFunction = null;
-    
+
     public RecoveryTestBase() {
 	init();
     }
@@ -70,7 +71,7 @@ public class RecoveryTestBase extends TestCase {
 
     private void init() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
-        Key.DUMP_BINARY = true;
+        Key.DUMP_TYPE = DumpType.BINARY;
         envConfig = TestUtils.initEnvConfig();
         forceConfig = new CheckpointConfig();
         forceConfig.setForce(true);
@@ -81,7 +82,7 @@ public class RecoveryTestBase extends TestCase {
 
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
     }
-    
+
     public void tearDown()
 	throws IOException, DatabaseException {
 
@@ -184,7 +185,7 @@ public class RecoveryTestBase extends TestCase {
      */
     protected void createEnvAndDbs(int fileSize,
                                    boolean runCheckpointerDaemon,
-                                   int numDbs) 
+                                   int numDbs)
         throws DatabaseException {
 
 	createEnvAndDbsInternal(fileSize, runCheckpointerDaemon,
@@ -193,7 +194,7 @@ public class RecoveryTestBase extends TestCase {
 
     protected void createXAEnvAndDbs(int fileSize,
 				     boolean runCheckpointerDaemon,
-				     int numDbs) 
+				     int numDbs)
         throws DatabaseException {
 
 	createEnvAndDbsInternal(fileSize, runCheckpointerDaemon,
@@ -233,7 +234,7 @@ public class RecoveryTestBase extends TestCase {
     }
 
     /* Force the environment to be closed even if with outstanding handles.*/
-    protected void forceCloseEnvOnly() 
+    protected void forceCloseEnvOnly()
 	throws DatabaseException {
 
 	/* Close w/out checkpointing, in order to exercise recovery better.*/
@@ -248,7 +249,7 @@ public class RecoveryTestBase extends TestCase {
     protected List recoverAndVerify(Hashtable expectedData, int numDbs)
         throws DatabaseException {
 
-	return recoverAndVerifyInternal(expectedData, numDbs, 
+	return recoverAndVerifyInternal(expectedData, numDbs,
                                         false,  // XA
                                         false); // readOnly
     }
@@ -256,7 +257,7 @@ public class RecoveryTestBase extends TestCase {
     protected List recoverROAndVerify(Hashtable expectedData, int numDbs)
         throws DatabaseException {
 
-	return recoverAndVerifyInternal(expectedData, numDbs, 
+	return recoverAndVerifyInternal(expectedData, numDbs,
                                         false,  // XA
                                         true);  // readOnly
     }
@@ -268,7 +269,7 @@ public class RecoveryTestBase extends TestCase {
     protected List xaRecoverAndVerify(Hashtable expectedData, int numDbs)
         throws DatabaseException {
 
-	return recoverAndVerifyInternal(expectedData, numDbs, 
+	return recoverAndVerifyInternal(expectedData, numDbs,
 			                true,   // XA
 					false); // readOnly
     }
@@ -282,11 +283,11 @@ public class RecoveryTestBase extends TestCase {
 	List infoList = recoverOnlyInternal(numDbs, createXAEnv, readOnlyMode);
         verifyData(expectedData, numDbs);
 	TestUtils.validateNodeMemUsage(DbInternal.envGetEnvironmentImpl(env),
-                                      false);	
+				       false);	
         /* Run verify again. */
         DbInternal.envGetEnvironmentImpl(env).close(false);
         env = new Environment(envHome, getRecoveryConfig(readOnlyMode));
-        EnvironmentImpl envImpl = 
+        EnvironmentImpl envImpl =
 	    DbInternal.envGetEnvironmentImpl(env);
         infoList.add(envImpl.getLastRecoveryInfo());
         verifyData(expectedData, numDbs);
@@ -328,7 +329,7 @@ public class RecoveryTestBase extends TestCase {
     protected List recoverOnly(int numDbs)
 	throws DatabaseException {
 
-	return recoverOnlyInternal(numDbs, 
+	return recoverOnlyInternal(numDbs,
                                    false,   // XA
                                    false);  // read only
     }
@@ -336,7 +337,7 @@ public class RecoveryTestBase extends TestCase {
     protected List xaRecoverOnly(int numDbs)
 	throws DatabaseException {
 
-	return recoverOnlyInternal(numDbs, 
+	return recoverOnlyInternal(numDbs,
                                    true,   // XA
                                    false); // read only
     }
@@ -359,7 +360,7 @@ public class RecoveryTestBase extends TestCase {
 
         infoList.add
             (DbInternal.envGetEnvironmentImpl(env).getLastRecoveryInfo());
-        
+
         return infoList;
     }
 
@@ -367,7 +368,7 @@ public class RecoveryTestBase extends TestCase {
      * Compare the data in the databases agains the data in the expected data
      * set.
      */
-    protected void verifyData(Hashtable expectedData, int numDbs) 
+    protected void verifyData(Hashtable expectedData, int numDbs)
         throws DatabaseException  {
 
         verifyData(expectedData, true, numDbs);
@@ -443,7 +444,7 @@ public class RecoveryTestBase extends TestCase {
                 assertEquals("Count not right for key " +
                              TestUtils.dumpByteArray(key.getData()),
                              getExpectedCount(countMap, d, key), count);
-                
+
                 status = myCursor.getNext(key, data, LockMode.DEFAULT);
                 numSeen++;
             }
@@ -496,7 +497,7 @@ public class RecoveryTestBase extends TestCase {
         return ((Integer)
                 countMap.get(new TestData(whichDb, key.getData()))).intValue();
     }
-    
+
     /**
      * Insert data over many databases.
      */
@@ -540,7 +541,7 @@ public class RecoveryTestBase extends TestCase {
                               Map expectedData,
                               int nDuplicatesPerKey,
                               boolean toggle,
-                              boolean addToExpectedData, 
+                              boolean addToExpectedData,
                               int numDbs)
         throws DatabaseException {
 
@@ -559,7 +560,7 @@ public class RecoveryTestBase extends TestCase {
                               Map expectedData,
                               int nDuplicatesPerKey,
                               boolean toggle,
-                              boolean addToExpectedData, 
+                              boolean addToExpectedData,
                               int startDb,
 			      int endDb)
         throws DatabaseException {
@@ -621,7 +622,7 @@ public class RecoveryTestBase extends TestCase {
         if (expectCommit) {
             TestData keyTestData = new TestData(dbNum, key, null);
             Set dataSet = (Set) expectedData.get(keyTestData);
-            assertTrue("Should be a data set for " + keyTestData, 
+            assertTrue("Should be a data set for " + keyTestData,
                        (dataSet != null));
             assertTrue("Should be able to remove key " + key +
                        " from expected data ",
@@ -669,7 +670,7 @@ public class RecoveryTestBase extends TestCase {
                 dataData[1]++;
                 data.setData(dataData);
 
-                assertEquals("Insertion of key " + 
+                assertEquals("Insertion of key " +
                              TestUtils.dumpByteArray(keyData),
                              OperationStatus.SUCCESS,
 			     cursors[c].putNoDupData(key, data));
@@ -678,7 +679,7 @@ public class RecoveryTestBase extends TestCase {
             }
         }
     }
-    
+
     /**
      * Delete either every other or all data.
      */
@@ -727,7 +728,7 @@ public class RecoveryTestBase extends TestCase {
      */
     protected void modifyData(Transaction txn, int endVal,
                               Map expectedData, int increment,
-                              boolean expectCommit, int numDbs) 
+                              boolean expectCommit, int numDbs)
         throws DatabaseException {
 
         Cursor[] cursors = getCursors(txn, 0, numDbs);
@@ -792,7 +793,7 @@ public class RecoveryTestBase extends TestCase {
             while (status == OperationStatus.SUCCESS) {
                 System.out.println("Database " + d +
                                    " seen = " +
-                                   /* 
+                                   /*
                                       new String(key.getData()) +
                                       "/" +
                                       new String(data.getData()));
@@ -842,7 +843,7 @@ public class RecoveryTestBase extends TestCase {
             this.dbNum = dbNum;
             this.key = key;
         }
-        
+
         public boolean equals(Object o ) {
             if (this == o)
                 return true;
@@ -854,7 +855,7 @@ public class RecoveryTestBase extends TestCase {
                 Arrays.equals(key, other.key) &&
                 Arrays.equals(data, other.data)) {
                 return true;
-            } else 
+            } else
                 return false;
         }
 

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryException.java,v 1.14.2.1 2007/02/01 14:49:49 cwl Exp $
+ * $Id: RecoveryException.java,v 1.14.2.2 2007/11/20 18:53:29 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -21,6 +21,7 @@ public class RecoveryException extends RunRecoveryException {
                              Throwable t) {
 	super(env, message, t);
     }
+
     public RecoveryException(EnvironmentImpl env,
                              String message) {
 	super(env, message);

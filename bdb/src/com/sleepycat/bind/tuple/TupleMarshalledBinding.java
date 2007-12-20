@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: TupleMarshalledBinding.java,v 1.23.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: TupleMarshalledBinding.java,v 1.23.2.2 2007/11/20 13:32:25 cwl Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -13,7 +13,7 @@ import com.sleepycat.util.RuntimeExceptionWrapper;
 /**
  * A concrete <code>TupleBinding</code> that delegates to the
  * <code>MarshalledTupleEntry</code> interface of the data or key object.
- * 
+ *
  * <p>This class works by calling the methods of the {@link
  * MarshalledTupleEntry} interface, which must be implemented by the key or
  * data class, to convert between the key or data entry and the object.</p>

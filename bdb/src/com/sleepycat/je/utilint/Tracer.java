@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Tracer.java,v 1.43.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: Tracer.java,v 1.43.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -32,14 +32,14 @@ import com.sleepycat.je.log.entry.SingleItemEntry;
  */
 public class Tracer implements Loggable {
 
-    /* 
+    /*
      * Name pattern for tracing output that's been directed into a log file by
      * enabling the file handler.
      */
     public static final String INFO_FILES = "je.info";
 
-    /* 
-     * Contents of a debug message. 
+    /*
+     * Contents of a debug message.
      */
     private Timestamp time;
     private String msg;
@@ -71,7 +71,7 @@ public class Tracer implements Loggable {
                              String msg) {
         envImpl.getLogger().log(logLevel, msg);
     }
-    
+
     /**
      * Logger method for recording an exception and stacktrace.
      */
@@ -91,14 +91,14 @@ public class Tracer implements Loggable {
 				 msg + "\n" + Tracer.getStackTrace(t));
     }
 
-    /** 
+    /**
      * Parse a logging level config parameter, and return a more explanatory
      * error message if it doesn't parse.
      */
     public static Level parseLevel(EnvironmentImpl envImpl,
-                                   ConfigParam configParam) 
+                                   ConfigParam configParam)
         throws DatabaseException {
-        
+
         Level level = null;
         try {
             String levelVal = envImpl.getConfigManager().get(configParam);
@@ -110,7 +110,7 @@ public class Tracer implements Loggable {
         }
         return level;
     }
-             
+
     /*
      * Helpers
      */
@@ -137,15 +137,15 @@ public class Tracer implements Loggable {
         stackTrace = stackTrace.replaceAll(">", "&gt;");
         return stackTrace;
     }
-        
+
     /*
-     * Logging support 
+     * Logging support
      */
 
     /**
      * Convenience method to create a log entry containing this trace msg.
      */
-    public long log(LogManager logManager) 
+    public long log(LogManager logManager)
         throws DatabaseException {
         return logManager.log(new SingleItemEntry(LogEntryType.LOG_TRACE,
                                                   this));
@@ -226,7 +226,7 @@ public class Tracer implements Loggable {
             return false;
         }
 
-        /* 
+        /*
 	 * We could compare all the fields individually, but since they're all
 	 * placed in our toString() method, we can just compare the String
 	 * version of each offer.

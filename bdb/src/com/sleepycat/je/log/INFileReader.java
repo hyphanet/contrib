@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INFileReader.java,v 1.52.2.3 2007/08/06 16:00:20 cwl Exp $
+ * $Id: INFileReader.java,v 1.52.2.4 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -50,7 +50,7 @@ public class INFileReader extends FileReader {
     private LogEntryType fromLogType;
     private boolean isProvisional;
 
-    /* 
+    /*
      * targetEntryMap maps DbLogEntryTypes to log entries. We use this
      * collection to find the right LogEntry instance to read in the
      * current entry.
@@ -94,7 +94,7 @@ public class INFileReader extends FileReader {
      * Create this reader to start at a given LSN.
      */
     public INFileReader(EnvironmentImpl env,
-                        int readBufferSize, 
+                        int readBufferSize,
                         long startLsn,
                         long finishLsn,
                         boolean trackIds,
@@ -155,7 +155,7 @@ public class INFileReader extends FileReader {
         targetEntryMap.put(entryType, entryType.getNewLogEntry());
     }
 
-    /** 
+    /**
      * If we're tracking node, database and txn ids, we want to see all node
      * log entries. If not, we only want to see IN entries.
      * @return true if this is an IN entry.
@@ -285,7 +285,7 @@ public class INFileReader extends FileReader {
             useEntry = (!mapDbOnly || isMapDb);
             entryLoaded = true;
         }
-        
+
         /* Do a partial load during tracking if necessary. */
         if (trackIds) {
 
@@ -436,9 +436,9 @@ public class INFileReader extends FileReader {
     /**
      * Get the last IN seen by the reader.
      */
-    public IN getIN() 
+    public IN getIN()
         throws DatabaseException {
-                
+
         return ((INContainingEntry) targetLogEntry).getIN(envImpl);
     }
 
@@ -484,14 +484,14 @@ public class INFileReader extends FileReader {
     public boolean isDeleteInfo() {
         return lastEntryWasDelete;
     }
-    
+
     /**
      * @return true if the last entry was a dup delete info entry.
      */
     public boolean isDupDeleteInfo() {
         return lastEntryWasDupDelete;
     }
-    
+
     /**
      * Get the deleted node id stored in the last delete info log entry.
      */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileSelectionTest.java,v 1.31.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: FileSelectionTest.java,v 1.31.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -95,7 +95,7 @@ public class FileSelectionTest extends TestCase {
     private EnvironmentImpl envImpl;
     private Database db;
     private boolean dups;
-    
+
     /* The index is the file number, the value is the first key in the file. */
     private List firstKeysInFiles;
 
@@ -123,7 +123,7 @@ public class FileSelectionTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         //*
         try {
             TestUtils.removeLogFiles("tearDown", envHome, true);
@@ -632,7 +632,7 @@ public class FileSelectionTest extends TestCase {
         int fileNum = -1;
 
         for (int nextKey = 0; fileNum < INITIAL_FILES; nextKey += 1) {
-            
+
             OperationStatus status;
             if (dups) {
                 key.setData(MAIN_KEY_FOR_DUPS);

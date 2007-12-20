@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseTrigger.java,v 1.8.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: DatabaseTrigger.java,v 1.8.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -36,7 +36,7 @@ interface DatabaseTrigger {
     void triggerRemoved(Database db);
 
     /**
-     * Notifies the trigger that a put or delete operation has been performed 
+     * Notifies the trigger that a put or delete operation has been performed
      * on the database.
      *
      * <p>When a new entry is inserted, oldData will be null and newData will

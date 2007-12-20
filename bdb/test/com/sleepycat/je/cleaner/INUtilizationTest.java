@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INUtilizationTest.java,v 1.21.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: INUtilizationTest.java,v 1.21.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -74,7 +74,7 @@ public class INUtilizationTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
@@ -573,7 +573,7 @@ public class INUtilizationTest extends TestCase {
         env.compress();
 
         /*
-         * Now expect BIN and IN to be obsolete. 
+         * Now expect BIN and IN to be obsolete.
          */
         expectObsolete(binFile, true);
         expectObsolete(inFile, true);
@@ -775,7 +775,7 @@ public class INUtilizationTest extends TestCase {
         long truncateLsn;
 
         /* Searching backward from end, find last CkptEnd. */
-        SearchFileReader searcher = 
+        SearchFileReader searcher =
             new SearchFileReader(envImpl, 1000, false, lastLsn, eofLsn,
                                  LogEntryType.LOG_CKPT_END);
         assertTrue(searcher.readNextEntry());
@@ -784,14 +784,14 @@ public class INUtilizationTest extends TestCase {
         if (truncateFileSummariesAlso) {
 
             /* Searching backward from CkptEnd, find last CkptStart. */
-            searcher = 
+            searcher =
                 new SearchFileReader(envImpl, 1000, false, ckptEnd, eofLsn,
                                      LogEntryType.LOG_CKPT_START);
             assertTrue(searcher.readNextEntry());
             long ckptStart = searcher.getLastLsn();
 
             /* Searching forward from CkptStart, find first FileSummaryLN. */
-            searcher = 
+            searcher =
                 new SearchFileReader(envImpl, 1000, true, ckptStart, eofLsn,
                                      LogEntryType.LOG_FILESUMMARYLN);
             assertTrue(searcher.readNextEntry());
@@ -799,7 +799,7 @@ public class INUtilizationTest extends TestCase {
         } else {
             truncateLsn = ckptEnd;
         }
-        
+
         /*
          * Close without another checkpoint, although it doesn't matter since
          * we would truncate before it.

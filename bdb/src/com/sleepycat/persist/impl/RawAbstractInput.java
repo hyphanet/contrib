@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RawAbstractInput.java,v 1.6.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: RawAbstractInput.java,v 1.6.2.2 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -191,7 +191,7 @@ abstract class RawAbstractInput extends AbstractInput {
     public double readSortedDouble() {
         return ((Double) readNext()).doubleValue();
     }
-    
+
     public BigInteger readBigInteger() {
         return (BigInteger) readNext();
     }

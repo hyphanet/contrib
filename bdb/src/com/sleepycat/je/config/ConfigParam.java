@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: ConfigParam.java,v 1.26.2.1 2007/02/01 14:49:43 cwl Exp $
+ * $Id: ConfigParam.java,v 1.26.2.2 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -45,7 +45,7 @@ public class ConfigParam {
         validateName(configName);
         validateValue(configDefault);
 
-        /* 
+        /*
          * Add it the list of supported environment parameters.
          */
         EnvironmentParams.addSupportedParam(this);
@@ -89,7 +89,7 @@ public class ConfigParam {
         validateName(name);
         validateValue(defaultValue);
     }
-    
+
     /*
      * A param name can't be null or 0 length
      */

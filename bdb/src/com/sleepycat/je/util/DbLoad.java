@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbLoad.java,v 1.46.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: DbLoad.java,v 1.46.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -147,7 +147,7 @@ public class DbLoad {
 	    is = System.in;
             if (showProgressInterval) {
 
-                /* 
+                /*
                  * Can't show progress if we don't know how big the stream
                  * is.
                  */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbBackupTest.java,v 1.3.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: DbBackupTest.java,v 1.3.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -41,7 +41,7 @@ public class DbBackupTest extends TestCase {
     static {
         CLEAR_CONFIG.setClear(true);
     }
-    
+
     private static CheckpointConfig FORCE_CONFIG = new CheckpointConfig();
     static {
         FORCE_CONFIG.setForce(true);
@@ -68,7 +68,7 @@ public class DbBackupTest extends TestCase {
         deleteSaveDir(SAVE2);
         deleteSaveDir(SAVE3);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -90,9 +90,9 @@ public class DbBackupTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Grow files, creating obsolete entries to create cleaner
-             * opportunity. 
+             * opportunity.
              */
             growFiles("db1", env, 8);
 
@@ -102,11 +102,11 @@ public class DbBackupTest extends TestCase {
 
             long lastFileNum =  backupHelper.getLastFileInBackupSet();
             long checkLastFileNum = lastFileNum;
-            
+
             /* Copy the backup set. */
             saveFiles(backupHelper, -1, lastFileNum, SAVE1);
-            
-            /* 
+
+            /*
              * Try to clean and checkpoint. Check that the logs grew as
              * a result.
              */
@@ -114,14 +114,14 @@ public class DbBackupTest extends TestCase {
             long newLastFileNum = (fileManager.getLastFileNum()).longValue();
             assertTrue(checkLastFileNum < newLastFileNum);
             checkLastFileNum = newLastFileNum;
- 
+
             /* Copy the backup set after attempting cleaning */
             saveFiles(backupHelper, -1, lastFileNum, SAVE2);
 
             /* Insert more data. */
             growFiles("db2", env, 8);
 
-            /* 
+            /*
              * Try to clean and checkpoint. Check that the logs grew as
              * a result.
              */
@@ -175,9 +175,9 @@ public class DbBackupTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Grow files, creating obsolete entries to create cleaner
-             * opportunity. 
+             * opportunity.
              */
             growFiles("db1", env, 8);
 
@@ -192,9 +192,9 @@ public class DbBackupTest extends TestCase {
             long savedLength = f.length();
             backupHelper.endBackup();
 
-            /* 
+            /*
              * Add more data. Check that the file did flip, and is not modified
-             * by the additional data. 
+             * by the additional data.
              */
             growFiles("db2", env, 8);
             checkFileLen(b1LastFile, savedLength);
@@ -220,7 +220,7 @@ public class DbBackupTest extends TestCase {
         }
     }
 
-    public void testBadUsage() 
+    public void testBadUsage()
         throws Exception {
 
         Environment env = createEnv(false, envHome); /* read-write env */
@@ -243,12 +243,12 @@ public class DbBackupTest extends TestCase {
             } catch (DatabaseException expected) {
             }
 
-            /* 
-             * You can only get the backup set when you're in between start 
+            /*
+             * You can only get the backup set when you're in between start
              * and end.
              */
             backup.endBackup();
-        
+
             try {
                 backup.getLastFileInBackupSet();
                 fail("should fail");
@@ -272,15 +272,15 @@ public class DbBackupTest extends TestCase {
     }
 
     /*
-     * This test can't be run by default, because it makes a directory 
+     * This test can't be run by default, because it makes a directory
      * read/only, and Java doesn't support a way to make it writable again
      * except in Mustang. There's no way to clean up a read-only directory.
      */
-    public void xtestReadOnly() 
+    public void xtestReadOnly()
         throws Exception {
 
         /* Make a read-only handle on a read-write environment directory.*/
-        Environment env = createEnv(true, envHome); 
+        Environment env = createEnv(true, envHome);
 
         try {
             DbBackup backup = new DbBackup(env);
@@ -290,14 +290,14 @@ public class DbBackupTest extends TestCase {
 
         env.close();
 
-        /* 
+        /*
          * Make a read-only handle on a read-only environment directory. Use a
          * new environment directory because we're going to set it read0nly and
          * there doesn't seem to be a way of undoing that.
          */
         File tempEnvDir = new File(envHome, SAVE1);
         assertTrue(tempEnvDir.mkdirs());
-        env = createEnv(false, tempEnvDir); 
+        env = createEnv(false, tempEnvDir);
         growFiles("db1", env, 8);
         env.close();
         //assertTrue(tempEnvDir.setReadOnly());
@@ -317,7 +317,7 @@ public class DbBackupTest extends TestCase {
         assertTrue(tempEnvDir.delete());
     }
 
-    private Environment createEnv(boolean readOnly, File envDir) 
+    private Environment createEnv(boolean readOnly, File envDir)
         throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -336,7 +336,7 @@ public class DbBackupTest extends TestCase {
 
     private long growFiles(String dbName,
                            Environment env,
-                           int minNumFiles) 
+                           int minNumFiles)
         throws DatabaseException {
 
         DatabaseConfig dbConfig = new DatabaseConfig();
@@ -371,7 +371,7 @@ public class DbBackupTest extends TestCase {
         return endLastFileNum;
     }
 
-    private int batchClean(int expectedDeletions) 
+    private int batchClean(int expectedDeletions)
         throws DatabaseException {
 
         EnvironmentStats stats = env.getStats(CLEAR_CONFIG);
@@ -384,7 +384,7 @@ public class DbBackupTest extends TestCase {
         return stats.getNCleanerDeletions();
     }
 
-    private void saveFiles(DbBackup backupHelper, 
+    private void saveFiles(DbBackup backupHelper,
                            long lastFileFromPrevBackup,
                            long lastFileNum,
                            String saveDirName)
@@ -403,7 +403,7 @@ public class DbBackupTest extends TestCase {
         copyFiles(envHome, saveDir, fileList);
     }
 
-    private void copyFiles(File sourceDir, File destDir, String [] fileList) 
+    private void copyFiles(File sourceDir, File destDir, String [] fileList)
         throws DatabaseException {
 
         try {
@@ -417,7 +417,7 @@ public class DbBackupTest extends TestCase {
 
                 saveChannel.transferFrom(sourceChannel, 0,
                                          sourceChannel.size());
-    
+
                 // Close the channels
                 sourceChannel.close();
                 saveChannel.close();
@@ -430,7 +430,7 @@ public class DbBackupTest extends TestCase {
     /**
      * Delete all the contents and the directory itself.
      */
-    private void deleteSaveDir(String saveDirName) 
+    private void deleteSaveDir(String saveDirName)
         throws IOException {
 
         File saveDir = new File(envHome, saveDirName);
@@ -443,13 +443,13 @@ public class DbBackupTest extends TestCase {
             }
             assertTrue(saveDir.delete());
             }
-        }   
+        }
     }
 
     /**
      * Copy the saved files in, check values.
      */
-    private void verifyDb1(String saveDirName, boolean rename) 
+    private void verifyDb1(String saveDirName, boolean rename)
         throws DatabaseException {
 
         File saveDir = new File(envHome, saveDirName);
@@ -485,7 +485,7 @@ public class DbBackupTest extends TestCase {
     /**
      * Copy the saved files in, check values.
      */
-    private void verifyBothDbs(String saveDirName1, String saveDirName2) 
+    private void verifyBothDbs(String saveDirName1, String saveDirName2)
         throws DatabaseException {
 
         File saveDir = new File(envHome, saveDirName1);
@@ -514,7 +514,7 @@ public class DbBackupTest extends TestCase {
         }
     }
 
-    private void checkDb(String dbName) 
+    private void checkDb(String dbName)
         throws DatabaseException {
 
         DatabaseConfig dbConfig = new DatabaseConfig();
@@ -534,15 +534,15 @@ public class DbBackupTest extends TestCase {
             assertEquals(OperationStatus.NOTFOUND,
                          c.getNext(key, data, LockMode.DEFAULT));
         } finally {
-            if (c != null) 
+            if (c != null)
                 c.close();
             db.close();
         }
     }
 
-    private void checkFileLen(long fileNum, long length) 
+    private void checkFileLen(long fileNum, long length)
         throws IOException {
-        String fileName = fileManager.getFullFileName(fileNum, 
+        String fileName = fileManager.getFullFileName(fileNum,
                                                       FileManager.JE_SUFFIX);
         File f = new File(fileName);
         assertEquals(length, f.length());

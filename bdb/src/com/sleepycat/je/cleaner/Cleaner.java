@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Cleaner.java,v 1.183.2.5 2007/07/02 19:54:48 mark Exp $
+ * $Id: Cleaner.java,v 1.183.2.8 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -156,7 +156,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     private FileSelector fileSelector;
     private FileProcessor[] threads;
 
-    /* 
+    /*
      * Log file deletion must check for the presence of read/only processes
      * and ongoing backups.
      */
@@ -286,7 +286,6 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * during thread creation.  Cleaner daemon can't ever be run if No Locking
      * mode is enabled.
      */
-
     public void runOrPause(boolean run) {
 	if (!env.isNoLocking()) {
 	    for (int i = 0; i < threads.length; i += 1) {
@@ -336,7 +335,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             }
         }
     }
-    
+
     public int getNWakeupRequests() {
         int count = 0;
         for (int i = 0; i < threads.length; i += 1) {
@@ -369,7 +368,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * @return the number of files cleaned, not including files cleaned
      * unsuccessfully.
      */
-    public int doClean(boolean cleanMultipleFiles, boolean forceCleaning) 
+    public int doClean(boolean cleanMultipleFiles, boolean forceCleaning)
         throws DatabaseException {
 
         FileProcessor processor = new FileProcessor
@@ -381,7 +380,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     /**
      * Load stats.
      */
-    public void loadStats(StatsConfig config, EnvironmentStats stat) 
+    public void loadStats(StatsConfig config, EnvironmentStats stat)
         throws DatabaseException {
 
         stat.setCleanerBacklog(nBacklogFiles);
@@ -406,7 +405,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
         stat.setNCleanerEntriesRead(nEntriesRead);
         stat.setNRepeatIteratorReads(nRepeatIteratorReads);
         stat.setTotalLogSize(profile.getTotalLogSize());
-        
+
         if (config.getClear()) {
             nCleanerRuns = 0;
             nCleanerDeletions = 0;
@@ -438,7 +437,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
         fileSelector.putBackFileForCleaning(fileNum);
     }
 
-    /** 
+    /**
      * Deletes all files that are safe-to-delete, if there are no read/only
      * processes and concurrent backups.
      *
@@ -577,7 +576,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
     private void traceFileNotDeleted(Exception e, long fileNum) {
         Tracer.trace
-            (env, "Cleaner", "deleteSafeToDeleteFiles", 
+            (env, "Cleaner", "deleteSafeToDeleteFiles",
              "Log file 0x" + Long.toHexString(fileNum) + " could not be " +
              (expunge ? "deleted" : "renamed") +
              ".  This operation will be retried at the next checkpoint.",
@@ -701,7 +700,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
         try {
             nPendingLNsProcessed++;
 
-            /* 
+            /*
              * If the DB is gone, this LN is obsolete.  If delete cleanup is in
              * progress, put the DB into the DB pending set; this LN will be
              * declared deleted after the delete cleanup is finished.
@@ -831,7 +830,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                  */
         	return true;
             }
-            
+
             boolean isResident = (bin.getTarget(index) != null);
             Long fileNum = new Long(DbLsn.getFileNumber(lsn));
 
@@ -889,9 +888,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             boolean isResident = (bin.getTarget(index) != null);
             long childLsn = bin.getLsn(index);
 
-            if (childLsn != DbLsn.NULL_LSN) { 
+            if (childLsn != DbLsn.NULL_LSN) {
         	/* LSN could be NULL_LSN if deferred-write mode */
-            
+
                 if (shouldMigrateLN
                     (migrateFlag, isResident, proactiveMigration, isBinInDupDb,
                      childLsn)) {
@@ -1019,7 +1018,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             /*
              * Do nothing if proactiveMigration is false, since all further
              * migration is optional.
-             * 
+             *
              * Do nothing if this is a BIN in a duplicate database.  We
              * must not fetch DINs, since this BIN may be about to be
              * evicted.  Fetching a DIN would add it as an orphan to the
@@ -1125,7 +1124,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                     (ln.getNodeId(), LockType.READ, db);
                 if (lockRet.getLockGrant() == LockGrantType.DENIED) {
 
-                    /* 
+                    /*
                      * LN is currently locked by another Locker, so we can't
                      * assume anything about the value of the LSN in the bin.
                      */
@@ -1176,9 +1175,8 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             /* Migrate the LN. */
             byte[] key = getLNMainKey(bin, index);
-            long newLNLsn = ln.log
-                (env, db.getId(), key, lsn, ln.getLastLoggedSize(), locker,
-                 backgroundIO);
+            long newLNLsn =
+                ln.logUpdateMemUsage(db, key, lsn, locker, bin, backgroundIO);
             bin.updateEntry(index, newLNLsn);
             nLNsMigrated++;
             migrated = true;
@@ -1298,7 +1296,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                     (ln.getNodeId(), LockType.READ, db);
                 if (lockRet.getLockGrant() == LockGrantType.DENIED) {
 
-                    /* 
+                    /*
                      * LN is currently locked by another Locker, so we can't
                      * assume anything about the value of the LSN in the bin.
                      */
@@ -1328,9 +1326,8 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             /* Migrate the LN. */
             byte[] key = parentDIN.getDupKey();
-            long newLNLsn = ln.log
-                (env, db.getId(), key, lsn, ln.getLastLoggedSize(), locker,
-                 false); // backgroundIO
+            long newLNLsn =
+                ln.logUpdateMemUsage(db, key, lsn, locker, parentDIN);
             parentDIN.updateDupCountLNRef(newLNLsn);
             nLNsMigrated++;
             migrated = true;

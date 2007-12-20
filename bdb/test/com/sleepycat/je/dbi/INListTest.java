@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INListTest.java,v 1.38.2.1 2007/02/01 14:50:10 cwl Exp $
+ * $Id: INListTest.java,v 1.38.2.2 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -72,7 +72,7 @@ public class INListTest extends TestCase {
 
     public void testMajorMinorLatching()
 	throws Throwable {
-        
+
         JUnitThread tester1 =
             new JUnitThread("testMajorMinorLatching-Thread1") {
                 public void testBody() {
@@ -84,7 +84,7 @@ public class INListTest extends TestCase {
                             inList1.add(in);
                         }
 
-                        /* 
+                        /*
                          * Acquire the major latch in preparation for an
                          * iteration.
                          */
@@ -97,7 +97,7 @@ public class INListTest extends TestCase {
                             Thread.yield();
                         }
 
-                        /* 
+                        /*
                          * Sequencer is now 2. There should only be
                          * two elements in the list right now even
                          * though thread 2 added a third one.
@@ -121,7 +121,7 @@ public class INListTest extends TestCase {
                             Thread.yield();
                         }
 
-                        /* 
+                        /*
                          * Thread2 has exited.  Release the major
                          * latch so that the addedINs can be added
                          * into the main in set.
@@ -161,7 +161,7 @@ public class INListTest extends TestCase {
 
                         assertEquals(1, sequencer);
 
-                        /* 
+                        /*
                          * Acquire the minor latch in preparation for some
                          * concurrent additions.
                          */
@@ -191,13 +191,13 @@ public class INListTest extends TestCase {
         tester2.finishTest();
     }
 
-    /* 
+    /*
      * Some actions hold the major inlist latch, but can provoke additions or
      * removals of objects from the inlist. For example, the evictor may cause
      * a fetch of an IN. Make sure the latching works, and iterators can safely
      * be used during the time of the latch.
      */
-    public void testFetchingWhenHoldingLatch() 
+    public void testFetchingWhenHoldingLatch()
         throws Exception {
 
         Set expectedNodes = new HashSet();
@@ -221,7 +221,7 @@ public class INListTest extends TestCase {
             /* We should see the original 3 items. */
             checkContents(expectedNodes);
 
-            /* 
+            /*
              * Now remove an item on the major list, and one from the
              * minor list. (i.e, what would happen if we evicted.)
              */
@@ -231,7 +231,7 @@ public class INListTest extends TestCase {
             expectedNodes.remove(startIN);
             checkContents(expectedNodes);
 
-            /* 
+            /*
              * Remove an item from the minor list. This ends up flushing the
              * minor list into the major list.
              */
@@ -254,7 +254,7 @@ public class INListTest extends TestCase {
         }
     }
 
-    private void checkContents(Set expectedNodes) 
+    private void checkContents(Set expectedNodes)
         throws Exception {
 
         Set seen = new HashSet();

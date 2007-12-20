@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEFileFilter.java,v 1.18.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: JEFileFilter.java,v 1.18.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -13,7 +13,7 @@ import java.io.FilenameFilter;
 import java.util.StringTokenizer;
 
 /**
- * JEFileFilters are used for listing je files. 
+ * JEFileFilters are used for listing je files.
  */
 class JEFileFilter implements FilenameFilter {
     String[] suffix;

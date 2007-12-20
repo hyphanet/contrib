@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalkerTest.java,v 1.11.2.2 2007/03/07 01:24:41 mark Exp $
+ * $Id: SortedLSNTreeWalkerTest.java,v 1.11.2.3 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -279,7 +279,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	DatabaseEntry key = new DatabaseEntry();
 	DatabaseEntry data = new DatabaseEntry();
         int numInserted = 0;
-        
+
         data.setData(new byte[10]);
 
 	for (int i = 0; i < N_RECS; i++) {
@@ -292,7 +292,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
                 assertEquals(db.delete(txn, key),
                              OperationStatus.SUCCESS);
                 deleted = true;
-            } 
+            }
             if ((i%3)== 0){
                 txn.abort();
             } else {
@@ -457,5 +457,5 @@ public class SortedLSNTreeWalkerTest extends TestCase {
             env.close();
             env = null;
         }
-    } 
+    }
 }

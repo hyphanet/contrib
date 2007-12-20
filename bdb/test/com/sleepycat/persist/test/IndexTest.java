@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: IndexTest.java,v 1.15.2.1 2007/02/01 14:50:25 cwl Exp $
+ * $Id: IndexTest.java,v 1.15.2.2 2007/11/20 13:32:52 cwl Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -47,12 +47,12 @@ import com.sleepycat.persist.raw.RawType;
  * Tests EntityIndex and EntityCursor in all their permutations.
  *
  * @author Mark Hayes
- */ 
+ */
 public class IndexTest extends TxnTestCase {
 
     private static final int N_RECORDS = 5;
     private static final int THREE_TO_ONE = 3;
- 
+
     public static Test suite() {
         return txnTestSuite(IndexTest.class, null,
                             null);
@@ -130,7 +130,7 @@ public class IndexTest extends TxnTestCase {
         rawStore.close();
         rawStore = null;
     }
-    
+
     /**
      * The store must be closed before closing the environment.
      */
@@ -155,11 +155,11 @@ public class IndexTest extends TxnTestCase {
         rawStore = null;
         super.tearDown();
     }
-    
+
     /**
      * Primary keys: {0, 1, 2, 3, 4}
      */
-    public void testPrimary() 
+    public void testPrimary()
         throws DatabaseException {
 
         SortedMap<Integer,SortedSet<Integer>> expected =
@@ -181,7 +181,7 @@ public class IndexTest extends TxnTestCase {
         open();
         checkIndex(primary, expected, keyGetter, entityGetter);
         checkIndex(primaryRaw, expected, rawKeyGetter, rawEntityGetter);
-        
+
         /* Check primary delete, last key first for variety. */
         for (int priKey = N_RECORDS - 1; priKey >= 0; priKey -= 1) {
             boolean useRaw = ((priKey & 1) != 0);
@@ -218,11 +218,11 @@ public class IndexTest extends TxnTestCase {
         txnCommit(txn);
         close();
     }
-    
+
     /**
      * { 0:0, 1:-1, 2:-2, 3:-3, 4:-4 }
      */
-    public void testOneToOne() 
+    public void testOneToOne()
         throws DatabaseException {
 
         SortedMap<Integer,SortedSet<Integer>> expected =
@@ -241,11 +241,11 @@ public class IndexTest extends TxnTestCase {
         checkDelete(oneToOne, oneToOneRaw, expected);
         close();
     }
-    
+
     /**
      * { 0:0, 1:1, 2:2, 3:0, 4:1 }
      */
-    public void testManyToOne() 
+    public void testManyToOne()
         throws DatabaseException {
 
         SortedMap<Integer,SortedSet<Integer>> expected =
@@ -267,11 +267,11 @@ public class IndexTest extends TxnTestCase {
         checkDelete(manyToOne, manyToOneRaw, expected);
         close();
     }
-    
+
     /**
      * { 0:{}, 1:{10}, 2:{20,21}, 3:{30,31,32}, 4:{40,41,42,43}
      */
-    public void testOneToMany() 
+    public void testOneToMany()
         throws DatabaseException {
 
         SortedMap<Integer,SortedSet<Integer>> expected =
@@ -295,11 +295,11 @@ public class IndexTest extends TxnTestCase {
         checkDelete(oneToMany, oneToManyRaw, expected);
         close();
     }
-    
+
     /**
      * { 0:{}, 1:{0}, 2:{0,1}, 3:{0,1,2}, 4:{0,1,2,3}
      */
-    public void testManyToMany() 
+    public void testManyToMany()
         throws DatabaseException {
 
         SortedMap<Integer,SortedSet<Integer>> expected =
@@ -324,7 +324,7 @@ public class IndexTest extends TxnTestCase {
         close();
     }
 
-    private void addEntities(PrimaryIndex<Integer,MyEntity> primary) 
+    private void addEntities(PrimaryIndex<Integer,MyEntity> primary)
         throws DatabaseException {
 
         Transaction txn = txnBegin();
@@ -342,7 +342,7 @@ public class IndexTest extends TxnTestCase {
 
         SortedMap<Integer,SortedSet<Integer>> expectedSubIndex =
             new TreeMap<Integer,SortedSet<Integer>>();
-        
+
         while (expected.size() > 0) {
             Integer delSecKey = expected.firstKey();
             SortedSet<Integer> deletedPriKeys = expected.remove(delSecKey);
@@ -370,7 +370,7 @@ public class IndexTest extends TxnTestCase {
         txnCommit(txn);
         checkAllEmpty();
     }
-    
+
     private void checkSecondary(SecondaryIndex<Integer,Integer,MyEntity> index,
                                 SecondaryIndex<Object,Object,RawObject>
                                 indexRaw,
@@ -403,7 +403,7 @@ public class IndexTest extends TxnTestCase {
                        rawEntityGetter);
         }
     }
-    
+
     private <K,V> void checkIndex(EntityIndex<K,V> index,
                                   SortedMap<Integer,SortedSet<Integer>>
                                   expected,

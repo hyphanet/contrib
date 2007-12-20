@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryDeleteTest.java,v 1.6.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryDeleteTest.java,v 1.6.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -17,7 +17,7 @@ import com.sleepycat.je.config.EnvironmentParams;
 
 public class RecoveryDeleteTest extends RecoveryTestBase {
 
-    protected void setExtraProperties() 
+    protected void setExtraProperties()
         throws DatabaseException {
         envConfig.setConfigParam(
                       EnvironmentParams.ENV_RUN_INCOMPRESSOR.getName(),
@@ -34,13 +34,13 @@ public class RecoveryDeleteTest extends RecoveryTestBase {
         try {
             // Set up an repository of expected data
             Hashtable expectedData = new Hashtable();
-            
+
             // insert all the data
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs -1 , expectedData, 1, true, NUM_DBS);
             txn.commit();
 
-            /* 
+            /*
              * Do two checkpoints here so that the INs that make up this new
              * tree are not in the redo part of the log.
              */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryAbortTest.java,v 1.54.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryAbortTest.java,v 1.54.2.3 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -43,7 +43,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert all the data. */
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs - 1, expectedData, 1, false, NUM_DBS);
@@ -65,29 +65,29 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 
 	createEnvAndDbs(1 << 20, true, NUM_DBS);
         EnvironmentImpl realEnv = DbInternal.envGetEnvironmentImpl(env);
-        
+
         int N = NUM_RECS;
-        
+
         if (DEBUG) {
             System.out.println("<dump>");
         }
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert 0 - N and commit. */
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, N - 1, expectedData, 1, true, NUM_DBS);
             txn.commit();
             verifyData(expectedData, false, NUM_DBS);
-            
+
             /* Insert N - 3N and abort. */
             txn = env.beginTransaction(null, null);
             insertData(txn, N, (3 * N) - 1, expectedData, 1, false, NUM_DBS);
             txn.abort();
             verifyData(expectedData, false, NUM_DBS);
 
-            /* 
+            /*
 	     * Wait for the incompressor queue to be processed, so we force the
 	     * recovery to run w/IN delete replays.
 	     */
@@ -116,18 +116,18 @@ public class RecoveryAbortTest extends RecoveryTestBase {
         }
     }
 
-    public void testMix() 
+    public void testMix()
 	throws Throwable {
 
 	createEnvAndDbs(1 << 20, true, NUM_DBS);
 
         int numRecs = NUM_RECS;
-        int numDups = 10;        
-                
+        int numDups = 10;
+
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs, expectedData, 1, true, NUM_DBS);
@@ -146,7 +146,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             txn = env.beginTransaction(null, null);
             deleteData(txn, expectedData, false, true, NUM_DBS);
             txn.commit();
-            
+
             /* Modify some and abort. */
             txn = env.beginTransaction(null, null);
             modifyData(txn, numRecs, expectedData, 3, false, NUM_DBS);
@@ -160,7 +160,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             if (DEBUG) {
                 dumpData(NUM_DBS);
                 dumpExpected(expectedData);
-                com.sleepycat.je.tree.Key.DUMP_BINARY = true;
+                com.sleepycat.je.tree.Key.DUMP_TYPE =
+		    com.sleepycat.je.tree.Key.DumpType.BINARY;
                 DbInternal.dbGetDatabaseImpl(dbs[0]).getTree().dump();
             }
             TestUtils.validateNodeMemUsage
@@ -175,7 +176,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
         }
     }
 
-    public void testSR13726() 
+    public void testSR13726()
 	throws Throwable {
 
 	int numDbs = 1;
@@ -183,7 +184,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 	createEnvAndDbs(1 << 20, true, numDbs);
 
         try {
-            /* 
+            /*
 	     * Insert data without duplicates, commit. This gets us a
 	     * DupCountLN.
 	     */
@@ -220,7 +221,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 	    createDbs(null, numDbs);
 
 	    /*
-	     * Tree now has a BIN referring to a DelDupLN.  Add duplicates, 
+	     * Tree now has a BIN referring to a DelDupLN.  Add duplicates,
 	     * and abort.
 	     */
 	    txn = env.beginTransaction(null, null);
@@ -280,16 +281,16 @@ public class RecoveryAbortTest extends RecoveryTestBase {
      * prevented by a lock being taken by the compressor on the LN,
      * even if the LN is "knownDeleted". [#9465]
      */
-    public void testSR9465Part1() 
+    public void testSR9465Part1()
 	throws Throwable {
 
 	createEnvAndDbs(1 << 20, true, NUM_DBS);
         int numRecs = NUM_RECS;
-        
+
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs, expectedData, 1, true, NUM_DBS);
@@ -308,7 +309,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             if (DEBUG) {
                 dumpData(NUM_DBS);
                 dumpExpected(expectedData);
-                com.sleepycat.je.tree.Key.DUMP_BINARY = true;
+                com.sleepycat.je.tree.Key.DUMP_TYPE =
+		    com.sleepycat.je.tree.Key.DumpType.BINARY;
                 DbInternal.dbGetDatabaseImpl(dbs[0]).getTree().dump();
             }
 
@@ -321,16 +323,16 @@ public class RecoveryAbortTest extends RecoveryTestBase {
         }
     }
 
-    public void testSR9465Part2() 
+    public void testSR9465Part2()
 	throws Throwable {
 
 	createEnvAndDbs(1 << 20, true, NUM_DBS);
         int numRecs = NUM_RECS;
-        
+
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs, expectedData, 1, true, NUM_DBS);
@@ -346,7 +348,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             if (DEBUG) {
                 dumpData(NUM_DBS);
                 dumpExpected(expectedData);
-                com.sleepycat.je.tree.Key.DUMP_BINARY = true;
+                com.sleepycat.je.tree.Key.DUMP_TYPE =
+		    com.sleepycat.je.tree.Key.DumpType.BINARY;
                 DbInternal.dbGetDatabaseImpl(dbs[0]).getTree().dump();
             }
 
@@ -357,7 +360,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             if (DEBUG) {
                 dumpData(NUM_DBS);
                 dumpExpected(expectedData);
-                com.sleepycat.je.tree.Key.DUMP_BINARY = true;
+                com.sleepycat.je.tree.Key.DUMP_TYPE =
+		    com.sleepycat.je.tree.Key.DumpType.BINARY;
                 DbInternal.dbGetDatabaseImpl(dbs[0]).getTree().dump();
             }
 
@@ -370,16 +374,16 @@ public class RecoveryAbortTest extends RecoveryTestBase {
         }
     }
 
-    public void testSR9752Part1() 
+    public void testSR9752Part1()
 	throws Throwable {
 
 	createEnvAndDbs(1 << 20, false, NUM_DBS);
         int numRecs = NUM_RECS;
-        
+
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs, expectedData, 1, true, NUM_DBS);
@@ -420,7 +424,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             if (DEBUG) {
                 dumpData(NUM_DBS);
                 dumpExpected(expectedData);
-                com.sleepycat.je.tree.Key.DUMP_BINARY = true;
+                com.sleepycat.je.tree.Key.DUMP_TYPE =
+		    com.sleepycat.je.tree.Key.DumpType.BINARY;
                 DbInternal.dbGetDatabaseImpl(dbs[0]).getTree().dump();
             }
 
@@ -438,11 +443,11 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 	createEnvAndDbs(1 << 20, false, NUM_DBS);
 	DbInternal.envGetEnvironmentImpl(env).shutdownCleaner();
         int numRecs = NUM_RECS;
-        
+
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs, expectedData, 1, true, NUM_DBS);
@@ -483,7 +488,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             if (DEBUG) {
                 dumpData(NUM_DBS);
                 dumpExpected(expectedData);
-                com.sleepycat.je.tree.Key.DUMP_BINARY = true;
+                com.sleepycat.je.tree.Key.DUMP_TYPE =
+		    com.sleepycat.je.tree.Key.DumpType.BINARY;
                 DbInternal.dbGetDatabaseImpl(dbs[0]).getTree().dump();
             }
 
@@ -498,7 +504,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
     /**
      * Insert dbs, commit some, abort some. To do: add db remove, rename.
      */
-    public void testDbCreateRemove() 
+    public void testDbCreateRemove()
 	throws Throwable {
 
         createEnv(1 << 20, true);
@@ -522,7 +528,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
                 env.openDatabase(txn, dbName1 + i, dbConfig);
             }
             txn.abort();
-            
+
             /* All dbs should not exist */
             checkForNoDb(dbName1, 0, N2);
 
@@ -599,7 +605,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
             checkForDb(dbName1, N1, N3);
             checkForNoDb(dbName1, N3, N4);
             checkForDb(dbName1, N4, N5);
-            
+
             /* Rename some dbs, abort */
             txn = env.beginTransaction(null, null);
             for (int i = N1; i < N3; i++) {
@@ -638,7 +644,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
     /**
      * Fail if any db from start - (end -1) exists
      */
-    private void checkForNoDb(String dbName, int start, int end) 
+    private void checkForNoDb(String dbName, int start, int end)
         throws DatabaseException {
         	
         /* Dbs start - end -1  shouldn't exist */
@@ -654,7 +660,7 @@ public class RecoveryAbortTest extends RecoveryTestBase {
     /**
      * Fail if any db from start - (end -1) doesn't exist
      */
-    private void checkForDb(String dbName, int start, int end) 
+    private void checkForDb(String dbName, int start, int end)
         throws DatabaseException {
         /* Dbs start - end -1  should exist. */
         for (int i = start; i < end; i++) {

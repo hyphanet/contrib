@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorTest.java,v 1.80.2.1 2007/02/01 14:50:09 cwl Exp $
+ * $Id: DbCursorTest.java,v 1.80.2.2 2007/11/20 13:32:43 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -24,7 +24,7 @@ import com.sleepycat.je.util.TestUtils;
  */
 public class DbCursorTest extends DbCursorTestBase {
 
-    public DbCursorTest() 
+    public DbCursorTest()
         throws DatabaseException {
 
         super();
@@ -72,7 +72,7 @@ public class DbCursorTest extends DbCursorTestBase {
 	    OperationStatus status = cursor.getFirst(foundKey, foundData,
 						     LockMode.DEFAULT);
 
-	    /* 
+	    /*
 	     * Advance forward and then back to the first.  Rest of scan
 	     * should be as normal.
 	     */
@@ -231,7 +231,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * lowest key into the database.  Make sure that the key just inserted is
      * not retrieved during the cursor walk.  Lather, rinse, repeat.
      */
-    public void testSimpleGetPutPrevKeyForwardTraverse() 
+    public void testSimpleGetPutPrevKeyForwardTraverse()
         throws Throwable {
 
         try {
@@ -256,7 +256,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * next lowest key into the database.  Make sure that the key just inserted
      * is retrieved during the cursor walk.  Lather, rinse, repeat.
      */
-    public void testSimpleGetPutPrevKeyBackwardsTraverse() 
+    public void testSimpleGetPutPrevKeyBackwardsTraverse()
         throws Throwable {
 
         try {
@@ -281,7 +281,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * inserted is not retrieved during the cursor walk.  Lather, rinse,
      * repeat.
      */
-    public void testSimpleGetPutNextKeyBackwardsTraverse() 
+    public void testSimpleGetPutNextKeyBackwardsTraverse()
         throws Throwable {
 
         try {
@@ -409,7 +409,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * returned by the cursor.  Ensure that the elements are returned in
      * ascending order.  Lather, rinse, repeat.
      */
-    public void testLargeGetPutPrevKeyForwardTraverse() 
+    public void testLargeGetPutPrevKeyForwardTraverse()
         throws Throwable {
 
         try {
@@ -458,7 +458,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * in ascending order.  Ensure that count() always returns 1 for each
      * data item returned.
      */
-    public void testLargeCount() 
+    public void testLargeCount()
         throws Throwable {
 
         try {
@@ -497,7 +497,7 @@ public class DbCursorTest extends DbCursorTestBase {
         assertTrue(dw.nEntries == N_KEYS);
     }
 
-    public void xxtestGetPerf() 
+    public void xxtestGetPerf()
         throws Throwable {
 
         try {
@@ -515,7 +515,7 @@ public class DbCursorTest extends DbCursorTestBase {
                 status = cursor.getNext(foundKey, foundData, LockMode.DEFAULT);
                 count++;
             }
-        
+
             assertTrue(count == N);
         } catch (Throwable t) {
             t.printStackTrace();
@@ -528,7 +528,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * the data.  Read the pairs back again and make sure the replace did the
      * right thing.
      */
-    public void testLargeReplace() 
+    public void testLargeReplace()
         throws Throwable {
 
         try {
@@ -570,7 +570,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * returned by the cursor.  Ensure that the elements are returned in
      * descending order.  Lather, rinse, repeat.
      */
-    public void testLargeGetPutNextKeyBackwardsTraverse() 
+    public void testLargeGetPutNextKeyBackwardsTraverse()
         throws Throwable {
 
         try {
@@ -644,7 +644,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * returned by the cursor.  Ensure that the elements are returned in
      * ascending order.  Lather, rinse, repeat.
      */
-    public void testLargeGetPutNextKeyForwardTraverse() 
+    public void testLargeGetPutNextKeyForwardTraverse()
         throws Throwable {
 
         try {
@@ -667,7 +667,7 @@ public class DbCursorTest extends DbCursorTestBase {
         doLargePut(dataMap, nKeys);
 
         DataWalker dw = new DataWalker(dataMap, addedDataMap) {
-                void perData(String foundKey, String foundData) 
+                void perData(String foundKey, String foundData)
                     throws DatabaseException {
 
                     assertTrue(foundKey.compareTo(prevKey) >= 0);
@@ -706,7 +706,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * returned by the cursor.  Ensure that the elements are returned in
      * descending order.  Lather, rinse, repeat.
      */
-    public void testLargeGetPutPrevKeyBackwardsTraverse() 
+    public void testLargeGetPutPrevKeyBackwardsTraverse()
         throws Throwable {
 
         try {
@@ -721,7 +721,7 @@ public class DbCursorTest extends DbCursorTestBase {
     /**
      * Helper routine for above.
      */
-    private void doLargeGetPutPrevKeyBackwardsTraverse(int nKeys) 
+    private void doLargeGetPutPrevKeyBackwardsTraverse(int nKeys)
         throws DatabaseException {
 
         Hashtable dataMap = new Hashtable();
@@ -729,7 +729,7 @@ public class DbCursorTest extends DbCursorTestBase {
         doLargePut(dataMap, nKeys);
 
         DataWalker dw = new BackwardsDataWalker(dataMap, addedDataMap) {
-                void perData(String foundKey, String foundData) 
+                void perData(String foundKey, String foundData)
                     throws DatabaseException {
 
 		    if (!prevKey.equals("")) {
@@ -786,7 +786,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * highest element just inserted is returned by the cursor.  Ensure that
      * the elements are returned in ascending order.  Lather, rinse, repeat.
      */
-    public void testLargeGetPutBothKeyForwardTraverse() 
+    public void testLargeGetPutBothKeyForwardTraverse()
         throws Throwable {
 
         try {
@@ -809,7 +809,7 @@ public class DbCursorTest extends DbCursorTestBase {
         doLargePut(dataMap, nKeys);
 
         DataWalker dw = new DataWalker(dataMap, addedDataMap) {
-                void perData(String foundKey, String foundData) 
+                void perData(String foundKey, String foundData)
                     throws DatabaseException {
 
                     assertTrue(foundKey.compareTo(prevKey) >= 0);
@@ -854,7 +854,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * element just inserted is returned by the cursor.  Ensure that the
      * elements are returned in descending order.  Lather, rinse, repeat.
      */
-    public void testLargeGetPutBothKeyBackwardsTraverse() 
+    public void testLargeGetPutBothKeyBackwardsTraverse()
         throws Throwable {
 
         try {
@@ -941,7 +941,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * Ensure that the elements are returned in ascending order.  Lather,
      * rinse, repeat.
      */
-    public void testLargeGetPutRandomKeyForwardTraverse() 
+    public void testLargeGetPutRandomKeyForwardTraverse()
         throws Throwable {
 
         try {
@@ -1011,7 +1011,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * that the elements are returned in descending order.  Lather, rinse,
      * repeat.
      */
-    public void testLargeGetPutRandomKeyBackwardsTraverse() 
+    public void testLargeGetPutRandomKeyBackwardsTraverse()
         throws Throwable {
 
         try {
@@ -1034,7 +1034,7 @@ public class DbCursorTest extends DbCursorTestBase {
         doLargePut(dataMap, nKeys);
 
         DataWalker dw = new BackwardsDataWalker(dataMap, addedDataMap) {
-                void perData(String foundKey, String foundData) 
+                void perData(String foundKey, String foundData)
                     throws DatabaseException {
 
                     if (!prevKey.equals("")) {
@@ -1096,7 +1096,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * Iterate through the tree in ascending order.  Ensure that the elements
      * are returned in ascending order.
      */
-    public void testLargeGetForwardTraverseWithNormalComparisonFunction() 
+    public void testLargeGetForwardTraverseWithNormalComparisonFunction()
         throws Throwable {
 
         try {
@@ -1142,7 +1142,7 @@ public class DbCursorTest extends DbCursorTestBase {
      * btreeComparison function. Iterate through the tree in ascending order.
      * Ensure that the elements are returned in ascending order.
      */
-    public void testLargeGetForwardTraverseWithReverseComparisonFunction() 
+    public void testLargeGetForwardTraverseWithReverseComparisonFunction()
         throws Throwable {
 
         try {
@@ -1294,7 +1294,7 @@ public class DbCursorTest extends DbCursorTestBase {
         }
     }
 
-    public void testCursorOutOfBoundsBackwards() 
+    public void testCursorOutOfBoundsBackwards()
         throws Throwable {
 
         try {
@@ -1326,7 +1326,7 @@ public class DbCursorTest extends DbCursorTestBase {
         }
     }
 
-    public void testCursorOutOfBoundsForwards() 
+    public void testCursorOutOfBoundsForwards()
         throws Throwable {
 
         try {

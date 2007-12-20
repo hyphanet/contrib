@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TrackedFileSummary.java,v 1.9.2.2 2007/05/15 14:48:39 mark Exp $
+ * $Id: TrackedFileSummary.java,v 1.9.2.3 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -76,7 +76,7 @@ public class TrackedFileSummary extends FileSummary {
     /**
      * Overrides reset for a tracked file, and is called when a FileSummaryLN
      * is written to the log.
-     * 
+     *
      * <p>Must be called under the log write latch.</p>
      */
     public void reset() {
@@ -94,7 +94,7 @@ public class TrackedFileSummary extends FileSummary {
 
     /**
      * Tracks the given offset as obsolete or non-obsolete.
-     * 
+     *
      * <p>Must be called under the log write latch.</p>
      */
     void trackObsolete(long offset) {

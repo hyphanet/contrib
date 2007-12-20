@@ -54,7 +54,7 @@ public class VLSN implements Loggable {
 	buffer.putLong(sequence);
     }
 
-    /*  
+    /*
      *  Reading from a byte buffer
      */
 

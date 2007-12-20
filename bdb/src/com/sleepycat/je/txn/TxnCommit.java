@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnCommit.java,v 1.22.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: TxnCommit.java,v 1.22.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -16,7 +16,7 @@ public class TxnCommit extends TxnEnd {
     public TxnCommit(long id, long lastLsn) {
         super(id, lastLsn);
     }
-    
+
     /**
      * For constructing from the log.
      */

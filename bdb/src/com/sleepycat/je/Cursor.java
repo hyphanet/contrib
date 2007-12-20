@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Cursor.java,v 1.202.2.2 2007/06/13 21:22:17 mark Exp $
+ * $Id: Cursor.java,v 1.202.2.3 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -83,7 +83,7 @@ public class Cursor {
      * releases locks for the prior operation when the next operation
      * suceeds.</p>
      */
-    Cursor(Database dbHandle, Transaction txn, CursorConfig cursorConfig) 
+    Cursor(Database dbHandle, Transaction txn, CursorConfig cursorConfig)
         throws DatabaseException {
 
         if (cursorConfig == null) {
@@ -108,7 +108,7 @@ public class Cursor {
      * will be created that releases locks for the prior operation when the
      * next operation suceeds.</p>
      */
-    Cursor(Database dbHandle, Locker locker, CursorConfig cursorConfig) 
+    Cursor(Database dbHandle, Locker locker, CursorConfig cursorConfig)
         throws DatabaseException {
 
         if (cursorConfig == null) {
@@ -133,7 +133,7 @@ public class Cursor {
      * the given locker without applying any special rules for different
      * isolation levels -- the caller must supply the correct locker.</p>
      */
-    Cursor(DatabaseImpl dbImpl, Locker locker, CursorConfig cursorConfig) 
+    Cursor(DatabaseImpl dbImpl, Locker locker, CursorConfig cursorConfig)
         throws DatabaseException {
 
         if (cursorConfig == null) {
@@ -147,7 +147,7 @@ public class Cursor {
 		      DatabaseImpl dbImpl,
                       Locker locker,
 		      boolean isWritable,
-                      CursorConfig cursorConfig) 
+                      CursorConfig cursorConfig)
         throws DatabaseException {
 
         assert locker != null;
@@ -275,7 +275,7 @@ public class Cursor {
      */
     public int count()
         throws DatabaseException {
-        
+
         checkState(true);
         trace(Level.FINEST, "Cursor.count: ", null);
 
@@ -321,7 +321,7 @@ public class Cursor {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public OperationStatus put(DatabaseEntry key, DatabaseEntry data) 
+    public OperationStatus put(DatabaseEntry key, DatabaseEntry data)
         throws DatabaseException {
 
         checkState(false);
@@ -339,7 +339,7 @@ public class Cursor {
      * the doc templates in the doc_src directory.
      */
     public OperationStatus putNoOverwrite(DatabaseEntry key,
-                                          DatabaseEntry data) 
+                                          DatabaseEntry data)
         throws DatabaseException {
 
         checkState(false);
@@ -356,7 +356,7 @@ public class Cursor {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public OperationStatus putNoDupData(DatabaseEntry key, DatabaseEntry data) 
+    public OperationStatus putNoDupData(DatabaseEntry key, DatabaseEntry data)
         throws DatabaseException {
 
         checkState(false);
@@ -443,7 +443,7 @@ public class Cursor {
      */
     public OperationStatus getNext(DatabaseEntry key,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -499,7 +499,7 @@ public class Cursor {
      */
     public OperationStatus getPrev(DatabaseEntry key,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -621,7 +621,7 @@ public class Cursor {
      */
     int countInternal(LockMode lockMode)
         throws DatabaseException {
-        
+
 	try {
 	    CursorImpl original = null;
 	    CursorImpl dup = null;
@@ -876,7 +876,7 @@ public class Cursor {
             } else {
                 throw new InternalException("unknown PutMode");
             }
-                    
+
             return status;
         } finally {
             if (original != null) {
@@ -917,7 +917,7 @@ public class Cursor {
 		    (key, data, getLockType(lockMode, false), first);
 	    }
 
-	    /* 
+	    /*
 	     * Perform range locking to prevent phantoms and handle restarts.
 	     */
 	    while (true) {
@@ -934,7 +934,7 @@ public class Cursor {
 		    OperationStatus status =
 			positionAllowPhantoms(key, data, lockType, first);
 
-		    /* 
+		    /*
 		     * Range lock the EOF node when getFirst returns NOTFOUND.
 		     */
 		    if (first && status != OperationStatus.SUCCESS) {
@@ -1026,7 +1026,7 @@ public class Cursor {
 		return result.status;
 	    }
 
-	    /* 
+	    /*
 	     * Perform range locking to prevent phantoms and handle restarts.
 	     */
 	    while (true) {
@@ -1046,7 +1046,7 @@ public class Cursor {
 
 		    if (searchMode.isExactSearch()) {
 
-			/* 
+			/*
 			 * Artificial range search to range lock the next key.
 			 */
 			result = searchExactAndRangeLock
@@ -1064,7 +1064,7 @@ public class Cursor {
 			}
 		    }
 
-		    /* 
+		    /*
 		     * Only overwrite key/data on SUCCESS, after all locking.
 		     */
 		    if (result.status == OperationStatus.SUCCESS) {
@@ -1106,7 +1106,7 @@ public class Cursor {
         boolean noNextKeyFound;
 
         CursorImpl dup =
-            beginRead(false /* searchAndPosition will add cursor */); 
+            beginRead(false /* searchAndPosition will add cursor */);
 
         try {
 
@@ -1152,7 +1152,7 @@ public class Cursor {
         OperationStatus status = OperationStatus.NOTFOUND;
 
         CursorImpl dup =
-            beginRead(false /* searchAndPosition will add cursor */); 
+            beginRead(false /* searchAndPosition will add cursor */);
 
         try {
             KeyChangeStatus result = searchInternal
@@ -1199,12 +1199,12 @@ public class Cursor {
                  * have to do so if the position holds a deleted record.
 		 *
                  * Advance the cursor if:
-                 * 
+                 *
                  * 1. This is a range type search and there was no match on the
                  * search criteria (the key or key and data depending on the
                  * type of search). Then we search forward until there's a
                  * match.
-                 * 
+                 *
                  * 2. If this is not a range type search, check the record at
                  * the current position. If this is not a duplicate set,
                  * CursorImpl.searchAndPosition gave us an exact answer.
@@ -1217,9 +1217,9 @@ public class Cursor {
 		 * Note that searchResult has four bits possibly set:
                  *
                  * FOUND has already been checked above.
-                 * 
+                 *
 		 * EXACT_KEY means an exact match on the key portion was made.
-                 * 
+                 *
 		 * EXACT_DATA means that if searchMode was BOTH or BOTH_RANGE
 		 * then an exact match was made on the data (in addition to the
 		 * key).
@@ -1253,7 +1253,7 @@ public class Cursor {
 		    rangeMatch = true;
 		}
 
-                /* 
+                /*
                  * Pass null for key to getCurrentAlreadyLatched if searchMode
                  * is SET since the key is not supposed to be set in that case.
                  */
@@ -1345,7 +1345,7 @@ public class Cursor {
                              */
                             status = dup.getNextNoDup
                                 (key, data, advanceLockType, true, rangeMatch);
-                            
+
                             /* getNextNoDup always causes a key change. */
                             keyChange = (status == OperationStatus.SUCCESS);
                         }
@@ -1379,7 +1379,7 @@ public class Cursor {
                 dup.releaseBINs();
             }
         }
-        
+
         return new KeyChangeStatus(status, keyChange);
     }
 
@@ -1398,7 +1398,7 @@ public class Cursor {
 		    (key, data, getLockType(lockMode, false), getMode);
 	    }
 
-	    /* 
+	    /*
 	     * Perform range locking to prevent phantoms and handle restarts.
 	     */
 	    while (true) {
@@ -1406,7 +1406,7 @@ public class Cursor {
 		    OperationStatus status;
 		    if (getMode == GetMode.NEXT_DUP) {
 
-			/* 
+			/*
 			 * Special case to lock the next key if no more dups.
 			 */
 			status = getNextDupAndRangeLock(key, data, lockMode);
@@ -1417,7 +1417,7 @@ public class Cursor {
 			    rangeLockCurrentPosition(getMode);
 			}
 
-			/* 
+			/*
 			 * Use a range lock if performing a 'next' operation.
 			 */
 			LockType lockType =
@@ -1674,7 +1674,7 @@ public class Cursor {
 			if (origBIN.getNEntries() - 1 >
 			    origCursor.getIndex()) {
 
-			    /* 
+			    /*
 			     * We were adjusted to something other than the
 			     * last entry so some insertion happened.
 			     */
@@ -1738,7 +1738,7 @@ public class Cursor {
 		    if (origDBIN.getNEntries() - 1 >
 			origCursor.getDupIndex()) {
 
-			/* 
+			/*
 			 * We were adjusted to something other than the last
 			 * entry so some insertion happened.
 			 */
@@ -1852,12 +1852,12 @@ public class Cursor {
      * configuration.
      */
     boolean isReadUncommittedMode(LockMode lockMode) {
-        
+
         return (lockMode == LockMode.READ_UNCOMMITTED ||
-                (readUncommittedDefault && 
+                (readUncommittedDefault &&
                  (lockMode == null || lockMode == LockMode.DEFAULT)));
     }
-    
+
     private boolean isSerializableIsolation(LockMode lockMode) {
 
         return serializableIsolationDefault &&
@@ -1906,7 +1906,7 @@ public class Cursor {
     /**
      * @throws RunRecoveryException if the underlying environment is invalid.
      */
-    void checkEnv() 
+    void checkEnv()
         throws RunRecoveryException {
 
         cursorImpl.checkEnv();
@@ -1961,7 +1961,7 @@ public class Cursor {
             sb.append(" bin=").append(cursorImpl.getBIN().getNodeId());
         }
         sb.append(" idx=").append(cursorImpl.getIndex());
-        
+
         if (cursorImpl.getDupBIN() != null) {
             sb.append(" Dbin=").append(cursorImpl.getDupBIN().getNodeId());
         }

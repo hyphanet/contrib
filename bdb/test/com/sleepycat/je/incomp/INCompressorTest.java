@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INCompressorTest.java,v 1.15.2.1 2007/02/01 14:50:11 cwl Exp $
+ * $Id: INCompressorTest.java,v 1.15.2.2 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -58,7 +58,7 @@ import com.sleepycat.je.util.TestUtils;
  * However, this is thrown not only when entries have been added but also when
  * there are cursors on the BIN; it seems like we should retry in the latter
  * case.  Or is it impossible to have a cursor on an empty BIN?</p>
- * 
+ *
  * <p>We do not test here the last ditch effort to compress to make room in
  * IN.insertEntry1; that should never happen in theory, so I dodn't think it
  * is worthwhile to try to reproduce it.</p>
@@ -91,7 +91,7 @@ public class INCompressorTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -334,7 +334,7 @@ public class INCompressorTest extends TestCase {
 
         /* Finally compress can compress. */
         env.compress();
-	/* 
+	/*
 	 * Do this twice.  The test is depending on the iterator in
 	 * doCompress() getting the DBINReference first and the BINReference
 	 * second.  In JRockit, it's the opposite so the compress of the BIN
@@ -357,7 +357,7 @@ public class INCompressorTest extends TestCase {
 
         /* Transactional no-dups, 2 keys. */
         openAndInit(true, false);
-     
+
         /* Add key 2, cursor appears on BIN. */
         Transaction txn = env.beginTransaction(null, null);
         Cursor cursor = db.openCursor(txn, null);
@@ -494,7 +494,7 @@ public class INCompressorTest extends TestCase {
         checkBinEntriesAndCursors(bin, 2, 0);
         checkBinEntriesAndCursors(dbin, 3, 0);
 
-        /* 
+        /*
          * Shutdown and reopen to run recovery. This will call a checkpoint,
          * but it doesn't compress because the child is not resident.
          */
@@ -545,7 +545,7 @@ public class INCompressorTest extends TestCase {
         cursor.close();
         checkBinEntriesAndCursors(bin, 2, 0);
 
-        /* 
+        /*
          * Shutdown and reopen to run recovery. This will call a checkpoint,
          * but it doesn't compress because the child is not resident.
          */
@@ -593,7 +593,7 @@ public class INCompressorTest extends TestCase {
         cursor.close();
         checkBinEntriesAndCursors(dbin, 2, 0);
 
-        /* 
+        /*
          * Shutdown and reopen to run recovery. This will call a checkpoint,
          * but it doesn't compress because the child is not resident.
          */
@@ -758,7 +758,7 @@ public class INCompressorTest extends TestCase {
 	}
         cursor.close();
 
-        /* 
+        /*
 	 * Do lazy compression, leaving behind an empty BIN (and DBIN if dups.)
 	 */
         checkINCompQueueSize(doDups ? 2 : 1);
@@ -785,9 +785,9 @@ public class INCompressorTest extends TestCase {
     }
 
     /**
-     * Check expected size of the INCompressor queue. 
+     * Check expected size of the INCompressor queue.
      */
-    private void checkINCompQueueSize(int expected) 
+    private void checkINCompQueueSize(int expected)
         throws DatabaseException {
 
         assertEquals(expected,

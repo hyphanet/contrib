@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JoinTest.java,v 1.4.2.1 2007/02/01 14:50:25 cwl Exp $
+ * $Id: JoinTest.java,v 1.4.2.2 2007/11/20 13:32:52 cwl Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -30,11 +30,11 @@ import com.sleepycat.persist.model.SecondaryKey;
 
 /**
  * @author Mark Hayes
- */ 
+ */
 public class JoinTest extends TxnTestCase {
 
     private static final int N_RECORDS = 5;
- 
+
     public static Test suite() {
         return txnTestSuite(JoinTest.class, null, null);
     }

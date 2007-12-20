@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: StatsFileReader.java,v 1.15.2.2 2007/06/04 17:03:30 linda Exp $
+ * $Id: StatsFileReader.java,v 1.15.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -43,7 +43,7 @@ public class StatsFileReader extends DumpFileReader {
      * Create this reader to start at a given LSN.
      */
     public StatsFileReader(EnvironmentImpl envImpl,
-			   int readBufferSize, 
+			   int readBufferSize,
 			   long startLsn,
 			   long finishLsn,
 			   String entryTypes,
@@ -75,7 +75,7 @@ public class StatsFileReader extends DumpFileReader {
         int itemSize = currentEntryHeader.getItemSize();
         int headerSize = currentEntryHeader.getSize();
 
-        /* 
+        /*
          * Record various stats based on the entry header, then move the buffer
          * forward to skip ahead.
          */
@@ -83,7 +83,7 @@ public class StatsFileReader extends DumpFileReader {
             LogEntryType.findType(currentType, version);
         entryBuffer.position(entryBuffer.position() + itemSize);
 
-        /* 
+        /*
          * Get the info object for it, if this is the first time it's seen,
          * create an info object and insert it.
          */
@@ -92,7 +92,7 @@ public class StatsFileReader extends DumpFileReader {
             info = new EntryInfo();
             entryInfoMap.put(lastEntryType, info);
         }
-        
+
         /* Update counts. */
         info.count++;
         totalCount++;
@@ -114,7 +114,7 @@ public class StatsFileReader extends DumpFileReader {
         if (verbose) {
             if (firstLsnRead == DbLsn.NULL_LSN) {
                 firstLsnRead = getLastLsn();
-            } 
+            }
 
             if (currentType == LogEntryType.LOG_CKPT_END.getTypeNum()) {
                 /* start counting a new interval */
@@ -125,7 +125,7 @@ public class StatsFileReader extends DumpFileReader {
                 ckptCounter.increment(this, currentType);
             }
         }
-        
+
         return true;
     }
 
@@ -137,21 +137,21 @@ public class StatsFileReader extends DumpFileReader {
         NumberFormat percentForm = NumberFormat.getInstance();
         percentForm.setMaximumFractionDigits(1);
         System.out.println(pad("type") +
-                           pad("total") + 
-                           pad("provisional") + 
-                           pad("total") + 
-                           pad("min") + 
-                           pad("max") + 
-                           pad("avg") + 
+                           pad("total") +
+                           pad("provisional") +
+                           pad("total") +
+                           pad("min") +
+                           pad("max") +
+                           pad("avg") +
                            pad("entries"));
 
         System.out.println(pad("") +
-                           pad("count") + 
-                           pad("count") + 
-                           pad("bytes") + 
-                           pad("bytes") + 
-                           pad("bytes") + 
-                           pad("bytes") + 
+                           pad("count") +
+                           pad("count") +
+                           pad("bytes") +
+                           pad("bytes") +
+                           pad("bytes") +
+                           pad("bytes") +
                            pad("as % of log"));
 
         long realTotalBytes = 0;
@@ -175,7 +175,7 @@ public class StatsFileReader extends DumpFileReader {
 
             /* Calculate key/data size for transactional LN */
             if (entryType == LogEntryType.LOG_LN_TRANSACTIONAL) {
-                /* 
+                /*
 		   LN_TX entry overhead:
                    8 bytes node id
                    1 byte boolean (whether data exists or is null)
@@ -187,14 +187,14 @@ public class StatsFileReader extends DumpFileReader {
                    8 bytes txn id
                    8 bytes lastlogged LSN (backpointer for txn)
                 */
-           
+
                 int overhead = (info.count*46) + info.headerBytes;
                 realTotalBytes += (info.totalBytes-overhead);
             }
 
             /* Calculate key/data size for non-transactional LN */
             if (entryType == LogEntryType.LOG_LN) {
-                /* 
+                /*
 		   LN_TX entry overhead:
                    8 bytes node id
                    1 byte boolean (whether data exists or is null)
@@ -216,7 +216,7 @@ public class StatsFileReader extends DumpFileReader {
         sb.append(pad(""));
         sb.append(pad(""));
         sb.append(pad(""));
-        String realSize = "(" + 
+        String realSize = "(" +
             percentForm.format((double)(realTotalBytes*100)/
                                totalLogBytes) +
             ")";
@@ -232,7 +232,7 @@ public class StatsFileReader extends DumpFileReader {
             summarizeCheckpointInfo();
         }
     }
-    
+
     private String pad(String result) {
         int spaces = 15 - result.length();
         StringBuffer sb = new StringBuffer();
@@ -247,9 +247,9 @@ public class StatsFileReader extends DumpFileReader {
         System.out.println("\nPer checkpoint interval info:");
 
         /*
-         * Print out checkpoint interval info. 
+         * Print out checkpoint interval info.
          * If the log looks like this:
-         * 
+         *
          * start of log
          * ckpt1 start
          * ckpt1 end
@@ -262,9 +262,9 @@ public class StatsFileReader extends DumpFileReader {
          * ckpt1 end -> ckpt2 end
          * ckpt2 end -> end of log
          */
-        System.out.println(pad("lnTxn") + 
-                           pad("ln") + 
-                           pad("mapLNTxn") + 
+        System.out.println(pad("lnTxn") +
+                           pad("ln") +
+                           pad("mapLNTxn") +
                            pad("mapLN") +
                            pad("end-end") +    // ckpt n-1 end -> ckpt n end
                            pad("end-start") +  // ckpt n-1 end -> ckpt n start
@@ -319,9 +319,9 @@ public class StatsFileReader extends DumpFileReader {
             }
             sb.append(pad(form.format(endToEndDistance)));
 
-            /* 
+            /*
              * Interval between last checkpoint end and
-             * this checkpoint start. 
+             * this checkpoint start.
              */
             long start = (c.startCkptLsn == DbLsn.NULL_LSN) ? getLastLsn() :
                 c.startCkptLsn;
@@ -342,7 +342,7 @@ public class StatsFileReader extends DumpFileReader {
             }
             sb.append(pad(form.format(endToStartDistance)));
 
-            /* 
+            /*
              * Interval between ckpt start and ckpt end.
              */
             long startToEndDistance = 0;
@@ -356,7 +356,7 @@ public class StatsFileReader extends DumpFileReader {
             }
             sb.append(pad(form.format(startToEndDistance)));
 
-            /* 
+            /*
              * The maximum number of LNs to replay includes the portion of LNs
              * from checkpoint start to checkpoint end of the previous
              * interval.
@@ -373,12 +373,12 @@ public class StatsFileReader extends DumpFileReader {
             } else {
                 sb.append("   ").append(DbLsn.getNoFormatString(c.endCkptLsn));
             }
-            
+
             System.out.println(sb.toString());
             prevCounter = c;
         }
     }
-        
+
     static class EntryInfo {
         public int count;
         public int provisionalCount;
@@ -396,7 +396,7 @@ public class StatsFileReader extends DumpFileReader {
             maxBytes = 0;
         }
     }
-        
+
     static class LogEntryTypeComparator implements Comparator {
 	public int compare(Object o1, Object o2) {
 	    if (o1 == null) {
@@ -435,31 +435,31 @@ public class StatsFileReader extends DumpFileReader {
         public int postStartMapLNCount;
 
         public void increment(FileReader reader,  byte currentEntryTypeNum) {
-            if (currentEntryTypeNum == 
+            if (currentEntryTypeNum ==
                 LogEntryType.LOG_CKPT_START.getTypeNum()) {
                 startCkptLsn = reader.getLastLsn();
-            } else if (currentEntryTypeNum == 
+            } else if (currentEntryTypeNum ==
                        LogEntryType.LOG_LN_TRANSACTIONAL.getTypeNum()) {
                 if (startCkptLsn == DbLsn.NULL_LSN) {
                     preStartLNTxnCount++;
                 } else {
                     postStartLNTxnCount++;
                 }
-            } else if (currentEntryTypeNum == 
+            } else if (currentEntryTypeNum ==
                        LogEntryType.LOG_LN.getTypeNum()) {
                 if (startCkptLsn == DbLsn.NULL_LSN) {
                     preStartLNCount++;
                 } else {
                     postStartLNCount++;
                 }
-            } else if (currentEntryTypeNum == 
+            } else if (currentEntryTypeNum ==
                        LogEntryType.LOG_MAPLN.getTypeNum()) {
                 if (startCkptLsn == DbLsn.NULL_LSN) {
                     preStartMapLNCount++;
                 } else {
                     postStartMapLNCount++;
                 }
-            } else if (currentEntryTypeNum == 
+            } else if (currentEntryTypeNum ==
                        LogEntryType.LOG_MAPLN_TRANSACTIONAL.getTypeNum()) {
                 if (startCkptLsn == DbLsn.NULL_LSN) {
                     preStartMapLNTxnCount++;

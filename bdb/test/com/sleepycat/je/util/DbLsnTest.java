@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbLsnTest.java,v 1.17.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: DbLsnTest.java,v 1.17.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -115,7 +115,7 @@ public class DbLsnTest extends TestCase {
         long b = DbLsn.makeLsn(3, 40);
         assertEquals(230, DbLsn.getNoCleaningDistance(b, a, 100));
         assertEquals(230, DbLsn.getNoCleaningDistance(a, b, 100));
-        
+
         long c = DbLsn.makeLsn(1, 50);
         assertEquals(40, DbLsn.getNoCleaningDistance(a, c, 100));
         assertEquals(40, DbLsn.getNoCleaningDistance(c, a, 100));

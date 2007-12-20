@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TwoPCTest.java,v 1.5.2.2 2007/03/28 15:53:50 cwl Exp $
+ * $Id: TwoPCTest.java,v 1.5.2.3 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -40,7 +40,7 @@ public class TwoPCTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 
-    public void setUp() 
+    public void setUp()
         throws IOException, DatabaseException {
 
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);

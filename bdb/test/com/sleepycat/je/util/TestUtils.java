@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TestUtils.java,v 1.75.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: TestUtils.java,v 1.75.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -54,7 +54,7 @@ public class TestUtils {
         FAST_STATS = new StatsConfig();
         FAST_STATS.setFast(true);
     }
-    
+
     private static final boolean DEBUG = true;
     private static Random rnd = new Random();
 
@@ -169,7 +169,7 @@ public class TestUtils {
      * @param envFile environment directory
      * @param suffix files with this suffix will be removed
      * @param checkRemove if true, check the -DremoveLogFiles system
-     *  property before removing. 
+     *  property before removing.
      */
     public static void removeFiles(String msg,
                                    File envFile,
@@ -318,7 +318,7 @@ public class TestUtils {
     }
 
     /*
-     * Check that the stored memory count for all INs on the inlist 
+     * Check that the stored memory count for all INs on the inlist
      * matches their computed count. The environment mem usage check
      * may be run with assertions or not.
      *
@@ -335,7 +335,7 @@ public class TestUtils {
         long nodeCacheUsage = envImpl.getMemoryBudget().getTreeMemoryUsage();
         NumberFormat formatter = NumberFormat.getNumberInstance();
         if (assertOnError) {
-            assert (total==nodeCacheUsage) : 
+            assert (total==nodeCacheUsage) :
                   "calculatedTotal=" + formatter.format(total) +
                   " envCacheUsage=" + formatter.format(nodeCacheUsage);
         } else {
@@ -402,7 +402,7 @@ public class TestUtils {
         }
         return config;
     }
-    
+
     /**
      * If a unit test needs to override the isolation level, it should call
      * this method after calling initEnvConfig.
@@ -491,7 +491,7 @@ public class TestUtils {
         in.latch();
         long lsn;
         if (provisional) {
-            lsn = in.log(envImpl.getLogManager(), 
+            lsn = in.log(envImpl.getLogManager(),
         	         false,  // allowDeltas
                          true,   // isProvisional
                          false,  // proactiveMigration
@@ -553,7 +553,7 @@ public class TestUtils {
     }
 
     /**
-     * @return true if long running tests are enabled. 
+     * @return true if long running tests are enabled.
      */
     static public boolean runLongTests() {
         String longTestProp =  System.getProperty(TestUtils.LONG_TEST);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RunRecoveryException.java,v 1.18.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: RunRecoveryException.java,v 1.18.2.3 2007/12/12 12:27:00 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -38,7 +38,8 @@ public class RunRecoveryException extends DatabaseException {
     }
 
     public RunRecoveryException(EnvironmentImpl env,
-                                String message, Throwable t) {
+                                String message,
+				Throwable t) {
         super(message, t);
         invalidate(env);
     }
@@ -49,7 +50,7 @@ public class RunRecoveryException extends DatabaseException {
 	}
     }
 
-    /* 
+    /*
      * Remember that this was already thrown. That way, if we re-throw it
      * because another handle uses the environment after the fatal throw,
      * the message is more clear.

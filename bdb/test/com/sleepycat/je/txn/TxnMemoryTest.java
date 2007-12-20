@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnMemoryTest.java,v 1.10.2.1 2007/02/01 14:50:22 cwl Exp $
+ * $Id: TxnMemoryTest.java,v 1.10.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -64,10 +64,10 @@ public class TxnMemoryTest extends TestCase {
     private long afterTxnsCreated;
     private long afterAction;
     private Transaction [] txns;
-    
+
     private int numTxns = 2;
     private int numRecordsPerTxn = 30;
-    
+
     public static Test suite() {
         TestSuite allTests = new TestSuite();
         for (int i = 0; i < LOCK_MODE.length; i += 1) {
@@ -105,7 +105,7 @@ public class TxnMemoryTest extends TestCase {
 
     public void tearDown()
         throws IOException, DatabaseException {
-        
+
         /* Set test name for reporting; cannot be done in the ctor or setUp. */
         setName(lockMode + '/' + endMode + ":" + getName());
 
@@ -116,7 +116,7 @@ public class TxnMemoryTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             TestUtils.removeLogFiles("tearDown", envHome, true);
             TestUtils.removeFiles("tearDown", envHome, FileManager.DEL_SUFFIX);
@@ -174,7 +174,7 @@ public class TxnMemoryTest extends TestCase {
         }
     }
 
-    /** 
+    /**
      * Insert and then update some records. Measure memory usage at different
      * points in this sequence, asserting that the memory usage count is
      * properly decremented.
@@ -185,7 +185,7 @@ public class TxnMemoryTest extends TestCase {
         loadData();
 
 
-        /* 
+        /*
          * Now update the database transactionally. This should not change
          * the node related memory, but should add txn related cache
          * consumption. If this is a user transaction, we should
@@ -205,7 +205,7 @@ public class TxnMemoryTest extends TestCase {
         closeTxns(true);
     }
 
-    /** 
+    /**
      * Insert and then scan some records. Measure memory usage at different
      * points in this sequence, asserting that the memory usage count is
      * properly decremented.
@@ -215,13 +215,13 @@ public class TxnMemoryTest extends TestCase {
 
         loadData();
 
-        /* 
+        /*
          * Now scan the database. Make sure all locking overhead is
          * released.
          */
         for (int t = 0; t < numTxns; t++) {
             Cursor c = db.openCursor(txns[t], null);
-            while (c.getNext(keyEntry, dataEntry, null) == 
+            while (c.getNext(keyEntry, dataEntry, null) ==
                    OperationStatus.SUCCESS) {
             }
             c.close();
@@ -249,14 +249,14 @@ public class TxnMemoryTest extends TestCase {
         }
 
         beforeAction = mb.getCacheMemoryUsage();
-        
+
         /* Make some transactions. */
         txns = new Transaction[numTxns];
         if (lockMode.equals(LOCK_USERTXN)) {
             for (int t = 0; t < numTxns; t++) {
                 txns[t] = env.beginTransaction(null, null);
             }
-            
+
             afterTxnsCreated = mb.getCacheMemoryUsage();
             assertTrue( "afterTxns=" + afterTxnsCreated +
                         "beforeUpdate=" + beforeAction,
@@ -264,36 +264,36 @@ public class TxnMemoryTest extends TestCase {
         }
     }
 
-    private void closeTxns(boolean writesDone) 
+    private void closeTxns(boolean writesDone)
         throws DatabaseException {
-        
+
 	assertTrue(afterAction > afterTxnsCreated);
 
-        /* 
+        /*
          * If this is not a user transactional lock, we should be done
          * with all locking overhead. If it is a user transaction, we
          * only release memory after locks are released at commit or
          * abort.
          */
         if (lockMode.equals(LOCK_USERTXN)) {
-        
+
             /*
              * Note: expectedLockUsage is annoyingly fragile. If we change
              * the lock implementation, this may not be the right number
              * to check.
              *
              * Aborted transactions release more memory than just the lock
-             * related amount, because they actually null out LN references in 
+             * related amount, because they actually null out LN references in
              * the BINs.
              */
-            long expectedLockUsage = 
+            long expectedLockUsage =
                    (numRecordsPerTxn * numTxns *
-                    (LockManager.TOTAL_LOCK_OVERHEAD + 
+                    (LockManager.TOTAL_LOCK_OVERHEAD +
                      MemoryBudget.LOCKINFO_OVERHEAD));
 
             long expectedFreedNodeMemory = 0;
 
-            /* 
+            /*
              * If this test aborted some writes, then there are rollbacks,
              * which actually reduce the amount of memory held, because it
              * causes LNs to get evicted.
@@ -301,7 +301,7 @@ public class TxnMemoryTest extends TestCase {
             if (endMode.equals(ABORT) &&
                 writesDone) {
                 LN sampleLN = new LN(dataEntry);
-                expectedFreedNodeMemory += 
+                expectedFreedNodeMemory +=
                     ((numRecordsPerTxn * numTxns) *
                      sampleLN.getMemorySizeIncludedByParent());
             }

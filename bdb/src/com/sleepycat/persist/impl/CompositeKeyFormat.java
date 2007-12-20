@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CompositeKeyFormat.java,v 1.21.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: CompositeKeyFormat.java,v 1.21.2.4 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -178,10 +178,10 @@ public class CompositeKeyFormat extends Format {
     }
 
     @Override
-    void initialize(Catalog catalog) {
+    void initialize(Catalog catalog, int initVersion) {
         /* Initialize all fields. */
         for (FieldInfo field : fields) {
-            field.initialize(catalog);
+            field.initialize(catalog, initVersion);
         }
         /* Create the accessor. */
         Class type = getType();
@@ -194,7 +194,7 @@ public class CompositeKeyFormat extends Format {
         }
         rawAccessor = new RawAccessor(this, fields);
     }
-    
+
     @Override
     Object newArray(int len) {
         return objAccessor.newArray(len);
@@ -265,6 +265,16 @@ public class CompositeKeyFormat extends Format {
         for (int i = 0; i < maxNum; i += 1) {
             fields.get(i).getType().copySecKey(input, output);
         }
+    }
+
+    @Override
+    Format getSequenceKeyFormat() {
+        if (fields.size() != 1) {
+            throw new IllegalArgumentException
+                ("A composite key class used with a sequence may contain " +
+                 "only a single integer key field: " + getClassName());
+        }
+        return fields.get(0).getType().getSequenceKeyFormat();
     }
 
     @Override

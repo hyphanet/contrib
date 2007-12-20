@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileProcessor.java,v 1.17.2.6 2007/07/02 19:54:48 mark Exp $
+ * $Id: FileProcessor.java,v 1.17.2.8 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -80,7 +80,7 @@ class FileProcessor extends DaemonThread {
     private UtilizationProfile profile;
 
     /* Log version for the target file. */
-    private int fileLogVersion; 
+    private int fileLogVersion;
 
     /* Per Run counters. Reset before each file is processed. */
     private int nINsObsoleteThisRun = 0;
@@ -185,7 +185,7 @@ class FileProcessor extends DaemonThread {
      */
     public synchronized int doClean(boolean invokedFromDaemon,
                                     boolean cleanMultipleFiles,
-                                    boolean forceCleaning) 
+                                    boolean forceCleaning)
         throws DatabaseException {
 
         if (env.isClosed()) {
@@ -247,7 +247,7 @@ class FileProcessor extends DaemonThread {
 
                 String traceMsg =
                     "CleanerRun " + runId +
-                    " on file 0x" + Long.toHexString(fileNumValue) + 
+                    " on file 0x" + Long.toHexString(fileNumValue) +
                     " begins backlog=" + cleaner.nBacklogFiles;
                 Tracer.trace(Level.INFO, env, traceMsg);
                 if (DEBUG_TRACING) {
@@ -255,7 +255,7 @@ class FileProcessor extends DaemonThread {
                 }
 
                 /* Clean all log entries in the file. */
-                Set deferredWriteDbs = new HashSet(); 
+                Set deferredWriteDbs = new HashSet();
                 if (processFile(fileNum, deferredWriteDbs)) {
                     /* File is fully processed, update status information. */
                     fileSelector.addCleanedFile(fileNum, deferredWriteDbs);
@@ -288,8 +288,8 @@ class FileProcessor extends DaemonThread {
                     fileSelector.putBackFileForCleaning(fileNum);
                 }
                 String traceMsg =
-                    "CleanerRun " + runId + 
-                    " on file 0x" + Long.toHexString(fileNumValue) + 
+                    "CleanerRun " + runId +
+                    " on file 0x" + Long.toHexString(fileNumValue) +
                     " invokedFromDaemon=" + invokedFromDaemon +
                     " finished=" + finished +
                     " fileDeleted=" + fileDeleted +
@@ -322,7 +322,7 @@ class FileProcessor extends DaemonThread {
 
     /**
      * Process all log entries in the given file.
-     * 
+     *
      * Note that we check for obsolete entries using the active TFS
      * (TrackedFileSummary) for a file while it is being processed, and we
      * prohibit flushing (eviction) of that offset information until file
@@ -339,7 +339,7 @@ class FileProcessor extends DaemonThread {
      * afterward fetched during cleaning.
      *
      * @param fileNum the file being cleaned.
-     * @param deferredWriteDbs the set of databaseIds for deferredWrite 
+     * @param deferredWriteDbs the set of databaseIds for deferredWrite
      * databases which need a sync before a cleaned file can be safely deleted.
      * @return false if we aborted file processing because the environment is
      * being closed.
@@ -351,7 +351,7 @@ class FileProcessor extends DaemonThread {
         PackedOffsets obsoleteOffsets = new PackedOffsets();
         TrackedFileSummary tfs =
             profile.getObsoleteDetail(fileNum,
-                                      obsoleteOffsets, 
+                                      obsoleteOffsets,
                                       true /* logUpdate */);
         PackedOffsets.Iterator obsoleteIter = obsoleteOffsets.iterator();
         long nextObsolete = -1;
@@ -443,7 +443,7 @@ class FileProcessor extends DaemonThread {
                 if (nextObsolete == fileOffset) {
                     isObsolete = true;
                 }
-                
+
                 /* Check for the entry type next because it is very cheap. */
                 if (!isObsolete &&
                     !isLN &&
@@ -453,14 +453,14 @@ class FileProcessor extends DaemonThread {
                     isObsolete = true;
                 }
 
-                /* 
-                 * SR 14583: In JE 2.0 and later we can assume that all 
+                /*
+                 * SR 14583: In JE 2.0 and later we can assume that all
                  * deleted LNs are obsolete. Either the delete committed and
                  * the BIN parent is marked with a pending deleted bit, or the
                  * delete rolled back, in which case there is no reference
                  * to this entry. JE 1.7.1 and earlier require a tree lookup
                  * because deleted LNs may still be reachable through their BIN
-                 * parents. 
+                 * parents.
                  */
                 if (!isObsolete &&
                     isLN &&
@@ -532,9 +532,9 @@ class FileProcessor extends DaemonThread {
                         (dbId, cleaner.lockTimeout, dbCache);
                     targetIN.setDatabase(db);
                     processIN(targetIN, db, logLsn, deferredWriteDbs);
-                    
+
                 } else if (isRoot) {
-                    
+
                     env.rewriteMapTreeRoot(logLsn);
                 } else {
                     assert false;
@@ -621,7 +621,7 @@ class FileProcessor extends DaemonThread {
         DIN parentDIN = null;      // for DupCountLNs
         try {
 
-            /* 
+            /*
              * If the DB is gone, this LN is obsolete.  If delete cleanup is in
              * progress, put the DB into the DB pending set; this LN will be
              * declared deleted after the delete cleanup is finished.
@@ -788,14 +788,14 @@ class FileProcessor extends DaemonThread {
              * the BIN by checking for obsoleteness here, which requires
              * locking.  The latter case can occur frequently if trackDetail is
              * false.
-             * 
+             *
              * 1. If the LSN in the tree and in the log are the same, we will
              * attempt to migrate it.
-             * 
+             *
              * 2. If the LSN in the tree is < the LSN in the log, the log entry
              * is obsolete, because this LN has been rolled back to a previous
              * version by a txn that aborted.
-             * 
+             *
              * 3. If the LSN in the tree is > the LSN in the log, the log entry
              * is obsolete, because the LN was advanced forward by some
              * now-committed txn.
@@ -823,7 +823,7 @@ class FileProcessor extends DaemonThread {
             } else if (treeLsn == DbLsn.NULL_LSN) {
 
                 /*
-                 * Case 4: The LN in the tree is a never-written LN for a 
+                 * Case 4: The LN in the tree is a never-written LN for a
                  * deferred-write db, so the LN in the file is obsolete.
                  */
                 obsolete = true;
@@ -842,7 +842,7 @@ class FileProcessor extends DaemonThread {
                     (nodeId, LockType.READ, db);
                 if (lockRet.getLockGrant() == LockGrantType.DENIED) {
 
-                    /* 
+                    /*
                      * LN is currently locked by another Locker, so we can't
                      * assume anything about the value of the LSN in the bin.
                      */
@@ -883,6 +883,9 @@ class FileProcessor extends DaemonThread {
                     if (treeLsn == logLsn && bin.getTarget(index) == null) {
                         ln.postFetchInit(db, logLsn);
                         bin.updateEntry(index, ln);
+                        /* Ensure keys are transactionally correct. [#15704] */
+                        bin.updateKeyIfChanged
+                            (index, bin.containsDuplicates() ? dupKey : key);
                     }
 
                     /*
@@ -945,7 +948,7 @@ class FileProcessor extends DaemonThread {
         try {
             nINsCleanedThisRun++;
 
-            /* 
+            /*
              * If the DB is gone, this LN is obsolete.  If delete cleanup is in
              * progress, put the DB into the DB pending set; this LN will be
              * declared deleted after the delete cleanup is finished.
@@ -969,7 +972,7 @@ class FileProcessor extends DaemonThread {
                 obsolete = true;
             } else {
 
-                /* 
+                /*
                  * IN is still in the tree.  Dirty it.  Checkpoint or eviction
                  * will write it out.  Prohibit the next delta, since the
                  * original version must be made obsolete.
@@ -980,7 +983,7 @@ class FileProcessor extends DaemonThread {
                 inInTree.releaseLatch();
                 dirtied = true;
             }
-            
+
             completed = true;
         } finally {
             noteDbsRequiringSync(db, deferredWriteDbs);
@@ -1001,7 +1004,7 @@ class FileProcessor extends DaemonThread {
      */
     private IN findINInTree(Tree tree,
                             DatabaseImpl db,
-                            IN inClone, 
+                            IN inClone,
                             long logLsn)
         throws DatabaseException {
 
@@ -1015,11 +1018,11 @@ class FileProcessor extends DaemonThread {
                  * a call to tree.getParentNode will return something
                  * unexpected since it will try to find a parent.
                  */
-                return null;  
+                return null;
             } else {
                 return rootIN;
             }
-        }       
+        }
 
         /* It's not the root.  Can we find it, and if so, is it current? */
         inClone.latch(Cleaner.UPDATE_GENERATION);
@@ -1036,19 +1039,19 @@ class FileProcessor extends DaemonThread {
             if (!result.exactParentFound) {
                 return null;
             }
-        
+
             long treeLsn = result.parent.getLsn(result.index);
 
-            /* 
+            /*
              * The IN in the tree is a never-written IN for a DW db so the IN
 	     * in the file is obsolete. [#15588]
              */
             if (treeLsn == DbLsn.NULL_LSN) {
 		return null;
             }
- 
+
             int compareVal = DbLsn.compareTo(treeLsn, logLsn);
-            
+
             if (compareVal > 0) {
                 /* Log entry is obsolete. */
                 return null;
@@ -1082,9 +1085,9 @@ class FileProcessor extends DaemonThread {
 
     /*
      * When we process a target log entry for a deferred write db, we may
-     * need to sync the db at the next checkpoint. 
+     * need to sync the db at the next checkpoint.
      * Cases are:
-     *  IN found in the tree: 
+     *  IN found in the tree:
      *      The IN is dirtied and must be written out at the next ckpt.
      *  IN not found in the tree:
      *      This log entry is not in use by the in-memory tree, but a later
@@ -1094,7 +1097,7 @@ class FileProcessor extends DaemonThread {
      *  LN found in tree:
      *      It will be migrated, need to be synced.
      *  LN not found in tree:
-     *      Like not-found IN, need to be sure that the database is 
+     *      Like not-found IN, need to be sure that the database is
      *      sufficiently synced.
      * Note that if nothing in the db is actually dirty (LN and IN are not
      * found) there's no harm done, there will be no sync and no extra

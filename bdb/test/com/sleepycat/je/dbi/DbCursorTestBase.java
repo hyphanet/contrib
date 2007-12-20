@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorTestBase.java,v 1.94.2.2 2007/05/23 14:07:30 mark Exp $
+ * $Id: DbCursorTestBase.java,v 1.94.2.3 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -63,7 +63,7 @@ public class DbCursorTestBase extends TestCase {
 
     protected static int dbCnt = 0;
 
-    public DbCursorTestBase() 
+    public DbCursorTestBase()
     	throws DatabaseException {
 
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
@@ -75,13 +75,13 @@ public class DbCursorTestBase extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
 
-    protected void initEnv(boolean duplicatesAllowed) 
+    protected void initEnv(boolean duplicatesAllowed)
         throws DatabaseException {
 
 	initEnvInternal(duplicatesAllowed, false);
     }
 
-    protected void initEnvTransactional(boolean duplicatesAllowed) 
+    protected void initEnvTransactional(boolean duplicatesAllowed)
         throws DatabaseException {
 
 	initEnvInternal(duplicatesAllowed, true);
@@ -145,7 +145,7 @@ public class DbCursorTestBase extends TestCase {
 		cursor = null;
 	    }
 	} catch (DatabaseException DBE) {
-	    /* 
+	    /*
 	     * If already closed, well, that's life.  Just ignore it.
 	     * This is expected because some of the tests in this suite
 	     * call tearDown on their own.  Rather than add another method
@@ -640,7 +640,7 @@ public class DbCursorTestBase extends TestCase {
     }
 
     /* Throw assertion if the database is not valid. */
-    protected void validateDatabase() 
+    protected void validateDatabase()
         throws DatabaseException {
 
         DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(exampleDb);

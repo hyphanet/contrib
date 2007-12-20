@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: TransactionStats.java,v 1.27.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: TransactionStats.java,v 1.27.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -306,6 +306,6 @@ public class TransactionStats implements Serializable {
         sb.append("lastTxnId=").append(lastTxnId).append('\n');
         sb.append("lastCheckpointTime=").
            append(new Date(lastCheckpointTime)).append('\n');
-        return sb.toString();    
+        return sb.toString();
     }
 }

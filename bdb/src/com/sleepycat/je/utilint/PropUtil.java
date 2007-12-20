@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PropUtil.java,v 1.22.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: PropUtil.java,v 1.22.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -38,7 +38,7 @@ public class PropUtil {
      * @throws DatabaseException if the property bag contains
      * a property not specified in the set of allowed properties.
      */
-    public static Properties validateProps(Properties props, 
+    public static Properties validateProps(Properties props,
                                            Set allowedProps,
                                            String apiMethod)
         throws DatabaseException {

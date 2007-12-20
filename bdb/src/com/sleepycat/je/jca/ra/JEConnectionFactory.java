@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEConnectionFactory.java,v 1.9.2.1 2007/02/01 14:49:45 cwl Exp $
+ * $Id: JEConnectionFactory.java,v 1.9.2.2 2007/11/20 13:32:30 cwl Exp $
  */
 
 package com.sleepycat.je.jca.ra;
@@ -24,8 +24,8 @@ import com.sleepycat.je.TransactionConfig;
  *    JEConnectionFactory dcf = (JEConnectionFactory) ref;
  *    JEConnection dc = dcf.getConnection(envDir, envConfig);
  * </pre>
- * 
- * See &lt;JEHOME&gt;/examples/jca/HOWTO-**.txt and 
+ *
+ * See &lt;JEHOME&gt;/examples/jca/HOWTO-**.txt and
  * &lt;JEHOME&gt;/examples/jca/simple/SimpleBean.java for more information
  * on how to build the resource adapter and use a JEConnection.
  */

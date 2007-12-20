@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RunRecoveryFailureTest.java,v 1.34.2.2 2007/06/13 03:55:37 mark Exp $
+ * $Id: RunRecoveryFailureTest.java,v 1.34.2.3 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -36,11 +36,11 @@ public class RunRecoveryFailureTest extends TestCase {
         openEnv();
 
     }
-    
+
     public void tearDown()
         throws Exception {
 
-        /* 
+        /*
 	 * Close down environments in case the unit test failed so that the log
 	 * files can be removed.
          */
@@ -59,13 +59,13 @@ public class RunRecoveryFailureTest extends TestCase {
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
 
-    private void openEnv() 
+    private void openEnv()
         throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setTransactional(true);
 
-        /* 
+        /*
          * Run with tiny log buffers, so we can go to disk more (and see the
          * checksum errors)
          */
@@ -91,7 +91,7 @@ public class RunRecoveryFailureTest extends TestCase {
         throws Throwable {
 
         try {
-        
+
             /* Make a new db in this env and flush the file. */
             Transaction txn =
 		env.beginTransaction(null, TransactionConfig.DEFAULT);
@@ -108,7 +108,7 @@ public class RunRecoveryFailureTest extends TestCase {
             env.getEnvironmentImpl().getLogManager().flush();
             env.getEnvironmentImpl().getFileManager().clear();
 
-            /* 
+            /*
 	     * Corrupt the file, then abort the txn in order to force it to
              * re-read. Should get a checksum error, which should invalidate
              * the environment.

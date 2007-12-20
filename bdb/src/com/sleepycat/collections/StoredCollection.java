@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: StoredCollection.java,v 1.38.2.2 2007/03/12 17:46:05 mark Exp $
+ * $Id: StoredCollection.java,v 1.38.2.3 2007/11/20 13:32:25 cwl Exp $
  */
 
 package com.sleepycat.collections;
@@ -202,7 +202,7 @@ public abstract class StoredCollection extends StoredContainer
      * Java iterators do not need to be closed.
      */
     public StoredIterator iterator(boolean writeAllowed) {
-        
+
         return storedIterator(writeAllowed);
     }
 

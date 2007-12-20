@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LatchStats.java,v 1.21.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: LatchStats.java,v 1.21.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -76,7 +76,7 @@ public class LatchStats implements Cloneable, Serializable {
         return sb.toString();
     }
 
-    public Object clone() 
+    public Object clone()
         throws CloneNotSupportedException {
         return super.clone();
     }

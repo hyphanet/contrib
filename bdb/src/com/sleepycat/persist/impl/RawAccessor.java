@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RawAccessor.java,v 1.5.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: RawAccessor.java,v 1.5.2.4 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -114,7 +114,7 @@ class RawAccessor implements Accessor {
             writeField(o, secKeyFields.get(i), output);
         }
     }
-    
+
     public void readSecKeyFields(Object o,
                                  EntityInput input,
                                  int startField,
@@ -149,7 +149,7 @@ class RawAccessor implements Accessor {
             writeField(o, nonKeyFields.get(i), output);
         }
     }
-    
+
     public void readNonKeyFields(Object o,
                                  EntityInput input,
                                  int startField,
@@ -181,8 +181,8 @@ class RawAccessor implements Accessor {
             return superAccessor.getField
                 (getSuper(o), field, superLevel - 1, isSecField);
         }
-        FieldInfo fld = isSecField ? secKeyFields.get(field)
-                                   : nonKeyFields.get(field);
+        FieldInfo fld =
+	    isSecField ? secKeyFields.get(field) : nonKeyFields.get(field);
         return getValue(o, fld);
     }
 
@@ -194,9 +194,10 @@ class RawAccessor implements Accessor {
         if (superLevel > 0) {
             superAccessor.setField
                 (getSuper(o), field, superLevel - 1, isSecField, value);
+	    return;
         }
-        FieldInfo fld = isSecField ? secKeyFields.get(field)
-                                   : nonKeyFields.get(field);
+        FieldInfo fld =
+	    isSecField ? secKeyFields.get(field) : nonKeyFields.get(field);
         setValue(o, fld, value);
     }
 

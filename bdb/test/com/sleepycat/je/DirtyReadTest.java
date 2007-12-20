@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DirtyReadTest.java,v 1.17.2.1 2007/02/01 14:50:05 cwl Exp $
+ * $Id: DirtyReadTest.java,v 1.17.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -34,7 +34,7 @@ public class DirtyReadTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -53,7 +53,7 @@ public class DirtyReadTest extends TestCase {
             envConfig.setTransactional(true);
             envConfig.setAllowCreate(true);
             env = new Environment(envHome, envConfig);
-            
+
             /* Now open for real, insert a record */
             DatabaseConfig dbConfig = new DatabaseConfig();
             dbConfig.setTransactional(true);
@@ -66,8 +66,8 @@ public class DirtyReadTest extends TestCase {
             OperationStatus status = db.put(txnA, key, data);
             assertEquals(OperationStatus.SUCCESS, status);
 
-            /* 
-             * txnA should have a write lock on this record. Now try 
+            /*
+             * txnA should have a write lock on this record. Now try
              * to read-uncommitted it.
              */
             DatabaseEntry foundKey = new DatabaseEntry();
@@ -82,8 +82,8 @@ public class DirtyReadTest extends TestCase {
             } catch (DeadlockException e) {
             }
 
-            /* 
-             * Specify read-uncommitted as a lock mode. 
+            /*
+             * Specify read-uncommitted as a lock mode.
              */
             status = db.get(null, key, foundData, LockMode.READ_UNCOMMITTED);
             assertEquals(OperationStatus.SUCCESS, status);

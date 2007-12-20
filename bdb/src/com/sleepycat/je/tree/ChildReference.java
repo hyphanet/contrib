@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ChildReference.java,v 1.101.2.2 2007/03/08 22:32:59 mark Exp $
+ * $Id: ChildReference.java,v 1.101.2.3 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -33,7 +33,7 @@ public class ChildReference implements Loggable {
      * 1. Bit flags are used here because of the desire to keep the child
      * reference compact. State is persistent because knownDeleted is
      * persistent, but the dirty bit is cleared when read in from the log.
-     *  
+     *
      * -- KnownDeleted is a way of indicating that the reference is invalid
      * without logging new data. This happens in aborts and recoveries. If
      * knownDeleted is true, this entry is surely deleted. If knownDeleted is
@@ -111,13 +111,13 @@ public class ChildReference implements Loggable {
      * @param database The database that this ChildReference resides in.
      * @param in The IN that this ChildReference lives in.  If
      * the target is fetched (i.e. it is null on entry), then the
-     * total in memory count is invalidated in the IN. May be null. 
+     * total in memory count is invalidated in the IN. May be null.
      * For example, the root is a ChildReference and there is no parent IN
      * when the rootIN is fetched in.
      * @return the Node object representing the target node in the tree, or
      * null if there is no target of this ChildReference, or null if a
      * pendingDelete or knownDeleted entry has been cleaned.
-     */    
+     */
     public Node fetchTarget(DatabaseImpl database, IN in)
         throws DatabaseException {
 
@@ -213,8 +213,8 @@ public class ChildReference implements Loggable {
     void updateLsnAfterOptionalLog(DatabaseImpl dbImpl, long lsn) {
         if ((lsn == DbLsn.NULL_LSN) &&
             dbImpl.isDeferredWrite()) {
-            /* 
-             * Don't update the lsn -- we don't want to overwrite a 
+            /*
+             * Don't update the lsn -- we don't want to overwrite a
              * non-null lsn.
              */
             setDirty();
@@ -267,7 +267,7 @@ public class ChildReference implements Loggable {
         }
     }
 
-    /* 
+    /*
      * Support for logging.
      */
 
@@ -311,7 +311,7 @@ public class ChildReference implements Loggable {
         sb.append(Key.dumpString(key, 0));
 	sb.append(DbLsn.toString(lsn));
         sb.append("</ref>");
-    }   
+    }
 
     /**
      * @see Loggable#getTransactionId

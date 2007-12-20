@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DummyLockManager.java,v 1.4.2.3 2007/07/13 13:13:23 cwl Exp $
+ * $Id: DummyLockManager.java,v 1.4.2.5 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -11,6 +11,7 @@ package com.sleepycat.je.txn;
 import java.util.Set;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -21,7 +22,7 @@ import com.sleepycat.je.dbi.MemoryBudget;
  */
 public class DummyLockManager extends LockManager {
 
-    public DummyLockManager(EnvironmentImpl envImpl) 
+    public DummyLockManager(EnvironmentImpl envImpl)
     	throws DatabaseException {
 
         super(envImpl);
@@ -30,37 +31,37 @@ public class DummyLockManager extends LockManager {
     /**
      * @see LockManager#lookupLock
      */
-    protected Lock lookupLock(Long nodeId) 
+    protected Lock lookupLock(Long nodeId)
         throws DatabaseException {
 
 	return null;
     }
-        
+
     /**
      * @see LockManager#attemptLock
      */
     protected LockAttemptResult attemptLock(Long nodeId,
                                             Locker locker,
                                             LockType type,
-                                            boolean nonBlockingRequest) 
+                                            boolean nonBlockingRequest)
         throws DatabaseException {
 
 	return new LockAttemptResult(null, LockGrantType.NEW, true);
     }
-        
+
     /**
      * @see LockManager#makeTimeoutMsg
      */
-    protected String makeTimeoutMsg(String lockOrTxn,
-                                    Locker locker,
-                                    long nodeId,
-                                    LockType type,
-                                    LockGrantType grantType,
-                                    Lock useLock,
-                                    long timeout,
-                                    long start,
-                                    long now,
-				    DatabaseImpl database) {
+    protected DeadlockException makeTimeoutMsg(String lockOrTxn,
+					       Locker locker,
+					       long nodeId,
+					       LockType type,
+					       LockGrantType grantType,
+					       Lock useLock,
+					       long timeout,
+					       long start,
+					       long now,
+					       DatabaseImpl database) {
 
 	return null;
     }
@@ -69,7 +70,7 @@ public class DummyLockManager extends LockManager {
      * @see LockManager#releaseAndNotifyTargets
      */
     protected Set releaseAndFindNotifyTargets(long nodeId,
-                                              Locker locker) 
+                                              Locker locker)
         throws DatabaseException {
 
 	return null;
@@ -81,7 +82,7 @@ public class DummyLockManager extends LockManager {
     void transfer(long nodeId,
                   Locker owningLocker,
                   Locker destLocker,
-                  boolean demoteToRead) 
+                  boolean demoteToRead)
         throws DatabaseException {
 
     }
@@ -101,7 +102,7 @@ public class DummyLockManager extends LockManager {
      */
     void demote(long nodeId, Locker locker)
         throws DatabaseException {
-        
+
     }
 
     /**
@@ -124,7 +125,7 @@ public class DummyLockManager extends LockManager {
      * @see LockManager#isWaiter
      */
     boolean isWaiter(Long nodeId, Locker locker) {
-        
+
 	return false;
     }
 
@@ -157,7 +158,7 @@ public class DummyLockManager extends LockManager {
      * @see LockManager#validateOwnership
      */
     protected boolean validateOwnership(Long nodeId,
-                                        Locker locker, 
+                                        Locker locker,
                                         LockType type,
                                         boolean flushFromWaiters,
 					MemoryBudget mb)
@@ -169,8 +170,8 @@ public class DummyLockManager extends LockManager {
     /**
      * @see LockManager#dumpLockTable
      */
-    protected void dumpLockTable(LockStats stats) 
+    protected void dumpLockTable(LockStats stats)
         throws DatabaseException {
-        
+
     }
 }

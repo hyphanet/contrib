@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: IntConfigParam.java,v 1.25.2.1 2007/02/01 14:49:43 cwl Exp $
+ * $Id: IntConfigParam.java,v 1.25.2.2 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -12,7 +12,7 @@ package com.sleepycat.je.config;
  * A JE configuration parameter with an integer value.
  */
 public class IntConfigParam extends ConfigParam {
-    
+
     private static final String DEBUG_NAME = IntConfigParam.class.getName();
 
     private Integer min;

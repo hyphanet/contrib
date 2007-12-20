@@ -4,7 +4,7 @@
  * Copyright (c) 2002,2007
  *      Oracle Corporation.  All rights reserved.
  *
- * $Id: UtilizationFileReader.java,v 1.7.2.2 2007/03/08 22:32:55 mark Exp $
+ * $Id: UtilizationFileReader.java,v 1.7.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -96,7 +96,7 @@ public class UtilizationFileReader extends FileReader {
 
         summary.totalCount += 1;
         summary.totalSize += size;
-        
+
         if (entry instanceof LNLogEntry) {
             LNLogEntry lnEntry = (LNLogEntry) entry;
             if (DEBUG) {
@@ -152,7 +152,7 @@ public class UtilizationFileReader extends FileReader {
                 }
             }
         }
-        
+
         return true;
     }
 
@@ -239,7 +239,7 @@ public class UtilizationFileReader extends FileReader {
             }
         }
     }
-    
+
     /**
      * Creates a UtilizationReader, reads the log, and returns the resulting
      * Map of Long file number to FileSummary.

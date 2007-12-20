@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TransactionTest.java,v 1.46.2.3 2007/05/23 20:27:53 linda Exp $
+ * $Id: TransactionTest.java,v 1.46.2.5 2007/12/13 23:48:23 mark Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -203,7 +203,7 @@ public class TransactionTest extends TestCase {
         DatabaseConfig dbConfig = new DatabaseConfig();
         DbCompat.setTypeBtree(dbConfig);
         dbConfig.setAllowCreate(true);
-        Database db = DbCompat.openDatabase(env, null, 
+        Database db = DbCompat.openDatabase(env, null,
                                             dbName(1), null,
                                             dbConfig);
         map = new StoredSortedMap(db, testStore.getKeyBinding(),
@@ -217,7 +217,7 @@ public class TransactionTest extends TestCase {
         //
         dbConfig.setTransactional(true);
         currentTxn.beginTransaction(null);
-        db = DbCompat.openDatabase(env, currentTxn.getTransaction(), 
+        db = DbCompat.openDatabase(env, currentTxn.getTransaction(),
                                    dbName(2), null, dbConfig);
         currentTxn.commitTransaction();
         map = new StoredSortedMap(db, testStore.getKeyBinding(),
@@ -592,11 +592,14 @@ public class TransactionTest extends TestCase {
      * not working because the value object in the map has a reference to the
      * environment.  This was fixed by wrapping the value in a WeakReference.
      * [#15444]
+     *
+     * This test only succeeds intermittently, probably due to its reliance
+     * on the GC call.
      */
     public void testCurrentTransactionGC()
         throws Exception {
-        
-        /* 
+
+        /*
          * This test can have indeterminate results because it depends on
          * a finalize count, so it's not part of the default run.
          */

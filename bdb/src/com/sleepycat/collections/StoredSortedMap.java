@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: StoredSortedMap.java,v 1.31.2.1 2007/02/01 14:49:40 cwl Exp $
+ * $Id: StoredSortedMap.java,v 1.31.2.2 2007/11/20 13:32:25 cwl Exp $
  */
 
 package com.sleepycat.collections;
@@ -138,7 +138,7 @@ public class StoredSortedMap extends StoredMap implements SortedMap {
      * com.sleepycat.je.DatabaseException} is thrown.
      */
     public StoredSortedMap(Database database, EntryBinding keyBinding,
-                           EntityBinding valueEntityBinding, 
+                           EntityBinding valueEntityBinding,
                            PrimaryKeyAssigner keyAssigner) {
 
         super(new DataView(database, keyBinding, null, valueEntityBinding,

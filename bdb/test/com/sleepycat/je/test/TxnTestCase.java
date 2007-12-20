@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnTestCase.java,v 1.17.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: TxnTestCase.java,v 1.17.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -78,7 +78,7 @@ public abstract class TxnTestCase extends TestCase {
     }
 
     private void txnInit(EnvironmentConfig envConfig, String txnType) {
-        
+
         this.envConfig = envConfig;
         this.txnType = txnType;
         isTransactional = (txnType != TXN_NULL);
@@ -98,10 +98,10 @@ public abstract class TxnTestCase extends TestCase {
         super.runTest();
         closeEnv();
     }
-    
+
     public void tearDown()
         throws Exception {
-        
+
         /* Set test name for reporting; cannot be done in the ctor or setUp. */
         setName(txnType + ':' + getName());
 
@@ -170,7 +170,7 @@ public abstract class TxnTestCase extends TestCase {
     protected Transaction txnBegin(Transaction parentTxn,
                                    TransactionConfig config)
         throws DatabaseException {
-        
+
         if (txnType == TXN_USER) {
             return env.beginTransaction(parentTxn, config);
         } else {
@@ -193,7 +193,7 @@ public abstract class TxnTestCase extends TestCase {
     protected Transaction txnBeginCursor(Transaction parentTxn,
                                          TransactionConfig config)
         throws DatabaseException {
-        
+
         if (txnType == TXN_USER || txnType == TXN_AUTO) {
             return env.beginTransaction(parentTxn, config);
         } else {
@@ -206,7 +206,7 @@ public abstract class TxnTestCase extends TestCase {
      */
     protected void txnCommit(Transaction txn)
         throws DatabaseException {
-        
+
         if (txn != null) {
             txn.commit();
         }
@@ -217,7 +217,7 @@ public abstract class TxnTestCase extends TestCase {
      */
     protected void txnAbort(Transaction txn)
         throws DatabaseException {
-        
+
         if (txn != null) {
             txn.abort();
         }

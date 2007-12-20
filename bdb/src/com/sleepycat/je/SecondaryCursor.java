@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryCursor.java,v 1.35.2.2 2007/06/13 21:22:17 mark Exp $
+ * $Id: SecondaryCursor.java,v 1.35.2.3 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -34,7 +34,7 @@ public class SecondaryCursor extends Cursor {
      */
     SecondaryCursor(SecondaryDatabase dbHandle,
                     Transaction txn,
-                    CursorConfig cursorConfig) 
+                    CursorConfig cursorConfig)
         throws DatabaseException {
 
         super(dbHandle, txn, cursorConfig);
@@ -115,7 +115,7 @@ public class SecondaryCursor extends Cursor {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public OperationStatus put(DatabaseEntry key, DatabaseEntry data) 
+    public OperationStatus put(DatabaseEntry key, DatabaseEntry data)
         throws DatabaseException {
 
         throw SecondaryDatabase.notAllowedException();
@@ -126,7 +126,7 @@ public class SecondaryCursor extends Cursor {
      * the doc templates in the doc_src directory.
      */
     public OperationStatus putNoOverwrite(DatabaseEntry key,
-                                          DatabaseEntry data) 
+                                          DatabaseEntry data)
         throws DatabaseException {
 
         throw SecondaryDatabase.notAllowedException();
@@ -136,7 +136,7 @@ public class SecondaryCursor extends Cursor {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public OperationStatus putNoDupData(DatabaseEntry key, DatabaseEntry data) 
+    public OperationStatus putNoDupData(DatabaseEntry key, DatabaseEntry data)
         throws DatabaseException {
 
         throw SecondaryDatabase.notAllowedException();
@@ -158,7 +158,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getCurrent(DatabaseEntry key,
                                       DatabaseEntry data,
-                                      LockMode lockMode) 
+                                      LockMode lockMode)
         throws DatabaseException {
 
         return getCurrent(key, new DatabaseEntry(), data, lockMode);
@@ -171,7 +171,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getCurrent(DatabaseEntry key,
                                       DatabaseEntry pKey,
                                       DatabaseEntry data,
-                                      LockMode lockMode) 
+                                      LockMode lockMode)
         throws DatabaseException {
 
         checkState(true);
@@ -187,7 +187,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getFirst(DatabaseEntry key,
                                     DatabaseEntry data,
-                                    LockMode lockMode) 
+                                    LockMode lockMode)
         throws DatabaseException {
 
         return getFirst(key, new DatabaseEntry(), data, lockMode);
@@ -200,7 +200,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getFirst(DatabaseEntry key,
                                     DatabaseEntry pKey,
                                     DatabaseEntry data,
-                                    LockMode lockMode) 
+                                    LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -216,7 +216,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getLast(DatabaseEntry key,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         return getLast(key, new DatabaseEntry(), data, lockMode);
@@ -229,7 +229,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getLast(DatabaseEntry key,
                                    DatabaseEntry pKey,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -245,7 +245,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getNext(DatabaseEntry key,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         return getNext(key, new DatabaseEntry(), data, lockMode);
@@ -258,7 +258,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getNext(DatabaseEntry key,
                                    DatabaseEntry pKey,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -278,7 +278,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getNextDup(DatabaseEntry key,
                                       DatabaseEntry data,
-                                      LockMode lockMode) 
+                                      LockMode lockMode)
         throws DatabaseException {
 
         return getNextDup(key, new DatabaseEntry(), data, lockMode);
@@ -291,7 +291,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getNextDup(DatabaseEntry key,
                                       DatabaseEntry pKey,
                                       DatabaseEntry data,
-                                      LockMode lockMode) 
+                                      LockMode lockMode)
         throws DatabaseException {
 
         checkState(true);
@@ -307,7 +307,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getNextNoDup(DatabaseEntry key,
                                         DatabaseEntry data,
-                                        LockMode lockMode) 
+                                        LockMode lockMode)
         throws DatabaseException {
 
         return getNextNoDup(key, new DatabaseEntry(), data, lockMode);
@@ -320,7 +320,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getNextNoDup(DatabaseEntry key,
                                         DatabaseEntry pKey,
                                         DatabaseEntry data,
-                                        LockMode lockMode) 
+                                        LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -342,7 +342,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getPrev(DatabaseEntry key,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         return getPrev(key, new DatabaseEntry(), data, lockMode);
@@ -355,7 +355,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getPrev(DatabaseEntry key,
                                    DatabaseEntry pKey,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -375,7 +375,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getPrevDup(DatabaseEntry key,
                                       DatabaseEntry data,
-                                      LockMode lockMode) 
+                                      LockMode lockMode)
         throws DatabaseException {
 
         return getPrevDup(key, new DatabaseEntry(), data, lockMode);
@@ -388,7 +388,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getPrevDup(DatabaseEntry key,
                                       DatabaseEntry pKey,
                                       DatabaseEntry data,
-                                      LockMode lockMode) 
+                                      LockMode lockMode)
         throws DatabaseException {
 
         checkState(true);
@@ -404,7 +404,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getPrevNoDup(DatabaseEntry key,
                                         DatabaseEntry data,
-                                        LockMode lockMode) 
+                                        LockMode lockMode)
         throws DatabaseException {
 
         return getPrevNoDup(key, new DatabaseEntry(), data, lockMode);
@@ -417,7 +417,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getPrevNoDup(DatabaseEntry key,
                                         DatabaseEntry pKey,
                                         DatabaseEntry data,
-                                        LockMode lockMode) 
+                                        LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -451,7 +451,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getSearchKey(DatabaseEntry key,
                                         DatabaseEntry pKey,
                                         DatabaseEntry data,
-                                        LockMode lockMode) 
+                                        LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -470,7 +470,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getSearchKeyRange(DatabaseEntry key,
                                              DatabaseEntry data,
-                                             LockMode lockMode) 
+                                             LockMode lockMode)
         throws DatabaseException {
 
         return getSearchKeyRange(key, new DatabaseEntry(), data, lockMode);
@@ -483,7 +483,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getSearchKeyRange(DatabaseEntry key,
                                              DatabaseEntry pKey,
                                              DatabaseEntry data,
-                                             LockMode lockMode) 
+                                             LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -502,7 +502,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getSearchBoth(DatabaseEntry key,
                                          DatabaseEntry data,
-                                         LockMode lockMode) 
+                                         LockMode lockMode)
         throws DatabaseException {
 
         throw SecondaryDatabase.notAllowedException();
@@ -515,7 +515,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getSearchBoth(DatabaseEntry key,
                                          DatabaseEntry pKey,
                                          DatabaseEntry data,
-                                         LockMode lockMode) 
+                                         LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -534,7 +534,7 @@ public class SecondaryCursor extends Cursor {
      */
     public OperationStatus getSearchBothRange(DatabaseEntry key,
                                               DatabaseEntry data,
-                                              LockMode lockMode) 
+                                              LockMode lockMode)
         throws DatabaseException {
 
         throw SecondaryDatabase.notAllowedException();
@@ -547,7 +547,7 @@ public class SecondaryCursor extends Cursor {
     public OperationStatus getSearchBothRange(DatabaseEntry key,
                                               DatabaseEntry pKey,
                                               DatabaseEntry data,
-                                              LockMode lockMode) 
+                                              LockMode lockMode)
         throws DatabaseException {
 
         checkState(false);
@@ -774,7 +774,7 @@ public class SecondaryCursor extends Cursor {
                     }
                 }
             }
-            
+
             /*
              * When a partial entry was requested but we read all the data,
              * copy the requested partial data to the caller's entry. [#14966]

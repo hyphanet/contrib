@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileHandleSource.java,v 1.12.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: FileHandleSource.java,v 1.12.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -27,7 +27,7 @@ class FileHandleSource extends FileSource {
     /**
      * @see LogSource#release
      */
-    public void release() 
+    public void release()
         throws DatabaseException {
 
         fileHandle.release();

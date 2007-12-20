@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EmptyBINTest.java,v 1.7.2.1 2007/02/01 14:50:11 cwl Exp $
+ * $Id: EmptyBINTest.java,v 1.7.2.2 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -57,7 +57,7 @@ public class EmptyBINTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -86,7 +86,7 @@ public class EmptyBINTest extends TestCase {
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
 
-    /* 
+    /*
      * Run all tests in four combinations, using dups, and invoking bin
      * pruning.
      */
@@ -139,7 +139,7 @@ public class EmptyBINTest extends TestCase {
     public void testScanFromEndOfFirstBin()
         throws DatabaseException {
 
-	/* 
+	/*
          * Tree holds <0,1>  <2,3,4> <empty> <8,9,10>.
          *                        |
          *   fwd scan starts --- -+
@@ -153,7 +153,7 @@ public class EmptyBINTest extends TestCase {
     public void testScanFromLeftSideOfEmptyBin()
         throws DatabaseException {
 
-	/* 
+	/*
          * Tree holds <0,1>  <2,3,4> <empty> <8,9,10>.
          *                            |
          *   scan starts -------------+
@@ -167,7 +167,7 @@ public class EmptyBINTest extends TestCase {
     public void testScanFromRightSideOfEmptyBin()
         throws DatabaseException {
 
-	/* 
+	/*
          * Tree holds <0,1>  <2,3,4> <empty> <8,9,10>.
          *                                |
          *   backwards scan starts ------+
@@ -181,7 +181,7 @@ public class EmptyBINTest extends TestCase {
     public void testScanFromBeginningOfLastBin()
         throws DatabaseException {
 
-	/* 
+	/*
          * Tree holds <0,1>  <2,3,4> <empty> <8,9,10>.
          *                                    |
          *   backwards scan starts -----------+
@@ -194,9 +194,9 @@ public class EmptyBINTest extends TestCase {
     public void testScanForward()
         throws DatabaseException {
 
-	/* 
+	/*
          * Tree holds <0,1>  <2,3,4> <empty> <8,9,10>.
-         * Fwd scan starting with first.  Expect 0, 1, 2, 4, 8, 9, 10. 
+         * Fwd scan starting with first.  Expect 0, 1, 2, 4, 8, 9, 10.
          */
         doScanAcrossEmptyBin(true,    // forward
                              (byte) -1,
@@ -206,7 +206,7 @@ public class EmptyBINTest extends TestCase {
     public void testScanBackwards()
         throws DatabaseException {
 
-	/* 
+	/*
          * Tree holds <0,1>  <2,3,4> <empty> <8,9,10>.
          * Bwd scan starting with last. 10 -> 0
          */
@@ -220,7 +220,7 @@ public class EmptyBINTest extends TestCase {
      * The tree holds values from 0 - 10. Values 5, 6, 7 have been deleted.
      * @param forward indicates use getNext().
      * @param startKey >= 0 indicates do getSearchKeyRange to init cursor.
-     * @param expectVals are the elements to expect find 
+     * @param expectVals are the elements to expect find
      */
     private void doScanAcrossEmptyBin(boolean forward,
 				      byte startKey,
@@ -238,7 +238,7 @@ public class EmptyBINTest extends TestCase {
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
 
-	/* 
+	/*
 	 * Position a cursor and check that we get the expected values.
 	 */
 	int cnt = 0;
@@ -270,7 +270,7 @@ public class EmptyBINTest extends TestCase {
             } else {
                 key.setData(new byte[] { startKey });
             }
-                
+
 	    if ((startKey >= deleteStartVal) &&
 		(startKey <= deleteEndVal)) {
 		/* Test range query. */
@@ -295,7 +295,7 @@ public class EmptyBINTest extends TestCase {
 
         OperationStatus status;
         do {
-            cnt++;            
+            cnt++;
 
             /* check value. */
             if (DEBUG) {
@@ -303,9 +303,9 @@ public class EmptyBINTest extends TestCase {
                                    " data=" + data.getData()[0]);
             }
             if (useDups) {
-                assertEquals(expectVals[expectIndex++], data.getData()[0]); 
+                assertEquals(expectVals[expectIndex++], data.getData()[0]);
             } else {
-                assertEquals(expectVals[expectIndex++], key.getData()[0]); 
+                assertEquals(expectVals[expectIndex++], key.getData()[0]);
             }
 
 	    if (forward) {
@@ -360,10 +360,10 @@ public class EmptyBINTest extends TestCase {
         if (useDups) {
             Cursor cursor = db.openCursor(null, null);
             data = new DatabaseEntry(new byte[] { (byte) deleteStartVal });
-            assertEquals(OperationStatus.SUCCESS, 
+            assertEquals(OperationStatus.SUCCESS,
                          cursor.getSearchBoth(key, data, LockMode.DEFAULT));
             for (int i = deleteStartVal; i <= deleteEndVal; i++) {
-                assertEquals(OperationStatus.SUCCESS, 
+                assertEquals(OperationStatus.SUCCESS,
                              cursor.delete());
                 assertEquals(OperationStatus.SUCCESS,
                              cursor.getNext(key, data, LockMode.DEFAULT));
@@ -441,7 +441,7 @@ public class EmptyBINTest extends TestCase {
         }
 
         public Object getHookValue() {
-            return null; 
+            return null;
         }
     }
 }

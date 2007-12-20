@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntityModel.java,v 1.14.2.3 2007/06/13 23:18:02 mark Exp $
+ * $Id: EntityModel.java,v 1.14.2.4 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -27,7 +27,7 @@ import com.sleepycat.persist.raw.RawType;
  * relationships between entities.  For each entity class that is part of the
  * model, a single {@link PrimaryIndex} object and zero or more {@link
  * SecondaryIndex} objects may be accessed via an {@link EntityStore}.
- * 
+ *
  * <p>The built-in entity model, the {@link AnnotationModel}, is based on
  * annotations that are added to entity classes and their key fields.
  * Annotations are used in the examples in this package, and it is expected

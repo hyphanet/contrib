@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseTest.java,v 1.103.2.3 2007/06/13 13:58:40 mark Exp $
+ * $Id: DatabaseTest.java,v 1.103.2.4 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -41,7 +41,7 @@ public class DatabaseTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -58,12 +58,12 @@ public class DatabaseTest extends TestCase {
     }
 
     /**
-     * Make sure we can't create a transactional cursor on a non-transactional 
+     * Make sure we can't create a transactional cursor on a non-transactional
      * database.
      */
-    public void testCursor() 
+    public void testCursor()
         throws Exception {
-        
+
         Environment txnalEnv = null;
         Database nonTxnalDb = null;
         Cursor txnalCursor = null;
@@ -377,7 +377,7 @@ public class DatabaseTest extends TestCase {
 
     public void testPutDuplicate()
         throws Throwable {
-        
+
         try {
             Database myDb = initEnvAndDb(true, true, true, false, null);
             DatabaseEntry key = new DatabaseEntry();
@@ -893,7 +893,7 @@ public class DatabaseTest extends TestCase {
 	    (true, false, true, false,
 	     MemoryBudget.MIN_MAX_MEMORY_SIZE_STRING);
 
-        /* 
+        /*
          * Do two evictions, because the first eviction will only strip
          * LNs. We need to actually evict BINS because preload only pulls in
          * IN/BINs
@@ -983,7 +983,7 @@ public class DatabaseTest extends TestCase {
         env.close();
         myDb = initEnvAndDb(true, false, true, false, null);
 
-        /* 
+        /*
          * Do two evictions, because the first eviction will only strip
          * LNs. We need to actually evict BINS because preload only pulls in
          * IN/BINs
@@ -1196,7 +1196,7 @@ public class DatabaseTest extends TestCase {
     /**
      * Test that open cursor isn't possible on a closed database.
      */
-    public void testOpenCursor() 
+    public void testOpenCursor()
         throws DatabaseException {
         Database db = initEnvAndDb(true, false, true, false, null);
         Cursor cursor = db.openCursor(null, null);
@@ -1314,7 +1314,7 @@ public class DatabaseTest extends TestCase {
                                      ENV_RUN_EVICTOR.getName(),
                                      "false");
 
-            /* 
+            /*
              * Don't let critical eviction run or it will interfere with the
              * preload test.
              */

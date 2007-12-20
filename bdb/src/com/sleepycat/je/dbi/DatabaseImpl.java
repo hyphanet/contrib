@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseImpl.java,v 1.157.2.7 2007/07/02 19:54:49 mark Exp $
+ * $Id: DatabaseImpl.java,v 1.157.2.10 2007/12/14 01:43:25 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -15,6 +15,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -73,9 +74,9 @@ import com.sleepycat.je.utilint.TestHook;
  */
 public class DatabaseImpl implements Loggable, Cloneable {
 
-    /* 
-     * Delete processing states. See design note on database deletion and 
-     * truncation 
+    /*
+     * Delete processing states. See design note on database deletion and
+     * truncation
      */
     private static final short NOT_DELETED = 1;
     private static final short DELETED_CLEANUP_INLIST_HARVEST = 2;
@@ -83,12 +84,12 @@ public class DatabaseImpl implements Loggable, Cloneable {
     private static final short DELETED = 4;
 
     private DatabaseId id;             // unique id
-    private Tree tree;             
+    private Tree tree;
     private EnvironmentImpl envImpl;   // Tree operations find the env this way
     private boolean duplicatesAllowed; // duplicates allowed
     private boolean transactional;     // All open handles are transactional
     private boolean deferredWrite;     // deferred write mode set
-    private Set referringHandles; // Set of open Database handles    
+    private Set referringHandles; // Set of open Database handles
     private BtreeStats stats;     // most recent btree stats w/ !DB_FAST_STAT
     private long eofNodeId;       // Logical EOF node for range locking
     private short deleteState;    // one of four delete states.
@@ -112,7 +113,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
     private int maxMainTreeEntriesPerNode;
     private int maxDupTreeEntriesPerNode;
 
-    /* 
+    /*
      * The debugDatabaseName is used for error messages only, to avoid
      * accessing the db mapping tree in error situations. Currently it's not
      * guaranteed to be transactionally correct, nor is it updated by rename.
@@ -151,7 +152,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
          * The tree needs the env, make sure we assign it before
          * allocating the tree.
          */
-        tree = new Tree(this); 
+        tree = new Tree(this);
         referringHandles = Collections.synchronizedSet(new HashSet());
 
         eofNodeId = Node.getNextNodeId();
@@ -164,7 +165,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * Create an empty database object for initialization from the log.  Note
      * that the rest of the initialization comes from readFromLog(), except
      * for the debugDatabaseName, which is set by the caller.
-     */ 
+     */
     public DatabaseImpl()
         throws DatabaseException {
 
@@ -317,7 +318,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
     public int getAdditionalMemorySize() {
 
         int val = 0;
-        
+
         /*
          * If the comparator object is non-null we double the size of the
          * serialized form to account for the approximate size of the user's
@@ -339,31 +340,43 @@ public class DatabaseImpl implements Loggable, Cloneable {
     /**
      * Set the duplicate comparison function for this database.
      *
+     * @return true if the comparator was actually changed
+     *
      * @param duplicateComparator - The Duplicate Comparison function.
      */
-    public void setDuplicateComparator(Comparator comparator,
-                                       boolean byClassName)
+    public boolean setDuplicateComparator(Comparator comparator,
+					  boolean byClassName)
         throws DatabaseException {
 
         duplicateComparator = comparator;
-        duplicateComparatorBytes =
+        byte[] newDuplicateComparatorBytes =
             comparatorToBytes(comparator, byClassName, "Duplicate");
+	boolean ret = Arrays.equals(newDuplicateComparatorBytes,
+				    duplicateComparatorBytes);
+	duplicateComparatorBytes = newDuplicateComparatorBytes;
         duplicateComparatorByClassName = byClassName;
+	return !ret;
     }
 
     /**
      * Set the btree comparison function for this database.
      *
+     * @return true if the comparator was actually changed
+     *
      * @param btreeComparator - The btree Comparison function.
      */
-    public void setBtreeComparator(Comparator comparator,
-                                   boolean byClassName)
+    public boolean setBtreeComparator(Comparator comparator,
+				      boolean byClassName)
         throws DatabaseException {
 
         btreeComparator = comparator;
-        btreeComparatorBytes =
+        byte[] newBtreeComparatorBytes =
             comparatorToBytes(comparator, byClassName, "Btree");
+	boolean ret =
+	    Arrays.equals(newBtreeComparatorBytes, btreeComparatorBytes);
+	btreeComparatorBytes = newBtreeComparatorBytes;
         btreeComparatorByClassName = byClassName;
+	return !ret;
     }
 
     /**
@@ -450,11 +463,9 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * isInUse. [#13415]
      */
     void incrementUseCount() {
-        if (envImpl.getDbEviction()) {
-            /* Synchronize to update useCount atomically. */
-            synchronized (this) {
-                useCount += 1;
-            }
+        /* Synchronize to update useCount atomically. */
+        synchronized (this) {
+            useCount += 1;
         }
     }
 
@@ -465,12 +476,10 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * isInUse. [#13415]
      */
     void decrementUseCount() {
-        if (envImpl.getDbEviction()) {
-            /* Synchronize to update useCount atomically. */
-            synchronized (this) {
-                assert useCount > 0;
-                useCount -= 1;
-            }
+        /* Synchronize to update useCount atomically. */
+        synchronized (this) {
+            assert useCount > 0;
+            useCount -= 1;
         }
     }
 
@@ -495,21 +504,36 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * safe to evict it.
      */
     public boolean isInUse() {
-        if (envImpl.getDbEviction()) {
-            /* Synchronize to read the up-to-date value of useCount. */
-            synchronized (this) {
-                return (useCount > 0);
-            }
-        } else {
-            /* Always prohibit eviction when je.env.dbEviction=false. */
-            return true;
+        /* Synchronize to read the up-to-date value of useCount. */
+        synchronized (this) {
+            return (useCount > 0);
+        }
+    }
+
+    /**
+     * Checks whether a database is in use during a remove or truncate database
+     * operation.
+     */
+    boolean isInUseDuringDbRemove() {
+        /* Synchronize to read the up-to-date value of useCount. */
+        synchronized (this) {
+
+            /*
+             * The use count is at least one here, because remove/truncate has
+             * called getDb but releaseDb has not yet been called.  Normally
+             * the database must be closed in order to remove or truncate it
+             * and referringHandles will be empty.  But when the deprecated
+             * Database.truncate is called, the database is open and the use
+             * count includes the number of open handles.  [#15805]
+             */
+            return useCount > 1 + referringHandles.size();
         }
     }
 
     /**
      * Flush all dirty nodes for this database to disk.
      */
-    public synchronized void sync(boolean flushLog) 
+    public synchronized void sync(boolean flushLog)
         throws DatabaseException {
 
         if (!isDeferredWrite()) {
@@ -539,7 +563,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
         return null;
     }
 
-    public String getName() 
+    public String getName()
         throws DatabaseException {
 
         return envImpl.getDbMapTree().getDbName(id);
@@ -560,7 +584,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
         return (deleteState == DELETED);
     }
 
-    /* 
+    /*
      * The delete cleanup is starting. Set this before releasing any
      * write locks held for a db operation.
      */
@@ -570,7 +594,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
         deleteState = DELETED_CLEANUP_INLIST_HARVEST;
     }
 
-    /* 
+    /*
      * Should be called by the SortedLSNTreeWalker when it is finished with
      * the INList.
      */
@@ -585,21 +609,21 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * Purging consists of removing all related INs from the db mapping tree
      * and deleting the related MapLN.
      * Used at the transaction end in these cases:
-     *  - purge the deleted database after a commit of 
+     *  - purge the deleted database after a commit of
      *           Environment.removeDatabase
-     *  - purge the deleted database after a commit of 
+     *  - purge the deleted database after a commit of
      *           Environment.truncateDatabase
-     *  - purge the newly created database after an abort of 
+     *  - purge the newly created database after an abort of
      *           Environment.truncateDatabase
      */
-    public void deleteAndReleaseINs() 
+    public void deleteAndReleaseINs()
         throws DatabaseException {
-        
+
         startDeleteProcessing();
         releaseDeletedINs();
     }
 
-    public void releaseDeletedINs() 
+    public void releaseDeletedINs()
         throws DatabaseException {
 
         if (pendingDeletedHook != null) {
@@ -637,18 +661,18 @@ public class DatabaseImpl implements Loggable, Cloneable {
             SortedLSNTreeWalker walker = new ObsoleteTreeWalker
                 (this, rootLsn, fetchLNSize, obsoleteProcessor);
 
-            /* 
+            /*
              * Delete MapLN before the walk. Note that the processing of
              * the naming tree means this MapLN is never actually
              * accessible from the current tree, but deleting the MapLN
              * will do two things:
-             * (a) mark it properly obsolete 
+             * (a) mark it properly obsolete
              * (b) null out the database tree, leaving the INList the only
              * reference to the INs.
              */
             envImpl.getDbMapTree().deleteMapLN(id);
 
-            /* 
+            /*
              * At this point, it's possible for the evictor to find an IN
              * for this database on the INList. It should be ignored.
              */
@@ -685,7 +709,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
                                    TreeNodeProcessor callback)
             throws DatabaseException {
 
-            super(dbImpl, 
+            super(dbImpl,
                   true,  // remove INs from INList
                   true,  // set INList finish harvest
                   rootLsn,
@@ -713,7 +737,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	    throws DatabaseException {
 
             assert childLsn != DbLsn.NULL_LSN;
-            
+
             /*
              * Count the LN log size if an LN node and key are available.  But
              * do not count the size if the LN is dirty, since the logged LN is
@@ -744,12 +768,12 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	}
     }
 
-    public DatabaseStats stat(StatsConfig config) 
+    public DatabaseStats stat(StatsConfig config)
         throws DatabaseException {
 
         if (stats == null) {
 
-            /* 
+            /*
              * Called first time w/ FAST_STATS so just give them an
              * empty one.
              */
@@ -817,7 +841,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
         return new BtreeStats();
     }
 
-    /* 
+    /*
      * @return true if no errors.
      */
     private boolean walkDatabaseTree(TreeWalkerStatsAccumulator statsAcc,
@@ -835,7 +859,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	    impl = DbInternal.getCursorImpl(cursor);
 	    tree.setTreeStatsAccumulator(statsAcc);
 
-	    /* 
+	    /*
 	     * This will only be used on the first call for the position()
 	     * call.
 	     */
@@ -941,7 +965,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	    binsSeenByLevel = new long[MAX_LEVELS];
 	    dinsSeenByLevel = new long[MAX_LEVELS];
 	    dbinsSeenByLevel = new long[MAX_LEVELS];
-	    
+	
 	    this.useStats = useStats;
 	}
 
@@ -1238,7 +1262,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	    dbImpl.getTree().withRootLatchedExclusive(preloadWRL);
 	}
 
-	/* 
+	/*
 	 * Method to get the Root IN for this DatabaseImpl's tree.  Latches
 	 * the root IN.
 	 */
@@ -1389,13 +1413,13 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	/* Used when processing Deferred Write dbs and there are no LSNs. */
 	public void processDupCount(long count) {
 	    stats.nLNsLoaded += count;
-	}    
+	}
     }
 
     private static class CountExceptionPredicate
 	implements ExceptionPredicate {
 
-	/* 
+	/*
 	 * Return true if the exception can be ignored.
 	 * LogFileNotFoundException is the only one so far.
 	 */
@@ -1468,7 +1492,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return 
+        return
             id.getLogSize() +
             tree.getLogSize() +
             LogUtils.getBooleanLogSize() +
@@ -1608,11 +1632,11 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     /**
-     * Used both to read from the log and to validate a comparator when set in 
+     * Used both to read from the log and to validate a comparator when set in
      * DatabaseConfig.
      */
     public static Comparator instantiateComparator(Class comparator,
-                                                   String comparatorType) 
+                                                   String comparatorType)
         throws LogException {
 
 	if (comparator == null) {
@@ -1636,7 +1660,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * Used to validate a comparator when set in DatabaseConfig.
      */
     public static Comparator instantiateComparator(Comparator comparator,
-                                                   String comparatorType) 
+                                                   String comparatorType)
         throws DatabaseException {
 
 	if (comparator == null) {
@@ -1655,7 +1679,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      */
     private static byte[] comparatorToBytes(Comparator comparator,
                                             boolean byClassName,
-                                            String comparatorType) 
+                                            String comparatorType)
         throws DatabaseException {
 
         if (comparator == null) {
@@ -1676,7 +1700,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * the object given is non-null.
      */
     public static byte[] objectToBytes(Object obj,
-                                       String comparatorType) 
+                                       String comparatorType)
         throws LogException {
 
         try {
@@ -1696,7 +1720,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * the byte array given is non-null and has a non-zero length.
      */
     private static Object bytesToObject(byte[] bytes,
-                                        String comparatorType) 
+                                        String comparatorType)
         throws LogException {
 
         try {

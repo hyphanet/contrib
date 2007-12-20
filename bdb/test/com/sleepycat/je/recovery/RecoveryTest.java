@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryTest.java,v 1.57.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryTest.java,v 1.57.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -131,7 +131,7 @@ public class RecoveryTest extends RecoveryTestBase {
 	DatabaseEntry data = new DatabaseEntry("d1".getBytes());
 	assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
 	assertEquals(OperationStatus.SUCCESS, db.delete(null, key));
-        
+
 	if (!sameKey) {
 	    data.setData("d2".getBytes());
 	}
@@ -150,7 +150,7 @@ public class RecoveryTest extends RecoveryTestBase {
 
 	c.close();
 	db.close();
-        
+
         /* Force an abrupt close so there is no checkpoint at the end. */
         closeEnv();
         env = new Environment(envHome, envConfig);
@@ -176,7 +176,7 @@ public class RecoveryTest extends RecoveryTestBase {
         try {
             // Set up an repository of expected data
             Hashtable expectedData = new Hashtable();
-            
+
             // insert all the data
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs - 1, expectedData, 1, true, NUM_DBS);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckBINDeltaTest.java,v 1.13.2.1 2007/02/01 14:50:16 cwl Exp $
+ * $Id: CheckBINDeltaTest.java,v 1.13.2.3 2007/11/20 13:32:47 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -41,7 +41,7 @@ public class CheckBINDeltaTest extends CheckBase {
         envConfig.setConfigParam(EnvironmentParams.BIN_DELTA_PERCENT.getName(),
                                  "75");
         envConfig.setAllowCreate(true);
-                                 
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
 
@@ -71,26 +71,26 @@ public class CheckBINDeltaTest extends CheckBase {
      * compressed IN.  Since the IN has no data in * it, that is not
      * necessarily a problem.  However, reinstantiating the obsolete IN
      * may cause a parent IN to split which is not allowed during IN
-     * recovery. 
+     * recovery.
      *
      * Here's the case:
-     *        
+     *
      *           |
      *          IN1
      *      +---------------------------------+
      *      |                                 |
      *     IN2                               IN6
-     *   /   |                            /    |     \     
-     * BIN3 BIN4                      BIN7   BIN8   BIN9 
+     *   /   |                            /    |     \
+     * BIN3 BIN4                      BIN7   BIN8   BIN9
      *
      * IN2 and the subtree below are compressed away. During recovery
      * replay, after the pass where INs and INDeleteINfos are
      * processed, the in-memory tree looks like this:
-     *        
+     *
      *                         IN1
      *                          |
      *                         IN6
-     *                     /    |     \    
+     *                     /    |     \
      *                  BIN7   BIN8   BIN9
      *
      * However, let's assume that BINDeltas were written for
@@ -102,7 +102,7 @@ public class CheckBINDeltaTest extends CheckBase {
      * able to connect BIN3, BIN4 because IN6 doesn't have the
      * capacity, and we don't expect to have to do splits.
      */
-    private void addData(Database db) 
+    private void addData(Database db)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -120,12 +120,14 @@ public class CheckBINDeltaTest extends CheckBase {
         env.checkpoint(ckptConfig);
 
         Tree tree = DbInternal.dbGetDatabaseImpl(db).getTree();
+        com.sleepycat.je.tree.Key.DUMP_TYPE =
+	    com.sleepycat.je.tree.Key.DumpType.BINARY;
         com.sleepycat.je.tree.Key.DUMP_INT_BINDING = true;
         if (DEBUG) {
             tree.dump();
         }
 
-        /* 
+        /*
          * Update a key on the BIN3 and a key on BIN4, to create reason for
          * a BINDelta. Force a BINDelta for BIN3 and BIN4 out to the log.
          */
@@ -134,7 +136,7 @@ public class CheckBINDeltaTest extends CheckBase {
         assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
         IntegerBinding.intToEntry(20, key);
         assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
-        
+
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
         BIN bin = (BIN)tree.getFirstNode();
         bin.log(envImpl.getLogManager(), true, false, false, false, null);
@@ -142,9 +144,9 @@ public class CheckBINDeltaTest extends CheckBase {
         bin.log(envImpl.getLogManager(), true, false, false, false, null);
         bin.releaseLatch();
 
-        /* 
+        /*
          * Delete all of left hand side of the tree, so that the subtree root
-         * headed by IN2 is compressed. 
+         * headed by IN2 is compressed.
          */
         for (int i = 0; i < 50; i+=10) {
             IntegerBinding.intToEntry(i, key);
@@ -156,5 +158,5 @@ public class CheckBINDeltaTest extends CheckBase {
         if (DEBUG) {
             tree.dump();
         }
-    } 
+    }
 }

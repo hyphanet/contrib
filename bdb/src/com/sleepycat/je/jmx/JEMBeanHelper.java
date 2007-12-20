@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEMBeanHelper.java,v 1.11.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: JEMBeanHelper.java,v 1.11.2.2 2007/11/20 13:32:30 cwl Exp $
  */
 
 package com.sleepycat.je.jmx;
@@ -55,7 +55,7 @@ public class JEMBeanHelper {
      * need to define a new MBeanAttributeInfo in the OPEN_ATTR array. The
      * helper then needs to provide an implementation in set/getAttribute.
      */
-    
+
     /* --------------------- Attributes -------------------------- */
 
     /* Attribute names. */
@@ -72,10 +72,10 @@ public class JEMBeanHelper {
     public static final String ATT_SET_TRANSACTIONAL = "openTransactional";
     public static final String ATT_SET_SERIALIZABLE =
         "openSerializableIsolation";
-    
+
     /* COMMON_ATTR attributes are available for any environment. */
     private static final MBeanAttributeInfo [] COMMON_ATTR = {
-        
+
         new MBeanAttributeInfo(ATT_ENV_HOME,
                                "java.lang.String",
                                "Environment home directory.",
@@ -129,7 +129,7 @@ public class JEMBeanHelper {
                                false), // isIs
     };
 
-    /* 
+    /*
      * TRANSACTIONAL_ATTR attributes are available only for open, transactional
      * environments.
      */
@@ -152,13 +152,13 @@ public class JEMBeanHelper {
                                false)  // isIs
     };
 
-    /* 
+    /*
      * CREATE_ATTR attributes are available when the mbean is configured to
      * support configuration and opening by the mbean. They express the
      * configuration settings.
      */
     private static final MBeanAttributeInfo [] CREATE_ATTR = {
-        
+
         new MBeanAttributeInfo(ATT_SET_READ_ONLY,
                                "java.lang.Boolean",
                                "True if this environment should be opened " +
@@ -196,7 +196,7 @@ public class JEMBeanHelper {
     static final String OP_DB_NAMES = "getDatabaseNames";
     static final String OP_DB_STAT = "getDatabaseStats";
 
-    private static final MBeanOperationInfo OP_CLEAN_INFO = 
+    private static final MBeanOperationInfo OP_CLEAN_INFO =
         new MBeanOperationInfo(OP_CLEAN,
                                "Remove obsolete environment log files. " +
                                "Zero or more log files will be cleaned as " +
@@ -211,7 +211,7 @@ public class JEMBeanHelper {
                                "java.lang.Integer",
                                MBeanOperationInfo.UNKNOWN);
 
-    private static final MBeanOperationInfo OP_EVICT_INFO = 
+    private static final MBeanOperationInfo OP_EVICT_INFO =
         new MBeanOperationInfo(OP_EVICT,
                                "Reduce cache usage to the threshold " +
                                "determined by the setting " +
@@ -229,14 +229,14 @@ public class JEMBeanHelper {
                                 "executed.")
     };
 
-    private static final MBeanOperationInfo OP_CHECKPOINT_INFO = 
+    private static final MBeanOperationInfo OP_CHECKPOINT_INFO =
         new MBeanOperationInfo(OP_CHECKPOINT,
                                "Checkpoint the environment.",
                                checkpointParams,
                                "void",
                                MBeanOperationInfo.UNKNOWN);
 
-    private static final MBeanOperationInfo OP_SYNC_INFO = 
+    private static final MBeanOperationInfo OP_SYNC_INFO =
         new MBeanOperationInfo(OP_SYNC,
                                "Flush the environment to stable storage.",
                                new MBeanParameterInfo[0], // no params
@@ -252,28 +252,28 @@ public class JEMBeanHelper {
 
     };
 
-    private static final MBeanOperationInfo OP_ENV_STAT_INFO = 
+    private static final MBeanOperationInfo OP_ENV_STAT_INFO =
         new MBeanOperationInfo(OP_ENV_STAT,
                                "Get environment statistics.",
                                statParams,
                                "com.sleepycat.je.EnvironmentStats",
                                MBeanOperationInfo.INFO);
 
-    private static final MBeanOperationInfo OP_LOCK_STAT_INFO = 
+    private static final MBeanOperationInfo OP_LOCK_STAT_INFO =
         new MBeanOperationInfo(OP_LOCK_STAT,
                                "Get locking statistics.",
                                statParams,
                                "com.sleepycat.je.LockStats",
                                MBeanOperationInfo.INFO);
 
-    private static final MBeanOperationInfo OP_TXN_STAT_INFO = 
+    private static final MBeanOperationInfo OP_TXN_STAT_INFO =
         new MBeanOperationInfo(OP_TXN_STAT,
                                "Get transactional statistics.",
                                statParams,
                                "com.sleepycat.je.TransactionStats",
                                MBeanOperationInfo.INFO);
 
-    private static final MBeanOperationInfo OP_DB_NAMES_INFO = 
+    private static final MBeanOperationInfo OP_DB_NAMES_INFO =
         new MBeanOperationInfo(OP_DB_NAMES,
                               "Get the names of databases in the environment.",
                                new MBeanParameterInfo[0], // no params
@@ -292,7 +292,7 @@ public class JEMBeanHelper {
 
     };
 
-    private static final MBeanOperationInfo OP_DB_STAT_INFO = 
+    private static final MBeanOperationInfo OP_DB_STAT_INFO =
         new MBeanOperationInfo(OP_DB_STAT,
                                "Get database statistics.",
                                dbStatParams,
@@ -301,9 +301,9 @@ public class JEMBeanHelper {
 
 
     /* target JE environment home directory. */
-    private File environmentHome;  
+    private File environmentHome;
 
-    /* 
+    /*
      * If canConfigure is true, this helper will make environment configuration
      * attributes available in the mbean metadata. Configuration attributes
      * will be saved in the openConfig instance.
@@ -319,7 +319,7 @@ public class JEMBeanHelper {
      * mbean attributes. Use to detect a change in environment status.
      */
     private boolean envWasOpen;
-    
+
     /**
      * Instantiate a helper, specifying environment home and open capabilities.
      *
@@ -341,7 +341,7 @@ public class JEMBeanHelper {
     }
 
     /**
-     * Return the target environment directory. 
+     * Return the target environment directory.
      * @return the environment directory.
      */
     public File getEnvironmentHome() {
@@ -352,7 +352,7 @@ public class JEMBeanHelper {
      * If the helper was instantiated with canConfigure==true, it shows
      * environment configuration attributes. Those attributes are returned
      * within this EnvironmentConfig object for use in opening environments.
-     * 
+     *
      * @return EnvironmentConfig object which saves configuration attributes
      * recorded through MBean attributes.
      */
@@ -363,7 +363,7 @@ public class JEMBeanHelper {
     /**
      * Return an Environment only if the environment has already been opened
      * in this process. A helper method for MBeans which want to only access
-     * open environments. 
+     * open environments.
      * @return Environment if already open, null if not open.
      */
     public Environment getEnvironmentIfOpen() {
@@ -400,7 +400,7 @@ public class JEMBeanHelper {
         setNeedReset(false);
 
         ArrayList attrList = new ArrayList();
-        
+
         /* Add attributes for all JE environments. */
         for (int i = 0; i < COMMON_ATTR.length; i++) {
             attrList.add(COMMON_ATTR[i]);
@@ -447,7 +447,7 @@ public class JEMBeanHelper {
      * @return attribute value.
      */
     public Object getAttribute(Environment targetEnv,
-                               String attributeName) 
+                               String attributeName)
         throws AttributeNotFoundException,
                MBeanException {
 
@@ -497,8 +497,8 @@ public class JEMBeanHelper {
                                                              attributeName +
                                                              " is not valid.");
                     }
-                } 
-                return null; 
+                }
+                return null;
             }
         } catch (Exception e) {
             /*
@@ -518,7 +518,7 @@ public class JEMBeanHelper {
      * @param attribute name/value pair
      */
     public void setAttribute(Environment targetEnv,
-                             Attribute attribute) 
+                             Attribute attribute)
         throws AttributeNotFoundException,
                InvalidAttributeValueException {
 
@@ -598,7 +598,7 @@ public class JEMBeanHelper {
         List operationList = new ArrayList();
 
         if (targetEnv != null) {
-            /* 
+            /*
              * These operations are only available if the environment is
              * open.
              */
@@ -618,7 +618,7 @@ public class JEMBeanHelper {
                 /* Don't make any operations available. */
                 return new ArrayList();
             }
-            
+
             if (isTransactional) {
                 operationList.add(OP_CHECKPOINT_INFO);
                 operationList.add(OP_TXN_STAT_INFO);
@@ -632,7 +632,7 @@ public class JEMBeanHelper {
 
     /**
      * Invoke an operation for the given environment.
-     * 
+     *
      * @param targetEnv The target JE environment. May be null if the
      * environment is not open.
      * @param actionName operation name.
@@ -643,7 +643,7 @@ public class JEMBeanHelper {
     public Object invoke(Environment targetEnv,
                          String actionName,
                          Object [] params,
-                         String [] signature) 
+                         String [] signature)
         throws MBeanException {
 
         /* Sanity checking. */
@@ -682,13 +682,13 @@ public class JEMBeanHelper {
                 } else if (actionName.equals(OP_DB_STAT)) {
                     return getDatabaseStats(targetEnv, params);
                 }
-            } 
+            }
 
             return new IllegalArgumentException("actionName: " +
                                                 actionName +
                                                 " is not valid");
         } catch (DatabaseException e) {
-            /* 
+            /*
              * Add both the message and the exception for easiest
              * deciphering of the problem. Sometimes the original exception
              * stacktrace gets hidden in server logs.
@@ -698,7 +698,7 @@ public class JEMBeanHelper {
     }
 
     /**
-     * Helper for creating a StatsConfig object to use as an operation 
+     * Helper for creating a StatsConfig object to use as an operation
      * parameter.
      */
     private StatsConfig getStatsConfig(Object [] params) {

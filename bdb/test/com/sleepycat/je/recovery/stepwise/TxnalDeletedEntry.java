@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnalDeletedEntry.java,v 1.4.2.1 2007/02/01 14:50:18 cwl Exp $
+ * $Id: TxnalDeletedEntry.java,v 1.4.2.2 2007/11/20 13:32:48 cwl Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -50,7 +50,7 @@ public class TxnalDeletedEntry extends LogEntryInfo {
         if (records == null) {
             records = new HashSet();
            deletedUncommittedRecords.put(mapKey, records);
-        } 
+        }
         records.add(new TestData(keyEntry, dataEntry));
     }
 }

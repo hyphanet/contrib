@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTest.java,v 1.22.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: UtilizationTest.java,v 1.22.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -109,7 +109,7 @@ public class UtilizationTest extends TestCase {
 
     public void tearDown()
         throws IOException, DatabaseException {
-        
+
         /* Set test name for reporting; cannot be done in the ctor or setUp. */
         setName(operation +
                 (fetchObsoleteSize ? "-fetch" : "") +
@@ -122,7 +122,7 @@ public class UtilizationTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
@@ -165,7 +165,7 @@ public class UtilizationTest extends TestCase {
         /* Don't use NIO direct buffers or we run out of memory. */
         config.setConfigParam
             (EnvironmentParams.LOG_DIRECT_NIO.getName(), "false");
-        
+
         /* Obsolete LN size counting is optional per test. */
         if (fetchObsoleteSize) {
             config.setConfigParam
@@ -1323,7 +1323,7 @@ public class UtilizationTest extends TestCase {
             LogSource src = lm.getLogSource(lsn);
             ByteBuffer buf = src.getBytes(offset);
             LogEntryHeader header =
-                new LogEntryHeader(null,   // envImpl, only needed for 
+                new LogEntryHeader(null,   // envImpl, only needed for
                                    buf,    //      error reporting
                                    false); // anticipateChecksumError
             int size = header.getItemSize();

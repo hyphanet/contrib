@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Locker.java,v 1.101.2.3 2007/07/13 02:32:05 cwl Exp $
+ * $Id: Locker.java,v 1.101.2.4 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -58,7 +58,7 @@ public abstract class Locker {
      * DeleteInfo refers to BINReferences that should be sent to the
      * INCompressor for asynchronous compressing after the transaction ends.
      */
-    protected Map deleteInfo;             
+    protected Map deleteInfo;
 
     /*
      * To support handle lock transfers, each txn keeps maps handle locks to
@@ -81,7 +81,7 @@ public abstract class Locker {
     /**
      * Create a locker id. This constructor is called very often, so it should
      * be as streamlined as possible.
-     * 
+     *
      * @param lockManager lock manager for this environment
      * @param readUncommittedDefault if true, this transaction does
      * read-uncommitted by default
@@ -89,7 +89,7 @@ public abstract class Locker {
      */
     public Locker(EnvironmentImpl envImpl,
                   boolean readUncommittedDefault,
-                  boolean noWait) 
+                  boolean noWait)
         throws DatabaseException {
 
         TxnManager txnManager = envImpl.getTxnManager();
@@ -118,8 +118,8 @@ public abstract class Locker {
         /* Save the thread used to create the locker. */
         thread = Thread.currentThread();
 
-        /* 
-         * Do lazy initialization of deleteInfo and handle lock maps, to 
+        /*
+         * Do lazy initialization of deleteInfo and handle lock maps, to
          * conserve memory.
          */
     }
@@ -202,7 +202,7 @@ public abstract class Locker {
 
     /*
      * Obtain and release locks.
-     */ 
+     */
 
     /**
      * Abstract method to a blocking or non-blocking lock of the given type on
@@ -402,7 +402,7 @@ public abstract class Locker {
     /**
      * A SUCCESS status equals operationOk.
      */
-    public void operationEnd(OperationStatus status) 
+    public void operationEnd(OperationStatus status)
         throws DatabaseException {
 
         operationEnd(status == OperationStatus.SUCCESS);
@@ -439,9 +439,9 @@ public abstract class Locker {
     /**
      * Database operations like remove and truncate leave behind
      * residual DatabaseImpls that must be purged at transaction
-     * commit or abort. 
+     * commit or abort.
      */
-    public abstract void markDeleteAtTxnEnd(DatabaseImpl db, 
+    public abstract void markDeleteAtTxnEnd(DatabaseImpl db,
                                             boolean deleteAtCommit)
         throws DatabaseException;
 
@@ -461,12 +461,12 @@ public abstract class Locker {
             BINReference binRef = (BINReference) deleteInfo.get(nodeId);
             if (binRef == null) {
                 binRef = bin.createReference();
-                deleteInfo.put(nodeId, binRef);  
+                deleteInfo.put(nodeId, binRef);
             }
             binRef.addDeletedKey(deletedKey);
         }
     }
-    
+
     /*
      * Manage locks owned by this transaction. Note that transactions that will
      * be multithreaded must override these methods and provide synchronized
@@ -508,7 +508,7 @@ public abstract class Locker {
     public abstract LockStats collectStats(LockStats stats)
         throws DatabaseException;
 
-    /* 
+    /*
      * Check txn timeout, if set. Called by the lock manager when blocking on a
      * lock.
      */
@@ -519,7 +519,7 @@ public abstract class Locker {
             long diff = System.currentTimeMillis() - txnStartMillis;
             if (diff > txnTimeOutMillis) {
                 return true;
-            } 
+            }
         }
         return false;
     }
@@ -538,7 +538,7 @@ public abstract class Locker {
      */
     void unregisterHandle(Database dbHandle) {
 
-    	/* 
+    	/*
     	 * handleToHandleLockMap may be null if the db handle was never really
     	 * added. This might be the case because of an unregisterHandle that
     	 * comes from a finally clause, where the db handle was never
@@ -552,12 +552,12 @@ public abstract class Locker {
     /**
      * Remember how handle locks and handles match up.
      */
-    public void addToHandleMaps(Long handleLockId, 
+    public void addToHandleMaps(Long handleLockId,
 				Database databaseHandle) {
         Set dbHandleSet = null;
         if (handleLockToHandleMap == null) {
 
-            /* 
+            /*
 	     * We do lazy initialization of the maps, since they're used
              * infrequently.
              */
@@ -593,7 +593,7 @@ public abstract class Locker {
     void transferHandleLockToHandle(Database dbHandle)
         throws DatabaseException {
 
-        /* 
+        /*
          * Transfer responsiblity for this db lock from this txn to a new
          * protector.
          */
@@ -602,14 +602,14 @@ public abstract class Locker {
     }
 
     /**
-     * 
+     *
      */
     public void transferHandleLock(Database dbHandle,
                                    Locker destLocker,
                                    boolean demoteToRead)
         throws DatabaseException {
 
-        /* 
+        /*
          * Transfer responsiblity for dbHandle's handle lock from this txn to
          * destLocker. If the dbHandle's databaseImpl is null, this handle
          * wasn't opened successfully.
@@ -623,7 +623,7 @@ public abstract class Locker {
                 /* Move this lock to the destination txn. */
                 lockManager.transfer(nodeId, this, destLocker, demoteToRead);
 
-                /* 
+                /*
                  * Make the destination txn remember that it now owns this
                  * handle lock.
                  */
@@ -642,15 +642,15 @@ public abstract class Locker {
                 if (dbHandleSet.size() == 0) {
                     handleLockToHandleMap.remove(handleLockId);
                 }
-                
-                /* 
+
+                /*
                  * This Database must remember what txn owns it's handle lock.
                  */
                 DbInternal.dbSetHandleLocker(dbHandle, destLocker);
             }
         }
     }
-    
+
     /*
      * Helpers
      */
@@ -666,7 +666,7 @@ public abstract class Locker {
     /**
      * Dump lock table, for debugging
      */
-    public void dumpLockTable() 
+    public void dumpLockTable()
         throws DatabaseException {
 
         lockManager.dump();

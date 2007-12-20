@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JoinConfig.java,v 1.6.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: JoinConfig.java,v 1.6.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -35,7 +35,7 @@ public class JoinConfig implements Cloneable {
      */
     public void setNoSort(boolean noSort) {
         this.noSort = noSort;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -43,7 +43,7 @@ public class JoinConfig implements Cloneable {
      */
     public boolean getNoSort() {
         return noSort;
-    } 
+    }
 
     /**
      * Used by SecondaryDatabase to create a copy of the application

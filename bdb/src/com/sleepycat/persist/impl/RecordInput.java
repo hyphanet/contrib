@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecordInput.java,v 1.4.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: RecordInput.java,v 1.4.2.3 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -68,7 +68,7 @@ class RecordInput extends TupleInput implements EntityInput {
     public Catalog getCatalog() {
         return catalog;
     }
-    
+
     /**
      * @see EntityInput#isRawAccess
      */
@@ -107,6 +107,10 @@ class RecordInput extends TupleInput implements EntityInput {
             if (visited != null) {
                 o = visited.getObject(offset);
             }
+            if (o == VisitedObjects.PROHIBIT_REF_OBJECT) {
+                throw new IllegalArgumentException
+                    (VisitedObjects.PROHIBIT_NESTED_REF_MSG);
+            }
             if (o != null) {
                 /* Return a previously visited object. */
                 return o;
@@ -118,7 +122,7 @@ class RecordInput extends TupleInput implements EntityInput {
                  * happens when reading secondary key fields.
                  */
                 visitedOffset = offset;
-                if (offset == EntityOutput.PRI_KEY_VISITED_OFFSET) {
+                if (offset == VisitedObjects.PRI_KEY_VISITED_OFFSET) {
                     assert priKeyEntry != null && priKeyFormatId > 0;
                     useInput = new RecordInput(this, priKeyEntry);
                     formatId = priKeyFormatId;
@@ -129,20 +133,31 @@ class RecordInput extends TupleInput implements EntityInput {
             }
         }
 
+        /*
+         * Add a visted object slot that prohibits nested references to this
+         * object during the call to Reader.newInstance below.  The newInstance
+         * method is allowed to read nested fields (in which case
+         * Reader.readObject further below does nothing) under certain
+         * conditions, but under these conditions we do not support nested
+         * references to the parent object. [#15815]
+         */
+        if (visited == null) {
+            visited = new VisitedObjects();
+        }
+        int visitedIndex =
+            visited.add(VisitedObjects.PROHIBIT_REF_OBJECT, visitedOffset);
+
         /* Create the object using the format indicated. */
         Format format = catalog.getFormat(formatId);
         Reader reader = format.getReader();
         o = reader.newInstance(useInput, rawAccess);
 
         /*
-         * Add newly created object to the set of visited objects.  This must
-         * be done before calling Reader.readObject, in case the object
-         * contains a reference to itself.
+         * Set the newly created object in the set of visited objects.  This
+         * must be done before calling Reader.readObject, which allows the
+         * object to contain a reference to itself.
          */
-        if (visited == null) {
-            visited = new VisitedObjects();
-        }
-        visited.add(o, visitedOffset);
+        visited.setObject(visitedIndex, o);
 
         /*
          * Finish reading the object.  Then replace it in the visited list in
@@ -181,7 +196,7 @@ class RecordInput extends TupleInput implements EntityInput {
             }
             if (formatId < 0) {
                 int offset = (-(formatId + 1));
-                if (offset == EntityOutput.PRI_KEY_VISITED_OFFSET) {
+                if (offset == VisitedObjects.PRI_KEY_VISITED_OFFSET) {
                     assert priKeyEntry != null && priKeyFormatId > 0;
                     input = new RecordInput(this, priKeyEntry);
                     formatId = priKeyFormatId;
@@ -208,7 +223,7 @@ class RecordInput extends TupleInput implements EntityInput {
         if (visited == null) {
             visited = new VisitedObjects();
         }
-        visited.add(o, EntityOutput.PRI_KEY_VISITED_OFFSET);
+        visited.add(o, VisitedObjects.PRI_KEY_VISITED_OFFSET);
     }
 
     /**

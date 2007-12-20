@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: XAEnvironment.java,v 1.8.2.2 2007/03/28 15:53:44 cwl Exp $
+ * $Id: XAEnvironment.java,v 1.8.2.3 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -29,7 +29,7 @@ public class XAEnvironment extends Environment implements XAResource {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public XAEnvironment(File envHome, EnvironmentConfig configuration) 
+    public XAEnvironment(File envHome, EnvironmentConfig configuration)
         throws DatabaseException {
 
 	super(envHome, configuration);
@@ -253,7 +253,7 @@ public class XAEnvironment extends Environment implements XAResource {
 	    throw new XAException(XAException.XAER_INVAL);
 	}
 
-	/* 
+	/*
 	 * We don't have to actually do anything with STARTRSCAN or ENDRSCAN
 	 * since we return the whole set of Xid's to be recovered on each call.
 	 */
@@ -355,7 +355,7 @@ public class XAEnvironment extends Environment implements XAResource {
 
 	    if (flags == XAResource.TMNOFLAGS) {
 
-		/* 
+		/*
 		 * If neither RESUME nor JOIN was set, make sure xid doesn't
 		 * exist in allXATxns.  Throw XAER_DUPID if it does.
 		 */

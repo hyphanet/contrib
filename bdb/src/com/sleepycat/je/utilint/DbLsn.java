@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbLsn.java,v 1.51.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: DbLsn.java,v 1.51.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -86,7 +86,7 @@ public class DbLsn {
     }
 
     public static String toString(long lsn) {
-	return "<DbLsn val=\"0x" + 
+	return "<DbLsn val=\"0x" +
             Long.toHexString(getFileNumber(lsn)) +
             "/0x" +
             Long.toHexString(getFileOffset(lsn)) +
@@ -133,7 +133,7 @@ public class DbLsn {
         }
         return diff;
     }
-        
+
     /**
      * Return the logsize in bytes between these two LSNs. This is an
      * approximation; the logs might actually be a little more or less in
@@ -157,9 +157,9 @@ public class DbLsn {
         } else {
             /* Figure out how many files lie between. */
             Long[] fileNums = fileManager.getAllFileNumbers();
-            int myFileIdx = Arrays.binarySearch(fileNums, 
+            int myFileIdx = Arrays.binarySearch(fileNums,
                                                 new Long(myFile));
-            int otherFileIdx = Arrays.binarySearch(fileNums, 
+            int otherFileIdx = Arrays.binarySearch(fileNums,
                                                    new Long(otherFile));
             if (myFileIdx > otherFileIdx) {
                 diff = calcDiff(myFileIdx - otherFileIdx,
@@ -172,7 +172,7 @@ public class DbLsn {
         return diff;
     }
 
-    private static long calcDiff(long fileDistance, 
+    private static long calcDiff(long fileDistance,
 				 long logFileSize,
 				 long laterLsn,
 				 long earlierLsn) {

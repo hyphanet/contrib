@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogEntryVersionTest.java,v 1.12.2.2 2007/03/31 22:06:14 mark Exp $
+ * $Id: LogEntryVersionTest.java,v 1.12.2.3 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -55,7 +55,7 @@ public class LogEntryVersionTest extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome, false);
         TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -66,7 +66,7 @@ public class LogEntryVersionTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
@@ -94,7 +94,7 @@ public class LogEntryVersionTest extends TestCase {
         envConfig.setReadOnly(readOnly);
         envConfig.setTransactional(true);
         env = new Environment(envHome, envConfig);
-        
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(false);
         dbConfig.setReadOnly(readOnly);

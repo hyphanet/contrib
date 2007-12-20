@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ReleaseLatchesTest.java,v 1.15.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: ReleaseLatchesTest.java,v 1.15.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 package com.sleepycat.je.tree;
 
@@ -46,7 +46,7 @@ public class ReleaseLatchesTest extends TestCase {
     private Database db;
     private TestDescriptor testActivity;
 
-    /* 
+    /*
      * The OPERATIONS declared here define the test cases for this test.  Each
      * TestDescriptor describes a particular JE activity. The
      * testCheckLatchLeaks method generates read i/o exceptions during the test
@@ -54,7 +54,7 @@ public class ReleaseLatchesTest extends TestCase {
      */
     public static TestDescriptor [] OPERATIONS = {
 
-        /* 
+        /*
          * TestDescriptor params:
          *  - operation name: for debugging
          *  - number of times to generate an exception. For example if N,
@@ -63,13 +63,13 @@ public class ReleaseLatchesTest extends TestCase {
          *  - number of records in the database.
          */
         new TestDescriptor("database put", 6, 30, false) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
                 throws DatabaseException {
 
                 test.populate(false);
             }
 
-            void reinit(ReleaseLatchesTest test) 
+            void reinit(ReleaseLatchesTest test)
                 throws DatabaseException{
 
                 test.closeDb();
@@ -77,42 +77,42 @@ public class ReleaseLatchesTest extends TestCase {
             }
         },
         new TestDescriptor("cursor scan", 31, 20, false) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
 		throws DatabaseException {
 
                 test.scan();
             }
         },
         new TestDescriptor("cursor scan duplicates", 23, 3, true) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
 		throws DatabaseException {
 
                 test.scan();
             }
         },
         new TestDescriptor("database get", 31, 20, false) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
                 throws DatabaseException {
 
                 test.get();
             }
         },
         new TestDescriptor("database delete", 40, 30, false) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
                 throws DatabaseException {
 
                 test.delete();
             }
 
-            void reinit(ReleaseLatchesTest test) 
+            void reinit(ReleaseLatchesTest test)
                 throws DatabaseException{
 
                 test.populate(false);
             }
         },
         new TestDescriptor("checkpoint", 40, 10, false) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
-                throws DatabaseException { 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
+                throws DatabaseException {
 
                 test.modify(exceptionCount);
                 CheckpointConfig config = new CheckpointConfig();
@@ -124,8 +124,8 @@ public class ReleaseLatchesTest extends TestCase {
             }
         },
         new TestDescriptor("clean", 100, 5, false) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
-                throws DatabaseException { 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
+                throws DatabaseException {
 
                 test.modify(exceptionCount);
                 CheckpointConfig config = new CheckpointConfig();
@@ -137,8 +137,8 @@ public class ReleaseLatchesTest extends TestCase {
             }
         },
         new TestDescriptor("compress", 20, 10, false) {
-            void doAction(ReleaseLatchesTest test, int exceptionCount) 
-                throws DatabaseException { 
+            void doAction(ReleaseLatchesTest test, int exceptionCount)
+                throws DatabaseException {
 
                      test.delete();
                      if (DEBUG) {
@@ -147,7 +147,7 @@ public class ReleaseLatchesTest extends TestCase {
                      test.getEnv().compress();
             }
 
-            void reinit(ReleaseLatchesTest test) 
+            void reinit(ReleaseLatchesTest test)
                 throws DatabaseException{
 
                 test.populate(false);
@@ -204,7 +204,7 @@ public class ReleaseLatchesTest extends TestCase {
     private void openEnvAndDb()
         throws DatabaseException {
 
-        /* 
+        /*
          * Make an environment with small nodes and no daemons.
          */
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -248,8 +248,8 @@ public class ReleaseLatchesTest extends TestCase {
             throw t;
         }
     }
-    
-    private void closeDb() 
+
+    private void closeDb()
         throws DatabaseException {
 
         if (db != null) {
@@ -266,7 +266,7 @@ public class ReleaseLatchesTest extends TestCase {
         this.testActivity = action;
     }
 
-    /* 
+    /*
      * This is the heart of the unit test. Given a TestDescriptor, run the
      * operation's activity in a loop, generating read i/o exceptions at
      * different points. Check for latch leaks after the i/o exception
@@ -283,13 +283,13 @@ public class ReleaseLatchesTest extends TestCase {
         try {
             init(testActivity.getDuplicates());
 
-            /* 
+            /*
              * Run the action repeatedly, generating exceptions at different
              * points.
              */
             for (int i = 1; i <= maxExceptionCount; i++) {
-                
-                /* 
+
+                /*
                  * Open the env and database anew each time, so that we need to
                  * fault in objects and will trigger read i/o exceptions.
                  */
@@ -304,14 +304,14 @@ public class ReleaseLatchesTest extends TestCase {
                     testActivity.doAction(this, i);
                 } catch (RunRecoveryException e) {
 
-                    /* 
+                    /*
 		     * It's possible for a read error to induce a
 		     * RunRecoveryException if the read error happens when we
 		     * are opening a new write file channel. (We read and
 		     * validate the file header). In that case, check for
 		     * latches, and re-open the database.
                      */
-                    checkLatchCount(e, i);                    
+                    checkLatchCount(e, i);
                     env.close();
                     openEnvAndDb();
                     exceptionOccurred = true;
@@ -319,7 +319,7 @@ public class ReleaseLatchesTest extends TestCase {
                     checkLatchCount(e, i);
                     exceptionOccurred = true;
                 }
-                
+
                 if (DEBUG && !exceptionOccurred) {
                     System.out.println("Don't need ex count " + i +
                                        " for test activity " +
@@ -337,7 +337,7 @@ public class ReleaseLatchesTest extends TestCase {
     }
 
     private void checkLatchCount(DatabaseException e,
-                                 int exceptionCount) 
+                                 int exceptionCount)
         throws DatabaseException {
 
 	/* Only rethrow the exception if we didn't clean up latches. */
@@ -354,7 +354,7 @@ public class ReleaseLatchesTest extends TestCase {
     }
 
     /* Insert records into a database. */
-    private void populate(boolean duplicates) 
+    private void populate(boolean duplicates)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -386,7 +386,7 @@ public class ReleaseLatchesTest extends TestCase {
     }
 
     /* Modify the database. */
-    private void modify(int dataVal) 
+    private void modify(int dataVal)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -420,7 +420,7 @@ public class ReleaseLatchesTest extends TestCase {
     }
 
     /* Database.get() for all records. */
-    private void get() 
+    private void get()
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -443,17 +443,17 @@ public class ReleaseLatchesTest extends TestCase {
                          OperationStatus.SUCCESS, db.delete(null, key));
         }
     }
-    /* 
+    /*
      * This TestHook implementation generates io exceptions during reads.
      */
     static class ReadIOExceptionHook implements TestHook {
         private int counter = 0;
         private int throwCount;
-        
+
         ReadIOExceptionHook(int throwCount) {
             this.throwCount = throwCount;
         }
-        
+
         public void doIOHook()
             throws IOException {
 
@@ -469,7 +469,7 @@ public class ReleaseLatchesTest extends TestCase {
 	public void doHook() {}
 
         public Object getHookValue() {
-            return null; 
+            return null;
         }
     }
 
@@ -496,11 +496,11 @@ public class ReleaseLatchesTest extends TestCase {
         int getNumExceptions() {
             return numExceptions;
         }
-        
+
         String getName() {
             return name;
         }
-            
+
 	boolean getDuplicates() {
 	    return duplicates;
 	}

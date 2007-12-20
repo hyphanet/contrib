@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEManagedConnection.java,v 1.13.2.2 2007/05/22 20:36:39 cwl Exp $
+ * $Id: JEManagedConnection.java,v 1.13.2.3 2007/11/20 13:32:30 cwl Exp $
  */
 
 package com.sleepycat.je.jca.ra;
@@ -105,7 +105,7 @@ public class JEManagedConnection implements ManagedConnection {
 	}
 	return lt;
     }
-   
+
     public XAResource getXAResource()
         throws ResourceException {
 

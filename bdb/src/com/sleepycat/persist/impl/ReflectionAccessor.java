@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ReflectionAccessor.java,v 1.18.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: ReflectionAccessor.java,v 1.18.2.4 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -208,7 +208,7 @@ class ReflectionAccessor implements Accessor {
             throw new IllegalStateException(e);
         }
     }
-    
+
     public void readSecKeyFields(Object o,
                                  EntityInput input,
                                  int startField,
@@ -251,7 +251,7 @@ class ReflectionAccessor implements Accessor {
             throw new IllegalStateException(e);
         }
     }
-    
+
     public void readNonKeyFields(Object o,
                                  EntityInput input,
                                  int startField,
@@ -288,8 +288,8 @@ class ReflectionAccessor implements Accessor {
                 (o, field, superLevel - 1, isSecField);
         }
         try {
-            Field fld = isSecField ? secKeys[field].field
-                                   : nonKeys[field].field;
+            Field fld =
+		isSecField ? secKeys[field].field : nonKeys[field].field;
             return fld.get(o);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(e);
@@ -304,10 +304,11 @@ class ReflectionAccessor implements Accessor {
         if (superLevel > 0) {
             superAccessor.setField
                 (o, field, superLevel - 1, isSecField, value);
+	    return;
         }
         try {
-            Field fld = isSecField ? secKeys[field].field
-                                   : nonKeys[field].field;
+            Field fld =
+		isSecField ? secKeys[field].field : nonKeys[field].field;
             fld.set(o, value);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(e);

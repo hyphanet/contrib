@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JoinCursor.java,v 1.15.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: JoinCursor.java,v 1.15.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -36,7 +36,7 @@ public class JoinCursor {
     JoinCursor(Locker locker,
                Database primaryDb,
                final Cursor[] cursors,
-               JoinConfig configParam) 
+               JoinConfig configParam)
         throws DatabaseException {
 
         priDb = primaryDb;
@@ -56,7 +56,7 @@ public class JoinCursor {
              */
             final int[] counts = new int[cursors.length];
             for (int i = 0; i < cursors.length; i += 1) {
-                counts[i] = cursors[i].countInternal    
+                counts[i] = cursors[i].countInternal
                     (LockMode.READ_UNCOMMITTED);
                 assert counts[i] >= 0;
             }
@@ -103,7 +103,7 @@ public class JoinCursor {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void close() 
+    public void close()
         throws DatabaseException {
 
         if (priCursor == null) {
@@ -177,7 +177,7 @@ public class JoinCursor {
      * the doc templates in the doc_src directory.
      */
     public OperationStatus getNext(DatabaseEntry key,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         priCursor.checkEnv();
@@ -193,7 +193,7 @@ public class JoinCursor {
      */
     public OperationStatus getNext(DatabaseEntry key,
                                    DatabaseEntry data,
-                                   LockMode lockMode) 
+                                   LockMode lockMode)
         throws DatabaseException {
 
         priCursor.checkEnv();
@@ -226,9 +226,9 @@ public class JoinCursor {
      */
     private OperationStatus retrieveNext(DatabaseEntry keyParam,
                                          DatabaseEntry dataParam,
-                                         LockMode lockMode) 
+                                         LockMode lockMode)
         throws DatabaseException {
-        
+
         outerLoop: while (true) {
 
             /* Process the first cursor to get a candidate key. */

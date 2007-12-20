@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PersistKeyAssigner.java,v 1.11.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: PersistKeyAssigner.java,v 1.11.2.4 2007/12/08 14:35:32 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -26,7 +26,7 @@ import com.sleepycat.je.Sequence;
 public class PersistKeyAssigner {
 
     private Catalog catalog;
-    private Format keyFormat;
+    private Format keyFieldFormat;
     private Format entityFormat;
     private boolean rawAccess;
     private Sequence sequence;
@@ -35,7 +35,8 @@ public class PersistKeyAssigner {
                        PersistEntityBinding entityBinding,
                        Sequence sequence) {
         catalog = keyBinding.catalog;
-        keyFormat = keyBinding.keyFormat;
+        /* getSequenceKeyFormat will validate the field type for a sequence. */
+        keyFieldFormat = keyBinding.keyFormat.getSequenceKeyFormat();
         entityFormat = entityBinding.entityFormat;
         rawAccess = entityBinding.rawAccess;
         this.sequence = sequence;
@@ -44,10 +45,18 @@ public class PersistKeyAssigner {
     public boolean assignPrimaryKey(Object entity, DatabaseEntry key)
         throws DatabaseException {
             
+        /*
+         * The keyFieldFormat is the format of a simple integer field.  For a
+         * composite key class it is the contained integer field.  By writing
+         * the Long sequence value using that format, the output data can then
+         * be read to construct the actual key instance, whether it is a simple
+         * or composite key class, and assign it to the primary key field in
+         * the entity object.
+         */
         if (entityFormat.isPriKeyNullOrZero(entity, rawAccess)) {
             Long value = sequence.get(null, 1);
             RecordOutput output = new RecordOutput(catalog, rawAccess);
-            keyFormat.writeObject(value, output, rawAccess);
+            keyFieldFormat.writeObject(value, output, rawAccess);
             TupleBase.outputToEntry(output, key);
             EntityInput input = new RecordInput
                 (catalog, rawAccess, null, 0,

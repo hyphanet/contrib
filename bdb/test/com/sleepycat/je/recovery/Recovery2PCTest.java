@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Recovery2PCTest.java,v 1.10.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: Recovery2PCTest.java,v 1.10.2.3 2007/11/21 16:21:28 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -104,9 +104,9 @@ public class Recovery2PCTest extends RecoveryTestBase {
 	return sb.toString();
     }
 
-    public void tearDown() 
+    public void tearDown()
 	throws IOException, DatabaseException {
-        
+
         /* Set test name for reporting; cannot be done in the ctor or setUp. */
         setName(getName() + ": " + opName());
 	super.tearDown();
@@ -122,7 +122,7 @@ public class Recovery2PCTest extends RecoveryTestBase {
         try {
             /* Set up an repository of expected data. */
             Hashtable expectedData = new Hashtable();
-            
+
             /* Insert all the data. */
 	    XidImpl xid = new XidImpl(1, "TwoPCTest1".getBytes(), null);
             Transaction txn = null;
@@ -176,7 +176,7 @@ public class Recovery2PCTest extends RecoveryTestBase {
             /* Set up an repository of expected data. */
             final Hashtable expectedData1 = new Hashtable();
             final Hashtable expectedData2 = new Hashtable();
-            
+
             /* Insert all the data. */
             final Transaction txn1 =
 		(explicitTxn ?
@@ -269,30 +269,33 @@ public class Recovery2PCTest extends RecoveryTestBase {
 	    }
 	    assertTrue(sawXid1 && sawXid2);
 
-            closeEnv();
-	    xaEnv2 = (XAEnvironment) env;
-	    xaRecoverOnly(NUM_DBS);
-	    xaEnv2 = (XAEnvironment) env;
+	    for (int ii = 0; ii < 4; ii++) {
 
-	    unfinishedXAXids = xaEnv2.recover(0);
-	    assertTrue(unfinishedXAXids.length == 2);
-	    sawXid1 = false;
-	    sawXid2 = false;
-	    for (int i = 0; i < 2; i++) {
-		if (unfinishedXAXids[i].equals(xid1)) {
-		    if (sawXid1) {
-			fail("saw Xid1 twice");
+		forceCloseEnvOnly();
+		xaEnv2 = (XAEnvironment) env;
+		xaRecoverOnly(NUM_DBS);
+		xaEnv2 = (XAEnvironment) env;
+
+		unfinishedXAXids = xaEnv2.recover(0);
+		assertTrue(unfinishedXAXids.length == 2);
+		sawXid1 = false;
+		sawXid2 = false;
+		for (int i = 0; i < 2; i++) {
+		    if (unfinishedXAXids[i].equals(xid1)) {
+			if (sawXid1) {
+			    fail("saw Xid1 twice");
+			}
+			sawXid1 = true;
 		    }
-		    sawXid1 = true;
-		}
-		if (unfinishedXAXids[i].equals(xid2)) {
-		    if (sawXid2) {
-			fail("saw Xid2 twice");
+		    if (unfinishedXAXids[i].equals(xid2)) {
+			if (sawXid2) {
+			    fail("saw Xid2 twice");
+			}
+			sawXid2 = true;
 		    }
-		    sawXid2 = true;
 		}
+		assertTrue(sawXid1 && sawXid2);
 	    }
-	    assertTrue(sawXid1 && sawXid2);
 
 	    xaEnv2 = (XAEnvironment) env;
 	    xaEnv2.getXATransaction(xid1);
@@ -330,7 +333,7 @@ public class Recovery2PCTest extends RecoveryTestBase {
 		assertTrue(XAE.errorCode == XAException.XAER_INVAL);
 	    }
 
-	    /* 
+	    /*
 	     * Check that only one of TMJOIN and TMRESUME can be set by passing
 	     * a bogus flag value (TMSUSPEND).
 	     */
@@ -352,7 +355,7 @@ public class Recovery2PCTest extends RecoveryTestBase {
 	    }
 	    xaEnv.end(xid, XAResource.TMNOFLAGS);
 
-	    /* 
+	    /*
 	     * Check that JOIN with a non-existant association throws NOTA.
 	     */
 	    try {
@@ -364,7 +367,7 @@ public class Recovery2PCTest extends RecoveryTestBase {
 		assertTrue(XAE.errorCode == XAException.XAER_NOTA);
 	    }
 
-	    /* 
+	    /*
 	     * Check that RESUME with a non-existant association throws NOTA.
 	     */
 	    try {

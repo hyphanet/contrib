@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INCompressor.java,v 1.125.2.5 2007/07/02 19:54:50 mark Exp $
+ * $Id: INCompressor.java,v 1.125.2.6 2007/11/20 13:32:29 cwl Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -60,7 +60,7 @@ public class INCompressor extends DaemonThread {
     private int cursorsBins = 0;
     private int nonEmptyBins = 0;
     private int processedBins = 0;
-    
+
     /* per-run stats */
     private int splitBinsThisRun = 0;
     private int dbClosedBinsThisRun = 0;
@@ -68,7 +68,7 @@ public class INCompressor extends DaemonThread {
     private int nonEmptyBinsThisRun = 0;
     private int processedBinsThisRun = 0;
 
-    /* 
+    /*
      * The following stats are not kept per run, because they're set by
      * multiple threads doing lazy compression. They are debugging aids; it
      * didn't seem like a good idea to add synchronization to the general path.
@@ -78,7 +78,7 @@ public class INCompressor extends DaemonThread {
     private int lazySplit = 0;
     private int wokenUp = 0;
 
-    /* 
+    /*
      * Store logical references to BINs that have deleted entries and are
      * candidates for compaction.
      */
@@ -111,7 +111,7 @@ public class INCompressor extends DaemonThread {
 	    return;
 	}
 
-	/* 
+	/*
 	 * Use a snapshot to verify the cursors.  This way we don't have to
 	 * hold a latch while verify takes locks.
 	 */
@@ -219,7 +219,7 @@ public class INCompressor extends DaemonThread {
                 addBinRefToQueueAlreadyLatched(binRef);
             }
         }
-        
+
         if (doWakeup) {
             wakeup();
         }
@@ -266,7 +266,7 @@ public class INCompressor extends DaemonThread {
 	}
     }
 
-    /* 
+    /*
      * Return a bin reference for this node if it exists and has a set of
      * deletable keys.
      */
@@ -280,9 +280,9 @@ public class INCompressor extends DaemonThread {
                     foundRef = target;
                 } else {
 
-                    /* 
+                    /*
                      * This is an entry that needs to be pruned. Put it back
-                     * to be dealt with by the daemon. 
+                     * to be dealt with by the daemon.
                      */
                     binRefQueue.put(node, target);
                 }
@@ -294,7 +294,7 @@ public class INCompressor extends DaemonThread {
     /**
      * Return stats
      */
-    public void loadStats(StatsConfig config, EnvironmentStats stat) 
+    public void loadStats(StatsConfig config, EnvironmentStats stat)
         throws DatabaseException {
 
         stat.setSplitBins(splitBins);
@@ -339,7 +339,7 @@ public class INCompressor extends DaemonThread {
 
         if (env.isClosed()) {
             return;
-        } 
+        }
         wokenUp++;
         doCompress();
     }
@@ -348,14 +348,14 @@ public class INCompressor extends DaemonThread {
      * The real work to doing a compress. This may be called by the compressor
      * thread or programatically.
      */
-    public synchronized void doCompress() 
+    public synchronized void doCompress()
         throws DatabaseException {
 
 	if (!isRunnable()) {
 	    return;
 	}
 
-	/* 
+	/*
          * Make a snapshot of the current work queue so the compressor thread
          * can safely iterate over the queue. Note that this impacts lazy
          * compression, because it lazy compressors will not see BINReferences
@@ -378,7 +378,7 @@ public class INCompressor extends DaemonThread {
                          "InCompress.doCompress called, queue size: " +
                          binQueueSize);
             assert LatchSupport.countLatchesHeld() == 0;
-            
+
             /*
              * Compressed entries must be counted as obsoleted.  A separate
              * tracker is used to accumulate tracked obsolete info so it can be
@@ -404,13 +404,13 @@ public class INCompressor extends DaemonThread {
                     BINReference binRef = (BINReference) it.next();
                     if (!findDBAndBIN(binSearch, binRef, dbTree, dbCache)) {
 
-                        /* 
+                        /*
                          * Either the db is closed, or the BIN doesn't
                          * exist. Don't process this BINReference.
                          */
                         continue;
                     }
-                    
+
                     if (binRef.deletedKeysExist()) {
                         /* Compress deleted slots. */
                         boolean requeued = compressBin
@@ -418,7 +418,7 @@ public class INCompressor extends DaemonThread {
 
                         if (!requeued) {
 
-                            /* 
+                            /*
                              * This BINReference was fully processed, but there
 			     * may still be deleted slots. If there are still
 			     * deleted keys in the binref, they were relocated
@@ -429,7 +429,7 @@ public class INCompressor extends DaemonThread {
                         }
                     } else {
 
-                        /* 
+                        /*
                          * An empty BINReference on the queue was put there by
                          * a lazy compressor to indicate that we should try to
                          * prune an empty BIN.
@@ -443,13 +443,13 @@ public class INCompressor extends DaemonThread {
                             dupKey = ((DBIN) foundBin).getDupKey();
                         }
 
-                        /* 
+                        /*
                          * Release the bin latch taken by the initial
                          * search. Pruning starts from the top of the tree
                          * and requires that no latches are held.
                          */
                         foundBin.releaseLatch();
-                        
+
                         pruneBIN(binSearch.db,  binRef, idKey, isDBIN,
                                  dupKey, tracker);
                     }
@@ -491,12 +491,12 @@ public class INCompressor extends DaemonThread {
         byte[] idKey = bin.getIdentifierKey();
         byte[] dupKey = null;
         boolean isDBIN = bin.containsDuplicates();
-            
+
         try {
             int nCursors = bin.nCursors();
             if (nCursors > 0) {
 
-                /* 
+                /*
                  * There are cursors pointing to the BIN, so try again later.
                  */
                 addBinRefToQueue(binRef, false);
@@ -506,7 +506,7 @@ public class INCompressor extends DaemonThread {
                 requeued = bin.compress(binRef, true /* canFetch */, tracker);
                 if (!requeued) {
 
-                    /* 
+                    /*
                      * Only check for emptiness if this BINRef is in play and
                      * not on the queue.
                      */
@@ -514,7 +514,7 @@ public class INCompressor extends DaemonThread {
 
                     if (empty) {
 
-                        /* 
+                        /*
                          * While we have the BIN latched, prepare a dup key if
                          * needed for navigating the tree while pruning.
                          */
@@ -537,7 +537,7 @@ public class INCompressor extends DaemonThread {
     }
 
     /**
-     * If the target BIN is empty, attempt to remove the empty branch of the 
+     * If the target BIN is empty, attempt to remove the empty branch of the
      * tree.
      * @return true if the pruning was unable to proceed and the BINReference
      * was requeued.
@@ -553,7 +553,7 @@ public class INCompressor extends DaemonThread {
         boolean requeued = false;
         try {
             Tree tree = dbImpl.getTree();
-            
+
             if (containsDups) {
                 tree.deleteDup(idKey, dupKey, tracker);
             } else {
@@ -562,7 +562,7 @@ public class INCompressor extends DaemonThread {
             processedBinsThisRun++;
         } catch (NodeNotEmptyException NNEE) {
 
-            /* 
+            /*
              * Something was added to the node since the point when the
              * deletion occurred; we can't prune, and we can throw away this
              * BINReference.
@@ -570,8 +570,8 @@ public class INCompressor extends DaemonThread {
              nonEmptyBinsThisRun++;
         } catch (CursorsExistException e) {
 
-            /* 
-             * If there are cursors in the way of the delete, retry later. 
+            /*
+             * If there are cursors in the way of the delete, retry later.
              * For example, When we delete a BIN or DBIN, we're guaranteed that
              * there are no cursors at that node. (otherwise, we wouldn't be
              * able to remove all the entries. However, there's the possibility
@@ -586,7 +586,7 @@ public class INCompressor extends DaemonThread {
         }
         return requeued;
     }
-    
+
     /*
      * When we do not requeue the BINRef but there are deleted keys remaining,
      * those keys were not found in the BIN and therefore must have been moved
@@ -594,7 +594,7 @@ public class INCompressor extends DaemonThread {
      */
     private void checkForRelocatedSlots(DatabaseImpl db,
                                         BINReference binRef,
-                                        UtilizationTracker tracker) 
+                                        UtilizationTracker tracker)
         throws DatabaseException {
 
         Iterator iter = binRef.getDeletedKeyIterator();
@@ -632,7 +632,7 @@ public class INCompressor extends DaemonThread {
     /**
      * Search the tree for the BIN or DBIN that corresponds to this
      * BINReference.
-     * 
+     *
      * @param binRef the BINReference that indicates the bin we want.
      * @return the BIN or DBIN that corresponds to this BINReference. The
      * node is latched upon return. Returns null if the BIN can't be found.
@@ -704,11 +704,11 @@ public class INCompressor extends DaemonThread {
                 duplicateRoot.releaseLatchIfOwner();
             }
 
-	    /* 
+	    /*
 	     * FindBugs whines about Redundent comparison to null below, but
 	     * for stylistic purposes we'll leave it in.
 	     */
-            if (duplicateBin != null) { 
+            if (duplicateBin != null) {
                 duplicateBin.releaseLatchIfOwner();
             }
             throw DBE;
@@ -738,7 +738,7 @@ public class INCompressor extends DaemonThread {
      * Lazily compress a single BIN. Do not do any pruning. The target IN
      * should be latched when we enter, and it will be remain latched.
      */
-    public void lazyCompress(IN in, UtilizationTracker tracker) 
+    public void lazyCompress(IN in, UtilizationTracker tracker)
         throws DatabaseException {
 
         if (!in.isCompressible()) {
@@ -746,7 +746,7 @@ public class INCompressor extends DaemonThread {
         }
 
         assert in.isLatchOwnerForWrite();
-        
+
         /* BIN is latched. */
         BIN bin = (BIN) in;
         int nCursors = bin.nCursors();
@@ -754,7 +754,7 @@ public class INCompressor extends DaemonThread {
             /* Cursor prohibit compression. */
             return;
         } else {
-            BINReference binRef = 
+            BINReference binRef =
                 removeCompressibleBinReference(bin.getNodeId());
             if ((binRef == null) || (!binRef.deletedKeysExist())) {
                 return;
@@ -764,7 +764,7 @@ public class INCompressor extends DaemonThread {
                     bin.compress(binRef, false /* canFetch */, tracker);
                 lazyProcessed++;
 
-                /* 
+                /*
                  * If this wasn't requeued, but there were deleted keys
                  * remaining, requeue, so the daemon can handle this.  Either
                  * we must have shuffled some items because of a split, or a
@@ -783,14 +783,14 @@ public class INCompressor extends DaemonThread {
         }
     }
 
-    /* 
+    /*
      * Find the db and bin for a BINReference.
      * @return true if the db is open and the target bin is found.
      */
-    private boolean findDBAndBIN(BINSearch binSearch, 
+    private boolean findDBAndBIN(BINSearch binSearch,
                                  BINReference binRef,
                                  DbTree dbTree,
-                                 Map dbCache) 
+                                 Map dbCache)
         throws DatabaseException {
 
         /*
@@ -799,7 +799,7 @@ public class INCompressor extends DaemonThread {
          */
         binSearch.db = dbTree.getDb
             (binRef.getDatabaseId(), lockTimeout, dbCache);
-        if ((binSearch.db == null) ||(binSearch.db.isDeleted())) {  
+        if ((binSearch.db == null) ||(binSearch.db.isDeleted())) {
           /* The db was deleted. Ignore this BIN Ref. */
             dbClosedBinsThisRun++;
             return false;
@@ -819,7 +819,7 @@ public class INCompressor extends DaemonThread {
             splitBinsThisRun++;
             return false;
         }
-        
+
         return true;
     }
 

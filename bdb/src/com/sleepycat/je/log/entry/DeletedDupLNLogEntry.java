@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeletedDupLNLogEntry.java,v 1.26.2.1 2007/02/01 14:49:48 cwl Exp $
+ * $Id: DeletedDupLNLogEntry.java,v 1.26.2.2 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -27,7 +27,7 @@ import com.sleepycat.je.txn.Txn;
  */
 public class DeletedDupLNLogEntry extends LNLogEntry {
 
-    /* 
+    /*
      * Deleted duplicate LN must log an entra key in their log entries,
      * because the data field that is the "key" in a dup tree has been
      * nulled out because the LN is deleted.
@@ -85,7 +85,7 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
         sb.append(Key.dumpString(dataAsKey, 0));
         return sb;
     }
-    
+
     /*
      * Writing support
      */

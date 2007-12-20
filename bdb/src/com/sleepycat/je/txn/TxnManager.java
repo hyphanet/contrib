@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnManager.java,v 1.59.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: TxnManager.java,v 1.59.2.3 2007/11/20 18:52:32 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -35,13 +35,13 @@ import com.sleepycat.je.utilint.DbLsn;
  */
 public class TxnManager {
 
-    /* 
+    /*
      * All NullTxns share the same id so as not to eat from the id number
      * space.
      */
-    static final long NULL_TXN_ID = -1; 
+    static final long NULL_TXN_ID = -1;
     private static final String DEBUG_NAME = TxnManager.class.getName();
-    
+
     private LockManager lockManager;
     private EnvironmentImpl env;
     private Latch allTxnLatch;
@@ -52,7 +52,7 @@ public class TxnManager {
     private Map thread2Txn;
     private long lastUsedTxnId;
     private int nActiveSerializable;
-    
+
     /* Locker Stats */
     private int numCommits;
     private int numAborts;
@@ -60,7 +60,7 @@ public class TxnManager {
     private int numXACommits;
     private int numXAAborts;
 
-    public TxnManager(EnvironmentImpl env) 
+    public TxnManager(EnvironmentImpl env)
     	throws DatabaseException {
 
         if (EnvironmentImpl.getFairLatches()) {
@@ -107,21 +107,21 @@ public class TxnManager {
     synchronized long incTxnId() {
         return ++lastUsedTxnId;
     }
-    
+
     /**
      * Create a new transaction.
      * @param parent for nested transactions, not yet supported
      * @param txnConfig specifies txn attributes
      * @return the new txn
      */
-    public Txn txnBegin(Transaction parent, TransactionConfig txnConfig) 
+    public Txn txnBegin(Transaction parent, TransactionConfig txnConfig)
         throws DatabaseException {
 
         if (parent != null) {
             throw new DatabaseException
 		("Nested transactions are not supported yet.");
         }
-        
+
         return new Txn(env, txnConfig);
     }
 
@@ -149,7 +149,7 @@ public class TxnManager {
     /**
      * Called when txn ends.
      */
-    void unRegisterTxn(Txn txn, boolean isCommit) 
+    void unRegisterTxn(Txn txn, boolean isCommit)
         throws DatabaseException {
 
         allTxnLatch.acquire();
@@ -192,7 +192,7 @@ public class TxnManager {
     /**
      * Called when txn ends.
      */
-    void unRegisterXATxn(Xid xid, boolean isCommit) 
+    void unRegisterXATxn(Xid xid, boolean isCommit)
         throws DatabaseException {
 
 	if (allXATxns.remove(xid) == null) {
@@ -274,10 +274,10 @@ public class TxnManager {
     /**
      * Get the earliest LSN of all the active transactions, for checkpoint.
      */
-    public long getFirstActiveLsn() 
+    public long getFirstActiveLsn()
         throws DatabaseException {
 
-        /* 
+        /*
          * Note that the latching hierarchy calls for getting allTxnLatch
          * first, then synchronizing on individual txns.
          */
@@ -285,7 +285,7 @@ public class TxnManager {
         allTxnLatch.acquire();
 	try {
 	    Iterator iter = allTxns.iterator();
-	    while(iter.hasNext()) {
+	    while (iter.hasNext()) {
 		long txnFirstActive = ((Txn) iter.next()).getFirstActiveLsn();
 		if (firstActive == DbLsn.NULL_LSN) {
 		    firstActive = txnFirstActive;
@@ -346,7 +346,7 @@ public class TxnManager {
     /**
      * Collect lock related stats.
      */
-    public LockStats lockStat(StatsConfig config) 
+    public LockStats lockStat(StatsConfig config)
         throws DatabaseException {
 
         return lockManager.lockStat(config);

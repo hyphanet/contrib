@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockerFactory.java,v 1.8.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: LockerFactory.java,v 1.8.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -76,7 +76,7 @@ public class LockerFactory {
 
         } else {
 
-            /* 
+            /*
              * The user provided a transaction, the environment and the
              * database had better be opened transactionally.
              */
@@ -108,7 +108,7 @@ public class LockerFactory {
             }
         }
     }
-   
+
     /**
      * Get a locker for a read or cursor operation.
      * See getWritableLocker for an explanation of retainNonTxnLocks.
@@ -117,7 +117,7 @@ public class LockerFactory {
                                            Transaction userTxn,
                                            boolean dbIsTransactional,
                                            boolean retainNonTxnLocks,
-                                           boolean readCommittedIsolation) 
+                                           boolean readCommittedIsolation)
         throws DatabaseException {
 
         if (userTxn != null && !dbIsTransactional) {
@@ -154,11 +154,11 @@ public class LockerFactory {
                                            Database dbHandle,
                                            Locker locker,
                                            boolean retainNonTxnLocks,
-                                           boolean readCommittedIsolation) 
+                                           boolean readCommittedIsolation)
         throws DatabaseException {
-        
+
         DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(dbHandle);
-        if (!dbImpl.isTransactional() && 
+        if (!dbImpl.isTransactional() &&
             locker != null &&
             locker.isTransactional()) {
             throw new DatabaseException
@@ -167,7 +167,7 @@ public class LockerFactory {
                  " non-transactionally");
         }
 
-        /* 
+        /*
          * Don't reuse a non-transactional locker unless retaining
          * non-transactional locks was requested.
          */
@@ -197,7 +197,7 @@ public class LockerFactory {
     private static Locker getReadableLocker(Environment env,
                                             Locker locker,
                                             boolean retainNonTxnLocks,
-                                            boolean readCommittedIsolation) 
+                                            boolean readCommittedIsolation)
         throws DatabaseException {
 
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);

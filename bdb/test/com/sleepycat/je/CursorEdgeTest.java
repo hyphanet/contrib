@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorEdgeTest.java,v 1.35.2.1 2007/02/01 14:50:04 cwl Exp $
+ * $Id: CursorEdgeTest.java,v 1.35.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -19,7 +19,7 @@ import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.util.TestUtils;
 
 /**
- * Test edge case in cursor traversals. In particular, look at duplicates and 
+ * Test edge case in cursor traversals. In particular, look at duplicates and
  * sets of keys interspersed with deletions.
  */
 public class CursorEdgeTest extends TestCase {
@@ -38,7 +38,7 @@ public class CursorEdgeTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
 
-        /* 
+        /*
          * Create an environment w/transactions and a max node size of 6.
          * Be sure to disable the compressor, we want some holes in the
          * tree.
@@ -51,10 +51,10 @@ public class CursorEdgeTest extends TestCase {
         envConfig.setAllowCreate(true);
         env = new Environment(envHome, envConfig);
     }
-    
+
     public void tearDown()
 	throws Exception {
-        
+
         try {
             env.close();
         } catch (Throwable e) {
@@ -83,7 +83,7 @@ public class CursorEdgeTest extends TestCase {
             dbConfig.setAllowCreate(true);
             myDb = env.openDatabase(null, "foo", dbConfig);
 
-            /* 
+            /*
              * Insert k1/d1, then a duplicate range of k2/d1 -> k2/d15, then
              * k3/d1. Now delete the beginning part of the duplicate
              * range, trying to get more than a whole bin's worth
@@ -95,14 +95,14 @@ public class CursorEdgeTest extends TestCase {
              */
             DatabaseEntry key = new DatabaseEntry();
             DatabaseEntry data = new DatabaseEntry();
-            key.setData(TestUtils.getTestArray(1));  
-            data.setData(TestUtils.getTestArray(1)); 
+            key.setData(TestUtils.getTestArray(1));
+            data.setData(TestUtils.getTestArray(1));
             myDb.put(null, key, data);          // k1/d1
-            key.setData(TestUtils.getTestArray(3));  
+            key.setData(TestUtils.getTestArray(3));
             myDb.put(null, key, data);          // k3/d1
 
             /* insert k2 range */
-            key.setData(TestUtils.getTestArray(2));  
+            key.setData(TestUtils.getTestArray(2));
             for (int i = 1; i <= 15; i++) {
                 data.setData(TestUtils.getTestArray(i));
                 myDb.put(null, key, data);
@@ -147,12 +147,12 @@ public class CursorEdgeTest extends TestCase {
             cursor = null;
             txn.commit();
 
-            /* 
-             * Now make sure we can find k2/d8 
+            /*
+             * Now make sure we can find k2/d8
              */
             Cursor readCursor = myDb.openCursor(null, CursorConfig.DEFAULT);
             key.setData(TestUtils.getTestArray(2));
-            
+
             /* Use key search */
             assertEquals(OperationStatus.SUCCESS,
 			 readCursor.getSearchKey(key, data, LockMode.DEFAULT));
@@ -190,16 +190,16 @@ public class CursorEdgeTest extends TestCase {
             assertEquals(2, TestUtils.getTestVal(key.getData()));
             assertEquals(8, TestUtils.getTestVal(data.getData()));
 
-            /* 
+            /*
              * Make sure we can find k2/d13 with a range search.
              */
 
-            /* 
+            /*
 	     * Insert a set of duplicates, k5/d0 -> k5/d9, then delete
              * all of them (but don't compress). Make sure no form of
              * search every finds them.
              */
-            key.setData(TestUtils.getTestArray(5));  
+            key.setData(TestUtils.getTestArray(5));
             for (int i = 0; i < 10; i++) {
                 data.setData(TestUtils.getTestArray(i));
                 myDb.put(null, key, data);
@@ -266,12 +266,12 @@ public class CursorEdgeTest extends TestCase {
             /* Put one record */
             DatabaseEntry key = new DatabaseEntry();
             DatabaseEntry data = new DatabaseEntry();
-            key.setData(TestUtils.getTestArray(1));  
-            data.setData(TestUtils.getTestArray(1)); 
+            key.setData(TestUtils.getTestArray(1));
+            data.setData(TestUtils.getTestArray(1));
             myDb.put(null, key, data);
-            
-            key.setData(TestUtils.getTestArray(1));  
-            data.setData(TestUtils.getTestArray(0)); 
+
+            key.setData(TestUtils.getTestArray(1));
+            data.setData(TestUtils.getTestArray(0));
             cursor = myDb.openCursor(null, CursorConfig.DEFAULT);
             OperationStatus status =
 		cursor.getSearchBothRange(key, data, LockMode.DEFAULT);
@@ -314,13 +314,13 @@ public class CursorEdgeTest extends TestCase {
         Transaction t1 = env.beginTransaction(null, null);
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(1)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(1));
         myDb.put(t1, key, data);
 
         /* T2 calls getFirst. */
         JUnitThread thread = new JUnitThread("getFirst") {
-            public void testBody() 
+            public void testBody()
                 throws DatabaseException {
                 DatabaseEntry key = new DatabaseEntry();
                 DatabaseEntry data = new DatabaseEntry();
@@ -342,8 +342,8 @@ public class CursorEdgeTest extends TestCase {
         Thread.sleep(10);
 
         /* T1 inserts K1-D2. */
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(2)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(2));
         myDb.put(t1, key, data);
         t1.commitNoSync();
 
@@ -379,16 +379,16 @@ public class CursorEdgeTest extends TestCase {
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
 
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(1)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(1));
         myDb.put(null, key, data);
-        data.setData(TestUtils.getTestArray(2)); 
+        data.setData(TestUtils.getTestArray(2));
         myDb.put(null, key, data);
 
-        key.setData(TestUtils.getTestArray(2));  
-        data.setData(TestUtils.getTestArray(1)); 
+        key.setData(TestUtils.getTestArray(2));
+        data.setData(TestUtils.getTestArray(1));
         myDb.put(null, key, data);
-        data.setData(TestUtils.getTestArray(2)); 
+        data.setData(TestUtils.getTestArray(2));
         myDb.put(null, key, data);
 
         /*
@@ -418,11 +418,11 @@ public class CursorEdgeTest extends TestCase {
         myDb.close();
     }
 
-    /* 
+    /*
      * Check that non transactional cursors can't do update operations
      * against a transactional database.
      */
-    public void testNonTxnalCursorNoUpdates() 
+    public void testNonTxnalCursorNoUpdates()
         throws Throwable {
 
         Database myDb = null;
@@ -437,7 +437,7 @@ public class CursorEdgeTest extends TestCase {
             myDb = env.openDatabase(null, "foo", dbConfig);
 
             SecondaryConfig secConfig = new SecondaryConfig();
-            secConfig.setTransactional(true); 
+            secConfig.setTransactional(true);
             secConfig.setAllowCreate(true);
             secConfig.setKeyCreator(new KeyCreator());
             mySecDb = env.openSecondaryDatabase(null, "fooSecDb", myDb,
@@ -485,9 +485,9 @@ public class CursorEdgeTest extends TestCase {
     }
 
     /* Updates should not be possible with this cursor. */
-    private void updatesShouldBeProhibited(Cursor cursor) 
+    private void updatesShouldBeProhibited(Cursor cursor)
         throws Exception {
-        
+
         try {
             cursor.delete();
             fail("Should not be able to do a delete");
@@ -537,7 +537,7 @@ public class CursorEdgeTest extends TestCase {
     }
 
     private void checkForTransactionException(DatabaseException e) {
-        /* 
+        /*
          * Check that it's a transaction problem. Crude, but since we
          * don't want to add exception types, necessary.
          */
@@ -580,15 +580,15 @@ public class CursorEdgeTest extends TestCase {
         Database db = env.openDatabase(null, "foo", dbConfig);
 
         /* Insert record 1. */
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(1)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(1));
         db.put(null, key, data);
 
         /* Open cursor1 with txn1 and lock record 1. */
         Transaction txn1 = env.beginTransaction(null, null);
         Cursor cursor1 = db.openCursor(txn1, null);
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(1)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(1));
         OperationStatus status = cursor1.getSearchBoth(key, data, null);
         assertSame(status, OperationStatus.SUCCESS);
         assertEquals(1, TestUtils.getTestVal(key.getData()));
@@ -599,8 +599,8 @@ public class CursorEdgeTest extends TestCase {
         noWaitConfig.setNoWait(true);
         Transaction txn2 = env.beginTransaction(null, noWaitConfig);
         Cursor cursor2 = db.openCursor(txn2, null);
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(1)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(1));
         status = cursor2.getSearchBoth(key, data, null);
         assertSame(status, OperationStatus.SUCCESS);
         assertEquals(1, TestUtils.getTestVal(key.getData()));
@@ -626,14 +626,14 @@ public class CursorEdgeTest extends TestCase {
         txn2.commit();
 
         /* Insert duplicate record 2 to create a DupCountLN. */
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(2)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(2));
         db.put(null, key, data);
 
         /* Get the cursor count with cursor1/txn1 to lock the DupCountLN. */
         txn1 = env.beginTransaction(null, null);
         cursor1 = db.openCursor(txn1, null);
-        key.setData(TestUtils.getTestArray(1));  
+        key.setData(TestUtils.getTestArray(1));
         status = cursor1.getSearchKey(key, data, null);
         assertSame(status, OperationStatus.SUCCESS);
         assertEquals(1, TestUtils.getTestVal(key.getData()));
@@ -643,8 +643,8 @@ public class CursorEdgeTest extends TestCase {
         /* Try to write lock the DupCountLN with txn2 by deleting record 2. */
         txn2 = env.beginTransaction(null, noWaitConfig);
         cursor2 = db.openCursor(txn2, null);
-        key.setData(TestUtils.getTestArray(1));  
-        data.setData(TestUtils.getTestArray(2)); 
+        key.setData(TestUtils.getTestArray(1));
+        data.setData(TestUtils.getTestArray(2));
         status = cursor2.getSearchBoth(key, data, null);
         assertSame(status, OperationStatus.SUCCESS);
         assertEquals(1, TestUtils.getTestVal(key.getData()));

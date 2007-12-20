@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ReadOnlyCatalog.java,v 1.8.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: ReadOnlyCatalog.java,v 1.8.2.2 2007/11/19 18:48:12 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -32,6 +32,10 @@ class ReadOnlyCatalog implements Catalog {
     ReadOnlyCatalog(List<Format> formatList, Map<String,Format> formatMap) {
         this.formatList = formatList;
         this.formatMap = formatMap;
+    }
+
+    public int getInitVersion(Format format, boolean forReader) {
+        return Catalog.CURRENT_VERSION;
     }
 
     public Format getFormat(int formatId) {

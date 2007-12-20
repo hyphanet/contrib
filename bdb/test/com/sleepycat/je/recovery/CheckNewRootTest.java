@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2005 Oracle.  All rights reserved.
  *
- * $Id: CheckNewRootTest.java,v 1.5 2006/12/13 18:55:41 linda Exp $
+ * $Id: CheckNewRootTest.java,v 1.5.2.1 2007/11/20 13:32:47 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -31,7 +31,7 @@ import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.TestHook;
 import com.sleepycat.je.utilint.Tracer;
 
-/** 
+/**
  * Test situations where a new root is created
  */
 public class CheckNewRootTest extends CheckBase {
@@ -45,11 +45,11 @@ public class CheckNewRootTest extends CheckBase {
     static {
         FORCE_CONFIG.setForce(true);
     }
-    
+
     /**
-     * Create a tree, make sure the root changes and is logged 
+     * Create a tree, make sure the root changes and is logged
      * before any checkpointing. The bug found in [#13897] was this:
-     * 
+     *
      * 100 BIN a
      * 110 RootIN b
      * 120 MapLN points to root IN at 110
@@ -76,8 +76,8 @@ public class CheckNewRootTest extends CheckBase {
                     },
                     envConfig, dbConfig);
 
-        
-        /* 
+
+        /*
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
@@ -88,7 +88,7 @@ public class CheckNewRootTest extends CheckBase {
     /**
      * Create a populated tree, delete all records, then begin to insert again.
      */
-    private void setupWrittenByCompression(Database db) 
+    private void setupWrittenByCompression(Database db)
         throws DatabaseException {
         setStepwiseStart();
 
@@ -127,9 +127,9 @@ public class CheckNewRootTest extends CheckBase {
     }
 
     /**
-     * Create a tree, make sure the root changes and is logged 
+     * Create a tree, make sure the root changes and is logged
      * before any checkpointing. The bug found in [#13897] was this:
-     * 
+     *
      * 110 RootIN b
      * 120 MapLN points to root IN at 110
      * 130 BINb split
@@ -156,8 +156,8 @@ public class CheckNewRootTest extends CheckBase {
                     },
                     envConfig, dbConfig);
 
-        
-        /* 
+
+        /*
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
@@ -167,7 +167,7 @@ public class CheckNewRootTest extends CheckBase {
 
     /**
      */
-    private void setupWrittenBySplits(Database db) 
+    private void setupWrittenBySplits(Database db)
         throws DatabaseException {
         setStepwiseStart();
 
@@ -201,7 +201,7 @@ public class CheckNewRootTest extends CheckBase {
      *  checkpoint start
      *  LN is logged but not yet attached to BIN
      *  checkpoint end
-     *  BIN is dirtied, but is not part of checkpoint, because dirtying wasn't 
+     *  BIN is dirtied, but is not part of checkpoint, because dirtying wasn't
      *  seen
      * In this case, getParentForBIN hangs, because there is no root.
      * This test is for debugging only, because it's not really possible to
@@ -210,7 +210,7 @@ public class CheckNewRootTest extends CheckBase {
      * assert that no latches are held when the inlist latch is taken.
      * Instead, we do this pseudo checkpoint, to make the hang reproduce. But
      * this test will still fail even with the fixed code because the fix
-     * now causes the rootIN to get re-logged, and the pseudo checkpoint 
+     * now causes the rootIN to get re-logged, and the pseudo checkpoint
      * doesn't do that logging.
      */
     public void xxtestCreateNewTree() // This test for debugging only
@@ -229,8 +229,8 @@ public class CheckNewRootTest extends CheckBase {
                     },
                     envConfig, dbConfig);
 
-        
-        /* 
+
+        /*
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
@@ -241,7 +241,7 @@ public class CheckNewRootTest extends CheckBase {
     /**
      * Create a populated tree, delete all records, then begin to insert again.
      */
-    private void setupCreateNewTree(Database db) 
+    private void setupCreateNewTree(Database db)
         throws DatabaseException {
 
 
@@ -254,22 +254,22 @@ public class CheckNewRootTest extends CheckBase {
 
         env.checkpoint(FORCE_CONFIG);
 
-        /* 
-         * Create in the log 
-         *  provisional BIN, IN, ckpt start, LN 
+        /*
+         * Create in the log
+         *  provisional BIN, IN, ckpt start, LN
          */
         IntegerBinding.intToEntry(1, key);
         IntegerBinding.intToEntry(1, data);
         assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
     }
 
-    /* 
+    /*
      * Force a checkpoint into the log. Use another thread, lest the asserts
      * about held latches take effect.
      */
     private static class CheckpointHook implements TestHook {
         private Environment env;
-        
+
         CheckpointHook(Environment env) {
             this.env = env;
         }
@@ -282,7 +282,7 @@ public class CheckNewRootTest extends CheckBase {
 		    new SingleItemEntry(LogEntryType.LOG_CKPT_START,
                                         new CheckpointStart(100, "test"));
 		long checkpointStart = envImpl.getLogManager().log(startEntry);
-                CheckpointEnd ckptEnd = 
+                CheckpointEnd ckptEnd =
                     new CheckpointEnd("test",
                                       checkpointStart,
                                       envImpl.getRootLsn(),
@@ -321,8 +321,8 @@ public class CheckNewRootTest extends CheckBase {
                     },
                     envConfig, dbConfig);
 
-        
-        /* 
+
+        /*
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
@@ -333,7 +333,7 @@ public class CheckNewRootTest extends CheckBase {
     /**
      * Create a populated tree, delete all records, then begin to insert again.
      */
-    private void setupEvictedRoot(Database db) 
+    private void setupEvictedRoot(Database db)
         throws DatabaseException {
         setStepwiseStart();
 
@@ -351,7 +351,7 @@ public class CheckNewRootTest extends CheckBase {
                      "After inserts");
         env.checkpoint(FORCE_CONFIG);
 
-        /* 
+        /*
          * Add another record so that the eviction below will log
          * a different versions of the IN nodes.
          */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateValidationTest.java,v 1.21.2.1 2007/02/01 14:50:09 cwl Exp $
+ * $Id: DbCursorDuplicateValidationTest.java,v 1.21.2.2 2007/11/20 13:32:43 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -18,13 +18,13 @@ import com.sleepycat.je.tree.DBIN;
 
 public class DbCursorDuplicateValidationTest extends DbCursorTestBase {
 
-    public DbCursorDuplicateValidationTest() 
+    public DbCursorDuplicateValidationTest()
         throws DatabaseException {
 
         super();
     }
 
-    public void testValidateCursors() 
+    public void testValidateCursors()
 	throws Throwable {
 
         initEnv(true);

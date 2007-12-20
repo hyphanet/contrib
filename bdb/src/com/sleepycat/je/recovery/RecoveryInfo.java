@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryInfo.java,v 1.25.2.1 2007/02/01 14:49:49 cwl Exp $
+ * $Id: RecoveryInfo.java,v 1.25.2.2 2007/11/20 13:32:33 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -11,7 +11,7 @@ package com.sleepycat.je.recovery;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
- * RecoveryInfo keeps information about recovery processing. 
+ * RecoveryInfo keeps information about recovery processing.
  */
 public class RecoveryInfo {
 

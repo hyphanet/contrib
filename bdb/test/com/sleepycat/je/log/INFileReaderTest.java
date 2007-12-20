@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INFileReaderTest.java,v 1.72.2.1 2007/02/01 14:50:14 cwl Exp $
+ * $Id: INFileReaderTest.java,v 1.72.2.4 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -33,13 +33,14 @@ import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.INDeleteInfo;
 import com.sleepycat.je.tree.Key;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
 
 /**
- * 
+ *
  */
 public class INFileReaderTest extends TestCase {
 
@@ -47,9 +48,9 @@ public class INFileReaderTest extends TestCase {
 
     private File envHome;
     private Environment env;
-    /* 
+    /*
      * Need a handle onto the true environment in order to create
-     * a reader 
+     * a reader
      */
     private EnvironmentImpl envImpl;
     private Database db;
@@ -59,7 +60,7 @@ public class INFileReaderTest extends TestCase {
     public INFileReaderTest() {
         super();
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
-        Key.DUMP_BINARY = true;
+        Key.DUMP_TYPE = DumpType.BINARY;
     }
 
     public void setUp()
@@ -268,7 +269,7 @@ public class INFileReaderTest extends TestCase {
             checkList.add(new CheckInfo(lsn, bin));
 
             /* Add provisional entries, which should get ignored. */
-            lsn = bin.log(logManager, 
+            lsn = bin.log(logManager,
         	          false, // allowDeltas,
         	          true,  // isProvisional,
         	          false, // proactiveMigration,
@@ -281,9 +282,9 @@ public class INFileReaderTest extends TestCase {
             LN ln = new LN(data);
             lsn = ln.log(envImpl,
                          DbInternal.dbGetDatabaseImpl(db).getId(),
-                         key, DbLsn.NULL_LSN, 0, null, false);
+                         key, null, DbLsn.NULL_LSN, 0, null, false, false);
 
-            /* 
+            /*
 	     * Add an IN delete entry, it should get picked up by the reader.
 	     */
             INDeleteInfo info =
@@ -306,7 +307,7 @@ public class INFileReaderTest extends TestCase {
                 new ChildReference(null, key, DbLsn.makeLsn(0, 0));
             assertTrue(binDeltaBin.insertEntry(newEntry));
 
-            lsn = binDeltaBin.log(logManager, 
+            lsn = binDeltaBin.log(logManager,
         	            	  false, // allowDeltas,
         	          	  true,  // isProvisional,
         	          	  false, // proactiveMigration,
@@ -322,7 +323,7 @@ public class INFileReaderTest extends TestCase {
                                    DbLsn.makeLsn(100, 101));
             assertTrue(binDeltaBin.insertEntry(newEntry2));
 
-            assertTrue(binDeltaBin.log(logManager, 
+            assertTrue(binDeltaBin.log(logManager,
         	                       true, // allowDeltas
         	                       false, // isProvisional
         	                       false, // proactiveMigration,
@@ -336,7 +337,7 @@ public class INFileReaderTest extends TestCase {
             }
             checkList.add(new CheckInfo(lsn, binDeltaBin));
 
-            /* 
+            /*
              * Reset the generation to 0 so this version of the BIN, which gets
              * saved for unit test comparison, will compare to the version read
              * from the log, which is initialized to 0.
@@ -381,7 +382,7 @@ public class INFileReaderTest extends TestCase {
 
                 } else {
 
-                    /* 
+                    /*
 		     * When comparing the check data against the data from the
 		     * log, make the dirty bits match so that they compare
 		     * equal.

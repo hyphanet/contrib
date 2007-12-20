@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogEntry.java,v 1.18.2.2 2007/03/08 22:32:57 mark Exp $
+ * $Id: LogEntry.java,v 1.18.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -18,7 +18,7 @@ import com.sleepycat.je.log.LogEntryType;
  * A Log entry allows you to read, write and dump a database log entry.  Each
  * entry may be made up of one or more loggable items.
  *
- * The log entry on disk consists of 
+ * The log entry on disk consists of
  *  a. a log header defined by LogManager
  *  b. a VLSN, if this entry type requires it, and replication is on.
  *  c. the specific contents of the log entry.
@@ -34,17 +34,17 @@ public interface LogEntry extends Cloneable {
 
 
     /**
-     * @return the type of log entry 
+     * @return the type of log entry
      */
     public LogEntryType getLogType();
 
     /**
-     * Read in an log entry. 
+     * Read in an log entry.
      */
     public void readEntry(LogEntryHeader header,
                           ByteBuffer entryBuffer,
                           boolean readFullItem)
-        throws DatabaseException; 
+        throws DatabaseException;
 
     /**
      * Print out the contents of an entry.
@@ -66,7 +66,7 @@ public interface LogEntry extends Cloneable {
      * @return size of byte buffer needed to store this entry.
      */
     public int getSize();
-    
+
     /**
      * Sets the total size of the last logged entry, including the header.
      * Must be called after calling readEntry and writeEntry.  Some entries
@@ -75,7 +75,7 @@ public interface LogEntry extends Cloneable {
     public void setLastLoggedSize(int size);
 
     /**
-     * Serialize this object into the buffer. 
+     * Serialize this object into the buffer.
      * @param logBuffer is the destination buffer
      */
     public void writeEntry(LogEntryHeader header,
@@ -91,7 +91,7 @@ public interface LogEntry extends Cloneable {
      * Do any processing we need to do after logging, while under the logging
      * latch.
      */
-    public void postLogWork(long justLoggedLsn) 
+    public void postLogWork(long justLoggedLsn)
         throws DatabaseException;
 
     /**

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileManagerTest.java,v 1.65.2.1 2007/02/01 14:50:14 cwl Exp $
+ * $Id: FileManagerTest.java,v 1.65.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -64,7 +64,7 @@ public class FileManagerTest extends TestCase {
         envImpl.open(); /* Just sets state to OPEN. */
         fileManager = new FileManager(envImpl, envHome, false);
 
-        /* 
+        /*
          * Remove any files after the environment is created again!  We want to
          * remove the files made by recovery, so we can test the file manager
          * in controlled cases.
@@ -88,7 +88,7 @@ public class FileManagerTest extends TestCase {
     public void testLsnBumping()
         throws Exception {
 
-        /* 
+        /*
 	   We are adding these entries:
 	   +----+------+---------+--------+
 	   file 0:  |hdr | 30   |   50    |empty   |
@@ -98,17 +98,17 @@ public class FileManagerTest extends TestCase {
 	   +----+--------+-------+-------+-----+-------+
 	   file 1:  |hdr | 40     | 20    | 10    | 5   | empty |
 	   +----+--------+-------+-------+-----+-------+
-	   0    hdr   hdr+40  hdr+60  hdr+70  hdr+75 
+	   0    hdr   hdr+40  hdr+60  hdr+70  hdr+75
 
 	   +-----+-----+--------+
 	   file 2:  | hdr | 75  |  empty |
 	   +-----+-----+--------+
-	   0    hdr   hdr+75 
+	   0    hdr   hdr+75
 
 	   +-----+-------------------------------+
-	   file 3:  | hdr | 125                           | 
+	   file 3:  | hdr | 125                           |
 	   +-----+-------------------------------+
-	   0    hdr  
+	   0    hdr
 
 	   +-----+-----+------+-----+--------------+
 	   file 4:  | hdr | 10  | 20   | 30  | empty
@@ -119,7 +119,7 @@ public class FileManagerTest extends TestCase {
 
         try {
             /* Should start out at LSN 0. */
-                          
+
             /* "add" some entries to the log. */
             long hdrSize = FileManager.firstLogEntryOffset();
 
@@ -172,7 +172,7 @@ public class FileManagerTest extends TestCase {
             fileManager.bumpLsn(125L);
             /* item placed here. */
             assertEquals(DbLsn.makeLsn(3, hdrSize),
-                         fileManager.getLastUsedLsn());      
+                         fileManager.getLastUsedLsn());
             assertEquals(0, fileManager.getPrevEntryOffset());
 
             /* bump over to file 4. */
@@ -306,7 +306,7 @@ public class FileManagerTest extends TestCase {
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
 
-        assertEquals("Should have 2 as last file", 2L, 
+        assertEquals("Should have 2 as last file", 2L,
                      fileManager.getLastFileNum().longValue());
         fakeFile1.delete();
     }
@@ -346,9 +346,9 @@ public class FileManagerTest extends TestCase {
                      fileManager.getFollowingFileNum(2, true).longValue());
         assertEquals("Should get 9 next, testing non-existent file", 9L,
                      fileManager.getFollowingFileNum(8, true).longValue());
-        assertNull("Should get null next", 
+        assertNull("Should get null next",
 		   fileManager.getFollowingFileNum(9, true));
-        assertNull("Should get null next", 
+        assertNull("Should get null next",
 		   fileManager.getFollowingFileNum(10, true));
 
         /* Test prev */
@@ -356,9 +356,9 @@ public class FileManagerTest extends TestCase {
                      fileManager.getFollowingFileNum(8, false).longValue());
         assertEquals("Should get 6 next", 6L,
                      fileManager.getFollowingFileNum(9, false).longValue());
-        assertNull("Should get null next", 
+        assertNull("Should get null next",
 		   fileManager.getFollowingFileNum(1, false));
-        assertNull("Should get null next", 
+        assertNull("Should get null next",
 		   fileManager.getFollowingFileNum(0, false));
 
         okFile1.delete();
@@ -381,7 +381,7 @@ public class FileManagerTest extends TestCase {
         } catch (LogException e) {
             /* should throw */
         }
-        
+
         /* Next try a bad environment r/o. */
         try {
             FileManager test =
@@ -390,13 +390,13 @@ public class FileManagerTest extends TestCase {
         } catch (DatabaseException e) {
             /* should throw */
         }
-        
+
         /* Now create a file, but mess up the header. */
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
 
         byte [] badData = new byte[]{1,1};
         int headerSize =  FileManager.firstLogEntryOffset();
-        RandomAccessFile file0 = 
+        RandomAccessFile file0 =
             new RandomAccessFile
 		(fileManager.getFullFileName(0, FileManager.JE_SUFFIX),
 		 FileManager.FileMode.READWRITE_MODE.getModeValue());
@@ -418,7 +418,7 @@ public class FileManagerTest extends TestCase {
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
 
         /* Truncate the header */
-        RandomAccessFile file0 = 
+        RandomAccessFile file0 =
             new RandomAccessFile
 		(fileManager.getFullFileName(0, FileManager.JE_SUFFIX),
 		 FileManager.FileMode.READWRITE_MODE.getModeValue());
@@ -440,7 +440,7 @@ public class FileManagerTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Make five log files. The file descriptor cache should be empty.
              */
             FileManagerTestUtils.createLogFile
@@ -453,7 +453,7 @@ public class FileManagerTest extends TestCase {
 		(fileManager, envImpl, FILE_SIZE);
             FileManagerTestUtils.createLogFile
 		(fileManager, envImpl, FILE_SIZE);
-            
+
             Long f0 = new Long(0L);
             Long f1 = new Long(1L);
             Long f2 = new Long(2L);
@@ -463,7 +463,7 @@ public class FileManagerTest extends TestCase {
             Set keySet = fileManager.getCacheKeys();
             assertEquals("should have 0 keys", 0, keySet.size());
 
-            /* 
+            /*
              * Get file descriptors for three files, expect 3 handles in the
              * cache.
              */
@@ -476,7 +476,7 @@ public class FileManagerTest extends TestCase {
             assertTrue(keySet.contains(f1));
             assertTrue(keySet.contains(f2));
 
-            /* 
+            /*
              * Ask for a fourth handle, the cache should grow even though it
              * was set to 3 as a starting size, because all handles are
              * locked. Do it within another thread, otherwise we'll get a
@@ -495,7 +495,7 @@ public class FileManagerTest extends TestCase {
             assertTrue(keySet.contains(f2));
             assertTrue(keySet.contains(f3));
 
-            /* 
+            /*
              * Now ask for another file. The cache should not grow, because no
              * handles are locked and there's room to evict one.
              */
@@ -564,7 +564,7 @@ public class FileManagerTest extends TestCase {
     class CachingThread extends Thread {
         private FileManager fileManager;
         private long fileNum;
- 
+
         private FileHandle handle;
 
         CachingThread(FileManager fileManager, long fileNum) {

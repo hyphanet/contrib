@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CollectionTest.java,v 1.53.2.2 2007/03/12 17:46:06 mark Exp $
+ * $Id: CollectionTest.java,v 1.53.2.5 2007/12/15 01:04:06 mark Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -252,7 +252,7 @@ public class CollectionTest extends TestCase {
                     (testStoredIterator ? "-storedIter" : "") +
                     ((maxKey != DEFAULT_MAX_KEY) ? ("-maxKey-" + maxKey) : "");
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -416,7 +416,7 @@ public class CollectionTest extends TestCase {
         // create primary list
         if (testStore.hasRecNumAccess()) {
             if (isEntityBinding) {
-                ilist = new StoredList(store, entityBinding, 
+                ilist = new StoredList(store, entityBinding,
                                        testStore.getKeyAssigner());
             } else {
                 ilist = new StoredList(store, valueBinding,
@@ -781,6 +781,7 @@ public class CollectionTest extends TestCase {
                     for (int i = beginKey; i <= endKey; i += 1) {
                         assertTrue(iter.hasNext());
                         Object obj = iter.next();
+                        assertEquals(i, intIter(coll, obj));
                         if (index != null) {
                             try {
                                 setValuePlusOne(iter, obj);
@@ -800,6 +801,13 @@ public class CollectionTest extends TestCase {
                             }
                         } else {
                             setValuePlusOne(iter, obj);
+                            /* Ensure iterator position is correct. */
+                            assertTrue(iter.hasPrevious());
+                            obj = iter.previous();
+                            assertEquals(i, intIter(coll, obj));
+                            assertTrue(iter.hasNext());
+                            obj = iter.next();
+                            assertEquals(i, intIter(coll, obj));
                         }
                     }
                     assertTrue(!iter.hasNext());
@@ -916,6 +924,120 @@ public class CollectionTest extends TestCase {
             public void doWork() throws Exception {
                 map.clear();
                 assertTrue(map.isEmpty());
+            }
+        });
+    }
+
+    /**
+     * Tests that removing while iterating works properly, especially when
+     * removing everything in the key range or everything from some point to
+     * the end of the range. [#15858]
+     */
+    void removeIter()
+        throws Exception {
+
+        writeIterRunner.run(new TransactionWorker() {
+            public void doWork() throws Exception {
+                ListIterator iter;
+
+                /* Save contents. */
+                HashMap savedMap = new HashMap(map);
+                assertTrue(map.equals(savedMap));
+
+                /* Remove all moving forward. */
+                iter = (ListIterator) iterator(map.keySet());
+                try {
+                    while (iter.hasNext()) {
+                        assertNotNull(iter.next());
+                        iter.remove();
+                    }
+                    assertTrue(!iter.hasNext());
+                    assertTrue(!iter.hasPrevious());
+                    assertTrue(map.isEmpty());
+                } finally {
+                    StoredIterator.close(iter);
+                }
+
+                /* Restore contents. */
+                imap.putAll(savedMap);
+                assertTrue(map.equals(savedMap));
+
+                /* Remove all moving backward. */
+                iter = (ListIterator) iterator(map.keySet());
+                try {
+                    while (iter.hasNext()) {
+                        assertNotNull(iter.next());
+                    }
+                    while (iter.hasPrevious()) {
+                        assertNotNull(iter.previous());
+                        iter.remove();
+                    }
+                    assertTrue(!iter.hasNext());
+                    assertTrue(!iter.hasPrevious());
+                    assertTrue(map.isEmpty());
+                } finally {
+                    StoredIterator.close(iter);
+                }
+
+                /* Restore contents. */
+                imap.putAll(savedMap);
+                assertTrue(map.equals(savedMap));
+
+                int first = Math.max(1, beginKey);
+                int last = Math.min(maxKey, endKey);
+
+                /* Skip N forward, remove all from that point forward. */
+                for (int readTo = first + 1; readTo <= last; readTo += 1) {
+                    iter = (ListIterator) iterator(map.keySet());
+                    try {
+                        for (int i = first; i < readTo; i += 1) {
+                            assertTrue(iter.hasNext());
+                            assertNotNull(iter.next());
+                        }
+                        for (int i = readTo; i <= last; i += 1) {
+                            assertTrue(iter.hasNext());
+                            assertNotNull(iter.next());
+                            iter.remove();
+                        }
+                        assertTrue(!iter.hasNext());
+                        assertTrue(iter.hasPrevious());
+                        assertEquals(readTo - first, map.size());
+                    } finally {
+                        StoredIterator.close(iter);
+                    }
+
+                    /* Restore contents. */
+                    imap.putAll(savedMap);
+                    assertTrue(map.equals(savedMap));
+                }
+
+                /* Skip N backward, remove all from that point backward. */
+                for (int readTo = last - 1; readTo >= first; readTo -= 1) {
+                    iter = (ListIterator) iterator(map.keySet());
+                    try {
+                        while (iter.hasNext()) {
+                            assertNotNull(iter.next());
+                        }
+                        for (int i = last; i > readTo; i -= 1) {
+                            assertTrue(iter.hasPrevious());
+                            assertNotNull(iter.previous());
+                        }
+                        for (int i = readTo; i >= first; i -= 1) {
+                            assertTrue(iter.hasPrevious());
+                            assertNotNull(iter.previous());
+                            iter.remove();
+                        }
+                        assertTrue(!iter.hasPrevious());
+                        assertTrue(iter.hasNext());
+                        assertEquals(last - readTo, map.size());
+                    } finally {
+                        StoredIterator.close(iter);
+                    }
+
+                    /* Restore contents. */
+                    imap.putAll(savedMap);
+                    assertTrue(map.equals(savedMap));
+                }
             }
         });
     }
@@ -2051,6 +2173,7 @@ public class CollectionTest extends TestCase {
                 }
                 if (rangeBegin < rangeEnd && !map.areKeysRenumbered()) {
                     bulkOperations();
+                    removeIter();
                 }
                 readAll();
                 clearRange();
@@ -2706,27 +2829,27 @@ public class CollectionTest extends TestCase {
         StoredKeySet set = (StoredKeySet) map.keySet();
 
         // can open two CDB read cursors
-        readIterator = set.iterator(false);
+        readIterator = set.storedIterator(false);
         try {
-            Iterator readIterator2 = set.iterator(false);
+            Iterator readIterator2 = set.storedIterator(false);
             StoredIterator.close(readIterator2);
         } finally {
             StoredIterator.close(readIterator);
         }
 
         // can open two CDB write cursors
-        writeIterator = set.iterator(true);
+        writeIterator = set.storedIterator(true);
         try {
-            Iterator writeIterator2 = set.iterator(true);
+            Iterator writeIterator2 = set.storedIterator(true);
             StoredIterator.close(writeIterator2);
         } finally {
             StoredIterator.close(writeIterator);
         }
 
         // cannot open CDB write cursor when read cursor is open,
-        readIterator = set.iterator(false);
+        readIterator = set.storedIterator(false);
         try {
-            writeIterator = set.iterator(true);
+            writeIterator = set.storedIterator(true);
             fail();
             StoredIterator.close(writeIterator);
         } catch (IllegalStateException e) {
@@ -2736,7 +2859,7 @@ public class CollectionTest extends TestCase {
 
         if (index == null) {
             // cannot put() with read cursor open
-            readIterator = set.iterator(false);
+            readIterator = set.storedIterator(false);
             try {
                 map.put(makeKey(1), makeVal(1));
                 fail();
@@ -2746,7 +2869,7 @@ public class CollectionTest extends TestCase {
             }
 
             // cannot append() with write cursor open with RECNO/QUEUE only
-            writeIterator = set.iterator(true);
+            writeIterator = set.storedIterator(true);
             try {
                 if (testStore.isQueueOrRecno()) {
                     try {

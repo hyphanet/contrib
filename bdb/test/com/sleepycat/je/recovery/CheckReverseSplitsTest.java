@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckReverseSplitsTest.java,v 1.8.2.1 2007/02/01 14:50:16 cwl Exp $
+ * $Id: CheckReverseSplitsTest.java,v 1.8.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -28,7 +28,7 @@ import com.sleepycat.je.recovery.stepwise.TestData;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.Tracer;
 
-/* 
+/*
  * Exercise reverse splits (deletes of subtrees). Add a comprehensive
  * "stepwise" approach, where we run the test repeatedly, truncating the log
  * at each log entry point. At recovery, we check that we have all expected
@@ -48,11 +48,11 @@ public class CheckReverseSplitsTest extends CheckBase {
     static {
         FORCE_CONFIG.setForce(true);
     }
-    
+
     /**
      * SR #13501
      * Reverse splits require the same upward propagation as regular splits,
-     * to avoid logging inconsistent versions of ancestor INs. 
+     * to avoid logging inconsistent versions of ancestor INs.
      */
     public void testReverseSplit()
         throws Throwable {
@@ -77,10 +77,10 @@ public class CheckReverseSplitsTest extends CheckBase {
                     },
                     envConfig, dbConfig);
 
-        
-        /* 
-         * Now run the test in a stepwise loop, truncate after each 
-         * log entry. 
+
+        /*
+         * Now run the test in a stepwise loop, truncate after each
+         * log entry.
          */
 
         /* Establish the base set of records we expect. */
@@ -160,9 +160,9 @@ public class CheckReverseSplitsTest extends CheckBase {
         /* For log description start. */
         setStepwiseStart();
 
-        /* 
+        /*
          * Checkpoint so that the deleted lns are not replayed, and recovery
-         * relies on INs. 
+         * relies on INs.
          */
         env.checkpoint(FORCE_CONFIG);
 
@@ -172,8 +172,8 @@ public class CheckReverseSplitsTest extends CheckBase {
                      "After compress");
 
         /*
-         * Add enough keys to split the level 2 IN on the right hand side. 
-         * This makes an INa which still references the obsolete BINs. 
+         * Add enough keys to split the level 2 IN on the right hand side.
+         * This makes an INa which still references the obsolete BINs.
          * Truncate the log before the mapLN which refers to the new INa,
          * else the case will not fail, because recovery will first apply the
          * new INa, and then apply the INDelete of BINs. We want this case
@@ -193,7 +193,7 @@ public class CheckReverseSplitsTest extends CheckBase {
         Tracer.trace(Level.SEVERE, DbInternal.envGetEnvironmentImpl(env),
                      "After data setup");
 
-    } 
+    }
 
     /**
      * Create a tree, remove it all, replace with new records.
@@ -226,8 +226,8 @@ public class CheckReverseSplitsTest extends CheckBase {
                     },
                     envConfig, dbConfig);
 
-        
-        /* 
+
+        /*
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
@@ -252,7 +252,7 @@ public class CheckReverseSplitsTest extends CheckBase {
     /**
      * Create a populated tree, delete all records, then begin to insert again.
      */
-    private void setupCompleteRemoval(Database db) 
+    private void setupCompleteRemoval(Database db)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -276,7 +276,7 @@ public class CheckReverseSplitsTest extends CheckBase {
         Cursor c = db.openCursor(null, null);
         try {
             int count = 0;
-            while (c.getNext(key, data, LockMode.DEFAULT) == 
+            while (c.getNext(key, data, LockMode.DEFAULT) ==
                    OperationStatus.SUCCESS) {
                 assertEquals(OperationStatus.SUCCESS, c.delete());
                 count++;
@@ -286,7 +286,7 @@ public class CheckReverseSplitsTest extends CheckBase {
         }
         Tracer.trace(Level.SEVERE, DbInternal.envGetEnvironmentImpl(env),
                      "After deletes");
-        
+
 
 
         /* For log description start. */

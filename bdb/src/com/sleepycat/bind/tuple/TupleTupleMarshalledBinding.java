@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: TupleTupleMarshalledBinding.java,v 1.22.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: TupleTupleMarshalledBinding.java,v 1.22.2.2 2007/11/20 13:32:25 cwl Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -14,7 +14,7 @@ import com.sleepycat.util.RuntimeExceptionWrapper;
  * A concrete <code>TupleTupleBinding</code> that delegates to the
  * <code>MarshalledTupleEntry</code> and
  * <code>MarshalledTupleKeyEntity</code> interfaces of the entity class.
- * 
+ *
  * <p>This class calls the methods of the {@link MarshalledTupleEntry}
  * interface to convert between the data entry and entity object.  It calls the
  * methods of the {@link MarshalledTupleKeyEntity} interface to convert between

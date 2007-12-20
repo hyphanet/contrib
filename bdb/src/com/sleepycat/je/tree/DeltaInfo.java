@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeltaInfo.java,v 1.21.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: DeltaInfo.java,v 1.21.2.2 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -23,7 +23,7 @@ public class DeltaInfo implements Loggable {
     private byte[] key;
     private long lsn;
     private byte state;
-		  
+		
     DeltaInfo(byte[] key, long lsn, byte state) {
         this.key = key;
         this.lsn = lsn;
@@ -37,7 +37,7 @@ public class DeltaInfo implements Loggable {
         lsn = DbLsn.NULL_LSN;
     }
 
-    /* 
+    /*
      * @see Loggable#getLogSize()
      */
     public int getLogSize() {
@@ -47,7 +47,7 @@ public class DeltaInfo implements Loggable {
             1; // state
     }
 
-    /* 
+    /*
      * @see Loggable#writeToLog(java.nio.ByteBuffer)
      */
     public void writeToLog(ByteBuffer logBuffer) {
@@ -56,7 +56,7 @@ public class DeltaInfo implements Loggable {
         logBuffer.put(state);
     }
 
-    /* 
+    /*
      * @seeLoggable#readFromLog
      */
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
@@ -67,7 +67,7 @@ public class DeltaInfo implements Loggable {
         state = itemBuffer.get();
     }
 
-    /* 
+    /*
      * @see Loggable#dumpLog(java.lang.StringBuffer)
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {

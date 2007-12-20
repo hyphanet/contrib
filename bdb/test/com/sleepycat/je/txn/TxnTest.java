@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnTest.java,v 1.58.2.1 2007/02/01 14:50:22 cwl Exp $
+ * $Id: TxnTest.java,v 1.58.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -56,7 +56,7 @@ public class TxnTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 
-    public void setUp() 
+    public void setUp()
         throws IOException, DatabaseException {
 
 	IN.ACCUMULATED_LIMIT = 0;
@@ -95,12 +95,12 @@ public class TxnTest extends TestCase {
             LN ln = new LN(new byte[0]);
 
             /*
-             * Make a null txn that will lock. Take a lock and then end the 
+             * Make a null txn that will lock. Take a lock and then end the
              * operation.
              */
             EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
             MemoryBudget mb = envImpl.getMemoryBudget();
-            
+
             long beforeLock = mb.getCacheMemoryUsage();
             Locker nullTxn = new BasicLocker(envImpl);
 
@@ -209,7 +209,7 @@ public class TxnTest extends TestCase {
         try {
             LN ln1 = new LN(new byte[0]);
             LN ln2 = new LN(new byte[0]);
-                                          
+
             EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
             Txn userTxn = new Txn(envImpl, new TransactionConfig());
 
@@ -264,7 +264,7 @@ public class TxnTest extends TestCase {
     /**
      * Make sure an abort never tries to split the tree.
      */
-    public void testAbortNoSplit() 
+    public void testAbortNoSplit()
         throws Throwable {
 
         try {
@@ -273,7 +273,7 @@ public class TxnTest extends TestCase {
             DatabaseEntry keyDbt = new DatabaseEntry();
             DatabaseEntry dataDbt = new DatabaseEntry();
             dataDbt.setData(new byte[1]);
-        
+
             /* Insert enough data so that the tree is ripe for a split. */
             int numForSplit = 25;
             for (int i = 0; i < numForSplit; i++) {
@@ -287,7 +287,7 @@ public class TxnTest extends TestCase {
             database.getTree().withRootLatchedShared(splitChecker);
             assertTrue(splitChecker.getReadyToSplit());
 
-            /* 
+            /*
              * Make another txn that will get a read lock on the map
              * LSN. Then abort the first txn. It shouldn't try to do a
              * split, if it does, we'll run into the
@@ -304,8 +304,8 @@ public class TxnTest extends TestCase {
              * The database should be empty
              */
             Cursor cursor = dbSpoiler.openCursor(txnSpoiler, null);
-            
-            assertTrue(cursor.getFirst(keyDbt, dataDbt, LockMode.DEFAULT) != 
+
+            assertTrue(cursor.getFirst(keyDbt, dataDbt, LockMode.DEFAULT) !=
                        OperationStatus.SUCCESS);
             cursor.close();
             txnSpoiler.abort();
@@ -313,10 +313,10 @@ public class TxnTest extends TestCase {
             /* print stack trace before going to teardown. */
             t.printStackTrace();
             throw t;
-        } 
+        }
     }
 
-    public void testTransactionName() 
+    public void testTransactionName()
         throws Throwable {
 
         try {
@@ -325,16 +325,16 @@ public class TxnTest extends TestCase {
 	    assertEquals("blort", txn.getName());
             txn.abort();
 
-            /* 
+            /*
              * [#14349] Make sure the txn is printable after closing. We
-             * once had a NullPointerException. 
+             * once had a NullPointerException.
              */
-            String s = txn.toString(); 
+            String s = txn.toString();
         } catch (Throwable t) {
             /* print stack trace before going to teardown. */
             t.printStackTrace();
             throw t;
-        } 
+        }
     }
 
     /**
@@ -385,7 +385,7 @@ public class TxnTest extends TestCase {
         }
     }
 
-    public void testSyncCombo() 
+    public void testSyncCombo()
         throws Throwable {
 
         RandomAccessFile logFile =
@@ -433,7 +433,7 @@ public class TxnTest extends TestCase {
             /* envWriteNoSync=false with default env config */
             assertTrue(!env.getMutableConfig().getTxnWriteNoSync());
 
-            /* 
+            /*
              * For each combination of settings, call commit and
              * check that we have the expected sync and log
              * write. Make sure that commitSync(), commitNoSync always
@@ -493,7 +493,7 @@ public class TxnTest extends TestCase {
         assertEquals(expectSync, syncOccurred);
         assertEquals(expectWrite, writeOccurred);
 
-        /* 
+        /*
          * Make sure explicit sync/noSync/writeNoSync always works.
          */
 
@@ -560,7 +560,7 @@ public class TxnTest extends TestCase {
                          .getNFSyncs();
     }
 
-    public void testNoWaitConfig() 
+    public void testNoWaitConfig()
         throws Throwable {
 
         try {
@@ -591,14 +591,14 @@ public class TxnTest extends TestCase {
             /* print stack trace before going to teardown. */
             t.printStackTrace();
             throw t;
-        } 
+        }
     }
 
     /**
      * Returns whether the given txn is a no-wait txn, or if the txn parameter
      * is null returns whether an auto-commit txn is a no-wait txn.
      */
-    private boolean isNoWaitTxn(Transaction txn) 
+    private boolean isNoWaitTxn(Transaction txn)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry(new byte[1]);
@@ -621,7 +621,7 @@ public class TxnTest extends TestCase {
         }
     }
 
-    /* 
+    /*
      * Assert that cache utilization is correctly incremented by locks and
      * txns, and decremented after release.
      */
@@ -641,12 +641,12 @@ public class TxnTest extends TestCase {
             readyToSplit = false;
             this.database = database;
         }
-        
+
         public boolean getReadyToSplit() {
             return readyToSplit;
         }
 
-        public IN doWork(ChildReference root) 
+        public IN doWork(ChildReference root)
             throws DatabaseException {
 
             IN rootIN = (IN) root.fetchTarget(database, null);

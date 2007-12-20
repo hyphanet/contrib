@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: GetParentNodeTest.java,v 1.41.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: GetParentNodeTest.java,v 1.41.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -41,20 +41,20 @@ public class GetParentNodeTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 
-    public void setUp() 
+    public void setUp()
         throws Exception {
         TestUtils.removeLogFiles("Setup", envHome, false);
         initEnv();
     }
 
-    public void tearDown() 
+    public void tearDown()
         throws Exception {
         try {
             db.close();
             env.close();
         } catch (DatabaseException E) {
         }
-                
+
         TestUtils.removeLogFiles("TearDown", envHome, true);
     }
 
@@ -85,7 +85,7 @@ public class GetParentNodeTest extends TestCase {
         throws Exception {
 
         try {
-            /* 
+            /*
              * Make a tree w/3 levels in the main tree and a single dup
              * tree. The dupTree has two levels. The tree looks like this:
 	     *
@@ -134,7 +134,7 @@ public class GetParentNodeTest extends TestCase {
             assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("j"),
                                 new StringDbt("data1")));
-            assertEquals(OperationStatus.SUCCESS, 
+            assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("k"),
                                 new StringDbt("data1")));
 
@@ -143,23 +143,23 @@ public class GetParentNodeTest extends TestCase {
             assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("b"),
                                 new StringDbt("data2")));
-            assertEquals(OperationStatus.SUCCESS, 
+            assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("b"),
                                 new StringDbt("data3")));
-            assertEquals(OperationStatus.SUCCESS, 
+            assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("b"),
                                 new StringDbt("data4")));
-            assertEquals(OperationStatus.SUCCESS, 
+            assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("b"),
                                 new StringDbt("data5")));
-            assertEquals(OperationStatus.SUCCESS, 
+            assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("b"),
                                 new StringDbt("data6")));
-            assertEquals(OperationStatus.SUCCESS, 
+            assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new StringDbt("b"),
 				new StringDbt("data7")));
 
-            /* 
+            /*
              * Test exact matches.
              */
             checkTreeUsingExistingNodes(dupKey, true);
@@ -181,7 +181,7 @@ public class GetParentNodeTest extends TestCase {
     }
 
     private void checkTreeUsingExistingNodes(byte[] dupKey,
-                                             boolean requireExactMatch) 
+                                             boolean requireExactMatch)
         throws DatabaseException {
 
         /* Start at the root. */
@@ -198,7 +198,7 @@ public class GetParentNodeTest extends TestCase {
         SearchResult result = tree.getParentINForChildIN(rootIN, true, true);
         assertFalse(result.exactParentFound);
         assertEquals(rootIN.getNEntries(), 2);
-   
+
         /* Second and third level. */
         BIN dupTreeBin = null;
         DIN dupTreeDINRoot = null;
@@ -227,7 +227,7 @@ public class GetParentNodeTest extends TestCase {
                                    null, k, bin.getLsn(k));
                     }
                 }
-                    
+
                 int findIndex = bin.findEntry(dupKey, false, true);
                 if (findIndex > 0) {
                     dupIndex = findIndex;
@@ -261,7 +261,7 @@ public class GetParentNodeTest extends TestCase {
             }
         }
     }
-            
+
     /*
      * Do a parent search, expect to find the parent, check that we do.
      */
@@ -269,7 +269,7 @@ public class GetParentNodeTest extends TestCase {
                             IN target,
                             IN parent,
                             int index,
-                            boolean requireExactMatch) 
+                            boolean requireExactMatch)
         throws DatabaseException {
 
         target.latch();
@@ -291,11 +291,11 @@ public class GetParentNodeTest extends TestCase {
 			    byte[] mainKey,
                             byte[] dupKey,
 			    int index,
-			    long expectedLsn) 
+			    long expectedLsn)
         throws DatabaseException {
         TreeLocation location = new TreeLocation();
 
-        
+
         assertTrue
 	    (tree.getParentBINForChildLN(location, mainKey, dupKey, target,
 					 false, true, false, true));
@@ -324,7 +324,7 @@ public class GetParentNodeTest extends TestCase {
     private class GetRoot implements WithRootLatched {
 
         private DatabaseImpl db;
-        
+
         GetRoot(DatabaseImpl db) {
 	    this.db = db;
         }
@@ -340,20 +340,20 @@ public class GetParentNodeTest extends TestCase {
      * Make up non-existent nodes and see where they'd fit in. This exercises
      * recovery type processing and cleaning.
      */
-    private void checkTreeUsingPotentialNodes() 
+    private void checkTreeUsingPotentialNodes()
         throws DatabaseException {
 
         DatabaseImpl database = DbInternal.dbGetDatabaseImpl(db);
         Tree tree = database.getTree();
 
-        /* 
+        /*
          * Make an IN with the key "ab". Its potential parent should be the
          * first level 2 IN.
          */
         IN inAB = new IN(database, "ab".getBytes(), 4, 2);
         checkPotential(tree, inAB, firstLevel2IN);
 
-        /* 
+        /*
          * Make an BIN with the key "x". Its potential parent should be the
          * first level 2 IN.
          */
@@ -372,7 +372,7 @@ public class GetParentNodeTest extends TestCase {
         checkPotential(tree, dinA, firstBIN);
 
         /*
-         * Make an LN with the key "ab". It's potential parent should be the 
+         * Make an LN with the key "ab". It's potential parent should be the
          * BINa.
          */
         LN LNab = new LN("foo".getBytes());
@@ -389,7 +389,7 @@ public class GetParentNodeTest extends TestCase {
         checkPotential(tree, LNdata, firstDBIN, mainKey, dupKey, dupKey);
     }
 
-    private void checkPotential(Tree tree, IN potential, IN expectedParent) 
+    private void checkPotential(Tree tree, IN potential, IN expectedParent)
         throws DatabaseException {
 
         /* Try an exact match, expect a failure, then try an inexact match. */
@@ -414,7 +414,7 @@ public class GetParentNodeTest extends TestCase {
 
         /* Try an exact match, expect a failure, then try an inexact match. */
         TreeLocation location = new TreeLocation();
-        assertFalse(tree.getParentBINForChildLN(location, 
+        assertFalse(tree.getParentBINForChildLN(location,
 						mainKey, dupKey,
 						potential, false,
 						false, true, true));
@@ -435,7 +435,7 @@ public class GetParentNodeTest extends TestCase {
 
         rootIN = tree.withRootLatchedShared
 	    (new GetRoot(DbInternal.dbGetDatabaseImpl(db)));
-   
+
         /* Second and third level. */
         for (int i = 0; i < rootIN.getNEntries(); i++) {
             /* Each level 2 IN. */
@@ -455,7 +455,7 @@ public class GetParentNodeTest extends TestCase {
 				   IN target,
 				   IN parent,
 				   int index,
-				   boolean requireExactMatch) 
+				   boolean requireExactMatch)
         throws DatabaseException {
 
         target.latch();

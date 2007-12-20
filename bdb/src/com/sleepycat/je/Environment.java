@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Environment.java,v 1.179.2.2 2007/07/02 19:54:48 mark Exp $
+ * $Id: Environment.java,v 1.179.2.7 2007/12/12 12:26:32 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -34,11 +34,14 @@ public class Environment {
 
     protected EnvironmentImpl environmentImpl;
     private TransactionConfig defaultTxnConfig;
+
     private EnvironmentMutableConfig handleConfig;
 
     private Set referringDbs;
     private Set referringDbTxns;
 
+    /* For maintaining a strong reference to an arbitrary object. */
+    private Object obj;
     private boolean valid;
 
     /**
@@ -63,7 +66,7 @@ public class Environment {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public Environment(File envHome, EnvironmentConfig configuration) 
+    public Environment(File envHome, EnvironmentConfig configuration)
         throws DatabaseException {
 
         environmentImpl = null;
@@ -109,7 +112,7 @@ public class Environment {
 		/* Perform all environment config updates atomically. */
 		synchronized (environmentImpl) {
 
-		    /* 
+		    /*
 		     * If a non-null configuration parameter was passed in and
 		     * this is not the handle that created the underlying
 		     * EnvironmentImpl, check that the configuration parameters
@@ -128,7 +131,7 @@ public class Environment {
 		    environmentImpl.checkImmutablePropsForEquality(useConfig);
 		}
 	    }
-            
+
 	    if (!valid) {
 		valid = true;
 	    }
@@ -145,7 +148,7 @@ public class Environment {
      * reference counted. The calling application must take care not to retain
      * the the doc templates in the doc_src directory.
      */
-    Environment(File envHome) 
+    Environment(File envHome)
         throws DatabaseException {
 
         environmentImpl = null;
@@ -156,7 +159,7 @@ public class Environment {
 	while (true) {
 	    envInfo =
 		DbEnvPool.getInstance().getExistingEnvironment(envHome);
-        
+
 	    EnvironmentImpl foundImpl = envInfo.envImpl;
 	    if (foundImpl != null) {
 		/* Check if the environmentImpl is valid. */
@@ -182,7 +185,7 @@ public class Environment {
 		    continue;
 		}
 
-		/* 
+		/*
 		 * Initialize the handle's environment config, so that it's
 		 * valid to call setConfig and getConfig against this handle.
 		 * Make a copy, apply je.properties, and init the handle
@@ -212,7 +215,7 @@ public class Environment {
 
         /* Apply the je.properties file. */
         if (useConfig.getLoadPropertyFile()) {
-            DbConfigManager.applyFileConfig(envHome, 
+            DbConfigManager.applyFileConfig(envHome,
                                             DbInternal.getProps(useConfig),
                                             false /* forReplication */,
                                             useConfig.getClass().getName());
@@ -231,7 +234,7 @@ public class Environment {
             checkEnv();
         } catch (RunRecoveryException e) {
 
-            /* 
+            /*
              * We're trying to close on an environment that has seen a fatal
              * exception. Try to do the minimum, such as closing file
              * descriptors, to support re-opening the environment in the same
@@ -264,10 +267,10 @@ public class Environment {
                     while (iter.hasNext()) {
                         Database db = (Database) iter.next();
                         /*
-                         * Save the db name before we attempt the close, it's 
+                         * Save the db name before we attempt the close, it's
                          * unavailable after the close.
                          */
-                        String dbName = db.getDebugName(); 
+                        String dbName = db.getDebugName();
                         errors.append(dbName).append(" ");
                         try {
                             db.close();
@@ -332,7 +335,7 @@ public class Environment {
             }
         }
     }
-    
+
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
@@ -342,17 +345,19 @@ public class Environment {
                                               DatabaseConfig dbConfig)
         throws DatabaseException {
 
-	try {
-	    if (dbConfig == null) {
-		dbConfig = DatabaseConfig.DEFAULT;
-	    }
-	    Database db = new Database(this);
-	    openDb(txn, db, databaseName, dbConfig, false);
-	    return db;
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        checkHandleIsValid();
+        checkEnv();
+        try {
+            if (dbConfig == null) {
+                dbConfig = DatabaseConfig.DEFAULT;
+            }
+            Database db = new Database(this);
+            openDb(txn, db, databaseName, dbConfig, false);
+            return db;
+        } catch (Error E) {
+            environmentImpl.invalidate(E);
+            throw E;
+        }
     }
 
     /**
@@ -366,19 +371,21 @@ public class Environment {
 						SecondaryConfig dbConfig)
         throws DatabaseException {
 
-	try {
-	    if (dbConfig == null) {
-		dbConfig = SecondaryConfig.DEFAULT;
-	    }
-	    SecondaryDatabase db =
-		new SecondaryDatabase(this, dbConfig, primaryDatabase);
-	    openDb(txn, db, databaseName, dbConfig,
-		   dbConfig.getAllowPopulate());
-	    return db;
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        checkHandleIsValid();
+        checkEnv();
+        try {
+            if (dbConfig == null) {
+                dbConfig = SecondaryConfig.DEFAULT;
+            }
+            SecondaryDatabase db =
+                new SecondaryDatabase(this, dbConfig, primaryDatabase);
+            openDb(txn, db, databaseName, dbConfig,
+                    dbConfig.getAllowPopulate());
+            return db;
+        } catch (Error E) {
+            environmentImpl.invalidate(E);
+            throw E;
+        }
     }
 
     private void openDb(Transaction txn,
@@ -392,10 +399,12 @@ public class Environment {
         DatabaseUtil.checkForNullParam(databaseName, "databaseName");
 
         Tracer.trace(Level.FINEST, environmentImpl, "Environment.open: " +
-                     " name=" + databaseName + 
+                     " name=" + databaseName +
                      " dbConfig=" + dbConfig);
 
-        /* 
+        checkHandleIsValid();
+        checkEnv();
+        /*
          * Check that the open configuration doesn't conflict with the
          * environmentImpl configuration.
          */
@@ -407,7 +416,7 @@ public class Environment {
 	boolean dbIsClosing = false;
         try {
 
-            /* 
+            /*
              * Does this database exist? Get a transaction to use. If the
              * database exists already, we really only need a readable locker.
              * If the database must be created, we need a writable one.
@@ -457,7 +466,7 @@ public class Environment {
                 /* No database. Create if we're allowed to. */
                 if (dbConfig.getAllowCreate()) {
 
-                    /* 
+                    /*
                      * We're going to have to do some writing. Switch to a
                      * writable locker if we don't already have one.
                      */
@@ -479,7 +488,7 @@ public class Environment {
                                                         databaseName +
                                                         " not found.");
                 }
-            } 
+            }
 
             operationOk = true;
             addReferringHandle(newDb);
@@ -536,7 +545,7 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public void removeDatabase(Transaction txn,
-                               String databaseName) 
+                               String databaseName)
         throws DatabaseException {
 
         checkHandleIsValid();
@@ -547,7 +556,7 @@ public class Environment {
         boolean operationOk = false;
         try {
 
-            /* 
+            /*
              * Note: use env level isTransactional as proxy for the db
              * isTransactional.
              */
@@ -607,14 +616,14 @@ public class Environment {
             }
         }
     }
-    
+
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
     public long truncateDatabase(Transaction txn,
                                  String databaseName,
-                                 boolean returnCount) 
+                                 boolean returnCount)
         throws DatabaseException {
 
         checkHandleIsValid();
@@ -635,7 +644,7 @@ public class Environment {
                          environmentImpl.isTransactional(),
                          true /*retainNonTxnLocks*/,
                          null);
-            
+
             count = environmentImpl.truncate(locker,
                                              databaseName,
                                              returnCount);
@@ -675,7 +684,7 @@ public class Environment {
         checkHandleIsValid();
         return environmentImpl.getEnvironmentHome();
     }
-    
+
     /*
      * Transaction management
      */
@@ -730,12 +739,16 @@ public class Environment {
                                         TransactionConfig txnConfig)
         throws DatabaseException {
 
-	try {
-	    return beginTransactionInternal(parent, txnConfig);
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        checkHandleIsValid();
+        checkEnv();
+        try {
+            return beginTransactionInternal(parent, txnConfig);
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     private Transaction beginTransactionInternal(Transaction parent,
@@ -746,7 +759,7 @@ public class Environment {
         checkEnv();
 
         if (!environmentImpl.isTransactional()) {
-            throw new DatabaseException 
+            throw new DatabaseException
 		("Transactions can not be used in a non-transactional " +
 		 "environment");
         }
@@ -775,7 +788,7 @@ public class Environment {
             if (defaultTxnConfig.getNoSync() ||
                 defaultTxnConfig.getWriteNoSync()) {
 
-                /* 
+                /*
                  * The environment sync settings have been set, check if any
                  * were set in the user's txn config. If none were set in the
                  * user's config, apply the environment defaults
@@ -808,7 +821,7 @@ public class Environment {
                     useConfig.setReadCommitted(true);
                 }
             }
-            
+
             /* No environment level defaults applied. */
             if (useConfig == null) {
                 useConfig = txnConfig;
@@ -826,22 +839,24 @@ public class Environment {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void checkpoint(CheckpointConfig ckptConfig) 
+    public void checkpoint(CheckpointConfig ckptConfig)
         throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    CheckpointConfig useConfig =
-		(ckptConfig == null) ? CheckpointConfig.DEFAULT : ckptConfig;
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            CheckpointConfig useConfig =
+                (ckptConfig == null) ? CheckpointConfig.DEFAULT : ckptConfig;
 
-	    environmentImpl.invokeCheckpoint(useConfig,
-					     false, // flushAll
-					     "api");
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+            environmentImpl.invokeCheckpoint(useConfig,
+                    false, // flushAll
+            "api");
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -851,18 +866,20 @@ public class Environment {
     public void sync()
         throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    CheckpointConfig config = new CheckpointConfig();
-	    config.setForce(true);
-	    environmentImpl.invokeCheckpoint(config,
-					     true,  // flushAll
-					     "sync");
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            CheckpointConfig config = new CheckpointConfig();
+            config.setForce(true);
+            environmentImpl.invokeCheckpoint(config,
+                    true,  // flushAll
+            "sync");
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -870,16 +887,18 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public int cleanLog()
-        throws DatabaseException {
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    return environmentImpl.invokeCleaner();
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            return environmentImpl.invokeCleaner();
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -887,33 +906,37 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public void evictMemory()
-        throws DatabaseException {
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    environmentImpl.invokeEvictor();
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            environmentImpl.invokeEvictor();
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void compress() 
-        throws DatabaseException {
+    public void compress()
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    environmentImpl.invokeCompressor();
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            environmentImpl.invokeCompressor();
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -921,43 +944,47 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public EnvironmentConfig getConfig()
-        throws DatabaseException {
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    EnvironmentConfig config = environmentImpl.cloneConfig();
-	    handleConfig.copyHandlePropsTo(config);
-	    config.fillInEnvironmentGeneratedProps(environmentImpl);
-	    return config;
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            EnvironmentConfig config = environmentImpl.cloneConfig();
+            handleConfig.copyHandlePropsTo(config);
+            config.fillInEnvironmentGeneratedProps(environmentImpl);
+            return config;
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void setMutableConfig(EnvironmentMutableConfig mutableConfig) 
-        throws DatabaseException {
-        
-	try {
-	    checkHandleIsValid();
-	    DatabaseUtil.checkForNullParam(mutableConfig, "mutableConfig");
+    public void setMutableConfig(EnvironmentMutableConfig mutableConfig)
+	throws DatabaseException {
 
-	    /*
-	     * Change the mutable properties specified in the given
-	     * configuratation.
-	     */
-	    environmentImpl.setMutableConfig(mutableConfig);
+        try {
+            checkHandleIsValid();
+            DatabaseUtil.checkForNullParam(mutableConfig, "mutableConfig");
 
-	    /* Reset the handle config properties. */
-	    copyToHandleConfig(mutableConfig, null);
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+            /*
+             * Change the mutable properties specified in the given
+             * configuratation.
+             */
+            environmentImpl.setMutableConfig(mutableConfig);
+
+            /* Reset the handle config properties. */
+            copyToHandleConfig(mutableConfig, null);
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -965,18 +992,20 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public EnvironmentMutableConfig getMutableConfig()
-        throws DatabaseException {
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    EnvironmentMutableConfig config =
-		environmentImpl.cloneMutableConfig();
-	    handleConfig.copyHandlePropsTo(config);
-	    return config;
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            EnvironmentMutableConfig config =
+                environmentImpl.cloneMutableConfig();
+            handleConfig.copyHandlePropsTo(config);
+            return config;
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -996,42 +1025,48 @@ public class Environment {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public EnvironmentStats getStats(StatsConfig config) 
-        throws DatabaseException {
+    public EnvironmentStats getStats(StatsConfig config)
+	throws DatabaseException {
 
-	try {
-	    StatsConfig useConfig =
-		(config == null) ? StatsConfig.DEFAULT : config;
+        checkHandleIsValid();
+        checkEnv();
+        try {
+            StatsConfig useConfig =
+                (config == null) ? StatsConfig.DEFAULT : config;
 
-	    if (environmentImpl != null) {
-		return environmentImpl.loadStats(useConfig);
-	    } else {
-		return new EnvironmentStats();
-	    }
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+            if (environmentImpl != null) {
+                return environmentImpl.loadStats(useConfig);
+            } else {
+                return new EnvironmentStats();
+            }
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public LockStats getLockStats(StatsConfig config) 
-        throws DatabaseException {
+    public LockStats getLockStats(StatsConfig config)
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    StatsConfig useConfig =
-		(config == null) ? StatsConfig.DEFAULT : config;
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            StatsConfig useConfig =
+                (config == null) ? StatsConfig.DEFAULT : config;
 
-	    return environmentImpl.lockStat(useConfig);
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+            return environmentImpl.lockStat(useConfig);
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -1039,18 +1074,20 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public TransactionStats getTransactionStats(StatsConfig config)
-        throws DatabaseException {
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    StatsConfig useConfig =
-		(config == null) ? StatsConfig.DEFAULT : config;
-	    return environmentImpl.txnStat(useConfig);
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            StatsConfig useConfig =
+                (config == null) ? StatsConfig.DEFAULT : config;
+            return environmentImpl.txnStat(useConfig);
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -1058,16 +1095,64 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public List getDatabaseNames()
-        throws DatabaseException {
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    return environmentImpl.getDbNames();
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            return environmentImpl.getDbNames();
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
+    }
+
+    /**
+     * Javadoc for this public method is generated via
+     * the doc templates in the doc_src directory.
+     */
+    public boolean scanLog(long startPosition,
+                           long endPosition,
+                           LogScanConfig config,
+                           LogScanner scanner)
+	throws DatabaseException {
+
+        try {
+            checkHandleIsValid();
+            checkEnv();
+
+	    if (startPosition < 0 ||
+		endPosition < 0) {
+		throw new IllegalArgumentException
+		    ("The start or end position argument is negative.");
+	    }
+
+	    if (config.getForwards()) {
+		if (startPosition >= endPosition) {
+		    throw new IllegalArgumentException
+			("The startPosition (" + startPosition +
+			 ") is not before the endPosition (" +
+			 endPosition + ") on a forward scan.");
+		}
+	    } else {
+		if (startPosition < endPosition) {
+		    throw new IllegalArgumentException
+			("The startPosition (" + startPosition +
+			 ") is not after the endPosition (" +
+			 endPosition + ") on a backward scan.");
+		}
+	    }
+
+            return environmentImpl.scanLog(startPosition, endPosition,
+					   config, scanner);
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -1075,18 +1160,20 @@ public class Environment {
      * the doc templates in the doc_src directory.
      */
     public boolean verify(VerifyConfig config, PrintStream out)
-        throws DatabaseException {
+	throws DatabaseException {
 
-	try {
-	    checkHandleIsValid();
-	    checkEnv();
-	    VerifyConfig useConfig =
-		(config == null) ? VerifyConfig.DEFAULT : config;
-	    return environmentImpl.verify(useConfig, out);
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+            VerifyConfig useConfig =
+                (config == null) ? VerifyConfig.DEFAULT : config;
+            return environmentImpl.verify(useConfig, out);
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -1096,13 +1183,17 @@ public class Environment {
     public Transaction getThreadTransaction()
 	throws DatabaseException {
 
-	try {
-	    return (Transaction)
-		environmentImpl.getTxnManager().getTxnForThread();
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        checkHandleIsValid();
+        checkEnv();
+        try {
+            return (Transaction)
+            environmentImpl.getTxnManager().getTxnForThread();
+        } catch (Error E) {
+            if (environmentImpl != null) {
+                environmentImpl.invalidate(E);
+            }
+            throw E;
+        }
     }
 
     /**
@@ -1111,17 +1202,28 @@ public class Environment {
      */
     public void setThreadTransaction(Transaction txn) {
 
-	try {
-	    environmentImpl.getTxnManager().setTxnForThread(txn);
-	} catch (Error E) {
-	    environmentImpl.invalidate(E);
-	    throw E;
-	}
+        try {
+            checkHandleIsValid();
+            checkEnv();
+        } catch (DatabaseException databaseException) {
+            /* API compatibility hack. See SR 15861 for details. */
+            throw new IllegalStateException(databaseException.getMessage());
+        }
+        try {
+            environmentImpl.getTxnManager().setTxnForThread(txn);
+        } catch (Error E) {
+            environmentImpl.invalidate(E);
+            throw E;
+        }
     }
 
     /*
      * Non public api -- helpers
      */
+
+    public void addReference(Object o) {
+        obj = o;
+    }
 
     /*
      * Let the Environment remember what's opened against it.
@@ -1164,7 +1266,7 @@ public class Environment {
     }
 
     /*
-     * Debugging aids. 
+     * Debugging aids.
      */
 
     /**
@@ -1173,7 +1275,7 @@ public class Environment {
     EnvironmentImpl getEnvironmentImpl() {
         return environmentImpl;
     }
-    
+
     /**
      * Throws if the environmentImpl is invalid.
      */

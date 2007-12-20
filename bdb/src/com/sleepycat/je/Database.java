@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Database.java,v 1.216.2.2 2007/07/02 19:54:48 mark Exp $
+ * $Id: Database.java,v 1.216.2.5 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -66,7 +66,7 @@ public class Database {
     /* Set of cursors open against this db handle. */
     private TinyHashSet cursors = new TinyHashSet();
 
-    /* 
+    /*
      * DatabaseTrigger list.  The list is null if empty, and is checked for
      * null to avoiding read locking overhead when no triggers are present.
      * Access to this list is protected by the shared trigger latch in
@@ -118,7 +118,7 @@ public class Database {
                       DatabaseConfig dbConfig)
         throws DatabaseException {
 
-        /* 
+        /*
          * Make sure the configuration used for the open is compatible with the
          * existing databaseImpl.
          */
@@ -128,7 +128,7 @@ public class Database {
         this.databaseImpl = databaseImpl;
         databaseImpl.addReferringHandle(this);
 
-        /* 
+        /*
          * Copy the duplicates and transactional properties of the underlying
          * database, in case the useExistingConfig property is set.
          */
@@ -145,7 +145,7 @@ public class Database {
         envHandle = env;
         configuration = config.cloneConfig();
         isWritable = !configuration.getReadOnly();
-        state = OPEN;        
+        state = OPEN;
     }
 
     /**
@@ -153,7 +153,7 @@ public class Database {
      * pre-existing database.
      */
     private void validateConfigAgainstExistingDb(DatabaseConfig config,
-                                                 DatabaseImpl databaseImpl) 
+						 DatabaseImpl databaseImpl)
         throws DatabaseException {
 
         /*
@@ -215,20 +215,29 @@ public class Database {
             databaseImpl.setDeferredWrite(config.getDeferredWrite());
         }
 
-        /* 
+        /*
          * Only re-set the comparators if the override is allowed.
          */
+	boolean comparatorModified = false;
         if (config.getOverrideBtreeComparator()) {
-            databaseImpl.setBtreeComparator
+	    comparatorModified |= databaseImpl.setBtreeComparator
                 (config.getBtreeComparator(),
                  config.getBtreeComparatorByClassName());
-        } 
+        }
 
         if (config.getOverrideDuplicateComparator()) {
-            databaseImpl.setDuplicateComparator
+	    comparatorModified |= databaseImpl.setDuplicateComparator
 		(config.getDuplicateComparator(),
 		 config.getDuplicateComparatorByClassName());
         }
+
+	/* [#15743] */
+	if (comparatorModified) {
+	    EnvironmentImpl envImpl = envHandle.getEnvironmentImpl();
+
+	    /* Dirty the root. */
+	    envImpl.getDbMapTree().modifyDbRoot(databaseImpl);
+	}
     }
 
     public synchronized void close()
@@ -261,7 +270,7 @@ public class Database {
                 ("There are open cursors against the database.\n");
             errors.append("They will be closed.\n");
 
-            /* 
+            /*
              * Copy the cursors set before iterating since the dbc.close()
              * mutates the set.
              */
@@ -283,7 +292,7 @@ public class Database {
             envHandle.getEnvironmentImpl().releaseDb(databaseImpl);
             databaseImpl = null;
 
-            /* 
+            /*
              * Tell our protecting txn that we're closing. If this type
              * of transaction doesn't live beyond the life of the handle,
              * it will release the db handle lock.
@@ -377,7 +386,7 @@ public class Database {
 	    throw E;
 	}
     }
- 
+
     /**
      * Is overridden by SecondaryDatabase.
      */
@@ -513,7 +522,7 @@ public class Database {
                     }
                 } while (searchStatus == OperationStatus.SUCCESS);
                 commitStatus = OperationStatus.SUCCESS;
-            } 
+            }
             return commitStatus;
         } finally {
 	    if (cursor != null) {
@@ -744,9 +753,9 @@ public class Database {
 	    checkEnv();
 	    checkRequiredDbState(OPEN, "Can't call Database.truncate");
 	    checkWritable("truncate");
-	    Tracer.trace(Level.FINEST, 
+	    Tracer.trace(Level.FINEST,
 			 envHandle.getEnvironmentImpl(),
-			 "Database.truncate: txnId=" + 
+			 "Database.truncate: txnId=" +
 			 ((txn == null) ?
 			  "null" :
 			  Long.toString(txn.getId())));
@@ -760,7 +769,7 @@ public class Database {
 		    (envHandle, txn, isTransactional(), true /*retainLocks*/,
 		     null);
 
-		/* 
+		/*
 		 * Pass true to always get a read lock on the triggers, so we
 		 * are sure that no secondaries are added during truncation.
 		 */
@@ -795,7 +804,7 @@ public class Database {
 	    throw E;
 	}
     }
-            
+
     /**
      * Internal unchecked truncate that optionally counts records.
      * @deprecated
@@ -809,7 +818,7 @@ public class Database {
         }
         databaseImpl.checkIsDeleted("truncate");
 
-        /* 
+        /*
          * Truncate must obtain a write lock. In order to do so, it assumes
          * ownership for the handle lock and transfers it from this Database
          * object to the txn.
@@ -821,7 +830,7 @@ public class Database {
         boolean operationOk = false;
         try {
 
-            /* 
+            /*
              * truncate clones the existing database and returns a new one to
              * replace it with.  The old databaseImpl object is marked
              * 'deleted'.
@@ -845,7 +854,7 @@ public class Database {
 
     /*
      * @deprecated As of JE 2.0.55, replaced by
-     * {@link Database#preload(PreloadConfig)}. 
+     * {@link Database#preload(PreloadConfig)}.
      */
     public void preload(long maxBytes)
         throws DatabaseException {
@@ -861,7 +870,7 @@ public class Database {
 
     /*
      * @deprecated As of JE 2.1.1, replaced by
-     * {@link Database#preload(PreloadConfig)}. 
+     * {@link Database#preload(PreloadConfig)}.
      */
     public void preload(long maxBytes, long maxMillisecs)
         throws DatabaseException {
@@ -946,7 +955,7 @@ public class Database {
 	}
     }
 
-    /* 
+    /*
      * Non-transactional database name, safe to access when creating error
      * messages.
      */
@@ -964,7 +973,7 @@ public class Database {
 	try {
 	    DatabaseConfig showConfig = configuration.cloneConfig();
 
-	    /* 
+	    /*
 	     * Set the comparators from the database impl, they might have
 	     * changed from another handle.
 	     */
@@ -987,7 +996,7 @@ public class Database {
 	}
     }
 
-    /** 
+    /**
      * Equivalent to getConfig().getTransactional() but cheaper.
      */
     boolean isTransactional()
@@ -996,7 +1005,7 @@ public class Database {
         return databaseImpl.isTransactional();
     }
 
-    public Environment getEnvironment() 
+    public Environment getEnvironment()
         throws DatabaseException {
 
         return envHandle;
@@ -1027,7 +1036,7 @@ public class Database {
 	}
     }
 
-    /* 
+    /*
      * Helpers, not part of the public API
      */
 
@@ -1068,7 +1077,7 @@ public class Database {
 
         if (state != required) {
             throw new DatabaseException
-                (msg + " Database state can't be " + state + 
+                (msg + " Database state can't be " + state +
                  " must be " + required);
         }
     }
@@ -1076,7 +1085,7 @@ public class Database {
     /**
      * @throws DatabaseException if the Database state is this value.
      */
-    void checkProhibitedDbState(DbState prohibited, String msg) 
+    void checkProhibitedDbState(DbState prohibited, String msg)
         throws DatabaseException {
 
         if (state == prohibited) {
@@ -1089,7 +1098,7 @@ public class Database {
      * @throws RunRecoveryException if the underlying environment is
      * invalid
      */
-    void checkEnv() 
+    void checkEnv()
         throws RunRecoveryException {
 
         EnvironmentImpl env = envHandle.getEnvironmentImpl();
@@ -1139,7 +1148,7 @@ public class Database {
                Transaction txn,
                DatabaseEntry key,
                DatabaseEntry data,
-               LockMode lockMode) 
+               LockMode lockMode)
         throws DatabaseException {
 
         if (logger.isLoggable(level)) {
@@ -1167,7 +1176,7 @@ public class Database {
     void trace(Level level,
                String methodName,
                Transaction txn,
-               CursorConfig config) 
+               CursorConfig config)
         throws DatabaseException {
 
         if (logger.isLoggable(level)) {

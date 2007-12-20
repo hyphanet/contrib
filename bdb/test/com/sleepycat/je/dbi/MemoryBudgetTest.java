@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudgetTest.java,v 1.15.2.1 2007/02/01 14:50:10 cwl Exp $
+ * $Id: MemoryBudgetTest.java,v 1.15.2.2 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -24,7 +24,7 @@ import com.sleepycat.je.util.TestUtils;
  */
 public class MemoryBudgetTest extends TestCase {
     private File envHome;
-    
+
     public MemoryBudgetTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
@@ -34,14 +34,14 @@ public class MemoryBudgetTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
-    
-    public void testDefaults() 
+
+    public void testDefaults()
         throws Exception {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -63,11 +63,11 @@ public class MemoryBudgetTest extends TestCase {
 
         assertTrue(testBudget.getMaxMemory() <=
                    MemoryBudget.getRuntimeMaxMemory());
-        assertTrue((testBudget.getLogBufferBudget() + 
+        assertTrue((testBudget.getLogBufferBudget() +
                     testBudget.getCacheBudget()) <=
                     testBudget.getMaxMemory());
-                   
-        /* 
+
+        /*
          * The tree and log buffer budget together is equal to
          * the max memory budget.
          */

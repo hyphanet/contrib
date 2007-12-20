@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbScavengerTest.java,v 1.16.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: DbScavengerTest.java,v 1.16.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -59,7 +59,7 @@ public class DbScavengerTest extends TestCase {
 
     private String envHomeName;
     private File envHome;
-    
+
     private Environment env;
 
     private Database[] dbs = new Database[N_DBS];
@@ -77,7 +77,7 @@ public class DbScavengerTest extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome, false);
         TestUtils.removeFiles("Setup", envHome, ".dump");
     }
-    
+
     public void tearDown()
 	throws IOException {
 

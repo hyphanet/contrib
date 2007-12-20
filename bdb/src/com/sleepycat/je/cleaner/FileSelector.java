@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileSelector.java,v 1.15.2.2 2007/05/31 21:55:32 mark Exp $
+ * $Id: FileSelector.java,v 1.15.2.3 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -70,13 +70,13 @@ public class FileSelector {
      * dbs, and goes lockstep with the cleanedFiles. It's implemented as a
      * list rather than a set, because a DW db may show up multiple times
      * for different files, unlike the files in the cleanedFiles set.
-     * For example, suppose 
+     * For example, suppose
      *  - file 20 is cleaned and adds DW dbs 1,3
      *  - file 25 is cleaned and adds DW dbs 1,5
      *  - a checkpoint starts, and copies dw db 1,3,5
      *  - file 30 is cleaned, and adds DW dbs 1,5
-     * When the ckpt returns and removes the proper entries from the list, 
-     * it must make sure that dbs 1,5 stay on the list, because that sync 
+     * When the ckpt returns and removes the proper entries from the list,
+     * it must make sure that dbs 1,5 stay on the list, because that sync
      * must happen for file 30.
      */
     private Set cleanedFiles;
@@ -99,7 +99,7 @@ public class FileSelector {
      * checkpointed files are either obsolete or have been migrated.  Note,
      * however, that the parent BINs of the migrated entries may not have been
      * logged yet.
-     * 
+     *
      * No special handling is required to coordinate syncing of deferred write
      * databases for pending, deferred write LNs. Note that although DW
      * databases are non-txnal, their LNs may be pended because of lock
@@ -318,7 +318,7 @@ public class FileSelector {
         anyPendingDuringCheckpoint = !pendingLNs.isEmpty() ||
             !pendingDBs.isEmpty();
 
-        CheckpointStartCleanerState info = 
+        CheckpointStartCleanerState info =
             new CheckpointStartCleanerState(cleanedFiles,
                                             fullyProcessedFiles,
                                             cleanedDeferredWriteDbs);
@@ -482,12 +482,12 @@ public class FileSelector {
         private Set cleanedFiles;
         private Set fullyProcessedFiles;
         private Set deferredWriteDbs;
-        
+
         CheckpointStartCleanerState(Set cleanedFiles,
                                     Set fullyProcessedFiles,
                                     List cleanedDeferredWriteDbs) {
 
-            /* 
+            /*
              * Create snapshots of the collections of various files at the
              * beginning of the checkpoint.
              */
@@ -509,11 +509,11 @@ public class FileSelector {
         public Set getFullyProcessedFiles() {
             return fullyProcessedFiles;
         }
-                
+
         public Set getDeferredWriteDbs() {
             return deferredWriteDbs;
         }
-                                  
+
         public int getDeferredWriteDbsSize() {
             return deferredWriteDbs.size();
         }

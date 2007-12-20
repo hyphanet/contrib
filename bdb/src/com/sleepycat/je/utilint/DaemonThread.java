@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DaemonThread.java,v 1.55.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: DaemonThread.java,v 1.55.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -34,7 +34,7 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
     protected Latch workQueueLatch;
     protected int nWakeupRequests;
     protected boolean stifleExceptionChatter = false;
-    
+
     /* Fields shared between threads must be 'volatile'. */
     private volatile boolean shutdownRequest = false;
     private volatile boolean paused = false;
@@ -95,7 +95,7 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
                     thread.join(JOIN_MILLIS);
                 } catch (InterruptedException e) {
 
-		    /* 
+		    /*
 		     * Klockwork - ok
 		     * Don't say anything about exceptions here.
 		     */
@@ -286,14 +286,14 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
         return paused;
     }
 
-    /** 
+    /**
      * Returns whether the onWakeup method is currently executing.  This is
      * only an approximation and is used to avoid unnecessary wakeups.
      */
     public boolean isRunning() {
         return running;
     }
-    
+
     /**
      * For unit testing.
      */

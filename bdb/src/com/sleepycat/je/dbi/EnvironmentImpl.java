@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentImpl.java,v 1.256.2.7 2007/07/02 19:54:49 mark Exp $
+ * $Id: EnvironmentImpl.java,v 1.256.2.12 2007/12/14 01:43:25 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -14,6 +14,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -24,6 +25,7 @@ import java.util.logging.SimpleFormatter;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
@@ -32,6 +34,8 @@ import com.sleepycat.je.EnvironmentMutableConfig;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.ExceptionListener;
 import com.sleepycat.je.LockStats;
+import com.sleepycat.je.LogScanConfig;
+import com.sleepycat.je.LogScanner;
 import com.sleepycat.je.RunRecoveryException;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.Transaction;
@@ -48,6 +52,7 @@ import com.sleepycat.je.latch.Latch;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.latch.SharedLatch;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.LNFileReader;
 import com.sleepycat.je.log.LatchedLogManager;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogManager;
@@ -61,6 +66,7 @@ import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.BINReference;
 import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.Key;
+import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.txn.TxnManager;
@@ -76,8 +82,8 @@ import com.sleepycat.je.utilint.Tracer;
  * database environment opened by the application.
  */
 public class EnvironmentImpl implements EnvConfigObserver {
-   
-    /* 
+
+    /*
      * Set true and run unit tests for NO_LOCKING_MODE test.
      * EnvironmentConfigTest.testInconsistentParams will fail. [#13788]
      */
@@ -103,7 +109,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     private static int adler32ChunkSize;
 
     /* Save so we don't have to look it up in the config manager frequently. */
-    private long lockTimeout; 
+    private long lockTimeout;
     private long txnTimeout;
 
     /* DatabaseImpl */
@@ -119,7 +125,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     protected LogManager logManager;
     private FileManager fileManager;
     private TxnManager txnManager;
-    
+
     /* Daemons */
     private Evictor evictor;
     private INCompressor inCompressor;
@@ -131,13 +137,13 @@ public class EnvironmentImpl implements EnvConfigObserver {
     private ReplicatorInstance repInstance;
 
     /* Stats, debug information */
-    private RecoveryInfo lastRecoveryInfo; 
+    private RecoveryInfo lastRecoveryInfo;
     private RunRecoveryException savedInvalidatingException;
 
     /* If true, call Thread.yield() at strategic points (stress test aid) */
     private static boolean forcedYield = false;
 
-    /* 
+    /*
      * Used by Database to protect access to the trigger list.  A single latch
      * for all databases is used to prevent deadlocks.
      */
@@ -182,7 +188,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
      * we've been called from DbPrintLog.
      */
     private static boolean noComparators = false;
-    
+
     /*
      * A preallocated RunRecoveryException that is used in OOME and other
      * java.lang.Error situations so that allocation does not need to be done
@@ -237,7 +243,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
             configObservers = new ArrayList();
             addConfigObserver(this);
 
-            /* 
+            /*
              * Decide on memory budgets based on environment config params and
              * memory available to this process.
              */
@@ -249,9 +255,9 @@ public class EnvironmentImpl implements EnvConfigObserver {
              */
             envLogger = initLogger(envHome);
 
-            /* 
+            /*
              * Essential services. These must exist before recovery.
-             */     
+             */
 	    forcedYield =
 		configManager.getBoolean(EnvironmentParams.ENV_FORCED_YIELD);
             isTransactional =
@@ -280,12 +286,12 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		configManager.getBoolean(EnvironmentParams.ENV_SHARED_LATCHES);
 	    dbEviction =
 		configManager.getBoolean(EnvironmentParams.ENV_DB_EVICTION);
-	    adler32ChunkSize = 
+	    adler32ChunkSize =
 		configManager.getInt(EnvironmentParams.ADLER32_CHUNK_SIZE);
 	    exceptionListener = envConfig.getExceptionListener();
 
-            /* 
-             * This property indicates that we should use obsolete offset 
+            /*
+             * This property indicates that we should use obsolete offset
              * tracking for deferred write dbs. Very likely to be a temporary
              * property.
              */
@@ -317,10 +323,10 @@ public class EnvironmentImpl implements EnvConfigObserver {
              */
             createDaemons();
 
-            /* 
+            /*
 	     * Recovery will recreate the dbMapTree from the log if it exists.
 	     */
-            dbMapTree = new DbTree(this); 
+            dbMapTree = new DbTree(this);
 
             referenceCount = 0;
 
@@ -343,7 +349,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
                 } finally {
                     try {
                         /* Flush to get all exception tracing out to the log.*/
-                        logManager.flush(); 
+                        logManager.flush();
                         fileManager.clear();
                     } catch (IOException e) {
                         throw new DatabaseException(e.getMessage());
@@ -365,14 +371,14 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		PropUtil.microsToMillis(configManager.getLong
 					(EnvironmentParams.TXN_TIMEOUT));
 
-            /* 
+            /*
              * Initialize the environment memory usage number. Must be called
              * after recovery, because recovery determines the starting size
              * of the in-memory tree.
              */
             memoryBudget.initCacheMemoryUsage();
 
-            /* 
+            /*
              * Call config observer and start daemons after the memory budget
              * is initialized. Note that all config parameters, both mutable
              * and non-mutable, needed by the memoryBudget have already been
@@ -387,7 +393,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
             /* Release any environment locks if there was a problem. */
             if (fileManager != null) {
                 try {
-                    /* 
+                    /*
                      * Clear again, in case an exception in logManager.flush()
                      * caused us to skip the earlier call to clear().
                      */
@@ -395,7 +401,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
                     fileManager.close();
                 } catch (IOException IOE) {
 
-		    /* 
+		    /*
 		     * Klockwork - ok
 		     * Eat it, we want to throw the original exception.
 		     */
@@ -408,11 +414,11 @@ public class EnvironmentImpl implements EnvConfigObserver {
     /**
      * Respond to config updates.
      */
-    public void envConfigUpdate(DbConfigManager mgr) 
+    public void envConfigUpdate(DbConfigManager mgr)
         throws DatabaseException {
 
         runOrPauseDaemons(mgr);
-        
+
         backgroundReadLimit = mgr.getInt
             (EnvironmentParams.ENV_BACKGROUND_READ_LIMIT);
         backgroundWriteLimit = mgr.getInt
@@ -420,11 +426,11 @@ public class EnvironmentImpl implements EnvConfigObserver {
         backgroundSleepInterval = PropUtil.microsToMillis(mgr.getLong
             (EnvironmentParams.ENV_BACKGROUND_SLEEP_INTERVAL));
     }
-    
+
     /**
      * Read configurations for daemons, instantiate.
      */
-    private void createDaemons() 
+    private void createDaemons()
         throws DatabaseException  {
 
         /* Evictor */
@@ -438,7 +444,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
          */
         long checkpointerWakeupTime =
             Checkpointer.getWakeupPeriod(configManager);
-        checkpointer = new Checkpointer(this, 
+        checkpointer = new Checkpointer(this,
                                         checkpointerWakeupTime,
                                         Environment.CHECKPOINTER_NAME);
 
@@ -470,7 +476,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
                 (mgr.getBoolean(EnvironmentParams.ENV_RUN_CLEANER) &&
                  !isMemOnly);
 
-            /* 
+            /*
              * Checkpointer. Run in both transactional and non-transactional
              * environments to guarantee recovery time.
              */
@@ -482,7 +488,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
         evictor.runOrPause
             (mgr.getBoolean(EnvironmentParams.ENV_RUN_EVICTOR));
     }
-        
+
     /**
      * Return the incompressor. In general, don't use this directly because
      * it's easy to forget that the incompressor can be null at times (i.e
@@ -610,10 +616,85 @@ public class EnvironmentImpl implements EnvConfigObserver {
         backgroundSleepHook = hook;
     }
 
+    public boolean scanLog(long startPosition,
+                           long endPosition,
+                           LogScanConfig config,
+                           LogScanner scanner)
+	throws DatabaseException {
+
+	try {
+	    DbConfigManager cm = getConfigManager();
+	    int readBufferSize =
+		cm.getInt(EnvironmentParams.LOG_ITERATOR_READ_SIZE);
+	    long endOfLogLsn = fileManager.getNextLsn();
+	    boolean forwards = config.getForwards();
+	    LNFileReader reader = null;
+	    if (forwards) {
+		if (endPosition > endOfLogLsn) {
+		    throw new IllegalArgumentException
+			("endPosition (" + endPosition +
+			 ") is past the end of the log on a forewards scan.");
+		}
+		reader = new LNFileReader(this,
+					  readBufferSize,
+					  startPosition, /*startLsn*/
+					  true,          /*forwards*/
+					  endPosition,   /*endOfFileLsn*/
+					  DbLsn.NULL_LSN,/*finishLsn*/
+					  null           /*singleFileNum*/);
+	    } else {
+		if (startPosition > endOfLogLsn) {
+		    throw new IllegalArgumentException
+			("startPosition (" + startPosition +
+			 ") is past the end of the log on a backwards scan.");
+		}
+		reader = new LNFileReader(this,
+					  readBufferSize,
+					  startPosition, /*startLsn*/
+					  false,         /*forwards*/
+					  endOfLogLsn,   /*endOfFileLsn*/
+					  endPosition,   /*finishLsn*/
+					  null           /*singleFileNum*/);
+	    }
+	    reader.addTargetType(LogEntryType.LOG_LN_TRANSACTIONAL);
+	    reader.addTargetType(LogEntryType.LOG_LN);
+	    reader.addTargetType(LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL);
+	    reader.addTargetType(LogEntryType.LOG_DEL_DUPLN);
+
+	    Map dbNameMap = dbMapTree.getDbNamesAndIds();
+
+	    while (reader.readNextEntry()) {
+		if (reader.isLN()) {
+		    LN theLN = reader.getLN();
+		    byte[] theKey = reader.getKey();
+
+		    DatabaseId dbId = reader.getDatabaseId();
+		    String dbName = (String) dbNameMap.get(dbId);
+		    if (dbMapTree.isReservedDbName(dbName)) {
+			continue;
+		    }
+
+		    boolean continueScanning =
+			scanner.scanRecord(new DatabaseEntry(theKey),
+					   new DatabaseEntry(theLN.getData()),
+					   theLN.isDeleted(),
+					   dbName);
+		    if (!continueScanning) {
+			break;
+		    }
+		}
+	    }
+
+	    return true;
+	} catch (IOException IOE) {
+	    throw new DatabaseException(IOE);
+	}
+    }
+
     /**
      * Log the map tree root and save the LSN.
      */
-    public void logMapTreeRoot() 
+    public void logMapTreeRoot()
         throws DatabaseException {
 
         mapTreeRootLatch.acquire();
@@ -640,7 +721,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
 		 * The root entry targetted for cleaning is in use.  Write a
 		 * new copy.
                  */
-                mapTreeRootLsn = 
+                mapTreeRootLsn =
                     logManager.log(new SingleItemEntry(LogEntryType.LOG_ROOT,
                                                        dbMapTree));
             }
@@ -655,7 +736,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     public long getRootLsn() {
         return mapTreeRootLsn;
     }
-        
+
     /**
      * Set the mapping tree from the log. Called during recovery.
      */
@@ -682,7 +763,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
                                      Key deletedKey,
                                      boolean doWakeup)
         throws DatabaseException {
-        
+
         /*
          * May be called by the cleaner on its last cycle, after the compressor
          * is shut down.
@@ -699,7 +780,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     public void addToCompressorQueue(BINReference binRef,
     		                     boolean doWakeup)
         throws DatabaseException {
-        
+
         /*
          * May be called by the cleaner on its last cycle, after the compressor
          * is shut down.
@@ -729,7 +810,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     /**
      * Do lazy compression at opportune moments.
      */
-    public void lazyCompress(IN in, UtilizationTracker tracker) 
+    public void lazyCompress(IN in, UtilizationTracker tracker)
         throws DatabaseException {
 
         /*
@@ -788,7 +869,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
 
                 fileHandler = new FileHandler(logFilePattern,
                                               limit, count, true);
-                fileHandler.setFormatter(new SimpleFormatter()); 
+                fileHandler.setFormatter(new SimpleFormatter());
                 fileHandler.setLevel(level);
                 logger.addHandler(fileHandler);
             }
@@ -803,7 +884,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
      * Add the database log as one of the debug logging destinations when the
      * logging system is sufficiently initialized.
      */
-    public void enableDebugLoggingToDbLog() 
+    public void enableDebugLoggingToDbLog()
         throws DatabaseException {
 
         if (configManager.getBoolean(EnvironmentParams.JE_LOGGING_DBLOG)) {
@@ -930,7 +1011,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
 
         try {
             Tracer.trace(Level.FINE, this,
-                         "Close of environment " + 
+                         "Close of environment " +
                          envHome + " started");
 
 	    try {
@@ -974,7 +1055,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
                     errors.append(IE.toString()).append("\n");
                 }
             }
-        
+
             /* Flush log. */
             Tracer.trace(Level.FINE, this,
                          "About to shutdown daemons for Env " + envHome);
@@ -1024,7 +1105,9 @@ public class EnvironmentImpl implements EnvConfigObserver {
             DbEnvPool.getInstance().remove(envHome);
 
 	    try {
-		checkLeaks();
+		if (envState != DbEnvState.INVALID) {
+		    checkLeaks();
+		}
 	    } catch (DatabaseException DBE) {
 		errors.append("\nException performing validity checks: ");
 		errors.append(DBE.toString()).append("\n");
@@ -1041,12 +1124,12 @@ public class EnvironmentImpl implements EnvConfigObserver {
 	}
     }
 
-    /* 
+    /*
      * Clear as many resources as possible, even in the face of an environment
      * that has received a fatal error, in order to support reopening the
      * environment in the same JVM.
      */
-    public synchronized void closeAfterRunRecovery() 
+    public synchronized void closeAfterRunRecovery()
         throws DatabaseException {
 
         try {
@@ -1100,7 +1183,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     /**
      * Debugging support. Check for leaked locks and transactions.
      */
-    private void checkLeaks() 
+    private void checkLeaks()
         throws DatabaseException {
 
         /* Only enabled if this check leak flag is true. */
@@ -1120,7 +1203,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
             System.out.println("Problem: " + lockStat.getNTotalLocks() +
                                " locks left");
             txnManager.getLockManager().dump();
-        } 
+        }
 
         TransactionStats txnStat = txnStat(statsConfig);
         if (txnStat.getNActive() != 0) {
@@ -1151,14 +1234,14 @@ public class EnvironmentImpl implements EnvConfigObserver {
      */
     public boolean invokeCheckpoint(CheckpointConfig config,
                                     boolean flushAll,
-                                    String invokingSource) 
+                                    String invokingSource)
         throws DatabaseException {
 
         if (checkpointer != null) {
             checkpointer.doCheckpoint(config, flushAll, invokingSource);
             return true;
         } else {
-            return false; 
+            return false;
         }
     }
 
@@ -1185,7 +1268,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
             inCompressor.doCompress();
             return true;
         } else {
-            return false; 
+            return false;
         }
     }
 
@@ -1237,14 +1320,14 @@ public class EnvironmentImpl implements EnvConfigObserver {
 
         shutdownINCompressor();
 
-        /* 
+        /*
          * Cleaner has to be shutdown before checkpointer because former calls
          * the latter.
          */
         shutdownCleaner();
         shutdownCheckpointer();
 
-        /* 
+        /*
          * The evictor has to get shutdown last because the other daemons might
          * create changes to the memory usage which result in a notify to
          * eviction.
@@ -1261,7 +1344,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
         if (inCompressor != null) {
             inCompressor.shutdown();
 
-            /* 
+            /*
              * If daemon thread doesn't shutdown for any reason, at least clear
              * the reference to the environment so it can be GC'd.
              */
@@ -1277,7 +1360,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
         if (evictor != null) {
             evictor.shutdown();
 
-            /* 
+            /*
              * If daemon thread doesn't shutdown for any reason, at least clear
              * the reference to the environment so it can be GC'd.
              */
@@ -1293,7 +1376,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
         if (checkpointer != null) {
             checkpointer.shutdown();
 
-            /* 
+            /*
              * If daemon thread doesn't shutdown for any reason, at least clear
              * the reference to the environment so it can be GC'd.
              */
@@ -1348,7 +1431,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     /**
      * Returns whether DB/MapLN eviction is enabled.
      */
-    boolean getDbEviction() {
+    public boolean getDbEviction() {
         return dbEviction;
     }
 
@@ -1459,11 +1542,11 @@ public class EnvironmentImpl implements EnvConfigObserver {
     }
 
     /**
-     * Truncate a database.  
+     * Truncate a database.
      */
     public long truncate(Locker locker,
-                         String databaseName, 
-                         boolean returnCount) 
+                         String databaseName,
+                         boolean returnCount)
         throws DatabaseException {
 
         return dbMapTree.truncate(locker, databaseName, returnCount);
@@ -1509,14 +1592,14 @@ public class EnvironmentImpl implements EnvConfigObserver {
     public DbConfigManager getConfigManager() {
         return configManager;
     }
-    
+
     /**
      * Clones the current configuration.
      */
     public EnvironmentConfig cloneConfig() {
         return DbInternal.cloneConfig(configManager.getEnvironmentConfig());
     }
-    
+
     /**
      * Clones the current mutable configuration.
      */
@@ -1677,7 +1760,7 @@ public class EnvironmentImpl implements EnvConfigObserver {
     }
 
     /**
-     * Info about the last recovery 
+     * Info about the last recovery
      */
     public RecoveryInfo getLastRecoveryInfo() {
         return lastRecoveryInfo;

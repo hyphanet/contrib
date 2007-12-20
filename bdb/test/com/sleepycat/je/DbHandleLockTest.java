@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbHandleLockTest.java,v 1.23.2.1 2007/02/01 14:50:04 cwl Exp $
+ * $Id: DbHandleLockTest.java,v 1.23.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -31,7 +31,7 @@ public class DbHandleLockTest extends TestCase {
         envConfig.setAllowCreate(true);
         env = new Environment(envHome, envConfig);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -56,7 +56,7 @@ public class DbHandleLockTest extends TestCase {
             dbConfig.setAllowCreate(true);
             Database db = env.openDatabase(txnA, "foo", dbConfig);
 
-            /* 
+            /*
 	     * At this point, we expect a write lock on the NameLN (the handle
 	     * lock).
              */
@@ -114,7 +114,7 @@ public class DbHandleLockTest extends TestCase {
 	}
     }
 
-    private void insertData(int numRecs, Database db) 
+    private void insertData(int numRecs, Database db)
         throws Throwable {
 
         for (int i = 0; i < numRecs; i++) {

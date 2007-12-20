@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BinDeltaTest.java,v 1.44.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: BinDeltaTest.java,v 1.44.2.3 2007/11/20 13:32:50 cwl Exp $
  */
 package com.sleepycat.je.tree;
 
@@ -28,6 +28,7 @@ import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.entry.LogEntry;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.util.TestUtils;
@@ -48,21 +49,24 @@ public class BinDeltaTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
 
        	/* Print keys as numbers */
-       	Key.DUMP_BINARY = true;
+       	Key.DUMP_TYPE = DumpType.BINARY;
     }
 
     public void setUp() throws IOException, DatabaseException {
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
 
-        /* 
-         * Properties for creating an environment. 
-         * Disable the evictor for this test, use larger BINS
+        /*
+         * Properties for creating an environment.  Disable the evictor for
+         * this test, use larger BINS.
          */
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setTransactional(true);
-        envConfig.setConfigParam(EnvironmentParams.ENV_RUN_EVICTOR.getName(), "true");
-        envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "50");
-        envConfig.setConfigParam(EnvironmentParams.BIN_DELTA_PERCENT.getName(), "50");
+        envConfig.setConfigParam
+	    (EnvironmentParams.ENV_RUN_EVICTOR.getName(), "true");
+        envConfig.setConfigParam
+	    (EnvironmentParams.NODE_MAX.getName(), "50");
+        envConfig.setConfigParam
+	    (EnvironmentParams.BIN_DELTA_PERCENT.getName(), "50");
         envConfig.setAllowCreate(true);
         env = new Environment(envHome, envConfig);
         logManager = DbInternal.envGetEnvironmentImpl(env).getLogManager();
@@ -83,7 +87,7 @@ public class BinDeltaTest extends TestCase {
      * Create a db, fill with numRecords, return the first BIN.
      * @param numRecords
      */
-    private BIN initDb(int start, int end) 
+    private BIN initDb(int start, int end)
         throws DatabaseException {
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setTransactional(true);
@@ -115,7 +119,7 @@ public class BinDeltaTest extends TestCase {
         DatabaseEntry searchKey = new DatabaseEntry();
         DatabaseEntry foundData = new DatabaseEntry();
         DatabaseEntry newData = new DatabaseEntry();
-        
+
         for (int i = start; i <= end; i++) {
             searchKey.setData(TestUtils.getTestArray(i));
             assertEquals(OperationStatus.SUCCESS,
@@ -128,10 +132,10 @@ public class BinDeltaTest extends TestCase {
         txn.commit();
     }
 
-    /* 
+    /*
      * Add the specified records.
      */
-    private void addRecords(int start, int end) 
+    private void addRecords(int start, int end)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -161,12 +165,12 @@ public class BinDeltaTest extends TestCase {
                 (logManager, true, false, false, false, null);
 	    bin.releaseLatch();
             assertTrue(fullLsn != DbLsn.NULL_LSN);
-          
+
             if (DEBUG) {
                 System.out.println("Start");
                 System.out.println(bin.dumpString(0, true));
             }
-          
+
             /* Modify some of the data, add data so the BIN is changed. */
             modifyRecords(11,13,10);
             addRecords(1,3);
@@ -222,14 +226,14 @@ public class BinDeltaTest extends TestCase {
                 (logManager, true, false, false, false, null);
 	    bin.releaseLatch();
             assertTrue(fullLsn != DbLsn.NULL_LSN);
-          
-            /* 
+
+            /*
              * Roll back the deletion. Now the full version of the LSN is out
              * of date.
              */
             txn.abort();
 
-            /* 
+            /*
              * Make sure a delta reflect the abort, even though the abort
              * returns an older LSN back into the BIN.
              */
@@ -250,7 +254,7 @@ public class BinDeltaTest extends TestCase {
      * Log the targetBIN, then read it back from the log and make sure
      * the recreated BIN matches the in memory BIN.
      */
-    private void logAndCheck(BIN targetBIN) 
+    private void logAndCheck(BIN targetBIN)
         throws DatabaseException {
 
         /*
@@ -276,11 +280,11 @@ public class BinDeltaTest extends TestCase {
             System.out.println("created");
             System.out.println(createdBIN.dumpString(0, true));
         }
-          
+
         assertEquals(targetBIN.getClass().getName(),
                      createdBIN.getClass().getName());
         assertEquals(targetBIN.getNEntries(), createdBIN.getNEntries());
-        
+
         for (int i = 0; i < createdBIN.getNEntries(); i++) {
             assertEquals("LSN " + i, targetBIN.getLsn(i),
                          createdBIN.getLsn(i));

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SequenceTest.java,v 1.6.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: SequenceTest.java,v 1.6.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -365,12 +365,12 @@ public class SequenceTest extends TxnTestCase {
             config.setRange(min, max);
             config.setCacheSize(cache);
 
-            String msg = 
-                "incr=" + incr + 
-                " wrap=" + wrap + 
-                " min=" + min + 
-                " max=" + max + 
-                " delta=" + delta + 
+            String msg =
+                "incr=" + incr +
+                " wrap=" + wrap +
+                " min=" + min +
+                " max=" + max +
+                " delta=" + delta +
                 " cache=" + cache;
 
             Transaction txn = txnBegin();

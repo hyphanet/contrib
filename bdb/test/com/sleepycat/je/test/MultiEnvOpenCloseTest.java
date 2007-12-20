@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MultiEnvOpenCloseTest.java,v 1.10.2.1 2007/02/01 14:50:19 cwl Exp $
+ * $Id: MultiEnvOpenCloseTest.java,v 1.10.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -34,13 +34,13 @@ public class MultiEnvOpenCloseTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
-    
+
     public void testMultiOpenClose()
         throws Exception {
 

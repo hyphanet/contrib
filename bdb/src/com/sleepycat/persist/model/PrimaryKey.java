@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PrimaryKey.java,v 1.8.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: PrimaryKey.java,v 1.8.2.2 2007/12/08 14:38:36 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -23,11 +23,8 @@ import com.sleepycat.persist.PrimaryIndex;
  * primary key field is the unique identifier for the entity in a {@link
  * PrimaryIndex}.
  *
- * <p>{@link PrimaryKey} may appear on at most one declared field per class.
- * If it does not appear on a declared field in the entity class, {@code
- * PrimaryKey} must appear on a field of an entity superclass.  The nearest
- * superclass declaration is used if more than one superclass with {@code
- * PrimaryKey} is present.</p>
+ * <p>{@link PrimaryKey} may appear on at most one declared field per
+ * class.</p>
  *
  * <p>Primary key values may be automatically assigned as sequential integers
  * using a {@link #sequence}.  In this case the type of the key field is
@@ -77,6 +74,45 @@ import com.sleepycat.persist.PrimaryIndex;
  * and is therefore useful even when there is only one key field in the
  * composite key class.  See {@link <a href="KeyField.html#comparable">Custom
  * Sort Order</a>} for more information on sorting of composite keys.</p>
+ *
+ * <p><a name="inherit"><strong>Inherited Primary Key</strong></a></p>
+ *
+ * <p>If it does not appear on a declared field in the entity class, {@code
+ * PrimaryKey} must appear on a field of an entity superclass.  In the
+ * following example, the primary key on the base class is used:</p>
+ *
+ * <pre class="code">
+ * {@literal @Persistent}
+ * class BaseClass {
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *     ...
+ * }
+ * {@literal @Entity}
+ * class Employee extends BaseClass {
+ *     // inherits id primary key
+ *     ...
+ * }</pre>
+ *
+ * <p>If more than one class with {@code PrimaryKey} is present in a class
+ * hierarchy, the key in the most derived class is used.  In this case, primary
+ * key fields in superclasses are "shadowed" and are not persistent.  In the
+ * following example, the primary key in the base class is not used and is not
+ * persistent:</p>
+ * <pre class="code">
+ * {@literal @Persistent}
+ * class BaseClass {
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *     ...
+ * }
+ * {@literal @Entity}
+ * class Employee extends BaseClass {
+ *     // overrides id primary key
+ *     {@literal @PrimaryKey}
+ *     String uuid;
+ *     ...
+ * }</pre>
  *
  * @author Mark Hayes
  */

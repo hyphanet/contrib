@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CmdUtil.java,v 1.21.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: CmdUtil.java,v 1.21.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -19,7 +19,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
  * Convenience methods for command line utilities.
  */
 public class CmdUtil {
-    public static String getArg(String [] argv, int whichArg) 
+    public static String getArg(String [] argv, int whichArg)
         throws IllegalArgumentException {
 
         if (whichArg < argv.length) {
@@ -85,10 +85,10 @@ public class CmdUtil {
     public static EnvironmentImpl makeUtilityEnvironment(File envHome,
 							 boolean readOnly)
         throws DatabaseException {
-        
+
         EnvironmentConfig config = new EnvironmentConfig();
         config.setReadOnly(readOnly);
-        
+
         /* Don't debug log to the database log. */
         config.setConfigParam(EnvironmentParams.JE_LOGGING_DBLOG.getName(),
 			      "false");

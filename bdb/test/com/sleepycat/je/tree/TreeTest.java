@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TreeTest.java,v 1.86.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: TreeTest.java,v 1.86.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -51,7 +51,7 @@ public class TreeTest extends TreeTestBase {
     public void testMultipleInsertRetrieve0()
 	throws DatabaseException {
 
-        /* 
+        /*
 	 * Set the seed to reproduce a specific problem found while debugging:
          * IN.split was splitting with the identifier key being on the right
          * side.
@@ -131,7 +131,7 @@ public class TreeTest extends TreeTestBase {
      * counting the keys and validating that the keys are being returned in
      * ascending order.  Ensure that the correct number of keys were returned.
      */
-    public void testCountAndValidateKeys() 
+    public void testCountAndValidateKeys()
 	throws DatabaseException, IOException {
 
         initEnv(false);
@@ -206,7 +206,7 @@ public class TreeTest extends TreeTestBase {
             insertAndRetrieve(cursor, keyBytes,
                               new LN((byte[]) null));
         }
-        
+
         TestUtils.checkLatchCount();
 
         /* Count the number of levels on the left. */
@@ -255,7 +255,7 @@ public class TreeTest extends TreeTestBase {
             insertAndRetrieve(cursor, keyBytes,
                               new LN((byte[]) null));
         }
-        
+
         TestUtils.checkLatchCount();
         IN leftMostNode = tree.getFirstNode();
 
@@ -302,7 +302,7 @@ public class TreeTest extends TreeTestBase {
 	LN[] lns = new LN[N_KEYS];
         Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
-        
+
 	for (int i = 0; i < N_KEYS; i++) {
 	    byte[] key = new byte[N_KEY_BYTES];
 	    keys[i] = key;
@@ -311,7 +311,7 @@ public class TreeTest extends TreeTestBase {
 	    insertAndRetrieve(cursor, key, lns[i]);
 	}
 
-        /* 
+        /*
          * Note that verify will attempt to continue past errors, so
          * assertTrue on the status return.
          */

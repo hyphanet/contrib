@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentConfigTest.java,v 1.10.2.1 2007/02/01 14:50:05 cwl Exp $
+ * $Id: EnvironmentConfigTest.java,v 1.10.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -25,7 +25,7 @@ public class EnvironmentConfigTest extends TestCase {
     public void testValidation()
 	throws DatabaseException {
 
-        /* 
+        /*
          * This validation should be successfull
          */
         Properties props = new Properties();
@@ -34,13 +34,13 @@ public class EnvironmentConfigTest extends TestCase {
         new EnvironmentConfig(props); // Just instantiate a config object.
 
         /*
-         * Should fail: we should throw because leftover.param is not 
+         * Should fail: we should throw because leftover.param is not
          * a valid parameter.
          */
         props.clear();
         props.setProperty("leftover.param", "foo");
         checkEnvironmentConfigValidation(props);
-                                           
+
         /*
          * Should fail: we should throw because FileHandlerLimit
          * is less than its minimum
@@ -61,7 +61,7 @@ public class EnvironmentConfigTest extends TestCase {
     /**
      * Test single parameter setting.
      */
-    public void testSingleParam() 
+    public void testSingleParam()
         throws Exception {
 
         try {

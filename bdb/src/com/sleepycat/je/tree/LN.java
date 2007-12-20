@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LN.java,v 1.125.2.5 2007/07/02 19:54:52 mark Exp $
+ * $Id: LN.java,v 1.125.2.7 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -39,9 +39,9 @@ public class LN extends Node implements Loggable {
 
     private byte[] data;
 
-    /* 
+    /*
      * States: bit fields
-     * 
+     *
      * -Dirty means that the in-memory version is not present on disk.
      * -The last logged bits store the total size of the last logged entry.
      */
@@ -58,7 +58,7 @@ public class LN extends Node implements Loggable {
         super(false);
         this.data = null;
     }
-    
+
     /**
      * Create a new LN from a byte array.
      */
@@ -71,7 +71,7 @@ public class LN extends Node implements Loggable {
         }
         setDirty();
     }
-    
+
     /**
      * Create a new LN from a DatabaseEntry.
      */
@@ -108,7 +108,7 @@ public class LN extends Node implements Loggable {
     public byte[] getData() {
         return data;
     }
-    
+
     public byte[] copyData() {
         int len = data.length;
         byte[] ret = new byte[len];
@@ -136,7 +136,7 @@ public class LN extends Node implements Loggable {
         state &= CLEAR_DIRTY_BIT;
     }
 
-    /* 
+    /*
      * If you get to an LN, this subtree isn't valid for delete. True, the LN
      * may have been deleted, but you can't be sure without taking a lock, and
      * the validate -subtree-for-delete process assumes that bin compressing
@@ -183,7 +183,16 @@ public class LN extends Node implements Loggable {
     }
 
     /**
-     * Delete this LN's data and log the new version. 
+     * Returns whether this LN's memory size can change during logging, such as
+     * when a FileSummaryLN's size changes in the getLogSize or writeToLog
+     * method.
+     */
+    boolean canMemorySizeChangeDuringLogging() {
+        return false;
+    }
+
+    /**
+     * Delete this LN's data and log the new version.
      */
     public long delete(DatabaseImpl database,
 		       byte[] lnKey,
@@ -201,7 +210,7 @@ public class LN extends Node implements Loggable {
         long newLsn = DbLsn.NULL_LSN;
         if (dupKey != null) {
 
-            /* 
+            /*
              * If this is a deferred write database, and the LN has
              * never been logged, we don't need to log the delete either,
              * since we are currently running in non-txnal mode. This
@@ -252,6 +261,80 @@ public class LN extends Node implements Loggable {
         long newLsn =
             optionalLog(env, database, lnKey, oldLsn, oldSize, locker);
         return newLsn;
+    }
+
+    /**
+     * Logs an LN that is already present in the parent IN, adjusting the
+     * memory budget if the size of the LN changes during logging, such as
+     * for FileSummaryLNs.
+     *
+     * This method should be used when logging an LN that is already present in
+     * the IN and the memory size is not adjusted by other means (such as when
+     * logging before IN.insertEntry, or when using CursorImpl.delete or
+     * CursorImpl.putCurrent).  Note that when logging after IN.insertEntry,
+     * this method must be called.  The IN parent must be latched on entry and
+     * is left latched on return.  [#15831]
+     */
+    public long logUpdateMemUsage(DatabaseImpl database,
+                                  byte[] lnKey,
+                                  long oldLsn,
+                                  Locker locker,
+                                  IN parent,
+                                  boolean backgroundIO)
+        throws DatabaseException {
+
+        EnvironmentImpl env = database.getDbEnvironment();
+        int oldLogSize = getLastLoggedSize();
+        long oldMemSize = 0;
+        boolean possibleMemSizeChange = canMemorySizeChangeDuringLogging();
+        if (possibleMemSizeChange) {
+            oldMemSize = getMemorySizeIncludedByParent();
+        }
+        try {
+            return log
+                (env, database.getId(), lnKey, null /*delDupKey*/,
+                 oldLsn, oldLogSize, locker, backgroundIO,
+                 false /*provisional*/);
+        } finally {
+            if (possibleMemSizeChange) {
+                long newMemSize = getMemorySizeIncludedByParent();
+                if (newMemSize != oldMemSize) {
+                    parent.updateMemorySize(oldMemSize, newMemSize);
+                }
+            }
+        }
+    }
+
+    /**
+     * Veriation of logUpdateMemUsage that specifies false for the backgroundIO
+     * parameter.
+     */
+    public long logUpdateMemUsage(DatabaseImpl database,
+                                  byte[] lnKey,
+                                  long oldLsn,
+                                  Locker locker,
+                                  IN parent)
+        throws DatabaseException {
+
+        return logUpdateMemUsage(database, lnKey, oldLsn, locker, parent,
+                                 false); // backgroundIO
+    }
+
+    /**
+     * Veriation of logUpdateMemUsage that does not log for a DeferredWrite DB.
+     * */
+    public long optionalLogUpdateMemUsage(DatabaseImpl database,
+                                          byte[] lnKey,
+                                          long oldLsn,
+                                          Locker locker,
+                                          IN parent)
+        throws DatabaseException {
+
+        if (database.isDeferredWrite()) {
+            return DbLsn.NULL_LSN;
+        } else {
+            return logUpdateMemUsage(database, lnKey, oldLsn, locker, parent);
+        }
     }
 
     /**
@@ -323,31 +406,6 @@ public class LN extends Node implements Loggable {
      */
 
     /**
-     * Log this LN and clear the dirty flag. Whether it's logged as a
-     * transactional entry or not depends on the type of locker.
-     * @param env the environment.
-     * @param dbId database id of this node. (Not stored in LN)
-     * @param key key of this node. (Not stored in LN)
-     * @param oldLsn is the LSN of the previous version or null.
-     * @param oldSize is the size of the previous version or zero.
-     * @param locker owning locker.
-     */
-    public long log(EnvironmentImpl env,
-		    DatabaseId dbId,
-		    byte[] key,
-		    long oldLsn,
-                    int oldSize,
-		    Locker locker,
-                    boolean backgroundIO)
-        throws DatabaseException {
-
-        return log(env, dbId, key,
-                   null,   // delDupKey
-                   oldLsn, oldSize, locker, backgroundIO,
-                   false); // provisional
-    }
-
-    /**
      * Log this LN if it's not part of a deferred-write db.  Whether it's
      * logged as a transactional entry or not depends on the type of locker.
      * @param env the environment.
@@ -387,7 +445,7 @@ public class LN extends Node implements Loggable {
      */
     public long optionalLogProvisional(EnvironmentImpl env,
                                        DatabaseImpl databaseImpl,
-                                       byte[] key, 
+                                       byte[] key,
                                        long oldLsn,
                                        int oldSize)
         throws DatabaseException {
@@ -408,6 +466,9 @@ public class LN extends Node implements Loggable {
     /**
      * Log this LN. Clear dirty bit. Whether it's logged as a transactional
      * entry or not depends on the type of locker.
+     *
+     * Is public only for unit tests.
+     *
      * @param env the environment.
      * @param dbId database id of this node. (Not stored in LN)
      * @param key key of this node. (Not stored in LN)
@@ -416,7 +477,7 @@ public class LN extends Node implements Loggable {
      * @param oldSize is the size of the previous version or zero.
      * @param locker owning locker.
      */
-    long log(EnvironmentImpl env,
+    public long log(EnvironmentImpl env,
              DatabaseId dbId,
              byte[] key,
              byte[] delDupKey,
@@ -480,7 +541,7 @@ public class LN extends Node implements Loggable {
                                          logTxn);
         } else {
             /* Not a deleted duplicate LN -- use a regular LNLogEntry. */
-            logEntry = new LNLogEntry(entryType, 
+            logEntry = new LNLogEntry(entryType,
                                       this,
                                       dbId,
                                       key,
@@ -548,7 +609,7 @@ public class LN extends Node implements Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
         /* Ask ancestors to write to log. */
-        super.writeToLog(logBuffer); 
+        super.writeToLog(logBuffer);
 
         /* data: isData null flag, then length, then data. */
         boolean dataExists = !isDeleted();
@@ -584,7 +645,7 @@ public class LN extends Node implements Loggable {
             sb.append(TreeUtils.dumpByteArray(data));
             sb.append("</data>");
         }
-        
+
         dumpLogAdditional(sb, verbose);
 
         sb.append(endTag());

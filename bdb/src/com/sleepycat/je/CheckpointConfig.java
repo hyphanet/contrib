@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckpointConfig.java,v 1.14.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: CheckpointConfig.java,v 1.14.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -70,7 +70,7 @@ public class CheckpointConfig  {
     public void setForce(boolean force) {
         this.force = force;
     }
-    
+
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
@@ -86,7 +86,7 @@ public class CheckpointConfig  {
     public void setMinimizeRecoveryTime(boolean minimizeRecoveryTime) {
         this.minimizeRecoveryTime = minimizeRecoveryTime;
     }
-    
+
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.

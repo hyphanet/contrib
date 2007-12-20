@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RMWLockingTest.java,v 1.6.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: RMWLockingTest.java,v 1.6.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -33,7 +33,7 @@ import com.sleepycat.je.util.TestUtils;
  * those LNs that have been made obsolete.
  */
 public class RMWLockingTest extends TestCase {
-    
+
     private static final int NUM_RECS = 5;
 
     private File envHome;
@@ -66,7 +66,7 @@ public class RMWLockingTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             TestUtils.removeLogFiles("tearDown", envHome, true);
             TestUtils.removeFiles("tearDown", envHome, FileManager.DEL_SUFFIX);
@@ -89,7 +89,7 @@ public class RMWLockingTest extends TestCase {
         UtilizationProfile up =
             DbInternal.envGetEnvironmentImpl(env).getUtilizationProfile();
 
-        /* 
+        /*
          * Checkpoint the environment to flush all utilization tracking
          * information before verifying.
          */
@@ -132,7 +132,7 @@ public class RMWLockingTest extends TestCase {
         env = null;
     }
 
-    private void init() 
+    private void init()
         throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -147,7 +147,7 @@ public class RMWLockingTest extends TestCase {
     }
 
     /* Insert records. */
-    private void insertRecords() 
+    private void insertRecords()
         throws DatabaseException {
 
         key = new DatabaseEntry();
@@ -162,7 +162,7 @@ public class RMWLockingTest extends TestCase {
     }
 
     /* lock two records with RMW, only modify one. */
-    private void rmwModify() 
+    private void rmwModify()
         throws DatabaseException {
 
         Transaction txn = env.beginTransaction(null, null);

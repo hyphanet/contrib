@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Key.java,v 1.61.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: Key.java,v 1.61.2.3 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -24,7 +24,27 @@ import com.sleepycat.je.DatabaseEntry;
  */
 
 public final class Key implements Comparable {
-    public static boolean DUMP_BINARY = true;
+
+    public static class DumpType {
+
+	private String type;
+
+	private DumpType(String type) {
+	    this.type = type;
+	}
+
+	public String toString() {
+	    return type;
+	}
+
+	public static DumpType BINARY = new DumpType("Binary");
+	public static DumpType HEX = new DumpType("Hex");
+	public static DumpType TEXT = new DumpType("Text");
+	public static DumpType OBFUSCATE = new DumpType("Obfuscate");
+	public static DumpType NONE = new DumpType("None");
+    }
+
+    public static DumpType DUMP_TYPE = DumpType.BINARY;
     /* Not declared final since unit tests use it. */
     public static boolean DUMP_INT_BINDING = false;
     public static final byte[] EMPTY_KEY = new byte[0];
@@ -136,27 +156,34 @@ public final class Key implements Comparable {
         sb.append(TreeUtils.indent(nspaces));
 	sb.append("<key v=\"");
 
-        /** uncomment for hex formatting 
+        /** uncomment for hex formatting
 	    for (int i = 0 ; i < key.length; i++) {
 	    sb.append(Integer.toHexString(key[i] & 0xFF)).append(" ");
 	    }
         **/
 
-	if (DUMP_BINARY) {
+	if (DUMP_TYPE == DumpType.BINARY ||
+	    DUMP_TYPE == DumpType.HEX) {
 	    if (key == null) {
 		sb.append("<null>");
 	    } else {
 		sb.append(TreeUtils.dumpByteArray(key));
 	    }
-        } else if (DUMP_INT_BINDING) {
-            if (key == null) {
-		sb.append("<null>");
-            } else {
-                DatabaseEntry e = new DatabaseEntry(key);
-                sb.append(IntegerBinding.entryToInt(e));
-            }
-        } else {
-	    sb.append(key == null ? "" : new String(key));
+        } else if (DUMP_TYPE == DumpType.TEXT) {
+	    if (DUMP_INT_BINDING) {
+		if (key == null) {
+		    sb.append("<null>");
+		} else {
+		    DatabaseEntry e = new DatabaseEntry(key);
+		    sb.append(IntegerBinding.entryToInt(e));
+		}
+	    } else {
+		sb.append(key == null ? "" : new String(key));
+	    }
+	} else if (DUMP_TYPE == DumpType.OBFUSCATE) {
+	    int len = key.length;
+	    sb.append("[").append(len).append(len == 1 ? " byte]" : " bytes]");
+	} else if (DUMP_TYPE == DumpType.NONE) {
 	}
 	sb.append("\"/>");
 

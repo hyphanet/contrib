@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTracker.java,v 1.19.2.2 2007/03/07 01:24:33 mark Exp $
+ * $Id: UtilizationTracker.java,v 1.19.2.3 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -279,7 +279,7 @@ public class UtilizationTracker {
         file.setAllowFlush(false);
         return file;
     }
-        
+
     /**
      * Returns a tracked file for the given file number, adding an empty one
      * if the file is not already being tracked.
@@ -313,7 +313,7 @@ public class UtilizationTracker {
 
     /**
      * Called after the FileSummaryLN is written to the log during checkpoint.
-     * 
+     *
      * <p>We keep the active file summary in the tracked file list, but we
      * remove older files to prevent unbounded growth of the list.</p>
      *

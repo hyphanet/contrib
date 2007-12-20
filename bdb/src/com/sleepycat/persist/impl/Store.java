@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Store.java,v 1.20.2.5 2007/06/14 13:06:05 mark Exp $
+ * $Id: Store.java,v 1.20.2.7 2007/12/08 14:47:26 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -710,7 +710,7 @@ public class Store {
 
     public void sync()
         throws DatabaseException {
-        
+
         List<Database> dbs = new ArrayList<Database>();
         synchronized (this) {
             dbs.addAll(deferredWriteDatabases.keySet());
@@ -731,7 +731,7 @@ public class Store {
 
     public void truncateClass(Class entityClass)
         throws DatabaseException {
-        
+
         truncateClass(null, entityClass);
     }
 
@@ -867,7 +867,7 @@ public class Store {
         if (storeConfig.getReadOnly()) {
             throw new IllegalStateException("Store is read-only");
         }
-        
+
         Sequence seq = sequenceMap.get(name);
         if (seq == null) {
             if (sequenceDb == null) {
@@ -1209,14 +1209,13 @@ public class Store {
                         boolean success = false;
                         txn = env.beginTransaction(null, null);
                     }
-                    boolean doCommit = false;
+                    boolean written = false;
                     Cursor writeCursor = null;
                     try {
                         writeCursor = db.openCursor(txn, null);
                         if (writeCursor.getSearchKey
                                 (key, data, LockMode.RMW) ==
                                 OperationStatus.SUCCESS) {
-                            boolean written = false;
                             if (evolveNeeded(key, data, binding)) {
                                 writeCursor.putCurrent(data);
                                 written = true;
@@ -1235,7 +1234,7 @@ public class Store {
                             writeCursor.close();
                         }
                         if (txn != null) {
-                            if (doCommit) {
+                            if (written) {
                                 txn.commit();
                             } else {
                                 txn.abort();

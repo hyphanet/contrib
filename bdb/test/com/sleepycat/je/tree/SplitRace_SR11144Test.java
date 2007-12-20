@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2005,2007 Oracle.  All rights reserved.
  *
- * $Id: SplitRace_SR11144Test.java,v 1.9.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: SplitRace_SR11144Test.java,v 1.9.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -28,12 +28,12 @@ import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.TestHook;
 
 /*********************************************************************
-  Exercise a race condition in split processing. The case requires a 
+  Exercise a race condition in split processing. The case requires a
   at least 3 level btree where the root has maxEntries-1 children.
   i.e suppose node max = 4. Our test case will start with data like this:
 
                         RootIN
-                 +--------+----------+ 
+                 +--------+----------+
                  /        |           \
               INa        INb           INc
                       /   |   \      /   |   \
@@ -63,7 +63,7 @@ import com.sleepycat.je.utilint.TestHook;
      while (true) {
        try {
           // throws if finds a node that needs splitting
-          return searchSubTreeUntilSplit() 
+          return searchSubTreeUntilSplit()
        } catch (SplitRequiredException e) {
           // acquire latches down the depth of the tree
           forceSplit();
@@ -78,9 +78,9 @@ import com.sleepycat.je.utilint.TestHook;
   thread 2 executes searchSplitsAllowed(), root doesn't need splitting
   thread 2 executes searchSubTreeUntilSplit(), throws out because of BINy
   thread 2 hold no latches before executing forceSplit()
-  thread 1 executes forceSplit, splits BINx, which ripples upward, 
+  thread 1 executes forceSplit, splits BINx, which ripples upward,
                adding a new level 2 IN. The root is full
-  thread 2 executes forceSplit, splits BINy, which ripples upward, 
+  thread 2 executes forceSplit, splits BINy, which ripples upward,
                adding a new level 2 IN. The root can't hold the new child!
 
  The root split is done this way, outside forceSplit, because it's special
@@ -90,7 +90,7 @@ import com.sleepycat.je.utilint.TestHook;
    a. in 1 case, the owning BIN (the equivalent of the root) stays latched
    b. in a 2nd case, the caller is recovery, which is single threaded.
 
- The solution was to check for root fullness in forceSplit(), before 
+ The solution was to check for root fullness in forceSplit(), before
  latching down the whole depth of the tree. In that case, we throw out
  and re-execute the rootLatch latching.
 
@@ -111,7 +111,7 @@ public class SplitRace_SR11144Test extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -127,13 +127,13 @@ public class SplitRace_SR11144Test extends TestCase {
         TestUtils.removeLogFiles("TearDown", envHome, false);
     }
 
-    public void testSplitRootRace() 
+    public void testSplitRootRace()
         throws Throwable {
 
         /* Create tree topology described in header comments. */
         initData();
 
-        /* 
+        /*
          * Create two threads, and hold them in a barrier at the
          * designated point in Tree.java. They'll insert keys which
          * will split BINx and BINy.
@@ -151,10 +151,10 @@ public class SplitRace_SR11144Test extends TestCase {
         close();
     }
 
-    /** 
+    /**
      * Create this:
      *                   RootIN
-     *            +--------+----------+ 
+     *            +--------+----------+
      *            /        |           \
      *         INa        INb           INc
      *                 /   |   \      /   |   \
@@ -165,8 +165,8 @@ public class SplitRace_SR11144Test extends TestCase {
     private void initData() {
 	try {
 	    initEnvInternal(true);
-            
-            /* 
+
+            /*
              * Opportunistic splitting will cause the following inserts to
              * add three child entries per parent.
              */
@@ -187,8 +187,8 @@ public class SplitRace_SR11144Test extends TestCase {
 	    throw new RuntimeException(DBE);
 	}
     }
-    
-    private static void put(Database db, int value) 
+
+    private static void put(Database db, int value)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -211,7 +211,7 @@ public class SplitRace_SR11144Test extends TestCase {
 	    throw new RuntimeException(DBE);
 	}
     }
-    
+
     private void dump() {
         try {
             Cursor cursor = db.openCursor(null, null);
@@ -219,7 +219,7 @@ public class SplitRace_SR11144Test extends TestCase {
             DatabaseEntry data = new DatabaseEntry();
             while (cursor.getNext(key, data, LockMode.DEFAULT) ==
                    OperationStatus.SUCCESS) {
-                System.out.println("<rec key=\"" + 
+                System.out.println("<rec key=\"" +
                                    IntegerBinding.entryToInt(key) +
                                    "\" data=\"" +
                                    IntegerBinding.entryToInt(data) +
@@ -254,7 +254,7 @@ public class SplitRace_SR11144Test extends TestCase {
         DbInternal.dbGetDatabaseImpl(db).getTree().setWaitHook(hook);
     }
 
-    /* 
+    /*
      * This hook merely acts as a barrier. 2 threads enter and cannot
      * proceed until both have arrived at that point.
      */
@@ -289,7 +289,7 @@ public class SplitRace_SR11144Test extends TestCase {
 	}
 
         public Object getHookValue() {
-            return null; 
+            return null;
         }
     }
 
@@ -297,7 +297,7 @@ public class SplitRace_SR11144Test extends TestCase {
     static class InsertThread extends Thread {
         private int value;
         private Database db;
-        
+
         InsertThread(int value, Database db) {
             this.value = value;
             this.db = db;

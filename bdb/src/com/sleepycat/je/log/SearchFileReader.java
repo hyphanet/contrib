@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SearchFileReader.java,v 1.39.2.2 2007/03/08 22:32:55 mark Exp $
+ * $Id: SearchFileReader.java,v 1.39.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -28,7 +28,7 @@ public class SearchFileReader extends FileReader {
      * Create this reader to start at a given LSN.
      */
     public SearchFileReader(EnvironmentImpl env,
-                            int readBufferSize, 
+                            int readBufferSize,
                             boolean forward,
                             long startLsn,
                             long endOfFileLsn,
@@ -42,7 +42,7 @@ public class SearchFileReader extends FileReader {
         logEntry = targetType.getNewLogEntry();
     }
 
-    /** 
+    /**
      * @return true if this is a targetted entry.
      */
     protected boolean isTargetEntry(byte logEntryTypeNumber,
@@ -50,7 +50,7 @@ public class SearchFileReader extends FileReader {
         return (targetType.equalsType(logEntryTypeNumber,
                                       logEntryTypeVersion));
     }
-    
+
     /**
      * This reader instantiate the first object of a given log entry.
      */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PackedOffsets.java,v 1.8.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: PackedOffsets.java,v 1.8.2.3 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -11,6 +11,7 @@ package com.sleepycat.je.cleaner;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.log.LogUtils;
 
@@ -64,7 +65,7 @@ public class PackedOffsets implements Loggable {
         size = offsets.length;
     }
 
-    /** 
+    /**
      * Returns the unpacked offsets.
      */
     long[] toArray() {
@@ -127,6 +128,18 @@ public class PackedOffsets implements Loggable {
             }
             priorVal = val;
             return val;
+        }
+    }
+
+    /**
+     * Return the extra memory used by this object when the pack() method has
+     * been called to allocate the data array.
+     */
+    public int getExtraMemorySize() {
+        if (data != null) {
+	    return MemoryBudget.shortArraySize(data.length);
+        } else {
+            return 0;
         }
     }
 

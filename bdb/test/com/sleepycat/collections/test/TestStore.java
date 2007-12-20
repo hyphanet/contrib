@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TestStore.java,v 1.40.2.1 2007/02/01 14:50:03 cwl Exp $
+ * $Id: TestStore.java,v 1.40.2.2 2007/11/20 13:32:41 cwl Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -266,11 +266,11 @@ class TestStore {
         DbCompat.setReadUncommitted(config, true);
         config.setTransactional(CurrentTransaction.getInstance(env) != null);
         if (primary != null) {
-            return DbCompat.openSecondaryDatabase(env, null, 
+            return DbCompat.openSecondaryDatabase(env, null,
                                                   fileName, null,
                                                   primary, config);
         } else {
-            return DbCompat.openDatabase(env, null, 
+            return DbCompat.openDatabase(env, null,
                                          fileName, null,
                                          config);
         }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SR10597Test.java,v 1.7.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: SR10597Test.java,v 1.7.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -61,7 +61,7 @@ public class SR10597Test extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             TestUtils.removeLogFiles("tearDown", envHome, true);
             TestUtils.removeFiles("tearDown", envHome, FileManager.DEL_SUFFIX);

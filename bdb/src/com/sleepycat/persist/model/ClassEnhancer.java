@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ClassEnhancer.java,v 1.14.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: ClassEnhancer.java,v 1.14.2.2 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -282,7 +282,7 @@ public class ClassEnhancer implements ClassFileTransformer {
     }
 
     private byte[] enhanceBytes(byte[] bytes) {
-        
+
         /*
          * The writer is at the end of the visitor chain.  Pass true to
          * calculate stack size, for safety.

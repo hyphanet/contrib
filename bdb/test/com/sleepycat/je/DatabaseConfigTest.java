@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseConfigTest.java,v 1.22.2.1 2007/02/01 14:50:04 cwl Exp $
+ * $Id: DatabaseConfigTest.java,v 1.22.2.3 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -23,7 +23,7 @@ import com.sleepycat.je.util.TestUtils;
  */
 public class DatabaseConfigTest extends TestCase {
     private static final boolean DEBUG = false;
-  
+
     private File envHome;
     private Environment env;
 
@@ -36,7 +36,7 @@ public class DatabaseConfigTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -44,7 +44,7 @@ public class DatabaseConfigTest extends TestCase {
             /* Close in case we hit an exception and didn't close. */
             if (env != null) {
             	env.close();
-            } 
+            }
         } catch (DatabaseException e) {
             /* Ok if already closed */
         }
@@ -64,7 +64,7 @@ public class DatabaseConfigTest extends TestCase {
             envConfig.setAllowCreate(true);
             env = new Environment(envHome, envConfig);
 
-            /* 
+            /*
              * Make sure that the database keeps its own copy of the
              * configuration object.
              */
@@ -78,14 +78,14 @@ public class DatabaseConfigTest extends TestCase {
             assertEquals(true, getConfig1.getAllowCreate());
             assertEquals(false, getConfig1.getSortedDuplicates());
 
-            /* 
+            /*
              * Change the retrieved config, ought to have no effect on what the
              * Database is storing.
              */
             getConfig1.setSortedDuplicates(true);
             DatabaseConfig getConfig2 = dbA.getConfig();
             assertEquals(false, getConfig2.getSortedDuplicates());
-            
+
             dbA.close();
             env.close();
         } catch (Throwable t) {
@@ -351,9 +351,9 @@ public class DatabaseConfigTest extends TestCase {
      * Test that any conflicts between configuration object settings and the
      * underlying impl object are detected.
      */
-    public void testConfigConfict() 
+    public void testConfigConfict()
         throws Throwable {
-        
+
         try {
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
             envConfig.setAllowCreate(true);
@@ -377,7 +377,7 @@ public class DatabaseConfigTest extends TestCase {
                 fail("Conflict in duplicates allowed should be detected.");
             } catch (DatabaseException e) {
             }
-            
+
             firstHandle.close();
             env.removeDatabase(null, "fooDups");
 
@@ -396,7 +396,7 @@ public class DatabaseConfigTest extends TestCase {
             /*
              * Test conflicts of read only. If the environment is read/write
              * we should be able to open handles in read only or read/write
-             * mode. If the environment is readonly, the database handles 
+             * mode. If the environment is readonly, the database handles
              * must also be read only.
              */
             DatabaseConfig readOnlyConfig = new DatabaseConfig();
@@ -410,7 +410,7 @@ public class DatabaseConfigTest extends TestCase {
             envConfig = TestUtils.initEnvConfig();
             envConfig.setReadOnly(true);
             env = new Environment(envHome, envConfig);
-            
+
             /* Open a readOnly database handle, should succeed */
             roHandle = env.openDatabase(null, "fooDups",
                                         readOnlyConfig);
@@ -441,7 +441,7 @@ public class DatabaseConfigTest extends TestCase {
             assertEquals(null, firstRetrievedConfig.getBtreeComparator());
             assertEquals(null, firstRetrievedConfig.getDuplicateComparator());
 
-            /* 
+            /*
              * 1b. Open a db w/a different comparator, shouldn't take effect
              * because override is not set.
              */
@@ -678,7 +678,7 @@ public class DatabaseConfigTest extends TestCase {
         try {
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
 
-            /* 
+            /*
              * Make sure that the database keeps its own copy of the
              * configuration object.
              */
@@ -691,7 +691,7 @@ public class DatabaseConfigTest extends TestCase {
             /* Should succeed and create the database. */
             Database dbA = env.openDatabase(null, "foo", dbConfig);
             dbA.close();
-                                            
+
             /* Should not succeed, because the database exists. */
             try {
                 env.openDatabase(null, "foo", dbConfig);
@@ -706,13 +706,120 @@ public class DatabaseConfigTest extends TestCase {
     }
 
     /*
+     * Test that changing the Btree comparator really writes it to disk.
+     */
+    public void testConfigOverrideUpdateSR15743()
+        throws Throwable {
+
+        try {
+            EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+            envConfig.setAllowCreate(true);
+            env = new Environment(envHome, envConfig);
+
+            /*
+             * Make sure that the database keeps its own copy of the
+             * configuration object.
+             */
+            DatabaseConfig dbConfigA = new DatabaseConfig();
+            dbConfigA.setOverrideBtreeComparator(false);
+	    dbConfigA.setBtreeComparator(TestComparator.class);
+            dbConfigA.setAllowCreate(true);
+            Database dbA = env.openDatabase(null, "foo", dbConfigA);
+
+            /* Change the original dbConfig */
+            dbConfigA.setBtreeComparator(TestComparator2.class);
+            DatabaseConfig getConfig1 = dbA.getConfig();
+            assertEquals(TestComparator.class,
+			 getConfig1.getBtreeComparator().getClass());
+
+            /*
+             * Change the retrieved config, ought to have no effect on what the
+             * Database is storing.
+             */
+            getConfig1.setBtreeComparator(TestComparator2.class);
+            DatabaseConfig getConfig2 = dbA.getConfig();
+            assertEquals(TestComparator.class,
+			 getConfig2.getBtreeComparator().getClass());
+
+            dbA.close();
+            env.close();
+
+	    /* Ensure new comparator is written to disk. */
+            envConfig = TestUtils.initEnvConfig();
+            env = new Environment(envHome, envConfig);
+
+            dbConfigA = new DatabaseConfig();
+	    /* Change the comparator. */
+            dbConfigA.setOverrideBtreeComparator(true);
+	    dbConfigA.setBtreeComparator(TestComparator2.class);
+            dbA = env.openDatabase(null, "foo", dbConfigA);
+
+            getConfig2 = dbA.getConfig();
+            assertEquals(TestComparator2.class,
+			 getConfig2.getBtreeComparator().getClass());
+
+            dbA.close();
+            env.close();
+
+	    /* Read it back during recovery to ensure it was written. */
+            envConfig = TestUtils.initEnvConfig();
+            env = new Environment(envHome, envConfig);
+
+            dbConfigA = new DatabaseConfig();
+            dbA = env.openDatabase(null, "foo", dbConfigA);
+            getConfig2 = dbA.getConfig();
+            assertEquals(TestComparator2.class,
+			 getConfig2.getBtreeComparator().getClass());
+
+	    /* Create a root for the tree. */
+	    dbA.put(null,
+		    new DatabaseEntry(new byte[1]),
+		    new DatabaseEntry(new byte[1]));
+
+            dbA.close();
+            env.close();
+
+	    /* Change it to a third one when there is a root present. */
+            envConfig = TestUtils.initEnvConfig();
+            env = new Environment(envHome, envConfig);
+
+            dbConfigA = new DatabaseConfig();
+	    /* Change the comparator. */
+            dbConfigA.setOverrideBtreeComparator(true);
+	    dbConfigA.setBtreeComparator(TestComparator3.class);
+            dbA = env.openDatabase(null, "foo", dbConfigA);
+            getConfig2 = dbA.getConfig();
+            assertEquals(TestComparator3.class,
+			 getConfig2.getBtreeComparator().getClass());
+	    dbA.close();
+	    env.close();
+
+	    /* Read it back during recovery to ensure it was written. */
+            envConfig = TestUtils.initEnvConfig();
+            env = new Environment(envHome, envConfig);
+
+            dbConfigA = new DatabaseConfig();
+            dbA = env.openDatabase(null, "foo", dbConfigA);
+            getConfig2 = dbA.getConfig();
+            assertEquals(TestComparator3.class,
+			 getConfig2.getBtreeComparator().getClass());
+	    dbA.close();
+	    env.close();
+
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
+    }
+
+    /*
      * This Comparator can't be instantiated because it's private and not
      * static.
      */
     private class BadComparator1 implements Comparator {
         public BadComparator1(int foo) {
         }
-        
+
         public int compare(Object o1, Object o2) {
             return 0;
         }
@@ -729,7 +836,7 @@ public class DatabaseConfigTest extends TestCase {
         public int compare(Object o1, Object o2) {
             return 0;
         }
-    }    
+    }
 
     /*
      * OK comparator for setting comparators.
@@ -756,13 +863,25 @@ public class DatabaseConfigTest extends TestCase {
     }
 
     /*
+     * OK comparator for setting comparators.
+     */
+    public static class TestComparator3 implements Comparator {
+        public TestComparator3() {
+        }
+
+        public int compare(Object o1, Object o2) {
+            return 0;
+        }
+    }
+
+    /*
      * This Comparator can't be serialized because it's not serializable.
      */
     public class BadSerialComparator1 implements Comparator {
 
         public BadSerialComparator1() {
         }
-        
+
         public int compare(Object o1, Object o2) {
             return 0;
         }
@@ -778,7 +897,7 @@ public class DatabaseConfigTest extends TestCase {
 
         public BadSerialComparator2() {
         }
-        
+
         public int compare(Object o1, Object o2) {
             return 0;
         }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Format.java,v 1.29.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: Format.java,v 1.29.2.7 2007/12/08 14:47:26 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -380,6 +380,15 @@ public abstract class Format implements Reader, RawType, Serializable {
      * reader that converts this version to the latest version is returned.
      */
     final Reader getReader() {
+
+        /*
+         * For unit testing, record whether any un-evolved formats are
+         * encountered.
+         */
+        if (this != reader) {
+            PersistCatalog.unevolvedFormatsEncountered = true;
+        }
+
         return reader;
     }
 
@@ -526,8 +535,11 @@ public abstract class Format implements Reader, RawType, Serializable {
             }
 
             /* Perform subclass-specific initialization. */
-            initialize(catalog);
-            reader.initializeReader(catalog, this);
+            initialize
+                (catalog, catalog.getInitVersion(this, false /*forReader*/));
+            reader.initializeReader
+                (catalog, catalog.getInitVersion(this, true /*forReader*/),
+                 this);
         }
     }
 
@@ -535,7 +547,9 @@ public abstract class Format implements Reader, RawType, Serializable {
      * Called to initialize a separate Reader implementation.  This method is
      * called when no separate Reader exists, and does nothing.
      */
-    public void initializeReader(Catalog catalog, Format oldFormat) {
+    public void initializeReader(Catalog catalog,
+                                 int initVersion,
+                                 Format oldFormat) {
     }
 
     /**
@@ -562,6 +576,14 @@ public abstract class Format implements Reader, RawType, Serializable {
                 addInterfaces(iface);
             }
         }
+    }
+
+    /**
+     * Certain formats (ProxiedFormat for example) prohibit nested fields that
+     * reference the parent object. [#15815]
+     */
+    boolean areNestedRefsProhibited() {
+        return false;
     }
 
     /* -- Start of RawType interface methods. -- */
@@ -629,7 +651,7 @@ public abstract class Format implements Reader, RawType, Serializable {
         if (proxiedFormat != null) {
             return proxiedFormat.isAssignableTo(format);
         } else {
-            return format == this || 
+            return format == this ||
                    format.id == ID_OBJECT ||
                    supertypes.contains(format.className);
         }
@@ -726,7 +748,7 @@ public abstract class Format implements Reader, RawType, Serializable {
      * Initializes an uninitialized format, initializing its related formats
      * (superclass formats and array component formats) first.
      */
-    abstract void initialize(Catalog catalog);
+    abstract void initialize(Catalog catalog, int initVersion);
 
     /**
      * Calls catalog.createFormat for formats that this format depends on, or
@@ -747,7 +769,7 @@ public abstract class Format implements Reader, RawType, Serializable {
      * format classes.  The second group have default implementations that
      * throw UnsupportedOperationException and may optionally be overridden.
      */
-    
+
     /**
      * Creates an array of the format's class of the given length, as if
      * Array.newInstance(getType(), len) were called.  Formats implement this
@@ -875,6 +897,20 @@ public abstract class Format implements Reader, RawType, Serializable {
      */
     public void readPriKey(Object o, EntityInput input, boolean rawAccess) {
         throw new UnsupportedOperationException(toString());
+    }
+
+    /**
+     * Validates and returns the simple integer key format for a sequence key
+     * associated with this format.
+     *
+     * For a composite key type, the format of the one and only field is
+     * returned.  For a simple integer type, this format is returned.
+     * Otherwise (the default implementation), an IllegalArgumentException is
+     * thrown.
+     */
+    Format getSequenceKeyFormat() {
+        throw new IllegalArgumentException
+            ("Type not allowed for sequence: " + getClassName());
     }
 
     /**

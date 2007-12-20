@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LNFileReaderTest.java,v 1.86.2.1 2007/02/01 14:50:14 cwl Exp $
+ * $Id: LNFileReaderTest.java,v 1.86.2.3 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -73,7 +73,7 @@ public class LNFileReaderTest extends TestCase {
 
         envImpl = DbInternal.envGetEnvironmentImpl(env);
     }
-    
+
     public void tearDown()
         throws IOException, DatabaseException {
 
@@ -115,7 +115,7 @@ public class LNFileReaderTest extends TestCase {
         fileManager.clear();
 
         LNFileReader reader =
-            new LNFileReader(envImpl, 
+            new LNFileReader(envImpl,
                              1000,             // read buffer size
                              DbLsn.NULL_LSN,   // start lsn
                              true,             // redo
@@ -155,7 +155,7 @@ public class LNFileReaderTest extends TestCase {
 
         try {
             DbConfigManager cm =  envImpl.getConfigManager();
-            doTest(50, 
+            doTest(50,
                    cm.getInt(EnvironmentParams.LOG_ITERATOR_READ_SIZE),
                    0,
                    false,
@@ -227,7 +227,7 @@ public class LNFileReaderTest extends TestCase {
      *           and mapLN
      * @param bufferSize to pass to reader
      * @param checkIndex where in the test data to start
-     * @param trackLNs true if we're tracking LNS, false if we're tracking 
+     * @param trackLNs true if we're tracking LNS, false if we're tracking
      *           mapLNs
      */
     private void doTest(int numIters,
@@ -271,7 +271,7 @@ public class LNFileReaderTest extends TestCase {
         if (!redo) {
             reader.addTargetType(LogEntryType.LOG_TXN_COMMIT);
         }
-        
+
         /* read. */
         checkLogFile(reader, checkIndex, redo);
     }
@@ -301,15 +301,15 @@ public class LNFileReaderTest extends TestCase {
             /* Add a debug record just to be filler. */
             Tracer rec = new Tracer("Hello there, rec " + (i+1));
             rec.log(logManager);
-            
+
             /* Make a transactional LN, we expect it to be there. */
             byte[] data = new byte[i+1];
             Arrays.fill(data, (byte)(i+1));
             LN ln = new LN(data);
             byte[] key = new byte[i+1];
             Arrays.fill(key, (byte)(i+10));
-            
-            /* 
+
+            /*
 	     * Log an LN. If we're tracking LNs add it to the verification
 	     * list.
 	     */
@@ -319,9 +319,11 @@ public class LNFileReaderTest extends TestCase {
             lsn = ln.log(envImpl,
                          DbInternal.dbGetDatabaseImpl(db).getId(),
                          key,
+                         null,
                          DbLsn.NULL_LSN,
                          0,
                          userTxn,
+                         false,
                          false);
 
             if (trackLNs) {
@@ -338,7 +340,7 @@ public class LNFileReaderTest extends TestCase {
                 (deleteLN.getNodeId(), LockType.WRITE, false,
                  DbInternal.dbGetDatabaseImpl(db));
             lsn = deleteLN.delete(DbInternal.dbGetDatabaseImpl(db),
-                                  key, 
+                                  key,
                                   dupKey,
                                   DbLsn.NULL_LSN,
                                   userTxn);
@@ -347,13 +349,13 @@ public class LNFileReaderTest extends TestCase {
                                             dupKey, key, txnId));
             }
 
-            /* 
+            /*
 	     * Make a non-transactional LN. Shouldn't get picked up by reader.
 	     */
             LN nonTxnalLN = new LN(data);
             nonTxnalLN.log(envImpl,
 			   DbInternal.dbGetDatabaseImpl(db).getId(),
-			   key, DbLsn.NULL_LSN, 0, null, false);
+			   key, null, DbLsn.NULL_LSN, 0, null, false, false);
 
             /* Add a MapLN. */
             MapLN mapLN = new MapLN(DbInternal.dbGetDatabaseImpl(db));
@@ -361,8 +363,8 @@ public class LNFileReaderTest extends TestCase {
                 (mapLN.getNodeId(), LockType.WRITE, false,
                  DbInternal.dbGetDatabaseImpl(db));
             lsn = mapLN.log(envImpl,
-                            DbInternal.dbGetDatabaseImpl(db).getId(),
-                            key, DbLsn.NULL_LSN, 0, userTxn, false);
+                            DbInternal.dbGetDatabaseImpl(db).getId(), key,
+                            null, DbLsn.NULL_LSN, 0, userTxn, false, false);
             if (!trackLNs) {
                 checkList.add(new CheckInfo(lsn, mapLN, key,
                                             mapLN.getData(),
@@ -394,7 +396,7 @@ public class LNFileReaderTest extends TestCase {
 
         LN lnFromLog;
         byte[] keyFromLog;
-                
+
         /* Read all the LNs. */
         int i;
         if (redo) {
@@ -442,10 +444,10 @@ public class LNFileReaderTest extends TestCase {
                                            " logKey=" + keyFromLog);
                     }
                 }
-                    
+
                 assertTrue("Key " + i + " should match",
                            Arrays.equals(expectedKey, keyFromLog));
-                
+
                 /* Check the dup key. */
                 byte[] dupKeyFromLog = reader.getDupTreeKey();
                 byte[] expectedDupKey = expected.dupKey;
@@ -453,7 +455,7 @@ public class LNFileReaderTest extends TestCase {
 
                 assertEquals(expected.txnId,
                              reader.getTxnId().longValue());
-                
+
             } else {
                 /* Should be a txn commit record. */
                 assertEquals(expected.txnId,
@@ -476,7 +478,7 @@ public class LNFileReaderTest extends TestCase {
         byte[] key;
         byte[] dupKey;
         long txnId;
-        
+
         CheckInfo(long lsn, LN ln, byte[] key, byte[] dupKey, long txnId) {
             this.lsn = lsn;
             this.ln = ln;

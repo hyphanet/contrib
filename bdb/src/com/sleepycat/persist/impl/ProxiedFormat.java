@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ProxiedFormat.java,v 1.19.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: ProxiedFormat.java,v 1.19.2.4 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -48,6 +48,16 @@ public class ProxiedFormat extends Format {
         }
     }
 
+    /**
+     * In the future if we implement container proxies, which support nested
+     * references to the container, then we will return false if this is a
+     * container proxy.  [#15815]
+     */
+    @Override
+    boolean areNestedRefsProhibited() {
+        return true;
+    }
+
     @Override
     void collectRelatedFormats(Catalog catalog,
                                Map<String,Format> newFormats) {
@@ -57,7 +67,7 @@ public class ProxiedFormat extends Format {
     }
 
     @Override
-    void initialize(Catalog catalog) {
+    void initialize(Catalog catalog, int initVersion) {
         /* Set the proxy format for a new (never initialized) format. */
         if (proxyFormat == null) {
             assert proxyClassName != null;
@@ -66,7 +76,7 @@ public class ProxiedFormat extends Format {
         /* Make the linkage from proxy format to proxied format. */
         proxyFormat.setProxiedFormat(this);
     }
-    
+
     @Override
     Object newArray(int len) {
         return Array.newInstance(getType(), len);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LoggableTest.java,v 1.81.2.1 2007/02/01 14:50:15 cwl Exp $
+ * $Id: LoggableTest.java,v 1.81.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -78,7 +78,7 @@ public class LoggableTest extends TestCase {
         envConfig.setAllowCreate(true);
         env = new EnvironmentImpl(envHome, envConfig);
     }
-    
+
     public void tearDown()
         throws IOException, DatabaseException {
 
@@ -267,7 +267,7 @@ public class LoggableTest extends TestCase {
              * UserTxn
              */
 
-            /* 
+            /*
 	     * Disabled for now because these txns don't compare equal,
              * because one has a name of "main" and the other has a name of
              * null because it was read from the log.
@@ -309,13 +309,13 @@ public class LoggableTest extends TestCase {
             prepare =
 		new TxnPrepare(111, new LogUtils.XidImpl(1, null, bqual));
             prepareFromLog = new TxnPrepare();
-            writeAndRead(buffer, LogEntryType.LOG_TXN_PREPARE, 
+            writeAndRead(buffer, LogEntryType.LOG_TXN_PREPARE,
                          prepare, prepareFromLog);
 
             prepare =
 		new TxnPrepare(111, new LogUtils.XidImpl(1, gid, null));
             prepareFromLog = new TxnPrepare();
-            writeAndRead(buffer, LogEntryType.LOG_TXN_PREPARE, 
+            writeAndRead(buffer, LogEntryType.LOG_TXN_PREPARE,
                          prepare, prepareFromLog);
 
             /*
@@ -375,7 +375,7 @@ public class LoggableTest extends TestCase {
         buffer.flip();
         assertEquals(buffer.limit(), orig.getLogSize());
 
-        /* 
+        /*
 	 * Read it and compare sizes. Note that we assume we're testing
 	 * objects that are readable and writable to the log.
 	 */
@@ -383,7 +383,7 @@ public class LoggableTest extends TestCase {
         assertEquals(orig.getLogSize(), fromLog.getLogSize());
 
         assertEquals("We should have read the whole buffer for " +
-                     fromLog.getClass().getName(), 
+                     fromLog.getClass().getName(),
                      buffer.limit(), buffer.position());
 
         /* Compare contents. */

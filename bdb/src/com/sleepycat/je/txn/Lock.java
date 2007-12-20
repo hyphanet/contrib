@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Lock.java,v 1.60.2.2 2007/07/13 02:32:05 cwl Exp $
+ * $Id: Lock.java,v 1.60.2.4 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -22,6 +22,7 @@ import com.sleepycat.je.dbi.MemoryBudget;
  * A Lock embodies the lock state of a NodeId.  It includes a set of owners and
  * a list of waiters.
  */
+public // for Sizeof
 class Lock {
     private static final int REMOVE_LOCKINFO_OVERHEAD =
         0 - MemoryBudget.LOCKINFO_OVERHEAD;
@@ -48,15 +49,15 @@ class Lock {
      * removed LockInfo, but not the cost of the HashSet/List entry
      * overhead. We could do the latter for more precise accounting.
      */
-    private LockInfo firstOwner;    
-    private Set ownerSet; 
-    private LockInfo firstWaiter;    
-    private List waiterList; 
+    private LockInfo firstOwner;
+    private Set ownerSet;
+    private LockInfo firstWaiter;
+    private List waiterList;
 
     /**
-     * Create a Lock.
+     * Create a Lock. public for Sizeof
      */
-    Lock() {
+    public Lock() {
     }
 
     /**
@@ -109,7 +110,7 @@ class Lock {
         List dumpWaiters = new ArrayList();
         if (firstWaiter != null) {
             dumpWaiters.add(firstWaiter);
-        } 
+        }
 
         if (waiterList != null) {
             dumpWaiters.addAll(waiterList);
@@ -118,7 +119,7 @@ class Lock {
         return dumpWaiters;
     }
 
-    /** 
+    /**
      * Remove this locker from the waiter list.
      */
     void flushWaiter(Locker locker, MemoryBudget mb, int lockTableIndex) {
@@ -126,7 +127,7 @@ class Lock {
             firstWaiter = null;
             mb.updateLockMemoryUsage
 		(REMOVE_LOCKINFO_OVERHEAD, lockTableIndex);
-        } else if (waiterList != null) { 
+        } else if (waiterList != null) {
             Iterator iter = waiterList.iterator();
             while (iter.hasNext()) {
                 LockInfo info = (LockInfo) iter.next();
@@ -190,7 +191,7 @@ class Lock {
                 removed = ownerSet.remove(oldOwner);
             }
         }
-        
+
         if (removed) {
             mb.updateLockMemoryUsage(REMOVE_LOCKINFO_OVERHEAD, lockTableIndex);
         }
@@ -221,7 +222,7 @@ class Lock {
         if (flushedInfo != null) {
             mb.updateLockMemoryUsage(REMOVE_LOCKINFO_OVERHEAD, lockTableIndex);
         }
-            
+
         return flushedInfo;
     }
 
@@ -348,7 +349,7 @@ class Lock {
             grant == LockGrantType.WAIT_PROMOTION ||
             grant == LockGrantType.WAIT_RESTART) {
 
-            /* 
+            /*
              * If the request type can cause a restart and a restart conflict
              * does not already exist, then we have to check the waiters list
              * for restart conflicts.  A restart conflict must take precedence
@@ -368,7 +369,7 @@ class Lock {
                 } else if ((iter != null) && (iter.hasNext())) {
                     waiter = (LockInfo) iter.next();
                 }
-                
+
                 while (waiter != null) {
 
                     /*
@@ -448,7 +449,7 @@ class Lock {
             return lockersToNotify;
         }
 
-        /* 
+        /*
          * Move the next set of waiters to the owners set. Iterate through the
          * firstWaiter field, then the waiterList.
          */
@@ -466,7 +467,7 @@ class Lock {
         } else if ((iter != null) && (iter.hasNext())) {
             waiter = (LockInfo) iter.next();
         }
-        
+
         while (waiter != null) {
             /* Make the waiter an owner if the lock can be acquired. */
             LockType waiterType = waiter.getLockType();
@@ -474,7 +475,7 @@ class Lock {
             LockGrantType grant;
             if (waiterType == LockType.RESTART) {
                 /* Special case for restarts: see rangeInsertConflict. */
-                grant = rangeInsertConflict(waiterLocker) ? 
+                grant = rangeInsertConflict(waiterLocker) ?
                     LockGrantType.WAIT_NEW : LockGrantType.NEW;
             } else {
                 /* Try locking. */
@@ -550,14 +551,14 @@ class Lock {
         boolean ownerExists = false;
         boolean ownerConflicts = false;
 
-        /* 
+        /*
          * Iterate through the current owners. See if there is a current owner
          * who has to be upgraded from read to write. Also track whether there
          * is a conflict with another owner.
          */
         LockInfo owner = null;
         Iterator iter = null;
-        
+
         if (ownerSet != null) {
             iter = ownerSet.iterator();
         }
@@ -651,7 +652,7 @@ class Lock {
 
         LockInfo owner = null;
         Iterator iter = null;
-        
+
         if (ownerSet != null) {
             iter = ownerSet.iterator();
         }
@@ -703,23 +704,23 @@ class Lock {
 		      Locker currentLocker,
                       Locker destLocker,
                       MemoryBudget mb,
-		      int lockTableIndex) 
+		      int lockTableIndex)
         throws DatabaseException {
 
-        /* 
+        /*
          * Remove all the old owners held by the dest locker. Take all the
          * owners held by currentLocker and make them dest lockers.
          */
         LockType lockType = null;
         int numRemovedLockInfos = 0;
-        
+
         if (firstOwner != null) {
             if (firstOwner.getLocker() == destLocker) {
                 firstOwner = null;
                 numRemovedLockInfos++;
             } else if (firstOwner.getLocker() == currentLocker) {
                 lockType = setNewLocker(nodeId, firstOwner, destLocker);
-            } 
+            }
         }
 
         if (ownerSet != null) {
@@ -739,7 +740,7 @@ class Lock {
         if ((firstWaiter != null) && (firstWaiter.getLocker() == destLocker)) {
             firstWaiter = null;
             numRemovedLockInfos++;
-        } 
+        }
         if (waiterList != null) {
             Iterator iter = waiterList.iterator();
             while (iter.hasNext()) {
@@ -759,7 +760,7 @@ class Lock {
 
     private LockType setNewLocker(Long nodeId,
 				  LockInfo owner,
-				  Locker destLocker) 
+				  Locker destLocker)
         throws DatabaseException {
         	
         owner.setLocker(destLocker);
@@ -778,7 +779,7 @@ class Lock {
                               MemoryBudget mb,
 			      int lockTableIndex)
         throws DatabaseException {
-        
+
         LockType lockType = null;
         LockInfo oldOwner = null;
 
@@ -788,7 +789,7 @@ class Lock {
         } else {
 
             /*
-             * First remove any ownership of the dest txns 
+             * First remove any ownership of the dest txns
              */
             if (firstOwner != null) {
                 for (int i = 0; i < destLockers.length; i++) {
@@ -798,7 +799,7 @@ class Lock {
                     }
                 }
             }
-                 
+
             if (ownerSet != null) {
                 Iterator ownersIter = ownerSet.iterator();
                 while (ownersIter.hasNext()) {
@@ -812,8 +813,8 @@ class Lock {
                 }
             }
 
-            /* 
-             * Create the clones 
+            /*
+             * Create the clones
              */
             if (firstOwner != null) {
                 oldOwner = cloneLockInfo(nodeId,
@@ -840,7 +841,7 @@ class Lock {
                 }
             }
 
-            /* 
+            /*
              * Check the waiters, remove any that belonged to the dest locker.
              */
             if (firstWaiter != null) {
@@ -851,7 +852,7 @@ class Lock {
                     }
                 }
             }
-                        
+
             if (waiterList != null) {
                 Iterator iter = waiterList.iterator();
                 while (iter.hasNext()) {
@@ -865,7 +866,7 @@ class Lock {
                 }
             }
         }
-            
+
         boolean removed = flushOwner(oldOwner, mb, lockTableIndex);
         assert removed;
         return lockType;
@@ -880,7 +881,7 @@ class Lock {
                                    Locker currentLocker,
                                    Locker[] destLockers,
                                    MemoryBudget mb,
-				   int lockTableIndex) 
+				   int lockTableIndex)
            throws DatabaseException {
 
         if (oldOwner.getLocker() == currentLocker) {
@@ -910,7 +911,7 @@ class Lock {
 
         LockInfo owner = null;
         Iterator iter = null;
-        
+
         if (ownerSet != null) {
             iter = ownerSet.iterator();
         }
@@ -923,7 +924,7 @@ class Lock {
 
         while (owner != null) {
             /* Return locker if it owns a write lock. */
-            if (owner.getLockType().isWriteLock()) { 
+            if (owner.getLockType().isWriteLock()) {
                 return owner.getLocker();
             }
 
@@ -948,7 +949,7 @@ class Lock {
                                 " is already on waiters list.";
             }
         }
-         
+
         if (waiterList != null) {
             Iterator iter = waiterList.iterator();
             while (iter.hasNext()) {

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SingleItemEntry.java,v 1.1.2.1 2007/02/01 14:49:48 cwl Exp $
+ * $Id: SingleItemEntry.java,v 1.1.2.2 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -24,7 +24,7 @@ import com.sleepycat.je.log.Loggable;
  */
 public class SingleItemEntry extends BaseEntry implements LogEntry {
 
-    /* 
+    /*
      * Persistent fields in a SingleItemEntry.
      */
     private Loggable item;
@@ -56,7 +56,7 @@ public class SingleItemEntry extends BaseEntry implements LogEntry {
 
         try {
             item = (Loggable) logClass.newInstance();
-            item.readFromLog(entryBuffer, 
+            item.readFromLog(entryBuffer,
                              header.getVersion());
 
         } catch (IllegalAccessException e) {

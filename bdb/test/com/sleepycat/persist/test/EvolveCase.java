@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: EvolveCase.java,v 1.8.2.1 2007/02/01 14:50:24 cwl Exp $
+ * $Id: EvolveCase.java,v 1.8.2.3 2007/11/20 13:32:52 cwl Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -27,6 +27,8 @@ import com.sleepycat.persist.raw.RawType;
 abstract class EvolveCase {
 
     static final String STORE_NAME = "foo";
+
+    transient boolean updated;
 
     Mutations getMutations() {
         return null;
@@ -78,7 +80,7 @@ abstract class EvolveCase {
             TestCase.fail("Expected:\n" + expected + "\nBut got:\n" + got);
         }
     }
-    
+
     /**
      * Asserts than an entity database exists or does not exist.
      */

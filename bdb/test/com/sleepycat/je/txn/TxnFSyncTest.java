@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnFSyncTest.java,v 1.10.2.1 2007/02/01 14:50:22 cwl Exp $
+ * $Id: TxnFSyncTest.java,v 1.10.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -31,9 +31,9 @@ import com.sleepycat.je.util.TestUtils;
  * properly written and synced data to disk, we'll have unflushed data and
  * we won't find the expected data in the log.
  *
- * Note that this test is run with the TxnTestCase framework and will 
+ * Note that this test is run with the TxnTestCase framework and will
  * be exercised with app-created and autocommit txns.
- */ 
+ */
 
 public class TxnFSyncTest extends TxnTestCase {
 
@@ -50,7 +50,7 @@ public class TxnFSyncTest extends TxnTestCase {
         envConfig.setConfigParam(
             EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
     }
- 
+
     public static Test suite() {
         /* Run these tests with user and autocommit txns. */
         return txnTestSuite(TxnFSyncTest.class,
@@ -58,8 +58,8 @@ public class TxnFSyncTest extends TxnTestCase {
                             new String [] {TxnTestCase.TXN_USER,
                                            TxnTestCase.TXN_AUTO});
     }
-    
-    public void testFSyncButNoClose() 
+
+    public void testFSyncButNoClose()
         throws Exception {
 
         try {
@@ -82,8 +82,8 @@ public class TxnFSyncTest extends TxnTestCase {
                              db.putNoOverwrite(txn, key, data));
             }
             txnCommit(txn);
-            
-            /* 
+
+            /*
              * Now throw away this environment WITHOUT flushing the log
              * manager. We do need to release the environment file lock
              * and all file handles so we can recover in this test and
@@ -95,7 +95,7 @@ public class TxnFSyncTest extends TxnTestCase {
             env = null;
             DbEnvPool.getInstance().clear();
 
-            /* 
+            /*
              * Open the environment and database again. The database should
              * exist.
              */

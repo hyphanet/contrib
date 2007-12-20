@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryIndex.java,v 1.14.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: SecondaryIndex.java,v 1.14.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -631,7 +631,7 @@ import com.sleepycat.persist.model.SecondaryKey;
  *
  *     {@literal @PrimaryKey}
  *     String name;
- *     
+ *
  *     String description;
  * }</pre>
  *

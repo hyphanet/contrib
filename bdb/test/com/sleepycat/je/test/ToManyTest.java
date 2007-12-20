@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ToManyTest.java,v 1.4.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: ToManyTest.java,v 1.4.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -111,7 +111,7 @@ public class ToManyTest extends TxnTestCase {
 
         priDb = openPrimary("pri");
         secDb = openSecondary(priDb, "sec", false /*dups*/);
-        
+
         writeAndVerify((byte) 0, new byte[] {1, 5});
         writeAndVerify((byte) 1, new byte[] {2, 4});
         writeAndVerify((byte) 0, new byte[] {0, 1, 5, 6});

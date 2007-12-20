@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Catalog.java,v 1.9.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: Catalog.java,v 1.9.2.4 2007/11/19 18:48:12 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -23,6 +23,30 @@ import com.sleepycat.persist.raw.RawObject;
  * @author Mark Hayes
  */
 interface Catalog {
+
+    /*
+     * The catalog version is returned by getInitVersion and is the version of
+     * the serialized format classes loaded from the stored catalog.  When a
+     * field is added, for example, the version can be checked to determine how
+     * to initialize the field in Format.initialize.
+     *
+     * -1: The version is considered to be -1 when reading the beta version of
+     * the catalog data.  At this point no version field was stored, but we can
+     * distinguish the beta stored format.  See PersistCatalog.
+     *
+     * 0: The first released version of the catalog data, after beta.  At this
+     * point no version field was stored, but it is initialized to zero when
+     * the PersistCatalog.Data object is de-serialized.
+     *
+     * 1: Add the ComplexFormat.ConvertFieldReader.oldFieldNum field. [#15797]
+     */
+    static final int BETA_VERSION = -1;
+    static final int CURRENT_VERSION = 1;
+
+    /**
+     * See above.
+     */
+    int getInitVersion(Format format, boolean forReader);
 
     /**
      * Returns a format for a given ID, or throws an exception.  This method is

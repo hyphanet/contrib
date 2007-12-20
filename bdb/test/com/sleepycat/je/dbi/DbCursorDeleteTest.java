@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDeleteTest.java,v 1.36.2.1 2007/02/01 14:50:09 cwl Exp $
+ * $Id: DbCursorDeleteTest.java,v 1.36.2.2 2007/11/20 13:32:43 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -20,8 +20,8 @@ import com.sleepycat.je.util.StringDbt;
  * Various unit tests for CursorImpl.delete().
  */
 public class DbCursorDeleteTest extends DbCursorTestBase {
-    
-    public DbCursorDeleteTest() 
+
+    public DbCursorDeleteTest()
         throws DatabaseException {
         super();
     }
@@ -331,7 +331,7 @@ public class DbCursorDeleteTest extends DbCursorTestBase {
      * ascending order deleting the first entry.  Iterate through the tree
      * again and make sure only the first entry is deleted.
      */
-    public void testLargeDeleteFirst() 
+    public void testLargeDeleteFirst()
         throws IOException, DatabaseException {
 
         tearDown();
@@ -380,7 +380,7 @@ public class DbCursorDeleteTest extends DbCursorTestBase {
      * ascending order deleting the last entry.  Iterate through the tree again
      * and make sure only the last entry is deleted.
      */
-    public void testLargeDeleteLast() 
+    public void testLargeDeleteLast()
         throws IOException, DatabaseException {
 
         tearDown();

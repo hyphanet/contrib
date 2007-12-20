@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeferredWriteTest.java,v 1.5.2.3 2007/05/01 19:32:05 mark Exp $
+ * $Id: DeferredWriteTest.java,v 1.5.2.5 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -45,7 +45,7 @@ public class DeferredWriteTest extends TestCase {
 
     private static final CheckpointConfig CHECKPOINT_FORCE_CONFIG =
         new CheckpointConfig();
-    
+
     static {
         CHECKPOINT_FORCE_CONFIG.setForce(true);
     }
@@ -100,14 +100,14 @@ public class DeferredWriteTest extends TestCase {
         return envConfig;
     }
 
-    private Database createDb(boolean deferredWrite) 
+    private Database createDb(boolean deferredWrite)
         throws DatabaseException {
-        
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
         dbConfig.setDeferredWrite(deferredWrite);
-        
-        return env.openDatabase(null, DBNAME, dbConfig);   
+
+        return env.openDatabase(null, DBNAME, dbConfig);
     }
 
     /**
@@ -128,7 +128,7 @@ public class DeferredWriteTest extends TestCase {
 	    env = new Environment(envHome, envConfig);
 	    db = createDb(true);
             /* Insert some data to cause eviction later. */
-            insert(db, 
+            insert(db,
                    null,          // txn
                    1,             // start
                    30000,         // end
@@ -194,18 +194,18 @@ public class DeferredWriteTest extends TestCase {
             doCloseOpen(true,   /* useDeferredWrites */
                         200,    /* starting value */
                         expectedSet);
-        
+
     }
 
     /**
      * Check that deferred write and durable databases re-open at expected
-     * state.  
+     * state.
      */
-    private HashSet doCloseOpen(boolean useDeferredWrite, 
+    private HashSet doCloseOpen(boolean useDeferredWrite,
                                 int startingValue,
                                 HashSet initialSet)
         throws Throwable {
-        
+
 	EnvironmentConfig envConfig = getEnvConfig(true);
         env = new Environment(envHome, envConfig);
         Database db = createDb(useDeferredWrite);
@@ -221,10 +221,10 @@ public class DeferredWriteTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Insert non-random values in two batches. Don't use random
              * inserts in order to be sure we have a set of non-conflicting
-             * values for the test. 
+             * values for the test.
              */
             insert(db, null, startingValue, startingValue + batch1Size,
                    expectedBatch1, false);
@@ -246,16 +246,16 @@ public class DeferredWriteTest extends TestCase {
             db = createDb(useDeferredWrite);
             checkExactContentMatch(db, expectedBatch2);
 
-            /* 
-             * Recover the environment. Whether the batch2 changes show up 
+            /*
+             * Recover the environment. Whether the batch2 changes show up
              * depend on whether the db was deferred write, and whether
-             * a sync was done. 
+             * a sync was done.
              */
 
             db.close();
             db = null;
 
-            env.sync(); 
+            env.sync();
             env.close();
             env = null;
             env = new Environment(envHome, envConfig);
@@ -283,21 +283,21 @@ public class DeferredWriteTest extends TestCase {
         return finalExpectedSet;
     }
 
-    public void testRecoverNoSync() 
+    public void testRecoverNoSync()
         throws Throwable {
-        
+
         EnvironmentConfig envConfig = getEnvConfig(true);
-        doRecover(envConfig, 
+        doRecover(envConfig,
                   30,     /* numRecords */
                   false,  /* syncBeforeRecovery. */
                   false); /* expectEviction */
     }
 
-    public void testRecoverSync() 
+    public void testRecoverSync()
         throws Throwable {
 
         EnvironmentConfig envConfig = getEnvConfig(true);
-        doRecover(envConfig, 
+        doRecover(envConfig,
                   30,     /* numRecords */
                   true,   /* syncBeforeRecovery. */
                   false); /* expectEviction */
@@ -308,7 +308,7 @@ public class DeferredWriteTest extends TestCase {
 
         EnvironmentConfig envConfig = getEnvConfig(true);
         envConfig.setCacheSize(MemoryBudget.MIN_MAX_MEMORY_SIZE);
-        doRecover(envConfig, 
+        doRecover(envConfig,
                   3000,    /* numRecords */
                   false,  /* syncBeforeRecovery. */
                   true);  /* expectEviction */
@@ -319,7 +319,7 @@ public class DeferredWriteTest extends TestCase {
 
         EnvironmentConfig envConfig = getEnvConfig(true);
         envConfig.setCacheSize(MemoryBudget.MIN_MAX_MEMORY_SIZE);
-        doRecover(envConfig, 
+        doRecover(envConfig,
                   3000,    /* numRecords */
                   true,  /* syncBeforeRecovery. */
                   true);  /* expectEviction */
@@ -328,7 +328,7 @@ public class DeferredWriteTest extends TestCase {
     public void doRecover(EnvironmentConfig envConfig,
                           int numRecords,
                           boolean syncBeforeRecovery,
-                          boolean expectEviction) 
+                          boolean expectEviction)
         throws DatabaseException {
 	
         env = new Environment(envHome, envConfig);
@@ -352,10 +352,10 @@ public class DeferredWriteTest extends TestCase {
                 db.sync();
             }
 
-            /* 
+            /*
              * Close db, checkpoint, close underlying envImp to force recovery.
              */
-            db.close(); 
+            db.close();
             env.checkpoint(CHECKPOINT_FORCE_CONFIG);
             DbInternal.envGetEnvironmentImpl(env).close(false);
             env = null;
@@ -371,7 +371,7 @@ public class DeferredWriteTest extends TestCase {
             } else {
                 useExpected = new HashSet();
             }
-                
+
             checkExactContentMatch(db, useExpected);
 
         } finally {
@@ -393,9 +393,9 @@ public class DeferredWriteTest extends TestCase {
         dbConfig.setAllowCreate(true);
         dbConfig.setDeferredWrite(true);
         dbConfig.setSortedDuplicates(true);
-        Database db = env.openDatabase(null, DBNAME, dbConfig);   
+        Database db = env.openDatabase(null, DBNAME, dbConfig);
 
-        /* Insert {0,0} and {0,1}. */
+        /* Insert {9,0} and {9,1}. */
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
         IntegerBinding.intToEntry(9, key);
@@ -433,7 +433,7 @@ public class DeferredWriteTest extends TestCase {
 
         /* Recover and check again. */
         env = new Environment(envHome, envConfig);
-        db = env.openDatabase(null, DBNAME, dbConfig);   
+        db = env.openDatabase(null, DBNAME, dbConfig);
         c = db.openCursor(null, null);
         try {
             assertSame(OperationStatus.SUCCESS,
@@ -463,21 +463,73 @@ public class DeferredWriteTest extends TestCase {
         env = null;
     }
 
-    public void testPreloadNoSync() 
+    /**
+     * Tests a fix for a bug where reusing a slot caused a non-deleted record
+     * to be compressed. [#15684]
+     */
+    public void testCompressAfterSlotReuse()
         throws DatabaseException {
-        
+	
+        EnvironmentConfig envConfig = getEnvConfig(false);
+        /* Disable daemons to prevent async compression. */
+        envConfig.setConfigParam("je.env.runCleaner", "false");
+        envConfig.setConfigParam("je.env.runCheckpointer", "false");
+        envConfig.setConfigParam("je.env.runINCompressor", "false");
+        env = new Environment(envHome, envConfig);
+
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        dbConfig.setDeferredWrite(true);
+        Database db = env.openDatabase(null, DBNAME, dbConfig);
+
+        /* Reuse slot: Insert key 0, delete 0, insert 0 */
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry();
+        IntegerBinding.intToEntry(0, key);
+        IntegerBinding.intToEntry(0, data);
+        assertSame(OperationStatus.SUCCESS,
+                   db.putNoOverwrite(null, key, data));
+        assertSame(OperationStatus.SUCCESS,
+                   db.delete(null, key));
+        assertSame(OperationStatus.SUCCESS,
+                   db.putNoOverwrite(null, key, data));
+
+        /*
+         * Because of the delete() above, a compressor entry is queued for key
+         * 0, although it was re-inserted.  And there is no LSN for the slot
+         * because it has never been logged. When we compress now, we run into
+         * the BIN.compress bug where it assumes an entry is deleted if its LSN
+         * is null.
+         */
+        env.compress();
+
+        /*
+         * Before the bug fix, the following assert would fail because the
+         * entry was compressed and NOTFOUND.
+         */
+        assertSame(OperationStatus.SUCCESS,
+                   db.get(null, key, data, null));
+
+        db.close();
+        env.close();
+        env = null;
+    }
+
+    public void testPreloadNoSync()
+        throws DatabaseException {
+
         doPreload(false); /* syncBeforeRecovery */
     }
 
-    public void testPreloadSync() 
+    public void testPreloadSync()
         throws DatabaseException {
-        
+
         doPreload(true); /* syncBeforeRecovery */
     }
 
-    private void doPreload(boolean syncBeforeRecovery) 
+    private void doPreload(boolean syncBeforeRecovery)
         throws DatabaseException {
-        
+
         EnvironmentConfig envConfig = getEnvConfig(false);
         envConfig.setCacheSize(MemoryBudget.MIN_MAX_MEMORY_SIZE);
         env = new Environment(envHome, envConfig);
@@ -493,21 +545,21 @@ public class DeferredWriteTest extends TestCase {
             checkForEvictionActivity(true, /* evict activity */
                                      true); /* cache miss */
 
-            /* 
-             * Change the cache size to the default value so a preload will 
+            /*
+             * Change the cache size to the default value so a preload will
              * have enough cache to pull items in.
              */
             envConfig.setCacheSize(0);
             env.setMutableConfig(envConfig);
             if (DEBUG) {
-                System.out.println("after mutable " + 
+                System.out.println("after mutable " +
                                    env.getConfig().getCacheSize());
             }
 
             PreloadConfig pConfig = new PreloadConfig();
             pConfig.setLoadLNs(true);
             PreloadStats pStats = db.preload(pConfig);
-            
+
             if (DEBUG) {
                 System.out.println("first preload " + pStats);
             }
@@ -523,7 +575,7 @@ public class DeferredWriteTest extends TestCase {
             }
 
             /* Close db, close env */
-            db.close(); 
+            db.close();
             DbInternal.envGetEnvironmentImpl(env).close(false);
             env = null;
 
@@ -548,7 +600,7 @@ public class DeferredWriteTest extends TestCase {
                 assertEquals(0, pStats.getNINsLoaded());
                 assertEquals(0, pStats.getNLNsLoaded());
             }
-                
+
             checkExactContentMatch(db, useExpected);
 
         } finally {
@@ -557,7 +609,7 @@ public class DeferredWriteTest extends TestCase {
     }
 
     private void checkForEvictionActivity(boolean expectEviction,
-                                          boolean expectCacheMiss) 
+                                          boolean expectCacheMiss)
         throws DatabaseException {
 
         EnvironmentStats stats = env.getStats(STATS_CLEAR_CONFIG);
@@ -583,7 +635,7 @@ public class DeferredWriteTest extends TestCase {
         }
     }
 
-    public void testBadConfigurations() 
+    public void testBadConfigurations()
         throws Throwable {
 
         env = new Environment(envHome, getEnvConfig(true));
@@ -607,7 +659,7 @@ public class DeferredWriteTest extends TestCase {
         }
         dbConfigDeferred.setTransactional(false);
 
-        /* 
+        /*
          * Open a db first with deferred write, then secondly without deferred
          * write, should fail.
          */
@@ -622,7 +674,7 @@ public class DeferredWriteTest extends TestCase {
         }
         db1.close();
 
-        /* 
+        /*
          * Open a db first without deferred write, then secondly with deferred
          * write, should fail.
          */
@@ -652,19 +704,19 @@ public class DeferredWriteTest extends TestCase {
         }
     }
 
-    public void testCleaning5000() 
+    public void testCleaning5000()
         throws Throwable {
 
         doCleaning("90", "5000"); /* log file size. */
     }
 
-    public void testCleaning2000() 
+    public void testCleaning2000()
         throws Throwable {
 
         doCleaning("90", "3000"); /* log file size. */
     }
 
-    private void doCleaning(String minUtilization, String logFileSize) 
+    private void doCleaning(String minUtilization, String logFileSize)
         throws DatabaseException {
 
         /*
@@ -696,10 +748,10 @@ public class DeferredWriteTest extends TestCase {
 
         try {
 
-            /* 
+            /*
              * Insert non-random values in two batches. Don't use random
              * inserts in order to be sure we have a set of non-conflicting
-             * values for the test. 
+             * values for the test.
              */
             int startingValue = 1;
             insert(db,
@@ -732,7 +784,7 @@ public class DeferredWriteTest extends TestCase {
 
             checkExactContentMatch(db, expectedBatch2);
 
-            /* 
+            /*
              * Recover the environment a few times. Whether the batch2 changes
              * show up depend on whether the db was deferred write, and whether
              * a sync was done.
@@ -745,13 +797,13 @@ public class DeferredWriteTest extends TestCase {
                 env = new Environment(envHome, envConfig);
 
                 db = createDb(true);
-                checkContents(db, 
-                              expectedBatch2, 
+                checkContents(db,
+                              expectedBatch2,
                               false); /* exact match. */
 
                 batchClean();
-                checkContents(db, 
-                              expectedBatch2, 
+                checkContents(db,
+                              expectedBatch2,
                               false); /* exact match. */
             }
 
@@ -767,18 +819,18 @@ public class DeferredWriteTest extends TestCase {
         }
     }
 
-    /** 
+    /**
      * Insert a set of records, record the values in the expected set.
      * @param useRandom If True, use random values.
      */
-    private void insert(Database db, 
+    private void insert(Database db,
                         Transaction txn,
                         int start,
                         int end,
-                        Set expected, 
-                        boolean useRandom) 
+                        Set expected,
+                        boolean useRandom)
         throws DatabaseException{
-        
+
         DatabaseEntry entry = new DatabaseEntry();
         Random rand = new Random();
         for (int i = start; i < end; i++) {
@@ -791,19 +843,19 @@ public class DeferredWriteTest extends TestCase {
         }
     }
 
-    /** 
+    /**
      * Insert and modify a set of records, record the values in the
      * expected set.
      * @param useRandom If True, use random values.
      */
-    private void insertAndUpdate(Database db, 
+    private void insertAndUpdate(Database db,
                                  Transaction txn,
                                  int start,
                                  int end,
-                                 Set expected, 
-                                 boolean useRandom) 
+                                 Set expected,
+                                 boolean useRandom)
         throws DatabaseException{
-        
+
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
         Random rand = new Random();
@@ -825,7 +877,7 @@ public class DeferredWriteTest extends TestCase {
     /**
      * The database should hold exactly the values in the expected set.
      */
-    private void checkExactContentMatch(Database db, HashSet expected) 
+    private void checkExactContentMatch(Database db, HashSet expected)
         throws DatabaseException{
 
         checkContents(db, expected, true);
@@ -839,7 +891,7 @@ public class DeferredWriteTest extends TestCase {
      */
     private void checkContents(Database db,
                                HashSet expected,
-                               boolean exactMatch) 
+                               boolean exactMatch)
         throws DatabaseException{
 
         Cursor c = db.openCursor(null, null);
@@ -847,7 +899,7 @@ public class DeferredWriteTest extends TestCase {
         DatabaseEntry data = new DatabaseEntry();
 
         Set useExpected = (Set) expected.clone();
-        
+
         if (DEBUG) {
             System.err.println("Start checking");
         }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BasicIndex.java,v 1.9.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: BasicIndex.java,v 1.9.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -152,7 +152,7 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
     public EntityCursor<E> entities(Transaction txn,
                                     CursorConfig config)
         throws DatabaseException {
-        
+
         return cursor(txn, emptyRange, entityAdapter, config);
     }
 
@@ -207,13 +207,13 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
                                          KeySelector<K> selector,
                                          CursorConfig config)
         throws DatabaseException {
-        
+
         throw new UnsupportedOperationException();
     }
 
     public ForwardCursor<E> unsortedEntities(KeySelector<K> selector)
         throws DatabaseException {
-            
+
         return unsortedEntities(null, selector, null);
     }
 
@@ -221,7 +221,7 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
                                              KeySelector<K> selector,
                                              CursorConfig config)
         throws DatabaseException {
-        
+
         throw new UnsupportedOperationException();
     }
     */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SimpleCatalog.java,v 1.19.2.2 2007/05/01 04:08:35 mark Exp $
+ * $Id: SimpleCatalog.java,v 1.19.2.4 2007/11/19 18:48:12 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -204,6 +204,10 @@ public class SimpleCatalog implements Catalog {
         SimpleFormat primitiveFormat = formatList.get(primitiveId);
         SimpleFormat wrapperFormat = formatList.get(wrapperId);
         primitiveFormat.setWrapperFormat(wrapperFormat);
+    }
+
+    public int getInitVersion(Format format, boolean forReader) {
+        return Catalog.CURRENT_VERSION;
     }
 
     public Format getFormat(int formatId) {

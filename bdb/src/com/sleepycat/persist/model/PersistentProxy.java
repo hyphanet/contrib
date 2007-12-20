@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PersistentProxy.java,v 1.12.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: PersistentProxy.java,v 1.12.2.2 2007/10/25 16:54:11 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -90,6 +90,14 @@ import com.sleepycat.persist.raw.RawStore; // for javadoc
  * any other persistent instance.  When using a {@link RawStore} or {@link
  * Converter}, only the raw data of the proxy instance will be visible.  Raw
  * data for the proxied instance never exists.</p>
+ *
+ * <p>Currently a proxied object may not contain a reference to itself.  For
+ * simple proxied objects such as the Locale class shown above, this naturally
+ * won't occur.  But for proxied objects that are containers -- the built-in
+ * Collection and Map classes for example -- this can occur if the container is
+ * added as an element of itself.  This should be avoided.  If an attempt to
+ * store such an object is made, an {@code IllegalArgumentException} will be
+ * thrown.</p>
  *
  * @author Mark Hayes
  */

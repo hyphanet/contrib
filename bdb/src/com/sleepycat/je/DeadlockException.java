@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DeadlockException.java,v 1.13.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: DeadlockException.java,v 1.13.2.2 2007/08/31 13:32:12 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -13,6 +13,9 @@ package com.sleepycat.je;
  * via the doc templates in the doc_src directory.
  */
 public class DeadlockException extends DatabaseException {
+
+    private long[] ownerTxnIds;
+    private long[] waiterTxnIds;
 
     public DeadlockException() {
 	super();
@@ -28,5 +31,21 @@ public class DeadlockException extends DatabaseException {
 
     public DeadlockException(String message, Throwable t) {
         super(message, t);
+    }
+
+    public void setOwnerTxnIds(long[] ownerTxnIds) {
+	this.ownerTxnIds = ownerTxnIds;
+    }
+
+    public long[] getOwnerTxnIds() {
+	return ownerTxnIds;
+    }
+
+    public void setWaiterTxnIds(long[] waiterTxnIds) {
+	this.waiterTxnIds = waiterTxnIds;
+    }
+
+    public long[] getWaiterTxnIds() {
+	return waiterTxnIds;
     }
 }

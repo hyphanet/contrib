@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SplitTest.java,v 1.23.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: SplitTest.java,v 1.23.2.3 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -23,6 +23,7 @@ import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.util.TestUtils;
 
 public class SplitTest extends TestCase {
@@ -36,20 +37,20 @@ public class SplitTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 
-    public void setUp() 
+    public void setUp()
         throws Exception {
         TestUtils.removeLogFiles("Setup", envHome, false);
         initEnv();
     }
 
-    public void tearDown() 
+    public void tearDown()
         throws Exception {
         try {
             db.close();
             env.close();
         } catch (DatabaseException E) {
         }
-                
+
         TestUtils.removeLogFiles("TearDown", envHome, true);
     }
 
@@ -77,7 +78,7 @@ public class SplitTest extends TestCase {
     public void test0Split()
         throws Exception {
 
-        Key.DUMP_BINARY = true;
+        Key.DUMP_TYPE = DumpType.BINARY;
         try {
             /* Build up a tree. */
             for (int i = 160; i > 0; i-= 10) {
@@ -105,27 +106,27 @@ public class SplitTest extends TestCase {
                 System.out.println("</dump>");
             }
 
-            /* 
+            /*
              * These inserts make a tree where the right most mid-level IN
              * has an idkey greater than its parent entry.
              *
-             *     +---------------+               
+             *     +---------------+
              *     | id = 90       |
              *     | 50 | 90 | 130 |
-             *     +---------------+               
+             *     +---------------+
              *       |     |    |
              *                  |
-             *              +-----------------+               
+             *              +-----------------+
              *              | id = 160        |
              *              | 130 | 150 | 152 |
-             *              +-----------------+               
+             *              +-----------------+
              *                 |      |    |
              *                 |      |    +-----------+
              *                 |      |                |
              *       +-----------+  +-----------+ +-----------------+
              *       | BIN       |  | BIN       | | BIN             |
              *       | id = 130  |  | id = 150  | | id=160          |
-             *       | 130 | 140 |  | 150 | 151 | | 152 | 153 | 160 |    
+             *       | 130 | 140 |  | 150 | 151 | | 152 | 153 | 160 |
              *       +-----------+  +-----------+ +-----------------+
 	     *
              * Now delete records 130 and 140 to empty out the subtree with BIN
@@ -139,27 +140,27 @@ public class SplitTest extends TestCase {
                                    new DatabaseEntry(new byte[]{(byte) 140})));
             env.compress();
 
-            /* 
+            /*
              * These deletes make the mid level IN's 0th entry > its parent
              * reference.
 	     *
-             *     +---------------+               
+             *     +---------------+
              *     | id = 90       |
              *     | 50 | 90 | 130 |
-             *     +---------------+               
+             *     +---------------+
              *       |     |    |
              *                  |
-             *              +-----------+               
+             *              +-----------+
              *              | id = 160  |
              *              | 150 | 152 |
-             *              +-----------+               
-             *                 |      | 
-             *                 |      | 
-             *                 |      | 
+             *              +-----------+
+             *                 |      |
+             *                 |      |
+             *                 |      |
              *       +-----------+ +-----------------+
              *       | BIN       | | BIN             |
              *       | id = 150  | | id=160          |
-             *       | 150 | 151 | | 152 | 153 | 160 |    
+             *       | 150 | 151 | | 152 | 153 | 160 |
              *       +-----------+ +-----------------+
              *
              * Now insert 140 into BIN (id = 160) so that its first entry is
@@ -169,28 +170,28 @@ public class SplitTest extends TestCase {
                          db.put(null, new DatabaseEntry(new byte[]{(byte)140}),
                                 new DatabaseEntry(new byte[] {1})));
 
-            /* 
+            /*
              * Now note that the mid level tree's 0th entry is greater than its
              * reference in the root.
              *
-             *     +---------------+               
+             *     +---------------+
              *     | id = 90       |
              *     | 50 | 90 | 130 |
-             *     +---------------+               
+             *     +---------------+
              *       |     |    |
              *                  |
-             *              +-----------+               
+             *              +-----------+
              *              | id = 160  |
              *              | 150 | 152 |
-             *              +-----------+               
-             *                 |      | 
-             *                 |      | 
-             *                 |      | 
+             *              +-----------+
+             *                 |      |
+             *                 |      |
+             *                 |      |
              *   +----------------+ +-----------------+
              *   | BIN            | | BIN             |
              *   | id = 150       | | id=160          |
              *   | 140 |150 | 151 | | 152 | 153 | 160 |
-             *   +----------------+ +-----------------+    
+             *   +----------------+ +-----------------+
              *
              * Now split the mid level node, putting the new child on the left.
              */
@@ -201,28 +202,28 @@ public class SplitTest extends TestCase {
                                     new DatabaseEntry(new byte[] {1})));
             }
 
-            /* 
+            /*
              * This used to result in the following broken tree, which would
              * cause us to not be able to retrieve record 140. With the new
              * split code, entry "150" in the root should stay 130.
 	     *
-             *     +---------------------+               
+             *     +---------------------+
              *     | id = 90             |
              *     | 50 | 90 | 150 | 154 |  NOTE: we'v lost record 140
-             *     +---------------------+               
+             *     +---------------------+
              *       |     |    |        \
              *                  |         \
-             *              +-----------+  +----------+                
+             *              +-----------+  +----------+
              *              | id = 150  |  |id=160    |
              *              | 150 | 152 |  |154 | 156 |
-             *              +-----------+  +----------+                
-             *                 |      | 
-             *                 |      | 
-             *                 |      | 
-             *   +------------+ +-------+ 
-             *   | BIN        | | BIN   | 
-             *   | id = 150   | | id=152| 
-             *   | 140|150|151| |152|153| 
+             *              +-----------+  +----------+
+             *                 |      |
+             *                 |      |
+             *                 |      |
+             *   +------------+ +-------+
+             *   | BIN        | | BIN   |
+             *   | id = 150   | | id=152|
+             *   | 140|150|151| |152|153|
              *   +------------+ +-------+
              */
             DatabaseEntry data = new DatabaseEntry();

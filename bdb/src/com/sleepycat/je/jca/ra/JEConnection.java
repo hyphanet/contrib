@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEConnection.java,v 1.13.2.2 2007/05/22 20:36:39 cwl Exp $
+ * $Id: JEConnection.java,v 1.13.2.3 2007/11/20 13:32:30 cwl Exp $
  */
 
 package com.sleepycat.je.jca.ra;
@@ -21,7 +21,7 @@ import com.sleepycat.je.Transaction;
 /**
  * A JEConnection provides access to JE services. See
  * &lt;JEHOME&gt;/examples/jca/HOWTO-**.txt and
- * &lt;JEHOME&gt;/examples/jca/simple/SimpleBean.java for more information on 
+ * &lt;JEHOME&gt;/examples/jca/simple/SimpleBean.java for more information on
  * how to build the resource adaptor and use a JEConnection.
  */
 public interface JEConnection {

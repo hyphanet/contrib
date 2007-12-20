@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BasicLocker.java,v 1.84.2.4 2007/07/13 02:32:05 cwl Exp $
+ * $Id: BasicLocker.java,v 1.84.2.5 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -43,7 +43,7 @@ public class BasicLocker extends Locker {
      * for the stats, so we can look them up on demand.
      */
     private Long ownedLock;
-    private Set ownedLockSet; 
+    private Set ownedLockSet;
 
     /**
      * Creates a BasicLocker.
@@ -76,7 +76,7 @@ public class BasicLocker extends Locker {
                             boolean noWait,
                             DatabaseImpl database)
         throws DatabaseException {
-  
+
 	/* Does nothing in BasicLocker. synchronized is for posterity. */
 	synchronized (this) {
 	    checkState(false);
@@ -101,9 +101,9 @@ public class BasicLocker extends Locker {
      * Get the txn that owns the lock on this node. Return null if there's no
      * owning txn found.
      */
-    public Locker getWriteOwnerLocker(long nodeId) 
+    public Locker getWriteOwnerLocker(long nodeId)
         throws DatabaseException {
-   
+
         return lockManager.getWriteOwnerLocker(new Long(nodeId));
     }
 
@@ -111,9 +111,9 @@ public class BasicLocker extends Locker {
      * Get the abort LSN for this node in the txn that owns the lock on this
      * node. Return null if there's no owning txn found.
      */
-    public long getOwnerAbortLsn(long nodeId) 
+    public long getOwnerAbortLsn(long nodeId)
         throws DatabaseException {
-   
+
         Locker ownerTxn = lockManager.getWriteOwnerLocker(new Long(nodeId));
         if (ownerTxn != null) {
             return ownerTxn.getAbortLsn(nodeId);
@@ -223,7 +223,7 @@ public class BasicLocker extends Locker {
                                    boolean dbIsClosing)
 	throws DatabaseException {
 
-        if (dbHandle != null) { 
+        if (dbHandle != null) {
             if (operationOK && !dbIsClosing) {
                 transferHandleLockToHandle(dbHandle);
             } else {
@@ -287,11 +287,11 @@ public class BasicLocker extends Locker {
     }
 
     /**
-     * Add a lock to set owned by this transaction. 
+     * Add a lock to set owned by this transaction.
      */
     void addLock(Long nodeId,
                  LockType type,
-                 LockGrantType grantStatus) 
+                 LockGrantType grantStatus)
         throws DatabaseException {
 
         if ((ownedLock != null &&
@@ -309,7 +309,7 @@ public class BasicLocker extends Locker {
             ownedLockSet.add(nodeId);
         }
     }
-    
+
     /**
      * Remove a lock from the set owned by this txn.
      */
@@ -358,7 +358,7 @@ public class BasicLocker extends Locker {
         }
         if (ownedLockSet != null) {
             Iterator iter = ownedLockSet.iterator();
-            
+
             while (iter.hasNext()) {
                 Long nid = (Long) iter.next();
                 Lock l = lockManager.lookupLock(nid);

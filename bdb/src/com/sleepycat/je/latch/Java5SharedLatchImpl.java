@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Java5SharedLatchImpl.java,v 1.8.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: Java5SharedLatchImpl.java,v 1.8.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -241,7 +241,7 @@ class Java5SharedLatchImpl
      * Only call under the assert system. This records latching by thread.
      */
     private boolean unNoteLatch() {
-        
+
 	return LatchSupport.latchTable.unNoteLatch(this, name);
     }
 }

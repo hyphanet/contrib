@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryCheckpointTest.java,v 1.37.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryCheckpointTest.java,v 1.37.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -73,7 +73,7 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
 
             /* Shutdown, recover. */
             Hashtable expectedData = new Hashtable(); // expected values
-            closeEnv();  
+            closeEnv();
             recoverAndVerify(expectedData, NUM_DBS); // 0 checkpoints
 
             /* Another checkpoint. */
@@ -171,7 +171,7 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
         deltaConfig.setMinimizeRecoveryTime(!useDeltas);
 
         try {
-            
+
             /*
              * Insert 4 records (nodeMax is 6), checkpoint, then insert 1
              * record.  The 1 record insertion will qualify for a delta,
@@ -185,8 +185,8 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
             insertData(txn, numRecs+1, numRecs+2, expectedData,
 		       1, true, NUM_DBS);
             txn.commit();
-            
-            /* 
+
+            /*
              * If useDeltas is true, this next checkpoint will end up using a
              * BINDelta to log the last inserted record. It will have
              * practically nothing but the root in the checkpoint.
@@ -209,10 +209,10 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
         }
     }
 
-    /** 
+    /**
      * Test the rollback of transactions that are active during a checkpoint.
      */
-    public void testActiveWhileCheckpointing() 
+    public void testActiveWhileCheckpointing()
         throws Throwable {
 
 	createEnvAndDbs(1 << 20, true, NUM_DBS);
@@ -226,7 +226,7 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
             /* Now run a checkpoint while this operation hasn't finished. */
             env.checkpoint(forceConfig);
             txn.abort();
-            
+
             /* Shutdown, recover. */
             closeEnv();
             recoverAndVerify(expectedData, NUM_DBS);
@@ -386,10 +386,10 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
 	env.close();
     }
 
-    /* 
+    /*
      * See what happens if someone calls checkpoint on a read only environment.
      */
-    public void testReadOnlyCheckpoint() 
+    public void testReadOnlyCheckpoint()
         throws DatabaseException {
         /* Create an environment, close. */
         EnvironmentConfig c = TestUtils.initEnvConfig();

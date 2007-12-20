@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LNLogEntry.java,v 1.39.2.2 2007/03/08 22:32:56 mark Exp $
+ * $Id: LNLogEntry.java,v 1.39.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -26,7 +26,7 @@ import com.sleepycat.je.utilint.DbLsn;
  * <pre>
  *   ln
  *   databaseid
- *   key            
+ *   key
  *   abortLsn          -- if transactional
  *   abortKnownDeleted -- if transactional
  *   txn               -- if transactional
@@ -35,7 +35,7 @@ import com.sleepycat.je.utilint.DbLsn;
 public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
     private static final byte ABORT_KNOWN_DELETED_MASK = (byte) 1;
 
-    /* 
+    /*
      * Persistent fields in an LN entry
      */
     private LN ln;
@@ -45,14 +45,14 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
     private boolean abortKnownDeleted;
     private Txn txn;     // conditional
 
-    /* 
+    /*
      * Transient fields used by the entry.
-     * 
+     *
      * Save the node id when we read the log entry from disk. Do so explicitly
      * instead of merely returning ln.getNodeId(), because we don't always
      * instantiate the LN.
      */
-    private long nodeId;   
+    private long nodeId;
 
     /* Constructor to read an entry. */
     public LNLogEntry(Class LNClass) {

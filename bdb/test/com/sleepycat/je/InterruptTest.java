@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: InterruptTest.java,v 1.11.2.1 2007/02/01 14:50:05 cwl Exp $
+ * $Id: InterruptTest.java,v 1.11.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -44,8 +44,8 @@ public class InterruptTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
-    public void testInterruptHandling() 
+
+    public void testInterruptHandling()
     	throws Exception {
 
         for (int i = 0; i < NUM_ITERATIONS; i++) {
@@ -53,7 +53,7 @@ public class InterruptTest extends TestCase {
         }
     }
 
-    public void interruptThreads(int i) 
+    public void interruptThreads(int i)
     	throws Exception {
 
         // TestUtils.removeLogFiles("Loop", envHome, false);
@@ -72,22 +72,22 @@ public class InterruptTest extends TestCase {
             dbConfig.setAllowCreate(true);
             dbConfig.setTransactional(true);
             db = env.openDatabase(null, "testDB" + i, dbConfig);
-            
+
             ActionThread putter = new ActionThread(env, db, 1) {
                     protected void doStuff(Database db,
                                            Transaction txn,
                                            DatabaseEntry key,
-                                           DatabaseEntry value) 
+                                           DatabaseEntry value)
                         throws DatabaseException {
                         db.put(txn, key, value);
                     }
                 };
-                        
+
             ActionThread deleter = new ActionThread(env, db, 1) {
                     protected void doStuff(Database db,
                                            Transaction txn,
                                            DatabaseEntry key,
-                                           DatabaseEntry value) 
+                                           DatabaseEntry value)
                         throws DatabaseException {
                         db.delete(txn, key);
                     }
@@ -98,14 +98,14 @@ public class InterruptTest extends TestCase {
 
             deleter.start();
             Thread.sleep(2000);
-            
-            /* 
+
+            /*
              * Interrupting these threads will catch them in the middle of an
              * NIO operation, expect a RunRecovery exception.
              */
             putter.interrupt();
-            deleter.interrupt(); 
-            
+            deleter.interrupt();
+
             putter.join();
             deleter.join();
         } finally {
@@ -115,7 +115,7 @@ public class InterruptTest extends TestCase {
                 }
             } catch (RunRecoveryException ok) {
 
-                /* 
+                /*
 		 * Expect a run recovery exception. Since it will be detected
                  * when we try to close the database, close the environment
                  * now so we can re-start in the same JVM.
@@ -136,7 +136,7 @@ public class InterruptTest extends TestCase {
             }
         }
     }
-    
+
     abstract class ActionThread extends Thread {
     	private Environment env;
     	private Database db;

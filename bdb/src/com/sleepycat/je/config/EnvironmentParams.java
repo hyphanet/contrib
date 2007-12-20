@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentParams.java,v 1.84.2.4 2007/07/02 19:54:49 mark Exp $
+ * $Id: EnvironmentParams.java,v 1.84.2.7 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -22,7 +22,7 @@ import java.util.TreeSet;
 public class EnvironmentParams {
 
     /*
-     * The map of supported environment parameters where the key is parameter 
+     * The map of supported environment parameters where the key is parameter
      * name and the data is the configuration parameter object. Put first,
      * before any declarations of ConfigParams.
      */
@@ -47,18 +47,18 @@ public class EnvironmentParams {
 
     public static final IntConfigParam MAX_MEMORY_PERCENT =
         new IntConfigParam("je.maxMemoryPercent",
-                           new Integer(1),    // min 
+                           new Integer(1),    // min
                            new Integer(90),   // max
                            new Integer(60),   // default
                            true,              // mutable
                            false,             // forReplication
      "# By default, JE sizes the cache as a percentage of the maximum\n" +
-     "# memory available to the JVM. For example, if the JVM is\n" + 
+     "# memory available to the JVM. For example, if the JVM is\n" +
      "# started with -Xmx128M, the cache size will be\n" +
      "#           (je.maxMemoryPercent * 128M) / 100\n" +
      "# Setting je.maxMemory to an non-zero value will override\n" +
      "# je.maxMemoryPercent");
-     
+
     public static final BooleanConfigParam ENV_RECOVERY =
         new BooleanConfigParam("je.env.recovery",
                                true,          // default
@@ -66,7 +66,7 @@ public class EnvironmentParams {
                                false,         // forReplication
      "# If true, an environment is created with recovery and the related\n" +
      "# daemons threads enabled.");
-     
+
     public static final BooleanConfigParam ENV_RECOVERY_FORCE_CHECKPOINT =
         new BooleanConfigParam("je.env.recoveryForceCheckpoint",
                                false,         // default
@@ -74,7 +74,7 @@ public class EnvironmentParams {
                                false,         // forReplication
      "# If true, a checkpoint is forced following recovery, even if the\n" +
      "# log ends with a checkpoint.");
-     
+
     public static final BooleanConfigParam ENV_RUN_INCOMPRESSOR =
         new BooleanConfigParam("je.env.runINCompressor",
                                true,          // default
@@ -82,7 +82,7 @@ public class EnvironmentParams {
                                false,         // forReplication
      "# If true, starts up the INCompressor.\n" +
      "# This parameter is true by default");
-     
+
     /* @deprecated As of 2.0, eviction is performed in-line. */
     public static final BooleanConfigParam ENV_RUN_EVICTOR =
         new BooleanConfigParam("je.env.runEvictor",
@@ -92,7 +92,7 @@ public class EnvironmentParams {
      "# If true, starts up the evictor.\n" +
      "# This parameter is false by default\n" +
      "# (deprecated, eviction is performed in-line");
-     
+
     public static final BooleanConfigParam ENV_RUN_CHECKPOINTER =
         new BooleanConfigParam("je.env.runCheckpointer",
                                true,        // default
@@ -108,7 +108,7 @@ public class EnvironmentParams {
                                false,       // forReplication
      "# If true, starts up the cleaner.\n" +
      "# This parameter is true by default");
-     
+
     public static final IntConfigParam ENV_BACKGROUND_READ_LIMIT =
         new IntConfigParam("je.env.backgroundReadLimit",
                             new Integer(0),                 // min
@@ -121,7 +121,7 @@ public class EnvironmentParams {
      "# application threads can perform I/O.\n" +
      "# If zero (the default) then no limitation on I/O is enforced.\n" +
      "# See je.env.backgroundSleepInterval.");
-     
+
     public static final IntConfigParam ENV_BACKGROUND_WRITE_LIMIT =
         new IntConfigParam("je.env.backgroundWriteLimit",
                             new Integer(0),                 // min
@@ -134,7 +134,7 @@ public class EnvironmentParams {
      "# ensure that application threads can perform I/O.\n" +
      "# If zero (the default) then no limitation on I/O is enforced.\n" +
      "# See je.env.backgroundSleepInterval.");
-     
+
     public static final LongConfigParam ENV_BACKGROUND_SLEEP_INTERVAL =
         new LongConfigParam("je.env.backgroundSleepInterval",
                            new Long(1000),                  // min
@@ -200,14 +200,14 @@ public class EnvironmentParams {
      "# latch implementation, this parameter will determine whether they\n" +
      "# are 'fair' or not.  This parameter is 'static' across all\n" +
      "# environments.\n");
-    
+
     public static final BooleanConfigParam ENV_SHARED_LATCHES =
         new BooleanConfigParam("je.env.sharedLatches",
                                false,            // default
                                false,            // mutable
                                false,            // forReplication
      "# If true, use shared latches for Internal Nodes (INs).\n");
-    
+
     public static final BooleanConfigParam ENV_DB_EVICTION =
         new BooleanConfigParam("je.env.dbEviction",
                                false,            // default
@@ -220,7 +220,7 @@ public class EnvironmentParams {
 
     public static final IntConfigParam ADLER32_CHUNK_SIZE =
         new IntConfigParam("je.adler32.chunkSize",
-                           new Integer(0),       // min 
+                           new Integer(0),       // min
                            new Integer(1 << 20), // max
                            new Integer(0),       // default
                            true,                 // mutable
@@ -231,7 +231,7 @@ public class EnvironmentParams {
      "# this parameter will cause JE to pass chunks of the log record to\n" +
      "# the checksumming class so that the GC does not block.  0 means\n" +
      "# do not chunk.\n");
-     
+
     /*
      * Database Logs
      */
@@ -303,7 +303,7 @@ public class EnvironmentParams {
      "# The maximum read buffer size for log iterators, which are used\n" +
      "# when scanning the log during activities like log cleaning\n" +
      "# and environment open, in bytes.");
-     
+
     public static final LongConfigParam LOG_FILE_MAX =
         new LongConfigParam("je.log.fileMax",
                             new Long(1000000),     // min
@@ -312,14 +312,14 @@ public class EnvironmentParams {
                             false,                 // mutable
                             false,                 // forReplication
      "# The maximum size of each individual JE log file, in bytes.");
-     
+
     public static final BooleanConfigParam LOG_CHECKSUM_READ =
         new BooleanConfigParam("je.log.checksumRead",
                                true,               // default
                                false,              // mutable
                                false,              // forReplication
      "# If true, perform a checksum check when reading entries from log.");
-     
+
     public static final BooleanConfigParam LOG_MEMORY_ONLY =
         new BooleanConfigParam("je.log.memOnly",
                                false,              // default
@@ -332,7 +332,7 @@ public class EnvironmentParams {
      "# is thrown.  Because the entire log is kept in memory, this mode\n" +
      "# is normally useful only for testing.");
 
-    public static final IntConfigParam LOG_FILE_CACHE_SIZE = 
+    public static final IntConfigParam LOG_FILE_CACHE_SIZE =
         new IntConfigParam("je.log.fileCacheSize",
                            new Integer(3),    // min
                            null,              // max
@@ -349,14 +349,21 @@ public class EnvironmentParams {
                             false,             // mutable
                             false,             // forReplication
      "# Timeout limit for group file sync, in microseconds.");
-     
+
+    public static final BooleanConfigParam LOG_USE_ODSYNC =
+        new BooleanConfigParam("je.log.useODSYNC",
+                               false,          // default
+                               false,          // mutable
+                               false,          // forReplication
+     "# If true (default is false) O_DSYNC is used to open JE log files.");
+
     public static final BooleanConfigParam LOG_USE_NIO =
         new BooleanConfigParam("je.log.useNIO",
                                false,          // default
                                false,          // mutable
                                false,          // forReplication
      "# If true (default is false) NIO is used for all file I/O.");
-     
+
     public static final BooleanConfigParam LOG_DIRECT_NIO =
         new BooleanConfigParam("je.log.directNIO",
                                false,          // default
@@ -387,7 +394,7 @@ public class EnvironmentParams {
      "# through cache eviction or Database.sync() and reduces log cleaner\n" +
      "# overhead.");
 
-    /* 
+    /*
      * Tree
      */
     public static final IntConfigParam NODE_MAX =
@@ -412,22 +419,36 @@ public class EnvironmentParams {
 
     public static final IntConfigParam BIN_MAX_DELTAS =
         new IntConfigParam("je.tree.maxDelta",
-                           new Integer(0),     // min 
+                           new Integer(0),     // min
                            new Integer(100),   // max
                            new Integer(10),    // default
                            false,              // mutable
                            false,              // forReplication
      "# After this many deltas, logs a full version.");
-     
+
     public static final IntConfigParam BIN_DELTA_PERCENT =
         new IntConfigParam("je.tree.binDelta",
-                           new Integer(0),     // min 
+                           new Integer(0),     // min
                            new Integer(75),    // max
                            new Integer(25),    // default
                            false,              // mutable
                            false,              // forReplication
      "# If less than this percentage of entries are changed on a BIN,\n" +
      "# logs a delta instead of a full version.");
+
+    public static final LongConfigParam MIN_TREE_MEMORY =
+        new LongConfigParam("je.tree.minMemory",
+                            new Long(50 * 1024),   // min
+                            null,                  // max
+                            new Long(500 * 1024),  // default
+                            true,                  // mutable
+                            false,                 // forReplication
+     "# The minimum bytes allocated out of the memory cache to hold\n" +
+     "# Btree data including internal nodes and record keys and data.\n" +
+     "# If the specified value is larger than the size initially available\n" +
+     "# in the cache, it will be truncated to the amount available.\n" +
+     "# By default, 500 KB or the size initially available in the cache is\n" +
+     "# used, whichever is smaller.");
 
     /*
      * IN Compressor
@@ -440,7 +461,7 @@ public class EnvironmentParams {
                             false,                 // mutable
                             false,                 // forReplication
      "# The compressor wakeup interval in microseconds.");
-     
+
     public static final IntConfigParam COMPRESSOR_RETRY =
         new IntConfigParam("je.compressor.deadlockRetry",
                            new Integer(0),                // min
@@ -466,20 +487,21 @@ public class EnvironmentParams {
                                false,              // forReplication
      "# If true, when the compressor encounters an empty tree, the root\n" +
      "# node of the tree is deleted.");
-     
+
     /*
      * Evictor
-     */ 
+     */
     public static final LongConfigParam EVICTOR_EVICT_BYTES =
         new LongConfigParam("je.evictor.evictBytes",
                              new Long(1024),       // min
                              null,                 // max
                              new Long(524288),     // default
                              false,                // mutable
-                            false,                 // forReplication
-     "# When eviction happens, the evictor will push memory usage to this\n" +
-     "# number of bytes below je.maxMemory.  The default is 512KB and the\n" +
-     "# minimum is 1 KB (1024).");
+                             false,                // forReplication
+     "# When eviction occurs, the evictor will push memory usage to this\n" +
+     "# number of bytes below je.maxMemory.  The default is 512 KB and the\n" +
+     "# minimum is 1 KB (1024).  No more than 50% of je.maxMemory will be\n" +
+     "# evicted per eviction cycle, regardless of this setting.");
 
     /* @deprecated As of 2.0, this is replaced by je.evictor.evictBytes */
     public static final IntConfigParam EVICTOR_USEMEM_FLOOR =
@@ -546,7 +568,7 @@ public class EnvironmentParams {
                            false,                         // mutable
                            false,                         // forReplication
      "# The number of times to retry the evictor if it runs into a deadlock.");
-      
+
     public static final BooleanConfigParam EVICTOR_LRU_ONLY =
         new BooleanConfigParam("je.evictor.lruOnly",
                                true,                  // default
@@ -596,6 +618,7 @@ public class EnvironmentParams {
                            false,                          // mutable
                            false,                          // forReplication
      "# The number of times to retry a checkpoint if it runs into a deadlock.");
+
     /*
      * Cleaner
      */
@@ -630,7 +653,7 @@ public class EnvironmentParams {
      "# The cleaner checks disk utilization every time we write this many\n" +
      "# bytes to the log.  If zero (and by default) it is set to the\n" +
      "# je.log.fileMax value divided by four.");
-      
+
     public static final BooleanConfigParam CLEANER_FETCH_OBSOLETE_SIZE =
         new BooleanConfigParam("je.cleaner.fetchObsoleteSize",
                                false, // default
@@ -660,7 +683,7 @@ public class EnvironmentParams {
                             false,                  // forReplication
      "# The lock timeout for cleaner transactions in microseconds.\n" +
      "# The default is set to 0.5 seconds.");
-      
+
     public static final BooleanConfigParam CLEANER_REMOVE =
         new BooleanConfigParam("je.cleaner.expunge",
                                true,                 // default
@@ -710,7 +733,7 @@ public class EnvironmentParams {
      "# The minimum age of a file (number of files between it and the\n" +
      "# active file) to qualify it for cleaning under any conditions.\n" +
      "# The default is set to 2.");
-      
+
     public static final BooleanConfigParam CLEANER_CLUSTER =
         new BooleanConfigParam("je.cleaner.cluster",
                                false,               // default
@@ -721,7 +744,7 @@ public class EnvironmentParams {
      "# value, migrating them from low utilization files if they are\n" +
      "# resident.\n" +
      "# The cluster and clusterAll properties may not both be set to true.");
-      
+
     public static final BooleanConfigParam CLEANER_CLUSTER_ALL =
         new BooleanConfigParam("je.cleaner.clusterAll",
                                false,              // default
@@ -732,7 +755,7 @@ public class EnvironmentParams {
      "# value, migrating them from low utilization files whether or not\n" +
      "# they are resident.\n" +
      "# The cluster and clusterAll properties may not both be set to true.");
-      
+
     public static final IntConfigParam CLEANER_MAX_BATCH_FILES =
         new IntConfigParam("je.cleaner.maxBatchFiles",
                            new Integer(0),         // min
@@ -744,7 +767,7 @@ public class EnvironmentParams {
      "# zero if there is no limit.  Changing this property can impact the\n" +
      "# performance of some out-of-memory applications.");
 
-    public static final IntConfigParam CLEANER_READ_SIZE = 
+    public static final IntConfigParam CLEANER_READ_SIZE =
         new IntConfigParam("je.cleaner.readSize",
                            new Integer(128),  // min
                            null,              // max
@@ -753,7 +776,7 @@ public class EnvironmentParams {
                            false,             // forReplication
      "# The read buffer size for cleaning.  If zero (the default), then\n" +
      "# je.log.iteratorReadSize value is used.");
-      
+
     public static final BooleanConfigParam CLEANER_TRACK_DETAIL =
         new BooleanConfigParam("je.cleaner.trackDetail",
                                true,          // default
@@ -772,7 +795,7 @@ public class EnvironmentParams {
      "# Tracking of detailed cleaning information will use no more than\n" +
      "# this percentage of the cache.  The default value is two percent.\n" +
      "# This setting is only used if je.cleaner.trackDetail=true.");
-      
+
     public static final BooleanConfigParam CLEANER_RMW_FIX =
         new BooleanConfigParam("je.cleaner.rmwFix",
                                true,          // default
@@ -781,7 +804,7 @@ public class EnvironmentParams {
      "# If true, detail information is discarded that was added by earlier\n" +
      "# versions of JE if it may be invalid.  This may be set to false\n" +
      "# for increased performance, but only if LockMode.RMW was never used.");
-      
+
     public static final ConfigParam CLEANER_FORCE_CLEAN_FILES =
         new ConfigParam("je.cleaner.forceCleanFiles",
                         "",                  // default
@@ -803,7 +826,7 @@ public class EnvironmentParams {
      "# processing.  If the cleaner backlog becomes large, increase this\n" +
      "# value.  The default is set to 1.");
 
-    public static final IntConfigParam CLEANER_LOOK_AHEAD_CACHE_SIZE = 
+    public static final IntConfigParam CLEANER_LOOK_AHEAD_CACHE_SIZE =
         new IntConfigParam("je.cleaner.lookAheadCacheSize",
                            new Integer(0),    // min
                            null,              // max
@@ -926,7 +949,7 @@ public class EnvironmentParams {
 
     public static final ConfigParam JE_LOGGING_LEVEL_LOCKMGR =
         new ConfigParam("java.util.logging.level.lockMgr",
-                        "FINE", 
+                        "FINE",
                         false,                    // mutable
                         false,                    // forReplication
      "# Lock manager specific trace messages will be issued at this level.\n"+
@@ -934,7 +957,7 @@ public class EnvironmentParams {
 
     public static final ConfigParam JE_LOGGING_LEVEL_RECOVERY =
         new ConfigParam("java.util.logging.level.recovery",
-                        "FINE", 
+                        "FINE",
                          false,                   // mutable
                         false,                    // forReplication
      "# Recovery specific trace messages will be issued at this level.\n"+
@@ -942,7 +965,7 @@ public class EnvironmentParams {
 
     public static final ConfigParam JE_LOGGING_LEVEL_EVICTOR =
         new ConfigParam("java.util.logging.level.evictor",
-                        "FINE", 
+                        "FINE",
                          false,                   // mutable
                         false,                    // forReplication
      "# Evictor specific trace messages will be issued at this level.\n"+
@@ -957,18 +980,18 @@ public class EnvironmentParams {
      "# level. The Value should be one of the predefined \n" +
      "# java.util.logging.Level values");
 
-    /* 
+    /*
      * Replication params are in com.sleepycat.je.rep.impl.ReplicatorParams
      */
 
-    
+
     /*
      * Create a sample je.properties file.
      */
     public static void main(String argv[]) {
         if (argv.length != 2) {
             throw new IllegalArgumentException("Usage: EnvironmentParams " +
-                          "<includeReplicationParams, true|false> " + 
+                          "<includeReplicationParams, true|false> " +
                           "<samplePropertyFile>");
         }
 
@@ -982,13 +1005,13 @@ public class EnvironmentParams {
                  "# Example Berkeley DB, Java Edition property file\n" +
                  "# Each parameter is set to its default value\n" +
                  "####################################################\n\n");
-            
+
             while (iter.hasNext()) {
                 String paramName =(String) iter.next();
                 ConfigParam param =
                     (ConfigParam) SUPPORTED_PARAMS.get(paramName);
 
-                /* 
+                /*
                  * If we're not showing replication params, skip
                  * the appropriate ones.
                  */
@@ -1014,9 +1037,9 @@ public class EnvironmentParams {
             System.exit(-1);
         }
     }
-    
+
     /*
-     * Add a configuration parameter to the set supported by an 
+     * Add a configuration parameter to the set supported by an
      * environment.
      */
     public static void addSupportedParam(ConfigParam param) {

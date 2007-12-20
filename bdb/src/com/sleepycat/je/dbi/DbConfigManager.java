@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: DbConfigManager.java,v 1.38.2.1 2007/02/01 14:49:44 cwl Exp $
+ * $Id: DbConfigManager.java,v 1.38.2.2 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -33,7 +33,7 @@ import com.sleepycat.je.config.LongConfigParam;
  * defined in com.sleepycat.je.config.EnvironmentParams and can be represented
  * by a property described in the top level example.properties. Environment
  * parameters have some interesting twists because there are some attributes
- * that are scoped by handle, such as the commit durability (txnSync, 
+ * that are scoped by handle, such as the commit durability (txnSync,
  * txnNoSync, etc) parameters.
  *
  * DbConfigManager is instantiated first by the EnvironmentImpl, and is
@@ -44,7 +44,7 @@ import com.sleepycat.je.config.LongConfigParam;
  */
 public class DbConfigManager {
 
-    /* 
+    /*
      * The name of the JE properties file, to be found in the environment
      * directory.
      */
@@ -56,9 +56,9 @@ public class DbConfigManager {
      */
     private Properties props;
 
-    /* 
+    /*
      * Save a reference to the environment config to access debug properties
-     * that are fields in EnvironmentConfig, must be set before the 
+     * that are fields in EnvironmentConfig, must be set before the
      * environment is created, and are not represented as JE properties.
      */
     private EnvironmentConfig environmentConfig;
@@ -88,8 +88,8 @@ public class DbConfigManager {
         return environmentConfig;
     }
 
-    /* 
-     * Parameter Access 
+    /*
+     * Parameter Access
      */
 
     /**
@@ -241,7 +241,7 @@ public class DbConfigManager {
 
         File paramFile = null;
         try {
-	    Properties fileProps = new Properties();	 
+	    Properties fileProps = new Properties();	
 	    if (envHome != null) {
 		if (envHome.isFile()) {
 		    paramFile = envHome;
@@ -257,7 +257,7 @@ public class DbConfigManager {
             validateProperties(fileProps,
                                forReplication,
                                errorClassName);
-                
+
             /* Add them to the configuration object. */
             Iterator iter = fileProps.entrySet().iterator();
             while (iter.hasNext()) {
@@ -267,19 +267,19 @@ public class DbConfigManager {
                 setConfigParam(props,
                                name,
                                value,
-                               false, /* don't need mutability, we're 
+                               false, /* don't need mutability, we're
                                          initializing */
                                false, /* value already validated when set in
                                           config object */
                                forReplication);
             }
-        } catch (FileNotFoundException e) {	 
-            
-            /* 
+        } catch (FileNotFoundException e) {	
+
+            /*
              * Klockwork - ok
              * Eat the exception, okay if the file doesn't exist.
              */
-        } catch (IOException e) {	 
+        } catch (IOException e) {	
             IllegalArgumentException e2 = new IllegalArgumentException
                 ("An error occurred when reading " + paramFile);
             e2.initCause(e);
@@ -289,10 +289,10 @@ public class DbConfigManager {
 
     /**
      * Helper method for environment and replicator configuration classes.
-     * Set a configuration parameter. Check that the name is valid. 
+     * Set a configuration parameter. Check that the name is valid.
      * If specified, also check that the value is valid.Value checking
      * may be disabled for unit testing.
-     * 
+     *
      * @param props Property bag held within the configuration object.
      */
     public static void setConfigParam(Properties props,
@@ -300,9 +300,9 @@ public class DbConfigManager {
                                       String value,
                                       boolean requireMutability,
                                       boolean validateValue,
-                                      boolean forReplication) 
+                                      boolean forReplication)
         throws IllegalArgumentException {
-        
+
         /* Is this a valid property name? */
         ConfigParam param =
             (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(paramName);
@@ -342,7 +342,7 @@ public class DbConfigManager {
      */
     public static String getConfigParam(Properties props, String paramName)
         throws IllegalArgumentException {
-        
+
         /* Is this a valid property name? */
         ConfigParam param =
             (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(paramName);
@@ -359,7 +359,7 @@ public class DbConfigManager {
      * Helper method for environment and replicator configuration classes.
      * Gets either the value stored in this configuration or the
      * default value for this param.
-     */   
+     */
     public static String getVal(Properties props, ConfigParam param) {
         String val = props.getProperty(param.getName());
         if (val == null) {

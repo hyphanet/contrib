@@ -3,13 +3,14 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: IN.java,v 1.295.2.5 2007/07/02 19:54:52 mark Exp $
+ * $Id: IN.java,v 1.295.2.11 2007/12/14 01:43:27 mark Exp $
  */
 
 package com.sleepycat.je.tree;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
@@ -34,7 +35,9 @@ import com.sleepycat.je.log.LogFileNotFoundException;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.log.entry.INLogEntry;
+import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
 
@@ -62,8 +65,8 @@ public class IN extends Node implements Comparable, Loggable {
     private static final int THREE_BYTE_NEGATIVE_ONE = 0xffffff;
     private static final int GROWTH_INCREMENT = 5; // for future
 
-    /* 
-     * Levels: 
+    /*
+     * Levels:
      * The mapping tree has levels in the 0x20000 -> 0x2ffffnumber space.
      * The main tree has levels in the 0x10000 -> 0x1ffff number space.
      * The duplicate tree levels are in 0-> 0xffff number space.
@@ -159,7 +162,7 @@ public class IN extends Node implements Comparable, Loggable {
      * Create an empty IN, with no node id, to be filled in from the log.
      */
     public IN() {
-        super(false); 
+        super(false);
         init(null, Key.EMPTY_KEY, 0, 0);
     }
 
@@ -211,7 +214,7 @@ public class IN extends Node implements Comparable, Loggable {
         inMemorySize = computeMemorySize();
     }
 
-    /* 
+    /*
      * To get an inexpensive but random distribution of INs in the INList,
      * equality and comparison for INs is based on a combination of the node
      * id and identify hash code. Note that this will still give a correct
@@ -220,9 +223,9 @@ public class IN extends Node implements Comparable, Loggable {
     private long getEqualityKey() {
         int hash = System.identityHashCode(this);
         long hash2 = (((long) hash) << 32) | hash;
-        return hash2 ^ getNodeId(); 
+        return hash2 ^ getNodeId();
     }
-    
+
     public boolean equals(Object obj) {
         if (!(obj instanceof IN)) {
             return false;
@@ -305,7 +308,7 @@ public class IN extends Node implements Comparable, Loggable {
     void setLastFullLsn(long lsn) {
         lastFullVersion = lsn;
     }
-        
+
     /**
      * Returns the last logged LSN, or null if never logged.  Is public for
      * unit testing.
@@ -383,7 +386,7 @@ public class IN extends Node implements Comparable, Loggable {
 
         return latchNoWait(true);
     }
-    
+
     /**
      * Release the latch on this node.
      */
@@ -528,8 +531,8 @@ public class IN extends Node implements Comparable, Loggable {
     public void setDatabase(DatabaseImpl db) {
         databaseImpl = db;
     }
-        
-    /* 
+
+    /*
      * Get the database id for this node.
      */
     public DatabaseId getDatabaseId() {
@@ -697,7 +700,7 @@ public class IN extends Node implements Comparable, Loggable {
 		    return;
 		}
 		baseFileNumber = thisFileNumber;
-	    } 
+	    }
 	    long fileNumberDifference = thisFileNumber - baseFileNumber;
 	    if (fileNumberDifference > Byte.MAX_VALUE) {
 		mutateToLongArray(idx, value);
@@ -931,7 +934,7 @@ public class IN extends Node implements Comparable, Loggable {
      *
      * @return the target node or null.
      */
-    public Node fetchTarget(int idx) 
+    public Node fetchTarget(int idx)
         throws DatabaseException {
 
         if (entryTargets[idx] == null) {
@@ -952,11 +955,20 @@ public class IN extends Node implements Comparable, Loggable {
             } else {
                 try {
                     EnvironmentImpl env = databaseImpl.getDbEnvironment();
-                    Node node = (Node) env.getLogManager().get(lsn);
+                    LogEntry logEntry = env.getLogManager().getLogEntry(lsn);
+                    Node node = (Node) logEntry.getMainItem();
                     node.postFetchInit(databaseImpl, lsn);
 		    assert isLatchOwnerForWrite();
                     entryTargets[idx] = node;
                     updateMemorySize(null, node);
+                    /* Ensure keys are transactionally correct. [#15704] */
+                    if (logEntry instanceof LNLogEntry) {
+                        LNLogEntry lnEntry = (LNLogEntry) logEntry;
+                        updateKeyIfChanged
+                            (idx, containsDuplicates() ?
+                                lnEntry.getDupKey() :
+                                lnEntry.getKey());
+                    }
                 } catch (LogFileNotFoundException LNFE) {
                     if (!isEntryKnownDeleted(idx) &&
                         !isEntryPendingDeleted(idx)) {
@@ -1022,7 +1034,7 @@ public class IN extends Node implements Comparable, Loggable {
 			 byte[] keyVal,
                          long lsn,
 			 byte state) {
-        
+
 	long oldSize = getEntryInMemorySize(idx);
 	int newNEntries = idx + 1;
         if (newNEntries > nEntries) {
@@ -1082,6 +1094,54 @@ public class IN extends Node implements Comparable, Loggable {
 	long newSize = getEntryInMemorySize(idx);
         updateMemorySize(oldSize, newSize);
         setDirty(true);
+    }
+
+    /**
+     * Updates the idx'th key of this node if it is not identical to the given
+     * key. [#15704]
+     *
+     * This method is called when an LN is fetched in order to ensure the key
+     * slot is transactionally correct.  A key can change in three
+     * circumstances, when a key comparator is configured that may not compare
+     * all bytes of the key:
+     *
+     * 1) The user calls Cursor.putCurrent to update the data of a duplicate
+     * data item.  CursorImpl.putCurrent will call this method to update the
+     * key.
+     *
+     * 2) A transaction aborts or a BIN becomes out of date due to the
+     * non-transactional nature of INs.  The Node is set to null during abort
+     * and recovery.  IN.fetchCurrent will call this method to update the key.
+     *
+     * 3) A slot for a deleted LN is reused.  The key in the slot is updated
+     * by IN.updateEntry along with the node and LSN.
+     *
+     * Note that transaction abort and recovery of BIN (and DBIN) entries may
+     * cause incorrect keys to be present in the tree, since these entries are
+     * non-transactional.  However, an incorrect key in a BIN slot may only be
+     * present when the node in that slot is null.  Undo/redo sets the node to
+     * null.  When the LN node is fetched, the key in the slot is set to the
+     * LN's key (or data for DBINs), which is the source of truth and is
+     * transactionally correct.
+     */
+    public void updateKeyIfChanged(int idx, byte[] newKey) {
+
+        /*
+         * The new key may be null if the LN was deleted, in which case there
+         * is no need to update it.  There is no need to compare keys if there
+         * is no comparator configured, since a key cannot be changed when the
+         * default comparator is used.
+         */
+        if (newKey != null &&
+            getKeyComparator() != null) {
+            byte[] oldKey = getKey(idx);
+            if (!Arrays.equals(newKey, oldKey)) {
+                setKey(idx, newKey);
+                updateMemorySize(MemoryBudget.byteArraySize(oldKey.length),
+                                 MemoryBudget.byteArraySize(newKey.length));
+                setDirty(true);
+            }
+        }
     }
 
     /**
@@ -1158,7 +1218,7 @@ public class IN extends Node implements Comparable, Loggable {
         if (databaseImpl.isDeferredWrite() &&
             (newLsn == DbLsn.NULL_LSN)) {
             return false;
-        } else 
+        } else
             return true;
     }
 
@@ -1177,7 +1237,7 @@ public class IN extends Node implements Comparable, Loggable {
             Tracer.trace(Level.INFO,
                          databaseImpl.getDbEnvironment(),
                          msg);
-                         
+
             System.out.println(msg);
 
             return false;
@@ -1195,7 +1255,7 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     private long getEntryInMemorySize(int idx) {
-	return getEntryInMemorySize(entryKeyVals[idx], 
+	return getEntryInMemorySize(entryKeyVals[idx],
                                     entryTargets[idx]);
     }
 
@@ -1243,10 +1303,10 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     /* Called once at environment startup by MemoryBudget. */
-    public static long computeOverhead(DbConfigManager configManager) 
+    public static long computeOverhead(DbConfigManager configManager)
         throws DatabaseException {
 
-        /* 
+        /*
 	 * Overhead consists of all the fields in this class plus the
 	 * entry arrays in the IN class.
          */
@@ -1258,12 +1318,13 @@ public class IN extends Node implements Comparable, Loggable {
 	if (entryLsnLongArray == null) {
 	    return MemoryBudget.byteArraySize(entryLsnByteArray.length);
 	} else {
-	    return MemoryBudget.BYTE_ARRAY_OVERHEAD +
-		entryLsnLongArray.length * MemoryBudget.LONG_OVERHEAD;
+	    return MemoryBudget.ARRAY_OVERHEAD +
+		(entryLsnLongArray.length *
+                 MemoryBudget.PRIMITIVE_LONG_ARRAY_ITEM_OVERHEAD);
 	}
     }
 
-    protected static long computeArraysOverhead(DbConfigManager configManager) 
+    protected static long computeArraysOverhead(DbConfigManager configManager)
         throws DatabaseException {
 
         /* Count three array elements: states, Keys, and Nodes */
@@ -1271,9 +1332,9 @@ public class IN extends Node implements Comparable, Loggable {
         return
             MemoryBudget.byteArraySize(capacity) + // state array
             (capacity *
-	     (2 * MemoryBudget.ARRAY_ITEM_OVERHEAD)); // keys + nodes
+	     (2 * MemoryBudget.OBJECT_ARRAY_ITEM_OVERHEAD)); // keys + nodes
     }
-    
+
     /* Overridden by subclasses. */
     protected long getMemoryOverhead(MemoryBudget mb) {
         return mb.getINOverhead();
@@ -1414,7 +1475,7 @@ public class IN extends Node implements Comparable, Loggable {
             entryZeroKeyComparesLow() && !exact && !indicateIfDuplicate;
 
         assert nEntries >= 0;
-        
+
         while (low <= high) {
             middle = (high + low) / 2;
             int s;
@@ -1445,7 +1506,7 @@ public class IN extends Node implements Comparable, Loggable {
             }
         }
 
-        /* 
+        /*
 	 * No match found.  Either return -1 if caller wanted exact matches
 	 * only, or return entry for which arg key is > entry key.
 	 */
@@ -1508,7 +1569,7 @@ public class IN extends Node implements Comparable, Loggable {
 	if (nEntries < entryTargets.length) {
 	    byte[] key = entry.getKey();
 
-	    /* 
+	    /*
 	     * Search without requiring an exact match, but do let us know the
 	     * index of the match if there is one.
 	     */
@@ -1516,14 +1577,14 @@ public class IN extends Node implements Comparable, Loggable {
 
 	    if (index >= 0 && (index & EXACT_MATCH) != 0) {
 
-		/* 
+		/*
 		 * There is an exact match.  Don't insert; let the caller
 		 * decide what to do with this duplicate.
 		 */
 		return index;
 	    } else {
 
-		/* 
+		/*
 		 * There was no key match, so insert to the right of this
 		 * entry.
 		 */
@@ -1534,7 +1595,7 @@ public class IN extends Node implements Comparable, Loggable {
 	    if (index < nEntries) {
 		int oldSize = computeLsnOverhead();
 
-		/* 
+		/*
 		 * Adding elements to the LSN array can change the space used.
 		 */
 		shiftEntriesRight(index);
@@ -1604,7 +1665,7 @@ public class IN extends Node implements Comparable, Loggable {
 	}
 
         /* Check the subtree validation only if maybeValidate is true. */
-        assert maybeValidate ? 
+        assert maybeValidate ?
             validateSubtreeBeforeDelete(index) :
             true;
 
@@ -1621,7 +1682,7 @@ public class IN extends Node implements Comparable, Loggable {
 	    setDirty(true);
 	    setProhibitNextDelta();
 
-	    /* 
+	    /*
 	     * Note that we don't have to adjust cursors for delete, since
 	     * there should be nothing pointing at this record.
 	     */
@@ -1641,7 +1702,7 @@ public class IN extends Node implements Comparable, Loggable {
     /* Called by the incompressor. */
     public boolean compress(BINReference binRef,
                             boolean canFetch,
-                            UtilizationTracker tracker) 
+                            UtilizationTracker tracker)
         throws DatabaseException {
 
 	return false;
@@ -1651,7 +1712,7 @@ public class IN extends Node implements Comparable, Loggable {
         return false;
     }
 
-    /* 
+    /*
      * Validate the subtree that we're about to delete.  Make sure there aren't
      * more than one valid entry on each IN and that the last level of the tree
      * is empty. Also check that there are no cursors on any bins in this
@@ -1666,10 +1727,10 @@ public class IN extends Node implements Comparable, Loggable {
      */
     boolean validateSubtreeBeforeDelete(int index)
         throws DatabaseException {
-        
+
 	if (index >= nEntries) {
 
-	    /* 
+	    /*
 	     * There's no entry here, so of course this entry is deletable.
 	     */
 	    return true;
@@ -1719,7 +1780,7 @@ public class IN extends Node implements Comparable, Loggable {
 				 int splitIndex)
         throws DatabaseException {
 
-        /* 
+        /*
          * Find the index of the existing identifierKey so we know which IN
          * (new or old) to put it in.
          */
@@ -1737,7 +1798,7 @@ public class IN extends Node implements Comparable, Loggable {
 
         if (idKeyIndex < splitIndex) {
 
-            /* 
+            /*
              * Current node (this) keeps left half entries.  Right half entries
              * will go in the new node.
              */
@@ -1745,7 +1806,7 @@ public class IN extends Node implements Comparable, Loggable {
             high = nEntries;
         } else {
 
-            /* 
+            /*
 	     * Current node (this) keeps right half entries.  Left half entries
 	     * and entry[0] will go in the new node.
 	     */
@@ -1760,7 +1821,7 @@ public class IN extends Node implements Comparable, Loggable {
         newSibling.latch();
         long oldMemorySize = inMemorySize;
 	try {
-        
+
 	    int toIdx = 0;
 	    boolean deletedEntrySeen = false;
 	    BINReference binRef = null;
@@ -1789,7 +1850,7 @@ public class IN extends Node implements Comparable, Loggable {
 
 	    int newSiblingNEntries = (high - low);
 
-	    /* 
+	    /*
 	     * Remove the entries that we just copied into newSibling from this
 	     * node.
 	     */
@@ -1803,7 +1864,7 @@ public class IN extends Node implements Comparable, Loggable {
 
 	    adjustCursors(newSibling, low, high);
 
-	    /* 
+	    /*
 	     * Parent refers to child through an element of the entries array.
 	     * Depending on which half of the BIN we copied keys from, we
 	     * either have to adjust one pointer and add a new one, or we have
@@ -1836,7 +1897,7 @@ public class IN extends Node implements Comparable, Loggable {
 	     */
 	    if (low == 0) {
 
-		/* 
+		/*
 		 * Change the original entry to point to the new child and add
 		 * an entry to point to the newly logged version of this
 		 * existing child.
@@ -1853,7 +1914,7 @@ public class IN extends Node implements Comparable, Loggable {
 		assert insertOk;
 	    } else {
 
-		/* 
+		/*
 		 * Update the existing child's LSN to reflect the newly logged
 		 * version and insert new child into parent.
 		 */
@@ -1874,8 +1935,8 @@ public class IN extends Node implements Comparable, Loggable {
 	    }
 
 	    parentLsn = parent.optionalLog(logManager);
-            
-            /* 
+
+            /*
              * Maintain dirtiness if this is the root, so this parent
              * will be checkpointed. Other parents who are not roots
              * are logged as part of the propagation of splits
@@ -1885,14 +1946,14 @@ public class IN extends Node implements Comparable, Loggable {
                 parent.setDirty(true);
             }
 
-            /* 
+            /*
              * Update size. newSibling and parent are correct, but this IN has
              * had its entries shifted and is not correct.
              */
             long newSize = computeMemorySize();
             updateMemorySize(oldMemorySize, newSize);
 	    inMemoryINs.add(newSibling);
-        
+
 	    /* Debug log this information. */
 	    traceSplit(Level.FINE, parent,
 		       newSibling, parentLsn, myNewLsn,
@@ -2032,17 +2093,17 @@ public class IN extends Node implements Comparable, Loggable {
      * Add self and children to this in-memory IN list. Called by recovery, can
      * run with no latching.
      */
-    void rebuildINList(INList inList) 
+    void rebuildINList(INList inList)
         throws DatabaseException {
 
-        /* 
+        /*
          * Recompute your in memory size first and then add yourself to the
          * list.
          */
         initMemorySize();
         inList.add(this);
 
-        /* 
+        /*
          * Add your children if they're resident. (LNs know how to stop the
          * flow).
          */
@@ -2060,7 +2121,7 @@ public class IN extends Node implements Comparable, Loggable {
      * obsolete.
      */
     void accountForSubtreeRemoval(INList inList,
-                                  UtilizationTracker tracker) 
+                                  UtilizationTracker tracker)
         throws DatabaseException {
 
         if (nEntries > 1) {
@@ -2099,7 +2160,7 @@ public class IN extends Node implements Comparable, Loggable {
     boolean isValidForDelete()
         throws DatabaseException {
 
-	/* 
+	/*
 	 * Can only have one valid child, and that child should be
 	 * deletable.
 	 */
@@ -2201,7 +2262,7 @@ public class IN extends Node implements Comparable, Loggable {
                 }
                 return;
             }
-            
+
             /*
              * Get the child node that matches.  If fetchTarget returns null, a
              * deleted LN was cleaned.
@@ -2239,12 +2300,12 @@ public class IN extends Node implements Comparable, Loggable {
                 result.keepSearching = false;
                 return;
             }
-            
+
             if (child == null) {
                 assert !doFetch;
 
                 /*
-                 * This node will be the possible parent. 
+                 * This node will be the possible parent.
                  */
                 result.keepSearching = false;
                 result.exactParentFound = false;
@@ -2255,7 +2316,7 @@ public class IN extends Node implements Comparable, Loggable {
 
             long childLsn = getLsn(result.index);
 
-            /* 
+            /*
              * Note that if the child node needs latching, it's done in
              * isSoughtNode.
              */
@@ -2267,7 +2328,7 @@ public class IN extends Node implements Comparable, Loggable {
                 return;
             } else {
 
-                /* 
+                /*
                  * Decide whether we can descend, or the search is going to be
                  * unsuccessful or whether this node is going to be the future
                  * parent. It depends on what this node is, the target, and the
@@ -2283,11 +2344,11 @@ public class IN extends Node implements Comparable, Loggable {
                 /* If we're tracking, save the lsn and node id */
                 if (trackingList != null) {
                     if ((result.parent != this) && (result.parent != null)) {
-                        trackingList.add(new TrackingInfo(childLsn, 
+                        trackingList.add(new TrackingInfo(childLsn,
                                                           child.getNodeId()));
                     }
                 }
-                return; 
+                return;
             }
         }
     }
@@ -2303,12 +2364,12 @@ public class IN extends Node implements Comparable, Loggable {
                                          boolean targetIsRoot,
                                          long targetNodeId,
                                          Node child,
-                                         boolean requireExactMatch) 
+                                         boolean requireExactMatch)
         throws DatabaseException {
 
         if (child.canBeAncestor(targetContainsDuplicates)) {
             /* We can search further. */
-            releaseLatch();     
+            releaseLatch();
             result.parent = (IN) child;
         } else {
 
@@ -2346,7 +2407,7 @@ public class IN extends Node implements Comparable, Loggable {
         }
     }
 
-    /* 
+    /*
      * An IN can be an ancestor of any internal node.
      */
     protected boolean canBeAncestor(boolean targetContainsDuplicates) {
@@ -2417,6 +2478,16 @@ public class IN extends Node implements Comparable, Loggable {
     boolean isEvictionProhibited() {
 
         if (isDbRoot()) {
+
+            /*
+             * Disallow root IN eviction if DB eviction is not enabled.  Root
+             * eviction is currently experimental and known to cause assertions
+             * to fire because DbTree.modifyDbRoot (which locks the MapLN) is
+             * called while holding the INList latch. [#15805]
+             */
+            if (!databaseImpl.getDbEnvironment().getDbEviction()) {
+                return true;
+            }
 
             /*
              * Disallow eviction of a dirty DW DB root, since logging the MapLN
@@ -2507,22 +2578,22 @@ public class IN extends Node implements Comparable, Loggable {
      *
      * If this happens, INa is in the selected dirty set, but not its dirty
      * child BINb and new child BINc.
-     * 
+     *
      * In a durable db, the existence of BINb and BINc are logged
-     * anyway. But in a deferred write db, there is an entry that points to 
+     * anyway. But in a deferred write db, there is an entry that points to
      * BINc, but no logged version.
      *
-     * This will not cause problems with eviction, because INa can't be 
+     * This will not cause problems with eviction, because INa can't be
      * evicted until BINb and BINc are logged, are non-dirty, and are detached.
      * But it can cause problems at recovery, because INa will have a null LSN
      * for a valid entry, and the LN children of BINc will not find a home.
      * To prevent this, search for all dirty children that might have been
-     * missed during the selection phase, and write them out. It's not 
+     * missed during the selection phase, and write them out. It's not
      * sufficient to write only null-LSN children, because the existing sibling
      * must be logged lest LN children recover twice (once in the new sibling,
      * once in the old existing sibling.
      */
-    public void logDirtyChildren() 
+    public void logDirtyChildren()
         throws DatabaseException {
 
         EnvironmentImpl envImpl = getDatabase().getDbEnvironment();
@@ -2539,11 +2610,11 @@ public class IN extends Node implements Comparable, Loggable {
                         child.logDirtyChildren();
                         long childLsn =
                             child.log(envImpl.getLogManager(),
-                                      false, // allow deltas 
-                                      true,  // is provisional 
+                                      false, // allow deltas
+                                      true,  // is provisional
                                       false, // proactive migration
                                       true,  // backgroundIO
-                                      this); // provisional parent 
+                                      this); // provisional parent
                         updateEntry(i, childLsn);
                     }
                 } finally {
@@ -2552,7 +2623,7 @@ public class IN extends Node implements Comparable, Loggable {
             }
         }
     }
-        
+
     /**
      * Log this IN and clear the dirty flag.
      */
@@ -2771,7 +2842,7 @@ public class IN extends Node implements Comparable, Loggable {
     public void writeToLog(ByteBuffer logBuffer) {
 
         // ancestors
-        super.writeToLog(logBuffer); 
+        super.writeToLog(logBuffer);
 
         // identifier key
         LogUtils.writeByteArray(logBuffer, identifierKey);
@@ -2780,13 +2851,13 @@ public class IN extends Node implements Comparable, Loggable {
         LogUtils.writeBoolean(logBuffer, isRoot);
 
         // nEntries
-        LogUtils.writeInt(logBuffer, nEntries); 
+        LogUtils.writeInt(logBuffer, nEntries);
 
         // level
-        LogUtils.writeInt(logBuffer, level); 
+        LogUtils.writeInt(logBuffer, level);
 
         // length of entries array
-        LogUtils.writeInt(logBuffer, entryTargets.length); 
+        LogUtils.writeInt(logBuffer, entryTargets.length);
 
 	// true if compact representation
 	boolean compactLsnsRep = (entryLsnLongArray == null);
@@ -2824,7 +2895,7 @@ public class IN extends Node implements Comparable, Loggable {
         }
     }
 
-    /* 
+    /*
      * Used for assertion to prevent writing a null lsn to the log.
      */
     private boolean checkForNullLSN(int index) {
@@ -2844,7 +2915,7 @@ public class IN extends Node implements Comparable, Loggable {
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
         throws LogException {
 
-        // ancestors 
+        // ancestors
         super.readFromLog(itemBuffer, entryTypeVersion);
 
         // identifier key
@@ -2917,7 +2988,7 @@ public class IN extends Node implements Comparable, Loggable {
 
         latch.setName(shortClassName() + getNodeId());
     }
-    
+
     /**
      * @see Loggable#dumpLog
      */
@@ -2927,17 +2998,17 @@ public class IN extends Node implements Comparable, Loggable {
         super.dumpLog(sb, verbose);
         sb.append(Key.dumpString(identifierKey, 0));
 
-        // isRoot
+        /* isRoot */
         sb.append("<isRoot val=\"");
         sb.append(isRoot);
         sb.append("\"/>");
 
-        // level
+        /* level */
         sb.append("<level val=\"");
         sb.append(Integer.toHexString(level));
         sb.append("\"/>");
 
-        // nEntries, length of entries array
+        /* nEntries, length of entries array */
         sb.append("<entries numEntries=\"");
         sb.append(nEntries);
         sb.append("\" length=\"");
@@ -2970,7 +3041,7 @@ public class IN extends Node implements Comparable, Loggable {
         sb.append(endTag());
     }
 
-    /** 
+    /**
      * Allows subclasses to add additional fields before the end tag. If they
      * just overload dumpLog, the xml isn't nested.
      */

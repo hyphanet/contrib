@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MakeLogEntryVersionData.java,v 1.11.2.2 2007/03/31 22:06:14 mark Exp $
+ * $Id: MakeLogEntryVersionData.java,v 1.11.2.3 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -118,7 +118,7 @@ public class MakeLogEntryVersionData {
         for (int i = 0; i < 2; i += 1) {
             boolean transactional = (i == 0);
             String dbName = transactional ? Utils.DB1_NAME : Utils.DB2_NAME;
-            
+
             DatabaseConfig dbConfig = new DatabaseConfig();
             dbConfig.setAllowCreate(true);
             dbConfig.setTransactional(transactional);

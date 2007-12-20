@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnEnd.java,v 1.33.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: TxnEnd.java,v 1.33.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -29,7 +29,7 @@ public abstract class TxnEnd implements Loggable {
         time = new Timestamp(System.currentTimeMillis());
         this.lastLsn = lastLsn;
     }
-    
+
     /**
      * For constructing from the log
      */

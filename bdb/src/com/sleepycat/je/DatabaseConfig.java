@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseConfig.java,v 1.34.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: DatabaseConfig.java,v 1.34.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -56,7 +56,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public void setAllowCreate(boolean allowCreate) {
         this.allowCreate = allowCreate;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -72,7 +72,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public void setExclusiveCreate(boolean exclusiveCreate) {
         this.exclusiveCreate = exclusiveCreate;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -80,7 +80,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public boolean getExclusiveCreate() {
         return exclusiveCreate;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -88,7 +88,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public void setSortedDuplicates(boolean duplicatesAllowed) {
         this.duplicatesAllowed = duplicatesAllowed;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -96,7 +96,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public boolean getSortedDuplicates() {
         return duplicatesAllowed;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -104,7 +104,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public void setTransactional(boolean transactional) {
         this.transactional = transactional;
-    } 
+    }
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
@@ -119,7 +119,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -127,7 +127,7 @@ public class DatabaseConfig implements Cloneable {
      */
     public boolean getReadOnly() {
         return readOnly;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -410,15 +410,15 @@ public class DatabaseConfig implements Cloneable {
 	if (!txnMatch) {
 	    ret.append(" Transactional\n");
 	}
-	    
+	
 	if (!roMatch) {
 	    ret.append(" Read-Only\n");
 	}
-	    
+	
 	if (!sdMatch) {
 	    ret.append(" Sorted Duplicates\n");
 	}
-	    
+	
         if (!dwMatch) {
             ret.append(" Deferred Write");
         }
@@ -426,7 +426,7 @@ public class DatabaseConfig implements Cloneable {
 	if (!btCmpMatch) {
 	    ret.append(" Btree Comparator\n");
 	}
-	    
+	
 	if (!dtCmpMatch) {
 	    ret.append(" Duplicate Comparator\n");
 	}
@@ -437,7 +437,7 @@ public class DatabaseConfig implements Cloneable {
     /**
      * Check that this comparator can be serialized by JE.
      */
-    private Comparator validateComparator(Comparator comparator, String type) 
+    private Comparator validateComparator(Comparator comparator, String type)
         throws IllegalArgumentException {
 
 	if (comparator == null) {
@@ -458,7 +458,7 @@ public class DatabaseConfig implements Cloneable {
     /**
      * Check that this comparator class can be instantiated by JE.
      */
-    private Comparator validateComparator(Class comparator, String type) 
+    private Comparator validateComparator(Class comparator, String type)
         throws IllegalArgumentException {
 
 	if (comparator == null) {
@@ -490,7 +490,7 @@ public class DatabaseConfig implements Cloneable {
      * Check that this database configuration is valid for a new, non-existant
      * database.
      */
-    void validateForNewDb() 
+    void validateForNewDb()
         throws DatabaseException {
 
         if (readOnly) {

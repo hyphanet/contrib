@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BasicCursor.java,v 1.8.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: BasicCursor.java,v 1.8.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -190,7 +190,7 @@ class BasicCursor<V> implements EntityCursor<V> {
 
         cursor.close();
     }
-    
+
     void checkInitialized()
         throws IllegalStateException {
 

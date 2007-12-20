@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCompat.java,v 1.21.2.1 2007/02/01 14:49:40 cwl Exp $
+ * $Id: DbCompat.java,v 1.21.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.compat;
@@ -146,54 +146,54 @@ public class DbCompat {
 
         DbInternal.dbGetDatabaseImpl(db).sync(flushLog);
     }
-    
+
     public static OperationStatus getCurrentRecordNumber(Cursor cursor,
-                                                         DatabaseEntry key, 
-                                                         LockMode lockMode) 
+                                                         DatabaseEntry key,
+                                                         LockMode lockMode)
         throws DatabaseException {
 
         throw new UnsupportedOperationException();
     }
-    
+
     public static OperationStatus getSearchRecordNumber(Cursor cursor,
                                                         DatabaseEntry key,
                                                         DatabaseEntry data,
-                                                        LockMode lockMode) 
+                                                        LockMode lockMode)
         throws DatabaseException {
 
         throw new UnsupportedOperationException();
     }
-    
+
     public static OperationStatus getSearchRecordNumber(SecondaryCursor cursor,
                                                         DatabaseEntry key,
                                                         DatabaseEntry pKey,
                                                         DatabaseEntry data,
-                                                        LockMode lockMode) 
+                                                        LockMode lockMode)
         throws DatabaseException {
 
         throw new UnsupportedOperationException();
     }
-    
+
     public static OperationStatus putAfter(Cursor cursor,
                                            DatabaseEntry key,
-                                           DatabaseEntry data) 
+                                           DatabaseEntry data)
         throws DatabaseException {
 
         throw new UnsupportedOperationException();
     }
-    
+
     public static OperationStatus putBefore(Cursor cursor,
                                             DatabaseEntry key,
-                                            DatabaseEntry data) 
+                                            DatabaseEntry data)
         throws DatabaseException {
 
         throw new UnsupportedOperationException();
     }
-    
+
     public static OperationStatus append(Database db,
                                          Transaction txn,
                                          DatabaseEntry key,
-                                         DatabaseEntry data) 
+                                         DatabaseEntry data)
         throws DatabaseException {
 
         throw new UnsupportedOperationException();

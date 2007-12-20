@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LNFileReader.java,v 1.59.2.2 2007/03/08 22:32:55 mark Exp $
+ * $Id: LNFileReader.java,v 1.59.2.4 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -31,32 +31,32 @@ import com.sleepycat.je.txn.TxnPrepare;
  */
 public class LNFileReader extends FileReader {
 
-    /* 
+    /*
      * targetEntryMap maps DbLogEntryTypes to log entries. We use this
      * collection to find the right LogEntry instance to read in the current
      * entry.
      */
     protected Map targetEntryMap;
     protected LogEntry targetLogEntry;
-        
+
     /**
      * Create this reader to start at a given LSN.
      * @param env The relevant EnvironmentImpl
      * @param readBufferSize buffer size in bytes for reading in log
      * @param startLsn where to start in the log
-     * @param redo If false, we're going to go forward from
-     *             the start LSN to the end of the log. If true, we're going
-     *             backwards from the end of the log to the start LSN. 
+     * @param redo If true, we're going to go forward from
+     *             the start LSN to the end of the log. If false, we're going
+     *             backwards from the end of the log to the start LSN.
+     * @param finishLsn the last LSN to read in the log.  May be null if we
+     *  want to read to the end of the log.
      * @param endOfFileLsn the virtual LSN that marks the end of the log. (The
      *  one off the end of the log). Only used if we're reading backwards.
      *  Different from the startLsn because the startLsn tells us where the
      *  beginning of the start entry is, but not the length/end of the start
      *  entry. May be null if we're going foward.
-     * @param finishLsn the last LSN to read in the log. May be null if we
-     *  want to read to the end of the log.
      */
     public LNFileReader(EnvironmentImpl env,
-                        int readBufferSize, 
+                        int readBufferSize,
                         long startLsn,
                         boolean redo,
                         long endOfFileLsn,
@@ -76,7 +76,7 @@ public class LNFileReader extends FileReader {
         targetEntryMap.put(entryType, entryType.getNewLogEntry());
     }
 
-    /** 
+    /**
      * @return true if this is a transactional LN or Locker Commit entry.
      */
     protected boolean isTargetEntry(byte entryTypeNum,
@@ -88,7 +88,7 @@ public class LNFileReader extends FileReader {
         } else {
             LogEntryType fromLogType =
                 new LogEntryType(entryTypeNum, entryTypeVersion);
-                                                            
+
             /* Is it a target entry? */
             targetLogEntry = (LogEntry) targetEntryMap.get(fromLogType);
         }

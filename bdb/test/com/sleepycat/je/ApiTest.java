@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ApiTest.java,v 1.15.2.1 2007/02/01 14:50:04 cwl Exp $
+ * $Id: ApiTest.java,v 1.15.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -15,7 +15,7 @@ import junit.framework.TestCase;
  * Test parameter handling for api methods.
  */
 public class ApiTest extends TestCase {
-    
+
     public void testBasic()
         throws Exception {
 

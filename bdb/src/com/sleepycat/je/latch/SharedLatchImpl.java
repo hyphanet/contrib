@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SharedLatchImpl.java,v 1.9.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: SharedLatchImpl.java,v 1.9.2.3 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -18,12 +18,12 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 
 /**
  * Simple thread-based non-transactional reader-writer/shared-exclusive latch.
- * 
+ *
  * Latches provide simple exclusive or shared transient locks on objects.
  * Latches are expected to be held for short, defined periods of time.  No
  * deadlock detection is provided so it is the caller's responsibility to
  * sequence latch acquisition in an ordered fashion to avoid deadlocks.
- * 
+ *
  * Nested latches for a single thread are supported, but upgrading a shared
  * latch to an exclusive latch is not.  This implementation is based on the
  * section Reader-Writer Locks in the book Java Threads by Scott Oaks, 2nd
@@ -76,10 +76,11 @@ public class SharedLatchImpl implements SharedLatch {
     }
 
     /**
-     * Acquire a latch for exclusive/write access.  Nesting is allowed, that
-     * is, the latch may be acquired more than once by the same thread for
-     * exclusive access.  However, if the thread already holds the latch for
-     * shared access, it cannot be upgraded and LatchException will be thrown.
+     * Acquire a latch for exclusive/write access.  Nesting is not allowed,
+     * that is, the latch may not be acquired more than once by the same thread
+     * for exclusive access.  Further, if the thread already holds the latch
+     * for shared access, it cannot be upgraded and LatchException will be
+     * thrown.
      *
      * Wait for the latch if some other thread is holding it.  If there are
      * threads waiting for access, they will be granted the latch on a FIFO

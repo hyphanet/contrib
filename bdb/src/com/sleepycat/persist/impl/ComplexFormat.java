@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ComplexFormat.java,v 1.30.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: ComplexFormat.java,v 1.30.2.6 2007/12/08 14:34:33 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -281,7 +281,7 @@ public class ComplexFormat extends Format {
     }
 
     @Override
-    void initialize(Catalog catalog) {
+    void initialize(Catalog catalog, int initVersion) {
         Class type = getType();
         boolean useEnhanced = false;
         if (type != null) {
@@ -289,13 +289,13 @@ public class ComplexFormat extends Format {
         }
         /* Initialize all fields. */
         if (priKeyField != null) {
-            priKeyField.initialize(catalog);
+            priKeyField.initialize(catalog, initVersion);
         }
         for (FieldInfo field : secKeyFields) {
-            field.initialize(catalog);
+            field.initialize(catalog, initVersion);
         }
         for (FieldInfo field : nonKeyFields) {
-            field.initialize(catalog);
+            field.initialize(catalog, initVersion);
         }
         /* Set the superclass format for a new (never initialized) format. */
         ComplexFormat superFormat = getComplexSuper();
@@ -416,7 +416,7 @@ public class ComplexFormat extends Format {
             }
         }
     }
-    
+
     /**
      * Checks that the type of a new secondary key is not a primitive and that
      * the default contructor does not initialize it to a non-null value.
@@ -453,7 +453,7 @@ public class ComplexFormat extends Format {
             return o1.equals(o2);
         }
     }
-    
+
     @Override
     Object newArray(int len) {
         return objAccessor.newArray(len);
@@ -722,7 +722,7 @@ public class ComplexFormat extends Format {
                secKeyFields.size() +
                nonKeyFields.size();
     }
-    
+
     private void skipToSecKeyField(RecordInput input, int toFieldNum) {
         ComplexFormat superFormat = getComplexSuper();
         if (superFormat != null) {
@@ -733,7 +733,7 @@ public class ComplexFormat extends Format {
             input.skipField(secKeyFields.get(i).getType());
         }
     }
-    
+
     private void skipToNonKeyField(RecordInput input, int toFieldNum) {
         ComplexFormat superFormat = getComplexSuper();
         if (superFormat != null) {
@@ -852,7 +852,7 @@ public class ComplexFormat extends Format {
         for (ComplexFormat oldSuper = getComplexSuper();
              oldSuper != null;
              oldSuper = oldSuper.getComplexSuper()) {
-            
+
             /* Find the matching superclass in the new hierarchy. */
             String oldSuperName = oldSuper.getLatestVersion().getClassName();
             Class foundNewSuper = null;
@@ -1061,7 +1061,7 @@ public class ComplexFormat extends Format {
 
         return true;
     }
-    
+
     /**
      * Checks that changes to secondary key metadata are legal.
      */
@@ -1082,7 +1082,7 @@ public class ComplexFormat extends Format {
         }
         return true;
     }
-    
+
     /**
      * Checks that the type of a key field did not change, as known from
      * metadata when a class conversion is used.
@@ -1204,6 +1204,18 @@ public class ComplexFormat extends Format {
         } else {
             return Evolver.EVOLVE_NONE;
         }
+    }
+
+    /**
+     * Returns a FieldReader that reads no fields.
+     *
+     * Instead of adding a DoNothingFieldReader class, we use a
+     * MultiFieldReader with an empty field list.  We do not add a new
+     * FieldReader class to avoid changing the catalog format.  [#15524]
+     */
+    private FieldReader getDoNothingFieldReader() {
+        List<FieldReader> emptyList = Collections.emptyList();
+        return new MultiFieldReader(emptyList);
     }
 
     /**
@@ -1380,7 +1392,8 @@ public class ComplexFormat extends Format {
                     evolveFailure = true;
                 } else {
                     currentReader = new ConvertFieldReader
-                        (converter, newFieldIndex, isNewSecKeyField);
+                        (converter, oldFieldIndex, newFieldIndex,
+                         isNewSecKeyField);
                     fieldReaders.add(currentReader);
                     readerNeeded = true;
                     evolveNeeded = true;
@@ -1494,19 +1507,24 @@ public class ComplexFormat extends Format {
             }
         }
 
-        /* If there are new fields, there must be a new type. */
+        /*
+         * If there are new fields, then the old fields must be read using a
+         * reader, even if the old field list is empty.  Using the accessor
+         * directly will read fields in the wrong order and will read fields
+         * that were moved between lists (when adding and dropping
+         * @SecondaryKey).  [#15524]
+         */
         if (newFieldsMatched < newFields.size()) {
             evolveNeeded = true;
-            if (oldFields.size() > 0) {
-                readerNeeded = true;
-            }
+            readerNeeded = true;
         }
 
         if (evolveFailure) {
             return FieldReader.EVOLVE_FAILURE;
         } else if (readerNeeded) {
-            assert fieldReaders.size() > 0 : getClassName();
-            if (fieldReaders.size() == 1) {
+            if (fieldReaders.size() == 0) {
+                return getDoNothingFieldReader();
+            } else if (fieldReaders.size() == 1) {
                 return fieldReaders.get(0);
             } else {
                 return new MultiFieldReader(fieldReaders);
@@ -1536,6 +1554,7 @@ public class ComplexFormat extends Format {
         }
 
         void initialize(Catalog catalog,
+                        int initVersion,
                         ComplexFormat oldParentFormat,
                         ComplexFormat newParentFormat,
                         boolean isOldSecKey) {
@@ -1666,30 +1685,45 @@ public class ComplexFormat extends Format {
         private static final long serialVersionUID = 8736410481633998710L;
 
         private Converter converter;
+        private int oldFieldNum;
         private int fieldNum;
         private boolean secKeyField;
         private transient Format oldFormat;
         private transient Format newFormat;
 
         ConvertFieldReader(Converter converter,
+                           int oldFieldIndex,
                            int newFieldIndex,
                            boolean isNewSecKeyField) {
             this.converter = converter;
+            oldFieldNum = oldFieldIndex;
             fieldNum = newFieldIndex;
             secKeyField = isNewSecKeyField;
         }
 
         @Override
         void initialize(Catalog catalog,
+                        int initVersion,
                         ComplexFormat oldParentFormat,
                         ComplexFormat newParentFormat,
                         boolean isOldSecKey) {
+            
+            /*
+             * The oldFieldNum field was added as part of a bug fix.  If not
+             * present in this version of the catalog, we assume it is equal to
+             * the new field index.  The code prior to the bug fix assumes the
+             * old and new fields have the same index. [#15797]
+             */
+            if (initVersion < 1) {
+                oldFieldNum = fieldNum;
+            }
+
             if (isOldSecKey) {
                 oldFormat =
-                    oldParentFormat.secKeyFields.get(fieldNum).getType();
+                    oldParentFormat.secKeyFields.get(oldFieldNum).getType();
             } else {
                 oldFormat =
-                    oldParentFormat.nonKeyFields.get(fieldNum).getType();
+                    oldParentFormat.nonKeyFields.get(oldFieldNum).getType();
             }
             if (secKeyField) {
                 newFormat =
@@ -1722,7 +1756,7 @@ public class ComplexFormat extends Format {
             /* Convert the raw instance to the current format. */
             Catalog catalog = input.getCatalog();
             value = converter.getConversion().convert(value);
-            
+
             /* Use a RawSingleInput to convert and type-check the value. */
             EntityInput rawInput = new RawSingleInput
                 (catalog, currentRawMode, null, value, newFormat);
@@ -1764,7 +1798,7 @@ public class ComplexFormat extends Format {
                               EntityInput input,
                               Accessor accessor,
                               int superLevel) {
-            
+
             /* The Accessor reads the field value from a WidenerInput. */
             EntityInput widenerInput = new WidenerInput
                 (input, fromFormatId, toFormatId);
@@ -1796,12 +1830,14 @@ public class ComplexFormat extends Format {
 
         @Override
         void initialize(Catalog catalog,
+                        int initVersion,
                         ComplexFormat oldParentFormat,
                         ComplexFormat newParentFormat,
                         boolean isOldSecKey) {
             for (FieldReader reader : subReaders) {
                 reader.initialize
-                    (catalog, oldParentFormat, newParentFormat, isOldSecKey);
+                    (catalog, initVersion, oldParentFormat, newParentFormat,
+                     isOldSecKey);
             }
         }
 
@@ -1854,7 +1890,9 @@ public class ComplexFormat extends Format {
             }
         }
 
-        public void initializeReader(Catalog catalog, Format oldFormatParam) {
+        public void initializeReader(Catalog catalog,
+                                     int initVersion,
+                                     Format oldFormatParam) {
 
             ComplexFormat oldFormat = (ComplexFormat) oldFormatParam;
             newFormat = oldFormat.getComplexLatest();
@@ -1891,11 +1929,11 @@ public class ComplexFormat extends Format {
                 level += 1;
                 if (oldFormat2.secKeyFieldReader != null) {
                     oldFormat2.secKeyFieldReader.initialize
-                        (catalog, oldFormat2, newFormat2, true);
+                        (catalog, initVersion, oldFormat2, newFormat2, true);
                 }
                 if (oldFormat2.nonKeyFieldReader != null) {
                     oldFormat2.nonKeyFieldReader.initialize
-                        (catalog, oldFormat2, newFormat2, false);
+                        (catalog, initVersion, oldFormat2, newFormat2, false);
                 }
             }
             assert level == oldDepth;

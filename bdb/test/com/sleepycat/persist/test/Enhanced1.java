@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Enhanced1.java,v 1.7.2.1 2007/02/01 14:50:24 cwl Exp $
+ * $Id: Enhanced1.java,v 1.7.2.2 2007/11/20 13:32:52 cwl Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -51,7 +51,7 @@ class Enhanced1 implements Enhanced {
     public Object bdbNewInstance() {
         return new Enhanced1();
     }
-    
+
     public Object bdbNewArray(int len) {
         return new Enhanced1[len];
     }
@@ -83,7 +83,7 @@ class Enhanced1 implements Enhanced {
                                     int superLevel) {
         /* If primary key is an object: */
         input.registerPriKeyObject(f1);
-        
+
         if (superLevel <= 0) {
             switch (startField) {
             case 0:

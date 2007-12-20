@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbScavenger.java,v 1.16.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: DbScavenger.java,v 1.16.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -171,7 +171,7 @@ public class DbScavenger extends DbDump {
 	lastTime = System.currentTimeMillis();
 	long fileNum = -1;
 	while (scavengerReader.readNextEntry()) {
-	    fileNum = reportProgress(fileNum, 
+	    fileNum = reportProgress(fileNum,
 				     scavengerReader.getLastLsn());
 	}
     }
@@ -182,7 +182,7 @@ public class DbScavenger extends DbDump {
         if (verbose) {
             if (currentFile != fileNum) {
                 long now = System.currentTimeMillis();
-                System.out.println("processing file " + 
+                System.out.println("processing file " +
                                    FileManager.getFileName(currentFile,
                                                            ".jdb  ") +
                                    (now-lastTime) + " ms");
@@ -201,7 +201,7 @@ public class DbScavenger extends DbDump {
 				      boolean pass2) {
 	boolean isTransactional = entryType.isTransactional();
 
-	/* 
+	/*
 	 * If entry is txnal...
 	 *  if a commit record, add to committed txn id set
 	 *  if an abort record, ignore it and don't process.
@@ -238,7 +238,7 @@ public class DbScavenger extends DbDump {
 				 LOG_DEL_DUPLN_TRANSACTIONAL) ||
 		entryType.equals(LogEntryType.LOG_DEL_DUPLN);
 
-	    /* 
+	    /*
 	     * If aggressive, don't worry about whether this node has been
 	     * dumped already.
 	     */
@@ -323,7 +323,7 @@ public class DbScavenger extends DbDump {
 		}
 	    };
 
-	/* 
+	/*
 	 * Note: committed transaction id map has been created already, no
 	 * need to read TXN_COMMITS on this pass.
 	 */
@@ -336,7 +336,7 @@ public class DbScavenger extends DbDump {
 
 	long progressFileNum = -1;
 	while (scavengerReader.readNextEntry()) {
-	    progressFileNum = reportProgress(progressFileNum, 
+	    progressFileNum = reportProgress(progressFileNum,
                                              scavengerReader.getLastLsn());
 	}
     }
@@ -349,12 +349,12 @@ public class DbScavenger extends DbDump {
 
 	boolean processThisEntry =
 	    checkProcessEntry(entry, entryType, true);
-        
+
 	if (processThisEntry) {
 	    LNLogEntry lnEntry = (LNLogEntry) entry;
 	    Integer dbId = new Integer(lnEntry.getDbId().getId());
 	    PrintStream out = getOutputStream(dbId);
-           
+
             LN ln = lnEntry.getLN();
             byte[] keyData = lnEntry.getKey();
             byte[] data = ln.getData();
@@ -365,7 +365,7 @@ public class DbScavenger extends DbDump {
 		    out.flush();
 		    flushCounter = 0;
 		}
-            } 
+            }
 	}
     }
 

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckBase.java,v 1.16.2.1 2007/02/01 14:50:16 cwl Exp $
+ * $Id: CheckBase.java,v 1.16.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -72,7 +72,7 @@ public class CheckBase extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome, false);
         TestUtils.removeFiles("Setup", envHome, ".jdb_save");
     }
-    
+
     public void tearDown() {
         if (env != null) {
             try {
@@ -81,7 +81,7 @@ public class CheckBase extends TestCase {
             } catch (Exception ignore) {
             }
         }
-        
+
         try {
             TestUtils.removeLogFiles("TearDown", envHome, false);
             TestUtils.removeFiles("TearDown", envHome, ".jdb_save");
@@ -142,7 +142,7 @@ public class CheckBase extends TestCase {
     private void tryRecovery(EnvironmentConfig validateEnvConfig,
                              DatabaseConfig validateDbConfig,
                              String dbName,
-                             HashSet useExpected) 
+                             HashSet useExpected)
         throws DatabaseException {
         /* Recover and load what's in the database post-recovery. */
         recoverAndLoadData(validateEnvConfig,
@@ -162,18 +162,18 @@ public class CheckBase extends TestCase {
 
         validate(useExpected);
     }
-    
+
     void setCheckLsns(boolean checkLsns) {
 	this.checkLsns = checkLsns;
     }
 
     /**
      * Call this method to set the start of the stepwise loop. The stepwise
-     * testing will begin at this point in the log. 
+     * testing will begin at this point in the log.
      */
     void setStepwiseStart() {
 
-        /* 
+        /*
          * Put a tracing message both for debugging assistance, and also
          * to force the truncation to start at this log entry, since we're
          * getting the last used LSN.
@@ -189,12 +189,12 @@ public class CheckBase extends TestCase {
                       EnvironmentConfig validateEnvConfig,
                       DatabaseConfig validateDbConfig,
                       HashSet useExpected,
-                      int startingIteration) 
+                      int startingIteration)
         throws DatabaseException, IOException {
 
         assertTrue(logDescription.size() > 0);
         saveLogFiles(envHome);
-        
+
         /* txnId -> LogEntryInfo */
         Map newUncommittedRecords = new HashMap();
         Map deletedUncommittedRecords = new HashMap();
@@ -203,9 +203,9 @@ public class CheckBase extends TestCase {
         String status = null;
         try {
 
-            /* 
+            /*
              * Some tests are not working with starting at 0. As a workaround,
-             * start at another iteration. 
+             * start at another iteration.
              */
             DatabaseEntry keyEntry = new DatabaseEntry();
             DatabaseEntry dataEntry = new DatabaseEntry();
@@ -226,7 +226,7 @@ public class CheckBase extends TestCase {
                 if (DEBUG) {
                     System.out.println(status);
                 }
-            
+
                 /* copy files back. */
                 resetLogFiles(envHome);
 
@@ -301,7 +301,7 @@ public class CheckBase extends TestCase {
         }
 
         db.close();
-        
+
         assertTrue(env.verify(new VerifyConfig(), System.out));
         env.close();
     }
@@ -309,11 +309,11 @@ public class CheckBase extends TestCase {
     /*
      * The found and expected data sets need to match exactly after recovery.
      */
-    void validate(HashSet expected) 
+    void validate(HashSet expected)
         throws DatabaseException {
 
         Set useExpected = (Set) expected.clone();
-        
+
         if (useExpected.size() != found.size()) {
             System.err.println("expected---------");
             dumpHashSet(useExpected);
@@ -342,9 +342,9 @@ public class CheckBase extends TestCase {
         assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
     }
 
-    private void loadExpectedData(Database db) 
+    private void loadExpectedData(Database db)
         throws DatabaseException {
-        
+
         expected = new HashSet();
 
         Cursor cursor = db.openCursor(null, null);
@@ -369,7 +369,7 @@ public class CheckBase extends TestCase {
         }
     }
 
-    void dumpData(Database db) 
+    void dumpData(Database db)
         throws DatabaseException {
 
         Cursor cursor = db.openCursor(null, null);
@@ -428,10 +428,10 @@ public class CheckBase extends TestCase {
         }
     }
 
-    /** 
+    /**
      * Truncate the log at the specified offset.
      */
-    private void truncateAtOffset(File envHome, long lsn) 
+    private void truncateAtOffset(File envHome, long lsn)
         throws DatabaseException, IOException {
 
         EnvironmentImpl cmdEnvImpl =
@@ -458,7 +458,7 @@ public class CheckBase extends TestCase {
     }
 
     /* Copy all .jdb_save file back to ._jdb */
-    private void resetLogFiles(File envHome) 
+    private void resetLogFiles(File envHome)
         throws IOException {
         String [] suffix = new String [] {".jdb_save"};
         String [] fileNames = FileManager.listFiles(envHome, suffix);
@@ -471,12 +471,12 @@ public class CheckBase extends TestCase {
         }
     }
 
-    private void copy(File src, File dst) 
+    private void copy(File src, File dst)
         throws IOException {
 
         InputStream in = new FileInputStream(src);
         OutputStream out = new FileOutputStream(dst);
-    
+
         // Transfer bytes from in to out
         byte[] buf = new byte[1024];
         int len;
@@ -487,7 +487,7 @@ public class CheckBase extends TestCase {
         out.close();
     }
 
-    /* 
+    /*
      * Each unit test overrides the generateData method. Don't make this
      * abstract, because we may want different unit tests to call different
      * flavors of generateData(), and we want a default implementation for each
@@ -501,11 +501,11 @@ public class CheckBase extends TestCase {
         /* If true, generate a log description to use in stepwise testing. */
         boolean generateLogDescription;
 
-        /* 
-         * Some generators run off a list of test operations which specify 
+        /*
+         * Some generators run off a list of test operations which specify
          * what actions to use when generating data.
          */
-        public List operationList; 
+        public List operationList;
 
         public TestGenerator() {
         }
@@ -518,7 +518,7 @@ public class CheckBase extends TestCase {
             this.operationList = operationList;
         }
 
-        void generateData(Database db) 
+        void generateData(Database db)
             throws Exception {
         }
     }

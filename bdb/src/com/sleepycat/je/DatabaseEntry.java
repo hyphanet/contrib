@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseEntry.java,v 1.41.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: DatabaseEntry.java,v 1.41.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -23,7 +23,7 @@ public class DatabaseEntry {
     private int doff = 0;
     private int offset = 0;
     private int size = 0;
-    private boolean partial = false; 
+    private boolean partial = false;
 
     /* The maximum number of bytes to show when toString() is called. */
     /* FindBugs - ignore not "final" since a user can set this. */
@@ -198,7 +198,7 @@ public class DatabaseEntry {
     public void setSize(int size) {
         this.size = size;
     }
-    
+
     /**
      * Dumps the data as a byte array, for tracing purposes
      */
@@ -214,7 +214,7 @@ public class DatabaseEntry {
      * to the data array length, then only the data bounded by these values is
      * compared.  The data array length and offset need not be the same in both
      * entries for them to be considered equal.</p>
-     * 
+     *
      * <p>If the data array is null in one entry, then to be considered equal
      * both entries must have a null data array.</p>
      *

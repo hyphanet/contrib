@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MapLN.java,v 1.69.2.3 2007/07/02 19:54:52 mark Exp $
+ * $Id: MapLN.java,v 1.69.2.5 2007/12/14 01:43:27 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -22,7 +22,7 @@ import com.sleepycat.je.txn.LockResult;
 import com.sleepycat.je.txn.LockType;
 
 /**
- * A MapLN represents a Leaf Node in the JE DatabaseImpl Naming Tree. 
+ * A MapLN represents a Leaf Node in the JE DatabaseImpl Naming Tree.
  */
 public final class MapLN extends LN {
 
@@ -47,7 +47,7 @@ public final class MapLN extends LN {
     /**
      * Create an empty MapLN, to be filled in from the log.
      */
-    public MapLN() 
+    public MapLN()
         throws DatabaseException {
 
         super();
@@ -78,7 +78,9 @@ public final class MapLN extends LN {
      * @Override
      */
     boolean isEvictableInexact() {
-        return !databaseImpl.isInUse() &&
+        /* Always prohibit eviction when je.env.dbEviction=false. */
+        return databaseImpl.getDbEnvironment().getDbEviction() &&
+               !databaseImpl.isInUse() &&
                !databaseImpl.getTree().isRootResident();
     }
 
@@ -89,7 +91,7 @@ public final class MapLN extends LN {
      */
     boolean isEvictable()
         throws DatabaseException {
-        
+
         boolean evictable = false;
 
         /* To prevent DB open, get a write-lock on the MapLN. */
@@ -105,7 +107,7 @@ public final class MapLN extends LN {
             if (lockResult.getLockGrant() != LockGrantType.DENIED &&
                 isEvictableInexact()) {
 
-                /* 
+                /*
                  * While holding both a write-lock on the MapLN, we are
                  * guaranteed that the DB is not currently open.  It cannot be
                  * subsequently opened until the BIN latch is released, since
@@ -128,7 +130,7 @@ public final class MapLN extends LN {
     /**
      * Initialize a node that has been faulted in from the log.
      */
-    public void postFetchInit(DatabaseImpl db, long sourceLsn) 
+    public void postFetchInit(DatabaseImpl db, long sourceLsn)
         throws DatabaseException {
 
         databaseImpl.setEnvironmentImpl(db.getDbEnvironment());
@@ -150,7 +152,7 @@ public final class MapLN extends LN {
     public String toString() {
         return dumpString(0, true);
     }
-    
+
     public String beginTag() {
         return BEGIN_TAG;
     }
@@ -203,7 +205,7 @@ public final class MapLN extends LN {
      */
     public void writeToLog(ByteBuffer logBuffer) {
         /* Ask ancestors to write to log. */
-        super.writeToLog(logBuffer); 
+        super.writeToLog(logBuffer);
         databaseImpl.writeToLog(logBuffer);
         LogUtils.writeBoolean(logBuffer, deleted);
     }

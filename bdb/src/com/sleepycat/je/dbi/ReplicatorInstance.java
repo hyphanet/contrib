@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ReplicatorInstance.java,v 1.4.2.1 2007/02/01 14:49:44 cwl Exp $
+ * $Id: ReplicatorInstance.java,v 1.4.2.2 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -18,12 +18,12 @@ import com.sleepycat.je.utilint.VLSN;
  * interface. The replication packages use Java 1.5 features and this interface
  * lets us continue to support Java 1.4 for non-replicated environments.
  *
- * There should be no references to any classes from com.sleepycat.je.rep* 
+ * There should be no references to any classes from com.sleepycat.je.rep*
  * except through this and other replication interfaces.
  */
 public interface ReplicatorInstance {
 
-    public void replicateOperation(Operation op, 
+    public void replicateOperation(Operation op,
                                    ByteBuffer marshalledBuffer)
         throws DatabaseException;
 

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PhantomRestartTest.java,v 1.11.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: PhantomRestartTest.java,v 1.11.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -258,7 +258,7 @@ public class PhantomRestartTest extends TestCase {
         TestUtils.removeLogFiles("Setup", envHome, false);
         TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -269,7 +269,7 @@ public class PhantomRestartTest extends TestCase {
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
-                
+
         try {
             //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
@@ -310,7 +310,7 @@ public class PhantomRestartTest extends TestCase {
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
         envConfig.setTxnSerializableIsolation(true);
-        
+
         /* Disable the daemons so the don't interfere with stats. */
         envConfig.setConfigParam
             (EnvironmentParams.ENV_RUN_EVICTOR.getName(), "false");
@@ -320,7 +320,7 @@ public class PhantomRestartTest extends TestCase {
             (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
         envConfig.setConfigParam
             (EnvironmentParams.ENV_RUN_INCOMPRESSOR.getName(), "false");
-       
+
         env = new Environment(envHome, envConfig);
 
         DatabaseConfig dbConfig = new DatabaseConfig();
@@ -441,7 +441,7 @@ public class PhantomRestartTest extends TestCase {
         LockStats origStats = env.getLockStats(null);
 
         writerThread = new JUnitThread("Writer") {
-            public void testBody() 
+            public void testBody()
                 throws DatabaseException {
                 DatabaseEntry key = new DatabaseEntry();
                 DatabaseEntry data = new DatabaseEntry();
@@ -487,7 +487,7 @@ public class PhantomRestartTest extends TestCase {
         LockStats origStats = env.getLockStats(null);
 
         readerThread = new JUnitThread("Reader") {
-            public void testBody() 
+            public void testBody()
                 throws DatabaseException {
                 Transaction readerTxn = env.beginTransaction(null, null);
                 Cursor cursor = db.openCursor(readerTxn, null);

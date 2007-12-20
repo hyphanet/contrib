@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseEntryTest.java,v 1.30.2.1 2007/02/01 14:50:04 cwl Exp $
+ * $Id: DatabaseEntryTest.java,v 1.30.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -19,7 +19,7 @@ import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.util.TestUtils;
 
 public class DatabaseEntryTest extends TestCase {
-    
+
     private File envHome;
     private Environment env;
     private Database db;
@@ -33,7 +33,7 @@ public class DatabaseEntryTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
 	throws IOException {
 
@@ -42,7 +42,7 @@ public class DatabaseEntryTest extends TestCase {
 
     public void testBasic()
         throws Exception {
-        
+
         /* Constructor that takes a byte array. */
         int size = 10;
         byte [] foo = new byte[size];

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MemorySizeTest.java,v 1.21.2.3 2007/07/02 19:54:55 mark Exp $
+ * $Id: MemorySizeTest.java,v 1.21.2.5 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -31,6 +31,7 @@ import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.util.TestUtils;
 
@@ -50,7 +51,7 @@ public class MemorySizeTest extends TestCase {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
 
        	/* Print keys as numbers */
-       	Key.DUMP_BINARY = true;
+       	Key.DUMP_TYPE = DumpType.BINARY;
     }
 
     public void setUp()
@@ -61,8 +62,8 @@ public class MemorySizeTest extends TestCase {
 
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
 
-        /* 
-         * Properties for creating an environment. 
+        /*
+         * Properties for creating an environment.
          * Disable the evictor for this test, use larger BINS
          */
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -101,7 +102,7 @@ public class MemorySizeTest extends TestCase {
                               FileManager.JE_SUFFIX, true);
     }
 
-    /* 
+    /*
      * Do a series of these actions and make sure that the stored memory
      * sizes match the calculated memory size.
      * - create db
@@ -121,7 +122,7 @@ public class MemorySizeTest extends TestCase {
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
         try {
             initDb();
-            
+
             /* Insert one record. Adds two INs and an LN to our cost.*/
             insert((byte) 1, 10, (byte) 1, 100, true);
             long newSize = TestUtils.validateNodeMemUsage(envImpl, true);
@@ -240,7 +241,7 @@ public class MemorySizeTest extends TestCase {
         }
     }
 
-    /* 
+    /*
      * Do a series of these actions and make sure that the stored memory
      * sizes match the calculated memory size.
      * - create db
@@ -280,7 +281,7 @@ public class MemorySizeTest extends TestCase {
             if (db != null) {
                 db.close();
             }
-            
+
             if (env != null) {
                 env.close();
             }
@@ -288,7 +289,7 @@ public class MemorySizeTest extends TestCase {
     }
 
 
-    private void initDb() 
+    private void initDb()
         throws DatabaseException {
 
         DatabaseConfig dbConfig = new DatabaseConfig();
@@ -297,7 +298,7 @@ public class MemorySizeTest extends TestCase {
         dbConfig.setTransactional(true);
         db = env.openDatabase(null, "foo", dbConfig);
     }
-    
+
     private void insert(byte keyVal, int keySize,
                         byte dataVal, int dataSize,
                         boolean commit)
@@ -375,11 +376,11 @@ public class MemorySizeTest extends TestCase {
         }
     }
 
-    /* 
+    /*
      * Fake compressing daemon by call BIN.compress explicitly on all
      * BINS on the IN list.
      */
-    private void compress() 
+    private void compress()
         throws DatabaseException {
 
         INList inList = DbInternal.envGetEnvironmentImpl(env).getInMemoryINs();
@@ -399,11 +400,11 @@ public class MemorySizeTest extends TestCase {
         }
     }
 
-    /* 
+    /*
      * Fake eviction daemon by call BIN.evictLNs explicitly on all
      * BINS on the IN list.
      */
-    private void evict() 
+    private void evict()
         throws DatabaseException {
 
         INList inList = DbInternal.envGetEnvironmentImpl(env).getInMemoryINs();
@@ -432,7 +433,7 @@ public class MemorySizeTest extends TestCase {
         return new DatabaseEntry(bArray);
     }
 
-    private void checkCount(int expectedCount) 
+    private void checkCount(int expectedCount)
         throws DatabaseException {
 
         Cursor cursor = db.openCursor(null, null);
@@ -447,8 +448,8 @@ public class MemorySizeTest extends TestCase {
 
     private void dumpINList()
         throws DatabaseException {
-       
-        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env); 
+
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
         INList inList = envImpl.getInMemoryINs();
         inList.latchMajor();
         try {

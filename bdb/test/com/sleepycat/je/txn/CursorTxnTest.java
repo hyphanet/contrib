@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorTxnTest.java,v 1.40.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: CursorTxnTest.java,v 1.40.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -71,7 +71,7 @@ public class CursorTxnTest extends TestCase {
         dbConfig.setSortedDuplicates(true);
         myDb = env.openDatabase(null, "test", dbConfig);
     }
-    
+
     public void tearDown()
 	throws IOException, DatabaseException {
 
@@ -92,7 +92,7 @@ public class CursorTxnTest extends TestCase {
 
         getInitialEnvStats();
         Cursor cursor = myDb.openCursor(null, null);
-        
+
         /* First put() holds a write lock on the non-duplicate entry. */
         insertData(cursor, 10, 1);
         checkReadWriteLockCounts(cursor, 0, 1);
@@ -102,7 +102,7 @@ public class CursorTxnTest extends TestCase {
         assertEquals(1, count);
         checkReadWriteLockCounts(cursor, 0, 1);
 
-        /* 
+        /*
 	 * Second put() holds a write lock on first record (since it
 	 * was write locked to discover that the duplicate tree is not
 	 * present yet) and a write lock on the duplicate entry and a
@@ -115,7 +115,7 @@ public class CursorTxnTest extends TestCase {
         count = cursor.count();
         assertEquals(2, count);
         checkReadWriteLockCounts(cursor, 0, 3);
-        
+
         /* Third put() holds a write lock on the duplicate entry and a write
          * lock on the DupCountLN. */
         insertData(cursor, 10, 3);
@@ -175,7 +175,7 @@ public class CursorTxnTest extends TestCase {
         count = cursor.count();
         assertEquals(0, count);
         checkReadWriteLockCounts(cursor, 0, 2);
-        
+
 	cursor.close();
     }
 
@@ -206,7 +206,7 @@ public class CursorTxnTest extends TestCase {
         initialEnvReadLocks = lockStats.getNReadLocks();
         initialEnvWriteLocks = lockStats.getNWriteLocks();
     }
-    
+
     private void insertData(Cursor cursor, int numRecords, int dataVal)
         throws DatabaseException {
 

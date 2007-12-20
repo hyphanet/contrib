@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INLogEntry.java,v 1.37.2.1 2007/02/01 14:49:48 cwl Exp $
+ * $Id: INLogEntry.java,v 1.37.2.2 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -20,18 +20,18 @@ import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
- * INLogEntry embodies all IN log entries.  
+ * INLogEntry embodies all IN log entries.
  * On disk, an IN log entry contains:
  * <pre>
  *        IN
  *        database id
- *        obsolete LSN  -- in version 2 
+ *        obsolete LSN  -- in version 2
  * </pre>
  */
 public class INLogEntry extends BaseEntry
     implements LogEntry, NodeLogEntry, INContainingEntry {
 
-    /* 
+    /*
      * Persistent fields in an IN entry.
      */
     private IN in;
@@ -195,7 +195,7 @@ public class INLogEntry extends BaseEntry
      */
     public IN getIN(EnvironmentImpl env)
         throws DatabaseException {
-                
+
         return in;
     }
 
@@ -215,7 +215,7 @@ public class INLogEntry extends BaseEntry
     }
 
     /**
-     * @return the LSN that represents this IN. For a vanilla IN entry, it's 
+     * @return the LSN that represents this IN. For a vanilla IN entry, it's
      * the last lsn read by the log reader.
      */
     public long getLsnOfIN(long lastReadLsn) {

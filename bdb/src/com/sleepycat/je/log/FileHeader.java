@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileHeader.java,v 1.38.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: FileHeader.java,v 1.38.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -20,7 +20,7 @@ import com.sleepycat.je.DatabaseException;
  */
 public class FileHeader implements Loggable {
 
-    /* 
+    /*
      * Version 3
      * ---------
      * [12328] Add main and dupe tree fanout values for DatabaseImpl.
@@ -43,11 +43,11 @@ public class FileHeader implements Loggable {
      */
     private static final int LOG_VERSION = 5;
 
-    /* 
+    /*
      * fileNum is the number of file, starting at 0. An unsigned int, so stored
      * in a long in memory, but in 4 bytes on disk
      */
-    private long fileNum; 
+    private long fileNum;
     private long lastEntryInPrevFileOffset;
     private Timestamp time;
     private int logVersion;
@@ -60,7 +60,7 @@ public class FileHeader implements Loggable {
         logVersion = LOG_VERSION;
     }
 
-    /** 
+    /**
      * For logging only.
      */
     public FileHeader() {
@@ -75,7 +75,7 @@ public class FileHeader implements Loggable {
      *
      * @throws DatabaseException if the header isn't valid.
      */
-    boolean validate(String fileName, long expectedFileNum) 
+    boolean validate(String fileName, long expectedFileNum)
         throws DatabaseException {
 
         if (fileNum != expectedFileNum) {
@@ -115,7 +115,7 @@ public class FileHeader implements Loggable {
      */
     public int getLogSize() {
         return entrySize();
-    }            
+    }
 
     /**
      * @see Loggable#writeToLog

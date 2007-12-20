@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: KeyField.java,v 1.5.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: KeyField.java,v 1.5.2.3 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -74,11 +74,20 @@ import com.sleepycat.je.Environment;
  *  import java.text.Collator;
  *  import java.util.Locale;
  *
+ *  {@literal @Entity}
+ *  class Animal {
+ *      ...
+ *      {@literal @SecondaryKey(relate=ONE_TO_ONE)}
+ *      CollatedString canadianName;
+ *      ...
+ *  }
+ *
  *  {@literal @Persistent}
  *  {@literal class CollatedString implements Comparable<CollatedString>} {
- *      
+ *
  *      static Collator collator = Collator.getInstance(Locale.CANADA);
  *
+ *      {@literal @KeyField(1)}
  *      String value;
  *
  *      CollatedString(String value) { this.value = value; }

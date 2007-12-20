@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LatchedLockManager.java,v 1.11.2.2 2007/07/13 02:32:05 cwl Exp $
+ * $Id: LatchedLockManager.java,v 1.11.2.4 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -11,6 +11,7 @@ package com.sleepycat.je.txn;
 import java.util.Set;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -22,7 +23,7 @@ import com.sleepycat.je.latch.Latch;
  */
 public class LatchedLockManager extends LockManager {
 
-    public LatchedLockManager(EnvironmentImpl envImpl) 
+    public LatchedLockManager(EnvironmentImpl envImpl)
     	throws DatabaseException {
         super(envImpl);
     }
@@ -30,9 +31,9 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#lookupLock
      */
-    protected Lock lookupLock(Long nodeId) 
+    protected Lock lookupLock(Long nodeId)
         throws DatabaseException {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
 	Latch latch = lockTableLatches[lockTableIndex];
         latch.acquire();
@@ -49,14 +50,14 @@ public class LatchedLockManager extends LockManager {
     protected LockAttemptResult attemptLock(Long nodeId,
                                             Locker locker,
                                             LockType type,
-                                            boolean nonBlockingRequest) 
+                                            boolean nonBlockingRequest)
         throws DatabaseException {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
 	Latch latch = lockTableLatches[lockTableIndex];
         latch.acquire();
         try {
-            return attemptLockInternal(nodeId, locker, type, 
+            return attemptLockInternal(nodeId, locker, type,
                                        nonBlockingRequest, lockTableIndex);
         } finally {
             latch.release();
@@ -66,16 +67,16 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#makeTimeoutMsg
      */
-    protected String makeTimeoutMsg(String lockOrTxn,
-                                    Locker locker,
-                                    long nodeId,
-                                    LockType type,
-                                    LockGrantType grantType,
-                                    Lock useLock,
-                                    long timeout,
-                                    long start,
-                                    long now,
-				    DatabaseImpl database)
+    protected DeadlockException makeTimeoutMsg(String lockOrTxn,
+					       Locker locker,
+					       long nodeId,
+					       LockType type,
+					       LockGrantType grantType,
+					       Lock useLock,
+					       long timeout,
+					       long start,
+					       long now,
+					       DatabaseImpl database)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
@@ -101,7 +102,7 @@ public class LatchedLockManager extends LockManager {
 	long nid = nodeId;
 	int lockTableIndex = getLockTableIndex(nid);
 	Latch latch = lockTableLatches[lockTableIndex];
-        latch.acquire(); 
+        latch.acquire();
         try {
             return releaseAndFindNotifyTargetsInternal
 		(nodeId, locker, lockTableIndex);
@@ -116,12 +117,12 @@ public class LatchedLockManager extends LockManager {
     void transfer(long nodeId,
                   Locker owningLocker,
                   Locker destLocker,
-                  boolean demoteToRead) 
+                  boolean demoteToRead)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
 	Latch latch = lockTableLatches[lockTableIndex];
-        latch.acquire(); 
+        latch.acquire();
         try {
             transferInternal(nodeId, owningLocker, destLocker,
 			     demoteToRead, lockTableIndex);
@@ -152,9 +153,9 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#demote
      */
-    void demote(long nodeId, Locker locker) 
+    void demote(long nodeId, Locker locker)
         throws DatabaseException {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
 	Latch latch = lockTableLatches[lockTableIndex];
         latch.acquire();
@@ -168,7 +169,7 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#isLocked
      */
-    boolean isLocked(Long nodeId) 
+    boolean isLocked(Long nodeId)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
@@ -184,7 +185,7 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#isOwner
      */
-    boolean isOwner(Long nodeId, Locker locker, LockType type) 
+    boolean isOwner(Long nodeId, Locker locker, LockType type)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
@@ -200,9 +201,9 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#isWaiter
      */
-    boolean isWaiter(Long nodeId, Locker locker) 
+    boolean isWaiter(Long nodeId, Locker locker)
         throws DatabaseException {
-        
+
 	int lockTableIndex = getLockTableIndex(nodeId);
 	Latch latch = lockTableLatches[lockTableIndex];
         latch.acquire();
@@ -216,7 +217,7 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#nWaiters
      */
-    int nWaiters(Long nodeId) 
+    int nWaiters(Long nodeId)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
@@ -232,7 +233,7 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#nOwners
      */
-    int nOwners(Long nodeId) 
+    int nOwners(Long nodeId)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
@@ -265,7 +266,7 @@ public class LatchedLockManager extends LockManager {
      * @see LockManager#validateOwnership
      */
     protected boolean validateOwnership(Long nodeId,
-                                        Locker locker, 
+                                        Locker locker,
                                         LockType type,
                                         boolean flushFromWaiters,
 					MemoryBudget mb)
@@ -285,9 +286,9 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#dumpLockTable
      */
-    protected void dumpLockTable(LockStats stats) 
+    protected void dumpLockTable(LockStats stats)
         throws DatabaseException {
-        
+
 	for (int i = 0; i < nLockTables; i++) {
 	    lockTableLatches[i].acquire();
 	    try {

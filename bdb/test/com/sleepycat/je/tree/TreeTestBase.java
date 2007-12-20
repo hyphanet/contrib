@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TreeTestBase.java,v 1.53.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: TreeTestBase.java,v 1.53.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -50,7 +50,7 @@ public class TreeTestBase extends TestCase {
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
     }
 
-    void initEnv(boolean duplicatesAllowed) 
+    void initEnv(boolean duplicatesAllowed)
         throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorConfig.java,v 1.18.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: CursorConfig.java,v 1.18.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -38,7 +38,7 @@ public class CursorConfig implements Cloneable {
      * the doc templates in the doc_src directory.
      */
     public static final CursorConfig READ_COMMITTED = new CursorConfig();
-    
+
     static {
         READ_UNCOMMITTED.setReadUncommitted(true);
         READ_COMMITTED.setReadCommitted(true);

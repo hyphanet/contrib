@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DIN.java,v 1.79.2.2 2007/03/08 22:32:59 mark Exp $
+ * $Id: DIN.java,v 1.79.2.6 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -24,7 +24,6 @@ import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.txn.LockResult;
 import com.sleepycat.je.txn.Locker;
-import com.sleepycat.je.utilint.DbLsn;
 
 /**
  * An DIN represents an Duplicate Internal Node in the JE tree.
@@ -48,7 +47,7 @@ public final class DIN extends IN {
      * Create an empty DIN, with no node id, to be filled in from the log.
      */
     public DIN() {
-        super(); 
+        super();
 
         dupCountLNRef = new ChildReference();
         init(null, Key.EMPTY_KEY, 0, 0);
@@ -141,7 +140,7 @@ public final class DIN extends IN {
         return dupCountLNRef;
     }
 
-    public DupCountLN getDupCountLN() 
+    public DupCountLN getDupCountLN()
         throws DatabaseException {
 
         return (DupCountLN) dupCountLNRef.fetchTarget(getDatabase(), this);
@@ -235,7 +234,6 @@ public final class DIN extends IN {
         long oldLsn = dupCountLNRef.getLsn();
         lockResult.setAbortLsn(oldLsn, dupCountLNRef.isKnownDeleted());
         DupCountLN dupCountLN = getDupCountLN();
-        int oldSize = dupCountLN.getLastLoggedSize();
         if (increment) {
             dupCountLN.incDupCount();
         } else {
@@ -243,15 +241,14 @@ public final class DIN extends IN {
 	    assert dupCountLN.getDupCount() >= 0;
         }
         DatabaseImpl db = getDatabase();
-        long newCountLSN = dupCountLN.optionalLog
-            (db.getDbEnvironment(), db, key, oldLsn, oldSize, locker);
+        long newCountLSN = dupCountLN.optionalLogUpdateMemUsage
+            (db, key, oldLsn, locker, this);
         updateDupCountLNRef(newCountLSN);
-            
     }
 
     /**
      * Count up the memory usage attributable to this node alone. LNs children
-     * are counted by their BIN/DIN parents, but INs are not counted by 
+     * are counted by their BIN/DIN parents, but INs are not counted by
      * their parents because they are resident on the IN list.
      */
     protected long computeMemorySize() {
@@ -269,17 +266,17 @@ public final class DIN extends IN {
     }
 
     /* Called once at environment startup by MemoryBudget. */
-    public static long computeOverhead(DbConfigManager configManager) 
+    public static long computeOverhead(DbConfigManager configManager)
         throws DatabaseException {
 
-        /* 
+        /*
 	 * Overhead consists of all the fields in this class plus the
 	 * entry arrays in the IN class.
          */
         return MemoryBudget.DIN_FIXED_OVERHEAD +
 	    IN.computeArraysOverhead(configManager);
     }
-    
+
     protected long getMemoryOverhead(MemoryBudget mb) {
         return mb.getDINOverhead();
     }
@@ -334,7 +331,7 @@ public final class DIN extends IN {
      * Handles lazy migration of DupCountLNs prior to logging a DIN.  See
      * BIN.logInternal for more information.
      */
-    protected long logInternal(LogManager logManager, 
+    protected long logInternal(LogManager logManager,
 			       boolean allowDeltas,
 			       boolean isProvisional,
                                boolean proactiveMigration,
@@ -349,21 +346,17 @@ public final class DIN extends IN {
 
             if ((dupCntLN != null) && (dupCntLN.isDirty())) {
 
-                /* 
+                /*
                  * If deferred write, write any dirty LNs now. The old LSN
                  * is NULL_LSN, a no-opt in non-txnal deferred write mode.
                  */
-                long newLsn = dupCntLN.log(envImpl,
-                                           getDatabaseId(),
-                                           dupKey,
-                                           DbLsn.NULL_LSN,// old lsn
-                                           0,             // obsolete size
-                                           null,          // locker
-                                           false);        // backgroundIO
+                long newLsn = dupCntLN.logUpdateMemUsage
+                    (getDatabase(), dupKey, dupCountLNRef.getLsn() /*oldLsn*/,
+                     null /*locker*/, this, backgroundIO);
                 dupCountLNRef.setLsn(newLsn);
             } else {
 
-                /* 
+                /*
                  * Allow the cleaner to migrate the DupCountLN before logging.
                  */
                 Cleaner cleaner =
@@ -397,7 +390,7 @@ public final class DIN extends IN {
     public void writeToLog(ByteBuffer logBuffer) {
 
         // ancestors
-        super.writeToLog(logBuffer); 
+        super.writeToLog(logBuffer);
 
         // identifier key
         LogUtils.writeByteArray(logBuffer, dupKey);
@@ -406,7 +399,7 @@ public final class DIN extends IN {
         boolean dupCountLNRefExists = (dupCountLNRef != null);
         LogUtils.writeBoolean(logBuffer, dupCountLNRefExists);
         if (dupCountLNRefExists) {
-            dupCountLNRef.writeToLog(logBuffer);    
+            dupCountLNRef.writeToLog(logBuffer);
         }
     }
 
@@ -416,7 +409,7 @@ public final class DIN extends IN {
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
         throws LogException {
 
-        // ancestors 
+        // ancestors
         super.readFromLog(itemBuffer, entryTypeVersion);
 
         // identifier key
@@ -430,7 +423,7 @@ public final class DIN extends IN {
             dupCountLNRef = null;
         }
     }
-    
+
     /**
      * DINS need to dump their dup key
      */
@@ -468,7 +461,7 @@ public final class DIN extends IN {
 
         sb.append(TreeUtils.indent(nSpaces+2));
         sb.append("<dupkey>");
-        sb.append(dupKey == null ? "" : 
+        sb.append(dupKey == null ? "" :
                   Key.dumpString(dupKey, 0));
         sb.append("</dupkey>");
         sb.append('\n');

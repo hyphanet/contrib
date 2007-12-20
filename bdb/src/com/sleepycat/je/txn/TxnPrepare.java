@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnPrepare.java,v 1.8.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: TxnPrepare.java,v 1.8.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -28,7 +28,7 @@ public class TxnPrepare extends TxnEnd implements Loggable {
         super(id, DbLsn.NULL_LSN);
 	this.xid = xid;
     }
-    
+
     /**
      * For constructing from the log.
      */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SR12641.java,v 1.6.2.1 2007/02/01 14:50:10 cwl Exp $
+ * $Id: SR12641.java,v 1.6.2.2 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -193,5 +193,5 @@ public class SR12641 extends TestCase {
         db = null;
         env.close();
         env = null;
-    } 
+    }
 }

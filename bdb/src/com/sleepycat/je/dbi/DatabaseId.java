@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DatabaseId.java,v 1.33.2.2 2007/03/08 22:32:54 mark Exp $
+ * $Id: DatabaseId.java,v 1.33.2.3 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -26,7 +26,7 @@ public class DatabaseId implements Comparable, Loggable {
     private int id;
 
     /**
-     * 
+     *
      */
     public DatabaseId(int id) {
         this.id = id;

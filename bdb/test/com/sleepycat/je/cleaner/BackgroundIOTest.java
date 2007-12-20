@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BackgroundIOTest.java,v 1.4.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: BackgroundIOTest.java,v 1.4.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -64,7 +64,7 @@ public class BackgroundIOTest extends TestCase {
             }
             env = null;
         }
-                
+
         //*
         TestUtils.removeLogFiles("TearDown", envHome, true);
         TestUtils.removeFiles("TearDown", envHome, FileManager.DEL_SUFFIX);

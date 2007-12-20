@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ObjectArrayFormat.java,v 1.23.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: ObjectArrayFormat.java,v 1.23.2.2 2007/11/03 02:44:53 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -71,7 +71,7 @@ public class ObjectArrayFormat extends Format {
     }
 
     @Override
-    void initialize(Catalog catalog) {
+    void initialize(Catalog catalog, int initVersion) {
         /* Set the component format for a new (never initialized) format. */
         if (componentFormat == null) {
             Class cls = getType().getComponentType();

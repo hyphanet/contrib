@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntityCursor.java,v 1.9.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: EntityCursor.java,v 1.9.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -136,7 +136,7 @@ import com.sleepycat.persist.model.SecondaryKey;
  * position impact the iterator and vice versa.  The iterator advances the
  * cursor by calling {@link #next()} when {@link Iterator#hasNext} or {@link
  * Iterator#next} is called.  Because of this interaction, to keep things
- * simple it is best not to mix the use of an {@code EntityCursor} 
+ * simple it is best not to mix the use of an {@code EntityCursor}
  * {@code Iterator} with the use of the {@code EntityCursor} traversal methods
  * such as {@link #next()}, for a single {@code EntityCursor} object.</p>
  *

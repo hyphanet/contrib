@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorTest.java,v 1.78.2.1 2007/02/01 14:50:04 cwl Exp $
+ * $Id: CursorTest.java,v 1.78.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -23,7 +23,7 @@ public class CursorTest extends TestCase {
     private static final boolean DEBUG = false;
     private static final int NUM_RECS = 257;
 
-    /* 
+    /*
      * Use a ridiculous value because we've seen extreme slowness on ocicat
      * where dbperf is often running.
      */
@@ -36,7 +36,7 @@ public class CursorTest extends TestCase {
     private PhantomTestConfiguration config;
 
     private File envHome;
-    
+
     private volatile int sequence;
 
     public CursorTest() {
@@ -48,7 +48,7 @@ public class CursorTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
 	throws IOException {
 
@@ -197,7 +197,7 @@ public class CursorTest extends TestCase {
      */
     public void testPhantomInsertGetNextCommit()
 	throws Throwable {
-        
+
         try {
             phantomWorker
                 (new PhantomTestConfiguration
@@ -892,7 +892,7 @@ public class CursorTest extends TestCase {
                 key.setData(TestUtils.getTestArray(i + c));
                 data.setData(TestUtils.getTestArray(i + c));
                 if (DEBUG) {
-                    System.out.println("i = " + i + 
+                    System.out.println("i = " + i +
                                        TestUtils.dumpByteArray(key.getData()));
                 }
                 cursor[c].put(key, data);
@@ -925,7 +925,7 @@ public class CursorTest extends TestCase {
         dbConfig.setTransactional(false);
         dbConfig.setAllowCreate(false);
         for (int d = 0; d < numDbs; d++) {
-            Database checkDb = env.openDatabase(null, "testDB" + d, 
+            Database checkDb = env.openDatabase(null, "testDB" + d,
 						dbConfig);
             Cursor myCursor = checkDb.openCursor(null, CursorConfig.DEFAULT);
 
@@ -939,13 +939,13 @@ public class CursorTest extends TestCase {
 
                 if (DEBUG) {
                     System.out.println("Database " + d + " Key " + i +
-                                       " expected = " + 
+                                       " expected = " +
                                        TestUtils.dumpByteArray(expectedKey) +
                                        " seen = " +
                                        TestUtils.dumpByteArray(key.getData()));
                 }
 
-                assertTrue("Database " + d + " Key " + i + " expected = " + 
+                assertTrue("Database " + d + " Key " + i + " expected = " +
                            TestUtils.dumpByteArray(expectedKey) +
                            " seen = " +
                            TestUtils.dumpByteArray(key.getData()),
@@ -955,7 +955,7 @@ public class CursorTest extends TestCase {
                 i++;
 
                 status = myCursor.getNext(key, data, LockMode.DEFAULT);
-            } 
+            }
 	    myCursor.close();
             assertEquals("Number recs seen", NUM_RECS, i-1);
             checkDb.close();

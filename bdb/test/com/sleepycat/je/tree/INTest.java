@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INTest.java,v 1.59.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: INTest.java,v 1.59.2.3 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -20,6 +20,7 @@ import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -199,7 +200,7 @@ public class INTest extends TestCase {
 		try {
 		    in.verify(null);
 		} catch (InconsistentNodeException INE) {
-		    Key.DUMP_BINARY = true;
+		    Key.DUMP_TYPE = DumpType.BINARY;
 		    in.dump(0);
 		}
 
@@ -358,7 +359,7 @@ public class INTest extends TestCase {
 		assertTrue(in.deleteEntry(in.getKey(i), false));
 	    }
 
-	    /* 
+	    /*
 	     * We should only be able to delete the zero Key if it was inserted
 	     * in the first place.
 	     */

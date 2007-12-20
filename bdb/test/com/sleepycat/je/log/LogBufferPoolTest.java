@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogBufferPoolTest.java,v 1.59.2.1 2007/02/01 14:50:14 cwl Exp $
+ * $Id: LogBufferPoolTest.java,v 1.59.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -74,7 +74,7 @@ public class LogBufferPoolTest extends TestCase {
 
             setupEnv(true);
 
-            /* 
+            /*
              * Each buffer can only hold 2 items.  Put enough test items in to
              * get seven buffers.
              */
@@ -108,7 +108,7 @@ public class LogBufferPoolTest extends TestCase {
                 byte[] logData = new byte[10];
                 b = logBuf.getDataBuffer();
                 long firstLsnInBuf = logBuf.getFirstLsn();
-                b.position((int) (DbLsn.getFileOffset(testLsn) - 
+                b.position((int) (DbLsn.getFileOffset(testLsn) -
 				  DbLsn.getFileOffset(firstLsnInBuf)));
                 logBuf.getDataBuffer().get(logData);
 
@@ -117,7 +117,7 @@ public class LogBufferPoolTest extends TestCase {
                 logBuf.release();
             }
 
-            /* 
+            /*
              * This LSN shouldn't be in the buffers, it's less than any
              * buffered item.
              */
@@ -163,7 +163,7 @@ public class LogBufferPoolTest extends TestCase {
             setupEnv(false);
             assertFalse("There should be no files", fileManager.filesExist());
 
-            /* 
+            /*
 	     * Each buffer can only hold 2 items. Put enough test items in to
 	     * get five buffers.
 	     */
@@ -175,7 +175,7 @@ public class LogBufferPoolTest extends TestCase {
             }
             bufPool.writeBufferToFile(0);
             fileManager.syncLogEnd();
-        
+
             /* We should see two files exist. */
             String[] fileNames =
 		fileManager.listFiles(FileManager.JE_SUFFIXES);
@@ -196,7 +196,7 @@ public class LogBufferPoolTest extends TestCase {
             FileHandle file1 = fileManager.getFileHandle(1L);
             file = file1.getFile();
             channel = file.getChannel();
-            bytesRead = channel.read(dataBuffer, 
+            bytesRead = channel.read(dataBuffer,
                                      FileManager.firstLogEntryOffset());
             dataBuffer.flip();
             assertEquals("Check bytes read", 40, bytesRead);
@@ -247,11 +247,11 @@ public class LogBufferPoolTest extends TestCase {
         db = env.openDatabase(null, "InsertAndDelete", dbConfig);
     }
 
-    private void setupEnv(boolean inMemory) 
+    private void setupEnv(boolean inMemory)
         throws Exception {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-   
+
 	DbInternal.disableParameterValidation(envConfig);
         envConfig.setConfigParam(EnvironmentParams.LOG_MEM_SIZE.getName(),
                                  EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
@@ -273,7 +273,7 @@ public class LogBufferPoolTest extends TestCase {
         fileManager = new FileManager(environment, envHome, false);
         bufPool = new LogBufferPool(fileManager, environment);
 
-        /* 
+        /*
          * Remove any files after the environment is created again!  We want to
          * remove the files made by recovery, so we can test the file manager
          * in controlled cases.

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ForeignKeyTest.java,v 1.13.2.1 2007/02/01 14:50:19 cwl Exp $
+ * $Id: ForeignKeyTest.java,v 1.13.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -246,7 +246,7 @@ public class ForeignKeyTest extends MultiKeyTxnTestCase {
             status = priDb2.get(txn, entry(3), data, LockMode.DEFAULT);
             assertEquals(OperationStatus.SUCCESS, status);
             assertEquals(0, val(data));
-            
+
             status = secDb2.get(txn, entry(1), data, LockMode.DEFAULT);
             assertEquals(OperationStatus.NOTFOUND, status);
 
@@ -270,7 +270,7 @@ public class ForeignKeyTest extends MultiKeyTxnTestCase {
 
             status = priDb2.get(txn, entry(3), data, LockMode.DEFAULT);
             assertEquals(OperationStatus.NOTFOUND, status);
-            
+
             status = secDb2.get(txn, entry(1), data, LockMode.DEFAULT);
             assertEquals(OperationStatus.NOTFOUND, status);
 

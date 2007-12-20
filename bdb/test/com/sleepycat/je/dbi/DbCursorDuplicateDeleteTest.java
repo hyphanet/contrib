@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateDeleteTest.java,v 1.54.2.3 2007/03/14 01:50:00 cwl Exp $
+ * $Id: DbCursorDuplicateDeleteTest.java,v 1.54.2.4 2007/11/20 13:32:43 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -31,7 +31,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
 
     private volatile int sequence;
 
-    public DbCursorDuplicateDeleteTest() 
+    public DbCursorDuplicateDeleteTest()
         throws DatabaseException {
 
         super();
@@ -139,7 +139,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
 
     public void testDuplicateDeletionAll()
 	throws Throwable {
-        
+
         try {
             initEnv(true);
             Hashtable dataMap = new Hashtable();
@@ -208,7 +208,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             throw t;
         }
     }
-        
+
     public void testDuplicateDeletionAssorted()
 	throws Throwable {
 
@@ -232,7 +232,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
                         /* Make sure keys are ascending/descending. */
                         assertTrue(foundKey.compareTo(prevKey) >= 0);
 
-                        /* 
+                        /*
 			 * Make sure duplicate items within key are asc/desc.
 			 */
                         if (prevKey.equals(foundKey)) {
@@ -334,7 +334,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
                         /* Make sure keys are ascending/descending. */
                         assertTrue(foundKey.compareTo(prevKey) >= 0);
 
-                        /* 
+                        /*
 			 * Make sure duplicate items within key are asc/desc.
 			 */
                         if (prevKey.equals(foundKey)) {
@@ -450,7 +450,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
                         /* Make sure keys are ascending/descending. */
                         assertTrue(foundKey.compareTo(prevKey) >= 0);
 
-                        /* 
+                        /*
 			 * Make sure duplicate items within key are asc/desc.
 			 */
                         if (prevKey.equals(foundKey)) {
@@ -684,7 +684,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
 	    new JUnitThread("testDuplicateDeadlock2") {
 		public void testBody()
 		    throws DatabaseException {
-		    
+		
 		    DatabaseEntry key = new DatabaseEntry();
 		    DatabaseEntry data = new DatabaseEntry();
 		    Transaction txn2 = exampleEnv.beginTransaction(null, null);

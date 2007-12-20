@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntityIndex.java,v 1.16.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: EntityIndex.java,v 1.16.2.3 2007/12/07 23:19:28 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -25,7 +25,7 @@ import com.sleepycat.je.Transaction;
 
 /**
  * The interface for accessing keys and entities via a primary or secondary
- * index.  
+ * index.
  *
  * <p>{@code EntityIndex} objects are thread-safe.  Multiple threads may safely
  * call the methods of a shared {@code EntityIndex} object.</p>
@@ -866,10 +866,8 @@ public interface EntityIndex<K,V> {
      * physical I/O.</p>
      *
      * <p>The operations performed with the cursor will not be transaction
-     * protected, and {@link CursorConfig#DEFAULT} is used implicitly.  If the
-     * store is transactional, the cursor may not be used to update or delete
-     * entities.</p>
-
+     * protected, and {@link CursorConfig#DEFAULT} is used implicitly.</p>
+     *
      * @param selector the filter for selecting keys to be returned, or null
      * to select all keys.
      *
@@ -889,9 +887,8 @@ public interface EntityIndex<K,V> {
      *
      * @param txn the transaction used to protect all operations performed with
      * the cursor, or null if the operations should not be transaction
-     * protected.  If null is specified and the store is transactional, the
-     * cursor may not be used to update or delete entities.
-
+     * protected.
+     *
      * @param selector the filter for selecting keys to be returned, or null
      * to select all keys.
      *
@@ -917,9 +914,7 @@ public interface EntityIndex<K,V> {
      * physical I/O.</p>
      *
      * <p>The operations performed with the cursor will not be transaction
-     * protected, and {@link CursorConfig#DEFAULT} is used implicitly.  If the
-     * store is transactional, the cursor may not be used to update or delete
-     * entities.</p>
+     * protected, and {@link CursorConfig#DEFAULT} is used implicitly.</p>
 
      * @param selector the filter for selecting keys to be returned, or null
      * to select all keys.
@@ -941,9 +936,8 @@ public interface EntityIndex<K,V> {
      *
      * @param txn the transaction used to protect all operations performed with
      * the cursor, or null if the operations should not be transaction
-     * protected.  If null is specified and the store is transactional, the
-     * cursor may not be used to update or delete entities.
-
+     * protected.
+     *
      * @param selector the filter for selecting keys to be returned, or null
      * to select all keys.
      *

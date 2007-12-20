@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckpointFileReader.java,v 1.26.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: CheckpointFileReader.java,v 1.26.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -27,18 +27,18 @@ public class CheckpointFileReader extends FileReader {
      * Create this reader to start at a given LSN.
      */
     public CheckpointFileReader(EnvironmentImpl env,
-                                int readBufferSize, 
+                                int readBufferSize,
                                 boolean forward,
                                 long startLsn,
                                 long finishLsn,
-                                long endOfFileLsn) 
+                                long endOfFileLsn)
         throws IOException, DatabaseException {
 
         super(env, readBufferSize, forward, startLsn,
 	      null, endOfFileLsn, finishLsn);
     }
 
-    /** 
+    /**
      * @return true if this is a targetted entry.
      */
     protected boolean isTargetEntry(byte logEntryTypeNumber,
@@ -62,7 +62,7 @@ public class CheckpointFileReader extends FileReader {
         }
         return isTarget;
     }
-    
+
     /**
      * This reader instantiate the first object of a given log entry
      */

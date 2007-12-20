@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnumFormat.java,v 1.18.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: EnumFormat.java,v 1.18.2.3 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -59,7 +59,7 @@ public class EnumFormat extends Format {
     }
 
     @Override
-    void initialize(Catalog catalog) {
+    void initialize(Catalog catalog, int initVersion) {
         if (values == null) {
             Class cls = getType();
             if (cls != null) {
@@ -70,7 +70,7 @@ public class EnumFormat extends Format {
             }
         }
     }
-    
+
     @Override
     Object newArray(int len) {
         return Array.newInstance(getType(), len);

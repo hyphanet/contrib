@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: SerialOutput.java,v 1.19.2.1 2007/02/01 14:49:38 cwl Exp $
+ * $Id: SerialOutput.java,v 1.19.2.2 2007/11/20 13:32:24 cwl Exp $
  */
 
 package com.sleepycat.bind.serial;
@@ -39,7 +39,7 @@ import com.sleepycat.util.RuntimeExceptionWrapper;
  */
 public class SerialOutput extends ObjectOutputStream {
 
-    /* 
+    /*
      * Serialization version constants. Instead of hardcoding these we get them
      * by creating a SerialOutput, which itself guarantees that we'll always
      * use a PROTOCOL_VERSION_2 header.

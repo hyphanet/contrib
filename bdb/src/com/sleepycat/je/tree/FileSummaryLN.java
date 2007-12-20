@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileSummaryLN.java,v 1.22.2.2 2007/03/08 22:32:59 mark Exp $
+ * $Id: FileSummaryLN.java,v 1.22.2.4 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -16,13 +16,14 @@ import com.sleepycat.je.cleaner.FileSummary;
 import com.sleepycat.je.cleaner.PackedOffsets;
 import com.sleepycat.je.cleaner.TrackedFileSummary;
 import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogUtils;
 
 /**
- * A FileSummaryLN represents a Leaf Node in the UtilizationProfile database. 
- * 
+ * A FileSummaryLN represents a Leaf Node in the UtilizationProfile database.
+ *
  * <p>The contents of the FileSummaryLN are not fixed until the moment at which
  * the LN is added to the log.  A base summary object contains the summary last
  * added to the log.  A tracked summary object contains live summary info being
@@ -66,7 +67,7 @@ import com.sleepycat.je.log.LogUtils;
  * <p>Version 2: The RMW problem with invalid offsets was corrected.  There is
  * no data format change; all versions of JE 2.0.x can read version 1.</p>
  *
- * @see com.sleepycat.je.cleaner.UtilizationProfile 
+ * @see com.sleepycat.je.cleaner.UtilizationProfile
  */
 public final class FileSummaryLN extends LN {
 
@@ -93,7 +94,7 @@ public final class FileSummaryLN extends LN {
     /**
      * Creates an empty LN to be filled in from the log.
      */
-    public FileSummaryLN() 
+    public FileSummaryLN()
         throws DatabaseException {
         baseSummary = new FileSummary();
         obsoleteOffsets = new PackedOffsets();
@@ -229,7 +230,7 @@ public final class FileSummaryLN extends LN {
      * contains version 1 offsets that can be incorrect when RMW was used, and
      * if je.cleaner.rmwFix is enabled, discard the offsets.  [#13158]
      */
-    public void postFetchInit(DatabaseImpl db, long sourceLsn) 
+    public void postFetchInit(DatabaseImpl db, long sourceLsn)
         throws DatabaseException {
 
         super.postFetchInit(db, sourceLsn);
@@ -247,7 +248,7 @@ public final class FileSummaryLN extends LN {
     public String toString() {
         return dumpString(0, true);
     }
-    
+
     public String beginTag() {
         return BEGIN_TAG;
     }
@@ -334,7 +335,7 @@ public final class FileSummaryLN extends LN {
             trackedSummary.reset();
         }
 
-        super.writeToLog(logBuffer); 
+        super.writeToLog(logBuffer);
 
         if (!isDeleted()) {
             baseSummary.writeToLog(logBuffer);
@@ -372,5 +373,33 @@ public final class FileSummaryLN extends LN {
             }
             needOffsets = false;
         }
+    }
+
+    /**
+     * Overrides this method to indicate that getLogSize and writeToLog can
+     * change the memory size of the LN.  The size returned by ObsoleteOffsets
+     * getExtraMemorySize can change when getOffsets is called by getLogSize or
+     * writeToLog, when the trackedSummary field is non-null.
+     */
+    boolean canMemorySizeChangeDuringLogging() {
+        return true;
+    }
+
+    /**
+     * Overrides this method to add space occupied by this object's fields.
+     */
+    public long getMemorySizeIncludedByParent() {
+        return super.getMemorySizeIncludedByParent() +
+               (MemoryBudget.FILESUMMARYLN_OVERHEAD -
+                MemoryBudget.LN_OVERHEAD) +
+               obsoleteOffsets.getExtraMemorySize();
+    }
+
+    /**
+     * Clear out the obsoleteOffsets to save memory when the LN is deleted.
+     */
+    void makeDeleted() {
+        super.makeDeleted();
+        obsoleteOffsets = new PackedOffsets();
     }
 }

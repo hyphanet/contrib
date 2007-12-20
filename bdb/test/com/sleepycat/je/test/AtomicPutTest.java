@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: AtomicPutTest.java,v 1.13.2.1 2007/02/01 14:50:19 cwl Exp $
+ * $Id: AtomicPutTest.java,v 1.13.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -95,7 +95,7 @@ import com.sleepycat.je.util.TestUtils;
  */
 public class AtomicPutTest extends TxnTestCase {
 
-    private static final int MAX_KEY = 400; //50000; 
+    private static final int MAX_KEY = 400; //50000;
 
     public static Test suite() {
         return txnTestSuite(AtomicPutTest.class, null,
@@ -150,7 +150,7 @@ public class AtomicPutTest extends TxnTestCase {
      * make put() atomic, the first thread would have returned KEYEXIST from
      * put(), and that should never happen.
      */
-    public void runOverwriteNoDuplicates() 
+    public void runOverwriteNoDuplicates()
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SyncedLogManager.java,v 1.18.2.2 2007/06/13 03:55:37 mark Exp $
+ * $Id: SyncedLogManager.java,v 1.18.2.4 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.cleaner.TrackedFileSummary;
 import com.sleepycat.je.cleaner.UtilizationTracker;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -55,7 +56,7 @@ public class SyncedLogManager extends LogManager {
         }
     }
 
-    protected void flushInternal() 
+    protected void flushInternal()
         throws LogException, DatabaseException {
 
         try {
@@ -64,9 +65,9 @@ public class SyncedLogManager extends LogManager {
             }
         } catch (IOException e) {
             throw new LogException(e.getMessage());
-        } 
+        }
     }
-    
+
     /**
      * @see LogManager#getUnflushableTrackedSummary
      */
@@ -77,7 +78,7 @@ public class SyncedLogManager extends LogManager {
             return getUnflushableTrackedSummaryInternal(file);
         }
     }
-    
+
     /**
      * @see LogManager#removeTrackedFile
      */
@@ -121,6 +122,17 @@ public class SyncedLogManager extends LogManager {
 
         synchronized (logWriteLatch) {
             countObsoleteINsInternal(lsnList);
+        }
+    }
+
+    /**
+     * @see LogManager#loadEndOfLogStat
+     */
+    public void loadEndOfLogStat(EnvironmentStats stats)
+        throws DatabaseException {
+
+        synchronized (logWriteLatch) {
+            loadEndOfLogStatInternal(stats);
         }
     }
 }

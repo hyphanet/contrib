@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: DbEnvPool.java,v 1.38.2.2 2007/02/01 14:49:44 cwl Exp $
+ * $Id: DbEnvPool.java,v 1.38.2.3 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -24,8 +24,8 @@ public class DbEnvPool {
     /* singleton instance. */
     private static DbEnvPool pool = new DbEnvPool();
 
-    /* 
-     * Collection of environment handles, mapped by canonical directory 
+    /*
+     * Collection of environment handles, mapped by canonical directory
      * name->EnvironmentImpl object.
      */
     private Map envs;
@@ -48,16 +48,16 @@ public class DbEnvPool {
      * If the environment is not open, open it.
      */
     public EnvironmentImplInfo getEnvironment(File envHome,
-                                               EnvironmentConfig config ) 
+                                               EnvironmentConfig config )
         throws DatabaseException {
 
         return getEnvironment(envHome, config, true);
     }
 
-    /* 
+    /*
      * Only return an environment if it's already bee open in this process.
      */
-    public EnvironmentImplInfo getExistingEnvironment(File envHome) 
+    public EnvironmentImplInfo getExistingEnvironment(File envHome)
         throws DatabaseException {
 
         return getEnvironment(envHome, null, false);
@@ -95,7 +95,7 @@ public class DbEnvPool {
         } else {
             if (openIfNeeded) {
 
-                /* 
+                /*
                  * Environment must be instantiated. If it can be created,
                  * the configuration must have allowCreate set.
                  */
@@ -140,7 +140,7 @@ public class DbEnvPool {
         envs.clear();
     }
 
-    /* 
+    /*
      * Struct for returning two values.
      */
     public static class EnvironmentImplInfo {
@@ -157,7 +157,7 @@ public class DbEnvPool {
     private String getEnvironmentMapKey(File file)
         throws DatabaseException {
         try {
-            return file.getCanonicalPath(); 
+            return file.getCanonicalPath();
         } catch (IOException e) {
             throw new DatabaseException(e);
         }

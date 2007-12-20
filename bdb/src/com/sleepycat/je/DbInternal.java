@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbInternal.java,v 1.44.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: DbInternal.java,v 1.44.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -50,7 +50,7 @@ public class DbInternal {
      */
     public static Cursor newCursor(DatabaseImpl dbImpl,
 				   Locker locker,
-                                   CursorConfig cursorConfig) 
+                                   CursorConfig cursorConfig)
         throws DatabaseException {
 
         return new Cursor(dbImpl, locker, cursorConfig);
@@ -68,7 +68,7 @@ public class DbInternal {
 
         return cursor.position(key, data, lockMode, first);
     }
-    
+
     /**
      * Proxy to new Cursor.retrieveNext().
      */
@@ -156,14 +156,14 @@ public class DbInternal {
     public static void setTxnReadCommitted(EnvironmentConfig config,
                                            boolean txnReadCommitted) {
         config.setTxnReadCommitted(txnReadCommitted);
-    } 
+    }
 
     /**
      * Proxy to EnvironmentConfig.setTxnReadCommitted()
      */
     public static boolean getTxnReadCommitted(EnvironmentConfig config) {
         return config.getTxnReadCommitted();
-    } 
+    }
 
     /**
      * Proxy to EnvironmentConfig.cloneConfig()
@@ -268,7 +268,7 @@ public class DbInternal {
             }
         } catch (DatabaseException e) {
 
-	    /* 
+	    /*
 	     * Klockwork - ok
              * the environment is not valid.
 	     */

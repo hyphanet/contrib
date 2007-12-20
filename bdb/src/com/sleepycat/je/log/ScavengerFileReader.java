@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ScavengerFileReader.java,v 1.13.2.2 2007/03/08 22:32:55 mark Exp $
+ * $Id: ScavengerFileReader.java,v 1.13.2.3 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -44,7 +44,7 @@ abstract public class ScavengerFileReader extends FileReader {
      * Create this reader to start at a given LSN.
      */
     public ScavengerFileReader(EnvironmentImpl env,
-                               int readBufferSize, 
+                               int readBufferSize,
                                long startLsn,
                                long finishLsn,
                                long endOfFileLsn)
@@ -60,7 +60,7 @@ abstract public class ScavengerFileReader extends FileReader {
 
         this.readBufferSize = readBufferSize;
 
-        /* 
+        /*
          * Indicate that a checksum error should not shutdown the whole
          * environment.
          */
@@ -192,7 +192,7 @@ abstract public class ScavengerFileReader extends FileReader {
         return true;
     }
 
-    /** 
+    /**
      * @return true if this reader should process this entry, or just skip
      * over it.
      */

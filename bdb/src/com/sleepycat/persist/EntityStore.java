@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntityStore.java,v 1.28.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: EntityStore.java,v 1.28.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -377,7 +377,7 @@ public class EntityStore {
      */
     public void truncateClass(Class entityClass)
         throws DatabaseException {
-        
+
         store.truncateClass(null, entityClass);
     }
 
@@ -479,7 +479,7 @@ public class EntityStore {
     /**
      * Returns the default Berkeley DB engine API configuration for a named key
      * sequence.
-     * 
+     *
      * </p>The returned configuration is as follows.  All other properties have
      * default values.</p>
      * <ul>
@@ -529,7 +529,7 @@ public class EntityStore {
     /**
      * Returns the default primary database Berkeley DB engine API
      * configuration for an entity class.
-     * 
+     *
      * </p>The returned configuration is as follows.  All other properties have
      * default values.</p>
      * <ul>
@@ -582,7 +582,7 @@ public class EntityStore {
     /**
      * Returns the default secondary database Berkeley DB engine API
      * configuration for an entity class and key name.
-     * 
+     *
      * </p>The returned configuration is as follows.  All other properties have
      * default values.</p>
      * <ul>

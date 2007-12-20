@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: WidenerInput.java,v 1.3.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: WidenerInput.java,v 1.3.2.2 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -20,7 +20,7 @@ import java.math.BigInteger;
  * - char to int, long, float, double or BigInteger
  * - int to long, float, double or BigInteger
  * - long to float, double or BigInteger
- * - float to double 
+ * - float to double
  *
  * For non-key fields we also support:
  * - Java reference widening
@@ -535,7 +535,7 @@ class WidenerInput extends AbstractInput {
             throw new IllegalStateException(String.valueOf(fromFormatId));
         }
     }
-    
+
     private void checkToFormat(int id) {
         if (toFormatId != id) {
             throw new IllegalStateException(String.valueOf(toFormatId));

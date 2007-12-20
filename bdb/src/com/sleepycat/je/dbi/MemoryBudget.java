@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudget.java,v 1.54.2.6 2007/07/13 02:32:05 cwl Exp $
+ * $Id: MemoryBudget.java,v 1.54.2.9 2007/11/20 13:32:28 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -22,7 +22,7 @@ import com.sleepycat.je.tree.IN;
 
 /**
  * MemoryBudget calculates the available memory for JE and how to apportion
- * it between cache and log buffers. It is meant to centralize all memory 
+ * it between cache and log buffers. It is meant to centralize all memory
  * calculations. Objects that ask for memory budgets should get settings from
  * this class, rather than using the configuration parameter values directly.
  */
@@ -38,9 +38,9 @@ public class MemoryBudget implements EnvConfigObserver {
      * _64 values are from 1.5.0_05 on Solaris.
      * _14 values are from 1.4.2 on Windows and Solaris.
      * _15 values are from 1.5.0_05 on Solaris and Windows.
-     * 
+     *
      * Specifically:
-     * 
+     *
      * java.vm.version=1.5.0_05_b05 os.name=SunOS
      * java.vm.version=1.4.2_05_b04 os.name=SunOS
      * java.vm.version=1.5.0_04_b05, os.name=Windows XP
@@ -54,77 +54,91 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int LONG_OVERHEAD_32 = 16;
     private final static int LONG_OVERHEAD_64 = 24;
 
-    // 8 - 2560
-    private final static int BYTE_ARRAY_OVERHEAD_32 = 16;
-    private final static int BYTE_ARRAY_OVERHEAD_64 = 24;
+    // 8
+    private final static int ARRAY_OVERHEAD_32 = 16;
+    private final static int ARRAY_OVERHEAD_64 = 24;
+
+    private final static int ARRAY_SIZE_INCLUDED_32 = 4;
+    private final static int ARRAY_SIZE_INCLUDED_64 = 0;
 
     // 2
     private final static int OBJECT_OVERHEAD_32 = 8;
     private final static int OBJECT_OVERHEAD_64 = 16;
 
-    // (4 - BYTE_ARRAY_OVERHEAD_32) / 256
-    private final static int ARRAY_ITEM_OVERHEAD_32 = 4;
-    private final static int ARRAY_ITEM_OVERHEAD_64 = 8;
+    // (4 - ARRAY_OVERHEAD) / 256
+    // 64b: 4 is 2072
+    private final static int OBJECT_ARRAY_ITEM_OVERHEAD_32 = 4;
+    private final static int OBJECT_ARRAY_ITEM_OVERHEAD_64 = 8;
 
     // 20
     private final static int HASHMAP_OVERHEAD_32 = 120;
     private final static int HASHMAP_OVERHEAD_64 = 216;
 
-    // 21 - OBJECT_OVERHEAD_32 - HASHMAP_OVERHEAD_32
+    // 21 - OBJECT_OVERHEAD - HASHMAP_OVERHEAD
+    // 64b: 21 is max(280,...,287) on Linux/Solaris 1.5/1.6
     private final static int HASHMAP_ENTRY_OVERHEAD_32 = 24;
-    private final static int HASHMAP_ENTRY_OVERHEAD_64 = 48;
+    private final static int HASHMAP_ENTRY_OVERHEAD_64 = 55;
 
     // 22
     private final static int HASHSET_OVERHEAD_32 = 136;
     private final static int HASHSET_OVERHEAD_64 = 240;
 
-    // 23 - OBJECT_OVERHEAD_32 - HASHSET_OVERHEAD_32
+    // 23 - OBJECT_OVERHEAD - HASHSET_OVERHEAD
+    // 64b: 23 is max(304,...,311) on Linux/Solaris
     private final static int HASHSET_ENTRY_OVERHEAD_32 = 24;
-    private final static int HASHSET_ENTRY_OVERHEAD_64 = 48;
+    private final static int HASHSET_ENTRY_OVERHEAD_64 = 55;
 
-    // 2 * HASHMAP_OVERHEAD_32
+    // HASHMAP_OVERHEAD * 2
     private final static int TWOHASHMAPS_OVERHEAD_32 = 240;
     private final static int TWOHASHMAPS_OVERHEAD_64 = 432;
 
     // 34
     private final static int TREEMAP_OVERHEAD_32 = 40;
-    private final static int TREEMAP_OVERHEAD_64 = 64;
+    private final static int TREEMAP_OVERHEAD_64_15 = 64;
+    private final static int TREEMAP_OVERHEAD_64_16 = 80;
 
-    // 35 - OBJECT_OVERHEAD_32 - TREEMAP_OVERHEAD_32
+    // 35 - OBJECT_OVERHEAD - TREEMAP_OVERHEAD
+    // 64b: 35 is 144 on 1.5 and 160 on 1.6, result is 64 for both
     private final static int TREEMAP_ENTRY_OVERHEAD_32 = 32;
-    private final static int TREEMAP_ENTRY_OVERHEAD_64 = 53;
+    private final static int TREEMAP_ENTRY_OVERHEAD_64 = 64;
 
     // 36
+    // 64b: 36 is 800 on 1.5 and max(840,853) on Linux/Solaris 1.6
     private final static int MAPLN_OVERHEAD_32 = 464;
-    private final static int MAPLN_OVERHEAD_64 = 776;
+    private final static int MAPLN_OVERHEAD_64_15 = 800;
+    private final static int MAPLN_OVERHEAD_64_16 = 853;
 
     // 9
     private final static int LN_OVERHEAD_32 = 24;
-    private final static int LN_OVERHEAD_64 = 32;
+    private final static int LN_OVERHEAD_64 = 40;
 
     // 19
     private final static int DUPCOUNTLN_OVERHEAD_32 = 24;
-    private final static int DUPCOUNTLN_OVERHEAD_64 = 40;
+    private final static int DUPCOUNTLN_OVERHEAD_64 = 48;
 
     // 12
     private final static int BIN_FIXED_OVERHEAD_32_14 = 344;
     private final static int BIN_FIXED_OVERHEAD_32_15 = 360;
     private final static int BIN_FIXED_OVERHEAD_64_15 = 528;
+    private final static int BIN_FIXED_OVERHEAD_64_16 = 568;
 
     // 18
     private final static int DIN_FIXED_OVERHEAD_32_14 = 352;
     private final static int DIN_FIXED_OVERHEAD_32_15 = 360;
     private final static int DIN_FIXED_OVERHEAD_64_15 = 536;
+    private final static int DIN_FIXED_OVERHEAD_64_16 = 576;
 
     // 17
     private final static int DBIN_FIXED_OVERHEAD_32_14 = 352;
     private final static int DBIN_FIXED_OVERHEAD_32_15 = 368;
     private final static int DBIN_FIXED_OVERHEAD_64_15 = 544;
+    private final static int DBIN_FIXED_OVERHEAD_64_16 = 584;
 
     // 13
     private final static int IN_FIXED_OVERHEAD_32_14 = 312;
     private final static int IN_FIXED_OVERHEAD_32_15 = 320;
     private final static int IN_FIXED_OVERHEAD_64_15 = 472;
+    private final static int IN_FIXED_OVERHEAD_64_16 = 512;
 
     // 6
     private final static int KEY_OVERHEAD_32 = 16;
@@ -142,21 +156,21 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int WRITE_LOCKINFO_OVERHEAD_32 = 24;
     private final static int WRITE_LOCKINFO_OVERHEAD_64 = 32;
 
-    /* 
+    /*
      * Txn memory is the size for the Txn + a hashmap entry
-     * overhead for being part of the transaction table. 
+     * overhead for being part of the transaction table.
      */
     // 15
     private final static int TXN_OVERHEAD_32_14 = 167;
     private final static int TXN_OVERHEAD_32_15 = 175;
-    private final static int TXN_OVERHEAD_64_15 = 293;
+    private final static int TXN_OVERHEAD_64 = 253;
 
     // 26
     private final static int CHECKPOINT_REFERENCE_SIZE_32_14 = 32 +
         HASHSET_ENTRY_OVERHEAD_32;
     private final static int CHECKPOINT_REFERENCE_SIZE_32_15 = 40 +
         HASHSET_ENTRY_OVERHEAD_32;
-    private final static int CHECKPOINT_REFERENCE_SIZE_64_15 = 56 +
+    private final static int CHECKPOINT_REFERENCE_SIZE_64 = 56 +
         HASHSET_ENTRY_OVERHEAD_64;
 
     /* The per-log-file bytes used in UtilizationProfile. */
@@ -177,15 +191,20 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int LN_INFO_OVERHEAD_32 = 24;
     private final static int LN_INFO_OVERHEAD_64 = 48;
 
+    // 38
+    private final static int FILESUMMARYLN_OVERHEAD_32 = 104;
+    private final static int FILESUMMARYLN_OVERHEAD_64 = 160;
+
     /* Approximate element size in an ArrayList of Long. */
     // (28 - 27) / 100
     private final static int LONG_LIST_PER_ITEM_OVERHEAD_32 = 20;
     private final static int LONG_LIST_PER_ITEM_OVERHEAD_64 = 32;
 
     public final static int LONG_OVERHEAD;
-    public final static int BYTE_ARRAY_OVERHEAD;
+    public final static int ARRAY_OVERHEAD;
+    public final static int ARRAY_SIZE_INCLUDED;
     public final static int OBJECT_OVERHEAD;
-    public final static int ARRAY_ITEM_OVERHEAD;
+    public final static int OBJECT_ARRAY_ITEM_OVERHEAD;
     public final static int HASHMAP_OVERHEAD;
     public final static int HASHMAP_ENTRY_OVERHEAD;
     public final static int HASHSET_OVERHEAD;
@@ -210,14 +229,22 @@ public class MemoryBudget implements EnvConfigObserver {
     public final static int TFS_LIST_INITIAL_OVERHEAD;
     public final static int TFS_LIST_SEGMENT_OVERHEAD;
     public final static int LN_INFO_OVERHEAD;
+    public final static int FILESUMMARYLN_OVERHEAD;
     public final static int LONG_LIST_PER_ITEM_OVERHEAD;
+
+    /* Primitive long array item size is the same on all platforms. */
+    public final static int PRIMITIVE_LONG_ARRAY_ITEM_OVERHEAD = 8;
 
     private final static String JVM_ARCH_PROPERTY = "sun.arch.data.model";
     private final static String FORCE_JVM_ARCH = "je.forceJVMArch";
 
     static {
-	boolean is64 = false;
+        String javaVersion = System.getProperty("java.version");
+        boolean isJVM15 = javaVersion != null &&
+                          javaVersion.startsWith("1.5.");
 	boolean isJVM14 = (LatchSupport.getJava5LatchClass() == null);
+
+	boolean is64 = false;
 	String overrideArch = System.getProperty(FORCE_JVM_ARCH);
 	try {
 	    if (overrideArch == null) {
@@ -240,25 +267,35 @@ public class MemoryBudget implements EnvConfigObserver {
 		throw RE;
 	    }
 	    LONG_OVERHEAD = LONG_OVERHEAD_64;
-	    BYTE_ARRAY_OVERHEAD = BYTE_ARRAY_OVERHEAD_64;
+	    ARRAY_OVERHEAD = ARRAY_OVERHEAD_64;
+            ARRAY_SIZE_INCLUDED = ARRAY_SIZE_INCLUDED_64;
 	    OBJECT_OVERHEAD = OBJECT_OVERHEAD_64;
-	    ARRAY_ITEM_OVERHEAD = ARRAY_ITEM_OVERHEAD_64;
+	    OBJECT_ARRAY_ITEM_OVERHEAD = OBJECT_ARRAY_ITEM_OVERHEAD_64;
 	    HASHMAP_OVERHEAD = HASHMAP_OVERHEAD_64;
 	    HASHMAP_ENTRY_OVERHEAD = HASHMAP_ENTRY_OVERHEAD_64;
 	    HASHSET_OVERHEAD = HASHSET_OVERHEAD_64;
 	    HASHSET_ENTRY_OVERHEAD = HASHSET_ENTRY_OVERHEAD_64;
 	    TWOHASHMAPS_OVERHEAD = TWOHASHMAPS_OVERHEAD_64;
-	    TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_64;
+            if (isJVM15) {
+                TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_64_15;
+                MAPLN_OVERHEAD = MAPLN_OVERHEAD_64_15;
+                BIN_FIXED_OVERHEAD = BIN_FIXED_OVERHEAD_64_15;
+                DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_64_15;
+                DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_64_15;
+                IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_64_15;
+            } else {
+                TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_64_16;
+                MAPLN_OVERHEAD = MAPLN_OVERHEAD_64_16;
+                BIN_FIXED_OVERHEAD = BIN_FIXED_OVERHEAD_64_16;
+                DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_64_16;
+                DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_64_16;
+                IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_64_16;
+            }
 	    TREEMAP_ENTRY_OVERHEAD = TREEMAP_ENTRY_OVERHEAD_64;
-	    MAPLN_OVERHEAD = MAPLN_OVERHEAD_64;
 	    LN_OVERHEAD = LN_OVERHEAD_64;
 	    DUPCOUNTLN_OVERHEAD = DUPCOUNTLN_OVERHEAD_64;
-	    BIN_FIXED_OVERHEAD = BIN_FIXED_OVERHEAD_64_15;
-	    DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_64_15;
-	    DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_64_15;
-	    IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_64_15;
-	    TXN_OVERHEAD = TXN_OVERHEAD_64_15;
-	    CHECKPOINT_REFERENCE_SIZE = CHECKPOINT_REFERENCE_SIZE_64_15;
+	    TXN_OVERHEAD = TXN_OVERHEAD_64;
+	    CHECKPOINT_REFERENCE_SIZE = CHECKPOINT_REFERENCE_SIZE_64;
 	    KEY_OVERHEAD = KEY_OVERHEAD_64;
 	    LOCK_OVERHEAD = LOCK_OVERHEAD_64;
 	    LOCKINFO_OVERHEAD = LOCKINFO_OVERHEAD_64;
@@ -267,12 +304,14 @@ public class MemoryBudget implements EnvConfigObserver {
 	    TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_64;
 	    TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_64;
 	    LN_INFO_OVERHEAD = LN_INFO_OVERHEAD_64;
+	    FILESUMMARYLN_OVERHEAD = FILESUMMARYLN_OVERHEAD_64;
 	    LONG_LIST_PER_ITEM_OVERHEAD = LONG_LIST_PER_ITEM_OVERHEAD_64;
 	} else {
 	    LONG_OVERHEAD = LONG_OVERHEAD_32;
-	    BYTE_ARRAY_OVERHEAD = BYTE_ARRAY_OVERHEAD_32;
+	    ARRAY_OVERHEAD = ARRAY_OVERHEAD_32;
+            ARRAY_SIZE_INCLUDED = ARRAY_SIZE_INCLUDED_32;
 	    OBJECT_OVERHEAD = OBJECT_OVERHEAD_32;
-	    ARRAY_ITEM_OVERHEAD = ARRAY_ITEM_OVERHEAD_32;
+	    OBJECT_ARRAY_ITEM_OVERHEAD = OBJECT_ARRAY_ITEM_OVERHEAD_32;
 	    HASHMAP_OVERHEAD = HASHMAP_OVERHEAD_32;
 	    HASHMAP_ENTRY_OVERHEAD = HASHMAP_ENTRY_OVERHEAD_32;
 	    HASHSET_OVERHEAD = HASHSET_OVERHEAD_32;
@@ -306,6 +345,7 @@ public class MemoryBudget implements EnvConfigObserver {
 	    TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_32;
 	    TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_32;
 	    LN_INFO_OVERHEAD = LN_INFO_OVERHEAD_32;
+	    FILESUMMARYLN_OVERHEAD = FILESUMMARYLN_OVERHEAD_32;
 	    LONG_LIST_PER_ITEM_OVERHEAD = LONG_LIST_PER_ITEM_OVERHEAD_32;
 	}
     }
@@ -314,6 +354,9 @@ public class MemoryBudget implements EnvConfigObserver {
     public final static long MIN_MAX_MEMORY_SIZE = 96 * 1024;
     public final static String MIN_MAX_MEMORY_SIZE_STRING =
 	Long.toString(MIN_MAX_MEMORY_SIZE);
+
+    /* This value prevents cache churn for apps with a high write rate. */
+    private final static int DEFAULT_MIN_BTREE_CACHE_SIZE = 500 * 1024;
 
     private final static long N_64MB = (1 << 26);
 
@@ -325,7 +368,7 @@ public class MemoryBudget implements EnvConfigObserver {
      * miscMemoryUsage.
      */
 
-    /* 
+    /*
      * Amount of memory cached for tree objects.
      */
     private long treeMemoryUsage;
@@ -351,16 +394,16 @@ public class MemoryBudget implements EnvConfigObserver {
      */
     private long[] lockMemoryUsage;
 
-    /* 
+    /*
      * Memory available to JE, based on je.maxMemory and the memory available
      * to this process.
      */
     private long maxMemory;
     private long criticalThreshold; // experimental mark for sync eviction.
-                           
+
     /* Memory available to log buffers. */
     private long logBufferBudget;
-                           
+
     /* Maximum allowed use of the misc budget by the UtilizationTracker. */
     private long trackerBudget;
 
@@ -369,8 +412,11 @@ public class MemoryBudget implements EnvConfigObserver {
      * evictor.  Does not include the log buffers.
      */
     private long cacheBudget;
-    
-    /* 
+
+    /* Mininum to prevent cache churn. */
+    private long minTreeMemoryUsage;
+
+    /*
      * Overheads that are a function of node capacity.
      */
     private long inOverhead;
@@ -381,7 +427,7 @@ public class MemoryBudget implements EnvConfigObserver {
     private EnvironmentImpl envImpl;
 
     MemoryBudget(EnvironmentImpl envImpl,
-                 DbConfigManager configManager) 
+                 DbConfigManager configManager)
         throws DatabaseException {
 
         this.envImpl = envImpl;
@@ -408,7 +454,7 @@ public class MemoryBudget implements EnvConfigObserver {
     /**
      * Respond to config updates.
      */
-    public void envConfigUpdate(DbConfigManager configManager) 
+    public void envConfigUpdate(DbConfigManager configManager)
         throws DatabaseException {
 
         /*
@@ -430,7 +476,7 @@ public class MemoryBudget implements EnvConfigObserver {
 		       boolean resetLockMemoryUsage)
         throws DatabaseException {
 
-        /* 
+        /*
          * Calculate the total memory allotted to JE.
          * 1. If je.maxMemory is specified, use that. Check that it's
          * not more than the jvm memory.
@@ -478,27 +524,27 @@ public class MemoryBudget implements EnvConfigObserver {
 	 * Calculate the memory budget for log buffering.  If the LOG_MEM_SIZE
 	 * parameter is not set, start by using 7% (1/16th) of the cache
 	 * size. If it is set, use that explicit setting.
-	 * 
+	 *
 	 * No point in having more log buffers than the maximum size. If
 	 * this starting point results in overly large log buffers,
 	 * reduce the log buffer budget again.
          */
         long newLogBufferBudget =
-            configManager.getLong(EnvironmentParams.LOG_MEM_SIZE);	    
+            configManager.getLong(EnvironmentParams.LOG_MEM_SIZE);	
         if (newLogBufferBudget == 0) {
 	    newLogBufferBudget = newMaxMemory >> 4;
 	} else if (newLogBufferBudget > newMaxMemory / 2) {
             newLogBufferBudget = newMaxMemory / 2;
         }
 
-        /* 
+        /*
          * We have a first pass at the log buffer budget. See what
          * size log buffers result. Don't let them be too big, it would
          * be a waste.
          */
         int numBuffers =
 	    configManager.getInt(EnvironmentParams.NUM_LOG_BUFFERS);
-        long startingBufferSize = newLogBufferBudget / numBuffers; 
+        long startingBufferSize = newLogBufferBudget / numBuffers;
         int logBufferSize =
             configManager.getInt(EnvironmentParams.LOG_BUFFER_MAX_SIZE);
         if (startingBufferSize > logBufferSize) {
@@ -511,16 +557,19 @@ public class MemoryBudget implements EnvConfigObserver {
 	}
 
         long newCriticalThreshold =
-            (newMaxMemory * 
+            (newMaxMemory *
              envImpl.getConfigManager().getInt
                 (EnvironmentParams.EVICTOR_CRITICAL_PERCENTAGE))/100;
 
         long newTrackerBudget =
-            (newMaxMemory * 
+            (newMaxMemory *
              envImpl.getConfigManager().getInt
                 (EnvironmentParams.CLEANER_DETAIL_MAX_MEMORY_PERCENTAGE))/100;
 
-        /* 
+        long newMinTreeMemoryUsage =
+            configManager.getLong(EnvironmentParams.MIN_TREE_MEMORY);	
+
+        /*
          * If all has gone well, update the budget fields.  Once the log buffer
          * budget is determined, the remainder of the memory is left for tree
          * nodes.
@@ -530,8 +579,9 @@ public class MemoryBudget implements EnvConfigObserver {
         logBufferBudget = newLogBufferBudget;
         trackerBudget = newTrackerBudget;
         cacheBudget = newMaxMemory - newLogBufferBudget;
+        minTreeMemoryUsage = Math.min(newMinTreeMemoryUsage, cacheBudget);
 	if (resetLockMemoryUsage) {
-	    nLockTables = 
+	    nLockTables =
 		configManager.getInt(EnvironmentParams.N_LOCK_TABLES);
 	    lockMemoryUsage = new long[nLockTables];
 	}
@@ -558,10 +608,10 @@ public class MemoryBudget implements EnvConfigObserver {
     /**
      * Initialize the starting environment memory state.
      */
-    void initCacheMemoryUsage() 
+    void initCacheMemoryUsage()
         throws DatabaseException {
 
-        /* 
+        /*
          * The memoryUsageSynchronizer mutex is at the bottom of the lock
          * hierarchy and should always be taken last. Since
          * calcTreeCacheUsage() takes the INList latch, we get the usage value
@@ -570,7 +620,7 @@ public class MemoryBudget implements EnvConfigObserver {
          * called while the system is quiescent, and there should be no lock
          * conflict possible even if the locks were taken in reverse. [#15364]
          */
-        long calculatedUsage = calcTreeCacheUsage(); 
+        long calculatedUsage = calcTreeCacheUsage();
 	synchronized (memoryUsageSynchronizer) {
 	    treeMemoryUsage = calculatedUsage;
 	}
@@ -580,7 +630,7 @@ public class MemoryBudget implements EnvConfigObserver {
     /**
      * Public for testing.
      */
-    public long calcTreeCacheUsage() 
+    public long calcTreeCacheUsage()
         throws DatabaseException {
 
         long totalSize = 0;
@@ -598,6 +648,22 @@ public class MemoryBudget implements EnvConfigObserver {
             inList.releaseMajorLatch();
         }
         return totalSize;
+    }
+
+    /**
+     * Returns whether eviction of INList information is allowed.
+     * To prevent extreme cache churn, eviction of Btree information is
+     * prohibited unless the tree memory usage is above this minimum value.
+     */
+    public boolean isTreeUsageAboveMinimum() {
+        return treeMemoryUsage > minTreeMemoryUsage;
+    }
+
+    /**
+     * For unit tests.
+     */
+    public long getMinTreeMemoryUsage() {
+        return minTreeMemoryUsage;
     }
 
     /**
@@ -714,20 +780,38 @@ public class MemoryBudget implements EnvConfigObserver {
     }
 
     /**
-     * Returns the memory size occupied by a byte array of a given length.
+     * Returns the memory size occupied by a byte array of a given length.  All
+     * arrays (regardless of element type) have the same overhead for a zero
+     * length array.  On 32b Java, there are 4 bytes included in that fixed
+     * overhead that can be used for the first N elements -- however many fit
+     * in 4 bytes.  On 64b Java, there is no extra space included.  In all
+     * cases, space is allocated in 8 byte chunks.
      */
     public static int byteArraySize(int arrayLen) {
 
         /*
-         * BYTE_ARRAY_OVERHEAD accounts for 4 bytes of data.  Data larger than
-         * 4 bytes is allocated in 8 byte increments.
+         * ARRAY_OVERHEAD accounts for N bytes of data, which is 4 bytes on 32b
+         * Java and 0 bytes on 64b Java.  Data larger than N bytes is allocated
+         * in 8 byte increments.
          */
-        int size = BYTE_ARRAY_OVERHEAD;
-        if (arrayLen > 4) {
-            size += ((arrayLen - 4 + 7) / 8) * 8;
+        int size = ARRAY_OVERHEAD;
+        if (arrayLen > ARRAY_SIZE_INCLUDED) {
+            size += ((arrayLen - ARRAY_SIZE_INCLUDED + 7) / 8) * 8;
         }
 
         return size;
+    }
+
+    public static int shortArraySize(int arrayLen) {
+        return byteArraySize(arrayLen * 2);
+    }
+
+    public static int intArraySize(int arrayLen) {
+        return byteArraySize(arrayLen * 4);
+    }
+
+    public static int objectArraySize(int arrayLen) {
+        return byteArraySize(arrayLen * OBJECT_ARRAY_ITEM_OVERHEAD);
     }
 
     void loadStats(StatsConfig config, EnvironmentStats stats) {

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TxnalEntry.java,v 1.4.2.1 2007/02/01 14:50:18 cwl Exp $
+ * $Id: TxnalEntry.java,v 1.4.2.2 2007/11/20 13:32:48 cwl Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -44,13 +44,13 @@ public class TxnalEntry extends LogEntryInfo {
 
         IntegerBinding.intToEntry(key, keyEntry);
         IntegerBinding.intToEntry(data, dataEntry);
-        
+
         Long mapKey = new Long(txnId);
         Set records = (Set) newUncommittedRecords.get(mapKey);
         if (records == null) {
             records = new HashSet();
             newUncommittedRecords.put(mapKey, records);
-        } 
+        }
         records.add(new TestData(keyEntry, dataEntry));
     }
 }

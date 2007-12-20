@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Reader.java,v 1.3.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: Reader.java,v 1.3.2.2 2007/11/03 02:44:53 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -21,7 +21,7 @@ import java.io.Serializable;
  */
 interface Reader extends Serializable {
 
-    void initializeReader(Catalog catalog, Format oldFormat);
+    void initializeReader(Catalog catalog, int initVersion, Format oldFormat);
 
     Object newInstance(EntityInput input, boolean rawAccess);
 

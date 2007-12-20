@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Node.java,v 1.94.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: Node.java,v 1.94.2.2 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -135,18 +135,18 @@ public abstract class Node implements Loggable {
     }
 
     /**
-     * Add yourself to the in memory list if you're a type of node that 
+     * Add yourself to the in memory list if you're a type of node that
      * should belong.
      */
     abstract void rebuildINList(INList inList)
         throws DatabaseException;
 
     /**
-     * Remove yourself from the in memory list if you're a type of node that 
+     * Remove yourself from the in memory list if you're a type of node that
      * is put there.
      */
     abstract void accountForSubtreeRemoval(INList inList,
-                                           UtilizationTracker tracker) 
+                                           UtilizationTracker tracker)
         throws DatabaseException;
 
     /**
@@ -170,8 +170,8 @@ public abstract class Node implements Loggable {
 
     /**
      * Return the approximate size of this node in memory, if this
-     * size should be included in it's parents memory accounting. 
-     * For example, all INs return 0, because they are accounted for 
+     * size should be included in it's parents memory accounting.
+     * For example, all INs return 0, because they are accounted for
      * individually. LNs must return a count, they're not counted on
      * the INList.
      */
@@ -201,7 +201,7 @@ public abstract class Node implements Loggable {
     public void dump(int nSpaces) {
 	System.out.print(dumpString(nSpaces, true));
     }
-    
+
     String dumpString(int nSpaces, boolean dumpTags) {
         StringBuffer self = new StringBuffer();
         self.append(TreeUtils.indent(nSpaces));
@@ -227,7 +227,7 @@ public abstract class Node implements Loggable {
      */
     public abstract LogEntryType getLogType();
 
-    /* 
+    /*
      * Logging support
      */
 

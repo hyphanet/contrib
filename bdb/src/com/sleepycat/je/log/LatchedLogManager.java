@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LatchedLogManager.java,v 1.17.2.2 2007/06/13 03:55:37 mark Exp $
+ * $Id: LatchedLogManager.java,v 1.17.2.4 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.cleaner.TrackedFileSummary;
 import com.sleepycat.je.cleaner.UtilizationTracker;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -22,7 +23,7 @@ import com.sleepycat.je.log.entry.LogEntry;
  * The LatchedLogManager uses the latches to implement critical sections.
  */
 public class LatchedLogManager extends LogManager {
-                                           
+
     /**
      * There is a single log manager per database environment.
      */
@@ -57,7 +58,7 @@ public class LatchedLogManager extends LogManager {
         }
     }
 
-    protected void flushInternal() 
+    protected void flushInternal()
         throws LogException, DatabaseException {
 
         logWriteLatch.acquire();
@@ -69,7 +70,7 @@ public class LatchedLogManager extends LogManager {
             logWriteLatch.release();
         }
     }
-    
+
     /**
      * @see LogManager#getUnflusableTrackedSummary
      */
@@ -83,7 +84,7 @@ public class LatchedLogManager extends LogManager {
             logWriteLatch.release();
         }
     }
-    
+
     /**
      * @see LogManager#removeTrackedFile
      */
@@ -137,6 +138,20 @@ public class LatchedLogManager extends LogManager {
         logWriteLatch.acquire();
         try {
             countObsoleteINsInternal(lsnList);
+        } finally {
+            logWriteLatch.release();
+        }
+    }
+
+    /**
+     * @see LogManager#loadEndOfLogStat
+     */
+    public void loadEndOfLogStat(EnvironmentStats stats)
+        throws DatabaseException {
+
+        logWriteLatch.acquire();
+        try {
+            loadEndOfLogStatInternal(stats);
         } finally {
             logWriteLatch.release();
         }

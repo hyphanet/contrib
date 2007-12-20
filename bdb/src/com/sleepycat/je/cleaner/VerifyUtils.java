@@ -3,10 +3,10 @@
  *
  * Copyright (c) 2006 Oracle.  All rights reserved.
  *
- * $Id: VerifyUtils.java,v 1.8.2.1 2007/03/07 01:24:33 mark Exp $
+ * $Id: VerifyUtils.java,v 1.8.2.2 2007/11/20 13:32:27 cwl Exp $
  */
 
-package com.sleepycat.je.cleaner; 
+package com.sleepycat.je.cleaner;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -53,13 +53,13 @@ public class VerifyUtils {
     public static void checkLsns(DatabaseImpl dbImpl,
                                  PrintStream out)
         throws DatabaseException {
-    
+
         /* Get all the LSNs in the database. */
         GatherLSNs gatherLsns = new GatherLSNs();
         long rootLsn = dbImpl.getTree().getRootLsn();
         List savedExceptions = new ArrayList();
 
-        SortedLSNTreeWalker walker = 
+        SortedLSNTreeWalker walker =
             new SortedLSNTreeWalker(dbImpl,
                                     false, // don't remove from INList
                                     false, // don't set db state
@@ -79,32 +79,32 @@ public class VerifyUtils {
                 out.println("  " + e);
             }
         }
-        
+
         Set lsnsInTree = gatherLsns.getLsns();
         lsnsInTree.add(new Long(rootLsn));
-    
+
         /* Get all the files used by this database. */
         Iterator iter = lsnsInTree.iterator();
         Set fileNums = new HashSet();
-    
+
         while (iter.hasNext()) {
             long lsn = ((Long) iter.next()).longValue();
             fileNums.add(new Long(DbLsn.getFileNumber(lsn)));
         }
-    
+
         /* Gather up the obsolete lsns in these file summary lns */
         iter = fileNums.iterator();
         Set obsoleteLsns = new HashSet();
         UtilizationProfile profile =
             dbImpl.getDbEnvironment().getUtilizationProfile();
-    
+
         while (iter.hasNext()) {
             Long fileNum = (Long) iter.next();
-    
+
             PackedOffsets obsoleteOffsets = new PackedOffsets();
             TrackedFileSummary tfs =
                 profile.getObsoleteDetail(fileNum,
-                                          obsoleteOffsets, 
+                                          obsoleteOffsets,
                                           false /* logUpdate */);
             PackedOffsets.Iterator obsoleteIter = obsoleteOffsets.iterator();
             while (obsoleteIter.hasNext()) {
@@ -113,12 +113,12 @@ public class VerifyUtils {
         		                             offset));
                 obsoleteLsns.add(oneLsn);
                 if (DEBUG) {
-                    out.println("Adding 0x" + 
+                    out.println("Adding 0x" +
                                 Long.toHexString(oneLsn.longValue()));
                 }
             }
         }
-    
+
         /* Check than none the lsns in the tree is in the UP. */
         boolean error = false;
         iter = lsnsInTree.iterator();
@@ -130,10 +130,10 @@ public class VerifyUtils {
                 error = true;
             }
         }
-    
-        /* 
+
+        /*
          * Check that none of the lsns in the file summary ln is in the
-         * tree. 
+         * tree.
          */
         iter = obsoleteLsns.iterator();
         while (iter.hasNext()) {
@@ -144,7 +144,7 @@ public class VerifyUtils {
                 error = true;
             }
         }
-    
+
         if (error) {
             throw new DatabaseException("Lsn mismatch");
         }
@@ -152,11 +152,11 @@ public class VerifyUtils {
         if (savedExceptions.size() > 0) {
             throw new DatabaseException("Sorted LSN Walk problem");
         }
-    } 
+    }
 
     private static class GatherLSNs implements TreeNodeProcessor {
         private Set lsns = new HashSet();
-    
+
         public void processLSN(long childLSN,
 			       LogEntryType childType,
 			       Node ignore,
@@ -170,7 +170,7 @@ public class VerifyUtils {
         public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
 	    throws DatabaseException {
         }
-    
+
 	/* ignore */
 	public void processDupCount(long ignore) {
 	}

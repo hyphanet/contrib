@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnhancedAccessor.java,v 1.11.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: EnhancedAccessor.java,v 1.11.2.2 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -137,7 +137,7 @@ public class EnhancedAccessor implements Accessor {
     public void writeSecKeyFields(Object o, EntityOutput output) {
         ((Enhanced) o).bdbWriteSecKeyFields(output);
     }
-    
+
     public void readSecKeyFields(Object o,
                                  EntityInput input,
                                  int startField,
@@ -150,7 +150,7 @@ public class EnhancedAccessor implements Accessor {
     public void writeNonKeyFields(Object o, EntityOutput output) {
         ((Enhanced) o).bdbWriteNonKeyFields(output);
     }
-    
+
     public void readNonKeyFields(Object o,
                                  EntityInput input,
                                  int startField,

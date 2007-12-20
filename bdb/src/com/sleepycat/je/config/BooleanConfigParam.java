@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BooleanConfigParam.java,v 1.25.2.2 2007/06/04 17:03:30 linda Exp $
+ * $Id: BooleanConfigParam.java,v 1.25.2.3 2007/11/20 13:32:27 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -12,7 +12,7 @@ package com.sleepycat.je.config;
  * A JE configuration parameter with an boolean value.
  */
 public class BooleanConfigParam extends ConfigParam {
-    
+
     private static final String DEBUG_NAME =
         BooleanConfigParam.class.getName();
 
@@ -25,13 +25,13 @@ public class BooleanConfigParam extends ConfigParam {
     BooleanConfigParam(String configName,
                        boolean defaultValue,
                        boolean mutable,
-                       boolean forReplication, 
+                       boolean forReplication,
                        String description) {
         // defaultValue must not be null
         super(configName,
 	      Boolean.valueOf(defaultValue).toString(),
               mutable,
-              forReplication, 
+              forReplication,
               description);
     }
 

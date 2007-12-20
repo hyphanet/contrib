@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PersistCatalog.java,v 1.33.2.3 2007/06/14 13:06:05 mark Exp $
+ * $Id: PersistCatalog.java,v 1.33.2.8 2007/12/08 14:47:26 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -73,17 +73,21 @@ public class PersistCatalog implements Catalog {
     }
 
     /**
-     * Set by unit tests.
+     * Used by unit tests.
      */
     public static boolean expectNoClassChanges;
+    public static boolean unevolvedFormatsEncountered;
 
     /**
      * The object stored under DATA_KEY in the catalog database.
      */
     private static class Data implements Serializable {
+
+        static final long serialVersionUID = 7515058069137413261L;
+
         List<Format> formatList;
         Mutations mutations;
-        transient boolean betaVersion;
+        int version;
     }
 
     /**
@@ -134,6 +138,13 @@ public class PersistCatalog implements Catalog {
     private Store store;
 
     /**
+     * The Evolver and catalog Data are non-null during catalog initialization,
+     * and null otherwise.
+     */
+    private Evolver evolver;
+    private Data catalogData;
+
+    /**
      * Creates a new catalog, opening the database and reading it from a given
      * catalog database if it already exists.  All predefined formats and
      * formats for the given model are added.  For modified classes, old
@@ -159,7 +170,7 @@ public class PersistCatalog implements Catalog {
         openCount = 1;
         boolean success = false;
         try {
-            Data catalogData = readData(txn);
+            catalogData = readData(txn);
             mutations = catalogData.mutations;
             if (mutations == null) {
                 mutations = new Mutations();
@@ -170,8 +181,9 @@ public class PersistCatalog implements Catalog {
              * catalog and disallow class changes.  This brings the catalog up
              * to date so that evolution can proceed correctly from then on.
              */
-            boolean forceWriteData = catalogData.betaVersion;
-            boolean disallowClassChanges = catalogData.betaVersion;
+            boolean betaVersion = (catalogData.version == BETA_VERSION);
+            boolean forceWriteData = betaVersion;
+            boolean disallowClassChanges = betaVersion;
 
             /*
              * Store the given mutations if they are different from the stored
@@ -207,7 +219,7 @@ public class PersistCatalog implements Catalog {
             }
 
             /* Special handling for JE 3.0.12 beta formats. */
-            if (catalogData.betaVersion) {
+            if (betaVersion) {
                 Map<String,Format> formatMap = new HashMap<String,Format>();
                 for (Format format : formatList) {
                     if (format != null) {
@@ -319,7 +331,7 @@ public class PersistCatalog implements Catalog {
              * exception that contains the messages for all of the errors in
              * mutations or in the definition of new classes.
              */
-            Evolver evolver = new Evolver
+            evolver = new Evolver
                 (this, storePrefix, mutations, newFormats, forceEvolution,
                  disallowClassChanges);
             for (Format oldFormat : formatList) {
@@ -380,8 +392,8 @@ public class PersistCatalog implements Catalog {
 
                 /*
                  * Note that we use the Data object that was read above, and
-                 * the Data.betaVersion field determines whether to delete the
-                 * old mutations record.
+                 * the beta version determines whether to delete the old
+                 * mutations record.
                  */
                 catalogData.formatList = formatList;
                 catalogData.mutations = mutations;
@@ -392,11 +404,17 @@ public class PersistCatalog implements Catalog {
                      "opened read-only");
             }
 
-            /* proxyClassMap was only needed for the duration of this ctor. */
-            proxyClassMap = null;
-
             success = true;
         } finally {
+
+            /*
+             * Fields needed only for the duration of this ctor and which
+             * should be null afterwards.
+             */
+            proxyClassMap = null;
+            catalogData = null;
+            evolver = null;
+
             if (!success) {
                 close();
             }
@@ -602,7 +620,7 @@ public class PersistCatalog implements Catalog {
         list.add(format);
         map.put(format.getClassName(), format);
     }
-    
+
     /**
      * Installs an existing format when no evolution is needed, i.e, when the
      * new and old formats are identical.
@@ -623,6 +641,47 @@ public class PersistCatalog implements Catalog {
             }
         }
         return classes;
+    }
+
+    /**
+     * When a format is intialized, this method is called to get the version
+     * of the serialized object to be initialized.  See Catalog.
+     */
+    public int getInitVersion(Format format, boolean forReader) {
+
+        if (catalogData == null || catalogData.formatList == null ||
+            format.getId() >= catalogData.formatList.size()) {
+
+            /*
+             * For new formats, use the current version.  If catalogData is
+             * null, the Catalog ctor is finished and the format must be new.
+             * If the ctor is in progress, the format is new if its ID is
+             * greater than the ID of all pre-existing formats.
+             */
+            return Catalog.CURRENT_VERSION;
+        } else {
+
+            /*
+             * Get the version of a pre-existing format during execution of the
+             * Catalog ctor.  The catalogData field is non-null, but evolver
+             * may be null if the catalog is opened in raw mode.
+             */
+            assert catalogData != null;
+
+            if (forReader) {
+
+                /*
+                 * Get the version of the evolution reader for a pre-existing
+                 * format.  Use the current version if the format changed
+                 * during class evolution, otherwise use the stored version.
+                 */
+                return (evolver != null && evolver.isFormatChanged(format)) ?
+                       Catalog.CURRENT_VERSION : catalogData.version;
+            } else {
+                /* Always used the stored version for a pre-existing format. */
+                return catalogData.version;
+            }
+        }
     }
 
     public Format getFormat(int formatId) {
@@ -772,7 +831,7 @@ public class PersistCatalog implements Catalog {
      */
     private Data readData(Transaction txn)
         throws DatabaseException {
-        
+
         Data catalogData;
         DatabaseEntry key = new DatabaseEntry(DATA_KEY);
         DatabaseEntry data = new DatabaseEntry();
@@ -793,7 +852,7 @@ public class PersistCatalog implements Catalog {
                     }
                     catalogData = new Data();
                     catalogData.formatList = (List) object;
-                    catalogData.betaVersion = true;
+                    catalogData.version = BETA_VERSION;
                 }
                 return catalogData;
             } catch (ClassNotFoundException e) {
@@ -803,6 +862,7 @@ public class PersistCatalog implements Catalog {
             }
         } else {
             catalogData = new Data();
+            catalogData.version = Catalog.CURRENT_VERSION;
         }
         return catalogData;
     }
@@ -812,6 +872,10 @@ public class PersistCatalog implements Catalog {
      */
     private void writeData(Transaction txn, Data catalogData)
         throws DatabaseException {
+
+        /* Catalog data is written in the current version. */
+        boolean wasBetaVersion = (catalogData.version == BETA_VERSION);
+        catalogData.version = CURRENT_VERSION;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
@@ -828,10 +892,9 @@ public class PersistCatalog implements Catalog {
          * Delete the unused beta mutations record if we read the beta version
          * record earlier.
          */
-        if (catalogData.betaVersion) {
+        if (wasBetaVersion) {
             key.setData(BETA_MUTATIONS_KEY);
             db.delete(txn, key);
-            catalogData.betaVersion = false;
         }
     }
 
@@ -867,7 +930,7 @@ public class PersistCatalog implements Catalog {
                     ("ID: " + format.getId() +
                      " class: " + format.getClassName() +
                      " version: " + format.getVersion() +
-                     " current: " + 
+                     " current: " +
                      (format == formatMap.get(format.getClassName())));
             }
         }

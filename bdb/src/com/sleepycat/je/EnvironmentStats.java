@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentStats.java,v 1.43.2.3 2007/05/23 20:31:05 mark Exp $
+ * $Id: EnvironmentStats.java,v 1.43.2.5 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -128,6 +128,11 @@ public class EnvironmentStats implements Serializable {
      */
     private long lastCheckpointEnd;
 
+    /**
+     * The location of the next entry to be written to the log.
+     */
+    private long endOfLog;
+
     /* Cleaner */
 
     /** The number of files to be cleaned to reach the target utilization. */
@@ -240,10 +245,10 @@ public class EnvironmentStats implements Serializable {
     private long nNotResident;   // had to be instantiated from an LSN
     private long nCacheMiss;     // had to retrieve from disk
     private int  nLogBuffers;    // number of existing log buffers
-    private long bufferBytes;    // cache consumed by the log buffers, 
+    private long bufferBytes;    // cache consumed by the log buffers,
                                  // in bytes
     private long adminBytes;     // part of cache used by transactions,
-                                 // log cleaning metadata, and other 
+                                 // log cleaning metadata, and other
                                  // administrative structures
     private long lockBytes;      // part of cache used by locks
 
@@ -252,23 +257,23 @@ public class EnvironmentStats implements Serializable {
      */
     private long nFSyncs;   // Number of fsyncs issued. May be less than
                               // nFSyncRequests because of group commit
-    private long nFSyncRequests; // Number of fsyncs requested. 
+    private long nFSyncRequests; // Number of fsyncs requested.
     private long nFSyncTimeouts; // Number of group fsync requests that
                                    // turned into singleton fsyncs.
-    /* 
+    /*
      * Number of reads which had to be repeated when faulting in an
      * object from disk because the read chunk size controlled by
      * je.log.faultReadSize is too small.
      */
-    private long nRepeatFaultReads; 
+    private long nRepeatFaultReads;
 
-    /* 
+    /*
      * Number of times we have to use the temporary marshalling buffer to
      * write to the log.
      */
     private long nTempBufferWrites;
 
-    /* 
+    /*
      * Number of times we try to read a log entry larger than the read
      * buffer size and can't grow the log buffer to accomodate the large
      * object. This happens during scans of the log during activities like
@@ -281,7 +286,7 @@ public class EnvironmentStats implements Serializable {
      * Approximation of the total log size in bytes.
      */
     private long totalLogSize;
-    
+
     /**
      * Internal use only.
      */
@@ -317,6 +322,7 @@ public class EnvironmentStats implements Serializable {
         nDeltaINFlush = 0;
         lastCheckpointStart = DbLsn.NULL_LSN;
         lastCheckpointEnd = DbLsn.NULL_LSN;
+	endOfLog = DbLsn.NULL_LSN;
 
         // Cleaner
         cleanerBacklog = 0;
@@ -451,6 +457,14 @@ public class EnvironmentStats implements Serializable {
      */
     public long getLastCheckpointEnd() {
         return lastCheckpointEnd;
+    }
+
+    /**
+     * Javadoc for this public method is generated via
+     * the doc templates in the doc_src directory.
+     */
+    public long getEndOfLog() {
+        return endOfLog;
     }
 
     /**
@@ -912,6 +926,13 @@ public class EnvironmentStats implements Serializable {
     /**
      * Internal use only.
      */
+    public void setEndOfLog(long lsn) {
+        endOfLog = lsn;
+    }
+
+    /**
+     * Internal use only.
+     */
     public void setLastCheckpointStart(long lsn) {
         lastCheckpointStart = lsn;
     }
@@ -1207,6 +1228,8 @@ public class EnvironmentStats implements Serializable {
            append(DbLsn.getNoFormatString(lastCheckpointStart)).append('\n');
         sb.append("lastCheckpointEnd=").
            append(DbLsn.getNoFormatString(lastCheckpointEnd)).append('\n');
+        sb.append("endOfLog=").
+           append(DbLsn.getNoFormatString(endOfLog)).append('\n');
 
         // Cleaner
         sb.append("\nCleaner stats\n");

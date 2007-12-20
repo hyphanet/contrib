@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentMutableConfig.java,v 1.29.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: EnvironmentMutableConfig.java,v 1.29.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -23,14 +23,14 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
  */
 public class EnvironmentMutableConfig implements Cloneable {
 
-    /* 
+    /*
      * Change copyHandlePropsTo and Environment.copyToHandleConfig
      * when adding fields here.
      */
     private boolean txnNoSync = false;
     private boolean txnWriteNoSync = false;
 
-    /* 
+    /*
      * Cache size is a category of property that is calculated within the
      * environment.  It is only supplied when returning the cache size to the
      * application and never used internally; internal code directly checks
@@ -39,7 +39,7 @@ public class EnvironmentMutableConfig implements Cloneable {
     protected long cacheSize;
 
     /**
-     * Note that in the implementation we choose not to extend Properties 
+     * Note that in the implementation we choose not to extend Properties
      * in order to keep the configuration type safe.
      */
     protected Properties props;
@@ -71,7 +71,7 @@ public class EnvironmentMutableConfig implements Cloneable {
     EnvironmentMutableConfig(Properties properties)
         throws IllegalArgumentException {
 
-        DbConfigManager.validateProperties(properties, 
+        DbConfigManager.validateProperties(properties,
                                            false,  // forReplication
                                            this.getClass().getName());
         /* For safety, copy the passed in properties. */
@@ -115,7 +115,7 @@ public class EnvironmentMutableConfig implements Cloneable {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void setCacheSize(long totalBytes) 
+    public void setCacheSize(long totalBytes)
         throws IllegalArgumentException {
 
         DbConfigManager.setVal(props, EnvironmentParams.MAX_MEMORY,
@@ -128,7 +128,7 @@ public class EnvironmentMutableConfig implements Cloneable {
      */
     public long getCacheSize() {
 
-        /* 
+        /*
          * CacheSize is filled in from the EnvironmentImpl by way of
          * copyHandleProps.
          */
@@ -139,7 +139,7 @@ public class EnvironmentMutableConfig implements Cloneable {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void setCachePercent(int percent) 
+    public void setCachePercent(int percent)
         throws IllegalArgumentException {
 
         DbConfigManager.setVal(props, EnvironmentParams.MAX_MEMORY_PERCENT,
@@ -167,14 +167,14 @@ public class EnvironmentMutableConfig implements Cloneable {
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
      */
-    public void setConfigParam(String paramName, String value) 
+    public void setConfigParam(String paramName, String value)
         throws IllegalArgumentException {
-        
+
         DbConfigManager.setConfigParam(props,
                                        paramName,
                                        value,
                                        true, /* require mutability. */
-                                       validateParams, 
+                                       validateParams,
                                        false /* forReplication */);
     }
 
@@ -184,7 +184,7 @@ public class EnvironmentMutableConfig implements Cloneable {
      */
     public String getConfigParam(String paramName)
         throws IllegalArgumentException {
-        
+
        return DbConfigManager.getConfigParam(props, paramName);
     }
 

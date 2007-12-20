@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: EvolveClasses.java,v 1.11.2.2 2007/05/01 04:08:36 mark Exp $
+ * $Id: EvolveClasses.java,v 1.11.2.8 2007/12/08 14:43:48 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -11,10 +11,8 @@ import static com.sleepycat.persist.model.Relationship.ONE_TO_ONE;
 import static com.sleepycat.persist.model.Relationship.MANY_TO_ONE;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -45,15 +43,8 @@ import com.sleepycat.persist.raw.RawType;
 
 /**
  * Nested classes are modified versions of classes of the same name in
- * EvolveClasses.java.original.
- *
- * When adding a class, three places need to be changed:
- * 1) Add the unmodified class to EvolveClass.java.original.
- * 2) Add the modified class to EvolveClass.java.
- * 3) Add the class to the list in ALL, to both EvolveClasses.java and
- *    EvolveClasses.java.original.  The index in the list identifies a test
- *    case, and the class at that position identifies the old and new class
- *    to use for the test.
+ * EvolveClasses.java.original.  See EvolveTestBase.java for the steps that are
+ * taken to add a new class (test case).
  *
  * @author Mark Hayes
  */
@@ -61,100 +52,6 @@ class EvolveClasses {
 
     private static final String PREFIX = EvolveClasses.class.getName() + '$';
     private static final String CASECLS = EvolveCase.class.getName();
-
-    static final List<Class<? extends EvolveCase>> ALL =
-        new ArrayList<Class<? extends EvolveCase>>();
-    /* !! Order of tests here must match EvolveClasses.java.original */
-    static {
-if (true) {
-        ALL.add(DeletedEntity1_ClassRemoved_NoMutation.class);
-        ALL.add(DeletedEntity2_ClassRemoved_WithDeleter.class);
-        ALL.add(DeletedEntity3_AnnotRemoved_NoMutation.class);
-        ALL.add(DeletedEntity4_AnnotRemoved_WithDeleter.class);
-        ALL.add(DeletedEntity5_EntityToPersist_NoMutation.class);
-        ALL.add(DeletedEntity6_EntityToPersist_WithDeleter.class);
-        ALL.add(DeletedPersist1_ClassRemoved_NoMutation.class);
-        ALL.add(DeletedPersist2_ClassRemoved_WithDeleter.class);
-        ALL.add(DeletedPersist3_AnnotRemoved_NoMutation.class);
-        ALL.add(DeletedPersist4_AnnotRemoved_WithDeleter.class);
-        ALL.add(DeletedPersist5_PersistToEntity_NoMutation.class);
-        ALL.add(DeletedPersist6_PersistToEntity_WithDeleter.class);
-        ALL.add(RenamedEntity1_NewEntityName_NoMutation.class);
-        ALL.add(RenamedEntity2_NewEntityName_WithRenamer.class);
-        ALL.add(DeleteSuperclass1_NoMutation.class);
-        ALL.add(DeleteSuperclass2_WithConverter.class);
-        ALL.add(DeleteSuperclass3_WithDeleter.class);
-        ALL.add(DeleteSuperclass4_NoFields.class);
-        ALL.add(DeleteSuperclass5_Top.class);
-        ALL.add(InsertSuperclass1_Between.class);
-        ALL.add(InsertSuperclass2_Top.class);
-        ALL.add(DisallowNonKeyField_PrimitiveToObject.class);
-        ALL.add(DisallowNonKeyField_ObjectToPrimitive.class);
-        ALL.add(DisallowNonKeyField_ObjectToSubtype.class);
-        ALL.add(DisallowNonKeyField_ObjectToUnrelatedSimple.class);
-        ALL.add(DisallowNonKeyField_ObjectToUnrelatedOther.class);
-        ALL.add(DisallowNonKeyField_byte2boolean.class);
-        ALL.add(DisallowNonKeyField_short2byte.class);
-        ALL.add(DisallowNonKeyField_int2short.class);
-        ALL.add(DisallowNonKeyField_long2int.class);
-        ALL.add(DisallowNonKeyField_float2long.class);
-        ALL.add(DisallowNonKeyField_double2float.class);
-        ALL.add(DisallowNonKeyField_Byte2byte.class);
-        ALL.add(DisallowNonKeyField_Character2char.class);
-        ALL.add(DisallowNonKeyField_Short2short.class);
-        ALL.add(DisallowNonKeyField_Integer2int.class);
-        ALL.add(DisallowNonKeyField_Long2long.class);
-        ALL.add(DisallowNonKeyField_Float2float.class);
-        ALL.add(DisallowNonKeyField_Double2double.class);
-        ALL.add(DisallowNonKeyField_float2BigInt.class);
-        ALL.add(DisallowNonKeyField_BigInt2long.class);
-        ALL.add(DisallowSecKeyField_byte2short.class);
-        ALL.add(DisallowSecKeyField_char2int.class);
-        ALL.add(DisallowSecKeyField_short2int.class);
-        ALL.add(DisallowSecKeyField_int2long.class);
-        ALL.add(DisallowSecKeyField_long2float.class);
-        ALL.add(DisallowSecKeyField_float2double.class);
-        ALL.add(DisallowSecKeyField_Byte2short2.class);
-        ALL.add(DisallowSecKeyField_Character2int.class);
-        ALL.add(DisallowSecKeyField_Short2int2.class);
-        ALL.add(DisallowSecKeyField_Integer2long.class);
-        ALL.add(DisallowSecKeyField_Long2float2.class);
-        ALL.add(DisallowSecKeyField_Float2double2.class);
-        ALL.add(DisallowSecKeyField_int2BigInt.class);
-        ALL.add(DisallowPriKeyField_byte2short.class);
-        ALL.add(DisallowPriKeyField_char2int.class);
-        ALL.add(DisallowPriKeyField_short2int.class);
-        ALL.add(DisallowPriKeyField_int2long.class);
-        ALL.add(DisallowPriKeyField_long2float.class);
-        ALL.add(DisallowPriKeyField_float2double.class);
-        ALL.add(DisallowPriKeyField_Byte2short2.class);
-        ALL.add(DisallowPriKeyField_Character2int.class);
-        ALL.add(DisallowPriKeyField_Short2int2.class);
-        ALL.add(DisallowPriKeyField_Integer2long.class);
-        ALL.add(DisallowPriKeyField_Long2float2.class);
-        ALL.add(DisallowPriKeyField_Float2double2.class);
-        ALL.add(DisallowPriKeyField_Long2BigInt.class);
-        ALL.add(DisallowCompositeKeyField_byte2short.class);
-        ALL.add(AllowPriKeyField_Byte2byte2.class);
-        ALL.add(AllowPriKeyField_byte2Byte.class);
-        ALL.add(AllowFieldTypeChanges.class);
-        ALL.add(ConvertExample1_Entity.class);
-        ALL.add(ConvertExample2_Person.class);
-        ALL.add(ConvertExample3_Person.class);
-        ALL.add(ConvertExample4_Entity.class);
-        ALL.add(ConvertExample5_Entity.class);
-        ALL.add(AllowFieldAddDelete.class);
-        ALL.add(ProxiedClass_Entity.class);
-        ALL.add(DisallowChangeProxyFor.class);
-        ALL.add(DisallowDeleteProxyFor.class);
-        ALL.add(ArrayNameChange_Entity.class);
-        ALL.add(AddEnumConstant_Entity.class);
-        ALL.add(DeleteEnumConstant_NoMutation.class);
-        ALL.add(DisallowChangeKeyRelate.class);
-        ALL.add(AllowChangeKeyMetadata.class);
-}
-        /* Add new test classes here. */
-    }
 
     /**
      * Reads a raw object and checks its superclass names and versions.
@@ -3961,7 +3858,7 @@ if (true) {
 
             Conversion conv1 = new MyConversion1();
             Conversion conv2 = new MyConversion2();
-        
+
             m.addConverter(new Converter(NAME, 0, "f_long2int", conv1));
             m.addConverter(new Converter(NAME, 0, "f_String2long", conv2));
             m.addConverter(new Converter(NAME2, 0, "f_long2Integer", conv1));
@@ -3976,7 +3873,7 @@ if (true) {
             public Object convert(Object o) {
                 return ((Long) o).intValue();
             }
-            
+
             @Override
             public boolean equals(Object other) { return true; }
         }
@@ -4423,7 +4320,7 @@ if (true) {
         public Object convert(Object fromValue) {
             return Integer.valueOf((String) fromValue);
         }
-        
+
         @Override
         public boolean equals(Object o) {
             return o instanceof ConvertExample1_Conversion;
@@ -4657,7 +4554,7 @@ if (true) {
 
             return new RawObject(addressType, addressValues, null);
         }
-        
+
         @Override
         public boolean equals(Object o) {
             return o instanceof ConvertExample2_Conversion;
@@ -4709,7 +4606,7 @@ if (true) {
             return new RawObject
                 (newPersonType, personValues, person.getSuper());
         }
-        
+
         @Override
         public boolean equals(Object o) {
             return o instanceof ConvertExample3_Conversion;
@@ -4807,7 +4704,7 @@ if (true) {
                      null);
                 checkRawFields(obj, "key", 99, "address", embed);
             } else {
-                checkRawFields(obj, "key", 99, 
+                checkRawFields(obj, "key", 99,
                                     "street", "street",
                                     "city", "city",
                                     "state", "state",
@@ -4844,7 +4741,7 @@ if (true) {
             RawObject newA = new RawObject(newAType, aValues, newB);
             return newA;
         }
-        
+
         @Override
         public boolean equals(Object o) {
             return o instanceof Example4_Conversion;
@@ -4994,7 +4891,7 @@ if (true) {
                 (newPetType, petValues, pet.getSuper());
             return new RawObject(newSubType, subTypeValues, newPet);
         }
-        
+
         @Override
         public boolean equals(Object o) {
             return o instanceof ConvertExample5_Conversion;
@@ -5206,7 +5103,7 @@ if (true) {
             TestCase.assertEquals(99, obj.key);
             {
                 AllowFieldAddDelete o = obj;
-            
+
                 TestCase.assertNotNull(o);
                 TestCase.assertEquals("0", o.f0);
                 TestCase.assertEquals("2", o.f2);
@@ -5218,7 +5115,7 @@ if (true) {
             }
             {
                 AllowFieldAddDelete_Base o = (AllowFieldAddDelete_Base) obj;
-            
+
                 TestCase.assertNotNull(o);
                 TestCase.assertEquals("0", o.f0);
                 TestCase.assertEquals("2", o.f2);
@@ -5230,7 +5127,7 @@ if (true) {
             }
             {
                 AllowFieldAddDelete_Embed o = obj.embed;
-            
+
                 TestCase.assertNotNull(o);
                 TestCase.assertEquals("0", o.f0);
                 TestCase.assertEquals("2", o.f2);
@@ -5848,8 +5745,6 @@ if (true) {
         private static final String NAME =
             AllowChangeKeyMetadata.class.getName();
 
-        private transient boolean updated;
-
         @PrimaryKey
         int key;
 
@@ -5987,6 +5882,234 @@ if (true) {
             assertDbExists(expectEvolved, env, NAME, "addField");
             assertDbExists(!expectEvolved, env, NAME, "dropField");
             assertDbExists(!expectEvolved, env, NAME, "dropAnnotation");
+        }
+    }
+
+    /** [#15524] */
+    @Entity(version=1)
+    static class AllowAddSecondary
+        extends EvolveCase {
+
+        private static final String NAME =
+            AllowAddSecondary.class.getName();
+
+        @PrimaryKey
+        long key;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int a;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int b;
+
+        @Override
+        void checkEvolvedModel(EntityModel model,
+                               Environment env,
+                               boolean oldTypesExist) {
+            checkEntity(true, model, env, NAME, 1, null);
+            if (oldTypesExist) {
+                checkVersions(model, NAME, 1, NAME, 0);
+            } else {
+                checkVersions(model, NAME, 1);
+            }
+        }
+
+        @Override
+        void readObjects(EntityStore store, boolean doUpdate)
+            throws DatabaseException {
+
+            PrimaryIndex<Long,AllowAddSecondary>
+                index = store.getPrimaryIndex
+                    (Long.class,
+                     AllowAddSecondary.class);
+            AllowAddSecondary obj = index.get(99L);
+            checkValues(obj);
+
+            checkValues(store.getSecondaryIndex
+                (index, Integer.class, "a").get(1));
+            if (updated) {
+                checkValues(store.getSecondaryIndex
+                    (index, Integer.class, "b").get(3));
+                TestCase.assertNull(store.getSecondaryIndex
+                    (index, Integer.class, "b").get(2));
+            } else {
+                checkValues(store.getSecondaryIndex
+                    (index, Integer.class, "b").get(2));
+                TestCase.assertNull(store.getSecondaryIndex
+                    (index, Integer.class, "b").get(3));
+            }
+
+            if (doUpdate) {
+                obj.b = 3;
+                index.put(obj);
+                updated = true;
+                checkValues(store.getSecondaryIndex
+                    (index, Integer.class, "a").get(1));
+                checkValues(store.getSecondaryIndex
+                    (index, Integer.class, "b").get(3));
+            }
+        }
+
+        @Override
+        void copyRawObjects(RawStore rawStore, EntityStore newStore)
+            throws DatabaseException {
+
+            PrimaryIndex<Long,AllowAddSecondary>
+                index = newStore.getPrimaryIndex
+                    (Long.class,
+                     AllowAddSecondary.class);
+            RawObject raw = rawStore.getPrimaryIndex(NAME).get(99L);
+            index.put((AllowAddSecondary)
+                      newStore.getModel().convertRawObject(raw));
+        }
+
+        private void checkValues(AllowAddSecondary obj) {
+            TestCase.assertNotNull(obj);
+            TestCase.assertEquals(99L, obj.key);
+            TestCase.assertEquals(1, obj.a);
+            if (updated) {
+                TestCase.assertEquals(3, obj.b);
+            } else {
+                TestCase.assertEquals(2, obj.b);
+            }
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            RawObject obj = readRaw
+                (store, 99L, NAME, expectEvolved ? 1 : 0, CASECLS, 0);
+            if (expectUpdated) {
+                checkRawFields(obj, "key", 99L,
+                               "a", 1,
+                               "b", 3);
+            } else {
+                checkRawFields(obj, "key", 99L,
+                               "a", 1,
+                               "b", 2);
+            }
+            Environment env = store.getEnvironment();
+            assertDbExists(expectEvolved, env, NAME, "a");
+            assertDbExists(expectEvolved, env, NAME, "b");
+        }
+    }
+
+    @Entity(version=1)
+    static class FieldAddAndConvert
+        extends EvolveCase {
+
+        private static final String NAME =
+            FieldAddAndConvert.class.getName();
+
+        @PrimaryKey
+        int key;
+
+        private String f0 = "0"; // new field
+        private String f1 = "1"; // converted field
+        private String f2 = "2"; // new field
+        private String f3 = "3"; // converted field
+        private String f4 = "4"; // new field
+
+        @Override
+        Mutations getMutations() {
+            Mutations m = new Mutations();
+            m.addConverter(new Converter(NAME, 0, "f1", new IntToString()));
+            m.addConverter(new Converter(NAME, 0, "f3", new IntToString()));
+            return m;
+        }
+
+        private static class IntToString implements Conversion {
+
+            public void initialize(EntityModel model) {
+            }
+
+            public Object convert(Object fromValue) {
+                return fromValue.toString();
+            }
+
+            @Override
+            public boolean equals(Object other) {
+                return other instanceof IntToString;
+            }
+        }
+
+        @Override
+        void checkEvolvedModel(EntityModel model,
+                               Environment env,
+                               boolean oldTypesExist) {
+            checkEntity(true, model, env, NAME, 1, null);
+            if (oldTypesExist) {
+                checkVersions(model, NAME, 1, NAME, 0);
+            } else {
+                checkVersions(model, NAME, 1);
+            }
+        }
+
+        @Override
+        void readObjects(EntityStore store, boolean doUpdate)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,FieldAddAndConvert>
+                index = store.getPrimaryIndex
+                    (Integer.class,
+                     FieldAddAndConvert.class);
+            FieldAddAndConvert obj = index.get(99);
+            TestCase.assertNotNull(obj);
+            TestCase.assertEquals(99, obj.key);
+            TestCase.assertEquals("0", obj.f0);
+            TestCase.assertEquals("1", obj.f1);
+            TestCase.assertEquals("2", obj.f2);
+            TestCase.assertEquals("3", obj.f3);
+            TestCase.assertEquals("4", obj.f4);
+
+            if (doUpdate) {
+                index.put(obj);
+            }
+        }
+
+        @Override
+        void copyRawObjects(RawStore rawStore, EntityStore newStore)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,FieldAddAndConvert>
+                index = newStore.getPrimaryIndex
+                    (Integer.class,
+                     FieldAddAndConvert.class);
+            RawObject raw = rawStore.getPrimaryIndex(NAME).get(99);
+            index.put((FieldAddAndConvert)
+                      newStore.getModel().convertRawObject(raw));
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            RawObject obj = readRaw
+                (store, 99, NAME, expectEvolved ? 1 : 0, CASECLS, 0);
+            if (expectUpdated) {
+                checkRawFields(obj,
+                               "key", 99, 
+                               "f0", "0",
+                               "f1", "1",
+                               "f2", "2",
+                               "f3", "3",
+                               "f4", "4");
+            } else if (expectEvolved) {
+                checkRawFields(obj,
+                               "key", 99, 
+                               "f1", "1",
+                               "f3", "3");
+            } else {
+                checkRawFields(obj,
+                               "key", 99, 
+                               "f1", 1,
+                               "f3", 3);
+            }
         }
     }
 }

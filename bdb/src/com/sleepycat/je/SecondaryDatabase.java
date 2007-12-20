@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryDatabase.java,v 1.52.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: SecondaryDatabase.java,v 1.52.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -266,7 +266,7 @@ public class SecondaryDatabase extends Database {
 
         return (SecondaryCursor) openCursor(txn, cursorConfig);
     }
- 
+
     /**
      * Overrides Database method.
      */
@@ -317,7 +317,7 @@ public class SecondaryDatabase extends Database {
                 }
                 searchStatus = cursor.retrieveNext
                     (key, pKey, LockMode.RMW, GetMode.NEXT_DUP);
-            } 
+            }
             return commitStatus;
 	} catch (Error E) {
 	    DbInternal.envGetEnvironmentImpl(envHandle).invalidate(E);
@@ -492,7 +492,7 @@ public class SecondaryDatabase extends Database {
 
         throw notAllowedException();
     }
-    
+
     /**
      * Updates a single secondary when a put() or delete() is performed on
      * the primary.

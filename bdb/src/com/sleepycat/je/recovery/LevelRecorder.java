@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LevelRecorder.java,v 1.3.2.1 2007/02/01 14:49:49 cwl Exp $
+ * $Id: LevelRecorder.java,v 1.3.2.2 2007/11/20 13:32:33 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -30,7 +30,7 @@ import com.sleepycat.je.dbi.DatabaseId;
  * where an ancestor of a given node can be logged without referring to the
  * latest on-disk position of the node, because that ancestor was part of a
  * split or compression.
- * 
+ *
  * Take this scenario:
  *     Root-A
  *      /    \
@@ -59,7 +59,7 @@ import com.sleepycat.je.dbi.DatabaseId;
  *
  * In the ideal case, this would occur infrequently. If there were a checkpoint
  * and no splits/compressions, one should only see the checkpoint top level as
- * non-provisional log entries. 
+ * non-provisional log entries.
  *
  * One issue that may make this extra read pass occur more than it should is
  * that cascading updates for splits and compressions are logging all entries
@@ -70,7 +70,7 @@ import com.sleepycat.je.dbi.DatabaseId;
  * to this optimization.
  */
 class LevelRecorder {
-    
+
     /* Map of DatabaseId->LevelInfo */
     private Map dbLevels;
 
@@ -78,7 +78,7 @@ class LevelRecorder {
         dbLevels = new HashMap();
     }
 
-    /* 
+    /*
      * Record whether the level seen for the current IN is the highest or
      * lowest.
      */
@@ -110,13 +110,13 @@ class LevelRecorder {
     }
 
     /**
-     * Remember the highest and lowest level seen for a given database. 
+     * Remember the highest and lowest level seen for a given database.
      */
     private static class LevelInfo {
         private int highest = Integer.MIN_VALUE;
         private int lowest = Integer.MAX_VALUE;
         private boolean differenceSeen = false;
-        
+
         void recordLevel(int level) {
             if (!differenceSeen) {
                 if (level < lowest) {
@@ -129,7 +129,7 @@ class LevelRecorder {
             }
         }
 
-        /* 
+        /*
          * @return true if there is a difference between the highest and
          * lowest.
          */

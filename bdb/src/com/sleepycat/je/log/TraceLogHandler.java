@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TraceLogHandler.java,v 1.31.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: TraceLogHandler.java,v 1.31.2.2 2007/12/11 18:05:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -40,10 +40,7 @@ public class TraceLogHandler extends Handler {
                 Tracer trace = new Tracer(l.getMessage());
                 trace.log(env.getLogManager());
             } catch (DatabaseException e) {
-                /* Eat exception. */
-                System.err.println("Problem seen while tracing into " +
-                                   "the database log:");
-                e.printStackTrace();
+		throw new IllegalStateException(e);
             }
         }
     }

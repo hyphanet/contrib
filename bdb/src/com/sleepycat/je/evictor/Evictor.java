@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Evictor.java,v 1.86.2.6 2007/07/02 19:54:50 mark Exp $
+ * $Id: Evictor.java,v 1.86.2.11 2007/12/14 01:43:26 mark Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -23,7 +23,6 @@ import com.sleepycat.je.cleaner.UtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
-import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.dbi.MemoryBudget;
@@ -53,6 +52,9 @@ public class Evictor extends DaemonThread {
     public static final String SOURCE_CRITICAL = "critical";
     private static final boolean DEBUG = false;
 
+    /* Prevent endless eviction loops under extreme resource constraints. */
+    private static final int MAX_BATCHES_PER_RUN = 100;
+
     private EnvironmentImpl envImpl;
     private LogManager logManager;
     private Level detailedTraceLevel;  // level value for detailed trace msgs
@@ -77,7 +79,7 @@ public class Evictor extends DaemonThread {
     private boolean forcedYield;
 
     /* for trace messages. */
-    private NumberFormat formatter; 
+    private NumberFormat formatter;
 
     /*
      * Stats
@@ -94,7 +96,7 @@ public class Evictor extends DaemonThread {
     private int nNodesScanned = 0;
     private int nNodesScannedThisRun;
 
-    /* 
+    /*
      * Number of nodes evicted on this run. This could be understated, as a
      * whole subtree may have gone out with a single node.
      */
@@ -106,7 +108,7 @@ public class Evictor extends DaemonThread {
     private long nBINsStrippedThisRun;
 
     /* Debugging and unit test support. */
-    EvictProfile evictProfile;  
+    EvictProfile evictProfile;
     private TestHook runnableHook;
 
     public Evictor(EnvironmentImpl envImpl, String name)
@@ -149,7 +151,7 @@ public class Evictor extends DaemonThread {
     /**
      * Load stats.
      */
-    public void loadStats(StatsConfig config, EnvironmentStats stat) 
+    public void loadStats(StatsConfig config, EnvironmentStats stat)
         throws DatabaseException {
 
         stat.setNEvictPasses(nEvictPasses);
@@ -192,7 +194,7 @@ public class Evictor extends DaemonThread {
     }
 
     /**
-     * Called whenever the daemon thread wakes up from a sleep. 
+     * Called whenever the daemon thread wakes up from a sleep.
      */
     public void onWakeup()
         throws DatabaseException {
@@ -209,7 +211,7 @@ public class Evictor extends DaemonThread {
     /**
      * May be called by the evictor thread on wakeup or programatically.
      */
-    public void doEvict(String source) 
+    public void doEvict(String source)
         throws DatabaseException {
 
         doEvict(source,
@@ -223,7 +225,7 @@ public class Evictor extends DaemonThread {
      */
     private synchronized void doEvict(String source,
                                       boolean criticalEviction,
-                                      boolean backgroundIO) 
+                                      boolean backgroundIO)
         throws DatabaseException {
 
         /*
@@ -243,13 +245,16 @@ public class Evictor extends DaemonThread {
              * progress is made, to prevent an infinite loop.
              */
             boolean progress = true;
+            int nBatches = 0;
             while (progress &&
+                   (nBatches < MAX_BATCHES_PER_RUN) &&
                    (criticalEviction || !isShutdownRequested()) &&
                    isRunnable(source)) {
                 if (evictBatch
                     (source, backgroundIO, currentRequiredEvictBytes) == 0) {
                     progress = false;
                 }
+                nBatches += 1;
             }
         } finally {
             active = false;
@@ -266,7 +271,7 @@ public class Evictor extends DaemonThread {
         long currentUsage  = mb.getCacheMemoryUsage();
         long maxMem = mb.getCacheBudget();
         long over = currentUsage - maxMem;
-        
+
         if (over > mb.getCriticalThreshold()) {
             if (DEBUG) {
                 System.out.println("***critical detected:" + over);
@@ -311,7 +316,7 @@ public class Evictor extends DaemonThread {
         INList inList = envImpl.getInMemoryINs();
         inList.latchMajor();
         int inListStartSize = inList.getSize();
-        
+
         /*
          * Use a tracker to count lazily compressed, deferred write, LNs as
          * obsolete.  A separate tracker is used to accumulate tracked obsolete
@@ -322,7 +327,7 @@ public class Evictor extends DaemonThread {
 
         try {
 
-            /* 
+            /*
              * Setup the round robin iterator. Note that because critical
              * eviction is now called during recovery, when the INList is
              * sometimes abruptly cleared, nextNode may not be null when the
@@ -349,7 +354,8 @@ public class Evictor extends DaemonThread {
              * list.
              */
             while ((evictBytes < requiredEvictBytes) &&
-                   (nNodesScannedThisRun <= inListStartSize)) {
+                   (nNodesScannedThisRun <= inListStartSize) &&
+                   envImpl.getMemoryBudget().isTreeUsageAboveMinimum()) {
 
                 IN target = selectIN(inList, scanIter);
 
@@ -357,6 +363,7 @@ public class Evictor extends DaemonThread {
                     break;
                 } else {
                     assert evictProfile.count(target);//intentional side effect
+
                     if (target.isDbRoot()) {
                         evictBytes += evictRoot
                             (inList, target, scanIter, backgroundIO);
@@ -388,7 +395,7 @@ public class Evictor extends DaemonThread {
                              " source=" + source +
                              " requiredEvictBytes=" +
                              formatter.format(requiredEvictBytes) +
-                             " evictBytes=" + 
+                             " evictBytes=" +
                              formatter.format(evictBytes) +
                              " inListSize=" + inListStartSize +
                              " nNodesScanned=" + nNodesScannedThisRun +
@@ -423,12 +430,16 @@ public class Evictor extends DaemonThread {
         MemoryBudget mb = envImpl.getMemoryBudget();
         long currentUsage  = mb.getCacheMemoryUsage();
         long maxMem = mb.getCacheBudget();
-        boolean doRun = ((currentUsage - maxMem) > 0);
+        long overBudget = currentUsage - maxMem;
+        boolean doRun = (overBudget > 0);
 
         /* If running, figure out how much to evict. */
         if (doRun) {
-            currentRequiredEvictBytes =
-                (currentUsage - maxMem) + evictBytesSetting;
+            currentRequiredEvictBytes = overBudget + evictBytesSetting;
+            /* Don't evict more than 50% of the cache. */
+            if (currentUsage - currentRequiredEvictBytes < maxMem / 2) {
+                currentRequiredEvictBytes = overBudget + (maxMem / 2);
+            }
             if (DEBUG) {
                 if (source == SOURCE_CRITICAL) {
                     System.out.println("executed: critical runnable");
@@ -442,14 +453,14 @@ public class Evictor extends DaemonThread {
             currentRequiredEvictBytes = maxMem;
         }
 
-        /* 
+        /*
          * This trace message is expensive, only generate if tracing at this
          * level is enabled.
          */
         Logger logger = envImpl.getLogger();
         if (logger.isLoggable(detailedTraceLevel)) {
 
-            /* 
+            /*
              * Generate debugging output. Note that Runtime.freeMemory
              * fluctuates over time as the JVM grabs more memory, so you really
              * have to do totalMemory - freeMemory to get stack usage.  (You
@@ -458,7 +469,7 @@ public class Evictor extends DaemonThread {
             Runtime r = Runtime.getRuntime();
             long totalBytes = r.totalMemory();
             long freeBytes= r.freeMemory();
-            long usedBytes = r.totalMemory() - r.freeMemory(); 
+            long usedBytes = r.totalMemory() - r.freeMemory();
             StringBuffer sb = new StringBuffer();
             sb.append(" source=").append(source);
             sb.append(" doRun=").append(doRun);
@@ -495,7 +506,7 @@ public class Evictor extends DaemonThread {
 
                 DatabaseImpl db = in.getDatabase();
 
-                /* 
+                /*
                  * We don't expect to see an IN with a database that has
                  * finished delete processing, because it would have been
                  * removed from the inlist during post-delete cleanup.
@@ -516,7 +527,7 @@ public class Evictor extends DaemonThread {
                     continue;
                 }
 
-                /* 
+                /*
                  * If this is a read only database and we have at least one
                  * target, skip any dirty INs (recovery dirties INs even in a
                  * read-only environment). We take at least one target so we
@@ -642,7 +653,7 @@ public class Evictor extends DaemonThread {
     private long evictRoot(final INList inList,
                            final IN target,
                            final ScanIterator scanIter,
-                           final boolean backgroundIO) 
+                           final boolean backgroundIO)
         throws DatabaseException {
 
         final DatabaseImpl db = target.getDatabase();
@@ -665,7 +676,7 @@ public class Evictor extends DaemonThread {
 
                         /* Flush if dirty. */
                         if (!envImpl.isReadOnly() && rootIN.getDirty()) {
-                            long newLsn = rootIN.log 
+                            long newLsn = rootIN.log
                                 (envImpl.getLogManager(),
                                  false, // allowDeltas
                                  isProvisionalRequired(rootIN),
@@ -712,17 +723,17 @@ public class Evictor extends DaemonThread {
                        IN target,
                        ScanIterator scanIter,
                        boolean backgroundIO,
-                       UtilizationTracker tracker) 
+                       UtilizationTracker tracker)
         throws DatabaseException {
-        
+
 	boolean envIsReadOnly = envImpl.isReadOnly();
         long evictedBytes = 0;
 
         /*
          * Non-BIN INs are evicted by detaching them from their parent.  For
          * BINS, the first step is to remove deleted entries by compressing
-         * the BIN. The evictor indicates that we shouldn't fault in 
-         * non-resident children during compression. After compression, 
+         * the BIN. The evictor indicates that we shouldn't fault in
+         * non-resident children during compression. After compression,
          * LN logging and LN stripping may be performed.
          *
          * If LN stripping is used, first we strip the BIN by logging any dirty
@@ -736,7 +747,7 @@ public class Evictor extends DaemonThread {
          * if the BIN is dirty AND the BIN is evictable AND cleaner
          * clustering is enabled.  In this case the BIN is going to be written
          * out soon, and with clustering we want to be sure to write out the
-         * LNs with the BIN; therefore we don't do stripping
+         * LNs with the BIN; therefore we don't do stripping.
          */
 
         /*
@@ -746,14 +757,14 @@ public class Evictor extends DaemonThread {
          * false because we don't want to change the generation during the
          * eviction process.
          */
-        if (target.latchNoWait(false)) { 
+        if (target.latchNoWait(false)) {
 	    boolean targetIsLatched = true;
             try {
                 if (target instanceof BIN) {
                     /* first attempt to compress deleted, resident children.*/
                     envImpl.lazyCompress(target, tracker);
 
-                    /* 
+                    /*
                      * Strip any resident LN targets right now. This may dirty
                      * the BIN if dirty LNs were written out. Note that
                      * migrated BIN entries cannot be stripped.
@@ -762,7 +773,7 @@ public class Evictor extends DaemonThread {
                     if (evictedBytes > 0) {
                         nBINsStrippedThisRun++;
                         nBINsStripped++;
-                    } 
+                    }
                 }
 
                 /*
@@ -798,7 +809,7 @@ public class Evictor extends DaemonThread {
 		}
             }
         }
-            
+
         return evictedBytes;
     }
 
@@ -820,14 +831,14 @@ public class Evictor extends DaemonThread {
             assert parent.isLatchOwnerForWrite();
 
             long oldGenerationCount = child.getGeneration();
-            
-            /* 
+
+            /*
              * Get a new reference to the child, in case the reference
              * saved in the selection list became out of date because of
              * changes to that parent.
              */
             IN renewedChild = (IN) parent.getTarget(index);
-            
+
             /*
              * See the evict() method in this class for an explanation for
              * calling latchNoWait(false).
@@ -839,7 +850,7 @@ public class Evictor extends DaemonThread {
                 try {
                     if (renewedChild.isEvictable()) {
 
-                        /* 
+                        /*
                          * Log the child if dirty and env is not r/o. Remove
                          * from IN list.
                          */
@@ -854,7 +865,7 @@ public class Evictor extends DaemonThread {
                                  * Log a full version (no deltas) and with
                                  * cleaner migration allowed.
                                  */
-                                renewedChildLsn = renewedChild.log 
+                                renewedChildLsn = renewedChild.log
                                     (logManager,
                                      false, // allowDeltas
                                      logProvisional,
@@ -876,7 +887,7 @@ public class Evictor extends DaemonThread {
                             evictBytes = renewedChild.getInMemorySize();
                             if (newChildLsn) {
 
-                                /* 
+                                /*
                                  * Update the parent so its reference is
                                  * null and it has the proper LSN.
                                  */
@@ -908,15 +919,15 @@ public class Evictor extends DaemonThread {
         return evictBytes;
     }
 
-    /* 
+    /*
      * @return true if the node must be logged provisionally.
      */
     private boolean isProvisionalRequired(IN target) {
 
-        /* 
+        /*
          * The evictor has to log provisionally in two cases:
          * a - the checkpointer is in progress, and is at a level above the
-         * target eviction victim. We don't want the evictor's actions to 
+         * target eviction victim. We don't want the evictor's actions to
          * introduce an IN that has not cascaded up properly.
          * b - the eviction target is part of a deferred write database.
          */
@@ -924,7 +935,7 @@ public class Evictor extends DaemonThread {
             return true;
         }
 
-        /* 
+        /*
          * The checkpointer could be null if it was shutdown or never
          * started.
          */
@@ -971,7 +982,7 @@ public class Evictor extends DaemonThread {
     }
 
     /*
-     * ScanIterator keeps a handle onto the current round robin INList 
+     * ScanIterator keeps a handle onto the current round robin INList
      * iterator. It's deliberately not a member of the class in order to keep
      * less common state in the class.
      */
@@ -980,20 +991,20 @@ public class Evictor extends DaemonThread {
         private Iterator iter;
         private IN nextMark;
 
-        ScanIterator(IN startingIN, INList inList) 
+        ScanIterator(IN startingIN, INList inList)
             throws DatabaseException {
 
             this.inList = inList;
             reset(startingIN);
         }
 
-        void reset(IN startingIN) 
+        void reset(IN startingIN)
             throws DatabaseException {
 
             iter = inList.tailSet(startingIN).iterator();
         }
 
-        IN mark() 
+        IN mark()
             throws DatabaseException {
 
             if (iter.hasNext()) {
@@ -1004,7 +1015,7 @@ public class Evictor extends DaemonThread {
             return (IN) nextMark;
         }
 
-        void resetToMark() 
+        void resetToMark()
             throws DatabaseException {
 
             reset(nextMark);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: AutoTxn.java,v 1.27.2.1 2007/02/01 14:49:52 cwl Exp $
+ * $Id: AutoTxn.java,v 1.27.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -18,7 +18,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
  */
 public class AutoTxn extends Txn {
 
-    public AutoTxn(EnvironmentImpl env, TransactionConfig config) 
+    public AutoTxn(EnvironmentImpl env, TransactionConfig config)
         throws DatabaseException {
 
         super(env, config);
@@ -27,7 +27,7 @@ public class AutoTxn extends Txn {
     /**
      * AutoTxns abort or commit at the end of the operation
      */
-    public void operationEnd(boolean operationOK) 
+    public void operationEnd(boolean operationOK)
         throws DatabaseException {
 
         if (operationOK) {
@@ -40,7 +40,7 @@ public class AutoTxn extends Txn {
     /**
      * AutoTxns abort or commit at the end of the operation
      */
-    public void operationEnd() 
+    public void operationEnd()
         throws DatabaseException {
 
         operationEnd(true);

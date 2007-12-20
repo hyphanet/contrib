@@ -133,6 +133,7 @@
         <mkdir dir="${unittest.destdir}"/>
         <mkdir dir="${unittest.extraenvdir}"/>
         <mkdir dir="${unittest.testserialdir}"/>
+        <mkdir dir="${unittest.testevolvedir}"/>
         <tstamp/>
 	<antcall target="do-internal">
 	   <param name="target" value="init"/>
@@ -561,13 +562,14 @@
                value="com.sleepycat.persist.test.EvolveTestInit"/>
       </antcall>
 
-      <!-- Run all unit tests.  -->
+      <!-- Run all unit tests except for replication.  -->
       <antcall target="do-junit">
         <param name="param-msg" value="Run all unit tests"/>
         <param name="param-if" value="alltests"/>
         <param name="param-jvmarg" value=""/>
         <param name="param-classpath" value="empty.classpath"/>
         <param name="param-includes" value="**/*Test.class"/>
+	<param name="param-excludes" value="**/rep/**/*Test.class"/>
       </antcall>
 
       <!-- Run a test suite.  -->
@@ -708,6 +710,7 @@
         <classpath refid="unittest.classpath"/>
         <classpath refid="clover.classpath"/>
         <sysproperty key="testdestdir" value="${unittest.destdir}"/>
+        <sysproperty key="testevolvedir" value="${unittest.testevolvedir}"/>
         <sysproperty key="txnnosync" value="true"/>
         <sysproperty key="isolationLevel" value="${isolationLevel}"/>
         <sysproperty key="longtest" value="${longtest}"/>
@@ -720,7 +723,9 @@
               name="${param-testcase}"/>
         <batchtest todir="${unittest.datadir}"
                    if="param-includes">
-          <fileset dir="${unittest.destdir}" includes="${param-includes}"/>
+          <fileset dir="${unittest.destdir}"
+	           includes="${param-includes}"
+                   excludes="${param-excludes}"/>
         </batchtest>
       </junit>
       <fail message="UnitTests failed. Check log and/or reports."

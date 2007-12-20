@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LockTest.java,v 1.44.2.2 2007/07/13 02:32:06 cwl Exp $
+ * $Id: LockTest.java,v 1.44.2.3 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -49,7 +49,7 @@ public class LockTest extends TestCase {
         envImpl.close();
     }
 
-    public void testLockConflicts() 
+    public void testLockConflicts()
         throws Exception {
 
 	Locker txn1 = new BasicLocker(envImpl);
@@ -57,7 +57,7 @@ public class LockTest extends TestCase {
 	Locker txn3 = new BasicLocker(envImpl);
         MemoryBudget mb = envImpl.getMemoryBudget();
 	try {
-            /* 
+            /*
              * Start fresh. Ask for a read lock from txn1 twice,
              * should only be one owner. Then add multiple
              * would-be-writers as waiters.
@@ -102,7 +102,7 @@ public class LockTest extends TestCase {
 	    assertEquals(1, lock.nOwners());
 	    assertEquals(0, lock.nWaiters());
 
-            /* 
+            /*
              * Start fresh. Get a read lock, then ask for a non-blocking
              * write lock. The latter should be denied.
              */
@@ -124,7 +124,7 @@ public class LockTest extends TestCase {
 	    assertEquals(1, lock.nOwners());
 	    assertEquals(0, lock.nWaiters());
 
-	    /* 
+	    /*
              * Ensure that a read request behind a write request that waits
 	     * also waits.  blocking requests.
              */
@@ -132,7 +132,7 @@ public class LockTest extends TestCase {
 
 	    assertEquals(LockGrantType.NEW,
                          lock.lock(LockType.READ, txn1, false, mb, 0));
-		       
+		
 	    assertEquals(LockGrantType.WAIT_NEW,
                          lock.lock(LockType.WRITE, txn2, false, mb, 0));
 			
@@ -147,7 +147,7 @@ public class LockTest extends TestCase {
 
 	    assertEquals(LockGrantType.NEW,
                          lock.lock(LockType.READ, txn1, false, mb, 0));
-		       
+		
 	    /* Since non-blocking request, this fails and doesn't go
 	       on the wait queue. */
 	    assertEquals(LockGrantType.DENIED,
@@ -174,7 +174,7 @@ public class LockTest extends TestCase {
         }
     }
 
-    public void testOwners() 
+    public void testOwners()
         throws Exception {
 
 	Locker txn1 = new BasicLocker(envImpl);
@@ -198,7 +198,7 @@ public class LockTest extends TestCase {
                          lock.lock(LockType.READ, txn2, false, mb, 0));
 	    assertEquals(LockGrantType.NEW,
                          lock.lock(LockType.READ, txn3, false, mb, 0));
-            
+
             /* should be no writer. */
             assertTrue(lock.getWriteOwnerLocker() == null);
 
@@ -265,7 +265,7 @@ public class LockTest extends TestCase {
         }
     }
 
-    public void testWaiters() 
+    public void testWaiters()
         throws Exception {
 
 	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
@@ -291,7 +291,7 @@ public class LockTest extends TestCase {
                          lock.lock(LockType.WRITE, txn4, false, mb, 0));
 	    assertEquals(LockGrantType.WAIT_PROMOTION,
                          lock.lock(LockType.WRITE, txn1, false, mb, 0));
-            
+
             /* should be no writer. */
             assertTrue(lock.getWriteOwnerLocker() == null);
 
@@ -311,7 +311,7 @@ public class LockTest extends TestCase {
             lock.release(txn4, mb, 0);
             checkWaiters(waiters, lock);
 
-            /* 
+            /*
              * Release the other read lock, expect txn1 to be promoted to a
              * write lock.
              */
@@ -332,7 +332,7 @@ public class LockTest extends TestCase {
             waiters.remove(0);
             checkWaiters(waiters, lock);
 
-            /* 
+            /*
              * Add multiple read lock waiters so that we can promoting multiple
              * waiters.
              */
@@ -389,7 +389,7 @@ public class LockTest extends TestCase {
         }
     }
 
-    public void testPromotion() 
+    public void testPromotion()
         throws Exception {
 
 	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
@@ -449,7 +449,7 @@ public class LockTest extends TestCase {
     /**
      * Tests conflicts between range locks and all other lock types.
      */
-    public void testRangeConflicts() 
+    public void testRangeConflicts()
         throws Exception {
 
 
@@ -485,7 +485,7 @@ public class LockTest extends TestCase {
         checkConflict(LockType.WRITE,
                       LockType.RANGE_INSERT,
                       LockGrantType.NEW);
-   
+
         /* Owner has RANGE_READ */
         checkConflict(LockType.RANGE_READ,
                       LockType.READ,
@@ -538,12 +538,12 @@ public class LockTest extends TestCase {
                       LockGrantType.NEW);
     }
 
-    /** 
+    /**
      * Tests that when the first request is held and the second request is
      * requested, the second grant type is returned.
      */
     private void checkConflict(LockType firstRequest, LockType secondRequest,
-                               LockGrantType secondGrantType) 
+                               LockGrantType secondGrantType)
         throws Exception {
 
 	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
@@ -561,7 +561,7 @@ public class LockTest extends TestCase {
                 lock.lock(secondRequest, txn2, false, mb, 0);
 	    assertEquals(secondGrantType, typeGranted);
 
-            boolean wait = (typeGranted == LockGrantType.WAIT_NEW || 
+            boolean wait = (typeGranted == LockGrantType.WAIT_NEW ||
                             typeGranted == LockGrantType.WAIT_PROMOTION ||
                             typeGranted == LockGrantType.WAIT_RESTART);
             boolean given = (typeGranted == LockGrantType.NEW);
@@ -609,7 +609,7 @@ public class LockTest extends TestCase {
     /**
      * Tests upgrades between range locks and all other lock types.
      */
-    public void testRangeUpgrades() 
+    public void testRangeUpgrades()
         throws Exception {
 
         /* Owner has READ */
@@ -639,7 +639,7 @@ public class LockTest extends TestCase {
                      LockType.RANGE_INSERT,
                      null,
                      LockType.WRITE);
-   
+
         /* Owner has RANGE_READ */
         checkUpgrade(LockType.RANGE_READ,
                      LockType.READ,
@@ -707,14 +707,14 @@ public class LockTest extends TestCase {
                      LockType.RANGE_INSERT);
     }
 
-    /** 
+    /**
      * Tests that when the first request is held and the second request is
      * requested, the second grant type is returned and the final type is then
      * held.  A null secondGrantType arg means that an assertion is expected.
      */
     private void checkUpgrade(LockType firstRequest, LockType secondRequest,
                               LockGrantType secondGrantType,
-                              LockType finalType) 
+                              LockType finalType)
         throws Exception {
 
 	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
@@ -757,7 +757,7 @@ public class LockTest extends TestCase {
      * waiting but not held, a WAIT_RESTART occurs.  This requires that the
      * waiter list is examined by Lock.lock().
      */
-    public void testRangeInsertWaiterConflict() 
+    public void testRangeInsertWaiterConflict()
         throws Exception {
 
 	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
@@ -816,7 +816,7 @@ public class LockTest extends TestCase {
             assertTrue(lock.isOwner(info.getLocker(), info.getLockType()));
         }
     }
-      
+
     private void checkWaiters(List expectedWaiters,
                               Lock lock) {
         List waiters = lock.getWaitersListClone();
@@ -834,7 +834,7 @@ public class LockTest extends TestCase {
         }
     }
 
-    public void testTransfer() 
+    public void testTransfer()
         throws Exception {
 
 	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
@@ -874,7 +874,7 @@ public class LockTest extends TestCase {
                 assertTrue(lock.isOwner(destLockers[i], LockType.READ));
                 assertFalse(lock.isOwner(destLockers[i], LockType.WRITE));
             }
-            
+
         } finally {
             txn1.operationEnd();
             txn2.operationEnd();

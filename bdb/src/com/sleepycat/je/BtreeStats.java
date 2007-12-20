@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BtreeStats.java,v 1.10.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: BtreeStats.java,v 1.10.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -26,12 +26,12 @@ public class BtreeStats extends DatabaseStats {
     /* Number of duplicate Leaf Nodes in the database's btree. */
     private long dupCountLNCount;
 
-    /* 
+    /*
      * Number of Internal Nodes in database's btree.  BIN's are not included.
      */
     private long inCount;
 
-    /* 
+    /*
      * Number of Duplicate Internal Nodes in database's btree.  BIN's are not
      * included.
      */

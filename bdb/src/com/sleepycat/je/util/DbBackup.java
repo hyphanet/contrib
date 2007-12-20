@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbBackup.java,v 1.10.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: DbBackup.java,v 1.10.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -33,10 +33,10 @@ import com.sleepycat.je.utilint.DbLsn;
  * before deciding that the backup is finished. For example:
  * <pre>
  * time    files in                    activity
- *         environment    
+ *         environment
  *
  *  t0     000000001.jdb     Backup starts copying file 1
- *         000000003.jdb     
+ *         000000003.jdb
  *         000000004.jdb
  *
  *  t1     000000001.jdb     JE log cleaner migrates portion of file 3 to newly
@@ -46,11 +46,11 @@ import com.sleepycat.je.utilint.DbLsn;
  *
  *  t2     000000001.jdb     Backup finishes copying file 4, starts and finishes
  *         000000004.jdb     file 5, has caught up. Backup ends.
- *         000000005.jdb                 
+ *         000000005.jdb
  *</pre>
  * <p>
  * In the example above, the backup operation must be sure to copy file 5,
- * which came into existence after the backup had started. If the backup 
+ * which came into existence after the backup had started. If the backup
  * stopped operations at file 4, the backup set would include only file 1 and
  * 4, omitting file 3, which would be an inconsistent set.
  * <p>
@@ -63,7 +63,7 @@ import com.sleepycat.je.utilint.DbLsn;
  * <p>
  * DbBackup helps simplify application backup by defining the set of files that
  * must be copied for each backup operation. If the environment directory has
- * read/write protection, the application must pass DbBackup an open, 
+ * read/write protection, the application must pass DbBackup an open,
  * read/write environment handle.
  * <p>
  * When entering backup mode, JE
@@ -71,7 +71,7 @@ import com.sleepycat.je.utilint.DbLsn;
  * all changes to those files. The application can copy that defined set of
  * files and finish operation without checking for the ongoing creation of new
  * files. Also, there will be no need to check for a newer version of the last
- * file on the next backup. 
+ * file on the next backup.
  * <p>
  * In the example above, if DbBackupHelper was used at t0, the application
  * would only have to copy files 1, 3 and 4 to back up. On a subsequent backup,
@@ -89,14 +89,14 @@ import com.sleepycat.je.utilint.DbLsn;
  *    // state in a persistent file.
  *    long lastFileCopiedInPrevBackup =  ...
  *
- *    // Start backup, find out what needs to be copied. 
+ *    // Start backup, find out what needs to be copied.
  *    backupHelper.startBackup();
  *    try {
  *        String[] filesForBackup =
  *             backupHelper.getLogFilesInBackupSet(lastFileCopiedInPrevBackup);
  *
  *        // Copy the files to archival storage.
- *        myApplicationCopyMethod(filesForBackup) 
+ *        myApplicationCopyMethod(filesForBackup)
 
  *        // Update our knowlege of the last file saved in the backup set,
  *        // so we can copy less on the next backup
@@ -120,7 +120,7 @@ public class DbBackup {
      * If the environment directory has read/write permissions, the environment
      * handle must be configured for read/write.
      */
-    public DbBackup(Environment env) 
+    public DbBackup(Environment env)
         throws DatabaseException {
 
         /* Check that the Environment is open. */
@@ -145,7 +145,7 @@ public class DbBackup {
      * disabled until endBackup() is called. Be sure to call endBackup() to
      * re-enable log cleaning or disk space usage will bloat.
      */
-    public synchronized void startBackup() 
+    public synchronized void startBackup()
         throws DatabaseException {
 	
         if (backupStarted) {
@@ -160,8 +160,8 @@ public class DbBackup {
             envImpl.getCleaner().setDeleteProhibited();
 
             FileManager fileManager = envImpl.getFileManager();
-        
-            /* 
+
+            /*
              * Flip the log so that we can know that the list of files
              * corresponds to a given point.
              */
@@ -180,11 +180,11 @@ public class DbBackup {
     /**
      * End backup mode, thereby re-enabling normal JE log cleaning.
      */
-    public synchronized void endBackup() 
+    public synchronized void endBackup()
         throws DatabaseException {
 	
         checkBackupStarted();
-        
+
         try {
             envImpl.getCleaner().clearDeleteProhibited();
         } finally {
@@ -199,7 +199,7 @@ public class DbBackup {
      * Save this value to reduce the number of files that must be copied at
      * the next backup session.
      */
-    public synchronized long getLastFileInBackupSet() 
+    public synchronized long getLastFileInBackupSet()
         throws DatabaseException {
 	
         checkBackupStarted();
@@ -227,8 +227,8 @@ public class DbBackup {
      * copied in the previous backup session.  Can only be called in backup
      * mode, after startBackup() has been called.
      *
-     * @param lastFileCopiedInPrevBackup file number of last file copied in the 
-     * last backup session, obtained from getLastFileInBackupSet(). 
+     * @param lastFileCopiedInPrevBackup file number of last file copied in the
+     * last backup session, obtained from getLastFileInBackupSet().
      *
      * @return the names of all the files in the backup set that come after
      * lastFileCopiedInPrevBackup.
@@ -243,7 +243,7 @@ public class DbBackup {
                                       lastFileInBackupSet);
     }
 
-    private void checkBackupStarted() 
+    private void checkBackupStarted()
         throws DatabaseException {
 
         if (!backupStarted) {

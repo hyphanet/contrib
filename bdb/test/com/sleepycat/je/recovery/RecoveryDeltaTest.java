@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecoveryDeltaTest.java,v 1.26.2.1 2007/02/01 14:50:17 cwl Exp $
+ * $Id: RecoveryDeltaTest.java,v 1.26.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -51,7 +51,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
      * Test the interaction of compression and deltas. After a compress,
      * the next entry must be a full one.
      */
-    public void testCompress() 
+    public void testCompress()
         throws Throwable {
 
         createEnvAndDbs(1 << 20, true, NUM_DBS);
@@ -73,14 +73,14 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
 
             // Ask the compressor to run.
             env.compress();	
-            
+
             // force a checkpoint, should avoid deltas..
             env.checkpoint(forceConfig);
-            
+
             closeEnv();
 
             recoverAndVerify(expectedData, NUM_DBS);
-            
+
         } catch (Throwable t) {
             // print stacktrace before trying to clean up files
             t.printStackTrace();
@@ -91,7 +91,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
     /**
      * Test a recovery that processes deltas.
      */
-    public void testRecoveryDelta() 
+    public void testRecoveryDelta()
         throws Throwable {
 
         createEnvAndDbs(1 << 20, true, NUM_DBS);
@@ -100,7 +100,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
             /* Set up a repository of expected data */
             Hashtable expectedData = new Hashtable();
 
-            /* 
+            /*
              * Force a checkpoint, to flush a full version of the BIN
              * to disk, so the next checkpoint can cause deltas
              */
@@ -117,7 +117,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
              * on disk. This is what causes the deltas.
              */
             env.checkpoint(forceConfig);
-            
+
             closeEnv();
             List infoList = recoverAndVerify(expectedData, NUM_DBS);
 
@@ -131,7 +131,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
             throw t;
         }
     }
-   
+
     /**
      * This test checks that reconstituting the bin deals properly with
      * the knownDeleted flag
@@ -147,7 +147,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
         createEnvAndDbs(1 << 20, true, NUM_DBS);
         int numRecs = 20;
         try {
-            
+
             /* Set up a repository of expected data */
             Hashtable expectedData = new Hashtable();
 
@@ -155,24 +155,24 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs - 1, expectedData, 1, false, NUM_DBS);
 
-            /* 
-             * Add cursors to pin down BINs. Otherwise the checkpoint that 
-             * follows will compress away all the values. 
+            /*
+             * Add cursors to pin down BINs. Otherwise the checkpoint that
+             * follows will compress away all the values.
              */
             Cursor [][] cursors = new Cursor[NUM_DBS][numRecs];
             addCursors(cursors);
             txn.abort();
 
-            /* 
+            /*
              * Force a checkpoint, to flush a full version of the BIN
-             * to disk, so the next checkpoint can cause deltas. 
+             * to disk, so the next checkpoint can cause deltas.
              * These checkpointed BINS have known deleted flags set.
              */
             env.checkpoint(forceConfig);
             removeCursors(cursors);
-            
 
-            /* 
+
+            /*
              * Insert every other data value, makes some known deleted flags
              * false.
              */
@@ -191,7 +191,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
             addCursors(cursors);
             env.checkpoint(forceConfig);
             removeCursors(cursors);
-            
+
             closeEnv();
             List infoList = recoverAndVerify(expectedData, NUM_DBS);
 
@@ -205,9 +205,9 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
             throw t;
         }
     }
-    
+
     /* Add cursors on each value to prevent compression. */
-    private void addCursors(Cursor [][] cursors) 
+    private void addCursors(Cursor [][] cursors)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -217,7 +217,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
         for (int d = 0; d < NUM_DBS; d++) {
             for (int i = 0; i < cursors[d].length; i++) {
                 cursors[d][i] = dbs[d].openCursor(null, null);
-        
+
                 for (int j = 0; j < i; j++) {
                     OperationStatus status =
                         cursors[d][i].getNext(key, data,
@@ -228,7 +228,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
         }
     }
 
-    private void removeCursors(Cursor[][] cursors) 
+    private void removeCursors(Cursor[][] cursors)
         throws DatabaseException {
         for (int d = 0; d < NUM_DBS; d++) {
             for (int i = 0; i < cursors[d].length; i++) {

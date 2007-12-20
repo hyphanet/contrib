@@ -3,21 +3,19 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: EvolveTestBase.java,v 1.5.2.1 2007/02/01 14:50:25 cwl Exp $
+ * $Id: EvolveTestBase.java,v 1.5.2.6 2007/12/08 14:43:48 mark Exp $
  */
 package com.sleepycat.persist.test;
 
 import java.io.File;
 import java.util.Enumeration;
 
-import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
-import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.StoreConfig;
 import com.sleepycat.persist.model.AnnotationModel;
@@ -29,60 +27,255 @@ import com.sleepycat.persist.raw.RawStore;
  *
  * @author Mark Hayes
  */
-public class EvolveTestBase extends TestCase {
+public abstract class EvolveTestBase extends TestCase {
+
+    /*
+     * When adding a evolve test class, three places need to be changed:
+     * 1) Add the unmodified class to EvolveClass.java.original.
+     * 2) Add the modified class to EvolveClass.java.
+     * 3) Add the class name to the ALL list below as a pair of strings.  The
+     * first string in each pair is the name of the original class, and the
+     * second string is the name of the evolved class or null if the evolved
+     * name is the same as the original.  The index in the list identifies a
+     * test case, and the class at that position identifies the old and new
+     * class to use for the test.
+     */
+    private static final String[] ALL = {
+        "DeletedEntity1_ClassRemoved",
+        "DeletedEntity1_ClassRemoved_NoMutation",
+        "DeletedEntity2_ClassRemoved",
+        "DeletedEntity2_ClassRemoved_WithDeleter",
+        "DeletedEntity3_AnnotRemoved_NoMutation",
+        null,
+        "DeletedEntity4_AnnotRemoved_WithDeleter",
+        null,
+        "DeletedEntity5_EntityToPersist_NoMutation",
+        null,
+        "DeletedEntity6_EntityToPersist_WithDeleter",
+        null,
+        "DeletedPersist1_ClassRemoved_NoMutation",
+        null,
+        "DeletedPersist2_ClassRemoved_WithDeleter",
+        null,
+        "DeletedPersist3_AnnotRemoved_NoMutation",
+        null,
+        "DeletedPersist4_AnnotRemoved_WithDeleter",
+        null,
+        "DeletedPersist5_PersistToEntity_NoMutation",
+        null,
+        "DeletedPersist6_PersistToEntity_WithDeleter",
+        null,
+        "RenamedEntity1_NewEntityName",
+        "RenamedEntity1_NewEntityName_NoMutation",
+        "RenamedEntity2_NewEntityName",
+        "RenamedEntity2_NewEntityName_WithRenamer",
+        "DeleteSuperclass1_NoMutation",
+        null,
+        "DeleteSuperclass2_WithConverter",
+        null,
+        "DeleteSuperclass3_WithDeleter",
+        null,
+        "DeleteSuperclass4_NoFields",
+        null,
+        "DeleteSuperclass5_Top",
+        null,
+        "InsertSuperclass1_Between",
+        null,
+        "InsertSuperclass2_Top",
+        null,
+        "DisallowNonKeyField_PrimitiveToObject",
+        null,
+        "DisallowNonKeyField_ObjectToPrimitive",
+        null,
+        "DisallowNonKeyField_ObjectToSubtype",
+        null,
+        "DisallowNonKeyField_ObjectToUnrelatedSimple",
+        null,
+        "DisallowNonKeyField_ObjectToUnrelatedOther",
+        null,
+        "DisallowNonKeyField_byte2boolean",
+        null,
+        "DisallowNonKeyField_short2byte",
+        null,
+        "DisallowNonKeyField_int2short",
+        null,
+        "DisallowNonKeyField_long2int",
+        null,
+        "DisallowNonKeyField_float2long",
+        null,
+        "DisallowNonKeyField_double2float",
+        null,
+        "DisallowNonKeyField_Byte2byte",
+        null,
+        "DisallowNonKeyField_Character2char",
+        null,
+        "DisallowNonKeyField_Short2short",
+        null,
+        "DisallowNonKeyField_Integer2int",
+        null,
+        "DisallowNonKeyField_Long2long",
+        null,
+        "DisallowNonKeyField_Float2float",
+        null,
+        "DisallowNonKeyField_Double2double",
+        null,
+        "DisallowNonKeyField_float2BigInt",
+        null,
+        "DisallowNonKeyField_BigInt2long",
+        null,
+        "DisallowSecKeyField_byte2short",
+        null,
+        "DisallowSecKeyField_char2int",
+        null,
+        "DisallowSecKeyField_short2int",
+        null,
+        "DisallowSecKeyField_int2long",
+        null,
+        "DisallowSecKeyField_long2float",
+        null,
+        "DisallowSecKeyField_float2double",
+        null,
+        "DisallowSecKeyField_Byte2short2",
+        null,
+        "DisallowSecKeyField_Character2int",
+        null,
+        "DisallowSecKeyField_Short2int2",
+        null,
+        "DisallowSecKeyField_Integer2long",
+        null,
+        "DisallowSecKeyField_Long2float2",
+        null,
+        "DisallowSecKeyField_Float2double2",
+        null,
+        "DisallowSecKeyField_int2BigInt",
+        null,
+        "DisallowPriKeyField_byte2short",
+        null,
+        "DisallowPriKeyField_char2int",
+        null,
+        "DisallowPriKeyField_short2int",
+        null,
+        "DisallowPriKeyField_int2long",
+        null,
+        "DisallowPriKeyField_long2float",
+        null,
+        "DisallowPriKeyField_float2double",
+        null,
+        "DisallowPriKeyField_Byte2short2",
+        null,
+        "DisallowPriKeyField_Character2int",
+        null,
+        "DisallowPriKeyField_Short2int2",
+        null,
+        "DisallowPriKeyField_Integer2long",
+        null,
+        "DisallowPriKeyField_Long2float2",
+        null,
+        "DisallowPriKeyField_Float2double2",
+        null,
+        "DisallowPriKeyField_Long2BigInt",
+        null,
+        "DisallowCompositeKeyField_byte2short",
+        null,
+        "AllowPriKeyField_Byte2byte2",
+        null,
+        "AllowPriKeyField_byte2Byte",
+        null,
+        "AllowFieldTypeChanges",
+        null,
+        "ConvertExample1_Entity",
+        null,
+        "ConvertExample2_Person",
+        null,
+        "ConvertExample3_Person",
+        null,
+        "ConvertExample4_Entity",
+        null,
+        "ConvertExample5_Entity",
+        null,
+        "AllowFieldAddDelete",
+        null,
+        "ProxiedClass_Entity",
+        null,
+        "DisallowChangeProxyFor",
+        null,
+        "DisallowDeleteProxyFor",
+        null,
+        "ArrayNameChange_Entity",
+        null,
+        "AddEnumConstant_Entity",
+        null,
+        "DeleteEnumConstant_NoMutation",
+        null,
+        "DisallowChangeKeyRelate",
+        null,
+        "AllowChangeKeyMetadata",
+        null,
+        "AllowAddSecondary",
+        null,
+        "FieldAddAndConvert",
+        null,
+    };
 
     File envHome;
     Environment env;
     EntityStore store;
     RawStore rawStore;
     EntityStore newStore;
-    int caseIndex;
-    Class<? extends EvolveCase> caseCls;
+    String caseClsName;
+    Class caseCls;
     EvolveCase caseObj;
+    String caseLabel;
 
-    static Test getSuite(Class testClass)
+    static TestSuite getSuite(Class testClass)
         throws Exception {
 
         TestSuite suite = new TestSuite();
-        for (int caseIndex = 0;
-             caseIndex < EvolveClasses.ALL.size();
-             caseIndex += 1) {
-            Class<? extends EvolveCase> caseCls =
-                EvolveClasses.ALL.get(caseIndex);
+        for (int i = 0; i < ALL.length; i += 2) {
+            String originalClsName = ALL[i];
+            String evolvedClsName = ALL[i + 1];
+            if (evolvedClsName == null) {
+                evolvedClsName = originalClsName;
+            }
             TestSuite baseSuite = new TestSuite(testClass);
             Enumeration e = baseSuite.tests();
             while (e.hasMoreElements()) {
                 EvolveTestBase test = (EvolveTestBase) e.nextElement();
-                test.init(caseIndex, caseCls);
+                test.init(originalClsName, evolvedClsName);
                 suite.addTest(test);
             }
         }
         return suite;
     }
 
-    private void init(int caseIndex, Class<? extends EvolveCase> caseCls) 
+    private void init(String originalClsName,
+                      String evolvedClsName) 
         throws Exception {
 
-        this.caseIndex = caseIndex;
-        this.caseCls = caseCls;
-        caseObj = caseCls.newInstance();
+        String caseClsName = useEvolvedClass() ?
+            evolvedClsName : originalClsName;
+        caseClsName = "com.sleepycat.persist.test.EvolveClasses$" +
+                      caseClsName;
+
+        this.caseClsName = caseClsName;
+        this.caseCls = Class.forName(caseClsName);
+        this.caseObj = (EvolveCase) caseCls.newInstance();
+        this.caseLabel = evolvedClsName;
     }
 
-    File getTestInitHome() {
+    abstract boolean useEvolvedClass();
+
+    File getTestInitHome(boolean evolved) {
         return new File
-            (System.getProperty(TestUtils.DEST_DIR),
-             "../testevolve/C" + caseIndex);
+            (System.getProperty("testevolvedir"),
+             (evolved ? "evolved" : "original") + '/' + caseLabel);
     }
 
     @Override
     public void tearDown() {
 
         /* Set test name for reporting; cannot be done in the ctor or setUp. */
-        String caseClsName = caseCls.getName();
-        caseClsName = caseClsName.substring(caseClsName.lastIndexOf('$') + 1);
-        setName(String.valueOf(caseIndex) + ':' +
-                caseClsName + '-' +
-                getName());
+        setName(caseLabel + '-' + getName());
 
         if (env != null) {
             try {
@@ -96,6 +289,7 @@ public class EvolveTestBase extends TestCase {
         store = null;
         caseCls = null;
         caseObj = null;
+        caseLabel = null;
 
         /* Do not delete log files so they can be used by 2nd phase of test. */
     }

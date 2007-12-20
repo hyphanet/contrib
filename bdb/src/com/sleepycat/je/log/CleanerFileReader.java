@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CleanerFileReader.java,v 1.34.2.2 2007/03/08 22:32:54 mark Exp $
+ * $Id: CleanerFileReader.java,v 1.34.2.3 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -44,7 +44,7 @@ public class CleanerFileReader extends FileReader {
      * @param fileNum single file number.
      */
     public CleanerFileReader(EnvironmentImpl env,
-                             int readBufferSize, 
+                             int readBufferSize,
                              long startLsn,
                              Long fileNum)
         throws IOException, DatabaseException {
@@ -104,14 +104,14 @@ public class CleanerFileReader extends FileReader {
         readBufferFileNum = fileNum.longValue();
         readBufferFileEnd = 0;
 
-        /* 
+        /*
          * After we read the first entry, the currentEntry will
          * point here.
          */
         nextEntryOffset = readBufferFileEnd;
     }
 
-    /** 
+    /**
      * @return true if this is a type we're interested in.
      */
     protected boolean isTargetEntry(byte entryTypeNum,
@@ -119,7 +119,7 @@ public class CleanerFileReader extends FileReader {
 
         LogEntryType fromLogType = new LogEntryType(entryTypeNum,
 						    entryTypeVersion);
-                                                            
+
         /* Is it a target entry? */
         EntryInfo info = (EntryInfo) targetEntryMap.get(fromLogType);
         if (info == null) {
@@ -176,13 +176,13 @@ public class CleanerFileReader extends FileReader {
     /**
      * Get the last entry seen by the reader as an IN.
      */
-    public IN getIN() 
+    public IN getIN()
         throws DatabaseException {
 
         return ((INLogEntry) targetLogEntry).getIN(envImpl);
     }
 
-    public FileHeader getFileHeader() 
+    public FileHeader getFileHeader()
         throws DatabaseException {
 
         return (FileHeader) (targetLogEntry.getMainItem());
@@ -193,9 +193,9 @@ public class CleanerFileReader extends FileReader {
      */
     public DatabaseId getDatabaseId() {
         if (targetCategory == IS_LN) {
-            return ((LNLogEntry) targetLogEntry).getDbId(); 
+            return ((LNLogEntry) targetLogEntry).getDbId();
         } else if (targetCategory == IS_IN) {
-            return ((INLogEntry) targetLogEntry).getDbId(); 
+            return ((INLogEntry) targetLogEntry).getDbId();
         } else {
 	    return null;
         }

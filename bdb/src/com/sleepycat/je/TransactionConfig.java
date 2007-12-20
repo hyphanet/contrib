@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: TransactionConfig.java,v 1.15.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: TransactionConfig.java,v 1.15.2.2 2007/11/20 13:32:26 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -41,7 +41,7 @@ public class TransactionConfig implements Cloneable {
      */
     public void setSync(boolean sync) {
         this.sync = sync;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -49,7 +49,7 @@ public class TransactionConfig implements Cloneable {
      */
     public boolean getSync() {
         return sync;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -57,7 +57,7 @@ public class TransactionConfig implements Cloneable {
      */
     public void setNoSync(boolean noSync) {
         this.noSync = noSync;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -65,7 +65,7 @@ public class TransactionConfig implements Cloneable {
      */
     public boolean getNoSync() {
         return noSync;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -73,7 +73,7 @@ public class TransactionConfig implements Cloneable {
      */
     public void setWriteNoSync(boolean writeNoSync) {
         this.writeNoSync = writeNoSync;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -81,7 +81,7 @@ public class TransactionConfig implements Cloneable {
      */
     public boolean getWriteNoSync() {
         return writeNoSync;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -89,7 +89,7 @@ public class TransactionConfig implements Cloneable {
      */
     public void setNoWait(boolean noWait) {
         this.noWait = noWait;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -97,7 +97,7 @@ public class TransactionConfig implements Cloneable {
      */
     public boolean getNoWait() {
         return noWait;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -106,7 +106,7 @@ public class TransactionConfig implements Cloneable {
     public void setReadUncommitted(boolean readUncommitted) {
         this.readUncommitted = readUncommitted;
     }
-    
+
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
@@ -123,7 +123,7 @@ public class TransactionConfig implements Cloneable {
     public void setDirtyRead(boolean dirtyRead) {
         setReadUncommitted(dirtyRead);
     }
-    
+
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
@@ -140,7 +140,7 @@ public class TransactionConfig implements Cloneable {
     public void setReadCommitted(boolean readCommitted) {
         this.readCommitted = readCommitted;
     }
-    
+
     /**
      * Javadoc for this public method is generated via
      * the doc templates in the doc_src directory.
@@ -155,7 +155,7 @@ public class TransactionConfig implements Cloneable {
      */
     public void setSerializableIsolation(boolean serializableIsolation) {
         this.serializableIsolation = serializableIsolation;
-    } 
+    }
 
     /**
      * Javadoc for this public method is generated via
@@ -163,7 +163,7 @@ public class TransactionConfig implements Cloneable {
      */
     public boolean getSerializableIsolation() {
         return serializableIsolation;
-    } 
+    }
 
     /**
      * Used by Environment to create a copy of the application

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SharedLatch.java,v 1.17.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: SharedLatch.java,v 1.17.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -13,7 +13,7 @@ import com.sleepycat.je.RunRecoveryException;
 
 /**
  * Simple thread-based non-transactional reader-writer/shared-exclusive latch.
- * 
+ *
  * Latches provide simple exclusive or shared transient locks on objects.
  * Latches are expected to be held for short, defined periods of time.  No
  * deadlock detection is provided so it is the caller's responsibility to

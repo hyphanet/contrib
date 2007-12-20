@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileSource.java,v 1.32.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: FileSource.java,v 1.32.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -36,7 +36,7 @@ class FileSource implements LogSource {
     /**
      * @see LogSource#release
      */
-    public void release() 
+    public void release()
         throws DatabaseException {
     }
 
@@ -45,7 +45,7 @@ class FileSource implements LogSource {
      */
     public ByteBuffer getBytes(long fileOffset)
         throws IOException {
-        
+
         /* Fill up buffer from file. */
         ByteBuffer destBuf = ByteBuffer.allocate(readBufferSize);
         fileManager.readFromFile(file, destBuf, fileOffset);
@@ -69,7 +69,7 @@ class FileSource implements LogSource {
 	assert EnvironmentImpl.maybeForceYield();
 
         destBuf.flip();
-        
+
         assert destBuf.remaining() >= numBytes:
             "remaining=" + destBuf.remaining() +
             " numBytes=" + numBytes;

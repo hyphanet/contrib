@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: BytecodeEnhancer.java,v 1.11.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: BytecodeEnhancer.java,v 1.11.2.2 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -70,7 +70,7 @@ import com.sleepycat.asm.Label;
 import com.sleepycat.asm.MethodVisitor;
 import com.sleepycat.asm.Type;
 
-/** 
+/**
  * An ASM ClassVisitor that examines a class, throws NotPersistentException if
  * it is not persistent, or enhances it if it is persistent.  A class is
  * persistent if it contains the @Entity or @Persistent annotations.  A
@@ -670,7 +670,7 @@ class BytecodeEnhancer extends ClassAdapter {
             genWritePrimitive(mv, sort);
         }
     }
-    
+
     /**
      * Generates writing of a simple type key field, or returns false if the
      * key field is not a simple type (i.e., it is a composite key type).
@@ -679,7 +679,7 @@ class BytecodeEnhancer extends ClassAdapter {
      *      // or
      *      output.writeInt(theField.intValue()); // and other simple types
      *      // or returns false
-     */ 
+     */
     private boolean genWriteSimpleKeyField(MethodVisitor mv, FieldInfo field) {
         if (genWritePrimitiveField(mv, field)) {
             return true;
@@ -847,7 +847,7 @@ class BytecodeEnhancer extends ClassAdapter {
         mv.visitFieldInsn
             (PUTFIELD, className, field.name, field.type.getDescriptor());
     }
-    
+
     /**
      * Generates reading of a simple type key field, or returns false if the
      * key field is not a simple type (i.e., it is a composite key type).
@@ -856,7 +856,7 @@ class BytecodeEnhancer extends ClassAdapter {
      *      // or
      *      field = Integer.valueOf(input.readInt()); // and other simple types
      *      // or returns false
-     */ 
+     */
     private boolean genReadSimpleKeyField(MethodVisitor mv, FieldInfo field) {
         if (genReadPrimitiveField(mv, field)) {
             return true;
@@ -1458,7 +1458,7 @@ class BytecodeEnhancer extends ClassAdapter {
             this.name = name;
             type = Type.getType(desc);
         }
-        
+
         public AnnotationVisitor visitAnnotation(String desc,
                                                  boolean visible) {
             AnnotationVisitor ret = parent.visitAnnotation(desc, visible);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckSR11307Test.java,v 1.14.2.1 2007/02/01 14:50:16 cwl Exp $
+ * $Id: CheckSR11307Test.java,v 1.14.2.3 2007/11/20 13:32:47 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -22,6 +22,7 @@ import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.DBIN;
 import com.sleepycat.je.tree.DIN;
 import com.sleepycat.je.tree.Key;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.tree.Tree.SearchType;
 import com.sleepycat.je.util.TestUtils;
 
@@ -38,7 +39,7 @@ public class CheckSR11307Test extends CheckBase {
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         turnOffEnvDaemons(envConfig);
         envConfig.setAllowCreate(true);
-                                 
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
 	dbConfig.setSortedDuplicates(true);
@@ -129,7 +130,7 @@ public class CheckSR11307Test extends CheckBase {
      lsn=0x3dc/0x4b3b5 node=5904
 
     */
-    private void addData(Database db) 
+    private void addData(Database db)
         throws DatabaseException {
 
 	DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
@@ -137,7 +138,7 @@ public class CheckSR11307Test extends CheckBase {
         CheckpointConfig ckptConfig = new CheckpointConfig();
         ckptConfig.setForce(true);
 
-	/* 
+	/*
 	 * Create a one element dup tree by making a dupe and then reducing it
 	 * back to one element.
 	 */
@@ -147,7 +148,7 @@ public class CheckSR11307Test extends CheckBase {
 	env.compress();
         env.sync();
 
-	/* Same thing for cfgaa. */	  
+	/* Same thing for cfgaa. */	
 	put(db, "cfgaa", "urhwlvlgvq");
 	put(db, "cfgaa", "blort");
 	delete(db, "cfgaa", "blort");
@@ -170,7 +171,7 @@ public class CheckSR11307Test extends CheckBase {
 	assertNotNull(din);
 	idx = din.findEntry("yrhwlvlgvq".getBytes(), false, true);
 	DBIN dbin = (DBIN) din.getTarget(idx);
-	Key.DUMP_BINARY = false;
+	Key.DUMP_TYPE = DumpType.TEXT;
 	dbin.latch();
 	dbin.log(envImpl.getLogManager());
 	din.log(envImpl.getLogManager());
@@ -181,5 +182,5 @@ public class CheckSR11307Test extends CheckBase {
 	bin.latch();
 	bin.log(envImpl.getLogManager());
 	bin.releaseLatch();
-    } 
+    }
 }

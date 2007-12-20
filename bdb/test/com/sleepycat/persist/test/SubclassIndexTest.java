@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SubclassIndexTest.java,v 1.5.2.1 2007/02/01 14:50:26 cwl Exp $
+ * $Id: SubclassIndexTest.java,v 1.5.2.2 2007/11/20 13:32:52 cwl Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -93,7 +93,7 @@ public class SubclassIndexTest extends TestCase {
         /* Normal use: Subclass index for a key in the subclass. */
         SecondaryIndex<String, String, Manager> managersByDept =
             store.getSubclassIndex
-                (employeesById, Manager.class, String.class, "dept"); 
+                (employeesById, Manager.class, String.class, "dept");
 
         m = managersByDept.get("a");
         assertNotNull(m);
@@ -122,12 +122,12 @@ public class SubclassIndexTest extends TestCase {
 
         /* Getting a subclass index for the entity class is also allowed. */
         store.getSubclassIndex
-            (employeesById, Employee.class, String.class, "other"); 
+            (employeesById, Employee.class, String.class, "other");
 
         /* Getting a subclass index for a base class key is not allowed. */
         try {
             store.getSubclassIndex
-                (employeesById, Manager.class, String.class, "other"); 
+                (employeesById, Manager.class, String.class, "other");
             fail();
         } catch (IllegalArgumentException expected) {
         }
@@ -136,7 +136,7 @@ public class SubclassIndexTest extends TestCase {
         env.close();
         env = null;
     }
-        
+
     @Entity
     private static class Employee {
 

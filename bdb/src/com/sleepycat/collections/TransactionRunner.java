@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: TransactionRunner.java,v 1.44.2.3 2007/06/01 22:26:53 mark Exp $
+ * $Id: TransactionRunner.java,v 1.44.2.4 2007/11/20 13:32:25 cwl Exp $
  */
 
 package com.sleepycat.collections;
@@ -170,7 +170,7 @@ public class TransactionRunner {
     /**
      * Returns the transaction configuration used for calling
      * {@link Environment#beginTransaction}.
-     * 
+     *
      * <p>If this property is null, the default configuration is used.  The
      * configuration object is not cloned, and any modifications to it will
      * impact subsequent transactions.</p>
@@ -185,7 +185,7 @@ public class TransactionRunner {
     /**
      * Changes the transaction configuration used for calling
      * {@link Environment#beginTransaction}.
-     * 
+     *
      * <p>If this property is null, the default configuration is used.  The
      * configuration object is not cloned, and any modifications to it will
      * impact subsequent transactions.</p>

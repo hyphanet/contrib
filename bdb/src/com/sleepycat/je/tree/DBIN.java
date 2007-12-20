@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DBIN.java,v 1.70.2.2 2007/07/02 19:54:52 mark Exp $
+ * $Id: DBIN.java,v 1.70.2.3 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -28,7 +28,7 @@ import com.sleepycat.je.log.Loggable;
 public final class DBIN extends BIN implements Loggable {
     private static final String BEGIN_TAG = "<dbin>";
     private static final String END_TAG = "</dbin>";
-    
+
     /**
      * Full key for this set of duplicates.
      */
@@ -52,7 +52,7 @@ public final class DBIN extends BIN implements Loggable {
      * without getting a 0 node.
      */
     protected IN createNewInstance(byte[] identifierKey,
-                                   int maxEntries, 
+                                   int maxEntries,
                                    int level) {
         return new DBIN(getDatabase(),
                         identifierKey,
@@ -128,7 +128,7 @@ public final class DBIN extends BIN implements Loggable {
     public boolean containsDuplicates() {
         return true;
     }
-    
+
     /**
      * @return the log entry type to use for bin delta log entries.
      */
@@ -155,22 +155,22 @@ public final class DBIN extends BIN implements Loggable {
     }
 
     /* Called once at environment startup by MemoryBudget. */
-    public static long computeOverhead(DbConfigManager configManager) 
+    public static long computeOverhead(DbConfigManager configManager)
         throws DatabaseException {
 
-        /* 
+        /*
 	 * Overhead consists of all the fields in this class plus the
 	 * entry arrays in the IN class.
          */
         return MemoryBudget.DBIN_FIXED_OVERHEAD +
 	    IN.computeArraysOverhead(configManager);
     }
-    
+
     protected long getMemoryOverhead(MemoryBudget mb) {
         return mb.getDBINOverhead();
     }
 
-    /* 
+    /*
      * A DBIN cannot be the ancestor of any IN.
      */
     protected boolean canBeAncestor(boolean targetContainsDuplicates) {
@@ -306,7 +306,7 @@ public final class DBIN extends BIN implements Loggable {
     public void writeToLog(ByteBuffer logBuffer) {
 
         // ancestors
-        super.writeToLog(logBuffer); 
+        super.writeToLog(logBuffer);
 
         // identifier key
         LogUtils.writeByteArray(logBuffer, dupKey);
@@ -318,13 +318,13 @@ public final class DBIN extends BIN implements Loggable {
     public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
         throws LogException {
 
-        // ancestors 
+        // ancestors
         super.readFromLog(itemBuffer, entryTypeVersion);
 
         // identifier key
         dupKey = LogUtils.readByteArray(itemBuffer);
     }
-    
+
     /**
      * DBINS need to dump their dup key
      */

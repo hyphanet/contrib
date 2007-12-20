@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntityInput.java,v 1.16.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: EntityInput.java,v 1.16.2.2 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -33,7 +33,7 @@ public interface EntityInput {
     boolean isRawAccess();
 
     /**
-     * Changes raw mode and returns the original mode, which is normally 
+     * Changes raw mode and returns the original mode, which is normally
      * restored later.  For temporarily changing the mode during a conversion.
      */
     boolean setRawAccess(boolean rawAccessParam);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: SecondaryDirtyReadTest.java,v 1.12.2.1 2007/02/01 14:50:20 cwl Exp $
+ * $Id: SecondaryDirtyReadTest.java,v 1.12.2.2 2007/11/20 13:32:49 cwl Exp $
  */
 
 package com.sleepycat.je.test;
@@ -34,7 +34,7 @@ import com.sleepycat.je.util.TestUtils;
  * the middle of a secondary read does not appear as a corrupt secondary.  In
  * both of these cases it should appear that the record does not exist, from
  * the viewpoint of an application using a cursor.
- * 
+ *
  * <p>These tests create two threads, one reading and the other deleting or
  * updating.  The intention is for reading thread and the delete/update thread
  * to race in operating on the same key (nextKey).  If the reading thread reads
@@ -148,7 +148,7 @@ public class SecondaryDirtyReadTest extends MultiKeyTxnTestCase {
     /**
      * Deletes the key that is being read by the other thread.
      */
-    public void runPrimaryDelete() 
+    public void runPrimaryDelete()
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -168,7 +168,7 @@ public class SecondaryDirtyReadTest extends MultiKeyTxnTestCase {
      * changing the datum to -1 so it will cause the secondary key record to
      * be deleted.
      */
-    public void runPrimaryUpdate() 
+    public void runPrimaryUpdate()
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -188,7 +188,7 @@ public class SecondaryDirtyReadTest extends MultiKeyTxnTestCase {
      * delete/update thread, then moves to the next key.  We shouldn't get an
      * exception, just a NOTFOUND when it is deleted.
      */
-    public void runReadUncommittedByKey() 
+    public void runReadUncommittedByKey()
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -215,7 +215,7 @@ public class SecondaryDirtyReadTest extends MultiKeyTxnTestCase {
      * shouldn't get an exception or a NOTFOUND, but we may skip values when a
      * key is deleted.
      */
-    public void runReadUncommittedScan() 
+    public void runReadUncommittedScan()
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckpointStart.java,v 1.28.2.1 2007/02/01 14:49:48 cwl Exp $
+ * $Id: CheckpointStart.java,v 1.28.2.2 2007/11/20 13:32:33 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -25,12 +25,12 @@ public class CheckpointStart implements Loggable {
     private Timestamp startTime;
     private long id;
 
-    /* 
+    /*
      * invoker is just a way to tag each checkpoint in the log for easier log
      * based debugging. It will tell us whether the checkpoint was invoked by
      * recovery, the daemon, the api, or the cleaner.
      */
-    private String invoker; 
+    private String invoker;
 
     public CheckpointStart(long id, String invoker) {
         Calendar cal = Calendar.getInstance();
@@ -56,7 +56,7 @@ public class CheckpointStart implements Loggable {
      */
     public int getLogSize() {
         return LogUtils.getTimestampLogSize() +
-            LogUtils.getLongLogSize() + 
+            LogUtils.getLongLogSize() +
             LogUtils.getStringLogSize(invoker);
     }
 

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: JEVersion.java,v 1.93.2.21 2007/08/19 22:34:10 mark Exp $
+ * $Id: JEVersion.java,v 1.93.2.41 2007/12/15 01:04:05 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -14,13 +14,13 @@ package com.sleepycat.je;
  */
 public class JEVersion {
 
-    /** 
+    /**
      * Javadoc for this public instance is generated via
      * the doc templates in the doc_src directory.
      */
     public static final JEVersion CURRENT_VERSION =
-        new JEVersion(3, 2, 43, null);
-    
+        new JEVersion(3, 2, 68, null);
+
     private int majorNum;
     private int minorNum;
     private int patchNum;
@@ -30,7 +30,7 @@ public class JEVersion {
         this.majorNum = majorNum;
         this.minorNum = minorNum;
         this.patchNum = patchNum;
-        this.name = name; 
+        this.name = name;
     }
 
     /**

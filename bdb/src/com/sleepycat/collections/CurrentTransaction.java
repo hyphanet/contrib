@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: CurrentTransaction.java,v 1.46.2.2 2007/04/12 16:13:16 mark Exp $
+ * $Id: CurrentTransaction.java,v 1.46.2.4 2007/11/20 13:32:25 cwl Exp $
  */
 
 package com.sleepycat.collections;
@@ -79,6 +79,15 @@ public class CurrentTransaction {
             }
             if (myEnv == null) {
                 myEnv = new CurrentTransaction(env);
+
+                /*
+                 * When a new CurrentTransaction instance is created, add
+                 * a strong reference from the Environment to the
+                 * CurrentTransaction instance so that it can not be GC'd
+                 * until the Environment is GC'd (i.e. after it is closed).
+                 * [#15721]
+                 */
+                env.addReference(myEnv);
                 envMap.put(env, new WeakReference(myEnv));
             }
             return myEnv;
@@ -334,7 +343,7 @@ public class CurrentTransaction {
             CursorConfig cdbConfig;
             if (writeCursor) {
                 if (cdbCursors.readCursors.size() > 0) {
-                    
+
                     /*
                      * Although CDB allows opening a write cursor when a read
                      * cursor is open, a self-deadlock will occur if a write is

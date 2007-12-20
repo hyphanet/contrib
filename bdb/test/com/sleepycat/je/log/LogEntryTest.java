@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LogEntryTest.java,v 1.16.2.1 2007/02/01 14:50:15 cwl Exp $
+ * $Id: LogEntryTest.java,v 1.16.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -42,7 +42,7 @@ public class LogEntryTest extends TestCase {
         /* Get a new entry object */
         LogEntry sharedEntry = foundType.getSharedLogEntry();
         LogEntry newEntry = foundType.getNewLogEntry();
-        
+
         assertTrue(sharedEntry != newEntry);
     }
 }

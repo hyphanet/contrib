@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecordOutput.java,v 1.4.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: RecordOutput.java,v 1.4.2.3 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -51,6 +51,10 @@ class RecordOutput extends TupleOutput implements EntityOutput {
          */
         if (visited != null) {
             int offset = visited.getOffset(o);
+            if (offset == VisitedObjects.PROHIBIT_REF_OFFSET) {
+                throw new IllegalArgumentException
+                    (VisitedObjects.PROHIBIT_NESTED_REF_MSG);
+            }
             if (offset > 0) {
                 writePackedInt(-(offset + 1));
                 return;
@@ -80,15 +84,28 @@ class RecordOutput extends TupleOutput implements EntityOutput {
                  o.getClass().getName());
         }
 
-        /* Remember that we visited this instance. */
+        /*
+         * Remember that we visited this instance.  Certain formats
+         * (ProxiedFormat for example) prohibit nested fields that reference
+         * the parent object. [#15815]
+         */
         if (visited == null) {
             visited = new VisitedObjects();
         }
-        visited.add(o, size());
+        boolean prohibitNestedRefs = format.areNestedRefsProhibited();
+        int visitedOffset = size();
+        int visitedIndex = visited.add(o, prohibitNestedRefs ?
+            VisitedObjects.PROHIBIT_REF_OFFSET :
+            visitedOffset);
 
         /* Finally, write the formatId and object value. */
         writePackedInt(format.getId());
         format.writeObject(o, this, rawAccess);
+
+        /* Always allow references from siblings that follow. */
+        if (prohibitNestedRefs) {
+            visited.setOffset(visitedIndex, visitedOffset);
+        }
     }
 
     /**
@@ -138,9 +155,9 @@ class RecordOutput extends TupleOutput implements EntityOutput {
         if (visited == null) {
             visited = new VisitedObjects();
         }
-        visited.add(o, EntityOutput.PRI_KEY_VISITED_OFFSET);
+        visited.add(o, VisitedObjects.PRI_KEY_VISITED_OFFSET);
     }
-    
+
     /**
      * @see EntityInput#writeArrayLength
      */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: StoredIterator.java,v 1.45.2.1 2007/02/01 14:49:40 cwl Exp $
+ * $Id: StoredIterator.java,v 1.45.2.4 2007/12/15 01:04:05 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -320,6 +320,10 @@ public class StoredIterator implements BaseIterator, Cloneable {
      * specified element (optional operation).
      * This method conforms to the {@link ListIterator#set} interface.
      *
+     * <p>In order to call this method, if the underlying Database is
+     * transactional then a transaction must be active when creating the
+     * iterator.</p>
+     *
      * @param value the new value.
      *
      * @throws UnsupportedOperationException if the collection is a {@link
@@ -353,6 +357,10 @@ public class StoredIterator implements BaseIterator, Cloneable {
      * that when the collection is a list and the RECNO-RENUMBER access method
      * is not used, list indices will not be renumbered.
      *
+     * <p>In order to call this method, if the underlying Database is
+     * transactional then a transaction must be active when creating the
+     * iterator.</p>
+     *
      * <p>Note that for the JE product, RECNO-RENUMBER databases are not
      * supported, and therefore list indices are never renumbered by this
      * method.</p>
@@ -370,6 +378,8 @@ public class StoredIterator implements BaseIterator, Cloneable {
             moveToCurrent();
             cursor.delete();
             setAndRemoveAllowed = false;
+            toNext = MOVE_NEXT;
+            toPrevious = MOVE_PREV;
         } catch (Exception e) {
             throw StoredContainer.convertException(e);
         }
@@ -475,7 +485,7 @@ public class StoredIterator implements BaseIterator, Cloneable {
         toPrevious = MOVE_PREV;
         toCurrent = 0;
         currentData = null;
-        /* 
+        /*
 	 * Initialize cursor at beginning to avoid "initial previous == last"
 	 * behavior when cursor is uninitialized.
 	 *

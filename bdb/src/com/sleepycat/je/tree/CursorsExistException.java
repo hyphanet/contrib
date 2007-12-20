@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: CursorsExistException.java,v 1.6.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: CursorsExistException.java,v 1.6.2.2 2007/11/20 13:32:35 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -17,7 +17,7 @@ public class CursorsExistException extends Exception {
 
     /*
      * Throw this static instance, in order to reduce the cost of
-     * fill in the stack trace. 
+     * fill in the stack trace.
      */
     public static final CursorsExistException CURSORS_EXIST =
         new CursorsExistException();

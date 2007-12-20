@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EvictActionTest.java,v 1.24.2.2 2007/07/02 19:54:55 mark Exp $
+ * $Id: EvictActionTest.java,v 1.24.2.5 2007/11/20 13:32:44 cwl Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -23,6 +23,7 @@ import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.EnvironmentMutableConfig;
+import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
@@ -37,7 +38,7 @@ import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.util.TestUtils;
 
 /**
- * This tests exercises the act of eviction and determines whether the 
+ * This tests exercises the act of eviction and determines whether the
  * expected nodes have been evicted properly.
  */
 public class EvictActionTest extends TestCase {
@@ -67,7 +68,7 @@ public class EvictActionTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
@@ -118,7 +119,7 @@ public class EvictActionTest extends TestCase {
      */
     private void doEvict(int floor,
                          int maxMem,
-                         boolean shouldEvict) 
+                         boolean shouldEvict)
         throws Throwable {
 
         try {
@@ -215,7 +216,7 @@ public class EvictActionTest extends TestCase {
         insertData(NUM_KEYS);
 
         JUnitThread writer = new JUnitThread("Writer") {
-            public void testBody() 
+            public void testBody()
                 throws DatabaseException {
                 for (int i = 0; i < N_ITERS; i += 1) {
                     env.evictMemory();
@@ -230,7 +231,7 @@ public class EvictActionTest extends TestCase {
         };
 
         JUnitThread reader = new JUnitThread("Reader") {
-            public void testBody() 
+            public void testBody()
                 throws DatabaseException {
                 for (int i = 0; i < N_ITERS; i += 1) {
                     env.evictMemory();
@@ -262,6 +263,77 @@ public class EvictActionTest extends TestCase {
             e.printStackTrace();
             fail(e.toString());
         }
+
+        closeEnv();
+    }
+
+    public void testSmallCacheSettings()
+        throws DatabaseException {
+
+        /*
+         * With a cache size > 600 KB, the min tree usage should be the default
+         * value.
+         */
+        openEnv(0, 1200 * 1024);
+        EnvironmentMutableConfig config = env.getMutableConfig();
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        MemoryBudget mb = envImpl.getMemoryBudget();
+        assertEquals(500 * 1024, mb.getMinTreeMemoryUsage());
+
+        /*
+         * With a cache size > 1000 KB, evict bytes may be > 500 KB but we
+         * should not evict over half the cache size.
+         */
+        putLargeData(1200, 1024);
+        env.evictMemory();
+        EnvironmentStats stats = env.getStats(null);
+        assertTrue(stats.getRequiredEvictBytes() > 500 * 1024);
+        assertTrue(stats.getCacheTotalBytes() >= 1200 * 1024 / 2);
+
+        /*
+         * With a cache size of 500 KB, the min tree usage should be the amount
+         * available in the cache after the buffer bytes are subtracted.
+         */
+        config.setCacheSize(500 * 1024);
+        env.setMutableConfig(config);
+        stats = env.getStats(null);
+        assertEquals(500 * 1024 - stats.getBufferBytes(),
+                     mb.getMinTreeMemoryUsage());
+
+        /*
+         * With a cache size of 500 KB, evict bytes may be < 500 KB but we
+         * should not evict over half the cache size.
+         */
+        putLargeData(500, 1024);
+        env.evictMemory();
+        stats = env.getStats(null);
+        assertTrue(stats.getCacheTotalBytes() >= 500 * 1024 / 2);
+
+        /*
+         * Even when using a large amount of non-tree memory, the tree memory
+         * usage should not go below the minimum.
+         */
+        mb.updateMiscMemoryUsage(500 * 1024);
+        env.evictMemory();
+        stats = env.getStats(null);
+        long treeBytes = stats.getCacheDataBytes() - stats.getAdminBytes() +
+                         50 * 1024 /* larger than any LN or IN */;
+        assertTrue(treeBytes >= mb.getMinTreeMemoryUsage());
+        mb.updateMiscMemoryUsage(-(500 * 1024));
+
+        /* Allow changing the min tree usage explicitly. */
+        config.setCacheSize(500 * 1024);
+        config.setConfigParam("je.tree.minMemory", String.valueOf(50 * 1024));
+        env.setMutableConfig(config);
+        assertEquals(50 * 1024, mb.getMinTreeMemoryUsage());
+
+        /* The min tree usage may not be larger than the cache. */
+        config.setCacheSize(500 * 1024);
+        config.setConfigParam("je.tree.minMemory", String.valueOf(900 * 1024));
+        env.setMutableConfig(config);
+        stats = env.getStats(null);
+        assertEquals(500 * 1024 - stats.getBufferBytes(),
+                     mb.getMinTreeMemoryUsage());
 
         closeEnv();
     }
@@ -535,11 +607,14 @@ public class EvictActionTest extends TestCase {
      * Open an environment and database.
      */
     private void openEnv(int floor,
-                         int maxMem) 
+                         int maxMem)
         throws DatabaseException {
 
         /* Convert floor percentage into bytes. */
-        long evictBytes = maxMem - ((maxMem * floor) / 100);
+        long evictBytes = 0;
+        if (floor > 0) {
+            evictBytes = maxMem - ((maxMem * floor) / 100);
+        }
 
         /* Make a non-txnal env w/no daemons and small nodes. */
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -553,9 +628,11 @@ public class EvictActionTest extends TestCase {
                                  ENV_RUN_CLEANER.getName(), "false");
         envConfig.setConfigParam(EnvironmentParams.
                                  ENV_RUN_CHECKPOINTER.getName(), "false");
-        envConfig.setConfigParam(EnvironmentParams.
-                                 EVICTOR_EVICT_BYTES.getName(),
-                                 (new Long(evictBytes)).toString());
+        if (evictBytes > 0) {
+            envConfig.setConfigParam(EnvironmentParams.
+                                     EVICTOR_EVICT_BYTES.getName(),
+                                     (new Long(evictBytes)).toString());
+        }
         envConfig.setConfigParam(EnvironmentParams.
                                  MAX_MEMORY.getName(),
                                  new Integer(maxMem).toString());
@@ -570,7 +647,7 @@ public class EvictActionTest extends TestCase {
         envConfig.setConfigParam(EnvironmentParams.
                                  ENV_DB_EVICTION.getName(), "true");
 
-        /* 
+        /*
          * Disable critical eviction, we want to test under controlled
          * circumstances.
          */
@@ -605,7 +682,7 @@ public class EvictActionTest extends TestCase {
         }
     }
 
-    private void insertData(int nKeys) 
+    private void insertData(int nKeys)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();
@@ -626,6 +703,17 @@ public class EvictActionTest extends TestCase {
         }
     }
 
+    private void putLargeData(int nKeys, int dataSize)
+        throws DatabaseException {
+
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry(new byte[dataSize]);
+        for (int i = 0; i < nKeys; i++) {
+            IntegerBinding.intToEntry(i, key);
+            db.put(null, key, data);
+        }
+    }
+
     private void verifyData(int nKeys)
         throws DatabaseException {
 
@@ -633,7 +721,7 @@ public class EvictActionTest extends TestCase {
         Cursor cursor = db.openCursor(null, null);
         DatabaseEntry data = new DatabaseEntry();
         DatabaseEntry key = new DatabaseEntry();
-        
+
         for (int i = 0; i < nKeys; i++) {
             if ((i % 5) ==0) {
                 for (int j = 10; j < (NUM_DUPS + 10); j++) {
@@ -655,13 +743,13 @@ public class EvictActionTest extends TestCase {
         cursor.close();
     }
 
-    private void evictAndCheck(boolean shouldEvict, int nKeys) 
+    private void evictAndCheck(boolean shouldEvict, int nKeys)
         throws DatabaseException {
 
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
-        /* 
+        /*
          * The following batches are run in a single evictMemory() call:
          * 1st eviction will strip DBINs.
          * 2nd will evict DBINs

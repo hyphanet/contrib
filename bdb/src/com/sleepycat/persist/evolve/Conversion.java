@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Conversion.java,v 1.9.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: Conversion.java,v 1.9.2.2 2007/11/20 13:32:38 cwl Exp $
  */
 
 package com.sleepycat.persist.evolve;
@@ -78,7 +78,7 @@ import com.sleepycat.persist.raw.RawType;
  *      public Object convert(Object fromValue) {
  *          return Integer.valueOf((String) fromValue);
  *      }
- *      
+ *
  *      {@code @Override}
  *      public boolean equals(Object o) {
  *          return o instanceof MyConversion1;
@@ -146,7 +146,7 @@ import com.sleepycat.persist.raw.RawType;
  *          //
  *          return new RawObject(addressType, addressValues, null);
  *      }
- *      
+ *
  *      {@code @Override}
  *      public boolean equals(Object o) {
  *          return o instanceof MyConversion2;
@@ -233,7 +233,7 @@ import com.sleepycat.persist.raw.RawType;
  *
  *          return new RawObject(newPersonType, personValues, person.getSuper());
  *      }
- *      
+ *
  *      {@code @Override}
  *      public boolean equals(Object o) {
  *          return o instanceof MyConversion3;
@@ -296,7 +296,7 @@ import com.sleepycat.persist.raw.RawType;
  *          RawObject newA = new RawObject(newAType, aValues, newB);
  *          return newA;
  *      }
- *      
+ *
  *      {@code @Override}
  *      public boolean equals(Object o) {
  *          return o instanceof MyConversion4;
@@ -359,7 +359,7 @@ import com.sleepycat.persist.raw.RawType;
  *          RawType newSubType = isCat ? catType : dogType;
  *          return new RawObject(newSubType, Collections.emptyMap(), newPet);
  *      }
- *      
+ *
  *      {@code @Override}
  *      public boolean equals(Object o) {
  *          return o instanceof MyConversion5;

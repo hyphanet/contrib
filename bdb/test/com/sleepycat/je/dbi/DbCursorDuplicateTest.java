@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateTest.java,v 1.53.2.2 2007/05/23 14:07:30 mark Exp $
+ * $Id: DbCursorDuplicateTest.java,v 1.53.2.4 2007/11/20 13:32:43 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -25,7 +25,7 @@ import com.sleepycat.je.util.StringDbt;
  */
 public class DbCursorDuplicateTest extends DbCursorTestBase {
 
-    public DbCursorDuplicateTest() 
+    public DbCursorDuplicateTest()
         throws DatabaseException {
 
         super();
@@ -81,7 +81,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
      * Iterate through the tree in ascending order.  Ensure that the elements
      * are returned in ascending order.
      */
-    public void testLargeGetForwardTraverseWithNormalComparisonFunction() 
+    public void testLargeGetForwardTraverseWithNormalComparisonFunction()
         throws Throwable {
 
         try {
@@ -101,7 +101,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
      * btreeComparison function. Iterate through the tree in ascending order.
      * Ensure that the elements are returned in ascending order.
      */
-    public void testLargeGetForwardTraverseWithReverseComparisonFunction() 
+    public void testLargeGetForwardTraverseWithReverseComparisonFunction()
         throws Throwable {
 
         try {
@@ -208,7 +208,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
      * inefficient, but cautious, in that it calls count for every duplicate
      * returned, rather than just once for each unique key returned.
      */
-    public void testDuplicateCount() 
+    public void testDuplicateCount()
         throws Throwable {
 
         try {
@@ -307,7 +307,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 		(exampleDb.getConfig().getDuplicateComparator());
 
             assertEquals(1, bTreeICC.getInvocationCount());
-            assertEquals(1, dupICC.getInvocationCount());
+            assertEquals(2, dupICC.getInvocationCount());
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -436,8 +436,8 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 
     /**
      * When using a duplicate comparator that does not compare all bytes,
-     * attempting to change the data for a duplicate data item should cause an
-     * error even if a byte not compared is changed. [#15527]
+     * attempting to change the data for a duplicate data item should work when
+     * a byte not compared is changed. [#15527] [#15704]
      */
     public void testDuplicateReplacementFailureWithComparisonFunction1()
 	throws Throwable {
@@ -473,9 +473,14 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
                         dataDbt.setString(sb.toString());
                         try {
                             cursor.putCurrent(dataDbt);
-                            fail("didn't catch DatabaseException");
-                        } catch (DatabaseException DBE) {
+                        } catch (DatabaseException e) {
+                            fail(e.toString());
                         }
+                        StringDbt keyDbt = new StringDbt();
+                        assertSame(OperationStatus.SUCCESS,
+                                   cursor.getCurrent(keyDbt, dataDbt, null));
+                        assertEquals(foundKey, keyDbt.getString());
+                        assertEquals(sb.toString(), dataDbt.getString());
                     }
                 };
             dw.setIgnoreDataMap(true);
@@ -872,7 +877,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
         }
     }
 
-    public void testIllegalDuplicateCreation() 
+    public void testIllegalDuplicateCreation()
         throws Throwable {
 
         try {
@@ -965,7 +970,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 		if (b1 == b2) {
 		    continue;
 		} else {
-		    /* 
+		    /*
 		     * Remember, bytes are signed, so convert to
 		     * shorts so that we effectively do an unsigned
 		     * byte comparison.

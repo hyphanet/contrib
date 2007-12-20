@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: RecordSearch.java,v 1.24.2.1 2007/02/01 14:50:23 cwl Exp $
+ * $Id: RecordSearch.java,v 1.24.2.2 2007/11/20 13:32:51 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -25,7 +25,7 @@ import com.sleepycat.je.utilint.CmdUtil;
 
 /**
  * KeySearch is a debugging aid that searches the database for a given
- * record. 
+ * record.
  */
 public class RecordSearch {
 

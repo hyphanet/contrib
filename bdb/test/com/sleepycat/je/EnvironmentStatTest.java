@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentStatTest.java,v 1.17.2.1 2007/02/01 14:50:05 cwl Exp $
+ * $Id: EnvironmentStatTest.java,v 1.17.2.2 2007/11/20 13:32:42 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -31,12 +31,12 @@ public class EnvironmentStatTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
         /* Close down environments in case the unit test failed so that
-         * the log files can be removed. 
+         * the log files can be removed.
          */
         try {
             if (env != null) {
@@ -78,13 +78,13 @@ public class EnvironmentStatTest extends TestCase {
                 DbInternal.envGetEnvironmentImpl(env).getMemoryBudget();
             long cacheSize = mb.getCacheMemoryUsage();
             long bufferSize = mb.getLogBufferBudget();
-            
+
             assertEquals(12, stat.getNCacheMiss());
             assertEquals(12, stat.getNNotResident());
 
             assertEquals(cacheSize, stat.getCacheDataBytes());
 
-            /* 
+            /*
              * Buffer size may be slightly different, because the log
              * buffer pool might do some rounding. Just check that
              * it's within an ok margin.

@@ -3,21 +3,20 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: EvolveTest.java,v 1.6.2.1 2007/02/01 14:50:25 cwl Exp $
+ * $Id: EvolveTest.java,v 1.6.2.5 2007/12/08 14:47:26 mark Exp $
  */
 package com.sleepycat.persist.test;
 
-import java.io.File;
 import java.io.IOException;
 
 import junit.framework.Test;
 
 import com.sleepycat.je.util.TestUtils;
-import com.sleepycat.persist.impl.PersistCatalog;
 import com.sleepycat.persist.evolve.EvolveConfig;
 import com.sleepycat.persist.evolve.EvolveEvent;
-import com.sleepycat.persist.evolve.EvolveStats;
 import com.sleepycat.persist.evolve.EvolveListener;
+import com.sleepycat.persist.evolve.EvolveStats;
+import com.sleepycat.persist.impl.PersistCatalog;
 
 /**
  * Runs part two of the EvolveTest.  This part is run with the new/updated
@@ -39,14 +38,19 @@ public class EvolveTest extends EvolveTestBase {
     private int evolveNRead;
     private int evolveNConverted;
 
+    boolean useEvolvedClass() {
+        return true;
+    }
+
     @Override
     public void setUp()
         throws IOException {
 
         /* Copy the log files created by EvolveTestInit. */
-        envHome = new File(System.getProperty(TestUtils.DEST_DIR));
+        envHome = getTestInitHome(true /*evolved*/);
+        envHome.mkdirs();
         TestUtils.removeLogFiles("Setup", envHome, false);
-        TestUtils.copyFiles(getTestInitHome(), envHome);
+        TestUtils.copyFiles(getTestInitHome(false /*evolved*/), envHome);
     }
 
     public void testLazyEvolve()
@@ -78,7 +82,7 @@ public class EvolveTest extends EvolveTestBase {
 
             /*
              * Read raw objects again to check that the evolved objects are
-             * returned even though the stored object were not evolved.
+             * returned even though the stored objects were not evolved.
              */
             openRawStore();
             caseObj.checkEvolvedModel
@@ -130,7 +134,7 @@ public class EvolveTest extends EvolveTestBase {
 
     public void testEagerEvolve()
         throws Exception {
-        
+
         /* If the store cannot be opened, this test is not appropriate. */
         if (caseObj.getStoreOpenException() != null) {
             return;
@@ -157,7 +161,11 @@ public class EvolveTest extends EvolveTestBase {
         int nExpected = caseObj.getNRecordsExpected();
         evolveNRead = 0;
         evolveNConverted = 0;
+        PersistCatalog.unevolvedFormatsEncountered = false;
         EvolveStats stats = store.evolve(config);
+        if (nExpected > 0) {
+            assertTrue(PersistCatalog.unevolvedFormatsEncountered);
+        }
         assertTrue(evolveNRead == nExpected);
         assertTrue(evolveNConverted == nExpected);
         assertTrue(evolveNConverted >= evolveNRead);
@@ -167,11 +175,18 @@ public class EvolveTest extends EvolveTestBase {
         /* Evolve again and expect that no entities are converted. */
         evolveNRead = 0;
         evolveNConverted = 0;
+        PersistCatalog.unevolvedFormatsEncountered = false;
         stats = store.evolve(config);
+        assertTrue(!PersistCatalog.unevolvedFormatsEncountered);
         assertTrue(evolveNRead == 0);
         assertTrue(evolveNConverted == 0);
         assertEquals(0, stats.getNRead());
         assertEquals(0, stats.getNConverted());
+
+        /* Ensure that we can read all entities without evolution. */
+        PersistCatalog.unevolvedFormatsEncountered = false;
+        caseObj.readObjects(store, false /*doUpdate*/);
+        assertTrue(!PersistCatalog.unevolvedFormatsEncountered);
 
         /*
          * When automatic unused type deletion is implemented in the future the

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbStat.java,v 1.21.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: DbStat.java,v 1.21.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -50,7 +50,7 @@ public class DbStat extends DbVerify {
 	    stat.env.close();
 	} catch (Throwable ignored) {
 
-	    /* 
+	    /*
 	     * Klockwork - ok
 	     * Don't say anything about exceptions here.
 	     */

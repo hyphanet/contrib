@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2007 Oracle.  All rights reserved.
  *
- * $Id: CheckSplitsTest.java,v 1.13.2.1 2007/02/01 14:50:16 cwl Exp $
+ * $Id: CheckSplitsTest.java,v 1.13.2.2 2007/11/20 13:32:47 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -30,7 +30,7 @@ public class CheckSplitsTest extends CheckBase {
     private boolean useDups;
 
     /**
-     * Test basic inserts. 
+     * Test basic inserts.
      */
     public void testBasicInsert()
         throws Throwable {
@@ -41,7 +41,7 @@ public class CheckSplitsTest extends CheckBase {
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(),
                                  "4");
         envConfig.setAllowCreate(true);
-                                 
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(useDups);
@@ -58,26 +58,26 @@ public class CheckSplitsTest extends CheckBase {
                             setupBasicInsertData(db);
                         }
                     },
-                    envConfig, 
+                    envConfig,
                     validateDbConfig);
 
-        /* 
-         * Now run the test in a stepwise loop, truncate after each 
+        /*
+         * Now run the test in a stepwise loop, truncate after each
          * log entry. We start the steps before the inserts, so the base
          * expected set is empty.
          */
         HashSet currentExpected = new HashSet();
         stepwiseLoop(DB_NAME, envConfig, dbConfig, currentExpected,  0);
     }
-    
-    public void testBasicInsertDups() 
+
+    public void testBasicInsertDups()
         throws Throwable {
-        
+
         useDups = true;
         testBasicInsert();
     }
 
-    private void setupBasicInsertData(Database db) 
+    private void setupBasicInsertData(Database db)
         throws DatabaseException {
 
         setStepwiseStart();
@@ -110,7 +110,7 @@ public class CheckSplitsTest extends CheckBase {
                                  "6");
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
-                                 
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
         dbConfig.setTransactional(true);
@@ -133,8 +133,8 @@ public class CheckSplitsTest extends CheckBase {
                     restartConfig,
                     new DatabaseConfig());
 
-        /* 
-         * Now run the test in a stepwise loop, truncate after each 
+        /*
+         * Now run the test in a stepwise loop, truncate after each
          * log entry. We start the steps before the inserts, so the base
          * expected set is empty.
          */
@@ -144,7 +144,7 @@ public class CheckSplitsTest extends CheckBase {
         }
     }
 
-    private void setupSplitData(Database db) 
+    private void setupSplitData(Database db)
         throws DatabaseException {
 
         setStepwiseStart();
@@ -191,7 +191,7 @@ public class CheckSplitsTest extends CheckBase {
             IntegerBinding.intToEntry(i, data);
             assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
         }
-    } 
+    }
 
     /**
      * [#13435]  Checks that a DIN can be replayed with a full BIN parent.
@@ -231,8 +231,8 @@ public class CheckSplitsTest extends CheckBase {
                     envConfig,
                     dbConfig);
 
-        /* 
-         * Now run the test in a stepwise loop, truncate after each 
+        /*
+         * Now run the test in a stepwise loop, truncate after each
          * log entry. We start the steps before the inserts, so the base
          * expected set is empty.
          */
@@ -246,7 +246,7 @@ public class CheckSplitsTest extends CheckBase {
      * Fill a BIN with entries, with a DIN in the first entry; then force the
      * BIN to be flushed, as might occur via eviction or checkpointing.
      */
-    private void setupBINSplitDuringDINReplay(Database db) 
+    private void setupBINSplitDuringDINReplay(Database db)
         throws DatabaseException {
 
         setStepwiseStart();
@@ -276,7 +276,7 @@ public class CheckSplitsTest extends CheckBase {
         TestUtils.logBINAndIN(env, cursor);
 
         cursor.close();
-    } 
+    }
 
     /**
      * [#13435]  Checks that recovering a DIN causes a BIN split when needed.
@@ -324,8 +324,8 @@ public class CheckSplitsTest extends CheckBase {
                     envConfig,
                     dbConfig);
 
-        /* 
-         * Now run the test in a stepwise loop, truncate after each 
+        /*
+         * Now run the test in a stepwise loop, truncate after each
          * log entry. We start the steps before the inserts, so the base
          * expected set is empty.
          */
@@ -339,7 +339,7 @@ public class CheckSplitsTest extends CheckBase {
      * Insert two dups, delete them, and compress to free the BIN entry;
      * then fill the BIN with LNs and flush the BIN.
      */
-    private void setupBINSplitDuringDeletedDINReplay(Database db) 
+    private void setupBINSplitDuringDeletedDINReplay(Database db)
         throws DatabaseException {
 
         setStepwiseStart();
@@ -374,5 +374,5 @@ public class CheckSplitsTest extends CheckBase {
         TestUtils.logBINAndIN(env, cursor);
 
         cursor.close();
-    } 
+    }
 }

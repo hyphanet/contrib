@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: ValidateSubtreeDeleteTest.java,v 1.30.2.1 2007/02/01 14:50:21 cwl Exp $
+ * $Id: ValidateSubtreeDeleteTest.java,v 1.30.2.2 2007/11/20 13:32:50 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -55,7 +55,7 @@ public class ValidateSubtreeDeleteTest extends TestCase {
         dbConfig.setSortedDuplicates(true);
         testDb = env.openDatabase(null, "Test", dbConfig);
     }
-    
+
     public void tearDown() throws IOException, DatabaseException {
         testDb.close();
         if (env != null) {
@@ -87,7 +87,7 @@ public class ValidateSubtreeDeleteTest extends TestCase {
             assertFalse(DbInternal.dbGetDatabaseImpl(testDb).getTree().validateDelete(0));
             assertFalse(DbInternal.dbGetDatabaseImpl(testDb).getTree().validateDelete(1));
 
-            /* 
+            /*
              * Should be able to delete both, the txn is aborted and the data
              * isn't there.
              */
@@ -140,7 +140,7 @@ public class ValidateSubtreeDeleteTest extends TestCase {
             Tree tree = DbInternal.dbGetDatabaseImpl(testDb).getTree();
             assertFalse(tree.validateDelete(0));
 
-            /* 
+            /*
              * Should be able to delete, the txn is aborted and the data
              * isn't there.
              */

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: LastFileReaderTest.java,v 1.67.2.1 2007/02/01 14:50:14 cwl Exp $
+ * $Id: LastFileReaderTest.java,v 1.67.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -66,14 +66,14 @@ public class LastFileReaderTest extends TestCase {
     }
 
     /* Create an environment, using the default log file size. */
-    private void initEnv() 
+    private void initEnv()
         throws DatabaseException {
 
         initEnv(null);
     }
 
     /* Create an environment, specifying the log file size. */
-    private void initEnv(String logFileSize) 
+    private void initEnv(String logFileSize)
         throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -116,7 +116,7 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv();
 
-        /* 
+        /*
          * Make a log file with a valid header, but no data.
          */
         FileManagerTestUtils.createLogFile(fileManager, envImpl, 100);
@@ -139,7 +139,7 @@ public class LastFileReaderTest extends TestCase {
         List testObjs = new ArrayList();
         List testLsns = new ArrayList();
 
-        /* 
+        /*
          * Create a log with one or more files. Use only Tracer objects so we
          * can iterate through the entire log ... ?
          */
@@ -153,9 +153,9 @@ public class LastFileReaderTest extends TestCase {
 	logManager.flush();
         fileManager.clear();
 
-        int lastFileNum = fileManager.getAllFileNumbers().length - 1;        
+        int lastFileNum = fileManager.getAllFileNumbers().length - 1;
 
-        /* 
+        /*
          * Create an extra, totally empty file.
          */
         fileManager.syncLogEnd();
@@ -170,7 +170,7 @@ public class LastFileReaderTest extends TestCase {
 
         assertTrue(fileManager.getAllFileNumbers().length >= 2);
 
-        /* 
+        /*
          * Try a LastFileReader. It should give us a end-of-log position in the
          * penultimate file.
          */
@@ -178,7 +178,7 @@ public class LastFileReaderTest extends TestCase {
         while (reader.readNextEntry()) {
         }
 
-        /* 
+        /*
          * The reader should be positioned at the last, valid file, skipping
          * this 0 length file.
          */
@@ -196,7 +196,7 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv();
 
-        /* 
+        /*
          * Handle a log file that has data and a bad header. First corrupt the
          * existing log file. We will not be able to establish log end, but
          * won't throw away the file because it has data.
@@ -236,7 +236,7 @@ public class LastFileReaderTest extends TestCase {
 
         LastFileReader reader = new LastFileReader(envImpl, 1000);
         /* Nothing comes back from reader. */
-        assertFalse(reader.readNextEntry()); 
+        assertFalse(reader.readNextEntry());
         File movedFile = new File(envHome, "00000000.bad");
         assertTrue(movedFile.exists());
 
@@ -346,10 +346,10 @@ public class LastFileReaderTest extends TestCase {
         int numIters = 50;
         List testObjs = new ArrayList();
         List testLsns = new ArrayList();
-        int defaultBufferSize = 
+        int defaultBufferSize =
             configManager.getInt(EnvironmentParams.LOG_ITERATOR_READ_SIZE);
 
-        /* 
+        /*
          * Make a valid log with data, then put a couple of extra files after
          * it. Make the file numbers non-consecutive. We should have three log
          * files.
@@ -369,7 +369,7 @@ public class LastFileReaderTest extends TestCase {
 
         assertEquals(3, fileManager.getAllFileNumbers().length);
 
-        /* 
+        /*
          * Corrupt the last empty file and then search for the correct last
          * file.
          */
@@ -384,7 +384,7 @@ public class LastFileReaderTest extends TestCase {
         file.close();
         fileManager.clear();
 
-        /* 
+        /*
          * Make a reader, read the log. After the reader returns, we should
          * only have 2 log files.
          */
@@ -393,7 +393,7 @@ public class LastFileReaderTest extends TestCase {
         checkLogEnd(reader, numIters, testLsns, testObjs);
         assertEquals(2, fileManager.getAllFileNumbers().length);
 
-        /* 
+        /*
          * Corrupt the now "last" empty file and try again. This is actually
          * the first empty file we made.
          */
@@ -405,7 +405,7 @@ public class LastFileReaderTest extends TestCase {
         file.getChannel().truncate(10);
         file.close();
 
-        /* 
+        /*
          * Validate that we have the right number of log entries, and only one
          * valid log file.
          */
@@ -435,7 +435,7 @@ public class LastFileReaderTest extends TestCase {
             SingleItemEntry entry =
                 new SingleItemEntry(LogEntryType.LOG_TXN_ABORT, abort);
             testObjs.add(abort);
-            testLsns.add(new Long(logManager.log(entry))); 
+            testLsns.add(new Long(logManager.log(entry)));
         }
 
         /* Flush the log, files. */
@@ -448,7 +448,7 @@ public class LastFileReaderTest extends TestCase {
      * right.
      */
     private void checkLogEnd(LastFileReader reader,
-			     int numIters, 
+			     int numIters,
                              List testLsns,
 			     List testObjs)
         throws Throwable {
@@ -463,11 +463,11 @@ public class LastFileReaderTest extends TestCase {
         /* Now ask the LastFileReader to read it back. */
         while (reader.readNextEntry()) {
         }
-        
+
         /* Truncate the file. */
         reader.setEndOfFile();
 
-        /* 
+        /*
 	 * How many entries did the iterator go over? We should see
 	 *   numIters * 2 + 7
 	 * (the extra 7 are the root, debug records and checkpoints and file

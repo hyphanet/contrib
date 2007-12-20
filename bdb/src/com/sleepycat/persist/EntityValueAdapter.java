@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: EntityValueAdapter.java,v 1.5.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: EntityValueAdapter.java,v 1.5.2.2 2007/11/20 13:32:37 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -39,7 +39,7 @@ class EntityValueAdapter<V> implements ValueAdapter<V> {
     public DatabaseEntry initData() {
         return new DatabaseEntry();
     }
-    
+
     public void clearEntries(DatabaseEntry key,
                              DatabaseEntry pkey,
                              DatabaseEntry data) {

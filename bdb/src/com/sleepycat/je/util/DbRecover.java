@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbRecover.java,v 1.13.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: DbRecover.java,v 1.13.2.2 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -24,13 +24,13 @@ public class DbRecover {
             int whichArg = 0;
             boolean seenFile = false;
             boolean seenOffset = false;
-            
+
             long truncateFileNum = -1;
             long truncateOffset = -1;
 
             /*
              * Usage: -h <envHomeDir>
-	     -f <file number, in hex> 
+	     -f <file number, in hex>
              *        -o <offset, in hex. The log is truncated at the position
              *            including this offset>
              */

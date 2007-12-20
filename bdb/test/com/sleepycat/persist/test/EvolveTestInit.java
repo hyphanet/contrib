@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2007 Oracle.  All rights reserved.
  *
- * $Id: EvolveTestInit.java,v 1.3.2.1 2007/02/01 14:50:25 cwl Exp $
+ * $Id: EvolveTestInit.java,v 1.3.2.2 2007/11/03 00:07:14 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -29,12 +29,16 @@ public class EvolveTestInit extends EvolveTestBase {
         return getSuite(EvolveTestInit.class);
     }
 
+    boolean useEvolvedClass() {
+        return false;
+    }
+
     @Override
     public void setUp()
         throws IOException {
 
-        envHome = getTestInitHome();
-        envHome.mkdir();
+        envHome = getTestInitHome(false /*evolved*/);
+        envHome.mkdirs();
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
 

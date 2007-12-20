@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: AnnotationModel.java,v 1.16.2.2 2007/05/01 04:08:36 mark Exp $
+ * $Id: AnnotationModel.java,v 1.16.2.3 2007/11/20 13:32:39 cwl Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -278,7 +278,7 @@ public class AnnotationModel extends EntityModel {
         }
         return list;
     }
-    
+
     /**
      * Add newly discovered metadata to our stash of entity info.  This info
      * is maintained as it is discovered because it would be expensive to
@@ -293,7 +293,7 @@ public class AnnotationModel extends EntityModel {
          */
         String entityClass = null;
         PrimaryKeyMetadata priKey = null;
-        Map<String,SecondaryKeyMetadata> secKeys = 
+        Map<String,SecondaryKeyMetadata> secKeys =
             new HashMap<String,SecondaryKeyMetadata>();
         for (ClassMetadata data = metadata; data != null;) {
             if (data.isEntityClass()) {

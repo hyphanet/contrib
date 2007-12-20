@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: FileEdgeCaseTest.java,v 1.2.2.1 2007/02/01 14:50:13 cwl Exp $
+ * $Id: FileEdgeCaseTest.java,v 1.2.2.2 2007/11/20 13:32:46 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -37,11 +37,11 @@ public class FileEdgeCaseTest extends TestCase {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
-    
+
     public void tearDown()
         throws Exception {
 
-        /* 
+        /*
 	 * Close down environments in case the unit test failed so that the log
 	 * files can be removed.
          */
@@ -59,7 +59,7 @@ public class FileEdgeCaseTest extends TestCase {
 
     /**
      * SR #15133
-     * Create a JE environment with a single log file and a checksum 
+     * Create a JE environment with a single log file and a checksum
      * exception in the second entry in the log file.
      *
      * When an application attempts to open this JE environment, JE truncates
@@ -77,7 +77,7 @@ public class FileEdgeCaseTest extends TestCase {
      * first truncated before the file header, leaving a 0 length log, and
      * then proceeded to write error trace messages into the log. This
      * resulted in a log file with no file header, (but with trace messages)
-     * and any following opens got unpredictable errors like 
+     * and any following opens got unpredictable errors like
      * ClassCastExceptions and BufferUnderflows.
      *
      * The correct situation is to continue to get the same exception.
@@ -95,12 +95,12 @@ public class FileEdgeCaseTest extends TestCase {
 
         env.close();
         env = null;
-        
+
         /* Intentionally corrupt the second entry. */
         corruptSecondEntry();
 
-        /* 
-         * Next attempt to open the environment should fail with a 
+        /*
+         * Next attempt to open the environment should fail with a
          * NoRootException
          */
         try {
@@ -108,8 +108,8 @@ public class FileEdgeCaseTest extends TestCase {
         } catch (NoRootException expected) {
         }
 
-        /* 
-         * Next attempt to open the environment should fail with a 
+        /*
+         * Next attempt to open the environment should fail with a
          * NoRootException
          */
         try {
@@ -121,14 +121,14 @@ public class FileEdgeCaseTest extends TestCase {
     /**
      * Write junk into the second log entry, after the file header.
      */
-    private void corruptSecondEntry() 
+    private void corruptSecondEntry()
         throws IOException {
 
-        RandomAccessFile file = 
+        RandomAccessFile file =
             new RandomAccessFile(firstFile,
                                  FileManager.FileMode.
                                  READWRITE_MODE.getModeValue());
-        
+
         try {
             byte [] junk = new byte[20];
             file.seek(FileManager.firstLogEntryOffset());

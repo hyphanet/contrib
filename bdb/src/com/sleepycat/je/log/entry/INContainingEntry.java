@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: INContainingEntry.java,v 1.16.2.1 2007/02/01 14:49:48 cwl Exp $ 
+ * $Id: INContainingEntry.java,v 1.16.2.2 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -21,7 +21,7 @@ public interface INContainingEntry {
     /**
      * @return the IN held within this log entry.
      */
-    public IN getIN(EnvironmentImpl env) 
+    public IN getIN(EnvironmentImpl env)
         throws DatabaseException;
 	
     /**

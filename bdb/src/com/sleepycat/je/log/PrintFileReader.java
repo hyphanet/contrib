@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: PrintFileReader.java,v 1.12.2.2 2007/03/08 22:32:55 mark Exp $
+ * $Id: PrintFileReader.java,v 1.12.2.4 2007/11/20 13:32:32 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -24,7 +24,7 @@ public class PrintFileReader extends DumpFileReader {
      * Create this reader to start at a given LSN.
      */
     public PrintFileReader(EnvironmentImpl env,
-			   int readBufferSize, 
+			   int readBufferSize,
 			   long startLsn,
 			   long finishLsn,
 			   String entryTypes,
@@ -48,18 +48,22 @@ public class PrintFileReader extends DumpFileReader {
         throws DatabaseException {
 
         /* Figure out what kind of log entry this is */
+	byte curType = currentEntryHeader.getType();
+	byte curVer =
+	    LogEntryType.getVersionValue(currentEntryHeader.getVersion());
+	byte ignore = 0;
         LogEntryType lastEntryType =
-            LogEntryType.findType(currentEntryHeader.getType(),
-				  currentEntryHeader.getVersion());
+	    LogEntryType.findType(curType, ignore /*curVer*/);
 
         /* Print out a common header for each log item */
         StringBuffer sb = new StringBuffer();
         sb.append("<entry lsn=\"0x").append
             (Long.toHexString(readBufferFileNum));
-        sb.append("/0x").append
-            (Long.toHexString(currentEntryOffset));
-        sb.append("\" type=\"").append(lastEntryType);
-        if (LogEntryType.isEntryProvisional(currentEntryHeader.getType())) {
+        sb.append("/0x").append(Long.toHexString(currentEntryOffset));
+	/* Version in the log not necessarily == lastEntryType.version. */
+        sb.append("\" type=\"").append(lastEntryType.toStringNoVersion()).
+	    append("/").append(curVer);
+        if (LogEntryType.isEntryProvisional(curType)) {
             sb.append("\" isProvisional=\"true");
         }
         sb.append("\" prev=\"0x");
@@ -92,7 +96,7 @@ public class PrintFileReader extends DumpFileReader {
 	    sb.append("</entry>");
 	    System.out.println(sb.toString());
 	}
-        
+
         return true;
     }
 }

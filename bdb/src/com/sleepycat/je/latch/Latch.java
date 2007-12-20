@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: Latch.java,v 1.82.2.1 2007/02/01 14:49:46 cwl Exp $
+ * $Id: Latch.java,v 1.82.2.2 2007/11/20 13:32:31 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -50,7 +50,7 @@ public interface Latch {
 
     /**
      * Release the latch.  If there are other thread(s) waiting for the latch,
-     * one is woken up and granted the latch. If the latch was not owned by 
+     * one is woken up and granted the latch. If the latch was not owned by
      * the caller, just return;
      */
     public void releaseIfOwner();

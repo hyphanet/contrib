@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2007 Oracle.  All rights reserved.
  *
- * $Id: DbPrintLog.java,v 1.39.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: DbPrintLog.java,v 1.39.2.5 2007/11/20 13:32:36 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -19,6 +19,7 @@ import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.PrintFileReader;
 import com.sleepycat.je.log.StatsFileReader;
 import com.sleepycat.je.tree.Key;
+import com.sleepycat.je.tree.Key.DumpType;
 import com.sleepycat.je.utilint.CmdUtil;
 import com.sleepycat.je.utilint.DbLsn;
 
@@ -44,12 +45,12 @@ public class DbPrintLog {
 	    CmdUtil.makeUtilityEnvironment(envHome, true);
         FileManager fileManager = env.getFileManager();
         fileManager.setIncludeDeletedFiles(true);
-        int readBufferSize = 
+        int readBufferSize =
             env.getConfigManager().getInt
             (EnvironmentParams.LOG_ITERATOR_READ_SIZE);
-        
-        // Make a reader.
-        DumpFileReader reader = null;
+
+        /* Make a reader. */
+	DumpFileReader reader = null;
         if (stats) {
             reader = new StatsFileReader(env, readBufferSize, startLsn, endLsn,
                                          entryTypes, txnIds, verbose);
@@ -58,7 +59,7 @@ public class DbPrintLog {
 					  endLsn, entryTypes, txnIds, verbose);
         }
 
-        // Enclose the output in a tag to keep proper XML syntax.
+        /* Enclose the output in a tag to keep proper XML syntax. */
         System.out.println("<DbPrintLog>");
         while (reader.readNextEntry()) {
         }
@@ -70,7 +71,7 @@ public class DbPrintLog {
     /**
      * Main
      */
-    public static void main(String [] argv) {
+    public static void main(String[] argv) {
         try {
             int whichArg = 0;
             String entryTypes = null;
@@ -80,9 +81,9 @@ public class DbPrintLog {
             boolean verbose = true;
             boolean stats = false;
 
-            // default to looking in current directory
+            /* Default to looking in current directory. */
             File envHome = new File(".");
-            Key.DUMP_BINARY = true;
+            Key.DUMP_TYPE = DumpType.BINARY;
 
             while (whichArg < argv.length) {
                 String nextArg = argv[whichArg];
@@ -97,20 +98,50 @@ public class DbPrintLog {
                     txnIds = CmdUtil.getArg(argv, whichArg);
                 } else if (nextArg.equals("-s")) {
                     whichArg++;
-                    long startFileNum =
-                        CmdUtil.readLongNumber(CmdUtil.getArg(argv, whichArg));
-                    startLsn = DbLsn.makeLsn(startFileNum, 0);
+		    String arg = CmdUtil.getArg(argv, whichArg);
+		    int slashOff = arg.indexOf("/");
+		    if (slashOff < 0) {
+			long startFileNum = CmdUtil.readLongNumber(arg);
+			startLsn = DbLsn.makeLsn(startFileNum, 0);
+		    } else {
+			long startFileNum =
+			    CmdUtil.readLongNumber(arg.substring(0, slashOff));
+			long startOffset = CmdUtil.readLongNumber
+			    (arg.substring(slashOff + 1));
+			startLsn = DbLsn.makeLsn(startFileNum, startOffset);
+		    }
                 } else if (nextArg.equals("-e")) {
                     whichArg++;
-                    long endFileNum =
-                        CmdUtil.readLongNumber(CmdUtil.getArg(argv, whichArg));
-                    endLsn = DbLsn.makeLsn(endFileNum, 0);
+		    String arg = CmdUtil.getArg(argv, whichArg);
+		    int slashOff = arg.indexOf("/");
+		    if (slashOff < 0) {
+			long endFileNum = CmdUtil.readLongNumber(arg);
+			endLsn = DbLsn.makeLsn(endFileNum, 0);
+		    } else {
+			long endFileNum =
+			    CmdUtil.readLongNumber(arg.substring(0, slashOff));
+			long endOffset = CmdUtil.readLongNumber
+			    (arg.substring(slashOff + 1));
+			endLsn = DbLsn.makeLsn(endFileNum, endOffset);
+		    }
                 } else if (nextArg.equals("-k")) {
                     whichArg++;
                     String dumpType = CmdUtil.getArg(argv, whichArg);
                     if (dumpType.equalsIgnoreCase("text")) {
-                        Key.DUMP_BINARY = false;
-                    }
+                        Key.DUMP_TYPE = DumpType.TEXT;
+                    } else if (dumpType.equalsIgnoreCase("hex")) {
+                        Key.DUMP_TYPE = DumpType.HEX;
+		    } else if (dumpType.equalsIgnoreCase("binary")) {
+                        Key.DUMP_TYPE = DumpType.BINARY;
+		    } else if (dumpType.equalsIgnoreCase("obfuscate")) {
+                        Key.DUMP_TYPE = DumpType.OBFUSCATE;
+		    } else if (dumpType.equalsIgnoreCase("none")) {
+                        Key.DUMP_TYPE = DumpType.NONE;
+		    } else {
+			System.err.println
+			    (dumpType +
+			     " is not a supported dump format type.");
+		    }
                 } else if (nextArg.equals("-q")) {
                     whichArg++;
                     verbose = false;
@@ -142,9 +173,10 @@ public class DbPrintLog {
         System.out.println("Usage: " +
                            CmdUtil.getJavaCommand(DbPrintLog.class));
         System.out.println(" -h  <envHomeDir>");
-        System.out.println(" -e  <end file number, in hex>");
-        System.out.println(" -k  <binary|text> (format for dumping the key)");
-        System.out.println(" -s  <start file number, in hex>");
+        System.out.println(" -e  <end file number or LSN, in hex>");
+        System.out.println(" -k  <binary|text|hex|obfuscate|none> " +
+			   "(format for dumping the key)");
+        System.out.println(" -s  <start file number or LSN, in hex>");
         System.out.println(" -tx <targetted txn ids, comma separated>");
         System.out.println(" -ty <targetted entry types, comma separated>");
         System.out.println(" -S  show Summary of log entries");
