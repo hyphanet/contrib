@@ -3,7 +3,7 @@
 #include<stdio.h>
 #include <errno.h>
 
-#include"NativeThread.h"
+#include"freenet_support_io_NativeThread.h"
 
 JNIEXPORT jint JNICALL Java_sandbox_NativeThread_getLinuxPriority
   (JNIEnv * env, jobject jobj) {
