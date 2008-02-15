@@ -5,7 +5,7 @@ LDFLAGS = -shared -Wl,-soname,libnative.so -I$(INC) -I$(INC)/linux
 LIBS=-static -lc
 FREEENETDIR=/home/nextgens/repo/freenet/
 
-all: libNativeThread.so
+all: clean libNativeThread.so
 
 NativeThread.java:
 	ln -s $(FREEENETDIR)/src/freenet/support/io/NativeThread.java
