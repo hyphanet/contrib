@@ -53,6 +53,12 @@
 			<fileset dir="../NativeBigInteger/lib" includes="net/**" />
 		</copy>
 	</target>
+
+	<target name="nativethread" depends="init">
+		<copy todir="${build}">
+			<fileset dir="../NativeThread/lib" includes="freenet/**" />
+		</copy>
+	</target>
 	
 	<target name="bdb" depends="init" description="Build the BDB provider">
 		<ant antfile="build.xml" dir="../bdb/"/>
@@ -78,7 +84,7 @@
 		<delete file="${jar.location}"/>
 	</target>
 
-	<target name="jar" depends="clean,fec,jcpuid,bigint,bdb,wrapper" description="Create the jar file">
+	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper" description="Create the jar file">
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
 			<zipfileset src="../bdb/lib/je.jar"/>
