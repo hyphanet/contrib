@@ -1,8 +1,8 @@
 CC = gcc
-INC = /path/to/java/include
+INC = $(JAVA_HOME)/include
 CFLAGS = -Wall -O3 -fPIC
 LDFLAGS = -shared -Wl,-soname,libnative.so -I$(INC) -I$(INC)/linux
-LIBS= -lc
+LIBS = -lc
 
 all: clean libNativeThread.so
 
