@@ -8,13 +8,13 @@ all: clean libNativeThread.so
 
 NativeThread.class:
 	javac java/NativeThread.java
-	mv java/NativeThread.class .
+	mv java/NativeThread.class freenet/support/io/
 
 libNativeThread.so: NativeThread.c NativeThread.h
 	$(CC) $(CFLAGS) -o libNativeThread.so $(LDFLAGS) NativeThread.c $(LIBS)
 
 NativeThread.h: NativeThread.class
-	javah NativeThread
+	javah -o NativeThread.h -classpath . freenet.support.io.NativeThread
 
 clean:
-	-rm -f *.class NativeThread.h libNativeThread*.so
+	-rm -f freenet/support/io/NativeThread.class *.class NativeThread.h libNativeThread*.so
