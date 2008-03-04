@@ -30,7 +30,7 @@ Darwin*)
 esac
 
 # We need -fPIC on x86_64
-if [[ $(uname -m) == "x86_64" ]]
+if [[ $(uname -m) == "x86_64" ]] || [[ $(uname -m) == "mips" ]]
 then
 	export CFLAGS="-fPIC"
 fi
