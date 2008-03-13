@@ -87,7 +87,7 @@
 	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper" description="Create the jar file">
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
-			<zipfileset src="../bdb/lib/je.jar"/>
+			<zipfileset src="../bdb/build/lib/je.jar"/>
 			<zipfileset src="../wrapper/lib/wrapper.jar"/>
 		</jar>
 	</target>
