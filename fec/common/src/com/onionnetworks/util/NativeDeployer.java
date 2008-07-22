@@ -93,17 +93,7 @@ public class NativeDeployer {
 	public synchronized final static String getLocalResourcePath
 		(ClassLoader cl, String resourcePath) throws IOException {
 
-			File f = new File(System.getProperty("java.io.tmpdir")+
-			File.separator+".onionnetworks"+
-			File.separator+System.getProperty("user.name")+
-			File.separator+resourcePath);
-			File parentF = f.getParentFile();
-			if (parentF == null) {
-				return null;
-			}
-			if (!parentF.exists()) {
-				parentF.mkdirs();
-			}
+			File f = File.createTempFile("libfec",".tmp");
 			URL url = cl.getResource(resourcePath);
 			if (url == null) {
 				return null;
