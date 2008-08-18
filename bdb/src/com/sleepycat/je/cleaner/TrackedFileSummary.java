@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TrackedFileSummary.java,v 1.9.2.3 2007/11/20 13:32:27 cwl Exp $
+ * $Id: TrackedFileSummary.java,v 1.16 2008/03/25 02:26:35 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -22,7 +22,7 @@ import com.sleepycat.je.dbi.MemoryBudget;
  */
 public class TrackedFileSummary extends FileSummary {
 
-    private UtilizationTracker tracker;
+    private BaseUtilizationTracker tracker;
     private long fileNum;
     private OffsetList obsoleteOffsets;
     private int memSize;
@@ -32,7 +32,7 @@ public class TrackedFileSummary extends FileSummary {
     /**
      * Creates an empty tracked summary.
      */
-    TrackedFileSummary(UtilizationTracker tracker,
+    TrackedFileSummary(BaseUtilizationTracker tracker,
                        long fileNum,
                        boolean trackDetail) {
         this.tracker = tracker;
@@ -174,8 +174,15 @@ public class TrackedFileSummary extends FileSummary {
 
     private void updateMemoryBudget(int delta) {
         memSize += delta;
-        tracker.getEnvironment().
-                getMemoryBudget().
-                updateMiscMemoryUsage(delta);
+        tracker.env.getMemoryBudget().updateAdminMemoryUsage(delta);
+    }
+
+    /**
+     * Update memory budgets when this tracker is closed and will never be
+     * accessed again.
+     */
+    void close() {
+        tracker.env.getMemoryBudget().updateAdminMemoryUsage(0-memSize);
+        memSize = 0;
     }
 }

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileProcessor.java,v 1.17.2.8 2007/11/20 13:32:27 cwl Exp $
+ * $Id: FileProcessor.java,v 1.42 2008/05/15 01:52:40 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -18,6 +18,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -26,6 +27,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.CleanerFileReader;
 import com.sleepycat.je.log.LogFileNotFoundException;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.DIN;
@@ -117,38 +119,12 @@ class FileProcessor extends DaemonThread {
     }
 
     /**
-     * Adds a sentinal object to the work queue to force onWakeup to be
-     * called immediately after setting je.env.runCleaner=true.  We want to
-     * process any backlog immediately.
-     */
-    void addSentinalWorkObject() {
-        try {
-            workQueueLatch.acquire();
-            workQueue.add(new Object());
-            workQueueLatch.release();
-        } catch (DatabaseException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    /**
      * Return the number of retries when a deadlock exception occurs.
      */
-    protected int nDeadlockRetries()
+    protected long nDeadlockRetries()
         throws DatabaseException {
 
         return cleaner.nDeadlockRetries;
-    }
-
-    /**
-     * Cleaner doesn't have a work queue so just throw an exception if it's
-     * ever called.
-     */
-    public void addToQueue(Object o)
-        throws DatabaseException {
-
-        throw new DatabaseException
-            ("Cleaner.addToQueue should never be called.");
     }
 
     /**
@@ -161,11 +137,6 @@ class FileProcessor extends DaemonThread {
         doClean(true,   // invokedFromDaemon
                 true,   // cleanMultipleFiles
                 false); // forceCleaning
-
-        /* Remove the sentinal -- see addSentinalWorkObject. */
-        workQueueLatch.acquire();
-        workQueue.clear();
-        workQueueLatch.release();
     }
 
     /**
@@ -208,11 +179,12 @@ class FileProcessor extends DaemonThread {
             }
 
             /*
-             * Process pending LNs and then attempt to delete all cleaned files
-             * that are safe to delete.  Pending LNs can prevent file deletion.
+             * Process pending LNs periodically.  Pending LNs can prevent file
+             * deletion.  Do not call deleteSafeToDeleteFiles here, since
+             * cleaner threads will block while the checkpointer deletes log
+             * files, which can be time consuming.
              */
             cleaner.processPending();
-            cleaner.deleteSafeToDeleteFiles();
 
             /*
              * Select the next file for cleaning and update the Cleaner's
@@ -242,7 +214,8 @@ class FileProcessor extends DaemonThread {
             boolean finished = false;
             boolean fileDeleted = false;
             long fileNumValue = fileNum.longValue();
-            int runId = ++cleaner.nCleanerRuns;
+            long runId = ++cleaner.nCleanerRuns;
+            MemoryBudget budget = env.getMemoryBudget();
             try {
 
                 String traceMsg =
@@ -255,10 +228,10 @@ class FileProcessor extends DaemonThread {
                 }
 
                 /* Clean all log entries in the file. */
-                Set deferredWriteDbs = new HashSet();
-                if (processFile(fileNum, deferredWriteDbs)) {
+                Set<DatabaseId> databases = new HashSet<DatabaseId>();
+                if (processFile(fileNum, databases)) {
                     /* File is fully processed, update status information. */
-                    fileSelector.addCleanedFile(fileNum, deferredWriteDbs);
+                    fileSelector.addCleanedFile(fileNum, databases, budget);
                     nFilesCleaned += 1;
                     accumulatePerRunCounters();
                     finished = true;
@@ -278,8 +251,8 @@ class FileProcessor extends DaemonThread {
                  * process it. [#15528]
                  */
                 fileDeleted = true;
-                profile.removeFile(fileNum);
-                fileSelector.removeAllFileReferences(fileNum);
+                profile.removeFile(fileNum, null /*databases*/);
+                fileSelector.removeAllFileReferences(fileNum, budget);
             } catch (IOException e) {
                 Tracer.trace(env, "Cleaner", "doClean", "", e);
                 throw new DatabaseException(e);
@@ -339,12 +312,12 @@ class FileProcessor extends DaemonThread {
      * afterward fetched during cleaning.
      *
      * @param fileNum the file being cleaned.
-     * @param deferredWriteDbs the set of databaseIds for deferredWrite
-     * databases which need a sync before a cleaned file can be safely deleted.
+     * @param databases on return will contain the DatabaseIds of all entries
+     * in the cleaned file.
      * @return false if we aborted file processing because the environment is
      * being closed.
      */
-    private boolean processFile(Long fileNum, Set deferredWriteDbs)
+    private boolean processFile(Long fileNum, Set<DatabaseId> databases)
         throws DatabaseException, IOException {
 
         /* Get the current obsolete offsets for this file. */
@@ -369,7 +342,7 @@ class FileProcessor extends DaemonThread {
                         obsoleteOffsets.getLogSize() +
                         lookAheadCacheSize;
         MemoryBudget budget = env.getMemoryBudget();
-        budget.updateMiscMemoryUsage(adjustMem);
+        budget.updateAdminMemoryUsage(adjustMem);
 
         /* Evict after updating the budget. */
         if (Cleaner.DO_CRITICAL_EVICTION) {
@@ -388,15 +361,15 @@ class FileProcessor extends DaemonThread {
          * avoid the overhead of DbTree.getDb on every entry we keep a set of
          * all DB IDs encountered and do the check once per DB at the end.
          */
-        Set checkPendingDbSet = new HashSet();
+        Set<DatabaseId> checkPendingDbSet = new HashSet<DatabaseId>();
 
         /*
          * Use local caching to reduce DbTree.getDb overhead.  Do not call
          * releaseDb after getDb with the dbCache, since the entire dbCache
          * will be released at the end of thie method.
          */
-        Map dbCache = new HashMap();
-        DbTree dbMapTree = env.getDbMapTree();
+        Map<DatabaseId, DatabaseImpl> dbCache = new HashMap<DatabaseId, DatabaseImpl>();
+        DbTree dbMapTree = env.getDbTree();
 
         try {
             /* Create the file reader. */
@@ -415,8 +388,13 @@ class FileProcessor extends DaemonThread {
                 boolean isLN = reader.isLN();
                 boolean isIN = reader.isIN();
                 boolean isRoot = reader.isRoot();
-                boolean isFileHeader = reader.isFileHeader();
                 boolean isObsolete = false;
+
+                /* Maintain a set of all databases encountered. */
+                DatabaseId dbId = reader.getDatabaseId();
+                if (dbId != null) {
+                    databases.add(dbId);
+                }
 
                 if (reader.isFileHeader()) {
                     fileLogVersion = reader.getFileHeader().getLogVersion();
@@ -486,7 +464,6 @@ class FileProcessor extends DaemonThread {
                         nINsObsoleteThisRun++;
                     }
                     /* Must update the pending DB set for obsolete entries. */
-                    DatabaseId dbId = reader.getDatabaseId();
                     if (dbId != null) {
                         checkPendingDbSet.add(dbId);
                     }
@@ -502,17 +479,15 @@ class FileProcessor extends DaemonThread {
                 if (isLN) {
 
                     LN targetLN = reader.getLN();
-                    DatabaseId dbId = reader.getDatabaseId();
                     byte[] key = reader.getKey();
                     byte[] dupKey = reader.getDupTreeKey();
 
                     lookAheadCache.add
-                        (new Long(DbLsn.getFileOffset(logLsn)),
+                        (Long.valueOf(DbLsn.getFileOffset(logLsn)),
                          new LNInfo(targetLN, dbId, key, dupKey));
 
                     if (lookAheadCache.isFull()) {
-                        processLN(fileNum, location, lookAheadCache,
-                                  dbCache, deferredWriteDbs);
+                        processLN(fileNum, location, lookAheadCache, dbCache);
                     }
 
                     /*
@@ -527,11 +502,11 @@ class FileProcessor extends DaemonThread {
                 } else if (isIN) {
 
                     IN targetIN = reader.getIN();
-                    DatabaseId dbId = reader.getDatabaseId();
                     DatabaseImpl db = dbMapTree.getDb
                         (dbId, cleaner.lockTimeout, dbCache);
                     targetIN.setDatabase(db);
-                    processIN(targetIN, db, logLsn, deferredWriteDbs);
+
+                    processIN(targetIN, db, logLsn);
 
                 } else if (isRoot) {
 
@@ -546,17 +521,17 @@ class FileProcessor extends DaemonThread {
                 if (Cleaner.DO_CRITICAL_EVICTION) {
                     env.getEvictor().doCriticalEviction(true); // backgroundIO
                 }
-                processLN(fileNum, location, lookAheadCache, dbCache,
-                          deferredWriteDbs);
+                processLN(fileNum, location, lookAheadCache, dbCache);
                 /* Sleep if background read/write limit was exceeded. */
                 env.sleepAfterBackgroundIO();
             }
 
             /* Update the pending DB set. */
-            for (Iterator i = checkPendingDbSet.iterator(); i.hasNext();) {
-                DatabaseId dbId = (DatabaseId) i.next();
+            for (Iterator<DatabaseId> i = checkPendingDbSet.iterator();
+                 i.hasNext();) {
+                DatabaseId pendingDbId = i.next();
                 DatabaseImpl db = dbMapTree.getDb
-                    (dbId, cleaner.lockTimeout, dbCache);
+                    (pendingDbId, cleaner.lockTimeout, dbCache);
                 cleaner.addPendingDB(db);
             }
 
@@ -566,7 +541,7 @@ class FileProcessor extends DaemonThread {
 
         } finally {
             /* Subtract the overhead of this method from the budget. */
-            budget.updateMiscMemoryUsage(0 - adjustMem);
+            budget.updateAdminMemoryUsage(0 - adjustMem);
 
             /* Release all cached DBs. */
             dbMapTree.releaseDbs(dbCache);
@@ -588,8 +563,7 @@ class FileProcessor extends DaemonThread {
     private void processLN(Long fileNum,
                            TreeLocation location,
                            LookAheadCache lookAheadCache,
-                           Map dbCache,
-                           Set deferredWriteDbs)
+                           Map<DatabaseId, DatabaseImpl> dbCache)
         throws DatabaseException {
 
         nLNsCleanedThisRun++;
@@ -609,7 +583,7 @@ class FileProcessor extends DaemonThread {
          * Do not call releaseDb after this getDb, since the entire dbCache
          * will be released later.
          */
-        DatabaseImpl db = env.getDbMapTree().getDb
+        DatabaseImpl db = env.getDbTree().getDb
             (info.getDbId(), cleaner.lockTimeout, dbCache);
 
         /* Status variables are used to generate debug tracing info. */
@@ -638,8 +612,8 @@ class FileProcessor extends DaemonThread {
             assert tree != null;
 
             /*
-	     * Search down to the bottom most level for the parent of this LN.
-	     */
+             * Search down to the bottom most level for the parent of this LN.
+             */
             boolean parentFound = tree.getParentBINForChildLN
                 (location, key, dupKey, ln,
                  false,  // splitsAllowed
@@ -650,22 +624,23 @@ class FileProcessor extends DaemonThread {
             int index = location.index;
 
             if (!parentFound) {
+
                 nLNsDeadThisRun++;
-		obsolete = true;
+                obsolete = true;
                 completed = true;
-		return;
+                return;
             }
 
             /*
-	     * Now we're at the parent for this LN, whether BIN, DBIN or DIN.
-	     * If knownDeleted, LN is deleted and can be purged.
-	     */
-	    if (bin.isEntryKnownDeleted(index)) {
-		nLNsDeadThisRun++;
-		obsolete = true;
-		completed = true;
+             * Now we're at the parent for this LN, whether BIN, DBIN or DIN.
+             * If knownDeleted, LN is deleted and can be purged.
+             */
+            if (bin.isEntryKnownDeleted(index)) {
+                nLNsDeadThisRun++;
+                obsolete = true;
+                completed = true;
                 return;
-	    }
+            }
 
             /*
              * Determine whether the parent is the current BIN, or in the case
@@ -673,14 +648,14 @@ class FileProcessor extends DaemonThread {
              */
             boolean isDupCountLN = ln.containsDuplicates();
             long treeLsn;
-	    if (isDupCountLN) {
-		parentDIN = (DIN) bin.fetchTarget(index);
-		parentDIN.latch(Cleaner.UPDATE_GENERATION);
+            if (isDupCountLN) {
+                parentDIN = (DIN) bin.fetchTarget(index);
+                parentDIN.latch(Cleaner.UPDATE_GENERATION);
                 ChildReference dclRef = parentDIN.getDupCountLNRef();
                 treeLsn = dclRef.getLsn();
-	    } else {
+            } else {
                 treeLsn = bin.getLsn(index);
-	    }
+            }
 
             /* Process this LN that was found in the tree. */
             processedHere = false;
@@ -692,6 +667,17 @@ class FileProcessor extends DaemonThread {
              * in the LN queue and process any matches.
              */
             if (!isDupCountLN) {
+
+                /*
+                 * For deferred write DBs with duplicates, the entry for an LSN
+                 * that matches may contain a DIN, and should not be processed.
+                 * This occurs when the LN has been moved from the BIN into a
+                 * duplicate subtree and the DIN has not been logged. [#16039]
+                 */
+                boolean isBinInDupDwDb = db.isDeferredWriteMode() &&
+                                         db.getSortedDuplicates() &&
+                                         !bin.containsDuplicates();
+
                 for (int i = 0; i < bin.getNEntries(); i += 1) {
                     long binLsn = bin.getLsn(i);
                     if (i != index &&
@@ -699,8 +685,17 @@ class FileProcessor extends DaemonThread {
                         !bin.isEntryPendingDeleted(i) &&
                         DbLsn.getFileNumber(binLsn) == fileNum.longValue()) {
 
-                        Long myOffset = new Long(DbLsn.getFileOffset(binLsn));
-                        LNInfo myInfo = lookAheadCache.remove(myOffset);
+                        Long myOffset =
+                            Long.valueOf(DbLsn.getFileOffset(binLsn));
+                        LNInfo myInfo;
+                        if (isBinInDupDwDb &&
+                            bin.getTarget(i) instanceof DIN) {
+                            /* LN is in the dup subtree, it's not a match. */
+                            myInfo = null;
+                        } else {
+                            /* If the offset is in the cache, it's a match. */
+                            myInfo = lookAheadCache.remove(myOffset);
+                        }
 
                         if (myInfo != null) {
                             nLNQueueHitsThisRun++;
@@ -714,14 +709,12 @@ class FileProcessor extends DaemonThread {
             return;
 
         } finally {
-            noteDbsRequiringSync(db, deferredWriteDbs);
-
             if (parentDIN != null) {
-                parentDIN.releaseLatchIfOwner();
+                parentDIN.releaseLatch();
             }
 
             if (bin != null) {
-                bin.releaseLatchIfOwner();
+                bin.releaseLatch();
             }
 
             if (processedHere) {
@@ -759,11 +752,12 @@ class FileProcessor extends DaemonThread {
                                 DIN parentDIN)
         throws DatabaseException {
 
-        LN ln = info.getLN();
+        LN lnFromLog = info.getLN();
         byte[] key = info.getKey();
         byte[] dupKey = info.getDupKey();
 
         DatabaseImpl db = bin.getDatabase();
+        boolean isTemporary = db.isTemporary();
         boolean isDupCountLN = parentDIN != null;
 
         /* Status variables are used to generate debug tracing info. */
@@ -772,7 +766,7 @@ class FileProcessor extends DaemonThread {
         boolean lockDenied = false;// The LN lock was denied.
         boolean completed = false; // This method completed.
 
-        long nodeId = ln.getNodeId();
+        long nodeId = lnFromLog.getNodeId();
         BasicLocker locker = null;
         try {
             Tree tree = db.getTree();
@@ -781,13 +775,13 @@ class FileProcessor extends DaemonThread {
             /*
              * If the tree and log LSNs are equal, then we can be fairly
              * certain that the log entry is current; in that case, it is
-             * wasteful to lock the LN here -- it is better to lock only once
-             * during lazy migration.  But if the tree and log LSNs differ, it
-             * is likely that another thread has updated or deleted the LN and
-             * the log LSN is now obsolete; in this case we can avoid dirtying
-             * the BIN by checking for obsoleteness here, which requires
-             * locking.  The latter case can occur frequently if trackDetail is
-             * false.
+             * wasteful to lock the LN here if we will perform lazy migration
+             * -- it is better to lock only once during lazy migration.  But if
+             * the tree and log LSNs differ, it is likely that another thread
+             * has updated or deleted the LN and the log LSN is now obsolete;
+             * in this case we can avoid dirtying the BIN by checking for
+             * obsoleteness here, which requires locking.  The latter case can
+             * occur frequently if trackDetail is false.
              *
              * 1. If the LSN in the tree and in the log are the same, we will
              * attempt to migrate it.
@@ -806,7 +800,7 @@ class FileProcessor extends DaemonThread {
              * in that case the log entry must be for a past, deleted version
              * of that record.
              */
-            if (ln.isDeleted() &&
+            if (lnFromLog.isDeleted() &&
                 (treeLsn == logLsn) &&
                 fileLogVersion <= 2) {
 
@@ -827,17 +821,31 @@ class FileProcessor extends DaemonThread {
                  * deferred-write db, so the LN in the file is obsolete.
                  */
                 obsolete = true;
-            } else if (treeLsn != logLsn) {
+            } else if (treeLsn != logLsn && isTemporary) {
 
                 /*
-                 * Check to see whether the LN being migrated is locked
-                 * elsewhere.  Do that by attempting to lock it.  We can hold
-                 * the latch on the BIN (and DIN) since we always attempt to
-                 * acquire a non-blocking read lock.  Holding the latch ensures
-                 * that the INs won't change underneath us because of splits or
-                 * eviction.
+                 * Temporary databases are always non-transactional.  If the
+                 * tree and log LSNs are different then we know that the logLsn
+                 * is obsolete.  Even if the LN is locked, the tree cannot be
+                 * restored to the logLsn because no abort is possible without
+                 * a transaction.  We should consider a similar optimization in
+                 * the future for non-transactional durable databases.
                  */
-                locker = new BasicLocker(env);
+                nLNsDeadThisRun++;
+                obsolete = true;
+            } else if (treeLsn != logLsn || !cleaner.lazyMigration) {
+
+                /*
+                 * Get a lock on the LN if the treeLsn and logLsn are different
+                 * to determine definitively whether the logLsn is obsolete.
+                 * We must also get a lock if we will migrate the LN now
+                 * (lazyMigration is false).
+                 *
+                 * We can hold the latch on the BIN (and DIN) since we always
+                 * attempt to acquire a non-blocking read lock.
+                 */
+                locker = BasicLocker.createBasicLocker
+                    (env, false /*noWait*/, true /*noAPIReadLock*/);
                 LockResult lockRet = locker.nonBlockingLock
                     (nodeId, LockType.READ, db);
                 if (lockRet.getLockGrant() == LockGrantType.DENIED) {
@@ -848,44 +856,100 @@ class FileProcessor extends DaemonThread {
                      */
                     nLNsLockedThisRun++;
                     lockDenied = true;
-                } else {
+                } else if (treeLsn != logLsn) {
                     /* The LN is obsolete and can be purged. */
                     nLNsDeadThisRun++;
                     obsolete = true;
                 }
             }
 
+            /*
+             * At this point either obsolete==true, lockDenied==true, or
+             * treeLsn==logLsn.
+             */
             if (!obsolete && !lockDenied) {
+                assert treeLsn == logLsn;
 
                 /*
-                 * Set the migrate flag and dirty the parent IN.  The evictor
-                 * or checkpointer will migrate the LN later.
+                 * If lazyMigration is true, set the migrate flag and dirty
+                 * the parent IN.  The evictor or checkpointer will migrate the
+                 * LN later.  If lazyMigration is false, migrate the LN now.
                  *
-                 * Then set the target node so it does not have to be fetched
-                 * when it is migrated, if the tree and log LSNs are equal and
-                 * the target is not resident.  We must call postFetchInit to
-                 * initialize MapLNs that have not been fully initialized yet
-                 * [#13191].
+                 * We have a lock on the LN if we are going to migrate it now,
+                 * but not if we will set the migrate flag.
+                 *
+                 * When setting the migrate flag, also populate the target node
+                 * so it does not have to be fetched when it is migrated, if
+                 * the tree and log LSNs are equal and the target is not
+                 * resident.  We must call postFetchInit to initialize MapLNs
+                 * that have not been fully initialized yet [#13191].
+                 *
+                 * For temporary databases, do not rely on the LN migration
+                 * mechanism because temporary databases are not checkpointed
+                 * or recovered.  Instead, dirty the LN to ensure it is
+                 * flushed before its parent is written, and set the LSN to
+                 * NULL_LSN to ensure that it is not tracked or otherwise
+                 * referenced.  Because we do not attempt to lock temporary
+                 * database LNs (see above) we know that if it is non-obsolete,
+                 * the tree and log LSNs are equal.  We will always restore the
+                 * LN to the BIN slot here, and always log the dirty LN when
+                 * logging the BIN.
                  */
                 if (isDupCountLN) {
                     ChildReference dclRef = parentDIN.getDupCountLNRef();
-                    dclRef.setMigrate(true);
-                    parentDIN.setDirty(true);
+                    if (dclRef.getTarget() == null) {
+                        lnFromLog.postFetchInit(db, logLsn);
+                        parentDIN.updateDupCountLN(lnFromLog);
+                    } 
 
-                    if (treeLsn == logLsn && dclRef.getTarget() == null) {
-                        ln.postFetchInit(db, logLsn);
-                        parentDIN.updateDupCountLN(ln);
+                    if (isTemporary) {
+                        ((LN) dclRef.getTarget()).setDirty();
+                        dclRef.setLsn(DbLsn.NULL_LSN);
+                    } else if (cleaner.lazyMigration) {
+                        dclRef.setMigrate(true);
+                        parentDIN.setDirty(true);
+                    } else {
+                        LN targetLn = (LN) dclRef.getTarget();
+                        assert targetLn != null;
+                        byte[] targetKey = parentDIN.getDupKey();
+                        long newLNLsn = targetLn.log
+                            (env, db, targetKey, logLsn, locker,
+                             true /*backgroundIO*/,
+                             ReplicationContext.NO_REPLICATE);
+                        parentDIN.updateDupCountLNRef(newLNLsn);
+                        /* Evict LN if we populated it with the log LN. */
+                        if (lnFromLog == targetLn) {
+                            parentDIN.updateDupCountLN(null);
+                        }
                     }
                 } else {
-                    bin.setMigrate(index, true);
-                    bin.setDirty(true);
-
-                    if (treeLsn == logLsn && bin.getTarget(index) == null) {
-                        ln.postFetchInit(db, logLsn);
-                        bin.updateEntry(index, ln);
+                    if (bin.getTarget(index) == null) {
+                        lnFromLog.postFetchInit(db, logLsn);
                         /* Ensure keys are transactionally correct. [#15704] */
-                        bin.updateKeyIfChanged
-                            (index, bin.containsDuplicates() ? dupKey : key);
+                        byte[] lnSlotKey = bin.containsDuplicates() ?
+                            dupKey : key;
+                        bin.updateNode(index, lnFromLog, lnSlotKey);
+                    }
+
+                    if (isTemporary) {
+                        ((LN) bin.getTarget(index)).setDirty();
+                        bin.clearLsn(index);
+                    } else if (cleaner.lazyMigration) {
+                        bin.setMigrate(index, true);
+                        bin.setDirty(true);
+                    } else {
+                        LN targetLn = (LN) bin.getTarget(index);
+                        assert targetLn != null;
+                        byte[] targetKey = cleaner.getLNMainKey(bin, index);
+                        long newLNLsn = targetLn.log
+                            (env, db, targetKey, logLsn, locker,
+                             true /*backgroundIO*/,
+                             ReplicationContext.NO_REPLICATE);
+                        bin.updateEntry(index, newLNLsn);
+                        /* Evict LN if we populated it with the log LN. */
+                        if (lnFromLog == targetLn) {
+                            bin.updateNode(index, null, null);
+                        }
                     }
 
                     /*
@@ -903,7 +967,7 @@ class FileProcessor extends DaemonThread {
                      * entries as possible before eviction, as to-be-cleaned
                      * files are processed.
                      */
-                    bin.setGeneration();
+                    bin.setGeneration(CacheMode.DEFAULT);
                 }
 
                 nLNsMarkedThisRun++;
@@ -922,12 +986,13 @@ class FileProcessor extends DaemonThread {
              * cause the BIN to be logged unnecessarily.
              */
             if (completed && lockDenied) {
-                fileSelector.addPendingLN(ln, db.getId(), key, dupKey);
+                assert !isTemporary;
+                fileSelector.addPendingLN(lnFromLog, db.getId(), key, dupKey);
             }
 
             cleaner.trace
-                (cleaner.detailedTraceLevel, Cleaner.CLEAN_LN, ln, logLsn,
-                 completed, obsolete, migrated);
+                (cleaner.detailedTraceLevel, Cleaner.CLEAN_LN, lnFromLog,
+                 logLsn, completed, obsolete, migrated);
         }
     }
 
@@ -935,10 +1000,7 @@ class FileProcessor extends DaemonThread {
      * If an IN is still in use in the in-memory tree, dirty it. The checkpoint
      * invoked at the end of the cleaning run will end up rewriting it.
      */
-    private void processIN(IN inClone,
-                           DatabaseImpl db,
-                           long logLsn,
-                           Set deferredWriteDbs)
+    private void processIN(IN inClone, DatabaseImpl db, long logLsn)
         throws DatabaseException {
 
         boolean obsolete = false;
@@ -986,8 +1048,6 @@ class FileProcessor extends DaemonThread {
 
             completed = true;
         } finally {
-            noteDbsRequiringSync(db, deferredWriteDbs);
-
             cleaner.trace
                 (cleaner.detailedTraceLevel, Cleaner.CLEAN_IN, inClone, logLsn,
                  completed, obsolete, dirtied);
@@ -1044,10 +1104,10 @@ class FileProcessor extends DaemonThread {
 
             /*
              * The IN in the tree is a never-written IN for a DW db so the IN
-	     * in the file is obsolete. [#15588]
+             * in the file is obsolete. [#15588]
              */
             if (treeLsn == DbLsn.NULL_LSN) {
-		return null;
+                return null;
             }
 
             int compareVal = DbLsn.compareTo(treeLsn, logLsn);
@@ -1068,7 +1128,8 @@ class FileProcessor extends DaemonThread {
                     if (in == null) {
                         in = inClone;
                         in.postFetchInit(db, logLsn);
-                        result.parent.updateEntry(result.index, in);
+                        result.parent.updateNode
+                            (result.index, in, null /*lnSlotKey*/);
                     }
                 } else {
                     in = (IN) result.parent.fetchTarget(result.index);
@@ -1080,33 +1141,6 @@ class FileProcessor extends DaemonThread {
             if ((result != null) && (result.exactParentFound)) {
                 result.parent.releaseLatch();
             }
-        }
-    }
-
-    /*
-     * When we process a target log entry for a deferred write db, we may
-     * need to sync the db at the next checkpoint.
-     * Cases are:
-     *  IN found in the tree:
-     *      The IN is dirtied and must be written out at the next ckpt.
-     *  IN not found in the tree:
-     *      This log entry is not in use by the in-memory tree, but a later
-     *      recovery has the possibility of reverting to the last synced
-     *      version. To prevent that, we have to sync the database before
-     *      deleting the file.
-     *  LN found in tree:
-     *      It will be migrated, need to be synced.
-     *  LN not found in tree:
-     *      Like not-found IN, need to be sure that the database is
-     *      sufficiently synced.
-     * Note that if nothing in the db is actually dirty (LN and IN are not
-     * found) there's no harm done, there will be no sync and no extra
-     * processing.
-     */
-    private void noteDbsRequiringSync(DatabaseImpl db,
-                                          Set deferredWriteDbs) {
-        if ((db != null) && (!db.isDeleted()) && db.isDeferredWrite()) {
-            deferredWriteDbs.add(db.getId());
         }
     }
 
@@ -1130,7 +1164,7 @@ class FileProcessor extends DaemonThread {
 
             if (root == null ||
                 (root.getLsn() == DbLsn.NULL_LSN) || // deferred write root
-		(root.fetchTarget(db, null).getNodeId() !=
+                (root.fetchTarget(db, null).getNodeId() !=
                  inClone.getNodeId())) {
                 return null;
             }
@@ -1208,12 +1242,12 @@ class FileProcessor extends DaemonThread {
      */
     private static class LookAheadCache {
 
-        private SortedMap map;
+        private SortedMap<Long,LNInfo> map;
         private int maxMem;
         private int usedMem;
 
         LookAheadCache(int lookAheadCacheSize) {
-            map = new TreeMap();
+            map = new TreeMap<Long,LNInfo>();
             maxMem = lookAheadCacheSize;
             usedMem = MemoryBudget.TREEMAP_OVERHEAD;
         }
@@ -1227,7 +1261,7 @@ class FileProcessor extends DaemonThread {
         }
 
         Long nextOffset() {
-            return (Long) map.firstKey();
+            return map.firstKey();
         }
 
         void add(Long lsnOffset, LNInfo info) {
@@ -1237,7 +1271,7 @@ class FileProcessor extends DaemonThread {
         }
 
         LNInfo remove(Long offset) {
-            LNInfo info = (LNInfo) map.remove(offset);
+            LNInfo info = map.remove(offset);
             if (info != null) {
                 usedMem -= info.getMemorySize();
                 usedMem -= MemoryBudget.TREEMAP_ENTRY_OVERHEAD;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LatchStats.java,v 1.21.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: LatchStats.java,v 1.25 2008/01/07 14:28:50 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -78,6 +78,7 @@ public class LatchStats implements Cloneable, Serializable {
 
     public Object clone()
         throws CloneNotSupportedException {
+
         return super.clone();
     }
 }

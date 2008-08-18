@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentStats.java,v 1.43.2.5 2007/11/20 13:32:26 cwl Exp $
+ * $Id: EnvironmentStats.java,v 1.57 2008/05/07 17:12:25 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -14,56 +14,56 @@ import java.text.DecimalFormat;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * System wide statistics for a single environment.
  */
 public class EnvironmentStats implements Serializable {
+
     /* INCompressor */
 
     /**
      * The number of bins encountered by the INCompressor that were split
-     * between the time they were put on the compressor queue and when
-     * the compressor ran.
+     * between the time they were put on the compressor queue and when the
+     * compressor ran.
      */
-    private int splitBins;
+    private long splitBins;
 
     /**
      * The number of bins encountered by the INCompressor that had their
-     * database closed between the time they were put on the
-     * compressor queue and when the compressor ran.
+     * database closed between the time they were put on the compressor queue
+     * and when the compressor ran.
      */
-    private int dbClosedBins;
+    private long dbClosedBins;
 
     /**
      * The number of bins encountered by the INCompressor that had cursors
      * referring to them when the compressor ran.
      */
-    private int cursorsBins;
+    private long cursorsBins;
 
     /**
-     * The number of bins encountered by the INCompressor that were
-     * not actually empty when the compressor ran.
+     * The number of bins encountered by the INCompressor that were not
+     * actually empty when the compressor ran.
      */
-    private int nonEmptyBins;
+    private long nonEmptyBins;
 
     /**
      * The number of bins that were successfully processed by the IN
      * Compressor.
      */
-    private int processedBins;
+    private long processedBins;
 
     /**
-     * The number of entries in the INCompressor queue when the getStats()
-     * call was made.
+     * The number of entries in the INCompressor queue when the getStats() call
+     * was made.
      */
-    private int inCompQueueSize;
+    private long inCompQueueSize;
 
     /* Evictor */
 
     /**
      * The number of passes made to the evictor.
      */
-    private int nEvictPasses;
+    private long nEvictPasses;
 
     /**
      * The accumulated number of nodes selected to evict.
@@ -71,8 +71,8 @@ public class EnvironmentStats implements Serializable {
     private long nNodesSelected;
 
     /**
-     * The accumulated number of nodes scanned in order to select the
-     * eviction set.
+     * The accumulated number of nodes scanned in order to select the eviction
+     * set.
      */
     private long nNodesScanned;
 
@@ -80,6 +80,11 @@ public class EnvironmentStats implements Serializable {
      * The accumulated number of nodes evicted.
      */
     private long nNodesExplicitlyEvicted;
+
+    /**
+     * The accumulated number of database root nodes evicted.
+     */
+    private long nRootNodesEvicted;
 
     /**
      * The number of BINs stripped by the evictor.
@@ -96,7 +101,7 @@ public class EnvironmentStats implements Serializable {
     /**
      * The total number of checkpoints run so far.
      */
-    private int nCheckpoints;
+    private long nCheckpoints;
 
     /**
      * The Id of the last checkpoint.
@@ -106,17 +111,17 @@ public class EnvironmentStats implements Serializable {
     /**
      * The accumulated number of full INs flushed to the log.
      */
-    private int nFullINFlush;
+    private long nFullINFlush;
 
     /**
      * The accumulated number of full BINs flushed to the log.
      */
-    private int nFullBINFlush;
+    private long nFullBINFlush;
 
     /**
      * The accumulated number of Delta INs flushed to the log.
      */
-    private int nDeltaINFlush;
+    private long nDeltaINFlush;
 
     /**
      * The location in the log of the last checkpoint start.
@@ -139,118 +144,131 @@ public class EnvironmentStats implements Serializable {
     private int cleanerBacklog;
 
     /** The number of cleaner runs this session. */
-    private int nCleanerRuns;
+    private long nCleanerRuns;
 
     /** The number of cleaner file deletions this session. */
-    private int nCleanerDeletions;
+    private long nCleanerDeletions;
 
     /**
      * The accumulated number of INs obsolete.
      */
-    private int nINsObsolete;
+    private long nINsObsolete;
 
     /**
      * The accumulated number of INs cleaned.
      */
-    private int nINsCleaned;
+    private long nINsCleaned;
 
     /**
      * The accumulated number of INs that were not found in the tree anymore
      * (deleted).
      */
-    private int nINsDead;
+    private long nINsDead;
 
     /**
      * The accumulated number of INs migrated.
      */
-    private int nINsMigrated;
+    private long nINsMigrated;
 
     /**
      * The accumulated number of LNs obsolete.
      */
-    private int nLNsObsolete;
+    private long nLNsObsolete;
 
     /**
      * The accumulated number of LNs cleaned.
      */
-    private int nLNsCleaned;
+    private long nLNsCleaned;
 
     /**
      * The accumulated number of LNs that were not found in the tree anymore
      * (deleted).
      */
-    private int nLNsDead;
+    private long nLNsDead;
 
     /**
      * The accumulated number of LNs encountered that were locked.
      */
-    private int nLNsLocked;
+    private long nLNsLocked;
 
     /**
      * The accumulated number of LNs encountered that were migrated forward
      * in the log.
      */
-    private int nLNsMigrated;
+    private long nLNsMigrated;
 
     /**
      * The accumulated number of LNs that were marked for migration during
      * cleaning.
      */
-    private int nLNsMarked;
+    private long nLNsMarked;
 
     /**
      * The accumulated number of LNs processed without a tree lookup.
      */
-    private int nLNQueueHits;
+    private long nLNQueueHits;
 
     /**
      * The accumulated number of LNs processed because they were previously
      * locked.
      */
-    private int nPendingLNsProcessed;
+    private long nPendingLNsProcessed;
 
     /**
      * The accumulated number of LNs processed because they were previously
      * marked for migration.
      */
-    private int nMarkedLNsProcessed;
+    private long nMarkedLNsProcessed;
 
     /**
      * The accumulated number of LNs processed because they are soon to be
      * cleaned.
      */
-    private int nToBeCleanedLNsProcessed;
+    private long nToBeCleanedLNsProcessed;
 
     /**
      * The accumulated number of LNs processed because they qualify for
      * clustering.
      */
-    private int nClusterLNsProcessed;
+    private long nClusterLNsProcessed;
 
     /**
      * The accumulated number of pending LNs that could not be locked for
      * migration because of a long duration application lock.
      */
-    private int nPendingLNsLocked;
+    private long nPendingLNsLocked;
 
     /**
      * The accumulated number of log entries read by the cleaner.
      */
-    private int nCleanerEntriesRead;
+    private long nCleanerEntriesRead;
 
     /*
      * Cache
      */
-    private long cacheDataBytes; // part of cache consumed by data, in bytes
-    private long nNotResident;   // had to be instantiated from an LSN
-    private long nCacheMiss;     // had to retrieve from disk
-    private int  nLogBuffers;    // number of existing log buffers
-    private long bufferBytes;    // cache consumed by the log buffers,
-                                 // in bytes
-    private long adminBytes;     // part of cache used by transactions,
-                                 // log cleaning metadata, and other
-                                 // administrative structures
-    private long lockBytes;      // part of cache used by locks
+    private int nSharedCacheEnvironments; // num of envs sharing the cache
+    private long sharedCacheTotalBytes;   // shared cache consumed, in bytes
+    private long cacheTotalBytes; // local cache consumed, in bytes
+    private long bufferBytes;  // cache consumed by the log buffers, in bytes
+    private long dataBytes;    // cache consumed by the Btree, in bytes
+    private long adminBytes;   // part of cache used by log cleaner metadata,
+                               // and other administrative structures
+    private long lockBytes;    // part of cache used by locks and txns
+    private long nNotResident; // had to be instantiated from an LSN
+    private long nCacheMiss;   // had to retrieve from disk
+    private int  nLogBuffers;  // number of existing log buffers
+
+    /*
+     * Random vs Sequential IO and byte counts.
+     */
+    private long nRandomReads;
+    private long nRandomWrites;
+    private long nSequentialReads;
+    private long nSequentialWrites;
+    private long nRandomReadBytes;
+    private long nRandomWriteBytes;
+    private long nSequentialReadBytes;
+    private long nSequentialWriteBytes;
 
     /*
      * Log activity
@@ -261,26 +279,30 @@ public class EnvironmentStats implements Serializable {
     private long nFSyncTimeouts; // Number of group fsync requests that
                                    // turned into singleton fsyncs.
     /*
-     * Number of reads which had to be repeated when faulting in an
-     * object from disk because the read chunk size controlled by
-     * je.log.faultReadSize is too small.
+     * Number of reads which had to be repeated when faulting in an object from
+     * disk because the read chunk size controlled by je.log.faultReadSize is
+     * too small.
      */
     private long nRepeatFaultReads;
 
     /*
-     * Number of times we have to use the temporary marshalling buffer to
-     * write to the log.
+     * Number of times we have to use the temporary marshalling buffer to write
+     * to the log.
      */
     private long nTempBufferWrites;
 
     /*
-     * Number of times we try to read a log entry larger than the read
-     * buffer size and can't grow the log buffer to accomodate the large
-     * object. This happens during scans of the log during activities like
-     * environment open or log cleaning. Implies that the the read
-     * chunk size controlled by je.log.iteratorReadSize is too small.
+     * Number of times we try to read a log entry larger than the read buffer
+     * size and can't grow the log buffer to accomodate the large object. This
+     * happens during scans of the log during activities like environment open
+     * or log cleaning. Implies that the the read chunk size controlled by
+     * je.log.iteratorReadSize is too small.
      */
     private long nRepeatIteratorReads;
+
+    /* FileManager open file cache stats. */
+    private int nFileOpens;
+    private int nOpenFiles;
 
     /*
      * Approximation of the total log size in bytes.
@@ -288,6 +310,7 @@ public class EnvironmentStats implements Serializable {
     private long totalLogSize;
 
     /**
+     * @hidden
      * Internal use only.
      */
     public EnvironmentStats() {
@@ -311,6 +334,7 @@ public class EnvironmentStats implements Serializable {
         nNodesSelected = 0;
         nNodesScanned = 0;
         nNodesExplicitlyEvicted = 0;
+        nRootNodesEvicted = 0;
         nBINsStripped = 0;
         requiredEvictBytes = 0;
 
@@ -347,11 +371,23 @@ public class EnvironmentStats implements Serializable {
         nCleanerEntriesRead = 0;
 
         // Cache
-        cacheDataBytes = 0;
+        nSharedCacheEnvironments = 0;
+        sharedCacheTotalBytes = 0;
+        cacheTotalBytes = 0;
         nNotResident = 0;
         nCacheMiss = 0;
         nLogBuffers = 0;
         bufferBytes = 0;
+
+        // IO
+        nRandomReads = 0;
+        nRandomWrites = 0;
+        nSequentialReads = 0;
+        nSequentialWrites = 0;
+        nRandomReadBytes = 0;
+        nRandomWriteBytes = 0;
+        nSequentialReadBytes = 0;
+        nSequentialWriteBytes = 0;
 
         // Log
         nFSyncs = 0;
@@ -360,458 +396,638 @@ public class EnvironmentStats implements Serializable {
         nRepeatFaultReads = 0;
 	nTempBufferWrites = 0;
         nRepeatIteratorReads = 0;
+        nFileOpens = 0;
+        nOpenFiles = 0;
         totalLogSize = 0;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of bins encountered by the INCompressor that had cursors
+     * referring to them when the compressor ran.
      */
-    public long getBufferBytes() {
-        return bufferBytes;
-    }
-
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
-    public int getCursorsBins() {
+    public long getCursorsBins() {
         return cursorsBins;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of bins encountered by the INCompressor that had their
+     * database closed between the time they were put on the compressor queue
+     * and when the compressor ran.
      */
-    public int getDbClosedBins() {
+    public long getDbClosedBins() {
         return dbClosedBins;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of entries in the INCompressor queue when the getStats()
+     * call was made.
      */
-    public int getInCompQueueSize() {
+    public long getInCompQueueSize() {
         return inCompQueueSize;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The Id of the last checkpoint.
      */
     public long getLastCheckpointId() {
         return lastCheckpointId;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The total number of requests for database objects which were not in
+     * memory.
      */
     public long getNCacheMiss() {
         return nCacheMiss;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The total number of checkpoints run so far.
      */
-    public int getNCheckpoints() {
+    public long getNCheckpoints() {
         return nCheckpoints;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of files to be cleaned to reach the target utilization.
      */
     public int getCleanerBacklog() {
         return cleanerBacklog;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of cleaner runs this session.
      */
-    public int getNCleanerRuns() {
+    public long getNCleanerRuns() {
         return nCleanerRuns;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of cleaner file deletions this session.
      */
-    public int getNCleanerDeletions() {
+    public long getNCleanerDeletions() {
         return nCleanerDeletions;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of Delta INs flushed to the log.
      */
-    public int getNDeltaINFlush() {
+    public long getNDeltaINFlush() {
         return nDeltaINFlush;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The location in the log of the last checkpoint end.
      */
     public long getLastCheckpointEnd() {
         return lastCheckpointEnd;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The location of the next entry to be written to the log.
+     *
+     * <p>Note that the log entries prior to this position may not yet have
+     * been flushed to disk.  Flushing can be forced using a Sync or
+     * WriteNoSync commit, or a checkpoint.</p>
      */
     public long getEndOfLog() {
         return endOfLog;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The location in the log of the last checkpoint start.
      */
     public long getLastCheckpointStart() {
         return lastCheckpointStart;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of log entries read by the cleaner.
      */
-    public int getNCleanerEntriesRead() {
+    public long getNCleanerEntriesRead() {
         return nCleanerEntriesRead;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of passes made to the evictor.
      */
-    public int getNEvictPasses() {
+    public long getNEvictPasses() {
         return nEvictPasses;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of fsyncs issued through the group commit manager.
      */
     public long getNFSyncs() {
         return nFSyncs;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of fsyncs requested through the group commit manager.
      */
     public long getNFSyncRequests() {
         return nFSyncRequests;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of fsync requests submitted to the group commit manager which
+     * timed out.
      */
     public long getNFSyncTimeouts() {
         return nFSyncTimeouts;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of full INs flushed to the log.
      */
-    public int getNFullINFlush() {
+    public long getNFullINFlush() {
         return nFullINFlush;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of full BINS flushed to the log.
      */
-    public int getNFullBINFlush() {
+    public long getNFullBINFlush() {
         return nFullBINFlush;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of INs obsolete.
      */
-    public int getNINsObsolete() {
+    public long getNINsObsolete() {
         return nINsObsolete;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of INs cleaned.
      */
-    public int getNINsCleaned() {
+    public long getNINsCleaned() {
         return nINsCleaned;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of INs that were not found in the tree anymore
+     * (deleted).
      */
-    public int getNINsDead() {
+    public long getNINsDead() {
         return nINsDead;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of INs migrated.
      */
-    public int getNINsMigrated() {
+    public long getNINsMigrated() {
         return nINsMigrated;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs obsolete.
      */
-    public int getNLNsObsolete() {
+    public long getNLNsObsolete() {
         return nLNsObsolete;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs cleaned.
      */
-    public int getNLNsCleaned() {
+    public long getNLNsCleaned() {
         return nLNsCleaned;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs that were not found in the tree anymore
+     * (deleted).
      */
-    public int getNLNsDead() {
+    public long getNLNsDead() {
         return nLNsDead;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs encountered that were locked.
      */
-    public int getNLNsLocked() {
+    public long getNLNsLocked() {
         return nLNsLocked;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs encountered that were migrated forward in
+     * the log.
      */
-    public int getNLNsMigrated() {
+    public long getNLNsMigrated() {
         return nLNsMigrated;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs that were marked for migration during
+     * cleaning.
      */
-    public int getNLNsMarked() {
+    public long getNLNsMarked() {
         return nLNsMarked;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs processed without a tree lookup.
      */
-    public int getNLNQueueHits() {
+    public long getNLNQueueHits() {
         return nLNQueueHits;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs processed because they were previously
+     * locked.
      */
-    public int getNPendingLNsProcessed() {
+    public long getNPendingLNsProcessed() {
         return nPendingLNsProcessed;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs processed because they were previously
+     * marked for migration.
      */
-    public int getNMarkedLNsProcessed() {
+    public long getNMarkedLNsProcessed() {
         return nMarkedLNsProcessed;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs processed because they are soon to be
+     * cleaned.
      */
-    public int getNToBeCleanedLNsProcessed() {
+    public long getNToBeCleanedLNsProcessed() {
         return nToBeCleanedLNsProcessed;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of LNs processed because they qualify for
+     * clustering.
      */
-    public int getNClusterLNsProcessed() {
+    public long getNClusterLNsProcessed() {
         return nClusterLNsProcessed;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of pending LNs that could not be locked for
+     * migration because of a long duration application lock.
      */
-    public int getNPendingLNsLocked() {
+    public long getNPendingLNsLocked() {
         return nPendingLNsLocked;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of log buffers currently instantiated.
      */
     public int getNLogBuffers() {
         return nLogBuffers;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of disk reads which required respositioning the disk head
+     * more than 1MB from the previous file position.  Reads in a different
+     * *.jdb log file then the last IO constitute a random read.
+     * <p>
+     * This number is approximate and may differ from the actual number of
+     * random disk reads depending on the type of disks and file system, disk
+     * geometry, and file system cache size.
+     */
+    public long getNRandomReads() {
+        return nRandomReads;
+    }
+
+    /**
+     * The number of bytes read which required respositioning the disk head
+     * more than 1MB from the previous file position.  Reads in a different
+     * *.jdb log file then the last IO constitute a random read.
+     * <p>
+     * This number is approximate vary depending on the type of disks and file
+     * system, disk geometry, and file system cache size.
+     */
+    public long getNRandomReadBytes() {
+        return nRandomReadBytes;
+    }
+
+    /**
+     * The number of disk writes which required respositioning the disk head by
+     * more than 1MB from the previous file position.  Writes to a different
+     * *.jdb log file (i.e. a file "flip") then the last IO constitute a random
+     * write.
+     * <p>
+     * This number is approximate and may differ from the actual number of
+     * random disk writes depending on the type of disks and file system, disk
+     * geometry, and file system cache size.
+     */
+    public long getNRandomWrites() {
+        return nRandomWrites;
+    }
+
+    /**
+     * The number of bytes written which required respositioning the disk head
+     * more than 1MB from the previous file position.  Writes in a different
+     * *.jdb log file then the last IO constitute a random write.
+     * <p>
+     * This number is approximate vary depending on the type of disks and file
+     * system, disk geometry, and file system cache size.
+     */
+    public long getNRandomWriteBytes() {
+        return nRandomWriteBytes;
+    }
+
+    /**
+     * The number of disk reads which did not require respositioning the disk
+     * head more than 1MB from the previous file position.  Reads in a
+     * different *.jdb log file then the last IO constitute a random read.
+     * <p>
+     * This number is approximate and may differ from the actual number of
+     * sequential disk reads depending on the type of disks and file system,
+     * disk geometry, and file system cache size.
+     */
+    public long getNSequentialReads() {
+        return nSequentialReads;
+    }
+
+    /**
+     * The number of bytes read which did not require respositioning the disk
+     * head more than 1MB from the previous file position.  Reads in a
+     * different *.jdb log file then the last IO constitute a random read.
+     * <p>
+     * This number is approximate vary depending on the type of disks and file
+     * system, disk geometry, and file system cache size.
+     */
+    public long getNSequentialReadBytes() {
+        return nSequentialReadBytes;
+    }
+
+    /**
+     * The number of disk writes which did not require respositioning the disk
+     * head by more than 1MB from the previous file position.  Writes to a
+     * different *.jdb log file (i.e. a file "flip") then the last IO
+     * constitute a random write.
+     * <p>
+     * This number is approximate and may differ from the actual number of
+     * sequential disk writes depending on the type of disks and file system,
+     * disk geometry, and file system cache size.
+     */
+    public long getNSequentialWrites() {
+        return nSequentialWrites;
+    }
+
+    /**
+     * The number of bytes written which did not require respositioning the
+     * disk head more than 1MB from the previous file position.  Writes in a
+     * different *.jdb log file then the last IO constitute a random write.
+     * <p>
+     * This number is approximate vary depending on the type of disks and file
+     * system, disk geometry, and file system cache size.
+     */
+    public long getNSequentialWriteBytes() {
+        return nSequentialWriteBytes;
+    }
+
+    /**
+     * The accumulated number of nodes evicted.
      */
     public long getNNodesExplicitlyEvicted() {
         return nNodesExplicitlyEvicted;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of database root nodes evicted.
+     */
+    public long getNRootNodesEvicted() {
+        return nRootNodesEvicted;
+    }
+
+    /**
+     * The number of BINS stripped by the evictor.
      */
     public long getNBINsStripped() {
         return nBINsStripped;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of bytes that must be evicted in order to get within the
+     * memory budget.
      */
     public long getRequiredEvictBytes() {
         return requiredEvictBytes;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of nodes scanned in order to select the
+     * eviction set.
      */
     public long getNNodesScanned() {
         return nNodesScanned;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The accumulated number of nodes selected to evict.
      */
     public long getNNodesSelected() {
         return nNodesSelected;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of environments using the shared cache.  This method says
+     * nothing about whether this environment is using the shared cache or not.
+     */
+    public int getNSharedCacheEnvironments() {
+        return nSharedCacheEnvironments;
+    }
+
+    /**
+     * The total amount of the shared JE cache in use, in bytes.  If this
+     * environment uses the shared cache, this method returns the total amount
+     * used by all environments that are sharing the cache.  If this
+     * environment does not use the shared cache, this method returns zero.
+     *
+     * <p>To get the configured maximum cache size, see {@link
+     * EnvironmentMutableConfig#getCacheSize}.</p>
+     */
+    public long getSharedCacheTotalBytes() {
+        return sharedCacheTotalBytes;
+    }
+
+    /**
+     * The total amount of JE cache in use, in bytes.  If this environment uses
+     * the shared cache, this method returns only the amount used by this
+     * environment.
+     *
+     * <p>This method returns the sum of {@link #getDataBytes}, {@link
+     * #getAdminBytes}, {@link #getLockBytes} and {@link #getBufferBytes}.</p>
+     *
+     * <p>To get the configured maximum cache size, see {@link
+     * EnvironmentMutableConfig#getCacheSize}.</p>
      */
     public long getCacheTotalBytes() {
-        return cacheDataBytes + bufferBytes;
+        return cacheTotalBytes;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The total memory currently consumed by log buffers, in bytes.  If this
+     * environment uses the shared cache, this method returns only the amount
+     * used by this environment.
      */
-    public long getCacheDataBytes() {
-        return cacheDataBytes;
+    public long getBufferBytes() {
+        return bufferBytes;
     }
 
     /**
-     * The number of bytes of JE cache used for holding transaction objects,
-     * log cleaning metadata, and other administrative structures. This is a
-     * subset of cacheDataBytes.
+     * The amount of JE cache used for holding data, keys and internal Btree
+     * nodes, in bytes.  If this environment uses the shared cache, this method
+     * returns only the amount used by this environment.
+     */
+    public long getDataBytes() {
+        return dataBytes;
+    }
+
+    /**
+     * The number of bytes of JE cache used for log cleaning metadata and other
+     * administrative structures.  If this environment uses the shared cache,
+     * this method returns only the amount used by this environment.
      */
     public long getAdminBytes() {
         return adminBytes;
     }
 
     /**
-     * The number of bytes of JE cache used for holding lock objects.
-     * This is a subset of cacheDataBytes.
+     * The number of bytes of JE cache used for holding locks and transactions.
+     * If this environment uses the shared cache, this method returns only the
+     * amount used by this environment.
      */
     public long getLockBytes() {
         return lockBytes;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The amount of JE cache used for all items except for the log buffers, in
+     * bytes.  If this environment uses the shared cache, this method returns
+     * only the amount used by this environment.
+     *
+     * @deprecated Please use {@link #getDataBytes} to get the amount of cache
+     * used for data and use {@link #getAdminBytes}, {@link #getLockBytes} and
+     * {@link #getBufferBytes} to get other components of the total cache usage
+     * ({@link #getCacheTotalBytes}).
+     */
+    public long getCacheDataBytes() {
+        return cacheTotalBytes - bufferBytes;
+    }
+
+    /**
+     * The number of requests for database objects not contained within the
+     * in memory data structures.
      */
     public long getNNotResident() {
         return nNotResident;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of bins encountered by the INCompressor that were not
+     * actually empty when the compressor ran.
      */
-    public int getNonEmptyBins() {
+    public long getNonEmptyBins() {
         return nonEmptyBins;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of bins that were successfully processed by the IN
+     * Compressor.
      */
-    public int getProcessedBins() {
+    public long getProcessedBins() {
         return processedBins;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of reads which had to be repeated when faulting in an object
+     * from disk because the read chunk size controlled by je.log.faultReadSize
+     * is too small.
      */
     public long getNRepeatFaultReads() {
         return nRepeatFaultReads;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of writes which had to be completed using the temporary
+     * marshalling buffer because the fixed size log buffers specified by
+     * je.log.totalBufferBytes and je.log.numBuffers were not large enough.
      */
     public long getNTempBufferWrites() {
         return nTempBufferWrites;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of times we try to read a log entry larger than the read
+     * buffer size and can't grow the log buffer to accommodate the large
+     * object. This happens during scans of the log during activities like
+     * environment open or log cleaning. Implies that the read chunk size
+     * controlled by je.log.iteratorReadSize is too small.
      */
     public long getNRepeatIteratorReads() {
         return nRepeatIteratorReads;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of times a log file has been opened.
+     */
+    public int getNFileOpens() {
+        return nFileOpens;
+    }
+
+    /**
+     * The number of files currently open in the file cache.
+     */
+    public int getNOpenFiles() {
+        return nOpenFiles;
+    }
+
+    /**
+     * An approximation of the current total log size in bytes.
      */
     public long getTotalLogSize() {
         return totalLogSize;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of bins encountered by the INCompressor that were split
+     * between the time they were put on the compressor queue and when the
+     * compressor ran.
      */
-    public int getSplitBins() {
+    public long getSplitBins() {
         return splitBins;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setCacheDataBytes(long cacheDataBytes) {
-        this.cacheDataBytes = cacheDataBytes;
+    public void setNSharedCacheEnvironments(int nSharedCacheEnvironments) {
+        this.nSharedCacheEnvironments = nSharedCacheEnvironments;
     }
 
     /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setSharedCacheTotalBytes(long sharedCacheTotalBytes) {
+        this.sharedCacheTotalBytes = sharedCacheTotalBytes;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setCacheTotalBytes(long cacheTotalBytes) {
+        this.cacheTotalBytes = cacheTotalBytes;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setDataBytes(long dataBytes) {
+        this.dataBytes = dataBytes;
+    }
+
+    /**
+     * @hidden
      * Internal use only.
      */
     public void setAdminBytes(long adminBytes) {
@@ -819,6 +1035,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setLockBytes(long lockBytes) {
@@ -826,6 +1043,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNNotResident(long nNotResident) {
@@ -833,6 +1051,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNCacheMiss(long nCacheMiss) {
@@ -840,6 +1059,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNLogBuffers(int nLogBuffers) {
@@ -847,6 +1067,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setBufferBytes(long bufferBytes) {
@@ -854,27 +1075,31 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setCursorsBins(int val) {
+    public void setCursorsBins(long val) {
         cursorsBins = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setDbClosedBins(int val) {
+    public void setDbClosedBins(long val) {
         dbClosedBins = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setInCompQueueSize(int val) {
+    public void setInCompQueueSize(long val) {
         inCompQueueSize = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setLastCheckpointId(long l) {
@@ -882,13 +1107,15 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNCheckpoints(int val) {
+    public void setNCheckpoints(long val) {
         nCheckpoints = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setCleanerBacklog(int val) {
@@ -896,27 +1123,31 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNCleanerRuns(int val) {
+    public void setNCleanerRuns(long val) {
         nCleanerRuns = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNCleanerDeletions(int val) {
+    public void setNCleanerDeletions(long val) {
         nCleanerDeletions = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNDeltaINFlush(int val) {
+    public void setNDeltaINFlush(long val) {
         nDeltaINFlush = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setLastCheckpointEnd(long lsn) {
@@ -924,6 +1155,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setEndOfLog(long lsn) {
@@ -931,6 +1163,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setLastCheckpointStart(long lsn) {
@@ -938,20 +1171,23 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNCleanerEntriesRead(int val) {
+    public void setNCleanerEntriesRead(long val) {
         nCleanerEntriesRead = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNEvictPasses(int val) {
+    public void setNEvictPasses(long val) {
         nEvictPasses = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNFSyncs(long val) {
@@ -959,6 +1195,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNFSyncRequests(long val) {
@@ -966,6 +1203,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNFSyncTimeouts(long val) {
@@ -973,132 +1211,215 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNFullINFlush(int val) {
+    public void setNFullINFlush(long val) {
         nFullINFlush = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNFullBINFlush(int val) {
+    public void setNFullBINFlush(long val) {
         nFullBINFlush = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNINsObsolete(int val) {
+    public void setNINsObsolete(long val) {
         nINsObsolete = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNINsCleaned(int val) {
+    public void setNINsCleaned(long val) {
         nINsCleaned = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNINsDead(int val) {
+    public void setNINsDead(long val) {
         nINsDead = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNINsMigrated(int val) {
+    public void setNINsMigrated(long val) {
         nINsMigrated = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNsObsolete(int val) {
+    public void setNLNsObsolete(long val) {
         nLNsObsolete = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNsCleaned(int val) {
+    public void setNLNsCleaned(long val) {
         nLNsCleaned = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNsDead(int val) {
+    public void setNLNsDead(long val) {
         nLNsDead = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNsLocked(int val) {
+    public void setNLNsLocked(long val) {
         nLNsLocked = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNsMigrated(int val) {
+    public void setNLNsMigrated(long val) {
         nLNsMigrated = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNsMarked(int val) {
+    public void setNLNsMarked(long val) {
         nLNsMarked = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNQueueHits(int val) {
+    public void setNLNQueueHits(long val) {
         nLNQueueHits = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNPendingLNsProcessed(int val) {
+    public void setNPendingLNsProcessed(long val) {
         nPendingLNsProcessed = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNMarkedLNsProcessed(int val) {
+    public void setNMarkedLNsProcessed(long val) {
         nMarkedLNsProcessed = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNToBeCleanedLNsProcessed(int val) {
+    public void setNToBeCleanedLNsProcessed(long val) {
         nToBeCleanedLNsProcessed = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNClusterLNsProcessed(int val) {
+    public void setNRandomReads(long val) {
+        nRandomReads = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNRandomWrites(long val) {
+        nRandomWrites = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNSequentialReads(long val) {
+        nSequentialReads = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNSequentialWrites(long val) {
+        nSequentialWrites = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNRandomReadBytes(long val) {
+        nRandomReadBytes = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNRandomWriteBytes(long val) {
+        nRandomWriteBytes = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNSequentialReadBytes(long val) {
+        nSequentialReadBytes = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNSequentialWriteBytes(long val) {
+        nSequentialWriteBytes = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNClusterLNsProcessed(long val) {
         nClusterLNsProcessed = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNPendingLNsLocked(int val) {
+    public void setNPendingLNsLocked(long val) {
         nPendingLNsLocked = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNNodesExplicitlyEvicted(long l) {
@@ -1106,6 +1427,15 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNRootNodesEvicted(long l) {
+        nRootNodesEvicted = l;
+    }
+
+    /**
+     * @hidden
      * Internal use only.
      */
     public void setRequiredEvictBytes(long l) {
@@ -1113,6 +1443,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNBINsStripped(long l) {
@@ -1120,6 +1451,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNNodesScanned(long l) {
@@ -1127,6 +1459,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNNodesSelected(long l) {
@@ -1134,20 +1467,23 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNonEmptyBins(int val) {
+    public void setNonEmptyBins(long val) {
         nonEmptyBins = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setProcessedBins(int val) {
+    public void setProcessedBins(long val) {
         processedBins = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNRepeatFaultReads(long val) {
@@ -1155,6 +1491,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNTempBufferWrites(long val) {
@@ -1162,6 +1499,7 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNRepeatIteratorReads(long val) {
@@ -1169,6 +1507,23 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNFileOpens(int val) {
+        nFileOpens = val;
+    }
+
+    /**
+     * @hidden
+     * Internal use only.
+     */
+    public void setNOpenFiles(int val) {
+        nOpenFiles = val;
+    }
+
+    /**
+     * @hidden
      * Internal use only.
      */
     public void setTotalLogSize(long val) {
@@ -1176,15 +1531,16 @@ public class EnvironmentStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setSplitBins(int val) {
+    public void setSplitBins(long val) {
         splitBins = val;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns a String representation of the stats in the form of
+     * &lt;stat&gt;=&lt;value&gt;
      */
     public String toString() {
         DecimalFormat f = new DecimalFormat("###,###,###,###,###,###,###");
@@ -1209,6 +1565,8 @@ public class EnvironmentStats implements Serializable {
             append(f.format(nNodesScanned)).append('\n');
         sb.append("nNodesExplicitlyEvicted=").
            append(f.format(nNodesExplicitlyEvicted)).append('\n');
+        sb.append("nRootNodesEvicted=").
+           append(f.format(nRootNodesEvicted)).append('\n');
         sb.append("nBINsStripped=").
             append(f.format(nBINsStripped)).append('\n');
         sb.append("requiredEvictBytes=").
@@ -1270,12 +1628,33 @@ public class EnvironmentStats implements Serializable {
         sb.append("nCacheMiss=").append(f.format(nCacheMiss)).append('\n');
         sb.append("nLogBuffers=").append(f.format(nLogBuffers)).append('\n');
         sb.append("bufferBytes=").append(f.format(bufferBytes)).append('\n');
-        sb.append("cacheDataBytes=").
-            append(f.format(cacheDataBytes)).append('\n');
+        sb.append("dataBytes=").append(f.format(dataBytes)).append('\n');
         sb.append("adminBytes=").append(f.format(adminBytes)).append('\n');
         sb.append("lockBytes=").append(f.format(lockBytes)).append('\n');
         sb.append("cacheTotalBytes=").
-            append(f.format(getCacheTotalBytes())).append('\n');
+            append(f.format(cacheTotalBytes)).append('\n');
+        sb.append("sharedCacheTotalBytes=").
+            append(f.format(sharedCacheTotalBytes)).append('\n');
+        sb.append("nSharedCacheEnvironments=").
+            append(f.format(nSharedCacheEnvironments)).append('\n');
+
+        // IO
+        sb.append("\nIO Stats\n");
+        sb.append("nRandomReads=").append(f.format(nRandomReads)).append('\n');
+        sb.append("nRandomWrites=").append(f.format(nRandomWrites)).
+            append('\n');
+        sb.append("nSequentialReads=").append(f.format(nSequentialReads)).
+            append('\n');
+        sb.append("nSequentialWrites=").append(f.format(nSequentialWrites)).
+            append('\n');
+        sb.append("nRandomReadBytes=").append(f.format(nRandomReadBytes)).
+            append('\n');
+        sb.append("nRandomWriteBytes=").append(f.format(nRandomWriteBytes)).
+            append('\n');
+        sb.append("nSequentialReadBytes=").
+            append(f.format(nSequentialReadBytes)).append('\n');
+        sb.append("nSequentialWriteBytes=").
+            append(f.format(nSequentialWriteBytes)).append('\n');
 
         // Logging
         sb.append("\nLogging stats\n");
@@ -1290,6 +1669,10 @@ public class EnvironmentStats implements Serializable {
             append(f.format(nTempBufferWrites)).append('\n');
         sb.append("nRepeatIteratorReads=").
             append(f.format(nRepeatIteratorReads)).append('\n');
+        sb.append("nFileOpens=").
+            append(f.format(nFileOpens)).append('\n');
+        sb.append("nOpenFiles=").
+            append(f.format(nOpenFiles)).append('\n');
         sb.append("totalLogSize=").
             append(f.format(totalLogSize)).append('\n');
 

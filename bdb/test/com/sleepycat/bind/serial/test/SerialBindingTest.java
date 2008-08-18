@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SerialBindingTest.java,v 1.32.2.1 2007/02/01 14:49:59 cwl Exp $
+ * $Id: SerialBindingTest.java,v 1.37 2008/05/30 14:04:18 mark Exp $
  */
 
 package com.sleepycat.bind.serial.test;
@@ -19,10 +19,10 @@ import com.sleepycat.bind.serial.ClassCatalog;
 import com.sleepycat.bind.serial.SerialBinding;
 import com.sleepycat.bind.serial.SerialSerialBinding;
 import com.sleepycat.bind.serial.TupleSerialMarshalledBinding;
-import com.sleepycat.collections.test.DbTestUtil;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.util.ExceptionUnwrapper;
 import com.sleepycat.util.FastOutputStream;
+import com.sleepycat.util.test.SharedTestUtils;
 
 /**
  * @author Mark Hayes
@@ -60,7 +60,7 @@ public class SerialBindingTest extends TestCase {
 
     public void setUp() {
 
-        DbTestUtil.printTestName("SerialBindingTest." + getName());
+        SharedTestUtils.printTestName("SerialBindingTest." + getName());
         catalog = new TestClassCatalog();
         buffer = new DatabaseEntry();
         keyBuffer = new DatabaseEntry();
@@ -322,6 +322,7 @@ public class SerialBindingTest extends TestCase {
         }
     }
 
+    @SuppressWarnings("serial")
     private static class MyClass implements Serializable {
     }
 }

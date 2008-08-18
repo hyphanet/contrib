@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbStat.java,v 1.21.2.2 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DbStat.java,v 1.27 2008/05/13 20:33:43 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -20,13 +20,14 @@ import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.JEVersion;
 import com.sleepycat.je.StatsConfig;
-import com.sleepycat.je.utilint.CmdUtil;
 import com.sleepycat.je.utilint.Tracer;
 
-public class DbStat extends DbVerify {
+class DbStat extends DbVerify {
+    /*
     private String usageString =
 	"usage: " + CmdUtil.getJavaCommand(DbStat.class) + "\n" +
 	"               [-V] -s database -h dbEnvHome [-v progressInterval]\n";
+    */
 
     private int progressInterval = 0;
 
@@ -58,20 +59,15 @@ public class DbStat extends DbVerify {
 	System.exit(ret);
     }
 
-    protected DbStat() {
+    DbStat() {
     }
 
     public DbStat(Environment env, String dbName) {
 	super(env, dbName, false);
     }
 
-    protected void printUsage(String msg) {
-	System.err.println(msg);
-	System.err.println(usageString);
-	System.exit(-1);
-    }
-
-    protected void parseArgs(String argv[]) {
+    @Override
+    void parseArgs(String argv[]) {
 
 	int argc = 0;
 	int nArgs = argv.length;

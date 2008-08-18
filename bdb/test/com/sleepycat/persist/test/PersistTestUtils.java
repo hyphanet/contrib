@@ -1,17 +1,22 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: PersistTestUtils.java,v 1.1.2.1 2007/02/01 14:50:25 cwl Exp $
+ * $Id: PersistTestUtils.java,v 1.6 2008/02/18 17:11:41 mark Exp $
  */
 package com.sleepycat.persist.test;
 
-import java.util.List;
+import java.io.FileNotFoundException;
 
 import junit.framework.TestCase;
 
-import com.sleepycat.je.DatabaseException;
+import com.sleepycat.compat.DbCompat;
+import com.sleepycat.je.Database;
+import com.sleepycat.je.DatabaseConfig;
+/* <!-- begin JE only --> */
+import com.sleepycat.je.DatabaseNotFoundException;
+/* <!-- end JE only --> */
 import com.sleepycat.je.Environment;
 
 class PersistTestUtils {
@@ -26,17 +31,40 @@ class PersistTestUtils {
                                String storeName,
                                String entityClassName,
                                String keyName) {
-        String dbName = "persist#" + storeName + '#' + entityClassName;
-        if (keyName != null) {
-            dbName += "#" + keyName;
+        String fileName;
+        String dbName;
+        if (DbCompat.SEPARATE_DATABASE_FILES) {
+            fileName = storeName + '-' + entityClassName;
+            if (keyName != null) {
+                fileName += "-" + keyName;
+            }
+            dbName = null;
+        } else {
+            fileName = null;
+            dbName = "persist#" + storeName + '#' + entityClassName;
+            if (keyName != null) {
+                dbName += "#" + keyName;
+            }
         }
-        List allDbNames;
+        boolean exists;
         try {
-            allDbNames = env.getDatabaseNames();
-        } catch (DatabaseException e) {
-            throw new RuntimeException(e);
+            DatabaseConfig config = new DatabaseConfig();
+            config.setReadOnly(true);
+            Database db = DbCompat.openDatabase
+                (env, null/*txn*/, fileName, dbName, config);
+            db.close();
+            exists = true;
+        /* <!-- begin JE only --> */
+        } catch (DatabaseNotFoundException e) {
+            exists = false;
+        /* <!-- end JE only --> */
+        } catch (FileNotFoundException e) {
+            exists = false;
+        } catch (Exception e) {
+            /* Any other exception means the DB does exist. */
+            exists = true;
         }
-        if (expectExists != allDbNames.contains(dbName)) {
+        if (expectExists != exists) {
             TestCase.fail
                 ((expectExists ? "Does not exist: " : "Does exist: ") +
                  dbName);

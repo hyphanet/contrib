@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: VerifyConfig.java,v 1.11.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: VerifyConfig.java,v 1.15 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -11,13 +11,13 @@ package com.sleepycat.je;
 import java.io.PrintStream;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Specifies the attributes of a verification operation.
  */
 public class VerifyConfig {
+
     /*
-     * For internal use, to allow null as a valid value for
-     * the config parameter.
+     * For internal use, to allow null as a valid value for the config
+     * parameter.
      */
     public static final VerifyConfig DEFAULT = new VerifyConfig();
 
@@ -28,87 +28,148 @@ public class VerifyConfig {
     private int showProgressInterval = 0;
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * An instance created using the default constructor is initialized with
+     * the system's default settings.
      */
     public VerifyConfig() {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} to propagate exceptions found during verification.
+     *
+     * <p>By default this is false and exception information is printed to
+     * System.out for notification but does not stop the verification activity,
+     * which continues on for as long as possible.</p>
+     *
+     * @param propagate If set to true, configure {@link
+     * com.sleepycat.je.Environment#verify Environment.verify} and {@link
+     * com.sleepycat.je.Database#verify Database.verify} to propagate
+     * exceptions found during verification.
      */
     public void setPropagateExceptions(boolean propagate) {
         propagateExceptions = propagate;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns true if the {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} are configured to propagate exceptions found during
+     * verification.
+     *
+     * <p>This method may be called at any time during the life of the
+     * application.</p>
+     *
+     * @return True if the {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} are configured to propagate exceptions found during
+     * verification.
      */
     public boolean getPropagateExceptions() {
         return propagateExceptions;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} to perform fine granularity consistency checking that
+     * includes verifying in memory constructs.
+     *
+     * <p>This level of checking should only be performed while the database
+     * environment is quiescent.</p>
+     *
+     * <p>By default this is false.</p>
+     *
+     * @param aggressive If set to true, configure {@link
+     * com.sleepycat.je.Environment#verify Environment.verify} and {@link
+     * com.sleepycat.je.Database#verify Database.verify} to perform fine
+     * granularity consistency checking that includes verifying in memory
+     * constructs.
      */
     public void setAggressive(boolean aggressive) {
         this.aggressive = aggressive;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns true if the {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} are configured to perform fine granularity consistency
+     * checking that includes verifying in memory constructs.
+     *
+     * <p>This method may be called at any time during the life of the
+     * application.</p>
+     *
+     * @return True if the {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} are configured to perform fine granularity consistency
+     * checking that includes verifying in memory constructs.
      */
     public boolean getAggressive() {
         return aggressive;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} to print basic verification information to System.out.
+     *
+     * <p>By default this is false.</p>
+     *
+     * @param printInfo If set to true, configure {@link
+     * com.sleepycat.je.Environment#verify Environment.verify} and {@link
+     * com.sleepycat.je.Database#verify Database.verify} to print basic
+     * verification information to System.out.
      */
     public void setPrintInfo(boolean printInfo) {
         this.printInfo = printInfo;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns true if the {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} are configured to print basic verification information
+     * to System.out.
+     *
+     * <p>This method may be called at any time during the life of the
+     * application.</p>
+     *
+     * @return True if the {@link com.sleepycat.je.Environment#verify
+     * Environment.verify} and {@link com.sleepycat.je.Database#verify
+     * Database.verify} are configured to print basic verification information
+     * to System.out.
      */
     public boolean getPrintInfo() {
         return printInfo;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures the verify operation to display progress to the PrintStream
+     * argument.  The accumulated statistics will be displayed every N records,
+     * where N is the value of showProgressInterval.
      */
     public void setShowProgressStream(PrintStream showProgressStream) {
         this.showProgressStream = showProgressStream;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the PrintStream on which the progress messages will be displayed
+     * during long running verify operations.
      */
     public PrintStream getShowProgressStream() {
         return showProgressStream;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * When the verify operation is configured to display progress the
+     * showProgressInterval is the number of LNs between each progress report.
      */
     public void setShowProgressInterval(int showProgressInterval) {
         this.showProgressInterval = showProgressInterval;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the showProgressInterval value, if set.
      */
     public int getShowProgressInterval() {
         return showProgressInterval;
@@ -116,6 +177,7 @@ public class VerifyConfig {
 
     /**
      * Returns the values for each configuration attribute.
+     *
      * @return the values for each configuration attribute.
      */
     public String toString() {

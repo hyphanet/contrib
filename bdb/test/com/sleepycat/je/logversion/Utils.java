@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Utils.java,v 1.6.2.1 2007/02/01 14:50:15 cwl Exp $
+ * $Id: Utils.java,v 1.9 2008/05/13 01:57:02 linda Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -14,6 +14,7 @@ public class Utils {
 
     static final String DB1_NAME = "database1";
     static final String DB2_NAME = "database2";
+    static final String DB3_NAME = "database3";
     static final String MIN_VERSION_NAME = "minversion.jdb";
     static final String MAX_VERSION_NAME = "maxversion.jdb";
 

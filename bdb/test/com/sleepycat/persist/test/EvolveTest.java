@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveTest.java,v 1.6.2.5 2007/12/08 14:47:26 mark Exp $
+ * $Id: EvolveTest.java,v 1.13 2008/02/05 23:28:28 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -11,12 +11,12 @@ import java.io.IOException;
 
 import junit.framework.Test;
 
-import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.persist.evolve.EvolveConfig;
 import com.sleepycat.persist.evolve.EvolveEvent;
 import com.sleepycat.persist.evolve.EvolveListener;
 import com.sleepycat.persist.evolve.EvolveStats;
 import com.sleepycat.persist.impl.PersistCatalog;
+import com.sleepycat.util.test.SharedTestUtils;
 
 /**
  * Runs part two of the EvolveTest.  This part is run with the new/updated
@@ -49,8 +49,8 @@ public class EvolveTest extends EvolveTestBase {
         /* Copy the log files created by EvolveTestInit. */
         envHome = getTestInitHome(true /*evolved*/);
         envHome.mkdirs();
-        TestUtils.removeLogFiles("Setup", envHome, false);
-        TestUtils.copyFiles(getTestInitHome(false /*evolved*/), envHome);
+        SharedTestUtils.emptyDir(envHome);
+        SharedTestUtils.copyFiles(getTestInitHome(false /*evolved*/), envHome);
     }
 
     public void testLazyEvolve()

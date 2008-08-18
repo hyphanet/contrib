@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: UtfTest.java,v 1.18.2.1 2007/02/01 14:50:26 cwl Exp $
+ * $Id: UtfTest.java,v 1.21 2008/02/05 23:28:29 mark Exp $
  */
 
 package com.sleepycat.util.test;
@@ -15,9 +15,9 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import com.sleepycat.collections.test.DbTestUtil;
 import com.sleepycat.util.FastOutputStream;
 import com.sleepycat.util.UtfOps;
+import com.sleepycat.util.test.SharedTestUtils;
 
 /**
  * @author Mark Hayes
@@ -51,7 +51,7 @@ public class UtfTest extends TestCase {
 
     public void setUp() {
 
-        DbTestUtil.printTestName("UtfTest." + getName());
+        SharedTestUtils.printTestName("UtfTest." + getName());
     }
 
     /**

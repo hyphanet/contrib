@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbSpace.java,v 1.23.2.3 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DbSpace.java,v 1.32 2008/05/15 01:52:43 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedMap;
@@ -26,6 +27,19 @@ import com.sleepycat.je.cleaner.UtilizationProfile;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.UtilizationFileReader;
 import com.sleepycat.je.utilint.CmdUtil;
+
+/**
+ * DbSpace displays the disk space utilization for an environment.
+ * <pre>
+ * java com.sleepycat.je.util.DbSpace
+ *          -h &lt;dir&gt;# environment home directory
+ *         [-q]     # quiet, print grand totals only
+ *         [-u]     # sort by utilization
+ *         [-d]     # dump file summary details
+ *         [-r]     # recalculate utilization (reads entire log)
+ *         [-V]     # print JE version number
+ * </pre>
+ */
 
 public class DbSpace {
 
@@ -141,8 +155,8 @@ public class DbSpace {
 	throws IOException, DatabaseException {
 
         UtilizationProfile profile = envImpl.getUtilizationProfile();
-        SortedMap map = profile.getFileSummaryMap(false);
-        Map recalcMap =
+        SortedMap<Long,FileSummary> map = profile.getFileSummaryMap(true);
+        Map<Long, FileSummary> recalcMap =
             recalc ? UtilizationFileReader.calcFileSummaryMap(envImpl)
                    : null;
         int fileIndex = 0;
@@ -153,14 +167,14 @@ public class DbSpace {
             summaries = new Summary[map.size()];
         }
 
-	Iterator iter = map.entrySet().iterator();
+	Iterator<Map.Entry<Long,FileSummary>> iter = map.entrySet().iterator();
 	while (iter.hasNext()) {
-	    Map.Entry entry = (Map.Entry) iter.next();
-	    Long fileNum = (Long) entry.getKey();
-	    FileSummary fs = (FileSummary) entry.getValue();
+	    Map.Entry<Long,FileSummary> entry = iter.next();
+	    Long fileNum = entry.getKey();
+	    FileSummary fs = entry.getValue();
             FileSummary recalcFs = null;
             if (recalcMap != null) {
-                 recalcFs = (FileSummary) recalcMap.get(fileNum);
+                 recalcFs = recalcMap.get(fileNum);
             }
             Summary summary = new Summary(fileNum, fs, recalcFs);
             if (summaries != null) {
@@ -188,7 +202,11 @@ public class DbSpace {
 
         if (summaries != null) {
             if (sorted) {
-                Arrays.sort(summaries);
+                Arrays.sort(summaries, new Comparator<Summary>() {
+                    public int compare(Summary s1, Summary s2) {
+                        return s1.utilization() - s2.utilization();
+                    }
+                });
             }
             for (int i = 0; i < summaries.length; i += 1) {
                 summaries[i].print(out, recalc);
@@ -198,7 +216,7 @@ public class DbSpace {
         totals.print(out, recalc);
     }
 
-    private static class Summary implements Comparable {
+    private static class Summary {
 
         static final String HEADER = "  File    Size (KB)  % Used\n" +
                                      "--------  ---------  ------";
@@ -231,23 +249,6 @@ public class DbSpace {
             }
         }
 
-        public int compareTo(Object other) {
-            Summary o = (Summary) other;
-            return utilization() - o.utilization();
-        }
-
-	public boolean equals(Object o) {
-	    if (o == null) {
-		return false;
-	    }
-
-	    if (o instanceof Summary) {
-		return utilization() == ((Summary) o).utilization();
-	    } else {
-		return false;
-	    }
-	}
-
         void add(Summary o) {
             totalSize += o.totalSize;
             obsoleteSize += o.obsoleteSize;
@@ -278,7 +279,7 @@ public class DbSpace {
 
         int recalcUtilization() {
             return UtilizationProfile.utilization
-                    (recalcObsoleteSize, totalSize);
+                (recalcObsoleteSize, totalSize);
         }
 
         private void pad(PrintStream out, String val, int digits,

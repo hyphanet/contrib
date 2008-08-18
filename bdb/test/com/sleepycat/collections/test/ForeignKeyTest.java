@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: ForeignKeyTest.java,v 1.30.2.1 2007/02/01 14:50:03 cwl Exp $
+ * $Id: ForeignKeyTest.java,v 1.33 2008/02/05 23:28:25 mark Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -29,6 +29,8 @@ import com.sleepycat.je.SecondaryConfig;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.util.ExceptionUnwrapper;
 import com.sleepycat.util.RuntimeExceptionWrapper;
+import com.sleepycat.util.test.SharedTestUtils;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * @author Mark Hayes
@@ -99,7 +101,7 @@ public class ForeignKeyTest extends TestCase {
     public void setUp()
         throws Exception {
 
-        DbTestUtil.printTestName(getName());
+        SharedTestUtils.printTestName(getName());
         env = testEnv.open(getName());
 
         createDatabase();
@@ -173,10 +175,11 @@ public class ForeignKeyTest extends TestCase {
         throws Exception {
 
         DatabaseConfig config = new DatabaseConfig();
+        DbCompat.setTypeBtree(config);
         config.setTransactional(testEnv.isTxnMode());
         config.setAllowCreate(true);
 
-        return DbCompat.openDatabase(env, null, file, null, config);
+        return DbCompat.testOpenDatabase(env, null, file, null, config);
     }
 
     private SecondaryDatabase openSecondaryDb(TupleSerialFactory factory,
@@ -190,17 +193,20 @@ public class ForeignKeyTest extends TestCase {
                 factory.getKeyCreator(MarshalledObject.class, keyName);
 
         SecondaryConfig secConfig = new SecondaryConfig();
+        DbCompat.setTypeBtree(secConfig);
         secConfig.setTransactional(testEnv.isTxnMode());
         secConfig.setAllowCreate(true);
         secConfig.setKeyCreator(keyCreator);
         if (foreignStore != null) {
             secConfig.setForeignKeyDatabase(foreignStore);
             secConfig.setForeignKeyDeleteAction(onDelete);
-            secConfig.setForeignKeyNullifier(keyCreator);
+            if (onDelete == ForeignKeyDeleteAction.NULLIFY) {
+                secConfig.setForeignKeyNullifier(keyCreator);
+            }
         }
 
-        return DbCompat.openSecondaryDatabase(env, null, file, null,
-                                              primary, secConfig);
+        return DbCompat.testOpenSecondaryDatabase
+            (env, null, file, null, primary, secConfig);
     }
 
     private void createViews()
@@ -321,6 +327,7 @@ public class ForeignKeyTest extends TestCase {
          * Test that a foreign key value may not be used that is not present
          * in the foreign store. "pk2" is not in store1 in this case.
          */
+        assertNull(storeMap1.get("pk2"));
         MarshalledObject o3 = new MarshalledObject("data3", "pk3", "", "pk2");
         try {
             storeMap2.put(null, o3);
@@ -334,4 +341,3 @@ public class ForeignKeyTest extends TestCase {
         }
     }
 }
-

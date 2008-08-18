@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TreeTest.java,v 1.86.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: TreeTest.java,v 1.94 2008/03/18 01:17:46 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -11,10 +11,12 @@ package com.sleepycat.je.tree;
 import java.io.IOException;
 
 import com.sleepycat.je.BtreeStats;
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DatabaseStats;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.VerifyConfig;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.NullCursor;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.Locker;
@@ -32,16 +34,27 @@ public class TreeTest extends TreeTestBase {
     public void testSimpleTreeCreation()
 	throws DatabaseException {
         initEnv(false);
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+
+        Locker txn = BasicLocker.
+	    createBasicLocker(DbInternal.envGetEnvironmentImpl(env));
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
         insertAndRetrieve(cursor, "aaaaa".getBytes(),
-                          new LN((byte[]) null));
+                          new LN((byte[]) null,
+                                  envImpl,
+                                  false)); // replicated
         insertAndRetrieve(cursor, "aaaab".getBytes(),
-                          new LN((byte[]) null));
+                          new LN((byte[]) null,
+                                  envImpl,
+                                  false)); // replicated
         insertAndRetrieve(cursor, "aaaa".getBytes(),
-                          new LN((byte[]) null));
+                          new LN((byte[]) null,
+                                  envImpl,
+                                  false)); // replicated
         insertAndRetrieve(cursor, "aaa".getBytes(),
-                          new LN((byte[]) null));
+                          new LN((byte[]) null,
+                                  envImpl,
+                                  false)); // replicated
         txn.operationEnd();
     }
 
@@ -57,12 +70,15 @@ public class TreeTest extends TreeTestBase {
          * side.
 	 */
         initEnv(false);
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        Locker txn = BasicLocker.createBasicLocker(envImpl);
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
         for (int i = 0; i < 21; i++) {
             byte[] key = new byte[N_KEY_BYTES];
             TestUtils.generateRandomAlphaBytes(key);
-            insertAndRetrieve(cursor, key, new LN((byte[]) null));
+            insertAndRetrieve(cursor, key, new LN((byte[]) null,
+                                                  envImpl,
+                                                  false)); // replicated
         }
         txn.operationEnd();
     }
@@ -88,12 +104,13 @@ public class TreeTest extends TreeTestBase {
 
         byte[][] keys = new byte[N_KEYS][];
         LN[] lns = new LN[N_KEYS];
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        Locker txn = BasicLocker.createBasicLocker(envImpl);
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
         for (int i = 0; i < N_KEYS; i++) {
             byte[] key = new byte[N_KEY_BYTES];
             keys[i] = key;
-            lns[i] = new LN((byte[]) null);
+            lns[i] = new LN((byte[]) null, envImpl, false /* replicated */);
             TestUtils.generateRandomAlphaBytes(key);
             insertAndRetrieve(cursor, key, lns[i]);
         }
@@ -103,7 +120,7 @@ public class TreeTest extends TreeTestBase {
         }
 
         TestUtils.checkLatchCount();
-        IN leftMostNode = tree.getFirstNode();
+        IN leftMostNode = tree.getFirstNode(CacheMode.DEFAULT);
 
         assertTrue(leftMostNode instanceof BIN);
         BIN lmn = (BIN) leftMostNode;
@@ -112,7 +129,7 @@ public class TreeTest extends TreeTestBase {
         assertTrue(Key.compareKeys(lmn.getKey(0), minKey, null) == 0);
 
         TestUtils.checkLatchCount();
-        IN rightMostNode = tree.getLastNode();
+        IN rightMostNode = tree.getLastNode(CacheMode.DEFAULT);
 
         assertTrue(rightMostNode instanceof BIN);
         BIN rmn = (BIN) rightMostNode;
@@ -145,13 +162,14 @@ public class TreeTest extends TreeTestBase {
 	throws DatabaseException {
         byte[][] keys = new byte[N_KEYS][];
         LN[] lns = new LN[N_KEYS];
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        Locker txn = BasicLocker.createBasicLocker(envImpl);
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
 
         for (int i = 0; i < N_KEYS; i++) {
             byte[] key = new byte[N_KEY_BYTES];
             keys[i] = key;
-            lns[i] = new LN((byte[]) null);
+            lns[i] = new LN((byte[]) null, envImpl, false /* replicated */);
             TestUtils.generateRandomAlphaBytes(key);
             insertAndRetrieve(cursor, key, lns[i]);
         }
@@ -179,12 +197,13 @@ public class TreeTest extends TreeTestBase {
 
         byte[][] keys = new byte[N_KEYS][];
         LN[] lns = new LN[N_KEYS];
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        Locker txn = BasicLocker.createBasicLocker(envImpl);
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
         for (int i = 0; i < N_KEYS; i++) {
             byte[] key = new byte[N_KEY_BYTES];
             keys[i] = key;
-            lns[i] = new LN((byte[]) null);
+            lns[i] = new LN((byte[]) null, envImpl, false /* replicated */);
             TestUtils.generateRandomAlphaBytes(key);
             insertAndRetrieve(cursor, key, lns[i]);
         }
@@ -196,7 +215,8 @@ public class TreeTest extends TreeTestBase {
 	throws DatabaseException {
 
         initEnv(false);
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        Locker txn = BasicLocker.createBasicLocker(envImpl);
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
 
         /* Fill up a db with data */
@@ -204,30 +224,34 @@ public class TreeTest extends TreeTestBase {
             byte[] keyBytes = new byte[4];
             TestUtils.putUnsignedInt(keyBytes, TestUtils.alphaKey(i));
             insertAndRetrieve(cursor, keyBytes,
-                              new LN((byte[]) null));
+                              new LN((byte[]) null,
+                                     envImpl,
+                                     false)); // replicated
         }
 
         TestUtils.checkLatchCount();
 
         /* Count the number of levels on the left. */
-        IN leftMostNode = tree.getFirstNode();
+        IN leftMostNode = tree.getFirstNode(CacheMode.DEFAULT);
         assertTrue(leftMostNode instanceof BIN);
         int leftSideLevels = 0;
         do {
             SearchResult result =
-		tree.getParentINForChildIN(leftMostNode, true, true);
+		tree.getParentINForChildIN(leftMostNode, true,
+                                           CacheMode.DEFAULT);
             leftMostNode = result.parent;
             leftSideLevels++;
         } while (leftMostNode != null);
         TestUtils.checkLatchCount();
 
         /* Count the number of levels on the right. */
-        IN rightMostNode = tree.getLastNode();
+        IN rightMostNode = tree.getLastNode(CacheMode.DEFAULT);
         assertTrue(rightMostNode instanceof BIN);
         int rightSideLevels = 0;
         do {
             SearchResult result =
-		tree.getParentINForChildIN(rightMostNode, true, true);
+		tree.getParentINForChildIN(rightMostNode, true,
+                                           CacheMode.DEFAULT);
             rightMostNode = result.parent;
             rightSideLevels++;
         } while (rightMostNode != null);
@@ -246,36 +270,41 @@ public class TreeTest extends TreeTestBase {
     public void testDescendingInsertBalance()
 	throws DatabaseException {
         initEnv(false);
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        Locker txn = BasicLocker.createBasicLocker(envImpl);
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
 
         for (int i = N_KEYS; i >= 0; --i) {
             byte[] keyBytes = new byte[4];
             TestUtils.putUnsignedInt(keyBytes, TestUtils.alphaKey(i));
             insertAndRetrieve(cursor, keyBytes,
-                              new LN((byte[]) null));
+                              new LN((byte[]) null,
+                                     envImpl,
+                                     false)); // replicated
         }
 
         TestUtils.checkLatchCount();
-        IN leftMostNode = tree.getFirstNode();
+        IN leftMostNode = tree.getFirstNode(CacheMode.DEFAULT);
 
         assertTrue(leftMostNode instanceof BIN);
         int leftSideLevels = 0;
         do {
             SearchResult result =
-		tree.getParentINForChildIN(leftMostNode, true, true);
+		tree.getParentINForChildIN(leftMostNode, true,
+                                           CacheMode.DEFAULT);
             leftMostNode = result.parent;
             leftSideLevels++;
         } while (leftMostNode != null);
         TestUtils.checkLatchCount();
 
-        IN rightMostNode = tree.getLastNode();
+        IN rightMostNode = tree.getLastNode(CacheMode.DEFAULT);
 
         assertTrue(rightMostNode instanceof BIN);
         int rightSideLevels = 0;
         do {
             SearchResult result =
-		tree.getParentINForChildIN(rightMostNode, true, true);
+		tree.getParentINForChildIN(rightMostNode, true,
+                                           CacheMode.DEFAULT);
             rightMostNode = result.parent;
             rightSideLevels++;
         } while (rightMostNode != null);
@@ -300,13 +329,16 @@ public class TreeTest extends TreeTestBase {
         initEnv(false);
 	byte[][] keys = new byte[N_KEYS][];
 	LN[] lns = new LN[N_KEYS];
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        Locker txn = BasicLocker.createBasicLocker(envImpl);
         NullCursor cursor = new NullCursor(tree.getDatabase(), txn);
 
 	for (int i = 0; i < N_KEYS; i++) {
 	    byte[] key = new byte[N_KEY_BYTES];
 	    keys[i] = key;
-	    lns[i] = new LN((byte[]) new byte[1]);
+	    lns[i] = new LN((byte[]) new byte[1],
+                            envImpl,
+                            false); // replicated
 	    TestUtils.generateRandomAlphaBytes(key);
 	    insertAndRetrieve(cursor, key, lns[i]);
 	}
@@ -339,7 +371,7 @@ public class TreeTest extends TreeTestBase {
           by brute force deleting a file; often recovery doesn't work.
           Instead, use a flipped file later on.
 
-        String [] jeFiles =
+        String[] jeFiles =
             FileManager.listFiles(envHome,
                                   new String[] {FileManager.JE_SUFFIX});
         int targetIdx = jeFiles.length / 2;

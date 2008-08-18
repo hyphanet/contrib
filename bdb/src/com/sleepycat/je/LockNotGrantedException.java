@@ -1,32 +1,30 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockNotGrantedException.java,v 1.6.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: LockNotGrantedException.java,v 1.10 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * A LockNotGrantedException is thrown when a non-blocking operation fails to
+ * get a lock.
  */
 public class LockNotGrantedException extends DeadlockException {
 
     /*
-     * LockNotGrantedException extends DeadlockException in order to
-     * support the approach that all application need only handle
-     * DeadlockException. The idea is that we don't want an
-     * application to fail because a new type of exception is thrown
-     * when an operation is changed to non-blocking.
+     * LockNotGrantedException extends DeadlockException in order to support
+     * the approach that all application need only handle
+     * DeadlockException. The idea is that we don't want an application to fail
+     * because a new type of exception is thrown when an operation is changed
+     * to non-blocking.
      *
-     * Applications that care about LockNotGrantedExceptions can
-     * add another catch block to handle it, but otherwise they
-     * can be handled the same way as deadlocks.
-     * See SR [#10672]
+     * Applications that care about LockNotGrantedExceptions can add another
+     * catch block to handle it, but otherwise they can be handled the same way
+     * as deadlocks.  See SR [#10672]
      */
-
     public LockNotGrantedException() {
 	super();
     }

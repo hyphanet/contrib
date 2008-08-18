@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Adler32.java,v 1.10.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: Adler32.java,v 1.14 2008/01/07 14:28:57 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -79,7 +79,8 @@ public class Adler32 implements Checksum {
     }
 
     public static Checksum makeChecksum() {
-	if (EnvironmentImpl.JAVA5_AVAILABLE) {
+	if (!EnvironmentImpl.IS_DALVIK &&
+	    EnvironmentImpl.USE_JAVA5_ADLER32) {
 	    int adler32ChunkSize = EnvironmentImpl.getAdler32ChunkSize();
 	    if (adler32ChunkSize > 0) {
 		return new ChunkingAdler32(adler32ChunkSize);

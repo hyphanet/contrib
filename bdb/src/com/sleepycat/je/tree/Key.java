@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Key.java,v 1.61.2.3 2007/11/20 13:32:35 cwl Exp $
+ * $Id: Key.java,v 1.70 2008/05/19 17:52:18 linda Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -22,29 +22,70 @@ import com.sleepycat.je.DatabaseEntry;
  * One exception is when keys are held within a collection. In that case, Key
  * objects are instantiated so that keys are hashed and compared by value.
  */
+public final class Key implements Comparable<Key> {
+    public abstract static class DumpType {
 
-public final class Key implements Comparable {
+	private String name;
 
-    public static class DumpType {
-
-	private String type;
-
-	private DumpType(String type) {
-	    this.type = type;
+	private DumpType(String name) {
+	    this.name = name;
 	}
 
+	public static final DumpType BINARY = new DumpType("BINARY") {
+		@Override
+		void dumpByteArrayInternal(StringBuffer sb, byte[] b) {
+		    for (int i = 0; i < b.length; i++) {
+			sb.append(b[i] & 0xFF).append(" ");
+		    }
+		}
+	    };
+
+	public static final DumpType HEX = new DumpType("HEX") {
+		@Override
+		void dumpByteArrayInternal(StringBuffer sb, byte[] b) {
+		    for (int i = 0; i < b.length; i++) {
+			sb.append(Integer.toHexString(b[i] & 0xFF)).
+			    append(" ");
+		    }
+		}
+	    };
+
+	public static final DumpType TEXT = new DumpType("TEXT") {
+		@Override
+		void dumpByteArrayInternal(StringBuffer sb, byte[] b) {
+		    sb.append(new String(b));
+		}
+	    };
+
+	public static final DumpType OBFUSCATE = new DumpType("OBFUSCATE") {
+		@Override
+		void dumpByteArrayInternal(StringBuffer sb, byte[] b) {
+		    int len = b.length;
+		    sb.append("[").append(len).
+			append(len == 1 ? " byte]" : " bytes]");
+		}
+	    };
+
+	public String dumpByteArray(byte[] b) {
+	    StringBuffer sb = new StringBuffer();
+	    if (b != null) {
+		dumpByteArrayInternal(sb, b);
+	    } else {
+		sb.append("null");
+	    }
+	    return sb.toString();
+	}
+
+	@Override
 	public String toString() {
-	    return type;
+	    return name;
 	}
 
-	public static DumpType BINARY = new DumpType("Binary");
-	public static DumpType HEX = new DumpType("Hex");
-	public static DumpType TEXT = new DumpType("Text");
-	public static DumpType OBFUSCATE = new DumpType("Obfuscate");
-	public static DumpType NONE = new DumpType("None");
+	abstract void dumpByteArrayInternal(StringBuffer sb, byte[] b);
     }
 
     public static DumpType DUMP_TYPE = DumpType.BINARY;
+
     /* Not declared final since unit tests use it. */
     public static boolean DUMP_INT_BINDING = false;
     public static final byte[] EMPTY_KEY = new byte[0];
@@ -88,12 +129,7 @@ public final class Key implements Comparable {
      * therefore this method should not be used for comparison of keys during
      * Btree operations.
      */
-    public int compareTo(Object o) {
-	if (o == null) {
-	    throw new NullPointerException();
-	}
-
-        Key argKey = (Key) o;
+    public int compareTo(Key argKey) {
         return compareUnsignedBytes(this.key, argKey.key);
     }
 
@@ -101,7 +137,7 @@ public final class Key implements Comparable {
      * Support Set of Key in BINReference.
      */
     public boolean equals(Object o) {
-        return (o instanceof Key) && (compareTo(o) == 0);
+        return (o instanceof Key) && (compareTo((Key)o) == 0);
     }
 
     /**
@@ -118,8 +154,9 @@ public final class Key implements Comparable {
     /**
      * Compare keys with an optional comparator.
      */
-    public static int compareKeys(byte[] key1, byte[] key2,
-                                  Comparator comparator) {
+    public static int compareKeys(byte[] key1,
+                                  byte[] key2,
+                                  Comparator<byte[]> comparator) {
         if (comparator != null) {
             return comparator.compare(key1, key2);
         } else {
@@ -142,8 +179,11 @@ public final class Key implements Comparable {
 	    if (b1 == b2) {
 		continue;
 	    } else {
-		/* Remember, bytes are signed, so convert to shorts so that
-		   we effectively do an unsigned byte comparison. */
+
+		/* 
+                 * Remember, bytes are signed, so convert to shorts so that we
+                 * effectively do an unsigned byte comparison.
+                 */
 		return (b1 & 0xff) - (b2 & 0xff);
 	    }
 	}
@@ -151,25 +191,57 @@ public final class Key implements Comparable {
 	return (a1Len - a2Len);
     }
 
+    /*
+     * Return the number of leading bytes that key1 and key2 have in common
+     * (i.e. the length of their common prefix).
+     */
+    public static int getKeyPrefixLength(byte[] key1, int a1Len, byte[] key2) {
+        assert key1 != null && key2 != null;
+
+	int a2Len = key2.length;
+
+	int limit = Math.min(a1Len, a2Len);
+
+	for (int i = 0; i < limit; i++) {
+	    byte b1 = key1[i];
+	    byte b2 = key2[i];
+	    if (b1 != b2) {
+                return i;
+	    }
+	}
+
+        return limit;
+    }
+
+    /*
+     * Return a new byte[] containing the common prefix of key1 and key2.
+     * Return null if there is no common prefix.
+     */
+    public static byte[] createKeyPrefix(byte[] key1, byte[] key2) {
+        int len = getKeyPrefixLength(key1, key1.length, key2);
+        if (len == 0) {
+            return null;
+        }
+
+        byte[] ret = new byte[len];
+        System.arraycopy(key1, 0, ret, 0, len);
+
+	return ret;
+    }
+
     public static String dumpString(byte[] key, int nspaces) {
 	StringBuffer sb = new StringBuffer();
         sb.append(TreeUtils.indent(nspaces));
 	sb.append("<key v=\"");
-
-        /** uncomment for hex formatting
-	    for (int i = 0 ; i < key.length; i++) {
-	    sb.append(Integer.toHexString(key[i] & 0xFF)).append(" ");
-	    }
-        **/
 
 	if (DUMP_TYPE == DumpType.BINARY ||
 	    DUMP_TYPE == DumpType.HEX) {
 	    if (key == null) {
 		sb.append("<null>");
 	    } else {
-		sb.append(TreeUtils.dumpByteArray(key));
+		sb.append(DUMP_TYPE.dumpByteArray(key));
 	    }
-        } else if (DUMP_TYPE == DumpType.TEXT) {
+	} else if (DUMP_TYPE == DumpType.TEXT) {
 	    if (DUMP_INT_BINDING) {
 		if (key == null) {
 		    sb.append("<null>");
@@ -183,7 +255,6 @@ public final class Key implements Comparable {
 	} else if (DUMP_TYPE == DumpType.OBFUSCATE) {
 	    int len = key.length;
 	    sb.append("[").append(len).append(len == 1 ? " byte]" : " bytes]");
-	} else if (DUMP_TYPE == DumpType.NONE) {
 	}
 	sb.append("\"/>");
 

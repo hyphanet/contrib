@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PersistentProxy.java,v 1.12.2.2 2007/10/25 16:54:11 mark Exp $
+ * $Id: PersistentProxy.java,v 1.17 2008/05/13 16:29:35 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -80,7 +80,7 @@ import com.sleepycat.persist.raw.RawStore; // for javadoc
  *  }</pre>
  *
  * <p>A proxy for proxied class P does not handle instances of subclasses of P.
- * To proxy subclasses of P, a separate proxy class is needed.</p>
+ * To proxy a subclass of P, a separate proxy class is needed.</p>
  *
  * <p>Several {@link <a href="Entity.html#proxyTypes">built in proxy types</a>}
  * are used implicitly.  An application defined proxy will be used instead of a
@@ -98,6 +98,8 @@ import com.sleepycat.persist.raw.RawStore; // for javadoc
  * added as an element of itself.  This should be avoided.  If an attempt to
  * store such an object is made, an {@code IllegalArgumentException} will be
  * thrown.</p>
+ *
+ * <p>Note that a proxy class may not be a subclass of an entity class.</p>
  *
  * @author Mark Hayes
  */

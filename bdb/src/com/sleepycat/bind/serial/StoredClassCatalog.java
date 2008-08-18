@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: StoredClassCatalog.java,v 1.46.2.1 2007/02/01 14:49:38 cwl Exp $
+ * $Id: StoredClassCatalog.java,v 1.51 2008/05/27 15:30:32 mark Exp $
  */
 
 package com.sleepycat.bind.serial;
@@ -39,6 +39,8 @@ import com.sleepycat.util.UtfOps;
  * with a set of databases that stored serialized objects.</p>
  *
  * @author Mark Hayes
+ *
+ * @see <a href="SerialBinding.html#evolution">Class Evolution</a>
  */
 public class StoredClassCatalog implements ClassCatalog {
 
@@ -56,8 +58,8 @@ public class StoredClassCatalog implements ClassCatalog {
     private static final byte[] LAST_CLASS_ID_KEY = {REC_LAST_CLASS_ID};
 
     private Database db;
-    private HashMap classMap;
-    private HashMap formatMap;
+    private HashMap<String, ClassInfo> classMap;
+    private HashMap<BigInteger, ObjectStreamClass> formatMap;
     private LockMode writeLockMode;
     private boolean cdbMode;
     private boolean txnMode;
@@ -102,8 +104,8 @@ public class StoredClassCatalog implements ClassCatalog {
          * synchronized, and therefore the methods that use them are
          * synchronized.
          */
-        classMap = new HashMap();
-        formatMap = new HashMap();
+        classMap = new HashMap<String, ClassInfo>();
+        formatMap = new HashMap<BigInteger, ObjectStreamClass>();
 
         DatabaseEntry key = new DatabaseEntry(LAST_CLASS_ID_KEY);
         DatabaseEntry data = new DatabaseEntry();
@@ -161,8 +163,7 @@ public class StoredClassCatalog implements ClassCatalog {
         /* First check the map and, if found, add class info to the map. */
 
         BigInteger classIDObj = new BigInteger(classID);
-        ObjectStreamClass classFormat =
-            (ObjectStreamClass) formatMap.get(classIDObj);
+        ObjectStreamClass classFormat = formatMap.get(classIDObj);
         if (classFormat == null) {
 
             /* Make the class format key. */
@@ -213,7 +214,7 @@ public class StoredClassCatalog implements ClassCatalog {
          * present always contains the class format object
          */
         String className = classFormat.getName();
-        ClassInfo classInfo = (ClassInfo) classMap.get(className);
+        ClassInfo classInfo = classMap.get(className);
         if (classInfo != null) {
             return classInfo;
         } else {
@@ -366,6 +367,7 @@ public class StoredClassCatalog implements ClassCatalog {
      * information per class.
      */
     private static class ClassInfo implements Serializable {
+        static final long serialVersionUID = 3845446969989650562L;
 
         private byte[] classID;
         private transient ObjectStreamClass classFormat;

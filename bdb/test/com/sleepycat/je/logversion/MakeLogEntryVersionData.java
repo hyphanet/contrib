@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: MakeLogEntryVersionData.java,v 1.11.2.3 2007/11/20 13:32:47 cwl Exp $
+ * $Id: MakeLogEntryVersionData.java,v 1.19 2008/05/28 15:35:18 linda Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -80,7 +80,7 @@ public class MakeLogEntryVersionData {
         }
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-	DbInternal.disableParameterValidation(envConfig);
+        DbInternal.disableParameterValidation(envConfig);
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
         /* Make as small a log as possible to save space in CVS. */
@@ -92,7 +92,7 @@ public class MakeLogEntryVersionData {
             (EnvironmentParams.ENV_RUN_EVICTOR.getName(), "false");
         envConfig.setConfigParam
             (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
-	/* force trace messages at recovery. */
+        /* force trace messages at recovery. */
         envConfig.setConfigParam
             (EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
         /* Use a 100 MB log file size to ensure only one file is written. */
@@ -115,6 +115,10 @@ public class MakeLogEntryVersionData {
 
         XAEnvironment env = new XAEnvironment(homeDir, envConfig);
 
+        /* 
+         * Make two shadow database. Database 1 is transactional and has
+         * aborts, database 2 is not transactional.
+         */
         for (int i = 0; i < 2; i += 1) {
             boolean transactional = (i == 0);
             String dbName = transactional ? Utils.DB1_NAME : Utils.DB2_NAME;
@@ -178,21 +182,38 @@ public class MakeLogEntryVersionData {
         }
         db.close();
 
+        /* 
+         * Make database 3, which is transactional and has some explicit 
+         * transaction commit record.
+         */
+        dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        dbConfig.setTransactional(true);
+        Transaction txn = env.beginTransaction(null, null);
+        db = env.openDatabase(null, Utils.DB3_NAME, dbConfig);
+        OperationStatus status = db.put(txn, Utils.entry(99), Utils.entry(79));
+        assert status == OperationStatus.SUCCESS: "status=" + status;
+        db.close();
+        txn.commit();
+        
         /*
          * Generate an XA txn Prepare. The transaction must be non-empty in
          * order to actually log the Prepare.
          */
-	XidImpl xid =
-	    new XidImpl(1, "MakeLogEntryVersionData".getBytes(), null);
-	env.start(xid, XAResource.TMNOFLAGS);
+        XidImpl xid =
+            new XidImpl(1, "MakeLogEntryVersionData".getBytes(), null);
+        env.start(xid, XAResource.TMNOFLAGS);
         /* Re-write the existing {3,0} record. */
+        dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(false);
         dbConfig.setReadOnly(false);
         dbConfig.setTransactional(true);
+        dbConfig.setSortedDuplicates(true);
         db = env.openDatabase(null, Utils.DB2_NAME, dbConfig);
         db.put(null, Utils.entry(3), Utils.entry(0));
         db.close();
-	env.prepare(xid);
-	env.rollback(xid);
+        env.prepare(xid);
+        env.rollback(xid);
 
         env.close();
 
@@ -201,7 +222,7 @@ public class MakeLogEntryVersionData {
          * one type -- MapLN_TX -- because MapLN (non-transactional) is now
          * used instead.
          */
-        Set expectedTypes = LogEntryType.getAllTypes();
+        Set<LogEntryType> expectedTypes = LogEntryType.getAllTypes();
         expectedTypes.remove(LogEntryType.LOG_MAPLN_TRANSACTIONAL);
 
         /* Open read-only and write all LogEntryType names to a text file. */
@@ -210,7 +231,7 @@ public class MakeLogEntryVersionData {
         PrintWriter writer = new PrintWriter
             (new BufferedOutputStream(new FileOutputStream(summaryFile)));
         TestUtilLogReader reader = new TestUtilLogReader
-            (DbInternal.envGetEnvironmentImpl(env2));
+            (DbInternal.envGetEnvironmentImpl(env2), true /* readFullItem */);
         while (reader.readNextEntry()) {
             LogEntryType type = reader.getEntryType();
             writer.println(type.toString());

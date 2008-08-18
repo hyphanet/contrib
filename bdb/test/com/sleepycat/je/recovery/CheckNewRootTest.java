@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004,2005 Oracle.  All rights reserved.
+ * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckNewRootTest.java,v 1.5.2.1 2007/11/20 13:32:47 cwl Exp $
+ * $Id: CheckNewRootTest.java,v 1.16 2008/05/07 01:51:17 linda Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -25,8 +25,8 @@ import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.SingleItemEntry;
-import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.TestHook;
 import com.sleepycat.je.utilint.Tracer;
@@ -273,7 +273,7 @@ public class CheckNewRootTest extends CheckBase {
         CheckpointHook(Environment env) {
             this.env = env;
         }
-        public void doIOHook() throws IOException {}
+
         public void doHook() {
             try {
                 EnvironmentImpl envImpl =
@@ -281,24 +281,40 @@ public class CheckNewRootTest extends CheckBase {
 		SingleItemEntry startEntry =
 		    new SingleItemEntry(LogEntryType.LOG_CKPT_START,
                                         new CheckpointStart(100, "test"));
-		long checkpointStart = envImpl.getLogManager().log(startEntry);
-                CheckpointEnd ckptEnd =
-                    new CheckpointEnd("test",
-                                      checkpointStart,
-                                      envImpl.getRootLsn(),
-                                      envImpl.getTxnManager().getFirstActiveLsn(),
-                                      Node.getLastId(),
-                                      envImpl.getDbMapTree().getLastDbId(),
-                                      envImpl.getTxnManager().getLastTxnId(),
+		long checkpointStart = envImpl.getLogManager().log
+                    (startEntry,
+                     ReplicationContext.NO_REPLICATE);
+                CheckpointEnd ckptEnd = new CheckpointEnd
+                    ("test",
+                     checkpointStart,
+                     envImpl.getRootLsn(),
+                     envImpl.getTxnManager().getFirstActiveLsn(),
+                     envImpl.getNodeSequence().getLastLocalNodeId(),
+                     envImpl.getNodeSequence().getLastReplicatedNodeId(),
+                     envImpl.getDbTree().getLastLocalDbId(),
+                     envImpl.getDbTree().getLastReplicatedDbId(),
+                     envImpl.getTxnManager().getLastLocalTxnId(),
+                     envImpl.getTxnManager().getLastReplicatedTxnId(),
                                       100);
                 SingleItemEntry endEntry =
                     new SingleItemEntry(LogEntryType.LOG_CKPT_END, ckptEnd);
-                envImpl.getLogManager().logForceFlush(endEntry, true);
+                envImpl.getLogManager().logForceFlush
+                    (endEntry,
+                     true, // fsyncRequired
+                     ReplicationContext.NO_REPLICATE);
             } catch (DatabaseException e) {
         	fail(e.getMessage());
             }
         }
-        public Object getHookValue() {return null;}
+        public Object getHookValue() {
+            throw new UnsupportedOperationException();
+        }
+        public void doIOHook() throws IOException {
+            throw new UnsupportedOperationException();
+        }
+        public void hookSetup() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     /**
@@ -361,10 +377,17 @@ public class CheckNewRootTest extends CheckBase {
 
         /* Evict */
         TestHook evictHook = new TestHook() {
-                public void doIOHook() throws IOException {}
-                public void doHook() {}
+                public void doIOHook() throws IOException {
+                    throw new UnsupportedOperationException();
+                }
+                public void doHook() {
+                    throw new UnsupportedOperationException();
+                }
                 public Object getHookValue() {
                     return Boolean.TRUE;
+                }
+                public void hookSetup() {
+                    throw new UnsupportedOperationException();
                 }
             };
         DbInternal.envGetEnvironmentImpl(env).getEvictor().

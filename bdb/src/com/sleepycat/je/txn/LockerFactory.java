@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockerFactory.java,v 1.8.2.2 2007/11/20 13:32:36 cwl Exp $
+ * $Id: LockerFactory.java,v 1.18 2008/05/13 20:03:10 sam Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -16,6 +16,7 @@ import com.sleepycat.je.Transaction;
 import com.sleepycat.je.TransactionConfig;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.ReplicationContext;
 
 /**
  * Factory of static methods for creating Locker objects.
@@ -28,10 +29,13 @@ public class LockerFactory {
      */
     public static Locker getWritableLocker(Environment env,
                                            Transaction userTxn,
-                                           boolean dbIsTransactional)
+                                           boolean dbIsTransactional,
+                                           boolean autoTxnIsReplicated)
         throws DatabaseException {
 
-        return getWritableLocker(env, userTxn, dbIsTransactional, false, null);
+        return getWritableLocker
+	    (env, userTxn, dbIsTransactional, false /*retainNonTxnLocks*/,
+	     autoTxnIsReplicated, null /*autoCommitConfig*/);
     }
 
     /**
@@ -41,11 +45,19 @@ public class LockerFactory {
      * @param retainNonTxnLocks is true for DbTree operations, so that the
      * handle lock may be transferred out of the locker when the operation is
      * complete.
+     *
+     * @param autoTxnIsReplicated is true if this transaction is
+     * executed on a rep group master, and needs to be broadcast.
+     * Currently, all application-created transactions are of the type
+     * com.sleepycat.je.txn.Txn, and are replicated if the parent
+     * environment is replicated. Auto Txns are trickier because they may
+     * be created for a local write operation, such as log cleaning.
      */
     public static Locker getWritableLocker(Environment env,
                                            Transaction userTxn,
                                            boolean dbIsTransactional,
                                            boolean retainNonTxnLocks,
+                                           boolean autoTxnIsReplicated,
                                            TransactionConfig autoCommitConfig)
         throws DatabaseException {
 
@@ -64,14 +76,20 @@ public class LockerFactory {
             if (autoCommitConfig == null) {
                 autoCommitConfig = DbInternal.getDefaultTxnConfig(env);
             }
-            return new AutoTxn(envImpl, autoCommitConfig);
+
+            return Txn.createAutoTxn(envImpl,
+                                     autoCommitConfig,
+                                     false, /*noAPIReadLock*/
+                                     (autoTxnIsReplicated ?
+                                     ReplicationContext.MASTER :
+                                     ReplicationContext.NO_REPLICATE));
 
         } else if (userTxn == null) {
 
             if (retainNonTxnLocks) {
-                return new BasicLocker(envImpl);
+                return BasicLocker.createBasicLocker(envImpl);
             } else {
-                return new ThreadLocker(envImpl);
+                return ThreadLocker.createThreadLocker(envImpl);
             }
 
         } else {
@@ -102,7 +120,8 @@ public class LockerFactory {
              */
             Locker locker = DbInternal.getLocker(userTxn);
             if (locker.isReadCommittedIsolation() && !retainNonTxnLocks) {
-                return new ReadCommittedLocker(envImpl, locker);
+                return ReadCommittedLocker.
+		    createReadCommittedLocker(envImpl, locker);
             } else {
                 return locker;
             }
@@ -142,8 +161,8 @@ public class LockerFactory {
             }
         }
 
-        return getReadableLocker
-	    (env, locker, retainNonTxnLocks, readCommittedIsolation);
+        return getReadableLocker(env, locker, retainNonTxnLocks,
+				 readCommittedIsolation);
     }
 
     /**
@@ -186,8 +205,8 @@ public class LockerFactory {
             readCommittedIsolation = true;
         }
 
-        return getReadableLocker
-            (env, locker, retainNonTxnLocks, readCommittedIsolation);
+        return getReadableLocker(env, locker, retainNonTxnLocks,
+				 readCommittedIsolation);
     }
 
     /**
@@ -220,9 +239,9 @@ public class LockerFactory {
              * same thread; this used for ordinary user operations.
              */
             if (retainNonTxnLocks) {
-                locker = new BasicLocker(envImpl);
+                locker = BasicLocker.createBasicLocker(envImpl);
             } else {
-                locker = new ThreadLocker(envImpl);
+                locker = ThreadLocker.createThreadLocker(envImpl);
             }
         } else {
 
@@ -234,7 +253,8 @@ public class LockerFactory {
              * retained across operations.
              */
             if (readCommittedIsolation && !retainNonTxnLocks) {
-                locker = new ReadCommittedLocker(envImpl, locker);
+                locker = ReadCommittedLocker.
+		    createReadCommittedLocker(envImpl, locker);
             }
         }
         return locker;

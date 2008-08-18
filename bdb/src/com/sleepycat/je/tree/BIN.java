@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BIN.java,v 1.188.2.9 2007/11/20 13:32:35 cwl Exp $
+ * $Id: BIN.java,v 1.214 2008/05/19 17:52:18 linda Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -12,11 +12,11 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Set;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.cleaner.Cleaner;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.LocalUtilizationTracker;
 import com.sleepycat.je.dbi.CursorImpl;
-import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.DbTree;
@@ -25,6 +25,8 @@ import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.Provisional;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.LockGrantType;
@@ -44,7 +46,7 @@ public class BIN extends IN implements Loggable {
     /*
      * The set of cursors that are currently referring to this BIN.
      */
-    private TinyHashSet cursorSet;
+    private TinyHashSet<CursorImpl> cursorSet;
 
     /*
      * Support for logging BIN deltas. (Partial BIN logging)
@@ -56,7 +58,7 @@ public class BIN extends IN implements Loggable {
     private boolean prohibitNextDelta;  // disallow delta on next log
 
     public BIN() {
-        cursorSet = new TinyHashSet();
+        cursorSet = new TinyHashSet<CursorImpl>();
         numDeltasSinceLastFull = 0;
         prohibitNextDelta = false;
     }
@@ -67,18 +69,18 @@ public class BIN extends IN implements Loggable {
 	       int level) {
         super(db, identifierKey, maxEntriesPerNode, level);
 
-        cursorSet = new TinyHashSet();
+        cursorSet = new TinyHashSet<CursorImpl>();
         numDeltasSinceLastFull = 0;
         prohibitNextDelta = false;
     }
 
     /**
-     * Create a holder object that encapsulates information about this
-     * BIN for the INCompressor.
+     * Create a holder object that encapsulates information about this BIN for
+     * the INCompressor.
      */
     public BINReference createReference() {
       return new BINReference(getNodeId(), getDatabase().getId(),
-                                getIdentifierKey());
+			      getIdentifierKey());
     }
 
     /**
@@ -101,9 +103,9 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * Get the key (dupe or identifier) in child that is used to locate
-     * it in 'this' node.  For BIN's, the child node has to be a DIN
-     * so we use the Dup Key to cross the main-tree/dupe-tree boundary.
+     * Get the key (dupe or identifier) in child that is used to locate it in
+     * 'this' node.  For BIN's, the child node has to be a DIN so we use the
+     * Dup Key to cross the main-tree/dupe-tree boundary.
      */
     public byte[] getChildKey(IN child)
         throws DatabaseException {
@@ -128,17 +130,17 @@ public class BIN extends IN implements Loggable {
 
     /**
      * If cleaned or compressed, must log full version.
-     * @Override
      */
+    @Override
     public void setProhibitNextDelta() {
         prohibitNextDelta = true;
     }
 
     /*
      * If this search can go further, return the child. If it can't, and you
-     * are a possible new parent to this child, return this IN. If the
-     * search can't go further and this IN can't be a parent to this child,
-     * return null.
+     * are a possible new parent to this child, return this IN. If the search
+     * can't go further and this IN can't be a parent to this child, return
+     * null.
      */
     protected void descendOnParentSearch(SearchResult result,
                                          boolean targetContainsDuplicates,
@@ -185,6 +187,7 @@ public class BIN extends IN implements Loggable {
                 result.parent = (IN) child;
             }
         } else {
+
             /*
              * Our search ends, we didn't find it. If we need an exact match,
              * give up, if we only need a potential match, keep this node
@@ -211,15 +214,21 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * @Override
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
+    @Override
     boolean isEvictionProhibited() {
         return (nCursors() > 0);
     }
 
     /**
-     * @Override
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
+    @Override
     boolean hasPinnedChildren() {
 
 	DatabaseImpl db = getDatabase();
@@ -259,8 +268,11 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * @Override
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
+    @Override
     int getChildEvictionType() {
 
         Cleaner cleaner = getDatabase().getDbEnvironment().getCleaner();
@@ -300,17 +312,16 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * Indicates whether entry 0's key is "special" in that it always
-     * compares less than any other key.  BIN's don't have the special
-     * key, but IN's do.
+     * Indicates whether entry 0's key is "special" in that it always compares
+     * less than any other key.  BIN's don't have the special key, but IN's do.
      */
     boolean entryZeroKeyComparesLow() {
         return false;
     }
 
     /**
-     * Mark this entry as deleted, using the delete flag. Only BINS
-     * may do this.
+     * Mark this entry as deleted, using the delete flag. Only BINS may do
+     * this.
      *
      * @param index indicates target entry
      */
@@ -322,19 +333,27 @@ public class BIN extends IN implements Loggable {
          * migration is never needed for known deleted entries either.
          */
         super.setKnownDeleted(index);
-        updateMemorySize(getTarget(index), null);
+        
+        /* 
+         * We know it's an LN because we never call setKnownDeleted for
+         * an IN.
+         */
+        LN oldLN = (LN) getTarget(index);
+        updateMemorySize(oldLN, null /* newNode */);
+        if (oldLN != null) {
+            oldLN.releaseMemoryBudget();
+        }
         setMigrate(index, false);
         super.setTarget(index, null);
         setDirty(true);
     }
 
     /**
-     * Mark this entry as deleted, using the delete flag. Only BINS
-     * may do this.  Don't null the target field.
+     * Mark this entry as deleted, using the delete flag. Only BINS may do
+     * this.  Don't null the target field.
      *
-     * This is used so that an LN can still be locked by the compressor
-     * even if the entry is knownDeleted.
-     * See BIN.compress.
+     * This is used so that an LN can still be locked by the compressor even if
+     * the entry is knownDeleted.  See BIN.compress.
      *
      * @param index indicates target entry
      */
@@ -374,17 +393,40 @@ public class BIN extends IN implements Loggable {
         return mb.getBINOverhead();
     }
 
+    /**
+     * Returns the treeAdmin memory in objects referenced by this BIN.
+     * Specifically, this refers to the DbFileSummaryMap held by
+     * MapLNs
+     */
+    @Override
+    public long getTreeAdminMemorySize() {
+        
+        if (getDatabase().getId().equals(DbTree.ID_DB_ID)) {
+            long treeAdminMem = 0;
+            for (int i = 0; i < getMaxEntries(); i++) {
+                Node n = getTarget(i);
+                if (n != null) {
+                    MapLN mapLN = (MapLN) n;
+                    treeAdminMem += mapLN.getDatabase().getTreeAdminMemory();
+                }
+            } 
+            return treeAdminMem;
+        } else {
+            return 0;
+        }
+    }    
+
     /*
      * Cursors
      */
 
     /* public for the test suite. */
-    public Set getCursorSet() {
+    public Set<CursorImpl> getCursorSet() {
         return cursorSet.copy();
     }
 
     /**
-     * Register a cursor with this bin.  Caller has this bin already latched.
+     * Register a cursor with this BIN.  Caller has this BIN already latched.
      * @param cursor Cursor to register.
      */
     public void addCursor(CursorImpl cursor) {
@@ -393,7 +435,7 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * Unregister a cursor with this bin.  Caller has this bin already
+     * Unregister a cursor with this bin.  Caller has this BIN already
      * latched.
      *
      * @param cursor Cursor to unregister.
@@ -411,11 +453,10 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * The following four methods access the correct fields in a
-     * cursor depending on whether "this" is a BIN or DBIN.  For
-     * BIN's, the CursorImpl.index and CursorImpl.bin fields should be
-     * used.  For DBIN's, the CursorImpl.dupIndex and CursorImpl.dupBin
-     * fields should be used.
+     * The following four methods access the correct fields in a cursor
+     * depending on whether "this" is a BIN or DBIN.  For BIN's, the
+     * CursorImpl.index and CursorImpl.bin fields should be used.  For DBIN's,
+     * the CursorImpl.dupIndex and CursorImpl.dupBin fields should be used.
      */
     BIN getCursorBIN(CursorImpl cursor) {
         return cursor.getBIN();
@@ -438,14 +479,17 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * Called when we know we are about to split on behalf of a key
-     * that is the minimum (leftSide) or maximum (!leftSide) of this
-     * node.  This is achieved by just forcing the split to occur
-     * either one element in from the left or the right
-     * (i.e. splitIndex is 1 or nEntries - 1).
+     * Called when we know we are about to split on behalf of a key that is the
+     * minimum (leftSide) or maximum (!leftSide) of this node.  This is
+     * achieved by just forcing the split to occur either one element in from
+     * the left or the right (i.e. splitIndex is 1 or nEntries - 1).
      */
-    void splitSpecial(IN parent, int parentIndex, int maxEntriesPerNode,
-		      byte[] key, boolean leftSide)
+    void splitSpecial(IN parent,
+                      int parentIndex,
+                      int maxEntriesPerNode,
+		      byte[] key,
+                      boolean leftSide,
+                      CacheMode cacheMode)
 	throws DatabaseException {
 
 	int index = findEntry(key, true, false);
@@ -454,22 +498,23 @@ public class BIN extends IN implements Loggable {
 	index &= ~IN.EXACT_MATCH;
 	if (leftSide &&
 	    index < 0) {
-	    splitInternal(parent, parentIndex, maxEntriesPerNode, 1);
+	    splitInternal(parent, parentIndex, maxEntriesPerNode,
+                          1, cacheMode);
 	} else if (!leftSide &&
 		   !exact &&
 		   index == (nEntries - 1)) {
 	    splitInternal(parent, parentIndex, maxEntriesPerNode,
-			  nEntries - 1);
+			  nEntries - 1, cacheMode);
 	} else {
-	    split(parent, parentIndex, maxEntriesPerNode);
+	    split(parent, parentIndex, maxEntriesPerNode, cacheMode);
 	}
     }
 
     /**
-     * Adjust any cursors that are referring to this BIN.  This method
-     * is called during a split operation.  "this" is the BIN being split.
-     * newSibling is the new BIN into which the entries from "this"
-     * between newSiblingLow and newSiblingHigh have been copied.
+     * Adjust any cursors that are referring to this BIN.  This method is
+     * called during a split operation.  "this" is the BIN being split.
+     * newSibling is the new BIN into which the entries from "this" between
+     * newSiblingLow and newSiblingHigh have been copied.
      *
      * @param newSibling - the newSibling into which "this" has been split.
      * @param newSiblingLow, newSiblingHigh - the low and high entry of
@@ -481,9 +526,9 @@ public class BIN extends IN implements Loggable {
         assert newSibling.isLatchOwnerForWrite();
         assert this.isLatchOwnerForWrite();
         int adjustmentDelta = (newSiblingHigh - newSiblingLow);
-        Iterator iter = cursorSet.iterator();
+        Iterator<CursorImpl> iter = cursorSet.iterator();
         while (iter.hasNext()) {
-            CursorImpl cursor = (CursorImpl) iter.next();
+            CursorImpl cursor = iter.next();
             if (getCursorBINToBeRemoved(cursor) == this) {
 
                 /*
@@ -501,22 +546,21 @@ public class BIN extends IN implements Loggable {
 
             /*
              * There are four cases to consider for cursor adjustments,
-             * depending on (1) how the existing node gets split, and
-             * (2) where the cursor points to currently.
-             * In cases 1 and 2, the id key of the node being split is
-             * to the right of the splitindex so the new sibling gets
-             * the node entries to the left of that index.  This is
-             * indicated by "new sibling" to the left of the vertical
-             * split line below.  The right side of the node contains
-             * entries that will remain in the existing node (although
-             * they've been shifted to the left).  The vertical bar (^)
-             * indicates where the cursor currently points.
+             * depending on (1) how the existing node gets split, and (2) where
+             * the cursor points to currently.  In cases 1 and 2, the id key of
+             * the node being split is to the right of the splitindex so the
+             * new sibling gets the node entries to the left of that index.
+             * This is indicated by "new sibling" to the left of the vertical
+             * split line below.  The right side of the node contains entries
+             * that will remain in the existing node (although they've been
+             * shifted to the left).  The vertical bar (^) indicates where the
+             * cursor currently points.
              *
              * case 1:
              *
-             *   We need to set the cursor's "bin" reference to point
-             *   at the new sibling, but we don't need to adjust its
-             *   index since that continues to be correct post-split.
+             *   We need to set the cursor's "bin" reference to point at the
+             *   new sibling, but we don't need to adjust its index since that
+             *   continues to be correct post-split.
              *
              *   +=======================================+
              *   |  new sibling        |  existing node  |
@@ -525,8 +569,8 @@ public class BIN extends IN implements Loggable {
              *
              * case 2:
              *
-             *   We only need to adjust the cursor's index since it
-             *   continues to point to the current BIN post-split.
+             *   We only need to adjust the cursor's index since it continues
+             *   to point to the current BIN post-split.
              *
              *   +=======================================+
              *   |  new sibling        |  existing node  |
@@ -535,8 +579,8 @@ public class BIN extends IN implements Loggable {
              *
              * case 3:
              *
-             *   Do nothing.  The cursor continues to point at the
-             *   correct BIN and index.
+             *   Do nothing.  The cursor continues to point at the correct BIN
+             *   and index.
              *
              *   +=======================================+
              *   |  existing Node        |  new sibling  |
@@ -545,8 +589,8 @@ public class BIN extends IN implements Loggable {
              *
              * case 4:
              *
-             *   Adjust the "bin" pointer to point at the new sibling BIN
-             *   and also adjust the index.
+             *   Adjust the "bin" pointer to point at the new sibling BIN and
+             *   also adjust the index.
              *
              *   +=======================================+
              *   |  existing Node        |  new sibling  |
@@ -577,14 +621,14 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * For each cursor in this BIN's cursor set, ensure that the
-     * cursor is actually referring to this BIN.
+     * For each cursor in this BIN's cursor set, ensure that the cursor is
+     * actually referring to this BIN.
      */
     public void verifyCursors() {
         if (cursorSet != null) {
-            Iterator iter = cursorSet.iterator();
+            Iterator<CursorImpl> iter = cursorSet.iterator();
             while (iter.hasNext()) {
-                CursorImpl cursor = (CursorImpl) iter.next();
+                CursorImpl cursor = iter.next();
                 if (getCursorBINToBeRemoved(cursor) != this) {
                     BIN cBin = getCursorBIN(cursor);
                     assert cBin == this;
@@ -603,9 +647,9 @@ public class BIN extends IN implements Loggable {
         /* cursorSet may be null if this is being created through
            createFromLog() */
         if (cursorSet != null) {
-            Iterator iter = cursorSet.iterator();
+            Iterator<CursorImpl> iter = cursorSet.iterator();
             while (iter.hasNext()) {
-                CursorImpl cursor = (CursorImpl) iter.next();
+                CursorImpl cursor = iter.next();
                 if (getCursorBINToBeRemoved(cursor) != this) {
                     int cIdx = getCursorIndex(cursor);
                     if (insertIndex <= cIdx) {
@@ -639,9 +683,9 @@ public class BIN extends IN implements Loggable {
         /* cursorSet may be null if this is being created through
            createFromLog() */
         if (cursorSet != null) {
-            Iterator iter = cursorSet.iterator();
+            Iterator<CursorImpl> iter = cursorSet.iterator();
             while (iter.hasNext()) {
-                CursorImpl cursor = (CursorImpl) iter.next();
+                CursorImpl cursor = iter.next();
                 if (getCursorBINToBeRemoved(cursor) != this &&
                     cursor != excludeCursor &&
                     cursor.getIndex() == binIndex) {
@@ -656,14 +700,15 @@ public class BIN extends IN implements Loggable {
     /**
      * Compress this BIN by removing any entries that are deleted.  Deleted
      * entries are those that have LN's marked deleted or if the knownDeleted
-     * flag is set. Caller is responsible for latching and unlatching
-     * this node.
+     * flag is set. Caller is responsible for latching and unlatching this
+     * node.
      *
      * @param binRef is used to determine the set of keys to be checked for
      * deletedness, or is null to check all keys.
+     *
      * @param canFetch if false, don't fetch any non-resident children. We
-     * don't want some callers of compress, such as the evictor, to fault
-     * in other nodes.
+     * don't want some callers of compress, such as the evictor, to fault in
+     * other nodes.
      *
      * @return true if we had to requeue the entry because we were unable to
      * get locks, false if all entries were processed and therefore any
@@ -672,7 +717,7 @@ public class BIN extends IN implements Loggable {
      */
     public boolean compress(BINReference binRef,
                             boolean canFetch,
-                            UtilizationTracker tracker)
+                            LocalUtilizationTracker localTracker)
         throws DatabaseException {
 
         boolean ret = false;
@@ -680,7 +725,7 @@ public class BIN extends IN implements Loggable {
         boolean anyLocksDenied = false;
 	DatabaseImpl db = getDatabase();
         EnvironmentImpl envImpl = db.getDbEnvironment();
-        BasicLocker lockingTxn = new BasicLocker(envImpl);
+        BasicLocker lockingTxn = BasicLocker.createBasicLocker(envImpl);
 
         try {
             for (int i = 0; i < getNEntries(); i++) {
@@ -711,10 +756,10 @@ public class BIN extends IN implements Loggable {
                     binRef.hasDeletedKey(new Key(getKey(i)))) {
 
                     if (canFetch) {
-			if (db.isDeferredWrite() &&
+			if (db.isDeferredWriteMode() &&
 			    getLsn(i) == DbLsn.NULL_LSN) {
 			    /* Null LSNs are ok in DW. [#15588] */
-                            n = getTarget(i);
+			    n = getTarget(i);
 			} else {
 			    n = fetchTarget(i);
 			}
@@ -777,24 +822,17 @@ public class BIN extends IN implements Loggable {
 
                     /*
                      * When deleting a deferred-write LN entry, we count the
-                     * last logged LSN as obsolete.  Use inexact counting when
-                     * je.deferredWrite.temp=false, because we cannot guarantee
-                     * obsoleteness until the parent tree is flushed. [#15365]
+                     * last logged LSN as obsolete.
                      */
-                    if (tracker != null &&
-                        db.isDeferredWrite() &&
+                    if (localTracker != null &&
+                        db.isDeferredWriteMode() &&
                         n instanceof LN) {
                         LN ln = (LN) n;
                         long lsn = getLsn(i);
                         if (ln.isDirty() && lsn != DbLsn.NULL_LSN) {
-                            int obsoleteSize = ln.getLastLoggedSize();
-                            if (envImpl.getDeferredWriteTemp()) {
-                                tracker.countObsoleteNode
-                                    (lsn, null, obsoleteSize);
-                            } else {
-                                tracker.countObsoleteNodeInexact
-                                    (lsn, null, obsoleteSize);
-                            }
+                            localTracker.countObsoleteNode
+                                (lsn, ln.getLogType(), ln.getLastLoggedSize(),
+                                 db);
                         }
                     }
 
@@ -836,11 +874,11 @@ public class BIN extends IN implements Loggable {
     }
 
     /**
-     * Reduce memory consumption by evicting all LN targets. Note that
-     * this may cause LNs to be logged, which would require marking this
-     * BIN dirty.
+     * Reduce memory consumption by evicting all LN targets. Note that this may
+     * cause LNs to be logged, which would require marking this BIN dirty.
      *
      * The BIN should be latched by the caller.
+     *
      * @return number of evicted bytes. Note that a 0 return does not
      * necessarily mean that the BIN had no evictable LNs. It's possible that
      * resident, dirty LNs were not lockable.
@@ -855,12 +893,11 @@ public class BIN extends IN implements Loggable {
 
         /*
          * We can't evict an LN which is pointed to by a cursor, in case that
-         * cursor has a reference to the LN object. We'll take the cheap
-         * choice and avoid evicting any LNs if there are cursors on this
-         * BIN. We could do a more expensive, precise check to see entries
-         * have which cursors. (We'd have to be careful to use the right
-         * field, index vs dupIndex). This is something we might move to
-         * later.
+         * cursor has a reference to the LN object. We'll take the cheap choice
+         * and avoid evicting any LNs if there are cursors on this BIN. We
+         * could do a more expensive, precise check to see entries have which
+         * cursors. (We'd have to be careful to use the right field, index vs
+         * dupIndex). This is something we might move to later.
          */
         long removed = 0;
         if (nCursors() == 0) {
@@ -907,13 +944,14 @@ public class BIN extends IN implements Loggable {
             if (ln.isEvictable() &&
                 cleaner.isEvictable(this, index)) {
 
-                boolean force = getDatabase().isDeferredWrite() &&
+                boolean force = getDatabase().isDeferredWriteMode() &&
                     getLsn(index) == DbLsn.NULL_LSN;
                 /* Log target if necessary. */
                 logDirtyLN(index, (LN) n, force);
 
                 /* Clear target. */
                 setTarget(index, null);
+                ln.releaseMemoryBudget();
 
                 return n.getMemorySizeIncludedByParent();
             }
@@ -929,34 +967,24 @@ public class BIN extends IN implements Loggable {
 
         if (ln.isDirty() || force) {
             DatabaseImpl dbImpl = getDatabase();
-            EnvironmentImpl envImpl = dbImpl.getDbEnvironment();
 
             /* Only deferred write databases should have dirty LNs. */
-            assert dbImpl.isDeferredWrite();
+            assert dbImpl.isDeferredWriteMode();
 
             /* Log the LN with the main tree key. */
             byte[] key = containsDuplicates() ? getDupKey() : getKey(index);
 
             /*
-             * Get the old LSN to be counted as obsolete during logging of a
-             * dirty deferred-write LN.  If there is no old LSN, NULL_LSN is
-             * returned.  If je.deferredWrite.temp=false, return the file
-             * number with a zero offset so that inexact counting is used; we
-             * cannot guarantee obsoleteness until the parent tree is flushed.
-             * [#15365]
+             * No need to lock, this is non-txnal. This should never be part
+             * othe replication stream, because this is a deferred write db.
              */
-            long obsoleteLsn = getLsn(index);
-            if (obsoleteLsn != DbLsn.NULL_LSN) {
-                if (!envImpl.getDeferredWriteTemp()) {
-                    obsoleteLsn = DbLsn.makeLsn
-                        (DbLsn.getFileNumber(obsoleteLsn), 0);
-                }
-            }
-
-            /* No need to lock, this is non-txnal. */
-            long lsn = ln.logUpdateMemUsage
-                (dbImpl, key, obsoleteLsn, null /*locker*/, this,
-                 true /*backgroundIO*/);
+            long lsn = ln.log(dbImpl.getDbEnvironment(),
+                              dbImpl,
+                              key,
+                              getLsn(index), // obsoleteLsn
+                              null,          // locker
+                              true,          // backgroundIO
+                              ReplicationContext.NO_REPLICATE);
             updateEntry(index, lsn);
         }
     }
@@ -1025,15 +1053,15 @@ public class BIN extends IN implements Loggable {
      * DbStat support.
      */
     void accumulateStats(TreeWalkerStatsAccumulator acc) {
-	acc.processBIN(this, new Long(getNodeId()), getLevel());
+	acc.processBIN(this, Long.valueOf(getNodeId()), getLevel());
     }
 
     /**
-     * Return the relevant user defined comparison function for this
-     * type of node.  For IN's and BIN's, this is the BTree Comparison
-     * function.  Overriden by DBIN.
+     * Return the relevant user defined comparison function for this type of
+     * node.  For IN's and BIN's, this is the BTree Comparison function.
+     * Overriden by DBIN.
      */
-    public Comparator getKeyComparator() {
+    public Comparator<byte[]> getKeyComparator() {
         return getDatabase().getBtreeComparator();
     }
 
@@ -1065,10 +1093,11 @@ public class BIN extends IN implements Loggable {
                     logDirtyLN(i, (LN) node, false);
                 } else {
                     DIN din = (DIN) node;
-                    din.latch(false);
+                    din.latch(CacheMode.UNCHANGED);
                     try {
                         if (din.getDirty()) {
                             din.logDirtyChildren();
+                            /* Logging the DIN will log the DupCountLN. */
                             long childLsn =
                                 din.log(envImpl.getLogManager(),
                                         false, // allow deltas
@@ -1097,27 +1126,20 @@ public class BIN extends IN implements Loggable {
         return "BIN";
     }
 
-    /**
-     * Decide how to log this node. BINs may be logged provisionally. If
-     * logging a delta, return an  null for the LSN.
-     */
-    protected long logInternal(LogManager logManager,
-			       boolean allowDeltas,
-			       boolean isProvisional,
-                               boolean proactiveMigration,
-                               boolean backgroundIO,
-                               IN parent)
+    @Override
+    public void beforeLog(LogManager logManager,
+                          INLogItem item,
+                          INLogContext context)
         throws DatabaseException {
 
-        boolean doDeltaLog = false;
-        long lastFullVersion = getLastFullVersion();
+        EnvironmentImpl envImpl = getDatabase().getDbEnvironment();
 
         /* Allow the cleaner to migrate LNs before logging. */
-        Cleaner cleaner = getDatabase().getDbEnvironment().getCleaner();
-        cleaner.lazyMigrateLNs(this, proactiveMigration, backgroundIO);
+        envImpl.getCleaner().lazyMigrateLNs
+            (this, context.proactiveMigration, context.backgroundIO);
 
         /* Check for dirty LNs in deferred-write databases. */
-        if (getDatabase().isDeferredWrite()) {
+        if (getDatabase().isDeferredWriteMode()) {
             logDirtyLNs(logManager);
         }
 
@@ -1130,49 +1152,54 @@ public class BIN extends IN implements Loggable {
          * - this is not a deferred write db
          * All other logging should be of the full version.
          */
+        boolean doDeltaLog = false;
         BINDelta deltaInfo = null;
-        if ((allowDeltas) &&
-            (lastFullVersion != DbLsn.NULL_LSN) &&
+        if (context.allowDeltas &&
+            getLastFullVersion() != DbLsn.NULL_LSN &&
             !prohibitNextDelta &&
-            !getDatabase().isDeferredWrite()) {
+            !getDatabase().isDeferredWriteMode()) {
             deltaInfo = new BINDelta(this);
             doDeltaLog = doDeltaLog(deltaInfo);
         }
 
-        long returnLsn = DbLsn.NULL_LSN;
         if (doDeltaLog) {
+            item.provisional = Provisional.NO;
+            item.oldLsn = DbLsn.NULL_LSN;
+            item.entry = new SingleItemEntry(getBINDeltaType(), deltaInfo);
+            item.isDelta = true;
+        } else {
+            /* Log a full version of the IN. */
+            super.beforeLog(logManager, item, context);
+        }
+    }
+
+    @Override
+    public void afterLog(LogManager logManager,
+                         INLogItem item,
+                         INLogContext context)
+        throws DatabaseException {
+
+        if (item.isDelta) {
 
             /*
              * Don't change the dirtiness of the node -- leave it dirty. Deltas
              * are never provisional, they must be processed at recovery time.
              */
-            lastDeltaVersion = logManager.log
-                (new SingleItemEntry(getBINDeltaType(), deltaInfo),
-                 false, // isProvisional
-                 backgroundIO,
-                 DbLsn.NULL_LSN,
-                 0);
-            returnLsn = DbLsn.NULL_LSN;
+            lastDeltaVersion = item.newLsn;
+            item.newLsn = DbLsn.NULL_LSN;
             numDeltasSinceLastFull++;
         } else {
-            /* Log a full version of the IN. */
-            returnLsn = super.logInternal
-                (logManager, allowDeltas, isProvisional, proactiveMigration,
-                 backgroundIO, parent);
+            super.afterLog(logManager, item, context);
             lastDeltaVersion = DbLsn.NULL_LSN;
             numDeltasSinceLastFull = 0;
         }
         prohibitNextDelta = false;
-
-        return returnLsn;
     }
 
     private void logDirtyLNs(LogManager logManager)
         throws DatabaseException {
 
-        DatabaseId dbId = getDatabase().getId();
-        EnvironmentImpl envImpl = getDatabase().getDbEnvironment();
-	boolean isDeferredWrite = getDatabase().isDeferredWrite();
+	boolean isDeferredWrite = getDatabase().isDeferredWriteMode();
 
         for (int i = 0; i < getNEntries(); i++) {
             Node node = getTarget(i);
@@ -1185,8 +1212,8 @@ public class BIN extends IN implements Loggable {
 
     /**
      * Decide whether to log a full or partial BIN, depending on the ratio of
-     * the delta size to full BIN size, and the number of deltas that
-     * have been logged since the last full.
+     * the delta size to full BIN size, and the number of deltas that have been
+     * logged since the last full.
      *
      * @return true if we should log the deltas of this BIN
      */

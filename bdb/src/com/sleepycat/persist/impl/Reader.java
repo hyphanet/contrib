@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Reader.java,v 1.3.2.2 2007/11/03 02:44:53 mark Exp $
+ * $Id: Reader.java,v 1.6 2008/01/07 14:28:59 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;

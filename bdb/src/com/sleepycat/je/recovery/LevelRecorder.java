@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LevelRecorder.java,v 1.3.2.2 2007/11/20 13:32:33 cwl Exp $
+ * $Id: LevelRecorder.java,v 1.7 2008/05/15 01:52:42 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -71,11 +71,10 @@ import com.sleepycat.je.dbi.DatabaseId;
  */
 class LevelRecorder {
 
-    /* Map of DatabaseId->LevelInfo */
-    private Map dbLevels;
+    private Map<DatabaseId,LevelInfo> dbLevels;
 
     LevelRecorder() {
-        dbLevels = new HashMap();
+        dbLevels = new HashMap<DatabaseId,LevelInfo>();
     }
 
     /*
@@ -83,7 +82,7 @@ class LevelRecorder {
      * lowest.
      */
     void record(DatabaseId dbId, int level) {
-        LevelInfo info =(LevelInfo) dbLevels.get(dbId);
+        LevelInfo info = dbLevels.get(dbId);
         if (info == null) {
             info = new LevelInfo();
             dbLevels.put(dbId, info);
@@ -95,13 +94,13 @@ class LevelRecorder {
      * Get the set of databases that were logged non-provisionally with
      * different levels in the ckpt set. These databases must be redone.
      */
-    Set getDbsWithDifferentLevels() {
-        Set reprocessDbs = new HashSet();
-        Set entries = dbLevels.entrySet();
-        Iterator iter = entries.iterator();
+    Set<DatabaseId> getDbsWithDifferentLevels() {
+        Set<DatabaseId> reprocessDbs = new HashSet<DatabaseId>();
+        Iterator<Map.Entry<DatabaseId,LevelInfo>> iter = 
+            dbLevels.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry oneEntry = (Map.Entry) iter.next();
-            LevelInfo levelInfo = (LevelInfo)oneEntry.getValue();
+            Map.Entry<DatabaseId,LevelInfo> oneEntry = iter.next();
+            LevelInfo levelInfo = oneEntry.getValue();
             if (levelInfo.getDifferenceSeen()) {
                 reprocessDbs.add(oneEntry.getKey());
             }

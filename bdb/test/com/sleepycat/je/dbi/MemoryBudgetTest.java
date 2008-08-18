@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudgetTest.java,v 1.15.2.2 2007/11/20 13:32:44 cwl Exp $
+ * $Id: MemoryBudgetTest.java,v 1.19 2008/01/07 14:29:06 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -52,28 +52,15 @@ public class MemoryBudgetTest extends TestCase {
 
 	/*
         System.out.println("max=    " + testBudget.getMaxMemory());
-        System.out.println("tree=   " + testBudget.getCacheBudget());
         System.out.println("log=    " + testBudget.getLogBufferBudget());
         System.out.println("thresh= " + testBudget.getEvictorCheckThreshold());
 	*/
 
         assertTrue(testBudget.getMaxMemory() > 0);
-        assertTrue(testBudget.getCacheBudget() > 0);
         assertTrue(testBudget.getLogBufferBudget() > 0);
 
         assertTrue(testBudget.getMaxMemory() <=
                    MemoryBudget.getRuntimeMaxMemory());
-        assertTrue((testBudget.getLogBufferBudget() +
-                    testBudget.getCacheBudget()) <=
-                    testBudget.getMaxMemory());
-
-        /*
-         * The tree and log buffer budget together is equal to
-         * the max memory budget.
-         */
-        assertEquals((testBudget.getCacheBudget() +
-                      testBudget.getLogBufferBudget()),
-                      testBudget.getMaxMemory());
 
         env.close();
     }

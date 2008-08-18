@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TruncateAndRemoveTest.java,v 1.18.2.3 2007/11/20 13:32:42 cwl Exp $
+ * $Id: TruncateAndRemoveTest.java,v 1.29 2008/03/27 17:06:38 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -32,6 +32,7 @@ import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.junit.JUnitThread;
 import com.sleepycat.je.log.DumpFileReader;
 import com.sleepycat.je.log.FileManager;
@@ -43,6 +44,9 @@ import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.TestHook;
 
+/**
+ * Test cleaning and utilization counting for database truncate and remove.
+ */
 public class TruncateAndRemoveTest extends TestCase {
 
     private static final String DB_NAME1 = "foo";
@@ -59,10 +63,12 @@ public class TruncateAndRemoveTest extends TestCase {
 
     private File envHome;
     private Environment env;
+    private EnvironmentImpl envImpl;
     private Database db;
     private DatabaseImpl dbImpl;
     private JUnitThread junitThread;
     private boolean fetchObsoleteSize;
+    private boolean truncateOrRemoveDone;
     private boolean dbEviction;
 
     public TruncateAndRemoveTest() {
@@ -107,6 +113,7 @@ public class TruncateAndRemoveTest extends TestCase {
         db = null;
         dbImpl = null;
         env = null;
+        envImpl = null;
         envHome = null;
     }
 
@@ -148,6 +155,7 @@ public class TruncateAndRemoveTest extends TestCase {
         }
 
         env = new Environment(envHome, config);
+        envImpl = DbInternal.envGetEnvironmentImpl(env);
 
         config = env.getConfig();
         dbEviction = config.getConfigParam
@@ -192,6 +200,7 @@ public class TruncateAndRemoveTest extends TestCase {
         if (env != null) {
             env.close();
             env = null;
+            envImpl = null;
         }
     }
 
@@ -212,6 +221,7 @@ public class TruncateAndRemoveTest extends TestCase {
         truncate(txn, true);
         ObsoleteCounts beforeCommit = getObsoleteCounts();
         txn.commit();
+        truncateOrRemoveDone = true;
 
         /* Make sure use count is decremented when we commit. */
         assertDbInUse(saveDb, false);
@@ -291,6 +301,14 @@ public class TruncateAndRemoveTest extends TestCase {
         ObsoleteCounts beforeAbort = getObsoleteCounts();
         txn.abort();
 
+        /*
+         * We set truncateOrRemoveDone to true (meaning that per-DB utilization
+         * will not be verified) even though the txn was aborted because the
+         * discarded new DatabaseImpl will not be counted yet includes INs and
+         * LNs from the operations above.
+         */
+        truncateOrRemoveDone = true;
+
         /* Make sure use count is decremented when we abort. */
         assertDbInUse(saveDb, false);
         openDb(null, DB_NAME1);
@@ -315,7 +333,6 @@ public class TruncateAndRemoveTest extends TestCase {
         closeEnv();
         batchCleanAndVerify(saveId);
     }
-
     /**
      * Test that remove generates the right number of obsolete LNs.
      */
@@ -333,6 +350,7 @@ public class TruncateAndRemoveTest extends TestCase {
         env.removeDatabase(txn, DB_NAME1);
         ObsoleteCounts beforeCommit = getObsoleteCounts();
         txn.commit();
+        truncateOrRemoveDone = true;
 
         /* Make sure use count is decremented when we commit. */
         assertDbInUse(saveDb, false);
@@ -363,6 +381,7 @@ public class TruncateAndRemoveTest extends TestCase {
         closeDb();
         ObsoleteCounts beforeOperation = getObsoleteCounts();
         env.removeDatabase(null, DB_NAME1);
+        truncateOrRemoveDone = true;
 
         /* Make sure use count is decremented. */
         assertDbInUse(saveDb, false);
@@ -459,13 +478,13 @@ public class TruncateAndRemoveTest extends TestCase {
         env.removeDatabase(txn, DB_NAME1);
         ObsoleteCounts beforeCommit = getObsoleteCounts();
         txn.commit();
+        truncateOrRemoveDone = true;
 
         verifyUtilization(beforeCommit,
                           /* LNs + old NameLN, old MapLN, delete MapLN */
                           RECORD_COUNT + 3,
-                          /* 15 IN for data tree,
-                             2 for re-logged INs */
-                          15 + 2,
+                          /* 15 INs for data tree */
+                          15,
                           true);
 
         /* check record count. */
@@ -517,6 +536,7 @@ public class TruncateAndRemoveTest extends TestCase {
         env.removeDatabase(txn, DB_NAME1);
         ObsoleteCounts beforeCommit = getObsoleteCounts();
         txn.commit();
+        truncateOrRemoveDone = true;
 
         /* Make sure use count is decremented when we commit. */
         assertDbInUse(saveDb, false);
@@ -524,8 +544,8 @@ public class TruncateAndRemoveTest extends TestCase {
         verifyUtilization(beforeCommit,
                           /* LNs + old NameLN, old MapLN, delete MapLN */
                           RECORD_COUNT + 3,
-                          /* 15 IN for data tree, 2 for file summary db */
-                          15 + 2,
+                          /* 15 INs for data tree */
+                          15,
                           true);
 
         /* check record count. */
@@ -543,20 +563,20 @@ public class TruncateAndRemoveTest extends TestCase {
     public void testDBPendingDeletion()
         throws DatabaseException, InterruptedException {
 
-        doDBPendingTest(RECORD_COUNT, false /*deleteAll*/, 7);
+        doDBPendingTest(RECORD_COUNT + 30, false /*deleteAll*/, 5);
     }
 
     /**
      * Like testDBPendingDeletion but creates a scenario where only a single
      * log file is cleaned, and that log file contains only known obsolete
-     * log entries.  This reproduced a bug where we neglected to adding
-     * pending deleted DBs to the cleaner's pending DB set if all entries in
-     * the log file were known obsoleted. [#13333]
+     * log entries.  This reproduced a bug where we neglected to add pending
+     * deleted DBs to the cleaner's pending DB set if all entries in the log
+     * file were known obsoleted. [#13333]
      */
     public void testObsoleteLogFile()
         throws DatabaseException, InterruptedException {
 
-        doDBPendingTest(40, true /*deleteAll*/, 1);
+        doDBPendingTest(70, true /*deleteAll*/, 1);
     }
 
     private void doDBPendingTest(long recordCount,
@@ -579,7 +599,7 @@ public class TruncateAndRemoveTest extends TestCase {
         assertDbInUse(saveDb, false);
 
         /* Make sure that we wrote a full file's worth of LNs. */
-        assertTrue(logFiles.size() >= 3);
+        assertTrue(logFiles.size() >= 2);
         assertTrue(logFilesExist(logFiles));
 
         /* Remove the database but do not commit yet. */
@@ -588,6 +608,7 @@ public class TruncateAndRemoveTest extends TestCase {
 
         /* The obsolete count should be <= 1 (for the NameLN). */
         obsoleteCounts = verifyUtilization(obsoleteCounts, 1, 0);
+        truncateOrRemoveDone = true;
 
         junitThread = new JUnitThread("Committer") {
             public void testBody()
@@ -608,10 +629,6 @@ public class TruncateAndRemoveTest extends TestCase {
         final Object lock = new Object();
 
         saveDb.setPendingDeletedHook(new TestHook() {
-            public void doIOHook()
-                throws IOException {
-                throw new UnsupportedOperationException();
-            }
             public void doHook() {
                 synchronized (lock) {
                     try {
@@ -624,7 +641,13 @@ public class TruncateAndRemoveTest extends TestCase {
                 }
             }
             public Object getHookValue() {
-        	return null;
+                throw new UnsupportedOperationException();
+            }
+            public void doIOHook() throws IOException {
+                throw new UnsupportedOperationException();
+            }
+            public void hookSetup() {
+                throw new UnsupportedOperationException();
             }
         });
 
@@ -673,6 +696,126 @@ public class TruncateAndRemoveTest extends TestCase {
         env.checkpoint(FORCE_CHECKPOINT);
         env.checkpoint(FORCE_CHECKPOINT);
         assertTrue(!logFilesExist(logFiles));
+    }
+
+    /*
+     * The xxxForceTreeWalk tests set the DatabaseImpl
+     * forceTreeWalkForTruncateAndRemove field to true, which will force a walk
+     * of the tree to count utilization during truncate/remove, rather than
+     * using the per-database info.  This is used to test the "old technique"
+     * for counting utilization, which is now used only if the database was
+     * created prior to log version 6.
+     */
+
+    public void testTruncateForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testTruncate();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testTruncateAbortForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testTruncateAbort();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testTruncateRepopulateAbortForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testTruncateRepopulateAbort();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testRemoveForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testRemove();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+
+    public void testNonTxnalRemoveForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testNonTxnalRemove();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testRemoveAbortForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testRemoveAbort();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testRemoveNotResidentForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testRemoveNotResident();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testRemovePartialResidentForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testRemovePartialResident();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testDBPendingDeletionForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testDBPendingDeletion();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testObsoleteLogFileForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testObsoleteLogFile();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
     }
 
     private void writeAndCountRecords(Transaction txn, long count)
@@ -750,8 +893,7 @@ public class TruncateAndRemoveTest extends TestCase {
     }
 
     /* Truncate database and check the count. */
-    private void truncate(Transaction useTxn,
-                          boolean getCount)
+    private void truncate(Transaction useTxn, boolean getCount)
         throws DatabaseException {
 
         long nTruncated = env.truncateDatabase(useTxn, DB_NAME1, getCount);
@@ -801,10 +943,9 @@ public class TruncateAndRemoveTest extends TestCase {
         throws DatabaseException {
 
         FileSummary[] files = (FileSummary[])
-            DbInternal.envGetEnvironmentImpl(env)
-                      .getUtilizationProfile()
-                      .getFileSummaryMap(true)
-                      .values().toArray(new FileSummary[0]);
+            envImpl.getUtilizationProfile()
+                   .getFileSummaryMap(true)
+                   .values().toArray(new FileSummary[0]);
         int lnCount = 0;
         int inCount = 0;
         int lnSize = 0;
@@ -861,12 +1002,14 @@ public class TruncateAndRemoveTest extends TestCase {
         throws DatabaseException {
 
         /*
-         * If all nodes are resident OR we have explicitly configured
-         * fetchObsoleteSize, then the size of every LN should have been
-         * counted.
+         * If we are not forcing a tree walk OR all nodes are resident OR we
+         * have explicitly configured fetchObsoleteSize, then the size of every
+         * LN should have been counted.
          */
         boolean expectAccurateObsoleteLNSize =
-            !expectNonResident || fetchObsoleteSize;
+            !DatabaseImpl.forceTreeWalkForTruncateAndRemove ||
+            !expectNonResident ||
+            fetchObsoleteSize;
 	
         ObsoleteCounts now = getObsoleteCounts();
         String beforeAndAfter = "before: " + prev + " now: " + now;
@@ -875,7 +1018,7 @@ public class TruncateAndRemoveTest extends TestCase {
         }
 
         assertEquals(beforeAndAfter, expectedLNs,
-                     now.obsoleteLNs - prev.obsoleteLNs);
+		     now.obsoleteLNs - prev.obsoleteLNs);
         if (expectedLNs > 0) {
             int size = now.obsoleteLNSize - prev.obsoleteLNSize;
             int counted = now.obsoleteLNSizeCounted -
@@ -884,7 +1027,7 @@ public class TruncateAndRemoveTest extends TestCase {
 
             if (expectAccurateObsoleteLNSize) {
                 assertEquals(beforeAndAfter, counted,
-                             now.obsoleteLNs - prev.obsoleteLNs);
+			     now.obsoleteLNs - prev.obsoleteLNs);
             }
         }
         if (expectedINs > 0) {
@@ -892,11 +1035,16 @@ public class TruncateAndRemoveTest extends TestCase {
                          now.obsoleteINs - prev.obsoleteINs);
         }
 
-        /* Verify utilization using UtilizationFileReader. */
-        CleanerTestUtils.verifyUtilization
-            (DbInternal.envGetEnvironmentImpl(env),
-             true, // expectAccurateObsoleteLNCount
-             expectAccurateObsoleteLNSize);
+        /*
+         * We pass expectAccurateDbUtilization as false when
+         * truncateOrRemoveDone, because the database utilization info for that
+         * database is now gone.
+         */
+        VerifyUtils.verifyUtilization
+            (envImpl,
+             true,                   // expectAccurateObsoleteLNCount
+             expectAccurateObsoleteLNSize,
+             !truncateOrRemoveDone); // expectAccurateDbUtilization
 
         return now;
     }
@@ -944,7 +1092,7 @@ public class TruncateAndRemoveTest extends TestCase {
          */
         openEnv(true);
         openDb(null, DB_NAME2);
-        long lsn = DbInternal.envGetEnvironmentImpl(env).forceLogFileFlip();
+        long lsn = envImpl.forceLogFileFlip();
         CheckpointConfig force = new CheckpointConfig();
         force.setForce(true);
         env.checkpoint(force);
@@ -955,7 +1103,7 @@ public class TruncateAndRemoveTest extends TestCase {
         closeDb();
 
         /* Check log files, there should be entries with this database. */
-        CheckReader checker = new CheckReader(env, dbId, true);
+        CheckReader checker = new CheckReader(envImpl, dbId, true);
         while (checker.readNextEntry()) {
         }
 
@@ -978,12 +1126,11 @@ public class TruncateAndRemoveTest extends TestCase {
         }
 
         /* Check log files, there should be no entries with this database. */
-        checker = new CheckReader(env, dbId, false);
+        checker = new CheckReader(envImpl, dbId, false);
         while (checker.readNextEntry()) {
         }
 
         closeEnv();
-
     }
 
     class CheckReader extends DumpFileReader{
@@ -998,11 +1145,12 @@ public class TruncateAndRemoveTest extends TestCase {
          * with this database id. If true, the log should have entries
          * with this database id.
          */
-        CheckReader(Environment env, DatabaseId dbId, boolean expectEntries)
+        CheckReader(EnvironmentImpl envImpl,
+                    DatabaseId dbId,
+                    boolean expectEntries)
             throws DatabaseException, IOException {
 
-            super(DbInternal.envGetEnvironmentImpl(env),
-        	  1000, DbLsn.NULL_LSN, DbLsn.NULL_LSN,
+            super(envImpl, 1000, DbLsn.NULL_LSN, DbLsn.NULL_LSN,
                   null, null, false);
             this.dbId = dbId;
             this.expectEntries = expectEntries;
@@ -1013,9 +1161,8 @@ public class TruncateAndRemoveTest extends TestCase {
 
             /* Figure out what kind of log entry this is */
             byte type = currentEntryHeader.getType();
-            byte version = currentEntryHeader.getVersion();
-            LogEntryType lastEntryType = LogEntryType.findType(type, version);
-            boolean isNode = LogEntryType.isNodeType(type, version);
+            LogEntryType lastEntryType = LogEntryType.findType(type);
+            boolean isNode = LogEntryType.isNodeType(type);
 
             /* Read the entry. */
             LogEntry entry = lastEntryType.getSharedLogEntry();

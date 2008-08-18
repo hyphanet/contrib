@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SubIndex.java,v 1.12.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: SubIndex.java,v 1.16 2008/02/05 23:28:21 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -14,6 +14,7 @@ import java.util.SortedMap;
 import com.sleepycat.bind.EntityBinding;
 import com.sleepycat.bind.EntryBinding;
 import com.sleepycat.collections.StoredSortedMap;
+import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.DatabaseEntry;
@@ -42,6 +43,8 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
     private SecondaryIndex<?,PK,E> secIndex;
     private SecondaryDatabase db;
     private boolean transactional;
+    private boolean sortedDups;
+    private boolean locking;
     private DatabaseEntry keyEntry;
     private Object keyObject;
     private KeyRange singleKeyRange;
@@ -54,11 +57,15 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
 
     <SK> SubIndex(SecondaryIndex<SK,PK,E> secIndex,
                   EntityBinding entityBinding,
-                  SK key) {
+                  SK key)
+        throws DatabaseException {
 
         this.secIndex = secIndex;
         db = secIndex.getDatabase();
         transactional = secIndex.transactional;
+        sortedDups = secIndex.sortedDups;
+        locking =
+            DbCompat.getInitializeLocking(db.getEnvironment().getConfig());
 
         keyObject = key;
         keyEntry = new DatabaseEntry();
@@ -119,7 +126,9 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
     public long count()
         throws DatabaseException {
 
-        EntityCursor<PK> cursor = keys(null, CursorConfig.READ_UNCOMMITTED);
+        CursorConfig cursorConfig = locking ?
+            CursorConfig.READ_UNCOMMITTED : null;
+        EntityCursor<PK> cursor = keys(null, cursorConfig);
         try {
             if (cursor.next() != null) {
                 return cursor.count();
@@ -148,7 +157,7 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
 	Environment env = db.getEnvironment();
         if (transactional &&
 	    txn == null &&
-	    env.getThreadTransaction() == null) {
+	    DbCompat.getThreadTransaction(env) == null) {
             txn = env.beginTransaction(null, null);
             autoCommit = true;
         }
@@ -158,7 +167,8 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
         SecondaryCursor cursor = db.openSecondaryCursor(txn, null);
         try {
             status = cursor.getSearchBoth
-                (keyEntry, pkeyEntry, dataEntry, LockMode.RMW);
+                (keyEntry, pkeyEntry, dataEntry,
+                 locking ? LockMode.RMW : null);
             if (status == OperationStatus.SUCCESS) {
                 status = cursor.delete();
             }
@@ -308,7 +318,7 @@ class SubIndex<PK,E> implements EntityIndex<PK,E> {
 
         Cursor cursor = db.openCursor(txn, config);
         RangeCursor rangeCursor =
-            new RangeCursor(singleKeyRange, pkeyRange, cursor);
+            new RangeCursor(singleKeyRange, pkeyRange, sortedDups, cursor);
         return new SubIndexCursor<V>(rangeCursor, adapter);
     }
 

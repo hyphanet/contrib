@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SR12978Test.java,v 1.5.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: SR12978Test.java,v 1.10 2008/02/06 02:05:04 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -151,7 +151,7 @@ public class SR12978Test extends TestCase {
 
         open();
 
-        final int COUNT = 500;
+        final int COUNT = 800;
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
         OperationStatus status;

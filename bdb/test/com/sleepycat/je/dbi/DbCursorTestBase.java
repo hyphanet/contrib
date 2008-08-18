@@ -1,15 +1,16 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCursorTestBase.java,v 1.94.2.3 2007/11/20 13:32:44 cwl Exp $
+ * $Id: DbCursorTestBase.java,v 1.106 2008/05/30 14:04:20 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -17,6 +18,7 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
@@ -47,11 +49,12 @@ public class DbCursorTestBase extends TestCase {
     protected Database exampleDb;
     protected Environment exampleEnv;
     protected Hashtable simpleDataMap;
-    protected Comparator btreeComparisonFunction = null;
-    protected Comparator duplicateComparisonFunction = null;
+    protected Comparator<byte[]> btreeComparisonFunction = null;
+    protected Comparator<byte[]> duplicateComparisonFunction = null;
     protected StringDbt[] simpleKeys;
     protected StringDbt[] simpleData;
     protected boolean duplicatesAllowed;
+    protected boolean keyPrefixing;
 
     protected static final int N_KEY_BYTES = 10;
     protected static final int N_ITERS = 2;
@@ -64,13 +67,13 @@ public class DbCursorTestBase extends TestCase {
     protected static int dbCnt = 0;
 
     public DbCursorTestBase()
-    	throws DatabaseException {
+        throws DatabaseException {
 
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 
     public void setUp()
-	throws IOException, DatabaseException {
+        throws IOException, DatabaseException {
 
         TestUtils.removeLogFiles("Setup", envHome, false);
     }
@@ -78,22 +81,22 @@ public class DbCursorTestBase extends TestCase {
     protected void initEnv(boolean duplicatesAllowed)
         throws DatabaseException {
 
-	initEnvInternal(duplicatesAllowed, false);
+        initEnvInternal(duplicatesAllowed, false);
     }
 
     protected void initEnvTransactional(boolean duplicatesAllowed)
         throws DatabaseException {
 
-	initEnvInternal(duplicatesAllowed, true);
+        initEnvInternal(duplicatesAllowed, true);
     }
 
     private void initEnvInternal(boolean duplicatesAllowed,
-				 boolean transactionalDatabase)
-	throws DatabaseException {
+                                 boolean transactionalDatabase)
+        throws DatabaseException {
 
         this.duplicatesAllowed = duplicatesAllowed;
 
-        // Set up sample data
+        /* Set up sample data. */
         int nKeys = simpleKeyStrings.length;
         simpleKeys = new StringDbt[nKeys];
         simpleData = new StringDbt[nKeys];
@@ -102,108 +105,107 @@ public class DbCursorTestBase extends TestCase {
             simpleData[i] = new StringDbt(simpleDataStrings[i]);
         }
 
-        // Set up an environment
+        /* Set up an environment. */
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setTxnNoSync(Boolean.getBoolean(TestUtils.NO_SYNC));
         envConfig.setTransactional(true);
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
-	envConfig.setConfigParam(EnvironmentParams.MAX_MEMORY.getName(),
-				 new Long(1 << 24).toString());
+        envConfig.setConfigParam(EnvironmentParams.MAX_MEMORY.getName(),
+                                 new Long(1 << 24).toString());
         envConfig.setAllowCreate(true);
         exampleEnv = new Environment(envHome, envConfig);
 
-        // Set up a database
+        /* Set up a database. */
         String databaseName = "simpleDb" + dbCnt++;
         DatabaseConfig dbConfig = new DatabaseConfig();
-	if (btreeComparisonFunction != null) {
-	    dbConfig.setBtreeComparator(btreeComparisonFunction.getClass());
-	}
-	if (duplicateComparisonFunction != null) {
-	    dbConfig.setDuplicateComparator
-		(duplicateComparisonFunction.getClass());
-	}
+        if (btreeComparisonFunction != null) {
+            dbConfig.setBtreeComparator(btreeComparisonFunction);
+        }
+        if (duplicateComparisonFunction != null) {
+            dbConfig.setDuplicateComparator(duplicateComparisonFunction);
+        }
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(duplicatesAllowed);
 	dbConfig.setTransactional(transactionalDatabase);
+        dbConfig.setKeyPrefixing(keyPrefixing);
         exampleDb = exampleEnv.openDatabase(null, databaseName, dbConfig);
 
-        // Set up cursors
+        /* Set up cursors. */
         cursor = exampleDb.openCursor(null, null);
         cursor2 = exampleDb.openCursor(null, null);
         simpleDataMap = new Hashtable();
     }
 
-    public void tearDown()
-	throws IOException, DatabaseException {
+    void closeEnv() {
+        simpleKeys = null;
+        simpleData = null;
+        simpleDataMap = null;
 
-	simpleKeys = null;
-	simpleData = null;
-
-	try {
-	    if (cursor != null) {
-		cursor.close();
-		cursor = null;
-	    }
-	} catch (DatabaseException DBE) {
-	    /*
-	     * If already closed, well, that's life.  Just ignore it.
-	     * This is expected because some of the tests in this suite
-	     * call tearDown on their own.  Rather than add another method
-	     * (like Cursor.isClosed()), just catch and ignore the exception.
-	     */
-	}
-
-	try {
-	    if (cursor2 != null) {
-		cursor2.close();
-		cursor2 = null;
-	    }
-	} catch (DatabaseException DBE) {
-	    /* Same as above. */
-	}
-
-	if (exampleDb != null) {
-            try {
-                exampleDb.close();
-            } catch (Throwable e) {
-                System.out.println("tearDown: " + e);
+        try {
+            if (cursor != null) {
+                cursor.close();
+                cursor = null;
             }
-	    exampleDb = null;
-	}
-        if (exampleEnv != null) {
-	    try {
-		exampleEnv.close();
-	    } catch (DatabaseException DE) {
-		/*
-		 * Ignore this exception.  It's caused by us calling
-		 * tearDown() within the test.  Each tearDown() call
-		 * forces the database closed.  So when the call from
-		 * junit comes along, it's already closed.
-		 */
-	    }
-            exampleEnv = null;
+        } catch (DatabaseException ignore) {
         }
 
-	simpleDataMap = null;
+        try {
+            if (cursor2 != null) {
+                cursor2.close();
+                cursor2 = null;
+            }
+        } catch (DatabaseException ignore) {
+            /* Same as above. */
+        }
 
-	TestUtils.removeLogFiles("TearDown", envHome, false);
+
+        try {
+            if (exampleDb != null) {
+                exampleDb.close();
+                exampleDb = null;
+            }
+        } catch (Exception ignore) {
+        }
+
+        try {
+            if (exampleEnv != null) {
+                exampleEnv.close();
+                exampleEnv = null;
+            } 
+        } catch (Exception ignore) {
+
+            /*
+             * Ignore this exception.  It's caused by us calling
+             * tearDown() within the test.  Each tearDown() call
+             * forces the database closed.  So when the call from
+             * junit comes along, it's already closed.
+             */
+        }
+    }
+
+    public void tearDown()
+        throws IOException, DatabaseException {
+
+        closeEnv();
+
+        TestUtils.removeLogFiles("TearDown", envHome, false);
     }
 
     protected String[] simpleKeyStrings = {
-	"foo", "bar", "baz", "aaa", "fubar",
-	"foobar", "quux", "mumble", "froboy" };
+        "foo", "bar", "baz", "aaa", "fubar",
+        "foobar", "quux", "mumble", "froboy" };
 
     protected String[] simpleDataStrings = {
-	"one", "two", "three", "four", "five",
-	"six", "seven", "eight", "nine" };
+        "one", "two", "three", "four", "five",
+        "six", "seven", "eight", "nine" };
 
     protected void doSimpleCursorPuts()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	for (int i = 0; i < simpleKeyStrings.length; i++) {
-	    putAndVerifyCursor(cursor, simpleKeys[i], simpleData[i], true);
-	    simpleDataMap.put(simpleKeyStrings[i], simpleDataStrings[i]);
-	}
+        for (int i = 0; i < simpleKeyStrings.length; i++) {
+            putAndVerifyCursor(cursor, simpleKeys[i], simpleData[i], true);
+            simpleDataMap.put(simpleKeyStrings[i], simpleDataStrings[i]);
+        }
     }
 
     /**
@@ -213,92 +215,92 @@ public class DbCursorTestBase extends TestCase {
      * by the user.
      */
     protected class DataWalker {
-	String prevKey = "";
-	String prevData = "";
-	int nEntries = 0;
-	int deletedEntries = 0;
-	int extraVisibleEntries = 0;
-	protected int nHandleEndOfSet = 0;
-	String whenFoundDoInsert;
-	String newKey;
-	String deletedEntry = null;
-	Hashtable dataMap;
-	Hashtable addedDataMap;
-	Random rnd = new Random();
-	/* True if the datamap processing should not happen in the walkData
-	   routine. */
-	boolean ignoreDataMap = false;
+        String prevKey = "";
+        String prevData = "";
+        int nEntries = 0;
+        int deletedEntries = 0;
+        int extraVisibleEntries = 0;
+        protected int nHandleEndOfSet = 0;
+        String whenFoundDoInsert;
+        String newKey;
+        String deletedEntry = null;
+        Hashtable dataMap;
+        Hashtable addedDataMap;
+        Random rnd = new Random();
+        /* True if the datamap processing should not happen in the walkData
+           routine. */
+        boolean ignoreDataMap = false;
 
-	DataWalker(Hashtable dataMap) {
-	    this.dataMap = dataMap;
-	    this.addedDataMap = null;
-	}
+        DataWalker(Hashtable dataMap) {
+            this.dataMap = dataMap;
+            this.addedDataMap = null;
+        }
 
-	DataWalker(Hashtable dataMap,
-		   Hashtable addedDataMap) {
-	    this.dataMap = dataMap;
-	    this.addedDataMap = addedDataMap;
-	}
+        DataWalker(Hashtable dataMap,
+                   Hashtable addedDataMap) {
+            this.dataMap = dataMap;
+            this.addedDataMap = addedDataMap;
+        }
 
-	DataWalker() {
-	    this.dataMap = simpleDataMap;
-	    this.addedDataMap = null;
-	}
+        DataWalker() {
+            this.dataMap = simpleDataMap;
+            this.addedDataMap = null;
+        }
 
-	DataWalker(String whenFoundDoInsert,
-		   String newKey,
-		   Hashtable dataMap) {
-	    this.whenFoundDoInsert = whenFoundDoInsert;
-	    this.newKey = newKey;
-	    this.dataMap = dataMap;
-	    this.addedDataMap = null;
-	}
+        DataWalker(String whenFoundDoInsert,
+                   String newKey,
+                   Hashtable dataMap) {
+            this.whenFoundDoInsert = whenFoundDoInsert;
+            this.newKey = newKey;
+            this.dataMap = dataMap;
+            this.addedDataMap = null;
+        }
 
-	void setIgnoreDataMap(boolean ignoreDataMap) {
-	    this.ignoreDataMap = ignoreDataMap;
-	}
+        void setIgnoreDataMap(boolean ignoreDataMap) {
+            this.ignoreDataMap = ignoreDataMap;
+        }
 
-	OperationStatus getFirst(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getFirst(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getFirst(foundKey, foundData,
-				   LockMode.DEFAULT);
-	}
+            return cursor.getFirst(foundKey, foundData,
+                                   LockMode.DEFAULT);
+        }
 
-	OperationStatus getData(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getData(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getNext(foundKey, foundData,
-				  LockMode.DEFAULT);
-	}
+            return cursor.getNext(foundKey, foundData,
+                                  LockMode.DEFAULT);
+        }
 
-	StringDbt foundKey = new StringDbt();
-	StringDbt foundData = new StringDbt();
+        StringDbt foundKey = new StringDbt();
+        StringDbt foundData = new StringDbt();
 
-	void walkData()
-	    throws DatabaseException {
+        void walkData()
+            throws DatabaseException {
 
-	    /* get some data back */
-	    OperationStatus status = getFirst(foundKey, foundData);
+            /* get some data back */
+            OperationStatus status = getFirst(foundKey, foundData);
 
-	    while (status == OperationStatus.SUCCESS) {
+            while (status == OperationStatus.SUCCESS) {
                 String foundKeyString = foundKey.getString();
                 String foundDataString = foundData.getString();
 
-		if (!ignoreDataMap) {
-		    if (dataMap.get(foundKeyString) != null) {
-			assertEquals(dataMap.get(foundKeyString),
-				     foundDataString);
-		    } else if (addedDataMap != null &&
-			       addedDataMap.get(foundKeyString) != null) {
-			assertEquals(addedDataMap.get(foundKeyString),
-				     foundDataString);
-		    } else {
-			fail("didn't find key in either map (" +
-			     foundKeyString +
-			     ")");
-		    }
-		}
+                if (!ignoreDataMap) {
+                    if (dataMap.get(foundKeyString) != null) {
+                        assertEquals(dataMap.get(foundKeyString),
+                                     foundDataString);
+                    } else if (addedDataMap != null &&
+                               addedDataMap.get(foundKeyString) != null) {
+                        assertEquals(addedDataMap.get(foundKeyString),
+                                     foundDataString);
+                    } else {
+                        fail("didn't find key in either map (" +
+                             foundKeyString +
+                             ")");
+                    }
+                }
 
                 LockStats stat =
                     DbTestProxy.dbcGetCursorImpl(cursor).getLockStats();
@@ -306,231 +308,231 @@ public class DbCursorTestBase extends TestCase {
                 assertEquals(0, stat.getNWriteLocks());
                 perData(foundKeyString, foundDataString);
                 nEntries++;
-		status = getData(foundKey, foundData);
-		if (status != OperationStatus.SUCCESS) {
-		    nHandleEndOfSet++;
-		    status = handleEndOfSet(status);
-		}
-	    }
+                status = getData(foundKey, foundData);
+                if (status != OperationStatus.SUCCESS) {
+                    nHandleEndOfSet++;
+                    status = handleEndOfSet(status);
+                }
+            }
             TestUtils.validateNodeMemUsage(DbInternal.
-					   envGetEnvironmentImpl(exampleEnv),
-					   false);
-	}
+                                           envGetEnvironmentImpl(exampleEnv),
+                                           false);
+        }
 
-	void perData(String foundKey, String foundData)
-	    throws DatabaseException {
+        void perData(String foundKey, String foundData)
+            throws DatabaseException {
 
-	    /* to be overridden */
-	}
+            /* to be overridden */
+        }
 
-	OperationStatus handleEndOfSet(OperationStatus status)
-	    throws DatabaseException {
+        OperationStatus handleEndOfSet(OperationStatus status)
+            throws DatabaseException {
 
-	    return status;
-	}
+            return status;
+        }
 
-	void close()
-	    throws DatabaseException {
+        void close()
+            throws DatabaseException {
 
-	    cursor.close();
-	}
+            cursor.close();
+        }
     }
 
     protected class BackwardsDataWalker extends DataWalker {
-	BackwardsDataWalker(Hashtable dataMap) {
-	    super(dataMap);
-	}
+        BackwardsDataWalker(Hashtable dataMap) {
+            super(dataMap);
+        }
 
-	BackwardsDataWalker(Hashtable dataMap,
-			    Hashtable addedDataMap) {
-	    super(dataMap, addedDataMap);
-	}
+        BackwardsDataWalker(Hashtable dataMap,
+                            Hashtable addedDataMap) {
+            super(dataMap, addedDataMap);
+        }
 
-	BackwardsDataWalker(String whenFoundDoInsert,
-			    String newKey,
-			    Hashtable dataMap) {
-	    super(whenFoundDoInsert, newKey, dataMap);
-	}
+        BackwardsDataWalker(String whenFoundDoInsert,
+                            String newKey,
+                            Hashtable dataMap) {
+            super(whenFoundDoInsert, newKey, dataMap);
+        }
 
-	OperationStatus getFirst(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getFirst(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getLast(foundKey, foundData,
-				  LockMode.DEFAULT);
-	}
+            return cursor.getLast(foundKey, foundData,
+                                  LockMode.DEFAULT);
+        }
 
-	OperationStatus getData(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getData(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getPrev(foundKey, foundData,
-				  LockMode.DEFAULT);
-	}
+            return cursor.getPrev(foundKey, foundData,
+                                  LockMode.DEFAULT);
+        }
     }
 
     protected class DupDataWalker extends DataWalker {
-	DupDataWalker(Hashtable dataMap) {
-	    super(dataMap);
-	}
+        DupDataWalker(Hashtable dataMap) {
+            super(dataMap);
+        }
 
-	DupDataWalker(Hashtable dataMap,
-		      Hashtable addedDataMap) {
-	    super(dataMap, addedDataMap);
-	}
+        DupDataWalker(Hashtable dataMap,
+                      Hashtable addedDataMap) {
+            super(dataMap, addedDataMap);
+        }
 
-	DupDataWalker(String whenFoundDoInsert,
-		      String newKey,
-		      Hashtable dataMap) {
-	    super(whenFoundDoInsert, newKey, dataMap);
-	}
+        DupDataWalker(String whenFoundDoInsert,
+                      String newKey,
+                      Hashtable dataMap) {
+            super(whenFoundDoInsert, newKey, dataMap);
+        }
 
-	OperationStatus getData(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getData(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getNextDup(foundKey, foundData,
-				     LockMode.DEFAULT);
-	}
+            return cursor.getNextDup(foundKey, foundData,
+                                     LockMode.DEFAULT);
+        }
     }
 
     protected class BackwardsDupDataWalker extends BackwardsDataWalker {
-	BackwardsDupDataWalker(Hashtable dataMap) {
-	    super(dataMap);
-	}
+        BackwardsDupDataWalker(Hashtable dataMap) {
+            super(dataMap);
+        }
 
-	BackwardsDupDataWalker(Hashtable dataMap,
-			       Hashtable addedDataMap) {
-	    super(dataMap, addedDataMap);
-	}
+        BackwardsDupDataWalker(Hashtable dataMap,
+                               Hashtable addedDataMap) {
+            super(dataMap, addedDataMap);
+        }
 
-	BackwardsDupDataWalker(String whenFoundDoInsert,
-			       String newKey,
-			       Hashtable dataMap) {
-	    super(whenFoundDoInsert, newKey, dataMap);
-	}
+        BackwardsDupDataWalker(String whenFoundDoInsert,
+                               String newKey,
+                               Hashtable dataMap) {
+            super(whenFoundDoInsert, newKey, dataMap);
+        }
 
-	OperationStatus getData(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getData(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getPrevDup(foundKey, foundData,
-				     LockMode.DEFAULT);
-	}
+            return cursor.getPrevDup(foundKey, foundData,
+                                     LockMode.DEFAULT);
+        }
     }
 
     protected class NoDupDataWalker extends DataWalker {
-	NoDupDataWalker(Hashtable dataMap) {
-	    super(dataMap);
-	}
+        NoDupDataWalker(Hashtable dataMap) {
+            super(dataMap);
+        }
 
-	NoDupDataWalker(Hashtable dataMap,
-			Hashtable addedDataMap) {
-	    super(dataMap, addedDataMap);
-	}
+        NoDupDataWalker(Hashtable dataMap,
+                        Hashtable addedDataMap) {
+            super(dataMap, addedDataMap);
+        }
 
-	NoDupDataWalker(String whenFoundDoInsert,
-			String newKey,
-			Hashtable dataMap) {
-	    super(whenFoundDoInsert, newKey, dataMap);
-	}
+        NoDupDataWalker(String whenFoundDoInsert,
+                        String newKey,
+                        Hashtable dataMap) {
+            super(whenFoundDoInsert, newKey, dataMap);
+        }
 
-	OperationStatus getData(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getData(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getNextNoDup(foundKey, foundData,
-				       LockMode.DEFAULT);
-	}
+            return cursor.getNextNoDup(foundKey, foundData,
+                                       LockMode.DEFAULT);
+        }
     }
 
     protected class NoDupBackwardsDataWalker extends BackwardsDataWalker {
-	NoDupBackwardsDataWalker(Hashtable dataMap) {
-	    super(dataMap);
-	}
+        NoDupBackwardsDataWalker(Hashtable dataMap) {
+            super(dataMap);
+        }
 
-	NoDupBackwardsDataWalker(Hashtable dataMap,
-				 Hashtable addedDataMap) {
-	    super(dataMap, addedDataMap);
-	}
+        NoDupBackwardsDataWalker(Hashtable dataMap,
+                                 Hashtable addedDataMap) {
+            super(dataMap, addedDataMap);
+        }
 
-	NoDupBackwardsDataWalker(String whenFoundDoInsert,
-				 String newKey,
-				 Hashtable dataMap) {
-	    super(whenFoundDoInsert, newKey, dataMap);
-	}
+        NoDupBackwardsDataWalker(String whenFoundDoInsert,
+                                 String newKey,
+                                 Hashtable dataMap) {
+            super(whenFoundDoInsert, newKey, dataMap);
+        }
 
-	OperationStatus getData(StringDbt foundKey, StringDbt foundData)
-	    throws DatabaseException {
+        OperationStatus getData(StringDbt foundKey, StringDbt foundData)
+            throws DatabaseException {
 
-	    return cursor.getPrevNoDup(foundKey, foundData,
-				       LockMode.DEFAULT);
-	}
+            return cursor.getPrevNoDup(foundKey, foundData,
+                                       LockMode.DEFAULT);
+        }
     }
 
     /**
      * Construct the next highest key.
      */
     protected String nextKey(String key) {
-	byte[] sb = key.getBytes();
-	sb[sb.length - 1]++;
-	return new String(sb);
+        byte[] sb = key.getBytes();
+        sb[sb.length - 1]++;
+        return new String(sb);
     }
 
     /**
      * Construct the next lowest key.
      */
     protected String prevKey(String key) {
-	byte[] sb = key.getBytes();
-	sb[sb.length - 1]--;
-	return new String(sb);
+        byte[] sb = key.getBytes();
+        sb[sb.length - 1]--;
+        return new String(sb);
     }
 
     /**
      * Helper routine for testLargeXXX routines.
      */
     protected void doLargePut(Hashtable dataMap, int nKeys)
-	throws DatabaseException {
+        throws DatabaseException {
 
-	for (int i = 0; i < nKeys; i++) {
-	    byte[] key = new byte[N_KEY_BYTES];
-	    TestUtils.generateRandomAlphaBytes(key);
-	    String keyString = new String(key);
-	    String dataString = Integer.toString(i);
-	    putAndVerifyCursor(cursor, new StringDbt(keyString),
+        for (int i = 0; i < nKeys; i++) {
+            byte[] key = new byte[N_KEY_BYTES];
+            TestUtils.generateRandomAlphaBytes(key);
+            String keyString = new String(key);
+            String dataString = Integer.toString(i);
+            putAndVerifyCursor(cursor, new StringDbt(keyString),
                                new StringDbt(dataString), true);
-	    if (dataMap != null) {
-		dataMap.put(keyString, dataString);
-	    }
-	}
+            if (dataMap != null) {
+                dataMap.put(keyString, dataString);
+            }
+        }
     }
 
     /**
      * Helper routine for testLargeXXX routines.
      */
     protected void doLargePutPerf(int nKeys)
-	throws DatabaseException {
+        throws DatabaseException {
 
-	byte[][] keys = new byte[nKeys][];
-	for (int i = 0; i < nKeys; i++) {
-	    byte[] key = new byte[20];
-	    keys[i] = key;
-	    TestUtils.generateRandomAlphaBytes(key);
-	    String keyString = new String(key);
-	    byte[] dataBytes = new byte[120];
-	    TestUtils.generateRandomAlphaBytes(dataBytes);
-	    String dataString = new String(dataBytes);
-	    putAndVerifyCursor(cursor, new StringDbt(keyString),
+        byte[][] keys = new byte[nKeys][];
+        for (int i = 0; i < nKeys; i++) {
+            byte[] key = new byte[20];
+            keys[i] = key;
+            TestUtils.generateRandomAlphaBytes(key);
+            String keyString = new String(key);
+            byte[] dataBytes = new byte[120];
+            TestUtils.generateRandomAlphaBytes(dataBytes);
+            String dataString = new String(dataBytes);
+            putAndVerifyCursor(cursor, new StringDbt(keyString),
                                new StringDbt(dataString), true);
-	}
+        }
     }
 
     /**
      * Create some simple duplicate data.
      */
     protected void doSimpleDuplicatePuts()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	for (int i = 0; i < simpleKeyStrings.length; i++) {
-	    for (int j = 0; j < simpleKeyStrings.length; j++) {
-		putAndVerifyCursor(cursor, simpleKeys[i], simpleData[j], true);
-	    }
-	}
+        for (int i = 0; i < simpleKeyStrings.length; i++) {
+            for (int j = 0; j < simpleKeyStrings.length; j++) {
+                putAndVerifyCursor(cursor, simpleKeys[i], simpleData[j], true);
+            }
+        }
     }
 
     /**
@@ -545,14 +547,14 @@ public class DbCursorTestBase extends TestCase {
      * cursor, currently unused..
      */
     protected void createRandomDuplicateData(Hashtable dataMap,
-					     boolean putVariant)
-	throws DatabaseException {
+                                             boolean putVariant)
+        throws DatabaseException {
 
         createRandomDuplicateData(N_TOP_LEVEL_KEYS,
                                   N_DUPLICATES_PER_KEY,
                                   dataMap,
                                   putVariant,
-				  false);
+                                  false);
     }
 
     /**
@@ -575,49 +577,49 @@ public class DbCursorTestBase extends TestCase {
     protected void createRandomDuplicateData(int nTopKeys,
                                              int nDup,
                                              Hashtable dataMap,
-					     boolean putVariant,
-					     boolean verifyCount)
-	throws DatabaseException {
+                                             boolean putVariant,
+                                             boolean verifyCount)
+        throws DatabaseException {
 
-	boolean createSomeNonDupes = false;
-	if (nTopKeys < 0) {
-	    nTopKeys = Math.abs(nTopKeys);
-	    nTopKeys <<= 1;
-	    createSomeNonDupes = true;
-	}
+        boolean createSomeNonDupes = false;
+        if (nTopKeys < 0) {
+            nTopKeys = Math.abs(nTopKeys);
+            nTopKeys <<= 1;
+            createSomeNonDupes = true;
+        }
 
         byte[][] keys = new byte[nTopKeys][];
         for (int i = 0; i < nTopKeys; i++) {
             byte[] key = new byte[N_KEY_BYTES];
             keys[i] = key;
             TestUtils.generateRandomAlphaBytes(key);
-	    String keyString = new String(key);
-	    Hashtable ht = new Hashtable();
-	    if (dataMap != null) {
-		dataMap.put(keyString, ht);
-	    }
-	    int nDupesThisTime = nDup;
-	    if (createSomeNonDupes && (i % 2) == 0) {
-		nDupesThisTime = 1;
-	    }
-	    for (int j = 1; j <= nDupesThisTime; j++) {
-		byte[] data = new byte[N_KEY_BYTES];
-		TestUtils.generateRandomAlphaBytes(data);
-		OperationStatus status =
+            String keyString = new String(key);
+            Hashtable ht = new Hashtable();
+            if (dataMap != null) {
+                dataMap.put(keyString, ht);
+            }
+            int nDupesThisTime = nDup;
+            if (createSomeNonDupes && (i % 2) == 0) {
+                nDupesThisTime = 1;
+            }
+            for (int j = 1; j <= nDupesThisTime; j++) {
+                byte[] data = new byte[N_KEY_BYTES];
+                TestUtils.generateRandomAlphaBytes(data);
+                OperationStatus status =
                     putAndVerifyCursor(cursor, new StringDbt(keyString),
                                        new StringDbt(data), putVariant);
 
-		if (verifyCount) {
-		    assertTrue(cursor.count() == j);
-		}
+                if (verifyCount) {
+                    assertTrue(cursor.count() == j);
+                }
 
-		if (status != OperationStatus.SUCCESS) {
-		    throw new DuplicateEntryException
-			("Duplicate Entry");
-		}
-		String dataString = new String(data);
-		ht.put(dataString, dataString);
-	    }
+                if (status != OperationStatus.SUCCESS) {
+                    throw new DuplicateEntryException
+                        ("Duplicate Entry");
+                }
+                String dataString = new String(data);
+                ht.put(dataString, dataString);
+            }
         }
     }
 
@@ -627,16 +629,16 @@ public class DbCursorTestBase extends TestCase {
      * the tree.
      */
     protected void verifyEntries(Hashtable dataMap)
-	throws DatabaseException {
+        throws DatabaseException {
 
-	Tree tree = DbInternal.dbGetDatabaseImpl(exampleDb).getTree();
-	Enumeration e = dataMap.keys();
-	while (e.hasMoreElements()) {
-	    String key = (String) e.nextElement();
-	    if (!retrieveData(tree, key.getBytes())) {
-		System.out.println("Couldn't find: " + key);
-	    }
-	}
+        Tree tree = DbInternal.dbGetDatabaseImpl(exampleDb).getTree();
+        Enumeration e = dataMap.keys();
+        while (e.hasMoreElements()) {
+            String key = (String) e.nextElement();
+            if (!retrieveData(tree, key.getBytes())) {
+                System.out.println("Couldn't find: " + key);
+            }
+        }
     }
 
     /* Throw assertion if the database is not valid. */
@@ -651,11 +653,12 @@ public class DbCursorTestBase extends TestCase {
      * Helper routine for above.
      */
     protected boolean retrieveData(Tree tree, byte[] key)
-	throws DatabaseException {
+        throws DatabaseException {
 
 	TestUtils.checkLatchCount();
 	Node n =
-	    tree.search(key, Tree.SearchType.NORMAL, -1, null, true);
+	    tree.search(key, Tree.SearchType.NORMAL, -1, null,
+                        CacheMode.DEFAULT);
 	if (!(n instanceof BIN)) {
 	    fail("search didn't return a BIN for key: " + key);
 	}
@@ -672,79 +675,83 @@ public class DbCursorTestBase extends TestCase {
 	}
     }
 
-    protected OperationStatus putAndVerifyCursor(Cursor cursor, StringDbt key,
-						 StringDbt data,
+    protected OperationStatus putAndVerifyCursor(Cursor cursor,
+                                                 StringDbt key,
+                                                 StringDbt data,
                                                  boolean putVariant)
-	throws DatabaseException {
+        throws DatabaseException {
 
-	OperationStatus status;
-	if (duplicatesAllowed) {
-	    status = cursor.putNoDupData(key, data);
-	} else {
-	    status = cursor.putNoOverwrite(key, data);
-	}
+        OperationStatus status;
+        if (duplicatesAllowed) {
+            status = cursor.putNoDupData(key, data);
+        } else {
+            status = cursor.putNoOverwrite(key, data);
+        }
 
-	if (status == OperationStatus.SUCCESS) {
-	    StringDbt keyCheck = new StringDbt();
-	    StringDbt dataCheck = new StringDbt();
+        if (status == OperationStatus.SUCCESS) {
+            StringDbt keyCheck = new StringDbt();
+            StringDbt dataCheck = new StringDbt();
 
-	    assertEquals(OperationStatus.SUCCESS, cursor.getCurrent
-			 (keyCheck, dataCheck, LockMode.DEFAULT));
-	    assertEquals(key.getString(), keyCheck.getString());
-	    assertEquals(data.getString(), dataCheck.getString());
-	}
+            assertEquals(OperationStatus.SUCCESS, cursor.getCurrent
+                         (keyCheck, dataCheck, LockMode.DEFAULT));
+            assertEquals(key.getString(), keyCheck.getString());
+            assertEquals(data.getString(), dataCheck.getString());
+        }
 
-	return status;
+        return status;
     }
 
-    protected static class BtreeComparator implements Comparator {
-	protected boolean ascendingComparison = true;
+    @SuppressWarnings("serial")
+    protected static class BtreeComparator implements Comparator, 
+                                                      Serializable {
+        protected boolean ascendingComparison = true;
 
-	protected BtreeComparator() {
-	}
+        protected BtreeComparator() {
+        }
 
-	public int compare(Object o1, Object o2) {
-	    byte[] arg1;
-	    byte[] arg2;
-	    if (ascendingComparison) {
-		arg1 = (byte[]) o1;
-		arg2 = (byte[]) o2;
-	    } else {
-		arg1 = (byte[]) o2;
-		arg2 = (byte[]) o1;
-	    }
-	    int a1Len = arg1.length;
-	    int a2Len = arg2.length;
+        public int compare(Object o1, Object o2) {
+            byte[] arg1;
+            byte[] arg2;
+            if (ascendingComparison) {
+                arg1 = (byte[]) o1;
+                arg2 = (byte[]) o2;
+            } else {
+                arg1 = (byte[]) o2;
+                arg2 = (byte[]) o1;
+            }
+            int a1Len = arg1.length;
+            int a2Len = arg2.length;
 
-	    int limit = Math.min(a1Len, a2Len);
+            int limit = Math.min(a1Len, a2Len);
 
-	    for (int i = 0; i < limit; i++) {
-		byte b1 = arg1[i];
-		byte b2 = arg2[i];
-		if (b1 == b2) {
-		    continue;
-		} else {
-		    /* Remember, bytes are signed, so convert to shorts so that
-		       we effectively do an unsigned byte comparison. */
-		    short s1 = (short) (b1 & 0x7F);
-		    short s2 = (short) (b2 & 0x7F);
-		    if (b1 < 0) {
-			s1 |= 0x80;
-		    }
-		    if (b2 < 0) {
-			s2 |= 0x80;
-		    }
-		    return (s1 - s2);
-		}
-	    }
+            for (int i = 0; i < limit; i++) {
+                byte b1 = arg1[i];
+                byte b2 = arg2[i];
+                if (b1 == b2) {
+                    continue;
+                } else {
+                    /* Remember, bytes are signed, so convert to shorts so that
+                       we effectively do an unsigned byte comparison. */
+                    short s1 = (short) (b1 & 0x7F);
+                    short s2 = (short) (b2 & 0x7F);
+                    if (b1 < 0) {
+                        s1 |= 0x80;
+                    }
+                    if (b2 < 0) {
+                        s2 |= 0x80;
+                    }
+                    return (s1 - s2);
+                }
+            }
 
-	    return (a1Len - a2Len);
-	}
+            return (a1Len - a2Len);
+        }
     }
 
+    @SuppressWarnings("serial")
     protected static class ReverseBtreeComparator extends BtreeComparator {
-	protected ReverseBtreeComparator() {
-	    ascendingComparison = false;
-	}
+        protected ReverseBtreeComparator() {
+            ascendingComparison = false;
+        }
     }
 }

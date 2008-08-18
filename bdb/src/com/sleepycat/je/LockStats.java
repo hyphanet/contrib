@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockStats.java,v 1.24.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: LockStats.java,v 1.30 2008/03/19 15:04:03 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -13,8 +13,14 @@ import java.io.Serializable;
 import com.sleepycat.je.latch.LatchStats;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Lock statistics for a database environment.
+ *
+ * <p> Note that some of the lock statistics may be expensive to obtain because
+ * the lock table is unavailable while the statistics are gathered. These
+ * expensive statistics are only provided if {@link
+ * com.sleepycat.je.Environment#getLockStats Environment.getLockStats} is
+ * called with a StatsConfig parameter that has been configured for "slow"
+ * stats.
  */
 public class LockStats implements Serializable {
 
@@ -59,62 +65,66 @@ public class LockStats implements Serializable {
     private LatchStats lockTableLatchStats;
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Total lock owners in lock table.  Only provided when {@link
+     * com.sleepycat.je.Environment#getLockStats Environment.getLockStats} is
+     * called in "slow" mode.
      */
     public int getNOwners() {
         return nOwners;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Total read locks currently held.  Only provided when {@link
+     * com.sleepycat.je.Environment#getLockStats Environment.getLockStats} is
+     * called in "slow" mode.
      */
     public int getNReadLocks() {
         return nReadLocks;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Total locks currently in lock table.  Only provided when {@link
+     * com.sleepycat.je.Environment#getLockStats Environment.getLockStats} is
+     * called in "slow" mode.
      */
     public int getNTotalLocks() {
         return nTotalLocks;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Total transactions waiting for locks.  Only provided when {@link
+     * com.sleepycat.je.Environment#getLockStats Environment.getLockStats} is
+     * called in "slow" mode.
      */
     public int getNWaiters() {
         return nWaiters;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Total write locks currently held.  Only provided when {@link
+     * com.sleepycat.je.Environment#getLockStats Environment.getLockStats} is
+     * called in "slow" mode.
      */
     public int getNWriteLocks() {
         return nWriteLocks;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Total number of lock requests to date.
      */
     public long getNRequests() {
         return nRequests;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Total number of lock waits to date.
      */
     public long getNWaits() {
         return nWaits;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNOwners(int val) {
@@ -122,6 +132,7 @@ public class LockStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNReadLocks(int val) {
@@ -129,6 +140,7 @@ public class LockStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void accumulateNTotalLocks(int val) {
@@ -136,6 +148,7 @@ public class LockStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNWaiters(int val) {
@@ -143,6 +156,7 @@ public class LockStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNWriteLocks(int val) {
@@ -150,6 +164,7 @@ public class LockStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNRequests(long requests) {
@@ -157,6 +172,7 @@ public class LockStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNWaits(long waits) {
@@ -164,6 +180,7 @@ public class LockStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void accumulateLockTableLatchStats(LatchStats latchStats) {
@@ -189,18 +206,22 @@ public class LockStats implements Serializable {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * For convenience, the LockStats class has a toString method that lists
+     * all the data fields.
      */
     public String toString() {
         StringBuffer sb = new StringBuffer();
+
+        sb.append("\nFast mode stats (always available)\n");
+        sb.append("nRequests=").append(nRequests).append('\n');
+        sb.append("nWaits=").append(nWaits).append('\n');
+
+        sb.append("\nSlow mode stats (not available in fast mode)\n");
         sb.append("nTotalLocks=").append(nTotalLocks).append('\n');
         sb.append("nReadLocks=").append(nReadLocks).append('\n');
         sb.append("nWriteLocks=").append(nWriteLocks).append('\n');
         sb.append("nWaiters=").append(nWaiters).append('\n');
         sb.append("nOwners=").append(nOwners).append('\n');
-        sb.append("nRequests=").append(nRequests).append('\n');
-        sb.append("nWaits=").append(nWaits).append('\n');
         sb.append("lockTableLatch:\n").append(lockTableLatchStats);
         return sb.toString();
     }

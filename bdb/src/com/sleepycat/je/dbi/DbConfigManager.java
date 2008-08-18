@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: DbConfigManager.java,v 1.38.2.2 2007/11/20 13:32:28 cwl Exp $
+ * $Id: DbConfigManager.java,v 1.47 2008/05/30 19:07:41 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -31,10 +31,10 @@ import com.sleepycat.je.config.LongConfigParam;
  *
  * In general, all configuration parameters are represented by a ConfigParam
  * defined in com.sleepycat.je.config.EnvironmentParams and can be represented
- * by a property described in the top level example.properties. Environment
- * parameters have some interesting twists because there are some attributes
- * that are scoped by handle, such as the commit durability (txnSync,
- * txnNoSync, etc) parameters.
+ * by a property described by the EnvironmentConfig String constants.
+ * Environment parameters have some interesting twists because there are some
+ * attributes that are scoped by handle, such as the commit durability
+ * (txnSync, txnNoSync, etc) parameters.
  *
  * DbConfigManager is instantiated first by the EnvironmentImpl, and is
  * loaded with the base configuration parameters. If replication is enabled,
@@ -64,14 +64,14 @@ public class DbConfigManager {
     private EnvironmentConfig environmentConfig;
 
     public DbConfigManager(EnvironmentConfig config)
-	throws DbConfigException {
+        throws DbConfigException {
 
         environmentConfig = config;
-	if (config == null) {
-	    props = new Properties();
-	} else {
-	    props = DbInternal.getProps(config);
-	}
+        if (config == null) {
+            props = new Properties();
+        } else {
+            props = DbInternal.getProps(config);
+        }
     }
 
     /**
@@ -99,19 +99,20 @@ public class DbConfigManager {
      * @return default for param if param wasn't explicitly set
      */
     public synchronized String get(ConfigParam configParam)
-	throws IllegalArgumentException {
+        throws IllegalArgumentException {
 
         return getConfigParam(props, configParam.getName());
     }
 
     /**
      * Get this parameter from the environment wide configuration settings.
+     *
      * @param configParam
      *
      * @return default for param if param wasn't explicitly set
      */
     public synchronized String get(String configParamName)
-	throws IllegalArgumentException {
+        throws IllegalArgumentException {
 
         return getConfigParam(props, configParamName);
     }
@@ -138,19 +139,20 @@ public class DbConfigManager {
      * @return default for param if it wasn't explicitly set.
      */
     public int getInt(IntConfigParam configParam)
-	throws DatabaseException {
+        throws DatabaseException {
 
-        // See if it's specified
+        /* See if it's specified. */
         String val = get(configParam);
         int intValue = 0;
         if (val != null) {
             try {
                 intValue = Integer.parseInt(val);
             } catch (NumberFormatException e) {
+
                 /*
-		 * This should never happen if we put error checking into
+                 * This should never happen if we put error checking into
                  * the loading of config values.
-		 */
+                 */
                 assert false: e.getMessage();
             }
         }
@@ -164,7 +166,7 @@ public class DbConfigManager {
      * @return default for param if it wasn't explicitly set
      */
     public long getLong(LongConfigParam configParam)
-	throws DatabaseException {
+        throws DatabaseException {
 
         /* See if it's specified. */
         String val = get(configParam);
@@ -174,9 +176,9 @@ public class DbConfigManager {
                 longValue = Long.parseLong(val);
             } catch (NumberFormatException e) {
                 /*
-		 * This should never happen if we put error checking
-		 * into the loading of config values.
-		 */
+                 * This should never happen if we put error checking
+                 * into the loading of config values.
+                 */
                 assert false : e.getMessage();
             }
         }
@@ -193,34 +195,52 @@ public class DbConfigManager {
      */
     public static void validateProperties(Properties props,
                                           boolean forReplication,
-                                          String configClassName)
+                                          String configClassName,
+                                          boolean verifyForReplication)
         throws IllegalArgumentException {
 
-        /* Check that the properties have valid names and values */
+        /* Check that the properties have valid names and values. */
         Enumeration propNames = props.propertyNames();
         while (propNames.hasMoreElements()) {
             String name = (String) propNames.nextElement();
             /* Is this a valid property name? */
             ConfigParam param =
                 (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(name);
+
             if (param == null) {
-                throw new IllegalArgumentException
-		    (name + " is not a valid BDBJE environment configuration");
+
+                /* See if the parameter is an multi-value parameter. */
+                String mvParamName = ConfigParam.multiValueParamName(name);
+                param = (ConfigParam)
+                    EnvironmentParams.SUPPORTED_PARAMS.get(mvParamName);
+                if (param == null) {
+                    throw new IllegalArgumentException
+                        (name +
+                         " is not a valid BDBJE environment configuration");
+                }
             }
 
-            if (forReplication) {
-                if (!param.isForReplication()) {
-                    throw new IllegalArgumentException
-                        (name +
-                         " is not a replication environment configuration" +
-                         " and cannot be used in " + configClassName);
-                }
-            } else {
-                if (param.isForReplication()) {
-                    throw new IllegalArgumentException
-                        (name +
-                         " is a replication environment configuration" +
-                         " and cannot be used in " + configClassName);
+            /*
+             * Only verify that the parameter is "for replication" if this is
+             * being validated on behalf of a FooConfig class, not a
+             * je.properties file.
+             */
+            if (verifyForReplication) {
+                if (forReplication) {
+                    if (!param.isForReplication()) {
+                        throw new IllegalArgumentException
+                            (name +
+                             " is not a replication environment " +
+                             "configuration and cannot be used in " +
+                             configClassName);
+                    }
+                } else {
+                    if (param.isForReplication()) {
+                        throw new IllegalArgumentException
+                            (name +
+                             " is a replication environment configuration" +
+                             " and cannot be used in " + configClassName);
+                    }
                 }
             }
 
@@ -241,22 +261,23 @@ public class DbConfigManager {
 
         File paramFile = null;
         try {
-	    Properties fileProps = new Properties();	
-	    if (envHome != null) {
-		if (envHome.isFile()) {
-		    paramFile = envHome;
-		} else {
-		    paramFile = new File(envHome, PROPFILE_NAME);
-		}
-		FileInputStream fis = new FileInputStream(paramFile);
-		fileProps.load(fis);
-		fis.close();
-	    }
+            Properties fileProps = new Properties();
+            if (envHome != null) {
+                if (envHome.isFile()) {
+                    paramFile = envHome;
+                } else {
+                    paramFile = new File(envHome, PROPFILE_NAME);
+                }
+                FileInputStream fis = new FileInputStream(paramFile);
+                fileProps.load(fis);
+                fis.close();
+            }
 
             /* Validate the existing file. */
             validateProperties(fileProps,
                                forReplication,
-                               errorClassName);
+                               errorClassName,
+                               false);  // verifyForReplication
 
             /* Add them to the configuration object. */
             Iterator iter = fileProps.entrySet().iterator();
@@ -270,16 +291,17 @@ public class DbConfigManager {
                                false, /* don't need mutability, we're
                                          initializing */
                                false, /* value already validated when set in
-                                          config object */
-                               forReplication);
+                                         config object */
+                               forReplication,
+                               false); /* verifyForReplication */
             }
-        } catch (FileNotFoundException e) {	
+        } catch (FileNotFoundException e) {
 
             /*
              * Klockwork - ok
              * Eat the exception, okay if the file doesn't exist.
              */
-        } catch (IOException e) {	
+        } catch (IOException e) {
             IllegalArgumentException e2 = new IllegalArgumentException
                 ("An error occurred when reading " + paramFile);
             e2.initCause(e);
@@ -300,38 +322,64 @@ public class DbConfigManager {
                                       String value,
                                       boolean requireMutability,
                                       boolean validateValue,
-                                      boolean forReplication)
+                                      boolean forReplication,
+                                      boolean verifyForReplication)
         throws IllegalArgumentException {
+
+        boolean isMVParam = false;
 
         /* Is this a valid property name? */
         ConfigParam param =
             (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(paramName);
-        if (param == null) {
-            throw new IllegalArgumentException
-		(paramName +
-		 " is not a valid BDBJE environment configuration");
-        }
 
-        if (forReplication) {
-            if (!param.isForReplication()) {
-                throw new IllegalArgumentException
-                    (paramName + " is not a BDBJE replication configuration.");
-            }
-        } else {
-            if (param.isForReplication()) {
-                throw new IllegalArgumentException
-                    (paramName + " is only available for BDBJE replication.");
-            }
-        }
+	if (param == null) {
+	    /* See if the parameter is an multi-value parameter. */
+	    String mvParamName = ConfigParam.multiValueParamName(paramName);
+	    param = (ConfigParam)
+		EnvironmentParams.SUPPORTED_PARAMS.get(mvParamName);
+	    if (param == null ||
+		!param.isMultiValueParam()) {
+		throw new IllegalArgumentException
+		    (paramName +
+		     " is not a valid BDBJE environment parameter");
+	    }
+	    isMVParam = true;
+	    assert param.isMultiValueParam();
+	}
+
+	/*
+	 * Only verify that the parameter is "for replication" if this is
+	 * being validated on behalf of a FooConfig class, not a
+	 * je.properties file.
+	 */
+	if (verifyForReplication) {
+	    if (forReplication) {
+		if (!param.isForReplication()) {
+		    throw new IllegalArgumentException
+			(paramName +
+			 " is not a BDBJE replication configuration.");
+		}
+	    } else {
+		if (param.isForReplication()) {
+		    throw new IllegalArgumentException
+			(paramName +
+			 " is only available for BDBJE replication.");
+		}
+	    }
+	}
 
         /* Is this a mutable property? */
         if (requireMutability && !param.isMutable()) {
             throw new IllegalArgumentException
-		(paramName +
-		 " is not a mutable BDBJE environment configuration");
+                (paramName +
+                 " is not a mutable BDBJE environment configuration");
         }
 
-        setVal(props, param, value, validateValue);
+        if (isMVParam) {
+            setVal(props, param, paramName, value, validateValue);
+        } else {
+            setVal(props, param, value, validateValue);
+        }
     }
 
     /**
@@ -343,16 +391,36 @@ public class DbConfigManager {
     public static String getConfigParam(Properties props, String paramName)
         throws IllegalArgumentException {
 
+        boolean isMVParam = false;
+
         /* Is this a valid property name? */
         ConfigParam param =
             (ConfigParam) EnvironmentParams.SUPPORTED_PARAMS.get(paramName);
+
         if (param == null) {
+
+            /* See if the parameter is an multi-value parameter. */
+            String mvParamName = ConfigParam.multiValueParamName(paramName);
+            param = (ConfigParam)
+                EnvironmentParams.SUPPORTED_PARAMS.get(mvParamName);
+            if (param == null) {
+                throw new IllegalArgumentException
+                    (paramName +
+                     " is not a valid BDBJE environment configuration");
+            }
+            isMVParam = true;
+            assert param.isMultiValueParam();
+        } else if (param.isMultiValueParam()) {
             throw new IllegalArgumentException
-		(paramName +
-		 " is not a valid BDBJE environment configuration");
+                ("Use getMultiValueValues() to retrieve Multi-Value " +
+                 "parameter values.");
         }
 
-        return DbConfigManager.getVal(props, param);
+        if (isMVParam) {
+            return DbConfigManager.getVal(props, param, paramName);
+        } else {
+            return DbConfigManager.getVal(props, param);
+        }
     }
 
     /**
@@ -360,8 +428,24 @@ public class DbConfigManager {
      * Gets either the value stored in this configuration or the
      * default value for this param.
      */
-    public static String getVal(Properties props, ConfigParam param) {
+    public static String getVal(Properties props,
+                                ConfigParam param) {
         String val = props.getProperty(param.getName());
+        if (val == null) {
+            val = param.getDefault();
+        }
+        return val;
+    }
+
+    /**
+     * Helper method for environment and replicator configuration classes.
+     * Gets either the value stored in this configuration or the
+     * default value for this param.
+     */
+    public static String getVal(Properties props,
+                                ConfigParam param,
+                                String paramName) {
+        String val = props.getProperty(paramName);
         if (val == null) {
             val = param.getDefault();
         }
@@ -378,10 +462,26 @@ public class DbConfigManager {
                               boolean validateValue)
         throws IllegalArgumentException {
 
-	if (validateValue) {
-	    param.validateValue(val);
-	}
+        if (validateValue) {
+            param.validateValue(val);
+        }
         props.setProperty(param.getName(), val);
     }
 
+    /**
+     * Helper method for environment and replicator configuration classes.
+     * Set and validate the value for the specified parameter.
+     */
+    public static void setVal(Properties props,
+                              ConfigParam param,
+                              String paramName,
+                              String val,
+                              boolean validateValue)
+        throws IllegalArgumentException {
+
+        if (validateValue) {
+            param.validateValue(val);
+        }
+        props.setProperty(paramName, val);
+    }
 }

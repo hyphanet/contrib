@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseConfigTest.java,v 1.22.2.3 2007/11/20 13:32:42 cwl Exp $
+ * $Id: DatabaseConfigTest.java,v 1.30 2008/05/30 14:04:20 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -373,9 +373,9 @@ public class DatabaseConfigTest extends TestCase {
             DatabaseConfig secondConfig = new DatabaseConfig();
             secondConfig.setSortedDuplicates(false);
             try {
-                    env.openDatabase(null, "fooDups", secondConfig);
+                env.openDatabase(null, "fooDups", secondConfig);
                 fail("Conflict in duplicates allowed should be detected.");
-            } catch (DatabaseException e) {
+            } catch (IllegalArgumentException expected) {
             }
 
             firstHandle.close();
@@ -387,9 +387,9 @@ public class DatabaseConfigTest extends TestCase {
             /* 2b. Try to open w/duplicates. */
             secondConfig.setSortedDuplicates(true);
             try {
-                    env.openDatabase(null, "fooDups", secondConfig);
+                env.openDatabase(null, "fooDups", secondConfig);
                 fail("Conflict in duplicates allowed should be detected.");
-            } catch (DatabaseException e) {
+            } catch (IllegalArgumentException expected) {
             }
             firstHandle.close();
 
@@ -416,14 +416,11 @@ public class DatabaseConfigTest extends TestCase {
                                         readOnlyConfig);
             roHandle.close();
 
-            /* Open a read/write database handle, should succeed. */
+            /* Open a read/write database handle, should not succeed. */
             try {
                 env.openDatabase(null, "fooDups", null);
                 fail("Should not be able to open read/write");
-            } catch (DatabaseException e) {
-                if (DEBUG) {
-                    System.out.println(e);
-                }
+            } catch (IllegalArgumentException expected) {
             }
             env.close();
 
@@ -448,8 +445,10 @@ public class DatabaseConfigTest extends TestCase {
             secondConfig = new DatabaseConfig();
             Comparator btreeComparator = new TestComparator();
             Comparator dupComparator = new TestComparator();
-            secondConfig.setBtreeComparator(btreeComparator.getClass());
-            secondConfig.setDuplicateComparator(dupComparator.getClass());
+            secondConfig.setBtreeComparator
+                ((Class<Comparator<byte[]>>)btreeComparator.getClass());
+            secondConfig.setDuplicateComparator
+                ((Class<Comparator<byte[]>>)dupComparator.getClass());
             Database secondHandle =
 		env.openDatabase(null, "fooComparator", secondConfig);
             DatabaseConfig retrievedConfig = secondHandle.getConfig();
@@ -475,8 +474,11 @@ public class DatabaseConfigTest extends TestCase {
             secondConfig.setOverrideDuplicateComparator(true);
             btreeComparator = new TestComparator();
             dupComparator = new TestComparator();
-            secondConfig.setBtreeComparator(btreeComparator.getClass());
-            secondConfig.setDuplicateComparator(dupComparator.getClass());
+            secondConfig.setBtreeComparator
+                ((Class<Comparator<byte[]>>)btreeComparator.getClass());
+
+            secondConfig.setDuplicateComparator
+                ((Class<Comparator<byte[]>>)dupComparator.getClass());
             secondHandle = env.openDatabase(null,
                                             "fooComparator",
                                             secondConfig);
@@ -630,8 +632,9 @@ public class DatabaseConfigTest extends TestCase {
             data.setData(TestUtils.getTestArray(0));
             try {
                 myDb.put(txn, key, data);
-                fail("expected DatabaseException because open RDONLY");
-            } catch (DatabaseException DBE) {
+                fail
+                ("expected UnsupportedOperationException because open RDONLY");
+            } catch (UnsupportedOperationException expected) {
             }
 
             key.setData(TestUtils.getTestArray(0));
@@ -654,8 +657,9 @@ public class DatabaseConfigTest extends TestCase {
             data.setData(TestUtils.getTestArray(1));
             try {
                 myDb.put(txn, key, data);
-                fail("expected DatabaseException because open RDONLY");
-            } catch (DatabaseException DBE) {
+                fail
+              ("expected UnsupportedOperationException because open RDONLY");
+            } catch (UnsupportedOperationException expected) {
             }
 
 	    cursor.close();
@@ -816,11 +820,11 @@ public class DatabaseConfigTest extends TestCase {
      * This Comparator can't be instantiated because it's private and not
      * static.
      */
-    private class BadComparator1 implements Comparator {
+    private class BadComparator1 implements Comparator<byte[]> {
         public BadComparator1(int foo) {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }
@@ -829,11 +833,11 @@ public class DatabaseConfigTest extends TestCase {
      * This Comparator can't be instantiated because it doesn't have zero
      * parameter constructor.
      */
-    public static class BadComparator2 implements Comparator {
+    public static class BadComparator2 implements Comparator<byte[]> {
         public BadComparator2(int i) {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }
@@ -841,11 +845,11 @@ public class DatabaseConfigTest extends TestCase {
     /*
      * OK comparator for setting comparators.
      */
-    public static class TestComparator implements Comparator {
+    public static class TestComparator implements Comparator<byte[]> {
         public TestComparator() {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }
@@ -853,11 +857,11 @@ public class DatabaseConfigTest extends TestCase {
     /*
      * OK comparator for setting comparators.
      */
-    public static class TestComparator2 implements Comparator {
+    public static class TestComparator2 implements Comparator<byte[]> {
         public TestComparator2() {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }
@@ -865,11 +869,11 @@ public class DatabaseConfigTest extends TestCase {
     /*
      * OK comparator for setting comparators.
      */
-    public static class TestComparator3 implements Comparator {
+    public static class TestComparator3 implements Comparator<byte[]> {
         public TestComparator3() {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }
@@ -877,12 +881,12 @@ public class DatabaseConfigTest extends TestCase {
     /*
      * This Comparator can't be serialized because it's not serializable.
      */
-    public class BadSerialComparator1 implements Comparator {
+    public class BadSerialComparator1 implements Comparator<byte[]> {
 
         public BadSerialComparator1() {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }
@@ -891,14 +895,16 @@ public class DatabaseConfigTest extends TestCase {
      * This Comparator can't be serialized because it contains a reference to
      * an object that's not serializable.
      */
-    public class BadSerialComparator2 implements Comparator, Serializable {
+    @SuppressWarnings("serial")
+    public class BadSerialComparator2 implements Comparator<byte[]>,
+                                                 Serializable {
 
         private BadSerialComparator1 o = new BadSerialComparator1();
 
         public BadSerialComparator2() {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }
@@ -907,15 +913,16 @@ public class DatabaseConfigTest extends TestCase {
      * OK comparator for setting comparators -- private class, private
      * constructor, and serializable fields are allowed.
      */
+    @SuppressWarnings("serial")
     private static class TestSerialComparator
-        implements Comparator, Serializable {
+        implements Comparator<byte[]>, Serializable {
 
         private String s = "sss";
 
         private TestSerialComparator() {
         }
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
 
@@ -928,10 +935,11 @@ public class DatabaseConfigTest extends TestCase {
     /*
      * OK comparator for setting comparators.
      */
+    @SuppressWarnings("serial")
     public static class TestSerialComparator2
-        implements Comparator, Serializable {
+        implements Comparator<byte[]>, Serializable {
 
-        public int compare(Object o1, Object o2) {
+        public int compare(byte[] o1, byte[] o2) {
             return 0;
         }
     }

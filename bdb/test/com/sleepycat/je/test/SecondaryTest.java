@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SecondaryTest.java,v 1.38.2.3 2007/11/20 13:32:49 cwl Exp $
+ * $Id: SecondaryTest.java,v 1.43 2008/01/24 14:59:32 linda Exp $
  */
 
 package com.sleepycat.je.test;
@@ -873,7 +873,6 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
     }
 
     /**
-     * @deprecated use of Database.truncate
      */
     public void testOperationsNotAllowed()
         throws DatabaseException {
@@ -925,11 +924,6 @@ public class SecondaryTest extends MultiKeyTxnTestCase {
 
         try {
             secDb.putNoDupData(txn, key, data);
-            fail();
-        } catch (UnsupportedOperationException expected) { }
-
-        try {
-            secDb.truncate(txn, true);
             fail();
         } catch (UnsupportedOperationException expected) { }
 

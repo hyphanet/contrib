@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: KeysIndex.java,v 1.7.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: KeysIndex.java,v 1.10 2008/02/05 23:28:21 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -80,5 +80,9 @@ class KeysIndex<SK,PK> extends BasicIndex<SK,PK> {
             map = new StoredSortedMap(db, keyBinding, pkeyBinding, true);
         }
         return map;
+    }
+
+    boolean isUpdateAllowed() {
+        return false;
     }
 }

@@ -1,19 +1,21 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DupCountLN.java,v 1.30.2.2 2007/11/20 13:32:35 cwl Exp $
+ * $Id: DupCountLN.java,v 1.40 2008/05/13 01:44:53 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
 
 import java.nio.ByteBuffer;
 
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogUtils;
+import com.sleepycat.je.log.Loggable;
 
 /**
  * A DupCountLN represents the transactional part of the root of a
@@ -29,8 +31,12 @@ public final class DupCountLN extends LN {
     /**
      * Create a new DupCountLn to hold a new DIN.
      */
-    public DupCountLN(int count) {
-        super(new byte[0]);
+    public DupCountLN(EnvironmentImpl envImpl, int count) {
+        /*
+         * Never replicate DupCountLNs, they are generated on the client
+         * side.
+         */
+        super(new byte[0], envImpl, false /* replicate */);
 
         /*
          * This ctor is always called from Tree.createDuplicateEntry
@@ -76,10 +82,12 @@ public final class DupCountLN extends LN {
      * @return true if this node is a duplicate-bearing node type, false
      * if otherwise.
      */
+    @Override
     public boolean containsDuplicates() {
         return true;
     }
 
+    @Override
     public boolean isDeleted() {
         return false;
     }
@@ -88,6 +96,7 @@ public final class DupCountLN extends LN {
      * Compute the approximate size of this node in memory for evictor
      * invocation purposes.
      */
+    @Override
     public long getMemorySizeIncludedByParent() {
         return MemoryBudget.DUPCOUNTLN_OVERHEAD;
     }
@@ -96,25 +105,29 @@ public final class DupCountLN extends LN {
      * DbStat support.
      */
     public void accumulateStats(TreeWalkerStatsAccumulator acc) {
-	acc.processDupCountLN(this, new Long(getNodeId()));
+	acc.processDupCountLN(this, Long.valueOf(getNodeId()));
     }
 
     /*
      * Dumping
      */
 
+    @Override
     public String toString() {
         return dumpString(0, true);
     }
 
+    @Override
     public String beginTag() {
         return BEGIN_TAG;
     }
 
+    @Override
     public String endTag() {
         return END_TAG;
     }
 
+    @Override
     public String dumpString(int nSpaces, boolean dumpTags) {
         StringBuffer sb = new StringBuffer();
         if (dumpTags) {
@@ -139,6 +152,7 @@ public final class DupCountLN extends LN {
     /**
      * Log type for transactional entries.
      */
+    @Override
     protected LogEntryType getTransactionalLogType() {
         return LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL;
     }
@@ -146,6 +160,7 @@ public final class DupCountLN extends LN {
     /**
      * @see Node#getLogType
      */
+    @Override
     public LogEntryType getLogType() {
         return LogEntryType.LOG_DUPCOUNTLN;
     }
@@ -153,33 +168,47 @@ public final class DupCountLN extends LN {
     /**
      * @see LN#getLogSize
      */
+    @Override
     public int getLogSize() {
         return super.getLogSize() +
-            LogUtils.INT_BYTES;
+            LogUtils.getPackedIntLogSize(dupCount);
     }
 
     /**
      * @see LN#writeToLog
      */
+    @Override
     public void writeToLog(ByteBuffer logBuffer) {
         // Ask ancestors to write to log
         super.writeToLog(logBuffer);
-        LogUtils.writeInt(logBuffer, dupCount);
+        LogUtils.writePackedInt(logBuffer, dupCount);
     }
 
     /**
      * @see LN#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    @Override
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
-        super.readFromLog(itemBuffer, entryTypeVersion);
-        dupCount = LogUtils.readInt(itemBuffer);
+        super.readFromLog(itemBuffer, entryVersion);
+        dupCount = LogUtils.readInt(itemBuffer, (entryVersion < 6));
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * DupCountLNs are never replicated.
+     */
+    @Override
+    public boolean logicalEquals(Loggable other) {
+
+        return false;
     }
 
     /**
      * Dump additional fields
      */
+    @Override
     protected void dumpLogAdditional(StringBuffer sb, boolean verbose) {
         super.dumpLogAdditional(sb, verbose);
         sb.append("<count v=\"").append(dupCount).append("\"/>");

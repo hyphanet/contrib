@@ -1,14 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: KeyRangeTest.java,v 1.38.2.2 2007/11/20 13:32:41 cwl Exp $
+ * $Id: KeyRangeTest.java,v 1.45 2008/05/30 14:04:19 mark Exp $
  */
 
 package com.sleepycat.collections;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -17,7 +18,6 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import com.sleepycat.bind.ByteArrayBinding;
-import com.sleepycat.collections.test.DbTestUtil;
 import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
@@ -28,6 +28,7 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.util.keyrange.KeyRange;
 import com.sleepycat.util.keyrange.KeyRangeException;
+import com.sleepycat.util.test.SharedTestUtils;
 
 /**
  * @author Mark Hayes
@@ -84,13 +85,13 @@ public class KeyRangeTest extends TestCase {
     public void setUp()
         throws Exception {
 
-        DbTestUtil.printTestName(DbTestUtil.qualifiedTestName(this));
+        SharedTestUtils.printTestName(SharedTestUtils.qualifiedTestName(this));
     }
 
-    private void openDb(Comparator comparator)
+    private void openDb(Comparator<byte []> comparator)
         throws Exception {
 
-        File dir = DbTestUtil.getNewDir();
+        File dir = SharedTestUtils.getNewDir();
         ByteArrayBinding dataBinding = new ByteArrayBinding();
         EnvironmentConfig envConfig = new EnvironmentConfig();
         envConfig.setAllowCreate(true);
@@ -99,10 +100,11 @@ public class KeyRangeTest extends TestCase {
         DatabaseConfig dbConfig = new DatabaseConfig();
         DbCompat.setTypeBtree(dbConfig);
         dbConfig.setAllowCreate(true);
-	if (comparator != null) {
-	    DbCompat.setBtreeComparator(dbConfig, comparator);
-	}
-        store = DbCompat.openDatabase(env, null, "test.db", null, dbConfig);
+        if (comparator != null) {
+            DbCompat.setBtreeComparator(dbConfig, comparator);
+        }
+        store = DbCompat.testOpenDatabase
+            (env, null, "test.db", null, dbConfig);
         view = new DataView(store, dataBinding, dataBinding, null, true, null);
     }
 
@@ -424,10 +426,10 @@ public class KeyRangeTest extends TestCase {
         } catch (KeyRangeException expected) {}
     }
 
-    public static class ReverseComparator implements Comparator {
-        public int compare(Object o1, Object o2) {
-            byte[] d1 = (byte[]) o1;
-            byte[] d2 = (byte[]) o2;
+    @SuppressWarnings("serial")
+    public static class ReverseComparator implements Comparator<byte[]>, 
+                                                     Serializable {
+        public int compare(byte[] d1, byte[] d2) {
             int cmp = KeyRange.compareBytes(d1, 0, d1.length,
                                             d2, 0, d2.length);
             if (cmp < 0) {

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: StoredContainer.java,v 1.51.2.2 2007/12/13 19:37:59 mark Exp $
+ * $Id: StoredContainer.java,v 1.56 2008/05/27 15:30:34 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -30,6 +30,7 @@ import com.sleepycat.util.RuntimeExceptionWrapper;
  * <li>{@link #isWriteAllowed()}</li>
  * <li>{@link #isSecondary()}</li>
  * <li>{@link #isOrdered()}</li>
+ * <li>{@link #areKeyRangesAllowed()}</li>
  * <li>{@link #areDuplicatesAllowed()}</li>
  * <li>{@link #areDuplicatesOrdered()}</li>
  * <li>{@link #areKeysRenumbered()}</li>
@@ -192,7 +193,7 @@ public abstract class StoredContainer implements Cloneable {
 
     /**
      * Returns whether keys are ordered in this container.
-     * Keys are ordered for BTREE, RECNO and QUEUE database.
+     * Keys are ordered for BTREE, RECNO and QUEUE databases.
      * This method does not exist in the standard {@link java.util.Map} or
      * {@link java.util.Collection} interfaces.
      *
@@ -204,6 +205,22 @@ public abstract class StoredContainer implements Cloneable {
     public final boolean isOrdered() {
 
         return view.ordered;
+    }
+
+    /**
+     * Returns whether key ranges are allowed in this container.
+     * Key ranges are allowed only for BTREE databases.
+     * This method does not exist in the standard {@link java.util.Map} or
+     * {@link java.util.Collection} interfaces.
+     *
+     * <p>Note that the JE product only supports BTREE databases, and
+     * therefore key ranges are always allowed.</p>
+     *
+     * @return whether keys are ordered.
+     */
+    public final boolean areKeyRangesAllowed() {
+
+        return view.keyRangesAllowed;
     }
 
     /**
@@ -274,7 +291,7 @@ public abstract class StoredContainer implements Cloneable {
         }
     }
 
-    Object get(Object key) {
+    Object getValue(Object key) {
 
         DataCursor cursor = null;
         try {
@@ -292,7 +309,7 @@ public abstract class StoredContainer implements Cloneable {
         }
     }
 
-    Object put(final Object key, final Object value) {
+    Object putKeyValue(final Object key, final Object value) {
 
         DataCursor cursor = null;
         boolean doAutoCommit = beginAutoCommit();

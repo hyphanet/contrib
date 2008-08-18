@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSource.java,v 1.32.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: FileSource.java,v 1.37 2008/03/19 11:56:55 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -24,13 +24,16 @@ class FileSource implements LogSource {
     private RandomAccessFile file;
     private int readBufferSize;
     private FileManager fileManager;
+    private long fileNum;
 
     FileSource(RandomAccessFile file,
 	       int readBufferSize,
-	       FileManager fileManager) {
+	       FileManager fileManager,
+               long fileNum) {
         this.file = file;
         this.readBufferSize = readBufferSize;
 	this.fileManager = fileManager;
+        this.fileNum = fileNum;
     }
 
     /**
@@ -44,11 +47,11 @@ class FileSource implements LogSource {
      * @see LogSource#getBytes
      */
     public ByteBuffer getBytes(long fileOffset)
-        throws IOException {
+        throws DatabaseException, IOException {
 
         /* Fill up buffer from file. */
         ByteBuffer destBuf = ByteBuffer.allocate(readBufferSize);
-        fileManager.readFromFile(file, destBuf, fileOffset);
+        fileManager.readFromFile(file, destBuf, fileOffset, fileNum);
 
 	assert EnvironmentImpl.maybeForceYield();
 
@@ -60,11 +63,11 @@ class FileSource implements LogSource {
      * @see LogSource#getBytes
      */
     public ByteBuffer getBytes(long fileOffset, int numBytes)
-        throws IOException {
+        throws DatabaseException, IOException {
 
         /* Fill up buffer from file. */
         ByteBuffer destBuf = ByteBuffer.allocate(numBytes);
-        fileManager.readFromFile(file, destBuf, fileOffset);
+        fileManager.readFromFile(file, destBuf, fileOffset, fileNum);
 
 	assert EnvironmentImpl.maybeForceYield();
 

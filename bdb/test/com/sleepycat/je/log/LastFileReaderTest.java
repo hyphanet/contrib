@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LastFileReaderTest.java,v 1.67.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: LastFileReaderTest.java,v 1.76 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -102,7 +102,10 @@ public class LastFileReaderTest extends TestCase {
         DbInternal.setCheckpointUP(envConfig, false);
 
 	envConfig.setAllowCreate(true);
-        envImpl = new EnvironmentImpl(envHome, envConfig);
+        envImpl = new EnvironmentImpl(envHome,
+                                      envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
         configManager = envImpl.getConfigManager();
         fileManager = envImpl.getFileManager();
         logManager = envImpl.getLogManager();
@@ -136,8 +139,8 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv("1000");
         int numIters = 10;
-        List testObjs = new ArrayList();
-        List testLsns = new ArrayList();
+        List<Tracer> testObjs = new ArrayList<Tracer>();
+        List<Long> testLsns = new ArrayList<Long>();
 
         /*
          * Create a log with one or more files. Use only Tracer objects so we
@@ -260,8 +263,8 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv();
         int numIters = 50;
-        List testObjs = new ArrayList();
-        List testLsns = new ArrayList();
+        List<Loggable> testObjs = new ArrayList<Loggable>();
+        List<Long> testLsns = new ArrayList<Long>();
 
         fillLogFile(numIters, testLsns, testObjs);
         LastFileReader reader =
@@ -280,8 +283,8 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv();
         int numIters = 50;
-        List testObjs = new ArrayList();
-        List testLsns = new ArrayList();
+        List<Loggable> testObjs = new ArrayList<Loggable>();
+        List<Long> testLsns = new ArrayList<Long>();
 
         fillLogFile(numIters, testLsns, testObjs);
         LastFileReader reader = new LastFileReader(envImpl, 10);
@@ -296,8 +299,8 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv();
         int numIters = 50;
-        List testObjs = new ArrayList();
-        List testLsns = new ArrayList();
+        List<Loggable> testObjs = new ArrayList<Loggable>();
+        List<Long> testLsns = new ArrayList<Long>();
 
         fillLogFile(numIters, testLsns, testObjs);
         LastFileReader reader = new LastFileReader(envImpl, 100);
@@ -312,8 +315,8 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv();
         int numIters = 50;
-        List testObjs = new ArrayList();
-        List testLsns = new ArrayList();
+        List<Loggable> testObjs = new ArrayList<Loggable>();
+        List<Long> testLsns = new ArrayList<Long>();
 
         /* Write junk into the end of the file. */
         fillLogFile(numIters, testLsns, testObjs);
@@ -344,8 +347,8 @@ public class LastFileReaderTest extends TestCase {
 
         initEnv();
         int numIters = 50;
-        List testObjs = new ArrayList();
-        List testLsns = new ArrayList();
+        List<Loggable> testObjs = new ArrayList<Loggable>();
+        List<Long> testLsns = new ArrayList<Long>();
         int defaultBufferSize =
             configManager.getInt(EnvironmentParams.LOG_ITERATOR_READ_SIZE);
 
@@ -418,7 +421,7 @@ public class LastFileReaderTest extends TestCase {
     /**
      * Write a logfile of entries, then read the end.
      */
-    private void fillLogFile(int numIters, List testLsns, List testObjs)
+    private void fillLogFile(int numIters, List<Long> testLsns, List<Loggable> testObjs)
         throws Throwable {
 
         /*
@@ -431,11 +434,14 @@ public class LastFileReaderTest extends TestCase {
             testLsns.add(new Long(msg.log(logManager)));
 
             /* Add a txn abort */
-            TxnAbort abort = new TxnAbort(10L, 200L);
+            TxnAbort abort = new TxnAbort(10L, 200L, 
+            		                      1234567 /* masterNodeId */);
             SingleItemEntry entry =
                 new SingleItemEntry(LogEntryType.LOG_TXN_ABORT, abort);
             testObjs.add(abort);
-            testLsns.add(new Long(logManager.log(entry)));
+            testLsns.add(new Long(logManager.log
+                                  (entry,
+                                   ReplicationContext.NO_REPLICATE)));
         }
 
         /* Flush the log, files. */
@@ -449,8 +455,8 @@ public class LastFileReaderTest extends TestCase {
      */
     private void checkLogEnd(LastFileReader reader,
 			     int numIters,
-                             List testLsns,
-			     List testObjs)
+                             List<Long> testLsns,
+			     List<Loggable> testObjs)
         throws Throwable {
 
         reader.setTargetType(LogEntryType.LOG_ROOT);
@@ -478,7 +484,7 @@ public class LastFileReaderTest extends TestCase {
 
         /* Check last used LSN. */
         int numLsns = testLsns.size();
-        long lastLsn = DbLsn.longToLsn((Long) testLsns.get(numLsns - 1));
+        long lastLsn = DbLsn.longToLsn(testLsns.get(numLsns - 1));
         assertEquals("last LSN", lastLsn, reader.getLastLsn());
 
         /* Check last offset. */
@@ -487,7 +493,7 @@ public class LastFileReaderTest extends TestCase {
 
         /* Check next available LSN. */
         int lastSize =
-            ((Loggable)testObjs.get(testObjs.size()-1)).getLogSize();
+            testObjs.get(testObjs.size() - 1).getLogSize();
         assertEquals("next available",
                      DbLsn.makeLsn(DbLsn.getFileNumber(lastLsn),
 				   DbLsn.getFileOffset(lastLsn) +
@@ -509,7 +515,7 @@ public class LastFileReaderTest extends TestCase {
         assertTrue(reader.getLastSeen(LogEntryType.LOG_LN_TRANSACTIONAL) ==
 		   DbLsn.NULL_LSN);
         assertEquals(reader.getLastSeen(LogEntryType.LOG_TRACE),
-                     DbLsn.longToLsn((Long) testLsns.get(numLsns-2)));
+                     DbLsn.longToLsn(testLsns.get(numLsns - 2)));
         assertEquals(reader.getLastSeen(LogEntryType.LOG_TXN_ABORT),
                      lastLsn);
     }

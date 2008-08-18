@@ -1,26 +1,25 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TestUtils.java,v 1.75.2.2 2007/11/20 13:32:51 cwl Exp $
+ * $Id: TestUtils.java,v 1.88 2008/05/22 19:35:40 linda Exp $
  */
 
 package com.sleepycat.je.util;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.NumberFormat;
-import java.util.Iterator;
 import java.util.Random;
 
 import junit.framework.TestCase;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseException;
@@ -28,10 +27,11 @@ import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.DbTestProxy;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.ExceptionEvent;
+import com.sleepycat.je.ExceptionListener;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.tree.BIN;
@@ -40,11 +40,11 @@ import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.SearchResult;
 import com.sleepycat.je.tree.Tree;
 import com.sleepycat.je.tree.WithRootLatched;
+import com.sleepycat.util.test.SharedTestUtils;
 
 public class TestUtils {
-    public static String DEST_DIR = "testdestdir";
-    public static String NO_SYNC = "txnnosync";
-    public static String LONG_TEST = "longtest";
+    public static String DEST_DIR = SharedTestUtils.DEST_DIR;
+    public static String NO_SYNC = SharedTestUtils.NO_SYNC;
 
     public static final String LOG_FILE_NAME = "00000000.jdb";
 
@@ -225,41 +225,6 @@ public class TestUtils {
     }
 
     /**
-     * Copies all files in fromDir to toDir.  Does not copy subdirectories.
-     */
-    public static void copyFiles(File fromDir, File toDir)
-        throws IOException {
-
-        String[] names = fromDir.list();
-        if (names != null) {
-            for (int i = 0; i < names.length; i += 1) {
-                File fromFile = new File(fromDir, names[i]);
-                if (fromFile.isDirectory()) {
-                    continue;
-                }
-                File toFile = new File(toDir, names[i]);
-                int len = (int) fromFile.length();
-                byte[] data = new byte[len];
-                FileInputStream fis = null;
-                FileOutputStream fos = null;
-                try {
-                    fis = new FileInputStream(fromFile);
-                    fos = new FileOutputStream(toFile);
-                    fis.read(data);
-                    fos.write(data);
-                } finally {
-                    if (fis != null) {
-                        fis.close();
-                    }
-                    if (fos != null) {
-                        fos.close();
-                    }
-                }
-            }
-        }
-    }
-
-    /**
      * Useful utility for generating byte arrays with a known order.
      * Vary the length just to introduce more variability.
      * @return a byte array of length val % 100 with the value of "val"
@@ -358,25 +323,28 @@ public class TestUtils {
     public static long tallyNodeMemUsage(EnvironmentImpl envImpl)
         throws DatabaseException {
 
-        INList inList = envImpl.getInMemoryINs();
-        inList.latchMajor();
         long total = 0;
-        try {
-            Iterator iter = inList.iterator();
-            while (iter.hasNext()) {
-                IN in = (IN) iter.next();
-                in.latch();
-                try {
+        for (IN in : envImpl.getInMemoryINs()) {
+            in.latch();
+            try {
+
+                /*
+                 * verifyMemorySize cannot currently be called for BINs
+                 * containing FileSummaryLNs because the parent IN's in-memory
+                 * size does not reflect changes to the FileSummaryLN's
+                 * ObsoleteOffsets.
+                 */
+                if ((in.getDatabase() !=
+                     envImpl.getUtilizationProfile().getFileSummaryDb()) ||
+                    !(in instanceof BIN)) {
                     assert in.verifyMemorySize():
                         "in nodeId=" + in.getNodeId() +
                         ' ' + in.getClass().getName();
-                    total += in.getInMemorySize();
-                } finally {
-                    in.releaseLatch();
                 }
+                total += in.getBudgetedMemorySize();
+            } finally {
+                in.releaseLatch();
             }
-        } finally {
-            inList.releaseMajorLatch();
         }
         return total;
     }
@@ -416,10 +384,23 @@ public class TestUtils {
      * Loads the given resource relative to the given class, and copies it to
      * log file zero in the given directory.
      */
-    public static void loadLog(Class cls, String resourceName, File envHome)
+    public static void loadLog(Class<?> cls, String resourceName, File envHome)
         throws IOException {
 
-        File logFile = new File(envHome, LOG_FILE_NAME);
+        loadLog(cls, resourceName, envHome, LOG_FILE_NAME);
+    }
+
+    /**
+     * Loads the given resource relative to the given class, and copies it to
+     * the given log file in the given directory.
+     */
+    public static void loadLog(Class cls,
+                               String resourceName,
+                               File envHome,
+                               String logFileName)
+        throws IOException {
+
+        File logFile = new File(envHome, logFileName);
         InputStream is = cls.getResourceAsStream(resourceName);
         OutputStream os = new FileOutputStream(logFile);
         byte[] buf = new byte[is.available()];
@@ -445,17 +426,19 @@ public class TestUtils {
 
         /* Log the BIN and update its parent entry. */
         bin.latch();
-        SearchResult result = tree.getParentINForChildIN(bin, true, true);
+        SearchResult result = tree.getParentINForChildIN(bin, true,
+                                                         CacheMode.DEFAULT);
         assert result.parent != null;
         assert result.exactParentFound;
         IN binParent = result.parent;
         long binLsn = logIN(env, bin, true, binParent);
-        binParent.updateEntry(result.index, bin, binLsn);
+        binParent.updateNode(result.index, bin, binLsn, null /*lnSlotKey*/);
         result.parent.releaseLatch();
 
         /* Log the BIN parent and update its parent entry. */
         binParent.latch();
-        result = tree.getParentINForChildIN(binParent, true, true);
+        result =
+            tree.getParentINForChildIN(binParent, true, CacheMode.DEFAULT);
         IN inParent = null;
         if (result.parent != null) {
             result.parent.releaseLatch();
@@ -465,7 +448,8 @@ public class TestUtils {
         }
         final long inLsn = logIN(env, binParent, false, null);
         if (inParent != null) {
-            inParent.updateEntry(result.index, binParent, inLsn);
+            inParent.updateNode(result.index, binParent, inLsn,
+                                null /*lnSlotKey*/);
 	    inParent.releaseLatch();
         } else {
             tree.withRootLatchedExclusive(new WithRootLatched() {
@@ -505,14 +489,15 @@ public class TestUtils {
     }
 
     /**
-     * Returns the parent IN of the given BIN.
+     * Returns the parent IN of the given IN.
      */
-    public static IN getIN(BIN bin)
+    public static IN getIN(IN in)
         throws DatabaseException {
 
-        Tree tree = bin.getDatabase().getTree();
-        bin.latch();
-        SearchResult result = tree.getParentINForChildIN(bin, true, true);
+        Tree tree = in.getDatabase().getTree();
+        in.latch();
+        SearchResult result =
+            tree.getParentINForChildIN(in, true, CacheMode.DEFAULT);
         assert result.parent != null;
         result.parent.releaseLatch();
         assert result.exactParentFound;
@@ -542,7 +527,7 @@ public class TestUtils {
         throws DatabaseException {
 
         Tree tree = DbInternal.dbGetDatabaseImpl(db).getTree();
-        IN rootIN = tree.getRootIN(false /* update generation */);
+        IN rootIN = tree.getRootIN(CacheMode.UNCHANGED);
         int level = 0;
         if (rootIN != null) {
             level = rootIN.getLevel() & IN.LEVEL_MASK;
@@ -556,13 +541,7 @@ public class TestUtils {
      * @return true if long running tests are enabled.
      */
     static public boolean runLongTests() {
-        String longTestProp =  System.getProperty(TestUtils.LONG_TEST);
-        if ((longTestProp != null)  &&
-            longTestProp.equalsIgnoreCase("true")) {
-            return true;
-        } else {
-            return false;
-        }
+        return SharedTestUtils.runLongTests();
     }
 
     /**
@@ -572,5 +551,18 @@ public class TestUtils {
     public static String skipVersion(Exception e) {
         int versionHeaderLen = DatabaseException.getVersionHeader().length();
         return (e.getMessage().substring(versionHeaderLen));
+    }
+
+    /**
+     * Dump any exception messages to stderr.
+     */
+    public static class StdErrExceptionListener
+	implements ExceptionListener {
+
+	public void exceptionThrown(ExceptionEvent event) {
+	    System.err.println(Thread.currentThread() +
+			       " received " +
+			       event);
+	}
     }
 }

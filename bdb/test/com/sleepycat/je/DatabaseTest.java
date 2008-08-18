@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseTest.java,v 1.103.2.4 2007/11/20 13:32:42 cwl Exp $
+ * $Id: DatabaseTest.java,v 1.110 2008/01/24 14:59:31 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -590,8 +590,8 @@ public class DatabaseTest extends TestCase {
 
             BtreeStats stat = (BtreeStats)
 		myDb.getStats(TestUtils.FAST_STATS);
-
-            assertEquals(0, stat.getInternalNodeCount());
+            	
+	    assertEquals(0, stat.getInternalNodeCount());
             assertEquals(0, stat.getDuplicateInternalNodeCount());
             assertEquals(0, stat.getBottomInternalNodeCount());
             assertEquals(0, stat.getDuplicateBottomInternalNodeCount());
@@ -602,7 +602,7 @@ public class DatabaseTest extends TestCase {
             assertEquals(0, stat.getDuplicateTreeMaxDepth());
 
             stat = (BtreeStats) myDb.getStats(null);
-
+	
             assertEquals(15, stat.getInternalNodeCount());
             assertEquals(0, stat.getDuplicateInternalNodeCount());
             assertEquals(52, stat.getBottomInternalNodeCount());
@@ -622,6 +622,62 @@ public class DatabaseTest extends TestCase {
             assertEquals(0, stat.getDupCountLeafNodeCount());
             assertEquals(4, stat.getMainTreeMaxDepth());
             assertEquals(0, stat.getDuplicateTreeMaxDepth());
+
+	    long[] levelsTest = new long[]{ 12, 23, 34, 45, 56,
+		                            67, 78, 89, 90, 0 };
+	    BtreeStats bts = new BtreeStats();
+
+	    bts.setBottomInternalNodeCount(20);
+	    bts.setDuplicateBottomInternalNodeCount(30);
+	    bts.setDeletedLeafNodeCount(40);
+	    bts.setDupCountLeafNodeCount(50);
+	    bts.setInternalNodeCount(60);
+	    bts.setDuplicateInternalNodeCount(70);
+	    bts.setLeafNodeCount(80);
+	    bts.setMainTreeMaxDepth(5);
+	    bts.setDuplicateTreeMaxDepth(2);
+	    bts.setINsByLevel(levelsTest);
+	    bts.setBINsByLevel(levelsTest);
+	    bts.setDINsByLevel(levelsTest);
+	    bts.setDBINsByLevel(levelsTest);
+
+	    assertEquals(20, bts.getBottomInternalNodeCount());
+	    assertEquals(30, bts.getDuplicateBottomInternalNodeCount());
+	    assertEquals(40, bts.getDeletedLeafNodeCount());
+	    assertEquals(50, bts.getDupCountLeafNodeCount());
+	    assertEquals(60, bts.getInternalNodeCount());
+	    assertEquals(70, bts.getDuplicateInternalNodeCount());
+	    assertEquals(80, bts.getLeafNodeCount());
+	    assertEquals(5, bts.getMainTreeMaxDepth());
+	    assertEquals(2, bts.getDuplicateTreeMaxDepth());
+
+	    for(int i = 0; i < levelsTest.length; i++) {
+		assertEquals(levelsTest[i], bts.getINsByLevel()[i]);
+	    }
+
+	    for(int i = 0; i < levelsTest.length; i++) {
+		assertEquals(levelsTest[i], bts.getBINsByLevel()[i]);
+	    }
+
+	    for(int i = 0; i < levelsTest.length; i++) {
+	        assertEquals(levelsTest[i], bts.getDINsByLevel()[i]);
+	    }
+
+	    for(int i = 0; i < levelsTest.length; i++) {
+	        assertEquals(levelsTest[i], bts.getDBINsByLevel()[i]);
+	    }
+	
+	    bts.toString();
+	    bts.setBottomInternalNodeCount(0);
+	    bts.setDuplicateBottomInternalNodeCount(0);
+	    bts.setInternalNodeCount(0);
+	    bts.setDuplicateInternalNodeCount(0);
+
+	    assertEquals(0, bts.getBottomInternalNodeCount());
+	    assertEquals(0, bts.getDuplicateBottomInternalNodeCount());
+	    assertEquals(0, bts.getInternalNodeCount());
+	    assertEquals(0, bts.getDuplicateInternalNodeCount());
+	    bts.toString();
 
 	    txn.commit();
             myDb.close();
@@ -911,7 +967,7 @@ public class DatabaseTest extends TestCase {
         PreloadStats stats =
 	    myDb.preload(conf); /* Cache size is currently 92160. */
 
-	assertEquals(PreloadStatus.FILLED_CACHE, stats.status);
+	assertEquals(PreloadStatus.FILLED_CACHE, stats.getStatus());
 
         long postPreloadMemUsage = env.getMemoryUsage();
         long postPreloadResidentNodes = inlist.getSize();
@@ -954,6 +1010,39 @@ public class DatabaseTest extends TestCase {
         assertTrue(postEvictResidentNodes < postPreloadResidentNodes);
         //assertEquals(postCreateResidentNodes, postIterationResidentNodes);
         assertTrue(postCreateResidentNodes >= postIterationResidentNodes);
+	
+	stats = new PreloadStats(10, // nINs
+                                 30, // nBINs,
+                                 60, // nLNs
+                                 12, // nDINs
+                                 20, // nDBINs
+                                 30, // nDupcountLNs
+                                 PreloadStatus.EXCEEDED_TIME);
+
+	assertEquals(10, stats.getNINsLoaded());
+	assertEquals(30, stats.getNBINsLoaded());
+	assertEquals(60, stats.getNLNsLoaded());
+	assertEquals(12, stats.getNDINsLoaded());
+	assertEquals(20, stats.getNDBINsLoaded());
+	assertEquals(30, stats.getNDupCountLNsLoaded());
+	assertEquals(PreloadStatus.EXCEEDED_TIME, stats.getStatus());
+	stats.toString();	
+
+	VerifyConfig vcfg = new VerifyConfig();
+
+	vcfg.setPropagateExceptions(true);
+	vcfg.setAggressive(false);
+	vcfg.setPrintInfo(true);
+	vcfg.setShowProgressStream(System.out);
+	vcfg.setShowProgressInterval(5);
+
+	assertEquals(true, vcfg.getPropagateExceptions());
+	assertEquals(false, vcfg.getAggressive());
+	assertEquals(true, vcfg.getPrintInfo());
+	assertEquals(System.out.getClass(),
+		     vcfg.getShowProgressStream().getClass());
+	assertEquals(5, vcfg.getShowProgressInterval());
+	vcfg.toString();
 
         myDb.close();
         env.close();
@@ -999,7 +1088,7 @@ public class DatabaseTest extends TestCase {
 	PreloadConfig conf = new PreloadConfig();
 	conf.setMaxMillisecs(50);
         PreloadStats stats = myDb.preload(conf);
-	assertEquals(PreloadStatus.EXCEEDED_TIME, stats.status);
+	assertEquals(PreloadStatus.EXCEEDED_TIME, stats.getStatus());
 
         long postPreloadMemUsage = env.getMemoryUsage();
         long postPreloadResidentNodes = inlist.getSize();
@@ -1069,44 +1158,6 @@ public class DatabaseTest extends TestCase {
         /*
          * Preload the entire database.  In JE 2.0.54 this would cause a
          * NullPointerException.
-         */
-	PreloadConfig conf = new PreloadConfig();
-	conf.setMaxBytes(100000);
-        myDb.preload(conf);
-
-        myDb.close();
-        env.close();
-    }
-
-    /**
-     * Preloads a dup database to verify the bug fix for preloading dups on
-     * 3.2.x. [#15365]
-     */
-    public void testPreloadDups()
-        throws Throwable {
-
-        Database myDb = initEnvAndDb
-            (false, true /*allowDuplicates*/, false, false, null);
-        DatabaseEntry key = new DatabaseEntry();
-        DatabaseEntry data = new DatabaseEntry();
-        key.setData(TestUtils.getTestArray(0));
-        data.setData(TestUtils.getTestArray(0));
-        assertSame(OperationStatus.SUCCESS,
-                   myDb.putNoDupData(null, key, data));
-        data.setData(TestUtils.getTestArray(1));
-        assertSame(OperationStatus.SUCCESS,
-                   myDb.putNoDupData(null, key, data));
-
-        /* Close and reopen. */
-        myDb.close();
-        env.close();
-        myDb = initEnvAndDb
-            (false, true /*allowDuplicates*/, false, false, null);
-
-        /*
-         * Preload the entire database.  Before the bug fix, an assertion would
-         * fire in DatabaseImpl.PreloadLSNTreeWalker.fetchLSN when processing
-         * the DupCountLN.
          */
 	PreloadConfig conf = new PreloadConfig();
 	conf.setMaxBytes(100000);

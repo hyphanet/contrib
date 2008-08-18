@@ -1,15 +1,12 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TestSR15721.java,v 1.1.2.4 2007/11/20 13:32:41 cwl Exp $
+ * $Id: TestSR15721.java,v 1.8 2008/02/06 19:48:02 linda Exp $
  */
 
 package com.sleepycat.collections.test;
-
-import java.io.File;
-import java.util.Properties;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -17,7 +14,7 @@ import junit.framework.TestSuite;
 
 import com.sleepycat.collections.CurrentTransaction;
 import com.sleepycat.je.Environment;
-import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * @author Chao Huang
@@ -67,22 +64,11 @@ public class TestSR15721 extends TestCase {
     public void setUp()
         throws Exception {
 
-        File dir = DbTestUtil.getNewDir();
-        Properties p = new Properties();
-        p.setProperty("je.env.isTransactional", "true");
-        p.setProperty("je.env.isLocking", "true");
-        p.setProperty("je.env.isReadOnly", "false");
-        p.setProperty("je.env.recovery", "true");
-
-        EnvironmentConfig envConfig = new EnvironmentConfig(p);
-        envConfig.setAllowCreate(true);
-
-        env = new Environment(dir, envConfig);
+        env = TestEnv.TXN.open("TestSR15721");
         currentTxn = CurrentTransaction.getInstance(env);
     }
 
     public void tearDown() {
-
         try {
             if (env != null) {
                 env.close();

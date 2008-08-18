@@ -1,14 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TransactionTest.java,v 1.46.2.5 2007/12/13 23:48:23 mark Exp $
+ * $Id: TransactionTest.java,v 1.53 2008/02/05 23:28:26 mark Exp $
  */
 
 package com.sleepycat.collections.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
@@ -35,8 +36,9 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.TransactionConfig;
-import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.util.RuntimeExceptionWrapper;
+import com.sleepycat.util.test.SharedTestUtils;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * @author Mark Hayes
@@ -98,7 +100,7 @@ public class TransactionTest extends TestCase {
     public void setUp()
         throws Exception {
 
-        DbTestUtil.printTestName(DbTestUtil.qualifiedTestName(this));
+        SharedTestUtils.printTestName(SharedTestUtils.qualifiedTestName(this));
         env = TestEnv.TXN.open("TransactionTests");
         currentTxn = CurrentTransaction.getInstance(env);
         store = testStore.open(env, dbName(0));
@@ -203,9 +205,8 @@ public class TransactionTest extends TestCase {
         DatabaseConfig dbConfig = new DatabaseConfig();
         DbCompat.setTypeBtree(dbConfig);
         dbConfig.setAllowCreate(true);
-        Database db = DbCompat.openDatabase(env, null,
-                                            dbName(1), null,
-                                            dbConfig);
+        Database db = DbCompat.testOpenDatabase
+            (env, null, dbName(1), null, dbConfig);
         map = new StoredSortedMap(db, testStore.getKeyBinding(),
                                       testStore.getValueBinding(), true);
         assertTrue(!map.isTransactional());
@@ -217,8 +218,8 @@ public class TransactionTest extends TestCase {
         //
         dbConfig.setTransactional(true);
         currentTxn.beginTransaction(null);
-        db = DbCompat.openDatabase(env, currentTxn.getTransaction(),
-                                   dbName(2), null, dbConfig);
+        db = DbCompat.testOpenDatabase
+            (env, currentTxn.getTransaction(), dbName(2), null, dbConfig);
         currentTxn.commitTransaction();
         map = new StoredSortedMap(db, testStore.getKeyBinding(),
                                       testStore.getValueBinding(), true);
@@ -584,14 +585,12 @@ public class TransactionTest extends TestCase {
         assertNull(currentTxn.getTransaction());
     }
 
-    // <!-- begin JE only -->
-
     /**
      * Tests that the CurrentTransaction static WeakHashMap does indeed allow
      * GC to reclaim tine environment when it is closed.  At one point this was
      * not working because the value object in the map has a reference to the
-     * environment.  This was fixed by wrapping the value in a WeakReference.
-     * [#15444]
+     * environment.  This was fixed by wrapping the Environment in a
+     * WeakReference.  [#15444]
      *
      * This test only succeeds intermittently, probably due to its reliance
      * on the GC call.
@@ -603,7 +602,7 @@ public class TransactionTest extends TestCase {
          * This test can have indeterminate results because it depends on
          * a finalize count, so it's not part of the default run.
          */
-        if (!TestUtils.runLongTests()) {
+        if (!SharedTestUtils.runLongTests()) {
             return;
         }
 
@@ -612,7 +611,7 @@ public class TransactionTest extends TestCase {
         class MyEnv extends Environment {
 
             MyEnv(File home, EnvironmentConfig config)
-                throws DatabaseException {
+                throws IOException, DatabaseException {
 
                 super(home, config);
             }
@@ -638,12 +637,15 @@ public class TransactionTest extends TestCase {
         myCurrTxn = null;
         currentTxn = null;
 
-        byte[] x = null;
-        try {
-             x = new byte[Integer.MAX_VALUE - 1];
-        } catch (OutOfMemoryError expected) {
+        for (int i = 0; i < 10; i += 1) {
+            byte[] x = null;
+            try {
+                 x = new byte[Integer.MAX_VALUE - 1];
+            } catch (OutOfMemoryError expected) {
+            }
+            assertNull(x);
+            System.gc();
         }
-        assertNull(x);
 
         for (int i = 0; i < 10; i += 1) {
             System.gc();
@@ -651,8 +653,6 @@ public class TransactionTest extends TestCase {
 
         assertTrue(finalizedFlag.length() > 0);
     }
-
-    // <!-- end JE only -->
 
     private synchronized void doReadUncommitted(StoredSortedMap dirtyMap)
         throws Exception {

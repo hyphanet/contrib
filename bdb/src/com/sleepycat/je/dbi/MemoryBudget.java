@@ -1,24 +1,25 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudget.java,v 1.54.2.9 2007/11/20 13:32:28 cwl Exp $
+ * $Id: MemoryBudget.java,v 1.85 2008/05/29 13:50:07 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
 
-import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.EnvironmentMutableConfig;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
-import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.DBIN;
 import com.sleepycat.je.tree.DIN;
 import com.sleepycat.je.tree.IN;
+import com.sleepycat.je.utilint.Tracer;
 
 /**
  * MemoryBudget calculates the available memory for JE and how to apportion
@@ -29,6 +30,23 @@ import com.sleepycat.je.tree.IN;
 public class MemoryBudget implements EnvConfigObserver {
 
     /*
+     * CLEANUP_DONE can be set to false for unit test debugging
+     * that is still in progress. When we do the final regression,
+     * this should be removed to be assured that it is never false.
+     */
+    public static boolean CLEANUP_DONE = false;
+
+    /*
+     * These DEBUG variables are public so unit tests can easily turn them
+     * on and off for different sections of code.
+     */
+    public static boolean DEBUG_ADMIN = Boolean.getBoolean("memAdmin");
+    public static boolean DEBUG_LOCK = Boolean.getBoolean("memLock");
+    public static boolean DEBUG_TXN = Boolean.getBoolean("memTxn");
+    public static boolean DEBUG_TREEADMIN = Boolean.getBoolean("memTreeAdmin");
+    public static boolean DEBUG_TREE = Boolean.getBoolean("memTree");
+
+    /*
      * Object overheads. These are set statically with advance measurements.
      * Java doesn't provide a way of assessing object size dynamically. These
      * overheads will not be precise, but are close enough to let the system
@@ -36,8 +54,6 @@ public class MemoryBudget implements EnvConfigObserver {
      *
      * _32 values are the same on Windows and Solaris.
      * _64 values are from 1.5.0_05 on Solaris.
-     * _14 values are from 1.4.2 on Windows and Solaris.
-     * _15 values are from 1.5.0_05 on Solaris and Windows.
      *
      * Specifically:
      *
@@ -72,7 +88,8 @@ public class MemoryBudget implements EnvConfigObserver {
 
     // 20
     private final static int HASHMAP_OVERHEAD_32 = 120;
-    private final static int HASHMAP_OVERHEAD_64 = 216;
+    private final static int HASHMAP_OVERHEAD_64_15 = 216;
+    private final static int HASHMAP_OVERHEAD_64_16 = 218;
 
     // 21 - OBJECT_OVERHEAD - HASHMAP_OVERHEAD
     // 64b: 21 is max(280,...,287) on Linux/Solaris 1.5/1.6
@@ -90,10 +107,12 @@ public class MemoryBudget implements EnvConfigObserver {
 
     // HASHMAP_OVERHEAD * 2
     private final static int TWOHASHMAPS_OVERHEAD_32 = 240;
-    private final static int TWOHASHMAPS_OVERHEAD_64 = 432;
+    private final static int TWOHASHMAPS_OVERHEAD_64_15 = 432;
+    private final static int TWOHASHMAPS_OVERHEAD_64_16 = 436;
 
     // 34
-    private final static int TREEMAP_OVERHEAD_32 = 40;
+    private final static int TREEMAP_OVERHEAD_32_15 = 40;
+    private final static int TREEMAP_OVERHEAD_32_16 = 48;
     private final static int TREEMAP_OVERHEAD_64_15 = 64;
     private final static int TREEMAP_OVERHEAD_64_16 = 80;
 
@@ -103,10 +122,10 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int TREEMAP_ENTRY_OVERHEAD_64 = 64;
 
     // 36
-    // 64b: 36 is 800 on 1.5 and max(840,853) on Linux/Solaris 1.6
-    private final static int MAPLN_OVERHEAD_32 = 464;
-    private final static int MAPLN_OVERHEAD_64_15 = 800;
-    private final static int MAPLN_OVERHEAD_64_16 = 853;
+    private final static int MAPLN_OVERHEAD_32_15 = 640;
+    private final static int MAPLN_OVERHEAD_32_16 = 664;
+    private final static int MAPLN_OVERHEAD_64_15 = 1096;
+    private final static int MAPLN_OVERHEAD_64_16 = 1136;
 
     // 9
     private final static int LN_OVERHEAD_32 = 24;
@@ -117,66 +136,71 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int DUPCOUNTLN_OVERHEAD_64 = 48;
 
     // 12
-    private final static int BIN_FIXED_OVERHEAD_32_14 = 344;
-    private final static int BIN_FIXED_OVERHEAD_32_15 = 360;
-    private final static int BIN_FIXED_OVERHEAD_64_15 = 528;
-    private final static int BIN_FIXED_OVERHEAD_64_16 = 568;
+    // 64b: 12 is max(536, 539) on Linux/Solaris on 1.5
+    // 64b: 12 is max(578, 576) on Linux/Solaris on 1.6
+    private final static int BIN_FIXED_OVERHEAD_32 = 370; // 344 in 1.5
+    private final static int BIN_FIXED_OVERHEAD_64_15 = 544;
+    private final static int BIN_FIXED_OVERHEAD_64_16 = 584;
 
     // 18
-    private final static int DIN_FIXED_OVERHEAD_32_14 = 352;
-    private final static int DIN_FIXED_OVERHEAD_32_15 = 360;
-    private final static int DIN_FIXED_OVERHEAD_64_15 = 536;
-    private final static int DIN_FIXED_OVERHEAD_64_16 = 576;
+    private final static int DIN_FIXED_OVERHEAD_32 = 377; // 352 in 1.5
+    private final static int DIN_FIXED_OVERHEAD_64_15 = 552;
+    private final static int DIN_FIXED_OVERHEAD_64_16 = 596;
 
     // 17
-    private final static int DBIN_FIXED_OVERHEAD_32_14 = 352;
-    private final static int DBIN_FIXED_OVERHEAD_32_15 = 368;
-    private final static int DBIN_FIXED_OVERHEAD_64_15 = 544;
-    private final static int DBIN_FIXED_OVERHEAD_64_16 = 584;
+    // 64b: 17 is max(592,593) on Linux/Solaris on 1.6
+    private final static int DBIN_FIXED_OVERHEAD_32 = 377; // 352 in 1.5
+    private final static int DBIN_FIXED_OVERHEAD_64_15 = 560;
+    private final static int DBIN_FIXED_OVERHEAD_64_16 = 600;
 
     // 13
-    private final static int IN_FIXED_OVERHEAD_32_14 = 312;
-    private final static int IN_FIXED_OVERHEAD_32_15 = 320;
-    private final static int IN_FIXED_OVERHEAD_64_15 = 472;
-    private final static int IN_FIXED_OVERHEAD_64_16 = 512;
+    // 339 is max(312,339) on Solaris 1.5 vs 1.6
+    private final static int IN_FIXED_OVERHEAD_32 = 339; // 312 in 1.5
+    private final static int IN_FIXED_OVERHEAD_64_15 = 488;
+    private final static int IN_FIXED_OVERHEAD_64_16 = 528;
 
     // 6
     private final static int KEY_OVERHEAD_32 = 16;
     private final static int KEY_OVERHEAD_64 = 24;
 
     // 24
-    private final static int LOCK_OVERHEAD_32 = 24;
-    private final static int LOCK_OVERHEAD_64 = 48;
+    private final static int LOCKIMPL_OVERHEAD_32 = 24;
+    private final static int LOCKIMPL_OVERHEAD_64 = 48;
+
+    // 42
+    private final static int THINLOCKIMPL_OVERHEAD_32 = 16;
+    private final static int THINLOCKIMPL_OVERHEAD_64 = 32;
 
     // 25
     private final static int LOCKINFO_OVERHEAD_32 = 16;
     private final static int LOCKINFO_OVERHEAD_64 = 32;
 
     // 37
-    private final static int WRITE_LOCKINFO_OVERHEAD_32 = 24;
-    private final static int WRITE_LOCKINFO_OVERHEAD_64 = 32;
+    private final static int WRITE_LOCKINFO_OVERHEAD_32 = 32;
+    private final static int WRITE_LOCKINFO_OVERHEAD_64 = 40;
 
     /*
      * Txn memory is the size for the Txn + a hashmap entry
      * overhead for being part of the transaction table.
      */
     // 15
-    private final static int TXN_OVERHEAD_32_14 = 167;
-    private final static int TXN_OVERHEAD_32_15 = 175;
-    private final static int TXN_OVERHEAD_64 = 253;
+    private final static int TXN_OVERHEAD_32 = 186;
+    private final static int TXN_OVERHEAD_64 = 281;
 
     // 26
-    private final static int CHECKPOINT_REFERENCE_SIZE_32_14 = 32 +
-        HASHSET_ENTRY_OVERHEAD_32;
-    private final static int CHECKPOINT_REFERENCE_SIZE_32_15 = 40 +
+    private final static int CHECKPOINT_REFERENCE_SIZE_32 = 40 +
         HASHSET_ENTRY_OVERHEAD_32;
     private final static int CHECKPOINT_REFERENCE_SIZE_64 = 56 +
         HASHSET_ENTRY_OVERHEAD_64;
 
     /* The per-log-file bytes used in UtilizationProfile. */
-    // 29 / 500
-    private final static int UTILIZATION_PROFILE_ENTRY_32 = 96;
-    private final static int UTILIZATION_PROFILE_ENTRY_64 = 144;
+    // 29 / 10
+    private final static int UTILIZATION_PROFILE_ENTRY_32 = 101;
+    private final static int UTILIZATION_PROFILE_ENTRY_64 = 153;
+
+    //  38
+    private final static int DBFILESUMMARY_OVERHEAD_32 = 40;
+    private final static int DBFILESUMMARY_OVERHEAD_64 = 48;
 
     /* Tracked File Summary overheads. */
     // 31
@@ -184,21 +208,36 @@ public class MemoryBudget implements EnvConfigObserver {
     private final static int TFS_LIST_INITIAL_OVERHEAD_64 = 504;
 
     // 30
+    // 64b: 30 is max(464,464,464,465) on Linux/Solaris on 1.5/1.6
     private final static int TFS_LIST_SEGMENT_OVERHEAD_32 = 440;
-    private final static int TFS_LIST_SEGMENT_OVERHEAD_64 = 464;
+    private final static int TFS_LIST_SEGMENT_OVERHEAD_64 = 465;
 
     // 33
     private final static int LN_INFO_OVERHEAD_32 = 24;
     private final static int LN_INFO_OVERHEAD_64 = 48;
 
-    // 38
-    private final static int FILESUMMARYLN_OVERHEAD_32 = 104;
-    private final static int FILESUMMARYLN_OVERHEAD_64 = 160;
+    // 43
+    private final static int FILESUMMARYLN_OVERHEAD_32 = 112;
+    private final static int FILESUMMARYLN_OVERHEAD_64 = 168;
 
     /* Approximate element size in an ArrayList of Long. */
-    // (28 - 27) / 100
+    // (28 - 27) / 10
+    // 32b: 28 and 27 are 240 and 40, resp.
+    // 64b: 28 and 27 are 384 and 64, resp.
     private final static int LONG_LIST_PER_ITEM_OVERHEAD_32 = 20;
     private final static int LONG_LIST_PER_ITEM_OVERHEAD_64 = 32;
+
+    // 43
+    private final static int INCOMING_CONNECTION_HANDLER_OVERHEAD_32 = 24;
+    private final static int INCOMING_CONNECTION_HANDLER_OVERHEAD_64 = 48;
+
+    // 44
+    private final static int RECEIVE_MESSAGE_HANDLER_OVERHEAD_32 = 40;
+    private final static int RECEIVE_MESSAGE_HANDLER_OVERHEAD_64 = 80;
+
+    // 45
+    private final static int SEND_MESSAGE_HANDLER_OVERHEAD_32 = 56;
+    private final static int SEND_MESSAGE_HANDLER_OVERHEAD_64 = 96;
 
     public final static int LONG_OVERHEAD;
     public final static int ARRAY_OVERHEAD;
@@ -220,12 +259,14 @@ public class MemoryBudget implements EnvConfigObserver {
     public final static int DBIN_FIXED_OVERHEAD;
     public final static int IN_FIXED_OVERHEAD;
     public final static int KEY_OVERHEAD;
-    public final static int LOCK_OVERHEAD;
+    public final static int LOCKIMPL_OVERHEAD;
+    public final static int THINLOCKIMPL_OVERHEAD;
     public final static int LOCKINFO_OVERHEAD;
     public final static int WRITE_LOCKINFO_OVERHEAD;
     public final static int TXN_OVERHEAD;
     public final static int CHECKPOINT_REFERENCE_SIZE;
     public final static int UTILIZATION_PROFILE_ENTRY;
+    public final static int DBFILESUMMARY_OVERHEAD;
     public final static int TFS_LIST_INITIAL_OVERHEAD;
     public final static int TFS_LIST_SEGMENT_OVERHEAD;
     public final static int LN_INFO_OVERHEAD;
@@ -242,40 +283,31 @@ public class MemoryBudget implements EnvConfigObserver {
         String javaVersion = System.getProperty("java.version");
         boolean isJVM15 = javaVersion != null &&
                           javaVersion.startsWith("1.5.");
-	boolean isJVM14 = (LatchSupport.getJava5LatchClass() == null);
 
-	boolean is64 = false;
-	String overrideArch = System.getProperty(FORCE_JVM_ARCH);
-	try {
-	    if (overrideArch == null) {
-		String arch = System.getProperty(JVM_ARCH_PROPERTY);
-		if (arch != null) {
-		    is64 = Integer.parseInt(arch) == 64;
-		}
-	    } else {
-		is64 = Integer.parseInt(overrideArch) == 64;
-	    }
-	} catch (NumberFormatException NFE) {
-	    NFE.printStackTrace(System.err);
-	}
+        boolean is64 = false;
+        String overrideArch = System.getProperty(FORCE_JVM_ARCH);
+        try {
+            if (overrideArch == null) {
+                String arch = System.getProperty(JVM_ARCH_PROPERTY);
+                if (arch != null) {
+                    is64 = Integer.parseInt(arch) == 64;
+                }
+            } else {
+                is64 = Integer.parseInt(overrideArch) == 64;
+            }
+        } catch (NumberFormatException NFE) {
+            NFE.printStackTrace(System.err);
+        }
 
-	if (is64) {
-	    if (isJVM14) {
-		RuntimeException RE = new RuntimeException
-		    ("1.4 based 64 bit JVM not supported");
-		RE.printStackTrace(System.err);
-		throw RE;
-	    }
-	    LONG_OVERHEAD = LONG_OVERHEAD_64;
-	    ARRAY_OVERHEAD = ARRAY_OVERHEAD_64;
+        if (is64) {
+            LONG_OVERHEAD = LONG_OVERHEAD_64;
+            ARRAY_OVERHEAD = ARRAY_OVERHEAD_64;
             ARRAY_SIZE_INCLUDED = ARRAY_SIZE_INCLUDED_64;
-	    OBJECT_OVERHEAD = OBJECT_OVERHEAD_64;
-	    OBJECT_ARRAY_ITEM_OVERHEAD = OBJECT_ARRAY_ITEM_OVERHEAD_64;
-	    HASHMAP_OVERHEAD = HASHMAP_OVERHEAD_64;
-	    HASHMAP_ENTRY_OVERHEAD = HASHMAP_ENTRY_OVERHEAD_64;
-	    HASHSET_OVERHEAD = HASHSET_OVERHEAD_64;
-	    HASHSET_ENTRY_OVERHEAD = HASHSET_ENTRY_OVERHEAD_64;
-	    TWOHASHMAPS_OVERHEAD = TWOHASHMAPS_OVERHEAD_64;
+            OBJECT_OVERHEAD = OBJECT_OVERHEAD_64;
+            OBJECT_ARRAY_ITEM_OVERHEAD = OBJECT_ARRAY_ITEM_OVERHEAD_64;
+            HASHMAP_ENTRY_OVERHEAD = HASHMAP_ENTRY_OVERHEAD_64;
+            HASHSET_OVERHEAD = HASHSET_OVERHEAD_64;
+            HASHSET_ENTRY_OVERHEAD = HASHSET_ENTRY_OVERHEAD_64;
             if (isJVM15) {
                 TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_64_15;
                 MAPLN_OVERHEAD = MAPLN_OVERHEAD_64_15;
@@ -283,6 +315,8 @@ public class MemoryBudget implements EnvConfigObserver {
                 DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_64_15;
                 DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_64_15;
                 IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_64_15;
+                HASHMAP_OVERHEAD = HASHMAP_OVERHEAD_64_15;
+                TWOHASHMAPS_OVERHEAD = TWOHASHMAPS_OVERHEAD_64_15;
             } else {
                 TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_64_16;
                 MAPLN_OVERHEAD = MAPLN_OVERHEAD_64_16;
@@ -290,98 +324,112 @@ public class MemoryBudget implements EnvConfigObserver {
                 DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_64_16;
                 DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_64_16;
                 IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_64_16;
+                HASHMAP_OVERHEAD = HASHMAP_OVERHEAD_64_16;
+                TWOHASHMAPS_OVERHEAD = TWOHASHMAPS_OVERHEAD_64_16;
             }
-	    TREEMAP_ENTRY_OVERHEAD = TREEMAP_ENTRY_OVERHEAD_64;
-	    LN_OVERHEAD = LN_OVERHEAD_64;
-	    DUPCOUNTLN_OVERHEAD = DUPCOUNTLN_OVERHEAD_64;
-	    TXN_OVERHEAD = TXN_OVERHEAD_64;
-	    CHECKPOINT_REFERENCE_SIZE = CHECKPOINT_REFERENCE_SIZE_64;
-	    KEY_OVERHEAD = KEY_OVERHEAD_64;
-	    LOCK_OVERHEAD = LOCK_OVERHEAD_64;
-	    LOCKINFO_OVERHEAD = LOCKINFO_OVERHEAD_64;
-	    WRITE_LOCKINFO_OVERHEAD = WRITE_LOCKINFO_OVERHEAD_64;
-	    UTILIZATION_PROFILE_ENTRY = UTILIZATION_PROFILE_ENTRY_64;
-	    TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_64;
-	    TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_64;
-	    LN_INFO_OVERHEAD = LN_INFO_OVERHEAD_64;
-	    FILESUMMARYLN_OVERHEAD = FILESUMMARYLN_OVERHEAD_64;
-	    LONG_LIST_PER_ITEM_OVERHEAD = LONG_LIST_PER_ITEM_OVERHEAD_64;
-	} else {
-	    LONG_OVERHEAD = LONG_OVERHEAD_32;
-	    ARRAY_OVERHEAD = ARRAY_OVERHEAD_32;
+            TREEMAP_ENTRY_OVERHEAD = TREEMAP_ENTRY_OVERHEAD_64;
+            LN_OVERHEAD = LN_OVERHEAD_64;
+            DUPCOUNTLN_OVERHEAD = DUPCOUNTLN_OVERHEAD_64;
+            TXN_OVERHEAD = TXN_OVERHEAD_64;
+            CHECKPOINT_REFERENCE_SIZE = CHECKPOINT_REFERENCE_SIZE_64;
+            KEY_OVERHEAD = KEY_OVERHEAD_64;
+            LOCKIMPL_OVERHEAD = LOCKIMPL_OVERHEAD_64;
+            THINLOCKIMPL_OVERHEAD = THINLOCKIMPL_OVERHEAD_64;
+            LOCKINFO_OVERHEAD = LOCKINFO_OVERHEAD_64;
+            WRITE_LOCKINFO_OVERHEAD = WRITE_LOCKINFO_OVERHEAD_64;
+            UTILIZATION_PROFILE_ENTRY = UTILIZATION_PROFILE_ENTRY_64;
+            DBFILESUMMARY_OVERHEAD = DBFILESUMMARY_OVERHEAD_64;
+            TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_64;
+            TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_64;
+            LN_INFO_OVERHEAD = LN_INFO_OVERHEAD_64;
+            FILESUMMARYLN_OVERHEAD = FILESUMMARYLN_OVERHEAD_64;
+            LONG_LIST_PER_ITEM_OVERHEAD = LONG_LIST_PER_ITEM_OVERHEAD_64;
+        } else {
+            LONG_OVERHEAD = LONG_OVERHEAD_32;
+            ARRAY_OVERHEAD = ARRAY_OVERHEAD_32;
             ARRAY_SIZE_INCLUDED = ARRAY_SIZE_INCLUDED_32;
-	    OBJECT_OVERHEAD = OBJECT_OVERHEAD_32;
-	    OBJECT_ARRAY_ITEM_OVERHEAD = OBJECT_ARRAY_ITEM_OVERHEAD_32;
-	    HASHMAP_OVERHEAD = HASHMAP_OVERHEAD_32;
-	    HASHMAP_ENTRY_OVERHEAD = HASHMAP_ENTRY_OVERHEAD_32;
-	    HASHSET_OVERHEAD = HASHSET_OVERHEAD_32;
-	    HASHSET_ENTRY_OVERHEAD = HASHSET_ENTRY_OVERHEAD_32;
-	    TWOHASHMAPS_OVERHEAD = TWOHASHMAPS_OVERHEAD_32;
-	    TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_32;
-	    TREEMAP_ENTRY_OVERHEAD = TREEMAP_ENTRY_OVERHEAD_32;
-	    MAPLN_OVERHEAD = MAPLN_OVERHEAD_32;
-	    LN_OVERHEAD = LN_OVERHEAD_32;
-	    DUPCOUNTLN_OVERHEAD = DUPCOUNTLN_OVERHEAD_32;
-	    if (isJVM14) {
-		BIN_FIXED_OVERHEAD = BIN_FIXED_OVERHEAD_32_14;
-		DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_32_14;
-		DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_32_14;
-		IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_32_14;
-		TXN_OVERHEAD = TXN_OVERHEAD_32_14;
-		CHECKPOINT_REFERENCE_SIZE = CHECKPOINT_REFERENCE_SIZE_32_14;
-	    } else {
-		BIN_FIXED_OVERHEAD = BIN_FIXED_OVERHEAD_32_15;
-		DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_32_15;
-		DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_32_15;
-		IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_32_15;
-		TXN_OVERHEAD = TXN_OVERHEAD_32_15;
-		CHECKPOINT_REFERENCE_SIZE = CHECKPOINT_REFERENCE_SIZE_32_15;
-	    }
-	    KEY_OVERHEAD = KEY_OVERHEAD_32;
-	    LOCK_OVERHEAD = LOCK_OVERHEAD_32;
-	    LOCKINFO_OVERHEAD = LOCKINFO_OVERHEAD_32;
-	    WRITE_LOCKINFO_OVERHEAD = WRITE_LOCKINFO_OVERHEAD_32;
-	    UTILIZATION_PROFILE_ENTRY = UTILIZATION_PROFILE_ENTRY_32;
-	    TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_32;
-	    TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_32;
-	    LN_INFO_OVERHEAD = LN_INFO_OVERHEAD_32;
-	    FILESUMMARYLN_OVERHEAD = FILESUMMARYLN_OVERHEAD_32;
-	    LONG_LIST_PER_ITEM_OVERHEAD = LONG_LIST_PER_ITEM_OVERHEAD_32;
-	}
+            OBJECT_OVERHEAD = OBJECT_OVERHEAD_32;
+            OBJECT_ARRAY_ITEM_OVERHEAD = OBJECT_ARRAY_ITEM_OVERHEAD_32;
+            HASHMAP_OVERHEAD = HASHMAP_OVERHEAD_32;
+            HASHMAP_ENTRY_OVERHEAD = HASHMAP_ENTRY_OVERHEAD_32;
+            HASHSET_OVERHEAD = HASHSET_OVERHEAD_32;
+            HASHSET_ENTRY_OVERHEAD = HASHSET_ENTRY_OVERHEAD_32;
+            TWOHASHMAPS_OVERHEAD = TWOHASHMAPS_OVERHEAD_32;
+            if (isJVM15) {
+                TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_32_15;
+                MAPLN_OVERHEAD = MAPLN_OVERHEAD_32_15;
+            } else {
+                TREEMAP_OVERHEAD = TREEMAP_OVERHEAD_32_16;
+                MAPLN_OVERHEAD = MAPLN_OVERHEAD_32_16;
+            }
+            TREEMAP_ENTRY_OVERHEAD = TREEMAP_ENTRY_OVERHEAD_32;
+            LN_OVERHEAD = LN_OVERHEAD_32;
+            DUPCOUNTLN_OVERHEAD = DUPCOUNTLN_OVERHEAD_32;
+            BIN_FIXED_OVERHEAD = BIN_FIXED_OVERHEAD_32;
+            DIN_FIXED_OVERHEAD = DIN_FIXED_OVERHEAD_32;
+            DBIN_FIXED_OVERHEAD = DBIN_FIXED_OVERHEAD_32;
+            IN_FIXED_OVERHEAD = IN_FIXED_OVERHEAD_32;
+            TXN_OVERHEAD = TXN_OVERHEAD_32;
+            CHECKPOINT_REFERENCE_SIZE = CHECKPOINT_REFERENCE_SIZE_32;
+            KEY_OVERHEAD = KEY_OVERHEAD_32;
+            LOCKIMPL_OVERHEAD = LOCKIMPL_OVERHEAD_32;
+            THINLOCKIMPL_OVERHEAD = THINLOCKIMPL_OVERHEAD_32;
+            LOCKINFO_OVERHEAD = LOCKINFO_OVERHEAD_32;
+            WRITE_LOCKINFO_OVERHEAD = WRITE_LOCKINFO_OVERHEAD_32;
+            UTILIZATION_PROFILE_ENTRY = UTILIZATION_PROFILE_ENTRY_32;
+            DBFILESUMMARY_OVERHEAD = DBFILESUMMARY_OVERHEAD_32;
+            TFS_LIST_INITIAL_OVERHEAD = TFS_LIST_INITIAL_OVERHEAD_32;
+            TFS_LIST_SEGMENT_OVERHEAD = TFS_LIST_SEGMENT_OVERHEAD_32;
+            LN_INFO_OVERHEAD = LN_INFO_OVERHEAD_32;
+            FILESUMMARYLN_OVERHEAD = FILESUMMARYLN_OVERHEAD_32;
+            LONG_LIST_PER_ITEM_OVERHEAD = LONG_LIST_PER_ITEM_OVERHEAD_32;
+        }
     }
 
     /* public for unit tests. */
     public final static long MIN_MAX_MEMORY_SIZE = 96 * 1024;
     public final static String MIN_MAX_MEMORY_SIZE_STRING =
-	Long.toString(MIN_MAX_MEMORY_SIZE);
-
+        Long.toString(MIN_MAX_MEMORY_SIZE);
+ 
     /* This value prevents cache churn for apps with a high write rate. */
+    @SuppressWarnings("unused")
     private final static int DEFAULT_MIN_BTREE_CACHE_SIZE = 500 * 1024;
 
     private final static long N_64MB = (1 << 26);
 
     /*
      * Note that this class contains long fields that are accessed by multiple
-     * threads, and access to these fields is intentionally not synchronized.
-     * Although inaccuracies may result, correcting them is not worth the cost
-     * of synchronizing every time we adjust the treeMemoryUsage or
-     * miscMemoryUsage.
+     * threads.  Access to these fields is synchronized when changing them but
+     * not when reading them to detect cache overflow or get stats.  Although
+     * inaccuracies may occur when reading the values, correcting this is not
+     * worth the cost of synchronizing every time we access them.  The worst
+     * that can happen is that we may invoke eviction unnecessarily.
      */
 
     /*
      * Amount of memory cached for tree objects.
      */
-    private long treeMemoryUsage;
+    private AtomicLong treeMemoryUsage = new AtomicLong(0);
 
     /*
-     * Amount of memory cached for Txn and other objects.
+     * Amount of memory cached for txn usage.
      */
-    private long miscMemoryUsage;
+    private AtomicLong txnMemoryUsage = new AtomicLong(0);
 
     /*
-     * Used to protect treeMemoryUsage and miscMemoryUsage updates.
+     * Amount of memory cached for log cleaning, dirty IN list, and other admin
+     * functions.
      */
-    private Object memoryUsageSynchronizer = new Object();
+    private AtomicLong adminMemoryUsage = new AtomicLong(0);
+
+    /*
+     * Amount of memory cached for admininstrative structures that are
+     * sometimes housed within tree nodes. Right now, that's
+     * DbFileSummaryMap, which is sometimes referenced by a MapLN by
+     * way of a DatabaseImpl, and sometimes is just referenced by
+     * a DatabaseImpl without a MapLN (the id and name databases.)
+     */
+    private AtomicLong treeAdminMemoryUsage = new AtomicLong(0);
 
     /*
      * Number of lock tables (cache of EnvironmentParams.N_LOCK_TABLES).
@@ -398,25 +446,18 @@ public class MemoryBudget implements EnvConfigObserver {
      * Memory available to JE, based on je.maxMemory and the memory available
      * to this process.
      */
-    private long maxMemory;
-    private long criticalThreshold; // experimental mark for sync eviction.
+    private Totals totals;
 
     /* Memory available to log buffers. */
     private long logBufferBudget;
 
-    /* Maximum allowed use of the misc budget by the UtilizationTracker. */
+    /* Maximum allowed use of the admin budget by the UtilizationTracker. */
     private long trackerBudget;
-
-    /*
-     * Memory to hold internal nodes and misc memory (locks), controlled by the
-     * evictor.  Does not include the log buffers.
-     */
-    private long cacheBudget;
-
+    
     /* Mininum to prevent cache churn. */
     private long minTreeMemoryUsage;
-
-    /*
+    
+    /* 
      * Overheads that are a function of node capacity.
      */
     private long inOverhead;
@@ -427,6 +468,7 @@ public class MemoryBudget implements EnvConfigObserver {
     private EnvironmentImpl envImpl;
 
     MemoryBudget(EnvironmentImpl envImpl,
+                 EnvironmentImpl sharedCacheEnv,
                  DbConfigManager configManager)
         throws DatabaseException {
 
@@ -436,14 +478,28 @@ public class MemoryBudget implements EnvConfigObserver {
         envImpl.addConfigObserver(this);
 
         /* Peform first time budget initialization. */
-        reset(configManager, true);
+        long newMaxMemory;
+        if (envImpl.getSharedCache()) {
+            if (sharedCacheEnv != null) {
+                totals = sharedCacheEnv.getMemoryBudget().totals;
+                /* For a new environment, do not override existing budget. */
+                newMaxMemory = -1;
+            } else {
+                totals = new SharedTotals();
+                newMaxMemory = calcMaxMemory(configManager);
+            }
+        } else {
+            totals = new PrivateTotals(this);
+            newMaxMemory = calcMaxMemory(configManager);
+        }
+        reset(newMaxMemory, true /*newEnv*/, configManager);
 
         /*
-         * Calculate IN and BIN overheads, which are a function of
-         * capacity. These values are stored in this class so that they can be
-         * calculated once per environment. The logic to do the calculations is
-         * left in the respective node classes so it can be done properly in
-         * the domain of those objects.
+         * Calculate IN and BIN overheads, which are a function of capacity.
+         * These values are stored in this class so that they can be calculated
+         * once per environment. The logic to do the calculations is left in
+         * the respective node classes so it can be done properly in the domain
+         * of those objects.
          */
         inOverhead = IN.computeOverhead(configManager);
         binOverhead = BIN.computeOverhead(configManager);
@@ -454,32 +510,21 @@ public class MemoryBudget implements EnvConfigObserver {
     /**
      * Respond to config updates.
      */
-    public void envConfigUpdate(DbConfigManager configManager)
+    public void envConfigUpdate(DbConfigManager configManager,
+                                EnvironmentMutableConfig ignore)
         throws DatabaseException {
 
-        /*
-         * Reinitialize the cache budget and the log buffer pool, in that
-         * order.  Do not reset the log buffer pool if the log buffer budget
-         * hasn't changed, since that is expensive and may cause I/O.
-         */
-        long oldLogBufferBudget = logBufferBudget;
-        reset(configManager, false);
-        if (oldLogBufferBudget != logBufferBudget) {
-            envImpl.getLogManager().resetPool(configManager);
-        }
+        /* Reinitialize the cache budget and the log buffer pool. */
+        reset(calcMaxMemory(configManager), false /*newEnv*/, configManager);
     }
 
-    /**
-     * Initialize at construction time and when the cache is resized.
-     */
-    private void reset(DbConfigManager configManager,
-		       boolean resetLockMemoryUsage)
+    private long calcMaxMemory(DbConfigManager configManager)
         throws DatabaseException {
 
         /*
          * Calculate the total memory allotted to JE.
-         * 1. If je.maxMemory is specified, use that. Check that it's
-         * not more than the jvm memory.
+         * 1. If je.maxMemory is specified, use that. Check that it's not more
+         * than the JVM memory.
          * 2. Otherwise, take je.maxMemoryPercent * JVM max memory.
          */
         long newMaxMemory =
@@ -520,21 +565,82 @@ public class MemoryBudget implements EnvConfigObserver {
             newMaxMemory = (maxMemoryPercent * jvmMemory) / 100;
         }
 
+        return newMaxMemory;
+    }
+
+    /**
+     * Initialize at construction time and when the cache is resized.
+     *
+     * @param newMaxMemory is the new total cache budget or is less than 0 if
+     * the total should remain unchanged.
+     *
+     * @param newEnv is true if this is the first time we are resetting the
+     * budget for a new environment.  Note that a new environment has not yet
+     * been added to the set of shared cache environments.
+     */
+    void reset(long newMaxMemory,
+               boolean newEnv,
+               DbConfigManager configManager)
+        throws DatabaseException {
+
+        long oldLogBufferBudget = logBufferBudget;
+
         /*
-	 * Calculate the memory budget for log buffering.  If the LOG_MEM_SIZE
-	 * parameter is not set, start by using 7% (1/16th) of the cache
-	 * size. If it is set, use that explicit setting.
-	 *
-	 * No point in having more log buffers than the maximum size. If
-	 * this starting point results in overly large log buffers,
-	 * reduce the log buffer budget again.
+         * Update the new total cache budget.
+         */
+        if (newMaxMemory < 0) {
+            newMaxMemory = getMaxMemory();
+        } else {
+            totals.setMaxMemory(newMaxMemory);
+        }
+
+        /*
+         * This environment's portion is adjusted for a shared cache.  Further
+         * below we make buffer and tracker sizes a fixed percentage (7% and
+         * 2%, by default) of the total shared cache size.  The math for this
+         * starts by dividing the total size by number of environments to get
+         * myCachePortion.  Then we take 7% or 2% of myCachePortion to get each
+         * environment's portion.  In other words, if there are 10 environments
+         * then each gets 7%/10 and 2%/10 of the total cache size, by default.
+         *
+         * Note that when we resize the shared cache, we resize the buffer
+         * pools and tracker budgets for all environments.  Resizing the
+         * tracker budget has no overhead, but resizing the buffer pools causes
+         * new buffers to be allocated.  If reallocation of the log buffers is
+         * not desirable, the user can configure a byte amount rather than a
+         * percentage.
+         */
+        long myCachePortion;
+        if (envImpl.getSharedCache()) {
+            int nEnvs = DbEnvPool.getInstance().getNSharedCacheEnvironments();
+            if (newEnv) {
+                nEnvs += 1;
+            }
+            myCachePortion = newMaxMemory / nEnvs;
+        } else {
+            myCachePortion = newMaxMemory;
+        }
+
+        /*
+         * Calculate the memory budget for log buffering.  If the LOG_MEM_SIZE
+         * parameter is not set, start by using 7% (1/16th) of the cache
+         * size. If it is set, use that explicit setting.
+         *
+         * No point in having more log buffers than the maximum size. If
+         * this starting point results in overly large log buffers,
+         * reduce the log buffer budget again.
          */
         long newLogBufferBudget =
-            configManager.getLong(EnvironmentParams.LOG_MEM_SIZE);	
+            configManager.getLong(EnvironmentParams.LOG_MEM_SIZE);      
         if (newLogBufferBudget == 0) {
-	    newLogBufferBudget = newMaxMemory >> 4;
-	} else if (newLogBufferBudget > newMaxMemory / 2) {
-            newLogBufferBudget = newMaxMemory / 2;
+            if (EnvironmentImpl.IS_DALVIK) {
+                /* If Dalvik JVM, use 1/128th instead of 1/16th of cache. */
+                newLogBufferBudget = myCachePortion >> 7;
+            } else {
+                newLogBufferBudget = myCachePortion >> 4;
+            }
+        } else if (newLogBufferBudget > myCachePortion / 2) {
+            newLogBufferBudget = myCachePortion / 2;
         }
 
         /*
@@ -543,7 +649,7 @@ public class MemoryBudget implements EnvConfigObserver {
          * be a waste.
          */
         int numBuffers =
-	    configManager.getInt(EnvironmentParams.NUM_LOG_BUFFERS);
+            configManager.getInt(EnvironmentParams.NUM_LOG_BUFFERS);
         long startingBufferSize = newLogBufferBudget / numBuffers;
         int logBufferSize =
             configManager.getInt(EnvironmentParams.LOG_BUFFER_MAX_SIZE);
@@ -551,10 +657,10 @@ public class MemoryBudget implements EnvConfigObserver {
             startingBufferSize = logBufferSize;
             newLogBufferBudget = numBuffers * startingBufferSize;
         } else if (startingBufferSize <
-		   EnvironmentParams.MIN_LOG_BUFFER_SIZE) {
+                   EnvironmentParams.MIN_LOG_BUFFER_SIZE) {
             startingBufferSize = EnvironmentParams.MIN_LOG_BUFFER_SIZE;
             newLogBufferBudget = numBuffers * startingBufferSize;
-	}
+        }
 
         long newCriticalThreshold =
             (newMaxMemory *
@@ -562,29 +668,40 @@ public class MemoryBudget implements EnvConfigObserver {
                 (EnvironmentParams.EVICTOR_CRITICAL_PERCENTAGE))/100;
 
         long newTrackerBudget =
-            (newMaxMemory *
+            (myCachePortion *
              envImpl.getConfigManager().getInt
                 (EnvironmentParams.CLEANER_DETAIL_MAX_MEMORY_PERCENTAGE))/100;
 
-        long newMinTreeMemoryUsage =
-            configManager.getLong(EnvironmentParams.MIN_TREE_MEMORY);	
+        long newMinTreeMemoryUsage = Math.min
+            (configManager.getLong(EnvironmentParams.MIN_TREE_MEMORY),
+             myCachePortion - newLogBufferBudget); 
 
-        /*
+        /* 
          * If all has gone well, update the budget fields.  Once the log buffer
          * budget is determined, the remainder of the memory is left for tree
          * nodes.
          */
-        maxMemory = newMaxMemory;
-        criticalThreshold = newCriticalThreshold;
         logBufferBudget = newLogBufferBudget;
+        totals.setCriticalThreshold(newCriticalThreshold);
         trackerBudget = newTrackerBudget;
-        cacheBudget = newMaxMemory - newLogBufferBudget;
-        minTreeMemoryUsage = Math.min(newMinTreeMemoryUsage, cacheBudget);
-	if (resetLockMemoryUsage) {
-	    nLockTables =
-		configManager.getInt(EnvironmentParams.N_LOCK_TABLES);
-	    lockMemoryUsage = new long[nLockTables];
-	}
+        if (lockMemoryUsage == null) {
+            nLockTables =
+                configManager.getInt(EnvironmentParams.N_LOCK_TABLES);
+            lockMemoryUsage = new long[nLockTables];
+        }
+        minTreeMemoryUsage = newMinTreeMemoryUsage;
+
+        /* The log buffer budget is counted in the cache usage. */
+        totals.updateCacheUsage(logBufferBudget - oldLogBufferBudget);
+
+        /*
+         * Only reset the log buffer pool if the log buffer has already been
+         * initialized (we're updating an existing budget) and the log buffer
+         * budget hasn't changed (resetting it is expensive and may cause I/O).
+         */
+        if (!newEnv && oldLogBufferBudget != logBufferBudget) {
+            envImpl.getLogManager().resetPool(configManager);
+        }
     }
 
     /**
@@ -606,48 +723,49 @@ public class MemoryBudget implements EnvConfigObserver {
     }
 
     /**
-     * Initialize the starting environment memory state.
+     * Initialize the starting environment memory state. We really only need to
+     * recalibrate the tree and treeAdmin categories, since there are no locks
+     * and txns yet, and the items in the admin category are cleaner items and
+     * aren't affected by the recovery splicing process.
      */
-    void initCacheMemoryUsage()
+    void initCacheMemoryUsage(long dbTreeAdminMemory) 
         throws DatabaseException {
 
-        /*
-         * The memoryUsageSynchronizer mutex is at the bottom of the lock
-         * hierarchy and should always be taken last. Since
-         * calcTreeCacheUsage() takes the INList latch, we get the usage value
-         * outside the mutex and then assign the value, in order to preserve
-         * correct lock hierarchy.  That said, initCacheMemoryUsage should be
-         * called while the system is quiescent, and there should be no lock
-         * conflict possible even if the locks were taken in reverse. [#15364]
-         */
-        long calculatedUsage = calcTreeCacheUsage();
-	synchronized (memoryUsageSynchronizer) {
-	    treeMemoryUsage = calculatedUsage;
-	}
-        assert LatchSupport.countLatchesHeld() == 0;
+        long totalTree = 0;
+        long treeAdmin = 0;
+        for (IN in : envImpl.getInMemoryINs()) {
+            totalTree += in.getBudgetedMemorySize();
+            treeAdmin += in.getTreeAdminMemorySize();
+        }
+        refreshTreeMemoryUsage(totalTree);
+        refreshTreeAdminMemoryUsage(treeAdmin + dbTreeAdminMemory);
     }
 
     /**
-     * Public for testing.
+     * Called by INList when clearing  tree memory usage.
      */
-    public long calcTreeCacheUsage()
-        throws DatabaseException {
+    void refreshTreeAdminMemoryUsage(long newSize) {
+        long oldSize =  treeAdminMemoryUsage.getAndSet(newSize);
+        long diff = (newSize - oldSize);
 
-        long totalSize = 0;
-        INList inList = envImpl.getInMemoryINs();
-
-        inList.latchMajor();
-        try {
-            Iterator iter = inList.iterator();
-            while (iter.hasNext()) {
-                IN in = (IN) iter.next();
-                long size = in.getInMemorySize();
-                totalSize += size;
-            }
-        } finally {
-            inList.releaseMajorLatch();
+        if (DEBUG_TREEADMIN) {
+            System.err.println("RESET = " + newSize);
         }
-        return totalSize;
+        if (totals.updateCacheUsage(diff)) {
+            envImpl.alertEvictor();
+        }
+    }
+
+    /**
+     * Called by INList when recalculating tree memory usage.
+     */
+    void refreshTreeMemoryUsage(long newSize) {
+        long oldSize = treeMemoryUsage.getAndSet(newSize);
+        long diff = (newSize - oldSize);
+
+        if (totals.updateCacheUsage(diff)) {
+            envImpl.alertEvictor();
+        }
     }
 
     /**
@@ -656,7 +774,7 @@ public class MemoryBudget implements EnvConfigObserver {
      * prohibited unless the tree memory usage is above this minimum value.
      */
     public boolean isTreeUsageAboveMinimum() {
-        return treeMemoryUsage > minTreeMemoryUsage;
+        return treeMemoryUsage.get() > minTreeMemoryUsage;
     }
 
     /**
@@ -672,75 +790,172 @@ public class MemoryBudget implements EnvConfigObserver {
      * @param increment note that increment may be negative.
      */
     public void updateTreeMemoryUsage(long increment) {
-	synchronized (memoryUsageSynchronizer) {
-	    treeMemoryUsage += increment;
-	}
-        if (getCacheMemoryUsage() > cacheBudget) {
-            envImpl.alertEvictor();
-        }
+        updateCounter(increment, treeMemoryUsage, "tree", DEBUG_TREE);
     }
 
     /**
-     * Update the environment wide misc memory count, wake up the evictor if
+     * Update the environment wide txn memory count, wake up the evictor if
      * necessary.
      * @param increment note that increment may be negative.
      */
-    public void updateMiscMemoryUsage(long increment) {
-	synchronized (memoryUsageSynchronizer) {
-	    miscMemoryUsage += increment;
-	}
-        if (getCacheMemoryUsage() > cacheBudget) {
-            envImpl.alertEvictor();
+    public void updateTxnMemoryUsage(long increment) {
+        updateCounter(increment, txnMemoryUsage, "txn", DEBUG_TXN);
+    }
+
+    /**
+     * Update the environment wide admin memory count, wake up the evictor if
+     * necessary.
+     * @param increment note that increment may be negative.
+     */
+    public void updateAdminMemoryUsage(long increment) {
+        updateCounter(increment, adminMemoryUsage, "admin", DEBUG_ADMIN);
+    }
+
+    /**
+     * Update the treeAdmin memory count, wake up the evictor if necessary.
+     * @param increment note that increment may be negative.
+     */
+    public void updateTreeAdminMemoryUsage(long increment) {
+        updateCounter(increment, treeAdminMemoryUsage, "treeAdmin", 
+                      DEBUG_TREEADMIN); 
+    }
+
+    private void updateCounter(long increment, 
+                               AtomicLong counter,
+                               String debugName,
+                               boolean debug) {
+        if (increment != 0) {
+            long newSize = counter.addAndGet(increment);
+            
+            assert (sizeNotNegative(newSize)) :
+                   makeErrorMessage(debugName, newSize, increment);
+
+            if (debug) {
+                if (increment > 0) {
+                    System.err.println("INC-------- =" + increment + " " +
+                                       debugName + " "  + newSize);
+                } else {
+                    System.err.println("-------DEC=" + increment + " " +
+                                       debugName + " "  + newSize);
+                }
+            }
+
+            if (totals.updateCacheUsage(increment)) {
+                envImpl.alertEvictor();
+            }
+        }
+    }
+
+    private boolean sizeNotNegative(long newSize) {
+
+        if (CLEANUP_DONE)  {
+            return (newSize >= 0);
+        } else {
+            return true;
         }
     }
 
     public void updateLockMemoryUsage(long increment, int lockTableIndex) {
-	lockMemoryUsage[lockTableIndex] += increment;
-        if (getCacheMemoryUsage() > cacheBudget) {
-            envImpl.alertEvictor();
+        if (increment != 0) {
+            lockMemoryUsage[lockTableIndex] += increment;
+
+            assert lockMemoryUsage[lockTableIndex] >= 0:
+                   makeErrorMessage("lockMem",
+                                     lockMemoryUsage[lockTableIndex],
+                                     increment);
+            if (DEBUG_LOCK) {
+                if (increment > 0) {
+                    System.err.println("INC-------- =" + increment +
+                            " lock[" +
+                                      lockTableIndex + "] " +
+                                      lockMemoryUsage[lockTableIndex]);
+                } else {
+                    System.err.println("-------DEC=" + increment +
+                            " lock[" + lockTableIndex + "] " +
+                                           lockMemoryUsage[lockTableIndex]);
+                }
+            }
+
+            if (totals.updateCacheUsage(increment)) {
+                envImpl.alertEvictor();
+            }
         }
     }
 
-    public long accumulateNewUsage(IN in, long newSize) {
-        return in.getInMemorySize() + newSize;
+    private String makeErrorMessage(String memoryType,
+                                    long total,
+                                    long increment) {
+        return memoryType + "=" + total +
+            " increment=" + increment + " " +
+            Tracer.getStackTrace(new Throwable());
     }
 
-    public void refreshTreeMemoryUsage(long newSize) {
-	synchronized (memoryUsageSynchronizer) {
-	    treeMemoryUsage = newSize;
-	}
+    void subtractCacheUsage() {
+        totals.updateCacheUsage(0 - getLocalCacheUsage());
     }
+
+    private long getLocalCacheUsage() {
+        return logBufferBudget +
+               treeMemoryUsage.get() +
+               adminMemoryUsage.get() +
+               treeAdminMemoryUsage.get() +
+               getLockMemoryUsage();
+    }
+
+    long getVariableCacheUsage() {
+        return treeMemoryUsage.get() +
+            adminMemoryUsage.get() +
+            treeAdminMemoryUsage.get() +
+            getLockMemoryUsage();
+    }
+
+    /**
+     * Public for unit testing.
+     */
+    public long getLockMemoryUsage() {
+        long accLockMemoryUsage = txnMemoryUsage.get();
+        if (nLockTables == 1) {
+            accLockMemoryUsage += lockMemoryUsage[0];
+        } else {
+            for (int i = 0; i < nLockTables; i++) {
+                accLockMemoryUsage += lockMemoryUsage[i];
+            }
+        }
+
+        return accLockMemoryUsage;
+    }
+
+    /*
+     * The following 2 methods are shorthand for getTotals.getXxx().
+     */
 
     public long getCacheMemoryUsage() {
-	long accLockMemoryUsage = accumulateLockUsage();
-
-	return treeMemoryUsage + miscMemoryUsage + accLockMemoryUsage;
+        return totals.getCacheUsage();
     }
 
-    private long accumulateLockUsage() {
-	long accLockMemoryUsage = 0;
-	if (nLockTables == 1) {
-	    accLockMemoryUsage = lockMemoryUsage[0];
-	} else {
-	    for (int i = 0; i < nLockTables; i++) {
-		accLockMemoryUsage += lockMemoryUsage[i];
-	    }
-	}
-        return accLockMemoryUsage;
+    public long getMaxMemory() {
+        return totals.getMaxMemory();
     }
 
     /**
      * Used for unit testing.
      */
     public long getTreeMemoryUsage() {
-        return treeMemoryUsage;
+        return treeMemoryUsage.get();
     }
 
     /**
      * Used for unit testing.
      */
-    public long getMiscMemoryUsage() {
-        return miscMemoryUsage;
+    public long getAdminMemoryUsage() {
+        return adminMemoryUsage.get();
+    }
+    
+    /*
+     * For unit testing
+     */
+    public long getTreeAdminMemoryUsage() {
+        return treeAdminMemoryUsage.get();
     }
 
     public long getLogBufferBudget() {
@@ -749,18 +964,6 @@ public class MemoryBudget implements EnvConfigObserver {
 
     public long getTrackerBudget() {
         return trackerBudget;
-    }
-
-    public long getMaxMemory() {
-        return maxMemory;
-    }
-
-    public long getCriticalThreshold() {
-        return criticalThreshold;
-    }
-
-    public long getCacheBudget() {
-        return cacheBudget;
     }
 
     public long getINOverhead() {
@@ -815,8 +1018,112 @@ public class MemoryBudget implements EnvConfigObserver {
     }
 
     void loadStats(StatsConfig config, EnvironmentStats stats) {
-        stats.setCacheDataBytes(getCacheMemoryUsage());
-        stats.setAdminBytes(miscMemoryUsage);
-        stats.setLockBytes(accumulateLockUsage());
+        stats.setSharedCacheTotalBytes
+            (totals.isSharedCache() ? totals.getCacheUsage() : 0);
+        stats.setCacheTotalBytes(getLocalCacheUsage());
+        stats.setDataBytes(treeMemoryUsage.get() +
+                           treeAdminMemoryUsage.get());
+        stats.setAdminBytes(adminMemoryUsage.get());
+        stats.setLockBytes(getLockMemoryUsage());
+    }
+
+    @Override 
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("treeUsage = ").append(treeMemoryUsage.get());
+        sb.append("treeAdminUsage = ").append(treeAdminMemoryUsage.get());
+        sb.append("adminUsage = ").append(adminMemoryUsage.get());
+        sb.append("txnUsage = ").append(txnMemoryUsage.get());
+        sb.append("lockUsage = ").append(getLockMemoryUsage());
+        return sb.toString();
+    }
+
+    public Totals getTotals() {
+        return totals;
+    }
+
+    /**
+     * Common base class for shared and private totals.  This abstraction
+     * allows most other classes to be unaware of whether we're using a
+     * SharedEvictor or PrivateEvictor.
+     */
+    public abstract static class Totals {
+
+        long maxMemory;
+        private long criticalThreshold;
+
+        private Totals() {
+            maxMemory = 0;
+        }
+
+        private final void setMaxMemory(long maxMemory) {
+            this.maxMemory = maxMemory;
+        }
+
+        public final long getMaxMemory() {
+            return maxMemory;
+        }
+
+        private final void setCriticalThreshold(long criticalThreshold) {
+            this.criticalThreshold = criticalThreshold;
+        }
+
+        public final long getCriticalThreshold() {
+            return criticalThreshold;
+        }
+
+        public abstract long getCacheUsage();
+        abstract boolean updateCacheUsage(long increment);
+        abstract boolean isSharedCache();
+    }
+
+    /**
+     * Totals for a single environment's non-shared cache.  Used when
+     * EnvironmentConfig.setSharedCache(false) and a PrivateEvictor are used.
+     */
+    private static class PrivateTotals extends Totals {
+
+        private MemoryBudget parent;
+
+        private PrivateTotals(MemoryBudget parent) {
+            this.parent = parent;
+        }
+
+        public final long getCacheUsage() {
+            return parent.getLocalCacheUsage();
+        }
+
+        final boolean updateCacheUsage(long increment) {
+            return (parent.getLocalCacheUsage() > maxMemory);
+        }
+
+        final boolean isSharedCache() {
+            return false;
+        }
+    }
+
+    /**
+     * Totals for the multi-environment shared cache.  Used when
+     * EnvironmentConfig.setSharedCache(false) and the SharedEvictor are used.
+     */
+    private static class SharedTotals extends Totals {
+
+        private AtomicLong usage;
+
+        private SharedTotals() {
+            usage = new AtomicLong();
+        }
+
+        public final long getCacheUsage() {
+            return usage.get();
+        }
+
+        final boolean updateCacheUsage(long increment) {
+            return (usage.addAndGet(increment) > maxMemory);
+        }
+
+        final boolean isSharedCache() {
+            return true;
+        }
     }
 }

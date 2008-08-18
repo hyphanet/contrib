@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EntityStore.java,v 1.28.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: EntityStore.java,v 1.35 2008/05/19 20:33:31 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -74,6 +74,7 @@ import com.sleepycat.persist.model.SecondaryKey;
  * getSequence} is called or {@link #getPrimaryIndex getPrimaryIndex} is called
  * for a primary index associated with that sequence.</p>
  *
+ * <!-- begin JE only -->
  * <h3>Database Names</h3>
  *
  * <p>The database names of primary and secondary indices are designed to be
@@ -114,8 +115,24 @@ import com.sleepycat.persist.model.SecondaryKey;
  * the store:</p>
  * <pre>   persist#STORE_NAME#com.sleepycat.persist.formats</pre>
  * <pre>   persist#STORE_NAME#com.sleepycat.persist.sequences</pre>
- * <p>These databases should normally be included with copies of other
- * databases in the store.  They should not be modified by the application.</p>
+ * <p>These databases must normally be included with copies of other databases
+ * in the store.  They should not be modified by the application.</p>
+ *
+ * <p>For example, the following code snippet removes all databases for a given
+ * store in a single transaction.</p>
+ * <pre class="code">
+ *  Environment env = ...
+ *  EntityStore store = ...
+ *  Transaction txn = env.beginTransaction(null, null);
+ *  String prefix = "persist#" + store.getStoreName() + "#";
+ *  for (String dbName : env.getDatabaseNames()) {
+ *      if (dbName.startsWith(prefix)) {
+ *          env.removeDatabase(txn, dbName);
+ *      }
+ *  }
+ *  txn.commit();</pre>
+ *
+ * <!-- end JE only -->
  *
  * @author Mark Hayes
  */
@@ -182,6 +199,7 @@ public class EntityStore {
         return store.getStoreName();
     }
 
+    /* <!-- begin JE only --> */
     /**
      * Returns the names of all entity stores in the given environment.
      *
@@ -193,6 +211,7 @@ public class EntityStore {
 
         return Store.getStoreNames(env);
     }
+    /* <!-- end JE only --> */
 
     /**
      * Returns the current entity model for this store.  The current model is
@@ -257,7 +276,7 @@ public class EntityStore {
      * <p>If a {@link SecondaryKey#relatedEntity} is used and the primary index
      * for the related entity is not already open, it will be opened by this
      * method.  That will, in turn, open its secondary indices, which can
-     * casade to open other primary indices.</p>
+     * cascade to open other primary indices.</p>
      *
      * @param primaryIndex the primary index associated with the returned
      * secondary index.  The entity class of the primary index, or one of its
@@ -296,7 +315,7 @@ public class EntityStore {
      * <p>If a {@link SecondaryKey#relatedEntity} is used and the primary index
      * for the related entity is not already open, it will be opened by this
      * method.  That will, in turn, open its secondary indices, which can
-     * casade to open other primary indices.</p>
+     * cascade to open other primary indices.</p>
      *
      * @param primaryIndex the primary index associated with the returned
      * secondary index.  The entity class of the primary index, or one of its
@@ -364,12 +383,12 @@ public class EntityStore {
      * Deletes all instances of this entity class and its (non-entity)
      * subclasses.
      *
-     * <p>This is the equivalent of {@link Environment#truncateDatabase
-     * Environment.truncateDatabase}.  The primary and secondary databases
-     * associated with the entity class must not be open except by this store,
-     * since database truncation is only possible when the database is not
-     * open.  The databases to be truncated will be closed before performing
-     * this operation, if they were previously opened by this store.</p>
+     * <p>The primary database and all secondary databases for the given entity
+     * class will be truncated.  The primary and secondary databases associated
+     * with the entity class must not be open except by this store, since
+     * database truncation is only possible when the database is not open.  The
+     * databases to be truncated will be closed before performing this
+     * operation, if they were previously opened by this store.</p>
      *
      * <p>Auto-commit is used implicitly if the store is transactional.</p>
      *
@@ -385,12 +404,12 @@ public class EntityStore {
      * Deletes all instances of this entity class and its (non-entity)
      * subclasses.
      *
-     * <p>This is the equivalent of {@link Environment#truncateDatabase
-     * Environment.truncateDatabase}.  The primary and secondary databases
-     * associated with the entity class must not be open except by this store,
-     * since database truncation is only possible when the database is not
-     * open.  The databases to be truncated will be closed before performing
-     * this operation, if they were previously opened by this store.</p>
+     * <p>The primary database and all secondary databases for the given entity
+     * class will be truncated.  The primary and secondary databases associated
+     * with the entity class must not be open except by this store, since
+     * database truncation is only possible when the database is not open.  The
+     * databases to be truncated will be closed before performing this
+     * operation, if they were previously opened by this store.</p>
      *
      * @param txn the transaction used to protect this operation, null to use
      * auto-commit, or null if the store is non-transactional.
@@ -403,39 +422,41 @@ public class EntityStore {
         store.truncateClass(txn, entityClass);
     }
 
-   /**
-    * Flushes each modified index to disk that was opened in deferred-write
-    * mode.
-    *
-    * <p>All indexes are opened in deferred-write mode if true was passed to
-    * {@link StoreConfig#setDeferredWrite} for the store.</p>
-    *
-    * <p>Alternatively, individual databases may be configured for deferred
-    * write using {@link DatabaseConfig#setDeferredWrite} along with {@link
-    * #getPrimaryConfig} and {@link #setPrimaryConfig}.  Caution should be used
-    * when configuring only some databases for deferred-write, since durability
-    * will be different for these databases than for other databases in the
-    * same store.</p>
-    *
-    * <p>This method is functionally equivalent to calling {@link
-    * Database#sync} for each deferred-write index Database that is open for
-    * this store.  However, while {@link Database#sync} flushes the log to disk
-    * each time it is called, this method flushes the log only once after
-    * syncing all databases; this method therefore causes less I/O than calling
-    * {@link Database#sync} multiple times.</p>
-    *
-    * <p>Instead of calling this method, {@link Environment#sync} may be used.
-    * The difference is that this method will only flush the databases for this
-    * store, while {@link Environment#sync} will sync all deferred-write
-    * databases currently open for the environment and will also perform a full
-    * checkpoint.  This method is therefore less expensive than a full sync of
-    * the environment.</p>
-    */
+    /* <!-- begin JE only --> */
+    /**
+     * Flushes each modified index to disk that was opened in deferred-write
+     * mode.
+     *
+     * <p>All indexes are opened in deferred-write mode if true was passed to
+     * {@link StoreConfig#setDeferredWrite} for the store.</p>
+     *
+     * <p>Alternatively, individual databases may be configured for deferred
+     * write using {@link DatabaseConfig#setDeferredWrite} along with {@link
+     * #getPrimaryConfig} and {@link #setPrimaryConfig}.  Caution should be
+     * used when configuring only some databases for deferred-write, since
+     * durability will be different for these databases than for other
+     * databases in the same store.</p>
+     *
+     * <p>This method is functionally equivalent to calling {@link
+     * Database#sync} for each deferred-write index Database that is open for
+     * this store.  However, while {@link Database#sync} flushes the log to
+     * disk each time it is called, this method flushes the log only once after
+     * syncing all databases; this method therefore causes less I/O than
+     * calling {@link Database#sync} multiple times.</p>
+     *
+     * <p>Instead of calling this method, {@link Environment#sync} may be used.
+     * The difference is that this method will only flush the databases for
+     * this store, while {@link Environment#sync} will sync all deferred-write
+     * databases currently open for the environment and will also perform a
+     * full checkpoint.  This method is therefore less expensive than a full
+     * sync of the environment.</p>
+     */
     public void sync()
         throws DatabaseException {
 
         store.sync();
     }
+    /* <!-- end JE only --> */
 
     /**
      * Closes the primary and secondary databases for the given entity class
@@ -539,8 +560,12 @@ public class EntityStore {
      * if the store is not {@link StoreConfig#setReadOnly ReadOnly}.</li>
      * <li>{@link DatabaseConfig#setReadOnly ReadOnly} is set to match
      * {@link StoreConfig#setReadOnly StoreConfig}.</li>
+     * <!-- begin JE only --> *
      * <li>{@link DatabaseConfig#setDeferredWrite DeferredWrite} is set to
      * match {@link StoreConfig#setDeferredWrite StoreConfig}.</li>
+     * <li>{@link DatabaseConfig#setTemporary Temporary} is set to
+     * match {@link StoreConfig#setTemporary StoreConfig}.</li>
+     * <!-- end JE only --> *
      * <li>{@link DatabaseConfig#setBtreeComparator BtreeComparator} is set to
      * an internal class if a key comparator is used.</li>
      * </ul>
@@ -563,6 +588,9 @@ public class EntityStore {
      * method.  The following configuration properties may not be changed:</p>
      * <ul>
      * <li>{@link DatabaseConfig#setSortedDuplicates SortedDuplicates}</li>
+     * <!-- begin JE only --> *
+     * <li>{@link DatabaseConfig#setTemporary Temporary}</li>
+     * <!-- end JE only --> *
      * <li>{@link DatabaseConfig#setBtreeComparator BtreeComparator}</li>
      * </ul>
      *
@@ -589,12 +617,16 @@ public class EntityStore {
      * <li>{@link DatabaseConfig#setTransactional Transactional} is set to
      * match the primary database.</li>
      * <li>{@link DatabaseConfig#setAllowCreate AllowCreate} is set to true
-     * if the primary database is not {@link StoreConfig#setReadOnly
+     * if the primary database is not {@link DatabaseConfig#setReadOnly
      * ReadOnly}.</li>
      * <li>{@link DatabaseConfig#setReadOnly ReadOnly} is set to match
      * the primary database.</li>
+     * <!-- begin JE only --> *
      * <li>{@link DatabaseConfig#setDeferredWrite DeferredWrite} is set to
      * match the primary database.</li>
+     * <li>{@link DatabaseConfig#setTemporary Temporary} is set to
+     * match {@link StoreConfig#setTemporary StoreConfig}.</li>
+     * <!-- end JE only --> *
      * <li>{@link DatabaseConfig#setBtreeComparator BtreeComparator} is set to
      * an internal class if a key comparator is used.</li>
      * <li>{@link DatabaseConfig#setSortedDuplicates SortedDuplicates} is set
@@ -636,6 +668,9 @@ public class EntityStore {
      * <li>{@link DatabaseConfig#setBtreeComparator BtreeComparator}</li>
      * <li>{@link DatabaseConfig#setDuplicateComparator
      * DuplicateComparator}</li>
+     * <!-- begin JE only --> *
+     * <li>{@link DatabaseConfig#setTemporary Temporary}</li>
+     * <!-- end JE only --> *
      * <li>{@link SecondaryConfig#setAllowPopulate AllowPopulate}</li>
      * <li>{@link SecondaryConfig#setKeyCreator KeyCreator}</li>
      * <li>{@link SecondaryConfig#setMultiKeyCreator MultiKeyCreator}</li>

@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BinDeltaTest.java,v 1.44.2.3 2007/11/20 13:32:50 cwl Exp $
+ * $Id: BinDeltaTest.java,v 1.50 2008/01/07 14:29:13 cwl Exp $
  */
 package com.sleepycat.je.tree;
 
@@ -97,9 +97,10 @@ public class BinDeltaTest extends TestCase {
         addRecords(start, end);
 
         /* Now reach into the tree and get the first BIN */
-        Locker txn = new BasicLocker(DbInternal.envGetEnvironmentImpl(env));
-        CursorImpl internalCursor = new CursorImpl(DbInternal.dbGetDatabaseImpl(db),
-						   txn);
+        Locker txn = BasicLocker.
+	    createBasicLocker(DbInternal.envGetEnvironmentImpl(env));
+        CursorImpl internalCursor =
+	    new CursorImpl(DbInternal.dbGetDatabaseImpl(db), txn);
         assertTrue(internalCursor.positionFirstOrLast(true, null));
         BIN firstBIN = internalCursor.getBIN();
         firstBIN.releaseLatch();
@@ -141,8 +142,8 @@ public class BinDeltaTest extends TestCase {
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
         for (int i = start;  i < end; i++) {
-            byte [] keyData = TestUtils.getTestArray(i);
-            byte [] dataData = TestUtils.byteArrayCopy(keyData);
+            byte[] keyData = TestUtils.getTestArray(i);
+            byte[] dataData = TestUtils.byteArrayCopy(keyData);
             key.setData(keyData);
             data.setData(dataData);
             db.put(null, key, data);

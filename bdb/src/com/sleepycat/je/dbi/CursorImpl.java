@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CursorImpl.java,v 1.320.2.6 2007/11/20 13:32:28 cwl Exp $
+ * $Id: CursorImpl.java,v 1.348 2008/05/20 03:27:34 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -11,6 +11,7 @@ package com.sleepycat.je.dbi;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.LockNotGrantedException;
@@ -20,6 +21,8 @@ import com.sleepycat.je.RunRecoveryException;
 import com.sleepycat.je.latch.LatchNotHeldException;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.log.LogUtils;
+import com.sleepycat.je.log.ReplicationContext;
+import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.BINBoundary;
 import com.sleepycat.je.tree.DBIN;
@@ -36,7 +39,6 @@ import com.sleepycat.je.txn.LockGrantType;
 import com.sleepycat.je.txn.LockResult;
 import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.txn.Locker;
-import com.sleepycat.je.txn.ThreadLocker;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.TestHook;
 import com.sleepycat.je.utilint.TestHookExecute;
@@ -55,9 +57,9 @@ public class CursorImpl implements Cloneable {
     private static final String TRACE_MOD = "Mod:";
 
     /*
-     * Cursor location in the database, represented by a BIN and an index in
-     * the BIN.  bin/index must have a non-null/non-negative value if dupBin is
-     * set to non-null.
+     * Cursor location in the databaseImpl, represented by a BIN and an index
+     * in the BIN.  bin/index must have a non-null/non-negative value if dupBin
+     * is set to non-null.
      */
     volatile private BIN bin;
     volatile private int index;
@@ -84,24 +86,19 @@ public class CursorImpl implements Cloneable {
     private int targetIndex;
     private byte[] dupKey;
 
-    /* The database behind the handle. */
-    private DatabaseImpl database;
+    /* The databaseImpl behind the handle. */
+    private DatabaseImpl databaseImpl;
 
     /* Owning transaction. */
     private Locker locker;
     private CursorImpl lockerPrev; // lockPrev, lockNext used for simple Locker
     private CursorImpl lockerNext; // chain.
-
-    /*
-     * Do not release non-transactional locks when cursor is closed.  This flag
-     * is used to support handle locks, which may be non-transactional but must
-     * be retained across cursor operations and cursor close.
-     */
     private boolean retainNonTxnLocks;
 
     /* State of the cursor. See CURSOR_XXX above. */
     private byte status;
 
+    private CacheMode cacheMode;
     private boolean allowEviction;
     private TestHook testHook;
 
@@ -118,7 +115,8 @@ public class CursorImpl implements Cloneable {
      */
     private static long lastAllocatedId = 0;
 
-    private ThreadLocal treeStatsAccumulatorTL = new ThreadLocal();
+    private ThreadLocal<TreeWalkerStatsAccumulator> 
+        treeStatsAccumulatorTL = new ThreadLocal<TreeWalkerStatsAccumulator>();
 
     /*
      * Allocate a new hashCode id.  Doesn't need to be synchronized since it's
@@ -129,27 +127,37 @@ public class CursorImpl implements Cloneable {
     }
 
     public int hashCode() {
-	return thisId;
+        return thisId;
     }
 
     private TreeWalkerStatsAccumulator getTreeStatsAccumulator() {
-	if (EnvironmentImpl.getThreadLocalReferenceCount() > 0) {
-	    return (TreeWalkerStatsAccumulator) treeStatsAccumulatorTL.get();
-	} else {
-	    return null;
-	}
+        if (EnvironmentImpl.getThreadLocalReferenceCount() > 0) {
+            return treeStatsAccumulatorTL.get();
+        } else {
+            return null;
+        }
     }
 
     public void incrementLNCount() {
         TreeWalkerStatsAccumulator treeStatsAccumulator =
-	    getTreeStatsAccumulator();
-	if (treeStatsAccumulator != null) {
-	    treeStatsAccumulator.incrementLNCount();
-	}
+            getTreeStatsAccumulator();
+        if (treeStatsAccumulator != null) {
+            treeStatsAccumulator.incrementLNCount();
+        }
     }
 
+    /**
+     * Prevents this cursor from being cloned for any reason.  [#13879]
+     *
+     * NonCloning is an optimization used for Database.get/put operations.
+     * Normally cloning is used before an operation to allow use of the old
+     * cursor position after the operation fails.  With the Database
+     * operations, if an operation fails the cursor is simply discarded.
+     *
+     * Note that Cursor.dup may not be called when NonCloning is set to true.
+     */
     public void setNonCloning(boolean nonCloning) {
-	this.nonCloning = nonCloning;
+        this.nonCloning = nonCloning;
     }
 
     /**
@@ -167,14 +175,14 @@ public class CursorImpl implements Cloneable {
 
         private boolean exactSearch;
         private boolean dataSearch;
-	private String name;
+        private String name;
 
         private SearchMode(boolean exactSearch,
-			   boolean dataSearch,
-			   String name) {
+                           boolean dataSearch,
+                           String name) {
             this.exactSearch = exactSearch;
             this.dataSearch = dataSearch;
-	    this.name = "SearchMode." + name;
+            this.name = "SearchMode." + name;
         }
 
         /**
@@ -193,9 +201,9 @@ public class CursorImpl implements Cloneable {
             return dataSearch;
         }
 
-	public String toString() {
-	    return name;
-	}
+        public String toString() {
+            return name;
+        }
     }
 
     /**
@@ -232,32 +240,49 @@ public class CursorImpl implements Cloneable {
     /**
      * Creates a cursor.
      *
+     * A cursor always retains transactional locks when it is reset or closed.
+     * Non-transaction locks may be retained or not, depending on the
+     * retainNonTxnLocks parameter value.
+     *
+     * Normally a user-created non-transactional Cursor releases locks on reset
+     * and close, and a ThreadLocker is normally used.  However, by passing
+     * true for retainNonTxnLocks a ThreadLocker can be made to retain locks;
+     * this capability is used by SecondaryCursor.readPrimaryAfterGet.
+     *
+     * For internal (non-user) cursors, a BasicLocker is often used and locks
+     * are retained.  BasicLocker does not currently support releasing locks
+     * per cursor operation, so true must be passed for retainNonTxnLocks. In
+     * addition, in these internal use cases the caller explicitly calls
+     * BasicLocker.operationEnd, and retainNonTxnLocks is set to true to
+     * prevent operationEnd from being called when the cursor is closed.
+     *
+     * BasicLocker is also used for NameLN operations while opening a Database
+     * handle.  Database handle locks must be retained, even if the Database is
+     * opened non-transactionally.
+     *
      * @param retainNonTxnLocks is true if non-transactional locks should be
-     * retained (not released automatically) when the cursor is closed.
+     * retained (not released automatically) when the cursor is reset or
+     * closed.
      */
-    public CursorImpl(DatabaseImpl database,
-		      Locker locker,
+    public CursorImpl(DatabaseImpl databaseImpl,
+                      Locker locker,
                       boolean retainNonTxnLocks)
         throws DatabaseException {
 
-	thisId = (int) getNextCursorId();
+        thisId = (int) getNextCursorId();
         bin = null;
         index = -1;
         dupBin = null;
         dupIndex = -1;
 
-        // retainNonTxnLocks=true should not be used with a ThreadLocker
-        assert !(retainNonTxnLocks && (locker instanceof ThreadLocker));
-
-        // retainNonTxnLocks=false should not be used with a BasicLocker
-        assert !(!retainNonTxnLocks && locker.getClass() == BasicLocker.class);
-
         this.retainNonTxnLocks = retainNonTxnLocks;
 
-        // Associate this cursor with the database
-        this.database = database;
+        /* Associate this cursor with the databaseImpl. */
+        this.databaseImpl = databaseImpl;
         this.locker = locker;
         this.locker.registerCursor(this);
+
+        this.cacheMode = CacheMode.DEFAULT;
 
         status = CURSOR_NOT_INITIALIZED;
 
@@ -289,45 +314,54 @@ public class CursorImpl implements Cloneable {
     }
 
     /**
-     * Shallow copy.  addCursor() is optionally called.  Allows inheriting the
-     * BIN position from some other cursor.
+     * Performs a shallow copy.
+     *
+     * @param addCursor If true, addCursor() is called to register the new
+     * cursor with the BINs.  This is done after the usePosition parameter is
+     * applied, if any.  There are two cases where you may not want addCursor()
+     * to be called: 1) When creating a fresh uninitialzed cursor as in when
+     * Cursor.dup(false) is called, or 2) when the caller will call addCursor()
+     * as part of a larger operation.
+     *
+     * @param usePosition Is null to duplicate the position of this cursor, or
+     * non-null to duplicate the position of the given cursor.
      */
     public CursorImpl cloneCursor(boolean addCursor, CursorImpl usePosition)
         throws DatabaseException {
 
         CursorImpl ret = null;
-	if (nonCloning) {
-	    ret = this;
-	} else {
-	    try {
-		latchBINs();
-		ret = (CursorImpl) super.clone();
+        if (nonCloning) {
+            ret = this;
+        } else {
+            try {
+                latchBINs();
+                ret = (CursorImpl) super.clone();
 
-		if (!retainNonTxnLocks) {
-		    ret.locker = locker.newNonTxnLocker();
-		}
+                if (!retainNonTxnLocks) {
+                    ret.locker = locker.newNonTxnLocker();
+                }
 
-		ret.locker.registerCursor(ret);
-		if (usePosition != null &&
-		    usePosition.status == CURSOR_INITIALIZED) {
-		    ret.bin = usePosition.bin;
-		    ret.index = usePosition.index;
-		    ret.dupBin = usePosition.dupBin;
-		    ret.dupIndex = usePosition.dupIndex;
-		}
-		if (addCursor) {
-		    ret.addCursor();
-		}
-	    } catch (CloneNotSupportedException cannotOccur) {
-		return null;
-	    } finally {
-		releaseBINs();
-	    }
-	}
+                ret.locker.registerCursor(ret);
+                if (usePosition != null &&
+                    usePosition.status == CURSOR_INITIALIZED) {
+                    ret.bin = usePosition.bin;
+                    ret.index = usePosition.index;
+                    ret.dupBin = usePosition.dupBin;
+                    ret.dupIndex = usePosition.dupIndex;
+                }
+                if (addCursor) {
+                    ret.addCursor();
+                }
+            } catch (CloneNotSupportedException cannotOccur) {
+                return null;
+            } finally {
+                releaseBINs();
+            }
+        }
 
         /* Perform eviction before and after each cursor operation. */
         if (allowEviction) {
-            database.getDbEnvironment().getEvictor().doCriticalEviction
+            databaseImpl.getDbEnvironment().getEvictor().doCriticalEviction
                 (false); // backgroundIO
         }
         return ret;
@@ -373,8 +407,16 @@ public class CursorImpl implements Cloneable {
         return dupBinToBeRemoved;
     }
 
+    public CacheMode getCacheMode() {
+        return cacheMode;
+    }
+
+    public void setCacheMode(CacheMode cacheMode) {
+        this.cacheMode = cacheMode;
+    }
+
     public void setTreeStatsAccumulator(TreeWalkerStatsAccumulator tSA) {
-	treeStatsAccumulatorTL.set(tSA);
+        treeStatsAccumulatorTL.set(tSA);
     }
 
     /**
@@ -414,11 +456,11 @@ public class CursorImpl implements Cloneable {
 
         try {
             getNext(key, data, LockType.NONE,
-		    true /* forward */,
-		    false /* alreadyLatched */);
+                    true /* forward */,
+                    false /* alreadyLatched */);
         } catch (DatabaseException ignored) {
-	    /* Klockwork - ok */
-	}
+            /* Klockwork - ok */
+        }
 
         /*
          * If the position changed, regardless of an exception, then we believe
@@ -452,16 +494,16 @@ public class CursorImpl implements Cloneable {
     public BIN latchBIN()
         throws DatabaseException {
 
-	while (bin != null) {
-	    BIN waitingOn = bin;
-	    waitingOn.latch();
-	    if (bin == waitingOn) {
-		return bin;
-	    }
-	    waitingOn.releaseLatch();
-	}
+        while (bin != null) {
+            BIN waitingOn = bin;
+            waitingOn.latch(cacheMode);
+            if (bin == waitingOn) {
+                return bin;
+            }
+            waitingOn.releaseLatch();
+        }
 
-	return null;
+        return null;
     }
 
     public void releaseBIN()
@@ -489,15 +531,15 @@ public class CursorImpl implements Cloneable {
     public DBIN latchDBIN()
         throws DatabaseException {
 
-	while (dupBin != null) {
-	    BIN waitingOn = dupBin;
-	    waitingOn.latch();
-	    if (dupBin == waitingOn) {
-		return dupBin;
-	    }
-	    waitingOn.releaseLatch();
-	}
-	return null;
+        while (dupBin != null) {
+            BIN waitingOn = dupBin;
+            waitingOn.latch(cacheMode);
+            if (dupBin == waitingOn) {
+                return dupBin;
+            }
+            waitingOn.releaseLatch();
+        }
+        return null;
     }
 
     public void releaseDBIN()
@@ -561,30 +603,30 @@ public class CursorImpl implements Cloneable {
     }
 
     private void removeCursorBIN()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	BIN abin = latchBIN();
-	if (abin != null) {
-	    abin.removeCursor(this);
-	    abin.releaseLatch();
-	}
+        BIN abin = latchBIN();
+        if (abin != null) {
+            abin.removeCursor(this);
+            abin.releaseLatch();
+        }
     }
 
     private void removeCursorDBIN()
-	throws DatabaseException {
-	
-	DBIN abin = latchDBIN();
-	if (abin != null) {
-	    abin.removeCursor(this);
-	    abin.releaseLatch();
-	}
+        throws DatabaseException {
+
+        DBIN abin = latchDBIN();
+        if (abin != null) {
+            abin.removeCursor(this);
+            abin.releaseLatch();
+        }
     }
 
     /**
      * Clear the reference to the dup tree, if any.
      */
     public void clearDupBIN(boolean alreadyLatched)
-	throws DatabaseException {
+        throws DatabaseException {
 
         if (dupBin != null) {
             if (alreadyLatched) {
@@ -601,7 +643,7 @@ public class CursorImpl implements Cloneable {
     public void dumpTree()
         throws DatabaseException {
 
-        database.getTree().dump();
+        databaseImpl.getTree().dump();
     }
 
     /**
@@ -640,32 +682,17 @@ public class CursorImpl implements Cloneable {
 
         /* Perform eviction before and after each cursor operation. */
         if (allowEviction) {
-            database.getDbEnvironment().getEvictor().doCriticalEviction
+            databaseImpl.getDbEnvironment().getEvictor().doCriticalEviction
                 (false); // backgroundIO
         }
     }
 
     /**
-     * Close a cursor with releaseNonTxnLocks=true.
-     */
-    public void close()
-        throws DatabaseException {
-
-        close(true /*releaseNonTxnLocks*/);
-    }
-
-    /**
      * Close a cursor.
-     *
-     * @param releaseNonTxnLocks should normally be true to release
-     * non-transactional locks when a cursor is closed.  However, some
-     * operations may wish to hold non-transactional locks if the locker is
-     * re-used in another cursor.  For example, see
-     * SecondaryCursor.readPrimaryAfterGet. [#15573]
      *
      * @throws DatabaseException if the cursor was previously closed.
      */
-    public void close(boolean releaseNonTxnLocks)
+    public void close()
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
@@ -673,16 +700,16 @@ public class CursorImpl implements Cloneable {
         removeCursor();
         locker.unRegisterCursor(this);
 
-        if (releaseNonTxnLocks && !retainNonTxnLocks) {
-            locker.releaseNonTxnLocks();
+        if (!retainNonTxnLocks) {
+	    locker.nonTxnOperationEnd();
         }
 
         status = CURSOR_CLOSED;
 
         /* Perform eviction before and after each cursor operation. */
         if (allowEviction) {
-            database.getDbEnvironment().getEvictor().doCriticalEviction
-                (false); // backgroundIO
+            databaseImpl.getDbEnvironment().getEvictor().
+		doCriticalEviction(false); // backgroundIO
         }
     }
 
@@ -691,7 +718,7 @@ public class CursorImpl implements Cloneable {
 
         assert assertCursorState(true) : dumpToString(true);
 
-        if (!database.getSortedDuplicates()) {
+        if (!databaseImpl.getSortedDuplicates()) {
             return 1;
         }
 
@@ -699,7 +726,7 @@ public class CursorImpl implements Cloneable {
             return 0;
         }
 
-	latchBIN();
+        latchBIN();
         try {
             if (bin.getNEntries() <= index) {
                 return 0;
@@ -711,10 +738,11 @@ public class CursorImpl implements Cloneable {
                 DIN dupRoot = (DIN) n;
 
                 /* Latch couple down the tree. */
-                dupRoot.latch();
+                dupRoot.latch(cacheMode);
                 releaseBIN();
                 DupCountLN dupCountLN = (DupCountLN)
-                    dupRoot.getDupCountLNRef().fetchTarget(database, dupRoot);
+                    dupRoot.getDupCountLNRef().fetchTarget(databaseImpl,
+                                                           dupRoot);
 
                 /* We can't hold latches when we acquire locks. */
                 dupRoot.releaseLatch();
@@ -727,7 +755,7 @@ public class CursorImpl implements Cloneable {
                 if (lockType != LockType.NONE) {
                     locker.lock
                         (dupCountLN.getNodeId(), lockType, false /*noWait*/,
-                         database);
+                         databaseImpl);
                 }
                 return dupCountLN.getDupCount();
             } else {
@@ -735,7 +763,7 @@ public class CursorImpl implements Cloneable {
                 return 1;
             }
         } finally {
-	    releaseBIN();
+            releaseBIN();
         }
     }
 
@@ -746,7 +774,7 @@ public class CursorImpl implements Cloneable {
      *
      * @return 0 on success, appropriate error code otherwise.
      */
-    public OperationStatus delete()
+    public OperationStatus delete(ReplicationContext repContext)
         throws DatabaseException {
 
         assert assertCursorState(true) : dumpToString(true);
@@ -769,13 +797,13 @@ public class CursorImpl implements Cloneable {
         /* If fetchTarget returns null, a deleted LN was cleaned. */
         LN ln = (LN) targetBin.fetchTarget(targetIndex);
         if (ln == null) {
-	    releaseBINs();
+            releaseBINs();
             return OperationStatus.KEYEMPTY;
         }
 
         /* Get a write lock. */
-	LockResult lockResult = lockLN(ln, LockType.WRITE);
-	ln = lockResult.getLN();
+        LockResult lockResult = lockLN(ln, LockType.WRITE);
+        ln = lockResult.getLN();
 
         /* Check LN deleted status under the protection of a write lock. */
         if (ln == null) {
@@ -786,14 +814,14 @@ public class CursorImpl implements Cloneable {
         /* Lock the DupCountLN before logging any LNs. */
         LockResult dclLockResult = null;
         DIN dupRoot = null;
-	boolean dupRootIsLatched = false;
+        boolean dupRootIsLatched = false;
         try {
             isDup = (dupBin != null);
             if (isDup) {
                 dupRoot = getLatchedDupRoot(true /*isDBINLatched*/);
                 dclLockResult = lockDupCountLN(dupRoot, LockType.WRITE);
-		/* Don't mark latched until after locked. */
-		dupRootIsLatched = true;
+                /* Don't mark latched until after locked. */
+                dupRootIsLatched = true;
 
                 /*
                  * Refresh the dupRoot variable because it may have changed
@@ -819,8 +847,9 @@ public class CursorImpl implements Cloneable {
 
             /* Log the LN. */
             long oldLNSize = ln.getMemorySizeIncludedByParent();
-            long newLsn = ln.delete(database, lnKey, dupKey, oldLsn, locker);
-            long newLNSize = ln.getMemorySizeIncludedByParent();
+            long newLsn = ln.delete(databaseImpl, lnKey,
+                                    dupKey, oldLsn, locker,
+                                    repContext);
 
             /*
              * Now update the parent of the LN (be it BIN or DBIN) to correctly
@@ -829,7 +858,8 @@ public class CursorImpl implements Cloneable {
              * we encounter problems there we need the LSN to match the latest
              * version to ensure that undo works.
              */
-            targetBin.updateEntry(targetIndex, newLsn, oldLNSize, newLNSize);
+            targetBin.updateNode
+                (targetIndex, ln, oldLNSize, newLsn, null /*lnSlotKey*/);
             targetBin.setPendingDeleted(targetIndex);
             releaseBINs();
 
@@ -837,7 +867,7 @@ public class CursorImpl implements Cloneable {
                 dupRoot.incrementDuplicateCount
                     (dclLockResult, dupKey, locker, false /*increment*/);
                 dupRoot.releaseLatch();
-		dupRootIsLatched = false;
+                dupRootIsLatched = false;
                 dupRoot = null;
 
                 locker.addDeleteInfo(dupBin, new Key(lnKey));
@@ -849,8 +879,8 @@ public class CursorImpl implements Cloneable {
                   ln, targetIndex, oldLsn, newLsn);
         } finally {
             if (dupRoot != null &&
-		dupRootIsLatched) {
-                dupRoot.releaseLatchIfOwner();
+                dupRootIsLatched) {
+                dupRoot.releaseLatch();
             }
         }
 
@@ -858,15 +888,18 @@ public class CursorImpl implements Cloneable {
     }
 
     /**
-     * Return a new copy of the cursor. If position is true, position the
-     * returned cursor at the same position.
+     * Return a new copy of the cursor.
+     *
+     * @param samePosition If true, position the returned cursor at the same
+     * position as this cursor; if false, return a new uninitialized cursor.
      */
     public CursorImpl dup(boolean samePosition)
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
+        assert !nonCloning;
 
-        CursorImpl ret = cloneCursor(samePosition);
+        CursorImpl ret = cloneCursor(samePosition /*addCursor*/);
 
         if (!samePosition) {
             ret.bin = null;
@@ -920,7 +953,7 @@ public class CursorImpl implements Cloneable {
      * Search for the next key (or duplicate) following the given key (and
      * datum), and acquire a range insert lock on it.  If there are no more
      * records following the given key and datum, lock the special EOF node
-     * for the database.
+     * for the databaseImpl.
      */
     public void lockNextKeyForInsert(DatabaseEntry key, DatabaseEntry data)
         throws DatabaseException {
@@ -934,7 +967,7 @@ public class CursorImpl implements Cloneable {
         boolean lockedNextKey = false;
 
         /* Don't search for data if duplicates are not configured. */
-        SearchMode searchMode = database.getSortedDuplicates() ?
+        SearchMode searchMode = databaseImpl.getSortedDuplicates() ?
             SearchMode.BOTH_RANGE : SearchMode.SET_RANGE;
         boolean latched = true;
         try {
@@ -988,21 +1021,24 @@ public class CursorImpl implements Cloneable {
      * and file summary LNs.  It should not be used otherwise, and in the
      * future we should find a way to remove this special case.</p>
      */
-    public OperationStatus putLN(byte[] key, LN ln, boolean allowDuplicates)
+    public OperationStatus putLN(byte[] key,
+                                 LN ln,
+                                 boolean allowDuplicates,
+                                 ReplicationContext repContext)
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
 
         assert LatchSupport.countLatchesHeld() == 0;
-	LockResult lockResult = locker.lock
-            (ln.getNodeId(), LockType.WRITE, false /*noWait*/, database);
+        LockResult lockResult = locker.lock
+            (ln.getNodeId(), LockType.WRITE, false /*noWait*/, databaseImpl);
 
-	/*
-	 * We'll set abortLsn down in Tree.insert when we know whether we're
-	 * re-using a BIN entry or not.
-	 */
-        if (database.getTree().insert
-            (ln, key, allowDuplicates, this, lockResult)) {
+        /*
+         * We'll set abortLsn down in Tree.insert when we know whether we're
+         * re-using a BIN entry or not.
+         */
+        if (databaseImpl.getTree().insert
+            (ln, key, allowDuplicates, this, lockResult, repContext)) {
             status = CURSOR_INITIALIZED;
             return OperationStatus.SUCCESS;
         } else {
@@ -1018,14 +1054,18 @@ public class CursorImpl implements Cloneable {
      * @return 0 if successful, failure status value otherwise
      */
     public OperationStatus put(DatabaseEntry key,
-			       DatabaseEntry data,
+                               DatabaseEntry data,
                                DatabaseEntry foundData)
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
 
-        OperationStatus result = putLN
-            (Key.makeKey(key), new LN(data), database.getSortedDuplicates());
+        OperationStatus result = putLN(Key.makeKey(key),
+                                       new LN(data,
+                                              databaseImpl.getDbEnvironment(),
+                                              databaseImpl.isReplicated()),
+                                       databaseImpl.getSortedDuplicates(),
+                                       databaseImpl.getRepContext());
         if (result == OperationStatus.KEYEXIST) {
             status = CURSOR_INITIALIZED;
 
@@ -1035,9 +1075,89 @@ public class CursorImpl implements Cloneable {
              * calling putCurrent does that.  Without duplicates, we have to
              * update the data of course.
              */
-            result = putCurrent(data, null, foundData);
+            result = putCurrent(data,
+                                null,      // foundKey
+                                foundData,
+                                databaseImpl.getRepContext());
         }
         return result;
+    }
+
+    /**
+     * Insert the replicated LN. TODO: very similar to put(), refactor for 
+     * HA release.
+     */
+    public OperationStatus putReplicatedLN(LNLogEntry lnEntry,
+                                           ReplicationContext repContext)
+        throws DatabaseException {
+
+        assert assertCursorState(false) : dumpToString(true);
+
+        LN ln = lnEntry.getLN();
+        OperationStatus result = putLN(lnEntry.getKey(),
+                                       ln,
+                                       databaseImpl.getSortedDuplicates(),
+                                       repContext);
+        if (result == OperationStatus.KEYEXIST) {
+            status = CURSOR_INITIALIZED;
+
+            /*
+             * If dups are allowed and putLN() returns KEYEXIST, the duplicate
+             * already exists.  However, we still need to get a write lock, and
+             * calling putCurrent does that.  Without duplicates, we have to
+             * update the data of course.
+             */
+            result = putCurrent(new DatabaseEntry(ln.getData()),
+                                null, // foundKey
+                                new DatabaseEntry(), // foundData
+                                repContext);
+        }
+        return result;
+    }
+
+    /**
+     * Delete the replicated LN. 
+     */
+    public OperationStatus deleteReplicatedLN(LNLogEntry lnEntry,
+                                              ReplicationContext repContext)
+        throws DatabaseException {
+
+        DatabaseEntry key = new DatabaseEntry(lnEntry.getKey());
+        byte[] dupKey = lnEntry.getDupKey();
+        DatabaseEntry data = null;
+        SearchMode searchMode = SearchMode.SET;
+        if (dupKey != null) {
+            data = new DatabaseEntry(dupKey);
+            searchMode = SearchMode.BOTH;
+        }
+
+        /*
+         * Position this cursor at the required record. This should
+         * always be successful.
+         */
+        try {
+            int searchResult = searchAndPosition(key,
+                                                 data,
+                                                 searchMode,
+                                                 LockType.WRITE);
+
+            if ((searchResult & FOUND) != 0) {
+                /*
+                 * SearchAndPosition leaves the target BIN or DBIN
+                 * latched. Usually we unlatch before returning to the user. In
+                 * this case, add the step of latching the BIN in a dup tree
+                 * situation so we can perform a delete.
+                 */
+                if (dupBin != null) {
+                    latchBIN();
+                }
+                return delete(repContext);
+            } else {
+                return OperationStatus.NOTFOUND;
+            }
+        } finally {
+            releaseBINs();
+        }
     }
 
     /**
@@ -1047,12 +1167,17 @@ public class CursorImpl implements Cloneable {
      * @return 0 if successful, failure status value otherwise
      */
     public OperationStatus putNoOverwrite(DatabaseEntry key,
-					  DatabaseEntry data)
+                                          DatabaseEntry data)
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
 
-        return putLN(Key.makeKey(key), new LN(data), false);
+        return putLN(Key.makeKey(key),
+                     new LN(data,
+                            databaseImpl.getDbEnvironment(),
+                            databaseImpl.isReplicated()),
+                     false,   // allowDuplicates
+                     databaseImpl.getRepContext());
     }
 
     /**
@@ -1063,12 +1188,17 @@ public class CursorImpl implements Cloneable {
 
         assert assertCursorState(false) : dumpToString(true);
 
-        if (!database.getSortedDuplicates()) {
+        if (!databaseImpl.getSortedDuplicates()) {
             throw new DatabaseException
-                ("putNoDupData() called, but database is not configured " +
+                ("putNoDupData() called, but databaseImpl is not configured " +
                  "for duplicate data.");
         }
-        return putLN(Key.makeKey(key), new LN(data), true);
+        return putLN(Key.makeKey(key),
+                     new LN(data,
+                            databaseImpl.getDbEnvironment(),
+                            databaseImpl.isReplicated()),
+                     true,  // allowDuplicates
+                     databaseImpl.getRepContext());
     }
 
     /**
@@ -1077,7 +1207,8 @@ public class CursorImpl implements Cloneable {
      */
     public OperationStatus putCurrent(DatabaseEntry data,
                                       DatabaseEntry foundKey,
-                                      DatabaseEntry foundData)
+                                      DatabaseEntry foundData,
+                                      ReplicationContext repContext)
         throws DatabaseException {
 
         assert assertCursorState(true) : dumpToString(true);
@@ -1093,7 +1224,7 @@ public class CursorImpl implements Cloneable {
             return OperationStatus.KEYEMPTY;
         }
 
-	latchBINs();
+        latchBINs();
         boolean isDup = setTargetBin();
 
         try {
@@ -1106,21 +1237,21 @@ public class CursorImpl implements Cloneable {
             byte[] lnKey = targetBin.getKey(targetIndex);
 
             /* If fetchTarget returned null, a deleted LN was cleaned. */
-	    if (targetBin.isEntryKnownDeleted(targetIndex) ||
+            if (targetBin.isEntryKnownDeleted(targetIndex) ||
                 ln == null) {
                 releaseBINs();
-		return OperationStatus.NOTFOUND;
-	    }
+                return OperationStatus.NOTFOUND;
+            }
 
             /* Get a write lock. */
-	    LockResult lockResult = lockLN(ln, LockType.WRITE);
-	    ln = lockResult.getLN();
+            LockResult lockResult = lockLN(ln, LockType.WRITE);
+            ln = lockResult.getLN();
 
-	    /* Check LN deleted status under the protection of a write lock. */
-	    if (ln == null) {
+            /* Check LN deleted status under the protection of a write lock. */
+            if (ln == null) {
                 releaseBINs();
-		return OperationStatus.NOTFOUND;
-	    }
+                return OperationStatus.NOTFOUND;
+            }
 
             /*
              * If cursor points at a dup, then we can only replace the entry
@@ -1131,16 +1262,16 @@ public class CursorImpl implements Cloneable {
              * no user defined comparison function and the new data is the
              * same.
              */
-	    byte[] foundDataBytes;
-	    byte[] foundKeyBytes;
-	    isDup = setTargetBin();
-	    if (isDup) {
-		foundDataBytes = lnKey;
-		foundKeyBytes = targetBin.getDupKey();
-	    } else {
-		foundDataBytes = ln.getData();
-		foundKeyBytes = lnKey;
-	    }
+            byte[] foundDataBytes;
+            byte[] foundKeyBytes;
+            isDup = setTargetBin();
+            if (isDup) {
+                foundDataBytes = lnKey;
+                foundKeyBytes = targetBin.getDupKey();
+            } else {
+                foundDataBytes = ln.getData();
+                foundKeyBytes = lnKey;
+            }
             byte[] newData;
 
             /* Resolve partial puts. */
@@ -1152,20 +1283,20 @@ public class CursorImpl implements Cloneable {
                 int oldlen = (doff + dlen > origlen) ? doff + dlen : origlen;
                 int len = oldlen - dlen + data.getSize();
 
-		if (len == 0) {
-		    newData = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
-		} else {
-		    newData = new byte[len];
-		}
+                if (len == 0) {
+                    newData = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
+                } else {
+                    newData = new byte[len];
+                }
                 int pos = 0;
 
                 /*
-		 * Keep 0..doff of the old data (truncating if doff > length).
-		 */
+                 * Keep 0..doff of the old data (truncating if doff > length).
+                 */
                 int slicelen = (doff < origlen) ? doff : origlen;
                 if (slicelen > 0)
                     System.arraycopy(foundDataBytes, 0, newData,
-				     pos, slicelen);
+                                     pos, slicelen);
                 pos += doff;
 
                 /* Copy in the new data. */
@@ -1181,38 +1312,38 @@ public class CursorImpl implements Cloneable {
                                      slicelen);
             } else {
                 int len = data.getSize();
-		if (len == 0) {
-		    newData = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
-		} else {
-		    newData = new byte[len];
-		}
+                if (len == 0) {
+                    newData = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
+                } else {
+                    newData = new byte[len];
+                }
                 System.arraycopy(data.getData(), data.getOffset(),
                                  newData, 0, len);
             }
 
-            if (database.getSortedDuplicates()) {
+            if (databaseImpl.getSortedDuplicates()) {
 		/* Check that data compares equal before replacing it. */
 		boolean keysEqual = false;
 		if (foundDataBytes != null) {
                     keysEqual = Key.compareKeys
                         (foundDataBytes, newData,
-                         database.getDuplicateComparator()) == 0;
+                         databaseImpl.getDuplicateComparator()) == 0;
 
 		}
 
-		if (!keysEqual) {
-		    revertLock(ln, lockResult);
-		    throw new DatabaseException
-			("Can't replace a duplicate with different data.");
-		}
-	    }
+                if (!keysEqual) {
+                    revertLock(ln, lockResult);
+                    throw new DatabaseException
+                        ("Can't replace a duplicate with different data.");
+                }
+            }
 
-	    if (foundData != null) {
-		setDbt(foundData, foundDataBytes);
-	    }
-	    if (foundKey != null) {
-		setDbt(foundKey, foundKeyBytes);
-	    }
+            if (foundData != null) {
+                setDbt(foundData, foundDataBytes);
+            }
+            if (foundKey != null) {
+                setDbt(foundKey, foundKeyBytes);
+            }
 
             /*
              * Between the release of the BIN latch and acquiring the write
@@ -1220,25 +1351,25 @@ public class CursorImpl implements Cloneable {
              * result in a new abort LSN for this record. Therefore, wait until
              * now to get the abort LSN.
              */
-	    long oldLsn = targetBin.getLsn(targetIndex);
-	    lockResult.setAbortLsn
-		(oldLsn, targetBin.isEntryKnownDeleted(targetIndex));
+            long oldLsn = targetBin.getLsn(targetIndex);
+            lockResult.setAbortLsn
+                (oldLsn, targetBin.isEntryKnownDeleted(targetIndex));
 
             /*
-	     * The modify has to be inside the latch so that the BIN is updated
-	     * inside the latch.
-	     */
+             * The modify has to be inside the latch so that the BIN is updated
+             * inside the latch.
+             */
             long oldLNSize = ln.getMemorySizeIncludedByParent();
-	    byte[] newKey = (isDup ? targetBin.getDupKey() : lnKey);
-            long newLsn = ln.modify(newData, database, newKey, oldLsn, locker);
-            long newLNSize = ln.getMemorySizeIncludedByParent();
+            byte[] newKey = (isDup ? targetBin.getDupKey() : lnKey);
+            long newLsn = ln.modify(newData, databaseImpl, newKey,
+                                    oldLsn, locker, repContext);
 
-            /* Update the parent BIN. */
-            targetBin.updateEntry(targetIndex, newLsn, oldLNSize, newLNSize);
-            if (isDup) {
-                /* Update the data-as-key, if changed, for a DBIN. [#15704] */
-                targetBin.updateKeyIfChanged(targetIndex, newData);
-            }
+            /*
+             * Update the parent BIN.  Update the data-as-key, if changed, for
+             * a DBIN. [#15704]
+             */
+            targetBin.updateNode
+                (targetIndex, ln, oldLNSize, newLsn, isDup ? newData : null);
             releaseBINs();
 
             trace(Level.FINER, TRACE_MOD, targetBin,
@@ -1259,8 +1390,8 @@ public class CursorImpl implements Cloneable {
      * Retrieve the current record.
      */
     public OperationStatus getCurrent(DatabaseEntry foundKey,
-				      DatabaseEntry foundData,
-				      LockType lockType)
+                                      DatabaseEntry foundData,
+                                      LockType lockType)
         throws DatabaseException {
 
         assert assertCursorState(true) : dumpToString(true);
@@ -1271,9 +1402,9 @@ public class CursorImpl implements Cloneable {
         }
 
         if (dupBin == null) {
-	    latchBIN();
+            latchBIN();
         } else {
-	    latchDBIN();
+            latchDBIN();
         }
 
         return getCurrentAlreadyLatched(foundKey, foundData, lockType, true);
@@ -1284,9 +1415,9 @@ public class CursorImpl implements Cloneable {
      * with the target bin unlatched.
      */
     public OperationStatus getCurrentAlreadyLatched(DatabaseEntry foundKey,
-						    DatabaseEntry foundData,
-						    LockType lockType,
-						    boolean first)
+                                                    DatabaseEntry foundData,
+                                                    LockType lockType,
+                                                    boolean first)
         throws DatabaseException {
 
         assert assertCursorState(true) : dumpToString(true);
@@ -1310,7 +1441,7 @@ public class CursorImpl implements Cloneable {
         if (bin == null) {
             return null;
         } else {
-	    latchBIN();
+            latchBIN();
             return getCurrentLNAlreadyLatched(lockType);
         }
     }
@@ -1340,7 +1471,7 @@ public class CursorImpl implements Cloneable {
                 ln = (LN) bin.fetchTarget(index);
             }
             if (ln == null) {
-		releaseBIN();
+                releaseBIN();
                 return null;
             }
 
@@ -1348,7 +1479,7 @@ public class CursorImpl implements Cloneable {
 
             /* Lock LN.  */
             LockResult lockResult = lockLN(ln, lockType);
-	    ln = lockResult.getLN();
+            ln = lockResult.getLN();
 
             /* Don't set abort LSN for a read operation! */
             return ln;
@@ -1359,10 +1490,10 @@ public class CursorImpl implements Cloneable {
     }
 
     public OperationStatus getNext(DatabaseEntry foundKey,
-				   DatabaseEntry foundData,
-				   LockType lockType,
-				   boolean forward,
-				   boolean alreadyLatched)
+                                   DatabaseEntry foundData,
+                                   LockType lockType,
+                                   boolean forward,
+                                   boolean alreadyLatched)
         throws DatabaseException {
 
         return getNextWithKeyChangeStatus
@@ -1387,10 +1518,10 @@ public class CursorImpl implements Cloneable {
      */
     public KeyChangeStatus
         getNextWithKeyChangeStatus(DatabaseEntry foundKey,
-				   DatabaseEntry foundData,
-				   LockType lockType,
-				   boolean forward,
-				   boolean alreadyLatched)
+                                   DatabaseEntry foundData,
+                                   LockType lockType,
+                                   boolean forward,
+                                   boolean alreadyLatched)
         throws DatabaseException {
 
         assert assertCursorState(true) : dumpToString(true);
@@ -1399,7 +1530,7 @@ public class CursorImpl implements Cloneable {
         KeyChangeStatus result =
             new KeyChangeStatus(OperationStatus.NOTFOUND, true);
 
-	try {
+        try {
             while (bin != null) {
 
                 /* Are we positioned on a DBIN? */
@@ -1495,13 +1626,15 @@ public class CursorImpl implements Cloneable {
                     assert TestHookExecute.doHookIfSet(testHook);
 
                     if (forward) {
-                        newBin = database.getTree().getNextBin
+                        newBin = databaseImpl.getTree().getNextBin
                             (binToBeRemoved,
-                             false /* traverseWithinDupTree */);
+                             false /*traverseWithinDupTree*/,
+                             cacheMode);
                     } else {
-                        newBin = database.getTree().getPrevBin
+                        newBin = databaseImpl.getTree().getPrevBin
                             (binToBeRemoved,
-                             false /* traverseWithinDupTree */);
+                             false /*traverseWithinDupTree*/,
+                             cacheMode);
                     }
                     if (newBin == null) {
                         result.status = OperationStatus.NOTFOUND;
@@ -1519,28 +1652,28 @@ public class CursorImpl implements Cloneable {
                     }
                 }
             }
-	} finally {
-	    assert LatchSupport.countLatchesHeld() == 0 :
-		LatchSupport.latchesHeldToString();
-	    if (binToBeRemoved != null) {
-		flushBINToBeRemoved();
-	    }
-	}
+        } finally {
+            assert LatchSupport.countLatchesHeld() == 0 :
+                LatchSupport.latchesHeldToString();
+            if (binToBeRemoved != null) {
+                flushBINToBeRemoved();
+            }
+        }
         return result;
     }
 
     private void flushBINToBeRemoved()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	binToBeRemoved.latch();
-	binToBeRemoved.removeCursor(this);
-	binToBeRemoved.releaseLatch();
-	binToBeRemoved = null;
+        binToBeRemoved.latch(cacheMode);
+        binToBeRemoved.removeCursor(this);
+        binToBeRemoved.releaseLatch();
+        binToBeRemoved = null;
     }
 
     public OperationStatus getNextNoDup(DatabaseEntry foundKey,
-					DatabaseEntry foundData,
-					LockType lockType,
+                                        DatabaseEntry foundData,
+                                        LockType lockType,
                                         boolean forward,
                                         boolean alreadyLatched)
         throws DatabaseException {
@@ -1583,64 +1716,64 @@ public class CursorImpl implements Cloneable {
      * cursor to next duplicate without fetching data.
      */
     public OperationStatus getNextDuplicate(DatabaseEntry foundKey,
-					    DatabaseEntry foundData,
-					    LockType lockType,
-					    boolean forward,
-					    boolean alreadyLatched)
+                                            DatabaseEntry foundData,
+                                            LockType lockType,
+                                            boolean forward,
+                                            boolean alreadyLatched)
         throws DatabaseException {
 
         assert assertCursorState(true) : dumpToString(true);
         assert checkAlreadyLatched(alreadyLatched) : dumpToString(true);
-	try {
-	    while (dupBin != null) {
-		if (!alreadyLatched) {
-		    latchDBIN();
-		} else {
-		    alreadyLatched = false;
-		}
+        try {
+            while (dupBin != null) {
+                if (!alreadyLatched) {
+                    latchDBIN();
+                } else {
+                    alreadyLatched = false;
+                }
 
-		if (DEBUG) {
-		    verifyCursor(dupBin);
-		}
+                if (DEBUG) {
+                    verifyCursor(dupBin);
+                }
 
-		/* Are we still on this DBIN? */
-		if ((forward && ++dupIndex < dupBin.getNEntries()) ||
-		    (!forward && --dupIndex > -1)) {
+                /* Are we still on this DBIN? */
+                if ((forward && ++dupIndex < dupBin.getNEntries()) ||
+                    (!forward && --dupIndex > -1)) {
 
-		    OperationStatus ret = OperationStatus.SUCCESS;
-		    if (foundKey != null) {
-			ret = getCurrentAlreadyLatched(foundKey, foundData,
+                    OperationStatus ret = OperationStatus.SUCCESS;
+                    if (foundKey != null) {
+                        ret = getCurrentAlreadyLatched(foundKey, foundData,
                                                        lockType, forward);
-		    } else {
-			releaseDBIN();
-		    }
-		    if (ret == OperationStatus.SUCCESS) {
-			incrementLNCount();
-			return ret;
-		    } else {
-			assert LatchSupport.countLatchesHeld() == 0;
+                    } else {
+                        releaseDBIN();
+                    }
+                    if (ret == OperationStatus.SUCCESS) {
+                        incrementLNCount();
+                        return ret;
+                    } else {
+                        assert LatchSupport.countLatchesHeld() == 0;
 
-			if (dupBinToBeRemoved != null) {
-			    flushDBINToBeRemoved();
-			}
+                        if (dupBinToBeRemoved != null) {
+                            flushDBINToBeRemoved();
+                        }
 
-			continue;
-		    }
+                        continue;
+                    }
 
-		} else {
+                } else {
 
-		    /*
-		     * We need to go to the next DBIN.  Remove the cursor and
-		     * be sure to change the dupBin field after removing the
-		     * cursor.
-		     */
-		    if (dupBinToBeRemoved != null) {
-			flushDBINToBeRemoved();
-		    }
-		    dupBinToBeRemoved = dupBin;
+                    /*
+                     * We need to go to the next DBIN.  Remove the cursor and
+                     * be sure to change the dupBin field after removing the
+                     * cursor.
+                     */
+                    if (dupBinToBeRemoved != null) {
+                        flushDBINToBeRemoved();
+                    }
+                    dupBinToBeRemoved = dupBin;
 
-		    dupBin = null;
-		    dupBinToBeRemoved.releaseLatch();
+                    dupBin = null;
+                    dupBinToBeRemoved.releaseLatch();
 
                     TreeWalkerStatsAccumulator treeStatsAccumulator =
                         getTreeStatsAccumulator();
@@ -1653,7 +1786,7 @@ public class CursorImpl implements Cloneable {
                             }
 
                             DIN duplicateRoot = (DIN) bin.fetchTarget(index);
-                            duplicateRoot.latch();
+                            duplicateRoot.latch(cacheMode);
                             try {
                                 DupCountLN dcl = duplicateRoot.getDupCountLN();
                                 if (dcl != null) {
@@ -1666,61 +1799,63 @@ public class CursorImpl implements Cloneable {
                             releaseBIN();
                         }
                     }
-		    assert (LatchSupport.countLatchesHeld() == 0);
+                    assert (LatchSupport.countLatchesHeld() == 0);
 
-		    dupBinToBeRemoved.latch();
-		    DBIN newDupBin;
+                    dupBinToBeRemoved.latch(cacheMode);
+                    DBIN newDupBin;
 
-		    if (forward) {
-			newDupBin = (DBIN) database.getTree().getNextBin
-			    (dupBinToBeRemoved, 	
-		   	     true /* traverseWithinDupTree*/);
-		    } else {
-			newDupBin = (DBIN) database.getTree().getPrevBin
-			    (dupBinToBeRemoved,
-			     true /* traverseWithinDupTree*/);
-		    }
+                    if (forward) {
+                        newDupBin = (DBIN) databaseImpl.getTree().getNextBin
+                            (dupBinToBeRemoved,
+                             true /*traverseWithinDupTree*/,
+                             cacheMode);
+                    } else {
+                        newDupBin = (DBIN) databaseImpl.getTree().getPrevBin
+                            (dupBinToBeRemoved,
+                             true /*traverseWithinDupTree*/,
+                             cacheMode);
+                    }
 
-		    if (newDupBin == null) {
-			return OperationStatus.NOTFOUND;
-		    } else {
-			if (forward) {
-			    dupIndex = -1;
-			} else {
-			    dupIndex = newDupBin.getNEntries();
-			}
-			addCursor(newDupBin);
+                    if (newDupBin == null) {
+                        return OperationStatus.NOTFOUND;
+                    } else {
+                        if (forward) {
+                            dupIndex = -1;
+                        } else {
+                            dupIndex = newDupBin.getNEntries();
+                        }
+                        addCursor(newDupBin);
 
-			/*
-			 * Ensure that setting dupBin is under newDupBin's
-			 * latch.
-			 */
-			dupBin = newDupBin;
-			alreadyLatched = true;
-		    }
-		}
-	    }
-	} finally {
-	    assert LatchSupport.countLatchesHeld() == 0;
-	    if (dupBinToBeRemoved != null) {
-		flushDBINToBeRemoved();
-	    }
-	}
+                        /*
+                         * Ensure that setting dupBin is under newDupBin's
+                         * latch.
+                         */
+                        dupBin = newDupBin;
+                        alreadyLatched = true;
+                    }
+                }
+            }
+        } finally {
+            assert LatchSupport.countLatchesHeld() == 0;
+            if (dupBinToBeRemoved != null) {
+                flushDBINToBeRemoved();
+            }
+        }
 
         return OperationStatus.NOTFOUND;
     }
 
     private void flushDBINToBeRemoved()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	dupBinToBeRemoved.latch();
-	dupBinToBeRemoved.removeCursor(this);
-	dupBinToBeRemoved.releaseLatch();
-	dupBinToBeRemoved = null;
+        dupBinToBeRemoved.latch(cacheMode);
+        dupBinToBeRemoved.removeCursor(this);
+        dupBinToBeRemoved.releaseLatch();
+        dupBinToBeRemoved = null;
     }
 
     /**
-     * Position the cursor at the first or last record of the database.  It's
+     * Position the cursor at the first or last record of the databaseImpl.  It's
      * okay if this record is deleted. Returns with the target BIN latched.
      *
      * @return true if a first or last position is found, false if the
@@ -1737,9 +1872,9 @@ public class CursorImpl implements Cloneable {
             if (duplicateRoot == null) {
                 removeCursorBIN();
                 if (first) {
-                    in = database.getTree().getFirstNode();
+                    in = databaseImpl.getTree().getFirstNode(cacheMode);
                 } else {
-                    in = database.getTree().getLastNode();
+                    in = databaseImpl.getTree().getLastNode(cacheMode);
                 }
 
                 if (in != null) {
@@ -1775,7 +1910,7 @@ public class CursorImpl implements Cloneable {
 
                         if (n != null && n.containsDuplicates()) {
                             DIN dupRoot = (DIN) n;
-                            dupRoot.latch();
+                            dupRoot.latch(cacheMode);
                             in.releaseLatch();
                             in = null;
                             found = positionFirstOrLast(first, dupRoot);
@@ -1801,23 +1936,29 @@ public class CursorImpl implements Cloneable {
             } else {
                 removeCursorDBIN();
                 if (first) {
-                    in = database.getTree().getFirstNode(duplicateRoot);
+                    in = databaseImpl.getTree().
+                        getFirstNode(duplicateRoot, cacheMode);
                 } else {
-                    in = database.getTree().getLastNode(duplicateRoot);
+                    in = databaseImpl.getTree().
+                        getLastNode(duplicateRoot, cacheMode);
                 }
 
                 if (in != null) {
 
-		    /*
-		     * An IN was found. Even if it's empty, let Cursor handle
-		     * moving to the first non-deleted entry.
-		     */
-		    assert (in instanceof DBIN);
+                    /*
+                     * An IN was found. Even if it's empty, let Cursor handle
+                     * moving to the first non-deleted entry.
+                     */
+                    /* 
+                     * assert (in instanceof DBIN);
+                     * Will always be true since Tree.getFirst/LastNode always
+                     * returns a DBIN.
+                     */
 
-		    dupBin = (DBIN) in;
+                    dupBin = (DBIN) in;
                     dupIndex = (first ? 0 : (dupBin.getNEntries() - 1));
-		    addCursor(dupBin);
-		    found = true;
+                    addCursor(dupBin);
+                    found = true;
                 }
             }
             status = CURSOR_INITIALIZED;
@@ -1836,7 +1977,7 @@ public class CursorImpl implements Cloneable {
     public static final int EXACT_KEY = 0x2;
     /* Exact match on the DATA portion when searchAndPositionBoth used. */
     public static final int EXACT_DATA = 0x4;
-    /* Record found is the last one in the database. */
+    /* Record found is the last one in the databaseImpl. */
     public static final int FOUND_LAST = 0x8;
 
     /**
@@ -1872,9 +2013,9 @@ public class CursorImpl implements Cloneable {
      * case only that this method is public.</p>
      *
      * <p>If FOUND is set, FOUND_LAST may also be set if the cursor is
-     * positioned on the last record in the database.  Note that this state can
-     * only be counted on as long as the BIN is latched, so it is not set if
-     * this method must release the latch to lock the record.  Therefore, it
+     * positioned on the last record in the databaseImpl.  Note that this state
+     * can only be counted on as long as the BIN is latched, so it is not set
+     * if this method must release the latch to lock the record.  Therefore, it
      * should only be used for optimizations.  If FOUND_LAST is set, the cursor
      * is positioned on the last record and the BIN is latched.  If FOUND_LAST
      * is not set, the cursor may or may not be positioned on the last record.
@@ -1886,19 +2027,19 @@ public class CursorImpl implements Cloneable {
      * operation will increment it.</p>
      */
     public int searchAndPosition(DatabaseEntry matchKey,
-				 DatabaseEntry matchData,
-				 SearchMode searchMode,
-				 LockType lockType)
+                                 DatabaseEntry matchData,
+                                 SearchMode searchMode,
+                                 LockType lockType)
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
 
         removeCursor();
 
-	/* Reset the cursor. */
+        /* Reset the cursor. */
         bin = null;
-	dupBin = null;
-	dupIndex = -1;
+        dupBin = null;
+        dupIndex = -1;
 
         boolean foundSomething = false;
         boolean foundExactKey = false;
@@ -1909,33 +2050,32 @@ public class CursorImpl implements Cloneable {
 
         try {
             byte[] key = Key.makeKey(matchKey);
-            bin = (BIN) database.getTree().search
-                (key, Tree.SearchType.NORMAL, -1, binBoundary,
-                 true /*updateGeneration*/);
+            bin = (BIN) databaseImpl.getTree().search
+                (key, Tree.SearchType.NORMAL, -1, binBoundary, cacheMode);
 
             if (bin != null) {
                 addCursor(bin);
 
-		/*
+                /*
                  * If we're doing an exact search, tell bin.findEntry we
                  * require an exact match. If it's a range search, we don't
                  * need that exact match.
-		 */
+                 */
                 index = bin.findEntry(key, true, exactSearch);
 
-		/*
+                /*
                  * If we're doing an exact search, as a starting point, we'll
                  * assume that we haven't found anything. If this is a range
                  * search, we'll assume the opposite, that we have found a
                  * record. That's because for a range search, the higher level
                  * will take care of sorting out whether anything is really
                  * there or not.
-		 */
-		foundSomething = !exactSearch;
+                 */
+                foundSomething = !exactSearch;
                 boolean containsDuplicates = false;
 
                 if (index >= 0) {
-		    if ((index & IN.EXACT_MATCH) != 0) {
+                    if ((index & IN.EXACT_MATCH) != 0) {
 
                         /*
                          * The binary search told us we had an exact match.
@@ -1945,7 +2085,7 @@ public class CursorImpl implements Cloneable {
                          * dup tree w/no entries, but the next layer up will
                          * find these cases.
                          */
-			foundExactKey = true;
+                        foundExactKey = true;
 
                         /*
                          * Now turn off the exact match bit so the index will
@@ -1953,11 +2093,11 @@ public class CursorImpl implements Cloneable {
                          * child reference from the bin.
                          */
                         index &= ~IN.EXACT_MATCH;
-		    }
+                    }
 
                     /*
-		     * If fetchTarget returns null, a deleted LN was cleaned.
-		     */
+                     * If fetchTarget returns null, a deleted LN was cleaned.
+                     */
                     Node n = null;
                     if (!bin.isEntryKnownDeleted(index)) {
                         n = bin.fetchTarget(index);
@@ -1978,23 +2118,23 @@ public class CursorImpl implements Cloneable {
                         } else {
                             foundSomething = true;
                             if (!containsDuplicates && exactSearch) {
-				/* Lock LN, check if deleted. */
-				LN ln = (LN) n;
-				LockResult lockResult = lockLN(ln, lockType);
-				ln = lockResult.getLN();
+                                /* Lock LN, check if deleted. */
+                                LN ln = (LN) n;
+                                LockResult lockResult = lockLN(ln, lockType);
+                                ln = lockResult.getLN();
 
-				if (ln == null) {
-				    foundSomething = false;
-				}
+                                if (ln == null) {
+                                    foundSomething = false;
+                                }
 
-				/*
-				 * Note that we must not set the abort LSN for
+                                /*
+                                 * Note that we must not set the abort LSN for
                                  * a read operation, lest false obsoletes are
                                  * set. [13158]
                                  */
                             }
                         }
-		    }
+                    }
 
                     /*
                      * Determine whether the last record was found.  This is
@@ -2006,18 +2146,18 @@ public class CursorImpl implements Cloneable {
                                  !containsDuplicates &&
                                  binBoundary.isLastBin &&
                                  index == bin.getNEntries() - 1);
-		}
+                }
             }
             status = CURSOR_INITIALIZED;
 
-            /* Return a two part status value */
+            /* Return a multi-part status value */
             return (foundSomething ? FOUND : 0) |
                 (foundExactKey ? EXACT_KEY : 0) |
                 (foundExactData ? EXACT_DATA : 0) |
                 (foundLast ? FOUND_LAST : 0);
         } catch (DatabaseException e) {
             /* Release latch on error. */
-	    releaseBIN();
+            releaseBIN();
             throw e;
         }
     }
@@ -2029,36 +2169,36 @@ public class CursorImpl implements Cloneable {
      * searching into the dup tree.  See searchAndPosition for more details.
      */
     private int searchAndPositionBoth(boolean containsDuplicates,
-				      Node n,
-				      DatabaseEntry matchData,
-				      boolean exactSearch,
-				      LockType lockType)
+                                      Node n,
+                                      DatabaseEntry matchData,
+                                      boolean exactSearch,
+                                      LockType lockType)
         throws DatabaseException {
 
         assert assertCursorState(false) : dumpToString(true);
 
-	boolean found = false;
-	boolean exact = false;
-	assert (matchData != null);
-	byte[] data = Key.makeKey(matchData);
+        boolean found = false;
+        boolean exact = false;
+        assert (matchData != null);
+        byte[] data = Key.makeKey(matchData);
 
         if (containsDuplicates) {
             /* It's a duplicate tree. */
             DIN duplicateRoot = (DIN) n;
-            duplicateRoot.latch();
-	    releaseBIN();
-            dupBin = (DBIN) database.getTree().searchSubTree
-                (duplicateRoot, data, Tree.SearchType.NORMAL, -1, null,
-                 true /*updateGeneration*/);
+            duplicateRoot.latch(cacheMode);
+            releaseBIN();
+            dupBin = (DBIN) databaseImpl.getTree().searchSubTree
+                (duplicateRoot, data, Tree.SearchType.NORMAL,
+                 -1, null, cacheMode);
             if (dupBin != null) {
                 /* Find an exact match. */
                 addCursor(dupBin);
                 dupIndex = dupBin.findEntry(data, true, exactSearch);
                 if (dupIndex >= 0) {
-		    if ((dupIndex & IN.EXACT_MATCH) != 0) {
-			exact = true;
-		    }
-		    dupIndex &= ~IN.EXACT_MATCH;
+                    if ((dupIndex & IN.EXACT_MATCH) != 0) {
+                        exact = true;
+                    }
+                    dupIndex &= ~IN.EXACT_MATCH;
                     found = true;
                 } else {
 
@@ -2072,35 +2212,35 @@ public class CursorImpl implements Cloneable {
                 }
             }
         } else {
-	    /* Not a duplicate, but checking for both key and data match. */
+            /* Not a duplicate, but checking for both key and data match. */
             LN ln = (LN) n;
 
-	    /* Lock LN, check if deleted. */
-	    LockResult lockResult = lockLN(ln, lockType);
+            /* Lock LN, check if deleted. */
+            LockResult lockResult = lockLN(ln, lockType);
 
-	    /*
-	     * Note that during the lockLN call, this cursor may have been
-	     * adjusted to refer to an LN in a duplicate tree.  This happens in
-	     * the case where we entered with a non-duplicate tree LN and
-	     * during the lock call it was mutated to a duplicate tree.  The LN
-	     * is still the correct LN, but our cursor is now down in a
-	     * duplicate tree. [#14230].
-	     */
+            /*
+             * Note that during the lockLN call, this cursor may have been
+             * adjusted to refer to an LN in a duplicate tree.  This happens in
+             * the case where we entered with a non-duplicate tree LN and
+             * during the lock call it was mutated to a duplicate tree.  The LN
+             * is still the correct LN, but our cursor is now down in a
+             * duplicate tree. [#14230].
+             */
 
-	    ln = lockResult.getLN();
+            ln = lockResult.getLN();
 
-	    if (ln == null) {
+            if (ln == null) {
                 found = !exactSearch;
-	    } else {
+            } else {
 
-		/* Don't set abort LSN for read operation. [#13158] */
+                /* Don't set abort LSN for read operation. [#13158] */
 
                 /*
                  * The comparison logic below mimics IN.findEntry as used above
                  * for duplicates.
                  */
-		int cmp = Key.compareKeys
-                    (ln.getData(), data, database.getDuplicateComparator());
+                int cmp = Key.compareKeys
+                    (ln.getData(), data, databaseImpl.getDuplicateComparator());
                 if (cmp == 0 || (cmp <= 0 && !exactSearch)) {
                     if (cmp == 0) {
                         exact = true;
@@ -2113,18 +2253,18 @@ public class CursorImpl implements Cloneable {
                      * data.  Set index so that a 'next' operation moves to the
                      * current record.
                      */
-		    if (dupBin == null) {
-			index--;
-		    } else {
-			/* We may now be pointing at a dup tree. [#14230]. */
-			dupIndex--;
-		    }
+                    if (dupBin == null) {
+                        index--;
+                    } else {
+                        /* We may now be pointing at a dup tree. [#14230]. */
+                        dupIndex--;
+                    }
                     found = !exactSearch;
                 }
-	    }
+            }
         }
 
-	return (found ? FOUND : 0) |
+        return (found ? FOUND : 0) |
             (exact ? EXACT_DATA : 0);
     }
 
@@ -2133,13 +2273,13 @@ public class CursorImpl implements Cloneable {
      * with the BIN/DBIN latched.
      */
     private OperationStatus fetchCurrent(DatabaseEntry foundKey,
-					 DatabaseEntry foundData,
-					 LockType lockType,
-					 boolean first)
+                                         DatabaseEntry foundData,
+                                         LockType lockType,
+                                         boolean first)
         throws DatabaseException {
 
         TreeWalkerStatsAccumulator treeStatsAccumulator =
-	    getTreeStatsAccumulator();
+            getTreeStatsAccumulator();
 
         boolean duplicateFetch = setTargetBin();
         if (targetBin == null) {
@@ -2149,45 +2289,46 @@ public class CursorImpl implements Cloneable {
         assert targetBin.isLatchOwnerForWrite();
 
         /*
-	 * Check the deleted flag in the BIN and make sure this isn't an empty
-	 * BIN.  The BIN could be empty by virtue of the compressor running the
-	 * size of this BIN to 0 but not having yet deleted it from the tree.
+         * Check the deleted flag in the BIN and make sure this isn't an empty
+         * BIN.  The BIN could be empty by virtue of the compressor running the
+         * size of this BIN to 0 but not having yet deleted it from the tree.
          *
          * The index may be negative if we're at an intermediate stage in an
          * higher level operation, and we expect a higher level method to do a
          * next or prev operation after this returns KEYEMPTY. [#11700]
-	 */
+         */
         Node n = null;
 
         if (targetIndex < 0 ||
             targetIndex >= targetBin.getNEntries() ||
-	    targetBin.isEntryKnownDeleted(targetIndex)) {
+            targetBin.isEntryKnownDeleted(targetIndex)) {
             /* Node is no longer present. */
         } else {
 
-	    /*
-	     * If we encounter a pendingDeleted entry, add it to the compressor
-	     * queue.
-	     */
-	    if (targetBin.isEntryPendingDeleted(targetIndex)) {
-		EnvironmentImpl envImpl = database.getDbEnvironment();
-		envImpl.addToCompressorQueue
-		    (targetBin, new Key(targetBin.getKey(targetIndex)), false);
-	    }
+            /*
+             * If we encounter a pendingDeleted entry, add it to the compressor
+             * queue.
+             */
+            if (targetBin.isEntryPendingDeleted(targetIndex)) {
+                EnvironmentImpl envImpl = databaseImpl.getDbEnvironment();
+                envImpl.addToCompressorQueue
+                    (targetBin, new Key(targetBin.getKey(targetIndex)), false);
+            }
 
             /* If fetchTarget returns null, a deleted LN was cleaned. */
-	    try {
-		n = targetBin.fetchTarget(targetIndex);
-	    } catch (DatabaseException DE) {
-		targetBin.releaseLatchIfOwner();
-		throw DE;
-	    }
+            try {
+                n = targetBin.fetchTarget(targetIndex);
+            } catch (DatabaseException DE) {
+                targetBin.releaseLatch();
+                throw DE;
+            }
         }
+
         if (n == null) {
-	    if (treeStatsAccumulator != null) {
-		treeStatsAccumulator.incrementDeletedLNCount();
-	    }
-            targetBin.releaseLatchIfOwner();
+            if (treeStatsAccumulator != null) {
+                treeStatsAccumulator.incrementDeletedLNCount();
+            }
+            targetBin.releaseLatch();
             return OperationStatus.KEYEMPTY;
         }
 
@@ -2201,15 +2342,15 @@ public class CursorImpl implements Cloneable {
             assert !duplicateFetch;
             /* Descend down duplicate tree, doing latch coupling. */
             DIN duplicateRoot = (DIN) n;
-            duplicateRoot.latch();
+            duplicateRoot.latch(cacheMode);
             targetBin.releaseLatch();
             if (positionFirstOrLast(first, duplicateRoot)) {
-		try {
-		    return fetchCurrent(foundKey, foundData, lockType, first);
-		} catch (DatabaseException DE) {
-		    releaseBINs();
-		    throw DE;
-		}
+                try {
+                    return fetchCurrent(foundKey, foundData, lockType, first);
+                } catch (DatabaseException DE) {
+                    releaseBINs();
+                    throw DE;
+                }
             } else {
                 return OperationStatus.NOTFOUND;
             }
@@ -2217,15 +2358,15 @@ public class CursorImpl implements Cloneable {
 
         LN ln = (LN) n;
 
-	assert TestHookExecute.doHookIfSet(testHook);
+        assert TestHookExecute.doHookIfSet(testHook);
 
         /*
          * Lock the LN.  For dirty-read, the data of the LN can be set to null
          * at any time.  Cache the data in a local variable so its state does
          * not change before calling setDbt further below.
          */
-	LockResult lockResult = lockLN(ln, lockType);
-	try {
+        LockResult lockResult = lockLN(ln, lockType);
+        try {
             ln = lockResult.getLN();
             byte[] lnData = (ln != null) ? ln.getData() : null;
             if (ln == null || lnData == null) {
@@ -2257,17 +2398,17 @@ public class CursorImpl implements Cloneable {
              * non-identical but compare as equal.  For the data parameter, we
              * return the LN data.  Although DBIN.getKey is guaranteed to be
              * transactionally correct, we return the LN data instead because
-             * that that works for duplicates and non-duplicates, and because
-             * the LN is the source of truth.  [#15704]
+             * that works for duplicates and non-duplicates, and because the LN
+             * is the source of truth.  [#15704]
              */
             if (foundData != null) {
                 setDbt(foundData, lnData);
             }
 
             return OperationStatus.SUCCESS;
-	} finally {
-	    releaseBINs();
-	}
+        } finally {
+            releaseBINs();
+        }
     }
 
     /**
@@ -2281,7 +2422,7 @@ public class CursorImpl implements Cloneable {
      * on exit.
      *
      * Postconditions: The target BIN is latched.  When positioned in a dup
-     * tree, the BIN will be latched if it was latched on entry or a blocking
+     * tree, the DBIN will be latched if it was latched on entry or a blocking
      * lock was needed.  Therefore, when positioned in a dup tree, releaseDBIN
      * should be called.
      *
@@ -2292,7 +2433,7 @@ public class CursorImpl implements Cloneable {
      * lock will not be held.
      */
     private LockResult lockLN(LN ln, LockType lockType)
-	throws DatabaseException {
+        throws DatabaseException {
 
         LockResult lockResult = lockLNDeletedAllowed(ln, lockType);
         ln = lockResult.getLN();
@@ -2318,7 +2459,7 @@ public class CursorImpl implements Cloneable {
      * on exit.
      *
      * Postconditions: The target BIN is latched.  When positioned in a dup
-     * tree, the BIN will be latched if it was latched on entry or a blocking
+     * tree, the DBIN will be latched if it was latched on entry or a blocking
      * lock was needed.  Therefore, when positioned in a dup tree, releaseDBIN
      * should be called.
      *
@@ -2328,7 +2469,7 @@ public class CursorImpl implements Cloneable {
      * a null LN if the LN was cleaned.
      */
     public LockResult lockLNDeletedAllowed(LN ln, LockType lockType)
-	throws DatabaseException {
+        throws DatabaseException {
 
         LockResult lockResult;
 
@@ -2347,7 +2488,7 @@ public class CursorImpl implements Cloneable {
         if (locker.getDefaultNoWait()) {
             try {
                 lockResult = locker.lock
-                    (ln.getNodeId(), lockType, true /*noWait*/, database);
+                    (ln.getNodeId(), lockType, true /*noWait*/, databaseImpl);
             } catch (LockNotGrantedException e) {
                 /* Release all latches. */
                 releaseBINs();
@@ -2355,7 +2496,7 @@ public class CursorImpl implements Cloneable {
             }
         } else {
             lockResult = locker.nonBlockingLock
-                (ln.getNodeId(), lockType, database);
+                (ln.getNodeId(), lockType, databaseImpl);
         }
         if (lockResult.getLockGrant() != LockGrantType.DENIED) {
             lockResult.setLN(ln);
@@ -2367,18 +2508,18 @@ public class CursorImpl implements Cloneable {
          * the slot.  If the node ID changed while unlatched, revert the lock
          * and repeat.
          */
-	while (true) {
+        while (true) {
 
             /* Save the node ID we're locking and request a lock. */
-	    long nodeId = ln.getNodeId();
-	    releaseBINs();
+            long nodeId = ln.getNodeId();
+            releaseBINs();
             lockResult = locker.lock
-                (nodeId, lockType, false /*noWait*/, database);
+                (nodeId, lockType, false /*noWait*/, databaseImpl);
 
             /* Fetch the current node after locking. */
-	    latchBINs();
-	    setTargetBin();
-	    ln = (LN) targetBin.fetchTarget(targetIndex);
+            latchBINs();
+            setTargetBin();
+            ln = (LN) targetBin.fetchTarget(targetIndex);
 
             if (ln != null && nodeId != ln.getNodeId()) {
                 /* If the node ID changed, revert the lock and try again. */
@@ -2389,7 +2530,7 @@ public class CursorImpl implements Cloneable {
                 lockResult.setLN(ln);
                 return lockResult;
             }
-	}
+        }
     }
 
     /**
@@ -2408,7 +2549,7 @@ public class CursorImpl implements Cloneable {
      * @return the LockResult containing the LN that was locked.
      */
     public LockResult lockDupCountLN(DIN dupRoot, LockType lockType)
-	throws DatabaseException {
+        throws DatabaseException {
 
         DupCountLN ln = dupRoot.getDupCountLN();
         LockResult lockResult;
@@ -2421,7 +2562,7 @@ public class CursorImpl implements Cloneable {
         if (locker.getDefaultNoWait()) {
             try {
                 lockResult = locker.lock
-                    (ln.getNodeId(), lockType, true /*noWait*/, database);
+                    (ln.getNodeId(), lockType, true /*noWait*/, databaseImpl);
             } catch (LockNotGrantedException e) {
                 /* Release all latches. */
                 dupRoot.releaseLatch();
@@ -2430,7 +2571,7 @@ public class CursorImpl implements Cloneable {
             }
         } else {
             lockResult = locker.nonBlockingLock
-                (ln.getNodeId(), lockType, database);
+                (ln.getNodeId(), lockType, databaseImpl);
         }
 
         if (lockResult.getLockGrant() == LockGrantType.DENIED) {
@@ -2439,11 +2580,11 @@ public class CursorImpl implements Cloneable {
             releaseBINs();
             /* Request a blocking lock. */
             lockResult = locker.lock
-                (ln.getNodeId(), lockType, false /*noWait*/, database);
+                (ln.getNodeId(), lockType, false /*noWait*/, databaseImpl);
             /* Reacquire all latches. */
             latchBIN();
             dupRoot = (DIN) bin.fetchTarget(index);
-            dupRoot.latch();
+            dupRoot.latch(cacheMode);
             latchDBIN();
             ln = dupRoot.getDupCountLN();
         }
@@ -2474,21 +2615,21 @@ public class CursorImpl implements Cloneable {
 
         if (isDBINLatched) {
 
-	    /*
+            /*
              * The BIN and DBIN are currently latched and we need to latch the
              * dupRoot, which is between the BIN and DBIN in the tree.  First
-             * trying latching the dupRoot no-wait; if this works, we have
-             * latched out of order, but in a way that does not cause
-             * deadlocks.  If we don't get the no-wait latch, then release the
-             * DBIN latch and latch in the proper order down the tree.
-	     */
+             * try latching the dupRoot no-wait; if this works, we have latched
+             * out of order, but in a way that does not cause deadlocks.  If we
+             * don't get the no-wait latch, then release the DBIN latch and
+             * latch in the proper order down the tree.
+             */
             if (!dupRoot.latchNoWait()) {
                 releaseDBIN();
-                dupRoot.latch();
+                dupRoot.latch(cacheMode);
                 latchDBIN();
             }
         } else {
-            dupRoot.latch();
+            dupRoot.latch(cacheMode);
         }
 
         return dupRoot;
@@ -2500,20 +2641,20 @@ public class CursorImpl implements Cloneable {
     public static void setDbt(DatabaseEntry data, byte[] bytes) {
 
         if (bytes != null) {
-	    boolean partial = data.getPartial();
+            boolean partial = data.getPartial();
             int off = partial ? data.getPartialOffset() : 0;
             int len = partial ? data.getPartialLength() : bytes.length;
-	    if (off + len > bytes.length) {
-		len = (off > bytes.length) ? 0 : bytes.length  - off;
-	    }
+            if (off + len > bytes.length) {
+                len = (off > bytes.length) ? 0 : bytes.length  - off;
+            }
 
-	    byte[] newdata = null;
-	    if (len == 0) {
-		newdata = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
-	    } else {
-		newdata = new byte[len];
-		System.arraycopy(bytes, off, newdata, 0, len);
-	    }
+            byte[] newdata = null;
+            if (len == 0) {
+                newdata = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
+            } else {
+                newdata = new byte[len];
+                System.arraycopy(bytes, off, newdata, 0, len);
+            }
             data.setData(newdata);
             data.setOffset(0);
             data.setSize(len);
@@ -2606,13 +2747,13 @@ public class CursorImpl implements Cloneable {
     }
 
     /**
-     * Locks the logical EOF node for the database.
+     * Locks the logical EOF node for the databaseImpl.
      */
     public void lockEofNode(LockType lockType)
         throws DatabaseException {
 
-        locker.lock
-            (database.getEofNodeId(), lockType, false /*noWait*/, database);
+        locker.lock(databaseImpl.getEofNodeId(), lockType,
+		    false /*noWait*/, databaseImpl);
     }
 
     /**
@@ -2621,7 +2762,7 @@ public class CursorImpl implements Cloneable {
     public void checkEnv()
         throws RunRecoveryException {
 
-        database.getDbEnvironment().checkIfInvalid();
+        databaseImpl.getDbEnvironment().checkIfInvalid();
     }
 
     /*
@@ -2641,6 +2782,88 @@ public class CursorImpl implements Cloneable {
 
     public void setLockerNext(CursorImpl n) {
         lockerNext = n;
+    }
+
+    /**
+     * Callback object for traverseDbWithCursor.
+     */
+    public interface WithCursor {
+
+        /**
+         * Called for each record in the databaseImpl.
+         * @return true to continue or false to stop the enumeration.
+         */
+        boolean withCursor(CursorImpl cursor,
+                           DatabaseEntry key,
+                           DatabaseEntry data)
+            throws DatabaseException;
+    }
+
+    /**
+     * Enumerates all records in a databaseImpl non-transactionally and calls
+     * the withCursor method for each record.  Stops the enumeration if the
+     * callback returns false.
+     *
+     * @param db DatabaseImpl to traverse.
+     *
+     * @param lockType non-null LockType for reading records.
+     *
+     * @param allowEviction should normally be true to evict when performing
+     * multiple operations, but may be false if eviction is disallowed in a
+     * particular context.
+     *
+     * @param withCursor callback object.
+     */
+    public static void traverseDbWithCursor(DatabaseImpl db,
+                                            LockType lockType,
+                                            boolean allowEviction,
+                                            WithCursor withCursor)
+        throws DatabaseException {
+
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry();
+        Locker locker = null;
+        CursorImpl cursor = null;
+        try {
+            locker = BasicLocker.createBasicLocker(db.getDbEnvironment());
+            cursor = new CursorImpl(db, locker);
+            cursor.setAllowEviction(allowEviction);
+            if (cursor.positionFirstOrLast(true,    // first
+                                           null)) { // duplicateRoot
+                OperationStatus status = cursor.getCurrentAlreadyLatched
+                    (key, data, lockType, true); // first
+                boolean done = false;
+                while (!done) {
+
+                    /*
+                     * getCurrentAlreadyLatched may have returned non-SUCCESS
+                     * if the first record is deleted, but we can call getNext
+                     * below to move forward.
+                     */
+                    if (status == OperationStatus.SUCCESS) {
+                        if (!withCursor.withCursor(cursor, key, data)) {
+                            done = true;
+                        }
+                    }
+                    if (!done) {
+                        status = cursor.getNext(key, data, lockType,
+                                                true,   // forward
+                                                false); // alreadyLatched
+                        if (status != OperationStatus.SUCCESS) {
+                            done = true;
+                        }
+                    }
+                }
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.releaseBINs();
+                cursor.close();
+            }
+            if (locker != null) {
+                locker.operationEnd();
+            }
+        }
     }
 
     /**
@@ -2686,10 +2909,10 @@ public class CursorImpl implements Cloneable {
         }
         sb.append(" status=\"").append(statusToString(status)).append("\"");
         sb.append(">\n");
-	if (verbose) {
-	    sb.append((bin == null) ? "" : bin.dumpString(2, true));
-	    sb.append((dupBin == null) ? "" : dupBin.dumpString(2, true));
-	}
+        if (verbose) {
+            sb.append((bin == null) ? "" : bin.dumpString(2, true));
+            sb.append((dupBin == null) ? "" : dupBin.dumpString(2, true));
+        }
         sb.append("\n</Cursor>");
 
         return sb.toString();
@@ -2716,7 +2939,7 @@ public class CursorImpl implements Cloneable {
                        int lnIndex,
                        long oldLsn,
                        long newLsn) {
-        Logger logger = database.getDbEnvironment().getLogger();
+        Logger logger = databaseImpl.getDbEnvironment().getLogger();
         if (logger.isLoggable(level)) {
             StringBuffer sb = new StringBuffer();
             sb.append(changeType);
@@ -2730,7 +2953,7 @@ public class CursorImpl implements Cloneable {
             sb.append(DbLsn.getNoFormatString(oldLsn));
             sb.append(" newLnLsn=");
             sb.append(DbLsn.getNoFormatString(newLsn));
-	
+
             logger.log(level, sb.toString());
         }
     }

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryTestBase.java,v 1.109.2.4 2007/11/20 13:32:47 cwl Exp $
+ * $Id: RecoveryTestBase.java,v 1.117 2008/05/19 17:52:22 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -57,7 +57,8 @@ public class RecoveryTestBase extends TestCase {
     protected Database[] dbs;
     protected EnvironmentConfig envConfig;
     protected CheckpointConfig forceConfig;
-    protected Comparator btreeComparisonFunction = null;
+    protected Comparator<byte[]> btreeComparisonFunction = null;
+    protected boolean keyPrefixing = false;
 
     public RecoveryTestBase() {
 	init();
@@ -170,11 +171,13 @@ public class RecoveryTestBase extends TestCase {
 
         DatabaseConfig dbConfig = new DatabaseConfig();
 	if (btreeComparisonFunction != null) {
-	    dbConfig.setBtreeComparator(btreeComparisonFunction.getClass());
+	    dbConfig.setBtreeComparator((Class<Comparator<byte[]>>)
+                                        btreeComparisonFunction.getClass());
 	}
         dbConfig.setTransactional(true);
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(true);
+        dbConfig.setKeyPrefixing(keyPrefixing);
         for (int i = 0; i < numDbs; i++) {
             dbs[i] = env.openDatabase(txn, DB_NAME + i, dbConfig);
         }
@@ -300,8 +303,9 @@ public class RecoveryTestBase extends TestCase {
         EnvironmentConfig recoveryConfig = TestUtils.initEnvConfig();
         recoveryConfig.setConfigParam
             (EnvironmentParams.NODE_MAX.getName(), "6");
-	recoveryConfig.setConfigParam(EnvironmentParams.MAX_MEMORY.getName(),
-				      new Long(1 << 24).toString());
+	recoveryConfig.setConfigParam
+            (EnvironmentParams.MAX_MEMORY.getName(),
+             new Long(1 << 24).toString());
         recoveryConfig.setReadOnly(readOnlyMode);
 
         /*
@@ -418,7 +422,8 @@ public class RecoveryTestBase extends TestCase {
         /* Check each db in turn. */
         DatabaseConfig dbConfig = new DatabaseConfig();
 	if (btreeComparisonFunction != null) {
-	    dbConfig.setBtreeComparator(btreeComparisonFunction.getClass());
+	    dbConfig.setBtreeComparator((Class<Comparator<byte[]>>)
+                                        btreeComparisonFunction.getClass());
 	}
         dbConfig.setTransactional(env.getConfig().getTransactional());
         dbConfig.setSortedDuplicates(true);
@@ -778,7 +783,8 @@ public class RecoveryTestBase extends TestCase {
 
         DatabaseConfig dbConfig = new DatabaseConfig();
 	if (btreeComparisonFunction != null) {
-	    dbConfig.setBtreeComparator(btreeComparisonFunction.getClass());
+	    dbConfig.setBtreeComparator((Class<Comparator<byte[]>>)
+                                        btreeComparisonFunction.getClass());
 	}
         dbConfig.setSortedDuplicates(true);
 	dbConfig.setTransactional(true);

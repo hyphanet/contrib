@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: SplitRace_SR11144Test.java,v 1.9.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: SplitRace_SR11144Test.java,v 1.13 2008/01/07 14:29:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -266,7 +266,6 @@ public class SplitRace_SR11144Test extends TestCase {
             numArrived = 0;
             block = new Object();
         }
-
         public void doHook() {
             synchronized (block) {
                 if (numArrived == 0) {
@@ -282,14 +281,14 @@ public class SplitRace_SR11144Test extends TestCase {
                 }
             }
         }
-
-	public void doIOHook()
-	    throws IOException {
-
-	}
-
         public Object getHookValue() {
-            return null;
+            throw new UnsupportedOperationException();
+        }
+        public void doIOHook() throws IOException {
+            throw new UnsupportedOperationException();
+        }
+        public void hookSetup() {
+            throw new UnsupportedOperationException();
         }
     }
 

@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryDeltaTest.java,v 1.26.2.2 2007/11/20 13:32:47 cwl Exp $
+ * $Id: RecoveryDeltaTest.java,v 1.30 2008/01/07 14:29:10 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -159,7 +159,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
              * Add cursors to pin down BINs. Otherwise the checkpoint that
              * follows will compress away all the values.
              */
-            Cursor [][] cursors = new Cursor[NUM_DBS][numRecs];
+            Cursor[][] cursors = new Cursor[NUM_DBS][numRecs];
             addCursors(cursors);
             txn.abort();
 
@@ -207,7 +207,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
     }
 
     /* Add cursors on each value to prevent compression. */
-    private void addCursors(Cursor [][] cursors)
+    private void addCursors(Cursor[][] cursors)
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();

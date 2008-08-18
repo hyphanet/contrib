@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbBackup.java,v 1.10.2.2 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DbBackup.java,v 1.14 2008/01/24 14:59:29 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -98,7 +98,7 @@ import com.sleepycat.je.utilint.DbLsn;
  *        // Copy the files to archival storage.
  *        myApplicationCopyMethod(filesForBackup)
 
- *        // Update our knowlege of the last file saved in the backup set,
+ *        // Update our knowledge of the last file saved in the backup set,
  *        // so we can copy less on the next backup
  *        lastFileCopiedInPrevBackup = backupHelper.getLastFileInBackupSet();
  *        myApplicationSaveLastFile(lastFileCopiedInBackupSet);

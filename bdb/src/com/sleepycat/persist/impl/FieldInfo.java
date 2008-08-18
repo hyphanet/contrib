@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FieldInfo.java,v 1.19.2.3 2007/11/20 13:32:39 cwl Exp $
+ * $Id: FieldInfo.java,v 1.24 2008/06/03 04:52:23 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -80,6 +80,12 @@ class FieldInfo implements RawField, Serializable, Comparable<FieldInfo> {
 
     void collectRelatedFormats(Catalog catalog,
                                Map<String,Format> newFormats) {
+
+        /*
+         * Prior to intialization we save the newly created format in the
+         * format field so that it can be used by class evolution.  But note
+         * that it may be replaced by the initialize method.  [#16233]
+         */
         format = catalog.createFormat(cls, newFormats);
     }
 
@@ -93,6 +99,19 @@ class FieldInfo implements RawField, Serializable, Comparable<FieldInfo> {
     }
 
     void initialize(Catalog catalog, int initVersion) {
+
+        /*
+         * Reset the format if it was never initialized, which can occur when a
+         * new format instance created during class evolution and discarded
+         * because nothing changed. [#16233]
+         *
+         * Note that the format field may be null when used in a composite key
+         * format used as a key comparator (via PersistComparator).  In that
+         * case (null format), we must not attempt to reset the format.
+         */
+        if (format != null && format.isNew()) {
+            format = catalog.getFormat(className);
+        }
     }
 
     Class getFieldClass() {

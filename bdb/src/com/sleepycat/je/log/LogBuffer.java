@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogBuffer.java,v 1.42.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: LogBuffer.java,v 1.47 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -13,7 +13,6 @@ import java.nio.ByteBuffer;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.latch.Latch;
-import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
@@ -46,7 +45,7 @@ class LogBuffer implements LogSource {
         } else {
             buffer = ByteBuffer.allocate(capacity);
         }
-        readLatch = LatchSupport.makeLatch(DEBUG_NAME, env);
+        readLatch = new Latch(DEBUG_NAME);
         reinit();
     }
 
@@ -97,7 +96,8 @@ class LogBuffer implements LogSource {
         readLatch.acquire();
 	try {
 	    if (lastLsn != DbLsn.NULL_LSN) {
-		assert (DbLsn.compareTo(lsn, lastLsn) > 0);
+		assert (DbLsn.compareTo(lsn, lastLsn) > 0):
+                    "lsn=" + lsn + " lastlsn=" + lastLsn;
 	    }
 	    lastLsn = lsn;
 	    if (firstLsn == DbLsn.NULL_LSN) {

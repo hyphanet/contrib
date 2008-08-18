@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PackedOffsets.java,v 1.8.2.3 2007/11/20 13:32:27 cwl Exp $
+ * $Id: PackedOffsets.java,v 1.15 2008/01/17 17:22:11 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -148,8 +148,10 @@ public class PackedOffsets implements Loggable {
      */
     public int getLogSize() {
 
-        return (2 * LogUtils.getIntLogSize()) +
-            ((data != null) ? (data.length * LogUtils.SHORT_BYTES) : 0);
+        int len = (data != null) ? data.length : 0;
+        return  (LogUtils.getPackedIntLogSize(size) +
+                 LogUtils.getPackedIntLogSize(len) +
+                 (len * LogUtils.SHORT_BYTES));
     }
 
     /**
@@ -157,24 +159,25 @@ public class PackedOffsets implements Loggable {
      */
     public void writeToLog(ByteBuffer buf) {
 
-        LogUtils.writeInt(buf, size);
+        LogUtils.writePackedInt(buf, size);
         if (data != null) {
-            LogUtils.writeInt(buf, data.length);
+            LogUtils.writePackedInt(buf, data.length);
             for (int i = 0; i < data.length; i += 1) {
                 LogUtils.writeShort(buf, data[i]);
             }
         } else {
-            LogUtils.writeInt(buf, 0);
+            LogUtils.writePackedInt(buf, 0);
         }
     }
 
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer buf, byte entryTypeVersion) {
+    public void readFromLog(ByteBuffer buf, byte entryVersion) {
 
-        size = LogUtils.readInt(buf);
-        int len = LogUtils.readInt(buf);
+        boolean unpacked = (entryVersion < 6);
+        size = LogUtils.readInt(buf, unpacked);
+        int len = LogUtils.readInt(buf, unpacked);
         if (len > 0) {
             data = new short[len];
             for (int i = 0; i < len; i += 1) {
@@ -210,6 +213,14 @@ public class PackedOffsets implements Loggable {
      */
     public long getTransactionId() {
 	return -1;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     public String toString() {

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BitMap.java,v 1.5.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: BitMap.java,v 1.10 2008/05/15 01:52:44 linda Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -33,10 +33,10 @@ public class BitMap {
     /*
      * Map of segment value -> bitset, where the segment value is index >>16
      */
-    private Map bitSegments;
+    private Map<Long, BitSet> bitSegments;
 
     public BitMap() {
-        bitSegments = new HashMap();
+        bitSegments = new HashMap<Long, BitSet>();
     }
 
     /*
@@ -87,9 +87,9 @@ public class BitMap {
      */
     private BitSet getBitSet(long index, boolean allowCreate) {
 
-        Long segmentId = new Long(index >> SEGMENT_SIZE);
+        Long segmentId = Long.valueOf(index >> SEGMENT_SIZE);
 
-        BitSet bitset = (BitSet) bitSegments.get(segmentId);
+        BitSet bitset = bitSegments.get(segmentId);
         if (allowCreate) {
             if (bitset == null) {
                 bitset = new BitSet();
@@ -115,9 +115,9 @@ public class BitMap {
      */
     int cardinality() {
         int count = 0;
-        Iterator iter = bitSegments.values().iterator();
+        Iterator<BitSet> iter = bitSegments.values().iterator();
         while (iter.hasNext()) {
-            BitSet b = (BitSet) iter.next();
+            BitSet b = iter.next();
             count += b.cardinality();
         }
         return count;

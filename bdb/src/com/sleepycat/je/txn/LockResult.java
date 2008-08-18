@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockResult.java,v 1.15.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: LockResult.java,v 1.18 2008/01/07 14:28:56 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -62,5 +62,11 @@ public class LockResult {
 	    info.createdThisTxn = createdThisTxn;
 	    info.neverLocked = false;
 	}
+    }
+
+    public void copyAbortInfo(WriteLockInfo fromInfo) {
+        if (info != null) {
+            info.copyAbortInfo(fromInfo);
+        }
     }
 }

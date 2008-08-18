@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbLsn.java,v 1.51.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: DbLsn.java,v 1.56 2008/05/13 01:44:54 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -73,7 +73,8 @@ public class DbLsn {
     public static int compareTo(long lsn1, long lsn2) {
 	if (lsn1 == NULL_LSN ||
 	    lsn2 == NULL_LSN) {
-	    throw new NullPointerException();
+	    throw new NullPointerException("lsn1=" + lsn1 +
+                                           " lsn2=" + lsn2);
 	}
 
         long fileNumber1 = getFileNumber(lsn1);
@@ -158,9 +159,9 @@ public class DbLsn {
             /* Figure out how many files lie between. */
             Long[] fileNums = fileManager.getAllFileNumbers();
             int myFileIdx = Arrays.binarySearch(fileNums,
-                                                new Long(myFile));
-            int otherFileIdx = Arrays.binarySearch(fileNums,
-                                                   new Long(otherFile));
+                                                Long.valueOf(myFile));
+            int otherFileIdx =
+                Arrays.binarySearch(fileNums, Long.valueOf(otherFile));
             if (myFileIdx > otherFileIdx) {
                 diff = calcDiff(myFileIdx - otherFileIdx,
                                 logFileSize, thisLsn, otherLsn);

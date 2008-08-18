@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BuddyLocker.java,v 1.7.2.1 2007/02/01 14:49:52 cwl Exp $
+ * $Id: BuddyLocker.java,v 1.12 2008/03/18 15:53:05 mark Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -36,11 +36,26 @@ public class BuddyLocker extends BasicLocker {
     /**
      * Creates a BuddyLocker.
      */
-    public BuddyLocker(EnvironmentImpl env, Locker buddy)
+    protected BuddyLocker(EnvironmentImpl env, Locker buddy)
         throws DatabaseException {
 
         super(env);
         this.buddy = buddy;
+    }
+
+    public static BuddyLocker createBuddyLocker(EnvironmentImpl env,
+						Locker buddy)
+        throws DatabaseException {
+
+	BuddyLocker ret = null;
+	try {
+	    ret = new BuddyLocker(env, buddy);
+	    ret.initApiReadLock();
+	} catch (DatabaseException DE) {
+	    ret.operationEnd(false);
+	    throw DE;
+	}
+	return ret;
     }
 
     /**
@@ -51,26 +66,18 @@ public class BuddyLocker extends BasicLocker {
     }
 
     /**
-     * Forwards this call to the buddy locker.
+     * Forwards this call to the buddy locker.  This object itself is never
+     * transactional but the buddy may be.
      */
+    @Override
     public Txn getTxnLocker() {
         return buddy.getTxnLocker();
     }
 
     /**
-     * Creates a new instance of this txn for the same environment.  No
-     * transactional locks are held by this object, so no locks are retained.
-     * newNonTxnLocker is also called for the BuddyLocker.
-     */
-    public Locker newNonTxnLocker()
-        throws DatabaseException {
-
-        return new BuddyLocker(envImpl, buddy.newNonTxnLocker());
-    }
-
-    /**
      * Forwards this call to the base class and to the buddy locker.
      */
+    @Override
     public void releaseNonTxnLocks()
         throws DatabaseException {
 
@@ -81,6 +88,7 @@ public class BuddyLocker extends BasicLocker {
     /**
      * Returns whether this locker can share locks with the given locker.
      */
+    @Override
     public boolean sharesLocksWith(Locker other) {
 
         if (super.sharesLocksWith(other)) {
@@ -88,5 +96,52 @@ public class BuddyLocker extends BasicLocker {
         } else {
             return buddy == other;
         }
+    }
+
+    /**
+     * Returns the lock timeout of the buddy locker, since this locker has no
+     * independent timeout.
+     */
+    @Override
+    public long getLockTimeout() {
+        return buddy.getLockTimeout();
+    }
+
+    /**
+     * Returns the transaction timeout of the buddy locker, since this locker
+     * has no independent timeout.
+     */
+    @Override
+    public long getTxnTimeout() {
+        return buddy.getTxnTimeout();
+    }
+
+    /**
+     * Sets the lock timeout of the buddy locker, since this locker has no
+     * independent timeout.
+     */
+    @Override
+    public void setLockTimeout(long timeout) {
+        buddy.setLockTimeout(timeout);
+    }
+
+    /**
+     * Sets the transaction timeout of the buddy locker, since this locker has
+     * no independent timeout.
+     */
+    @Override
+    public void setTxnTimeout(long timeout) {
+        buddy.setTxnTimeout(timeout);
+    }
+
+    /**
+     * Returns whether the buddy locker is timed out, since this locker has no
+     * independent timeout.
+     */
+    @Override
+    public boolean isTimedOut()
+        throws DatabaseException {
+
+        return buddy.isTimedOut();
     }
 }

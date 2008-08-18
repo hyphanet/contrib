@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CleanerTest.java,v 1.87.2.6 2007/11/20 13:32:42 cwl Exp $
+ * $Id: CleanerTest.java,v 1.102 2008/05/23 18:50:50 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -19,6 +19,8 @@ import java.util.Set;
 import junit.framework.TestCase;
 
 import com.sleepycat.bind.tuple.IntegerBinding;
+import com.sleepycat.bind.tuple.LongBinding;
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
@@ -32,6 +34,7 @@ import com.sleepycat.je.EnvironmentMutableConfig;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
+import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.cleaner.Cleaner;
 import com.sleepycat.je.cleaner.FileSummary;
@@ -43,6 +46,7 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.recovery.Checkpointer;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.FileSummaryLN;
 import com.sleepycat.je.tree.IN;
@@ -50,6 +54,7 @@ import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.util.StringDbt;
 import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.je.utilint.TestHook;
 
 public class CleanerTest extends TestCase {
 
@@ -84,7 +89,7 @@ public class CleanerTest extends TestCase {
         throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-	DbInternal.disableParameterValidation(envConfig);
+        DbInternal.disableParameterValidation(envConfig);
         envConfig.setTransactional(true);
         envConfig.setAllowCreate(true);
         envConfig.setTxnNoSync(Boolean.getBoolean(TestUtils.NO_SYNC));
@@ -97,9 +102,9 @@ public class CleanerTest extends TestCase {
         envConfig.setConfigParam(EnvironmentParams.CLEANER_REMOVE.getName(),
                                  "false");
         envConfig.setConfigParam
-	    (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
+            (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
         envConfig.setConfigParam
-	    (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
+            (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
         envConfig.setConfigParam(EnvironmentParams.BIN_DELTA_PERCENT.getName(),
                                  "75");
@@ -124,16 +129,20 @@ public class CleanerTest extends TestCase {
         if (exampleEnv != null) {
             try {
                 exampleEnv.close();
-            } catch (DatabaseException e) {
+            } catch (Throwable e) {
                 System.out.println("tearDown: " + e);
             }
         }
         exampleDb = null;
         exampleEnv = null;
 
-        //*
-        TestUtils.removeLogFiles("TearDown", envHome, true);
-        TestUtils.removeFiles("TearDown", envHome, FileManager.DEL_SUFFIX);
+        /*
+        try {
+            TestUtils.removeLogFiles("TearDown", envHome, true);
+            TestUtils.removeFiles("TearDown", envHome, FileManager.DEL_SUFFIX);
+        } catch (Throwable e) {
+            System.out.println("tearDown: " + e);
+        }
         //*/
     }
 
@@ -195,7 +204,7 @@ public class CleanerTest extends TestCase {
                OperationStatus.SUCCESS) {
         }
 
-	exampleEnv.checkpoint(forceConfig);
+        exampleEnv.checkpoint(forceConfig);
 
         for (int i = 0; i < (int) lastNum.longValue(); i++) {
 
@@ -204,15 +213,15 @@ public class CleanerTest extends TestCase {
              * work here, since utilization is over 90%.
              */
             DbInternal.envGetEnvironmentImpl(exampleEnv).
-		getCleaner().
-		doClean(false, // cleanMultipleFiles
-			true); // forceCleaning
+                getCleaner().
+                doClean(false, // cleanMultipleFiles
+                        true); // forceCleaning
         }
 
         EnvironmentStats stats = exampleEnv.getStats(TestUtils.FAST_STATS);
         assertTrue(stats.getNINsCleaned() > 0);
 
-	cursor.close();
+        cursor.close();
         closeEnv();
 
         initEnv(false, (nDupsPerKey > 1));
@@ -364,56 +373,56 @@ public class CleanerTest extends TestCase {
      * MapLN and then use the MapLN in a Database.get() call.
      */
     public void testSR13191()
-	throws Throwable {
+        throws Throwable {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setAllowCreate(true);
         envConfig.setConfigParam
-	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
         Environment env = new Environment(envHome, envConfig);
-	EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
-	FileManager fileManager =
-	    DbInternal.envGetEnvironmentImpl(env).getFileManager();
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        FileManager fileManager =
+            DbInternal.envGetEnvironmentImpl(env).getFileManager();
 
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
         Database db1 =
-	    env.openDatabase(null, "db1", dbConfig);
+            env.openDatabase(null, "db1", dbConfig);
 
         Database db2 =
-	    env.openDatabase(null, "db2", dbConfig);
+            env.openDatabase(null, "db2", dbConfig);
 
-	DatabaseEntry key = new DatabaseEntry();
-	DatabaseEntry data = new DatabaseEntry();
-	IntegerBinding.intToEntry(1, key);
-	data.setData(new byte[100000]);
+        DatabaseEntry key = new DatabaseEntry();
+        DatabaseEntry data = new DatabaseEntry();
+        IntegerBinding.intToEntry(1, key);
+        data.setData(new byte[100000]);
         for (int i = 0; i < 50; i++) {
             assertEquals(OperationStatus.SUCCESS, db2.put(null, key, data));
-	}
-	db1.close();
-	db2.close();
+        }
+        db1.close();
+        db2.close();
         assertEquals("Should have 0 as current file", 0L,
                      fileManager.getCurrentFileNum());
-	envImpl.forceLogFileFlip();
-	env.close();
+        envImpl.forceLogFileFlip();
+        env.close();
 
         env = new Environment(envHome, envConfig);
-	fileManager = DbInternal.envGetEnvironmentImpl(env).getFileManager();
+        fileManager = DbInternal.envGetEnvironmentImpl(env).getFileManager();
         assertEquals("Should have 1 as current file", 1L,
                      fileManager.getCurrentFileNum());
 
-	db2 = env.openDatabase(null, "db2", dbConfig);
+        db2 = env.openDatabase(null, "db2", dbConfig);
 
         for (int i = 0; i < 250; i++) {
             assertEquals(OperationStatus.SUCCESS, db2.put(null, key, data));
-	}
+        }
 
-	db2.close();
-	env.cleanLog();
-	db1 = env.openDatabase(null, "db1", dbConfig);
-	db1.get(null, key, data, null);
-	db1.close();
-	env.close();
+        db2.close();
+        env.cleanLog();
+        db1 = env.openDatabase(null, "db1", dbConfig);
+        db1.get(null, key, data, null);
+        db1.close();
+        env.close();
     }
 
     /**
@@ -422,18 +431,18 @@ public class CleanerTest extends TestCase {
      * [#15158].
      */
     public void testCleanerStop()
-	throws Throwable {
+        throws Throwable {
 
         final int fileSize = 1000000;
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setAllowCreate(true);
         envConfig.setConfigParam
-	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
         envConfig.setConfigParam
             (EnvironmentParams.LOG_FILE_MAX.getName(),
              Integer.toString(fileSize));
         envConfig.setConfigParam
-	    (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
+            (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
         Environment env = new Environment(envHome, envConfig);
 
         DatabaseConfig dbConfig = new DatabaseConfig();
@@ -452,13 +461,22 @@ public class CleanerTest extends TestCase {
 
         envConfig = env.getConfig();
         envConfig.setConfigParam
-	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "true");
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "true");
         env.setMutableConfig(envConfig);
 
         int iter = 0;
         while (stats.getNCleanerRuns() == 0) {
             iter += 1;
             if (iter == 20) {
+
+                /*
+                 * At one time the DaemonThread did not wakeup immediately in
+                 * this test.  A workaround was to add an item to the job queue
+                 * in FileProcessor.wakeup.  Later the job queue was removed
+                 * and the DaemonThread.run() was fixed to wakeup immediately.
+                 * This test verifies that the cleanup of the run() method
+                 * works properly [#15267].
+                 */
                 fail("Cleaner did not run after " + iter + " tries");
             }
             Thread.yield();
@@ -467,12 +485,12 @@ public class CleanerTest extends TestCase {
         }
 
         envConfig.setConfigParam
-	    (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
         env.setMutableConfig(envConfig);
 
-        int prevNFiles = stats.getNCleanerRuns();
+        long prevNFiles = stats.getNCleanerRuns();
         stats = env.getStats(null);
-        int currNFiles = stats.getNCleanerRuns();
+        long currNFiles = stats.getNCleanerRuns();
         if (currNFiles - prevNFiles > 5) {
             fail("Expected less than 5 files cleaned," +
                  " prevNFiles=" + prevNFiles +
@@ -481,8 +499,8 @@ public class CleanerTest extends TestCase {
 
         //System.out.println("Num runs: " + stats.getNCleanerRuns());
 
-	db.close();
-	env.close();
+        db.close();
+        env.close();
     }
 
     /**
@@ -501,7 +519,7 @@ public class CleanerTest extends TestCase {
         config.setConfigParam
             (EnvironmentParams.ENV_RUN_CLEANER.getName(), "true");
         config.setConfigParam
-	    (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
+            (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
         exampleEnv.setMutableConfig(config);
 
         final EnvironmentImpl envImpl =
@@ -541,8 +559,8 @@ public class CleanerTest extends TestCase {
             String keyString = new String(key);
 
             /*
-	     * The data map is keyed by key value, and holds a hash
-	     * map of all data values.
+             * The data map is keyed by key value, and holds a hash
+             * map of all data values.
              */
             Set dataVals = new HashSet();
             if (commit) {
@@ -609,7 +627,7 @@ public class CleanerTest extends TestCase {
                              cursor.delete());
                 assertEquals(OperationStatus.SUCCESS,
                              cursor.put(foundKey,
-					new StringDbt(newDataString)));
+                                        new StringDbt(newDataString)));
                 toggle = false;
             } else {
                 toggle = true;
@@ -660,7 +678,7 @@ public class CleanerTest extends TestCase {
                     } else if (dataVals.contains(foundDataString)) {
                         dataVals.remove(foundDataString);
                         if (dataVals.size() == 0) {
-			    expectedMap.remove(foundKeyString);
+                            expectedMap.remove(foundKeyString);
                         }
                     } else {
                         fail("Couldn't find " +
@@ -744,13 +762,13 @@ public class CleanerTest extends TestCase {
             status = cursor.getNext(foundKey, foundData, LockMode.DEFAULT);
         }
 
-	cursor.close();
+        cursor.close();
 
-	if (checkMap.size() != 0) {
-	    dumpExpected(checkMap);
-	    fail("checkMapSize = " + checkMap.size());
-	    		
-	}
+        if (checkMap.size() != 0) {
+            dumpExpected(checkMap);
+            fail("checkMapSize = " + checkMap.size());
+                        
+        }
         assertEquals(0, checkMap.size());
     }
 
@@ -860,7 +878,7 @@ public class CleanerTest extends TestCase {
         name = EnvironmentParams.CLEANER_THREADS.getName();
         setParam(name, "7");
         assertEquals((envImpl.isNoLocking() ? 0 : 7),
-		     countCleanerThreads());
+                     countCleanerThreads());
 
         exampleEnv.close();
         exampleEnv = null;
@@ -896,7 +914,7 @@ public class CleanerTest extends TestCase {
         int count = 0;
         for (int i = 0; i < threads.length; i += 1) {
             if (threads[i] != null &&
-		threads[i].getName().startsWith("Cleaner")) {
+                threads[i].getName().startsWith("Cleaner")) {
                 count += 1;
             }
         }
@@ -926,8 +944,6 @@ public class CleanerTest extends TestCase {
         envConfig.setConfigParam
             (EnvironmentParams.ENV_RUN_INCOMPRESSOR.getName(), "false");
         exampleEnv = new Environment(envHome, envConfig);
-        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(exampleEnv);
-        MemoryBudget budget = envImpl.getMemoryBudget();
 
         /* Open database. */
         DatabaseConfig dbConfig = new DatabaseConfig();
@@ -944,9 +960,9 @@ public class CleanerTest extends TestCase {
             exampleDb.put(null, key, data);
         }
 
-        /* Sav the misc budget baseline. */
+        /* Sav the admin budget baseline. */
         flushTrackedFiles();
-        long misc = budget.getMiscMemoryUsage();
+        long admin = exampleEnv.getStats(null).getAdminBytes();
 
         /*
          * Nothing becomes obsolete when inserting and no INs are logged, so
@@ -954,18 +970,18 @@ public class CleanerTest extends TestCase {
          */
         IntegerBinding.intToEntry(201, key);
         exampleDb.put(null, key, data);
-        assertEquals(misc, budget.getMiscMemoryUsage());
+        assertEquals(admin, exampleEnv.getStats(null).getAdminBytes());
         flushTrackedFiles();
-        assertEquals(misc, budget.getMiscMemoryUsage());
+        assertEquals(admin, exampleEnv.getStats(null).getAdminBytes());
 
         /*
          * Update a record and expect the budget to increase because the old
          * LN becomes obsolete.
          */
         exampleDb.put(null, key, data);
-        assertTrue(misc < budget.getMiscMemoryUsage());
+        assertTrue(admin < exampleEnv.getStats(null).getAdminBytes());
         flushTrackedFiles();
-        assertEquals(misc, budget.getMiscMemoryUsage());
+        assertEquals(admin, exampleEnv.getStats(null).getAdminBytes());
 
         /*
          * Delete all records and expect the budget to increase because LNs
@@ -975,24 +991,24 @@ public class CleanerTest extends TestCase {
             IntegerBinding.intToEntry(i, key);
             exampleDb.delete(null, key);
         }
-        assertTrue(misc < budget.getMiscMemoryUsage());
+        assertTrue(admin < exampleEnv.getStats(null).getAdminBytes());
         flushTrackedFiles();
-        assertEquals(misc, budget.getMiscMemoryUsage());
+        assertEquals(admin, exampleEnv.getStats(null).getAdminBytes());
 
         /*
          * Compress and expect no change to the budget.  Prior to the fix for
-         * [#15505] the assertion below failed because the baseline misc budget
-         * was not restored.
+         * [#15505] the assertion below failed because the baseline admin
+         * budget was not restored.
          */
         exampleEnv.compress();
         flushTrackedFiles();
-        assertEquals(misc, budget.getMiscMemoryUsage());
+        assertEquals(admin, exampleEnv.getStats(null).getAdminBytes());
 
         closeEnv();
     }
 
     /**
-     * Flushes all tracked files to subtract tracked info from the misc memory
+     * Flushes all tracked files to subtract tracked info from the admin memory
      * budget.
      */
     private void flushTrackedFiles()
@@ -1002,9 +1018,8 @@ public class CleanerTest extends TestCase {
         UtilizationTracker tracker = envImpl.getUtilizationTracker();
         UtilizationProfile profile = envImpl.getUtilizationProfile();
 
-        TrackedFileSummary[] files = tracker.getTrackedFiles();
-        for (int i = 0; i < files.length; i += 1) {
-            profile.flushFileSummary(files[i]);
+        for (TrackedFileSummary summary : tracker.getTrackedFiles()) {
+            profile.flushFileSummary(summary);
         }
     }
 
@@ -1012,7 +1027,7 @@ public class CleanerTest extends TestCase {
      * Tests that memory is budgeted correctly for FileSummaryLNs that are
      * inserted and deleted after calling setTrackedSummary.  The size of the
      * FileSummaryLN changes during logging when setTrackedSummary is called,
-     * and this is accounted for specially in Tree.logLNAfterInsert. [#15831]
+     * and this is accounted for specially in Tree.logLNAfterInsert. [#15831] 
      */
     public void testFileSummaryLNMemoryUsage()
         throws DatabaseException {
@@ -1036,18 +1051,18 @@ public class CleanerTest extends TestCase {
         BasicLocker locker = null;
         CursorImpl cursor = null;
         try {
-            locker = new BasicLocker(envImpl);
+            locker = BasicLocker.createBasicLocker(envImpl);
             cursor = new CursorImpl(fileSummaryDb, locker);
 
             /* Get parent BIN.  There should be only one BIN in the tree. */
             IN root =
-                fileSummaryDb.getTree().getRootIN(true /*updateGeneration*/);
+                fileSummaryDb.getTree().getRootIN(CacheMode.DEFAULT);
             root.releaseLatch();
             assertEquals(1, root.getNEntries());
             BIN parent = (BIN) root.getTarget(0);
 
             /* Use an artificial FileSummaryLN with a tracked summary. */
-            FileSummaryLN ln = new FileSummaryLN(new FileSummary());
+            FileSummaryLN ln = new FileSummaryLN(envImpl, new FileSummary());
             TrackedFileSummary tfs = new TrackedFileSummary
                 (envImpl.getUtilizationTracker(), 0 /*fileNum*/,
                  true /*trackDetail*/);
@@ -1058,13 +1073,14 @@ public class CleanerTest extends TestCase {
 
             /* Perform insert after calling setTrackedSummary. */
             long oldSize = ln.getMemorySizeIncludedByParent();
-            long oldParentSize = parent.getInMemorySize();
+            long oldParentSize = getMemSize(parent, memBudget);
             ln.setTrackedSummary(tfs);
-            OperationStatus status =
-                cursor.putLN(keyBytes, ln, false /*allowDuplicates*/);
+            OperationStatus status = cursor.putLN
+                (keyBytes, ln, false /*allowDuplicates*/,
+                 fileSummaryDb.getRepContext());
             assertSame(status, OperationStatus.SUCCESS);
             long newSize = ln.getMemorySizeIncludedByParent();
-            long newParentSize = parent.getInMemorySize();
+            long newParentSize = getMemSize(parent, memBudget);
 
             /* The size of the LN increases during logging. */
             assertEquals(newSize,
@@ -1076,24 +1092,24 @@ public class CleanerTest extends TestCase {
             /* Correct size is subtracted during eviction. */
             oldParentSize = newParentSize;
             cursor.evict();
-            newParentSize = parent.getInMemorySize();
+            newParentSize = getMemSize(parent, memBudget);
             assertEquals(oldParentSize - newSize, newParentSize);
 
             /* Fetch a fresh FileSummaryLN before deleting it. */
             oldParentSize = newParentSize;
             ln = (FileSummaryLN) cursor.getCurrentLN(LockType.READ);
             newSize = ln.getMemorySizeIncludedByParent();
-            newParentSize = parent.getInMemorySize();
+            newParentSize = getMemSize(parent, memBudget);
             assertEquals(newSize, newParentSize - oldParentSize);
 
             /* Perform delete after calling setTrackedSummary. */
             oldSize = newSize;
             oldParentSize = newParentSize;
             ln.setTrackedSummary(tfs);
-            status = cursor.delete();
+            status = cursor.delete(fileSummaryDb.getRepContext());
             assertSame(status, OperationStatus.SUCCESS);
             newSize = ln.getMemorySizeIncludedByParent();
-            newParentSize = parent.getInMemorySize();
+            newParentSize = getMemSize(parent, memBudget);
 
             /* Size changes during delete also. */
             assertTrue(newSize < oldSize);
@@ -1111,5 +1127,139 @@ public class CleanerTest extends TestCase {
         }
 
         closeEnv();
+    }
+
+    /**
+     * Checks that log utilization is updated incrementally during the
+     * checkpoint rather than only when the highest dirty level in the Btree is
+     * flushed.  This feature (incremental update) was added so that log
+     * cleaning is not delayed until the end of the checkpoint. [#16037]
+     */
+    public void testUtilizationDuringCheckpoint()
+        throws DatabaseException {
+
+        /*
+         * Use Database.sync of a deferred-write database to perform this test
+         * rather than a checkpoint, because the hook is called at a
+         * predictable place when only a single database is flushed.  The
+         * implementation of Checkpointer.flushDirtyNodes is shared for
+         * Database.sync and checkpoint, so this tests both cases.
+         */
+        final int FANOUT = 25;
+        final int N_KEYS = FANOUT * FANOUT * FANOUT;
+
+        /* Open environment. */
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
+        exampleEnv = new Environment(envHome, envConfig);
+
+        /* Open ordinary non-transactional database. */
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        dbConfig.setNodeMaxEntries(FANOUT);
+        exampleDb = exampleEnv.openDatabase(null, "foo", dbConfig);
+
+        /* Clear stats. */
+        StatsConfig statsConfig = new StatsConfig();
+        statsConfig.setClear(true);
+        exampleEnv.getStats(statsConfig);
+
+        /* Write to database to create a 3 level Btree. */
+        DatabaseEntry keyEntry = new DatabaseEntry();
+        DatabaseEntry dataEntry = new DatabaseEntry(new byte[0]);
+        for (int i = 0; i < N_KEYS; i += 1) {
+            LongBinding.longToEntry(i, keyEntry);
+            assertSame(OperationStatus.SUCCESS,
+                       exampleDb.put(null, keyEntry, dataEntry));
+            EnvironmentStats stats = exampleEnv.getStats(statsConfig);
+            if (stats.getNEvictPasses() > 0) {
+                break;
+            }
+        }
+
+        /*
+         * Sync and write an LN in each BIN to create a bunch of dirty INs
+         * that, when flushed again, will cause the prior versions to be
+         * obsolete.
+         */
+        exampleEnv.sync();
+        for (int i = 0; i < N_KEYS; i += FANOUT) {
+            LongBinding.longToEntry(i, keyEntry);
+            assertSame(OperationStatus.SUCCESS,
+                       exampleDb.put(null, keyEntry, dataEntry));
+        }
+
+        /*
+         * Close and re-open as a deferred-write DB so that we can call sync.
+         * The INs will remain dirty.
+         */
+        exampleDb.close();
+        dbConfig = new DatabaseConfig();
+        dbConfig.setDeferredWrite(true);
+        exampleDb = exampleEnv.openDatabase(null, "foo", dbConfig);
+
+        /*
+         * The test hook is called just before writing the highest dirty level
+         * in the Btree.  At that point, utilization should be reduced if the
+         * incremental utilization update feature is working properly.  Before
+         * adding this feature, utilization was not changed at this point.
+         */
+        final int oldUtilization = getUtilization();
+        final StringBuilder hookCalledFlag = new StringBuilder();
+
+        Checkpointer.setMaxFlushLevelHook(new TestHook() {
+            public void doHook() {
+                hookCalledFlag.append(1);
+                final int newUtilization;
+                try {
+                    newUtilization = getUtilization();
+                } catch (DatabaseException e) {
+                    throw new RuntimeException(e);
+                }
+                String msg = "oldUtilization=" + oldUtilization +
+                             " newUtilization=" + newUtilization;
+                assertTrue(msg, oldUtilization - newUtilization >= 10);
+                /* Don't call the test hook repeatedly. */
+                Checkpointer.setMaxFlushLevelHook(null);
+            }
+            public Object getHookValue() {
+                throw new UnsupportedOperationException();
+            }
+            public void doIOHook() throws IOException {
+                throw new UnsupportedOperationException();
+            }
+            public void hookSetup() {
+                throw new UnsupportedOperationException();
+            }
+        });
+        exampleDb.sync();
+        assertTrue(hookCalledFlag.length() > 0);
+
+        closeEnv();
+    }
+
+    private int getUtilization()
+        throws DatabaseException {
+
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(exampleEnv);
+        Map<Long,FileSummary> map =
+            envImpl.getUtilizationProfile().getFileSummaryMap(true);
+        FileSummary totals = new FileSummary();
+        for (FileSummary summary : map.values()) {
+            totals.add(summary);
+        }
+        return UtilizationProfile.utilization(totals.getObsoleteSize(),
+                                              totals.totalSize);
+    }
+
+    /**
+     * Returns the memory size taken by the given IN and the tree memory usage.
+     */
+    private long getMemSize(IN in, MemoryBudget memBudget) {
+        return memBudget.getTreeMemoryUsage() +
+               in.getInMemorySize() -
+               in.getBudgetedMemorySize();
     }
 }

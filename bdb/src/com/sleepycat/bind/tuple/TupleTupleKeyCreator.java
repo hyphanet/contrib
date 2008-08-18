@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: TupleTupleKeyCreator.java,v 1.28.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: TupleTupleKeyCreator.java,v 1.32 2008/05/27 15:30:33 mark Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -23,7 +23,6 @@ import com.sleepycat.je.SecondaryKeyCreator;
  * <ul>
  * <li> {@link #createSecondaryKey(TupleInput,TupleInput,TupleOutput)} </li>
  * </ul>
- * <!-- begin JE only -->
  * <p>If {@link com.sleepycat.je.ForeignKeyDeleteAction#NULLIFY} was
  * specified when opening the secondary database, the following method must be
  * overridden to nullify the foreign index key.  If NULLIFY was not specified,
@@ -35,11 +34,10 @@ import com.sleepycat.je.SecondaryKeyCreator;
  * specified when creating the secondary, this method is called when the
  * entity for this foreign key is deleted.  If NULLIFY was not specified,
  * this method will not be called and may always return false.</p>
- * <!-- end JE only -->
  *
  * @author Mark Hayes
  */
-public abstract class TupleTupleKeyCreator extends TupleBase
+public abstract class TupleTupleKeyCreator<E> extends TupleBase<E>
     implements SecondaryKeyCreator, ForeignKeyNullifier {
 
     /**

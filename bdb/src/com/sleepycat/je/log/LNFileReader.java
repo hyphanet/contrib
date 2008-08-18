@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LNFileReader.java,v 1.59.2.4 2007/11/20 13:32:31 cwl Exp $
+ * $Id: LNFileReader.java,v 1.70 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -21,6 +21,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.tree.LN;
+import com.sleepycat.je.tree.MapLN;
 import com.sleepycat.je.txn.TxnAbort;
 import com.sleepycat.je.txn.TxnCommit;
 import com.sleepycat.je.txn.TxnPrepare;
@@ -36,8 +37,10 @@ public class LNFileReader extends FileReader {
      * collection to find the right LogEntry instance to read in the current
      * entry.
      */
-    protected Map targetEntryMap;
+    protected Map<LogEntryType, LogEntry> targetEntryMap;
     protected LogEntry targetLogEntry;
+
+    private long ckptEnd;
 
     /**
      * Create this reader to start at a given LSN.
@@ -47,7 +50,7 @@ public class LNFileReader extends FileReader {
      * @param redo If true, we're going to go forward from
      *             the start LSN to the end of the log. If false, we're going
      *             backwards from the end of the log to the start LSN.
-     * @param finishLsn the last LSN to read in the log.  May be null if we
+     * @param finishLsn the last LSN to read in the log. May be null if we
      *  want to read to the end of the log.
      * @param endOfFileLsn the virtual LSN that marks the end of the log. (The
      *  one off the end of the log). Only used if we're reading backwards.
@@ -61,13 +64,15 @@ public class LNFileReader extends FileReader {
                         boolean redo,
                         long endOfFileLsn,
                         long finishLsn,
-			Long singleFileNum)
+			Long singleFileNum,
+                        long ckptEnd)
         throws IOException, DatabaseException {
 
         super(env, readBufferSize, redo, startLsn,
               singleFileNum, endOfFileLsn, finishLsn);
 
-        targetEntryMap = new HashMap();
+        this.ckptEnd = ckptEnd;
+        targetEntryMap = new HashMap<LogEntryType, LogEntry>();
     }
 
     public void addTargetType(LogEntryType entryType)
@@ -79,18 +84,18 @@ public class LNFileReader extends FileReader {
     /**
      * @return true if this is a transactional LN or Locker Commit entry.
      */
-    protected boolean isTargetEntry(byte entryTypeNum,
-                                    byte entryTypeVersion) {
+    protected boolean isTargetEntry() {
 
-        if (LogEntryType.isEntryProvisional(entryTypeVersion)) {
+        if (currentEntryHeader.getProvisional().isProvisional
+            (getLastLsn(), ckptEnd)) {
             /* Skip provisionial entries */
             targetLogEntry = null;
         } else {
             LogEntryType fromLogType =
-                new LogEntryType(entryTypeNum, entryTypeVersion);
+                new LogEntryType(currentEntryHeader.getType());
 
             /* Is it a target entry? */
-            targetLogEntry = (LogEntry) targetEntryMap.get(fromLogType);
+            targetLogEntry = targetEntryMap.get(fromLogType);
         }
         return (targetLogEntry != null);
     }
@@ -101,7 +106,8 @@ public class LNFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        readEntry(targetLogEntry, entryBuffer, true); // readFullItem
+        targetLogEntry.readEntry
+            (currentEntryHeader, entryBuffer, true); // readFullItem
         return true;
     }
 
@@ -117,6 +123,18 @@ public class LNFileReader extends FileReader {
      */
     public LN getLN() {
         return ((LNLogEntry) targetLogEntry).getLN();
+    }
+
+    /**
+     * Returns a MapLN if the LN is a MapLN, or null otherwise.
+     */
+    public MapLN getMapLN() {
+        LN ln = getLN();
+        if (ln instanceof MapLN) {
+            return (MapLN) getLN();
+        } else {
+            return null;
+        }
     }
 
     /**

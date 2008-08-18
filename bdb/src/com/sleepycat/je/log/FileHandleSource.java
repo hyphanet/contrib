@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileHandleSource.java,v 1.12.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: FileHandleSource.java,v 1.16 2008/03/19 11:56:55 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -20,7 +20,8 @@ class FileHandleSource extends FileSource {
     FileHandleSource(FileHandle fileHandle,
 		     int readBufferSize,
                      FileManager fileManager) {
-        super(fileHandle.getFile(), readBufferSize, fileManager);
+        super(fileHandle.getFile(), readBufferSize, fileManager,
+              fileHandle.getFileNum());
         this.fileHandle = fileHandle;
     }
 

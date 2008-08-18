@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LNFileReaderTest.java,v 1.86.2.3 2007/11/20 13:32:46 cwl Exp $
+ * $Id: LNFileReaderTest.java,v 1.101 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -24,7 +24,9 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.TransactionConfig;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
+import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.MapLN;
@@ -44,7 +46,7 @@ public class LNFileReaderTest extends TestCase {
     private Environment env;
     private EnvironmentImpl envImpl;
     private Database db;
-    private List checkList;
+    private List<CheckInfo> checkList;
 
     public LNFileReaderTest() {
         super();
@@ -96,7 +98,8 @@ public class LNFileReaderTest extends TestCase {
                              true,             // redo
                              DbLsn.NULL_LSN,   // end of file lsn
                              DbLsn.NULL_LSN,   // finish lsn
-                             null);            // single file
+                             null,             // single file
+                             DbLsn.NULL_LSN);  // ckpt end lsn
         reader.addTargetType(LogEntryType.LOG_LN_TRANSACTIONAL);
         reader.addTargetType(LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL);
         assertFalse("Empty file should not have entries",
@@ -121,7 +124,8 @@ public class LNFileReaderTest extends TestCase {
                              true,             // redo
                              DbLsn.NULL_LSN,   // end of file lsn
                              DbLsn.NULL_LSN,   // finish lsn
-                             null);            // single file
+                             null,             // single file
+                             DbLsn.NULL_LSN);  // ckpt end lsn
         reader.addTargetType(LogEntryType.LOG_LN_TRANSACTIONAL);
         reader.addTargetType(LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL);
         assertFalse("Empty file should not have entries",
@@ -237,7 +241,7 @@ public class LNFileReaderTest extends TestCase {
 			boolean redo)
         throws IOException, DatabaseException {
 
-        checkList = new ArrayList();
+        checkList = new ArrayList<CheckInfo>();
 
         /* Fill up a fake log file. */
         long endOfFileLsn = createLogFile(numIters, trackLNs, redo);
@@ -250,17 +254,17 @@ public class LNFileReaderTest extends TestCase {
         long startLsn = DbLsn.NULL_LSN;
         long finishLsn = DbLsn.NULL_LSN;
         if (redo) {
-            startLsn = ((CheckInfo) checkList.get(checkIndex)).lsn;
+            startLsn = checkList.get(checkIndex).lsn;
         } else {
             /* Going backwards. Start at last check entry. */
             int lastEntryIdx = checkList.size() - 1;
-            startLsn = ((CheckInfo) checkList.get(lastEntryIdx)).lsn;
-            finishLsn = ((CheckInfo) checkList.get(checkIndex)).lsn;
+            startLsn = checkList.get(lastEntryIdx).lsn;
+            finishLsn = checkList.get(checkIndex).lsn;
         }
 
         LNFileReader reader =
 	    new LNFileReader(envImpl, bufferSize, startLsn, redo, endOfFileLsn,
-			     finishLsn, null);
+			     finishLsn, null, DbLsn.NULL_LSN);
         if (trackLNs) {
             reader.addTargetType(LogEntryType.LOG_LN_TRANSACTIONAL);
             reader.addTargetType(LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL);
@@ -292,9 +296,12 @@ public class LNFileReaderTest extends TestCase {
         dbConfig.setAllowCreate(true);
         db = env.openDatabase(null, "foo", dbConfig);
         LogManager logManager = envImpl.getLogManager();
+        DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(db);
+        DatabaseImpl mapDbImpl = envImpl.getDbTree().getDb(DbTree.ID_DB_ID);
 
         long lsn;
-        Txn userTxn = new Txn(envImpl, new TransactionConfig());
+        Txn userTxn = Txn.createTxn(envImpl, new TransactionConfig(),
+				    ReplicationContext.NO_REPLICATE);
         long txnId = userTxn.getId();
 
         for (int i = 0; i < numIters; i++) {
@@ -305,7 +312,7 @@ public class LNFileReaderTest extends TestCase {
             /* Make a transactional LN, we expect it to be there. */
             byte[] data = new byte[i+1];
             Arrays.fill(data, (byte)(i+1));
-            LN ln = new LN(data);
+            LN ln = new LN(data, envImpl, false /* replicated */);
             byte[] key = new byte[i+1];
             Arrays.fill(key, (byte)(i+10));
 
@@ -313,18 +320,12 @@ public class LNFileReaderTest extends TestCase {
 	     * Log an LN. If we're tracking LNs add it to the verification
 	     * list.
 	     */
-            userTxn.lock
-                (ln.getNodeId(), LockType.WRITE, false,
-                 DbInternal.dbGetDatabaseImpl(db));
-            lsn = ln.log(envImpl,
-                         DbInternal.dbGetDatabaseImpl(db).getId(),
-                         key,
-                         null,
-                         DbLsn.NULL_LSN,
-                         0,
+            userTxn.lock(ln.getNodeId(), LockType.WRITE, false, dbImpl);
+            lsn = ln.log(envImpl, dbImpl, key,
+                         DbLsn.NULL_LSN, // oldLSN
                          userTxn,
-                         false,
-                         false);
+                         false,          // backgroundIO
+                         ReplicationContext.NO_REPLICATE);
 
             if (trackLNs) {
                 checkList.add(new CheckInfo(lsn, ln, key,
@@ -332,18 +333,17 @@ public class LNFileReaderTest extends TestCase {
             }
 
             /* Log a deleted duplicate LN. */
-            LN deleteLN = new LN(data);
+            LN deleteLN = new LN(data,
+                                 envImpl,
+                                 false); // replicated
+
             byte[] dupKey = new byte[i+1];
             Arrays.fill(dupKey, (byte)(i+2));
 
-            userTxn.lock
-                (deleteLN.getNodeId(), LockType.WRITE, false,
-                 DbInternal.dbGetDatabaseImpl(db));
-            lsn = deleteLN.delete(DbInternal.dbGetDatabaseImpl(db),
-                                  key,
-                                  dupKey,
-                                  DbLsn.NULL_LSN,
-                                  userTxn);
+            userTxn.lock(deleteLN.getNodeId(), LockType.WRITE, false, dbImpl);
+            lsn = deleteLN.delete
+                (dbImpl, key, dupKey, DbLsn.NULL_LSN,
+                 userTxn, ReplicationContext.NO_REPLICATE);
             if (trackLNs) {
                 checkList.add(new CheckInfo(lsn, deleteLN,
                                             dupKey, key, txnId));
@@ -352,19 +352,25 @@ public class LNFileReaderTest extends TestCase {
             /*
 	     * Make a non-transactional LN. Shouldn't get picked up by reader.
 	     */
-            LN nonTxnalLN = new LN(data);
-            nonTxnalLN.log(envImpl,
-			   DbInternal.dbGetDatabaseImpl(db).getId(),
-			   key, null, DbLsn.NULL_LSN, 0, null, false, false);
+            LN nonTxnalLN = new LN(data,
+                                   envImpl,
+                                   false); // replicated
+            nonTxnalLN.log(envImpl, dbImpl, key,
+                           DbLsn.NULL_LSN, // oldLsn
+                           null,           // locker
+                           false,          // backgroundIO
+                           ReplicationContext.NO_REPLICATE);
 
             /* Add a MapLN. */
-            MapLN mapLN = new MapLN(DbInternal.dbGetDatabaseImpl(db));
+            MapLN mapLN = new MapLN(dbImpl);
             userTxn.lock
                 (mapLN.getNodeId(), LockType.WRITE, false,
-                 DbInternal.dbGetDatabaseImpl(db));
+                 mapDbImpl);
             lsn = mapLN.log(envImpl,
-                            DbInternal.dbGetDatabaseImpl(db).getId(), key,
-                            null, DbLsn.NULL_LSN, 0, userTxn, false, false);
+                            mapDbImpl,
+                            key, DbLsn.NULL_LSN, userTxn,
+                            false, // backgroundIO
+                            ReplicationContext.NO_REPLICATE);
             if (!trackLNs) {
                 checkList.add(new CheckInfo(lsn, mapLN, key,
                                             mapLN.getData(),
@@ -372,7 +378,7 @@ public class LNFileReaderTest extends TestCase {
             }
         }
 
-        long commitLsn = userTxn.commit(Txn.TXN_SYNC);
+        long commitLsn = userTxn.commit(TransactionConfig.SYNC);
 
         /* We only expect checkpoint entries to be read in redo passes. */
         if (!redo) {
@@ -387,7 +393,6 @@ public class LNFileReaderTest extends TestCase {
         envImpl.getFileManager().clear();
         return lastLsn;
     }
-
 
     private void checkLogFile(LNFileReader reader,
                               int checkIndex,
@@ -407,7 +412,7 @@ public class LNFileReaderTest extends TestCase {
             i = checkList.size() - 1;
         }
         while (reader.readNextEntry()) {
-            CheckInfo expected = (CheckInfo) checkList.get(i);
+            CheckInfo expected = checkList.get(i);
 
             /* Check LSN. */
             assertEquals("LSN " + i + " should match",
@@ -431,9 +436,16 @@ public class LNFileReaderTest extends TestCase {
                                            lnFromLog.toString());
                     }
                 }
-                assertEquals("LN " + i + " should match",
-                             expectedLN.toString(),
-                             lnFromLog.toString());
+
+                /*
+                 * Don't expect MapLNs to be equal, since they change as
+                 * logging occurs and utilization info changes.
+                 */
+                if (!(expectedLN instanceof MapLN)) {
+                    assertEquals("LN " + i + " should match",
+                                 expectedLN.toString(),
+                                 lnFromLog.toString());
+                }
 
                 /* Check the key. */
                 keyFromLog = reader.getKey();

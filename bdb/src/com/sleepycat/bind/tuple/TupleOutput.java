@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: TupleOutput.java,v 1.28.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: TupleOutput.java,v 1.31 2008/01/07 14:28:44 cwl Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -490,6 +490,22 @@ public class TupleOutput extends FastOutputStream {
 
         int oldLen = getBufferLength();
         int newLen = PackedInteger.writeInt(getBufferBytes(), oldLen, val);
+
+        addSize(newLen - oldLen);
+    }
+
+    /**
+     * Writes a packed long integer.  Note that packed integers are not
+     * appropriate for sorted values (keys) unless a custom comparator is used.
+     *
+     * @see PackedInteger
+     */
+    public final void writePackedLong(long val) {
+
+        makeSpace(PackedInteger.MAX_LONG_LENGTH);
+
+        int oldLen = getBufferLength();
+        int newLen = PackedInteger.writeLong(getBufferBytes(), oldLen, val);
 
         addSize(newLen - oldLen);
     }

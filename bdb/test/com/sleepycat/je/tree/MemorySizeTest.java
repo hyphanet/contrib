@@ -1,16 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: MemorySizeTest.java,v 1.21.2.5 2007/11/20 13:32:50 cwl Exp $
+ * $Id: MemorySizeTest.java,v 1.31 2008/05/22 19:35:39 linda Exp $
  */
 
 package com.sleepycat.je.tree;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
 
 import junit.framework.TestCase;
 
@@ -39,8 +38,6 @@ import com.sleepycat.je.util.TestUtils;
  * Check maintenance of the memory size count within nodes.
  */
 public class MemorySizeTest extends TestCase {
-    private static final boolean DEBUG = false;
-
     private Environment env;
     private File envHome;
     private Database db;
@@ -384,19 +381,12 @@ public class MemorySizeTest extends TestCase {
         throws DatabaseException {
 
         INList inList = DbInternal.envGetEnvironmentImpl(env).getInMemoryINs();
-        inList.latchMajor();
-        try {
-            Iterator iter = inList.iterator();
-            while (iter.hasNext()) {
-                IN in = (IN) iter.next();
-		in.latch();
-                if (in instanceof BIN) {
-                    in.compress(null, true, null);
-                }
-		in.releaseLatch();
+        for (IN in : inList) {
+            in.latch();
+            if (in instanceof BIN) {
+                in.compress(null, true, null);
             }
-        } finally {
-            inList.releaseMajorLatch();
+            in.releaseLatch();
         }
     }
 
@@ -408,27 +398,20 @@ public class MemorySizeTest extends TestCase {
         throws DatabaseException {
 
         INList inList = DbInternal.envGetEnvironmentImpl(env).getInMemoryINs();
-        inList.latchMajor();
-        try {
-            Iterator iter = inList.iterator();
-            while (iter.hasNext()) {
-                IN in = (IN) iter.next();
-                if (in instanceof BIN &&
-                    !in.getDatabase().getId().equals(DbTree.ID_DB_ID)) {
-                    BIN bin = (BIN) in;
-                    bin.latch();
-                    assertTrue(bin.evictLNs() > 0);
-                    bin.releaseLatch();
-                }
+        for (IN in : inList) {
+            if (in instanceof BIN &&
+                !in.getDatabase().getId().equals(DbTree.ID_DB_ID)) {
+                BIN bin = (BIN) in;
+                bin.latch();
+                assertTrue(bin.evictLNs() > 0);
+                bin.releaseLatch();
             }
-        } finally {
-            inList.releaseMajorLatch();
         }
     }
 
 
     private DatabaseEntry getEntry(byte val, int size) {
-        byte [] bArray = new byte[size];
+        byte[] bArray = new byte[size];
         bArray[0] = val;
         return new DatabaseEntry(bArray);
     }
@@ -449,17 +432,9 @@ public class MemorySizeTest extends TestCase {
     private void dumpINList()
         throws DatabaseException {
 
-        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
-        INList inList = envImpl.getInMemoryINs();
-        inList.latchMajor();
-        try {
-            Iterator iter = inList.iterator();
-            while (iter.hasNext()) {
-                IN in = (IN) iter.next();
-                System.out.println("in nodeId=" + in.getNodeId());
-            }
-        } finally {
-            inList.releaseMajorLatch();
+        INList inList = DbInternal.envGetEnvironmentImpl(env).getInMemoryINs();
+        for (IN in : inList) {
+            System.out.println("in nodeId=" + in.getNodeId());
         }
     }
 }

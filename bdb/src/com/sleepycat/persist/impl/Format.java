@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Format.java,v 1.29.2.7 2007/12/08 14:47:26 mark Exp $
+ * $Id: Format.java,v 1.39 2008/01/07 14:28:59 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;

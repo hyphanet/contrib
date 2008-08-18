@@ -1,25 +1,27 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JEVersion.java,v 1.93.2.41 2007/12/15 01:04:05 mark Exp $
+ * $Id: JEVersion.java,v 1.109 2008/06/04 18:46:47 cwl Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Berkeley DB Java Edition version information.  Versions consist of major,
+ * minor and patch numbers.
+ *
+ * There is one JEVersion object per running JVM and it may be accessed using
+ * the static field JEVersion.CURRENT_VERSION.
  */
 public class JEVersion {
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * Release version.
      */
     public static final JEVersion CURRENT_VERSION =
-        new JEVersion(3, 2, 68, null);
+        new JEVersion(3, 3, 62, null);
 
     private int majorNum;
     private int minorNum;
@@ -33,41 +35,41 @@ public class JEVersion {
         this.name = name;
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public String toString() {
         return getVersionString();
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Major number of the release version.
+     *
+     * @return The major number of the release version.
      */
     public int getMajor() {
         return majorNum;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Minor number of the release version.
+     *
+     * @return The minor number of the release version.
      */
     public int getMinor() {
         return minorNum;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Patch number of the release version.
+     *
+     * @return The patch number of the release version.
      */
     public int getPatch() {
         return patchNum;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The numeric version string, without the patch tag.
+     *
+     * @return The release version
      */
     public String getNumericVersionString() {
         StringBuffer version = new StringBuffer();
@@ -78,8 +80,9 @@ public class JEVersion {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Release version, suitable for display.
+     *
+     * @return The release version, suitable for display.
      */
     public String getVersionString() {
         StringBuffer version = new StringBuffer();

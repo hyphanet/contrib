@@ -1,3 +1,4 @@
+<!-- $Id: package.html,v 1.9 2008/02/05 23:28:21 mark Exp $ -->
 <html>
 <body>
 The Direct Persistence Layer (DPL) adds a persistent object model to the
@@ -504,14 +505,13 @@ Direct Persistence Layer (DPL)}.  Follow these guidelines if you are not sure
 which API to use:</p>
 <ul>
 <li>When Java classes are used to represent domain objects in an application,
-meaning that the schema is relatively static, the DPL is recommended.  The more
-domain classes, the more value there is in using annotations to define your
-schema.</li>
+the DPL is recommended.  The more domain classes, the more value there is in
+using annotations to define your schema.</li>
 <br>
 <li>When porting an application between Berkeley DB and Berkeley DB Java
-Edition, or when implementing your own dynamic schema (the schema of an LDAP
-server, for example) then the Base API is recommended.  You may also prefer to
-use this API if you have very few domain classes.</li>
+Edition, or when you've chosen not to use Java classes to represent domain
+objects, then the Base API is recommended.  You may also prefer to use this API
+if you have very few domain classes.</li>
 <br>
 <li>The Collections API is useful for interoperating with external components
 because it conforms to the standard Java Collections Framework.  It is
@@ -562,9 +562,12 @@ avoiding Java reflection can have a significant performance impact.</p>
 <p>Bytecode enhancement may be performed either at runtime or at build time
 (offline).  When enhancement is performed at runtime, persistent classes are
 enhanced as they are loaded.  When enhancement is performed offline, class
-files are enhanced during a post-compilation step; both a main program and an
-Ant task are provided for performing offline enhancement.  In either case,
-enhanced classes are used to efficiently access all fields and default
+files are enhanced during a post-compilation step.
+<!-- begin JE only -->
+Both a main program and an Ant task are provided for performing offline
+enhancement.
+<!-- end JE only -->
+Enhanced classes are used to efficiently access all fields and default
 constructors, including non-public members.</p>
 
 <p>See {@link com.sleepycat.persist.model.ClassEnhancer ClassEnhancer} for

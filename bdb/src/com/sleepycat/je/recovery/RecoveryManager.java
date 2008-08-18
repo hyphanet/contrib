@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryManager.java,v 1.211.2.8 2007/11/21 13:37:28 cwl Exp $
+ * $Id: RecoveryManager.java,v 1.241 2008/05/15 01:52:42 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -19,11 +19,12 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.TransactionConfig;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.RecoveryUtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -37,20 +38,22 @@ import com.sleepycat.je.log.INFileReader;
 import com.sleepycat.je.log.LNFileReader;
 import com.sleepycat.je.log.LastFileReader;
 import com.sleepycat.je.log.LogEntryType;
-import com.sleepycat.je.log.LogFileNotFoundException;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.DIN;
 import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.Key;
 import com.sleepycat.je.tree.LN;
+import com.sleepycat.je.tree.MapLN;
 import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.tree.SearchResult;
 import com.sleepycat.je.tree.TrackingInfo;
 import com.sleepycat.je.tree.Tree;
 import com.sleepycat.je.tree.TreeLocation;
 import com.sleepycat.je.tree.WithRootLatched;
+import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.LockType;
+import com.sleepycat.je.txn.PreparedTxn;
 import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
@@ -66,20 +69,20 @@ public class RecoveryManager {
     private static final String TRACE_IN_DUPDEL_REPLAY = "INDupDelReplay:";
     private static final String TRACE_ROOT_DELETE = "RootDelete:";
 
-    private static final int CLEAR_INCREMENT = 50;
-
     private EnvironmentImpl env;
     private int readBufferSize;
     private RecoveryInfo info;       // stat info
-    private Set committedTxnIds;     // committed txns
-    private Set abortedTxnIds;       // aborted txns
-    private Map preparedTxns;        // txnid -> prepared Txn
-    private Set inListRebuildDbIds;  // dbs for which we have to rebuild the
-                                     // in memory IN list.
+    private Map<Long, Long> committedTxnIds;  // committed txn ID to Commit LSN
+    private Set<Long> abortedTxnIds;          // aborted txns
+    private Map<Long, Txn> preparedTxns;     // txnid -> prepared Txn
+
+    /* dbs for which we have to build the in memory IN list. */
+    private Set<DatabaseId> inListBuildDbIds;
+
+    private Set<DatabaseId> tempDbIds;       // temp DBs to be removed
 
     private Level detailedTraceLevel; // level value for detailed trace msgs
-    private Map fileSummaryLsns;      // file number -> LSN of FileSummaryLN
-    private int inListClearCounter;   // governs intermediate IN list clearing
+    private RecoveryUtilizationTracker tracker;
 
     /**
      * Make a recovery manager
@@ -91,11 +94,12 @@ public class RecoveryManager {
         DbConfigManager cm = env.getConfigManager();
         readBufferSize =
             cm.getInt(EnvironmentParams.LOG_ITERATOR_READ_SIZE);
-        committedTxnIds = new HashSet();
-        abortedTxnIds = new HashSet();
-	preparedTxns = new HashMap();
-        inListRebuildDbIds = new HashSet();
-        fileSummaryLsns = new HashMap();
+        committedTxnIds = new HashMap<Long, Long>();
+        abortedTxnIds = new HashSet<Long>();
+        preparedTxns = new HashMap<Long, Txn>();
+        inListBuildDbIds = new HashSet<DatabaseId>();
+        tempDbIds = new HashSet<DatabaseId>();
+        tracker = new RecoveryUtilizationTracker(env);
 
         /*
          * Figure out the level to use for detailed trace messages, by choosing
@@ -113,17 +117,18 @@ public class RecoveryManager {
      * only available after recovery.
      * @return RecoveryInfo statistics about the recovery process.
      */
-    public RecoveryInfo recover(boolean readOnly)
+    public RecoveryInfo recover(boolean readOnly,
+                                boolean replicationIntended)
         throws DatabaseException {
 
         info = new RecoveryInfo();
 
         try {
             FileManager fileManager = env.getFileManager();
-	    DbConfigManager configManager = env.getConfigManager();
-	    boolean forceCheckpoint =
-		configManager.getBoolean
-		(EnvironmentParams.ENV_RECOVERY_FORCE_CHECKPOINT);
+            DbConfigManager configManager = env.getConfigManager();
+            boolean forceCheckpoint =
+                configManager.getBoolean
+                (EnvironmentParams.ENV_RECOVERY_FORCE_CHECKPOINT);
             if (fileManager.filesExist()) {
 
                 /*
@@ -140,16 +145,16 @@ public class RecoveryManager {
                  * the first active LSN by finding the last checkpoint.
                  */
                 findLastCheckpoint();
-		env.getLogManager().setLastLsnAtRecovery
-		    (fileManager.getLastUsedLsn());
+                env.getLogManager().setLastLsnAtRecovery
+                    (fileManager.getLastUsedLsn());
                 Tracer.trace(Level.CONFIG, env,
                              "Recovery checkpoint search, " +
                              info);
 
                 /* Read in the root. */
-                env.readMapTreeFromLog(info.useRootLsn);
+                env.readMapTreeFromLog(info.useRootLsn, replicationIntended);
 
-                /* Rebuild the in memory tree from the log. */
+                /* Build the in memory tree from the log. */
                 buildTree();
             } else {
 
@@ -159,29 +164,36 @@ public class RecoveryManager {
                  */
                 env.enableDebugLoggingToDbLog();
                 Tracer.trace(Level.CONFIG, env, "Recovery w/no files.");
+
+                /* Enable the INList and log the root of the mapping tree. */
+                env.getInMemoryINs().enable();
                 env.logMapTreeRoot();
 
-		/*
-		 * Always force a checkpoint during creation.
-		 */
-		forceCheckpoint = true;
+                /* Add shared cache environment when buildTree is not used. */
+                if (env.getSharedCache()) {
+                    env.getEvictor().addEnvironment(env);
+                }
+
+                /*
+                 * Always force a checkpoint during creation.
+                 */
+                forceCheckpoint = true;
             }
 
 	    int ptSize = preparedTxns.size();
-	    if (ptSize > 0) {
+            if (ptSize > 0) {
 		boolean singular = (ptSize == 1);
 		Tracer.trace(Level.INFO, env,
 			     "There " + (singular ? "is " : "are ") +
-			     ptSize +
-			     " prepared but unfinished " +
+			     ptSize + " prepared but unfinished " +
 			     (singular ? "txn." : "txns."));
 
-		/*
-		 * We don't need this set any more since these are all
-		 * registered with the TxnManager now.
-		 */
-		preparedTxns = null;
-	    }
+                /*
+                 * We don't need this set any more since these are all
+                 * registered with the TxnManager now.
+                 */
+                preparedTxns = null;
+            }
 
             /*
              * Open the UP database and populate the cache before the first
@@ -192,6 +204,15 @@ public class RecoveryManager {
                 (env.getConfigManager().getEnvironmentConfig())) {
                 env.getUtilizationProfile().populateCache();
             }
+
+            /* Transfer recovery utilization info to the global tracker. */
+            tracker.transferToUtilizationTracker(env.getUtilizationTracker());
+
+            /*
+             * After utilization info is complete and prior to the checkpoint,
+             * remove all temporary databases encountered during recovery.
+             */
+            removeTempDbs();
 
             /*
              * At this point, we've recovered (or there were no log files at
@@ -217,12 +238,12 @@ public class RecoveryManager {
              * bin 10.
              */
             if (!readOnly &&
-		(env.getLogManager().getLastLsnAtRecovery() !=
-		 info.checkpointEndLsn ||
-		 forceCheckpoint)) {
-            	CheckpointConfig config = new CheckpointConfig();
-            	config.setForce(true);
-            	config.setMinimizeRecoveryTime(true);
+                (env.getLogManager().getLastLsnAtRecovery() !=
+                 info.checkpointEndLsn ||
+                 forceCheckpoint)) {
+                CheckpointConfig config = new CheckpointConfig();
+                config.setForce(true);
+                config.setMinimizeRecoveryTime(true);
                 env.invokeCheckpoint(config, false /*flushAll*/, "recovery");
             } else {
                 /* Initialze intervals when there is no initial checkpoint. */
@@ -236,7 +257,7 @@ public class RecoveryManager {
             throw new RecoveryException(env, "Couldn't recover: " +
                                         e.getMessage(), e);
         } finally {
-	    Tracer.trace(Level.CONFIG, env, "Recovery finished: " + info);
+            Tracer.trace(Level.CONFIG, env, "Recovery finished: " + info);
         }
 
         return info;
@@ -265,6 +286,8 @@ public class RecoveryManager {
                 if (info.partialCheckpointStartLsn == DbLsn.NULL_LSN) {
                     info.partialCheckpointStartLsn = reader.getLastLsn();
                 }
+            } else if (LogEntryType.LOG_ROOT.equals(type)) {
+                info.useRootLsn = reader.getLastLsn();
             }
         }
 
@@ -373,24 +396,28 @@ public class RecoveryManager {
             info.checkpointEnd = checkpointEnd;
             info.checkpointStartLsn = checkpointEnd.getCheckpointStartLsn();
             info.firstActiveLsn = checkpointEnd.getFirstActiveLsn();
-            if (checkpointEnd.getRootLsn() != DbLsn.NULL_LSN) {
+
+            /*
+             * Use the last checkpoint root only if there is no later root.
+             * The latest root has the correct per-DB utilization info.
+             */
+            if (checkpointEnd.getRootLsn() != DbLsn.NULL_LSN &&
+                info.useRootLsn == DbLsn.NULL_LSN) {
                 info.useRootLsn = checkpointEnd.getRootLsn();
             }
 
-            /* Init the checkpointer's id sequence and FirstActiveLsn. */
+            /* Init the checkpointer's id sequence.*/
             env.getCheckpointer().setCheckpointId(checkpointEnd.getId());
-            env.getCheckpointer().setFirstActiveLsn
-                (checkpointEnd.getFirstActiveLsn());
         }
         if (info.useRootLsn == DbLsn.NULL_LSN) {
             throw new NoRootException
-		(env,
-		 "This environment's log file has no root. Since the root " +
-		 "is the first entry written into a log at environment " +
-		 "creation, this should only happen if the initial creation " +
-		 "of the environment was never checkpointed or synced. " +
-		 "Please move aside the existing log files to allow the " +
-		 "creation of a new environment");
+                (env,
+                 "This environment's log file has no root. Since the root " +
+                 "is the first entry written into a log at environment " +
+                 "creation, this should only happen if the initial creation " +
+                 "of the environment was never checkpointed or synced. " +
+                 "Please move aside the existing log files to allow the " +
+                 "creation of a new environment");
         }
     }
 
@@ -399,8 +426,6 @@ public class RecoveryManager {
      */
     private void buildTree()
         throws IOException, DatabaseException {
-
-        inListClearCounter = 0;
 
         /*
          * Read all map database INs, find largest node id before any
@@ -417,16 +442,16 @@ public class RecoveryManager {
          */
         Tracer.trace(Level.CONFIG, env, passStartHeader(passNum) +
                      "undo map LNs");
-	long start = System.currentTimeMillis();
-        Set mapLNSet = new HashSet();
+        long start = System.currentTimeMillis();
+        Set<LogEntryType> mapLNSet = new HashSet<LogEntryType>();
         mapLNSet.add(LogEntryType.LOG_MAPLN_TRANSACTIONAL);
         mapLNSet.add(LogEntryType.LOG_TXN_COMMIT);
         mapLNSet.add(LogEntryType.LOG_TXN_ABORT);
         mapLNSet.add(LogEntryType.LOG_TXN_PREPARE);
         undoLNs(info, mapLNSet);
-	long end = System.currentTimeMillis();
+        long end = System.currentTimeMillis();
         Tracer.trace(Level.CONFIG, env, passEndHeader(passNum, start, end) +
-		     info.toString());
+                     info.toString());
         passNum++;
 
         /*
@@ -435,12 +460,12 @@ public class RecoveryManager {
          */
         Tracer.trace(Level.CONFIG, env, passStartHeader(passNum) +
                      "redo map LNs");
-	start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         mapLNSet.add(LogEntryType.LOG_MAPLN);
         redoLNs(info, mapLNSet);
-	end = System.currentTimeMillis();
+        end = System.currentTimeMillis();
         Tracer.trace(Level.CONFIG, env, passEndHeader(passNum, start, end) +
-		     info.toString());
+                     info.toString());
         passNum++;
 
         /*
@@ -458,11 +483,16 @@ public class RecoveryManager {
                            true);  /* dup tree */
 
         /*
-         * Rebuild the in memory IN list.  Once the tree is complete we can
-         * invoke the evictor.  The evictor will also be invoked during the
-         * undo and redo passes.
+         * Build the in memory IN list. Before this point, the INList is not
+         * enabled, and fetched INs have not been put on the list.  Once the
+         * tree is complete we can add the environment to the evictor (for a
+         * shared cache) and invoke the evictor.  The evictor will also be
+         * invoked during the undo and redo passes.
          */
-        rebuildINList();
+        buildINList();
+        if (env.getSharedCache()) {
+            env.getEvictor().addEnvironment(env);
+        }
         env.invokeEvictor();
 
         /*
@@ -470,44 +500,44 @@ public class RecoveryManager {
          * done in the undo of all aborted MapLNs.
          */
         Tracer.trace(Level.CONFIG, env, passStartHeader(9) + "undo LNs");
-	start = System.currentTimeMillis();
-        Set lnSet = new HashSet();
+        start = System.currentTimeMillis();
+        Set<LogEntryType> lnSet = new HashSet<LogEntryType>();
         lnSet.add(LogEntryType.LOG_LN_TRANSACTIONAL);
         lnSet.add(LogEntryType.LOG_NAMELN_TRANSACTIONAL);
         lnSet.add(LogEntryType.LOG_DEL_DUPLN_TRANSACTIONAL);
         lnSet.add(LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL);
 
         undoLNs(info, lnSet);
-	end = System.currentTimeMillis();
+        end = System.currentTimeMillis();
         Tracer.trace(Level.CONFIG, env, passEndHeader(9, start, end) +
-		     info.toString());
+                     info.toString());
 
         /* Replay LNs. Also read non-transactional LNs. */
         Tracer.trace(Level.CONFIG, env, passStartHeader(10) + "redo LNs");
-	start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         lnSet.add(LogEntryType.LOG_LN);
         lnSet.add(LogEntryType.LOG_NAMELN);
         lnSet.add(LogEntryType.LOG_DEL_DUPLN);
         lnSet.add(LogEntryType.LOG_DUPCOUNTLN);
         lnSet.add(LogEntryType.LOG_FILESUMMARYLN);
         redoLNs(info, lnSet);
-	end = System.currentTimeMillis();
+        end = System.currentTimeMillis();
         Tracer.trace(Level.CONFIG, env, passEndHeader(10, start, end) +
-		     info.toString());
+                     info.toString());
     }
 
     /*
      * Up to three passes for the INs of a given level
-     * @param mappingTree if true, we're rebuilding the mapping tree
-     * @param dupTree if true, we're rebuilding the dup tree.
+     * @param mappingTree if true, we're building the mapping tree
+     * @param dupTree if true, we're building the dup tree.
      */
     private int buildINs(int passNum,
                          boolean mappingTree,
                          boolean dupTree)
         throws IOException, DatabaseException {
 
-        Set targetEntries = new HashSet();
-        Set deltaType = new HashSet();
+        Set<LogEntryType> targetEntries = new HashSet<LogEntryType>();
+        Set<LogEntryType> deltaType = new HashSet<LogEntryType>();
         String passADesc = null;
         String passBDesc = null;
         String passCDesc = null;
@@ -545,17 +575,18 @@ public class RecoveryManager {
          */
         Tracer.trace(Level.CONFIG, env, passStartHeader(passNum) + passADesc);
         LevelRecorder recorder = new LevelRecorder();
-	long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         if (mappingTree) {
             readINsAndTrackIds(info.checkpointStartLsn, recorder);
         } else {
             int numINsSeen = readINs(info.checkpointStartLsn,
                                      false,  // mapping tree only
                                      targetEntries,
+
                                      /*
-                                      * requireExactMatch -- why is it true
-                                      * for dups, false for main tree?
-                                      * Keeping logic the same for now.
+                                      * requireExactMatch -- why is it true for
+                                      * dups, false for main tree?  Keeping
+                                      * logic the same for now.
                                       */
                                      (dupTree? true: false),
                                      recorder);
@@ -565,16 +596,16 @@ public class RecoveryManager {
                 info.numOtherINs += numINsSeen;
             }
         }
-	long end = System.currentTimeMillis();
+        long end = System.currentTimeMillis();
         Tracer.trace(Level.CONFIG, env, passEndHeader(passNum, start, end) +
-		     info.toString());
+                     info.toString());
         passNum++;
 
         /*
          * Pass b: Redo INs if the LevelRecorder detects a split/compression
          * was done after ckpt [#14424]
          */
-        Set redoSet = recorder.getDbsWithDifferentLevels();
+        Set<DatabaseId> redoSet = recorder.getDbsWithDifferentLevels();
         if (redoSet.size() > 0) {
             Tracer.trace(Level.CONFIG, env,
                          passStartHeader(passNum) + passBDesc);
@@ -599,13 +630,13 @@ public class RecoveryManager {
          * the splicing in of the second INa would override the BINDelta.
          */
         Tracer.trace(Level.CONFIG, env, passStartHeader(passNum) + passCDesc);
-	start = System.currentTimeMillis();
+        start = System.currentTimeMillis();
         info.numBinDeltas += readINs(info.checkpointStartLsn,
                                      mappingTree,
                                      deltaType,
                                      true,   // requireExactMatch
                                      null);  // LevelRecorder
-	end = System.currentTimeMillis();
+        end = System.currentTimeMillis();
         Tracer.trace(Level.CONFIG, env,
                      passEndHeader(passNum, start, end) + info.toString());
         passNum++;
@@ -615,7 +646,9 @@ public class RecoveryManager {
 
     /*
      * Read every internal node and IN DeleteInfo in the mapping tree and place
-     * in the in-memory tree.
+     * in the in-memory tree. Also peruse all pertinent log entries in order to
+     * update our knowledge of the last used database, transaction and node
+     * ids, and to to track utilization profile and vlsn->lsn mappings.
      */
     private void readINsAndTrackIds(long rollForwardLsn,
                                     LevelRecorder recorder)
@@ -627,9 +660,10 @@ public class RecoveryManager {
                              rollForwardLsn,        // start lsn
                              info.nextAvailableLsn, // end lsn
                              true,   // track node and db ids
-			     false,  // map db only
+                             false,  // map db only
                              info.partialCheckpointStartLsn,
-                             fileSummaryLsns);
+                             info.checkpointEndLsn,
+                             tracker);
         reader.addTargetType(LogEntryType.LOG_IN);
         reader.addTargetType(LogEntryType.LOG_BIN);
         reader.addTargetType(LogEntryType.LOG_IN_DELETE_INFO);
@@ -639,12 +673,9 @@ public class RecoveryManager {
 
         try {
             info.numMapINs = 0;
-            DbTree dbMapTree = env.getDbMapTree();
+            DbTree dbMapTree = env.getDbTree();
 
-            /*
-	     * Process every IN, INDeleteInfo, and INDupDeleteInfo in the
-	     * mapping tree.
-	     */
+            /* Process every IN, BIN and INDeleteInfo in the mapping tree. */
             while (reader.readNextEntry()) {
                 DatabaseId dbId = reader.getDatabaseId();
                 if (dbId.equals(DbTree.ID_DB_ID)) {
@@ -659,29 +690,60 @@ public class RecoveryManager {
             }
 
             /*
-             * Update node id and database sequences. Use either the maximum of
-             * the ids seen by the reader vs the ids stored in the checkpoint.
+             * Update node id, database id, and txn id sequences. Use either
+             * the maximum of the ids seen by the reader vs. the ids stored in
+             * the checkpoint.
              */
+            info.useMinReplicatedNodeId = reader.getMinReplicatedNodeId();
             info.useMaxNodeId = reader.getMaxNodeId();
+
+            info.useMinReplicatedDbId = reader.getMinReplicatedDbId();
             info.useMaxDbId = reader.getMaxDbId();
+
+            info.useMinReplicatedTxnId = reader.getMinReplicatedTxnId();
             info.useMaxTxnId = reader.getMaxTxnId();
+
             if (info.checkpointEnd != null) {
-                if (info.useMaxNodeId < info.checkpointEnd.getLastNodeId()) {
-                    info.useMaxNodeId = info.checkpointEnd.getLastNodeId();
+                CheckpointEnd ckptEnd = info.checkpointEnd;
+
+                if (info.useMinReplicatedNodeId >
+                    ckptEnd.getLastReplicatedNodeId()) {
+                    info.useMinReplicatedNodeId =
+                        ckptEnd.getLastReplicatedNodeId();
                 }
-                if (info.useMaxDbId < info.checkpointEnd.getLastDbId()) {
-                    info.useMaxDbId = info.checkpointEnd.getLastDbId();
+                if (info.useMaxNodeId < ckptEnd.getLastLocalNodeId()) {
+                    info.useMaxNodeId = ckptEnd.getLastLocalNodeId();
                 }
-                if (info.useMaxTxnId < info.checkpointEnd.getLastTxnId()) {
-                    info.useMaxTxnId = info.checkpointEnd.getLastTxnId();
+
+                if (info.useMinReplicatedDbId >
+                    ckptEnd.getLastReplicatedDbId()) {
+                    info.useMinReplicatedDbId =
+                        ckptEnd.getLastReplicatedDbId();
+                }
+                if (info.useMaxDbId < ckptEnd.getLastLocalDbId()) {
+                    info.useMaxDbId = ckptEnd.getLastLocalDbId();
+                }
+
+                if (info.useMinReplicatedTxnId >
+                    ckptEnd.getLastReplicatedTxnId()) {
+                    info.useMinReplicatedTxnId =
+                        ckptEnd.getLastReplicatedTxnId();
+                }
+                if (info.useMaxTxnId < ckptEnd.getLastLocalTxnId()) {
+                    info.useMaxTxnId = ckptEnd.getLastLocalTxnId();
                 }
             }
 
-            Node.setLastNodeId(info.useMaxNodeId);
-            env.getDbMapTree().setLastDbId(info.useMaxDbId);
-            env.getTxnManager().setLastTxnId(info.useMaxTxnId);
+            env.getNodeSequence().
+                setLastNodeId(info.useMinReplicatedNodeId, info.useMaxNodeId);
+            env.getDbTree().setLastDbId(info.useMinReplicatedDbId,
+                                        info.useMaxDbId);
+            env.getTxnManager().setLastTxnId(info.useMinReplicatedTxnId,
+                                             info.useMaxTxnId);
 
             info.nRepeatIteratorReads += reader.getNRepeatIteratorReads();
+
+            info.fileMappers = reader.getFileMappers();
         } catch (Exception e) {
             traceAndThrowException(reader.getLastLsn(), "readMapIns", e);
         }
@@ -692,25 +754,26 @@ public class RecoveryManager {
      */
     private int readINs(long rollForwardLsn,
                         boolean mapDbOnly,
-                        Set targetLogEntryTypes,
+                        Set<LogEntryType> targetLogEntryTypes,
                         boolean requireExactMatch,
                         LevelRecorder recorder)
         throws IOException, DatabaseException {
 
-        // don't need to track NodeIds
+        /* Don't need to track NodeIds. */
         INFileReader reader =
-	    new INFileReader(env,
+            new INFileReader(env,
                              readBufferSize,
                              rollForwardLsn,                 // startlsn
                              info.nextAvailableLsn,          // finish
                              false,
-			     mapDbOnly,
+                             mapDbOnly,
                              info.partialCheckpointStartLsn,
-                             fileSummaryLsns);
+                             info.checkpointEndLsn,
+                             tracker);
 
-        Iterator iter = targetLogEntryTypes.iterator();
+        Iterator<LogEntryType> iter = targetLogEntryTypes.iterator();
         while (iter.hasNext()) {
-            reader.addTargetType((LogEntryType) iter.next());
+            reader.addTargetType(iter.next());
         }
 
         int numINsSeen = 0;
@@ -720,7 +783,7 @@ public class RecoveryManager {
              * Read all non-provisional INs, and process if they don't belong
              * to the mapping tree.
              */
-            DbTree dbMapTree = env.getDbMapTree();
+            DbTree dbMapTree = env.getDbTree();
             while (reader.readNextEntry()) {
                 DatabaseId dbId = reader.getDatabaseId();
                 boolean isMapDb = dbId.equals(DbTree.ID_DB_ID);
@@ -745,9 +808,9 @@ public class RecoveryManager {
                              * Add any db that we encounter IN's for because
                              * they'll be part of the in-memory tree and
                              * therefore should be included in the INList
-                             * rebuild.
+                             * build.
                              */
-                            inListRebuildDbIds.add(dbId);
+                            inListBuildDbIds.add(dbId);
                         }
                     } finally {
                         dbMapTree.releaseDb(db);
@@ -767,30 +830,31 @@ public class RecoveryManager {
      * Read INs and process.
      */
     private void repeatReadINs(long rollForwardLsn,
-                               Set targetLogEntryTypes,
-                               Set targetDbs)
+                               Set<LogEntryType> targetLogEntryTypes,
+                               Set<DatabaseId> targetDbs)
         throws IOException, DatabaseException {
 
         // don't need to track NodeIds
         INFileReader reader =
-	    new INFileReader(env,
+            new INFileReader(env,
                              readBufferSize,
                              rollForwardLsn,                 // startlsn
                              info.nextAvailableLsn,          // finish
                              false,
                              false,                          // mapDbOnly
                              info.partialCheckpointStartLsn,
-                             fileSummaryLsns);
+                             info.checkpointEndLsn,
+                             tracker);
 
-        Iterator iter = targetLogEntryTypes.iterator();
+        Iterator<LogEntryType> iter = targetLogEntryTypes.iterator();
         while (iter.hasNext()) {
-            reader.addTargetType((LogEntryType) iter.next());
+            reader.addTargetType(iter.next());
         }
 
         try {
 
             /* Read all non-provisional INs that are in the repeat set. */
-            DbTree dbMapTree = env.getDbMapTree();
+            DbTree dbMapTree = env.getDbTree();
             while (reader.readNextEntry()) {
                 DatabaseId dbId = reader.getDatabaseId();
                 if (targetDbs.contains(dbId)) {
@@ -844,15 +908,15 @@ public class RecoveryManager {
         } else {
 
             /*
-	     * Last entry is a node, replay it. Now, we should really call
-	     * IN.postFetchInit, but we want to do something different from the
-	     * faulting-in-a-node path, because we don't want to put the IN on
-	     * the in memory list, and we don't want to search the db map tree,
-	     * so we have a IN.postRecoveryInit.  Note also that we have to
-	     * pass the LSN of the current log entry and also the LSN of the IN
-	     * in question. The only time these differ is when the log entry is
-	     * a BINDelta -- then the IN's LSN is the last full version LSN,
-	     * and the log LSN is the current log entry.
+             * Last entry is a node, replay it. Now, we should really call
+             * IN.postFetchInit, but we want to do something different from the
+             * faulting-in-a-node path, because we don't want to put the IN on
+             * the in memory list, and we don't want to search the db map tree,
+             * so we have a IN.postRecoveryInit.  Note also that we have to
+             * pass the LSN of the current log entry and also the LSN of the IN
+             * in question. The only time these differ is when the log entry is
+             * a BINDelta -- then the IN's LSN is the last full version LSN,
+             * and the log LSN is the current log entry.
              */
             IN in = reader.getIN();
             long inLsn = reader.getLsnOfIN();
@@ -860,7 +924,7 @@ public class RecoveryManager {
             in.latch();
 
             /*
-             * track the levels, in case we need an extra splits vs ckpt
+             * Track the levels, in case we need an extra splits vs ckpt
              * reconcilliation.
              */
             if (recorder != null) {
@@ -869,23 +933,6 @@ public class RecoveryManager {
             replaceOrInsert(db, in, reader.getLastLsn(), inLsn,
                             requireExactMatch);
         }
-
-        /*
-	 * Although we're careful to not place INs instantiated from the log on
-	 * the IN list, we do call normal tree search methods when checking
-	 * agains the active tree. The INList builds up from the faulting in of
-	 * nodes this way. However, some of those nodes become obsolete as we
-	 * splice in newer versions, so the INList becomes too large and can
-	 * pose a problem by causing us to overflow memory bounds.  Some
-	 * possible solutions are to create an environment wide recovery mode,
-	 * or to put special logic into the normal faulting-in path to know
-	 * that we're in recovery. Because we don't want to impact normal code
-	 * paths, we're going to just periodically clear the INList here. The
-	 * INList will be regenerated at the end of recovery.
-         */
-        if ((++inListClearCounter % CLEAR_INCREMENT) == 0) {
-            env.getInMemoryINs().clear();
-        }
     }
 
     /**
@@ -893,27 +940,29 @@ public class RecoveryManager {
      * collection of committed txns. If we see a log entry that doesn't have a
      * committed txn, undo it.
      */
-    private void undoLNs(RecoveryInfo info, Set lnTypes)
+    private void undoLNs(RecoveryInfo info, Set<LogEntryType> lnTypes)
         throws IOException, DatabaseException {
 
-	long firstActiveLsn = info.firstActiveLsn;
-	long lastUsedLsn = info.lastUsedLsn;
-	long endOfFileLsn = info.nextAvailableLsn;
+        long firstActiveLsn = info.firstActiveLsn;
+        long lastUsedLsn = info.lastUsedLsn;
+        long endOfFileLsn = info.nextAvailableLsn;
         /* Set up a reader to pick up target log entries from the log. */
         LNFileReader reader =
             new LNFileReader(env, readBufferSize, lastUsedLsn,
-                             false, endOfFileLsn, firstActiveLsn, null);
+                             false, endOfFileLsn, firstActiveLsn, null,
+                             info.checkpointEndLsn);
 
-        Iterator iter = lnTypes.iterator();
+        Iterator<LogEntryType> iter = lnTypes.iterator();
         while (iter.hasNext()) {
-            LogEntryType lnType = (LogEntryType) iter.next();
+            LogEntryType lnType = iter.next();
             reader.addTargetType(lnType);
         }
 
-        Map countedFileSummaries = new HashMap(); // TxnNodeId -> file number
-        Set countedAbortLsnNodes = new HashSet(); // set of TxnNodeId
+        Map<TxnNodeId,Long> countedFileSummaries = 
+            new HashMap<TxnNodeId,Long>(); // TxnNodeId -> file number
+        Set<TxnNodeId> countedAbortLsnNodes = new HashSet<TxnNodeId>();
 
-        DbTree dbMapTree = env.getDbMapTree();
+        DbTree dbMapTree = env.getDbTree();
         TreeLocation location = new TreeLocation();
         try {
 
@@ -932,7 +981,7 @@ public class RecoveryManager {
                      * examine it to see if it should be undone.
                      */
                     if (txnId != null &&
-			!committedTxnIds.contains(txnId) &&
+			!committedTxnIds.containsKey(txnId) &&
 			preparedTxns.get(txnId) == null) {
 
 			/*
@@ -951,28 +1000,16 @@ public class RecoveryManager {
                             /* Database may be null if it's been deleted. */
                             if (db != null) {
                                 ln.postFetchInit(db, logLsn);
-                                try {
-                                    undo(detailedTraceLevel,
-                                         db,
-                                         location,
-                                         ln,
-                                         reader.getKey(),
-                                         reader.getDupTreeKey(),
-                                         logLsn,
-                                         abortLsn,
-                                         abortKnownDeleted,
-                                         info,
-                                         true);
-                                } finally {
-                                    if (location.bin != null) {
-                                        location.bin.releaseLatchIfOwner();
-                                    }
-                                }
+				undo(detailedTraceLevel, db, location, ln,
+				     reader.getKey(), reader.getDupTreeKey(),
+				     logLsn, abortLsn, abortKnownDeleted,
+				     info, true);
+
                                 /* Undo utilization info. */
                                 TxnNodeId txnNodeId =
                                     new TxnNodeId(reader.getNodeId(),
                                                   txnId.longValue());
-                                undoUtilizationInfo(ln, logLsn, abortLsn,
+                                undoUtilizationInfo(ln, db, logLsn, abortLsn,
                                                     abortKnownDeleted,
                                                     reader.getLastEntrySize(),
                                                     txnNodeId,
@@ -983,9 +1020,20 @@ public class RecoveryManager {
                                  * Add any db that we encounter LN's for
                                  * because they'll be part of the in-memory
                                  * tree and therefore should be included in the
-                                 * INList rebuild.
+                                 * INList build.
                                  */
-                                inListRebuildDbIds.add(dbId);
+                                inListBuildDbIds.add(dbId);
+
+                                /*
+                                 * For temporary DBs that are encountered as
+                                 * MapLNs, add them to the set of databases to
+                                 * be removed.
+                                 */
+                                MapLN mapLN = reader.getMapLN();
+                                if (mapLN != null &&
+                                    mapLN.getDatabase().isTemporary()) {
+                                    tempDbIds.add(mapLN.getDatabase().getId());
+                                }
                             }
                         } finally {
                             dbMapTree.releaseDb(db);
@@ -993,33 +1041,35 @@ public class RecoveryManager {
 		    }
                 } else if (reader.isPrepare()) {
 
-		    /*
-		     * The entry just read is a prepare record.  There should
-		     * be no lock conflicts during recovery, but just in case
-		     * there are, we set the locktimeout to 0.
-		     */
-		    long prepareId = reader.getTxnPrepareId();
-		    Long prepareIdL = new Long(prepareId);
-		    if (!committedTxnIds.contains(prepareIdL) &&
-			!abortedTxnIds.contains(prepareIdL)) {
-			TransactionConfig txnConf = new TransactionConfig();
-			Txn preparedTxn = new Txn(env, txnConf, prepareId);
-			preparedTxn.setLockTimeout(0);
-			preparedTxns.put(prepareIdL, preparedTxn);
+                    /*
+                     * The entry just read is a prepare record.  There should
+                     * be no lock conflicts during recovery, but just in case
+                     * there are, we set the locktimeout to 0.
+                     */
+                    long prepareId = reader.getTxnPrepareId();
+                    Long prepareIdL = Long.valueOf(prepareId);
+                    if (!committedTxnIds.containsKey(prepareIdL) &&
+                        !abortedTxnIds.contains(prepareIdL)) {
+                        TransactionConfig txnConf = new TransactionConfig();
+                        Txn preparedTxn = PreparedTxn.createPreparedTxn
+			    (env, txnConf, prepareId);
+                        preparedTxn.setLockTimeout(0);
+                        preparedTxns.put(prepareIdL, preparedTxn);
 			preparedTxn.setPrepared(true);
-			env.getTxnManager().registerXATxn
-			    (reader.getTxnPrepareXid(), preparedTxn, true);
-			Tracer.trace(Level.INFO, env,
-				     "Found unfinished prepare record: id: " +
-				     reader.getTxnPrepareId() +
-				     " Xid: " + reader.getTxnPrepareXid());
-		    }
+                        env.getTxnManager().registerXATxn
+                            (reader.getTxnPrepareXid(), preparedTxn, true);
+                        Tracer.trace(Level.INFO, env,
+                                     "Found unfinished prepare record: id: " +
+                                     reader.getTxnPrepareId() +
+                                     " Xid: " + reader.getTxnPrepareXid());
+                    }
                 } else if (reader.isAbort()) {
-		    /* The entry just read is an abort record. */
-		    abortedTxnIds.add(new Long(reader.getTxnAbortId()));
-		} else {
+                    /* The entry just read is an abort record. */
+                    abortedTxnIds.add(Long.valueOf(reader.getTxnAbortId()));
+                } else {
                     /* The entry just read is a commit record. */
-                    committedTxnIds.add(new Long(reader.getTxnCommitId()));
+                    committedTxnIds.put(Long.valueOf(reader.getTxnCommitId()),
+                                        Long.valueOf(reader.getLastLsn()));
                 }
             }
             info.nRepeatIteratorReads += reader.getNRepeatIteratorReads();
@@ -1034,11 +1084,11 @@ public class RecoveryManager {
      * @param lnType1 targetted LN
      * @param lnType2 targetted LN
      */
-    private void redoLNs(RecoveryInfo info, Set lnTypes)
+    private void redoLNs(RecoveryInfo info, Set<LogEntryType> lnTypes)
         throws IOException, DatabaseException {
 
-	long endOfFileLsn = info.nextAvailableLsn;
-	long rollForwardLsn = info.checkpointStartLsn;
+        long endOfFileLsn = info.nextAvailableLsn;
+        long rollForwardLsn = info.checkpointStartLsn;
 	long firstActiveLsn = info.firstActiveLsn;
 
         /* 
@@ -1052,34 +1102,39 @@ public class RecoveryManager {
 	 */
         LNFileReader reader =
             new LNFileReader(env, readBufferSize, firstActiveLsn,
-                             true, DbLsn.NULL_LSN, endOfFileLsn, null);
+                             true, DbLsn.NULL_LSN, endOfFileLsn, null,
+                             info.checkpointEndLsn);
 
-        Iterator iter = lnTypes.iterator();
+        Iterator<LogEntryType> iter = lnTypes.iterator();
         while (iter.hasNext()) {
-            LogEntryType lnType = (LogEntryType) iter.next();
+            LogEntryType lnType = iter.next();
             reader.addTargetType(lnType);
         }
 
-        Set countedAbortLsnNodes = new HashSet(); // set of TxnNodeId
+        Set<TxnNodeId> countedAbortLsnNodes = new HashSet<TxnNodeId>();
 
-        DbTree dbMapTree = env.getDbMapTree();
+        DbTree dbMapTree = env.getDbTree();
         TreeLocation location = new TreeLocation();
         try {
 
             /*
-	     * Iterate over the target LNs and construct in- memory tree.
-	     */
+             * Iterate over the target LNs and construct in- memory tree.
+             */
             while (reader.readNextEntry()) {
-		long lastLsn = reader.getLastLsn();
+                long lastLsn = reader.getLastLsn();
 
-		/*
-		 * preparedOnlyLNs indicates that we're processing LSNs between
-		 * the First Active LSN and the Checkpoint Start LSN.  In this
-		 * range, only LNs which are prepared, but not committed,
-		 * should be processed.
-		 */
-		boolean preparedOnlyLNs =
-		    (DbLsn.compareTo(lastLsn, rollForwardLsn) < 0);
+                /*
+                 * preparedOnlyLNs indicates that we're processing LSNs between
+                 * the First Active LSN and the Checkpoint Start LSN.  In this
+                 * range, only LNs which are prepared, but not committed,
+                 * should be processed. If there is no checkpoint, the
+                 * beginning of the log is really the First Active LSN, and all
+                 * prepared LNs should be processed.
+                 */
+                boolean preparedOnlyLNs =
+                    (rollForwardLsn == DbLsn.NULL_LSN) ? 
+                    true : 
+                    (DbLsn.compareTo(lastLsn, rollForwardLsn) < 0);
 
                 if (reader.isLN()) {
 
@@ -1093,25 +1148,29 @@ public class RecoveryManager {
                      * in the log between the first active LSN and the end of
                      * the log, resurrect it.
                      */
-		    boolean processThisLN = false;
-		    boolean lnIsCommitted = false;
-		    boolean lnIsPrepared = false;
-		    Txn preparedTxn = null;
-		    if (txnId == null &&
-			!preparedOnlyLNs) {
-			processThisLN = true;
-		    } else {
-			lnIsCommitted = committedTxnIds.contains(txnId);
-			if (!lnIsCommitted) {
-			    preparedTxn = (Txn) preparedTxns.get(txnId);
-			    lnIsPrepared = preparedTxn != null;
-			}
-			if ((lnIsCommitted && !preparedOnlyLNs) ||
-			    lnIsPrepared) {
-			    processThisLN = true;
-			}
-		    }
-		    if (processThisLN) {
+                    boolean processThisLN = false;
+                    boolean lnIsCommitted = false;
+                    boolean lnIsPrepared = false;
+                    long commitLsn = DbLsn.NULL_LSN;
+                    Txn preparedTxn = null;
+                    if (txnId == null &&
+                        !preparedOnlyLNs) {
+                        processThisLN = true;
+                    } else {
+                        lnIsCommitted = committedTxnIds.containsKey(txnId);
+                        if (lnIsCommitted) {
+                            commitLsn = committedTxnIds.get(txnId).
+                                longValue();
+                        } else {
+                            preparedTxn = preparedTxns.get(txnId);
+                            lnIsPrepared = preparedTxn != null;
+                        }
+                        if ((lnIsCommitted && !preparedOnlyLNs) ||
+                            lnIsPrepared) {
+                            processThisLN = true;
+                        }
+                    }
+                    if (processThisLN) {
 
                         /* Invoke the evictor to reduce memory consumption. */
                         env.invokeEvictor();
@@ -1153,9 +1212,30 @@ public class RecoveryManager {
                                  * Add any db that we encounter LN's for
                                  * because they'll be part of the in-memory
                                  * tree and therefore should be included in the
-                                 * INList rebuild.
+                                 * INList build.
                                  */
-                                inListRebuildDbIds.add(dbId);
+                                inListBuildDbIds.add(dbId);
+
+                                /*
+                                 * For temporary DBs that are encountered as
+                                 * MapLNs, add them to the set of databases to
+                                 * be removed.
+                                 */
+                                MapLN mapLN = reader.getMapLN();
+                                if (mapLN != null &&
+                                    mapLN.getDatabase().isTemporary()) {
+                                    tempDbIds.add(mapLN.getDatabase().getId());
+                                }
+
+                                /*
+                                 * For deleted MapLNs (truncated or removed
+                                 * DBs), redo utilization counting by counting
+                                 * the entire database as obsolete.
+                                 */
+                                if (mapLN != null && mapLN.isDeleted()) {
+                                    mapLN.getDatabase().countObsoleteDb
+                                        (tracker, logLsn);
+                                }
                             }
 
                             /* Redo utilization info. */
@@ -1164,12 +1244,12 @@ public class RecoveryManager {
                                 txnNodeId = new TxnNodeId(reader.getNodeId(),
                                                           txnId.longValue());
                             }
-                            redoUtilizationInfo(logLsn, treeLsn,
+                            redoUtilizationInfo(logLsn, treeLsn, commitLsn,
                                                 reader.getAbortLsn(),
                                                 reader.getAbortKnownDeleted(),
                                                 reader.getLastEntrySize(),
                                                 reader.getKey(),
-                                                ln, txnNodeId,
+                                                ln, db, txnNodeId,
                                                 countedAbortLsnNodes);
                         } finally {
                             dbMapTree.releaseDb(db);
@@ -1184,28 +1264,31 @@ public class RecoveryManager {
     }
 
     /**
-     * Rebuild the in memory inList with INs that have been made resident by
-     * the recovery process.
+     * Build the in memory inList with INs that have been made resident by the
+     * recovery process.
      */
-    private void rebuildINList()
+    private void buildINList()
         throws DatabaseException {
 
-        env.getInMemoryINs().clear();               // empty out
-        env.getDbMapTree().rebuildINListMapDb();    // scan map db
+        env.getInMemoryINs().enable();           // enable INList
+        env.getDbTree().rebuildINListMapDb();    // scan map db
 
         /* For all the dbs that we read in recovery, scan for resident INs. */
-        Iterator iter = inListRebuildDbIds.iterator();
+        Iterator<DatabaseId> iter = inListBuildDbIds.iterator();
         while (iter.hasNext()) {
-            DatabaseId dbId = (DatabaseId) iter.next();
+            DatabaseId dbId = iter.next();
             /* We already did the map tree, don't do it again. */
             if (!dbId.equals(DbTree.ID_DB_ID)) {
-                DatabaseImpl db = env.getDbMapTree().getDb(dbId);
+                DatabaseImpl db = env.getDbTree().getDb(dbId);
                 try {
                     if (db != null) {
-                        db.getTree().rebuildINList();
+                        /* Temp DBs will be removed, skip build. */
+                        if (!db.isTemporary()) {
+                            db.getTree().rebuildINList();
+                        }
                     }
                 } finally {
-                    env.releaseDb(db);
+                    env.getDbTree().releaseDb(db);
                 }
             }
         }
@@ -1278,8 +1361,8 @@ public class RecoveryManager {
                                  boolean requireExactMatch)
         throws DatabaseException {
 
-        List trackingList = null;
-	boolean inFromLogLatchReleased = false;
+        List<TrackingInfo> trackingList = null;
+        boolean inFromLogLatchReleased = false;
         try {
 
             /*
@@ -1297,11 +1380,12 @@ public class RecoveryManager {
 		    inFromLogLatchReleased = true;
                 }
             } else {
+
                 /*
                  * Look for a parent. The call to getParentNode unlatches node.
                  * Then place inFromLog in the tree if appropriate.
                  */
-                trackingList = new ArrayList();
+                trackingList = new ArrayList<TrackingInfo>();
                 replaceOrInsertChild(db, inFromLog, logLsn, inLsn,
                                      trackingList, requireExactMatch);
 		inFromLogLatchReleased = true;
@@ -1312,32 +1396,31 @@ public class RecoveryManager {
                          "replaceOrInsert", " lsnFromLog:" +
                          DbLsn.getNoFormatString(logLsn) + " " + trace,
                          e);
-            throw new DatabaseException("lsnFromLog=" +
-                                        DbLsn.getNoFormatString(logLsn), e);
+            throw new DatabaseException
+		("lsnFromLog=" + DbLsn.getNoFormatString(logLsn), e);
         } finally {
 	    if (!inFromLogLatchReleased) {
-		inFromLog.releaseLatchIfOwner();
+		inFromLog.releaseLatch();
 	    }
 
             assert (LatchSupport.countLatchesHeld() == 0):
                 LatchSupport.latchesHeldToString() +
                 "LSN = " + DbLsn.toString(logLsn) +
                 " inFromLog = " + inFromLog.getNodeId();
-
         }
     }
 
     /**
      * Dump a tracking list into a string.
      */
-    private String printTrackList(List trackingList) {
+    private String printTrackList(List<TrackingInfo> trackingList) {
         if (trackingList != null) {
             StringBuffer sb = new StringBuffer();
-            Iterator iter = trackingList.iterator();
+            Iterator<TrackingInfo> iter = trackingList.iterator();
             sb.append("Trace list:");
             sb.append('\n');
             while (iter.hasNext()) {
-                sb.append((TrackingInfo) iter.next());
+                sb.append(iter.next());
                 sb.append('\n');
             }
             return sb.toString();
@@ -1351,10 +1434,10 @@ public class RecoveryManager {
      * split.
      */
     private void replayINDelete(DatabaseImpl db,
-				long nodeId,
+                                long nodeId,
                                 boolean containsDuplicates,
-				byte[] mainKey,
-				byte[] dupKey,
+                                byte[] mainKey,
+                                byte[] dupKey,
                                 long logLsn)
         throws DatabaseException {
 
@@ -1372,7 +1455,7 @@ public class RecoveryManager {
                  mainKey,
                  dupKey,
                  false, // requireExactMatch
-                 false, // updateGeneration
+                 CacheMode.UNCHANGED,
                  -1,    // targetLevel
                  null,  // trackingList
                  true); // doFetch
@@ -1380,8 +1463,13 @@ public class RecoveryManager {
             if (result.parent == null) {
                 /* It's null -- we actually deleted the root. */
                 tree.withRootLatchedExclusive(new RootDeleter(tree));
-                DbTree dbTree = db.getDbEnvironment().getDbMapTree();
-                dbTree.modifyDbRoot(db);
+
+                /*
+                 * Dirty the database to call DbTree.modifyDbRoot later during
+                 * the checkpoint.  We should not log a DatabaseImpl until its
+                 * utilization info is correct.
+                 */
+                db.setDirtyUtilization();
                 traceRootDeletion(Level.FINE, db);
                 deleted = true;
             } else if (result.exactParentFound) {
@@ -1441,8 +1529,13 @@ public class RecoveryManager {
 
             /* Update the mapLN if necessary */
             if (rootUpdater.updateDone()) {
-                EnvironmentImpl env = db.getDbEnvironment();
-                env.getDbMapTree().modifyDbRoot(db);
+
+                /*
+                 * Dirty the database to call DbTree.modifyDbRoot later during
+                 * the checkpoint.  We should not log a DatabaseImpl until its
+                 * utilization info is correct.
+                 */
+                db.setDirtyUtilization();
             }
         } catch (Exception e) {
             success = false;
@@ -1450,6 +1543,10 @@ public class RecoveryManager {
                                         DbLsn.getNoFormatString(lsn),
                                         e);
         } finally {
+	    if (rootUpdater.getInFromLogIsLatched()) {
+		inFromLog.releaseLatch();
+	    }
+
             trace(detailedTraceLevel,
                   db, TRACE_ROOT_REPLACE, success, inFromLog,
                   lsn,
@@ -1458,8 +1555,8 @@ public class RecoveryManager {
                   rootUpdater.getReplaced(),
                   rootUpdater.getInserted(),
                   rootUpdater.getOriginalLsn(),
-		  DbLsn.NULL_LSN,
-		  -1);
+                  DbLsn.NULL_LSN,
+                  -1);
         }
     }
 
@@ -1473,6 +1570,7 @@ public class RecoveryManager {
         private boolean inserted = false;
         private boolean replaced = false;
         private long originalLsn = DbLsn.NULL_LSN;
+	private boolean inFromLogIsLatched = true;
 
         RootUpdater(Tree tree, IN inFromLog, long lsn) {
             this.tree = tree;
@@ -1480,12 +1578,17 @@ public class RecoveryManager {
             this.lsn = lsn;
         }
 
+	boolean getInFromLogIsLatched() {
+	    return inFromLogIsLatched;
+	}
+
         public IN doWork(ChildReference root)
             throws DatabaseException {
 
             ChildReference newRoot =
-		tree.makeRootChildReference(inFromLog, new byte[0], lsn);
+                tree.makeRootChildReference(inFromLog, new byte[0], lsn);
             inFromLog.releaseLatch();
+	    inFromLogIsLatched = false;
 
             if (root == null) {
                 tree.setRoot(newRoot, false);
@@ -1546,42 +1649,42 @@ public class RecoveryManager {
              * [#13435]
              */
             parent = db.getTree().searchSplitsAllowed
-                (mainTreeKey, -1, true /*updateGeneration*/);
+                (mainTreeKey, -1, CacheMode.DEFAULT);
             assert parent instanceof BIN;
 
-	    ChildReference newRef =
-		new ChildReference(inFromLog, mainTreeKey, lsn);
-	    index = parent.insertEntry1(newRef);
-	    if ((index >= 0 &&
-		 (index & IN.EXACT_MATCH) != 0)) {
+            ChildReference newRef =
+                new ChildReference(inFromLog, mainTreeKey, lsn);
+            index = parent.insertEntry1(newRef);
+            if ((index >= 0 &&
+                 (index & IN.EXACT_MATCH) != 0)) {
 
-		index &= ~IN.EXACT_MATCH;
+                index &= ~IN.EXACT_MATCH;
 
-		/*
-		 * Replace whatever's at this entry, whether it's an LN or an
-		 * earlier root DIN as long as one of the following is true:
-		 *
-		 * - the entry is known deleted
-		 * - or the LSN is earlier than the one we've just read from
-		 *     the log.
-		 */
-		if (parent.isEntryKnownDeleted(index)) {
-		    /* Be sure to clear the known deleted bit. */
-		    parent.setEntry(index, inFromLog, mainTreeKey,
-				    lsn, (byte) 0);
-		    replaced = true;
-		} else {
-		    originalLsn = parent.getLsn(index);
-		    if (DbLsn.compareTo(originalLsn, lsn) < 0) {
-			parent.setEntry(index, inFromLog, mainTreeKey, lsn,
-					parent.getState(index));
-			replaced = true;
-		    }
-		}
-	    } else {
-		found = false;
-	    }
-	    success = true;
+                /*
+                 * Replace whatever's at this entry, whether it's an LN or an
+                 * earlier root DIN as long as one of the following is true:
+                 *
+                 * - the entry is known deleted
+                 * - or the LSN is earlier than the one we've just read from
+                 *     the log.
+                 */
+                if (parent.isEntryKnownDeleted(index)) {
+                    /* Be sure to clear the known deleted bit. */
+                    parent.setEntry(index, inFromLog, mainTreeKey,
+                                    lsn, (byte) 0);
+                    replaced = true;
+                } else {
+                    originalLsn = parent.getLsn(index);
+                    if (DbLsn.compareTo(originalLsn, lsn) < 0) {
+                        parent.setEntry(index, inFromLog, mainTreeKey, lsn,
+                                        parent.getState(index));
+                        replaced = true;
+                    }
+                }
+            } else {
+                found = false;
+            }
+            success = true;
         } finally {
             if (parent != null) {
                 parent.releaseLatch();
@@ -1598,7 +1701,7 @@ public class RecoveryManager {
                                       IN inFromLog,
                                       long logLsn,
                                       long inLsn,
-                                      List trackingList,
+                                      List<TrackingInfo> trackingList,
                                       boolean requireExactMatch)
         throws DatabaseException {
 
@@ -1611,7 +1714,7 @@ public class RecoveryManager {
             result = db.getTree().getParentINForChildIN
                 (inFromLog,
                  requireExactMatch,
-                 false, // updateGeneration
+                 CacheMode.UNCHANGED,
                  -1,    // targetLevel
                  trackingList);
 
@@ -1650,16 +1753,17 @@ public class RecoveryManager {
                         if (DbLsn.compareTo(originalLsn, logLsn) < 0) {
 
                             /*
-			     * It's a logical match, replace. Put the child
-			     * node reference into the parent, as well as the
-			     * true LSN of the IN. (If this entry is a
-			     * BINDelta, the node has been updated with all the
-			     * deltas, but the LSN we want to put in should be
-			     * the last full LSN, not the LSN of the BINDelta)
+                             * It's a logical match, replace. Put the child
+                             * node reference into the parent, as well as the
+                             * true LSN of the IN. (If this entry is a
+                             * BINDelta, the node has been updated with all the
+                             * deltas, but the LSN we want to put in should be
+                             * the last full LSN, not the LSN of the BINDelta)
                              */
-                            result.parent.updateEntry(result.index,
-                                                      inFromLog,
-                                                      inLsn);
+                            result.parent.updateNode(result.index,
+                                                     inFromLog,
+                                                     inLsn,
+                                                     null /*lnSlotKey*/);
                             replaced = true;
                         }
                     }
@@ -1714,12 +1818,12 @@ public class RecoveryManager {
      * @return the LSN found in the tree, or NULL_LSN if not found.
      */
     private long redo(DatabaseImpl db,
-		      TreeLocation location,
-		      LN lnFromLog,
-		      byte[] mainKey,
-		      byte[] dupKey,
-		      long logLsn,
-		      RecoveryInfo info)
+                      TreeLocation location,
+                      LN lnFromLog,
+                      byte[] mainKey,
+                      byte[] dupKey,
+                      long logLsn,
+                      RecoveryInfo info)
         throws DatabaseException {
 
         boolean found = false;
@@ -1729,7 +1833,7 @@ public class RecoveryManager {
         try {
 
             /*
-             *  Find the BIN which is the parent of this LN.
+             * Find the BIN which is the parent of this LN.
              */
             location.reset();
             found = db.getTree().getParentBINForChildLN
@@ -1737,7 +1841,7 @@ public class RecoveryManager {
                  true,  // splitsAllowed
                  false, // findDeletedEntries
                  true,  // searchDupTree
-                 true); // updateGeneration
+                 CacheMode.DEFAULT);
 
             if (!found && (location.bin == null)) {
 
@@ -1755,18 +1859,18 @@ public class RecoveryManager {
             if (lnFromLog.containsDuplicates()) {
                 if (found) {
 
-		    /*
-		     * This is a dupCountLN. It's ok if there's no DIN parent
-		     * for it. [#11307].
-		     */
-		    DIN duplicateRoot = (DIN)
-			location.bin.fetchTarget(location.index);
-		    if (DbLsn.compareTo(logLsn, location.childLsn) >= 0) {
-			/* DupCountLN needs replacing. */
-			duplicateRoot.latch();
-			duplicateRoot.updateDupCountLNRefAndNullTarget(logLsn);
-			duplicateRoot.releaseLatch();
-		    }
+                    /*
+                     * This is a dupCountLN. It's ok if there's no DIN parent
+                     * for it. [#11307].
+                     */
+                    DIN duplicateRoot = (DIN)
+                        location.bin.fetchTarget(location.index);
+                    if (DbLsn.compareTo(logLsn, location.childLsn) >= 0) {
+                        /* DupCountLN needs replacing. */
+                        duplicateRoot.latch();
+                        duplicateRoot.updateDupCountLNRefAndNullTarget(logLsn);
+                        duplicateRoot.releaseLatch();
+                    }
                 }
             } else {
                 if (found) {
@@ -1791,9 +1895,10 @@ public class RecoveryManager {
                          * updated if necessary when the LN is fetched).
                          * [#15704]
                          */
-                        location.bin.updateEntry(location.index,
-                                                 null,
-                                                 logLsn);
+                        location.bin.updateNode(location.index,
+                                                null /*node*/,
+                                                logLsn,
+                                                null /*lnSlotKey*/);
                     }
 
                     /*
@@ -1819,8 +1924,8 @@ public class RecoveryManager {
                                  false); // don't wakeup compressor
                         }
                     }
-
                 } else {
+
                     /*
                      * This LN is not in the tree. If it's not deleted, insert
                      * it.
@@ -1830,16 +1935,27 @@ public class RecoveryManager {
                         info.lnInserted++;
                         inserted = true;
                         boolean insertOk =
-			    insertRecovery(db, location, logLsn);
+                            insertRecovery(db, location, logLsn);
                         assert insertOk;
                     }
                 }
             }
+
+            if (!inserted) {
+                /* 
+                 * We're about to cast away this instantiated LN. It may
+                 * have registered for some portion of the memory budget,
+                 * so free that now. Specifically, this would be true
+                 * for the DbFileSummaryMap in a MapLN.
+                 */
+                lnFromLog.releaseMemoryBudget();
+            }
+
             success = true;
             return found ? location.childLsn : DbLsn.NULL_LSN;
         } finally {
             if (location.bin != null) {
-                location.bin.releaseLatchIfOwner();
+                location.bin.releaseLatch();
             }
             trace(detailedTraceLevel, db,
                   TRACE_LN_REDO, success, lnFromLog,
@@ -1907,7 +2023,7 @@ public class RecoveryManager {
                 (location, mainKey, dupKey, lnFromLog, splitsAllowed,
                  true,  // findDeletedEntries
                  false, // searchDupTree
-                 true); // updateGeneration
+                 CacheMode.DEFAULT); // updateGeneration
 
             /*
              * Now we're at the rightful parent, whether BIN or DBIN.
@@ -1915,12 +2031,12 @@ public class RecoveryManager {
             if (lnFromLog.containsDuplicates()) {
 
                 /*
-		 * This is a dupCountLN. It's ok if there's no DIN parent
-		 * for it. [#11307].
-		 */
+                 * This is a dupCountLN. It's ok if there's no DIN parent
+                 * for it. [#11307].
+                 */
                 if (found) {
-		    DIN duplicateRoot = (DIN)
-			location.bin.fetchTarget(location.index);
+                    DIN duplicateRoot = (DIN)
+                        location.bin.fetchTarget(location.index);
                     duplicateRoot.latch();
                     try {
                         if (DbLsn.compareTo(logLsn, location.childLsn) == 0) {
@@ -1932,35 +2048,35 @@ public class RecoveryManager {
                     } finally {
                         duplicateRoot.releaseLatch();
                     }
-		}
+                }
             } else {
                 if (found) {
                     /* This LN is in the tree. See if it needs replacing. */
                     if (info != null) {
                         info.lnFound++;
                     }
-		    boolean updateEntry =
-			DbLsn.compareTo(logLsn, location.childLsn) == 0;
-		    if (updateEntry) {
-			if (abortLsn == DbLsn.NULL_LSN) {
+                    boolean updateEntry =
+                        DbLsn.compareTo(logLsn, location.childLsn) == 0;
+                    if (updateEntry) {
+                        if (abortLsn == DbLsn.NULL_LSN) {
 
-			    /*
-			     * To undo a node that was created by this txn,
-			     * remove it.  If this entry is deleted, put it on
+                            /*
+                             * To undo a node that was created by this txn,
+                             * remove it.  If this entry is deleted, put it on
                              * the compressor queue.  Set KnownDeleted to
                              * prevent fetching a cleaned LN.
-			     */
-			    location.bin.
-				setKnownDeletedLeaveTarget(location.index);
+                             */
+                            location.bin.
+                                setKnownDeletedLeaveTarget(location.index);
                             byte[] deletedKey =
                                 location.bin.containsDuplicates() ?
                                 dupKey : mainKey;
-			    db.getDbEnvironment().addToCompressorQueue
-				(location.bin,
+                            db.getDbEnvironment().addToCompressorQueue
+                                (location.bin,
                                  new Key(deletedKey),
                                  false); // don't wakeup compressor
 
-			} else {
+                        } else {
 
 			    /*
 			     * Apply the log record by updating the in memory
@@ -1977,9 +2093,10 @@ public class RecoveryManager {
 				info.lnReplaced++;
 			    }
 			    replaced = true;
-			    location.bin.updateEntry(location.index,
-						     null,
-						     abortLsn);
+			    location.bin.updateNode(location.index,
+						    null /*node*/,
+						    abortLsn,
+                                                    null /*lnSlotKey*/);
 			    if (abortKnownDeleted) {
 				location.bin.setKnownDeleted(location.index);
 			    } else {
@@ -1994,7 +2111,7 @@ public class RecoveryManager {
                          * entry. [#12885]
                          */
                         location.bin.clearPendingDeleted(location.index);
-		    }
+                    }
 
                 } else {
 
@@ -2009,13 +2126,14 @@ public class RecoveryManager {
 
             success = true;
         } finally {
-            /*
-             * Note that undo relies on the caller to unlatch the bin.  Not
-             * ideal, done in order to support abort processing.
-             */
+
+	    if (location.bin != null) {
+		location.bin.releaseLatch();
+	    }
+
             trace(traceLevel, db, TRACE_LN_UNDO, success, lnFromLog,
-		  logLsn, location.bin, found, replaced, false,
-		  location.childLsn, abortLsn, location.index);
+                  logLsn, location.bin, found, replaced, false,
+                  location.childLsn, abortLsn, location.index);
         }
     }
 
@@ -2048,7 +2166,7 @@ public class RecoveryManager {
          * is fetched).  [#15704]
          */
         ChildReference newLNRef =
-	    new ChildReference(null, location.lnKey, logLsn);
+            new ChildReference(null, location.lnKey, logLsn);
 
         BIN parentBIN = location.bin;
         int entryIndex = parentBIN.insertEntry1(newLNRef);
@@ -2056,8 +2174,8 @@ public class RecoveryManager {
         if ((entryIndex & IN.INSERT_SUCCESS) == 0) {
 
             /*
-	     * Entry may have been a duplicate. Insertion was not successful.
-	     */
+             * Entry may have been a duplicate. Insertion was not successful.
+             */
             entryIndex &= ~IN.EXACT_MATCH;
 
             boolean canOverwrite = false;
@@ -2077,10 +2195,11 @@ public class RecoveryManager {
                 }
 
                 /*
-		 * Evict the target again manually, to reduce memory
-		 * consumption while the evictor is not running.
+                 * Evict the target again manually, to reduce memory
+                 * consumption while the evictor is not running.
                  */
-		parentBIN.updateEntry(entryIndex, null);
+                parentBIN.updateNode(entryIndex, null /*node*/,
+                                     null /*lnSlotKey*/);
             }
 
             if (canOverwrite) {
@@ -2104,35 +2223,57 @@ public class RecoveryManager {
     }
 
     /**
-     * Update file utilization info during redo.
+     * Update utilization info during redo.
+     *
+     * There are cases where we do not count the previous version of an LN as
+     * obsolete when that obsolete LN occurs prior to the recovery interval.
+     * This happens when a later version of the LN is current in the tree
+     * because its parent IN has been flushed non-provisionally after it.  The
+     * old version of the LN is not in the tree so we never encounter it during
+     * recovery and cannot count it as obsolete.  For example:
+     *
+     * 100 LN-A
+     * checkpoint occurred (ckpt begin, flush, ckpt end)
+     * 200 LN-A
+     * 300 BIN parent of 200
+     * 400 IN parent of 300, non-provisional via a sync
+     *
+     * no utilization info is flushed
+     * no checkpoint
+     * crash and recover
+     *
+     * 200 is the current LN-A in the tree.  When we redo 200 we do not count
+     * anything as obsolete because the log and tree LSNs are equal.  100 is
+     * never counted obsolete because it is not in the recovery interval.
+     *
+     * The same thing occurs when a deleted LN is replayed and the old version
+     * is not found in the tree because it was compressed and the IN was
+     * flushed non-provisionally.
+     *
+     * In these cases we may be able to count the abortLsn as obsolete but that
+     * would not work for non-transactional entries.
      */
     private void redoUtilizationInfo(long logLsn,
-				     long treeLsn,
+                                     long treeLsn,
+                                     long commitLsn,
                                      long abortLsn,
-				     boolean abortKnownDeleted,
+                                     boolean abortKnownDeleted,
                                      int logEntrySize,
                                      byte[] key,
                                      LN ln,
-				     TxnNodeId txnNodeId,
-                                     Set countedAbortLsnNodes)
+                                     DatabaseImpl db,
+                                     TxnNodeId txnNodeId,
+                                     Set<TxnNodeId> countedAbortLsnNodes)
         throws DatabaseException {
-
-        UtilizationTracker tracker = env.getUtilizationTracker();
 
         /*
          * If the LN is marked deleted and its LSN follows the FileSummaryLN
          * for its file, count it as obsolete.
          */
         if (ln.isDeleted()) {
-            Long logFileNum = new Long(DbLsn.getFileNumber(logLsn));
-            long fileSummaryLsn =
-		DbLsn.longToLsn((Long) fileSummaryLsns.get(logFileNum));
-            int cmpFsLsnToLogLsn =
-		(fileSummaryLsn != DbLsn.NULL_LSN) ?
-		DbLsn.compareTo(fileSummaryLsn, logLsn) : -1;
-            if (cmpFsLsnToLogLsn < 0) {
-                tracker.countObsoleteNode(logLsn, null, logEntrySize);
-            }
+            tracker.countObsoleteIfUncounted
+                (logLsn, logLsn, null, logEntrySize, db.getId(),
+                 true /*countExact*/);
         }
 
         /* Was the LN found in the tree? */
@@ -2147,27 +2288,11 @@ public class RecoveryManager {
             if (cmpLogLsnToTreeLsn != 0) {
                 long newLsn = (cmpLogLsnToTreeLsn < 0) ? treeLsn : logLsn;
                 long oldLsn = (cmpLogLsnToTreeLsn > 0) ? treeLsn : logLsn;
-                Long oldLsnFile = new Long(DbLsn.getFileNumber(oldLsn));
-		long oldFsLsn =
-		    DbLsn.longToLsn((Long) fileSummaryLsns.get(oldLsnFile));
-                int cmpOldFsLsnToNewLsn =
-		    (oldFsLsn != DbLsn.NULL_LSN) ?
-		    DbLsn.compareTo(oldFsLsn, newLsn) : -1;
-                if (cmpOldFsLsnToNewLsn < 0) {
-                    /* Fetch the LN only if necessary and so configured. */
-                    int oldSize = 0;
-                    if (oldLsn == logLsn) {
-                        oldSize = logEntrySize;
-                    } else if (env.getCleaner().getFetchObsoleteSize()) {
-                        try {
-                            LN oldLn = (LN) env.getLogManager().get(oldLsn);
-                            oldSize = oldLn.getLastLoggedSize();
-                        } catch (LogFileNotFoundException e) {
-                            /* Ignore errors if the file was cleaned. */
-                        }
-                    }
-                    tracker.countObsoleteNode(oldLsn, null, oldSize);
-                }
+                int oldSize = (oldLsn == logLsn) ? logEntrySize : 0;
+                tracker.countObsoleteIfUncounted
+                    (oldLsn, newLsn, null,
+                     tracker.fetchLNSize(oldSize, oldLsn), db.getId(),
+                     true /*countExact*/);
             }
 
             /*
@@ -2181,66 +2306,53 @@ public class RecoveryManager {
                 abortLsn != DbLsn.NULL_LSN &&
                 !abortKnownDeleted &&
                 !countedAbortLsnNodes.contains(txnNodeId)) {
-                /* We have not counted this abortLsn yet. */
-                Long abortFileNum = new Long(DbLsn.getFileNumber(abortLsn));
-		long abortFsLsn =
-		    DbLsn.longToLsn((Long) fileSummaryLsns.get(abortFileNum));
-                int cmpAbortFsLsnToLogLsn =
-		    (abortFsLsn != DbLsn.NULL_LSN) ?
-		    DbLsn.compareTo(abortFsLsn, logLsn) : -1;
-                if (cmpAbortFsLsnToLogLsn < 0) {
 
-                    /*
-                     * logLsn follows the FileSummaryLN of the abortLsn.  The
-                     * abortLsn is only an approximation of the prior LSN, so
-                     * use inexact counting.  Since this is relatively rare,
-                     * a zero entry size (use average size) is acceptable.
-                     */
-                    tracker.countObsoleteNodeInexact(abortLsn, null, 0);
-
-                    /* Don't count this abortLsn (this node) again. */
-                    countedAbortLsnNodes.add(txnNodeId);
-                }
+                /*
+                 * We have not counted this abortLsn yet.  Count abortLsn as
+                 * obsolete if commitLsn follows the FileSummaryLN of the
+                 * abortLsn, since the abortLsn is counted obsolete at commit.
+                 * The abortLsn is only an approximation of the prior LSN, so
+                 * use inexact counting.  Since this is relatively rare, a zero
+                 * entry size (use average size) is acceptable.
+                 */
+                assert commitLsn != DbLsn.NULL_LSN;
+                tracker.countObsoleteIfUncounted
+                        (abortLsn, commitLsn, null, 0, db.getId(),
+                         false /*countExact*/);
+                /* Don't count this abortLsn (this node) again. */
+                countedAbortLsnNodes.add(txnNodeId);
             }
         }
     }
 
     /**
-     * Update file utilization info during recovery undo (not abort undo).
+     * Update utilization info during recovery undo (not abort undo).
      */
     private void undoUtilizationInfo(LN ln,
-				     long logLsn,
-				     long abortLsn,
+                                     DatabaseImpl db,
+                                     long logLsn,
+                                     long abortLsn,
                                      boolean abortKnownDeleted,
                                      int logEntrySize,
                                      TxnNodeId txnNodeId,
-                                     Map countedFileSummaries,
-                                     Set countedAbortLsnNodes) {
-
-        UtilizationTracker tracker = env.getUtilizationTracker();
-
-        /* Compare the fileSummaryLsn to the logLsn. */
-        Long logFileNum = new Long(DbLsn.getFileNumber(logLsn));
-        long fileSummaryLsn =
-            DbLsn.longToLsn((Long) fileSummaryLsns.get(logFileNum));
-        int cmpFsLsnToLogLsn = (fileSummaryLsn != DbLsn.NULL_LSN) ?
-            DbLsn.compareTo(fileSummaryLsn, logLsn) : -1;
-
+                                     Map<TxnNodeId,Long> countedFileSummaries,
+                                     Set<TxnNodeId> countedAbortLsnNodes) {
         /*
          * Count the logLsn as obsolete if it follows the FileSummaryLN for the
          * file of its Lsn.
          */
-        if (cmpFsLsnToLogLsn < 0) {
-            tracker.countObsoleteNode(logLsn, null, logEntrySize);
-        }
+        boolean counted = tracker.countObsoleteIfUncounted
+            (logLsn, logLsn, null, logEntrySize, db.getId(),
+             true /*countExact*/);
 
         /*
          * Consider the latest LSN for the given node that precedes the
          * FileSummaryLN for the file of its LSN.  Count this LSN as obsolete
          * if it is not a deleted LN.
          */
-        if (cmpFsLsnToLogLsn > 0) {
-            Long countedFile = (Long) countedFileSummaries.get(txnNodeId);
+        if (!counted) {
+            Long logFileNum = Long.valueOf(DbLsn.getFileNumber(logLsn));
+            Long countedFile = countedFileSummaries.get(txnNodeId);
             if (countedFile == null ||
                 countedFile.longValue() > logFileNum.longValue()) {
 
@@ -2249,11 +2361,51 @@ public class RecoveryManager {
                  * logLsn.
                  */
                 if (!ln.isDeleted()) {
-                    tracker.countObsoleteNode(logLsn, null, logEntrySize);
+                    tracker.countObsoleteUnconditional
+                        (logLsn, null, logEntrySize, db.getId(),
+                         true /*countExact*/);
                 }
                 /* Don't count this file again. */
                 countedFileSummaries.put(txnNodeId, logFileNum);
             }
+        }
+    }
+
+    /**
+     * Remove all temporary databases that were encountered as MapLNs during
+     * recovery undo/redo.  A temp DB needs to be removed when it is not closed
+     * (closing a temp DB removes it) prior to a crash.  We ensure that the
+     * MapLN for every open temp DBs is logged each checkpoint interval.
+     */
+    private void removeTempDbs()
+        throws DatabaseException {
+
+        DbTree dbMapTree = env.getDbTree();
+        BasicLocker locker =
+	    BasicLocker.createBasicLocker(env, false /*noWait*/,
+					  true /*noAPIReadLock*/);
+        boolean operationOk = false;
+        try {
+            Iterator<DatabaseId> removeDbs = tempDbIds.iterator();
+            while (removeDbs.hasNext()) {
+                DatabaseId dbId = removeDbs.next();
+                DatabaseImpl db = dbMapTree.getDb(dbId);
+                dbMapTree.releaseDb(db); // Decrement use count.
+                if (db != null) {
+                    assert db.isTemporary();
+                    if (!db.isDeleted()) {
+                        env.getDbTree().dbRemove(locker,
+                                                 db.getName(),
+                                                 db.getId());
+                    }
+                }
+            }
+            operationOk = true;
+        } catch (Error E) {
+            env.invalidate(E);
+            throw E;
+        } finally {
+            locker.operationEnd(operationOk);
         }
     }
 
@@ -2289,8 +2441,8 @@ public class RecoveryManager {
                               boolean replaced,
                               boolean inserted,
                               long replacedLsn,
-			      long abortLsn,
-			      int index) {
+                              long abortLsn,
+                              int index) {
         Logger logger = database.getDbEnvironment().getLogger();
         Level useLevel= level;
         if (!success) {
@@ -2336,13 +2488,13 @@ public class RecoveryManager {
                                      boolean found,
                                      boolean deleted,
                                      int index,
-				     boolean isDuplicate) {
+                                     boolean isDuplicate) {
         Logger logger = env.getLogger();
         if (logger.isLoggable(detailedTraceLevel)) {
             StringBuffer sb = new StringBuffer();
             sb.append((isDuplicate) ?
-		      TRACE_IN_DUPDEL_REPLAY :
-		      TRACE_IN_DEL_REPLAY);
+                      TRACE_IN_DUPDEL_REPLAY :
+                      TRACE_IN_DEL_REPLAY);
             sb.append(" node=").append(nodeId);
             sb.append(" lsn=").append(DbLsn.getNoFormatString(logLsn));
             sb.append(" found=").append(found);
@@ -2353,8 +2505,8 @@ public class RecoveryManager {
     }
 
     private void traceAndThrowException(long badLsn,
-					String method,
-					Exception originalException)
+                                        String method,
+                                        Exception originalException)
         throws DatabaseException {
         String badLsnString = DbLsn.getNoFormatString(badLsn);
         Tracer.trace(env,

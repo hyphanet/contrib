@@ -1,14 +1,21 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ExceptionEvent.java,v 1.4.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: ExceptionEvent.java,v 1.9 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
 
+import com.sleepycat.je.utilint.Tracer;
+
+/**
+ * A class representing an exception event.  Contains an exception and the name
+ * of the daemon thread that it was thrown from.
+ */
 public class ExceptionEvent {
+
     private Exception exception;
     private String threadName;
 
@@ -22,12 +29,29 @@ public class ExceptionEvent {
 	this.threadName = Thread.currentThread().toString();
     }
 
+    /**
+     * Returns the exception in the event.
+     */
     public Exception getException() {
 	return exception;
     }
 
+    /**
+     * Returns the name of the daemon thread that threw the exception.
+     */
     public String getThreadName() {
 	return threadName;
+    }
+
+    public String toString() {
+	StringBuffer sb = new StringBuffer();
+	sb.append("<ExceptionEvent exception=\"");
+	sb.append(exception);
+	sb.append("\" threadName=\"");
+	sb.append(threadName);
+	sb.append("\">");
+        sb.append(Tracer.getStackTrace(exception));
+	return sb.toString();
     }
 }
 

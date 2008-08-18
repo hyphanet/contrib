@@ -1,28 +1,33 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: NegativeTest.java,v 1.4.2.5 2007/12/08 14:43:48 mark Exp $
+ * $Id: NegativeTest.java,v 1.17 2008/04/25 15:52:13 mark Exp $
  */
 
 package com.sleepycat.persist.test;
 
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.ArrayList;
 
 import static com.sleepycat.persist.model.Relationship.ONE_TO_ONE;
+import static com.sleepycat.persist.model.Relationship.ONE_TO_MANY;
 import junit.framework.Test;
 
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.test.TxnTestCase;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.StoreConfig;
+import com.sleepycat.persist.model.AnnotationModel;
 import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.KeyField;
 import com.sleepycat.persist.model.Persistent;
+import com.sleepycat.persist.model.PersistentProxy;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
+import com.sleepycat.util.test.TxnTestCase;
 
 /**
  * Negative tests.
@@ -40,17 +45,46 @@ public class NegativeTest extends TxnTestCase {
     private void open()
         throws DatabaseException {
 
+        open(null);
+    }
+
+    private void open(Class clsToRegister)
+        throws DatabaseException {
+
         StoreConfig config = new StoreConfig();
         config.setAllowCreate(envConfig.getAllowCreate());
         config.setTransactional(envConfig.getTransactional());
 
+        if (clsToRegister != null) {
+            AnnotationModel model = new AnnotationModel();
+            model.registerClass(clsToRegister);
+            config.setModel(model);
+        }
+
         store = new EntityStore(env, "test", config);
     }
+
 
     private void close()
         throws DatabaseException {
 
         store.close();
+        store = null;
+    }
+
+    @Override
+    public void tearDown()
+        throws Exception {
+
+        if (store != null) {
+            try {
+                store.close();
+            } catch (Throwable e) {
+                System.out.println("tearDown: " + e);
+            }
+            store = null;
+        }
+        super.tearDown();
     }
 
     public void testBadKeyClass1()
@@ -191,5 +225,262 @@ public class NegativeTest extends TxnTestCase {
         private int key;
 
         ArrayList<Object> list = new ArrayList<Object>();
+    }
+
+    /**
+     * Disallow primary keys on entity subclasses.  [#15757]
+     */
+    public void testEntitySubclassWithPrimaryKey()
+        throws DatabaseException {
+
+        open();
+        PrimaryIndex<Integer,EntitySuperClass> index = store.getPrimaryIndex
+            (Integer.class, EntitySuperClass.class);
+        EntitySuperClass e1 = new EntitySuperClass(1, "one");
+        index.put(e1);
+        assertEquals(e1, index.get(1));
+        EntitySubClass e2 = new EntitySubClass(2, "two", "foo", 9);
+        try {
+            index.put(e2);
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains
+                ("PrimaryKey may not appear on an Entity subclass"));
+        }
+        assertEquals(e1, index.get(1));
+        close();
+    }
+
+    @Entity
+    static class EntitySuperClass {
+
+        @PrimaryKey
+        private int x;
+
+        private String y;
+
+        EntitySuperClass(int x, String y) {
+            assert y != null;
+            this.x = x;
+            this.y = y;
+        }
+
+        private EntitySuperClass() {}
+
+        @Override
+        public String toString() {
+            return "x=" + x + " y=" + y;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other instanceof EntitySuperClass) {
+                EntitySuperClass o = (EntitySuperClass) other;
+                return x == o.x && y.equals(o.y);
+            } else {
+                return false;
+            }
+        }
+    }
+
+    @Persistent
+    static class EntitySubClass extends EntitySuperClass {
+
+        @PrimaryKey
+        private String foo;
+
+        private int z;
+
+        EntitySubClass(int x, String y, String foo, int z) {
+            super(x, y);
+            assert foo != null;
+            this.foo = foo;
+            this.z = z;
+        }
+
+        private EntitySubClass() {}
+
+        @Override
+        public String toString() {
+            return super.toString() + " z=" + z;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other instanceof EntitySubClass) {
+                EntitySubClass o = (EntitySubClass) other;
+                return super.equals(o) && z == o.z;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Disallow embedded entity classes and subclasses.  [#16077]
+     */
+    public void testEmbeddedEntity()
+        throws DatabaseException {
+
+        open();
+        PrimaryIndex<Integer,EmbeddingEntity> index = store.getPrimaryIndex
+            (Integer.class, EmbeddingEntity.class);
+        EmbeddingEntity e1 = new EmbeddingEntity(1, null);
+        index.put(e1);
+        assertEquals(e1, index.get(1));
+
+        EmbeddingEntity e2 =
+            new EmbeddingEntity(2, new EntitySuperClass(2, "two"));
+        try {
+            index.put(e2);
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains
+                ("References to entities are not allowed"));
+        }
+
+        EmbeddingEntity e3 = new EmbeddingEntity
+            (3, new EmbeddedEntitySubClass(3, "three", "foo", 9));
+        try {
+            index.put(e3);
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.toString(), e.getMessage().contains
+                ("References to entities are not allowed"));
+        }
+
+        assertEquals(e1, index.get(1));
+        close();
+    }
+
+    @Entity
+    static class EmbeddingEntity {
+
+        @PrimaryKey
+        private int x;
+
+        private EntitySuperClass y;
+
+        EmbeddingEntity(int x, EntitySuperClass y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        private EmbeddingEntity() {}
+
+        @Override
+        public String toString() {
+            return "x=" + x + " y=" + y;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other instanceof EmbeddingEntity) {
+                EmbeddingEntity o = (EmbeddingEntity) other;
+                return x == o.x && 
+                       ((y == null) ? (o.y == null) : y.equals(o.y));
+            } else {
+                return false;
+            }
+        }
+    }
+
+    @Persistent
+    static class EmbeddedEntitySubClass extends EntitySuperClass {
+
+        private String foo;
+
+        private int z;
+
+        EmbeddedEntitySubClass(int x, String y, String foo, int z) {
+            super(x, y);
+            assert foo != null;
+            this.foo = foo;
+            this.z = z;
+        }
+
+        private EmbeddedEntitySubClass() {}
+
+        @Override
+        public String toString() {
+            return super.toString() + " z=" + z;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other instanceof EmbeddedEntitySubClass) {
+                EmbeddedEntitySubClass o = (EmbeddedEntitySubClass) other;
+                return super.equals(o) && z == o.z;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Disallow SecondaryKey collection with no type parameter. [#15950]
+     */
+    public void testTypelessKeyCollection()
+        throws DatabaseException {
+
+        open();
+        try {
+            store.getPrimaryIndex
+                (Integer.class, TypelessKeyCollectionEntity.class);
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.toString(), e.getMessage().contains
+                ("Collection typed secondary key field must have a " +
+                 "single generic type argument and a wildcard or type " +
+                 "bound is not allowed"));
+        }
+        close();
+    }
+
+    @Entity
+    static class TypelessKeyCollectionEntity {
+
+        @PrimaryKey
+        private int x;
+
+        @SecondaryKey(relate=ONE_TO_MANY)
+        private Collection keys = new ArrayList();
+
+        TypelessKeyCollectionEntity(int x) {
+            this.x = x;
+        }
+
+        private TypelessKeyCollectionEntity() {}
+    }
+
+    /**
+     * Disallow a persistent proxy that extends an entity.  [#15950]
+     */
+    public void testProxyEntity()
+        throws DatabaseException {
+
+        try {
+            open(ProxyExtendsEntity.class);
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.toString(), e.getMessage().contains
+                ("A proxy may not be an entity"));
+        }
+    }
+
+    @Persistent(proxyFor=BigDecimal.class)
+    static class ProxyExtendsEntity
+        extends EntitySuperClass
+        implements PersistentProxy<BigDecimal> {
+
+        private String rep;
+
+        public BigDecimal convertProxy() {
+            return new BigDecimal(rep);
+        }
+
+        public void initializeProxy(BigDecimal o) {
+            rep = o.toString();
+        }
     }
 }

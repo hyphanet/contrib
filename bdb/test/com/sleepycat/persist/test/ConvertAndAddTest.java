@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ConvertAndAddTest.java,v 1.1.2.3 2007/12/08 14:43:48 mark Exp $
+ * $Id: ConvertAndAddTest.java,v 1.6 2008/05/30 14:04:22 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -26,6 +26,7 @@ import com.sleepycat.persist.evolve.Mutations;
 import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.EntityModel;
 import com.sleepycat.persist.model.PrimaryKey;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * Test a bug fix where an IndexOutOfBoundsException occurs when adding a field
@@ -87,7 +88,7 @@ public class ConvertAndAddTest extends TestCase {
     private EntityStore open(boolean addConverter)
         throws DatabaseException {
 
-        EnvironmentConfig envConfig = new EnvironmentConfig();
+        EnvironmentConfig envConfig = TestEnv.BDB.getConfig();
         envConfig.setAllowCreate(true);
         env = new Environment(envHome, envConfig);
 
@@ -155,6 +156,7 @@ public class ConvertAndAddTest extends TestCase {
         private MyEntity() {}
     }
 
+    @SuppressWarnings("serial")
     public static class MyConversion implements Conversion {
 
         public void initialize(EntityModel model) {

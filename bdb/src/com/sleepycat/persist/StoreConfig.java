@@ -1,21 +1,20 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: StoreConfig.java,v 1.13.2.2 2007/06/14 13:06:04 mark Exp $
+ * $Id: StoreConfig.java,v 1.18 2008/05/19 20:33:31 mark Exp $
  */
 
 package com.sleepycat.persist;
 
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.DatabaseNotFoundException;
 import com.sleepycat.je.Environment; // for javadoc
 import com.sleepycat.persist.evolve.IncompatibleClassException;
 import com.sleepycat.persist.evolve.Mutations;
 import com.sleepycat.persist.model.AnnotationModel;
 import com.sleepycat.persist.model.EntityModel;
-import com.sleepycat.persist.raw.RawStore;
+import com.sleepycat.persist.raw.RawStore; // for javadoc
 
 /**
  * Configuration properties used with an {@link EntityStore} or {@link
@@ -41,10 +40,14 @@ public class StoreConfig implements Cloneable {
     private boolean exclusiveCreate;
     private boolean transactional;
     private boolean readOnly;
+    /* <!-- begin JE only --> */
     private boolean deferredWrite;
+    private boolean temporary;
+    /* <!-- end JE only --> */
     private boolean secondaryBulkLoad;
     private EntityModel model;
     private Mutations mutations;
+    private DatabaseNamer databaseNamer = DatabaseNamer.DEFAULT;
 
     /**
      * Creates an entity store configuration object with default properties.
@@ -68,8 +71,8 @@ public class StoreConfig implements Cloneable {
      * property is false.
      *
      * <p>If this property is false and the internal store metadata database
-     * does not exist, {@link DatabaseNotFoundException} will be thrown when
-     * the store is opened.</p>
+     * does not exist, {@link DatabaseException} will be thrown when the store
+     * is opened.</p>
      */
     public void setAllowCreate(boolean allowCreate) {
         this.allowCreate = allowCreate;
@@ -139,6 +142,7 @@ public class StoreConfig implements Cloneable {
         return readOnly;
     }
 
+    /* <!-- begin JE only --> */
     /**
      * Sets the deferred-write configuration property.  By default this
      * property is false.
@@ -149,9 +153,10 @@ public class StoreConfig implements Cloneable {
      *
      * <p>Deferred write stores avoid disk I/O and are not guaranteed to be
      * persistent until {@link EntityStore#sync} or {@link Environment#sync} is
-     * called. This mode is particularly geared toward temporary stores, or
-     * stores that frequently modify and delete data records. See the Getting
-     * Started Guide, Database chapter for a full description of the mode.</p>
+     * called or the store is closed normally. This mode is particularly geared
+     * toward stores that frequently modify and delete data records. See the
+     * Getting Started Guide, Database chapter for a full description of the
+     * mode.</p>
      *
      * @see #setTransactional
      */
@@ -165,6 +170,32 @@ public class StoreConfig implements Cloneable {
     public boolean getDeferredWrite() {
         return deferredWrite;
     }
+
+    /**
+     * Sets the temporary configuration property.  By default this property is
+     * false.
+     *
+     * <p>This property is true to open all store databases as temporary
+     * databases.  True may not be specified if the store is transactional.</p>
+     *
+     * <p>Temporary stores avoid disk I/O and are not persistent -- they are
+     * deleted when the store is closed or after a crash. This mode is
+     * particularly geared toward in-memory stores. See the Getting Started
+     * Guide, Database chapter for a full description of the mode.</p>
+     *
+     * @see #setTransactional
+     */
+    public void setTemporary(boolean temporary) {
+        this.temporary = temporary;
+    }
+
+    /**
+     * Returns the temporary configuration property.
+     */
+    public boolean getTemporary() {
+        return temporary;
+    }
+    /* <!-- end JE only --> */
 
     /**
      * Sets the bulk-load-secondaries configuration property.  By default this
@@ -251,5 +282,32 @@ public class StoreConfig implements Cloneable {
      */
     public Mutations getMutations() {
         return mutations;
+    }
+
+    /**
+     * <!-- begin JE only -->
+     * @hidden
+     * <!-- end JE only -->
+     * Specifies the object reponsible for naming of files and databases.
+     *
+     * By default this property is {@link DatabaseNamer#DEFAULT}.
+     *
+     * @throws NullPointerException if a null parameter value is passed.
+     */
+    public void setDatabaseNamer(DatabaseNamer databaseNamer) {
+        if (databaseNamer == null) {
+            throw new NullPointerException();
+        }
+        this.databaseNamer = databaseNamer;
+    }
+
+    /**
+     * <!-- begin JE only -->
+     * @hidden
+     * <!-- end JE only -->
+     * Returns the object reponsible for naming of files and databases.
+     */
+    public DatabaseNamer getDatabaseNamer() {
+        return databaseNamer;
     }
 }

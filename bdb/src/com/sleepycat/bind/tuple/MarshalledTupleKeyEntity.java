@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: MarshalledTupleKeyEntity.java,v 1.22.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: MarshalledTupleKeyEntity.java,v 1.25 2008/02/05 23:28:19 mark Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -60,13 +60,11 @@ public interface MarshalledTupleKeyEntity {
      * {@link #marshalSecondaryKey} for the same key name will return false.
      * Other fields in the data object should remain unchanged.</p>
      *
-     * <!-- begin JE only -->
      * <p>If {@link com.sleepycat.je.ForeignKeyDeleteAction#NULLIFY} was
      * specified when opening the secondary database, this method is called
      * when the entity for this foreign key is deleted.  If NULLIFY was not
      * specified, this method will not be called and may always return
      * false.</p>
-     * <!-- end JE only -->
      *
      * @param keyName identifies the secondary key.
      *

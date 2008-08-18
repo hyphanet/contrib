@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: MBeanTest.java,v 1.14.2.2 2007/11/20 13:32:45 cwl Exp $
+ * $Id: MBeanTest.java,v 1.18 2008/01/07 14:29:08 cwl Exp $
  */
 
 package com.sleepycat.je.jmx;
@@ -128,7 +128,7 @@ public class MBeanTest extends TestCase {
             IntegerBinding.intToEntry(1, entry);
             db.put(null, entry, entry);
 
-            validateOperations(mbean, 8, true, "bozo", new String [] {"bozo"});
+            validateOperations(mbean, 8, true, "bozo", new String[] {"bozo"});
             db.close();
 
             env.close();
@@ -207,7 +207,7 @@ public class MBeanTest extends TestCase {
             EnvironmentConfig config = env.getConfig();
             Class configClass = config.getClass();
 
-            Method getCacheSize = configClass.getMethod("getCacheSize", (Class []) null);
+            Method getCacheSize = configClass.getMethod("getCacheSize", (Class[]) null);
             checkAttribute(env,
                            mbean,
                            getCacheSize,
@@ -215,7 +215,7 @@ public class MBeanTest extends TestCase {
                            new Long(100000)); // new value
 
             Method getCachePercent =
-                configClass.getMethod("getCachePercent", (Class []) null);
+                configClass.getMethod("getCachePercent", (Class[]) null);
             checkAttribute(env,
                            mbean,
                            getCachePercent,
@@ -243,7 +243,7 @@ public class MBeanTest extends TestCase {
         throws Exception {
         /* check starting value. */
         EnvironmentConfig config = env.getConfig();
-        Object result = configMethod.invoke(config, (Object []) null);
+        Object result = configMethod.invoke(config, (Object[]) null);
         assertTrue(!result.toString().equals(newValue.toString()));
 
         /* set through mbean */
@@ -252,7 +252,7 @@ public class MBeanTest extends TestCase {
         /* check present environment config. */
         config = env.getConfig();
         assertEquals(newValue.toString(),
-                     configMethod.invoke(config, (Object []) null).toString());
+                     configMethod.invoke(config, (Object[]) null).toString());
 
         /* check through mbean. */
         Object mbeanNewValue = mbean.getAttribute(attributeName);
@@ -267,7 +267,7 @@ public class MBeanTest extends TestCase {
 
         MBeanInfo info = mbean.getMBeanInfo();
 
-        MBeanAttributeInfo [] attrs = info.getAttributes();
+        MBeanAttributeInfo[] attrs = info.getAttributes();
 
         /* test getters. */
         int attributesWithValues = 0;
@@ -305,7 +305,7 @@ public class MBeanTest extends TestCase {
 
         MBeanInfo info = mbean.getMBeanInfo();
 
-        MBeanOperationInfo [] ops = info.getOperations();
+        MBeanOperationInfo[] ops = info.getOperations();
         if (DEBUG) {
             for (int i = 0; i < ops.length; i++) {
                 System.out.println("op: " + ops[i].getName());
@@ -323,7 +323,7 @@ public class MBeanTest extends TestCase {
                     /* invoke with the name of the database. */
                     Object result = mbean.invoke
                         (opName,
-                         new Object [] {null, null, databaseName},
+                         new Object[] {null, null, databaseName},
                          null);
                     assertTrue(result instanceof BtreeStats);
                     checkObjectType
@@ -383,13 +383,13 @@ public class MBeanTest extends TestCase {
 
         MBeanInfo info = mbean.getMBeanInfo();
 
-        MBeanAttributeInfo [] attrs = info.getAttributes();
+        MBeanAttributeInfo[] attrs = info.getAttributes();
         for (int i = 0; i < attrs.length; i++) {
             checkSerializable
                 ("Attribute", attrs[i].getName(), attrs[i].getType());
         }
 
-        MBeanOperationInfo [] ops = info.getOperations();
+        MBeanOperationInfo[] ops = info.getOperations();
         for (int i = 0; i < ops.length; i += 1) {
             checkSerializable
                 ("Operation",
@@ -404,7 +404,7 @@ public class MBeanTest extends TestCase {
             }
         }
 
-        MBeanConstructorInfo [] ctors = info.getConstructors();
+        MBeanConstructorInfo[] ctors = info.getConstructors();
         for (int i = 0; i < ctors.length; i++) {
             MBeanParameterInfo[] params = ctors[i].getSignature();
             for (int j = 0; j < params.length; j += 1) {
@@ -415,7 +415,7 @@ public class MBeanTest extends TestCase {
             }
         }
 
-        MBeanNotificationInfo [] notifs = info.getNotifications();
+        MBeanNotificationInfo[] notifs = info.getNotifications();
         for (int i = 0; i < notifs.length; i++) {
             String[] types = notifs[i].getNotifTypes();
             for (int j = 0; j < types.length; j += 1) {

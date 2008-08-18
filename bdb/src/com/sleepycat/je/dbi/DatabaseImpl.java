@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseImpl.java,v 1.157.2.10 2007/12/14 01:43:25 mark Exp $
+ * $Id: DatabaseImpl.java,v 1.204 2008/05/19 17:52:17 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -23,16 +23,17 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.sleepycat.je.BtreeStats;
-import com.sleepycat.je.Cursor;
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DatabaseStats;
 import com.sleepycat.je.DbInternal;
-import com.sleepycat.je.LockMode;
+import com.sleepycat.je.LockNotGrantedException;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.PreloadConfig;
 import com.sleepycat.je.PreloadStats;
@@ -40,16 +41,22 @@ import com.sleepycat.je.PreloadStatus;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.VerifyConfig;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.BaseUtilizationTracker;
+import com.sleepycat.je.cleaner.DbFileSummary;
+import com.sleepycat.je.cleaner.DbFileSummaryMap;
+import com.sleepycat.je.cleaner.LocalUtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.SortedLSNTreeWalker.ExceptionPredicate;
 import com.sleepycat.je.dbi.SortedLSNTreeWalker.TreeNodeProcessor;
 import com.sleepycat.je.latch.LatchSupport;
+import com.sleepycat.je.log.DbOpReplicationContext;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogFileNotFoundException;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.ReplicationContext;
+import com.sleepycat.je.log.entry.DbOperationType;
 import com.sleepycat.je.recovery.Checkpointer;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
@@ -63,11 +70,13 @@ import com.sleepycat.je.tree.Tree;
 import com.sleepycat.je.tree.TreeUtils;
 import com.sleepycat.je.tree.TreeWalkerStatsAccumulator;
 import com.sleepycat.je.tree.WithRootLatched;
+import com.sleepycat.je.txn.BasicLocker;
+import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.txn.Locker;
-import com.sleepycat.je.txn.ThreadLocker;
 import com.sleepycat.je.utilint.CmdUtil;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.TestHook;
+import com.sleepycat.je.utilint.TestHookExecute;
 
 /**
  * The underlying object for a given database.
@@ -83,23 +92,59 @@ public class DatabaseImpl implements Loggable, Cloneable {
     private static final short DELETED_CLEANUP_LOG_HARVEST = 3;
     private static final short DELETED = 4;
 
+    /*
+     * Flag bits are the persistent representation of boolean properties
+     * for this database.  The DUPS_ALLOWED_BIT value is 1 for compatibility
+     * with earlier log entry versions where it was stored as a boolean.
+     *
+     * Two bits are used to indicate whether this database is replicated or
+     * not.
+     * isReplicated = 0, notReplicated = 0 means replication status is
+     *   unknown, because the db was created in an standalone environment.
+     * isReplicated = 1, notReplicated = 0 means the db is replicated.
+     * isReplicated = 0, notReplicated = 1 means the db is not replicated.
+     * isReplicated = 1, notReplicated = 1 is an illegal combination.
+     */
+    private byte flags;
+    private static final byte DUPS_ALLOWED_BIT = 0x1; // getSortedDuplicates()
+    private static final byte TEMPORARY_BIT = 0x2;     // isTemporary()
+    private static final byte IS_REPLICATED_BIT = 0x4; // isReplicated()
+    private static final byte NOT_REPLICATED_BIT = 0x8;// notReplicated()
+    private static final byte PREFIXING_ENABLED = 0x10;// getKeyPrefixing()
+
     private DatabaseId id;             // unique id
     private Tree tree;
     private EnvironmentImpl envImpl;   // Tree operations find the env this way
-    private boolean duplicatesAllowed; // duplicates allowed
     private boolean transactional;     // All open handles are transactional
-    private boolean deferredWrite;     // deferred write mode set
-    private Set referringHandles; // Set of open Database handles
+    private boolean durableDeferredWrite;  // Durable deferred write mode set
+    private boolean dirtyUtilization;  // Utilization changed since logging
+    private Set<Database> referringHandles; // Set of open Database handles
     private BtreeStats stats;     // most recent btree stats w/ !DB_FAST_STAT
     private long eofNodeId;       // Logical EOF node for range locking
-    private short deleteState;    // one of four delete states.
-    private int useCount = 0;     // If non-zero, eviction is prohibited
+    private volatile short deleteState;    // one of four delete states.
+    private AtomicInteger useCount = new AtomicInteger();
+                                  // If non-zero, eviction is prohibited
+    private DbFileSummaryMap dbFileSummaries;
+
+    /**
+     * Log version when DB was created, or 0 if created prior to log version 6.
+     */
+    private byte createdAtLogVersion;
+
+    /**
+     * For unit testing, setting this field to true will force a walk of the
+     * tree to count utilization during truncate/remove, rather than using the
+     * per-database info.  This is used to test the "old technique" for
+     * counting utilization, which is now used only if the database was created
+     * prior to log version 6.
+     */
+    public static boolean forceTreeWalkForTruncateAndRemove;
 
     /*
      * The user defined Btree and duplicate comparison functions, if specified.
      */
-    private Comparator btreeComparator = null;
-    private Comparator duplicateComparator = null;
+    private Comparator<byte[]> btreeComparator = null;
+    private Comparator<byte[]> duplicateComparator = null;
     private byte[] btreeComparatorBytes = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
     private byte[] duplicateComparatorBytes = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
     private boolean btreeComparatorByClassName = false;
@@ -123,13 +168,32 @@ public class DatabaseImpl implements Loggable, Cloneable {
     /* For unit tests */
     private TestHook pendingDeletedHook;
 
+    /* 
+     * For debugging -- this gives the ability to force all non-internal
+     * databases to use key prefixing.
+     *
+     * Note that doing
+     *     ant -Dje.forceKeyPrefixing=true test
+     * does not work because ant does not pass the parameter down to JE.
+     */
+    private static final boolean forceKeyPrefixing;
+    static {
+        String forceKeyPrefixingProp =
+            System.getProperty("je.forceKeyPrefixing");
+        if ("true".equals(forceKeyPrefixingProp)) {
+            forceKeyPrefixing = true;
+        } else {
+            forceKeyPrefixing = false;
+        }
+    }
+
     /**
      * Create a database object for a new database.
      */
     public DatabaseImpl(String dbName,
-			DatabaseId id,
-			EnvironmentImpl envImpl,
-			DatabaseConfig dbConfig)
+                        DatabaseId id,
+                        EnvironmentImpl envImpl,
+                        DatabaseConfig dbConfig)
         throws DatabaseException {
 
         this.id = id;
@@ -138,24 +202,43 @@ public class DatabaseImpl implements Loggable, Cloneable {
                            dbConfig.getBtreeComparatorByClassName());
         setDuplicateComparator(dbConfig.getDuplicateComparator(),
                                dbConfig.getDuplicateComparatorByClassName());
-        duplicatesAllowed = dbConfig.getSortedDuplicates();
+        if (dbConfig.getSortedDuplicates()) {
+            setSortedDuplicates();
+        }
+
+        if (dbConfig.getKeyPrefixing() ||
+            forceKeyPrefixing) {
+            setKeyPrefixing();
+        }
+
+        if (dbConfig.getTemporary()) {
+            setTemporary();
+        }
+
+        if (envImpl.isReplicated()) {
+            if (DbInternal.getDbConfigReplicated(dbConfig)) {
+                setIsReplicatedBit();
+            } else {
+                setNotReplicatedBit();
+            }
+        }
+
         transactional = dbConfig.getTransactional();
-        deferredWrite = dbConfig.getDeferredWrite();
-	maxMainTreeEntriesPerNode = dbConfig.getNodeMaxEntries();
-	maxDupTreeEntriesPerNode = dbConfig.getNodeMaxDupTreeEntries();
+        durableDeferredWrite = dbConfig.getDeferredWrite();
+        maxMainTreeEntriesPerNode = dbConfig.getNodeMaxEntries();
+        maxDupTreeEntriesPerNode = dbConfig.getNodeMaxDupTreeEntries();
 
-        initDefaultSettings();
+        createdAtLogVersion = LogEntryType.LOG_VERSION;
 
-        deleteState = NOT_DELETED;
+        commonInit();
+
+        initWithEnvironment();
 
         /*
          * The tree needs the env, make sure we assign it before
          * allocating the tree.
          */
         tree = new Tree(this);
-        referringHandles = Collections.synchronizedSet(new HashSet());
-
-        eofNodeId = Node.getNextNodeId();
 
         /* For error messages only. */
         debugDatabaseName = dbName;
@@ -172,14 +255,20 @@ public class DatabaseImpl implements Loggable, Cloneable {
         id = new DatabaseId();
         envImpl = null;
 
-        deleteState = NOT_DELETED;
-
         tree = new Tree();
-        referringHandles = Collections.synchronizedSet(new HashSet());
 
-        /* initDefaultSettings is called after envImpl is set.  */
+        commonInit();
 
-        eofNodeId = Node.getNextNodeId();
+        /* initWithEnvironment is called after reading and envImpl is set.  */
+    }
+
+    private void commonInit() {
+
+        deleteState = NOT_DELETED;
+        referringHandles =
+            Collections.synchronizedSet(new HashSet<Database>());
+        dbFileSummaries = new DbFileSummaryMap
+            (false /* countParentMapEntry */);
     }
 
     public void setDebugDatabaseName(String debugName) {
@@ -200,8 +289,29 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * reading an instance from the log.  The envImpl field must be set before
      * calling this method.
      */
-    private void initDefaultSettings()
+    private void initWithEnvironment()
         throws DatabaseException {
+
+        /* The eof node id must be unique for each database in memory. */
+        eofNodeId = envImpl.getNodeSequence().getNextTransientNodeId();
+
+        assert !(replicatedBitSet() && notReplicatedBitSet()) :
+            "The replicated AND notReplicated bits should never be set "+
+            " together";
+
+        /*
+         * We'd like to assert that neither replication bit is set if
+         * the environmentImpl is not replicated, but can't do that.
+         * EnvironmentImpl.isReplicated() is not yet initialized if this
+         * environment is undergoing recovery during replication setup.
+
+        assert !((!envImpl.isReplicated() &&
+                 (replicatedBitSet() || notReplicatedBitSet()))) :
+            "Neither the replicated nor notReplicated bits should be set " +
+            " in a non-replicated environment" +
+            " replicatedBitSet=" + replicatedBitSet() +
+            " notRepBitSet=" + notReplicatedBitSet();
+        */
 
         DbConfigManager configMgr = envImpl.getConfigManager();
 
@@ -210,32 +320,43 @@ public class DatabaseImpl implements Loggable, Cloneable {
         binMaxDeltas =
             configMgr.getInt(EnvironmentParams.BIN_MAX_DELTAS);
 
-	if (maxMainTreeEntriesPerNode == 0) {
+        if (maxMainTreeEntriesPerNode == 0) {
             maxMainTreeEntriesPerNode =
-		configMgr.getInt(EnvironmentParams.NODE_MAX);
-	}
+                configMgr.getInt(EnvironmentParams.NODE_MAX);
+        }
 
-	if (maxDupTreeEntriesPerNode == 0) {
+        if (maxDupTreeEntriesPerNode == 0) {
             maxDupTreeEntriesPerNode =
-		configMgr.getInt(EnvironmentParams.NODE_MAX_DUPTREE);
-	}
+                configMgr.getInt(EnvironmentParams.NODE_MAX_DUPTREE);
+        }
+
+        /* Budgets memory for the utilization info. */
+        dbFileSummaries.init(envImpl);
     }
 
     /**
-     * Clone.  For the most part, just pass off to the super class for a
-     * field-by-field copy.
+     * Create a clone of this database that can be used as the new empty
+     * database when truncating this database.  setId and setTree must be
+     * called on the returned database.
      */
-    public DatabaseImpl cloneDb()
-        throws DatabaseException {
-
+    public DatabaseImpl cloneDatabase() {
+        DatabaseImpl newDb;
         try {
-            DatabaseImpl newDb = (DatabaseImpl) clone();
-            /* The cloned DB could have a non-zero use count. [#13415] */
-            newDb.useCount = 0;
-            return newDb;
-	} catch (CloneNotSupportedException e) {
-	    throw new DatabaseException(e);
+            newDb = (DatabaseImpl) super.clone();
+        } catch (CloneNotSupportedException e) {
+            assert false : e;
+            return null;
         }
+
+        /* Re-initialize fields that should not be shared by the new DB. */
+        newDb.id = null;
+        newDb.tree = null;
+        newDb.createdAtLogVersion = LogEntryType.LOG_VERSION;
+        newDb.dbFileSummaries = new DbFileSummaryMap
+            (false /*countParentMapEntry*/);
+        newDb.dbFileSummaries.init(envImpl);
+        newDb.useCount = new AtomicInteger();
+        return newDb;
     }
 
     /**
@@ -279,43 +400,131 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     /**
-     * @return true if this database is in deferred write mode.
+     * @return true if this database is temporary.
      */
-    public boolean isDeferredWrite() {
-        return deferredWrite;
+    public boolean isTemporary() {
+        return ((flags & TEMPORARY_BIT) != 0);
     }
 
-    /*
-     * Set the deferred write property for the first opened handle.
+    public static boolean isTemporary(byte flagVal) {
+        return ((flagVal & TEMPORARY_BIT) != 0);
+    }
+
+    private void setTemporary() {
+        flags |= TEMPORARY_BIT;
+    }
+
+    /**
+     * @return true if this database was user configured for durable deferred
+     * write mode.
      */
-    public void setDeferredWrite(boolean deferredWrite) {
-        this.deferredWrite = deferredWrite;
+    public boolean isDurableDeferredWrite() {
+        return durableDeferredWrite;
+    }
+
+    /**
+     * @return true if write operations are not logged immediately.  This is
+     * true if the user configured a durable DW database or a temporary
+     * database.
+     */
+    public boolean isDeferredWriteMode() {
+        return isDurableDeferredWrite() || isTemporary();
+    }
+
+    /**
+     * Sets the deferred write property for the first opened handle.
+     */
+    public void setDeferredWrite(boolean durableDeferredWrite) {
+        this.durableDeferredWrite = durableDeferredWrite;
     }
 
     /**
      * @return true if duplicates are allowed in this database.
      */
     public boolean getSortedDuplicates() {
-        return duplicatesAllowed;
+        return (flags & DUPS_ALLOWED_BIT) != 0;
     }
 
-    public int getNodeMaxEntries() {
-	return maxMainTreeEntriesPerNode;
+    public static boolean getSortedDuplicates(byte flagVal) {
+        return (flagVal & DUPS_ALLOWED_BIT) != 0;
     }
 
-    public int getNodeMaxDupTreeEntries() {
-	return maxDupTreeEntriesPerNode;
+    public void setSortedDuplicates() {
+        flags |= DUPS_ALLOWED_BIT;
     }
 
     /**
-     * Returns the memory size that should be added to MAPLN_OVERHEAD.
+     * @return true if key prefixing is enabled in this database.
+     */
+    public boolean getKeyPrefixing() {
+        return (flags & PREFIXING_ENABLED) != 0;
+    }
+
+    public void setKeyPrefixing() {
+        flags |= PREFIXING_ENABLED;
+    }
+
+    public void clearKeyPrefixing() {
+        if (forceKeyPrefixing) {
+            return;
+        }
+        flags &= ~PREFIXING_ENABLED;
+    }
+
+    /**
+     * @return true if this database is replicated. Note that
+     * we only need to check the IS_REPLICATED_BIT, because we require that
+     * we never have both IS_REPLICATED and NOT_REPLICATED set at the same
+     * time.
+     */
+    public boolean isReplicated() {
+        return replicatedBitSet();
+    }
+
+    /**
+     * @return true if this database is replicated.
+     */
+    public boolean unknownReplicated() {
+        return ((flags & IS_REPLICATED_BIT) == 0) &&
+            ((flags & NOT_REPLICATED_BIT) == 0);
+    }
+
+    private boolean replicatedBitSet() {
+        return (flags & IS_REPLICATED_BIT) != 0;
+    }
+
+    private void setIsReplicatedBit() {
+        flags |= IS_REPLICATED_BIT;
+    }
+
+    /**
+     * @return true if this database's not replicated bit is set.
+     */
+    private boolean notReplicatedBitSet() {
+        return (flags & NOT_REPLICATED_BIT) != 0;
+    }
+
+    private void setNotReplicatedBit() {
+        flags |= NOT_REPLICATED_BIT;
+    }
+
+    public int getNodeMaxEntries() {
+        return maxMainTreeEntriesPerNode;
+    }
+
+    public int getNodeMaxDupTreeEntries() {
+        return maxDupTreeEntriesPerNode;
+    }
+
+    /**
+     * Returns the tree memory size that should be added to MAPLN_OVERHEAD.
      *
      * This is a start at budgeting per-Database memory.  For future reference,
      * other things that could be budgeted are:
      * - debugDatabaseName as it is set
      * - Database handles as they are added/removed in referringHandles
      */
-    public int getAdditionalMemorySize() {
+    public int getAdditionalTreeMemorySize() {
 
         int val = 0;
 
@@ -334,6 +543,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
             val += 2 * MemoryBudget.byteArraySize
                 (duplicateComparatorBytes.length);
         }
+        
         return val;
     }
 
@@ -344,18 +554,18 @@ public class DatabaseImpl implements Loggable, Cloneable {
      *
      * @param duplicateComparator - The Duplicate Comparison function.
      */
-    public boolean setDuplicateComparator(Comparator comparator,
-					  boolean byClassName)
+    public boolean setDuplicateComparator(Comparator<byte[]> comparator,
+                                          boolean byClassName)
         throws DatabaseException {
 
         duplicateComparator = comparator;
         byte[] newDuplicateComparatorBytes =
             comparatorToBytes(comparator, byClassName, "Duplicate");
-	boolean ret = Arrays.equals(newDuplicateComparatorBytes,
-				    duplicateComparatorBytes);
-	duplicateComparatorBytes = newDuplicateComparatorBytes;
+        boolean ret = Arrays.equals(newDuplicateComparatorBytes,
+                                    duplicateComparatorBytes);
+        duplicateComparatorBytes = newDuplicateComparatorBytes;
         duplicateComparatorByClassName = byClassName;
-	return !ret;
+        return !ret;
     }
 
     /**
@@ -365,31 +575,31 @@ public class DatabaseImpl implements Loggable, Cloneable {
      *
      * @param btreeComparator - The btree Comparison function.
      */
-    public boolean setBtreeComparator(Comparator comparator,
-				      boolean byClassName)
+    public boolean setBtreeComparator(Comparator<byte[]> comparator,
+                                      boolean byClassName)
         throws DatabaseException {
 
         btreeComparator = comparator;
         byte[] newBtreeComparatorBytes =
             comparatorToBytes(comparator, byClassName, "Btree");
-	boolean ret =
-	    Arrays.equals(newBtreeComparatorBytes, btreeComparatorBytes);
-	btreeComparatorBytes = newBtreeComparatorBytes;
+        boolean ret =
+            Arrays.equals(newBtreeComparatorBytes, btreeComparatorBytes);
+        btreeComparatorBytes = newBtreeComparatorBytes;
         btreeComparatorByClassName = byClassName;
-	return !ret;
+        return !ret;
     }
 
     /**
      * @return the btree Comparator object.
      */
-    public Comparator getBtreeComparator() {
+    public Comparator<byte[]> getBtreeComparator() {
         return btreeComparator;
     }
 
     /**
      * @return the duplicate Comparator object.
      */
-    public Comparator getDuplicateComparator() {
+    public Comparator<byte[]> getDuplicateComparator() {
         return duplicateComparator;
     }
 
@@ -410,14 +620,13 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     /**
-     * Set the db environment during recovery, after instantiating the database
-     * from the log
+     * Set the db environment after reading in the DatabaseImpl from the log.
      */
     public void setEnvironmentImpl(EnvironmentImpl envImpl)
         throws DatabaseException {
 
         this.envImpl = envImpl;
-        initDefaultSettings();
+        initWithEnvironment();
         tree.setDatabase(this);
     }
 
@@ -450,6 +659,85 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     /**
+     * Called after a handle onto this DB is closed.
+     */
+    public void handleClosed(boolean doSyncDw)
+        throws DatabaseException {
+
+        if (referringHandles.isEmpty()) {
+
+            /*
+             * Remove a temporary database with no handles open.
+             *
+             * We are not synchronized here in any way that would prevent
+             * another thread from opening a handle during this process, before
+             * the NameLN is locked.  So we use noWait locking.  If a lock is
+             * not granted, then another handle was opened and we cannot remove
+             * the database until later.
+             *
+             * We pass the database ID to dbRemove in order to remove the
+             * database only if the name matches the ID.  This accounts for the
+             * remote possibility that the database is renamed or another
+             * database is created with the same name during this process,
+             * before the NameLN is locked.
+             *
+             * We can use a BasicLocker because temporary databases are always
+             * non-transactional.
+             */
+            if (isTemporary()) {
+                Locker locker =
+                    BasicLocker.createBasicLocker(envImpl, true /* noWait */);
+                boolean operationOk = false;
+                try {
+                    envImpl.getDbTree().dbRemove(locker, getName(), getId());
+                    operationOk = true;
+                } catch (LockNotGrantedException e) {
+                    /* We will have to remove this database later. */
+                } catch (Error E) {
+                    envImpl.invalidate(E);
+                    throw E;
+                } finally {
+                    locker.operationEnd(operationOk);
+                }
+            }
+
+            /*
+             * Sync a durable deferred write database with no handles open.  If
+             * a handle is opened during this process, then the sync may be
+             * unnecessary but it will not cause a problem.
+             */
+            if (doSyncDw && isDurableDeferredWrite()) {
+                sync(true);
+            }
+        }
+    }
+
+    /**
+     * Figure out how much memory is used by the DbFileSummaryMap.  Usually
+     * this number is built up over time by the DbFileSummaryMap itself and
+     * added to the memory budget, but in this case we need to reinitialize it
+     * after recovery, when DbFileSummaryMaps may be cut adrift by the process
+     * of overlaying new portions of the btree.
+     */
+    public long getTreeAdminMemory() {
+        return dbFileSummaries.getMemorySize();
+    }
+
+    /**
+     * Update memory budgets when this databaseImpl is closed and will never be
+     * accessed again or when it is still open when its owning MapLN will be
+     * garbage collected, due to eviction or recovery.
+     */
+    public void releaseTreeAdminMemory() {
+        /* 
+         * There's no need to account for INs which belong to this database,
+         * because those are closed by the EnvironmentImpl when clearing 
+         * the INList.  Do adjust memory budget for utilization info.
+         */
+        dbFileSummaries.subtractFromMemoryBudget();
+    }
+
+    /**
      * @return the referring handle count.
      */
     synchronized int getReferringHandleCount() {
@@ -463,10 +751,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * isInUse. [#13415]
      */
     void incrementUseCount() {
-        /* Synchronize to update useCount atomically. */
-        synchronized (this) {
-            useCount += 1;
-        }
+        useCount.incrementAndGet();
     }
 
     /**
@@ -476,11 +761,8 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * isInUse. [#13415]
      */
     void decrementUseCount() {
-        /* Synchronize to update useCount atomically. */
-        synchronized (this) {
-            assert useCount > 0;
-            useCount -= 1;
-        }
+        assert useCount.get() > 0;
+        useCount.decrementAndGet();
     }
 
     /**
@@ -504,10 +786,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * safe to evict it.
      */
     public boolean isInUse() {
-        /* Synchronize to read the up-to-date value of useCount. */
-        synchronized (this) {
-            return (useCount > 0);
-        }
+        return (useCount.get() > 0);
     }
 
     /**
@@ -515,19 +794,16 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * operation.
      */
     boolean isInUseDuringDbRemove() {
-        /* Synchronize to read the up-to-date value of useCount. */
-        synchronized (this) {
 
-            /*
-             * The use count is at least one here, because remove/truncate has
-             * called getDb but releaseDb has not yet been called.  Normally
-             * the database must be closed in order to remove or truncate it
-             * and referringHandles will be empty.  But when the deprecated
-             * Database.truncate is called, the database is open and the use
-             * count includes the number of open handles.  [#15805]
-             */
-            return useCount > 1 + referringHandles.size();
-        }
+        /*
+         * The use count is at least one here, because remove/truncate has
+         * called getDb but releaseDb has not yet been called.  Normally the
+         * database must be closed in order to remove or truncate it and
+         * referringHandles will be empty.  But when the deprecated
+         * Database.truncate is called, the database is open and the use count
+         * includes the number of open handles.  [#15805]
+         */
+        return useCount.get() > 1 + referringHandles.size();
     }
 
     /**
@@ -536,14 +812,15 @@ public class DatabaseImpl implements Loggable, Cloneable {
     public synchronized void sync(boolean flushLog)
         throws DatabaseException {
 
-        if (!isDeferredWrite()) {
-            throw new DatabaseException("Database.sync() is only supported " +
+        if (!isDurableDeferredWrite()) {
+            throw new UnsupportedOperationException
+                ("Database.sync() is only supported " +
                                         "for deferred-write databases");
         }
 
-	if (tree.rootExists()) {
-	    Checkpointer.syncDatabase(envImpl, this, flushLog);
-	}
+        if (tree.rootExists()) {
+            Checkpointer.syncDatabase(envImpl, this, flushLog);
+        }
     }
 
     /**
@@ -554,8 +831,9 @@ public class DatabaseImpl implements Loggable, Cloneable {
     public Database findPrimaryDatabase()
         throws DatabaseException {
 
-        for (Iterator i = referringHandles.iterator(); i.hasNext();) {
-            Object obj = i.next();
+        for (Iterator<Database> i = referringHandles.iterator();
+             i.hasNext();) {
+            Database obj = i.next();
             if (obj instanceof SecondaryDatabase) {
                 return ((SecondaryDatabase) obj).getPrimaryDatabase();
             }
@@ -566,10 +844,69 @@ public class DatabaseImpl implements Loggable, Cloneable {
     public String getName()
         throws DatabaseException {
 
-        return envImpl.getDbMapTree().getDbName(id);
+        return envImpl.getDbTree().getDbName(id);
     }
 
-    /*
+    /**
+     * Returns the DbFileSummary for the given file, allocates it if
+     * necessary and budgeted memory for any changes.
+     *
+     * <p>Must be called under the log write latch.</p>
+     *
+     * @param willModify if true, the caller will modify the utilization info.
+     */
+    public DbFileSummary getDbFileSummary(Long fileNum, boolean willModify) {
+        if (willModify) {
+            dirtyUtilization = true;
+        }
+        assert dbFileSummaries != null;
+        return dbFileSummaries.get(fileNum, true /* adjustMemBudget */);
+    }
+
+    /**
+     * Removes the DbFileSummary for the given file.
+     *
+     * <p>Must be called under the log write latch.</p>
+     *
+     * @return whether a DbFileSummary for the given file was present and was
+     * removed.
+     */
+    public boolean removeDbFileSummary(Long fileNum) {
+        assert dbFileSummaries != null;
+        boolean removed = dbFileSummaries.remove(fileNum);
+        return removed;
+    }
+
+    /**
+     * For unit testing.
+     */
+    public DbFileSummaryMap getDbFileSummaries() {
+        return dbFileSummaries;
+    }
+
+    /**
+     * Returns whether this database has new (unflushed) utilization info.
+     */
+    public boolean isDirtyUtilization() {
+        return dirtyUtilization;
+    }
+
+    /**
+     * Sets utilization dirty in order to force the MapLN to be flushed later.
+     */
+    public void setDirtyUtilization() {
+        dirtyUtilization = true;
+    }
+
+    /**
+     * Returns whether this database's MapLN must be flushed during a
+     * checkpoint.
+     */
+    public boolean isCheckpointNeeded() {
+        return !isDeleted() && (isDirtyUtilization() || isTemporary());
+    }
+
+    /**
      * @return true if this database is deleted. Delete cleanup
      * may still be in progress.
      */
@@ -577,14 +914,14 @@ public class DatabaseImpl implements Loggable, Cloneable {
         return !(deleteState == NOT_DELETED);
     }
 
-    /*
+    /**
      * @return true if this database is deleted and all cleanup is finished.
      */
     public boolean isDeleteFinished() {
         return (deleteState == DELETED);
     }
 
-    /*
+    /**
      * The delete cleanup is starting. Set this before releasing any
      * write locks held for a db operation.
      */
@@ -594,7 +931,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
         deleteState = DELETED_CLEANUP_INLIST_HARVEST;
     }
 
-    /*
+    /**
      * Should be called by the SortedLSNTreeWalker when it is finished with
      * the INList.
      */
@@ -605,90 +942,144 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     /**
-     * Purge a DatabaseImpl and corresponding MapLN in the db mapping tree.
-     * Purging consists of removing all related INs from the db mapping tree
-     * and deleting the related MapLN.
-     * Used at the transaction end in these cases:
+     * Perform the entire two-step database deletion.  This method is used at
+     * non-transactional operation end.  When a transaction is used (see Txn),
+     * startDeleteProcessing is called at commit before releasing write locks
+     * and finishDeleteProcessing is called after releasing write locks.
+     */
+    public void startAndFinishDelete()
+        throws DatabaseException {
+
+        startDeleteProcessing();
+        finishDeleteProcessing();
+    }
+
+    /**
+     * Release the INs for the deleted database, count all log entries for this
+     * database as obsolete, delete the MapLN, and set the state to DELETED.
+     *
+     * Used at transaction end or non-transactional operation end in these
+     * cases:
      *  - purge the deleted database after a commit of
      *           Environment.removeDatabase
      *  - purge the deleted database after a commit of
      *           Environment.truncateDatabase
      *  - purge the newly created database after an abort of
      *           Environment.truncateDatabase
+     *
+     * Note that the processing of the naming tree means the MapLN is never
+     * actually accessible from the current tree, but deleting the MapLN will
+     * do two things:
+     * (a) mark it properly obsolete
+     * (b) null out the database tree, leaving the INList the only
+     * reference to the INs.
      */
-    public void deleteAndReleaseINs()
+    public void finishDeleteProcessing()
         throws DatabaseException {
 
-        startDeleteProcessing();
-        releaseDeletedINs();
-    }
-
-    public void releaseDeletedINs()
-        throws DatabaseException {
-
-        if (pendingDeletedHook != null) {
-            pendingDeletedHook.doHook();
-        }
+        assert TestHookExecute.doHookIfSet(pendingDeletedHook);
 
         try {
+            /* Fetch utilization info if it was evicted. */
+            if (dbFileSummaries == null) {
+                assert false; // Fetch evicted info when we implement eviction
+            }
 
             /*
-             * Get the root LSN before deleting the MapLN, as that will null
-             * out the root.
+             * Delete MapLN before the walk.  Get the root LSN before deleting
+             * the MapLN, as that will null out the root.
              */
             long rootLsn = tree.getRootLsn();
 
-
             /*
-             * Use a snapshot tracker that is accumulated under the log write
-             * latch when we're doing counting.  Start by recording the LSN of
-             * the root IN as obsolete.  A zero size is passed for the last
-             * parameter because it is too expensive to fetch the node.
+             * Grab the in-cache root IN before we call deleteMapLN so that it
+             * gives us a starting point for the SortedLSNTreeWalk below.  The
+             * on-disk version is obsolete at this point.
              */
-            UtilizationTracker snapshot = new UtilizationTracker(envImpl);
-            if (rootLsn != DbLsn.NULL_LSN) {
-                snapshot.countObsoleteNodeInexact
-                    (rootLsn, LogEntryType.LOG_IN, 0);
+            IN rootIN = tree.getResidentRootIN(false);
+            envImpl.getDbTree().deleteMapLN(id);
+
+            if (createdAtLogVersion >= 6 &&
+                !forceTreeWalkForTruncateAndRemove) {
+
+                /*
+                 * For databases created at log version 6 or after, the
+                 * per-database utilization info is complete and can be counted
+                 * as obsolete without walking the database.
+                 *
+                 * We do not need to flush modified file summaries because the
+                 * obsolete amounts are logged along with the deleted MapLN and
+                 * will be re-counted by recovery if necessary.
+                 */
+                envImpl.getLogManager().countObsoleteDb(this);
+            } else {
+
+                /*
+                 * For databases created prior to log version 6, the
+                 * per-database utilization info is incomplete.  Use the old
+                 * method of counting utilization via SortedLSNTreeWalker.
+                 *
+                 * Use a local tracker that is accumulated under the log write
+                 * latch when we're done counting.  Start by recording the LSN
+                 * of the root IN as obsolete.
+                 */
+                LocalUtilizationTracker localTracker =
+                    new LocalUtilizationTracker(envImpl);
+                if (rootLsn != DbLsn.NULL_LSN) {
+                    localTracker.countObsoleteNodeInexact
+                        (rootLsn, LogEntryType.LOG_IN, 0, this);
+                }
+
+                /* Fetch LNs to count LN sizes only if so configured. */
+                boolean fetchLNSize =
+                    envImpl.getCleaner().getFetchObsoleteSize();
+
+                /* Use the tree walker to visit every child LSN in the tree. */
+                ObsoleteProcessor obsoleteProcessor =
+                    new ObsoleteProcessor(this, localTracker);
+                SortedLSNTreeWalker walker = new ObsoleteTreeWalker
+                    (this, rootLsn, fetchLNSize, obsoleteProcessor, rootIN);
+
+                /*
+                 * At this point, it's possible for the evictor to find an IN
+                 * for this database on the INList. It should be ignored.
+                 */
+                walker.walk();
+
+                /*
+                 * Count obsolete nodes for a deleted database at transaction
+                 * end time.  Write out the modified file summaries for
+                 * recovery.
+                 */
+                envImpl.getUtilizationProfile().flushLocalTracker
+                    (localTracker);
             }
 
-            /* Fetch LNs to count LN sizes only if so configured. */
-            boolean fetchLNSize =
-                envImpl.getCleaner().getFetchObsoleteSize();
-
-            /* Use the tree walker to visit every child lsn in the tree. */
-            ObsoleteProcessor obsoleteProcessor =
-                new ObsoleteProcessor(snapshot);
-            SortedLSNTreeWalker walker = new ObsoleteTreeWalker
-                (this, rootLsn, fetchLNSize, obsoleteProcessor);
-
-            /*
-             * Delete MapLN before the walk. Note that the processing of
-             * the naming tree means this MapLN is never actually
-             * accessible from the current tree, but deleting the MapLN
-             * will do two things:
-             * (a) mark it properly obsolete
-             * (b) null out the database tree, leaving the INList the only
-             * reference to the INs.
-             */
-            envImpl.getDbMapTree().deleteMapLN(id);
-
-            /*
-             * At this point, it's possible for the evictor to find an IN
-             * for this database on the INList. It should be ignored.
-             */
-            walker.walk();
-
-            /*
-             * Count obsolete nodes for a deleted database at transaction
-             * end time.  Write out the modified file summaries for
-             * recovery.
-             */
-            envImpl.getUtilizationProfile().countAndLogSummaries
-                (snapshot.getTrackedFiles());
+            /* Remove all INs for this database from the INList. */
+            MemoryBudget mb = envImpl.getMemoryBudget();
+            INList inList = envImpl.getInMemoryINs();
+            long memoryChange = 0;
+            try {
+                Iterator<IN> iter = inList.iterator();
+                while (iter.hasNext()) {
+                    IN thisIN = iter.next();
+                    if (thisIN.getDatabase() == this) {
+                        iter.remove();
+                        memoryChange +=
+                            (0 - thisIN.getBudgetedMemorySize());
+                        thisIN.setInListResident(false);
+                    }
+                }
+            } finally {
+                mb.updateTreeMemoryUsage(memoryChange);
+            }
         } finally {
+            /* Adjust memory budget for utilization info. */
+            dbFileSummaries.subtractFromMemoryBudget();
+
             deleteState = DELETED;
             /* releaseDb to balance getDb called by truncate/remove. */
-            envImpl.releaseDb(this);
+            envImpl.getDbTree().releaseDb(this);
         }
     }
 
@@ -701,40 +1092,74 @@ public class DatabaseImpl implements Loggable, Cloneable {
         }
     }
 
+    /**
+     * Counts all active LSNs in a database as obsolete.
+     *
+     * @param mapLnLsn is the LSN of the MapLN when called via recovery,
+     * otherwise is NULL_LSN.
+     *
+     * <p>Must be called under the log write latch or during recovery.</p>
+     */
+    public void countObsoleteDb(BaseUtilizationTracker tracker,
+                                long mapLnLsn) {
+        /*
+         * Even though the check for createdAtLogVersion and
+         * forceTreeWalkForTruncateAndRemove is made in finishDeleteProcessing
+         * before calling this method, we must repeat the check here because
+         * this method is also called by recovery.
+         */
+        if (createdAtLogVersion >= 6 && !forceTreeWalkForTruncateAndRemove) {
+            tracker.countObsoleteDb(dbFileSummaries, mapLnLsn);
+        }
+    }
+
     private static class ObsoleteTreeWalker extends SortedLSNTreeWalker {
+
+        private IN rootIN;
 
         private ObsoleteTreeWalker(DatabaseImpl dbImpl,
                                    long rootLsn,
                                    boolean fetchLNSize,
-                                   TreeNodeProcessor callback)
+                                   TreeNodeProcessor callback,
+                                   IN rootIN)
             throws DatabaseException {
 
             super(dbImpl,
-                  true,  // remove INs from INList
                   true,  // set INList finish harvest
                   rootLsn,
                   callback,
                   null,  /* savedException */
                   null); /* exception predicate */
 
-	    accumulateLNs = fetchLNSize;
+            accumulateLNs = fetchLNSize;
+            this.rootIN = rootIN;
+        }
+
+        @Override
+        protected IN getResidentRootIN()
+            throws DatabaseException {
+
+            return rootIN;
         }
     }
 
     /* Mark each LSN obsolete in the utilization tracker. */
     private static class ObsoleteProcessor implements TreeNodeProcessor {
 
-        private UtilizationTracker tracker;
+        private LocalUtilizationTracker localTracker;
+        private DatabaseImpl db;
 
-        ObsoleteProcessor(UtilizationTracker tracker) {
-            this.tracker = tracker;
+        ObsoleteProcessor(DatabaseImpl db,
+                          LocalUtilizationTracker localTracker) {
+            this.db = db;
+            this.localTracker = localTracker;
         }
 
         public void processLSN(long childLsn,
-			       LogEntryType childType,
-			       Node node,
+                               LogEntryType childType,
+                               Node node,
                                byte[] lnKey)
-	    throws DatabaseException {
+            throws DatabaseException {
 
             assert childLsn != DbLsn.NULL_LSN;
 
@@ -749,11 +1174,12 @@ public class DatabaseImpl implements Loggable, Cloneable {
                 size = ln.getLastLoggedSize();
             }
 
-            tracker.countObsoleteNodeInexact(childLsn, childType, size);
+            localTracker.countObsoleteNodeInexact
+                (childLsn, childType, size, db);
         }
 
         public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
-	    throws DatabaseException {
+            throws DatabaseException {
 
             assert ln != null;
 
@@ -761,11 +1187,12 @@ public class DatabaseImpl implements Loggable, Cloneable {
              * Do not count the size (pass zero) because the LN is dirty and
              * the logged LN is not available.
              */
-            tracker.countObsoleteNodeInexact(childLsn, ln.getLogType(), 0);
+            localTracker.countObsoleteNodeInexact
+                (childLsn, ln.getLogType(), 0, db);
         }
 
-	public void processDupCount(long ignore) {
-	}
+        public void processDupCount(int ignore) {
+        }
     }
 
     public DatabaseStats stat(StatsConfig config)
@@ -790,11 +1217,11 @@ public class DatabaseImpl implements Loggable, Cloneable {
                 out = System.err;
             }
 
-	    StatsAccumulator statsAcc =
-		new StatsAccumulator(out,
-				     config.getShowProgressInterval(),
+            StatsAccumulator statsAcc =
+                new StatsAccumulator(out,
+                                     config.getShowProgressInterval(),
                                      getEmptyStats());
-	    walkDatabaseTree(statsAcc, out, true);
+            walkDatabaseTree(statsAcc, out, true);
             statsAcc.copyToStats(stats);
         }
 
@@ -809,30 +1236,30 @@ public class DatabaseImpl implements Loggable, Cloneable {
     public boolean verify(VerifyConfig config, DatabaseStats emptyStats)
         throws DatabaseException {
 
-	if (tree == null) {
-	    return true;
-	}
+        if (tree == null) {
+            return true;
+        }
 
-	PrintStream out = config.getShowProgressStream();
-	if (out == null) {
-	    out = System.err;
-	}
+        PrintStream out = config.getShowProgressStream();
+        if (out == null) {
+            out = System.err;
+        }
 
-	StatsAccumulator statsAcc =
-	    new StatsAccumulator(out,
+        StatsAccumulator statsAcc =
+            new StatsAccumulator(out,
                                  config.getShowProgressInterval(),
                                  emptyStats) {
-		    void verifyNode(Node node) {
+                    void verifyNode(Node node) {
 
-			try {
-			    node.verify(null);
-			} catch (DatabaseException INE) {
-			    progressStream.println(INE);
-			}
-		    }
-		};
-	boolean ok = walkDatabaseTree(statsAcc, out, config.getPrintInfo());
-	statsAcc.copyToStats(emptyStats);
+                        try {
+                            node.verify(null);
+                        } catch (DatabaseException INE) {
+                            progressStream.println(INE);
+                        }
+                    }
+                };
+        boolean ok = walkDatabaseTree(statsAcc, out, config.getPrintInfo());
+        statsAcc.copyToStats(emptyStats);
         return ok;
     }
 
@@ -850,48 +1277,61 @@ public class DatabaseImpl implements Loggable, Cloneable {
         throws DatabaseException {
 
         boolean ok = true;
-        Locker locker = new ThreadLocker(envImpl);
-        Cursor cursor = null;
-	CursorImpl impl = null;
+        Locker locker = BasicLocker.createBasicLocker(envImpl);
+	CursorImpl cursor = null;
+
         try {
 	    EnvironmentImpl.incThreadLocalReferenceCount();
-            cursor = DbInternal.newCursor(this, locker, null);
-	    impl = DbInternal.getCursorImpl(cursor);
+            cursor = new CursorImpl(this, locker);
 	    tree.setTreeStatsAccumulator(statsAcc);
 
 	    /*
 	     * This will only be used on the first call for the position()
 	     * call.
 	     */
-	    impl.setTreeStatsAccumulator(statsAcc);
+	    cursor.setTreeStatsAccumulator(statsAcc);
             DatabaseEntry foundData = new DatabaseEntry();
             DatabaseEntry key = new DatabaseEntry();
-            OperationStatus status = DbInternal.position
-                (cursor, key, foundData, LockMode.READ_UNCOMMITTED, true);
-            while (status == OperationStatus.SUCCESS) {
-		try {
-		    status = DbInternal.retrieveNext
-			(cursor, key, foundData, LockMode.READ_UNCOMMITTED,
-			 GetMode.NEXT);
-		} catch (DatabaseException DBE) {
-                    ok = false;
-		    if (DbInternal.advanceCursor(cursor, key, foundData)) {
-                        if (verbose) {
-                            out.println("Error encountered (continuing):");
-                            out.println(DBE);
-                            printErrorRecord(out, key, foundData);
-                        }
-                    } else {
-                        throw DBE;
+
+            if (cursor.positionFirstOrLast
+                    (true /*first*/, null /*duplicateRoot*/)) {
+                OperationStatus status = cursor.getCurrentAlreadyLatched
+                    (key, foundData, LockType.NONE, true /*first*/);
+                if (status == OperationStatus.SUCCESS) {
+                    if (cursor.getDupBIN() != null) {
+                        cursor.incrementLNCount();
                     }
-		}
+                }
+                boolean done = false;
+                while (!done) {
+                    try {
+                        status = cursor.getNext
+                            (key, foundData, LockType.NONE, true /*forward*/,
+                             false /*alreadyLatched*/);
+                    } catch (DatabaseException e) {
+                        ok = false;
+                        if (cursor.advanceCursor(key, foundData)) {
+                            if (verbose) {
+                                out.println("Error encountered (continuing):");
+                                out.println(e);
+                                printErrorRecord(out, key, foundData);
+                            }
+                        } else {
+                            throw e;
+                        }
+                    }
+                    if (status != OperationStatus.SUCCESS) {
+                        done = true;
+                    }
+                }
             }
         } finally {
-	    if (impl != null) {
-		impl.setTreeStatsAccumulator(null);
+	    if (cursor != null) {
+		cursor.setTreeStatsAccumulator(null);
 	    }
 	    tree.setTreeStatsAccumulator(null);
 	    EnvironmentImpl.decThreadLocalReferenceCount();
+
             if (cursor != null) {
                 cursor.close();
             }
@@ -933,184 +1373,184 @@ public class DatabaseImpl implements Loggable, Cloneable {
     }
 
     static class StatsAccumulator implements TreeWalkerStatsAccumulator {
-	private Set inNodeIdsSeen = new HashSet();
-	private Set binNodeIdsSeen = new HashSet();
-	private Set dinNodeIdsSeen = new HashSet();
-	private Set dbinNodeIdsSeen = new HashSet();
-	private Set dupCountLNsSeen = new HashSet();
-	private long[] insSeenByLevel = null;
-	private long[] binsSeenByLevel = null;
-	private long[] dinsSeenByLevel = null;
-	private long[] dbinsSeenByLevel = null;
-	private long lnCount = 0;
-	private long deletedLNCount = 0;
-	private int mainTreeMaxDepth = 0;
-	private int duplicateTreeMaxDepth = 0;
-	private DatabaseStats useStats;
+        private Set<Long> inNodeIdsSeen = new HashSet<Long>();
+        private Set<Long> binNodeIdsSeen = new HashSet<Long>();
+        private Set<Long> dinNodeIdsSeen = new HashSet<Long>();
+        private Set<Long> dbinNodeIdsSeen = new HashSet<Long>();
+        private Set<Long> dupCountLNsSeen = new HashSet<Long>();
+        private long[] insSeenByLevel = null;
+        private long[] binsSeenByLevel = null;
+        private long[] dinsSeenByLevel = null;
+        private long[] dbinsSeenByLevel = null;
+        private long lnCount = 0;
+        private long deletedLNCount = 0;
+        private int mainTreeMaxDepth = 0;
+        private int duplicateTreeMaxDepth = 0;
+        private DatabaseStats useStats;
 
-	PrintStream progressStream;
-	int progressInterval;
+        PrintStream progressStream;
+        int progressInterval;
 
-	/* The max levels we ever expect to see in a tree. */
-	private static final int MAX_LEVELS = 100;
+        /* The max levels we ever expect to see in a tree. */
+        private static final int MAX_LEVELS = 100;
 
-	StatsAccumulator(PrintStream progressStream,
-			 int progressInterval,
+        StatsAccumulator(PrintStream progressStream,
+                         int progressInterval,
                          DatabaseStats useStats) {
 
-	    this.progressStream = progressStream;
-	    this.progressInterval = progressInterval;
+            this.progressStream = progressStream;
+            this.progressInterval = progressInterval;
 
-	    insSeenByLevel = new long[MAX_LEVELS];
-	    binsSeenByLevel = new long[MAX_LEVELS];
-	    dinsSeenByLevel = new long[MAX_LEVELS];
-	    dbinsSeenByLevel = new long[MAX_LEVELS];
-	
-	    this.useStats = useStats;
-	}
+            insSeenByLevel = new long[MAX_LEVELS];
+            binsSeenByLevel = new long[MAX_LEVELS];
+            dinsSeenByLevel = new long[MAX_LEVELS];
+            dbinsSeenByLevel = new long[MAX_LEVELS];
+        
+            this.useStats = useStats;
+        }
 
-	void verifyNode(Node node) {
+        void verifyNode(Node node) {
 
-	}
+        }
 
-	public void processIN(IN node, Long nid, int level) {
-	    if (inNodeIdsSeen.add(nid)) {
-		tallyLevel(level, insSeenByLevel);
-		verifyNode(node);
-	    }
-	}
+        public void processIN(IN node, Long nid, int level) {
+            if (inNodeIdsSeen.add(nid)) {
+                tallyLevel(level, insSeenByLevel);
+                verifyNode(node);
+            }
+        }
 
-	public void processBIN(BIN node, Long nid, int level) {
-	    if (binNodeIdsSeen.add(nid)) {
-		tallyLevel(level, binsSeenByLevel);
-		verifyNode(node);
-	    }
-	}
+        public void processBIN(BIN node, Long nid, int level) {
+            if (binNodeIdsSeen.add(nid)) {
+                tallyLevel(level, binsSeenByLevel);
+                verifyNode(node);
+            }
+        }
 
-	public void processDIN(DIN node, Long nid, int level) {
-	    if (dinNodeIdsSeen.add(nid)) {
-		tallyLevel(level, dinsSeenByLevel);
-		verifyNode(node);
-	    }
-	}
+        public void processDIN(DIN node, Long nid, int level) {
+            if (dinNodeIdsSeen.add(nid)) {
+                tallyLevel(level, dinsSeenByLevel);
+                verifyNode(node);
+            }
+        }
 
-	public void processDBIN(DBIN node, Long nid, int level) {
-	    if (dbinNodeIdsSeen.add(nid)) {
-		tallyLevel(level, dbinsSeenByLevel);
-		verifyNode(node);
-	    }
-	}
+        public void processDBIN(DBIN node, Long nid, int level) {
+            if (dbinNodeIdsSeen.add(nid)) {
+                tallyLevel(level, dbinsSeenByLevel);
+                verifyNode(node);
+            }
+        }
 
-	public void processDupCountLN(DupCountLN node, Long nid) {
-	    dupCountLNsSeen.add(nid);
-	    verifyNode(node);
-	}
+        public void processDupCountLN(DupCountLN node, Long nid) {
+            dupCountLNsSeen.add(nid);
+            verifyNode(node);
+        }
 
-	private void tallyLevel(int levelArg, long[] nodesSeenByLevel) {
-	    int level = levelArg;
-	    if (level >= IN.DBMAP_LEVEL) {
-		return;
-	    }
-	    if (level >= IN.MAIN_LEVEL) {
-		level &= ~IN.MAIN_LEVEL;
-		if (level > mainTreeMaxDepth) {
-		    mainTreeMaxDepth = level;
-		}
-	    } else {
-		if (level > duplicateTreeMaxDepth) {
-		    duplicateTreeMaxDepth = level;
-		}
-	    }
+        private void tallyLevel(int levelArg, long[] nodesSeenByLevel) {
+            int level = levelArg;
+            if (level >= IN.DBMAP_LEVEL) {
+                return;
+            }
+            if (level >= IN.MAIN_LEVEL) {
+                level &= ~IN.MAIN_LEVEL;
+                if (level > mainTreeMaxDepth) {
+                    mainTreeMaxDepth = level;
+                }
+            } else {
+                if (level > duplicateTreeMaxDepth) {
+                    duplicateTreeMaxDepth = level;
+                }
+            }
 
-	    nodesSeenByLevel[level]++;
-	}
+            nodesSeenByLevel[level]++;
+        }
 
-	public void incrementLNCount() {
-	    lnCount++;
-	    if (progressInterval != 0) {
-		if ((lnCount % progressInterval) == 0) {
+        public void incrementLNCount() {
+            lnCount++;
+            if (progressInterval != 0) {
+                if ((lnCount % progressInterval) == 0) {
                     copyToStats(useStats);
-		    progressStream.println(useStats);
-		}
-	    }
-	}
+                    progressStream.println(useStats);
+                }
+            }
+        }
 
-	public void incrementDeletedLNCount() {
-	    deletedLNCount++;
-	}
+        public void incrementDeletedLNCount() {
+            deletedLNCount++;
+        }
 
-	Set getINNodeIdsSeen() {
-	    return inNodeIdsSeen;
-	}
+        Set<Long> getINNodeIdsSeen() {
+            return inNodeIdsSeen;
+        }
 
-	Set getBINNodeIdsSeen() {
-	    return binNodeIdsSeen;
-	}
+        Set<Long> getBINNodeIdsSeen() {
+            return binNodeIdsSeen;
+        }
 
-	Set getDINNodeIdsSeen() {
-	    return dinNodeIdsSeen;
-	}
+        Set<Long> getDINNodeIdsSeen() {
+            return dinNodeIdsSeen;
+        }
 
-	Set getDBINNodeIdsSeen() {
-	    return dbinNodeIdsSeen;
-	}
+        Set<Long> getDBINNodeIdsSeen() {
+            return dbinNodeIdsSeen;
+        }
 
-	long[] getINsByLevel() {
-	    return insSeenByLevel;
-	}
+        long[] getINsByLevel() {
+            return insSeenByLevel;
+        }
 
-	long[] getBINsByLevel() {
-	    return binsSeenByLevel;
-	}
+        long[] getBINsByLevel() {
+            return binsSeenByLevel;
+        }
 
-	long[] getDINsByLevel() {
-	    return dinsSeenByLevel;
-	}
+        long[] getDINsByLevel() {
+            return dinsSeenByLevel;
+        }
 
-	long[] getDBINsByLevel() {
-	    return dbinsSeenByLevel;
-	}
+        long[] getDBINsByLevel() {
+            return dbinsSeenByLevel;
+        }
 
-	long getLNCount() {
-	    return lnCount;
-	}
+        long getLNCount() {
+            return lnCount;
+        }
 
-	Set getDupCountLNCount() {
-	    return dupCountLNsSeen;
-	}
+        Set<Long> getDupCountLNCount() {
+            return dupCountLNsSeen;
+        }
 
-	long getDeletedLNCount() {
-	    return deletedLNCount;
-	}
+        long getDeletedLNCount() {
+            return deletedLNCount;
+        }
 
-	int getMainTreeMaxDepth() {
-	    return mainTreeMaxDepth;
-	}
+        int getMainTreeMaxDepth() {
+            return mainTreeMaxDepth;
+        }
 
-	int getDuplicateTreeMaxDepth() {
-	    return duplicateTreeMaxDepth;
-	}
+        int getDuplicateTreeMaxDepth() {
+            return duplicateTreeMaxDepth;
+        }
 
-	private void copyToStats(DatabaseStats stats) {
+        private void copyToStats(DatabaseStats stats) {
             BtreeStats bStats = (BtreeStats) stats;
-	    bStats.setInternalNodeCount(getINNodeIdsSeen().size());
-	    bStats.setBottomInternalNodeCount
-		(getBINNodeIdsSeen().size());
-	    bStats.setDuplicateInternalNodeCount
-		(getDINNodeIdsSeen().size());
-	    bStats.setDuplicateBottomInternalNodeCount
-		(getDBINNodeIdsSeen().size());
-	    bStats.setLeafNodeCount(getLNCount());
-	    bStats.setDeletedLeafNodeCount(getDeletedLNCount());
-	    bStats.setDupCountLeafNodeCount
-		(getDupCountLNCount().size());
-	    bStats.setMainTreeMaxDepth(getMainTreeMaxDepth());
-	    bStats.setDuplicateTreeMaxDepth(getDuplicateTreeMaxDepth());
-	    bStats.setINsByLevel(getINsByLevel());
-	    bStats.setBINsByLevel(getBINsByLevel());
-	    bStats.setDINsByLevel(getDINsByLevel());
-	    bStats.setDBINsByLevel(getDBINsByLevel());
-	}
+            bStats.setInternalNodeCount(getINNodeIdsSeen().size());
+            bStats.setBottomInternalNodeCount
+                (getBINNodeIdsSeen().size());
+            bStats.setDuplicateInternalNodeCount
+                (getDINNodeIdsSeen().size());
+            bStats.setDuplicateBottomInternalNodeCount
+                (getDBINNodeIdsSeen().size());
+            bStats.setLeafNodeCount(getLNCount());
+            bStats.setDeletedLeafNodeCount(getDeletedLNCount());
+            bStats.setDupCountLeafNodeCount
+                (getDupCountLNCount().size());
+            bStats.setMainTreeMaxDepth(getMainTreeMaxDepth());
+            bStats.setDuplicateTreeMaxDepth(getDuplicateTreeMaxDepth());
+            bStats.setINsByLevel(getINsByLevel());
+            bStats.setBINsByLevel(getBINsByLevel());
+            bStats.setDINsByLevel(getDINsByLevel());
+            bStats.setDBINsByLevel(getDBINsByLevel());
+        }
     }
 
     /**
@@ -1121,160 +1561,175 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * Undeclared exception used to throw through SortedLSNTreeWalker code
      * when preload has either filled the user's max byte or time request.
      */
+    @SuppressWarnings("serial")
     private static class HaltPreloadException extends RuntimeException {
 
-	private PreloadStatus status;
+        private PreloadStatus status;
 
-	HaltPreloadException(PreloadStatus status) {
-	    super(status.toString());
-	    this.status = status;
-	}
+        HaltPreloadException(PreloadStatus status) {
+            super(status.toString());
+            this.status = status;
+        }
 
-	PreloadStatus getStatus() {
-	    return status;
-	}
+        PreloadStatus getStatus() {
+            return status;
+        }
     }
 
     private static final HaltPreloadException
-	TIME_EXCEEDED_PRELOAD_EXCEPTION =
-	new HaltPreloadException(PreloadStatus.EXCEEDED_TIME);
+        TIME_EXCEEDED_PRELOAD_EXCEPTION =
+        new HaltPreloadException(PreloadStatus.EXCEEDED_TIME);
 
     private static final HaltPreloadException
-	MEMORY_EXCEEDED_PRELOAD_EXCEPTION =
-	new HaltPreloadException(PreloadStatus.FILLED_CACHE);
+        MEMORY_EXCEEDED_PRELOAD_EXCEPTION =
+        new HaltPreloadException(PreloadStatus.FILLED_CACHE);
 
     /**
      * The processLSN() code for PreloadLSNTreeWalker.
      */
     private static class PreloadProcessor implements TreeNodeProcessor {
 
-	private EnvironmentImpl envImpl;
-	private long maxBytes;
-	private long targetTime;
-	private PreloadStats stats;
+        private EnvironmentImpl envImpl;
+        private long maxBytes;
+        private long targetTime;
+        private PreloadStats stats;
 
-	PreloadProcessor(EnvironmentImpl envImpl,
-			 long maxBytes,
-			 long targetTime,
-			 PreloadStats stats) {
-	    this.envImpl = envImpl;
-	    this.maxBytes = maxBytes;
-	    this.targetTime = targetTime;
-	    this.stats = stats;
-	}
+        PreloadProcessor(EnvironmentImpl envImpl,
+                         long maxBytes,
+                         long targetTime,
+                         PreloadStats stats) {
+            this.envImpl = envImpl;
+            this.maxBytes = maxBytes;
+            this.targetTime = targetTime;
+            this.stats = stats;
+        }
 
-	/**
-	 * Called for each LSN that the SortedLSNTreeWalker encounters.
-	 */
+        /**
+         * Called for each LSN that the SortedLSNTreeWalker encounters.
+         */
         public void processLSN(long childLsn,
-			       LogEntryType childType,
-			       Node ignore,
-			       byte[] ignore2)
-	    throws DatabaseException {
+                               LogEntryType childType,
+                               Node ignore,
+                               byte[] ignore2)
+            throws DatabaseException {
 
             assert childLsn != DbLsn.NULL_LSN;
 
-	    /*
-	     * Check if we've exceeded either the max time or max bytes
-	     * allowed for this preload() call.
-	     */
-	    if (System.currentTimeMillis() > targetTime) {
-		throw TIME_EXCEEDED_PRELOAD_EXCEPTION;
-	    }
+            /*
+             * Check if we've exceeded either the max time or max bytes
+             * allowed for this preload() call.
+             */
+            if (System.currentTimeMillis() > targetTime) {
+                throw TIME_EXCEEDED_PRELOAD_EXCEPTION;
+            }
 
-	    if (envImpl.getMemoryBudget().getCacheMemoryUsage() > maxBytes) {
-		throw MEMORY_EXCEEDED_PRELOAD_EXCEPTION;
-	    }
+            if (envImpl.getMemoryBudget().getCacheMemoryUsage() > maxBytes) {
+                throw MEMORY_EXCEEDED_PRELOAD_EXCEPTION;
+            }
 
-	    /* Count entry types to return in the PreloadStats. */
-	    if (childType.equals(LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL) ||
-		childType.equals(LogEntryType.LOG_DUPCOUNTLN)) {
-		stats.nDupCountLNsLoaded++;
-	    } else if (childType.equals(LogEntryType.LOG_LN_TRANSACTIONAL) ||
-		       childType.equals(LogEntryType.LOG_LN)) {
-		stats.nLNsLoaded++;
+            /* Count entry types to return in the PreloadStats. */
+            if (childType.equals(LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL) ||
+                childType.equals(LogEntryType.LOG_DUPCOUNTLN)) {
+                stats.incDupCountLNsLoaded();
+            } else if (childType.equals(LogEntryType.LOG_LN_TRANSACTIONAL) ||
+                       childType.equals(LogEntryType.LOG_LN)) {
+                stats.incLNsLoaded();
             } else if (childType.equals(LogEntryType.LOG_DBIN)) {
-		stats.nDBINsLoaded++;
-	    } else if (childType.equals(LogEntryType.LOG_BIN)) {
-		stats.nBINsLoaded++;
-	    } else if (childType.equals(LogEntryType.LOG_DIN)) {
-		stats.nDINsLoaded++;
-	    } else if (childType.equals(LogEntryType.LOG_IN)) {
-		stats.nINsLoaded++;
-	    }
+                stats.incDBINsLoaded();
+            } else if (childType.equals(LogEntryType.LOG_BIN)) {
+                stats.incBINsLoaded();
+            } else if (childType.equals(LogEntryType.LOG_DIN)) {
+                stats.incDINsLoaded();
+            } else if (childType.equals(LogEntryType.LOG_IN)) {
+                stats.incINsLoaded();
+            }
         }
 
         public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
-	    throws DatabaseException {
+            throws DatabaseException {
         }
 
-	public void processDupCount(long ignore) {
-	}
+        public void processDupCount(int ignore) {
+        }
     }
 
     /*
      * An extension of SortedLSNTreeWalker that provides an LSN to IN/index
      * map.  When an LSN is processed by the tree walker, the map is used to
      * lookup the parent IN and child entry index of each LSN processed by the
-     * tree walker.
+     * tree walker.  Since fetchLSN is called with an arbitrary LSN, and since
+     * when we fetch (for preload) we need to setup the parent to refer to
+     * the node which we are prefetching, we need to have the parent in hand
+     * at the time of the fetch.  This map allows us to fetch that parent
+     * so that we can call fetchNode on that parent.
      */
     private static class PreloadLSNTreeWalker extends SortedLSNTreeWalker {
 
-	/* LSN -> INEntry */
-	private Map lsnINMap = new HashMap();
+        /* LSN -> INEntry */
+        private Map<Long,INEntry> lsnINMap = new HashMap<Long,INEntry>();
 
-	/* struct to hold IN/entry-index pair. */
-	private static class INEntry {
-	    INEntry(IN in, int index) {
-		this.in = in;
-		this.index = index;
-	    }
+        /* struct to hold IN/entry-index pair. */
+        private static class INEntry {
+            INEntry(IN in, int index) {
+                this.in = in;
+                this.index = index;
+            }
 
-	    IN in;
-	    int index;
+            IN in;
+            int index;
+        }
+
+        PreloadLSNTreeWalker(DatabaseImpl db,
+                             TreeNodeProcessor callback,
+                             PreloadConfig conf)
+            throws DatabaseException {
+
+            super(db, false /* setDbState */, db.tree.getRootLsn(), callback,
+                  null, null); /* savedException, exception predicate */
+            accumulateLNs = conf.getLoadLNs();
+        }
+
+        private final class PreloadWithRootLatched
+            implements WithRootLatched {
+
+            public IN doWork(ChildReference root)
+                throws DatabaseException {
+
+                walkInternal();
+                return null;
+            }
+        }
+
+        @Override
+        public void walk()
+            throws DatabaseException {
+
+            WithRootLatched preloadWRL = new PreloadWithRootLatched();
+            dbImpl.getTree().withRootLatchedExclusive(preloadWRL);
+        }
+
+        /*
+         * Method to get the Root IN for this DatabaseImpl's tree.  Latches
+         * the root IN.
+         */
+        @Override
+        protected IN getRootIN(long rootLsn)
+            throws DatabaseException {
+
+	    return dbImpl.getTree().getRootIN(CacheMode.UNCHANGED);
 	}
 
-	PreloadLSNTreeWalker(DatabaseImpl db,
-			     TreeNodeProcessor callback,
-			     PreloadConfig conf)
+        @Override
+	protected IN getResidentRootIN()
 	    throws DatabaseException {
 
-	    super(db, false, false, db.tree.getRootLsn(), callback,
-		  null, null); /* savedException, exception predicate */
-	    accumulateLNs = conf.getLoadLNs();
-	}
-
-	private final class PreloadWithRootLatched
-	    implements WithRootLatched {
-
-	    public IN doWork(ChildReference root)
-		throws DatabaseException {
-
-		walkInternal();
-		return null;
-	    }
-	}
-
-	public void walk()
-	    throws DatabaseException {
-
-	    WithRootLatched preloadWRL = new PreloadWithRootLatched();
-	    dbImpl.getTree().withRootLatchedExclusive(preloadWRL);
-	}
-
-	/*
-	 * Method to get the Root IN for this DatabaseImpl's tree.  Latches
-	 * the root IN.
-	 */
-	protected IN getRootIN(long rootLsn)
-	    throws DatabaseException {
-
-	    return dbImpl.getTree().getRootIN(false);
+	    return dbImpl.getTree().getResidentRootIN(true);
 	}
 
 	/*
 	 * Release the latch on the root IN.
 	 */
+        @Override
 	protected void releaseRootIN(IN root)
 	    throws DatabaseException {
 
@@ -1284,6 +1739,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
 	/*
 	 * Add an LSN -> IN/index entry to the map.
 	 */
+        @Override
 	protected void addToLsnINMap(Long lsn, IN in, int index) {
 	    assert in.getDatabase() != null;
 	    lsnINMap.put(lsn, new INEntry(in, index));
@@ -1296,16 +1752,21 @@ public class DatabaseImpl implements Loggable, Cloneable {
          *
          * We do not bother to set the lnkeyEntry because we never use the
          * lnKey parameter in the processLSN method.
-	 */
-	protected Node fetchLSN(long lsn, DatabaseEntry lnKeyEntry)
-	    throws DatabaseException {
+         */
+        @Override
+        protected Node fetchLSN(long lsn, DatabaseEntry lnKeyEntry)
+            throws DatabaseException {
 
-	    INEntry inEntry = (INEntry) lsnINMap.remove(new Long(lsn));
-	    assert (inEntry != null);
-	    IN in = inEntry.in;
-	    in.latch();
-	    try {
-		int index = inEntry.index;
+            INEntry inEntry = (INEntry) lsnINMap.remove(Long.valueOf(lsn));
+            assert (inEntry != null) : DbLsn.getNoFormatString(lsn);
+            IN in = inEntry.in;
+            boolean isLatchedAlready = in.isLatchOwnerForWrite();
+            if (!isLatchedAlready) {
+                in.latch();
+            }
+
+            try {
+                int index = inEntry.index;
                 if (index < 0) {
                     /* Negative index signifies a DupCountLN. */
                     DIN din = (DIN) in;
@@ -1315,56 +1776,59 @@ public class DatabaseImpl implements Loggable, Cloneable {
                         in.getLsn(index) != lsn) {
                         return null;
                     }
+                    return in.fetchTarget(index);
                 }
-		return in.fetchTarget(index);
-	    } finally {
-		in.releaseLatch();
-	    }
-	}
+            } finally {
+                if (!isLatchedAlready) {
+                    in.releaseLatch();
+                }
+            }
+        }
     }
 
     /**
      * Preload the cache, using up to maxBytes bytes or maxMillsecs msec.
      */
     public PreloadStats preload(PreloadConfig config)
-	throws DatabaseException {
+        throws DatabaseException {
 
-	try {
-	    long maxBytes = config.getMaxBytes();
-	    long maxMillisecs = config.getMaxMillisecs();
-	    long targetTime = Long.MAX_VALUE;
-	    if (maxMillisecs > 0) {
-		targetTime = System.currentTimeMillis() + maxMillisecs;
-	    }
+        try {
+            long maxBytes = config.getMaxBytes();
+            long maxMillisecs = config.getMaxMillisecs();
+            long targetTime = Long.MAX_VALUE;
+            if (maxMillisecs > 0) {
+                targetTime = System.currentTimeMillis() + maxMillisecs;
+            }
 
-	    long cacheBudget = envImpl.getMemoryBudget().getCacheBudget();
-	    if (maxBytes == 0) {
-		maxBytes = cacheBudget;
-	    } else if (maxBytes > cacheBudget) {
-		throw new IllegalArgumentException
-		    ("maxBytes parameter to Database.preload() was " +
-		     "specified as " +
-		     maxBytes + " bytes \nbut the cache is only " +
-		     cacheBudget + " bytes.");
-	    }
+            long cacheBudget = envImpl.getMemoryBudget().getMaxMemory();
+            if (maxBytes == 0) {
+                maxBytes = cacheBudget;
+            } else if (maxBytes > cacheBudget) {
+                throw new IllegalArgumentException
+                    ("maxBytes parameter to Database.preload() was " +
+                     "specified as " +
+                     maxBytes + " bytes \nbut the cache is only " +
+                     cacheBudget + " bytes.");
+            }
 
-	    PreloadStats ret = new PreloadStats();
-	    PreloadProcessor callback =
-		new PreloadProcessor(envImpl, maxBytes, targetTime, ret);
-	    SortedLSNTreeWalker walker =
-		new PreloadLSNTreeWalker(this, callback, config);
-	    try {
-		walker.walk();
-	    } catch (HaltPreloadException HPE) {
-		ret.status = HPE.getStatus();
-	    }
+            PreloadStats stats = new PreloadStats();
+            PreloadProcessor callback =
+                new PreloadProcessor(envImpl, maxBytes, targetTime, stats);
+            SortedLSNTreeWalker walker =
+                new PreloadLSNTreeWalker(this, callback, config);
+            walker.setPassNullLSNNodes(true);
+            try {
+                walker.walk();
+            } catch (HaltPreloadException HPE) {
+                stats.setStatus(HPE.getStatus());
+            }
 
-	    assert LatchSupport.countLatchesHeld() == 0;
-	    return ret;
-	} catch (Error E) {
-	    envImpl.invalidate(E);
-	    throw E;
-	}
+            assert LatchSupport.countLatchesHeld() == 0;
+            return stats;
+        } catch (Error E) {
+            envImpl.invalidate(E);
+            throw E;
+        }
     }
 
     /**
@@ -1372,93 +1836,93 @@ public class DatabaseImpl implements Loggable, Cloneable {
      */
     private static class CountProcessor implements TreeNodeProcessor {
 
-	private EnvironmentImpl envImpl;
-	/* Use PreloadStats in case we ever want to count more than LNs. */
-	private PreloadStats stats;
+        private EnvironmentImpl envImpl;
+        /* Use PreloadStats in case we ever want to count more than LNs. */
+        private PreloadStats stats;
 
-	CountProcessor(EnvironmentImpl envImpl,
-		       PreloadStats stats) {
-	    this.envImpl = envImpl;
-	    this.stats = stats;
-	}
+        CountProcessor(EnvironmentImpl envImpl,
+                       PreloadStats stats) {
+            this.envImpl = envImpl;
+            this.stats = stats;
+        }
 
-	/**
-	 * Called for each LSN that the SortedLSNTreeWalker encounters.
-	 */
+        /**
+         * Called for each LSN that the SortedLSNTreeWalker encounters.
+         */
         public void processLSN(long childLsn,
-			       LogEntryType childType,
-			       Node ignore,
+                               LogEntryType childType,
+                               Node ignore,
                                byte[] ignore2)
-	    throws DatabaseException {
+            throws DatabaseException {
 
-	    /* Count entry types to return in the PreloadStats. */
-	    if (childType.equals(LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL) ||
-		childType.equals(LogEntryType.LOG_DUPCOUNTLN)) {
-		/* Don't descend down into the dup tree -- just use the DCL. */
-		long dupCount = 0;
-		DupCountLN dcl = (DupCountLN)
-		    envImpl.getLogManager().get(childLsn);
-		dupCount = dcl.getDupCount();
-		stats.nLNsLoaded += dupCount;
-	    } else if (childType.equals(LogEntryType.LOG_LN_TRANSACTIONAL) ||
-		       childType.equals(LogEntryType.LOG_LN)) {
-		stats.nLNsLoaded++;
-	    }
+            /* Count entry types to return in the PreloadStats. */
+            if (childType.equals(LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL) ||
+                childType.equals(LogEntryType.LOG_DUPCOUNTLN)) {
+                /* Don't descend down into the dup tree -- just use the DCL. */
+                int dupCount = 0;
+                DupCountLN dcl = (DupCountLN)
+                    envImpl.getLogManager().get(childLsn);
+                dupCount = dcl.getDupCount();
+                stats.addLNsLoaded(dupCount);
+            } else if (childType.equals(LogEntryType.LOG_LN_TRANSACTIONAL) ||
+                       childType.equals(LogEntryType.LOG_LN)) {
+                stats.incLNsLoaded();
+            }
         }
 
         public void processDirtyDeletedLN(long childLsn, LN ln, byte[] lnKey)
-	    throws DatabaseException {
+            throws DatabaseException {
         }
 
-	/* Used when processing Deferred Write dbs and there are no LSNs. */
-	public void processDupCount(long count) {
-	    stats.nLNsLoaded += count;
-	}
+        /* Used when processing Deferred Write dbs and there are no LSNs. */
+        public void processDupCount(int count) {
+            stats.addLNsLoaded(count);
+        }
     }
 
     private static class CountExceptionPredicate
-	implements ExceptionPredicate {
+        implements ExceptionPredicate {
 
-	/*
-	 * Return true if the exception can be ignored.
-	 * LogFileNotFoundException is the only one so far.
-	 */
-	public boolean ignoreException(Exception e) {
-	    if (e instanceof LogFileNotFoundException) {
-		return true;
-	    }
-	    return false;
-	}
+        /*
+         * Return true if the exception can be ignored.
+         * LogFileNotFoundException is the only one so far.
+         */
+        public boolean ignoreException(Exception e) {
+            if (e instanceof LogFileNotFoundException) {
+                return true;
+            }
+            return false;
+        }
     }
 
     /**
      * Count entries in the database including dups, but don't dirty the cache.
      */
     public long count()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	try {
-	    PreloadStats ret = new PreloadStats();
+        try {
+            PreloadStats stats = new PreloadStats();
 
-	    CountProcessor callback = new CountProcessor(envImpl, ret);
-	    ExceptionPredicate excPredicate = new CountExceptionPredicate();
-	    SortedLSNTreeWalker walker =
-		new SortedLSNTreeWalker(this, false, false,
-					tree.getRootLsn(), callback, null,
-					excPredicate);
-	    /* Don't descend down into the dup tree. Use the DupCountLN. */
-	    walker.setProcessDupTree(false);
-	    if (deferredWrite) {
-		walker.setPassNullLSNNodes(true);
-	    }
-	    walker.walk();
+            CountProcessor callback = new CountProcessor(envImpl, stats);
+            ExceptionPredicate excPredicate = new CountExceptionPredicate();
+            SortedLSNTreeWalker walker =
+                new SortedLSNTreeWalker(this, false /* setDbState */,
+                                        tree.getRootLsn(), callback, null,
+                                        excPredicate);
+            /* Don't descend down into the dup tree. Use the DupCountLN. */
+            walker.setProcessDupTree(false);
+            if (isDurableDeferredWrite()) {
+                walker.setPassNullLSNNodes(true);
+            }
+            walker.walk();
 
-	    assert LatchSupport.countLatchesHeld() == 0;
-	    return ret.nLNsLoaded;
-	} catch (Error E) {
-	    envImpl.invalidate(E);
-	    throw E;
-	}
+            assert LatchSupport.countLatchesHeld() == 0;
+            return stats.getNLNsLoaded();
+        } catch (Error E) {
+            envImpl.invalidate(E);
+            throw E;
+        }
     }
 
     /*
@@ -1470,6 +1934,18 @@ public class DatabaseImpl implements Loggable, Cloneable {
         sb.append("<database id=\"" );
         sb.append(id.toString());
         sb.append("\"");
+        sb.append(" dupsort=\"");
+        sb.append(getSortedDuplicates());
+        sb.append("\"");
+        sb.append(" temporary=\"");
+        sb.append(isTemporary());
+        sb.append("\"");
+        sb.append(" deferredWrite=\"");
+        sb.append(isDurableDeferredWrite());
+        sb.append("\"");
+        sb.append(" keyPrefixing=\"");
+        sb.append(getKeyPrefixing());
+        sb.append("\"");
         if (btreeComparator != null) {
             sb.append(" btc=\"");
             sb.append(getComparatorClassName(btreeComparator));
@@ -1480,7 +1956,22 @@ public class DatabaseImpl implements Loggable, Cloneable {
             sb.append(getComparatorClassName(duplicateComparator));
             sb.append("\"");
         }
-        sb.append("/>");
+        sb.append(">");
+        if (dbFileSummaries != null) {
+            Iterator<Map.Entry<Long,DbFileSummary>> entries = 
+                (Iterator<Map.Entry<Long,DbFileSummary>>)
+                dbFileSummaries.entrySet().iterator();
+            while (entries.hasNext()) {
+                Map.Entry<Long,DbFileSummary> entry = entries.next();
+                Long fileNum = (Long) entry.getKey();
+                DbFileSummary summary = entry.getValue();
+                sb.append("<file file=\"").append(fileNum);
+                sb.append("\">");
+                sb.append(summary);
+                sb.append("/file>");
+            }
+        }
+        sb.append("</database>");
         return sb.toString();
     }
 
@@ -1489,16 +1980,38 @@ public class DatabaseImpl implements Loggable, Cloneable {
      */
 
     /**
+     * This log entry type is configured to perform marshaling (getLogSize and
+     * writeToLog) under the write log mutex.  Otherwise, the size could change
+     * in between calls to these two methods as the result of utilizaton
+     * tracking.
+     *
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return
+
+        int size =
             id.getLogSize() +
             tree.getLogSize() +
-            LogUtils.getBooleanLogSize() +
+            1 + // flags, 1 byte
             LogUtils.getByteArrayLogSize(btreeComparatorBytes) +
             LogUtils.getByteArrayLogSize(duplicateComparatorBytes) +
-	    (LogUtils.getIntLogSize() * 2);
+            LogUtils.getPackedIntLogSize(maxMainTreeEntriesPerNode) +
+            LogUtils.getPackedIntLogSize(maxDupTreeEntriesPerNode) +
+            1;  // createdAtLogVersion
+
+        size += LogUtils.getPackedIntLogSize(dbFileSummaries.size());
+        Iterator<Map.Entry<Long,DbFileSummary>> i = 
+            (Iterator<Map.Entry<Long,DbFileSummary>>)
+            dbFileSummaries.entrySet().iterator();
+        while (i.hasNext()) {
+            Map.Entry<Long,DbFileSummary> entry = i.next();
+            Long fileNum = entry.getKey();
+            DbFileSummary summary = entry.getValue();
+            size +=
+                LogUtils.getPackedLongLogSize(fileNum.longValue()) +
+                summary.getLogSize();
+        }
+        return size;
     }
 
     /**
@@ -1507,29 +2020,59 @@ public class DatabaseImpl implements Loggable, Cloneable {
     public void writeToLog(ByteBuffer logBuffer) {
         id.writeToLog(logBuffer);
         tree.writeToLog(logBuffer);
-        LogUtils.writeBoolean(logBuffer, duplicatesAllowed);
+        logBuffer.put(flags);
         LogUtils.writeByteArray(logBuffer, btreeComparatorBytes);
         LogUtils.writeByteArray(logBuffer, duplicateComparatorBytes);
-	LogUtils.writeInt(logBuffer, maxMainTreeEntriesPerNode);
-	LogUtils.writeInt(logBuffer, maxDupTreeEntriesPerNode);
+        LogUtils.writePackedInt(logBuffer, maxMainTreeEntriesPerNode);
+        LogUtils.writePackedInt(logBuffer, maxDupTreeEntriesPerNode);
+        logBuffer.put(createdAtLogVersion);
+        LogUtils.writePackedInt(logBuffer, dbFileSummaries.size());
+        Iterator<Map.Entry<Long,DbFileSummary>> i = 
+            (Iterator<Map.Entry<Long,DbFileSummary>>)
+            dbFileSummaries.entrySet().iterator();
+
+        while (i.hasNext()) {
+            Map.Entry<Long,DbFileSummary> entry = i.next();
+            Long fileNum = entry.getKey();
+            DbFileSummary summary = entry.getValue();
+            LogUtils.writePackedLong(logBuffer, fileNum.longValue());
+            summary.writeToLog(logBuffer);
+        }
+        dirtyUtilization = false;
     }
 
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
-        id.readFromLog(itemBuffer, entryTypeVersion);
-        tree.readFromLog(itemBuffer, entryTypeVersion);
-        duplicatesAllowed = LogUtils.readBoolean(itemBuffer);
+        boolean version6OrLater = (entryVersion >= 6);
 
-	if (entryTypeVersion >= 2) {
-            btreeComparatorBytes = LogUtils.readByteArray(itemBuffer);
-            duplicateComparatorBytes = LogUtils.readByteArray(itemBuffer);
+        id.readFromLog(itemBuffer, entryVersion);
+        tree.readFromLog(itemBuffer, entryVersion);
+
+        /*
+         * Versions < 6 have the duplicatesAllowed boolean rather than a
+         * flags byte here, but we don't need a special case because the
+         * old boolean value is 1 and replacement flag value is 1.
+         */
+        flags = itemBuffer.get();
+
+        if (forceKeyPrefixing) {
+            setKeyPrefixing();
+        }
+
+	if (entryVersion >= 2) {
+            btreeComparatorBytes =
+                LogUtils.readByteArray(itemBuffer, !version6OrLater);
+            duplicateComparatorBytes =
+                LogUtils.readByteArray(itemBuffer, !version6OrLater);
         } else {
-            String btreeClassName = LogUtils.readString(itemBuffer);
-            String dupClassName = LogUtils.readString(itemBuffer);
+            String btreeClassName =
+                LogUtils.readString(itemBuffer, !version6OrLater);
+            String dupClassName =
+                LogUtils.readString(itemBuffer, !version6OrLater);
             if (btreeClassName.length() == 0) {
                 btreeComparatorBytes = LogUtils.ZERO_LENGTH_BYTE_ARRAY;
             } else {
@@ -1547,34 +2090,41 @@ public class DatabaseImpl implements Loggable, Cloneable {
         /* Don't instantiate if comparators are unnecessary (DbPrintLog). */
         if (!EnvironmentImpl.getNoComparators()) {
             try {
-		if (btreeComparatorBytes.length != 0) {
-                    Object obj = bytesToObject
-                        (btreeComparatorBytes, "Btree");
+                if (btreeComparatorBytes.length != 0) {
+                    Object obj = bytesToObject(btreeComparatorBytes, "Btree");
                     if (obj instanceof String) {
-                        Class cls = Class.forName((String) obj);
-                        btreeComparator =
-                            instantiateComparator(cls, "Btree");
+                    	String className = (String)obj;
+
+                        Class<? extends Comparator<byte[]>> cls = 
+                       (Class<? extends Comparator<byte[]>>) 
+                            Class.forName(className);
+
+                        btreeComparator = instantiateComparator(cls, "Btree");
                         btreeComparatorByClassName = true;
                     } else if (obj instanceof Comparator) {
-                        btreeComparator = (Comparator) obj;
+                        btreeComparator = (Comparator<byte[]>) obj;
                         btreeComparatorByClassName = false;
                     } else {
                         assert false : obj.getClass().getName();
                     }
-		} else {
+                } else {
                     btreeComparator = null;
                     btreeComparatorByClassName = false;
                 }
-		if (duplicateComparatorBytes.length != 0) {
+                if (duplicateComparatorBytes.length != 0) {
                     Object obj = bytesToObject
                         (duplicateComparatorBytes, "Duplicate");
                     if (obj instanceof String) {
-                        Class cls = Class.forName((String) obj);
+
+                        Class<? extends Comparator<byte[]>> cls = 
+                             (Class<? extends Comparator<byte[]>>) 
+                            Class.forName((String) obj);
+
                         duplicateComparator =
                             instantiateComparator(cls, "Duplicate");
                         duplicateComparatorByClassName = true;
                     } else if (obj instanceof Comparator) {
-                        duplicateComparator = (Comparator) obj;
+                        duplicateComparator = (Comparator<byte[]>) obj;
                         duplicateComparatorByClassName = false;
                     } else {
                         assert false : obj.getClass().getName();
@@ -1582,16 +2132,29 @@ public class DatabaseImpl implements Loggable, Cloneable {
                 } else {
                     duplicateComparator = null;
                     duplicateComparatorByClassName = false;
-		}
+                }
             } catch (ClassNotFoundException CNFE) {
                 throw new LogException("couldn't instantiate class comparator",
                                        CNFE);
             }
         }
 
-	if (entryTypeVersion >= 1) {
-	    maxMainTreeEntriesPerNode = LogUtils.readInt(itemBuffer);
-	    maxDupTreeEntriesPerNode = LogUtils.readInt(itemBuffer);
+        if (entryVersion >= 1) {
+            maxMainTreeEntriesPerNode =
+                LogUtils.readInt(itemBuffer, !version6OrLater);
+            maxDupTreeEntriesPerNode =
+                LogUtils.readInt(itemBuffer, !version6OrLater);
+        }
+
+        if (version6OrLater) {
+            createdAtLogVersion = itemBuffer.get();
+            int nFiles = LogUtils.readPackedInt(itemBuffer);
+            for (int i = 0; i < nFiles; i += 1) {
+                long fileNum = LogUtils.readPackedLong(itemBuffer);
+                DbFileSummary summary = dbFileSummaries.get
+                    (Long.valueOf(fileNum), false /* adjustMemBudget */);
+                summary.readFromLog(itemBuffer, entryVersion);
+            }
         }
     }
 
@@ -1599,31 +2162,62 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * @see Loggable#dumpLog
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
-        sb.append("<database>");
+        sb.append("<database ");
+        dumpFlags(sb, verbose, flags);
+        sb.append(" btcmp=\"");
+        sb.append(getComparatorClassName(btreeComparator));
+        sb.append("\"");
+        sb.append(" dupcmp=\"");
+        sb.append(getComparatorClassName(duplicateComparator));
+        sb.append("\" > ");
         id.dumpLog(sb, verbose);
         tree.dumpLog(sb, verbose);
-        sb.append("<dupsort v=\"").append(duplicatesAllowed);
-        sb.append("\"/>");
-        sb.append("<btcf name=\"");
-        sb.append(getComparatorClassName(btreeComparator));
-        sb.append("\"/>");
-        sb.append("<dupcf name=\"");
-        sb.append(getComparatorClassName(duplicateComparator));
-        sb.append("\"/>");
+        if (dbFileSummaries != null) {
+            Iterator<Map.Entry<Long,DbFileSummary>> entries = 
+                (Iterator<Map.Entry<Long,DbFileSummary>>) 
+                dbFileSummaries.entrySet().iterator();
+
+            while (entries.hasNext()) {
+                Map.Entry<Long,DbFileSummary> entry = entries.next();
+                Long fileNum = entry.getKey();
+                DbFileSummary summary = entry.getValue();
+                sb.append("<file file=\"").append(fileNum);
+                sb.append("\">");
+                sb.append(summary);
+                sb.append("</file>");
+            }
+        }
         sb.append("</database>");
+    }
+
+    static void dumpFlags(StringBuffer sb, boolean verbose, byte flags) {
+        sb.append(" dupsort=\"").append((flags & DUPS_ALLOWED_BIT) != 0);
+        sb.append("\" replicated=\"").append((flags & IS_REPLICATED_BIT) != 0);
+        sb.append("\" temp=\"").append((flags & TEMPORARY_BIT) 
+                                       != 0).append("\" ");
     }
 
     /**
      * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
-	return 0;
+        return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     /**
      * Used for log dumping.
      */
-    private static String getComparatorClassName(Comparator comparator) {
+    private static String 
+        getComparatorClassName(Comparator<byte[]> comparator) {
+
         if (comparator != null) {
             return comparator.getClass().getName();
         } else {
@@ -1635,16 +2229,18 @@ public class DatabaseImpl implements Loggable, Cloneable {
      * Used both to read from the log and to validate a comparator when set in
      * DatabaseConfig.
      */
-    public static Comparator instantiateComparator(Class comparator,
-                                                   String comparatorType)
+    public static Comparator<byte[]> 
+        instantiateComparator(Class<? extends Comparator<byte[]>> 
+                              comparatorClass,
+                              String comparatorType)
         throws LogException {
 
-	if (comparator == null) {
-	    return null;
-	}
+        if (comparatorClass == null) {
+            return null;
+        }
 
         try {
-	    return (Comparator) comparator.newInstance();
+            return comparatorClass.newInstance();
         } catch (InstantiationException IE) {
             throw new LogException
                 ("Exception while trying to load " + comparatorType +
@@ -1659,15 +2255,16 @@ public class DatabaseImpl implements Loggable, Cloneable {
     /**
      * Used to validate a comparator when set in DatabaseConfig.
      */
-    public static Comparator instantiateComparator(Comparator comparator,
-                                                   String comparatorType)
+    public static Comparator<byte[]> 
+        instantiateComparator(Comparator<byte[]> comparator,
+                              String comparatorType)
         throws DatabaseException {
 
-	if (comparator == null) {
-	    return null;
-	}
+        if (comparator == null) {
+            return null;
+        }
 
-        return (Comparator) bytesToObject
+        return (Comparator<byte[]>) bytesToObject
             (objectToBytes(comparator, comparatorType), comparatorType);
     }
 
@@ -1677,7 +2274,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
      *
      * @throws LogException if the object cannot be serialized.
      */
-    private static byte[] comparatorToBytes(Comparator comparator,
+    private static byte[] comparatorToBytes(Comparator<byte[]> comparator,
                                             boolean byClassName,
                                             String comparatorType)
         throws DatabaseException {
@@ -1738,11 +2335,102 @@ public class DatabaseImpl implements Loggable, Cloneable {
         }
     }
 
+    /**
+     * Converts an arbitrary string of bytes to a comparator. Used to
+     * instantiate a comparator on a client node.
+     */
+    public static Comparator<byte[]> bytesToComparator(byte[] comparatorBytes,
+                                                       String comparatorType)
+        throws LogException, ClassNotFoundException {
+
+        Comparator<byte[]> comparator = null;
+        if (comparatorBytes.length != 0) {
+            Object obj = bytesToObject(comparatorBytes, comparatorType);
+            if (obj instanceof String) {
+                String className = (String)obj;
+                Class<? extends Comparator<byte[]>> cls = 
+                    (Class<? extends Comparator<byte[]>>)
+                    Class.forName(className);
+                comparator = instantiateComparator(cls, comparatorType);
+            } else if (obj instanceof Comparator) {
+                comparator = (Comparator<byte[]>) obj;
+            } else {
+                assert false : obj.getClass().getName();
+            }
+        }
+        return comparator;
+    }
+
     public int getBinDeltaPercent() {
         return binDeltaPercent;
     }
 
     public int getBinMaxDeltas() {
         return binMaxDeltas;
+    }
+
+    /**
+     * Return a ReplicationContext that will indicate if this operation
+     * should broadcast data records for this database as part the replication
+     * stream.
+     */
+    public ReplicationContext getRepContext() {
+
+        /*
+         * It's sufficient to base the decision on what to return solely on the
+         * isReplicated() value. We're guaranteed that the environment is
+         * currently opened w/replication. That's because we refuse to open
+         * rep'ed environments in standalone mode and we couldn't have created
+         * this db w/replication specified in a standalone environment.
+         *
+         * We also don't have to check if this is a client or master. If this
+         * method is called, we're executing a write operation that was
+         * instigated an API call on this node (as opposed to a write operation
+         * that was instigated by an incoming replication message). We enforce
+         * elsewhere that write operations are only conducted by the master.
+         *
+         * Writes provoked by incoming replication messages are executed
+         * through the putReplicatedLN and deleteReplicatedLN methods.
+         */
+        if (isReplicated()) {
+            return ReplicationContext.MASTER;
+        } else {
+            return ReplicationContext.NO_REPLICATE;
+        }
+    }
+
+    /**
+     * Return a ReplicationContext that includes information on how to
+     * logically replicate database operations. This kind of replication
+     * context must be used for any api call which logging a NameLN for that
+     * represents a database operation. However, NameLNs which are logged for
+     * other reasons, such as cleaner migration, don't need this special
+     * replication context.
+     */
+    DbOpReplicationContext
+        getOperationRepContext(DbOperationType operationType) {
+
+        /*
+         * If this method is called, we're executing a write operation that was
+         * instigated by an API call on this node (as opposed to a write
+         * operation that was instigated by an incoming replication
+         * message). We enforce elsewhere that write operations are only
+         * conducted by the master.
+         */
+        DbOpReplicationContext context =
+            new DbOpReplicationContext(isReplicated(), operationType);
+
+        if (operationType == DbOperationType.CREATE) {
+            context.setCreateConfig
+                (new ReplicatedDatabaseConfig(flags,
+                                              maxMainTreeEntriesPerNode,
+                                              maxDupTreeEntriesPerNode,
+                                              btreeComparatorBytes,
+                                              duplicateComparatorBytes));
+        } else if (operationType == DbOperationType.TRUNCATE) {
+            context.setTruncateOldDbId(id);
+        }
+
+        return context;
     }
 }

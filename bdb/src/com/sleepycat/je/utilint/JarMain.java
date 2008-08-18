@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JarMain.java,v 1.4.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: JarMain.java,v 1.7 2008/05/15 01:52:44 linda Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -31,7 +31,7 @@ public class JarMain {
             if (args.length < 1) {
                 usage("Missing utility name");
             }
-            Class cls = Class.forName(PREFIX + args[0]);
+            Class<?> cls = Class.forName(PREFIX + args[0]);
 
             Method mainMethod = cls.getMethod
                 ("main", new Class[] { String[].class });

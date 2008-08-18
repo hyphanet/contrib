@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSelectionTest.java,v 1.31.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: FileSelectionTest.java,v 1.41 2008/03/27 14:53:28 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -11,12 +11,15 @@ package com.sleepycat.je.cleaner;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import junit.framework.Test;
 import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.Cursor;
@@ -28,22 +31,31 @@ import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.DbTestProxy;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.EnvironmentMutableConfig;
+import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.dbi.MemoryBudget;
+import com.sleepycat.je.junit.JUnitThread;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
+import com.sleepycat.je.utilint.TestHook;
 
 public class FileSelectionTest extends TestCase {
 
-    private static final int DATA_SIZE = 100;
+    private static final String DBNAME = "cleanerFileSelection";
+    private static final int DATA_SIZE = 140;
     private static final int FILE_SIZE = 4096 * 10;
     private static final int INITIAL_FILES = 5;
+    private static final int INITIAL_FILES_TEMP = 1;
+    private static final int INITIAL_KEYS = 2000;
+    private static final int INITIAL_KEYS_DUPS = 5000;
     private static final byte[] MAIN_KEY_FOR_DUPS = {0, 1, 2, 3, 4, 5};
 
     private static final EnvironmentConfig envConfig = initConfig();
@@ -94,7 +106,11 @@ public class FileSelectionTest extends TestCase {
     private Environment env;
     private EnvironmentImpl envImpl;
     private Database db;
+    private JUnitThread junitThread;
+    private volatile int synchronizer;
     private boolean dups;
+    private boolean deferredWrite;
+    private boolean temporary;
 
     /* The index is the file number, the value is the first key in the file. */
     private List firstKeysInFiles;
@@ -102,8 +118,33 @@ public class FileSelectionTest extends TestCase {
     /* Set of keys that should exist. */
     private Set existingKeys;
 
+    public static Test suite() {
+        TestSuite allTests = new TestSuite();
+        addTests(allTests, false, false); // transactional
+        addTests(allTests, true, false);  // deferredwrite
+        addTests(allTests, false, true);  // temporary
+        return allTests;
+    }
+
+    private static void addTests(TestSuite allTests,
+                                 boolean deferredWrite,
+                                 boolean temporary) {
+        TestSuite suite = new TestSuite(FileSelectionTest.class);
+        Enumeration e = suite.tests();
+        while (e.hasMoreElements()) {
+            FileSelectionTest test = (FileSelectionTest) e.nextElement();
+            test.init(deferredWrite, temporary);
+            allTests.addTest(test);
+        }
+    }
+
     public FileSelectionTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
+    }
+
+    private void init(boolean deferredWrite, boolean temporary) {
+        this.deferredWrite = deferredWrite;
+        this.temporary = temporary;
     }
 
     public void setUp()
@@ -115,6 +156,19 @@ public class FileSelectionTest extends TestCase {
 
     public void tearDown()
         throws IOException, DatabaseException {
+
+        /* Set test name for reporting; cannot be done in the ctor or setUp. */
+        setName(getName() +
+                (deferredWrite ? ":deferredWrite" :
+                 (temporary ? ":temporary" : ":txnl")));
+
+        if (junitThread != null) {
+            while (junitThread.isAlive()) {
+                junitThread.interrupt();
+                Thread.yield();
+            }
+            junitThread = null;
+        }
 
         try {
             if (env != null) {
@@ -137,6 +191,7 @@ public class FileSelectionTest extends TestCase {
         env = null;
         envImpl = null;
         envHome = null;
+        existingKeys = null;
         firstKeysInFiles = null;
     }
 
@@ -153,15 +208,20 @@ public class FileSelectionTest extends TestCase {
         envImpl = DbInternal.envGetEnvironmentImpl(env);
 
         DatabaseConfig dbConfig = new DatabaseConfig();
-        dbConfig.setTransactional(true);
+        dbConfig.setTransactional(!isDeferredWriteMode());
+        dbConfig.setDeferredWrite(deferredWrite);
+        dbConfig.setTemporary(temporary);
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(dups);
-        db = env.openDatabase(null, "cleanerFileSelection", dbConfig);
+        db = env.openDatabase(null, DBNAME, dbConfig);
     }
 
     private void closeEnv()
         throws DatabaseException {
 
+        if (temporary) {
+            existingKeys.clear();
+        }
         if (db != null) {
             db.close();
             db = null;
@@ -178,14 +238,30 @@ public class FileSelectionTest extends TestCase {
     public void testBaseline()
         throws DatabaseException {
 
+        int nCleaned;
+
         openEnv();
         writeData();
         verifyData();
-        verifyDeletedFiles(null);
+        nCleaned = cleanRoutine();
+        /* One file may be cleaned after writing, if a checkpoint occurs. */
+        assertTrue(String.valueOf(nCleaned), nCleaned <= 1);
+        env.checkpoint(forceConfig);
+        nCleaned = cleanRoutine();
+        /* One file may be cleaned after cleaning and checkpointing. */
+        assertTrue(String.valueOf(nCleaned), nCleaned <= 1);
         closeEnv();
         openEnv();
         verifyData();
-        verifyDeletedFiles(null);
+        nCleaned = cleanRoutine();
+        if (temporary) {
+            /* Temp DBs are automaically deleted and cleaned. */
+            assertTrue(String.valueOf(nCleaned),
+                       nCleaned >= INITIAL_FILES_TEMP);
+        } else {
+            /* No files should be cleaned when no writing occurs. */
+            assertEquals(0, nCleaned);
+        }
         closeEnv();
     }
 
@@ -201,6 +277,11 @@ public class FileSelectionTest extends TestCase {
      */
     public void testBasic()
         throws DatabaseException {
+
+        /* Test assumes that keys are written in order. */
+        if (isDeferredWriteMode()) {
+            return;
+        }
 
         openEnv();
         writeData();
@@ -279,9 +360,14 @@ public class FileSelectionTest extends TestCase {
         verifyData();
 
         nCleaned = cleanRoutine();
-        assertEquals(0, nCleaned);
-        nextFile = getNextDeletedFile(nextFile);
-        assertTrue(nextFile == -1);
+        if (temporary) {
+            assertTrue(String.valueOf(nCleaned),
+                       nCleaned >= INITIAL_FILES_TEMP);
+        } else {
+            assertEquals(0, nCleaned);
+            nextFile = getNextDeletedFile(nextFile);
+            assertTrue(nextFile == -1);
+        }
 
         verifyData();
 
@@ -293,6 +379,11 @@ public class FileSelectionTest extends TestCase {
      */
     public void testRetry()
         throws DatabaseException {
+
+        /* Test assumes that keys are written in order. */
+        if (isDeferredWriteMode()) {
+            return;
+        }
 
         openEnv(highUtilizationConfig);
         writeData();
@@ -351,6 +442,11 @@ public class FileSelectionTest extends TestCase {
      */
     public void testMinFileUtilization()
         throws DatabaseException {
+
+        /* Test assumes that keys are written in order. */
+        if (isDeferredWriteMode()) {
+            return;
+        }
 
         /* Open with minUtilization=10 and minFileUtilization=0. */
         EnvironmentConfig myConfig = initConfig();
@@ -450,7 +546,12 @@ public class FileSelectionTest extends TestCase {
     public void testSteadyStateHighUtilization()
         throws DatabaseException {
 
-        doSteadyState(highUtilizationConfig, true, 9);
+        /*
+         * I don't know why a larger log is maintained with deferredWrite and
+         * temporary databases.
+         */
+        doSteadyState(highUtilizationConfig, true,
+                      (deferredWrite | temporary) ? 12 : 9);
     }
 
     public void testSteadyStateHighUtilizationDups()
@@ -513,10 +614,9 @@ public class FileSelectionTest extends TestCase {
 
     /**
      * Tests that truncate causes cleaning.
-     * @deprecated use of Database.truncate
      */
     public void testTruncateDatabase()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         int nCleaned;
 
@@ -525,10 +625,25 @@ public class FileSelectionTest extends TestCase {
 
         nCleaned = cleanRoutine();
         assertEquals(0, nCleaned);
+        db.close();
+        db = null;
 
-        db.truncate(null, false);
+        /*
+         * Temporary databases are removed when the database is closed, so
+         * don't call truncate explicitly.
+         */
+        if (!temporary) {
+            env.truncateDatabase(null, DBNAME, false /* returnCount */);
+        }
+
         nCleaned = cleanRoutine();
-        assertEquals(4, nCleaned);
+        if (temporary) {
+            assertTrue(String.valueOf(nCleaned),
+                       nCleaned >= INITIAL_FILES_TEMP - 1);
+        } else {
+            assertTrue(String.valueOf(nCleaned),
+                       nCleaned >= INITIAL_FILES - 1);
+        }
 
         closeEnv();
     }
@@ -549,17 +664,29 @@ public class FileSelectionTest extends TestCase {
         db = null;
 
         nCleaned = cleanRoutine();
-        assertEquals(0, nCleaned);
+        if (temporary) {
+            assertTrue(String.valueOf(nCleaned),
+                       nCleaned >= INITIAL_FILES_TEMP - 1);
+            assertTrue(!env.getDatabaseNames().contains(dbName));
+        } else {
+            assertEquals(0, nCleaned);
 
-        env.removeDatabase(null, dbName);
-        nCleaned = cleanRoutine();
-        assertEquals(4, nCleaned);
+            env.removeDatabase(null, dbName);
+            nCleaned = cleanRoutine();
+            assertTrue(String.valueOf(nCleaned),
+                       nCleaned >= INITIAL_FILES - 1);
+        }
 
         closeEnv();
     }
 
     public void testForceCleanFiles()
         throws DatabaseException {
+
+        /* When the temp DB is closed many files will be cleaned. */
+        if (temporary) {
+            return;
+        }
 
         /* No files force cleaned. */
         EnvironmentConfig myConfig = initConfig();
@@ -592,6 +719,199 @@ public class FileSelectionTest extends TestCase {
     }
 
     /**
+     * Checks that old version log files are upgraded when
+     * je.cleaner.upgradeToLogVersion is set.  The version 5 log files to be
+     * upgraded in this test were created with MakeMigrationLogFiles.
+     */
+    public void testLogVersionUpgrade()
+        throws DatabaseException, IOException {
+
+        if (temporary) {
+            /* This test is not applicable. */
+            return;
+        }
+
+        /* Copy pre-created files 0 and 1, which are log verion 5. */
+        TestUtils.loadLog
+            (getClass(), "migrate_f0.jdb", envHome, "00000000.jdb");
+        TestUtils.loadLog
+            (getClass(), "migrate_f1.jdb", envHome, "00000001.jdb");
+
+        /*
+         * Write several more files which are log version 6 or greater.  To
+         * check whether these files are cleaned below we need to write more
+         * than 2 files (2 is the minimum age for cleaning).
+         */
+        env = MakeMigrationLogFiles.openEnv(envHome, false /*allowCreate*/);
+        MakeMigrationLogFiles.makeMigrationLogFiles(env);
+        env.checkpoint(forceConfig);
+        MakeMigrationLogFiles.makeMigrationLogFiles(env);
+        env.checkpoint(forceConfig);
+        closeEnv();
+
+        /* With upgradeToLogVersion=0 no files should be cleaned. */
+        openEnvWithUpgradeToLogVersion(0);
+        int nFiles = env.cleanLog();
+        assertEquals(0, nFiles);
+        closeEnv();
+
+        /* With upgradeToLogVersion=5 no files should be cleaned. */
+        openEnvWithUpgradeToLogVersion(5);
+        nFiles = env.cleanLog();
+        assertEquals(0, nFiles);
+        closeEnv();
+
+        /* Upgrade log files to the current version, which is 6 or greater. */
+        openEnvWithUpgradeToLogVersion(-1); // -1 means current version
+
+        /*
+         * Clean one log file at a time so we can check that the backlog is
+         * not impacted by log file migration.
+         */
+        for (int i = 0; i < 2; i += 1) {
+            nFiles = DbInternal.envGetEnvironmentImpl(env).getCleaner().doClean
+                (false /*cleanMultipleFiles*/, false /*forceCleaning*/);
+            assertEquals(1, nFiles);
+            EnvironmentStats stats = env.getStats(null);
+            assertEquals(0, stats.getCleanerBacklog());
+        }
+        env.checkpoint(forceConfig);
+        verifyDeletedFiles(new int[] {0, 1});
+
+        /* No more files should be cleaned. */
+        nFiles = env.cleanLog();
+        assertEquals(0, nFiles);
+        closeEnv();
+
+        /*
+         * Force clean file 2 to ensure that it was not cleaned above because
+         * of its log version and not some other factor.
+         */
+        EnvironmentConfig myConfig = initConfig();
+        myConfig.setConfigParam
+            (EnvironmentParams.CLEANER_FORCE_CLEAN_FILES.getName(), "2");
+        openEnv(myConfig);
+        nFiles = env.cleanLog();
+        assertEquals(1, nFiles);
+        env.checkpoint(forceConfig);
+        verifyDeletedFiles(new int[] {0, 1, 2});
+
+        closeEnv();
+    }
+
+    private void openEnvWithUpgradeToLogVersion(int upgradeToLogVersion)
+        throws DatabaseException {
+
+        EnvironmentConfig envConfig = new EnvironmentConfig();
+        envConfig.setConfigParam
+            (EnvironmentParams.CLEANER_UPGRADE_TO_LOG_VERSION.getName(),
+             String.valueOf(upgradeToLogVersion));
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+        envConfig.setConfigParam
+	    (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
+        env = new Environment(envHome, envConfig);
+        envImpl = DbInternal.envGetEnvironmentImpl(env);
+    }
+
+    /**
+     * Tests that when cleaned files are deleted during a compression, the
+     * flushing of the local tracker does not transfer tracker information
+     * for the deleted files. [#15528]
+     */
+    public void testCompressionBug()
+        throws DatabaseException {
+
+        /*
+         * We need to compress deleted keys and count their utilization under
+         * an explicit compress() call.  With deferred write, no utilization
+         * counting occurs until eviction/sync, and that would also do
+         * compression.
+         */
+        if (isDeferredWriteMode()) {
+            return;
+        }
+
+        /* Disable compressor so we can compress explicitly. */
+        EnvironmentConfig envConfig = initConfig();
+        envConfig.setConfigParam
+	    (EnvironmentParams.ENV_RUN_INCOMPRESSOR.getName(), "false");
+        openEnv(envConfig);
+
+        /* Write and then delete all data. */
+        writeData();
+        for (Iterator i = existingKeys.iterator(); i.hasNext();) {
+            int nextKey = ((Integer) i.next()).intValue();
+            DatabaseEntry key =
+                new DatabaseEntry(TestUtils.getTestArray(nextKey));
+            OperationStatus status = db.delete(null, key);
+            assertSame(OperationStatus.SUCCESS, status);
+        }
+
+        synchronizer = 0;
+
+        /* Create thread that will do the compression. */
+        junitThread = new JUnitThread("TestCompress") {
+            public void testBody()
+                throws DatabaseException {
+                try {
+                    /* compress() will call the test hook below. */
+                    env.compress();
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        /*
+         * Set a hook that is called by the INCompressor before it calls
+         * UtilizationProfile.flushLocalTracker.
+         */
+        envImpl.getINCompressor().setBeforeFlushTrackerHook(new TestHook() {
+            public void doHook() {
+                synchronizer = 1;
+                /* Wait for log cleaning to complete. */
+                while (synchronizer < 2) Thread.yield();
+            }
+            public Object getHookValue() {
+                throw new UnsupportedOperationException();
+            }
+            public void doIOHook() throws IOException {
+                throw new UnsupportedOperationException();
+            }
+            public void hookSetup() {
+                throw new UnsupportedOperationException();
+            }
+        });
+
+        /* Kick off test in thread above. */
+        junitThread.start();
+        /* Wait for hook to be called at the end of compression. */
+        while (synchronizer < 1) Thread.yield();
+        /* Clean and checkpoint to delete cleaned files. */
+        while (env.cleanLog() > 0) { }
+        env.checkpoint(forceConfig);
+        /* Allow test hook to return, so that flushLocalTracker is called. */
+        synchronizer = 2;
+
+        /*
+         * Before the fix [#15528], an assertion fired in
+         * BaseUtilizationTracker.getFileSummary when flushLocalTracker was
+         * called.  This assertion fires if the file being tracked does not
+         * exist.  The fix was to check for valid files in flushLocalTracker.
+         */
+        try {
+            junitThread.finishTest();
+            junitThread = null;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail(e.toString());
+        }
+
+        closeEnv();
+    }
+
+    /**
      * Force cleaning of one file.
      */
     private void forceCleanOne()
@@ -614,6 +934,31 @@ public class FileSelectionTest extends TestCase {
     }
 
     /**
+     * Use transactions when not testing deferred write or temporary DBs.
+     */
+    private boolean isDeferredWriteMode() {
+        return deferredWrite || temporary;
+    }
+
+    /**
+     * Forces eviction when a temporary database is used, since otherwise data
+     * will not be flushed.
+     */
+    private void forceEvictionIfTemporary()
+        throws DatabaseException {
+
+        if (temporary) {
+            EnvironmentMutableConfig config = env.getMutableConfig();
+            long saveSize = config.getCacheSize();
+            config.setCacheSize(MemoryBudget.MIN_MAX_MEMORY_SIZE * 2);
+            env.setMutableConfig(config);
+            env.evictMemory();
+            config.setCacheSize(saveSize);
+            env.setMutableConfig(config);
+        }
+    }
+
+    /**
      * Writes data to create INITIAL_FILES number of files, storing the first
      * key for each file in the firstKeysInFiles list.  One extra file is
      * actually created, to ensure that the firstActiveLSN is not in any of
@@ -622,47 +967,88 @@ public class FileSelectionTest extends TestCase {
     private void writeData()
         throws DatabaseException {
 
+        int firstFile =
+            (int) envImpl.getFileManager().getLastFileNum().longValue();
+        assertEquals(0, firstFile);
+
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry(new byte[DATA_SIZE]);
-        firstKeysInFiles = new ArrayList();
         existingKeys = new HashSet();
 
-        Transaction txn = env.beginTransaction(null, null);
-        Cursor cursor = db.openCursor(txn, null);
-        int fileNum = -1;
+        if (isDeferredWriteMode()) {
+            firstKeysInFiles = null;
 
-        for (int nextKey = 0; fileNum < INITIAL_FILES; nextKey += 1) {
+            Cursor cursor = db.openCursor(null, null);
 
-            OperationStatus status;
-            if (dups) {
-                key.setData(MAIN_KEY_FOR_DUPS);
-                data.setData(TestUtils.getTestArray(nextKey));
-                status = cursor.putNoDupData(key, data);
-            } else {
-                key.setData(TestUtils.getTestArray(nextKey));
-                data.setData(new byte[DATA_SIZE]);
-                status = cursor.putNoOverwrite(key, data);
+            int maxKey = (dups ? INITIAL_KEYS_DUPS : INITIAL_KEYS);
+            for (int nextKey = 0; nextKey < maxKey; nextKey += 1) {
+
+                OperationStatus status;
+                if (dups) {
+                    key.setData(MAIN_KEY_FOR_DUPS);
+                    data.setData(TestUtils.getTestArray(nextKey));
+                    status = cursor.putNoDupData(key, data);
+                } else {
+                    key.setData(TestUtils.getTestArray(nextKey));
+                    data.setData(new byte[DATA_SIZE]);
+                    status = cursor.putNoOverwrite(key, data);
+                }
+
+                assertEquals(OperationStatus.SUCCESS, status);
+                existingKeys.add(new Integer(nextKey));
             }
 
-            assertEquals(OperationStatus.SUCCESS, status);
-            existingKeys.add(new Integer(nextKey));
+            cursor.close();
+        } else {
+            firstKeysInFiles = new ArrayList();
 
-            long lsn = getLsn(cursor);
-            if (DbLsn.getFileNumber(lsn) != fileNum) {
-                assertTrue(fileNum < DbLsn.getFileNumber(lsn));
-                fileNum = (int) DbLsn.getFileNumber(lsn);
-                assertEquals(fileNum, firstKeysInFiles.size());
-                firstKeysInFiles.add(new Integer(nextKey));
+            Transaction txn = env.beginTransaction(null, null);
+            Cursor cursor = db.openCursor(txn, null);
+            int fileNum = -1;
+
+            for (int nextKey = 0; fileNum < INITIAL_FILES; nextKey += 1) {
+
+                OperationStatus status;
+                if (dups) {
+                    key.setData(MAIN_KEY_FOR_DUPS);
+                    data.setData(TestUtils.getTestArray(nextKey));
+                    status = cursor.putNoDupData(key, data);
+                } else {
+                    key.setData(TestUtils.getTestArray(nextKey));
+                    data.setData(new byte[DATA_SIZE]);
+                    status = cursor.putNoOverwrite(key, data);
+                }
+
+                assertEquals(OperationStatus.SUCCESS, status);
+                existingKeys.add(new Integer(nextKey));
+
+                long lsn = getLsn(cursor);
+                if (DbLsn.getFileNumber(lsn) != fileNum) {
+                    assertTrue(fileNum < DbLsn.getFileNumber(lsn));
+                    fileNum = (int) DbLsn.getFileNumber(lsn);
+                    assertEquals(fileNum, firstKeysInFiles.size());
+                    firstKeysInFiles.add(new Integer(nextKey));
+                }
             }
+            //System.out.println("Num keys: " + existingKeys.size());
+
+            cursor.close();
+            txn.commit();
         }
 
-        cursor.close();
-        txn.commit();
-	env.checkpoint(forceConfig);
+        forceEvictionIfTemporary();
+        env.checkpoint(forceConfig);
 
-        long firstActiveLsn = envImpl.getCheckpointer().getFirstActiveLsn();
-        assertTrue(firstActiveLsn != DbLsn.NULL_LSN);
-        assertTrue(DbLsn.getFileNumber(firstActiveLsn) >= INITIAL_FILES);
+        int lastFile =
+            (int) envImpl.getFileManager().getLastFileNum().longValue();
+        if (temporary) {
+            assertTrue(String.valueOf(lastFile),
+                       lastFile >= INITIAL_FILES_TEMP);
+        } else {
+            assertTrue(String.valueOf(lastFile),
+                       lastFile >= INITIAL_FILES);
+        }
+        //System.out.println("last file " + lastFile);
     }
 
     /**
@@ -674,7 +1060,8 @@ public class FileSelectionTest extends TestCase {
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
 
-        Transaction txn = env.beginTransaction(null, null);
+        Transaction txn = !isDeferredWriteMode() ?
+            env.beginTransaction(null, null) : null;
         Cursor cursor = db.openCursor(txn, null);
 
         for (int i = 0; i < keyCount; i += 1) {
@@ -695,7 +1082,10 @@ public class FileSelectionTest extends TestCase {
         }
 
         cursor.close();
-        txn.commit();
+        if (txn != null) {
+            txn.commit();
+        }
+        forceEvictionIfTemporary();
     }
 
     /**
@@ -707,7 +1097,8 @@ public class FileSelectionTest extends TestCase {
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
 
-        Transaction txn = env.beginTransaction(null, null);
+        Transaction txn = !isDeferredWriteMode() ?
+            env.beginTransaction(null, null) : null;
         Cursor cursor = db.openCursor(txn, null);
 
         for (int i = 0; i < keyCount; i += 1) {
@@ -732,7 +1123,10 @@ public class FileSelectionTest extends TestCase {
         }
 
         cursor.close();
-        txn.commit();
+        if (txn != null) {
+            txn.commit();
+        }
+        forceEvictionIfTemporary();
     }
 
     /**
@@ -744,7 +1138,8 @@ public class FileSelectionTest extends TestCase {
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
 
-        Transaction txn = env.beginTransaction(null, null);
+        Transaction txn = !isDeferredWriteMode() ?
+            env.beginTransaction(null, null) : null;
         Cursor cursor = db.openCursor(txn, null);
 
         for (Iterator i = existingKeys.iterator(); i.hasNext();) {
@@ -767,7 +1162,9 @@ public class FileSelectionTest extends TestCase {
         }
 
         cursor.close();
-        txn.commit();
+        if (txn != null) {
+            txn.commit();
+        }
     }
 
     /**
@@ -786,7 +1183,7 @@ public class FileSelectionTest extends TestCase {
                 }
             }
             String name = envImpl.getFileManager().
-                                  getFullFileName(i, FileManager.JE_SUFFIX);
+                getFullFileName(i, FileManager.JE_SUFFIX);
             assertEquals(name, shouldExist, new File(name).exists());
         }
     }

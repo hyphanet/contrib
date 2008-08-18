@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCompat.java,v 1.21.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: DbCompat.java,v 1.26 2008/05/19 17:52:16 linda Exp $
  */
 
 package com.sleepycat.compat;
@@ -54,6 +54,10 @@ public class DbCompat {
     public static final boolean DATABASE_COUNT = true;
 
     /* Methods used by the collections package. */
+
+    public static boolean getInitializeCache(EnvironmentConfig config) {
+        return true;
+    }
 
     public static boolean getInitializeLocking(EnvironmentConfig config) {
         return config.getLocking();
@@ -239,8 +243,8 @@ public class DbCompat {
 
 
     public static void setBtreeComparator(DatabaseConfig dbConfig,
-                                          Comparator comparator) {
-        dbConfig.setBtreeComparator(comparator.getClass());
+                                          Comparator<byte[]> comparator) {
+        dbConfig.setBtreeComparator(comparator);
     }
 
     public static void setTypeBtree(DatabaseConfig dbConfig) {
@@ -300,28 +304,86 @@ public class DbCompat {
 
     public static Database openDatabase(Environment env,
                                         Transaction txn,
-                                        String file,
-                                        String name,
+                                        String fileName,
+                                        String dbName,
                                         DatabaseConfig config)
         throws DatabaseException, FileNotFoundException {
 
-        return env.openDatabase(txn, makeDbName(file, name), config);
+        assert fileName == null;
+        return env.openDatabase(txn, dbName, config);
     }
 
-    public static SecondaryDatabase
-                  openSecondaryDatabase(Environment env,
+    public static SecondaryDatabase openSecondaryDatabase(
+                                        Environment env,
                                         Transaction txn,
-                                        String file,
-                                        String name,
-                                        Database primary,
+                                        String fileName,
+                                        String dbName,
+                                        Database primaryDatabase,
                                         SecondaryConfig config)
         throws DatabaseException, FileNotFoundException {
 
-        return env.openSecondaryDatabase(txn, makeDbName(file, name),
+        assert fileName == null;
+        return env.openSecondaryDatabase(txn, dbName, primaryDatabase, config);
+    }
+
+    public static long truncateDatabase(Environment env,
+                                        Transaction txn,
+                                        String fileName,
+                                        String dbName,
+                                        boolean returnCount)
+        throws DatabaseException, FileNotFoundException {
+
+        assert fileName == null;
+        return env.truncateDatabase(txn, dbName, returnCount);
+    }
+
+    public static void removeDatabase(Environment env,
+                                      Transaction txn,
+                                      String fileName,
+                                      String dbName)
+        throws DatabaseException, FileNotFoundException {
+
+        assert fileName == null;
+        env.removeDatabase(txn, dbName);
+    }
+
+    public static void renameDatabase(Environment env,
+                                      Transaction txn,
+                                      String oldFileName,
+                                      String oldDbName,
+                                      String newFileName,
+                                      String newDbName)
+        throws DatabaseException, FileNotFoundException {
+
+        assert oldFileName == null;
+        assert newFileName == null;
+        env.renameDatabase(txn, oldDbName, newDbName);
+    }
+
+    public static Database testOpenDatabase(Environment env,
+                                            Transaction txn,
+                                            String file,
+                                            String name,
+                                            DatabaseConfig config)
+        throws DatabaseException, FileNotFoundException {
+
+        return env.openDatabase(txn, makeTestDbName(file, name), config);
+    }
+
+    public static SecondaryDatabase
+                  testOpenSecondaryDatabase(Environment env,
+                                            Transaction txn,
+                                            String file,
+                                            String name,
+                                            Database primary,
+                                            SecondaryConfig config)
+        throws DatabaseException, FileNotFoundException {
+
+        return env.openSecondaryDatabase(txn, makeTestDbName(file, name),
                                          primary, config);
     }
 
-    private static String makeDbName(String file, String name) {
+    private static String makeTestDbName(String file, String name) {
         if (file == null) {
             return name;
         } else {

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CursorTest.java,v 1.78.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: CursorTest.java,v 1.82 2008/01/07 14:29:04 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -14,8 +14,8 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.junit.JUnitThread;
 import com.sleepycat.je.util.TestUtils;
 
@@ -874,14 +874,23 @@ public class CursorTest extends TestCase {
         Transaction txn =
 	    env.beginTransaction(null, TransactionConfig.DEFAULT);
 
+        /* In a non-replicated environment, the txn id should be positive. */
+        assertTrue(txn.getId() > 0);
+
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setTransactional(true);
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(true);
         for (int i = 0; i < numDbs; i++) {
             myDb[i] = env.openDatabase(txn, "testDB" + i, dbConfig);
-
             cursor[i] = myDb[i].openCursor(txn, CursorConfig.DEFAULT);
+
+            /*
+             * In a non-replicated environment, the db id should be
+             * positive.
+             */
+            DatabaseImpl dbImpl = DbInternal.dbGetDatabaseImpl(myDb[i]);
+            assertTrue(dbImpl.getId().getId() > 0);
         }
 
         /* Insert data in a round robin fashion to spread over log. */

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: XACollectionTest.java,v 1.5.2.3 2007/12/14 02:40:10 mark Exp $
+ * $Id: XACollectionTest.java,v 1.9 2008/02/05 23:28:26 mark Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -24,6 +24,7 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.XAEnvironment;
 import com.sleepycat.je.log.LogUtils.XidImpl;
 import com.sleepycat.util.ExceptionUnwrapper;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * Runs CollectionTest with special TestEnv and TransactionRunner objects to

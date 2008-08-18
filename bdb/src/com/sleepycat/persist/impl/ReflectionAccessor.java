@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ReflectionAccessor.java,v 1.18.2.4 2007/11/20 13:32:39 cwl Exp $
+ * $Id: ReflectionAccessor.java,v 1.23 2008/03/18 18:38:08 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -111,7 +111,8 @@ class ReflectionAccessor implements Accessor {
             return new PrimitiveAccess
                 (field, SimpleCatalog.getSimpleFormat(fieldCls));
         } else if (isRequiredKeyField) {
-            Format format = catalog.getFormat(fieldCls);
+            Format format = catalog.getFormat
+                (fieldCls, false /*openEntitySubclassIndexes*/);
             if (isCompositeKey && !SimpleCatalog.isSimpleType(fieldCls)) {
                 throw new IllegalArgumentException
                     ("Composite key class has non-simple type field: " +

@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EventTrace.java,v 1.11.2.1 2007/02/01 14:49:54 cwl Exp $
+ * $Id: EventTrace.java,v 1.15 2008/01/07 14:28:57 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
 
+import java.io.PrintStream;
 
 /**
  * Internal class used for transient event tracing.  Subclass this with
@@ -15,9 +16,9 @@ package com.sleepycat.je.utilint;
  * events should be added by calling EventTrace.addEvent();
  */
 public class EventTrace {
-    static private int MAX_EVENTS = 100;
+    private static int MAX_EVENTS = 100;
 
-    static public final boolean TRACE_EVENTS = false;
+    public static final boolean TRACE_EVENTS = false;
 
     static int currentEvent = 0;
 
@@ -39,28 +40,42 @@ public class EventTrace {
 	return comment;
     }
 
-    static public void addEvent(EventTrace event) {
+    /**
+     * Always return true so this method can be used with asserts:
+     * i.e. assert addEvent(xxx);
+     */
+    public static boolean addEvent(EventTrace event) {
 	if (disableEvents) {
-	    return;
+	    return true;
 	}
 	int nextEventIdx = currentEvent++ % MAX_EVENTS;
 	events[nextEventIdx] = event;
 	threadIdHashes[nextEventIdx] =
 	    System.identityHashCode(Thread.currentThread());
+        return true;
     }
 
-    static public void addEvent(String comment) {
+    /*
+     * Always return true so this method can be used with asserts:
+     * i.e. assert addEvent(xxx);
+     */
+    public static boolean addEvent(String comment) {
+	if (disableEvents) {
+	    return true;
+	}
+	return addEvent(new EventTrace(comment));
+    }
+
+    public static void dumpEvents() {
+	dumpEvents(System.out);
+    }
+
+    public static void dumpEvents(PrintStream out) {
+
 	if (disableEvents) {
 	    return;
 	}
-	addEvent(new EventTrace(comment));
-    }
-
-    static public void dumpEvents() {
-	if (disableEvents) {
-	    return;
-	}
-	System.out.println("----- Event Dump -----");
+	out.println("----- Event Dump -----");
 	EventTrace[] oldEvents = events;
 	int[] oldThreadIdHashes = threadIdHashes;
 	disableEvents = true;
@@ -70,14 +85,14 @@ public class EventTrace {
 	    EventTrace ev = oldEvents[i % MAX_EVENTS];
 	    if (ev != null) {
 		int thisEventIdx = i % MAX_EVENTS;
-		System.out.print(oldThreadIdHashes[thisEventIdx] + " ");
-		System.out.println(j + "(" + thisEventIdx + "): " + ev);
+		out.print(oldThreadIdHashes[thisEventIdx] + " ");
+		out.println(j + "(" + thisEventIdx + "): " + ev);
 	    }
 	    j++;
 	}
     }
 
-    static public class ExceptionEventTrace extends EventTrace {
+    public static class ExceptionEventTrace extends EventTrace {
 	private Exception event;
 
 	public ExceptionEventTrace() {
@@ -91,7 +106,7 @@ public class EventTrace {
 }
 
     /*
-    static public class EvictEvent extends EventTrace {
+    public static class EvictEvent extends EventTrace {
 	long nodeId;
 	int addr;
 
@@ -101,7 +116,7 @@ public class EventTrace {
 	    this.addr = addr;
 	}
 
-	static public void addEvent(String comment, IN node) {
+	public static void addEvent(String comment, IN node) {
 	    long nodeId = node.getNodeId();
 	    int addr = System.identityHashCode(node);
 	    EventTrace.addEvent(new EvictEvent(comment, nodeId, addr));
@@ -115,7 +130,7 @@ public class EventTrace {
 	}
     }
 
-    static public class CursorTrace extends EventTrace {
+    public static class CursorTrace extends EventTrace {
 	long nodeId;
 	int index;
 
@@ -125,7 +140,7 @@ public class EventTrace {
 	    this.index = index;
 	}
 
-	static public void addEvent(String comment, CursorImpl cursor) {
+	public static void addEvent(String comment, CursorImpl cursor) {
 	    long nodeId =
 		(cursor.getBIN() == null) ? -1 : cursor.getBIN().getNodeId();
 	    EventTrace.addEvent

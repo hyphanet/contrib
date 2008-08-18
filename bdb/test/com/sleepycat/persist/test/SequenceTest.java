@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SequenceTest.java,v 1.1.2.2 2007/09/13 23:05:11 linda Exp $
+ * $Id: SequenceTest.java,v 1.5 2008/02/05 23:28:28 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -16,7 +16,6 @@ import junit.framework.TestCase;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
-import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.StoreConfig;
@@ -24,6 +23,8 @@ import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.KeyField;
 import com.sleepycat.persist.model.Persistent;
 import com.sleepycat.persist.model.PrimaryKey;
+import com.sleepycat.util.test.SharedTestUtils;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * @author Mark Hayes
@@ -36,8 +37,8 @@ public class SequenceTest extends TestCase {
     public void setUp()
         throws IOException {
 
-        envHome = new File(System.getProperty(TestUtils.DEST_DIR));
-        TestUtils.removeLogFiles("Setup", envHome, false);
+        envHome = new File(System.getProperty(SharedTestUtils.DEST_DIR));
+        SharedTestUtils.emptyDir(envHome);
     }
 
     public void tearDown()
@@ -51,7 +52,7 @@ public class SequenceTest extends TestCase {
             }
         }
         try {
-            TestUtils.removeLogFiles("TearDown", envHome, false);
+            SharedTestUtils.emptyDir(envHome);
         } catch (Error e) {
             System.out.println("During tearDown: " + e);
         }
@@ -81,7 +82,7 @@ public class SequenceTest extends TestCase {
             SequenceEntity_tbyte_composite.class,
         };
 
-        EnvironmentConfig envConfig = new EnvironmentConfig();
+        EnvironmentConfig envConfig = TestEnv.BDB.getConfig();
         envConfig.setAllowCreate(true);
         env = new Environment(envHome, envConfig);
 

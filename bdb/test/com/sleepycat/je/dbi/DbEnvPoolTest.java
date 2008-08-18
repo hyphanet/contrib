@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: DbEnvPoolTest.java,v 1.5.2.2 2007/11/20 13:32:44 cwl Exp $
+ * $Id: DbEnvPoolTest.java,v 1.11 2008/01/07 14:29:06 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -40,6 +40,7 @@ public class DbEnvPoolTest extends TestCase {
 
     public void testCanonicalEnvironmentName ()
         throws Throwable {
+
         try {
             File file1 = new File(System.getProperty(TestUtils.DEST_DIR));
             File file2 = new File("build/test/classes");
@@ -50,11 +51,15 @@ public class DbEnvPoolTest extends TestCase {
             Environment envA = new Environment(envHome, envConfig);
 
             /* Look in the environment pool with the relative path name. */
-            DbEnvPool.EnvironmentImplInfo info =
+            EnvironmentImpl envImpl =
                 DbEnvPool.getInstance().getEnvironment
-                    (file2, TestUtils.initEnvConfig());
-            /* We should find this file in the pool. */
-            assertEquals(false, info.firstHandle);
+                    (file2, TestUtils.initEnvConfig(),
+                     false /*checkImmutableParams*/,
+                     false /*openIfNeeded*/,
+                     false /*replicationIntended*/);
+            /* We should find this file in the pool without opening it. */
+            assertNotNull(envImpl);
+            envImpl.decReferenceCount();
             envA.close();
 
         } catch (Throwable t) {

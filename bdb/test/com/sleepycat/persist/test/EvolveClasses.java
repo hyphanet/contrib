@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveClasses.java,v 1.11.2.8 2007/12/08 14:43:48 mark Exp $
+ * $Id: EvolveClasses.java,v 1.25 2008/06/03 04:52:24 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -1121,6 +1121,7 @@ class EvolveClasses {
             return m;
         }
 
+        @SuppressWarnings("serial")
         static class MyConversion implements Conversion {
 
             transient RawType newType;
@@ -3866,6 +3867,7 @@ class EvolveClasses {
             return m;
         }
 
+        @SuppressWarnings("serial")
         static class MyConversion1 implements Conversion {
 
             public void initialize(EntityModel model) {}
@@ -3878,6 +3880,7 @@ class EvolveClasses {
             public boolean equals(Object other) { return true; }
         }
 
+        @SuppressWarnings("serial")
         static class MyConversion2 implements Conversion {
 
             public void initialize(EntityModel model) {}
@@ -4312,6 +4315,7 @@ class EvolveClasses {
         int zipCode;
     }
 
+    @SuppressWarnings("serial")
     static class ConvertExample1_Conversion implements Conversion {
 
         public void initialize(EntityModel model) {
@@ -4534,6 +4538,7 @@ class EvolveClasses {
         }
     }
 
+    @SuppressWarnings("serial")
     static class ConvertExample2_Conversion implements Conversion {
         private transient RawType addressType;
 
@@ -4578,6 +4583,7 @@ class EvolveClasses {
         int zipCode;
     }
 
+    @SuppressWarnings("serial")
     static class ConvertExample3_Conversion implements Conversion {
         private transient RawType newPersonType;
         private transient RawType addressType;
@@ -4713,6 +4719,140 @@ class EvolveClasses {
         }
     }
 
+    @SuppressWarnings("serial")
+    static class ConvertExample3Reverse_Conversion implements Conversion {
+        private transient RawType newPersonType;
+
+        public void initialize(EntityModel model) {
+            newPersonType = model.getRawType
+                (ConvertExample3Reverse_Person.class.getName());
+        }
+
+        public Object convert(Object fromValue) {
+
+            RawObject person = (RawObject) fromValue;
+            Map<String,Object> personValues = person.getValues();
+            RawObject address = (RawObject) personValues.remove("address");
+            Map<String,Object> addressValues = address.getValues();
+
+            personValues.put("street", addressValues.remove("street"));
+            personValues.put("city", addressValues.remove("city"));
+            personValues.put("state", addressValues.remove("state"));
+            personValues.put("zipCode", addressValues.remove("zipCode"));
+
+            return new RawObject
+                (newPersonType, personValues, person.getSuper());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof ConvertExample3Reverse_Conversion;
+        }
+    }
+
+    @Entity(version=1)
+    static class ConvertExample3Reverse_Person
+        extends EvolveCase {
+
+        private static final String NAME =
+            ConvertExample3Reverse_Person.class.getName();
+        private static final String NAME2 =
+            PREFIX + "ConvertExample3Reverse_Address";
+
+        @PrimaryKey
+        int key;
+
+        String street;
+        String city;
+        String state;
+        int zipCode;
+
+        @Override
+        Mutations getMutations() {
+            Mutations m = new Mutations();
+            Converter converter = new Converter
+                (ConvertExample3Reverse_Person.class.getName(), 0,
+                 new ConvertExample3Reverse_Conversion());
+            m.addConverter(converter);
+            m.addDeleter(new Deleter(NAME2, 0));
+            return m;
+        }
+
+        @Override
+        void checkEvolvedModel(EntityModel model,
+                               Environment env,
+                               boolean oldTypesExist) {
+            checkEntity(true, model, env, NAME, 1, null);
+            if (oldTypesExist) {
+                checkVersions(model, NAME, 1, NAME, 0);
+                checkVersions(model, NAME2, 0);
+            } else {
+                checkVersions(model, NAME, 1);
+            }
+        }
+
+        @Override
+        void readObjects(EntityStore store, boolean doUpdate)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,ConvertExample3Reverse_Person>
+                index = store.getPrimaryIndex
+                    (Integer.class,
+                     ConvertExample3Reverse_Person.class);
+            ConvertExample3Reverse_Person obj = index.get(99);
+            TestCase.assertNotNull(obj);
+            TestCase.assertEquals(99, obj.key);
+            TestCase.assertEquals("street", obj.street);
+            TestCase.assertEquals("city", obj.city);
+            TestCase.assertEquals("state", obj.state);
+            TestCase.assertEquals(12345, obj.zipCode);
+
+            if (doUpdate) {
+                index.put(obj);
+            }
+        }
+
+        @Override
+        void copyRawObjects(RawStore rawStore, EntityStore newStore)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,ConvertExample3Reverse_Person>
+                index = newStore.getPrimaryIndex
+                    (Integer.class,
+                     ConvertExample3Reverse_Person.class);
+            RawObject raw = rawStore.getPrimaryIndex(NAME).get(99);
+            index.put((ConvertExample3Reverse_Person)
+                      newStore.getModel().convertRawObject(raw));
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            RawObject obj = readRaw
+                (store, 99, NAME, expectEvolved ? 1 : 0, CASECLS, 0);
+            if (expectEvolved) {
+                checkRawFields(obj, "key", 99,
+                                    "street", "street",
+                                    "city", "city",
+                                    "state", "state",
+                                    "zipCode", 12345);
+            } else {
+                RawType embedType = store.getModel().getRawType(NAME2);
+                Object embed = new RawObject
+                    (embedType,
+                     makeValues("street", "street",
+                                "city", "city",
+                                "state", "state",
+                                "zipCode", 12345),
+                     null);
+                checkRawFields(obj, "key", 99, "address", embed);
+            }
+        }
+    }
+
     @Persistent(version=1)
     static class ConvertExample4_A extends ConvertExample4_B {
     }
@@ -4722,6 +4862,7 @@ class EvolveClasses {
         String name;
     }
 
+    @SuppressWarnings("serial")
     static class Example4_Conversion implements Conversion {
         private transient RawType newAType;
         private transient RawType newBType;
@@ -4861,6 +5002,7 @@ class EvolveClasses {
         double barkVolume;
     }
 
+    @SuppressWarnings("serial")
     static class ConvertExample5_Conversion implements Conversion {
         private transient RawType newPetType;
         private transient RawType dogType;
@@ -5625,6 +5767,7 @@ class EvolveClasses {
         }
         */
 
+        @SuppressWarnings("serial")
         static class MyConversion implements Conversion {
 
             transient RawType newType;
@@ -6021,6 +6164,7 @@ class EvolveClasses {
             return m;
         }
 
+        @SuppressWarnings("serial")
         private static class IntToString implements Conversion {
 
             public void initialize(EntityModel model) {

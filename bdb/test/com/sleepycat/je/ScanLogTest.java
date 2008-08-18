@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ScanLogTest.java,v 1.1.2.3 2007/11/20 13:32:42 cwl Exp $
+ * $Id: ScanLogTest.java,v 1.5 2008/01/07 14:29:05 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -123,19 +123,16 @@ public class ScanLogTest extends TestCase {
 	private boolean deleteRecs;
 	private byte prevKey;
 	private boolean abortScan;
-	private Environment env;
 
 	private ScanLogTestScanner(final boolean forwards,
 				   final boolean duplicates,
 				   final boolean deleteRecs,
-				   final boolean abortScan,
-				   final Environment env) {
+				   final boolean abortScan) {
 
 	    this.forwards = forwards;
 	    this.duplicates = duplicates;
 	    this.deleteRecs = deleteRecs;
 	    this.abortScan = abortScan;
-	    this.env = env;
 
 	    if (forwards) {
 		prevKey = (byte) 0;
@@ -151,9 +148,7 @@ public class ScanLogTest extends TestCase {
 
 	    byte keyVal = key.getData()[3];
 
-	    DbTree dbTree =
-		DbInternal.envGetEnvironmentImpl(env).getDbMapTree();
-	    assertFalse(dbTree.isReservedDbName(databaseName));
+	    assertFalse(DbTree.isReservedDbName(databaseName));
 	    assertTrue(databaseName.equals("testDB"));
 	    assertFalse(deleted && !deleteRecs);
 	    if (deleted) {
@@ -207,7 +202,6 @@ public class ScanLogTest extends TestCase {
 	    long startLSN = (useZeroLsn ? 0 : getCurrentLSN());
             DatabaseEntry key = new DatabaseEntry();
             DatabaseEntry data = new DatabaseEntry();
-            DatabaseEntry getData = new DatabaseEntry();
 	    Transaction txn = env.beginTransaction(null, null);
 
             /* Create some data. */
@@ -239,8 +233,8 @@ public class ScanLogTest extends TestCase {
 	    lsConf.setForwards(forwards);
 
 	    ScanLogTestScanner scanner =
-		new ScanLogTestScanner(forwards, duplicates, deleteRecs,
-				       abortScan, env);
+		new ScanLogTestScanner(forwards, duplicates,
+				       deleteRecs, abortScan);
 
 	    if (lsConf.getForwards()) {
 		env.scanLog(startLSN, endLSN, lsConf, scanner);
@@ -289,7 +283,6 @@ public class ScanLogTest extends TestCase {
 	    long startLSN = getCurrentLSN();
             DatabaseEntry key = new DatabaseEntry();
             DatabaseEntry data = new DatabaseEntry();
-            DatabaseEntry getData = new DatabaseEntry();
 	    Transaction txn = env.beginTransaction(null, null);
 
             /* Create some data. */
@@ -319,7 +312,7 @@ public class ScanLogTest extends TestCase {
 
 	    ScanLogTestScanner scanner =
 		new ScanLogTestScanner(forwards, duplicates,
-				       deleteRecs, false, env);
+				       deleteRecs, false);
 
 	    LogScanConfig lsConf = new LogScanConfig();
 	    lsConf.setForwards(true);

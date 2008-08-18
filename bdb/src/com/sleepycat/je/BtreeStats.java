@@ -1,16 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BtreeStats.java,v 1.10.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: BtreeStats.java,v 1.15 2008/01/24 14:59:27 linda Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * The BtreeStats object is used to return Btree database statistics.
  */
 public class BtreeStats extends DatabaseStats {
 
@@ -59,14 +58,21 @@ public class BtreeStats extends DatabaseStats {
     private long[] dbinsByLevel;
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of Bottom Internal Nodes in the database tree.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return number of Bottom Internal Nodes in the database tree.
      */
     public long getBottomInternalNodeCount() {
         return binCount;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setBottomInternalNodeCount(long val) {
@@ -74,14 +80,22 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of Duplicate Bottom Internal Nodes in the database
+     * tree.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return number of Duplicate Bottom Internal Nodes in the database tree.
      */
     public long getDuplicateBottomInternalNodeCount() {
         return dbinCount;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setDuplicateBottomInternalNodeCount(long val) {
@@ -89,14 +103,23 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of deleted data records in the database tree that
+     * are pending removal by the compressor.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return number of deleted data records in the database tree that are
+     * pending removal by the compressor.
      */
     public long getDeletedLeafNodeCount() {
         return deletedLNCount;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setDeletedLeafNodeCount(long val) {
@@ -104,14 +127,21 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of duplicate count leaf nodes in the database tree.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return number of duplicate count leaf nodes in the database tree.
      */
     public long getDupCountLeafNodeCount() {
         return dupCountLNCount;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setDupCountLeafNodeCount(long val) {
@@ -119,14 +149,21 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of Internal Nodes in the database tree.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return number of Internal Nodes in the database tree.
      */
     public long getInternalNodeCount() {
         return inCount;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setInternalNodeCount(long val) {
@@ -134,14 +171,21 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of Duplicate Internal Nodes in the database tree.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return number of Duplicate Internal Nodes in the database tree.
      */
     public long getDuplicateInternalNodeCount() {
         return dinCount;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setDuplicateInternalNodeCount(long val) {
@@ -149,14 +193,27 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of leaf nodes in the database tree, which can equal
+     * the number of records. This is calculated without locks or transactions,
+     * and therefore is only an accurate count of the current number of records
+     * when the database is quiescent.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return number of leaf nodes in the database tree, which can equal the
+     * number of records. This is calculated without locks or transactions, and
+     * therefore is only an accurate count of the current number of records
+     * when the database is quiescent.
      */
     public long getLeafNodeCount() {
         return lnCount;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setLeafNodeCount(long val) {
@@ -164,14 +221,21 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the maximum depth of the main database tree.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return maximum depth of the main database tree.
      */
     public int getMainTreeMaxDepth() {
         return mainTreeMaxDepth;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setMainTreeMaxDepth(int val) {
@@ -179,14 +243,21 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the maximum depth of the duplicate database trees.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return maximum depth of the duplicate database trees.
      */
     public int getDuplicateTreeMaxDepth() {
         return duplicateTreeMaxDepth;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setDuplicateTreeMaxDepth(int val) {
@@ -194,14 +265,21 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the count of Internal Nodes per level, indexed by level.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return count of Internal Nodes per level, indexed by level.
      */
     public long[] getINsByLevel() {
         return insByLevel;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setINsByLevel(long[] insByLevel) {
@@ -209,14 +287,21 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the count of Bottom Internal Nodes per level, indexed by level.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return count of Bottom Internal Nodes per level, indexed by level.
      */
     public long[] getBINsByLevel() {
         return binsByLevel;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setBINsByLevel(long[] binsByLevel) {
@@ -224,14 +309,22 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the count of Duplicate Internal Nodes per level, indexed by
+     * level.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return count of Duplicate Internal Nodes per level, indexed by level.
      */
     public long[] getDINsByLevel() {
         return dinsByLevel;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setDINsByLevel(long[] dinsByLevel) {
@@ -239,14 +332,23 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the count of Duplicate Bottom Internal Nodes per level, indexed
+     * by level.
+     *
+     * <p>The information is included only if the {@link
+     * com.sleepycat.je.Database#getStats Database.getStats} call was not
+     * configured by the {@link com.sleepycat.je.StatsConfig#setFast
+     * StatsConfig.setFast} method.</p>
+     *
+     * @return count of Duplicate Bottom Internal Nodes per level, indexed by
+     * level.
      */
     public long[] getDBINsByLevel() {
         return dbinsByLevel;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setDBINsByLevel(long[] dbinsByLevel) {
@@ -264,9 +366,10 @@ public class BtreeStats extends DatabaseStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * For convenience, the BtreeStats class has a toString method that lists
+     * all the data fields.
      */
+    @Override
     public String toString() {
 	StringBuffer sb = new StringBuffer();
 	if (binCount > 0) {

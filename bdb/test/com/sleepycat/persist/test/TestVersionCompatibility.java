@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: TestVersionCompatibility.java,v 1.1.2.4 2007/12/07 00:34:07 mark Exp $
+ * $Id: TestVersionCompatibility.java,v 1.5 2008/01/07 14:29:16 cwl Exp $
  */
 package com.sleepycat.persist.test;
 

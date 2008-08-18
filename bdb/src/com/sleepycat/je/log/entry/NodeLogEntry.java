@@ -1,12 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: NodeLogEntry.java,v 1.5.2.1 2007/02/01 14:49:48 cwl Exp $
+ * $Id: NodeLogEntry.java,v 1.8 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
+
+import com.sleepycat.je.dbi.DatabaseId;
 
 /**
  * Implemented by all LogEntry classes that provide a node ID.
@@ -20,4 +22,9 @@ public interface NodeLogEntry extends LogEntry {
      * optimization for recovery.
      */
     long getNodeId();
+
+    /**
+     * All node entries have a database ID.
+     */
+    DatabaseId getDbId();
 }

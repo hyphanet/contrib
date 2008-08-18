@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogSource.java,v 1.22.2.2 2007/11/20 13:32:32 cwl Exp $
+ * $Id: LogSource.java,v 1.26 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -28,12 +28,12 @@ public interface LogSource {
      * Fill the destination byte array with bytes. The offset indicates the
      * absolute log file position.
      */
-    ByteBuffer getBytes(long fileOffset) throws IOException;
+    ByteBuffer getBytes(long fileOffset) throws DatabaseException, IOException;
 
     /**
      * Fill the destination byte array with the requested number of bytes.  The
      * offset indicates the absolute position in the log file.
      */
     ByteBuffer getBytes(long fileOffset, int numBytes)
-        throws IOException;
+        throws DatabaseException, IOException;
 }

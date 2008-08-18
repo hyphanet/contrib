@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PrimaryKey.java,v 1.8.2.2 2007/12/08 14:38:36 mark Exp $
+ * $Id: PrimaryKey.java,v 1.15 2008/03/17 22:52:52 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -43,10 +43,10 @@ import com.sleepycat.persist.PrimaryIndex;
  * </ul>
  * <p>Enum types and array types are not allowed.</p>
  *
- * <p>When using a composite key class containing more than one key field, each
- * field of the composite key class must be annotated with {@link KeyField} to
- * identify the storage order and default sort order.  See {@link KeyField} for
- * an example and more information on composite keys.</p>
+ * <p>When using a composite key class, each field of the composite key class
+ * must be annotated with {@link KeyField} to identify the storage order and
+ * default sort order.  See {@link KeyField} for an example and more
+ * information on composite keys.</p>
  *
  * <p><a name="sortOrder"><strong>Key Sort Order</strong></a></p>
  *
@@ -69,11 +69,13 @@ import com.sleepycat.persist.PrimaryIndex;
  * ordering.</li>
  * </ul>
  *
- * <p>To override the default sort order, you can use a composite key class
- * that implements {@link Comparable}.  This allows overriding the sort order
- * and is therefore useful even when there is only one key field in the
- * composite key class.  See {@link <a href="KeyField.html#comparable">Custom
- * Sort Order</a>} for more information on sorting of composite keys.</p>
+ * <p>When using a composite key class with more than one field, the sorting
+ * order among fields is determined by the {@link KeyField} annotations.  To
+ * override the default sort order, you can use a composite key class that
+ * implements {@link Comparable}.  This allows overriding the sort order and is
+ * therefore useful even when there is only one key field in the composite key
+ * class.  See {@link <a href="KeyField.html#comparable">Custom Sort Order</a>}
+ * for more information on sorting of composite keys.</p>
  *
  * <p><a name="inherit"><strong>Inherited Primary Key</strong></a></p>
  *
@@ -109,6 +111,23 @@ import com.sleepycat.persist.PrimaryIndex;
  * {@literal @Entity}
  * class Employee extends BaseClass {
  *     // overrides id primary key
+ *     {@literal @PrimaryKey}
+ *     String uuid;
+ *     ...
+ * }</pre>
+ *
+ * <p>Note that a {@code PrimaryKey} is not allowed on entity subclasses.  The
+ * following is illegal and will cause an {@code IllegalArgumentException} when
+ * trying to store an {@code Employee} instance:</p>
+ * <pre class="code">
+ * {@literal @Entity}
+ * class Person {
+ *     {@literal @PrimaryKey}
+ *     long id;
+ *     ...
+ * }
+ * {@literal @Persistent}
+ * class Employee extends Person {
  *     {@literal @PrimaryKey}
  *     String uuid;
  *     ...

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Tracer.java,v 1.43.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: Tracer.java,v 1.52 2008/01/17 17:22:15 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -22,6 +22,7 @@ import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.SingleItemEntry;
 
 /**
@@ -147,15 +148,17 @@ public class Tracer implements Loggable {
      */
     public long log(LogManager logManager)
         throws DatabaseException {
+
         return logManager.log(new SingleItemEntry(LogEntryType.LOG_TRACE,
-                                                  this));
+                                                  this),
+                              ReplicationContext.NO_REPLICATE);
     }
 
     /**
      * @see Loggable#getLogSize()
      */
     public int getLogSize() {
-        return (LogUtils.getTimestampLogSize() +
+        return (LogUtils.getTimestampLogSize(time) +
                 LogUtils.getStringLogSize(msg));
     }
 
@@ -171,10 +174,11 @@ public class Tracer implements Loggable {
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion) {
         /* See how many we want to read direct. */
-        time = LogUtils.readTimestamp(itemBuffer);
-        msg = LogUtils.readString(itemBuffer);
+        boolean unpacked = (entryVersion < 6);
+        time = LogUtils.readTimestamp(itemBuffer, unpacked);
+        msg = LogUtils.readString(itemBuffer, unpacked);
     }
 
     /**
@@ -195,6 +199,17 @@ public class Tracer implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     */
+    public boolean logicalEquals(Loggable other) {
+
+        if (!(other instanceof Tracer))
+            return false;
+
+        return msg.equals(((Tracer) other).msg);
     }
 
     public String toString() {

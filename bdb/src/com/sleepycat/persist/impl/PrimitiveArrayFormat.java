@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PrimitiveArrayFormat.java,v 1.20.2.2 2007/11/03 02:44:53 mark Exp $
+ * $Id: PrimitiveArrayFormat.java,v 1.24 2008/03/18 18:38:08 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -55,7 +55,8 @@ public class PrimitiveArrayFormat extends Format {
     @Override
     void initialize(Catalog catalog, int initVersion) {
         componentFormat = (SimpleFormat)
-            catalog.getFormat(getType().getComponentType());
+            catalog.getFormat(getType().getComponentType(),
+                              false /*openEntitySubclassIndexes*/);
     }
 
     @Override

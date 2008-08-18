@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnMemoryTest.java,v 1.10.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: TxnMemoryTest.java,v 1.17 2008/01/07 14:29:14 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -32,7 +32,6 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.tree.IN;
-import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.util.TestUtils;
 
@@ -48,7 +47,7 @@ public class TxnMemoryTest extends TestCase {
                                                LOCK_NOTXN};
     private static final String COMMIT = "commit";
     private static final String ABORT = "abort";
-    private static final String [] END_MODE = {COMMIT, ABORT};
+    private static final String[] END_MODE = {COMMIT, ABORT};
 
     private File envHome;
     private Environment env;
@@ -63,7 +62,7 @@ public class TxnMemoryTest extends TestCase {
     private long beforeAction;
     private long afterTxnsCreated;
     private long afterAction;
-    private Transaction [] txns;
+    private Transaction[] txns;
 
     private int numTxns = 2;
     private int numRecordsPerTxn = 30;
@@ -184,7 +183,6 @@ public class TxnMemoryTest extends TestCase {
 
         loadData();
 
-
         /*
          * Now update the database transactionally. This should not change
          * the node related memory, but should add txn related cache
@@ -200,7 +198,7 @@ public class TxnMemoryTest extends TestCase {
                              OperationStatus.SUCCESS);
             }
         }
-        afterAction = mb.getCacheMemoryUsage();
+        afterAction = mb.getLockMemoryUsage();
 
         closeTxns(true);
     }
@@ -226,7 +224,7 @@ public class TxnMemoryTest extends TestCase {
             }
             c.close();
         }
-        afterAction = mb.getCacheMemoryUsage();
+        afterAction = mb.getLockMemoryUsage();
 
         closeTxns(false);
     }
@@ -248,7 +246,7 @@ public class TxnMemoryTest extends TestCase {
             }
         }
 
-        beforeAction = mb.getCacheMemoryUsage();
+        beforeAction = mb.getLockMemoryUsage();
 
         /* Make some transactions. */
         txns = new Transaction[numTxns];
@@ -257,7 +255,7 @@ public class TxnMemoryTest extends TestCase {
                 txns[t] = env.beginTransaction(null, null);
             }
 
-            afterTxnsCreated = mb.getCacheMemoryUsage();
+            afterTxnsCreated = mb.getLockMemoryUsage();
             assertTrue( "afterTxns=" + afterTxnsCreated +
                         "beforeUpdate=" + beforeAction,
                         (afterTxnsCreated > beforeAction));
@@ -281,30 +279,10 @@ public class TxnMemoryTest extends TestCase {
              * Note: expectedLockUsage is annoyingly fragile. If we change
              * the lock implementation, this may not be the right number
              * to check.
-             *
-             * Aborted transactions release more memory than just the lock
-             * related amount, because they actually null out LN references in
-             * the BINs.
              */
             long expectedLockUsage =
                    (numRecordsPerTxn * numTxns *
-                    (LockManager.TOTAL_LOCK_OVERHEAD +
-                     MemoryBudget.LOCKINFO_OVERHEAD));
-
-            long expectedFreedNodeMemory = 0;
-
-            /*
-             * If this test aborted some writes, then there are rollbacks,
-             * which actually reduce the amount of memory held, because it
-             * causes LNs to get evicted.
-             */
-            if (endMode.equals(ABORT) &&
-                writesDone) {
-                LN sampleLN = new LN(dataEntry);
-                expectedFreedNodeMemory +=
-                    ((numRecordsPerTxn * numTxns) *
-                     sampleLN.getMemorySizeIncludedByParent());
-            }
+		    MemoryBudget.THINLOCKIMPL_OVERHEAD);
 
             assertTrue((afterAction - afterTxnsCreated) >= expectedLockUsage);
 
@@ -317,15 +295,13 @@ public class TxnMemoryTest extends TestCase {
                 }
             }
 
-            long afterTxnEnd = mb.getCacheMemoryUsage();
+            long afterTxnEnd = mb.getLockMemoryUsage();
 
             assertTrue("lockMode=" + lockMode +
 		       " endMode=" + endMode +
 		       " afterTxnEnd=" + afterTxnEnd +
-		       " beforeAction=" + beforeAction +
-		       " expectedFreed=" + expectedFreedNodeMemory,
-		       (afterTxnEnd <=
-			(beforeAction - expectedFreedNodeMemory)));
+		       " beforeAction=" + beforeAction,
+		       (afterTxnEnd <= beforeAction));
         }
         if (DEBUG) {
             System.out.println("afterUpdate = " + afterAction +

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: KeySelector.java,v 1.6.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: KeySelector.java,v 1.9 2008/02/05 23:28:21 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -20,8 +20,8 @@ package com.sleepycat.persist;
  * retrieving record data or locking, so it is less expensive to return false
  * from this method than to retrieve the object from the cursor.</p>
  *
- * @see EntityIndex#unsortedKeys
- * @see EntityIndex#unsortedEntities
+ * see EntityIndex#unsortedKeys
+ * see EntityIndex#unsortedEntities
  *
  * @author Mark Hayes
  */

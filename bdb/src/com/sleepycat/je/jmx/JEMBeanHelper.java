@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JEMBeanHelper.java,v 1.11.2.2 2007/11/20 13:32:30 cwl Exp $
+ * $Id: JEMBeanHelper.java,v 1.16 2008/05/19 17:52:18 linda Exp $
  */
 
 package com.sleepycat.je.jmx;
@@ -74,7 +74,7 @@ public class JEMBeanHelper {
         "openSerializableIsolation";
 
     /* COMMON_ATTR attributes are available for any environment. */
-    private static final MBeanAttributeInfo [] COMMON_ATTR = {
+    private static final MBeanAttributeInfo[] COMMON_ATTR = {
 
         new MBeanAttributeInfo(ATT_ENV_HOME,
                                "java.lang.String",
@@ -91,7 +91,7 @@ public class JEMBeanHelper {
     };
 
     /* OPEN_ATTR attributes are available for all open environments. */
-    private static final MBeanAttributeInfo [] OPEN_ATTR = {
+    private static final MBeanAttributeInfo[] OPEN_ATTR = {
 
         new MBeanAttributeInfo(ATT_IS_READ_ONLY,
                                "java.lang.Boolean",
@@ -133,7 +133,7 @@ public class JEMBeanHelper {
      * TRANSACTIONAL_ATTR attributes are available only for open, transactional
      * environments.
      */
-    private static final MBeanAttributeInfo [] TRANSACTIONAL_ATTR = {
+    private static final MBeanAttributeInfo[] TRANSACTIONAL_ATTR = {
 
         new MBeanAttributeInfo(ATT_IS_SERIALIZABLE,
                                "java.lang.Boolean",
@@ -157,7 +157,7 @@ public class JEMBeanHelper {
      * support configuration and opening by the mbean. They express the
      * configuration settings.
      */
-    private static final MBeanAttributeInfo [] CREATE_ATTR = {
+    private static final MBeanAttributeInfo[] CREATE_ATTR = {
 
         new MBeanAttributeInfo(ATT_SET_READ_ONLY,
                                "java.lang.Boolean",
@@ -221,7 +221,7 @@ public class JEMBeanHelper {
                                MBeanOperationInfo.UNKNOWN);
 
     /* parameter for checkpoint operation. */
-    private static final MBeanParameterInfo [] checkpointParams = {
+    private static final MBeanParameterInfo[] checkpointParams = {
         new MBeanParameterInfo ("force", "java.lang.Boolean",
                                 "If true, force a checkpoint even if " +
                                 "there has been no activity since the last " +
@@ -243,7 +243,7 @@ public class JEMBeanHelper {
                                "void",
                                MBeanOperationInfo.UNKNOWN);
 
-    private static final MBeanParameterInfo [] statParams = {
+    private static final MBeanParameterInfo[] statParams = {
         new MBeanParameterInfo ("clear", "java.lang.Boolean",
                                 "If true, reset statistics after reading."),
         new MBeanParameterInfo ("fast", "java.lang.Boolean",
@@ -280,7 +280,7 @@ public class JEMBeanHelper {
                                "java.util.ArrayList",
                                MBeanOperationInfo.INFO);
 
-    private static final MBeanParameterInfo [] dbStatParams = {
+    private static final MBeanParameterInfo[] dbStatParams = {
         new MBeanParameterInfo ("clear", "java.lang.Boolean",
                                 "If true, reset statistics after reading."),
         new MBeanParameterInfo ("fast", "java.lang.Boolean",
@@ -394,12 +394,13 @@ public class JEMBeanHelper {
      * @return list of MBeanAttributeInfo objects describing the available
      * attributes.
      */
-    public List getAttributeList(Environment targetEnv) {
+    public List<MBeanAttributeInfo> getAttributeList(Environment targetEnv) {
 
         /* Turn off reset because the mbean metadata is being refreshed. */
         setNeedReset(false);
 
-        ArrayList attrList = new ArrayList();
+        ArrayList<MBeanAttributeInfo> attrList = 
+            new ArrayList<MBeanAttributeInfo>();
 
         /* Add attributes for all JE environments. */
         for (int i = 0; i < COMMON_ATTR.length; i++) {
@@ -592,10 +593,11 @@ public class JEMBeanHelper {
      * environment is not open.
      * @return List of MBeanOperationInfo describing available operations.
      */
-    public List getOperationList(Environment targetEnv) {
+    public List<MBeanOperationInfo> getOperationList(Environment targetEnv) {
         setNeedReset(false);
 
-        List operationList = new ArrayList();
+        List<MBeanOperationInfo> operationList = 
+            new ArrayList<MBeanOperationInfo>();
 
         if (targetEnv != null) {
             /*
@@ -616,7 +618,7 @@ public class JEMBeanHelper {
                 isTransactional = config.getTransactional();
             } catch (DatabaseException e) {
                 /* Don't make any operations available. */
-                return new ArrayList();
+                return new ArrayList<MBeanOperationInfo>();
             }
 
             if (isTransactional) {
@@ -642,8 +644,8 @@ public class JEMBeanHelper {
      */
     public Object invoke(Environment targetEnv,
                          String actionName,
-                         Object [] params,
-                         String [] signature)
+                         Object[] params,
+                         String[] signature)
         throws MBeanException {
 
         /* Sanity checking. */
@@ -701,7 +703,7 @@ public class JEMBeanHelper {
      * Helper for creating a StatsConfig object to use as an operation
      * parameter.
      */
-    private StatsConfig getStatsConfig(Object [] params) {
+    private StatsConfig getStatsConfig(Object[] params) {
         StatsConfig statsConfig = new StatsConfig();
         if ((params != null) && (params.length > 0) && (params[0] != null)) {
             Boolean clear = (Boolean) params[0];
@@ -720,7 +722,7 @@ public class JEMBeanHelper {
      * @return DatabaseStats object
      */
     private DatabaseStats getDatabaseStats(Environment targetEnv,
-                                           Object [] params)
+                                           Object[] params)
         throws IllegalArgumentException,
 	       DatabaseException {
 
@@ -751,7 +753,7 @@ public class JEMBeanHelper {
      * No notifications are supported.
      * @return List of MBeanNotificationInfo for available notifications.
      */
-    public MBeanNotificationInfo []
+    public MBeanNotificationInfo[]
         getNotificationInfo(Environment targetEnv) {
         return null;
     }

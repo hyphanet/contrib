@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryEdgeTest.java,v 1.58.2.2 2007/11/20 13:32:47 cwl Exp $
+ * $Id: RecoveryEdgeTest.java,v 1.71 2008/05/06 18:01:36 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -11,53 +11,96 @@ package com.sleepycat.je.recovery;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
+
+import junit.framework.Test;
+import junit.framework.TestSuite;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.dbi.NodeSequence;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.log.SearchFileReader;
 import com.sleepycat.je.tree.LN;
-import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.util.StringDbt;
 import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.je.utilint.DbLsn;
 
 public class RecoveryEdgeTest extends RecoveryTestBase {
+
+    public static Test suite() {
+        TestSuite allTests = new TestSuite();
+        addTests(allTests, false/*keyPrefixing*/);
+        addTests(allTests, true/*keyPrefixing*/);
+        return allTests;
+    }
+
+    private static void addTests(TestSuite allTests,
+                                 boolean keyPrefixing) {
+
+        TestSuite suite = new TestSuite(RecoveryEdgeTest.class);
+        Enumeration e = suite.tests();
+        while (e.hasMoreElements()) {
+            RecoveryEdgeTest test = (RecoveryEdgeTest) e.nextElement();
+            test.keyPrefixing = keyPrefixing;
+            allTests.addTest(test);
+        }
+    }
+
+    public void tearDown()
+        throws IOException, DatabaseException {
+
+        /* Set test name for reporting; cannot be done in the ctor or setUp. */
+        setName(getName() +
+                (keyPrefixing ? ":keyPrefixing" : ":noKeyPrefixing"));
+        super.tearDown();
+    }
+
     public void testNoLogFiles()
         throws Throwable {
 
         /* Creating an environment runs recovery. */
-        EnvironmentImpl env = null;
+        EnvironmentImpl envImpl = null;
         try {
             EnvironmentConfig noFileConfig = TestUtils.initEnvConfig();
             /* Don't checkpoint utilization info for this test. */
             DbInternal.setCheckpointUP(noFileConfig, false);
-            noFileConfig.setConfigParam(EnvironmentParams.LOG_MEMORY_ONLY.getName(),
-                                        "true");
+            noFileConfig.setConfigParam
+                (EnvironmentParams.LOG_MEMORY_ONLY.getName(), "true");
             noFileConfig.setTransactional(true);
             noFileConfig.setAllowCreate(true);
-            env = new EnvironmentImpl(envHome, noFileConfig);
-            List dbList = env.getDbMapTree().getDbNames();
+            envImpl = new EnvironmentImpl(envHome,
+                                      noFileConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
+            List dbList = envImpl.getDbTree().getDbNames();
             assertEquals("no dbs exist", 0, dbList.size());
 
             /* Fake a shutdown/startup. */
-            env.close();
-            env = new EnvironmentImpl(envHome, noFileConfig);
-            dbList = env.getDbMapTree().getDbNames();
+            envImpl.close();
+            envImpl = new EnvironmentImpl(envHome,
+                                      noFileConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
+            dbList = envImpl.getDbTree().getDbNames();
             assertEquals("no dbs exist", 0, dbList.size());
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
         } finally {
-            if (env != null)
-                env.close();
+            if (envImpl != null)
+                envImpl.close();
         }
     }
 
@@ -77,7 +120,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             EnvironmentConfig createConfig = TestUtils.initEnvConfig();
             createConfig.setTransactional(true);
             createConfig.setAllowCreate(true);
-            createConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
+            createConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(),
+                                        "6");
             env = new Environment(envHome, createConfig);
 
             int numStartDbs = 1;
@@ -91,7 +135,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
                 Database anotherDb = env.openDatabase(createTxn, "foo" + i,
 						      dbConfig);
                 assertEquals((i+3),
-			     DbInternal.dbGetDatabaseImpl(anotherDb).getId().getId());
+			     DbInternal.dbGetDatabaseImpl(anotherDb).
+                             getId().getId());
                 anotherDb.close();
             }
             createTxn.commit();
@@ -140,7 +185,9 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             txn.commit();
 
             /* Find the largest node id that has been allocated. */
-            long maxSeenNodeId = Node.getLastId();
+            EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+            NodeSequence nodeSequence = envImpl.getNodeSequence();
+            long maxSeenNodeId = nodeSequence.getLastLocalNodeId();
 
             /* Close the environment, then recover. */
             closeEnv();
@@ -153,11 +200,16 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             /* Don't checkpoint utilization info for this test. */
             DbInternal.setCheckpointUP(recoveryConfig, false);
             env = new Environment(envHome, recoveryConfig);
-            LN ln = new LN(new byte[0]);
+            LN ln = new LN(new byte[0],
+                           DbInternal.envGetEnvironmentImpl(env),
+                           false); // replicated
 
             /* Recovery should have initialized the next node id to use */
-            assertTrue(maxSeenNodeId + 1 < ln.getNodeId());
-            maxSeenNodeId = Node.getLastId();
+            assertTrue("maxSeenNodeId=" + maxSeenNodeId +
+                       " ln=" + ln.getNodeId(),
+                       maxSeenNodeId < ln.getNodeId());
+            maxSeenNodeId = nodeSequence.getLastLocalNodeId();
+            assertEquals(0, nodeSequence.getLastReplicatedNodeId());
 
             /*
              * One more time -- this recovery will get the node id off the
@@ -167,12 +219,15 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
              */
             env.close();
             env = new Environment(envHome, recoveryConfig);
-            ln = new LN(new byte[0]);
+            ln = new LN(new byte[0],
+                        DbInternal.envGetEnvironmentImpl(env),
+                        false); // replicate
             /*
              * The environment re-opening will increment the node id
              * several times because of the EOF node id.
              */
-            assertTrue(maxSeenNodeId+1 <= ln.getNodeId());
+            assertTrue(maxSeenNodeId < ln.getNodeId());
+            assertEquals(0, nodeSequence.getLastReplicatedNodeId());
 
         } catch (Throwable t) {
             t.printStackTrace();
@@ -207,8 +262,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
             closeEnv();
 
             EnvironmentConfig recoveryConfig = TestUtils.initEnvConfig();
-            recoveryConfig.setConfigParam (EnvironmentParams.ENV_RUN_CLEANER.getName(),
-                                           "false");
+            recoveryConfig.setConfigParam
+                (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
             recoveryConfig.setTransactional(true);
             env = new Environment(envHome, recoveryConfig);
 
@@ -255,6 +310,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
 
         createEnv(1024, false);
         try {
+
             /*
              * Create a database, write into it non-txnally. Should be
              * allowed
@@ -293,7 +349,6 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
              * Recover. We should see the database. We may or may not see
              * the records.
              */
-
             createEnv(1024, false);
             List dbNames = env.getDatabaseNames();
             assertEquals(2, dbNames.size());
@@ -369,8 +424,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
              * Remember how many files we have, so we know where the last
              * checkpoint is.
              */
-            String [] suffixes = new String [] {FileManager.JE_SUFFIX};
-            String [] fileList = FileManager.listFiles(envHome, suffixes);
+            String[] suffixes = new String[] {FileManager.JE_SUFFIX};
+            String[] fileList = FileManager.listFiles(envHome, suffixes);
             int startingNumFiles = fileList.length;
 
             /* Now add enough non-committed data to add more files. */
@@ -399,12 +454,67 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
 
         String[] files =
             FileManager.listFiles(envHome,
-                                  new String [] {FileManager.JE_SUFFIX});
+                                  new String[] {FileManager.JE_SUFFIX});
         File lastFile = new File(envHome, files[files.length - 1]);
         RandomAccessFile rw = new RandomAccessFile(lastFile, "rw");
 
-        rw.seek(rw.length()-10);
+        rw.seek(rw.length() - 10);
         rw.writeBytes("000000");
         rw.close();
+    }
+
+    /**
+     * Test that we can recover with no checkpoint end
+     */
+    public void testNoCheckpointEnd() 
+        throws Exception {
+
+    	/* Create a new environment */
+        EnvironmentConfig createConfig = TestUtils.initEnvConfig();
+        createConfig.setTransactional(true);
+        createConfig.setAllowCreate(true);
+        env = new Environment(envHome, createConfig);
+
+        /* Truncate before the first ckpt end. */
+        truncateAtEntry(LogEntryType.LOG_CKPT_END);
+        env.close();
+
+        /* Check that we can recover. */
+        createConfig.setAllowCreate(false);
+        env = new Environment(envHome, createConfig);
+        env.close();
+    }
+
+    /**
+    * Truncate the log so it doesn't include the first incidence of this
+    * log entry type.
+    */
+    private void truncateAtEntry(LogEntryType entryType) 
+        throws Exception {
+    	
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+
+        /*
+         * Find the first given log entry type and truncate the file so it
+         * doesn't include that entry.
+         */
+        SearchFileReader reader =
+            new SearchFileReader(envImpl,
+                                 1000,           // readBufferSize
+                                 true,           // forward
+                                 0,              // startLSN
+                                 DbLsn.NULL_LSN, // endLSN
+                                 entryType);
+
+        long targetLsn = 0;
+        if (reader.readNextEntry()) {
+            targetLsn = reader.getLastLsn();
+        } else {
+            fail("There should be some kind of " + entryType + " in the log.");
+        }
+        
+        assertTrue(targetLsn != 0);
+        envImpl.getFileManager().truncateLog(DbLsn.getFileNumber(targetLsn),
+                                             DbLsn.getFileOffset(targetLsn));
     }
 }

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JEManagedConnectionFactory.java,v 1.9.2.2 2007/05/22 20:36:39 cwl Exp $
+ * $Id: JEManagedConnectionFactory.java,v 1.11 2008/01/07 14:28:49 cwl Exp $
  */
 
 package com.sleepycat.je.jca.ra;
@@ -25,9 +25,6 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 
 public class JEManagedConnectionFactory
     implements ManagedConnectionFactory, Serializable {
-
-    private String userName;
-    private String password;
 
     public JEManagedConnectionFactory() {
     }
@@ -77,22 +74,6 @@ public class JEManagedConnectionFactory
 	    }
 	}
         return null;
-    }
-
-    public void setUserName(String userName) {
-	this.userName = userName;
-    }
-
-    public String getUserName() {
-	return userName;
-    }
-
-    public void setPassword(String password) {
-	this.password = password;
-    }
-
-    public String getPassword() {
-	return password;
     }
 
     public void setLogWriter(PrintWriter out)

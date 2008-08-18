@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JoinCursor.java,v 1.15.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: JoinCursor.java,v 1.20 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -18,8 +18,65 @@ import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.utilint.DatabaseUtil;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * A specialized join cursor for use in performing equality or natural joins on
+ * secondary indices.
+ *
+ * <p>A join cursor is returned when calling {@link Database#join
+ * Database.join}.</p>
+ *
+ * <p>To open a join cursor using two secondary cursors:</p>
+ *
+ * <pre>
+ *     Transaction txn = ...
+ *     Database primaryDb = ...
+ *     SecondaryDatabase secondaryDb1 = ...
+ *     SecondaryDatabase secondaryDb2 = ...
+ *     <p>
+ *     SecondaryCursor cursor1 = null;
+ *     SecondaryCursor cursor2 = null;
+ *     JoinCursor joinCursor = null;
+ *     try {
+ *         DatabaseEntry key = new DatabaseEntry();
+ *         DatabaseEntry data = new DatabaseEntry();
+ *         <p>
+ *         cursor1 = secondaryDb1.openSecondaryCursor(txn, null);
+ *         cursor2 = secondaryDb2.openSecondaryCursor(txn, null);
+ *         <p>
+ *         key.setData(...); // initialize key for secondary index 1
+ *         OperationStatus status1 =
+ *         cursor1.getSearchKey(key, data, LockMode.DEFAULT);
+ *         key.setData(...); // initialize key for secondary index 2
+ *         OperationStatus status2 =
+ *         cursor2.getSearchKey(key, data, LockMode.DEFAULT);
+ *         <p>
+ *         if (status1 == OperationStatus.SUCCESS &amp;&amp;
+ *                 status2 == OperationStatus.SUCCESS) {
+ *             <p>
+ *             SecondaryCursor[] cursors = {cursor1, cursor2};
+ *             joinCursor = primaryDb.join(cursors, null);
+ *             <p>
+ *             while (true) {
+ *                 OperationStatus joinStatus = joinCursor.getNext(key, data,
+ *                     LockMode.DEFAULT);
+ *                 if (joinStatus == OperationStatus.SUCCESS) {
+ *                      // Do something with the key and data.
+ *                 } else {
+ *                     break;
+ *                 }
+ *             }
+ *         }
+ *     } finally {
+ *         if (cursor1 != null) {
+ *             cursor1.close();
+ *         }
+ *         if (cursor2 != null) {
+ *             cursor2.close();
+ *         }
+ *         if (joinCursor != null) {
+ *             joinCursor.close();
+ *         }
+ *     }
+ * </pre>
  */
 public class JoinCursor {
 
@@ -60,8 +117,8 @@ public class JoinCursor {
                     (LockMode.READ_UNCOMMITTED);
                 assert counts[i] >= 0;
             }
-            Arrays.sort(sortedCursors, new Comparator() {
-                public int compare(Object o1, Object o2) {
+            Arrays.sort(sortedCursors, new Comparator<Cursor>() {
+                public int compare(Cursor o1, Cursor o2) {
                     int count1 = -1;
                     int count2 = -1;
 
@@ -100,8 +157,12 @@ public class JoinCursor {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Closes the cursors that have been opened by this join cursor.
+     *
+     * <p>The cursors passed to {@link Database#join Database.join} are not
+     * closed by this method, and should be closed by the caller.</p>
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public void close()
         throws DatabaseException {
@@ -155,8 +216,9 @@ public class JoinCursor {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the primary database handle associated with this cursor.
+     *
+     * @return the primary database handle associated with this cursor.
      */
     public Database getDatabase() {
 
@@ -164,8 +226,9 @@ public class JoinCursor {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns this object's configuration.
+     *
+     * @return this object's configuration.
      */
     public JoinConfig getConfig() {
 
@@ -173,8 +236,32 @@ public class JoinCursor {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the next primary key resulting from the join operation.
+     *
+     * <p>An entry is returned by the join cursor for each primary key/data
+     * pair having all secondary key values that were specified using the array
+     * of secondary cursors passed to {@link Database#join Database.join}.</p>
+     *
+     * @param key the primary key returned as output.  Its byte array does not
+     * need to be initialized by the caller.
+     *
+     * @return {@link com.sleepycat.je.OperationStatus#NOTFOUND
+     * OperationStatus.NOTFOUND} if no matching key/data pair is found;
+     * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
+     * OperationStatus.SUCCESS}.
+     *
+     * @param lockMode the locking attributes; if null, default attributes
+     * are used.
+     *
+     * @throws NullPointerException if a DatabaseEntry parameter is null or
+     * does not contain a required non-null byte array.
+     *
+     * @throws DeadlockException if the operation was selected to resolve a
+     * deadlock.
+     *
+     * @throws IllegalArgumentException if an invalid parameter was specified.
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public OperationStatus getNext(DatabaseEntry key,
                                    LockMode lockMode)
@@ -188,8 +275,35 @@ public class JoinCursor {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the next primary key and data resulting from the join operation.
+     *
+     * <p>An entry is returned by the join cursor for each primary key/data
+     * pair having all secondary key values that were specified using the array
+     * of secondary cursors passed to {@link Database#join Database.join}.</p>
+     *
+     * @param key the primary key returned as output.  Its byte array does not
+     * need to be initialized by the caller.
+     *
+     * @param data the primary data returned as output.  Its byte array does
+     * not need to be initialized by the caller.
+     *
+     * @return {@link com.sleepycat.je.OperationStatus#NOTFOUND
+     * OperationStatus.NOTFOUND} if no matching key/data pair is found;
+     * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
+     * OperationStatus.SUCCESS}.
+     *
+     * @param lockMode the locking attributes; if null, default attributes
+     * are used.
+     *
+     * @throws NullPointerException if a DatabaseEntry parameter is null or
+     * does not contain a required non-null byte array.
+     *
+     * @throws DeadlockException if the operation was selected to resolve a
+     * deadlock.
+     *
+     * @throws IllegalArgumentException if an invalid parameter was specified.
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public OperationStatus getNext(DatabaseEntry key,
                                    DatabaseEntry data,

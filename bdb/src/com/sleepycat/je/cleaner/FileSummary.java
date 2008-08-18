@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSummary.java,v 1.18.2.1 2007/02/01 14:49:42 cwl Exp $
+ * $Id: FileSummary.java,v 1.24 2008/01/07 14:28:47 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -14,6 +14,10 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.log.Loggable;
 import com.sleepycat.je.log.LogUtils;
 
+/**
+ * Per-file utilization counters.  The UtilizationProfile stores a persistent
+ * map of file number to FileSummary.
+ */
 public class FileSummary implements Loggable {
 
     /* Persistent fields. */
@@ -197,7 +201,7 @@ public class FileSummary implements Loggable {
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer buf, byte entryTypeVersion) {
+    public void readFromLog(ByteBuffer buf, byte entryVersion) {
 
         totalCount = LogUtils.readInt(buf);
         totalSize = LogUtils.readInt(buf);
@@ -221,7 +225,7 @@ public class FileSummary implements Loggable {
          * obsoleteLNSize and obsoleteLNSizeCounted were added in FileSummaryLN
          * version 3.
          */
-        if (entryTypeVersion >= 3) {
+        if (entryVersion >= 3) {
             obsoleteLNSize = LogUtils.readInt(buf);
             obsoleteLNSizeCounted = LogUtils.readInt(buf);
         } else {
@@ -263,7 +267,15 @@ public class FileSummary implements Loggable {
      * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
-	return -1;
+	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     public String toString() {

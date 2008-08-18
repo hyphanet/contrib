@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentStatTest.java,v 1.17.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: EnvironmentStatTest.java,v 1.23 2008/03/25 02:26:37 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -43,8 +43,8 @@ public class EnvironmentStatTest extends TestCase {
                 env.close();
                 env = null;
             }
-        } catch (DatabaseException e) {
-            /* ok, the test closed it */
+        } catch (Throwable e) {
+            System.out.println("tearDown: " + e);
         }
 
         TestUtils.removeLogFiles("TearDown", envHome, false);
@@ -54,48 +54,73 @@ public class EnvironmentStatTest extends TestCase {
      * Test open and close of an environment.
      */
     public void testCacheStats()
-        throws Throwable {
+        throws DatabaseException {
 
-        try {
-            EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-            envConfig.setTransactional(true);
-            envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
-            envConfig.setAllowCreate(true);
-            env = new Environment(envHome, envConfig);
-            EnvironmentStats stat = env.getStats(TestUtils.FAST_STATS);
-            env.close();
-            env = null;
-            assertEquals(0, stat.getNCacheMiss());
-            assertEquals(0, stat.getNNotResident());
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setTransactional(true);
+        envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
+        envConfig.setAllowCreate(true);
+        env = new Environment(envHome, envConfig);
+        EnvironmentStats stat = env.getStats(TestUtils.FAST_STATS);
+        env.close();
+        env = null;
+        assertEquals(0, stat.getNCacheMiss());
+        assertEquals(0, stat.getNNotResident());
 
-            // Try to open and close again, now that the environment exists
-            envConfig.setAllowCreate(false);
-	    envConfig.setConfigParam
-		(EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
-            env = new Environment(envHome, envConfig);
-            stat = env.getStats(TestUtils.FAST_STATS);
-            MemoryBudget mb =
-                DbInternal.envGetEnvironmentImpl(env).getMemoryBudget();
-            long cacheSize = mb.getCacheMemoryUsage();
-            long bufferSize = mb.getLogBufferBudget();
+        // Try to open and close again, now that the environment exists
+        envConfig.setAllowCreate(false);
+        envConfig.setConfigParam
+            (EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
+        env = new Environment(envHome, envConfig);
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setTransactional(true);
+        dbConfig.setAllowCreate(true);
+        Database db = env.openDatabase(null, "foo", dbConfig);
+        db.put(null, new DatabaseEntry(new byte[0]),
+                     new DatabaseEntry(new byte[0]));
+        Transaction txn = env.beginTransaction(null, null);
+        db.put(txn, new DatabaseEntry(new byte[0]),
+                    new DatabaseEntry(new byte[0]));
+        stat = env.getStats(TestUtils.FAST_STATS);
+        MemoryBudget mb =
+            DbInternal.envGetEnvironmentImpl(env).getMemoryBudget();
 
-            assertEquals(12, stat.getNCacheMiss());
-            assertEquals(12, stat.getNNotResident());
+        assertEquals(mb.getCacheMemoryUsage(), stat.getCacheTotalBytes());
+        assertEquals(mb.getLogBufferBudget(), stat.getBufferBytes());
+        assertEquals(mb.getTreeMemoryUsage() + mb.getTreeAdminMemoryUsage(),
+                     stat.getDataBytes());
+        assertEquals(mb.getLockMemoryUsage(), stat.getLockBytes());
+        assertEquals(mb.getAdminMemoryUsage(), stat.getAdminBytes());
 
-            assertEquals(cacheSize, stat.getCacheDataBytes());
+        assertTrue(stat.getBufferBytes() > 0);
+        assertTrue(stat.getDataBytes() > 0);
+        assertTrue(stat.getLockBytes() > 0);
+        assertTrue(stat.getAdminBytes() > 0);
 
-            /*
-             * Buffer size may be slightly different, because the log
-             * buffer pool might do some rounding. Just check that
-             * it's within an ok margin.
-             */
-            assertTrue(Math.abs(bufferSize-stat.getBufferBytes()) < 100);
-            assertTrue(Math.abs((cacheSize + bufferSize)-
-                                stat.getCacheTotalBytes()) < 100);
-	    env.close();
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
-        }
+        assertEquals(stat.getCacheTotalBytes(),
+                     stat.getBufferBytes() +
+                     stat.getDataBytes() +
+                     stat.getLockBytes() +
+                     stat.getAdminBytes());
+
+        assertEquals(12, stat.getNCacheMiss());
+        assertEquals(12, stat.getNNotResident());
+
+        /* Test deprecated getCacheDataBytes method. */
+        final EnvironmentStats finalStat = stat;
+        final long expectCacheDataBytes = mb.getCacheMemoryUsage() -
+                                          mb.getLogBufferBudget();
+        (new Runnable() {
+            @Deprecated
+            public void run() {
+                assertEquals(expectCacheDataBytes,
+                             finalStat.getCacheDataBytes());
+            }
+        }).run();
+
+        txn.abort();
+        db.close();
+        env.close();
+        env = null;
     }
 }

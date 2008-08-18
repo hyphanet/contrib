@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveClasses.java.original,v 1.8.2.4 2007/11/03 02:44:54 mark Exp $
+ * $Id: EvolveClasses.java.original,v 1.16 2008/06/03 04:52:24 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -2141,6 +2141,44 @@ class EvolveClasses {
             PrimaryIndex<Integer,ConvertExample3_Person>
                 index = store.getPrimaryIndex
                     (Integer.class, ConvertExample3_Person.class);
+            init();
+            index.put(this);
+        }
+    }
+
+    @Persistent
+    static class ConvertExample3Reverse_Address {
+        String street;
+        String city;
+        String state;
+        int zipCode;
+    }
+
+    @Entity
+    static class ConvertExample3Reverse_Person
+        extends EvolveCase {
+
+        @PrimaryKey
+        int key;
+
+        ConvertExample3Reverse_Address address;
+
+        private void init() {
+            key = 99;
+            address = new ConvertExample3Reverse_Address();
+            address.street = "street";
+            address.city = "city";
+            address.state = "state";
+            address.zipCode = 12345;
+        }
+
+        @Override
+        void writeObjects(EntityStore store)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,ConvertExample3Reverse_Person>
+                index = store.getPrimaryIndex
+                    (Integer.class, ConvertExample3Reverse_Person.class);
             init();
             index.put(this);
         }

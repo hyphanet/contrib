@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SequenceTest.java,v 1.6.2.2 2007/11/20 13:32:49 cwl Exp $
+ * $Id: SequenceTest.java,v 1.10 2008/02/05 23:28:27 mark Exp $
  */
 
 package com.sleepycat.je.test;
@@ -20,6 +20,7 @@ import com.sleepycat.je.SequenceConfig;
 import com.sleepycat.je.SequenceStats;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.util.test.TxnTestCase;
 
 public class SequenceTest extends TxnTestCase {
 

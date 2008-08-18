@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DeletedDupLNLogEntry.java,v 1.26.2.2 2007/11/20 13:32:32 cwl Exp $
+ * $Id: DeletedDupLNLogEntry.java,v 1.32 2008/01/17 17:22:12 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -69,7 +69,8 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
 
         /* Key */
         if (readFullItem) {
-            dataAsKey = LogUtils.readByteArray(entryBuffer);
+            byte logVersion = header.getVersion();
+            dataAsKey = LogUtils.readByteArray(entryBuffer, (logVersion < 6));
         } else {
             /* The LNLogEntry base class has already positioned to the end. */
             dataAsKey = null;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ValidateSubtreeDeleteTest.java,v 1.30.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: ValidateSubtreeDeleteTest.java,v 1.34 2008/01/07 14:29:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -73,7 +73,7 @@ public class ValidateSubtreeDeleteTest extends TestCase {
             /* Make a 3 level tree full of data */
             DatabaseEntry key = new DatabaseEntry();
             DatabaseEntry data = new DatabaseEntry();
-            byte [] testData = new byte[1];
+            byte[] testData = new byte[1];
             testData[0] = 1;
             data.setData(testData);
 
@@ -126,7 +126,7 @@ public class ValidateSubtreeDeleteTest extends TestCase {
             /* Make a 3 level tree full of data */
             DatabaseEntry key = new DatabaseEntry();
             DatabaseEntry data = new DatabaseEntry();
-            byte [] testData = new byte[1];
+            byte[] testData = new byte[1];
             testData[0] = 1;
             key.setData(testData);
 

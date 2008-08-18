@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnhancedAccessor.java,v 1.11.2.2 2007/11/20 13:32:39 cwl Exp $
+ * $Id: EnhancedAccessor.java,v 1.15 2008/03/18 18:38:08 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -85,7 +85,8 @@ public class EnhancedAccessor implements Accessor {
                 } catch (NoSuchFieldException e) {
                     throw new IllegalStateException(e);
                 }
-                priKeyFormat = catalog.getFormat(fieldType);
+                priKeyFormat = catalog.getFormat
+                    (fieldType, false /*openEntitySubclassIndexes*/);
                 break;
             } else {
                 Format superFormat = declaringFormat.getSuperFormat();

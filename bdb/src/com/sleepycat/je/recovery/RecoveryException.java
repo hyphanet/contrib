@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryException.java,v 1.14.2.2 2007/11/20 18:53:29 cwl Exp $
+ * $Id: RecoveryException.java,v 1.19 2008/05/20 17:52:36 linda Exp $
  */
 
 package com.sleepycat.je.recovery;

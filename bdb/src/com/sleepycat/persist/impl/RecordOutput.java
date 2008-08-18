@@ -1,12 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecordOutput.java,v 1.4.2.3 2007/11/20 13:32:39 cwl Exp $
+ * $Id: RecordOutput.java,v 1.10 2008/05/16 13:33:07 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
+
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 import com.sleepycat.bind.tuple.TupleOutput;
 import com.sleepycat.persist.raw.RawObject;
@@ -22,10 +25,10 @@ class RecordOutput extends TupleOutput implements EntityOutput {
 
     private Catalog catalog;
     private boolean rawAccess;
-    private VisitedObjects visited;
+    private Map<Object,Integer> visited;
 
     /**
-     * Creates a new output with an empty/null VisitedObjects set.
+     * Creates a new output with an empty/null visited map.
      */
     RecordOutput(Catalog catalog, boolean rawAccess) {
 
@@ -50,14 +53,15 @@ class RecordOutput extends TupleOutput implements EntityOutput {
          * reference is the negation of the visited offset minus one.
          */
         if (visited != null) {
-            int offset = visited.getOffset(o);
-            if (offset == VisitedObjects.PROHIBIT_REF_OFFSET) {
-                throw new IllegalArgumentException
-                    (VisitedObjects.PROHIBIT_NESTED_REF_MSG);
-            }
-            if (offset > 0) {
-                writePackedInt(-(offset + 1));
-                return;
+            Integer offset = visited.get(o);
+            if (offset != null) {
+                if (offset == RecordInput.PROHIBIT_REF_OFFSET) {
+                    throw new IllegalArgumentException
+                        (RecordInput.PROHIBIT_NESTED_REF_MSG);
+                } else {
+                    writePackedInt(-(offset + 1));
+                    return;
+                }
             }
         }
 
@@ -71,14 +75,22 @@ class RecordOutput extends TupleOutput implements EntityOutput {
         if (rawAccess) {
             format = RawAbstractInput.checkRawType(catalog, o, fieldFormat);
         } else {
-            format = catalog.getFormat(o.getClass());
+
+            /*
+             * Do not attempt to open subclass indexes in case this is an
+             * embedded entity.  We will detect that error below, but we must
+             * not fail first when attempting to open the secondaries.
+             */
+            format = catalog.getFormat
+                (o.getClass(), false /*openEntitySubclassIndexes*/);
         }
         if (format.getProxiedFormat() != null) {
             throw new IllegalArgumentException
                 ("May not store proxy classes directly: " +
                  format.getClassName());
         }
-        if (format.isEntity()) {
+        /* Check for embedded entity classes and subclasses. */
+        if (format.getEntityFormat() != null) {
             throw new IllegalArgumentException
                 ("References to entities are not allowed: " +
                  o.getClass().getName());
@@ -90,13 +102,12 @@ class RecordOutput extends TupleOutput implements EntityOutput {
          * the parent object. [#15815]
          */
         if (visited == null) {
-            visited = new VisitedObjects();
+            visited = new IdentityHashMap<Object,Integer>();
         }
         boolean prohibitNestedRefs = format.areNestedRefsProhibited();
-        int visitedOffset = size();
-        int visitedIndex = visited.add(o, prohibitNestedRefs ?
-            VisitedObjects.PROHIBIT_REF_OFFSET :
-            visitedOffset);
+        Integer visitedOffset = size();
+        visited.put(o, prohibitNestedRefs ? RecordInput.PROHIBIT_REF_OFFSET :
+                       visitedOffset);
 
         /* Finally, write the formatId and object value. */
         writePackedInt(format.getId());
@@ -104,7 +115,7 @@ class RecordOutput extends TupleOutput implements EntityOutput {
 
         /* Always allow references from siblings that follow. */
         if (prohibitNestedRefs) {
-            visited.setOffset(visitedIndex, visitedOffset);
+            visited.put(o, visitedOffset);
         }
     }
 
@@ -123,14 +134,16 @@ class RecordOutput extends TupleOutput implements EntityOutput {
             if (o instanceof RawObject) {
                 format = (Format) ((RawObject) o).getType();
             } else {
-                format = catalog.getFormat(o.getClass());
+                format = catalog.getFormat
+                    (o.getClass(), false /*openEntitySubclassIndexes*/);
                 /* Expect primitive wrapper class in raw mode. */
                 if (fieldFormat.isPrimitive()) {
                     fieldFormat = fieldFormat.getWrapperFormat();
                 }
             }
         } else {
-            format = catalog.getFormat(o.getClass());
+            format = catalog.getFormat(o.getClass(),
+                                       false /*openEntitySubclassIndexes*/);
         }
         if (fieldFormat != format) {
             throw new IllegalArgumentException
@@ -153,9 +166,9 @@ class RecordOutput extends TupleOutput implements EntityOutput {
          * that the visited object is stored in the primary key byte array.
          */
         if (visited == null) {
-            visited = new VisitedObjects();
+            visited = new IdentityHashMap<Object,Integer>();
         }
-        visited.add(o, VisitedObjects.PRI_KEY_VISITED_OFFSET);
+        visited.put(o, RecordInput.PRI_KEY_VISITED_OFFSET);
     }
 
     /**

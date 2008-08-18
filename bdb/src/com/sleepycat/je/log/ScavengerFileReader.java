@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ScavengerFileReader.java,v 1.13.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: ScavengerFileReader.java,v 1.22 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -33,7 +33,7 @@ import com.sleepycat.je.utilint.DbLsn;
 abstract public class ScavengerFileReader extends FileReader {
 
     /* A Set of the entry type numbers that this FileReader should dump. */
-    private Set targetEntryTypes;
+    private Set<Byte> targetEntryTypes;
 
     private int readBufferSize;
 
@@ -65,7 +65,7 @@ abstract public class ScavengerFileReader extends FileReader {
          * environment.
          */
         anticipateChecksumErrors = true;
-        targetEntryTypes = new HashSet();
+        targetEntryTypes = new HashSet<Byte>();
         dumpCorruptedBounds = false;
     }
 
@@ -80,7 +80,7 @@ abstract public class ScavengerFileReader extends FileReader {
      * Tell the reader that we are interested in these kind of entries.
      */
     public void setTargetType(LogEntryType type) {
-        targetEntryTypes.add(new Byte(type.getTypeNum()));
+        targetEntryTypes.add(Byte.valueOf(type.getTypeNum()));
     }
 
     /*
@@ -90,10 +90,9 @@ abstract public class ScavengerFileReader extends FileReader {
         throws DatabaseException {
 
         LogEntryType lastEntryType =
-            LogEntryType.findType(currentEntryHeader.getType(),
-                                  currentEntryHeader.getVersion());
+            LogEntryType.findType(currentEntryHeader.getType());
         LogEntry entry = lastEntryType.getSharedLogEntry();
-        readEntry(entry, entryBuffer, true); // readFullItem
+        entry.readEntry(currentEntryHeader, entryBuffer, true); // readFullItem
         processEntryCallback(entry, lastEntryType);
         return true;
     }
@@ -140,9 +139,9 @@ abstract public class ScavengerFileReader extends FileReader {
 
         while (tryReadBufferFileNum >= 0) {
             try {
-                reader = new LastFileReader(envImpl,
-                                            readBufferSize,
-                                            new Long(tryReadBufferFileNum));
+                reader =
+                    new LastFileReader(envImpl, readBufferSize,
+                                       Long.valueOf(tryReadBufferFileNum));
                 break;
             } catch (DbChecksumException DCE) {
 
@@ -196,13 +195,13 @@ abstract public class ScavengerFileReader extends FileReader {
      * @return true if this reader should process this entry, or just skip
      * over it.
      */
-    protected boolean isTargetEntry(byte logEntryTypeNumber,
-                                    byte logEntryTypeVersion) {
+    protected boolean isTargetEntry() {
         if (targetEntryTypes.size() == 0) {
             /* We want to dump all entry types. */
             return true;
         } else {
-            return targetEntryTypes.contains(new Byte(logEntryTypeNumber));
+            return targetEntryTypes.contains
+                (Byte.valueOf(currentEntryHeader.getType()));
         }
     }
 }

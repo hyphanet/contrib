@@ -1,15 +1,21 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SharedLatch.java,v 1.17.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: SharedLatch.java,v 1.24 2008/05/20 17:52:35 linda Exp $
  */
 
 package com.sleepycat.je.latch;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.RunRecoveryException;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 
 /**
  * Simple thread-based non-transactional reader-writer/shared-exclusive latch.
@@ -19,27 +25,54 @@ import com.sleepycat.je.RunRecoveryException;
  * deadlock detection is provided so it is the caller's responsibility to
  * sequence latch acquisition in an ordered fashion to avoid deadlocks.
  */
-public interface SharedLatch {
+@SuppressWarnings("serial")
+public class SharedLatch
+    extends ReentrantReadWriteLock {
+
+    private String name;
+    private boolean noteLatch;
+    private List<Thread> readers;
+
+    /**
+     * If true, this shared latch is only ever latched exclusively.  Used for
+     * BINs.
+     */
+    private boolean exclusiveOnly;
+
+    public SharedLatch(String name) {
+	super(EnvironmentImpl.getFairLatches());
+	assert (readers = Collections.synchronizedList
+                (new ArrayList<Thread>())) != null;
+	exclusiveOnly = false;
+	this.name = name;
+    }
 
     /**
      * Set the latch name, used for latches in objects instantiated from the
      * log.
      */
-    public void setName(String name);
+    public void setName(String name) {
+	this.name = name;
+    }
 
     /**
      * Indicate whether this latch should be tracked in the debugging
      * LatchSupport.latchTable.
      * Always return true so this can be called under an assert.
      */
-    public boolean setNoteLatch(boolean noteLatch);
+    public boolean setNoteLatch(boolean noteLatch) {
+	this.noteLatch = noteLatch;
+	return true;
+    }
 
     /**
      * Indicate whether this latch can only be set exclusively (not shared).
      * Used for BIN latches that are Shared, but should only be latched
      * exclusively.
      */
-    public void setExclusiveOnly(boolean exclusiveOnly);
+    public void setExclusiveOnly(boolean exclusiveOnly) {
+	this.exclusiveOnly = exclusiveOnly;
+    }
 
     /**
      * Acquire a latch for exclusive/write access.  If the thread already holds
@@ -55,7 +88,20 @@ public interface SharedLatch {
      * thread for shared access.
      */
     public void acquireExclusive()
-	throws DatabaseException;
+	throws DatabaseException {
+
+        try {
+	    if (isWriteLockedByCurrentThread()) {
+		throw new LatchException(name + " already held");
+	    }
+
+	    writeLock().lock();
+
+            assert (noteLatch ? noteLatch() : true);// intentional side effect;
+	} finally {
+	    assert EnvironmentImpl.maybeForceYield();
+	}
+    }
 
     /**
      * Probe a latch for exclusive access, but don't block if it's not
@@ -67,7 +113,22 @@ public interface SharedLatch {
      * thread.
      */
     public boolean acquireExclusiveNoWait()
-	throws DatabaseException;
+	throws DatabaseException {
+
+        try {
+	    if (isWriteLockedByCurrentThread()) {
+		throw new LatchException(name + " already held");
+	    }
+
+	    boolean ret = writeLock().tryLock();
+
+	    /* Intentional side effect. */
+            assert ((noteLatch & ret) ? noteLatch() : true);
+	    return ret;
+	} finally {
+	    assert EnvironmentImpl.maybeForceYield();
+	}
+    }
 
     /**
      * Acquire a latch for shared/read access.  Nesting is allowed, that is,
@@ -77,16 +138,74 @@ public interface SharedLatch {
      * occurs.
      */
     public void acquireShared()
-        throws DatabaseException;
+        throws DatabaseException {
+
+	if (exclusiveOnly) {
+	    acquireExclusive();
+	    return;
+	}
+
+        try {
+	    boolean assertionsEnabled = false;
+	    assert assertionsEnabled = true;
+	    if (assertionsEnabled) {
+		if (readers.add(Thread.currentThread())) {
+		    readLock().lock();
+		} else {
+		    /* Already latched, do nothing. */
+		}
+	    } else {
+		readLock().lock();
+	    }
+
+            assert (noteLatch ?  noteLatch() : true);// intentional side effect
+	} finally {
+	    assert EnvironmentImpl.maybeForceYield();
+	}
+    }
 
     /**
      * Release an exclusive or shared latch.  If there are other thread(s)
      * waiting for the latch, they are woken up and granted the latch.
      */
     public void release()
-	throws LatchNotHeldException;
+	throws LatchNotHeldException {
 
-    public boolean isWriteLockedByCurrentThread();
+	try {
+	    if (isWriteLockedByCurrentThread()) {
+		writeLock().unlock();
+                /* Intentional side effect. */
+                assert (noteLatch ? unNoteLatch() : true);
+		return;
+	    }
+
+	    if (exclusiveOnly) {
+		return;
+	    }
+
+	    boolean assertionsEnabled = false;
+	    assert assertionsEnabled = true;
+	    if (assertionsEnabled) {
+		if (readers.remove(Thread.currentThread())) {
+		    readLock().unlock();
+		} else {
+		    throw new LatchNotHeldException(name + " not held");
+		}		
+	    } else {
+
+		/*
+		 * There's no way to tell if a readlock is held by the current
+		 * thread so just try unlocking it.
+		 */
+		readLock().unlock();
+	    }
+	    /* Intentional side effect. */
+	    assert (noteLatch ? unNoteLatch() : true);
+	} catch (IllegalMonitorStateException IMSE) {
+	    IMSE.printStackTrace();
+	    return;
+	}
+    }
 
     /**
      * Release the latch. If there are other thread(s) waiting for the latch,
@@ -94,10 +213,65 @@ public interface SharedLatch {
      * the caller, just return.
      */
     public void releaseIfOwner()
-	throws LatchNotHeldException;
+	throws LatchNotHeldException {
+
+	if (isWriteLockedByCurrentThread()) {
+	    writeLock().unlock();
+	    assert (noteLatch ? unNoteLatch() : true);
+	    return;
+	}
+
+	if (exclusiveOnly) {
+	    return;
+	}
+
+	assert (getReadLockCount() > 0);
+	boolean assertionsEnabled = false;
+	assert assertionsEnabled = true;
+	if (assertionsEnabled) {
+	    if (readers.contains(Thread.currentThread())) {
+		readLock().unlock();
+		readers.remove(Thread.currentThread());
+		assert (noteLatch ? unNoteLatch() : true);
+	    }
+	} else {
+
+	    /*
+	     * There's no way to tell if a readlock is held by the current
+	     * thread so just try unlocking it.
+	     */
+	    readLock().unlock();
+	}
+    }
 
     /**
      * Return true if this thread is an owner, reader, or write.
      */
-    public boolean isOwner();
+    public boolean isOwner() {
+	boolean assertionsEnabled = false;
+	assert assertionsEnabled = true;
+	if (assertionsEnabled && !exclusiveOnly) {
+	    return readers.contains(Thread.currentThread()) ||
+		isWriteLockedByCurrentThread();
+	} else {
+	    return isWriteLockedByCurrentThread();
+	}
+    }
+
+    /**
+     * Only call under the assert system. This records latching by thread.
+     */
+    private boolean noteLatch()
+	throws LatchException {
+
+        return LatchSupport.latchTable.noteLatch(this);
+    }
+
+    /**
+     * Only call under the assert system. This records latching by thread.
+     */
+    private boolean unNoteLatch() {
+
+	return LatchSupport.latchTable.unNoteLatch(this, name);
+    }
 }

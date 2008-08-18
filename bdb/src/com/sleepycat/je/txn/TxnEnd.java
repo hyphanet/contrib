@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnEnd.java,v 1.33.2.2 2007/11/20 13:32:36 cwl Exp $
+ * $Id: TxnEnd.java,v 1.40 2008/05/21 18:50:02 sam Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -24,10 +24,14 @@ public abstract class TxnEnd implements Loggable {
     protected Timestamp time;
     private long lastLsn;
 
-    TxnEnd(long id, long lastLsn) {
+    /* For replication - master node which wrote this record. */
+    private int repMasterNodeId;
+
+    TxnEnd(long id, long lastLsn, int repMasterNodeId) {
         this.id = id;
         time = new Timestamp(System.currentTimeMillis());
         this.lastLsn = lastLsn;
+        this.repMasterNodeId = repMasterNodeId;
     }
 
     /**
@@ -44,8 +48,16 @@ public abstract class TxnEnd implements Loggable {
         return id;
     }
 
+    public Timestamp getTime() {
+        return time;
+    }
+
     long getLastLsn() {
         return lastLsn;
+    }
+
+    int getMasterNodeId() {
+        return repMasterNodeId;
     }
 
     protected abstract String getTagName();
@@ -58,27 +70,38 @@ public abstract class TxnEnd implements Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LogUtils.LONG_BYTES +
-            LogUtils.getTimestampLogSize() +
-            LogUtils.getLongLogSize(); // lastLsn
+        return LogUtils.getPackedLongLogSize(id) +
+            LogUtils.getTimestampLogSize(time) +
+            LogUtils.getPackedLongLogSize(lastLsn) +
+            LogUtils.getPackedIntLogSize(repMasterNodeId);
+
     }
 
     /**
      * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
-        LogUtils.writeLong(logBuffer, id);
+        LogUtils.writePackedLong(logBuffer, id);
         LogUtils.writeTimestamp(logBuffer, time);
-        LogUtils.writeLong(logBuffer, lastLsn);
+        LogUtils.writePackedLong(logBuffer, lastLsn);
+        LogUtils.writePackedInt(logBuffer, repMasterNodeId);
     }
 
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion) {
-        id = LogUtils.readLong(logBuffer);
-        time = LogUtils.readTimestamp(logBuffer);
-        lastLsn = LogUtils.readLong(logBuffer);
+    public void readFromLog(ByteBuffer logBuffer, byte entryVersion) {
+
+        /* The versions < 6 are unpacked. */
+        boolean isUnpacked = (entryVersion < 6);
+        id = LogUtils.readLong(logBuffer, isUnpacked);
+        time = LogUtils.readTimestamp(logBuffer, isUnpacked);
+        lastLsn = LogUtils.readLong(logBuffer, isUnpacked);
+
+        if (entryVersion >= 6) {
+            repMasterNodeId = LogUtils.readInt(logBuffer,
+                                               false /* unpacked */);
+        }
     }
 
     /**
@@ -88,6 +111,7 @@ public abstract class TxnEnd implements Loggable {
         sb.append("<").append(getTagName());
         sb.append(" id=\"").append(id);
         sb.append("\" time=\"").append(time);
+        sb.append("\" master=\"").append(repMasterNodeId);
         sb.append("\">");
 	sb.append(DbLsn.toString(lastLsn));
         sb.append("</").append(getTagName()).append(">");

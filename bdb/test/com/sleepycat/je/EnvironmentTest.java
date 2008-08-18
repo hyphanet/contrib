@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentTest.java,v 1.187.2.42 2007/12/15 01:04:06 mark Exp $
+ * $Id: EnvironmentTest.java,v 1.212 2008/06/04 18:46:48 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -19,15 +19,15 @@ import junit.framework.TestCase;
 import com.sleepycat.je.config.ConfigParam;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.DbConfigManager;
+import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvConfigObserver;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.txn.LockInfo;
 import com.sleepycat.je.util.StringDbt;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DaemonRunner;
-import com.sleepycat.je.utilint.DbLsn;
 
 public class EnvironmentTest extends TestCase {
 
@@ -50,8 +50,8 @@ public class EnvironmentTest extends TestCase {
         throws Exception {
 
         /*
-	 * Close down environments in case the unit test failed so that the log
-	 * files can be removed.
+         * Close down environments in case the unit test failed so that the log
+         * files can be removed.
          */
         try {
             if (env1 != null) {
@@ -88,7 +88,7 @@ public class EnvironmentTest extends TestCase {
         throws Throwable {
 
         try {
-            assertEquals("Checking version", "3.2.68",
+            assertEquals("Checking version", "3.3.62",
                          JEVersion.CURRENT_VERSION.getVersionString());
 
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -98,14 +98,48 @@ public class EnvironmentTest extends TestCase {
             envConfig.setConfigParam
                 (EnvironmentParams.CLEANER_TRACK_DETAIL.getName(), "false");
             envConfig.setConfigParam
-		(EnvironmentParams.NODE_MAX.getName(), "6");
+            (EnvironmentParams.NODE_MAX.getName(), "6");
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_MEM_SIZE.getName(),
-		 EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
+            (EnvironmentParams.LOG_MEM_SIZE.getName(),
+                    EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
             envConfig.setConfigParam
-		(EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
+            (EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
             envConfig.setAllowCreate(true);
             env1 = new Environment(envHome, envConfig);
+
+            env1.close();
+
+            /* Try to open and close again, now that the environment exists. */
+            envConfig.setAllowCreate(false);
+            env1 = new Environment(envHome, envConfig);
+            env1.close();
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
+    }
+
+    /**
+     * Test creation of a reserved name fails.
+     */
+    public void testNoCreateReservedNameDB()
+        throws Throwable {
+
+        try {
+            EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+            envConfig.setTransactional(true);
+            envConfig.setAllowCreate(true);
+            env1 = new Environment(envHome, envConfig);
+
+            DatabaseConfig dbConfig = new DatabaseConfig();
+            dbConfig.setAllowCreate(true);
+            dbConfig.setTransactional(true);
+            try {
+                env1.openDatabase(null, DbTree.VLSN_MAP_DB_NAME, dbConfig);
+                fail("expected DatabaseException since Environment not " +
+                     "transactional");
+            } catch (IllegalArgumentException IAE) {
+            }
 
             env1.close();
 
@@ -137,10 +171,10 @@ public class EnvironmentTest extends TestCase {
             envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(),
                                      "6");
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_MEM_SIZE.getName(),
-		 EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
+            (EnvironmentParams.LOG_MEM_SIZE.getName(),
+                    EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
             envConfig.setConfigParam
-		(EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
+            (EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
             envConfig.setAllowCreate(true);
             env1 = new Environment(envHome, envConfig);
             envConfig.setAllowCreate(false);
@@ -159,8 +193,8 @@ public class EnvironmentTest extends TestCase {
             }
 
             /*
-	     * Close both, open a third handle, should get a new
-	     * EnvironmentImpl.
+             * Close both, open a third handle, should get a new
+             * EnvironmentImpl.
              */
             EnvironmentImpl dbenv1 = env1.getEnvironmentImpl();
             env2.close();
@@ -191,7 +225,7 @@ public class EnvironmentTest extends TestCase {
                 env1.beginTransaction(null, null);
                 fail("should have thrown exception for non transactional "+
                      " environment");
-            } catch (DatabaseException DBE) {
+            } catch (UnsupportedOperationException expected) {
             }
 
             String databaseName = "simpleDb";
@@ -200,9 +234,9 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setTransactional(true);
             try {
                 env1.openDatabase(null, databaseName, dbConfig);
-                fail("expected DatabaseException since Environment not " +
-                     "transactional");
-            } catch (DatabaseException DBE) {
+                fail("expected IllegalArgumentException since Environment " +
+                     " not transactional");
+            } catch (IllegalArgumentException expected) {
             }
 
             env1.close();
@@ -229,8 +263,7 @@ public class EnvironmentTest extends TestCase {
                 env1.openDatabase(null, databaseName, dbConfig);
                 fail("expected DatabaseException since Environment is " +
                      "readonly");
-            } catch (DatabaseException DBE) {
-                // expected.
+            } catch (IllegalArgumentException expected) {
             }
 
             env1.close();
@@ -274,7 +307,7 @@ public class EnvironmentTest extends TestCase {
 
     /**
      * Tests that opening an environment after a clean close does not add to
-     * the log, but that we do initialize the LastFirstActiveLSN.
+     * the log.
      */
     public void testOpenWithoutCheckpoint()
         throws Throwable {
@@ -289,11 +322,6 @@ public class EnvironmentTest extends TestCase {
         /* Check that no checkpoint was performed. */
         EnvironmentStats stats = env1.getStats(null);
         assertEquals(0, stats.getNCheckpoints());
-
-        /* Check that the FirstActiveLSN is available for the cleaner. */
-        long lsn =
-            env1.getEnvironmentImpl().getCheckpointer().getFirstActiveLsn();
-        assertTrue(DbLsn.compareTo(lsn, DbLsn.makeLsn(0, 0)) > 0);
 
         env1.close();
         env1 = null;
@@ -548,7 +576,8 @@ public class EnvironmentTest extends TestCase {
 
         private int count = 0;
 
-        public void envConfigUpdate(DbConfigManager mgr) {
+        public void envConfigUpdate(DbConfigManager mgr,
+                EnvironmentMutableConfig ignore) {
             count += 1;
         }
 
@@ -587,8 +616,8 @@ public class EnvironmentTest extends TestCase {
             EnvironmentConfig appConfig = new EnvironmentConfig();
             appConfig.setConfigParam("je.log.numBuffers", "88");
             appConfig.setConfigParam
-		("je.log.totalBufferBytes",
-		 EnvironmentParams.LOG_MEM_SIZE_MIN_STRING + 10);
+            ("je.log.totalBufferBytes",
+                    EnvironmentParams.LOG_MEM_SIZE_MIN_STRING + 10);
             appConfig.setAllowCreate(true);
 
             Environment appEnv = new Environment(testEnvHome, appConfig);
@@ -637,7 +666,7 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setAllowCreate(true);
             dbConfig.setTransactional(true);
             Database exampleDb = env1.openDatabase(null, databaseName,
-						   dbConfig);
+                    dbConfig);
 
             Transaction txn = env1.beginTransaction(null, null);
             Cursor cursor = exampleDb.openCursor(txn, null);
@@ -660,7 +689,7 @@ public class EnvironmentTest extends TestCase {
             try {
                 exampleDb = env1.openDatabase(null, databaseName, dbConfig);
                 fail("didn't get db not found exception");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
             env1.close();
         } catch (Throwable t) {
@@ -686,7 +715,7 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
             Database exampleDb = env1.openDatabase(txn, databaseName,
-						   dbConfig);
+                    dbConfig);
 
             Cursor cursor = exampleDb.openCursor(txn, null);
             doSimpleCursorPutAndDelete(cursor, false);
@@ -702,14 +731,14 @@ public class EnvironmentTest extends TestCase {
             try {
                 exampleDb = env1.openDatabase(txn, databaseName, dbConfig);
                 fail("didn't get db not found exception");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
             txn.commit();
 
             try {
                 exampleDb = env1.openDatabase(null, databaseName, null);
                 fail("didn't catch DatabaseException opening old name");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
             try {
                 exampleDb = env1.openDatabase(null, newDatabaseName, null);
@@ -742,7 +771,7 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
             Database exampleDb =
-		env1.openDatabase(txn, databaseName, dbConfig);
+                env1.openDatabase(txn, databaseName, dbConfig);
 
             /* Put some data in, close the database, commit. */
             Cursor cursor = exampleDb.openCursor(txn, null);
@@ -766,7 +795,7 @@ public class EnvironmentTest extends TestCase {
             try {
                 exampleDb = env1.openDatabase(txn, databaseName, dbConfig);
                 fail("didn't get db not found exception");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
 
             /*
@@ -787,7 +816,7 @@ public class EnvironmentTest extends TestCase {
             try {
                 exampleDb = env1.openDatabase(null, newDatabaseName, null);
                 fail("didn't catch DatabaseException opening new name");
-            } catch (DatabaseException dbe) {
+            } catch (DatabaseNotFoundException expected) {
             }
 
             env1.close();
@@ -813,15 +842,14 @@ public class EnvironmentTest extends TestCase {
             try {
                 env1.removeDatabase(null, databaseName);
                 fail("Remove of non-existent db should fail");
-            } catch (DatabaseException e) {
-                /* expect exception */
+            } catch (DatabaseNotFoundException expected) {
             }
 
             DatabaseConfig dbConfig = new DatabaseConfig();
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
             Database exampleDb =
-		env1.openDatabase(null, databaseName, dbConfig);
+                env1.openDatabase(null, databaseName, dbConfig);
 
             Transaction txn = env1.beginTransaction(null, null);
             Cursor cursor = exampleDb.openCursor(txn, null);
@@ -843,7 +871,7 @@ public class EnvironmentTest extends TestCase {
             try {
                 exampleDb = env1.openDatabase(null, databaseName, null);
                 fail("did not catch db does not exist exception");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
             env1.close();
         } catch (Throwable t) {
@@ -869,17 +897,17 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
             Database exampleDb =
-		env1.openDatabase(txn, databaseName, dbConfig);
+                env1.openDatabase(txn, databaseName, dbConfig);
 
             /* Insert and delete data in it. */
-	    Cursor cursor = exampleDb.openCursor(txn, null);
-	    doSimpleCursorPutAndDelete(cursor, false);
-	    cursor.close();
+            Cursor cursor = exampleDb.openCursor(txn, null);
+            doSimpleCursorPutAndDelete(cursor, false);
+            cursor.close();
 
-	    /*
-	     * Try a remove without closing the open Database handle.  Should
+            /*
+             * Try a remove without closing the open Database handle.  Should
              * get an exception.
-	     */
+             */
             try {
                 env1.removeDatabase(txn, databaseName);
                 fail("didn't get db open exception");
@@ -893,7 +921,7 @@ public class EnvironmentTest extends TestCase {
                 dbConfig.setAllowCreate(false);
                 exampleDb = env1.openDatabase(txn, databaseName, dbConfig);
                 fail("did not catch db does not exist exception");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
             txn.commit();
 
@@ -901,7 +929,7 @@ public class EnvironmentTest extends TestCase {
             try {
                 exampleDb = env1.openDatabase(null, databaseName, null);
                 fail("did not catch db does not exist exception");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
             env1.close();
         } catch (Throwable t) {
@@ -927,7 +955,7 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
             Database exampleDb =
-		env1.openDatabase(txn, databaseName, dbConfig);
+                env1.openDatabase(txn, databaseName, dbConfig);
             txn.commit();
 
             /* Start a new txn and put some data in the created db. */
@@ -937,8 +965,8 @@ public class EnvironmentTest extends TestCase {
             cursor.close();
 
             /*
-	     * Try to remove, we should get an exception because the db is
-	     * open.
+             * Try to remove, we should get an exception because the db is
+             * open.
              */
             try {
                 env1.removeDatabase(txn, databaseName);
@@ -947,11 +975,11 @@ public class EnvironmentTest extends TestCase {
             }
             exampleDb.close();
 
-	    /*
-	     * txn can only be aborted at this point since the removeDatabase()
-	     * timed out.
-	     */
-	    txn.abort();
+            /*
+             * txn can only be aborted at this point since the removeDatabase()
+             * timed out.
+             */
+            txn.abort();
             txn = env1.beginTransaction(null, null);
             env1.removeDatabase(txn, databaseName);
 
@@ -959,7 +987,7 @@ public class EnvironmentTest extends TestCase {
                 dbConfig.setAllowCreate(false);
                 exampleDb = env1.openDatabase(txn, databaseName, dbConfig);
                 fail("did not catch db does not exist exception");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseNotFoundException expected) {
             }
 
             /* Abort, should rollback the db remove. */
@@ -1000,7 +1028,7 @@ public class EnvironmentTest extends TestCase {
         dbConfig.setAllowCreate(true);
 
         /* Start with no databases. */
-        Set dbNames = new HashSet();
+        Set<String> dbNames = new HashSet<String>();
         env1 = new Environment(envHome, envConfig);
         checkDbNames(dbNames, env1.getDatabaseNames());
 
@@ -1048,9 +1076,9 @@ public class EnvironmentTest extends TestCase {
      * from getDatabaseNames.  A list can't be directly compared to a set using
      * equals().
      */
-    private void checkDbNames(Set expected, List actual) {
+    private void checkDbNames(Set<String> expected, List<String> actual) {
         assertEquals(expected.size(), actual.size());
-        assertEquals(expected, new HashSet(actual));
+        assertEquals(expected, new HashSet<String>(actual));
     }
 
     /*
@@ -1073,9 +1101,9 @@ public class EnvironmentTest extends TestCase {
                 (EnvironmentParams.ENV_RUN_INCOMPRESSOR.getName(), "false");
             envConfig.setAllowCreate(true);
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_MEM_SIZE.getName(), "20000");
+            (EnvironmentParams.LOG_MEM_SIZE.getName(), "20000");
             envConfig.setConfigParam
-		(EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
+            (EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
             env1 = new Environment(envHome, envConfig);
 
             String databaseName = "simpleDb";
@@ -1083,7 +1111,7 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
             Database exampleDb =
-		env1.openDatabase(null, databaseName, dbConfig);
+                env1.openDatabase(null, databaseName, dbConfig);
 
             Transaction txn = env1.beginTransaction(null, null);
             Cursor cursor = exampleDb.openCursor(txn, null);
@@ -1095,7 +1123,7 @@ public class EnvironmentTest extends TestCase {
             env1.compress();
 
             envStats = env1.getStats(TestUtils.FAST_STATS);
-            int compressorTotal =
+            long compressorTotal =
                 envStats.getSplitBins() +
                 envStats.getDbClosedBins() +
                 envStats.getCursorsBins() +
@@ -1117,6 +1145,8 @@ public class EnvironmentTest extends TestCase {
     public void testDaemonRunPause()
         throws DatabaseException, InterruptedException {
 
+	final boolean isDalvik = EnvironmentImpl.IS_DALVIK;
+
         final String[] runProps = {
             EnvironmentParams.ENV_RUN_EVICTOR.getName(),
             EnvironmentParams.ENV_RUN_CLEANER.getName(),
@@ -1127,9 +1157,11 @@ public class EnvironmentTest extends TestCase {
         EnvironmentConfig config = TestUtils.initEnvConfig();
         config.setAllowCreate(true);
 
-        config.setConfigParam
-            (EnvironmentParams.MAX_MEMORY.getName(),
-             MemoryBudget.MIN_MAX_MEMORY_SIZE_STRING);
+	if (!isDalvik) {
+            config.setConfigParam
+                (EnvironmentParams.MAX_MEMORY.getName(),
+                 MemoryBudget.MIN_MAX_MEMORY_SIZE_STRING);
+	}
         /* Don't track detail with a tiny cache size. */
         config.setConfigParam
             (EnvironmentParams.CLEANER_TRACK_DETAIL.getName(), "false");
@@ -1142,10 +1174,12 @@ public class EnvironmentTest extends TestCase {
         config.setConfigParam
             (EnvironmentParams.COMPRESSOR_WAKEUP_INTERVAL.getName(),
              "1000000");
-	config.setConfigParam(EnvironmentParams.LOG_MEM_SIZE.getName(),
-			      EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
-	config.setConfigParam
-	    (EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
+	if (!isDalvik) {
+            config.setConfigParam(EnvironmentParams.LOG_MEM_SIZE.getName(),
+                                  EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
+	}
+        config.setConfigParam
+        (EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
         setBoolConfigParams(config, runProps,
                             new boolean[] { false, false, false, false });
 
@@ -1163,10 +1197,10 @@ public class EnvironmentTest extends TestCase {
                              new boolean[] { false, false, false, false });
         doTestDaemonRunPause(env1, daemons, runProps,
                              new boolean[] { true,  false, false, false });
-	if (!envImpl.isNoLocking()) {
-	    doTestDaemonRunPause(env1, daemons, runProps,
-				 new boolean[] { false, true,  false, false });
-	}
+        if (!envImpl.isNoLocking()) {
+            doTestDaemonRunPause(env1, daemons, runProps,
+                    new boolean[] { false, true,  false, false });
+        }
         doTestDaemonRunPause(env1, daemons, runProps,
                              new boolean[] { false, false, true,  false });
         doTestDaemonRunPause(env1, daemons, runProps,
@@ -1184,7 +1218,7 @@ public class EnvironmentTest extends TestCase {
     private void doTestDaemonRunPause(Environment env,
 				      DaemonRunner[] daemons,
                                       String[] runProps,
-				      boolean[] runValues)
+                                      boolean[] runValues)
         throws DatabaseException, InterruptedException {
 
         /* Set daemon run properties. */
@@ -1208,10 +1242,10 @@ public class EnvironmentTest extends TestCase {
         String dbName = "testDaemonRunPause";
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
-	dbConfig.setSortedDuplicates(true);
+        dbConfig.setSortedDuplicates(true);
         Database db = env1.openDatabase(null, dbName, dbConfig);
         Cursor cursor = db.openCursor(null, null);
-        doSimpleCursorPutAndDelete(cursor, true);
+        doSimpleCursorPutAndDelete(cursor, !EnvironmentImpl.IS_DALVIK);
         cursor.close();
         db.close();
 
@@ -1231,7 +1265,7 @@ public class EnvironmentTest extends TestCase {
 
     private void setBoolConfigParams(EnvironmentMutableConfig config,
                                      String[] names,
-				     boolean[] values) {
+                                     boolean[] values) {
         for (int i = 0; i < names.length; i += 1) {
             config.setConfigParam(names[i],
                                   Boolean.valueOf(values[i]).toString());
@@ -1239,179 +1273,179 @@ public class EnvironmentTest extends TestCase {
     }
 
     public void testExceptions()
-    throws Throwable {
+        throws Throwable {
 
-    try {
-        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-        envConfig.setTransactional(true);
-        envConfig.setAllowCreate(true);
-        env1 = new Environment(envHome, envConfig);
-        env1.close();
-
-        /* Test for exceptions on closed environments via public APIs */
         try {
+            EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+            envConfig.setTransactional(true);
+            envConfig.setAllowCreate(true);
+            env1 = new Environment(envHome, envConfig);
             env1.close();
-            fail("Didn't catch DatabaseException");
-        } catch (DatabaseException expected) {
+
+            /* Test for exceptions on closed environments via public APIs */
+            try {
+                env1.close();
+                fail("Didn't catch DatabaseException");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.openDatabase(null, null, null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.openSecondaryDatabase(null, null, null, null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.removeDatabase(null, null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.renameDatabase(null, "old", "new");
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.truncateDatabase(null, null, false);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.removeDatabase(null, null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getHome();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.beginTransaction(null, null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.checkpoint(null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.sync();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.cleanLog();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.evictMemory();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.compress();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getConfig();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.setMutableConfig(null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getMutableConfig();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getStats(null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getLockStats(null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getTransactionStats(null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getDatabaseNames();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.scanLog(0,0,null,null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.verify(null,null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.getThreadTransaction();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+            try {
+                env1.setThreadTransaction(null);
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (IllegalStateException expected) {
+            }
+
+
+            try {
+                env1.checkHandleIsValid();
+                fail("Didn't catch DatabaseException for op on closed env");
+            } catch (DatabaseException expected) {
+            }
+
+
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
         }
-
-        try {
-            env1.openDatabase(null, null, null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.openSecondaryDatabase(null, null, null, null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.removeDatabase(null, null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.renameDatabase(null, "old", "new");
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.truncateDatabase(null, null, false);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.removeDatabase(null, null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getHome();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.beginTransaction(null, null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.checkpoint(null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.sync();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.cleanLog();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.evictMemory();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.compress();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getConfig();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.setMutableConfig(null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getMutableConfig();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getStats(null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getLockStats(null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getTransactionStats(null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getDatabaseNames();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.scanLog(0,0,null,null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.verify(null,null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.getThreadTransaction();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-        try {
-            env1.setThreadTransaction(null);
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (IllegalStateException expected) {
-        }
-
-
-        try {
-            env1.checkHandleIsValid();
-            fail("Didn't catch DatabaseException for op on closed env");
-        } catch (DatabaseException expected) {
-        }
-
-
-    } catch (Throwable t) {
-        t.printStackTrace();
-        throw t;
     }
-}
 
     public void testClose()
         throws Throwable {
@@ -1431,13 +1465,13 @@ public class EnvironmentTest extends TestCase {
             try {
                 env1.close();
                 fail("Didn't catch DatabaseException for open transactions");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseException expected) {
             }
 
             try {
                 env1.close();
                 fail("Didn't catch DatabaseException already closed env");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseException expected) {
             }
 
             env1 = new Environment(envHome, envConfig);
@@ -1447,15 +1481,16 @@ public class EnvironmentTest extends TestCase {
             dbConfig.setTransactional(true);
             dbConfig.setAllowCreate(true);
             env1.openDatabase(null, databaseName, dbConfig);
+            env1.openDatabase(null, databaseName + "2", dbConfig);
             try {
                 env1.close();
                 fail("Didn't catch DatabaseException for open dbs");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseException expected) {
             }
             try {
                 env1.close();
                 fail("Didn't catch DatabaseException already closed env");
-            } catch (DatabaseException DBE) {
+            } catch (DatabaseException expected) {
             }
 
         } catch (Throwable t) {
@@ -1473,7 +1508,7 @@ public class EnvironmentTest extends TestCase {
         "six", "seven", "eight", "nine" };
 
     protected void doSimpleCursorPutAndDelete(Cursor cursor, boolean extras)
-        throws DatabaseException {
+	throws DatabaseException {
 
         StringDbt foundKey = new StringDbt();
         StringDbt foundData = new StringDbt();
@@ -1485,17 +1520,17 @@ public class EnvironmentTest extends TestCase {
                 OperationStatus.SUCCESS) {
                 throw new DatabaseException("non-0 return");
             }
-	    /* Need to write some extra out to force eviction to run. */
-	    if (extras) {
-		for (int j = 0; j < 500; j++) {
-		    foundData.setString(Integer.toString(j));
-		    OperationStatus status =
-			cursor.put(foundKey, foundData);
-		    if (status != OperationStatus.SUCCESS) {
-			throw new DatabaseException("non-0 return " + status);
-		    }
-		}
-	    }
+            /* Need to write some extra out to force eviction to run. */
+            if (extras) {
+                for (int j = 0; j < 500; j++) {
+                    foundData.setString(Integer.toString(j));
+                    OperationStatus status =
+                        cursor.put(foundKey, foundData);
+                    if (status != OperationStatus.SUCCESS) {
+                        throw new DatabaseException("non-0 return " + status);
+                    }
+                }
+            }
         }
 
         OperationStatus status =

@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: BigIntegerBinding.java,v 1.1.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: BigIntegerBinding.java,v 1.5 2008/05/27 15:30:33 mark Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -16,24 +15,24 @@ import com.sleepycat.je.DatabaseEntry;
 /**
  * A concrete <code>TupleBinding</code> for a <code>BigInteger</code> value.
  */
-public class BigIntegerBinding extends TupleBinding {
+public class BigIntegerBinding extends TupleBinding<BigInteger> {
 
     // javadoc is inherited
-    public Object entryToObject(TupleInput input) {
+    public BigInteger entryToObject(TupleInput input) {
 
         return input.readBigInteger();
     }
 
     // javadoc is inherited
-    public void objectToEntry(Object object, TupleOutput output) {
+    public void objectToEntry(BigInteger object, TupleOutput output) {
 
-        output.writeBigInteger((BigInteger) object);
+        output.writeBigInteger(object);
     }
 
     // javadoc is inherited
-    protected TupleOutput getTupleOutput(Object object) {
+    protected TupleOutput getTupleOutput(BigInteger object) {
 
-        return sizedOutput((BigInteger) object);
+        return sizedOutput(object);
     }
 
     /**

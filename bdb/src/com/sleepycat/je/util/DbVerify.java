@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbVerify.java,v 1.42.2.3 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DbVerify.java,v 1.50 2008/05/15 01:52:43 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -31,7 +31,18 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.utilint.CmdUtil;
 import com.sleepycat.je.utilint.Tracer;
 
+/**
+ * Verifies the internal structures of a database.
+ *
+ * <p>To verify a database and write the errors to stream:</p>
+ *
+ * <pre>
+ *    DbVerify verifier = new DbVerify(env, dbName, quiet);
+ *    verifier.verify();
+ * </pre>
+ */
 public class DbVerify {
+
     private static final String usageString =
 	"usage: " + CmdUtil.getJavaCommand(DbVerify.class) + "\n" +
         "       -h <dir>             # environment home directory\n" +
@@ -41,17 +52,38 @@ public class DbVerify {
         "       [-v <interval>]      # progress notification interval\n" +
         "       [-V]                 # print JE version number";
 
-    protected File envHome = null;
-    protected Environment env;
-    protected String dbName = null;
-    protected boolean quiet = false;
-    protected boolean checkLsns = false;
-    protected boolean openReadOnly = true;
+    File envHome = null;
+    Environment env;
+    String dbName = null;
+    boolean quiet = false;
+    boolean checkLsns = false;
+    boolean openReadOnly = true;
     private boolean doClose;
 
     private int progressInterval = 0;
 
-    static public void main(String argv[])
+    /**
+     * The main used by the DbVerify utility.
+     *
+     * @param argv The arguments accepted by the DbVerify utility.
+     *
+     * <pre>
+     * usage: java { com.sleepycat.je.util.DbVerify | -jar
+     * je-&lt;version&gt;.jar DbVerify }
+     *             [-q] [-V] -s database -h dbEnvHome [-v progressInterval]
+     * </pre>
+     *
+     * <p>
+     * -V - show the version of the JE library.<br>
+     * -s - specify the database to verify<br>
+     * -h - specify the environment directory<br>
+     * -q - work quietly and don't display errors<br>
+     * -v - report intermediate statistics every progressInterval Leaf
+     *  Nodes
+     * </p>
+     * @throws DatabaseException if a failure occurs.
+     */
+    public static void main(String argv[])
 	throws DatabaseException {
 
 	DbVerify verifier = new DbVerify();
@@ -69,9 +101,9 @@ public class DbVerify {
 	    verifier.closeEnv();
 
             /*
-             * Show the status, only omit if the user asked for a quiet
-             * run and didn't specify a progress interval, in which case
-             * we can assume that they really don't want any status output.
+             * Show the status, only omit if the user asked for a quiet run and
+             * didn't specify a progress interval, in which case we can assume
+             * that they really don't want any status output.
              *
              * If the user runs this from the command line, presumably they'd
              * like to see the status.
@@ -88,6 +120,16 @@ public class DbVerify {
         doClose = true;
     }
 
+    /**
+     * Creates a DbVerify object for a specific environment and database.
+     *
+     * @param env The Environment containing the database to verify.
+     *
+     * @param dbName The name of the database to verify.
+     *
+     * @param quiet true if the verification should not produce errors to the
+     * output stream
+     */
     public DbVerify(Environment env,
 		    String dbName,
 		    boolean quiet) {
@@ -97,13 +139,13 @@ public class DbVerify {
         doClose = false;
     }
 
-    protected void printUsage(String msg) {
+    void printUsage(String msg) {
 	System.err.println(msg);
 	System.err.println(usageString);
 	System.exit(-1);
     }
 
-    protected void parseArgs(String argv[]) {
+    void parseArgs(String argv[]) {
 
 	int argc = 0;
 	int nArgs = argv.length;
@@ -140,12 +182,12 @@ public class DbVerify {
             } else if (thisArg.equals("-rw")) {
 
                 /*
-                 * Unadvertised option. Open the environment read/write
-                 * so that a checkLsns pass gets an accurate root LSN to
-                 * start from in the event that a recovery split the root.
-                 * A read/only environment open will keep any logging in
-                 * the log buffers, and the LSNs stored in the INs will
-                 * be converted to DbLsn.NULL_LSN.
+                 * Unadvertised option. Open the environment read/write so that
+                 * a checkLsns pass gets an accurate root LSN to start from in
+                 * the event that a recovery split the root.  A read/only
+                 * environment open will keep any logging in the log buffers,
+                 * and the LSNs stored in the INs will be converted to
+                 * DbLsn.NULL_LSN.
                  */
                 openReadOnly = false;
             }
@@ -156,7 +198,7 @@ public class DbVerify {
 	}
     }
 
-    protected void openEnv()
+    void openEnv()
 	throws DatabaseException {
 
 	if (env == null) {
@@ -178,6 +220,13 @@ public class DbVerify {
 	}
     }
 
+    /**
+     * Verifies a database and write errors found to a stream.
+     *
+     * @param out The stream to write errors to.
+     *
+     * @return true if the verification found no errors.
+     */
     public boolean verify(PrintStream out)
 	throws DatabaseException {
 
@@ -194,9 +243,9 @@ public class DbVerify {
             EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
 
             /* If no database is specified, verify all. */
-            List dbNameList = null;
-            List internalDbs = null;
-            DbTree dbMapTree = envImpl.getDbMapTree();
+            List<String> dbNameList = null;
+            List<String> internalDbs = null;
+            DbTree dbMapTree = envImpl.getDbTree();
 
             if (dbName == null) {
                 dbNameList = env.getDatabaseNames();
@@ -204,15 +253,15 @@ public class DbVerify {
                 dbNameList.addAll(dbMapTree.getInternalDbNames());
                 internalDbs = dbMapTree.getInternalNoLookupDbNames();
             } else {
-                dbNameList = new ArrayList();
+                dbNameList = new ArrayList<String>();
                 dbNameList.add(dbName);
-                internalDbs = new ArrayList();
+                internalDbs = new ArrayList<String>();
             }
 
             /* Check application data. */
-            Iterator iter = dbNameList.iterator();
+            Iterator<String> iter = dbNameList.iterator();
             while (iter.hasNext()) {
-                String targetDb = (String) iter.next();
+                String targetDb = iter.next();
                 Tracer.trace(Level.INFO, envImpl,
                              "DbVerify.verify of " + targetDb + " starting");
 
@@ -244,7 +293,7 @@ public class DbVerify {
              */
             iter = internalDbs.iterator();
             while (iter.hasNext()) {
-                String targetDb = (String) iter.next();
+                String targetDb = iter.next();
                 Tracer.trace(Level.INFO, envImpl,
                              "DbVerify.verify of " + targetDb + " starting");
 
@@ -306,6 +355,7 @@ public class DbVerify {
         DatabaseStats stats = dbImpl.getEmptyStats();
         status = dbImpl.verify(verifyConfig, stats);
         if (verifyConfig.getPrintInfo()) {
+
             /*
              * Intentionally use print, not println, because stats.toString()
              * puts in a newline too.

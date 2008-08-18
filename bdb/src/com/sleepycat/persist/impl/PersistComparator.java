@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PersistComparator.java,v 1.8.2.1 2007/02/01 14:49:56 cwl Exp $
+ * $Id: PersistComparator.java,v 1.11 2008/05/19 17:52:20 linda Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -21,7 +21,7 @@ import com.sleepycat.persist.model.FieldMetadata;
  *
  * @author Mark Hayes
  */
-public class PersistComparator implements Comparator<Object>, Serializable {
+public class PersistComparator implements Comparator<byte[]>, Serializable {
 
     private static final long serialVersionUID = 5221576538843355317L;
 
@@ -41,7 +41,7 @@ public class PersistComparator implements Comparator<Object>, Serializable {
         }
     }
 
-    public int compare(Object o1, Object o2) {
+    public int compare(byte[] b1, byte[] b2) {
 
         /*
          * The binding will be null after the comparator is deserialized, i.e.,
@@ -57,9 +57,6 @@ public class PersistComparator implements Comparator<Object>, Serializable {
             }
             binding = new PersistKeyBinding(keyClass, comositeFieldOrder);
         }
-
-        byte[] b1 = (byte[]) o1;
-        byte[] b2 = (byte[]) o2;
 
         Comparable k1 = (Comparable) binding.bytesToObject(b1, 0, b1.length);
         Comparable k2 = (Comparable) binding.bytesToObject(b2, 0, b2.length);

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileReaderBufferingTest.java,v 1.12.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: FileReaderBufferingTest.java,v 1.18 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -34,8 +34,8 @@ public class FileReaderBufferingTest extends TestCase {
     private File envHome;
     private Environment env;
     private EnvironmentImpl envImpl;
-    private ArrayList expectedLsns;
-    private ArrayList expectedVals;
+    private ArrayList<Long> expectedLsns;
+    private ArrayList<String> expectedVals;
 
     public FileReaderBufferingTest() {
         super();
@@ -59,6 +59,7 @@ public class FileReaderBufferingTest extends TestCase {
      */
     public void testBasic()
         throws Exception {
+
         readLog(1050,   // starting size of object in entry
                 0,      // object growth increment
                 100,    // starting read buffer size
@@ -71,13 +72,12 @@ public class FileReaderBufferingTest extends TestCase {
      */
     public void testCantGrow()
         throws Exception {
+
         readLog(2000,   // starting size of object in entry
                 0,      // object growth increment
                 100,    // starting read buffer size
                 "1000", // max read buffer size
-                11);    // expected number of overflows. This comes out to
-                        // an odd number because one of the entries hits it
-                        // in just the right place so as to overflow twice.
+                10);    // expected number of overflows.
     }
 
     /**
@@ -85,11 +85,12 @@ public class FileReaderBufferingTest extends TestCase {
      */
     public void testReachMax()
         throws Exception {
+
         readLog(1000,   // size of object in entry
                 1000,      // object growth increment
                 100,    // starting read buffer size
                 "3500", // max read buffer size
-                8);     // expected number of overflows.
+                7);     // expected number of overflows.
     }
     /**
      *
@@ -105,9 +106,9 @@ public class FileReaderBufferingTest extends TestCase {
 
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
             envConfig.setAllowCreate(true);
-            envConfig.setConfigParam(
-                     EnvironmentParams.LOG_ITERATOR_MAX_SIZE.getName(),
-                                     bufferMaxSize);
+            envConfig.setConfigParam
+                (EnvironmentParams.LOG_ITERATOR_MAX_SIZE.getName(),
+                 bufferMaxSize);
             env = new Environment(envHome, envConfig);
 
             envImpl = DbInternal.envGetEnvironmentImpl(env);
@@ -119,18 +120,18 @@ public class FileReaderBufferingTest extends TestCase {
                                      readBufferSize,
                                      true,
                                      DbLsn.longToLsn
-				     ((Long) expectedLsns.get(0)),
+				     (expectedLsns.get(0)),
                                      DbLsn.NULL_LSN,
                                      LogEntryType.LOG_TRACE);
 
-            Iterator lsnIter = expectedLsns.iterator();
-            Iterator valIter = expectedVals.iterator();
+            Iterator<Long> lsnIter = expectedLsns.iterator();
+            Iterator<String> valIter = expectedVals.iterator();
             while (reader.readNextEntry()) {
                 Tracer rec = (Tracer)reader.getLastObject();
                 assertTrue(lsnIter.hasNext());
                 assertEquals(reader.getLastLsn(),
-			     DbLsn.longToLsn((Long) lsnIter.next()));
-                assertEquals((String) valIter.next(), rec.getMessage());
+			     DbLsn.longToLsn(lsnIter.next()));
+                assertEquals(valIter.next(), rec.getMessage());
             }
             assertEquals(10, reader.getNumRead());
             assertEquals(expectedOverflows, reader.getNRepeatIteratorReads());
@@ -152,13 +153,13 @@ public class FileReaderBufferingTest extends TestCase {
         throws IOException, DatabaseException {
 
         LogManager logManager = envImpl.getLogManager();
-        expectedLsns = new ArrayList();
-        expectedVals = new ArrayList();
+        expectedLsns = new ArrayList<Long>();
+        expectedVals = new ArrayList<String>();
 
         for (int i = 0; i < numItems; i++) {
             /* Add a debug record just to be filler. */
             int recordSize = size + (i * sizeIncrement);
-            byte [] filler = new byte[recordSize];
+            byte[] filler = new byte[recordSize];
             Arrays.fill(filler, (byte)i);
             String val = new String(filler);
 

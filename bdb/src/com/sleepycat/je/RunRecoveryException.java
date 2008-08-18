@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RunRecoveryException.java,v 1.18.2.3 2007/12/12 12:27:00 cwl Exp $
+ * $Id: RunRecoveryException.java,v 1.24 2008/05/29 03:38:23 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -11,8 +11,10 @@ package com.sleepycat.je;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Thrown when the JE environment has encountered an exception or a 
+ * resource shortfall and cannot continue on safely. The Environment will
+ * no longer permit any operations and the application must be reinstantiated 
+ * the Environment.
  */
 public class RunRecoveryException extends DatabaseException {
 
@@ -50,13 +52,14 @@ public class RunRecoveryException extends DatabaseException {
 	}
     }
 
-    /*
+    /**
+     * @hidden
      * Remember that this was already thrown. That way, if we re-throw it
-     * because another handle uses the environment after the fatal throw,
-     * the message is more clear.
+     * because another handle uses the environment after the fatal throw, the
+     * message is more clear.
      */
-    public void setAlreadyThrown() {
-        alreadyThrown = true;
+    public void setAlreadyThrown(boolean alreadyThrown) {
+        this.alreadyThrown = alreadyThrown;
     }
 
     public String toString() {

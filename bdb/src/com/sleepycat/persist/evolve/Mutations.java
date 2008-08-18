@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Mutations.java,v 1.12.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: Mutations.java,v 1.15 2008/05/19 20:28:25 mark Exp $
  */
 
 package com.sleepycat.persist.evolve;
@@ -144,6 +144,7 @@ public class Mutations implements Serializable {
     }
 
     private static class Key extends Mutation {
+        static final long serialVersionUID = 2793516787097085621L;
 
         Key(String className, int classVersion, String fieldName) {
             super(className, classVersion, fieldName);

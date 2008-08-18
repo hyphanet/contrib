@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTest.java,v 1.22.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: UtilizationTest.java,v 1.28 2008/03/27 17:06:38 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -30,6 +30,8 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.LogEntryHeader;
 import com.sleepycat.je.log.LogManager;
@@ -37,6 +39,9 @@ import com.sleepycat.je.log.LogSource;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.DbLsn;
 
+/**
+ * Test utilization counting of LNs.
+ */
 public class UtilizationTest extends TestCase {
 
     private static final String DB_NAME = "foo";
@@ -69,13 +74,16 @@ public class UtilizationTest extends TestCase {
 
     private File envHome;
     private Environment env;
+    private EnvironmentImpl envImpl;
     private Database db;
+    private DatabaseImpl dbImpl;
     private boolean dups = false;
     private DatabaseEntry keyEntry = new DatabaseEntry();
     private DatabaseEntry dataEntry = new DatabaseEntry();
     private String operation;
     private long lastFileSeen;
     private boolean fetchObsoleteSize;
+    private boolean truncateOrRemoveDone;
 
     public static Test suite() {
         TestSuite allTests = new TestSuite();
@@ -133,7 +141,9 @@ public class UtilizationTest extends TestCase {
         }
 
         db = null;
+        dbImpl = null;
         env = null;
+        envImpl = null;
         envHome = null;
         keyEntry = null;
         dataEntry = null;
@@ -174,11 +184,10 @@ public class UtilizationTest extends TestCase {
         }
 
         env = new Environment(envHome, config);
+        envImpl = DbInternal.envGetEnvironmentImpl(env);
 
         /* Speed up test that uses lots of very small files. */
-        DbInternal.envGetEnvironmentImpl(env).
-                   getFileManager().
-                   setSyncAtFileEnd(false);
+        envImpl.getFileManager().setSyncAtFileEnd(false);
 
         openDb();
     }
@@ -194,6 +203,7 @@ public class UtilizationTest extends TestCase {
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(dups);
         db = env.openDatabase(null, DB_NAME, dbConfig);
+        dbImpl = DbInternal.dbGetDatabaseImpl(db);
     }
 
     /**
@@ -202,18 +212,23 @@ public class UtilizationTest extends TestCase {
     private void closeEnv(boolean doCheckpoint)
         throws DatabaseException {
 
-        /* Verify utilization using UtilizationFileReader. */
-        CleanerTestUtils.verifyUtilization
-            (DbInternal.envGetEnvironmentImpl(env),
+        /*
+         * We pass expectAccurateDbUtilization as false when
+         * truncateOrRemoveDone, because the database utilization info for that
+         * database is now gone.
+         */
+        VerifyUtils.verifyUtilization
+            (envImpl,
              true, // expectAccurateObsoleteLNCount
-             expectAccurateObsoleteLNSize());
+             expectAccurateObsoleteLNSize(),
+             !truncateOrRemoveDone); // expectAccurateDbUtilization
 
         if (db != null) {
             db.close();
             db = null;
         }
         if (env != null) {
-            DbInternal.envGetEnvironmentImpl(env).close(doCheckpoint);
+            envImpl.close(doCheckpoint);
             env = null;
         }
     }
@@ -381,9 +396,12 @@ public class UtilizationTest extends TestCase {
         performRecoveryOperation();
 
         /* Expect that LN is not obsolete. */
-        FileSummary summary = getSummary(file0);
-        assertEquals(1, summary.totalLNCount);
-        assertEquals(0, summary.obsoleteLNCount);
+        FileSummary fileSummary = getFileSummary(file0);
+        assertEquals(1, fileSummary.totalLNCount);
+        assertEquals(0, fileSummary.obsoleteLNCount);
+        DbFileSummary dbFileSummary = getDbFileSummary(file0);
+        assertEquals(1, dbFileSummary.totalLNCount);
+        assertEquals(0, dbFileSummary.obsoleteLNCount);
 
         closeEnv(true);
     }
@@ -398,9 +416,12 @@ public class UtilizationTest extends TestCase {
         performRecoveryOperation();
 
         /* Expect that LN is obsolete. */
-        FileSummary summary = getSummary(file0);
-        assertEquals(1, summary.totalLNCount);
-        assertEquals(1, summary.obsoleteLNCount);
+        FileSummary fileSummary = getFileSummary(file0);
+        assertEquals(1, fileSummary.totalLNCount);
+        assertEquals(1, fileSummary.obsoleteLNCount);
+        DbFileSummary dbFileSummary = getDbFileSummary(file0);
+        assertEquals(1, dbFileSummary.totalLNCount);
+        assertEquals(1, dbFileSummary.obsoleteLNCount);
 
         closeEnv(true);
     }
@@ -1100,7 +1121,6 @@ public class UtilizationTest extends TestCase {
     }
 
     /**
-     * @deprecated use of Database.truncate
      */
     private void truncateOrRemove(boolean truncate, boolean commit)
         throws DatabaseException {
@@ -1118,7 +1138,10 @@ public class UtilizationTest extends TestCase {
         /* Truncate. */
         txn = env.beginTransaction(null, null);
         if (truncate) {
-            int count = db.truncate(txn, true);
+            db.close();
+            db = null;
+            long count = env.truncateDatabase(txn, DB_NAME,
+                                              true /* returnCount */);
             assertEquals(3, count);
         } else {
             db.close();
@@ -1130,36 +1153,125 @@ public class UtilizationTest extends TestCase {
         } else {
             txn.abort();
         }
+        truncateOrRemoveDone = true;
         performRecoveryOperation();
 
-        expectObsolete(file0, commit);
-        expectObsolete(file1, commit);
-        expectObsolete(file2, commit);
+        /*
+         * Do not check DbFileSummary when we truncate/remove, since the old
+         * DatabaseImpl is gone.
+         */
+        expectObsolete(file0, commit, !commit /*checkDbFileSummary*/);
+        expectObsolete(file1, commit, !commit /*checkDbFileSummary*/);
+        expectObsolete(file2, commit, !commit /*checkDbFileSummary*/);
 
         closeEnv(true);
+    }
+
+    /*
+     * The xxxForceTreeWalk tests set the DatabaseImpl
+     * forceTreeWalkForTruncateAndRemove field to true, which will force a walk
+     * of the tree to count utilization during truncate/remove, rather than
+     * using the per-database info.  This is used to test the "old technique"
+     * for counting utilization, which is now used only if the database was
+     * created prior to log version 6.
+     */
+
+    public void testTruncateForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testTruncate();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testTruncateAbortForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testTruncateAbort();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testRemoveForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testRemove();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testRemoveAbortForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testRemoveAbort();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
     }
 
     private void expectObsolete(long file, boolean obsolete)
         throws DatabaseException {
 
-        FileSummary summary = getSummary(file);
+        expectObsolete(file, obsolete, true /*checkDbFileSummary*/);
+    }
+
+    private void expectObsolete(long file,
+                                boolean obsolete,
+                                boolean checkDbFileSummary)
+        throws DatabaseException {
+
+        FileSummary fileSummary = getFileSummary(file);
         assertEquals("totalLNCount",
-                     1, summary.totalLNCount);
+                     1, fileSummary.totalLNCount);
         assertEquals("obsoleteLNCount",
-                     obsolete ? 1 : 0, summary.obsoleteLNCount);
+                     obsolete ? 1 : 0, fileSummary.obsoleteLNCount);
+
+        DbFileSummary dbFileSummary = getDbFileSummary(file);
+        if (checkDbFileSummary) {
+            assertEquals("db totalLNCount",
+                         1, dbFileSummary.totalLNCount);
+            assertEquals("db obsoleteLNCount",
+                         obsolete ? 1 : 0, dbFileSummary.obsoleteLNCount);
+        }
 
         if (obsolete) {
             if (expectAccurateObsoleteLNSize()) {
-                assertTrue(summary.obsoleteLNSize > 0);
-                assertEquals(1, summary.obsoleteLNSizeCounted);
+                assertTrue(fileSummary.obsoleteLNSize > 0);
+                assertEquals(1, fileSummary.obsoleteLNSizeCounted);
+                if (checkDbFileSummary) {
+                    assertTrue(dbFileSummary.obsoleteLNSize > 0);
+                    assertEquals(1, dbFileSummary.obsoleteLNSizeCounted);
+                }
             }
             /* If we counted the size, make sure it is the actual LN size. */
-            if (summary.obsoleteLNSize > 0) {
-                assertEquals(getLNSize(file), summary.obsoleteLNSize);
+            if (fileSummary.obsoleteLNSize > 0) {
+                assertEquals(getLNSize(file), fileSummary.obsoleteLNSize);
+            }
+            if (checkDbFileSummary) {
+                if (dbFileSummary.obsoleteLNSize > 0) {
+                    assertEquals(getLNSize(file), dbFileSummary.obsoleteLNSize);
+                }
+                assertEquals(fileSummary.obsoleteLNSize > 0,
+                             dbFileSummary.obsoleteLNSize > 0);
             }
         } else {
-            assertEquals(0, summary.obsoleteLNSize);
-            assertEquals(0, summary.obsoleteLNSizeCounted);
+            assertEquals(0, fileSummary.obsoleteLNSize);
+            assertEquals(0, fileSummary.obsoleteLNSizeCounted);
+            if (checkDbFileSummary) {
+                assertEquals(0, dbFileSummary.obsoleteLNSize);
+                assertEquals(0, dbFileSummary.obsoleteLNSizeCounted);
+            }
         }
     }
 
@@ -1259,7 +1371,8 @@ public class UtilizationTest extends TestCase {
     }
 
     /**
-     * Checkpoint, recover, or do nothing.
+     * Checkpoint, recover, or do neither, depending on the configured
+     * operation for this test.  Always compress to count deleted LNs.
      */
     private void performRecoveryOperation()
         throws DatabaseException {
@@ -1298,14 +1411,21 @@ public class UtilizationTest extends TestCase {
     /**
      * Returns the utilization summary for a given log file.
      */
-    private FileSummary getSummary(long file)
+    private FileSummary getFileSummary(long file)
         throws DatabaseException {
 
         return (FileSummary)
-            DbInternal.envGetEnvironmentImpl(env)
-                      .getUtilizationProfile()
-                      .getFileSummaryMap(true)
-                      .get(new Long(file));
+            envImpl.getUtilizationProfile()
+                   .getFileSummaryMap(true)
+                   .get(new Long(file));
+    }
+
+    /**
+     * Returns the per-database utilization summary for a given log file.
+     */
+    private DbFileSummary getDbFileSummary(long file) {
+        return dbImpl.getDbFileSummary
+            (new Long(file), false /*willModify*/);
     }
 
     /**
@@ -1318,8 +1438,7 @@ public class UtilizationTest extends TestCase {
         try {
             long offset = FileManager.firstLogEntryOffset();
             long lsn = DbLsn.makeLsn(file, offset);
-            LogManager lm =
-                DbInternal.envGetEnvironmentImpl(env).getLogManager();
+            LogManager lm = envImpl.getLogManager();
             LogSource src = lm.getLogSource(lsn);
             ByteBuffer buf = src.getBytes(offset);
             LogEntryHeader header =

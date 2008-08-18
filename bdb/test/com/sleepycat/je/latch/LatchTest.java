@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LatchTest.java,v 1.33.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: LatchTest.java,v 1.37 2008/01/07 14:29:09 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -32,13 +32,28 @@ public class LatchTest extends TestCase {
     }
 
     private void initExclusiveLatches() {
-	latch1 = LatchSupport.makeLatch("LatchTest-latch1", null);
-	latch2 = LatchSupport.makeLatch("LatchTest-latch2", null);
+	latch1 = new Latch("LatchTest-latch1");
+	latch2 = new Latch("LatchTest-latch2");
     }
 
     public void tearDown() {
 	latch1 = null;
 	latch2 = null;
+    }
+
+    public void testDebugOutput()
+	throws Throwable {
+
+	/* Stupid test solely for the sake of code coverage. */
+	initExclusiveLatches();
+	/* Acquire a latch. */
+	try {
+	    latch1.acquire();
+	} catch (DatabaseException LE) {
+	    fail("caught DatabaseException");
+	}
+
+	LatchSupport.latchesHeldToString();
     }
 
     public void testAcquireAndReacquire()
@@ -88,8 +103,7 @@ public class LatchTest extends TestCase {
     public void testAcquireAndReacquireShared()
 	throws Throwable {
 
-	final SharedLatch latch =
-	    LatchSupport.makeSharedLatch("LatchTest-latch2", null);
+	final SharedLatch latch = new SharedLatch("LatchTest-latch2");
 
 	JUnitThread tester =
 	    new JUnitThread("testAcquireAndReacquireShared") {
@@ -168,6 +182,7 @@ public class LatchTest extends TestCase {
 			}
 		    }
 		    LatchStats stats = latch1.getLatchStats();
+		    stats.toString();
 		    assertTrue(stats.nAcquiresNoWaiters == N_PERF_TESTS);
 		    assertTrue(stats.nReleases == N_PERF_TESTS);
 		}

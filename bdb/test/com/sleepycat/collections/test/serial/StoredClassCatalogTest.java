@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: StoredClassCatalogTest.java,v 1.35.2.1 2007/02/01 14:50:03 cwl Exp $
+ * $Id: StoredClassCatalogTest.java,v 1.38 2008/02/05 23:28:26 mark Exp $
  */
 package com.sleepycat.collections.test.serial;
 
@@ -19,12 +19,12 @@ import com.sleepycat.bind.serial.StoredClassCatalog;
 import com.sleepycat.collections.StoredMap;
 import com.sleepycat.collections.TransactionRunner;
 import com.sleepycat.collections.TransactionWorker;
-import com.sleepycat.collections.test.DbTestUtil;
-import com.sleepycat.collections.test.TestEnv;
 import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.Environment;
+import com.sleepycat.util.test.SharedTestUtils;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * Runs part two of the StoredClassCatalogTest.  This part is run with the
@@ -85,7 +85,7 @@ public class StoredClassCatalogTest extends TestCase
     public void setUp()
         throws Exception {
 
-        DbTestUtil.printTestName(getName());
+        SharedTestUtils.printTestName(getName());
         env = testEnv.open(makeTestName(testEnv), false);
         runner = new TransactionRunner(env);
 
@@ -109,7 +109,7 @@ public class StoredClassCatalogTest extends TestCase
         config.setTransactional(testEnv.isTxnMode());
         config.setAllowCreate(create);
 
-        return DbCompat.openDatabase(env, null, file, null, config);
+        return DbCompat.testOpenDatabase(env, null, file, null, config);
     }
 
     public void tearDown() {

@@ -1,14 +1,18 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryInfo.java,v 1.25.2.2 2007/11/20 13:32:33 cwl Exp $
+ * $Id: RecoveryInfo.java,v 1.30 2008/01/07 14:28:52 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
 
+import java.util.Collection;
+import java.util.HashSet;
+
 import com.sleepycat.je.utilint.DbLsn;
+import com.sleepycat.je.utilint.FileMapper;
 
 /**
  * RecoveryInfo keeps information about recovery processing.
@@ -17,7 +21,8 @@ public class RecoveryInfo {
 
     /* Locations found during recovery. */
     public long lastUsedLsn = DbLsn.NULL_LSN;      // location of last entry
-    public long nextAvailableLsn = DbLsn.NULL_LSN; // EOF, location of first unused spot
+    /*  EOF, location of first unused spot. */
+    public long nextAvailableLsn = DbLsn.NULL_LSN;
     public long firstActiveLsn = DbLsn.NULL_LSN;
     public long checkpointStartLsn = DbLsn.NULL_LSN;
     public long checkpointEndLsn = DbLsn.NULL_LSN;
@@ -29,28 +34,34 @@ public class RecoveryInfo {
      */
     public long partialCheckpointStartLsn = DbLsn.NULL_LSN;
 
-    // Checkpoint record used for this recovery.
+    /* Checkpoint record used for this recovery. */
     public CheckpointEnd checkpointEnd;
 
-    // Ids
+    /* Ids */
+    public long useMinReplicatedNodeId;
     public long useMaxNodeId;
+    public int useMinReplicatedDbId;
     public int useMaxDbId;
+    public long useMinReplicatedTxnId;
     public long useMaxTxnId;
 
-    // num nodes read
+    /* num nodes read */
     public int numMapINs;
     public int numOtherINs;
     public int numBinDeltas;
     public int numDuplicateINs;
 
-    // ln processing
+    /* ln processing */
     public int lnFound;
     public int lnNotFound;
     public int lnInserted;
     public int lnReplaced;
 
-    // FileReader behavior
+    /* FileReader behavior. */
     public int nRepeatIteratorReads;
+
+    /* VLSN mappings seen during recovery processing, for replication. */
+    public Collection<FileMapper> fileMappers = new HashSet<FileMapper>();
 
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -62,8 +73,11 @@ public class RecoveryInfo {
         appendLsn(sb, " ckptEnd=", checkpointEndLsn);
         appendLsn(sb, " useRoot=", useRootLsn);
         sb.append(checkpointEnd).append(">");
+        sb.append(" useMinReplicatedNodeId=").append(useMinReplicatedNodeId);
         sb.append(" useMaxNodeId=").append(useMaxNodeId);
+        sb.append(" useMinReplicatedDbId=").append(useMinReplicatedDbId);
         sb.append(" useMaxDbId=").append(useMaxDbId);
+        sb.append(" useMinReplicatedTxnId=").append(useMinReplicatedTxnId);
         sb.append(" useMaxTxnId=").append(useMaxTxnId);
         sb.append(" numMapINs=").append(numMapINs);
         sb.append(" numOtherINs=").append(numOtherINs);

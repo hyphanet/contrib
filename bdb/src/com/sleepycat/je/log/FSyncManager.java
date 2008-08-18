@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FSyncManager.java,v 1.18.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: FSyncManager.java,v 1.22 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -15,7 +15,6 @@ import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.latch.Latch;
-import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.utilint.PropUtil;
 
 /*
@@ -101,7 +100,7 @@ class FSyncManager {
             EnvironmentParams.LOG_FSYNC_TIMEOUT));
         this.envImpl = envImpl;
 
-        fsyncLatch = LatchSupport.makeLatch("fsyncLatch", envImpl);
+        fsyncLatch = new Latch("fsyncLatch");
         fsyncInProgress = false;
         nextFSyncWaiters = new FSyncGroup(timeout, envImpl);
     }

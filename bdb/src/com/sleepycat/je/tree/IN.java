@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: IN.java,v 1.295.2.11 2007/12/14 01:43:27 mark Exp $
+ * $Id: IN.java,v 1.344 2008/05/30 14:04:16 mark Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -16,8 +16,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.LocalUtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -27,7 +28,6 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.latch.LatchNotHeldException;
-import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.latch.SharedLatch;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
@@ -35,6 +35,8 @@ import com.sleepycat.je.log.LogFileNotFoundException;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.Provisional;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.log.entry.INLogEntry;
 import com.sleepycat.je.log.entry.LNLogEntry;
@@ -44,7 +46,7 @@ import com.sleepycat.je.utilint.Tracer;
 /**
  * An IN represents an Internal Node in the JE tree.
  */
-public class IN extends Node implements Comparable, Loggable {
+public class IN extends Node implements Comparable<IN>, Loggable {
 
     private static final String BEGIN_TAG = "<in>";
     private static final String END_TAG = "</in>";
@@ -63,6 +65,7 @@ public class IN extends Node implements Comparable, Loggable {
     private static final int BYTES_PER_LSN_ENTRY = 4;
     private static final int MAX_FILE_OFFSET = 0xfffffe;
     private static final int THREE_BYTE_NEGATIVE_ONE = 0xffffff;
+    @SuppressWarnings("unused")
     private static final int GROWTH_INCREMENT = 5; // for future
 
     /*
@@ -85,9 +88,13 @@ public class IN extends Node implements Comparable, Loggable {
     public static final int MAY_EVICT_LNS = 1;
     public static final int MAY_EVICT_NODE = 2;
 
+    private static final int IN_DIRTY_BIT = 0x1;
+    private static final int IN_RECALC_TOGGLE_BIT = 0x2;
+    private static final int IN_IS_ROOT_BIT = 0x4;
+    private int flags; // not persistent
+
     protected SharedLatch latch;
     private long generation;
-    private boolean dirty;
     private int nEntries;
     private byte[] identifierKey;
 
@@ -96,9 +103,14 @@ public class IN extends Node implements Comparable, Loggable {
      * ChildReferences.  However, for in-memory space savings, we save the
      * overhead of ChildReference and DbLsn objects by in-lining the elements
      * of the ChildReference directly in the IN.
+     *
+     * entryKeyVals contains the whole keys if key prefixing is not being used.
+     * If prefixing is enabled, then keyPrefix contains the prefix and
+     * entryKeyVals contains the suffixes.
      */
     private Node[] entryTargets;
     private byte[][] entryKeyVals; // byte[][] instead of Key[] to save space
+    private byte[] keyPrefix;
 
     /*
      * The following entryLsnXXX fields are used for storing LSNs.  There are
@@ -124,18 +136,19 @@ public class IN extends Node implements Comparable, Loggable {
     private long[] entryLsnLongArray;
     private byte[] entryStates;
     private DatabaseImpl databaseImpl;
-    private boolean isRoot; // true if this is the root of a tree
     private int level;
     private long inMemorySize;
+
     private boolean inListResident; // true if this IN is on the IN list
-    // Location of last full version.
+
+    /* Location of last full version. */
     private long lastFullVersion = DbLsn.NULL_LSN;
 
     /*
      * A list of Long LSNs that cannot be counted as obsolete until an ancestor
      * IN is logged non-provisionally.
      */
-    private List provisionalObsolete;
+    private List<Long> provisionalObsolete;
 
     /* Used to indicate that an exact match was found in findEntry. */
     public static final int EXACT_MATCH = (1 << 16);
@@ -162,17 +175,21 @@ public class IN extends Node implements Comparable, Loggable {
      * Create an empty IN, with no node id, to be filled in from the log.
      */
     public IN() {
-        super(false);
         init(null, Key.EMPTY_KEY, 0, 0);
     }
 
     /**
      * Create a new IN.
      */
-    public IN(DatabaseImpl db, byte[] identifierKey, int capacity, int level) {
+    public IN(DatabaseImpl dbImpl,
+              byte[] identifierKey,
+              int capacity,
+              int level) {
 
-        super(true);
-        init(db, identifierKey, capacity, generateLevel(db.getId(), level));
+        super(dbImpl.getDbEnvironment(),
+                  false); // replicated
+        init(dbImpl, identifierKey, capacity,
+             generateLevel(dbImpl.getId(), level));
         initMemorySize();
     }
 
@@ -184,25 +201,22 @@ public class IN extends Node implements Comparable, Loggable {
                         int initialCapacity,
                         int level) {
         setDatabase(db);
-	EnvironmentImpl env =
-	    (databaseImpl == null) ? null : databaseImpl.getDbEnvironment();
-        latch =
-	    LatchSupport.makeSharedLatch(shortClassName() + getNodeId(), env);
-	latch.setExclusiveOnly(EnvironmentImpl.getSharedLatches() ?
-			       isAlwaysLatchedExclusively() :
-			       true);
-	assert latch.setNoteLatch(true);
+        latch =  new SharedLatch(shortClassName() + getNodeId());
+        latch.setExclusiveOnly(EnvironmentImpl.getSharedLatches() ?
+                               isAlwaysLatchedExclusively() :
+                               true);
+        assert latch.setNoteLatch(true);
         generation = 0;
-        dirty = false;
+        flags = 0;
         nEntries = 0;
         this.identifierKey = identifierKey;
 	entryTargets = new Node[initialCapacity];
 	entryKeyVals = new byte[initialCapacity][];
+        keyPrefix = null;
 	baseFileNumber = -1;
 	entryLsnByteArray = new byte[initialCapacity << 2];
 	entryLsnLongArray = null;
 	entryStates = new byte[initialCapacity];
-        isRoot = false;
         this.level = level;
         inListResident = false;
     }
@@ -214,47 +228,37 @@ public class IN extends Node implements Comparable, Loggable {
         inMemorySize = computeMemorySize();
     }
 
-    /*
-     * To get an inexpensive but random distribution of INs in the INList,
-     * equality and comparison for INs is based on a combination of the node
-     * id and identify hash code. Note that this will still give a correct
-     * equality value for any comparisons outside the INList sorted set.
-     */
-    private long getEqualityKey() {
-        int hash = System.identityHashCode(this);
-        long hash2 = (((long) hash) << 32) | hash;
-        return hash2 ^ getNodeId();
-    }
-
     public boolean equals(Object obj) {
         if (!(obj instanceof IN)) {
             return false;
         }
-
         IN in = (IN) obj;
-        return (this.getEqualityKey() == in.getEqualityKey());
-    }
-
-    public int hashCode() {
-        return (int) getEqualityKey();
+        return (this.getNodeId() == in.getNodeId());
     }
 
     /**
-     * Sort based on node id.
+     * We would like as even a hash distribution as possible so that the
+     * Evictor's LRU is as accurate as possible.  ConcurrentHashMap takes the
+     * value returned by this method and runs its own hash algorithm on it.
+     * So a bit complement of the node ID is sufficent as the return value and
+     * is a little better than returning just the node ID.  If we use a
+     * different container in the future that does not re-hash the return
+     * value, we should probably implement the Wang-Jenkins hash function here.
      */
-    public int compareTo(Object o) {
-        if (o == null) {
-            throw new NullPointerException();
-        }
+    public int hashCode() {
+        return (int) ~getNodeId();
+    }
 
-        IN argIN = (IN) o;
+    /**
+     * Sort based on equality key.
+     */
+    public int compareTo(IN argIN) {
+        long argNodeId = argIN.getNodeId();
+        long myNodeId = getNodeId();
 
-        long argEqualityKey = argIN.getEqualityKey();
-        long myEqualityKey = getEqualityKey();
-
-        if (myEqualityKey < argEqualityKey) {
+        if (myNodeId < argNodeId) {
             return -1;
-        } else if (myEqualityKey > argEqualityKey) {
+        } else if (myNodeId > argNodeId) {
             return 1;
         } else {
             return 0;
@@ -277,7 +281,7 @@ public class IN extends Node implements Comparable, Loggable {
      * shared.  BINs, DINs, and DBINs are all latched exclusive only.
      */
     boolean isAlwaysLatchedExclusively() {
-	return false;
+        return false;
     }
 
     /**
@@ -320,25 +324,21 @@ public class IN extends Node implements Comparable, Loggable {
     /**
      * Latch this node exclusive, optionally setting the generation.
      */
-    public void latch(boolean updateGeneration)
+    public void latch(CacheMode cacheMode)
         throws DatabaseException {
 
-        if (updateGeneration) {
-            setGeneration();
-        }
+        setGeneration(cacheMode);
         latch.acquireExclusive();
     }
 
     /**
      * Latch this node shared, optionally setting the generation.
      */
-    public void latchShared(boolean updateGeneration)
+    @Override
+    public void latchShared(CacheMode cacheMode)
 	throws DatabaseException {
 
-	if (updateGeneration) {
-	    setGeneration();
-	}
-
+        setGeneration(cacheMode);
 	latch.acquireShared();
     }
 
@@ -346,13 +346,11 @@ public class IN extends Node implements Comparable, Loggable {
      * Latch this node if it is not latched by another thread, optionally
      * setting the generation if the latch succeeds.
      */
-    public boolean latchNoWait(boolean updateGeneration)
+    public boolean latchNoWait(CacheMode cacheMode)
         throws DatabaseException {
 
         if (latch.acquireExclusiveNoWait()) {
-            if (updateGeneration) {
-                setGeneration();
-            }
+            setGeneration(cacheMode);
             return true;
         } else {
             return false;
@@ -365,16 +363,17 @@ public class IN extends Node implements Comparable, Loggable {
     public void latch()
         throws DatabaseException {
 
-        latch(true);
+        latch(CacheMode.DEFAULT);
     }
 
     /**
      * Latch this node shared and set the generation.
      */
+    @Override
     public void latchShared()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	latchShared(true);
+	latchShared(CacheMode.DEFAULT);
     }
 
     /**
@@ -384,7 +383,7 @@ public class IN extends Node implements Comparable, Loggable {
     public boolean latchNoWait()
         throws DatabaseException {
 
-        return latchNoWait(true);
+        return latchNoWait(CacheMode.DEFAULT);
     }
 
     /**
@@ -409,19 +408,33 @@ public class IN extends Node implements Comparable, Loggable {
      * @return true if this thread holds the IN's latch
      */
     public boolean isLatchOwnerForRead() {
-	return latch.isOwner();
+        return latch.isOwner();
     }
 
     public boolean isLatchOwnerForWrite() {
-	return latch.isWriteLockedByCurrentThread();
+        return latch.isWriteLockedByCurrentThread();
     }
 
     public long getGeneration() {
         return generation;
     }
 
-    public void setGeneration() {
-        generation = Generation.getNextGeneration();
+    public void setGeneration(CacheMode cacheMode) {
+        switch (cacheMode) {
+        case DEFAULT:
+            generation = Generation.getNextGeneration();
+            break;
+
+        case UNCHANGED:
+            break;
+
+        case KEEP_HOT:
+            generation = Long.MAX_VALUE;
+            break;
+
+        default:
+            throw new RuntimeException("unknown cacheMode: " + cacheMode);
+        }
     }
 
     public void setGeneration(long newGeneration) {
@@ -440,26 +453,60 @@ public class IN extends Node implements Comparable, Loggable {
         }
     }
 
+    /* This has default protection for access by the unit tests. */
+    void setKeyPrefix(byte[] keyPrefix) {
+        assert databaseImpl != null;
+        this.keyPrefix = keyPrefix;
+    }
+
+    byte[] getKeyPrefix() {
+        return keyPrefix;
+    }
+
     public boolean getDirty() {
-        return dirty;
+        return (flags & IN_DIRTY_BIT) != 0;
     }
 
     /* public for unit tests */
     public void setDirty(boolean dirty) {
-        this.dirty = dirty;
+        if (dirty) {
+            flags |= IN_DIRTY_BIT;
+        } else {
+            flags &= ~IN_DIRTY_BIT;
+        }
+    }
+
+    public boolean getRecalcToggle() {
+        return (flags & IN_RECALC_TOGGLE_BIT) != 0;
+    }
+
+    public void setRecalcToggle(boolean toggle) {
+        if (toggle) {
+            flags |= IN_RECALC_TOGGLE_BIT;
+        } else {
+            flags &= ~IN_RECALC_TOGGLE_BIT;
+        }
     }
 
     public boolean isRoot() {
-        return isRoot;
+        return (flags & IN_IS_ROOT_BIT) != 0;
     }
 
     public boolean isDbRoot() {
-	return isRoot;
+        return (flags & IN_IS_ROOT_BIT) != 0;
     }
 
     void setIsRoot(boolean isRoot) {
-        this.isRoot = isRoot;
+        setIsRootFlag(isRoot);
         setDirty(true);
+    }
+
+    private void setIsRootFlag(boolean isRoot) {
+        if (isRoot) {
+            flags |= IN_IS_ROOT_BIT;
+        } else {
+            flags &= ~IN_IS_ROOT_BIT;
+        }
     }
 
     /**
@@ -475,6 +522,21 @@ public class IN extends Node implements Comparable, Loggable {
      * @param key - the new identifier key for this node.
      */
     void setIdentifierKey(byte[] key) {
+
+        /*
+         * The identifierKey is "intentionally" not kept track of in the
+         * memory budget.  If we did, then it would look like this:
+
+        int oldIDKeySz = (identifierKey == null) ?
+            0 :
+            MemoryBudget.byteArraySize(identifierKey.length);
+
+        int newIDKeySz = (key == null) ?
+            0 :
+            MemoryBudget.byteArraySize(key.length);
+        changeMemorySize(newIDKeySz - oldIDKeySz);
+
+        */
         identifierKey = key;
         setDirty(true);
     }
@@ -540,43 +602,230 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     private void setEntryInternal(int from, int to) {
-	entryTargets[to] = entryTargets[from];
-	entryKeyVals[to] = entryKeyVals[from];
-	entryStates[to] = entryStates[from];
-	/* Will implement this in the future. Note, don't adjust if mutating.*/
-	//maybeAdjustCapacity(offset);
-	if (entryLsnLongArray == null) {
-	    int fromOff = from << 2;
-	    int toOff = to << 2;
-	    entryLsnByteArray[toOff++] = entryLsnByteArray[fromOff++];
-	    entryLsnByteArray[toOff++] = entryLsnByteArray[fromOff++];
-	    entryLsnByteArray[toOff++] = entryLsnByteArray[fromOff++];
-	    entryLsnByteArray[toOff] = entryLsnByteArray[fromOff];
-	} else {
-	    entryLsnLongArray[to] = entryLsnLongArray[from];
-	}
+        entryTargets[to] = entryTargets[from];
+        entryKeyVals[to] = entryKeyVals[from];
+        entryStates[to] = entryStates[from];
+        /* Will implement this in the future. Note, don't adjust if mutating.*/
+        //maybeAdjustCapacity(offset);
+        if (entryLsnLongArray == null) {
+            int fromOff = from << 2;
+            int toOff = to << 2;
+            entryLsnByteArray[toOff++] = entryLsnByteArray[fromOff++];
+            entryLsnByteArray[toOff++] = entryLsnByteArray[fromOff++];
+            entryLsnByteArray[toOff++] = entryLsnByteArray[fromOff++];
+            entryLsnByteArray[toOff] = entryLsnByteArray[fromOff];
+        } else {
+            entryLsnLongArray[to] = entryLsnLongArray[from];
+        }
     }
 
     private void clearEntry(int idx) {
-	entryTargets[idx] = null;
-	entryKeyVals[idx] = null;
-	setLsnElement(idx, DbLsn.NULL_LSN);
-	entryStates[idx] = 0;
+        entryTargets[idx] = null;
+        entryKeyVals[idx] = null;
+        setLsnElement(idx, DbLsn.NULL_LSN);
+        entryStates[idx] = 0;
     }
 
     /**
-     * Return the idx'th key.
+     * Return the idx'th key.  If prefixing is enabled, construct a new byte[]
+     * containing the prefix and suffix.  If prefixing is not enabled, just
+     * return the current byte[] in entryKeyVals[].
      */
     public byte[] getKey(int idx) {
-        return entryKeyVals[idx];
+        if (keyPrefix != null) {
+            int prefixLen = keyPrefix.length;
+            byte[] suffix = entryKeyVals[idx];
+            if (prefixLen == 0) {
+                return suffix;
+            }
+            int suffixLen = (suffix == null ? 0 : suffix.length);
+            byte[] ret = new byte[prefixLen + suffixLen];
+            if (keyPrefix != null) {
+                System.arraycopy(keyPrefix, 0, ret, 0, prefixLen);
+            }
+
+            if (suffix != null) {
+                System.arraycopy(suffix, 0, ret, prefixLen, suffixLen);
+            }
+            return ret;
+        } else {
+            return entryKeyVals[idx];
+        }
     }
 
     /**
      * Set the idx'th key.
      */
-    private void setKey(int idx, byte[] keyVal) {
-	entryKeyVals[idx] = keyVal;
+    private boolean setKeyAndDirty(int idx, byte[] keyVal) {
         entryStates[idx] |= DIRTY_BIT;
+        return setKeyAndPrefix(idx, keyVal);
+    }
+
+    /* 
+     * Set the key at idx and adjust the key prefix if necessary.  Return true
+     * if the prefixes and suffixes were adjusted to indicate that memory
+     * recalculation can occur.
+     */
+    private boolean setKeyAndPrefix(int idx, byte[] keyVal) {
+
+        /*
+         * Only compute key prefix if prefixing is enabled and there's an
+         * existing prefix.
+         */
+        assert databaseImpl != null;
+        if (databaseImpl.getKeyPrefixing() &&
+            keyPrefix != null) {
+            if (!compareToKeyPrefix(keyVal)) {
+
+                /*
+                 * The new key doesn't share the current prefix, so recompute
+                 * the prefix and readjust all the existing suffixes.
+                 */
+                byte[] newPrefix = computeKeyPrefix(idx);
+                if (newPrefix != null) {
+                    /* Take the new key into consideration for new prefix. */
+                    newPrefix = Key.createKeyPrefix(newPrefix, keyVal);
+                }
+                recalcSuffixes(newPrefix, keyVal, idx);
+                return true;
+            } else {
+                entryKeyVals[idx] = computeKeySuffix(keyPrefix, keyVal);
+                return false;
+            }
+        } else {
+            if (keyPrefix != null) {
+
+                /*
+                 * Key prefixing has been turned off on this database, but
+                 * there are existing prefixes.  Remove prefixes for this IN.
+                 */
+                recalcSuffixes(new byte[0], keyVal, idx);
+            } else {
+                entryKeyVals[idx] = keyVal;
+            }
+            return false;
+        }
+    }
+
+    /*
+     * Iterate over all keys in this IN and recalculate their suffixes based on
+     * newPrefix.  If keyVal and idx are supplied, it means that entry[idx] is
+     * about to be changed to keyVal so use that instead of entryKeyVals[idx]
+     * when computing the new suffixes.  If idx is < 0, and keyVal is null,
+     * then recalculate suffixes for all entries in this.
+     */
+    private void recalcSuffixes(byte[] newPrefix, byte[] keyVal, int idx) {
+        for (int i = 0; i < nEntries; i++) {
+            byte[] curKey = (i == idx ? keyVal : getKey(i));
+            entryKeyVals[i] = computeKeySuffix(newPrefix, curKey);
+        }
+        setKeyPrefix(newPrefix);
+    }
+
+    /*
+     * Returns whether the given newKey is a prefix of, or equal to, the
+     * current keyPrefix.
+     *
+     * This has default protection for the unit tests.
+     */
+    boolean compareToKeyPrefix(byte[] newKey) {
+        if (keyPrefix == null ||
+            keyPrefix.length == 0) {
+            return false;
+        }
+
+        int newKeyLen = newKey.length;
+        for (int i = 0; i < keyPrefix.length; i++) {
+            if (i < newKeyLen &&
+                keyPrefix[i] == newKey[i]) {
+                continue;
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /* 
+     * Computes a key prefix based on all the keys in 'this'.  Return null if
+     * the IN is empty or prefixing is not enabled or there is no common
+     * prefix for the keys.
+     */
+    private byte[] computeKeyPrefix(int excludeIdx) {
+        if (!databaseImpl.getKeyPrefixing() ||
+            nEntries == 0) {
+            return null;
+        }
+
+        int startIdx = 1;
+        byte[] curPrefixKey = null;
+        if (excludeIdx == 0) {
+            startIdx = 2;
+            curPrefixKey = getKey(1);
+        } else {
+            curPrefixKey = getKey(0);
+        }
+
+        int prefixLen = curPrefixKey.length;
+        for (int i = startIdx; i < nEntries; i++) {
+            byte[] curKey = getKey(i);
+            if (curPrefixKey == null || curKey == null) {
+                return null;
+            }
+            int newPrefixLen =
+                Key.getKeyPrefixLength(curPrefixKey, prefixLen, curKey);
+            if (newPrefixLen < prefixLen) {
+                curPrefixKey = curKey;
+                prefixLen = newPrefixLen;
+            }
+        }
+
+        byte[] ret = new byte[prefixLen];
+        System.arraycopy(curPrefixKey, 0, ret, 0, prefixLen);
+
+	return ret;
+    }
+
+    /*
+     * Given a prefix and a key, return the suffix portion of keyVal.
+     */
+    private byte[] computeKeySuffix(byte[] newPrefix, byte[] keyVal) {
+        int prefixLen = (newPrefix == null ? 0 : newPrefix.length);
+
+        if (prefixLen == 0) {
+            return keyVal;
+        }
+
+        int suffixLen = keyVal.length - prefixLen;
+        byte[] ret = new byte[suffixLen];
+        System.arraycopy(keyVal, prefixLen, ret, 0, suffixLen);
+        return ret;
+    }
+
+    /*
+     * For debugging.
+     */
+    boolean verifyKeyPrefix() {
+        byte[] computedKeyPrefix = computeKeyPrefix(-1);
+        if (keyPrefix == null) {
+            return computedKeyPrefix == null;
+        }
+
+        if (computedKeyPrefix == null ||
+            computedKeyPrefix.length < keyPrefix.length) {
+                System.out.println("VerifyKeyPrefix failed");
+                System.out.println(dumpString(0, false));
+                return false;
+        }
+        for (int i = 0; i < keyPrefix.length; i++) {
+            if (keyPrefix[i] != computedKeyPrefix[i]) {
+                System.out.println("VerifyKeyPrefix failed");
+                System.out.println(dumpString(0, false));
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -598,7 +847,7 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     public byte getState(int idx) {
-	return entryStates[idx];
+        return entryStates[idx];
     }
 
     /**
@@ -616,6 +865,9 @@ public class IN extends Node implements Comparable, Loggable {
      * must update the budget.</p>
      */
     void setTarget(int idx, Node target) {
+        assert isLatchOwnerForWrite() :
+            "Not latched for write " + getClass().getName() +
+             " id=" + getNodeId();
         entryTargets[idx] = target;
     }
 
@@ -625,19 +877,19 @@ public class IN extends Node implements Comparable, Loggable {
      * @return the idx'th LSN for this entry.
      */
     public long getLsn(int idx) {
-	if (entryLsnLongArray == null) {
-	    int offset = idx << 2;
-	    int fileOffset = getFileOffset(offset);
-	    if (fileOffset == -1) {
-		return DbLsn.NULL_LSN;
-	    } else {
-		return DbLsn.makeLsn((long) (baseFileNumber +
-					     getFileNumberOffset(offset)),
-				     fileOffset);
-	    }
-	} else {
-	    return entryLsnLongArray[idx];
-	}
+        if (entryLsnLongArray == null) {
+            int offset = idx << 2;
+            int fileOffset = getFileOffset(offset);
+            if (fileOffset == -1) {
+                return DbLsn.NULL_LSN;
+            } else {
+                return DbLsn.makeLsn((long) (baseFileNumber +
+                                             getFileNumberOffset(offset)),
+                                     fileOffset);
+            }
+        } else {
+            return entryLsnLongArray[idx];
+        }
     }
 
     /**
@@ -646,194 +898,194 @@ public class IN extends Node implements Comparable, Loggable {
      */
     private void setLsn(int idx, long lsn) {
 
-	int oldSize = computeLsnOverhead();
-	/* setLsnElement can mutate to an array of longs. */
-	setLsnElement(idx, lsn);
-	changeMemorySize(computeLsnOverhead() - oldSize);
+        int oldSize = computeLsnOverhead();
+        /* setLsnElement can mutate to an array of longs. */
+        setLsnElement(idx, lsn);
+        changeMemorySize(computeLsnOverhead() - oldSize);
         entryStates[idx] |= DIRTY_BIT;
     }
 
     /* For unit tests. */
     long[] getEntryLsnLongArray() {
-	return entryLsnLongArray;
+        return entryLsnLongArray;
     }
 
     /* For unit tests. */
     byte[] getEntryLsnByteArray() {
-	return entryLsnByteArray;
+        return entryLsnByteArray;
     }
 
     /* For unit tests. */
     void initEntryLsn(int capacity) {
-	entryLsnLongArray = null;
-	entryLsnByteArray = new byte[capacity << 2];
-	baseFileNumber = -1;
+        entryLsnLongArray = null;
+        entryLsnByteArray = new byte[capacity << 2];
+        baseFileNumber = -1;
     }
 
     /* Use default protection for unit tests. */
     void setLsnElement(int idx, long value) {
 
-	int offset = idx << 2;
-	/* Will implement this in the future. Note, don't adjust if mutating.*/
-	//maybeAdjustCapacity(offset);
-	if (entryLsnLongArray != null) {
-	    entryLsnLongArray[idx] = value;
-	    return;
-	}
+        int offset = idx << 2;
+        /* Will implement this in the future. Note, don't adjust if mutating.*/
+        //maybeAdjustCapacity(offset);
+        if (entryLsnLongArray != null) {
+            entryLsnLongArray[idx] = value;
+            return;
+        }
 
-	if (value == DbLsn.NULL_LSN) {
-	    setFileNumberOffset(offset, (byte) 0);
-	    setFileOffset(offset, -1);
-	    return;
-	}
+        if (value == DbLsn.NULL_LSN) {
+            setFileNumberOffset(offset, (byte) 0);
+            setFileOffset(offset, -1);
+            return;
+        }
 
-	long thisFileNumber = DbLsn.getFileNumber(value);
+        long thisFileNumber = DbLsn.getFileNumber(value);
 
-	if (baseFileNumber == -1) {
-	    /* First entry. */
-	    baseFileNumber = thisFileNumber;
-	    setFileNumberOffset(offset, (byte) 0);
-	} else {
-	    if (thisFileNumber < baseFileNumber) {
-		if (!adjustFileNumbers(thisFileNumber)) {
-		    mutateToLongArray(idx, value);
-		    return;
-		}
-		baseFileNumber = thisFileNumber;
-	    }
-	    long fileNumberDifference = thisFileNumber - baseFileNumber;
-	    if (fileNumberDifference > Byte.MAX_VALUE) {
-		mutateToLongArray(idx, value);
-		return;
-	    }
-	    setFileNumberOffset
-		(offset, (byte) (thisFileNumber - baseFileNumber));
-	    //assert getFileNumberOffset(offset) >= 0;
-	}
+        if (baseFileNumber == -1) {
+            /* First entry. */
+            baseFileNumber = thisFileNumber;
+            setFileNumberOffset(offset, (byte) 0);
+        } else {
+            if (thisFileNumber < baseFileNumber) {
+                if (!adjustFileNumbers(thisFileNumber)) {
+                    mutateToLongArray(idx, value);
+                    return;
+                }
+                baseFileNumber = thisFileNumber;
+            }
+            long fileNumberDifference = thisFileNumber - baseFileNumber;
+            if (fileNumberDifference > Byte.MAX_VALUE) {
+                mutateToLongArray(idx, value);
+                return;
+            }
+            setFileNumberOffset
+                (offset, (byte) (thisFileNumber - baseFileNumber));
+            //assert getFileNumberOffset(offset) >= 0;
+        }
 
-	int fileOffset = (int) DbLsn.getFileOffset(value);
-	if (fileOffset > MAX_FILE_OFFSET) {
-	    mutateToLongArray(idx, value);
-	    return;
-	}
+        int fileOffset = (int) DbLsn.getFileOffset(value);
+        if (fileOffset > MAX_FILE_OFFSET) {
+            mutateToLongArray(idx, value);
+            return;
+        }
 
-	setFileOffset(offset, fileOffset);
-	//assert getLsn(offset) == value;
+        setFileOffset(offset, fileOffset);
+        //assert getLsn(offset) == value;
     }
 
     private void mutateToLongArray(int idx, long value) {
-	int nElts = entryLsnByteArray.length >> 2;
-	long[] newArr = new long[nElts];
-	for (int i = 0; i < nElts; i++) {
-	    newArr[i] = getLsn(i);
-	}
-	newArr[idx] = value;
-	entryLsnLongArray = newArr;
-	entryLsnByteArray = null;
+        int nElts = entryLsnByteArray.length >> 2;
+        long[] newArr = new long[nElts];
+        for (int i = 0; i < nElts; i++) {
+            newArr[i] = getLsn(i);
+        }
+        newArr[idx] = value;
+        entryLsnLongArray = newArr;
+        entryLsnByteArray = null;
     }
 
     /* Will implement this in the future. Note, don't adjust if mutating.*/
     /***
     private void maybeAdjustCapacity(int offset) {
-	if (entryLsnLongArray == null) {
-	    int bytesNeeded = offset + BYTES_PER_LSN_ENTRY;
-	    int currentBytes = entryLsnByteArray.length;
-	    if (currentBytes < bytesNeeded) {
-		int newBytes = bytesNeeded +
-		    (GROWTH_INCREMENT * BYTES_PER_LSN_ENTRY);
-		byte[] newArr = new byte[newBytes];
-		System.arraycopy(entryLsnByteArray, 0, newArr, 0,
-				 currentBytes);
-		entryLsnByteArray = newArr;
-		for (int i = currentBytes;
-		     i < newBytes;
-		     i += BYTES_PER_LSN_ENTRY) {
-		    setFileNumberOffset(i, (byte) 0);
-		    setFileOffset(i, -1);
-		}
-	    }
-	} else {
-	    int currentEntries = entryLsnLongArray.length;
-	    int idx = offset >> 2;
-	    if (currentEntries < idx + 1) {
-		int newEntries = idx + GROWTH_INCREMENT;
-		long[] newArr = new long[newEntries];
-		System.arraycopy(entryLsnLongArray, 0, newArr, 0,
-				 currentEntries);
-		entryLsnLongArray = newArr;
-		for (int i = currentEntries; i < newEntries; i++) {
-		    entryLsnLongArray[i] = DbLsn.NULL_LSN;
-		}
-	    }
-	}
+        if (entryLsnLongArray == null) {
+            int bytesNeeded = offset + BYTES_PER_LSN_ENTRY;
+            int currentBytes = entryLsnByteArray.length;
+            if (currentBytes < bytesNeeded) {
+                int newBytes = bytesNeeded +
+                    (GROWTH_INCREMENT * BYTES_PER_LSN_ENTRY);
+                byte[] newArr = new byte[newBytes];
+                System.arraycopy(entryLsnByteArray, 0, newArr, 0,
+                                 currentBytes);
+                entryLsnByteArray = newArr;
+                for (int i = currentBytes;
+                     i < newBytes;
+                     i += BYTES_PER_LSN_ENTRY) {
+                    setFileNumberOffset(i, (byte) 0);
+                    setFileOffset(i, -1);
+                }
+            }
+        } else {
+            int currentEntries = entryLsnLongArray.length;
+            int idx = offset >> 2;
+            if (currentEntries < idx + 1) {
+                int newEntries = idx + GROWTH_INCREMENT;
+                long[] newArr = new long[newEntries];
+                System.arraycopy(entryLsnLongArray, 0, newArr, 0,
+                                 currentEntries);
+                entryLsnLongArray = newArr;
+                for (int i = currentEntries; i < newEntries; i++) {
+                    entryLsnLongArray[i] = DbLsn.NULL_LSN;
+                }
+            }
+        }
     }
     ***/
 
     private boolean adjustFileNumbers(long newBaseFileNumber) {
-	long oldBaseFileNumber = baseFileNumber;
-	for (int i = 0;
-	     i < entryLsnByteArray.length;
-	     i += BYTES_PER_LSN_ENTRY) {
-	    if (getFileOffset(i) == -1) {
-		continue;
-	    }
+        long oldBaseFileNumber = baseFileNumber;
+        for (int i = 0;
+             i < entryLsnByteArray.length;
+             i += BYTES_PER_LSN_ENTRY) {
+            if (getFileOffset(i) == -1) {
+                continue;
+            }
 
-	    long curEntryFileNumber =
-		oldBaseFileNumber + getFileNumberOffset(i);
-	    long newCurEntryFileNumberOffset =
-		(curEntryFileNumber - newBaseFileNumber);
-	    if (newCurEntryFileNumberOffset > Byte.MAX_VALUE) {
-		long undoOffset = oldBaseFileNumber - newBaseFileNumber;
-		for (int j = i - BYTES_PER_LSN_ENTRY;
-		     j >= 0;
-		     j -= BYTES_PER_LSN_ENTRY) {
-		    if (getFileOffset(j) == -1) {
-			continue;
-		    }
-		    setFileNumberOffset
-			(j, (byte) (getFileNumberOffset(j) - undoOffset));
-		    //assert getFileNumberOffset(j) >= 0;
-		}
-		return false;
-	    }
-	    setFileNumberOffset(i, (byte) newCurEntryFileNumberOffset);
+            long curEntryFileNumber =
+                oldBaseFileNumber + getFileNumberOffset(i);
+            long newCurEntryFileNumberOffset =
+                (curEntryFileNumber - newBaseFileNumber);
+            if (newCurEntryFileNumberOffset > Byte.MAX_VALUE) {
+                long undoOffset = oldBaseFileNumber - newBaseFileNumber;
+                for (int j = i - BYTES_PER_LSN_ENTRY;
+                     j >= 0;
+                     j -= BYTES_PER_LSN_ENTRY) {
+                    if (getFileOffset(j) == -1) {
+                        continue;
+                    }
+                    setFileNumberOffset
+                        (j, (byte) (getFileNumberOffset(j) - undoOffset));
+                    //assert getFileNumberOffset(j) >= 0;
+                }
+                return false;
+            }
+            setFileNumberOffset(i, (byte) newCurEntryFileNumberOffset);
 
-	    //assert getFileNumberOffset(i) >= 0;
-	}
-	return true;
+            //assert getFileNumberOffset(i) >= 0;
+        }
+        return true;
     }
 
     private void setFileNumberOffset(int offset, byte fileNumberOffset) {
-	entryLsnByteArray[offset] = fileNumberOffset;
+        entryLsnByteArray[offset] = fileNumberOffset;
     }
 
     private byte getFileNumberOffset(int offset) {
-	return entryLsnByteArray[offset];
+        return entryLsnByteArray[offset];
     }
 
     private void setFileOffset(int offset, int fileOffset) {
-	put3ByteInt(offset + 1, fileOffset);
+        put3ByteInt(offset + 1, fileOffset);
     }
 
     private int getFileOffset(int offset) {
-	return get3ByteInt(offset + 1);
+        return get3ByteInt(offset + 1);
     }
 
     private void put3ByteInt(int offset, int value) {
-	entryLsnByteArray[offset++] = (byte) (value >>> 0);
-	entryLsnByteArray[offset++] = (byte) (value >>> 8);
-	entryLsnByteArray[offset]   = (byte) (value >>> 16);
+        entryLsnByteArray[offset++] = (byte) (value >>> 0);
+        entryLsnByteArray[offset++] = (byte) (value >>> 8);
+        entryLsnByteArray[offset]   = (byte) (value >>> 16);
     }
 
     private int get3ByteInt(int offset) {
         int ret = (entryLsnByteArray[offset++] & 0xFF) << 0;
-	ret += (entryLsnByteArray[offset++] & 0xFF) << 8;
-	ret += (entryLsnByteArray[offset]   & 0xFF) << 16;
-	if (ret == THREE_BYTE_NEGATIVE_ONE) {
-	    ret = -1;
-	}
+        ret += (entryLsnByteArray[offset++] & 0xFF) << 8;
+        ret += (entryLsnByteArray[offset]   & 0xFF) << 16;
+        if (ret == THREE_BYTE_NEGATIVE_ONE) {
+            ret = -1;
+        }
 
-	return ret;
+        return ret;
     }
 
     /**
@@ -958,17 +1210,15 @@ public class IN extends Node implements Comparable, Loggable {
                     LogEntry logEntry = env.getLogManager().getLogEntry(lsn);
                     Node node = (Node) logEntry.getMainItem();
                     node.postFetchInit(databaseImpl, lsn);
-		    assert isLatchOwnerForWrite();
-                    entryTargets[idx] = node;
-                    updateMemorySize(null, node);
+                    assert isLatchOwnerForWrite();
                     /* Ensure keys are transactionally correct. [#15704] */
+                    byte[] lnSlotKey = null;
                     if (logEntry instanceof LNLogEntry) {
                         LNLogEntry lnEntry = (LNLogEntry) logEntry;
-                        updateKeyIfChanged
-                            (idx, containsDuplicates() ?
-                                lnEntry.getDupKey() :
-                                lnEntry.getKey());
+                        lnSlotKey = containsDuplicates() ?
+                            lnEntry.getDupKey() : lnEntry.getKey();
                     }
+                    updateNode(idx, node, lnSlotKey);
                 } catch (LogFileNotFoundException LNFE) {
                     if (!isEntryKnownDeleted(idx) &&
                         !isEntryPendingDeleted(idx)) {
@@ -1013,6 +1263,7 @@ public class IN extends Node implements Comparable, Loggable {
         }
         if (in != null) {
             sb.append(" parent IN=").append(in.getNodeId());
+            sb.append(" IN class=").append(in.getClass().getName());
             sb.append(" lastFullVersion=");
             sb.append(DbLsn.getNoFormatString(in.getLastFullVersion()));
             sb.append(" parent.getDirty()=").append(in.getDirty());
@@ -1030,75 +1281,126 @@ public class IN extends Node implements Comparable, Loggable {
      * Set the idx'th entry of this node.
      */
     public void setEntry(int idx,
-			 Node target,
-			 byte[] keyVal,
+                         Node target,
+                         byte[] keyVal,
                          long lsn,
-			 byte state) {
+                         byte state) {
 
-	long oldSize = getEntryInMemorySize(idx);
+	long oldSize = computeLsnOverhead();
 	int newNEntries = idx + 1;
+
         if (newNEntries > nEntries) {
 
 	    /*
 	     * If the new entry is going to bump nEntries, then we don't need
-	     * the size and LSN accounting included in oldSize.
+	     * the entry size accounting included in oldSize.
 	     */
             nEntries = newNEntries;
-	    oldSize = 0;
+        } else {
+	    oldSize += getEntryInMemorySize(idx);
         }
+
 	entryTargets[idx] = target;
-	entryKeyVals[idx] = keyVal;
+        setKeyAndPrefix(idx, keyVal);
+
+	/* setLsnElement can mutate to an array of longs. */
 	setLsnElement(idx, lsn);
 	entryStates[idx] = state;
-	long newSize = getEntryInMemorySize(idx);
+	long newSize = getEntryInMemorySize(idx) + computeLsnOverhead();
 	updateMemorySize(oldSize, newSize);
         setDirty(true);
     }
 
     /**
-     * Update the idx'th entry of this node.
+     * Set the LSN to null for the idx'th entry of this node.  Only allowed for
+     * a temporary database.  Used to wipe an LSN for a file that is being
+     * cleaned and will be deleted.
+     */
+    public void clearLsn(int idx) {
+        assert getDatabase().isTemporary();
+        setLsn(idx, DbLsn.NULL_LSN);
+    }
+
+    /**
+     * Update the idx'th entry of this node. This flavor is used when the
+     * target LN is being modified, by an operation like a delete or update. We
+     * don't have to check whether the LSN has been nulled or not, because we
+     * know an LSN existed before. Also, the modification of the target is done
+     * in the caller, so instead of passing in the old and new nodes, we pass
+     * in the new node and old size.
+     */
+    public void updateNode(int idx,
+                           Node node,
+                           long oldSize,
+                           long lsn,
+                           byte[] lnSlotKey) {
+        long newSize = node.getMemorySizeIncludedByParent();
+
+        boolean suffixesChanged = setLNSlotKey(idx, node, lnSlotKey);
+        if (suffixesChanged) {
+
+            /*
+             * Changes were made to either multiple entries and/or the
+             * prefix so a recomputation of the inMemorySize based on the
+             * entry at index is not sufficient.  Recalculate the memory
+             * usage of the entire IN and adjust the cache accordingly.
+             */
+            long curInMemorySize = inMemorySize;
+            updateMemorySize(curInMemorySize, computeMemorySize());
+        }
+        if (notOverwritingDeferredWriteEntry(lsn)) {
+            setLsn(idx, lsn);
+        }
+        if (!suffixesChanged) {
+            updateMemorySize(oldSize, newSize);
+        }
+        setDirty(true);
+    }
+
+    /**
+     * Update the idx'th entry, replacing the node and, if appropriate, the LN
+     * slot key.  See updateNode(int, Node, long, byte[]) for details.
      *
-     * Note: does not dirty the node.
+     * Note that the LSN is not passed to this method because the node has been
+     * either (a) fetched in from disk and is not dirty, or (b) will be written
+     * out later by something like a checkpoint.
+     *
+     * Note: does not dirty the node unless the LN slot key is changed.
      */
-    public void updateEntry(int idx, Node node) {
-	long oldSize = getEntryInMemorySize(idx);
-	setTarget(idx, node);
-	long newSize = getEntryInMemorySize(idx);
+    public void updateNode(int idx, Node node, byte[] lnSlotKey) {
+        long oldSize = getEntryInMemorySize(idx);
+        setTarget(idx, node);
+        setLNSlotKey(idx, node, lnSlotKey);
+        long newSize = getEntryInMemorySize(idx);
         updateMemorySize(oldSize, newSize);
     }
 
     /**
-     * Update the idx'th entry of this node.
+     * Update the idx'th entry, replacing the node and, if appropriate, the LN
+     * slot key.
+     *
+     * The updateNode methods are special versions of updateEntry that are
+     * called to update the node in a slot.  When an LN node is changed, the
+     * slot key may also need to be updated when a partial key comparator is
+     * used.  Callers must be sure to pass the correct lnSlotKey parameter when
+     * passing an LN for the node parameter.  See setLNSlotKey for details.
+     * [#15704]
      */
-    public void updateEntry(int idx, Node node, long lsn) {
-	long oldSize = getEntryInMemorySize(idx);
+    public void updateNode(int idx, Node node, long lsn, byte[] lnSlotKey) {
+        long oldSize = getEntryInMemorySize(idx);
         if (notOverwritingDeferredWriteEntry(lsn)) {
             setLsn(idx, lsn);
         }
-	setTarget(idx, node);
-	long newSize = getEntryInMemorySize(idx);
+        setTarget(idx, node);
+        setLNSlotKey(idx, node, lnSlotKey);
+        long newSize = getEntryInMemorySize(idx);
         updateMemorySize(oldSize, newSize);
         setDirty(true);
     }
 
     /**
-     * Update the idx'th entry of this node.
-     */
-    public void updateEntry(int idx, Node node, long lsn, byte[] key) {
-	long oldSize = getEntryInMemorySize(idx);
-        if (notOverwritingDeferredWriteEntry(lsn)) {
-            setLsn(idx, lsn);
-        }
-	setTarget(idx, node);
-	setKey(idx, key);
-	long newSize = getEntryInMemorySize(idx);
-        updateMemorySize(oldSize, newSize);
-        setDirty(true);
-    }
-
-    /**
-     * Updates the idx'th key of this node if it is not identical to the given
-     * key. [#15704]
+     * Sets the idx'th key of this node if it is not identical to the given
+     * key, and the node is an LN. [#15704]
      *
      * This method is called when an LN is fetched in order to ensure the key
      * slot is transactionally correct.  A key can change in three
@@ -1106,12 +1408,13 @@ public class IN extends Node implements Comparable, Loggable {
      * all bytes of the key:
      *
      * 1) The user calls Cursor.putCurrent to update the data of a duplicate
-     * data item.  CursorImpl.putCurrent will call this method to update the
-     * key.
+     * data item.  CursorImpl.putCurrent will call this method indirectly to
+     * update the key.
      *
      * 2) A transaction aborts or a BIN becomes out of date due to the
      * non-transactional nature of INs.  The Node is set to null during abort
-     * and recovery.  IN.fetchCurrent will call this method to update the key.
+     * and recovery.  IN.fetchCurrent will call this method indirectly to
+     * update the key.
      *
      * 3) A slot for a deleted LN is reused.  The key in the slot is updated
      * by IN.updateEntry along with the node and LSN.
@@ -1123,25 +1426,67 @@ public class IN extends Node implements Comparable, Loggable {
      * null.  When the LN node is fetched, the key in the slot is set to the
      * LN's key (or data for DBINs), which is the source of truth and is
      * transactionally correct.
+     *
+     * @param node is the node that is being set in the slot.  The newKey is
+     * set only if the node is an LN (and is non-null).
+     *
+     * @param newKey is the key to set in the slot and is either the LN key or
+     * the duplicate data depending on whether this is a BIN or DBIN.  It may
+     * be null if it is known that the key cannot be changed (as in putCurrent
+     * in a BIN).  It must be null if the node is not an LN.
+     *
+     * @return true if the key was changed and the memory size must be updated.
      */
-    public void updateKeyIfChanged(int idx, byte[] newKey) {
+    private boolean setLNSlotKey(int idx, Node node, byte[] newKey) {
+
+        assert newKey == null || node instanceof LN;
 
         /*
-         * The new key may be null if the LN was deleted, in which case there
+         * The new key may be null if a dup LN was deleted, in which case there
          * is no need to update it.  There is no need to compare keys if there
          * is no comparator configured, since a key cannot be changed when the
          * default comparator is used.
          */
         if (newKey != null &&
-            getKeyComparator() != null) {
-            byte[] oldKey = getKey(idx);
-            if (!Arrays.equals(newKey, oldKey)) {
-                setKey(idx, newKey);
-                updateMemorySize(MemoryBudget.byteArraySize(oldKey.length),
-                                 MemoryBudget.byteArraySize(newKey.length));
-                setDirty(true);
-            }
+            getKeyComparator() != null &&
+            !Arrays.equals(newKey, getKey(idx))) {
+            setKeyAndDirty(idx, newKey);
+            setDirty(true);
+            return true;
+        } else {
+            return false;
         }
+    }
+
+    /**
+     * Update the idx'th entry of this node.
+     *
+     * Note that although this method allows updating the node, it always
+     * replaces the key and therefore does not need an lnSlotKey parameter.
+     * See the updateNode methods for more information.  [#15704]
+     */
+    public void updateEntry(int idx, Node node, long lsn, byte[] key) {
+        long oldSize = getEntryInMemorySize(idx);
+        if (notOverwritingDeferredWriteEntry(lsn)) {
+            setLsn(idx, lsn);
+        }
+	setTarget(idx, node);
+        boolean suffixesChanged = setKeyAndDirty(idx, key);
+        if (suffixesChanged) {
+
+            /*
+             * Changes were made to either multiple entries and/or the
+             * prefix so a recomputation of the inMemorySize based on the
+             * entry at index is not sufficient.  Recalculate the memory
+             * usage of the entire IN and adjust the cache accordingly.
+             */
+            long curInMemorySize = inMemorySize;
+            updateMemorySize(curInMemorySize, computeMemorySize());
+        } else {
+            long newSize = getEntryInMemorySize(idx);
+            updateMemorySize(oldSize, newSize);
+        }
+        setDirty(true);
     }
 
     /**
@@ -1161,26 +1506,7 @@ public class IN extends Node implements Comparable, Loggable {
         if (notOverwritingDeferredWriteEntry(lsn)) {
             setLsn(idx, lsn);
         }
-	entryStates[idx] = state;
-        setDirty(true);
-    }
-
-    /**
-     * Update the idx'th entry of this node. This flavor is used when the
-     * target LN is being modified, by an operation like a delete or update. We
-     * don't have to check whether the LSN has been nulled or not, because we
-     * know an LSN existed before. Also, the modification of the target is done
-     * in the caller, so instead of passing in the old and new nodes, we pass
-     * in the old and new node sizes.
-     */
-    public void updateEntry(int idx,
-			    long lsn,
-			    long oldLNSize,
-			    long newLNSize) {
-        updateMemorySize(oldLNSize, newLNSize);
-        if (notOverwritingDeferredWriteEntry(lsn)) {
-            setLsn(idx, lsn);
-        }
+        entryStates[idx] = state;
         setDirty(true);
     }
 
@@ -1189,21 +1515,34 @@ public class IN extends Node implements Comparable, Loggable {
      * key is less than the existing key.
      */
     private void updateEntryCompareKey(int idx,
-				       Node node,
-				       long lsn,
-				       byte[] key) {
-	long oldSize = getEntryInMemorySize(idx);
+                                       Node node,
+                                       long lsn,
+                                       byte[] key) {
+        long oldSize = getEntryInMemorySize(idx);
         if (notOverwritingDeferredWriteEntry(lsn)) {
             setLsn(idx, lsn);
         }
 	setTarget(idx, node);
 	byte[] existingKey = getKey(idx);
 	int s = Key.compareKeys(key, existingKey, getKeyComparator());
+        boolean suffixesChanged = false;
 	if (s < 0) {
-	    setKey(idx, key);
+	    suffixesChanged = setKeyAndDirty(idx, key);
 	}
-	long newSize = getEntryInMemorySize(idx);
-        updateMemorySize(oldSize, newSize);
+        if (suffixesChanged) {
+
+            /*
+             * Changes were made to either multiple entries and/or the
+             * prefix so a recomputation of the inMemorySize based on the
+             * entry at index is not sufficient.  Recalculate the memory
+             * usage of the entire IN and adjust the cache accordingly.
+             */
+            long curInMemorySize = inMemorySize;
+            updateMemorySize(curInMemorySize, computeMemorySize());
+        } else {
+            long newSize = getEntryInMemorySize(idx);
+            updateMemorySize(oldSize, newSize);
+        }
         setDirty(true);
     }
 
@@ -1215,7 +1554,7 @@ public class IN extends Node implements Comparable, Loggable {
      * we lose the handle to the last on disk version.
      */
     boolean notOverwritingDeferredWriteEntry(long newLsn) {
-        if (databaseImpl.isDeferredWrite() &&
+        if (databaseImpl.isDeferredWriteMode() &&
             (newLsn == DbLsn.NULL_LSN)) {
             return false;
         } else
@@ -1247,16 +1586,30 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     /**
-     * Return the number of bytes used by this IN.  Latching is up to the
-     * caller.
+     * Returns the amount of memory currently budgeted for this IN.
+     */
+    public long getBudgetedMemorySize() {
+        return inMemorySize - accumulatedDelta;
+    }
+    
+    /**
+     * Returns the treeAdmin memory in objects referenced by this IN.
+     * Specifically, this refers to the DbFileSummaryMap held by
+     * MapLNs
+     */
+    public long getTreeAdminMemorySize() {
+        return 0;  // by default, no treeAdminMemory
+    }
+
+    /**
+     * For unit tests.
      */
     public long getInMemorySize() {
         return inMemorySize;
     }
 
     private long getEntryInMemorySize(int idx) {
-	return getEntryInMemorySize(entryKeyVals[idx],
-                                    entryTargets[idx]);
+	return getEntryInMemorySize(entryKeyVals[idx], entryTargets[idx]);
     }
 
     protected long getEntryInMemorySize(byte[] key, Node target) {
@@ -1265,38 +1618,38 @@ public class IN extends Node implements Comparable, Loggable {
          * Do not count state size here, since it is counted as overhead
          * during initialization.
          */
-	long ret = 0;
-	if (key != null) {
+        long ret = 0;
+        if (key != null) {
             ret += MemoryBudget.byteArraySize(key.length);
-	}
-	if (target != null) {
-	    ret += target.getMemorySizeIncludedByParent();
-	}
-	return ret;
+        }
+        if (target != null) {
+            ret += target.getMemorySizeIncludedByParent();
+        }
+        return ret;
     }
 
     /**
      * Count up the memory usage attributable to this node alone. LNs children
      * are counted by their BIN/DIN parents, but INs are not counted by their
-     * parents because they are resident on the IN list.
+     * parents because they are resident on the IN list.  The identifierKey is
+     * "intentionally" not kept track of in the memory budget.  
      */
     protected long computeMemorySize() {
         MemoryBudget mb = databaseImpl.getDbEnvironment().getMemoryBudget();
         long calcMemorySize = getMemoryOverhead(mb);
-	calcMemorySize += computeLsnOverhead();
+
+        calcMemorySize += computeLsnOverhead();
         for (int i = 0; i < nEntries; i++) {
             calcMemorySize += getEntryInMemorySize(i);
         }
-        /* XXX Need to update size when changing the identifierKey.
-           if (identifierKey != null) {
-           calcMemorySize +=
-           MemoryBudget.byteArraySize(identifierKey.length);
-           }
-        */
+
+	if (keyPrefix != null) {
+            calcMemorySize += MemoryBudget.byteArraySize(keyPrefix.length);
+	}
 
         if (provisionalObsolete != null) {
             calcMemorySize += provisionalObsolete.size() *
-                              MemoryBudget.LONG_LIST_PER_ITEM_OVERHEAD;
+                MemoryBudget.LONG_LIST_PER_ITEM_OVERHEAD;
         }
 
         return calcMemorySize;
@@ -1307,21 +1660,21 @@ public class IN extends Node implements Comparable, Loggable {
         throws DatabaseException {
 
         /*
-	 * Overhead consists of all the fields in this class plus the
-	 * entry arrays in the IN class.
+         * Overhead consists of all the fields in this class plus the
+         * entry arrays in the IN class.
          */
         return MemoryBudget.IN_FIXED_OVERHEAD +
             IN.computeArraysOverhead(configManager);
     }
 
     private int computeLsnOverhead() {
-	if (entryLsnLongArray == null) {
-	    return MemoryBudget.byteArraySize(entryLsnByteArray.length);
-	} else {
-	    return MemoryBudget.ARRAY_OVERHEAD +
-		(entryLsnLongArray.length *
+        if (entryLsnLongArray == null) {
+            return MemoryBudget.byteArraySize(entryLsnByteArray.length);
+        } else {
+            return MemoryBudget.ARRAY_OVERHEAD +
+                (entryLsnLongArray.length *
                  MemoryBudget.PRIMITIVE_LONG_ARRAY_ITEM_OVERHEAD);
-	}
+        }
     }
 
     protected static long computeArraysOverhead(DbConfigManager configManager)
@@ -1332,7 +1685,7 @@ public class IN extends Node implements Comparable, Loggable {
         return
             MemoryBudget.byteArraySize(capacity) + // state array
             (capacity *
-	     (2 * MemoryBudget.OBJECT_ARRAY_ITEM_OVERHEAD)); // keys + nodes
+             (2 * MemoryBudget.OBJECT_ARRAY_ITEM_OVERHEAD)); // keys + nodes
     }
 
     /* Overridden by subclasses. */
@@ -1341,7 +1694,7 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     protected void updateMemorySize(ChildReference oldRef,
-				    ChildReference newRef) {
+                                    ChildReference newRef) {
         long delta = 0;
         if (newRef != null) {
             delta = getEntryInMemorySize(newRef.getKey(), newRef.getTarget());
@@ -1380,24 +1733,30 @@ public class IN extends Node implements Comparable, Loggable {
          * environment wide cache then, we'd end up double counting.
          */
         if (inListResident) {
-            MemoryBudget mb =
-                databaseImpl.getDbEnvironment().getMemoryBudget();
+            EnvironmentImpl env = databaseImpl.getDbEnvironment();
 
-	    accumulatedDelta += delta;
-	    if (accumulatedDelta > ACCUMULATED_LIMIT ||
-		accumulatedDelta < -ACCUMULATED_LIMIT) {
-		mb.updateTreeMemoryUsage(accumulatedDelta);
-		accumulatedDelta = 0;
-	    }
+            accumulatedDelta += delta;
+            if (accumulatedDelta > ACCUMULATED_LIMIT ||
+                accumulatedDelta < -ACCUMULATED_LIMIT) {
+                env.getInMemoryINs().memRecalcUpdate(this, accumulatedDelta);
+                env.getMemoryBudget().updateTreeMemoryUsage(accumulatedDelta);
+                accumulatedDelta = 0;
+            }
         }
     }
 
-    public int getAccumulatedDelta() {
-	return accumulatedDelta;
-    }
-
+    /**
+     * Called when adding/removing this IN to/from the INList.
+     */
     public void setInListResident(boolean resident) {
         inListResident = resident;
+    }
+
+    /**
+     * Returns whether this IN is on the INList.
+     */
+    public boolean getInListResident() {
+        return inListResident;
     }
 
     /**
@@ -1414,19 +1773,19 @@ public class IN extends Node implements Comparable, Loggable {
             return false;
         }
 
-        Comparator userCompareToFcn = getKeyComparator();
+        Comparator<byte[]> userCompareToFcn = getKeyComparator();
         int cmp;
         byte[] myKey;
 
         /* Compare key given to my first key. */
-        myKey = entryKeyVals[0];
+        myKey = getKey(0);
         cmp = Key.compareKeys(keyVal, myKey, userCompareToFcn);
         if (cmp < 0) {
             return false;
         }
 
         /* Compare key given to my last key. */
-        myKey = entryKeyVals[nEntries - 1];
+        myKey = getKey(nEntries - 1);
         cmp = Key.compareKeys(keyVal, myKey, userCompareToFcn);
         if (cmp > 0) {
             return false;
@@ -1462,7 +1821,7 @@ public class IN extends Node implements Comparable, Loggable {
         int low = 0;
         int middle = 0;
 
-        Comparator userCompareToFcn = getKeyComparator();
+        Comparator<byte[]> userCompareToFcn = getKeyComparator();
 
         /*
          * IN's are special in that they have a entry[0] where the key is a
@@ -1483,7 +1842,7 @@ public class IN extends Node implements Comparable, Loggable {
             if (middle == 0 && entryZeroSpecialCompare) {
                 s = 1;
             } else {
-                middleKey = entryKeyVals[middle];
+                middleKey = getKey(middle);
                 s = Key.compareKeys(key, middleKey, userCompareToFcn);
             }
             if (s < 0) {
@@ -1507,9 +1866,9 @@ public class IN extends Node implements Comparable, Loggable {
         }
 
         /*
-	 * No match found.  Either return -1 if caller wanted exact matches
-	 * only, or return entry for which arg key is > entry key.
-	 */
+         * No match found.  Either return -1 if caller wanted exact matches
+         * only, or return entry for which arg key is > entry key.
+         */
         if (exact) {
             return -1;
         } else {
@@ -1601,14 +1960,28 @@ public class IN extends Node implements Comparable, Loggable {
 		shiftEntriesRight(index);
 		changeMemorySize(computeLsnOverhead() - oldSize);
 	    }
+            int oldSize = computeLsnOverhead();
 	    entryTargets[index] = entry.getTarget();
-	    entryKeyVals[index] = entry.getKey();
+            /* setLsnElement can mutate to an array of longs. */
 	    setLsnElement(index, entry.getLsn());
 	    entryStates[index] = entry.getState();
 	    nEntries++;
+            boolean suffixesChanged = setKeyAndPrefix(index, key);
 	    adjustCursorsForInsert(index);
-	    updateMemorySize(0, getEntryInMemorySize(index));
+	    updateMemorySize(oldSize, getEntryInMemorySize(index) +
+                                      computeLsnOverhead());
 	    setDirty(true);
+            if (suffixesChanged) {
+
+                /*
+                 * Changes were made to either multiple entries and/or the
+                 * prefix so a recomputation of the inMemorySize based on the
+                 * entry at index is not sufficient.  Recalculate the memory
+                 * usage of the entire IN and adjust the cache accordingly.
+                 */
+                long curInMemorySize = inMemorySize;
+                updateMemorySize(curInMemorySize, computeMemorySize());
+            }
 	    return (index | INSERT_SUCCESS);
 	} else {
 	    throw new InconsistentNodeException
@@ -1660,37 +2033,37 @@ public class IN extends Node implements Comparable, Loggable {
     public boolean deleteEntry(int index, boolean maybeValidate)
         throws DatabaseException {
 
-	if (nEntries == 0) {
-	    return false;
-	}
+        if (nEntries == 0) {
+            return false;
+        }
 
         /* Check the subtree validation only if maybeValidate is true. */
         assert maybeValidate ?
             validateSubtreeBeforeDelete(index) :
             true;
 
-	if (index < nEntries) {
-	    updateMemorySize(getEntryInMemorySize(index), 0);
-	    int oldLSNArraySize = computeLsnOverhead();
-	    /* LSNArray.setElement can mutate to an array of longs. */
-	    for (int i = index; i < nEntries - 1; i++) {
-		setEntryInternal(i + 1, i);
-	    }
-	    clearEntry(nEntries - 1);
-	    updateMemorySize(oldLSNArraySize, computeLsnOverhead());
-	    nEntries--;
-	    setDirty(true);
-	    setProhibitNextDelta();
+        if (index < nEntries) {
+            updateMemorySize(getEntryInMemorySize(index), 0);
+            int oldLSNArraySize = computeLsnOverhead();
+            /* LSNArray.setElement can mutate to an array of longs. */
+            for (int i = index; i < nEntries - 1; i++) {
+                setEntryInternal(i + 1, i);
+            }
+            clearEntry(nEntries - 1);
+            updateMemorySize(oldLSNArraySize, computeLsnOverhead());
+            nEntries--;
+            setDirty(true);
+            setProhibitNextDelta();
 
-	    /*
-	     * Note that we don't have to adjust cursors for delete, since
-	     * there should be nothing pointing at this record.
-	     */
-	    traceDelete(Level.FINEST, index);
-	    return true;
-	} else {
-	    return false;
-	}
+            /*
+             * Note that we don't have to adjust cursors for delete, since
+             * there should be nothing pointing at this record.
+             */
+            traceDelete(Level.FINEST, index);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -1702,10 +2075,10 @@ public class IN extends Node implements Comparable, Loggable {
     /* Called by the incompressor. */
     public boolean compress(BINReference binRef,
                             boolean canFetch,
-                            UtilizationTracker tracker)
+                            LocalUtilizationTracker localTracker)
         throws DatabaseException {
 
-	return false;
+        return false;
     }
 
     public boolean isCompressible() {
@@ -1728,16 +2101,16 @@ public class IN extends Node implements Comparable, Loggable {
     boolean validateSubtreeBeforeDelete(int index)
         throws DatabaseException {
 
-	if (index >= nEntries) {
+        if (index >= nEntries) {
 
-	    /*
-	     * There's no entry here, so of course this entry is deletable.
-	     */
-	    return true;
-	} else {
-	    Node child = fetchTarget(index);
-	    return child != null && child.isValidForDelete();
-	}
+            /*
+             * There's no entry here, so of course this entry is deletable.
+             */
+            return true;
+        } else {
+            Node child = fetchTarget(index);
+            return child != null && child.isValidForDelete();
+        }
     }
 
     /**
@@ -1768,16 +2141,17 @@ public class IN extends Node implements Comparable, Loggable {
      * childIndex is the index in parent of where "this" can be found.
      * @return lsn of the newly logged parent
      */
-    void split(IN parent, int childIndex, int maxEntries)
+    void split(IN parent, int childIndex, int maxEntries, CacheMode cacheMode)
         throws DatabaseException {
 
-        splitInternal(parent, childIndex, maxEntries, -1);
+        splitInternal(parent, childIndex, maxEntries, -1, cacheMode);
     }
 
     protected void splitInternal(IN parent,
 				 int childIndex,
 				 int maxEntries,
-				 int splitIndex)
+				 int splitIndex,
+                                 CacheMode cacheMode)
         throws DatabaseException {
 
         /*
@@ -1789,9 +2163,9 @@ public class IN extends Node implements Comparable, Loggable {
         }
         int idKeyIndex = findEntry(identifierKey, false, false);
 
-	if (splitIndex < 0) {
-	    splitIndex = nEntries / 2;
-	}
+        if (splitIndex < 0) {
+            splitIndex = nEntries / 2;
+        }
 
         int low, high;
         IN newSibling = null;
@@ -1807,26 +2181,25 @@ public class IN extends Node implements Comparable, Loggable {
         } else {
 
             /*
-	     * Current node (this) keeps right half entries.  Left half entries
-	     * and entry[0] will go in the new node.
-	     */
+             * Current node (this) keeps right half entries.  Left half entries
+             * and entry[0] will go in the new node.
+             */
             low = 0;
             high = splitIndex;
         }
 
-        byte[] newIdKey = entryKeyVals[low];
+        byte[] newIdKey = getKey(low);
 	long parentLsn = DbLsn.NULL_LSN;
 
         newSibling = createNewInstance(newIdKey, maxEntries, level);
-        newSibling.latch();
+        newSibling.latch(cacheMode);
         long oldMemorySize = inMemorySize;
-	try {
-
+        try {
 	    int toIdx = 0;
 	    boolean deletedEntrySeen = false;
 	    BINReference binRef = null;
 	    for (int i = low; i < high; i++) {
-		byte[] thisKey = entryKeyVals[i];
+                byte[] thisKey = getKey(i);
 		if (isEntryPendingDeleted(i)) {
 		    if (!deletedEntrySeen) {
 			deletedEntrySeen = true;
@@ -1841,76 +2214,78 @@ public class IN extends Node implements Comparable, Loggable {
 				    getLsn(i),
 				    entryStates[i]);
                 clearEntry(i);
-	    }
+            }
 
-	    if (deletedEntrySeen) {
-		databaseImpl.getDbEnvironment().
-		    addToCompressorQueue(binRef, false);
-	    }
+            if (deletedEntrySeen) {
+                databaseImpl.getDbEnvironment().
+                    addToCompressorQueue(binRef, false);
+            }
 
-	    int newSiblingNEntries = (high - low);
+            int newSiblingNEntries = (high - low);
 
-	    /*
-	     * Remove the entries that we just copied into newSibling from this
-	     * node.
-	     */
-	    if (low == 0) {
-		shiftEntriesLeft(newSiblingNEntries);
-	    }
+            /*
+             * Remove the entries that we just copied into newSibling from this
+             * node.
+             */
+            if (low == 0) {
+                shiftEntriesLeft(newSiblingNEntries);
+            }
 
-	    newSibling.nEntries = toIdx;
-	    nEntries -= newSiblingNEntries;
-	    setDirty(true);
+            newSibling.nEntries = toIdx;
+            nEntries -= newSiblingNEntries;
+            setDirty(true);
 
-	    adjustCursors(newSibling, low, high);
+            adjustCursors(newSibling, low, high);
 
-	    /*
-	     * Parent refers to child through an element of the entries array.
-	     * Depending on which half of the BIN we copied keys from, we
-	     * either have to adjust one pointer and add a new one, or we have
-	     * to just add a new pointer to the new sibling.
-	     *
-	     * Note that we must use the provisional form of logging because
-	     * all three log entries must be read atomically. The parent must
-	     * get logged last, as all referred-to children must preceed
-	     * it. Provisional entries guarantee that all three are processed
-	     * as a unit. Recovery skips provisional entries, so the changed
-	     * children are only used if the parent makes it out to the log.
-	     */
-	    EnvironmentImpl env = databaseImpl.getDbEnvironment();
-	    LogManager logManager = env.getLogManager();
-	    INList inMemoryINs = env.getInMemoryINs();
+            /*
+             * Parent refers to child through an element of the entries array.
+             * Depending on which half of the BIN we copied keys from, we
+             * either have to adjust one pointer and add a new one, or we have
+             * to just add a new pointer to the new sibling.
+             *
+             * Note that we must use the provisional form of logging because
+             * all three log entries must be read atomically. The parent must
+             * get logged last, as all referred-to children must preceed
+             * it. Provisional entries guarantee that all three are processed
+             * as a unit. Recovery skips provisional entries, so the changed
+             * children are only used if the parent makes it out to the log.
+             */
+            EnvironmentImpl env = databaseImpl.getDbEnvironment();
+            LogManager logManager = env.getLogManager();
+            INList inMemoryINs = env.getInMemoryINs();
 
-	    long newSiblingLsn =
+            long newSiblingLsn =
                 newSibling.optionalLogProvisional(logManager, parent);
 
-	    long myNewLsn = optionalLogProvisional(logManager, parent);
+            long myNewLsn = optionalLogProvisional(logManager, parent);
 
-	    /*
-	     * When we update the parent entry, we use updateEntryCompareKey so
-	     * that we don't replace the parent's key that points at 'this'
-	     * with a key that is > than the existing one.  Replacing the
-	     * parent's key with something > would effectively render a piece
-	     * of the subtree inaccessible.  So only replace the parent key
-	     * with something <= the existing one.  See tree/SplitTest.java for
-	     * more details on the scenario.
-	     */
-	    if (low == 0) {
+            /*
+             * When we update the parent entry, we use updateEntryCompareKey so
+             * that we don't replace the parent's key that points at 'this'
+             * with a key that is > than the existing one.  Replacing the
+             * parent's key with something > would effectively render a piece
+             * of the subtree inaccessible.  So only replace the parent key
+             * with something <= the existing one.  See tree/SplitTest.java for
+             * more details on the scenario.
+             */
+            if (low == 0) {
 
-		/*
-		 * Change the original entry to point to the new child and add
-		 * an entry to point to the newly logged version of this
-		 * existing child.
-		 */
+                /*
+                 * Change the original entry to point to the new child and add
+                 * an entry to point to the newly logged version of this
+                 * existing child.
+                 */
                 if (childIndex == 0) {
                     parent.updateEntryCompareKey(childIndex, newSibling,
                                                  newSiblingLsn, newIdKey);
                 } else {
-                    parent.updateEntry(childIndex, newSibling, newSiblingLsn);
+                    parent.updateNode(childIndex, newSibling, newSiblingLsn,
+                                      null /*lnSlotKey*/);
                 }
 
+                byte[] ourKey = getKey(0);
 		boolean insertOk = parent.insertEntry
-		    (new ChildReference(this, entryKeyVals[0], myNewLsn));
+		    (new ChildReference(this, ourKey, myNewLsn));
 		assert insertOk;
 	    } else {
 
@@ -1921,26 +2296,41 @@ public class IN extends Node implements Comparable, Loggable {
 		if (childIndex == 0) {
 
 		    /*
-		     * This's idkey may be < the parent's entry 0 so we need to
+		     * this's idkey may be < the parent's entry 0 so we need to
 		     * update parent's entry 0 with the key for 'this'.
 		     */
 		    parent.updateEntryCompareKey
-			(childIndex, this, myNewLsn, entryKeyVals[0]);
+			(childIndex, this, myNewLsn, getKey(0));
 		} else {
-		    parent.updateEntry(childIndex, this, myNewLsn);
-		}
-		boolean insertOk = parent.insertEntry
-		    (new ChildReference(newSibling, newIdKey, newSiblingLsn));
-		assert insertOk;
-	    }
+		    parent.updateNode(childIndex, this, myNewLsn,
+                                      null /*lnSlotKey*/);
+                }
+                boolean insertOk = parent.insertEntry
+                    (new ChildReference(newSibling, newIdKey, newSiblingLsn));
+                assert insertOk;
+            }
+
+            /*
+             * If this node has no key prefix, calculate it now that it has
+             * been split.
+             */
+            byte[] newKeyPrefix = computeKeyPrefix(-1);
+            recalcSuffixes(newKeyPrefix, null, -1);
+
+            /* Only recalc if there are multiple entries in newSibling. */
+            if (newSibling.getNEntries() > 1) {
+                byte[] newSiblingPrefix = newSibling.getKeyPrefix();
+                newSiblingPrefix = newSibling.computeKeyPrefix(-1);
+                newSibling.recalcSuffixes(newSiblingPrefix, null, -1);
+                newSibling.initMemorySize();
+            }
 
 	    parentLsn = parent.optionalLog(logManager);
 
             /*
-             * Maintain dirtiness if this is the root, so this parent
-             * will be checkpointed. Other parents who are not roots
-             * are logged as part of the propagation of splits
-             * upwards.
+             * Maintain dirtiness if this is the root, so this parent will be
+             * checkpointed. Other parents who are not roots are logged as part
+             * of the propagation of splits upwards.
              */
             if (parent.isRoot()) {
                 parent.setDirty(true);
@@ -1952,15 +2342,15 @@ public class IN extends Node implements Comparable, Loggable {
              */
             long newSize = computeMemorySize();
             updateMemorySize(oldMemorySize, newSize);
-	    inMemoryINs.add(newSibling);
+            inMemoryINs.add(newSibling);
 
-	    /* Debug log this information. */
-	    traceSplit(Level.FINE, parent,
-		       newSibling, parentLsn, myNewLsn,
-		       newSiblingLsn, splitIndex, idKeyIndex, childIndex);
-	} finally {
-	    newSibling.releaseLatch();
-	}
+            /* Debug log this information. */
+            traceSplit(Level.FINE, parent,
+                       newSibling, parentLsn, myNewLsn,
+                       newSiblingLsn, splitIndex, idKeyIndex, childIndex);
+        } finally {
+            newSibling.releaseLatch();
+        }
     }
 
     /**
@@ -1973,19 +2363,21 @@ public class IN extends Node implements Comparable, Loggable {
 		      int parentIndex,
 		      int maxEntriesPerNode,
 		      byte[] key,
-		      boolean leftSide)
+		      boolean leftSide,
+                      CacheMode cacheMode)
 	throws DatabaseException {
 
 	int index = findEntry(key, false, false);
 	if (leftSide &&
 	    index == 0) {
-	    splitInternal(parent, parentIndex, maxEntriesPerNode, 1);
+	    splitInternal(parent, parentIndex, maxEntriesPerNode,
+                          1, cacheMode);
 	} else if (!leftSide &&
 		   index == (nEntries - 1)) {
-	    splitInternal(parent, parentIndex, maxEntriesPerNode,
-			  nEntries - 1);
+	    splitInternal(parent, parentIndex,
+                          maxEntriesPerNode, nEntries - 1, cacheMode);
 	} else {
-            split(parent, parentIndex, maxEntriesPerNode);
+            split(parent, parentIndex, maxEntriesPerNode, cacheMode);
 	}
     }
 
@@ -2003,7 +2395,7 @@ public class IN extends Node implements Comparable, Loggable {
      * Return the relevant user defined comparison function for this type of
      * node.  For IN's and BIN's, this is the BTree Comparison function.
      */
-    public Comparator getKeyComparator() {
+    public Comparator<byte[]> getKeyComparator() {
         return databaseImpl.getBtreeComparator();
     }
 
@@ -2015,7 +2407,7 @@ public class IN extends Node implements Comparable, Loggable {
      */
     private void shiftEntriesRight(int index) {
         for (int i = nEntries; i > index; i--) {
-	    setEntryInternal(i - 1, i);
+            setEntryInternal(i - 1, i);
         }
         clearEntry(index);
         setDirty(true);
@@ -2032,10 +2424,10 @@ public class IN extends Node implements Comparable, Loggable {
      */
     private void shiftEntriesLeft(int byHowMuch) {
         for (int i = 0; i < nEntries - byHowMuch; i++) {
-	    setEntryInternal(i + byHowMuch, i);
+            setEntryInternal(i + byHowMuch, i);
         }
         for (int i = nEntries - byHowMuch; i < nEntries; i++) {
-	    clearEntry(i);
+            clearEntry(i);
         }
         setDirty(true);
     }
@@ -2049,50 +2441,51 @@ public class IN extends Node implements Comparable, Loggable {
     public void verify(byte[] maxKey)
         throws DatabaseException {
 
-	/********* never code, but may be used for the basis of a verify()
-		   method in the future.
-	try {
-	    Comparator userCompareToFcn =
-		(databaseImpl == null ? null : getKeyComparator());
+        /********* never used, but may be used for the basis of a verify()
+                   method in the future.
+        try {
+            Comparator<byte[]> userCompareToFcn =
+                (databaseImpl == null ? null : getKeyComparator());
 
-	    byte[] key1 = null;
-	    for (int i = 1; i < nEntries; i++) {
-		key1 = entryKeyVals[i];
-		byte[] key2 = entryKeyVals[i - 1];
+            byte[] key1 = null;
+            for (int i = 1; i < nEntries; i++) {
+                key1 = entryKeyVals[i];
+                byte[] key2 = entryKeyVals[i - 1];
 
-		int s = Key.compareKeys(key1, key2, userCompareToFcn);
-		if (s <= 0) {
-		    throw new InconsistentNodeException
-			("IN " + getNodeId() + " key " + (i-1) +
-			 " (" + Key.dumpString(key2, 0) +
-			 ") and " +
-			 i + " (" + Key.dumpString(key1, 0) +
-			 ") are out of order");
-		}
-	    }
+                int s = Key.compareKeys(key1, key2, userCompareToFcn);
+                if (s <= 0) {
+                    throw new InconsistentNodeException
+                        ("IN " + getNodeId() + " key " + (i-1) +
+                         " (" + Key.dumpString(key2, 0) +
+                         ") and " +
+                         i + " (" + Key.dumpString(key1, 0) +
+                         ") are out of order");
+                }
+            }
 
-	    boolean inconsistent = false;
-	    if (maxKey != null && key1 != null) {
+            boolean inconsistent = false;
+            if (maxKey != null && key1 != null) {
                 if (Key.compareKeys(key1, maxKey, userCompareToFcn) >= 0) {
                     inconsistent = true;
                 }
-	    }
+            }
 
-	    if (inconsistent) {
-		throw new InconsistentNodeException
-		    ("IN " + getNodeId() +
-		     " has entry larger than next entry in parent.");
-	    }
-	} catch (DatabaseException DE) {
-	    DE.printStackTrace(System.out);
-	}
-	*****************/
+            if (inconsistent) {
+                throw new InconsistentNodeException
+                    ("IN " + getNodeId() +
+                     " has entry larger than next entry in parent.");
+            }
+        } catch (DatabaseException DE) {
+            DE.printStackTrace(System.out);
+        }
+        *****************/
     }
 
     /**
      * Add self and children to this in-memory IN list. Called by recovery, can
      * run with no latching.
      */
+    @Override
     void rebuildINList(INList inList)
         throws DatabaseException {
 
@@ -2121,7 +2514,7 @@ public class IN extends Node implements Comparable, Loggable {
      * obsolete.
      */
     void accountForSubtreeRemoval(INList inList,
-                                  UtilizationTracker tracker)
+                                  LocalUtilizationTracker localTracker)
         throws DatabaseException {
 
         if (nEntries > 1) {
@@ -2131,11 +2524,12 @@ public class IN extends Node implements Comparable, Loggable {
         }
 
         /* Remove self. */
-        inList.removeLatchAlreadyHeld(this);
+        inList.remove(this);
 
         /* Count as obsolete. */
         if (lastFullVersion != DbLsn.NULL_LSN) {
-            tracker.countObsoleteNode(lastFullVersion, getLogType(), 0);
+            localTracker.countObsoleteNode
+                (lastFullVersion, getLogType(), 0, databaseImpl);
         }
 
         /*
@@ -2145,8 +2539,7 @@ public class IN extends Node implements Comparable, Loggable {
         for (int i = 0; i < nEntries; i++) {
             Node n = fetchTarget(i);
             if (n != null) {
-                n.accountForSubtreeRemoval
-                    (inList, tracker);
+                n.accountForSubtreeRemoval(inList, localTracker);
             }
         }
     }
@@ -2171,7 +2564,7 @@ public class IN extends Node implements Comparable, Loggable {
 	    if (child == null) {
 		return false;
 	    }
-	    child.latchShared();
+	    child.latchShared(CacheMode.UNCHANGED);
 	    boolean ret = child.isValidForDelete();
 	    child.releaseLatch();
 	    return ret;
@@ -2181,31 +2574,34 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     /**
-     * See if you are the parent of this child. If not, find a child of your's
-     * that may be the parent, and return it. If there are no possiblities,
-     * return null. Note that the keys of the target are passed in so we don't
-     * have to latch the target to look at them. Also, this node is latched
-     * upon entry.
+     * Determine if 'this' is the parent of a child (targetNodeId).  If not,
+     * find a child of 'this' that may be the parent and return it.  If there
+     * are no possibilities, then return null.  Note that the keys of the
+     * target are passed in as args to we don't have to latch the target to
+     * look at them.  Also, 'this' is latched upon entry.
      *
      * @param doFetch If true, fetch the child in the pursuit of this search.
      * If false, give up if the child is not resident. In that case, we have
      * a potential ancestor, but are not sure if this is the parent.
+     *
+     * On return, if result.parent is non-null, then the IN that it refers to
+     * will be latched.  If an exception is thrown, then "this" is latched.
      */
     void findParent(Tree.SearchType searchType,
                     long targetNodeId,
-		    boolean targetContainsDuplicates,
+                    boolean targetContainsDuplicates,
                     boolean targetIsRoot,
                     byte[] targetMainTreeKey,
                     byte[] targetDupTreeKey,
                     SearchResult result,
                     boolean requireExactMatch,
-                    boolean updateGeneration,
+                    CacheMode cacheMode,
                     int targetLevel,
-                    List trackingList,
+                    List<TrackingInfo> trackingList,
                     boolean doFetch)
         throws DatabaseException {
 
-        assert isLatchOwnerForWrite();
+        assert doFetch ? isLatchOwnerForWrite() : isLatchOwnerForRead();
 
         /* We are this node -- there's no parent in this subtree. */
         if (getNodeId() == targetNodeId) {
@@ -2320,7 +2716,7 @@ public class IN extends Node implements Comparable, Loggable {
              * Note that if the child node needs latching, it's done in
              * isSoughtNode.
              */
-            if (child.isSoughtNode(targetNodeId, updateGeneration)) {
+            if (child.isSoughtNode(targetNodeId, cacheMode)) {
                 /* We found the child, so this is the parent. */
                 result.exactParentFound = true;
                 result.parent = this;
@@ -2341,7 +2737,7 @@ public class IN extends Node implements Comparable, Loggable {
                                       child,
                                       requireExactMatch);
 
-                /* If we're tracking, save the lsn and node id */
+                /* If we're tracking, save the LSN and node id */
                 if (trackingList != null) {
                     if ((result.parent != this) && (result.parent != null)) {
                         trackingList.add(new TrackingInfo(childLsn,
@@ -2395,10 +2791,10 @@ public class IN extends Node implements Comparable, Loggable {
      * @return true if this IN is the child of the search chain. Note that
      * if this returns false, the child remains latched.
      */
-    protected boolean isSoughtNode(long nid, boolean updateGeneration)
+    protected boolean isSoughtNode(long nid, CacheMode cacheMode)
         throws DatabaseException {
 
-        latch(updateGeneration);
+        latch(cacheMode);
         if (getNodeId() == nid) {
             releaseLatch();
             return true;
@@ -2415,12 +2811,16 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     /**
-     * Returns whether this node can be evicted.  This is faster than
+     * Returns whether this node can be evicted.  This is slower than
      * (getEvictionType() == MAY_EVICT_NODE) because it does a more static,
      * stringent check and is used by the evictor after a node has been
-     * selected, to check that it is still evictable. The more complex
-     * evaluation done by getEvictionType() is used when initially selecting
-     * a node for inclusion in the eviction set.
+     * selected, to check that it is still evictable. The more specific
+     * evaluation done by getEvictionType() is used when initially selecting a
+     * node for inclusion in the eviction set.
+     *
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
     public boolean isEvictable() {
 
@@ -2439,9 +2839,9 @@ public class IN extends Node implements Comparable, Loggable {
         }
 
         for (int i = 0; i < getNEntries(); i++) {
-	    /* Target and LSN can be null in DW. Not evictable in that case. */
+            /* Target and LSN can be null in DW. Not evictable in that case. */
             if (getLsn(i) == DbLsn.NULL_LSN &&
-		getTarget(i) == null) {
+                getTarget(i) == null) {
                 return false;
             }
         }
@@ -2457,6 +2857,10 @@ public class IN extends Node implements Comparable, Loggable {
      * This differs from isEvictable() because it does more detailed evaluation
      * about the degree of evictability. It's used generally when selecting
      * candidates for eviction.
+     *
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      *
      * @return MAY_EVICT_LNS if evictable LNs may be stripped; otherwise,
      * MAY_EVICT_NODE if the node itself may be evicted; otherwise,
@@ -2474,20 +2878,14 @@ public class IN extends Node implements Comparable, Loggable {
     /**
      * Returns whether the node is not evictable, irrespective of the status
      * of the children nodes.
+     *
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
     boolean isEvictionProhibited() {
 
         if (isDbRoot()) {
-
-            /*
-             * Disallow root IN eviction if DB eviction is not enabled.  Root
-             * eviction is currently experimental and known to cause assertions
-             * to fire because DbTree.modifyDbRoot (which locks the MapLN) is
-             * called while holding the INList latch. [#15805]
-             */
-            if (!databaseImpl.getDbEnvironment().getDbEviction()) {
-                return true;
-            }
 
             /*
              * Disallow eviction of a dirty DW DB root, since logging the MapLN
@@ -2496,7 +2894,7 @@ public class IN extends Node implements Comparable, Loggable {
              * a DW DB root cannot be evicted until it is synced (or removed).
              * [#13415]
              */
-            if (databaseImpl.isDeferredWrite() && getDirty()) {
+            if (databaseImpl.isDeferredWriteMode() && getDirty()) {
                 return true;
             }
 
@@ -2519,6 +2917,10 @@ public class IN extends Node implements Comparable, Loggable {
      * Returns whether any resident children are not LNs (are INs).
      * For an IN, that equates to whether there are any resident children
      * at all.
+     *
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
     boolean hasPinnedChildren() {
 
@@ -2528,6 +2930,10 @@ public class IN extends Node implements Comparable, Loggable {
     /**
      * Returns the eviction type based on the status of child nodes,
      * irrespective of isEvictionProhibited.
+     *
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
     int getChildEvictionType() {
 
@@ -2537,6 +2943,10 @@ public class IN extends Node implements Comparable, Loggable {
     /**
      * Returns whether any child is non-null.  Is final to indicate it is not
      * overridden (unlike hasPinnedChildren, isEvictionProhibited, etc).
+     *
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
     final boolean hasResidentChildren() {
 
@@ -2553,7 +2963,7 @@ public class IN extends Node implements Comparable, Loggable {
      * DbStat support.
      */
     void accumulateStats(TreeWalkerStatsAccumulator acc) {
-	acc.processIN(this, new Long(getNodeId()), getLevel());
+        acc.processIN(this, Long.valueOf(getNodeId()), getLevel());
     }
 
     /*
@@ -2603,7 +3013,7 @@ public class IN extends Node implements Comparable, Loggable {
 
             IN child = (IN) getTarget(i);
             if (child != null) {
-                child.latch(false);
+                child.latch(CacheMode.UNCHANGED);
                 try {
                     if (child.getDirty()) {
                         /* Ask descendents to log their children. */
@@ -2632,7 +3042,7 @@ public class IN extends Node implements Comparable, Loggable {
 
         return logInternal(logManager,
                            false,  // allowDeltas
-                           false,  // isProvisional
+                           Provisional.NO,
                            false,  // proactiveMigration
                            false,  // backgroundIO
                            null);  // parent
@@ -2651,7 +3061,23 @@ public class IN extends Node implements Comparable, Loggable {
 
         return logInternal(logManager,
                            allowDeltas,
-                           isProvisional,
+                           isProvisional ? Provisional.YES : Provisional.NO,
+                           proactiveMigration,
+                           backgroundIO,
+                           parent);
+    }
+
+    public long log(LogManager logManager,
+                    boolean allowDeltas,
+                    Provisional provisional,
+                    boolean proactiveMigration,
+                    boolean backgroundIO,
+                    IN parent) // for provisional
+        throws DatabaseException {
+
+        return logInternal(logManager,
+                           allowDeltas,
+                           provisional,
                            proactiveMigration,
                            backgroundIO,
                            parent);
@@ -2663,18 +3089,17 @@ public class IN extends Node implements Comparable, Loggable {
     public long optionalLog(LogManager logManager)
         throws DatabaseException {
 
-        if (databaseImpl.isDeferredWrite()) {
+        if (databaseImpl.isDeferredWriteMode()) {
             return DbLsn.NULL_LSN;
         } else {
             return logInternal(logManager,
                                false,  // allowDeltas
-                               false,  // isProvisional
+                               Provisional.NO,
                                false,  // proactiveMigration
                                false,  // backgroundIO
                                null);  // parent
         }
     }
-
 
     /**
      * Log this node provisionally and clear the dirty flag.
@@ -2684,12 +3109,12 @@ public class IN extends Node implements Comparable, Loggable {
     public long optionalLogProvisional(LogManager logManager, IN parent)
         throws DatabaseException {
 
-        if (databaseImpl.isDeferredWrite()) {
+        if (databaseImpl.isDeferredWriteMode()) {
             return DbLsn.NULL_LSN;
         } else {
             return logInternal(logManager,
                                false,  // allowDeltas
-                               true,   // isProvisional
+                               Provisional.YES,
                                false,  // proactiveMigration
                                false,  // backgroundIO
                                parent);
@@ -2697,41 +3122,79 @@ public class IN extends Node implements Comparable, Loggable {
     }
 
     /**
-     * Decide how to log this node. INs are always logged in full.  Migration
-     * never performed since it only applies to BINs.
+     * Bottleneck method for all single-IN logging.  Multi-IN logging uses
+     * beforeLog and afterLog instead.
      */
-    protected long logInternal(LogManager logManager,
-			       boolean allowDeltas,
-                               boolean isProvisional,
-                               boolean proactiveMigration,
-                               boolean backgroundIO,
-                               IN parent)
+    private long logInternal(LogManager logManager,
+                             boolean allowDeltas,
+                             Provisional provisional,
+                             boolean proactiveMigration,
+                             boolean backgroundIO,
+                             IN parent)
         throws DatabaseException {
 
-        /*
-         * The last version of this node must be counted obsolete at the
-         * correct time. If logging non-provisionally, the last version of this
-         * node and any provisionally logged descendants are immediately
-         * obsolete and can be flushed. If logging provisionally, the last
-         * version isn't obsolete until an ancestor is logged
-         * non-provisionally, so propagate obsolete lsns upwards.
-         */
-        long lsn = logManager.log
-            (new INLogEntry(this), isProvisional, backgroundIO,
-             isProvisional ? DbLsn.NULL_LSN : lastFullVersion, 0);
+        INLogItem item = new INLogItem();
+        item.provisional = provisional;
+        item.parent = parent;
+        item.repContext = ReplicationContext.NO_REPLICATE;
 
-        if (isProvisional) {
-            if (parent != null) {
-                parent.trackProvisionalObsolete
+        INLogContext context = new INLogContext();
+        context.nodeDb = getDatabase();
+        context.backgroundIO = backgroundIO;
+        context.allowDeltas = allowDeltas;
+        context.proactiveMigration = proactiveMigration;
+
+        beforeLog(logManager, item, context);
+        logManager.log(item, context);
+        afterLog(logManager, item, context);
+
+        return item.newLsn;
+    }
+
+    /**
+     * Pre-log processing.  Used implicitly for single-item logging and
+     * explicitly for multi-item logging.  Overridden by subclasses as needed.
+     *
+     * Decide how to log this node.  INs are always logged in full.  Cleaner LN
+     * migration is never performed since it only applies to BINs.
+     */
+    public void beforeLog(LogManager logManager,
+                          INLogItem item,
+                          INLogContext context)
+        throws DatabaseException {
+
+        item.oldLsn = (item.provisional == Provisional.YES) ?
+            DbLsn.NULL_LSN : lastFullVersion;
+        item.entry = new INLogEntry(this);
+    }
+
+    /**
+     * Post-log processing.  Used implicitly for single-item logging and
+     * explicitly for multi-item logging.  Overridden by subclasses as needed.
+     *
+     * The last version of this node must be counted obsolete at the correct
+     * time. If logging non-provisionally, the last version of this node and
+     * any provisionally logged descendants are immediately obsolete and can be
+     * flushed. If logging provisionally, the last version isn't obsolete until
+     * an ancestor is logged non-provisionally, so propagate obsolete lsns
+     * upwards.
+     */
+    public void afterLog(LogManager logManager,
+                         INLogItem item,
+                         INLogContext context)
+        throws DatabaseException {
+
+        if (item.provisional == Provisional.YES) {
+            if (item.parent != null) {
+                item.parent.trackProvisionalObsolete
                     (this, lastFullVersion, DbLsn.NULL_LSN);
             }
         } else {
             flushProvisionalObsolete(logManager);
         }
 
-        setLastFullLsn(lsn);
+        setLastFullLsn(item.newLsn);
         setDirty(false);
-        return lsn;
     }
 
     /**
@@ -2765,16 +3228,16 @@ public class IN extends Node implements Comparable, Loggable {
         if (obsoleteLsn1 != DbLsn.NULL_LSN || obsoleteLsn2 != DbLsn.NULL_LSN) {
 
             if (provisionalObsolete == null) {
-                provisionalObsolete = new ArrayList();
+                provisionalObsolete = new ArrayList<Long>();
             }
 
             if (obsoleteLsn1 != DbLsn.NULL_LSN) {
-                provisionalObsolete.add(new Long(obsoleteLsn1));
+                provisionalObsolete.add(Long.valueOf(obsoleteLsn1));
                 memDelta += MemoryBudget.LONG_LIST_PER_ITEM_OVERHEAD;
             }
 
             if (obsoleteLsn2 != DbLsn.NULL_LSN) {
-                provisionalObsolete.add(new Long(obsoleteLsn2));
+                provisionalObsolete.add(Long.valueOf(obsoleteLsn2));
                 memDelta += MemoryBudget.LONG_LIST_PER_ITEM_OVERHEAD;
             }
         }
@@ -2797,7 +3260,7 @@ public class IN extends Node implements Comparable, Loggable {
             int memDelta = provisionalObsolete.size() *
                            MemoryBudget.LONG_LIST_PER_ITEM_OVERHEAD;
 
-            logManager.countObsoleteINs(provisionalObsolete);
+            logManager.countObsoleteINs(provisionalObsolete, getDatabase());
             provisionalObsolete = null;
 
             changeMemorySize(0 - memDelta);
@@ -2815,23 +3278,26 @@ public class IN extends Node implements Comparable, Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        int size = super.getLogSize(); // ancestors
+        int size = super.getLogSize();          // ancestors
         size += LogUtils.getByteArrayLogSize(identifierKey); // identifier key
-        size += LogUtils.getBooleanLogSize();   // isRoot
-        size += LogUtils.INT_BYTES;             // nentries;
-        size += LogUtils.INT_BYTES;             // level
-        size += LogUtils.INT_BYTES;             // length of entries array
-	size += LogUtils.getBooleanLogSize();   // compactLsnsRep
-	boolean compactLsnsRep = (entryLsnLongArray == null);
-	if (compactLsnsRep) {
-	    size += LogUtils.INT_BYTES;         // baseFileNumber
-	}
+        if (keyPrefix != null) {
+            size += LogUtils.getByteArrayLogSize(keyPrefix);
+        }
+        size += 1;                              // isRoot
+        size += LogUtils.getPackedIntLogSize(nEntries);
+        size += LogUtils.getPackedIntLogSize(level);
+        size += LogUtils.getPackedIntLogSize(entryTargets.length);
+        size += LogUtils.getBooleanLogSize();   // compactLsnsRep
+        boolean compactLsnsRep = (entryLsnLongArray == null);
+        if (compactLsnsRep) {
+            size += LogUtils.INT_BYTES;         // baseFileNumber
+        }
 
         for (int i = 0; i < nEntries; i++) {    // entries
-	    size += LogUtils.getByteArrayLogSize(entryKeyVals[i]) + // key
-		(compactLsnsRep ? LogUtils.INT_BYTES :
-		 LogUtils.getLongLogSize()) +                       // LSN
-		1;                                                  // state
+            size += LogUtils.getByteArrayLogSize(entryKeyVals[i]) + // key
+                (compactLsnsRep ? LogUtils.INT_BYTES :
+                 LogUtils.getLongLogSize()) +                       // LSN
+                1;                                                  // state
         }
         return size;
     }
@@ -2841,32 +3307,27 @@ public class IN extends Node implements Comparable, Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
 
-        // ancestors
         super.writeToLog(logBuffer);
 
-        // identifier key
+        boolean hasKeyPrefix = (keyPrefix != null);
         LogUtils.writeByteArray(logBuffer, identifierKey);
+        byte booleans = (byte) (isRoot() ? 1 : 0);
+        booleans |= (hasKeyPrefix ? 2 : 0);
+        logBuffer.put((byte) booleans);
+        if (hasKeyPrefix) {
+            LogUtils.writeByteArray(logBuffer, keyPrefix);
+        }
+        LogUtils.writePackedInt(logBuffer, nEntries);
+        LogUtils.writePackedInt(logBuffer, level);
+        LogUtils.writePackedInt(logBuffer, entryTargets.length);
 
-        // isRoot
-        LogUtils.writeBoolean(logBuffer, isRoot);
+        /* true if compact representation. */
+        boolean compactLsnsRep = (entryLsnLongArray == null);
+        LogUtils.writeBoolean(logBuffer, compactLsnsRep);
+        if (compactLsnsRep) {
+            LogUtils.writeInt(logBuffer, (int) baseFileNumber);
+        }
 
-        // nEntries
-        LogUtils.writeInt(logBuffer, nEntries);
-
-        // level
-        LogUtils.writeInt(logBuffer, level);
-
-        // length of entries array
-        LogUtils.writeInt(logBuffer, entryTargets.length);
-
-	// true if compact representation
-	boolean compactLsnsRep = (entryLsnLongArray == null);
-	LogUtils.writeBoolean(logBuffer, compactLsnsRep);
-	if (compactLsnsRep) {
-	    LogUtils.writeInt(logBuffer, (int) baseFileNumber);
-	}
-
-        // entries
         for (int i = 0; i < nEntries; i++) {
             LogUtils.writeByteArray(logBuffer, entryKeyVals[i]); // key
 
@@ -2878,20 +3339,21 @@ public class IN extends Node implements Comparable, Loggable {
             assert checkForNullLSN(i) :
                 "logging IN " + getNodeId() + " with null lsn child " +
                 " db=" + databaseImpl.getDebugName() +
-                " isDeferredWrite=" + databaseImpl.isDeferredWrite();
+                " isDeferredWriteMode=" + databaseImpl.isDeferredWriteMode() +
+                " isTemporary=" + databaseImpl.isTemporary();
 
-	    if (compactLsnsRep) {                                // LSN
-		int offset = i << 2;
-		int fileOffset = getFileOffset(offset);
-		logBuffer.put(getFileNumberOffset(offset));
-		logBuffer.put((byte) ((fileOffset >>> 0) & 0xff));
-		logBuffer.put((byte) ((fileOffset >>> 8) & 0xff));
-		logBuffer.put((byte) ((fileOffset >>> 16) & 0xff));
-	    } else {
-		LogUtils.writeLong(logBuffer, entryLsnLongArray[i]);
-	    }
-	    logBuffer.put(entryStates[i]);                       // state
-	    entryStates[i] &= CLEAR_DIRTY_BIT;
+            if (compactLsnsRep) {                                // LSN
+                int offset = i << 2;
+                int fileOffset = getFileOffset(offset);
+                logBuffer.put(getFileNumberOffset(offset));
+                logBuffer.put((byte) ((fileOffset >>> 0) & 0xff));
+                logBuffer.put((byte) ((fileOffset >>> 8) & 0xff));
+                logBuffer.put((byte) ((fileOffset >>> 16) & 0xff));
+            } else {
+                LogUtils.writeLong(logBuffer, entryLsnLongArray[i]);
+            }
+            logBuffer.put(entryStates[i]);                       // state
+            entryStates[i] &= CLEAR_DIRTY_BIT;
         }
     }
 
@@ -2912,66 +3374,62 @@ public class IN extends Node implements Comparable, Loggable {
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
-        // ancestors
-        super.readFromLog(itemBuffer, entryTypeVersion);
+        super.readFromLog(itemBuffer, entryVersion);
 
-        // identifier key
-        identifierKey = LogUtils.readByteArray(itemBuffer);
+        boolean unpacked = (entryVersion < 6);
+        identifierKey = LogUtils.readByteArray(itemBuffer, unpacked);
+        byte booleans = itemBuffer.get();
+        setIsRootFlag((booleans & 1) != 0);
+        if ((booleans & 2) != 0) {
+            keyPrefix = LogUtils.readByteArray(itemBuffer, unpacked);
+        }
 
-        // isRoot
-        isRoot = LogUtils.readBoolean(itemBuffer);
+        nEntries = LogUtils.readInt(itemBuffer, unpacked);
+        level = LogUtils.readInt(itemBuffer, unpacked);
+        int length = LogUtils.readInt(itemBuffer, unpacked);
 
-        // nEntries
-        nEntries = LogUtils.readInt(itemBuffer);
-
-        // level
-        level = LogUtils.readInt(itemBuffer);
-
-        // nentries
-        int length = LogUtils.readInt(itemBuffer);
-
-	entryTargets = new Node[length];
-	entryKeyVals = new byte[length][];
-	baseFileNumber = -1;
-	long storedBaseFileNumber = -1;
-	entryLsnByteArray = new byte[length << 2];
-	entryLsnLongArray = null;
-	entryStates = new byte[length];
-	boolean compactLsnsRep = false;
-	if (entryTypeVersion > 1) {
-	    compactLsnsRep = LogUtils.readBoolean(itemBuffer);
-	    if (compactLsnsRep) {
-		baseFileNumber = LogUtils.readInt(itemBuffer) & 0xffffffff;
+        entryTargets = new Node[length];
+        entryKeyVals = new byte[length][];
+        baseFileNumber = -1;
+        long storedBaseFileNumber = -1;
+        entryLsnByteArray = new byte[length << 2];
+        entryLsnLongArray = null;
+        entryStates = new byte[length];
+        boolean compactLsnsRep = false;
+        if (entryVersion > 1) {
+            compactLsnsRep = LogUtils.readBoolean(itemBuffer);
+            if (compactLsnsRep) {
+                baseFileNumber = LogUtils.readInt(itemBuffer) & 0xffffffff;
                 storedBaseFileNumber = baseFileNumber;
-	    }
-	}
-	for (int i = 0; i < nEntries; i++) {
-	    entryKeyVals[i] = LogUtils.readByteArray(itemBuffer); // key
+            }
+        }
+        for (int i = 0; i < nEntries; i++) {
+            entryKeyVals[i] = LogUtils.readByteArray(itemBuffer, unpacked);
             long lsn;
-	    if (compactLsnsRep) {
-		/* LSNs in compact form. */
-		byte fileNumberOffset = itemBuffer.get();
-		int fileOffset = (itemBuffer.get() & 0xff);
-		fileOffset |= ((itemBuffer.get() & 0xff) << 8);
-		fileOffset |= ((itemBuffer.get() & 0xff) << 16);
+            if (compactLsnsRep) {
+                /* LSNs in compact form. */
+                byte fileNumberOffset = itemBuffer.get();
+                int fileOffset = (itemBuffer.get() & 0xff);
+                fileOffset |= ((itemBuffer.get() & 0xff) << 8);
+                fileOffset |= ((itemBuffer.get() & 0xff) << 16);
                 if (fileOffset == THREE_BYTE_NEGATIVE_ONE) {
                     lsn = DbLsn.NULL_LSN;
                 } else {
                     lsn = DbLsn.makeLsn
                         (storedBaseFileNumber + fileNumberOffset, fileOffset);
                 }
-	    } else {
-		/* LSNs in long form. */
-		lsn = LogUtils.readLong(itemBuffer);              // LSN
-	    }
+            } else {
+                /* LSNs in long form. */
+                lsn = LogUtils.readLong(itemBuffer);              // LSN
+            }
             setLsnElement(i, lsn);
 
-	    byte entryState = itemBuffer.get();                   // state
-	    entryState &= CLEAR_DIRTY_BIT;
-	    entryState &= CLEAR_MIGRATE_BIT;
+            byte entryState = itemBuffer.get();                   // state
+            entryState &= CLEAR_DIRTY_BIT;
+            entryState &= CLEAR_MIGRATE_BIT;
 
             /*
              * A NULL_LSN is the remnant of an incomplete insertion and the
@@ -2984,7 +3442,7 @@ public class IN extends Node implements Comparable, Loggable {
             }
 
             entryStates[i] = entryState;
-	}
+        }
 
         latch.setName(shortClassName() + getNodeId());
     }
@@ -2998,22 +3456,28 @@ public class IN extends Node implements Comparable, Loggable {
         super.dumpLog(sb, verbose);
         sb.append(Key.dumpString(identifierKey, 0));
 
-        /* isRoot */
+        // isRoot
         sb.append("<isRoot val=\"");
-        sb.append(isRoot);
+        sb.append(isRoot());
         sb.append("\"/>");
 
-        /* level */
+        // level
         sb.append("<level val=\"");
         sb.append(Integer.toHexString(level));
         sb.append("\"/>");
 
-        /* nEntries, length of entries array */
+        if (keyPrefix != null) {
+            sb.append("<keyPrefix>");
+            sb.append(Key.dumpString(keyPrefix, 0));
+            sb.append("</keyPrefix>");
+        }
+
+        // nEntries, length of entries array
         sb.append("<entries numEntries=\"");
         sb.append(nEntries);
         sb.append("\" length=\"");
         sb.append(entryTargets.length);
-	boolean compactLsnsRep = (entryLsnLongArray == null);
+        boolean compactLsnsRep = (entryLsnLongArray == null);
         if (compactLsnsRep) {
             sb.append("\" baseFileNumber=\"");
             sb.append(baseFileNumber);
@@ -3022,14 +3486,14 @@ public class IN extends Node implements Comparable, Loggable {
 
         if (verbose) {
             for (int i = 0; i < nEntries; i++) {
-		sb.append("<ref knownDeleted=\"").
-		    append(isEntryKnownDeleted(i));
+                sb.append("<ref knownDeleted=\"").
+                    append(isEntryKnownDeleted(i));
                 sb.append("\" pendingDeleted=\"").
-		    append(isEntryPendingDeleted(i));
-		sb.append("\">");
+                    append(isEntryPendingDeleted(i));
+                sb.append("\">");
                 sb.append(Key.dumpString(entryKeyVals[i], 0));
-		sb.append(DbLsn.toString(getLsn(i)));
-		sb.append("</ref>");
+                sb.append(DbLsn.toString(getLsn(i)));
+                sb.append("</ref>");
             }
         }
 
@@ -3039,6 +3503,14 @@ public class IN extends Node implements Comparable, Loggable {
         dumpLogAdditional(sb);
 
         sb.append(endTag());
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     /**
@@ -3056,7 +3528,9 @@ public class IN extends Node implements Comparable, Loggable {
         return END_TAG;
     }
 
-    void dumpKeys() throws DatabaseException {
+    void dumpKeys()
+        throws DatabaseException {
+
         for (int i = 0; i < nEntries; i++) {
             System.out.println(Key.dumpString(entryKeyVals[i], 0));
         }
@@ -3079,12 +3553,17 @@ public class IN extends Node implements Comparable, Loggable {
 
         sb.append(TreeUtils.indent(nSpaces+2));
         sb.append("<idkey>");
-        sb.append(identifierKey == null ? "" :
+        sb.append(identifierKey == null ?
+                  "" :
                   Key.dumpString(identifierKey, 0));
         sb.append("</idkey>");
         sb.append('\n');
         sb.append(TreeUtils.indent(nSpaces+2));
-        sb.append("<dirty val=\"").append(dirty).append("\"/>");
+        sb.append("<prefix>");
+        sb.append(keyPrefix == null ? "" : Key.dumpString(keyPrefix, 0));
+        sb.append("</prefix>\n");
+        sb.append(TreeUtils.indent(nSpaces+2));
+        sb.append("<dirty val=\"").append(getDirty()).append("\"/>");
         sb.append('\n');
         sb.append(TreeUtils.indent(nSpaces+2));
         sb.append("<generation val=\"").append(generation).append("\"/>");
@@ -3094,7 +3573,7 @@ public class IN extends Node implements Comparable, Loggable {
         sb.append(Integer.toHexString(level)).append("\"/>");
         sb.append('\n');
         sb.append(TreeUtils.indent(nSpaces+2));
-        sb.append("<isRoot val=\"").append(isRoot).append("\"/>");
+        sb.append("<isRoot val=\"").append(isRoot()).append("\"/>");
         sb.append('\n');
 
         sb.append(TreeUtils.indent(nSpaces+2));

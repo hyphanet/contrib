@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SingleItemEntry.java,v 1.1.2.2 2007/11/20 13:32:32 cwl Exp $
+ * $Id: SingleItemEntry.java,v 1.8 2008/03/10 19:59:19 linda Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -32,19 +32,17 @@ public class SingleItemEntry extends BaseEntry implements LogEntry {
     /**
      * Construct a log entry for reading.
      */
-    public SingleItemEntry(Class logClass) {
+    public SingleItemEntry(Class<?> logClass) {
         super(logClass);
     }
 
     /**
      * Construct a log entry for writing.
      */
-    public SingleItemEntry(LogEntryType entryType,
-                           Loggable item) {
+    public SingleItemEntry(LogEntryType entryType, Loggable item) {
         setLogType(entryType);
         this.item = item;
     }
-
 
     /**
      * @see LogEntry#readEntry
@@ -110,5 +108,12 @@ public class SingleItemEntry extends BaseEntry implements LogEntry {
      */
     public void writeEntry(LogEntryHeader header, ByteBuffer destBuffer) {
         item.writeToLog(destBuffer);
+    }
+
+    /**
+     * @see LogEntry#logicalEquals
+     */
+    public boolean logicalEquals(LogEntry other) {
+        return item.logicalEquals((Loggable) other.getMainItem());
     }
 }

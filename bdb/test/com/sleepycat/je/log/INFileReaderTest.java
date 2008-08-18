@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INFileReaderTest.java,v 1.72.2.4 2007/11/20 13:32:46 cwl Exp $
+ * $Id: INFileReaderTest.java,v 1.87 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -12,18 +12,18 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import junit.framework.TestCase;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.cleaner.RecoveryUtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -55,7 +55,7 @@ public class INFileReaderTest extends TestCase {
     private EnvironmentImpl envImpl;
     private Database db;
     private long maxNodeId;
-    private List checkList;
+    private List<CheckInfo> checkList;
 
     public INFileReaderTest() {
         super();
@@ -110,9 +110,9 @@ public class INFileReaderTest extends TestCase {
 	throws IOException, DatabaseException {
 
         /* Make a log file with a valid header, but no data. */
-        INFileReader reader =
-	    new INFileReader(envImpl, 1000, DbLsn.NULL_LSN, DbLsn.NULL_LSN, false, false,
-			     DbLsn.NULL_LSN, null);
+        INFileReader reader = new INFileReader
+            (envImpl, 1000, DbLsn.NULL_LSN, DbLsn.NULL_LSN, false, false,
+             DbLsn.NULL_LSN, DbLsn.NULL_LSN, null);
         reader.addTargetType(LogEntryType.LOG_IN);
         reader.addTargetType(LogEntryType.LOG_BIN);
         reader.addTargetType(LogEntryType.LOG_IN_DELETE_INFO);
@@ -136,9 +136,9 @@ public class INFileReaderTest extends TestCase {
         FileManagerTestUtils.createLogFile(fileManager, envImpl, 10000);
         fileManager.clear();
 
-        INFileReader reader =
-	    new INFileReader(envImpl, 1000, DbLsn.NULL_LSN, DbLsn.NULL_LSN, false, false,
-			     DbLsn.NULL_LSN, null);
+        INFileReader reader = new INFileReader
+            (envImpl, 1000, DbLsn.NULL_LSN, DbLsn.NULL_LSN, false, false,
+             DbLsn.NULL_LSN, DbLsn.NULL_LSN, null);
         reader.addTargetType(LogEntryType.LOG_IN);
         reader.addTargetType(LogEntryType.LOG_BIN);
         reader.addTargetType(LogEntryType.LOG_IN_DELETE_INFO);
@@ -197,21 +197,18 @@ public class INFileReaderTest extends TestCase {
         long startLsn = DbLsn.NULL_LSN;
         int checkIndex = 0;
         if (startLsnIndex >= 0) {
-            startLsn = ((CheckInfo) checkList.get(startLsnIndex)).lsn;
+            startLsn = checkList.get(startLsnIndex).lsn;
             checkIndex = startLsnIndex;
         }
 
         /* Use an empty utilization map for testing tracking. */
-        Map fileSummaryLsns = trackNodeIds ? (new HashMap()) : null;
+        RecoveryUtilizationTracker tracker = trackNodeIds ?
+            (new RecoveryUtilizationTracker(envImpl)) : null;
 
-        INFileReader reader = new INFileReader(envImpl,
-                                               bufferSize,
-                                               startLsn,
-					       DbLsn.NULL_LSN,
-                                               trackNodeIds,
-					       false,
-                                               DbLsn.NULL_LSN,
-                                               fileSummaryLsns);
+        INFileReader reader =
+            new INFileReader(envImpl, bufferSize, startLsn, DbLsn.NULL_LSN,
+                             trackNodeIds, false, DbLsn.NULL_LSN,
+                             DbLsn.NULL_LSN, tracker);
         reader.addTargetType(LogEntryType.LOG_IN);
         reader.addTargetType(LogEntryType.LOG_BIN);
         reader.addTargetType(LogEntryType.LOG_BIN_DELTA);
@@ -237,7 +234,7 @@ public class INFileReaderTest extends TestCase {
         LogManager logManager = envImpl.getLogManager();
         maxNodeId = 0;
 
-        checkList = new ArrayList();
+        checkList = new ArrayList<CheckInfo>();
 
         for (int i = 0; i < numIters; i++) {
             /* Add a debug record. */
@@ -252,7 +249,7 @@ public class INFileReaderTest extends TestCase {
             Arrays.fill(key, (byte) (i + 1));
 
             IN in = new IN(DbInternal.dbGetDatabaseImpl(db), key, 5, 10);
-	    in.latch(false);
+	    in.latch(CacheMode.UNCHANGED);
             long lsn = in.log(logManager);
 	    in.releaseLatch();
             checkList.add(new CheckInfo(lsn, in));
@@ -264,7 +261,7 @@ public class INFileReaderTest extends TestCase {
 
             /* Add other types of INs. */
             BIN bin = new BIN(DbInternal.dbGetDatabaseImpl(db), key, 2, 1);
-	    bin.latch(false);
+	    bin.latch(CacheMode.UNCHANGED);
             lsn = bin.log(logManager);
             checkList.add(new CheckInfo(lsn, bin));
 
@@ -279,10 +276,11 @@ public class INFileReaderTest extends TestCase {
 	    bin.releaseLatch();
 
             /* Add a LN, to stress the node tracking. */
-            LN ln = new LN(data);
+            LN ln = new LN(data, envImpl, false /*replicated*/);
             lsn = ln.log(envImpl,
-                         DbInternal.dbGetDatabaseImpl(db).getId(),
-                         key, null, DbLsn.NULL_LSN, 0, null, false, false);
+                         DbInternal.dbGetDatabaseImpl(db),
+                         key, DbLsn.NULL_LSN, null, false,
+                         ReplicationContext.NO_REPLICATE);
 
             /*
 	     * Add an IN delete entry, it should get picked up by the reader.
@@ -290,8 +288,9 @@ public class INFileReaderTest extends TestCase {
             INDeleteInfo info =
                 new INDeleteInfo(i, key, DbInternal.
 				 dbGetDatabaseImpl(db).getId());
-            lsn = logManager.log(
-                   new SingleItemEntry(LogEntryType.LOG_IN_DELETE_INFO, info));
+            lsn = logManager.log
+                (new SingleItemEntry(LogEntryType.LOG_IN_DELETE_INFO, info),
+                 ReplicationContext.NO_REPLICATE);
             checkList.add(new CheckInfo(lsn, info));
 
             /*
@@ -370,7 +369,7 @@ public class INFileReaderTest extends TestCase {
                                        + reader.getLastLsn());
                 }
 
-                CheckInfo check = (CheckInfo) checkList.get(i);
+                CheckInfo check = checkList.get(i);
 
                 if (reader.isDeleteInfo()) {
                     assertEquals(check.info.getDeletedNodeId(),
@@ -388,11 +387,11 @@ public class INFileReaderTest extends TestCase {
 		     * equal.
                      */
                     IN inFromLog = reader.getIN();
-		    inFromLog.latch(false);
+		    inFromLog.latch(CacheMode.UNCHANGED);
                     inFromLog.setDirty(true);
 		    inFromLog.releaseLatch();
                     IN testIN = check.in;
-		    testIN.latch(false);
+		    testIN.latch(CacheMode.UNCHANGED);
                     testIN.setDirty(true);
 		    testIN.releaseLatch();
 

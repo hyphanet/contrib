@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: AnnotationModel.java,v 1.16.2.3 2007/11/20 13:32:39 cwl Exp $
+ * $Id: AnnotationModel.java,v 1.24 2008/05/05 13:15:40 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -13,6 +13,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -210,15 +211,19 @@ public class AnnotationModel extends EntityModel {
         if (cls.isArray()) {
             return cls.getComponentType().getName();
         }
-        if (java.util.Collection.class.isAssignableFrom(cls)) {
-            Type[] typeArgs = ((ParameterizedType) field.getGenericType()).
-                getActualTypeArguments();
+        if (Collection.class.isAssignableFrom(cls)) {
+            Type[] typeArgs = null;
+            if (field.getGenericType() instanceof ParameterizedType) {
+                typeArgs = ((ParameterizedType) field.getGenericType()).
+                    getActualTypeArguments();
+            }
             if (typeArgs == null ||
                 typeArgs.length != 1 ||
                 !(typeArgs[0] instanceof Class)) {
                 throw new IllegalArgumentException
                     ("Collection typed secondary key field must have a" +
-                     " single generic type argument: " +
+                     " single generic type argument and a wildcard or" +
+                     " type bound is not allowed: " +
                      field.getDeclaringClass().getName() + '.' +
                      field.getName());
             }
@@ -299,7 +304,7 @@ public class AnnotationModel extends EntityModel {
             if (data.isEntityClass()) {
                 if (entityClass != null) {
                     throw new IllegalArgumentException
-                        ("An entity class may not derived from another" +
+                        ("An entity class may not be derived from another" +
                          " entity class: " + entityClass +
                          ' ' + data.getClassName());
                 }

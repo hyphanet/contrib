@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ComplexFormat.java,v 1.30.2.6 2007/12/08 14:34:33 mark Exp $
+ * $Id: ComplexFormat.java,v 1.41 2008/05/13 01:45:02 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -337,6 +337,19 @@ public class ComplexFormat extends Format {
                 entityFormat = format;
                 break;
             }
+        }
+        /* Disallow proxy class that extends an entity class. [#15950] */
+        if (clsMeta.getProxiedClassName() != null && entityFormat != null) {
+            throw new IllegalArgumentException
+                ("A proxy may not be an entity: " + getClassName());
+        }
+        /* Disallow primary keys on entity subclasses.  [#15757] */
+        if (entityFormat != null &&
+            entityFormat != this && 
+            priKeyField != null) {
+            throw new IllegalArgumentException
+                ("A PrimaryKey may not appear on an Entity subclass: " +
+                 getClassName() + " field: " + priKeyField.getName());
         }
         /* Create the accessors. */
         if (type != null) {
@@ -1237,7 +1250,6 @@ public class ComplexFormat extends Format {
         boolean readerNeeded = false;
         List<FieldReader> fieldReaders = new ArrayList<FieldReader>();
         FieldReader currentReader = null;
-        int prevNewFieldIndex = newFields.size();
         int newFieldsMatched = 0;
 
         /*

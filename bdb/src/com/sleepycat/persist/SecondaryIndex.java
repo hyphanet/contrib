@@ -1,19 +1,21 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SecondaryIndex.java,v 1.14.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: SecondaryIndex.java,v 1.19 2008/05/27 15:30:36 mark Exp $
  */
 
 package com.sleepycat.persist;
 
+import java.io.FileNotFoundException;
 import java.util.Map;
 import java.util.SortedMap;
 
 import com.sleepycat.bind.EntityBinding;
 import com.sleepycat.bind.EntryBinding;
 import com.sleepycat.collections.StoredSortedMap;
+import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
@@ -803,7 +805,7 @@ public class SecondaryIndex<SK,PK,E> extends BasicIndex<SK,E> {
                           Database keysDatabase,
                           PrimaryIndex<PK,E> primaryIndex,
                           Class<SK> secondaryKeyClass,
-                          EntryBinding secondaryKeyBinding)
+                          EntryBinding<SK> secondaryKeyBinding)
         throws DatabaseException {
 
         super(database, secondaryKeyClass, secondaryKeyBinding,
@@ -858,7 +860,7 @@ public class SecondaryIndex<SK,PK,E> extends BasicIndex<SK,E> {
      *
      * @return the key binding.
      */
-    public EntryBinding getKeyBinding() {
+    public EntryBinding<SK> getKeyBinding() {
         return keyBinding;
     }
 
@@ -888,8 +890,17 @@ public class SecondaryIndex<SK,PK,E> extends BasicIndex<SK,E> {
             if (keysDb == null) {
                 DatabaseConfig config = secDb.getConfig();
                 config.setReadOnly(true);
-                keysDb = db.getEnvironment().openDatabase
-                    (null, secDb.getDatabaseName(), config);
+                config.setAllowCreate(false);
+                config.setExclusiveCreate(false);   
+                try {
+                    keysDb = DbCompat.openDatabase
+                        (db.getEnvironment(), null/*txn*/,
+                         DbCompat.getDatabaseFile(secDb),
+                         secDb.getDatabaseName(),
+                         config);
+                } catch (FileNotFoundException e) {
+                    throw new DatabaseException(e);
+                }
             }
             keysIndex = new KeysIndex<SK,PK>
                 (keysDb, keyClass, keyBinding,
@@ -957,5 +968,9 @@ public class SecondaryIndex<SK,PK,E> extends BasicIndex<SK,E> {
             map = new StoredSortedMap(db, keyBinding, entityBinding, true);
         }
         return map;
+    }
+
+    boolean isUpdateAllowed() {
+        return false;
     }
 }

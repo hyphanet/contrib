@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: FloatBinding.java,v 1.11.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: FloatBinding.java,v 1.14 2008/05/27 15:30:33 mark Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -30,24 +30,24 @@ import com.sleepycat.je.DatabaseEntry;
  * TupleBinding#getPrimitiveBinding} method.</li>
  * </ol>
  */
-public class FloatBinding extends TupleBinding {
+public class FloatBinding extends TupleBinding<Float> {
 
     private static final int FLOAT_SIZE = 4;
 
     // javadoc is inherited
-    public Object entryToObject(TupleInput input) {
+    public Float entryToObject(TupleInput input) {
 
-        return new Float(input.readFloat());
+        return input.readFloat();
     }
 
     // javadoc is inherited
-    public void objectToEntry(Object object, TupleOutput output) {
+    public void objectToEntry(Float object, TupleOutput output) {
 
-        output.writeFloat(((Number) object).floatValue());
+        output.writeFloat(object);
     }
 
     // javadoc is inherited
-    protected TupleOutput getTupleOutput(Object object) {
+    protected TupleOutput getTupleOutput(Float object) {
 
         return sizedOutput();
     }

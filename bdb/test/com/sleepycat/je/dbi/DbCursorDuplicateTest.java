@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateTest.java,v 1.53.2.4 2007/11/20 13:32:43 cwl Exp $
+ * $Id: DbCursorDuplicateTest.java,v 1.61 2008/05/30 14:04:20 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
 
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Hashtable;
 
@@ -908,6 +909,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 	invocationCountingComparator =
 	new InvocationCountingBtreeComparator();
 
+    @SuppressWarnings("serial")
     public static class DuplicateAscendingComparator
         extends BtreeComparator {
 
@@ -916,6 +918,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 	}
     }
 
+    @SuppressWarnings("serial")
     public static class DuplicateReverseComparator
         extends ReverseBtreeComparator {
 
@@ -924,6 +927,7 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
 	}
     }
 
+    @SuppressWarnings("serial")
     public static class InvocationCountingBtreeComparator
 	extends BtreeComparator {
 
@@ -950,7 +954,9 @@ public class DbCursorDuplicateTest extends DbCursorTestBase {
      */
     private static Comparator truncatedComparator = new TruncatedComparator();
 
-    private static class TruncatedComparator implements Comparator {
+    @SuppressWarnings("serial")
+    private static class TruncatedComparator implements Comparator, 
+                                                        Serializable {
 	protected TruncatedComparator() {
 	}
 

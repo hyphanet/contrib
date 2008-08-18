@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveTestBase.java,v 1.5.2.6 2007/12/08 14:43:48 mark Exp $
+ * $Id: EvolveTestBase.java,v 1.14 2008/06/03 04:52:24 mark Exp $
  */
 package com.sleepycat.persist.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Enumeration;
 
 import junit.framework.TestCase;
@@ -21,6 +22,7 @@ import com.sleepycat.persist.StoreConfig;
 import com.sleepycat.persist.model.AnnotationModel;
 import com.sleepycat.persist.model.EntityModel;
 import com.sleepycat.persist.raw.RawStore;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * Base class for EvolveTest and EvolveTestInit.
@@ -189,6 +191,8 @@ public abstract class EvolveTestBase extends TestCase {
         null,
         "ConvertExample3_Person",
         null,
+        "ConvertExample3Reverse_Person",
+        null,
         "ConvertExample4_Entity",
         null,
         "ConvertExample5_Entity",
@@ -295,11 +299,10 @@ public abstract class EvolveTestBase extends TestCase {
     }
 
     void openEnv()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
-        EnvironmentConfig config = new EnvironmentConfig();
+        EnvironmentConfig config = TestEnv.TXN.getConfig();
         config.setAllowCreate(true);
-        config.setTransactional(true);
         env = new Environment(envHome, config);
     }
 

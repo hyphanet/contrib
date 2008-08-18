@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PreloadStatus.java,v 1.5.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: PreloadStatus.java,v 1.10 2008/05/20 17:52:34 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -11,11 +11,12 @@ package com.sleepycat.je;
 import java.io.Serializable;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Describes the result of the {@link com.sleepycat.je.Database#preload
+ * Database.preload} operation.
  */
 public class PreloadStatus implements Serializable {
-    /* For toString */
+
+	/* For toString. */
     private String statusName;
 
     private PreloadStatus(String statusName) {
@@ -26,15 +27,24 @@ public class PreloadStatus implements Serializable {
 	return "PreloadStatus." + statusName;
     }
 
-    /* preload() was successful. */
+    /**
+     * {@link com.sleepycat.je.Database#preload Database.preload} 
+     * was successful.
+     */
     public static final PreloadStatus SUCCESS =
 	new PreloadStatus("SUCCESS");
 
-    /* preload() filled maxBytes of the cache. */
+    /**
+     * {@link com.sleepycat.je.Database#preload Database.preload} 
+     * filled maxBytes of the cache.
+     */
     public static final PreloadStatus FILLED_CACHE =
 	new PreloadStatus("FILLED_CACHE");
 
-    /* preload() took more than maxMillisecs. */
+    /**
+     * {@link com.sleepycat.je.Database#preload Database.preload} 
+     * took more than maxMillisecs.
+     */
     public static final PreloadStatus EXCEEDED_TIME =
 	new PreloadStatus("EXCEEDED_TIME");
 }

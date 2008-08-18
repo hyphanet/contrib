@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EmptyBINTest.java,v 1.7.2.2 2007/11/20 13:32:44 cwl Exp $
+ * $Id: EmptyBINTest.java,v 1.11 2008/01/07 14:29:07 cwl Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -428,8 +428,6 @@ public class EmptyBINTest extends TestCase {
             this.env = env;
         }
 
-        public void doIOHook() throws IOException {}
-
         public void doHook() {
 	    DbInternal.envGetEnvironmentImpl(env).getINCompressor().
 		wakeup();
@@ -441,7 +439,15 @@ public class EmptyBINTest extends TestCase {
         }
 
         public Object getHookValue() {
-            return null;
+            throw new UnsupportedOperationException();
+        }
+
+        public void doIOHook() throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        public void hookSetup() {
+            throw new UnsupportedOperationException();
         }
     }
 }

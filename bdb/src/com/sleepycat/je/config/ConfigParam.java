@@ -1,13 +1,12 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: ConfigParam.java,v 1.26.2.2 2007/11/20 13:32:27 cwl Exp $
+ * $Id: ConfigParam.java,v 1.31 2008/05/30 19:07:40 mark Exp $
  */
 
 package com.sleepycat.je.config;
-
 
 /**
  * A ConfigParam embodies the metatdata about a JE configuration parameter:
@@ -17,14 +16,12 @@ package com.sleepycat.je.config;
  * other parameters.
  */
 public class ConfigParam {
-    // Delimiter used for string parameters that hold multiple values
-    public static final String CONFIG_DELIM = ";";
 
     protected String name;
     private String defaultValue;
-    private String description;
     private boolean mutable;
     private boolean forReplication;
+    private boolean isMultiValueParam;
 
     /*
      * Create a String parameter.
@@ -32,36 +29,64 @@ public class ConfigParam {
     public ConfigParam(String configName,
                        String configDefault,
                        boolean mutable,
-                       boolean forReplication,
-                       String description)
+                       boolean forReplication)
         throws IllegalArgumentException {
-        name = configName;
+
+	if (configName == null) {
+	    name = null;
+	} else {
+
+	    /*
+	     * For Multi-Value params (i.e. those who's names end with ".#"),
+	     * strip the .# off the end of the name before storing and flag it
+	     * with isMultiValueParam=true.
+	     */
+	    int mvFlagIdx = configName.indexOf(".#");
+	    if (mvFlagIdx < 0) {
+		name = configName;
+		isMultiValueParam = false;
+	    } else {
+		name = configName.substring(0, mvFlagIdx);
+		isMultiValueParam = true;
+	    }
+	}
+
         defaultValue = configDefault;
         this.mutable = mutable;
-        this.description = description;
         this.forReplication = forReplication;
 
         /* Check that the name and default value are valid */
         validateName(configName);
         validateValue(configDefault);
 
-        /*
-         * Add it the list of supported environment parameters.
-         */
+        /* Add it the list of supported environment parameters. */
         EnvironmentParams.addSupportedParam(this);
+    }
+
+    /*
+     * Return the parameter name of a multi-value parameter.  e.g.
+     * "je.rep.remote.address.foo" => "je.rep.remote.address"
+     */
+    public static String multiValueParamName(String paramName) {
+	int mvParamIdx = paramName.lastIndexOf('.');
+	if (mvParamIdx < 0) {
+	    return null;
+	}
+	return paramName.substring(0, mvParamIdx);
+    }
+
+    /*
+     * Return the label of a multi-value parameter.  e.g.
+     * "je.rep.remote.address.foo" => foo.
+     */
+    public static String mvParamIndex(String paramName) {
+
+	int mvParamIdx = paramName.lastIndexOf('.');
+	return paramName.substring(mvParamIdx + 1);
     }
 
     public String getName() {
         return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String getExtraDescription() {
-        // None by default.
-        return null;
     }
 
     public String getDefault() {
@@ -80,6 +105,10 @@ public class ConfigParam {
         this.forReplication = forReplication;
     }
 	
+    public boolean isMultiValueParam() {
+	return isMultiValueParam;
+    }
+
     /**
      * Validate yourself.
      */
@@ -104,10 +133,12 @@ public class ConfigParam {
     }
 
     /*
-     * Validate your value. (No default validation for strings.
+     * Validate your value. (No default validation for strings.)
+     * May be overridden for (e.g.) Multi-value params.
      */
     public void validateValue(String value)
 	throws IllegalArgumentException {
+
     }
 
     public String toString() {

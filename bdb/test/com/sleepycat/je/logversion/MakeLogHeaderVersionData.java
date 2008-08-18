@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: MakeLogHeaderVersionData.java,v 1.7.2.1 2007/02/01 14:50:15 cwl Exp $
+ * $Id: MakeLogHeaderVersionData.java,v 1.10 2008/01/07 14:29:10 cwl Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -21,14 +21,14 @@ import com.sleepycat.je.util.TestUtils;
  * It was used to generate maxversion.jdb and minversion.jdb, and although it
  * may never need to be used again, below are instructions.
  *
- * <p>Before running this program change FileHeader.LOG_VERSION to
+ * <p>Before running this program change LogEntryType.LOG_VERSION to
  * Integer.MAX_VALUE or zero temporarily, just for creating a file with the
  * maximum or minimum version number.  A single command line argument is
  * required for the home directory.  After running this program rename the
  * 00000000.jdb file to maxversion.jdb or minversion.jdb file in the directory
  * of this source package.  When adding it to CVS make sure to use -kb since it
- * is a binary file.  Don't forget to change FileHeader.LOG_VERSION back to the
- * correct value.</p>
+ * is a binary file.  Don't forget to change LogEntryType.LOG_VERSION back to
+ * the correct value.</p>
  *
  * @see LogHeaderVersionTest
  */

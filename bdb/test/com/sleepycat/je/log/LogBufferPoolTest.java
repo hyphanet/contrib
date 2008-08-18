@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogBufferPoolTest.java,v 1.59.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: LogBufferPoolTest.java,v 1.66 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -78,7 +78,7 @@ public class LogBufferPoolTest extends TestCase {
              * Each buffer can only hold 2 items.  Put enough test items in to
              * get seven buffers.
              */
-            List lsns = new ArrayList();
+            List<Long> lsns = new ArrayList<Long>();
             for (int i = 0; i < 14; i++) {
                 long lsn = insertData(bufPool, (byte)(i + 1));
                 lsns.add(new Long(lsn));
@@ -96,7 +96,7 @@ public class LogBufferPoolTest extends TestCase {
                  * For each test LSN, ask the bufpool for the logbuffer that
                  * houses it.
                  */
-                long testLsn = DbLsn.longToLsn((Long) lsns.get(i));
+                long testLsn = DbLsn.longToLsn(lsns.get(i));
                 logBuf = bufPool.getReadBuffer(testLsn);
                 assertNotNull(logBuf);
 
@@ -163,12 +163,14 @@ public class LogBufferPoolTest extends TestCase {
             setupEnv(false);
             assertFalse("There should be no files", fileManager.filesExist());
 
+            fileManager.VERIFY_CHECKSUMS = false;
+
             /*
 	     * Each buffer can only hold 2 items. Put enough test items in to
 	     * get five buffers.
 	     */
 	    /* CWL: What is lsnList used for? */
-            List lsnList = new ArrayList();
+            List<Long> lsnList = new ArrayList<Long>();
             for (int i = 0; i < 9; i++) {
                 long lsn = insertData(bufPool, (byte)(i+1));
                 lsnList.add(new Long(lsn));
@@ -265,7 +267,10 @@ public class LogBufferPoolTest extends TestCase {
             envConfig.setConfigParam
 		(EnvironmentParams.LOG_MEMORY_ONLY.getName(), "true");
         }
-        environment = new EnvironmentImpl(envHome, envConfig);
+        environment = new EnvironmentImpl(envHome,
+                                          envConfig,
+                                          null /*sharedCacheEnv*/,
+                                          false /*replicationIntended*/);
 
         /* Make a standalone file manager for this test. */
         environment.close();

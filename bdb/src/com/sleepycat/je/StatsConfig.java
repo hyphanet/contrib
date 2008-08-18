@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: StatsConfig.java,v 1.13.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: StatsConfig.java,v 1.18 2008/01/24 14:59:27 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -11,13 +11,12 @@ package com.sleepycat.je;
 import java.io.PrintStream;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Specifies the attributes of a statistics retrieval operation.
  */
 public class StatsConfig {
-    /*
-     * For internal use, to allow null as a valid value for
-     * the config parameter.
+
+    /**
+     * A convenience instance embodying the default configuration.
      */
     public static final StatsConfig DEFAULT = new StatsConfig();
 
@@ -27,71 +26,89 @@ public class StatsConfig {
     private int showProgressInterval = 0;
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * An instance created using the default constructor is initialized with
+     * the system's default settings.
      */
     public StatsConfig() {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures the statistics operation to return only the values which do
+     * not incur some performance penalty.
+     *
+     * <p>The default value is false.</p>
+     *
+     * <p>For example, skip stats that require a traversal of the database or
+     * in-memory tree, or which lock down the lock table for a period of
+     * time.</p>
+     *
+     * @param fast If set to true, configure the statistics operation to return
+     * only the values which do not incur some performance penalty.
      */
     public void setFast(boolean fast) {
         this.fast = fast;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns true if the statistics operation is configured to return only
+     * the values which do not require expensive actions.
+     *
+     * @return true if the statistics operation is configured to return only
+     * the values which do not require expensive actions.
      */
     public boolean getFast() {
         return fast;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures the statistics operation to reset statistics after they are
+     * returned. The default value is false.
+     *
+     * @param clear If set to true, configure the statistics operation to
+     * reset statistics after they are returned.
      */
     public void setClear(boolean clear) {
         this.clear = clear;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns true if the statistics operation is configured to reset
+     * statistics after they are returned.
+     *
+     * @return true if the statistics operation is configured to reset
+     * statistics after they are returned.
      */
     public boolean getClear() {
         return clear;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures the statistics operation to display progress to the
+     * PrintStream argument.  The accumulated statistics will be displayed
+     * every N records, where N is the value of showProgressInterval.
      */
     public void setShowProgressStream(PrintStream showProgressStream) {
         this.showProgressStream = showProgressStream;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the PrintStream on which the progress messages will be displayed
+     * during long running statistics gathering operations.
      */
     public PrintStream getShowProgressStream() {
         return showProgressStream;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * When the statistics operation is configured to display progress the
+     * showProgressInterval is the number of LNs between each progress report.
      */
     public void setShowProgressInterval(int showProgressInterval) {
         this.showProgressInterval = showProgressInterval;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the showProgressInterval value, if set.
      */
     public int getShowProgressInterval() {
         return showProgressInterval;

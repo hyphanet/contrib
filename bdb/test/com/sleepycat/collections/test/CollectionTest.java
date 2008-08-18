@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CollectionTest.java,v 1.53.2.5 2007/12/15 01:04:06 mark Exp $
+ * $Id: CollectionTest.java,v 1.63 2008/05/28 14:50:07 mark Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -49,6 +49,8 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
 import com.sleepycat.util.ExceptionUnwrapper;
+import com.sleepycat.util.test.SharedTestUtils;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * @author Mark Hayes
@@ -152,7 +154,7 @@ public class CollectionTest extends TestCase {
     static Test suite(String[] args)
         throws Exception {
 
-        if ("true".equals(System.getProperty("longtest"))) {
+        if (SharedTestUtils.runLongTests()) {
             TestSuite suite = new TestSuite();
 
             /* StoredIterator tests. */
@@ -262,7 +264,7 @@ public class CollectionTest extends TestCase {
     public void runTest()
         throws Exception {
 
-        DbTestUtil.printTestName(DbTestUtil.qualifiedTestName(this));
+        SharedTestUtils.printTestName(SharedTestUtils.qualifiedTestName(this));
         try {
             env = testEnv.open(testName);
 
@@ -359,6 +361,8 @@ public class CollectionTest extends TestCase {
 
         assertEquals(index != null, cont.isSecondary());
         assertEquals(testStore.isOrdered(), cont.isOrdered());
+        assertEquals(testStore.areKeyRangesAllowed(),
+                     cont.areKeyRangesAllowed());
         assertEquals(testStore.areKeysRenumbered(), cont.areKeysRenumbered());
         assertEquals(testStore.areDuplicatesAllowed(),
                      cont.areDuplicatesAllowed());
@@ -370,11 +374,11 @@ public class CollectionTest extends TestCase {
         throws Exception {
 
         assertTrue(map.values() instanceof Set);
-        assertEquals(testStore.isOrdered(),
+        assertEquals(testStore.areKeyRangesAllowed(),
                      map.keySet() instanceof SortedSet);
-        assertEquals(testStore.isOrdered(),
+        assertEquals(testStore.areKeyRangesAllowed(),
                      map.entrySet() instanceof SortedSet);
-        assertEquals(testStore.isOrdered() && isEntityBinding,
+        assertEquals(testStore.areKeyRangesAllowed() && isEntityBinding,
                      map.values() instanceof SortedSet);
     }
 
@@ -382,7 +386,7 @@ public class CollectionTest extends TestCase {
         throws Exception {
 
         // create primary map
-        if (testStore.isOrdered()) {
+        if (testStore.areKeyRangesAllowed()) {
             if (isEntityBinding) {
                 smap = new StoredSortedMap(store, keyBinding,
                                            entityBinding,
@@ -439,7 +443,6 @@ public class CollectionTest extends TestCase {
         testCreation(map, 0);
         if (list != null) {
             testCreation(list, 0);
-            assertNotNull(smap);
         }
         testMapCreation(map);
         addAll();
@@ -475,7 +478,7 @@ public class CollectionTest extends TestCase {
         readAll();
 
         // create indexed map (keySet/valueSet)
-        if (testStore.isOrdered()) {
+        if (testStore.areKeyRangesAllowed()) {
             if (isEntityBinding) {
                 map = smap = new StoredSortedMap(index, keyBinding,
                                                  entityBinding, true);
@@ -515,8 +518,7 @@ public class CollectionTest extends TestCase {
                     list = new StoredList(index, valueBinding, true);
                 }
                 fail();
-            }
-            catch (IllegalArgumentException expected) {}
+            } catch (IllegalArgumentException expected) {}
         }
 
         testCreation(map, maxKey);
@@ -525,7 +527,6 @@ public class CollectionTest extends TestCase {
         testCreation((StoredContainer) map.entrySet(), maxKey);
         if (list != null) {
             testCreation(list, maxKey);
-            assertNotNull(smap);
         }
         testMapCreation(map);
         testAll();
@@ -611,6 +612,7 @@ public class CollectionTest extends TestCase {
             testCdbLocking();
         }
         removeAll();
+        testConcurrentMap();
         if (isListAddAllowed()) {
             testIterAddList();
             clearAll();
@@ -631,9 +633,9 @@ public class CollectionTest extends TestCase {
 
         // use bulk operations to check that explicitly constructed
         // keySet/valueSet are equivalent
-        assertTrue(imap.keySet().equals(keySet));
+        assertEquals(keySet, imap.keySet());
         if (valueSet != null) {
-            assertTrue(imap.values().equals(valueSet));
+            assertEquals(valueSet, imap.values());
         }
     }
 
@@ -781,13 +783,14 @@ public class CollectionTest extends TestCase {
                     for (int i = beginKey; i <= endKey; i += 1) {
                         assertTrue(iter.hasNext());
                         Object obj = iter.next();
-                        assertEquals(i, intIter(coll, obj));
+                        if (map.isOrdered()) {
+                            assertEquals(i, intIter(coll, obj));
+                        }
                         if (index != null) {
                             try {
                                 setValuePlusOne(iter, obj);
                                 fail();
-                            }
-                            catch (UnsupportedOperationException e) {}
+                            } catch (UnsupportedOperationException e) {}
                         } else if
                            (((StoredCollection) coll).areDuplicatesOrdered()) {
                             try {
@@ -802,12 +805,14 @@ public class CollectionTest extends TestCase {
                         } else {
                             setValuePlusOne(iter, obj);
                             /* Ensure iterator position is correct. */
-                            assertTrue(iter.hasPrevious());
-                            obj = iter.previous();
-                            assertEquals(i, intIter(coll, obj));
-                            assertTrue(iter.hasNext());
-                            obj = iter.next();
-                            assertEquals(i, intIter(coll, obj));
+                            if (map.isOrdered()) {
+                                assertTrue(iter.hasPrevious());
+                                obj = iter.previous();
+                                assertEquals(i, intIter(coll, obj));
+                                assertTrue(iter.hasNext());
+                                obj = iter.next();
+                                assertEquals(i, intIter(coll, obj));
+                            }
                         }
                     }
                     assertTrue(!iter.hasNext());
@@ -830,8 +835,7 @@ public class CollectionTest extends TestCase {
                     // must fail on attempt to change the key via an entity
                     entry.setValue(val);
                     fail();
-                }
-                catch (IllegalArgumentException e) {}
+                } catch (IllegalArgumentException e) {}
                 val = makeEntity(key.intValue(), key.intValue() + 1);
             }
             entry.setValue(val);
@@ -853,8 +857,7 @@ public class CollectionTest extends TestCase {
                     // must fail on attempt to change the key via an entity
                     iter.set(val);
                     fail();
-                }
-                catch (IllegalArgumentException e) {}
+                } catch (IllegalArgumentException e) {}
                 val = makeEntity(key.intValue(), key.intValue() + 1);
             }
             iter.set(val);
@@ -941,8 +944,9 @@ public class CollectionTest extends TestCase {
                 ListIterator iter;
 
                 /* Save contents. */
-                HashMap savedMap = new HashMap(map);
-                assertTrue(map.equals(savedMap));
+                HashMap<Object,Object> savedMap =
+                    new HashMap<Object,Object>(map);
+                assertEquals(savedMap, map);
 
                 /* Remove all moving forward. */
                 iter = (ListIterator) iterator(map.keySet());
@@ -960,7 +964,7 @@ public class CollectionTest extends TestCase {
 
                 /* Restore contents. */
                 imap.putAll(savedMap);
-                assertTrue(map.equals(savedMap));
+                assertEquals(savedMap, map);
 
                 /* Remove all moving backward. */
                 iter = (ListIterator) iterator(map.keySet());
@@ -981,7 +985,7 @@ public class CollectionTest extends TestCase {
 
                 /* Restore contents. */
                 imap.putAll(savedMap);
-                assertTrue(map.equals(savedMap));
+                assertEquals(savedMap, map);
 
                 int first = Math.max(1, beginKey);
                 int last = Math.min(maxKey, endKey);
@@ -1007,8 +1011,12 @@ public class CollectionTest extends TestCase {
                     }
 
                     /* Restore contents. */
-                    imap.putAll(savedMap);
-                    assertTrue(map.equals(savedMap));
+                    for (Map.Entry entry : savedMap.entrySet()) {
+                        if (!imap.entrySet().contains(entry)) {
+                            imap.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    assertEquals(savedMap, map);
                 }
 
                 /* Skip N backward, remove all from that point backward. */
@@ -1035,8 +1043,12 @@ public class CollectionTest extends TestCase {
                     }
 
                     /* Restore contents. */
-                    imap.putAll(savedMap);
-                    assertTrue(map.equals(savedMap));
+                    for (Map.Entry entry : savedMap.entrySet()) {
+                        if (!imap.entrySet().contains(entry)) {
+                            imap.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    assertEquals(savedMap, map);
                 }
             }
         });
@@ -1054,8 +1066,7 @@ public class CollectionTest extends TestCase {
                 Object val = makeVal(1);
                 i.set(val);
                 fail();
-            }
-            catch (IllegalStateException e) {}
+            } catch (IllegalStateException e) {}
         }
     }
 
@@ -1323,6 +1334,57 @@ public class CollectionTest extends TestCase {
                 for (int i = beginKey; i <= endKey; i += 1) {
                     int idx = i - beginKey;
                     assertNull(list.get(idx));
+                }
+            }
+        });
+    }
+
+    /**
+     * Tests ConcurentMap methods implemented by StordMap.  Starts with an
+     * empty DB and ends with an empty DB.  [#16218]
+     */
+    void testConcurrentMap()
+        throws Exception {
+
+        writeRunner.run(new TransactionWorker() {
+            public void doWork() throws Exception {
+                for (int i = beginKey; i <= endKey; i += 1) {
+                    Long key = makeKey(i);
+                    Object val = makeVal(i);
+                    Object valPlusOne = makeVal(i, i + 1);
+                    assertFalse(imap.containsKey(key));
+
+                    assertNull(imap.putIfAbsent(key, val));
+                    assertEquals(val, imap.get(key));
+
+                    assertEquals(val, imap.putIfAbsent(key, val));
+                    assertEquals(val, imap.get(key));
+
+                    if (!imap.areDuplicatesAllowed()) {
+                        assertEquals(val, imap.replace(key, valPlusOne));
+                        assertEquals(valPlusOne, imap.get(key));
+
+                        assertEquals(valPlusOne, imap.replace(key, val));
+                        assertEquals(val, imap.get(key));
+
+                        assertFalse(imap.replace(key, valPlusOne, val));
+                        assertEquals(val, imap.get(key));
+
+                        assertTrue(imap.replace(key, val, valPlusOne));
+                        assertEquals(valPlusOne, imap.get(key));
+
+                        assertTrue(imap.replace(key, valPlusOne, val));
+                        assertEquals(val, imap.get(key));
+                    }
+
+                    assertFalse(imap.remove(key, valPlusOne));
+                    assertTrue(imap.containsKey(key));
+
+                    assertTrue(imap.remove(key, val));
+                    assertFalse(imap.containsKey(key));
+
+                    assertNull(imap.replace(key, val));
+                    assertFalse(imap.containsKey(key));
                 }
             }
         });
@@ -2008,10 +2070,10 @@ public class CollectionTest extends TestCase {
                          i += 1) {
                     hmap.put(makeKey(i), makeVal(i));
                 }
-                assertTrue(map.equals(hmap));
-                assertTrue(map.entrySet().equals(hmap.entrySet()));
-                assertTrue(map.keySet().equals(hmap.keySet()));
-                assertTrue(map.values().equals(hmap.values()));
+                assertEquals(hmap, map);
+                assertEquals(hmap.entrySet(), map.entrySet());
+                assertEquals(hmap.keySet(), map.keySet());
+                assertEquals(map.values(), hmap.values());
 
                 assertTrue(map.entrySet().containsAll(hmap.entrySet()));
                 assertTrue(map.keySet().containsAll(hmap.keySet()));
@@ -2020,7 +2082,7 @@ public class CollectionTest extends TestCase {
                 map.clear();
                 assertTrue(map.isEmpty());
                 imap.putAll(hmap);
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
 
                 assertTrue(map.entrySet().removeAll(hmap.entrySet()));
                 assertTrue(map.entrySet().isEmpty());
@@ -2028,14 +2090,14 @@ public class CollectionTest extends TestCase {
                 assertTrue(imap.entrySet().addAll(hmap.entrySet()));
                 assertTrue(map.entrySet().containsAll(hmap.entrySet()));
                 assertTrue(!imap.entrySet().addAll(hmap.entrySet()));
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
 
                 assertTrue(!map.entrySet().retainAll(hmap.entrySet()));
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
                 assertTrue(map.entrySet().retainAll(Collections.EMPTY_SET));
                 assertTrue(map.isEmpty());
                 imap.putAll(hmap);
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
 
                 assertTrue(map.values().removeAll(hmap.values()));
                 assertTrue(map.values().isEmpty());
@@ -2047,14 +2109,14 @@ public class CollectionTest extends TestCase {
                 } else {
                     imap.putAll(hmap);
                 }
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
 
                 assertTrue(!map.values().retainAll(hmap.values()));
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
                 assertTrue(map.values().retainAll(Collections.EMPTY_SET));
                 assertTrue(map.isEmpty());
                 imap.putAll(hmap);
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
 
                 assertTrue(map.keySet().removeAll(hmap.keySet()));
                 assertTrue(map.keySet().isEmpty());
@@ -2068,14 +2130,14 @@ public class CollectionTest extends TestCase {
                 // restore values to non-null
                 imap.keySet().removeAll(hmap.keySet());
                 imap.putAll(hmap);
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
 
                 assertTrue(!map.keySet().retainAll(hmap.keySet()));
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
                 assertTrue(map.keySet().retainAll(Collections.EMPTY_SET));
                 assertTrue(map.isEmpty());
                 imap.putAll(hmap);
-                assertTrue(map.equals(hmap));
+                assertEquals(hmap, map);
             }
         });
     }
@@ -2090,24 +2152,24 @@ public class CollectionTest extends TestCase {
                     alist.add(makeVal(i));
                 }
 
-                assertTrue(list.equals(alist));
+                assertEquals(alist, list);
                 assertTrue(list.containsAll(alist));
 
                 if (isListAddAllowed()) {
                     list.clear();
                     assertTrue(list.isEmpty());
                     assertTrue(ilist.addAll(alist));
-                    assertTrue(list.equals(alist));
+                    assertEquals(alist, list);
                 }
 
                 assertTrue(!list.retainAll(alist));
-                assertTrue(list.equals(alist));
+                assertEquals(alist, list);
 
                 if (isListAddAllowed()) {
                     assertTrue(list.retainAll(Collections.EMPTY_SET));
                     assertTrue(list.isEmpty());
                     assertTrue(ilist.addAll(alist));
-                    assertTrue(list.equals(alist));
+                    assertEquals(alist, list);
                 }
 
                 if (isListAddAllowed() && !isEntityBinding) {
@@ -2119,7 +2181,7 @@ public class CollectionTest extends TestCase {
                     assertTrue(!list.removeAll(alist));
                     assertTrue(ilist.addAll(alist));
                     assertTrue(list.containsAll(alist));
-                    assertTrue(list.equals(alist));
+                    assertEquals(alist, list);
                 }
 
                 if (isListAddAllowed() && !isEntityBinding) {
@@ -2132,7 +2194,7 @@ public class CollectionTest extends TestCase {
                     assertEquals(2 * alist.size(), countElements(list));
                     for (int i = beginKey; i <= endKey; i += 1)
                         ilist.remove(beginKey);
-                    assertTrue(list.equals(alist));
+                    assertEquals(alist, list);
 
                     // addAll at last index
                     ilist.addAll(endKey, alist);
@@ -2140,7 +2202,7 @@ public class CollectionTest extends TestCase {
                     assertEquals(2 * alist.size(), countElements(list));
                     for (int i = beginKey; i <= endKey; i += 1)
                         ilist.remove(endKey);
-                    assertTrue(list.equals(alist));
+                    assertEquals(alist, list);
 
                     // addAll in the middle
                     ilist.addAll(endKey - 1, alist);
@@ -2148,7 +2210,7 @@ public class CollectionTest extends TestCase {
                     assertEquals(2 * alist.size(), countElements(list));
                     for (int i = beginKey; i <= endKey; i += 1)
                         ilist.remove(endKey - 1);
-                    assertTrue(list.equals(alist));
+                    assertEquals(alist, list);
                 }
             }
         });
@@ -2316,8 +2378,7 @@ public class CollectionTest extends TestCase {
             try {
                 smap.tailMap(makeKey(rangeBegin - 1));
                 fail();
-            }
-            catch (IllegalArgumentException e) { }
+            } catch (IllegalArgumentException e) { }
             checkDupsSize(0, smap.duplicates(makeKey(rangeBegin - 1)));
         }
 
@@ -2348,14 +2409,12 @@ public class CollectionTest extends TestCase {
             try {
                 sset.tailSet(makeKey(rangeBegin - 1));
                 fail();
-            }
-            catch (IllegalArgumentException e) { }
+            } catch (IllegalArgumentException e) { }
             try {
                 iterator(sset.subSet(makeKey(rangeBegin - 1),
                                      makeKey(rangeBegin)));
                 fail();
-            }
-            catch (IllegalArgumentException e) { }
+            } catch (IllegalArgumentException e) { }
         }
 
         // entrySet
@@ -2390,8 +2449,7 @@ public class CollectionTest extends TestCase {
                 iterator(sset.subSet(mapEntry(rangeBegin - 1),
                                      mapEntry(rangeBegin)));
                 fail();
-            }
-            catch (IllegalArgumentException e) { }
+            } catch (IllegalArgumentException e) { }
         }
 
         // values
@@ -2418,8 +2476,7 @@ public class CollectionTest extends TestCase {
                 try {
                     sset.tailSet(makeVal(rangeBegin - 1));
                     fail();
-                }
-                catch (IllegalArgumentException e) { }
+                } catch (IllegalArgumentException e) { }
             }
         }
 
@@ -2442,8 +2499,7 @@ public class CollectionTest extends TestCase {
             try {
                 list.subList(size, size);
                 fail();
-            }
-            catch (IndexOutOfBoundsException e) { }
+            } catch (IndexOutOfBoundsException e) { }
         }
     }
 
@@ -2487,8 +2543,7 @@ public class CollectionTest extends TestCase {
             try {
                 list.add(i, makeVal(badNewKey));
                 fail();
-            }
-            catch (UnsupportedOperationException e) {
+            } catch (UnsupportedOperationException e) {
             }
         }
     }

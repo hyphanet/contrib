@@ -1,15 +1,16 @@
-/*-
+ /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogManagerTest.java,v 1.68.2.4 2007/12/13 00:12:11 cwl Exp $
+ * $Id: LogManagerTest.java,v 1.85 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.log;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,14 +46,14 @@ public class LogManagerTest extends TestCase {
     }
 
     public void setUp()
-	throws DatabaseException, IOException  {
+        throws DatabaseException, IOException  {
 
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
         TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
     }
 
     public void tearDown()
-	throws IOException, DatabaseException {
+        throws IOException, DatabaseException {
 
         TestUtils.removeFiles("TearDown", envHome, FileManager.JE_SUFFIX);
     }
@@ -61,16 +62,19 @@ public class LogManagerTest extends TestCase {
      * Log and retrieve objects, with log in memory
      */
     public void testBasicInMemory()
-	throws DatabaseException {
+        throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-	DbInternal.disableParameterValidation(envConfig);
+        DbInternal.disableParameterValidation(envConfig);
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
         envConfig.setConfigParam
-	    (EnvironmentParams.LOG_FILE_MAX.getName(), "1000");
-
+            (EnvironmentParams.LOG_FILE_MAX.getName(), "1000");
+        turnOffDaemons(envConfig);
         envConfig.setAllowCreate(true);
-        env = new EnvironmentImpl(envHome, envConfig);
+        env = new EnvironmentImpl(envHome,
+                                  envConfig,
+                                  null /*sharedCacheEnv*/,
+                                  false /*replicationIntended*/);
         fileManager = env.getFileManager();
         logManager = env.getLogManager();
 
@@ -82,7 +86,7 @@ public class LogManagerTest extends TestCase {
      * Log and retrieve objects, with log completely flushed to disk
      */
     public void testBasicOnDisk()
-	throws Throwable {
+        throws Throwable {
 
         try {
 
@@ -92,10 +96,10 @@ public class LogManagerTest extends TestCase {
              * only holds one test item (each test item is 50 bytes).
              */
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-	    DbInternal.disableParameterValidation(envConfig);
+            DbInternal.disableParameterValidation(envConfig);
             envConfig.setConfigParam(
                             EnvironmentParams.LOG_MEM_SIZE.getName(),
-			    EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
+                            EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
             envConfig.setConfigParam(
                             EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
             envConfig.setConfigParam(
@@ -103,7 +107,7 @@ public class LogManagerTest extends TestCase {
             envConfig.setConfigParam(
                             EnvironmentParams.NODE_MAX.getName(), "6");
             envConfig.setConfigParam
-		(EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
+                (EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
 
             /* Disable noisy UtilizationProfile database creation. */
             DbInternal.setCreateUP(envConfig, false);
@@ -121,9 +125,12 @@ public class LogManagerTest extends TestCase {
             envConfig.setAllowCreate(true);
 
             /*
-	     * Recreate the file manager and log manager w/different configs.
-	     */
-            env = new EnvironmentImpl(envHome, envConfig);
+             * Recreate the file manager and log manager w/different configs.
+             */
+            env = new EnvironmentImpl(envHome,
+                                      envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
             fileManager = env.getFileManager();
             logManager = env.getLogManager();
 
@@ -148,7 +155,7 @@ public class LogManagerTest extends TestCase {
      * in memory.
      */
     public void testComboDiskMemory()
-	throws Throwable {
+        throws Throwable {
 
         try {
 
@@ -158,16 +165,16 @@ public class LogManagerTest extends TestCase {
              * only holds one test item (each test item is 50 bytes)
              */
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-	DbInternal.disableParameterValidation(envConfig);
+            DbInternal.disableParameterValidation(envConfig);
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_MEM_SIZE.getName(),
-		 EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
+                (EnvironmentParams.LOG_MEM_SIZE.getName(),
+                 EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
             envConfig.setConfigParam
-		(EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
+                (EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
             envConfig.setConfigParam
-		(EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
+                (EnvironmentParams.JE_LOGGING_LEVEL.getName(), "CONFIG");
             envConfig.setConfigParam(EnvironmentParams.LOG_FILE_MAX.getName(),
-                                     "142");
+                                     "64");
             envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(),
                                      "6");
 
@@ -186,18 +193,38 @@ public class LogManagerTest extends TestCase {
             turnOffDaemons(envConfig);
             envConfig.setAllowCreate(true);
 
-            env = new EnvironmentImpl(envHome, envConfig);
+            env = new EnvironmentImpl(envHome,
+                                      envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
             fileManager = env.getFileManager();
             logManager = env.getLogManager();
 
             logAndRetrieve();
 
             /*
-	     * Expect 8 je files, 3 for records, 1 for root, 2 for recovery
-             * message, 2 for checkpoints.
-	     */
+             * Expect 13 je files:
+             * trace
+             * root
+             * ckptstart
+             * trace
+             * ckptend
+             * trace
+             * trace trace
+             * trace trace
+             * trace trace
+             * trace trace
+             * ckptstart
+             * trace
+             * ckptend
+             *
+             * This is based on a manual perusal of the log files and their
+             * contents. Changes in the sizes of log entries can throw this
+             * test off, and require that a check and a change to the assertion
+             * value.
+             */
             String[] names = fileManager.listFiles(FileManager.JE_SUFFIXES);
-            assertEquals("Should be 8 files on disk", 8, names.length);
+            assertEquals("Should be 13 files on disk", 13, names.length);
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -211,7 +238,7 @@ public class LogManagerTest extends TestCase {
      * of log in memory. Force the read buffer to be very small
      */
     public void testFaultingIn()
-	throws Throwable {
+        throws Throwable {
 
         try {
 
@@ -222,20 +249,23 @@ public class LogManagerTest extends TestCase {
              * test item is 50 bytes)
              */
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-	    DbInternal.disableParameterValidation(envConfig);
+            DbInternal.disableParameterValidation(envConfig);
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_MEM_SIZE.getName(),
-		 EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
+                (EnvironmentParams.LOG_MEM_SIZE.getName(),
+                 EnvironmentParams.LOG_MEM_SIZE_MIN_STRING);
             envConfig.setConfigParam
-		(EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
+                (EnvironmentParams.NUM_LOG_BUFFERS.getName(), "2");
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_FILE_MAX.getName(), "200");
+                (EnvironmentParams.LOG_FILE_MAX.getName(), "200");
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_FAULT_READ_SIZE.getName(), "32");
+                (EnvironmentParams.LOG_FAULT_READ_SIZE.getName(), "32");
             envConfig.setConfigParam
-		(EnvironmentParams.NODE_MAX.getName(), "6");
+                (EnvironmentParams.NODE_MAX.getName(), "6");
             envConfig.setAllowCreate(true);
-            env = new EnvironmentImpl(envHome, envConfig);
+            env = new EnvironmentImpl(envHome,
+                                      envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
             fileManager = env.getFileManager();
             logManager = env.getLogManager();
 
@@ -252,20 +282,19 @@ public class LogManagerTest extends TestCase {
      * Log several objects, retrieve them.
      */
     private void logAndRetrieve()
-	throws DatabaseException {
+        throws DatabaseException {
 
         /* Make test loggable objects. */
-
-        List testRecs = new ArrayList();
+        List<Tracer> testRecs = new ArrayList<Tracer>();
         for (int i = 0; i < 10; i++) {
             testRecs.add(new Tracer("Hello there, rec " + (i+1)));
         }
 
         /* Log three of them, remember their LSNs. */
-        List testLsns = new ArrayList();
+        List<Long> testLsns = new ArrayList<Long>();
 
         for (int i = 0; i < 3; i++) {
-            long lsn = ((Tracer)testRecs.get(i)).log(logManager);
+            long lsn = testRecs.get(i).log(logManager);
             if (DEBUG) {
                 System.out.println("i = " + i + " test LSN: file = " +
                                    DbLsn.getFileNumber(lsn) +
@@ -276,41 +305,61 @@ public class LogManagerTest extends TestCase {
         }
 
         /* Ask for them back, out of order. */
-        assertEquals((Tracer) testRecs.get(2),
+        assertEquals(testRecs.get(2),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(2))));
-        assertEquals((Tracer) testRecs.get(0),
+                     (DbLsn.longToLsn(testLsns.get(2))));
+        assertEquals(testRecs.get(0),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(0))));
-        assertEquals((Tracer) testRecs.get(1),
+                     (DbLsn.longToLsn(testLsns.get(0))));
+        assertEquals(testRecs.get(1),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(1))));
+                     (DbLsn.longToLsn(testLsns.get(1))));
 
         /* Intersperse logging and getting. */
-        testLsns.add(new Long(((Tracer)testRecs.get(3)).log(logManager)));
-        testLsns.add(new Long(((Tracer)testRecs.get(4)).log(logManager)));
+        testLsns.add(new Long(testRecs.get(3).log(logManager)));
+        testLsns.add(new Long(testRecs.get(4).log(logManager)));
 
-        assertEquals((Tracer) testRecs.get(2),
+        assertEquals(testRecs.get(2),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(2))));
-        assertEquals((Tracer) testRecs.get(4),
+                     (DbLsn.longToLsn(testLsns.get(2))));
+        assertEquals(testRecs.get(4),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(4))));
+                     (DbLsn.longToLsn(testLsns.get(4))));
 
         /* Intersperse logging and getting. */
-        testLsns.add(new Long(((Tracer)testRecs.get(5)).log(logManager)));
-        testLsns.add(new Long(((Tracer)testRecs.get(6)).log(logManager)));
-        testLsns.add(new Long(((Tracer)testRecs.get(7)).log(logManager)));
+        testLsns.add(new Long(testRecs.get(5).log(logManager)));
+        testLsns.add(new Long(testRecs.get(6).log(logManager)));
+        testLsns.add(new Long(testRecs.get(7).log(logManager)));
 
-        assertEquals((Tracer) testRecs.get(7),
+        assertEquals(testRecs.get(7),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(7))));
-        assertEquals((Tracer) testRecs.get(0),
+                     (DbLsn.longToLsn(testLsns.get(7))));
+        assertEquals(testRecs.get(0),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(0))));
-        assertEquals((Tracer) testRecs.get(6),
+                     (DbLsn.longToLsn(testLsns.get(0))));
+        assertEquals(testRecs.get(6),
                      (Tracer) logManager.get
-		     (DbLsn.longToLsn((Long) testLsns.get(6))));
+                     (DbLsn.longToLsn(testLsns.get(6))));
+
+        /*
+         * Check that we can retrieve log entries as byte buffers, and get the
+         * correct object back. Used by replication.
+         */
+        long lsn = testLsns.get(7).longValue();
+        ByteBuffer buffer = logManager.getByteBufferFromLog(lsn);
+
+        LogUtils.HeaderAndEntry contents =
+            LogUtils.readHeaderAndEntry(buffer,
+                                        null,  // envImpl
+                                        false,  // anticipateChecksumError
+                                        true); // readFullItem
+
+        assertEquals(testRecs.get(7),
+                     (Tracer) contents.entry.getMainItem());
+        assertEquals(LogEntryType.LOG_TRACE.getTypeNum(),
+                     contents.header.getType());
+        assertEquals(LogEntryType.LOG_VERSION,
+                     contents.header.getVersion());
     }
 
     private void turnOffDaemons(EnvironmentConfig envConfig) {
@@ -334,7 +383,7 @@ public class LogManagerTest extends TestCase {
      * locations on disk.
      */
     public void testExceptions()
-	throws Throwable {
+        throws Throwable {
 
         int logBufferSize = ((int) EnvironmentParams.LOG_MEM_SIZE_MIN) / 3;
         int numLogBuffers = 5;
@@ -344,19 +393,19 @@ public class LogManagerTest extends TestCase {
 
         try {
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-	    DbInternal.disableParameterValidation(envConfig);
+            DbInternal.disableParameterValidation(envConfig);
             envConfig.setConfigParam(EnvironmentParams.LOG_MEM_SIZE.getName(),
                                      new Integer(logBufferMemSize).toString());
             envConfig.setConfigParam
-		(EnvironmentParams.NUM_LOG_BUFFERS.getName(),
-		 new Integer(numLogBuffers).toString());
+                (EnvironmentParams.NUM_LOG_BUFFERS.getName(),
+                 new Integer(numLogBuffers).toString());
             envConfig.setConfigParam
-		(EnvironmentParams.LOG_FILE_MAX.getName(),
-		 new Integer(logFileMax).toString());
+                (EnvironmentParams.LOG_FILE_MAX.getName(),
+                 new Integer(logFileMax).toString());
             envConfig.setConfigParam(
                             EnvironmentParams.NODE_MAX.getName(), "6");
             envConfig.setConfigParam
-		(EnvironmentParams.JE_LOGGING_LEVEL.getName(), "SEVERE");
+                (EnvironmentParams.JE_LOGGING_LEVEL.getName(), "SEVERE");
 
             /* Disable noisy UtilizationProfile database creation. */
             DbInternal.setCreateUP(envConfig, false);
@@ -372,13 +421,16 @@ public class LogManagerTest extends TestCase {
              */
             turnOffDaemons(envConfig);
             envConfig.setAllowCreate(true);
-            env = new EnvironmentImpl(envHome, envConfig);
+            env = new EnvironmentImpl(envHome,
+                                      envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
             fileManager = env.getFileManager();
             logManager = env.getLogManager();
 
             /* Keep track of items logged and their LSNs. */
-            ArrayList testRecs = new ArrayList();
-            ArrayList testLsns = new ArrayList();
+            ArrayList<Tracer> testRecs = new ArrayList<Tracer>();
+            ArrayList<Long> testLsns = new ArrayList<Long>();
 
             /*
              * Intersperse:
@@ -416,7 +468,7 @@ public class LogManagerTest extends TestCase {
 
                 if ((okCounter % 4) == 0) {
                     attemptTooBigItem(logManager, logBufferSize,
-				      testRecs, testLsns);
+                                      testRecs, testLsns);
                 }
                 /*
                  * If we verify in the loop, sometimes we'll read from disk and
@@ -460,7 +512,10 @@ public class LogManagerTest extends TestCase {
              */
             env.close();
             envConfig.setAllowCreate(false);
-            env = new EnvironmentImpl(envHome, envConfig);
+            env = new EnvironmentImpl(envHome,
+                                      envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
             fileManager = env.getFileManager();
             logManager = env.getLogManager();
             verifyOkayItems(logManager, testRecs, testLsns, false);
@@ -482,8 +537,8 @@ public class LogManagerTest extends TestCase {
 
     private void addOkayItem(LogManager logManager,
                              int tag,
-                             List testRecs,
-                             List testLsns,
+                             List<Tracer> testRecs,
+                             List<Long> testLsns,
                              int logBufferSize,
                              int fillerLen)
         throws DatabaseException {
@@ -498,8 +553,8 @@ public class LogManagerTest extends TestCase {
 
     private void addOkayItem(LogManager logManager,
                              int tag,
-                             List testRecs,
-                             List testLsns,
+                             List<Tracer> testRecs,
+                             List<Long> testLsns,
                              int logBufferSize)
         throws DatabaseException {
 
@@ -509,34 +564,35 @@ public class LogManagerTest extends TestCase {
     private void attemptTooBigItem(LogManager logManager,
                                    int logBufferSize,
                                    Tracer big,
-				   List testRecs,
-				   List testLsns) {
+                                   List<Tracer> testRecs,
+                                   List<Long> testLsns) {
         assertTrue(big.getLogSize() > logBufferSize);
 
         try {
             long lsn = big.log(logManager);
-	    testLsns.add(new Long(lsn));
-	    testRecs.add(big);
+            testLsns.add(new Long(lsn));
+            testRecs.add(big);
         } catch (DatabaseException expected) {
             fail("Should not have hit exception.");
         }
     }
+
     private void attemptTooBigItem(LogManager logManager,
                                    int logBufferSize,
-				   List testRecs,
-				   List testLsns) {
+                                   List<Tracer> testRecs,
+                                   List<Long> testLsns) {
         String stuff = "12345679890123456798901234567989012345679890";
-	while (stuff.length() < EnvironmentParams.LOG_MEM_SIZE_MIN) {
-	    stuff += stuff;
-	}
+        while (stuff.length() < EnvironmentParams.LOG_MEM_SIZE_MIN) {
+            stuff += stuff;
+        }
         Tracer t = new Tracer(stuff);
         attemptTooBigItem(logManager, logBufferSize, t, testRecs, testLsns);
     }
 
     private void attemptIOException(LogManager logManager,
                                     FileManager fileManager,
-                                    List testRecs,
-                                    List testLsns,
+                                    List<Tracer> testRecs,
+                                    List<Long> testLsns,
                                     boolean forceFlush) {
         Tracer t = new Tracer("ioException");
         FileManager.IO_EXCEPTION_TESTING_ON_WRITE = true;
@@ -551,9 +607,10 @@ public class LogManagerTest extends TestCase {
                testLsns.add(new Long(fileManager.getNextLsn()));
                testRecs.add(t);
             */
-            logManager.logForceFlush(
-                           new SingleItemEntry(LogEntryType.LOG_TRACE, t),
-                           true);
+            logManager.logForceFlush
+                (new SingleItemEntry(LogEntryType.LOG_TRACE, t),
+                 true,  // fsyncRequired
+                 ReplicationContext.NO_REPLICATE);
             fail("expect io exception");
         } catch (DatabaseException expected) {
         } finally {
@@ -562,16 +619,16 @@ public class LogManagerTest extends TestCase {
     }
 
     private void verifyOkayItems(LogManager logManager,
-                                 ArrayList testRecs,
-                                 ArrayList testLsns,
+                                 ArrayList<Tracer> testRecs,
+                                 ArrayList<Long> testLsns,
                                  boolean checkOrder)
         throws DatabaseException {
 
         /* read forwards. */
         for (int i = 0; i < testRecs.size(); i++) {
-            assertEquals((Tracer) testRecs.get(i),
+            assertEquals(testRecs.get(i),
                          (Tracer) logManager.get
-                         (DbLsn.longToLsn((Long) testLsns.get(i))));
+                         (DbLsn.longToLsn(testLsns.get(i))));
 
         }
 
@@ -581,26 +638,26 @@ public class LogManagerTest extends TestCase {
         if (checkOrder) {
 
             /*
-	     * TODO: sometimes an ioexception entry will make it into the write
-	     * buffer, and sometimes it won't. It depends on whether the IO
-	     * exception was thrown when before or after the logabble item was
-	     * written into the buffer.  I haven't figure out yet how to tell
-	     * the difference, so for now, we don't check order in the portion
-	     * of the test that issues IO exceptions.
+             * TODO: sometimes an ioexception entry will make it into the write
+             * buffer, and sometimes it won't. It depends on whether the IO
+             * exception was thrown when before or after the logabble item was
+             * written into the buffer.  I haven't figure out yet how to tell
+             * the difference, so for now, we don't check order in the portion
+             * of the test that issues IO exceptions.
              */
             for (int i = 1; i < testLsns.size(); i++) {
 
-                long lsn = ((Long) testLsns.get(i)).longValue();
+                long lsn = testLsns.get(i).longValue();
                 long lsnFile = DbLsn.getFileNumber(lsn);
                 long lsnOffset = DbLsn.getFileOffset(lsn);
-                long prevLsn = ((Long) testLsns.get(i-1)).longValue();
+                long prevLsn = testLsns.get(i-1).longValue();
                 long prevFile = DbLsn.getFileNumber(prevLsn);
                 long prevOffset = DbLsn.getFileOffset(prevLsn);
                 if (prevFile == lsnFile) {
                     assertEquals("item " + i + "prev = " +
                                  DbLsn.toString(prevLsn) +
                                  " current=" + DbLsn.toString(lsn),
-                                 (((Tracer) testRecs.get(i-1)).getLogSize() +
+                                 (testRecs.get(i-1).getLogSize() +
                                   LogEntryHeader.MIN_HEADER_SIZE),
                                  lsnOffset - prevOffset);
                 } else {
@@ -613,9 +670,9 @@ public class LogManagerTest extends TestCase {
 
         /* read backwards. */
         for (int i = testRecs.size() - 1; i > -1; i--) {
-            assertEquals((Tracer) testRecs.get(i),
+            assertEquals(testRecs.get(i),
                          (Tracer) logManager.get
-                         (DbLsn.longToLsn((Long) testLsns.get(i))));
+                         (DbLsn.longToLsn(testLsns.get(i))));
 
         }
     }

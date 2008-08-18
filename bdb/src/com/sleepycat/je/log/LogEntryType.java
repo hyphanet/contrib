@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogEntryType.java,v 1.76.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: LogEntryType.java,v 1.99 2008/05/27 15:30:35 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -17,23 +17,81 @@ import com.sleepycat.je.log.entry.DeletedDupLNLogEntry;
 import com.sleepycat.je.log.entry.INLogEntry;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.log.entry.LogEntry;
+import com.sleepycat.je.log.entry.NameLNLogEntry;
 import com.sleepycat.je.log.entry.SingleItemEntry;
 
 /**
  * LogEntryType is an  enumeration of all log entry types.
  *
- * <p>When adding a new version of a log entry type, make sure the
- * corresponding LogEntry instance is capable of reading in older versions from
- * the log. The LogEntry instance must be sure that older versions are
- * converted in memory into a correct instance of the newest version, so when
- * that LogEntry object is written again as the result of migration, eviction,
- * the resulting new log entry conforms to the requirements of the new version.
- * If context objects are required for data conversion, the conversion can be
- * done in the Node.postFetchInit method.</p>
+ * <p>Log entries are versioned. When changing the persistent form of a log
+ * entry in any way that is incompatible with prior releases, make sure the
+ * LogEntry instance is capable of reading in older versions from the log and
+ * be sure to increment LOG_VERSION.  The LogEntry.readEntry and
+ * Loggable.readFromLog methods should check the actual version of the entry.
+ * If it is less than LOG_VERSION, the old version should be converted to the
+ * current version.
+ *
+ * <p>Prior to LOG_VERSION 6, each log entry type had a separate version number
+ * that was incremented only when that log version changed.  From LOG_VERSION 6
+ * onward, all types use the same version, the LOG_VERSION constant.  For
+ * versions prior to 6, the readEntry and readFromLog methods will be checking
+ * the old per-type version.  There is no overlap between the old per-type
+ * versions and the LOG_VERSION values, because the per-type values are all
+ * below 6. [#15365]</p>
+
+ * <p>The LogEntry instance must be sure that older versions are converted in
+ * memory into a correct instance of the newest version, so when that LogEntry
+ * object is written again as the result of migration, eviction, the resulting
+ * new log entry conforms to the requirements of the new version.  If context
+ * objects are required for data conversion, the conversion can be done in the
+ * Node.postFetchInit method.</p>
  */
 public class LogEntryType {
 
-    /* w
+    /**
+     * Version of the file header, which identifies the version of all entries
+     * in that file.
+     *
+     * Changes to log entries for each version are:
+     *
+     * Version 3
+     * ---------
+     * [12328] Add main and dupe tree fanout values for DatabaseImpl.
+     * [12557] Add IN LSN array compression.
+     * [11597] Add a change to FileSummaryLNs: obsolete offset tracking was
+     * added and multiple records are stored for a single file rather than a
+     * single record.  Each record contains the offsets that were tracked since
+     * the last record was written.
+     * [11597] Add the full obsolete LSN in LNLogEntry.
+     *
+     * Version 4
+     * ---------
+     * [#14422] Bump MapLN version from 1 to 2.  Instead of a String for the
+     * comparator class name, store either a serialized string or Comparator.
+     *
+     * Version 5
+     * ---------
+     * [#15195] FileSummaryLN version 3.  Add FileSummary.obsoleteLNSize and
+     * obsoleteLNSizeCounted fields.
+     *
+     * Version 6 (in JE 3.3.X)
+     * ---------
+     * [#15365] From this point onward, all log entries have the same version,
+     * LOG_VERSION, rather than using per-type versions.
+     * [#15365] DatabaseImpl stores a map of DbFileSummaries.
+     *
+     * [#13467] Convert duplicatesAllowed boolean to DUPS_ALLOWED_BIT flag in
+     * DatabaseImpl. Add REPLICATED_BIT flag to DatabaseImpl.
+     * [#13467] Add REPLICATED_BIT to DbTree.
+     * [#13467] Add ReplicatedDatabaseConfig to NameLN_TX to support
+     * replication of database operations.
+     *
+     * [#15581] Add lastAllocateReplicatedDbId to DbTree
+     * [#16083] Add replication master node id to txn commit/abort 
+     */
+    public static final byte LOG_VERSION = 6;
+
+    /*
      * Collection of log entry type classes, used to read the log.  Note that
      * this must be declared before any instances of LogEntryType, since the
      * constructor uses this map. Each statically defined LogEntryType should
@@ -50,129 +108,121 @@ public class LogEntryType {
      * replicated bit.
      *
      *  Log type (8 bits)
-     * (Provisional (1 bit) Replicated (1 bit) Version (6 bits)
+     * (Provisional (2 bits) Replicated (1 bit) Version (6 bits)
      *
      * The top byte (log type) identifies the type and can be used to
      * lookup the LogEntryType object, while the bottom byte has
      * information about the entry (instance) of this type.  The bottom
      * byte is effectively entry header information that is common to
-     * all types and is managed by static methods in this class.
-     *
-     * The provisional bit can be set for any log type in the log. It's an
-     * indication to recovery that the entry shouldn't be processed when
-     * rebuilding the tree. It's used to ensure the atomic logging of multiple
-     * entries.
-     *
-     * The replicated bit should only be set for log types where
-     * isTypeReplicated is true. This means that this particular log entry
-     * did get broadcast to the replication group, and bears a VLSN tag.
+     * all types and is managed by methods in LogEntryHeader. See
+     * LogEntryHeader.java
      */
 
     /*  Node types */
     public static final LogEntryType LOG_LN_TRANSACTIONAL =
-        new LogEntryType((byte) 1, (byte) 0, "LN_TX",
+        new LogEntryType((byte) 1, "LN_TX",
                          new LNLogEntry(com.sleepycat.je.tree.LN.class),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         true); // isTypeReplicated
+                         Txnal.TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_NO_MATCH);
 
     public static final LogEntryType LOG_LN =
-        new LogEntryType((byte) 2, (byte) 0, "LN",
+        new LogEntryType((byte) 2, "LN",
                          new LNLogEntry(com.sleepycat.je.tree.LN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_NO_MATCH);
 
     public static final LogEntryType LOG_MAPLN_TRANSACTIONAL =
-        new LogEntryType((byte) 3, (byte) 2, "MapLN_TX",
+        new LogEntryType((byte) 3, "MapLN_TX",
                          new LNLogEntry(com.sleepycat.je.tree.MapLN.class),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         true); // isTypeReplicated
+                         Txnal.TXNAL,
+                         Marshall.INSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_MAPLN =
-        new LogEntryType((byte) 4, (byte) 2, "MapLN",
+        new LogEntryType((byte) 4, "MapLN",
                          new LNLogEntry(com.sleepycat.je.tree.MapLN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.INSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_NAMELN_TRANSACTIONAL =
-        new LogEntryType((byte) 5, (byte) 0, "NameLN_TX",
-                         new LNLogEntry(com.sleepycat.je.tree.NameLN.class),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         true); // isTypeReplicated
+        new LogEntryType((byte) 5, "NameLN_TX",
+                         new NameLNLogEntry(),
+                         Txnal.TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_NO_MATCH);
 
     public static final LogEntryType LOG_NAMELN =
-        new LogEntryType((byte) 6, (byte) 0, "NameLN",
-                         new LNLogEntry(com.sleepycat.je.tree.NameLN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+        new LogEntryType((byte) 6, "NameLN",
+                         new NameLNLogEntry(),
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_NO_MATCH);
 
     public static final LogEntryType LOG_DEL_DUPLN_TRANSACTIONAL =
-        new LogEntryType((byte) 7, (byte) 0, "DelDupLN_TX",
+        new LogEntryType((byte) 7, "DelDupLN_TX",
                          new DeletedDupLNLogEntry(),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         true); // isTypeReplicated
+                         Txnal.TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_NO_MATCH);
 
     public static final LogEntryType LOG_DEL_DUPLN =
-        new LogEntryType((byte) 8, (byte) 0, "DelDupLN",
+        new LogEntryType((byte) 8, "DelDupLN",
                          new DeletedDupLNLogEntry(),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_NO_MATCH);
 
     public static final LogEntryType LOG_DUPCOUNTLN_TRANSACTIONAL =
-        new LogEntryType((byte) 9, (byte) 0, "DupCountLN_TX",
+        new LogEntryType((byte) 9, "DupCountLN_TX",
                  new LNLogEntry(com.sleepycat.je.tree.DupCountLN.class),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         true); // isTypeReplicated
+                         Txnal.TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_DUPCOUNTLN =
-        new LogEntryType((byte) 10, (byte) 0, "DupCountLN",
+        new LogEntryType((byte) 10, "DupCountLN",
                  new LNLogEntry(com.sleepycat.je.tree.DupCountLN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_FILESUMMARYLN =
-        new LogEntryType((byte) 11, (byte) 3, "FileSummaryLN",
+        new LogEntryType((byte) 11, "FileSummaryLN",
               new LNLogEntry(com.sleepycat.je.tree.FileSummaryLN.class),
-                         false, // isTransactional
-                         false, // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.INSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_IN =
-        new LogEntryType((byte) 12, (byte) 2, "IN",
+        new LogEntryType((byte) 12, "IN",
                          new INLogEntry(com.sleepycat.je.tree.IN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_BIN =
-        new LogEntryType((byte) 13, (byte) 2, "BIN",
+        new LogEntryType((byte) 13, "BIN",
                          new INLogEntry(com.sleepycat.je.tree.BIN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_DIN =
-        new LogEntryType((byte) 14, (byte) 2, "DIN",
+        new LogEntryType((byte) 14, "DIN",
                          new INLogEntry(com.sleepycat.je.tree.DIN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_DBIN =
-        new LogEntryType((byte) 15, (byte) 2, "DBIN",
+        new LogEntryType((byte) 15, "DBIN",
                          new INLogEntry(com.sleepycat.je.tree.DBIN.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType[] IN_TYPES = {
         LogEntryType.LOG_IN,
@@ -185,132 +235,134 @@ public class LogEntryType {
 
     private static final int MAX_NODE_TYPE_NUM = 15;
 
-    public static boolean isNodeType(byte typeNum, byte version) {
+    public static boolean isNodeType(byte typeNum) {
         return (typeNum <= MAX_NODE_TYPE_NUM);
     }
 
     /* Root */
     public static final LogEntryType LOG_ROOT =
-        new LogEntryType((byte) 16, (byte) 1, "Root",
+        new LogEntryType((byte) 16, "Root",
                          new SingleItemEntry
                          (com.sleepycat.je.dbi.DbTree.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.INSIDE_LATCH,
+                         Replicable.LOCAL);
 
     /* Transactional entries */
     public static final LogEntryType LOG_TXN_COMMIT =
-        new LogEntryType((byte) 17, (byte) 0, "Commit",
+        new LogEntryType((byte) 17, "Commit",
                          new SingleItemEntry
                          (com.sleepycat.je.txn.TxnCommit.class),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         true); // isTypeReplicated
+                         Txnal.TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_MATCH);
 
     public static final LogEntryType LOG_TXN_ABORT =
-        new LogEntryType((byte) 18, (byte) 0, "Abort",
+        new LogEntryType((byte) 18, "Abort",
                          new SingleItemEntry
                          (com.sleepycat.je.txn.TxnAbort.class),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         true); // isTypeReplicated
+                         Txnal.TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_MATCH);
 
     public static final LogEntryType LOG_CKPT_START =
-        new LogEntryType((byte) 19, (byte) 0, "CkptStart",
+        new LogEntryType((byte) 19, "CkptStart",
                          new SingleItemEntry
                          (com.sleepycat.je.recovery.CheckpointStart.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_CKPT_END =
-        new LogEntryType((byte) 20, (byte) 0, "CkptEnd",
+        new LogEntryType((byte) 20, "CkptEnd",
                          new SingleItemEntry
                              (com.sleepycat.je.recovery.CheckpointEnd.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_IN_DELETE_INFO =
-        new LogEntryType((byte) 21, (byte) 0, "INDelete",
+        new LogEntryType((byte) 21, "INDelete",
                          new SingleItemEntry
                              (com.sleepycat.je.tree.INDeleteInfo.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_BIN_DELTA =
-        new LogEntryType((byte) 22, (byte) 0, "BINDelta",
+        new LogEntryType((byte) 22, "BINDelta",
                          new BINDeltaLogEntry
                              (com.sleepycat.je.tree.BINDelta.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_DUP_BIN_DELTA =
-        new LogEntryType((byte) 23, (byte) 0, "DupBINDelta",
+        new LogEntryType((byte) 23, "DupBINDelta",
                          new BINDeltaLogEntry
                          (com.sleepycat.je.tree.BINDelta.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     /* Administrative entries */
     public static final LogEntryType LOG_TRACE =
-        new LogEntryType((byte) 24, (byte) 0, "Trace",
+        new LogEntryType((byte) 24, "Trace",
                          new SingleItemEntry
                          (com.sleepycat.je.utilint.Tracer.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.REPLICABLE_NO_MATCH);
 
     /* File header */
     public static final LogEntryType LOG_FILE_HEADER =
-        new LogEntryType((byte) 25, (byte) 0, "FileHeader",
+        new LogEntryType((byte) 25, "FileHeader",
                          new SingleItemEntry
                          (com.sleepycat.je.log.FileHeader.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_IN_DUPDELETE_INFO =
-        new LogEntryType((byte) 26, (byte) 0, "INDupDelete",
+        new LogEntryType((byte) 26, "INDupDelete",
                          new SingleItemEntry
                          (com.sleepycat.je.tree.INDupDeleteInfo.class),
-                         false, // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.NON_TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     public static final LogEntryType LOG_TXN_PREPARE =
-        new LogEntryType((byte) 27, (byte) 0, "Prepare",
+        new LogEntryType((byte) 27, "Prepare",
                          new SingleItemEntry
                          (com.sleepycat.je.txn.TxnPrepare.class),
-                         true,  // isTransactional
-                         true,  // marshallOutsideLatch
-                         false);// isTypeReplicated
+                         Txnal.TXNAL,
+                         Marshall.OUTSIDE_LATCH,
+                         Replicable.LOCAL);
 
     /*** If you add new types, be sure to update MAX_TYPE_NUM at the top.***/
 
-    private static final byte PROVISIONAL_MASK = (byte) 0x80;
-    private static final byte IGNORE_PROVISIONAL = ~PROVISIONAL_MASK;
-    private static final byte REPLICATED_MASK = (byte) 0x40;
-    private static final byte IGNORE_REPLICATED = ~REPLICATED_MASK;
-
-
     /* Persistent fields */
-    private byte typeNum; // persistent value for this entry type
-    private byte version; // persistent version and bit flags
+    final private byte typeNum; // persistent value for this entry type
 
     /* Transient fields */
-    private String displayName;
-    private LogEntry logEntry;
+    final private String displayName;
+    final private LogEntry logEntry;
 
-    /* If true, the log entry holds a transactional information. */
-    private boolean isTransactional;
-    /* If true, marshal this type of log entry outside log write latch */
-    private boolean marshallOutsideLatch;
-    /* If true, replicate this type of log entry before logging. */
-    private boolean isTypeReplicated;
+    /*
+     * Attributes
+     */
+
+    /* Whether the log entry holds a transactional information. */
+    private Txnal isTransactional;
+
+    /* 
+     * Does this log entry be marshalled outside or inside the log write
+     * latch.
+     */
+    private Marshall marshallBehavior;
+
+    /* Can this log entry be put in the replication stream? */
+    private Replicable replicationPossible;
 
     /*
      * Constructors
@@ -320,10 +372,14 @@ public class LogEntryType {
      * For base class support.
      */
 
-    /* No log types can be defined outside this package. */
-    LogEntryType(byte typeNum, byte version) {
+    /* 
+     * This constructor only used when the LogEntryType is being used as a key
+     * for a map. No log types can be defined outside this package. 
+     */
+    LogEntryType(byte typeNum) {
         this.typeNum = typeNum;
-        this.version = version;
+        displayName = null;
+        logEntry = null;
     }
 
     /**
@@ -335,24 +391,22 @@ public class LogEntryType {
      * serialized outside the log write latch. This is true of the majority of
      * types. Certain types like the FileSummaryLN rely on the log write latch
      * to enforce serial semantics.
-     * @param isTypeReplicated true if this type of log entry should be shared
+     * @param replicationPossible true if this type of log entry can be shared
      * with a replication group.
      */
     private LogEntryType(byte typeNum,
-                         byte version,
                          String displayName,
                          LogEntry logEntry,
-                         boolean isTransactional,
-                         boolean marshallOutsideLatch,
-                         boolean isTypeReplicated) {
+                         Txnal isTransactional,
+                         Marshall marshallBehavior,
+                         Replicable replicationPossible) {
 
         this.typeNum = typeNum;
-        this.version = version;
         this.displayName = displayName;
         this.logEntry = logEntry;
         this.isTransactional = isTransactional;
-        this.marshallOutsideLatch = marshallOutsideLatch;
-        this.isTypeReplicated = isTypeReplicated;
+        this.marshallBehavior = marshallBehavior;
+        this.replicationPossible = replicationPossible;
         logEntry.setLogType(this);
         LOG_TYPES[typeNum - 1] = this;
     }
@@ -364,18 +418,18 @@ public class LogEntryType {
     /**
      * @return the static version of this type
      */
-    public static LogEntryType findType(byte typeNum, byte version) {
+    public static LogEntryType findType(byte typeNum) {
         if (typeNum <= 0 || typeNum > MAX_TYPE_NUM) {
             return null;
         }
-        return (LogEntryType) LOG_TYPES[typeNum - 1];
+        return LOG_TYPES[typeNum - 1];
     }
 
     /**
      * Get a copy of all types for unit testing.
      */
-    public static Set getAllTypes() {
-        HashSet ret = new HashSet();
+    public static Set<LogEntryType> getAllTypes() {
+        HashSet<LogEntryType> ret = new HashSet<LogEntryType>();
 
         for (int i = 0; i < MAX_TYPE_NUM; i++) {
             ret.add(LOG_TYPES[i]);
@@ -393,7 +447,7 @@ public class LogEntryType {
     /**
      * @return a clone of the log entry type for a given log type.
      */
-    LogEntry getNewLogEntry()
+    public LogEntry getNewLogEntry()
         throws DatabaseException {
 
         try {
@@ -403,49 +457,8 @@ public class LogEntryType {
         }
     }
 
-    /**
-     * Return the version value, clearing away provisional and replicated bits.
-     */
-    public static byte getVersionValue(byte version) {
-        byte value = (byte) (version & IGNORE_PROVISIONAL);
-        value &= IGNORE_REPLICATED;
-        return value;
-    }
-
-    /**
-     * Set the provisional bit.
-     */
-    static byte setEntryProvisional(byte version) {
-        return (byte) (version | PROVISIONAL_MASK);
-    }
-
-    /**
-     * @return true if the provisional bit is set.
-     */
-    static boolean isEntryProvisional(byte version) {
-        return ((version & PROVISIONAL_MASK) != 0);
-    }
-
-    /**
-     * Set the replicated bit
-     */
-    static byte setEntryReplicated(byte version) {
-        return (byte) (version | REPLICATED_MASK);
-    }
-
-    /**
-     * @return true if the replicated bit is set.
-     */
-    public static boolean isEntryReplicated(byte version) {
-        return ((version & REPLICATED_MASK) != 0);
-    }
-
-    byte getTypeNum() {
+    public byte getTypeNum() {
         return typeNum;
-    }
-
-    byte getVersion() {
-        return version;
     }
 
     /**
@@ -455,21 +468,18 @@ public class LogEntryType {
         return typeNum > 0 && typeNum <= MAX_TYPE_NUM;
     }
 
-    public String toString() {
-        return displayName + "/" + version;
+    public String toStringNoVersion() {
+	return displayName;
     }
 
-    public String toStringNoVersion() {
+    @Override
+    public String toString() {
         return displayName;
     }
 
     /**
      * Check for equality without making a new object.
      */
-    boolean equalsType(byte typeNum, byte version) {
-        return (this.typeNum == typeNum);
-    }
-
     public boolean equalsType(byte typeNum) {
         return (this.typeNum == typeNum);
     }
@@ -478,6 +488,7 @@ public class LogEntryType {
      * Override Object.equals. Ignore provisional bit when checking for
      * equality.
      */
+    @Override
     public boolean equals(Object obj) {
         // Same instance?
         if (this == obj) {
@@ -495,32 +506,107 @@ public class LogEntryType {
     /**
      * This is used as a hash key.
      */
+    @Override
     public int hashCode() {
         return typeNum;
     }
+    static enum Txnal {
+        TXNAL(true),
+        NON_TXNAL(false);
 
+        private final boolean isTxnal;
+
+        Txnal(boolean isTxnal) {
+            this.isTxnal = isTxnal;
+        }
+
+        boolean isTransactional() {
+            return isTxnal;
+        }
+    }
     /**
      * Return true if this log entry has transactional information in it,
      * like a commit or abort record, or a transactional LN.
      */
     public boolean isTransactional() {
-        return isTransactional;
+        return isTransactional.isTransactional();
+    }
+
+    static enum Marshall {
+        OUTSIDE_LATCH(true),
+        INSIDE_LATCH(false);
+
+        private final boolean marshallOutsideLatch;
+        
+        Marshall(boolean marshallOutsideLatch) {
+            this.marshallOutsideLatch = marshallOutsideLatch;
+        }
+
+        boolean marshallOutsideLatch() {
+            return marshallOutsideLatch;
+        }
     }
 
     /**
-     * Return true if this log entry should be marshalled into a buffer
-     * outside the log write latch. Currently, only the FileSummaryLN needs
-     * to be logged inside the log write latch.
+     * Return true if this log entry should be marshalled into a buffer outside
+     * the log write latch. Currently, only the FileSummaryLN and MapLN (which
+     * contains DbFileSummary objects) need to be logged inside the log write
+     * latch.
      */
     public boolean marshallOutsideLatch() {
-        return marshallOutsideLatch;
+        return marshallBehavior.marshallOutsideLatch();
+    }
+
+    /* 
+     * Indicates whether this type of log entry is shared in a replicated
+     * environment or not, and whether it can be used as a replication
+     * matchpoint.
+     */
+    static enum Replicable {
+        REPLICABLE_MATCH(true, true),
+        REPLICABLE_NO_MATCH(true, false),
+        LOCAL(false, false);
+
+        private final boolean isReplicable;
+        private final boolean isMatchable;
+        
+        Replicable(boolean isReplicable, boolean isMatchable) {
+            this.isReplicable = isReplicable;
+            this.isMatchable = isMatchable;
+        }
+
+        boolean isReplicable() {
+            return isReplicable;
+        }
+        
+        boolean isMatchable() {
+            return isMatchable;
+        }
+    }
+        
+    /**
+     * Return true if this type of log entry can be part of the replication
+     * stream. For example, INs can never be replicated, while LNs are
+     * replicated only if their owning database is replicated.
+     */
+    public boolean isReplicationPossible() {
+        return replicationPossible.isReplicable();
     }
 
     /**
-     * Return true if this log entry should be transmitted to other
-     * sites if the environment is part of a replication group.
+     * Return true if this type of log entry can serve as the synchronization
+     * matchpoint for the replication stream. That generally means that this
+     * log entry contains an replication node id.
      */
-    public boolean isTypeReplicated() {
-        return isTypeReplicated;
+    public boolean isSyncPoint() {
+        return replicationPossible.isMatchable();
+    }
+
+    /**
+     * Return true if this type of log entry can serve as the synchronization
+     * matchpoint for the replication stream. 
+     */
+    public static boolean isSyncPoint(byte entryType) {
+        return findType(entryType).isSyncPoint();
     }
 }

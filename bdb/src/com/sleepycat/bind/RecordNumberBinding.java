@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: RecordNumberBinding.java,v 1.28.2.1 2007/02/01 14:49:38 cwl Exp $
+ * $Id: RecordNumberBinding.java,v 1.34 2008/05/27 15:30:32 mark Exp $
  */
 
 package com.sleepycat.bind;
@@ -12,6 +12,9 @@ import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.DatabaseEntry;
 
 /**
+ * <!-- begin JE only -->
+ * @hidden
+ * <!-- end JE only -->
  * An <code>EntryBinding</code> that treats a record number key entry as a
  * <code>Long</code> key object.
  *
@@ -20,7 +23,7 @@ import com.sleepycat.je.DatabaseEntry;
  *
  * @author Mark Hayes
  */
-public class RecordNumberBinding implements EntryBinding {
+public class RecordNumberBinding implements EntryBinding<Long> {
 
     /**
      * Creates a byte array binding.
@@ -29,15 +32,15 @@ public class RecordNumberBinding implements EntryBinding {
     }
 
     // javadoc is inherited
-    public Object entryToObject(DatabaseEntry entry) {
+    public Long entryToObject(DatabaseEntry entry) {
 
-        return new Long(entryToRecordNumber(entry));
+        return Long.valueOf(entryToRecordNumber(entry));
     }
 
     // javadoc is inherited
-    public void objectToEntry(Object object, DatabaseEntry entry) {
+    public void objectToEntry(Long object, DatabaseEntry entry) {
 
-        recordNumberToEntry(((Number) object).longValue(), entry);
+        recordNumberToEntry(object, entry);
     }
 
     /**

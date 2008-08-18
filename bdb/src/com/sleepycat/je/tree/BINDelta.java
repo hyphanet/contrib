@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BINDelta.java,v 1.44.2.3 2007/11/20 13:32:35 cwl Exp $
+ * $Id: BINDelta.java,v 1.53 2008/01/17 17:22:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -16,7 +16,6 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.Loggable;
@@ -31,9 +30,7 @@ public class BINDelta implements Loggable {
 
     private DatabaseId dbId;    // owning db for this bin.
     private long lastFullLsn;   // location of last full version
-    private List deltas;        // list of key/action changes
-    private LogEntryType logEntryType; // type of log entry to use
-                                         // when writing to the log.
+    private List<DeltaInfo> deltas;        // list of key/action changes
 
     /**
      * Read a BIN and create the deltas.
@@ -41,8 +38,7 @@ public class BINDelta implements Loggable {
     public BINDelta(BIN bin) {
         lastFullLsn = bin.getLastFullVersion();
         dbId = bin.getDatabaseId();
-        deltas = new ArrayList();
-        logEntryType = bin.getBINDeltaType();
+        deltas = new ArrayList<DeltaInfo>();
 
         /*
          * Save every entry that has been modified since the last full version.
@@ -66,7 +62,7 @@ public class BINDelta implements Loggable {
     public BINDelta() {
         dbId = new DatabaseId();
         lastFullLsn = DbLsn.NULL_LSN;
-        deltas = new ArrayList();
+        deltas = new ArrayList<DeltaInfo>();
     }
 
     /**
@@ -98,7 +94,7 @@ public class BINDelta implements Loggable {
 
         /* Get the last full version of this BIN. */
         BIN fullBIN = (BIN) env.getLogManager().get(lastFullLsn);
-        DatabaseImpl db = env.getDbMapTree().getDb(dbId);
+        DatabaseImpl db = env.getDbTree().getDb(dbId);
         try {
 
             /*
@@ -159,7 +155,7 @@ public class BINDelta implements Loggable {
                 }
             }
         } finally {
-            env.releaseDb(db);
+            env.getDbTree().releaseDb(db);
         }
 
         /*
@@ -180,12 +176,13 @@ public class BINDelta implements Loggable {
      * @see Loggable#getLogSize()
      */
     public int getLogSize() {
+        int numDeltas = deltas.size();
         int size =
             dbId.getLogSize() + // database id
-	    LogUtils.LONG_BYTES +               // last version
-            LogUtils.INT_BYTES;                 // num deltas
+            LogUtils.getPackedLongLogSize(lastFullLsn) +
+            LogUtils.getPackedIntLogSize(numDeltas);
 
-        for (int i = 0; i < deltas.size(); i++) {    // deltas
+        for (int i = 0; i < numDeltas; i++) {    // deltas
             DeltaInfo info = (DeltaInfo) deltas.get(i);
             size += info.getLogSize();
         }
@@ -198,8 +195,8 @@ public class BINDelta implements Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
         dbId.writeToLog(logBuffer);                     // database id
-	LogUtils.writeLong(logBuffer, lastFullLsn);     // last version
-        LogUtils.writeInt(logBuffer, deltas.size());  // num deltas
+	LogUtils.writePackedLong(logBuffer, lastFullLsn);     // last version
+        LogUtils.writePackedInt(logBuffer, deltas.size());  // num deltas
 
         for (int i = 0; i < deltas.size(); i++) {              // deltas
             DeltaInfo info = (DeltaInfo) deltas.get(i);
@@ -210,16 +207,16 @@ public class BINDelta implements Loggable {
     /*
      * @see Loggable#readFromLog()
      */
-    public void readFromLog(ByteBuffer itemBuffer,byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
 	throws LogException {
 
-        dbId.readFromLog(itemBuffer, entryTypeVersion); // database id
-	lastFullLsn = LogUtils.readLong(itemBuffer); // last version
-        int numDeltas = LogUtils.readInt(itemBuffer);
+        dbId.readFromLog(itemBuffer, entryVersion); // database id
+	lastFullLsn = LogUtils.readLong(itemBuffer, (entryVersion < 6));
+        int numDeltas = LogUtils.readInt(itemBuffer, (entryVersion < 6));
 
         for (int i=0; i < numDeltas; i++) {      // deltas
             DeltaInfo info = new DeltaInfo();
-            info.readFromLog(itemBuffer, entryTypeVersion);
+            info.readFromLog(itemBuffer, entryVersion);
             deltas.add(info);
         }
     }
@@ -244,5 +241,13 @@ public class BINDelta implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 }

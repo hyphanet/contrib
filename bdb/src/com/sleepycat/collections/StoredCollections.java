@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: StoredCollections.java,v 1.29.2.1 2007/02/01 14:49:40 cwl Exp $
+ * $Id: StoredCollections.java,v 1.32 2008/05/27 15:30:34 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -60,9 +60,9 @@ public class StoredCollections {
      * @throws ClassCastException if the given container is not a
      * StoredContainer.
      */
-    public static Collection configuredCollection(Collection storedCollection,
-                                                  CursorConfig config) {
-
+    public static <E> Collection<E> configuredCollection(Collection<E>
+                                                         storedCollection,
+                                                         CursorConfig config) {
         return (Collection)
             ((StoredContainer) storedCollection).configuredClone(config);
     }
@@ -84,8 +84,8 @@ public class StoredCollections {
      * @throws ClassCastException if the given container is not a
      * StoredContainer.
      */
-    public static List configuredList(List storedList, CursorConfig config) {
-
+    public static <E> List<E> configuredList(List<E> storedList,
+                                             CursorConfig config) {
         return (List) ((StoredContainer) storedList).configuredClone(config);
     }
 
@@ -103,8 +103,8 @@ public class StoredCollections {
      * @throws ClassCastException if the given container is not a
      * StoredContainer.
      */
-    public static Map configuredMap(Map storedMap, CursorConfig config) {
-
+    public static <K,V> Map<K,V> configuredMap(Map<K,V> storedMap,
+                                               CursorConfig config) {
         return (Map) ((StoredContainer) storedMap).configuredClone(config);
     }
 
@@ -122,8 +122,8 @@ public class StoredCollections {
      * @throws ClassCastException if the given container is not a
      * StoredContainer.
      */
-    public static Set configuredSet(Set storedSet, CursorConfig config) {
-
+    public static <E> Set<E> configuredSet(Set<E> storedSet,
+                                           CursorConfig config) {
         return (Set) ((StoredContainer) storedSet).configuredClone(config);
     }
 
@@ -141,9 +141,10 @@ public class StoredCollections {
      * @throws ClassCastException if the given container is not a
      * StoredContainer.
      */
-    public static SortedMap configuredSortedMap(SortedMap storedSortedMap,
-                                                CursorConfig config) {
-
+    public static <K,V> SortedMap<K,V> configuredSortedMap(SortedMap<K,V>
+                                                           storedSortedMap,
+                                                           CursorConfig
+                                                           config) {
         return (SortedMap)
             ((StoredContainer) storedSortedMap).configuredClone(config);
     }
@@ -162,9 +163,9 @@ public class StoredCollections {
      * @throws ClassCastException if the given container is not a
      * StoredContainer.
      */
-    public static SortedSet configuredSortedSet(SortedSet storedSortedSet,
-                                                CursorConfig config) {
-
+    public static <E> SortedSet<E> configuredSortedSet(SortedSet<E>
+                                                       storedSortedSet,
+                                                       CursorConfig config) {
         return (SortedSet)
             ((StoredContainer) storedSortedSet).configuredClone(config);
     }
@@ -175,7 +176,8 @@ public class StoredCollections {
      * terminology.  To obtain a dirty-read collection, pass
      * <code>CursorConfig.READ_UNCOMMITTED</code>
      */
-    public static Collection dirtyReadCollection(Collection storedCollection) {
+    public static <E> Collection<E> dirtyReadCollection(Collection<E>
+                                                        storedCollection) {
 
         /* We can't use READ_UNCOMMITTED until is is added to DB core. */
         return configuredCollection
@@ -187,8 +189,7 @@ public class StoredCollections {
      * order to conform to ANSI database isolation terminology.  To obtain a
      * dirty-read list, pass <code>CursorConfig.READ_UNCOMMITTED</code>
      */
-    public static List dirtyReadList(List storedList) {
-
+    public static <E> List<E> dirtyReadList(List<E> storedList) {
         /* We can't use READ_UNCOMMITTED until is is added to DB core. */
         return configuredList(storedList, CursorConfig.DIRTY_READ);
     }
@@ -198,8 +199,7 @@ public class StoredCollections {
      * order to conform to ANSI database isolation terminology.  To obtain a
      * dirty-read map, pass <code>CursorConfig.READ_UNCOMMITTED</code>
      */
-    public static Map dirtyReadMap(Map storedMap) {
-
+    public static <K,V> Map<K,V> dirtyReadMap(Map<K,V> storedMap) {
         /* We can't use READ_UNCOMMITTED until is is added to DB core. */
         return configuredMap(storedMap, CursorConfig.DIRTY_READ);
     }
@@ -209,8 +209,7 @@ public class StoredCollections {
      * order to conform to ANSI database isolation terminology.  To obtain a
      * dirty-read set, pass <code>CursorConfig.READ_UNCOMMITTED</code>
      */
-    public static Set dirtyReadSet(Set storedSet) {
-
+    public static <E> Set<E> dirtyReadSet(Set<E> storedSet) {
         /* We can't use READ_UNCOMMITTED until is is added to DB core. */
         return configuredSet(storedSet, CursorConfig.DIRTY_READ);
     }
@@ -221,8 +220,8 @@ public class StoredCollections {
      * terminology.  To obtain a dirty-read map, pass
      * <code>CursorConfig.READ_UNCOMMITTED</code>
      */
-    public static SortedMap dirtyReadSortedMap(SortedMap storedSortedMap) {
-
+    public static <K,V> SortedMap<K,V> dirtyReadSortedMap(SortedMap<K,V>
+                                                          storedSortedMap) {
         /* We can't use READ_UNCOMMITTED until is is added to DB core. */
         return configuredSortedMap
             (storedSortedMap, CursorConfig.DIRTY_READ);
@@ -234,8 +233,8 @@ public class StoredCollections {
      * terminology.  To obtain a dirty-read set, pass
      * <code>CursorConfig.READ_UNCOMMITTED</code>
      */
-    public static SortedSet dirtyReadSortedSet(SortedSet storedSortedSet) {
-
+    public static <E> SortedSet<E> dirtyReadSortedSet(SortedSet<E>
+                                                      storedSortedSet) {
         /* We can't use READ_UNCOMMITTED until is is added to DB core. */
         return configuredSortedSet
             (storedSortedSet, CursorConfig.DIRTY_READ);
@@ -252,7 +251,7 @@ public class StoredCollections {
      * @throws ClassCastException if the given iterator was not obtained via a
      * {@link StoredCollection} method.
      */
-    public static Iterator iterator(Iterator iter) {
+    public static <E> Iterator<E> iterator(Iterator<E> iter) {
 
         return ((BaseIterator) iter).dup();
     }

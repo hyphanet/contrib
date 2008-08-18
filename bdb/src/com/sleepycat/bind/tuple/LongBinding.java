@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: LongBinding.java,v 1.10.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: LongBinding.java,v 1.14 2008/05/27 15:30:33 mark Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -25,24 +25,24 @@ import com.sleepycat.je.DatabaseEntry;
  * TupleBinding#getPrimitiveBinding} method.</li>
  * </ol>
  */
-public class LongBinding extends TupleBinding {
+public class LongBinding extends TupleBinding<Long> {
 
     private static final int LONG_SIZE = 8;
 
     // javadoc is inherited
-    public Object entryToObject(TupleInput input) {
+    public Long entryToObject(TupleInput input) {
 
-        return new Long(input.readLong());
+        return input.readLong();
     }
 
     // javadoc is inherited
-    public void objectToEntry(Object object, TupleOutput output) {
+    public void objectToEntry(Long object, TupleOutput output) {
 
-        output.writeLong(((Number) object).longValue());
+        output.writeLong(object);
     }
 
     // javadoc is inherited
-    protected TupleOutput getTupleOutput(Object object) {
+    protected TupleOutput getTupleOutput(Long object) {
 
         return sizedOutput();
     }

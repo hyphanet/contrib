@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Cleaner.java,v 1.183.2.8 2007/11/20 13:32:27 cwl Exp $
+ * $Id: Cleaner.java,v 1.213 2008/05/15 01:52:40 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -17,8 +17,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.EnvironmentMutableConfig;
 import com.sleepycat.je.EnvironmentStats;
+import com.sleepycat.je.ExceptionListener;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.cleaner.FileSelector.CheckpointStartCleanerState;
 import com.sleepycat.je.config.EnvironmentParams;
@@ -29,6 +32,7 @@ import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvConfigObserver;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.DIN;
@@ -78,7 +82,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * updating the generation during searches is questionable.  In other
      * words, changing this setting will have little effect.
      */
-    static final boolean UPDATE_GENERATION = false;
+    static final CacheMode UPDATE_GENERATION = CacheMode.UNCHANGED;
 
     /**
      * Whether the cleaner should participate in critical eviction.  Ideally
@@ -96,26 +100,26 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * This could produce errors in counting, but avoids contention around stat
      * updates.
      */
-    int nBacklogFiles = 0;
-    int nCleanerRuns = 0;
-    int nCleanerDeletions = 0;
-    int nINsObsolete = 0;
-    int nINsCleaned = 0;
-    int nINsDead = 0;
-    int nINsMigrated = 0;
-    int nLNsObsolete = 0;
-    int nLNsCleaned = 0;
-    int nLNsDead = 0;
-    int nLNsLocked = 0;
-    int nLNsMigrated = 0;
-    int nLNsMarked = 0;
-    int nLNQueueHits = 0;
-    int nPendingLNsProcessed = 0;
-    int nMarkedLNsProcessed = 0;
-    int nToBeCleanedLNsProcessed = 0;
-    int nClusterLNsProcessed = 0;
-    int nPendingLNsLocked = 0;
-    int nEntriesRead = 0;
+    int  nBacklogFiles = 0;
+    long nCleanerRuns = 0;
+    long nCleanerDeletions = 0;
+    long nINsObsolete = 0;
+    long nINsCleaned = 0;
+    long nINsDead = 0;
+    long nINsMigrated = 0;
+    long nLNsObsolete = 0;
+    long nLNsCleaned = 0;
+    long nLNsDead = 0;
+    long nLNsLocked = 0;
+    long nLNsMigrated = 0;
+    long nLNsMarked = 0;
+    long nLNQueueHits = 0;
+    long nPendingLNsProcessed = 0;
+    long nMarkedLNsProcessed = 0;
+    long nToBeCleanedLNsProcessed = 0;
+    long nClusterLNsProcessed = 0;
+    long nPendingLNsLocked = 0;
+    long nEntriesRead = 0;
     long nRepeatIteratorReads = 0;
 
     /*
@@ -125,7 +129,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     long lockTimeout;
     int readBufferSize;
     int lookAheadCacheSize;
-    int nDeadlockRetries;
+    long nDeadlockRetries;
     boolean expunge;
     boolean clusterResident;
     boolean clusterAll;
@@ -134,20 +138,21 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     long cleanerBytesInterval;
     boolean trackDetail;
     boolean fetchObsoleteSize;
+    boolean lazyMigration;
 
     /**
      * All files that are to-be-cleaning or being-cleaned.  Used to perform
      * proactive migration.  Is read-only after assignment, so no
      * synchronization is needed.
      */
-    Set mustBeCleanedFiles = Collections.EMPTY_SET;
+    private Set<Long> mustBeCleanedFiles = Collections.emptySet();
 
     /**
      * All files that are below the minUtilization threshold.  Used to perform
      * clustering migration.  Is read-only after assignment, so no
      * synchronization is needed.
      */
-    Set lowUtilizationFiles = Collections.EMPTY_SET;
+    private Set<Long> lowUtilizationFiles = Collections.emptySet();
 
     private String name;
     private EnvironmentImpl env;
@@ -161,7 +166,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * and ongoing backups.
      */
     private Object deleteFileLock;
-    private boolean deleteProhibited;  // protected by deleteFileLock
+    private int deleteProhibited;  // protected by deleteFileLock
 
     public Cleaner(EnvironmentImpl env, String name)
         throws DatabaseException {
@@ -183,14 +188,15 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             (EnvironmentParams.CLEANER_TRACK_DETAIL);
 
         /* Initialize mutable properties and register for notifications. */
-        envConfigUpdate(env.getConfigManager());
+        envConfigUpdate(env.getConfigManager(), null);
         env.addConfigObserver(this);
     }
 
     /**
      * Process notifications of mutable property changes.
      */
-    public void envConfigUpdate(DbConfigManager cm)
+    public void envConfigUpdate(DbConfigManager cm,
+				EnvironmentMutableConfig ignore)
         throws DatabaseException {
 
         lockTimeout = PropUtil.microsToMillis(cm.getLong
@@ -266,6 +272,15 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
         fetchObsoleteSize = cm.getBoolean
             (EnvironmentParams.CLEANER_FETCH_OBSOLETE_SIZE);
+
+        /*
+         * Lazy migration of LNs is disabled if CHECKPOINTER_HIGH_PRIORITY is
+         * true.  LN migration slows down the checkpoint and so LNs are
+         * migrated by FileProcessor when high priority checkpoints are
+         * configured.
+         */
+        lazyMigration = !cm.getBoolean
+            (EnvironmentParams.CHECKPOINTER_HIGH_PRIORITY);
     }
 
     public UtilizationTracker getUtilizationTracker() {
@@ -291,19 +306,6 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 	    for (int i = 0; i < threads.length; i += 1) {
                 FileProcessor processor = threads[i];
 		if (processor != null) {
-
-                    /*
-                     * When the cleaner is set to run, we need to wake up the
-                     * thread immediately since there may be a backlog of files
-                     * to clean.  But we must not block here if a file is
-                     * currently being processing.  Therefore we force a wakeup
-                     * by adding a work item.  This functionality may
-                     * eventually be moved to DaemonThread since it applies to
-                     * other deamons.  [#15158]
-                     */
-                    if (run) {
-                        processor.addSentinalWorkObject();
-                    }
 		    processor.runOrPause(run);
 		}
 	    }
@@ -355,6 +357,14 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
         return false;
     }
 
+    public void setExceptionListener(ExceptionListener exceptionListener) {
+        for (int i = 0; i < threads.length; i += 1) {
+            if (threads[i] != null) {
+                threads[i].setExceptionListener(exceptionListener);
+            }
+        }
+    }
+
     /**
      * Cleans selected files and returns the number of files cleaned.  This
      * method is not invoked by a deamon thread, it is programatically.
@@ -404,7 +414,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
         stat.setNPendingLNsLocked(nPendingLNsLocked);
         stat.setNCleanerEntriesRead(nEntriesRead);
         stat.setNRepeatIteratorReads(nRepeatIteratorReads);
-        stat.setTotalLogSize(profile.getTotalLogSize());
+        if (!config.getFast()) {
+            stat.setTotalLogSize(profile.getTotalLogSize());
+        }
 
         if (config.getClear()) {
             nCleanerRuns = 0;
@@ -460,6 +472,11 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * application, and the copying of log files can take an arbitrarily long
      * time. Using synchronization on deleteFileLock would make it possible to
      * lock out a cleaner thread for an unacceptable amount of time.
+     *
+     * The deleteProhibited state is also set while a replication node is
+     * sending files to initialize another size.  More than one such
+     * initialization may be occuring at once, and a backup may also be
+     * occuring simultaneously, hence deleteProhibited may be greater than 1.
      */
     void deleteSafeToDeleteFiles()
         throws DatabaseException {
@@ -469,11 +486,11 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
          * file lock.
          */
         synchronized (deleteFileLock) {
-            if (deleteProhibited) {
+            if (deleteProhibited > 0) {
                 return; /* deletion disabled. */
             }
 
-            Set safeFiles = fileSelector.copySafeToDeleteFiles();
+            Set<Long> safeFiles = fileSelector.copySafeToDeleteFiles();
             if (safeFiles == null) {
                 return; /* Nothing to do. */
             }
@@ -503,8 +520,8 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             }
 
             try {
-                for (Iterator i = safeFiles.iterator(); i.hasNext();) {
-                    Long fileNum = (Long) i.next();
+                for (Iterator<Long> i = safeFiles.iterator(); i.hasNext();) {
+                    Long fileNum = i.next();
                     long fileNumValue = fileNum.longValue();
                     boolean deleted = false;
                     try {
@@ -548,9 +565,12 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                          * delete the file again.
                          */
                         try {
-                            profile.removeFile(fileNum);
+                            profile.removeFile
+                                (fileNum,
+                                 fileSelector.getCleanedDatabases(fileNum));
                         } finally {
-                            fileSelector.removeDeletedFile(fileNum);
+                            fileSelector.removeDeletedFile
+                                (fileNum, env.getMemoryBudget());
                         }
                     }
                     nCleanerDeletions++;
@@ -564,13 +584,13 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     public void setDeleteProhibited() {
 
         synchronized (deleteFileLock) {
-            deleteProhibited = true;
+            deleteProhibited += 1;
         }
     }
 
     public void clearDeleteProhibited() {
         synchronized (deleteFileLock) {
-            deleteProhibited = false;
+            deleteProhibited -= 1;
         }
     }
 
@@ -628,7 +648,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     void processPending()
         throws DatabaseException {
 
-        DbTree dbMapTree = env.getDbMapTree();
+        DbTree dbMapTree = env.getDbTree();
 
         LNInfo[] pendingLNs = fileSelector.getPendingLNs();
         if (pendingLNs != null) {
@@ -718,7 +738,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             /* Get a non-blocking lock on the original node ID. */
 
-	    locker = new BasicLocker(env);
+	    locker =
+		BasicLocker.createBasicLocker(env, false /*noWait*/,
+					      true /*noAPIReadLock*/);
             LockResult lockRet = locker.nonBlockingLock
                 (ln.getNodeId(), LockType.READ, db);
             if (lockRet.getLockGrant() == LockGrantType.DENIED) {
@@ -783,11 +805,11 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 	    throw DBE;
         } finally {
             if (parentDIN != null) {
-                parentDIN.releaseLatchIfOwner();
+                parentDIN.releaseLatch();
             }
 
             if (bin != null) {
-                bin.releaseLatchIfOwner();
+                bin.releaseLatch();
             }
 
             if (locker != null) {
@@ -812,6 +834,10 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
      * Returns whether the given BIN entry may be stripped by the evictor.
      * True is always returned if the BIN is not dirty.  False is returned if
      * the BIN is dirty and the entry will be migrated soon.
+     *
+     * Note that the BIN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
     public boolean isEvictable(BIN bin, int index) {
 
@@ -832,7 +858,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             }
 
             boolean isResident = (bin.getTarget(index) != null);
-            Long fileNum = new Long(DbLsn.getFileNumber(lsn));
+            Long fileNum = Long.valueOf(DbLsn.getFileNumber(lsn));
 
             if ((PROACTIVE_MIGRATION || isResident) &&
                 mustBeCleanedFiles.contains(fileNum)) {
@@ -907,18 +933,20 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                          if (sortedIndices == null) {
                              sortedIndices = new Integer[nEntries];
                          }
-                         sortedIndices[nSortedIndices++] = new Integer(index);
+                         sortedIndices[nSortedIndices++] =
+                             Integer.valueOf(index);
                      }
                 }
             }
         }
 
         if (sortedIndices != null) {
-            Arrays.sort(sortedIndices, 0, nSortedIndices, new Comparator() {
-                public int compare(Object o1, Object o2) {
-                    int i1 = ((Integer) o1).intValue();
-                    int i2 = ((Integer) o2).intValue();
-                    return DbLsn.compareTo(bin.getLsn(i1), bin.getLsn(i2));
+            Arrays.sort(sortedIndices, 
+                        0, 
+                        nSortedIndices, 
+                        new Comparator<Integer>() {
+                public int compare( Integer int1, Integer int2) {
+                    return DbLsn.compareTo(bin.getLsn(int1), bin.getLsn(int2));
                 }
             });
             for (int i = 0; i < nSortedIndices; i += 1) {
@@ -1013,7 +1041,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
             doMigration = true;
             nMarkedLNsProcessed++;
 
-        } else if (!proactiveMigration || isBinInDupDb || env.isClosing()) {
+        } else if (!proactiveMigration ||
+                   isBinInDupDb ||
+                   env.isClosing()) {
 
             /*
              * Do nothing if proactiveMigration is false, since all further
@@ -1032,7 +1062,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
         } else {
 
-            Long fileNum = new Long(DbLsn.getFileNumber(childLsn));
+            Long fileNum = Long.valueOf(DbLsn.getFileNumber(childLsn));
 
             if ((PROACTIVE_MIGRATION || isResident) &&
                 mustBeCleanedFiles.contains(fileNum)) {
@@ -1119,7 +1149,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
              * node to guard against aborts.
              */
             if (lockedPendingNodeId != ln.getNodeId()) {
-                locker = new BasicLocker(env);
+		locker =
+		    BasicLocker.createBasicLocker(env, false /*noWait*/,
+						  true /*noAPIReadLock*/);
                 LockResult lockRet = locker.nonBlockingLock
                     (ln.getNodeId(), LockType.READ, db);
                 if (lockRet.getLockGrant() == LockGrantType.DENIED) {
@@ -1162,7 +1194,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
              * a second check is not worthwhile.
              */
             if (bin.getMigrate(index)) {
-                Long fileNum = new Long(DbLsn.getFileNumber(lsn));
+                Long fileNum = Long.valueOf(DbLsn.getFileNumber(lsn));
                 if (!fileSelector.isFileCleaningInProgress(fileNum)) {
                     obsolete = true;
                     completed = true;
@@ -1175,8 +1207,8 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             /* Migrate the LN. */
             byte[] key = getLNMainKey(bin, index);
-            long newLNLsn =
-                ln.logUpdateMemUsage(db, key, lsn, locker, bin, backgroundIO);
+            long newLNLsn = ln.log(env, db, key, lsn, locker, backgroundIO,
+                                   ReplicationContext.NO_REPLICATE);
             bin.updateEntry(index, newLNLsn);
             nLNsMigrated++;
             migrated = true;
@@ -1195,8 +1227,13 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                  * will retry the LN later.  The retry information must be
                  * complete or we may delete a file later without processing
                  * all of its LNs.
+                 *
+                 * Note that the LN may be null if fetchTarget threw an
+                 * exception above. [#16039]
                  */
-                if (bin.getMigrate(index) && (!completed || lockDenied)) {
+                if (bin.getMigrate(index) &&
+                    (!completed || lockDenied) &&
+                    (ln != null)) {
 
                     byte[] key = getLNMainKey(bin, index);
                     byte[] dupKey = getLNDupKey(bin, index, ln);
@@ -1228,7 +1265,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
              * memory available to the application.
              */
             if (clearTarget) {
-                bin.updateEntry(index, null);
+                bin.updateNode(index, null /*node*/, null /*lnSlotKey*/);
             }
 
             if (locker != null) {
@@ -1291,7 +1328,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
              * already locked pending node.
              */
             if (lockedPendingNodeId != ln.getNodeId()) {
-                locker = new BasicLocker(env);
+		locker =
+		    BasicLocker.createBasicLocker(env, false /*noWait*/,
+						  true /*noAPIReadLock*/);
                 LockResult lockRet = locker.nonBlockingLock
                     (ln.getNodeId(), LockType.READ, db);
                 if (lockRet.getLockGrant() == LockGrantType.DENIED) {
@@ -1314,7 +1353,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
              * migrated.  There is no need to migrate it if the LSN no longer
              * qualifies for cleaning.
              */
-            Long fileNum = new Long(DbLsn.getFileNumber(lsn));
+            Long fileNum = Long.valueOf(DbLsn.getFileNumber(lsn));
             if (!fileSelector.isFileCleaningInProgress(fileNum)) {
                 obsolete = true;
                 completed = true;
@@ -1326,8 +1365,9 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             /* Migrate the LN. */
             byte[] key = parentDIN.getDupKey();
-            long newLNLsn =
-                ln.logUpdateMemUsage(db, key, lsn, locker, parentDIN);
+            long newLNLsn = ln.log(env, db, key, lsn, locker,
+                                   false, /* backgroundIO */
+                                   ReplicationContext.NO_REPLICATE);
             parentDIN.updateDupCountLNRef(newLNLsn);
             nLNsMigrated++;
             migrated = true;
@@ -1346,8 +1386,13 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
                  * will retry the LN later.  The retry information must be
                  * complete or we may delete a file later without processing
                  * all of its LNs.
+                 *
+                 * Note that the LN may be null if fetchTarget threw an
+                 * exception above. [#16039]
                  */
-                if (dclRef.getMigrate() && (!completed || lockDenied)) {
+                if (dclRef.getMigrate() &&
+                    (!completed || lockDenied) &&
+                    (ln != null)) {
 
                     byte[] key = parentDIN.getDupKey();
                     byte[] dupKey = null;
@@ -1394,7 +1439,7 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     /**
      * Returns the main key for a given BIN entry.
      */
-    private byte[] getLNMainKey(BIN bin, int index)
+    byte[] getLNMainKey(BIN bin, int index)
         throws DatabaseException {
 
         if (bin.containsDuplicates()) {
@@ -1479,5 +1524,14 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
 
             logger.log(level, sb.toString());
         }
+    }
+
+    /**
+     * Release resources and update memory budget. Should only be called
+     * when this environment is closed and will never be accessed again.
+     */
+    public void close() {
+        profile.close();
+        tracker.close();
     }
 }

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PropUtilTest.java,v 1.18.2.2 2007/11/20 13:32:51 cwl Exp $
+ * $Id: PropUtilTest.java,v 1.22 2008/05/22 19:35:40 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -39,7 +39,7 @@ public class PropUtilTest extends TestCase {
         props.setProperty("bar", "True");
         props.setProperty("baz", "false");
 
-        Set allowedSet = new HashSet();
+        Set<String> allowedSet = new HashSet<String>();
         allowedSet.add("foo");
         allowedSet.add("bar");
         allowedSet.add("baz");

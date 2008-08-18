@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: KeyRange.java,v 1.4.2.1 2007/02/01 14:49:58 cwl Exp $
+ * $Id: KeyRange.java,v 1.8 2008/05/19 17:52:20 linda Exp $
  */
 
 package com.sleepycat.util.keyrange;
@@ -22,7 +22,7 @@ public class KeyRange {
      */
     public static final byte[] ZERO_LENGTH_BYTE_ARRAY = new byte[0];
 
-    Comparator comparator;
+    Comparator<byte[]> comparator;
     DatabaseEntry beginKey;
     DatabaseEntry endKey;
     boolean singleKey;
@@ -32,7 +32,7 @@ public class KeyRange {
     /**
      * Creates an unconstrained key range.
      */
-    public KeyRange(Comparator comparator) {
+    public KeyRange(Comparator<byte[]> comparator) {
         this.comparator = comparator;
     }
 
@@ -333,7 +333,7 @@ public class KeyRange {
      *
      * @param dbt the thang to convert.
      *
-     * @param the resulting string.
+     * @return the resulting string.
      */
     public static String toString(DatabaseEntry dbt) {
 

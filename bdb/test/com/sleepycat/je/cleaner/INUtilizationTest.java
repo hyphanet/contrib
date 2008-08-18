@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INUtilizationTest.java,v 1.21.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: INUtilizationTest.java,v 1.27 2008/03/27 17:06:38 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -23,8 +23,10 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.LogEntryType;
@@ -34,6 +36,9 @@ import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.CmdUtil;
 import com.sleepycat.je.utilint.DbLsn;
 
+/**
+ * Test utilization counting of INs.
+ */
 public class INUtilizationTest extends TestCase {
 
     private static final String DB_NAME = "foo";
@@ -47,11 +52,13 @@ public class INUtilizationTest extends TestCase {
     private Environment env;
     private EnvironmentImpl envImpl;
     private Database db;
+    private DatabaseImpl dbImpl;
     private Transaction txn;
     private Cursor cursor;
     private boolean dups = false;
     private DatabaseEntry keyEntry = new DatabaseEntry();
     private DatabaseEntry dataEntry = new DatabaseEntry();
+    private boolean truncateOrRemoveDone;
 
     public INUtilizationTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
@@ -69,7 +76,7 @@ public class INUtilizationTest extends TestCase {
 
         try {
             if (env != null) {
-                env.close();
+                //env.close();
             }
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
@@ -88,6 +95,7 @@ public class INUtilizationTest extends TestCase {
         env = null;
         envImpl = null;
         db = null;
+        dbImpl = null;
         txn = null;
         cursor = null;
         keyEntry = null;
@@ -137,6 +145,7 @@ public class INUtilizationTest extends TestCase {
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(dups);
         db = env.openDatabase(null, DB_NAME, dbConfig);
+        dbImpl = DbInternal.dbGetDatabaseImpl(db);
     }
 
     private void closeEnv(boolean doCheckpoint)
@@ -159,8 +168,12 @@ public class INUtilizationTest extends TestCase {
     /**
      * Closes the environment and database.
      *
-     * @param expectAccurateObsoleteLNCount should be false if
-     * performPartialCheckpoint was called previously.
+     * @param expectAccurateObsoleteLNCount should be false when a deleted LN
+     * is not counted properly by recovery because its parent INs were flushed
+     * and the obsolete LN was not found in the tree.
+     *
+     * @param expectAccurateObsoleteLNSize should be false when a tree walk is
+     * performed for truncate/remove or an abortLsn is counted by recovery.
      */
     private void closeEnv(boolean doCheckpoint,
                           boolean expectAccurateObsoleteLNCount,
@@ -168,18 +181,19 @@ public class INUtilizationTest extends TestCase {
         throws DatabaseException {
 
         /*
-         * Verify utilization using UtilizationFileReader.
-         * expectAccurateObsoleteLNCount is false if performPartialCheckpoint
-         * was called previously -- see CleanerTestUtils.verifyUtilization.
-         * expectAccurateObsoleteLNSize is false for truncate and remove tests.
+         * We pass expectAccurateDbUtilization as false when
+         * truncateOrRemoveDone, because the database utilization info for that
+         * database is now gone.
          */
-        CleanerTestUtils.verifyUtilization
+        VerifyUtils.verifyUtilization
             (envImpl, expectAccurateObsoleteLNCount,
-             expectAccurateObsoleteLNSize);
+             expectAccurateObsoleteLNSize,
+             !truncateOrRemoveDone); // expectAccurateDbUtilization
 
         if (db != null) {
             db.close();
             db = null;
+            dbImpl = null;
         }
         if (envImpl != null) {
             envImpl.close(doCheckpoint);
@@ -204,15 +218,25 @@ public class INUtilizationTest extends TestCase {
         IntegerBinding.intToEntry(0, dataEntry);
         cursor.put(keyEntry, dataEntry);
 
-        /* Add a duplicate but move cursor back to the first record. */
+        /* Add a duplicate. */
         if (dups) {
             IntegerBinding.intToEntry(1, dataEntry);
             cursor.put(keyEntry, dataEntry);
-            cursor.getFirst(keyEntry, dataEntry, null);
         }
+
+        /* Commit the txn to avoid crossing the checkpoint boundary. */
+        cursor.close();
+        txn.commit();
 
         /* Checkpoint to the root so nothing is dirty. */
         env.sync();
+
+        /* Open a txn and cursor for use by the test case. */
+        txn = env.beginTransaction(null, null);
+        cursor = db.openCursor(txn, null);
+
+        /* If we added a duplicate, move cursor back to the first record. */
+        cursor.getFirst(keyEntry, dataEntry, null);
 
         /* Expect that BIN and parent IN files are not obsolete. */
         long binFile = getBINFile(cursor);
@@ -237,16 +261,14 @@ public class INUtilizationTest extends TestCase {
         /* Checkpoint */
         env.checkpoint(forceConfig);
 
-        if (!dups) {
-            /* After checkpoint, expect BIN file is obsolete but not IN. */
-            expectObsolete(binFile, true);
-            expectObsolete(inFile, false);
-            assertTrue(binFile != getBINFile(cursor));
-            assertEquals(inFile, getINFile(cursor));
+        /* After checkpoint, expect BIN file is obsolete but not IN. */
+        expectObsolete(binFile, true);
+        expectObsolete(inFile, false);
+        assertTrue(binFile != getBINFile(cursor));
+        assertEquals(inFile, getINFile(cursor));
 
-            /* After second checkpoint, IN file becomes obsolete also. */
-            env.checkpoint(forceConfig);
-        }
+        /* After second checkpoint, IN file becomes obsolete also. */
+        env.checkpoint(forceConfig);
 
         /* Both BIN and IN are obsolete. */
         expectObsolete(binFile, true);
@@ -329,6 +351,9 @@ public class INUtilizationTest extends TestCase {
         txn = env.beginTransaction(null, null);
         cursor = db.openCursor(txn, null);
 
+        /* Sync to make all INs non-dirty. */
+        env.sync();
+
         /* Position cursor to load BIN and IN. */
         cursor.getSearchKey(keyEntry, dataEntry, null);
 
@@ -369,7 +394,16 @@ public class INUtilizationTest extends TestCase {
         /* Position cursor to load BIN and IN. */
         cursor.getSearchKey(keyEntry, dataEntry, null);
 
-        /* Expect BIN and IN were checkpointed during close. */
+        /* Expect BIN was checkpointed during close but not IN. */
+        assertTrue(binFile2 != getBINFile(cursor));
+        assertEquals(inFile2, getINFile(cursor));
+        expectObsolete(binFile2, true);
+        expectObsolete(inFile2, false);
+
+        /* After second checkpoint, IN file becomes obsolete also. */
+        env.checkpoint(forceConfig);
+
+        /* Both BIN and IN are obsolete. */
         assertTrue(binFile2 != getBINFile(cursor));
         assertTrue(inFile2 != getINFile(cursor));
         expectObsolete(binFile2, true);
@@ -404,7 +438,7 @@ public class INUtilizationTest extends TestCase {
         /* Close with partial checkpoint and reopen. */
         cursor.close();
         txn.commit();
-        performPartialCheckpoint(true); // truncateFileSummariesAlso
+        performPartialCheckpoint(true); // truncateUtilizationInfo
         openEnv();
         txn = env.beginTransaction(null, null);
         cursor = db.openCursor(txn, null);
@@ -421,6 +455,9 @@ public class INUtilizationTest extends TestCase {
         /* Update to make BIN dirty. */
         cursor.put(keyEntry, dataEntry);
 
+        /* Force IN dirty so that BIN is logged provisionally. */
+        TestUtils.getIN(TestUtils.getBIN(cursor)).setDirty(true);
+
         /* Check current BIN and IN files. */
         assertTrue(binFile == getBINFile(cursor));
         assertTrue(inFile == getINFile(cursor));
@@ -430,8 +467,7 @@ public class INUtilizationTest extends TestCase {
         /* Close with partial checkpoint and reopen. */
         cursor.close();
         txn.commit();
-        performPartialCheckpoint(true,   // truncateFileSummariesAlso
-                                 false); // expectAccurateObsoleteLNCount
+        performPartialCheckpoint(true);  // truncateUtilizationInfo
         openEnv();
         txn = env.beginTransaction(null, null);
         cursor = db.openCursor(txn, null);
@@ -449,14 +485,12 @@ public class INUtilizationTest extends TestCase {
          * Expect that the current BIN is obsolete because it was provisional,
          * and provisional nodes following CkptStart are counted obsolete
          * even if that is sometimes incorrect.  The parent IN file is not
-         * obsolete if dups are not configured, because it is not provisonal;
-         * it is provisional if dups are configured, because we dirty farther
-         * up the tree.
+         * obsolete because it is not provisonal.
          */
         long binFile2 = getBINFile(cursor);
         long inFile2 = getINFile(cursor);
         expectObsolete(binFile2, true);
-        expectObsolete(inFile2, dups);
+        expectObsolete(inFile2, false);
 
         /*
          * Now repeat the test above but do not truncate the FileSummaryLNs.
@@ -470,8 +504,10 @@ public class INUtilizationTest extends TestCase {
         /* Close with partial checkpoint and reopen. */
         cursor.close();
         txn.commit();
-        performPartialCheckpoint(false,  // truncateFileSummariesAlso
-                                 false); // expectAccurateObsoleteLNCount
+        performPartialCheckpoint(false,  // truncateUtilizationInfo
+                                 true,   // expectAccurateObsoleteLNCount
+                                 false); // expectAccurateObsoleteLNSize
+
         openEnv();
         txn = env.beginTransaction(null, null);
         cursor = db.openCursor(txn, null);
@@ -479,11 +515,11 @@ public class INUtilizationTest extends TestCase {
         /* Position cursor to load BIN and IN. */
         cursor.getSearchKey(keyEntry, dataEntry, null);
 
-        /* The prior BIN and IN files are now double-counted as obsolete. */
+        /* The prior BIN file is now double-counted as obsolete. */
         assertTrue(binFile2 != getBINFile(cursor));
         assertTrue(inFile2 != getINFile(cursor));
         expectObsolete(binFile2, 2);
-        expectObsolete(inFile2, dups ? 2 : 1);
+        expectObsolete(inFile2, 1);
 
         /* Expect current BIN and IN files are not obsolete. */
         binFile2 = getBINFile(cursor);
@@ -494,7 +530,8 @@ public class INUtilizationTest extends TestCase {
         cursor.close();
         txn.commit();
         closeEnv(true,   // doCheckpoint
-                 false); // expectAccurateObsoleteLNCount
+                 true,   // expectAccurateObsoleteLNCount
+                 false); // expectAccurateObsoleteLNSize
     }
 
     /**
@@ -537,9 +574,12 @@ public class INUtilizationTest extends TestCase {
 
         if (dups) {
             /* Delete both records. */
-            cursor.delete();
+            OperationStatus status;
+            status = cursor.delete();
+            assertSame(OperationStatus.SUCCESS, status);
             cursor.getNext(keyEntry, dataEntry, null);
-            cursor.delete();
+            status = cursor.delete();
+            assertSame(OperationStatus.SUCCESS, status);
         } else {
 
             /*
@@ -579,16 +619,22 @@ public class INUtilizationTest extends TestCase {
         expectObsolete(inFile, true);
 
         /* Close with partial checkpoint and reopen. */
-        performPartialCheckpoint(true); // truncateFileSummariesAlso
+        performPartialCheckpoint(true); // truncateUtilizationInfo
         openEnv();
 
         /*
-         * Expect both files to be obsolete after recovery, since the IN will
-         * have been dirtied and rewritten.
+         * Expect both files to be obsolete after recovery, because the
+         * FileSummaryLN and MapLN was written prior to the checkpoint during
+         * compression.
          */
         expectObsolete(binFile, true);
         expectObsolete(inFile, true);
 
+        /*
+         * expectAccurateObsoleteLNCount is false because the deleted LN is not
+         * counted obsolete correctly as described in RecoveryManager
+         * redoUtilizationInfo.
+         */
         closeEnv(true,   // doCheckpoint
                  false); // expectAccurateObsoleteLNCount
     }
@@ -606,10 +652,13 @@ public class INUtilizationTest extends TestCase {
     /**
      * Tests that truncating a database is counted correctly.
      * Tests recovery also.
-     * @deprecated use of Database.truncate
      */
     public void testTruncate()
         throws DatabaseException, IOException {
+
+        /* Expect inaccurate LN sizes only if we force a tree walk. */
+        final boolean expectAccurateObsoleteLNSize =
+            !DatabaseImpl.forceTreeWalkForTruncateAndRemove;
 
         openAndWriteDatabase();
         long binFile = getBINFile(cursor);
@@ -620,30 +669,41 @@ public class INUtilizationTest extends TestCase {
         txn.commit();
         closeEnv(true,   // doCheckpoint
                  true,   // expectAccurateObsoleteLNCount
-                 false); // expectAccurateObsoleteLNSize
+                 expectAccurateObsoleteLNSize);
         openEnv();
-
+        db.close();
+        db = null;
         /* Truncate. */
         txn = env.beginTransaction(null, null);
-        db.truncate(txn, false);
+        env.truncateDatabase(txn, DB_NAME, false /* returnCount */);
+        truncateOrRemoveDone = true;
         txn.commit();
 
-        /* Expect BIN and IN are obsolete. */
-        expectObsolete(binFile, true);
-        expectObsolete(inFile, true);
+        /*
+         * Expect BIN and IN are obsolete.  Do not check DbFileSummary when we
+         * truncate/remove, since the old DatabaseImpl is gone.
+         */
+        expectObsolete(binFile, true, false /*checkDbFileSummary*/);
+        expectObsolete(inFile, true, false /*checkDbFileSummary*/);
 
         /* Close with partial checkpoint and reopen. */
-        performPartialCheckpoint(true,   // truncateFileSummariesAlso
+        performPartialCheckpoint(true,   // truncateUtilizationInfo
                                  true,   // expectAccurateObsoleteLNCount
-                                 false); // expectAccurateObsoleteLNSize
+                                 expectAccurateObsoleteLNSize);
         openEnv();
 
         /* Expect BIN and IN are counted obsolete during recovery. */
-        expectObsolete(binFile, true);
-        expectObsolete(inFile, true);
+        expectObsolete(binFile, true, false /*checkDbFileSummary*/);
+        expectObsolete(inFile, true, false /*checkDbFileSummary*/);
 
+        /*
+         * expectAccurateObsoleteLNSize is false because the size of the
+         * deleted NameLN is not counted during recovery, as with other
+         * abortLsns as described in RecoveryManager redoUtilizationInfo.
+         */
         closeEnv(true,   // doCheckpoint
-                 false); // expectAccurateObsoleteLNCount
+                 true,   // expectAccurateObsoleteLNCount
+                 false); // expectAccurateObsoleteLNSize
     }
 
     /**
@@ -653,6 +713,10 @@ public class INUtilizationTest extends TestCase {
     public void testRemove()
         throws DatabaseException, IOException {
 
+        /* Expect inaccurate LN sizes only if we force a tree walk. */
+        final boolean expectAccurateObsoleteLNSize =
+            !DatabaseImpl.forceTreeWalkForTruncateAndRemove;
+
         openAndWriteDatabase();
         long binFile = getBINFile(cursor);
         long inFile = getINFile(cursor);
@@ -662,7 +726,7 @@ public class INUtilizationTest extends TestCase {
         txn.commit();
         closeEnv(true,   // doCheckpoint
                  true,   // expectAccurateObsoleteLNCount
-                 false); // expectAccurateObsoleteLNSize
+                 expectAccurateObsoleteLNSize);
         openEnv();
 
         /* Remove. */
@@ -670,44 +734,106 @@ public class INUtilizationTest extends TestCase {
         db = null;
         txn = env.beginTransaction(null, null);
         env.removeDatabase(txn, DB_NAME);
+        truncateOrRemoveDone = true;
         txn.commit();
 
-        /* Expect BIN and IN are obsolete. */
-        expectObsolete(binFile, true);
-        expectObsolete(inFile, true);
+        /*
+         * Expect BIN and IN are obsolete.  Do not check DbFileSummary when we
+         * truncate/remove, since the old DatabaseImpl is gone.
+         */
+        expectObsolete(binFile, true, false /*checkDbFileSummary*/);
+        expectObsolete(inFile, true, false /*checkDbFileSummary*/);
 
         /* Close with partial checkpoint and reopen. */
-        performPartialCheckpoint(true,   // truncateFileSummariesAlso
+        performPartialCheckpoint(true,   // truncateUtilizationInfo
                                  true,   // expectAccurateObsoleteLNCount
-                                 false); // expectAccurateObsoleteLNSize
+                                 expectAccurateObsoleteLNSize);
         openEnv();
 
         /* Expect BIN and IN are counted obsolete during recovery. */
-        expectObsolete(binFile, true);
-        expectObsolete(inFile, true);
+        expectObsolete(binFile, true, false /*checkDbFileSummary*/);
+        expectObsolete(inFile, true, false /*checkDbFileSummary*/);
 
+        /*
+         * expectAccurateObsoleteLNCount is false because the deleted NameLN is
+         * not counted obsolete correctly as described in RecoveryManager
+         * redoUtilizationInfo.
+         */
         closeEnv(true,   // doCheckpoint
                  false); // expectAccurateObsoleteLNCount
+    }
+
+    /*
+     * The xxxForceTreeWalk tests set the DatabaseImpl
+     * forceTreeWalkForTruncateAndRemove field to true, which will force a walk
+     * of the tree to count utilization during truncate/remove, rather than
+     * using the per-database info.  This is used to test the "old technique"
+     * for counting utilization, which is now used only if the database was
+     * created prior to log version 6.
+     */
+
+    public void testTruncateForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testTruncate();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
+    }
+
+    public void testRemoveForceTreeWalk()
+        throws Exception {
+
+        DatabaseImpl.forceTreeWalkForTruncateAndRemove = true;
+        try {
+            testRemove();
+        } finally {
+            DatabaseImpl.forceTreeWalkForTruncateAndRemove = false;
+        }
     }
 
     private void expectObsolete(long file, boolean obsolete)
         throws DatabaseException {
 
-        FileSummary summary = getSummary(file);
+        expectObsolete(file, obsolete, true /*checkDbFileSummary*/);
+    }
+
+    private void expectObsolete(long file,
+                                boolean obsolete,
+                                boolean checkDbFileSummary)
+        throws DatabaseException {
+
+        FileSummary fileSummary = getFileSummary(file);
         assertEquals("totalINCount",
-                     1, summary.totalINCount);
+                     1, fileSummary.totalINCount);
         assertEquals("obsoleteINCount",
-                     obsolete ? 1 : 0, summary.obsoleteINCount);
+                     obsolete ? 1 : 0, fileSummary.obsoleteINCount);
+
+        if (checkDbFileSummary) {
+            DbFileSummary dbFileSummary = getDbFileSummary(file);
+            assertEquals("db totalINCount",
+                         1, dbFileSummary.totalINCount);
+            assertEquals("db obsoleteINCount",
+                         obsolete ? 1 : 0, dbFileSummary.obsoleteINCount);
+        }
     }
 
     private void expectObsolete(long file, int obsoleteCount)
         throws DatabaseException {
 
-        FileSummary summary = getSummary(file);
+        FileSummary fileSummary = getFileSummary(file);
         assertEquals("totalINCount",
-                     1, summary.totalINCount);
+                     1, fileSummary.totalINCount);
         assertEquals("obsoleteINCount",
-                     obsoleteCount, summary.obsoleteINCount);
+                     obsoleteCount, fileSummary.obsoleteINCount);
+
+        DbFileSummary dbFileSummary = getDbFileSummary(file);
+        assertEquals("db totalINCount",
+                     1, dbFileSummary.totalINCount);
+        assertEquals("db obsoleteINCount",
+                     obsoleteCount, dbFileSummary.obsoleteINCount);
     }
 
     private long getINFile(Cursor cursor)
@@ -730,7 +856,7 @@ public class INUtilizationTest extends TestCase {
     /**
      * Returns the utilization summary for a given log file.
      */
-    private FileSummary getSummary(long file)
+    private FileSummary getFileSummary(long file)
         throws DatabaseException {
 
 	return (FileSummary) envImpl.getUtilizationProfile()
@@ -738,32 +864,40 @@ public class INUtilizationTest extends TestCase {
                                     .get(new Long(file));
     }
 
-    private void performPartialCheckpoint(boolean truncateFileSummariesAlso)
+    /**
+     * Returns the per-database utilization summary for a given log file.
+     */
+    private DbFileSummary getDbFileSummary(long file) {
+        return dbImpl.getDbFileSummary
+            (new Long(file), false /*willModify*/);
+    }
+
+    private void performPartialCheckpoint(boolean truncateUtilizationInfo)
         throws DatabaseException, IOException {
 
-        performPartialCheckpoint(truncateFileSummariesAlso,
+        performPartialCheckpoint(truncateUtilizationInfo,
                                  true,  // expectAccurateObsoleteLNCount
                                  true); // expectAccurateObsoleteLNSize
     }
 
-    private void performPartialCheckpoint(boolean truncateFileSummariesAlso,
+    private void performPartialCheckpoint(boolean truncateUtilizationInfo,
                                           boolean
                                           expectAccurateObsoleteLNCount)
         throws DatabaseException, IOException {
 
-        performPartialCheckpoint(truncateFileSummariesAlso,
+        performPartialCheckpoint(truncateUtilizationInfo,
                                  expectAccurateObsoleteLNCount,
                                  expectAccurateObsoleteLNCount);
     }
 
     /**
      * Performs a checkpoint and truncates the log before the last CkptEnd.  If
-     * truncateFileSummariesAlso is true, truncates before the FileSummaryLNs
+     * truncateUtilizationInfo is true, truncates before the FileSummaryLNs
      * that appear at the end of the checkpoint.  The environment should be
      * open when this method is called, and it will be closed when it returns.
      */
     private void performPartialCheckpoint
-                    (boolean truncateFileSummariesAlso,
+                    (boolean truncateUtilizationInfo,
                      boolean expectAccurateObsoleteLNCount,
                      boolean expectAccurateObsoleteLNSize)
         throws DatabaseException, IOException {
@@ -781,7 +915,7 @@ public class INUtilizationTest extends TestCase {
         assertTrue(searcher.readNextEntry());
         long ckptEnd = searcher.getLastLsn();
 
-        if (truncateFileSummariesAlso) {
+        if (truncateUtilizationInfo) {
 
             /* Searching backward from CkptEnd, find last CkptStart. */
             searcher =
@@ -790,10 +924,15 @@ public class INUtilizationTest extends TestCase {
             assertTrue(searcher.readNextEntry());
             long ckptStart = searcher.getLastLsn();
 
-            /* Searching forward from CkptStart, find first FileSummaryLN. */
+            /*
+             * Searching forward from CkptStart, find first MapLN.  MapLNs are
+             * written after writing root INs and before all FileSummaryLNs.
+             * This will find the position at which to truncate all MapLNs and
+             * FileSummaryLNs, but not INs below the mapping tree.
+             */
             searcher =
                 new SearchFileReader(envImpl, 1000, true, ckptStart, eofLsn,
-                                     LogEntryType.LOG_FILESUMMARYLN);
+                                     LogEntryType.LOG_MAPLN);
             assertTrue(searcher.readNextEntry());
             truncateLsn = searcher.getLastLsn();
         } else {

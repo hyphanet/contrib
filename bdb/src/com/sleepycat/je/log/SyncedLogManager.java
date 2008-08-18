@@ -1,23 +1,22 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SyncedLogManager.java,v 1.18.2.4 2007/11/20 13:32:32 cwl Exp $
+ * $Id: SyncedLogManager.java,v 1.28 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.EnvironmentStats;
+import com.sleepycat.je.cleaner.LocalUtilizationTracker;
 import com.sleepycat.je.cleaner.TrackedFileSummary;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.log.entry.LogEntry;
 
 /**
  * The SyncedLogManager uses the synchronized keyword to implement protected
@@ -35,24 +34,11 @@ public class SyncedLogManager extends LogManager {
         super(envImpl, readOnly);
     }
 
-    protected LogResult logItem(LogEntryHeader header,
-                                LogEntry item,
-                                boolean isProvisional,
-                                boolean flushRequired,
-                                boolean forceNewLogFile,
-                                long oldNodeLsn,
-                                int oldNodeSize,
-                                boolean marshallOutsideLatch,
-                                ByteBuffer marshalledBuffer,
-                                UtilizationTracker tracker,
-                                boolean shouldReplicate)
+    void serialLog(LogItem[] itemArray, LogContext context)
         throws IOException, DatabaseException {
 
         synchronized (logWriteLatch) {
-            return logInternal
-                (header, item, isProvisional, flushRequired, forceNewLogFile,
-                 oldNodeLsn, oldNodeSize, marshallOutsideLatch,
-                 marshalledBuffer, tracker, shouldReplicate);
+            serialLogInternal(itemArray, context);
         }
     }
 
@@ -93,35 +79,59 @@ public class SyncedLogManager extends LogManager {
     /**
      * @see LogManager#countObsoleteLNs
      */
-    public void countObsoleteNode(long lsn, LogEntryType type, int size)
+    public void countObsoleteNode(long lsn,
+                                  LogEntryType type,
+                                  int size,
+                                  DatabaseImpl nodeDb)
         throws DatabaseException {
 
-        UtilizationTracker tracker = envImpl.getUtilizationTracker();
         synchronized (logWriteLatch) {
-            countObsoleteNodeInternal(tracker, lsn, type, size);
+            countObsoleteNodeInternal(lsn, type, size, nodeDb);
         }
     }
 
     /**
-     * @see LogManager#countObsoleteNodes
+     * @see LogManager#transferToUtilizationTracker
      */
-    public void countObsoleteNodes(TrackedFileSummary[] summaries)
+    public void transferToUtilizationTracker(LocalUtilizationTracker
+                                             localTracker)
         throws DatabaseException {
 
-        UtilizationTracker tracker = envImpl.getUtilizationTracker();
         synchronized (logWriteLatch) {
-            countObsoleteNodesInternal(tracker, summaries);
+            transferToUtilizationTrackerInternal(localTracker);
         }
     }
 
     /**
      * @see LogManager#countObsoleteINs
      */
-    public void countObsoleteINs(List lsnList)
+    public void countObsoleteINs(List<Long> lsnList, DatabaseImpl nodeDb)
         throws DatabaseException {
 
         synchronized (logWriteLatch) {
-            countObsoleteINsInternal(lsnList);
+            countObsoleteINsInternal(lsnList, nodeDb);
+        }
+    }
+
+    /**
+     * @see LogManager#countObsoleteDb
+     */
+    public void countObsoleteDb(DatabaseImpl db)
+        throws DatabaseException {
+
+        synchronized (logWriteLatch) {
+            countObsoleteDbInternal(db);
+        }
+    }
+
+    /**
+     * @see LogManager#removeDbFileSummary
+     */
+    public boolean removeDbFileSummary(DatabaseImpl db, Long fileNum)
+        throws DatabaseException {
+
+        synchronized (logWriteLatch) {
+            return removeDbFileSummaryInternal(db, fileNum);
         }
     }
 

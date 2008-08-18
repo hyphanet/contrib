@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EntityModel.java,v 1.14.2.4 2007/11/20 13:32:39 cwl Exp $
+ * $Id: EntityModel.java,v 1.20 2008/01/07 14:28:59 cwl Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -165,9 +165,6 @@ public abstract class EntityModel {
      * @param className the name of the latest version of the class.
      *
      * @param version the desired version of the class.
-     *
-     * @throws IllegalStateException if this method is called for a model that
-     * is not associated with an open store.
      *
      * @throws IllegalStateException if this method is called for a model that
      * is not associated with an open store.

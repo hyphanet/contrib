@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BasicCursor.java,v 1.8.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: BasicCursor.java,v 1.12 2008/02/05 23:28:21 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -26,13 +26,17 @@ class BasicCursor<V> implements EntityCursor<V> {
 
     RangeCursor cursor;
     ValueAdapter<V> adapter;
+    boolean updateAllowed;
     DatabaseEntry key;
     DatabaseEntry pkey;
     DatabaseEntry data;
 
-    BasicCursor(RangeCursor cursor, ValueAdapter<V> adapter) {
+    BasicCursor(RangeCursor cursor,
+                ValueAdapter<V> adapter,
+                boolean updateAllowed) {
         this.cursor = cursor;
         this.adapter = adapter;
+        this.updateAllowed = updateAllowed;
         key = adapter.initKey();
         pkey = adapter.initPKey();
         data = adapter.initData();
@@ -167,6 +171,10 @@ class BasicCursor<V> implements EntityCursor<V> {
     public boolean update(V entity)
         throws DatabaseException {
 
+        if (!updateAllowed) {
+            throw new UnsupportedOperationException
+                ("Update not allowed on a secondary index");
+        }
         checkInitialized();
         adapter.valueToData(entity, data);
         return cursor.putCurrent(data) == OperationStatus.SUCCESS;
@@ -182,7 +190,7 @@ class BasicCursor<V> implements EntityCursor<V> {
     public EntityCursor<V> dup()
         throws DatabaseException {
 
-        return new BasicCursor<V>(cursor.dup(true), adapter);
+        return new BasicCursor<V>(cursor.dup(true), adapter, updateAllowed);
     }
 
     public void close()

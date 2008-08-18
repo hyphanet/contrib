@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ToManyTest.java,v 1.4.2.2 2007/11/20 13:32:49 cwl Exp $
+ * $Id: ToManyTest.java,v 1.8 2008/02/05 23:28:27 mark Exp $
  */
 
 package com.sleepycat.je.test;
@@ -27,6 +27,7 @@ import com.sleepycat.je.SecondaryCursor;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.util.test.TxnTestCase;
 
 /**
  * Tests multi-key secondary operations.  Exhaustive API testing of multi-key

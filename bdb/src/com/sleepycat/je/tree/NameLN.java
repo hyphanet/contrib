@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: NameLN.java,v 1.19.2.2 2007/11/20 13:32:35 cwl Exp $
+ * $Id: NameLN.java,v 1.28 2008/02/06 19:48:01 linda Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -11,9 +11,15 @@ package com.sleepycat.je.tree;
 import java.nio.ByteBuffer;
 
 import com.sleepycat.je.dbi.DatabaseId;
+import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
-import com.sleepycat.je.log.LogUtils;
+import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.ReplicationContext;
+import com.sleepycat.je.log.entry.LNLogEntry;
+import com.sleepycat.je.log.entry.NameLNLogEntry;
+import com.sleepycat.je.txn.Txn;
 
 /**
  * A NameLN represents a Leaf Node in the name->database id mapping tree.
@@ -31,8 +37,8 @@ public final class NameLN extends LN {
      * doesn't have a superfluous data field, but we want to optimize the LN
      * class for size and speed right now.
      */
-    public NameLN(DatabaseId id) {
-        super(new byte[0]);
+    public NameLN(DatabaseId id, EnvironmentImpl envImpl, boolean replicate) {
+        super(new byte[0], envImpl, replicate);
         this.id = id;
         deleted = false;
     }
@@ -117,7 +123,7 @@ public final class NameLN extends LN {
         return
             super.getLogSize() +                     // superclass
             id.getLogSize() +                        // id
-            LogUtils.getBooleanLogSize();            // deleted flag
+            1;                                       // deleted flag
     }
 
     /**
@@ -127,18 +133,43 @@ public final class NameLN extends LN {
         /* Ask ancestors to write to log. */
         super.writeToLog(logBuffer);         // super class
         id.writeToLog(logBuffer);            // id
-        LogUtils.writeBoolean(logBuffer, deleted); // deleted flag
+        byte booleans = (byte) (deleted ? 1 : 0);
+        logBuffer.put(booleans);
     }
 
     /**
      * @see LN#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
-        super.readFromLog(itemBuffer, entryTypeVersion); // super class
-        id.readFromLog(itemBuffer, entryTypeVersion); // id
-        deleted = LogUtils.readBoolean(itemBuffer);   // deleted flag
+        super.readFromLog(itemBuffer, entryVersion); // super class
+        id.readFromLog(itemBuffer, entryVersion); // id
+        byte booleans = itemBuffer.get();
+        deleted = (booleans & 1) != 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     */
+    @Override
+    public boolean logicalEquals(Loggable other) {
+
+        if (!(other instanceof NameLN))
+            return false;
+
+        NameLN otherLN = (NameLN) other;
+
+        if (getNodeId() != otherLN.getNodeId())
+            return false;
+
+        if (!(id.equals(otherLN.id)))
+            return false;
+
+        if (deleted != otherLN.deleted)
+            return false;
+
+        return true;
     }
 
     /**
@@ -147,5 +178,29 @@ public final class NameLN extends LN {
      */
     protected void dumpLogAdditional(StringBuffer sb, boolean verbose) {
         id.dumpLog(sb, true);
+    }
+
+    /*
+     * Each LN knows what kind of log entry it uses to log itself. Overridden
+     * by subclasses.
+     */
+    @Override
+    LNLogEntry createLogEntry(LogEntryType entryType,
+                              DatabaseImpl dbImpl,
+                              byte[] key,
+                              byte[] delDupKey,
+                              long logAbortLsn,
+                              boolean logAbortKnownDeleted,
+                              Txn logTxn,
+                              ReplicationContext repContext) {
+
+        return new NameLNLogEntry(entryType,
+                                  this,
+                                  dbImpl.getId(),
+                                  key,
+                                  logAbortLsn,
+                                  logAbortKnownDeleted,
+                                  logTxn,
+                                  repContext);
     }
 }

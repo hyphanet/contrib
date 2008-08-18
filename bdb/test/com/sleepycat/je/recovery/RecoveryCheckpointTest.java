@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryCheckpointTest.java,v 1.37.2.2 2007/11/20 13:32:47 cwl Exp $
+ * $Id: RecoveryCheckpointTest.java,v 1.41 2008/01/07 14:29:10 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -243,7 +243,7 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
 
 	Transaction dbTxn = env.beginTransaction(null, null);
 	EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
-	final DbTree dbTree = envImpl.getDbMapTree();
+	final DbTree dbTree = envImpl.getDbTree();
 
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setTransactional(true);

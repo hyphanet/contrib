@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: TupleTupleMarshalledKeyCreator.java,v 1.27.2.2 2007/06/01 21:32:54 mark Exp $
+ * $Id: TupleTupleMarshalledKeyCreator.java,v 1.31 2008/05/27 15:30:33 mark Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -21,10 +21,12 @@ package com.sleepycat.bind.tuple;
  *
  * @author Mark Hayes
  */
-public class TupleTupleMarshalledKeyCreator extends TupleTupleKeyCreator {
+public class TupleTupleMarshalledKeyCreator<E extends
+    MarshalledTupleEntry & MarshalledTupleKeyEntity>
+    extends TupleTupleKeyCreator<E> {
 
     private String keyName;
-    private TupleTupleMarshalledBinding binding;
+    private TupleTupleMarshalledBinding<E> binding;
 
     /**
      * Creates a tuple-tuple marshalled key creator.
@@ -35,7 +37,8 @@ public class TupleTupleMarshalledKeyCreator extends TupleTupleKeyCreator {
      * MarshalledTupleKeyEntity#marshalSecondaryKey} method to identify the
      * index key.
      */
-    public TupleTupleMarshalledKeyCreator(TupleTupleMarshalledBinding binding,
+    public TupleTupleMarshalledKeyCreator(TupleTupleMarshalledBinding<E>
+                                          binding,
                                           String keyName) {
 
         this.binding = binding;
@@ -51,9 +54,7 @@ public class TupleTupleMarshalledKeyCreator extends TupleTupleKeyCreator {
          * account for cases where the index key includes fields taken from the
          * primary key.
          */
-        MarshalledTupleKeyEntity entity = (MarshalledTupleKeyEntity)
-            binding.entryToObject(primaryKeyInput, dataInput);
-
+        E entity = binding.entryToObject(primaryKeyInput, dataInput);
         return entity.marshalSecondaryKey(keyName, indexKeyOutput);
     }
 
@@ -61,8 +62,7 @@ public class TupleTupleMarshalledKeyCreator extends TupleTupleKeyCreator {
     public boolean nullifyForeignKey(TupleInput dataInput,
                                      TupleOutput dataOutput) {
 
-        MarshalledTupleKeyEntity entity = (MarshalledTupleKeyEntity)
-            binding.entryToObject(null, dataInput);
+        E entity = binding.entryToObject(null, dataInput);
         if (entity.nullifyForeignKey(keyName)) {
             binding.objectToData(entity, dataOutput);
             return true;

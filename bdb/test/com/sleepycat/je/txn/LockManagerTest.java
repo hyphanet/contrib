@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockManagerTest.java,v 1.45.2.5 2007/11/20 13:32:50 cwl Exp $
+ * $Id: LockManagerTest.java,v 1.55 2008/01/17 17:22:30 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -19,6 +19,7 @@ import com.sleepycat.je.TransactionConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.junit.JUnitThread;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.util.TestUtils;
 
 public class LockManagerTest extends TestCase {
@@ -43,16 +44,21 @@ public class LockManagerTest extends TestCase {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
+        envConfig.setConfigParam(EnvironmentParams.N_LOCK_TABLES.getName(),
+                                 "11");
         envConfig.setAllowCreate(true);
 	envConfig.setTransactional(true);
-        env = new EnvironmentImpl(envHome, envConfig);
+        env = new EnvironmentImpl(envHome,
+                                  envConfig,
+                                  null /*sharedCacheEnv*/,
+                                  false /*replicationIntended*/);
 
         TxnManager txnManager = env.getTxnManager();
 	lockManager = txnManager.getLockManager();
-	txn1 = new BasicLocker(env);
-	txn2 = new BasicLocker(env);
-	txn3 = new BasicLocker(env);
-	txn4 = new BasicLocker(env);
+	txn1 = BasicLocker.createBasicLocker(env);
+	txn2 = BasicLocker.createBasicLocker(env);
+	txn3 = BasicLocker.createBasicLocker(env);
+	txn4 = BasicLocker.createBasicLocker(env);
 	nid = new Long(1);
 	sequence = 0;
     }
@@ -65,6 +71,22 @@ public class LockManagerTest extends TestCase {
         txn3.operationEnd();
         txn4.operationEnd();
         env.close();
+    }
+
+    /*
+     * SR15926 showed a bug where nodeIds that are > 0x80000000 produce
+     * negative lock table indexes becuase of the modulo arithmetic in
+     * LockManager.getLockTableIndex().
+     */
+    public void testSR15926LargeNodeIds()
+        throws Exception {
+
+        try {
+            lockManager.lock(0x80000000L, txn1, LockType.WRITE,
+                             0, false, null);
+        } catch (Exception e) {
+            fail("shouldn't get exception " + e);
+        }
     }
 
     public void testNegatives()
@@ -650,8 +672,7 @@ public class LockManagerTest extends TestCase {
                                              false, null);
 			    fail("didn't time out");
 			} catch (DeadlockException e) {
-                            assertTrue(TestUtils.skipVersion(e).
-				       startsWith("Lock "));
+                            assertTrue(TestUtils.skipVersion(e).startsWith("Lock "));
 			}
 			assertFalse
 			    (lockManager.isOwner(nid, txn2, LockType.READ));
@@ -712,11 +733,12 @@ public class LockManagerTest extends TestCase {
         txn4.operationEnd();
 
 	TransactionConfig config = new TransactionConfig();
-	txn1 = new Txn(env, config);
-	txn2 = new Txn(env, config);
-	txn3 = new Txn(env, config);
-	txn4 = new Txn(env, config);
-	final Txn txn5 = new Txn(env, config);
+	txn1 = Txn.createTxn(env, config, ReplicationContext.NO_REPLICATE);
+	txn2 = Txn.createTxn(env, config, ReplicationContext.NO_REPLICATE);
+	txn3 = Txn.createTxn(env, config, ReplicationContext.NO_REPLICATE);
+	txn4 = Txn.createTxn(env, config, ReplicationContext.NO_REPLICATE);
+	final Txn txn5 =
+	    Txn.createTxn(env, config, ReplicationContext.NO_REPLICATE);
 
 	sequence = 0;
 	JUnitThread tester1 =
@@ -834,7 +856,6 @@ public class LockManagerTest extends TestCase {
 			fail("expected DeadlockException");
 			DBE.printStackTrace(System.out);
 		    }
-		    System.out.println("setting sequence to 1");
 		    sequence = 1;
 		}
 	    };

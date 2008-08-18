@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbBackupTest.java,v 1.3.2.2 2007/11/20 13:32:51 cwl Exp $
+ * $Id: DbBackupTest.java,v 1.13 2008/05/30 14:04:22 mark Exp $
  */
 
 package com.sleepycat.je.util;
@@ -50,7 +50,7 @@ public class DbBackupTest extends TestCase {
     private static final String SAVE1 = "save1";
     private static final String SAVE2 = "save2";
     private static final String SAVE3 = "save3";
-    private static final int NUM_RECS = 50;
+    private static final int NUM_RECS = 60;
 
     private File envHome;
     private Environment env;
@@ -88,6 +88,7 @@ public class DbBackupTest extends TestCase {
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
         fileManager = envImpl.getFileManager();
 
+        boolean success = false;
         try {
 
             /*
@@ -135,7 +136,7 @@ public class DbBackupTest extends TestCase {
 
             /* Check the membership of the saved set. */
             long lastFile =  backupHelper.getLastFileInBackupSet();
-            String [] backupSet = backupHelper.getLogFilesInBackupSet();
+            String[] backupSet = backupHelper.getLogFilesInBackupSet();
             assertEquals((lastFile + 1), backupSet.length);
 
             /* End backup. */
@@ -156,9 +157,20 @@ public class DbBackupTest extends TestCase {
             verifyDb1(SAVE2, true);
             TestUtils.removeLogFiles("Verify", envHome, false);
             verifyDb1(SAVE3, true);
+            success = true;
         } finally {
             if (env != null) {
-                env.close();
+                try {
+                    env.close();
+                } catch (Exception e) {
+                    /* 
+                     * Don't bother with this exception if there is another
+                     * earlier problem.
+                     */
+                    if (success) {
+                        throw e;
+                    } 
+                }
             }
         }
     }
@@ -283,6 +295,7 @@ public class DbBackupTest extends TestCase {
         Environment env = createEnv(true, envHome);
 
         try {
+            @SuppressWarnings("unused")
             DbBackup backup = new DbBackup(env);
             fail("Should fail because env is read/only.");
         } catch (DatabaseException expected) {
@@ -371,7 +384,7 @@ public class DbBackupTest extends TestCase {
         return endLastFileNum;
     }
 
-    private int batchClean(int expectedDeletions)
+    private long batchClean(int expectedDeletions)
         throws DatabaseException {
 
         EnvironmentStats stats = env.getStats(CLEAR_CONFIG);
@@ -391,7 +404,7 @@ public class DbBackupTest extends TestCase {
         throws IOException, DatabaseException {
 
         /* Check that the backup set contains only the files it should have. */
-        String [] fileList =
+        String[] fileList =
             backupHelper.getLogFilesInBackupSet(lastFileFromPrevBackup);
         assertEquals(lastFileNum,
                      fileManager.getNumFromName(fileList[fileList.length-1]).
@@ -403,7 +416,7 @@ public class DbBackupTest extends TestCase {
         copyFiles(envHome, saveDir, fileList);
     }
 
-    private void copyFiles(File sourceDir, File destDir, String [] fileList)
+    private void copyFiles(File sourceDir, File destDir, String[] fileList)
         throws DatabaseException {
 
         try {
@@ -435,7 +448,7 @@ public class DbBackupTest extends TestCase {
 
         File saveDir = new File(envHome, saveDirName);
         if (saveDir.exists()) {
-            String [] savedFiles = saveDir.list();
+            String[] savedFiles = saveDir.list();
             if (savedFiles != null) {
             for (int i = 0; i < savedFiles.length; i++) {
                 File f = new File(saveDir, savedFiles[i]);
@@ -453,7 +466,7 @@ public class DbBackupTest extends TestCase {
         throws DatabaseException {
 
         File saveDir = new File(envHome, saveDirName);
-        String [] savedFiles = saveDir.list();
+        String[] savedFiles = saveDir.list();
         if (rename){
             for (int i = 0; i < savedFiles.length; i++) {
                 File saved = new File(saveDir, savedFiles[i]);
@@ -471,6 +484,7 @@ public class DbBackupTest extends TestCase {
             /* Db 2 should not exist. */
             DatabaseConfig dbConfig = new DatabaseConfig();
             try {
+                @SuppressWarnings("unused")
                 Database db = env.openDatabase(null, "db2", dbConfig);
                 fail("db2 should not exist");
             } catch (DatabaseException expected) {
@@ -489,7 +503,7 @@ public class DbBackupTest extends TestCase {
         throws DatabaseException {
 
         File saveDir = new File(envHome, saveDirName1);
-        String [] savedFiles = saveDir.list();
+        String[] savedFiles = saveDir.list();
         for (int i = 0; i < savedFiles.length; i++) {
             File saved = new File(saveDir, savedFiles[i]);
             File dest = new File(envHome, savedFiles[i]);

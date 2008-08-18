@@ -7,6 +7,10 @@
 <project name="JE" default="jar" basedir=".">
 <description>Compile and test JE</description>
 
+    <fail message="Ant 1.7.0 or greater is required">
+      <condition><not><antversion atleast="1.7.0"/></not></condition>
+    </fail>
+
     <!-- Modify build.properties to point to the proper j2ee paths for
          JCA and JMX support  -->
     <property file="build.properties"/>
@@ -14,6 +18,14 @@
     <property name="srcdir" value="${basedir}/src"/>
     <property name="builddir" value="${basedir}/build"/>
     <property name="destdir" value="${builddir}/classes"/>
+    <condition property="specificjar" value="${testjar}">
+      <isset property="testjar"/>
+    </condition>
+    <condition property="specificjar" value="${destdir}">
+      <not>
+        <isset property="testjar"/>
+      </not>
+    </condition>
     <property name="libdir" value="${builddir}/lib"/>
     <property name="extdir" value="${basedir}/ext"/>
 
@@ -25,6 +37,7 @@
     <property name="unittest.destdir" value="${unittest.dir}/classes"/>
     <property name="unittest.datadir" value="${unittest.dir}/data"/>
     <property name="unittest.extraenvdir" value="${unittest.destdir}/propTest"/>
+    <property name="unittest.extraenvdir2" value="${unittest.destdir}/propTest2"/>
     <property name="unittest.reportsdir" value="${unittest.dir}/reports"/>
     <property name="unittest.testserialdir" value="${unittest.dir}/testserial"/>
     <property name="unittest.testevolvedir" value="${unittest.dir}/testevolve"/>
@@ -32,20 +45,22 @@
     <property name="doc.dir" value="${basedir}/docs"/>
     <property name="doc.javadir" value="${doc.dir}/java"/>
     <property name="docsrc.dir" value="${basedir}/docs_src"/>
-    <property name="docsrc.m4dir" value="${docsrc.dir}/com.src"/>
-    <property name="docsrc.postm4dir" value="${builddir}/docs"/>
-    <property name="docsrc.javadir" value="${docsrc.postm4dir}/java"/>
+    <property name="doclet.classes.dir"  
+              value="${doc.dir}/doclet/Classes"/>
+    <property name="doclet.src.dir" value="${doc.dir}/doclet"/>
+    <property name="doclet.jar" value="${doc.dir}/HidingDoclet.jar"/>
 
     <property name="jarfile" value="${libdir}/je.jar"/>
     <property name="jcararfile" value="${libdir}/jejca.rar"/>
     <property name="srczipfile" value="${basedir}/src.zip"/>
     <property name="buildzipfile" value="${basedir}/build.zip"/>
     <property name="zipfile" value="${basedir}/je.zip"/>
+    <property name="plugin.id" value="com.sleepycat.je"/>
 
     <property name="clover.tmpdir" value="${builddir}/tmp"/>
     <property name="clover.initstring"
               location="${clover.tmpdir}/jecoverage.db"/>
-    <property name="clover.libdir" value="/clover/lib"/>
+      <property name="clover.libdir" value="/clover/lib"/>
     <property name="clover.excludes" value="**/rpcserver/** **/je/examples/** **/je/junit/** **/*Test.java **/*TestBase.java **/compat/** **/je/util/**"/>
 
     <property name="example.srcdir" value="${basedir}/examples"/>
@@ -56,6 +71,18 @@
     <property name="build.propertyfile"
               value="${dist.destdir}/build.properties"/>
     <property name="installdestdir" value="/usr/local"/>
+
+    <!--
+    Can be used to specify a different JVM for <java> tasks, for example:
+      ant "-Djvm=/usr/local/jdk1.6.0_01/bin/java" ...
+    -->
+    <property name="jvm" value="java"/>
+
+    <!--
+    Can be used to override JVM args for <java> tasks, for example:
+      ant "-Djvmargs=-Xmx32M -client" ...
+    -->
+    <property name="jvmargs" value=""/>
 
     <!--
     For unit testing using different default isolation levels.  May be:
@@ -75,12 +102,12 @@
     <path id="empty.classpath"/>
 
     <path id="class.path">
-      <pathelement location="${destdir}"/>
+      <pathelement location="${specificjar}"/>
       <pathelement location="."/>
     </path>
 
     <path id="unittest.classpath">
-      <pathelement location="${destdir}"/>
+      <pathelement location="${specificjar}"/>
       <pathelement location="."/>
       <pathelement location="${unittest.destdir}"/>
     </path>
@@ -111,6 +138,16 @@
       <pathelement path="${j2ee.jarfile}"/>
     </path>
 
+    <fileset id="jarclasses" dir="${destdir}"
+             includes="com/sleepycat/asm/**/*.class,
+                       com/sleepycat/bind/**/*.class,
+                       com/sleepycat/collections/**/*.class,
+                       com/sleepycat/compat/**/*.class,
+                       com/sleepycat/je/**/*.class,
+                       com/sleepycat/persist/**/*.class,
+                       com/sleepycat/util/**/*.class"
+             excludes="com/sleepycat/je/rep/**/*.class"/>
+
     <target name="buildDbg">
     <description>debug the build file itself</description>
       <property name="classpath.string" refid="class.path"/>
@@ -132,6 +169,7 @@
         <mkdir dir="${unittest.dir}"/>
         <mkdir dir="${unittest.destdir}"/>
         <mkdir dir="${unittest.extraenvdir}"/>
+        <mkdir dir="${unittest.extraenvdir2}"/>
         <mkdir dir="${unittest.testserialdir}"/>
         <mkdir dir="${unittest.testevolvedir}"/>
         <tstamp/>
@@ -166,15 +204,16 @@
 
     </target>
 
-    <target name="do-internal">
-       <ant antfile="ant/internal.xml" target="${target}" inheritAll="true"/>
-    </target>
+    <!-- ====== Internal (non-public) targets delegated to internal.xml =======
 
-    <!-- internal targets -->
-    <target name="regress" depends="compile">
-	<antcall target="do-internal">
-	   <param name="target" value="regress"/>
-        </antcall>
+    For each top level target in internal.xml, a target here is used to compile
+    all JE and internal sources and then invoke the target via internal.xml.
+    Any other parameters for each target are passed using properties (-D
+    propName=propValue).
+    ======================================================================= -->
+    <target name="do-internal">
+       <ant antfile="ant/internal.xml" target="${target}"
+            inheritAll="true" inheritrefs="true"/>
     </target>
     
     <!-- ============================================================ -->
@@ -203,20 +242,17 @@
 
     <target name="compile-src" depends="init">
         <ant antfile="ant/compile.xml" dir="." inheritall="false">
-            <property name="java15files1" value="**/persist/**/*.java"/>
-            <property name="java15files2" value="**/rep/**/*.java"/>
             <reference refid="class.path" torefid="compile.classpath"/>
         </ant>
         <!-- Enhance the built-in persistent proxy classes. -->
-
-    <taskdef name="enhancer"
-             classname="com.sleepycat.persist.model.ClassEnhancerTask">
-      <classpath refid="class.path"/>
-    </taskdef>
-    <enhancer verbose="off">
-      <fileset dir="${destdir}"
-               includes="com/sleepycat/persist/impl/*Proxy.class"/>
-    </enhancer>
+        <taskdef name="enhancer"
+                 classname="com.sleepycat.persist.model.ClassEnhancerTask">
+          <classpath refid="class.path"/>
+        </taskdef>
+        <enhancer verbose="off">
+          <fileset dir="${destdir}"
+                   includes="com/sleepycat/persist/impl/*Proxy.class"/>
+        </enhancer>
     </target>
 
     <target name="compile-examples" depends="compile-src">
@@ -225,8 +261,6 @@
             <property name="include" value="**/*.java"/>
             <property name="exclude1" value="jmx/**/*.java"/>
             <property name="exclude2" value="jca/**/*.java"/>
-            <property name="java15files1" value="persist/**/*.java"/>
-            <property name="java15files2" value="**/rep/**/*.java"/>
             <reference refid="class.path" torefid="compile.classpath"/>
         </ant>
     </target>
@@ -269,7 +303,7 @@
     <target name="compile-dist" depends="init">
         <javac srcdir="${dist.srcdir}"
                destdir="${dist.destdir}" 
-               source="1.4">
+               source="1.5">
             <classpath refid="class.path"/>
         </javac>
     </target>
@@ -285,15 +319,7 @@
     <!-- JE jar -->
     <target name="jar" depends="compile, clean-package">
         <jar jarfile="${jarfile}">
-	<fileset dir="${destdir}"
-                 includes="com/sleepycat/asm/**/*.class,
-                           com/sleepycat/bind/**/*.class,
-                           com/sleepycat/collections/**/*.class,
-                           com/sleepycat/compat/**/*.class,
-                           com/sleepycat/je/**/*.class,
-                           com/sleepycat/persist/**/*.class,
-                           com/sleepycat/util/**/*.class"
-                 excludes="com/sleepycat/je/rep/**/*.class"/>
+	<fileset refid="jarclasses"/>
         <manifest>
             <attribute name="Main-Class"
                        value="com.sleepycat.je.utilint.JarMain"/>
@@ -357,6 +383,58 @@
         </jar>
     </target>
 
+    <!-- create hidingdoclet jar. -->
+    <target name="jar-hidingdoclet" depends="init, copy-doc-materials">
+        <delete dir="${doclet.classes.dir}"/>
+	<delete file="${doclet.jar}"/>
+
+	<mkdir dir="${doclet.classes.dir}"/>
+	<javac srcdir="${doclet.src.dir}" destdir="${doclet.classes.dir}" source="1.5">
+            <include name="*.java"/>
+        </javac>	    
+
+	<jar jarfile="${doclet.jar}">
+            <fileset dir="${doclet.classes.dir}" includes="*.class"/>
+	</jar>
+    </target>
+
+
+    <!-- Eclipse "wrapper plug-in" jar -->
+    <target name="je-version" depends="compile-src">
+       <java fork="yes" 
+             classname="com.sleepycat.je.util.DbDump"
+             outputproperty="version.result"
+             failonerror="true">
+	  <arg value="-V"/>
+          <classpath refid="class.path"/>
+       </java>
+
+    </target>
+
+    <target name="eclipsejar" depends="je-version,compile,clean-package">
+        <property name="eclipsejarfile"
+                  value="${libdir}/${plugin.id}_${version.result}.jar"/>
+        <jar jarfile="${eclipsejarfile}">
+	<fileset refid="jarclasses"/>
+        <manifest>
+            <attribute name="Export-Package"
+                       value="com.sleepycat.bind,com.sleepycat.bind.serial,com.sleepycat.bind.tuple,com.sleepycat.collections,com.sleepycat.je,com.sleepycat.je.util,com.sleepycat.persist,com.sleepycat.persist.evolve,com.sleepycat.persist.model,com.sleepycat.persist.raw,com.sleepycat.util"/>
+            <attribute name="Bundle-Vendor"
+                       value="Oracle"/>
+            <attribute name="Bundle-Version"
+                       value="${version.result}"/>
+            <attribute name="Eclipse-BuddyPolicy"
+                       value="registered"/>
+            <attribute name="Bundle-Name"
+                       value="Berkeley DB Java Edition"/>
+            <attribute name="Bundle-ManifestVersion"
+                       value="2"/>
+            <attribute name="Bundle-SymbolicName"
+                       value="${plugin.id}"/>
+        </manifest>
+        </jar>
+    </target>
+
     <!-- ============================================================ -->
     <!-- Package .jar and other files into a .zip                     -->
     <!-- ============================================================ -->
@@ -367,17 +445,10 @@
         <mkdir dir="${libdir}"/>
     </target>
 
-    <target name="package" depends="jar,javadoc">
+    <target name="package" depends="jar, javadoc">
         <description>
             The package target builds the distribution package.
         </description>
-
-	<!-- Make an example je.properties file -->
-        <java fork="yes" dir="${builddir}"
-            classname="com.sleepycat.je.config.EnvironmentParams">
-          <arg line="false ${basedir}/example.properties"/>
-          <classpath refid="class.path"/>
-        </java>
 
 	<!-- copy the README in, adding the current release number and date-->
         <copy overwrite="true" file="${dist.srcdir}/README" todir="${basedir}">
@@ -387,12 +458,15 @@
 	   </filterset>	
         </copy>	   
 
+        <copy overwrite="true" file="${dist.srcdir}/example.properties"
+            todir="${basedir}"/>
+
         <zip basedir="${builddir}"
              destfile="build.zip"
              includes="bin/**,lib/**,dist/build.properties"/>
         <zip basedir="${basedir}"
              destfile="src.zip"
-	     excludes="test/rpcserver/**,test/experiments/**,test/standalone/**,test/regress/*/**,test/**/MiniStress.java,test/**/AbortStress.java,dist/,**/jca/README.txt,examples/com/**,src/com/sleepycat/je/rep/**,examples/je/rep/**,test/com/sleepycat/je/rep/**"
+             excludes="test/rpcserver/**,test/experiments/**,test/examples/**,test/regress/*/**,test/**/MiniStress.java,test/**/AbortStress.java,dist/,**/jca/README.txt,examples/com/**,src/com/sleepycat/je/rep/**,examples/je/rep/**,test/com/sleepycat/je/rep/**,test/standalone/scalability/**"
              includes="src/**,examples/**,test/**,docs/**,ant/**,regress/,build.xml,build.properties,example.properties,README,LICENSE,FindBugsExclude.xml"/>
         <zip basedir="${basedir}"
              destfile="${zipfile}"
@@ -430,21 +504,23 @@
     </target>
 
     <target name="compile-unittest" depends="compile-src">
-        <ant antfile="ant/compile.xml" dir="." inheritall="false">
-            <property name="java15files1" value="**/persist/**/*.java"/>
-            <property name="java15files2" value="**/rep/**/*.java"/>
-            <property name="srcdir" value="${unittest.srcdir}"/>
-            <property name="destdir" value="${unittest.destdir}"/>
-            <reference refid="unittest.classpath" torefid="compile.classpath"/>
-        </ant>
+      <ant antfile="ant/compile.xml" dir="." inheritall="false">
+        <property name="srcdir" value="${unittest.srcdir}"/>
+        <property name="destdir" value="${unittest.destdir}"/>
+        <reference refid="unittest.classpath" torefid="compile.classpath"/>
+      </ant>
 
       <copy todir="${unittest.destdir}">
-        <fileset dir="${unittest.srcdir}" excludes="**/*.java,experiments/**"/>
+        <fileset dir="${unittest.srcdir}" 
+	         excludes="**/*.java,experiments/**,examples/**"/>
       </copy>
 
       <!-- for testing je.properties -->
       <copy file="${unittest.destdir}/com/sleepycat/je/je.properties"
             todir="${unittest.extraenvdir}"/>
+      <!-- for testing rep.properties -->
+      <copy file="${unittest.destdir}/com/sleepycat/je/rep.properties"
+            tofile="${unittest.extraenvdir2}/je.properties"/>
 
       <!-- Compile original version of TestSerial class separately. -->
       <property name="testserialpath"
@@ -471,7 +547,6 @@
             tofile=
              "${unittest.testevolvedir}/com/sleepycat/persist/test/PersistTestUtils.java"/>
       <ant antfile="ant/compile.xml" dir="." inheritall="false">
-          <property name="java15files1" value="**/persist/**/*.java"/>
           <property name="srcdir" value="${unittest.testevolvedir}"/>
           <property name="destdir" value="${unittest.testevolvedir}"/>
           <reference refid="class.path" torefid="compile.classpath"/>
@@ -495,11 +570,31 @@
 
          ant test -Dtestcase=com.sleepycat.je.db.DbTest   (run one test)
          ant test -Dsuite=db                           (run one package)
-         ant test                                        (run all tests)
+         ant test                       (run all tests except rep tests)
+         ant test -Dtestcase=com.sleepycat.je.db.DbTest -Dtestjar=je.jar
+                                      (run one test with a specific jar)
+         ant test -Dsuite=db -Dtestjar=je.jar 
+                                   (run one package with a specific jar)
+         ant test -Dtestjar=je.jar   (run all tests with a specific jar) 
+         ant reptest              (run all com.sleepycat.je.rep.* tests)
      -->
 
     <target name="test-j2ee"
             depends="compile-unittest-j2ee,test"/>
+
+    <target name="reptest">
+	 <antcall target="test">
+             <param name="param-rep" value="true"/>
+	 </antcall>
+    </target>
+
+    <path id="testserial-classpath">
+      <pathelement location="${unittest.testserialdir}"/>
+    </path>
+
+    <path id="testevolve-classpath">
+      <pathelement location="${unittest.testevolvedir}"/>
+    </path>
 
     <target name="test"
             depends="compile-unittest, init-unittest, jar">
@@ -510,6 +605,7 @@
           <or>
             <isset property="suite"/>
             <isset property="testcase"/>
+            <isset property="param-rep"/>
           </or>
         </not>
       </condition>
@@ -537,11 +633,8 @@
       </condition>
 
       <!-- Performs initialization needed before StoredClassCatalogTest. -->
-      <path id="testserial-classpath">
-        <pathelement location="${unittest.testserialdir}"/>
-      </path>
       <antcall target="do-junit">
-        <param name="param-msg" value="Run testserial intialization"/>
+        <param name="param-msg" value="Run testserial initialization"/>
         <param name="param-if" value="testserial"/>
         <param name="param-jvmarg" value=""/>
         <param name="param-classpath" value="testserial-classpath"/>
@@ -550,11 +643,8 @@
       </antcall>
 
       <!-- Performs initialization needed before persist evolve tests. -->
-      <path id="testevolve-classpath">
-        <pathelement location="${unittest.testevolvedir}"/>
-      </path>
       <antcall target="do-junit">
-        <param name="param-msg" value="Run testevolve intialization"/>
+        <param name="param-msg" value="Run testevolve initialization"/>
         <param name="param-if" value="testevolve"/>
         <param name="param-jvmarg" value=""/>
         <param name="param-classpath" value="testevolve-classpath"/>
@@ -595,6 +685,15 @@
       <antcall target="test-persist-enhance-task"/>
       <antcall target="test-persist-enhance-main"/>
 
+      <!-- Run the replication tests. -->
+      <antcall target="do-junit">
+        <param name="param-msg" value="Run replication tests only"/>
+        <param name="param-if" value="param-rep"/>
+        <param name="param-jvmarg" value=""/>
+        <param name="param-classpath" value="empty.classpath"/>
+        <param name="param-includes" value="**/rep/**/*Test.class"/>
+      </antcall>
+
       <!-- Generate test reports -->
 
       <junitreport todir="${unittest.datadir}">
@@ -624,8 +723,11 @@
     <!-- Enhance persist test classes and run the persist tests again,
          setting the expectEnhanced system property to cause the test to
          fail if classes are not enhanced.  -->
+    <property name="enhance-task.tmpdir" value="${builddir}/enhance.task"/>
+    <path id="enhanced-task.classpath">
+      <pathelement location="${enhance-task.tmpdir}"/>
+    </path>
     <target name="test-persist-enhance-task" if="testpersist">
-      <property name="enhance-task.tmpdir" value="${builddir}/enhance.task"/>
       <delete dir="${enhance-task.tmpdir}"/>
       <mkdir dir="${enhance-task.tmpdir}"/>
       <copy todir="${enhance-task.tmpdir}">
@@ -635,9 +737,6 @@
       <enhancer verbose="on">
         <fileset dir="${enhance-task.tmpdir}"/>
       </enhancer>
-      <path id="enhanced-task.classpath">
-        <pathelement location="${enhance-task.tmpdir}"/>
-      </path>
       <antcall target="do-junit">
         <param name="param-msg"
                value="Run persist tests with ClassEnhancer ant task"/>
@@ -652,21 +751,28 @@
     </target>
 
     <!-- Same as above but use the ClassEnhancer main program. -->
+    <property name="enhance-main.tmpdir" value="${builddir}/enhance.main"/>
+    <path id="enhanced-main.classpath">
+      <pathelement location="${enhance-main.tmpdir}"/>
+    </path>
+    <path id="enhanced-main.classpath">
+      <pathelement location="${enhance-main.tmpdir}"/>
+      <path refid="class.path"/>
+      <path refid="clover.classpath"/>
+    </path> 
     <target name="test-persist-enhance-main" if="testpersist">
-      <property name="enhance-main.tmpdir" value="${builddir}/enhance.main"/>
       <delete dir="${enhance-main.tmpdir}"/>
       <mkdir dir="${enhance-main.tmpdir}"/>
       <copy todir="${enhance-main.tmpdir}">
         <fileset dir="${unittest.destdir}"
                  includes="com/sleepycat/persist/**/*.class"/>
       </copy>
-      <java fork="no" classname="com.sleepycat.persist.model.ClassEnhancer">
+      <java fork="yes" jvm="${jvm}"
+            classname="com.sleepycat.persist.model.ClassEnhancer">
+        <jvmarg line="${jvmargs}"/>
         <arg line="-v ${enhance-main.tmpdir}"/>
-        <classpath refid="class.path"/>
+        <classpath refid="enhanced-main.classpath"/>
       </java>
-      <path id="enhanced-main.classpath">
-        <pathelement location="${enhance-main.tmpdir}"/>
-      </path>
       <antcall target="do-junit">
         <param name="param-msg"
                value="Run persist tests with ClassEnhancer main program"/>
@@ -692,7 +798,7 @@
      Optional params:
       param-sysprop-key: key of additional sysproperty
       param-sysprop-value: value of additional sysproperty
-    -->
+      -->
     <target name="do-junit" if="${param-if}">
       <echo message="${param-msg}"/>
       <junit printsummary="false"
@@ -712,7 +818,8 @@
         <sysproperty key="testdestdir" value="${unittest.destdir}"/>
         <sysproperty key="testevolvedir" value="${unittest.testevolvedir}"/>
         <sysproperty key="txnnosync" value="true"/>
-        <sysproperty key="isolationLevel" value="${isolationLevel}"/>
+	<sysproperty key="isolationLevel" value="${isolationLevel}"/>
+	<sysproperty key="setErrorListener" value="true"/>
         <sysproperty key="longtest" value="${longtest}"/>
         <sysproperty key="${param-sysprop-key}"
                      value="${param-sysprop-value}"/>
@@ -723,13 +830,19 @@
               name="${param-testcase}"/>
         <batchtest todir="${unittest.datadir}"
                    if="param-includes">
-          <fileset dir="${unittest.destdir}"
+          <fileset dir="${unittest.destdir}" 
 	           includes="${param-includes}"
                    excludes="${param-excludes}"/>
         </batchtest>
       </junit>
-      <fail message="UnitTests failed. Check log and/or reports."
-            if="unittest.failed"/>
+      <fail message="UnitTests failed.Check log and/or reports.">
+        <condition>
+          <and>
+            <istrue value="${unittest.failed}"/>
+	    <isfalse value="${clover.ignorefailure}"/>
+	  </and>
+	</condition>
+      </fail>
     </target>
 
     <!-- Runs XxxTestMain test programs and other misc non-JUnit test. -->
@@ -756,8 +869,10 @@
 
     <target name="do-testmain">
       <echo message="Running: ${cls}"/>
-      <java fork="yes" classname="com.sleepycat.${cls}" failonerror="true">
+      <java fork="yes" failonerror="true" jvm="${jvm}"
+            classname="com.sleepycat.${cls}">
         <jvmarg value="-Xmx256M"/>
+        <jvmarg line="${jvmargs}"/>
         <sysproperty key="testdestdir" value="${unittest.destdir}"/>
         <classpath refid="unittest-j2ee.classpath"/>
         <classpath refid="clover.classpath"/>
@@ -770,8 +885,9 @@
          com/sleepycat/je/logversion/LogEntryVersionTest.java.
     -->
     <target name="logversiondata" depends="compile-unittest">
-      <java fork="no"
-           classname="com.sleepycat.je.logversion.MakeLogEntryVersionData">
+      <java fork="yes" jvm="${jvm}"
+            classname="com.sleepycat.je.logversion.MakeLogEntryVersionData">
+        <jvmarg line="${jvmargs}"/>
         <arg line="${unittest.destdir}"/>
         <classpath refid="unittest.classpath"/>
       </java>
@@ -793,27 +909,48 @@
     <target name="testcli-dbdump" depends="compile-src,compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}" classname="je.SimpleExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.SimpleExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp insert 5"/>
         <classpath refid="class.path"/>
       </java>
-      <java fork="yes" dir="${builddir}"
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
             classname="com.sleepycat.je.util.DbDump">
+        <jvmarg line="${jvmargs}"/>
         <arg line="-f ./dump.out -h tmp -s simpleDb"/>
         <classpath refid="class.path"/>
       </java>
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
             classname="com.sleepycat.je.util.DbLoad">
+        <jvmarg line="${jvmargs}"/>
         <arg line="-f ./dump.out -h tmp -s simpleDb"/>
         <classpath refid="class.path"/>
       </java>
-      <java fork="yes" dir="${builddir}"
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
             classname="com.sleepycat.je.util.DbDump">
+        <jvmarg line="${jvmargs}"/>
         <arg line="-h tmp -r"/>
         <classpath refid="class.path"/>
       </java>
+    </target>
+
+    <!-- ========= Standalone test targets delegated to internal.xml ==========
+
+    Standalone tests are run by passing the testcase property as the name of
+    the target in internal.xml.  Other parameters for each target are passed
+    using the args property, for example:
+
+      ant -Dtestcase=MemoryStress -Dargs=-dups standalone
+
+    See the individual standalone targets in ant/internal.xml for details.
+    ======================================================================= -->
+    <target name="standalone" depends="jar">
+	<antcall target="do-internal">
+	   <param name="target" value="standalone"/>
+        </antcall>
     </target>
 
     <!-- ============================================================ -->
@@ -825,8 +962,10 @@
     -->
     <target name="testex"
         depends="testex-simple, testex-binding, testex-secondary,
-        testex-sequence, testex-tomany, testex-persist-person,
-        testex-persist-customkeyorder,
+        testex-sequence, testex-tomany, testex-measureinsertsize,
+        testex-persist-person, testex-persist-dpldump,
+        testex-persist-customkeyorder, testex-persist-eventexample,
+        testex-persist-eventexampledpl, testex-persist-sqlapp,
         testex-hello, testex-ship-basic, testex-ship-index, testex-ship-entity,
         testex-ship-tuple, testex-ship-sentity, testex-ship-marshal,
         testex-ship-factory"/>
@@ -834,11 +973,15 @@
     <target name="testex-simple" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}" classname="je.SimpleExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.SimpleExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp insert 5"/>
         <classpath refid="class.path"/>
       </java>
-      <java fork="yes" dir="${builddir}" classname="je.SimpleExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.SimpleExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp retrieve 5"/>
         <classpath refid="class.path"/>
       </java>
@@ -847,11 +990,15 @@
     <target name="testex-binding" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}" classname="je.BindingExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.BindingExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp insert 5"/>
-        <classpath refid="class.path"/>
+	<classpath refid="class.path"/>
       </java>
-      <java fork="yes" dir="${builddir}" classname="je.BindingExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.BindingExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp retrieve 5"/>
         <classpath refid="class.path"/>
       </java>
@@ -860,11 +1007,15 @@
     <target name="testex-secondary" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}" classname="je.SecondaryExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.SecondaryExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp insert 5"/>
         <classpath refid="class.path"/>
       </java>
-      <java fork="yes" dir="${builddir}" classname="je.SecondaryExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.SecondaryExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp retrieve 5"/>
         <classpath refid="class.path"/>
       </java>
@@ -873,11 +1024,15 @@
     <target name="testex-sequence" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}" classname="je.SequenceExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.SequenceExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp"/>
         <classpath refid="class.path"/>
       </java>
-      <java fork="yes" dir="${builddir}" classname="je.SequenceExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.SequenceExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="tmp"/>
         <classpath refid="class.path"/>
       </java>
@@ -886,11 +1041,24 @@
     <target name="testex-tomany" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="je.ToManyExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.ToManyExample">
+        <jvmarg line="${jvmargs}"/>
         <arg line="-h tmp"/>
         <classpath refid="class.path"/>
       </java>
+    </target>
+
+    <target name="testex-measureinsertsize" depends="compile-examples">
+      <delete dir="${builddir}/tmp"/>
+      <mkdir dir="${builddir}/tmp"/>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="je.MeasureInsertSize">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp -records 100 -key 10 -data 100"/>
+        <classpath refid="class.path"/>
+      </java>
+      <echo>MeasureInsertSize ran OK</echo>
     </target>
 
     <!-- Using fork="yes" does not work for AccessExample, apparently because
@@ -898,7 +1066,9 @@
          functional; therefore this sample writes to the base directory.
     -->
     <target name="testex-access" depends="compile-examples">
-      <java classname="collections.access.AccessExample">
+      <java fork="yes" jvm="${jvm}"
+            classname="collections.access.AccessExample">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -906,9 +1076,23 @@
     <target name="testex-persist-person" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="persist.PersonExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="persist.PersonExample">
         <jvmarg value="-ea"/>
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp"/>
+        <classpath refid="class.path"/>
+      </java>
+    </target>
+
+    <!--
+    Before running this example, first run another DPL example that writes to
+    the tmp directory, such as testex-persist-person.
+    -->
+    <target name="testex-persist-dpldump" depends="compile-examples">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="persist.DplDump">
+        <jvmarg line="${jvmargs}"/>
         <arg line="-h tmp"/>
         <classpath refid="class.path"/>
       </java>
@@ -917,8 +1101,42 @@
     <target name="testex-persist-customkeyorder" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="persist.CustomKeyOrderExample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="persist.CustomKeyOrderExample">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp"/>
+        <classpath refid="class.path"/>
+      </java>
+    </target>
+
+    <target name="testex-persist-eventexample" depends="compile-examples">
+      <delete dir="${builddir}/tmp"/>
+      <mkdir dir="${builddir}/tmp"/>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="persist.EventExample">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp"/>
+        <classpath refid="class.path"/>
+      </java>
+    </target>
+
+    <target name="testex-persist-eventexampledpl" depends="compile-examples">
+      <delete dir="${builddir}/tmp"/>
+      <mkdir dir="${builddir}/tmp"/>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="persist.EventExampleDPL">
+        <jvmarg line="${jvmargs}"/>
+        <arg line="-h tmp"/>
+        <classpath refid="class.path"/>
+      </java>
+    </target>
+
+    <target name="testex-persist-sqlapp" depends="compile-examples">
+      <delete dir="${builddir}/tmp"/>
+      <mkdir dir="${builddir}/tmp"/>
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="persist.sqlapp.SQLApp">
+        <jvmarg line="${jvmargs}"/>
         <arg line="-h tmp"/>
         <classpath refid="class.path"/>
       </java>
@@ -927,8 +1145,9 @@
     <target name="testex-hello" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.hello.HelloDatabaseWorld">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.hello.HelloDatabaseWorld">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -936,8 +1155,9 @@
     <target name="testex-ship-basic" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.ship.basic.Sample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.ship.basic.Sample">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -945,8 +1165,9 @@
     <target name="testex-ship-index" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.ship.index.Sample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.ship.index.Sample">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -954,8 +1175,8 @@
     <target name="testex-ship-entity" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.ship.entity.Sample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.ship.entity.Sample">
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -963,8 +1184,9 @@
     <target name="testex-ship-tuple" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.ship.tuple.Sample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.ship.tuple.Sample">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -972,8 +1194,9 @@
     <target name="testex-ship-sentity" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.ship.sentity.Sample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.ship.sentity.Sample">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -981,8 +1204,9 @@
     <target name="testex-ship-marshal" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.ship.marshal.Sample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.ship.marshal.Sample">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -990,8 +1214,9 @@
     <target name="testex-ship-factory" depends="compile-examples">
       <delete dir="${builddir}/tmp"/>
       <mkdir dir="${builddir}/tmp"/>
-      <java fork="yes" dir="${builddir}"
-       classname="collections.ship.factory.Sample">
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
+            classname="collections.ship.factory.Sample">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="class.path"/>
       </java>
     </target>
@@ -1002,8 +1227,9 @@
         depends="testex-jejcasimple"/>
 
     <target name="testex-jejcasimple" depends="compile-jcaexamples">
-      <java fork="yes" dir="${builddir}"
+      <java fork="yes" dir="${builddir}" jvm="${jvm}"
             classname="jca.simple.SimpleClient">
+        <jvmarg line="${jvmargs}"/>
         <classpath refid="jca.classpath"/>
 	<arg value="${key}"/>
 	<arg value="${data}"/>
@@ -1026,7 +1252,7 @@
                 doctitle="${name}"
                 package="true"
                 source="1.5"
-                bottom="Copyright 2004,2007 Oracle.  All rights reserved.">
+                bottom="Copyright (c) 2004,2008 Oracle.  All rights reserved.">
 
           <link href="http://java.sun.com/j2se/1.5/docs/api"/>
         </javadoc>
@@ -1046,16 +1272,22 @@
 
     <target name="update-version" depends="compile-src, compile-dist">
        <!-- Create an up to date property file for the build -->
-       <java classname="CreateRELEASEFile"
+       <java fork="yes" jvm="${jvm}"
+             classname="CreateRELEASEFile"
 	     classpathref="dist.classpath">
-	     <arg value="${build.propertyfile}"/>
+          <jvmarg line="${jvmargs}"/>
+	  <arg value="${build.propertyfile}"/>
        </java>
 
        <!-- read it in -->
        <property file="${build.propertyfile}"/>
     </target>
 
-    <!-- Now run javadoc -->
+    <target name="clean-javadoc" depends="init">
+        <delete dir="${doc.dir}"/>
+    </target>
+
+    <!-- create javadoc -->
     <target name="javadoc" depends="init, update-version, clean-javadoc">
 
         <!-- create fresh directories --> 
@@ -1067,43 +1299,6 @@
 	   <format property="release.date" pattern="MMMMMMMM dd, yyyy"/>
 	</tstamp>
 
-	<!-- Run m4. -->
-	<!-- Warning: This must be run in cygwin (sh) so that find works. -->
-	<echo>Run M4 script</echo>
-        <mkdir dir="${docsrc.postm4dir}"/>
-	<exec executable="sh" failonerror="true">
-	    <arg line="${docsrc.dir}/build je"/>
-	</exec>
-
-        <!-- Copy the non-je package sources in. -->
-        <copy todir="${docsrc.postm4dir}">
-	    <fileset dir="${srcdir}">
-                <exclude name="com/sleepycat/je/**"/>
-                <exclude name="com/sleepycat/bind/RecordNumberBinding.java"/>
-                <exclude name="com/sleepycat/collections/StoredList.java"/>
-                <exclude name="com/sleepycat/persist/impl/**"/>
-                <exclude name="com/sleepycat/persist/model/ModelInternal.java"/>
-                <exclude name="com/sleepycat/persist/evolve/EvolveInternal.java"/>
-            </fileset>
-	</copy>
-
-        <!-- Copy the jmx package sources in. -->
-        <copy todir="${docsrc.postm4dir}">
-	    <fileset dir="${srcdir}">
-	        <include name="com/sleepycat/je/jmx/**"/>
-            </fileset>
-	</copy>
-
-        <!-- Copy the jca package sources in. -->
-        <copy todir="${docsrc.postm4dir}">
-	    <fileset dir="${srcdir}">
-	        <include name="com/sleepycat/je/jca/ra/JEConnection.java"/>
-	        <include name="com/sleepycat/je/jca/ra/JEConnectionFactory.java"/>	        
-	        <include name="com/sleepycat/je/jca/ra/JEException.java"/>
-                <include name="com/sleepycat/je/jca/ra/package.html"/>
-            </fileset>
-	</copy>
-
 	<!-- Copy the main page, images and release notes, to the
              docs directory, putting in the release version where
 	     appropriate -->
@@ -1111,7 +1306,7 @@
 	   <filterset>
 	       <filter token="RELEASE_VERSION" value="${release.version}"/>
 	       <filter token="RELEASE_NUMERIC_VERSION"
-	               value="${release.numeric.version}"/>
+	               value="${release.numeric.versionc.version}"/>
 	       <filter token="DATE" value="${release.date}"/>
 	   </filterset>
 	   <fileset dir="${docsrc.dir}">
@@ -1134,11 +1329,6 @@
 	    </fileset>
 	</copy>
 
-        <copy todir="${doc.dir}/PersistenceAPI">
-	    <fileset dir="${docsrc.dir}/PersistenceAPI">
-	    </fileset>
-	</copy>
-
         <copy todir="${doc.dir}/TransactionGettingStarted">
 	    <fileset dir="${docsrc.dir}/TransactionGettingStarted">
 	    </fileset>
@@ -1149,57 +1339,73 @@
         <copy todir="${doc.dir}/collections">
 	    <fileset dir="${docsrc.dir}/collections">
 	    </fileset>
+        </copy>
+	
+	<antcall target="javadoc-src"/>
+    </target>
+
+    <available file="${docsrc.dir}" type="dir" property="UserOrMember"/>
+
+    <target name="copy-doc-materials" if="UserOrMember">
+        <copy overwrite="true" todir="${doclet.src.dir}">
+            <fileset dir="${docsrc.dir}/doclet"/>
 	</copy>
 
-        <!-- Run javadoc on the m4'ed source -->
-	<echo>Javadoc M4'ed sources</echo>
-	<copy file="${srcdir}/com/sleepycat/je/package.html"
-	      todir="${docsrc.postm4dir}/com/sleepycat/je"/>
-	<copy file="${srcdir}/com/sleepycat/je/util/package.html"
-	      todir="${docsrc.postm4dir}/com/sleepycat/je/util/"/>
-	<copy file="${srcdir}/com/sleepycat/persist/package.html"
-	      todir="${docsrc.postm4dir}/com/sleepycat/persist/"/>
-	<copy file="${srcdir}/com/sleepycat/persist/evolve/package.html"
-	      todir="${docsrc.postm4dir}/com/sleepycat/persist/evolve/"/>
-	<copy file="${srcdir}/com/sleepycat/persist/model/package.html"
-	      todir="${docsrc.postm4dir}/com/sleepycat/persist/model/"/>
-	<copy file="${srcdir}/com/sleepycat/persist/raw/package.html"
-	      todir="${docsrc.postm4dir}/com/sleepycat/persist/raw/"/>
-        <javadoc maxmemory="128M"
-                sourcepath="${docsrc.postm4dir}"
-                destdir="${docsrc.javadir}"
-                version="true"
+	<copy overwrite="true" todir="${doc.dir}" file="${docsrc.dir}/style.css"/>
+    </target>
+
+    <target name="javadoc-src" depends="init, copy-doc-materials">
+	<antcall target="jar-hidingdoclet"/>
+	
+	<delete dir="${doc.dir}/java"/>
+	<mkdir dir="${doc.dir}/java"/>
+
+        <!-- Run javadoc on public API -->
+	<echo>Javadoc public api</echo>
+        <javadoc  sourcepath="${srcdir}"
+                destdir="${doc.javadir}"
+		version="true"
                 nodeprecated="false"
 		protected="true"
                 source="1.5"
 		use="true"
-		stylesheetfile="${docsrc.dir}/style.css"
+		docletpath="docs/HidingDoclet.jar"
+		stylesheetfile="${doc.dir}/style.css"
 		windowtitle="Oracle - Berkeley DB Java Edition API">
 	  <classpath refid="j2ee.classpath"/>
-          <classpath path="${ant.library.dir}/ant.jar"/>
-          <group title="BerkeleyDB Java Edition Packages">
+	  <classpath path="${ant.library.dir}/ant.jar"/>
+	  <arg value="-author"/>
+	  <doclet name="HidingDoclet"/>
+          <group title="Berkeley DB Java Edition Packages">
               <package name="com.sleepycat.je*"/>
               <package name="com.sleepycat.je.util"/>
               <package name="com.sleepycat.je.jmx"/>
               <package name="com.sleepycat.je.jca.ra"/>
 	  </group>
-          <group title="BerkeleyDB Direct Persistence Layer (DPL) Packages">
+          <group title="Berkeley DB Direct Persistence Layer (DPL) Packages">
               <package name="com.sleepycat.persist"/>
               <package name="com.sleepycat.persist.model"/>
               <package name="com.sleepycat.persist.evolve"/>
               <package name="com.sleepycat.persist.raw"/>
 	  </group>
-          <group title="BerkeleyDB Bind and Collections Packages">
+          <group title="Berkeley DB Bind and Collections Packages">
               <package name="com.sleepycat.bind*"/>
               <package name="com.sleepycat.collections*"/>
               <package name="com.sleepycat.util*"/>
 	  </group>
 	  <header><![CDATA[<b>Berkeley DB Java Edition</b><br><font size=\"-1\"> version ${release.version}</font>]]>
 	  </header>
-	  <bottom><![CDATA[<font size=1>Copyright 1996,2007 Oracle.  All rights reserved.</font>]]> </bottom> 
+	  <bottom><![CDATA[<font size=1>Copyright (c) 2004,2008 Oracle.  All rights reserved.</font>]]> </bottom> 
           <package name="com.sleepycat.je"/>
           <package name="com.sleepycat.je.jmx"/>
-          <package name="com.sleepycat.je.jca.ra"/>
+         <!-- We'd like to include the com.sleepycat.je.jca.ra package
+              and use the @hidden tag, but the doclet seems to have some
+              problems there. -->
+          <fileset dir="${srcdir}">
+	        <include name="com/sleepycat/je/jca/ra/JEConnection.java"/>
+	        <include name="com/sleepycat/je/jca/ra/JEConnectionFactory.java"/>	        
+	        <include name="com/sleepycat/je/jca/ra/JEException.java"/>
+          </fileset>
           <package name="com.sleepycat.je.util"/>
           <package name="com.sleepycat.collections"/>
           <package name="com.sleepycat.bind.*"/>
@@ -1209,17 +1415,8 @@
           <package name="com.sleepycat.persist.raw"/>
           <package name="com.sleepycat.util"/>
           <link href="http://java.sun.com/j2se/1.5/docs/api"/>
-          <link href="http://java.sun.com/j2ee/1.4/docs/api"/>
+          <link href="http://java.sun.com/javase/6/docs/api"/>
         </javadoc>
-
-        <copy todir="${doc.javadir}">
-	    <fileset dir="${docsrc.javadir}"/>
-	</copy>
-    </target>
-
-    <target name="clean-javadoc" depends="init">
-        <delete dir="${doc.dir}"/>
-        <delete dir="${docsrc.postm4dir}"/>
     </target>
 
     <target name="install">
@@ -1258,57 +1455,123 @@
     <!--           target above.                                      -->
     <!--           and inheritall=false in ant/internal.xml to        -->
     <!--               inheritall=true                                -->
-    <!--        ant clean compile                                     -->
-    <!--        ant clean-src                                         -->
-    <!--        ant with.clover compile-src                           -->
-    <!--        ant with.clover test                                  -->
-    <!--        ant clover.html            (generates reports)        -->
+    <!--                                                              -->
+    <!--  To run single test and generate report,we should type       -->
+    <!--           ant clover.singletestdone                          -->
+    <!--  and default single test is for no parameters, if you want   -->
+    <!--  to change to other test, you can change the second parameter-->
+    <!--  of the depends attribute of "clover.singletestrun" target   -->
+    <!--                                                              -->
+    <!--  To run all the tests and generate  report,we should type    -->
+    <!--           ant clover.alltestsdone                            -->
     <!-- ============================================================ -->
     <target name="init-clover">
-       <delete dir="${clover.tmpdir}"/>
-       <mkdir dir="${clover.tmpdir}"/>
+      <delete dir="${clover.tmpdir}"/>
+      <mkdir dir="${clover.tmpdir}"/>
     </target>
 
     <target name="clean-clover" depends="init-clover">
-        <delete dir="${clover.tmpdir}"/>
-        <mkdir dir="${clover.tmpdir}"/>
+      <delete dir="${clover.tmpdir}"/>
+      <mkdir dir="${clover.tmpdir}"/>
     </target>
 
-    <target name="with.clover">
-        <taskdef resource="clovertasks"/>
-
-        <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
-    </target>
-
-    <target name="clover.swing" depends="with.clover">
-       <taskdef resource="clovertasks"/>
-
-       <clover-view/>
-    </target>
-
-    <target name="clover.log" depends="with.clover">
-       <taskdef resource="clovertasks"/>
-
-       <clover-log/>
-    </target>
-
-    <target name="clover.pdf" depends="with.clover">
+    <target name="clover.setup">
+      <antcall target="clean"/>
+      <antcall target="compile"/>
+      <antcall target="clean-src"/>
       <taskdef resource="clovertasks"/>
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
+      <antcall target="compile-src"/>
+    </target>
 
+    <target name="clover.runtest">
+      <taskdef resource="clovertasks"/>
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
+      <antcall target="test"/>
+    </target>
+
+    <target name="clover.runtest.LruOnly">
+      <echo file="${unittest.srcdir}/je.properties" 
+            message="je.evictor.lruOnly=true"/>
+      <antcall target="clover.runtest"/>
+      <echo file="${unittest.srcdir}/je.properties" message=""/>
+    </target>
+
+    <target name="clover.runtest.SharedLatches">
+      <echo file="${unittest.srcdir}/je.properties" 
+            message="je.env.sharedLatches=true"/>
+      <antcall target="clover.runtest"/>
+      <echo file="${unittest.srcdir}/je.properties" message=""/>
+    </target>
+
+    <target name="clover.runtest.Isolation">
+      <echo file="${unittest.srcdir}/je.properties" 
+            message="je.txn.serializableIsolation=true"/>
+      <antcall target="clover.runtest"/>
+      <echo file="${unittest.srcdir}/je.properties" message=""/>
+    </target>
+
+    <target name="clover.runtest.DirectNIO">
+      <echo file="${unittest.srcdir}/je.properties">
+        je.log.useNIO=true
+        je.log.directNIO=true
+      </echo>
+      <antcall target="clover.runtest"/>
+      <echo file="${unittest.srcdir}/je.properties" message=""/>  
+    </target>
+
+    <target name="clover.runtest.ChunkNIO">
+      <echo file="${unittest.srcdir}/je.properties">
+        je.log.useNIO=true
+        je.log.chunkedNIO=4096
+      </echo>
+      <antcall target="clover.runtest"/>
+      <echo file="${unittest.srcdir}/je.properties" message=""/>
+    </target>
+	
+    <target name="clover.alltestsrun" 
+            depends="clover.setup, clover.runtest, 
+            clover.runtest.DirectNIO, clover.runtest.SharedLatches, 
+            clover.runtest.LruOnly, clover.runtest.Isolation,
+            clover.runtest.ChunkNIO">
+    </target>
+
+    <target name="clover.swing" depends="clover.alltestsrun">
+      <taskdef resource="clovertasks"/>
+      <clover-view/>
+    </target>
+
+    <target name="clover.log" depends="clover.alltestsrun">
+      <taskdef resource="clovertasks"/>
+      <clover-log/>
+    </target>
+
+    <target name="clover.pdf" depends="clover.alltestsrun">
+      <taskdef resource="clovertasks"/>
       <clover-report>
-         <current outfile="jecoverage.pdf">
-             <format type="pdf"/>
-         </current>
+      	<current outfile="jecoverage.pdf">
+      	  <format type="pdf"/>
+        </current>
       </clover-report>
     </target>
 
-    <target name="clover.html" depends="with.clover">
+    <target name="clover.alltestsdone" depends="clover.alltestsrun">
       <taskdef resource="clovertasks"/>
-
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
       <clover-report>
-         <current outfile="clover_html">
-             <format type="html"/>
-         </current>
+        <current outfile="clover_html">
+          <format type="html"/>
+        </current>
+      </clover-report>
+    </target>
+
+    <target name="clover.singletestdone" depends="clover.setup,clover.runtest">
+      <taskdef resource="clovertasks"/>
+      <clover-setup initString="${clover.tmpdir}/jecoverage.db"/>
+      <clover-report>
+        <current outfile="clover_html">
+          <format type="html"/>
+        </current>
       </clover-report>
     </target>
 

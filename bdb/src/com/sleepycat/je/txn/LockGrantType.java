@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockGrantType.java,v 1.18.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: LockGrantType.java,v 1.20 2008/01/07 14:28:56 cwl Exp $
  */
 
 package com.sleepycat.je.txn;

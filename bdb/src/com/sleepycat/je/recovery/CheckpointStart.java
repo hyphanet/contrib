@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckpointStart.java,v 1.28.2.2 2007/11/20 13:32:33 cwl Exp $
+ * $Id: CheckpointStart.java,v 1.34 2008/01/17 17:22:13 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -55,8 +55,8 @@ public class CheckpointStart implements Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LogUtils.getTimestampLogSize() +
-            LogUtils.getLongLogSize() +
+        return LogUtils.getTimestampLogSize(startTime) +
+            LogUtils.getPackedLongLogSize(id) +
             LogUtils.getStringLogSize(invoker);
     }
 
@@ -65,19 +65,20 @@ public class CheckpointStart implements Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeTimestamp(logBuffer, startTime);
-        LogUtils.writeLong(logBuffer, id);
+        LogUtils.writePackedLong(logBuffer, id);
         LogUtils.writeString(logBuffer, invoker);
     }
 
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer logBuffer, byte entryVersion)
 	throws LogException {
 
-        startTime = LogUtils.readTimestamp(logBuffer);
-        id = LogUtils.readLong(logBuffer);
-        invoker = LogUtils.readString(logBuffer);
+        boolean unpacked = (entryVersion < 6);
+        startTime = LogUtils.readTimestamp(logBuffer, unpacked);
+        id = LogUtils.readLong(logBuffer, unpacked);
+        invoker = LogUtils.readString(logBuffer, unpacked);
     }
 
     /**
@@ -95,5 +96,13 @@ public class CheckpointStart implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+   /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 }

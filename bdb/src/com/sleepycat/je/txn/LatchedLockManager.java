@@ -1,17 +1,17 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LatchedLockManager.java,v 1.11.2.4 2007/11/20 13:32:36 cwl Exp $
+ * $Id: LatchedLockManager.java,v 1.20 2008/05/15 01:52:43 linda Exp $
  */
 
 package com.sleepycat.je.txn;
 
 import java.util.Set;
 
-import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DeadlockException;
+import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -25,6 +25,7 @@ public class LatchedLockManager extends LockManager {
 
     public LatchedLockManager(EnvironmentImpl envImpl)
     	throws DatabaseException {
+
         super(envImpl);
     }
 
@@ -32,16 +33,16 @@ public class LatchedLockManager extends LockManager {
      * @see LockManager#lookupLock
      */
     protected Lock lookupLock(Long nodeId)
-        throws DatabaseException {
+	throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);
 	Latch latch = lockTableLatches[lockTableIndex];
-        latch.acquire();
-        try {
-            return lookupLockInternal(nodeId, lockTableIndex);
-        } finally {
-            latch.release();
-        }
+	latch.acquire();
+	try {
+	    return lookupLockInternal(nodeId, lockTableIndex);
+	} finally {
+	    latch.release();
+	}
     }
 
     /**
@@ -95,8 +96,8 @@ public class LatchedLockManager extends LockManager {
     /**
      * @see LockManager#releaseAndNotifyTargets
      */
-    protected Set releaseAndFindNotifyTargets(long nodeId,
-                                              Locker locker)
+    protected Set<Locker> releaseAndFindNotifyTargets(long nodeId, 
+                                                      Locker locker)
         throws DatabaseException {
 
 	long nid = nodeId;
@@ -136,7 +137,7 @@ public class LatchedLockManager extends LockManager {
      */
     void transferMultiple(long nodeId,
                           Locker owningLocker,
-                          Locker [] destLockers)
+                          Locker[] destLockers)
         throws DatabaseException {
 
 	int lockTableIndex = getLockTableIndex(nodeId);

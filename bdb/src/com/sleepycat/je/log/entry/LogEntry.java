@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogEntry.java,v 1.18.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: LogEntry.java,v 1.27 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -18,12 +18,8 @@ import com.sleepycat.je.log.LogEntryType;
  * A Log entry allows you to read, write and dump a database log entry.  Each
  * entry may be made up of one or more loggable items.
  *
- * The log entry on disk consists of
- *  a. a log header defined by LogManager
- *  b. a VLSN, if this entry type requires it, and replication is on.
- *  c. the specific contents of the log entry.
- *
- * This class encompasses (b & c).
+ * The log entry on disk consists of  a log header defined by LogManager
+ * and the specific contents of the log entry.
  */
 public interface LogEntry extends Cloneable {
 
@@ -32,14 +28,13 @@ public interface LogEntry extends Cloneable {
      */
     public void setLogType(LogEntryType entryType);
 
-
     /**
      * @return the type of log entry
      */
     public LogEntryType getLogType();
 
     /**
-     * Read in an log entry.
+     * Read in a log entry.
      */
     public void readEntry(LogEntryHeader header,
                           ByteBuffer entryBuffer,
@@ -68,11 +63,10 @@ public interface LogEntry extends Cloneable {
     public int getSize();
 
     /**
-     * Sets the total size of the last logged entry, including the header.
-     * Must be called after calling readEntry and writeEntry.  Some entries
-     * (LNs) save the last logged size.
+     * @return total size of last logged entry, or zero if unknown.  The last
+     * logged size is known for LNs, and is used for obsolete size counting.
      */
-    public void setLastLoggedSize(int size);
+    public int getLastLoggedSize();
 
     /**
      * Serialize this object into the buffer.
@@ -98,4 +92,10 @@ public interface LogEntry extends Cloneable {
      * @return a shallow clone.
      */
     public Object clone() throws CloneNotSupportedException;
+
+    /**
+     * @return true if these two log entries are logically the same.
+     * Used for replication.
+     */
+    public boolean logicalEquals(LogEntry other);
 }

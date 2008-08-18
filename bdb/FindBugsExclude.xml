@@ -5,6 +5,11 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
 
 -->
 <FindBugsFilter>
+     <Match class="com.sleepycat.collections.BlockIterator">
+       <BugCode name="REC" />
+       <Method name="add"/>
+     </Match>
+
      <Match class="com.sleepycat.compat.DbCompat">
        <BugCode name="MS" />
      </Match>
@@ -13,14 +18,64 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <BugCode name="MS" />
      </Match>
 
+     <Match class="com.sleepycat.je.Database">
+       <BugCode name="IS" />
+       <Field name="handleLocker" />
+     </Match>
+
      <Match class="com.sleepycat.je.DatabaseEntry">
        <BugCode name="MS" />
        <Field name="MAX_DUMP_BYTES" />
      </Match>
 
+     <Match class="com.sleepycat.je.Environment">
+       <BugCode name="UG" />
+       <Method name="getMutableConfig"/>
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.DatabaseImpl">
+       <BugCode name="MS" />
+       <Field name="forceTreeWalkForTruncateAndRemove" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.MemoryBudget">
+       <BugCode name="MS" />
+       <Field name="CLEANUP_DONE" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.MemoryBudget">
+       <BugCode name="MS" />
+       <Field name="DEBUG_ADMIN" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.MemoryBudget">
+       <BugCode name="MS" />
+       <Field name="DEBUG_LOCK" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.MemoryBudget">
+       <BugCode name="MS" />
+       <Field name="DEBUG_TXN" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.MemoryBudget">
+       <BugCode name="MS" />
+       <Field name="DEBUG_TREEADMIN" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.MemoryBudget">
+       <BugCode name="MS" />
+       <Field name="DEBUG_TREE" />
+     </Match>
+
      <Match class="com.sleepycat.persist.impl.PersistCatalog">
        <BugCode name="MS" />
        <Field name="expectNoClassChanges" />
+     </Match>
+
+     <Match class="com.sleepycat.persist.model.ClassEnhancer">
+       <BugCode name="RV" />
+       <Method name="enhanceFile"/>
      </Match>
 
      <Match class="com.sleepycat.je.txn.LockType">
@@ -35,12 +90,57 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <BugCode name="MS" />
      </Match>
 
+     <Match class="com.sleepycat.je.tree.BIN">
+       <BugCode name="Eq" />
+     </Match>
+
+     <Match class="com.sleepycat.je.tree.DIN">
+       <BugCode name="Eq" />
+     </Match>
+
+     <Match class="com.sleepycat.je.tree.DBIN">
+       <BugCode name="Eq" />
+     </Match>
+
+     <Match class="com.sleepycat.je.tree.DBINReference">
+       <BugCode name="Eq" />
+     </Match>
+
+     <Match class="com.sleepycat.collections.StoredMapEntry">
+       <BugCode name="Eq" />
+     </Match>
+
      <Match class="com.sleepycat.je.log.StatsFileReader$LogEntryTypeComparator" >
        <BugCode name="Se" />
      </Match>
 
      <Match class="com.sleepycat.je.log.FileManager">
        <BugCode name="ST" />
+     </Match>
+
+     <Match class="com.sleepycat.je.log.FileManager">
+       <BugCode name="MS" />
+       <Field name="WRITE_COUNT" />
+     </Match>
+
+     <Match class="com.sleepycat.je.log.FileManager">
+       <BugCode name="MS" />
+       <Field name="STOP_ON_WRITE_COUNT" />
+     </Match>
+
+     <Match class="com.sleepycat.je.log.FileManager">
+       <BugCode name="MS" />
+       <Field name="N_BAD_WRITES" />
+     </Match>
+
+     <Match class="com.sleepycat.je.log.FileManager">
+       <BugCode name="MS" />
+       <Field name="THROW_ON_WRITE" />
+     </Match>
+
+     <Match class="com.sleepycat.persist.impl.Format">
+       <BugCode name="ST" />
+       <Method name="getReader"/>
      </Match>
 
      <Match class="com.sleepycat.je.log.ScavengerFileReader">
@@ -109,11 +209,21 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <Method name="doRelease" />
      </Match>
 
+     <Match class="com.sleepycat.je.latch.Latch">
+       <BugCode name="IMSE" />
+       <Method name="doRelease" />
+     </Match>
+
      <Match class="com.sleepycat.je.latch.Java5SharedLatchImpl" >
        <BugCode name="SnVI" />
      </Match>
 
      <Match class="com.sleepycat.je.latch.Java5SharedLatchImpl">
+       <BugCode name="IMSE" />
+       <Method name="release" />
+     </Match>
+
+     <Match class="com.sleepycat.je.latch.SharedLatch">
        <BugCode name="IMSE" />
        <Method name="release" />
      </Match>
@@ -128,6 +238,16 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <Method name="acquireShared" />
      </Match>
 
+     <Match class="com.sleepycat.je.latch.SharedLatch">
+       <BugCode name="UL" />
+       <Method name="acquireExclusive" />
+     </Match>
+
+     <Match class="com.sleepycat.je.latch.SharedLatch">
+       <BugCode name="UL" />
+       <Method name="acquireShared" />
+     </Match>
+
      <Match class="com.sleepycat.je.cleaner.Cleaner">
        <BugCode name="IS2" />
      </Match>
@@ -137,7 +257,7 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
      </Match>
 
      <Match class="com.sleepycat.je.cleaner.UtilizationProfile">
-       <BugCode name="IS2" />
+       <BugCode name="IS" />
      </Match>
 
      <Match class="com.sleepycat.je.recovery.Checkpointer">
@@ -151,6 +271,16 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
 
      <Match class="com.sleepycat.je.recovery.Checkpointer">
        <BugCode name="IS" />
+     </Match>
+
+     <Match class="com.sleepycat.je.recovery.RecoveryManager">
+       <BugCode name="REC" />
+       <Method name="readINsAndTrackIds"/>
+     </Match>
+
+     <Match class="com.sleepycat.je.recovery.RecoveryManager">
+       <BugCode name="REC" />
+       <Method name="redoLNs"/>
      </Match>
 
      <Match class="com.sleepycat.je.txn.Txn">
@@ -214,14 +344,29 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
        <Method name="reset"/>
      </Match>
 
+     <Match class="com.sleepycat.je.utilint.DaemonThread">
+       <BugCode name="RV" />
+       <Method name="checkErrorListener"/>
+     </Match>
+
      <Match class="com.sleepycat.collections.DataView">
        <BugCode name="DE" />
        <Method name="join"/>
      </Match>
 
+     <Match class="com.sleepycat.je.utilint.TracerFormatter">
+       <BugCode name="DE" />
+       <Method name="format"/>
+     </Match>
+
      <Match class="com.sleepycat.je.incomp.INCompressor">
        <BugCode name="RCN" />
        <Method name="searchForBIN"/>
+     </Match>
+
+     <Match class="com.sleepycat.je.tree.Tree">
+       <BugCode name="RCN" />
+       <Method name="getNextBinInternal"/>
      </Match>
 
      <Match class="com.sleepycat.je.log.FSyncManager$FSyncGroup">
@@ -251,6 +396,16 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
      <Match class="com.sleepycat.asm.signature.SignatureWriter" >
        <BugCode name="IM" />
        <Method name="endArguments" />
+     </Match>
+
+     <Match class="com.sleepycat.asm.ClassReader" >
+       <BugCode name="Bx" />
+       <Method name="readAnnotationValue" />
+     </Match>
+
+     <Match class="com.sleepycat.asm.ClassReader" >
+       <BugCode name="Bx" />
+       <Method name="readConst" />
      </Match>
 
      <Match class="com.sleepycat.bind.serial.StoredClassCatalog$ClassInfo" >
@@ -283,6 +438,11 @@ findbugs -textui -exclude FindBugsExclude.xml je.jar
      <Match class="com.sleepycat.asm.Handler" >
        <BugCode name="UrF" />
        <Field name="desc" />
+     </Match>
+
+     <Match class="com.sleepycat.je.dbi.EnvironmentImpl" >
+       <BugCode name="UrF" />
+       <Field name="lockoutTimeout" />
      </Match>
 
      <!-- Match all doublecheck violations in these methods of "AnotherClass". 

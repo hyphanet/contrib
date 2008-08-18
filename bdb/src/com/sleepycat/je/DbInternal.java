@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbInternal.java,v 1.44.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: DbInternal.java,v 1.56 2008/03/18 15:53:04 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -18,8 +18,9 @@ import com.sleepycat.je.dbi.GetMode;
 import com.sleepycat.je.txn.Locker;
 
 /**
+ * @hidden
  * For internal use only. It serves to shelter methods that must be public to
- * be used by other BDBJE packages but that are not part of the public api
+ * be used by other BDB JE packages but that are not part of the public API
  * available to applications.
  */
 public class DbInternal {
@@ -46,31 +47,7 @@ public class DbInternal {
     }
 
     /**
-     * Proxy to new Cursor(DatabaseImpl, Locker, CursorConfig)
-     */
-    public static Cursor newCursor(DatabaseImpl dbImpl,
-				   Locker locker,
-                                   CursorConfig cursorConfig)
-        throws DatabaseException {
-
-        return new Cursor(dbImpl, locker, cursorConfig);
-    }
-
-    /**
-     * Proxy to new Cursor.position().
-     */
-    public static OperationStatus position(Cursor cursor,
-                                           DatabaseEntry key,
-                                           DatabaseEntry data,
-                                           LockMode lockMode,
-                                           boolean first)
-        throws DatabaseException {
-
-        return cursor.position(key, data, lockMode, first);
-    }
-
-    /**
-     * Proxy to new Cursor.retrieveNext().
+     * Proxy to Cursor.retrieveNext().
      */
     public static OperationStatus retrieveNext(Cursor cursor,
                                                DatabaseEntry key,
@@ -251,13 +228,11 @@ public class DbInternal {
 
     /**
      * Get an Environment only if the environment is already open. This
-     * will register this Enviroment in the EnvironmentImpl's reference count,
+     * will register this Environment in the EnvironmentImpl's reference count,
      * but will not configure the environment.
      * @return null if the environment is not already open.
      */
-    public static Environment
-        getEnvironmentShell(File environmentHome) {
-
+    public static Environment getEnvironmentShell(File environmentHome) {
         Environment env = null;
         try {
             env = new Environment(environmentHome);
@@ -282,5 +257,58 @@ public class DbInternal {
 
     public static ExceptionEvent makeExceptionEvent(Exception e, String n) {
 	return new ExceptionEvent(e, n);
+    }
+
+    public static Database openLocalInternalDatabase(Environment env,
+						String databaseName,
+						DatabaseConfig dbConfig)
+	throws DatabaseException {
+
+	return env.openLocalInternalDatabase(databaseName, dbConfig);
+    }
+
+    public static void removeInternalDatabase(Environment env,
+                                              Transaction txn,
+                                              String databaseName,
+                                              boolean autoTxnIsReplicated)
+	throws DatabaseException {
+
+	env.removeDatabaseInternal(txn, databaseName,
+                                          autoTxnIsReplicated);
+    }
+
+    public static long truncateInternalDatabase(Environment env,
+                                                Transaction txn,
+                                                String databaseName,
+                                                boolean returnCount,
+                                                boolean autoTxnIsReplicated)
+	throws DatabaseException {
+
+	return env.truncateDatabaseInternal(txn, databaseName, returnCount,
+                                            autoTxnIsReplicated);
+    }
+
+    public static void setDbConfigReplicated(DatabaseConfig dbConfig,
+                                             boolean replicated) {
+        dbConfig.setReplicated(replicated);
+    }
+
+    public static boolean getDbConfigReplicated(DatabaseConfig dbConfig) {
+
+        return dbConfig.getReplicated();
+    }
+
+    public static boolean dbConfigPersistentEquals(DatabaseConfig dbConfig,
+                                                   DatabaseConfig other) {
+
+        return dbConfig.persistentEquals(other);
+    }
+
+    public static Environment makeEnvironment(File envHome,
+                                              EnvironmentConfig config,
+                                              boolean replicationIntended)
+        throws DatabaseException {
+
+        return new Environment(envHome, config, replicationIntended);
     }
 }

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCacheSize.java,v 1.10.2.3 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DbCacheSize.java,v 1.16 2008/01/24 14:59:29 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -22,7 +22,6 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.OperationStatus;
-import com.sleepycat.je.PreloadConfig;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.utilint.CmdUtil;
 
@@ -32,7 +31,7 @@ import com.sleepycat.je.utilint.CmdUtil;
  * internal node, so tree fanout and degree of node sparseness impacts memory
  * consumption. In addition, JE compresses some of the internal nodes where
  * possible, but compression depends on on-disk layouts.
- *
+ * <p>
  * DbCacheSize is an aid for estimating cache sizes. To get an estimate of the
  * in-memory footprint for a given database, specify the number of records and
  * record characteristics and DbCacheSize will return a minimum and maximum
@@ -41,19 +40,23 @@ import com.sleepycat.je.utilint.CmdUtil;
  * values for holding just the internal nodes of the btree, and for holding the
  * entire database in cache.
  *
+ * <p>
  * Note that "cache size" is a percentage more than "btree size", to cover
  * general environment resources like log buffers. Each invocation of the
  * utility returns an estimate for a single database in an environment.  For an
  * environment with multiple databases, run the utility for each database, add
  * up the btree sizes, and then add 10 percent.
  *
+ * <p>
  * Note that the utility does not yet cover duplicate records and the API is
  * subject to change release to release.
  *
+ * <p>
  * The only required parameters are the number of records and key size.
  * Data size, non-tree cache overhead, btree fanout, and other parameters
  * can also be provided. For example:
  *
+ * <pre>
  * $ java DbCacheSize -records 554719 -key 16 -data 100
  * Inputs: records=554719 keySize=16 dataSize=100 nodeMax=128 density=80%
  * overhead=10%
@@ -66,10 +69,13 @@ import com.sleepycat.je.utilint.CmdUtil;
  *    125,284,924     112,756,432  Maximum, internal nodes and leaf nodes
  *
  * Btree levels: 3
+ * </pre>
  *
+ * <p>
  * This says that the minimum cache size to hold only the internal nodes of the
  * btree in cache is approximately 30MB. The maximum size to hold the entire
  * database in cache, both internal nodes and datarecords, is 125Mb.
+ * See {@link DbCacheSize#main} for full parameter descriptions.
  */
 public class DbCacheSize {
 
@@ -580,7 +586,8 @@ public class DbCacheSize {
             }
         };
         thread.start();
-        db.preload(PreloadConfig.DEFAULT);
+        /* Use default values for preload */
+        db.preload(null); 
         thread.interrupt();
         try {
             thread.join();
@@ -602,7 +609,7 @@ public class DbCacheSize {
         out.println("CacheSize=" +
                     INT_FORMAT.format(stats.getCacheTotalBytes()) +
                     " BtreeSize=" +
-                    INT_FORMAT.format(stats.getCacheDataBytes()) +
+                    INT_FORMAT.format(stats.getDataBytes()) +
                     " NCacheMiss=" +
                     INT_FORMAT.format(stats.getNCacheMiss()));
 

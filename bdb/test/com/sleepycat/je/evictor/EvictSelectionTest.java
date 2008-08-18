@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EvictSelectionTest.java,v 1.14.2.5 2007/11/20 13:32:44 cwl Exp $
+ * $Id: EvictSelectionTest.java,v 1.22 2008/01/07 14:29:07 cwl Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -54,64 +54,82 @@ public class EvictSelectionTest extends TestCase {
     public void tearDown()
 	throws Exception {
 
-        TestUtils.removeFiles("TearDown", envHome, FileManager.JE_SUFFIX);
-    }
+        try {
+            if (env != null) {
+                env.close();
+            }
+        } catch (Throwable e) {
+            System.out.println("tearDown: " + e);
+        }
+        env = null;
+        envImpl = null;
 
+        try {
+            TestUtils.removeFiles("TearDown", envHome, FileManager.JE_SUFFIX);
+        } catch (Throwable e) {
+            System.out.println("tearDown: " + e);
+        }
+    }
 
     public void testEvictPass()
         throws Throwable {
 
         /* Create an environment, database, and insert some data. */
-        try {
-            initialize(true);
+        initialize(true);
 
-            EnvironmentStats stats = new EnvironmentStats();
-            StatsConfig statsConfig = new StatsConfig();
-            statsConfig.setClear(true);
-
-            /*
-             * Set up the test w/a number of INs that doesn't divide evenly
-             * into scan sets.
-             */
-            int startingNumINs = envImpl.getInMemoryINs().getSize();
-            assertTrue((startingNumINs % scanSize) != 0);
-
-            Evictor evictor = envImpl.getEvictor();
-            evictor.loadStats(statsConfig, stats);
-
-            /*
-             * Test evictBatch, where each batch only evicts one node because
-             * we are passing one byte for the currentRequiredEvictBytes
-             * parameter.  To predict the evicted nodes when more than one
-             * target is selected, we would have to simulate eviction and
-             * maintain a parallel IN tree, which is too complex.
-             */
-            for (int batch = 1;; batch += 1) {
-
-                List expectedCandidates = new ArrayList();
-                int expectedNScanned = getExpectedCandidates
-                    (envImpl, evictor, expectedCandidates);
-
-                evictor.evictBatch("test", false, 1);
-
-                evictor.loadStats(statsConfig, stats);
-                assertEquals(1, stats.getNEvictPasses());
-                assertEquals(expectedNScanned, stats.getNNodesScanned());
-
-                List candidates = evictor.evictProfile.getCandidates();
-                assertEquals(expectedCandidates, candidates);
-
-                /* Stop when no more nodes are evictable. */
-                if (expectedCandidates.isEmpty()) {
-                    break;
-                }
-            }
-
+        /* The SharedEvictor is not testable using getExpectedCandidates. */
+        if (env.getConfig().getSharedCache()) {
             env.close();
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw (t);
+            env = null;
+            return;
         }
+
+        EnvironmentStats stats = new EnvironmentStats();
+        StatsConfig statsConfig = new StatsConfig();
+        statsConfig.setClear(true);
+
+        /*
+         * Set up the test w/a number of INs that doesn't divide evenly
+         * into scan sets.
+         */
+        int startingNumINs = envImpl.getInMemoryINs().getSize();
+        assertTrue((startingNumINs % scanSize) != 0);
+
+        Evictor evictor = envImpl.getEvictor();
+        /* Evict once to initialize the scan iterator. */
+        evictor.evictBatch("test", false, 1);
+        evictor.loadStats(statsConfig, stats);
+
+        /*
+         * Test evictBatch, where each batch only evicts one node because
+         * we are passing one byte for the currentRequiredEvictBytes
+         * parameter.  To predict the evicted nodes when more than one
+         * target is selected, we would have to simulate eviction and
+         * maintain a parallel IN tree, which is too complex.
+         */
+        for (int batch = 1;; batch += 1) {
+
+            List<Long> expectedCandidates = new ArrayList<Long>();
+            int expectedNScanned = getExpectedCandidates
+                (envImpl, evictor, expectedCandidates);
+
+            evictor.evictBatch("test", false, 1);
+
+            evictor.loadStats(statsConfig, stats);
+            assertEquals(1, stats.getNEvictPasses());
+            assertEquals(expectedNScanned, stats.getNNodesScanned());
+
+            List<Long> candidates = evictor.evictProfile.getCandidates();
+            assertEquals(expectedCandidates, candidates);
+
+            /* Stop when no more nodes are evictable. */
+            if (expectedCandidates.isEmpty()) {
+                break;
+            }
+        }
+
+        env.close();
+        env = null;
     }
 
     /*
@@ -122,18 +140,14 @@ public class EvictSelectionTest extends TestCase {
         throws Throwable {
 
         /* Create an environment, database, and insert some data. */
-        try {
-            initialize(true);
+        initialize(true);
 
-            env.close();
-            EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-            envConfig.setCacheSize(MemoryBudget.MIN_MAX_MEMORY_SIZE);
-            env = new Environment(envHome, envConfig);
-            env.close();
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw (t);
-        }
+        env.close();
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setCacheSize(MemoryBudget.MIN_MAX_MEMORY_SIZE);
+        env = new Environment(envHome, envConfig);
+        env.close();
+        env = null;
     }
 
     /*
@@ -197,7 +211,7 @@ public class EvictSelectionTest extends TestCase {
      */
     private int getExpectedCandidates(EnvironmentImpl envImpl,
                                       Evictor evictor,
-                                      List expected)
+                                      List<Long> expected)
         throws DatabaseException {
 
         if (!envImpl.getMemoryBudget().isTreeUsageAboveMinimum()) {
@@ -206,15 +220,11 @@ public class EvictSelectionTest extends TestCase {
 
         boolean evictByLruOnly = envImpl.getConfigManager().getBoolean
             (EnvironmentParams.EVICTOR_LRU_ONLY);
-
         INList inList = envImpl.getInMemoryINs();
-        inList.latchMajor();
 
-        IN nextNode = evictor.getNextNode();
-        if (nextNode == null) {
-            nextNode = (IN) inList.first();
-        }
-        Iterator inIter = inList.tailSet(nextNode).iterator();
+        Iterator<IN> inIter = evictor.getScanIterator();
+        IN firstScanned = null;
+        boolean firstWrapped = false;
 
         long targetGeneration = Long.MAX_VALUE;
         int targetLevel = Integer.MAX_VALUE;
@@ -222,21 +232,25 @@ public class EvictSelectionTest extends TestCase {
         IN target = null;
 
         boolean wrapped = false;
-        int nScanned = 0;
+        int nIterated = 0;
+        int maxNodesToIterate = evictor.getMaxINsPerBatch();
         int nCandidates = 0;
-        while (nCandidates < scanSize) {
+
+        /* Simulate the eviction alorithm. */
+        while (nIterated <  maxNodesToIterate && nCandidates < scanSize) {
 
             if (!inIter.hasNext()) {
-                if (wrapped) {
-                    break;
-                } else {
-                    inIter = inList.tailSet(inList.first()).iterator();
-                    wrapped = true;
-                }
+                inIter = inList.iterator();
+                wrapped = true;
             }
 
-            IN in = (IN) inIter.next();
-            nScanned += 1;
+            IN in = inIter.next();
+            nIterated += 1;
+
+            if (firstScanned == null) {
+                firstScanned = in;
+                firstWrapped = wrapped;
+            }
 
             if (in.getDatabase() == null || in.getDatabase().isDeleted()) {
                 continue;
@@ -278,12 +292,40 @@ public class EvictSelectionTest extends TestCase {
             nCandidates++;
         }
 
-        inList.releaseMajorLatch();
+        /*
+         * Restore the Evictor's iterator position to just before the
+         * firstScanned IN.  There is no way to clone an iterator and we can't
+         * create a tailSet iterator because the map is unsorted.
+         */
+        int prevPosition = 0;
+        if (firstWrapped) {
+            for (IN in : inList) {
+                prevPosition += 1;
+            }
+        } else {
+            boolean firstScannedFound = false;
+            for (IN in : inList) {
+                if (in == firstScanned) {
+                    firstScannedFound = true;
+                    break;
+                } else {
+                    prevPosition += 1;
+                }
+            }
+            assertTrue(firstScannedFound);
+        }
+        inIter = inList.iterator();
+        while (prevPosition > 0) {
+            inIter.next();
+            prevPosition -= 1;
+        }
+        evictor.setScanIterator(inIter);
 
+        /* Return the expected IN. */
         expected.clear();
         if (target != null) {
             expected.add(new Long(target.getNodeId()));
         }
-        return nScanned;
+        return nIterated;
     }
 }

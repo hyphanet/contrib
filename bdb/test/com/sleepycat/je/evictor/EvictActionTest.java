@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EvictActionTest.java,v 1.24.2.5 2007/11/20 13:32:44 cwl Exp $
+ * $Id: EvictActionTest.java,v 1.34 2008/03/18 01:17:44 cwl Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -14,6 +14,7 @@ import java.io.IOException;
 import junit.framework.TestCase;
 
 import com.sleepycat.bind.tuple.IntegerBinding;
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
@@ -94,23 +95,13 @@ public class EvictActionTest extends TestCase {
     public void testEvict()
         throws Throwable {
 
-        try {
-            doEvict(50, SMALL_CACHE_SIZE, true);
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
-        }
+        doEvict(50, SMALL_CACHE_SIZE, true);
     }
 
     public void testNoNeedToEvict()
         throws Throwable {
 
-        try {
-            doEvict(80, BIG_CACHE_SIZE, false);
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
-        }
+        doEvict(80, BIG_CACHE_SIZE, false);
     }
 
     /**
@@ -122,21 +113,16 @@ public class EvictActionTest extends TestCase {
                          boolean shouldEvict)
         throws Throwable {
 
-        try {
-            openEnv(floor, maxMem);
-            insertData(NUM_KEYS);
+        openEnv(floor, maxMem);
+        insertData(NUM_KEYS);
 
-            /* Evict once after insert. */
-            evictAndCheck(shouldEvict, NUM_KEYS);
+        /* Evict once after insert. */
+        evictAndCheck(shouldEvict, NUM_KEYS);
 
-            /* Evict again after verification. */
-            evictAndCheck(shouldEvict, NUM_KEYS);
+        /* Evict again after verification. */
+        evictAndCheck(shouldEvict, NUM_KEYS);
 
-            closeEnv();
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw (t);
-        }
+        closeEnv();
     }
 
     public void testSetCacheSize()
@@ -313,13 +299,13 @@ public class EvictActionTest extends TestCase {
          * Even when using a large amount of non-tree memory, the tree memory
          * usage should not go below the minimum.
          */
-        mb.updateMiscMemoryUsage(500 * 1024);
+        mb.updateAdminMemoryUsage(500 * 1024);
         env.evictMemory();
         stats = env.getStats(null);
-        long treeBytes = stats.getCacheDataBytes() - stats.getAdminBytes() +
+        long treeBytes = stats.getDataBytes()  +
                          50 * 1024 /* larger than any LN or IN */;
         assertTrue(treeBytes >= mb.getMinTreeMemoryUsage());
-        mb.updateMiscMemoryUsage(-(500 * 1024));
+        mb.updateAdminMemoryUsage(-(500 * 1024));
 
         /* Allow changing the min tree usage explicitly. */
         config.setCacheSize(500 * 1024);
@@ -523,8 +509,8 @@ public class EvictActionTest extends TestCase {
         try {
             env.openDatabase(null, "db1", dbConfig);
             fail();
-        } catch (DatabaseException e) {
-            assertTrue(e.getMessage().indexOf("duplicatesAllowed") >= 0);
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().indexOf("sortedDuplicates") >= 0);
         }
         assertEquals(false, saveDb.isInUse());
 
@@ -537,11 +523,9 @@ public class EvictActionTest extends TestCase {
     private void checkMappingTree(int expectLNs, int expectINs)
         throws DatabaseException {
 
-        IN root = DbInternal.envGetEnvironmentImpl(env)
-                            .getDbMapTree()
-                            .getDb(DbTree.ID_DB_ID)
-                            .getTree()
-                            .getRootIN(false);
+        IN root = DbInternal.envGetEnvironmentImpl(env).
+            getDbTree().getDb(DbTree.ID_DB_ID).getTree().
+            getRootIN(CacheMode.UNCHANGED);
         actualLNs = 0;
         actualINs = 0;
         countMappingTree(root);
@@ -587,17 +571,22 @@ public class EvictActionTest extends TestCase {
          * evicts BINs that were only stripped of LNs in the first pass.
          */
         for (int i = 0; i < 2; i += 1) {
-            status = db.put(null, new DatabaseEntry(new byte[1]),
-                                  new DatabaseEntry(new byte[BIG_CACHE_SIZE]));
+            Cursor c = db.openCursor(null, null);
+            status = c.put(new DatabaseEntry(new byte[1]),
+                           new DatabaseEntry(new byte[BIG_CACHE_SIZE]));
             assertSame(OperationStatus.SUCCESS, status);
 
-            long preEvictMem = mb.getCacheMemoryUsage();
+            /*
+             * Evict while cursor pins LN memory, to ensure eviction of other
+             * DB INs, including the DB root.  When lruOnly=false, root IN
+             * eviction may not occur unless a cursor is used to pin the LN.
+             */
             env.evictMemory();
-            long postEvictMem = mb.getCacheMemoryUsage();
-            assertTrue(preEvictMem > postEvictMem);
 
-            status = db.delete(null, new DatabaseEntry(new byte[1]));
+            status = c.delete();
             assertSame(OperationStatus.SUCCESS, status);
+
+            c.close();
         }
 
         TestUtils.validateNodeMemUsage(envImpl, true);
@@ -703,7 +692,7 @@ public class EvictActionTest extends TestCase {
         }
     }
 
-    private void putLargeData(int nKeys, int dataSize)
+    private void putLargeData(int nKeys, int dataSize) 
         throws DatabaseException {
 
         DatabaseEntry key = new DatabaseEntry();

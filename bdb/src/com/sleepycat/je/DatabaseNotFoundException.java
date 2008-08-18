@@ -1,16 +1,16 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseNotFoundException.java,v 1.6.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: DatabaseNotFoundException.java,v 1.9 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Thrown when an operation requires a database and that database does not
+ * exist.
  */
 public class DatabaseNotFoundException extends DatabaseException {
 

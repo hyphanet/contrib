@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JEManagedConnection.java,v 1.13.2.3 2007/11/20 13:32:30 cwl Exp $
+ * $Id: JEManagedConnection.java,v 1.17 2008/05/19 17:52:17 linda Exp $
  */
 
 package com.sleepycat.je.jca.ra;
@@ -34,15 +34,15 @@ import com.sleepycat.je.TransactionConfig;
 import com.sleepycat.je.XAEnvironment;
 
 public class JEManagedConnection implements ManagedConnection {
-    private ArrayList listeners;
+    private ArrayList<ConnectionEventListener> listeners;
     private JEConnection conn;
     private XAEnvironment env;
     private JELocalTransaction savedLT;
     private TransactionConfig savedTransConfig;
-    private Map rwDatabaseHandleCache;
-    private Map roDatabaseHandleCache;
-    private Map rwSecondaryDatabaseHandleCache;
-    private Map roSecondaryDatabaseHandleCache;
+    private Map<String,Database> rwDatabaseHandleCache;
+    private Map<String,Database> roDatabaseHandleCache;
+    private Map<String,Database> rwSecondaryDatabaseHandleCache;
+    private Map<String,Database> roSecondaryDatabaseHandleCache;
 
     JEManagedConnection(Subject subject, JERequestInfo jeInfo)
 	throws ResourceException {
@@ -54,12 +54,12 @@ public class JEManagedConnection implements ManagedConnection {
 	} catch (DatabaseException DE) {
 	    throw new ResourceException(DE.toString());
 	}
-  	listeners = new ArrayList();
+  	listeners = new ArrayList<ConnectionEventListener>();
 	savedLT = null;
-	rwDatabaseHandleCache = new HashMap();
-	roDatabaseHandleCache = new HashMap();
-	rwSecondaryDatabaseHandleCache = new HashMap();
-	roSecondaryDatabaseHandleCache = new HashMap();
+	rwDatabaseHandleCache = new HashMap<String,Database>();
+	roDatabaseHandleCache = new HashMap<String,Database>();
+	rwSecondaryDatabaseHandleCache = new HashMap<String,Database>();
+	roSecondaryDatabaseHandleCache = new HashMap<String,Database>();
     }
 
     public Object getConnection(Subject subject,
@@ -67,7 +67,7 @@ public class JEManagedConnection implements ManagedConnection {
         throws ResourceException {
 
 	if (conn == null) {
-	    conn = new JEConnectionImpl(this);
+	    conn = new JEConnection(this);
 	}
 	return conn;
     }
@@ -115,7 +115,7 @@ public class JEManagedConnection implements ManagedConnection {
     public void associateConnection(Object connection)
 	throws ResourceException {
 
-	conn = (JEConnectionImpl) connection;
+	conn = (JEConnection) connection;
 	conn.setManagedConnection(this, savedLT);
 	savedLT = null;
     }
@@ -249,9 +249,10 @@ public class JEManagedConnection implements ManagedConnection {
 	}
     }
 
-    private Database openDatabaseInternal(Map databaseHandleCache,
-					  String dbName,
-					  DatabaseConfig config)
+    private Database 
+        openDatabaseInternal(Map<String,Database> databaseHandleCache,
+                             String dbName,
+                             DatabaseConfig config)
 	throws DatabaseException {
 
 	Database db;
@@ -259,7 +260,7 @@ public class JEManagedConnection implements ManagedConnection {
 	    db = env.openDatabase(null, dbName, config);
 	    databaseHandleCache.put(dbName, db);
 	} else {
-	    db = (Database) databaseHandleCache.get(dbName);
+	    db = databaseHandleCache.get(dbName);
 	    if (db == null) {
 		db = env.openDatabase(null, dbName, config);
 		databaseHandleCache.put(dbName, db);
@@ -271,7 +272,7 @@ public class JEManagedConnection implements ManagedConnection {
     }
 
     private SecondaryDatabase
-	openSecondaryDatabaseInternal(Map databaseHandleCache,
+	openSecondaryDatabaseInternal(Map<String,Database> databaseHandleCache,
 				      String dbName,
 				      Database primaryDatabase,
 				      SecondaryConfig config)
@@ -295,11 +296,12 @@ public class JEManagedConnection implements ManagedConnection {
 	return db;
     }
 
-    private void removeDatabaseFromCache(Map cache, String dbName)
+    private void removeDatabaseFromCache(Map<String,Database> cache, 
+                                         String dbName)
 	throws DatabaseException {
 
 	synchronized (cache) {
-	    Database db = (Database) cache.get(dbName);
+	    Database db = cache.get(dbName);
 	    if (db == null) {
 		return;
 	    }
@@ -308,14 +310,14 @@ public class JEManagedConnection implements ManagedConnection {
 	}
     }
 
-    private void cleanupDatabaseHandleCache(Map cache)
+    private void cleanupDatabaseHandleCache(Map<String,Database> cache)
 	throws DatabaseException {
 
 	synchronized (cache) {
-	    Iterator iter = cache.values().iterator();
+	    Iterator<Database> iter = cache.values().iterator();
 
 	    while (iter.hasNext()) {
-		Database db = (Database) iter.next();
+		Database db = iter.next();
 		db.close();
 	    }
 	}

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: OperationTest.java,v 1.12.2.6 2007/12/08 14:43:48 mark Exp $
+ * $Id: OperationTest.java,v 1.22 2008/05/19 20:33:32 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -24,7 +24,6 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Transaction;
-import com.sleepycat.je.test.TxnTestCase;
 import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityIndex;
 import com.sleepycat.persist.EntityStore;
@@ -38,6 +37,7 @@ import com.sleepycat.persist.model.Persistent;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
 import com.sleepycat.persist.raw.RawStore;
+import com.sleepycat.util.test.TxnTestCase;
 
 /**
  * Tests misc store and index operations that are not tested by IndexTest.
@@ -126,6 +126,7 @@ public class OperationTest extends TxnTestCase {
         close();
     }
 
+    /* <!-- begin JE only --> */
     public void testGetStoreNames()
         throws DatabaseException {
 
@@ -135,6 +136,7 @@ public class OperationTest extends TxnTestCase {
         assertEquals(1, names.size());
         assertEquals("test", names.iterator().next());
     }
+    /* <!-- end JE only --> */
 
     public void testUninitializedCursor()
         throws DatabaseException {
@@ -277,6 +279,7 @@ public class OperationTest extends TxnTestCase {
             entities.update(e);
             fail();
         } catch (UnsupportedOperationException expected) {
+        } catch (IllegalArgumentException expectedForDbCore) {
         }
         entities.close();
 
@@ -745,6 +748,7 @@ public class OperationTest extends TxnTestCase {
         }
     }
 
+    /* <!-- begin JE only --> */
     public void testDeferredWrite()
         throws DatabaseException {
 
@@ -810,6 +814,60 @@ public class OperationTest extends TxnTestCase {
 
         close();
     }
+    /* <!-- end JE only --> */
+
+    /* <!-- begin JE only --> */
+    public void testTemporary()
+        throws DatabaseException {
+
+        if (envConfig.getTransactional()) {
+            /* Temporary cannot be used with transactions. */
+            return;
+        }
+        StoreConfig storeConfig = new StoreConfig();
+        storeConfig.setTemporary(true);
+        storeConfig.setAllowCreate(true);
+        open(storeConfig);
+        assertTrue(store.getConfig().getTemporary());
+
+        PrimaryIndex<Integer,MyEntity> priIndex =
+            store.getPrimaryIndex(Integer.class, MyEntity.class);
+
+        SecondaryIndex<Integer,Integer,MyEntity> secIndex =
+            store.getSecondaryIndex(priIndex, Integer.class, "secKey");
+
+        PrimaryIndex<Integer,SharedSequenceEntity1> priIndex1 =
+            store.getPrimaryIndex(Integer.class, SharedSequenceEntity1.class);
+
+        /* All temporary databases exist before closing. */
+        PersistTestUtils.assertDbExists
+            (true, env, STORE_NAME, MyEntity.class.getName(), null);
+        PersistTestUtils.assertDbExists
+            (true, env, STORE_NAME, MyEntity.class.getName(), "secKey");
+        PersistTestUtils.assertDbExists
+            (true, env, STORE_NAME, SharedSequenceEntity1.class.getName(),
+             null);
+        PersistTestUtils.assertDbExists
+            (true, env, STORE_NAME, "com.sleepycat.persist.formats", null);
+        PersistTestUtils.assertDbExists
+            (true, env, STORE_NAME, "com.sleepycat.persist.sequences", null);
+
+        close();
+
+        /* All temporary databases are deleted after before closing. */
+        PersistTestUtils.assertDbExists
+            (false, env, STORE_NAME, MyEntity.class.getName(), null);
+        PersistTestUtils.assertDbExists
+            (false, env, STORE_NAME, MyEntity.class.getName(), "secKey");
+        PersistTestUtils.assertDbExists
+            (false, env, STORE_NAME, SharedSequenceEntity1.class.getName(),
+             null);
+        PersistTestUtils.assertDbExists
+            (false, env, STORE_NAME, "com.sleepycat.persist.formats", null);
+        PersistTestUtils.assertDbExists
+            (false, env, STORE_NAME, "com.sleepycat.persist.sequences", null);
+    }
+    /* <!-- end JE only --> */
 
     /**
      * When Y is opened and X has a key with relatedEntity=Y.class, X should
@@ -832,8 +890,9 @@ public class OperationTest extends TxnTestCase {
             fail();
         } catch (DatabaseException e) {
             assertTrue
-                (e.getMessage().indexOf
-                 ("foreign key not allowed: it is not present") > 0);
+                ("" + e.getMessage(), (e.getMessage().indexOf
+                  ("foreign key not allowed: it is not present") >= 0) ||
+                 (e.getMessage().indexOf("DB_FOREIGN_CONFLICT") >= 0));
         }
         priY = store.getPrimaryIndex(Integer.class, RelatedY.class);
         priY.put(new RelatedY());

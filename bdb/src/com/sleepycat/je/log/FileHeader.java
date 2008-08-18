@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileHeader.java,v 1.38.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: FileHeader.java,v 1.47 2008/02/26 18:52:35 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -21,29 +21,6 @@ import com.sleepycat.je.DatabaseException;
 public class FileHeader implements Loggable {
 
     /*
-     * Version 3
-     * ---------
-     * [12328] Add main and dupe tree fanout values for DatabaseImpl.
-     * [12557] Add IN LSN array compression.
-     * [11597] Add a change to FileSummaryLNs: obsolete offset tracking was
-     * added and multiple records are stored for a single file rather than a
-     * single record.  Each record contains the offsets that were tracked since
-     * the last record was written.
-     * [11597] Add the full obsolete LSN in LNLogEntry.
-     *
-     * Version 4
-     * ---------
-     * [#14422] Bump MapLN version from 1 to 2.  Instead of a String for the
-     * comparator class name, store either a serialized string or Comparator.
-     *
-     * Version 5
-     * ---------
-     * [#15195] FileSummaryLN version 3.  Add FileSummary.obsoleteLNSize and
-     * obsoleteLNSizeCounted fields.
-     */
-    private static final int LOG_VERSION = 5;
-
-    /*
      * fileNum is the number of file, starting at 0. An unsigned int, so stored
      * in a long in memory, but in 4 bytes on disk
      */
@@ -57,7 +34,7 @@ public class FileHeader implements Loggable {
         this.lastEntryInPrevFileOffset = lastEntryInPrevFileOffset;
         Calendar now = Calendar.getInstance();
         time = new Timestamp(now.getTimeInMillis());
-        logVersion = LOG_VERSION;
+        logVersion = LogEntryType.LOG_VERSION;
     }
 
     /**
@@ -71,11 +48,11 @@ public class FileHeader implements Loggable {
     }
 
     /**
-     * @return whether the file header has an old version number.
+     * @return file header log version.
      *
      * @throws DatabaseException if the header isn't valid.
      */
-    boolean validate(String fileName, long expectedFileNum)
+    int validate(String fileName, long expectedFileNum)
         throws DatabaseException {
 
         if (fileNum != expectedFileNum) {
@@ -85,7 +62,7 @@ public class FileHeader implements Loggable {
                  expectedFileNum + " got " + fileNum);
         }
 
-        return logVersion < LOG_VERSION;
+        return logVersion;
     }
 
     /**
@@ -104,10 +81,10 @@ public class FileHeader implements Loggable {
      */
     public static int entrySize() {
         return
-            LogUtils.getTimestampLogSize() + // time
-            LogUtils.UNSIGNED_INT_BYTES +    // file number
-            LogUtils.LONG_BYTES +            // lastEntryInPrevFileOffset
-            LogUtils.INT_BYTES;              // logVersion
+            LogUtils.LONG_BYTES +                // time
+            LogUtils.UNSIGNED_INT_BYTES +        // file number
+            LogUtils.LONG_BYTES +                // lastEntryInPrevFileOffset
+            LogUtils.INT_BYTES;                  // logVersion
     }
     /**
      * @see Loggable#getLogSize
@@ -124,8 +101,8 @@ public class FileHeader implements Loggable {
      * @param logBuffer is the destination buffer
      */
     public void writeToLog(ByteBuffer logBuffer) {
-        LogUtils.writeTimestamp(logBuffer, time);
-        LogUtils.writeUnsignedInt(logBuffer,fileNum);
+        LogUtils.writeLong(logBuffer, time.getTime());
+        LogUtils.writeUnsignedInt(logBuffer, fileNum);
         LogUtils.writeLong(logBuffer, lastEntryInPrevFileOffset);
         LogUtils.writeInt(logBuffer, logVersion);
     }
@@ -135,14 +112,17 @@ public class FileHeader implements Loggable {
      * Initialize this object from the data in itemBuf.
      * @param itemBuf the source buffer
      */
-    public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer logBuffer, byte entryVersion)
 	throws LogException {
-        time = LogUtils.readTimestamp(logBuffer);
-        fileNum = LogUtils.getUnsignedInt(logBuffer);
+
+        /* Timestamp is always unpacked. */
+        time = LogUtils.readTimestamp(logBuffer, true/*unpacked*/);
+        fileNum = LogUtils.readUnsignedInt(logBuffer);
         lastEntryInPrevFileOffset = LogUtils.readLong(logBuffer);
         logVersion = LogUtils.readInt(logBuffer);
-        if (logVersion > LOG_VERSION) {
-            throw new LogException("Expected log version " + LOG_VERSION +
+        if (logVersion > LogEntryType.LOG_VERSION) {
+            throw new LogException("Expected log version " +
+                                   LogEntryType.LOG_VERSION +
                                    " or earlier but found " + logVersion +
                                    " -- this version is not supported.");
         }
@@ -169,6 +149,14 @@ public class FileHeader implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     /**

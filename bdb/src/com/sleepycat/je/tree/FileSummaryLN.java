@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSummaryLN.java,v 1.22.2.4 2007/11/20 13:32:35 cwl Exp $
+ * $Id: FileSummaryLN.java,v 1.33 2008/01/07 14:28:56 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -16,10 +16,12 @@ import com.sleepycat.je.cleaner.FileSummary;
 import com.sleepycat.je.cleaner.PackedOffsets;
 import com.sleepycat.je.cleaner.TrackedFileSummary;
 import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogUtils;
+import com.sleepycat.je.log.Loggable;
 
 /**
  * A FileSummaryLN represents a Leaf Node in the UtilizationProfile database.
@@ -74,21 +76,26 @@ public final class FileSummaryLN extends LN {
     private static final String BEGIN_TAG = "<fileSummaryLN>";
     private static final String END_TAG = "</fileSummaryLN>";
 
+    private MemoryBudget memBudget;
     private FileSummary baseSummary;
     private TrackedFileSummary trackedSummary;
     private PackedOffsets obsoleteOffsets;
     private boolean needOffsets;
-    private byte logVersion;
+    private byte entryVersion;
 
     /**
      * Creates a new LN with a given base summary.
      */
-    public FileSummaryLN(FileSummary baseSummary) {
-        super(new byte[0]);
+    public FileSummaryLN(EnvironmentImpl envImpl,
+                         FileSummary baseSummary) {
+        super(new byte[0],
+              envImpl,   // envImpl
+              false); // replicate
+        memBudget = envImpl.getMemoryBudget();
         assert baseSummary != null;
         this.baseSummary = baseSummary;
         obsoleteOffsets = new PackedOffsets();
-        logVersion = -1;
+        entryVersion = -1;
     }
 
     /**
@@ -96,6 +103,7 @@ public final class FileSummaryLN extends LN {
      */
     public FileSummaryLN()
         throws DatabaseException {
+
         baseSummary = new FileSummary();
         obsoleteOffsets = new PackedOffsets();
     }
@@ -160,7 +168,7 @@ public final class FileSummaryLN extends LN {
      */
     public boolean hasStringKey(byte[] bytes) {
 
-        if (logVersion == 0 || bytes.length != 8) {
+        if (entryVersion == 0 || bytes.length != 8) {
             return true;
         } else {
            return (bytes[4] >= '0' && bytes[4] <= '9');
@@ -235,7 +243,9 @@ public final class FileSummaryLN extends LN {
 
         super.postFetchInit(db, sourceLsn);
 
-        if (logVersion == 1 &&
+        memBudget = db.getDbEnvironment().getMemoryBudget();
+
+        if (entryVersion == 1 &&
             db.getDbEnvironment().getUtilizationProfile().isRMWFixEnabled()) {
             obsoleteOffsets = new PackedOffsets();
         }
@@ -301,6 +311,11 @@ public final class FileSummaryLN extends LN {
     }
 
     /**
+     * This log entry type is configured to perform marshaling (getLogSize and
+     * writeToLog) under the write log mutex.  Otherwise, the size could change
+     * in between calls to these two methods as the result of utilizaton
+     * tracking.
+     *
      * @see LN#getLogSize
      */
     public int getLogSize() {
@@ -346,19 +361,29 @@ public final class FileSummaryLN extends LN {
     /**
      * @see LN#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
-        super.readFromLog(itemBuffer, entryTypeVersion);
+        this.entryVersion = entryVersion;
 
-        logVersion = entryTypeVersion;
+        super.readFromLog(itemBuffer, entryVersion);
 
         if (!isDeleted()) {
-            baseSummary.readFromLog(itemBuffer, entryTypeVersion);
-            if (entryTypeVersion > 0) {
-                obsoleteOffsets.readFromLog(itemBuffer, entryTypeVersion);
+            baseSummary.readFromLog(itemBuffer, entryVersion);
+            if (entryVersion > 0) {
+                obsoleteOffsets.readFromLog(itemBuffer, entryVersion);
             }
         }
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Should never be replicated.
+     */
+    @Override
+    public boolean logicalEquals(Loggable other) {
+
+        return false;
     }
 
     /**
@@ -369,25 +394,19 @@ public final class FileSummaryLN extends LN {
         if (needOffsets) {
             long[] offsets = trackedSummary.getObsoleteOffsets();
             if (offsets != null) {
+                int oldSize = obsoleteOffsets.getExtraMemorySize();
                 obsoleteOffsets.pack(offsets);
+                int newSize = obsoleteOffsets.getExtraMemorySize();
+                memBudget.updateTreeMemoryUsage(newSize - oldSize);
             }
             needOffsets = false;
         }
     }
 
     /**
-     * Overrides this method to indicate that getLogSize and writeToLog can
-     * change the memory size of the LN.  The size returned by ObsoleteOffsets
-     * getExtraMemorySize can change when getOffsets is called by getLogSize or
-     * writeToLog, when the trackedSummary field is non-null.
-     */
-    boolean canMemorySizeChangeDuringLogging() {
-        return true;
-    }
-
-    /**
      * Overrides this method to add space occupied by this object's fields.
      */
+    @Override
     public long getMemorySizeIncludedByParent() {
         return super.getMemorySizeIncludedByParent() +
                (MemoryBudget.FILESUMMARYLN_OVERHEAD -
@@ -398,6 +417,7 @@ public final class FileSummaryLN extends LN {
     /**
      * Clear out the obsoleteOffsets to save memory when the LN is deleted.
      */
+    @Override
     void makeDeleted() {
         super.makeDeleted();
         obsoleteOffsets = new PackedOffsets();

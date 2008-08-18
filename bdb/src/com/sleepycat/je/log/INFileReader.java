@@ -1,21 +1,21 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INFileReader.java,v 1.52.2.4 2007/11/20 13:32:31 cwl Exp $
+ * $Id: INFileReader.java,v 1.70 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.cleaner.TrackedFileSummary;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.RecoveryUtilizationTracker;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DbTree;
 import com.sleepycat.je.dbi.EnvironmentImpl;
@@ -30,6 +30,8 @@ import com.sleepycat.je.tree.INDeleteInfo;
 import com.sleepycat.je.tree.INDupDeleteInfo;
 import com.sleepycat.je.tree.MapLN;
 import com.sleepycat.je.utilint.DbLsn;
+import com.sleepycat.je.utilint.FileMapper;
+import com.sleepycat.je.utilint.VLSN;
 
 /**
  * INFileReader supports recovery by scanning log files during the IN rebuild
@@ -55,7 +57,7 @@ public class INFileReader extends FileReader {
      * collection to find the right LogEntry instance to read in the
      * current entry.
      */
-    private Map targetEntryMap;
+    private Map<LogEntryType, LogEntry> targetEntryMap;
     private LogEntry targetLogEntry;
 
     /*
@@ -65,11 +67,11 @@ public class INFileReader extends FileReader {
      * But nodeTrackingEntry and inTrackingEntry can overlap with the others,
      * and we only load one of them when they do overlap.
      */
-    private Map dbIdTrackingMap;
+    private Map<LogEntryType, LogEntry> dbIdTrackingMap;
     private LNLogEntry dbIdTrackingEntry;
-    private Map txnIdTrackingMap;
+    private Map<LogEntryType, LogEntry> txnIdTrackingMap;
     private LNLogEntry txnIdTrackingEntry;
-    private Map otherNodeTrackingMap;
+    private Map<LogEntryType, NodeLogEntry> otherNodeTrackingMap;
     private NodeLogEntry nodeTrackingEntry;
     private INLogEntry inTrackingEntry;
     private LNLogEntry fsTrackingEntry;
@@ -80,15 +82,21 @@ public class INFileReader extends FileReader {
      * LNs for the maximum txn id
      */
     private boolean trackIds;
+    private long minReplicatedNodeId;
     private long maxNodeId;
+    private int minReplicatedDbId;
     private int maxDbId;
+    private long minReplicatedTxnId;
     private long maxTxnId;
     private boolean mapDbOnly;
+    private long ckptEnd;
 
     /* Used for utilization tracking. */
     private long partialCkptStart;
-    private UtilizationTracker tracker;
-    private Map fileSummaryLsns;
+    private RecoveryUtilizationTracker tracker;
+
+    /* Used for replication. */
+    private Map<Long,FileMapper> fileMappers;
 
     /**
      * Create this reader to start at a given LSN.
@@ -100,7 +108,8 @@ public class INFileReader extends FileReader {
                         boolean trackIds,
                         boolean mapDbOnly,
                         long partialCkptStart,
-                        Map fileSummaryLsns)
+                        long ckptEnd,
+                        RecoveryUtilizationTracker tracker)
         throws IOException, DatabaseException {
 
         super(env, readBufferSize, true, startLsn, null,
@@ -108,20 +117,22 @@ public class INFileReader extends FileReader {
 
         this.trackIds = trackIds;
         this.mapDbOnly = mapDbOnly;
-        targetEntryMap = new HashMap();
+        this.ckptEnd = ckptEnd;
+        targetEntryMap = new HashMap<LogEntryType, LogEntry>();
 
         if (trackIds) {
             maxNodeId = 0;
             maxDbId = 0;
-            tracker = env.getUtilizationTracker();
+            maxTxnId = 0;
+            minReplicatedNodeId = 0;
+            minReplicatedDbId = DbTree.NEG_DB_ID_START;
+            minReplicatedTxnId = 0;
+            this.tracker = tracker;
             this.partialCkptStart = partialCkptStart;
-            this.fileSummaryLsns = fileSummaryLsns;
-            fsTrackingEntry = (LNLogEntry)
-                LogEntryType.LOG_FILESUMMARYLN.getNewLogEntry();
 
-            dbIdTrackingMap = new HashMap();
-            txnIdTrackingMap = new HashMap();
-            otherNodeTrackingMap = new HashMap();
+            dbIdTrackingMap = new HashMap<LogEntryType, LogEntry>();
+            txnIdTrackingMap = new HashMap<LogEntryType, LogEntry>();
+            otherNodeTrackingMap = new HashMap<LogEntryType, NodeLogEntry>();
 
             dbIdTrackingMap.put(LogEntryType.LOG_MAPLN_TRANSACTIONAL,
                                 LogEntryType.LOG_MAPLN_TRANSACTIONAL.
@@ -143,6 +154,8 @@ public class INFileReader extends FileReader {
             txnIdTrackingMap.put(LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL,
                                  LogEntryType.LOG_DUPCOUNTLN_TRANSACTIONAL.
                                  getNewLogEntry());
+
+            fileMappers = new HashMap<Long,FileMapper>();
         }
     }
 
@@ -155,13 +168,54 @@ public class INFileReader extends FileReader {
         targetEntryMap.put(entryType, entryType.getNewLogEntry());
     }
 
+    /*
+     * Utilization Tracking
+     * --------------------
+     * This class counts all new log entries and obsolete INs.  Obsolete LNs,
+     * on the other hand, are counted by RecoveryManager undo/redo.
+     *
+     * Utilization counting is done in the first recovery pass where IDs are
+     * tracked (trackIds=true).  Processing is split between isTargetEntry
+     * and processEntry as follows.
+     *
+     * isTargetEntry counts only new non-node entries; this can be done very
+     * efficiently using only the LSN and entry type, without reading and
+     * unmarshalling the entry.  isTargetEntry also sets up several
+     * xxxTrackingEntry fields for utilization counting in processEntry.
+     *
+     * processEntry counts new node entries and obsolete INs.  processEntry is
+     * optimized to do a partial load (readEntry with readFullItem=false) of
+     * entries that are not the target entry and only need to be scanned for a
+     * transaction id, node id, or its owning database id.  In these cases it
+     * returns false, so that getNextEntry will not return a partially loaded
+     * entry to the RecoveryManager.  For example, a provisional IN will be
+     * partially loaded since only the node ID, database ID and obsolete LSN
+     * properties are needed for tracking.
+     *
+     * processEntry also resets (sets all counters to zero and clears obsolete
+     * offsets) the tracked summary for a file or database when a FileSummaryLN
+     * or MapLN is encountered.  This clears the totals that have accumulated
+     * during this recovery pass for entries prior to that point.  We only want
+     * to count utilization for entries after that point.
+     *
+     * In addition, when processEntry encounters a FileSummaryLN or MapLN, its
+     * LSN is recorded in the tracker.  This information is used during IN and
+     * LN utilization counting.  For each file, knowing the LSN of the last
+     * logged FileSummaryLN for that file allows the undo/redo code to know
+     * whether to perform obsolete countng.  If the LSN of the FileSummaryLN is
+     * less than (to the left of) the LN's LSN, obsolete counting should be
+     * performed.  If it is greater, obsolete counting is already included in
+     * the logged FileSummaryLN and should not be repeated to prevent double
+     * counting.  The same thing is true of counting per-database utilization
+     * relative to the LSN of the last logged MapLN.
+     */
+
     /**
      * If we're tracking node, database and txn ids, we want to see all node
      * log entries. If not, we only want to see IN entries.
      * @return true if this is an IN entry.
      */
-    protected boolean isTargetEntry(byte entryTypeNum,
-                                    byte entryTypeVersion)
+    protected boolean isTargetEntry()
         throws DatabaseException {
 
         lastEntryWasDelete = false;
@@ -172,11 +226,12 @@ public class INFileReader extends FileReader {
         nodeTrackingEntry = null;
         inTrackingEntry = null;
         fsTrackingEntry = null;
-        isProvisional = LogEntryType.isEntryProvisional(entryTypeVersion);
+        isProvisional = currentEntryHeader.getProvisional().isProvisional
+            (getLastLsn(), ckptEnd);
 
         /* Get the log entry type instance we need to read the entry. */
-        fromLogType = LogEntryType.findType(entryTypeNum, entryTypeVersion);
-        LogEntry possibleTarget = (LogEntry) targetEntryMap.get(fromLogType);
+        fromLogType = LogEntryType.findType(currentEntryHeader.getType());
+        LogEntry possibleTarget = targetEntryMap.get(fromLogType);
 
         /*
          * If the entry is provisional, we won't be reading it in its entirety;
@@ -220,8 +275,7 @@ public class INFileReader extends FileReader {
                 } else if (txnIdTrackingEntry != null) {
                     nodeTrackingEntry = txnIdTrackingEntry;
                 } else {
-                    nodeTrackingEntry = (NodeLogEntry)
-                        otherNodeTrackingMap.get(fromLogType);
+                    nodeTrackingEntry = otherNodeTrackingMap.get(fromLogType);
                     if (nodeTrackingEntry == null) {
                         nodeTrackingEntry = (NodeLogEntry)
                             fromLogType.getNewLogEntry();
@@ -235,27 +289,54 @@ public class INFileReader extends FileReader {
                 if (LogEntryType.LOG_FILESUMMARYLN.equals(fromLogType)) {
                     fsTrackingEntry = (LNLogEntry) nodeTrackingEntry;
                 }
-            }
+            } else {
 
-            /*
-             * Count all entries except for the file header as new.
-             * UtilizationTracker does not count the file header.
-             */
-            if (!LogEntryType.LOG_FILE_HEADER.equals(fromLogType)) {
-                tracker.countNewLogEntry(getLastLsn(), fromLogType,
-                                         currentEntryHeader.getSize() +
-                                         currentEntryHeader.getItemSize());
+                /*
+                 * Count all non-node entries except for the file header as
+                 * new.  UtilizationTracker does not count the file header.
+                 * Node entries will be counted in processEntry.  Null is
+                 * passed for the database ID; it is only needed for node
+                 * entries.
+                 */
+                if (!LogEntryType.LOG_FILE_HEADER.equals(fromLogType)) {
+                    tracker.countNewLogEntry(getLastLsn(), fromLogType,
+                                             currentEntryHeader.getSize() +
+                                             currentEntryHeader.getItemSize(),
+                                             null); // DatabaseId
+                }
+
+                /*
+                 * When the Root is encountered, reset the tracked summary for
+                 * the ID and Name mapping DBs.  This clears what we
+                 * accummulated previously for these databases during this
+                 * recovery pass.  Save the LSN for these databases for use by
+                 * undo/redo.
+                 */
+                if (LogEntryType.LOG_ROOT.equals(fromLogType)) {
+                    tracker.saveLastLoggedMapLN(DbTree.ID_DB_ID,
+                                                getLastLsn());
+                    tracker.saveLastLoggedMapLN(DbTree.NAME_DB_ID,
+                                                getLastLsn());
+                    tracker.resetDbInfo(DbTree.ID_DB_ID);
+                    tracker.resetDbInfo(DbTree.NAME_DB_ID);
+                }
             }
 
             /*
              * Return true if this entry should be passed on to processEntry.
              * If we're tracking ids, return if this is a targeted entry
-             * or if it's any kind of tracked entry or node.
+             * or if it's any kind of tracked entry or node. If it's a
+             * replicated log entry, we'll want to track the VLSN in
+             * the optional portion of the header. We don't need a
+             * tracking log entry to do that, but we can only do it
+             * when the log entry header has been fully read, which is
+             * not true yet.
              */
             return (targetLogEntry != null) ||
                 (dbIdTrackingEntry != null) ||
                 (txnIdTrackingEntry != null) ||
-                (nodeTrackingEntry != null);
+                (nodeTrackingEntry != null) ||
+                currentEntryHeader.getReplicated();
         } else {
 
             /*
@@ -268,8 +349,39 @@ public class INFileReader extends FileReader {
     }
 
     /**
-     * This reader looks at all nodes for the max node id and database id. It
-     * only returns non-provisional INs and IN delete entries.
+     * Keep track of any VLSN mappings seen. We need to do this without
+     * checking if the environment is replicated, because this is done before
+     * the environment is set as replicated or not.  If this is expensive, we
+     * can instead indicate whether the environment is opening for replication
+     * before the ReplicatorImpl is created.
+     */
+    private void trackVLSNMappings() {
+
+        if (currentEntryHeader.getReplicated()) {
+
+            /*
+             * The VLSN is stored in the entry header, and we know the LSN.
+             * Store this mapping.
+             */
+            VLSN vlsn = currentEntryHeader.getVLSN();
+            long lsn = getLastLsn();
+            long fileNumber = DbLsn.getFileNumber(lsn);
+            FileMapper mapper = fileMappers.get(fileNumber);
+            if (mapper == null) {
+                mapper = new FileMapper(fileNumber);
+                fileMappers.put(fileNumber, mapper);
+            }
+            mapper.putLSN(vlsn.getSequence(), lsn, 
+            			  LogEntryType.isSyncPoint(currentEntryHeader.getType()));
+        }
+    }
+
+    /**
+     * This reader returns non-provisional INs and IN delete entries.
+     * In tracking mode, it may also scan log entries that aren't returned:
+     *  -to set the sequences for txn, node, and database id.
+     *  -to update utilization and obsolete offset information.
+     *  -for VLSN mappings for recovery
      */
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
@@ -279,46 +391,74 @@ public class INFileReader extends FileReader {
 
         /* If this is a targetted entry, read the entire log entry. */
         if (targetLogEntry != null) {
-            readEntry(targetLogEntry, entryBuffer, true); // readFullItem
+            targetLogEntry.readEntry(currentEntryHeader,
+                                     entryBuffer,
+                                     true); // readFullItem
+            entryLoaded = true;
             DatabaseId dbId = getDatabaseId();
             boolean isMapDb = dbId.equals(DbTree.ID_DB_ID);
             useEntry = (!mapDbOnly || isMapDb);
-            entryLoaded = true;
+
         }
 
         /* Do a partial load during tracking if necessary. */
         if (trackIds) {
 
+            DatabaseId dbIdToReset = null;
+            long fileNumToReset = -1;
+
             /*
-             * Do partial load of db and txn id tracking entries if necessary.
-             * Note that these entries do not overlap with targetLogEntry.
-             *
-             * We're doing a full load for now, since LNLogEntry does not read
-             * the db and txn id in a partial load, only the node id.
+             * Process db and txn id tracking entries.  Note that these entries
+             * do not overlap with targetLogEntry.
              */
             LNLogEntry lnEntry = null;
             if (dbIdTrackingEntry != null) {
                 /* This entry has a db id */
                 lnEntry = dbIdTrackingEntry;
-                readEntry(lnEntry, entryBuffer, true); // readFullItem
+
+                /* 
+                 * Do a full load to get DB ID from DatabaseImpl. Note that
+                 * while a partial read gets the database id for the database
+                 * that owns this LN, it doesn't get the database id for the
+                 * database contained by a MapLN. That's what we're trying to
+                 * track. 
+                 */
+                lnEntry.readEntry(currentEntryHeader,
+                                  entryBuffer,
+                                  true); // readFullItem
                 entryLoaded = true;
                 MapLN mapLN = (MapLN) lnEntry.getMainItem();
-                int dbId = mapLN.getDatabase().getId().getId();
-                if (dbId > maxDbId) {
-                    maxDbId = dbId;
-                }
+                DatabaseId dbId = mapLN.getDatabase().getId();
+                int dbIdVal = dbId.getId();
+                maxDbId = (dbIdVal > maxDbId) ? dbIdVal : maxDbId;
+                minReplicatedDbId = (dbIdVal < minReplicatedDbId) ?
+                    dbIdVal : minReplicatedDbId;
+
+                /*
+                 * When a MapLN is encountered, reset the tracked information
+                 * for that database.  This clears what we accummulated
+                 * previously for the database during this recovery pass.
+                 */
+                dbIdToReset = dbId;
+
+                /* Save the LSN of the MapLN for use by undo/redo. */
+                tracker.saveLastLoggedMapLN(dbId, getLastLsn());
             }
+
             if (txnIdTrackingEntry != null) {
                 /* This entry has a txn id */
                 if (lnEntry == null) {
+                    /* Do a partial load since we only need the txn ID. */
                     lnEntry = txnIdTrackingEntry;
-                    readEntry(lnEntry, entryBuffer, true ); // readFullItem
+                    lnEntry.readEntry(currentEntryHeader,
+                                      entryBuffer,
+                                      false); // readFullItem
                     entryLoaded = true;
                 }
                 long txnId = lnEntry.getTxnId().longValue();
-                if (txnId > maxTxnId) {
-                    maxTxnId = txnId;
-                }
+                maxTxnId = (txnId > maxTxnId) ? txnId : maxTxnId;
+                minReplicatedTxnId = (txnId < minReplicatedTxnId) ?
+                    txnId : minReplicatedTxnId;
             }
 
             /*
@@ -327,50 +467,57 @@ public class INFileReader extends FileReader {
              */
             if (fsTrackingEntry != null) {
 
-                /* Must do full load to get key from file summary LN. */
                 if (!entryLoaded) {
-                    readEntry(nodeTrackingEntry, entryBuffer,
-                              true); // readFullItem
+                    /* Do full load to get file number from FileSummaryLN. */
+                    nodeTrackingEntry.readEntry(currentEntryHeader,
+                                                entryBuffer,
+                                                true); // readFullItem
                     entryLoaded = true;
                 }
 
                 /*
                  * When a FileSummaryLN is encountered, reset the tracked
-                 * summary for that file to replay what happens when a
-                 * FileSummaryLN log entry is written.
+                 * summary for that file.  This clears what we accummulated
+                 * previously for the file during this recovery pass.
                  */
                 byte[] keyBytes = fsTrackingEntry.getKey();
                 FileSummaryLN fsln =
                     (FileSummaryLN) fsTrackingEntry.getMainItem();
                 long fileNum = fsln.getFileNumber(keyBytes);
-                TrackedFileSummary trackedLN = tracker.getTrackedFile(fileNum);
-                if (trackedLN != null) {
-                    trackedLN.reset();
-                }
+                fileNumToReset = fileNum;
 
                 /* Save the LSN of the FileSummaryLN for use by undo/redo. */
-                fileSummaryLsns.put(new Long(fileNum), new Long(getLastLsn()));
+                tracker.saveLastLoggedFileSummaryLN(fileNum, getLastLsn());
 
                 /*
-                 * SR 10395: Do not cache the file summary in the
-                 * UtilizationProfile here, since it may be for a deleted log
-                 * file.
+                 * Do not cache the file summary in the UtilizationProfile
+                 * here, since it may be for a deleted log file. [#10395]
                  */
             }
 
-            /*
-             * Do partial load of nodeTrackingEntry (and inTrackingEntry) if
-             * not already loaded.  We only need the node id.
-             */
+            /* Process the nodeTrackingEntry (and inTrackingEntry). */
             if (nodeTrackingEntry != null) {
                 if (!entryLoaded) {
-                    readEntry(nodeTrackingEntry, entryBuffer,
-                              false ); // readFullItem
+                    /* Do a partial load; we only need the node and DB IDs. */
+                    nodeTrackingEntry.readEntry(currentEntryHeader,
+                                                entryBuffer,
+                                                false); // readFullItem
                     entryLoaded = true;
                 }
                 /* Keep track of the largest node id seen. */
                 long nodeId = nodeTrackingEntry.getNodeId();
-                maxNodeId = (nodeId > maxNodeId) ? nodeId: maxNodeId;
+                maxNodeId = (nodeId > maxNodeId) ? nodeId : maxNodeId;
+                minReplicatedNodeId = (nodeId < minReplicatedNodeId) ?
+                    nodeId : minReplicatedNodeId;
+
+                /*
+                 * Count node entries as new.  Non-node entries are counted in
+                 * isTargetEntry.
+                 */
+                tracker.countNewLogEntry(getLastLsn(), fromLogType,
+                                         currentEntryHeader.getSize() +
+                                         currentEntryHeader.getItemSize(),
+                                         nodeTrackingEntry.getDbId());
             }
 
             if (inTrackingEntry != null) {
@@ -386,10 +533,10 @@ public class INFileReader extends FileReader {
                 long oldLsn = inTrackingEntry.getObsoleteLsn();
                 if (oldLsn != DbLsn.NULL_LSN) {
                     long newLsn = getLastLsn();
-                    if (!isObsoleteLsnAlreadyCounted(oldLsn, newLsn)) {
-                        tracker.countObsoleteNodeInexact
-                            (oldLsn, fromLogType, 0);
-                    }
+                    tracker.countObsoleteIfUncounted
+                        (oldLsn, newLsn, fromLogType, 0,
+                         inTrackingEntry.getDbId(),
+                         false); // countExact
                 }
 
                 /*
@@ -406,31 +553,42 @@ public class INFileReader extends FileReader {
                 if (isProvisional && partialCkptStart != DbLsn.NULL_LSN) {
                     oldLsn = getLastLsn();
                     if (DbLsn.compareTo(partialCkptStart, oldLsn) < 0) {
-                        tracker.countObsoleteNodeInexact
-                            (oldLsn, fromLogType, 0);
+                        tracker.countObsoleteUnconditional
+                            (oldLsn, fromLogType, 0,
+                             inTrackingEntry.getDbId(),
+                             false); // countExact
                     }
                 }
+            }
+
+            /*
+             * Reset file and database utilization info only after counting a
+             * new or obsolete node.  The MapLN itself is a node and will be
+             * counted as new above, and we must reset that count as well.
+             */
+            if (fileNumToReset != -1) {
+                tracker.resetFileInfo(fileNumToReset);
+            }
+            if (dbIdToReset != null) {
+                tracker.resetDbInfo(dbIdToReset);
+            }
+
+            /*
+             * Look for VLSNs in the log entry header. If this log entry
+             * was processed only to find its vlsn, entryBuffer was not
+             * advanced yet because we didn't need to use the rest of the
+             * entry. Position it to the end of the entry.
+             */
+            trackVLSNMappings();
+            if (!entryLoaded) {
+                int endPosition = threadSafeBufferPosition(entryBuffer) +
+                    currentEntryHeader.getItemSize();
+                threadSafeBufferPosition(entryBuffer, endPosition);
             }
         }
 
         /* Return true if this entry should be processed */
         return useEntry;
-    }
-
-    /**
-     * Returns whether a given obsolete LSN has already been counted in the
-     * utilization profile.  If true is returned, it should not be counted
-     * again, to prevent double-counting.
-     */
-    private boolean isObsoleteLsnAlreadyCounted(long oldLsn, long newLsn) {
-
-        /* If the file summary follows the new LSN, it was already counted. */
-        Long fileNum = new Long(DbLsn.getFileNumber(oldLsn));
-        long fileSummaryLsn =
-            DbLsn.longToLsn((Long) fileSummaryLsns.get(fileNum));
-        int cmpFsLsnToNewLsn = (fileSummaryLsn != DbLsn.NULL_LSN) ?
-            DbLsn.compareTo(fileSummaryLsn, newLsn) : -1;
-        return (cmpFsLsnToNewLsn >= 0);
     }
 
     /**
@@ -463,6 +621,9 @@ public class INFileReader extends FileReader {
     public long getMaxNodeId() {
         return maxNodeId;
     }
+    public long getMinReplicatedNodeId() {
+        return minReplicatedNodeId;
+    }
 
     /**
      * Get the maximum db id seen by the reader.
@@ -470,12 +631,18 @@ public class INFileReader extends FileReader {
     public int getMaxDbId() {
         return maxDbId;
     }
+    public int getMinReplicatedDbId() {
+        return minReplicatedDbId;
+    }
 
     /**
      * Get the maximum txn id seen by the reader.
      */
     public long getMaxTxnId() {
         return maxTxnId;
+    }
+    public long getMinReplicatedTxnId() {
+        return minReplicatedTxnId;
     }
 
     /**
@@ -539,5 +706,9 @@ public class INFileReader extends FileReader {
      */
     public long getLsnOfIN() {
         return ((INContainingEntry) targetLogEntry).getLsnOfIN(getLastLsn());
+    }
+
+    public Collection<FileMapper> getFileMappers() {
+        return fileMappers.values();
     }
 }

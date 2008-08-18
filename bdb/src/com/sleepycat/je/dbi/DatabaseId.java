@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseId.java,v 1.33.2.3 2007/11/20 13:32:28 cwl Exp $
+ * $Id: DatabaseId.java,v 1.42 2008/05/06 18:23:48 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -18,7 +18,7 @@ import com.sleepycat.je.log.Loggable;
 /**
  * DatabaseImpl Ids are wrapped in a class so they can be logged.
  */
-public class DatabaseId implements Comparable, Loggable {
+public class DatabaseId implements Comparable<DatabaseId>, Loggable {
 
     /**
      * The unique id of this database.
@@ -42,20 +42,20 @@ public class DatabaseId implements Comparable, Loggable {
      * @return id value
      */
     public int getId() {
-	return id;
+        return id;
     }
 
     /**
      * @return id as bytes, for use as a key
      */
     public byte[] getBytes()
-	throws DatabaseException {
+        throws DatabaseException {
 
-	try {
-	    return toString().getBytes("UTF-8");
-	} catch (UnsupportedEncodingException UEE) {
-	    throw new DatabaseException(UEE);
-	}
+        try {
+            return toString().getBytes("UTF-8");
+        } catch (UnsupportedEncodingException UEE) {
+            throw new DatabaseException(UEE);
+        }
     }
 
     /**
@@ -70,11 +70,11 @@ public class DatabaseId implements Comparable, Loggable {
             return false;
         }
 
-	return ((DatabaseId) obj).id == id;
+        return ((DatabaseId) obj).id == id;
     }
 
     public int hashCode() {
-	return id;
+        return id;
     }
 
     public String toString() {
@@ -84,15 +84,14 @@ public class DatabaseId implements Comparable, Loggable {
     /**
      * see Comparable#compareTo
      */
-    public int compareTo(Object o) {
-	if (o == null) {
-	    throw new NullPointerException();
-	}
+    public int compareTo(DatabaseId o) {
+        if (o == null) {
+            throw new NullPointerException();
+        }
 
-        DatabaseId argId = (DatabaseId) o;
-        if (id == argId.id) {
+        if (id == o.id) {
             return 0;
-        } else if (id > argId.id) {
+        } else if (id > o.id) {
             return 1;
         } else {
             return -1;
@@ -107,21 +106,21 @@ public class DatabaseId implements Comparable, Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LogUtils.INT_BYTES;
+        return LogUtils.getPackedIntLogSize(id);
     }
 
     /**
      * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
-        LogUtils.writeInt(logBuffer, id);
+        LogUtils.writePackedInt(logBuffer, id);
     }
 
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
-        id = LogUtils.readInt(itemBuffer);
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion) {
+        id = LogUtils.readInt(itemBuffer, (entryVersion < 6));
     }
 
     /**
@@ -137,6 +136,17 @@ public class DatabaseId implements Comparable, Loggable {
      * @see Loggable#getTransactionId
      */
     public long getTransactionId() {
-	return 0;
+        return 0;
+    }
+
+   /**
+     * @see Loggable#logicalEquals
+     */
+    public boolean logicalEquals(Loggable other) {
+
+        if (!(other instanceof DatabaseId))
+            return false;
+
+        return id == ((DatabaseId) other).id;
     }
 }

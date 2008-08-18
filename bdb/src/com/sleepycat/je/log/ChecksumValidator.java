@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ChecksumValidator.java,v 1.31.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: ChecksumValidator.java,v 1.36 2008/01/17 17:36:20 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -53,12 +53,12 @@ class ChecksumValidator {
         int bufStart = buf.position();
 
         if (DEBUG) {
-            System.out.println("bufStart = " + bufStart +
-                               " length = " + length);
+	    System.out.println("bufStart = " + bufStart +
+			       " length = " + length);
         }
 
         if (buf.hasArray()) {
-            cksum.update(buf.array(), bufStart, length);
+            cksum.update(buf.array(), bufStart + buf.arrayOffset(), length);
         } else {
             for (int i = bufStart; i < (length + bufStart); i++) {
                 cksum.update(buf.get(i));

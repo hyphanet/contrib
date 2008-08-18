@@ -1,24 +1,19 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DaemonThread.java,v 1.55.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: DaemonThread.java,v 1.63 2008/05/13 01:44:54 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DeadlockException;
 import com.sleepycat.je.ExceptionListener;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.latch.Latch;
-import com.sleepycat.je.latch.LatchSupport;
+import com.sleepycat.je.RunRecoveryException;
 
 /**
  * A daemon thread.
@@ -28,10 +23,8 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
     private long waitTime;
     private Object synchronizer = new Object();
     private Thread thread;
-    private EnvironmentImpl env;
+    private ExceptionListener exceptionListener;
     protected String name;
-    protected Set workQueue;
-    protected Latch workQueueLatch;
     protected int nWakeupRequests;
     protected boolean stifleExceptionChatter = false;
 
@@ -42,12 +35,25 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
     /* This is not volatile because it is only an approximation. */
     private boolean running = false;
 
-    public DaemonThread(long waitTime, String name, EnvironmentImpl env) {
+    /* Fields for DaemonErrorListener, enabled only during testing. */
+    private EnvironmentImpl envImpl;
+    private static final String ERROR_LISTENER = "setErrorListener";
+
+    public DaemonThread(long waitTime, String name, EnvironmentImpl envImpl) {
         this.waitTime = waitTime;
         this.name = name;
-	this.env = env;
-        workQueue = new HashSet();
-        workQueueLatch = LatchSupport.makeLatch(name + " work queue", env);
+        this.envImpl = envImpl;
+    }
+
+    public void setExceptionListener(ExceptionListener exceptionListener) {
+        this.exceptionListener = exceptionListener;
+    }
+
+    /**
+     * For testing.
+     */
+    public ExceptionListener getExceptionListener() {
+        return exceptionListener;
     }
 
     /**
@@ -111,34 +117,6 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
         return sb.toString();
     }
 
-    public void addToQueue(Object o)
-        throws DatabaseException {
-
-        workQueueLatch.acquire();
-        workQueue.add(o);
-        wakeup();
-        workQueueLatch.release();
-    }
-
-    public int getQueueSize()
-        throws DatabaseException {
-
-        workQueueLatch.acquire();
-        int count = workQueue.size();
-        workQueueLatch.release();
-        return count;
-    }
-
-    /*
-     * Add an entry to the queue.  Call this if the workQueueLatch is
-     * already held.
-     */
-    public void addToQueueAlreadyLatched(Collection c)
-        throws DatabaseException {
-
-        workQueue.addAll(c);
-    }
-
     public void wakeup() {
         if (!paused) {
             synchronized (synchronizer) {
@@ -148,109 +126,99 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
     }
 
     public void run() {
-        while (true) {
-            /* Check for shutdown request. */
-            if (shutdownRequest) {
-                break;
-            }
+        while (!shutdownRequest) {
             try {
-                workQueueLatch.acquire();
-                boolean nothingToDo = workQueue.size() == 0;
-                workQueueLatch.release();
-                if (nothingToDo) {
+                /* Do a unit of work. */
+                int numTries = 0;
+                long maxRetries = nDeadlockRetries();
+                while (numTries <= maxRetries &&
+                       !shutdownRequest &&
+                       !paused) {
+                    try {
+                        nWakeupRequests++;
+                        running = true;
+                        onWakeup();
+                        break;
+                    } catch (DeadlockException e) {
+                    } finally {
+                        running = false;
+                    }
+                    numTries++;
+                }
+                /* Wait for notify, timeout or interrupt. */
+                if (!shutdownRequest) {
                     synchronized (synchronizer) {
-                        if (waitTime == 0) {
+                        if (waitTime == 0 || paused) {
                             synchronizer.wait();
                         } else {
                             synchronizer.wait(waitTime);
                         }
                     }
                 }
-
-                /* Check for shutdown request. */
-                if (shutdownRequest) {
-                    break;
-                }
-
-                /* If paused, wait until notified. */
-                if (paused) {
-                    synchronized (synchronizer) {
-			/* FindBugs whines unnecessarily here. */
-                        synchronizer.wait();
-                    }
-                    continue;
-                }
-
-		int numTries = 0;
-		int maxRetries = nDeadlockRetries();
-
-		do {
-		    try {
-                        nWakeupRequests++;
-                        running = true;
-			onWakeup();
-			break;
-		    } catch (DeadlockException e) {
-		    } finally {
-                        running = false;
-                    }
-		    numTries++;
-
-		    /* Check for shutdown request. */
-		    if (shutdownRequest) {
-			break;
-		    }
-
-		} while (numTries <= maxRetries);
-
-                /* Check for shutdown request. */
-                if (shutdownRequest) {
-                    break;
-                }
             } catch (InterruptedException IE) {
-		ExceptionListener exceptionListener =
-		    env.getExceptionListener();
-		if (exceptionListener != null) {
-		    exceptionListener.exceptionThrown
-			(DbInternal.makeExceptionEvent(IE, name));
-		}
-
+                if (exceptionListener != null) {
+                    exceptionListener.exceptionThrown
+                        (DbInternal.makeExceptionEvent(IE, name));
+                }
 		if (!stifleExceptionChatter) {
 		    System.err.println
 			("Shutting down " + this + " due to exception: " + IE);
 		}
                 shutdownRequest = true;
-            } catch (Exception E) {
-		ExceptionListener exceptionListener =
-		    env.getExceptionListener();
-		if (exceptionListener != null) {
-		    exceptionListener.exceptionThrown
-			(DbInternal.makeExceptionEvent(E, name));
-		}
 
+		assert checkErrorListener(IE);
+            } catch (Exception E) {
+                if (exceptionListener != null) {
+                    exceptionListener.exceptionThrown
+                        (DbInternal.makeExceptionEvent(E, name));
+                }
 		if (!stifleExceptionChatter) {
 		    System.err.println(this + " caught exception: " + E);
 		    E.printStackTrace(System.err);
-		}
-		if (env.mayNotWrite()) {
-		    if (!stifleExceptionChatter) {
-			System.err.println("Exiting");
-		    }
-		    shutdownRequest = true;
-		} else {
-		    if (!stifleExceptionChatter) {
-			System.err.println("Continuing");
-		    }
-		}
+
+                    /*
+                     * If the exception caused the environment to become
+                     * invalid, then shutdownRequest will have been set to true
+                     * by EnvironmentImpl.invalidate, which is called by the
+                     * RunRecoveryException ctor.
+                     */
+                    System.err.println
+                        (shutdownRequest ? "Exiting" : "Continuing");
+                }
+
+		assert checkErrorListener(E);
+	    } catch (Error ERR) {
+                assert checkErrorListener(ERR);
+                throw ERR;
             }
         }
+    }
+
+    /* 
+     * If Daemon Thread throws errors and exceptions, this function will catch
+     * it and throw a RunRecoveryException, and fail the test.
+     */
+    public boolean checkErrorListener(Throwable t) {
+        if (Boolean.getBoolean(ERROR_LISTENER)) {
+            System.err.println(name + " " + Tracer.getStackTrace(t));
+
+	    /*
+	     * We don't throw out a RunRecoveryException but just new
+	     * a RunRecoveryException here. This is because the instantiation
+	     * of the exception is enough to invalidate the environment, and
+	     * this won't change the signature of run() method.
+	     */
+            new RunRecoveryException(envImpl, "Daemon Thread Failed");
+	}
+
+	return true;
     }
 
     /**
      * Returns the number of retries to perform when Deadlock Exceptions
      * occur.
      */
-    protected int nDeadlockRetries()
+    protected long nDeadlockRetries()
         throws DatabaseException {
 
         return 0;
@@ -258,14 +226,7 @@ public abstract class DaemonThread implements DaemonRunner, Runnable {
 
     /**
      * onWakeup is synchronized to ensure that multiple invocations of the
-     * DaemonThread aren't made.  isRunnable must be called from within
-     * onWakeup to avoid having the following sequence:
-     * Thread A: isRunnable() => true,
-     * Thread B: isRunnable() => true,
-     * Thread A: onWakeup() starts
-     * Thread B: waits for monitor on thread to call onWakeup()
-     * Thread A: onWakeup() completes rendering isRunnable() predicate false
-     * Thread B: onWakeup() starts, but isRunnable predicate is now false
+     * DaemonThread aren't made.
      */
     abstract protected void onWakeup()
         throws DatabaseException;

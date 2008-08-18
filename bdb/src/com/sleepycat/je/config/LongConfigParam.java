@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LongConfigParam.java,v 1.24.2.2 2007/11/20 13:32:28 cwl Exp $
+ * $Id: LongConfigParam.java,v 1.28 2008/05/30 19:07:40 mark Exp $
  */
 
 package com.sleepycat.je.config;
@@ -23,12 +23,10 @@ public class LongConfigParam extends ConfigParam {
                     Long maxVal,
                     Long defaultValue,
                     boolean mutable,
-                    boolean forReplication,
-                    String description) {
+                    boolean forReplication) {
 
         // defaultValue must not be null
-        super(configName, defaultValue.toString(), mutable,
-              forReplication, description);
+        super(configName, defaultValue.toString(), mutable, forReplication);
         min = minVal;
         max = maxVal;
     }
@@ -74,19 +72,5 @@ public class LongConfigParam extends ConfigParam {
             throw new IllegalArgumentException
 		(DEBUG_NAME + ": " +  value + " not valid value for " + name);
         }
-    }
-
-    public String getExtraDescription() {
-        StringBuffer minMaxDesc = new StringBuffer();
-        if (min != null) {
-            minMaxDesc.append("# minimum = ").append(min);
-        }
-        if (max != null) {
-            if (min != null) {
-                minMaxDesc.append("\n");
-            }
-            minMaxDesc.append("# maximum = ").append(max);
-        }
-        return minMaxDesc.toString();
     }
 }

@@ -1,53 +1,52 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: OperationStatus.java,v 1.10.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: OperationStatus.java,v 1.14 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Status values from database operations.
  */
 public class OperationStatus {
+
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * The operation was successful.
      */
     public static final OperationStatus SUCCESS =
 	new OperationStatus("SUCCESS");
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * The operation to insert data was configured to not allow overwrite and
+     * the key already exists in the database.
      */
     public static final OperationStatus KEYEXIST =
 	new OperationStatus("KEYEXIST");
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * The cursor operation was unsuccessful because the current record was
+     * deleted.
      */
     public static final OperationStatus KEYEMPTY =
 	new OperationStatus("KEYEMPTY");
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * The requested key/data pair was not found.
      */
     public static final OperationStatus NOTFOUND =
 	new OperationStatus("NOTFOUND");
 
-    /* For toString */
+    /* For toString. */
     private String statusName;
 
     private OperationStatus(String statusName) {
 	this.statusName = statusName;
     }
 
+    /** {@inheritDoc} */
     public String toString() {
 	return "OperationStatus." + statusName;
     }

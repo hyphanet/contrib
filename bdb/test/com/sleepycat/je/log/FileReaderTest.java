@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: FileReaderTest.java,v 1.11.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: FileReaderTest.java,v 1.15 2008/04/18 22:57:39 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -79,6 +79,7 @@ public class FileReaderTest extends TestCase {
 						   DbLsn.NULL_LSN,
                                                    false,
                                                    false,
+                                                   DbLsn.NULL_LSN,
                                                    DbLsn.NULL_LSN,
                                                    null);
             while (reader.readNextEntry()) {

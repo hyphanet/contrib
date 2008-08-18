@@ -1,16 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: SequenceStats.java,v 1.5.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: SequenceStats.java,v 1.8 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated via
- * the doc templates in the doc_src directory.
+ * A SequenceStats object is used to return sequence statistics.
  */
 public class SequenceStats {
 
@@ -43,73 +42,79 @@ public class SequenceStats {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of times that Sequence.get was called successfully.
+     *
+     * @return number of times that Sequence.get was called successfully.
      */
     public int getNGets() {
         return nGets;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of times that Sequence.get was called and a cached
+     * value was returned.
+     *
+     * @return number of times that Sequence.get was called and a cached
+     * value was returned.
      */
     public int getNCachedGets() {
         return nCachedGets;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the current value of the sequence in the database.
+     *
+     * @return current value of the sequence in the database.
      */
     public long getCurrent() {
         return current;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the current cached value of the sequence.
+     *
+     * @return current cached value of the sequence.
      */
     public long getValue() {
         return value;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the last cached value of the sequence.
+     *
+     * @return last cached value of the sequence.
      */
     public long getLastValue() {
         return lastValue;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the minimum permitted value of the sequence.
+     *
+     * @return minimum permitted value of the sequence.
      */
     public long getMin() {
         return min;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the maximum permitted value of the sequence.
+     *
+     * @return maximum permitted value of the sequence.
      */
     public long getMax() {
         return max;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of values that will be cached in this handle.
+     *
+     * @return number of values that will be cached in this handle.
      */
     public int getCacheSize() {
         return cacheSize;
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public String toString() {
         return "nGets=" + nGets
             + "\nnCachedGets=" + nCachedGets

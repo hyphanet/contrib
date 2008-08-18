@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BINReference.java,v 1.18.2.1 2007/02/01 14:49:51 cwl Exp $
+ * $Id: BINReference.java,v 1.22 2008/05/15 01:52:42 linda Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -22,7 +22,7 @@ public class BINReference {
     protected byte[] idKey;
     private long nodeId;
     private DatabaseId databaseId;
-    private Set deletedKeys;  // Set of Key objects
+    private Set<Key> deletedKeys;  // Set of Key objects
 
     BINReference(long nodeId, DatabaseId databaseId, byte[] idKey) {
 	this.nodeId = nodeId;
@@ -49,7 +49,7 @@ public class BINReference {
     public void addDeletedKey(Key key) {
 
         if (deletedKeys == null) {
-            deletedKeys = new HashSet();
+            deletedKeys = new HashSet<Key>();
         }
         deletedKeys.add(key);
     }
@@ -57,7 +57,7 @@ public class BINReference {
     public void addDeletedKeys(BINReference other) {
 
         if (deletedKeys == null) {
-            deletedKeys = new HashSet();
+            deletedKeys = new HashSet<Key>();
         }
         if (other.deletedKeys != null) {
             deletedKeys.addAll(other.deletedKeys);
@@ -84,7 +84,7 @@ public class BINReference {
         return ((deletedKeys != null) && (deletedKeys.size() > 0));
     }
 
-    public Iterator getDeletedKeyIterator() {
+    public Iterator<Key> getDeletedKeyIterator() {
         if (deletedKeys != null) {
             return deletedKeys.iterator();
         } else {

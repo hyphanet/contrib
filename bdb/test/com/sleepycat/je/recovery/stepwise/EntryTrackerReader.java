@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EntryTrackerReader.java,v 1.5.2.2 2007/11/20 13:32:48 cwl Exp $
+ * $Id: EntryTrackerReader.java,v 1.11 2008/05/22 19:35:39 linda Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -36,7 +36,7 @@ public class EntryTrackerReader extends FileReader {
      * EntryInfo is a list that corresponds to each entry in the truncated
      * area of the log.
      */
-    private List entryInfo;
+    private List<LogEntryInfo> entryInfo;
     private DatabaseEntry dbt = new DatabaseEntry();
     private LogEntry useLogEntry;
     private LogEntryType useLogEntryType;
@@ -47,7 +47,7 @@ public class EntryTrackerReader extends FileReader {
      */
     public EntryTrackerReader(EnvironmentImpl env,
                               long startLsn,
-                              List entryInfo) // EntryInfo
+                              List<LogEntryInfo> entryInfo) // EntryInfo
 	throws IOException, DatabaseException {
 
         super(env, 2000, true, startLsn, null,
@@ -59,8 +59,8 @@ public class EntryTrackerReader extends FileReader {
     /**
      * @return true if this is a targeted entry that should be processed.
      */
-    protected boolean isTargetEntry(byte logEntryTypeNumber,
-                                    byte logEntryTypeVersion) {
+    protected boolean isTargetEntry() {
+        byte logEntryTypeNumber = currentEntryHeader.getType();
         isCommit = false;
         boolean targeted = true;
 
@@ -148,10 +148,10 @@ public class EntryTrackerReader extends FileReader {
             }
         } else {
             LNLogEntry lnLogEntry = (LNLogEntry) useLogEntry;
-            byte [] keyArray = lnLogEntry.getKey();
+            byte[] keyArray = lnLogEntry.getKey();
             dbt.setData(keyArray);
             int keyValue = IntegerBinding.entryToInt(dbt);
-            byte [] dataArray = lnLogEntry.getLN().getData();
+            byte[] dataArray = lnLogEntry.getLN().getData();
 
             if (dataArray == null) {
                 /* This log entry is a deleted, non-dup LN. */

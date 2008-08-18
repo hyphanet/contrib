@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ReleaseLatchesTest.java,v 1.15.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: ReleaseLatchesTest.java,v 1.21 2008/04/18 22:57:39 mark Exp $
  */
 package com.sleepycat.je.tree;
 
@@ -52,7 +52,7 @@ public class ReleaseLatchesTest extends TestCase {
      * testCheckLatchLeaks method generates read i/o exceptions during the test
      * descriptor's action, and will check that we come up clean.
      */
-    public static TestDescriptor [] OPERATIONS = {
+    public static TestDescriptor[] OPERATIONS = {
 
         /*
          * TestDescriptor params:
@@ -302,22 +302,30 @@ public class ReleaseLatchesTest extends TestCase {
                     ReadIOExceptionHook readHook = new ReadIOExceptionHook(i);
                     envImpl.getLogManager().setReadHook(readHook);
                     testActivity.doAction(this, i);
-                } catch (RunRecoveryException e) {
+                } catch (Throwable e) {
+                    while (e.getCause() != null &&
+                           !(e instanceof DatabaseException)) {
+                        e = e.getCause();
+                    }
+                    if (e instanceof RunRecoveryException) {
 
-                    /*
-		     * It's possible for a read error to induce a
-		     * RunRecoveryException if the read error happens when we
-		     * are opening a new write file channel. (We read and
-		     * validate the file header). In that case, check for
-		     * latches, and re-open the database.
-                     */
-                    checkLatchCount(e, i);
-                    env.close();
-                    openEnvAndDb();
-                    exceptionOccurred = true;
-                } catch (DatabaseException e) {
-                    checkLatchCount(e, i);
-                    exceptionOccurred = true;
+                        /*
+                         * It's possible for a read error to induce a
+                         * RunRecoveryException if the read error happens when
+                         * we are opening a new write file channel. (We read
+                         * and validate the file header). In that case, check
+                         * for latches, and re-open the database.
+                         */
+                        checkLatchCount((DatabaseException) e, i);
+                        env.close();
+                        openEnvAndDb();
+                        exceptionOccurred = true;
+                    } else if (e instanceof DatabaseException) {
+                        checkLatchCount((DatabaseException) e, i);
+                        exceptionOccurred = true;
+                    } else {
+                        throw e;
+                    }
                 }
 
                 if (DEBUG && !exceptionOccurred) {
@@ -453,7 +461,6 @@ public class ReleaseLatchesTest extends TestCase {
         ReadIOExceptionHook(int throwCount) {
             this.throwCount = throwCount;
         }
-
         public void doIOHook()
             throws IOException {
 
@@ -465,11 +472,14 @@ public class ReleaseLatchesTest extends TestCase {
                 counter++;
             }
         }
-
-	public void doHook() {}
-
         public Object getHookValue() {
-            return null;
+            throw new UnsupportedOperationException();
+        }
+        public void doHook() {
+            throw new UnsupportedOperationException();
+        }
+        public void hookSetup() {
+            throw new UnsupportedOperationException();
         }
     }
 

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbPrintLog.java,v 1.39.2.5 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DbPrintLog.java,v 1.46 2008/01/07 14:28:57 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -24,8 +24,13 @@ import com.sleepycat.je.utilint.CmdUtil;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
- * DbPrintLog is a debugging utility that dumps JE log files into a human
- * readable form.
+ * Dumps the contents of the log in XML format to System.out.
+ *
+ * <p>To print an environment log:</p>
+ *
+ * <pre>
+ *      DbPrintLog.main(argv);
+ * </pre>
  */
 public class DbPrintLog {
 
@@ -50,7 +55,7 @@ public class DbPrintLog {
             (EnvironmentParams.LOG_ITERATOR_READ_SIZE);
 
         /* Make a reader. */
-	DumpFileReader reader = null;
+        DumpFileReader reader = null;
         if (stats) {
             reader = new StatsFileReader(env, readBufferSize, startLsn, endLsn,
                                          entryTypes, txnIds, verbose);
@@ -69,7 +74,25 @@ public class DbPrintLog {
     }
 
     /**
-     * Main
+     * The main used by the DbPrintLog utility.
+     *
+     * @param argv An array of command line arguments to the DbPrintLog
+     * utility.
+     *
+     * <pre>
+     * usage: java { com.sleepycat.je.util.DbPrintLog | -jar
+     * je-&lt;version&gt;.jar DbPrintLog }
+     *  -h &lt;envHomeDir&gt;
+     *  -e  &lt;end file number, in hex&gt;
+     *  -k  &lt;binary|hex|text|obfuscate&gt; (format for dumping the key)
+     *  -s  &lt;start file number, in hex&gt;
+     *  -tx &lt;targeted txn ids, comma separated
+     *  -ty &lt;targeted entry types, comma separated
+     *  -v  &lt;true | false&gt; (verbose option
+     *      If true, full entry is printed,
+     *      else short version. True by default.)
+     * All arguments are optional
+     * </pre>
      */
     public static void main(String[] argv) {
         try {
@@ -130,13 +153,11 @@ public class DbPrintLog {
                     if (dumpType.equalsIgnoreCase("text")) {
                         Key.DUMP_TYPE = DumpType.TEXT;
                     } else if (dumpType.equalsIgnoreCase("hex")) {
-                        Key.DUMP_TYPE = DumpType.HEX;
-		    } else if (dumpType.equalsIgnoreCase("binary")) {
-                        Key.DUMP_TYPE = DumpType.BINARY;
-		    } else if (dumpType.equalsIgnoreCase("obfuscate")) {
-                        Key.DUMP_TYPE = DumpType.OBFUSCATE;
-		    } else if (dumpType.equalsIgnoreCase("none")) {
-                        Key.DUMP_TYPE = DumpType.NONE;
+			Key.DUMP_TYPE = DumpType.HEX;
+                    } else if (dumpType.equalsIgnoreCase("binary")) {
+			Key.DUMP_TYPE = DumpType.BINARY;
+                    } else if (dumpType.equalsIgnoreCase("obfuscate")) {
+			Key.DUMP_TYPE = DumpType.OBFUSCATE;
 		    } else {
 			System.err.println
 			    (dumpType +
@@ -174,7 +195,7 @@ public class DbPrintLog {
                            CmdUtil.getJavaCommand(DbPrintLog.class));
         System.out.println(" -h  <envHomeDir>");
         System.out.println(" -e  <end file number or LSN, in hex>");
-        System.out.println(" -k  <binary|text|hex|obfuscate|none> " +
+        System.out.println(" -k  <binary|text|hex|obfuscate> " +
 			   "(format for dumping the key)");
         System.out.println(" -s  <start file number or LSN, in hex>");
         System.out.println(" -tx <targetted txn ids, comma separated>");

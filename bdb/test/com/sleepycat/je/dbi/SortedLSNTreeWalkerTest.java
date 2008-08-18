@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SortedLSNTreeWalkerTest.java,v 1.11.2.3 2007/11/20 13:32:44 cwl Exp $
+ * $Id: SortedLSNTreeWalkerTest.java,v 1.17 2008/05/06 18:01:35 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -383,7 +383,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
 	    };
 
 	SortedLSNTreeWalker walker =
-	    new SortedLSNTreeWalker(dbImpl, false, false,
+	    new SortedLSNTreeWalker(dbImpl, false,
                                     dbImpl.getTree().getRootLsn(), tnp,
                                     null,  /* savedExceptions */
 				    null);
@@ -440,7 +440,7 @@ public class SortedLSNTreeWalkerTest extends TestCase {
             /* Do nothing. */
         }
 
-	public void processDupCount(long ignore) {
+	public void processDupCount(int ignore) {
 	    throw new RuntimeException("override me please");
 	}
     }

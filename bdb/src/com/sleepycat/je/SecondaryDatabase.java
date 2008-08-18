@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SecondaryDatabase.java,v 1.52.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: SecondaryDatabase.java,v 1.61 2008/03/18 15:53:04 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -24,10 +24,63 @@ import com.sleepycat.je.txn.LockerFactory;
 import com.sleepycat.je.utilint.DatabaseUtil;
 
 /**
- * Javadoc for this public class is generated via
- * the doc templates in the doc_src directory.
+ * A secondary database handle.
+ *
+ * <p>Secondary databases are opened with {@link
+ * Environment#openSecondaryDatabase Environment.openSecondaryDatabase} and are
+ * always associated with a single primary database.  The distinguishing
+ * characteristics of a secondary database are:</p>
+ *
+ * <ul> <li>Records are automatically added to a secondary database when
+ * records are added, modified and deleted in the primary database.  Direct
+ * calls to <code>put()</code> methods on a secondary database are
+ * prohibited.</li>
+ * <li>The {@link #delete delete} method of a secondary database will delete
+ * the primary record and as well as all its associated secondary records.</li>
+ * <li>Calls to all <code>get()</code> methods will return the data from the
+ * associated primary database.</li>
+ * <li>Additional <code>get()</code> method signatures are provided to return
+ * the primary key in an additional <code>pKey</code> parameter.</li>
+ * <li>Calls to {@link #openCursor openCursor} will return a {@link
+ * SecondaryCursor}, which itself has <code>get()</code> methods that return
+ * the data of the primary database and additional <code>get()</code> method
+ * signatures for returning the primary key.</li>
+ * <li>The {@link #openSecondaryCursor openSecondaryCursor} method is provided
+ * to return a {@link SecondaryCursor} that doesn't require casting.</li>
+ * </ul>
+ * <p>Before opening or creating a secondary database you must implement
+ * the {@link SecondaryKeyCreator} or {@link SecondaryMultiKeyCreator}
+ * interface.</p>
+ *
+ * <p>For example, to create a secondary database that supports duplicates:</p>
+ *
+ * <pre>
+ *     Database primaryDb; // The primary database must already be open.
+ *     SecondaryKeyCreator keyCreator; // Your key creator implementation.
+ *     SecondaryConfig secConfig = new SecondaryConfig();
+ *     secConfig.setAllowCreate(true);
+ *     secConfig.setSortedDuplicates(true);
+ *     secConfig.setKeyCreator(keyCreator);
+ *     SecondaryDatabase newDb = env.openSecondaryDatabase(transaction,
+ *                                                         "myDatabaseName",
+ *                                                         primaryDb,
+ *                                                         secConfig)
+ * </pre>
+ *
+ * <p>If a primary database is to be associated with one or more secondary
+ * databases, it may not be configured for duplicates.</p>
+ *
+ * Note that the associations between primary and secondary databases are not
+ * stored persistently.  Whenever a primary database is opened for write access
+ * by the application, the appropriate associated secondary databases should
+ * also be opened by the application.  This is necessary to ensure data
+ * integrity when changes are made to the primary database.
  */
 public class SecondaryDatabase extends Database {
+
+    /* For type-safe check against EMPTY_SET */
+    private static final Set<DatabaseEntry> EMPTY_SET =
+        Collections.emptySet();
 
     private Database primaryDb;
     private SecondaryConfig secondaryConfig;
@@ -142,6 +195,13 @@ public class SecondaryDatabase extends Database {
 
     /**
      * Adds secondary to primary's list, and populates the secondary if needed.
+     *
+     * @param locker should be the locker used to open the database.  If a
+     * transactional locker, the population operations will occur in the same
+     * transaction; this may result in a large number of retained locks.  If a
+     * non-transactional locker, the Cursor will create a ThreadLocker (even if
+     * a BasicLocker used for handle locking is passed), and locks will not be
+     * retained.
      */
     private void init(Locker locker)
         throws DatabaseException {
@@ -150,10 +210,11 @@ public class SecondaryDatabase extends Database {
 
         secondaryConfig = (SecondaryConfig) configuration;
 
-        /* Insert foreign key triggers at the front of the list and append
-         * secondary triggers at the end, so that ForeignKeyDeleteAction.ABORT
-         * is applied before deleting the secondary keys. */
-
+        /*
+	 * Insert foreign key triggers at the front of the list and append
+	 * secondary triggers at the end, so that ForeignKeyDeleteAction.ABORT
+	 * is applied before deleting the secondary keys.
+	 */
         primaryDb.addTrigger(secondaryTrigger, false);
 
         Database foreignDb = secondaryConfig.getForeignKeyDatabase();
@@ -196,9 +257,13 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Closes a secondary database and dis-associates it from its primary
+     * database. A secondary database should be closed before closing its
+     * associated primary database.
+     *
+     * {@inheritDoc}
      */
+    @Override
     public synchronized void close()
         throws DatabaseException {
 
@@ -230,8 +295,9 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the primary database associated with this secondary database.
+     *
+     * @return the primary database associated with this secondary database.
      */
     public Database getPrimaryDatabase()
         throws DatabaseException {
@@ -240,8 +306,11 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns a copy of the secondary configuration of this database.
+     *
+     * @return a copy of the secondary configuration of this database.
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public SecondaryConfig getSecondaryConfig()
         throws DatabaseException {
@@ -257,8 +326,26 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Obtain a cursor on a database, returning a
+     * <code>SecondaryCursor</code>. Calling this method is the equivalent of
+     * calling {@link #openCursor} and casting the result to {@link
+     * SecondaryCursor}.
+     *
+     * @param txn To use a cursor for writing to a transactional database, an
+     * explicit transaction must be specified.  For read-only access to a
+     * transactional database, the transaction may be null.  For a
+     * non-transactional database, the transaction must be null.
+     *
+     * <p>To transaction-protect cursor operations, cursors must be opened and
+     * closed within the context of a transaction, and the txn parameter
+     * specifies the transaction context in which the cursor will be used.</p>
+     *
+     * @param cursorConfig The cursor attributes.  If null, default attributes
+     * are used.
+     *
+     * @return A secondary database cursor.
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public SecondaryCursor openSecondaryCursor(Transaction txn,
                                                CursorConfig cursorConfig)
@@ -278,11 +365,16 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Deletes the primary key/data pair associated with the specified
+     * secondary key.  In the presence of duplicate key values, all primary
+     * records associated with the designated secondary key will be deleted.
+     *
+     * When the primary records are deleted, their associated secondary records
+     * are deleted as if {@link Database#delete} were called.  This includes,
+     * but is not limited to, the secondary record referenced by the given key.
      */
-    public OperationStatus delete(Transaction txn,
-                                  DatabaseEntry key)
+    @Override
+    public OperationStatus delete(Transaction txn, DatabaseEntry key)
         throws DatabaseException {
 
         checkEnv();
@@ -297,7 +389,10 @@ public class SecondaryDatabase extends Database {
         OperationStatus commitStatus = OperationStatus.NOTFOUND;
         try {
             locker = LockerFactory.getWritableLocker
-                (envHandle, txn, isTransactional());
+                (envHandle,
+                 txn,
+                 isTransactional(),
+                 getDatabaseImpl().isReplicated()); // autoTxnIsReplicated
 
             /* Read the primary key (the data of a secondary). */
             cursor = new Cursor(this, locker, null);
@@ -333,9 +428,38 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Retrieves the key/data pair with the given key.  If the matching key has
+     * duplicate values, the first data item in the set of duplicates is
+     * returned. Retrieval of duplicates requires the use of {@link Cursor}
+     * operations.
+     *
+     * @param txn For a transactional database, an explicit transaction may be
+     * specified to transaction-protect the operation, or null may be specified
+     * to perform the operation without transaction protection.  For a
+     * non-transactional database, null must be specified.
+     *
+     * @param key the secondary key used as input.  It must be initialized with
+     * a non-null byte array by the caller.     *
+     *
+     * @param data the primary data returned as output.  Its byte array does
+     * not need to be initialized by the caller.
+     *
+     * @param lockMode the locking attributes; if null, default attributes
+     * are used.
+     *
+     * @return {@link com.sleepycat.je.OperationStatus#NOTFOUND
+     * OperationStatus.NOTFOUND} if no matching key/data pair is found;
+     * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
+     * OperationStatus.SUCCESS}.
+     *
+     * @throws DeadlockException if the operation was selected to resolve a
+     * deadlock.
+     *
+     * @throws IllegalArgumentException if an invalid parameter was specified.
+     *
+     * @throws DatabaseException if a failure occurs.
      */
+    @Override
     public OperationStatus get(Transaction txn,
                                DatabaseEntry key,
                                DatabaseEntry data,
@@ -346,8 +470,39 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Retrieves the key/data pair with the given key.  If the matching key has
+     * duplicate values, the first data item in the set of duplicates is
+     * returned. Retrieval of duplicates requires the use of {@link Cursor}
+     * operations.
+     *
+     * @param txn For a transactional database, an explicit transaction may be
+     * specified to transaction-protect the operation, or null may be specified
+     * to perform the operation without transaction protection.  For a
+     * non-transactional database, null must be specified.
+     *
+     * @param key the secondary key used as input.  It must be initialized with
+     * a non-null byte array by the caller.
+     *
+     * @param pKey the primary key returned as output.  Its byte array does not
+     * need to be initialized by the caller.
+     *
+     * @param data the primary data returned as output.  Its byte array does
+     * not need to be initialized by the caller.
+     *
+     * @param lockMode the locking attributes; if null, default attributes are
+     * used.
+     *
+     * @return {@link com.sleepycat.je.OperationStatus#NOTFOUND
+     * OperationStatus.NOTFOUND} if no matching key/data pair is found;
+     * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
+     * OperationStatus.SUCCESS}.
+     *
+     * @throws DeadlockException if the operation was selected to resolve a
+     * deadlock.
+     *
+     * @throws IllegalArgumentException if an invalid parameter was specified.
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public OperationStatus get(Transaction txn,
                                DatabaseEntry key,
@@ -384,9 +539,12 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * This operation is not allowed with this method signature. {@link
+     * UnsupportedOperationException} will always be thrown by this method.
+     * The corresponding method with the <code>pKey</code> parameter should be
+     * used instead.
      */
+    @Override
     public OperationStatus getSearchBoth(Transaction txn,
                                          DatabaseEntry key,
                                          DatabaseEntry data,
@@ -397,8 +555,37 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Retrieves the key/data pair with the specified secondary and primary
+     * key, that is, both the primary and secondary key items must match.
+     *
+     * @param txn For a transactional database, an explicit transaction may be
+     * specified to transaction-protect the operation, or null may be specified
+     * to perform the operation without transaction protection.  For a
+     * non-transactional database, null must be specified.
+     *
+     * @param key the secondary keyused as input.  It must be initialized with
+     * a non-null byte array by the caller.
+     *
+     * @param pKey the primary keyused as input.  It must be initialized with a
+     * non-null byte array by the caller.
+     *
+     * @param data the primary data returned as output.  Its byte array does not
+     * need to be initialized by the caller.
+     *
+     * @param lockMode the locking attributes; if null, default attributes are
+     * used.
+     *
+     * @return {@link com.sleepycat.je.OperationStatus#NOTFOUND
+     * OperationStatus.NOTFOUND} if no matching key/data pair is found;
+     * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
+     * OperationStatus.SUCCESS}.
+     *
+     * @throws DeadlockException if the operation was selected to resolve a
+     * deadlock.
+     *
+     * @throws IllegalArgumentException if an invalid parameter was specified.
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public OperationStatus getSearchBoth(Transaction txn,
                                          DatabaseEntry key,
@@ -437,9 +624,11 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * This operation is not allowed on a secondary database. {@link
+     * UnsupportedOperationException} will always be thrown by this method.
+     * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public OperationStatus put(Transaction txn,
                                DatabaseEntry key,
                                DatabaseEntry data)
@@ -449,9 +638,11 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * This operation is not allowed on a secondary database. {@link
+     * UnsupportedOperationException} will always be thrown by this method.
+     * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public OperationStatus putNoOverwrite(Transaction txn,
                                           DatabaseEntry key,
                                           DatabaseEntry data)
@@ -461,9 +652,11 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * This operation is not allowed on a secondary database. {@link
+     * UnsupportedOperationException} will always be thrown by this method.
+     * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public OperationStatus putNoDupData(Transaction txn,
                                         DatabaseEntry key,
                                         DatabaseEntry data)
@@ -473,9 +666,11 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * This operation is not allowed on a secondary database. {@link
+     * UnsupportedOperationException} will always be thrown by this method.
+     * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public JoinCursor join(Cursor[] cursors, JoinConfig config)
         throws DatabaseException {
 
@@ -483,19 +678,8 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     * @deprecated
-     */
-    public int truncate(Transaction txn, boolean countRecords)
-        throws DatabaseException {
-
-        throw notAllowedException();
-    }
-
-    /**
-     * Updates a single secondary when a put() or delete() is performed on
-     * the primary.
+     * Updates a single secondary when a put() or delete() is performed on the
+     * primary.
      *
      * @param locker the internal locker.
      *
@@ -579,15 +763,15 @@ public class SecondaryDatabase extends Database {
             assert multiKeyCreator != null;
 
             /* Get old and new secondary keys. */
-            Set oldKeys = Collections.EMPTY_SET;
-            Set newKeys = Collections.EMPTY_SET;
+            Set<DatabaseEntry> oldKeys = EMPTY_SET;
+            Set<DatabaseEntry> newKeys = EMPTY_SET;
             if (oldData != null) {
-                oldKeys = new HashSet();
+                oldKeys = new HashSet<DatabaseEntry>();
                 multiKeyCreator.createSecondaryKeys(this, priKey,
                                                     oldData, oldKeys);
             }
             if (newData != null) {
-                newKeys = new HashSet();
+                newKeys = new HashSet<DatabaseEntry>();
                 multiKeyCreator.createSecondaryKeys(this, priKey,
                                                     newData, newKeys);
             }
@@ -601,20 +785,22 @@ public class SecondaryDatabase extends Database {
                 }
                 try {
                     /* Delete old keys that are no longer present. */
-                    Set oldKeysCopy = oldKeys;
-                    if (oldKeys != Collections.EMPTY_SET) {
-                        oldKeysCopy = new HashSet(oldKeys);
+                    Set<DatabaseEntry> oldKeysCopy = oldKeys;
+                    if (oldKeys != EMPTY_SET) {
+                        oldKeysCopy = new HashSet<DatabaseEntry>(oldKeys);
                         oldKeys.removeAll(newKeys);
-                        for (Iterator i = oldKeys.iterator(); i.hasNext();) {
-                            DatabaseEntry oldKey = (DatabaseEntry) i.next();
+                        for (Iterator<DatabaseEntry> i = oldKeys.iterator();
+                             i.hasNext();) {
+                            DatabaseEntry oldKey = i.next();
                             deleteKey(cursor, priKey, oldKey);
                         }
                     }
                     /* Insert new keys that were not present before. */
-                    if (newKeys != Collections.EMPTY_SET) {
+                    if (newKeys != EMPTY_SET) {
                         newKeys.removeAll(oldKeysCopy);
-                        for (Iterator i = newKeys.iterator(); i.hasNext();) {
-                            DatabaseEntry newKey = (DatabaseEntry) i.next();
+                        for (Iterator<DatabaseEntry> i = newKeys.iterator();
+                             i.hasNext();) {
+                            DatabaseEntry newKey = i.next();
                             insertKey(locker, cursor, priKey, newKey);
                         }
                     }
@@ -715,8 +901,9 @@ public class SecondaryDatabase extends Database {
             secondaryConfig.getForeignKeyDeleteAction();
 
         /* Use RMW if we're going to be deleting the secondary records. */
-        LockMode lockMode = (deleteAction == ForeignKeyDeleteAction.ABORT)
-                            ? LockMode.DEFAULT : LockMode.RMW;
+        LockMode lockMode = (deleteAction == ForeignKeyDeleteAction.ABORT) ?
+	    LockMode.DEFAULT :
+	    LockMode.RMW;
 
         /*
          * Use the deleted foreign primary key to read the data of this
@@ -830,10 +1017,9 @@ public class SecondaryDatabase extends Database {
     }
 
     /**
-     * Send trace messages to the java.util.logger. Don't rely on the
-     * logger alone to conditionalize whether we send this message,
-     * we don't even want to construct the message if the level is
-     * not enabled.
+     * Send trace messages to the java.util.logger. Don't rely on the logger
+     * alone to conditionalize whether we send this message, we don't even want
+     * to construct the message if the level is not enabled.
      */
     void trace(Level level,
                String methodName)

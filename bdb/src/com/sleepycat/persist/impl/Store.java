@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Store.java,v 1.20.2.7 2007/12/08 14:47:26 mark Exp $
+ * $Id: Store.java,v 1.36 2008/05/19 20:33:32 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,16 +28,18 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
+/* <!-- begin JE only --> */
 import com.sleepycat.je.DatabaseNotFoundException;
+/* <!-- end JE only --> */
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.ForeignKeyDeleteAction;
-import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.SecondaryConfig;
 import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.Sequence;
 import com.sleepycat.je.SequenceConfig;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.persist.DatabaseNamer;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.SecondaryIndex;
 import com.sleepycat.persist.StoreConfig;
@@ -57,6 +60,7 @@ import com.sleepycat.persist.model.PrimaryKeyMetadata;
 import com.sleepycat.persist.model.Relationship;
 import com.sleepycat.persist.model.SecondaryKeyMetadata;
 import com.sleepycat.persist.raw.RawObject;
+import com.sleepycat.util.keyrange.KeyRange;
 
 /**
  * Base implementation for EntityStore and  RawStore.  The methods here
@@ -67,7 +71,7 @@ import com.sleepycat.persist.raw.RawObject;
  */
 public class Store {
 
-    private static final char NAME_SEPARATOR = '#';
+    public static final String NAME_SEPARATOR = "#";
     private static final String NAME_PREFIX = "persist" + NAME_SEPARATOR;
     private static final String DB_NAME_PREFIX = "com.sleepycat.persist.";
     private static final String CATALOG_DB = DB_NAME_PREFIX + "formats";
@@ -159,16 +163,20 @@ public class Store {
                 } else {
                     Transaction txn = null;
                     if (storeConfig.getTransactional() &&
-			env.getThreadTransaction() == null) {
+			DbCompat.getThreadTransaction(env) == null) {
                         txn = env.beginTransaction(null, null);
                     }
                     boolean success = false;
                     try {
                         DatabaseConfig dbConfig = new DatabaseConfig();
                         dbConfig.setAllowCreate(storeConfig.getAllowCreate());
+                        /* <!-- begin JE only --> */
+                        dbConfig.setTemporary(storeConfig.getTemporary());
+                        /* <!-- end JE only --> */
                         dbConfig.setReadOnly(storeConfig.getReadOnly());
                         dbConfig.setTransactional
                             (storeConfig.getTransactional());
+                        DbCompat.setTypeBtree(dbConfig);
                         catalog = new PersistCatalog
                             (txn, env, storePrefix, storePrefix + CATALOG_DB,
                              dbConfig, model, mutations, rawAccess, this);
@@ -255,6 +263,7 @@ public class Store {
         catalog.dump();
     }
 
+    /* <!-- begin JE only --> */
     public static Set<String> getStoreNames(Environment env)
         throws DatabaseException {
 
@@ -269,6 +278,7 @@ public class Store {
         }
         return set;
     }
+    /* <!-- end JE only --> */
 
     public EntityModel getModel() {
         return model;
@@ -339,7 +349,7 @@ public class Store {
             Transaction txn = null;
             DatabaseConfig dbConfig = getPrimaryConfig(entityMeta);
             if (dbConfig.getTransactional() &&
-		env.getThreadTransaction() == null) {
+		DbCompat.getThreadTransaction(env) == null) {
                 txn = env.beginTransaction(null, null);
             }
             PrimaryOpenState priOpenState =
@@ -348,8 +358,16 @@ public class Store {
             try {
         
                 /* Open the primary database. */
-                String dbName = storePrefix + entityClassName;
-                Database db = env.openDatabase(txn, dbName, dbConfig);
+                String[] fileAndDbNames =
+                    parseDbName(storePrefix + entityClassName);
+                Database db;
+                try {
+                    db = DbCompat.openDatabase
+                        (env, txn, fileAndDbNames[0], fileAndDbNames[1],
+                         dbConfig);
+                } catch (FileNotFoundException e) {
+                    throw new DatabaseException(e);
+                }
                 priOpenState.addDatabase(db);
 
                 /* Create index object. */
@@ -642,7 +660,7 @@ public class Store {
         throws DatabaseException {
 
         assert !secIndexMap.containsKey(secName);
-        String dbName = storePrefix + secName;
+        String[] fileAndDbNames = parseDbName(storePrefix + secName);
         SecondaryConfig config =
             getSecondaryConfig(secName, entityMeta, keyClassName, secKeyMeta);
         Database priDb = primaryIndex.getDatabase();
@@ -681,12 +699,22 @@ public class Store {
             if (doNotCreate) {
                 config.setAllowCreate(false);
             }
-            db = env.openSecondaryDatabase(txn, dbName, priDb, config);
+            db = DbCompat.openSecondaryDatabase
+                (env, txn, fileAndDbNames[0], fileAndDbNames[1], priDb,
+                 config);
+        /* <!-- begin JE only --> */
         } catch (DatabaseNotFoundException e) {
             if (doNotCreate) {
                 return null;
             } else {
                 throw e;
+            }
+        /* <!-- end JE only --> */
+        } catch (FileNotFoundException e) {
+            if (doNotCreate) {
+                return null;
+            } else {
+                throw new DatabaseException(e);
             }
         } finally {
             if (doNotCreate) {
@@ -708,6 +736,7 @@ public class Store {
         return secIndex;
     }
 
+    /* <!-- begin JE only --> */
     public void sync()
         throws DatabaseException {
 
@@ -728,6 +757,7 @@ public class Store {
             }
         }
     }
+    /* <!-- end JE only --> */
 
     public void truncateClass(Class entityClass)
         throws DatabaseException {
@@ -751,24 +781,16 @@ public class Store {
          * upwards.  Then truncate each secondary, only throwing the first
          * exception.
          */
-        String dbName = storePrefix + clsName;
-        boolean primaryExists = true;
-        try {
-            env.truncateDatabase(txn, dbName, false);
-        } catch (DatabaseNotFoundException ignored) {
-            primaryExists = false;
-        }
+        boolean primaryExists = truncateIfExists(txn, storePrefix + clsName);
         if (primaryExists) {
             DatabaseException firstException = null;
             for (SecondaryKeyMetadata keyMeta :
                  entityMeta.getSecondaryKeys().values()) {
                 try {
-                    env.truncateDatabase
+                    truncateIfExists
                         (txn,
                          storePrefix +
-                         makeSecName(clsName, keyMeta.getKeyName()),
-                         false);
-                } catch (DatabaseNotFoundException ignored) {
+                         makeSecName(clsName, keyMeta.getKeyName()));
                     /* Ignore secondaries that do not exist. */
                 } catch (DatabaseException e) {
                     if (firstException == null) {
@@ -779,6 +801,24 @@ public class Store {
             if (firstException != null) {
                 throw firstException;
             }
+        }
+    }
+
+    private boolean truncateIfExists(Transaction txn, String dbName)
+        throws DatabaseException {
+
+        try {
+            String[] fileAndDbNames = parseDbName(dbName);
+            DbCompat.truncateDatabase
+                (env, txn, fileAndDbNames[0], fileAndDbNames[1],
+                 false/*returnCount*/);
+            return true;
+        /* <!-- begin JE only --> */
+        } catch (DatabaseNotFoundException e) {
+            return false;
+        /* <!-- end JE only --> */
+        } catch (FileNotFoundException e) {
+            return false;
         }
     }
 
@@ -871,11 +911,22 @@ public class Store {
         Sequence seq = sequenceMap.get(name);
         if (seq == null) {
             if (sequenceDb == null) {
-                String dbName = storePrefix + SEQUENCE_DB;
+                String[] fileAndDbNames =
+                    parseDbName(storePrefix + SEQUENCE_DB);
                 DatabaseConfig dbConfig = new DatabaseConfig();
                 dbConfig.setTransactional(storeConfig.getTransactional());
                 dbConfig.setAllowCreate(true);
-                sequenceDb = env.openDatabase(null, dbName, dbConfig);
+                /* <!-- begin JE only --> */
+                dbConfig.setTemporary(storeConfig.getTemporary());
+                /* <!-- end JE only --> */
+                DbCompat.setTypeBtree(dbConfig);
+                try {
+                    sequenceDb = DbCompat.openDatabase
+                        (env, null/*txn*/, fileAndDbNames[0],
+                         fileAndDbNames[1], dbConfig);
+                } catch (FileNotFoundException e) {
+                    throw new DatabaseException(e);
+                }
             }
             DatabaseEntry entry = new DatabaseEntry();
             StringBinding.stringToEntry(name, entry);
@@ -921,7 +972,11 @@ public class Store {
             config.setTransactional(storeConfig.getTransactional());
             config.setAllowCreate(!storeConfig.getReadOnly());
             config.setReadOnly(storeConfig.getReadOnly());
-            DbCompat.setDeferredWrite(config, storeConfig.getDeferredWrite());
+            DbCompat.setTypeBtree(config);
+            /* <!-- begin JE only --> */
+            config.setTemporary(storeConfig.getTemporary());
+            config.setDeferredWrite(storeConfig.getDeferredWrite());
+            /* <!-- end JE only --> */
             setBtreeComparator(config, meta.getPrimaryKey().getClassName());
             priConfigMap.put(clsName, config);
         }
@@ -939,10 +994,16 @@ public class Store {
         EntityMetadata meta = checkEntityClass(clsName);
         DatabaseConfig dbConfig = getPrimaryConfig(meta);
         if (config.getSortedDuplicates() ||
+            /* <!-- begin JE only --> */
+            config.getTemporary() != dbConfig.getTemporary() ||
+            /* <!-- end JE only --> */
             config.getBtreeComparator() != dbConfig.getBtreeComparator()) {
             throw new IllegalArgumentException
                 ("One of these properties was illegally changed: " +
-                 " SortedDuplicates or BtreeComparator");
+                 " SortedDuplicates, Temporary or BtreeComparator");
+        }
+        if (!DbCompat.isTypeBtree(config)) {
+            throw new IllegalArgumentException("Only type BTREE allowed");
         }
         priConfigMap.put(clsName, config);
     }
@@ -972,8 +1033,11 @@ public class Store {
             config.setTransactional(priConfig.getTransactional());
             config.setAllowCreate(!priConfig.getReadOnly());
             config.setReadOnly(priConfig.getReadOnly());
-            DbCompat.setDeferredWrite
-                (config, DbCompat.getDeferredWrite(priConfig));
+            DbCompat.setTypeBtree(config);
+            /* <!-- begin JE only --> */
+            config.setTemporary(priConfig.getTemporary());
+            config.setDeferredWrite(priConfig.getDeferredWrite());
+            /* <!-- end JE only --> */
             /* Set secondary properties based on metadata. */
             config.setAllowPopulate(true);
             Relationship rel = secKeyMeta.getRelationship();
@@ -1032,6 +1096,9 @@ public class Store {
         if (config.getSortedDuplicates() != dbConfig.getSortedDuplicates() ||
             config.getBtreeComparator() != dbConfig.getBtreeComparator() ||
             config.getDuplicateComparator() != null ||
+            /* <!-- begin JE only --> */
+            config.getTemporary() != dbConfig.getTemporary() ||
+            /* <!-- end JE only --> */
             config.getAllowPopulate() != dbConfig.getAllowPopulate() ||
             config.getKeyCreator() != dbConfig.getKeyCreator() ||
             config.getMultiKeyCreator() != dbConfig.getMultiKeyCreator() ||
@@ -1045,9 +1112,12 @@ public class Store {
             throw new IllegalArgumentException
                 ("One of these properties was illegally changed: " +
                  " SortedDuplicates, BtreeComparator, DuplicateComparator," +
-                 " AllowPopulate, KeyCreator, MultiKeyCreator," +
+                 " Temporary, AllowPopulate, KeyCreator, MultiKeyCreator," +
                  " ForeignKeyNullifer, ForeignMultiKeyNullifier," +
                  " ForeignKeyDeleteAction, ForeignKeyDatabase");
+        }
+        if (!DbCompat.isTypeBtree(config)) {
+            throw new IllegalArgumentException("Only type BTREE allowed");
         }
         secConfigMap.put(secName, config);
     }
@@ -1064,6 +1134,37 @@ public class Store {
                                 String entityClsName,
                                 String keyName) {
         return storePrefix + makeSecName(entityClsName, keyName);
+    }
+
+    /**
+     * Parses a whole DB name and returns an array of 2 strings where element 0
+     * is the file name (always null for JE, always non-null for DB core) and
+     * element 1 is the logical DB name (always non-null for JE, may be null
+     * for DB core).
+     */
+    public String[] parseDbName(String wholeName) {
+        return parseDbName(wholeName, storeConfig.getDatabaseNamer());
+    }
+
+    /**
+     * Allows passing a namer to a static method for testing.
+     */
+    public static String[] parseDbName(String wholeName, DatabaseNamer namer) {
+        String[] result = new String[2];
+        if (DbCompat.SEPARATE_DATABASE_FILES) {
+            String[] splitName = wholeName.split(NAME_SEPARATOR);
+            assert splitName.length == 3 || splitName.length == 4 : wholeName;
+            assert splitName[0].equals("persist") : wholeName;
+            String storeName = splitName[1];
+            String clsName = splitName[2];
+            String keyName = (splitName.length > 3) ? splitName[3] : null;
+            result[0] = namer.getFileName(storeName, clsName, keyName);
+            result[1] = null;
+        } else {
+            result[0] = null;
+            result[1] = wholeName;
+        }
+        return result;
     }
 
     private void checkOpen() {
@@ -1120,7 +1221,7 @@ public class Store {
                 if (compositeKeyFields != null) {
                     Class keyClass = SimpleCatalog.keyClassForName(clsName);
                     if (Comparable.class.isAssignableFrom(keyClass)) {
-                        Comparator<Object> cmp = new PersistComparator
+                        Comparator<byte[]> cmp = new PersistComparator
                             (clsName, compositeKeyFields,
                              getKeyBinding(clsName));
                         config.setBtreeComparator(cmp);
@@ -1184,6 +1285,9 @@ public class Store {
                              EvolveListener listener)
         throws DatabaseException {
 
+        /* We may make this configurable later. */
+        final int WRITES_PER_TXN = 1;
+
         Class entityClass = format.getType();
         String entityClassName = format.getClassName();
         EntityMetadata meta = model.getEntityMetadata(entityClassName);
@@ -1199,52 +1303,60 @@ public class Store {
         DatabaseEntry key = new DatabaseEntry();
         DatabaseEntry data = new DatabaseEntry();
 
-        Cursor readCursor = db.openCursor(null, CursorConfig.READ_UNCOMMITTED);
+        CursorConfig cursorConfig = null;
+        Transaction txn = null;
+        if (dbConfig.getTransactional()) {
+            txn = env.beginTransaction(null, null);
+            cursorConfig = CursorConfig.READ_COMMITTED;
+        }
+
+        Cursor cursor = null;
+        int nWritten = 0;
         try {
-            while (readCursor.getNext(key, data, null) ==
-                   OperationStatus.SUCCESS) {
+            cursor = db.openCursor(txn, cursorConfig);
+            OperationStatus status = cursor.getFirst(key, data, null);
+            while (status == OperationStatus.SUCCESS) {
+                boolean oneWritten = false;
                 if (evolveNeeded(key, data, binding)) {
-                    Transaction txn = null;
-                    if (dbConfig.getTransactional()) {
-                        boolean success = false;
-                        txn = env.beginTransaction(null, null);
+                    cursor.putCurrent(data);
+                    oneWritten = true;
+                    nWritten += 1;
+                }
+                if (listener != null) {
+                    EvolveInternal.updateEvent
+                        (event, entityClassName, 1, oneWritten ? 1 : 0);
+                    if (!listener.evolveProgress(event)) {
+                        break;
                     }
-                    boolean written = false;
-                    Cursor writeCursor = null;
-                    try {
-                        writeCursor = db.openCursor(txn, null);
-                        if (writeCursor.getSearchKey
-                                (key, data, LockMode.RMW) ==
-                                OperationStatus.SUCCESS) {
-                            if (evolveNeeded(key, data, binding)) {
-                                writeCursor.putCurrent(data);
-                                written = true;
-                            }
-                            if (listener != null) {
-                                EvolveInternal.updateEvent
-                                    (event, entityClassName, 1,
-                                     written ? 1 : 0);
-                                if (!listener.evolveProgress(event)) {
-                                    break;
-                                }
-                            }
-                        }
-                    } finally {
-                        if (writeCursor != null) {
-                            writeCursor.close();
-                        }
-                        if (txn != null) {
-                            if (written) {
-                                txn.commit();
-                            } else {
-                                txn.abort();
-                            }
-                        }
+                }
+                if (txn != null && nWritten >= WRITES_PER_TXN) {
+                    cursor.close();
+                    cursor = null;
+                    txn.commit();
+                    txn = null;
+                    txn = env.beginTransaction(null, null);
+                    cursor = db.openCursor(txn, cursorConfig);
+                    DatabaseEntry saveKey = KeyRange.copy(key);
+                    status = cursor.getSearchKeyRange(key, data, null);
+                    if (status == OperationStatus.SUCCESS &&
+                        KeyRange.equalBytes(key, saveKey)) {
+                        status = cursor.getNext(key, data, null);
                     }
+                } else {
+                    status = cursor.getNext(key, data, null);
                 }
             }
         } finally {
-            readCursor.close();
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (txn != null) {
+                if (nWritten > 0) {
+                    txn.commit();
+                } else {
+                    txn.abort();
+                }
+            }
         }
     }
 

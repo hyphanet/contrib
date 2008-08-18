@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbScavengerTest.java,v 1.16.2.2 2007/11/20 13:32:51 cwl Exp $
+ * $Id: DbScavengerTest.java,v 1.21 2008/05/22 19:35:40 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -39,7 +39,6 @@ import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.utilint.DbLsn;
-import com.sleepycat.je.utilint.DbScavenger;
 
 public class DbScavengerTest extends TestCase {
 
@@ -339,7 +338,7 @@ public class DbScavengerTest extends TestCase {
 	    (!abortBefore && !abortAfter);
 
 	Map[] dataMaps = new Map[N_DBS];
-	Set lsnsToCorrupt = new HashSet();
+	Set<Long> lsnsToCorrupt = new HashSet<Long>();
 	/* Create the environment and some data. */
 	createEnvAndDbs(dataMaps,
 			writeMultiple,
@@ -405,7 +404,7 @@ public class DbScavengerTest extends TestCase {
 				 boolean abortBefore,
 				 boolean abortAfter,
 				 boolean corruptLog,
-				 Set lsnsToCorrupt,
+				 Set<Long> lsnsToCorrupt,
 				 boolean deleteData)
 	throws DatabaseException {
 
@@ -423,7 +422,7 @@ public class DbScavengerTest extends TestCase {
 
 	long lastCorruptedFile = -1;
 	for (int dbCnt = 0; dbCnt < N_DBS; dbCnt++) {
-	    Map dataMap = new HashMap();
+	    Map<Integer, String> dataMap = new HashMap<Integer, String>();
 	    dataMaps[dbCnt] = dataMap;
 	    Database db = dbs[dbCnt];
 
@@ -521,7 +520,7 @@ public class DbScavengerTest extends TestCase {
 
 	try {
 	    DbScavenger scavenger =
-                new DbScavenger(env, null, envHomeName, printable, aggressive,
+                new DbScavenger(env, envHomeName, printable, aggressive,
                                 false /* verbose */);
 	    scavenger.dump();
 	} catch (IOException IOE) {
@@ -597,7 +596,7 @@ public class DbScavengerTest extends TestCase {
 	    StringTokenizer tokenizer = new StringTokenizer(name, ".");
 	    /* There should be two parts. */
 	    if (tokenizer.countTokens() == 2) {
-		String fileName = tokenizer.nextToken();
+		tokenizer.nextToken();
 		String fileSuffix = tokenizer.nextToken();
 
 		/* Check the length and the suffix. */
@@ -617,12 +616,12 @@ public class DbScavengerTest extends TestCase {
 	    getFileManager().getLastUsedLsn();
     }
 
-    private void corruptFiles(Set lsnsToCorrupt)
+    private void corruptFiles(Set<Long> lsnsToCorrupt)
 	throws DatabaseException {
 
-	Iterator iter = lsnsToCorrupt.iterator();
+	Iterator<Long> iter = lsnsToCorrupt.iterator();
 	while (iter.hasNext()) {
-	    long lsn = ((Long) iter.next()).longValue();
+	    long lsn = iter.next().longValue();
 	    corruptFile(DbLsn.getFileNumber(lsn),
 			DbLsn.getFileOffset(lsn));
 	}

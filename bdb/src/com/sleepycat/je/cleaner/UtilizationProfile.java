@@ -1,18 +1,20 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: UtilizationProfile.java,v 1.52.2.9 2007/11/20 13:32:27 cwl Exp $
+ * $Id: UtilizationProfile.java,v 1.84 2008/05/15 01:52:40 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -20,10 +22,12 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
+import com.sleepycat.je.EnvironmentMutableConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.TransactionConfig;
 import com.sleepycat.je.config.EnvironmentParams;
@@ -36,16 +40,19 @@ import com.sleepycat.je.dbi.EnvConfigObserver;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.dbi.CursorImpl.SearchMode;
-import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.log.LogManager;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.LNLogEntry;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.FileSummaryLN;
+import com.sleepycat.je.tree.MapLN;
 import com.sleepycat.je.tree.Tree;
 import com.sleepycat.je.tree.TreeLocation;
-import com.sleepycat.je.txn.AutoTxn;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.LockType;
 import com.sleepycat.je.txn.Locker;
+import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
@@ -91,11 +98,11 @@ public class UtilizationProfile implements EnvConfigObserver {
      */
     private EnvironmentImpl env;
     private UtilizationTracker tracker;
-    private DatabaseImpl fileSummaryDb; // stored fileNum -> FileSummary
-    private SortedMap fileSummaryMap;   // cached fileNum -> FileSummary
+    private DatabaseImpl fileSummaryDb;
+    private SortedMap<Long,FileSummary> fileSummaryMap;
     private boolean cachePopulated;
     private boolean rmwFixEnabled;
-    private long totalLogSize;
+    private FilesToMigrate filesToMigrate;
 
     /**
      * Minimum overall utilization threshold that triggers cleaning.  Is
@@ -118,13 +125,6 @@ public class UtilizationProfile implements EnvConfigObserver {
     int minAge;
 
     /**
-     * An array of pairs of file numbers, where each pair is a range of files
-     * to be force cleaned.  Index i is the from value and i+1 is the to value,
-     * both inclusive.
-     */
-    private long[] forceCleanFiles;
-
-    /**
      * Creates an empty UP.
      */
     public UtilizationProfile(EnvironmentImpl env,
@@ -133,22 +133,22 @@ public class UtilizationProfile implements EnvConfigObserver {
 
         this.env = env;
         this.tracker = tracker;
-        fileSummaryMap = new TreeMap();
+        fileSummaryMap = new TreeMap<Long,FileSummary>();
+        filesToMigrate = new FilesToMigrate();
 
         rmwFixEnabled = env.getConfigManager().getBoolean
             (EnvironmentParams.CLEANER_RMW_FIX);
-        parseForceCleanFiles(env.getConfigManager().get
-            (EnvironmentParams.CLEANER_FORCE_CLEAN_FILES));
 
         /* Initialize mutable properties and register for notifications. */
-        envConfigUpdate(env.getConfigManager());
+        envConfigUpdate(env.getConfigManager(), null);
         env.addConfigObserver(this);
     }
 
     /**
      * Process notifications of mutable property changes.
      */
-    public void envConfigUpdate(DbConfigManager cm)
+    public void envConfigUpdate(DbConfigManager cm,
+				EnvironmentMutableConfig ignore)
         throws DatabaseException {
 
         minAge = cm.getInt(EnvironmentParams.CLEANER_MIN_AGE);
@@ -171,8 +171,6 @@ public class UtilizationProfile implements EnvConfigObserver {
     synchronized int getNumberOfFiles()
         throws DatabaseException {
 
-        assert cachePopulated;
-
         return fileSummaryMap.size();
     }
 
@@ -181,8 +179,13 @@ public class UtilizationProfile implements EnvConfigObserver {
      */
     long getTotalLogSize() {
 
-        /* Start with the size known to the profile. */
-        long size = totalLogSize;
+        /* Start with the size from the profile. */
+        long size = 0;
+        synchronized (this) {
+            for (FileSummary summary : fileSummaryMap.values()) {
+                size += summary.totalSize;
+            }
+        }
 
         /*
          * Add sizes that are known to the tracker but are not yet in the
@@ -191,9 +194,8 @@ public class UtilizationProfile implements EnvConfigObserver {
          * will have a delta, but previous files may also not have been added
          * to the profile yet.
          */
-        TrackedFileSummary[] trackedFiles = tracker.getTrackedFiles();
-        for (int i = 0; i < trackedFiles.length; i += 1) {
-            size += trackedFiles[i].totalSize;
+        for (TrackedFileSummary summary : tracker.getTrackedFiles()) {
+            size += summary.totalSize;
         }
 
         return size;
@@ -204,11 +206,11 @@ public class UtilizationProfile implements EnvConfigObserver {
      * method is used to select the first file to be cleaned in the batch of
      * to-be-cleaned files.
      */
-    synchronized Long getCheapestFileToClean(SortedSet files)
+    synchronized Long getCheapestFileToClean(SortedSet<Long> files)
         throws DatabaseException {
 
         if (files.size() == 1) {
-            return (Long) files.first();
+            return files.first();
         }
 
         assert cachePopulated;
@@ -216,8 +218,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         Long bestFile = null;
         int bestCost = Integer.MAX_VALUE;
 
-        for (Iterator iter = files.iterator(); iter.hasNext();) {
-            Long file = (Long) iter.next();
+        for (Iterator<Long> iter = files.iterator(); iter.hasNext();) {
+            Long file = iter.next();
 
             /*
              * Ignore files in the given set that are not in the profile.  This
@@ -257,7 +259,8 @@ public class UtilizationProfile implements EnvConfigObserver {
      */
     synchronized Long getBestFileForCleaning(FileSelector fileSelector,
                                              boolean forceCleaning,
-                                             Set lowUtilizationFiles)
+                                             Set<Long> lowUtilizationFiles,
+                                             boolean isBacklog)
         throws DatabaseException {
 
         /* Start with an empty set.*/
@@ -267,35 +270,83 @@ public class UtilizationProfile implements EnvConfigObserver {
 
         assert cachePopulated;
 
+        /*
+         * Get all file summaries including tracked files.  Tracked files may
+         * be ready for cleaning if there is a large cache and many files have
+         * not yet been flushed and do not yet appear in the profile map.
+         */
+        SortedMap<Long,FileSummary> currentFileSummaryMap =
+            getFileSummaryMap(true /*includeTrackedFiles*/);
+
         /* Paranoia.  There should always be 1 file. */
-        if (fileSummaryMap.size() == 0) {
+        if (currentFileSummaryMap.size() == 0) {
             return null;
         }
 
-        /* Use local variables for mutable properties. */
+        /*
+         * Use local variables for mutable properties.  Using values that are
+         * changing during a single file selection pass would not produce a
+         * well defined result.
+         */
         final int useMinUtilization = minUtilization;
         final int useMinFileUtilization = minFileUtilization;
         final int useMinAge = minAge;
 
-        /* There must have been at least one checkpoint previously. */
-        long firstActiveLsn = env.getCheckpointer().getFirstActiveLsn();
-        if (firstActiveLsn == DbLsn.NULL_LSN) {
-            return null;
+        /*
+         * Cleaning must refrain from rearranging the portion of log processed
+         * as recovery time. Do not clean a file greater or equal to the first
+         * active file used in recovery, which is either the last log file or
+         * the file of the first active LSN in an active transaction, whichever
+         * is earlier.
+         *
+         * TxnManager.getFirstActiveLsn() (firstActiveTxnLsn below) is
+         * guaranteed to be earlier or equal to the first active LSN of the
+         * checkpoint that will be performed before deleting the selected log
+         * file. By selecting a file prior to this point we ensure that will
+         * not clean any entry that may be replayed by recovery.
+         *
+         * For example:
+         * 200 ckptA start, determines that ckpt's firstActiveLsn = 100
+         * 400 ckptA end
+         * 600 ckptB start, determines that ckpt's firstActiveLsn = 300
+         * 800 ckptB end
+         *
+         * Any cleaning that executes before ckpt A start will be constrained
+         * to files <= lsn 100, because it will have checked the TxnManager.
+         * If cleaning executes after ckptA start, it may indeed clean after
+         * ckptA's firstActiveLsn, but the cleaning run will wait to ckptB end
+         * to delete files.
+         */
+        long firstActiveFile = currentFileSummaryMap.lastKey().longValue();
+        long firstActiveTxnLsn = env.getTxnManager().getFirstActiveLsn();
+        if (firstActiveTxnLsn != DbLsn.NULL_LSN) {
+            long firstActiveTxnFile = DbLsn.getFileNumber(firstActiveTxnLsn);
+            if (firstActiveFile > firstActiveTxnFile) {
+                firstActiveFile = firstActiveTxnFile;
+            }
         }
 
+        /*
+         * Note that minAge is at least one and may be configured to a higher
+         * value to prevent cleaning recently active files.
+         */
+        long lastFileToClean = firstActiveFile - useMinAge;
+
         /* Calculate totals and find the best file. */
-        Iterator iter = fileSummaryMap.keySet().iterator();
+        Iterator <Map.Entry<Long,FileSummary>> iter =
+            currentFileSummaryMap.entrySet().iterator();
         Long bestFile = null;
         int bestUtilization = 101;
         long totalSize = 0;
         long totalObsoleteSize = 0;
 
         while (iter.hasNext()) {
-            Long file = (Long) iter.next();
+            Map.Entry<Long,FileSummary> entry = iter.next();
+            Long file = entry.getKey();
             long fileNum = file.longValue();
 
             /* Calculate this file's utilization. */
-            FileSummary summary = getFileSummary(file);
+            FileSummary summary = entry.getValue();
             int obsoleteSize = summary.getObsoleteSize();
 
             /*
@@ -315,8 +366,8 @@ public class UtilizationProfile implements EnvConfigObserver {
             totalSize += summary.totalSize;
             totalObsoleteSize += obsoleteSize;
 
-            /* If the file is too young to be cleaned, skip it. */
-            if (DbLsn.getFileNumber(firstActiveLsn) - fileNum < useMinAge) {
+            /* Skip files that are too young to be cleaned. */
+            if (fileNum > lastFileToClean) {
                 continue;
             }
 
@@ -335,13 +386,20 @@ public class UtilizationProfile implements EnvConfigObserver {
         }
 
         /*
-         * Return the best file if we are under the minimum utilization or
-         * we're cleaning aggressively.
+         * The first priority is to clean the log up to the minimum utilization
+         * level, so if we're below the minimum (or an individual file is below
+         * the minimum for any file), then we clean the lowest utilization
+         * (best) file.  Otherwise, if there are more files to migrate, we
+         * clean the next file to be migrated.  Otherwise, if cleaning is
+         * forced (for unit testing), we clean the lowest utilization file.
          */
         int totalUtilization = utilization(totalObsoleteSize, totalSize);
-        if (forceCleaning ||
-            totalUtilization < useMinUtilization ||
+        if (totalUtilization < useMinUtilization ||
             bestUtilization < useMinFileUtilization) {
+            return bestFile;
+        } else if (!isBacklog && filesToMigrate.hasNext()) {
+            return filesToMigrate.next();
+        } else if (forceCleaning) {
             return bestFile;
         } else {
             return null;
@@ -371,7 +429,9 @@ public class UtilizationProfile implements EnvConfigObserver {
     private int estimateUPObsoleteSize(FileSummary summary) {
 
         /* Disabled for now; needs more testing. */
-        if (true) return 0;
+        if (true) {
+            return 0;
+        }
 
         /*
          * FileSummaryLN overhead:
@@ -400,16 +460,15 @@ public class UtilizationProfile implements EnvConfigObserver {
     /**
      * Gets the base summary from the cached map.  Add the tracked summary, if
      * one exists, to the base summary.  Sets all entries obsolete, if the file
-     * is in the forceCleanFiles set.
+     * is in the migrateFiles set.
      */
     private synchronized FileSummary getFileSummary(Long file) {
 
         /* Get base summary. */
-        FileSummary summary = (FileSummary) fileSummaryMap.get(file);
-        long fileNum = file.longValue();
+        FileSummary summary = fileSummaryMap.get(file);
 
         /* Add tracked summary */
-        TrackedFileSummary trackedSummary = tracker.getTrackedFile(fileNum);
+        TrackedFileSummary trackedSummary = tracker.getTrackedFile(file);
         if (trackedSummary != null) {
             FileSummary totals = new FileSummary();
             totals.add(summary);
@@ -417,117 +476,31 @@ public class UtilizationProfile implements EnvConfigObserver {
             summary = totals;
         }
 
-        /* Set everything obsolete for a file in the forceCleanFiles set. */
-        if (isForceCleanFile(fileNum)) {
-            FileSummary allObsolete = new FileSummary();
-            allObsolete.add(summary);
-            allObsolete.obsoleteLNCount = allObsolete.totalLNCount;
-            allObsolete.obsoleteINCount = allObsolete.totalINCount;
-            summary = allObsolete;
-        }
-
         return summary;
     }
 
     /**
-     * Returns whether the given file is in the forceCleanFiles set.
+     * Count the given locally tracked info as obsolete and then log the file
+     * and database info..
      */
-    private boolean isForceCleanFile(long file) {
-
-        if (forceCleanFiles != null) {
-            for (int i = 0; i < forceCleanFiles.length; i += 2) {
-                long from = forceCleanFiles[i];
-                long to = forceCleanFiles[i + 1];
-                if (file >= from && file <= to) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Parses the je.cleaner.forceCleanFiles property value.
-     */
-    private void parseForceCleanFiles(String propValue) {
-
-        if (propValue == null || propValue.length() == 0) {
-            forceCleanFiles = null;
-        } else {
-
-            String errPrefix = "Error in " +
-                EnvironmentParams.CLEANER_FORCE_CLEAN_FILES.getName() +
-                "=" + propValue + ": ";
-
-            StringTokenizer tokens = new StringTokenizer
-                (propValue, ",-", true /*returnDelims*/);
-
-            /* Resulting list of Long file numbers. */
-            List list = new ArrayList();
-
-            while (tokens.hasMoreTokens()) {
-
-                /* Get "from" file number. */
-                String fromStr = tokens.nextToken();
-                long fromNum;
-                try {
-                    fromNum = Long.parseLong(fromStr, 16);
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException
-                        (errPrefix + "Invalid hex file number: " + fromStr);
-                }
-
-                long toNum = -1;
-                if (tokens.hasMoreTokens()) {
-
-                    /* Get delimiter. */
-                    String delim = tokens.nextToken();
-                    if (",".equals(delim)) {
-                        toNum = fromNum;
-                    } else if ("-".equals(delim)) {
-
-                        /* Get "to" file number." */
-                        if (tokens.hasMoreTokens()) {
-                            String toStr = tokens.nextToken();
-                            try {
-                                toNum = Long.parseLong(toStr, 16);
-                            } catch (NumberFormatException e) {
-                                throw new IllegalArgumentException
-                                    (errPrefix + "Invalid hex file number: " +
-                                     toStr);
-                            }
-                        } else {
-                            throw new IllegalArgumentException
-                                (errPrefix + "Expected file number: " + delim);
-                        }
-                    } else {
-                        throw new IllegalArgumentException
-                            (errPrefix + "Expected '-' or ',': " + delim);
-                    }
-                } else {
-                    toNum = fromNum;
-                }
-
-                assert toNum != -1;
-                list.add(new Long(fromNum));
-                list.add(new Long(toNum));
-            }
-
-            forceCleanFiles = new long[list.size()];
-            for (int i = 0; i < forceCleanFiles.length; i += 1) {
-                forceCleanFiles[i] = ((Long) list.get(i)).longValue();
-            }
-        }
-    }
-
-    /**
-     * Count the given tracked info as obsolete and then log the summaries.
-     */
-    public void countAndLogSummaries(TrackedFileSummary[] summaries)
+    public void flushLocalTracker(LocalUtilizationTracker localTracker)
         throws DatabaseException {
 
         /* Count tracked info under the log write latch. */
-        env.getLogManager().countObsoleteNodes(summaries);
+        env.getLogManager().transferToUtilizationTracker(localTracker);
+
+        /* Write out the modified file and database info. */
+        flushFileUtilization(localTracker.getTrackedFiles());
+        flushDbUtilization(localTracker);
+    }
+
+    /**
+     * Flush a FileSummaryLN node for each TrackedFileSummary that is currently
+     * active in the given tracker.
+     */
+    public void flushFileUtilization(Collection<TrackedFileSummary>
+                                     activeFiles)
+        throws DatabaseException {
 
         /* Utilization flushing may be disabled for unittests. */
         if (!DbInternal.getCheckpointUP
@@ -536,11 +509,34 @@ public class UtilizationProfile implements EnvConfigObserver {
         }
 
         /* Write out the modified file summaries. */
-        for (int i = 0; i < summaries.length; i += 1) {
-            long fileNum = summaries[i].getFileNumber();
+        for (TrackedFileSummary activeFile : activeFiles) {
+            long fileNum = activeFile.getFileNumber();
             TrackedFileSummary tfs = tracker.getTrackedFile(fileNum);
             if (tfs != null) {
                 flushFileSummary(tfs);
+            }
+        }
+    }
+
+    /**
+     * Flush a MapLN for each database that has dirty utilization in the given
+     * tracker.
+     */
+    private void flushDbUtilization(LocalUtilizationTracker localTracker)
+        throws DatabaseException {
+
+        /* Utilization flushing may be disabled for unittests. */
+        if (!DbInternal.getCheckpointUP
+            (env.getConfigManager().getEnvironmentConfig())) {
+            return;
+        }
+
+        /* Write out the modified MapLNs. */
+        Iterator<Object> dbs = localTracker.getTrackedDbs().iterator();
+        while (dbs.hasNext()) {
+            DatabaseImpl db = (DatabaseImpl) dbs.next();
+            if (!db.isDeleted() && db.isDirtyUtilization()) {
+                env.getDbTree().modifyDbRoot(db);
             }
         }
     }
@@ -551,31 +547,34 @@ public class UtilizationProfile implements EnvConfigObserver {
      * tests.  The returned map's key is a Long file number and its value is a
      * FileSummary.
      */
-    public synchronized SortedMap getFileSummaryMap(boolean includeTrackedFiles)
+    public synchronized SortedMap<Long,FileSummary> getFileSummaryMap(
+                                                boolean includeTrackedFiles)
         throws DatabaseException {
 
         assert cachePopulated;
 
         if (includeTrackedFiles) {
-            TreeMap map = new TreeMap();
-            Iterator iter = fileSummaryMap.keySet().iterator();
-            while (iter.hasNext()) {
-                Long file = (Long) iter.next();
+
+            /*
+             * Copy the fileSummaryMap to a new map, adding in the tracked
+             * summary information for each entry.
+             */
+            TreeMap<Long, FileSummary> map = new TreeMap<Long, FileSummary>();
+            for (Long file : fileSummaryMap.keySet()) {
                 FileSummary summary = getFileSummary(file);
                 map.put(file, summary);
             }
-            TrackedFileSummary[] trackedFiles = tracker.getTrackedFiles();
-            for (int i = 0; i < trackedFiles.length; i += 1) {
-                TrackedFileSummary summary = trackedFiles[i];
-                long fileNum = summary.getFileNumber();
-                Long file = new Long(fileNum);
-                if (!map.containsKey(file)) {
-                    map.put(file, summary);
+
+            /* Add tracked files that are not in fileSummaryMap yet. */
+            for (TrackedFileSummary summary : tracker.getTrackedFiles()) {
+                Long fileNum = Long.valueOf(summary.getFileNumber());
+                if (!map.containsKey(fileNum)) {
+                    map.put(fileNum, summary);
                 }
             }
             return map;
         } else {
-            return new TreeMap(fileSummaryMap);
+            return new TreeMap<Long,FileSummary>(fileSummaryMap);
         }
     }
 
@@ -588,9 +587,9 @@ public class UtilizationProfile implements EnvConfigObserver {
         int memorySize = fileSummaryMap.size() *
             MemoryBudget.UTILIZATION_PROFILE_ENTRY;
         MemoryBudget mb = env.getMemoryBudget();
-        mb.updateMiscMemoryUsage(0 - memorySize);
+        mb.updateAdminMemoryUsage(0 - memorySize);
 
-        fileSummaryMap = new TreeMap();
+        fileSummaryMap = new TreeMap<Long,FileSummary>();
         cachePopulated = false;
     }
 
@@ -598,7 +597,7 @@ public class UtilizationProfile implements EnvConfigObserver {
      * Removes a file from the utilization database and the profile, after it
      * has been deleted by the cleaner.
      */
-    void removeFile(Long fileNum)
+    void removeFile(Long fileNum, Set<DatabaseId> databases)
         throws DatabaseException {
 
         /* Synchronize to update the cache. */
@@ -606,31 +605,105 @@ public class UtilizationProfile implements EnvConfigObserver {
             assert cachePopulated;
 
             /* Remove from the cache. */
-            FileSummary oldSummary =
-                (FileSummary) fileSummaryMap.remove(fileNum);
+            FileSummary oldSummary = fileSummaryMap.remove(fileNum);
             if (oldSummary != null) {
                 MemoryBudget mb = env.getMemoryBudget();
-                mb.updateMiscMemoryUsage
+                mb.updateAdminMemoryUsage
                     (0 - MemoryBudget.UTILIZATION_PROFILE_ENTRY);
-                totalLogSize -= oldSummary.totalSize;
             }
         }
 
         /* Do not synchronize during LN deletion, to permit eviction. */
-        deleteFileSummary(fileNum);
+        deleteFileSummary(fileNum, databases);
     }
 
     /**
-     * For the LN at the cursor position deletes all LNs for the file.  This
-     * method performs eviction and is not synchronized.
+     * Deletes all FileSummaryLNs for the file and updates all MapLNs to remove
+     * the DbFileSummary for the file.  This method performs eviction and is
+     * not synchronized.
      */
-    private void deleteFileSummary(Long fileNum)
+    private void deleteFileSummary(final Long fileNum,
+                                   Set<DatabaseId> databases)
         throws DatabaseException {
 
+        /*
+         * Update the MapLNs before deleting FileSummaryLNs in case there is an
+         * error during this process.  If a FileSummaryLN exists, we will redo
+         * this process during the next recovery (populateCache).
+         */
+        final LogManager logManager = env.getLogManager();
+        final DbTree dbTree = env.getDbTree();
+        /* Only call logMapTreeRoot once for ID and NAME DBs. */
+        DatabaseImpl idDatabase = dbTree.getDb(DbTree.ID_DB_ID);
+        DatabaseImpl nameDatabase = dbTree.getDb(DbTree.NAME_DB_ID);
+        boolean logRoot = false;
+        if (logManager.removeDbFileSummary(idDatabase, fileNum)) {
+            logRoot = true;
+        }
+        if (logManager.removeDbFileSummary(nameDatabase, fileNum)) {
+            logRoot = true;
+        }
+        if (logRoot) {
+            env.logMapTreeRoot();
+        }
+        /* Use DB ID set if available to avoid full scan of ID DB. */
+        if (databases != null) {
+            for (DatabaseId dbId : databases) {
+                if (!dbId.equals(DbTree.ID_DB_ID) &&
+                    !dbId.equals(DbTree.NAME_DB_ID)) {
+                    DatabaseImpl db = dbTree.getDb(dbId);
+                    try {
+                        if (db != null &&
+                            logManager.removeDbFileSummary(db, fileNum)) {
+                            dbTree.modifyDbRoot(db);
+                        }
+                    } finally {
+                        dbTree.releaseDb(db);
+                    }
+                }
+            }
+        } else {
+
+            /*
+             * Use LockType.NONE for traversing the ID DB so that a lock is not
+             * held when calling modifyDbRoot, which must release locks to
+             * handle deadlocks.
+             */
+            CursorImpl.traverseDbWithCursor(idDatabase,
+                                            LockType.NONE,
+                                            true /*allowEviction*/,
+                                            new CursorImpl.WithCursor() {
+                public boolean withCursor(CursorImpl cursor,
+                                          DatabaseEntry key,
+                                          DatabaseEntry data)
+                    throws DatabaseException {
+
+                    MapLN mapLN = (MapLN) cursor.getCurrentLN(LockType.NONE);
+                    if (mapLN != null) {
+                        DatabaseImpl db = mapLN.getDatabase();
+                        if (logManager.removeDbFileSummary(db, fileNum)) {
+
+                            /*
+                             * Because we're using dirty-read, silently do
+                             * nothing if the DB does not exist
+                             * (mustExist=false).
+                             */
+                            dbTree.modifyDbRoot
+                                (db, DbLsn.NULL_LSN /*ifBeforeLsn*/,
+                                 false /*mustExist*/);
+                        }
+                    }
+                    return true;
+                }
+            });
+        }
+
+        /* Now delete all FileSummaryLNs. */
         Locker locker = null;
         CursorImpl cursor = null;
         try {
-            locker = new BasicLocker(env);
+	    locker = BasicLocker.createBasicLocker(env, false /*noWait*/,
+						   true /*noAPIReadLock*/);
             cursor = new CursorImpl(fileSummaryDb, locker);
             /* Perform eviction in unsynchronized methods. */
             cursor.setAllowEviction(true);
@@ -673,11 +746,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                      * have to fetch it again.
                      */
 		    cursor.latchBIN();
-		    try {
-			cursor.delete();
-		    } finally {
-			cursor.releaseBIN();
-		    }
+                    cursor.delete(ReplicationContext.NO_REPLICATE);
                 }
 
                 status = cursor.getNext
@@ -730,10 +799,10 @@ public class UtilizationProfile implements EnvConfigObserver {
         }
 
         long fileNum = tfs.getFileNumber();
-        Long fileNumLong = new Long(fileNum);
+        Long fileNumLong = Long.valueOf(fileNum);
 
         /* Get existing file summary or create an empty one. */
-        FileSummary summary = (FileSummary) fileSummaryMap.get(fileNumLong);
+        FileSummary summary = fileSummaryMap.get(fileNumLong);
         if (summary == null) {
 
             /*
@@ -745,22 +814,17 @@ public class UtilizationProfile implements EnvConfigObserver {
              * that case we should insert a new profile record.
              */
             if (!fileSummaryMap.isEmpty() &&
-                fileNum < ((Long) fileSummaryMap.lastKey()).longValue()) {
-                File file = new File
-                    (env.getFileManager().getFullFileName
-                        (fileNum, FileManager.JE_SUFFIX));
-                if (!file.exists()) {
+                fileNum < fileSummaryMap.lastKey() &&
+                !env.getFileManager().isFileValid(fileNum)) {
 
-                    /*
-                     * File was deleted by the cleaner.  Remove it from the
-                     * UtilizationTracker and return.  Note that a file is
-                     * normally removed from the tracker by
-                     * FileSummaryLN.writeToLog method when it is called via
-                     * insertFileSummary below. [#15512]
-                     */
-                    env.getLogManager().removeTrackedFile(tfs);
-                    return null;
-                }
+                /*
+                 * File was deleted by the cleaner.  Remove it from the
+                 * UtilizationTracker and return.  Note that a file is normally
+                 * removed from the tracker by FileSummaryLN.writeToLog method
+                 * when it is called via insertFileSummary below. [#15512]
+                 */
+                env.getLogManager().removeTrackedFile(tfs);
+                return null;
             }
 
             summary = new FileSummary();
@@ -774,11 +838,10 @@ public class UtilizationProfile implements EnvConfigObserver {
         FileSummary tmp = new FileSummary();
         tmp.add(summary);
         tmp.add(tfs);
-        totalLogSize += tfs.totalSize;
         int sequence = tmp.getEntriesCounted();
 
         /* Insert an LN with the existing and tracked summary info. */
-        FileSummaryLN ln = new FileSummaryLN(summary);
+        FileSummaryLN ln = new FileSummaryLN(env, summary);
         ln.setTrackedSummary(tfs);
         insertFileSummary(ln, fileNum, sequence);
 
@@ -786,7 +849,7 @@ public class UtilizationProfile implements EnvConfigObserver {
         summary = ln.getBaseSummary();
         if (fileSummaryMap.put(fileNumLong, summary) == null) {
             MemoryBudget mb = env.getMemoryBudget();
-            mb.updateMiscMemoryUsage
+            mb.updateAdminMemoryUsage
                 (MemoryBudget.UTILIZATION_PROFILE_ENTRY);
         }
 
@@ -816,7 +879,7 @@ public class UtilizationProfile implements EnvConfigObserver {
         assert cachePopulated;
 
         long fileNumVal = fileNum.longValue();
-        List list = new ArrayList();
+        List<long[]> list = new ArrayList<long[]>();
 
         /*
          * Get an unflushable summary that will remain valid for the duration
@@ -829,7 +892,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         Locker locker = null;
         CursorImpl cursor = null;
         try {
-            locker = new BasicLocker(env);
+	    locker = BasicLocker.createBasicLocker(env, false /*noWait*/,
+						   true /*noAPIReadLock*/);
             cursor = new CursorImpl(fileSummaryDb, locker);
             /* Perform eviction in unsynchronized methods. */
             cursor.setAllowEviction(true);
@@ -893,7 +957,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                     list.add(offsets.toArray());
                 }
             } else {
-                long [] offsetList = tfs.getObsoleteOffsets();
+                long[] offsetList = tfs.getObsoleteOffsets();
                 if (offsetList != null) {
                     list.add(offsetList);
                 }
@@ -903,13 +967,13 @@ public class UtilizationProfile implements EnvConfigObserver {
         /* Merge all offsets into a single array and pack the result. */
         int size = 0;
         for (int i = 0; i < list.size(); i += 1) {
-            long[] a = (long[]) list.get(i);
+            long[] a = list.get(i);
             size += a.length;
         }
         long[] offsets = new long[size];
         int index = 0;
         for (int i = 0; i < list.size(); i += 1) {
-            long[] a = (long[]) list.get(i);
+            long[] a = list.get(i);
             System.arraycopy(a, 0, offsets, index, a.length);
             index += a.length;
         }
@@ -941,8 +1005,6 @@ public class UtilizationProfile implements EnvConfigObserver {
         int oldMemorySize = fileSummaryMap.size() *
             MemoryBudget.UTILIZATION_PROFILE_ENTRY;
 
-        totalLogSize = 0;
-
         /*
          * It is possible to have an undeleted FileSummaryLN in the database
          * for a deleted log file if we crash after deleting a file but before
@@ -954,7 +1016,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         Locker locker = null;
         CursorImpl cursor = null;
         try {
-            locker = new BasicLocker(env);
+	    locker = BasicLocker.createBasicLocker(env, false /*noWait*/,
+						   true /*noAPIReadLock*/);
             cursor = new CursorImpl(fileSummaryDb, locker);
             /* Perform eviction in unsynchronized methods. */
             cursor.setAllowEviction(true);
@@ -999,14 +1062,13 @@ public class UtilizationProfile implements EnvConfigObserver {
                     byte[] keyBytes = keyEntry.getData();
                     boolean isOldVersion = ln.hasStringKey(keyBytes);
                     long fileNum = ln.getFileNumber(keyBytes);
-                    Long fileNumLong = new Long(fileNum);
+                    Long fileNumLong = Long.valueOf(fileNum);
 
                     if (Arrays.binarySearch(existingFiles, fileNumLong) >= 0) {
 
                         /* File exists, cache the FileSummaryLN. */
                         FileSummary summary = ln.getBaseSummary();
                         fileSummaryMap.put(fileNumLong, summary);
-                        totalLogSize += summary.totalSize;
 
                         /*
                          * Update old version records to the new version.  A
@@ -1017,8 +1079,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                         if (isOldVersion && !env.isReadOnly()) {
                             insertFileSummary(ln, fileNum, 0);
                             cursor.latchBIN();
-                            cursor.delete();
-                            cursor.releaseBIN();
+                            cursor.delete(ReplicationContext.NO_REPLICATE);
                         } else {
                             /* Always evict after using a file summary LN. */
                             cursor.evict();
@@ -1034,10 +1095,10 @@ public class UtilizationProfile implements EnvConfigObserver {
                         if (!env.isReadOnly()) {
                             if (isOldVersion) {
                                 cursor.latchBIN();
-                                cursor.delete();
-                                cursor.releaseBIN();
+                                cursor.delete(ReplicationContext.NO_REPLICATE);
                             } else {
-                                deleteFileSummary(fileNumLong);
+                                deleteFileSummary(fileNumLong,
+                                                  null /*databases*/);
                             }
                         }
 
@@ -1083,7 +1144,7 @@ public class UtilizationProfile implements EnvConfigObserver {
             int newMemorySize = fileSummaryMap.size() *
                 MemoryBudget.UTILIZATION_PROFILE_ENTRY;
             MemoryBudget mb = env.getMemoryBudget();
-            mb.updateMiscMemoryUsage(newMemorySize - oldMemorySize);
+            mb.updateAdminMemoryUsage(newMemorySize - oldMemorySize);
         }
 
         cachePopulated = true;
@@ -1143,11 +1204,13 @@ public class UtilizationProfile implements EnvConfigObserver {
         if (fileSummaryDb != null) {
             return true;
         }
-        DbTree dbTree = env.getDbMapTree();
+        DbTree dbTree = env.getDbTree();
         Locker autoTxn = null;
         boolean operationOk = false;
         try {
-            autoTxn = new AutoTxn(env, new TransactionConfig());
+            autoTxn = Txn.createAutoTxn(env, new TransactionConfig(),
+                                        true, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
 
             /*
              * releaseDb is not called after this getDb or createDb because we
@@ -1160,9 +1223,9 @@ public class UtilizationProfile implements EnvConfigObserver {
                 if (env.isReadOnly()) {
                     return false;
                 }
-                db = dbTree.createDb
+                db = dbTree.createInternalDb
                     (autoTxn, DbTree.UTILIZATION_DB_NAME,
-                     new DatabaseConfig(), null);
+                     new DatabaseConfig());
             }
             fileSummaryDb = db;
             operationOk = true;
@@ -1177,7 +1240,7 @@ public class UtilizationProfile implements EnvConfigObserver {
     /**
      * For unit testing.
      */
-    DatabaseImpl getFileSummaryDb() {
+    public DatabaseImpl getFileSummaryDb() {
         return fileSummaryDb;
     }
 
@@ -1195,11 +1258,17 @@ public class UtilizationProfile implements EnvConfigObserver {
         Locker locker = null;
         CursorImpl cursor = null;
         try {
-            locker = new BasicLocker(env);
+	    locker = BasicLocker.createBasicLocker(env, false /*noWait*/,
+						   true /*noAPIReadLock*/);
             cursor = new CursorImpl(fileSummaryDb, locker);
 
             /* Insert the LN. */
-            OperationStatus status = cursor.putLN(keyBytes, ln, false);
+            OperationStatus status = cursor.putLN
+                (keyBytes,
+                 ln,
+                 false, // allowDuplicates
+                 ReplicationContext.NO_REPLICATE);
+
             if (status == OperationStatus.KEYEXIST) {
                 env.getLogger().log
                     (Level.SEVERE,
@@ -1239,7 +1308,8 @@ public class UtilizationProfile implements EnvConfigObserver {
         boolean ok = true;
 
         try {
-            locker = new BasicLocker(env);
+	    locker = BasicLocker.createBasicLocker(env, false /*noWait*/,
+						   true /*noAPIReadLock*/);
             cursor = new CursorImpl(fileSummaryDb, locker);
             cursor.setAllowEviction(true);
 
@@ -1314,7 +1384,7 @@ public class UtilizationProfile implements EnvConfigObserver {
 
         /* Find the owning database. */
         DatabaseId dbId = entry.getDbId();
-        DatabaseImpl db = env.getDbMapTree().getDb(dbId);
+        DatabaseImpl db = env.getDbTree().getDb(dbId);
 
         /*
          * Search down to the bottom most level for the parent of this LN.
@@ -1341,7 +1411,7 @@ public class UtilizationProfile implements EnvConfigObserver {
                  false,  // splitsAllowed
                  true,   // findDeletedEntries
                  false,  // searchDupTree ???
-                 false); // updateGeneration
+                 CacheMode.UNCHANGED);
             bin = location.bin;
             int index = location.index;
 
@@ -1368,9 +1438,238 @@ public class UtilizationProfile implements EnvConfigObserver {
                                " was found in tree.");
             return false;
         } finally {
-            env.getDbMapTree().releaseDb(db);
+            env.getDbTree().releaseDb(db);
             if (bin != null) {
                 bin.releaseLatch();
+            }
+        }
+    }
+
+    /**
+     * Update memory budgets when this profile is closed and will never be
+     * accessed again.
+     */
+    void close() {
+        clearCache();
+        if (fileSummaryDb != null) {
+            fileSummaryDb.releaseTreeAdminMemory();
+        }
+    }
+
+    /**
+     * Iterator over files that should be migrated by cleaning them, even if
+     * they don't need to be cleaned for other reasons.
+     *
+     * Files are migrated either because they are named in the
+     * CLEANER_FORCE_CLEAN_FILES parameter or their log version is prior to the
+     * CLEANER_UPGRADE_TO_LOG_VERSION parameter.
+     *
+     * An iterator is used rather than finding the entire set at startup to
+     * avoid opening a large number of files to examine their log version.  For
+     * example, if all files are being migrated in a very large data set, this
+     * would involve opening a very large number of files in order to read
+     * their header.  This could significantly delay application startup.
+     *
+     * Because we don't have the entire set at startup, we can't select the
+     * lowest utilization file from the set to clean next.  Inteaad we iterate
+     * in file number order to increase the odds of cleaning lower utilization
+     * files first.
+     */
+    private class FilesToMigrate {
+
+        /**
+         * An array of pairs of file numbers, where each pair is a range of
+         * files to be force cleaned.  Index i is the from value and i+1 is the
+         * to value, both inclusive.
+         */
+        private long[] forceCleanFiles;
+
+        /** Log version to upgrade to, or zero if none. */
+        private int upgradeToVersion;
+
+        /** Whether to continue checking the log version. */
+        private boolean checkLogVersion;
+
+        /** Whether hasNext() has prepared a valid nextFile. */
+        private boolean nextAvailable;
+
+        /** File to return; set by hasNext() and returned by next(). */
+        private long nextFile;
+
+        FilesToMigrate()
+            throws DatabaseException {
+
+            String forceCleanProp = env.getConfigManager().get
+                (EnvironmentParams.CLEANER_FORCE_CLEAN_FILES);
+            parseForceCleanFiles(forceCleanProp);
+
+            upgradeToVersion = env.getConfigManager().getInt
+                (EnvironmentParams.CLEANER_UPGRADE_TO_LOG_VERSION);
+            if (upgradeToVersion == -1) {
+                upgradeToVersion = LogEntryType.LOG_VERSION;
+            }
+
+            checkLogVersion = (upgradeToVersion != 0);
+            nextAvailable = false;
+            nextFile = -1;
+        }
+
+        /**
+         * Returns whether there are more files to be migrated.  Must be called
+         * while synchronized on the UtilizationProfile.
+         */
+        boolean hasNext()
+            throws DatabaseException {
+
+            if (nextAvailable) {
+                /* hasNext() has returned true since the last next(). */
+                return true;
+            }
+            long foundFile = -1;
+            for (long file : fileSummaryMap.tailMap(nextFile + 1).keySet()) {
+                if (isForceCleanFile(file)) {
+                    /* Found a file to force clean. */
+                    foundFile = file;
+                    break;
+                } else if (checkLogVersion) {
+                    try {
+                        int logVersion =
+                            env.getFileManager().getFileLogVersion(file);
+                        if (logVersion < upgradeToVersion) {
+                            /* Found a file to migrate. */
+                            foundFile = file;
+                            break;
+                        } else {
+
+                            /*
+                             * All following files have a log version greater
+                             * or equal to this one; stop checking.
+                             */
+                            checkLogVersion = false;
+                        }
+                    } catch (DatabaseException e) {
+                        /* Throw exception but allow iterator to continue. */
+                        nextFile = file;
+                        throw e;
+                    }
+                }
+            }
+            if (foundFile != -1) {
+                nextFile = foundFile;
+                nextAvailable = true;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        /**
+         * Returns the next file file to be migrated.  Must be called while
+         * synchronized on the UtilizationProfile.
+         */
+        long next()
+            throws NoSuchElementException, DatabaseException {
+
+            if (hasNext()) {
+                nextAvailable = false;
+                return nextFile;
+            } else {
+                throw new NoSuchElementException();
+            }
+        }
+
+        /**
+         * Returns whether the given file is in the forceCleanFiles set.
+         */
+        private boolean isForceCleanFile(long file) {
+
+            if (forceCleanFiles != null) {
+                for (int i = 0; i < forceCleanFiles.length; i += 2) {
+                    long from = forceCleanFiles[i];
+                    long to = forceCleanFiles[i + 1];
+                    if (file >= from && file <= to) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Parses the je.cleaner.forceCleanFiles property value and initializes
+         * the forceCleanFiles field.
+         */
+        private void parseForceCleanFiles(String propValue)
+            throws IllegalArgumentException {
+
+            if (propValue == null || propValue.length() == 0) {
+                forceCleanFiles = null;
+            } else {
+                String errPrefix = "Error in " +
+                    EnvironmentParams.CLEANER_FORCE_CLEAN_FILES.getName() +
+                    "=" + propValue + ": ";
+
+                StringTokenizer tokens = new StringTokenizer
+                    (propValue, ",-", true /*returnDelims*/);
+
+                /* Resulting list of Long file numbers. */
+                List<Long> list = new ArrayList<Long>();
+
+                while (tokens.hasMoreTokens()) {
+
+                    /* Get "from" file number. */
+                    String fromStr = tokens.nextToken();
+                    long fromNum;
+                    try {
+                        fromNum = Long.parseLong(fromStr, 16);
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException
+                            (errPrefix + "Invalid hex file number: " +
+                             fromStr);
+                    }
+
+                    long toNum = -1;
+                    if (tokens.hasMoreTokens()) {
+
+                        /* Get delimiter. */
+                        String delim = tokens.nextToken();
+                        if (",".equals(delim)) {
+                            toNum = fromNum;
+                        } else if ("-".equals(delim)) {
+
+                            /* Get "to" file number." */
+                            if (tokens.hasMoreTokens()) {
+                                String toStr = tokens.nextToken();
+                                try {
+                                    toNum = Long.parseLong(toStr, 16);
+                                } catch (NumberFormatException e) {
+                                    throw new IllegalArgumentException
+                                        (errPrefix +
+                                         "Invalid hex file number: " +
+                                         toStr);
+                                }
+                            } else {
+                                throw new IllegalArgumentException
+                                    (errPrefix + "Expected file number: " +
+                                     delim);
+                            }
+                        } else {
+                            throw new IllegalArgumentException
+                                (errPrefix + "Expected '-' or ',': " + delim);
+                        }
+                    } else {
+                        toNum = fromNum;
+                    }
+
+                    assert toNum != -1;
+                    list.add(Long.valueOf(fromNum));
+                    list.add(Long.valueOf(toNum));
+                }
+
+                forceCleanFiles = new long[list.size()];
+                for (int i = 0; i < forceCleanFiles.length; i += 1) {
+                    forceCleanFiles[i] = list.get(i).longValue();
+                }
             }
         }
     }

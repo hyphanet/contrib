@@ -1,10 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007
- *      Oracle Corporation.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: UtilizationFileReader.java,v 1.7.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: UtilizationFileReader.java,v 1.18 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -43,11 +42,14 @@ public class UtilizationFileReader extends FileReader {
 
     private static final boolean DEBUG = true;
 
-    private Map summaries;     // Long file -> FileSummary
-    private Map activeNodes;   // Long node ID -> NodeInfo
-    private Map txns;          // Long txn ID -> List of pairs, where each pair
-                               // is [ExtendedFileSummary, LNLogEntry]
-    private List twoEntryList; // holds one [ExtendedFileSummary, LNLogEntry]
+    private Map<Long,FileSummary> summaries;     // Long file -> FileSummary
+    private Map<Long,NodeInfo> activeNodes;   // Long node ID -> NodeInfo
+    private Map<Long,List<Object>> txns;     // Long txn ID -> List of pairs, 
+                                     // where each pair
+                                     // is [ExtendedFileSummary, LNLogEntry]
+
+    /* holds one [ExtendedFileSummary, LNLogEntry] */
+    private List<Object> twoEntryList;
 
     private UtilizationFileReader(EnvironmentImpl env, int readBufferSize)
         throws IOException, DatabaseException {
@@ -60,36 +62,34 @@ public class UtilizationFileReader extends FileReader {
               DbLsn.NULL_LSN,  // end of file LSN
               DbLsn.NULL_LSN); // finish LSN
 
-        summaries = new HashMap();
-        activeNodes = new HashMap();
-        txns = new HashMap();
+        summaries = new HashMap<Long,FileSummary>();
+        activeNodes = new HashMap<Long,NodeInfo>();
+        txns = new HashMap<Long,List<Object>>();
 
-        twoEntryList = new ArrayList();
+        twoEntryList = new ArrayList<Object>();
         twoEntryList.add(null);
         twoEntryList.add(null);
     }
 
-    protected boolean isTargetEntry(byte logEntryTypeNumber,
-                                    byte logEntryTypeVersion) {
+    protected boolean isTargetEntry() {
         /* UtilizationTracker does not count the file header. */
-        return logEntryTypeNumber != LogEntryType.LOG_FILE_HEADER.getTypeNum();
+        return currentEntryHeader.getType() !=
+               LogEntryType.LOG_FILE_HEADER.getTypeNum();
     }
 
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
         LogEntryType lastEntryType =
-            LogEntryType.findType(currentEntryHeader.getType(),
-                                  currentEntryHeader.getVersion());
+            LogEntryType.findType(currentEntryHeader.getType());
         LogEntry entry = lastEntryType.getNewLogEntry();
-        readEntry(entry, entryBuffer, true); // readFullItem
+        entry.readEntry(currentEntryHeader, entryBuffer, true); // readFullItem
 
-        Long fileNum = new Long(readBufferFileNum);
-        ExtendedFileSummary summary =
-            (ExtendedFileSummary) summaries.get(fileNum);
+        ExtendedFileSummary summary = 
+        	(ExtendedFileSummary) summaries.get(readBufferFileNum);
         if (summary == null) {
             summary = new ExtendedFileSummary();
-            summaries.put(fileNum, summary);
+            summaries.put(readBufferFileNum, summary);
         }
 
         int size = getLastEntrySize();
@@ -109,10 +109,10 @@ public class UtilizationFileReader extends FileReader {
                 }
             }
             if (lastEntryType.isTransactional()) {
-                Long txnId = new Long(lnEntry.getTransactionId());
-                List txnEntries = (List) txns.get(txnId);
+                Long txnId = Long.valueOf(lnEntry.getTransactionId());
+                List<Object> txnEntries = txns.get(txnId);
                 if (txnEntries == null) {
-                    txnEntries = new ArrayList();
+                    txnEntries = new ArrayList<Object>();
                     txns.put(txnId, txnEntries);
                 }
                 txnEntries.add(summary);
@@ -124,7 +124,7 @@ public class UtilizationFileReader extends FileReader {
             }
         } else if (entry instanceof INLogEntry) {
             INLogEntry inEntry = (INLogEntry) entry;
-            Long nodeId = new Long(inEntry.getNodeId());
+            Long nodeId = Long.valueOf(inEntry.getNodeId());
             summary.totalINCount += 1;
             summary.totalINSize += size;
             countObsoleteNode(nodeId);
@@ -140,13 +140,13 @@ public class UtilizationFileReader extends FileReader {
                 deletedNodeId = ((INDupDeleteInfo) item).getDeletedNodeId();
             }
             if (deletedNodeId != -1) {
-                Long nodeId = new Long(deletedNodeId);
+                Long nodeId = Long.valueOf(deletedNodeId);
                 countObsoleteNode(nodeId);
                 activeNodes.remove(nodeId);
             }
             if (item instanceof TxnEnd) {
-                Long txnId = new Long(((TxnEnd) item).getTransactionId());
-                List txnEntries = (List) txns.remove(txnId);
+                Long txnId = Long.valueOf(((TxnEnd) item).getTransactionId());
+                List<Object> txnEntries = txns.remove(txnId);
                 if (txnEntries != null) {
                     applyTxn(txnEntries, item instanceof TxnCommit);
                 }
@@ -156,7 +156,7 @@ public class UtilizationFileReader extends FileReader {
         return true;
     }
 
-    private void applyTxn(List entries, boolean commit) {
+    private void applyTxn(List<Object> entries, boolean commit) {
         for (int i = 0; i < entries.size(); i += 2) {
             ExtendedFileSummary summary = (ExtendedFileSummary) entries.get(i);
             LNLogEntry lnEntry = (LNLogEntry) entries.get(i + 1);
@@ -172,7 +172,7 @@ public class UtilizationFileReader extends FileReader {
             }
 
             if (commit) {
-                Long nodeId = new Long(lnEntry.getNodeId());
+                Long nodeId = Long.valueOf(lnEntry.getNodeId());
                 countObsoleteNode(nodeId);
                 if (ln.isDeleted()) {
                     activeNodes.remove(nodeId);
@@ -186,12 +186,13 @@ public class UtilizationFileReader extends FileReader {
             /* Process Database truncate or remove. */
             if (commit && ln.isDeleted() && ln instanceof MapLN) {
                 int dbId = ((MapLN) ln).getDatabase().getId().getId();
-                Iterator iter = activeNodes.entrySet().iterator();
+                Iterator<Map.Entry<Long,NodeInfo>> iter = 
+                    activeNodes.entrySet().iterator();
                 while (iter.hasNext()) {
-                    Map.Entry iEntry = (Map.Entry) iter.next();
-                    NodeInfo info = (NodeInfo) iEntry.getValue();
+                    Map.Entry<Long,NodeInfo> iEntry = iter.next();
+                    NodeInfo info = iEntry.getValue();
                     if (info.dbId == dbId) {
-                        Long nodeId = (Long) iEntry.getKey();
+                        Long nodeId = iEntry.getKey();
                         countObsoleteNode(nodeId);
                         iter.remove();
                     }
@@ -203,9 +204,9 @@ public class UtilizationFileReader extends FileReader {
     private void finishProcessing() {
 
         /* Apply uncomitted transactions. */
-        Iterator txnIter = txns.values().iterator();
+        Iterator<List<Object>> txnIter = txns.values().iterator();
         while (txnIter.hasNext()) {
-            List txnEntries = (List) txnIter.next();
+            List<Object> txnEntries = txnIter.next();
             applyTxn(txnEntries, false);
         }
     }
@@ -215,7 +216,7 @@ public class UtilizationFileReader extends FileReader {
                                ExtendedFileSummary summary,
                                int dbId,
                                boolean isLN) {
-        NodeInfo info = (NodeInfo) activeNodes.get(nodeId);
+        NodeInfo info = activeNodes.get(nodeId);
         if (info == null) {
             info = new NodeInfo();
             activeNodes.put(nodeId, info);
@@ -227,7 +228,7 @@ public class UtilizationFileReader extends FileReader {
     }
 
     private void countObsoleteNode(Long nodeId) {
-        NodeInfo info = (NodeInfo) activeNodes.get(nodeId);
+        NodeInfo info = activeNodes.get(nodeId);
         if (info != null) {
             ExtendedFileSummary summary = info.summary;
             if (info.isLN) {
@@ -244,7 +245,7 @@ public class UtilizationFileReader extends FileReader {
      * Creates a UtilizationReader, reads the log, and returns the resulting
      * Map of Long file number to FileSummary.
      */
-    public static Map calcFileSummaryMap(EnvironmentImpl env)
+    public static Map<Long,FileSummary> calcFileSummaryMap(EnvironmentImpl env)
         throws IOException, DatabaseException {
 
         int readBufferSize = env.getConfigManager().getInt

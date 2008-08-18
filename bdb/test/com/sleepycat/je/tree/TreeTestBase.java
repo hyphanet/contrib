@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TreeTestBase.java,v 1.53.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: TreeTestBase.java,v 1.59 2008/03/18 01:17:46 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -13,6 +13,7 @@ import java.io.IOException;
 
 import junit.framework.TestCase;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseException;
@@ -22,6 +23,7 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.NullCursor;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.txn.LockResult;
 import com.sleepycat.je.util.TestUtils;
 
@@ -121,7 +123,8 @@ public class TreeTestBase extends TestCase {
 
         TestUtils.checkLatchCount();
         assertTrue(tree.insert(ln, key, false, cursor,
-			       new LockResult(null, null)));
+			       new LockResult(null, null),
+                               ReplicationContext.NO_REPLICATE));
         TestUtils.checkLatchCount();
         assertTrue(retrieveLN(key) == ln);
     }
@@ -133,7 +136,8 @@ public class TreeTestBase extends TestCase {
         throws DatabaseException {
 
         TestUtils.checkLatchCount();
-        IN n = tree.search(key, Tree.SearchType.NORMAL, -1, null, true);
+        IN n = tree.search(key, Tree.SearchType.NORMAL, -1,
+                           null, CacheMode.DEFAULT);
         if (!(n instanceof BIN)) {
             fail("search didn't return a BIN for key: " + key);
         }
@@ -166,7 +170,7 @@ public class TreeTestBase extends TestCase {
         throws DatabaseException {
 
         TestUtils.checkLatchCount();
-        BIN nextBin = (BIN) tree.getFirstNode();
+        BIN nextBin = (BIN) tree.getFirstNode(CacheMode.DEFAULT);
         byte[] prevKey = { 0x00 };
 
         int cnt = 0;
@@ -181,7 +185,9 @@ public class TreeTestBase extends TestCase {
                 cnt++;
                 prevKey = curKey;
             }
-            nextBin = tree.getNextBin(nextBin, false /* traverseWithinDupTree */);
+            nextBin = tree.getNextBin(nextBin,
+                                      false /*traverseWithinDupTree*/,
+                                      CacheMode.DEFAULT);
         }
         TestUtils.checkLatchCount();
         return cnt;
@@ -195,7 +201,7 @@ public class TreeTestBase extends TestCase {
         throws DatabaseException {
 
         TestUtils.checkLatchCount();
-        BIN nextBin = (BIN) tree.getLastNode();
+        BIN nextBin = (BIN) tree.getLastNode(CacheMode.DEFAULT);
         byte[] prevKey = null;
 
         int cnt = 0;
@@ -211,7 +217,9 @@ public class TreeTestBase extends TestCase {
                 cnt++;
                 prevKey = curKey;
             }
-            nextBin = tree.getPrevBin(nextBin, false /* traverseWithinDupTree */);
+            nextBin = tree.getPrevBin(nextBin,
+                                      false /*traverseWithinDupTree*/,
+                                      CacheMode.DEFAULT);
         }
         return cnt;
     }

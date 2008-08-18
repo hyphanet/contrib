@@ -1,18 +1,20 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Node.java,v 1.94.2.2 2007/11/20 13:32:35 cwl Exp $
+ * $Id: Node.java,v 1.107 2008/05/06 18:01:34 linda Exp $
  */
 
 package com.sleepycat.je.tree;
 
 import java.nio.ByteBuffer;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.LocalUtilizationTracker;
 import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.latch.LatchNotHeldException;
 import com.sleepycat.je.log.LogEntryType;
@@ -25,56 +27,32 @@ import com.sleepycat.je.log.Loggable;
  */
 public abstract class Node implements Loggable {
 
-    /*
-     * The last allocated id. Note that nodeids will be shared
-     * across db environments. lastAllocatedId must be initialized at
-     * startup by Recovery.
-     */
-    public synchronized static void setLastNodeId(long id) {
-        if (lastAllocatedId < id) {
-            lastAllocatedId = id;
-        }
-    }
-
-    private static long lastAllocatedId = 0;
-
     private static final String BEGIN_TAG = "<node>";
     private static final String END_TAG = "</node>";
 
-    // The unique id of this node
+    /* The unique id of this node. */
     private long nodeId;
 
     /**
-     * Disallow use
+     * Only for subclasses.
      */
-    private Node() {
+    protected Node() {
     }
 
     /**
      * Create a new node, assigning it the next available node id.
      */
-    protected Node(boolean init) {
-        if (init) {
-            nodeId = getNextNodeId();
+    protected Node(EnvironmentImpl envImpl,
+                   boolean replicated) {
+        if (replicated) {
+            nodeId = envImpl.getNodeSequence().getNextReplicatedNodeId();
+        } else {
+            nodeId = envImpl.getNodeSequence().getNextLocalNodeId();
         }
     }
 
     /**
-     * Increment and return the next usable id. Must be synchronized.
-     */
-    public static synchronized long getNextNodeId() {
-        return ++lastAllocatedId;
-    }
-
-    /**
-     * Get the latest id, for checkpointing.
-     */
-    public static synchronized long getLastId() {
-        return lastAllocatedId;
-    }
-
-    /**
-     * Initialize a node that has been faulted in from the log
+     * Initialize a node that has been faulted in from the log.
      */
     public void postFetchInit(DatabaseImpl db, long sourceLsn)
         throws DatabaseException {
@@ -92,6 +70,11 @@ public abstract class Node implements Loggable {
     }
 
     public void latchShared()
+	throws DatabaseException {
+
+    }
+
+    public void latchShared(CacheMode ignore)
 	throws DatabaseException {
 
     }
@@ -117,18 +100,20 @@ public abstract class Node implements Loggable {
      * Cover for LN's and just return 0 since they'll always be at the bottom
      * of the tree.
      */
-    int getLevel() {
+    public int getLevel() {
 	return 0;
     }
 
     /*
-     * Depth first search through a duplicate tree looking for an LN that
-     * has nodeId.  When we find it, set location.bin and index and return
-     * true.  If we don't find it, return false.
+     * Depth first search through a duplicate tree looking for an LN that has
+     * nodeId.  When we find it, set location.bin and index and return true.
+     * If we don't find it, return false.
      *
      * No latching is performed.
      */
-    boolean matchLNByNodeId(TreeLocation location, long nodeId)
+    boolean matchLNByNodeId(TreeLocation location,
+                            long nodeId,
+                            CacheMode cachemode)
 	throws DatabaseException {
 
 	throw new DatabaseException("matchLNByNodeId called on non DIN/DBIN");
@@ -146,7 +131,8 @@ public abstract class Node implements Loggable {
      * is put there.
      */
     abstract void accountForSubtreeRemoval(INList inList,
-                                           UtilizationTracker tracker)
+                                           LocalUtilizationTracker
+                                           localTracker)
         throws DatabaseException;
 
     /**
@@ -158,7 +144,7 @@ public abstract class Node implements Loggable {
     /**
      * @return true if you're an IN in the search path
      */
-    abstract protected boolean isSoughtNode(long nid, boolean updateGeneration)
+    abstract protected boolean isSoughtNode(long nid, CacheMode cacheMode)
         throws DatabaseException;
 
     /**
@@ -169,11 +155,10 @@ public abstract class Node implements Loggable {
     abstract protected boolean canBeAncestor(boolean targetContainsDuplicates);
 
     /**
-     * Return the approximate size of this node in memory, if this
-     * size should be included in it's parents memory accounting.
-     * For example, all INs return 0, because they are accounted for
-     * individually. LNs must return a count, they're not counted on
-     * the INList.
+     * Return the approximate size of this node in memory, if this size should
+     * be included in it's parents memory accounting.  For example, all INs
+     * return 0, because they are accounted for individually. LNs must return a
+     * count, they're not counted on the INList.
      */
     protected long getMemorySizeIncludedByParent() {
         return 0;
@@ -235,23 +220,23 @@ public abstract class Node implements Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LogUtils.LONG_BYTES;
+        return LogUtils.getPackedLongLogSize(nodeId);
     }
 
     /**
      * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
-        LogUtils.writeLong(logBuffer, nodeId);
+        LogUtils.writePackedLong(logBuffer, nodeId);
     }
 
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
 	throws LogException {
 
-        nodeId = LogUtils.readLong(itemBuffer);
+        nodeId = LogUtils.readLong(itemBuffer, (entryVersion < 6));
     }
 
     /**

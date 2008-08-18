@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbDumpTest.java,v 1.44.2.2 2007/11/20 13:32:51 cwl Exp $
+ * $Id: DbDumpTest.java,v 1.49 2008/05/22 19:35:40 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -117,8 +117,7 @@ public class DbDumpTest extends TestCase {
             /* Check that a dump of the database matches the input file. */
             ByteArrayOutputStream dump2 = new ByteArrayOutputStream();
             DbDump dumper2 = new DbDump(env, "foobar",
-                                        new PrintStream(dump2),
-					null, true);
+                                        new PrintStream(dump2), true);
             dumper2.dump();
             assertEquals(dump2.toString(), dumpInfo.toString());
 
@@ -170,7 +169,7 @@ public class DbDumpTest extends TestCase {
 	PrintStream out = new PrintStream(baos);
         for (int i = 0; i < nDumps; i += 1) {
             DbDump dumper =
-		new DbDump(env, dbName + i, out, null, printable);
+		new DbDump(env, dbName + i, out, printable);
             dumper.dump();
         }
 	byte[] baosba = baos.toByteArray();
@@ -190,7 +189,7 @@ public class DbDumpTest extends TestCase {
         PrintStream out2 = new PrintStream(baos2);
         for (int i = 0; i < nDumps; i += 1) {
             DbDump dumper2 =
-		new DbDump(env, dbName + i, out2, null, printable);
+		new DbDump(env, dbName + i, out2, printable);
             dumper2.dump();
         }
         assertEquals(0, Key.compareKeys(baosba, baos2.toByteArray(), null));
@@ -222,7 +221,7 @@ public class DbDumpTest extends TestCase {
         }
     }
 
-    private void verifyDb(Hashtable dataMap, int dumpIndex)
+    private void verifyDb(Hashtable<String,String> dataMap, int dumpIndex)
 	throws DatabaseException {
 
         DatabaseConfig config = new DatabaseConfig();
@@ -238,7 +237,7 @@ public class DbDumpTest extends TestCase {
 	    String foundKeyString = foundKey.getString();
 	    String foundDataString = foundData.getString();
 	    if (dataMap.get(foundKeyString) != null) {
-		assertTrue(((String) dataMap.get(foundKeyString)).
+                assertTrue((dataMap.get(foundKeyString)).
 			   equals(foundDataString));
 		dataMap.remove(foundKeyString);
 	    } else {
@@ -253,7 +252,7 @@ public class DbDumpTest extends TestCase {
         myDb.close();
     }
 
-    private void doLargePut(Hashtable dataMap, Cursor cursor, int nKeys)
+    private void doLargePut(Hashtable<String, String> dataMap, Cursor cursor, int nKeys)
 	throws DatabaseException {
 
 	for (int i = 0; i < nKeys; i++) {

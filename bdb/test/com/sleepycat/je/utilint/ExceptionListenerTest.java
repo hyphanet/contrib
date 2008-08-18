@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ExceptionListenerTest.java,v 1.5.2.2 2007/11/20 13:32:51 cwl Exp $
+ * $Id: ExceptionListenerTest.java,v 1.11 2008/01/07 14:29:15 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -26,10 +26,9 @@ public class ExceptionListenerTest extends TestCase {
 
     private File envHome;
 
-    private volatile boolean exceptionSeenCalled = false;
+    private volatile boolean exceptionThrownCalled = false;
 
     private DaemonThread dt = null;
-
 
     public ExceptionListenerTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
@@ -55,20 +54,59 @@ public class ExceptionListenerTest extends TestCase {
 	envConfig.setAllowCreate(true);
 	Environment env = new Environment(envHome, envConfig);
 	EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getExceptionListener());
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getCheckpointer().getExceptionListener());
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getINCompressor().getExceptionListener());
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getEvictor().getExceptionListener());
+
 	dt = new MyDaemonThread(0, Environment.CLEANER_NAME, envImpl);
+        dt.setExceptionListener(envImpl.getExceptionListener());
 	dt.stifleExceptionChatter = true;
-	dt.addToQueue(new Object());
 	dt.runOrPause(true);
-	while (!dt.isShutdownRequested()) {
+        long startTime = System.currentTimeMillis();
+	while (!dt.isShutdownRequested() &&
+               System.currentTimeMillis() - startTime < 10 * 1000) {
 	    Thread.yield();
 	}
 	assertTrue("ExceptionListener apparently not called",
-		   exceptionSeenCalled);
+		   exceptionThrownCalled);
+
+	/* Change the exception listener. */
+	envConfig = env.getConfig();
+	exceptionThrownCalled = false;
+	envConfig.setExceptionListener(new MyExceptionListener());
+	env.setMutableConfig(envConfig);
+
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getExceptionListener());
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getCheckpointer().getExceptionListener());
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getINCompressor().getExceptionListener());
+        assertSame(envConfig.getExceptionListener(),
+                   envImpl.getEvictor().getExceptionListener());
+
+	dt = new MyDaemonThread(0, Environment.CLEANER_NAME, envImpl);
+        dt.setExceptionListener(envImpl.getExceptionListener());
+	dt.stifleExceptionChatter = true;
+	dt.runOrPause(true);
+        startTime = System.currentTimeMillis();
+	while (!dt.isShutdownRequested() &&
+               System.currentTimeMillis() - startTime < 10 * 1000) {
+	    Thread.yield();
+	}
+	assertTrue("ExceptionListener apparently not called",
+		   exceptionThrownCalled);
     }
 
     private class MyDaemonThread extends DaemonThread {
-	MyDaemonThread(long waitTime, String name, EnvironmentImpl env) {
-	    super(waitTime, name, env);
+	MyDaemonThread(long waitTime, String name, EnvironmentImpl envImpl) {
+	    super(waitTime, name, envImpl);
 	}
 
 	protected void onWakeup()
@@ -84,7 +122,7 @@ public class ExceptionListenerTest extends TestCase {
 			 Environment.CLEANER_NAME,
                          event.getThreadName());
 	    dt.requestShutdown();
-	    exceptionSeenCalled = true;
+	    exceptionThrownCalled = true;
 	}
     }
 }

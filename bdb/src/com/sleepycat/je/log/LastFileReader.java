@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LastFileReader.java,v 1.48.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: LastFileReader.java,v 1.54 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -30,7 +30,7 @@ import com.sleepycat.je.utilint.Tracer;
 public class LastFileReader extends FileReader {
 
     /* Log entry types to track. */
-    private Set trackableEntries;
+    private Set<LogEntryType> trackableEntries;
 
     private long nextUnprovenOffset;
     private long lastValidOffset;
@@ -40,7 +40,7 @@ public class LastFileReader extends FileReader {
      * Last lsn seen for tracked types. Key = LogEntryType, data is the offset
      * (Long).
      */
-    private Map lastOffsetSeen;
+    private Map<LogEntryType, Long> lastOffsetSeen;
 
     /**
      * This file reader is always positioned at the last file.
@@ -49,11 +49,11 @@ public class LastFileReader extends FileReader {
                           int readBufferSize)
         throws IOException, DatabaseException {
 
-        super(env, readBufferSize, true,  DbLsn.NULL_LSN, new Long(-1),
+        super(env, readBufferSize, true,  DbLsn.NULL_LSN, Long.valueOf(-1),
 	      DbLsn.NULL_LSN, DbLsn.NULL_LSN);
 
-        trackableEntries = new HashSet();
-        lastOffsetSeen = new HashMap();
+        trackableEntries = new HashSet<LogEntryType>();
+        lastOffsetSeen = new HashMap<LogEntryType, Long>();
 
         lastValidOffset = 0;
 	anticipateChecksumErrors = true;
@@ -73,8 +73,8 @@ public class LastFileReader extends FileReader {
         super(env, readBufferSize, true,  DbLsn.NULL_LSN,
               specificFileNumber, DbLsn.NULL_LSN, DbLsn.NULL_LSN);
 
-        trackableEntries = new HashSet();
-        lastOffsetSeen = new HashMap();
+        trackableEntries = new HashSet<LogEntryType>();
+        lastOffsetSeen = new HashMap<LogEntryType, Long>();
 
         lastValidOffset = 0;
 	anticipateChecksumErrors = true;
@@ -206,7 +206,7 @@ public class LastFileReader extends FileReader {
      * @return The last LSN seen in the log for this kind of entry, or null.
      */
     public long getLastSeen(LogEntryType type) {
-        Long typeNumber =(Long) lastOffsetSeen.get(type);
+        Long typeNumber =lastOffsetSeen.get(type);
         if (typeNumber != null) {
             return DbLsn.makeLsn(readBufferFileNum, typeNumber.longValue());
         } else {
@@ -221,13 +221,13 @@ public class LastFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer) {
 
         /* Skip over the data, we're not doing anything with it. */
-        entryBuffer.position(entryBuffer.position() + currentEntryHeader.getItemSize());
+        entryBuffer.position(entryBuffer.position() +
+                             currentEntryHeader.getItemSize());
 
         /* If we're supposed to remember this lsn, record it. */
-        entryType = new LogEntryType(currentEntryHeader.getType(),
-                                     currentEntryHeader.getVersion());
+        entryType = new LogEntryType(currentEntryHeader.getType());
         if (trackableEntries.contains(entryType)) {
-            lastOffsetSeen.put(entryType, new Long(currentEntryOffset));
+            lastOffsetSeen.put(entryType, Long.valueOf(currentEntryOffset));
         }
 
         return true;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JEMonitor.java,v 1.5.2.2 2007/11/20 13:32:30 cwl Exp $
+ * $Id: JEMonitor.java,v 1.10 2008/05/19 17:52:18 linda Exp $
  */
 
 package com.sleepycat.je.jmx;
@@ -107,7 +107,7 @@ public class JEMonitor implements DynamicMBean {
         throws AttributeNotFoundException,
                MBeanException {
 
-    	Object result = null;
+        Object result = null;
         Environment targetEnv = getEnvironmentIfOpen();
         try {
             result =  jeHelper.getAttribute(targetEnv, attributeName);
@@ -143,9 +143,9 @@ public class JEMonitor implements DynamicMBean {
     public AttributeList getAttributes(String[] attributes) {
 
         /* Sanity checking. */
-	if (attributes == null) {
-	    throw new IllegalArgumentException("Attributes cannot be null");
-	}
+        if (attributes == null) {
+            throw new IllegalArgumentException("Attributes cannot be null");
+        }
 
         /* Get each requested attribute. */
         AttributeList results = new AttributeList();
@@ -174,7 +174,7 @@ public class JEMonitor implements DynamicMBean {
                 /* release resources. */
                 closeEnvironment(targetEnv);
             } catch (MBeanException ignore) {
-            	/* ignore */
+                /* ignore */
             }
         }
     }
@@ -185,12 +185,12 @@ public class JEMonitor implements DynamicMBean {
     public AttributeList setAttributes(AttributeList attributes) {
 
         /* Sanity checking. */
-	if (attributes == null) {
-	    throw new IllegalArgumentException("attribute list can't be null");
-	}
+        if (attributes == null) {
+            throw new IllegalArgumentException("attribute list can't be null");
+        }
 
         /* Set each attribute specified. */
-	AttributeList results = new AttributeList();
+        AttributeList results = new AttributeList();
         Environment targetEnv = getEnvironmentIfOpen();
 
         try {
@@ -220,7 +220,7 @@ public class JEMonitor implements DynamicMBean {
                 /* release resources. */
                 closeEnvironment(targetEnv);
             } catch (MBeanException ignore) {
-            	/* ignore */
+                /* ignore */
             }
         }
     }
@@ -251,7 +251,7 @@ public class JEMonitor implements DynamicMBean {
      */
     public MBeanInfo getMBeanInfo() {
 
-	return mbeanInfo;
+        return mbeanInfo;
     }
 
     /**
@@ -294,14 +294,15 @@ public class JEMonitor implements DynamicMBean {
          */
 
         /* Attributes. */
-        List attributeList =  jeHelper.getAttributeList(targetEnv);
-        MBeanAttributeInfo [] attributeInfo =
+        List<MBeanAttributeInfo> attributeList =  
+            jeHelper.getAttributeList(targetEnv);
+        MBeanAttributeInfo[] attributeInfo =
             new MBeanAttributeInfo[attributeList.size()];
         attributeList.toArray(attributeInfo);
 
         /* Constructors. */
-        Constructor [] constructors = this.getClass().getConstructors();
-        MBeanConstructorInfo [] constructorInfo =
+        Constructor[] constructors = this.getClass().getConstructors();
+        MBeanConstructorInfo[] constructorInfo =
             new MBeanConstructorInfo[constructors.length];
         for (int i = 0; i < constructors.length; i++) {
             constructorInfo[i] =
@@ -310,13 +311,14 @@ public class JEMonitor implements DynamicMBean {
         }
 
         /* Operations. */
-        List operationList = jeHelper.getOperationList(targetEnv);
-        MBeanOperationInfo [] operationInfo =
+        List<MBeanOperationInfo> operationList = 
+            jeHelper.getOperationList(targetEnv);
+        MBeanOperationInfo[] operationInfo =
             new MBeanOperationInfo[operationList.size()];
         operationList.toArray(operationInfo);
 
         /* Notifications. */
-        MBeanNotificationInfo [] notificationInfo =
+        MBeanNotificationInfo[] notificationInfo =
             jeHelper.getNotificationInfo(targetEnv);
 
         /* Generate the MBean description. */

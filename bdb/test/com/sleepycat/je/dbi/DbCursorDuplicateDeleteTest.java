@@ -1,15 +1,16 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDuplicateDeleteTest.java,v 1.54.2.4 2007/11/20 13:32:43 cwl Exp $
+ * $Id: DbCursorDuplicateDeleteTest.java,v 1.61 2008/03/25 02:26:37 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
 
 import java.util.Hashtable;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
@@ -42,7 +43,7 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
      * it again.
      */
     public void testSimpleDeleteInsert()
-	throws Throwable {
+	throws Exception {
 
         try {
             initEnv(true);
@@ -74,9 +75,10 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
             dw.walkData();
             assertEquals(simpleKeyStrings.length * simpleKeyStrings.length,
                          dw.nEntries);
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
+            closeEnv();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -585,16 +587,16 @@ public class DbCursorDuplicateDeleteTest extends DbCursorTestBase {
 
 	    BIN bin = null;
 	    try {
-		bin = (BIN) DbInternal.dbGetDatabaseImpl(exampleDb)
-		    .getTree()
-		    .getFirstNode();
+		bin = (BIN) DbInternal.dbGetDatabaseImpl(exampleDb).
+		    getTree().
+		    getFirstNode(CacheMode.DEFAULT);
 		DIN dupRoot = (DIN) bin.fetchTarget(0);
 		bin.releaseLatch();
 		bin = null;
 		dupRoot.latch();
-		bin = (BIN) DbInternal.dbGetDatabaseImpl(exampleDb)
-		    .getTree()
-		    .getFirstNode(dupRoot);
+		bin = (BIN) DbInternal.dbGetDatabaseImpl(exampleDb).
+		    getTree().
+		    getFirstNode(dupRoot, CacheMode.DEFAULT);
 		bin.compress(null, true, null);
 		bin.releaseLatch();
 		bin = null;

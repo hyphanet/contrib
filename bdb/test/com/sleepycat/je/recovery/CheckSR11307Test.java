@@ -1,12 +1,13 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckSR11307Test.java,v 1.14.2.3 2007/11/20 13:32:47 cwl Exp $
+ * $Id: CheckSR11307Test.java,v 1.19 2008/03/18 01:17:45 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
@@ -159,11 +160,9 @@ public class CheckSR11307Test extends CheckBase {
 
 	/* Write out the DelDupLN and DupCountLN. */
 	delete(db, "cfhaa", "yrhwlvlgvq");
-	BIN bin = (BIN) dbImpl.getTree().search("cfhaa".getBytes(),
-						SearchType.NORMAL,
-						-1,
-                                                null,
-                                                true);
+	BIN bin = (BIN) dbImpl.getTree().
+            search("cfhaa".getBytes(), SearchType.NORMAL, -1,
+                   null, CacheMode.DEFAULT);
 	assertNotNull(bin);
 	int idx = bin.findEntry("cfhaa".getBytes(), false, true);
 	DIN din = (DIN) bin.getTarget(idx);

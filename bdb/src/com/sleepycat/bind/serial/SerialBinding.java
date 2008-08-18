@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: SerialBinding.java,v 1.28.2.3 2007/06/13 23:01:40 mark Exp $
+ * $Id: SerialBinding.java,v 1.35 2008/05/27 15:30:32 mark Exp $
  */
 
 package com.sleepycat.bind.serial;
@@ -25,6 +25,8 @@ import com.sleepycat.util.RuntimeExceptionWrapper;
  * <code>Class</code> must implement the <code>Serializable</code>
  * interface.</p>
  *
+ * <p>Stored objects that are serialized using this binding, or a
+ *
  * <p>For key bindings, a tuple binding is usually a better choice than a
  * serial binding.  A tuple binding gives a reasonable sort order, and works
  * with comparators in all cases -- see below.</p>
@@ -37,12 +39,25 @@ import com.sleepycat.util.RuntimeExceptionWrapper;
  * to use a serial binding with a custom comparator will result in a
  * NullPointerException during environment open or close.</p>
  *
+ * <p><a name="evolution"><strong>Class Evolution</strong></a></p>
+ *
+ * <p>{@code SerialBinding} and other classes in this package use standard Java
+ * serialization and all rules of Java serialization apply.  This includes the
+ * rules for class evolution.  Once an instance of a class is stored, the class
+ * must maintain its {@code serialVersionUID} and follow the rules defined in
+ * the Java specification.  To use a new incompatible version of a class, a
+ * different {@link ClassCatalog} must be used or the class catalog database
+ * must be truncated.</p>
+ *
+ * <p>If more advanced class evolution features are required, consider using
+ * the {@link com.sleepycat.persist.evolve Direct Persistence Layer}.</p>
+ *
  * @author Mark Hayes
  */
-public class SerialBinding extends SerialBase implements EntryBinding {
+public class SerialBinding<E> extends SerialBase implements EntryBinding<E> {
 
     private ClassCatalog classCatalog;
-    private Class baseClass;
+    private Class<E> baseClass;
 
     /**
      * Creates a serial binding.
@@ -54,7 +69,7 @@ public class SerialBinding extends SerialBase implements EntryBinding {
      * this binding -- all objects using this binding must be an instance of
      * this class.
      */
-    public SerialBinding(ClassCatalog classCatalog, Class baseClass) {
+    public SerialBinding(ClassCatalog classCatalog, Class<E> baseClass) {
 
         if (classCatalog == null) {
             throw new NullPointerException("classCatalog must be non-null");
@@ -68,7 +83,7 @@ public class SerialBinding extends SerialBase implements EntryBinding {
      *
      * @return the base class for this binding.
      */
-    public final Class getBaseClass() {
+    public final Class<E> getBaseClass() {
 
         return baseClass;
     }
@@ -80,7 +95,7 @@ public class SerialBinding extends SerialBase implements EntryBinding {
      * <code>Thread.currentThread().getContextClassLoader()</code> to use the
      * context class loader for the current thread.
      *
-     * <p>This method may be overriden to return a dynamically determined class
+     * <p>This method may be overridden to return a dynamically determined class
      * loader.  For example, <code>getBaseClass().getClassLoader()</code> could
      * be called to use the class loader for the base class, assuming that a
      * base class has been specified.</p>
@@ -104,7 +119,7 @@ public class SerialBinding extends SerialBase implements EntryBinding {
      *
      * @return the output deserialized object.
      */
-    public Object entryToObject(DatabaseEntry entry) {
+    public E entryToObject(DatabaseEntry entry) {
 
         int length = entry.getSize();
         byte[] hdr = SerialOutput.getStreamHeader();
@@ -119,7 +134,7 @@ public class SerialBinding extends SerialBase implements EntryBinding {
                 new FastInputStream(bufWithHeader, 0, bufWithHeader.length),
                 classCatalog,
                 getClassLoader());
-            return jin.readObject();
+            return (E) jin.readObject();
         } catch (IOException e) {
             throw new RuntimeExceptionWrapper(e);
         } catch (ClassNotFoundException e) {
@@ -144,7 +159,7 @@ public class SerialBinding extends SerialBase implements EntryBinding {
      * @throws IllegalArgumentException if the object is not an instance of the
      * base class for this binding.
      */
-    public void objectToEntry(Object object, DatabaseEntry entry) {
+    public void objectToEntry(E object, DatabaseEntry entry) {
 
         if (baseClass != null && !baseClass.isInstance(object)) {
             throw new IllegalArgumentException(

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbRecover.java,v 1.13.2.2 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DbRecover.java,v 1.17 2008/01/07 14:28:57 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -19,7 +19,7 @@ import com.sleepycat.je.utilint.CmdUtil;
  */
 public class DbRecover {
 
-    public static void main(String [] argv) {
+    public static void main(String[] argv) {
         try {
             int whichArg = 0;
             boolean seenFile = false;

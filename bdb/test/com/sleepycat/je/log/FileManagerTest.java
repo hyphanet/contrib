@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileManagerTest.java,v 1.65.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: FileManagerTest.java,v 1.71 2008/01/07 14:29:09 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -57,7 +57,9 @@ public class FileManagerTest extends TestCase {
         envConfig.setConfigParam
 	    (EnvironmentParams.LOG_FILE_CACHE_SIZE.getName(), "3");
         envConfig.setAllowCreate(true);
-        envImpl = new EnvironmentImpl(envHome, envConfig);
+        envImpl = new EnvironmentImpl(envHome, envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
 
         /* Make a standalone file manager for this test. */
         envImpl.close();
@@ -248,7 +250,7 @@ public class FileManagerTest extends TestCase {
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
 
-        String [] jeFiles = fileManager.listFiles(FileManager.JE_SUFFIXES);
+        String[] jeFiles = fileManager.listFiles(FileManager.JE_SUFFIXES);
 
         assertEquals("Should have two files", 2, jeFiles.length);
 
@@ -293,7 +295,7 @@ public class FileManagerTest extends TestCase {
         throws IOException, DatabaseException {
 
         /* There shouldn't be any files here anymore. */
-        String [] jeFiles = fileManager.listFiles(FileManager.JE_SUFFIXES);
+        String[] jeFiles = fileManager.listFiles(FileManager.JE_SUFFIXES);
         assertTrue(jeFiles.length == 0);
 
         /* No files exist, should get null. */
@@ -318,7 +320,7 @@ public class FileManagerTest extends TestCase {
         throws IOException, DatabaseException {
 
         /* There shouldn't be any files here anymore. */
-        String [] jeFiles = fileManager.listFiles(FileManager.JE_SUFFIXES);
+        String[] jeFiles = fileManager.listFiles(FileManager.JE_SUFFIXES);
         assertTrue(jeFiles.length == 0);
 
         /* No files exist, should get null. */
@@ -394,7 +396,7 @@ public class FileManagerTest extends TestCase {
         /* Now create a file, but mess up the header. */
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
 
-        byte [] badData = new byte[]{1,1};
+        byte[] badData = new byte[]{1,1};
         int headerSize =  FileManager.firstLogEntryOffset();
         RandomAccessFile file0 =
             new RandomAccessFile

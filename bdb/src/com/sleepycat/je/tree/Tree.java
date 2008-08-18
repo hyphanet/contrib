@@ -1,23 +1,24 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Tree.java,v 1.418.2.8 2007/11/20 13:32:35 cwl Exp $
+ * $Id: Tree.java,v 1.456 2008/05/30 14:04:16 mark Exp $
  */
 
 package com.sleepycat.je.tree;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.LocalUtilizationTracker;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.DatabaseImpl;
@@ -28,8 +29,8 @@ import com.sleepycat.je.dbi.INList;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.latch.SharedLatch;
 import com.sleepycat.je.log.LogManager;
-import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.recovery.RecoveryManager;
 import com.sleepycat.je.txn.BasicLocker;
 import com.sleepycat.je.txn.LockGrantType;
@@ -94,7 +95,7 @@ public final class Tree implements Loggable {
 
     private TreeStats treeStats;
 
-    private ThreadLocal treeStatsAccumulatorTL = new ThreadLocal();
+    private ThreadLocal<TreeWalkerStatsAccumulator> treeStatsAccumulatorTL = new ThreadLocal<TreeWalkerStatsAccumulator>();
 
     /*
      * We don't need the stack trace on this so always throw a static and
@@ -150,10 +151,7 @@ public final class Tree implements Loggable {
      * constructor helper
      */
     private void init(DatabaseImpl database) {
-        rootLatch =
-	    LatchSupport.makeSharedLatch
-	    ("RootLatch",
-	     (database != null) ? database.getDbEnvironment() : null);
+        rootLatch = new SharedLatch("RootLatch");
         treeStats = new TreeStats();
         this.root = null;
         this.database = database;
@@ -254,6 +252,7 @@ public final class Tree implements Loggable {
 	}
 
 	/* Caller is responsible for releasing rootLatch. */
+        @Override
 	public Node fetchTarget(DatabaseImpl database, IN in)
 	    throws DatabaseException {
 
@@ -266,22 +265,26 @@ public final class Tree implements Loggable {
 	    return super.fetchTarget(database, in);
 	}
 
+        @Override
 	public void setTarget(Node target) {
 	    assert rootLatch.isWriteLockedByCurrentThread();
 	    super.setTarget(target);
 	}
 
+        @Override
 	public void clearTarget() {
 	    assert rootLatch.isWriteLockedByCurrentThread();
 	    super.clearTarget();
 	}
 
+        @Override
 	public void setLsn(long lsn) {
 	    assert rootLatch.isWriteLockedByCurrentThread();
 	    super.setLsn(lsn);
 	}
 
-	void updateLsnAfterOptionaLog(DatabaseImpl dbImpl, long lsn) {
+        @Override
+	void updateLsnAfterOptionalLog(DatabaseImpl dbImpl, long lsn) {
 	    assert rootLatch.isWriteLockedByCurrentThread();
 	    super.updateLsnAfterOptionalLog(dbImpl, lsn);
 	}
@@ -308,7 +311,7 @@ public final class Tree implements Loggable {
 
     private TreeWalkerStatsAccumulator getTreeStatsAccumulator() {
 	if (EnvironmentImpl.getThreadLocalReferenceCount() > 0) {
-	    return (TreeWalkerStatsAccumulator) treeStatsAccumulatorTL.get();
+	    return treeStatsAccumulatorTL.get();
 	} else {
 	    return null;
 	}
@@ -349,10 +352,10 @@ public final class Tree implements Loggable {
      * have resident cursors. Either will prevent deletion.
      *
      * @param idKey - the identifier key of the node to delete.
-     * @param tracker is used for tracking obsolete node info.
+     * @param localTracker is used for tracking obsolete node info.
      */
     public void delete(byte[] idKey,
-                       UtilizationTracker tracker)
+                       LocalUtilizationTracker localTracker)
         throws DatabaseException,
                NodeNotEmptyException,
                CursorsExistException {
@@ -366,7 +369,7 @@ public final class Tree implements Loggable {
          * IN deletion and cascade the logging up the tree. The latched
          * nodes are kept in order in the nodeLadder.
          */
-        ArrayList nodeLadder = new ArrayList();
+        ArrayList<SplitInfo> nodeLadder = new ArrayList<SplitInfo>();
 
         IN rootIN = null;
         boolean rootNeedsUpdating = false;
@@ -378,7 +381,7 @@ public final class Tree implements Loggable {
             }
 
             rootIN = (IN) root.fetchTarget(database, null);
-            rootIN.latch(false);
+            rootIN.latch(CacheMode.UNCHANGED);
 
             searchDeletableSubTree(rootIN, idKey, nodeLadder);
             if (nodeLadder.size() == 0) {
@@ -414,7 +417,7 @@ public final class Tree implements Loggable {
             } else {
                 /* Detach this subtree. */
                 SplitInfo detachPoint =
-                    (SplitInfo) nodeLadder.get(nodeLadder.size() - 1);
+                    nodeLadder.get(nodeLadder.size() - 1);
                 boolean deleteOk =
                     detachPoint.parent.deleteEntry(detachPoint.index,
                                                    true);
@@ -439,11 +442,12 @@ public final class Tree implements Loggable {
 
             EnvironmentImpl envImpl = database.getDbEnvironment();
             if (rootNeedsUpdating) {
+
                 /*
                  * modifyDbRoot will grab locks and we can't have the INList
                  * latches or root latch held while it tries to acquire locks.
                  */
-                DbTree dbTree = envImpl.getDbMapTree();
+                DbTree dbTree = envImpl.getDbTree();
                 dbTree.optionalModifyDbRoot(database);
                 RecoveryManager.traceRootDeletion(Level.FINE, database);
             }
@@ -454,20 +458,20 @@ public final class Tree implements Loggable {
              * subtree has been detached from the tree.
              */
             INList inList = envImpl.getInMemoryINs();
-            accountForSubtreeRemoval(inList, subtreeRootIN, tracker);
+            accountForSubtreeRemoval(inList, subtreeRootIN, localTracker);
         }
     }
 
-    private void releaseNodeLadderLatches(ArrayList nodeLadder)
+    private void releaseNodeLadderLatches(ArrayList<SplitInfo> nodeLadder)
         throws DatabaseException {
 
         /*
          * Clear any latches left in the node ladder. Release from the
          * bottom up.
          */
-        ListIterator iter = nodeLadder.listIterator(nodeLadder.size());
+        ListIterator<SplitInfo> iter = nodeLadder.listIterator(nodeLadder.size());
         while (iter.hasPrevious()) {
-            SplitInfo info = (SplitInfo) iter.previous();
+            SplitInfo info = iter.previous();
             info.child.releaseLatch();
         }
     }
@@ -484,8 +488,8 @@ public final class Tree implements Loggable {
         IN detachedRootIN = null;
 
         /**
-         * XXX: Suspect that validateSubtree is no longer needed, now that we
-         * hold all latches.
+         * TODO: Suspect that validateSubtree is no longer needed, now that we
+         * hold all latches. Revisit.
          */
         if ((rootIN.getNEntries() <= 1) &&
             (rootIN.validateSubtreeBeforeDelete(0))) {
@@ -540,19 +544,19 @@ public final class Tree implements Loggable {
      * @param index slot occupied by this din tree.
      * @return whether the DB root needs updating.
      */
-    private boolean cascadeUpdates(ArrayList nodeLadder,
+    private boolean cascadeUpdates(ArrayList<SplitInfo> nodeLadder,
                                    BIN binRoot,
                                    int index)
         throws DatabaseException {
 
-        ListIterator iter = nodeLadder.listIterator(nodeLadder.size());
+        ListIterator<SplitInfo> iter = nodeLadder.listIterator(nodeLadder.size());
         EnvironmentImpl envImpl = database.getDbEnvironment();
         LogManager logManager = envImpl.getLogManager();
 
         long newLsn = DbLsn.NULL_LSN;
         SplitInfo info = null;
         while (iter.hasPrevious()) {
-            info = (SplitInfo) iter.previous();
+            info = iter.previous();
 
             if (newLsn != DbLsn.NULL_LSN) {
                 info.parent.updateEntry(info.index, newLsn);
@@ -586,21 +590,21 @@ public final class Tree implements Loggable {
      * find the duplicate path.
      * @param mainKey the key to be used in the main tree to find the
      * duplicate subtree.
-     * @param tracker is used for tracking obsolete node info.
+     * @param localTracker is used for tracking obsolete node info.
      *
      * @return true if the delete succeeded, false if there were still cursors
      * present on the leaf DBIN of the subtree that was located.
      */
     public void deleteDup(byte[] idKey,
                           byte[] mainKey,
-                          UtilizationTracker tracker)
+                          LocalUtilizationTracker localTracker)
         throws DatabaseException,
                NodeNotEmptyException,
                CursorsExistException {
 
         /* Find the BIN that is the parent of this duplicate tree. */
-        IN in = search(mainKey, SearchType.NORMAL, -1, null,
-                       false /*updateGeneration*/);
+        IN in =
+            search(mainKey, SearchType.NORMAL, -1, null, CacheMode.UNCHANGED);
 
         IN deletedSubtreeRoot = null;
         try {
@@ -620,7 +624,7 @@ public final class Tree implements Loggable {
         if (deletedSubtreeRoot != null) {
             EnvironmentImpl envImpl = database.getDbEnvironment();
             accountForSubtreeRemoval(envImpl.getInMemoryINs(),
-                                     deletedSubtreeRoot, tracker);
+                                     deletedSubtreeRoot, localTracker);
         }
     }
 
@@ -637,22 +641,21 @@ public final class Tree implements Loggable {
                CursorsExistException {
 
         EnvironmentImpl envImpl = database.getDbEnvironment();
-	boolean dupCountLNLocked = false;
 	DupCountLN dcl = null;
-        BasicLocker locker = new BasicLocker(envImpl);
+        BasicLocker locker = BasicLocker.createBasicLocker(envImpl);
 
         /*  Latch the DIN root. */
         DIN duplicateRoot = (DIN) bin.fetchTarget(index);
-        duplicateRoot.latch(false);
+        duplicateRoot.latch(CacheMode.UNCHANGED);
 
-        ArrayList nodeLadder = new ArrayList();
+        ArrayList<SplitInfo> nodeLadder = new ArrayList<SplitInfo>();
         IN subtreeRootIN = null;
 
 	try {
 
             /*
              * Read lock the dup count LN to ascertain whether there are any
-             * writers in the tree. XXX: This seems unnecessary now, revisit.
+             * writers in the tree. TODO: This seems unnecessary now, revisit.
              */
             ChildReference dclRef = duplicateRoot.getDupCountLNRef();
             dcl = (DupCountLN) dclRef.fetchTarget(database, duplicateRoot);
@@ -662,8 +665,6 @@ public final class Tree implements Loggable {
                                                            database);
             if (lockResult.getLockGrant() == LockGrantType.DENIED) {
                 throw CursorsExistException.CURSORS_EXIST;
-            } else {
-                dupCountLNLocked = true;
             }
 
             /*
@@ -674,7 +675,6 @@ public final class Tree implements Loggable {
              */
             searchDeletableSubTree(duplicateRoot, idKey, nodeLadder);
 
-
             if (nodeLadder.size() == 0) {
                 /* We're deleting the duplicate root. */
                 if (bin.nCursors() == 0) {
@@ -682,11 +682,10 @@ public final class Tree implements Loggable {
                     assert deleteOk;
 
                     /*
-                     * Use an INDupDeleteInfo to make it clear that
-                     * this duplicate tree has been eradicated. This
-                     * is analagous to deleting a root; we must be sure
-                     * that we can overlay another subtree onto this slot
-                     * at recovery redo.
+                     * Use an INDupDeleteInfo to make it clear that this
+                     * duplicate tree has been eradicated. This is analagous to
+                     * deleting a root; we must be sure that we can overlay
+                     * another subtree onto this slot at recovery redo.
                      */
                     INDupDeleteInfo info =
                         new INDupDeleteInfo(duplicateRoot.getNodeId(),
@@ -713,7 +712,7 @@ public final class Tree implements Loggable {
 
                 /* We're deleting a portion of the duplicate tree. */
                 SplitInfo detachPoint =
-                    (SplitInfo) nodeLadder.get(nodeLadder.size() - 1);
+                    nodeLadder.get(nodeLadder.size() - 1);
                 boolean deleteOk =
                     detachPoint.parent.deleteEntry(detachPoint.index,
                                                    true);
@@ -729,11 +728,7 @@ public final class Tree implements Loggable {
 	} finally {
             releaseNodeLadderLatches(nodeLadder);
 
-	    /* FindBugs -- ignore dcl possibly null warning. */
-	    if (dupCountLNLocked) {
-		locker.releaseLock(dcl.getNodeId());
-	    }
-
+	    locker.operationEnd(true);
 	    duplicateRoot.releaseLatch();
 	}
 
@@ -747,11 +742,11 @@ public final class Tree implements Loggable {
      * @return the leftmost node in the tree, null if the tree is empty.  The
      * returned node is latched and the caller must release it.
      */
-    public IN getFirstNode()
+    public IN getFirstNode(CacheMode cacheMode)
         throws DatabaseException {
 
         return search
-            (null, SearchType.LEFT, -1, null, true /*updateGeneration*/);
+            (null, SearchType.LEFT, -1, null, cacheMode);
     }
 
     /**
@@ -761,11 +756,11 @@ public final class Tree implements Loggable {
      * @return the rightmost node in the tree, null if the tree is empty.  The
      * returned node is latched and the caller must release it.
      */
-    public IN getLastNode()
+    public IN getLastNode(CacheMode cacheMode)
         throws DatabaseException {
 
         return search
-            (null, SearchType.RIGHT, -1, null, true /*updateGeneration*/);
+            (null, SearchType.RIGHT, -1, null, cacheMode);
     }
 
     /**
@@ -774,7 +769,7 @@ public final class Tree implements Loggable {
      * @return the leftmost node in the tree, null if the tree is empty.  The
      * returned node is latched and the caller must release it.
      */
-    public DBIN getFirstNode(DIN dupRoot)
+    public DBIN getFirstNode(DIN dupRoot, CacheMode cacheMode)
         throws DatabaseException {
 
         if (dupRoot == null) {
@@ -785,8 +780,7 @@ public final class Tree implements Loggable {
         assert dupRoot.isLatchOwnerForWrite();
 
         IN ret = searchSubTree
-            (dupRoot, null, SearchType.LEFT, -1, null,
-             true /*updateGeneration*/);
+            (dupRoot, null, SearchType.LEFT, -1, null, cacheMode);
         return (DBIN) ret;
     }
 
@@ -796,7 +790,7 @@ public final class Tree implements Loggable {
      * @return the rightmost node in the tree, null if the tree is empty.  The
      * returned node is latched and the caller must release it.
      */
-    public DBIN getLastNode(DIN dupRoot)
+    public DBIN getLastNode(DIN dupRoot, CacheMode cacheMode)
         throws DatabaseException {
 
         if (dupRoot == null) {
@@ -807,8 +801,7 @@ public final class Tree implements Loggable {
         assert dupRoot.isLatchOwnerForWrite();
 
         IN ret = searchSubTree
-            (dupRoot, null, SearchType.RIGHT, -1, null,
-             true /*updateGeneration*/);
+            (dupRoot, null, SearchType.RIGHT, -1, null, cacheMode);
         return (DBIN) ret;
     }
 
@@ -817,11 +810,11 @@ public final class Tree implements Loggable {
      */
     public SearchResult getParentINForChildIN(IN child,
 					      boolean requireExactMatch,
-					      boolean updateGeneration)
+					      CacheMode cacheMode)
         throws DatabaseException {
 
         return getParentINForChildIN
-            (child, requireExactMatch, updateGeneration, -1, null);
+            (child, requireExactMatch, cacheMode, -1, null);
     }
 
     /**
@@ -836,9 +829,7 @@ public final class Tree implements Loggable {
      * @param requireExactMatch if true, we must find the exact parent, not a
      * potential parent.
      *
-     * @param updateGeneration if true, set the generation count during
-     * latching.  Pass false when the LRU should not be impacted, such as
-     * during eviction and checkpointing.
+     * @param cacheMode The CacheMode for affecting the hotness of the tree.
      *
      * @param trackingList if not null, add the LSNs of the parents visited
      * along the way, as a debug tracing mechanism. This is meant to stay in
@@ -850,9 +841,9 @@ public final class Tree implements Loggable {
      */
     public SearchResult getParentINForChildIN(IN child,
 					      boolean requireExactMatch,
-					      boolean updateGeneration,
+                                              CacheMode cacheMode,
                                               int targetLevel,
-					      List trackingList)
+					      List<TrackingInfo> trackingList)
         throws DatabaseException {
 
         /* Sanity checks */
@@ -876,7 +867,7 @@ public final class Tree implements Loggable {
                                      mainTreeKey,
                                      dupTreeKey,
                                      requireExactMatch,
-                                     updateGeneration,
+                                     cacheMode,
                                      targetLevel,
                                      trackingList,
                                      true);
@@ -890,9 +881,7 @@ public final class Tree implements Loggable {
      * @param requireExactMatch if true, we must find the exact parent, not a
      * potential parent.
      *
-     * @param updateGeneration if true, set the generation count during
-     * latching.  Pass false when the LRU should not be impacted, such as
-     * during eviction and checkpointing.
+     * @param cacheMode The CacheMode for affecting the hotness of the tree.
      *
      * @param trackingList if not null, add the LSNs of the parents visited
      * along the way, as a debug tracing mechanism. This is meant to stay in
@@ -916,13 +905,15 @@ public final class Tree implements Loggable {
                                               byte[] targetMainTreeKey,
                                               byte[] targetDupTreeKey,
 					      boolean requireExactMatch,
-					      boolean updateGeneration,
+					      CacheMode cacheMode,
                                               int targetLevel,
-					      List trackingList,
+					      List<TrackingInfo> trackingList,
                                               boolean doFetch)
         throws DatabaseException {
 
-        IN rootIN = getRootINLatchedExclusive(updateGeneration);
+        IN rootIN = doFetch ?
+            getRootINLatchedExclusive(cacheMode) :
+            getRootIN(cacheMode);
 
         SearchResult result = new SearchResult();
         if (rootIN != null) {
@@ -951,16 +942,20 @@ public final class Tree implements Loggable {
                                                targetDupTreeKey,
                                                result,
                                                requireExactMatch,
-					       updateGeneration,
+					       cacheMode,
                                                targetLevel,
                                                trackingList,
                                                doFetch);
                     potentialParent = result.parent;
                 }
             } catch (Exception e) {
-                potentialParent.releaseLatchIfOwner();
 
-                throw new DatabaseException(e);
+		/*
+		 * The only thing that can be latched at this point is
+		 * potentialParent.
+		 */
+		potentialParent.releaseLatch();
+		throw new DatabaseException(e);
             }
         }
         return result;
@@ -995,9 +990,7 @@ public final class Tree implements Loggable {
      * a match on the ln's node id should be made (only in the case where
      * dupKey == null).  See SR 8984.
      *
-     * @param updateGeneration if true, set the generation count during
-     * latching.  Pass false when the LRU should not be impacted, such as
-     * during eviction and checkpointing.
+     * @param cacheMode The CacheMode for affecting the hotness of the tree.
      *
      * @return true if node found in tree.
      * If false is returned and there is the possibility that we can insert
@@ -1012,7 +1005,7 @@ public final class Tree implements Loggable {
                                           boolean splitsAllowed,
 					  boolean findDeletedEntries,
 					  boolean searchDupTree,
-                                          boolean updateGeneration)
+                                          CacheMode cacheMode)
         throws DatabaseException {
 
         /*
@@ -1020,26 +1013,13 @@ public final class Tree implements Loggable {
          * ancestor.
          */
         IN searchResult = null;
-        try {
-            if (splitsAllowed) {
-                searchResult = searchSplitsAllowed
-                    (mainKey, -1, updateGeneration);
-            } else {
-                searchResult = search
-                    (mainKey, SearchType.NORMAL, -1, null, updateGeneration);
-            }
-            location.bin = (BIN) searchResult;
-        } catch (Exception e) {
-            /* SR 11360 tracing. */
-            StringBuffer msg = new StringBuffer();
-            if (searchResult != null) {
-                searchResult.releaseLatchIfOwner();
-                msg.append("searchResult=" + searchResult.getClass() +
-                           " nodeId=" + searchResult.getNodeId() +
-                           " nEntries=" + searchResult.getNEntries());
-            }
-            throw new DatabaseException(msg.toString(), e);
-        }
+	if (splitsAllowed) {
+	    searchResult = searchSplitsAllowed(mainKey, -1, cacheMode);
+	} else {
+	    searchResult = search
+		(mainKey, SearchType.NORMAL, -1, null, cacheMode);
+	}
+	location.bin = (BIN) searchResult;
 
 	if (location.bin == null) {
 	    return false;
@@ -1119,19 +1099,19 @@ public final class Tree implements Loggable {
                                      */
 				    return searchDupTreeByNodeId
                                         (location, childNode, ln,
-                                         searchDupTree, updateGeneration);
+                                         searchDupTree, cacheMode);
                                 } else {
                                     return searchDupTreeForDBIN
                                         (location, dupKey, (DIN) childNode,
                                          ln, findDeletedEntries,
                                          indicateIfExact, exactSearch,
-                                         splitsAllowed, updateGeneration);
+                                         splitsAllowed, cacheMode);
                                 }
                             }
                         }
                     } catch (DatabaseException e) {
-                        location.bin.releaseLatchIfOwner();
-                        throw e;
+			location.bin.releaseLatchIfOwner();
+			throw e;
                     }
                 }
             }
@@ -1146,28 +1126,27 @@ public final class Tree implements Loggable {
     }
 
     /**
-     * For SR [#8984]: our prospective child is a deleted LN, and
-     * we're facing a dup tree. Alas, the deleted LN has no data, and
-     * therefore nothing to guide the search in the dup tree. Instead,
-     * we search by node id.  This is very expensive, but this
-     * situation is a very rare case.
+     * For SR [#8984]: our prospective child is a deleted LN, and we're facing
+     * a dup tree. Alas, the deleted LN has no data, and therefore nothing to
+     * guide the search in the dup tree. Instead, we search by node id.  This
+     * is very expensive, but this situation is a very rare case.
      */
     private boolean searchDupTreeByNodeId(TreeLocation location,
                                           Node childNode,
                                           LN ln,
                                           boolean searchDupTree,
-                                          boolean updateGeneration)
+                                          CacheMode cacheMode)
         throws DatabaseException {
 
         if (searchDupTree) {
             BIN oldBIN = location.bin;
             if (childNode.matchLNByNodeId
-                (location, ln.getNodeId())) {
+                (location, ln.getNodeId(), cacheMode)) {
                 location.index &= ~IN.EXACT_MATCH;
                 if (oldBIN != null) {
                     oldBIN.releaseLatch();
                 }
-                location.bin.latch(updateGeneration);
+                location.bin.latch(cacheMode);
                 return true;
             } else {
                 return false;
@@ -1187,8 +1166,8 @@ public final class Tree implements Loggable {
      */
     private boolean searchDupTreeForDupCountLNParent(TreeLocation location,
                                                      byte[] mainKey,
-                                                     Node childNode)
-        throws DatabaseException {
+                                                     Node childNode) {
+
         location.lnKey = mainKey;
         if (childNode instanceof DIN) {
             DIN dupRoot = (DIN) childNode;
@@ -1197,18 +1176,17 @@ public final class Tree implements Loggable {
         } else {
 
             /*
-             * If we're looking for a DupCountLN but don't find a
-             * duplicate tree, then the key now refers to a single
-             * datum.  This can happen when all dups for a key are
-             * deleted, the compressor runs, and then a single
-             * datum is inserted.  [#10597]
+             * If we're looking for a DupCountLN but don't find a duplicate
+             * tree, then the key now refers to a single datum.  This can
+             * happen when all dups for a key are deleted, the compressor runs,
+             * and then a single datum is inserted.  [#10597]
              */
             return false;
         }
     }
 
     /**
-     * Search the dup tree for the DBIN parent of this ln.
+     * Search the dup tree for the DBIN parent of this LN.
      */
     private boolean searchDupTreeForDBIN(TreeLocation location,
                                          byte[] dupKey,
@@ -1218,76 +1196,68 @@ public final class Tree implements Loggable {
                                          boolean indicateIfExact,
                                          boolean exactSearch,
                                          boolean splitsAllowed,
-                                         boolean updateGeneration)
+                                         CacheMode cacheMode)
         throws DatabaseException {
 
         assert dupKey != null;
 
-        dupRoot.latch();
+        dupRoot.latch(cacheMode);
 
-        try {
-            /* Make sure there's room for inserts. */
-            if (maybeSplitDuplicateRoot(location.bin, location.index)) {
-                dupRoot = (DIN) location.bin.fetchTarget(location.index);
-            }
+	/* Make sure there's room for inserts. */
+	if (maybeSplitDuplicateRoot(location.bin, location.index, cacheMode)) {
+	    dupRoot = (DIN) location.bin.fetchTarget(location.index);
+	}
 
-            /*
-             * Wait until after any duplicate root splitting to unlatch the
-             * bin.
-             */
-            location.bin.releaseLatch();
+	/*
+	 * Wait until after any duplicate root splitting to unlatch the BIN.
+	 */
+	location.bin.releaseLatch();
 
-            /*
-             * The dupKey is going to be the key that represents the LN in this
-             * BIN parent.
-             */
-            location.lnKey = dupKey;
+	/*
+	 * The dupKey is going to be the key that represents the LN in this BIN
+	 * parent.
+	 */
+	location.lnKey = dupKey;
 
-            /* Search the dup tree */
-            if (splitsAllowed) {
-                try {
-                    location.bin = (BIN) searchSubTreeSplitsAllowed
-                        (dupRoot, location.lnKey, ln.getNodeId(),
-                         updateGeneration);
-                } catch (SplitRequiredException e) {
+	/* Search the dup tree */
+	if (splitsAllowed) {
+	    try {
+		location.bin = (BIN) searchSubTreeSplitsAllowed
+		    (dupRoot, location.lnKey, ln.getNodeId(), cacheMode);
+	    } catch (SplitRequiredException e) {
 
-                    /*
-                     * Shouldn't happen; the only caller of this method which
-                     * allows splits is from recovery, which is single
-                     * threaded.
-                     */
-                    throw new DatabaseException(e);
-                }
-            } else {
-                location.bin = (BIN) searchSubTree
-                    (dupRoot, location.lnKey, SearchType.NORMAL,
-                     ln.getNodeId(), null, updateGeneration);
-            }
+		/*
+		 * Shouldn't happen; the only caller of this method which
+		 * allows splits is from recovery, which is single
+		 * threaded.
+		 */
+		throw new DatabaseException(e);
+	    }
+	} else {
+	    location.bin = (BIN) searchSubTree
+		(dupRoot, location.lnKey, SearchType.NORMAL,
+		 ln.getNodeId(), null, cacheMode);
+	}
 
-            /* Search for LN w/exact key. */
-            location.index = location.bin.findEntry
-                (location.lnKey, indicateIfExact, exactSearch);
-            boolean match;
-            if (findDeletedEntries) {
-                match = (location.index >= 0 &&
-                         (location.index & IN.EXACT_MATCH) != 0);
-                location.index &= ~IN.EXACT_MATCH;
-            } else {
-                match = (location.index >= 0);
-            }
+	/* Search for LN w/exact key. */
+	location.index = location.bin.findEntry
+	    (location.lnKey, indicateIfExact, exactSearch);
+	boolean match;
+	if (findDeletedEntries) {
+	    match = (location.index >= 0 &&
+		     (location.index & IN.EXACT_MATCH) != 0);
+	    location.index &= ~IN.EXACT_MATCH;
+	} else {
+	    match = (location.index >= 0);
+	}
 
-            if (match) {
-                location.childLsn = location.bin.getLsn(location.index);
-                return true;
-            } else {
-                return false;
-            }
-        } catch (DatabaseException e) {
-            dupRoot.releaseLatchIfOwner();
-            throw e;
-        }
+	if (match) {
+	    location.childLsn = location.bin.getLsn(location.index);
+	    return true;
+	} else {
+	    return false;
+	}
     }
-
 
     /**
      * Return a reference to the adjacent BIN.
@@ -1300,10 +1270,12 @@ public final class Tree implements Loggable {
      * is latched and the caller must release it.  If null is returned, the
      * argument BIN remains latched.
      */
-    public BIN getNextBin(BIN bin, boolean traverseWithinDupTree)
+    public BIN getNextBin(BIN bin,
+                          boolean traverseWithinDupTree,
+                          CacheMode cacheMode)
         throws DatabaseException {
 
-        return getNextBinInternal(traverseWithinDupTree, bin, true);
+        return getNextBinInternal(traverseWithinDupTree, bin, true, cacheMode);
     }
 
     /**
@@ -1317,10 +1289,13 @@ public final class Tree implements Loggable {
      * node is latched and the caller must release it.  If null is returned,
      * the argument bin remains latched.
      */
-    public BIN getPrevBin(BIN bin, boolean traverseWithinDupTree)
+    public BIN getPrevBin(BIN bin,
+                          boolean traverseWithinDupTree,
+                          CacheMode cacheMode)
         throws DatabaseException {
 
-        return getNextBinInternal(traverseWithinDupTree, bin, false);
+        return getNextBinInternal(traverseWithinDupTree, bin,
+                                  false, cacheMode);
     }
 
     /**
@@ -1328,7 +1303,8 @@ public final class Tree implements Loggable {
      */
     private BIN getNextBinInternal(boolean traverseWithinDupTree,
 				   BIN bin,
-				   boolean forward)
+				   boolean forward,
+                                   CacheMode cacheMode)
         throws DatabaseException {
 
         /*
@@ -1376,9 +1352,8 @@ public final class Tree implements Loggable {
                 if (!traverseWithinDupTree) {
                     /* Operating on a regular tree -- get the parent. */
 		    nextIsLatched = false;
-                    result = getParentINForChildIN
-                        (next, true /* requireExactMatch */,
-                         true /* updateGeneration */);
+		    result = getParentINForChildIN
+			(next, true /*requireExactMatch*/, cacheMode);
                     if (result.exactParentFound) {
                         parent = result.parent;
                     } else {
@@ -1395,10 +1370,9 @@ public final class Tree implements Loggable {
 			nextIsLatched = false;
                         return null;
                     } else {
-                        result = getParentINForChildIN
-                            (next, true /* requireExactMatch */,
-                             true /* updateGeneration */);
 			nextIsLatched = false;
+			result = getParentINForChildIN
+			    (next, true /*requireExactMatch*/, cacheMode);
                         if (result.exactParentFound) {
                             parent = result.parent;
                         } else {
@@ -1439,7 +1413,7 @@ public final class Tree implements Loggable {
                      * left most path to a BIN.
                      */
                     nextIN = (IN) parent.fetchTarget(index);
-                    nextIN.latch();
+                    nextIN.latch(cacheMode);
 		    nextINIsLatched = true;
 
                     assert (LatchSupport.countLatchesHeld() == 2):
@@ -1448,6 +1422,7 @@ public final class Tree implements Loggable {
                     if (nextIN instanceof BIN) {
                         /* We landed at a leaf (i.e. a BIN). */
                         parent.releaseLatch();
+			parent = null; // to avoid falsely unlatching parent
                         TreeWalkerStatsAccumulator treeStatsAccumulator =
                             getTreeStatsAccumulator();
                         if (treeStatsAccumulator != null) {
@@ -1461,15 +1436,16 @@ public final class Tree implements Loggable {
                          * We landed at an IN.  Descend down to the appropriate
                          * leaf (i.e. BIN) node.
                          */
+			IN ret = searchSubTree(nextIN, null,
+					       (forward ?
+						SearchType.LEFT :
+						SearchType.RIGHT),
+					       -1,
+					       null,
+                                               cacheMode);
 			nextINIsLatched = false;
-                        IN ret = searchSubTree(nextIN, null,
-                                               (forward ?
-                                                SearchType.LEFT :
-                                                SearchType.RIGHT),
-                                               -1,
-                                               null,
-                                               true /*updateGeneration*/);
                         parent.releaseLatch();
+			parent = null; // to avoid falsely unlatching parent
 
                         assert LatchSupport.countLatchesHeld() == 1:
                             LatchSupport.latchesHeldToString();
@@ -1482,21 +1458,28 @@ public final class Tree implements Loggable {
                         }
                     }
                 }
+
+		/* Nothing at this level.  Ascend to a higher level. */
                 next = parent;
 		nextIsLatched = true;
+		parent = null; // to avoid falsely unlatching parent below
             }
         } catch (DatabaseException e) {
-	    if (nextIsLatched) {
-		next.releaseLatchIfOwner();
-		nextIsLatched = false;
+
+	    if (next != null &&
+		nextIsLatched) {
+		next.releaseLatch();
 	    }
+
             if (parent != null) {
-                parent.releaseLatchIfOwner();
+                parent.releaseLatch();
             }
-            if (nextIN != null &&
+
+	    if (nextIN != null &&
 		nextINIsLatched) {
-                nextIN.releaseLatchIfOwner();
-            }
+		nextIN.releaseLatch();
+	    }
+
             throw e;
         }
     }
@@ -1504,7 +1487,7 @@ public final class Tree implements Loggable {
     /**
      * Split the root of the tree.
      */
-    private void splitRoot()
+    private void splitRoot(CacheMode cacheMode)
         throws DatabaseException {
 
         /*
@@ -1517,7 +1500,7 @@ public final class Tree implements Loggable {
 
         IN curRoot = null;
         curRoot = (IN) root.fetchTarget(database, null);
-        curRoot.latch();
+        curRoot.latch(cacheMode);
         long curRootLsn = 0;
         long logLsn = 0;
         IN newRoot = null;
@@ -1529,7 +1512,7 @@ public final class Tree implements Loggable {
             byte[] rootIdKey = curRoot.getKey(0);
             newRoot = new IN(database, rootIdKey, maxMainTreeEntriesPerNode,
 			     curRoot.getLevel() + 1);
-	    newRoot.latch();
+	    newRoot.latch(cacheMode);
             newRoot.setIsRoot(true);
             curRoot.setIsRoot(false);
 
@@ -1561,7 +1544,7 @@ public final class Tree implements Loggable {
              */
             root.setTarget(newRoot);
             root.updateLsnAfterOptionalLog(database, logLsn);
-            curRoot.split(newRoot, 0, maxMainTreeEntriesPerNode);
+            curRoot.split(newRoot, 0, maxMainTreeEntriesPerNode, cacheMode);
             root.setLsn(newRoot.getLastFullVersion());
 
         } finally {
@@ -1610,14 +1593,14 @@ public final class Tree implements Loggable {
                      SearchType searchType,
                      long nid,
                      BINBoundary binBoundary,
-                     boolean updateGeneration)
+                     CacheMode cacheMode)
         throws DatabaseException {
 
-        IN rootIN = getRootIN(true /* updateGeneration */);
+        IN rootIN = getRootIN(cacheMode);
 
         if (rootIN != null) {
             return searchSubTree
-                (rootIN, key, searchType, nid, binBoundary, updateGeneration);
+                (rootIN, key, searchType, nid, binBoundary, cacheMode);
         } else {
             return null;
         }
@@ -1627,9 +1610,7 @@ public final class Tree implements Loggable {
      * Do a key based search, permitting pre-emptive splits. Returns the
      * target node's parent.
      */
-    public IN searchSplitsAllowed(byte[] key,
-                                  long nid,
-                                  boolean updateGeneration)
+    public IN searchSplitsAllowed(byte[] key, long nid, CacheMode cacheMode)
         throws DatabaseException {
 
         IN insertTarget = null;
@@ -1654,7 +1635,7 @@ public final class Tree implements Loggable {
 				rootLatchedExclusive = true;
 				continue;
 			    }
-			    splitRoot();
+			    splitRoot(cacheMode);
 
 			    /*
 			     * We can't hold any latches while we lock.  If the
@@ -1665,12 +1646,12 @@ public final class Tree implements Loggable {
 			    rootLatch.release();
 			    rootLatched = false;
 			    EnvironmentImpl env = database.getDbEnvironment();
-			    env.getDbMapTree().optionalModifyDbRoot(database);
+			    env.getDbTree().optionalModifyDbRoot(database);
 			    rootLatched = true;
 			    rootLatch.acquireExclusive();
 			    rootIN = (IN) root.fetchTarget(database, null);
 			}
-			rootIN.latch();
+			rootIN.latch(cacheMode);
 			rootINLatched = true;
 		    }
 		    break;
@@ -1691,14 +1672,10 @@ public final class Tree implements Loggable {
             }
 
             try {
-		success = false;
+		assert rootINLatched;
                 insertTarget =
-		    searchSubTreeSplitsAllowed(rootIN, key, nid,
-					       updateGeneration);
-		success = true;
+		    searchSubTreeSplitsAllowed(rootIN, key, nid, cacheMode);
             } catch (SplitRequiredException e) {
-
-		success = true;
 
                 /*
                  * The last slot in the root was used at the point when this
@@ -1706,13 +1683,6 @@ public final class Tree implements Loggable {
                  * Retry. SR [#11147].
                  */
                 continue;
-            } finally {
-		if (!success) {
-		    rootIN.releaseLatchIfOwner();
-		    if (insertTarget != null) {
-			insertTarget.releaseLatchIfOwner();
-		    }
-		}
 	    }
         }
 
@@ -1723,6 +1693,7 @@ public final class Tree implements Loggable {
      * Singleton class to indicate that root IN needs to be relatched for
      * exclusive access due to a fetch occurring.
      */
+    @SuppressWarnings("serial")
     private static class RelatchRequiredException extends DatabaseException {
 	public synchronized Throwable fillInStackTrace() {
 	    return this;
@@ -1742,7 +1713,7 @@ public final class Tree implements Loggable {
 			    SearchType searchType,
                             long nid,
                             BINBoundary binBoundary,
-                            boolean updateGeneration)
+                            CacheMode cacheMode)
         throws DatabaseException {
 
 	/*
@@ -1752,9 +1723,9 @@ public final class Tree implements Loggable {
 	for (int i = 0; i < 2; i++) {
 	    try {
 		return searchSubTreeInternal(parent, key, searchType, nid,
-					     binBoundary, updateGeneration);
+					     binBoundary, cacheMode);
 	    } catch (RelatchRequiredException RRE) {
-		parent = getRootINLatchedExclusive(updateGeneration);
+		parent = getRootINLatchedExclusive(cacheMode);
 	    }
 	}
 
@@ -1797,12 +1768,12 @@ public final class Tree implements Loggable {
      * fetch must be performed on parent's child and the parent is latched
      * shared.
      */
-    public IN searchSubTreeInternal(IN parent,
-				    byte[] key,
-				    SearchType searchType,
-				    long nid,
-				    BINBoundary binBoundary,
-				    boolean updateGeneration)
+    private IN searchSubTreeInternal(IN parent,
+				     byte[] key,
+				     SearchType searchType,
+				     long nid,
+				     BINBoundary binBoundary,
+				     CacheMode cacheMode)
         throws DatabaseException {
 
         /* Return null if we're passed a null arg. */
@@ -1900,7 +1871,7 @@ public final class Tree implements Loggable {
 		    } else {
 			/* Release parent shared and relatch exclusive. */
 			parent.releaseLatch();
-			parent.latch();
+			parent.latch(cacheMode);
 		    }
 
 		    /*
@@ -1927,9 +1898,9 @@ public final class Tree implements Loggable {
 
 		/* See if we're even using shared latches. */
 		if (maintainGrandParentLatches) {
-		    child.latchShared(updateGeneration);
+		    child.latchShared(cacheMode);
 		} else {
-		    child.latch(updateGeneration);
+		    child.latch(cacheMode);
 		}
 		childIsLatched = true;
 
@@ -1969,11 +1940,11 @@ public final class Tree implements Loggable {
             try {
                 if (child != null &&
                     childIsLatched) {
-                    child.releaseLatchIfOwner();
+                    child.releaseLatch();
                 }
 
                 if (parent != child) {
-                    parent.releaseLatchIfOwner();
+                    parent.releaseLatch();
                 }
             } catch (Exception t2) {
                 t2.printStackTrace();
@@ -2028,7 +1999,7 @@ public final class Tree implements Loggable {
      */
     public void searchDeletableSubTree(IN parent,
                                        byte[] key,
-                                       ArrayList nodeLadder)
+                                       ArrayList<SplitInfo> nodeLadder)
         throws DatabaseException,
                NodeNotEmptyException,
                CursorsExistException {
@@ -2058,7 +2029,7 @@ public final class Tree implements Loggable {
 
             /* Get the child node that matches. */
             child = (IN) parent.fetchTarget(index);
-            child.latch(false);
+            child.latch(CacheMode.UNCHANGED);
             nodeLadder.add(new SplitInfo(parent, child, index));
 
             /* Continue down a level */
@@ -2090,9 +2061,9 @@ public final class Tree implements Loggable {
              * point. We won't be needing those nodes, since they'll be
              * pruned and won't need to be updated.
              */
-            ListIterator iter = nodeLadder.listIterator(nodeLadder.size());
+            ListIterator<SplitInfo> iter = nodeLadder.listIterator(nodeLadder.size());
             while (iter.hasPrevious()) {
-                SplitInfo info = (SplitInfo) iter.previous();
+                SplitInfo info = iter.previous();
                 if (info.parent == lowestMultipleEntryIN) {
                     break;
                 } else {
@@ -2114,29 +2085,29 @@ public final class Tree implements Loggable {
     /**
      * Search the portion of the tree starting at the parent, permitting
      * preemptive splits.
+     *
+     * When this returns, parent will be unlatched unless parent is the
+     * returned IN.
      */
     private IN searchSubTreeSplitsAllowed(IN parent,
                                           byte[] key,
                                           long nid,
-                                          boolean updateGeneration)
+                                          CacheMode cacheMode)
         throws DatabaseException, SplitRequiredException {
 
         if (parent != null) {
 
             /*
-             * Search downward until we hit a node that needs a split. In
-             * that case, retreat to the top of the tree and force splits
-             * downward.
+             * Search downward until we hit a node that needs a split. In that
+             * case, retreat to the top of the tree and force splits downward.
              */
             while (true) {
                 try {
                     return searchSubTreeUntilSplit
-                        (parent, key, nid, updateGeneration);
+                        (parent, key, nid, cacheMode);
                 } catch (SplitRequiredException e) {
                     /* SR [#11144]*/
-                    if (waitHook != null) {
-                        waitHook.doHook();
-                    }
+                    assert TestHookExecute.doHookIfSet(waitHook);
 
                     /*
                      * ForceSplit may itself throw SplitRequiredException if it
@@ -2145,7 +2116,7 @@ public final class Tree implements Loggable {
                      * where it's safe to split the parent. We do this rather
                      * than
                      */
-                    forceSplit(parent, key);
+                    parent = forceSplit(parent, key, cacheMode);
                 }
             }
         } else {
@@ -2156,19 +2127,17 @@ public final class Tree implements Loggable {
     /**
      * Search the subtree, but throw an exception when we see a node
      * that has to be split.
+     *
+     * When this returns, parent will be unlatched unless parent is the
+     * returned IN.
      */
     private IN searchSubTreeUntilSplit(IN parent,
                                        byte[] key,
                                        long nid,
-                                       boolean updateGeneration)
+                                       CacheMode cacheMode)
         throws DatabaseException, SplitRequiredException {
 
-        /* Return null if we're passed a null arg. */
-        if (parent == null) {
-            return null;
-        }
-
-        assert parent.isLatchOwnerForWrite();
+	assert parent.isLatchOwnerForWrite();
 
         if (parent.getNodeId() == nid) {
             parent.releaseLatch();
@@ -2195,15 +2164,12 @@ public final class Tree implements Loggable {
 
                 /* Get the child node that matches. */
 		child = (IN) parent.fetchTarget(index);
-                child.latch(updateGeneration);
+                child.latch(cacheMode);
 		childIsLatched = true;
 
                 /* Throw if we need to split. */
                 if (child.needsSplitting()) {
-                    child.releaseLatch();
-		    childIsLatched = false;
-                    parent.releaseLatch();
-		    success = true;
+		    /* Let the finally clean up child and parent latches. */
                     throw splitRequiredException;
                 }
 
@@ -2229,10 +2195,10 @@ public final class Tree implements Loggable {
 	    if (!success) {
 		if (child != null &&
 		    childIsLatched) {
-		    child.releaseLatchIfOwner();
+		    child.releaseLatch();
 		}
 		if (parent != child) {
-		    parent.releaseLatchIfOwner();
+		    parent.releaseLatch();
 		}
 	    }
         }
@@ -2246,19 +2212,22 @@ public final class Tree implements Loggable {
      * Note that more than one node in the path may be splittable. For example,
      * a tree might have a level2 IN and a BIN that are both splittable, and
      * would be encountered by the same insert operation.
+     *
+     * @return the parent to use for retrying the search, which may be
+     * different than the parent parameter passed if the root IN has been
+     * evicted.
      */
-    private void forceSplit(IN parent,
-                            byte[] key)
+    private IN forceSplit(IN parent, byte[] key, CacheMode cacheMode)
         throws DatabaseException, SplitRequiredException {
 
-        ArrayList nodeLadder = new ArrayList();
+        ArrayList<SplitInfo> nodeLadder = new ArrayList<SplitInfo>();
 
 	boolean allLeftSideDescent = true;
 	boolean allRightSideDescent = true;
         int index;
         IN child = null;
         IN originalParent = parent;
-        ListIterator iter = null;
+        ListIterator<SplitInfo> iter = null;
 
         boolean isRootLatched = false;
         boolean success = false;
@@ -2272,8 +2241,11 @@ public final class Tree implements Loggable {
             if (originalParent.isDbRoot()) {
                 rootLatch.acquireExclusive();
                 isRootLatched = true;
+                /* The root IN may have been evicted. [#16173] */
+                parent = (IN) root.fetchTarget(database, null);
+                originalParent = parent;
             }
-            originalParent.latch();
+            originalParent.latch(cacheMode);
 
             /*
              * Another thread may have crept in and
@@ -2316,7 +2288,7 @@ public final class Tree implements Loggable {
                 if (child == null) {
                     break;
                 } else {
-                    child.latch();
+                    child.latch(cacheMode);
                     nodeLadder.add(new SplitInfo(parent, child, index));
                 }
 
@@ -2341,7 +2313,13 @@ public final class Tree implements Loggable {
             iter = nodeLadder.listIterator(nodeLadder.size());
             long lastParentForSplit = -1;
             while (iter.hasPrevious()) {
-                SplitInfo info = (SplitInfo) iter.previous();
+                SplitInfo info = iter.previous();
+
+		/*
+		 * Get rid of current entry on nodeLadder so it doesn't get
+		 * unlatched in the finally clause.
+		 */
+                iter.remove();
                 child = info.child;
                 parent = info.parent;
                 index = info.index;
@@ -2356,9 +2334,11 @@ public final class Tree implements Loggable {
                                            index,
                                            maxEntriesPerNode,
                                            key,
-                                           allLeftSideDescent);
+                                           allLeftSideDescent,
+                                           cacheMode);
                     } else {
-                        child.split(parent, index, maxEntriesPerNode);
+                        child.split(parent, index, maxEntriesPerNode,
+                                    cacheMode);
                     }
                     lastParentForSplit = parent.getNodeId();
                     startedSplits = true;
@@ -2396,75 +2376,88 @@ public final class Tree implements Loggable {
                 }
                 child.releaseLatch();
                 child = null;
-                iter.remove();
             }
-
             success = true;
         } finally {
-
             if (!success) {
-                if (child != null) {
-                    child.releaseLatchIfOwner();
-                }
-                originalParent.releaseLatchIfOwner();
-            }
 
-            /*
-             * Unlatch any remaining children. There should only be remainders
-             * in the event of an exception.
-             */
-            if (nodeLadder.size() > 0) {
-                iter = nodeLadder.listIterator(nodeLadder.size());
-                while (iter.hasPrevious()) {
-                    SplitInfo info = (SplitInfo) iter.previous();
-                    info.child.releaseLatchIfOwner();
+		/*
+		 * This will only happen if an exception is thrown and we leave
+		 * things in an intermediate state.
+		 */
+                if (child != null) {
+		    child.releaseLatch();
+		}
+
+		if (nodeLadder.size() > 0) {
+		    iter = nodeLadder.listIterator(nodeLadder.size());
+		    while (iter.hasPrevious()) {
+			SplitInfo info = iter.previous();
+			info.child.releaseLatch();
+		    }
                 }
+
+                originalParent.releaseLatch();
             }
 
             if (isRootLatched) {
                 rootLatch.release();
             }
         }
+        return originalParent;
     }
 
     /**
      * Helper to obtain the root IN with shared root latching.  Optionally
      * updates the generation of the root when latching it.
      */
-    public IN getRootIN(boolean updateGeneration)
+    public IN getRootIN(CacheMode cacheMode)
         throws DatabaseException {
 
-	return getRootINInternal(updateGeneration, false);
+	return getRootINInternal(cacheMode, false/*exclusive*/);
     }
 
     /**
      * Helper to obtain the root IN with exclusive root latching.  Optionally
      * updates the generation of the root when latching it.
      */
-    public IN getRootINLatchedExclusive(boolean updateGeneration)
+    public IN getRootINLatchedExclusive(CacheMode cacheMode)
         throws DatabaseException {
 
-	return getRootINInternal(updateGeneration, true);
+	return getRootINInternal(cacheMode, true/*exclusive*/);
     }
 
-    private IN getRootINInternal(boolean updateGeneration, boolean exclusive)
+    private IN getRootINInternal(CacheMode cacheMode, boolean exclusive)
         throws DatabaseException {
 
 	rootLatch.acquireShared();
         IN rootIN = null;
         try {
             if (rootExists()) {
-                rootIN = (IN) root.fetchTarget(database, null);
+		rootIN = (IN) root.fetchTarget(database, null);
 		if (exclusive) {
-		    rootIN.latch(updateGeneration);
+		    rootIN.latch(cacheMode);
 		} else {
-		    rootIN.latchShared(updateGeneration);
+		    rootIN.latchShared(cacheMode);
 		}
             }
             return rootIN;
         } finally {
 	    rootLatch.release();
         }
+    }
+
+    public IN getResidentRootIN(boolean latched)
+	throws DatabaseException {
+
+        IN rootIN = null;
+	if (rootExists()) {
+	    rootIN = (IN) root.getTarget();
+	    if (rootIN != null && latched) {
+		rootIN.latchShared(CacheMode.UNCHANGED);
+	    }
+	}
+	return rootIN;
     }
 
     /**
@@ -2482,7 +2475,8 @@ public final class Tree implements Loggable {
                           byte[] key,
                           boolean allowDuplicates,
                           CursorImpl cursor,
-			  LockResult lnLock)
+                          LockResult lnLock,
+                          ReplicationContext repContext)
         throws DatabaseException {
 
         validateInsertArgs(allowDuplicates);
@@ -2524,12 +2518,12 @@ public final class Tree implements Loggable {
                 long newLsn = DbLsn.NULL_LSN;
 
 		try {
-                    newLsn = ln.optionalLogUpdateMemUsage
-                        (database, key, DbLsn.NULL_LSN, cursor.getLocker(),
-                         bin);
+		    newLsn = ln.optionalLog
+                        (env, database, key, DbLsn.NULL_LSN,
+                         cursor.getLocker(), repContext);
 		} finally {
                     if ((newLsn == DbLsn.NULL_LSN) &&
-                	!database.isDeferredWrite()) {
+                	!database.isDeferredWriteMode()) {
 
                         /*
                          * Possible buffer overflow, out-of-memory, or I/O
@@ -2639,6 +2633,8 @@ public final class Tree implements Loggable {
 			WriteLockInfo info = locker.getWriteLockInfo(nodeId);
 			abortLsn = info.getAbortLsn();
 			abortKnownDeleted = info.getAbortKnownDeleted();
+                        /* Copy the size/DatabaseImpl of the existing lock. */
+                        lnLock.copyAbortInfo(info);
                     }
 		    lnLock.setAbortLsn(abortLsn, abortKnownDeleted);
 
@@ -2648,9 +2644,12 @@ public final class Tree implements Loggable {
                      * method because the old LN was counted obsolete when it
                      * was deleted.
                      */
-                    long newLsn = ln.optionalLog(env, database,
-					 key, DbLsn.NULL_LSN, 0,
-					 cursor.getLocker());
+                    long newLsn = ln.optionalLog(env,
+                                                 database,
+                                                 key,
+                                                 DbLsn.NULL_LSN,
+                                                 cursor.getLocker(),
+                                                 repContext);
 
                     /*
                      * When reusing a slot, the key is replaced in the BIN
@@ -2668,12 +2667,12 @@ public final class Tree implements Loggable {
                 } else {
 
 		    /*
-		     * Attempt to insert a duplicate in an exception dup tree
+		     * Attempt to insert a duplicate in an existing dup tree
                      * or create a dup tree if none exists.
 		     */		
 		    return insertDuplicate
                         (key, bin, ln, logManager, inMemoryINs, cursor, lnLock,
-                         allowDuplicates);
+                         allowDuplicates, repContext);
                 }
             }
         } finally {
@@ -2699,7 +2698,8 @@ public final class Tree implements Loggable {
                                     INList inMemoryINs,
                                     CursorImpl cursor,
 				    LockResult lnLock,
-                                    boolean allowDuplicates)
+                                    boolean allowDuplicates,
+                                    ReplicationContext repContext)
         throws DatabaseException {
 
         EnvironmentImpl env = database.getDbEnvironment();
@@ -2718,8 +2718,9 @@ public final class Tree implements Loggable {
              * new entry into it.
              */
             try {
+                CacheMode cacheMode = cursor.getCacheMode();
                 dupRoot = (DIN) n;
-                dupRoot.latch();
+                dupRoot.latch(cacheMode);
 
                 /* Lock the DupCountLN before logging any LNs. */
                 LockResult dclLockResult =
@@ -2734,6 +2735,13 @@ public final class Tree implements Loggable {
                  * dup count is zero, we allow the insert.
                  */
                 if (!allowDuplicates) {
+
+                    /*
+                     * dupRoot could have been changed during the dcl lock so
+                     * we need to grab it again here so that we release the
+                     * latch on the correct dupRoot in the finally below.
+                     */
+                    dupRoot = (DIN) bin.fetchTarget(index);
                     DupCountLN dcl = (DupCountLN) dclLockResult.getLN();
                     if (dcl.getDupCount() > 0) {
                         return false;
@@ -2745,7 +2753,7 @@ public final class Tree implements Loggable {
                  * changed during locking above or by the split, so refetch it.
                  * In either case it will be latched.
                  */
-                maybeSplitDuplicateRoot(bin, index);
+                maybeSplitDuplicateRoot(bin, index, cacheMode);
                 dupRoot = (DIN) bin.fetchTarget(index);
 
                 /*
@@ -2759,7 +2767,7 @@ public final class Tree implements Loggable {
                 long previousLsn = dupRoot.getLastFullVersion();
                 try {
                     dupBin = (DBIN) searchSubTreeSplitsAllowed
-                        (dupRoot, newLNKey, -1, true /*updateGeneration*/);
+                        (dupRoot, newLNKey, -1, cacheMode);
                 } catch (SplitRequiredException e) {
 
                     /*
@@ -2803,12 +2811,12 @@ public final class Tree implements Loggable {
                     /* Log the new LN. */
                     long newLsn = DbLsn.NULL_LSN;
 		    try {
-                        newLsn = newLN.optionalLogUpdateMemUsage
-                            (database, key, DbLsn.NULL_LSN, cursor.getLocker(),
-                             dupBin);
+			newLsn = newLN.optionalLog
+                            (env, database, key, DbLsn.NULL_LSN,
+                             cursor.getLocker(), repContext);
                     } finally {
                         if ((newLsn == DbLsn.NULL_LSN) &&
-                            (!database.isDeferredWrite())) {
+                            (!database.isDeferredWriteMode())) {
 
                             /*
                              * See Tree.insert for an explanation of handling
@@ -2883,6 +2891,8 @@ public final class Tree implements Loggable {
 				locker.getWriteLockInfo(nodeId);
 			    abortLsn = info.getAbortLsn();
 			    abortKnownDeleted = info.getAbortKnownDeleted();
+                            /* Copy size/DatabaseImpl of the existing lock. */
+                            lnLock.copyAbortInfo(info);
 			}
 			lnLock.setAbortLsn(abortLsn, abortKnownDeleted);
 
@@ -2892,9 +2902,9 @@ public final class Tree implements Loggable {
                          * log() method because the old LN was counted obsolete
                          * when it was deleted.
                          */
-                        long newLsn =
-			    newLN.optionalLog(env, database, key,
-				      DbLsn.NULL_LSN, 0, cursor.getLocker());
+                        long newLsn = newLN.optionalLog
+                            (env, database, key, DbLsn.NULL_LSN,
+                             cursor.getLocker(), repContext);
 
                         /*
                          * When reusing a slot, the key is replaced in the DBIN
@@ -2935,11 +2945,11 @@ public final class Tree implements Loggable {
 		}
             } finally {
                 if (dupBin != null) {
-                    dupBin.releaseLatchIfOwner();
+                    dupBin.releaseLatch();
                 }
 		
                 if (dupRoot != null) {
-                    dupRoot.releaseLatchIfOwner();
+                    dupRoot.releaseLatch();
                 }
             }
         } else if (n instanceof LN) {
@@ -2959,7 +2969,7 @@ public final class Tree implements Loggable {
             try {
 		lnLock.setAbortLsn(DbLsn.NULL_LSN, true, true);
                 dupRoot = createDuplicateTree
-                    (key, logManager, inMemoryINs, newLN, cursor);
+                    (key, logManager, inMemoryINs, newLN, cursor, repContext);
             } finally {
                 if (dupRoot != null) {
                     dupRoot.releaseLatch();
@@ -2986,7 +2996,8 @@ public final class Tree implements Loggable {
      * @return true if the duplicate root was split.
      */
     private boolean maybeSplitDuplicateRoot(BIN bin,
-                                            int index)
+                                            int index,
+                                            CacheMode cacheMode)
         throws DatabaseException {
 
         DIN curRoot = (DIN) bin.fetchTarget(index);
@@ -3008,7 +3019,7 @@ public final class Tree implements Loggable {
                                   curRoot.getDupCountLNRef(),
                                   curRoot.getLevel() + 1);
 
-            newRoot.latch();
+            newRoot.latch(cacheMode);
             long curRootLsn = 0;
             long logLsn = 0;
             try {
@@ -3038,8 +3049,8 @@ public final class Tree implements Loggable {
                 }
 
                 inMemoryINs.add(newRoot);
-                bin.updateEntry(index, newRoot, logLsn);
-                curRoot.split(newRoot, 0, maxDupTreeEntriesPerNode);
+                bin.updateNode(index, newRoot, logLsn, null /*lnSlotKey*/);
+                curRoot.split(newRoot, 0, maxDupTreeEntriesPerNode, cacheMode);
             } finally {
                 curRoot.releaseLatch();
             }
@@ -3069,12 +3080,14 @@ public final class Tree implements Loggable {
                                     LogManager logManager,
                                     INList inMemoryINs,
                                     LN newLN,
-                                    CursorImpl cursor)
+                                    CursorImpl cursor,
+                                    ReplicationContext repContext)
         throws DatabaseException {
 
         EnvironmentImpl env = database.getDbEnvironment();
         DIN dupRoot = null;
         DBIN dupBin = null;
+	boolean dupBinIsLatched = false;
         BIN bin = cursor.getBIN();
         int index = cursor.getIndex();
 
@@ -3139,10 +3152,11 @@ public final class Tree implements Loggable {
  	     locker.getWriteLockInfo(nodeId).getAbortKnownDeleted()) ?
  	    0 : 1;
 
-        DupCountLN dupCountLN = new DupCountLN(startingCount);
-        long firstDupCountLNLsn =
-            dupCountLN.optionalLogProvisional(env, database,
-				      key, DbLsn.NULL_LSN, 0);
+        DupCountLN dupCountLN = new DupCountLN(database.getDbEnvironment(),
+                                               startingCount);
+        long firstDupCountLNLsn = dupCountLN.optionalLogProvisional
+            (env, database, key, DbLsn.NULL_LSN,
+             ReplicationContext.NO_REPLICATE);
 
         /* Make the duplicate root and DBIN. */
         dupRoot = new DIN(database,
@@ -3152,7 +3166,8 @@ public final class Tree implements Loggable {
                           new ChildReference
                           (dupCountLN, key, firstDupCountLNLsn),
                           2);                            // level
-        dupRoot.latch();
+        CacheMode cacheMode = cursor.getCacheMode();
+        dupRoot.latch(cacheMode);
         dupRoot.setIsRoot(true);
 
         dupBin = new DBIN(database,
@@ -3160,7 +3175,8 @@ public final class Tree implements Loggable {
                           maxDupTreeEntriesPerNode,
                           key,                           // dup key
                           1);                            // level
-        dupBin.latch();
+        dupBin.latch(cacheMode);
+	dupBinIsLatched = true;
 
         /*
          * Attach the existing LN child to the duplicate BIN. Since this is a
@@ -3202,13 +3218,14 @@ public final class Tree implements Loggable {
             lockResult.setAbortLsn(firstDupCountLNLsn, false);
 
             dupCountLN.setDupCount(2);
-            long dupCountLsn = dupCountLN.optionalLogUpdateMemUsage
-                (database, key, firstDupCountLNLsn, locker, dupRoot);
+            long dupCountLsn = dupCountLN.optionalLog
+                (env, database, key, firstDupCountLNLsn, locker,
+                 ReplicationContext.NO_REPLICATE);
             dupRoot.updateDupCountLNRef(dupCountLsn);
 
             /* Add the newly created LN. */
             long newLsn = newLN.optionalLog
-                (env, database, key, DbLsn.NULL_LSN, 0, locker);
+                (env, database, key, DbLsn.NULL_LSN, locker, repContext);
             int dupIndex = dupBin.insertEntry1
                 (new ChildReference(newLN, newLNKey, newLsn));
             dupIndex &= ~IN.INSERT_SUCCESS;
@@ -3222,13 +3239,14 @@ public final class Tree implements Loggable {
              */
             bin.adjustCursorsForMutation(index, dupBin, dupIndex ^ 1, cursor);
             dupBin.releaseLatch();
+	    dupBinIsLatched = false;
 
             /*
              * Update the "regular" BIN to point to the new duplicate tree
              * instead of the existing LN.  Clear the MIGRATE flag since it
              * applies only to the original LN.
              */
-            bin.updateEntry(index, dupRoot, dinLsn);
+            bin.updateNode(index, dupRoot, dinLsn, null /*lnSlotKey*/);
             bin.setMigrate(index, false);
 
             traceMutate(Level.FINE, bin, existingLN, newLN, newLsn,
@@ -3237,13 +3255,15 @@ public final class Tree implements Loggable {
         } catch (DatabaseException e) {
 
             /*
-             * Strictly speaking, not necessary to release latches, because if
-             * we fail to log the entries, we just throw them away, but our
-             * unit tests check for 0 latches held in the event of a logging
-             * error.
+             * Strictly speaking, it's not necessary to release latches,
+             * because if we fail to log the entries, we just throw them away,
+             * but our unit tests check for 0 latches held in the event of a
+             * logging error.
              */
-            dupBin.releaseLatchIfOwner();
-            dupRoot.releaseLatchIfOwner();
+	    if (dupBinIsLatched) {
+		dupBin.releaseLatch();
+	    }
+            dupRoot.releaseLatch();
             throw e;
         }
         return dupRoot;
@@ -3256,6 +3276,7 @@ public final class Tree implements Loggable {
      */
     private void validateInsertArgs(boolean allowDuplicates)
         throws DatabaseException {
+
         if (allowDuplicates && !database.getSortedDuplicates()) {
             throw new DatabaseException
                 ("allowDuplicates passed to insert but database doesn't " +
@@ -3306,6 +3327,8 @@ public final class Tree implements Loggable {
 			continue;
 		    }
 
+                    CacheMode cacheMode = cursor.getCacheMode();
+
 		    /*
 		     * This is an empty tree, either because it's brand new
 		     * tree or because everything in it was deleted. Create an
@@ -3318,7 +3341,7 @@ public final class Tree implements Loggable {
 		     */
                     /* First BIN in the tree, log provisionally right away. */
                     bin = new BIN(database, key, maxMainTreeEntriesPerNode, 1);
-                    bin.latch();
+                    bin.latch(cacheMode);
                     logLsn = bin.optionalLogProvisional(logManager, null);
 
 		    /*
@@ -3341,7 +3364,7 @@ public final class Tree implements Loggable {
 		     * OK to latch the root after a child BIN because it's
 		     * during creation.
 		     */
-		    rootIN.latch();
+		    rootIN.latch(cacheMode);
 		    rootIN.setIsRoot(true);
 
 		    boolean insertOk = rootIN.insertEntry
@@ -3377,8 +3400,8 @@ public final class Tree implements Loggable {
 		     * and delete the entire tree, so search may return with a
 		     * null.
 		     */
-		    IN in = searchSplitsAllowed
-                        (key, -1, true /*updateGeneration*/);
+		    IN in =
+                        searchSplitsAllowed(key, -1, cursor.getCacheMode());
 		    if (in == null) {
 			/* The tree was deleted by the INCompressor. */
 			continue;
@@ -3396,9 +3419,7 @@ public final class Tree implements Loggable {
         }
 
         /* testing hook to insert item into log. */
-        if (ckptHook != null) {
-            ckptHook.doHook();
-        }
+        assert TestHookExecute.doHookIfSet(ckptHook);
 
         return bin;
     }
@@ -3406,20 +3427,15 @@ public final class Tree implements Loggable {
     /*
      * Given a subtree root (an IN), remove it and all of its children from the
      * in memory IN list. Also count removed nodes as obsolete and gather the
-     * set of file summaries that should be logged. The tracker will be flushed
-     * to the log later.
+     * set of file summaries that should be logged. The localTracker will be
+     * flushed to the log later.
      */
     private void accountForSubtreeRemoval(INList inList,
                                           IN subtreeRoot,
-                                          UtilizationTracker tracker)
+                                          LocalUtilizationTracker localTracker)
         throws DatabaseException {
 
-        inList.latchMajor();
-        try {
-            subtreeRoot.accountForSubtreeRemoval(inList, tracker);
-        } finally {
-            inList.releaseMajorLatch();
-        }
+        subtreeRoot.accountForSubtreeRemoval(inList, localTracker);
 
         Tracer.trace(Level.FINE, database.getDbEnvironment(),
 		     "SubtreeRemoval: subtreeRoot = " +
@@ -3434,7 +3450,7 @@ public final class Tree implements Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        int size = LogUtils.getBooleanLogSize();  // root exists?
+        int size = 1;                          // rootExists
         if (root != null) {
             size += root.getLogSize();
         }
@@ -3445,7 +3461,8 @@ public final class Tree implements Loggable {
      * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
-        LogUtils.writeBoolean(logBuffer, (root != null));
+        byte booleans = (byte) ((root != null) ? 1 : 0);
+        logBuffer.put(booleans);
         if (root != null) {
             root.writeToLog(logBuffer);
         }
@@ -3454,11 +3471,13 @@ public final class Tree implements Loggable {
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
-        boolean rootExists = LogUtils.readBoolean(itemBuffer);
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion) {
+        boolean rootExists = false;
+        byte booleans = itemBuffer.get();
+        rootExists = (booleans & 1) != 0;
         if (rootExists) {
             root = makeRootChildReference();
-            root.readFromLog(itemBuffer, entryTypeVersion);
+            root.readFromLog(itemBuffer, entryVersion);
         }
     }
 
@@ -3478,6 +3497,14 @@ public final class Tree implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     /**
@@ -3562,7 +3589,7 @@ public final class Tree implements Loggable {
         }
         if (parent != null) {
             INList inList = database.getDbEnvironment().getInMemoryINs();
-            if (!inList.getINs().contains(parent)) {
+            if (!inList.contains(parent)) {
                 throw new DatabaseException
                     ("IN " + parent.getNodeId() + " missing from INList");
             }

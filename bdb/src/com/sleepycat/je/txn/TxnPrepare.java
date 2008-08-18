@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnPrepare.java,v 1.8.2.2 2007/11/20 13:32:36 cwl Exp $
+ * $Id: TxnPrepare.java,v 1.16 2008/05/13 01:53:34 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -25,7 +25,7 @@ public class TxnPrepare extends TxnEnd implements Loggable {
 
     public TxnPrepare(long id, Xid xid) {
 	/* LastLSN is never used. */
-        super(id, DbLsn.NULL_LSN);
+        super(id, DbLsn.NULL_LSN, 0 /* masterNodeId, never replicated. */);
 	this.xid = xid;
     }
 
@@ -51,16 +51,16 @@ public class TxnPrepare extends TxnEnd implements Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LogUtils.LONG_BYTES +                    // id
-            LogUtils.getTimestampLogSize() +            // timestamp
-            LogUtils.getXidSize(xid);                   // Xid
+        return LogUtils.getPackedLongLogSize(id) +
+            LogUtils.getTimestampLogSize(time) +
+            LogUtils.getXidSize(xid);
     }
 
     /**
      * @see Loggable#writeToLog
      */
     public void writeToLog(ByteBuffer logBuffer) {
-        LogUtils.writeLong(logBuffer, id);
+        LogUtils.writePackedLong(logBuffer, id);
         LogUtils.writeTimestamp(logBuffer, time);
 	LogUtils.writeXid(logBuffer, xid);
     }
@@ -68,9 +68,10 @@ public class TxnPrepare extends TxnEnd implements Loggable {
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion) {
-        id = LogUtils.readLong(logBuffer);
-        time = LogUtils.readTimestamp(logBuffer);
+    public void readFromLog(ByteBuffer logBuffer, byte entryVersion) {
+        boolean unpacked = (entryVersion < 6);
+        id = LogUtils.readLong(logBuffer, unpacked);
+        time = LogUtils.readTimestamp(logBuffer, unpacked);
 	xid = LogUtils.readXid(logBuffer);
     }
 
@@ -80,9 +81,17 @@ public class TxnPrepare extends TxnEnd implements Loggable {
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<").append(getTagName());
         sb.append(" id=\"").append(id);
-	sb.append("\" xid=\"").append(xid);
         sb.append("\" time=\"").append(time);
         sb.append("\">");
+	sb.append(xid); // xid already formatted as xml
         sb.append("</").append(getTagName()).append(">");
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 }

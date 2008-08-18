@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveTestInit.java,v 1.3.2.2 2007/11/03 00:07:14 mark Exp $
+ * $Id: EvolveTestInit.java,v 1.7 2008/02/05 23:28:28 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -11,7 +11,7 @@ import java.io.IOException;
 
 import junit.framework.Test;
 
-import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.util.test.SharedTestUtils;
 
 /**
  * Runs part one of the EvolveTest.  This part is run with the old/original
@@ -39,7 +39,7 @@ public class EvolveTestInit extends EvolveTestBase {
 
         envHome = getTestInitHome(false /*evolved*/);
         envHome.mkdirs();
-        TestUtils.removeLogFiles("Setup", envHome, false);
+        SharedTestUtils.emptyDir(envHome);
     }
 
     public void testInit()

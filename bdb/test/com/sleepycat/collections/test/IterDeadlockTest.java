@@ -1,12 +1,19 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: IterDeadlockTest.java,v 1.7.2.1 2007/02/01 14:50:03 cwl Exp $
+ * $Id: IterDeadlockTest.java,v 1.10 2008/02/05 23:28:25 mark Exp $
  */
 
 package com.sleepycat.collections.test;
+
+import java.util.Iterator;
+import java.util.ListIterator;
+
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Database;
@@ -18,11 +25,7 @@ import com.sleepycat.collections.TransactionRunner;
 import com.sleepycat.collections.TransactionWorker;
 import com.sleepycat.collections.StoredIterator;
 import com.sleepycat.collections.StoredSortedMap;
-import java.util.Iterator;
-import java.util.ListIterator;
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * Tests the fix for [#10516], where the StoredIterator constructor was not
@@ -116,7 +119,7 @@ public class IterDeadlockTest extends TestCase {
         config.setTransactional(true);
         config.setAllowCreate(true);
 
-        return DbCompat.openDatabase(env, null, file, null, config);
+        return DbCompat.testOpenDatabase(env, null, file, null, config);
     }
 
     public void testIterDeadlock()

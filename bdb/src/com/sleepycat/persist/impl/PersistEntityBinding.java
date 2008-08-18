@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PersistEntityBinding.java,v 1.16.2.2 2007/05/01 04:08:35 mark Exp $
+ * $Id: PersistEntityBinding.java,v 1.20 2008/03/18 18:38:08 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -46,7 +46,8 @@ public class PersistEntityBinding implements EntityBinding {
             } catch (ClassNotFoundException e) {
                 throw new IllegalArgumentException(e);
             }
-            entityFormat = catalog.getFormat(entityCls);
+            entityFormat = catalog.getFormat
+                (entityCls, true /*openEntitySubclassIndexes*/);
         }
         this.rawAccess = rawAccess;
     }
@@ -152,7 +153,8 @@ public class PersistEntityBinding implements EntityBinding {
             }
             format = (Format) ((RawObject) entity).getType();
         } else {
-            format = catalog.getFormat(entity.getClass());
+            format = catalog.getFormat
+                (entity.getClass(), true /*openEntitySubclassIndexes*/);
         }
 
         /* Check that the entity class/subclass is valid for this binding. */

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogBufferPool.java,v 1.72.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: LogBufferPool.java,v 1.77 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -20,7 +20,6 @@ import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.latch.Latch;
-import com.sleepycat.je.latch.LatchSupport;
 
 /**
  * LogBufferPool keeps a set of log buffers.
@@ -30,7 +29,7 @@ class LogBufferPool {
 
     private EnvironmentImpl envImpl = null;
     private int logBufferSize;      // size of each log buffer
-    private LinkedList bufferPool;  // List of log buffers
+    private LinkedList<LogBuffer> bufferPool; 
 
     /* Buffer that holds the current log end. All writes go to this buffer. */
     private LogBuffer currentWriteBuffer;
@@ -64,8 +63,7 @@ class LogBufferPool {
 
         this.fileManager = fileManager;
         this.envImpl = envImpl;
-        bufferPoolLatch =
-	    LatchSupport.makeLatch(DEBUG_NAME + "_FullLatch", envImpl);
+        bufferPoolLatch = new Latch(DEBUG_NAME + "_FullLatch");
 
         /* Configure the pool. */
         DbConfigManager configManager = envImpl.getConfigManager();
@@ -73,7 +71,7 @@ class LogBufferPool {
         reset(configManager);
 
         /* Current buffer is the active buffer that writes go into. */
-        currentWriteBuffer = (LogBuffer) bufferPool.getFirst();
+        currentWriteBuffer = bufferPool.getFirst();
     }
 
     final int getLogBufferSize() {
@@ -100,14 +98,14 @@ class LogBufferPool {
          * log buffers to use.
          */
         int numBuffers =
-	    configManager.getInt(EnvironmentParams.NUM_LOG_BUFFERS);
+            configManager.getInt(EnvironmentParams.NUM_LOG_BUFFERS);
         long logBufferBudget = envImpl.getMemoryBudget().getLogBufferBudget();
 
         /* Buffers must be int sized. */
         int newBufferSize = (int) logBufferBudget / numBuffers;
 
         /* list of buffers that are available for log writing */
-        LinkedList newPool = new LinkedList();
+        LinkedList<LogBuffer> newPool = new LinkedList<LogBuffer>();
 
         /*
          * If we're running in memory only, don't pre-allocate all the buffers.
@@ -157,21 +155,21 @@ class LogBufferPool {
          * into the next file, we'll need to get a new log buffer even if the
          * current one has room.
          */
-	if ((!currentWriteBuffer.hasRoom(sizeNeeded)) || flippedFile) {
+        if ((!currentWriteBuffer.hasRoom(sizeNeeded)) || flippedFile) {
 
-	    /*
-	     * Write the currentWriteBuffer to the file and reset
-	     * currentWriteBuffer.
-	     */
-	    writeBufferToFile(sizeNeeded);
-	}
+            /*
+             * Write the currentWriteBuffer to the file and reset
+             * currentWriteBuffer.
+             */
+            writeBufferToFile(sizeNeeded);
+        }
 
-	if (flippedFile) {
-	    /* Now that the old buffer has been written to disk, fsync. */
-	    if (!runInMemory) {
-		fileManager.syncLogEndAndFinishFile();
-	    }
-	}
+        if (flippedFile) {
+            /* Now that the old buffer has been written to disk, fsync. */
+            if (!runInMemory) {
+                fileManager.syncLogEndAndFinishFile();
+            }
+        }
 
         return currentWriteBuffer;
     }
@@ -188,7 +186,7 @@ class LogBufferPool {
         throws IOException, DatabaseException {
 
         int bufferSize =
-	    ((logBufferSize > sizeNeeded) ? logBufferSize : sizeNeeded);
+            ((logBufferSize > sizeNeeded) ? logBufferSize : sizeNeeded);
 
         /* We're done with the buffer, flip to make it readable. */
         currentWriteBuffer.latchForWrite();
@@ -232,8 +230,8 @@ class LogBufferPool {
                     LogBuffer nextToUse = null;
                     try {
                         bufferPoolLatch.acquire();
-                        Iterator iter = bufferPool.iterator();
-                        nextToUse = (LogBuffer) iter.next();
+                        Iterator<LogBuffer> iter = bufferPool.iterator();
+                        nextToUse = iter.next();
 
                         boolean done = bufferPool.remove(nextToUse);
                         assert done;
@@ -282,38 +280,38 @@ class LogBufferPool {
      *         read, or return null.
      */
     LogBuffer getReadBuffer(long lsn)
-	throws DatabaseException {
+        throws DatabaseException {
 
         LogBuffer foundBuffer = null;
 
         bufferPoolLatch.acquire();
-	try {
-	    nNotResident++;
-	    Iterator iter = bufferPool.iterator();
-	    while (iter.hasNext()) {
-		LogBuffer l = (LogBuffer) iter.next();
-		if (l.containsLsn(lsn)) {
-		    foundBuffer = l;
-		    break;
-		}
-	    }
+        try {
+            nNotResident++;
+            Iterator<LogBuffer> iter = bufferPool.iterator();
+            while (iter.hasNext()) {
+                LogBuffer l = iter.next();
+                if (l.containsLsn(lsn)) {
+                    foundBuffer = l;
+                    break;
+                }
+            }
 
-	    /*
-	     * Check the currentWriteBuffer separately, since if the pool was
-	     * recently reset it will not be in the pool.
-	     */
-	    if (foundBuffer == null &&
-		currentWriteBuffer.containsLsn(lsn)) {
-		foundBuffer = currentWriteBuffer;
-	    }
+            /*
+             * Check the currentWriteBuffer separately, since if the pool was
+             * recently reset it will not be in the pool.
+             */
+            if (foundBuffer == null &&
+                currentWriteBuffer.containsLsn(lsn)) {
+                foundBuffer = currentWriteBuffer;
+            }
 
-	    if (foundBuffer == null) {
-		nCacheMiss++;
-	    }
+            if (foundBuffer == null) {
+                nCacheMiss++;
+            }
 
-	} finally {
-	    bufferPoolLatch.releaseIfOwner();
-	}
+        } finally {
+            bufferPoolLatch.releaseIfOwner();
+        }
 
         if (foundBuffer == null) {
             return null;
@@ -337,9 +335,9 @@ class LogBufferPool {
         long bufferBytes = 0;
         int nLogBuffers = 0;
         try {
-            Iterator iter = bufferPool.iterator();
+            Iterator<LogBuffer> iter = bufferPool.iterator();
             while (iter.hasNext()) {
-                LogBuffer l = (LogBuffer) iter.next();
+                LogBuffer l = iter.next();
                 nLogBuffers++;
                 bufferBytes += l.getCapacity();
             }

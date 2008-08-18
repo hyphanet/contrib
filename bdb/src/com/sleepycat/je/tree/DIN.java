@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DIN.java,v 1.79.2.6 2007/11/20 13:32:35 cwl Exp $
+ * $Id: DIN.java,v 1.99 2008/05/20 14:52:00 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -11,8 +11,8 @@ package com.sleepycat.je.tree;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.cleaner.Cleaner;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
@@ -22,6 +22,7 @@ import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogUtils;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.txn.LockResult;
 import com.sleepycat.je.txn.Locker;
 
@@ -34,7 +35,8 @@ public final class DIN extends IN {
     private static final String END_TAG = "</din>";
 
     /**
-     * Full key for this set of duplicates.
+     * Full key for this set of duplicates. For example, if the tree
+     * contains k1/d1, k1/d2, k1/d3, the dupKey = k1.
      */
     private byte[] dupKey;
 
@@ -213,7 +215,7 @@ public final class DIN extends IN {
      * Return the comparator function to be used for DINs.  This is
      * the user defined duplicate comparison function, if defined.
      */
-    public final Comparator getKeyComparator() {
+    public final Comparator<byte[]> getKeyComparator() {
         return getDatabase().getDuplicateComparator();
     }
 
@@ -241,8 +243,9 @@ public final class DIN extends IN {
 	    assert dupCountLN.getDupCount() >= 0;
         }
         DatabaseImpl db = getDatabase();
-        long newCountLSN = dupCountLN.optionalLogUpdateMemUsage
-            (db, key, oldLsn, locker, this);
+        long newCountLSN = dupCountLN.optionalLog
+            (db.getDbEnvironment(), db, key,
+             oldLsn, locker, ReplicationContext.NO_REPLICATE);
         updateDupCountLNRef(newCountLSN);
     }
 
@@ -257,11 +260,6 @@ public final class DIN extends IN {
             size += getEntryInMemorySize(dupCountLNRef.getKey(),
 				         dupCountLNRef.getTarget());
         }
-        /* XXX Need to update size when changing the dupKey.
-	   if (dupKey != null && dupKey.getKey() != null) {
-	   size += MemoryBudget.byteArraySize(dupKey.getKey().length);
-	   }
-        */
         return size;
     }
 
@@ -288,7 +286,9 @@ public final class DIN extends IN {
      *
      * No latching is performed.
      */
-    boolean matchLNByNodeId(TreeLocation location, long nodeId)
+    boolean matchLNByNodeId(TreeLocation location,
+                            long nodeId,
+                            CacheMode cacheMode)
 	throws DatabaseException {
 
 	latch();
@@ -296,7 +296,8 @@ public final class DIN extends IN {
 	    for (int i = 0; i < getNEntries(); i++) {
 		Node n = fetchTarget(i);
 		if (n != null) {
-		    boolean ret = n.matchLNByNodeId(location, nodeId);
+		    boolean ret =
+                        n.matchLNByNodeId(location, nodeId, cacheMode);
 		    if (ret) {
 			return true;
 		    }
@@ -313,7 +314,7 @@ public final class DIN extends IN {
      * DbStat support.
      */
     void accumulateStats(TreeWalkerStatsAccumulator acc) {
-	acc.processDIN(this, new Long(getNodeId()), getLevel());
+	acc.processDIN(this, Long.valueOf(getNodeId()), getLevel());
     }
 
     /*
@@ -328,17 +329,13 @@ public final class DIN extends IN {
     }
 
     /**
-     * Handles lazy migration of DupCountLNs prior to logging a DIN.  See
-     * BIN.logInternal for more information.
+     * Handles lazy migration of DupCountLNs prior to logging a DIN.
      */
-    protected long logInternal(LogManager logManager,
-			       boolean allowDeltas,
-			       boolean isProvisional,
-                               boolean proactiveMigration,
-                               boolean backgroundIO,
-                               IN parent)
+    @Override
+    public void beforeLog(LogManager logManager,
+                          INLogItem item,
+                          INLogContext context)
         throws DatabaseException {
-
 
         if (dupCountLNRef != null) {
             EnvironmentImpl envImpl = getDatabase().getDbEnvironment();
@@ -346,29 +343,28 @@ public final class DIN extends IN {
 
             if ((dupCntLN != null) && (dupCntLN.isDirty())) {
 
-                /*
-                 * If deferred write, write any dirty LNs now. The old LSN
-                 * is NULL_LSN, a no-opt in non-txnal deferred write mode.
-                 */
-                long newLsn = dupCntLN.logUpdateMemUsage
-                    (getDatabase(), dupKey, dupCountLNRef.getLsn() /*oldLsn*/,
-                     null /*locker*/, this, backgroundIO);
-                dupCountLNRef.setLsn(newLsn);
+                /* If deferred write, write any dirty LNs now. */
+                long newLsn = dupCntLN.log(envImpl,
+                                           getDatabase(),
+                                           dupKey,
+                                           dupCountLNRef.getLsn(),
+                                           null,          // locker
+                                           context.backgroundIO,
+                                           // dupCountLNS  are never replicated
+                                           ReplicationContext.NO_REPLICATE);
+
+                updateDupCountLNRef(newLsn);
             } else {
 
                 /*
                  * Allow the cleaner to migrate the DupCountLN before logging.
                  */
-                Cleaner cleaner =
-                    getDatabase().getDbEnvironment().getCleaner();
-                cleaner.lazyMigrateDupCountLN
-                    (this, dupCountLNRef, proactiveMigration);
+                envImpl.getCleaner().lazyMigrateDupCountLN
+                    (this, dupCountLNRef, context.proactiveMigration);
             }
         }
 
-        return super.logInternal
-            (logManager, allowDeltas, isProvisional, proactiveMigration,
-             backgroundIO, parent);
+        super.beforeLog(logManager, item, context);
     }
 
     /**
@@ -377,7 +373,7 @@ public final class DIN extends IN {
     public int getLogSize() {
         int size = super.getLogSize();               // ancestors
         size += LogUtils.getByteArrayLogSize(dupKey);// identifier key
-        size += LogUtils.getBooleanLogSize();        // dupCountLNRef null flag
+        size += 1;                                   // dupCountLNRef null flag
         if (dupCountLNRef != null) {
             size += dupCountLNRef.getLogSize();
         }
@@ -397,7 +393,8 @@ public final class DIN extends IN {
 
         /* DupCountLN */
         boolean dupCountLNRefExists = (dupCountLNRef != null);
-        LogUtils.writeBoolean(logBuffer, dupCountLNRefExists);
+        byte booleans = (byte) (dupCountLNRefExists ? 1 : 0);
+        logBuffer.put(booleans);
         if (dupCountLNRefExists) {
             dupCountLNRef.writeToLog(logBuffer);
         }
@@ -406,19 +403,19 @@ public final class DIN extends IN {
     /**
      * @see IN#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
-        // ancestors
-        super.readFromLog(itemBuffer, entryTypeVersion);
-
-        // identifier key
-        dupKey = LogUtils.readByteArray(itemBuffer);
+        boolean unpacked = (entryVersion < 6);
+        super.readFromLog(itemBuffer, entryVersion);
+        dupKey = LogUtils.readByteArray(itemBuffer, unpacked);
 
         /* DupCountLN */
-        boolean dupCountLNRefExists = LogUtils.readBoolean(itemBuffer);
+        boolean dupCountLNRefExists = false;
+        byte booleans = itemBuffer.get();
+        dupCountLNRefExists = (booleans & 1) != 0;
         if (dupCountLNRefExists) {
-            dupCountLNRef.readFromLog(itemBuffer, entryTypeVersion);
+            dupCountLNRef.readFromLog(itemBuffer, entryVersion);
         } else {
             dupCountLNRef = null;
         }

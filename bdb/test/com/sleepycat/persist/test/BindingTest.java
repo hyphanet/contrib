@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BindingTest.java,v 1.28.2.2 2007/11/20 13:32:52 cwl Exp $
+ * $Id: BindingTest.java,v 1.33 2008/05/19 17:52:23 linda Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -36,6 +36,7 @@ import java.util.TreeSet;
 import junit.framework.TestCase;
 
 import com.sleepycat.bind.EntryBinding;
+import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
@@ -44,7 +45,6 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.ForeignMultiKeyNullifier;
 import com.sleepycat.je.SecondaryKeyCreator;
 import com.sleepycat.je.SecondaryMultiKeyCreator;
-import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.persist.impl.PersistCatalog;
 import com.sleepycat.persist.impl.PersistComparator;
 import com.sleepycat.persist.impl.PersistEntityBinding;
@@ -66,6 +66,8 @@ import com.sleepycat.persist.model.SecondaryKeyMetadata;
 import com.sleepycat.persist.raw.RawField;
 import com.sleepycat.persist.raw.RawObject;
 import com.sleepycat.persist.raw.RawType;
+import com.sleepycat.util.test.SharedTestUtils;
+import com.sleepycat.util.test.TestEnv;
 
 /**
  * @author Mark Hayes
@@ -84,10 +86,10 @@ public class BindingTest extends TestCase {
     public void setUp()
         throws IOException {
 
-        envHome = new File(System.getProperty(TestUtils.DEST_DIR));
+        envHome = new File(System.getProperty(SharedTestUtils.DEST_DIR));
+        SharedTestUtils.emptyDir(envHome);
         keyEntry = new DatabaseEntry();
         dataEntry = new DatabaseEntry();
-        TestUtils.removeLogFiles("Setup", envHome, false);
     }
 
     public void tearDown()
@@ -100,11 +102,6 @@ public class BindingTest extends TestCase {
                 System.out.println("During tearDown: " + e);
             }
         }
-        try {
-            TestUtils.removeLogFiles("TearDown", envHome, false);
-        } catch (Error e) {
-            System.out.println("During tearDown: " + e);
-        }
         envHome = null;
         env = null;
         catalog = null;
@@ -113,9 +110,9 @@ public class BindingTest extends TestCase {
     }
 
     private void open()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
-        EnvironmentConfig envConfig = new EnvironmentConfig();
+        EnvironmentConfig envConfig = TestEnv.BDB.getConfig();
         envConfig.setAllowCreate(true);
         env = new Environment(envHome, envConfig);
 
@@ -131,9 +128,10 @@ public class BindingTest extends TestCase {
 
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
+        DbCompat.setTypeBtree(dbConfig);
         catalog = new PersistCatalog
-            (null, env, STORE_PREFIX, "catalog", dbConfig, model, null,
-             false /*rawAccess*/, null /*Store*/);
+            (null, env, STORE_PREFIX, STORE_PREFIX + "catalog", dbConfig,
+             model, null, false /*rawAccess*/, null /*Store*/);
     }
 
     private void close()
@@ -155,7 +153,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testBasic()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -221,7 +219,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testSimpleTypes()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -311,7 +309,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testArrayTypes()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -406,7 +404,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testEnumTypes()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -450,7 +448,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testProxyTypes()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -585,7 +583,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testEmbedded()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -708,7 +706,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testSubclass()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -759,7 +757,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testSuperclass()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -814,7 +812,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testAbstract()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -985,7 +983,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testCompositeKey()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -1086,7 +1084,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testComparableKey()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -1130,7 +1128,7 @@ public class BindingTest extends TestCase {
         close();
     }
 
-    private void compareKeys(Comparator<Object> comparator,
+    private void compareKeys(Comparator<byte[]> comparator,
                              EntryBinding binding,
                              Object key1,
                              Object key2,
@@ -1216,7 +1214,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testSecKeys()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -1609,7 +1607,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testSecKeyRefToPriKey()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -1670,7 +1668,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testSecKeyInSuperclass()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -1732,7 +1730,7 @@ public class BindingTest extends TestCase {
     }
 
     public void testSecKeyInSubclass()
-        throws DatabaseException {
+        throws IOException, DatabaseException {
 
         open();
 
@@ -2125,8 +2123,8 @@ public class BindingTest extends TestCase {
          * Open a catalog that uses the stored model.
          */
         PersistCatalog storedCatalog = new PersistCatalog
-            (null, env, STORE_PREFIX, "catalog", null, null, null,
-             false /*useCurrentModel*/, null /*Store*/);
+            (null, env, STORE_PREFIX, STORE_PREFIX + "catalog", null, null,
+             null, false /*useCurrentModel*/, null /*Store*/);
         EntityModel storedModel = storedCatalog.getResolvedModel();
 
         /* Check metadata/types against the stored catalog/model. */

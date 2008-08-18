@@ -1,45 +1,84 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JoinConfig.java,v 1.6.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: JoinConfig.java,v 1.11 2008/01/24 14:59:27 linda Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * The configuration properties of a <code>JoinCursor</code>. The join cursor
+ * configuration is specified when calling {@link Database#join Database.join}.
+ *
+ * <p>To create a configuration object with default attributes:</p>
+ *
+ * <pre>
+ *     JoinConfig config = new JoinConfig();
+ * </pre>
+ *
+ * <p>To set custom attributes:</p>
+ *
+ * <pre>
+ *     JoinConfig config = new JoinConfig();
+ *     config.setNoSort(true);
+ * </pre>
+ *
+ * @see Database#join Database.join
+ * @see JoinCursor
  */
 public class JoinConfig implements Cloneable {
 
-    /*
-     * For internal use, to allow null as a valid value for
-     * the config parameter.
+    /**
+     * Default configuration used if null is passed to {@link
+     * com.sleepycat.je.Database#join Database.join}.
      */
     public static final JoinConfig DEFAULT = new JoinConfig();
 
     private boolean noSort;
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Creates an instance with the system's default settings.
      */
     public JoinConfig() {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Specifies whether automatic sorting of the input cursors is disabled.
+     *
+     * <p>Joined values are retrieved by doing a sequential iteration over the
+     * first cursor in the cursor array, and a nested iteration over each
+     * following cursor in the order they are specified in the array. This
+     * requires database traversals to search for the current datum in all the
+     * cursors after the first. For this reason, the best join performance
+     * normally results from sorting the cursors from the one that refers to
+     * the least number of data items to the one that refers to the
+     * most. Unless this method is called with true, <code>Database.join</code>
+     * does this sort on behalf of its caller.</p>
+     *
+     * <p>If the data are structured so that cursors with many data items also
+     * share many common elements, higher performance will result from listing
+     * those cursors before cursors with fewer data items; that is, a sort
+     * order other than the default. Calling this method permits applications
+     * to perform join optimization prior to calling
+     * <code>Database.join</code>.</p>
+     *
+     * @param noSort whether automatic sorting of the input cursors is
+     * disabled.
+     *
+     * @see Database#join Database.join
      */
     public void setNoSort(boolean noSort) {
         this.noSort = noSort;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns whether automatic sorting of the input cursors is disabled.
+     *
+     * @return whether automatic sorting of the input cursors is disabled.
+     *
+     * @see #setNoSort
      */
     public boolean getNoSort() {
         return noSort;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PersistKeyAssigner.java,v 1.11.2.4 2007/12/08 14:35:32 mark Exp $
+ * $Id: PersistKeyAssigner.java,v 1.16 2008/01/07 14:28:59 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;

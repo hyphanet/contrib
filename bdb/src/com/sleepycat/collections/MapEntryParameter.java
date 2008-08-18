@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: MapEntryParameter.java,v 1.19.2.1 2007/02/01 14:49:40 cwl Exp $
+ * $Id: MapEntryParameter.java,v 1.22 2008/05/27 15:30:34 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -26,10 +26,10 @@ import java.util.Map;
  *
  * @author Mark Hayes
  */
-public class MapEntryParameter implements Map.Entry {
+public class MapEntryParameter<K,V> implements Map.Entry<K,V> {
 
-    private Object key;
-    private Object value;
+    private K key;
+    private V value;
 
     /**
      * Creates a map entry with a given key and value.
@@ -38,7 +38,7 @@ public class MapEntryParameter implements Map.Entry {
      *
      * @param value is the value to use.
      */
-    public MapEntryParameter(Object key, Object value) {
+    public MapEntryParameter(K key, V value) {
 
         this.key = key;
         this.value = value;
@@ -81,7 +81,7 @@ public class MapEntryParameter implements Map.Entry {
      *
      * @return the key of this entry.
      */
-    public final Object getKey() {
+    public final K getKey() {
 
         return key;
     }
@@ -93,7 +93,7 @@ public class MapEntryParameter implements Map.Entry {
      *
      * @return the value of this entry.
      */
-    public final Object getValue() {
+    public final V getValue() {
 
         return value;
     }
@@ -102,12 +102,12 @@ public class MapEntryParameter implements Map.Entry {
      * Always throws <code>UnsupportedOperationException</code> since this
      * object is not attached to a map.
      */
-    public Object setValue(Object newValue) {
+    public V setValue(V newValue) {
 
         throw new UnsupportedOperationException();
     }
 
-    final void setValueInternal(Object newValue) {
+    final void setValueInternal(V newValue) {
 
         this.value = newValue;
     }
@@ -122,4 +122,3 @@ public class MapEntryParameter implements Map.Entry {
         return "[key [" + key + "] value [" + value + ']';
     }
 }
-

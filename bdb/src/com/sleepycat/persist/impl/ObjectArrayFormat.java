@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ObjectArrayFormat.java,v 1.23.2.2 2007/11/03 02:44:53 mark Exp $
+ * $Id: ObjectArrayFormat.java,v 1.27 2008/06/03 04:52:23 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -60,7 +60,7 @@ public class ObjectArrayFormat extends Format {
     @Override
     public Format getComponentType() {
         return (useComponentFormat != null) ?
-            useComponentFormat : componentFormat  ;
+            useComponentFormat : componentFormat;
     }
 
     @Override

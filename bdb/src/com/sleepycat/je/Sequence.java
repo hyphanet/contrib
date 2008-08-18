@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: Sequence.java,v 1.8.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: Sequence.java,v 1.15 2008/01/17 17:22:10 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -18,8 +18,9 @@ import com.sleepycat.je.txn.Locker;
 import com.sleepycat.je.txn.LockerFactory;
 
 /**
- * Javadoc for this public class is generated via
- * the doc templates in the doc_src directory.
+ * A Sequence handle is used to manipulate a sequence record in a
+ * database. Sequence handles are opened using the {@link
+ * com.sleepycat.je.Database#openSequence Database.openSequence} method.
  */
 public class Sequence {
 
@@ -31,7 +32,7 @@ public class Sequence {
     private static final int MAX_DATA_SIZE = 50;
 
     /* Version of the format for fields stored in the sequence record. */
-    private static final byte CURRENT_VERSION = 0;
+    private static final byte CURRENT_VERSION = 1;
 
     /* A sequence is a unique record in a database. */
     private Database db;
@@ -117,8 +118,12 @@ public class Sequence {
         OperationStatus status = OperationStatus.NOTFOUND;
         try {
             locker = LockerFactory.getWritableLocker
-                (db.getEnvironment(), txn, db.isTransactional(),
-                 false, autoCommitConfig);
+                (db.getEnvironment(),
+                 txn,
+                 db.isTransactional(),
+		 false,
+                 db.getDatabaseImpl().isReplicated(), // autoTxnIsReplicated
+                 autoCommitConfig);
 
             cursor = new Cursor(db, locker, null);
 
@@ -179,8 +184,12 @@ public class Sequence {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Closes a sequence.  Any unused cached values are lost.
+     *
+     * <p>The sequence handle may not be used again after this method has
+     * been called, regardless of the method's success or failure.</p>
+     *
+     * @throws DatabaseException if a failure occurs.
      */
     public void close()
         throws DatabaseException {
@@ -189,12 +198,35 @@ public class Sequence {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the next available element in the sequence and changes the
+     * sequence value by <code>delta</code>.  The value of <code>delta</code>
+     * must be greater than zero.  If there are enough cached values in the
+     * sequence handle then they will be returned.  Otherwise the next value
+     * will be fetched from the database and incremented (decremented) by
+     * enough to cover the <code>delta</code> and the next batch of cached
+     * values.
      *
-     * <p>This method is synchronized to protect updating of the cached value,
-     * since multiple threads may share a single handle.  Multiple handles
-     * for the same database/key may be used to increase concurrency.</p>
+     * This method is synchronized to protect updating of the cached value,
+     * since multiple threads may share a single handle.  Multiple handles for
+     * the same database/key may be used to increase concurrency.</p>
+     *
+     * <p>The <code>txn</code> handle must be null if the sequence handle was
+     * opened with a non-zero cache size.</p>
+     *
+     * <p>For maximum concurrency, a non-zero cache size should be specified
+     * prior to opening the sequence handle, the <code>txn</code> handle should
+     * be <code>null</code>, and {@link
+     * com.sleepycat.je.SequenceConfig#setAutoCommitNoSync
+     * SequenceConfig.setAutoCommitNoSync} should be called to disable log
+     * flushes.</p>
+     *
+     * @param txn For a transactional database, an explicit transaction may be
+     * specified, or null may be specified to use auto-commit.  For a
+     * non-transactional database, null must be specified.
+     *
+     * @param delta the amount by which to increment or decrement the sequence
+     *
+     * @return the next available element in the sequence
      */
     public synchronized long get(Transaction txn, int delta)
         throws DatabaseException {
@@ -236,8 +268,13 @@ public class Sequence {
             OperationStatus status = OperationStatus.NOTFOUND;
             try {
                 locker = LockerFactory.getWritableLocker
-                    (db.getEnvironment(), txn, db.isTransactional(),
-                     false, autoCommitConfig);
+                    (db.getEnvironment(),
+                     txn,
+                     db.isTransactional(),
+                     false,                  // retainNonTxnLocks
+                     db.getDatabaseImpl().isReplicated(),
+                                             // autoTxnIsReplicated
+                     autoCommitConfig);
 
                 cursor = new Cursor(db, locker, null);
 
@@ -344,8 +381,9 @@ public class Sequence {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the Database handle associated with this sequence.
+     *
+     * @return The Database handle associated with this sequence.
      */
     public Database getDatabase()
         throws DatabaseException {
@@ -354,8 +392,9 @@ public class Sequence {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the DatabaseEntry used to open this sequence.
+     *
+     * @return The DatabaseEntry used to open this sequence.
      */
     public DatabaseEntry getKey()
         throws DatabaseException {
@@ -364,8 +403,20 @@ public class Sequence {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns statistical information about the sequence.
+     *
+     * <p>In the presence of multiple threads or processes accessing an active
+     * sequence, the information returned by this method may be
+     * out-of-date.</p>
+     *
+     * <p>The getStats method cannot be transaction-protected. For this reason,
+     * it should be called in a thread of control that has no open cursors or
+     * active transactions.</p>
+     *
+     * @param config The statistics returned; if null, default statistics are
+     * returned.
+     *
+     * @return Sequence statistics.
      */
     public SequenceStats getStats(StatsConfig config)
         throws DatabaseException {
@@ -408,8 +459,8 @@ public class Sequence {
     }
 
     /**
-     * Reads persistent fields from the sequence record.
-     * Throws an exception if the key is not present in the database.
+     * Reads persistent fields from the sequence record.  Throws an exception
+     * if the key is not present in the database.
      */
     private void readDataRequired(Cursor cursor, LockMode lockMode)
         throws DatabaseException {
@@ -421,8 +472,8 @@ public class Sequence {
     }
 
     /**
-     * Reads persistent fields from the sequence record.
-     * Returns false if the key is not present in the database.
+     * Reads persistent fields from the sequence record.  Returns false if the
+     * key is not present in the database.
      */
     private boolean readData(Cursor cursor, LockMode lockMode)
         throws DatabaseException {
@@ -436,11 +487,12 @@ public class Sequence {
         ByteBuffer buf = ByteBuffer.wrap(data.getData());
 
         /* Get the persistent fields from the record data. */
-        byte ignoreVersionForNow = buf.get();
+        byte version = buf.get();
         byte flags = buf.get();
-        rangeMin = LogUtils.readLong(buf);
-        rangeMax = LogUtils.readLong(buf);
-        storedValue = LogUtils.readLong(buf);
+        boolean unpacked = (version < 1);
+        rangeMin = LogUtils.readLong(buf, unpacked);
+        rangeMax = LogUtils.readLong(buf, unpacked);
+        storedValue = LogUtils.readLong(buf, unpacked);
 
         increment = (flags & FLAG_INCR) != 0;
         wrapAllowed = (flags & FLAG_WRAP) != 0;
@@ -470,9 +522,9 @@ public class Sequence {
 
         buf.put(CURRENT_VERSION);
         buf.put(flags);
-        LogUtils.writeLong(buf, rangeMin);
-        LogUtils.writeLong(buf, rangeMax);
-        LogUtils.writeLong(buf, storedValue);
+        LogUtils.writePackedLong(buf, rangeMin);
+        LogUtils.writePackedLong(buf, rangeMax);
+        LogUtils.writePackedLong(buf, storedValue);
 
         return new DatabaseEntry(data, 0, buf.position());
     }

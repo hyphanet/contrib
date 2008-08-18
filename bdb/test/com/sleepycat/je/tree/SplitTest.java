@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SplitTest.java,v 1.23.2.3 2007/11/20 13:32:50 cwl Exp $
+ * $Id: SplitTest.java,v 1.29 2008/02/07 17:23:20 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -39,12 +39,14 @@ public class SplitTest extends TestCase {
 
     public void setUp()
         throws Exception {
+
         TestUtils.removeLogFiles("Setup", envHome, false);
         initEnv();
     }
 
     public void tearDown()
         throws Exception {
+
         try {
             db.close();
             env.close();
@@ -84,13 +86,15 @@ public class SplitTest extends TestCase {
             for (int i = 160; i > 0; i-= 10) {
                 assertEquals(OperationStatus.SUCCESS,
                              db.put(null, new DatabaseEntry
-				 (new byte[] {(byte)i }),
+				 (new byte[] { (byte) i }),
                                     new DatabaseEntry(new byte[] {1})));
             }
+
             if (DEBUG) {
                 System.out.println("<dump>");
                 DbInternal.dbGetDatabaseImpl(db).getTree().dump();
             }
+
             assertEquals(OperationStatus.SUCCESS,
                          db.put(null, new DatabaseEntry(new byte[]{(byte)151}),
                                 new DatabaseEntry(new byte[] {1})));
@@ -229,7 +233,7 @@ public class SplitTest extends TestCase {
             DatabaseEntry data = new DatabaseEntry();
             assertEquals(OperationStatus.SUCCESS,
                          db.get(null, new DatabaseEntry(new byte[]
-			     { (byte)140 }),
+			     { (byte) 140 }),
                                 data, LockMode.DEFAULT));
 
         } catch (Throwable t) {

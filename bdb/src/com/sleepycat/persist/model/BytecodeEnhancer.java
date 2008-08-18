@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BytecodeEnhancer.java,v 1.11.2.2 2007/11/20 13:32:39 cwl Exp $
+ * $Id: BytecodeEnhancer.java,v 1.16 2008/05/30 14:04:18 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -89,6 +89,7 @@ import com.sleepycat.asm.Type;
 class BytecodeEnhancer extends ClassAdapter {
 
     /** Thrown when we determine that a class is not persistent. */
+    @SuppressWarnings("serial")
     static class NotPersistentException extends RuntimeException {}
 
     /** A static instance is used to avoid fillInStaceTrace overhead. */

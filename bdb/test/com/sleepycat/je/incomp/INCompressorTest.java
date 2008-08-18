@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INCompressorTest.java,v 1.15.2.2 2007/11/20 13:32:44 cwl Exp $
+ * $Id: INCompressorTest.java,v 1.20 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -13,6 +13,7 @@ import java.io.IOException;
 
 import junit.framework.TestCase;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
@@ -64,17 +65,12 @@ import com.sleepycat.je.util.TestUtils;
  * is worthwhile to try to reproduce it.</p>
  */
 public class INCompressorTest extends TestCase {
-    private static final boolean DEBUG = false;
-    private static final int NUM_RECS = 257;
-
     private File envHome;
     private Environment env;
     private Database db;
     private IN in;
     private BIN bin;
     private DBIN dbin;
-    private boolean hasDups;
-
     /* Use high keys since we fill the first BIN with low keys. */
     private DatabaseEntry entry0 = new DatabaseEntry(new byte[] {0});
     private DatabaseEntry entry1 = new DatabaseEntry(new byte[] {1});
@@ -879,10 +875,9 @@ public class INCompressorTest extends TestCase {
 
         /* Find the IN parent of the BIN. */
         bin.latch();
-        in = DbInternal.dbGetDatabaseImpl(db)
-                       .getTree()
-                       .getParentINForChildIN(bin, true, true)
-                       .parent;
+        in = DbInternal.dbGetDatabaseImpl(db).
+            getTree().getParentINForChildIN(bin, true, CacheMode.DEFAULT).
+            parent;
         assertNotNull(in);
         in.releaseLatch();
     }
@@ -892,8 +887,6 @@ public class INCompressorTest extends TestCase {
      */
     private void openEnv(boolean transactional, boolean dups, String nodeMax)
         throws DatabaseException {
-
-        hasDups = dups;
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setTransactional(transactional);

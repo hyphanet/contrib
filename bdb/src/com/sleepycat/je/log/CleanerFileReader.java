@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CleanerFileReader.java,v 1.34.2.3 2007/11/20 13:32:31 cwl Exp $
+ * $Id: CleanerFileReader.java,v 1.42 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -32,7 +32,7 @@ public class CleanerFileReader extends FileReader {
     private static final byte IS_ROOT = 2;
     private static final byte IS_FILEHEADER = 3;
 
-    private Map targetEntryMap;
+    private Map<LogEntryType, EntryInfo> targetEntryMap;
     private LogEntry targetLogEntry;
     private byte targetCategory;
 
@@ -57,7 +57,7 @@ public class CleanerFileReader extends FileReader {
               DbLsn.NULL_LSN,           // endOfFileLsn
               DbLsn.NULL_LSN);          // finishLsn
 
-        targetEntryMap = new HashMap();
+        targetEntryMap = new HashMap<LogEntryType, EntryInfo>();
 
         addTargetType(IS_LN, LogEntryType.LOG_LN_TRANSACTIONAL);
         addTargetType(IS_LN, LogEntryType.LOG_LN);
@@ -83,7 +83,7 @@ public class CleanerFileReader extends FileReader {
 
         targetEntryMap.put(entryType,
                            new EntryInfo(entryType.getNewLogEntry(),
-					 category));
+                                         category));
     }
 
     /**
@@ -114,14 +114,13 @@ public class CleanerFileReader extends FileReader {
     /**
      * @return true if this is a type we're interested in.
      */
-    protected boolean isTargetEntry(byte entryTypeNum,
-                                    byte entryTypeVersion) {
+    protected boolean isTargetEntry() {
 
-        LogEntryType fromLogType = new LogEntryType(entryTypeNum,
-						    entryTypeVersion);
+        LogEntryType fromLogType =
+            new LogEntryType(currentEntryHeader.getType());
 
         /* Is it a target entry? */
-        EntryInfo info = (EntryInfo) targetEntryMap.get(fromLogType);
+        EntryInfo info = targetEntryMap.get(fromLogType);
         if (info == null) {
             return false;
         } else {
@@ -137,7 +136,8 @@ public class CleanerFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        readEntry(targetLogEntry, entryBuffer, true); // readFullItem
+        targetLogEntry.readEntry
+            (currentEntryHeader, entryBuffer, true); // readFullItem
         return true;
     }
 
@@ -197,7 +197,7 @@ public class CleanerFileReader extends FileReader {
         } else if (targetCategory == IS_IN) {
             return ((INLogEntry) targetLogEntry).getDbId();
         } else {
-	    return null;
+            return null;
         }
     }
 

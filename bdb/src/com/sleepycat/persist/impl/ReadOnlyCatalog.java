@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ReadOnlyCatalog.java,v 1.8.2.2 2007/11/19 18:48:12 mark Exp $
+ * $Id: ReadOnlyCatalog.java,v 1.12 2008/03/18 18:38:08 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -52,7 +52,7 @@ class ReadOnlyCatalog implements Catalog {
         }
     }
 
-    public Format getFormat(Class cls) {
+    public Format getFormat(Class cls, boolean openEntitySubclassIndexes) {
         Format format = formatMap.get(cls.getName());
         if (format == null) {
             throw new IllegalArgumentException

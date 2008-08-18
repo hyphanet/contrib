@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LatchTable.java,v 1.10.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: LatchTable.java,v 1.17 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -11,7 +11,6 @@ package com.sleepycat.je.latch;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -21,26 +20,25 @@ import java.util.WeakHashMap;
  */
 class LatchTable {
 
-    private String tableName;
-    private Map latchesByThread;
+    private Map<Thread,Set<Object>> latchesByThread;
 
-    LatchTable(String tableName) {
+    LatchTable() {
 
-        this.tableName = tableName;
-        latchesByThread = Collections.synchronizedMap(new WeakHashMap());
+        latchesByThread = Collections.synchronizedMap
+            (new WeakHashMap<Thread, Set<Object>>());
     }
 
     /**
      * Only call under the assert system. This records latching by thread.
      */
     boolean noteLatch(Object latch)
-	throws LatchException {
+        throws LatchException {
 
         Thread cur = Thread.currentThread();
 
-        Set threadLatches = (Set) latchesByThread.get(cur);
+        Set<Object> threadLatches = latchesByThread.get(cur);
         if (threadLatches == null) {
-            threadLatches = new HashSet();
+            threadLatches = new HashSet<Object>();
             latchesByThread.put(cur, threadLatches);
         }
         threadLatches.add(latch);
@@ -55,7 +53,7 @@ class LatchTable {
 
         Thread cur = Thread.currentThread();
 
-        Set threadLatches = (Set) latchesByThread.get(cur);
+        Set<Object> threadLatches = latchesByThread.get(cur);
 
         if (threadLatches == null) {
             return false;
@@ -70,7 +68,7 @@ class LatchTable {
     int countLatchesHeld() {
 
         Thread cur = Thread.currentThread();
-        Set threadLatches = (Set) latchesByThread.get(cur);
+        Set<Object> threadLatches = latchesByThread.get(cur);
         if (threadLatches != null) {
             return threadLatches.size();
         } else {
@@ -81,10 +79,10 @@ class LatchTable {
     String latchesHeldToString() {
 
         Thread cur = Thread.currentThread();
-        Set threadLatches = (Set) latchesByThread.get(cur);
-        StringBuffer sb = new StringBuffer();
+        Set<Object> threadLatches = latchesByThread.get(cur);
+        StringBuilder sb = new StringBuilder();
         if (threadLatches != null) {
-            Iterator i = threadLatches.iterator();
+            Iterator<Object> i = threadLatches.iterator();
             while (i.hasNext()) {
                 sb.append(i.next()).append('\n');
             }
@@ -95,40 +93,4 @@ class LatchTable {
     void clearNotes() {
         latchesByThread.clear();
     }
-
-    /**
-     * For concocting exception messages.
-     */
-    String getNameString(String name) {
-
-	StringBuffer sb = new StringBuffer(tableName);
-	if (name != null) {
-	    sb.append("(").append(name).append(")");
-	}
-        return sb.toString();
-    }
-
-    /**
-     * Formats a latch owner and waiters.
-     */
-    String toString(String name, Object owner, List waiters, int startIndex) {
-
-        /* Assume the caller does synchronization.  */
-	StringBuffer sb = new StringBuffer();
-	sb.append("<LATCH ");
-        if (name != null) {
-            sb.append("[name: ").append(name).append("] ");
-        }
-        sb.append("[owner: ").append(owner).append("]");
-        if (waiters != null && waiters.size() > startIndex) {
-            sb.append(" [waiters: ");
-            for (int i = startIndex; i < waiters.size(); i++) {
-                sb.append(waiters.get(i)).append(" ");
-            }
-            sb.append("]");
-        }
-	sb.append(">");
-	return sb.toString();
-    }
 }
-

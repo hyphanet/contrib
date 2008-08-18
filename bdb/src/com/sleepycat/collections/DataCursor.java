@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: DataCursor.java,v 1.60.2.2 2007/11/20 13:32:25 cwl Exp $
+ * $Id: DataCursor.java,v 1.63 2008/01/07 14:28:44 cwl Exp $
  */
 
 package com.sleepycat.collections;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EntityInput.java,v 1.16.2.2 2007/11/20 13:32:39 cwl Exp $
+ * $Id: EntityInput.java,v 1.19 2008/01/07 14:28:59 cwl Exp $
  */
 
 package com.sleepycat.persist.impl;

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INDeleteInfo.java,v 1.31.2.2 2007/11/20 13:32:35 cwl Exp $
+ * $Id: INDeleteInfo.java,v 1.40 2008/01/17 17:22:14 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -18,6 +18,7 @@ import com.sleepycat.je.log.LogException;
 import com.sleepycat.je.log.LogManager;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.log.Loggable;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.SingleItemEntry;
 
 /**
@@ -70,9 +71,11 @@ public class INDeleteInfo implements Loggable {
                             DatabaseImpl dbImpl)
         throws DatabaseException {
 
-        if (!dbImpl.isDeferredWrite()) {
-            logManager.log(new SingleItemEntry(LogEntryType.LOG_IN_DELETE_INFO,
-                                               this));
+        if (!dbImpl.isDeferredWriteMode()) {
+            logManager.log
+                (new SingleItemEntry(LogEntryType.LOG_IN_DELETE_INFO,
+                                     this),
+                 ReplicationContext.NO_REPLICATE);
         }
     }
 
@@ -80,7 +83,7 @@ public class INDeleteInfo implements Loggable {
      * @see Loggable#getLogSize
      */
     public int getLogSize() {
-        return LogUtils.LONG_BYTES +
+        return LogUtils.getPackedLongLogSize(deletedNodeId) +
             LogUtils.getByteArrayLogSize(deletedIdKey) +
             dbId.getLogSize();
     }
@@ -90,7 +93,7 @@ public class INDeleteInfo implements Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
 
-        LogUtils.writeLong(logBuffer, deletedNodeId);
+        LogUtils.writePackedLong(logBuffer, deletedNodeId);
         LogUtils.writeByteArray(logBuffer, deletedIdKey);
         dbId.writeToLog(logBuffer);
     }
@@ -98,12 +101,13 @@ public class INDeleteInfo implements Loggable {
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
 	throws LogException {
 
-        deletedNodeId = LogUtils.readLong(itemBuffer);
-        deletedIdKey = LogUtils.readByteArray(itemBuffer);
-        dbId.readFromLog(itemBuffer, entryTypeVersion);
+        boolean unpacked = (entryVersion < 6);
+        deletedNodeId = LogUtils.readLong(itemBuffer, unpacked);
+        deletedIdKey = LogUtils.readByteArray(itemBuffer, unpacked);
+        dbId.readFromLog(itemBuffer, entryVersion);
     }
 
     /**
@@ -122,5 +126,13 @@ public class INDeleteInfo implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 }

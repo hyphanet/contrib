@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INLogEntry.java,v 1.37.2.2 2007/11/20 13:32:32 cwl Exp $
+ * $Id: INLogEntry.java,v 1.49 2008/03/10 19:59:19 linda Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -14,7 +14,6 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogEntryHeader;
-import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.LogUtils;
 import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.utilint.DbLsn;
@@ -52,11 +51,10 @@ public class INLogEntry extends BaseEntry
      */
     private long nodeId;
 
-
     /**
      * Construct a log entry for reading.
      */
-    public INLogEntry(Class INClass) {
+    public INLogEntry(Class<? extends IN> INClass) {
         super(INClass);
     }
 
@@ -83,43 +81,60 @@ public class INLogEntry extends BaseEntry
                           boolean readFullItem)
         throws DatabaseException {
 
-        byte entryTypeVersion = LogEntryType.getVersionValue(header.getVersion());
+        byte logVersion = header.getVersion();
+        boolean version6OrLater = (logVersion >= 6);
         try {
+            if (version6OrLater) {
+                dbId = new DatabaseId();
+                dbId.readFromLog(entryBuffer, logVersion);
+                obsoleteLsn =
+                    LogUtils.readLong(entryBuffer, false/*unpacked*/);
+            }
             if (readFullItem) {
                 /* Read IN and get node ID. */
                 in = (IN) logClass.newInstance();
-                in.readFromLog(entryBuffer, entryTypeVersion);
+                in.readFromLog(entryBuffer, logVersion);
                 nodeId = in.getNodeId();
             } else {
                 /* Calculate position following IN. */
                 int position = entryBuffer.position() + header.getItemSize();
-                if (entryTypeVersion == 1) {
-                    /* Subtract size of obsoleteFile */
-                    position -= LogUtils.UNSIGNED_INT_BYTES;
-                } else if (entryTypeVersion >= 2) {
+                if (logVersion == 1) {
                     /* Subtract size of obsoleteLsn */
-                    position -= LogUtils.LONG_BYTES;
+                    position -= LogUtils.UNSIGNED_INT_BYTES;
+                } else if (logVersion >= 2) {
+                    /* Subtract size of obsoleteLsn */
+                    if (version6OrLater) {
+                        position -= LogUtils.getPackedLongLogSize(obsoleteLsn);
+                    } else {
+                        position -= LogUtils.LONG_BYTES;
+                    }
                 }
                 /* Subtract size of dbId */
-                position -= LogUtils.INT_BYTES;
+                if (!version6OrLater) {
+                    position -= LogUtils.INT_BYTES;
+                } else {
+                    position -= LogUtils.getPackedIntLogSize(dbId.getId());
+                }
                 /* Read node ID and position after IN. */
-                nodeId = LogUtils.readLong(entryBuffer);
+                nodeId = LogUtils.readLong(entryBuffer, !version6OrLater);
                 entryBuffer.position(position);
                 in = null;
             }
-            dbId = new DatabaseId();
-            dbId.readFromLog(entryBuffer, entryTypeVersion);
-            if (entryTypeVersion < 1) {
+            if (!version6OrLater) {
+                dbId = new DatabaseId();
+                dbId.readFromLog(entryBuffer, logVersion);
+            }
+            if (logVersion < 1) {
                 obsoleteLsn = DbLsn.NULL_LSN;
-            } else if (entryTypeVersion == 1) {
-                long fileNum = LogUtils.getUnsignedInt(entryBuffer);
+            } else if (logVersion == 1) {
+                long fileNum = LogUtils.readUnsignedInt(entryBuffer);
                 if (fileNum == 0xffffffffL) {
                     obsoleteLsn = DbLsn.NULL_LSN;
                 } else {
                     obsoleteLsn = DbLsn.makeLsn(fileNum, 0);
                 }
-            } else {
-                obsoleteLsn = LogUtils.readLong(entryBuffer);
+            } else if (!version6OrLater) {
+                obsoleteLsn = LogUtils.readLong(entryBuffer, true/*unpacked*/);
             }
         } catch (IllegalAccessException e) {
             throw new DatabaseException(e);
@@ -176,7 +191,7 @@ public class INLogEntry extends BaseEntry
     public int getSize() {
         return (in.getLogSize() +
 		dbId.getLogSize() +
-                LogUtils.LONG_BYTES);
+                LogUtils.getPackedLongLogSize(obsoleteLsn));
     }
 
     /**
@@ -184,9 +199,9 @@ public class INLogEntry extends BaseEntry
      */
     public void writeEntry(LogEntryHeader header,
                            ByteBuffer destBuffer) {
-        in.writeToLog(destBuffer);
         dbId.writeToLog(destBuffer);
-        LogUtils.writeLong(destBuffer, obsoleteLsn);
+        LogUtils.writePackedLong(destBuffer, obsoleteLsn);
+        in.writeToLog(destBuffer);
     }
 
     /*
@@ -220,5 +235,15 @@ public class INLogEntry extends BaseEntry
      */
     public long getLsnOfIN(long lastReadLsn) {
         return lastReadLsn;
+    }
+
+    /**
+     * @see LogEntry#logicalEquals
+     *
+     * INs from two different environments are never considered equal,
+     * because they have lsns that are environment-specific.
+     */
+    public boolean logicalEquals(LogEntry other) {
+        return false;
     }
 }

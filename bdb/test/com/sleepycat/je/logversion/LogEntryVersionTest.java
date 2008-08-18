@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogEntryVersionTest.java,v 1.12.2.3 2007/11/20 13:32:47 cwl Exp $
+ * $Id: LogEntryVersionTest.java,v 1.23 2008/05/30 14:04:21 mark Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -25,8 +25,11 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.VerifyConfig;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.log.TestUtilLogReader;
+import com.sleepycat.je.log.entry.LNLogEntry;
+import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.util.TestUtils;
 
 /**
@@ -44,6 +47,7 @@ public class LogEntryVersionTest extends TestCase {
     private Environment env;
     private Database db1;
     private Database db2;
+    private Database db3;
 
     public LogEntryVersionTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
@@ -68,10 +72,8 @@ public class LogEntryVersionTest extends TestCase {
         }
 
         try {
-            //*
             TestUtils.removeLogFiles("tearDown", envHome, true);
             TestUtils.removeFiles("tearDown", envHome, FileManager.DEL_SUFFIX);
-            //*/
         } catch (Throwable e) {
             System.out.println("tearDown: " + e);
         }
@@ -149,12 +151,13 @@ public class LogEntryVersionTest extends TestCase {
     }
 
     /**
-     * JE 3.2.22: FileHeader version 5.
+     * JE 3.2.79: FileHeader version 5. Version 5 was actually introduced in
+     * 3.2.22
      */
-    public void test_3_2_22()
+    public void test_3_2_79()
         throws DatabaseException, IOException {
 
-        doTest("3.2.22");
+        doTest("3.2.79");
     }
 
     private void doTest(String jeVersion)
@@ -192,29 +195,92 @@ public class LogEntryVersionTest extends TestCase {
             cursor.close();
         }
 
-        /* Verify log entry types. */
+        /*
+         * Database 3 should have one record (99,79) that was explicitly
+         * committed. We only added this commit record and test case when
+         * implementing JE 3.3, and only went to the trouble of backporting the
+         * MakeLogEntryVersionData to file version 5. (It's just an additional
+         * test, it should be fine for earlier versions.
+         */
+        if (!((jeVersion.startsWith("1")) ||
+              (jeVersion.startsWith("2")) ||
+              (jeVersion.startsWith("3.1")))) {
+            DatabaseConfig dbConfig = new DatabaseConfig();
+            dbConfig.setReadOnly(true);
+            Database db3 = env.openDatabase(null, Utils.DB3_NAME, dbConfig);
+
+            cursor = db3.openCursor(null, null);
+            try {
+                status = cursor.getFirst(key, data, null);
+                assertEquals(OperationStatus.SUCCESS, status);
+                assertEquals(99, Utils.value(key));
+                assertEquals(79, Utils.value(data));
+                status = cursor.getNext(key, data, null);
+                assertEquals(OperationStatus.NOTFOUND, status);
+            } finally {
+                cursor.close();
+                db3.close();
+            }
+        }
+
+        /* 
+         * Verify log entry types using a log reader. Read both full and
+         * partial items. 
+         */
         String resName = "je-" + jeVersion + ".txt";
         LineNumberReader textReader = new LineNumberReader
             (new InputStreamReader(getClass().getResourceAsStream(resName)));
-        TestUtilLogReader logReader = new TestUtilLogReader
-            (DbInternal.envGetEnvironmentImpl(env));
-        while (logReader.readNextEntry()) {
-            String foundType = logReader.getEntryType().toString();
-            String expectedType = textReader.readLine();
-            assertNotNull
-                ("No more expected types after line " +
-                 textReader.getLineNumber() + " but found: " + foundType,
-                 expectedType);
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        TestUtilLogReader fullLogReader = 
+            new TestUtilLogReader(envImpl, true /* readFullItem */);
+        TestUtilLogReader partialLogReader = 
+            new TestUtilLogReader(envImpl, false /* readFullItem */);
+
+        String expectedType = textReader.readLine();
+        while (expectedType != null) {
+        	/* Read the full item. */
+            assertTrue(fullLogReader.readNextEntry());
+            String foundType = fullLogReader.getEntryType().toString();
             assertEquals
                 ("At line " + textReader.getLineNumber(),
                  expectedType.substring(0, expectedType.indexOf('/')),
-                 foundType.substring(0, foundType.indexOf('/')));
+                 foundType);
+            
+            /*
+             * Read a partial item to mimic recovery. So far, partial reads are
+             * only used for LNLogEntries, and must provide the node id,
+             * database id (the database this node is a part of) and the txn id
+             */
+            assertTrue(partialLogReader.readNextEntry());
+            foundType = partialLogReader.getEntryType().toString();
+
+            LogEntry entry = partialLogReader.getEntry();
+            if (entry instanceof LNLogEntry) {
+                assertTrue(((LNLogEntry) entry).getDbId() != null);
+                assertTrue(((LNLogEntry) entry).getNodeId() >= 0);
+
+                /* 
+                 * Sometimes the txnId is null -- just make sure we 
+                 * don't get NullPointerException.
+                 */
+                @SuppressWarnings("unused")
+                Long txnId = ((LNLogEntry) entry).getTxnId();
+            }
+
+            assertEquals
+                ("At line " + textReader.getLineNumber(),
+                 expectedType.substring(0, expectedType.indexOf('/')),
+                 foundType);
+                 
+            expectedType = textReader.readLine();
         }
-        String remainingLine = textReader.readLine();
-        assertNull
-            ("Another expected type at line " +
-             textReader.getLineNumber() + " but no more found",
-             remainingLine);
+        assertTrue("This test should be sure to read some lines",
+        			textReader.getLineNumber() > 0);
+        assertFalse("No more expected entries after line " +
+                   	textReader.getLineNumber() + " but found: " + 
+                   	fullLogReader.getEntry(),
+                   	fullLogReader.readNextEntry());
+
 
         assertTrue(env.verify(verifyConfig, System.err));
         closeEnv();

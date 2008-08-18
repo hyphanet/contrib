@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnFSyncTest.java,v 1.10.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: TxnFSyncTest.java,v 1.15 2008/02/05 23:28:27 mark Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -22,8 +22,8 @@ import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbEnvPool;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.test.TxnTestCase;
 import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.util.test.TxnTestCase;
 
 /*
  * Make sure that transactions sync to disk. Mimic a crash by failing to
@@ -55,8 +55,8 @@ public class TxnFSyncTest extends TxnTestCase {
         /* Run these tests with user and autocommit txns. */
         return txnTestSuite(TxnFSyncTest.class,
                             envConfig,
-                            new String [] {TxnTestCase.TXN_USER,
-                                           TxnTestCase.TXN_AUTO});
+                            new String[] {TxnTestCase.TXN_USER,
+                                          TxnTestCase.TXN_AUTO});
     }
 
     public void testFSyncButNoClose()

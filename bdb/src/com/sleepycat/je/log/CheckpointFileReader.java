@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckpointFileReader.java,v 1.26.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: CheckpointFileReader.java,v 1.31 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -41,22 +41,20 @@ public class CheckpointFileReader extends FileReader {
     /**
      * @return true if this is a targetted entry.
      */
-    protected boolean isTargetEntry(byte logEntryTypeNumber,
-                                    byte logEntryTypeVersion) {
+    protected boolean isTargetEntry() {
+        byte logEntryTypeNumber = currentEntryHeader.getType();
         boolean isTarget = false;
         isRoot = false;
         isCheckpointEnd = false;
         isCheckpointStart = false;
-        if (LogEntryType.LOG_CKPT_END.equalsType(logEntryTypeNumber,
-						 logEntryTypeVersion)) {
+        if (LogEntryType.LOG_CKPT_END.equalsType(logEntryTypeNumber)) {
             isTarget = true;
             isCheckpointEnd = true;
-        } else if (LogEntryType.LOG_CKPT_START.equalsType(logEntryTypeNumber,
-                                                        logEntryTypeVersion)) {
+        } else if (LogEntryType.LOG_CKPT_START.equalsType
+            (logEntryTypeNumber)) {
             isTarget = true;
             isCheckpointStart = true;
-        } else if (LogEntryType.LOG_ROOT.equalsType(logEntryTypeNumber,
-						    logEntryTypeVersion)) {
+        } else if (LogEntryType.LOG_ROOT.equalsType(logEntryTypeNumber)) {
             isTarget = true;
             isRoot = true;
         }

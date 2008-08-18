@@ -1,17 +1,18 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentParamsTest.java,v 1.8.2.2 2007/11/20 13:32:43 cwl Exp $
+ * $Id: EnvironmentParamsTest.java,v 1.14 2008/05/30 19:07:42 mark Exp $
  */
 
 package com.sleepycat.je.config;
 
 import junit.framework.TestCase;
 
-public class EnvironmentParamsTest extends TestCase {
+import com.sleepycat.je.EnvironmentConfig;
 
+public class EnvironmentParamsTest extends TestCase {
 
     private IntConfigParam intParam =
         new IntConfigParam("param.int",
@@ -19,8 +20,7 @@ public class EnvironmentParamsTest extends TestCase {
 			   new Integer(10),
 			   new Integer(5),
                            false, // mutable
-			   false, // for replication
-			   "test int param");
+			   false);// for replication
 
     private LongConfigParam longParam =
         new LongConfigParam("param.long",
@@ -28,20 +28,22 @@ public class EnvironmentParamsTest extends TestCase {
 			    new Long(10),
 			    new Long(5),
                             false, // mutable
-			    false, // for replication
-			    "test long param");
+			    false);// for replication
 
+    private ConfigParam mvParam =
+	new ConfigParam("some.mv.param.#", null, true /* mutable */,
+			false /* for replication */);
 
     /**
-     * Test param validation
+     * Test param validation.
      */
     public void testValidation() {
+	assertTrue(mvParam.isMultiValueParam());
+
         try {
-            ConfigParam param = new ConfigParam(null,
-                                                "foo",
-                                                false, // mutable
-                                                false, // for replication
-                                                "foo param");
+            ConfigParam param =
+		new ConfigParam(null, "foo", false /* mutable */,
+				false /* for replication */);
             fail("should disallow null name");
         } catch (IllegalArgumentException e) {
             // expected.
@@ -52,6 +54,20 @@ public class EnvironmentParamsTest extends TestCase {
         checkValidateParam(intParam, "11");
         checkValidateParam(longParam, "1");
         checkValidateParam(longParam, "11");
+    }
+
+    /**
+     * Check that an invalid parameter isn't mistaken for a multivalue
+     * param.
+     */
+    public void testInvalidVsMultiValue() {
+	try {
+	    EnvironmentConfig envConfig = new EnvironmentConfig();
+	    envConfig.setConfigParam("je.maxMemory.stuff", "true");
+            fail("Should throw exception");
+	} catch (IllegalArgumentException IAE) {
+	    // expected
+	}
     }
 
     /* Helper to catch expected exceptions */

@@ -1,19 +1,26 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: SR13061Test.java,v 1.4.2.1 2007/02/01 14:50:06 cwl Exp $
+ * $Id: SR13061Test.java,v 1.8 2008/01/07 14:29:05 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
+
+import java.io.File;
+import java.io.IOException;
 
 import junit.framework.TestCase;
 
 import com.sleepycat.bind.tuple.TupleOutput;
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.cleaner.FileSummary;
+import com.sleepycat.je.DbInternal;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.tree.FileSummaryLN;
+import com.sleepycat.je.util.TestUtils;
 
 /**
  * Tests that a FileSummaryLN with an old style string key can be read.  When
@@ -25,13 +32,51 @@ import com.sleepycat.je.tree.FileSummaryLN;
  */
 public class SR13061Test extends TestCase {
 
+    private File envHome;
+    private Environment env;
+
     public SR13061Test() {
+        envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
+
+    public void setUp()
+        throws IOException, DatabaseException {
+
+        TestUtils.removeLogFiles("Setup", envHome, false);
+        TestUtils.removeFiles("Setup", envHome, FileManager.DEL_SUFFIX);
+    }
+
+    public void tearDown()
+        throws IOException, DatabaseException {
+
+        try {
+            if (env != null) {
+                //env.close();
+            }
+        } catch (Throwable e) {
+            System.out.println("tearDown: " + e);
+        }
+
+        try {
+            TestUtils.removeLogFiles("tearDown", envHome, true);
+        } catch (Throwable e) {
+            System.out.println("tearDown: " + e);
+        }
+
+        env = null;
+    }
+
 
     public void testSR13061()
 	throws DatabaseException {
 
-        FileSummaryLN ln = new FileSummaryLN(new FileSummary());
+        EnvironmentConfig envConfig = new EnvironmentConfig();
+        envConfig.setAllowCreate(true);
+        env = new Environment(envHome, envConfig);
+
+        FileSummaryLN ln =
+            new FileSummaryLN(DbInternal.envGetEnvironmentImpl(env),
+                              new FileSummary());
 
         /*
          * All of these tests failed before checking that the byte array must

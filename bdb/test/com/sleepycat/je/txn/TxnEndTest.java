@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnEndTest.java,v 1.67.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: TxnEndTest.java,v 1.73 2008/05/15 09:44:35 chao Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -11,6 +11,7 @@ package com.sleepycat.je.txn;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 
 import junit.framework.TestCase;
 
@@ -294,7 +295,7 @@ public class TxnEndTest extends TestCase {
              * with the entries.
              */
             EnvironmentStats envStat = env.getStats(TestUtils.FAST_STATS);
-            int queueSize = envStat.getInCompQueueSize();
+            long queueSize = envStat.getInCompQueueSize();
             assertTrue(queueSize > 0);
 
             // Modify data, abort, check that data is unchanged
@@ -476,6 +477,47 @@ public class TxnEndTest extends TestCase {
             int initialCommits = 1; // 1 commits for adding UP database
             assertEquals(initialCommits, stats.getNCommits());
 
+	    long locale = new Date().getTime();
+	    TransactionStats.Active[] at = new TransactionStats.Active[4];
+	
+	    for(int i = 0; i < 4; i++) {
+                at[i] = new TransactionStats.Active("TransactionStatForTest",
+			                     	    i, i - 1);
+	    }
+
+	    stats.setActiveTxns(at);
+	    stats.setLastCheckpointTime(locale);
+	    stats.setLastTxnId(3);
+	    stats.setNAborts(12);
+	    stats.setNXAAborts(15);
+	    stats.setNActive(20);
+	    stats.setNBegins(25);
+	    stats.setNCommits(1);
+	    stats.setNXACommits(30);
+	    stats.setNXAPrepares(20);
+
+	    TransactionStats.Active[] at1 = stats.getActiveTxns();
+	
+	    for(int i = 0; i < 4; i++) {
+		assertEquals("TransactionStatForTest", at1[i].getName());
+		assertEquals(i, at1[i].getId());
+		assertEquals(i - 1, at1[i].getParentId());
+		at1[i].toString();
+	    }
+	    assertEquals(locale, stats.getLastCheckpointTime());
+	    assertEquals(3, stats.getLastTxnId());
+	    assertEquals(12, stats.getNAborts());
+	    assertEquals(15, stats.getNXAAborts());
+	    assertEquals(20, stats.getNActive());
+	    assertEquals(25, stats.getNBegins());
+	    assertEquals(1, stats.getNCommits());
+	    assertEquals(30, stats.getNXACommits());
+	    assertEquals(20, stats.getNXAPrepares());
+	    stats.toString();
+	
+	    stats.setActiveTxns(null);
+	    stats.toString();
+
             int numKeys = 7;
             createDbs();
 
@@ -501,6 +543,77 @@ public class TxnEndTest extends TestCase {
             dbDeleteData(numKeys, numKeys * 2, txn);
             verifyData(numKeys, 0);  // verify w/dirty read
             txn.abort();
+
+            closeAll();
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
+    }
+    /**
+     * Test TransactionStats.
+     */
+    public void testTxnStats()
+        throws Throwable {
+
+        try {
+            TransactionStats stats =
+                env.getTransactionStats(TestUtils.FAST_STATS);
+            assertEquals(0, stats.getNAborts());
+            int numBegins = 1; // 1 begins for adding UP database
+            int numCommits = 1; // 1 commits for adding UP database
+            assertEquals(numBegins, stats.getNBegins());
+            assertEquals(numCommits, stats.getNCommits());
+
+            int numKeys = 7;
+            createDbs();
+            numBegins += NUM_DBS; // 1 begins per database
+            numCommits += NUM_DBS; // 1 commits per database
+            stats = env.getTransactionStats(TestUtils.FAST_STATS);
+            assertEquals(numBegins, stats.getNBegins());
+            assertEquals(numCommits, stats.getNCommits());
+
+            /* Insert data with autocommit. */
+            dbInsertData(0, numKeys, null);
+            numBegins += (numKeys * NUM_DBS);
+            numCommits += (numKeys * NUM_DBS);
+            stats = env.getTransactionStats(TestUtils.FAST_STATS);
+            assertEquals(numBegins, stats.getNBegins());
+            assertEquals(numCommits, stats.getNCommits());
+            verifyData(numKeys, 0);
+
+            /* Insert data with a txn. */
+            Transaction txn = env.beginTransaction(null, null);
+            numBegins++;
+            stats = env.getTransactionStats(TestUtils.FAST_STATS);
+            assertEquals(numBegins, stats.getNBegins());
+            assertEquals(numCommits, stats.getNCommits());
+            assertEquals(1, stats.getNActive());
+            dbInsertData(numKeys, numKeys*2, txn);
+            txn.commit();
+            numCommits++;
+            stats = env.getTransactionStats(TestUtils.FAST_STATS);
+            assertEquals(numBegins, stats.getNBegins());
+            assertEquals(numCommits, stats.getNCommits());
+            assertEquals(0, stats.getNActive());
+            verifyData(numKeys*2, 0);
+
+            /* Delete data with a txn, abort. */
+            txn = env.beginTransaction(null, null);
+            numBegins++;
+            stats = env.getTransactionStats(TestUtils.FAST_STATS);
+            assertEquals(numBegins, stats.getNBegins());
+            assertEquals(numCommits, stats.getNCommits());
+            assertEquals(1, stats.getNActive());
+
+            dbDeleteData(numKeys, numKeys * 2, txn);
+            verifyData(numKeys, 0);  // verify w/dirty read
+            txn.abort();
+            stats = env.getTransactionStats(TestUtils.FAST_STATS);
+            assertEquals(numBegins, stats.getNBegins());
+            assertEquals(numCommits, stats.getNCommits());
+            assertEquals(1, stats.getNAborts());
+            assertEquals(0, stats.getNActive());
 
             closeAll();
         } catch (Throwable t) {

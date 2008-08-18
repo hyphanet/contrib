@@ -1,22 +1,23 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INListTest.java,v 1.38.2.2 2007/11/20 13:32:44 cwl Exp $
+ * $Id: INListTest.java,v 1.44 2008/01/18 22:59:52 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
 
 import java.io.File;
-import java.util.HashSet;
+import java.io.IOException;
 import java.util.Iterator;
-import java.util.Set;
 
 import junit.framework.TestCase;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
+import com.sleepycat.je.DatabaseEntry;
+import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
@@ -34,18 +35,14 @@ public class INListTest extends TestCase {
     private EnvironmentImpl envImpl;
     private Database db;
     private DatabaseImpl dbImpl;
-    private DatabaseConfig dbConfig;
-    private INList inList1 = null;
 
     public INListTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
-        dbConfig = new DatabaseConfig();
-        dbConfig.setAllowCreate(true);
 
     }
 
     public void setUp()
-        throws Exception {
+        throws DatabaseException, IOException {
 
         TestUtils.removeFiles("Setup", envHome, FileManager.JE_SUFFIX);
         sequencer = 0;
@@ -56,25 +53,57 @@ public class INListTest extends TestCase {
         env = new Environment(envHome, envConfig);
         envImpl = DbInternal.envGetEnvironmentImpl(env);
 
-        inList1 = new INList(envImpl);
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
         db = env.openDatabase(null, DB_NAME, dbConfig);
         dbImpl = DbInternal.dbGetDatabaseImpl(db);
     }
 
-    public void tearDown()
-	throws Exception {
+    private void close()
+        throws DatabaseException {
 
-        inList1 = null;
-        db.close();
-	env.close();
-        TestUtils.removeFiles("TearDown", envHome, FileManager.JE_SUFFIX);
+        if (db != null) {
+            db.close();
+        }
+        if (env != null) {
+            env.close();
+        }
+        db = null;
+        dbImpl = null;
+        env = null;
+        envImpl = null;
     }
 
-    public void testMajorMinorLatching()
+    public void tearDown()
+        throws DatabaseException, IOException  {
+
+        try {
+            close();
+        } catch (Exception e) {
+            System.out.println("During tearDown: " + e);
+        }
+
+        TestUtils.removeFiles("TearDown", envHome, FileManager.JE_SUFFIX);
+
+        envHome = null;
+    }
+
+    /**
+     * This test was originally written when the INList had a major and minor
+     * latch.  It was used to test the addition of INs holding the minor latch
+     * while another thread holds the major latch.  Now that we're using
+     * ConcurrentHashMap this type of testing is not important, but I've left
+     * the test in place (without the latching) since it does exercise the
+     * INList API a little.
+     */
+    public void testConcurrentAdditions()
 	throws Throwable {
 
+        final INList inList1 = new INList(envImpl);
+        inList1.enable();
+
         JUnitThread tester1 =
-            new JUnitThread("testMajorMinorLatching-Thread1") {
+            new JUnitThread("testConcurrentAdditions-Thread1") {
                 public void testBody() {
 
                     try {
@@ -84,12 +113,6 @@ public class INListTest extends TestCase {
                             inList1.add(in);
                         }
 
-                        /*
-                         * Acquire the major latch in preparation for an
-                         * iteration.
-                         */
-                        inList1.latchMajor();
-
                         /* Wait for tester2 to try to acquire the
                            /* minor latch */
                         sequencer = 1;
@@ -98,9 +121,9 @@ public class INListTest extends TestCase {
                         }
 
                         /*
-                         * Sequencer is now 2. There should only be
-                         * two elements in the list right now even
-                         * though thread 2 added a third one.
+                         * Sequencer is now 2. There should be three elements
+                         * in the list right now because thread 2 added a third
+                         * one.
                          */
                         int count = 0;
                         Iterator iter = inList1.iterator();
@@ -109,7 +132,7 @@ public class INListTest extends TestCase {
                             count++;
                         }
 
-                        assertEquals(2, count);
+                        assertEquals(3, count);
 
                         /*
                          * Allow thread2 to run again.  It will
@@ -122,17 +145,9 @@ public class INListTest extends TestCase {
                         }
 
                         /*
-                         * Thread2 has exited.  Release the major
-                         * latch so that the addedINs can be added
-                         * into the main in set.
-                         */
-                        inList1.releaseMajorLatch();
-
-                        /*
                          * Check that the entry added by tester2 was really
                          * added.
                          */
-                        inList1.latchMajor();
                         count = 0;
                         iter = inList1.iterator();
                         while (iter.hasNext()) {
@@ -141,7 +156,6 @@ public class INListTest extends TestCase {
                         }
 
                         assertEquals(4, count);
-                        inList1.releaseMajorLatch();
                     } catch (Throwable T) {
                         T.printStackTrace(System.out);
                         fail("Thread 1 caught some Throwable: " + T);
@@ -150,7 +164,7 @@ public class INListTest extends TestCase {
             };
 
         JUnitThread tester2 =
-            new JUnitThread("testMajorMinorLatching-Thread2") {
+            new JUnitThread("testConcurrentAdditions-Thread2") {
                 public void testBody() {
 
                     try {
@@ -161,10 +175,6 @@ public class INListTest extends TestCase {
 
                         assertEquals(1, sequencer);
 
-                        /*
-                         * Acquire the minor latch in preparation for some
-                         * concurrent additions.
-                         */
                         inList1.add(new IN(dbImpl, null, 1, 1));
                         sequencer++;
 
@@ -192,79 +202,235 @@ public class INListTest extends TestCase {
     }
 
     /*
-     * Some actions hold the major inlist latch, but can provoke additions or
-     * removals of objects from the inlist. For example, the evictor may cause
-     * a fetch of an IN. Make sure the latching works, and iterators can safely
-     * be used during the time of the latch.
+     * Variations of this loop are used in the following tests to simulate the
+     * INList memory budget recalculation that is performed by the same loop
+     * construct in DirtyINMap.selectDirtyINsForCheckpoint.
+     *
+     *  inList.memRecalcBegin();
+     *  boolean completed = false;
+     *  try {
+     *      for (IN in : inList) {
+     *          inList.memRecalcIterate(in);
+     *      }
+     *      completed = true;
+     *  } finally {
+     *      inList.memRecalcEnd(completed);
+     *  }
      */
-    public void testFetchingWhenHoldingLatch()
-        throws Exception {
 
-        Set expectedNodes = new HashSet();
+    /**
+     * Scenario #1: IN size is unchanged during the iteration
+     *  begin
+     *   iterate -- add total IN size, mark processed
+     *  end
+     */
+    public void testMemBudgetReset1()
+        throws DatabaseException {
 
-        /* Create 3 initial elements. */
-        IN startIN = null;
-        for (int i = 0; i < 3; i++) {
-            startIN = new IN(dbImpl, null, 1, 1);
-            inList1.add(startIN);
-            expectedNodes.add(startIN);
-        }
+        INList inList = envImpl.getInMemoryINs();
+        MemoryBudget mb = envImpl.getMemoryBudget();
 
-        inList1.latchMajor();
+        long origTreeMem = mb.getTreeMemoryUsage();
+        inList.memRecalcBegin();
+        boolean completed = false;
         try {
-            /* Add two more nodes; they should go onto the minor list. */
-            IN inA = new IN(dbImpl, null, 1, 1);
-            inList1.add(inA);
-            IN inB = new IN(dbImpl, null, 1, 1);
-            inList1.add(inB);
-
-            /* We should see the original 3 items. */
-            checkContents(expectedNodes);
-
-            /*
-             * Now remove an item on the major list, and one from the
-             * minor list. (i.e, what would happen if we evicted.)
-             */
-            inList1.removeLatchAlreadyHeld(startIN);
-
-            /* We should see the original 2 items. */
-            expectedNodes.remove(startIN);
-            checkContents(expectedNodes);
-
-            /*
-             * Remove an item from the minor list. This ends up flushing the
-             * minor list into the major list.
-             */
-            inList1.removeLatchAlreadyHeld(inA);
-            expectedNodes.add(inB);
-            checkContents(expectedNodes);
-
-            /* re-add INA */
-            inList1.add(inA);
-
-            /* release the major latch, should flush the major list. */
-            inList1.releaseMajorLatch();
-
-            inList1.latchMajor();
-            expectedNodes.add(inA);
-            checkContents(expectedNodes);
-
+            for (IN in : inList) {
+                inList.memRecalcIterate(in);
+            }
+            completed = true;
         } finally {
-            inList1.releaseMajorLatchIfHeld();
+            inList.memRecalcEnd(completed);
         }
+        assertEquals(origTreeMem, mb.getTreeMemoryUsage());
+
+        close();
     }
 
-    private void checkContents(Set expectedNodes)
-        throws Exception {
+    /**
+     * Scenario #2: IN size is updated during the iteration
+     *  begin
+     *   update  -- do not add delta because IN is not yet processed
+     *   iterate -- add total IN size, mark processed
+     *   update  -- do add delta because IN was already processed
+     *  end
+     */
+    public void testMemBudgetReset2()
+        throws DatabaseException {
 
-        Set seen = new HashSet();
-        Iterator iter = inList1.iterator();
-        while (iter.hasNext()) {
-            IN foo = (IN)iter.next();
-            assertTrue(expectedNodes.contains(foo));
-            assertTrue(!seen.contains(foo));
-            seen.add(foo);
+        INList inList = envImpl.getInMemoryINs();
+        MemoryBudget mb = envImpl.getMemoryBudget();
+
+        /*
+         * Size changes must be greater than IN.ACCUMULATED_LIMIT to be
+         * counted in the budget, and byte array lengths should be a multiple
+         * of 4 to give predictable sizes, since array sizes are allowed in
+         * multiples of 4.
+         */
+        final int SIZE = IN.ACCUMULATED_LIMIT + 100;
+        DatabaseEntry key = new DatabaseEntry(new byte[1]);
+        db.put(null, key, new DatabaseEntry(new byte[SIZE * 1]));
+
+        /* Test increasing size. */
+        long origTreeMem = mb.getTreeMemoryUsage();
+        inList.memRecalcBegin();
+        boolean completed = false;
+        try {
+            db.put(null, key, new DatabaseEntry(new byte[SIZE * 2]));
+            for (IN in : inList) {
+                inList.memRecalcIterate(in);
+            }
+            db.put(null, key, new DatabaseEntry(new byte[SIZE * 3]));
+            completed = true;
+        } finally {
+            inList.memRecalcEnd(completed);
         }
-        assertEquals(expectedNodes.size(), seen.size());
+        assertEquals(origTreeMem + SIZE * 2, mb.getTreeMemoryUsage());
+
+        /* Test decreasing size. */
+        inList.memRecalcBegin();
+        completed = false;
+        try {
+            db.put(null, key, new DatabaseEntry(new byte[SIZE * 2]));
+            for (IN in : inList) {
+                inList.memRecalcIterate(in);
+            }
+            db.put(null, key, new DatabaseEntry(new byte[SIZE * 1]));
+            completed = true;
+        } finally {
+            inList.memRecalcEnd(completed);
+        }
+        assertEquals(origTreeMem, mb.getTreeMemoryUsage());
+
+        close();
+    }
+
+    /**
+     * Scenario #3: IN is added during the iteration but not iterated
+     *  begin
+     *   add -- add IN size, mark processed
+     *  end
+     */
+    public void testMemBudgetReset3()
+        throws DatabaseException {
+
+        INList inList = envImpl.getInMemoryINs();
+        MemoryBudget mb = envImpl.getMemoryBudget();
+
+        IN newIn = new IN(dbImpl, null, 1, 1);
+        long size = newIn.getBudgetedMemorySize();
+
+        long origTreeMem = mb.getTreeMemoryUsage();
+        inList.memRecalcBegin();
+        boolean completed = false;
+        try {
+            for (IN in : inList) {
+                inList.memRecalcIterate(in);
+            }
+            inList.add(newIn);
+            completed = true;
+        } finally {
+            inList.memRecalcEnd(completed);
+        }
+        assertEquals(origTreeMem + size, mb.getTreeMemoryUsage());
+
+        close();
+    }
+
+    /**
+     * Scenario #4: IN is added during the iteration and is iterated
+     *  begin
+     *   add     -- add IN size, mark processed
+     *   iterate -- do not add size because IN was already processed
+     *  end
+     */
+    public void testMemBudgetReset4()
+        throws DatabaseException {
+
+        INList inList = envImpl.getInMemoryINs();
+        MemoryBudget mb = envImpl.getMemoryBudget();
+
+        IN newIn = new IN(dbImpl, null, 1, 1);
+        long size = newIn.getBudgetedMemorySize();
+
+        long origTreeMem = mb.getTreeMemoryUsage();
+        inList.memRecalcBegin();
+        boolean completed = false;
+        try {
+            inList.add(newIn);
+            for (IN in : inList) {
+                inList.memRecalcIterate(in);
+            }
+            completed = true;
+        } finally {
+            inList.memRecalcEnd(completed);
+        }
+        assertEquals(origTreeMem + size, mb.getTreeMemoryUsage());
+
+        close();
+    }
+
+    /**
+     * Scenario #5: IN is removed during the iteration but not iterated
+     *  begin
+     *   remove  -- do not add delta because IN is not yet processed
+     *  end
+     */
+    public void testMemBudgetReset5()
+        throws DatabaseException {
+
+        INList inList = envImpl.getInMemoryINs();
+        MemoryBudget mb = envImpl.getMemoryBudget();
+
+        IN oldIn = inList.iterator().next();
+        long size = oldIn.getBudgetedMemorySize();
+
+        long origTreeMem = mb.getTreeMemoryUsage();
+        inList.memRecalcBegin();
+        boolean completed = false;
+        try {
+            inList.remove(oldIn);
+            for (IN in : inList) {
+                inList.memRecalcIterate(in);
+            }
+            completed = true;
+        } finally {
+            inList.memRecalcEnd(completed);
+        }
+        assertEquals(origTreeMem - size, mb.getTreeMemoryUsage());
+
+        close();
+    }
+
+    /**
+     * Scenario #6: IN is removed during the iteration and is iterated
+     *  begin
+     *   iterate -- add total IN size, mark processed
+     *   remove  -- add delta because IN was already processed
+     *  end
+     */
+    public void testMemBudgetReset6()
+        throws DatabaseException {
+
+        INList inList = envImpl.getInMemoryINs();
+        MemoryBudget mb = envImpl.getMemoryBudget();
+
+        IN oldIn = inList.iterator().next();
+        long size = oldIn.getBudgetedMemorySize();
+
+        long origTreeMem = mb.getTreeMemoryUsage();
+        inList.memRecalcBegin();
+        boolean completed = false;
+        try {
+            for (IN in : inList) {
+                inList.memRecalcIterate(in);
+            }
+            inList.remove(oldIn);
+            completed = true;
+        } finally {
+            inList.memRecalcEnd(completed);
+        }
+        assertEquals(origTreeMem - size, mb.getTreeMemoryUsage());
+
+        close();
     }
 }

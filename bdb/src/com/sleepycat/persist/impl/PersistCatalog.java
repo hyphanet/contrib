@@ -1,15 +1,16 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PersistCatalog.java,v 1.33.2.8 2007/12/08 14:47:26 mark Exp $
+ * $Id: PersistCatalog.java,v 1.46 2008/03/18 18:38:08 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -25,6 +26,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import com.sleepycat.bind.tuple.IntegerBinding;
+import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
@@ -32,6 +34,7 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
+import com.sleepycat.persist.DatabaseNamer;
 import com.sleepycat.persist.evolve.DeletedClassException;
 import com.sleepycat.persist.evolve.IncompatibleClassException;
 import com.sleepycat.persist.evolve.Mutations;
@@ -97,7 +100,7 @@ public class PersistCatalog implements Catalog {
      * used.
      *
      * <p>This field, like formatMap, is volatile because it is reassigned
-     * when dynamically adding new formats.  See {@link getFormat(Class)}.</p>
+     * when dynamically adding new formats.  See {@link addNewFormat}.</p>
      */
     private volatile List<Format> formatList;
 
@@ -105,7 +108,7 @@ public class PersistCatalog implements Catalog {
      * A map of the current/live formats in formatList, indexed by class name.
      *
      * <p>This field, like formatList, is volatile because it is reassigned
-     * when dynamically adding new formats.  See {@link getFormat(Class)}.</p>
+     * when dynamically adding new formats.  See {@link addNewFormat}.</p>
      */
     private volatile Map<String,Format> formatMap;
 
@@ -114,7 +117,7 @@ public class PersistCatalog implements Catalog {
      * indexed by class name.
      *
      * <p>This field, like formatMap, is volatile because it is reassigned
-     * when dynamically adding new formats.  See {@link getFormat(Class)}.</p>
+     * when dynamically adding new formats.  See {@link addNewFormat}.</p>
      */
     private volatile Map<String,Format> latestFormatMap;
 
@@ -166,7 +169,17 @@ public class PersistCatalog implements Catalog {
 
         this.rawAccess = rawAccess;
         this.store = store;
-        db = env.openDatabase(txn, dbName, dbConfig);
+        /* store may be null for testing. */
+        String[] fileAndDbNames = (store != null) ?
+            store.parseDbName(dbName) :
+            Store.parseDbName(dbName, DatabaseNamer.DEFAULT);
+        try {
+            db = DbCompat.openDatabase
+                (env, txn, fileAndDbNames[0], fileAndDbNames[1],
+                 dbConfig);
+        } catch (FileNotFoundException e) {
+            throw new DatabaseException(e);
+        }
         openCount = 1;
         boolean success = false;
         try {
@@ -388,7 +401,7 @@ public class PersistCatalog implements Catalog {
                  * Only rename/remove databases if we are going to update the
                  * catalog to reflect those class changes.
                  */
-                evolver.renameAndRemoveDatabases(env, txn);
+                evolver.renameAndRemoveDatabases(store, txn);
 
                 /*
                  * Note that we use the Data object that was read above, and
@@ -709,13 +722,13 @@ public class PersistCatalog implements Catalog {
      * while not holding a synchronization mutex, not in addNewFormat, to avoid
      * deadlocks. openSecondaryIndexes synchronizes on the Store. [#15247]</p>
      */
-    public Format getFormat(Class cls) {
+    public Format getFormat(Class cls, boolean openEntitySubclassIndexes) {
         Format format = formatMap.get(cls.getName());
         if (format == null) {
             if (model != null) {
                 format = addNewFormat(cls);
                 /* Detect and handle new entity subclass. [#15247] */
-                if (store != null) {
+                if (openEntitySubclassIndexes && store != null) {
                     Format entityFormat = format.getEntityFormat();
                     if (entityFormat != null && entityFormat != format) {
                         try {

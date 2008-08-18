@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EntityIndex.java,v 1.16.2.3 2007/12/07 23:19:28 mark Exp $
+ * $Id: EntityIndex.java,v 1.21 2008/01/24 14:59:30 linda Exp $
  */
 
 package com.sleepycat.persist;
@@ -151,7 +151,7 @@ import com.sleepycat.je.Transaction;
  * <p>An {@code EntityIndex} supports two mechanisms for retrieving
  * entities:</p>
  * <ol>
- * <li>The {@link #get} mehod returns a single value for a given key.  If there
+ * <li>The {@link #get} method returns a single value for a given key.  If there
  * are multiple values with the same secondary key (duplicates), it returns the
  * first entity in the duplicate set.</li>
  * <li>An {@link EntityCursor} can be obtained using the {@link #keys} and
@@ -248,7 +248,7 @@ import com.sleepycat.je.Transaction;
  *
  * <p>Any type of index may be used to delete entities with a specified key by
  * calling {@link #delete}.  The important thing to keep in mind is that
- * <em>all entities</em> with the specified key are deleted.  In a primay index,
+ * <em>all entities</em> with the specified key are deleted.  In a primary index,
  * at most a single entity is deleted:</p>
  *
  * <pre class="code">
@@ -557,7 +557,7 @@ import com.sleepycat.je.Transaction;
  *
  * <p>If you wish to access an index using the {@code Base API}, you may call
  * the {@link PrimaryIndex#getDatabase} or {@link SecondaryIndex#getDatabase}
- * method to get the underying database.  To translate between entity or key
+ * method to get the underlying database.  To translate between entity or key
  * objects and {@link DatabaseEntry} objects at this level, use the bindings
  * returned by {@link PrimaryIndex#getEntityBinding}, {@link
  * PrimaryIndex#getKeyBinding}, and {@link SecondaryIndex#getKeyBinding}.</p>

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: TransactionStats.java,v 1.27.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: TransactionStats.java,v 1.34 2008/05/03 03:21:15 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -12,15 +12,14 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Transaction statistics for a database environment.
  */
 public class TransactionStats implements Serializable {
 
     /**
-     * The time the last completed checkpoint finished (as the number
-     * of seconds since the Epoch, returned by the IEEE/ANSI Std
-     * 1003.1 (POSIX) time interface).
+     * The time the last completed checkpoint finished (as the number of
+     * seconds since the Epoch, returned by the IEEE/ANSI Std 1003.1 (POSIX)
+     * time interface).
      */
     private long lastCheckpointTime;
 
@@ -37,40 +36,41 @@ public class TransactionStats implements Serializable {
     /**
      * The number of transactions that have begun.
      */
-    private int nBegins;
+    private long nBegins;
 
     /**
      * The number of transactions that have aborted.
      */
-    private int nAborts;
+    private long nAborts;
 
     /**
      * The number of transactions that have committed.
      */
-    private int nCommits;
+    private long nCommits;
 
     /**
      * The number of XA transactions that have aborted.
      */
-    private int nXAAborts;
+    private long nXAAborts;
 
     /**
      * The number of XA transactions that have been prepared.
      */
-    private int nXAPrepares;
+    private long nXAPrepares;
 
     /**
      * The number of XA transactions that have committed.
      */
-    private int nXACommits;
+    private long nXACommits;
 
     /**
-     * The array of active transactions. Each element of the array is
-     * an object of type TransactionStats.Active.
+     * The array of active transactions. Each element of the array is an object
+     * of type TransactionStats.Active.
      */
     private Active activeTxns[];
 
     /**
+     * @hidden
      * Internal use only.
      */
     public TransactionStats() {
@@ -80,6 +80,7 @@ public class TransactionStats implements Serializable {
      * The Active class represents an active transaction.
      */
     public static class Active implements Serializable {
+
 	/**
 	 * The transaction ID of the transaction.
 	 */
@@ -96,30 +97,28 @@ public class TransactionStats implements Serializable {
         private String name;
 
         /**
-         * Javadoc for this public method is generated via
-         * the doc templates in the doc_src directory.
+         * The transaction ID of the transaction.
          */
         public long getId() {
             return txnId;
         }
 
         /**
-         * Javadoc for this public method is generated via
-         * the doc templates in the doc_src directory.
+         * The transaction ID of the parent transaction (or 0, if no parent).
          */
         public long getParentId() {
             return parentId;
         }
 
         /**
-         * Javadoc for this public method is generated via
-         * the doc templates in the doc_src directory.
+         * The transaction name, including the thread name if available.
          */
         public String getName() {
             return name;
         }
 
 	/**
+         * @hidden
 	 * Internal use only.
 	 */
         public Active(String name, long txnId, long parentId) {
@@ -134,86 +133,81 @@ public class TransactionStats implements Serializable {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Return the array of active transactions.
+     *
+     * @return The array of active transactions.
      */
     public Active[] getActiveTxns() {
         return activeTxns;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The time the last completed checkpoint finished (as the number of
+     * seconds since the Epoch, returned by the IEEE/ANSI Std 1003.1 (POSIX)
+     * time interface).
      */
     public long getLastCheckpointTime() {
         return lastCheckpointTime;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The last transaction ID allocated.
      */
     public long getLastTxnId() {
         return lastTxnId;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of transactions that have aborted.
      */
-    public int getNAborts() {
+    public long getNAborts() {
         return nAborts;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of XA transactions that have aborted.
      */
-    public int getNXAAborts() {
+    public long getNXAAborts() {
         return nXAAborts;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of XA transactions that have been prepared.
      */
-    public int getNXAPrepares() {
+    public long getNXAPrepares() {
         return nXAPrepares;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of transactions that are currently active.
      */
     public int getNActive() {
         return nActive;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of transactions that have begun.
      */
-    public int getNBegins() {
+    public long getNBegins() {
         return nBegins;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of transactions that have committed.
      */
-    public int getNCommits() {
+    public long getNCommits() {
         return nCommits;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * The number of XA transactions that have committed.
      */
-    public int getNXACommits() {
+    public long getNXACommits() {
         return nXACommits;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setActiveTxns(Active[] actives) {
@@ -221,6 +215,7 @@ public class TransactionStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setLastCheckpointTime(long l) {
@@ -228,6 +223,7 @@ public class TransactionStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setLastTxnId(long val) {
@@ -235,20 +231,23 @@ public class TransactionStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNAborts(int val) {
+    public void setNAborts(long val) {
         nAborts = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNXAAborts(int val) {
+    public void setNXAAborts(long val) {
         nXAAborts = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public void setNActive(int val) {
@@ -256,36 +255,39 @@ public class TransactionStats implements Serializable {
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNBegins(int val) {
+    public void setNBegins(long val) {
         nBegins = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNCommits(int val) {
+    public void setNCommits(long val) {
         nCommits = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNXACommits(int val) {
+    public void setNXACommits(long val) {
         nXACommits = val;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNXAPrepares(int val) {
+    public void setNXAPrepares(long val) {
         nXAPrepares = val;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * {@inheritDoc}
      */
     public String toString() {
         StringBuffer sb = new StringBuffer();

@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckBINDeltaTest.java,v 1.13.2.3 2007/11/20 13:32:47 cwl Exp $
+ * $Id: CheckBINDeltaTest.java,v 1.18 2008/03/18 01:17:45 cwl Exp $
  */
 package com.sleepycat.je.recovery;
 
 import com.sleepycat.bind.tuple.IntegerBinding;
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
@@ -120,9 +121,9 @@ public class CheckBINDeltaTest extends CheckBase {
         env.checkpoint(ckptConfig);
 
         Tree tree = DbInternal.dbGetDatabaseImpl(db).getTree();
-        com.sleepycat.je.tree.Key.DUMP_TYPE =
-	    com.sleepycat.je.tree.Key.DumpType.BINARY;
         com.sleepycat.je.tree.Key.DUMP_INT_BINDING = true;
+	com.sleepycat.je.tree.Key.DUMP_TYPE =
+	    com.sleepycat.je.tree.Key.DumpType.BINARY;
         if (DEBUG) {
             tree.dump();
         }
@@ -138,9 +139,10 @@ public class CheckBINDeltaTest extends CheckBase {
         assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
 
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
-        BIN bin = (BIN)tree.getFirstNode();
+        BIN bin = (BIN)tree.getFirstNode(CacheMode.DEFAULT);
         bin.log(envImpl.getLogManager(), true, false, false, false, null);
-        bin = tree.getNextBin(bin, false /* traverseWithinDupTree */);
+        bin = tree.getNextBin(bin, false /* traverseWithinDupTree */,
+                              CacheMode.DEFAULT);
         bin.log(envImpl.getLogManager(), true, false, false, false, null);
         bin.releaseLatch();
 

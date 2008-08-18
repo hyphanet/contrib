@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DumpFileReader.java,v 1.43.2.2 2007/11/20 13:32:31 cwl Exp $
+ * $Id: DumpFileReader.java,v 1.49 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -23,10 +23,10 @@ import com.sleepycat.je.utilint.DbLsn;
 public abstract class DumpFileReader extends FileReader {
 
     /* A set of the entry type numbers that this DumpFileReader should dump. */
-    private Set targetEntryTypes;
+    private Set<Byte> targetEntryTypes;
 
     /* A set of the txn ids that this DumpFileReader should dump. */
-    protected Set targetTxnIds;
+    protected Set<Long> targetTxnIds;
 
     /* If true, dump the long version of the entry. */
     protected boolean verbose;
@@ -52,7 +52,7 @@ public abstract class DumpFileReader extends FileReader {
               finishLsn); // finish lsn
 
         /* If entry types is not null, record the set of target entry types. */
-        targetEntryTypes = new HashSet();
+        targetEntryTypes = new HashSet<Byte>();
         if (entryTypes != null) {
             StringTokenizer tokenizer = new StringTokenizer(entryTypes, ",");
             while (tokenizer.hasMoreTokens()) {
@@ -61,7 +61,7 @@ public abstract class DumpFileReader extends FileReader {
             }
         }
         /* If txn ids is not null, record the set of target txn ids. */
-        targetTxnIds = new HashSet();
+        targetTxnIds = new HashSet<Long>();
         if (txnIds != null) {
             StringTokenizer tokenizer = new StringTokenizer(txnIds, ",");
             while (tokenizer.hasMoreTokens()) {
@@ -76,13 +76,13 @@ public abstract class DumpFileReader extends FileReader {
      * @return true if this reader should process this entry, or just
      * skip over it.
      */
-    protected boolean isTargetEntry(byte logEntryTypeNumber,
-                                    byte logEntryTypeVersion) {
+    protected boolean isTargetEntry() {
 	if (targetEntryTypes.size() == 0) {
 	    /* We want to dump all entry types. */
 	    return true;
 	} else {
-	    return targetEntryTypes.contains(new Byte(logEntryTypeNumber));
+	    return targetEntryTypes.contains
+                (Byte.valueOf(currentEntryHeader.getType()));
 	}
     }
 

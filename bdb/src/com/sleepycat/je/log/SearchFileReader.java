@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SearchFileReader.java,v 1.39.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: SearchFileReader.java,v 1.46 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -45,10 +45,8 @@ public class SearchFileReader extends FileReader {
     /**
      * @return true if this is a targetted entry.
      */
-    protected boolean isTargetEntry(byte logEntryTypeNumber,
-                                    byte logEntryTypeVersion) {
-        return (targetType.equalsType(logEntryTypeNumber,
-                                      logEntryTypeVersion));
+    protected boolean isTargetEntry() {
+        return (targetType.equalsType(currentEntryHeader.getType()));
     }
 
     /**
@@ -57,7 +55,8 @@ public class SearchFileReader extends FileReader {
     protected boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException {
 
-        readEntry(logEntry, entryBuffer, true); // readFullItem
+        logEntry.readEntry
+            (currentEntryHeader, entryBuffer, true); // readFullItem
         return true;
     }
 

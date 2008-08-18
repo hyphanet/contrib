@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CmdUtil.java,v 1.21.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: CmdUtil.java,v 1.28 2008/05/15 01:52:44 linda Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -19,7 +19,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
  * Convenience methods for command line utilities.
  */
 public class CmdUtil {
-    public static String getArg(String [] argv, int whichArg)
+    public static String getArg(String[] argv, int whichArg)
         throws IllegalArgumentException {
 
         if (whichArg < argv.length) {
@@ -104,7 +104,11 @@ public class CmdUtil {
         config.setConfigParam(EnvironmentParams.ENV_RECOVERY.getName(),
 			      "false");
 
-	EnvironmentImpl envImpl = new EnvironmentImpl(envHome, config);
+	EnvironmentImpl envImpl =
+            new EnvironmentImpl(envHome,
+                                config,
+                                null,   // sharedCacheEnv
+                                false); // replicationIntended
 	return envImpl;
     }
 
@@ -113,7 +117,7 @@ public class CmdUtil {
      * arguments.  For utilities the last name of the class name can be
      * specified when "-jar je.jar" is used.
      */
-    public static String getJavaCommand(Class cls) {
+    public static String getJavaCommand(Class<?> cls) {
 
         String clsName = cls.getName();
         String lastName = clsName.substring(clsName.lastIndexOf('.') + 1);

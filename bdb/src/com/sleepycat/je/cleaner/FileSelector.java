@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSelector.java,v 1.15.2.3 2007/11/20 13:32:27 cwl Exp $
+ * $Id: FileSelector.java,v 1.24 2008/05/15 01:52:40 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -11,8 +11,6 @@ package com.sleepycat.je.cleaner;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -20,6 +18,7 @@ import java.util.TreeSet;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
+import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.tree.LN;
 
 /**
@@ -47,7 +46,7 @@ public class FileSelector {
      * the lower numbered (oldest) files is selected; this is why the set is
      * sorted.
      */
-    private SortedSet toBeCleanedFiles;
+    private SortedSet<Long> toBeCleanedFiles;
 
     /*
      * When a file is selected for processing by FileProcessor from the
@@ -55,7 +54,7 @@ public class FileSelector {
      * distinction is used to prevent a file from being processed by more than
      * one thread.
      */
-    private Set beingCleanedFiles;
+    private Set<Long> beingCleanedFiles;
 
     /*
      * A file moves to the cleaned set when all log entries have been read and
@@ -63,24 +62,9 @@ public class FileSelector {
      * BIN entry MIGRATE flag, entries that could not be locked will be in the
      * pending LN set, and the DBs that were pending deletion will be in the
      * pending DB set.
-     *
-     * After processing a file, we may identify a set of deferred write dbs
-     * which need a sync before we can safely delete the file. The
-     * cleanedDeferredWriteDbs is the collecton of DatabaseIds for those dw
-     * dbs, and goes lockstep with the cleanedFiles. It's implemented as a
-     * list rather than a set, because a DW db may show up multiple times
-     * for different files, unlike the files in the cleanedFiles set.
-     * For example, suppose
-     *  - file 20 is cleaned and adds DW dbs 1,3
-     *  - file 25 is cleaned and adds DW dbs 1,5
-     *  - a checkpoint starts, and copies dw db 1,3,5
-     *  - file 30 is cleaned, and adds DW dbs 1,5
-     * When the ckpt returns and removes the proper entries from the list,
-     * it must make sure that dbs 1,5 stay on the list, because that sync
-     * must happen for file 30.
      */
-    private Set cleanedFiles;
-    private LinkedList cleanedDeferredWriteDbs;
+    private Set<Long> cleanedFiles;
+    private Map<Long,Set<DatabaseId>> cleanedFilesDatabases;
 
     /*
      * A file moves to the checkpointed set at the end of a checkpoint if it
@@ -89,7 +73,7 @@ public class FileSelector {
      * will have entries with the MIGRATE flag set.  However, some entries may
      * be in the pending LN set and some DBs may be in the pending DB set.
      */
-    private Set checkpointedFiles;
+    private Set<Long> checkpointedFiles;
 
     /*
      * A file is moved from the checkpointed set to the fully-processed set
@@ -101,30 +85,25 @@ public class FileSelector {
      * logged yet.
      *
      * No special handling is required to coordinate syncing of deferred write
-     * databases for pending, deferred write LNs. Note that although DW
-     * databases are non-txnal, their LNs may be pended because of lock
-     * collisions.  Any required syncing falls out naturally because dbs are
-     * entered into the cleanedDeferredWriteDbs list when a member LN is
-     * successfully processed and removed from the pendingLN set, whether that
-     * happens on the first pass of processing the file, or on future passes
-     * when the LN is removed from the pending set.
+     * databases for pending, deferred write LNs, because non-temporary
+     * deferred write DBs are always synced during checkpoints, and temporary
+     * deferred write DBs are not recovered.  Note that although DW databases
+     * are non-txnal, their LNs may be pended because of lock collisions.
      */
-    private Set fullyProcessedFiles;
+    private Set<Long> fullyProcessedFiles;
 
     /*
      * A file moves to the safe-to-delete set at the end of a checkpoint if it
      * was in the fully-processed set at the beginning of the checkpoint.  All
-     * parent BINs of migrated entries have now been logged, and any
-     * deferred write db syncs have been executed and the files are
-     * safe to delete.
+     * parent BINs of migrated entries have now been logged.
      */
-    private Set safeToDeleteFiles;
+    private Set<Long> safeToDeleteFiles;
 
     /*
      * Pending LNs are stored in a map of {NodeID -> LNInfo}.  These are LNs
      * that could not be locked, either during processing or during migration.
      */
-    private Map pendingLNs;
+    private Map<Long,LNInfo> pendingLNs;
 
     /*
      * For processed entries with DBs that are pending deletion, we consider
@@ -132,7 +111,7 @@ public class FileSelector {
      * DB deletion is complete, we can't delete the log files containing those
      * entries.
      */
-    private Set pendingDBs;
+    private Set<DatabaseId> pendingDBs;
 
     /*
      * If during a checkpoint there are no pending LNs or DBs added, we can
@@ -150,19 +129,19 @@ public class FileSelector {
      * determined.  This set is guaranteed to be non-null and read-only, so no
      * synchronization is needed when accessing it.
      */
-    private Set lowUtilizationFiles;
+    private Set<Long> lowUtilizationFiles;
 
     FileSelector() {
-        toBeCleanedFiles = new TreeSet();
-        cleanedFiles = new HashSet();
-        cleanedDeferredWriteDbs = new LinkedList();
-        checkpointedFiles = new HashSet();
-        fullyProcessedFiles = new HashSet();
-        safeToDeleteFiles = new HashSet();
-        pendingLNs = new HashMap();
-        pendingDBs = new HashSet();
-        lowUtilizationFiles = Collections.EMPTY_SET;
-        beingCleanedFiles = new HashSet();
+        toBeCleanedFiles = new TreeSet<Long>();
+        cleanedFiles = new HashSet<Long>();
+        cleanedFilesDatabases = new HashMap<Long,Set<DatabaseId>>();
+        checkpointedFiles = new HashSet<Long>();
+        fullyProcessedFiles = new HashSet<Long>();
+        safeToDeleteFiles = new HashSet<Long>();
+        pendingLNs = new HashMap<Long,LNInfo>();
+        pendingDBs = new HashSet<DatabaseId>();
+        lowUtilizationFiles = Collections.emptySet();
+        beingCleanedFiles = new HashSet<Long>();
     }
 
     /**
@@ -187,8 +166,8 @@ public class FileSelector {
                                int maxBatchFiles)
         throws DatabaseException {
 
-        Set newLowUtilizationFiles = calcLowUtilizationFiles ?
-            (new HashSet()) : null;
+        Set<Long> newLowUtilizationFiles = calcLowUtilizationFiles ?
+            (new HashSet<Long>()) : null;
 
         /*
          * Add files until we reach the theoretical minimum utilization
@@ -196,16 +175,18 @@ public class FileSelector {
          */
         while (true) {
 
-            if (maxBatchFiles > 0) {
-                synchronized (this) {
-                    if (toBeCleanedFiles.size() >= maxBatchFiles) {
-                        break;
-                    }
-                }
+            int toBeCleanedSize;
+            synchronized (this) {
+                toBeCleanedSize = toBeCleanedFiles.size();
+            }
+            if (maxBatchFiles > 0 &&
+                toBeCleanedSize >= maxBatchFiles) {
+                break;
             }
 
             Long fileNum = profile.getBestFileForCleaning
-                (this, forceCleaning, newLowUtilizationFiles);
+                (this, forceCleaning, newLowUtilizationFiles,
+                 toBeCleanedSize > 0 /*isBacklog*/);
 
             if (fileNum == null) {
                 break;
@@ -226,9 +207,9 @@ public class FileSelector {
          * set.  Then move the file from the to-be-cleaned set to the
          * being-cleaned set.
          */
-        SortedSet availableFiles;
+        SortedSet<Long> availableFiles;
         synchronized (this) {
-            availableFiles = new TreeSet(toBeCleanedFiles);
+            availableFiles = new TreeSet<Long>(toBeCleanedFiles);
         }
         Long file = profile.getCheapestFileToClean(availableFiles);
         if (file != null) {
@@ -255,10 +236,12 @@ public class FileSelector {
     /**
      * Removes all references to a file.
      */
-    synchronized void removeAllFileReferences(Long file) {
+    synchronized void removeAllFileReferences(Long file, MemoryBudget budget) {
         toBeCleanedFiles.remove(file);
         beingCleanedFiles.remove(file);
         cleanedFiles.remove(file);
+        Set<DatabaseId> oldDatabases = cleanedFilesDatabases.remove(file);
+        adjustMemoryBudget(budget, oldDatabases, null /*newDatabases*/);
         checkpointedFiles.remove(file);
         fullyProcessedFiles.remove(file);
         safeToDeleteFiles.remove(file);
@@ -277,9 +260,13 @@ public class FileSelector {
      * When cleaning is complete, move the file from the being-cleaned set to
      * the cleaned set.
      */
-    synchronized void addCleanedFile(Long fileNum, Set deferredWriteDbs) {
+    synchronized void addCleanedFile(Long fileNum,
+                                     Set<DatabaseId> databases,
+                                     MemoryBudget budget) {
         cleanedFiles.add(fileNum);
-        cleanedDeferredWriteDbs.addAll(deferredWriteDbs);
+        Set<DatabaseId> oldDatabases =
+            cleanedFilesDatabases.put(fileNum, databases);
+        adjustMemoryBudget(budget, oldDatabases, databases);
         beingCleanedFiles.remove(fileNum);
     }
 
@@ -287,7 +274,7 @@ public class FileSelector {
      * Returns a read-only set of low utilization files that can be accessed
      * without synchronization.
      */
-    Set getLowUtilizationFiles() {
+    Set<Long> getLowUtilizationFiles() {
         /* This set is read-only, so there is no need to make a copy. */
         return lowUtilizationFiles;
     }
@@ -296,8 +283,8 @@ public class FileSelector {
      * Returns a read-only copy of to-be-cleaned and being-cleaned files that
      * can be accessed without synchronization.
      */
-    synchronized Set getMustBeCleanedFiles() {
-        Set set = new HashSet(toBeCleanedFiles);
+    synchronized Set<Long> getMustBeCleanedFiles() {
+        Set<Long> set = new HashSet<Long>(toBeCleanedFiles);
         set.addAll(beingCleanedFiles);
         return set;
     }
@@ -318,25 +305,21 @@ public class FileSelector {
         anyPendingDuringCheckpoint = !pendingLNs.isEmpty() ||
             !pendingDBs.isEmpty();
 
-        CheckpointStartCleanerState info =
-            new CheckpointStartCleanerState(cleanedFiles,
-                                            fullyProcessedFiles,
-                                            cleanedDeferredWriteDbs);
+        CheckpointStartCleanerState info = new CheckpointStartCleanerState
+            (cleanedFiles, fullyProcessedFiles);
         return info;
     }
 
     /**
      * When a checkpoint is complete, move the previously cleaned and
      * fully-processed files to the checkpointed and safe-to-delete sets.
-     * Also take the dbs that have been synced through this checkpoint off
-     * their place at the top of the deferredWriteDb list
      */
     synchronized void updateFilesAtCheckpointEnd(
                      CheckpointStartCleanerState info) {
 
         if (!info.isEmpty()) {
 
-            Set previouslyCleanedFiles = info.getCleanedFiles();
+            Set<Long> previouslyCleanedFiles = info.getCleanedFiles();
             if (previouslyCleanedFiles != null) {
                 if (anyPendingDuringCheckpoint) {
                     checkpointedFiles.addAll(previouslyCleanedFiles);
@@ -346,22 +329,12 @@ public class FileSelector {
                 cleanedFiles.removeAll(previouslyCleanedFiles);
             }
 
-            Set previouslyProcessedFiles =
+            Set<Long> previouslyProcessedFiles =
                 info.getFullyProcessedFiles();
             if (previouslyProcessedFiles != null) {
                 safeToDeleteFiles.addAll(previouslyProcessedFiles);
                 fullyProcessedFiles.removeAll(previouslyProcessedFiles);
             }
-
-            int previousSize = cleanedDeferredWriteDbs.size();
-            int numDbsSyncedByCheckpoint =
-                info.getDeferredWriteDbsSize();
-            for (int i = 0; i < numDbsSyncedByCheckpoint; i++) {
-                cleanedDeferredWriteDbs.removeFirst();
-            }
-
-            assert cleanedDeferredWriteDbs.size() ==
-                previousSize - numDbsSyncedByCheckpoint;
 
             updateProcessedFiles();
         }
@@ -375,7 +348,7 @@ public class FileSelector {
         assert ln != null;
 
         boolean added = pendingLNs.put
-            (new Long(ln.getNodeId()),
+            (Long.valueOf(ln.getNodeId()),
              new LNInfo(ln, dbId, key, dupKey)) != null;
 
         anyPendingDuringCheckpoint = true;
@@ -402,7 +375,7 @@ public class FileSelector {
      */
     synchronized void removePendingLN(long nodeId) {
 
-        pendingLNs.remove(new Long(nodeId));
+        pendingLNs.remove(nodeId);
         updateProcessedFiles();
     }
 
@@ -444,20 +417,29 @@ public class FileSelector {
     /**
      * Returns a copy of the safe-to-delete files.
      */
-    synchronized Set copySafeToDeleteFiles() {
+    synchronized Set<Long> copySafeToDeleteFiles() {
         if (safeToDeleteFiles.size() == 0) {
             return null;
         } else {
-            return new HashSet(safeToDeleteFiles);
+            return new HashSet<Long>(safeToDeleteFiles);
         }
+    }
+
+    /**
+     * Returns a copy of the databases for a cleaned file.
+     */
+    synchronized Set<DatabaseId> getCleanedDatabases(Long fileNum) {
+        return new HashSet<DatabaseId>(cleanedFilesDatabases.get(fileNum));
     }
 
     /**
      * Removes file from the safe-to-delete set after the file itself has
      * finally been deleted.
      */
-    synchronized void removeDeletedFile(Long fileNum) {
+    synchronized void removeDeletedFile(Long fileNum, MemoryBudget budget) {
         safeToDeleteFiles.remove(fileNum);
+        Set<DatabaseId> oldDatabases = cleanedFilesDatabases.remove(fileNum);
+        adjustMemoryBudget(budget, oldDatabases, null /*newDatabases*/);
     }
 
     /**
@@ -473,49 +455,65 @@ public class FileSelector {
         }
     }
 
-    /*
+    /**
+     * Adjust the memory budget when an entry is added to or removed from the
+     * cleanedFilesDatabases map.
+     */
+    private void adjustMemoryBudget(MemoryBudget budget,
+                                    Set<DatabaseId> oldDatabases,
+                                    Set<DatabaseId> newDatabases) {
+        long adjustMem = 0;
+        if (oldDatabases != null) {
+            adjustMem -= getCleanedFilesDatabaseEntrySize(oldDatabases);
+        }
+        if (newDatabases != null) {
+            adjustMem += getCleanedFilesDatabaseEntrySize(newDatabases);
+        }
+        budget.updateAdminMemoryUsage(adjustMem);
+    }
+
+    /**
+     * Returns the size of a HashMap entry that contains the given set of
+     * DatabaseIds.  We don't count the DatabaseId size because it is likely
+     * that it is also stored (and budgeted) in the DatabaseImpl.
+     */
+    private long getCleanedFilesDatabaseEntrySize(Set<DatabaseId> databases) {
+        return MemoryBudget.HASHMAP_ENTRY_OVERHEAD +
+               MemoryBudget.HASHSET_OVERHEAD +
+               (databases.size() * MemoryBudget.HASHSET_ENTRY_OVERHEAD);
+    }
+
+    /**
      * Holds copy of all checkpoint-dependent cleaner state.
      */
-    static public class CheckpointStartCleanerState {
+    public static class CheckpointStartCleanerState {
 
         /* A snapshot of the cleaner collections at the checkpoint start. */
-        private Set cleanedFiles;
-        private Set fullyProcessedFiles;
-        private Set deferredWriteDbs;
+        private Set<Long> cleanedFiles;
+        private Set<Long> fullyProcessedFiles;
 
-        CheckpointStartCleanerState(Set cleanedFiles,
-                                    Set fullyProcessedFiles,
-                                    List cleanedDeferredWriteDbs) {
+        CheckpointStartCleanerState(Set<Long> cleanedFiles,
+                                    Set<Long> fullyProcessedFiles) {
 
             /*
              * Create snapshots of the collections of various files at the
              * beginning of the checkpoint.
              */
-            this.cleanedFiles = new HashSet(cleanedFiles);
-            this.fullyProcessedFiles = new HashSet(fullyProcessedFiles);
-            deferredWriteDbs = new HashSet(cleanedDeferredWriteDbs);
+            this.cleanedFiles = new HashSet<Long>(cleanedFiles);
+            this.fullyProcessedFiles = new HashSet<Long>(fullyProcessedFiles);
         }
 
         public boolean isEmpty() {
             return ((cleanedFiles.size() == 0) &&
-                    (fullyProcessedFiles.size() == 0) &&
-                    (deferredWriteDbs.size() == 0));
+                    (fullyProcessedFiles.size() == 0));
         }
 
-        public Set getCleanedFiles() {
+        public Set<Long> getCleanedFiles() {
             return cleanedFiles;
         }
 
-        public Set getFullyProcessedFiles() {
+        public Set<Long> getFullyProcessedFiles() {
             return fullyProcessedFiles;
-        }
-
-        public Set getDeferredWriteDbs() {
-            return deferredWriteDbs;
-        }
-
-        public int getDeferredWriteDbsSize() {
-            return deferredWriteDbs.size();
         }
     }
 }

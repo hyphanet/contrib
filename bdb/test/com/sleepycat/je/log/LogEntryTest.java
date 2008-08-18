@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogEntryTest.java,v 1.16.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: LogEntryTest.java,v 1.20 2008/01/07 14:29:09 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -21,20 +21,15 @@ public class LogEntryTest extends TestCase {
         throws DatabaseException {
 
         byte testTypeNum = LogEntryType.LOG_IN.getTypeNum();
-        byte testVersion = LogEntryType.LOG_IN.getVersion();
-        byte testProvisionalVersion =
-            LogEntryType.setEntryProvisional(testVersion);
 
-        /* Look it up by type name and version */
-        LogEntryType foundType = LogEntryType.findType(testTypeNum,
-                                                           testVersion);
+        /* Look it up by type */
+        LogEntryType foundType = LogEntryType.findType(testTypeNum);
         assertEquals(foundType, LogEntryType.LOG_IN);
         assertTrue(foundType.getSharedLogEntry() instanceof
                    com.sleepycat.je.log.entry.INLogEntry);
 
-        /* Look it up by type name and provisional version */
-        foundType = LogEntryType.findType(testTypeNum,
-                                            testProvisionalVersion);
+        /* Look it up by type */
+        foundType = LogEntryType.findType(testTypeNum);
         assertEquals(foundType, LogEntryType.LOG_IN);
         assertTrue(foundType.getSharedLogEntry() instanceof
                    com.sleepycat.je.log.entry.INLogEntry);

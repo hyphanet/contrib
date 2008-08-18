@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: WriteLockInfo.java,v 1.14.2.2 2007/07/13 02:32:06 cwl Exp $
+ * $Id: WriteLockInfo.java,v 1.19 2008/01/07 14:28:56 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
 
+import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.utilint.DbLsn;
 
 /*
@@ -29,9 +30,15 @@ public class WriteLockInfo {
 
     /*
      * Size of the original log entry, or zero if abortLsn is NULL_LSN or if
-     * the size is not known.
+     * the size is not known.  Used for obsolete counting during a commit.
      */
     int abortLogSize;
+
+    /*
+     * The database of the node, or null if abortLsn is NULL_LSN.  Used for
+     * obsolete counting during a commit.
+     */
+    DatabaseImpl abortDb;
 
     /*
      * True if the node has never been locked before. Used so we can determine
@@ -47,7 +54,8 @@ public class WriteLockInfo {
     static final WriteLockInfo basicWriteLockInfo =
 	new WriteLockInfo();
 
-    public WriteLockInfo() {
+    public // for Sizeof
+    WriteLockInfo() {
 	abortLsn = DbLsn.NULL_LSN;
 	abortKnownDeleted = false;
 	neverLocked = true;
@@ -62,7 +70,13 @@ public class WriteLockInfo {
 	return abortLsn;
     }
 
-    public void setAbortLogSize(int logSize) {
+    public void setAbortInfo(DatabaseImpl db, int logSize) {
+        abortDb = db;
         abortLogSize = logSize;
+    }
+
+    public void copyAbortInfo(WriteLockInfo fromInfo) {
+        abortDb = fromInfo.abortDb;
+        abortLogSize = fromInfo.abortLogSize;
     }
 }

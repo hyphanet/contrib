@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BasicLocker.java,v 1.84.2.5 2007/11/20 13:32:36 cwl Exp $
+ * $Id: BasicLocker.java,v 1.102 2008/05/13 20:03:10 sam Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -22,8 +22,8 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.utilint.DbLsn;
 
 /**
- * A concrete Locker that simply tracks locks and releases them when
- * operationEnd is called.
+ * A non-transactional Locker that simply tracks locks and releases them when
+ * releaseNonTxnLocks or operationEnd is called.
  */
 public class BasicLocker extends Locker {
 
@@ -38,27 +38,100 @@ public class BasicLocker extends Locker {
      *
      * There's no need to track memory utilization for these non-txnal lockers,
      * because the lockers are short lived.
-     *
-     * ownedLock and ownedLockSet contains nids, not locks.  We only need locks
-     * for the stats, so we can look them up on demand.
      */
     private Long ownedLock;
-    private Set ownedLockSet;
+    private Set<Long> ownedLockSet;
 
     /**
      * Creates a BasicLocker.
      */
-    public BasicLocker(EnvironmentImpl env)
+    protected BasicLocker(EnvironmentImpl env)
         throws DatabaseException {
 
-        super(env, false, false);
+        super(env,
+              false, // readUncommittedDefault
+              false, // noWait
+              0);    // mandatedId
+    }
+
+    public static BasicLocker createBasicLocker(EnvironmentImpl env)
+        throws DatabaseException {
+
+	BasicLocker ret = null;
+	try {
+	    ret = new BasicLocker(env);
+	    ret.initApiReadLock();
+	} catch (DatabaseException DE) {
+	    ret.operationEnd(false);
+	    throw DE;
+	}
+	return ret;
+    }
+
+    /**
+     * Creates a BasicLocker with a noWait argument.
+     */
+    protected BasicLocker(EnvironmentImpl env, boolean noWait)
+        throws DatabaseException {
+
+        super(env,
+              false, // readUncommittedDefault
+              noWait,
+              0);    // mandatedId
+    }
+
+    public static BasicLocker createBasicLocker(EnvironmentImpl env,
+						boolean noWait)
+        throws DatabaseException {
+
+	BasicLocker ret = null;
+	try {
+	    ret = new BasicLocker(env, noWait);
+	    ret.initApiReadLock();
+	} catch (DatabaseException DE) {
+	    ret.operationEnd(false);
+	    throw DE;
+	}
+	return ret;
+    }
+
+    /**
+     * Creates a BasicLocker with the noWait and noAPIReadLock arguments.
+     */
+    protected BasicLocker(EnvironmentImpl env,
+			  boolean noWait,
+			  boolean noAPIReadLock)
+        throws DatabaseException {
+
+        super(env,
+              false, // readUncommittedDefault
+              noWait,
+	      noAPIReadLock,
+              0);    // mandatedId
+    }
+
+    public static BasicLocker createBasicLocker(EnvironmentImpl env,
+						boolean noWait,
+						boolean noAPIReadLock)
+        throws DatabaseException {
+
+	BasicLocker ret = null;
+	try {
+	    ret = new BasicLocker(env, noWait, noAPIReadLock);
+	    ret.initApiReadLock();
+	} catch (DatabaseException DE) {
+	    ret.operationEnd(false);
+	    throw DE;
+	}
+	return ret;
     }
 
     /**
      * BasicLockers always have a fixed id, because they are never used for
      * recovery.
      */
-    protected long generateId(TxnManager txnManager) {
+    protected long generateId(TxnManager txnManager,
+                              long ignore /* mandatedId */) {
         return TxnManager.NULL_TXN_ID;
     }
 
@@ -86,7 +159,7 @@ public class BasicLocker extends Locker {
         boolean useNoWait = noWait || defaultNoWait;
         if (!useNoWait) {
             synchronized (this) {
-                timeout = lockTimeOutMillis;
+                timeout = getLockTimeout();
             }
         }
 
@@ -104,7 +177,7 @@ public class BasicLocker extends Locker {
     public Locker getWriteOwnerLocker(long nodeId)
         throws DatabaseException {
 
-        return lockManager.getWriteOwnerLocker(new Long(nodeId));
+        return lockManager.getWriteOwnerLocker(Long.valueOf(nodeId));
     }
 
     /**
@@ -114,7 +187,8 @@ public class BasicLocker extends Locker {
     public long getOwnerAbortLsn(long nodeId)
         throws DatabaseException {
 
-        Locker ownerTxn = lockManager.getWriteOwnerLocker(new Long(nodeId));
+        Locker ownerTxn =
+            lockManager.getWriteOwnerLocker(Long.valueOf(nodeId));
         if (ownerTxn != null) {
             return ownerTxn.getAbortLsn(nodeId);
         }
@@ -150,13 +224,18 @@ public class BasicLocker extends Locker {
     }
 
     /**
-     * Creates a new instance of this txn for the same environment.  No
-     * transactional locks are held by this object, so no locks are retained.
+     * Throws UnsupportedOperationException unconditionally.
+     *
+     * If we were to create a new BasicLocker here, it would not share locks
+     * with this locker, which violates the definition of this method.  This
+     * method is not currently called in direct uses of BasicLocker and is
+     * overridden by subclasses where it is allowed (e.g., ThreadLocker and
+     * ReadCommittedLocker).
      */
     public Locker newNonTxnLocker()
         throws DatabaseException {
 
-        return new BasicLocker(envImpl);
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -166,38 +245,20 @@ public class BasicLocker extends Locker {
     public void releaseNonTxnLocks()
         throws DatabaseException {
 
-        operationEnd(true);
-    }
-
-    /**
-     * Release locks at the end of the transaction.
-     */
-    public void operationEnd()
-        throws DatabaseException {
-
-        operationEnd(true);
-    }
-
-    /**
-     * Release locks at the end of the transaction.
-     */
-    public void operationEnd(boolean operationOK)
-        throws DatabaseException {
-
         /*
          * Don't remove locks from txn's lock collection until iteration is
          * done, lest we get a ConcurrentModificationException during deadlock
 	 * graph "display".  [#9544]
          */
         if (ownedLock != null) {
-            lockManager.release(ownedLock.longValue(), this);
-            ownedLock  = null;
+            lockManager.release(ownedLock, this);
+            ownedLock = null;
         }
         if (ownedLockSet != null) {
-            Iterator iter = ownedLockSet.iterator();
+            Iterator<Long> iter = ownedLockSet.iterator();
             while (iter.hasNext()) {
-                Long nid = (Long) iter.next();
-                lockManager.release(nid.longValue(), this);
+                Long nid = iter.next();
+                lockManager.release(nid, this);
             }
 
             /* Now clear lock collection. */
@@ -213,6 +274,27 @@ public class BasicLocker extends Locker {
                 deleteInfo.clear();
             }
         }
+    }
+
+    /**
+     * Release locks and close the cursor at the end of the operation.
+     */
+    public void nonTxnOperationEnd()
+        throws DatabaseException {
+
+        operationEnd(true);
+    }
+
+    /**
+     * Release locks and close the cursor at the end of the operation.
+     */
+    public void operationEnd(boolean operationOK)
+        throws DatabaseException {
+
+        releaseNonTxnLocks();
+
+        /* Close this Locker. */
+        close();
     }
 
     /**
@@ -233,7 +315,8 @@ public class BasicLocker extends Locker {
                  * by calling Database.invalidate, but for a non-transactional
                  * locker must be done here.  [#13415]
                  */
-                envImpl.releaseDb(DbInternal.dbGetDatabaseImpl(dbHandle));
+                envImpl.getDbTree().
+                    releaseDb(DbInternal.dbGetDatabaseImpl(dbHandle));
             }
             unregisterHandle(dbHandle);
         }
@@ -279,23 +362,23 @@ public class BasicLocker extends Locker {
         throws DatabaseException {
 
         if (deleteAtCommit) {
-            /* releaseDb will be called by releaseDeletedINs. */
-            db.deleteAndReleaseINs();
+            /* releaseDb will be called by startAndFinishDelete. */
+            db.startAndFinishDelete();
         } else {
-            envImpl.releaseDb(db);
+            envImpl.getDbTree().releaseDb(db);
         }
     }
 
     /**
      * Add a lock to set owned by this transaction.
      */
-    void addLock(Long nodeId,
-                 LockType type,
-                 LockGrantType grantStatus)
+    protected void addLock(Long nodeId,
+                           LockType type,
+                           LockGrantType grantStatus)
         throws DatabaseException {
 
         if ((ownedLock != null &&
-	     ownedLock.equals(nodeId)) ||
+	    ownedLock.equals(nodeId)) ||
             (ownedLockSet != null &&
 	     ownedLockSet.contains(nodeId))) {
             return; // Already owned
@@ -304,7 +387,7 @@ public class BasicLocker extends Locker {
             ownedLock = nodeId;
         } else {
             if (ownedLockSet == null) {
-                ownedLockSet = new HashSet();
+                ownedLockSet = new HashSet<Long>();
             }
             ownedLockSet.add(nodeId);
         }
@@ -317,10 +400,10 @@ public class BasicLocker extends Locker {
         throws DatabaseException {
 
         if (ownedLock != null &&
-	    ownedLock.longValue() == nodeId) {
+	    ownedLock == nodeId) {
             ownedLock = null;
         } else if (ownedLockSet != null) {
-            ownedLockSet.remove(new Long(nodeId));
+            ownedLockSet.remove(nodeId);
         }
     }
 
@@ -346,7 +429,7 @@ public class BasicLocker extends Locker {
     public LockStats collectStats(LockStats stats)
         throws DatabaseException {
 
-        if (ownedLock != null) {
+	if (ownedLock != null) {
 	    Lock l = lockManager.lookupLock(ownedLock);
 	    if (l != null) {
 		if (l.isOwnedWriteLock(this)) {
@@ -355,13 +438,13 @@ public class BasicLocker extends Locker {
 		    stats.setNReadLocks(stats.getNReadLocks() + 1);
 		}
 	    }
-        }
+	}
         if (ownedLockSet != null) {
-            Iterator iter = ownedLockSet.iterator();
+            Iterator<Long> iter = ownedLockSet.iterator();
 
             while (iter.hasNext()) {
-                Long nid = (Long) iter.next();
-                Lock l = lockManager.lookupLock(nid);
+                Long nid = iter.next();
+		Lock l = lockManager.lookupLock(nid);
 		if (l != null) {
 		    if (l.isOwnedWriteLock(this)) {
 			stats.setNWriteLocks(stats.getNWriteLocks() + 1);

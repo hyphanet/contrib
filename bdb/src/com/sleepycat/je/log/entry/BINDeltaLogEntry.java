@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BINDeltaLogEntry.java,v 1.23.2.2 2007/11/20 13:32:32 cwl Exp $
+ * $Id: BINDeltaLogEntry.java,v 1.27 2008/03/10 19:59:19 linda Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -23,7 +23,7 @@ public class BINDeltaLogEntry extends SingleItemEntry
     /**
      * @param logClass
      */
-    public BINDeltaLogEntry(Class logClass) {
+    public BINDeltaLogEntry(Class<BINDelta> logClass) {
         super(logClass);
     }
 

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DummyLockManager.java,v 1.4.2.5 2007/11/20 13:32:36 cwl Exp $
+ * $Id: DummyLockManager.java,v 1.11 2008/05/15 01:52:43 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -32,7 +32,7 @@ public class DummyLockManager extends LockManager {
      * @see LockManager#lookupLock
      */
     protected Lock lookupLock(Long nodeId)
-        throws DatabaseException {
+	throws DatabaseException {
 
 	return null;
     }
@@ -69,8 +69,7 @@ public class DummyLockManager extends LockManager {
     /**
      * @see LockManager#releaseAndNotifyTargets
      */
-    protected Set releaseAndFindNotifyTargets(long nodeId,
-                                              Locker locker)
+    protected Set<Locker> releaseAndFindNotifyTargets(long nodeId, Locker locker)
         throws DatabaseException {
 
 	return null;

@@ -31,7 +31,7 @@ package com.sleepycat.asm;
 
 /**
  * Information about an exception handler block.
- * 
+ *
  * @author Eric Bruneton
  */
 class Handler {

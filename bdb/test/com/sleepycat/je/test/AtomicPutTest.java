@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: AtomicPutTest.java,v 1.13.2.2 2007/11/20 13:32:49 cwl Exp $
+ * $Id: AtomicPutTest.java,v 1.17 2008/02/05 23:28:27 mark Exp $
  */
 
 package com.sleepycat.je.test;
@@ -22,6 +22,7 @@ import com.sleepycat.je.Transaction;
 import com.sleepycat.je.junit.JUnitMethodThread;
 import com.sleepycat.je.junit.JUnitThread;
 import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.util.test.TxnTestCase;
 
 /**
  * Tests put() (overwrite) and putNoOverwrite() to check that they work

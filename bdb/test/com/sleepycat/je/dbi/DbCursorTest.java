@@ -1,19 +1,24 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCursorTest.java,v 1.80.2.2 2007/11/20 13:32:43 cwl Exp $
+ * $Id: DbCursorTest.java,v 1.85 2008/03/20 18:13:54 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
 
+import java.io.IOException;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.Hashtable;
 
-import com.sleepycat.je.DbInternal;
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.util.StringDbt;
@@ -24,10 +29,51 @@ import com.sleepycat.je.util.TestUtils;
  */
 public class DbCursorTest extends DbCursorTestBase {
 
+    public static Test suite() {
+        TestSuite allTests = new TestSuite();
+        addTests(allTests, false/*keyPrefixing*/);
+        addTests(allTests, true/*keyPrefixing*/);
+        return allTests;
+    }
+
+    private static void addTests(TestSuite allTests,
+                                 boolean keyPrefixing) {
+
+        TestSuite suite = new TestSuite(DbCursorTest.class);
+        Enumeration e = suite.tests();
+        while (e.hasMoreElements()) {
+            DbCursorTest test = (DbCursorTest) e.nextElement();
+            test.keyPrefixing = keyPrefixing;
+            allTests.addTest(test);
+        }
+    }
+
     public DbCursorTest()
         throws DatabaseException {
 
         super();
+    }
+
+    private boolean alreadyTornDown = false;
+    public void tearDown()
+        throws DatabaseException, IOException {
+
+        /*
+         * Don't keep appending ":keyPrefixing" to name for the tests which
+         * invoke setup() and tearDown() on their own.
+         * e.g. testSimpleGetPutNextKeyForwardTraverse().
+         */
+        if (!alreadyTornDown) {
+
+            /*
+             * Set test name for reporting; cannot be done in the ctor or
+             * setUp.
+             */
+            setName(getName() +
+                    (keyPrefixing ? ":keyPrefixing" : ":noKeyPrefixing"));
+            alreadyTornDown = true;
+        }
+        super.tearDown();
     }
 
     /**
@@ -1299,7 +1345,6 @@ public class DbCursorTest extends DbCursorTestBase {
 
         try {
             initEnv(false);
-            int count = 0;
             doSimpleCursorPuts();
 
             StringDbt foundKey = new StringDbt();
@@ -1331,7 +1376,6 @@ public class DbCursorTest extends DbCursorTestBase {
 
         try {
             initEnv(false);
-            int count = 0;
             doSimpleCursorPuts();
 
             StringDbt foundKey = new StringDbt();

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LoggableTest.java,v 1.81.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: LoggableTest.java,v 1.93 2008/05/13 01:57:02 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -36,7 +36,6 @@ import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.INDeleteInfo;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.MapLN;
-import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.txn.TxnAbort;
 import com.sleepycat.je.txn.TxnCommit;
 import com.sleepycat.je.txn.TxnPrepare;
@@ -76,7 +75,10 @@ public class LoggableTest extends TestCase {
 	EnvironmentConfig envConfig = TestUtils.initEnvConfig();
 	envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
         envConfig.setAllowCreate(true);
-        env = new EnvironmentImpl(envHome, envConfig);
+        env = new EnvironmentImpl(envHome,
+                                  envConfig,
+                                  null /*sharedCacheEnv*/,
+                                  false /*replicationIntended*/);
     }
 
     public void tearDown()
@@ -92,7 +94,7 @@ public class LoggableTest extends TestCase {
         try {
             ByteBuffer buffer = ByteBuffer.allocate(1000);
             database = new DatabaseImpl("foo", new DatabaseId(1),
-                                        env, new DatabaseConfig());
+                                         env, new DatabaseConfig());
 
             /*
              * For each loggable object, can we write the entry data out?
@@ -108,13 +110,13 @@ public class LoggableTest extends TestCase {
              * LNs
              */
             String data = "abcdef";
-            LN ln = new LN(data.getBytes());
+            LN ln = new LN(data.getBytes(), env, false /* replicated */);
             LN lnFromLog = new LN();
             writeAndRead(buffer, LogEntryType.LOG_LN, ln, lnFromLog);
             lnFromLog.verify(null);
             assertTrue(LogEntryType.LOG_LN.marshallOutsideLatch());
 
-            FileSummaryLN fsLN = new FileSummaryLN(new FileSummary());
+            FileSummaryLN fsLN = new FileSummaryLN(env, new FileSummary());
             FileSummaryLN fsLNFromLog = new FileSummaryLN();
             writeAndRead(buffer, LogEntryType.LOG_FILESUMMARYLN,
                          fsLN, fsLNFromLog);
@@ -252,9 +254,10 @@ public class LoggableTest extends TestCase {
             /*
              * Root
              */
-            DbTree dbTree = new DbTree(env);
+            DbTree dbTree = new DbTree(env, false /* replicationIntended */);
             DbTree dbTreeFromLog = new DbTree();
             writeAndRead(buffer, LogEntryType.LOG_ROOT, dbTree, dbTreeFromLog);
+            dbTree.close();
 
             /*
              * MapLN
@@ -282,7 +285,8 @@ public class LoggableTest extends TestCase {
             /*
              * TxnCommit
              */
-            TxnCommit commit = new TxnCommit(111, DbLsn.makeLsn(10, 10));
+            TxnCommit commit = new TxnCommit(111, DbLsn.makeLsn(10, 10),
+            		                         179 /* masterNodeId */);
             TxnCommit commitFromLog = new TxnCommit();
             writeAndRead(buffer, LogEntryType.LOG_TXN_COMMIT, commit,
                          commitFromLog);
@@ -290,7 +294,8 @@ public class LoggableTest extends TestCase {
             /*
              * TxnAbort
              */
-            TxnAbort abort = new TxnAbort(111, DbLsn.makeLsn(11, 11));
+            TxnAbort abort = new TxnAbort(111, DbLsn.makeLsn(11, 11),
+            		                      7654321 /* masterNodeId*/);
             TxnAbort abortFromLog = new TxnAbort();
             writeAndRead(buffer, LogEntryType.LOG_TXN_ABORT,
                          abort, abortFromLog);
@@ -343,12 +348,22 @@ public class LoggableTest extends TestCase {
                                   DbLsn.makeLsn(20, 55),
                                   env.getRootLsn(),
                                   env.getTxnManager().getFirstActiveLsn(),
-                                  Node.getLastId(),
-                                  env.getDbMapTree().getLastDbId(),
-                                  env.getTxnManager().getLastTxnId(),
+                                  env.getNodeSequence().getLastLocalNodeId(),
+                                  env.getNodeSequence()
+                                  .getLastReplicatedNodeId(),
+                                  env.getDbTree().getLastLocalDbId(),
+                                  env.getDbTree().getLastReplicatedDbId(),
+                                  env.getTxnManager().getLastLocalTxnId(),
+                                  env.getTxnManager().getLastReplicatedTxnId(),
                                   177);
             CheckpointEnd endFromLog = new CheckpointEnd();
             writeAndRead(buffer, LogEntryType.LOG_CKPT_END,  end, endFromLog);
+
+            /* 
+             * Mimic what happens when the environment is closed.
+             */
+            database.releaseTreeAdminMemory();
+        
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -365,8 +380,6 @@ public class LoggableTest extends TestCase {
                               Loggable fromLog)
         throws Exception {
 
-	byte entryTypeVersion = entryType.getVersion();
-
         /* Write it. */
         buffer.clear();
         orig.writeToLog(buffer);
@@ -379,7 +392,7 @@ public class LoggableTest extends TestCase {
 	 * Read it and compare sizes. Note that we assume we're testing
 	 * objects that are readable and writable to the log.
 	 */
-        fromLog.readFromLog(buffer, entryTypeVersion);
+        fromLog.readFromLog(buffer, LogEntryType.LOG_VERSION);
         assertEquals(orig.getLogSize(), fromLog.getLogSize());
 
         assertEquals("We should have read the whole buffer for " +

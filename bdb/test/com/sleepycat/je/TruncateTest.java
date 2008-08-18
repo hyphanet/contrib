@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TruncateTest.java,v 1.15.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: TruncateTest.java,v 1.22 2008/04/08 21:30:00 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -55,52 +55,57 @@ public class TruncateTest extends TestCase {
 
     public void testEnvTruncateAbort()
         throws Throwable {
+
         doTruncateAndAdd(true,    // transactional
                          256,     // step1 num records
                          false,   // step2 autocommit
                          150,     // step3 num records
                          true,    // step4 abort
-                         0 );     // step5 num records
+                         0);      // step5 num records
     }
 
     public void testEnvTruncateCommit()
         throws Throwable {
+
         doTruncateAndAdd(true,    // transactional
                          256,     // step1 num records
                          false,   // step2 autocommit
                          150,     // step3 num records
                          false,   // step4 abort
-                         150 );   // step5 num records
+                         150);    // step5 num records
     }
 
     public void testEnvTruncateAutocommit()
         throws Throwable {
+
         doTruncateAndAdd(true,    // transactional
                          256,     // step1 num records
                          true,    // step2 autocommit
                          150,     // step3 num records
                          false,   // step4 abort
-                         150 );   // step5 num records
+                         150);    // step5 num records
     }
 
     public void testEnvTruncateNoFirstInsert()
         throws Throwable {
+
         doTruncateAndAdd(true,    // transactional
                          0,       // step1 num records
                          false,   // step2 autocommit
                          150,     // step3 num records
                          false,   // step4 abort
-                         150 );   // step5 num records
+                         150);    // step5 num records
     }
 
     public void testNoTxnEnvTruncateCommit()
         throws Throwable {
+
         doTruncateAndAdd(false,    // transactional
                          256,      // step1 num records
                          false,    // step2 autocommit
                          150,      // step3 num records
                          false,    // step4 abort
-                         150 );    // step5 num records
+                         150);     // step5 num records
     }
 
     public void testTruncateCommit()
@@ -144,14 +149,40 @@ public class TruncateTest extends TestCase {
         }
     }
 
+    public void testTruncateEmptyDeferredWriteDatabase()
+        throws Throwable {
+
+        try {
+            EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+            envConfig.setTransactional(false);
+            envConfig.setConfigParam
+                (EnvironmentParams.ENV_CHECK_LEAKS.getName(), "false");
+            envConfig.setAllowCreate(true);
+            env = new Environment(envHome, envConfig);
+
+            DatabaseConfig dbConfig = new DatabaseConfig();
+            dbConfig.setTransactional(false);
+            dbConfig.setSortedDuplicates(true);
+            dbConfig.setAllowCreate(true);
+            dbConfig.setDeferredWrite(true);
+            Database myDb = env.openDatabase(null, DB_NAME, dbConfig);
+            myDb.close();
+            long truncateCount;
+            truncateCount = env.truncateDatabase(null, DB_NAME, true);
+            assertEquals(0, truncateCount);
+        } catch (Throwable T) {
+            T.printStackTrace();
+            throw T;
+        }
+    }
+
     /**
      * 1. Populate a database.
      * 2. Truncate.
      * 3. Commit or abort.
      * 4. Check that database has the right amount of records.
      */
-    private void doTruncate(boolean abort,
-			    boolean useAutoTxn)
+    private void doTruncate(boolean abort, boolean useAutoTxn)
         throws Throwable {
 
         try {
@@ -185,8 +216,7 @@ public class TruncateTest extends TestCase {
                 }
             }
 
-                assertEquals(NUM_RECS, truncateCount);
-
+            assertEquals(NUM_RECS, truncateCount);
 
             /* Do a cursor read, make sure there's the right amount of data. */
             DatabaseConfig dbConfig = new DatabaseConfig();
@@ -241,7 +271,6 @@ public class TruncateTest extends TestCase {
         throws Throwable {
 
         String databaseName = "testdb";
-
         try {
             /* Use enough records to force a split. */
             EnvironmentConfig envConfig = TestUtils.initEnvConfig();
@@ -250,7 +279,6 @@ public class TruncateTest extends TestCase {
             envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(),
                                      "6");
             env = new Environment(envHome, envConfig);
-
 
             /* Make a db and open it. */
             DatabaseConfig dbConfig = new DatabaseConfig();
@@ -289,7 +317,6 @@ public class TruncateTest extends TestCase {
             long truncateCount = env.truncateDatabase(txn, databaseName, true);
             assertEquals(step1NumRecs, truncateCount);
 
-
             /*
              * The naming tree should always have two entries now, the
              * mapping tree might have 2 or 3, depending on abort.
@@ -299,7 +326,6 @@ public class TruncateTest extends TestCase {
             } else {
                 countLNs(2, 3);
             }
-
 
             /* Add more records. */
             myDb = env.openDatabase(txn, databaseName, dbConfig);
@@ -383,18 +409,19 @@ public class TruncateTest extends TestCase {
 
     /**
      * Use stats to count the number of LNs in the id and name mapping
-     * trees. It's not possible to use Cursor, and stats areg easier to use than
-     * CursorImpl. This relies on the fact that the stats actually correctly
-     * account for deleted entries.
+     * trees. It's not possible to use Cursor, and stats areg easier to use
+     * than CursorImpl. This relies on the fact that the stats actually
+     * correctly account for deleted entries.
      */
     private void countLNs(int expectNameLNs,
                           int expectMapLNs)
     	throws DatabaseException {
+
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
 
         /* check number of LNs in the id mapping tree. */
         DatabaseImpl mapDbImpl =
-            envImpl.getDbMapTree().getDb(DbTree.ID_DB_ID);
+            envImpl.getDbTree().getDb(DbTree.ID_DB_ID);
         // mapDbImpl.getTree().dump();
         BtreeStats mapStats =
             (BtreeStats) mapDbImpl.stat(new StatsConfig());
@@ -403,7 +430,7 @@ public class TruncateTest extends TestCase {
 
         /* check number of LNs in the naming tree. */
         DatabaseImpl nameDbImpl =
-            envImpl.getDbMapTree().getDb(DbTree.NAME_DB_ID);
+            envImpl.getDbTree().getDb(DbTree.NAME_DB_ID);
         BtreeStats nameStats =
             (BtreeStats) nameDbImpl.stat(new StatsConfig());
         assertEquals(expectNameLNs,

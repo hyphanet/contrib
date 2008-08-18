@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ClassEnhancer.java,v 1.14.2.2 2007/11/20 13:32:39 cwl Exp $
+ * $Id: ClassEnhancer.java,v 1.18 2008/02/05 23:28:22 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -39,7 +39,11 @@ import com.sleepycat.asm.ClassWriter;
  * enhancement may be used either at runtime or offline (at build time).</p>
  *
  * <p>To use enhancement offline, this class may be used as a {@link #main main
- * program} or via an {@link ClassEnhancerTask ant task}.</p>
+ * program}.
+ * <!-- begin JE only -->
+ * It may also be used via an {@link ClassEnhancerTask ant task}.
+ * <!-- end JE only -->
+ * </p>
  *
  * <p>For enhancement at runtime, this class provides the low level support
  * needed to transform class bytes during class loading.  To configure runtime

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Loggable.java,v 1.3.2.2 2007/11/20 13:32:32 cwl Exp $
+ * $Id: Loggable.java,v 1.8 2008/01/07 14:28:51 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -39,7 +39,7 @@ public interface Loggable {
      * Initialize this object from the data in itemBuf.
      * @param itemBuf the source buffer
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
 	throws LogException;
 
     /**
@@ -56,4 +56,10 @@ public interface Loggable {
      * that have no transaction id should return 0.
      */
     public long getTransactionId();
+
+    /**
+     * @return true if these two loggable items are logically the same.
+     * Used for replication testing.
+     */
+    public boolean logicalEquals(Loggable other);
 }

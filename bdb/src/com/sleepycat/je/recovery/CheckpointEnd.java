@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckpointEnd.java,v 1.29.2.2 2007/11/20 13:32:33 cwl Exp $
+ * $Id: CheckpointEnd.java,v 1.37 2008/02/06 02:04:18 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -36,18 +36,24 @@ public class CheckpointEnd implements Loggable {
     private boolean rootLsnExists;
     private long rootLsn;
     private long firstActiveLsn;
-    private long lastNodeId;
-    private int lastDbId;
-    private long lastTxnId;
+    private long lastLocalNodeId;
+    private long lastReplicatedNodeId;
+    private int lastLocalDbId;
+    private int lastReplicatedDbId;
+    private long lastLocalTxnId;
+    private long lastReplicatedTxnId;
     private long id;
 
     public CheckpointEnd(String invoker,
                          long checkpointStartLsn,
                          long rootLsn,
                          long firstActiveLsn,
-                         long lastNodeId,
-                         int lastDbId,
-                         long lastTxnId,
+                         long lastLocalNodeId,
+                         long lastReplicatedNodeId,
+                         int lastLocalDbId,
+                         int lastReplicatedDbId,
+                         long lastLocalTxnId,
+                         long lastReplicatedTxnId,
                          long id) {
         if (invoker == null) {
             this.invoker = "";
@@ -69,9 +75,12 @@ public class CheckpointEnd implements Loggable {
         } else {
             this.firstActiveLsn = firstActiveLsn;
         }
-        this.lastNodeId = lastNodeId;
-        this.lastDbId = lastDbId;
-        this.lastTxnId = lastTxnId;
+        this.lastLocalNodeId = lastLocalNodeId;
+        this.lastReplicatedNodeId = lastReplicatedNodeId;
+        this.lastLocalDbId = lastLocalDbId;
+        this.lastReplicatedDbId = lastReplicatedDbId;
+        this.lastLocalTxnId = lastLocalTxnId;
+        this.lastReplicatedTxnId = lastReplicatedTxnId;
         this.id = id;
     }
 
@@ -91,18 +100,21 @@ public class CheckpointEnd implements Loggable {
      */
     public int getLogSize() {
         int size =
-            LogUtils.getStringLogSize(invoker) + // invoker
-            LogUtils.getTimestampLogSize() +     // endTime
-	    LogUtils.getLongLogSize() +          // checkpointStartLsn
-            LogUtils.getBooleanLogSize() +       // rootLsnExists
-	    LogUtils.getLongLogSize() +          // firstActiveLsn
-            LogUtils.getLongLogSize() +          // lastNodeId
-            LogUtils.getIntLogSize() +           // lastDbId
-            LogUtils.getLongLogSize() +          // lastTxnId
-            LogUtils.getLongLogSize();           // id
+            LogUtils.getStringLogSize(invoker) +    // invoker
+            LogUtils.getTimestampLogSize(endTime) + // endTime
+	    LogUtils.getPackedLongLogSize(checkpointStartLsn) +
+            1 +                                     // rootLsnExists
+	    LogUtils.getPackedLongLogSize(firstActiveLsn) +
+            LogUtils.getPackedLongLogSize(lastLocalNodeId) +
+            LogUtils.getPackedLongLogSize(lastReplicatedNodeId) +
+            LogUtils.getPackedIntLogSize(lastLocalDbId) +
+            LogUtils.getPackedIntLogSize(lastReplicatedDbId) +
+            LogUtils.getPackedLongLogSize(lastLocalTxnId) +
+            LogUtils.getPackedLongLogSize(lastReplicatedTxnId) +
+            LogUtils.getPackedLongLogSize(id);
 
         if (rootLsnExists) {
-            size += LogUtils.getLongLogSize();
+            size += LogUtils.getPackedLongLogSize(rootLsn);
         }
         return size;
     }
@@ -113,35 +125,62 @@ public class CheckpointEnd implements Loggable {
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeString(logBuffer, invoker);
         LogUtils.writeTimestamp(logBuffer, endTime);
-	LogUtils.writeLong(logBuffer, checkpointStartLsn);
-        LogUtils.writeBoolean(logBuffer, rootLsnExists);
+	LogUtils.writePackedLong(logBuffer, checkpointStartLsn);
+        byte booleans = (byte) (rootLsnExists ? 1 : 0);
+        logBuffer.put(booleans);
         if (rootLsnExists) {
-	    LogUtils.writeLong(logBuffer, rootLsn);
+	    LogUtils.writePackedLong(logBuffer, rootLsn);
         }
-	LogUtils.writeLong(logBuffer, firstActiveLsn);
-        LogUtils.writeLong(logBuffer, lastNodeId);
-        LogUtils.writeInt(logBuffer, lastDbId);
-        LogUtils.writeLong(logBuffer, lastTxnId);
-        LogUtils.writeLong(logBuffer, id);
+	LogUtils.writePackedLong(logBuffer, firstActiveLsn);
+
+        LogUtils.writePackedLong(logBuffer, lastLocalNodeId);
+        LogUtils.writePackedLong(logBuffer, lastReplicatedNodeId);
+
+        LogUtils.writePackedInt(logBuffer, lastLocalDbId);
+        LogUtils.writePackedInt(logBuffer, lastReplicatedDbId);
+
+        LogUtils.writePackedLong(logBuffer, lastLocalTxnId);
+        LogUtils.writePackedLong(logBuffer, lastReplicatedTxnId);
+
+        LogUtils.writePackedLong(logBuffer, id);
     }
 
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer logBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer logBuffer, byte entryVersion)
 	throws LogException {
-        invoker = LogUtils.readString(logBuffer);
-        endTime = LogUtils.readTimestamp(logBuffer);
-	checkpointStartLsn = LogUtils.readLong(logBuffer);
-        rootLsnExists = LogUtils.readBoolean(logBuffer);
+
+        boolean version6OrLater = (entryVersion >= 6);
+        invoker = LogUtils.readString(logBuffer, !version6OrLater);
+        endTime = LogUtils.readTimestamp(logBuffer, !version6OrLater);
+	checkpointStartLsn = LogUtils.readLong(logBuffer, !version6OrLater);
+        byte booleans = logBuffer.get();
+        rootLsnExists = (booleans & 1) != 0;
         if (rootLsnExists) {
-	    rootLsn = LogUtils.readLong(logBuffer);
+	    rootLsn = LogUtils.readLong(logBuffer, !version6OrLater);
         }
-	firstActiveLsn = LogUtils.readLong(logBuffer);
-        lastNodeId = LogUtils.readLong(logBuffer);
-        lastDbId = LogUtils.readInt(logBuffer);
-        lastTxnId = LogUtils.readLong(logBuffer);
-        id = LogUtils.readLong(logBuffer);
+	firstActiveLsn = LogUtils.readLong(logBuffer, !version6OrLater);
+
+        lastLocalNodeId = LogUtils.readLong(logBuffer, !version6OrLater);
+        if (version6OrLater) {
+            lastReplicatedNodeId = LogUtils.readLong(logBuffer,
+                                                     false/*unpacked*/);
+        }
+
+        lastLocalDbId = LogUtils.readInt(logBuffer, !version6OrLater);
+        if (version6OrLater) {
+            lastReplicatedDbId = LogUtils.readInt(logBuffer,
+                                                  false/*unpacked*/);
+        }
+
+        lastLocalTxnId = LogUtils.readLong(logBuffer, !version6OrLater);
+        if (version6OrLater) {
+            lastReplicatedTxnId = LogUtils.readLong(logBuffer,
+                                                    false/*unpacked*/);
+        }
+
+        id = LogUtils.readLong(logBuffer, !version6OrLater);
     }
 
     /**
@@ -150,9 +189,12 @@ public class CheckpointEnd implements Loggable {
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<CkptEnd invoker=\"").append(invoker);
         sb.append("\" time=\"").append(endTime);
-        sb.append("\" lastNodeId=\"").append(lastNodeId);
-        sb.append("\" lastDbId=\"").append(lastDbId);
-        sb.append("\" lastTxnId=\"").append(lastTxnId);
+        sb.append("\" lastLocalNodeId=\"").append(lastLocalNodeId);
+        sb.append("\" lastReplicatedNodeId=\"").append(lastReplicatedNodeId);
+        sb.append("\" lastLocalDbId=\"").append(lastLocalDbId);
+        sb.append("\" lastReplicatedDbId=\"").append(lastReplicatedDbId);
+        sb.append("\" lastLocalTxnId=\"").append(lastLocalTxnId);
+        sb.append("\" lastReplicatedTxnId=\"").append(lastReplicatedTxnId);
         sb.append("\" id=\"").append(id);
         sb.append("\" rootExists=\"").append(rootLsnExists);
         sb.append("\">");
@@ -178,12 +220,23 @@ public class CheckpointEnd implements Loggable {
 	return 0;
     }
 
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
+    }
+
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("time=").append(endTime);
-        sb.append(" lastNodeId=").append(lastNodeId);
-        sb.append(" lastDbId=").append(lastDbId);
-        sb.append(" lastTxnId=").append(lastTxnId);
+        sb.append(" lastLocalNodeId=").append(lastLocalNodeId);
+        sb.append(" lastReplicatedNodeId=").append(lastReplicatedNodeId);
+        sb.append(" lastLocalDbId=").append(lastLocalDbId);
+        sb.append(" lastReplicatedDbId=").append(lastReplicatedDbId);
+        sb.append(" lastLocalTxnId=").append(lastLocalTxnId);
+        sb.append(" lastReplicatedTxnId=").append(lastReplicatedTxnId);
         sb.append(" id=").append(id);
         sb.append(" rootExists=").append(rootLsnExists);
         sb.append(" ckptStartLsn=").append
@@ -211,15 +264,30 @@ public class CheckpointEnd implements Loggable {
         return firstActiveLsn;
     }
 
-    long getLastNodeId() {
-        return lastNodeId;
+    long getLastLocalNodeId() {
+        return lastLocalNodeId;
     }
-    int getLastDbId() {
-        return lastDbId;
+
+    long getLastReplicatedNodeId() {
+        return lastReplicatedNodeId;
     }
-    long getLastTxnId() {
-        return lastTxnId;
+
+    int getLastLocalDbId() {
+        return lastLocalDbId;
     }
+
+    int getLastReplicatedDbId() {
+        return lastReplicatedDbId;
+    }
+
+    long getLastLocalTxnId() {
+        return lastLocalTxnId;
+    }
+
+    long getLastReplicatedTxnId() {
+        return lastReplicatedTxnId;
+    }
+
     long getId() {
         return id;
     }

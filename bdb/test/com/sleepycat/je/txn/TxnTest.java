@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnTest.java,v 1.58.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: TxnTest.java,v 1.71 2008/05/13 20:03:11 sam Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -21,6 +21,7 @@ import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.DeadlockException;
+import com.sleepycat.je.Durability;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.EnvironmentMutableConfig;
@@ -35,11 +36,11 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
 import com.sleepycat.je.log.FileManager;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.WithRootLatched;
-import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.util.TestUtils;
 
 /*
@@ -85,24 +86,23 @@ public class TxnTest extends TestCase {
     }
 
     /**
-     * Test transaction locking and releasing
+     * Test transaction locking and releasing.
      */
     public void testBasicLocking()
         throws Throwable {
 
         try {
-
-            LN ln = new LN(new byte[0]);
+            EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+            LN ln = new LN(new byte[0], envImpl, false);
 
             /*
              * Make a null txn that will lock. Take a lock and then end the
              * operation.
              */
-            EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
             MemoryBudget mb = envImpl.getMemoryBudget();
 
             long beforeLock = mb.getCacheMemoryUsage();
-            Locker nullTxn = new BasicLocker(envImpl);
+            Locker nullTxn = BasicLocker.createBasicLocker(envImpl);
 
             LockGrantType lockGrant = nullTxn.lock
                 (ln.getNodeId(), LockType.READ, false,
@@ -112,12 +112,11 @@ public class TxnTest extends TestCase {
             long afterLock = mb.getCacheMemoryUsage();
             checkHeldLocks(nullTxn, 1, 0);
 
-            nullTxn.operationEnd();
+            nullTxn.releaseNonTxnLocks();
             long afterRelease = mb.getCacheMemoryUsage();
             checkHeldLocks(nullTxn, 0, 0);
             checkCacheUsage(beforeLock, afterLock, afterRelease,
-                            LockManager.TOTAL_LOCK_OVERHEAD +
-                            MemoryBudget.LOCKINFO_OVERHEAD);
+                            LockManager.TOTAL_THINLOCKIMPL_OVERHEAD);
 
             /* Take a lock, release it. */
             beforeLock = mb.getCacheMemoryUsage();
@@ -133,14 +132,14 @@ public class TxnTest extends TestCase {
             checkHeldLocks(nullTxn, 0, 0);
             afterRelease = mb.getCacheMemoryUsage();
             checkCacheUsage(beforeLock, afterLock, afterRelease,
-                            LockManager.TOTAL_LOCK_OVERHEAD +
-                            MemoryBudget.LOCKINFO_OVERHEAD);
+                            LockManager.TOTAL_THINLOCKIMPL_OVERHEAD);
 
             /*
              * Make a user transaction, check lock and release.
              */
             beforeLock = mb.getCacheMemoryUsage();
-            Txn userTxn = new Txn(envImpl, new TransactionConfig());
+            Txn userTxn = Txn.createTxn(envImpl, new TransactionConfig(),
+					ReplicationContext.NO_REPLICATE);
             lockGrant = userTxn.lock
                 (ln.getNodeId(), LockType.READ, false,
                  DbInternal.dbGetDatabaseImpl(db)).
@@ -180,9 +179,61 @@ public class TxnTest extends TestCase {
 
             userTxn.releaseLock(ln.getNodeId());
             checkHeldLocks(userTxn, 0, 0);
-            userTxn.commit(Txn.TXN_SYNC);
+            userTxn.commit(TransactionConfig.SYNC);
             afterRelease = mb.getCacheMemoryUsage();
             assertTrue(afterLock > beforeLock);
+        } catch (Throwable t) {
+            /* print stack trace before going to teardown. */
+            t.printStackTrace();
+            throw t;
+        }
+    }
+
+    /**
+     * Test lock mutation.
+     */
+    public void testLockMutation()
+        throws Throwable {
+
+        try {
+
+            EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+            LN ln = new LN(new byte[0], envImpl, false);
+
+            MemoryBudget mb = envImpl.getMemoryBudget();
+
+            long beforeLock = mb.getCacheMemoryUsage();
+            Txn userTxn1 = Txn.createTxn(envImpl, new TransactionConfig());
+            Txn userTxn2 = Txn.createTxn(envImpl, new TransactionConfig());
+
+	    LockStats envStats = env.getLockStats(null);
+	    assertEquals(1, envStats.getNTotalLocks());
+            LockGrantType lockGrant1 = userTxn1.lock
+                (ln.getNodeId(), LockType.READ, false,
+                 DbInternal.dbGetDatabaseImpl(db)).
+		getLockGrant();
+            assertEquals(LockGrantType.NEW, lockGrant1);
+            checkHeldLocks(userTxn1, 1, 0);
+	    envStats = env.getLockStats(null);
+	    assertEquals(2, envStats.getNTotalLocks());
+
+	    try {
+		LockGrantType lockGrant2 = userTxn2.lock
+		    (ln.getNodeId(), LockType.WRITE, false,
+		     DbInternal.dbGetDatabaseImpl(db)).
+		    getLockGrant();
+	    } catch (DeadlockException DE) {
+		// ok
+	    }
+	    envStats = env.getLockStats(null);
+	    assertEquals(2, envStats.getNTotalLocks());
+            checkHeldLocks(userTxn2, 0, 0);
+
+            userTxn1.commit();
+            userTxn2.abort(false);
+
+            long afterRelease = mb.getCacheMemoryUsage();
+            assertEquals(beforeLock, afterRelease);
         } catch (Throwable t) {
             /* print stack trace before going to teardown. */
             t.printStackTrace();
@@ -207,11 +258,12 @@ public class TxnTest extends TestCase {
         throws Throwable {
 
         try {
-            LN ln1 = new LN(new byte[0]);
-            LN ln2 = new LN(new byte[0]);
-
             EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
-            Txn userTxn = new Txn(envImpl, new TransactionConfig());
+            LN ln1 = new LN(new byte[0], envImpl, false);
+            LN ln2 = new LN(new byte[0], envImpl, false);
+
+            Txn userTxn = Txn.createTxn(envImpl, new TransactionConfig(),
+					ReplicationContext.NO_REPLICATE);
 
             /* Get read lock 1. */
             LockGrantType lockGrant = userTxn.lock
@@ -246,7 +298,7 @@ public class TxnTest extends TestCase {
             checkHeldLocks(userTxn, 1, 1);
 
             /* Shouldn't release at operation end. */
-            long commitLsn = userTxn.commit(Txn.TXN_SYNC);
+            long commitLsn = userTxn.commit(TransactionConfig.SYNC);
             checkHeldLocks(userTxn, 0, 0);
 
             TxnCommit commitRecord =
@@ -391,7 +443,7 @@ public class TxnTest extends TestCase {
         RandomAccessFile logFile =
             new RandomAccessFile(new File(envHome, "00000000.jdb"), "r");
         try {
-            SyncCombo [] testCombinations = {
+            SyncCombo[] testCombinations = {
             /*            Env    Env    Txn    Txn    Txn    Expect Expect
              *            WrNoSy NoSy   Sync  WrNoSy  NoSyc  Sync   Write */
             new SyncCombo(  0,     0,     0,     0,     0,    true,  true),
@@ -447,7 +499,7 @@ public class TxnTest extends TestCase {
                              combo.expectSync, combo.expectWrite);
             }
 
-            SyncCombo [] autoCommitCombinations = {
+            SyncCombo[] autoCommitCombinations = {
             /*            Env    Env    Txn    Txn    Txn    Expect Expect
              *            WrNoSy NoSy   Sync  WrNoSy  NoSyc  Sync   Write */
             new SyncCombo(  0,     0,     0,     0,     0,    true,  true),
@@ -468,6 +520,223 @@ public class TxnTest extends TestCase {
             logFile.close();
         }
     }
+
+    enum DurabilityAPI {SYNC_API, DUR_API, DEFAULT_API} ;
+
+    /*
+     * Returns true if there is mixed mode usage across the two apis
+     */
+    private boolean mixedModeUsage(DurabilityAPI outerAPI,
+                                   DurabilityAPI innerAPI) {
+        if ((innerAPI == DurabilityAPI.DEFAULT_API) ||
+             (outerAPI == DurabilityAPI.DEFAULT_API)){
+            return false;
+        }
+
+        if (innerAPI == outerAPI) {
+            return false;
+        }
+        /* Mix of sync and durability APIs */
+        return true;
+    }
+
+    /*
+     * Does a three level check at the env, config and transaction levels to
+     * check for mixed mode uaage
+     */
+    boolean mixedModeUsage(DurabilityAPI envAPI,
+                           DurabilityAPI tconfigAPI,
+                           DurabilityAPI transAPI) {
+        DurabilityAPI outerAPI;
+        if (tconfigAPI == DurabilityAPI.DEFAULT_API) {
+            outerAPI = envAPI;
+        } else {
+            outerAPI = tconfigAPI;
+        }
+        return mixedModeUsage(outerAPI, transAPI);
+    }
+
+    /*
+     * Test local mixed mode operations on MutableConfig and TransactionConfig
+     */
+    public void testOneLevelDurabilityComboErrors()
+        throws Throwable {
+
+        EnvironmentMutableConfig config = new EnvironmentMutableConfig();
+        config.setTxnNoSync(true);
+        try {
+            config.setDurability(TransactionConfig.NO_SYNC);
+            fail("expected exception");
+        } catch (IllegalArgumentException e) {
+            assertTrue(true); // pass expected exception
+        }
+        config =  new EnvironmentMutableConfig();
+        config.setDurability(TransactionConfig.NO_SYNC);
+        try {
+            config.setTxnNoSync(true);
+            fail("expected exception");
+        } catch (IllegalArgumentException e) {
+            assertTrue(true); // pass expected exception
+        }
+
+        TransactionConfig txnConfig = new TransactionConfig();
+        txnConfig.setNoSync(true);
+        try {
+            txnConfig.setDurability(TransactionConfig.NO_SYNC);
+        } catch (IllegalArgumentException e) {
+            assertTrue(true); // pass expected exception
+        }
+
+        txnConfig = new TransactionConfig();
+        txnConfig.setDurability(TransactionConfig.NO_SYNC);
+        try {
+        txnConfig.setNoSync(true);
+        } catch (IllegalArgumentException e) {
+            assertTrue(true); // pass expected exception
+        }
+    }
+
+    /*
+     * Test for exceptions resulting from mixed mode usage.
+     */
+    public void testMultiLevelLocalDurabilityComboErrors()
+        throws Throwable {
+
+        for (DurabilityAPI envAPI: DurabilityAPI.values()) {
+            EnvironmentMutableConfig config =  new EnvironmentMutableConfig();
+            switch (envAPI) {
+                case SYNC_API:
+                    config.setTxnNoSync(true);
+                    break;
+                case DUR_API:
+                    config.setDurability(TransactionConfig.NO_SYNC);
+                    break;
+                case DEFAULT_API:
+                    break;
+            }
+            env.setMutableConfig(config);
+            for (DurabilityAPI tconfigAPI: DurabilityAPI.values()) {
+                TransactionConfig txnConfig = new TransactionConfig();
+                switch (tconfigAPI) {
+                    case SYNC_API:
+                        txnConfig.setNoSync(true);
+                        break;
+                    case DUR_API:
+                        txnConfig.setDurability(TransactionConfig.NO_SYNC);
+                        break;
+                    case DEFAULT_API:
+                        txnConfig = null;
+                        break;
+                    }
+                try {
+                    Transaction txn = env.beginTransaction(null, txnConfig);
+                    txn.abort();
+                    assertFalse(mixedModeUsage(envAPI,tconfigAPI));
+                    for (DurabilityAPI transAPI : DurabilityAPI.values()) {
+                        Transaction t = env.beginTransaction(null, txnConfig);
+                        try {
+                            switch (transAPI) {
+                                case SYNC_API:
+                                    t.commitNoSync();
+                                    break;
+                                case DUR_API:
+                                    t.commit(TransactionConfig.NO_SYNC);
+                                    break;
+                                case DEFAULT_API:
+                                    t.commit();
+                                    break;
+                            }
+                            assertFalse(mixedModeUsage(envAPI,
+                                                       tconfigAPI,
+                                                       transAPI));
+                        } catch (IllegalArgumentException e) {
+                            t.abort();
+                            assertTrue(mixedModeUsage(envAPI,
+                                                      tconfigAPI,
+                                                      transAPI));
+                        }
+                    }
+                } catch (IllegalArgumentException e) {
+                    assertTrue(mixedModeUsage(envAPI,tconfigAPI));
+                }
+            }
+        }
+
+    }
+
+    public void testLocalDurabilityCombo()
+        throws Throwable {
+
+        RandomAccessFile logFile =
+            new RandomAccessFile(new File(envHome, "00000000.jdb"), "r");
+        Durability[] localDurabilities = new Durability[] {
+                    TransactionConfig.SYNC,
+                    TransactionConfig.WRITE_NO_SYNC,
+                    TransactionConfig.NO_SYNC,
+                    null /* Use the default */
+                    };
+
+        DatabaseEntry key = new DatabaseEntry(new byte[1]);
+        DatabaseEntry data = new DatabaseEntry(new byte[1]);
+
+        try {
+            for (Durability envDurability : localDurabilities) {
+                EnvironmentMutableConfig config =  env.getMutableConfig();
+                config.setDurability(envDurability);
+                env.setMutableConfig(config);
+                for (Durability transConfigDurability : localDurabilities) {
+                    TransactionConfig txnConfig = null;
+                    if (transConfigDurability != null) {
+                        txnConfig = new TransactionConfig();
+                        txnConfig.setDurability(transConfigDurability);
+                    }
+                    for (Durability transDurability : localDurabilities) {
+                        long beforeSyncs = getNSyncs();
+                        Transaction txn = env.beginTransaction(null, txnConfig);
+                        db.put(txn, key, data);
+                        long beforeLength = logFile.length();
+                        if (transDurability == null) {
+                            txn.commit();
+                        } else {
+                            txn.commit(transDurability);
+                        }
+                        Durability effectiveDurability =
+                            (transDurability != null) ?
+                            transDurability :
+                            ((transConfigDurability != null) ?
+                             transConfigDurability :
+                             ((envDurability != null) ?
+                              envDurability :
+                              TransactionConfig.SYNC));
+
+                        long afterSyncs = getNSyncs();
+                        long afterLength = logFile.length();
+                        boolean syncOccurred = afterSyncs > beforeSyncs;
+                        boolean writeOccurred = afterLength > beforeLength;
+                        switch (effectiveDurability.getLocalSync()) {
+                            case SYNC:
+                                assertTrue(syncOccurred);
+                                assertTrue(writeOccurred);
+                                break;
+                            case NO_SYNC:
+                                if (syncOccurred) {
+                                    assertFalse(syncOccurred);
+                                }
+                                assertFalse(writeOccurred);
+                                break;
+                            case WRITE_NO_SYNC:
+                                assertFalse(syncOccurred);
+                                assertTrue(writeOccurred);
+                                break;
+                        }
+                    }
+                }
+            }
+        } finally {
+            logFile.close();
+        }
+    }
+
 
     /**
      * Does an explicit commit and returns whether an fsync occured.

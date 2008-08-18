@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ChildReference.java,v 1.101.2.3 2007/11/20 13:32:35 cwl Exp $
+ * $Id: ChildReference.java,v 1.109 2008/01/17 17:22:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -212,7 +212,7 @@ public class ChildReference implements Loggable {
      */
     void updateLsnAfterOptionalLog(DatabaseImpl dbImpl, long lsn) {
         if ((lsn == DbLsn.NULL_LSN) &&
-            dbImpl.isDeferredWrite()) {
+            dbImpl.isDeferredWriteMode()) {
             /*
              * Don't update the lsn -- we don't want to overwrite a
              * non-null lsn.
@@ -277,7 +277,7 @@ public class ChildReference implements Loggable {
     public int getLogSize() {
         return
             LogUtils.getByteArrayLogSize(key) +   // key
-	    LogUtils.getLongLogSize() +           // LSN
+	    LogUtils.getPackedLongLogSize(lsn) +  // LSN
             1;                                    // state
     }
 
@@ -286,7 +286,7 @@ public class ChildReference implements Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeByteArray(logBuffer, key);  // key
-	LogUtils.writeLong(logBuffer, lsn);
+	LogUtils.writePackedLong(logBuffer, lsn);
         logBuffer.put(state);                     // state
         state &= CLEAR_DIRTY_BIT;
     }
@@ -294,10 +294,11 @@ public class ChildReference implements Loggable {
     /**
      * @see Loggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion) {
-        key = LogUtils.readByteArray(itemBuffer); // key
-	lsn = LogUtils.readLong(itemBuffer);      // LSN
-        state = itemBuffer.get();                 // state
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion) {
+        boolean unpacked = (entryVersion < 6);
+        key = LogUtils.readByteArray(itemBuffer, unpacked);      // key
+	lsn = LogUtils.readLong(itemBuffer, unpacked);           // LSN
+        state = itemBuffer.get();                                // state
         state &= CLEAR_DIRTY_BIT;
     }
 
@@ -318,6 +319,14 @@ public class ChildReference implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     /*

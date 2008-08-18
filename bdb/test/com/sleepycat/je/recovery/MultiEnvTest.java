@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: MultiEnvTest.java,v 1.9.2.2 2007/11/20 13:32:47 cwl Exp $
+ * $Id: MultiEnvTest.java,v 1.15 2008/05/20 03:27:37 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -16,7 +16,6 @@ import junit.framework.TestCase;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
-import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.util.TestUtils;
 
 public class MultiEnvTest extends TestCase {
@@ -48,37 +47,13 @@ public class MultiEnvTest extends TestCase {
 
     public void testNodeIdsAfterRecovery()
         throws Throwable {
-        try {
-            /*
-             * Env1 will be closed w/a certain notion of what the max node id
-             * is.
+            /* 
+             * TODO: replace this test which previously checked that the node
+             * id sequence shared among environments was correct with a test
+             * that checks all sequences, including replicated ones. This
+             * change is appropriate because the node id sequence is no longer
+             * a static field.
              */
-            env1 = openEnv(envHome1);
-            long maxNodeId1 = Node.getLastId();
-            env1.close();
-
-            /*
-             * Env2 increments the node id further.
-             */
-            env2 = openEnv(envHome2);
-            long maxNodeId2 = Node.getLastId();
-
-            /* See what the highest node id is. */
-            assertTrue(maxNodeId2 > maxNodeId1);
-
-            /*
-             * Open env1 now. Even though this recovery finds a lower node id,
-             * must be sure not to overwrite the higher node id.
-             */
-            env1 = openEnv(envHome1);
-            long maxNodeId3 = Node.getLastId();
-            assertTrue(maxNodeId3 >= maxNodeId2);
-            env2.close();
-        } catch (Throwable t) {
-            /* Dump stack trace before trying to tear down. */
-            t.printStackTrace();
-            throw t;
-        }
     }
 
     private Environment openEnv(File envHome)

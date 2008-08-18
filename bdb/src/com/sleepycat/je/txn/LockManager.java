@@ -1,14 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockManager.java,v 1.118.2.5 2007/11/20 13:32:36 cwl Exp $
+ * $Id: LockManager.java,v 1.141 2008/06/03 16:25:43 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
 
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,6 +19,7 @@ import java.util.Set;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.DeadlockException;
+import com.sleepycat.je.EnvironmentMutableConfig;
 import com.sleepycat.je.LockStats;
 import com.sleepycat.je.RunRecoveryException;
 import com.sleepycat.je.StatsConfig;
@@ -46,58 +48,66 @@ public abstract class LockManager implements EnvConfigObserver {
      * The addition and removal of Lock objects, and the corresponding cost of
      * their hashmap entry and key are tracked through the LockManager.
      */
-    static final long TOTAL_LOCK_OVERHEAD =
-        MemoryBudget.LOCK_OVERHEAD +
+    static final long TOTAL_LOCKIMPL_OVERHEAD =
+        MemoryBudget.LOCKIMPL_OVERHEAD +
         MemoryBudget.HASHMAP_ENTRY_OVERHEAD +
         MemoryBudget.LONG_OVERHEAD;
 
-    private static final long REMOVE_TOTAL_LOCK_OVERHEAD =
-        0 - TOTAL_LOCK_OVERHEAD;
+    static final long TOTAL_THINLOCKIMPL_OVERHEAD =
+        MemoryBudget.THINLOCKIMPL_OVERHEAD +
+        MemoryBudget.HASHMAP_ENTRY_OVERHEAD +
+        MemoryBudget.LONG_OVERHEAD;
+
+    private static final long REMOVE_TOTAL_LOCKIMPL_OVERHEAD =
+        0 - TOTAL_LOCKIMPL_OVERHEAD;
+
+    private static final long REMOVE_TOTAL_THINLOCKIMPL_OVERHEAD =
+        0 - TOTAL_THINLOCKIMPL_OVERHEAD;
+
+    private static final long THINLOCK_MUTATE_OVERHEAD =
+        MemoryBudget.LOCKIMPL_OVERHEAD -
+        MemoryBudget.THINLOCKIMPL_OVERHEAD +
+        MemoryBudget.LOCKINFO_OVERHEAD;
 
     protected int nLockTables = 1;
     protected Latch[] lockTableLatches;
-    private Map[] lockTables;          // keyed by nodeId
+    private Map<Long,Lock>[] lockTables;          // keyed by nodeId
     private EnvironmentImpl envImpl;
     private MemoryBudget memoryBudget;
-    //private Level traceLevel;
 
     private long nRequests; // stats: number of time a request was made
     private long nWaits;    // stats: number of time a request blocked
 
     private static RangeRestartException rangeRestartException =
-	new RangeRestartException();
+        new RangeRestartException();
     private static boolean lockTableDump = false;
 
     public LockManager(EnvironmentImpl envImpl)
-    	throws DatabaseException {
-    		
-	DbConfigManager configMgr = envImpl.getConfigManager();
-	nLockTables = configMgr.getInt(EnvironmentParams.N_LOCK_TABLES);
-	lockTables = new Map[nLockTables];
-	lockTableLatches = new Latch[nLockTables];
-	for (int i = 0; i < nLockTables; i++) {
-	    lockTables[i] = new HashMap();
-	    lockTableLatches[i] =
-		LatchSupport.makeLatch("Lock Table " + i, envImpl);
-	}
+        throws DatabaseException {
+                
+        DbConfigManager configMgr = envImpl.getConfigManager();
+        nLockTables = configMgr.getInt(EnvironmentParams.N_LOCK_TABLES);
+        lockTables = new Map[nLockTables];
+        lockTableLatches = new Latch[nLockTables];
+        for (int i = 0; i < nLockTables; i++) {
+            lockTables[i] = new HashMap<Long,Lock>();
+            lockTableLatches[i] = new Latch("Lock Table " + i);
+        }
         this.envImpl = envImpl;
         memoryBudget = envImpl.getMemoryBudget();
         nRequests = 0;
         nWaits = 0;
-	/*
-        traceLevel = Tracer.parseLevel
-	    (env, EnvironmentParams.JE_LOGGING_LEVEL_LOCKMGR);
-	*/
 
         /* Initialize mutable properties and register for notifications. */
-        envConfigUpdate(configMgr);
+        envConfigUpdate(configMgr, null);
         envImpl.addConfigObserver(this);
     }
 
     /**
      * Process notifications of mutable property changes.
      */
-    public void envConfigUpdate(DbConfigManager configMgr)
+    public void envConfigUpdate(DbConfigManager configMgr,
+                                EnvironmentMutableConfig ignore)
         throws DatabaseException {
 
         LockInfo.setDeadlockStackTrace(configMgr.getBoolean
@@ -114,12 +124,12 @@ public abstract class LockManager implements EnvConfigObserver {
     }
 
     protected int getLockTableIndex(Long nodeId) {
-	return ((int) nodeId.longValue()) %
-	    nLockTables;
+        return (((int) nodeId.longValue()) & 0x7fffffff) %
+            nLockTables;
     }
 
     protected int getLockTableIndex(long nodeId) {
-	return ((int) nodeId) % nLockTables;
+        return (((int) nodeId) & 0x7fffffff) % nLockTables;
     }
 
     /**
@@ -164,7 +174,7 @@ public abstract class LockManager implements EnvConfigObserver {
                               LockType type,
                               long timeout,
                               boolean nonBlockingRequest,
-			      DatabaseImpl database)
+                              DatabaseImpl database)
         throws DeadlockException, DatabaseException {
 
         assert timeout >= 0;
@@ -174,9 +184,9 @@ public abstract class LockManager implements EnvConfigObserver {
          * notifier perform the notify before the waiter is actually waiting.
          */
         synchronized (locker) {
-            Long nid = new Long(nodeId);
+            Long nid = Long.valueOf(nodeId);
             LockAttemptResult result =
-		attemptLock(nid, locker, type, nonBlockingRequest);
+                attemptLock(nid, locker, type, nonBlockingRequest);
             /* Got the lock, return. */
             if (result.success ||
                 result.lockGrant == LockGrantType.DENIED) {
@@ -204,17 +214,17 @@ public abstract class LockManager implements EnvConfigObserver {
                  */
                 if (locker.isTimedOut()) {
                     if (validateOwnership(nid, locker, type, true,
-					  memoryBudget)) {
+                                          memoryBudget)) {
                         doWait = false;
                     } else {
-			DeadlockException DE =
-			    makeTimeoutMsg("Transaction", locker, nodeId, type,
-					   result.lockGrant,
-					   result.useLock,
-					   locker.getTxnTimeOut(),
-					   locker.getTxnStartMillis(),
-					   System.currentTimeMillis(),
-					   database);
+                        DeadlockException DE =
+                            makeTimeoutMsg("Transaction", locker, nodeId, type,
+                                           result.lockGrant,
+                                           result.useLock,
+                                           locker.getTxnTimeout(),
+                                           locker.getTxnStartMillis(),
+                                           System.currentTimeMillis(),
+                                           database);
                         throw DE;
                     }
                 }
@@ -226,13 +236,13 @@ public abstract class LockManager implements EnvConfigObserver {
                     try {
                         locker.wait(timeout);
                     } catch (InterruptedException IE) {
-			throw new RunRecoveryException(envImpl, IE);
+                        throw new RunRecoveryException(envImpl, IE);
                     }
 
                     boolean lockerTimedOut = locker.isTimedOut();
                     long now = System.currentTimeMillis();
                     boolean thisLockTimedOut =
-                        (keepTime && (now - startTime > timeout));
+                        (keepTime && (now - startTime >= timeout));
                     boolean isRestart =
                         (result.lockGrant == LockGrantType.WAIT_RESTART);
 
@@ -243,7 +253,7 @@ public abstract class LockManager implements EnvConfigObserver {
                      * lock table latch.  See SR 10103.
                      */
                     if (validateOwnership(nid, locker, type,
-					  lockerTimedOut ||
+                                          lockerTimedOut ||
                                           thisLockTimedOut ||
                                           isRestart,
                                           memoryBudget)) {
@@ -258,24 +268,24 @@ public abstract class LockManager implements EnvConfigObserver {
                         }
 
                         if (thisLockTimedOut) {
-			    locker.setOnlyAbortable();
-			    DeadlockException DE =
+                            locker.setOnlyAbortable();
+                            DeadlockException DE =
                                 makeTimeoutMsg("Lock", locker, nodeId, type,
                                                result.lockGrant,
                                                result.useLock,
                                                timeout, startTime, now,
-					       database);
+                                               database);
                             throw DE;
                         }
 
                         if (lockerTimedOut) {
-			    locker.setOnlyAbortable();
-			    DeadlockException DE =
+                            locker.setOnlyAbortable();
+                            DeadlockException DE =
                                 makeTimeoutMsg("Transaction", locker,
                                                nodeId, type,
                                                result.lockGrant,
                                                result.useLock,
-                                               locker.getTxnTimeOut(),
+                                               locker.getTxnTimeout(),
                                                locker.getTxnStartMillis(),
                                                now, database);
                             throw DE;
@@ -283,9 +293,9 @@ public abstract class LockManager implements EnvConfigObserver {
                     }
                 }
             } finally {
-		locker.setWaitingFor(null);
-		assert EnvironmentImpl.maybeForceYield();
-	    }
+                locker.setWaitingFor(null);
+                assert EnvironmentImpl.maybeForceYield();
+            }
 
             locker.addLock(nid, type, result.lockGrant);
 
@@ -294,15 +304,15 @@ public abstract class LockManager implements EnvConfigObserver {
     }
 
     abstract protected Lock lookupLock(Long nodeId)
-	throws DatabaseException;
+        throws DatabaseException;
 
     protected Lock lookupLockInternal(Long nodeId, int lockTableIndex)
-	throws DatabaseException {
+        throws DatabaseException {
 
         /* Get the target lock. */
-	Map lockTable = lockTables[lockTableIndex];
-        Lock useLock = (Lock) lockTable.get(nodeId);
-	return useLock;
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock useLock = lockTable.get(nodeId);
+        return useLock;
     }
 
     abstract protected LockAttemptResult
@@ -313,32 +323,40 @@ public abstract class LockManager implements EnvConfigObserver {
         throws DatabaseException;
 
     protected LockAttemptResult
-	attemptLockInternal(Long nodeId,
-			    Locker locker,
-			    LockType type,
-			    boolean nonBlockingRequest,
-			    int lockTableIndex)
+        attemptLockInternal(Long nodeId,
+                            Locker locker,
+                            LockType type,
+                            boolean nonBlockingRequest,
+                            int lockTableIndex)
         throws DatabaseException {
 
         nRequests++;
 
         /* Get the target lock. */
-	Map lockTable = lockTables[lockTableIndex];
-        Lock useLock = (Lock) lockTable.get(nodeId);
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock useLock = lockTable.get(nodeId);
         if (useLock == null) {
-            useLock = new Lock();
+            useLock = new ThinLockImpl();
             lockTable.put(nodeId, useLock);
-            memoryBudget.updateLockMemoryUsage(TOTAL_LOCK_OVERHEAD,
-					       lockTableIndex);
+            memoryBudget.updateLockMemoryUsage
+                (TOTAL_THINLOCKIMPL_OVERHEAD, lockTableIndex);
         }
 
         /*
          * Attempt to lock.  Possible return values are NEW, PROMOTION, DENIED,
          * EXISTING, WAIT_NEW, WAIT_PROMOTION, WAIT_RESTART.
          */
-        LockGrantType lockGrant = useLock.lock(type, locker,
-					       nonBlockingRequest,
-					       memoryBudget, lockTableIndex);
+        LockAttemptResult lar = useLock.lock(type, locker, nonBlockingRequest,
+                                             memoryBudget, lockTableIndex);
+        if (lar.useLock != useLock) {
+            /* The lock mutated from ThinLockImpl to LockImpl. */
+            useLock = lar.useLock;
+            lockTable.put(nodeId, useLock);
+            /* We still have the overhead of the hashtable (locktable). */
+            memoryBudget.updateLockMemoryUsage
+                (THINLOCK_MUTATE_OVERHEAD, lockTableIndex);
+        }
+        LockGrantType lockGrant = lar.lockGrant;
         boolean success = false;
 
         /* Was the attempt successful? */
@@ -360,32 +378,32 @@ public abstract class LockManager implements EnvConfigObserver {
      * Create a informative lock or txn timeout message.
      */
     protected abstract DeadlockException
-	makeTimeoutMsg(String lockOrTxn,
-		       Locker locker,
-		       long nodeId,
-		       LockType type,
-		       LockGrantType grantType,
-		       Lock useLock,
-		       long timeout,
-		       long start,
-		       long now,
-		       DatabaseImpl database)
-	throws DatabaseException;
+        makeTimeoutMsg(String lockOrTxn,
+                       Locker locker,
+                       long nodeId,
+                       LockType type,
+                       LockGrantType grantType,
+                       Lock useLock,
+                       long timeout,
+                       long start,
+                       long now,
+                       DatabaseImpl database)
+        throws DatabaseException;
 
     /**
      * Do the real work of creating an lock or txn timeout message.
      */
     protected DeadlockException
-	makeTimeoutMsgInternal(String lockOrTxn,
-			       Locker locker,
-			       long nodeId,
-			       LockType type,
-			       LockGrantType grantType,
-			       Lock useLock,
-			       long timeout,
-			       long start,
-			       long now,
-			       DatabaseImpl database) {
+        makeTimeoutMsgInternal(String lockOrTxn,
+                               Locker locker,
+                               long nodeId,
+                               LockType type,
+                               LockGrantType grantType,
+                               Lock useLock,
+                               long timeout,
+                               long start,
+                               long now,
+                               DatabaseImpl database) {
 
         /*
          * Because we're accessing parts of the lock, need to have protected
@@ -400,14 +418,26 @@ public abstract class LockManager implements EnvConfigObserver {
         if (lockTableDump) {
             System.out.println("++++++++++ begin lock table dump ++++++++++");
             for (int i = 0; i < nLockTables; i++) {
-                StringBuffer sb = new StringBuffer();
-                dumpToStringNoLatch(sb, i);
-                System.out.println(sb.toString());
+                boolean success = false;
+                for (int j = 0; j < 3 && !success; j++) {
+                    try {
+                        StringBuilder sb = new StringBuilder();
+                        dumpToStringNoLatch(sb, i);
+                        System.out.println(sb.toString());
+                        success = true;
+                        break; // for j...
+                    } catch (ConcurrentModificationException CME) {
+                        continue;
+                    }
+                }
+                if (!success) {
+                    System.out.println("Couldn't dump locktable " + i);
+                }
             }
             System.out.println("++++++++++ end lock table dump ++++++++++");
         }
 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(lockOrTxn);
         sb.append(" expired. Locker ").append(locker);
         sb.append(": waited for lock");
@@ -415,36 +445,38 @@ public abstract class LockManager implements EnvConfigObserver {
         if (database!=null) {
             sb.append(" on database=").append(database.getDebugName());
         }
+        sb.append(" LockAddr:").append(System.identityHashCode(useLock));
         sb.append(" node=").append(nodeId);
         sb.append(" type=").append(type);
         sb.append(" grant=").append(grantType);
         sb.append(" timeoutMillis=").append(timeout);
         sb.append(" startTime=").append(start);
         sb.append(" endTime=").append(now);
-	Set owners = useLock.getOwnersClone();
-	List waiters = useLock.getWaitersListClone();
+        Set<LockInfo> owners = useLock.getOwnersClone();
+        List<LockInfo> waiters = useLock.getWaitersListClone();
         sb.append("\nOwners: ").append(owners);
         sb.append("\nWaiters: ").append(waiters).append("\n");
-        StringBuffer deadlockInfo = findDeadlock(useLock, locker);
+        StringBuilder deadlockInfo = findDeadlock(useLock, locker);
         if (deadlockInfo != null) {
             sb.append(deadlockInfo);
         }
         DeadlockException ret = new DeadlockException(sb.toString());
-	ret.setOwnerTxnIds(getTxnIds(owners));
-	ret.setWaiterTxnIds(getTxnIds(waiters));
-	return ret;
+        ret.setOwnerTxnIds(getTxnIds(owners));
+        ret.setWaiterTxnIds(getTxnIds(waiters));
+        ret.setTimeoutMillis(timeout);
+        return ret;
     }
 
-    private long[] getTxnIds(Collection c) {
-	long[] ret = new long[c.size()];
-	Iterator iter = c.iterator();
-	int i = 0;
-	while (iter.hasNext()) {
-	    LockInfo info = (LockInfo) iter.next();
-	    ret[i++] = info.getLocker().getId();
-	}
+    private long[] getTxnIds(Collection<LockInfo> c) {
+        long[] ret = new long[c.size()];
+        Iterator<LockInfo> iter = c.iterator();
+        int i = 0;
+        while (iter.hasNext()) {
+            LockInfo info = iter.next();
+            ret[i++] = info.getLocker().getId();
+        }
 
-	return ret;
+        return ret;
     }
 
     /**
@@ -456,12 +488,12 @@ public abstract class LockManager implements EnvConfigObserver {
      * @return true if the lock is released successfully, false if
      * the lock is not currently being held.
      */
-    boolean release(long nodeId, Locker locker)
+    public boolean release(long nodeId, Locker locker)
         throws DatabaseException {
 
-	synchronized (locker) {
-	    Set newOwners =
-		releaseAndFindNotifyTargets(nodeId, locker);
+        synchronized (locker) {
+            Set<Locker> newOwners = 
+                releaseAndFindNotifyTargets(nodeId, locker);
 
             if (newOwners == null) {
                 return false;
@@ -473,22 +505,22 @@ public abstract class LockManager implements EnvConfigObserver {
                  * There is a new set of owners and/or there are restart
                  * waiters that should be notified.
                  */
-                Iterator iter = newOwners.iterator();
+                Iterator<Locker> iter = newOwners.iterator();
 
                 while (iter.hasNext()) {
-                    Locker lockerToNotify = (Locker) iter.next();
+                    Locker lockerToNotify = iter.next();
 
                     /* Use notifyAll to support multiple threads per txn. */
                     synchronized (lockerToNotify) {
                         lockerToNotify.notifyAll();
                     }
 
-		    assert EnvironmentImpl.maybeForceYield();
+                    assert EnvironmentImpl.maybeForceYield();
                 }
             }
 
             return true;
-	}
+        }
     }
 
     /**
@@ -499,30 +531,32 @@ public abstract class LockManager implements EnvConfigObserver {
      * a non-empty set if owners should be notified after releasing,
      * an empty set if no notification is required.
      */
-    protected abstract Set
-        releaseAndFindNotifyTargets(long nodeId,
-                                    Locker locker)
+    protected abstract Set<Locker>
+        releaseAndFindNotifyTargets(long nodeId, Locker locker)
         throws DatabaseException;
 
     /**
      * Do the real work of releaseAndFindNotifyTargets
      */
-    protected Set
-	releaseAndFindNotifyTargetsInternal(long nodeId,
-					    Locker locker,
-					    int lockTableIndex)
+    protected Set<Locker>
+        releaseAndFindNotifyTargetsInternal(long nodeId,
+                                            Locker locker,
+                                            int lockTableIndex)
         throws DatabaseException {
 
-	Map lockTable = lockTables[lockTableIndex];
-	Lock useLock = (Lock) lockTable.get(new Long(nodeId));
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock useLock = lockTable.get(nodeId);
+        if (useLock == null) {
+            useLock = lockTable.get(Long.valueOf(nodeId));
+        }
 
         if (useLock == null) {
             /* Lock doesn't exist. */
             return null;
         }
 
-        Set lockersToNotify =
-	    useLock.release(locker, memoryBudget, lockTableIndex);
+        Set<Locker> lockersToNotify =
+            useLock.release(locker, memoryBudget, lockTableIndex);
         if (lockersToNotify == null) {
             /* Not owner. */
             return null;
@@ -531,9 +565,14 @@ public abstract class LockManager implements EnvConfigObserver {
         /* If it's not in use at all, remove it from the lock table. */
         if ((useLock.nWaiters() == 0) &&
             (useLock.nOwners() == 0)) {
-            lockTables[lockTableIndex].remove(new Long(nodeId));
-            memoryBudget.updateLockMemoryUsage(REMOVE_TOTAL_LOCK_OVERHEAD,
-					       lockTableIndex);
+            lockTables[lockTableIndex].remove(nodeId);
+            if (useLock.isThin()) {
+                memoryBudget.updateLockMemoryUsage
+                    (REMOVE_TOTAL_THINLOCKIMPL_OVERHEAD, lockTableIndex);
+            } else {
+                memoryBudget.updateLockMemoryUsage
+                    (REMOVE_TOTAL_LOCKIMPL_OVERHEAD, lockTableIndex);
+            }
         }
 
         return lockersToNotify;
@@ -557,18 +596,26 @@ public abstract class LockManager implements EnvConfigObserver {
                                     Locker owningLocker,
                                     Locker destLocker,
                                     boolean demoteToRead,
-				    int lockTableIndex)
+                                    int lockTableIndex)
         throws DatabaseException {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock useLock = (Lock) lockTable.get(new Long(nodeId));
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock useLock = lockTable.get(Long.valueOf(nodeId));
 
         assert useLock != null : "Transfer, lock " + nodeId + " was null";
         if (demoteToRead) {
             useLock.demote(owningLocker);
         }
-	useLock.transfer(new Long(nodeId), owningLocker, destLocker,
-			 memoryBudget, lockTableIndex);
+        Lock newLock =
+            useLock.transfer(nodeId, owningLocker, destLocker,
+                             memoryBudget, lockTableIndex);
+        if (newLock != useLock) {
+            /* The lock mutated from ThinLockImpl to LockImpl. */
+            lockTable.put(nodeId, newLock);
+            /* We still have the overhead of the hashtable (locktable). */
+            memoryBudget.updateLockMemoryUsage
+                (THINLOCK_MUTATE_OVERHEAD, lockTableIndex);
+        }
         owningLocker.removeLock(nodeId);
     }
 
@@ -590,16 +637,27 @@ public abstract class LockManager implements EnvConfigObserver {
     protected void transferMultipleInternal(long nodeId,
                                             Locker owningLocker,
                                             Locker[] destLockers,
-					    int lockTableIndex)
+                                            int lockTableIndex)
         throws DatabaseException {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock useLock = (Lock) lockTable.get(new Long(nodeId));
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock useLock = lockTable.get(Long.valueOf(nodeId));
 
         assert useLock != null : "Transfer, lock " + nodeId + " was null";
         useLock.demote(owningLocker);
-        useLock.transferMultiple(new Long(nodeId), owningLocker, destLockers,
-				 memoryBudget, lockTableIndex);
+
+        Lock newLock =
+            useLock.transferMultiple(nodeId, owningLocker, destLockers,
+                                     memoryBudget, lockTableIndex);
+        if (newLock != useLock) {
+            /* The lock mutated from ThinLockImpl to LockImpl. */
+            lockTable.put(nodeId, newLock);
+            /* We still have the overhead of the hashtable (locktable). */
+            memoryBudget.updateLockMemoryUsage
+                (THINLOCK_MUTATE_OVERHEAD, lockTableIndex);
+        }
+
+
         owningLocker.removeLock(nodeId);
     }
 
@@ -616,12 +674,12 @@ public abstract class LockManager implements EnvConfigObserver {
      * Do the real work of demote.
      */
     protected void demoteInternal(long nodeId,
-				  Locker locker,
-				  int lockTableIndex)
+                                  Locker locker,
+                                  int lockTableIndex)
         throws DatabaseException {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock useLock = (Lock) lockTable.get(new Long(nodeId));
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock useLock = lockTable.get(Long.valueOf(nodeId));
         useLock.demote(locker);
         locker.moveWriteToReadLock(nodeId, useLock);
     }
@@ -645,8 +703,8 @@ public abstract class LockManager implements EnvConfigObserver {
      */
     protected boolean isLockedInternal(Long nodeId, int lockTableIndex) {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock entry = (Lock) lockTable.get(nodeId);
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock entry = lockTable.get(nodeId);
         if (entry == null) {
             return false;
         }
@@ -668,10 +726,10 @@ public abstract class LockManager implements EnvConfigObserver {
     protected boolean isOwnerInternal(Long nodeId,
                                       Locker locker,
                                       LockType type,
-				      int lockTableIndex) {
+                                      int lockTableIndex) {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock entry = (Lock) lockTable.get(nodeId);
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock entry = lockTable.get(nodeId);
         if (entry == null) {
             return false;
         }
@@ -691,11 +749,11 @@ public abstract class LockManager implements EnvConfigObserver {
      * Do the real work of isWaiter.
      */
     protected boolean isWaiterInternal(Long nodeId,
-				       Locker locker,
-				       int lockTableIndex) {
+                                       Locker locker,
+                                       int lockTableIndex) {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock entry = (Lock) lockTable.get(nodeId);
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock entry = lockTable.get(nodeId);
         if (entry == null) {
             return false;
         }
@@ -714,8 +772,8 @@ public abstract class LockManager implements EnvConfigObserver {
      */
     protected int nWaitersInternal(Long nodeId, int lockTableIndex) {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock entry = (Lock) lockTable.get(nodeId);
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock entry = lockTable.get(nodeId);
         if (entry == null) {
             return -1;
         }
@@ -734,8 +792,8 @@ public abstract class LockManager implements EnvConfigObserver {
      */
     protected int nOwnersInternal(Long nodeId, int lockTableIndex) {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock entry = (Lock) lockTable.get(nodeId);
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock entry = lockTable.get(nodeId);
         if (entry == null) {
             return -1;
         }
@@ -753,11 +811,11 @@ public abstract class LockManager implements EnvConfigObserver {
      * Do the real work of getWriteOwnerLocker.
      */
     protected Locker getWriteOwnerLockerInternal(Long nodeId,
-						 int lockTableIndex)
+                                                 int lockTableIndex)
         throws DatabaseException {
 
-	Map lockTable = lockTables[lockTableIndex];
-        Lock lock = (Lock) lockTable.get(nodeId);
+        Map<Long,Lock> lockTable = lockTables[lockTableIndex];
+        Lock lock = lockTable.get(nodeId);
         if (lock == null) {
             return null;
         } else if (lock.nOwners() > 1) {
@@ -790,8 +848,8 @@ public abstract class LockManager implements EnvConfigObserver {
                                                 Locker locker,
                                                 LockType type,
                                                 boolean flushFromWaiters,
-						MemoryBudget mb,
-						int lockTableIndex)
+                                                MemoryBudget mb,
+                                                int lockTableIndex)
         throws DatabaseException {
 
         if (isOwnerInternal(nodeId, locker, type, lockTableIndex)) {
@@ -799,7 +857,7 @@ public abstract class LockManager implements EnvConfigObserver {
         }
 
         if (flushFromWaiters) {
-            Lock entry = (Lock) lockTables[lockTableIndex].get(nodeId);
+            Lock entry = lockTables[lockTableIndex].get(nodeId);
             if (entry != null) {
                 entry.flushWaiter(locker, mb, lockTableIndex);
             }
@@ -821,11 +879,11 @@ public abstract class LockManager implements EnvConfigObserver {
             nRequests = 0;
         }
 
-	for (int i = 0; i < nLockTables; i++) {
-	    LatchStats latchStats =
-		(LatchStats) lockTableLatches[i].getLatchStats();
-	    stats.accumulateLockTableLatchStats(latchStats);
-	}
+        for (int i = 0; i < nLockTables; i++) {
+            LatchStats latchStats =
+                lockTableLatches[i].getLatchStats();
+            stats.accumulateLockTableLatchStats(latchStats);
+        }
 
         /* Dump info about the lock table. */
         if (!config.getFast()) {
@@ -844,27 +902,27 @@ public abstract class LockManager implements EnvConfigObserver {
      * Do the real work of dumpLockTableInternal.
      */
     protected void dumpLockTableInternal(LockStats stats, int i) {
-	Map lockTable = lockTables[i];
+        Map<Long,Lock> lockTable = lockTables[i];
         stats.accumulateNTotalLocks(lockTable.size());
-	Iterator iter = lockTable.values().iterator();
-	while (iter.hasNext()) {
-	    Lock lock = (Lock) iter.next();
-	    stats.setNWaiters(stats.getNWaiters() +
-			      lock.nWaiters());
-	    stats.setNOwners(stats.getNOwners() +
-			     lock.nOwners());
+        Iterator<Lock> iter = lockTable.values().iterator();
+        while (iter.hasNext()) {
+            Lock lock = iter.next();
+            stats.setNWaiters(stats.getNWaiters() +
+                              lock.nWaiters());
+            stats.setNOwners(stats.getNOwners() +
+                             lock.nOwners());
 
-	    /* Go through all the owners for a lock. */
-	    Iterator ownerIter = lock.getOwnersClone().iterator();
-	    while (ownerIter.hasNext()) {
-		LockInfo info = (LockInfo) ownerIter.next();
-		if (info.getLockType().isWriteLock()) {
-		    stats.setNWriteLocks(stats.getNWriteLocks() + 1);
-		} else {
-		    stats.setNReadLocks(stats.getNReadLocks() + 1);
-		}
-	    }
-	}
+            /* Go through all the owners for a lock. */
+            Iterator<LockInfo> ownerIter = lock.getOwnersClone().iterator();
+            while (ownerIter.hasNext()) {
+                LockInfo info = ownerIter.next();
+                if (info.getLockType().isWriteLock()) {
+                    stats.setNWriteLocks(stats.getNWriteLocks() + 1);
+                } else {
+                    stats.setNReadLocks(stats.getNReadLocks() + 1);
+                }
+            }
+        }
     }
 
     /**
@@ -879,26 +937,27 @@ public abstract class LockManager implements EnvConfigObserver {
     public String dumpToString()
         throws DatabaseException {
 
-        StringBuffer sb = new StringBuffer();
-	for (int i = 0; i < nLockTables; i++) {
-	    lockTableLatches[i].acquire();
-	    try {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < nLockTables; i++) {
+            lockTableLatches[i].acquire();
+            try {
                 dumpToStringNoLatch(sb, i);
-	    } finally {
-		lockTableLatches[i].release();
-	    }
-	}
+            } finally {
+                lockTableLatches[i].release();
+            }
+        }
         return sb.toString();
     }
 
-    private void dumpToStringNoLatch(StringBuffer sb, int whichTable) {
-        Map lockTable = lockTables[whichTable];
-        Iterator entries = lockTable.entrySet().iterator();
+    private void dumpToStringNoLatch(StringBuilder sb, int whichTable) {
+        Map<Long,Lock> lockTable = lockTables[whichTable];
+        Iterator<Map.Entry<Long,Lock>> entries = 
+            lockTable.entrySet().iterator();
 
         while (entries.hasNext()) {
-	    Map.Entry entry = (Map.Entry) entries.next();
-            Long nid = (Long) entry.getKey();
-            Lock lock = (Lock) entry.getValue();
+            Map.Entry<Long,Lock> entry = entries.next();
+            Long nid = entry.getKey();
+            Lock lock = entry.getValue();
             sb.append("---- Node Id: ").append(nid).append("----\n");
             sb.append(lock);
             sb.append('\n');
@@ -913,78 +972,61 @@ public abstract class LockManager implements EnvConfigObserver {
         }
     }
 
-    private StringBuffer findDeadlock(Lock lock, Locker rootLocker) {
+    private StringBuilder findDeadlock(Lock lock, Locker rootLocker) {
 
-	Set ownerSet = new HashSet();
-	ownerSet.add(rootLocker);
-	StringBuffer ret = findDeadlock1(ownerSet, lock, rootLocker);
-	if (ret != null) {
-	    return ret;
-	} else {
-	    return null;
-	}
+        Set<Locker> ownerSet = new HashSet<Locker>();
+        ownerSet.add(rootLocker);
+        StringBuilder ret = findDeadlock1(ownerSet, lock, rootLocker);
+        if (ret != null) {
+            return ret;
+        } else {
+            return null;
+        }
     }
 
-    private StringBuffer findDeadlock1(Set ownerSet,
-				       Lock lock,
+    private StringBuilder findDeadlock1(Set<Locker> ownerSet,
+                                       Lock lock,
                                        Locker rootLocker) {
 
-	Iterator ownerIter = lock.getOwnersClone().iterator();
-	while (ownerIter.hasNext()) {
-	    LockInfo info = (LockInfo) ownerIter.next();
-	    Locker locker = info.getLocker();
-	    Lock waitsFor = locker.getWaitingFor();
-	    if (ownerSet.contains(locker) ||
-		locker == rootLocker) {
-		/* Found a cycle. */
-		StringBuffer ret = new StringBuffer();
-		ret.append("Transaction ").append(locker.toString());
-		ret.append(" owns ").append(System.identityHashCode(lock));
-		ret.append(" ").append(info).append("\n");
-		ret.append("Transaction ").append(locker.toString());
-		ret.append(" waits for ");
-		if (waitsFor == null) {
-		    ret.append(" nothing");
-		} else {
-		    ret.append(" node ");
-		    ret.append(System.identityHashCode(waitsFor));
-		}
-		ret.append("\n");
-		return ret;
-	    }
-	    if (waitsFor != null) {
-		ownerSet.add(locker);
-		StringBuffer sb = findDeadlock1(ownerSet, waitsFor,
+        Iterator<LockInfo> ownerIter = lock.getOwnersClone().iterator();
+        while (ownerIter.hasNext()) {
+            LockInfo info = ownerIter.next();
+            Locker locker = info.getLocker();
+            Lock waitsFor = locker.getWaitingFor();
+            if (ownerSet.contains(locker) ||
+                locker == rootLocker) {
+                /* Found a cycle. */
+                StringBuilder ret = new StringBuilder();
+                ret.append("Transaction ").append(locker.toString());
+                ret.append(" owns LockAddr:").
+                    append(System.identityHashCode(lock));
+                ret.append(" ").append(info).append("\n");
+                ret.append("Transaction ").append(locker.toString());
+                ret.append(" waits for");
+                if (waitsFor == null) {
+                    ret.append(" nothing");
+                } else {
+                    ret.append(" LockAddr:");
+                    ret.append(System.identityHashCode(waitsFor));
+                }
+                ret.append("\n");
+                return ret;
+            }
+            if (waitsFor != null) {
+                ownerSet.add(locker);
+                StringBuilder sb = findDeadlock1(ownerSet, waitsFor,
                                                 rootLocker);
-		if (sb != null) {
-		    String waitInfo =
-			"Transaction " + locker + " waits for " +
-			waitsFor + "\n";
-		    sb.insert(0, waitInfo);
-		    return sb;
-		}
-		ownerSet.remove(locker); // is this necessary?
-	    }
-	}
-
-	return null;
-    }
-
-    /**
-     * This is just a struct to hold a multi-value return.
-     */
-    static class LockAttemptResult {
-        boolean success;
-        Lock useLock;
-        LockGrantType lockGrant;
-
-        LockAttemptResult(Lock useLock,
-                          LockGrantType lockGrant,
-                          boolean success) {
-
-            this.useLock = useLock;
-            this.lockGrant = lockGrant;
-            this.success = success;
+                if (sb != null) {
+                    String waitInfo =
+                        "Transaction " + locker + " waits for " +
+                        waitsFor + "\n";
+                    sb.insert(0, waitInfo);
+                    return sb;
+                }
+                ownerSet.remove(locker); // is this necessary?
+            }
         }
+
+        return null;
     }
 }

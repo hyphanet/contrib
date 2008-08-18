@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RawObject.java,v 1.12.2.1 2007/02/01 14:49:57 cwl Exp $
+ * $Id: RawObject.java,v 1.15 2008/05/27 15:22:16 mark Exp $
  */
 
 package com.sleepycat.persist.raw;
@@ -20,8 +20,8 @@ import com.sleepycat.persist.model.EntityModel;
  * Conversion}.  A <code>RawObject</code> is used to represent instances of
  * complex types (persistent classes with fields), arrays, and enum values.  It
  * is not used to represent non-enum simple types, which are represented as
- * simple objects.  This includes primitives, which are represented as simple
- * objects using their wrapper class.
+ * simple objects.  This includes primitives, which are represented as
+ * instances of their wrapper class.
  *
  * <p>{@code RawObject} objects are thread-safe.  Multiple threads may safely
  * call the methods of a shared {@code RawObject} object.</p>
@@ -177,6 +177,15 @@ public class RawObject {
         if (!Arrays.deepEquals(elements, o.elements)) {
             return false;
         }
+        if (enumConstant != null) {
+            if (!enumConstant.equals(o.enumConstant)) {
+                return false;
+            }
+        } else {
+            if (o.enumConstant != null) {
+                return false;
+            }
+        }
         if (values != null) {
             if (!values.equals(o.values)) {
                 return false;
@@ -202,6 +211,7 @@ public class RawObject {
     public int hashCode() {
         return System.identityHashCode(type) +
                Arrays.deepHashCode(elements) +
+               (enumConstant != null ? enumConstant.hashCode() : 0) +
                (values != null ? values.hashCode() : 0) +
                (superObject != null ? superObject.hashCode() : 0);
     }

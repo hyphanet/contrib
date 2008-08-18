@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: TupleInput.java,v 1.29.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: TupleInput.java,v 1.32 2008/01/07 14:28:44 cwl Exp $
  */
 
 package com.sleepycat.bind.tuple;
@@ -617,6 +617,30 @@ public class TupleInput extends FastInputStream {
      */
     public final int getPackedIntByteLength() {
         return PackedInteger.getReadIntLength(buf, off);
+    }
+
+    /**
+     * Reads a packed long integer.  Note that packed integers are not
+     * appropriate for sorted values (keys) unless a custom comparator is used.
+     *
+     * @see PackedInteger
+     */
+    public final long readPackedLong() {
+
+        int len = PackedInteger.getReadLongLength(buf, off);
+        long val = PackedInteger.readLong(buf, off);
+
+        off += len;
+        return val;
+    }
+
+    /**
+     * Returns the byte length of a packed long integer.
+     *
+     * @see PackedInteger
+     */
+    public final int getPackedLongByteLength() {
+        return PackedInteger.getReadLongLength(buf, off);
     }
 
     /**

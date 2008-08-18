@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckBase.java,v 1.16.2.2 2007/11/20 13:32:47 cwl Exp $
+ * $Id: CheckBase.java,v 1.22 2008/05/22 19:35:38 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -51,13 +51,13 @@ import com.sleepycat.je.utilint.Tracer;
 public class CheckBase extends TestCase {
 
     private static final boolean DEBUG = false;
-    private HashSet expected;
-    private Set found;
+    private HashSet<TestData> expected;
+    private Set<TestData> found;
 
     File envHome;
     Environment env;
 
-    private List logDescription;
+    private List<LogEntryInfo> logDescription;
     private long stepwiseStartLsn;
 
     private boolean checkLsns = true;
@@ -82,11 +82,13 @@ public class CheckBase extends TestCase {
             }
         }
 
+        /*
         try {
             TestUtils.removeLogFiles("TearDown", envHome, false);
             TestUtils.removeFiles("TearDown", envHome, ".jdb_save");
         } catch (Exception ignore) {
         }
+        //*/
     }
 
     /**
@@ -142,7 +144,7 @@ public class CheckBase extends TestCase {
     private void tryRecovery(EnvironmentConfig validateEnvConfig,
                              DatabaseConfig validateDbConfig,
                              String dbName,
-                             HashSet useExpected)
+                             HashSet<TestData> useExpected)
         throws DatabaseException {
         /* Recover and load what's in the database post-recovery. */
         recoverAndLoadData(validateEnvConfig,
@@ -188,7 +190,7 @@ public class CheckBase extends TestCase {
     void stepwiseLoop(String dbName,
                       EnvironmentConfig validateEnvConfig,
                       DatabaseConfig validateDbConfig,
-                      HashSet useExpected,
+                      HashSet<TestData> useExpected,
                       int startingIteration)
         throws DatabaseException, IOException {
 
@@ -212,7 +214,7 @@ public class CheckBase extends TestCase {
             for (int i = startingIteration; i < logDescription.size(); i++ ) {
 
                 /* Find out where to truncate. */
-                LogEntryInfo info = (LogEntryInfo) logDescription.get(i);
+                LogEntryInfo info = logDescription.get(i);
                 long lsn = info.getLsn();
 
                 if (lsn == 0) {
@@ -277,7 +279,7 @@ public class CheckBase extends TestCase {
 	    VerifyUtils.checkLsns(db);
 	}
 
-        found = new HashSet();
+        found = new HashSet<TestData>();
 
         Cursor cursor = db.openCursor(null, null);
         DatabaseEntry key = new DatabaseEntry();
@@ -309,10 +311,10 @@ public class CheckBase extends TestCase {
     /*
      * The found and expected data sets need to match exactly after recovery.
      */
-    void validate(HashSet expected)
+    void validate(HashSet<TestData> expected)
         throws DatabaseException {
 
-        Set useExpected = (Set) expected.clone();
+        Set<TestData> useExpected = (Set<TestData>) expected.clone();
 
         if (useExpected.size() != found.size()) {
             System.err.println("expected---------");
@@ -323,9 +325,9 @@ public class CheckBase extends TestCase {
                          useExpected.size(), found.size());
         }
 
-        Iterator foundIter = found.iterator();
+        Iterator<TestData> foundIter = found.iterator();
         while (foundIter.hasNext()) {
-            TestData t = (TestData) foundIter.next();
+            TestData t = foundIter.next();
             assertTrue("Missing " + t + "from the expected set",
                        useExpected.remove(t));
         }
@@ -345,7 +347,7 @@ public class CheckBase extends TestCase {
     private void loadExpectedData(Database db)
         throws DatabaseException {
 
-        expected = new HashSet();
+        expected = new HashSet<TestData>();
 
         Cursor cursor = db.openCursor(null, null);
         DatabaseEntry key = new DatabaseEntry();
@@ -390,11 +392,11 @@ public class CheckBase extends TestCase {
         System.out.println("scanned=" + i);
     }
 
-    private void dumpHashSet(Set expected) {
-        Iterator iter = expected.iterator();
+    private void dumpHashSet(Set<TestData> expected) {
+        Iterator<TestData> iter = expected.iterator();
         System.err.println("size=" + expected.size());
         while (iter.hasNext()) {
-            System.err.println((TestData)iter.next());
+            System.err.println(iter.next());
         }
     }
 
@@ -403,7 +405,7 @@ public class CheckBase extends TestCase {
 
         EnvironmentImpl cmdEnvImpl =
             CmdUtil.makeUtilityEnvironment(envHome, false);
-        logDescription = new ArrayList();
+        logDescription = new ArrayList<LogEntryInfo>();
 
         try {
             EntryTrackerReader reader =
@@ -419,7 +421,7 @@ public class CheckBase extends TestCase {
         }
 
         if (DEBUG) {
-            Iterator iter = logDescription.iterator();
+            Iterator<LogEntryInfo> iter = logDescription.iterator();
             while (iter.hasNext()) {
         	Object o = iter.next();
         	LogEntryInfo entryInfo =(LogEntryInfo) o;
@@ -447,8 +449,8 @@ public class CheckBase extends TestCase {
     private void saveLogFiles(File envHome)
         throws IOException {
 
-        String [] suffix = new String [] {".jdb"};
-        String [] fileNames = FileManager.listFiles(envHome, suffix);
+        String[] suffix = new String[] {".jdb"};
+        String[] fileNames = FileManager.listFiles(envHome, suffix);
 
         for (int i = 0; i < fileNames.length; i++) {
             File src = new File(envHome, fileNames[i]);
@@ -460,8 +462,8 @@ public class CheckBase extends TestCase {
     /* Copy all .jdb_save file back to ._jdb */
     private void resetLogFiles(File envHome)
         throws IOException {
-        String [] suffix = new String [] {".jdb_save"};
-        String [] fileNames = FileManager.listFiles(envHome, suffix);
+        String[] suffix = new String[] {".jdb_save"};
+        String[] fileNames = FileManager.listFiles(envHome, suffix);
 
         for (int i = 0; i < fileNames.length; i++) {
             String srcName = fileNames[i];

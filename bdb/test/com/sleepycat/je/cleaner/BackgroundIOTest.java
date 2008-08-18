@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BackgroundIOTest.java,v 1.4.2.2 2007/11/20 13:32:42 cwl Exp $
+ * $Id: BackgroundIOTest.java,v 1.10 2008/04/18 22:57:38 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -32,6 +32,8 @@ import com.sleepycat.je.utilint.TestHook;
 
 public class BackgroundIOTest extends TestCase {
 
+    final static int FILE_SIZE = 1000000;
+
     private static CheckpointConfig forceConfig;
     static {
         forceConfig = new CheckpointConfig();
@@ -40,6 +42,8 @@ public class BackgroundIOTest extends TestCase {
 
     private File envHome;
     private Environment env;
+    private int readLimit;
+    private int writeLimit;
     private int nSleeps;
 
     public BackgroundIOTest() {
@@ -74,34 +78,60 @@ public class BackgroundIOTest extends TestCase {
     public void testBackgroundIO1()
 	throws DatabaseException, InterruptedException {
 
-        doTest(10, 10, 226, 246);
+        openEnv(10, 10);
+        if (isCkptHighPriority()) {
+            doTest(93, 113);
+        } else {
+            doTest(186, 206);
+        }
     }
 
     public void testBackgroundIO2()
 	throws DatabaseException, InterruptedException {
 
-        doTest(10, 5, 365, 385);
+        openEnv(10, 5);
+        if (isCkptHighPriority()) {
+            doTest(93, 113);
+        } else {
+            doTest(310, 330);
+        }
     }
 
     public void testBackgroundIO3()
 	throws DatabaseException, InterruptedException {
 
-        doTest(5, 10, 324, 344);
+        openEnv(5, 10);
+        if (isCkptHighPriority()) {
+            doTest(167, 187);
+        } else {
+            doTest(259, 279);
+        }
     }
 
     public void testBackgroundIO4()
 	throws DatabaseException, InterruptedException {
 
-        doTest(5, 5, 463, 483);
+        openEnv(5, 5);
+        if (isCkptHighPriority()) {
+            doTest(167, 187);
+        } else {
+            doTest(383, 403);
+        }
     }
 
-    private void doTest(int readLimit,
-                        int writeLimit,
-                        int minSleeps,
-                        int maxSleeps)
-	throws DatabaseException, InterruptedException {
+    private boolean isCkptHighPriority()
+	throws DatabaseException {
 
-        final int fileSize = 1000000;
+        return "true".equals(env.getConfig().getConfigParam
+            (EnvironmentParams.CHECKPOINTER_HIGH_PRIORITY.getName()));
+    }
+
+    private void openEnv(int readLimit, int writeLimit)
+	throws DatabaseException {
+
+        this.readLimit = readLimit;
+        this.writeLimit = writeLimit;
+
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setAllowCreate(true);
         envConfig.setConfigParam
@@ -115,7 +145,7 @@ public class BackgroundIOTest extends TestCase {
              Integer.toString(1024));
         envConfig.setConfigParam
             (EnvironmentParams.LOG_FILE_MAX.getName(),
-             Integer.toString(fileSize));
+             Integer.toString(FILE_SIZE));
         envConfig.setConfigParam
 	    (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "60");
         //*
@@ -127,20 +157,27 @@ public class BackgroundIOTest extends TestCase {
              String.valueOf(writeLimit));
         //*/
         env = new Environment(envHome, envConfig);
+    }
+
+    private void doTest(int minSleeps, int maxSleeps)
+	throws DatabaseException, InterruptedException {
 
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
         envImpl.setBackgroundSleepHook(new TestHook() {
-            public void doHook() {
-                nSleeps += 1;
-                assertEquals(0, LatchSupport.countLatchesHeld());
-            }
-            public Object getHookValue() {
-        	throw new UnsupportedOperationException();
-            }
-            public void doIOHook() throws IOException {
-                throw new UnsupportedOperationException();
-            }
-        });
+                public void doHook() {
+                    nSleeps += 1;
+                    assertEquals(0, LatchSupport.countLatchesHeld());
+                }
+                public Object getHookValue() {
+                    throw new UnsupportedOperationException();
+                }
+                public void doIOHook() throws IOException {
+                    throw new UnsupportedOperationException();
+                }
+                public void hookSetup() {
+                    throw new UnsupportedOperationException();
+                }
+            });
 
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setAllowCreate(true);
@@ -151,7 +188,7 @@ public class BackgroundIOTest extends TestCase {
         final int keySize = 20;
         final int dataSize = 10;
         final int recSize = keySize + dataSize + 35 /* LN overhead */;
-        final int nRecords = nFiles * (fileSize / recSize);
+        final int nRecords = nFiles * (FILE_SIZE / recSize);
 
         /*
          * Insert records first so we will have a sizeable checkpoint.  Insert

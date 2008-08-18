@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TupleOrderingTest.java,v 1.22.2.2 2007/11/20 13:32:40 cwl Exp $
+ * $Id: TupleOrderingTest.java,v 1.27 2008/02/05 23:28:25 mark Exp $
  */
 
 package com.sleepycat.bind.tuple.test;
@@ -13,7 +13,7 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import com.sleepycat.bind.tuple.TupleOutput;
-import com.sleepycat.collections.test.DbTestUtil;
+import com.sleepycat.util.test.SharedTestUtils;
 
 /**
  * @author Mark Hayes
@@ -50,7 +50,7 @@ public class TupleOrderingTest extends TestCase {
 
     public void setUp() {
 
-        DbTestUtil.printTestName("TupleOrderingTest." + getName());
+        SharedTestUtils.printTestName("TupleOrderingTest." + getName());
         out = new TupleOutput();
         prevBuf = null;
     }
@@ -147,6 +147,10 @@ public class TupleOrderingTest extends TestCase {
 
         final String[] DATA = {
             "", "a", "ab", "b", "bb", "bba",
+            new String(new char[] { 0x7F }),
+            new String(new char[] { 0x7F, 0 }),
+            new String(new char[] { 0xFF }),
+            new String(new char[] { Character.MAX_VALUE }),
         };
         for (int i = 0; i < DATA.length; i += 1) {
             out.writeString(DATA[i]);

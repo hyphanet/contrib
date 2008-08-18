@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PrimaryIndex.java,v 1.17.2.1 2007/02/01 14:49:55 cwl Exp $
+ * $Id: PrimaryIndex.java,v 1.21 2008/05/27 15:30:36 mark Exp $
  */
 
 package com.sleepycat.persist;
@@ -14,6 +14,7 @@ import java.util.SortedMap;
 import com.sleepycat.bind.EntityBinding;
 import com.sleepycat.bind.EntryBinding;
 import com.sleepycat.collections.StoredSortedMap;
+import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
@@ -231,9 +232,9 @@ public class PrimaryIndex<PK,E> extends BasicIndex<PK,E> {
      */
     public PrimaryIndex(Database database,
                         Class<PK> keyClass,
-                        EntryBinding keyBinding,
+                        EntryBinding<PK> keyBinding,
                         Class<E> entityClass,
-                        EntityBinding entityBinding)
+                        EntityBinding<E> entityBinding)
         throws DatabaseException {
 
         super(database, keyClass, keyBinding,
@@ -271,7 +272,7 @@ public class PrimaryIndex<PK,E> extends BasicIndex<PK,E> {
      *
      * @return the key binding.
      */
-    public EntryBinding getKeyBinding() {
+    public EntryBinding<PK> getKeyBinding() {
         return keyBinding;
     }
 
@@ -289,7 +290,7 @@ public class PrimaryIndex<PK,E> extends BasicIndex<PK,E> {
      *
      * @return the entity binding.
      */
-    public EntityBinding getEntityBinding() {
+    public EntityBinding<E> getEntityBinding() {
         return entityBinding;
     }
 
@@ -341,17 +342,18 @@ public class PrimaryIndex<PK,E> extends BasicIndex<PK,E> {
 	Environment env = db.getEnvironment();
         if (transactional &&
 	    txn == null &&
-	    env.getThreadTransaction() == null) {
+	    DbCompat.getThreadTransaction(env) == null) {
             txn = env.beginTransaction(null, null);
             autoCommit = true;
         }
 
         boolean failed = true;
         Cursor cursor = db.openCursor(txn, null);
+        LockMode lockMode = locking ? LockMode.RMW : null;
         try {
             while (true) {
                 OperationStatus status =
-                    cursor.getSearchKey(keyEntry, dataEntry, LockMode.RMW);
+                    cursor.getSearchKey(keyEntry, dataEntry, lockMode);
                 if (status == OperationStatus.SUCCESS) {
                     E existing =
                         (E) entityBinding.entryToObject(keyEntry, dataEntry);
@@ -528,5 +530,9 @@ public class PrimaryIndex<PK,E> extends BasicIndex<PK,E> {
             map = new StoredSortedMap(db, keyBinding, entityBinding, true);
         }
         return map;
+    }
+
+    boolean isUpdateAllowed() {
+        return true;
     }
 }

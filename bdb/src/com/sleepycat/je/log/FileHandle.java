@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileHandle.java,v 1.19.2.1 2007/02/01 14:49:47 cwl Exp $
+ * $Id: FileHandle.java,v 1.27 2008/05/07 17:12:25 mark Exp $
  */
 
 package com.sleepycat.je.log;
@@ -12,9 +12,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.latch.Latch;
-import com.sleepycat.je.latch.LatchSupport;
 
 /**
  * A FileHandle embodies a File and its accompanying latch.
@@ -22,23 +20,40 @@ import com.sleepycat.je.latch.LatchSupport;
 class FileHandle {
     private RandomAccessFile file;
     private Latch fileLatch;
-    private boolean oldHeaderVersion;
+    private int logVersion;
+    private long fileNum;
 
-    FileHandle(RandomAccessFile file,
-               String fileName,
-               EnvironmentImpl env,
-               boolean oldHeaderVersion) {
+    /**
+     * Creates a new handle but does not initialize it.  The init method must
+     * be called before using the handle to access the file.
+     */
+    FileHandle(long fileNum, String label) {
+        fileLatch = new Latch("file_" + label + "_fileHandle");
+        this.fileNum = fileNum;
+    }
+
+    /**
+     * Initializes the handle after opening the file and reading the header.
+     */
+    void init(RandomAccessFile file, int logVersion) {
         this.file = file;
-        this.oldHeaderVersion = oldHeaderVersion;
-        fileLatch = LatchSupport.makeLatch(fileName + "_fileHandle", env);
+        this.logVersion = logVersion;
     }
 
     RandomAccessFile getFile() {
         return file;
     }
 
+    long getFileNum() {
+        return fileNum;
+    }
+
+    int getLogVersion() {
+        return logVersion;
+    }
+
     boolean isOldHeaderVersion() {
-        return oldHeaderVersion;
+        return logVersion < LogEntryType.LOG_VERSION;
     }
 
     void latch()

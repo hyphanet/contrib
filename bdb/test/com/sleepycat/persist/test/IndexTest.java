@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: IndexTest.java,v 1.15.2.2 2007/11/20 13:32:52 cwl Exp $
+ * $Id: IndexTest.java,v 1.19 2008/02/05 23:28:28 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -29,7 +29,6 @@ import junit.framework.Test;
 import com.sleepycat.collections.MapEntryParameter;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Transaction;
-import com.sleepycat.je.test.TxnTestCase;
 import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityIndex;
 import com.sleepycat.persist.EntityStore;
@@ -42,6 +41,7 @@ import com.sleepycat.persist.model.SecondaryKey;
 import com.sleepycat.persist.raw.RawObject;
 import com.sleepycat.persist.raw.RawStore;
 import com.sleepycat.persist.raw.RawType;
+import com.sleepycat.util.test.TxnTestCase;
 
 /**
  * Tests EntityIndex and EntityCursor in all their permutations.

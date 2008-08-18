@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: MarshalledTupleEntry.java,v 1.21.2.1 2007/02/01 14:49:39 cwl Exp $
+ * $Id: MarshalledTupleEntry.java,v 1.23 2008/01/07 14:28:44 cwl Exp $
  */
 
 package com.sleepycat.bind.tuple;

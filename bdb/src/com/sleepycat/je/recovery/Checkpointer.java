@@ -1,38 +1,49 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Checkpointer.java,v 1.140.2.6 2007/12/14 01:43:26 mark Exp $
+ * $Id: Checkpointer.java,v 1.169 2008/05/23 18:50:49 mark Exp $
  */
 
 package com.sleepycat.je.recovery;
 
-import java.util.Iterator;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.DbInternal;
+import com.sleepycat.je.EnvironmentMutableConfig;
 import com.sleepycat.je.EnvironmentStats;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.cleaner.Cleaner;
-import com.sleepycat.je.cleaner.TrackedFileSummary;
-import com.sleepycat.je.cleaner.UtilizationProfile;
-import com.sleepycat.je.cleaner.UtilizationTracker;
+import com.sleepycat.je.cleaner.LocalUtilizationTracker;
 import com.sleepycat.je.cleaner.FileSelector.CheckpointStartCleanerState;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.dbi.DatabaseId;
 import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.DbTree;
+import com.sleepycat.je.dbi.EnvConfigObserver;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogEntryType;
+import com.sleepycat.je.log.LogItem;
 import com.sleepycat.je.log.LogManager;
+import com.sleepycat.je.log.Provisional;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.SingleItemEntry;
 import com.sleepycat.je.tree.BIN;
 import com.sleepycat.je.tree.ChildReference;
 import com.sleepycat.je.tree.IN;
+import com.sleepycat.je.tree.INLogContext;
+import com.sleepycat.je.tree.INLogItem;
 import com.sleepycat.je.tree.Node;
 import com.sleepycat.je.tree.SearchResult;
 import com.sleepycat.je.tree.Tree;
@@ -40,6 +51,8 @@ import com.sleepycat.je.tree.WithRootLatched;
 import com.sleepycat.je.utilint.DaemonThread;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.PropUtil;
+import com.sleepycat.je.utilint.TestHook;
+import com.sleepycat.je.utilint.TestHookExecute;
 import com.sleepycat.je.utilint.Tracer;
 
 /**
@@ -47,7 +60,19 @@ import com.sleepycat.je.utilint.Tracer;
  * flushed to the log. Checkpoint flushes must be done in ascending order from
  * the bottom of the tree up.
  */
-public class Checkpointer extends DaemonThread {
+public class Checkpointer extends DaemonThread implements EnvConfigObserver {
+
+    /*
+     * We currently use multi-logging whenever practical, but we're keeping an
+     * option open to disable it, perhaps via a config param.
+     */
+    private static final boolean MULTI_LOG = true;
+
+    /**
+     * For unit testing only.  Called before we flush the max level.  This
+     * field is static because it is called from the static flushIN method.
+     */
+    public static TestHook maxFlushLevelHook = null;
 
     private EnvironmentImpl envImpl;
 
@@ -63,10 +88,12 @@ public class Checkpointer extends DaemonThread {
     private long timeInterval;
     private long lastCheckpointMillis;
 
-    private volatile int highestFlushLevel;
+    /* Configured to true to minimize checkpoint duration. */
+    private boolean highPriority;
 
-    private int nCheckpoints;
-    private long lastFirstActiveLsn;
+    private volatile Map<DatabaseImpl,Integer> highestFlushLevels;
+
+    private long nCheckpoints;
     private long lastCheckpointStart;
     private long lastCheckpointEnd;
     private FlushStats flushStats;
@@ -89,7 +116,22 @@ public class Checkpointer extends DaemonThread {
         nCheckpoints = 0;
         flushStats = new FlushStats();
 
-	highestFlushLevel = IN.MIN_LEVEL;
+        highestFlushLevels = Collections.emptyMap();
+
+        /* Initialize mutable properties and register for notifications. */
+        envConfigUpdate(envImpl.getConfigManager(), null);
+        envImpl.addConfigObserver(this);
+    }
+
+    /**
+     * Process notifications of mutable property changes.
+     */
+    public void envConfigUpdate(DbConfigManager cm,
+                                EnvironmentMutableConfig ignore)
+        throws DatabaseException {
+
+        highPriority = cm.getBoolean
+            (EnvironmentParams.CHECKPOINTER_HIGH_PRIORITY);
     }
 
     /**
@@ -102,8 +144,25 @@ public class Checkpointer extends DaemonThread {
         this.lastCheckpointMillis = lastCheckpointMillis;
     }
 
-    public int getHighestFlushLevel() {
-	return highestFlushLevel;
+    /**
+     * Returns the highest flush level for a database that is part of a
+     * checkpoint currently in progress.  Used by the evictor to determine
+     * whether to log INs provisionally.  If an IN's level is less than the
+     * level returned, it should be logged provisionally by the evictor.
+     * IN.MIN_LEVEL is returned if no checkpoint is in progress or the given
+     * database is not part of the checkpoint.
+     */
+    public int getHighestFlushLevel(DatabaseImpl db) {
+        return getHighestFlushLevelInternal(db, highestFlushLevels);
+    }
+
+    private static int  
+        getHighestFlushLevelInternal(DatabaseImpl db,
+                                     Map<DatabaseImpl,Integer> 
+                                                      highestFlushLevels) {
+
+        Integer val = highestFlushLevels.get(db);
+        return (val != null) ? val.intValue() : IN.MIN_LEVEL;
     }
 
     /**
@@ -142,7 +201,7 @@ public class Checkpointer extends DaemonThread {
     /**
      * Set checkpoint id -- can only be done after recovery.
      */
-    synchronized public void setCheckpointId(long lastCheckpointId) {
+    public synchronized void setCheckpointId(long lastCheckpointId) {
         checkpointId = lastCheckpointId;
     }
 
@@ -168,29 +227,14 @@ public class Checkpointer extends DaemonThread {
         }
     }
 
-    /**
-     * @return the first active LSN point of the last completed checkpoint.
-     * If no checkpoint has run, return null.
-     */
-    public long getFirstActiveLsn() {
-        return lastFirstActiveLsn;
-    }
-
-    /**
-     * Initialize the FirstActiveLsn during recovery.  The cleaner needs this.
-     */
-    public void setFirstActiveLsn(long lastFirstActiveLsn) {
-        this.lastFirstActiveLsn = lastFirstActiveLsn;
-    }
-
-    synchronized public void clearEnv() {
+    public synchronized void clearEnv() {
         envImpl = null;
     }
 
     /**
      * Return the number of retries when a deadlock exception occurs.
      */
-    protected int nDeadlockRetries()
+    protected long nDeadlockRetries()
         throws DatabaseException {
 
         return envImpl.getConfigManager().getInt
@@ -270,11 +314,9 @@ public class Checkpointer extends DaemonThread {
             if (useBytesInterval != 0) {
                 nextLsn = envImpl.getFileManager().getNextLsn();
                 if (DbLsn.getNoCleaningDistance(nextLsn, lastCheckpointEnd,
-						logFileMax) >=
+                                                logFileMax) >=
                     useBytesInterval) {
                     runnable = true;
-                } else {
-                    runnable = false;
                 }
             } else if (useTimeInterval != 0) {
 
@@ -287,11 +329,7 @@ public class Checkpointer extends DaemonThread {
                      useTimeInterval) &&
                     (DbLsn.compareTo(lastUsedLsn, lastCheckpointEnd) != 0)) {
                     runnable = true;
-                } else {
-                    runnable = false;
                 }
-            } else {
-                runnable = false;
             }
             return runnable;
         } finally {
@@ -299,7 +337,7 @@ public class Checkpointer extends DaemonThread {
             sb.append("size interval=").append(useBytesInterval);
             if (nextLsn != DbLsn.NULL_LSN) {
                 sb.append(" nextLsn=").
-		    append(DbLsn.getNoFormatString(nextLsn));
+                    append(DbLsn.getNoFormatString(nextLsn));
             }
             if (lastCheckpointEnd != DbLsn.NULL_LSN) {
                 sb.append(" lastCkpt=");
@@ -323,22 +361,23 @@ public class Checkpointer extends DaemonThread {
      * @param flushAll if true, this checkpoint must flush all the way to
      *       the top of the dbtree, instead of stopping at the highest level
      *       last modified.
+     *
      * @param invokingSource a debug aid, to indicate who invoked this
      *       checkpoint. (i.e. recovery, the checkpointer daemon, the cleaner,
      *       programatically)
      */
     public synchronized void doCheckpoint(CheckpointConfig config,
-					  boolean flushAll,
-					  String invokingSource)
+                                          boolean flushAll,
+                                          String invokingSource)
         throws DatabaseException {
 
         if (envImpl.isReadOnly()) {
             return;
         }
 
-	if (!isRunnable(config)) {
-	    return;
-	}
+        if (!isRunnable(config)) {
+            return;
+        }
 
         /*
          * If there are cleaned files to be deleted, flush an extra level to
@@ -369,45 +408,59 @@ public class Checkpointer extends DaemonThread {
         DirtyINMap dirtyMap = new DirtyINMap(envImpl);
         try {
 
-	    /*
-	     * Eviction can run during checkpoint as long as it follows the
-	     * same rules for using provisional logging and for propagating
-	     * logging of the checkpoint dirty set up the tree. We have to lock
-	     * out the evictor after the logging of checkpoint start until
-	     * we've selected the dirty set and decided on the highest level to
-	     * be flushed. See SR 11163, 11349.
-	     */
-	    long checkpointStart = DbLsn.NULL_LSN;
-	    long firstActiveLsn = DbLsn.NULL_LSN;
+            /*
+             * Eviction can run during checkpoint as long as it follows the
+             * same rules for using provisional logging and for propagating
+             * logging of the checkpoint dirty set up the tree. We have to lock
+             * out the evictor after the logging of checkpoint start until
+             * we've selected the dirty set and decided on the highest level to
+             * be flushed. See SR 11163, 11349.
+             */
+            long checkpointStart = DbLsn.NULL_LSN;
+            long firstActiveLsn = DbLsn.NULL_LSN;
 
-	    synchronized (envImpl.getEvictor()) {
+            synchronized (envImpl.getEvictor()) {
 
-		/* Log the checkpoint start. */
-		SingleItemEntry startEntry =
-		    new SingleItemEntry(LogEntryType.LOG_CKPT_START,
+                /* Log the checkpoint start. */
+                SingleItemEntry startEntry =
+                    new SingleItemEntry(LogEntryType.LOG_CKPT_START,
                                         new CheckpointStart(checkpointId,
                                                             invokingSource));
-		checkpointStart = logManager.log(startEntry);
+                checkpointStart =
+                    logManager.log(startEntry,
+                                   ReplicationContext.NO_REPLICATE);
 
-		/*
-		 * Note the first active LSN point. The definition of
+                /*
+                 * Note the first active LSN point. The definition of
                  * firstActiveLsn is that all log entries for active
                  * transactions are equal to or after that LSN.
-		 */
-		firstActiveLsn = envImpl.getTxnManager().getFirstActiveLsn();
+                 */
+                firstActiveLsn = envImpl.getTxnManager().getFirstActiveLsn();
 
-		if (firstActiveLsn == DbLsn.NULL_LSN) {
-		    firstActiveLsn = checkpointStart;
-		} else {
-		    if (DbLsn.compareTo(checkpointStart, firstActiveLsn) < 0) {
-			firstActiveLsn = checkpointStart;
-		    }
-		}
+                if (firstActiveLsn == DbLsn.NULL_LSN) {
+                    firstActiveLsn = checkpointStart;
+                } else {
+                    if (DbLsn.compareTo(checkpointStart, firstActiveLsn) < 0) {
+                        firstActiveLsn = checkpointStart;
+                    }
+                }
 
-		/* Find the set of dirty INs that must be logged. */
-                dirtyMap.selectDirtyINsForCheckpoint
-                    (cleanerState.getDeferredWriteDbs());
-	    }
+                /*
+                 * Flush replication information if necessary. Do this before
+                 * the dirty set is selected.
+                 */
+                if (envImpl.isReplicated()) {
+                    envImpl.getReplicator().preCheckpointEndFlush();
+                }
+
+                /* 
+                 * Find the set of dirty INs that must be logged.  Update the
+                 * highestFlushLevels volatile field so it will be seen by the
+                 * evictor, before starting to flush dirty nodes.
+                 */
+                highestFlushLevels = dirtyMap.selectDirtyINsForCheckpoint
+                    (flushAll, flushExtraLevel);
+            }
 
             /*
              * Add the dirty map to the memory budget, outside the evictor
@@ -415,51 +468,39 @@ public class Checkpointer extends DaemonThread {
              */
             dirtyMap.addCostToMemoryBudget();
 
-            /*
-             * Figure out the highest flush level.  If we're flushing all for
-             * cleaning, we must flush to the point that there are no nodes
-             * with LSNs in the cleaned files.
-             */
-            if (dirtyMap.getNumLevels() > 0) {
-                if (flushAll) {
-                    highestFlushLevel =
-			envImpl.getDbMapTree().getHighestLevel();
-                } else {
-                    highestFlushLevel = dirtyMap.getHighestLevel();
-                    if (flushExtraLevel) {
-                        highestFlushLevel += 1;
-                    }
-                }
-            } else {
-		highestFlushLevel = IN.MAX_LEVEL;
-	    }
-
             /* Flush IN nodes. */
             boolean allowDeltas = !config.getMinimizeRecoveryTime();
-            boolean cleaningDeferredWriteDbs =
-                (cleanerState.getDeferredWriteDbsSize() > 0);
-            flushDirtyNodes(envImpl, dirtyMap, allowDeltas,
-                            checkpointStart, highestFlushLevel,
-                            flushStats, cleaningDeferredWriteDbs);
+            flushDirtyNodes(envImpl, dirtyMap, highestFlushLevels, allowDeltas,
+                            checkpointStart, highPriority, flushStats);
+
+            /*
+             * Flush MapLNs if not already done by flushDirtyNodes.  Only flush
+             * a database if it has not already been flushed since checkpoint
+             * start.  Lastly, flush the DB mapping tree root.
+             */
+            dirtyMap.flushMapLNs(checkpointStart);
+            dirtyMap.flushRoot(checkpointStart);
 
             /*
              * Flush utilization info AFTER flushing IN nodes to reduce the
              * inaccuracies caused by the sequence FileSummaryLN-LN-BIN.
              */
-            flushUtilizationInfo();
+            envImpl.getUtilizationProfile().flushFileUtilization
+                (envImpl.getUtilizationTracker().getTrackedFiles());
+
+            DbTree dbTree = envImpl.getDbTree();
+            CheckpointEnd ckptEnd = new CheckpointEnd
+                (invokingSource, checkpointStart, envImpl.getRootLsn(),
+                 firstActiveLsn,
+                 envImpl.getNodeSequence().getLastLocalNodeId(),
+                 envImpl.getNodeSequence().getLastReplicatedNodeId(),
+                 dbTree.getLastLocalDbId(), dbTree.getLastReplicatedDbId(),
+                 envImpl.getTxnManager().getLastLocalTxnId(),
+                 envImpl.getTxnManager().getLastReplicatedTxnId(),
+                 checkpointId);
 
             SingleItemEntry endEntry =
-                new SingleItemEntry(LogEntryType.LOG_CKPT_END,
-                                    new CheckpointEnd(invokingSource,
-                                                      checkpointStart,
-                                                      envImpl.getRootLsn(),
-                                                      firstActiveLsn,
-                                                      Node.getLastId(),
-                                                      envImpl.getDbMapTree().
-                                                      getLastDbId(),
-                                                      envImpl.getTxnManager().
-                                                      getLastTxnId(),
-                                                      checkpointId));
+                new SingleItemEntry(LogEntryType.LOG_CKPT_END, ckptEnd);
 
             /*
              * Log checkpoint end and update state kept about the last
@@ -477,15 +518,11 @@ public class Checkpointer extends DaemonThread {
              * and to ensure that this checkpoint is not wasted if we crash.
              */
             lastCheckpointEnd =
-		logManager.logForceFlush(endEntry, true /*fsyncRequired*/);
-            lastFirstActiveLsn = firstActiveLsn;
-            lastCheckpointStart = checkpointStart;
+                logManager.logForceFlush(endEntry,
+                                         true /*fsyncRequired*/,
+                                         ReplicationContext.NO_REPLICATE);
 
-	    /*
-	     * Reset the highestFlushLevel so evictor activity knows there's no
-	     * further requirement for provisional logging. SR 11163.
-	     */
-	    highestFlushLevel = IN.MIN_LEVEL;
+            lastCheckpointStart = checkpointStart;
 
             success = true;
             cleaner.updateFilesAtCheckpointEnd(cleanerState);
@@ -496,6 +533,12 @@ public class Checkpointer extends DaemonThread {
             throw e;
         } finally {
             dirtyMap.removeCostFromMemoryBudget();
+
+            /*
+             * Reset the highestFlushLevels so evictor activity knows there's
+             * no further requirement for provisional logging. SR 11163.
+             */
+            highestFlushLevels = Collections.emptyMap();
 
             if (!traced) {
                 trace(envImpl, invokingSource, success);
@@ -518,29 +561,6 @@ public class Checkpointer extends DaemonThread {
     }
 
     /**
-     * Flush a FileSummaryLN node for each TrackedFileSummary that is currently
-     * active.  Tell the UtilizationProfile about the updated file summary.
-     */
-    private void flushUtilizationInfo()
-        throws DatabaseException {
-
-        /* Utilization flushing may be disabled for unittests. */
-        if (!DbInternal.getCheckpointUP
-	    (envImpl.getConfigManager().getEnvironmentConfig())) {
-            return;
-        }
-
-        UtilizationProfile profile = envImpl.getUtilizationProfile();
-
-        TrackedFileSummary[] activeFiles =
-            envImpl.getUtilizationTracker().getTrackedFiles();
-
-        for (int i = 0; i < activeFiles.length; i += 1) {
-            profile.flushFileSummary(activeFiles[i]);
-        }
-    }
-
-    /**
      * Flush a given database to disk. Like checkpoint, log from the bottom
      * up so that parents properly represent their children.
      */
@@ -556,25 +576,27 @@ public class Checkpointer extends DaemonThread {
         DirtyINMap dirtyMap = new DirtyINMap(envImpl);
         FlushStats fstats = new FlushStats();
         try {
-	    /*
-	     * Lock out eviction and other checkpointing during the
-             * selection of a dirty set.
-	     */
-	    synchronized (envImpl.getEvictor()) {
-		/* Find the dirty set. */
-		dirtyMap.selectDirtyINsForDb(dbImpl);
-	    }
+
+            /*
+             * Lock out eviction and other checkpointing during the selection
+             * of a dirty set.
+             */
+            Map<DatabaseImpl,Integer> highestFlushLevels;
+            synchronized (envImpl.getEvictor()) {
+                /* Find the dirty set. */
+                highestFlushLevels = dirtyMap.selectDirtyINsForDbSync(dbImpl);
+            }
 
             dirtyMap.addCostToMemoryBudget();
 
             /* Write all dirtyINs out.*/
             flushDirtyNodes(envImpl,
                             dirtyMap,
-                            false, /* allowDeltas */
-                            0,     /* ckpt start, only needed for allowDeltas*/
-                            envImpl.getDbMapTree().getHighestLevel(dbImpl),
-                            fstats,
-                            false); /* cleaning deferred write dbs */
+                            highestFlushLevels,
+                            false, /*allowDeltas*/
+                            0,     /*ckptStart, only needed for allowDeltas*/
+                            false, /*highPriority*/
+                            fstats);
 
             /* Make changes durable. [#15254] */
             if (flushLog) {
@@ -589,6 +611,11 @@ public class Checkpointer extends DaemonThread {
         }
     }
 
+    /* For unit testing only. */
+    public static void setMaxFlushLevelHook(TestHook hook) {
+        maxFlushLevelHook = hook;
+    }
+
     /**
      * Flush the nodes in order, from the lowest level to highest level.  As a
      * flush dirties its parent, add it to the dirty map, thereby cascading the
@@ -600,138 +627,181 @@ public class Checkpointer extends DaemonThread {
      * recovery because the higher INs will end up pointing at them.
      */
     private static void flushDirtyNodes(EnvironmentImpl envImpl,
-                                        DirtyINMap dirtyMap,	
+                                        DirtyINMap dirtyMap,    
+                                        Map<DatabaseImpl,Integer> 
+                                                  highestFlushLevels,
                                         boolean allowDeltas,
                                         long checkpointStart,
-                                        int maxFlushLevel,
-                                        FlushStats fstats,
-                                        boolean cleaningDeferredWriteDbs)
+                                        boolean highPriority,
+                                        FlushStats fstats)
         throws DatabaseException {
 
         LogManager logManager = envImpl.getLogManager();
-        DbTree dbTree = envImpl.getDbMapTree();
-
-        /*
-         * In general, we flush until we reach the maxFlushLevel. If we're
-         * cleaning deferred write dbs, we sync only those dbs all the way up
-         * to the root. onlyFlushDeferredWriteDbs is true when we're above
-         * maxFlushLevel, but are still syncing.
-         */
-        boolean onlyFlushDeferredWriteDbs = false;
+        DbTree dbTree = envImpl.getDbTree();
 
         /*
          * Use a tracker to count lazily compressed, deferred write, LNs as
-         * obsolete.  A separate tracker is used to accumulate tracked obsolete
+         * obsolete.  A local tracker is used to accumulate tracked obsolete
          * info so it can be added in a single call under the log write latch.
          * [#15365]
          */
-        UtilizationTracker tracker = new UtilizationTracker(envImpl);
+        LocalUtilizationTracker localTracker =
+            new LocalUtilizationTracker(envImpl);
 
         while (dirtyMap.getNumLevels() > 0) {
 
             /* Work on one level's worth of nodes in ascending level order. */
             Integer currentLevel = dirtyMap.getLowestLevelSet();
             int currentLevelVal = currentLevel.intValue();
-            boolean logProvisionally = (currentLevelVal != maxFlushLevel);
 
-            Set nodeSet = dirtyMap.getSet(currentLevel);
-            Iterator iter = nodeSet.iterator();
+            /*
+             * Flush MapLNs just prior to flushing the first level of the
+             * mapping tree.  Only flush a database if it has not already been
+             * flushed since checkpoint start.
+             */
+            if (currentLevelVal == IN.DBMAP_LEVEL) {
+                dirtyMap.flushMapLNs(checkpointStart);
+            }
 
-            /* Flush all those nodes */
-            while (iter.hasNext()) {
+            /* Flush the nodes at the current level. */
+            while (true) {
                 CheckpointReference targetRef =
-                    (CheckpointReference) iter.next();
-
-                /*
-                 * Flush if we're below maxFlushLevel, or we're above and
-                 * syncing cleaned deferred write dbs.
-                 */
-                if (!onlyFlushDeferredWriteDbs ||
-                    (onlyFlushDeferredWriteDbs &&
-                     targetRef.db.isDeferredWrite())) {
-
-                    /* Evict before each operation. */
-                    envImpl.getEvictor().doCriticalEviction
-                        (true); // backgroundIO
-
-                    /*
-                     * Check if the db is still valid since INs of deleted
-                     * databases are left on the in-memory tree until the post
-                     * transaction cleanup is finished.  Use the DatabaseImpl
-                     * returned by getDb, which may be a different object than
-                     * targetRef.db if the MapLN was evicted.
-                     */
-                    DatabaseImpl refreshedDb = null;
-                    try {
-                        refreshedDb = dbTree.getDb(targetRef.db.getId());
-                        if (refreshedDb != null && !refreshedDb.isDeleted()) {
-                            targetRef.db = refreshedDb;
-                            flushIN
-                                (envImpl, logManager, targetRef, dirtyMap,
-                                 currentLevelVal, logProvisionally,
-                                 allowDeltas, checkpointStart, fstats,
-                                 tracker);
-                        }
-                    } finally {
-                        dbTree.releaseDb(refreshedDb);
-                    }
-
-                    /* Sleep if background read/write limit was exceeded. */
-                    envImpl.sleepAfterBackgroundIO();
+                    dirtyMap.removeNextNode(currentLevel);
+                if (targetRef == null) {
+                    break;
                 }
 
-                iter.remove();
+                /*
+                 * Check to make sure the DB was not deleted after putting it
+                 * in the dirty map, and prevent the DB from being deleted
+                 * while we're working with it.
+                 */
+                DatabaseImpl db = null;
+                try {
+                    db = dbTree.getDb(targetRef.dbId);
+                    if (db != null && !db.isDeleted()) {
+
+                        /* Flush if we're below maxFlushLevel. */
+                        int maxFlushLevel = getHighestFlushLevelInternal
+                            (db, highestFlushLevels);
+                        if (currentLevelVal <= maxFlushLevel) {
+
+                            /* Evict before each operation. */
+                            envImpl.getEvictor().doCriticalEviction
+                                (true); // backgroundIO
+
+                            flushIN
+                                (envImpl, db, logManager, targetRef, dirtyMap,
+                                 currentLevelVal, maxFlushLevel, allowDeltas,
+                                 checkpointStart, highPriority,
+                                 fstats, localTracker,
+                                 true /*allowLogSubtree*/);
+
+                            /*
+                             * Sleep if background read/write limit was
+                             * exceeded.
+                             */
+                            envImpl.sleepAfterBackgroundIO();
+                        }
+                    }
+                } finally {
+                    dbTree.releaseDb(db);
+                }
             }
 
             /* We're done with this level. */
-            dirtyMap.removeSet(currentLevel);
-
-            /*
-             * For all regular databases, we can stop checkpointing at the
-             * previously calculated level. For deferredWriteDbs that are
-             * being synced, we need to flush to the roots.
-             */
-            if (currentLevelVal == maxFlushLevel) {
-                if (cleaningDeferredWriteDbs) {
-                    onlyFlushDeferredWriteDbs = true;
-                } else {
-                    break;
-                }
-            }
+            dirtyMap.removeLevel(currentLevel);
         }
 
         /*
-         * Count obsolete nodes and write out modified file summaries for
-         * recovery.  All latches must have been released. [#15365]
+         * Count obsolete nodes tracked doing lazy compression.  All latches
+         * must have been released. [#15365]
+         *
+         * Do not flush FileSummaryLNs/MapLNs (do not call
+         * UtilizationProfile.flushLocalTracker) here because that flushing is
+         * already done by the checkpoint.
          */
-        TrackedFileSummary[] summaries = tracker.getTrackedFiles();
-        if (summaries.length > 0) {
-            envImpl.getUtilizationProfile().countAndLogSummaries(summaries);
-        }
+        logManager.transferToUtilizationTracker(localTracker);
     }
 
     /**
      * Flush the target IN.
+     *
+     * Where applicable, also attempt to flush the subtree that houses this
+     * target, which means we flush the siblings of this target to promote
+     * better cleaning throughput. The problem lies in the fact that
+     * provisionally logged nodes are not available for log cleaning until
+     * their parent is logged non-provisionally.  On the other hand, we want to
+     * log nodes in provisional mode as much as possible, both for recovery
+     * performance, and for correctness to avoid fetches against cleaned log
+     * files. (See [#16037].) These conflicting goals are reconciled by
+     * flushing nodes in subtree grouping, because writing the non-provisional
+     * parent of a set of provisionally written nodes frees the cleaner to work
+     * on that set of provisional nodes as soon as possible. For example, if a
+     * tree consists of:
+     *
+     *             INa
+     *       +------+-------+
+     *      INb            INc
+     * +-----+----+         +-----+
+     * BINd BINe BINf      BINg BINh
+     *
+     * It is more efficient for cleaning throughput to log in this order:
+     *       BINd, BINe, BINf, INb, BINg, BINh, INc, INa
+     * rather than:
+     *       BINd, BINe, BINf, BINg, BINh, INb, INc, INa
+     * 
+     * Suppose the subtree in question is INb->{BINd, BINe, BINf}
+     *
+     * Suppose we see BINd in the dirty map first, before BINe and BINf.
+     *  - flushIN(BINd) is called
+     *  - we fetch and latch its parent, INb
+     *
+     * If this is a high priority checkpoint, we'll hold the INb latch across
+     * the time it takes to flush all three children.  In flushIN(BINd), we
+     * walk through INa, create a local map of all the siblings that can be
+     * found in the dirty map, and then call logSiblings with that local map.
+     * Then we'll write out INa.
+     *
+     * If high priority is false, we will not hold the INb latch across
+     * multiple IOs. Instead, we 
+     *  - write BINd out, using logSiblings
+     *  - while still holding the INa latch, we create a local map of dirty
+     *    siblings
+     *  - release the INa latch
+     *  - call flushIN() recursively on each entry in the local sibling map, 
+     *    which will result in a search and write of each sibling.  These
+     *    recursive calls to flushIN are called with the allowLogSubtree
+     *    parameter of false to halt the recursion and prevent a repeat of the
+     *    sibling examination.
+     *  - write INa
      */
     private static void flushIN(EnvironmentImpl envImpl,
+                                DatabaseImpl db,
                                 LogManager logManager,
                                 CheckpointReference targetRef,
                                 DirtyINMap dirtyMap,
                                 int currentLevel,
-                                boolean logProvisionally,
+                                int maxFlushLevel,
                                 boolean allowDeltas,
                                 long checkpointStart,
+                                boolean highPriority,
                                 FlushStats fstats,
-                                UtilizationTracker tracker)
+                                LocalUtilizationTracker localTracker,
+                                boolean allowLogSubtree)
         throws DatabaseException {
 
-        Tree tree = targetRef.db.getTree();
+        /* Call test hook when we reach the max level. */
+        assert (currentLevel < maxFlushLevel) ||
+            TestHookExecute.doHookIfSet(maxFlushLevelHook);
+
+        Tree tree = db.getTree();
         boolean targetWasRoot = false;
         if (targetRef.isDbRoot) {
 
             /* We're trying to flush the root. */
             RootFlusher flusher =
-		new RootFlusher(targetRef.db, logManager, targetRef.nodeId);
+                new RootFlusher(db, logManager, targetRef.nodeId);
             tree.withRootLatchedExclusive(flusher);
             boolean flushed = flusher.getFlushed();
 
@@ -746,8 +816,8 @@ public class Checkpointer extends DaemonThread {
              * dbmapping tree.
              */
             if (flushed) {
-                DbTree dbTree = targetRef.db.getDbEnvironment().getDbMapTree();
-                dbTree.modifyDbRoot(targetRef.db);
+                DbTree dbTree = envImpl.getDbTree();
+                dbTree.modifyDbRoot(db);
                 fstats.nFullINFlushThisRun++;
                 fstats.nFullINFlush++;
             }
@@ -755,9 +825,9 @@ public class Checkpointer extends DaemonThread {
 
         /*
          * The following attempt to flush applies to two cases:
-	 *
+         *
          * (1) the target was not ever the root
-	 *
+         *
          * (2) the target was the root, when the checkpoint dirty set was
          * assembled but is not the root now.
          */
@@ -774,7 +844,7 @@ public class Checkpointer extends DaemonThread {
                                            targetRef.mainTreeKey,
                                            targetRef.dupTreeKey,
                                            false,  // requireExactMatch
-                                           false,  // updateGeneration
+                                           CacheMode.UNCHANGED,
                                            -1,     // targetLevel
                                            null,   // trackingList
                                            false); // doFetch
@@ -791,7 +861,71 @@ public class Checkpointer extends DaemonThread {
              * this item before we got to processing it.
              */
             if (result.parent != null) {
+                IN parent = result.parent;
                 boolean mustLogParent = false;
+
+                /*
+                 * If bottomLevelTarget is true, the parent IN contains bottom
+                 * level BINs -- either DBINs or BINs depending on whether dups
+                 * are configured or not.  If dups are configured we cannot
+                 * mask the level, since we do not want to select the parent of
+                 * a BIN in the upper part of the tree.  The masking is used to
+                 * normalize the level for ordinary non-dup DBs and the mapping
+                 * tree DB.
+                 */
+                boolean bottomLevelTarget = db.getSortedDuplicates() ?
+                    (parent.getLevel() == 2) :
+                    ((parent.getLevel() & IN.LEVEL_MASK) == 2);
+
+                /*
+                 * INs at the max flush level are always non-provisional and
+                 * INs at the bottom level (when this is not also the max flush
+                 * level) are always provisional.  In between INs are
+                 * provisional BEFORE_CKPT_END (see Provisional).
+                 */
+                Provisional provisional;
+                if (currentLevel >= maxFlushLevel) {
+                    provisional = Provisional.NO;
+                } else if (bottomLevelTarget) {
+                    provisional = Provisional.YES;
+                } else {
+                    provisional = Provisional.BEFORE_CKPT_END;
+                }
+
+                /*
+                 * Log a sub-tree when the target is at the bottom level and
+                 * this is not a recursive call to flushIN during sub-tree
+                 * logging.
+                 */
+                boolean logSubtree = bottomLevelTarget && allowLogSubtree;
+
+                /*
+                 * Log sub-tree siblings with the latch held when highPriority
+                 * is configured and this is not a DW DB.  For a DW DB, dirty
+                 * LNs are logged for each BIN.  If we were to log a DW
+                 * sub-tree with the parent latch held, the amount of logging
+                 * may cause the latch to be held for too long a period.
+                 */
+                boolean logSiblingsWithParentLatchHeld =
+                    logSubtree &&
+                    highPriority &&
+                    !db.isDurableDeferredWrite();
+
+                /*
+                 * If we log siblings with the parent latch held, we log the
+                 * target along with other siblings so we can perform a single
+                 * multi-log call for all siblings.
+                 */
+                boolean logTargetWithOtherSiblings = false;
+
+                /*
+                 * Map of node ID to parent index for each sibling to log.  We
+                 * must process the siblings in node ID order during multi-log,
+                 * so that latching order is deterministic and only in one
+                 * direction.
+                 */
+                SortedMap<Long,Integer> siblingsToLog = null;
+
                 try {
                     if (result.exactParentFound) {
 
@@ -799,27 +933,29 @@ public class Checkpointer extends DaemonThread {
                          * If the child has already been evicted, don't
                          * refetch it.
                          */
-                        IN renewedTarget =
-                            (IN) result.parent.getTarget(result.index);
+                        IN renewedTarget = (IN) parent.getTarget(result.index);
 
                         if (renewedTarget == null) {
                             /* nAlreadyEvictedThisRun++;  -- for future */
-                            mustLogParent = true;
+                            mustLogParent |= true;
                         } else {
-                            mustLogParent =
-                                logTargetAndUpdateParent(envImpl,
-                                                         renewedTarget,
-                                                         result.parent,
-                                                         result.index,
-                                                         allowDeltas,
-                                                         checkpointStart,
-                                                         logProvisionally,
-                                                         fstats,
-                                                         tracker);
+                            if (logSiblingsWithParentLatchHeld) {
+                                logTargetWithOtherSiblings = true;
+                            } else {
+                                mustLogParent |= logSiblings
+                                    (envImpl, dirtyMap, parent,
+                                     Collections.singleton(result.index),
+                                     allowDeltas, checkpointStart,
+                                     highPriority, provisional, fstats,
+                                     localTracker);
+                            }
                         }
                     } else {
-
                         /* result.exactParentFound was false. */
+
+                        /* Do not flush children of the inexact parent. */
+                        logSubtree = false;
+
                         if (result.childNotResident) {
 
                             /*
@@ -833,26 +969,122 @@ public class Checkpointer extends DaemonThread {
                              * the non-exact search does not find a sibling
                              * rather than a parent. [#11555]
                              */
-                            if (result.parent.getLevel() > currentLevel) {
-                                mustLogParent = true;
+                            if (parent.getLevel() > currentLevel) {
+                                mustLogParent |= true;
                             }
                             /* nAlreadyEvictedThisRun++; -- for future. */
                         }
                     }
 
-                    if (mustLogParent) {
-                        assert
-                            checkParentChildRelationship(result, currentLevel):
-                            dumpParentChildInfo(result,
-                                                result.parent,
-                                                targetRef.nodeId,
-                                                currentLevel,
-                                                tree);
+                    if (logSubtree) {
 
-                        dirtyMap.addDirtyIN(result.parent, true);
+                        /*
+                         * Create a map of node ID to parent index for each
+                         * sibling we intend to log.  Note that the dirty map
+                         * does not contain targetRef (the sibling we're
+                         * processing) because it was removed before calling
+                         * this method, but it is added to the map below.
+                         */
+                        siblingsToLog = new TreeMap<Long,Integer>();
+                        for (int index = 0;
+                             index < parent.getNEntries();
+                             index += 1) {
+                            Node child = parent.getTarget(index);
+                            if (child != null) {
+                                Long childId = child.getNodeId();
+                                if ((logTargetWithOtherSiblings &&
+                                     targetRef.nodeId ==
+                                     childId.longValue()) ||
+                                    dirtyMap.containsNode
+                                        (child.getLevel(), childId)) {
+                                    siblingsToLog.put(childId, index);
+                                }
+                            }
+                        }
+
+                        if (logSiblingsWithParentLatchHeld) {
+                            if (MULTI_LOG) {
+                                mustLogParent |= logSiblings
+                                    (envImpl, dirtyMap, parent,
+                                     siblingsToLog.values(), allowDeltas,
+                                     checkpointStart, highPriority,
+                                     provisional, fstats, localTracker);
+                            } else {
+                                for (int index : siblingsToLog.values()) {
+                                    IN child = (IN) parent.getTarget(index);
+                                    CheckpointReference childRef =
+                                        (targetRef.nodeId ==
+                                         child.getNodeId()) ? targetRef :
+                                        dirtyMap.removeNode(child.getLevel(),
+                                                            child.getNodeId());
+                                    assert childRef != null;
+                                    mustLogParent |= logSiblings
+                                        (envImpl, dirtyMap, parent,
+                                         Collections.singleton(index),
+                                         allowDeltas, checkpointStart,
+                                         highPriority, provisional, fstats,
+                                         localTracker);
+                                }
+                            }
+                            /* Siblings have been logged, do not log below. */
+                            siblingsToLog = null;
+                        }
+                    }
+
+                    if (mustLogParent) {
+                        assert checkParentChildRelationship(result,
+                                                            currentLevel) :
+                               dumpParentChildInfo(result, parent,
+                                                   targetRef.nodeId,
+                                                   currentLevel, tree);
+                        dirtyMap.addDirtyIN
+                            (parent, true /* updateMemoryBudget */);
                     }
                 } finally {
-                    result.parent.releaseLatch();
+                    parent.releaseLatch();
+                }
+
+                /*
+                 * If highPriority is false, we don't hold the latch while
+                 * logging the bottom level siblings.  We log them here with
+                 * flushIN, performing a separate search for each one, after
+                 * releasing the parent latch above.
+                 */
+                if (siblingsToLog != null) {
+                    assert logSubtree;
+                    assert !logSiblingsWithParentLatchHeld;
+                    for (long childId : siblingsToLog.keySet()) {
+                        assert targetRef.nodeId != childId;
+                        CheckpointReference childRef =
+                            dirtyMap.removeNode(currentLevel, childId);
+                        if (childRef != null) {
+                            flushIN
+                                (envImpl, db, logManager, childRef,
+                                 dirtyMap, currentLevel, maxFlushLevel,
+                                 allowDeltas, checkpointStart,
+                                 highPriority, fstats, localTracker,
+                                 false /*allowLogSubtree*/);
+                        }
+                    }
+                }
+
+                /*
+                 * Log the sub-tree parent, which will be logged
+                 * non-provisionally, in order to update cleaner utilization.
+                 * This must be done with flushIN after releasing the parent
+                 * latch above, since we must search and acquire the
+                 * grandparent latch.
+                 */
+                if (logSubtree && parent.getLevel() <= maxFlushLevel) {
+                    CheckpointReference parentRef = dirtyMap.removeNode
+                        (parent.getLevel(), parent.getNodeId());
+                    if (parentRef != null) {
+                        flushIN
+                            (envImpl, db, logManager, parentRef, dirtyMap,
+                             parent.getLevel(), maxFlushLevel, allowDeltas,
+                             checkpointStart, highPriority, fstats,
+                             localTracker, false /*allowLogSubtree*/);
+                    }
                 }
             }
         }
@@ -862,7 +1094,7 @@ public class Checkpointer extends DaemonThread {
      * @return true if this parent is appropriately 1 level above the child.
      */
     private static boolean checkParentChildRelationship(SearchResult result,
-                                                 int childLevel) {
+                                                        int childLevel) {
 
         if (result.childNotResident && !result.exactParentFound) {
 
@@ -923,96 +1155,145 @@ public class Checkpointer extends DaemonThread {
         return sb.toString();
     }
 
-    private static boolean logTargetAndUpdateParent(EnvironmentImpl envImpl,
-                                                    IN target,
-                                                    IN parent,
-                                                    int index,
-                                                    boolean allowDeltas,
-                                                    long checkpointStart,
-                                                    boolean logProvisionally,
-                                                    FlushStats fstats,
-                                                    UtilizationTracker tracker)
+    private static boolean logSiblings(EnvironmentImpl envImpl,
+                                       DirtyINMap dirtyMap,
+                                       IN parent,
+                                       Collection<Integer> indicesToLog,
+                                       boolean allowDeltas,
+                                       long checkpointStart,
+                                       boolean highPriority,
+                                       Provisional provisional,
+                                       FlushStats fstats,
+                                       LocalUtilizationTracker localTracker)
         throws DatabaseException {
 
-        long newLsn = DbLsn.NULL_LSN;
-        boolean mustLogParent = true;
-        target.latch(false);
+        LogManager logManager = envImpl.getLogManager();
+
+        INLogContext context = new INLogContext();
+        context.nodeDb = parent.getDatabase();
+        context.backgroundIO = true;
+        context.allowDeltas = allowDeltas;
+        context.proactiveMigration = !highPriority;
+
+        boolean mustLogParent = false;
+        List<INLogItem> itemList = new ArrayList<INLogItem>();
+
         try {
+            for (int index : indicesToLog) {
+                IN child = (IN) parent.getTarget(index);
 
-            /*
-             * Compress this node if necessary. Note that this may dirty the
-             * node.
-             */
-            envImpl.lazyCompress(target, tracker);
+                /* Remove it from dirty map if it is present. */
+                dirtyMap.removeNode(child.getLevel(), child.getNodeId());
 
-            if (target.getDirty()) {
-                if (target.getDatabase().isDeferredWrite()) {
-
-                    /*
-                     * Find dirty descendants to avoid logging nodes with
-                     * never-logged children. See [#13936] and
-                     * IN.logDirtyChildren for description of the case.
-                     *
-                     * Note that we must log both dirty and never-logged
-                     * descendants to be sure to have a consistent view of the
-                     * split. If we didn't, we could end up with the post-split
-                     * version of a new sibling and the pre-split version of an
-                     * split sibling in the log, which could result in a
-                     * recovery where descendants are incorrectly duplicated,
-                     * because they are in both the pre-split split sibling,
-                     * and the post-split version of the new sibling.
-                     */
-                    target.logDirtyChildren();
-                }
+                /* Latch and add item so we will release the latch below. */
+                child.latch(CacheMode.UNCHANGED);
+                INLogItem item = new INLogItem();
+                itemList.add(item);
 
                 /*
-                 * Note that target decides whether to log a delta. Only BINs
-                 * that fall into the required percentages and have not been
-                 * cleaned will be logged with a delta.  Cleaner migration is
-                 * allowed.
+                 * Compress this node if necessary. Note that this may dirty
+                 * the node.
                  */
-                newLsn = target.log(envImpl.getLogManager(),
-                                    allowDeltas,
-                                    logProvisionally,
-                                    true,  // proactiveMigration
-                                    true,  // backgroundIO
-                                    parent);
+                envImpl.lazyCompress(child, localTracker);
 
-                if (allowDeltas && (newLsn == DbLsn.NULL_LSN)) {
-                    fstats.nDeltaINFlushThisRun++;
-                    fstats.nDeltaINFlush++;
+                if (child.getDirty()) {
+
+                    if (child.getDatabase().isDurableDeferredWrite()) {
+
+                        /*
+                         * Find dirty descendants to avoid logging nodes with
+                         * never-logged children. See [#13936] and
+                         * IN.logDirtyChildren for description of the case.
+                         *
+                         * Note that we must log both dirty and never-logged
+                         * descendants to be sure to have a consistent view of
+                         * the split. If we didn't, we could end up with the
+                         * post-split version of a new sibling and the
+                         * pre-split version of an split sibling in the log,
+                         * which could result in a recovery where descendants
+                         * are incorrectly duplicated, because they are in both
+                         * the pre-split split sibling, and the post-split
+                         * version of the new sibling.
+                         */
+                        child.logDirtyChildren();
+                    }
+
+                    /* Set default params. */
+                    item.provisional = provisional;
+                    item.repContext = ReplicationContext.NO_REPLICATE;
+                    item.parent = parent;
+                    item.parentIndex = index;
 
                     /*
-                     * If this BIN was already logged after checkpoint start
-                     * and before this point (i.e. by an eviction), we must
-                     * make sure that the last full version is accessible from
-                     * ancestors. We can skip logging parents only if this is
-                     * the first logging of this node in the checkpoint
-                     * interval.
+                     * Allow child to perform "before log" processing.  Note
+                     * that child decides whether to log a delta. Only BINs
+                     * that fall into the required percentages and have not
+                     * been cleaned will be logged with a delta.
                      */
-                    long lastFullLsn =  target.getLastFullVersion();
-                    if (DbLsn.compareTo(lastFullLsn,
-                                        checkpointStart) < 0) {
-                        mustLogParent = false;
-                    }
+                    child.beforeLog(logManager, item, context);
+                } else {
+                    /* Do not process if not dirty.  Unlatch now. */
+                    itemList.remove(itemList.size() - 1);
+                    child.releaseLatch();
+
+                    /* Log parent if child has already been flushed. */
+                    mustLogParent = true;
                 }
             }
-        } finally {
-            target.releaseLatch();
-        }
 
-        /* Update the parent if a full version was logged. */
-        if (newLsn != DbLsn.NULL_LSN) {
-            fstats.nFullINFlushThisRun++;
-            fstats.nFullINFlush++;
-            if (target instanceof BIN) {
-                fstats.nFullBINFlush++;
-                fstats.nFullBINFlushThisRun++;
+            /*
+             * Log all siblings at once.  Limitations of Java generics prevent
+             * conversion from List<INLogItem> to List<LogItem> even by
+             * casting, so we convert to an array instead.
+             */
+            LogItem[] itemArray = new LogItem[itemList.size()];
+            logManager.multiLog(itemList.toArray(itemArray), context);
+
+            for (INLogItem item : itemList) {
+                IN child = (IN) parent.getTarget(item.parentIndex);
+
+                /* Allow child to perform "after log" processing. */
+                child.afterLog(logManager, item, context);
+
+                /*
+                 * When logging a delta, if the BIN was already logged after
+                 * checkpoint start and before this point (i.e. by an
+                 * eviction), we must make sure that the last full version is
+                 * accessible from ancestors. We can skip logging parents only
+                 * if the last full version was not logged in this checkpoint
+                 * interval.
+                 */
+                boolean logThisParent = true;
+                if (allowDeltas && (item.newLsn == DbLsn.NULL_LSN)) {
+                    fstats.nDeltaINFlushThisRun++;
+                    fstats.nDeltaINFlush++;
+                    if (DbLsn.compareTo(child.getLastFullVersion(),
+                                        checkpointStart) < 0) {
+                        logThisParent = false;
+                    }
+                }
+                if (logThisParent) {
+                    mustLogParent = true;
+                }
+
+                /* Update the parent if a full version was logged. */
+                if (item.newLsn != DbLsn.NULL_LSN) {
+                    fstats.nFullINFlushThisRun++;
+                    fstats.nFullINFlush++;
+                    if (child instanceof BIN) {
+                        fstats.nFullBINFlush++;
+                        fstats.nFullBINFlushThisRun++;
+                    }
+                    parent.updateEntry(item.parentIndex, item.newLsn);
+                }
             }
-            parent.updateEntry(index, newLsn);
+            return mustLogParent;
+        } finally {
+            for (INLogItem item : itemList) {
+                IN child = (IN) parent.getTarget(item.parentIndex);
+                child.releaseLatch();
+            }
         }
-
-        return mustLogParent;
     }
 
     /*
@@ -1041,11 +1322,11 @@ public class Checkpointer extends DaemonThread {
         public IN doWork(ChildReference root)
             throws DatabaseException {
 
-	    if (root == null) {
-		return null;
-	    }
+            if (root == null) {
+                return null;
+            }
             IN rootIN = (IN) root.fetchTarget(db, null);
-            rootIN.latch(false);
+            rootIN.latch(CacheMode.UNCHANGED);
             try {
                 if (rootIN.getNodeId() == targetNodeId) {
 
@@ -1053,13 +1334,13 @@ public class Checkpointer extends DaemonThread {
                      * Find dirty descendants to avoid logging nodes with
                      * never-logged children. See [#13936]
                      */
-                    if (rootIN.getDatabase().isDeferredWrite()) {
+                    if (rootIN.getDatabase().isDurableDeferredWrite()) {
                         rootIN.logDirtyChildren();
                     }
 
                     /*
-		     * stillRoot handles the situation where the root was split
-		     * after it was placed in the checkpointer's dirty set.
+                     * stillRoot handles the situation where the root was split
+                     * after it was placed in the checkpointer's dirty set.
                      */
                     stillRoot = true;
                     if (rootIN.getDirty()) {
@@ -1106,20 +1387,20 @@ public class Checkpointer extends DaemonThread {
      * The class and ctor are public for the Sizeof program.
      */
     public static class CheckpointReference {
-        DatabaseImpl db;
+        DatabaseId dbId;
         long nodeId;
         boolean containsDuplicates;
         boolean isDbRoot;
         byte[] mainTreeKey;
         byte[] dupTreeKey;
 
-        public CheckpointReference(DatabaseImpl db,
-                            long nodeId,
-                            boolean containsDuplicates,
-                            boolean isDbRoot,
-                            byte[] mainTreeKey,
-                            byte[] dupTreeKey) {
-            this.db = db;
+        public CheckpointReference(DatabaseId dbId,
+                                   long nodeId,
+                                   boolean containsDuplicates,
+                                   boolean isDbRoot,
+                                   byte[] mainTreeKey,
+                                   byte[] dupTreeKey) {
+            this.dbId = dbId;
             this.nodeId = nodeId;
             this.containsDuplicates = containsDuplicates;
             this.isDbRoot = isDbRoot;
@@ -1142,7 +1423,7 @@ public class Checkpointer extends DaemonThread {
 
         public String toString() {
             StringBuffer sb = new StringBuffer();
-            sb.append("db=").append(db.getId());
+            sb.append("db=").append(dbId);
             sb.append(" nodeId=").append(nodeId);
             return sb.toString();
         }
@@ -1153,12 +1434,12 @@ public class Checkpointer extends DaemonThread {
      */
     public static class FlushStats {
 
-        public int nFullINFlush;
-        public int nFullBINFlush;
-        public int nDeltaINFlush;
-        public int nFullINFlushThisRun;
-        public int nFullBINFlushThisRun;
-        public int nDeltaINFlushThisRun;
+        public long nFullINFlush;
+        public long nFullBINFlush;
+        public long nDeltaINFlush;
+        public long nFullINFlushThisRun;
+        public long nFullBINFlushThisRun;
+        public long nDeltaINFlushThisRun;
 
         /* For future addition to stats:
            private int nAlreadyEvictedThisRun;

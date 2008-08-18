@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2004,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: LevelRecorderTest.java,v 1.3.2.2 2007/11/20 13:32:47 cwl Exp $
+ * $Id: LevelRecorderTest.java,v 1.6 2008/01/07 14:29:10 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;

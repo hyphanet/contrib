@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2005,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: SR13126Test.java,v 1.9.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: SR13126Test.java,v 1.12 2008/01/07 14:29:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;

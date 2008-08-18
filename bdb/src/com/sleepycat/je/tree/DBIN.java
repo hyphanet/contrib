@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DBIN.java,v 1.70.2.3 2007/11/20 13:32:35 cwl Exp $
+ * $Id: DBIN.java,v 1.81 2008/05/20 14:51:49 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -11,6 +11,7 @@ package com.sleepycat.je.tree;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.CursorImpl;
 import com.sleepycat.je.dbi.DatabaseId;
@@ -79,7 +80,7 @@ public final class DBIN extends BIN implements Loggable {
      * Return the comparator function to be used for DBINs.  This is
      * the user defined duplicate comparison function, if defined.
      */
-    public final Comparator getKeyComparator() {
+    public final Comparator<byte[]> getKeyComparator() {
         return getDatabase().getDuplicateComparator();
     }
 
@@ -146,11 +147,6 @@ public final class DBIN extends BIN implements Loggable {
      */
     protected long computeMemorySize() {
         long size = super.computeMemorySize();
-        /* XXX Need to update size when changing the dupKey.
-	   if (dupKey != null && dupKey.getKey() != null) {
-	   size += MemoryBudget.byteArraySize(dupKey.getKey().length);
-	   }
-        */
         return size;
     }
 
@@ -178,8 +174,11 @@ public final class DBIN extends BIN implements Loggable {
     }
 
     /**
-     * @Override
+     * Note that the IN may or may not be latched when this method is called.
+     * Returning the wrong answer is OK in that case (it will be called again
+     * later when latched), but an exception should not occur.
      */
+    @Override
     boolean hasPinnedChildren() {
         return false;
     }
@@ -218,7 +217,9 @@ public final class DBIN extends BIN implements Loggable {
      *
      * No latching is performed.
      */
-    boolean matchLNByNodeId(TreeLocation location, long nodeId)
+    boolean matchLNByNodeId(TreeLocation location,
+                            long nodeId,
+                            CacheMode cacheMode)
 	throws DatabaseException {
 
 	latch();
@@ -246,7 +247,7 @@ public final class DBIN extends BIN implements Loggable {
      * DbStat support.
      */
     void accumulateStats(TreeWalkerStatsAccumulator acc) {
-	acc.processDBIN(this, new Long(getNodeId()), getLevel());
+	acc.processDBIN(this, Long.valueOf(getNodeId()), getLevel());
     }
 
     public String beginTag() {
@@ -305,24 +306,18 @@ public final class DBIN extends BIN implements Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
 
-        // ancestors
         super.writeToLog(logBuffer);
-
-        // identifier key
         LogUtils.writeByteArray(logBuffer, dupKey);
     }
 
     /**
      * @see BIN#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
-        // ancestors
-        super.readFromLog(itemBuffer, entryTypeVersion);
-
-        // identifier key
-        dupKey = LogUtils.readByteArray(itemBuffer);
+        super.readFromLog(itemBuffer, entryVersion);
+        dupKey = LogUtils.readByteArray(itemBuffer, (entryVersion < 6));
     }
 
     /**

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Recovery2PCTest.java,v 1.10.2.3 2007/11/21 16:21:28 cwl Exp $
+ * $Id: Recovery2PCTest.java,v 1.14 2008/01/07 14:29:10 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -270,7 +270,6 @@ public class Recovery2PCTest extends RecoveryTestBase {
 	    assertTrue(sawXid1 && sawXid2);
 
 	    for (int ii = 0; ii < 4; ii++) {
-
 		forceCloseEnvOnly();
 		xaEnv2 = (XAEnvironment) env;
 		xaRecoverOnly(NUM_DBS);

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BindingSpeedTest.java,v 1.25.2.1 2007/02/01 14:49:59 cwl Exp $
+ * $Id: BindingSpeedTest.java,v 1.31 2008/05/30 14:04:19 mark Exp $
  */
 
 package com.sleepycat.bind.test;
@@ -34,9 +34,9 @@ import com.sleepycat.bind.serial.SerialOutput;
 import com.sleepycat.bind.serial.test.TestClassCatalog;
 import com.sleepycat.bind.tuple.TupleInput;
 import com.sleepycat.bind.tuple.TupleOutput;
-import com.sleepycat.collections.test.DbTestUtil;
 import com.sleepycat.util.FastInputStream;
 import com.sleepycat.util.FastOutputStream;
+import com.sleepycat.util.test.SharedTestUtils;
 
 /**
  * @author Mark Hayes
@@ -99,7 +99,7 @@ public class BindingSpeedTest extends TestCase {
     public void runTest()
         throws Exception {
 
-        DbTestUtil.printTestName(getName());
+        SharedTestUtils.printTestName(getName());
 
         boolean isTuple = false;
         boolean isReflectMethod = false;
@@ -323,11 +323,11 @@ public class BindingSpeedTest extends TestCase {
 
         to.reset();
         Data data = new Data();
-        to.writeString((String) getters[0].invoke(data, (Object []) null));
-        to.writeString((String) getters[1].invoke(data, (Object []) null));
-        to.writeInt(((Integer) getters[2].invoke(data, (Object []) null)).intValue());
-        to.writeInt(((Integer) getters[3].invoke(data, (Object []) null)).intValue());
-        to.writeString((String) getters[4].invoke(data, (Object []) null));
+        to.writeString((String) getters[0].invoke(data, (Object[]) null));
+        to.writeString((String) getters[1].invoke(data, (Object[]) null));
+        to.writeInt(((Integer) getters[2].invoke(data, (Object[]) null)).intValue());
+        to.writeInt(((Integer) getters[3].invoke(data, (Object[]) null)).intValue());
+        to.writeString((String) getters[4].invoke(data, (Object[]) null));
 
         TupleInput ti = new TupleInput(
                           to.getBufferBytes(), to.getBufferOffset(),
@@ -434,6 +434,7 @@ public class BindingSpeedTest extends TestCase {
         }
     }
 
+    @SuppressWarnings("serial")
     static class Data implements Serializable {
 
         public String field1 = "field1";

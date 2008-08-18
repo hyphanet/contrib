@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: MyRangeCursor.java,v 1.5.2.1 2007/02/01 14:49:40 cwl Exp $
+ * $Id: MyRangeCursor.java,v 1.8 2008/02/05 23:28:19 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -27,7 +27,8 @@ class MyRangeCursor extends RangeCursor {
                   boolean writeAllowed)
         throws DatabaseException {
 
-        super(range, view.dupsRange, openCursor(view, config, writeAllowed));
+        super(range, view.dupsRange, view.dupsOrdered,
+              openCursor(view, config, writeAllowed));
         this.view = view;
         isRecnoOrQueue = view.recNumAllowed && !view.btreeRecNumDb;
         writeCursor = isWriteCursor(config, writeAllowed);

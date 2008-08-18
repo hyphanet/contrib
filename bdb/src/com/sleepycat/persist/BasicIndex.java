@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BasicIndex.java,v 1.9.2.2 2007/11/20 13:32:37 cwl Exp $
+ * $Id: BasicIndex.java,v 1.14 2008/02/06 19:48:01 linda Exp $
  */
 
 package com.sleepycat.persist;
@@ -18,7 +18,6 @@ import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
-import com.sleepycat.je.SecondaryDatabase;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.util.keyrange.KeyRange;
 import com.sleepycat.util.keyrange.RangeCursor;
@@ -40,6 +39,8 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
 
     Database db;
     boolean transactional;
+    boolean sortedDups;
+    boolean locking;
     Class<K> keyClass;
     EntryBinding keyBinding;
     KeyRange emptyRange;
@@ -55,6 +56,9 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
         this.db = db;
         DatabaseConfig config = db.getConfig();
         transactional = config.getTransactional();
+        sortedDups = config.getSortedDuplicates();
+        locking =
+            DbCompat.getInitializeLocking(db.getEnvironment().getConfig());
 
         this.keyClass = keyClass;
         this.keyBinding = keyBinding;
@@ -93,15 +97,15 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
             return DbCompat.getDatabaseCount(db);
         } else {
             long count = 0;
-            boolean countDups = db instanceof SecondaryDatabase;
             DatabaseEntry key = NO_RETURN_ENTRY;
             DatabaseEntry data = NO_RETURN_ENTRY;
-            CursorConfig cursorConfig = CursorConfig.READ_UNCOMMITTED;
+            CursorConfig cursorConfig = locking ?
+                CursorConfig.READ_UNCOMMITTED : null;
             Cursor cursor = db.openCursor(null, cursorConfig);
             try {
                 OperationStatus status = cursor.getFirst(key, data, null);
                 while (status == OperationStatus.SUCCESS) {
-                    if (countDups) {
+                    if (sortedDups) {
                         count += cursor.count();
                     } else {
                         count += 1;
@@ -257,7 +261,10 @@ abstract class BasicIndex<K,E> implements EntityIndex<K,E> {
         throws DatabaseException {
 
         Cursor cursor = db.openCursor(txn, config);
-        RangeCursor rangeCursor = new RangeCursor(range, cursor);
-        return new BasicCursor<V>(rangeCursor, adapter);
+        RangeCursor rangeCursor =
+            new RangeCursor(range, null/*pkRange*/, sortedDups, cursor);
+        return new BasicCursor<V>(rangeCursor, adapter, isUpdateAllowed());
     }
+
+    abstract boolean isUpdateAllowed();
 }

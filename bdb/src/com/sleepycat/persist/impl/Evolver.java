@@ -1,13 +1,14 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Evolver.java,v 1.7.2.4 2007/11/20 13:32:39 cwl Exp $
+ * $Id: Evolver.java,v 1.14 2008/02/06 19:48:02 linda Exp $
  */
 
 package com.sleepycat.persist.impl;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
@@ -16,9 +17,11 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.sleepycat.compat.DbCompat;
 import com.sleepycat.je.DatabaseException;
+/* <!-- begin JE only --> */
 import com.sleepycat.je.DatabaseNotFoundException;
-import com.sleepycat.je.Environment;
+/* <!-- end JE only --> */
 import com.sleepycat.je.Transaction;
 import com.sleepycat.persist.evolve.Converter;
 import com.sleepycat.persist.evolve.Deleter;
@@ -608,19 +611,35 @@ class Evolver {
         }
     }
 
-    void renameAndRemoveDatabases(Environment env, Transaction txn)
+    void renameAndRemoveDatabases(Store store, Transaction txn)
         throws DatabaseException {
 
         for (String dbName : deleteDbs) {
             try {
-                env.removeDatabase(txn, dbName);
+                String[] fileAndDbNames = store.parseDbName(dbName);
+                DbCompat.removeDatabase
+                    (store.getEnvironment(), txn,
+                     fileAndDbNames[0], fileAndDbNames[1]);
+            /* <!-- begin JE only --> */
             } catch (DatabaseNotFoundException ignored) {
+            /* <!-- end JE only --> */
+            } catch (FileNotFoundException ignored) {
             }
         }
         for (Map.Entry<String,String> entry : renameDbs.entrySet()) {
+            String oldName = entry.getKey();
+            String newName = entry.getValue();
             try {
-                env.renameDatabase(txn, entry.getKey(), entry.getValue());
+                String[] oldFileAndDbNames = store.parseDbName(oldName);
+                String[] newFileAndDbNames = store.parseDbName(newName);
+                DbCompat.renameDatabase
+                    (store.getEnvironment(), txn,
+                     oldFileAndDbNames[0], oldFileAndDbNames[1],
+                     newFileAndDbNames[0], newFileAndDbNames[1]);
+            /* <!-- begin JE only --> */
             } catch (DatabaseNotFoundException ignored) {
+            /* <!-- end JE only --> */
+            } catch (FileNotFoundException ignored) {
             }
         }
     }

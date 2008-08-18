@@ -1,14 +1,15 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LNLogEntry.java,v 1.39.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: LNLogEntry.java,v 1.54 2008/05/13 01:44:52 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.dbi.DatabaseId;
@@ -22,15 +23,26 @@ import com.sleepycat.je.utilint.DbLsn;
 
 /**
  * LNLogEntry embodies all LN transactional log entries.
- * On disk, an LN log entry contains:
+ * On disk, an LN log entry contains (pre version 6)
  * <pre>
- *   ln
+ *   LN
  *   databaseid
  *   key
  *   abortLsn          -- if transactional
  *   abortKnownDeleted -- if transactional
  *   txn               -- if transactional
+ *
+ * (version 6)
+ *   databaseid
+ *   abortLsn          -- if transactional
+ *   abortKnownDeleted -- if transactional
+ *   txn               -- if transactional
+ *   LN
+ *   key
  * </pre>
+ * Before version 6, a non-full-item read of a log entry only retrieved
+ * the node id. After version 6, the database id, transaction id and node id
+ * are all available.
  */
 public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
     private static final byte ABORT_KNOWN_DELETED_MASK = (byte) 1;
@@ -55,7 +67,7 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
     private long nodeId;
 
     /* Constructor to read an entry. */
-    public LNLogEntry(Class LNClass) {
+    public LNLogEntry(Class<? extends LN> LNClass) {
         super(LNClass);
     }
 
@@ -88,56 +100,110 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
                           boolean readFullItem)
         throws DatabaseException {
 
+        byte logVersion = header.getVersion();
+        boolean unpacked = (logVersion < 6);
+        int recStartPosition = entryBuffer.position();
         try {
-            if (readFullItem) {
 
-                /* Read LN and get node ID. */
+            /*
+             * For log version 6 and above we store the key last so that we can
+             * avoid storing the key size. Instead, we derive it from the LN
+             * size and the total entry size. The DatabaseId is also packed.
+             * For older log versions the LN is first, which let us optimize
+             * better for to read the node id in a partial read, but didn't let
+             * us save on the key size.
+             *
+             * Since log version 6 now requires the read of the database id and
+             * transaction id before getting the node id, we're taking
+             * advantage of that and are changing the semantics of readFullItem
+             * == false to assume that. This helps because we'd like to do
+             * utilization tracking with partial log entry reads. If we run
+             * into entries < version 6, we'll just always do a full read.
+             */
+            if (unpacked) {
+                /* LN is first for log versions prior to 6. */
                 ln = (LN) logClass.newInstance();
-                ln.readFromLog(entryBuffer, header.getVersion());
+                ln.readFromLog(entryBuffer, logVersion);
                 nodeId = ln.getNodeId();
+            }
 
-                /* DatabaseImpl Id */
-                dbId = new DatabaseId();
-                dbId.readFromLog(entryBuffer, header.getVersion());
+            /* DatabaseImpl Id */
+            dbId = new DatabaseId();
+            dbId.readFromLog(entryBuffer, logVersion);
 
-                /* Key */
-                key = LogUtils.readByteArray(entryBuffer);
-
-                if (entryType.isTransactional()) {
-
-                    /*
-                     * AbortLsn. If it was a marker LSN that was used to fill
-                     * in a create, mark it null.
-                     */
-                    abortLsn = LogUtils.readLong(entryBuffer);
-                    if (DbLsn.getFileNumber(abortLsn) ==
-                        DbLsn.getFileNumber(DbLsn.NULL_LSN)) {
-                        abortLsn = DbLsn.NULL_LSN;
-                    }
-
-                    abortKnownDeleted =
-                        ((entryBuffer.get() & ABORT_KNOWN_DELETED_MASK) != 0) ?
-                        true : false;
-
-                    /* Locker */
-                    txn = new Txn();
-                    txn.readFromLog(entryBuffer, header.getVersion());
-
-                }
+            /* Key */
+            if (unpacked) {
+                key = LogUtils.readByteArray(entryBuffer, true/*unpacked*/);
             } else {
+                /* read later. */
+            }
+
+            if (entryType.isTransactional()) {
 
                 /*
-                 * Read node ID and then set buffer position to end. This takes
-                 * advantage of the fact that the node id is in a known spot,
-                 * at the beginning of the ln.  We currently do not support
-                 * getting the db and txn ID in this mode, and we may want to
-                 * change the log format to do that efficiently.
+                 * AbortLsn. If it was a marker LSN that was used to fill
+                 * in a create, mark it null.
                  */
-                int currentPosition = entryBuffer.position();
-                int endPosition = currentPosition + header.getItemSize();
-                nodeId = LogUtils.readLong(entryBuffer);
-                entryBuffer.position(endPosition);
-                ln = null;
+                abortLsn = LogUtils.readLong(entryBuffer, unpacked);
+                if (DbLsn.getFileNumber(abortLsn) ==
+                    DbLsn.getFileNumber(DbLsn.NULL_LSN)) {
+                    abortLsn = DbLsn.NULL_LSN;
+                }
+
+                abortKnownDeleted =
+                    ((entryBuffer.get() & ABORT_KNOWN_DELETED_MASK) != 0) ?
+                    true : false;
+
+                /* Locker */
+                txn = new Txn();
+                txn.readFromLog(entryBuffer, logVersion);
+            }
+
+            if (unpacked) {
+                if (!readFullItem) {
+                    /* 
+                     * Position this buffer to its end, for the sake of any 
+                     * subclasses.
+                     */
+                    int endPosition = recStartPosition + header.getItemSize();
+                    entryBuffer.position(endPosition);
+                }
+            } else {
+                if (readFullItem) {
+                    /* LN is next for log version 6 and above. */
+                    ln = (LN) logClass.newInstance();
+                    ln.readFromLog(entryBuffer, logVersion);
+                    nodeId = ln.getNodeId();
+                    int bytesWritten =
+                        entryBuffer.position() - recStartPosition;
+                    if (isLNType()) {
+                        int keySize = header.getItemSize() - bytesWritten;
+                        key = LogUtils.readBytesNoLength(entryBuffer, keySize);
+                    } else {
+                        int keySize =
+                            LogUtils.readInt(entryBuffer, false/*unpacked*/);
+                        key = LogUtils.readBytesNoLength(entryBuffer, keySize);
+                    }
+                } else {
+
+                    /*
+                     * Read node ID and then set buffer position to end. This
+                     * takes advantage of the fact that the node id is in a
+                     * known spot, at the beginning of the LN.  We currently do
+                     * not support getting the db and txn ID in this mode, and
+                     * we may want to change the log format to do that
+                     * efficiently.
+                     */
+                    int endPosition = recStartPosition + header.getItemSize();
+                    nodeId = LogUtils.readPackedLong(entryBuffer);
+                    entryBuffer.position(endPosition);
+                    ln = null;
+                }
+            }
+
+            /* LNs save the last logged size. */
+            if (ln != null) {
+                ln.setLastLoggedSize(header.getSize() + header.getItemSize());
             }
         } catch (IllegalAccessException e) {
             throw new DatabaseException(e);
@@ -202,33 +268,44 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
      */
 
     /**
+     * #see LogEntry#getSize
      */
     public int getSize() {
+        int len = key.length;
         int size = ln.getLogSize() +
             dbId.getLogSize() +
-            LogUtils.getByteArrayLogSize(key);
+            len;
+        if (!isLNType()) {
+            size += LogUtils.getPackedIntLogSize(len);
+        }
         if (entryType.isTransactional()) {
-            size += LogUtils.getLongLogSize();
+            size += LogUtils.getPackedLongLogSize(abortLsn);
             size++;   // abortKnownDeleted
             size += txn.getLogSize();
         }
         return size;
     }
 
-    public void setLastLoggedSize(int size) {
-        ln.setLastLoggedSize(size);
+    /**
+     * Returns the last logged size, saved by readEntry and writeEntry.
+     */
+    public int getLastLoggedSize() {
+        return ln.getLastLoggedSize();
+    }
+
+    private boolean isLNType() {
+        return entryType == LogEntryType.LOG_LN ||
+            entryType == LogEntryType.LOG_LN_TRANSACTIONAL;
     }
 
     /**
      * @see LogEntry#writeEntry
      */
     public void writeEntry(LogEntryHeader header, ByteBuffer destBuffer) {
-        ln.writeToLog(destBuffer);
         dbId.writeToLog(destBuffer);
-        LogUtils.writeByteArray(destBuffer, key);
 
         if (entryType.isTransactional()) {
-            LogUtils.writeLong(destBuffer, abortLsn);
+            LogUtils.writePackedLong(destBuffer, abortLsn);
             byte aKD = 0;
             if (abortKnownDeleted) {
                 aKD |= ABORT_KNOWN_DELETED_MASK;
@@ -236,6 +313,17 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
             destBuffer.put(aKD);
             txn.writeToLog(destBuffer);
         }
+
+        ln.writeToLog(destBuffer);
+        if (isLNType()) {
+            LogUtils.writeBytesNoLength(destBuffer, key);
+        } else {
+            LogUtils.writePackedInt(destBuffer, key.length);
+            LogUtils.writeBytesNoLength(destBuffer, key);
+        }
+
+        /* LNs save the last logged size. */
+        ln.setLastLoggedSize(header.getSize() + header.getItemSize());
     }
 
     /**
@@ -294,7 +382,7 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
 
     public Long getTxnId() {
         if (entryType.isTransactional()) {
-            return new Long(txn.getId());
+            return Long.valueOf(txn.getId());
         } else {
             return null;
         }
@@ -306,5 +394,34 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
         } else {
             return null;
         }
+    }
+
+    /**
+     * @see LogEntry#logicalEquals
+     */
+    public boolean logicalEquals(LogEntry other) {
+        if (!(other instanceof LNLogEntry))
+            return false;
+
+        LNLogEntry otherEntry = (LNLogEntry) other;
+
+        if (!dbId.logicalEquals(otherEntry.dbId))
+            return false;
+
+        if (txn != null) {
+            if (!txn.logicalEquals(otherEntry.txn))
+                return false;
+        } else {
+            if (otherEntry.txn != null)
+                return false;
+        }
+
+        if (!Arrays.equals(key, otherEntry.key))
+            return false;
+
+        if (!ln.logicalEquals(otherEntry.ln))
+            return false;
+
+        return true;
     }
 }

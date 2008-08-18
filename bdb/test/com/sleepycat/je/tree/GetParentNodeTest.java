@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: GetParentNodeTest.java,v 1.41.2.2 2007/11/20 13:32:50 cwl Exp $
+ * $Id: GetParentNodeTest.java,v 1.47 2008/03/18 01:17:46 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -12,6 +12,7 @@ import java.io.File;
 
 import junit.framework.TestCase;
 
+import com.sleepycat.je.CacheMode;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseException;
@@ -22,6 +23,7 @@ import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DatabaseImpl;
+import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.latch.LatchSupport;
 import com.sleepycat.je.util.StringDbt;
 import com.sleepycat.je.util.TestUtils;
@@ -195,7 +197,8 @@ public class GetParentNodeTest extends TestCase {
         rootIN = tree.withRootLatchedShared
 	    (new GetRoot(DbInternal.dbGetDatabaseImpl(db)));
         rootIN.latch();
-        SearchResult result = tree.getParentINForChildIN(rootIN, true, true);
+        SearchResult result =
+            tree.getParentINForChildIN(rootIN, true, CacheMode.DEFAULT);
         assertFalse(result.exactParentFound);
         assertEquals(rootIN.getNEntries(), 2);
 
@@ -274,7 +277,7 @@ public class GetParentNodeTest extends TestCase {
 
         target.latch();
         SearchResult result = tree.getParentINForChildIN
-            (target, requireExactMatch, true);
+            (target, requireExactMatch, CacheMode.DEFAULT);
         assertTrue(result.exactParentFound);
         assertEquals("Target=" + target + " parent=" + parent,
                      index, result.index);
@@ -298,7 +301,8 @@ public class GetParentNodeTest extends TestCase {
 
         assertTrue
 	    (tree.getParentBINForChildLN(location, mainKey, dupKey, target,
-					 false, true, false, true));
+					 false, true, false,
+                                         CacheMode.DEFAULT));
         location.bin.releaseLatch();
         assertEquals(parent, location.bin);
         assertEquals(index, location.index);
@@ -306,7 +310,8 @@ public class GetParentNodeTest extends TestCase {
 
         assertTrue
 	    (tree.getParentBINForChildLN(location, mainKey, dupKey, target,
-					 true, false, true, true));
+					 true, false, true,
+                                         CacheMode.DEFAULT));
         location.bin.releaseLatch();
         assertEquals(parent, location.bin);
         assertEquals(index, location.index);
@@ -314,7 +319,8 @@ public class GetParentNodeTest extends TestCase {
 
         assertTrue
 	    (tree.getParentBINForChildLN(location, mainKey, dupKey, target,
-					 true, true, false, true));
+					 true, true, false,
+                                         CacheMode.DEFAULT));
         location.bin.releaseLatch();
         assertEquals(parent, location.bin);
         assertEquals(index, location.index);
@@ -375,7 +381,8 @@ public class GetParentNodeTest extends TestCase {
          * Make an LN with the key "ab". It's potential parent should be the
          * BINa.
          */
-        LN LNab = new LN("foo".getBytes());
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        LN LNab = new LN("foo".getBytes(), envImpl, false /* replicated */);
         byte[] mainKey = "ab".getBytes();
         checkPotential(tree, LNab, firstBIN, mainKey,
                        LNab.getData(), mainKey);
@@ -383,7 +390,7 @@ public class GetParentNodeTest extends TestCase {
         /**
          * Make a dup LN with the key b. Its potential parent should be DBINb.
          */
-        LN LNdata = new LN("data".getBytes());
+        LN LNdata = new LN("data".getBytes(), envImpl, false /* replicated */);
         mainKey = "b".getBytes();
         byte[] dupKey = LNdata.getData();
         checkPotential(tree, LNdata, firstDBIN, mainKey, dupKey, dupKey);
@@ -395,12 +402,13 @@ public class GetParentNodeTest extends TestCase {
         /* Try an exact match, expect a failure, then try an inexact match. */
         potential.latch();
         SearchResult result = tree.getParentINForChildIN
-            (potential, true, true);
+            (potential, true, CacheMode.DEFAULT);
         assertFalse(result.exactParentFound);
         assertTrue(result.parent == null);
 
         potential.latch();
-        result = tree.getParentINForChildIN(potential, false, true);
+        result =
+            tree.getParentINForChildIN(potential, false, CacheMode.DEFAULT);
         assertFalse(result.exactParentFound);
         assertEquals("expected = " + expectedParent.getNodeId() +
                      " got" + result.parent.getNodeId(),
@@ -414,10 +422,9 @@ public class GetParentNodeTest extends TestCase {
 
         /* Try an exact match, expect a failure, then try an inexact match. */
         TreeLocation location = new TreeLocation();
-        assertFalse(tree.getParentBINForChildLN(location,
-						mainKey, dupKey,
-						potential, false,
-						false, true, true));
+        assertFalse(tree.getParentBINForChildLN
+                    (location, mainKey, dupKey, potential, false,
+                     false, true, CacheMode.DEFAULT));
         location.bin.releaseLatch();
         assertEquals(location.bin, expectedParent);
         assertEquals(expectedKey, location.lnKey);
@@ -460,7 +467,7 @@ public class GetParentNodeTest extends TestCase {
 
         target.latch();
         SearchResult result = tree.getParentINForChildIN
-            (target, requireExactMatch, true);
+            (target, requireExactMatch, CacheMode.DEFAULT);
         assertFalse(result.exactParentFound);
         assertEquals("Target=" + target + " parent=" + parent,
                      index, result.index);

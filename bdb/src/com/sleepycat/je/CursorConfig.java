@@ -1,41 +1,47 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CursorConfig.java,v 1.18.2.2 2007/11/20 13:32:26 cwl Exp $
+ * $Id: CursorConfig.java,v 1.24 2008/04/07 22:28:29 mark Exp $
  */
 
 package com.sleepycat.je;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Specifies the attributes of database cursor.  An instance created with the
+ * default constructor is initialized with the system's default settings.
  */
 public class CursorConfig implements Cloneable {
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * Default configuration used if null is passed to methods that create a
+     * cursor.
      */
     public static final CursorConfig DEFAULT = new CursorConfig();
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * A convenience instance to configure read operations performed by the
+     * cursor to return modified but not yet committed data.
      */
     public static final CursorConfig READ_UNCOMMITTED = new CursorConfig();
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
-     * @deprecated
+     * A convenience instance to configure read operations performed by the
+     * cursor to return modified but not yet committed data.
+     *
+     * @deprecated This has been replaced by {@link #READ_UNCOMMITTED} to
+     * conform to ANSI database isolation terminology.
      */
     public static final CursorConfig DIRTY_READ = READ_UNCOMMITTED;
 
     /**
-     * Javadoc for this public instance is generated via
-     * the doc templates in the doc_src directory.
+     * A convenience instance to configure a cursor for read committed
+     * isolation.
+     *
+     * This ensures the stability of the current data item read by the cursor
+     * but permits data read by this cursor to be modified or deleted prior to
+     * the commit of the transaction.
      */
     public static final CursorConfig READ_COMMITTED = new CursorConfig();
 
@@ -48,57 +54,87 @@ public class CursorConfig implements Cloneable {
     private boolean readCommitted = false;
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * An instance created using the default constructor is initialized with
+     * the system's default settings.
      */
     public CursorConfig() {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures read operations performed by the cursor to return modified
+     * but not yet committed data.
+     *
+     * @param readUncommitted If true, configure read operations performed by
+     * the cursor to return modified but not yet committed data.
+     *
+     * @see LockMode#READ_UNCOMMITTED
      */
     public void setReadUncommitted(boolean readUncommitted) {
         this.readUncommitted = readUncommitted;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns true if read operations performed by the cursor are configured
+     * to return modified but not yet committed data.
+     *
+     * @return true if read operations performed by the cursor are configured
+     * to return modified but not yet committed data.
+     *
+     * @see LockMode#READ_UNCOMMITTED
      */
     public boolean getReadUncommitted() {
         return readUncommitted;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     * @deprecated
+     * Configures read operations performed by the cursor to return modified
+     * but not yet committed data.
+     *
+     * @param dirtyRead If true, configure read operations performed by the
+     * cursor to return modified but not yet committed data.
+     *
+     * @deprecated This has been replaced by {@link #setReadUncommitted} to
+     * conform to ANSI database isolation terminology.
      */
     public void setDirtyRead(boolean dirtyRead) {
         setReadUncommitted(dirtyRead);
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     * @deprecated
+     * Returns true if read operations performed by the cursor are configured
+     * to return modified but not yet committed data.
+     *
+     * @return true if read operations performed by the cursor are configured
+     * to return modified but not yet committed data.
+     *
+     * @deprecated This has been replaced by {@link #getReadUncommitted} to
+     * conform to ANSI database isolation terminology.
      */
     public boolean getDirtyRead() {
         return getReadUncommitted();
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Configures read operations performed by the cursor to return modified
+     * but not yet committed data.
+     *
+     * @param readCommitted If true, configure read operations performed by
+     * the cursor to return modified but not yet committed data.
+     *
+     * @see LockMode#READ_COMMITTED
      */
     public void setReadCommitted(boolean readCommitted) {
         this.readCommitted = readCommitted;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns true if read operations performed by the cursor are configured
+     * to return modified but not yet committed data.
+     *
+     * @return true if read operations performed by the cursor are configured
+     * to return modified but not yet committed data.
+     *
+     * @see LockMode#READ_COMMITTED
      */
     public boolean getReadCommitted() {
         return readCommitted;

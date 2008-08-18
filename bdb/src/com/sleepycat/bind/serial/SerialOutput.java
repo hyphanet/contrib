@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: SerialOutput.java,v 1.19.2.2 2007/11/20 13:32:24 cwl Exp $
+ * $Id: SerialOutput.java,v 1.23 2008/04/07 22:28:58 mark Exp $
  */
 
 package com.sleepycat.bind.serial;
@@ -34,6 +34,8 @@ import com.sleepycat.util.RuntimeExceptionWrapper;
  * embedding these into the stream.  Instead, a class format identifier is
  * embedded into the stream.  This identifier is then used by {@link
  * SerialInput} to load the class format to deserialize the object.</p>
+ *
+ * @see <a href="SerialBinding.html#evolution">Class Evolution</a>
  *
  * @author Mark Hayes
  */

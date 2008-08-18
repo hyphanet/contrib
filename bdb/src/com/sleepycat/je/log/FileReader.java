@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileReader.java,v 1.99.2.5 2007/11/20 13:32:31 cwl Exp $
+ * $Id: FileReader.java,v 1.119 2008/05/20 17:52:35 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -16,7 +16,6 @@ import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.DbConfigManager;
 import com.sleepycat.je.dbi.EnvironmentImpl;
-import com.sleepycat.je.log.entry.LogEntry;
 import com.sleepycat.je.utilint.DbLsn;
 import com.sleepycat.je.utilint.Tracer;
 
@@ -38,7 +37,9 @@ public abstract class FileReader {
     /* Managing the buffer reads */
     private boolean singleFile;      // if true, do not read across files
     protected boolean eof;           // true if at end of the log.
-                                     // XXX, use exception instead of status?
+                                     // TODO, assess whether this is redundant 
+                                     // with the EOFException, and could be
+                                     // streamlined.
     private boolean forward;         // if true, we're reading forward
 
     /*
@@ -120,7 +121,7 @@ public abstract class FileReader {
 
         DbConfigManager configManager = envImpl.getConfigManager();
         maxReadBufferSize =
-	    configManager.getInt(EnvironmentParams. LOG_ITERATOR_MAX_SIZE);
+	    configManager.getInt(EnvironmentParams.LOG_ITERATOR_MAX_SIZE);
 
         /* Determine the starting position. */
         this.startLsn = startLsn;
@@ -227,27 +228,6 @@ public abstract class FileReader {
     }
 
     /**
-     * A bottleneck for all calls to LogEntry.readEntry.  This method ensures
-     * that setLastLogSize is called after LogEntry.readEntry, and should be
-     * called by all FileReaders instead of calling LogEntry.readEntry
-     * directly.
-     */
-    void readEntry(LogEntry entry, ByteBuffer buffer, boolean readFullItem)
-        throws DatabaseException {
-
-        entry.readEntry(currentEntryHeader, buffer, readFullItem);
-
-        /*
-         * Some entries (LNs) save the last logged size.  However, we can only
-         * set the size if we have read the full item; if the full item is not
-         * read, the LN in the LNLogEntry may be null.
-         */
-        if (readFullItem) {
-            entry.setLastLoggedSize(getLastEntrySize());
-        }
-    }
-
-    /**
      * readNextEntry scans the log files until either it's reached the end of
      * the log or has hit an invalid portion. It then returns false.
      *
@@ -260,28 +240,53 @@ public abstract class FileReader {
         try {
             while ((!eof) && (!foundEntry)) {
 
-                /* Read the next header. */
+                /* Read the invariant portion of the next header. */
                 getLogEntryInReadBuffer();
                 ByteBuffer dataBuffer =
-                    readData(LogEntryHeader.MIN_HEADER_SIZE, true);
+                    readData(LogEntryHeader.MIN_HEADER_SIZE,
+                             true); // collectData
 
                 readBasicHeader(dataBuffer);
-                if (currentEntryHeader.getReplicate()) {
-                    dataBuffer = readData
-                        (currentEntryHeader.getVariablePortionSize(), true);
-                    currentEntryHeader.readVariablePortion(dataBuffer);
-                }
 
-                boolean isTargetEntry =
-                    isTargetEntry(currentEntryHeader.getType(),
-                                  currentEntryHeader.getVersion());
+                boolean isTarget = isTargetEntry();
                 boolean doValidate = doValidateChecksum &&
-                    (isTargetEntry || alwaysValidateChecksum);
-                boolean collectData = doValidate || isTargetEntry;
+                    (isTarget || alwaysValidateChecksum);
+                boolean collectData = doValidate || isTarget;
 
-                /* Initialize the checksum with the header. */
+                /*
+                 * Init the checksum w/the invariant portion of the header.
+                 * This has to be done before we read the variable portion of
+                 * the header, because readData() only guarantees that it
+                 * returns a dataBuffer that contains the next bytes that are
+                 * needed, and has no guarantee that it holds any bytes that
+                 * were previously read.. The act of calling readData() to
+                 * obtain the optional portion may reset the dataBuffer, and
+                 * nudge the invariant part of the header out of the buffer
+                 * returned by readData()
+                 */
                 if (doValidate) {
                     startChecksum(dataBuffer);
+                }
+
+                if (currentEntryHeader.getReplicated()) {
+                    int optionalPortionLen =
+                        currentEntryHeader.getVariablePortionSize();
+                    /* Load the optional part of the header into a buffer. */
+                    dataBuffer = readData(optionalPortionLen,
+                                          true);
+                    if (doValidate) {
+                        /*
+                         * Add to checksum while the buffer is positioned at
+                         * the start of the new bytes.
+                         */
+                        cksumValidator.update(envImpl,
+                                              dataBuffer,
+                                              optionalPortionLen,
+                                              anticipateChecksumErrors);
+                    }
+
+                    /* Now read the optional bytes. */
+                    currentEntryHeader.readVariablePortion(dataBuffer);
                 }
 
                 /*
@@ -309,7 +314,7 @@ public abstract class FileReader {
                     validateChecksum(dataBuffer);
                 }
 
-                if (isTargetEntry) {
+                if (isTarget) {
 
                     /*
                      * For a target entry, call the subclass reader's
@@ -341,8 +346,7 @@ public abstract class FileReader {
             /* Report on error. */
             if (currentEntryHeader != null) {
                 LogEntryType problemType =
-                    LogEntryType.findType(currentEntryHeader.getType(),
-                                          currentEntryHeader.getVersion());
+                    LogEntryType.findType(currentEntryHeader.getType());
                 Tracer.trace(envImpl, "FileReader", "readNextEntry",
                              "Halted log file reading at file 0x" +
                              Long.toHexString(readBufferFileNum) +
@@ -491,7 +495,8 @@ public abstract class FileReader {
                 try {
                     readBuffer.clear();
                     fileManager.readFromFile(fileHandle.getFile(), readBuffer,
-                                             readBufferFileStart);
+                                             readBufferFileStart,
+                                             fileHandle.getFileNum());
                     nReadOperations += 1;
 
 		    assert EnvironmentImpl.maybeForceYield();
@@ -538,7 +543,7 @@ public abstract class FileReader {
 
         /*
          * currentEntryPrevOffset is a separate field, and is not obtained
-         * directly from the currentEntryHeader, because is was initialized and
+         * directly from the currentEntryHeader, because it is initialized and
          * used before any log entry was read.
          */
         currentEntryPrevOffset = currentEntryHeader.getPrevOffset();
@@ -546,7 +551,8 @@ public abstract class FileReader {
 
     /**
      * Reset the checksum validator and add the new header bytes. Assumes that
-     * the data buffer is positioned at the start of the log item.
+     * the data buffer is positioned just past the end of the invariant
+     * portion of the log entry header.
      */
     private void startChecksum(ByteBuffer dataBuffer)
         throws DatabaseException {
@@ -555,32 +561,33 @@ public abstract class FileReader {
         cksumValidator.reset();
 
         /*
-         * Move back up to the beginning of portion of the log entry header
-         * covered by the checksum.
+         * Move back up to the beginning of the portion of the log entry header
+         * covered by the checksum. That's everything after the checksum
+         * itself.
          */
-        int itemStart = threadSafeBufferPosition(dataBuffer);
+        int originalPosition = threadSafeBufferPosition(dataBuffer);
         int headerSizeMinusChecksum =
-            currentEntryHeader.getSizeMinusChecksum();
+            currentEntryHeader.getInvariantSizeMinusChecksum();
         threadSafeBufferPosition(dataBuffer,
-                                 itemStart-headerSizeMinusChecksum);
+                                 originalPosition-headerSizeMinusChecksum);
         cksumValidator.update(envImpl,
                               dataBuffer,
                               headerSizeMinusChecksum,
                               anticipateChecksumErrors);
 
-        /* Move the data buffer back to where the log entry starts. */
-        threadSafeBufferPosition(dataBuffer, itemStart);
+        /* Move the data buffer back to the original position. */
+        threadSafeBufferPosition(dataBuffer, originalPosition);
     }
 
     /**
      * Add the entry bytes to the checksum and check the value.  This method
      * must be called with the buffer positioned at the start of the entry.
      */
-    private void validateChecksum(ByteBuffer entryBuffer)
+    private void validateChecksum(ByteBuffer dataBuffer)
         throws DatabaseException {
 
         cksumValidator.update(envImpl,
-                              entryBuffer,
+                              dataBuffer,
                               currentEntryHeader.getItemSize(),
 			      anticipateChecksumErrors);
         cksumValidator.validate(envImpl,
@@ -613,6 +620,7 @@ public abstract class FileReader {
 
                 /* There's data in the read buffer, process it. */
                 if (collectData) {
+
                     /*
                      * Save data in a buffer for processing.
                      */
@@ -620,18 +628,17 @@ public abstract class FileReader {
                         (readBuffer.remaining() < bytesNeeded)) {
 
                         /* We need to piece an entry together. */
-
                         copyToSaveBuffer(bytesNeeded);
                         alreadyRead = threadSafeBufferPosition(saveBuffer);
                         completeBuffer = saveBuffer;
                     } else {
 
                         /* A complete entry is available in this buffer. */
-
                         completeBuffer = readBuffer;
                         alreadyRead = amountToRead;
                     }
                 } else {
+
                     /*
                      * No need to save data, just move buffer positions.
                      */
@@ -647,6 +654,7 @@ public abstract class FileReader {
                     completeBuffer = readBuffer;
                 }
             } else {
+
                 /*
                  * Look for more data.
                  */
@@ -661,9 +669,9 @@ public abstract class FileReader {
     }
 
     /**
-     * Change the read buffer size if we start hitting large log
-     * entries so we don't get into an expensive cycle of multiple reads
-     * and piecing together of log entries.
+     * Change the read buffer size if we start hitting large log entries so we
+     * don't get into an expensive cycle of multiple reads and piecing together
+     * of log entries.
      */
     private void adjustReadBufferSize(int amountToRead) {
         int readBufferSize = readBuffer.capacity();
@@ -678,11 +686,11 @@ public abstract class FileReader {
                  */
                 if (amountToRead < maxReadBufferSize) {
                     readBufferSize = amountToRead;
-                    /* Make it a modulo of 1K */
+                    /* Make it a multiple of 1K. */
                     int remainder = readBufferSize % 1024;
                     readBufferSize += 1024 - remainder;
                     readBufferSize = Math.min(readBufferSize,
-                    		          maxReadBufferSize);
+                                              maxReadBufferSize);
                 } else {
                     readBufferSize = maxReadBufferSize;
                 }
@@ -776,7 +784,8 @@ public abstract class FileReader {
             if (fileOk) {
                 readBuffer.clear();
 		fileManager.readFromFile(fileHandle.getFile(), readBuffer,
-                                         readBufferFileEnd);
+                                         readBufferFileEnd,
+                                         fileHandle.getFileNum());
                 nReadOperations += 1;
 
 		assert EnvironmentImpl.maybeForceYield();
@@ -814,8 +823,7 @@ public abstract class FileReader {
      * @return true if this reader should process this entry, or just
      * skip over it.
      */
-    protected boolean isTargetEntry(byte logEntryTypeNumber,
-                                    byte logEntryTypeVersion)
+    protected boolean isTargetEntry()
         throws DatabaseException {
 
         return true;
@@ -830,6 +838,10 @@ public abstract class FileReader {
     protected abstract boolean processEntry(ByteBuffer entryBuffer)
         throws DatabaseException;
 
+    /**
+     * Never seen by user, used to indicate that the file reader should stop.
+     */
+    @SuppressWarnings("serial")
     private static class EOFException extends Exception {
     }
 
@@ -853,7 +865,7 @@ public abstract class FileReader {
 	}
     }
 
-    private int threadSafeBufferPosition(ByteBuffer buffer) {
+    int threadSafeBufferPosition(ByteBuffer buffer) {
 	while (true) {
 	    try {
 		return buffer.position();
@@ -864,7 +876,8 @@ public abstract class FileReader {
     }
 
     Buffer threadSafeBufferPosition(ByteBuffer buffer,
-					    int newPosition) {
+				    int newPosition) {
+        assert (newPosition >= 0) : "illegal new position=" + newPosition;
 	while (true) {
 	    try {
 		return buffer.position(newPosition);

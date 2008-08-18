@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryCreateDupTest.java,v 1.8.2.2 2007/11/20 13:32:47 cwl Exp $
+ * $Id: RecoveryCreateDupTest.java,v 1.12 2008/01/07 14:29:10 cwl Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -73,12 +73,12 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
         throws Throwable {
 
         /* test data setup. */
-        byte [] key = new byte [1];
+        byte[] key = new byte [1];
         key[0] = 5;
         DatabaseEntry keyEntry1 = new DatabaseEntry(key);
         DatabaseEntry keyEntry2 = new DatabaseEntry(key);
-        byte [] data1 = new byte [1];
-        byte [] data2 = new byte [1];
+        byte[] data1 = new byte [1];
+        byte[] data2 = new byte [1];
         data1[0] = 7;
         data2[0] = 8;
         DatabaseEntry dataEntry1 = new DatabaseEntry(data1);

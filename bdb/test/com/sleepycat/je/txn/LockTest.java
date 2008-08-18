@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockTest.java,v 1.44.2.3 2007/11/20 13:32:50 cwl Exp $
+ * $Id: LockTest.java,v 1.61 2008/05/22 19:35:40 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -23,6 +23,7 @@ import com.sleepycat.je.TransactionConfig;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.MemoryBudget;
+import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.util.TestUtils;
 
 public class LockTest extends TestCase {
@@ -34,17 +35,19 @@ public class LockTest extends TestCase {
     }
 
     public void setUp()
-	throws DatabaseException {
+        throws DatabaseException {
 
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
         envConfig.setAllowCreate(true);
-        envImpl = new EnvironmentImpl(envHome, envConfig);
-
+        envImpl = new EnvironmentImpl(envHome,
+                                      envConfig,
+                                      null /*sharedCacheEnv*/,
+                                      false /*replicationIntended*/);
     }
 
     public void tearDown()
-	throws DatabaseException {
+        throws DatabaseException {
 
         envImpl.close();
     }
@@ -52,122 +55,181 @@ public class LockTest extends TestCase {
     public void testLockConflicts()
         throws Exception {
 
-	Locker txn1 = new BasicLocker(envImpl);
-	Locker txn2 = new BasicLocker(envImpl);
-	Locker txn3 = new BasicLocker(envImpl);
+        Locker txn1 = BasicLocker.createBasicLocker(envImpl);
+        Locker txn2 = BasicLocker.createBasicLocker(envImpl);
+        Locker txn3 = BasicLocker.createBasicLocker(envImpl);
+
         MemoryBudget mb = envImpl.getMemoryBudget();
-	try {
+        try {
+
             /*
              * Start fresh. Ask for a read lock from txn1 twice,
              * should only be one owner. Then add multiple
              * would-be-writers as waiters.
              */
-	    Lock lock = new Lock();
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.EXISTING,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-	    assertEquals(1, lock.nOwners());
-	    assertEquals(0, lock.nWaiters());
+            Lock lock = new LockImpl();
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.EXISTING,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
 
-            /* ask for a read lock from txn 2, get it. */
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
-            /* txn1's write request must wait */
-	    assertEquals(LockGrantType.WAIT_PROMOTION,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
-            /* txn2's write request must wait */
-	    assertEquals(LockGrantType.WAIT_PROMOTION,
-                         lock.lock(LockType.WRITE, txn2, false, mb, 0));
-	    assertEquals(2, lock.nOwners());
-	    assertEquals(2, lock.nWaiters());
+            /* txn1 has a READ lock. */
+            assertEquals(1, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
 
+            /* txn2 asks for a read lock, gets it. */
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
+
+            /* txn1 asks for WRITE, must wait */
+            assertEquals(LockGrantType.WAIT_PROMOTION,
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
+
+            /* txn2 write request must wait */
+            assertEquals(LockGrantType.WAIT_PROMOTION,
+                         lock.lock(LockType.WRITE, txn2, false, mb, 0).
+                         lockGrant);
+
+            /* Two read locks, two write waiters */
+            assertEquals(2, lock.nOwners());
+            assertEquals(2, lock.nWaiters());
+
+            /*
+             * Release txn1 read lock, which causes txn2's read lock to be
+             * promoted to a write lock.
+             */
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
+            assertEquals(1, lock.nOwners());
+            assertEquals(1, lock.nWaiters());
+
+            /* Release txn2 write lock, now txn1 will get its write lock. */
+            lock.release(txn2, mb, 0 /* lockTableIndex */);
+            assertEquals(1, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
+
+            /* Release txn1's write lock. */
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
+            assertEquals(0, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
 
             /* Start fresh. Get a write lock, then get a read lock. */
-	    lock = new Lock();
+            lock = new LockImpl();
 
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.EXISTING,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-	    assertEquals(1, lock.nOwners());
-	    assertEquals(0, lock.nWaiters());
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.EXISTING,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(1, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
 
             /* Start fresh. Get a read lock, upgrade to a write lock. */
-	    lock = new Lock();
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.PROMOTION,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
-	    assertEquals(1, lock.nOwners());
-	    assertEquals(0, lock.nWaiters());
+            lock = new LockImpl();
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.PROMOTION,
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(1, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
 
             /*
              * Start fresh. Get a read lock, then ask for a non-blocking
              * write lock. The latter should be denied.
              */
-	    lock = new Lock();
+            lock = new LockImpl();
 
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.DENIED,
-                         lock.lock(LockType.WRITE, txn2, true, mb, 0));
-	    assertEquals(1, lock.nOwners());
-	    assertEquals(0, lock.nWaiters());
-
-            /* Two write requsts, should be one owner. */
-	    lock = new Lock();
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.EXISTING,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
-	    assertEquals(1, lock.nOwners());
-	    assertEquals(0, lock.nWaiters());
-
-	    /*
-             * Ensure that a read request behind a write request that waits
-	     * also waits.  blocking requests.
-             */
-	    lock = new Lock();
-
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-		
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.WRITE, txn2, false, mb, 0));
-			
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn3, false, mb, 0));
-			
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.DENIED,
+                         lock.lock(LockType.WRITE, txn2, true, mb, 0).
+                         lockGrant);
             assertEquals(1, lock.nOwners());
-	    assertEquals(2, lock.nWaiters());
+            assertEquals(0, lock.nWaiters());
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
 
-	    /* Check non blocking requests */
-	    lock = new Lock();
+            /* Two write requests, should be one owner. */
+            lock = new LockImpl();
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.EXISTING,
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(1, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
 
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-		
-	    /* Since non-blocking request, this fails and doesn't go
-	       on the wait queue. */
-	    assertEquals(LockGrantType.DENIED,
-                         lock.lock(LockType.WRITE, txn2, true, mb, 0));
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn3, true, mb, 0));
-	    assertEquals(2, lock.nOwners());
-	    assertEquals(0, lock.nWaiters());
+            /*
+             * Ensure that a read request behind a write request that waits
+             * also waits.  blocking requests.
+             */
+            lock = new LockImpl();
 
-	    lock = new Lock();
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
 
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn3, false, mb, 0));
-	    assertEquals(3, lock.nOwners());
-	    assertEquals(0, lock.nWaiters());
-	} finally {
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.WRITE, txn2, false, mb, 0).
+                         lockGrant);
+
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.READ, txn3, false, mb, 0).
+                         lockGrant);
+
+            assertEquals(1, lock.nOwners());
+            assertEquals(2, lock.nWaiters());
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
+            lock.release(txn2, mb, 0 /* lockTableIndex */);
+            lock.release(txn3, mb, 0 /* lockTableIndex */);
+
+            /* Check non blocking requests */
+            lock = new LockImpl();
+
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
+
+            /* Since non-blocking request, this fails and doesn't go
+               on the wait queue. */
+            assertEquals(LockGrantType.DENIED,
+                         lock.lock(LockType.WRITE, txn2, true, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn3, true, mb, 0).
+                         lockGrant);
+            assertEquals(2, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
+            lock.release(txn3, mb, 0 /* lockTableIndex */);
+
+            lock = new LockImpl();
+
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn3, false, mb, 0).
+                         lockGrant);
+            assertEquals(3, lock.nOwners());
+            assertEquals(0, lock.nWaiters());
+            lock.release(txn1, mb, 0 /* lockTableIndex */);
+            lock.release(txn2, mb, 0 /* lockTableIndex */);
+            lock.release(txn3, mb, 0 /* lockTableIndex */);
+        } finally {
             txn1.operationEnd();
             txn2.operationEnd();
             txn3.operationEnd();
@@ -177,10 +239,10 @@ public class LockTest extends TestCase {
     public void testOwners()
         throws Exception {
 
-	Locker txn1 = new BasicLocker(envImpl);
-	Locker txn2 = new BasicLocker(envImpl);
-	Locker txn3 = new BasicLocker(envImpl);
-	Locker txn4 = new BasicLocker(envImpl);
+        Locker txn1 = BasicLocker.createBasicLocker(envImpl);
+        Locker txn2 = BasicLocker.createBasicLocker(envImpl);
+        Locker txn3 = BasicLocker.createBasicLocker(envImpl);
+        Locker txn4 = BasicLocker.createBasicLocker(envImpl);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
         try {
@@ -188,22 +250,25 @@ public class LockTest extends TestCase {
              * Build up 3 owners and waiters for a lock, to test the
              * lazy initialization and optimization for single owner/waiter.
              */
-            Lock lock = new Lock();
+            Lock lock = new LockImpl();
             /* should be no writer. */
             assertTrue(lock.getWriteOwnerLocker() == null);
 
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
-	    assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn3, false, mb, 0));
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.NEW,
+                         lock.lock(LockType.READ, txn3, false, mb, 0).
+                         lockGrant);
 
             /* should be no writer. */
             assertTrue(lock.getWriteOwnerLocker() == null);
 
             /* expect 3 owners, 0 waiters. */
-            Set expectedOwners = new HashSet();
+            Set<LockInfo> expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, LockType.READ));
             expectedOwners.add(new LockInfo(txn2, LockType.READ));
             expectedOwners.add(new LockInfo(txn3, LockType.READ));
@@ -211,15 +276,16 @@ public class LockTest extends TestCase {
 
             /* release the first locker. */
             lock.release(txn1, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn2, LockType.READ));
             expectedOwners.add(new LockInfo(txn3, LockType.READ));
             checkOwners(expectedOwners, lock, 0);
 
             /* Add more. */
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn4, false, mb, 0));
-            expectedOwners = new HashSet();
+                         lock.lock(LockType.READ, txn4, false, mb, 0).
+                         lockGrant);
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn2, LockType.READ));
             expectedOwners.add(new LockInfo(txn3, LockType.READ));
             expectedOwners.add(new LockInfo(txn4, LockType.READ));
@@ -227,32 +293,38 @@ public class LockTest extends TestCase {
 
             /* release */
             lock.release(txn2, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn3, LockType.READ));
             expectedOwners.add(new LockInfo(txn4, LockType.READ));
             checkOwners(expectedOwners, lock, 0);
 
             /* release */
             lock.release(txn3, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn4, LockType.READ));
             /* only 1 lock, in the owner set, but not a write owner. */
             assertTrue(lock.getWriteOwnerLocker() == null);
 
             /* release */
             lock.release(txn4, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             checkOwners(expectedOwners, lock, 0);
 
             /* Add owners again. */
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
-            expectedOwners = new HashSet();
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, LockType.READ));
             expectedOwners.add(new LockInfo(txn2, LockType.READ));
             checkOwners(expectedOwners, lock, 0);
+
+            /* Release for the sake of the memory leak checking */
+            lock.release(txn1, mb, 0);
+            lock.release(txn2, mb, 0);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -268,11 +340,21 @@ public class LockTest extends TestCase {
     public void testWaiters()
         throws Exception {
 
-	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn2 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn3 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn4 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn5 = new AutoTxn(envImpl, new TransactionConfig());
+        Locker txn1 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn2 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn3 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn4 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn5 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
         try {
@@ -280,28 +362,33 @@ public class LockTest extends TestCase {
              * Build up 1 owners and 3waiters for a lock, to test the
              * lazy initialization and optimization for single owner/waiter.
              */
-            Lock lock = new Lock();
+            Lock lock = new LockImpl();
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.WRITE, txn3, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.WRITE, txn4, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_PROMOTION,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.WRITE, txn3, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.WRITE, txn4, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_PROMOTION,
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
 
             /* should be no writer. */
             assertTrue(lock.getWriteOwnerLocker() == null);
 
             /* expect 2 owners, 3 waiters. */
-            Set expectedOwners = new HashSet();
+            Set<LockInfo> expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, LockType.READ));
             expectedOwners.add(new LockInfo(txn2, LockType.READ));
             checkOwners(expectedOwners, lock, 3);
 
-            List waiters = new ArrayList();
+            List<LockInfo> waiters = new ArrayList<LockInfo>();
             waiters.add(new LockInfo(txn1, LockType.WRITE));
             waiters.add(new LockInfo(txn3, LockType.WRITE));
             waiters.add(new LockInfo(txn4, LockType.WRITE));
@@ -316,7 +403,7 @@ public class LockTest extends TestCase {
              * write lock.
              */
             lock.release(txn2, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, LockType.WRITE));
             checkOwners(expectedOwners, lock, 2);
 
@@ -325,7 +412,7 @@ public class LockTest extends TestCase {
 
             /* release */
             lock.release(txn1, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn3, LockType.WRITE));
             checkOwners(expectedOwners, lock, 1);
 
@@ -337,11 +424,14 @@ public class LockTest extends TestCase {
              * waiters.
              */
             assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn1, false, mb, 0));
+                         lock.lock(LockType.READ, txn1, false, mb, 0).
+                         lockGrant);
             assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
             assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn5, false, mb, 0));
+                         lock.lock(LockType.READ, txn5, false, mb, 0).
+                         lockGrant);
 
             checkOwners(expectedOwners, lock, 4);
             waiters.add(new LockInfo(txn1, LockType.READ));
@@ -356,12 +446,13 @@ public class LockTest extends TestCase {
 
             /* re-add. */
             assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn5, false, mb, 0));
+                         lock.lock(LockType.READ, txn5, false, mb, 0).
+                         lockGrant);
             waiters.add(new LockInfo(txn5, LockType.READ));
 
             /* release txn3 */
             lock.release(txn3, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn4, LockType.WRITE));
             checkOwners(expectedOwners, lock, 3);
             waiters.remove(0);
@@ -369,7 +460,7 @@ public class LockTest extends TestCase {
 
             /* release txn4, expect all read locks to promote. */
             lock.release(txn4, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, LockType.READ));
             expectedOwners.add(new LockInfo(txn2, LockType.READ));
             expectedOwners.add(new LockInfo(txn5, LockType.READ));
@@ -377,6 +468,10 @@ public class LockTest extends TestCase {
             waiters.clear();
             checkWaiters(waiters, lock);
 
+            /* Release for the sake of the memory leak checking */
+            lock.release(txn1, mb, 0);
+            lock.release(txn2, mb, 0);
+            lock.release(txn5, mb, 0);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -392,11 +487,21 @@ public class LockTest extends TestCase {
     public void testPromotion()
         throws Exception {
 
-	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn2 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn3 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn4 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn5 = new AutoTxn(envImpl, new TransactionConfig());
+        Locker txn1 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn2 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn3 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn4 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn5 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
         try {
@@ -404,22 +509,26 @@ public class LockTest extends TestCase {
              * Build up 1 owners and 3 read waiters for a lock. Then
              * check that all the waiters promote properly.
              */
-            Lock lock = new Lock();
+            Lock lock = new LockImpl();
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn3, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn4, false, mb, 0));
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.READ, txn3, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.READ, txn4, false, mb, 0).
+                         lockGrant);
 
             /* Check that 1 owner, 3 waiters exist. */
-            Set expectedOwners = new HashSet();
+            Set<LockInfo> expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, LockType.WRITE));
             checkOwners(expectedOwners, lock, 3);
 
-            List waiters = new ArrayList();
+            List<LockInfo> waiters = new ArrayList<LockInfo>();
             waiters.add(new LockInfo(txn2, LockType.READ));
             waiters.add(new LockInfo(txn3, LockType.READ));
             waiters.add(new LockInfo(txn4, LockType.READ));
@@ -427,13 +536,18 @@ public class LockTest extends TestCase {
 
             /* Release the writer, expect all 3 waiters to promote. */
             lock.release(txn1, mb, 0);
-            expectedOwners = new HashSet();
+            expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn2, LockType.READ));
             expectedOwners.add(new LockInfo(txn3, LockType.READ));
             expectedOwners.add(new LockInfo(txn4, LockType.READ));
             checkOwners(expectedOwners, lock, 0);
             waiters.clear();
             checkWaiters(waiters, lock);
+
+            /* Release for the sake of the memory leak checking */
+            lock.release(txn2, mb, 0);
+            lock.release(txn3, mb, 0);
+            lock.release(txn4, mb, 0);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -451,7 +565,6 @@ public class LockTest extends TestCase {
      */
     public void testRangeConflicts()
         throws Exception {
-
 
         /* No owner */
         checkConflict(null,
@@ -546,20 +659,26 @@ public class LockTest extends TestCase {
                                LockGrantType secondGrantType)
         throws Exception {
 
-	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn2 = new AutoTxn(envImpl, new TransactionConfig());
+        Locker txn1 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn2 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
         try {
-            Lock lock = new Lock();
+            Lock lock = new LockImpl();
 
             if (firstRequest != null) {
                 assertEquals(LockGrantType.NEW,
-                             lock.lock(firstRequest, txn1, false, mb, 0));
+                             lock.lock(firstRequest, txn1, false, mb, 0).
+                             lockGrant);
             }
             LockGrantType typeGranted =
-                lock.lock(secondRequest, txn2, false, mb, 0);
-	    assertEquals(secondGrantType, typeGranted);
+                lock.lock(secondRequest, txn2, false, mb, 0).
+                lockGrant;
+            assertEquals(secondGrantType, typeGranted);
 
             boolean wait = (typeGranted == LockGrantType.WAIT_NEW ||
                             typeGranted == LockGrantType.WAIT_PROMOTION ||
@@ -567,8 +686,8 @@ public class LockTest extends TestCase {
             boolean given = (typeGranted == LockGrantType.NEW);
             boolean restart = (typeGranted == LockGrantType.WAIT_RESTART);
 
-            Set expectedOwners = new HashSet();
-            List expectedWaiters = new ArrayList();
+            Set<LockInfo> expectedOwners = new HashSet<LockInfo>();
+            List<LockInfo> expectedWaiters = new ArrayList<LockInfo>();
 
             if (firstRequest != null) {
                 expectedOwners.add(new LockInfo(txn1, firstRequest));
@@ -589,9 +708,9 @@ public class LockTest extends TestCase {
             lock.release(txn1, mb, 0);
             if (wait) {
                 if (restart) {
-                    checkOwners(new HashSet(), lock, 0);
+                    checkOwners(new HashSet<LockInfo>(), lock, 0);
                 } else {
-                    checkOwners(new HashSet(expectedWaiters), lock, 0);
+                    checkOwners(new HashSet<LockInfo>(expectedWaiters), lock, 0);
                 }
             }
             lock.release(txn2, mb, 0);
@@ -717,17 +836,21 @@ public class LockTest extends TestCase {
                               LockType finalType)
         throws Exception {
 
-	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
+        Locker txn1 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
         try {
-            Lock lock = new Lock();
+            Lock lock = new LockImpl();
 
             assertEquals(LockGrantType.NEW,
-                         lock.lock(firstRequest, txn1, false, mb, 0));
+                         lock.lock(firstRequest, txn1, false, mb, 0).
+                         lockGrant);
             LockGrantType typeGranted = null;
             try {
-                typeGranted = lock.lock(secondRequest, txn1, false, mb, 0);
+                typeGranted = lock.lock(secondRequest, txn1, false, mb, 0).
+                    lockGrant;
                 if (secondGrantType == null) {
                     fail("expected AssertionError");
                 }
@@ -736,9 +859,9 @@ public class LockTest extends TestCase {
                     fail(e.toString());
                 }
             }
-	    assertEquals(secondGrantType, typeGranted);
+            assertEquals(secondGrantType, typeGranted);
 
-            Set expectedOwners = new HashSet();
+            Set<LockInfo> expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, finalType));
             checkOwners(expectedOwners, lock, 0);
             lock.release(txn1, mb, 0);
@@ -759,31 +882,44 @@ public class LockTest extends TestCase {
      */
     public void testRangeInsertWaiterConflict()
         throws Exception {
-
-	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn2 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn3 = new AutoTxn(envImpl, new TransactionConfig());
+        Locker txn1 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn2 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn3 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
         try {
-            Lock lock = new Lock();
+            Lock lock = new LockImpl();
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.RANGE_READ, txn1, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.RANGE_INSERT, txn2, false, mb, 0));
-	    assertEquals(LockGrantType.WAIT_RESTART,
-                         lock.lock(LockType.RANGE_READ, txn3, false, mb, 0));
+                         lock.lock(LockType.RANGE_READ, txn1, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_NEW,
+                         lock.lock(LockType.RANGE_INSERT, txn2, false, mb, 0).
+                         lockGrant);
+            assertEquals(LockGrantType.WAIT_RESTART,
+                         lock.lock(LockType.RANGE_READ, txn3, false, mb, 0).
+                         lockGrant);
 
             /* Check that 1 owner, 1 waiter exist. */
 
-            Set expectedOwners = new HashSet();
+            Set<LockInfo> expectedOwners = new HashSet<LockInfo>();
             expectedOwners.add(new LockInfo(txn1, LockType.RANGE_READ));
             checkOwners(expectedOwners, lock, 2);
 
-            List waiters = new ArrayList();
+            List<LockInfo> waiters = new ArrayList<LockInfo>();
             waiters.add(new LockInfo(txn2, LockType.RANGE_INSERT));
             waiters.add(new LockInfo(txn3, LockType.RESTART));
             checkWaiters(waiters, lock);
+
+            /* Release for the sake of the memory leak checking */
+            lock.release(txn1, mb, 0);
+            lock.release(txn2, mb, 0);
+            lock.release(txn3, mb, 0);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -794,7 +930,7 @@ public class LockTest extends TestCase {
         }
     }
 
-    private void checkOwners(Set expectedOwners,
+    private void checkOwners(Set<LockInfo> expectedOwners,
                              Lock lock,
                              int numExpectedWaiters) {
 
@@ -806,9 +942,9 @@ public class LockTest extends TestCase {
         assertEquals(numExpectedWaiters, lock.nWaiters());
 
         /* Make sure that isOwner returns the right thing. */
-        Iterator iter = expectedOwners.iterator();
+        Iterator<LockInfo> iter = expectedOwners.iterator();
         while (iter.hasNext()) {
-            LockInfo info = (LockInfo) iter.next();
+            LockInfo info = iter.next();
 
             /* Make sure it's an owner, of the right type of lock. */
             assertEquals(info.getLockType().isWriteLock(),
@@ -817,14 +953,14 @@ public class LockTest extends TestCase {
         }
     }
 
-    private void checkWaiters(List expectedWaiters,
+    private void checkWaiters(List<LockInfo> expectedWaiters,
                               Lock lock) {
         List waiters = lock.getWaitersListClone();
         assertEquals(expectedWaiters.size(), waiters.size());
 
         /* check order of the list. */
         for (int i = 0; i < expectedWaiters.size(); i++) {
-            LockInfo info = (LockInfo) expectedWaiters.get(i);
+            LockInfo info = expectedWaiters.get(i);
             LockInfo waiterInfo = (LockInfo) waiters.get(i);
             assertEquals("i=" + i, info.getLocker(), waiterInfo.getLocker());
             assertEquals("i=" + i,
@@ -837,21 +973,33 @@ public class LockTest extends TestCase {
     public void testTransfer()
         throws Exception {
 
-	Locker txn1 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn2 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn3 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn4 = new AutoTxn(envImpl, new TransactionConfig());
-	Locker txn5 = new AutoTxn(envImpl, new TransactionConfig());
+        Locker txn1 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn2 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn3 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn4 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
+        Locker txn5 = Txn.createAutoTxn(envImpl, new TransactionConfig(),
+                                        false, /*noAPIReadLock*/
+                                        ReplicationContext.NO_REPLICATE);
         MemoryBudget mb = envImpl.getMemoryBudget();
 
         try {
             /* Transfer from one locker to another locker. */
-	    Long nid = new Long(1);
-            Lock lock = new Lock();
+            Long nid = new Long(1);
+            Lock lock = new LockImpl();
             assertEquals(LockGrantType.NEW,
-                         lock.lock(LockType.WRITE, txn1, false, mb, 0));
+                         lock.lock(LockType.WRITE, txn1, false, mb, 0).
+                         lockGrant);
             assertEquals(LockGrantType.WAIT_NEW,
-                         lock.lock(LockType.READ, txn2, false, mb, 0));
+                         lock.lock(LockType.READ, txn2, false, mb, 0).
+                         lockGrant);
             assertTrue(lock.isOwner(txn1, LockType.WRITE));
             assertFalse(lock.isOwner(txn2, LockType.READ));
 
@@ -861,7 +1009,7 @@ public class LockTest extends TestCase {
             assertTrue(lock.isOwnedWriteLock(txn2));
 
             /* Transfer to multiple lockers. */
-            Locker [] destLockers = new Locker[3];
+            Locker[] destLockers = new Locker[3];
             destLockers[0] = txn3;
             destLockers[1] = txn4;
             destLockers[2] = txn5;
@@ -873,6 +1021,7 @@ public class LockTest extends TestCase {
             for (int i = 0; i < destLockers.length; i++) {
                 assertTrue(lock.isOwner(destLockers[i], LockType.READ));
                 assertFalse(lock.isOwner(destLockers[i], LockType.WRITE));
+                lock.release(destLockers[i], mb, 0);
             }
 
         } finally {

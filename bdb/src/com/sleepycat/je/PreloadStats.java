@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PreloadStats.java,v 1.4.2.1 2007/02/01 14:49:41 cwl Exp $
+ * $Id: PreloadStats.java,v 1.9 2008/01/24 14:59:27 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -11,28 +11,65 @@ package com.sleepycat.je;
 import java.io.Serializable;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * Statistics returned from {@link com.sleepycat.je.Database#preload 
+ * Database.preload}
  */
 public class PreloadStats implements Serializable {
 
     /**
-     * The number of INs, BINs, LNs, DINs, DBINs, and DupCountLNs loaded
-     * during the preload() operation.
+     * The number of INs loaded during the preload() operation.
      */
-    public int nINsLoaded;
-    public int nBINsLoaded;
-    public int nLNsLoaded;
-    public int nDINsLoaded;
-    public int nDBINsLoaded;
-    public int nDupCountLNsLoaded;
+    private int nINsLoaded;
+
+    /**
+     * The number of BINs loaded during the preload() operation.
+     */
+    private int nBINsLoaded;
+
+    /**
+     * The number of LNs loaded during the preload() operation.
+     */
+    private int nLNsLoaded;
+
+    /**
+     * The number of DINs loaded during the preload() operation.
+     */
+    private int nDINsLoaded;
+
+    /**
+     * The number of DBINs loaded during the preload() operation.
+     */
+    private int nDBINsLoaded;
+
+    /**
+     * The number of DupCountLNs loaded during the preload() operation.
+     */
+    private int nDupCountLNsLoaded;
 
     /**
      * The status of the preload() operation.
      */
-    public PreloadStatus status;
+    private PreloadStatus status;
+
+    PreloadStats(int nINsLoaded,
+                 int nBINsLoaded,
+                 int nLNsLoaded,
+                 int nDINsLoaded,
+                 int nDBINsLoaded,
+                 int nDupCountLNsLoaded,
+                 PreloadStatus status) {
+
+        this.nINsLoaded = nINsLoaded;
+        this.nBINsLoaded = nBINsLoaded;
+        this.nLNsLoaded = nLNsLoaded;
+        this.nDINsLoaded = nDINsLoaded;
+        this.nDBINsLoaded = nDBINsLoaded;
+        this.nDupCountLNsLoaded = nDupCountLNsLoaded;
+        this.status = status;
+    }
 
     /**
+     * @hidden
      * Internal use only.
      */
     public PreloadStats() {
@@ -53,104 +90,118 @@ public class PreloadStats implements Serializable {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of INs that were loaded into the cache during the
+     * preload() operation.
      */
     public int getNINsLoaded() {
         return nINsLoaded;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of BINs that were loaded into the cache during the
+     * preload() operation.
      */
     public int getNBINsLoaded() {
         return nBINsLoaded;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of LNs that were loaded into the cache during the
+     * preload() operation.
      */
     public int getNLNsLoaded() {
         return nLNsLoaded;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of DINs that were loaded into the cache during the
+     * preload() operation.
      */
     public int getNDINsLoaded() {
         return nDINsLoaded;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of DBINs that were loaded into the cache during the
+     * preload() operation.
      */
     public int getNDBINsLoaded() {
         return nDBINsLoaded;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the number of DupCountLNs that were loaded into the cache during
+     * the preload() operation.
      */
     public int getNDupCountLNsLoaded() {
         return nDupCountLNsLoaded;
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns the PreloadStatus value for the preload() operation.
      */
     public PreloadStatus getStatus() {
         return status;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNINsLoaded(int nINsLoaded) {
-        this.nINsLoaded = nINsLoaded;
+    public void incINsLoaded() {
+        this.nINsLoaded++;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNBINsLoaded(int nBINsLoaded) {
-        this.nBINsLoaded = nBINsLoaded;
+    public void incBINsLoaded() {
+        this.nBINsLoaded++;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNLNsLoaded(int nLNsLoaded) {
-        this.nLNsLoaded = nLNsLoaded;
+    public void incLNsLoaded() {
+        this.nLNsLoaded++;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNDINsLoaded(int nDINsLoaded) {
-        this.nDINsLoaded = nDINsLoaded;
+    public void addLNsLoaded(int newLNs ) {
+        this.nLNsLoaded+=newLNs;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNDBINsLoaded(int nDBINsLoaded) {
-        this.nDBINsLoaded = nDBINsLoaded;
+    public void incDINsLoaded() {
+        this.nDINsLoaded++;
     }
 
     /**
+     * @hidden
      * Internal use only.
      */
-    public void setNDupCountLNsLoaded(int nDupCountLNsLoaded) {
-        this.nDupCountLNsLoaded = nDupCountLNsLoaded;
+    public void incDBINsLoaded() {
+        this.nDBINsLoaded++;
     }
 
     /**
+     * @hidden
+     * Internal use only.
+     */
+    public void incDupCountLNsLoaded() {
+        this.nDupCountLNsLoaded++;
+    }
+
+    /**
+     * @hidden
      * Internal use only.
      */
     public void setStatus(PreloadStatus status) {
@@ -158,8 +209,8 @@ public class PreloadStats implements Serializable {
     }
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Returns a String representation of the stats in the form of
+     * &lt;stat&gt;=&lt;value&gt;
      */
     public String toString() {
         StringBuffer sb = new StringBuffer();

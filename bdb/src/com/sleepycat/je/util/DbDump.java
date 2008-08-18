@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbDump.java,v 1.48.2.1 2007/02/01 14:49:53 cwl Exp $
+ * $Id: DbDump.java,v 1.55 2008/05/15 01:52:43 linda Exp $
  */
 
 package com.sleepycat.je.util;
@@ -28,10 +28,41 @@ import com.sleepycat.je.JEVersion;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.util.DbScavenger;
 import com.sleepycat.je.utilint.CmdUtil;
-import com.sleepycat.je.utilint.DbScavenger;
 import com.sleepycat.je.utilint.Tracer;
 
+/**
+ * Dump the contents of a database. This utility may be used programmatically
+ * or from the command line.
+ *<pre>
+ * java com.sleepycat.je.util.DbDump
+ *   -h &lt;dir&gt;           # environment home directory
+ *  [-f &lt;fileName&gt;]     # output file, for non -rR dumps
+ *  [-l]                # list databases in the environment
+ *  [-p]                # output printable characters
+ *  [-r]                # salvage mode
+ *  [-R]                # aggressive salvage mode
+ *  [-d] &lt;directory&gt;    # directory for *.dump files (salvage mode)
+ *  [-s &lt;databaseName&gt;] # database to dump
+ *  [-v]                # verbose in salvage mode
+ *  [-V]                # print JE version number
+ *</pre>
+ * See {@link DbDump#main} for a full description of the 
+ * command line arguments. To dump a database to a stream from code:
+ *
+ * <pre>
+ *    DbDump dump = new DbDump(env, databaseName, outputStream, boolean);
+ *    dump.dump();
+ * </pre>
+ *
+ *<p>
+ * Because a <code>DATA=END</code> marker is used to terminate the dump of
+ * each database, multiple databases can be dumped and loaded using a single
+ * stream. The {@link DbDump#dump} method leaves the stream positioned after
+ * the last line written and the {@link DbLoad#load} method leaves the stream
+ * positioned after the last line read.</p>
+ */
 public class DbDump {
     private static final int VERSION = 3;
 
@@ -63,11 +94,37 @@ public class DbDump {
     private DbDump() {
     }
 
+    /**
+     * @deprecated Please use the 4-arg ctor without outputDirectory instead.
+     */
     public DbDump(Environment env,
 		  String dbName,
 		  PrintStream outputFile,
 		  String outputDirectory,
 		  boolean formatUsingPrintable) {
+	init(env, dbName, outputFile, formatUsingPrintable);
+    }
+
+    /**
+     * Create a DbDump object for a specific environment and database.
+     *
+     * @param env The Environment containing the database to dump.
+     * @param dbName The name of the database to dump.
+     * @param outputFile The output stream to dump the database to.
+     * @param formatUsingPrintable true if the dump should use printable
+     * characters.
+     */
+    public DbDump(Environment env,
+		  String dbName,
+		  PrintStream outputFile,
+		  boolean formatUsingPrintable) {
+	init(env, dbName, outputFile, formatUsingPrintable);
+    }
+
+    private void init(Environment env,
+		      String dbName,
+		      PrintStream outputFile,
+		      boolean formatUsingPrintable) {
         try {
             this.envHome = env.getHome();
         } catch (DatabaseException e) {
@@ -78,10 +135,52 @@ public class DbDump {
 	this.env = env;
 	this.dbName = dbName;
 	this.outputFile = outputFile;
-	this.outputDirectory = outputDirectory;
 	this.formatUsingPrintable = formatUsingPrintable;
     }
 
+    /**
+     * The main used by the DbDump utility.
+     *
+     * @param argv The arguments accepted by the DbDump utility.
+     *
+     * <pre>
+     * usage: java { com.sleepycat.je.util.DbDump | -jar
+     * je-&lt;version&gt;.jar DbDump }
+     *             [-f output-file] [-l] [-p] [-V]
+     *             [-s database] -h dbEnvHome [-rR] [-v]
+     *             [-d directory]
+     * </pre>
+     *
+     * <p>
+     * -f - the file to dump to.<br>
+     * -l - list the databases in the environment.<br>
+     * -p - If characters in either the key or data items
+     * are printing characters (as defined by isprint(3)), use printing
+     * characters in file to represent them. This option permits users to use
+     * standard text editors and tools to modify the contents of
+     * databases.<br>
+     * -V - display the version of the JE library.<br>
+     * -s database - the database to dump.<br>
+     * -h dbEnvHome - the directory containing the database environment.<br>
+     * -r - Salvage data from a possibly corrupt file. When used on a
+     * uncorrupted database, this option should return equivalent data to a
+     * normal dump, but most likely in a different order. The data for each
+     * database is saved into &lt;databaseName&gt;.dump files in the current
+     * directory. <br>
+     * -d directory - the output directory for *.dump files (salvage mode)
+     * <br>
+     * -R - Aggressively salvage data from a possibly corrupt file. The -R flag
+     * differs from the -r option in that it will return all possible data
+     * from the file at the risk of also returning already deleted or
+     * otherwise nonsensical items. Data dumped in this fashion will almost
+     * certainly have to be edited by hand or other means before the data is
+     * ready for reload into another database. The data for each database is
+     * saved into &lt;databaseName&gt;.dump files in the current directory.
+     * <br>
+     * -v - print progress information to stdout for -r or -R mode. <br></p>
+     *
+     * @throws DatabaseException if a failure occurs.
+     */
     public static void main(String argv[])
 	throws DatabaseException, IOException {
 
@@ -90,7 +189,6 @@ public class DbDump {
 	if (dumper.doScavengerRun) {
 	    dumper.openEnv(false);
 	    dumper = new DbScavenger(dumper.env,
-                                     dumper.outputFile,
 				     dumper.outputDirectory,
                                      dumper.formatUsingPrintable,
                                      dumper.doAggressiveScavengerRun,
@@ -121,10 +219,10 @@ public class DbDump {
 
 	openEnv(true);
 
-	List dbNames = env.getDatabaseNames();
-	Iterator iter = dbNames.iterator();
+	List<String> dbNames = env.getDatabaseNames();
+	Iterator<String> iter = dbNames.iterator();
 	while (iter.hasNext()) {
-	    String name = (String) iter.next();
+	    String name = iter.next();
 	    System.out.println(name);
 	}
     }
@@ -225,6 +323,11 @@ public class DbDump {
 	}
     }
 
+    /**
+     * Perform the dump.
+     *
+     * @throws DatabaseException if a failure occurs.
+     */
     public void dump()
 	throws IOException, DatabaseException {
 

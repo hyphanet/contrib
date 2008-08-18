@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DeltaInfo.java,v 1.21.2.2 2007/11/20 13:32:35 cwl Exp $
+ * $Id: DeltaInfo.java,v 1.27 2008/01/17 17:22:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -43,7 +43,7 @@ public class DeltaInfo implements Loggable {
     public int getLogSize() {
         return
             LogUtils.getByteArrayLogSize(key) +
-	    LogUtils.getLongLogSize() + // LSN
+	    LogUtils.getPackedLongLogSize(lsn) + // LSN
             1; // state
     }
 
@@ -52,18 +52,19 @@ public class DeltaInfo implements Loggable {
      */
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writeByteArray(logBuffer, key);
-	LogUtils.writeLong(logBuffer, lsn);
+	LogUtils.writePackedLong(logBuffer, lsn);
         logBuffer.put(state);
     }
 
     /*
      * @seeLoggable#readFromLog
      */
-    public void readFromLog(ByteBuffer itemBuffer, byte entryTypeVersion)
+    public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
 	throws LogException {
 
-        key = LogUtils.readByteArray(itemBuffer);
-	lsn = LogUtils.readLong(itemBuffer);
+        boolean unpacked = (entryVersion < 6);
+        key = LogUtils.readByteArray(itemBuffer, unpacked);
+	lsn = LogUtils.readLong(itemBuffer, unpacked);
         state = itemBuffer.get();
     }
 
@@ -81,6 +82,14 @@ public class DeltaInfo implements Loggable {
      */
     public long getTransactionId() {
 	return 0;
+    }
+
+    /**
+     * @see Loggable#logicalEquals
+     * Always return false, this item should never be compared.
+     */
+    public boolean logicalEquals(Loggable other) {
+        return false;
     }
 
     /**

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: StatsFileReader.java,v 1.15.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: StatsFileReader.java,v 1.24 2008/05/15 01:52:41 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -29,13 +29,12 @@ import com.sleepycat.je.utilint.DbLsn;
  */
 public class StatsFileReader extends DumpFileReader {
 
-    /* Keyed by LogEntryType, data is EntryInfo. */
-    private Map entryInfoMap;
+    private Map<LogEntryType,EntryInfo> entryInfoMap;
     private long totalLogBytes;
     private long totalCount;
 
     /* Keep stats on log composition in terms of ckpt intervals. */
-    private ArrayList ckptList;
+    private ArrayList<CheckpointCounter> ckptList;
     private CheckpointCounter ckptCounter;
     private long firstLsnRead;
 
@@ -53,12 +52,14 @@ public class StatsFileReader extends DumpFileReader {
 
         super(envImpl, readBufferSize, startLsn, finishLsn,
               entryTypes, txnIds, verbose);
-        entryInfoMap = new TreeMap(new LogEntryTypeComparator());
+        entryInfoMap = 
+            new TreeMap<LogEntryType, EntryInfo>(new LogEntryTypeComparator());
+
         totalLogBytes = 0;
         totalCount = 0;
 
         ckptCounter = new CheckpointCounter();
-        ckptList = new ArrayList();
+        ckptList = new ArrayList<CheckpointCounter>();
         if (verbose) {
             ckptList.add(ckptCounter);
         }
@@ -71,7 +72,6 @@ public class StatsFileReader extends DumpFileReader {
         throws DatabaseException {
 
         byte currentType = currentEntryHeader.getType();
-        byte version = currentEntryHeader.getVersion();
         int itemSize = currentEntryHeader.getItemSize();
         int headerSize = currentEntryHeader.getSize();
 
@@ -79,15 +79,14 @@ public class StatsFileReader extends DumpFileReader {
          * Record various stats based on the entry header, then move the buffer
          * forward to skip ahead.
          */
-        LogEntryType lastEntryType =
-            LogEntryType.findType(currentType, version);
+        LogEntryType lastEntryType = LogEntryType.findType(currentType);
         entryBuffer.position(entryBuffer.position() + itemSize);
 
         /*
          * Get the info object for it, if this is the first time it's seen,
          * create an info object and insert it.
          */
-        EntryInfo info = (EntryInfo) entryInfoMap.get(lastEntryType);
+        EntryInfo info = entryInfoMap.get(lastEntryType);
         if (info == null) {
             info = new EntryInfo();
             entryInfoMap.put(lastEntryType, info);
@@ -96,7 +95,7 @@ public class StatsFileReader extends DumpFileReader {
         /* Update counts. */
         info.count++;
         totalCount++;
-        if (LogEntryType.isEntryProvisional(version)) {
+        if (currentEntryHeader.getProvisional() == Provisional.YES) {
             info.provisionalCount++;
         }
         int size = itemSize + headerSize;
@@ -131,7 +130,8 @@ public class StatsFileReader extends DumpFileReader {
 
     public void summarize() {
         System.out.println("Log statistics:");
-        Iterator iter = entryInfoMap.entrySet().iterator();
+        Iterator<Map.Entry<LogEntryType,EntryInfo>> iter = 
+            entryInfoMap.entrySet().iterator();
 
         NumberFormat form = NumberFormat.getIntegerInstance();
         NumberFormat percentForm = NumberFormat.getInstance();
@@ -157,10 +157,10 @@ public class StatsFileReader extends DumpFileReader {
         long realTotalBytes = 0;
 
         while (iter.hasNext()) {
-            Map.Entry m = (Map.Entry) iter.next();
-            EntryInfo info = (EntryInfo) m.getValue();
+            Map.Entry<LogEntryType,EntryInfo> m = iter.next();
+            EntryInfo info = m.getValue();
             StringBuffer sb = new StringBuffer();
-            LogEntryType entryType =(LogEntryType) m.getKey();
+            LogEntryType entryType = m.getKey();
             sb.append(pad(entryType.toString()));
             sb.append(pad(form.format(info.count)));
             sb.append(pad(form.format(info.provisionalCount)));
@@ -281,11 +281,11 @@ public class StatsFileReader extends DumpFileReader {
             return;
         }
 
-        Iterator iter = ckptList.iterator();
+        Iterator<CheckpointCounter> iter = ckptList.iterator();
         CheckpointCounter prevCounter = null;
         NumberFormat form = NumberFormat.getInstance();
         while (iter.hasNext()) {
-            CheckpointCounter c = (CheckpointCounter)iter.next();
+            CheckpointCounter c = iter.next();
             StringBuffer sb = new StringBuffer();
 
             /* Entry type counts. */
@@ -397,8 +397,8 @@ public class StatsFileReader extends DumpFileReader {
         }
     }
 
-    static class LogEntryTypeComparator implements Comparator {
-	public int compare(Object o1, Object o2) {
+    static class LogEntryTypeComparator implements Comparator<LogEntryType> {
+	public int compare(LogEntryType o1, LogEntryType o2) {
 	    if (o1 == null) {
 		return -1;
 	    }
@@ -407,15 +407,9 @@ public class StatsFileReader extends DumpFileReader {
 		return 1;
 	    }
 
-	    if (o1 instanceof LogEntryType &&
-		o2 instanceof LogEntryType) {
-		Byte t1 = new Byte(((LogEntryType) o1).getTypeNum());
-		Byte t2 = new Byte(((LogEntryType) o2).getTypeNum());
-		return t1.compareTo(t2);
-	    } else {
-		throw new IllegalArgumentException
-		    ("non LogEntryType passed to LogEntryType.compare");
-	    }
+            Byte t1 = Byte.valueOf(o1.getTypeNum());
+            Byte t2 = Byte.valueOf(o2.getTypeNum());
+            return t1.compareTo(t2);
 	}
     }
 

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileEdgeCaseTest.java,v 1.2.2.2 2007/11/20 13:32:46 cwl Exp $
+ * $Id: FileEdgeCaseTest.java,v 1.6 2008/01/07 14:29:09 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -130,7 +130,7 @@ public class FileEdgeCaseTest extends TestCase {
                                  READWRITE_MODE.getModeValue());
 
         try {
-            byte [] junk = new byte[20];
+            byte[] junk = new byte[20];
             file.seek(FileManager.firstLogEntryOffset());
             file.write(junk);
         } catch (Exception e) {

@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCursorSearchTest.java,v 1.33.2.2 2007/11/20 13:32:43 cwl Exp $
+ * $Id: DbCursorSearchTest.java,v 1.37 2008/05/20 03:27:36 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -168,7 +168,7 @@ public class DbCursorSearchTest extends DbCursorTestBase {
 		// search for the expected values using SET_RANGE - should
 		// give 0 except if this is the last key in the tree, in which
 		// case DB_NOTFOUND.  It should never be DB_KEYEMPTY.
-		// XXX: It would be nice to be definite about the expected
+		// It would be nice to be definite about the expected
 		// status, but to do that we have to know whether this is the
 		// highest key in the set, which we don't currently track.
 		status = cursor2.getSearchKeyRange

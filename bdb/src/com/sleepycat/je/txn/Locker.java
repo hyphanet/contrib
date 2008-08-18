@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Locker.java,v 1.101.2.4 2007/11/20 13:32:36 cwl Exp $
+ * $Id: Locker.java,v 1.121 2008/05/22 20:25:35 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -31,13 +31,15 @@ import com.sleepycat.je.tree.Key;
 
 /**
  * Locker instances are JE's route to locking and transactional support.  This
- * class is the abstract base class for BasicLocker, ThreadLocker, Txn and
- * AutoTxn.  Locker instances are in fact only a transaction shell to get to
- * the lock manager, and don't guarantee transactional semantics. Txn and
- * AutoTxn instances are both truely transactional, but have different ending
- * behaviors.
+ * class is the abstract base class for BasicLocker, ThreadLocker, Txn,
+ * MasterTxn and ReadonlyTxn.  Locker instances are in fact only a transaction
+ * shell to get to the lock manager, and don't guarantee transactional semantics.
+ * Txn (includes Txns marked autoTxn) MasterTxn and ReadonlyTxn instances are
+ * truly transactional. They have potentially different transaction begin and
+ * end behaviors.
  */
 public abstract class Locker {
+    @SuppressWarnings("unused")
     private static final String DEBUG_NAME = Locker.class.getName();
     protected EnvironmentImpl envImpl;
     protected LockManager lockManager;
@@ -47,8 +49,8 @@ public abstract class Locker {
 
     /* Timeouts */
     protected boolean defaultNoWait;      // true for non-blocking
-    protected long lockTimeOutMillis;     // timeout period for lock, in ms
-    private long txnTimeOutMillis;        // timeout period for txns, in ms
+    private long lockTimeoutMillis;       // timeout period for lock, in ms
+    private long txnTimeoutMillis;        // timeout period for txns, in ms
     private long txnStartMillis;          // for txn timeout determination
 
     private Lock waitingFor;              // The lock that this txn is
@@ -58,7 +60,7 @@ public abstract class Locker {
      * DeleteInfo refers to BINReferences that should be sent to the
      * INCompressor for asynchronous compressing after the transaction ends.
      */
-    protected Map deleteInfo;
+    protected Map<Long,BINReference> deleteInfo;
 
     /*
      * To support handle lock transfers, each txn keeps maps handle locks to
@@ -67,9 +69,14 @@ public abstract class Locker {
      * correspond to that handle lock. This is a 1 - many relationship because
      * a single handle lock can cover multiple database handles opened by the
      * same transaction.
+     *
+     * These tables needs synchronization so they are Hashtables, not HashMaps.
      */
-    protected Map handleLockToHandleMap; // 1-many, used for commits
-    protected Map handleToHandleLockMap; // 1-1, used for aborts
+
+    /* 1-many, used for commits. */
+    protected Map<Long,Set<Database>> handleLockToHandleMap;
+    /*  1-1, used for aborts. */
+    protected Map<Database,Long> handleToHandleLockMap;
 
     /**
      * The thread that created this locker.  Used for debugging, and by the
@@ -79,37 +86,85 @@ public abstract class Locker {
     protected Thread thread;
 
     /**
+     * Set to false when close() is called.  After that point no other locker
+     * operations should occur.  We can "assert isOpen" in all methods to check
+     * that close() is only called once.
+     */
+    private boolean isOpen = true;
+
+    /**
+     * True if there is no APIReadLock assoc'd with this Locker.
+     */
+    private boolean noAPIReadLock = false;
+
+    /**
      * Create a locker id. This constructor is called very often, so it should
-     * be as streamlined as possible.
+     * be as streamlined as possible. It should never be called directly,
+     * because the mandatedId mechanism only works if the generateId() method
+     * is overridden to use the mandatedId value.
      *
      * @param lockManager lock manager for this environment
      * @param readUncommittedDefault if true, this transaction does
      * read-uncommitted by default
      * @param noWait if true, non-blocking lock requests are used.
      */
-    public Locker(EnvironmentImpl envImpl,
-                  boolean readUncommittedDefault,
-                  boolean noWait)
+    protected Locker(EnvironmentImpl envImpl,
+                     boolean readUncommittedDefault,
+                     boolean noWait,
+                     long mandatedId)
+        throws DatabaseException {
+
+        initLocker(envImpl, readUncommittedDefault, noWait, false, mandatedId);
+    }
+
+    /**
+     * Create a locker id. This constructor is called very often, so it should
+     * be as streamlined as possible. It should never be called directly,
+     * because the mandatedId mechanism only works if the generateId() method
+     * is overridden to use the mandatedId value.
+     *
+     * @param lockManager lock manager for this environment
+     * @param readUncommittedDefault if true, this transaction does
+     * read-uncommitted by default
+     * @param noWait if true, non-blocking lock requests are used.
+     * @param noAPIReadLock if true, the API read lock is not acquired.
+     */
+    protected Locker(EnvironmentImpl envImpl,
+                     boolean readUncommittedDefault,
+                     boolean noWait,
+                     boolean noAPIReadLock,
+                     long mandatedId)
+        throws DatabaseException {
+
+        initLocker(envImpl, readUncommittedDefault, noWait,
+             noAPIReadLock, mandatedId);
+    }
+
+    private void initLocker(EnvironmentImpl envImpl,
+                            boolean readUncommittedDefault,
+                            boolean noWait,
+                            boolean noAPIReadLock,
+                            long mandatedId)
         throws DatabaseException {
 
         TxnManager txnManager = envImpl.getTxnManager();
-        this.id = generateId(txnManager);
+        this.lockManager = txnManager.getLockManager();
+        this.id = generateId(txnManager, mandatedId);
         this.envImpl = envImpl;
-        lockManager = txnManager.getLockManager();
         this.readUncommittedDefault = readUncommittedDefault;
-	this.waitingFor = null;
+        this.waitingFor = null;
 
         /* get the default lock timeout. */
         defaultNoWait = noWait;
-        lockTimeOutMillis = envImpl.getLockTimeout();
+        lockTimeoutMillis = envImpl.getLockTimeout();
 
         /*
          * Check the default txn timeout. If non-zero, remember the txn start
          * time.
          */
-        txnTimeOutMillis = envImpl.getTxnTimeout();
+        txnTimeoutMillis = envImpl.getTxnTimeout();
 
-        if (txnTimeOutMillis != 0) {
+        if (txnTimeoutMillis != 0) {
             txnStartMillis = System.currentTimeMillis();
         } else {
             txnStartMillis = 0;
@@ -117,6 +172,8 @@ public abstract class Locker {
 
         /* Save the thread used to create the locker. */
         thread = Thread.currentThread();
+
+        this.noAPIReadLock = noAPIReadLock;
 
         /*
          * Do lazy initialization of deleteInfo and handle lock maps, to
@@ -133,9 +190,10 @@ public abstract class Locker {
     /**
      * A Locker has to generate its next id. Some subtypes, like BasicLocker,
      * have a single id for all instances because they are never used for
-     * recovery. Other subtypes ask the txn manager for an id.
+     * recovery. Other subtypes ask the txn manager for an id or use a
+     * specific, mandated id.
      */
-    protected abstract long generateId(TxnManager txnManager);
+    protected abstract long generateId(TxnManager txnManager, long mandatedId);
 
     /**
      * @return the transaction's id.
@@ -152,26 +210,61 @@ public abstract class Locker {
     }
 
     /**
-     * Get the lock timeout period for this transaction, in milliseconds
+     * Get the lock timeout period for this locker, in milliseconds
+     *
+     * WARNING: Be sure to always access the timeout with this accessor, since
+     * it is overridden in BuddyLocker.
      */
     public synchronized long getLockTimeout() {
-        return lockTimeOutMillis;
+        return lockTimeoutMillis;
     }
 
     /**
      * Set the lock timeout period for any locks in this transaction,
      * in milliseconds.
+     *
+     * @param timeout The timeout value for the transaction lifetime, in
+     * microseconds. A value of 0 disables timeouts for the transaction.
+     *
+     * @throws IllegalArgumentException If the value of timeout is negative
      */
-    public synchronized void setLockTimeout(long timeOutMillis) {
-        lockTimeOutMillis = timeOutMillis;
+    public synchronized void setLockTimeout(long timeout) {
+
+        if (timeout < 0) {
+            throw new IllegalArgumentException
+                ("the timeout value cannot be negative");
+        } else if (timeout > Math.pow(2, 32)) {
+            throw new IllegalArgumentException
+                ("the timeout value cannot be greater than 2^32");
+        }
+
+        lockTimeoutMillis = timeout;
     }
 
     /**
      * Set the timeout period for this transaction, in milliseconds.
+     *
+     * @param timeout The timeout value for the transaction lifetime, in
+     * microseconds. A value of 0 disables timeouts for the transaction.
+     *
+     * @throws IllegalArgumentException If the value of timeout is negative.
      */
-    public synchronized void setTxnTimeout(long timeOutMillis) {
-        txnTimeOutMillis = timeOutMillis;
-        txnStartMillis = System.currentTimeMillis();
+    public synchronized void setTxnTimeout(long timeout) {
+
+        if (timeout < 0) {
+            throw new IllegalArgumentException
+                ("the timeout value cannot be negative");
+        } else if (timeout > Math.pow(2, 32)) {
+            throw new IllegalArgumentException
+                ("the timeout value cannot be greater than 2^32");
+        }
+
+        txnTimeoutMillis = timeout;
+        if (txnTimeoutMillis != 0) {
+            txnStartMillis = System.currentTimeMillis();
+        } else {
+            txnStartMillis = 0;
+        }
     }
 
     /**
@@ -183,18 +276,26 @@ public abstract class Locker {
     }
 
     Lock getWaitingFor() {
-	return waitingFor;
+        return waitingFor;
     }
 
     void setWaitingFor(Lock lock) {
-	waitingFor = lock;
+        waitingFor = lock;
     }
 
     /**
      * Set the state of a transaction to ONLY_ABORTABLE.
      */
-    void setOnlyAbortable() {
-	/* no-op unless Txn. */
+    public void setOnlyAbortable() {
+        /* no-op unless Txn. */
+    }
+
+    public void initApiReadLock()
+        throws DatabaseException {
+
+        if (!noAPIReadLock) {
+            envImpl.acquireAPIReadLock(this);
+        }
     }
 
     protected abstract void checkState(boolean ignoreCalledByAbort)
@@ -254,6 +355,8 @@ public abstract class Locker {
                            DatabaseImpl database)
         throws LockNotGrantedException, DeadlockException, DatabaseException {
 
+        assert isOpen;
+
         LockResult result = lockInternal(nodeId, lockType, noWait, database);
 
         if (result.getLockGrant() == LockGrantType.DENIED) {
@@ -285,6 +388,8 @@ public abstract class Locker {
                                       DatabaseImpl database)
         throws DatabaseException {
 
+        assert isOpen;
+
         return lockInternal(nodeId, lockType, true, database);
     }
 
@@ -292,11 +397,14 @@ public abstract class Locker {
      * Release the lock on this LN and remove from the transaction's owning
      * set.
      */
-    public void releaseLock(long nodeId)
+    public boolean releaseLock(long nodeId)
         throws DatabaseException {
 
-        lockManager.release(nodeId, this);
-	removeLock(nodeId);
+        assert isOpen;
+
+        boolean ret = lockManager.release(nodeId, this);
+        removeLock(nodeId);
+        return ret;
     }
 
     /**
@@ -304,6 +412,8 @@ public abstract class Locker {
      */
     public void demoteLock(long nodeId)
         throws DatabaseException {
+
+        assert isOpen;
 
         /*
          * If successful, the lock manager will call back to the transaction
@@ -339,6 +449,9 @@ public abstract class Locker {
      * transactional locks held by this locker.  This method is called when the
      * cursor for this locker is cloned.
      *
+     * <p>This method must return a locker that shares locks with this
+     * locker, e.g., a ThreadLocker.</p>
+     *
      * <p>In general, transactional lockers return 'this' when this method is
      * called, while non-transactional lockers return a new instance.</p>
      */
@@ -357,6 +470,14 @@ public abstract class Locker {
         throws DatabaseException;
 
     /**
+     * Releases locks and closes the locker at the end of a non-transactional
+     * cursor operation.  For a transctional cursor this method should do
+     * nothing, since locks must be held until transaction end.
+     */
+    public abstract void nonTxnOperationEnd()
+        throws DatabaseException;
+
+    /**
      * Returns whether this locker can share locks with the given locker.
      *
      * <p>All lockers share locks with a BuddyLocker whose buddy is this
@@ -365,30 +486,57 @@ public abstract class Locker {
      * true.</p>
      */
     public boolean sharesLocksWith(Locker other) {
-	if (other instanceof BuddyLocker) {
+        if (other instanceof BuddyLocker) {
             BuddyLocker buddy = (BuddyLocker) other;
             return buddy.getBuddy() == this;
-	} else {
-	    return false;
-	}
+        } else {
+            return false;
+        }
     }
 
     /**
      * The equivalent of calling operationEnd(true).
      */
-    public abstract void operationEnd()
-        throws DatabaseException;
+    public final void operationEnd()
+        throws DatabaseException {
+
+        operationEnd(true);
+    }
+
+    /**
+     * A SUCCESS status equals operationOk.
+     */
+    public final void operationEnd(OperationStatus status)
+        throws DatabaseException {
+
+        operationEnd(status == OperationStatus.SUCCESS);
+    }
 
     /**
      * Different types of transactions do different things when the operation
-     * ends. Txns do nothing, AutoTxns commit or abort, and BasicLockers and
-     * ThreadLockers just release locks.
+     * ends. Txn does nothing, auto Txn commits or aborts, and BasicLocker (and
+     * its subclasses) just releases locks.
      *
      * @param operationOK is whether the operation succeeded, since
-     * that may impact ending behavior. (i.e for AutoTxn)
+     * that may impact ending behavior. (i.e for an auto Txn)
      */
     public abstract void operationEnd(boolean operationOK)
         throws DatabaseException;
+
+    /**
+     * Should be called by all subclasses when the locker is no longer used.
+     * For Txns and auto Txns this is at commit or abort.  For
+     * non-transactional lockers it is at operationEnd.
+     */
+    void close()
+        throws DatabaseException {
+
+        if (!noAPIReadLock) {
+            envImpl.releaseAPIReadLock(this);
+        }
+
+        isOpen = false;
+    }
 
     /**
      * We're at the end of an operation. Move this handle lock to the
@@ -398,15 +546,6 @@ public abstract class Locker {
                                             Database dbHandle,
                                             boolean dbIsClosing)
         throws DatabaseException;
-
-    /**
-     * A SUCCESS status equals operationOk.
-     */
-    public void operationEnd(OperationStatus status)
-        throws DatabaseException {
-
-        operationEnd(status == OperationStatus.SUCCESS);
-    }
 
     /**
      * Tell this transaction about a cursor.
@@ -434,7 +573,7 @@ public abstract class Locker {
      * @return the WriteLockInfo for this node.
      */
     public abstract WriteLockInfo getWriteLockInfo(long nodeId)
-	throws DatabaseException;
+        throws DatabaseException;
 
     /**
      * Database operations like remove and truncate leave behind
@@ -455,10 +594,10 @@ public abstract class Locker {
         synchronized (this) {
             /* Maintain only one binRef per node. */
             if (deleteInfo == null) {
-                deleteInfo = new HashMap();
+                deleteInfo = new HashMap<Long,BINReference>();
             }
-            Long nodeId = new Long(bin.getNodeId());
-            BINReference binRef = (BINReference) deleteInfo.get(nodeId);
+            Long nodeId = Long.valueOf(bin.getNodeId());
+            BINReference binRef = deleteInfo.get(nodeId);
             if (binRef == null) {
                 binRef = bin.createReference();
                 deleteInfo.put(nodeId, binRef);
@@ -476,9 +615,9 @@ public abstract class Locker {
     /**
      * Add a lock to set owned by this transaction.
      */
-    abstract void addLock(Long nodeId,
-                          LockType type,
-                          LockGrantType grantStatus)
+    protected abstract void addLock(Long nodeId,
+                                    LockType type,
+                                    LockGrantType grantStatus)
         throws DatabaseException;
 
     /**
@@ -512,21 +651,29 @@ public abstract class Locker {
      * Check txn timeout, if set. Called by the lock manager when blocking on a
      * lock.
      */
-    boolean isTimedOut()
+    public boolean isTimedOut()
         throws DatabaseException {
 
-        if (txnStartMillis != 0) {
+        long timeout = getTxnTimeout();
+        if (timeout != 0) {
             long diff = System.currentTimeMillis() - txnStartMillis;
-            if (diff > txnTimeOutMillis) {
+            if (diff > timeout) {
                 return true;
             }
         }
         return false;
     }
 
-    /* public for jca/ra/JELocalTransaction. */
-    public long getTxnTimeOut() {
-        return txnTimeOutMillis;
+    /**
+     * Get the transaction timeout period for this locker, in milliseconds
+     *
+     * public for jca/ra/JELocalTransaction.
+     *
+     * WARNING: Be sure to always access the timeout with this accessor, since
+     * it is overridden in BuddyLocker.
+     */
+    public synchronized long getTxnTimeout() {
+        return txnTimeoutMillis;
     }
 
     long getTxnStartMillis() {
@@ -538,37 +685,37 @@ public abstract class Locker {
      */
     void unregisterHandle(Database dbHandle) {
 
-    	/*
-    	 * handleToHandleLockMap may be null if the db handle was never really
-    	 * added. This might be the case because of an unregisterHandle that
-    	 * comes from a finally clause, where the db handle was never
-    	 * successfully opened.
-    	 */
-    	if (handleToHandleLockMap != null) {
+        /*
+         * handleToHandleLockMap may be null if the db handle was never really
+         * added. This might be the case because of an unregisterHandle that
+         * comes from a finally clause, where the db handle was never
+         * successfully opened.
+         */
+        if (handleToHandleLockMap != null) {
             handleToHandleLockMap.remove(dbHandle);
-    	}
+        }
     }
 
     /**
      * Remember how handle locks and handles match up.
      */
     public void addToHandleMaps(Long handleLockId,
-				Database databaseHandle) {
-        Set dbHandleSet = null;
+                                Database databaseHandle) {
+        Set<Database> dbHandleSet = null;
         if (handleLockToHandleMap == null) {
 
             /*
-	     * We do lazy initialization of the maps, since they're used
+             * We do lazy initialization of the maps, since they're used
              * infrequently.
              */
-            handleLockToHandleMap = new Hashtable();
-            handleToHandleLockMap = new Hashtable();
+            handleLockToHandleMap = new Hashtable<Long,Set<Database>>();
+            handleToHandleLockMap = new Hashtable<Database,Long>();
         } else {
-            dbHandleSet = (Set) handleLockToHandleMap.get(handleLockId);
+            dbHandleSet = handleLockToHandleMap.get(handleLockId);
         }
 
         if (dbHandleSet == null) {
-            dbHandleSet = new HashSet();
+            dbHandleSet = new HashSet<Database>();
             handleLockToHandleMap.put(handleLockId, dbHandleSet);
         }
 
@@ -597,8 +744,8 @@ public abstract class Locker {
          * Transfer responsiblity for this db lock from this txn to a new
          * protector.
          */
-        Locker holderTxn = new BasicLocker(envImpl);
-        transferHandleLock(dbHandle, holderTxn, true );
+        Locker holderTxn = BasicLocker.createBasicLocker(envImpl, false, true);
+        transferHandleLock(dbHandle, holderTxn, true);
     }
 
     /**
@@ -615,7 +762,7 @@ public abstract class Locker {
          * wasn't opened successfully.
          */
         if (DbInternal.dbGetDatabaseImpl(dbHandle) != null) {
-            Long handleLockId = (Long) handleToHandleLockMap.get(dbHandle);
+            Long handleLockId = handleToHandleLockMap.get(dbHandle);
             if (handleLockId != null) {
                 /* We have a handle lock for this db. */
                 long nodeId = handleLockId.longValue();
@@ -630,11 +777,11 @@ public abstract class Locker {
                 destLocker.addToHandleMaps(handleLockId, dbHandle);
 
                 /* Take this out of the handle lock map. */
-                Set dbHandleSet = (Set)
-		    handleLockToHandleMap.get(handleLockId);
-                Iterator iter = dbHandleSet.iterator();
+                Set<Database> dbHandleSet =
+                    handleLockToHandleMap.get(handleLockId);
+                Iterator<Database> iter = dbHandleSet.iterator();
                 while (iter.hasNext()) {
-                    if (((Database) iter.next()) == dbHandle) {
+                    if ((iter.next()) == dbHandle) {
                         iter.remove();
                         break;
                     }
@@ -658,7 +805,7 @@ public abstract class Locker {
         String className = getClass().getName();
         className = className.substring(className.lastIndexOf('.') + 1);
 
-        return Long.toString(id) + "_" +
+        return System.identityHashCode(this) + " " + Long.toString(id) + "_" +
                ((thread == null) ? "" : thread.getName()) + "_" +
                className;
     }

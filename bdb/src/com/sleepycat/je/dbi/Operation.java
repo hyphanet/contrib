@@ -1,9 +1,9 @@
 /*
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Operation.java,v 1.3.2.2 2007/11/20 13:32:28 cwl Exp $
+ * $Id: Operation.java,v 1.9 2008/01/07 14:28:48 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -18,14 +18,32 @@ import java.nio.ByteBuffer;
  */
 public class Operation {
 
-    public static final Operation PUT = new Operation((byte) 1);
-    public static final Operation NO_OVERWRITE = new Operation((byte) 2);
-    public static final Operation PLACEHOLDER = new Operation((byte) 3);
+    public static final Operation PUT =
+	new Operation((byte) 1, "PUT");
+    public static final Operation NO_OVERWRITE =
+	new Operation((byte) 2, "NO_OVERWRITE");
+    public static final Operation PLACEHOLDER =
+	new Operation((byte) 3, "PLACEHOLDER");
+
+    private static final Operation[] ALL_OPS =
+    {PUT, NO_OVERWRITE, PLACEHOLDER };
+
+    private static final byte MAX_OP = 3;
+    private static final byte MIN_OP = 1;
 
     private byte op;
+    private String name;
 
-    private Operation(byte op) {
+    public Operation() {
+    }
+
+    private Operation(byte op, String name) {
         this.op = op;
+	this.name = name;
+    }
+
+    public int getContentSize() {
+        return 1;
     }
 
     /**
@@ -36,7 +54,17 @@ public class Operation {
         buffer.put(op);
     }
 
-    public void readFromBuffer(ByteBuffer buffer) {
-        op = buffer.get();
+    public static Operation readFromBuffer(ByteBuffer buffer) {
+        byte opNum = buffer.get();
+	if (opNum >= MIN_OP &&
+	    opNum <= MAX_OP) {
+	    return ALL_OPS[opNum - 1];
+	} else {
+	    return new Operation(opNum, "UNKNOWN " + opNum);
+	}
+    }
+
+    public String toString() {
+	return name;
     }
 }

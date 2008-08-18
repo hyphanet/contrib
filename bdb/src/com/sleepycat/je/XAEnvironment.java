@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: XAEnvironment.java,v 1.8.2.3 2007/11/20 13:32:26 cwl Exp $
+ * $Id: XAEnvironment.java,v 1.14 2008/01/07 14:28:46 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -18,16 +18,21 @@ import com.sleepycat.je.txn.Txn;
 import com.sleepycat.je.txn.TxnManager;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
+ * An Environment that implements XAResource.  If JE is used in an XA
+ * environment, this class should be used instead of Environment so that
+ * appropriate XA functions are available.
  */
 public class XAEnvironment extends Environment implements XAResource {
 
     private static final boolean DEBUG = false;
 
     /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
+     * Create a database environment handle.
+     *
+     * @param envHome The database environment's home directory.
+     *
+     * @param configuration The database environment attributes.  If null,
+     * default attributes are used.
      */
     public XAEnvironment(File envHome, EnvironmentConfig configuration)
         throws DatabaseException {
@@ -41,10 +46,11 @@ public class XAEnvironment extends Environment implements XAResource {
     public Transaction getXATransaction(Xid xid)
 	throws DatabaseException {
 
-	Txn ret = environmentImpl.getTxnManager().getTxnFromXid(xid);
+	Txn ret = envImpl.getTxnManager().getTxnFromXid(xid);
 	if (ret == null) {
 	    return null;
 	}
+
 	/* Do we guarantee object identity for Transaction objects? */
 	return new Transaction(this, ret);
     }
@@ -55,7 +61,7 @@ public class XAEnvironment extends Environment implements XAResource {
     public void setXATransaction(Xid xid, Transaction txn)
 	throws DatabaseException {
 
-	environmentImpl.getTxnManager().
+	envImpl.getTxnManager().
 	    registerXATxn(xid, txn.getTxn(), false);
     }
 
@@ -63,10 +69,6 @@ public class XAEnvironment extends Environment implements XAResource {
      * XAResource methods.
      */
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public void commit(Xid xid, boolean ignore /*onePhase*/)
 	throws XAException {
 
@@ -98,10 +100,6 @@ public class XAEnvironment extends Environment implements XAResource {
 	}
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public void end(Xid xid, int flags)
 	throws XAException {
 
@@ -123,11 +121,11 @@ public class XAEnvironment extends Environment implements XAResource {
 	    if (DEBUG) {
 		System.out.println
 		    ("Transaction for " + Thread.currentThread() + " is " +
-		     environmentImpl.getTxnManager().getTxnForThread());
+		     envImpl.getTxnManager().getTxnForThread());
 	    }
 
 	    Transaction txn =
-		environmentImpl.getTxnManager().unsetTxnForThread();
+		envImpl.getTxnManager().unsetTxnForThread();
 	    if (txn == null) {
 		txn = getXATransaction(xid);
 		boolean isSuspended = (txn != null) &&
@@ -150,10 +148,6 @@ public class XAEnvironment extends Environment implements XAResource {
 	}
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public void forget(Xid xid)
 	throws XAException {
 
@@ -164,10 +158,6 @@ public class XAEnvironment extends Environment implements XAResource {
 	throw new XAException(XAException.XAER_NOTA);
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public boolean isSameRM(XAResource rm)
 	throws XAException {
 
@@ -189,14 +179,10 @@ public class XAEnvironment extends Environment implements XAResource {
 	    return false;
 	}
 
-	return environmentImpl ==
+	return envImpl ==
 	    DbInternal.envGetEnvironmentImpl((XAEnvironment) rm);
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public int prepare(Xid xid)
 	throws XAException {
 
@@ -233,10 +219,6 @@ public class XAEnvironment extends Environment implements XAResource {
 	return XAResource.XA_OK;        // for compiler
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public Xid[] recover(int flags)
 	throws XAException {
 
@@ -265,17 +247,13 @@ public class XAEnvironment extends Environment implements XAResource {
 		System.out.println("*** recover returning1");
 	    }
 
-	    return environmentImpl.getTxnManager().XARecover();
+	    return envImpl.getTxnManager().XARecover();
 	} catch (DatabaseException DE) {
 	    throwNewXAException(DE);
 	}
 	return null;                // for compiler
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public void rollback(Xid xid)
 	throws XAException {
 
@@ -301,10 +279,6 @@ public class XAEnvironment extends Environment implements XAResource {
 	}
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public int getTransactionTimeout()
 	throws XAException {
 
@@ -316,20 +290,12 @@ public class XAEnvironment extends Environment implements XAResource {
 	return 0;                // for compiler
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public boolean setTransactionTimeout(int timeout)
 	throws XAException {
 
 	return false;
     }
 
-    /**
-     * Javadoc for this public method is generated via
-     * the doc templates in the doc_src directory.
-     */
     public void start(Xid xid, int flags)
 	throws XAException {
 
@@ -351,7 +317,7 @@ public class XAEnvironment extends Environment implements XAResource {
 
 	try {
 	    Transaction txn = getXATransaction(xid);
-	    TxnManager txnMgr = environmentImpl.getTxnManager();
+	    TxnManager txnMgr = envImpl.getTxnManager();
 
 	    if (flags == XAResource.TMNOFLAGS) {
 

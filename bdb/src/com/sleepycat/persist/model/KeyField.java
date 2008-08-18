@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: KeyField.java,v 1.5.2.3 2007/11/20 13:32:39 cwl Exp $
+ * $Id: KeyField.java,v 1.12 2008/02/27 21:58:14 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -32,8 +32,7 @@ import com.sleepycat.je.Environment;
  *
  * <p>Note that a composite key class is a flat container for one or more
  * simple type fields.  All non-transient instance fields in the composite key
- * class are key fields, and the composite key class may not have superclasses
- * containing non-transient instance fields.</p>
+ * class are key fields, and its superclass must be {@code Object}.</p>
  *
  * <p>For example:</p>
  * <pre class="code">

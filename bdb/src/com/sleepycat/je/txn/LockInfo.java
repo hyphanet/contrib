@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockInfo.java,v 1.28.2.3 2007/11/20 13:32:36 cwl Exp $
+ * $Id: LockInfo.java,v 1.35 2008/05/30 14:04:17 mark Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -21,12 +21,14 @@ import com.sleepycat.je.utilint.Tracer;
  * This class is public for unit tests.
  */
 public class LockInfo implements Cloneable {
-    private Locker locker;
-    private LockType lockType;
+    protected Locker locker;
+    protected LockType lockType;
 
     private static boolean deadlockStackTrace = false;
-    private static Map traceExceptionMap =
-        Collections.synchronizedMap(new WeakHashMap());
+    private static Map<LockInfo, StackTraceAtLockTime> traceExceptionMap =
+        Collections.synchronizedMap(new WeakHashMap<LockInfo, 
+                                    StackTraceAtLockTime>());
+    @SuppressWarnings("serial")
     private static class StackTraceAtLockTime extends Exception {}
 
     /**
@@ -106,7 +108,7 @@ public class LockInfo implements Cloneable {
         buf.append("\"/>");
 
         if (deadlockStackTrace) {
-            Exception traceException = (Exception) traceExceptionMap.get(this);
+            Exception traceException = traceExceptionMap.get(this);
             if (traceException != null) {
                 buf.append(" lock taken at: ");
                 buf.append(Tracer.getStackTrace(traceException));

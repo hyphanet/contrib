@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogUtils.java,v 1.50.2.2 2007/11/20 13:32:32 cwl Exp $
+ * $Id: LogUtils.java,v 1.61 2008/05/13 01:44:52 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -12,6 +12,11 @@ import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 
 import javax.transaction.xa.Xid;
+
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.dbi.EnvironmentImpl;
+import com.sleepycat.je.log.entry.LogEntry;
+import com.sleepycat.util.PackedInteger;
 
 /**
  * This class holds convenience methods for marshalling internal JE data to and
@@ -45,7 +50,7 @@ public class LogUtils {
     /**
      * Unmarshall the next four bytes which hold an unsigned int into a long.
      */
-    public static long getUnsignedInt(ByteBuffer buf) {
+    public static long readUnsignedInt(ByteBuffer buf) {
 	long ret = (buf.get() & 0xFFL) << 0;
 	ret += (buf.get() & 0xFFL) << 8;
 	ret += (buf.get() & 0xFFL) << 16;
@@ -76,6 +81,17 @@ public class LogUtils {
     }
 
     /**
+     * Read an int from the log in either packed or unpacked format.
+     */
+    public static int readInt(ByteBuffer logBuf, boolean unpacked) {
+        if (unpacked) {
+            return readInt(logBuf);
+        } else {
+            return readPackedInt(logBuf);
+        }
+    }
+
+    /**
      * Write an int into the log.
      */
     public static void writeInt(ByteBuffer logBuf, int i) {
@@ -101,10 +117,56 @@ public class LogUtils {
     }
 
     /**
-     * @return log storage size for a byteArray.
+     * @return log storage size for an int.
      */
     public static int getIntLogSize() {
         return INT_BYTES;
+    }
+
+    /**
+     * Write a packed int into the log.
+     */
+    public static void writePackedInt(ByteBuffer logBuf, int i) {
+        if (logBuf.hasArray()) {
+            int off = logBuf.arrayOffset();
+            int newPos =
+                PackedInteger.writeInt(logBuf.array(),
+                                       logBuf.position() + off, i);
+            logBuf.position(newPos - off);
+        } else {
+            byte[] a = new byte[PackedInteger.MAX_LENGTH];
+            int len = PackedInteger.writeInt(a, 0, i);
+            logBuf.put(a, 0, len);
+        }
+    }
+
+    /**
+     * Read a packed int from the log.
+     */
+    public static int readPackedInt(ByteBuffer logBuf) {
+        int val;
+        if (logBuf.hasArray()) {
+            byte a[] = logBuf.array();
+            int oldPos = logBuf.position();
+            int off = logBuf.arrayOffset() + oldPos;
+            int len = PackedInteger.getReadIntLength(a, off);
+            val = PackedInteger.readInt(a, off);
+            logBuf.position(oldPos + len);
+        } else {
+            byte[] a = new byte[PackedInteger.MAX_LENGTH];
+            a[0] = logBuf.get();
+            int len = PackedInteger.getReadIntLength(a, 0);
+            logBuf.get(a, 1, len - 1);
+            val = PackedInteger.readInt(a, 0);
+        }
+        return val;
+    }
+
+    /**
+     * @return log storage size for a packed int.
+     */
+    public static int getPackedIntLogSize(int i) {
+        return PackedInteger.getWriteIntLength(i);
     }
 
     /**
@@ -155,6 +217,17 @@ public class LogUtils {
     }
 
     /**
+     * Read an int from the log in either packed or unpacked format.
+     */
+    public static long readLong(ByteBuffer logBuf, boolean unpacked) {
+        if (unpacked) {
+            return readLong(logBuf);
+        } else {
+            return readPackedLong(logBuf);
+        }
+    }
+
+    /**
      * Read a long from the log.
      */
     public static long readLong(ByteBuffer logBuf) {
@@ -170,20 +243,70 @@ public class LogUtils {
     }
 
     /**
-     * @return log storage size for a byteArray.
+     * @return log storage size for a long.
      */
     public static int getLongLogSize() {
         return LONG_BYTES;
     }
 
     /**
+     * Write a packed long into the log.
+     */
+    public static void writePackedLong(ByteBuffer logBuf, long l) {
+        if (logBuf.hasArray()) {
+            int off = logBuf.arrayOffset();
+            int newPos =
+                PackedInteger.writeLong(logBuf.array(),
+                                        logBuf.position() + off, l);
+            logBuf.position(newPos - off);
+        } else {
+            byte[] a = new byte[PackedInteger.MAX_LONG_LENGTH];
+            int len = PackedInteger.writeLong(a, 0, l);
+            logBuf.put(a, 0, len);
+        }
+    }
+
+    /**
+     * Read a packed long from the log.
+     */
+    public static long readPackedLong(ByteBuffer logBuf) {
+        long val;
+        if (logBuf.hasArray()) {
+            byte a[] = logBuf.array();
+            int oldPos = logBuf.position();
+            int off = logBuf.arrayOffset() + oldPos;
+            int len = PackedInteger.getReadLongLength(a, off);
+            val = PackedInteger.readLong(a, off);
+            logBuf.position(oldPos + len);
+        } else {
+            byte[] a = new byte[PackedInteger.MAX_LONG_LENGTH];
+            a[0] = logBuf.get();
+            int len = PackedInteger.getReadLongLength(a, 0);
+            logBuf.get(a, 1, len - 1);
+            val = PackedInteger.readLong(a, 0);
+        }
+        return val;
+    }
+
+    /**
+     * @return log storage size for a packed long.
+     */
+    public static int getPackedLongLogSize(long l) {
+        return PackedInteger.getWriteLongLength(l);
+    }
+
+    /**
      * Write a byte array into the log. The size is stored first as an integer.
      */
-    public static void writeByteArray(ByteBuffer logBuf,
-                                      byte[] b) {
+    public static void writeByteArray(ByteBuffer logBuf, byte[] b) {
+
+        if (b == null) {
+            writePackedInt(logBuf, -1);
+            return;
+        }
 
         /* Write the length. */
-        writeInt(logBuf, b.length);
+        writePackedInt(logBuf, b.length);
 
         /* Add the data itself. */
         logBuf.put(b);                     // data
@@ -192,15 +315,21 @@ public class LogUtils {
     /**
      * Read a byte array from the log. The size is stored first as an integer.
      */
-    public static byte[] readByteArray(ByteBuffer logBuf) {
-        int size = readInt(logBuf);  // how long is it?
+    public static byte[] readByteArray(ByteBuffer logBuf, boolean unpacked) {
+        int size = readInt(logBuf, unpacked);
         if (DEBUG) {
             System.out.println("pos = " + logBuf.position() +
                                " byteArray is " + size + " on read");
         }
+
+        if (size < 0) {
+            return null;
+        }
+
 	if (size == 0) {
 	    return ZERO_LENGTH_BYTE_ARRAY;
 	}
+
         byte[] b = new byte[size];
         logBuf.get(b);               // read it out
         return b;
@@ -210,7 +339,39 @@ public class LogUtils {
      * @return log storage size for a byteArray
      */
     public static int getByteArrayLogSize(byte[] b) {
-        return INT_BYTES + b.length;
+        if (b == null) {
+            return LogUtils.getPackedIntLogSize(-1);
+        } else {
+            int len = b.length;
+            return LogUtils.getPackedIntLogSize(len) + len;
+        }
+    }
+
+    /**
+     * Write a byte array into the log. No size is stored.
+     */
+    public static void writeBytesNoLength(ByteBuffer logBuf, byte[] b) {
+
+        /* Add the data itself. */
+        logBuf.put(b);
+    }
+
+    /**
+     * Read a byte array from the log.  The size is not stored.
+     */
+    public static byte[] readBytesNoLength(ByteBuffer logBuf, int size) {
+        if (DEBUG) {
+            System.out.println("pos = " + logBuf.position() +
+                               " byteArray is " + size + " on read");
+        }
+
+	if (size == 0) {
+	    return ZERO_LENGTH_BYTE_ARRAY;
+	}
+
+        byte[] b = new byte[size];
+        logBuf.get(b);               // read it out
+        return b;
     }
 
     /**
@@ -233,45 +394,44 @@ public class LogUtils {
     /**
      * Read a string from the log. The size is stored first as an integer.
      */
-    public static String readString(ByteBuffer logBuf) {
-        return new String(readByteArray(logBuf));
+    public static String readString(ByteBuffer logBuf, boolean unpacked) {
+        return new String(readByteArray(logBuf, unpacked));
     }
 
     /**
      * @return log storage size for a string
      */
     public static int getStringLogSize(String s) {
-        return INT_BYTES + s.getBytes().length;
+        return getByteArrayLogSize(s.getBytes());
     }
 
     /**
      * Write a timestamp into the log.
      */
-    public static void writeTimestamp(ByteBuffer logBuf,
-                                      Timestamp time) {
-        writeLong(logBuf, time.getTime());
+    public static void writeTimestamp(ByteBuffer logBuf, Timestamp time) {
+        writePackedLong(logBuf, time.getTime());
     }
 
     /**
      * Read a timestamp from the log.
      */
-    public static Timestamp readTimestamp(ByteBuffer logBuf) {
-        long millis = readLong(logBuf);
+    public static Timestamp readTimestamp(ByteBuffer logBuf,
+                                          boolean unpacked) {
+        long millis = readLong(logBuf, unpacked);
         return new Timestamp(millis);
     }
 
     /**
      * @return log storage size for a timestamp
      */
-    public static int getTimestampLogSize() {
-        return LONG_BYTES;
+    public static int getTimestampLogSize(Timestamp time) {
+        return PackedInteger.getWriteLongLength(time.getTime());
     }
 
     /**
      * Write a boolean into the log.
      */
-    public static void writeBoolean(ByteBuffer logBuf,
-                                    boolean bool) {
+    public static void writeBoolean(ByteBuffer logBuf, boolean bool) {
         byte val = bool ? (byte) 1 : (byte) 0;
         logBuf.put(val);
     }
@@ -294,7 +454,8 @@ public class LogUtils {
     /*
      * Dumping support.
      */
-    public static boolean dumpBoolean(ByteBuffer itemBuffer, StringBuffer sb,
+    public static boolean dumpBoolean(ByteBuffer itemBuffer,
+                                      StringBuffer sb,
                                       String tag) {
         sb.append("<");
         sb.append(tag);
@@ -468,5 +629,51 @@ public class LogUtils {
 	    sb.append("\"/>");
 	    return sb.toString();
 	}
+    }
+
+    /**
+     * Convenience method for marshalling a header and log entry
+     * out of a byte buffer read directly out of the log.
+     * @throws DatabaseException
+     */
+    public static HeaderAndEntry
+        readHeaderAndEntry(ByteBuffer bytesFromLog,
+                           EnvironmentImpl envImpl,
+                           boolean anticipateChecksumErrors,
+                           boolean readFullItem)
+        throws DatabaseException {
+
+        HeaderAndEntry ret = new HeaderAndEntry();
+        ret.header = new LogEntryHeader(envImpl,
+                                        bytesFromLog,
+                                        anticipateChecksumErrors);
+        ret.header.readVariablePortion(bytesFromLog);
+
+        ret.entry =
+            LogEntryType.findType(ret.header.getType()).getNewLogEntry();
+
+        ret.entry.readEntry(ret.header,
+                            bytesFromLog,
+                            readFullItem);
+        return ret;
+    }
+
+    public static class HeaderAndEntry {
+        public LogEntryHeader header;
+        public LogEntry entry;
+
+        /* Get an HeaderAndEntry from LogUtils.readHeaderAndEntry */
+        private HeaderAndEntry() {
+        }
+
+        public boolean logicalEquals(HeaderAndEntry other) {
+            return (header.logicalEquals(other.header) &&
+                    entry.logicalEquals(other.entry));
+        }
+
+        @Override
+        public String toString() {
+            return header + " " + entry;
+        }
     }
 }

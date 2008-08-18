@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BaseEntry.java,v 1.1.2.3 2007/11/20 13:32:32 cwl Exp $
+ * $Id: BaseEntry.java,v 1.8 2008/03/10 19:59:19 linda Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -29,7 +29,7 @@ abstract class BaseEntry {
      */
 
     /* Used to instantiate the key objects from on-disk bytes */
-    Class logClass;
+    Class<?> logClass;
 
     /*
      * Attributes of the entry type may be used to conditionalizing the reading
@@ -41,7 +41,7 @@ abstract class BaseEntry {
      * Constructor to read an entry. The logEntryType must be set
      * later, through setLogType().
      */
-    BaseEntry(Class logClass) {
+    BaseEntry(Class<?> logClass) {
         this.logClass = logClass;
     }
 
@@ -66,6 +66,14 @@ abstract class BaseEntry {
     }
 
     /**
+     * By default, return zero because the last logged size is unknown.  This
+     * method is overridden by LNLogEntry.
+     */
+    public int getLastLoggedSize() {
+        return 0;
+    }
+
+    /**
      * Returns true if this item should be counted as obsoleted when logged.
      * This currently applies to deleted LNs only.
      */
@@ -82,10 +90,11 @@ abstract class BaseEntry {
         /* by default, do nothing. */
     }
 
-    /**
-     * By default, do nothing.  This is overridden by some entries (LNs) to
-     * save the last logged size
-     */
-    public void setLastLoggedSize(int size) {
+    public abstract StringBuffer dumpEntry(StringBuffer sb, boolean verbose);
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        dumpEntry(sb, true);
+        return sb.toString();
     }
 }

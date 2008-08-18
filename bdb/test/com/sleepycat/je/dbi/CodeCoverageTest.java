@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2002,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CodeCoverageTest.java,v 1.6.2.2 2007/11/20 13:32:43 cwl Exp $
+ * $Id: CodeCoverageTest.java,v 1.9 2008/01/07 14:29:06 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;

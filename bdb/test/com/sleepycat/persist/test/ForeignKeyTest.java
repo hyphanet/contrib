@@ -1,9 +1,9 @@
 /*-
  * See the file LICENSE for redistribution information.
  *
- * Copyright (c) 2000,2007 Oracle.  All rights reserved.
+ * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: ForeignKeyTest.java,v 1.4.2.4 2007/12/08 14:43:48 mark Exp $
+ * $Id: ForeignKeyTest.java,v 1.10 2008/02/05 23:28:28 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -20,7 +20,6 @@ import junit.framework.TestSuite;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Transaction;
-import com.sleepycat.je.test.TxnTestCase;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.SecondaryIndex;
@@ -30,6 +29,7 @@ import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.Persistent;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
+import com.sleepycat.util.test.TxnTestCase;
 
 /**
  * @author Mark Hayes
@@ -53,7 +53,7 @@ public class ForeignKeyTest extends TxnTestCase {
         for (int i = 0; i < ACTIONS.length; i += 1) {
 	    for (int j = 0; j < 2; j++) {
 		TestSuite txnSuite = txnTestSuite
-		    (ForeignKeyTest.class, null, null);//envConfig, txnTypes);
+		    (ForeignKeyTest.class, null, null);
 		Enumeration e = txnSuite.tests();
 		while (e.hasMoreElements()) {
 		    ForeignKeyTest test = (ForeignKeyTest) e.nextElement();
