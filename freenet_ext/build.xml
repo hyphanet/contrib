@@ -29,7 +29,6 @@
 		<javac destdir="${build}" optimize="on" source="${javac.target.version}">
 			<src path="../fec/fec_src"/>
 			<classpath path="../fec/common/lib/onion-common.jar"/>
-			<classpath path="../junit"/>
 		</javac>
 
 		<copy file="../fec/onion_LICENSE" todir="${build}"/>
