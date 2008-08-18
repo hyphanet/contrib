@@ -15,7 +15,7 @@
 		<replace file="ExtVersion.java">
 			<replacefilter token="@custom@" value="${svn.revision}"/>
 		</replace>
-		<javac srcdir="." destdir="${build}" optimize="on" source="1.4">
+		<javac srcdir="." destdir="${build}" optimize="on" source="1.5">
 			<include name="ExtVersion.java"/>
 		</javac>
 	</target>
@@ -25,7 +25,7 @@
 	</target>
 	
 	<target name="fec" depends="fec-common" description="build the fecencoder/decoder plugins for fproxy.">
-		<javac destdir="${build}" optimize="on" source="1.4">
+		<javac destdir="${build}" optimize="on" source="1.5">
 			<src path="../fec/fec_src"/>
 			<classpath path="../fec/common/lib/onion-common.jar"/>
 			<classpath path="../junit"/>
@@ -61,7 +61,7 @@
 	</target>
 	
 	<target name="bdb" depends="init" description="Build the BDB provider">
-		<ant antfile="build.xml" dir="../bdb/"/>
+		<ant antfile="build.xml" dir="../bdb/" target="jar"/>
 	</target>
 	
 	<target name="wrapper" depends="init" description="Build the java wrapper">
