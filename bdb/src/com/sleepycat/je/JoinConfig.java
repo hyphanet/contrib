@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JoinConfig.java,v 1.11 2008/01/24 14:59:27 linda Exp $
+ * $Id: JoinConfig.java,v 1.12 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -94,5 +94,16 @@ public class JoinConfig implements Cloneable {
         } catch (CloneNotSupportedException willNeverOccur) {
             return null;
         }
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "noSort=" + noSort +
+            "\n";
     }
 }

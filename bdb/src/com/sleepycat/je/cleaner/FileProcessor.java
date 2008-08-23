@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileProcessor.java,v 1.42 2008/05/15 01:52:40 linda Exp $
+ * $Id: FileProcessor.java,v 1.44 2008/06/29 22:12:12 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -121,6 +121,7 @@ class FileProcessor extends DaemonThread {
     /**
      * Return the number of retries when a deadlock exception occurs.
      */
+    @Override
     protected long nDeadlockRetries()
         throws DatabaseException {
 
@@ -368,7 +369,8 @@ class FileProcessor extends DaemonThread {
          * releaseDb after getDb with the dbCache, since the entire dbCache
          * will be released at the end of thie method.
          */
-        Map<DatabaseId, DatabaseImpl> dbCache = new HashMap<DatabaseId, DatabaseImpl>();
+        Map<DatabaseId, DatabaseImpl> dbCache =
+            new HashMap<DatabaseId, DatabaseImpl>();
         DbTree dbMapTree = env.getDbTree();
 
         try {

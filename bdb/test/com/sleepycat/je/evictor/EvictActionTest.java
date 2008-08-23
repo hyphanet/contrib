@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EvictActionTest.java,v 1.34 2008/03/18 01:17:44 cwl Exp $
+ * $Id: EvictActionTest.java,v 1.35.2.1 2008/08/11 00:08:43 mark Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -448,6 +448,78 @@ public class EvictActionTest extends TestCase {
     }
 
     /**
+     * Checks that a dirty root IN is not evicted in a read-only environment.
+     * [#16368]
+     */
+    public void testReadOnlyRootINEviction()
+        throws DatabaseException {
+
+        OperationStatus status;
+
+        openEnv(80, SMALL_CACHE_SIZE);
+
+        /* Big record will be used to force eviction. */
+        DatabaseEntry bigRecordKey = new DatabaseEntry(new byte[1]);
+        status = db.put(null, bigRecordKey,
+                        new DatabaseEntry(new byte[BIG_CACHE_SIZE]));
+        assertSame(OperationStatus.SUCCESS, status);
+
+        /* Open DB1 and insert a record to create the root IN. */
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        Database db1 = env.openDatabase(null, "db1", dbConfig);
+
+        DatabaseEntry smallRecordKey = new DatabaseEntry(new byte[1]);
+        DatabaseEntry smallData = new DatabaseEntry(new byte[1]);
+        status = db1.put(null, smallRecordKey, smallData);
+        assertSame(OperationStatus.SUCCESS, status);
+
+        /* Close environment and re-open it read-only. */
+        db1.close();
+        closeEnv();
+
+        EnvironmentConfig envConfig = 
+            getEnvConfig(80, SMALL_CACHE_SIZE, true /*readOnly*/);
+        envConfig.setConfigParam
+            (EnvironmentParams.EVICTOR_NODES_PER_SCAN.getName(), "1");
+        openEnv(envConfig);
+
+        dbConfig.setReadOnly(true);
+        dbConfig.setAllowCreate(false);
+        db1 = env.openDatabase(null, "db1", dbConfig);
+
+        /* Load a record to load the root IN. */
+        status = db1.get(null, smallRecordKey, new DatabaseEntry(), null);
+        assertSame(OperationStatus.SUCCESS, status);
+        assertTrue(isRootResident(db1));
+
+        /*
+         * Set the root dirty to prevent eviction.  In real life, this can only
+         * be done by recovery in a read-only environment, but that's very
+         * difficult to simulate precisely.
+         */
+        IN rootIN = DbInternal.dbGetDatabaseImpl(db1).
+                               getTree().
+                               getRootIN(CacheMode.DEFAULT);
+        rootIN.setDirty(true);
+        rootIN.releaseLatch();
+
+        /* Root should not be evicted while dirty. */
+        forceReadOnlyEviction(bigRecordKey);
+        assertTrue(isRootResident(db1));
+        forceReadOnlyEviction(bigRecordKey);
+        assertTrue(isRootResident(db1));
+
+        /* When made non-dirty, it can be evicted. */
+        rootIN.setDirty(false);
+        forceReadOnlyEviction(bigRecordKey);
+        assertTrue(!isRootResident(db1));
+
+        db1.close();
+        closeEnv();
+    }
+
+    /**
      * Check that opening a database in a transaction and then aborting the
      * transaction will decrement the database use count.  [#13415]
      */
@@ -563,7 +635,6 @@ public class EvictActionTest extends TestCase {
         throws DatabaseException {
 
         EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
-        MemoryBudget mb = envImpl.getMemoryBudget();
         OperationStatus status;
 
         /*
@@ -593,10 +664,54 @@ public class EvictActionTest extends TestCase {
     }
 
     /**
+     * Force eviction by reading a large record.
+     */
+    private void forceReadOnlyEviction(DatabaseEntry key)
+        throws DatabaseException {
+
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        OperationStatus status;
+
+        /*
+         * Repeat twice to cause a 2nd pass over the INList.  The second pass
+         * evicts BINs that were only stripped of LNs in the first pass.
+         */
+        for (int i = 0; i < 2; i += 1) {
+            Cursor c = db.openCursor(null, null);
+            status = c.getSearchKey(key, new DatabaseEntry(), null);
+            assertSame(OperationStatus.SUCCESS, status);
+
+            /*
+             * Evict while cursor pins LN memory, to ensure eviction of other
+             * DB INs, including the DB root.  When lruOnly=false, root IN
+             * eviction may not occur unless a cursor is used to pin the LN.
+             */
+            env.evictMemory();
+
+            c.close();
+        }
+
+        TestUtils.validateNodeMemUsage(envImpl, true);
+    }
+
+    /**
      * Open an environment and database.
      */
     private void openEnv(int floor,
                          int maxMem)
+        throws DatabaseException {
+
+        EnvironmentConfig envConfig =
+            getEnvConfig(floor, maxMem, false /*readonly*/);
+        openEnv(envConfig);
+    } 
+
+    /**
+     * Open an environment and database.
+     */
+    private EnvironmentConfig getEnvConfig(int floor,
+                                           int maxMem,
+                                           boolean readOnly)
         throws DatabaseException {
 
         /* Convert floor percentage into bytes. */
@@ -607,7 +722,8 @@ public class EvictActionTest extends TestCase {
 
         /* Make a non-txnal env w/no daemons and small nodes. */
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
-        envConfig.setAllowCreate(true);
+        envConfig.setAllowCreate(!readOnly);
+        envConfig.setReadOnly(readOnly);
         envConfig.setTxnNoSync(Boolean.getBoolean(TestUtils.NO_SYNC));
         envConfig.setConfigParam(EnvironmentParams.
                                  ENV_RUN_EVICTOR.getName(), "false");
@@ -649,11 +765,20 @@ public class EvictActionTest extends TestCase {
                                  NODE_MAX.getName(), "4");
         envConfig.setConfigParam(EnvironmentParams.
                                  NODE_MAX_DUPTREE.getName(), "4");
-        env = new Environment(envHome, envConfig);
 
-        /* Open a database. */
+        return envConfig;
+    }
+
+    private void openEnv(EnvironmentConfig envConfig)
+        throws DatabaseException {
+
+        env = new Environment(envHome, envConfig);
+        boolean readOnly = envConfig.getReadOnly();
+
+        /* Open database. */
         DatabaseConfig dbConfig = new DatabaseConfig();
-        dbConfig.setAllowCreate(true);
+        dbConfig.setAllowCreate(!readOnly);
+        dbConfig.setReadOnly(readOnly);
         dbConfig.setSortedDuplicates(true);
         db = env.openDatabase(null, "foo", dbConfig);
     }

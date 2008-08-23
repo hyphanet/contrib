@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: JEVersion.java,v 1.109 2008/06/04 18:46:47 cwl Exp $
+ * $Id: JEVersion.java,v 1.111.2.6 2008/08/13 02:31:49 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -21,7 +21,7 @@ public class JEVersion {
      * Release version.
      */
     public static final JEVersion CURRENT_VERSION =
-        new JEVersion(3, 3, 62, null);
+        new JEVersion(3, 3, 69, null);
 
     private int majorNum;
     private int minorNum;
@@ -35,6 +35,7 @@ public class JEVersion {
         this.name = name;
     }
 
+    @Override
     public String toString() {
         return getVersionString();
     }

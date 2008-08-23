@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TrackedFileSummary.java,v 1.16 2008/03/25 02:26:35 linda Exp $
+ * $Id: TrackedFileSummary.java,v 1.17 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -79,6 +79,7 @@ public class TrackedFileSummary extends FileSummary {
      *
      * <p>Must be called under the log write latch.</p>
      */
+    @Override
     public void reset() {
 
         obsoleteOffsets = null;

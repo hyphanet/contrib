@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbCursorDupTest.java,v 1.32 2008/01/07 14:29:06 cwl Exp $
+ * $Id: DbCursorDupTest.java,v 1.33 2008/06/06 17:12:28 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -43,6 +43,7 @@ public class DbCursorDupTest extends DbCursorTestBase {
 	OperationStatus status = cursor.getNext(new DatabaseEntry(),
                                                 new DatabaseEntry(),
                                                 LockMode.DEFAULT);
+        assertEquals(OperationStatus.SUCCESS, status);
 	Cursor cursorDup = cursor.dup(true);
 	cursor.close();
 	cursorDup.close();

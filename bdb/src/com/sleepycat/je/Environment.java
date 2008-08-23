@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Environment.java,v 1.217 2008/05/30 19:07:40 mark Exp $
+ * $Id: Environment.java,v 1.217.2.1 2008/07/24 07:25:30 tao Exp $
  */
 
 package com.sleepycat.je;
@@ -139,9 +139,13 @@ public class Environment {
     * @throws IllegalArgumentException if an invalid parameter was specified.
     *
     * @throws DatabaseException if a failure occurs.
+    *
+    * @throws EnvironmentLockedException when an environment cannot be opened
+    * for write access because another process has the same environment open
+    * for write access.
      */
     public Environment(File envHome, EnvironmentConfig configuration)
-        throws DatabaseException {
+        throws DatabaseException, EnvironmentLockedException {
 
         this(envHome, configuration, true /*openIfNeeded*/,
              false /*replicationIntended*/);

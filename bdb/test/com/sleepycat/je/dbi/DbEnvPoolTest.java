@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: DbEnvPoolTest.java,v 1.11 2008/01/07 14:29:06 cwl Exp $
+ * $Id: DbEnvPoolTest.java,v 1.13 2008/07/01 03:21:04 tao Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -18,8 +18,6 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.util.TestUtils;
 
 public class DbEnvPoolTest extends TestCase {
-
-    private static final boolean DEBUG = false;
 
     private File envHome = new File(System.getProperty(TestUtils.DEST_DIR));
 
@@ -42,7 +40,6 @@ public class DbEnvPoolTest extends TestCase {
         throws Throwable {
 
         try {
-            File file1 = new File(System.getProperty(TestUtils.DEST_DIR));
             File file2 = new File("build/test/classes");
 
             /* Create an environment. */

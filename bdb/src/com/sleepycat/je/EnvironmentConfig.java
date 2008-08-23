@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentConfig.java,v 1.50 2008/06/02 16:31:43 linda Exp $
+ * $Id: EnvironmentConfig.java,v 1.52 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -2026,6 +2026,7 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
     }
 
     /* Documentation inherited from EnvironmentMutableConfig.setConfigParam. */
+    @Override
     public void setConfigParam(String paramName,
 			       String value)
         throws IllegalArgumentException {
@@ -2082,6 +2083,7 @@ public class EnvironmentConfig extends EnvironmentMutableConfig {
     /**
      * Display configuration values.
      */
+    @Override
     public String toString() {
         return ("allowCreate=" + allowCreate + "\n" + super.toString());
     }

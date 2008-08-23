@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckpointConfig.java,v 1.19 2008/05/29 03:38:23 linda Exp $
+ * $Id: CheckpointConfig.java,v 1.20 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -120,5 +120,19 @@ public class CheckpointConfig  {
      */
     public boolean getMinimizeRecoveryTime() {
         return minimizeRecoveryTime;
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "minutes=" + minutes +
+            "\nkBytes=" + kbytes +
+            "\nforce=" + force +
+            "\nminimizeRecoveryTime=" + minimizeRecoveryTime +
+            "\n";
     }
 }

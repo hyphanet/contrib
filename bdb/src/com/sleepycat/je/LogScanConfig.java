@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogScanConfig.java,v 1.6 2008/05/13 17:41:43 cwl Exp $
+ * $Id: LogScanConfig.java,v 1.7 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -38,5 +38,16 @@ public class LogScanConfig {
      */
     public boolean getForwards() {
         return forwards;
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "forwards=" + forwards +
+            "\n";
     }
 }

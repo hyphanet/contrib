@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckSplitAuntTest.java,v 1.6 2008/01/07 14:29:10 cwl Exp $
+ * $Id: CheckSplitAuntTest.java,v 1.7 2008/06/30 20:54:48 linda Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -20,13 +20,13 @@ import com.sleepycat.je.DbInternal;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.config.EnvironmentParams;
+import com.sleepycat.je.recovery.stepwise.TestData;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.Tracer;
 
 public class CheckSplitAuntTest extends CheckBase {
 
     private static final String DB_NAME = "simpleDB";
-    private boolean useDups;
 
     /**
      */
@@ -67,7 +67,7 @@ public class CheckSplitAuntTest extends CheckBase {
          * log entry. We start the steps before the inserts, so the base
          * expected set is empty.
          */
-        HashSet currentExpected = new HashSet();
+        HashSet<TestData> currentExpected = new HashSet<TestData>();
         if (TestUtils.runLongTests()) {
             stepwiseLoop(DB_NAME, envConfig, dbConfig, currentExpected,  0);
         }

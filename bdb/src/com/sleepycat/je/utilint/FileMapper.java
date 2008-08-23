@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileMapper.java,v 1.8 2008/05/20 03:27:36 linda Exp $
+ * $Id: FileMapper.java,v 1.9 2008/06/27 18:30:33 linda Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -20,6 +20,7 @@ import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.OperationStatus;
+import com.sleepycat.je.log.LogEntryType;
 
 /**
  * A FileMapper instance represents the VLSN->LSN mappings for a single log
@@ -45,6 +46,14 @@ public class FileMapper {
     private VLSN lastSyncVLSN;
 
     /*
+     * The last VLSN in this file which is a replicated commit record. Akin
+     * to lastSyncVLSN, but used specifically to determine if a syncup is
+     * rolling back past a committed txn, and therefore whether the syncup
+     * needs to be a hard recovery, or can just be a soft partial rollback.
+     */
+    private VLSN lastCommitVLSN;
+
+    /*
      * The file offset is really an unsigned int on disk, but must be
      * represented as a long in Java.
      */
@@ -60,6 +69,7 @@ public class FileMapper {
         this.fileNumber = fileNumber;
         this.vlsnToFileOffsetMap = new HashMap<Long,Long>();
         lastSyncVLSN = VLSN.NULL_VLSN;
+        lastCommitVLSN = VLSN.NULL_VLSN;
     }
 
     /* For reading from disk */
@@ -76,6 +86,10 @@ public class FileMapper {
 
     public VLSN getLastSyncVLSN() {
         return lastSyncVLSN;
+    }
+
+    public VLSN getLastCommitVLSN() {
+        return lastCommitVLSN;
     }
 
     public void writeToDatabase(Database fileMapperDb)
@@ -111,24 +125,33 @@ public class FileMapper {
     }
 
     /** Record the LSN location for this VLSN. */
-    public void putLSN(long vlsn, long lsn, boolean isSyncPoint) {
+    public void putLSN(long vlsn, 
+                       long lsn, 
+                       LogEntryType entryType) {
 
         assert DbLsn.getFileNumber(lsn) == fileNumber:
             "unexpected lsn file num=" +  DbLsn.getFileNumber(lsn) +
             " while file mapper file number=" + fileNumber;
 
         vlsnToFileOffsetMap.put(vlsn, DbLsn.getFileOffset(lsn));
-        if (isSyncPoint) {
-
+        if (entryType.isSyncPoint()) {
             VLSN thisVLSN = new VLSN(vlsn);
             if (lastSyncVLSN.compareTo(thisVLSN) < 0) {
                 lastSyncVLSN = thisVLSN;
             }
         }
+
+        if (LogEntryType.LOG_TXN_COMMIT.equals(entryType)) {
+            VLSN thisVLSN = new VLSN(vlsn);
+            if (lastCommitVLSN.compareTo(thisVLSN) < 0) {
+                lastCommitVLSN = thisVLSN;
+            }
+        }
+
         dirty = true;
     }
 
-    /*
+    /**
      * Put all the VLSN->LSN mappings in the file mapper parameter into this
      * one.
      */
@@ -139,6 +162,10 @@ public class FileMapper {
 
         if (lastSyncVLSN.compareTo(other.lastSyncVLSN) < 0) {
             lastSyncVLSN = other.lastSyncVLSN;
+        }
+
+        if (lastCommitVLSN.compareTo(other.lastCommitVLSN) < 0) {
+            lastCommitVLSN = other.lastCommitVLSN;
         }
 
         dirty = true;
@@ -169,7 +196,8 @@ public class FileMapper {
     public String toString() {
         StringBuilder sb = new StringBuilder("<FileMapper fileNumber=");
         sb.append(fileNumber).append(" ");
-        sb.append(" lastSyncVLSN=").append(lastSyncVLSN).append(" ");
+        sb.append(" lastSync=").append(lastSyncVLSN).append(" ");
+        sb.append(" lastCommit=").append(lastCommitVLSN).append(" ");
         sb.append(vlsnToFileOffsetMap);
         sb.append("/>");
         return sb.toString();
@@ -180,11 +208,13 @@ public class FileMapper {
      * Doesn't persist the file number, because that's the key of the database.
      * TODO: use packed numbers for the map in HA release.
      */
-    private static class FileMapperBinding extends TupleBinding {
+    private static class FileMapperBinding extends TupleBinding<FileMapper> {
 
-        public Object entryToObject(TupleInput ti) {
+        public FileMapper entryToObject(TupleInput ti) {
             FileMapper mapper = new FileMapper();
             mapper.lastSyncVLSN = new VLSN(ti.readPackedLong());
+            mapper.lastCommitVLSN = new VLSN(ti.readPackedLong());
+
             mapper.vlsnToFileOffsetMap = new HashMap<Long,Long>();
             int nEntries = ti.readInt();
             for (int i = 0; i < nEntries; i++) {
@@ -195,9 +225,10 @@ public class FileMapper {
             return mapper;
         }
 
-        public void objectToEntry(Object object, TupleOutput to) {
-            FileMapper mapper = (FileMapper) object;
+        public void objectToEntry(FileMapper mapper, TupleOutput to) {
             to.writePackedLong(mapper.lastSyncVLSN.getSequence());
+            to.writePackedLong(mapper.lastCommitVLSN.getSequence());
+
             int nEntries = mapper.vlsnToFileOffsetMap.size();
             to.writeInt(nEntries);
             for (Map.Entry<Long,Long> entry : 

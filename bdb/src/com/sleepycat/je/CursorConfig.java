@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CursorConfig.java,v 1.24 2008/04/07 22:28:29 mark Exp $
+ * $Id: CursorConfig.java,v 1.25 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -150,5 +150,17 @@ public class CursorConfig implements Cloneable {
         } catch (CloneNotSupportedException willNeverOccur) {
             return null;
         }
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "readUncommitted=" + readUncommitted +
+            "\nreadCommitted=" + readCommitted +
+            "\n";
     }
 }

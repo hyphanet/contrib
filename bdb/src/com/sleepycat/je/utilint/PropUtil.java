@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PropUtil.java,v 1.25 2008/01/07 14:28:57 cwl Exp $
+ * $Id: PropUtil.java,v 1.26 2008/06/30 20:54:47 linda Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -38,7 +38,8 @@ public class PropUtil {
      * @throws DatabaseException if the property bag contains
      * a property not specified in the set of allowed properties.
      */
-    public static Properties validateProps(Properties props,
+    @SuppressWarnings("unchecked")
+	public static Properties validateProps(Properties props,
                                            Set allowedProps,
                                            String apiMethod)
         throws DatabaseException {
@@ -60,7 +61,8 @@ public class PropUtil {
     /**
      * @throws DatabaseException if the property is not valid.
      */
-    public static void validateProp(String propName,
+    @SuppressWarnings("unchecked")
+	public static void validateProp(String propName,
                                     Set allowedProps,
                                     String apiMethod)
         throws DatabaseException {

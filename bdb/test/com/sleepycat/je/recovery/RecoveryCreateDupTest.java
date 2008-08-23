@@ -3,12 +3,14 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryCreateDupTest.java,v 1.12 2008/01/07 14:29:10 cwl Exp $
+ * $Id: RecoveryCreateDupTest.java,v 1.13 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import com.sleepycat.bind.tuple.IntegerBinding;
 import com.sleepycat.je.CheckpointConfig;
@@ -91,7 +93,8 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
              * Set up an repository of expected data. We'll be inserting
              * 2 records, varying whether they are in the same txn or not.
              */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             Transaction txn = env.beginTransaction(null, null);
             dbs[0].put(txn, keyEntry1, dataEntry1);
@@ -212,7 +215,8 @@ public class RecoveryCreateDupTest extends RecoveryTestBase {
          * Now create a duplicate tree, reusing the known deleted slot
          * in the bin.
          */
-        Hashtable expectedData = new Hashtable();
+        Map<TestData, Set<TestData>> expectedData = 
+            new HashMap<TestData, Set<TestData>>();
         IntegerBinding.intToEntry(100, key);
         IntegerBinding.intToEntry(1, data);
         dbs[0].put(null, key, data);

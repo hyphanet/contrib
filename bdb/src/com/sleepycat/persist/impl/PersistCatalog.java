@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PersistCatalog.java,v 1.46 2008/03/18 18:38:08 mark Exp $
+ * $Id: PersistCatalog.java,v 1.47 2008/06/23 19:18:26 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -918,11 +918,24 @@ public class PersistCatalog implements Catalog {
     public Object convertRawObject(RawObject o, IdentityHashMap converted) {
         Format format = (Format) o.getType();
         if (this != format.getCatalog()) {
-	    String className = format.getClassName();
-            format = getFormat(className);
+
+            /*
+             * Use the corresponding format in this catalog when the external
+             * raw object was created using a different catalog.  Create the
+             * format if it does not already exist, for example, when this
+             * store is empty. [#16253].
+             */
+	    String clsName = format.getClassName();
+            Class cls;
+            try {
+                cls = SimpleCatalog.classForName(clsName);
+                format = getFormat(cls, true /*openEntitySubclassIndexes*/);
+            } catch (ClassNotFoundException e) {
+                format = null;
+            }
             if (format == null) {
                 throw new IllegalArgumentException
-                    ("External raw type not found: " + className);
+                    ("External raw type not found: " + clsName);
             }
         }
         Format proxiedFormat = format.getProxiedFormat();

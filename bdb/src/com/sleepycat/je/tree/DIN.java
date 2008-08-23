@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DIN.java,v 1.99 2008/05/20 14:52:00 cwl Exp $
+ * $Id: DIN.java,v 1.100 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -72,6 +72,7 @@ public final class DIN extends IN {
     }
 
     /* Duplicates have no mask on their levels. */
+    @Override
     protected int generateLevel(DatabaseId dbId, int newLevel) {
         return newLevel;
     }
@@ -80,6 +81,7 @@ public final class DIN extends IN {
      * Create a new DIN.  Need this because we can't call newInstance()
      * without getting a 0 node.
      */
+    @Override
     protected IN createNewInstance(byte[] identifierKey,
                                    int maxEntries,
                                    int level) {
@@ -96,6 +98,7 @@ public final class DIN extends IN {
      * "always exclusive" variety.  Presently, only IN's are actually latched
      * shared.  BINs, DINs, and DBINs are all latched exclusive only.
      */
+    @Override
     boolean isAlwaysLatchedExclusively() {
 	return true;
     }
@@ -103,6 +106,7 @@ public final class DIN extends IN {
     /**
      * Return the key for this duplicate set.
      */
+    @Override
     public byte[] getDupKey() {
         return dupKey;
     }
@@ -111,6 +115,7 @@ public final class DIN extends IN {
      * Get the key (dupe or identifier) in child that is used to locate
      * it in 'this' node.
      */
+    @Override
     public byte[] getChildKey(IN child)
         throws DatabaseException {
 
@@ -120,6 +125,7 @@ public final class DIN extends IN {
     /*
      * A DIN uses the dupTree key in its searches.
      */
+    @Override
     public byte[] selectKey(byte[] mainTreeKey, byte[] dupTreeKey) {
         return dupTreeKey;
     }
@@ -127,6 +133,7 @@ public final class DIN extends IN {
     /**
      * Return the key for navigating through the duplicate tree.
      */
+    @Override
     public byte[] getDupTreeKey() {
         return getIdentifierKey();
     }
@@ -134,6 +141,7 @@ public final class DIN extends IN {
     /**
      * Return the key for navigating through the main tree.
      */
+    @Override
     public byte[] getMainTreeKey() {
         return dupKey;
     }
@@ -202,11 +210,13 @@ public final class DIN extends IN {
      * @return true if this node is a duplicate-bearing node type, false
      * if otherwise.
      */
+    @Override
     public boolean containsDuplicates() {
         return true;
     }
 
     /* Never true for a DIN. */
+    @Override
     public boolean isDbRoot() {
 	return false;
     }
@@ -215,6 +225,7 @@ public final class DIN extends IN {
      * Return the comparator function to be used for DINs.  This is
      * the user defined duplicate comparison function, if defined.
      */
+    @Override
     public final Comparator<byte[]> getKeyComparator() {
         return getDatabase().getDuplicateComparator();
     }
@@ -254,6 +265,7 @@ public final class DIN extends IN {
      * are counted by their BIN/DIN parents, but INs are not counted by
      * their parents because they are resident on the IN list.
      */
+    @Override
     protected long computeMemorySize() {
         long size = super.computeMemorySize();
         if (dupCountLNRef != null) {
@@ -275,6 +287,7 @@ public final class DIN extends IN {
 	    IN.computeArraysOverhead(configManager);
     }
 
+    @Override
     protected long getMemoryOverhead(MemoryBudget mb) {
         return mb.getDINOverhead();
     }
@@ -286,6 +299,7 @@ public final class DIN extends IN {
      *
      * No latching is performed.
      */
+    @Override
     boolean matchLNByNodeId(TreeLocation location,
                             long nodeId,
                             CacheMode cacheMode)
@@ -313,6 +327,7 @@ public final class DIN extends IN {
     /*
      * DbStat support.
      */
+    @Override
     void accumulateStats(TreeWalkerStatsAccumulator acc) {
 	acc.processDIN(this, Long.valueOf(getNodeId()), getLevel());
     }
@@ -324,6 +339,7 @@ public final class DIN extends IN {
     /**
      * @see Node#getLogType
      */
+    @Override
     public LogEntryType getLogType() {
         return LogEntryType.LOG_DIN;
     }
@@ -370,6 +386,7 @@ public final class DIN extends IN {
     /**
      * @see IN#getLogSize
      */
+    @Override
     public int getLogSize() {
         int size = super.getLogSize();               // ancestors
         size += LogUtils.getByteArrayLogSize(dupKey);// identifier key
@@ -383,6 +400,7 @@ public final class DIN extends IN {
     /**
      * @see IN#writeToLog
      */
+    @Override
     public void writeToLog(ByteBuffer logBuffer) {
 
         // ancestors
@@ -403,6 +421,7 @@ public final class DIN extends IN {
     /**
      * @see IN#readFromLog
      */
+    @Override
     public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
@@ -424,6 +443,7 @@ public final class DIN extends IN {
     /**
      * DINS need to dump their dup key
      */
+    @Override
     protected void dumpLogAdditional(StringBuffer sb) {
         super.dumpLogAdditional(sb);
         sb.append(Key.dumpString(dupKey, 0));
@@ -436,10 +456,12 @@ public final class DIN extends IN {
      * Dumping
      */
 
+    @Override
     public String beginTag() {
         return BEGIN_TAG;
     }
 
+    @Override
     public String endTag() {
         return END_TAG;
     }
@@ -448,6 +470,7 @@ public final class DIN extends IN {
      * For unit test support:
      * @return a string that dumps information about this DIN, without
      */
+    @Override
     public String dumpString(int nSpaces, boolean dumpTags) {
         StringBuffer sb = new StringBuffer();
         if (dumpTags) {
@@ -478,10 +501,12 @@ public final class DIN extends IN {
         return sb.toString();
     }
 
+    @Override
     public String toString() {
         return dumpString(0, true);
     }
 
+    @Override
     public String shortClassName() {
         return "DIN";
     }

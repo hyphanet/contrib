@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: StatsFileReader.java,v 1.24 2008/05/15 01:52:41 linda Exp $
+ * $Id: StatsFileReader.java,v 1.25 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -128,6 +128,7 @@ public class StatsFileReader extends DumpFileReader {
         return true;
     }
 
+    @Override
     public void summarize() {
         System.out.println("Log statistics:");
         Iterator<Map.Entry<LogEntryType,EntryInfo>> iter = 
@@ -303,17 +304,17 @@ public class StatsFileReader extends DumpFileReader {
                 c.endCkptLsn;
             long endToEndDistance = 0;
 
-            FileManager fileManager = envImpl.getFileManager();
+            FileManager fileMgr = envImpl.getFileManager();
             if (prevCounter == null) {
                 endToEndDistance =
                     DbLsn.getWithCleaningDistance(end,
-						  fileManager,
+						  fileMgr,
 						  firstLsnRead,
 						  logFileMax);
             } else {
                 endToEndDistance =
                     DbLsn.getWithCleaningDistance(end,
-						  fileManager,
+						  fileMgr,
 						  prevCounter.endCkptLsn,
 						  logFileMax);
             }
@@ -330,13 +331,13 @@ public class StatsFileReader extends DumpFileReader {
             if (prevCounter == null) {
                 endToStartDistance =
                     DbLsn.getWithCleaningDistance(start,
-						  fileManager,
+						  fileMgr,
                                                   firstLsnRead,
                                                   logFileMax);
             } else {
                 endToStartDistance =
                     DbLsn.getWithCleaningDistance(start,
-						  fileManager,
+						  fileMgr,
                                                   prevCounter.endCkptLsn,
                                                   logFileMax);
             }
@@ -350,7 +351,7 @@ public class StatsFileReader extends DumpFileReader {
                 (c.endCkptLsn != DbLsn.NULL_LSN)) {
                 startToEndDistance =
                     DbLsn.getWithCleaningDistance(c.endCkptLsn,
-						  fileManager,
+						  fileMgr,
 						  c.startCkptLsn,
 						  logFileMax);
             }

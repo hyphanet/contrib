@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Evolver.java,v 1.14 2008/02/06 19:48:02 linda Exp $
+ * $Id: Evolver.java,v 1.15 2008/06/23 19:18:26 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -380,7 +380,7 @@ class Evolver {
 
         /* Apply class Renamer and continue if successful. */
         if (renamer != null) {
-            if (!applyRenamer(renamer, oldFormat, newFormat)) {
+            if (!applyClassRenamer(renamer, oldFormat, newFormat)) {
                 return false;
             }
         }
@@ -415,7 +415,7 @@ class Evolver {
                      "@Entity or @Persistent annotation is still present");
                 return false;
             }
-            return applyDeleter(deleter, oldFormat, newFormat);
+            return applyClassDeleter(deleter, oldFormat, newFormat);
         } else {
             if (needDeleter) {
                 if (newFormat == null) {
@@ -482,9 +482,9 @@ class Evolver {
         setFormatsChanged(oldFormat);
     }
 
-    private boolean applyRenamer(Renamer renamer,
-                                 Format oldFormat,
-                                 Format newFormat) {
+    private boolean applyClassRenamer(Renamer renamer,
+                                      Format oldFormat,
+                                      Format newFormat) {
         if (!checkUpdatedVersion(renamer, oldFormat, newFormat)) {
             return false;
         }
@@ -517,20 +517,18 @@ class Evolver {
     /**
      * Called by ComplexFormat when a secondary key name is changed.
      */
-    void renameSecondaryDatabase(Format oldFormat,
-                                 Format newFormat,
+    void renameSecondaryDatabase(String oldEntityClass,
+                                 String newEntityClass,
                                  String oldKeyName,
                                  String newKeyName) {
         renameDbs.put
-            (Store.makeSecDbName
-                (storePrefix, oldFormat.getClassName(), oldKeyName),
-             Store.makeSecDbName
-                (storePrefix, newFormat.getClassName(), newKeyName));
+            (Store.makeSecDbName(storePrefix, oldEntityClass, oldKeyName),
+             Store.makeSecDbName(storePrefix, newEntityClass, newKeyName));
     }
 
-    private boolean applyDeleter(Deleter deleter,
-                                 Format oldFormat,
-                                 Format newFormat) {
+    private boolean applyClassDeleter(Deleter deleter,
+                                      Format oldFormat,
+                                      Format newFormat) {
         if (!checkUpdatedVersion(deleter, oldFormat, newFormat)) {
             return false;
         }
@@ -561,9 +559,9 @@ class Evolver {
     /**
      * Called by ComplexFormat when a secondary key is dropped.
      */
-    void deleteSecondaryDatabase(Format oldFormat, String keyName) {
+    void deleteSecondaryDatabase(String oldEntityClass, String keyName) {
         deleteDbs.add(Store.makeSecDbName
-            (storePrefix, oldFormat.getClassName(), keyName));
+            (storePrefix, oldEntityClass, keyName));
     }
 
     private boolean applyConverter(Converter converter,

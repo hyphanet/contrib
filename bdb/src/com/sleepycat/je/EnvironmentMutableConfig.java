@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentMutableConfig.java,v 1.41 2008/05/19 17:52:16 linda Exp $
+ * $Id: EnvironmentMutableConfig.java,v 1.44 2008/06/30 20:54:46 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -497,6 +497,7 @@ public class EnvironmentMutableConfig implements Cloneable {
      * Overrides Object.clone() to clone all properties, used by this class and
      * EnvironmentConfig.
      */
+    @Override
     protected Object clone()
         throws CloneNotSupportedException {
 
@@ -534,8 +535,11 @@ public class EnvironmentMutableConfig implements Cloneable {
 
     /**
      * Copies all mutable props to the given config object.
+     * Unchecked suppress here because Properties don't play well with 
+     * generics in Java 1.5 
      */
-    void copyMutablePropsTo(EnvironmentMutableConfig toConfig) {
+    @SuppressWarnings("unchecked") 
+	void copyMutablePropsTo(EnvironmentMutableConfig toConfig) {
 
         Properties toProps = toConfig.props;
         Enumeration propNames = props.propertyNames();
@@ -560,9 +564,12 @@ public class EnvironmentMutableConfig implements Cloneable {
         cacheSize = envImpl.getMemoryBudget().getMaxMemory();
     }
 
-    /**
-     * Removes all immutable props.
-     */
+   /**
+    * Removes all immutable props.
+    * Unchecked suppress here because Properties don't play well with 
+    * generics in Java 1.5
+    */ 
+    @SuppressWarnings("unchecked")
     private void clearImmutableProps() {
         Enumeration propNames = props.propertyNames();
         while (propNames.hasMoreElements()) {
@@ -604,10 +611,11 @@ public class EnvironmentMutableConfig implements Cloneable {
     /**
      * Display configuration values.
      */
+    @Override
     public String toString() {
         return ("cacheSize=" + cacheSize + "\n" +
                 "txnNoSync=" + txnNoSync + "\n" +
                 "txnWriteNoSync=" + txnWriteNoSync + "\n" +
-                props.toString());
+                props.toString() + "\n");
     }
 }

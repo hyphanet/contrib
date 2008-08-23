@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnEnd.java,v 1.40 2008/05/21 18:50:02 sam Exp $
+ * $Id: TxnEnd.java,v 1.41 2008/06/27 18:30:32 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -25,7 +25,7 @@ public abstract class TxnEnd implements Loggable {
     private long lastLsn;
 
     /* For replication - master node which wrote this record. */
-    private int repMasterNodeId;
+    int repMasterNodeId;
 
     TxnEnd(long id, long lastLsn, int repMasterNodeId) {
         this.id = id;
@@ -56,7 +56,7 @@ public abstract class TxnEnd implements Loggable {
         return lastLsn;
     }
 
-    int getMasterNodeId() {
+    public int getMasterNodeId() {
         return repMasterNodeId;
     }
 

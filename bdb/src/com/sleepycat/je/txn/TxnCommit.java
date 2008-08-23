@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnCommit.java,v 1.27 2008/05/13 01:57:01 linda Exp $
+ * $Id: TxnCommit.java,v 1.28 2008/06/27 18:30:32 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -41,6 +41,9 @@ public class TxnCommit extends TxnEnd {
         if (!(other instanceof TxnCommit))
             return false;
 
-        return (id == ((TxnCommit) other).id);
+        TxnCommit otherCommit = (TxnCommit) other;
+
+        return ((id == otherCommit.id) && 
+                (repMasterNodeId == otherCommit.repMasterNodeId));
     }
 }

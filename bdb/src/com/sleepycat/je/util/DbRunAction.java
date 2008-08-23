@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbRunAction.java,v 1.45 2008/05/30 14:04:17 mark Exp $
+ * $Id: DbRunAction.java,v 1.46 2008/06/10 02:52:15 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -364,6 +364,7 @@ public class DbRunAction {
             this.env = env;
         }
 
+        @Override
         public void run() {
 
             StatsConfig clearConfig = new StatsConfig();

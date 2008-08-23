@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LN.java,v 1.151 2008/03/25 02:26:36 linda Exp $
+ * $Id: LN.java,v 1.152 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -78,17 +78,18 @@ public class LN extends Node implements Loggable {
      */
     public LN(DatabaseEntry dbt, EnvironmentImpl envImpl, boolean replicated) {
         super(envImpl, replicated);
-        byte[] data = dbt.getData();
-        if (data == null) {
-            this.data = null;
+
+        byte[] dat = dbt.getData();
+        if (dat == null) {
+            data = null;
         } else if (dbt.getPartial()) {
-            init(data,
+            init(dat,
                  dbt.getOffset(),
                  dbt.getPartialOffset() + dbt.getSize(),
                  dbt.getPartialOffset(),
                  dbt.getSize());
         } else {
-            init(data, dbt.getOffset(), dbt.getSize());
+            init(dat, dbt.getOffset(), dbt.getSize());
         }
         setDirty();
     }

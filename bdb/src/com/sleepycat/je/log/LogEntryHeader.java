@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogEntryHeader.java,v 1.24 2008/05/12 15:35:31 linda Exp $
+ * $Id: LogEntryHeader.java,v 1.26 2008/06/27 18:30:29 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -311,7 +311,7 @@ public class LogEntryHeader {
      * @param verbose if true, dump the full, verbose version
      */
     public void dumpLog(StringBuffer sb, boolean verbose) {
-        sb.append("<header ");
+        sb.append("<hdr ");
         dumpLogNoTag(sb, verbose);
         sb.append("\"/>");
     }
@@ -329,11 +329,11 @@ public class LogEntryHeader {
         sb.append("type=\"").append(lastEntryType.toStringNoVersion()).
 	    append("/").append((int) entryVersion);
         if (provisional != Provisional.NO) {
-            sb.append("\" provisional=\"");
+            sb.append("\" prov=\"");
             sb.append(provisional);
         }
         if (replicated) {
-            sb.append("\" replicated=\"true");
+            sb.append("\" rep=\"true");
         }
         if (vlsn != null) {
             sb.append("\" ");
@@ -381,6 +381,7 @@ public class LogEntryHeader {
         LogUtils.writeUnsignedInt(entryBuffer, checksumVal);
     }
 
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         dumpLog(sb, true /* verbose */);

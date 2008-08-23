@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnPrepare.java,v 1.16 2008/05/13 01:53:34 linda Exp $
+ * $Id: TxnPrepare.java,v 1.17 2008/06/10 02:52:14 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -50,6 +50,7 @@ public class TxnPrepare extends TxnEnd implements Loggable {
     /**
      * @see Loggable#getLogSize
      */
+    @Override
     public int getLogSize() {
         return LogUtils.getPackedLongLogSize(id) +
             LogUtils.getTimestampLogSize(time) +
@@ -59,6 +60,7 @@ public class TxnPrepare extends TxnEnd implements Loggable {
     /**
      * @see Loggable#writeToLog
      */
+    @Override
     public void writeToLog(ByteBuffer logBuffer) {
         LogUtils.writePackedLong(logBuffer, id);
         LogUtils.writeTimestamp(logBuffer, time);
@@ -68,6 +70,7 @@ public class TxnPrepare extends TxnEnd implements Loggable {
     /**
      * @see Loggable#readFromLog
      */
+    @Override
     public void readFromLog(ByteBuffer logBuffer, byte entryVersion) {
         boolean unpacked = (entryVersion < 6);
         id = LogUtils.readLong(logBuffer, unpacked);
@@ -78,6 +81,7 @@ public class TxnPrepare extends TxnEnd implements Loggable {
     /**
      * @see Loggable#dumpLog
      */
+    @Override
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append("<").append(getTagName());
         sb.append(" id=\"").append(id);

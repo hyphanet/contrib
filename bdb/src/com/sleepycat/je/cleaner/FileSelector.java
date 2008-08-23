@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSelector.java,v 1.24 2008/05/15 01:52:40 linda Exp $
+ * $Id: FileSelector.java,v 1.24.2.1 2008/08/04 21:43:30 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -440,6 +440,16 @@ public class FileSelector {
         safeToDeleteFiles.remove(fileNum);
         Set<DatabaseId> oldDatabases = cleanedFilesDatabases.remove(fileNum);
         adjustMemoryBudget(budget, oldDatabases, null /*newDatabases*/);
+    }
+
+    /**
+     * Update memory budgets when the environment is closed and will never be
+     * accessed again.
+     */
+    synchronized void close(MemoryBudget budget) {
+        for (Set<DatabaseId> oldDatabases : cleanedFilesDatabases.values()) {
+            adjustMemoryBudget(budget, oldDatabases, null /*newDatabases*/);
+        }
     }
 
     /**

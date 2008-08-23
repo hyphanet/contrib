@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DeferredWriteTest.java,v 1.17 2008/05/30 14:04:21 mark Exp $
+ * $Id: DeferredWriteTest.java,v 1.18 2008/06/06 17:12:29 linda Exp $
  */
 
 package com.sleepycat.je.test;
@@ -1036,7 +1036,6 @@ public class DeferredWriteTest extends TestCase {
         /* We'll do inserts in two batches. */
         HashSet expectedBatch1 = new HashSet();
         HashSet expectedBatch2 = new HashSet();
-        HashSet finalExpectedSet = null;
 
         int batch1Size = 100;
         int batch2Size = 110;

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockManager.java,v 1.141 2008/06/03 16:25:43 cwl Exp $
+ * $Id: LockManager.java,v 1.142 2008/06/27 18:30:32 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -82,6 +82,12 @@ public abstract class LockManager implements EnvConfigObserver {
         new RangeRestartException();
     private static boolean lockTableDump = false;
 
+    /* 
+     * @SuppressWarnings is used to stifle a type safety complaint about the 
+     * assignment of lockTables = new Map[nLockTables]. There's no way to 
+     * specify the type of the array.
+     */
+    @SuppressWarnings("unchecked")
     public LockManager(EnvironmentImpl envImpl)
         throws DatabaseException {
                 

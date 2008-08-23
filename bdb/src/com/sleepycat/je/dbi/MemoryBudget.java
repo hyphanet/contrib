@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: MemoryBudget.java,v 1.85 2008/05/29 13:50:07 cwl Exp $
+ * $Id: MemoryBudget.java,v 1.86 2008/06/06 17:11:52 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -226,18 +226,6 @@ public class MemoryBudget implements EnvConfigObserver {
     // 64b: 28 and 27 are 384 and 64, resp.
     private final static int LONG_LIST_PER_ITEM_OVERHEAD_32 = 20;
     private final static int LONG_LIST_PER_ITEM_OVERHEAD_64 = 32;
-
-    // 43
-    private final static int INCOMING_CONNECTION_HANDLER_OVERHEAD_32 = 24;
-    private final static int INCOMING_CONNECTION_HANDLER_OVERHEAD_64 = 48;
-
-    // 44
-    private final static int RECEIVE_MESSAGE_HANDLER_OVERHEAD_32 = 40;
-    private final static int RECEIVE_MESSAGE_HANDLER_OVERHEAD_64 = 80;
-
-    // 45
-    private final static int SEND_MESSAGE_HANDLER_OVERHEAD_32 = 56;
-    private final static int SEND_MESSAGE_HANDLER_OVERHEAD_64 = 96;
 
     public final static int LONG_OVERHEAD;
     public final static int ARRAY_OVERHEAD;

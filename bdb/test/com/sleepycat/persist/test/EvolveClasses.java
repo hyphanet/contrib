@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveClasses.java,v 1.25 2008/06/03 04:52:24 mark Exp $
+ * $Id: EvolveClasses.java,v 1.26 2008/06/23 19:18:27 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -53,10 +53,19 @@ class EvolveClasses {
     private static final String PREFIX = EvolveClasses.class.getName() + '$';
     private static final String CASECLS = EvolveCase.class.getName();
 
+    private static RawObject readRaw(RawStore store,
+                                     Object key,
+                                     Object... classVersionPairs)
+        throws DatabaseException {
+
+        return readRaw(store, null, key, classVersionPairs);
+    }
+
     /**
      * Reads a raw object and checks its superclass names and versions.
      */
     private static RawObject readRaw(RawStore store,
+                                     String entityClsName,
                                      Object key,
                                      Object... classVersionPairs)
         throws DatabaseException {
@@ -64,7 +73,9 @@ class EvolveClasses {
         TestCase.assertNotNull(store);
         TestCase.assertNotNull(key);
 
-        String entityClsName = (String) classVersionPairs[0];
+        if (entityClsName == null) {
+            entityClsName = (String) classVersionPairs[0];
+        }
         PrimaryIndex<Object,RawObject> index =
             store.getPrimaryIndex(entityClsName);
         TestCase.assertNotNull(index);
@@ -495,7 +506,7 @@ class EvolveClasses {
     /**
      * Allow removing a Persistent class when a Deleter mutation is
      * specified, and the Entity class that embedded the Persistent class
-     * is also be deleted properly (by removing the Entity annotation in this
+     * is also deleted properly (by removing the Entity annotation in this
      * case).
      */
     static class DeletedPersist2_ClassRemoved_WithDeleter extends EvolveCase {
@@ -5897,6 +5908,7 @@ class EvolveClasses {
          *  dropField = 77;
          *  dropAnnotation = 66;
          *  addField = 55;
+         *  renamedField = 44; // was toBeRenamedField
          *  aa = 33;
          *  ff = 22;
          */
@@ -5911,12 +5923,17 @@ class EvolveClasses {
         @SecondaryKey(relate=ONE_TO_ONE)
         Integer addField;
 
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int renamedField;
+
         int ff;
 
         @Override
         Mutations getMutations() {
             Mutations m = new Mutations();
             m.addDeleter(new Deleter(NAME, 0, "dropField"));
+            m.addRenamer(new Renamer(NAME, 0, "toBeRenamedField",
+                                              "renamedField"));
             return m;
         }
 
@@ -5945,6 +5962,8 @@ class EvolveClasses {
 
             checkValues(store.getSecondaryIndex
                 (index, Integer.class, "addAnnotation").get(88));
+            checkValues(store.getSecondaryIndex
+                (index, Integer.class, "renamedField").get(44));
             if (updated) {
                 checkValues(store.getSecondaryIndex
                     (index, Integer.class, "addField").get(55));
@@ -5982,6 +6001,7 @@ class EvolveClasses {
             TestCase.assertEquals(99, obj.key);
             TestCase.assertEquals(88, obj.addAnnotation);
             TestCase.assertEquals(66, obj.dropAnnotation);
+            TestCase.assertEquals(44, obj.renamedField);
             TestCase.assertEquals(33, obj.aa);
             TestCase.assertEquals(22, obj.ff);
             if (updated) {
@@ -6004,12 +6024,14 @@ class EvolveClasses {
                                "addAnnotation", 88,
                                "dropAnnotation", 66,
                                "addField", 55,
+                               "renamedField", 44,
                                "aa", 33,
                                "ff", 22);
             } else if (expectEvolved) {
                 checkRawFields(obj, "key", 99,
                                "addAnnotation", 88,
                                "dropAnnotation", 66,
+                               "renamedField", 44,
                                "aa", 33,
                                "ff", 22);
             } else {
@@ -6017,18 +6039,203 @@ class EvolveClasses {
                                "addAnnotation", 88,
                                "dropField", 77,
                                "dropAnnotation", 66,
+                               "toBeRenamedField", 44,
                                "aa", 33,
                                "ff", 22);
             }
             Environment env = store.getEnvironment();
             assertDbExists(expectEvolved, env, NAME, "addAnnotation");
             assertDbExists(expectEvolved, env, NAME, "addField");
+            assertDbExists(expectEvolved, env, NAME, "renamedField");
+            assertDbExists(!expectEvolved, env, NAME, "toBeRenamedField");
             assertDbExists(!expectEvolved, env, NAME, "dropField");
             assertDbExists(!expectEvolved, env, NAME, "dropAnnotation");
         }
     }
 
-    /** [#15524] */
+    /**
+     * Same test as AllowChangeKeyMetadata but with the secondary keys in an
+     * entity subclass.  [#16253]
+     */
+    @Persistent(version=1)
+    static class AllowChangeKeyMetadataInSubclass
+        extends AllowChangeKeyMetadataEntity {
+
+        private static final String NAME =
+            AllowChangeKeyMetadataInSubclass.class.getName();
+        private static final String NAME2 =
+            AllowChangeKeyMetadataEntity.class.getName();
+
+        /*
+         * Combined fields from version 0 and 1:
+         *  addAnnotation = 88;
+         *  dropField = 77;
+         *  dropAnnotation = 66;
+         *  addField = 55;
+         *  renamedField = 44; // was toBeRenamedField
+         *  aa = 33;
+         *  ff = 22;
+         */
+
+        int aa;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int addAnnotation;
+
+        int dropAnnotation;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        Integer addField;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int renamedField;
+
+        int ff;
+
+        @Override
+        Mutations getMutations() {
+            Mutations m = new Mutations();
+            m.addDeleter(new Deleter(NAME, 0, "dropField"));
+            m.addRenamer(new Renamer(NAME, 0, "toBeRenamedField",
+                                              "renamedField"));
+            return m;
+        }
+
+        @Override
+        void checkEvolvedModel(EntityModel model,
+                               Environment env,
+                               boolean oldTypesExist) {
+            checkNonEntity(true, model, env, NAME, 1);
+            checkEntity(true, model, env, NAME2, 0, null);
+            if (oldTypesExist) {
+                checkVersions(model, NAME, 1, NAME, 0);
+                checkVersions(model, NAME2, 0, NAME2, 0);
+            } else {
+                checkVersions(model, NAME, 1);
+                checkVersions(model, NAME2, 0);
+            }
+        }
+
+        @Override
+        void readObjects(EntityStore store, boolean doUpdate)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,AllowChangeKeyMetadataEntity>
+                index = store.getPrimaryIndex
+                    (Integer.class,
+                     AllowChangeKeyMetadataEntity.class);
+            AllowChangeKeyMetadataEntity obj = index.get(99);
+            checkValues(obj);
+
+            checkValues(store.getSecondaryIndex
+                (index, Integer.class, "addAnnotation").get(88));
+            checkValues(store.getSecondaryIndex
+                (index, Integer.class, "renamedField").get(44));
+            if (updated) {
+                checkValues(store.getSecondaryIndex
+                    (index, Integer.class, "addField").get(55));
+            } else {
+                TestCase.assertNull(store.getSecondaryIndex
+                    (index, Integer.class, "addField").get(55));
+            }
+
+            if (doUpdate) {
+                ((AllowChangeKeyMetadataInSubclass) obj).addField = 55;
+                index.put(obj);
+                updated = true;
+                checkValues(store.getSecondaryIndex
+                    (index, Integer.class, "addAnnotation").get(88));
+                checkValues(store.getSecondaryIndex
+                    (index, Integer.class, "addField").get(55));
+            }
+        }
+
+        @Override
+        void copyRawObjects(RawStore rawStore, EntityStore newStore)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,AllowChangeKeyMetadataEntity>
+                index = newStore.getPrimaryIndex
+                    (Integer.class,
+                     AllowChangeKeyMetadataEntity.class);
+            RawObject raw = rawStore.getPrimaryIndex(NAME2).get(99);
+            index.put((AllowChangeKeyMetadataInSubclass)
+                      newStore.getModel().convertRawObject(raw));
+        }
+
+        private void checkValues(AllowChangeKeyMetadataEntity objParam) {
+            AllowChangeKeyMetadataInSubclass obj =
+                (AllowChangeKeyMetadataInSubclass) objParam;
+            TestCase.assertNotNull(obj);
+            TestCase.assertEquals(99, obj.key);
+            TestCase.assertEquals(88, obj.addAnnotation);
+            TestCase.assertEquals(66, obj.dropAnnotation);
+            TestCase.assertEquals(44, obj.renamedField);
+            TestCase.assertEquals(33, obj.aa);
+            TestCase.assertEquals(22, obj.ff);
+            if (updated) {
+                TestCase.assertEquals(Integer.valueOf(55), obj.addField);
+            } else {
+                TestCase.assertNull(obj.addField);
+            }
+        }
+
+        @Override
+        void readRawObjects(RawStore store,
+                            boolean expectEvolved,
+                            boolean expectUpdated)
+            throws DatabaseException {
+
+            RawObject obj = readRaw
+                (store, NAME2, 99, NAME, expectEvolved ? 1 : 0,
+                 NAME2, 0, CASECLS, 0);
+            checkRawFields(obj.getSuper(), "key", 99);
+            if (expectUpdated) {
+                checkRawFields(obj,
+                               "addAnnotation", 88,
+                               "dropAnnotation", 66,
+                               "addField", 55,
+                               "renamedField", 44,
+                               "aa", 33,
+                               "ff", 22);
+            } else if (expectEvolved) {
+                checkRawFields(obj,
+                               "addAnnotation", 88,
+                               "dropAnnotation", 66,
+                               "renamedField", 44,
+                               "aa", 33,
+                               "ff", 22);
+            } else {
+                checkRawFields(obj,
+                               "addAnnotation", 88,
+                               "dropField", 77,
+                               "dropAnnotation", 66,
+                               "toBeRenamedField", 44,
+                               "aa", 33,
+                               "ff", 22);
+            }
+            Environment env = store.getEnvironment();
+            assertDbExists(expectEvolved, env, NAME2, "addAnnotation");
+            assertDbExists(expectEvolved, env, NAME2, "addField");
+            assertDbExists(expectEvolved, env, NAME2, "renamedField");
+            assertDbExists(!expectEvolved, env, NAME2, "toBeRenamedField");
+            assertDbExists(!expectEvolved, env, NAME2, "dropField");
+            assertDbExists(!expectEvolved, env, NAME2, "dropAnnotation");
+        }
+    }
+
+    @Entity
+    static class AllowChangeKeyMetadataEntity
+        extends EvolveCase {
+
+        @PrimaryKey
+        int key;
+    }
+
+    /**
+     * Special case of adding secondaries that caused
+     * IndexOutOfBoundsException. [#15524]
+     */
     @Entity(version=1)
     static class AllowAddSecondary
         extends EvolveCase {

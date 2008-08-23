@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CursorEdgeTest.java,v 1.38 2008/01/07 14:29:04 cwl Exp $
+ * $Id: CursorEdgeTest.java,v 1.39 2008/06/06 17:12:27 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -541,7 +541,7 @@ public class CursorEdgeTest extends TestCase {
          * Check that it's a transaction problem. Crude, but since we
          * don't want to add exception types, necessary.
          */
-        String eMsg = e.getMessage();
+        e.getMessage();
         assertTrue(TestUtils.skipVersion(e).startsWith("A transaction was not supplied"));
     }
 

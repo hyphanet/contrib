@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileHeader.java,v 1.47 2008/02/26 18:52:35 mark Exp $
+ * $Id: FileHeader.java,v 1.48 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -162,6 +162,7 @@ public class FileHeader implements Loggable {
     /**
      * Print in xml format
      */
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         dumpLog(sb, true);

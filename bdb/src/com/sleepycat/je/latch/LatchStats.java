@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LatchStats.java,v 1.25 2008/01/07 14:28:50 cwl Exp $
+ * $Id: LatchStats.java,v 1.26 2008/06/10 02:52:11 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -57,6 +57,7 @@ public class LatchStats implements Cloneable, Serializable {
      */
     public int nReleases = 0;
 
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("nAcquiresNoWaiters=").
@@ -76,6 +77,7 @@ public class LatchStats implements Cloneable, Serializable {
         return sb.toString();
     }
 
+    @Override
     public Object clone()
         throws CloneNotSupportedException {
 

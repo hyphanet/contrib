@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INFileReader.java,v 1.70 2008/05/15 01:52:41 linda Exp $
+ * $Id: INFileReader.java,v 1.72 2008/06/27 18:30:29 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -215,6 +215,7 @@ public class INFileReader extends FileReader {
      * log entries. If not, we only want to see IN entries.
      * @return true if this is an IN entry.
      */
+    @Override
     protected boolean isTargetEntry()
         throws DatabaseException {
 
@@ -372,7 +373,7 @@ public class INFileReader extends FileReader {
                 fileMappers.put(fileNumber, mapper);
             }
             mapper.putLSN(vlsn.getSequence(), lsn, 
-            			  LogEntryType.isSyncPoint(currentEntryHeader.getType()));
+                          LogEntryType.findType(currentEntryHeader.getType()));
         }
     }
 

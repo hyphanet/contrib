@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LongConfigParam.java,v 1.28 2008/05/30 19:07:40 mark Exp $
+ * $Id: LongConfigParam.java,v 1.29 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -63,6 +63,7 @@ public class LongConfigParam extends ConfigParam {
         }
     }
 
+    @Override
     public void validateValue(String value)
         throws IllegalArgumentException {
 

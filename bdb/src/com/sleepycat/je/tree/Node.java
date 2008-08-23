@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Node.java,v 1.107 2008/05/06 18:01:34 linda Exp $
+ * $Id: Node.java,v 1.108 2008/06/10 02:52:14 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -171,6 +171,7 @@ public abstract class Node implements Loggable {
     /**
      * Default toString method at the root of the tree.
      */
+    @Override
     public String toString() {
         return this.dumpString(0, true);
     }

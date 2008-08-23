@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CompositeKeyFormat.java,v 1.26 2008/01/07 14:28:59 cwl Exp $
+ * $Id: CompositeKeyFormat.java,v 1.27 2008/06/26 05:24:52 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -97,7 +97,8 @@ public class CompositeKeyFormat extends Format {
         }
 
         /* Populate fields list in fieldNames order. */
-        List<FieldInfo> instanceFields = FieldInfo.getInstanceFields(cls);
+        List<FieldInfo> instanceFields =
+            FieldInfo.getInstanceFields(cls, metadata);
         fields = new ArrayList<FieldInfo>(instanceFields.size());
         for (String fieldName : fieldNames) {
             FieldInfo field = null;

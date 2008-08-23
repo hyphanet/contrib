@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FieldInfo.java,v 1.24 2008/06/03 04:52:23 mark Exp $
+ * $Id: FieldInfo.java,v 1.25 2008/06/26 05:24:52 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -12,10 +12,13 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import com.sleepycat.persist.raw.RawField;
+import com.sleepycat.persist.model.FieldMetadata;
+import com.sleepycat.persist.model.ClassMetadata;
 
 /**
  * A field definition used by ComplexFormat and CompositeKeyFormat.
@@ -35,14 +38,52 @@ class FieldInfo implements RawField, Serializable, Comparable<FieldInfo> {
      * Returns a list of all non-transient non-static fields that are declared
      * in the given class.
      */
-    static List<FieldInfo> getInstanceFields(Class cls) {
-        Field[] declaredFields = cls.getDeclaredFields();
-        List<FieldInfo> fields =
-            new ArrayList<FieldInfo>(declaredFields.length);
-        for (Field field : declaredFields) {
-            int mods = field.getModifiers();
-            if (!Modifier.isTransient(mods) && !Modifier.isStatic(mods)) {
-                fields.add(new FieldInfo(field));
+    static List<FieldInfo> getInstanceFields(Class cls,
+                                             ClassMetadata clsMeta) {
+        List<FieldInfo> fields = null;
+        if (clsMeta != null) {
+            Collection<FieldMetadata> persistentFields =
+                clsMeta.getPersistentFields();
+            if (persistentFields != null) {
+                fields = new ArrayList<FieldInfo>(persistentFields.size());
+                String clsName = cls.getName();
+                for (FieldMetadata fieldMeta : persistentFields) {
+                    if (!clsName.equals(fieldMeta.getDeclaringClassName())) {
+                        throw new IllegalArgumentException
+                            ("Persistent field " + fieldMeta +
+                             " must be declared in " + clsName);
+                    }
+                    Field field;
+                    try {
+                        field = cls.getDeclaredField(fieldMeta.getName());
+                    } catch (NoSuchFieldException e) {
+                        throw new IllegalArgumentException
+                            ("Persistent field " + fieldMeta +
+                             " is not declared in this class");
+                    }
+                    if (!field.getType().getName().equals
+                        (fieldMeta.getClassName())) {
+                        throw new IllegalArgumentException
+                            ("Persistent field " + fieldMeta +
+                             " must be of type " + field.getType().getName());
+                    }
+                    if (Modifier.isStatic(field.getModifiers())) {
+                        throw new IllegalArgumentException
+                            ("Persistent field " + fieldMeta +
+                             " may not be static");
+                    }
+                    fields.add(new FieldInfo(field));
+                }
+            }
+        }
+        if (fields == null) {
+            Field[] declaredFields = cls.getDeclaredFields();
+            fields = new ArrayList<FieldInfo>(declaredFields.length);
+            for (Field field : declaredFields) {
+                int mods = field.getModifiers();
+                if (!Modifier.isTransient(mods) && !Modifier.isStatic(mods)) {
+                    fields.add(new FieldInfo(field));
+                }
             }
         }
         return fields;

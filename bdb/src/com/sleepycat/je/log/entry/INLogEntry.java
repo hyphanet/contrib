@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INLogEntry.java,v 1.49 2008/03/10 19:59:19 linda Exp $
+ * $Id: INLogEntry.java,v 1.50 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -169,6 +169,7 @@ public class INLogEntry extends BaseEntry
         return in;
     }
 
+    @Override
     public Object clone()
         throws CloneNotSupportedException {
 

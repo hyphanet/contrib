@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Latch.java,v 1.91 2008/05/30 14:04:15 mark Exp $
+ * $Id: Latch.java,v 1.92 2008/06/10 02:52:11 cwl Exp $
  */
 
 package com.sleepycat.je.latch;
@@ -26,6 +26,7 @@ public class Latch {
 	    super(fair);
 	}
 
+        @Override
 	protected Thread getOwner() {
 	    return super.getOwner();
 	}
@@ -202,6 +203,7 @@ public class Latch {
     /**
      * Formats a latch owner and waiters.
      */
+    @Override
     public String toString() {
 	return lock.toString();
     }

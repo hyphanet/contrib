@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: NameLN.java,v 1.28 2008/02/06 19:48:01 linda Exp $
+ * $Id: NameLN.java,v 1.29 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -51,10 +51,12 @@ public final class NameLN extends LN {
         id = new DatabaseId();
     }
 
+    @Override
     public boolean isDeleted() {
         return deleted;
     }
 
+    @Override
     void makeDeleted() {
         deleted = true;
     }
@@ -71,18 +73,22 @@ public final class NameLN extends LN {
      * Dumping
      */
 
+    @Override
     public String toString() {
         return dumpString(0, true);
     }
 
+    @Override
     public String beginTag() {
         return BEGIN_TAG;
     }
 
+    @Override
     public String endTag() {
         return END_TAG;
     }
 
+    @Override
     public String dumpString(int nSpaces, boolean dumpTags) {
         StringBuffer sb = new StringBuffer();
         sb.append(super.dumpString(nSpaces, dumpTags));
@@ -105,6 +111,7 @@ public final class NameLN extends LN {
     /**
      * Log type for transactional entries.
      */
+    @Override
     protected LogEntryType getTransactionalLogType() {
         return LogEntryType.LOG_NAMELN_TRANSACTIONAL;
     }
@@ -112,6 +119,7 @@ public final class NameLN extends LN {
     /**
      * @see Node#getLogType
      */
+    @Override
     public LogEntryType getLogType() {
         return LogEntryType.LOG_NAMELN;
     }
@@ -119,6 +127,7 @@ public final class NameLN extends LN {
     /**
      * @see LN#getLogSize
      */
+    @Override
     public int getLogSize() {
         return
             super.getLogSize() +                     // superclass
@@ -129,6 +138,7 @@ public final class NameLN extends LN {
     /**
      * @see LN#writeToLog
      */
+    @Override
     public void writeToLog(ByteBuffer logBuffer) {
         /* Ask ancestors to write to log. */
         super.writeToLog(logBuffer);         // super class
@@ -140,6 +150,7 @@ public final class NameLN extends LN {
     /**
      * @see LN#readFromLog
      */
+    @Override
     public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
@@ -176,6 +187,7 @@ public final class NameLN extends LN {
      * Dump additional fields. Done this way so the additional info can be
      * within the XML tags defining the dumped log entry.
      */
+    @Override
     protected void dumpLogAdditional(StringBuffer sb, boolean verbose) {
         id.dumpLog(sb, true);
     }

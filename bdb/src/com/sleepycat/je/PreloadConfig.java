@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PreloadConfig.java,v 1.8 2008/01/24 14:59:27 linda Exp $
+ * $Id: PreloadConfig.java,v 1.9 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -103,5 +103,18 @@ public class PreloadConfig implements Cloneable {
         } catch (CloneNotSupportedException willNeverOccur) {
             return null;
         }
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "maxBytes=" + maxBytes +
+            "\nmaxMillisecs=" + maxMillisecs +
+            "\nloadLNs=" + loadLNs +
+            "\n";
     }
 }

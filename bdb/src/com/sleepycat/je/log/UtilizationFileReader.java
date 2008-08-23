@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: UtilizationFileReader.java,v 1.18 2008/05/15 01:52:41 linda Exp $
+ * $Id: UtilizationFileReader.java,v 1.19 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -71,6 +71,7 @@ public class UtilizationFileReader extends FileReader {
         twoEntryList.add(null);
     }
 
+    @Override
     protected boolean isTargetEntry() {
         /* UtilizationTracker does not count the file header. */
         return currentEntryHeader.getType() !=
@@ -270,6 +271,7 @@ public class UtilizationFileReader extends FileReader {
          * Overrides the LN size calculation to return the recalculated number
          * of obsolete LN bytes.
          */
+        @Override
         public int getObsoleteLNSize() {
             return recalcObsoleteLNSize;
         }
@@ -278,6 +280,7 @@ public class UtilizationFileReader extends FileReader {
          * Overrides the IN size calculation to return the recalculated number
          * of obsolete IN bytes.
          */
+        @Override
         public int getObsoleteINSize() {
             return recalcObsoleteINSize;
         }
@@ -285,6 +288,7 @@ public class UtilizationFileReader extends FileReader {
         /**
          * Overrides to add the extended data fields.
          */
+        @Override
         public String toString() {
             StringBuffer buf = new StringBuffer();
             buf.append(super.toString());

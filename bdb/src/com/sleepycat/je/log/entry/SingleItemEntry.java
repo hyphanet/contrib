@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SingleItemEntry.java,v 1.8 2008/03/10 19:59:19 linda Exp $
+ * $Id: SingleItemEntry.java,v 1.9 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -82,6 +82,7 @@ public class SingleItemEntry extends BaseEntry implements LogEntry {
     /**
      * @see LogEntry#clone
      */
+    @Override
     public Object clone()
         throws CloneNotSupportedException {
 

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ToManyTest.java,v 1.8 2008/02/05 23:28:27 mark Exp $
+ * $Id: ToManyTest.java,v 1.10 2008/07/01 03:21:34 tao Exp $
  */
 
 package com.sleepycat.je.test;
@@ -46,8 +46,8 @@ public class ToManyTest extends TxnTestCase {
      * mirrors the secondary database, and for every secondary key (Byte)
      * contains a set of primary keys (set of Byte).
      */
-    private Map priMap0 = new HashMap();
-    private Map secMap0 = new HashMap();
+    private Map<Byte, Set<Byte>> priMap0 = new HashMap<Byte, Set<Byte>>();
+    private Map<Byte, Set<Byte>> secMap0 = new HashMap<Byte, Set<Byte>>();
     private Database priDb;
     private SecondaryDatabase secDb;
 
@@ -169,14 +169,14 @@ public class ToManyTest extends TxnTestCase {
     /**
      * Updates map 0 to reflect a record added to the primary database.
      */
-    private void updateMaps(Byte priKey, Set newPriData) {
+    private void updateMaps(Byte priKey, Set<Byte> newPriData) {
 
         /* Remove old secondary keys. */
-        Set oldPriData = (Set) priMap0.get(priKey);
+        Set<Byte> oldPriData = priMap0.get(priKey);
         if (oldPriData != null) {
-            for (Iterator i = oldPriData.iterator(); i.hasNext();) {
+            for (Iterator<Byte> i = oldPriData.iterator(); i.hasNext();) {
                 Byte secKey = (Byte) i.next();
-                Set priKeySet = (Set) secMap0.get(secKey);
+                Set<Byte> priKeySet = secMap0.get(secKey);
                 assertNotNull(priKeySet);
                 assertTrue(priKeySet.remove(priKey));
                 if (priKeySet.isEmpty()) {
@@ -189,11 +189,11 @@ public class ToManyTest extends TxnTestCase {
             /* Put primary entry. */
             priMap0.put(priKey, newPriData);
             /* Add new secondary keys. */
-            for (Iterator i = newPriData.iterator(); i.hasNext();) {
-                Byte secKey = (Byte) i.next();
-                Set priKeySet = (Set) secMap0.get(secKey);
+            for (Iterator<Byte> i = newPriData.iterator(); i.hasNext();) {
+                Byte secKey = i.next();
+                Set<Byte> priKeySet = secMap0.get(secKey);
                 if (priKeySet == null) {
-                    priKeySet = new HashSet();
+                    priKeySet = new HashSet<Byte>();
                     secMap0.put(secKey, priKeySet);
                 }
                 assertTrue(priKeySet.add(priKey));
@@ -214,28 +214,28 @@ public class ToManyTest extends TxnTestCase {
         DatabaseEntry priKeyEntry = new DatabaseEntry();
         DatabaseEntry secKeyEntry = new DatabaseEntry();
         DatabaseEntry dataEntry = new DatabaseEntry();
-        Map priMap1 = new HashMap();
-        Map priMap2 = new HashMap();
-        Map secMap1 = new HashMap();
-        Map secMap2 = new HashMap();
+        Map<Byte, Set<Byte>> priMap1 = new HashMap<Byte, Set<Byte>>();
+        Map<Byte, Set<Byte>> priMap2 = new HashMap<Byte, Set<Byte>>();
+        Map<Byte, Set<Byte>> secMap1 = new HashMap<Byte, Set<Byte>>();
+        Map<Byte, Set<Byte>> secMap2 = new HashMap<Byte, Set<Byte>>();
 
         /* Build map 1 from the primary database. */
-        priMap2 = new HashMap();
+        priMap2 = new HashMap<Byte, Set<Byte>>();
         Cursor priCursor = priDb.openCursor(txn, null);
         while (priCursor.getNext(priKeyEntry, dataEntry, null) ==
                OperationStatus.SUCCESS) {
             Byte priKey = new Byte(priKeyEntry.getData()[0]);
-            Set priData = bytesToSet(dataEntry.getData());
+            Set<Byte> priData = bytesToSet(dataEntry.getData());
 
             /* Update primary map. */
             priMap1.put(priKey, priData);
 
             /* Update secondary map. */
-            for (Iterator i = priData.iterator(); i.hasNext();) {
-                Byte secKey = (Byte) i.next();
-                Set priKeySet = (Set) secMap1.get(secKey);
+            for (Iterator<Byte> i = priData.iterator(); i.hasNext();) {
+                Byte secKey = i.next();
+                Set<Byte> priKeySet = secMap1.get(secKey);
                 if (priKeySet == null) {
-                    priKeySet = new HashSet();
+                    priKeySet = new HashSet<Byte>();
                     secMap1.put(secKey, priKeySet);
                 }
                 assertTrue(priKeySet.add(priKey));
@@ -259,17 +259,17 @@ public class ToManyTest extends TxnTestCase {
             Byte secKey = new Byte(secKeyEntry.getData()[0]);
 
             /* Update primary map. */
-            Set priData = (Set) priMap2.get(priKey);
+            Set<Byte> priData = priMap2.get(priKey);
             if (priData == null) {
-                priData = new HashSet();
+                priData = new HashSet<Byte>();
                 priMap2.put(priKey, priData);
             }
             priData.add(secKey);
 
             /* Update secondary map. */
-            Set secData = (Set) secMap2.get(secKey);
+            Set<Byte> secData = secMap2.get(secKey);
             if (secData == null) {
-                secData = new HashSet();
+                secData = new HashSet<Byte>();
                 secMap2.put(secKey, secData);
             }
             secData.add(priKey);
@@ -285,10 +285,10 @@ public class ToManyTest extends TxnTestCase {
         txnCommit(txn);
     }
 
-    private Set bytesToSet(byte[] bytes) {
-        Set set = null;
+    private Set<Byte> bytesToSet(byte[] bytes) {
+        Set<Byte> set = null;
         if (bytes != null) {
-            set = new HashSet();
+            set = new HashSet<Byte>();
             for (int i = 0; i < bytes.length; i += 1) {
                 set.add(new Byte(bytes[i]));
             }
@@ -335,7 +335,7 @@ public class ToManyTest extends TxnTestCase {
         public void createSecondaryKeys(SecondaryDatabase secondary,
                                         DatabaseEntry key,
                                         DatabaseEntry data,
-                                        Set results)
+                                        Set<DatabaseEntry> results)
             throws DatabaseException {
 
             for (int i = 0; i < data.getSize(); i+= 1) {

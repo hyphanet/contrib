@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: ConfigParam.java,v 1.31 2008/05/30 19:07:40 mark Exp $
+ * $Id: ConfigParam.java,v 1.32 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -141,6 +141,7 @@ public class ConfigParam {
 
     }
 
+    @Override
     public String toString() {
         return name;
     }

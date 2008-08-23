@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: UtilizationTracker.java,v 1.26 2008/05/13 01:44:49 cwl Exp $
+ * $Id: UtilizationTracker.java,v 1.27 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -50,6 +50,7 @@ public class UtilizationTracker extends BaseUtilizationTracker {
         super(env, cleaner);
     }
 
+    @Override
     public EnvironmentImpl getEnvironment() {
         return env;
     }

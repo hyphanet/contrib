@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryEdgeTest.java,v 1.71 2008/05/06 18:01:36 linda Exp $
+ * $Id: RecoveryEdgeTest.java,v 1.72 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -12,8 +12,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -46,7 +48,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
         return allTests;
     }
 
-    private static void addTests(TestSuite allTests,
+    @SuppressWarnings("unchecked") // suite.tests returns untyped Enumeration
+	private static void addTests(TestSuite allTests,
                                  boolean keyPrefixing) {
 
         TestSuite suite = new TestSuite(RecoveryEdgeTest.class);
@@ -84,7 +87,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
                                       noFileConfig,
                                       null /*sharedCacheEnv*/,
                                       false /*replicationIntended*/);
-            List dbList = envImpl.getDbTree().getDbNames();
+            List<String> dbList = envImpl.getDbTree().getDbNames();
             assertEquals("no dbs exist", 0, dbList.size());
 
             /* Fake a shutdown/startup. */
@@ -179,7 +182,9 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
         try {
             /* Create an environment and databases. */
             createEnvAndDbs(1024, true, NUM_DBS);
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
+
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, 4, expectedData, 1, true, NUM_DBS);
             txn.commit();
@@ -244,7 +249,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
         try {
             /* Create an environment and databases. */
             createEnvAndDbs(1024, true, NUM_DBS);
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Make txns before and after a checkpoint */
             Transaction txn = env.beginTransaction(null, null);
@@ -350,7 +356,7 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
              * the records.
              */
             createEnv(1024, false);
-            List dbNames = env.getDatabaseNames();
+            List<String> dbNames = env.getDatabaseNames();
             assertEquals(2, dbNames.size());
             assertEquals("Txnal", dbNames.get(1));
             assertEquals("NotTxnal", dbNames.get(0));
@@ -372,7 +378,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
         try {
             /* Create an environment and databases. */
             createEnvAndDbs(2048, false, 1);
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Make txns before and after a checkpoint */
             Transaction txn = env.beginTransaction(null, null);
@@ -412,7 +419,8 @@ public class RecoveryEdgeTest extends RecoveryTestBase {
         try {
             /* Create an environment and databases. */
             createEnvAndDbs(500, false, 1);
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Commit some data, checkpoint. */
             Transaction txn = env.beginTransaction(null, null);

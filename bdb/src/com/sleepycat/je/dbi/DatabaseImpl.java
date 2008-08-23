@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseImpl.java,v 1.204 2008/05/19 17:52:17 linda Exp $
+ * $Id: DatabaseImpl.java,v 1.205.2.1 2008/08/05 16:57:21 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -1249,14 +1249,15 @@ public class DatabaseImpl implements Loggable, Cloneable {
             new StatsAccumulator(out,
                                  config.getShowProgressInterval(),
                                  emptyStats) {
-                    void verifyNode(Node node) {
+                @Override
+                void verifyNode(Node node) {
 
-                        try {
-                            node.verify(null);
-                        } catch (DatabaseException INE) {
-                            progressStream.println(INE);
-                        }
+                    try {
+                        node.verify(null);
+                    } catch (DatabaseException INE) {
+                        progressStream.println(INE);
                     }
+                }
                 };
         boolean ok = walkDatabaseTree(statsAcc, out, config.getPrintInfo());
         statsAcc.copyToStats(emptyStats);
@@ -1304,6 +1305,11 @@ public class DatabaseImpl implements Loggable, Cloneable {
                 }
                 boolean done = false;
                 while (!done) {
+
+                    /* Perform eviction before each cursor operation. */
+                    envImpl.getEvictor().doCriticalEviction
+                        (false /*backgroundIO*/);
+
                     try {
                         status = cursor.getNext
                             (key, foundData, LockType.NONE, true /*forward*/,
@@ -1811,20 +1817,20 @@ public class DatabaseImpl implements Loggable, Cloneable {
                      cacheBudget + " bytes.");
             }
 
-            PreloadStats stats = new PreloadStats();
+            PreloadStats pstats = new PreloadStats();
             PreloadProcessor callback =
-                new PreloadProcessor(envImpl, maxBytes, targetTime, stats);
+                new PreloadProcessor(envImpl, maxBytes, targetTime, pstats);
             SortedLSNTreeWalker walker =
                 new PreloadLSNTreeWalker(this, callback, config);
             walker.setPassNullLSNNodes(true);
             try {
                 walker.walk();
             } catch (HaltPreloadException HPE) {
-                stats.setStatus(HPE.getStatus());
+                pstats.setStatus(HPE.getStatus());
             }
 
             assert LatchSupport.countLatchesHeld() == 0;
-            return stats;
+            return pstats;
         } catch (Error E) {
             envImpl.invalidate(E);
             throw E;
@@ -1902,9 +1908,9 @@ public class DatabaseImpl implements Loggable, Cloneable {
         throws DatabaseException {
 
         try {
-            PreloadStats stats = new PreloadStats();
+            PreloadStats pstats = new PreloadStats();
 
-            CountProcessor callback = new CountProcessor(envImpl, stats);
+            CountProcessor callback = new CountProcessor(envImpl, pstats);
             ExceptionPredicate excPredicate = new CountExceptionPredicate();
             SortedLSNTreeWalker walker =
                 new SortedLSNTreeWalker(this, false /* setDbState */,
@@ -1918,7 +1924,7 @@ public class DatabaseImpl implements Loggable, Cloneable {
             walker.walk();
 
             assert LatchSupport.countLatchesHeld() == 0;
-            return stats.getNLNsLoaded();
+            return pstats.getNLNsLoaded();
         } catch (Error E) {
             envImpl.invalidate(E);
             throw E;

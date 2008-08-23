@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DeletedDupLNLogEntry.java,v 1.32 2008/01/17 17:22:12 cwl Exp $
+ * $Id: DeletedDupLNLogEntry.java,v 1.33 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -60,6 +60,7 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
      * Extends its super class to read in the extra dup key.
      * @see LNLogEntry#readEntry
      */
+    @Override
     public void readEntry(LogEntryHeader header,
                           ByteBuffer entryBuffer,
                           boolean readFullItem)
@@ -81,6 +82,7 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
      * Extends super class to dump out extra key.
      * @see LNLogEntry#dumpEntry
      */
+    @Override
     public StringBuffer dumpEntry(StringBuffer sb, boolean verbose) {
         super.dumpEntry(sb, verbose);
         sb.append(Key.dumpString(dataAsKey, 0));
@@ -95,6 +97,7 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
      * Extend super class to add in extra key.
      * @see LNLogEntry#getSize
      */
+    @Override
     public int getSize() {
         return super.getSize() +
 	    LogUtils.getByteArrayLogSize(dataAsKey);
@@ -103,6 +106,7 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
     /**
      * @see LogEntry#writeToLog
      */
+    @Override
     public void writeEntry(LogEntryHeader header,
                            ByteBuffer destBuffer) {
         super.writeEntry(header, destBuffer);
@@ -116,6 +120,7 @@ public class DeletedDupLNLogEntry extends LNLogEntry {
     /**
      * Get the data-as-key out of the entry.
      */
+    @Override
     public byte[] getDupKey() {
         return dataAsKey;
     }

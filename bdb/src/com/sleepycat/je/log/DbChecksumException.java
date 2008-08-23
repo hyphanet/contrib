@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbChecksumException.java,v 1.23 2008/05/13 01:44:52 cwl Exp $
+ * $Id: DbChecksumException.java,v 1.24 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -42,6 +42,7 @@ public class DbChecksumException extends RunRecoveryException {
         }
     }
 
+    @Override
     public String toString() {
         if (extraInfo == null) {
             return super.toString();

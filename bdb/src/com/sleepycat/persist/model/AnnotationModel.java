@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: AnnotationModel.java,v 1.24 2008/05/05 13:15:40 mark Exp $
+ * $Id: AnnotationModel.java,v 1.25 2008/06/26 05:24:53 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -118,23 +118,69 @@ public class AnnotationModel extends EntityModel {
             }
             /* Get instance fields. */
             List<Field> fields = new ArrayList<Field>();
-            for (Field field : type.getDeclaredFields()) {
-                int mods = field.getModifiers();
-                if (!Modifier.isTransient(mods) && !Modifier.isStatic(mods)) {
-                    fields.add(field);
+            boolean nonDefaultRules = getInstanceFields(fields, type);
+            Collection<FieldMetadata> nonDefaultFields = null;
+            if (nonDefaultRules) {
+                nonDefaultFields = new ArrayList<FieldMetadata>(fields.size());
+                for (Field field : fields) {
+                    nonDefaultFields.add(new FieldMetadata
+                        (field.getName(), field.getType().getName(),
+                         type.getName()));
                 }
+                nonDefaultFields =
+                    Collections.unmodifiableCollection(nonDefaultFields);
             }
             /* Get the rest of the metadata and save it. */
             metadata = new ClassMetadata
                 (className, version, proxiedClassName, isEntity,
                  getPrimaryKey(type, fields),
                  getSecondaryKeys(type, fields),
-                 getCompositeKeyFields(type, fields));
+                 getCompositeKeyFields(type, fields),
+                 nonDefaultFields);
             classMap.put(className, metadata);
             /* Add any new information about entities. */
             updateEntityInfo(metadata);
         }
         return metadata;
+    }
+
+    /**
+     * Fills in the fields array and returns true if the default rules for
+     * field persistence were overridden.
+     */
+    private boolean getInstanceFields(List<Field> fields, Class<?> type) {
+        boolean nonDefaultRules = false;
+        for (Field field : type.getDeclaredFields()) {
+            boolean notPersistent =
+                (field.getAnnotation(NotPersistent.class) != null);
+            boolean notTransient = 
+                (field.getAnnotation(NotTransient.class) != null);
+            if (notPersistent && notTransient) {
+                throw new IllegalArgumentException
+                    ("Both @NotTransient and @NotPersistent not allowed");
+            }
+            if (notPersistent || notTransient) {
+                nonDefaultRules = true;
+            }
+            int mods = field.getModifiers();
+
+            if (!Modifier.isStatic(mods) &&
+                !notPersistent &&
+                (!Modifier.isTransient(mods) || notTransient)) {
+                /* Field is DPL persistent. */
+                fields.add(field);
+            } else {
+                /* If non-persistent, no other annotations should be used. */
+                if (field.getAnnotation(PrimaryKey.class) != null ||
+                    field.getAnnotation(SecondaryKey.class) != null ||
+                    field.getAnnotation(KeyField.class) != null) {
+                    throw new IllegalArgumentException
+                        ("@PrimaryKey, @SecondaryKey and @KeyField not " +
+                         "allowed on non-persistent field");
+                }
+            }
+        }
+        return nonDefaultRules;
     }
 
     private PrimaryKeyMetadata getPrimaryKey(Class<?> type,

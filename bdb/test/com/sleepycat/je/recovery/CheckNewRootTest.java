@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckNewRootTest.java,v 1.16 2008/05/07 01:51:17 linda Exp $
+ * $Id: CheckNewRootTest.java,v 1.17 2008/06/30 20:54:48 linda Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -27,6 +27,7 @@ import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.LogEntryType;
 import com.sleepycat.je.log.ReplicationContext;
 import com.sleepycat.je.log.entry.SingleItemEntry;
+import com.sleepycat.je.recovery.stepwise.TestData;
 import com.sleepycat.je.util.TestUtils;
 import com.sleepycat.je.utilint.TestHook;
 import com.sleepycat.je.utilint.Tracer;
@@ -39,7 +40,6 @@ public class CheckNewRootTest extends CheckBase {
     private static final boolean DEBUG = false;
     private static final String DB_NAME = "simpleDB";
 
-    private boolean purgeRoot = false;
     private boolean useDups = false;
     private static CheckpointConfig FORCE_CONFIG = new CheckpointConfig();
     static {
@@ -81,7 +81,7 @@ public class CheckNewRootTest extends CheckBase {
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
-        HashSet currentExpected = new HashSet();
+        HashSet<TestData> currentExpected = new HashSet<TestData>();
         stepwiseLoop(DB_NAME, envConfig, dbConfig, currentExpected, 0);
     }
 
@@ -161,7 +161,7 @@ public class CheckNewRootTest extends CheckBase {
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
-        HashSet currentExpected = new HashSet();
+        HashSet<TestData> currentExpected = new HashSet<TestData>();
         stepwiseLoop(DB_NAME, envConfig, dbConfig, currentExpected, 0);
     }
 
@@ -234,7 +234,7 @@ public class CheckNewRootTest extends CheckBase {
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
-        HashSet currentExpected = new HashSet();
+        HashSet<TestData> currentExpected = new HashSet<TestData>();
         stepwiseLoop(DB_NAME, envConfig, dbConfig, currentExpected, 0);
     }
 
@@ -342,7 +342,7 @@ public class CheckNewRootTest extends CheckBase {
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
-        HashSet currentExpected = new HashSet();
+        HashSet<TestData> currentExpected = new HashSet<TestData>();
         stepwiseLoop(DB_NAME, envConfig, dbConfig, currentExpected, 0);
     }
 

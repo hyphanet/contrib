@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentStats.java,v 1.57 2008/05/07 17:12:25 mark Exp $
+ * $Id: EnvironmentStats.java,v 1.58 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -1542,6 +1542,7 @@ public class EnvironmentStats implements Serializable {
      * Returns a String representation of the stats in the form of
      * &lt;stat&gt;=&lt;value&gt;
      */
+    @Override
     public String toString() {
         DecimalFormat f = new DecimalFormat("###,###,###,###,###,###,###");
 

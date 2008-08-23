@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SecondaryCursor.java,v 1.44 2008/05/19 17:52:16 linda Exp $
+ * $Id: SecondaryCursor.java,v 1.45 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -113,6 +113,7 @@ public class SecondaryCursor extends Cursor {
      * Returns a new <code>SecondaryCursor</code> for the same transaction as
      * the original cursor.
      */
+    @Override
     public Cursor dup(boolean samePosition)
         throws DatabaseException {
 
@@ -146,6 +147,7 @@ public class SecondaryCursor extends Cursor {
      * cursor functions expecting the cursor to refer to an existing key will
      * fail.
      */
+    @Override
     public OperationStatus delete()
         throws DatabaseException {
 
@@ -176,6 +178,7 @@ public class SecondaryCursor extends Cursor {
      * UnsupportedOperationException} will always be thrown by this method.
      * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public OperationStatus put(DatabaseEntry key, DatabaseEntry data)
         throws DatabaseException {
 
@@ -187,6 +190,7 @@ public class SecondaryCursor extends Cursor {
      * UnsupportedOperationException} will always be thrown by this method.
      * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public OperationStatus putNoOverwrite(DatabaseEntry key,
                                           DatabaseEntry data)
         throws DatabaseException {
@@ -199,6 +203,7 @@ public class SecondaryCursor extends Cursor {
      * UnsupportedOperationException} will always be thrown by this method.
      * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public OperationStatus putNoDupData(DatabaseEntry key, DatabaseEntry data)
         throws DatabaseException {
 
@@ -210,6 +215,7 @@ public class SecondaryCursor extends Cursor {
      * UnsupportedOperationException} will always be thrown by this method.
      * The corresponding method on the primary database should be used instead.
      */
+    @Override
     public OperationStatus putCurrent(DatabaseEntry data)
         throws DatabaseException {
 
@@ -246,6 +252,7 @@ public class SecondaryCursor extends Cursor {
      * deleted; otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getCurrent(DatabaseEntry key,
                                       DatabaseEntry data,
                                       LockMode lockMode)
@@ -329,6 +336,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getFirst(DatabaseEntry key,
                                     DatabaseEntry data,
                                     LockMode lockMode)
@@ -417,6 +425,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getLast(DatabaseEntry key,
                                    DatabaseEntry data,
                                    LockMode lockMode)
@@ -511,6 +520,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getNext(DatabaseEntry key,
                                    DatabaseEntry data,
                                    LockMode lockMode)
@@ -609,6 +619,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getNextDup(DatabaseEntry key,
                                       DatabaseEntry data,
                                       LockMode lockMode)
@@ -702,6 +713,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getNextNoDup(DatabaseEntry key,
                                         DatabaseEntry data,
                                         LockMode lockMode)
@@ -807,6 +819,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getPrev(DatabaseEntry key,
                                    DatabaseEntry data,
                                    LockMode lockMode)
@@ -905,6 +918,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getPrevDup(DatabaseEntry key,
                                       DatabaseEntry data,
                                       LockMode lockMode)
@@ -998,6 +1012,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getPrevNoDup(DatabaseEntry key,
                                         DatabaseEntry data,
                                         LockMode lockMode)
@@ -1096,6 +1111,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getSearchKey(DatabaseEntry key,
                                         DatabaseEntry data,
                                         LockMode lockMode)
@@ -1192,6 +1208,7 @@ public class SecondaryCursor extends Cursor {
      * otherwise, {@link com.sleepycat.je.OperationStatus#SUCCESS
      * OperationStatus.SUCCESS}.
      */
+    @Override
     public OperationStatus getSearchKeyRange(DatabaseEntry key,
                                              DatabaseEntry data,
                                              LockMode lockMode)
@@ -1262,6 +1279,7 @@ public class SecondaryCursor extends Cursor {
      * The corresponding method with the <code>pKey</code> parameter should be
      * used instead.
      */
+    @Override
     public OperationStatus getSearchBoth(DatabaseEntry key,
                                          DatabaseEntry data,
                                          LockMode lockMode)
@@ -1326,6 +1344,7 @@ public class SecondaryCursor extends Cursor {
      * The corresponding method with the <code>pKey</code> parameter should be
      * used instead.
      */
+    @Override
     public OperationStatus getSearchBothRange(DatabaseEntry key,
                                               DatabaseEntry data,
                                               LockMode lockMode)
@@ -1570,7 +1589,7 @@ public class SecondaryCursor extends Cursor {
              * secondary key.  If it has been, return KEYEMPTY.
              */
             if (readUncommitted) {
-                SecondaryConfig config =
+                SecondaryConfig conf =
                     secondaryDb.getPrivateSecondaryConfig();
 
                 /*
@@ -1578,28 +1597,28 @@ public class SecondaryCursor extends Cursor {
                  * null (the database is read only), then we can skip this
                  * check.
                  */
-                if (config.getImmutableSecondaryKey()) {
+                if (conf.getImmutableSecondaryKey()) {
                     /* Do nothing. */
-                } else if (config.getKeyCreator() != null) {
+                } else if (conf.getKeyCreator() != null) {
 
                     /*
                      * Check that the key we're using is equal to the key
                      * returned by the key creator.
                      */
                     DatabaseEntry secKey = new DatabaseEntry();
-                    if (!config.getKeyCreator().createSecondaryKey
+                    if (!conf.getKeyCreator().createSecondaryKey
                             (secondaryDb, pKey, data, secKey) ||
                         !secKey.equals(key)) {
                         return OperationStatus.KEYEMPTY;
                     }
-                } else if (config.getMultiKeyCreator() != null) {
+                } else if (conf.getMultiKeyCreator() != null) {
 
                     /*
                      * Check that the key we're using is in the set returned by
                      * the key creator.
                      */
                     Set<DatabaseEntry> results = new HashSet<DatabaseEntry>();
-                    config.getMultiKeyCreator().createSecondaryKeys
+                    conf.getMultiKeyCreator().createSecondaryKeys
                         (secondaryDb, pKey, data, results);
                     if (!results.contains(key)) {
                         return OperationStatus.KEYEMPTY;

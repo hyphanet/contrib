@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnEndTest.java,v 1.73 2008/05/15 09:44:35 chao Exp $
+ * $Id: TxnEndTest.java,v 1.74 2008/06/06 17:12:30 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -411,10 +411,11 @@ public class TxnEndTest extends TestCase {
 			    Thread.yield();
 			    DatabaseEntry key = new DatabaseEntry();
 			    key.setData("abc".getBytes());
-			    OperationStatus status;
-			    status =
+			    OperationStatus status =
 				c.getSearchKeyRange(key, data, LockMode.DEFAULT);
+			    assertEquals(status, OperationStatus.SUCCESS);
 			    status = c.delete();
+			    assertEquals(status, OperationStatus.SUCCESS);
 			} catch (Throwable T) {
 			    T.printStackTrace();
 			} finally {
@@ -426,8 +427,8 @@ public class TxnEndTest extends TestCase {
 	    tester1.start();
 	    Thread.yield();
 	    key.setData("abc".getBytes());
-	    OperationStatus status;
-	    status = db.delete(txn1, key);
+	    OperationStatus status = db.delete(txn1, key);
+	    assertEquals(OperationStatus.SUCCESS, status);
 
 	    txn1.abort();
 	    Thread.yield();

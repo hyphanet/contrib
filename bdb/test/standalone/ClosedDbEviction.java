@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ClosedDbEviction.java,v 1.1 2008/01/17 05:41:39 chao Exp $
+ * $Id: ClosedDbEviction.java,v 1.2 2008/06/06 17:12:31 linda Exp $
  */
 
 import java.io.File;
@@ -427,7 +427,6 @@ public class ClosedDbEviction {
 
             public void run() {
                 try {
-                    int ops = 0;
                     while (runDataAccessThread) {
                         /* Access records to fill up cache. */
                         DatabaseEntry key = new DatabaseEntry();

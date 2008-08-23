@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSelectionTest.java,v 1.41 2008/03/27 14:53:28 mark Exp $
+ * $Id: FileSelectionTest.java,v 1.42 2008/06/06 17:12:27 linda Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -88,8 +88,6 @@ public class FileSelectionTest extends TestCase {
                               "false");
         config.setConfigParam
 	    (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
-        config.setConfigParam
-	    (EnvironmentParams.CLEANER_MIN_FILES_TO_DELETE.getName(), "1");
         config.setConfigParam
 	    (EnvironmentParams.CLEANER_LOCK_TIMEOUT.getName(), "1");
         config.setConfigParam

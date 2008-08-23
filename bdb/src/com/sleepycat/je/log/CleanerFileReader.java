@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CleanerFileReader.java,v 1.42 2008/05/15 01:52:41 linda Exp $
+ * $Id: CleanerFileReader.java,v 1.43 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -90,6 +90,7 @@ public class CleanerFileReader extends FileReader {
      * Helper for determining the starting position and opening
      * up a file at the desired location.
      */
+    @Override
     protected void initStartingPosition(long endOfFileLsn,
                                         Long fileNum)
         throws IOException, DatabaseException {
@@ -114,6 +115,7 @@ public class CleanerFileReader extends FileReader {
     /**
      * @return true if this is a type we're interested in.
      */
+    @Override
     protected boolean isTargetEntry() {
 
         LogEntryType fromLogType =

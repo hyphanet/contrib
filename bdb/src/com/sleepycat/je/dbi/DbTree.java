@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbTree.java,v 1.205 2008/05/21 14:49:14 cwl Exp $
+ * $Id: DbTree.java,v 1.206 2008/06/10 02:52:10 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -1624,6 +1624,7 @@ public class DbTree implements Loggable {
         return self.toString();
     }
 
+    @Override
     public String toString() {
         return dumpString(0);
     }

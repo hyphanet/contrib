@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckpointFileReader.java,v 1.31 2008/01/07 14:28:51 cwl Exp $
+ * $Id: CheckpointFileReader.java,v 1.32 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -41,6 +41,7 @@ public class CheckpointFileReader extends FileReader {
     /**
      * @return true if this is a targetted entry.
      */
+    @Override
     protected boolean isTargetEntry() {
         byte logEntryTypeNumber = currentEntryHeader.getType();
         boolean isTarget = false;

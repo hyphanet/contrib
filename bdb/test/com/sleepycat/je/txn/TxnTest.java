@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnTest.java,v 1.71 2008/05/13 20:03:11 sam Exp $
+ * $Id: TxnTest.java,v 1.74 2008/06/30 20:54:50 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -42,6 +42,7 @@ import com.sleepycat.je.tree.IN;
 import com.sleepycat.je.tree.LN;
 import com.sleepycat.je.tree.WithRootLatched;
 import com.sleepycat.je.util.TestUtils;
+import com.sleepycat.je.utilint.DbLsn;
 
 /*
  * Simple transaction testing
@@ -218,10 +219,8 @@ public class TxnTest extends TestCase {
 	    assertEquals(2, envStats.getNTotalLocks());
 
 	    try {
-		LockGrantType lockGrant2 = userTxn2.lock
-		    (ln.getNodeId(), LockType.WRITE, false,
-		     DbInternal.dbGetDatabaseImpl(db)).
-		    getLockGrant();
+		    userTxn2.lock(ln.getNodeId(), LockType.WRITE, false,
+		                  DbInternal.dbGetDatabaseImpl(db)).getLockGrant();
 	    } catch (DeadlockException DE) {
 		// ok
 	    }
@@ -297,7 +296,13 @@ public class TxnTest extends TestCase {
             assertEquals(LockGrantType.EXISTING, lockGrant);
             checkHeldLocks(userTxn, 1, 1);
 
-            /* Shouldn't release at operation end. */
+
+            /* 
+             * The commit won't actually write a log record if this 
+             * transaction has never done an update, so fake it out and simulate
+             * a write.
+             */
+            userTxn.addLogInfo(DbLsn.makeLsn(0, 100));
             long commitLsn = userTxn.commit(TransactionConfig.SYNC);
             checkHeldLocks(userTxn, 0, 0);
 
@@ -381,7 +386,7 @@ public class TxnTest extends TestCase {
              * [#14349] Make sure the txn is printable after closing. We
              * once had a NullPointerException.
              */
-            String s = txn.toString();
+            txn.toString();
         } catch (Throwable t) {
             /* print stack trace before going to teardown. */
             t.printStackTrace();

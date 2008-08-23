@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ThinLockImpl.java,v 1.5 2008/05/15 01:52:43 linda Exp $
+ * $Id: ThinLockImpl.java,v 1.6 2008/06/10 02:52:14 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -197,6 +197,7 @@ public class ThinLockImpl extends LockInfo implements Lock {
 	return true;
     }
 
+    @Override
     public String toString() {
 
         StringBuffer sb = new StringBuffer();

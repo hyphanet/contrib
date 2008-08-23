@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CollectionTest.java,v 1.63 2008/05/28 14:50:07 mark Exp $
+ * $Id: CollectionTest.java,v 1.63.2.1 2008/07/15 19:08:41 mark Exp $
  */
 
 package com.sleepycat.collections.test;
@@ -21,6 +21,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.concurrent.ConcurrentMap;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -370,7 +371,7 @@ public class CollectionTest extends TestCase {
         assertEquals(expectSize, cont.size());
     }
 
-    void testMapCreation(Map map)
+    void testMapCreation(ConcurrentMap map)
         throws Exception {
 
         assertTrue(map.values() instanceof Set);

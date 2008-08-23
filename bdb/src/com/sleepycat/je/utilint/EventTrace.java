@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EventTrace.java,v 1.15 2008/01/07 14:28:57 cwl Exp $
+ * $Id: EventTrace.java,v 1.16 2008/06/10 02:52:15 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -36,6 +36,7 @@ public class EventTrace {
 	comment = null;
     }
 
+    @Override
     public String toString() {
 	return comment;
     }
@@ -99,6 +100,7 @@ public class EventTrace {
             event = new Exception();
 	}
 
+        @Override
 	public String toString() {
             return Tracer.getStackTrace(event);
 	}

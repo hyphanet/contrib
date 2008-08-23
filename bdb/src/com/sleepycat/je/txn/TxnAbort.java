@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TxnAbort.java,v 1.25 2008/05/13 01:57:01 linda Exp $
+ * $Id: TxnAbort.java,v 1.26 2008/06/27 18:30:32 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -41,6 +41,9 @@ public class TxnAbort extends TxnEnd {
         if (!(other instanceof TxnAbort))
             return false;
 
-        return (id == ((TxnAbort) other).id);
+        TxnAbort otherAbort = (TxnAbort) other;
+
+        return ((id == otherAbort.id) && 
+                (repMasterNodeId == otherAbort.repMasterNodeId));
     }
 }

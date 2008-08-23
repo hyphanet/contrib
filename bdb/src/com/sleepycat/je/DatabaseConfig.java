@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseConfig.java,v 1.47 2008/05/29 03:38:23 linda Exp $
+ * $Id: DatabaseConfig.java,v 1.48 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -877,7 +877,7 @@ public class DatabaseConfig implements Cloneable {
                                                     boolean dwMatch,
                                                     boolean btCmpMatch,
                                                     boolean dtCmpMatch) {
-        StringBuffer ret = new StringBuffer
+        StringBuilder ret = new StringBuilder
             ("The following DatabaseConfig parameters for the\n" +
              "cached Database do not match the parameters for the\n" +
              "requested Database:\n");
@@ -1029,5 +1029,23 @@ public class DatabaseConfig implements Cloneable {
         }
 
         return true;
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "allowCreate=" + allowCreate +
+            "\nexclusiveCreate=" + exclusiveCreate +
+            "\ntransactional=" + transactional +
+            "\nreadOnly=" + readOnly +
+            "\nduplicatesAllowed=" + duplicatesAllowed +
+            "\ndeferredWrite=" + deferredWrite +
+            "\ntemporary=" + temporary +
+            "\nkeyPrefixingEnabled=" + keyPrefixingEnabled +
+            "\n";
     }
 }

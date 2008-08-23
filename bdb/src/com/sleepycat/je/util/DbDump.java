@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbDump.java,v 1.55 2008/05/15 01:52:43 linda Exp $
+ * $Id: DbDump.java,v 1.56 2008/06/10 02:52:15 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -28,7 +28,6 @@ import com.sleepycat.je.JEVersion;
 import com.sleepycat.je.LockMode;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.config.EnvironmentParams;
-import com.sleepycat.je.util.DbScavenger;
 import com.sleepycat.je.utilint.CmdUtil;
 import com.sleepycat.je.utilint.Tracer;
 

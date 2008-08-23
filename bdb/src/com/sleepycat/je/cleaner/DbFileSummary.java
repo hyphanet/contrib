@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbFileSummary.java,v 1.4 2008/01/07 14:28:47 cwl Exp $
+ * $Id: DbFileSummary.java,v 1.5 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -222,6 +222,7 @@ public class DbFileSummary implements Loggable {
         return false;
     }
 
+    @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();
         dumpLog(buf, true);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TruncateTest.java,v 1.22 2008/04/08 21:30:00 cwl Exp $
+ * $Id: TruncateTest.java,v 1.22.2.1 2008/07/08 17:06:19 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -43,11 +43,13 @@ public class TruncateTest extends TestCase {
     public void tearDown()
         throws Exception {
 
-        try {
-            /* Close in case we hit an exception and didn't close. */
-            env.close();
-        } catch (DatabaseException e) {
-            /* Ok if already closed */
+        if (env != null) {
+            try {
+                /* Close in case we hit an exception and didn't close. */
+                env.close();
+            } catch (DatabaseException e) {
+                /* Ok if already closed */
+            }
         }
         env = null; // for JUNIT, to reduce memory usage when run in a suite.
         TestUtils.removeLogFiles("TearDown", envHome, false);
@@ -368,6 +370,45 @@ public class TruncateTest extends TestCase {
             t.printStackTrace();
             throw t;
         }
+    }
+
+    /**
+     * Test that truncateDatabase and removeDatabase can be called after
+     * replaying an LN in that database during recovery.  This is to test a fix
+     * to a bug where truncateDatabase caused a hang because DbTree.releaseDb
+     * was not called by RecoveryUtilizationTracker.  [#16329]
+     */
+    public void testTruncateAfterRecovery()
+        throws Throwable {
+
+        DatabaseEntry key = new DatabaseEntry(new byte[10]);
+        DatabaseEntry data = new DatabaseEntry(new byte[10]);
+
+        Database db = initEnvAndDb(true);
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+
+        /* Write a single record for recovery. */
+        OperationStatus status = db.put(null, key, data);
+        assertSame(OperationStatus.SUCCESS, status);
+
+        /* Close without a checkpoint and run recovery. */
+        db.close();
+        envImpl.abnormalClose();
+        envImpl = null;
+        env = null;
+        db = initEnvAndDb(true);
+
+        /* Ensure that truncateDatabase does not hang. */
+        db.close();
+        long truncateCount = env.truncateDatabase(null, DB_NAME, true);
+        assertEquals(1, truncateCount);
+
+        /* removeDatabase should also work. */
+        env.removeDatabase(null, DB_NAME);
+        assertTrue(!env.getDatabaseNames().contains(DB_NAME));
+
+        env.close();
+        env = null;
     }
 
     /**

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Format.java,v 1.39 2008/01/07 14:28:59 cwl Exp $
+ * $Id: Format.java,v 1.40 2008/06/23 19:18:26 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -707,12 +707,17 @@ public abstract class Format implements Reader, RawType, Serializable {
      * Called for an existing format that may not equal the current format for
      * the same class.
      *
-     * <p>If this method returns true, then it must have determined that the
-     * old and new formats are equal, and it must have called either
-     * Evolver.useOldFormat or useEvolvedFormat.  If this method returns false,
-     * then it must have determined that the old format could not be evolved to
-     * the new format, and it must have called Evolver.addInvalidMutation,
-     * addMissingMutation or addEvolveError.</p>
+     * <p>If this method returns true, then it must have determined one of two
+     * things:
+     *  - that the old and new formats are equal, and it must have called
+     *  Evolver.useOldFormat; or
+     *  - that the old format can be evolved to the new format, and it must
+     *  have called Evolver.useEvolvedFormat.</p>
+     *
+     * <p>If this method returns false, then it must have determined that the
+     * old format could not be evolved to the new format, and it must have
+     * called Evolver.addInvalidMutation, addMissingMutation or
+     * addEvolveError.</p>
      */
     abstract boolean evolve(Format newFormat, Evolver evolver);
 

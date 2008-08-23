@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: IntConfigParam.java,v 1.30 2008/05/30 19:07:40 mark Exp $
+ * $Id: IntConfigParam.java,v 1.31 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -62,6 +62,7 @@ public class IntConfigParam extends ConfigParam {
         }
     }
 
+    @Override
     public void validateValue(String value)
         throws IllegalArgumentException {
 

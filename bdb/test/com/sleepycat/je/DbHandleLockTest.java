@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbHandleLockTest.java,v 1.26 2008/01/07 14:29:05 cwl Exp $
+ * $Id: DbHandleLockTest.java,v 1.27 2008/06/05 19:12:59 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -14,6 +14,10 @@ import junit.framework.TestCase;
 
 import com.sleepycat.je.util.TestUtils;
 
+/**
+ * BDB's transactional DDL operations (database creation, truncation,
+ * remove and rename) need special support through what we call "handle" locks.
+ */
 public class DbHandleLockTest extends TestCase {
     private File envHome;
     private Environment env;

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogEntryInfo.java,v 1.7 2008/01/07 14:29:11 cwl Exp $
+ * $Id: LogEntryInfo.java,v 1.8 2008/06/30 20:54:49 linda Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -42,7 +42,10 @@ public class LogEntryInfo {
      *
      * The default action is that the expected set is not changed.
      */
-    public void updateExpectedSet(Set expectedSet, Map newUncommittedRecords, Map deletedUncommittedRecords) {}
+    public void updateExpectedSet
+        (Set<TestData> expectedSet, 
+         Map<Long, Set<TestData>> newUncommittedRecords, 
+         Map<Long, Set<TestData>> deletedUncommittedRecords) {}
 
     public String toString() {
         StringBuffer sb = new StringBuffer();

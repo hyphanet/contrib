@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: NonTxnalDeletedEntry.java,v 1.6 2008/01/07 14:29:11 cwl Exp $
+ * $Id: NonTxnalDeletedEntry.java,v 1.7 2008/06/30 20:54:49 linda Exp $
  */
 
 package com.sleepycat.je.recovery.stepwise;
@@ -26,10 +26,15 @@ class NonTxnalDeletedEntry extends LogEntryInfo {
     }
 
     /* Delete this item from the expected set. */
-    public void updateExpectedSet(Set useExpected, Map newUncommittedRecords, Map deletedUncommittedRecords) {
-        Iterator iter = useExpected.iterator();
+    @Override
+    public void updateExpectedSet
+        (Set<TestData> useExpected, 
+         Map<Long, Set<TestData>> newUncommittedRecords, 
+         Map<Long, Set<TestData>>  deletedUncommittedRecords) {
+
+        Iterator<TestData> iter = useExpected.iterator();
         while (iter.hasNext()) {
-            TestData setItem = (TestData) iter.next();
+            TestData setItem = iter.next();
             int keyValInSet = IntegerBinding.entryToInt(setItem.getKey());
             if (keyValInSet == key) {
                 if (data == -1) {
@@ -37,7 +42,8 @@ class NonTxnalDeletedEntry extends LogEntryInfo {
                     iter.remove();
                     break;
                 } else {
-                    int dataValInSet = IntegerBinding.entryToInt(setItem.getData());
+                    int dataValInSet = 
+                        IntegerBinding.entryToInt(setItem.getData());
                     if (dataValInSet == data) {
                         iter.remove();
                         break;

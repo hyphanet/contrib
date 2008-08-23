@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SecondaryDatabase.java,v 1.61 2008/03/18 15:53:04 mark Exp $
+ * $Id: SecondaryDatabase.java,v 1.62 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -161,6 +161,7 @@ public class SecondaryDatabase extends Database {
     /**
      * Create a database, called by Environment
      */
+    @Override
     void initNew(Environment env,
                  Locker locker,
                  String databaseName,
@@ -174,6 +175,7 @@ public class SecondaryDatabase extends Database {
     /**
      * Open a database, called by Environment
      */
+    @Override
     void initExisting(Environment env,
                       Locker locker,
                       DatabaseImpl database,
@@ -357,6 +359,7 @@ public class SecondaryDatabase extends Database {
     /**
      * Overrides Database method.
      */
+    @Override
     Cursor newDbcInstance(Transaction txn,
                           CursorConfig cursorConfig)
         throws DatabaseException {

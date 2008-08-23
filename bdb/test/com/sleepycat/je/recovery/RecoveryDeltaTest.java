@@ -3,12 +3,14 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryDeltaTest.java,v 1.30 2008/01/07 14:29:10 cwl Exp $
+ * $Id: RecoveryDeltaTest.java,v 1.31 2008/06/30 20:54:48 linda Exp $
  */
 package com.sleepycat.je.recovery;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.DatabaseEntry;
@@ -58,7 +60,8 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
         int numRecs = 20;
         try {
             // Set up an repository of expected data
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             // insert all the data
             Transaction txn = env.beginTransaction(null, null);
@@ -98,7 +101,8 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
         int numRecs = 20;
         try {
             /* Set up a repository of expected data */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /*
              * Force a checkpoint, to flush a full version of the BIN
@@ -119,7 +123,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
             env.checkpoint(forceConfig);
 
             closeEnv();
-            List infoList = recoverAndVerify(expectedData, NUM_DBS);
+            List<RecoveryInfo> infoList = recoverAndVerify(expectedData, NUM_DBS);
 
             /* Check that this recovery processed deltas */
             RecoveryInfo firstInfo = (RecoveryInfo) infoList.get(0);
@@ -149,7 +153,8 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
         try {
 
             /* Set up a repository of expected data */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert data and abort. */
             Transaction txn = env.beginTransaction(null, null);
@@ -193,7 +198,7 @@ public class RecoveryDeltaTest extends RecoveryTestBase {
             removeCursors(cursors);
 
             closeEnv();
-            List infoList = recoverAndVerify(expectedData, NUM_DBS);
+            List<RecoveryInfo> infoList = recoverAndVerify(expectedData, NUM_DBS);
 
             /* Check that this recovery processed deltas */
             RecoveryInfo firstInfo = (RecoveryInfo) infoList.get(0);

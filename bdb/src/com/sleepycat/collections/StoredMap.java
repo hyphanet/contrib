@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: StoredMap.java,v 1.55 2008/05/29 03:17:27 linda Exp $
+ * $Id: StoredMap.java,v 1.55.2.1 2008/07/15 19:08:41 mark Exp $
  */
 
 package com.sleepycat.collections;
@@ -35,7 +35,8 @@ import com.sleepycat.util.keyrange.KeyRangeException;
  *
  * @author Mark Hayes
  */
-public class StoredMap<K,V> extends StoredContainer implements Map<K,V> {
+public class StoredMap<K,V> extends StoredContainer
+    implements ConcurrentMap<K,V> {
 
     private StoredKeySet<K> keySet;
     private StoredEntrySet<K,V> entrySet;

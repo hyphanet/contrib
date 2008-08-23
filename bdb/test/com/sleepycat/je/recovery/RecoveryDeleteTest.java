@@ -3,12 +3,14 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryDeleteTest.java,v 1.9 2008/01/07 14:29:10 cwl Exp $
+ * $Id: RecoveryDeleteTest.java,v 1.10 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.DatabaseException;
@@ -33,7 +35,8 @@ public class RecoveryDeleteTest extends RecoveryTestBase {
 
         try {
             // Set up an repository of expected data
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             // insert all the data
             Transaction txn = env.beginTransaction(null, null);

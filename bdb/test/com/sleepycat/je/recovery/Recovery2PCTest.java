@@ -3,13 +3,15 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Recovery2PCTest.java,v 1.14 2008/01/07 14:29:10 cwl Exp $
+ * $Id: Recovery2PCTest.java,v 1.15 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
 
 import java.io.IOException;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -24,8 +26,6 @@ import com.sleepycat.je.XAEnvironment;
 import com.sleepycat.je.log.LogUtils.XidImpl;
 
 public class Recovery2PCTest extends RecoveryTestBase {
-    private static final boolean DEBUG = false;
-
     private boolean explicitTxn;
     private boolean commit;
     private boolean recover;
@@ -121,7 +121,8 @@ public class Recovery2PCTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert all the data. */
 	    XidImpl xid = new XidImpl(1, "TwoPCTest1".getBytes(), null);
@@ -174,8 +175,11 @@ public class Recovery2PCTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            final Hashtable expectedData1 = new Hashtable();
-            final Hashtable expectedData2 = new Hashtable();
+            final Map<TestData, Set<TestData>> expectedData1 = 
+                new HashMap<TestData, Set<TestData>>();
+
+            final Map<TestData, Set<TestData>> expectedData2 = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert all the data. */
             final Transaction txn1 =

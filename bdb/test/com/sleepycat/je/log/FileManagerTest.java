@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileManagerTest.java,v 1.71 2008/01/07 14:29:09 cwl Exp $
+ * $Id: FileManagerTest.java,v 1.72 2008/06/30 20:54:47 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -397,7 +397,6 @@ public class FileManagerTest extends TestCase {
         FileManagerTestUtils.createLogFile(fileManager, envImpl, FILE_SIZE);
 
         byte[] badData = new byte[]{1,1};
-        int headerSize =  FileManager.firstLogEntryOffset();
         RandomAccessFile file0 =
             new RandomAccessFile
 		(fileManager.getFullFileName(0, FileManager.JE_SUFFIX),
@@ -407,7 +406,7 @@ public class FileManagerTest extends TestCase {
         fileManager.clear();
 
         try {
-            FileHandle file0Handle = fileManager.getFileHandle(0L);
+            fileManager.getFileHandle(0L);
             fail("expect to catch a checksum error");
         } catch (DbChecksumException e) {
         }
@@ -462,7 +461,7 @@ public class FileManagerTest extends TestCase {
             Long f3 = new Long(3L);
             Long f4 = new Long(4L);
 
-            Set keySet = fileManager.getCacheKeys();
+            Set<Long> keySet = fileManager.getCacheKeys();
             assertEquals("should have 0 keys", 0, keySet.size());
 
             /*

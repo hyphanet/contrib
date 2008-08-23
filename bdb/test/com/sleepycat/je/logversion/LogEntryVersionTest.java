@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogEntryVersionTest.java,v 1.23 2008/05/30 14:04:21 mark Exp $
+ * $Id: LogEntryVersionTest.java,v 1.24 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.logversion;
@@ -47,7 +47,6 @@ public class LogEntryVersionTest extends TestCase {
     private Environment env;
     private Database db1;
     private Database db2;
-    private Database db3;
 
     public LogEntryVersionTest() {
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));

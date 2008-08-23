@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbVerify.java,v 1.50 2008/05/15 01:52:43 linda Exp $
+ * $Id: DbVerify.java,v 1.50.2.2 2008/08/05 16:57:21 mark Exp $
  */
 
 package com.sleepycat.je.util;
@@ -315,7 +315,7 @@ public class DbVerify {
             }
 
             if (doClose) {
-            closeEnv();
+                closeEnv();
             }
         } catch (DatabaseException DE) {
 	    ret = false;
@@ -345,39 +345,44 @@ public class DbVerify {
             out.println("Verifying database " + name);
         }
 
-        /*
-         * First check the tree. Use DatabaseImpl.verify so we can get a status
-         * return.
-         */
-        if (verifyConfig.getPrintInfo()) {
-            out.println("Checking tree for " + name);
-        }
-        DatabaseStats stats = dbImpl.getEmptyStats();
-        status = dbImpl.verify(verifyConfig, stats);
-        if (verifyConfig.getPrintInfo()) {
+        if (checkLsns) {
+            /* Check the obsolete lsns */
+            if (verifyConfig.getPrintInfo()) {
+                out.println("Checking obsolete offsets for " + name);
+            }
+            try {
+                VerifyUtils.checkLsns(dbImpl, out);
+            } catch (DatabaseException e) {
+                if (verifyConfig.getPrintInfo()) {
+                    out.println("Problem from checkLsns:" + e);
+                }
+                status = false;
+            }
+        } else {
 
             /*
-             * Intentionally use print, not println, because stats.toString()
-             * puts in a newline too.
+             * Check the tree. Use DatabaseImpl.verify so we can get a status
+             * return.
              */
-            out.print(stats);
+            if (verifyConfig.getPrintInfo()) {
+                out.println("Checking tree for " + name);
+            }
+            DatabaseStats stats = dbImpl.getEmptyStats();
+            status = dbImpl.verify(verifyConfig, stats);
+            if (verifyConfig.getPrintInfo()) {
+
+                /*
+                 * Intentionally use print, not println, because
+                 * stats.toString() puts in a newline too.
+                 */
+                out.print(stats);
+            }
         }
 
-        /* Then check the obsolete lsns */
-        if (verifyConfig.getPrintInfo()) {
-            out.println("Checking obsolete offsets for " + name);
-        }
-        try {
-            VerifyUtils.checkLsns(dbImpl, out);
-        } catch (DatabaseException e) {
-            if (verifyConfig.getPrintInfo()) {
-                out.println("Problem from checkLsns:" + e);
-            }
-            status = false;
-        }
         if (verifyConfig.getPrintInfo()) {
             out.println();
         }
+
         return status;
     }
 }

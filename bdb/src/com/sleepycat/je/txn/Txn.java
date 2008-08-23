@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Txn.java,v 1.194 2008/05/28 15:39:59 sam Exp $
+ * $Id: Txn.java,v 1.198 2008/06/27 18:49:07 linda Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -80,7 +80,7 @@ public class Txn extends Locker implements Loggable {
      * write lock collections is done by synchronizing on the txn.
      */
     private Set<Long> readLocks;    // Set<Long> (nodeIds)
-    private Map<Long,WriteLockInfo> writeInfo;    // key=nodeid
+    private Map<Long, WriteLockInfo> writeInfo;    // key=nodeid
 
     private final int READ_LOCK_OVERHEAD = MemoryBudget.HASHSET_ENTRY_OVERHEAD;
     private final int WRITE_LOCK_OVERHEAD =
@@ -101,7 +101,7 @@ public class Txn extends Locker implements Loggable {
      * the mapping tree. (The normal code paths want to take locks, add
      * cursors, etc.
      */
-    protected Map<DatabaseId,DatabaseImpl> undoDatabases;
+    protected Map<DatabaseId, DatabaseImpl> undoDatabases;
 
     /* Last LSN logged for this transaction. */
     protected long lastLoggedLsn = DbLsn.NULL_LSN;
@@ -110,7 +110,7 @@ public class Txn extends Locker implements Loggable {
      * First LSN logged for this transaction -- used for keeping track of the
      * first active LSN point, for checkpointing. This field is not persistent.
      */
-    private long firstLoggedLsn = DbLsn.NULL_LSN;
+    protected long firstLoggedLsn = DbLsn.NULL_LSN;
 
     /* The configured durability at the time the transaction was created. */
     private Durability defaultDurability;
@@ -541,10 +541,10 @@ public class Txn extends Locker implements Loggable {
 
                 /* Transfer handle locks to their owning handles. */
                 if (handleLockToHandleMap != null) {
-                    Iterator<Map.Entry<Long,Set<Database>>> handleLockIter =
+                    Iterator<Map.Entry<Long, Set<Database>>> handleLockIter =
                         handleLockToHandleMap.entrySet().iterator();
                     while (handleLockIter.hasNext()) {
-                        Map.Entry<Long,Set<Database>> entry =
+                        Map.Entry<Long, Set<Database>> entry =
                             handleLockIter.next();
                         Long nodeId = entry.getKey();
                         if (writeInfo != null) {
@@ -557,8 +557,8 @@ public class Txn extends Locker implements Loggable {
                                 transferredWriteLockInfo.add(info);
                             }
                         }
-                        transferHandleLockToHandleSet
-                            (nodeId, entry.getValue());
+                        transferHandleLockToHandleSet(nodeId, 
+                                                      entry.getValue());
                     }
                 }
 
@@ -569,33 +569,50 @@ public class Txn extends Locker implements Loggable {
                 int numReadLocks = clearReadLocks();
 
                 /*
-                 * Log the commit if we ever held any write locks. Note that
-                 * with dbhandle write locks, we may have held the write lock
-                 * but then had it transferred away.
+                 * Log the commit if we ever logged any modifications for this
+                 * txn. Refraining from logging empty commits is more efficient
+                 * and makes for fewer edge cases for HA. Note that this is not
+                 * the same as the question of whether we have held any write
+                 * locks. Various scenarios, like RMW txns and
+                 * Cursor.putNoOverwrite can take write locks without having
+                 * actually made any modifications.  
+                 * 
+                 * If we have outstanding write locks, we must release them
+                 * even if we haven't logged a commit. With dbhandle write
+                 * locks, we may have held the write lock but then had it
+                 * transferred away.
                  */
                 int numWriteLocks = 0;
                 if (writeInfo != null) {
                     numWriteLocks = writeInfo.size();
 
-                    try {
-                        preLogCommitHook();
-                    } catch (DatabaseException preCommitException) {
-                        repAbortException = preCommitException;
-                        throw preCommitException;
-                    }
+                    /* 
+                     * If nothing was written to log for this txn, no need to
+                     * log a commit. 
+                     */
+                    if (firstLoggedLsn != DbLsn.NULL_LSN) {
 
-                    try {
-                        commitLsn = logCommitEntry(durability.getLocalSync());
-                    } catch (Exception e) {
-                        /* Cleanup and propagate the exception. */
-                        postLogAbortHook();
-                        throw e;
-                    }
+                        try {
+                            preLogCommitHook();
+                        } catch (DatabaseException preCommitException) {
+                            repAbortException = preCommitException;
+                            throw preCommitException;
+                        }
 
-                    try {
-                        postLogCommitHook();
-                    } catch (DatabaseException postCommitException) {
-                        repNoAbortException = postCommitException;
+                        try {
+                            commitLsn = 
+                                logCommitEntry(durability.getLocalSync());
+                        } catch (Exception e) {
+                            /* Cleanup and propagate the exception. */
+                            postLogAbortHook();
+                            throw e;
+                        }
+
+                        try {
+                            postLogCommitHook();
+                        } catch (DatabaseException postCommitException) {
+                            repNoAbortException = postCommitException;
+                        }
                     }
 
                     /*
@@ -613,10 +630,10 @@ public class Txn extends Locker implements Loggable {
                     Set<Long> alreadyCountedLsnSet = new HashSet<Long>();
 
                     /* Release all write locks, clear lock collection. */
-                    Iterator<Map.Entry<Long,WriteLockInfo>> iter =
+                    Iterator<Map.Entry<Long, WriteLockInfo>> iter =
                         writeInfo.entrySet().iterator();
                     while (iter.hasNext()) {
-                        Map.Entry<Long,WriteLockInfo> entry = iter.next();
+                        Map.Entry<Long, WriteLockInfo> entry = iter.next();
                         Long nodeId = entry.getKey();
                         lockManager.release(nodeId, this);
                         /* Count obsolete LSNs for released write locks. */
@@ -743,7 +760,7 @@ public class Txn extends Locker implements Loggable {
         SingleItemEntry commitEntry =
             new SingleItemEntry(LogEntryType.LOG_TXN_COMMIT,
                                 new TxnCommit(id, lastLoggedLsn,
-                                              0 /* masterNodeId */));
+                                              getReplicatorNodeId()));
 
         switch (flushSyncBehavior) {
 
@@ -756,6 +773,7 @@ public class Txn extends Locker implements Loggable {
                 return logManager.logForceFlush(commitEntry,
                                                 false, // fsyncRequired
                                                 repContext);
+
             default:
                 return logManager.log(commitEntry, repContext);
         }
@@ -810,8 +828,6 @@ public class Txn extends Locker implements Loggable {
         throws DatabaseException {
 
         try {
-            int numReadLocks;
-            int numWriteLocks;
             long abortLsn;
 
             synchronized (this) {
@@ -825,7 +841,7 @@ public class Txn extends Locker implements Loggable {
                             SingleItemEntry abortEntry = new SingleItemEntry
                                 (LogEntryType.LOG_TXN_ABORT,
                                  new TxnAbort(id, lastLoggedLsn,
-                                              0 /* masterNodeId */));
+                                              getReplicatorNodeId()));
                             if (forceFlush) {
                                 abortLsn = envImpl.getLogManager().
                                     logForceFlush(abortEntry,
@@ -841,29 +857,6 @@ public class Txn extends Locker implements Loggable {
 
                     /* Undo the changes. */
                     undo();
-
-                    /*
-                     * Release all read locks after the undo (since the undo
-                     * may need to read in mapLNs).
-                     */
-                    numReadLocks = (readLocks == null) ? 0 : clearReadLocks();
-
-                    /*
-                     * Set database state for deletes before releasing any
-                     * write locks.
-                     */
-                    setDeletedDatabaseState(false);
-
-                    /* Throw away write lock collection. */
-                    numWriteLocks =
-                        (writeInfo == null) ? 0 : clearWriteLocks();
-
-                    /*
-                     * Let the delete related info (binreferences and dbs) get
-                     * gc'ed. Don't explicitly iterate and clear -- that's far
-                     * less efficient, gives GC wrong input.
-                     */
-                    deleteInfo = null;
                 }
             }
 
@@ -879,8 +872,6 @@ public class Txn extends Locker implements Loggable {
                 Tracer.trace(Level.FINE,
                              envImpl,
                              "Abort:id = " + id +
-                             " numWriteLocks= " + numWriteLocks +
-                             " numReadLocks= " + numReadLocks +
                              " openCursors= " + openCursors);
                 if (openCursors) {
                     throw new DatabaseException
@@ -912,7 +903,7 @@ public class Txn extends Locker implements Loggable {
     /**
      * Rollback the changes to this txn's write locked nodes.
      */
-    private void undo()
+    protected void undo()
         throws DatabaseException {
 
         Long nodeId = null;
@@ -974,6 +965,29 @@ public class Txn extends Locker implements Loggable {
                          DbLsn.getNoFormatString(undoLsn), e);
             throw e;
         }
+
+        /*
+         * Release all read locks after the undo (since the undo may need to
+         * read in mapLNs).
+         */
+        if (readLocks != null) {
+            clearReadLocks();
+        }
+
+        /* Set database state for deletes before releasing any write locks. */
+        setDeletedDatabaseState(false);
+
+        /* Throw away write lock collection. */
+        if (writeInfo != null) {
+            clearWriteLocks();
+        }
+
+        /*
+         * Let the delete related info (binreferences and dbs) get gc'ed. Don't
+         * explicitly iterate and clear -- that's far less efficient, gives GC
+         * wrong input.  
+         */
+        deleteInfo = null;
     }
 
     private int clearWriteLocks()
@@ -981,10 +995,10 @@ public class Txn extends Locker implements Loggable {
 
         int numWriteLocks = writeInfo.size();
         /* Release all write locks, clear lock collection. */
-        Iterator<Map.Entry<Long,WriteLockInfo>> iter =
+        Iterator<Map.Entry<Long, WriteLockInfo>> iter =
             writeInfo.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry<Long,WriteLockInfo> entry = iter.next();
+            Map.Entry<Long, WriteLockInfo> entry = iter.next();
             Long nodeId = entry.getKey();
             lockManager.release(nodeId, this);
         }
@@ -1101,7 +1115,7 @@ public class Txn extends Locker implements Loggable {
      * that latch, needs to synchronize on individual txns, so we must avoid a
      * latching hiearchy conflict.
      */
-    private void cleanupDatabaseImpls(boolean isCommit)
+    protected void cleanupDatabaseImpls(boolean isCommit)
         throws DatabaseException {
 
         if (deletedDatabases != null) {
@@ -1136,8 +1150,8 @@ public class Txn extends Locker implements Loggable {
             int delta = 0;
             if (type.isWriteLock()) {
                 if (writeInfo == null) {
-                    writeInfo = new HashMap<Long,WriteLockInfo>();
-                    undoDatabases = new HashMap<DatabaseId,DatabaseImpl>();
+                    writeInfo = new HashMap<Long, WriteLockInfo>();
+                    undoDatabases = new HashMap<DatabaseId, DatabaseImpl>();
                     delta += MemoryBudget.TWOHASHMAPS_OVERHEAD;
                 }
 
@@ -1612,6 +1626,15 @@ public class Txn extends Locker implements Loggable {
 
         /* Close this Locker. */
         close();
+    }
+
+    public boolean isClosed() {
+        return ((txnState & CLOSED) != 0);
+    }
+
+    /* Non replicated txns don't use a node id. */
+    protected int getReplicatorNodeId() {
+        return 0;
     }
 
     /*

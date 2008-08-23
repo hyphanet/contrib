@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PreloadStats.java,v 1.9 2008/01/24 14:59:27 linda Exp $
+ * $Id: PreloadStats.java,v 1.10 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -212,6 +212,7 @@ public class PreloadStats implements Serializable {
      * Returns a String representation of the stats in the form of
      * &lt;stat&gt;=&lt;value&gt;
      */
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
 	sb.append("status=").append(status).append('\n');

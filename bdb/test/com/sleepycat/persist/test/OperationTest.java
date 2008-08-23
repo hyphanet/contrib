@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: OperationTest.java,v 1.22 2008/05/19 20:33:32 mark Exp $
+ * $Id: OperationTest.java,v 1.23.2.1 2008/07/15 19:15:42 mark Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -20,6 +20,9 @@ import java.util.Set;
 
 import junit.framework.Test;
 
+/* <!-- begin JE only --> */
+import com.sleepycat.je.CacheMode;
+/* <!-- end JE only --> */
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseException;
@@ -33,6 +36,8 @@ import com.sleepycat.persist.StoreConfig;
 import com.sleepycat.persist.impl.Store;
 import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.KeyField;
+import com.sleepycat.persist.model.NotPersistent;
+import com.sleepycat.persist.model.NotTransient;
 import com.sleepycat.persist.model.Persistent;
 import com.sleepycat.persist.model.PrimaryKey;
 import com.sleepycat.persist.model.SecondaryKey;
@@ -135,6 +140,43 @@ public class OperationTest extends TxnTestCase {
         Set<String> names = EntityStore.getStoreNames(env);
         assertEquals(1, names.size());
         assertEquals("test", names.iterator().next());
+    }
+    /* <!-- end JE only --> */
+
+    /* <!-- begin JE only --> */
+    public void testCacheMode()
+        throws DatabaseException {
+
+        open();
+
+        PrimaryIndex<Integer,MyEntity> priIndex =
+            store.getPrimaryIndex(Integer.class, MyEntity.class);
+
+        Transaction txn = txnBeginCursor();
+
+        MyEntity e = new MyEntity();
+        e.priKey = 1;
+        e.secKey = 1;
+        priIndex.put(txn, e);
+
+        EntityCursor<MyEntity> entities = priIndex.entities(txn, null);
+
+        assertSame(CacheMode.DEFAULT, entities.getCacheMode());
+        e = entities.first();
+        assertNotNull(e);
+        assertSame(CacheMode.DEFAULT, entities.getCacheMode());
+        entities.setCacheMode(CacheMode.KEEP_HOT);
+        assertSame(CacheMode.KEEP_HOT, entities.getCacheMode());
+        e = entities.first();
+        assertNotNull(e);
+        assertSame(CacheMode.KEEP_HOT, entities.getCacheMode());
+        entities.setCacheMode(CacheMode.UNCHANGED);
+        entities.update(e);
+        entities.setCacheMode(CacheMode.UNCHANGED);
+
+        entities.close();
+        txnCommit(txn);
+        close();
     }
     /* <!-- end JE only --> */
 
@@ -1006,5 +1048,56 @@ public class OperationTest extends TxnTestCase {
         RelatedX x = secX.get(88);
         assertNotNull(x);
         close();
+    }
+
+    public void testPersistentFields()
+        throws DatabaseException {
+
+        open();
+        PrimaryIndex<Integer, PersistentFields> pri =
+            store.getPrimaryIndex(Integer.class, PersistentFields.class);
+        PersistentFields o1 = new PersistentFields(-1, 1, 2, 3, 4, 5, 6);
+        assertNull(pri.put(o1));
+        PersistentFields o2 = pri.get(-1);
+        assertNotNull(o2);
+        assertEquals(0, o2.transient1);
+        assertEquals(0, o2.transient2);
+        assertEquals(0, o2.transient3);
+        assertEquals(4, o2.persistent1);
+        assertEquals(5, o2.persistent2);
+        assertEquals(6, o2.persistent3);
+        close();
+    }
+
+    @Entity
+    static class PersistentFields {
+
+        @PrimaryKey int key;
+
+        transient int transient1;
+        @NotPersistent int transient2;
+        @NotPersistent transient int transient3;
+
+        int persistent1;
+        @NotTransient int persistent2;
+        @NotTransient transient int persistent3;
+
+        PersistentFields(int k,
+                         int t1,
+                         int t2,
+                         int t3,
+                         int p1,
+                         int p2,
+                         int p3) {
+            key = k;
+            transient1 = t1;
+            transient2 = t2;
+            transient3 = t3;
+            persistent1 = p1;
+            persistent2 = p2;
+            persistent3 = p3;
+        }
+
+        private PersistentFields() {}
     }
 }

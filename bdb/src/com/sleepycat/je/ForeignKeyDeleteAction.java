@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ForeignKeyDeleteAction.java,v 1.10 2008/01/07 14:28:46 cwl Exp $
+ * $Id: ForeignKeyDeleteAction.java,v 1.11 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -54,6 +54,7 @@ public class ForeignKeyDeleteAction {
     public final static ForeignKeyDeleteAction NULLIFY =
 	new ForeignKeyDeleteAction("NULLIFY");
 
+    @Override
     public String toString() {
 	return "ForeignKeyDeleteAction." + name;
     }

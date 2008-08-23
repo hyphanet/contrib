@@ -3,13 +3,16 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EntityCursor.java,v 1.12 2008/01/07 14:28:58 cwl Exp $
+ * $Id: EntityCursor.java,v 1.12.2.1 2008/07/15 19:15:41 mark Exp $
  */
 
 package com.sleepycat.persist;
 
 import java.util.Iterator;
 
+/* <!-- begin JE only --> */
+import com.sleepycat.je.CacheMode;
+/* <!-- end JE only --> */
 import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.LockMode;
@@ -603,4 +606,32 @@ public interface EntityCursor<V> extends ForwardCursor<V> {
      */
     void close()
         throws DatabaseException;
+
+    /* <!-- begin JE only --> */
+    /**
+     * Changes the {@code CacheMode} used for operations performed using this
+     * cursor.  For a newly opened cursor, the default is {@link
+     * CacheMode#DEFAULT}.
+     *
+     * @param cacheMode is the {@code CacheMode} to use for subsequent
+     * operations using this cursor.
+     *
+     * @see CacheMode
+     */
+    void setCacheMode(CacheMode cacheMode);
+    /* <!-- end JE only --> */
+
+    /* <!-- begin JE only --> */
+    /**
+     * Returns the {@code CacheMode} used for operations performed using this
+     * cursor.  For a newly opened cursor, the default is {@link
+     * CacheMode#DEFAULT}.
+     *
+     * @return the CacheMode object used for operations performed with this
+     * cursor.
+     *
+     * @see CacheMode
+     */
+    CacheMode getCacheMode();
+    /* <!-- end JE only --> */
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileSummaryLN.java,v 1.33 2008/01/07 14:28:56 cwl Exp $
+ * $Id: FileSummaryLN.java,v 1.34 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -238,6 +238,7 @@ public final class FileSummaryLN extends LN {
      * contains version 1 offsets that can be incorrect when RMW was used, and
      * if je.cleaner.rmwFix is enabled, discard the offsets.  [#13158]
      */
+    @Override
     public void postFetchInit(DatabaseImpl db, long sourceLsn)
         throws DatabaseException {
 
@@ -255,18 +256,22 @@ public final class FileSummaryLN extends LN {
      * Dumping
      */
 
+    @Override
     public String toString() {
         return dumpString(0, true);
     }
 
+    @Override
     public String beginTag() {
         return BEGIN_TAG;
     }
 
+    @Override
     public String endTag() {
         return END_TAG;
     }
 
+    @Override
     public String dumpString(int nSpaces, boolean dumpTags) {
         StringBuffer sb = new StringBuffer();
         sb.append(super.dumpString(nSpaces, dumpTags));
@@ -282,6 +287,7 @@ public final class FileSummaryLN extends LN {
      * Dump additional fields. Done this way so the additional info can
      * be within the XML tags defining the dumped log entry.
      */
+    @Override
     protected void dumpLogAdditional(StringBuffer sb, boolean verbose) {
         if (!isDeleted()) {
             baseSummary.dumpLog(sb, true);
@@ -298,6 +304,7 @@ public final class FileSummaryLN extends LN {
     /**
      * Log type for transactional entries.
      */
+    @Override
     protected LogEntryType getTransactionalLogType() {
         assert false : "Txnl access to UP db not allowed";
         return LogEntryType.LOG_FILESUMMARYLN;
@@ -306,6 +313,7 @@ public final class FileSummaryLN extends LN {
     /**
      * @see Node#getLogType
      */
+    @Override
     public LogEntryType getLogType() {
         return LogEntryType.LOG_FILESUMMARYLN;
     }
@@ -318,6 +326,7 @@ public final class FileSummaryLN extends LN {
      *
      * @see LN#getLogSize
      */
+    @Override
     public int getLogSize() {
         int size = super.getLogSize();
         if (!isDeleted()) {
@@ -331,6 +340,7 @@ public final class FileSummaryLN extends LN {
     /**
      * @see LN#writeToLog
      */
+    @Override
     public void writeToLog(ByteBuffer logBuffer) {
 
         /*
@@ -361,6 +371,7 @@ public final class FileSummaryLN extends LN {
     /**
      * @see LN#readFromLog
      */
+    @Override
     public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 

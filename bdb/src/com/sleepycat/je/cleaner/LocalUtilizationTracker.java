@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LocalUtilizationTracker.java,v 1.4 2008/05/15 01:52:40 linda Exp $
+ * $Id: LocalUtilizationTracker.java,v 1.4.2.1 2008/07/08 17:06:18 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -106,5 +106,12 @@ public class LocalUtilizationTracker extends BaseLocalUtilizationTracker {
         throws DatabaseException {
 
         return (DatabaseImpl) databaseKey;
+    }
+
+    /**
+     * Do nothing, since DbTree.getDb was not called by
+     * databaseKeyToDatabaseImpl.
+     */
+    void releaseDatabaseImpl(DatabaseImpl db) {
     }
 }

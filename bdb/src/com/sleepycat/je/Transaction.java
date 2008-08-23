@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Transaction.java,v 1.59 2008/05/29 03:38:23 linda Exp $
+ * $Id: Transaction.java,v 1.60 2008/06/09 16:17:59 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -168,6 +168,7 @@ public class Transaction {
      */
     public void commit(Durability durability)
         throws DatabaseException {
+
         doCommit(durability, false /* explicitSync */);
     }
 
@@ -387,6 +388,7 @@ public class Transaction {
      * @hidden
      * For internal use.
      */
+    @Override
     public int hashCode() {
 	return (int) id;
     }
@@ -395,6 +397,7 @@ public class Transaction {
      * @hidden
      * For internal use.
      */
+    @Override
     public boolean equals(Object o) {
 	if (o == null) {
 	    return false;
@@ -411,6 +414,7 @@ public class Transaction {
 	return false;
     }
 
+    @Override
     public String toString() {
 	StringBuffer sb = new StringBuffer();
 	sb.append("<Transaction id=\"");

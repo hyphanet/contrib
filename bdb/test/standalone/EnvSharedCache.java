@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvSharedCache.java,v 1.18 2008/01/30 11:12:50 chao Exp $
+ * $Id: EnvSharedCache.java,v 1.19 2008/06/06 17:12:31 linda Exp $
  */
 
 import java.io.File;
@@ -674,7 +674,6 @@ public class EnvSharedCache implements Runnable {
         byte[] lastInsertKey = null;
         Transaction txn = null;
         Cursor c = null;
-        int retry = 0;
         int nKeys = 0;
         OperationStatus status;
 

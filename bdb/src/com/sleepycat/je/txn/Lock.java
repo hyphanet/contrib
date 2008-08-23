@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Lock.java,v 1.71 2008/05/15 01:52:43 linda Exp $
+ * $Id: Lock.java,v 1.73 2008/06/10 18:48:05 linda Exp $
  */
 
 package com.sleepycat.je.txn;

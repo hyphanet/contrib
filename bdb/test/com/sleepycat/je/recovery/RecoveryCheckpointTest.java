@@ -3,12 +3,14 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryCheckpointTest.java,v 1.41 2008/01/07 14:29:10 cwl Exp $
+ * $Id: RecoveryCheckpointTest.java,v 1.42 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import com.sleepycat.je.CheckpointConfig;
 import com.sleepycat.je.Cursor;
@@ -72,7 +74,9 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
             assertEquals(2, stats.getLastCheckpointId());
 
             /* Shutdown, recover. */
-            Hashtable expectedData = new Hashtable(); // expected values
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
+
             closeEnv();
             recoverAndVerify(expectedData, NUM_DBS); // 0 checkpoints
 
@@ -111,7 +115,9 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
             assertEquals(1, stats.getLastCheckpointId());
 
             /* Shutdown, recover. */
-            Hashtable expectedData = new Hashtable(); // expected values
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
+
             Transaction txn = env.beginTransaction(null, null);
 	    insertData(txn, 0, 1, expectedData, 1, true, NUM_DBS);
 	    txn.commit();
@@ -178,7 +184,9 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
              * because the threshold percentage is 25%, and 25% of 4 is 1.
              */
             int numRecs = 4;
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
+
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs, expectedData, 1, true, NUM_DBS);
             env.checkpoint(forceConfig);
@@ -219,7 +227,9 @@ public class RecoveryCheckpointTest extends RecoveryTestBase {
 
         try {
             int numRecs = 1;
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
+
             Transaction txn = env.beginTransaction(null, null);
             insertData(txn, 0, numRecs, expectedData, 1, false, NUM_DBS);
 

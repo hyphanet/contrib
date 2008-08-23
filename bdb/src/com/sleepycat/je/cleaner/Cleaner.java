@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Cleaner.java,v 1.213 2008/05/15 01:52:40 linda Exp $
+ * $Id: Cleaner.java,v 1.213.2.1 2008/08/04 21:43:30 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -1533,5 +1533,6 @@ public class Cleaner implements DaemonRunner, EnvConfigObserver {
     public void close() {
         profile.close();
         tracker.close();
+        fileSelector.close(env.getMemoryBudget());
     }
 }

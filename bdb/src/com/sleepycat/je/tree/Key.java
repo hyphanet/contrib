@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Key.java,v 1.70 2008/05/19 17:52:18 linda Exp $
+ * $Id: Key.java,v 1.71 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -136,6 +136,7 @@ public final class Key implements Comparable<Key> {
     /**
      * Support Set of Key in BINReference.
      */
+    @Override
     public boolean equals(Object o) {
         return (o instanceof Key) && (compareTo((Key)o) == 0);
     }
@@ -143,6 +144,7 @@ public final class Key implements Comparable<Key> {
     /**
      * Support HashSet of Key in BINReference.
      */
+    @Override
     public int hashCode() {
         int code = 0;
         for (int i = 0; i < key.length; i += 1) {

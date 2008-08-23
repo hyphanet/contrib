@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BaseLocalUtilizationTracker.java,v 1.8 2008/05/15 01:52:40 linda Exp $
+ * $Id: BaseLocalUtilizationTracker.java,v 1.8.2.1 2008/07/08 17:06:18 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -97,6 +97,8 @@ abstract class BaseLocalUtilizationTracker extends BaseUtilizationTracker {
                     dbFileSummary.add(localSummary);
                 }
             }
+            /* Ensure that DbTree.releaseDb is called. [#16329] */
+            releaseDatabaseImpl(db);
             /* This object is being discarded, subtract it from the budget. */
             fileMap.subtractFromMemoryBudget();
         }
@@ -104,10 +106,21 @@ abstract class BaseLocalUtilizationTracker extends BaseUtilizationTracker {
 
     /**
      * Returns the DatabaseImpl from the database key, which is either the
-     * DatabaseId or DatabaseImpl.
+     * DatabaseId or DatabaseImpl.  The releaseDatabaseImpl must be called
+     * with the DatabaseImpl returned by this method.
      */
     abstract DatabaseImpl databaseKeyToDatabaseImpl(Object databaseKey)
         throws DatabaseException;
+
+    /**
+     * Must be called after calling databaseKeyToDatabaseImpl.  The db
+     * parameter may be null, in which case no action is taken.
+     *
+     * If DbTree.getDb is called by the implementation of
+     * databaseKeyToDatabaseImpl, then DbTree.releaseDb must be called by the
+     * implementation of this method.
+     */
+    abstract void releaseDatabaseImpl(DatabaseImpl db);
 
     /**
      * Allocates DbFileSummary information locally in this object rather than

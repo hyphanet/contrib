@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RunRecoveryException.java,v 1.24 2008/05/29 03:38:23 linda Exp $
+ * $Id: RunRecoveryException.java,v 1.25 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -62,6 +62,7 @@ public class RunRecoveryException extends DatabaseException {
         this.alreadyThrown = alreadyThrown;
     }
 
+    @Override
     public String toString() {
         if (alreadyThrown) {
             return "Environment invalid because of previous exception: " +

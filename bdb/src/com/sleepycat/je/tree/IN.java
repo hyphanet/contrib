@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: IN.java,v 1.344 2008/05/30 14:04:16 mark Exp $
+ * $Id: IN.java,v 1.346 2008/06/12 21:13:44 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -228,6 +228,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
         inMemorySize = computeMemorySize();
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof IN)) {
             return false;
@@ -245,6 +246,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
      * different container in the future that does not re-hash the return
      * value, we should probably implement the Wang-Jenkins hash function here.
      */
+    @Override
     public int hashCode() {
         return (int) ~getNodeId();
     }
@@ -287,6 +289,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
     /**
      * Initialize a node that has been read in from the log.
      */
+    @Override
     public void postFetchInit(DatabaseImpl db, long sourceLsn)
         throws DatabaseException {
 
@@ -389,6 +392,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
     /**
      * Release the latch on this node.
      */
+    @Override
     public void releaseLatch()
         throws LatchNotHeldException {
 
@@ -441,6 +445,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
         generation = newGeneration;
     }
 
+    @Override
     public int getLevel() {
         return level;
     }
@@ -2438,6 +2443,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
      * maxKey, if non-null specifies that all keys in this node must be less
      * than maxKey.
      */
+    @Override
     public void verify(byte[] maxKey)
         throws DatabaseException {
 
@@ -3258,7 +3264,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
         if (provisionalObsolete != null) {
 
             int memDelta = provisionalObsolete.size() *
-                           MemoryBudget.LONG_LIST_PER_ITEM_OVERHEAD;
+                MemoryBudget.LONG_LIST_PER_ITEM_OVERHEAD;
 
             logManager.countObsoleteINs(provisionalObsolete, getDatabase());
             provisionalObsolete = null;
@@ -3277,6 +3283,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
     /**
      * @see Loggable#getLogSize
      */
+    @Override
     public int getLogSize() {
         int size = super.getLogSize();          // ancestors
         size += LogUtils.getByteArrayLogSize(identifierKey); // identifier key
@@ -3305,6 +3312,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
     /**
      * @see Loggable#writeToLog
      */
+    @Override
     public void writeToLog(ByteBuffer logBuffer) {
 
         super.writeToLog(logBuffer);
@@ -3374,6 +3382,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
     /**
      * @see Loggable#readFromLog
      */
+    @Override
     public void readFromLog(ByteBuffer itemBuffer, byte entryVersion)
         throws LogException {
 
@@ -3450,6 +3459,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
     /**
      * @see Loggable#dumpLog
      */
+    @Override
     public void dumpLog(StringBuffer sb, boolean verbose) {
         sb.append(beginTag());
 
@@ -3540,6 +3550,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
      * For unit test support:
      * @return a string that dumps information about this IN, without
      */
+    @Override
     public String dumpString(int nSpaces, boolean dumpTags) {
         StringBuffer sb = new StringBuffer();
         if (dumpTags) {
@@ -3636,6 +3647,7 @@ public class IN extends Node implements Comparable<IN>, Loggable {
         sb.append(isStatePendingDeleted(state)).append("\"/>");
     }
 
+    @Override
     public String toString() {
         return dumpString(0, true);
     }

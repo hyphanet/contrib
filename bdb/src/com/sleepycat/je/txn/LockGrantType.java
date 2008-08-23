@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockGrantType.java,v 1.20 2008/01/07 14:28:56 cwl Exp $
+ * $Id: LockGrantType.java,v 1.21 2008/06/10 02:52:14 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -37,6 +37,7 @@ public class LockGrantType {
         this.name = name;
     }
 
+    @Override
     public String toString() {
         return name;
     }

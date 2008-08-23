@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogUtils.java,v 1.61 2008/05/13 01:44:52 cwl Exp $
+ * $Id: LogUtils.java,v 1.62 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -560,6 +560,7 @@ public class LogUtils {
 	    return bqual;
 	}
 
+        @Override
 	public boolean equals(Object o) {
 	    if (!(o instanceof XidImpl)) {
 		return false;
@@ -577,6 +578,7 @@ public class LogUtils {
 	    return false;
 	}
 
+        @Override
 	public int hashCode() {
 	    int code = formatId;
 	    if (gid != null) {
@@ -611,6 +613,7 @@ public class LogUtils {
 	    return true;
 	}
 
+        @Override
 	public String toString() {
 	    StringBuffer sb = new StringBuffer();
 	    sb.append("<Xid formatId=\"").append(formatId);

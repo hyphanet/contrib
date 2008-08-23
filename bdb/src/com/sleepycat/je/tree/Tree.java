@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Tree.java,v 1.456 2008/05/30 14:04:16 mark Exp $
+ * $Id: Tree.java,v 1.458 2008/06/27 18:30:32 linda Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -241,14 +241,6 @@ public final class Tree implements Loggable {
 
 	private RootChildReference(Node target, byte[] key, long lsn) {
 	    super(target, key, lsn);
-	}
-
-	/* Not used. */
-	private RootChildReference(Node target,
-				   byte[] key,
-				   long lsn,
-				   byte existingState) {
-	    super(target, key, lsn, existingState);
 	}
 
 	/* Caller is responsible for releasing rootLatch. */
@@ -1695,6 +1687,7 @@ public final class Tree implements Loggable {
      */
     @SuppressWarnings("serial")
     private static class RelatchRequiredException extends DatabaseException {
+        @Override
 	public synchronized Throwable fillInStackTrace() {
 	    return this;
 	}

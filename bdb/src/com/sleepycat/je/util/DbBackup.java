@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbBackup.java,v 1.14 2008/01/24 14:59:29 linda Exp $
+ * $Id: DbBackup.java,v 1.15 2008/06/10 02:52:15 cwl Exp $
  */
 
 package com.sleepycat.je.util;
@@ -14,7 +14,6 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.log.FileManager;
 import com.sleepycat.je.utilint.DbLsn;
-
 
 /**
  * DbBackup is a helper class for stopping and restarting JE background

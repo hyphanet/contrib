@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LNLogEntry.java,v 1.54 2008/05/13 01:44:52 cwl Exp $
+ * $Id: LNLogEntry.java,v 1.56 2008/06/10 11:37:21 cwl Exp $
  */
 
 package com.sleepycat.je.log.entry;
@@ -289,6 +289,7 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
     /**
      * Returns the last logged size, saved by readEntry and writeEntry.
      */
+    @Override
     public int getLastLoggedSize() {
         return ln.getLastLoggedSize();
     }
@@ -330,6 +331,7 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
      * Returns true for a deleted LN to count it immediately as obsolete.
      * @see LogEntry#countAsObsoleteWhenLogged
      */
+    @Override
     public boolean countAsObsoleteWhenLogged() {
         return ln.isDeleted();
     }
@@ -341,6 +343,7 @@ public class LNLogEntry extends BaseEntry implements LogEntry, NodeLogEntry {
      *
      * @see LogEntry#postLogWork
      */
+    @Override
     public void postLogWork(long justLoggedLsn)
         throws DatabaseException {
 

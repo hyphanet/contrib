@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: FileReaderTest.java,v 1.15 2008/04/18 22:57:39 mark Exp $
+ * $Id: FileReaderTest.java,v 1.16 2008/06/30 20:54:47 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -27,14 +27,10 @@ import com.sleepycat.je.utilint.DbLsn;
  */
 public class FileReaderTest extends TestCase {
 
-    static private final boolean DEBUG = false;
-
     private File envHome;
-
 
     public FileReaderTest()
         throws Exception {
-
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
     }
 

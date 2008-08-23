@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PhantomTest.java,v 1.16 2008/01/07 14:29:13 cwl Exp $
+ * $Id: PhantomTest.java,v 1.16.2.1 2008/08/07 17:04:46 mark Exp $
  */
 
 package com.sleepycat.je.test;
@@ -249,6 +249,7 @@ public class PhantomTest extends TestCase {
         /* Insertions are never blocked. */
         try {
             insert(1);
+            insert(3);
         } catch (DeadlockException e) {
             fail();
         }
@@ -275,6 +276,7 @@ public class PhantomTest extends TestCase {
         /* Insertions are never blocked. */
         try {
             insert(1, 1);
+            insert(1, 4);
         } catch (DeadlockException e) {
             fail();
         }
@@ -296,6 +298,13 @@ public class PhantomTest extends TestCase {
         Transaction readerTxn = env.beginTransaction(null, txnConfig);
         Cursor cursor = db.openCursor(readerTxn, null);
         assertEquals(OperationStatus.NOTFOUND, searchKey(cursor, 2));
+
+        /* Insertions before 2 are never blocked. */
+        try {
+            insert(0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
@@ -338,6 +347,14 @@ public class PhantomTest extends TestCase {
         Transaction readerTxn = env.beginTransaction(null, txnConfig);
         Cursor cursor = db.openCursor(readerTxn, null);
         assertEquals(OperationStatus.NOTFOUND, searchKey(cursor, 1, 1));
+
+        /* Insertions after {2,2} are never blocked. */
+        try {
+            insert(2, 3);
+            insert(3, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {1,1} in a writer thread. */
         startInsert(1, 1);
@@ -383,6 +400,7 @@ public class PhantomTest extends TestCase {
         /* Insertions are never blocked. */
         try {
             insert(1);
+            insert(3);
         } catch (DeadlockException e) {
             fail();
         }
@@ -408,7 +426,11 @@ public class PhantomTest extends TestCase {
 
         /* Insertions are never blocked. */
         try {
+            insert(0, 0);
+            insert(1, 0);
             insert(1, 2);
+            insert(1, 4);
+            insert(2, 0);
         } catch (DeadlockException e) {
             fail();
         }
@@ -430,6 +452,13 @@ public class PhantomTest extends TestCase {
         Transaction readerTxn = env.beginTransaction(null, txnConfig);
         Cursor cursor = db.openCursor(readerTxn, null);
         assertEquals(OperationStatus.NOTFOUND, searchBoth(cursor, 2));
+
+        /* Insertions before 2 are never blocked. */
+        try {
+            insert(0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
@@ -472,6 +501,16 @@ public class PhantomTest extends TestCase {
         Transaction readerTxn = env.beginTransaction(null, txnConfig);
         Cursor cursor = db.openCursor(readerTxn, null);
         assertEquals(OperationStatus.NOTFOUND, searchBoth(cursor, 1, 2));
+
+        /* Insertions before {1,2} or after {1,3} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+            insert(1, 4);
+            insert(2, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {1,2} in a writer thread. */
         startInsert(1, 2);
@@ -520,6 +559,14 @@ public class PhantomTest extends TestCase {
         status = cursor.getSearchKeyRange(key, data, null);
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(3, IntegerBinding.entryToInt(key));
+
+        /* Insertions before 2 and after 3 are never blocked. */
+        try {
+            insert(0);
+            insert(4);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
@@ -578,6 +625,16 @@ public class PhantomTest extends TestCase {
         assertEquals(2, IntegerBinding.entryToInt(data));
         assertEquals(OperationStatus.SUCCESS, status);
 
+        /* Insertions before 2 and after {3,3} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+            insert(3, 4);
+            insert(4, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert {3,1} in a writer thread. */
         startInsert(3, 1);
 
@@ -633,6 +690,13 @@ public class PhantomTest extends TestCase {
         status = cursor.getSearchKeyRange(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions before 2 are never blocked. */
+        try {
+            insert(0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert key 3 in a writer thread. */
         startInsert(3);
 
@@ -685,6 +749,14 @@ public class PhantomTest extends TestCase {
         IntegerBinding.intToEntry(2, key);
         status = cursor.getSearchKeyRange(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
+
+        /* Insertions before 2 are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {3,1} in a writer thread. */
         startInsert(3, 1);
@@ -754,6 +826,15 @@ public class PhantomTest extends TestCase {
         assertEquals(3, IntegerBinding.entryToInt(key));
         assertEquals(2, IntegerBinding.entryToInt(data));
 
+        /* Insertions before {1,1} and after {3,2} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+            insert(3, 4);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert {3,1} in a writer thread. */
         startInsert(3, 1);
 
@@ -811,6 +892,13 @@ public class PhantomTest extends TestCase {
         IntegerBinding.intToEntry(0, data);
         status = cursor.getSearchBothRange(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
+
+        /* Insertions before 1 are never blocked. */
+        try {
+            insert(0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {3, 1} in a writer thread. */
         startInsert(3, 1);
@@ -870,6 +958,14 @@ public class PhantomTest extends TestCase {
         status = cursor.getSearchBothRange(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions before {3,0} are never blocked. */
+        try {
+            insert(3, -1);
+            insert(2, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert {3,3} in a writer thread. */
         startInsert(3, 3);
 
@@ -926,6 +1022,13 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(2, IntegerBinding.entryToInt(key));
 
+        /* Insertions after 2 are never blocked. */
+        try {
+            insert(3);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert key 1 in a writer thread. */
         startInsert(1);
 
@@ -977,6 +1080,14 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(1, IntegerBinding.entryToInt(key));
         assertEquals(2, IntegerBinding.entryToInt(data));
+
+        /* Insertions after {1,3} are never blocked. */
+        try {
+            insert(1, 4);
+            insert(2, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {1,1} in a writer thread. */
         startInsert(1, 1);
@@ -1186,6 +1297,7 @@ public class PhantomTest extends TestCase {
         /* Insertions before current position are never blocked. */
         try {
             insert(1, 1);
+            insert(0, 0);
         } catch (DeadlockException e) {
             fail();
         }
@@ -1339,6 +1451,14 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(3, IntegerBinding.entryToInt(key));
 
+        /* Insertions before 1 and after 3 are never blocked. */
+        try {
+            insert(0);
+            insert(4);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert key 2 in a writer thread. */
         startInsert(2);
 
@@ -1393,6 +1513,16 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(1, IntegerBinding.entryToInt(key));
         assertEquals(3, IntegerBinding.entryToInt(data));
+
+        /* Insertions before {1,1} and after {1,3} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+            insert(1, 4);
+            insert(2, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {1,2} in a writer thread. */
         startInsert(1, 2);
@@ -1449,6 +1579,13 @@ public class PhantomTest extends TestCase {
         status = cursor.getNext(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions before 1 are never blocked. */
+        try {
+            insert(0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert key 2 in a writer thread. */
         startInsert(2);
 
@@ -1501,6 +1638,14 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, searchBoth(cursor, 1, 2));
         status = cursor.getNext(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
+
+        /* Insertions before {1,1} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {1,3} in a writer thread. */
         startInsert(1, 3);
@@ -1558,6 +1703,16 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(1, IntegerBinding.entryToInt(key));
         assertEquals(3, IntegerBinding.entryToInt(data));
+
+        /* Insertions before {1,1} and after {1,3} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+            insert(1, 4);
+            insert(2, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {1,2} in a writer thread. */
         startInsert(1, 2);
@@ -1617,6 +1772,16 @@ public class PhantomTest extends TestCase {
         status = cursor.getNextDup(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions before {1,1} and after {2,2} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+            insert(2, 3);
+            insert(3, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert {1,3} in a writer thread. */
         startInsert(1, 3);
 
@@ -1672,6 +1837,14 @@ public class PhantomTest extends TestCase {
         status = cursor.getNextNoDup(key, data, null);
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(3, IntegerBinding.entryToInt(key));
+
+        /* Insertions before 1 and after 3 are never blocked. */
+        try {
+            insert(0);
+            insert(4);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert key 2 in a writer thread. */
         startInsert(2);
@@ -1730,6 +1903,16 @@ public class PhantomTest extends TestCase {
         assertEquals(3, IntegerBinding.entryToInt(key));
         assertEquals(1, IntegerBinding.entryToInt(data));
 
+        /* Insertions before {1,1} and after {3,2} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+            insert(3, 3);
+            insert(4, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert {2,1} in a writer thread. */
         startInsert(2, 1);
 
@@ -1785,6 +1968,13 @@ public class PhantomTest extends TestCase {
         status = cursor.getNextNoDup(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions before 1 are never blocked. */
+        try {
+            insert(0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert key 2 in a writer thread. */
         startInsert(2);
 
@@ -1837,6 +2027,14 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, searchBoth(cursor, 1, 1));
         status = cursor.getNextNoDup(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
+
+        /* Insertions before {1,1} are never blocked. */
+        try {
+            insert(1, 0);
+            insert(0, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {2,1} in a writer thread. */
         startInsert(2, 1);
@@ -1894,9 +2092,10 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(1, IntegerBinding.entryToInt(key));
 
-        /* Insertions before current position are never blocked. */
+        /* Insertions before 1 and after 3 are never blocked. */
         try {
             insert(0);
+            insert(4);
         } catch (DeadlockException e) {
             fail();
         }
@@ -1956,9 +2155,12 @@ public class PhantomTest extends TestCase {
         assertEquals(1, IntegerBinding.entryToInt(key));
         assertEquals(1, IntegerBinding.entryToInt(data));
 
-        /* Insertions before current position are never blocked. */
+        /* Insertions before {1,1} and after {1,3} are never blocked. */
         try {
             insert(1, 0);
+            insert(0, 0);
+            insert(1, 4);
+            insert(2, 0);
         } catch (DeadlockException e) {
             fail();
         }
@@ -2018,6 +2220,13 @@ public class PhantomTest extends TestCase {
         status = cursor.getPrev(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions after 2 are never blocked. */
+        try {
+            insert(3);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert key 1 in a writer thread. */
         startInsert(1);
 
@@ -2070,6 +2279,14 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, searchBoth(cursor, 2, 2));
         status = cursor.getPrev(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
+
+        /* Insertions after {2,3} are never blocked. */
+        try {
+            insert(2, 4);
+            insert(3, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {2,1} in a writer thread. */
         startInsert(2, 1);
@@ -2128,9 +2345,12 @@ public class PhantomTest extends TestCase {
         assertEquals(1, IntegerBinding.entryToInt(key));
         assertEquals(1, IntegerBinding.entryToInt(data));
 
-        /* Insertions before current position are never blocked. */
+        /* Insertions before {1,1} and after {1,3} are never blocked. */
         try {
             insert(1, 0);
+            insert(0, 0);
+            insert(1, 4);
+            insert(2, 0);
         } catch (DeadlockException e) {
             fail();
         }
@@ -2191,6 +2411,14 @@ public class PhantomTest extends TestCase {
         status = cursor.getPrevDup(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions after {2,3} are never blocked. */
+        try {
+            insert(2, 4);
+            insert(3, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert {2,1} in a writer thread. */
         startInsert(2, 1);
 
@@ -2247,9 +2475,10 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, status);
         assertEquals(1, IntegerBinding.entryToInt(key));
 
-        /* Insertions before current position are never blocked. */
+        /* Insertions before 1 and after 3 are never blocked. */
         try {
             insert(0);
+            insert(4);
         } catch (DeadlockException e) {
             fail();
         }
@@ -2311,10 +2540,12 @@ public class PhantomTest extends TestCase {
         assertEquals(1, IntegerBinding.entryToInt(key));
         assertEquals(2, IntegerBinding.entryToInt(data));
 
-        /* Insertions before current position are never blocked. */
+        /* Insertions before {1,2} and after {3,2} are never blocked. */
         try {
             insert(1, 1);
             insert(0, 0);
+            insert(3, 3);
+            insert(4, 0);
         } catch (DeadlockException e) {
             fail();
         }
@@ -2374,6 +2605,13 @@ public class PhantomTest extends TestCase {
         status = cursor.getPrevNoDup(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
 
+        /* Insertions after 2 are never blocked. */
+        try {
+            insert(3);
+        } catch (DeadlockException e) {
+            fail();
+        }
+
         /* Insert key 1 in a writer thread. */
         startInsert(1);
 
@@ -2426,6 +2664,14 @@ public class PhantomTest extends TestCase {
         assertEquals(OperationStatus.SUCCESS, searchBoth(cursor, 2, 2));
         status = cursor.getPrevNoDup(key, data, null);
         assertEquals(OperationStatus.NOTFOUND, status);
+
+        /* Insertions after {2,2} are never blocked. */
+        try {
+            insert(2, 3);
+            insert(3, 0);
+        } catch (DeadlockException e) {
+            fail();
+        }
 
         /* Insert {1,1} in a writer thread. */
         startInsert(1, 1);

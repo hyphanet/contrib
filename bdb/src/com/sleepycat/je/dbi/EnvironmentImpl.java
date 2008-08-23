@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentImpl.java,v 1.301 2008/05/30 19:07:41 mark Exp $
+ * $Id: EnvironmentImpl.java,v 1.301.2.2 2008/08/04 21:43:31 mark Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -501,9 +501,10 @@ public class EnvironmentImpl implements EnvConfigObserver {
              * exists, recovery will recreate the dbMapTree from the log and
              * overwrite this instance.
              */
-        if (dbMapTree != null) {
-            dbMapTree.close();
-        }
+            if (dbMapTree != null) {
+                dbMapTree.close();
+            }
+
             dbMapTree = new DbTree(this, replicationIntended);
             mapTreeRootLsn = DbLsn.NULL_LSN;
             referenceCount = 0;
@@ -1666,6 +1667,11 @@ public class EnvironmentImpl implements EnvConfigObserver {
     public int invokeCleaner()
         throws DatabaseException {
 
+        if (isReadOnly || isMemOnly) {
+            throw new IllegalStateException
+                ("Log cleaning not allowed in a read-only or memory-only " +
+                 "environment");
+        }
         if (cleaner != null) {
             return cleaner.doClean(true,   // cleanMultipleFiles
                                    false); // forceCleaning

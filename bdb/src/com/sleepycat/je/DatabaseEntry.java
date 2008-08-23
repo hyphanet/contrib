@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseEntry.java,v 1.47 2008/01/24 14:59:27 linda Exp $
+ * $Id: DatabaseEntry.java,v 1.48 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -115,6 +115,7 @@ public class DatabaseEntry {
      * defaults to 100.  MAX_DUMP_BYTES may be changed by an application if it
      * wishes to cause more bytes to be formatted.
      */
+    @Override
     public String toString() {
 	StringBuffer sb = new StringBuffer("<DatabaseEntry");
 	sb.append(" dlen=\"").append(dlen);
@@ -426,6 +427,7 @@ public class DatabaseEntry {
      * equal both entries must have the same partial properties: partial,
      * partialOffset and partialLength.
      */
+    @Override
     public boolean equals(Object o) {
         if (!(o instanceof DatabaseEntry)) {
             return false;
@@ -458,6 +460,7 @@ public class DatabaseEntry {
     /**
      * Returns a hash code based on the data value.
      */
+    @Override
     public int hashCode() {
         int hash = 0;
         if (data != null) {

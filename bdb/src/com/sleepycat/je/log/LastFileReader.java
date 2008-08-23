@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LastFileReader.java,v 1.54 2008/05/15 01:52:41 linda Exp $
+ * $Id: LastFileReader.java,v 1.55 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -84,6 +84,7 @@ public class LastFileReader extends FileReader {
     /**
      * Override so that we always start at the last file.
      */
+    @Override
     protected void initStartingPosition(long endOfFileLsn,
 					Long singleFileNum)
         throws IOException, DatabaseException {
@@ -237,6 +238,7 @@ public class LastFileReader extends FileReader {
      * readNextEntry will stop at a bad entry.
      * @return true if an element has been read.
      */
+    @Override
     public boolean readNextEntry()
         throws DatabaseException, IOException {
 

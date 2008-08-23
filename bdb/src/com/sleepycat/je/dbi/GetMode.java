@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: GetMode.java,v 1.10 2008/01/07 14:28:48 cwl Exp $
+ * $Id: GetMode.java,v 1.11 2008/06/10 02:52:10 cwl Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -32,6 +32,7 @@ public class GetMode {
         return forward;
     }
 
+    @Override
     public String toString() {
         return name;
     }

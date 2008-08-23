@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: DbConfigManager.java,v 1.47 2008/05/30 19:07:41 mark Exp $
+ * $Id: DbConfigManager.java,v 1.48 2008/06/30 20:54:46 linda Exp $
  */
 
 package com.sleepycat.je.dbi;
@@ -192,7 +192,10 @@ public class DbConfigManager {
     /**
      * Validate a collection of configurations at Environment and Replicator
      * startup time. Check for valid configuration names and values.
+     * SuppressWarnings here because Enumeration doesn't work well with 
+     * Properties in Java 1.5
      */
+    @SuppressWarnings("unchecked")
     public static void validateProperties(Properties props,
                                           boolean forReplication,
                                           String configClassName,
@@ -253,7 +256,8 @@ public class DbConfigManager {
      * Apply the configurations specified in the je.properties file to override
      * the programatically set configuration values held in the property bag.
      */
-    public static void applyFileConfig(File envHome,
+    @SuppressWarnings("unchecked")
+	public static void applyFileConfig(File envHome,
                                        Properties props,
                                        boolean forReplication,
                                        String errorClassName)

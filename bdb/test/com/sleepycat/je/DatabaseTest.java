@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseTest.java,v 1.110 2008/01/24 14:59:31 linda Exp $
+ * $Id: DatabaseTest.java,v 1.111 2008/06/06 17:12:27 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -693,8 +693,6 @@ public class DatabaseTest extends TestCase {
 
         try {
             Database myDb = initEnvAndDb(true, false, true, false, null);
-            DatabaseEntry key = new DatabaseEntry();
-            DatabaseEntry data = new DatabaseEntry();
 
             long count = myDb.count();
             assertEquals(0, count);

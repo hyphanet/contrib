@@ -3,15 +3,17 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryDuplicatesTest.java,v 1.15 2008/01/07 14:29:10 cwl Exp $
+ * $Id: RecoveryDuplicatesTest.java,v 1.16 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
-import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.Transaction;
 import com.sleepycat.je.config.EnvironmentParams;
 import com.sleepycat.je.util.TestUtils;
@@ -27,7 +29,8 @@ public class RecoveryDuplicatesTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert all the data. */
             Transaction txn = env.beginTransaction(null, null);
@@ -51,7 +54,8 @@ public class RecoveryDuplicatesTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert all the data. */
             Transaction txn = env.beginTransaction(null, null);
@@ -100,7 +104,8 @@ public class RecoveryDuplicatesTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert all the data. */
             Transaction txn = env.beginTransaction(null, null);
@@ -142,7 +147,8 @@ public class RecoveryDuplicatesTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert all the data. */
             Transaction txn = env.beginTransaction(null, null);

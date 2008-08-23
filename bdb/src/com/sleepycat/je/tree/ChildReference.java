@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ChildReference.java,v 1.109 2008/01/17 17:22:13 cwl Exp $
+ * $Id: ChildReference.java,v 1.110 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -364,6 +364,7 @@ public class ChildReference implements Loggable {
         return sb.toString();
     }
 
+    @Override
     public String toString() {
         return dumpString(0, false);
     }

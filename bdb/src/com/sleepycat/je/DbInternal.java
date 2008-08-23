@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbInternal.java,v 1.56 2008/03/18 15:53:04 mark Exp $
+ * $Id: DbInternal.java,v 1.57 2008/06/27 18:30:28 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -16,6 +16,7 @@ import com.sleepycat.je.dbi.DatabaseImpl;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 import com.sleepycat.je.dbi.GetMode;
 import com.sleepycat.je.txn.Locker;
+import com.sleepycat.je.txn.Txn;
 
 /**
  * @hidden
@@ -310,5 +311,9 @@ public class DbInternal {
         throws DatabaseException {
 
         return new Environment(envHome, config, replicationIntended);
+    }
+
+    public static Txn getTxn(Transaction transaction) {
+        return transaction.getTxn();
     }
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Locker.java,v 1.121 2008/05/22 20:25:35 cwl Exp $
+ * $Id: Locker.java,v 1.122 2008/06/10 02:52:14 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -801,6 +801,7 @@ public abstract class Locker {
     /*
      * Helpers
      */
+    @Override
     public String toString() {
         String className = getClass().getName();
         className = className.substring(className.lastIndexOf('.') + 1);

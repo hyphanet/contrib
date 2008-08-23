@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LoggableTest.java,v 1.93 2008/05/13 01:57:02 linda Exp $
+ * $Id: LoggableTest.java,v 1.94 2008/06/30 20:54:47 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -11,8 +11,6 @@ package com.sleepycat.je.log;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
-import javax.xml.parsers.DocumentBuilderFactory;
 
 import junit.framework.TestCase;
 
@@ -59,12 +57,6 @@ public class LoggableTest extends TestCase {
         throws Exception {
 
         envHome = new File(System.getProperty(TestUtils.DEST_DIR));
-
-        /*
-         * Attempt to validate that the db print log output is valid
-         * xml -- isn't quite working
-         */
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     }
 
     public void setUp()

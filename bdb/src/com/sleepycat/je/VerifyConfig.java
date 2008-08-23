@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: VerifyConfig.java,v 1.15 2008/01/07 14:28:46 cwl Exp $
+ * $Id: VerifyConfig.java,v 1.16 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -180,8 +180,9 @@ public class VerifyConfig {
      *
      * @return the values for each configuration attribute.
      */
+    @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("propagateExceptions=").append(propagateExceptions);
         return sb.toString();
     }

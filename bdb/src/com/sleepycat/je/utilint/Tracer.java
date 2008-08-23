@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Tracer.java,v 1.52 2008/01/17 17:22:15 cwl Exp $
+ * $Id: Tracer.java,v 1.53 2008/06/10 02:52:15 cwl Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -212,6 +212,7 @@ public class Tracer implements Loggable {
         return msg.equals(((Tracer) other).msg);
     }
 
+    @Override
     public String toString() {
         return (time + "/" + msg);
     }
@@ -223,6 +224,7 @@ public class Tracer implements Loggable {
     /**
      *  Just in case it's ever used as a hash key.
      */
+    @Override
     public int hashCode() {
         return toString().hashCode();
     }
@@ -230,6 +232,7 @@ public class Tracer implements Loggable {
     /**
      * Override Object.equals
      */
+    @Override
     public boolean equals(Object obj) {
         /* Same instance? */
         if (this == obj) {

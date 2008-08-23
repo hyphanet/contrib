@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: CleanerTest.java,v 1.102 2008/05/23 18:50:50 mark Exp $
+ * $Id: CleanerTest.java,v 1.103.2.1 2008/08/04 21:43:31 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -95,8 +95,6 @@ public class CleanerTest extends TestCase {
         envConfig.setTxnNoSync(Boolean.getBoolean(TestUtils.NO_SYNC));
         envConfig.setConfigParam(EnvironmentParams.LOG_FILE_MAX.getName(),
                                  Integer.toString(FILE_SIZE));
-        envConfig.setConfigParam(EnvironmentParams.ENV_CHECK_LEAKS.getName(),
-                                 "false");
         envConfig.setConfigParam(EnvironmentParams.ENV_RUN_CLEANER.getName(),
                                  "false");
         envConfig.setConfigParam(EnvironmentParams.CLEANER_REMOVE.getName(),
@@ -108,10 +106,6 @@ public class CleanerTest extends TestCase {
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
         envConfig.setConfigParam(EnvironmentParams.BIN_DELTA_PERCENT.getName(),
                                  "75");
-
-        /* Don't use detail tracking in this test. */
-        envConfig.setConfigParam
-            (EnvironmentParams.CLEANER_TRACK_DETAIL.getName(), "false");
 
         exampleEnv = new Environment(envHome, envConfig);
 
@@ -136,7 +130,7 @@ public class CleanerTest extends TestCase {
         exampleDb = null;
         exampleEnv = null;
 
-        /*
+        //*
         try {
             TestUtils.removeLogFiles("TearDown", envHome, true);
             TestUtils.removeFiles("TearDown", envHome, FileManager.DEL_SUFFIX);
@@ -190,7 +184,8 @@ public class CleanerTest extends TestCase {
         EnvironmentImpl environment =
             DbInternal.envGetEnvironmentImpl(exampleEnv);
         FileManager fileManager = environment.getFileManager();
-        Map expectedMap = new HashMap();
+        Map<String, Set<String>> expectedMap =
+            new HashMap<String, Set<String>>();
         doLargePut(expectedMap, nKeys, nDupsPerKey, true);
         Long lastNum = fileManager.getLastFileNum();
 
@@ -246,7 +241,8 @@ public class CleanerTest extends TestCase {
             DbInternal.envGetEnvironmentImpl(exampleEnv);
         FileManager fileManager = environment.getFileManager();
         /* Insert a lot of keys. ExpectedMap holds the expected data */
-        Map expectedMap = new HashMap();
+        Map<String, Set<String>> expectedMap =
+            new HashMap<String, Set<String>>();
         doLargePut(expectedMap, nKeys, 1, true);
 
         /* Modify every other piece of data. */
@@ -302,7 +298,8 @@ public class CleanerTest extends TestCase {
         FileManager fileManager = environment.getFileManager();
 
         /* Insert some non dup data, modify, insert dup data. */
-        Map expectedMap = new HashMap();
+        Map<String, Set<String>> expectedMap =
+            new HashMap<String, Set<String>>();
         doLargePut(expectedMap, nKeys, 1, true);
         modifyData(expectedMap, 10, true);
         doLargePut(expectedMap, nKeys, nDupsPerKey, true);
@@ -504,6 +501,84 @@ public class CleanerTest extends TestCase {
     }
 
     /**
+     * Tests that the FileSelector memory budget is subtracted when the
+     * environment is closed.  Before the fix in SR [#16368], it was not.
+     */
+    public void testFileSelectorMemBudget()
+        throws Throwable {
+
+        final int fileSize = 1000000;
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.LOG_FILE_MAX.getName(),
+             Integer.toString(fileSize));
+        envConfig.setConfigParam
+            (EnvironmentParams.CLEANER_MIN_UTILIZATION.getName(), "80");
+        Environment env = new Environment(envHome, envConfig);
+
+        DatabaseConfig dbConfig = new DatabaseConfig();
+        dbConfig.setAllowCreate(true);
+        Database db = env.openDatabase(null, "foo", dbConfig);
+
+        DatabaseEntry key = new DatabaseEntry(new byte[1]);
+        DatabaseEntry data = new DatabaseEntry(new byte[fileSize]);
+        for (int i = 0; i <= 10; i += 1) {
+            db.put(null, key, data);
+        }
+        env.checkpoint(forceConfig);
+
+        int nFiles = env.cleanLog();
+        assertTrue(nFiles > 0);
+
+        db.close();
+
+        /*
+         * To force the memory leak to be detected we have to close without a
+         * checkpoint.  The checkpoint will finish processing all cleaned files
+         * and subtract them from the budget.  But this should happen during
+         * close, even without a checkpoint.
+         */
+        EnvironmentImpl envImpl = DbInternal.envGetEnvironmentImpl(env);
+        envImpl.close(false /*doCheckpoint*/);
+    }
+
+    /**
+     * Tests that the cleanLog cannot be called in a read-only environment.
+     * [#16368]
+     */
+    public void testCleanLogReadOnly()
+        throws Throwable {
+
+        /* Open read-write. */
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        envConfig.setAllowCreate(true);
+        exampleEnv = new Environment(envHome, envConfig);
+        exampleEnv.close();
+        exampleEnv = null;
+
+        /* Open read-only. */
+        envConfig.setAllowCreate(false);
+        envConfig.setReadOnly(true);
+        exampleEnv = new Environment(envHome, envConfig);
+
+        /* Try cleanLog in a read-only env. */
+        try {
+            exampleEnv.cleanLog();
+            fail();
+        } catch (IllegalStateException e) {
+            assertEquals
+                ("Log cleaning not allowed in a read-only or memory-only " +
+                 "environment", e.getMessage());
+
+        }
+    }
+
+    /**
      * Tests that when a file being cleaned is deleted, we ignore the error and
      * don't repeatedly try to clean it.  This is happening when we mistakedly
      * clean a file after it has been queued for deletion.  The workaround is
@@ -526,7 +601,8 @@ public class CleanerTest extends TestCase {
             DbInternal.envGetEnvironmentImpl(exampleEnv);
         final Cleaner cleaner = envImpl.getCleaner();
 
-        Map expectedMap = new HashMap();
+        Map<String, Set<String>> expectedMap =
+            new HashMap<String, Set<String>>();
         doLargePut(expectedMap, 1000, 1, true);
         checkData(expectedMap);
 
@@ -546,7 +622,7 @@ public class CleanerTest extends TestCase {
      * Helper routine. Generates keys with random alpha values while data
      * is numbered numerically.
      */
-    private void doLargePut(Map expectedMap,
+    private void doLargePut(Map<String, Set<String>> expectedMap,
                             int nKeys,
                             int nDupsPerKey,
                             boolean commit)
@@ -562,7 +638,7 @@ public class CleanerTest extends TestCase {
              * The data map is keyed by key value, and holds a hash
              * map of all data values.
              */
-            Set dataVals = new HashSet();
+            Set<String> dataVals = new HashSet<String>();
             if (commit) {
                 expectedMap.put(keyString, dataVals);
             }
@@ -584,7 +660,7 @@ public class CleanerTest extends TestCase {
     /**
      * Increment each data value.
      */
-    private void modifyData(Map expectedMap,
+    private void modifyData(Map<String, Set<String>> expectedMap,
                             int increment,
                             boolean commit)
         throws DatabaseException {
@@ -610,7 +686,7 @@ public class CleanerTest extends TestCase {
                 /* If committing, adjust the expected map. */
                 if (commit) {
 
-                    Set dataVals = (Set) expectedMap.get(foundKeyString);
+                    Set<String> dataVals = expectedMap.get(foundKeyString);
                     if (dataVals == null) {
                         fail("Couldn't find " +
                              foundKeyString + "/" + foundDataString);
@@ -647,7 +723,7 @@ public class CleanerTest extends TestCase {
     /**
      * Delete data.
      */
-    private void deleteData(Map expectedMap,
+    private void deleteData(Map<String, Set<String>> expectedMap,
                             boolean everyOther,
                             boolean commit)
         throws DatabaseException {
@@ -671,7 +747,7 @@ public class CleanerTest extends TestCase {
                 /* If committing, adjust the expected map */
                 if (commit) {
 
-                    Set dataVals = (Set) expectedMap.get(foundKeyString);
+                    Set dataVals = expectedMap.get(foundKeyString);
                     if (dataVals == null) {
                         fail("Couldn't find " +
                              foundKeyString + "/" + foundDataString);
@@ -707,7 +783,7 @@ public class CleanerTest extends TestCase {
     /**
      * Check what's in the database against what's in the expected map.
      */
-    private void checkData(Map expectedMap)
+    private void checkData(Map<String, Set<String>> expectedMap)
         throws DatabaseException {
 
         StringDbt foundKey = new StringDbt();
@@ -722,13 +798,14 @@ public class CleanerTest extends TestCase {
          * Also make a set of counts for each key value, to test count.
          */
 
-        Map checkMap = new HashMap();
-        Map countMap = new HashMap();
-        Iterator iter = expectedMap.entrySet().iterator();
+        Map<String, Set<String>> checkMap = new HashMap<String, Set<String>>();
+        Map<String, Integer>countMap = new HashMap<String, Integer>();
+        Iterator<Map.Entry<String, Set<String>>> iter =
+        		expectedMap.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry entry = (Map.Entry) iter.next();
-            Set copySet = new HashSet();
-            copySet.addAll((Set) entry.getValue());
+            Map.Entry<String, Set<String>> entry = iter.next();
+            Set<String> copySet = new HashSet<String>();
+            copySet.addAll(entry.getValue());
             checkMap.put(entry.getKey(), copySet);
             countMap.put(entry.getKey(), new Integer(copySet.size()));
         }
@@ -738,7 +815,7 @@ public class CleanerTest extends TestCase {
             String foundDataString = foundData.getString();
 
             /* Check that the current value is in the check values map */
-            Set dataVals = (Set) checkMap.get(foundKeyString);
+            Set dataVals = checkMap.get(foundKeyString);
             if (dataVals == null) {
                 fail("Couldn't find " +
                      foundKeyString + "/" + foundDataString);
@@ -756,7 +833,7 @@ public class CleanerTest extends TestCase {
 
             /* Check that the count is right. */
             int count = cursor.count();
-            assertEquals(((Integer)countMap.get(foundKeyString)).intValue(),
+            assertEquals(countMap.get(foundKeyString).intValue(),
                          count);
 
             status = cursor.getNext(foundKey, foundData, LockMode.DEFAULT);
@@ -937,8 +1014,6 @@ public class CleanerTest extends TestCase {
         EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         envConfig.setAllowCreate(true);
         envConfig.setTransactional(true);
-        envConfig.setConfigParam
-            (EnvironmentParams.ENV_CHECK_LEAKS.getName(), "false");
         envConfig.setConfigParam
             (EnvironmentParams.ENV_RUN_CLEANER.getName(), "false");
         envConfig.setConfigParam

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FileManager.java,v 1.193 2008/05/22 20:21:04 linda Exp $
+ * $Id: FileManager.java,v 1.194.2.1 2008/07/24 07:28:49 tao Exp $
  */
 
 package com.sleepycat.je.log;
@@ -28,6 +28,7 @@ import java.util.Set;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.EnvironmentStats;
+import com.sleepycat.je.EnvironmentLockedException;
 import com.sleepycat.je.RunRecoveryException;
 import com.sleepycat.je.StatsConfig;
 import com.sleepycat.je.config.EnvironmentParams;
@@ -1250,7 +1251,7 @@ public class FileManager {
 
         int totalBytesWritten = 0;
         if (useNIO) {
-            FileChannel channel = file.getChannel();
+            FileChannel chan = file.getChannel();
 
             if (chunkedNIOSize > 0) {
 
@@ -1284,7 +1285,7 @@ public class FileManager {
                     useData.limit((int)
                                   (Math.min(useData.limit() + chunkedNIOSize,
                                             originalLimit)));
-                    int bytesWritten = channel.write(useData, destOffset);
+                    int bytesWritten = chan.write(useData, destOffset);
                     destOffset += bytesWritten;
                     totalBytesWritten += bytesWritten;
                 }
@@ -1293,7 +1294,7 @@ public class FileManager {
                 /*
                  * Perform a single write using NIO.
                  */
-                totalBytesWritten = channel.write(data, destOffset);
+                totalBytesWritten = chan.write(data, destOffset);
             }
         } else {
 
@@ -1388,7 +1389,7 @@ public class FileManager {
         throws DatabaseException, IOException {
 
         if (useNIO) {
-            FileChannel channel = file.getChannel();
+            FileChannel chan = file.getChannel();
 
             if (chunkedNIOSize > 0) {
 
@@ -1406,7 +1407,7 @@ public class FileManager {
                     if (IO_EXCEPTION_TESTING_ON_READ) {
                         throw new IOException("generated for testing (read)");
                     }
-                    int bytesRead = channel.read(readBuffer, currentPosition);
+                    int bytesRead = chan.read(readBuffer, currentPosition);
 
                     if (bytesRead < 1)
                         break;
@@ -1422,7 +1423,7 @@ public class FileManager {
                 /*
                  * Perform a single read using NIO.
                  */
-                channel.read(readBuffer, offset);
+                chan.read(readBuffer, offset);
             }
         } else {
 
@@ -1711,7 +1712,8 @@ public class FileManager {
                 throwIt = true;
             }
             if (throwIt) {
-                throw new LogException
+                close();
+                throw new EnvironmentLockedException
                     ("A " + LOCK_FILE + " file exists in " +
                      dbEnvHome.getAbsolutePath() +
                      " The environment can not be locked for " +

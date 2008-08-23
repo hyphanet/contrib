@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: RuntimeExceptionWrapper.java,v 1.18 2008/05/20 17:52:37 linda Exp $
+ * $Id: RuntimeExceptionWrapper.java,v 1.19 2008/06/10 02:52:17 cwl Exp $
  */
 
 package com.sleepycat.util;
@@ -32,6 +32,7 @@ public class RuntimeExceptionWrapper extends RuntimeException
         return e;
     }
 
+    @Override
     public Throwable getCause() {
 
         return e;

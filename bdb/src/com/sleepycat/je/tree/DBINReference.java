@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DBINReference.java,v 1.18 2008/05/13 01:44:53 cwl Exp $
+ * $Id: DBINReference.java,v 1.19 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -25,14 +25,17 @@ public class DBINReference extends BINReference {
 	this.dupKey = dupKey;
     }
 
+    @Override
     public byte[] getKey() {
 	return dupKey;
     }
 
+    @Override
     public byte[] getData() {
 	return idKey;
     }
 
+    @Override
     public String toString() {
 	return super.toString() + " dupKey=" + Key.dumpString(dupKey, 0);
     }

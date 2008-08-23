@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Cursor.java,v 1.215 2008/05/29 03:17:28 linda Exp $
+ * $Id: Cursor.java,v 1.216.2.1 2008/08/07 17:04:46 mark Exp $
  */
 
 package com.sleepycat.je;
@@ -186,8 +186,8 @@ public class Cursor {
 
         assert locker != null;
 
-        DatabaseImpl dbImpl = dbHandle.getDatabaseImpl();
-        cursorImpl = new CursorImpl(dbImpl, locker, retainNonTxnLocks);
+        DatabaseImpl databaseImpl = dbHandle.getDatabaseImpl();
+        cursorImpl = new CursorImpl(databaseImpl, locker, retainNonTxnLocks);
 
         /* Perform eviction for user cursors. */
         cursorImpl.setAllowEviction(true);
@@ -200,14 +200,14 @@ public class Cursor {
             cursorImpl.getLocker().isSerializableIsolation();
 
         updateOperationsProhibited =
-            (dbImpl.isTransactional() && !locker.isTransactional()) ||
+            (databaseImpl.isTransactional() && !locker.isTransactional()) ||
             !dbHandle.isWritable();
 
-        this.dbImpl = dbImpl;
+        this.dbImpl = databaseImpl;
         this.dbHandle = dbHandle;
         dbHandle.addCursor(this);
         this.config = cursorConfig;
-        this.logger = dbImpl.getDbEnvironment().getLogger();
+        this.logger = databaseImpl.getDbEnvironment().getLogger();
     }
 
     /**
@@ -1698,7 +1698,6 @@ public class Cursor {
             SearchMode.SET_RANGE : SearchMode.BOTH_RANGE;
 
         KeyChangeStatus result = null;
-        boolean noNextKeyFound;
 
         CursorImpl dup =
             beginRead(false /* searchAndPosition will add cursor */);
@@ -1714,9 +1713,6 @@ public class Cursor {
                 (dup, key, data, searchLockType, advanceLockType, searchMode,
                  true /*advanceAfterRangeSearch*/);
 
-            /* The keyChange value is independent of the status value. */
-            noNextKeyFound = !result.keyChange;
-
             /* If the key changed, then we do not have an exact match. */
             if (result.keyChange && result.status == OperationStatus.SUCCESS) {
                 result.status = OperationStatus.NOTFOUND;
@@ -1726,8 +1722,11 @@ public class Cursor {
                          result.status == OperationStatus.SUCCESS);
         }
 
-        /* Lock the EOF node if no more records, whether or not more dups. */
-        if (noNextKeyFound) {
+        /*
+         * Lock the EOF node if there was no exact match and we did not
+         * range-lock the next record.
+         */
+        if (result.status != OperationStatus.SUCCESS && !result.keyChange) {
             cursorImpl.lockEofNode(LockType.RANGE_READ);
         }
 
@@ -1928,7 +1927,7 @@ public class Cursor {
 
                             /*
                              * If we did not match the key (exactly) for
-                             * BOTH_RANGE, and advanceAfterSearchRangeBoth is
+                             * BOTH_RANGE, and advanceAfterRangeSearch is
                              * false, then return NOTFOUND.
                              */
                              status = OperationStatus.NOTFOUND;

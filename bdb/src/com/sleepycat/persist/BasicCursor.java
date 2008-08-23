@@ -3,13 +3,16 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BasicCursor.java,v 1.12 2008/02/05 23:28:21 mark Exp $
+ * $Id: BasicCursor.java,v 1.12.2.1 2008/07/15 19:15:41 mark Exp $
  */
 
 package com.sleepycat.persist;
 
 import java.util.Iterator;
 
+/* <!-- begin JE only --> */
+import com.sleepycat.je.CacheMode;
+/* <!-- end JE only --> */
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.LockMode;
@@ -198,6 +201,18 @@ class BasicCursor<V> implements EntityCursor<V> {
 
         cursor.close();
     }
+
+    /* <!-- begin JE only --> */
+    public void setCacheMode(CacheMode cacheMode) {
+        cursor.getCursor().setCacheMode(cacheMode);
+    }
+    /* <!-- end JE only --> */
+
+    /* <!-- begin JE only --> */
+    public CacheMode getCacheMode() {
+        return cursor.getCursor().getCacheMode();
+    }
+    /* <!-- end JE only --> */
 
     void checkInitialized()
         throws IllegalStateException {

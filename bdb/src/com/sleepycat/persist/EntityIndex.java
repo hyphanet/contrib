@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EntityIndex.java,v 1.21 2008/01/24 14:59:30 linda Exp $
+ * $Id: EntityIndex.java,v 1.22 2008/06/10 02:52:16 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -16,11 +16,11 @@ import com.sleepycat.collections.StoredSortedMap;
 import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseEntry;
-import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.DatabaseException; // for javadoc
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.LockMode;
-import com.sleepycat.je.SecondaryDatabase;
+import com.sleepycat.je.SecondaryDatabase; // for javadoc
 import com.sleepycat.je.Transaction;
 
 /**

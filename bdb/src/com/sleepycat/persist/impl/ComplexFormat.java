@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ComplexFormat.java,v 1.41 2008/05/13 01:45:02 cwl Exp $
+ * $Id: ComplexFormat.java,v 1.44 2008/06/26 05:24:52 mark Exp $
  */
 
 package com.sleepycat.persist.impl;
@@ -67,7 +67,7 @@ public class ComplexFormat extends Format {
         this.clsMeta = clsMeta;
         this.entityMeta = entityMeta;
         secKeyFields = new ArrayList<FieldInfo>();
-        nonKeyFields = FieldInfo.getInstanceFields(cls);
+        nonKeyFields = FieldInfo.getInstanceFields(cls, clsMeta);
 
         /*
          * Validate primary key metadata and move primary key field from
@@ -793,8 +793,31 @@ public class ComplexFormat extends Format {
         ComplexFormat newFormat = (ComplexFormat) newFormatParam;
         Mutations mutations = evolver.getMutations();
         boolean thisChanged = false;
-        boolean superChanged = false;
+        boolean hierarchyChanged = false;
         Map<String,String> allKeyNameMap = new HashMap<String,String>();
+
+        /* The Evolver has already ensured that entities evolve to entities. */
+        assert isEntity() == newFormat.isEntity();
+        assert isEntity() == (entityMeta != null);
+        assert newFormat.isEntity() == (newFormat.entityMeta != null);
+
+        /*
+         * Keep track of the old and new entity class names for use in deleting
+         * and renaming secondary keys below.  If the oldEntityClass is
+         * non-null this also signifies an entity class or subclass.  Note that
+         * getEntityFormat cannot be called on a newly created format during
+         * evolution because its super format property is not yet initialized.
+         * [#16253]
+         */
+        String oldEntityClass;
+        String newEntityClass;
+        if (isEntity()) {
+            oldEntityClass = getClassName();
+            newEntityClass = newFormat.getClassName();
+        } else {
+            oldEntityClass = null;
+            newEntityClass = null;
+        }
 
         /*
          * Evolve all superclass formats, even when a deleted class appears in
@@ -826,7 +849,7 @@ public class ComplexFormat extends Format {
                 if (oldSuper.oldToNewKeyMap != null) {
                     allKeyNameMap.putAll(oldSuper.oldToNewKeyMap);
                 }
-                superChanged = true;
+                hierarchyChanged = true;
             }
         }
 
@@ -852,13 +875,13 @@ public class ComplexFormat extends Format {
         if (getSuperFormat() == null) {
             if (newFormatCls.getSuperclass() != Object.class) {
                 thisChanged = true;
-                superChanged = true;
+                hierarchyChanged = true;
             }
         } else {
             if (!getSuperFormat().getLatestVersion().getClassName().equals
                     (newFormatCls.getSuperclass().getName())) {
                 thisChanged = true;
-                superChanged = true;
+                hierarchyChanged = true;
             }
         }
 
@@ -877,6 +900,12 @@ public class ComplexFormat extends Format {
                 if (oldSuperName.equals(newSuper2.getName())) {
                     foundNewSuper = newSuper2;
                     newLevel = tryNewLevel;
+                    if (oldSuper.isEntity()) {
+                        assert oldEntityClass == null;
+                        assert newEntityClass == null;
+                        oldEntityClass = oldSuper.getClassName();
+                        newEntityClass = foundNewSuper.getName();
+                    }
                     break;
                 }
             }
@@ -895,7 +924,7 @@ public class ComplexFormat extends Format {
                     /*
                      * The class hierarchy changed -- a new class was inserted.
                      */
-                    superChanged = true;
+                    hierarchyChanged = true;
 
                     /*
                      * Check that the new formats skipped over above are not at
@@ -925,7 +954,7 @@ public class ComplexFormat extends Format {
                  * The class hierarchy changed, since an old class no longer
                  * appears.
                  */
-                superChanged = true;
+                hierarchyChanged = true;
 
                 /* Check that the old class can be safely removed. */
                 if (!oldSuper.isDeleted()) {
@@ -943,7 +972,7 @@ public class ComplexFormat extends Format {
                     }
                 }
 
-                if (isEntity() && isCurrentVersion()) {
+                if (oldEntityClass != null && isCurrentVersion()) {
                     Map<String,SecondaryKeyMetadata> secKeys =
                         oldSuper.clsMeta.getSecondaryKeys();
                     for (FieldInfo field : oldSuper.secKeyFields) {
@@ -960,6 +989,20 @@ public class ComplexFormat extends Format {
                  */
                 newLevels.add(EvolveReader.DO_NOT_READ_ACCESSOR);
             }
+        }
+
+        /*
+         * When the secondary keys of an entity have changed, even if the
+         * entity itself and its superclasses have not changed, then a
+         * secondary key in an entity subclass must have changed.  We must
+         * evolve the entity in order to use the updated entity metadata so
+         * that we will initialize all secondary key addresses.  [#16253]
+         */
+        if (isCurrentVersion() &&
+            isEntity() &&
+            !entityMeta.getSecondaryKeys().keySet().equals
+                (newFormat.entityMeta.getSecondaryKeys().keySet())) {
+            hierarchyChanged = true;
         }
 
         /* Make FieldReaders for this format if needed. */
@@ -982,22 +1025,27 @@ public class ComplexFormat extends Format {
             return false;
         }
 
-        /* Rename the secondary databases. */
-        if (allKeyNameMap.size() > 0 && isEntity() && isCurrentVersion()) {
+        /* Rename and delete the secondary databases. */
+        if (allKeyNameMap.size() > 0 &&
+            oldEntityClass != null &&
+            newEntityClass != null &&
+            isCurrentVersion()) {
             for (Map.Entry<String,String> entry : allKeyNameMap.entrySet()) {
-                 String oldKeyName = entry.getKey();
-                 String newKeyName = entry.getValue();
+                String oldKeyName = entry.getKey();
+                String newKeyName = entry.getValue();
                 if (newKeyName != null) {
                     evolver.renameSecondaryDatabase
-                        (this, newFormat, oldKeyName, newKeyName);
+                        (oldEntityClass, newEntityClass,
+                         oldKeyName, newKeyName);
                 } else {
-                    evolver.deleteSecondaryDatabase(this, oldKeyName);
+                    evolver.deleteSecondaryDatabase
+                        (oldEntityClass, oldKeyName);
                 }
             }
         }
 
         /* Use an EvolveReader if needed. */
-        if (superChanged || thisChanged) {
+        if (hierarchyChanged || thisChanged) {
             Reader reader = new EvolveReader(newLevels);
             evolver.useEvolvedFormat(this, reader, newFormat);
         } else {
@@ -1041,7 +1089,7 @@ public class ComplexFormat extends Format {
             String keyName = oldMeta.getKeyName();
             if (deletedKeys.contains(keyName)) {
                 if (isCurrentVersion()) {
-                    evolver.deleteSecondaryDatabase(this, keyName);
+                    evolver.deleteSecondaryDatabase(getClassName(), keyName);
                 }
             } else {
                 SecondaryKeyMetadata newMeta = newSecondaryKeys.get(keyName);
@@ -1172,14 +1220,14 @@ public class ComplexFormat extends Format {
 
         /* Evolve primary key field. */
         boolean evolveFailure = false;
-        boolean evolveNeeded = false;
+        boolean localEvolveNeeded = false;
         if (priKeyField != null) {
             int result = evolver.evolveRequiredKeyField
                 (this, newFormat, priKeyField, newFormat.priKeyField);
             if (result == Evolver.EVOLVE_FAILURE) {
                 evolveFailure = true;
             } else if (result == Evolver.EVOLVE_NEEDED) {
-                evolveNeeded = true;
+                localEvolveNeeded = true;
             }
         }
 
@@ -1190,7 +1238,7 @@ public class ComplexFormat extends Format {
         if (reader == FieldReader.EVOLVE_FAILURE) {
             evolveFailure = true;
         } else if (reader != null) {
-            evolveNeeded = true;
+            localEvolveNeeded = true;
         }
         if (reader != FieldReader.EVOLVE_NEEDED) {
             secKeyFieldReader = reader;
@@ -1203,7 +1251,7 @@ public class ComplexFormat extends Format {
         if (reader == FieldReader.EVOLVE_FAILURE) {
             evolveFailure = true;
         } else if (reader != null) {
-            evolveNeeded = true;
+            localEvolveNeeded = true;
         }
         if (reader != FieldReader.EVOLVE_NEEDED) {
             nonKeyFieldReader = reader;
@@ -1212,7 +1260,7 @@ public class ComplexFormat extends Format {
         /* Return result. */
         if (evolveFailure) {
             return Evolver.EVOLVE_FAILURE;
-        } else if (evolveNeeded) {
+        } else if (localEvolveNeeded) {
             return Evolver.EVOLVE_NEEDED;
         } else {
             return Evolver.EVOLVE_NONE;
@@ -1246,7 +1294,7 @@ public class ComplexFormat extends Format {
                                         Evolver evolver) {
         Mutations mutations = evolver.getMutations();
         boolean evolveFailure = false;
-        boolean evolveNeeded = false;
+        boolean localEvolveNeeded = false;
         boolean readerNeeded = false;
         List<FieldReader> fieldReaders = new ArrayList<FieldReader>();
         FieldReader currentReader = null;
@@ -1311,7 +1359,7 @@ public class ComplexFormat extends Format {
                     newField = otherNewFields.get(newFieldIndex);
                     isNewSecKeyField = !isOldSecKeyField;
                 }
-                evolveNeeded = true;
+                localEvolveNeeded = true;
                 readerNeeded = true;
             }
 
@@ -1334,7 +1382,7 @@ public class ComplexFormat extends Format {
                         (oldFieldIndex, oldField);
                     fieldReaders.add(currentReader);
                     readerNeeded = true;
-                    evolveNeeded = true;
+                    localEvolveNeeded = true;
                 }
                 if (isOldSecKeyField) {
                     if (oldToNewKeyMap == null) {
@@ -1385,7 +1433,7 @@ public class ComplexFormat extends Format {
                         oldToNewKeyMap = new HashMap<String,String>();
                     }
                     oldToNewKeyMap.put(oldName, newName);
-                    evolveNeeded = true;
+                    localEvolveNeeded = true;
                 }
             } else if (isOldSecKeyField && !isNewSecKeyField) {
                 if (oldToNewKeyMap == null) {
@@ -1408,7 +1456,7 @@ public class ComplexFormat extends Format {
                          isNewSecKeyField);
                     fieldReaders.add(currentReader);
                     readerNeeded = true;
-                    evolveNeeded = true;
+                    localEvolveNeeded = true;
                 }
                 continue fieldLoop;
             }
@@ -1464,7 +1512,7 @@ public class ComplexFormat extends Format {
                 /* Formats are identical.  Fall through. */
             } else if (allClassesConverted) {
                 /* All old classes will be converted.  Fall through. */
-                evolveNeeded = true;
+                localEvolveNeeded = true;
             } else if (WidenerInput.isWideningSupported
                         (oldLatestFormat, newFieldFormat, isOldSecKeyField)) {
                 /* Apply field widener and continue. */
@@ -1473,7 +1521,7 @@ public class ComplexFormat extends Format {
                      isNewSecKeyField);
                 fieldReaders.add(currentReader);
                 readerNeeded = true;
-                evolveNeeded = true;
+                localEvolveNeeded = true;
                 continue fieldLoop;
             } else {
                 boolean refWidened = false;
@@ -1489,7 +1537,7 @@ public class ComplexFormat extends Format {
                 }
                 if (refWidened) {
                     /* A reference type has been widened.  Fall through. */
-                    evolveNeeded = true;
+                    localEvolveNeeded = true;
                 } else {
                     /* Types are not compatible. */
                     evolver.addMissingMutation
@@ -1527,7 +1575,7 @@ public class ComplexFormat extends Format {
          * @SecondaryKey).  [#15524]
          */
         if (newFieldsMatched < newFields.size()) {
-            evolveNeeded = true;
+            localEvolveNeeded = true;
             readerNeeded = true;
         }
 
@@ -1541,7 +1589,7 @@ public class ComplexFormat extends Format {
             } else {
                 return new MultiFieldReader(fieldReaders);
             }
-        } else if (evolveNeeded) {
+        } else if (localEvolveNeeded) {
             return FieldReader.EVOLVE_NEEDED;
         } else {
             return null;

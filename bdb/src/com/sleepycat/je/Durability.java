@@ -3,11 +3,10 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Durability.java,v 1.1 2008/05/13 20:03:09 sam Exp $
+ * $Id: Durability.java,v 1.5 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
-
 
 /**
  * @hidden
@@ -16,8 +15,8 @@ package com.sleepycat.je;
  * transaction. When operating on a local environment the durability of a
  * transaction is completely determined by the local SyncPolicy that is in
  * effect. In a replicated environment, the overall durability is additionally
- * a function of the ReplicaAclPolicy used by the master and the SyncPolicy
- * in effect at each Replica.
+ * a function of the ReplicaAclPolicy used by the master and the SyncPolicy in
+ * effect at each Replica.
  */
 public class Durability {
 
@@ -40,12 +39,12 @@ public class Durability {
          * Do not write or synchronously flush the log on transaction commit.
          * Transactions exhibit the ACI (atomicity, consistency, and isolation)
          * properties, but not D (durability); that is, database integrity will
-         * be maintained, but if the application or system fails, it is possible
-         * some number of the most recently committed transactions may be undone
-         * during recovery. The number of transactions at risk is governed by
-         * how many log updates can fit into the log buffer, how often the
-         * operating system flushes dirty buffers to disk, and how often the log
-         * is checkpointed.
+         * be maintained, but if the application or system fails, it is
+         * possible some number of the most recently committed transactions may
+         * be undone during recovery. The number of transactions at risk is
+         * governed by how many log updates can fit into the log buffer, how
+         * often the operating system flushes dirty buffers to disk, and how
+         * often the log is checkpointed.
          */
         NO_SYNC,
 
@@ -53,44 +52,44 @@ public class Durability {
          * Write but do not synchronously flush the log on transaction commit.
          * Transactions exhibit the ACI (atomicity, consistency, and isolation)
          * properties, but not D (durability); that is, database integrity will
-         * be maintained, but if the operating system fails, it is possible some
-         * number of the most recently committed transactions may be undone
-         * during recovery. The number of transactions at risk is governed by
-         * how often the operating system flushes dirty buffers to disk, and how
-         * often the log is checkpointed.
+         * be maintained, but if the operating system fails, it is possible
+         * some number of the most recently committed transactions may be
+         * undone during recovery. The number of transactions at risk is
+         * governed by how often the operating system flushes dirty buffers to
+         * disk, and how often the log is checkpointed.
          */
         WRITE_NO_SYNC
     };
 
     /**
-    * A replicated environment makes it possible to increase an application's
-    * transaction commit guarantees by committing changes to its replicas on the
-    * network. ReplicaAckPolicy defines the policy for how such network
-    * commits are handled.
-    *
-    * The choice of a ReplicaAckPolicy must be consistent across all the
-    * replicas in a replication group, to ensure that the policy is consistently
-    * enforced in the event of an election.
-    */
-   public enum ReplicaAckPolicy {
+     * A replicated environment makes it possible to increase an application's
+     * transaction commit guarantees by committing changes to its replicas on
+     * the network. ReplicaAckPolicy defines the policy for how such network
+     * commits are handled.
+     *
+     * The choice of a ReplicaAckPolicy must be consistent across all the
+     * replicas in a replication group, to ensure that the policy is
+     * consistently enforced in the event of an election.
+     */
+    public enum ReplicaAckPolicy {
 
-       /**
+        /**
          * All replicas must acknowledge that they have committed the
          * transaction. This policy should be selected only if your replication
          * group has a small number of replicas, and those replicas are on
          * extremely reliable networks and servers.
          */
-       ALL,
+        ALL,
 
-       /**
-        * No transaction commit acknowledgments are required and the master will
-        * never wait for replica acknowledgments. In this case, transaction
-        * durability is determined entirely by the type of commit that is being
-        * performed on the master.
-        */
-       NONE,
+        /**
+         * No transaction commit acknowledgments are required and the master
+         * will never wait for replica acknowledgments. In this case,
+         * transaction durability is determined entirely by the type of commit
+         * that is being performed on the master.
+         */
+        NONE,
 
-       /**
+        /**
          * A quorum of replicas must acknowledge that they have committed the
          * transaction. A quorum is reached when acknowledgments are received
          * from the minimum number of environments needed to ensure that the
@@ -101,34 +100,36 @@ public class Durability {
          *
          * This is the default.
          */
-       QUORUM;
+        QUORUM;
 
-       /**
-         * Returns the minimum number of replication nodes required to implement
-         * the ReplicaAckPolicy for a given group size.
+        /**
+         * Returns the minimum number of replication nodes required to
+         * implement the ReplicaAckPolicy for a given group size.
          *
          * @param groupSize the size of the replication group.
          *
          * @return the number of nodes that are needed
          */
-       public int requiredNodes(int groupSize) {
-           switch (this) {
-               case ALL:
-                   return groupSize;
-               case NONE:
-                   return 1;
-               case QUORUM:
-                   return (groupSize <= 2) ? 1 : (groupSize/2+1);
-           }
-           assert false : "unreachable";
-           return Integer.MAX_VALUE;
-       }
-   }
+        public int requiredNodes(int groupSize) {
+            switch (this) {
+            case ALL:
+                return groupSize;
+            case NONE:
+                return 1;
+            case QUORUM:
+                return (groupSize <= 2) ? 1 : (groupSize / 2 + 1);
+            }
+            assert false : "unreachable";
+            return Integer.MAX_VALUE;
+        }
+    }
 
     /* The sync policy in effect on the local node. */
     final private SyncPolicy localSync;
+
     /* The sync policy in effect on a replica. */
     final private SyncPolicy replicaSync;
+
     /* The replica acknowledgment policy to be used. */
     final private ReplicaAckPolicy replicaAck;
 
@@ -173,6 +174,4 @@ public class Durability {
     public ReplicaAckPolicy getReplicaAck() {
         return replicaAck;
     }
-
-
 }

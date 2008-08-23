@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DumpFileReader.java,v 1.49 2008/05/15 01:52:41 linda Exp $
+ * $Id: DumpFileReader.java,v 1.50 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -76,6 +76,7 @@ public abstract class DumpFileReader extends FileReader {
      * @return true if this reader should process this entry, or just
      * skip over it.
      */
+    @Override
     protected boolean isTargetEntry() {
 	if (targetEntryTypes.size() == 0) {
 	    /* We want to dump all entry types. */

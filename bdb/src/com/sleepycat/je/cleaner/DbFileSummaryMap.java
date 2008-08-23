@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DbFileSummaryMap.java,v 1.5 2008/05/15 01:52:40 linda Exp $
+ * $Id: DbFileSummaryMap.java,v 1.6 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -126,6 +126,7 @@ public class DbFileSummaryMap {
         return map.size();
     }
 
+    @Override
     public String toString() {
         return map.toString();
     }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveClasses.java.original,v 1.16 2008/06/03 04:52:24 mark Exp $
+ * $Id: EvolveClasses.java.original,v 1.17 2008/06/23 19:18:27 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -2597,6 +2597,9 @@ class EvolveClasses {
         @SecondaryKey(relate=ONE_TO_ONE)
         int dropAnnotation;
 
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int toBeRenamedField;
+
         int ff;
 
         private void init() {
@@ -2604,6 +2607,7 @@ class EvolveClasses {
             addAnnotation = 88;
             dropField = 77;
             dropAnnotation = 66;
+            toBeRenamedField = 44;
             aa = 33;
             ff = 22;
         }
@@ -2618,6 +2622,56 @@ class EvolveClasses {
             init();
             index.put(this);
         }
+    }
+
+    /** [#16253] */
+    @Persistent
+    static class AllowChangeKeyMetadataInSubclass
+        extends AllowChangeKeyMetadataEntity {
+
+        int aa;
+
+        int addAnnotation;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int dropField;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int dropAnnotation;
+
+        @SecondaryKey(relate=ONE_TO_ONE)
+        int toBeRenamedField;
+
+        int ff;
+
+        private void init() {
+            key = 99;
+            addAnnotation = 88;
+            dropField = 77;
+            dropAnnotation = 66;
+            toBeRenamedField = 44;
+            aa = 33;
+            ff = 22;
+        }
+
+        @Override
+        void writeObjects(EntityStore store)
+            throws DatabaseException {
+
+            PrimaryIndex<Integer,AllowChangeKeyMetadataEntity>
+                index = store.getPrimaryIndex
+                    (Integer.class, AllowChangeKeyMetadataEntity.class);
+            init();
+            index.put(this);
+        }
+    }
+
+    @Entity
+    static class AllowChangeKeyMetadataEntity
+        extends EvolveCase {
+
+        @PrimaryKey
+        int key;
     }
 
     /** [#15524] */

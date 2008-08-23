@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentParamsTest.java,v 1.14 2008/05/30 19:07:42 mark Exp $
+ * $Id: EnvironmentParamsTest.java,v 1.15 2008/06/06 17:12:28 linda Exp $
  */
 
 package com.sleepycat.je.config;
@@ -41,7 +41,6 @@ public class EnvironmentParamsTest extends TestCase {
 	assertTrue(mvParam.isMultiValueParam());
 
         try {
-            ConfigParam param =
 		new ConfigParam(null, "foo", false /* mutable */,
 				false /* for replication */);
             fail("should disallow null name");

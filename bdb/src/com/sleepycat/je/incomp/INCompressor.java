@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: INCompressor.java,v 1.147 2008/05/20 14:51:28 cwl Exp $
+ * $Id: INCompressor.java,v 1.148 2008/06/10 02:52:11 cwl Exp $
  */
 
 package com.sleepycat.je.incomp;
@@ -327,6 +327,7 @@ public class INCompressor extends DaemonThread {
     /**
      * Return the number of retries when a deadlock exception occurs.
      */
+    @Override
     protected long nDeadlockRetries()
         throws DatabaseException {
 

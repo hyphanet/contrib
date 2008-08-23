@@ -3,13 +3,15 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryTest.java,v 1.60 2008/01/07 14:29:10 cwl Exp $
+ * $Id: RecoveryTest.java,v 1.61 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
 
 import java.util.Comparator;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
@@ -41,7 +43,7 @@ public class RecoveryTest extends RecoveryTestBase {
     public void testBasicRecoveryWithBtreeComparator()
         throws Throwable {
 
-	btreeComparisonFunction = new BtreeComparator(true);
+        btreeComparisonFunction = new BtreeComparator(true);
         doBasic(true);
     }
 
@@ -49,33 +51,34 @@ public class RecoveryTest extends RecoveryTestBase {
      * Test that put(OVERWRITE) works correctly with duplicates.
      */
     public void testDuplicateOverwrite()
-	throws Throwable {
+        throws Throwable {
 
         createEnvAndDbs(1 << 10, false, NUM_DBS);
         try {
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
-	    Transaction txn = env.beginTransaction(null, null);
-	    DatabaseEntry key = new DatabaseEntry("aaaaa".getBytes());
-	    DatabaseEntry data1 = new DatabaseEntry("dddddddddd".getBytes());
-	    DatabaseEntry data2 = new DatabaseEntry("eeeeeeeeee".getBytes());
-	    DatabaseEntry data3 = new DatabaseEntry("ffffffffff".getBytes());
-	    Database db = dbs[0];
-	    assertEquals(OperationStatus.SUCCESS,
-			 db.put(null, key, data1));
-	    addExpectedData(expectedData, 0, key, data1, true);
-	    assertEquals(OperationStatus.SUCCESS,
-			 db.put(null, key, data2));
-	    addExpectedData(expectedData, 0, key, data2, true);
-	    assertEquals(OperationStatus.SUCCESS,
-			 db.put(null, key, data3));
-	    addExpectedData(expectedData, 0, key, data3, true);
-	    assertEquals(OperationStatus.SUCCESS,
-			 db.put(null, key, data3));
-	    txn.commit();
-	    closeEnv();
+            Transaction txn = env.beginTransaction(null, null);
+            DatabaseEntry key = new DatabaseEntry("aaaaa".getBytes());
+            DatabaseEntry data1 = new DatabaseEntry("dddddddddd".getBytes());
+            DatabaseEntry data2 = new DatabaseEntry("eeeeeeeeee".getBytes());
+            DatabaseEntry data3 = new DatabaseEntry("ffffffffff".getBytes());
+            Database db = dbs[0];
+            assertEquals(OperationStatus.SUCCESS,
+                         db.put(null, key, data1));
+            addExpectedData(expectedData, 0, key, data1, true);
+            assertEquals(OperationStatus.SUCCESS,
+                         db.put(null, key, data2));
+            addExpectedData(expectedData, 0, key, data2, true);
+            assertEquals(OperationStatus.SUCCESS,
+                         db.put(null, key, data3));
+            addExpectedData(expectedData, 0, key, data3, true);
+            assertEquals(OperationStatus.SUCCESS,
+                         db.put(null, key, data3));
+            txn.commit();
+            closeEnv();
 
-	    recoverAndVerify(expectedData, NUM_DBS);
+            recoverAndVerify(expectedData, NUM_DBS);
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
@@ -94,74 +97,74 @@ public class RecoveryTest extends RecoveryTestBase {
     public void testSR8984Part1()
         throws Throwable {
 
-	doTestSR8984Work(true);
+        doTestSR8984Work(true);
     }
 
     public void testSR8984Part2()
         throws Throwable {
 
-	doTestSR8984Work(false);
+        doTestSR8984Work(false);
     }
 
     private void doTestSR8984Work(boolean sameKey)
-	throws DatabaseException {
+        throws DatabaseException {
 
-	final int NUM_EXTRA_DUPS = 150;
-	EnvironmentConfig envConfig = TestUtils.initEnvConfig();
+        final int NUM_EXTRA_DUPS = 150;
+        EnvironmentConfig envConfig = TestUtils.initEnvConfig();
         /* Make an environment and open it */
         envConfig.setTransactional(false);
         envConfig.setAllowCreate(true);
         envConfig.setConfigParam(EnvironmentParams.ENV_CHECK_LEAKS.getName(),
-				 "false");
+                                 "false");
         envConfig.setConfigParam(EnvironmentParams.NODE_MAX.getName(), "6");
-	envConfig.setConfigParam(EnvironmentParams.ENV_RUN_CLEANER.getName(),
-				 "false");
+        envConfig.setConfigParam(EnvironmentParams.ENV_RUN_CLEANER.getName(),
+                                 "false");
 
-	envConfig.setConfigParam
-	    (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
+        envConfig.setConfigParam
+            (EnvironmentParams.ENV_RUN_CHECKPOINTER.getName(), "false");
         env = new Environment(envHome, envConfig);
 
         DatabaseConfig dbConfig = new DatabaseConfig();
         dbConfig.setTransactional(false);
         dbConfig.setAllowCreate(true);
         dbConfig.setSortedDuplicates(true);
-	Database db = env.openDatabase(null, "testSR8984db", dbConfig);
+        Database db = env.openDatabase(null, "testSR8984db", dbConfig);
 
-	DatabaseEntry key = new DatabaseEntry("k1".getBytes());
-	DatabaseEntry data = new DatabaseEntry("d1".getBytes());
-	assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
-	assertEquals(OperationStatus.SUCCESS, db.delete(null, key));
+        DatabaseEntry key = new DatabaseEntry("k1".getBytes());
+        DatabaseEntry data = new DatabaseEntry("d1".getBytes());
+        assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
+        assertEquals(OperationStatus.SUCCESS, db.delete(null, key));
 
-	if (!sameKey) {
-	    data.setData("d2".getBytes());
-	}
-	/* Cause a dup tree of some depth to be created. */
-	assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
-	for (int i = 3; i < NUM_EXTRA_DUPS; i++) {
-	    data.setData(("d" + i).getBytes());
-	    assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
-	}
+        if (!sameKey) {
+            data.setData("d2".getBytes());
+        }
+        /* Cause a dup tree of some depth to be created. */
+        assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
+        for (int i = 3; i < NUM_EXTRA_DUPS; i++) {
+            data.setData(("d" + i).getBytes());
+            assertEquals(OperationStatus.SUCCESS, db.put(null, key, data));
+        }
 
-	data.setData("d1".getBytes());
+        data.setData("d1".getBytes());
 
-	Cursor c = db.openCursor(null, null);
-	assertEquals(OperationStatus.SUCCESS,
-		     c.getFirst(key, data, LockMode.DEFAULT));
+        Cursor c = db.openCursor(null, null);
+        assertEquals(OperationStatus.SUCCESS,
+                     c.getFirst(key, data, LockMode.DEFAULT));
 
-	c.close();
-	db.close();
+        c.close();
+        db.close();
 
         /* Force an abrupt close so there is no checkpoint at the end. */
         closeEnv();
         env = new Environment(envHome, envConfig);
-	db = env.openDatabase(null, "testSR8984db", dbConfig);
-	c = db.openCursor(null, null);
-	assertEquals(OperationStatus.SUCCESS,
-		     c.getFirst(key, data, LockMode.DEFAULT));
-	assertEquals(NUM_EXTRA_DUPS - 2, c.count());
-	c.close();
-	db.close();
-	env.close();
+        db = env.openDatabase(null, "testSR8984db", dbConfig);
+        c = db.openCursor(null, null);
+        assertEquals(OperationStatus.SUCCESS,
+                     c.getFirst(key, data, LockMode.DEFAULT));
+        assertEquals(NUM_EXTRA_DUPS - 2, c.count());
+        c.close();
+        db.close();
+        env.close();
     }
 
     /**
@@ -175,7 +178,8 @@ public class RecoveryTest extends RecoveryTestBase {
 
         try {
             // Set up an repository of expected data
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             // insert all the data
             Transaction txn = env.beginTransaction(null, null);
@@ -211,7 +215,8 @@ public class RecoveryTest extends RecoveryTestBase {
         int numRecs = NUM_RECS;
         try {
             // Set up an repository of expected data
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             // insert all the data
             Transaction txn = env.beginTransaction(null, null);
@@ -238,52 +243,52 @@ public class RecoveryTest extends RecoveryTestBase {
         }
     }
 
-    protected static class BtreeComparator implements Comparator {
-	protected boolean ascendingComparison = true;
+    protected static class BtreeComparator implements Comparator<byte[]> {
+        protected boolean ascendingComparison = true;
 
-	public BtreeComparator() {
-	}
+        public BtreeComparator() {
+        }
 
-	protected BtreeComparator(boolean ascendingComparison) {
-	    this.ascendingComparison = ascendingComparison;
-	}
+        protected BtreeComparator(boolean ascendingComparison) {
+            this.ascendingComparison = ascendingComparison;
+        }
 
-	public int compare(Object o1, Object o2) {
-	    byte[] arg1;
-	    byte[] arg2;
-	    if (ascendingComparison) {
-		arg1 = (byte[]) o1;
-		arg2 = (byte[]) o2;
-	    } else {
-		arg1 = (byte[]) o2;
-		arg2 = (byte[]) o1;
-	    }
-	    int a1Len = arg1.length;
-	    int a2Len = arg2.length;
+        public int compare(byte[] o1, byte[] o2) {
+            byte[] arg1;
+            byte[] arg2;
+            if (ascendingComparison) {
+                arg1 = (byte[]) o1;
+                arg2 = (byte[]) o2;
+            } else {
+                arg1 = (byte[]) o2;
+                arg2 = (byte[]) o1;
+            }
+            int a1Len = arg1.length;
+            int a2Len = arg2.length;
 
-	    int limit = Math.min(a1Len, a2Len);
+            int limit = Math.min(a1Len, a2Len);
 
-	    for (int i = 0; i < limit; i++) {
-		byte b1 = arg1[i];
-		byte b2 = arg2[i];
-		if (b1 == b2) {
-		    continue;
-		} else {
-		    /* Remember, bytes are signed, so convert to shorts so that
-		       we effectively do an unsigned byte comparison. */
-		    short s1 = (short) (b1 & 0x7F);
-		    short s2 = (short) (b2 & 0x7F);
-		    if (b1 < 0) {
-			s1 |= 0x80;
-		    }
-		    if (b2 < 0) {
-			s2 |= 0x80;
-		    }
-		    return (s1 - s2);
-		}
-	    }
+            for (int i = 0; i < limit; i++) {
+                byte b1 = arg1[i];
+                byte b2 = arg2[i];
+                if (b1 == b2) {
+                    continue;
+                } else {
+                    /* Remember, bytes are signed, so convert to shorts so that
+                       we effectively do an unsigned byte comparison. */
+                    short s1 = (short) (b1 & 0x7F);
+                    short s2 = (short) (b2 & 0x7F);
+                    if (b1 < 0) {
+                        s1 |= 0x80;
+                    }
+                    if (b2 < 0) {
+                        s2 |= 0x80;
+                    }
+                    return (s1 - s2);
+                }
+            }
 
-	    return (a1Len - a2Len);
-	}
+            return (a1Len - a2Len);
+        }
     }
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveCase.java,v 1.12 2008/01/07 14:29:15 cwl Exp $
+ * $Id: EvolveCase.java,v 1.13 2008/06/23 19:18:27 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -181,7 +181,7 @@ abstract class EvolveCase {
         TestCase.assertNotNull(all);
 
         assert names.length == versions.length;
-        TestCase.assertEquals(names.length, all.size());
+        TestCase.assertEquals(all.toString(), names.length, all.size());
 
         Iterator<RawType> iter = all.iterator();
         for (int i = 0; i < names.length; i += 1) {

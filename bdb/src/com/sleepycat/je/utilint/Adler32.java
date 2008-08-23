@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Adler32.java,v 1.14 2008/01/07 14:28:57 cwl Exp $
+ * $Id: Adler32.java,v 1.16 2008/06/23 08:38:20 tao Exp $
  */
 
 package com.sleepycat.je.utilint;
@@ -61,6 +61,7 @@ public class Adler32 implements Checksum {
 	    this.adler32ChunkSize = adler32ChunkSize;
 	}
 
+        @Override
 	public void update(byte[] b, int off, int len) {
 	    if (len < adler32ChunkSize) {
 		super.update(b, off, len);
@@ -79,8 +80,7 @@ public class Adler32 implements Checksum {
     }
 
     public static Checksum makeChecksum() {
-	if (!EnvironmentImpl.IS_DALVIK &&
-	    EnvironmentImpl.USE_JAVA5_ADLER32) {
+        if (EnvironmentImpl.USE_JAVA5_ADLER32) {
 	    int adler32ChunkSize = EnvironmentImpl.getAdler32ChunkSize();
 	    if (adler32ChunkSize > 0) {
 		return new ChunkingAdler32(adler32ChunkSize);

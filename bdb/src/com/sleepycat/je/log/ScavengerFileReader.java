@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ScavengerFileReader.java,v 1.22 2008/05/15 01:52:41 linda Exp $
+ * $Id: ScavengerFileReader.java,v 1.23 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -110,6 +110,7 @@ abstract public class ScavengerFileReader extends FileReader {
      * to find the other side of the corrupted area and try to re-read this
      * file.
      */
+    @Override
     public boolean readNextEntry()
         throws DatabaseException, IOException {
 
@@ -129,6 +130,7 @@ abstract public class ScavengerFileReader extends FileReader {
      * and read forward until the lower side of the corrupted area has been
      * found.
      */
+    @Override
     protected boolean resyncReader(long nextGoodRecordPostCorruption,
                                    boolean showCorruptedBounds)
         throws DatabaseException, IOException {
@@ -195,6 +197,7 @@ abstract public class ScavengerFileReader extends FileReader {
      * @return true if this reader should process this entry, or just skip
      * over it.
      */
+    @Override
     protected boolean isTargetEntry() {
         if (targetEntryTypes.size() == 0) {
             /* We want to dump all entry types. */

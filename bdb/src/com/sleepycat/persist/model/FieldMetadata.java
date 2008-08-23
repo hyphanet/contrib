@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: FieldMetadata.java,v 1.12 2008/01/07 14:28:59 cwl Exp $
+ * $Id: FieldMetadata.java,v 1.13 2008/06/26 05:24:53 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -77,5 +77,11 @@ public class FieldMetadata implements Serializable {
         return ClassMetadata.hashCode(name) +
                ClassMetadata.hashCode(className) +
                ClassMetadata.hashCode(declaringClassName);
+    }
+
+    @Override
+    public String toString() {
+        return "[FieldMetadata name: " + name + " className: " + className +
+               " declaringClassName: " + declaringClassName + ']';
     }
 }

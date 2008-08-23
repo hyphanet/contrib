@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckReverseSplitsTest.java,v 1.11 2008/01/07 14:29:10 cwl Exp $
+ * $Id: CheckReverseSplitsTest.java,v 1.12 2008/06/30 20:54:48 linda Exp $
  */
 package com.sleepycat.je.recovery;
 
@@ -38,7 +38,6 @@ import com.sleepycat.je.utilint.Tracer;
  */
 public class CheckReverseSplitsTest extends CheckBase {
 
-    private static final boolean DEBUG = false;
     private static final String DB_NAME = "simpleDB";
 
     private int max = 12;
@@ -84,7 +83,7 @@ public class CheckReverseSplitsTest extends CheckBase {
          */
 
         /* Establish the base set of records we expect. */
-        HashSet currentExpected = new HashSet();
+        HashSet<TestData> currentExpected = new HashSet<TestData>();
         DatabaseEntry keyEntry = new DatabaseEntry();
         DatabaseEntry dataEntry = new DatabaseEntry();
         for (int i = 2; i < max; i++) {
@@ -231,7 +230,7 @@ public class CheckReverseSplitsTest extends CheckBase {
          * Now run the test in a stepwise loop, truncate after each log entry.
          * Our baseline expected set is empty -- no records expected.
          */
-        HashSet currentExpected = new HashSet();
+        HashSet<TestData> currentExpected = new HashSet<TestData>();
         stepwiseLoop(DB_NAME, envConfig, dbConfig, currentExpected, 0);
     }
 

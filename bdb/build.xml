@@ -823,6 +823,8 @@
         <sysproperty key="longtest" value="${longtest}"/>
         <sysproperty key="${param-sysprop-key}"
                      value="${param-sysprop-value}"/>
+        <sysproperty key="java.util.logging.config.file"
+            value="${logging.config.file}"/>
         <formatter type="plain" usefile="false"/>
         <formatter type="xml"/>
         <test todir="${unittest.datadir}"

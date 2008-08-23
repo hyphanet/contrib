@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SubIndexCursor.java,v 1.8 2008/02/05 23:28:21 mark Exp $
+ * $Id: SubIndexCursor.java,v 1.9 2008/06/10 02:52:16 cwl Exp $
  */
 
 package com.sleepycat.persist;
@@ -26,12 +26,14 @@ class SubIndexCursor<V> extends BasicCursor<V> {
         super(cursor, adapter, false/*updateAllowed*/);
     }
 
+    @Override
     public EntityCursor<V> dup()
         throws DatabaseException {
 
         return new SubIndexCursor<V>(cursor.dup(true), adapter);
     }
 
+    @Override
     public V nextDup(LockMode lockMode)
         throws DatabaseException {
 
@@ -39,12 +41,14 @@ class SubIndexCursor<V> extends BasicCursor<V> {
         return null;
     }
 
+    @Override
     public V nextNoDup(LockMode lockMode)
         throws DatabaseException {
 
         return returnValue(cursor.getNext(key, pkey, data, lockMode));
     }
 
+    @Override
     public V prevDup(LockMode lockMode)
         throws DatabaseException {
 
@@ -52,6 +56,7 @@ class SubIndexCursor<V> extends BasicCursor<V> {
         return null;
     }
 
+    @Override
     public V prevNoDup(LockMode lockMode)
         throws DatabaseException {
 

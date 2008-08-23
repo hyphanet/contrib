@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: EvolveTestBase.java,v 1.14 2008/06/03 04:52:24 mark Exp $
+ * $Id: EvolveTestBase.java,v 1.15 2008/06/23 19:18:27 mark Exp $
  */
 package com.sleepycat.persist.test;
 
@@ -214,6 +214,8 @@ public abstract class EvolveTestBase extends TestCase {
         "DisallowChangeKeyRelate",
         null,
         "AllowChangeKeyMetadata",
+        null,
+        "AllowChangeKeyMetadataInSubclass",
         null,
         "AllowAddSecondary",
         null,

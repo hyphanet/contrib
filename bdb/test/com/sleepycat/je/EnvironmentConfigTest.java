@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentConfigTest.java,v 1.13 2008/01/07 14:29:05 cwl Exp $
+ * $Id: EnvironmentConfigTest.java,v 1.14 2008/06/06 17:12:27 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -87,7 +87,7 @@ public class EnvironmentConfigTest extends TestCase {
 	    config.setLocking(false);
 	    config.setTransactional(true);
 	    File envHome = new File(System.getProperty(TestUtils.DEST_DIR));
-	    Environment env = new Environment(envHome, config);
+	    new Environment(envHome, config);
             fail("Should fail because of inconsistent param values");
         } catch (IllegalArgumentException e) {
             // expected.

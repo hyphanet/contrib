@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: TransactionConfig.java,v 1.23 2008/05/28 14:46:42 linda Exp $
+ * $Id: TransactionConfig.java,v 1.24 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -32,8 +32,6 @@ public class TransactionConfig implements Cloneable {
     private boolean readUncommitted = false;
     private boolean readCommitted = false;
     private boolean serializableIsolation = false;
-
-
 
     /* Convenience constants for local (non-replicated) use. */
 
@@ -453,5 +451,24 @@ public class TransactionConfig implements Cloneable {
             ("Mixed use of deprecated and current durability APIs is not " +
              " supported");
         }
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "sync=" + sync +
+            "\nnoSync=" + noSync +
+            "\nwriteNoSync=" + writeNoSync +
+            "\ndurability=" + durability +
+            "\nconsistencyPolicy=" + consistencyPolicy +
+            "\nnoWait=" + noWait +
+            "\nreadUncommitted=" + readUncommitted +
+            "\nreadCommitted=" + readCommitted +
+            "\nSerializableIsolation=" + serializableIsolation +
+            "\n";
     }
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BIN.java,v 1.214 2008/05/19 17:52:18 linda Exp $
+ * $Id: BIN.java,v 1.215 2008/06/10 02:52:13 cwl Exp $
  */
 
 package com.sleepycat.je.tree;
@@ -87,6 +87,7 @@ public class BIN extends IN implements Loggable {
      * Create a new BIN.  Need this because we can't call newInstance()
      * without getting a 0 for nodeid.
      */
+    @Override
     protected IN createNewInstance(byte[] identifierKey,
 				   int maxEntries,
 				   int level) {
@@ -98,6 +99,7 @@ public class BIN extends IN implements Loggable {
      * "always exclusive" variety.  Presently, only IN's are actually latched
      * shared.  BINs, DINs, and DBINs are all latched exclusive only.
      */
+    @Override
     boolean isAlwaysLatchedExclusively() {
 	return true;
     }
@@ -107,6 +109,7 @@ public class BIN extends IN implements Loggable {
      * 'this' node.  For BIN's, the child node has to be a DIN so we use the
      * Dup Key to cross the main-tree/dupe-tree boundary.
      */
+    @Override
     public byte[] getChildKey(IN child)
         throws DatabaseException {
 
@@ -142,6 +145,7 @@ public class BIN extends IN implements Loggable {
      * can't go further and this IN can't be a parent to this child, return
      * null.
      */
+    @Override
     protected void descendOnParentSearch(SearchResult result,
                                          boolean targetContainsDuplicates,
                                          boolean targetIsRoot,
@@ -208,6 +212,7 @@ public class BIN extends IN implements Loggable {
      * A BIN can be the ancestor of an internal node of the duplicate tree. It
      * can't be the parent of an IN or another BIN.
      */
+    @Override
     protected boolean canBeAncestor(boolean targetContainsDuplicates) {
         /* True if the target is a DIN or DBIN */
         return targetContainsDuplicates;
@@ -315,6 +320,7 @@ public class BIN extends IN implements Loggable {
      * Indicates whether entry 0's key is "special" in that it always compares
      * less than any other key.  BIN's don't have the special key, but IN's do.
      */
+    @Override
     boolean entryZeroKeyComparesLow() {
         return false;
     }
@@ -325,6 +331,7 @@ public class BIN extends IN implements Loggable {
      *
      * @param index indicates target entry
      */
+    @Override
     public void setKnownDeleted(int index) {
 
         /*
@@ -372,6 +379,7 @@ public class BIN extends IN implements Loggable {
      * Clear the known deleted flag. Only BINS may do this.
      * @param index indicates target entry
      */
+    @Override
     public void clearKnownDeleted(int index) {
         super.clearKnownDeleted(index);
         setDirty(true);
@@ -389,6 +397,7 @@ public class BIN extends IN implements Loggable {
 	    IN.computeArraysOverhead(configManager);
     }
 
+    @Override
     protected long getMemoryOverhead(MemoryBudget mb) {
         return mb.getBINOverhead();
     }
@@ -484,6 +493,7 @@ public class BIN extends IN implements Loggable {
      * achieved by just forcing the split to occur either one element in from
      * the left or the right (i.e. splitIndex is 1 or nEntries - 1).
      */
+    @Override
     void splitSpecial(IN parent,
                       int parentIndex,
                       int maxEntriesPerNode,
@@ -520,6 +530,7 @@ public class BIN extends IN implements Loggable {
      * @param newSiblingLow, newSiblingHigh - the low and high entry of
      * "this" that were moved into newSibling.
      */
+    @Override
     void adjustCursors(IN newSibling,
                        int newSiblingLow,
                        int newSiblingHigh) {
@@ -642,6 +653,7 @@ public class BIN extends IN implements Loggable {
      *
      * @param insertIndex - The index of the new entry.
      */
+    @Override
     void adjustCursorsForInsert(int insertIndex) {
         assert this.isLatchOwnerForWrite();
         /* cursorSet may be null if this is being created through
@@ -715,6 +727,7 @@ public class BIN extends IN implements Loggable {
      * remaining deleted keys in the BINReference must now be in some other BIN
      * because of a split.
      */
+    @Override
     public boolean compress(BINReference binRef,
                             boolean canFetch,
                             LocalUtilizationTracker localTracker)
@@ -869,6 +882,7 @@ public class BIN extends IN implements Loggable {
         return ret;
     }
 
+    @Override
     public boolean isCompressible() {
         return true;
     }
@@ -990,6 +1004,7 @@ public class BIN extends IN implements Loggable {
     }
 
     /* For debugging.  Overrides method in IN. */
+    @Override
     boolean validateSubtreeBeforeDelete(int index)
         throws DatabaseException {
 
@@ -1002,6 +1017,7 @@ public class BIN extends IN implements Loggable {
      *
      * We assume that this is only called under an assert.
      */
+    @Override
     boolean isValidForDelete()
         throws DatabaseException {
 
@@ -1052,6 +1068,7 @@ public class BIN extends IN implements Loggable {
     /*
      * DbStat support.
      */
+    @Override
     void accumulateStats(TreeWalkerStatsAccumulator acc) {
 	acc.processBIN(this, Long.valueOf(getNodeId()), getLevel());
     }
@@ -1061,14 +1078,17 @@ public class BIN extends IN implements Loggable {
      * node.  For IN's and BIN's, this is the BTree Comparison function.
      * Overriden by DBIN.
      */
+    @Override
     public Comparator<byte[]> getKeyComparator() {
         return getDatabase().getBtreeComparator();
     }
 
+    @Override
     public String beginTag() {
         return BEGIN_TAG;
     }
 
+    @Override
     public String endTag() {
         return END_TAG;
     }
@@ -1080,6 +1100,7 @@ public class BIN extends IN implements Loggable {
     /**
      * @see IN.logDirtyChildren();
      */
+    @Override
     public void logDirtyChildren()
         throws DatabaseException {
 
@@ -1118,10 +1139,12 @@ public class BIN extends IN implements Loggable {
     /**
      * @see Node#getLogType
      */
+    @Override
     public LogEntryType getLogType() {
         return LogEntryType.LOG_BIN;
     }
 
+    @Override
     public String shortClassName() {
         return "BIN";
     }

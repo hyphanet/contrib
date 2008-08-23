@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LockInfo.java,v 1.35 2008/05/30 14:04:17 mark Exp $
+ * $Id: LockInfo.java,v 1.36 2008/06/10 02:52:14 cwl Exp $
  */
 
 package com.sleepycat.je.txn;
@@ -85,6 +85,7 @@ public class LockInfo implements Cloneable {
 	return lockType;
     }
 
+    @Override
     public Object clone()
         throws CloneNotSupportedException {
 
@@ -98,6 +99,7 @@ public class LockInfo implements Cloneable {
 	System.out.println(this);
     }
 
+    @Override
     public String toString() {
         StringBuffer buf = new StringBuffer(500);
 

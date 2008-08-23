@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: Evictor.java,v 1.114 2008/05/20 03:27:35 linda Exp $
+ * $Id: Evictor.java,v 1.115.2.1 2008/08/11 00:08:42 mark Exp $
  */
 
 package com.sleepycat.je.evictor;
@@ -172,6 +172,7 @@ public abstract class Evictor extends DaemonThread {
     /**
      * Return the number of retries when a deadlock exception occurs.
      */
+    @Override
     protected long nDeadlockRetries()
         throws DatabaseException {
 
@@ -648,12 +649,14 @@ public abstract class Evictor extends DaemonThread {
                 rootIN.latch(CacheMode.UNCHANGED);
                 try {
                     /* Re-check that all conditions still hold. */
+                    boolean isDirty = rootIN.getDirty();
                     if (rootIN == target &&
                         rootIN.isDbRoot() &&
-                        rootIN.isEvictable()) {
+                        rootIN.isEvictable() &&
+                        !(envImpl.isReadOnly() && isDirty)) {
 
                         /* Flush if dirty. */
-                        if (!envImpl.isReadOnly() && rootIN.getDirty()) {
+                        if (isDirty) {
                             long newLsn = rootIN.log
                                 (envImpl.getLogManager(),
                                  false, // allowDeltas

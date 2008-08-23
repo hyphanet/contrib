@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: SecondaryConfig.java,v 1.23 2008/02/08 03:22:38 mark Exp $
+ * $Id: SecondaryConfig.java,v 1.25 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -374,6 +374,7 @@ public class SecondaryConfig extends DatabaseConfig {
     /*
      * For JCA Database handle caching.
      */
+    @Override
     void validate(DatabaseConfig configArg)
 	throws DatabaseException {
 
@@ -463,5 +464,23 @@ public class SecondaryConfig extends DatabaseConfig {
 	}
 
 	return ret.toString();
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "keyCreator=" + keyCreator +
+            "\nmultiKeyCreator=" + multiKeyCreator +
+            "\nallowPopulate=" + allowPopulate +
+            "\nforeignKeyDatabase=" + foreignKeyDatabase +
+            "\nforeignKeyDeleteAction=" + foreignKeyDeleteAction +
+            "\nforeignKeyNullifier=" + foreignKeyNullifier +
+            "\nforeignMultiKeyNullifier=" + foreignMultiKeyNullifier +
+            "\nimmutableSecondaryKey=" + immutableSecondaryKey +
+            "\n";
     }
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: VLSN.java,v 1.22 2008/05/13 01:44:54 cwl Exp $
+ * $Id: VLSN.java,v 1.23 2008/06/10 02:52:15 cwl Exp $
  */
 package com.sleepycat.je.utilint;
 
@@ -37,6 +37,7 @@ public class VLSN implements Loggable, Comparable<VLSN> {
     public VLSN() {
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (obj == null) {
             return false;
@@ -50,6 +51,7 @@ public class VLSN implements Loggable, Comparable<VLSN> {
         return (otherVLSN.sequence == sequence);
     }
 
+    @Override
     public int hashCode() {
         return Long.valueOf(sequence).hashCode();
     }
@@ -173,6 +175,7 @@ public class VLSN implements Loggable, Comparable<VLSN> {
         return sequence == ((VLSN) other).sequence;
     }
 
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append(sequence);

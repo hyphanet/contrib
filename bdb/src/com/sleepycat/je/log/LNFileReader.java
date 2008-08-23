@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LNFileReader.java,v 1.70 2008/05/15 01:52:41 linda Exp $
+ * $Id: LNFileReader.java,v 1.71 2008/06/10 02:52:12 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -84,6 +84,7 @@ public class LNFileReader extends FileReader {
     /**
      * @return true if this is a transactional LN or Locker Commit entry.
      */
+    @Override
     protected boolean isTargetEntry() {
 
         if (currentEntryHeader.getProvisional().isProvisional

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: IOExceptionTest.java,v 1.20 2008/01/17 17:22:16 cwl Exp $
+ * $Id: IOExceptionTest.java,v 1.22 2008/06/30 20:54:47 linda Exp $
  */
 
 package com.sleepycat.je.log;
@@ -228,7 +228,6 @@ public class IOExceptionTest extends TestCase {
         CheckpointConfig chkConf = new CheckpointConfig();
         chkConf.setForce(true);
         Transaction txn = env.beginTransaction(null, null);
-        int keyInt = 0;
         for (int i = 0; i < N_RECS; i++) {
             String keyStr = Integer.toString(i);
             DatabaseEntry key =
@@ -543,9 +542,6 @@ public class IOExceptionTest extends TestCase {
 	    dbConfig.setAllowCreate(true);
 	    db = env.openDatabase(null, "foo", dbConfig);
 
-	    String stuff = new String("..hello world ......................" +
-				      "...................................");
-
 	    /* 
 	     * Put one record into the database so it gets populated w/INs and
 	     * LNs, and we can fake out the RMW commits used below.
@@ -593,9 +589,15 @@ public class IOExceptionTest extends TestCase {
 		    /* Eat exception thrown by TraceLogHandler. */
 		}
 
-		/* Generated a forced record by calling commit. */
+		/* 
+                 * Generate a forced record by calling commit. Since RMW
+                 * transactions that didn't actually do a write won't log a
+                 * commit record, do an addLogInfo to trick the txn into
+                 * logging a commit.
+                 */
 		Transaction txn = env.beginTransaction(null, null);
 		db.get(txn, key, data, LockMode.RMW);
+                DbInternal.getTxn(txn).addLogInfo(DbLsn.makeLsn(3, 3));
 		txn.commit();
 	    }
 	    db.close();
@@ -756,7 +758,6 @@ public class IOExceptionTest extends TestCase {
         FileManager.IO_EXCEPTION_TESTING_ON_WRITE = true;
 	LockStats stats = env.getLockStats(null);
 	int nLocksPreGet = stats.getNTotalLocks();
-	int nLocksPostGet = -1;
 
 	/* Loop doing aborts until the buffer fills up and we get an IOE. */
 	while (true) {
@@ -771,10 +772,9 @@ public class IOExceptionTest extends TestCase {
 	    assertTrue(status == (OperationStatus.SUCCESS));
 
 	    stats = env.getLockStats(null);
-	    nLocksPostGet = stats.getNTotalLocks();
 
 	    try {
-		txn.abort();
+		   txn.abort();
 
 		/*
 		 * Keep going until we actually get an IOException from the
@@ -831,9 +831,7 @@ public class IOExceptionTest extends TestCase {
         writeAndVerify(txn, false, "k6", "d6", false);
         writeAndVerify(txn, true, "k6a", "d6a", false);
 
-	stats = env.getLockStats(null);
-	int nLocksPostPut = stats.getNTotalLocks();
-
+    	stats = env.getLockStats(null);
         try {
             txn.commit();
             fail("expected DatabaseException");

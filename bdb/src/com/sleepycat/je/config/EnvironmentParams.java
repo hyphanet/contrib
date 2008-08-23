@@ -3,24 +3,18 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: EnvironmentParams.java,v 1.106 2008/05/30 19:07:40 mark Exp $
+ * $Id: EnvironmentParams.java,v 1.108 2008/06/06 17:11:26 linda Exp $
  */
 
 package com.sleepycat.je.config;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeSet;
 
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.dbi.EnvironmentImpl;
 
 /**
- * Javadoc for this public class is generated
- * via the doc templates in the doc_src directory.
  */
 public class EnvironmentParams {
 
@@ -33,7 +27,8 @@ public class EnvironmentParams {
         new HashMap<String,ConfigParam>();
 
     /*
-     * Environment
+     * Only environment parameters that are part of the public API are
+     * represented by String constants in EnvironmentConfig.
      */
     public static final LongConfigParam MAX_MEMORY =
         new LongConfigParam(EnvironmentConfig.MAX_MEMORY,
@@ -82,7 +77,7 @@ public class EnvironmentParams {
                                false);        // forReplication
 
     /**
-     * @deprecated As of 2.0, eviction is performed in-line.
+     * As of 2.0, eviction is performed in-line.
      *
      * If true, starts up the evictor.  This parameter is false by default.
      */
@@ -173,7 +168,7 @@ public class EnvironmentParams {
                                false);            // forReplication
 
     /**
-     * @deprecated As of 3.3, is true by default.
+     * Not part of the public API. As of 3.3, is true by default.
      *
      * If true (the default), use shared latches for Btree Internal Nodes (INs)
      * to improve concurrency.
@@ -481,7 +476,7 @@ public class EnvironmentParams {
                            false);                   // forReplication
 
     /**
-     * @deprecated As of 2.0, eviction is performed in-line.
+     * Not part of public API. As of 2.0, eviction is performed in-line.
      *
      * At this percentage over the allotted cache, critical eviction will
      * start.
@@ -692,7 +687,7 @@ public class EnvironmentParams {
                            false);            // forReplication
 
     /**
-     * @deprecated as of 3.3, never intended for public use
+     * Not part of public API.
      *
      * If true, the cleaner tracks and stores detailed information that is used
      * to decrease the cost of cleaning.
@@ -712,7 +707,7 @@ public class EnvironmentParams {
                            false);            // forReplication
 
     /**
-     * @deprecated as of 3.0, since it applies to a very old bug.
+     * Not part of public API, since it applies to a very old bug.
      *
      * If true, detail information is discarded that was added by earlier
      * versions of JE (specifically 2.0.42 and 2.0.54) if it may be invalid.

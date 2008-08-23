@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: DatabaseComparatorsTest.java,v 1.10 2008/01/07 14:29:04 cwl Exp $
+ * $Id: DatabaseComparatorsTest.java,v 1.11 2008/06/06 17:12:27 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -25,7 +25,6 @@ public class DatabaseComparatorsTest extends TestCase {
 
     private File envHome;
     private Environment env;
-    private Database db;
     private boolean DEBUG = false;
 
     public DatabaseComparatorsTest() {
@@ -77,8 +76,8 @@ public class DatabaseComparatorsTest extends TestCase {
 
     private Database openDb(boolean transactional,
                             boolean dups,
-                            Class btreeComparator,
-                            Class dupComparator)
+                            Class<? extends Comparator<byte[]>> btreeComparator,
+                            Class<? extends Comparator<byte[]>> dupComparator)
         throws DatabaseException {
 
         DatabaseConfig dbConfig = new DatabaseConfig();
@@ -164,15 +163,15 @@ public class DatabaseComparatorsTest extends TestCase {
         }
     }
 
-    public static class ReverseComparator implements Comparator {
+    public static class ReverseComparator implements Comparator<byte[]> {
 
 	public ReverseComparator() {
 	}
 
-	public int compare(Object o1, Object o2) {
+	public int compare(byte[] o1, byte[] o2) {
 
-            DatabaseEntry arg1 = new DatabaseEntry((byte[]) o1);
-            DatabaseEntry arg2 = new DatabaseEntry((byte[]) o2);
+            DatabaseEntry arg1 = new DatabaseEntry(o1);
+            DatabaseEntry arg2 = new DatabaseEntry(o2);
             int val1 = IntegerBinding.entryToInt(arg1);
             int val2 = IntegerBinding.entryToInt(arg2);
 
@@ -409,8 +408,6 @@ public class DatabaseComparatorsTest extends TestCase {
              Partial2PartComparator.class /*btreeComparator*/,
              null /*dupComparator*/);
 
-        DatabaseEntry key = new DatabaseEntry();
-        DatabaseEntry data = new DatabaseEntry();
         OperationStatus status;
 
         /* Insert key={0,0}/data={0} and data={1}. */
@@ -495,11 +492,10 @@ public class DatabaseComparatorsTest extends TestCase {
     /**
      * Compares only the first integer in the byte arrays.
      */
-    public static class Partial2PartComparator implements Comparator {
-
-	public int compare(Object o1, Object o2) {
-            int val1 = new TupleInput((byte[]) o1).readInt();
-            int val2 = new TupleInput((byte[]) o2).readInt();
+    public static class Partial2PartComparator implements Comparator<byte[]> {
+	public int compare(byte[] o1, byte[] o2) {
+            int val1 = new TupleInput(o1).readInt();
+            int val2 = new TupleInput(o2).readInt();
             return val1 - val2;
 	}
     }

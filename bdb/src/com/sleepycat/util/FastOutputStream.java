@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: FastOutputStream.java,v 1.23 2008/01/07 14:29:00 cwl Exp $
+ * $Id: FastOutputStream.java,v 1.24 2008/06/10 02:52:17 cwl Exp $
  */
 
 package com.sleepycat.util;
@@ -128,11 +128,13 @@ public class FastOutputStream extends OutputStream {
         writeFast(b);
     }
 
+    @Override
     public void write(byte[] fromBuf) throws IOException {
 
         writeFast(fromBuf);
     }
 
+    @Override
     public void write(byte[] fromBuf, int offset, int length)
         throws IOException {
 
@@ -144,6 +146,7 @@ public class FastOutputStream extends OutputStream {
         out.write(buf, 0, len);
     }
 
+    @Override
     public String toString() {
 
         return new String(buf, 0, len);

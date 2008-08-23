@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: LogManager.java,v 1.201 2008/05/15 01:52:41 linda Exp $
+ * $Id: LogManager.java,v 1.203 2008/06/23 19:23:26 cwl Exp $
  */
 
 package com.sleepycat.je.log;
@@ -504,7 +504,7 @@ public abstract class LogManager {
                 LogBuffer useLogBuffer =
                     logBufferPool.getWriteBuffer(entrySize, flippedFile);
 
-                /* Add checksum, prev offset, vlsn to entry. */
+                /* Add checksum, prev offset, and VLSN to the entry. */
                 item.buffer = item.header.addPostMarshallingInfo
                     (envImpl, item.buffer, fileManager.getPrevEntryOffset(),
                      item.repContext);

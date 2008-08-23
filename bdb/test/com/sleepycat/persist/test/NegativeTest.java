@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: NegativeTest.java,v 1.17 2008/04/25 15:52:13 mark Exp $
+ * $Id: NegativeTest.java,v 1.19 2008/07/01 03:22:08 tao Exp $
  */
 
 package com.sleepycat.persist.test;
@@ -48,7 +48,7 @@ public class NegativeTest extends TxnTestCase {
         open(null);
     }
 
-    private void open(Class clsToRegister)
+    private void open(Class<ProxyExtendsEntity> clsToRegister)
         throws DatabaseException {
 
         StoreConfig config = new StoreConfig();
@@ -92,9 +92,7 @@ public class NegativeTest extends TxnTestCase {
 
         open();
         try {
-            PrimaryIndex<BadKeyClass1,UseBadKeyClass1> index =
-                store.getPrimaryIndex
-                    (BadKeyClass1.class, UseBadKeyClass1.class);
+            store.getPrimaryIndex(BadKeyClass1.class, UseBadKeyClass1.class);
             fail();
         } catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage().indexOf("@KeyField") >= 0);
@@ -124,19 +122,14 @@ public class NegativeTest extends TxnTestCase {
 
         open();
         try {
-            PrimaryIndex<Boolean,BadSequenceKeyEntity1> index =
-                store.getPrimaryIndex
-                    (Boolean.class, BadSequenceKeyEntity1.class);
+            store.getPrimaryIndex(Boolean.class, BadSequenceKeyEntity1.class);
             fail();
         } catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage().indexOf
                 ("Type not allowed for sequence") >= 0);
         }
         try {
-            PrimaryIndex<BadSequenceKeyEntity2.Key,
-                         BadSequenceKeyEntity2> index =
-                store.getPrimaryIndex
-                    (BadSequenceKeyEntity2.Key.class,
+            store.getPrimaryIndex(BadSequenceKeyEntity2.Key.class,
                      BadSequenceKeyEntity2.class);
             fail();
         } catch (IllegalArgumentException expected) {
@@ -144,10 +137,7 @@ public class NegativeTest extends TxnTestCase {
                 ("Type not allowed for sequence") >= 0);
         }
         try {
-            PrimaryIndex<BadSequenceKeyEntity3.Key,
-                         BadSequenceKeyEntity3> index =
-                store.getPrimaryIndex
-                    (BadSequenceKeyEntity3.Key.class,
+            store.getPrimaryIndex(BadSequenceKeyEntity3.Key.class,
                      BadSequenceKeyEntity3.class);
             fail();
         } catch (IllegalArgumentException expected) {

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: LevelRecorderTest.java,v 1.6 2008/01/07 14:29:10 cwl Exp $
+ * $Id: LevelRecorderTest.java,v 1.7 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -45,7 +45,7 @@ public class LevelRecorderTest extends TestCase {
          * We should only have to redo recovery for dbs 1 and 5. Db 10 had
          * INs all of the same level.
          */
-        Set reprocessSet = recorder.getDbsWithDifferentLevels();
+        Set<DatabaseId> reprocessSet = recorder.getDbsWithDifferentLevels();
         assertEquals(2, reprocessSet.size());
         assertTrue(reprocessSet.contains(id5));
         assertTrue(reprocessSet.contains(id1));

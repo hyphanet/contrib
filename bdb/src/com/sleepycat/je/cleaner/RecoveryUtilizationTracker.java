@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryUtilizationTracker.java,v 1.8 2008/05/27 15:30:35 mark Exp $
+ * $Id: RecoveryUtilizationTracker.java,v 1.9.2.1 2008/07/08 17:06:18 mark Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -134,6 +134,7 @@ public class RecoveryUtilizationTracker extends BaseLocalUtilizationTracker {
      * Overrides this method for recovery and returns whether the FileSummaryLN
      * for the given file is prior to the given LSN.
      */
+    @Override
     boolean isFileUncounted(Long fileNum, long lsn) {
         long fsLsn = DbLsn.longToLsn(fileSummaryLsns.get(fileNum));
         int cmpFsLsnToNewLsn = (fsLsn != DbLsn.NULL_LSN) ?
@@ -173,10 +174,20 @@ public class RecoveryUtilizationTracker extends BaseLocalUtilizationTracker {
      * Returns the DatabaseImpl from the database key, which in this case is
      * the DatabaseId.
      */
+    @Override
     DatabaseImpl databaseKeyToDatabaseImpl(Object databaseKey)
         throws DatabaseException {
 
         DatabaseId dbId = (DatabaseId) databaseKey;
         return env.getDbTree().getDb(dbId);
+    }
+
+    /**
+     * Must release the database, since DbTree.getDb was called by
+     * databaseKeyToDatabaseImpl.
+     */
+    @Override
+    void releaseDatabaseImpl(DatabaseImpl db) {
+        env.getDbTree().releaseDb(db);
     }
 }

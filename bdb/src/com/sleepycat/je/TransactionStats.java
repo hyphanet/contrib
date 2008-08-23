@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000,2008 Oracle.  All rights reserved.
  *
- * $Id: TransactionStats.java,v 1.34 2008/05/03 03:21:15 cwl Exp $
+ * $Id: TransactionStats.java,v 1.35 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -127,6 +127,7 @@ public class TransactionStats implements Serializable {
             this.parentId = parentId;
         }
 
+        @Override
 	public String toString() {
 	    return "txnId = " + txnId + " txnName = " + name;
 	}
@@ -289,6 +290,7 @@ public class TransactionStats implements Serializable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("nBegins=").append(nBegins).append('\n');

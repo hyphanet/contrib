@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: ScanLogTest.java,v 1.5 2008/01/07 14:29:05 cwl Exp $
+ * $Id: ScanLogTest.java,v 1.6 2008/06/06 17:12:27 linda Exp $
  */
 
 package com.sleepycat.je;
@@ -23,9 +23,7 @@ import com.sleepycat.je.util.TestUtils;
  * Basic database operations, excluding configuration testing.
  */
 public class ScanLogTest extends TestCase {
-    private static final boolean DEBUG = false;
     private static final int NUM_RECS = 3;
-    private static final int NUM_DUPS = 3;
 
     private File envHome;
     private Environment env;

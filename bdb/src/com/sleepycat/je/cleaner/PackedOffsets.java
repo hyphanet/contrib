@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PackedOffsets.java,v 1.15 2008/01/17 17:22:11 cwl Exp $
+ * $Id: PackedOffsets.java,v 1.16 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.cleaner;
@@ -223,6 +223,7 @@ public class PackedOffsets implements Loggable {
         return false;
     }
 
+    @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();
         dumpLog(buf, true);

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2006 Oracle.  All rights reserved.
  *
- * $Id: ShortConfigParam.java,v 1.25 2008/05/30 19:07:40 mark Exp $
+ * $Id: ShortConfigParam.java,v 1.26 2008/06/10 02:52:09 cwl Exp $
  */
 
 package com.sleepycat.je.config;
@@ -61,6 +61,7 @@ public class ShortConfigParam extends ConfigParam {
         }
     }
 
+    @Override
     public void validateValue(String value)
         throws IllegalArgumentException {
 

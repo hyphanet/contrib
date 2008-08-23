@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: BytecodeEnhancer.java,v 1.16 2008/05/30 14:04:18 mark Exp $
+ * $Id: BytecodeEnhancer.java,v 1.17 2008/06/26 05:24:53 mark Exp $
  */
 
 package com.sleepycat.persist.model;
@@ -171,8 +171,9 @@ class BytecodeEnhancer extends ClassAdapter {
             throw abort();
         }
         FieldVisitor ret = super.visitField(access, name, desc, sig, value);
-        if ((access & (ACC_STATIC | ACC_TRANSIENT)) == 0) {
-            FieldInfo info = new FieldInfo(ret, name, desc);
+        if ((access & ACC_STATIC) == 0) {
+            FieldInfo info = new FieldInfo(ret, name, desc,
+                                           (access & ACC_TRANSIENT) != 0);
             nonKeyFields.add(info);
             ret = info;
         }
@@ -247,7 +248,9 @@ class BytecodeEnhancer extends ClassAdapter {
         } else {
             for (int i = 0; i < nonKeyFields.size();) {
                 FieldInfo field = nonKeyFields.get(i);
-                if (field.isPriKey) {
+                if (field.isTransient) {
+                    nonKeyFields.remove(i);
+                } else if (field.isPriKey) {
                     if (priKeyField == null) {
                         priKeyField = field;
                         nonKeyFields.remove(i);
@@ -1453,10 +1456,15 @@ class BytecodeEnhancer extends ClassAdapter {
         OrderInfo order;
         boolean isPriKey;
         boolean isSecKey;
+        boolean isTransient;
 
-        FieldInfo(FieldVisitor parent, String name, String desc) {
+        FieldInfo(FieldVisitor parent,
+                  String name,
+                  String desc,
+                  boolean isTransient) {
             this.parent = parent;
             this.name = name;
+            this.isTransient = isTransient;
             type = Type.getType(desc);
         }
 
@@ -1473,6 +1481,12 @@ class BytecodeEnhancer extends ClassAdapter {
             } else if (desc.equals
                     ("Lcom/sleepycat/persist/model/SecondaryKey;")) {
                 isSecKey = true;
+            } else if (desc.equals
+                    ("Lcom/sleepycat/persist/model/NotPersistent;")) {
+                isTransient = true;
+            } else if (desc.equals
+                    ("Lcom/sleepycat/persist/model/NotTransient;")) {
+                isTransient = false;
             }
             return ret;
         }

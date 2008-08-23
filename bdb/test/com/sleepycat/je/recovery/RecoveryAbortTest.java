@@ -3,12 +3,14 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: RecoveryAbortTest.java,v 1.58 2008/01/07 14:29:10 cwl Exp $
+ * $Id: RecoveryAbortTest.java,v 1.59 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.Database;
@@ -42,7 +44,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert all the data. */
             Transaction txn = env.beginTransaction(null, null);
@@ -73,7 +76,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
         }
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert 0 - N and commit. */
             Transaction txn = env.beginTransaction(null, null);
@@ -126,7 +130,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
@@ -289,7 +294,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
@@ -331,7 +337,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
@@ -382,7 +389,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);
@@ -446,7 +454,8 @@ public class RecoveryAbortTest extends RecoveryTestBase {
 
         try {
             /* Set up an repository of expected data. */
-            Hashtable expectedData = new Hashtable();
+            Map<TestData, Set<TestData>> expectedData = 
+                new HashMap<TestData, Set<TestData>>();
 
             /* Insert data without duplicates. */
             Transaction txn = env.beginTransaction(null, null);

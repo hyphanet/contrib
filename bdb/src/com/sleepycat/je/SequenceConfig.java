@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2005,2008 Oracle.  All rights reserved.
  *
- * $Id: SequenceConfig.java,v 1.10 2008/01/07 14:28:46 cwl Exp $
+ * $Id: SequenceConfig.java,v 1.11 2008/06/10 00:21:30 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -270,5 +270,24 @@ public class SequenceConfig {
      */
     public boolean getWrap() {
         return wrap;
+    }
+
+    /**
+     * Returns the values for each configuration attribute.
+     *
+     * @return the values for each configuration attribute.
+     */
+    @Override
+    public String toString() {
+        return "allowCreate=" + allowCreate +
+            "\ncacheSize=" + cacheSize +
+            "\ndecrement=" + decrement +
+            "\nexclusiveCreate=" + exclusiveCreate +
+            "\ninitialValue=" + initialValue +
+            "\nautoCommitNoSync=" + autoCommitNoSync +
+            "\nrangeMin=" + rangeMin +
+            "\nrangeMax=" + rangeMax +
+            "\nwrap=" + wrap +
+            "\n";
     }
 }

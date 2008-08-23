@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2002,2008 Oracle.  All rights reserved.
  *
- * $Id: PreloadStatus.java,v 1.10 2008/05/20 17:52:34 linda Exp $
+ * $Id: PreloadStatus.java,v 1.11 2008/06/10 02:52:08 cwl Exp $
  */
 
 package com.sleepycat.je;
@@ -23,6 +23,7 @@ public class PreloadStatus implements Serializable {
 	this.statusName = statusName;
     }
 
+    @Override
     public String toString() {
 	return "PreloadStatus." + statusName;
     }

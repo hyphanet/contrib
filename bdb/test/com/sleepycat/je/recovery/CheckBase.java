@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004,2008 Oracle.  All rights reserved.
  *
- * $Id: CheckBase.java,v 1.22 2008/05/22 19:35:38 linda Exp $
+ * $Id: CheckBase.java,v 1.24 2008/06/30 20:54:48 linda Exp $
  */
 
 package com.sleepycat.je.recovery;
@@ -198,8 +198,8 @@ public class CheckBase extends TestCase {
         saveLogFiles(envHome);
 
         /* txnId -> LogEntryInfo */
-        Map newUncommittedRecords = new HashMap();
-        Map deletedUncommittedRecords = new HashMap();
+        Map<Long, Set<TestData>> newUncommittedRecords = new HashMap<Long, Set<TestData>>();
+        Map<Long, Set<TestData>> deletedUncommittedRecords = new HashMap<Long, Set<TestData>>();
 
         /* Now run recovery repeatedly, truncating at different locations. */
         String status = null;
@@ -209,8 +209,6 @@ public class CheckBase extends TestCase {
              * Some tests are not working with starting at 0. As a workaround,
              * start at another iteration.
              */
-            DatabaseEntry keyEntry = new DatabaseEntry();
-            DatabaseEntry dataEntry = new DatabaseEntry();
             for (int i = startingIteration; i < logDescription.size(); i++ ) {
 
                 /* Find out where to truncate. */
@@ -311,7 +309,8 @@ public class CheckBase extends TestCase {
     /*
      * The found and expected data sets need to match exactly after recovery.
      */
-    void validate(HashSet<TestData> expected)
+    @SuppressWarnings("unchecked") // clone() returns Object
+	void validate(HashSet<TestData> expected)
         throws DatabaseException {
 
         Set<TestData> useExpected = (Set<TestData>) expected.clone();
@@ -503,21 +502,11 @@ public class CheckBase extends TestCase {
         /* If true, generate a log description to use in stepwise testing. */
         boolean generateLogDescription;
 
-        /*
-         * Some generators run off a list of test operations which specify
-         * what actions to use when generating data.
-         */
-        public List operationList;
-
         public TestGenerator() {
         }
 
         public TestGenerator(boolean generateLogDescription) {
             this.generateLogDescription = generateLogDescription;
-        }
-
-        public TestGenerator(List operationList) {
-            this.operationList = operationList;
         }
 
         void generateData(Database db)
