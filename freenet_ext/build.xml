@@ -72,6 +72,12 @@
 		</ant>
 	</target>
 
+	<target name="db4o" depends="init" description="Build db4o">
+		<ant antfile="build.xml" target="jar" dir="../db4o/">
+			<property name="javac.target.version" value="${javac.target.version}"/>
+		</ant>
+	</target>
+
 	<target name="clean" depends="distclean"/>
 
 	<target name="distclean" description="Cleanup the build directory">
@@ -81,15 +87,17 @@
 			<!-- detect it! -->
 			<property name="bits" value="32"/>
 		</ant>
+		<ant antfile="build.xml" target="clean" dir="../db4o/"/>
 		<delete dir="${build}"/>
 		<delete file="${jar.location}"/>
 	</target>
 
-	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper" description="Create the jar file">
+	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper,db4o" description="Create the jar file">
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
 			<zipfileset src="../bdb/build/lib/je.jar"/>
 			<zipfileset src="../wrapper/lib/wrapper.jar"/>
+			<zipfileset src="../db4o/db4o.jar"/>
 		</jar>
 	</target>
 </project>
