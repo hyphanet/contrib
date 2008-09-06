@@ -64,13 +64,13 @@
 
 	<target name="mergeOptimizations" depends="compile">
 		<!-- yes, order matters! -->
-		<copy todir="${build}/">
+		<copy todir="${build}/" overwrite="true">
 			<fileset dir="${build-db4oj}"/>
 		</copy>
-		<copy todir="${build}/">
+		<copy todir="${build}/" overwrite="true">
 			<fileset dir="${build-db4ojdk1.2}"/>
 		</copy>
-		<copy todir="${build}/">
+		<copy todir="${build}/" overwrite="true">
 			<fileset dir="${build-db4ojdk5}"/>
 		</copy>
 	</target>
