@@ -77,7 +77,7 @@
 
 	<!-- ================================================== -->
 
-	<target name="jar" depends="clean,compile, mergeOptimizations"
+	<target name="jar" depends="compile, mergeOptimizations"
 		description="generate the distribution" >
 		<!-- Create the distribution directory -->
 		<jar jarfile="${jarfile}" basedir="${build}"/>
