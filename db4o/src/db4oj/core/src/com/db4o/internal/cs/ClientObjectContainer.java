@@ -900,4 +900,11 @@ public class ClientObjectContainer extends ExternalObjectContainer implements Ex
         return response.readInt();
     }
 
+	public int instanceCount(ClassMetadata clazz, Transaction trans) {
+        MsgD msg = Msg.INSTANCE_COUNT.getWriterForInt(trans, clazz.getID());
+        write(msg);
+        MsgD response = (MsgD) expectedResponse(Msg.INSTANCE_COUNT);
+        return response.readInt();
+	}
+	
 }

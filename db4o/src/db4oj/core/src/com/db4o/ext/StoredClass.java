@@ -74,5 +74,14 @@ public interface StoredClass {
 	 * @return the {@link StoredField}
 	 */
 	public StoredField storedField(String name, Object type);
-	 
+
+	/**
+	 * Returns the number of instances of this class that have been persisted to the
+	 * database, as seen by the transaction (container) that produces this StoredClass
+	 * instance.
+	 * 
+	 * @return The number of instances
+	 */
+	public int instanceCount();
+
 }

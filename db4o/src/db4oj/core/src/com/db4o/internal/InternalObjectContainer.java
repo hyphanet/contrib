@@ -56,4 +56,6 @@ public interface InternalObjectContainer extends ExtObjectContainer {
     
     public Object syncExec(Closure4 block);
 
+    public int instanceCount(ClassMetadata clazz, Transaction trans);
+
 }

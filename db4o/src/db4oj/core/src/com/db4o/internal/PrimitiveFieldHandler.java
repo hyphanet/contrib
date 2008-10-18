@@ -118,7 +118,7 @@ public class PrimitiveFieldHandler extends ClassMetadata implements FieldHandler
     }
     
     public Object instantiateTransient(UnmarshallingContext context) {
-        return _handler.read(context);
+        return correctHandlerVersion(context).read(context);
     }
 
     Object instantiateFields(UnmarshallingContext context) {
@@ -188,7 +188,7 @@ public class PrimitiveFieldHandler extends ClassMetadata implements FieldHandler
     }
 
     public void defragment(DefragmentContext context) {
-    	_handler.defragment(context);
+    	correctHandlerVersion(context).defragment(context);
     }
     
     public Object wrapWithTransactionContext(Transaction transaction, Object value) {
@@ -196,7 +196,7 @@ public class PrimitiveFieldHandler extends ClassMetadata implements FieldHandler
     }
     
     public Object read(ReadContext context) {
-        return _handler.read(context);
+        return correctHandlerVersion(context).read(context);
     }
     
     public void write(WriteContext context, Object obj) {
@@ -243,6 +243,9 @@ public class PrimitiveFieldHandler extends ClassMetadata implements FieldHandler
     public boolean isSecondClass() {
     	return isSecondClass(_handler);
     }
-
+    
+    private TypeHandler4 correctHandlerVersion(Context context){
+    	return Handlers4.correctHandlerVersion((HandlerVersionContext)context, _handler);
+    }
 
 }

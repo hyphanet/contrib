@@ -267,12 +267,12 @@ public class Defragment {
 	}
 
 	private static boolean parentHasIndex(ClassMetadata curClass) {
-		ClassMetadata parentClass = curClass.i_ancestor;
+		ClassMetadata parentClass = curClass.getAncestor();
 		while (parentClass != null) {
 			if (parentClass.hasClassIndex()) {
 				return true;
 			}
-			parentClass = parentClass.i_ancestor;
+			parentClass = parentClass.getAncestor();
 		}
 		return false;
 	}

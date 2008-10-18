@@ -46,6 +46,9 @@ public class HandlerVersionRegistry {
         if(version >= HandlerRegistry.HANDLER_VERSION){
             return originalHandler;
         }
+        if(originalHandler == null){
+        	return null;  // HandlerVersionKey with null key will throw NPE.
+        }
         TypeHandler4 replacement = (TypeHandler4) _versions.get(new HandlerVersionKey(genericTemplate(originalHandler), version));
         if(replacement == null){
             return correctHandlerVersion(originalHandler, version + 1);    

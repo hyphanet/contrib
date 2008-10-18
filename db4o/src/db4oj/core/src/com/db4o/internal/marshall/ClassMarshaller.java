@@ -153,17 +153,24 @@ public abstract class ClassMarshaller {
 
 		context.writeInt(indexIDForWriting(classIndexID));
 		
-		// field length
-		int numFields = context.readInt();
+		final int aspectCount = context.readInt();
 		
-		if(numFields > classMetadata.declaredAspectCount()) {
+		if(aspectCount > classMetadata.declaredAspectCount()) {
 			throw new IllegalStateException();
 		}
+		
+		final IntByRef processedAspectCount = new IntByRef(0);
+		
 		classMetadata.forEachDeclaredAspect(new Procedure4() {
 			public void apply(Object arg) {
+				if(processedAspectCount.value >= aspectCount){
+					return;
+				}
 				ClassAspect aspect = (ClassAspect) arg;
 				_family._field.defrag(classMetadata,aspect,sio,context);
+				processedAspectCount.value++;
 			}
 		});
+		
 	}
 }

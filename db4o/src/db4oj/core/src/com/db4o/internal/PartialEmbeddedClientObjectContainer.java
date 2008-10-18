@@ -473,4 +473,8 @@ public abstract class PartialEmbeddedClientObjectContainer implements TransientC
     	return _server.syncExec(block);
     }
 
+	public int instanceCount(ClassMetadata clazz, Transaction trans) {
+		return _server.instanceCount(clazz, trans);
+	}
+
 }

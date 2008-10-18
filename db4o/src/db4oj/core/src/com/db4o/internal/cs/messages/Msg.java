@@ -103,6 +103,7 @@ public abstract class Msg implements Cloneable {
 	public static final MWriteUpdateDeleteMembers WRITE_UPDATE_DELETE_MEMBERS = new MWriteUpdateDeleteMembers();
 	public static final MWriteBatchedMessages WRITE_BATCHED_MESSAGES = new MWriteBatchedMessages();
 	public static final MsgBlob DELETE_BLOB_FILE = new MDeleteBlobFile();
+	public static final MInstanceCount INSTANCE_COUNT = new MInstanceCount();
 
 	Msg() {
 		_msgID = _messageIdGenerator++;

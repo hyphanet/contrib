@@ -18,15 +18,20 @@ for more details.
 You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA. */
-package com.db4o;
+package com.db4o.internal.cs.messages;
 
-/**
-* @exclude
-*/
-public class Db4oVersion {
-    public static final String NAME = "7.4.63.11890";
-    public static final int MAJOR = 7;
-    public static final int MINOR = 4;
-    public static final int ITERATION = 63;
-    public static final int REVISION = 11890;
+import com.db4o.internal.*;
+
+public class MInstanceCount extends MsgD implements ServerSideMessage {
+
+	public boolean processAtServer() {
+		MsgD writer = null;
+		synchronized(streamLock()) {
+			ClassMetadata clazz = file().classMetadataForId(readInt());
+			writer = Msg.INSTANCE_COUNT.getWriterForInt(transaction(), clazz.indexEntryCount(transaction()));
+		}
+		write(writer);
+		return true;
+	}
+
 }

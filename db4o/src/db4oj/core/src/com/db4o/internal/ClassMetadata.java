@@ -768,7 +768,7 @@ public class ClassMetadata extends PersistentBase implements IndexableTypeHandle
     }
 
 
-    ClassMetadata getAncestor() {
+    public ClassMetadata getAncestor() {
         return i_ancestor;
     }
 
@@ -2001,5 +2001,12 @@ public class ClassMetadata extends PersistentBase implements IndexableTypeHandle
     	return _aspects == null;
     }
 
-    
+	public int instanceCount() {
+		return instanceCount(_container.transaction());
+	}
+
+	public int instanceCount(Transaction trans) {
+		return _container.instanceCount(this, trans);
+	}
+
 }
