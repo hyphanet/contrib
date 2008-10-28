@@ -2,8 +2,6 @@ package org.spaceroots.mantissa.random;
 
 import java.util.Random;
 
-import freenet.support.Fields;
-
 /** This class implements a powerful pseudo-random number generator
  * developed by Makoto Matsumoto and Takuji Nishimura during
  * 1996-1997.
@@ -153,7 +151,12 @@ public class MersenneTwister extends Random {
 		}
 		int[] seeds = new int[seed.length/4];
 		for(int i=0;i<seeds.length;i+=4) {
-			seeds[i] = Fields.bytesToInt(seed, i);
+			int x = 0;
+			for(int j = 3; j >= 0; j--) {
+				int y = (seed[j + i * 4] & 0xff);
+				x = (x << 8) | y;
+			}
+			seeds[i] = x;
 		}
 		setSeed(seeds);
 	}
