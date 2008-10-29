@@ -139,7 +139,7 @@
 	</target>
 
 	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper,db4o,build-java" description="Create the jar file">
-		<jar jarfile="${jar.location}" basedir="${build}" includes="**">
+		<jar jarfile="${jar.location}" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
 			<zipfileset src="../bdb/build/lib/je.jar"/>
 			<zipfileset src="../wrapper/lib/wrapper.jar"/>
