@@ -5,7 +5,6 @@
 <project name="Freenet-ext" default="jar">
 	<property name="build" location="build_dir"/>
 	<property name="jar.location" location="freenet-ext.jar"/>
-	<property name="freenet.location" location="freenet.jar"/>
 	<property name="svn.revision" value="@custom@"/>
 	<property name="javac.target.version" value="1.5"/>
 
@@ -85,7 +84,6 @@
 
 			<classpath>
 				<pathelement location="${build}"/>
-				<pathelement location="${freenet.location}"/>
 			</classpath>
 			<compilerarg value="-Xlint"/>
 
@@ -99,7 +97,6 @@
 
 			<classpath>
 				<pathelement location="${build}"/>
-				<pathelement location="${freenet.location}"/>
 			</classpath>
 			<compilerarg value="-Xlint"/>
 
@@ -110,7 +107,6 @@
                         <classpath>
                                 <pathelement path="${build}"/>
                                 <pathelement path="${build}-test"/>
-				<pathelement location="${freenet.location}"/>
                                 <pathelement location="${junit.location}"/>
                         </classpath>
 
