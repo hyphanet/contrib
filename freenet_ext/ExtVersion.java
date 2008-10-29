@@ -17,7 +17,7 @@ public abstract class ExtVersion {
 	}
 	
 	/** Revision number of ExtVersion.java as read from SVN */
-	public static final String cvsRevision = "23149";  // This is the freenet-ext.jar revision the node was built with
+	public static final String cvsRevision = "@custom@";  // This is the freenet-ext.jar revision the node was built with
 
 	public static final String cvsRevision() {  // This method is here for backwards compatability with a few node testing builds between 999 and 1000
 		return cvsRevision;

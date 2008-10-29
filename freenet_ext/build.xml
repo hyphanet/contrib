@@ -124,9 +124,9 @@
 		<delete dir="${build}-test"/>
 	</target>
 
-	<target name="clean" depends="distclean"/>
-
-	<target name="distclean" description="Cleanup the build directory">
+	<target name="clean" description="Cleanup the build directory">
+		<delete file="${jar.location}"/>
+		<delete dir="${build}"/>
 		<ant antfile="build.xml" target="clean" dir="../fec/common/"/>
 		<ant antfile="build.xml" target="clean" dir="../bdb/"/>
 		<ant antfile="build.xml" target="clean" dir="../wrapper/">
@@ -134,16 +134,14 @@
 			<property name="bits" value="32"/>
 		</ant>
 		<ant antfile="build.xml" target="clean" dir="../db4o/"/>
-		<delete dir="${build}"/>
-		<delete file="${jar.location}"/>
 	</target>
 
 	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper,db4o,build-java" description="Create the jar file">
+		<delete file="${jar.location}"/>
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
 			<zipfileset src="../bdb/build/lib/je.jar"/>
 			<zipfileset src="../wrapper/lib/wrapper.jar"/>
-			<zipfileset src="../db4o/db4o.jar"/>
 		</jar>
 	</target>
 </project>
