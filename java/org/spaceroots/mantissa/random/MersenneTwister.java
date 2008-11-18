@@ -151,14 +151,23 @@ public class MersenneTwister extends Random {
 		}
 		int[] seeds = new int[seed.length/4];
 		for(int i=0;i<seeds.length;i+=4) {
-			int x = 0;
-			for(int j = 3; j >= 0; j--) {
-				int y = (seed[j + i * 4] & 0xff);
-				x = (x << 8) | y;
-			}
-			seeds[i] = x;
+			seeds[i] = MersenneTwister.bytesToInt(seed, i);
 		}
 		setSeed(seeds);
+	}
+
+	/**
+	 * A copy of our @see{freenet.support.Fields} 
+	 * */
+	public static int bytesToInt(byte[] buf, int offset) {
+		if(buf.length < 4)
+			throw new IllegalArgumentException();
+		int x = 0;
+		for(int j = 3; j >= 0; j--) {
+			int y = (buf[j + offset] & 0xff);
+			x = (x << 8) | y;
+		}
+		return x;
 	}
 
 	/** Reinitialize the generator as if just built with the given int array seed.
