@@ -9,6 +9,13 @@ public class MersenneTwisterTest
     super(name);
   }
 
+  public void testBytesToInt() {
+    // Test the consistency in order to avoid the freenet-ext #24 fiasco
+    byte[] bytes = new byte[] { 0, 1, 2, 2 };
+    int outLong = MersenneTwister.bytesToInt(bytes, 0);
+    assertEquals(outLong, 33685760);
+  }
+
   public void testDouble() {
     MersenneTwister mt = new MersenneTwister(195357343514l);
     ScalarSampleStatistics sample = new ScalarSampleStatistics();
