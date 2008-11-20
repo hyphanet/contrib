@@ -1,9 +1,52 @@
 package org.spaceroots.mantissa.random;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 import junit.framework.*;
 
 public class MersenneTwisterTest
   extends TestCase {
+
+  // Should be sufficient for testing MT
+  private static final int SEED_SIZE = 624;
+  private static final int[] INT_SEED = new int[SEED_SIZE];
+  private static final byte[] BYTE_SEED;
+
+  private static final char[] EXPECTED_OUTPUT_MT_INT = new char[] {
+ (char)0x9a, (char)0x6, (char)0xab, (char)0x8c, (char)0x2b, (char)0xf3,
+ (char)0x3d, (char)0x7f, (char)0x6, (char)0x4, (char)0x5b, (char)0x20ac,
+ (char)0x46, (char)0xdd, (char)0xdf, (char)0x47, (char)0x28, (char)0xc0,
+ (char)0xb7, (char)0x74
+ };
+
+  private static final char[] EXPECTED_OUTPUT_MT_LONG = new char[] { 
+ (char)0x4f, (char)0x75, (char)0xda, (char)0x52, (char)0xe2, (char)0x40, 
+ (char)0xf0, (char)0x1, (char)0x8a, (char)0x69, (char)0xf6, (char)0xcb, 
+ (char)0x1a, (char)0xe3, (char)0x1, (char)0xb6, (char)0x21, (char)0x1f,
+ (char)0x73, (char)0xec
+ };
+  private static final char[] EXPECTED_OUTPUT_MT_INTS = new char[] {
+ (char)0x1c, (char)0x58, (char)0xb0, (char)0x47, (char)0x92, (char)0xc7,
+ (char)0x178, (char)0xc4, (char)0x25, (char)0x64, (char)0x31, (char)0x27,
+ (char)0x12, (char)0x14, (char)0xdb, (char)0xf, (char)0x61, (char)0x160,
+ (char)0x73, (char)0x32 
+ };
+  private static final char[] EXPECTED_OUTPUT_MT_BYTES = new char[] {
+ (char)0xca, (char)0xcd, (char)0xcf, (char)0x14, (char)0x37, (char)0x22,
+ (char)0x27, (char)0x85, (char)0x91, (char)0x44, (char)0x2a, (char)0x8,
+ (char)0xb3, (char)0x33, (char)0xfa, (char)0x67, (char)0x69, (char)0x18,
+ (char)0xca, (char)0x72
+ };
+
+  static {
+    StringBuilder sb = new StringBuilder();
+    for(int i=0; i<INT_SEED.length; i++){
+  	  INT_SEED[i] = i;
+  	  sb.append(i);
+    }
+    BYTE_SEED = sb.toString().getBytes();
+  }
 
   public MersenneTwisterTest(String name) {
     super(name);
@@ -316,8 +359,51 @@ public class MersenneTwisterTest
 
   }
 
+  public void testConsistencySeedFromInts() throws NoSuchAlgorithmException {
+    MessageDigest md = MessageDigest.getInstance("SHA-1");
+    MersenneTwister mt = new MersenneTwister(INT_SEED);
+    byte[] bytes = new byte[SEED_SIZE];
+
+    mt.nextBytes(bytes);
+    md.update(bytes);
+
+    assertEquals(new String(EXPECTED_OUTPUT_MT_INTS), new String(md.digest()));
+  }
+
+  public void testConsistencySeedFromBytes() throws NoSuchAlgorithmException {
+    MessageDigest md = MessageDigest.getInstance("SHA-1");
+    MersenneTwister mt = new MersenneTwister(BYTE_SEED);
+    byte[] bytes = new byte[SEED_SIZE];
+
+    mt.nextBytes(bytes);
+    md.update(bytes);
+
+    assertEquals(new String(EXPECTED_OUTPUT_MT_BYTES), new String(md.digest()));
+  }
+
+  public void testConsistencySeedFromInteger() throws NoSuchAlgorithmException {
+    MessageDigest md = MessageDigest.getInstance("SHA-1");
+    MersenneTwister mt = new MersenneTwister(Integer.MAX_VALUE);
+    byte[] bytes = new byte[SEED_SIZE];
+
+    mt.nextBytes(bytes);
+    md.update(bytes);
+
+    assertEquals(new String(EXPECTED_OUTPUT_MT_INT), new String(md.digest()));
+  }
+
+  public void testConsistencySeedFromLong() throws NoSuchAlgorithmException {
+    MessageDigest md = MessageDigest.getInstance("SHA-1");
+    MersenneTwister mt = new MersenneTwister(Long.MAX_VALUE);
+    byte[] bytes = new byte[SEED_SIZE];
+
+    mt.nextBytes(bytes);
+    md.update(bytes);
+
+    assertEquals(new String(EXPECTED_OUTPUT_MT_LONG), new String(md.digest()));
+  }
+
   public static Test suite() {
     return new TestSuite(MersenneTwisterTest.class);
   }
-
 }
