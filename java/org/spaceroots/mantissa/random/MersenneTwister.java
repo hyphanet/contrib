@@ -151,7 +151,7 @@ public class MersenneTwister extends Random {
 		}
 		int[] seeds = new int[seed.length/4];
 		for(int i=0;i<seeds.length;i++) {
-			seeds[i] = MersenneTwister.bytesToInt(seed, i);
+			seeds[i] = MersenneTwister.bytesToInt(seed, i*4);
 		}
 		setSeed(seeds);
 	}
