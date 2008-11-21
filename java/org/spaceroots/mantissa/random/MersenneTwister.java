@@ -149,26 +149,27 @@ public class MersenneTwister extends Random {
 			// constructors after array allocation
 			return;
 		}
-		int[] seeds = new int[seed.length/4];
-		for(int i=0;i<seeds.length;i++) {
-			seeds[i] = MersenneTwister.bytesToInt(seed, i*4);
-		}
+		int[] seeds = MersenneTwister.bytesToInts(seed, 0, seed.length);
 		setSeed(seeds);
 	}
 
 	/**
 	 * A copy of our @see{freenet.support.Fields} 
 	 * */
-	public static int bytesToInt(byte[] buf, int offset) {
-		if(buf.length < 4)
+	  public static int[] bytesToInts(byte[] buf, int offset, int length) {
+		if(length % 4 != 0)
 			throw new IllegalArgumentException();
-		int x = 0;
-		for(int j = 3; j >= 0; j--) {
-			int y = (buf[j + offset] & 0xff);
-			x = (x << 8) | y;
+		int[] ints = new int[length / 4];
+		for(int i = 0; i < ints.length; i++) {
+			int x = 0;
+			for(int j = 3; j >= 0; j--) {
+				int y = (buf[j + offset + i * 4] & 0xff);
+				x = (x << 8) | y;
+			}
+			ints[i] = x;
 		}
-		return x;
-	}
+		return ints;
+	  }
 
 	/** Reinitialize the generator as if just built with the given int array seed.
 	 * <p>The state of the generator is exactly the same as a new
