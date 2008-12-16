@@ -77,6 +77,8 @@ public class ObjectServerImpl implements ObjectServer, ExtObjectServer, Runnable
 		_container.setServer(true);	
 		configureObjectServer();
 		
+		_container.classCollection().checkAllClassChanges();
+		
 		boolean ok = false;
 		try {
 			ensureLoadStaticClass();

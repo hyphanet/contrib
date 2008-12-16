@@ -479,6 +479,14 @@ public final class ClassMetadataRepository extends PersistentBase {
             clazz.refresh();
         }
     }
+    
+    public void checkAllClassChanges(){
+    	Iterator4 i = _classMetadataByID.keys();
+    	while(i.moveNext()){
+    		int classMetadataID = ((Integer)i.current()).intValue();
+    		getClassMetadata(classMetadataID);
+    	}
+    }
 
 	public void refreshClass(ClassMetadata clazz) {
 		if (_classMetadataByID.get(clazz.getID()) == null) {
