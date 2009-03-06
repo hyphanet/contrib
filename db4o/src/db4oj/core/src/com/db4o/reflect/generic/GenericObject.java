@@ -20,49 +20,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA. */
 package com.db4o.reflect.generic;
 
-
 /**
  * @exclude
  */
-public class GenericObject {
+public class GenericObject extends GenericObjectBase {
 
-    final GenericClass _class;
-    
-    private Object[] _values;
-    
     public GenericObject(GenericClass clazz) {
-        _class = clazz;
+        super(clazz);
     }
-    
-    private void ensureValuesInitialized() {
-    	if(_values == null) {
-    		_values = new Object[_class.getFieldCount()];
-    	}
-    }
-    
-    public void set(int index,Object value) {
-    	ensureValuesInitialized();
-    	_values[index]=value;
-    }
-
-	/**
-	 *
-	 * @param index
-	 * @return the value of the field at index, based on the fields obtained GenericClass.getDeclaredFields
-	 */
-	public Object get(int index) {
-    	ensureValuesInitialized();
-    	return _values[index];
-    }
-
-    public String toString(){
-        if(_class == null){
-            return super.toString();    
-        }
-        return _class.toString(this);
-    }
-
-	public GenericClass getGenericClass(){
-		return _class;
-	}
 }

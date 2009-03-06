@@ -22,6 +22,7 @@ package com.db4o.reflect.generic;
 
 import com.db4o.foundation.*;
 import com.db4o.internal.*;
+import com.db4o.internal.reflect.generic.*;
 import com.db4o.reflect.*;
 
 /**
@@ -253,7 +254,7 @@ public class GenericReflector implements Reflector, DeepClone {
     }
 
 	private ReflectClass forGenericObject(final GenericObject genericObject) {
-		GenericClass claxx = genericObject._class;
+		GenericClass claxx = genericObject.getGenericClass();
 		if(claxx == null){
 			throw new IllegalStateException(); 
 		}
@@ -363,24 +364,7 @@ public class GenericReflector implements Reflector, DeepClone {
      * @return an array of classes known to the reflector
      */
 	public ReflectClass[] knownClasses() {
-        Collection4 classes = new Collection4();
-		collectKnownClasses(classes);
-		return (ReflectClass[])classes.toArray(new ReflectClass[classes.size()]);
-	}
-
-	private void collectKnownClasses(Collection4 classes) {
-		Iterator4 i = _repository.classes();
-		while(i.moveNext()){
-            GenericClass clazz = (GenericClass)i.current();
-            if(! _stream._handlers.ICLASS_INTERNAL.isAssignableFrom(clazz)){
-                ClassMetadata clazzMeta = _stream.classMetadataForReflectClass(clazz);
-				if(clazzMeta == null || !clazzMeta.isSecondClass()){
-					if(! clazz.isArray()){
-						classes.add(clazz);
-					}
-                }
-            }
-		}
+		return new KnownClassesCollector(_stream, _repository).collect();
 	}
 	
 	/**

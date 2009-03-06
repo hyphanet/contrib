@@ -151,7 +151,7 @@ public abstract class ClassMarshaller {
 		// ancestor ID
 		context.copyID();
 
-		context.writeInt(indexIDForWriting(classIndexID));
+		context.writeInt((classMetadata.hasClassIndex() ? indexIDForWriting(classIndexID) : 0));
 		
 		final int aspectCount = context.readInt();
 		

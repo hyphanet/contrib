@@ -45,7 +45,7 @@ public class Iterators {
 		}
 
 		public void reset() {
-			throw new NotImplementedException();
+			// do nothing
 		}
 	};
 	
@@ -264,5 +264,10 @@ public class Iterators {
 				return iterator;
 			}
 		};
-	}	
+	}
+	
+	public static Iterator4 copy(final Iterator4 iterator) {
+		return new Collection4(iterator).iterator();
+	}
+
 }

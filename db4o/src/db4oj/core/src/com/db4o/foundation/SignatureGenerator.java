@@ -52,13 +52,17 @@ public class SignatureGenerator {
 		}
 		sb.append(Integer.toHexString(hostAddress));
 		sb.append(Long.toHexString(System.currentTimeMillis()));
-		sb.append(Integer.toHexString(randomInt()));
+		sb.append(pad(Integer.toHexString(randomInt())));
 		sb.append(Integer.toHexString(_counter++));
 		return sb.toString();
 	}
 
 	private static int randomInt() {
 		return _random.nextInt();
+	}
+	
+	private static String pad(String str){
+		return (str + "XXXXXXXX").substring(0, 8);
 	}
 
 }

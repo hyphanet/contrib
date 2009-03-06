@@ -22,9 +22,15 @@ package com.db4o.db4ounit.common.io;
 
 import java.io.*;
 
+import db4ounit.ConsoleTestRunner;
+
 public class DiskFullTestCase extends DiskFullTestCaseBase {
 
 	private static final long NO_SIZE_LIMIT = -1;
+	
+	public static void main(String[] args) {
+		new ConsoleTestRunner(DiskFullTestCase.class).run();
+	}
 
 	public void testReleasesFileLocks() {
 		assertReleasesFileLocks(false);
@@ -59,12 +65,12 @@ public class DiskFullTestCase extends DiskFullTestCaseBase {
 
 	private void assertKeepsCommittedDataReadOnlyLimited(boolean doCache) {
 		storeOneAndFail(NO_SIZE_LIMIT, doCache);
-		assertItemsStored(1, curFileLength(), true);
+		assertItemsStored(1, curFileLength(), true, doCache);
 	}
 
 	private void assertKeepsCommittedDataReadWriteUnlimited(boolean doCache) {
 		storeOneAndFail(NO_SIZE_LIMIT, doCache);
-		assertItemsStored(1, NO_SIZE_LIMIT, false);
+		assertItemsStored(1, NO_SIZE_LIMIT, false, doCache);
 	}
 
 	@Override

@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA. */
 package com.db4o.internal.marshall;
 
+import com.db4o.ext.*;
 import com.db4o.internal.*;
 import com.db4o.internal.convert.conversions.*;
 
@@ -120,8 +121,15 @@ public class MarshallerFamily {
     }
 
     public static MarshallerFamily version(int n) {
+    	checkIfVersionIsTooNew(n);
         return allVersions[n];
     }
+    
+    private static void checkIfVersionIsTooNew(int n) {
+    	if(n > allVersions.length){
+    		throw new IncompatibleFileFormatException("Databasefile was created with a newer db4o version. Marshaller version: " + n);
+    	}
+	}
 
     public static MarshallerFamily current() {
         if(CURRENT_VERSION < FamilyVersion.BTREE_FIELD_INDEXES){

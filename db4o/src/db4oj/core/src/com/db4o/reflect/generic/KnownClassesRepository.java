@@ -58,6 +58,7 @@ public class KnownClassesRepository {
     private final Hashtable4 _classByID = new Hashtable4();
 	private Collection4 _pendingClasses = new Collection4();
     private final Collection4 _classes = new Collection4();
+	private final ListenerRegistry _listeners = ListenerRegistry.newInstance();
 
     public KnownClassesRepository(ReflectClassBuilder builder) {
     	_builder=builder;
@@ -71,9 +72,15 @@ public class KnownClassesRepository {
 	}
     
     public void register(ReflectClass clazz) {
-    	_classByName.put(clazz.getName(), clazz);
-		_classes.add(clazz);
+    	register(clazz.getName(), clazz);
     }
+
+	private void register(String className, ReflectClass clazz) {
+		_classByName.put(className, clazz);
+		_classes.add(clazz);
+		
+		_listeners.notifyListeners(clazz);		
+	}
 
     public ReflectClass forID(int id) {
     	synchronized(_stream.lock()) {
@@ -176,9 +183,7 @@ public class KnownClassesRepository {
 			return;
 		}
 		
-        // step 2 add the class to _classByName and _classes to denote reading is completed
-        _classByName.put(className, clazz);
-		_classes.add(clazz);
+        register(className, clazz);
 		
 		int numFields=classInfo.numFields();
 		ReflectField[] fields=_builder.fieldArray(numFields);
@@ -273,6 +278,14 @@ public class KnownClassesRepository {
     	return (ReflectClass)_classByName.get(name);
     }
     
+	public void addListener(Listener listener) {
+		_listeners.register(listener);
+	}
+
+	public void removeListener(Listener listener) {
+		_listeners.remove(listener);
+	}
+	
 	private ReflectClass arrayClass(ReflectClass clazz) {
 		Object proto=clazz.reflector().array().newInstance(clazz,0);
 		return clazz.reflector().forObject(proto);

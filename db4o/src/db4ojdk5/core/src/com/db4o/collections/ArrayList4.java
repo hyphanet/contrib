@@ -100,7 +100,6 @@ public class ArrayList4<E> extends AbstractList4<E> implements Cloneable,
 	 * 
 	 * @see java.util.ArrayList 
 	 */
-	@SuppressWarnings("unchecked")
 	public ArrayList4(Collection<? extends E> c) {
 		E[] data = collectionToArray(c);
 		elements = allocateStorage(data.length);
@@ -129,7 +128,6 @@ public class ArrayList4<E> extends AbstractList4<E> implements Cloneable,
 	 * 
 	 * @see java.util.ArrayList 
 	 */
-	@SuppressWarnings("unchecked")
 	public ArrayList4(int initialCapacity) {
 		if (initialCapacity < 0) {
 			throw new IllegalArgumentException();
@@ -310,7 +308,6 @@ public class ArrayList4<E> extends AbstractList4<E> implements Cloneable,
 	 * 
 	 * @sharpen.ignore
 	 */
-	@SuppressWarnings("unchecked")
 	public int lastIndexOf(Object o) {
 		for (int index = size() - 1; index >= 0; --index) {
 			E element = get(index);
@@ -386,8 +383,6 @@ public class ArrayList4<E> extends AbstractList4<E> implements Cloneable,
 	 * @see java.util.ArrayList 
 	 * @see com.db4o.ta.Activatable
 	 * 
-	 * @sharpen.internal
-	 * @sharpen.property
 	 */
 	public int size() {
 		activate(ActivationPurpose.READ);
@@ -443,7 +438,6 @@ public class ArrayList4<E> extends AbstractList4<E> implements Cloneable,
 		resize(size());
 	}
 
-	@SuppressWarnings("unchecked")
 	private void resize(int minCapacity) {
 		markModified();
 		E[] temp = allocateStorage(minCapacity);

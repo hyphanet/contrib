@@ -33,14 +33,24 @@ public class ExcludingClassLoader extends URLClassLoader {
     private final Map _cache = new HashMap();
     
     private Collection4 _excludedNames;
+    private Collection4 _delegatedNames;
 
-    public ExcludingClassLoader(ClassLoader parent,Class[] excludedClasses) {
-        this(parent, collectNames(excludedClasses));
+    public ExcludingClassLoader(ClassLoader parent, Class[] excludedClasses) {
+        this(parent, collectNames(excludedClasses), new Collection4());
     }
-    
+
+    public ExcludingClassLoader(ClassLoader parent, Class[] excludedClasses, Class[] delegatedClasses) {
+        this(parent, collectNames(excludedClasses), collectNames(delegatedClasses));
+    }
+
     public ExcludingClassLoader(ClassLoader parent,Collection4 excludedNames) {
-        super(new URL[]{},parent);
-        this._excludedNames=excludedNames;
+    	this(parent, excludedNames, new Collection4());
+    }
+
+    public ExcludingClassLoader(ClassLoader parent,Collection4 excludedNames, Collection4 delegatedNames) {
+        super(new URL[]{}, parent);
+        this._excludedNames = excludedNames;
+        this._delegatedNames = delegatedNames;
     }
 
     protected synchronized Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
@@ -54,6 +64,10 @@ public class ExcludingClassLoader extends URLClassLoader {
         }
         if(mustDelegate(name)) {
             print("NATIVE: " + name);
+            return super.loadClass(name, resolve);
+        }
+        if(_delegatedNames.contains(name)) {
+            print("DELEGATED: " + name);
             return super.loadClass(name, resolve);
         }
         Class clazz = findRawClass(name);
@@ -107,7 +121,7 @@ public class ExcludingClassLoader extends URLClassLoader {
         ClassLoader parent=ExcludingClassLoader.class.getClassLoader();
         String excName=ExcludingClassLoader.class.getName();
         Collection4 excluded=new Collection4();
-        ClassLoader incLoader=new ExcludingClassLoader(parent,excluded);
+        ClassLoader incLoader=new ExcludingClassLoader(parent, excluded, new Collection4());
         System.out.println(incLoader.loadClass(excName));
         excluded.add(excName);
         try {

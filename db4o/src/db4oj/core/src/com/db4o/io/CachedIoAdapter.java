@@ -389,6 +389,7 @@ public class CachedIoAdapter extends IoAdapter {
 	}
 
 	private void writePageToDisk(Page page) throws Db4oIOException {
+		validateReadOnly();
 	    try{
 	        _io.write(page._buffer, page.size());
 	        _filePointer = page.endAddress();
