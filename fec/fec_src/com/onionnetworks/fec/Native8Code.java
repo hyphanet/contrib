@@ -18,7 +18,7 @@ public class Native8Code extends FECCode {
     // One must be very very careful not to let code escape, it stores the
     // memory address of a fec_parms struct and if modified could give an
     // attacker the ability to point to anything in memory.
-    private int code;
+    private final long code;
     
     static {
         String path = NativeDeployer.getLibraryPath
@@ -53,15 +53,15 @@ public class Native8Code extends FECCode {
     }
 
     protected native void nativeEncode
-        (int code, byte[][] src, int[] srcOff, int[] index, byte[][] repair, 
+        (long code, byte[][] src, int[] srcOff, int[] index, byte[][] repair, 
          int[] repairOff, int k, int packetLength);
 
-    protected native void nativeDecode(int code, byte[][] pkts, int[] pktsOff,
+    protected native void nativeDecode(long code, byte[][] pkts, int[] pktsOff,
                                        int[] index, int k, int packetLength);
 
-    protected synchronized native int nativeNewFEC(int k, int n);
+    protected synchronized native long nativeNewFEC(int k, int n);
 
-    protected synchronized native void nativeFreeFEC(int code);
+    protected synchronized native void nativeFreeFEC(long code);
 
     protected void finalize() throws Throwable {
         nativeFreeFEC(code);

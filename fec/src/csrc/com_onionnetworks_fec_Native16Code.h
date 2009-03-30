@@ -7,38 +7,37 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* Inaccessible static: initialized */
 /*
  * Class:     com_onionnetworks_fec_Native16Code
  * Method:    nativeEncode
- * Signature: (I[[B[I[I[[B[III)V
+ * Signature: (J[[B[I[I[[B[III)V
  */
 JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native16Code_nativeEncode
-  (JNIEnv *, jobject, jint, jobjectArray, jintArray, jintArray, jobjectArray, jintArray, jint, jint);
+  (JNIEnv *, jobject, jlong, jobjectArray, jintArray, jintArray, jobjectArray, jintArray, jint, jint);
 
 /*
  * Class:     com_onionnetworks_fec_Native16Code
  * Method:    nativeDecode
- * Signature: (I[[B[I[III)V
+ * Signature: (J[[B[I[III)V
  */
 JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native16Code_nativeDecode
-  (JNIEnv *, jobject, jint, jobjectArray, jintArray, jintArray, jint, jint);
+  (JNIEnv *, jobject, jlong, jobjectArray, jintArray, jintArray, jint, jint);
 
 /*
  * Class:     com_onionnetworks_fec_Native16Code
  * Method:    nativeNewFEC
- * Signature: (II)I
+ * Signature: (II)J
  */
-JNIEXPORT jint JNICALL Java_com_onionnetworks_fec_Native16Code_nativeNewFEC
+JNIEXPORT jlong JNICALL Java_com_onionnetworks_fec_Native16Code_nativeNewFEC
   (JNIEnv *, jobject, jint, jint);
 
 /*
  * Class:     com_onionnetworks_fec_Native16Code
  * Method:    nativeFreeFEC
- * Signature: (I)V
+ * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native16Code_nativeFreeFEC
-  (JNIEnv *, jobject, jint);
+  (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus
 }

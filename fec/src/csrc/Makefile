@@ -16,8 +16,8 @@
 
 CC=gcc
 # COPT= -O9 -funroll-loops
-COPT= -O1 
-CFLAGS=$(COPT) -Wall # -DTEST
+COPT= -O1
+CFLAGS=$(COPT) -Wall -fPIC# -DTEST -pedantic
 SRCS= fec.c Makefile test.c fec.s.980621e \
 	fec.S.980624a \
 	fec.S16.980624a
@@ -31,9 +31,8 @@ libfec8.so: fec8.o
 	$(CC) $(CFLAGS) -DGF_BITS=8 -c -I$(JAVA_HOME)/include/ \
 		-I$(JAVA_HOME)/include/linux fec8-jinterf.c \
 		-o fec8-jinterf.o ; \
-	mkdir -p ../../lib/fec-linux-x86/lib/linux/x86 ; \
         ld -shared fec8-jinterf.o fec8.o -o \
-		../../lib/fec-linux-x86/lib/linux/x86/libfec8.so
+		libfec8.so
 
 fec8.o: fec.h fec8.S
 	$(CC) $(CFLAGS) -DGF_BITS=8 -c -o fec8.o fec8.S
@@ -45,9 +44,8 @@ libfec16.so: fec16.o
 	$(CC) $(CFLAGS) -DGF_BITS=16 -c -I$(JAVA_HOME)/include/ \
 		-I$(JAVA_HOME)/include/linux fec16-jinterf.c \
 		-o fec16-jinterf.o ; \
-	mkdir -p ../../lib/fec-linux-x86/lib/linux/x86 ; \
         ld -shared fec16-jinterf.o fec16.o -o \
-		../../lib/fec-linux-x86/lib/linux/x86/libfec16.so
+		libfec16.so
 
 fec16.o: fec.h fec16.S
 	$(CC) $(CFLAGS) -DGF_BITS=16 -c -o fec16.o fec16.S
@@ -56,7 +54,7 @@ fec16.S: fec.c Makefile
 	$(CC) $(CFLAGS) -DGF_BITS=16 -S -o fec16.S fec.c
 
 clean:
-	- rm *.o *.S fec
+	- rm -f *.o *.S fec *so
 
 tgz: $(ALLSRCS)
 	tar cvzf vdm`date +%y%m%d`.tgz $(ALLSRCS)

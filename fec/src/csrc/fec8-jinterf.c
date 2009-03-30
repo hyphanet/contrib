@@ -3,6 +3,7 @@
 #include "jni.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <malloc.h>
 #include "com_onionnetworks_fec_Native8Code.h"
 #include "fec.h"
@@ -15,7 +16,7 @@
  */
 JNIEXPORT void JNICALL
     Java_com_onionnetworks_fec_Native8Code_nativeEncode
-    (JNIEnv *env, jobject obj, jint code, jobjectArray src, jintArray srcOff,
+    (JNIEnv *env, jobject obj, jlong code, jobjectArray src, jintArray srcOff,
      jintArray index, jobjectArray ret, jintArray retOff, jint k, 
      jint packetLength) {
     
@@ -120,7 +121,7 @@ JNIEXPORT void JNICALL
  */
 JNIEXPORT void JNICALL
     Java_com_onionnetworks_fec_Native8Code_nativeDecode
-    (JNIEnv *env, jobject obj, jint code, jobjectArray data, jintArray dataOff,
+    (JNIEnv *env, jobject obj, jlong code, jobjectArray data, jintArray dataOff,
      jintArray whichdata, jint k, jint packetLength) {
 
     jint *localWhich, *localDataOff;
@@ -184,17 +185,18 @@ JNIEXPORT void JNICALL
 
 }
 
-JNIEXPORT jint JNICALL
+JNIEXPORT jlong JNICALL
     Java_com_onionnetworks_fec_Native8Code_nativeNewFEC
     (JNIEnv * env, jobject obj, jint k, jint n) {
     
-    return (int)fec_new(k,n); 
+    // uintptr_t is needed for systems where sizeof(void*) < sizeof(long)
+    return (long)(uintptr_t)fec_new(k,n);
 
 }
 
 JNIEXPORT void JNICALL
     Java_com_onionnetworks_fec_Native8Code_nativeFreeFEC
-    (JNIEnv * env, jobject obj, jint code) {
+    (JNIEnv * env, jobject obj, jlong code) {
     
     fec_free((void *)code); 
 

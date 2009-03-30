@@ -647,7 +647,7 @@ void
 fec_free(struct fec_parms *p)
 {
     if (p==NULL ||
-       p->magic != ( ( (FEC_MAGIC ^ p->k) ^ p->n) ^ (int)(p->enc_matrix)) ) {
+       p->magic != ( ( (FEC_MAGIC ^ p->k) ^ p->n) ^ (long)(p->enc_matrix)) ) {
 	fprintf(stderr, "bad parameters to fec_free\n");
 	return ;
     }
@@ -679,7 +679,7 @@ fec_new(int k, int n)
     retval->k = k ;
     retval->n = n ;
     retval->enc_matrix = NEW_GF_MATRIX(n, k);
-    retval->magic = ( ( FEC_MAGIC ^ k) ^ n) ^ (int)(retval->enc_matrix) ;
+    retval->magic = ( ( FEC_MAGIC ^ k) ^ n) ^ (long)(retval->enc_matrix) ;
     tmp_m = NEW_GF_MATRIX(n, k);
     /*
      * fill the matrix with powers of field elements, starting from 0.
