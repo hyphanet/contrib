@@ -17,7 +17,7 @@ endif
 
 LIBS := kernel32 user32 #advapi32 shell32 gdi32 winspool cmdlg32 ole32 oleaut32 uuid odbc32 odbccp32 
 
-LDFLAGS=$(patsubt %,%.lib,$(LIBS)) /nologo /dll /incremental:no /machine:I386 \
+LDFLAGS=$(patsubt %,%.lib,$(LIBS)) /nologo /dll /incremental:no \
 	/out:$(MODE)/fec$(BITS).dll /implib:$(MODE)/fec$(BITS).lib \
 	/OPT:REF /MAP
 
