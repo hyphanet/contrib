@@ -10,7 +10,7 @@
 
 CC?=gcc
 # COPT= -O9 -funroll-loops
-COPT= -O1
+COPT= -O1 -funroll-loops
 CFLAGS?=$(COPT) -Wall -fPIC
 SRCS= fec.c Makefile test.c
 DOCS= README fec.3

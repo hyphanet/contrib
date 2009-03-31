@@ -334,42 +334,16 @@ generate_gf(void)
 #define addmul(dst, src, c, sz) \
     if (c != 0) addmul1(dst, src, c, sz)
 
-#define UNROLL 16 /* 1, 4, 8, 16 */
 static void
 addmul1(gf *dst1, gf *src1, gf c, int sz)
 {
     USE_GF_MULC ;
     register gf *dst = dst1, *src = src1 ;
-    gf *lim = &dst[sz - UNROLL + 1] ;
+    gf *lim = &dst[sz] ;
 
     GF_MULC0(c) ;
 
-#if (UNROLL > 1) /* unrolling by 8/16 is quite effective on the pentium */
-    for (; dst < lim ; dst += UNROLL, src += UNROLL ) {
-	GF_ADDMULC( dst[0] , src[0] );
-	GF_ADDMULC( dst[1] , src[1] );
-	GF_ADDMULC( dst[2] , src[2] );
-	GF_ADDMULC( dst[3] , src[3] );
-#if (UNROLL > 4)
-	GF_ADDMULC( dst[4] , src[4] );
-	GF_ADDMULC( dst[5] , src[5] );
-	GF_ADDMULC( dst[6] , src[6] );
-	GF_ADDMULC( dst[7] , src[7] );
-#endif
-#if (UNROLL > 8)
-	GF_ADDMULC( dst[8] , src[8] );
-	GF_ADDMULC( dst[9] , src[9] );
-	GF_ADDMULC( dst[10] , src[10] );
-	GF_ADDMULC( dst[11] , src[11] );
-	GF_ADDMULC( dst[12] , src[12] );
-	GF_ADDMULC( dst[13] , src[13] );
-	GF_ADDMULC( dst[14] , src[14] );
-	GF_ADDMULC( dst[15] , src[15] );
-#endif
-    }
-#endif
-    lim += UNROLL - 1 ;
-    for (; dst < lim; dst++, src++ )		/* final components */
+    for (; dst < lim; dst++, src++ )
 	GF_ADDMULC( *dst , *src );
 }
 
