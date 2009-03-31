@@ -1,12 +1,6 @@
 #
 # makefile for vdm.
 #
-# fec.S.980624a is an optimized version for use on 486 and old pentium
-# machines. It is only for GF_BITS=8 and generally does not work
-# fast on systems with multiple instruction pipelines (PentiumPro,
-# Pentium2)
-# same for fec.S16.980624a , for use with GF_BITS=16
-#
 # gcc does something strange, so check the various opt. levels for
 # best performance (or write addmul1 in assembly code).
 #
@@ -18,9 +12,7 @@ CC=gcc
 # COPT= -O9 -funroll-loops
 COPT= -O1
 CFLAGS=$(COPT) -Wall -fPIC# -DTEST -pedantic
-SRCS= fec.c Makefile test.c fec.s.980621e \
-	fec.S.980624a \
-	fec.S16.980624a
+SRCS= fec.c Makefile test.c
 DOCS= README fec.3
 ALLSRCS= $(SRCS) $(DOCS) fec.h
 
