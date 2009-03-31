@@ -23,7 +23,7 @@ libfec8.so: fec8.o
 	$(CC) $(CFLAGS) -DGF_BITS=8 -c -I$(JAVA_HOME)/include/ \
 		-I$(JAVA_HOME)/include/linux fec8-jinterf.c \
 		-o fec8-jinterf.o ; \
-        ld -shared fec8-jinterf.o fec8.o -o \
+		ld -shared fec8-jinterf.o fec8.o -o \
 		libfec8.so
 
 fec8.o: fec.h fec8.S
@@ -36,7 +36,7 @@ libfec16.so: fec16.o
 	$(CC) $(CFLAGS) -DGF_BITS=16 -c -I$(JAVA_HOME)/include/ \
 		-I$(JAVA_HOME)/include/linux fec16-jinterf.c \
 		-o fec16-jinterf.o ; \
-        ld -shared fec16-jinterf.o fec16.o -o \
+		ld -shared fec16-jinterf.o fec16.o -o \
 		libfec16.so
 
 fec16.o: fec.h fec16.S
