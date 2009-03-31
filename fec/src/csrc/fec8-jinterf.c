@@ -83,7 +83,7 @@ JNIEXPORT void JNICALL
     }
 
     for (i=0;i<numRet;i++) {
-        fec_encode((void *)code, (void **)inarr, (void *)retarr[i], 
+        fec_encode((void *)(uintptr_t)code, (void **)(uintptr_t)inarr, (void *)(uintptr_t)retarr[i], 
                    (int)localIndex[i], (int)packetLength); 
     }
 
@@ -162,7 +162,7 @@ JNIEXPORT void JNICALL
         inarr[i] += localDataOff[i];
     }
 
-    fec_decode((void *)code, (void **)inarr, (int *)localWhich, (int)packetLength);
+    fec_decode((void *)(intptr_t)code, (void **)(intptr_t)inarr, (int *)(intptr_t)localWhich, (int)packetLength);
 
     for (i = 0; i < k; i++) {
         inarr[i] -= localDataOff[i];
@@ -198,6 +198,6 @@ JNIEXPORT void JNICALL
     Java_com_onionnetworks_fec_Native8Code_nativeFreeFEC
     (JNIEnv * env, jobject obj, jlong code) {
     
-    fec_free((void *)code); 
+    fec_free((void *)(uintptr_t)code); 
 
 }
