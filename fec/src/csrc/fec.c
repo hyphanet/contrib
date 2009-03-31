@@ -49,14 +49,10 @@
 /*
  * compatibility stuff
  */
-#ifdef MSDOS	/* but also for others, e.g. sun... */
-#define NEED_BCOPY
+#ifdef WIN32
 #define bcmp(a,b,n) memcmp(a,b,n)
-#endif
-
-#ifdef NEED_BCOPY
 #define bcopy(s, d, siz)        memcpy((d), (s), (siz))
-#define bzero(d, siz)   memset((d), '\0', (siz))
+#define bzero(d, siz)			memset((d), '\0', (siz))
 #endif
 
 /*
@@ -74,8 +70,6 @@ struct timeval {
 };
 #define gettimeofday(x, dummy) { (x)->ticks = clock() ; }
 #define DIFF_T(a,b) (1+ 1000000*(a.ticks - b.ticks) / CLOCKS_PER_SEC )
-typedef unsigned long u_long ;
-typedef unsigned short u_short ;
 #else /* typically, unix systems */
 #include <sys/time.h>
 #define DIFF_T(a,b) \
@@ -88,12 +82,12 @@ typedef unsigned short u_short ;
 	t = x.tv_usec + 1000000* (x.tv_sec & 0xff ) ; \
 	}
 #define TOCK(t) \
-	{ u_long t1 ; TICK(t1) ; \
+	{ unsigned long t1 ; TICK(t1) ; \
 	  if (t1 < t) t = 256000000 + t1 - t ; \
 	  else t = t1 - t ; \
 	  if (t == 0) t = 1 ;}
 	
-u_long ticks[10];	/* vars for timekeeping */
+unsigned long ticks[10];	/* vars for timekeeping */
 #else
 #define DEB(x)
 #define DDB(x)
@@ -612,7 +606,7 @@ static void init_fec()
 #define FEC_MAGIC	0xFECC0DEC
 
 struct fec_parms {
-    u_long magic ;
+    unsigned long magic ;
     int k, n ;		/* parameters of the code */
     gf *enc_matrix ;
 } ;

@@ -5,7 +5,7 @@ CPP := cl.exe
 MODE ?= Debug
 
 CPP_OPTS := /nologo /I c:/jdk1.3/include /I c:/jdk1.3/include/win32 \
-	/D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D FEC_EXPORTS 
+	/D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D FEC_EXPORTS /D inline=__inline
 
 ifeq ($(MODE),Debug)
 Mode := Debug
@@ -23,7 +23,7 @@ LDFLAGS=$(patsubt %,%.lib,$(LIBS)) /nologo /dll /incremental:no \
 
 LD=link.exe
 
-LDOBJS= $(MODE)/fec_win32.obj $(MODE)/fec$(BITS)-jinterf.obj
+LDOBJS= $(MODE)/fec.obj $(MODE)/fec$(BITS)-jinterf.obj
 
 
 .PHONY: all feclib debug-all release-all bits8-all bits16-all clean
