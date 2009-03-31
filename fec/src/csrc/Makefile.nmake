@@ -1,0 +1,36 @@
+MAKE=nmake -f Makefile.nmake
+
+CPP=cl.exe
+
+CPP_OPTS=/nologo /I $(JAVA_HOME)/include /I $(JAVA_HOME)/include/win32 \
+	/D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D FEC_EXPORTS \
+	/D inline=__inline
+
+CPP_OPTS=/MT /W3 /Ot /D NDEBUG $(CPP_OPTS)
+
+LIBS=kernel32.lib user32.lib
+
+LDFLAGS=$(LIBS) /nologo /dll /incremental:no \
+	/out:fec$(BITS).dll /implib:fec$(BITS).lib \
+	/OPT:REF /MAP
+
+LD=link.exe
+
+LDOBJS= fec.obj fec$(BITS)-jinterf.obj
+
+all: release-all
+
+feclib: fec$(BITS).dll
+
+release-all: 
+	$(MAKE) BITS=8 MODE=Release feclib
+	$(MAKE) BITS=16 MODE=Release feclib
+
+clean: 
+	del *.dll *.obj *.lib *.pdb *.exp
+
+fec$(BITS).dll : $(DEF_FILE) $(LDOBJS)
+	$(LD) $(LDFLAGS) $(LDOBJS)
+
+.c.obj::
+	$(CPP) $(CPP_OPTS) /c $<
