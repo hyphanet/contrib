@@ -12,7 +12,7 @@ Mode := Debug
 CPP_OPTS := /nologo /MTd /W3 /GZ /ZI /Od /D DEBUG $(CPP_OPTS)
 else
 MODE := Release
-CPP_OPTS := /nologo /MT /W3 /O1 /D NDEBUG $(CPP_OPTS)
+CPP_OPTS := /nologo /MT /W3 /Ot /D NDEBUG $(CPP_OPTS)
 endif
 
 LIBS := kernel32 user32 #advapi32 shell32 gdi32 winspool cmdlg32 ole32 oleaut32 uuid odbc32 odbccp32 
