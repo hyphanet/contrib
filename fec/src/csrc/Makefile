@@ -8,10 +8,10 @@
 # machines.
 #
 
-CC=gcc
+CC?=gcc
 # COPT= -O9 -funroll-loops
 COPT= -O1
-CFLAGS=$(COPT) -Wall -fPIC# -DTEST -pedantic
+CFLAGS?=$(COPT) -Wall -fPIC
 SRCS= fec.c Makefile test.c
 DOCS= README fec.3
 ALLSRCS= $(SRCS) $(DOCS) fec.h
