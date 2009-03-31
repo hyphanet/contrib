@@ -32,6 +32,7 @@
  * OF SUCH DAMAGE.
  */
 
+
 /*
  * The following parameter defines how many bits are used for
  * field elements. The code supports any value from 2 to 16
@@ -39,7 +40,7 @@
  * This is the only parameter you may want to change.
  */
 #ifndef GF_BITS
-#define GF_BITS  8	/* code over GF(2**GF_BITS) - change to suit */
+#error GF_BITS NOT DEFINED!
 #endif
 
 #include <stdio.h>
