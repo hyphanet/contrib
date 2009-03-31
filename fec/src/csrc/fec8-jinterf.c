@@ -3,7 +3,9 @@
 #include "jni.h"
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef WIN32
 #include <stdint.h>
+#endif
 #include <malloc.h>
 #include "com_onionnetworks_fec_Native8Code.h"
 #include "fec.h"
