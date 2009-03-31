@@ -27,15 +27,13 @@
 	
 	<target name="fec" depends="fec-common" description="build the fecencoder/decoder plugins for fproxy.">
 		<javac destdir="${build}" optimize="on" source="${javac.target.version}">
-			<src path="../fec/fec_src"/>
+			<src path="../fec/src"/>
 			<classpath path="../fec/common/lib/onion-common.jar"/>
+			<exclude name="csrc/*.java"/>
 		</javac>
 
 		<copy file="../fec/onion_LICENSE" todir="${build}"/>
 		<copy todir="${build}">
-			<fileset dir="../fec/fec_src">
-				<include name="**/*.properties"/>
-			</fileset>
 			<fileset dir="../fec/">
 				<include name="lib/"/>
 			</fileset>
