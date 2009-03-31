@@ -3,7 +3,7 @@ MAKE=nmake -f Makefile.nmake
 CPP=cl.exe
 
 CPP_OPTS=/nologo /I $(JAVA_HOME)/include /I $(JAVA_HOME)/include/win32 \
-	/D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D FEC_EXPORTS \
+	/D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D FEC_EXPORTS /D GF_BITS=$(BITS) \
 	/D inline=__inline
 
 CPP_OPTS=/MT /W3 /Ot /D NDEBUG $(CPP_OPTS)
@@ -23,7 +23,9 @@ all: release-all
 feclib: fec$(BITS).dll
 
 release-all: 
+	-del fec.obj
 	$(MAKE) BITS=8 MODE=Release feclib
+	-del fec.obj
 	$(MAKE) BITS=16 MODE=Release feclib
 
 clean: 
