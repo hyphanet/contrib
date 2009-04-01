@@ -15,7 +15,7 @@ CFLAGS?=$(COPT) -Wall -fPIC #-m32
 SRCS= fec.c Makefile test.c
 DOCS= README fec.3
 ALLSRCS= $(SRCS) $(DOCS) fec.h
-LDFLAGS?= #-melf_i386
+LDFLAGS?= --add-stdcall-alias #-melf_i386
 
 fec: libfec8.so libfec16.so test.o
 	$(CC) $(CFLAGS) -o fec fec8.o test.o
