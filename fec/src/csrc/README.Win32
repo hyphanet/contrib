@@ -1,0 +1,9 @@
+HOW TO COMPILE WIN32 BINARY
+
+ 1) ON WINDOWS USING VC++:
+      nmake -f Makefile.nmake
+
+ 2) ON LINUX USING MINGW32:
+     make CC=i586-mingw32msvc-gcc libfec8.so libfec16.so
+	 mv libfec8.so  fec8.dll
+	 mv libfec16.so fec16.dll

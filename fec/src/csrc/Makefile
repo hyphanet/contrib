@@ -21,7 +21,7 @@ fec: libfec8.so libfec16.so test.o
 	$(CC) $(CFLAGS) -o fec fec8.o test.o
 
 libfec8.so: fec8.o fec8-jinterf.o
-	ld $(LDFLAGS) -shared fec8-jinterf.o fec8.o -o libfec8.so
+	$(CC) $(LDFLAGS) -shared fec8-jinterf.o fec8.o -o libfec8.so
 
 fec8-jinterf.o: fec8-jinterf.c
 	$(CC) $(CFLAGS) -DGF_BITS=8 -c -I$(JAVA_HOME)/include/ \
@@ -35,7 +35,7 @@ fec8.S: fec.c Makefile
 	$(CC) $(CFLAGS) -DGF_BITS=8 -S -o fec8.S fec.c
 
 libfec16.so: fec16.o fec16-jinterf.o
-	ld $(LDFLAGS) -shared fec16-jinterf.o fec16.o -o libfec16.so
+	$(CC) $(LDFLAGS) -shared fec16-jinterf.o fec16.o -o libfec16.so
 
 fec16-jinterf.o: fec16-jinterf.c
 	$(CC) $(CFLAGS) -DGF_BITS=16 -c -I$(JAVA_HOME)/include/ \
