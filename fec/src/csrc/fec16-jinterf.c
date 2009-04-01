@@ -3,7 +3,7 @@
 #include "jni.h"
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef WIN32
+#if defined(__GNUC__) || !defined(WIN32)
 #include <stdint.h>
 #endif
 #include <malloc.h>
