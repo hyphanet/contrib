@@ -23,9 +23,7 @@ all: release-all
 feclib: fec$(BITS).dll
 
 release-all: 
-	-del fec.obj
 	$(MAKE) BITS=8 MODE=Release feclib
-	-del fec.obj
 	$(MAKE) BITS=16 MODE=Release feclib
 
 clean: 
