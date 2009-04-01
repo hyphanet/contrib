@@ -1,0 +1,5 @@
+EXPORTS
+   Java_com_onionnetworks_fec_Native16Code_nativeEncode
+   Java_com_onionnetworks_fec_Native16Code_nativeDecode
+   Java_com_onionnetworks_fec_Native16Code_nativeNewFEC
+   Java_com_onionnetworks_fec_Native16Code_nativeFreeFEC

@@ -12,7 +12,7 @@ LIBS=kernel32.lib user32.lib
 
 LDFLAGS=$(LIBS) /nologo /dll /incremental:no \
 	/out:fec$(BITS).dll /implib:fec$(BITS).lib \
-	/OPT:REF /MAP
+	/OPT:REF /MAP /DEF:fec$(BITS).def
 
 LD=link.exe
 
@@ -23,7 +23,9 @@ all: release-all
 feclib: fec$(BITS).dll
 
 release-all: 
+	-del fec.obj
 	$(MAKE) BITS=8 MODE=Release feclib
+	-del fec.obj
 	$(MAKE) BITS=16 MODE=Release feclib
 
 clean: 
