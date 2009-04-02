@@ -29,7 +29,6 @@ public class AllTests extends Db4oTestSuite {
 				GenericPrimitiveArrayTestCase.class,
 				StoreComparableFieldTestCase.class,
 				TranslatorStoredClassesTestCase.class,
-				UnavailableClassAsTreeSetElementTestCase.class,
 				//Comment out this test temporarily
 				//UpdatingDb4oVersionsTestCase.class,
 		};

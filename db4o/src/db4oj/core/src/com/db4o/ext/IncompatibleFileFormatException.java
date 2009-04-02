@@ -26,13 +26,5 @@ package com.db4o.ext;
  * is not compatible with the applied configuration.
  */
 public class IncompatibleFileFormatException extends Db4oException {
-	
-	public IncompatibleFileFormatException(){
-		super();
-	}
-	
-	public IncompatibleFileFormatException(String message) {
-		super(message);
-	}
 
 }

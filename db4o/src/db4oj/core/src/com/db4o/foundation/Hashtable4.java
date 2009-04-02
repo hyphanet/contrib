@@ -315,15 +315,10 @@ public class Hashtable4 implements DeepClone, Map4 {
 	}
 
 	private void reposition(HashtableIntEntry entry) {
-        HashtableIntEntry currentEntry = entry; 
-        HashtableIntEntry nextEntry = null; 
-        while (currentEntry != null) 
-        { 
-            nextEntry = currentEntry._next; 
-            currentEntry._next = _table[entryIndex(currentEntry)]; 
-            _table[entryIndex(currentEntry)] = currentEntry; 
-            currentEntry = nextEntry; 
-        } 
-	}
-	
+		if (entry != null) {
+			reposition(entry._next);
+			entry._next = _table[entryIndex(entry)];
+			_table[entryIndex(entry)] = entry;
+		}
+	}		
 }

@@ -67,10 +67,10 @@ public class CascadeToHashMap {
 			}
 		});
 		
-		// Cascade-On-Delete Test: We only want two atom objects to remain.
+		// Cascade-On-Delete Test: We only want one atom to remain.
 		
 		Test.reOpen();
 		Test.deleteAllInstances(this);
-		Test.ensureOccurrences(new Atom(), 2);
+		Test.ensureOccurrences(new Atom(), 1);
 	}
 }

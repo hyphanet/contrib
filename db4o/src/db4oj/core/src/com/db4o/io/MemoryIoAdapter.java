@@ -193,9 +193,8 @@ public class MemoryIoAdapter extends IoAdapter {
 	public void write(byte[] buffer, int length) throws Db4oIOException {
 		if (_seekPos + length > _bytes.length) {
 			int growBy = _growBy;
-			int missing = _seekPos + length - _bytes.length;
-			if (missing > growBy) {
-				growBy = missing;
+			if (_seekPos + length > growBy) {
+				growBy = _seekPos + length;
 			}
 			byte[] temp = new byte[_bytes.length + growBy];
 			System.arraycopy(_bytes, 0, temp, 0, _length);

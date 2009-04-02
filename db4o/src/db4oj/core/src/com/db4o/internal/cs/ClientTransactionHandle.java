@@ -51,7 +51,6 @@ public class ClientTransactionHandle {
     
     public void close() {
 		if ((!_transactionPool.isClosed()) && (_mainTransaction != null)) {
-            _transactionPool.release(_mainTransaction, _rollbackOnClose);
             _mainTransaction.close(_rollbackOnClose);
         }
 	}

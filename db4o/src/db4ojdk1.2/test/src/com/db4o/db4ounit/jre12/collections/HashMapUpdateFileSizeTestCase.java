@@ -23,8 +23,6 @@ package com.db4o.db4ounit.jre12.collections;
 import java.io.*;
 import java.util.*;
 
-import com.db4o.internal.FrozenObjectInfo;
-
 import db4ounit.*;
 import db4ounit.extensions.*;
 import db4ounit.extensions.fixtures.*;
@@ -46,7 +44,7 @@ public class HashMapUpdateFileSizeTestCase extends AbstractDb4oTestCase implemen
 		map.put(new Integer(2), "String 2");
 	}
 
-	public void _testFileSize() throws Exception {
+	public void testFileSize() throws Exception {
 		warmUp();
 		assertFileSizeConstant();
 	}
@@ -60,8 +58,8 @@ public class HashMapUpdateFileSizeTestCase extends AbstractDb4oTestCase implemen
 		defragment();
 		long afterUpdate = dbSize();
 		/*
-		 * The database file size is a bit uncertain because
-		 * the signature length may vary. 
+		 * FIXME: the database file size is uncertain? 
+		 * We met similar problem before.
 		 */
 		Assert.isTrue(afterUpdate - beforeUpdate < 2);
 	}

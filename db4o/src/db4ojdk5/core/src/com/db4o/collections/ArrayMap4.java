@@ -117,8 +117,7 @@ public class ArrayMap4<K, V> implements Map<K, V>, Serializable, Cloneable,
 	 * 
 	 * @sharpen.ignore
 	 */
-    @SuppressWarnings("unchecked")
-	public boolean containsKey(Object key) {
+    public boolean containsKey(Object key) {
         return containsKeyImpl((K) key);
     }
 
@@ -284,6 +283,7 @@ public class ArrayMap4<K, V> implements Map<K, V>, Serializable, Cloneable,
 	 * 
 	 * @sharpen.ignore
 	 */
+    @SuppressWarnings("unchecked")
     public V remove(Object key) {        
         activate(ActivationPurpose.READ);
         int index = indexOfKey(key);
@@ -300,6 +300,7 @@ public class ArrayMap4<K, V> implements Map<K, V>, Serializable, Cloneable,
 	 * @see java.util.Map 
 	 * @see com.db4o.ta.Activatable
 	 * 
+	 * @sharpen.internal
 	 * @sharpen.property
 	 */
     public int size() {
@@ -402,6 +403,7 @@ public class ArrayMap4<K, V> implements Map<K, V>, Serializable, Cloneable,
         return hashCode;
     }
 
+    @SuppressWarnings("unchecked")
     private void initializeBackingArray(int length) {
         _keys = allocateKeyStorage(length);
         _values = allocateValueStorage(length);
@@ -429,6 +431,7 @@ public class ArrayMap4<K, V> implements Map<K, V>, Serializable, Cloneable,
         _size ++;
     }
     
+    @SuppressWarnings("unchecked")
     private void ensureCapacity() {
         if (_size == _keys.length) {
             int count = _keys.length * 2;

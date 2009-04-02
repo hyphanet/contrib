@@ -45,7 +45,7 @@ public class StackBasedDiskFullTestCase extends DiskFullTestCaseBase {
 				"commitParticipants",
 				hitThreshold);
 		storeNAndFail(config, 95, 10, doCache);
-		assertItemsStored(90, config, false, doCache);
+		assertItemsStored(90, config, false);
 	}
 	
 	protected void configureForFailure(ThrowCondition condition) {

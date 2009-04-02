@@ -25,6 +25,7 @@ import java.util.*;
 /**
  * @exclude
  * @sharpen.ignore
+ * @decaf.ignore
  */
 public class SubArrayList4<E> extends AbstractList4<E> {
 

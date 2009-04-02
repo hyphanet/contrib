@@ -772,7 +772,7 @@ public abstract class PartialObjectContainer implements TransientClass, Internal
             return queryAllObjects(trans);
         } 
         Query q = query(trans);
-        q.constrain(template).byExample();
+        q.constrain(template);
         return executeQuery((QQuery)q);
     }
     
@@ -795,12 +795,6 @@ public abstract class PartialObjectContainer implements TransientClass, Internal
             } catch(ArrayIndexOutOfBoundsException aiobe){
             	completeTopLevelCall(new InvalidIDException(aiobe));
             } finally {
-            	
-            	// Never shut down for getById()
-            	// There may be OutOfMemoryErrors or similar
-            	// The user may want to catch and continue working.
-            	_topLevelCallCompleted = true;
-
             	endTopLevelCall();
             }
             // only to make the compiler happy

@@ -247,7 +247,7 @@ public class GenericClass implements ReflectClass, DeepClone {
         if (!(candidate instanceof GenericObject)) {
         	return false;
         }
-        return isAssignableFrom(((GenericObject)candidate).getGenericClass());
+        return isAssignableFrom(((GenericObject)candidate)._class);
     }
 
     public boolean isInterface() {

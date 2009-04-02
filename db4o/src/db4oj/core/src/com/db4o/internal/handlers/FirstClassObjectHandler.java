@@ -59,9 +59,6 @@ public class FirstClassObjectHandler  implements FieldAwareTypeHandler {
                     aspect.defragAspect(context);
                 } 
             }
-            public boolean accept(ClassAspect aspect) {
-            	return aspect.enabled(context);
-            }
         };
         traverseAllAspects(context, command);
     }

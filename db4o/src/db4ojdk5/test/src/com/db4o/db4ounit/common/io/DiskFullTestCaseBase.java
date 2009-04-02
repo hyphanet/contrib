@@ -75,16 +75,10 @@ public abstract class DiskFullTestCaseBase implements TestLifeCycle {
 		triggerDiskFullAndClose();
 	}
 
-	protected void assertItemsStored(int numItems, Object conditionConfig, boolean readOnly, boolean withCache) {
+	protected void assertItemsStored(int numItems, Object conditionConfig, boolean readOnly) {
 		Assert.isNull(_db);
 		openDatabase(conditionConfig, readOnly, false);
-		int itemCount = _db.query(Item.class).size();
-		if(withCache){
-			Assert.isTrue(itemCount == numItems || itemCount == numItems + 1);
-			
-		}else{
-			Assert.areEqual(numItems, itemCount);
-		}
+		Assert.areEqual(numItems, _db.query(Item.class).size());
 		closeDb();
 	}
 
@@ -92,8 +86,6 @@ public abstract class DiskFullTestCaseBase implements TestLifeCycle {
 		configureForFailure(_throwCondition);
 		Assert.expect(Db4oIOException.class, new CodeBlock() {
 			public void run() throws Throwable {
-				_db.store(new Item(42));
-				_db.commit();
 				_db.store(new Item(42));
 				_db.commit();
 			}

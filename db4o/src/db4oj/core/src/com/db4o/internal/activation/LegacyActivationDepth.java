@@ -42,7 +42,7 @@ public class LegacyActivationDepth extends ActivationDepthImpl {
 
 	public ActivationDepth descend(ClassMetadata metadata) {
 		if (null == metadata) {
-			return new LegacyActivationDepth(_depth -1 , _mode);
+			throw new ArgumentNullException();
 		}
 		return new LegacyActivationDepth(descendDepth(metadata), _mode);
 	}

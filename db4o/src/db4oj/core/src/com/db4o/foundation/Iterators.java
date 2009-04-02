@@ -24,8 +24,6 @@ package com.db4o.foundation;
  * Iterator primitives (concat, map, reduce, filter, etc...).
  * 
  * @exclude
- * 
- * @sharpen.partial
  */
 public class Iterators {
 	
@@ -45,7 +43,7 @@ public class Iterators {
 		}
 
 		public void reset() {
-			// do nothing
+			throw new NotImplementedException();
 		}
 	};
 	
@@ -264,10 +262,5 @@ public class Iterators {
 				return iterator;
 			}
 		};
-	}
-	
-	public static Iterator4 copy(final Iterator4 iterator) {
-		return new Collection4(iterator).iterator();
-	}
-
+	}	
 }
