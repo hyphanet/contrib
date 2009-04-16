@@ -10,7 +10,7 @@
 
 CC?=gcc
 # COPT= -O9 -funroll-loops
-COPT= -O1 -funroll-loops
+COPT= -O1 -funroll-loops -fno-strict-aliasing
 CFLAGS?=$(COPT) -Wall -fPIC #-m32
 SRCS= fec.c Makefile test.c
 DOCS= README fec.3
