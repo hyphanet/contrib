@@ -17,8 +17,8 @@ DOCS= README fec.3
 ALLSRCS= $(SRCS) $(DOCS) fec.h
 LDFLAGS?= --add-stdcall-alias #-melf_i386
 
-fec: libfec8.so libfec16.so test.o
-	$(CC) $(CFLAGS) -o fec fec8.o test.o
+fec: libfec8.so libfec16.so test.c
+	$(CC) $(CFLAGS) -DGF_BITS=8 -o fec fec8.o test.c
 
 libfec8.so: fec8.o fec8-jinterf.o
 	$(CC) $(LDFLAGS) -shared fec8-jinterf.o fec8.o -o libfec8.so

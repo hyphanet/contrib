@@ -85,7 +85,7 @@ JNIEXPORT void JNICALL
     }
 
     for (i=0;i<numRet;i++) {
-        fec_encode((void *)(uintptr_t)code, (void **)(uintptr_t)inarr, (void *)(uintptr_t)retarr[i], 
+        fec_encode((void *)(uintptr_t)code, (gf **)(uintptr_t)inarr, (void *)(uintptr_t)retarr[i], 
                    (int)localIndex[i], (int)packetLength); 
     }
 
@@ -164,7 +164,7 @@ JNIEXPORT void JNICALL
         inarr[i] += localDataOff[i];
     }
 
-    fec_decode((void *)(uintptr_t)code, (void **)(uintptr_t)inarr, (int *)(uintptr_t)localWhich, (int)packetLength);
+	fec_decode((struct fec_parms *)(intptr_t)code, (gf **)(intptr_t)inarr, (int *)(intptr_t)localWhich, (int)packetLength);
 
     for (i = 0; i < k; i++) {
         inarr[i] -= localDataOff[i];

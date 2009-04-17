@@ -39,14 +39,30 @@
  * This is the only parameter you may want to change.
  */
 #ifndef GF_BITS
-#define GF_BITS  8	/* code over GF(2**GF_BITS) - change to suit */
+#error GF_BITS NOT DEFINED!
 #endif
 
+#if defined(__GNUC__) || !defined(_WIN32)
+#include <stdint.h>
+#endif
+
+#if (GF_BITS <= 8)
+typedef uint8_t gf;
+#else
+typedef uint16_t gf;
+#endif
+
+struct fec_parms {
+    unsigned long magic ;
+    int k, n ;		/* parameters of the code */
+    gf *enc_matrix ;
+} ;
+
 #define	GF_SIZE ((1 << GF_BITS) - 1)	/* powers of \alpha */
-void fec_free(void *p) ;
-void * fec_new(int k, int n) ;
-void init_fec() ;
-void fec_encode(void *code, void *src[], void *dst, int index, int sz) ;
-int fec_decode(void *code, void *pkt[], int index[], int sz) ;
+void fec_free(struct fec_parms *p);
+struct fec_parms * fec_new(int k, int n);
+void init_fec();
+void fec_encode(struct fec_parms *code, gf *src[], gf *fec, int index, int sz);
+int fec_decode(struct fec_parms *code, gf *pkt[], int index[], int sz);
 
 /* end of file */
