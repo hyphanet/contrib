@@ -47,6 +47,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__GNUC__) || !defined(_WIN32)
+#include <stdint.h>
+#endif
+
 /*
  * compatibility stuff
  */
@@ -111,9 +115,9 @@ unsigned long ticks[10];	/* vars for timekeeping */
 #error "GF_BITS must be 2 .. 16"
 #endif
 #if (GF_BITS <= 8)
-typedef unsigned char gf;
+typedef uint8_t gf;
 #else
-typedef unsigned short gf;
+typedef uint16_t gf;
 #endif
 
 #define	GF_SIZE ((1 << GF_BITS) - 1)	/* powers of \alpha */
