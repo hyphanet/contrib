@@ -33,7 +33,9 @@ public class Native16Code extends FECCode {
     
     public Native16Code(int k, int n) {
         super(k,n);
-        code = nativeNewFEC(k,n);
+		synchronized (Native16Code.class) {
+			code = nativeNewFEC(k,n);
+		}
     }
 
     protected void encode(byte[][] src, int[] srcOff, byte[][] repair, 

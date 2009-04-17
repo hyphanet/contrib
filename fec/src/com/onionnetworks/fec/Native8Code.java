@@ -33,7 +33,9 @@ public class Native8Code extends FECCode {
     
     public Native8Code(int k, int n) {
         super(k,n);
-        code = nativeNewFEC(k,n);
+		synchronized(Native8Code.class) {
+			code = nativeNewFEC(k,n);
+		}
     }
 
     protected void encode(byte[][] src, int[] srcOff, byte[][] repair, 
