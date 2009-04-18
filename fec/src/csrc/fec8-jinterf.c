@@ -125,6 +125,7 @@ JNIEXPORT void JNICALL
     Java_com_onionnetworks_fec_Native8Code_nativeDecode
     (JNIEnv *env, jobject obj, jlong code, jobjectArray data, jintArray dataOff,
      jintArray whichdata, jint k, jint packetLength) {
+	fprintf(stderr, "Java_com_onionnetworks_fec_Native8Code_nativeDecode code = %p\n", code);
 
     jint *localWhich, *localDataOff;
 	jbyteArray *inArr;
@@ -192,8 +193,10 @@ JNIEXPORT jlong JNICALL
     (JNIEnv * env, jobject obj, jint k, jint n) {
     
     // uintptr_t is needed for systems where sizeof(void*) < sizeof(long)
-    return (long)(uintptr_t)fec_new(k,n);
+    long code = (long)(uintptr_t)fec_new(k,n);
 
+	fprintf(stderr, "Java_com_onionnetworks_fec_Native8Code_nativeNewFEC code = %p\n", code);
+	return code;
 }
 
 JNIEXPORT void JNICALL

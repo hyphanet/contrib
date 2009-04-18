@@ -36,6 +36,7 @@ public class Native8Code extends FECCode {
 		synchronized(Native8Code.class) {
 			code = nativeNewFEC(k,n);
 		}
+		System.out.println("java-new code = " + code);
     }
 
     protected void encode(byte[][] src, int[] srcOff, byte[][] repair, 
@@ -51,6 +52,7 @@ public class Native8Code extends FECCode {
         if (!inOrder) {
             shuffle(pkts,pktsOff,index,k);
         }
+		System.out.println("java-decode code = " + code);
         nativeDecode(code,pkts,pktsOff,index,k,packetLength);
     }
 
