@@ -794,7 +794,9 @@ build_decode_matrix(struct fec_parms *code, gf *pkt[], int index[])
 int
 fec_decode(struct fec_parms *code, gf *pkt[], int index[], int sz)
 {
-	fprintf(stderr, "-- fec - decode %p\n", code);
+	fprintf(stderr, "-- fec - decode code=%p gf=%p\n", code, pkt);
+	fflush(stderr);
+
     gf *m_dec ; 
     gf **new_pkt ;
     int row, col , k = code->k ;
