@@ -192,7 +192,7 @@ JNIEXPORT jlong JNICALL
     (JNIEnv * env, jobject obj, jint k, jint n) {
     
     // uintptr_t is needed for systems where sizeof(void*) < sizeof(long)
-    return (long)(uintptr_t)fec_new(k,n); 
+    return (jlong)(uintptr_t)fec_new(k,n); 
 
 }
 

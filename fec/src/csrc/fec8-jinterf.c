@@ -194,9 +194,9 @@ JNIEXPORT jlong JNICALL
     (JNIEnv * env, jobject obj, jint k, jint n) {
     
     // uintptr_t is needed for systems where sizeof(void*) < sizeof(long)
-    long code = (long)(uintptr_t)fec_new(k,n);
+    jlong code = (jlong)(uintptr_t)fec_new(k,n);
 
-	fprintf(stderr, "Java_com_onionnetworks_fec_Native8Code_nativeNewFEC code = %p\n", code);
+	fprintf(stderr, "Java_com_onionnetworks_fec_Native8Code_nativeNewFEC code = %p\n", (void*) code);
 	fflush(stderr);
 	return code;
 }
