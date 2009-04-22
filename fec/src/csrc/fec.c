@@ -616,6 +616,21 @@ fec_free(struct fec_parms *p)
     free(p);
 }
 
+// HACK: allocate a memory in low 32 bit region
+static void *
+my_malloc_low(int sz, char *err_string)
+{
+	int i;
+	for (i = 0 ; i < 30 ; i++) {
+		void *p = my_malloc(sz, err_string);
+		if (((uint32_t)(uintptr_t)p) == (uintptr_t)p)
+			return p;
+		
+		free(p);
+	}
+	fprintf(stderr, "-- malloc failure allocating low %s\n", err_string);
+	exit(1) ;
+}
 /*
  * create a new encoder, returning a descriptor. This contains k,n and
  * the encoding matrix.
@@ -636,7 +651,7 @@ fec_new(int k, int n)
 		k, n, GF_SIZE );
 	return NULL ;
     }
-    retval = my_malloc(sizeof(struct fec_parms), "new_code");
+    retval = my_malloc_low(sizeof(struct fec_parms), "new_code");
     retval->k = k ;
     retval->n = n ;
     retval->enc_matrix = NEW_GF_MATRIX(n, k);
