@@ -617,17 +617,25 @@ fec_free(struct fec_parms *p)
 }
 
 // HACK: allocate a memory in low 32 bit region
+#define MALLOC_LOW_TRY 32
 static void *
 my_malloc_low(int sz, char *err_string)
 {
-	int i;
-	for (i = 0 ; i < 30 ; i++) {
-		void *p = my_malloc(sz, err_string);
-		if (((uint32_t)(uintptr_t)p) == (uintptr_t)p)
-			return p;
-		
-		free(p);
+	void* p[MALLOC_LOW_TRY];
+	int i, j;
+
+	for (i = 0 ; i < MALLOC_LOW_TRY ; i++) {
+		p[i] = my_malloc(sz, err_string);
+		if (((uint32_t)(uintptr_t)p[i]) == (uintptr_t)p[i]) {
+			for (j = 0; j < i; j++)
+				free(p[j]);
+			return p[i];
+		}
 	}
+
+	for (j = 0; j < i; j++)
+		free(p[j]);
+
 	fprintf(stderr, "-- malloc failure allocating low %s\n", err_string);
 	exit(1) ;
 }
