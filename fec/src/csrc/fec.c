@@ -607,7 +607,6 @@ void init_fec()
 void
 fec_free(struct fec_parms *p)
 {
-	fprintf(stderr, "-- fec - free %p\n", p);
     if (p==NULL ||
        p->magic != ( ( (FEC_MAGIC ^ p->k) ^ p->n) ^ (long)(p->enc_matrix)) ) {
 	fprintf(stderr, "bad parameters to fec_free\n");
@@ -675,7 +674,6 @@ fec_new(int k, int n)
     DDB(fprintf(stderr, "--- %ld us to build encoding matrix\n",
 	    ticks[3]);)
     DEB(pr_matrix(retval->enc_matrix, n, k, "encoding_matrix");)
-	fprintf(stderr, "-- fec - code %p\n", retval);
     return retval ;
 }
 
@@ -794,9 +792,6 @@ build_decode_matrix(struct fec_parms *code, gf *pkt[], int index[])
 int
 fec_decode(struct fec_parms *code, gf *pkt[], int index[], int sz)
 {
-	fprintf(stderr, "-- fec - decode code=%p gf=%p\n", code, pkt);
-	fflush(stderr);
-
     gf *m_dec ; 
     gf **new_pkt ;
     int row, col , k = code->k ;
