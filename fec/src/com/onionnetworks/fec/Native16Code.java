@@ -18,13 +18,14 @@ public class Native16Code extends FECCode {
     // One must be very very careful not to let code escape, it stores the
     // memory address of a fec_parms struct and if modified could give an
     // attacker the ability to point to anything in memory.
-    private final long code;
+    private long code;
     
     static {
         String path = NativeDeployer.getLibraryPath
             (Native8Code.class.getClassLoader(),"fec16");
         if (path != null) {
             System.load(path);
+			initFEC();
         } else {
             System.out.println("Unable to find native library for fec16 for platform "+NativeDeployer.OS_ARCH);
             System.out.println(path);
@@ -34,7 +35,7 @@ public class Native16Code extends FECCode {
     public Native16Code(int k, int n) {
         super(k,n);
 		synchronized (Native16Code.class) {
-			code = nativeNewFEC(k,n);
+			nativeNewFEC(k,n);
 		}
     }
 
@@ -45,7 +46,7 @@ public class Native16Code extends FECCode {
             throw new IllegalArgumentException("For 16 bit codes, buffers "+
                                                "must be 16 bit aligned.");
         }
-        nativeEncode(code,src,srcOff,index,repair,repairOff,k,packetLength);
+        nativeEncode(src,srcOff,index,repair,repairOff,k,packetLength);
     }
 
     protected void decode(byte[][] pkts, int[] pktsOff,
@@ -57,22 +58,24 @@ public class Native16Code extends FECCode {
         if (!inOrder) {
             shuffle(pkts,pktsOff,index,k);
         }
-        nativeDecode(code,pkts,pktsOff,index,k,packetLength);
+        nativeDecode(pkts,pktsOff,index,k,packetLength);
     }
 
     protected native void nativeEncode
-        (long code, byte[][] src, int[] srcOff, int[] index, byte[][] repair, 
+        (byte[][] src, int[] srcOff, int[] index, byte[][] repair, 
          int[] repairOff, int k, int packetLength);
 
-    protected native void nativeDecode(long code, byte[][] pkts, int[] pktsOff,
+    protected native void nativeDecode(byte[][] pkts, int[] pktsOff,
                                        int[] index, int k, int packetLength);
 
-    protected synchronized native long nativeNewFEC(int k, int n);
+    protected synchronized native void nativeNewFEC(int k, int n);
 
-    protected synchronized native void nativeFreeFEC(long code);
+    protected synchronized native void nativeFreeFEC();
+
+    protected static synchronized native void initFEC();
 
     protected void finalize() throws Throwable {
-        nativeFreeFEC(code);
+        nativeFreeFEC();
     }
 
     public String toString() {

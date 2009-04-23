@@ -10,28 +10,34 @@
 #include "com_onionnetworks_fec_Native8Code.h"
 #include "fec.h"
 
+jfieldID codeField;
+JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_initFEC
+  (JNIEnv * env, jclass clz) {
+	codeField = (*env)->GetFieldID(env, clz, "code", "J");
+}
+
 /*
  * encode
  *
  * @param code This int is actually stores a memory address that points to
  * an fec_parms struct.
  */
-JNIEXPORT void JNICALL
-    Java_com_onionnetworks_fec_Native8Code_nativeEncode
-    (JNIEnv *env, jobject obj, jlong code, jobjectArray src, jintArray srcOff,
-     jintArray index, jobjectArray ret, jintArray retOff, jint k, 
-     jint packetLength) {
-    
+JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeEncode
+  (JNIEnv *env, jobject obj, jobjectArray src, jintArray srcOff,
+	jintArray index, jobjectArray ret, jintArray retOff, jint k,
+	jint packetLength) {
+
     jint *localSrcOff, *localIndex, *localRetOff;
 	jbyteArray *inArr, *retArr;
     jbyte **inarr, **retarr;
 	jobject result = NULL;
 
 	int i, numRet;
+	jlong code = (*env)->GetLongField(env, obj, codeField);
 
 	/* allocate memory for the arrays */
     inArr  = (jbyteArray *) malloc(sizeof(jbyteArray) * k);
-    retArr = (jbyteArray *) malloc(sizeof(jbyteArray) * k);        
+    retArr = (jbyteArray *) malloc(sizeof(jbyteArray) * k);
 
     inarr  = (jbyte **) malloc(sizeof(jbyte *) * k);
     retarr = (jbyte **) malloc(sizeof(jbyte *) * k);
@@ -64,11 +70,11 @@ JNIEXPORT void JNICALL
 				return; /* exception occured */
 			}
 
-		inarr[i] = (*env)->GetByteArrayElements(env, inArr[i], 0); 
+		inarr[i] = (*env)->GetByteArrayElements(env, inArr[i], 0);
         if (inarr[i] == NULL) {
             return; /* exception occured */
         }
-        inarr[i] += localSrcOff[i]; 
+        inarr[i] += localSrcOff[i];
     }
 
     for (i=0;i<numRet;i++) {
@@ -77,7 +83,7 @@ JNIEXPORT void JNICALL
             return; /* exception occured */
         }
 
-		retarr[i] = (*env)->GetByteArrayElements(env, retArr[i], 0); 
+		retarr[i] = (*env)->GetByteArrayElements(env, retArr[i], 0);
         if (retarr[i] == NULL) {
             return; /* exception occured */
         }
@@ -85,18 +91,18 @@ JNIEXPORT void JNICALL
     }
 
     for (i=0;i<numRet;i++) {
-        fec_encode((void *)(uintptr_t)code, (gf **)(uintptr_t)inarr, (void *)(uintptr_t)retarr[i], 
-                   (int)localIndex[i], (int)packetLength); 
+        fec_encode((void *)(uintptr_t)code, (gf **)(uintptr_t)inarr, (void *)(uintptr_t)retarr[i],
+                   (int)localIndex[i], (int)packetLength);
     }
 
     for (i=0;i<k;i++) {
-        inarr[i] -= localSrcOff[i]; 
+        inarr[i] -= localSrcOff[i];
 		(*env)->ReleaseByteArrayElements(env, inArr[i], inarr[i], 0);
-    } 
- 
+    }
+
     for (i=0;i<numRet;i++) {
         retarr[i] -= localRetOff[i];
-		(*env)->ReleaseByteArrayElements(env, retArr[i], retarr[i], 0); 
+		(*env)->ReleaseByteArrayElements(env, retArr[i], retarr[i], 0);
     }
 
     (*env)->ReleaseIntArrayElements(env, srcOff, localSrcOff, 0);
@@ -111,19 +117,11 @@ JNIEXPORT void JNICALL
 	free(retArr);
 	free(inarr);
 	free(retarr);
-
 }
 
 
-/*
- * The data[] MUST be preshuffled before this call is made or it WILL NOT
- * WORK!  It is very difficult to make Java aware that the pointers have
- * been shuffled in the encode() call, so we must pre-shuffle the data
- * so that encode doesn't move any pointers around.
- */
-JNIEXPORT void JNICALL
-    Java_com_onionnetworks_fec_Native8Code_nativeDecode
-    (JNIEnv *env, jobject obj, jlong code, jobjectArray data, jintArray dataOff,
+JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeDecode
+    (JNIEnv *env, jobject obj, jobjectArray data, jintArray dataOff,
      jintArray whichdata, jint k, jint packetLength) {
 
     jint *localWhich, *localDataOff;
@@ -132,6 +130,7 @@ JNIEXPORT void JNICALL
 	jobject result = NULL;
 	
 	int i;
+	jlong code = (*env)->GetLongField(env, obj, codeField);
 
 	/* allocate memory for the arrays */
 	inArr = (jbyteArray *) malloc(sizeof(jbyteArray) * k);
@@ -157,7 +156,7 @@ JNIEXPORT void JNICALL
         if (inArr[i] == NULL) {
             return;  /* exception occured */
         }
-	inarr[i] = (*env)->GetByteArrayElements(env, inArr[i], 0); 
+	inarr[i] = (*env)->GetByteArrayElements(env, inArr[i], 0);
         if (inarr[i] == NULL) {
             return;  /* exception occured */
         }
@@ -172,7 +171,7 @@ JNIEXPORT void JNICALL
     }
 
     for (i = 0; i < k; i++) {
-		(*env)->ReleaseByteArrayElements(env, inArr[i], inarr[i], 0); 
+		(*env)->ReleaseByteArrayElements(env, inArr[i], inarr[i], 0);
     }
 
     (*env)->ReleaseIntArrayElements(env, whichdata, localWhich, 0);
@@ -184,21 +183,19 @@ JNIEXPORT void JNICALL
 	/* free() may not be necessary. complements malloc() */
 	free(inArr);
 	free(inarr);
-
 }
 
-JNIEXPORT jlong JNICALL
-    Java_com_onionnetworks_fec_Native8Code_nativeNewFEC
+JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeNewFEC
     (JNIEnv * env, jobject obj, jint k, jint n) {
-    
     // uintptr_t is needed for systems where sizeof(void*) < sizeof(long)
-    return (jlong)(uintptr_t)fec_new(k,n);
+    jlong code = (jlong)(uintptr_t)fec_new(k,n);
+
+	(*env)->SetLongField(env, obj, codeField, code);
 }
 
-JNIEXPORT void JNICALL
-    Java_com_onionnetworks_fec_Native8Code_nativeFreeFEC
-    (JNIEnv * env, jobject obj, jlong code) {
-    
-    fec_free((void *)(uintptr_t)code); 
-
+JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeFreeFEC
+    (JNIEnv * env, jobject obj) {
+	jlong code = (*env)->GetLongField(env, obj, codeField);
+    fec_free((void *)(uintptr_t)code);
+	(*env)->SetLongField(env, obj, codeField, 0);
 }
