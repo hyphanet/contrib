@@ -70,7 +70,7 @@ JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeEncode
 				return; /* exception occured */
 			}
 
-		inarr[i] = (*env)->GetByteArrayElements(env, inArr[i], 0);
+		inarr[i] = (*env)->GetPrimitiveArrayCritical(env, inArr[i], 0); 
         if (inarr[i] == NULL) {
             return; /* exception occured */
         }
@@ -83,7 +83,7 @@ JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeEncode
             return; /* exception occured */
         }
 
-		retarr[i] = (*env)->GetByteArrayElements(env, retArr[i], 0);
+		retarr[i] = (*env)->GetPrimitiveArrayCritical(env, retArr[i], 0); 
         if (retarr[i] == NULL) {
             return; /* exception occured */
         }
@@ -96,13 +96,13 @@ JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeEncode
     }
 
     for (i=0;i<k;i++) {
-        inarr[i] -= localSrcOff[i];
-		(*env)->ReleaseByteArrayElements(env, inArr[i], inarr[i], 0);
-    }
-
+        inarr[i] -= localSrcOff[i]; 
+		(*env)->ReleasePrimitiveArrayCritical(env, inArr[i], inarr[i], 0);
+    } 
+ 
     for (i=0;i<numRet;i++) {
         retarr[i] -= localRetOff[i];
-		(*env)->ReleaseByteArrayElements(env, retArr[i], retarr[i], 0);
+		(*env)->ReleasePrimitiveArrayCritical(env, retArr[i], retarr[i], 0); 
     }
 
     (*env)->ReleaseIntArrayElements(env, srcOff, localSrcOff, 0);
@@ -156,7 +156,7 @@ JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeDecode
         if (inArr[i] == NULL) {
             return;  /* exception occured */
         }
-	inarr[i] = (*env)->GetByteArrayElements(env, inArr[i], 0);
+	inarr[i] = (*env)->GetPrimitiveArrayCritical(env, inArr[i], 0); 
         if (inarr[i] == NULL) {
             return;  /* exception occured */
         }
@@ -171,7 +171,7 @@ JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeDecode
     }
 
     for (i = 0; i < k; i++) {
-		(*env)->ReleaseByteArrayElements(env, inArr[i], inarr[i], 0);
+		(*env)->ReleasePrimitiveArrayCritical(env, inArr[i], inarr[i], 0); 
     }
 
     (*env)->ReleaseIntArrayElements(env, whichdata, localWhich, 0);
