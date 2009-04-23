@@ -3,3 +3,4 @@ EXPORTS
    Java_com_onionnetworks_fec_Native8Code_nativeDecode
    Java_com_onionnetworks_fec_Native8Code_nativeNewFEC
    Java_com_onionnetworks_fec_Native8Code_nativeFreeFEC
+   Java_com_onionnetworks_fec_Native8Code_initFEC
