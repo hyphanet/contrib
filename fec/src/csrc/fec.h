@@ -38,12 +38,25 @@
  * but fastest operation is achieved with 8 bit elements
  * This is the only parameter you may want to change.
  */
+
+#pragma once
+
 #ifndef GF_BITS
 #error GF_BITS NOT DEFINED!
 #endif
 
 #if defined(__GNUC__) || !defined(_WIN32)
 #include <stdint.h>
+#else
+#ifndef uint8_t
+#define uint8_t unsigned char
+#endif
+#ifndef uint16_t
+#define uint16_t unsigned short
+#endif
+#ifndef uint32_t
+#define uint32_t unsigned int
+#endif
 #endif
 
 #if (GF_BITS <= 8)
