@@ -119,7 +119,12 @@ JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeEncode
 	free(retarr);
 }
 
-
+/*
+ * The data[] MUST be preshuffled before this call is made or it WILL NOT
+ * WORK!  It is very difficult to make Java aware that the pointers have
+ * been shuffled in the encode() call, so we must pre-shuffle the data
+ * so that encode doesn't move any pointers around.
+ */
 JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native8Code_nativeDecode
     (JNIEnv *env, jobject obj, jobjectArray data, jintArray dataOff,
      jintArray whichdata, jint k, jint packetLength) {
