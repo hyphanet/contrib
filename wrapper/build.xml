@@ -1,0 +1,1540 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- ======================================================================= -->
+<!-- Wrapper build file                                                      -->
+<!-- ======================================================================= -->
+
+<project name="wrapper" default="main" basedir=".">
+    
+    <!-- Local build properties -->
+    <property file="${user.home}/.ant.properties" />
+    <property file="${basedir}/ant.properties"/>
+    <property file="${basedir}/default.properties"/>
+
+    <!-- property name="classpath"     value=""/ -->
+    
+    <property name="ant.dist.version" value="1.6.2"/>
+    <property name="cocoon.dist.version" value="2.0.4"/>
+    
+    <!-- Project classpath -->
+    <path id="project.class.path">
+        <pathelement location="${build.classes}"/>
+    </path>
+    
+    <path id="tools.class.path">
+        <!-- Different platforms do things slightly different, so include both
+             possible locations of the tools.jar file. -->
+        <pathelement location="${java.home}/lib/tools.jar"/>
+        <pathelement location="${java.home}/../lib/tools.jar"/>
+    </path>
+    
+    <path id="test.class.path">
+        <pathelement location="${build.testclasses}"/>
+        <path refid="project.class.path"/>
+    </path>
+    
+    <!-- =================================================================== -->
+    <!-- Help on usage                                                       -->
+    <!-- =================================================================== -->
+    <target name="usage">
+        <echo message="Use the -projecthelp option instead"/>
+    </target>
+    <target name="help" depends="usage"/>
+    
+    <!-- =================================================================== -->
+    <!-- Resolve Platform properties                                         -->
+    <!-- =================================================================== -->
+    <target name="init-setup">
+        <!-- Resolve an OS name to use in release names. -->
+        <condition property="dist.os" value="windows">
+            <or>
+                <equals arg1="${os.name}" arg2="Windows NT"/>
+                <equals arg1="${os.name}" arg2="Windows 2000"/>
+                <equals arg1="${os.name}" arg2="Windows XP"/>
+                <equals arg1="${os.name}" arg2="Windows 2003"/>
+            </or>
+        </condition>
+        <condition property="dist.os" value="linux">
+            <equals arg1="${os.name}" arg2="Linux"/>
+        </condition>
+        <condition property="dist.os" value="solaris">
+            <or>
+                <equals arg1="${os.name}" arg2="Solaris"/>
+                <equals arg1="${os.name}" arg2="SunOS"/>
+            </or>
+        </condition>
+        <condition property="dist.os" value="aix">
+            <equals arg1="${os.name}" arg2="AIX"/>
+        </condition>
+        <condition property="dist.os" value="hpux">
+            <or>
+                <equals arg1="${os.name}" arg2="HP-UX"/>
+                <equals arg1="${os.name}" arg2="HP-UX64"/>
+            </or>
+        </condition>
+        <condition property="dist.os" value="macosx">
+            <equals arg1="${os.name}" arg2="Mac OS X"/>
+        </condition>
+        <condition property="dist.os" value="osf1">
+            <equals arg1="${os.name}" arg2="OSF1"/>
+        </condition>
+        <condition property="dist.os" value="freebsd">
+            <equals arg1="${os.name}" arg2="FreeBSD"/>
+        </condition>
+        <condition property="dist.os" value="irix">
+            <equals arg1="${os.name}" arg2="Irix"/>
+        </condition>
+        <condition property="dist.os" value="unixware">
+            <equals arg1="${os.name}" arg2="UNIX_SV"/>
+        </condition>
+        <condition property="dist.os" value="os400">
+            <equals arg1="${os.name}" arg2="OS/400"/>
+        </condition>
+        <property name="dist.os" value="${os.name}"/>
+        
+        <!-- Resolve an architecture to use in release names. -->
+        <condition property="dist.arch" value="universal">
+            <equals arg1="${dist.os}" arg2="macosx"/>
+        </condition>
+        <condition property="dist.arch" value="x86">
+            <or>
+                <equals arg1="${os.arch}" arg2="amd64"/>
+                <equals arg1="${os.arch}" arg2="athlon"/>
+                <equals arg1="${os.arch}" arg2="x86_64"/>
+                <equals arg1="${os.arch}" arg2="x86"/>
+                <equals arg1="${os.arch}" arg2="i686"/>
+                <equals arg1="${os.arch}" arg2="i586"/>
+                <equals arg1="${os.arch}" arg2="i486"/>
+                <equals arg1="${os.arch}" arg2="i386"/>
+            </or>
+        </condition>
+        <condition property="dist.arch" value="ia">
+            <or>
+                <equals arg1="${os.arch}" arg2="ia32"/>
+                <equals arg1="${os.arch}" arg2="IA32"/>
+                <equals arg1="${os.arch}" arg2="ia64"/>
+                <equals arg1="${os.arch}" arg2="IA64"/>
+                <equals arg1="${os.arch}" arg2="ia64n"/>
+                <equals arg1="${os.arch}" arg2="IA64N"/>
+                <equals arg1="${os.arch}" arg2="ia64w"/>
+                <equals arg1="${os.arch}" arg2="IA64W"/>
+            </or>
+        </condition>
+        <condition property="dist.arch" value="ppc">
+            <or>
+                <equals arg1="${os.arch}" arg2="ppc"/>
+                <equals arg1="${os.arch}" arg2="power"/>
+                <equals arg1="${os.arch}" arg2="Power"/>
+                <equals arg1="${os.arch}" arg2="PowerPC"/>
+                <equals arg1="${os.arch}" arg2="ppc64"/>
+            </or>
+        </condition>
+        <condition property="dist.arch" value="parisc">
+            <or>
+                <equals arg1="${os.arch}" arg2="PA_RISC"/>
+                <equals arg1="${os.arch}" arg2="PA-RISC"/>
+                <equals arg1="${os.arch}" arg2="PA_RISC2.0"/>
+                <equals arg1="${os.arch}" arg2="PA_RISC2.0W"/>
+            </or>
+        </condition>
+        <condition property="dist.arch" value="sparc">
+            <or>
+                <equals arg1="${os.arch}" arg2="sparc"/>
+                <equals arg1="${os.arch}" arg2="sparcv9"/>
+            </or>
+        </condition>
+        <property name="dist.arch" value="${os.arch}"/>
+        
+        <!-- platform -->
+        <property name="is.${dist.os}" value="true"/>
+        <!--<property name="is.${dist.arch}" value="true"/>-->
+        <condition property="is.unix" value="true">
+            <not>
+                <isset property="is.windows"/>
+            </not>
+        </condition>
+        
+        <!-- Java version. -->
+        <condition property="javac.target.version" value="1.2">
+            <or>
+                <equals arg1="${java.specification.version}" arg2="1.2"/>
+                <equals arg1="${java.specification.version}" arg2="1.3"/>
+            </or>
+        </condition>
+        <property name="javac.target.version" value="1.4"/>
+        <condition property="javac.target.warn" value="true">
+            <not>
+                <equals arg1="${javac.target.version}" arg2="1.2"/>
+            </not>
+        </condition>
+        <condition property="src.java.missing" value="true">
+            <not>
+                <available file="${src.dir}/java"/>
+            </not>
+        </condition>
+        
+        <!-- Not all JVMs support the sun.arch.data.model property.  Default to 32-bit. -->
+        <property name="sun.arch.data.model" value="32"/>
+        <condition property="bits-mismatch" value="true">
+            <not>
+                <equals arg1="${sun.arch.data.model}" arg2="${bits}"/>
+            </not>
+        </condition>
+
+        <condition property="pre-release.disable" value="true">
+            <and>
+                <not>
+                    <equals arg1="${javac.target.version}" arg2="1.2"/>
+                </not>
+                <not>
+                    <isset property="disable.java.version.check"/>
+                </not>
+            </and>
+        </condition>
+        
+        <!-- Generate the release-file base. -->
+        <property name="releasefile" value="${name}-${dist.os}-${dist.arch}-${bits}-${version}"/>
+    </target>
+    <target name="init-windows" depends="init-setup" if="is.windows">
+        <!-- Decide on the type of script to generate. -->
+        <property name="is.shell.bat" value="true"/>
+        
+        <!-- Decide on binary names -->
+        <property name="wrapper.bin.name" value="${name}.exe"/>
+        <property name="wrapper.bin.long.name" value="${name}-${dist.os}-${dist.arch}-${bits}.exe"/>
+        
+        <!-- Decide on library names -->
+        <property name="wrapper.lib.name" value="${name}.dll"/>
+        <property name="wrapper.lib.long.name" value="${name}-${dist.os}-${dist.arch}-${bits}.dll"/>
+
+        <!-- Decide on the script that will be used to configure the Visual Studio environment. -->
+        <!-- C drive -->
+        <condition property="vcvars.bat" value="${vcvars.v6_32_1}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v6_32_1}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_3}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_3}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_5}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_5}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_5.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_5.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_6}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_6}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_6.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_6.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_1}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_1}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_2}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_2}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_3}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_3}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_3.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_3}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_3.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_3}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_4}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_4}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_4.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_4.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="ia"/>
+                <available file="${vcvars.v8_ia_64_1}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_ia_64_1.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_ia_64_1}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_ia_64_1.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_ia_64_1}"/>
+        </condition>
+        <!-- D drive checks -->
+        <condition property="vcvars.bat" value="${vcvars.v6_32_2}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v6_32_2}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_4}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_4}"/>
+            </and>
+        </condition>
+        <property name="vcvars.bat.arg.1" value=""/>
+        <property name="vcvars.bat.arg.2" value=""/>
+        <property name="vcvars.bat.arg.3" value=""/>
+
+        <condition property="is.windows.msvc" value="true">
+            <isset property="vcvars.bat"/>
+        </condition>
+        <condition property="msvc.missing" value="true">
+            <not>
+                <isset property="vcvars.bat"/>
+            </not>
+        </condition>
+    </target>
+    <target name="init-unix" depends="init-setup" if="is.unix">
+        <!-- Decide on the type of script to generate. -->
+        <property name="is.shell.sh" value="true"/>
+        
+        <!-- Decide on binary names -->
+        <property name="wrapper.bin.name" value="${name}"/>
+        <property name="wrapper.bin.long.name" value="${name}-${dist.os}-${dist.arch}-${bits}"/>
+        
+        <!-- Decide on library names -->
+        <condition property="wrapper.lib.extension" value="a">
+            <isset property="is.aix"/>
+        </condition>
+        <condition property="wrapper.lib.extension" value="sl">
+            <and>
+                <isset property="is.hpux"/>
+                <equals arg1="${dist.arch}" arg2="parisc"/>
+            </and>
+        </condition>
+        <condition property="wrapper.lib.extension" value="jnilib">
+            <isset property="is.macosx"/>
+        </condition>
+        <condition property="wrapper.lib.extension" value="srvpgm">
+            <isset property="is.os400"/>
+        </condition>
+        <property name="wrapper.lib.extension" value="so"/>
+        <property name="wrapper.lib.name" value="lib${name}.${wrapper.lib.extension}"/>
+        <property name="wrapper.lib.long.name" value="lib${name}-${dist.os}-${dist.arch}-${bits}.${wrapper.lib.extension}"/>
+        
+        <!-- Decide on the tool used to run make -->
+        <condition property="make.name" value="gmake">
+            <or>
+                <isset property="is.osf1"/>
+                <isset property="is.freebsd"/>
+                <isset property="is.irix"/>
+                <isset property="is.solaris"/>
+            </or>
+        </condition>
+        <property name="make.name" value="make"/>
+        
+        <!-- Generate the makefile name -->
+        <property name="makefile.name" value="Makefile-${dist.os}-${dist.arch}-${bits}"/>
+        
+        <condition property="isUnixMakefileMissing" value="true">
+            <not>
+                <available file="${src.dir}/c/${makefile.name}.${make.name}"/>
+            </not>
+        </condition>
+    </target>
+    <target name="init-bits-warning" unless="bits">
+        <echo message="**********************************************************************"/>
+        <echo message="* The &quot;bits&quot; system property has not been set."/>
+        <echo message="* Most likely you are running a copy of Ant located on your path."/>
+        <echo message="* Please use one of the build scripts in the Wrapper distribution."/>
+        <echo message="**********************************************************************"/>
+        <fail message="The &quot;bits&quot; system property has not been set."/>
+    </target>
+    <target name="init-bits-mismatch-warning" if="bits-mismatch">
+        <echo message="**********************************************************************"/>
+        <echo message="* A ${bits}-bit build was requested, but this is a ${sun.arch.data.model}-bit JVM."/>
+        <echo message="**********************************************************************"/>
+        <fail message="The &quot;bits&quot; system property does not match that of the JVM."/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Initialize build.                                                   -->
+    <!-- =================================================================== -->
+    <target name="init"
+        depends="init-windows, init-unix, init-bits-warning, init-bits-mismatch-warning">
+        
+        <tstamp/>
+        <filter token="version"           value="${version}"       />
+        <filter token="version.root"      value="${version.root}"  />
+        <filter token="bits"              value="${bits}"          />
+        <filter token="dist.arch"         value="${dist.arch}"     />
+        <filter token="dist.os"           value="${dist.os}"       />
+        <filter token="build.date"        value="${DSTAMP}"        />
+        <filter token="build.time"        value="${TSTAMP}"        />
+        
+        <filter token="app.name"          value="${app.name}"      />
+        <filter token="app.long.name"     value="${app.long.name}" />
+        <filter token="app.description"   value="${app.desc}"      />
+        
+        <property name="intermmarker" value="pre-release"/>
+    </target>
+    <target name="init:msg" depends="init">
+        <echo message="**********************************************************************"/>
+        <echo message="* About to build a ${bits}-bit version of Java Service Wrapper Community ${version}."/>
+        <echo message="* The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
+        <echo message="* The Architecture is &quot;${dist.arch}&quot;, resolved from &quot;${os.arch}&quot;."/>
+        <echo message="* The distribution name will be: ${releasefile}"/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="init:java-missing" depends="init" if="src.java.missing">
+        <echo message="**********************************************************************"/>
+        <echo message="* The src/java directory could not be found.  Most likely this is a"/>
+        <echo message="* pre-release distribution.  Please run &quot;build${bits} release&quot; to build"/>
+        <echo message="* the full release."/>
+        <echo message="**********************************************************************"/>
+        <fail message="The src/java directory could not be found."/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Converts natively encoded src files to ascii                        -->
+    <!-- =================================================================== -->
+    <target name="convert" depends="init:msg, init:java-missing">
+        <native2ascii src="${src.dir}/java"
+                      dest="${src.dir}/java"
+                      encoding="JISAutoDetect"
+                      ext="native"
+                      includes="**/*.native" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Updates version info and build time in source code                  -->
+    <!-- =================================================================== -->
+    <target name="update-info" depends="convert">
+        <!-- Delete the pre-release marker file as early as possible. -->
+        <delete file="${build.dir}/${intermmarker}"/>
+        
+        <!-- copy server info source, using filtering to update version and build time -->
+        <copy file="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java.in"
+              tofile="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java" 
+              filtering="on" overwrite="true"/>
+    </target>
+    <target name="update-info-c" depends="init:msg">
+        <copy file="${src.dir}/c/wrapperinfo.c.in"
+              tofile="${src.dir}/c/wrapperinfo.c" 
+              filtering="on" overwrite="true"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Compiles the source code                                            -->
+    <!-- =================================================================== -->
+    <target name="compile-java-warn" depends="update-info" if="javac.target.warn">
+        <echo message="**********************************************************************"/>
+        <echo message="* WARNING"/>
+        <echo message="* The jar is being built for Java version ${javac.target.version}.  This will not be"/>
+        <echo message="* compatible with older JVMs."/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="compile-java:core" depends="compile-java-warn">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.classes}"/>
+        <mkdir dir="${build.testclasses}"/>
+        <mkdir dir="${lib.dir}"/>
+        
+        <!-- compile everything under src/java -->
+        <javac srcdir="${src.dir}/java" destdir="${build.classes}"
+               deprecation="on"
+               debug="on"
+               optimize="on"
+               source="${javac.target.version}"
+               target="${javac.target.version}">
+            <classpath refid="project.class.path"/>
+        </javac>
+
+        <!-- copy resource files to build directory -->
+        <copy todir="${build.classes}" > 
+            <fileset dir="${src.dir}/java" > 
+                <include name="**/*.properties" /> 
+                <include name="**/*.jpg" />
+            </fileset> 
+        </copy>
+
+        <!-- copy Manifests to build directory -->
+        <copy todir="${build.classes}" > 
+            <fileset dir="${src.dir}/java" > 
+                <include name="**/Manifest"/>
+            </fileset> 
+        </copy>
+        
+        <!-- Generate the jni header files.  This is done here rather than with the
+             c code to make intermediate pre-release distributions possible. -->
+        <javah
+            destdir="${src.dir}/c"
+            classpath="${build.classes}">
+            <class name="org.tanukisoftware.wrapper.WrapperManager"/>
+        </javah>
+        <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperManager.h" eol="lf" />
+
+        <available property="junit.present"
+            classname="junit.framework.TestCase">
+            <classpath refid="project.class.path"/>
+        </available>
+    </target>
+    <target name="compile-java:junit" depends="compile-java:core" if="junit.present">
+        <!-- compile everything under src/test -->
+        <javac srcdir="${src.dir}/test" destdir="${build.testclasses}"
+               deprecation="on"
+               debug="on"
+               optimize="on"
+               source="${javac.target.version}"
+               target="${javac.target.version}">
+            <classpath refid="test.class.path"/>
+        </javac>
+    </target>
+    <target name="compile-java" depends="compile-java:junit"/>
+    <target name="msvc-missing" depends="update-info-c" if="msvc.missing">
+        <echo message="**********************************************************************"/>
+        <echo message="* Microsoft Visual Studio is not installed, or is not in the expected"/>
+        <echo message="* location."/>
+        <echo message="* Checked the following locations for the 32-bit build:"/>
+        <echo message="*   ${vcvars.v6_32_1}"/>
+        <echo message="*   ${vcvars.v6_32_2}"/>
+        <echo message="*   ${vcvars.v8_32_3}"/>
+        <echo message="*   ${vcvars.v8_32_4}"/>
+        <echo message="*   ${vcvars.v8_32_5} ${vcvars.v8_32_5.arg.1} ${vcvars.v8_32_5.arg.2}"/>
+        <echo message="* And the following locations for the 64-bit build:"/>
+        <echo message="*   ${vcvars.v8_64_1}"/>
+        <echo message="*   ${vcvars.v8_64_2}"/>
+        <echo message="*   ${vcvars.v8_64_3} ${vcvars.v8_64_3.arg.1} ${vcvars.v8_64_3.arg.2}"/>
+        <echo message="*  "/>
+        <echo message="* If it is installed at a different location, create a file called "/>
+        <echo message="*   ${user.home}/.ant.properties"/>
+        <echo message="* * and define the vcvars.bat property with the absolute location of the "/>
+        <echo message="* vcvars scripts.  For example:"/>
+        <echo message="*   vcvars.bat=${vcvars.v8_32_1}"/>
+        <echo message="*  "/>
+        <echo message="* The build will be allowed to continue if wrapper.exe and wrapper.dll"/>
+        <echo message="* files already exist.  Note that they will not be rebuilt however."/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="compile-c-windows-vcvars" depends="msvc-missing" if="is.windows.msvc">
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${lib.dir}"/>
+        
+        <echo message="Java.vendor=${java.vendor}"/>
+
+        <condition property="makefile" value="Makefile-windows-${dist.arch}-64.nmake">
+            <equals arg1="${bits}" arg2="64"/>
+        </condition>
+        <property name="makefile" value="Makefile-windows-x86-32.nmake"/>
+
+        <exec executable="${src.dir}/c/runnmake.bat"
+            dir="${src.dir}/c" 
+            failonerror="true">
+            <arg value="${makefile}"/>
+            <arg value="${vcvars.bat}"/>
+            <arg value="${vcvars.bat.arg.1}"/>
+            <arg value="${vcvars.bat.arg.2}"/>
+            <arg value="${vcvars.bat.arg.3}"/>
+        </exec>
+    </target>
+    <target name="compile-c-windows-check" depends="compile-c-windows-vcvars" if="is.windows">
+        <!-- Make sure that the native Windows tergets exist. -->
+        <condition property="isWindowsNativeMissing">
+            <not>
+                <and>
+                    <available file="${bin.dir}/${wrapper.bin.name}"/>
+                    <available file="${lib.dir}/${wrapper.lib.name}"/>
+                </and>
+            </not>
+        </condition>
+    </target>
+    <target name="compile-c-windows-check2" depends="compile-c-windows-check" if="isWindowsNativeMissing">
+        <echo message="**********************************************************************"/>
+        <echo message="* bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
+        <echo message="* Please optain the files from a binary release or install MSVC."/>
+        <echo message="* The targets can be build in the task above, or using the MSVC project"/>
+        <echo message="* workspace src/c/Wrapper.dsw"/>
+        <echo message="**********************************************************************"/>
+        <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
+    </target>
+    <target name="compile-c-unix-check" depends="update-info-c" if="isUnixMakefileMissing">
+        <echo message="**********************************************************************"/>
+        <echo message="* Unable to locate a makefile for the current platform.  Looking for:"/>
+        <echo message="*   ${makefile.name}.${make.name}"/>
+        <echo message="* If the name contains any spaces or upper case characters then the"/>
+        <echo message="* os and architecture need to be defined in the build.xml file as well."/>
+        <echo message="**********************************************************************"/>
+        <fail message="Missing makefile."/>
+    </target>
+    <target name="compile-c-unix" depends="compile-c-unix-check" if="is.unix">
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${lib.dir}"/>
+        
+        <echo message="Build native components using '${make.name}' and Makefile: ${makefile.name}.${make.name}"/>
+        <exec executable="${make.name}"
+            dir="${src.dir}/c" 
+            failonerror="true">
+            <arg line="-f ${makefile.name}.${make.name}" />
+        </exec>
+        
+        <!--
+        <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
+        <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
+        <chmod file="${bin.dir}/${wrapper.bin.long.name}" perm="+x"/>
+        -->
+    </target>
+    <target name="compile-c" depends="compile-c-windows-check2,compile-c-unix">
+    </target>
+    <target name="compile" depends="compile-java, compile-c"
+        description="Compiles all java and c source">
+        
+        <mkdir dir="${logs.dir}"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Creates the jar archive                                             -->
+    <!-- =================================================================== -->
+    <target name="jar:jar" depends="compile-java">
+        <jar jarfile="${lib.dir}/wrapper.jar"
+             basedir="${build.classes}"
+             includes="**/*.class,**/*.properties"
+             excludes="**/test/*,**/test2/*">
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Package" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Extension-Name" value="wrapper"/>
+                <attribute name="Specification-Title" value="Java Service Wrapper"/>
+                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Implementation-Version" value="${version.root}"/>
+            </manifest>
+        </jar>
+        <jar jarfile="${lib.dir}/wrappertest.jar"
+             basedir="${build.classes}"
+             includes="**/test/*">
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Package" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Extension-Name" value="wrapper"/>
+                <attribute name="Specification-Title" value="Java Service Wrapper"/>
+                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Implementation-Version" value="${version.root}"/>
+                <attribute name="Main-Class" value="org.tanukisoftware.wrapper.test.JarMain"/>
+            </manifest>
+        </jar>
+        <jar jarfile="${lib.dir}/wrappertest2.jar"
+             basedir="${build.classes}"
+             includes="**/test2/*">
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Package" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Extension-Name" value="wrapper"/>
+                <attribute name="Specification-Title" value="Java Service Wrapper"/>
+                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Implementation-Version" value="${version.root}"/>
+                <attribute name="Main-Class" value="org.tanukisoftware.wrapper.test2.Jar2Main"/>
+                <attribute name="Class-Path" value="wrappertest.jar"/>
+            </manifest>
+        </jar>
+        
+        <condition property="do.sign">
+            <isset property="signjar.alias"/>
+        </condition>
+    </target>
+    <target name="jar:sign" depends="jar:jar" if="do.sign">
+        <signjar
+            jar="${lib.dir}/wrapper.jar"
+            alias="${signjar.alias}"
+            storepass="${signjar.storepass}"/>
+    </target>
+    <target name="jar:nosign" depends="jar:jar" unless="do.sign">
+        <echo message="**********************************************************************"/>
+        <echo message="* The generated jar is not being signed and should not be used for an"/>
+        <echo message="* official Wrapper distribution."/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="jar" depends="jar:jar"/> <!-- depends="jar:sign, jar:nosign" No point until I have a signed cert. -->
+    
+    <!-- =================================================================== -->
+    <!-- Test Task                                                           -->
+    <!-- =================================================================== -->
+    <target name="test" depends="jar" description="Runs unit tests" if="junit.present">
+        <mkdir dir="${build.tests}"/>
+        
+        <junit fork="true"
+            haltonfailure="${junit.failonerror}"
+            printsummary="yes"
+            dir="${build.tests}">
+            <classpath refid="test.class.path"/>
+            
+            <!--formatter type="xml"/-->    <!-- xml reports for junitreport -->
+            <formatter type="plain" usefile="false"/>  <!-- text reports for humans     -->
+            
+            <batchtest todir="${build.tests}">
+                <fileset dir="${build.testclasses}">
+                    <include name="**/*TestCase.class"/>
+                    <exclude name="**/Abstract*"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target (Bat Files - Windows)                                    -->
+    <!-- =================================================================== -->
+    <target name="bin-bat" depends="init" if="is.shell.bat">
+        <!-- Create batch files for the TestWrapper Sample Application -->
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${bin.dir}/${app.caps.name}.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/AppNoWrapper.bat.in"
+              tofile="${bin.dir}/${app.caps.name}NoWrapper.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
+              tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/UninstallApp-NT.bat.in"
+              tofile="${bin.dir}/Uninstall${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/StartApp-NT.bat.in"
+              tofile="${bin.dir}/Start${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/StopApp-NT.bat.in"
+              tofile="${bin.dir}/Stop${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/PauseApp-NT.bat.in"
+              tofile="${bin.dir}/Pause${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/ResumeApp-NT.bat.in"
+              tofile="${bin.dir}/Resume${app.caps.name}-NT.bat"
+              filtering="on"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target (sh scripts - Unix. Linux)                               -->
+    <!-- =================================================================== -->
+    <target name="bin-sh" depends="init" if="is.shell.sh">
+        <copy file="${src.dir}/bin/sh.script.in"
+            tofile="${bin.dir}/${app.name}"
+            filtering="on"/>
+        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target                                                          -->
+    <!-- =================================================================== -->
+    <target name="bin" depends="bin-bat, bin-sh">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Conf target                                                         -->
+    <!-- =================================================================== -->
+    <target name="conf">
+        <mkdir dir="${conf.dir}"/>
+        
+        <!-- Create wrapper.conf for the TestWrapper Sample Application -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${conf.dir}/wrapper.conf"
+              filtering="on"/>
+        <replace file="${conf.dir}/wrapper.conf">
+            <replacetoken># Wrapper Properties</replacetoken>
+            <replacevalue><![CDATA[# TestWrapper Properties
+#
+# NOTE - Please use src/conf/wrapper.conf.in as a template for your
+#        own application rather than the values used for the
+#        TestWrapper sample.]]></replacevalue>
+        </replace>
+        <replace file="${conf.dir}/wrapper.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
+        <replace file="${conf.dir}/wrapper.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
+        <replace file="${conf.dir}/wrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="#wrapper.app.parameter.1=" />
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Test Setup target                                                   -->
+    <!-- =================================================================== -->
+    <target name="test-setup">
+        <ant antfile="build-tests.xml" target="test-setup" inheritall="false"/>  
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Main target                                                         -->
+    <!-- =================================================================== -->
+    <target name="main"
+        depends="compile, test, bin, conf, test-setup"
+        description="default development build task"/>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Common)                                                    -->
+    <!-- =================================================================== -->
+    <target name="release-common" depends="test">
+        <property name="releasesrcfile" value="wrapper_${version}_src"/>
+        <property name="releasesrcdir" value="${build.dir}/${releasesrcfile}"/>
+        <delete dir="${releasesrcdir}"/>
+        <mkdir dir="${releasesrcdir}"/>
+        <mkdir dir="${dist.dir}"/>
+        
+        <copy todir="${releasesrcdir}">
+            <fileset dir="${basedir}">
+                <include name="index.html" />
+                <include name="build*" />
+                <include name="default.properties" />
+                <include name="project.dtd" />
+                <include name="doc/**" />
+                <include name="src/bin/**" />
+                <include name="src/conf/**" />
+                <include name="src/java/**" />
+                <include name="src/test/**" />
+                <include name="src/c/*.bat" />
+                <include name="src/c/*.c" />
+                <include name="src/c/*.c.in" />
+                <exclude name="src/c/wrapperinfo.c" />
+                <include name="src/c/*.h" />
+                <include name="src/c/Makefile-*" />
+                <include name="src/c/*.mak" />
+                <exclude name="src/c/WrapperJNI.mak" />
+                <include name="src/c/*.mak.in" />
+                <include name="src/c/*.dep" />
+                <exclude name="src/c/Wrapper.dep" />
+                <exclude name="src/c/WrapperJNI.dep" />
+                <include name="src/c/*.dep.in" />
+                <include name="src/c/*.dsp" />
+                <include name="src/c/*.dsw" />
+                <include name="src/c/*.plg" />
+                <include name="src/c/*.rc" />
+                <include name="src/c/*.ico" />
+                <include name="src/c/*.bin" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="build32.sh" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="build64.sh" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile-*" eol="lf" />
+        
+        
+        <!-- Make src builds for Windows -->
+        
+        <!-- Set files to windows line feeds for .zip files -->
+        <fixcrlf srcdir="${releasesrcdir}"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
+            eol="crlf" />
+        
+        <!-- Source archives  -->
+        <zip zipfile="${dist.dir}/${releasesrcfile}.zip"
+            basedir="${build.dir}"
+            compress="true">
+            <include name="${releasesrcfile}/**/*" />
+        </zip>
+        
+        
+        <!-- Make src builds for Unix -->
+        
+        <!-- Set files to unix line feeds for .tar files -->
+        <fixcrlf srcdir="${releasesrcdir}" 
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log" 
+            eol="lf" />
+        
+        <!-- Source archives -->
+        <tar tarfile="${build.dir}/${releasesrcfile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+                <include name="${releasesrcfile}/build32.sh"/>
+                <include name="${releasesrcfile}/build64.sh"/>
+            </tarfileset>
+            <tarfileset dir="${build.dir}">
+                <include name="${releasesrcfile}/**/*" />
+                <exclude name="${releasesrcfile}/build32.sh"/>
+                <exclude name="${releasesrcfile}/build64.sh"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${releasesrcfile}.tar.gz" src="${build.dir}/${releasesrcfile}.tar" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Pre Release                                                         -->
+    <!-- =================================================================== -->
+    <target name="pre-release:disabled" depends="init" if="pre-release.disable">
+        <echo/>
+        <echo>**********************************************************</echo>
+        <echo>* Pre-release distributions can only be generated using  *</echo>
+        <echo>* Java 1.3 JVMs to guarantee that the resulting jars     *</echo>
+        <echo>* will run on all platforms.                             *</echo>
+        <echo>* This is a ${java.specification.version} JVM.                                     *</echo>
+        <echo>**********************************************************</echo>
+        <fail message="Invalid JVM version for pre-release build."/>
+    </target>
+    <target name="pre-release" depends="pre-release:disabled, release-common"
+        description="Builds an intermediate release file that can then be deployed to individual platforms to complete the platform specific releases.">
+        <property name="intermfile" value="wrapper_prerelease_${version}"/>
+        <property name="intermdir" value="${build.dir}/${intermfile}"/>
+        <delete dir="${intermdir}"/>
+        <mkdir dir="${intermdir}"/>
+        
+        <copy todir="${intermdir}" >
+            <fileset dir="${basedir}" >
+                <include name="index.html" />
+                <include name="build*" />
+                <include name="default.properties" />
+                <include name="project.dtd" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/wrappertest.jar" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <include name="src/bin/**" />
+                <include name="src/conf/**" />
+                <include name="src/c/*.bat" />
+                <include name="src/c/*.c" />
+                <include name="src/c/*.c.in" />
+                <include name="src/c/*.h" />
+                <include name="src/c/Makefile-*" />
+                <include name="src/c/*.mak" />
+                <exclude name="src/c/WrapperJNI*.mak" />
+                <include name="src/c/*.mak.in" />
+                <include name="src/c/*.dep" />
+                <exclude name="src/c/Wrapper*.dep" />
+                <exclude name="src/c/WrapperJNI*.dep" />
+                <include name="src/c/*.dep.in" />
+                <include name="src/c/*.dsp" />
+                <include name="src/c/*.dsw" />
+                <include name="src/c/*.plg" />
+                <include name="src/c/*.rc" />
+                <include name="src/c/*.ico" />
+                <include name="src/c/*.bin" />
+            </fileset>
+        </copy>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${intermdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${intermdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${intermdir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="build32.sh" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="build64.sh" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="**/Makefile-*" eol="lf" />
+        
+        <!-- Create a marker in both the intermdir and the build dir so the release target
+            can be run from the current source tree or from the intermdir tree. -->
+        <touch file="${build.dir}/${intermmarker}"/>
+        <touch file="${intermdir}/build/${intermmarker}"/>
+        
+        <!-- Make the intermediate build for Windows -->
+        
+        <!-- Set files to windows line feeds for .zip files -->
+        <fixcrlf srcdir="${intermdir}"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
+            eol="crlf" />
+        <zip zipfile="${dist.dir}/${intermfile}.zip"
+            basedir="${build.dir}"
+            compress="true">
+            <include name="${intermfile}/**/*" />
+        </zip>
+        
+        <!-- Make the intermediate build for Unix -->
+        <fixcrlf srcdir="${intermdir}"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
+            eol="lf" />
+        
+        <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
+             long file names and some tar implementations. -->
+        <tar tarfile="${intermdir}/jdoc.tar">
+            <tarfileset dir="${intermdir}">
+                <include name="jdoc/**"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${intermdir}/jdoc.tar.gz" src="${intermdir}/jdoc.tar" />
+        <delete file="${intermdir}/jdoc.tar"/>
+        <delete dir="${intermdir}/jdoc"/>
+        <!-- Create a dummy jdoc dir which directs the user to expand the actual javadocs. -->
+        <mkdir dir="${intermdir}/jdoc"/>
+        <echo file="${intermdir}/jdoc/index.html">&lt;html&gt;&lt;body&gt;
+The javadocs for this application are found in $WRAPPER_HOME/jdoc.tar.gz.  Please extract this
+archive into the $WRAPPER_HOME directory.&lt;p&gt;The javadocs could not be included directly in the
+original tar distribution due to a lack of support for long path names in some tar implementations.
+&lt;/body&gt;&lt;/html&gt;</echo>
+        <fixcrlf srcdir="${intermdir}/jdoc" eol="lf" />
+        
+        <tar tarfile="${build.dir}/${intermfile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+                <include name="${intermfile}/build32.sh"/>
+                <include name="${intermfile}/build64.sh"/>
+            </tarfileset>
+            <tarfileset dir="${build.dir}">
+                <include name="${intermfile}/**/*" />
+                <exclude name="${intermfile}/build32.sh"/>
+                <exclude name="${intermfile}/build64.sh"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${intermfile}.tar.gz" src="${build.dir}/${intermfile}.tar" />
+        
+        <echo/>
+        <echo>**********************************************************</echo>
+        <echo>* An intermediate pre-release distribution has been      *</echo>
+        <echo>* created in the dist directory.  This file can be       *</echo>
+        <echo>* expanded on any system to quickly produce a native     *</echo>
+        <echo>* release by running "build&lt;64/32&gt; release".             *</echo>
+        <echo>*                                                        *</echo>
+        <echo>* Alternately a release can be generated for the current *</echo>
+        <echo>* platform by running "build&lt;64/32&gt; release" now.        *</echo>
+        <echo>*                                                        *</echo>
+        <echo>* Intermediate pre-release distributions:                *</echo>
+        <echo>*   ${dist.dir}/${intermfile}.zip</echo>
+        <echo>*   ${dist.dir}/${intermfile}.tar.gz</echo>
+        <echo>**********************************************************</echo>
+    </target>
+    
+    <target name="pre-release:check-init" depends="init:msg">
+        <property name="intermfile" value="wrapper_prerelease_${version}"/>
+        <property name="intermdir" value="${build.dir}/${intermfile}"/>
+        
+        <available property="pre-release.exists" value="true" file="${build.dir}/${intermmarker}"/>
+        <available property="pre-release.jdocs" value="true" file="jdoc.tar.gz"/>
+
+        <condition property="delta-dirs.exists" value="true">
+            <and>
+                <available file="${basedir}/dist/delta-${version}/bin"/>
+                <available file="${basedir}/dist/delta-${version}/lib"/>
+            </and>
+        </condition>
+    </target>
+    <target name="pre-release:check" depends="pre-release:check-init" unless="pre-release.exists">
+        <echo/>
+        <echo>**********************************************************</echo>
+        <echo>* You must first either run the pre-release task in a    *</echo>
+        <echo>* full source distribution or run within an intermediate *</echo>
+        <echo>* pre-release distribution.                              *</echo>
+        <echo>**********************************************************</echo>
+        <fail message="pre-release files not found."/>
+    </target>
+    <target name="pre-release:restore-jdocs" depends="pre-release:check-init" if="pre-release.jdocs">
+        <delete dir="jdoc"/>
+        <gunzip src="jdoc.tar.gz" dest="jdoc.tar"/>
+        <untar src="jdoc.tar" dest="${basedir}"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Windows)                                                   -->
+    <!-- =================================================================== -->
+    <target name="release-windows" depends="pre-release:check, pre-release:restore-jdocs, compile-c" if="is.windows">
+        <property name="releasedir" value="${build.dir}/${releasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <mkdir dir="${releasedir}/bin"/>
+        
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+        </antcall>
+        
+        <mkdir dir="${dist.dir}"/>
+        <copy todir="${releasedir}" >
+            <fileset dir="${basedir}" >
+                <include name="index.html" />
+                <include name="bin/${wrapper.bin.name}" />
+                <include name="bin/*.bat" />
+                <include name="lib/${wrapper.lib.name}" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/wrappertest.jar" />
+                <include name="logs" />
+                <include name="src/bin/*.bat.in" />
+                <include name="src/conf/**" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken># Wrapper Properties</replacetoken>
+            <replacevalue><![CDATA[# TestWrapper Properties
+#
+# NOTE - Please use src/conf/wrapper.conf.in as a template for your
+#        own application rather than the values used for the
+#        TestWrapper sample.]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="#wrapper.app.parameter.1=" />
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <mkdir dir="${releasedir}/logs"/>
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
+        
+        <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
+        
+        <zip zipfile="${dist.dir}/${releasefile}.zip"
+            basedir="${build.dir}"
+            compress="true">
+            <include name="${releasefile}/**/*" />
+        </zip>
+        
+        <echo/>
+        <echo>**********************************************************</echo>
+        <echo>* A native release distribution has been created in the  *</echo>
+        <echo>* dist directory.                                        *</echo>
+        <echo>*                                                        *</echo>
+        <echo>* Release distribution:                                  *</echo>
+        <echo>*   ${dist.dir}/${releasefile}.zip</echo>
+        <echo>**********************************************************</echo>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Unix)                                                      -->
+    <!-- =================================================================== -->
+    <target name="release-unix" depends="pre-release:check, pre-release:restore-jdocs, compile-c" if="is.unix">
+        <property name="releasedir" value="${build.dir}/${releasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <mkdir dir="${releasedir}/bin"/>
+        
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+        </antcall>
+        
+        <mkdir dir="${dist.dir}"/>
+        <copy todir="${releasedir}" >
+            <fileset dir="${basedir}" >
+                <include name="index.html" />
+                <include name="bin/${wrapper.bin.name}" />
+                <include name="bin/${app.name}" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/wrappertest.jar" />
+                <include name="lib/${wrapper.lib.name}" />
+                <include name="logs" />
+                <include name="src/conf/**" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <include name="src/bin/*.script.in" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken># Wrapper Properties</replacetoken>
+            <replacevalue><![CDATA[# TestWrapper Properties
+#
+# NOTE - Please use src/conf/wrapper.conf.in as a template for your
+#        own application rather than the values used for the
+#        TestWrapper sample.]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="#wrapper.app.parameter.1=" />
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <mkdir dir="${releasedir}/logs"/>
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
+        
+        <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="lf"/>
+        
+        <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
+             long file names and some tar implementations. -->
+        <tar tarfile="${releasedir}/jdoc.tar">
+            <tarfileset dir="${releasedir}">
+                <include name="jdoc/**"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${releasedir}/jdoc.tar.gz" src="${releasedir}/jdoc.tar" />
+        <delete file="${releasedir}/jdoc.tar"/>
+        <delete dir="${releasedir}/jdoc"/>
+        <!-- Create a dummy jdoc dir which directs the user to expand the actual javadocs. -->
+        <mkdir dir="${releasedir}/jdoc"/>
+        <echo file="${releasedir}/jdoc/index.html">&lt;html&gt;&lt;body&gt;
+The javadocs for this application are found in $WRAPPER_HOME/jdoc.tar.gz.  Please extract this
+archive into the $WRAPPER_HOME directory.&lt;p&gt;The javadocs could not be included directly in the
+original tar distribution due to a lack of support for long path names in some tar implementations.
+&lt;/body&gt;&lt;/html&gt;</echo>
+        <fixcrlf srcdir="${releasedir}/jdoc" eol="lf" />
+
+        <tar tarfile="${build.dir}/${releasefile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+                <include name="${releasefile}/bin/${wrapper.bin.name}"/>
+                <include name="${releasefile}/bin/${app.name}"/>
+                <include name="${releasefile}/lib/${wrapper.lib.name}"/>
+            </tarfileset>
+            <tarfileset dir="${build.dir}">
+                <include name="${releasefile}/**"/>
+                <exclude name="${releasefile}/bin/${wrapper.bin.name}"/>
+                <exclude name="${releasefile}/bin/${app.name}"/>
+                <exclude name="${releasefile}/lib/${wrapper.lib.name}"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${releasefile}.tar.gz" src="${build.dir}/${releasefile}.tar" />
+        
+        <echo>**********************************************************</echo>
+        <echo>* A native release distribution has been created in the  *</echo>
+        <echo>* dist directory.                                        *</echo>
+        <echo>*                                                        *</echo>
+        <echo>* Release distribution:                                  *</echo>
+        <echo>*   ${dist.dir}/${releasefile}.tar.gz</echo>
+        <echo>**********************************************************</echo>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Unix)                                                      -->
+    <!-- =================================================================== -->
+    <target name="release-delta:check" depends="pre-release:check-init" unless="delta-dirs.exists">
+        <echo/>
+        <echo>**********************************************************</echo>
+        <echo>* You must first manually set up the dist/delta-${version}/bin</echo>
+        <echo>* and dist/delta-${version}/lib directories.</echo>
+        <echo>**********************************************************</echo>
+        <fail message="dist/delta-${version} directories not found."/>
+    </target>
+    <target name="release-delta:extract-platform:init">
+        <property name="is.archivetype.${d-archivetype}" value="TRUE"/>
+    </target>
+    <target name="release-delta:extract-platform:zip" depends="release-delta:extract-platform:init" if="is.archivetype.zip">
+        <unzip src="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.zip"
+            dest="dist/delta-${version}"/>
+    </target>
+    <target name="release-delta:extract-platform:tar.gz" depends="release-delta:extract-platform:init" if="is.archivetype.tar.gz">
+        <gunzip src="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.tar.gz"
+            dest="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.tar"/>
+        <untar src="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.tar"
+            dest="dist/delta-${version}"/>
+    </target>
+    <target name="release-delta:extract-platform" depends="release-delta:extract-platform:zip, release-delta:extract-platform:tar.gz">
+        <copy file="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}/bin/${d-wrapperbinhead}${d-wrapperbintail}"
+            tofile="dist/delta-${version}/bin/${d-wrapperbinhead}-${d-osname}-${d-osarch}-${d-bits}${d-wrapperbintail}"
+            overwrite="true"/>
+        <copy file="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}/lib/${d-wrapperlibhead}${d-wrapperlibtail}"
+            tofile="dist/delta-${version}/lib/${d-wrapperlibhead}-${d-osname}-${d-osarch}-${d-bits}${d-wrapperlibtail}"
+            overwrite="true"/>
+    </target>
+    <macrodef name="release-delta-extract-platform">
+        <attribute name="osname"/>
+        <attribute name="osarch"/>
+        <attribute name="bits"/>
+        <attribute name="wrapperbinhead"/>
+        <attribute name="wrapperbintail"/>
+        <attribute name="wrapperlibhead"/>
+        <attribute name="wrapperlibtail"/>
+        <attribute name="archivetype"/>
+        <sequential>
+            <antcall target="release-delta:extract-platform">
+                <param name="d-osname" value="@{osname}"/>
+                <param name="d-osarch" value="@{osarch}"/>
+                <param name="d-bits" value="@{bits}"/>
+                <param name="d-wrapperbinhead" value="@{wrapperbinhead}"/>
+                <param name="d-wrapperbintail" value="@{wrapperbintail}"/>
+                <param name="d-wrapperlibhead" value="@{wrapperlibhead}"/>
+                <param name="d-wrapperlibtail" value="@{wrapperlibtail}"/>
+                <param name="d-archivetype" value="@{archivetype}"/>
+            </antcall>
+        </sequential>
+    </macrodef>
+    <target name="release-delta:extract-platforms">
+        <release-delta-extract-platform osname="aix" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".a" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="aix" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".a" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux" osarch="ia" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux" osarch="parisc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="hpux" osarch="parisc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="macosx" osarch="universal" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="macosx" osarch="universal" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="sparc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="sparc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="solaris" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="windows" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail=".exe" wrapperlibhead="wrapper" wrapperlibtail=".dll" archivetype="zip"/>
+    </target>
+    <target name="release-delta" depends="pre-release:check, release-delta:check, pre-release:restore-jdocs, release-delta:extract-platforms">
+        <property name="deltareleasefile" value="wrapper-delta-pack-${version}"/>
+        <property name="releasedir" value="${build.dir}/${deltareleasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <mkdir dir="${releasedir}/bin"/>
+        
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+            <param name="is.shell.bat" value="true"/>
+        </antcall>
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+            <param name="is.shell.sh" value="true"/>
+        </antcall>
+
+        <copy todir="${releasedir}">
+            <fileset dir="${basedir}">
+                <include name="index.html"/>
+                <include name="bin/*.bat"/>
+                <include name="bin/${app.name}"/>
+                <include name="lib/wrapper.jar"/>
+                <include name="lib/wrappertest.jar"/>
+                <include name="logs"/>
+                <include name="src/bin/*.bat.in"/>
+                <include name="src/bin/sh.script.in"/>
+                <include name="src/conf/**"/>
+                <include name="jdoc/**"/>
+                <include name="doc/**"/>
+                <exclude name="**/CVS/*"/>
+            </fileset>
+        </copy>
+        <copy todir="${releasedir}">
+            <fileset dir="${dist.dir}/delta-${version}">
+                <include name="bin/wrapper-*"/>
+                <include name="lib/libwrapper-*"/>
+                <include name="lib/wrapper-*"/>
+            </fileset>
+        </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken># Wrapper Properties</replacetoken>
+            <replacevalue><![CDATA[# TestWrapper Properties
+#
+# NOTE - Please use src/conf/wrapper.conf.in as a template for your
+#        own application rather than the values used for the
+#        TestWrapper sample.]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="#wrapper.app.parameter.1=" />
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <mkdir dir="${releasedir}/logs"/>
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
+        
+        <!-- Create release targetted at windows users. -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
+        
+        <zip zipfile="${dist.dir}/${deltareleasefile}.zip"
+            basedir="${build.dir}"
+            compress="true">
+            <include name="${deltareleasefile}/**/*" />
+        </zip>
+        
+        <!-- Create release targetted at unix users. -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="lf"/>
+        
+        <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
+             long file names and some tar implementations. -->
+        <tar tarfile="${releasedir}/jdoc.tar">
+            <tarfileset dir="${releasedir}">
+                <include name="jdoc/**"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${releasedir}/jdoc.tar.gz" src="${releasedir}/jdoc.tar" />
+        <delete file="${releasedir}/jdoc.tar"/>
+        <delete dir="${releasedir}/jdoc"/>
+        <!-- Create a dummy jdoc dir which directs the user to expand the actual javadocs. -->
+        <mkdir dir="${releasedir}/jdoc"/>
+        <echo file="${releasedir}/jdoc/index.html">&lt;html&gt;&lt;body&gt;
+The javadocs for this application are found in $WRAPPER_HOME/jdoc.tar.gz.  Please extract this
+archive into the $WRAPPER_HOME directory.&lt;p&gt;The javadocs could not be included directly in the
+original tar distribution due to a lack of support for long path names in some tar implementations.
+&lt;/body&gt;&lt;/html&gt;</echo>
+        <fixcrlf srcdir="${releasedir}/jdoc" eol="lf" />
+
+        <tar tarfile="${build.dir}/${deltareleasefile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+                <include name="${deltareleasefile}/bin/wrapper-*"/>
+                <exclude name="${deltareleasefile}/bin/wrapper-windows-*"/>
+                <include name="${deltareleasefile}/bin/${app.name}"/>
+                <include name="${deltareleasefile}/lib/libwrapper-*"/>
+            </tarfileset>
+            <tarfileset dir="${build.dir}">
+                <include name="${deltareleasefile}/**"/>
+                <exclude name="${deltareleasefile}/bin/wrapper-*"/>
+                <exclude name="${deltareleasefile}/bin/${app.name}"/>
+                <exclude name="${deltareleasefile}/lib/libwrapper-*"/>
+            </tarfileset>
+            <tarfileset dir="${build.dir}">
+                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${deltareleasefile}.tar.gz" src="${build.dir}/${deltareleasefile}.tar" />
+        
+        <echo>**********************************************************</echo>
+        <echo>* A delta-pack release distribution has been created in  *</echo>
+        <echo>* the dist directory.                                    *</echo>
+        <echo>*                                                        *</echo>
+        <echo>* Release distributions:                                 *</echo>
+        <echo>*   ${dist.dir}/${deltareleasefile}.zip</echo>
+        <echo>*   ${dist.dir}/${deltareleasefile}.tar.gz</echo>
+        <echo>**********************************************************</echo>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release                                                             -->
+    <!-- =================================================================== -->
+    <target name="release" 
+        depends="test-setup, bin, conf, release-windows, release-unix"
+        description="Builds all release files for the current platform">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Cleans up generated stuff                                           -->
+    <!-- =================================================================== -->
+    <target name="clean-unix" depends="init" if="is.unix">
+        <exec executable="${make.name}"
+              dir="${src.dir}/c">
+            <arg line="-f ${makefile.name}.${make.name}" />
+            <arg value="clean"/>
+        </exec>
+    </target>
+    <target name="clean" depends="clean-unix" description="Clean up any files from the build">
+        <condition property="clean.excludes" value="build/pre-release">
+            <isset property="src.java.missing"/>
+        </condition>
+        <property name="clean.excludes" value=""/>
+
+        <!-- We don't want to delete the build/pre-release file for prerelease distributions. -->
+        <delete includeEmptyDirs="true">
+            <fileset dir="${basedir}">
+                <include name="build/**/*"/>
+                <include name="build"/>
+                <exclude name="${clean.excludes}"/>
+            </fileset>
+        </delete>
+
+        <delete dir="${src.dir}/c/Debug32"/>
+        <delete dir="${src.dir}/c/Release32"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug32"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Release32"/>
+        <delete dir="${src.dir}/c/Debug64"/>
+        <delete dir="${src.dir}/c/Release64"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug64"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Release64"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Total cleanup                                                       -->
+    <!-- =================================================================== -->
+    <target name="total-clean-unix" depends="init" if="is.unix">
+        <exec executable="${make.name}"
+              dir="${src.dir}/c">
+            <arg line="-f ${makefile.name}.${make.name}" />
+            <arg value="cleanall"/>
+        </exec>
+    </target>
+    <target name="total-clean" depends="clean, total-clean-unix"
+        description="Clean up all build and target files">
+        
+        <delete dir="${dist.dir}"/>
+        <delete dir="${jdoc.dir}"/>
+        <delete dir="${doc.dir}/english"/>
+
+        <delete file="${lib.dir}/wrapper.jar"/>
+        <delete file="${lib.dir}/wrappertest.jar"/>
+        
+        <!-- Windows -->
+        <delete><fileset dir="${bin.dir}" includes="*${app.caps.name}*.bat"/></delete>
+        <delete file="${bin.dir}/wrapper.exe"/>
+        <delete><fileset dir="${bin.dir}" includes="wrapper-*-*-??.exe"/></delete>
+        <delete file="${lib.dir}/wrapper.dll"/>
+        <delete><fileset dir="${lib.dir}" includes="wrapper-*-*-??.dll"/></delete>
+        
+        <!-- *nix -->
+        <delete file="${bin.dir}/${app.name}"/>
+        <delete file="${bin.dir}/wrapper"/>
+        <delete><fileset dir="${bin.dir}" includes="wrapper-*-*-??"/></delete>
+        <delete><fileset dir="${lib.dir}" includes="libwrapper.*"/></delete>
+        <delete><fileset dir="${lib.dir}" includes="libwrapper-*-*-??.*"/></delete>
+        
+        <ant antfile="build-tests.xml" target="total-clean" inheritall="false"/>  
+    </target>
+</project>
+

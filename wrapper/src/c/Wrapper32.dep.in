@@ -1,0 +1,45 @@
+# Microsoft Developer Studio Generated Dependency File, included by Wrapper32.mak
+
+.\logger.c : \
+	".\logger.h"\
+	".\messages.h"\
+	"@msvc.home@\vc98\include\basetsd.h"\
+	
+
+.\property.c : \
+	".\logger.h"\
+	".\property.h"\
+	"@msvc.home@\vc98\include\basetsd.h"\
+	
+
+.\wrapper.c : \
+	".\logger.h"\
+	".\property.h"\
+	".\wrapper.h"\
+	".\wrapperinfo.h"\
+	"@msvc.home@\vc98\include\basetsd.h"\
+	
+
+.\wrapper_win.c : \
+	".\logger.h"\
+	".\property.h"\
+	".\psapi.h"\
+	".\wrapper.h"\
+	".\wrapperinfo.h"\
+	"@msvc.home@\vc98\include\basetsd.h"\
+	
+
+.\wrappereventloop.c : \
+	".\logger.h"\
+	".\property.h"\
+	".\wrapper.h"\
+	"@msvc.home@\vc98\include\basetsd.h"\
+	
+
+.\wrapperinfo.c : \
+	".\wrapperinfo.h"\
+	
+
+.\messages.rc : \
+    ".\MSG00001.bin"\
+    

@@ -1,0 +1,1023 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- ======================================================================= -->
+<!-- Wrapper build file                                                     -->
+<!-- ======================================================================= -->
+
+<project name="wrapper-tests" default="test-setup" basedir=".">
+    
+    <!-- Local build properties -->
+    <property file="${user.home}/.ant.local.properties" />
+    
+    <!-- platform -->
+    <property name="is.${os.name}" value="true"/>
+    
+    <property name="test.dir"      value="${basedir}/test"/>
+    <property name="src.dir"       value="${basedir}/src"/>
+    
+    <!-- =================================================================== -->
+    <!-- Help on usage                                                       -->
+    <!-- =================================================================== -->
+    <target name="usage">
+        <echo message="Use the -projecthelp option instead"/>
+    </target>
+    <target name="help" depends="usage"/>
+    
+    <!-- =================================================================== -->
+    <!-- Resolve Platform properties                                         -->
+    <!-- =================================================================== -->
+    <target name="init-windows-nt" if="is.Windows NT">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-2000" if="is.Windows 2000">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-xp" if="is.Windows XP">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-2003" if="is.Windows 2003">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows"
+        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-windows-2003"
+        if="is.Windows">
+        <property name="is.shell.bat" value="true"/>
+    </target>
+    <target name="init-linux" if="is.Linux">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-solaris" if="is.SunOS">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-aix" if="is.AIX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-hpux" if="is.HP-UX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-macosx" if="is.Mac OS X">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-osf1" if="is.OSF1">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-freebsd" if="is.FreeBSD">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-irix" if="is.Irix">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Initialize build.                                                   -->
+    <!-- =================================================================== -->
+    <target name="init" depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd, init-irix">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Common)                                          -->
+    <!-- =================================================================== -->
+    <target name="test-setup-common" depends="init">
+        <!-- Create a template wrapper.conf file that will be used to create the files for
+            each of the additional conf files for each test. -->
+        <delete file="${test.dir}/template.conf"/>
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/template.conf"/>
+        <replace file="${test.dir}/template.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/template.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        
+        <!-- Background Threads Test -->
+        <delete file="${test.dir}/backgroundthreads.conf"/>
+        <filter token="app.name"          value="backgroundthreads"/>
+        <filter token="app.long.name"     value="Background Threads Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/backgroundthreads.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/backgroundthreads.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.BackgroundThreads" />
+        
+        <!-- Long Running Background Threads Test -->
+        <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
+        <filter token="app.name"          value="longrunningbackgroundthreads"/>
+        <filter token="app.long.name"     value="Long Running Background Threads Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/longrunningbackgroundthreads.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LongRunningBackgroundThreads" />
+        
+        <!-- Daemon Threads Test -->
+        <delete file="${test.dir}/daemonthreads.conf"/>
+        <filter token="app.name"          value="daemonthreads"/>
+        <filter token="app.long.name"     value="Daemon Threads Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/daemonthreads.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/daemonthreads.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DaemonThreads" />
+        
+        <!-- No Return Test -->
+        <delete file="${test.dir}/noreturn.conf"/>
+        <filter token="app.name"          value="noreturn"/>
+        <filter token="app.long.name"     value="No Return Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/noreturn.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/noreturn.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.NoReturn" />
+
+        <!-- Quick Complete Test -->
+        <delete file="${test.dir}/quickcomplete.conf"/>
+        <filter token="app.name"          value="quickcomplete"/>
+        <filter token="app.long.name"     value="Quick Complete Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/quickcomplete.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/quickcomplete.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
+
+        <!-- Environment Variables Test -->
+        <delete file="${test.dir}/envvars.conf"/>
+        <filter token="app.name"          value="envvars"/>
+        <filter token="app.long.name"     value="Environment Variables Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/envvars.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/envvars.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.EnvironmentVariables" />
+        
+        <!-- Percent Output Crash Test -->
+        <delete file="${test.dir}/percentoutput.conf"/>
+        <filter token="app.name"          value="percentoutput"/>
+        <filter token="app.long.name"     value="Percent Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/percentoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/percentoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.PercentOutput" />
+        
+        <!-- Log Output Test -->
+        <delete file="${test.dir}/logoutput.conf"/>
+        <filter token="app.name"          value="logoutput"/>
+        <filter token="app.long.name"     value="Log Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/logoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/logoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogOutput" />
+        
+        <!-- Restarter Test -->
+        <delete file="${test.dir}/restarter.conf"/>
+        <filter token="app.name"          value="restarter"/>
+        <filter token="app.long.name"     value="Restarter Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/restarter.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/restarter.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Restarter" />
+        
+        <!-- WrapperSimpleApp Test -->
+        <delete file="${test.dir}/stopwhilestarting.conf"/>
+        <filter token="app.name"          value="stopwhilestarting"/>
+        <filter token="app.long.name"     value="StopWhileStarting Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/stopwhilestarting.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/stopwhilestarting.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.StopWhileStarting" />
+        <replace file="${test.dir}/stopwhilestarting.conf">
+            <replacetoken>wrapper.syslog.loglevel=NONE</replacetoken>
+            <replacevalue><![CDATA[wrapper.syslog.loglevel=NONE
+
+wrapper.on_exit.99=RESTART]]></replacevalue>
+        </replace>
+        
+        <!-- WrapperSimpleAppForceStop Test -->
+        <delete file="${test.dir}/stopwhilestartingforcestop.conf"/>
+        <filter token="app.name"          value="stopwhilestartingforcestop"/>
+        <filter token="app.long.name"     value="StopWhileStarting ForceStop Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/stopwhilestartingforcestop.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/stopwhilestartingforcestop.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.StopWhileStarting" />
+        <replace file="${test.dir}/stopwhilestartingforcestop.conf">
+            <replacetoken>wrapper.syslog.loglevel=NONE</replacetoken>
+            <replacevalue><![CDATA[wrapper.syslog.loglevel=NONE
+
+wrapper.on_exit.99=RESTART
+wrapper.listener.force_stop=TRUE]]></replacevalue>
+        </replace>
+        
+        <!-- Action Test -->
+        <delete file="${test.dir}/action.conf"/>
+        <filter token="app.name"          value="action"/>
+        <filter token="app.long.name"     value="Action Test Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/action.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/action.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.TestAction" />
+        
+        <!-- Shutdown Hook Test -->
+        <delete file="${test.dir}/shutdownhook.conf"/>
+        <filter token="app.name"          value="shutdownhook"/>
+        <filter token="app.long.name"     value="Shutdown Hook Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/shutdownhook.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/shutdownhook.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ShutdownHook" />
+        
+        <!-- Shutdown Lock Test -->
+        <delete file="${test.dir}/shutdownlock.conf"/>
+        <filter token="app.name"          value="shutdownlock"/>
+        <filter token="app.long.name"     value="Shutdown Lock Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/shutdownlock.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/shutdownlock.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ShutdownLock" />
+        
+        <!-- OutputLoader Test -->
+        <delete file="${test.dir}/outputloader.conf"/>
+        <filter token="app.name"          value="outputloader"/>
+        <filter token="app.long.name"     value="Output Loader Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/outputloader.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/outputloader.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OutputLoader" />
+        
+        <!-- Memory Test -->
+        <delete file="${test.dir}/memory.conf"/>
+        <filter token="app.name"          value="memory"/>
+        <filter token="app.long.name"     value="Memory Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/memory.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/memory.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Memory" />
+
+        <!-- Filter Test -->
+        <delete file="${test.dir}/filter.conf"/>
+        <filter token="app.name"          value="filter"/>
+        <filter token="app.long.name"     value="Filter Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/filter.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/filter.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Filter" />
+        <replace file="${test.dir}/filter.conf">
+            <replacetoken>wrapper.syslog.loglevel=NONE</replacetoken>
+            <replacevalue><![CDATA[wrapper.syslog.loglevel=NONE
+
+wrapper.filter.trigger.1=NONERROR
+wrapper.filter.action.1=NONE
+wrapper.filter.trigger.2=ERROR
+wrapper.filter.action.2=RESTART
+wrapper.filter.trigger.3=Nice long restart message.
+wrapper.filter.action.3=RESTART
+wrapper.filter.trigger.4=ALLDONE
+wrapper.filter.action.4=SHUTDOWN]]></replacevalue>
+        </replace>
+
+        <!-- OnExit Test -->
+        <delete file="${test.dir}/onexit.conf"/>
+        <filter token="app.name"          value="onexit"/>
+        <filter token="app.long.name"     value="OnExit Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/onexit.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/onexit.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OnExit" />
+        <replace file="${test.dir}/onexit.conf">
+            <replacetoken>wrapper.syslog.loglevel=NONE</replacetoken>
+            <replacevalue><![CDATA[wrapper.syslog.loglevel=NONE
+
+wrapper.on_exit.1=RESTART
+wrapper.on_exit.3=SHUTDOWN
+wrapper.on_exit.default=RESTART]]></replacevalue>
+        </replace>
+
+        <!-- Loaded WrapperListener Test -->
+        <delete file="${test.dir}/loadedwrapperlistener.conf"/>
+        <filter token="app.name"          value="loadedwrapperlistener"/>
+        <filter token="app.long.name"     value="Loaded WrapperListener Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/loadedwrapperlistener.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.LoadedWrapperListener" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.debug=TRUE" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="#wrapper.java.initmemory=3"
+                 value="wrapper.java.initmemory=256" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="#wrapper.java.maxmemory=64"
+                 value="wrapper.java.maxmemory=256" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.ntservice.process_priority=NORMAL"
+                 value="wrapper.ntservice.process_priority=HIGH" />
+
+        <!-- System Property Test -->
+        <delete file="${test.dir}/systemproperty.conf"/>
+        <filter token="app.name"          value="systemproperty"/>
+        <filter token="app.long.name"     value="System Property Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/systemproperty.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/systemproperty.conf">
+            <replacetoken>#wrapper.java.additional.1=</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.1=-DVAR1="abc"
+wrapper.java.additional.1.stripquotes=TRUE
+wrapper.java.additional.2=-DVAR2="\\"
+wrapper.java.additional.2.stripquotes=TRUE
+wrapper.java.additional.3=-DVAR3="\""
+wrapper.java.additional.3.stripquotes=TRUE
+wrapper.java.additional.4=-DVAR4=abc
+wrapper.java.additional.5=-DVAR5=\
+wrapper.java.additional.6=-DVAR6=\\
+wrapper.java.additional.7=-DVAR7=\"
+wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/systemproperty.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.SystemProperty" />
+        
+        <!-- ExecutableJar Test -->
+        <delete file="${test.dir}/executablejar.conf"/>
+        <filter token="app.name"          value="executablejar"/>
+        <filter token="app.long.name"     value="Executable Jar Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/executablejar.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/executablejar.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperJarApp" />
+        <replace file="${test.dir}/executablejar.conf">
+            <replacetoken><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
+            <replacevalue>wrapper.java.classpath.1=../lib/wrapper.jar</replacevalue>
+        </replace>
+        <replace file="${test.dir}/executablejar.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=../lib/wrappertest.jar" />
+        
+        <!-- ExecutableJarCP Test -->
+        <delete file="${test.dir}/executablejarcp.conf"/>
+        <filter token="app.name"          value="executablejarcp"/>
+        <filter token="app.long.name"     value="Executable Jar w/Classpath Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/executablejarcp.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/executablejarcp.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperJarApp" />
+        <replace file="${test.dir}/executablejarcp.conf">
+            <replacetoken><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
+            <replacevalue>wrapper.java.classpath.1=../lib/wrapper.jar</replacevalue>
+        </replace>
+        <replace file="${test.dir}/executablejarcp.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=../lib/wrappertest2.jar" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Bat files - Windows)                             -->
+    <!-- =================================================================== -->
+    <target name="test-setup-bat" depends="test-setup-common" if="is.shell.bat">
+        <!-- Create the test specific batch files -->
+        
+        <!-- Background Threads Test -->
+        <delete file="${test.dir}/TestBackgroundThreads.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestBackgroundThreads.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestBackgroundThreads.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestBackgroundThreads.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\backgroundthreads.conf' />
+        
+        <!-- Long Running Background Threads Test -->
+        <delete file="${test.dir}/TestLongRunningBackgroundThreads.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLongRunningBackgroundThreads.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLongRunningBackgroundThreads.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestLongRunningBackgroundThreads.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\longrunningbackgroundthreads.conf' />
+        
+        <!-- Daemon Threads Test -->
+        <delete file="${test.dir}/TestDaemonThreads.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestDaemonThreads.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestDaemonThreads.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestDaemonThreads.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\daemonthreads.conf' />
+        
+        <!-- No Return Test -->
+        <delete file="${test.dir}/TestNoReturn.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestNoReturn.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestNoReturn.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestNoReturn.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\noreturn.conf' />
+        
+        <!-- Quick Complete Test -->
+        <delete file="${test.dir}/TestQuickComplete.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestQuickComplete.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestQuickComplete.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestQuickComplete.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\quickcomplete.conf' />
+
+        <!-- Environment Variables Test -->
+        <delete file="${test.dir}/TestEnvironmentVariables.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestEnvironmentVariables.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestEnvironmentVariables.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestEnvironmentVariables.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\envvars.conf' />
+        <replace file="${test.dir}/TestEnvironmentVariables.bat">
+            <replacetoken>setlocal</replacetoken>
+            <replacevalue><![CDATA[setlocal
+
+rem
+rem Set up some test environment variables
+rem
+set ENV_VAR_1=a
+set ENV_VAR_2=b
+set ENV_VAR_3=c
+set ENV_VAR_4=d]]></replacevalue>
+        </replace>
+        
+        <!-- Percent Output Test -->
+        <delete file="${test.dir}/TestPercentOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestPercentOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestPercentOutput.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestPercentOutput.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\percentoutput.conf' />
+        
+        <!-- Log Output Test -->
+        <delete file="${test.dir}/TestLogOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLogOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLogOutput.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestLogOutput.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\logoutput.conf' />
+        
+        <!-- Restarter Test -->
+        <delete file="${test.dir}/TestRestarter.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestRestarter.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestRestarter.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestRestarter.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\restarter.conf' />
+        
+        <!-- StopWhileStarting Test -->
+        <delete file="${test.dir}/TestStopWhileStarting.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestStopWhileStarting.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestStopWhileStarting.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestStopWhileStarting.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\stopwhilestarting.conf' />
+        
+        <!-- StopWhileStartingForceStop Test -->
+        <delete file="${test.dir}/TestStopWhileStartingForceStop.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestStopWhileStartingForceStop.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestStopWhileStartingForceStop.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestStopWhileStartingForceStop.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\stopwhilestartingforcestop.conf' />
+        
+        <!-- Action Test -->
+        <delete file="${test.dir}/TestAction.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestAction.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestAction.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestAction.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${test.dir}/TestAction.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\action.conf' />
+        <replace file="${test.dir}/TestAction.bat"
+                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
+                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1' />
+        
+        <!-- Shutdown Hook Test -->
+        <delete file="${test.dir}/TestShutdownHook.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestShutdownHook.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestShutdownHook.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestShutdownHook.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\shutdownhook.conf' />
+        
+        <!-- Shutdown Lock Test -->
+        <delete file="${test.dir}/TestShutdownLock.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestShutdownLock.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestShutdownLock.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestShutdownLock.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\shutdownlock.conf' />
+        
+        <!-- Output Loader Test -->
+        <delete file="${test.dir}/TestOutputLoader.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestOutputLoader.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestOutputLoader.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestOutputLoader.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\outputloader.conf' />
+        
+        <!-- Memory Test -->
+        <delete file="${test.dir}/TestMemory.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestMemory.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestMemory.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestMemory.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\memory.conf' />
+        
+        <!-- Filter Test -->
+        <delete file="${test.dir}/TestFilter.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestFilter.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestFilter.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestFilter.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\filter.conf' />
+        
+        <!-- OnExit Test -->
+        <delete file="${test.dir}/TestOnExit.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestOnExit.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestOnExit.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestOnExit.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\onexit.conf' />
+        
+        <!-- Loaded WrapperListener Test -->
+        <delete file="${test.dir}/TestLoadedWrapperListener.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLoadedWrapperListener.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLoadedWrapperListener.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestLoadedWrapperListener.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\loadedwrapperlistener.conf' />
+        
+        <!-- System Property Test -->
+        <delete file="${test.dir}/TestSystemProperty.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestSystemProperty.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestSystemProperty.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestSystemProperty.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\systemproperty.conf' />
+        
+        <!-- ExecutableJar Test -->
+        <delete file="${test.dir}/TestExecutableJar.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestExecutableJar.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestExecutableJar.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestExecutableJar.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${test.dir}/TestExecutableJar.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\executablejar.conf' />
+        
+        <!-- ExecutableJarCP Test -->
+        <delete file="${test.dir}/TestExecutableJarCP.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestExecutableJarCP.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestExecutableJarCP.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestExecutableJarCP.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${test.dir}/TestExecutableJarCP.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\executablejarcp.conf' />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (sh scripts - Unix, Linux)                        -->
+    <!-- =================================================================== -->
+    <target name="test-setup-sh" depends="test-setup-common" if="is.shell.sh">
+        <!-- Create a template script to make this easier -->
+        <delete file="${test.dir}/temp.script.in"/>
+        <delete file="${test.dir}/action.script.in"/>
+        <copy file="${src.dir}/bin/sh.script.in"
+              tofile="${test.dir}/temp.script.in"/>
+        <copy file="${src.dir}/bin/sh.script.in"
+              tofile="${test.dir}/action.script.in"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Unix)                                            -->
+    <!-- =================================================================== -->
+    <target name="test-setup-unix" depends="test-setup-sh" if="is.Unix">
+        <!-- Create the test specific script files -->
+        <replace file="${test.dir}/temp.script.in"
+                 token='WRAPPER_CMD="./wrapper"'
+                 value='WRAPPER_CMD="../bin/wrapper"' />
+        <replace file="${test.dir}/temp.script.in"
+                 token='WRAPPER_CONF="../conf/wrapper.conf"'
+                 value='WRAPPER_CONF="../test/@app.name@.conf"' />
+        <replace file="${test.dir}/temp.script.in"
+                 token="SCRIPT=`$$SCRIPT_DIR/realpath $$0`"
+                 value="SCRIPT=`$$SCRIPT_DIR/../bin/realpath $$0`" />
+
+        <!-- Create the action test specific script files -->
+        <replace file="${test.dir}/action.script.in"
+                 token='WRAPPER_CMD="./wrapper"'
+                 value='WRAPPER_CMD="../bin/wrapper"' />
+        <replace file="${test.dir}/action.script.in"
+                 token='WRAPPER_CONF="../conf/wrapper.conf"'
+                 value='WRAPPER_CONF="../test/@app.name@.conf"' />
+        <replace file="${test.dir}/action.script.in"
+                 token="SCRIPT=`$$SCRIPT_DIR/realpath $$0`"
+                 value="SCRIPT=`$$SCRIPT_DIR/../bin/realpath $$0`" />
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
+            <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA['console')
+        checkUser touchlock $1
+        console
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['console')
+        checkUser touchlock $1 $2
+        console $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA['start')
+        checkUser touchlock $1
+        start
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['start')
+        checkUser touchlock $1 $2
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA['restart')
+        checkUser touchlock $1
+        stopit
+        start
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['restart')
+        checkUser touchlock $1 $2
+        stopit
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
+            <replacevalue><![CDATA[checkUser "" $1 $2]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
+            <replacevalue><![CDATA[Running $APP_LONG_NAME with test action: $1]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
+            <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
+            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | status | dump }]]></replacetoken>
+            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | status | dump }]]></replacevalue>
+        </replace>
+        
+        <!-- Background Threads Test -->
+        <filter token="app.name"          value="backgroundthreads"/>
+        <filter token="app.long.name"     value="Background Threads Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/backgroundthreads"
+              filtering="on"/>
+        <chmod file="${test.dir}/backgroundthreads" perm="+x"/> 
+        
+        <!-- Long Running Background Threads Test -->
+        <filter token="app.name"          value="longrunningbackgroundthreads"/>
+        <filter token="app.long.name"     value="Long Running Background Threads Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/longrunningbackgroundthreads"
+              filtering="on"/>
+        <chmod file="${test.dir}/longrunningbackgroundthreads" perm="+x"/> 
+        
+        <!-- Daemon Threads Test -->
+        <filter token="app.name"          value="daemonthreads"/>
+        <filter token="app.long.name"     value="Daemon Threads Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/daemonthreads"
+              filtering="on"/>
+        <chmod file="${test.dir}/daemonthreads" perm="+x"/> 
+        
+        <!-- No Return Test -->
+        <filter token="app.name"          value="noreturn"/>
+        <filter token="app.long.name"     value="No Return Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/noreturn"
+              filtering="on"/>
+        <chmod file="${test.dir}/noreturn" perm="+x"/> 
+        
+        <!-- Quick Complete Test -->
+        <filter token="app.name"          value="quickcomplete"/>
+        <filter token="app.long.name"     value="Quick Complete Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/quickcomplete"
+              filtering="on"/>
+        <chmod file="${test.dir}/quickcomplete" perm="+x"/> 
+        
+        <!-- Environment Variables Test -->
+        <filter token="app.name"          value="envvars"/>
+        <filter token="app.long.name"     value="Environment Variables Case" />
+        <delete file="${test.dir}/envvars"/>
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/envvars"
+              filtering="on"/>
+        <replace file="${test.dir}/envvars">
+            <replacetoken>the needs of your application</replacetoken>
+            <replacevalue><![CDATA[the needs of your application
+
+# Set up some test environment variables
+export ENV_VAR_1=a
+export ENV_VAR_2=b
+export ENV_VAR_3=c
+export ENV_VAR_4=d]]></replacevalue>
+        </replace>
+        <chmod file="${test.dir}/envvars" perm="+x"/> 
+        
+        <!-- Percent Output Test -->
+        <filter token="app.name"          value="percentoutput"/>
+        <filter token="app.long.name"     value="Percent Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/percentoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/percentoutput" perm="+x"/> 
+        
+        <!-- Log Output Test -->
+        <filter token="app.name"          value="logoutput"/>
+        <filter token="app.long.name"     value="Log Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/logoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/logoutput" perm="+x"/> 
+        
+        <!-- Restarter Test -->
+        <filter token="app.name"          value="restarter"/>
+        <filter token="app.long.name"     value="Restarter Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/restarter"
+              filtering="on"/>
+        <chmod file="${test.dir}/restarter" perm="+x"/> 
+        
+        <!-- StopWhileStarting Test -->
+        <filter token="app.name"          value="stopwhilestarting"/>
+        <filter token="app.long.name"     value="StopWhileStarting Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/stopwhilestarting"
+              filtering="on"/>
+        <chmod file="${test.dir}/stopwhilestarting" perm="+x"/> 
+        
+        <!-- StopWhileStartingForceStop Test -->
+        <filter token="app.name"          value="stopwhilestartingforcestop"/>
+        <filter token="app.long.name"     value="StopWhileStarting ForceStop Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/stopwhilestartingforcestop"
+              filtering="on"/>
+        <chmod file="${test.dir}/stopwhilestartingforcestop" perm="+x"/> 
+        
+        <!-- Action Test -->
+        <filter token="app.name"          value="action"/>
+        <filter token="app.long.name"     value="Action Test Case" />
+        <copy file="${test.dir}/action.script.in"
+              tofile="${test.dir}/action"
+              filtering="on"/>
+        <chmod file="${test.dir}/action" perm="+x"/> 
+        
+        <!-- Shutdown Hook Test -->
+        <filter token="app.name"          value="shutdownhook"/>
+        <filter token="app.long.name"     value="Shutdown Hook Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/shutdownhook"
+              filtering="on"/>
+        <chmod file="${test.dir}/shutdownhook" perm="+x"/> 
+        
+        <!-- Shutdown Lock Test -->
+        <filter token="app.name"          value="shutdownlock"/>
+        <filter token="app.long.name"     value="Shutdown Lock Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/shutdownlock"
+              filtering="on"/>
+        <chmod file="${test.dir}/shutdownlock" perm="+x"/> 
+        
+        <!-- Output Loader Test -->
+        <filter token="app.name"          value="outputloader"/>
+        <filter token="app.long.name"     value="Output Loader Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/outputloader"
+              filtering="on"/>
+        <chmod file="${test.dir}/outputloader" perm="+x"/> 
+        
+        <!-- Memory Test -->
+        <filter token="app.name"          value="memory"/>
+        <filter token="app.long.name"     value="Memory Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/memory"
+              filtering="on"/>
+        <chmod file="${test.dir}/memory" perm="+x"/> 
+        
+        <!-- Filter Test -->
+        <filter token="app.name"          value="filter"/>
+        <filter token="app.long.name"     value="Filter Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/filter"
+              filtering="on"/>
+        <chmod file="${test.dir}/filter" perm="+x"/> 
+        
+        <!-- OnExit Test -->
+        <filter token="app.name"          value="onexit"/>
+        <filter token="app.long.name"     value="OnExit Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/onexit"
+              filtering="on"/>
+        <chmod file="${test.dir}/onexit" perm="+x"/> 
+        
+        <!-- Loaded WrapperListener Test -->
+        <filter token="app.name"          value="loadedwrapperlistener"/>
+        <filter token="app.long.name"     value="Loaded WrapperListener Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/loadedwrapperlistener"
+              filtering="on"/>
+        <chmod file="${test.dir}/loadedwrapperlistener" perm="+x"/> 
+        
+        <!-- System Property Test -->
+        <filter token="app.name"          value="systemproperty"/>
+        <filter token="app.long.name"     value="System Property Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/systemproperty"
+              filtering="on"/>
+        <chmod file="${test.dir}/systemproperty" perm="+x"/> 
+        
+        <!-- ExecutableJar Test -->
+        <filter token="app.name"          value="executablejar"/>
+        <filter token="app.long.name"     value="Executable Jar Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/executablejar"
+              filtering="on"/>
+        <chmod file="${test.dir}/executablejar" perm="+x"/> 
+        
+        <!-- ExecutableJarCP Test -->
+        <filter token="app.name"          value="executablejarcp"/>
+        <filter token="app.long.name"     value="Executable Jar w/Classpath Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/executablejarcp"
+              filtering="on"/>
+        <chmod file="${test.dir}/executablejarcp" perm="+x"/> 
+        
+        <!-- Get rid of the temp script file -->
+        <delete file="${test.dir}/temp.script.in"/>
+        <delete file="${test.dir}/action.script.in"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target                                                   -->
+    <!-- =================================================================== -->
+    <target name="test-setup" 
+            depends="test-setup-bat, test-setup-unix">
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Clean up everything.                                                -->
+    <!-- =================================================================== -->
+    <target name="total-clean">
+        <delete>
+            <fileset dir="${basedir}/test">
+                <exclude name=".cvsignore"/>
+            </fileset>
+        </delete>
+    </target>
+
+</project>
+

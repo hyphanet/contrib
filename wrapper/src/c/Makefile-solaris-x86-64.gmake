@@ -1,0 +1,49 @@
+# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# http://www.tanukisoftware.com
+# All rights reserved.
+#
+# This software is the proprietary information of Tanuki Software.
+# You shall use it only in accordance with the terms of the
+# license agreement you entered into with Tanuki Software.
+# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+
+# gcc - The JNI library generated with gcc does not work on 64-bit x86 systems
+#  due to a bug or simply a configuration problem.   We need to use cc here.
+#  see Bug #1992039 for details.
+# https://sourceforge.net/tracker/index.php?func=detail&aid=1992039&group_id=39428&atid=425187
+#COMPILE = gcc -m64 -O3 -Wall --pedantic -DSOLARIS
+COMPILE = /opt/studio11/SUNWspro/bin/cc -xarch=amd64 -Kpic -O -DSOLARIS
+
+INCLUDE=$(JAVA_HOME)/include
+
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/solaris
+
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c
+
+libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
+
+BIN = ../../bin
+LIB = ../../lib
+
+all: init wrapper libwrapper.so
+
+clean:
+	rm -f *.o
+
+cleanall: clean
+	rm -rf *~ .deps
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
+
+init:
+	if test ! -d .deps; then mkdir .deps; fi
+
+wrapper: $(wrapper_SOURCE)
+	$(COMPILE) -lsocket -lpthread -lnsl -lm -lposix4 $(wrapper_SOURCE) -o $(BIN)/wrapper
+
+#libwrapper.so: $(libwrapper_so_OBJECTS)
+#	${COMPILE} -G -fPIC -lposix4 $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+libwrapper.so: $(libwrapper_so_OBJECTS)
+	${COMPILE} -G -lposix4 $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+
+%.o: %.c
+	${COMPILE} -c ${DEFS} $<
