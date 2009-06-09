@@ -161,7 +161,6 @@ public class TarEntry implements TarConstants {
     public TarEntry(String name) {
         this();
 
-        name = normalizeFileName(name);
         boolean isDir = name.endsWith("/");
 
         this.devMajor = 0;
@@ -182,7 +181,7 @@ public class TarEntry implements TarConstants {
     }
 
     /**
-     * Construct an entry with a name and a link flag.
+     * Construct an entry with a name an a link flag.
      *
      * @param name the entry name
      * @param linkFlag the entry link flag.
@@ -203,7 +202,42 @@ public class TarEntry implements TarConstants {
 
         this.file = file;
 
-        String fileName = normalizeFileName(file.getPath());
+        String fileName = file.getPath();
+        String osname = System.getProperty("os.name").toLowerCase(Locale.US);
+
+        if (osname != null) {
+
+            // Strip off drive letters!
+            // REVIEW Would a better check be "(File.separator == '\')"?
+
+            if (osname.startsWith("windows")) {
+                if (fileName.length() > 2) {
+                    char ch1 = fileName.charAt(0);
+                    char ch2 = fileName.charAt(1);
+
+                    if (ch2 == ':'
+                            && ((ch1 >= 'a' && ch1 <= 'z')
+                                || (ch1 >= 'A' && ch1 <= 'Z'))) {
+                        fileName = fileName.substring(2);
+                    }
+                }
+            } else if (osname.indexOf("netware") > -1) {
+                int colon = fileName.indexOf(':');
+                if (colon != -1) {
+                    fileName = fileName.substring(colon + 1);
+                }
+            }
+        }
+
+        fileName = fileName.replace(File.separatorChar, '/');
+
+        // No absolute pathnames
+        // Windows (and Posix?) paths can start with "\\NetworkDrive\",
+        // so we loop on starting /'s.
+        while (fileName.startsWith("/")) {
+            fileName = fileName.substring(1);
+        }
+
         this.linkName = new StringBuffer("");
         this.name = new StringBuffer(fileName);
 
@@ -211,17 +245,15 @@ public class TarEntry implements TarConstants {
             this.mode = DEFAULT_DIR_MODE;
             this.linkFlag = LF_DIR;
 
-            int nameLength = name.length();
-            if (nameLength == 0 || name.charAt(nameLength - 1) != '/') {
+            if (this.name.charAt(this.name.length() - 1) != '/') {
                 this.name.append("/");
             }
-            this.size = 0;
         } else {
             this.mode = DEFAULT_FILE_MODE;
             this.linkFlag = LF_NORMAL;
-            this.size = file.length();
         }
 
+        this.size = file.length();
         this.modTime = file.lastModified() / MILLIS_PER_SECOND;
         this.devMajor = 0;
         this.devMinor = 0;
@@ -235,7 +267,7 @@ public class TarEntry implements TarConstants {
      */
     public TarEntry(byte[] headerBuf) {
         this();
-        parseTarHeader(headerBuf);
+        this.parseTarHeader(headerBuf);
     }
 
     /**
@@ -246,7 +278,7 @@ public class TarEntry implements TarConstants {
      * @return True if the entries are equal.
      */
     public boolean equals(TarEntry it) {
-        return getName().equals(it.getName());
+        return this.getName().equals(it.getName());
     }
 
     /**
@@ -281,7 +313,7 @@ public class TarEntry implements TarConstants {
      * @return True if entry is a descendant of this.
      */
     public boolean isDescendent(TarEntry desc) {
-        return desc.getName().startsWith(getName());
+        return desc.getName().startsWith(this.getName());
     }
 
     /**
@@ -290,7 +322,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's name.
      */
     public String getName() {
-        return name.toString();
+        return this.name.toString();
     }
 
     /**
@@ -299,7 +331,7 @@ public class TarEntry implements TarConstants {
      * @param name This entry's new name.
      */
     public void setName(String name) {
-        this.name = new StringBuffer(normalizeFileName(name));
+        this.name = new StringBuffer(name);
     }
 
     /**
@@ -317,7 +349,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's link name.
      */
     public String getLinkName() {
-        return linkName.toString();
+        return this.linkName.toString();
     }
 
     /**
@@ -326,7 +358,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's user id.
      */
     public int getUserId() {
-        return userId;
+        return this.userId;
     }
 
     /**
@@ -344,7 +376,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's group id.
      */
     public int getGroupId() {
-        return groupId;
+        return this.groupId;
     }
 
     /**
@@ -362,7 +394,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's user name.
      */
     public String getUserName() {
-        return userName.toString();
+        return this.userName.toString();
     }
 
     /**
@@ -380,7 +412,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's group name.
      */
     public String getGroupName() {
-        return groupName.toString();
+        return this.groupName.toString();
     }
 
     /**
@@ -399,8 +431,8 @@ public class TarEntry implements TarConstants {
      * @param groupId This entry's new group id.
      */
     public void setIds(int userId, int groupId) {
-        setUserId(userId);
-        setGroupId(groupId);
+        this.setUserId(userId);
+        this.setGroupId(groupId);
     }
 
     /**
@@ -410,8 +442,8 @@ public class TarEntry implements TarConstants {
      * @param groupName This entry's new group name.
      */
     public void setNames(String userName, String groupName) {
-        setUserName(userName);
-        setGroupName(groupName);
+        this.setUserName(userName);
+        this.setGroupName(groupName);
     }
 
     /**
@@ -421,7 +453,7 @@ public class TarEntry implements TarConstants {
      * @param time This entry's new modification time.
      */
     public void setModTime(long time) {
-        modTime = time / MILLIS_PER_SECOND;
+        this.modTime = time / MILLIS_PER_SECOND;
     }
 
     /**
@@ -430,7 +462,7 @@ public class TarEntry implements TarConstants {
      * @param time This entry's new modification time.
      */
     public void setModTime(Date time) {
-        modTime = time.getTime() / MILLIS_PER_SECOND;
+        this.modTime = time.getTime() / MILLIS_PER_SECOND;
     }
 
     /**
@@ -439,7 +471,7 @@ public class TarEntry implements TarConstants {
      * @return time This entry's new modification time.
      */
     public Date getModTime() {
-        return new Date(modTime * MILLIS_PER_SECOND);
+        return new Date(this.modTime * MILLIS_PER_SECOND);
     }
 
     /**
@@ -448,7 +480,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's file.
      */
     public File getFile() {
-        return file;
+        return this.file;
     }
 
     /**
@@ -457,7 +489,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's mode.
      */
     public int getMode() {
-        return mode;
+        return this.mode;
     }
 
     /**
@@ -466,7 +498,7 @@ public class TarEntry implements TarConstants {
      * @return This entry's file size.
      */
     public long getSize() {
-        return size;
+        return this.size;
     }
 
     /**
@@ -495,15 +527,15 @@ public class TarEntry implements TarConstants {
      * @return True if this entry is a directory.
      */
     public boolean isDirectory() {
-        if (file != null) {
-            return file.isDirectory();
+        if (this.file != null) {
+            return this.file.isDirectory();
         }
 
-        if (linkFlag == LF_DIR) {
+        if (this.linkFlag == LF_DIR) {
             return true;
         }
 
-        if (getName().endsWith("/")) {
+        if (this.getName().endsWith("/")) {
             return true;
         }
 
@@ -517,15 +549,15 @@ public class TarEntry implements TarConstants {
      * @return An array of TarEntry's for this entry's children.
      */
     public TarEntry[] getDirectoryEntries() {
-        if (file == null || !file.isDirectory()) {
+        if (this.file == null || !this.file.isDirectory()) {
             return new TarEntry[0];
         }
 
-        String[]   list = file.list();
+        String[]   list = this.file.list();
         TarEntry[] result = new TarEntry[list.length];
 
         for (int i = 0; i < list.length; ++i) {
-            result[i] = new TarEntry(new File(file, list[i]));
+            result[i] = new TarEntry(new File(this.file, list[i]));
         }
 
         return result;
@@ -539,12 +571,12 @@ public class TarEntry implements TarConstants {
     public void writeEntryHeader(byte[] outbuf) {
         int offset = 0;
 
-        offset = TarUtils.getNameBytes(name, outbuf, offset, NAMELEN);
-        offset = TarUtils.getOctalBytes(mode, outbuf, offset, MODELEN);
-        offset = TarUtils.getOctalBytes(userId, outbuf, offset, UIDLEN);
-        offset = TarUtils.getOctalBytes(groupId, outbuf, offset, GIDLEN);
-        offset = TarUtils.getLongOctalBytes(size, outbuf, offset, SIZELEN);
-        offset = TarUtils.getLongOctalBytes(modTime, outbuf, offset, MODTIMELEN);
+        offset = TarUtils.getNameBytes(this.name, outbuf, offset, NAMELEN);
+        offset = TarUtils.getOctalBytes(this.mode, outbuf, offset, MODELEN);
+        offset = TarUtils.getOctalBytes(this.userId, outbuf, offset, UIDLEN);
+        offset = TarUtils.getOctalBytes(this.groupId, outbuf, offset, GIDLEN);
+        offset = TarUtils.getLongOctalBytes(this.size, outbuf, offset, SIZELEN);
+        offset = TarUtils.getLongOctalBytes(this.modTime, outbuf, offset, MODTIMELEN);
 
         int csOffset = offset;
 
@@ -552,13 +584,13 @@ public class TarEntry implements TarConstants {
             outbuf[offset++] = (byte) ' ';
         }
 
-        outbuf[offset++] = linkFlag;
-        offset = TarUtils.getNameBytes(linkName, outbuf, offset, NAMELEN);
-        offset = TarUtils.getNameBytes(magic, outbuf, offset, MAGICLEN);
-        offset = TarUtils.getNameBytes(userName, outbuf, offset, UNAMELEN);
-        offset = TarUtils.getNameBytes(groupName, outbuf, offset, GNAMELEN);
-        offset = TarUtils.getOctalBytes(devMajor, outbuf, offset, DEVLEN);
-        offset = TarUtils.getOctalBytes(devMinor, outbuf, offset, DEVLEN);
+        outbuf[offset++] = this.linkFlag;
+        offset = TarUtils.getNameBytes(this.linkName, outbuf, offset, NAMELEN);
+        offset = TarUtils.getNameBytes(this.magic, outbuf, offset, MAGICLEN);
+        offset = TarUtils.getNameBytes(this.userName, outbuf, offset, UNAMELEN);
+        offset = TarUtils.getNameBytes(this.groupName, outbuf, offset, GNAMELEN);
+        offset = TarUtils.getOctalBytes(this.devMajor, outbuf, offset, DEVLEN);
+        offset = TarUtils.getOctalBytes(this.devMinor, outbuf, offset, DEVLEN);
 
         while (offset < outbuf.length) {
             outbuf[offset++] = 0;
@@ -577,72 +609,30 @@ public class TarEntry implements TarConstants {
     public void parseTarHeader(byte[] header) {
         int offset = 0;
 
-        name = TarUtils.parseName(header, offset, NAMELEN);
+        this.name = TarUtils.parseName(header, offset, NAMELEN);
         offset += NAMELEN;
-        mode = (int) TarUtils.parseOctal(header, offset, MODELEN);
+        this.mode = (int) TarUtils.parseOctal(header, offset, MODELEN);
         offset += MODELEN;
-        userId = (int) TarUtils.parseOctal(header, offset, UIDLEN);
+        this.userId = (int) TarUtils.parseOctal(header, offset, UIDLEN);
         offset += UIDLEN;
-        groupId = (int) TarUtils.parseOctal(header, offset, GIDLEN);
+        this.groupId = (int) TarUtils.parseOctal(header, offset, GIDLEN);
         offset += GIDLEN;
-        size = TarUtils.parseOctal(header, offset, SIZELEN);
+        this.size = TarUtils.parseOctal(header, offset, SIZELEN);
         offset += SIZELEN;
-        modTime = TarUtils.parseOctal(header, offset, MODTIMELEN);
+        this.modTime = TarUtils.parseOctal(header, offset, MODTIMELEN);
         offset += MODTIMELEN;
         offset += CHKSUMLEN;
-        linkFlag = header[offset++];
-        linkName = TarUtils.parseName(header, offset, NAMELEN);
+        this.linkFlag = header[offset++];
+        this.linkName = TarUtils.parseName(header, offset, NAMELEN);
         offset += NAMELEN;
-        magic = TarUtils.parseName(header, offset, MAGICLEN);
+        this.magic = TarUtils.parseName(header, offset, MAGICLEN);
         offset += MAGICLEN;
-        userName = TarUtils.parseName(header, offset, UNAMELEN);
+        this.userName = TarUtils.parseName(header, offset, UNAMELEN);
         offset += UNAMELEN;
-        groupName = TarUtils.parseName(header, offset, GNAMELEN);
+        this.groupName = TarUtils.parseName(header, offset, GNAMELEN);
         offset += GNAMELEN;
-        devMajor = (int) TarUtils.parseOctal(header, offset, DEVLEN);
+        this.devMajor = (int) TarUtils.parseOctal(header, offset, DEVLEN);
         offset += DEVLEN;
-        devMinor = (int) TarUtils.parseOctal(header, offset, DEVLEN);
-    }
-
-    /**
-     * Strips Windows' drive letter as well as any leading slashes,
-     * turns path separators into forward slahes.
-     */
-    private static String normalizeFileName(String fileName) {
-        String osname = System.getProperty("os.name").toLowerCase(Locale.US);
-
-        if (osname != null) {
-
-            // Strip off drive letters!
-            // REVIEW Would a better check be "(File.separator == '\')"?
-
-            if (osname.startsWith("windows")) {
-                if (fileName.length() > 2) {
-                    char ch1 = fileName.charAt(0);
-                    char ch2 = fileName.charAt(1);
-
-                    if (ch2 == ':'
-                        && ((ch1 >= 'a' && ch1 <= 'z')
-                            || (ch1 >= 'A' && ch1 <= 'Z'))) {
-                        fileName = fileName.substring(2);
-                    }
-                }
-            } else if (osname.indexOf("netware") > -1) {
-                int colon = fileName.indexOf(':');
-                if (colon != -1) {
-                    fileName = fileName.substring(colon + 1);
-                }
-            }
-        }
-
-        fileName = fileName.replace(File.separatorChar, '/');
-
-        // No absolute pathnames
-        // Windows (and Posix?) paths can start with "\\NetworkDrive\",
-        // so we loop on starting /'s.
-        while (fileName.startsWith("/")) {
-            fileName = fileName.substring(1);
-        }
-        return fileName;
+        this.devMinor = (int) TarUtils.parseOctal(header, offset, DEVLEN);
     }
 }
