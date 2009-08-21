@@ -14,34 +14,32 @@ import com.onionnetworks.util.*;
  * @author Justin F. Chapweske (justin@chapweske.com)
  */
 public class Native8Code extends FECCode {
-    
+
     // One must be very very careful not to let code escape, it stores the
     // memory address of a fec_parms struct and if modified could give an
     // attacker the ability to point to anything in memory.
-    private long code;
-    
+    final private long code;
+
     static {
         String path = NativeDeployer.getLibraryPath
             (Native8Code.class.getClassLoader(),"fec8");
         if (path != null) {
             System.load(path);
-			initFEC();
+            initFEC();
         } else {
             System.out.println("Unable to find native library for fec8 for platform "+NativeDeployer.OS_ARCH);
-			System.out.println(path);
+            System.out.println(path);
         }
     }
-    
+
     public Native8Code(int k, int n) {
         super(k,n);
-		synchronized(Native8Code.class) {
-			nativeNewFEC(k,n);
-		}
+        code = nativeNewFEC(k,n);
     }
 
-    protected void encode(byte[][] src, int[] srcOff, byte[][] repair, 
+    protected void encode(byte[][] src, int[] srcOff, byte[][] repair,
                           int[] repairOff, int[] index, int packetLength) {
-        
+
         nativeEncode(src,srcOff,index,repair,repairOff,k,packetLength);
     }
 
@@ -56,13 +54,13 @@ public class Native8Code extends FECCode {
     }
 
     protected native void nativeEncode
-        (byte[][] src, int[] srcOff, int[] index, byte[][] repair, 
+        (byte[][] src, int[] srcOff, int[] index, byte[][] repair,
          int[] repairOff, int k, int packetLength);
 
     protected native void nativeDecode(byte[][] pkts, int[] pktsOff,
                                        int[] index, int k, int packetLength);
 
-    protected synchronized native void nativeNewFEC(int k, int n);
+    protected synchronized native long nativeNewFEC(int k, int n);
 
     protected synchronized native void nativeFreeFEC();
 

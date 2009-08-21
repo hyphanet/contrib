@@ -15,7 +15,7 @@ CFLAGS?=$(COPT) -Wall -fPIC #-m32
 SRCS= fec.c Makefile test.c
 DOCS= README fec.3
 ALLSRCS= $(SRCS) $(DOCS) fec.h
-LDFLAGS?= --add-stdcall-alias #-melf_i386
+LDFLAGS?= --add-stdcall-alias #-m32
 
 fec: libfec8.so libfec16.so test.c
 	$(CC) $(CFLAGS) -DGF_BITS=8 -o fec fec8.o test.c
@@ -49,7 +49,7 @@ fec16.S: fec.c Makefile
 	$(CC) $(CFLAGS) -DGF_BITS=16 -S -o fec16.S fec.c
 
 clean:
-	- rm -f *.o *.S fec *so
+	- rm -f *.o *.S fec *.so
 
 tgz: $(ALLSRCS)
 	tar cvzf vdm`date +%y%m%d`.tgz $(ALLSRCS)

@@ -26,9 +26,9 @@ JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native16Code_nativeDecode
 /*
  * Class:     com_onionnetworks_fec_Native16Code
  * Method:    nativeNewFEC
- * Signature: (II)V
+ * Signature: (II)J
  */
-JNIEXPORT void JNICALL Java_com_onionnetworks_fec_Native16Code_nativeNewFEC
+JNIEXPORT jlong JNICALL Java_com_onionnetworks_fec_Native16Code_nativeNewFEC
   (JNIEnv *, jobject, jint, jint);
 
 /*
