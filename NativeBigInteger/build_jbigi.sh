@@ -20,7 +20,7 @@ Darwin*)
 	LIBFILE="libjbigi.jnilib";;
 FreeBSD*)
 	COMPILEFLAGS="-fPIC -Wall"
-	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include -I$JAVA_HOME/include/linux -I/usr/local/include -I/usr/local/lib/gcc42/gcc/i386-portbld-freebsd7.2/4.2.5/include"
+	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include -I$JAVA_HOME/include/linux -I/usr/local/include $JAVA_HOME/include"
 	LINKFLAGS="-shared -Wl,-soname,libjbigi.so -L/usr/local/lib"
 	LIBFILE="libjbigi.so";;
 *)
