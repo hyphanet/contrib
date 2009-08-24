@@ -1,0 +1,3 @@
+Before calling ant, add JUnit to your classpath :
+
+export CLASSPATH="$CLASSPATH:/path/to/JUnit.jar"

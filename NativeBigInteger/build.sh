@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 #
 # build.sh -- main script for building jbigi libraries
 #
@@ -9,6 +9,8 @@
 GMP_VERSION="4.2.1"
 
 OS=$(uname -s)
+WGET="wget -c"
+MAKE="make"
 
 case ${OS} in
 MINGW*)
@@ -19,6 +21,8 @@ Linux*)
 	;;
 FreeBSD*)
 	echo "Building FreeBSD .so files"
+	WGET="fetch -m"
+	MAKE="gmake"
 	;;
 Darwin*)
 	echo "Building osx .jnilib's"
@@ -30,14 +34,14 @@ Darwin*)
 esac
 
 # We need -fPIC on x86_64
-if [[ $(uname -m) == "x86_64" ]] || [[ $(uname -m) == "mips" ]]
+if [ `uname -m` = "x86_64" -o `uname -m` = "mips" ]
 then
 	export CFLAGS="-fPIC"
 fi
 
 
 # Don't extract gmp if it's already been done
-wget -c ftp://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.gz
+$WGET ftp://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.gz
 
 if [ ! -d gmp-${GMP_VERSION} ]
 then
@@ -56,7 +60,7 @@ mkdir -pv bin
 mkdir -pv lib/net/i2p/util
 
 # Break out build into Darwin and everything else.
-if test ! `uname` == "Darwin"
+if test ! `uname` = "Darwin"
 then
 
 # Build a library version for each of the enumerated (x86) CPU types
@@ -81,7 +85,7 @@ do
 	echo "Building GNU MP library for ${CPU}..."
 
 	../../gmp-${GMP_VERSION}/configure --build=${CPU}
-	make
+	$MAKE
 
 	# Now build a CPU-specific jbigi library
 	# linked with the CPU-specific gmp we just built
@@ -120,7 +124,7 @@ else
 mkdir -p bin/none
 cd bin/none
 ../../gmp-${GMP_VERSION}/configure --with-pic
-make
+$MAKE
 sh ../../build_jbigi.sh static
 cp libjbigi.jnilib ../../lib/net/i2p/util/libjbigi-osx-none.jnilib
 cd ../..

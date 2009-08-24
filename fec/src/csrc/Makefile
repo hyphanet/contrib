@@ -11,7 +11,7 @@
 CC?=gcc
 # COPT= -O9 -funroll-loops
 COPT= -O1 -funroll-loops -fno-strict-aliasing
-CFLAGS?=$(COPT) -Wall -fPIC #-m32
+CFLAGS?=$(COPT) -Wall -fPIC -I/usr/local/lib/gcc42/gcc/i386-portbld-freebsd7.2/4.2.5/include
 SRCS= fec.c Makefile test.c
 DOCS= README fec.3
 ALLSRCS= $(SRCS) $(DOCS) fec.h

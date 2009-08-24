@@ -6,7 +6,9 @@
 #if defined(__GNUC__) || !defined(_WIN32)
 #include <stdint.h>
 #endif
+#ifndef __FreeBSD__
 #include <malloc.h>
+#endif
 #include "com_onionnetworks_fec_Native8Code.h"
 #include "fec.h"
 

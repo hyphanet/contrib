@@ -18,6 +18,11 @@ Darwin*)
 	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include"
 	LINKFLAGS="-dynamiclib JavaVM"/ LINKFLAGS="-dynamiclib"
 	LIBFILE="libjbigi.jnilib";;
+FreeBSD*)
+	COMPILEFLAGS="-fPIC -Wall"
+	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include -I$JAVA_HOME/include/linux -I/usr/local/include -I/usr/local/lib/gcc42/gcc/i386-portbld-freebsd7.2/4.2.5/include"
+	LINKFLAGS="-shared -Wl,-soname,libjbigi.so -L/usr/local/lib"
+	LIBFILE="libjbigi.so";;
 *)
 	COMPILEFLAGS="-fPIC -Wall"
 	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
@@ -27,7 +32,7 @@ esac
 
 #To link dynamically to GMP (use libgmp.so or gmp.lib), uncomment the first line below
 #To link statically to GMP, uncomment the second line below
-if [[ $1 == "dynamic" ]]
+if [ "$1" = "dynamic" ]
 then
 	echo "Building jbigi lib that is dynamically linked to GMP" 
 	LIBPATH="-L.libs"
