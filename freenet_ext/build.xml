@@ -5,7 +5,7 @@
 <project name="Freenet-ext" default="jar">
 	<property name="build" location="build_dir"/>
 	<property name="jar.location" location="freenet-ext.jar"/>
-	<property name="svn.revision" value="@custom@"/>
+	<property name="git.revision" value="@custom@"/>
 	<property name="javac.target.version" value="1.5"/>
 
 	<target name="init" description="Create build directory">
@@ -14,7 +14,7 @@
 		
 		<!-- Update the Version file -->
 		<replace file="ExtVersion.java">
-			<replacefilter token="@custom@" value="${svn.revision}"/>
+			<replacefilter token="@custom@" value="${git.revision}"/>
 		</replace>
 		<javac srcdir="." destdir="${build}" optimize="on" source="${javac.target.version}">
 			<include name="ExtVersion.java"/>
