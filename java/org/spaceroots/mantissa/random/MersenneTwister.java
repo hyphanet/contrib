@@ -161,16 +161,20 @@ public class MersenneTwister extends Random {
 			throw new IllegalArgumentException();
 		int[] ints = new int[length / 4];
 		for(int i = 0; i < ints.length; i++) {
-			int x = 0;
-			for(int j = 3; j >= 0; j--) {
-				int y = (buf[j + offset + i * 4] & 0xff);
-				x = (x << 8) | y;
-			}
-			ints[i] = x;
+			ints[i] = bytesToInt(buf, offset + i * 4);
 		}
 		return ints;
 	  }
-
+	  
+	public static int bytesToInt(byte[] buf, int offset) {
+		int x = 0;
+		for(int j = 3; j >= 0; j--) {
+			int y = (buf[j + offset] & 0xff);
+			x = (x << 8) | y;
+		}
+		return x;
+	}
+	  
 	/** Reinitialize the generator as if just built with the given int array seed.
 	 * <p>The state of the generator is exactly the same as a new
 	 * generator built with the same seed.</p>
