@@ -39,19 +39,11 @@ public class DefaultFECCodeFactory extends FECCodeFactory {
         try {
             fecProperties = new Properties();
             fecProperties.load
-                (ClassLoader.getSystemClassLoader().
+                (DefaultFECCodeFactory.class.getClassLoader().
                  getResourceAsStream
                  (System.getProperty
                   ("com.onionnetworks.fec.defaultfeccodefactorypropertiesfile",
                    "lib/fec.properties")));
-
-//              fecProperties.load
-//                  (DefaultFECCodeFactory.class.getClassLoader().
-//                   getResourceAsStream
-//                   (System.getProperty
-//                    ("com.onionnetworks.fec.defaultfeccodefactorypropertiesfile",
-//                     "lib/fec.properties")));
-
         } catch (IOException e) {
             e.printStackTrace();
             throw new IllegalStateException
@@ -126,7 +118,7 @@ public class DefaultFECCodeFactory extends FECCodeFactory {
                         (new Object[] {K, N});
                     break;
                 } catch (Throwable doh) {
-                    //doh.printStackTrace();
+                    doh.printStackTrace();
                 }
             }
                         
