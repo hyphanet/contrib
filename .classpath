@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="bdb/build/test/testevolve"/>
+	<classpathentry kind="src" path="bdb/build/test/testserial"/>
+	<classpathentry kind="src" path="bdb/examples"/>
+	<classpathentry kind="src" path="bdb/src"/>
+	<classpathentry excluding="standalone/" kind="src" path="bdb/test"/>
+	<classpathentry kind="src" path="bdb/test/standalone"/>
+	<classpathentry kind="src" path="db4o/src/db4oj/core/src"/>
+	<classpathentry kind="src" path="db4o/src/db4oj/tools/src"/>
+	<classpathentry kind="src" path="db4o/src/db4ojdk1.2/core/src"/>
+	<classpathentry kind="src" path="db4o/src/db4ojdk1.2/test/src"/>
+	<classpathentry kind="src" path="db4o/src/db4ojdk5/core/src"/>
+	<classpathentry kind="src" path="db4o/src/db4ojdk5/plugins/src"/>
+	<classpathentry kind="src" path="db4o/src/db4ojdk5/test/src"/>
+	<classpathentry kind="src" path="fec/common/src"/>
+	<classpathentry kind="src" path="fec/common/test/src"/>
+	<classpathentry kind="src" path="fec/common/tools/src"/>
+	<classpathentry kind="src" path="fec/src"/>
+	<classpathentry kind="src" path="java"/>
+	<classpathentry kind="src" path="java-test"/>
+	<classpathentry kind="src" path="wrapper/src/java"/>
+	<classpathentry kind="src" path="wrapper/src/test"/>
+	<classpathentry kind="lib" path="bdb/build/lib/je.jar"/>
+	<classpathentry kind="lib" path="db4o/db4o.jar"/>
+	<classpathentry kind="lib" path="fec/common/lib/onion-common-tools.jar"/>
+	<classpathentry kind="lib" path="fec/common/lib/onion-common.jar"/>
+	<classpathentry exported="true" kind="lib" path="freenet_ext/freenet-ext.jar"/>
+	<classpathentry kind="lib" path="wrapper/lib/wrapper.jar"/>
+	<classpathentry kind="lib" path="wrapper/lib/wrappertest.jar"/>
+	<classpathentry kind="lib" path="wrapper/lib/wrappertest2.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="wrapper/build/testclasses"/>
+</classpath>
