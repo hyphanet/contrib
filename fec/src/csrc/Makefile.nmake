@@ -22,11 +22,11 @@ all: release-all
 
 feclib: fec$(BITS).dll
 
-release-all: 
+release-all:
 	$(MAKE) BITS=8 MODE=Release feclib
 	$(MAKE) BITS=16 MODE=Release feclib
 
-clean: 
+clean:
 	del *.dll *.obj *.lib *.pdb *.exp *.map
 
 fec$(BITS).dll : $(DEF_FILE) $(LDOBJS)
@@ -34,6 +34,9 @@ fec$(BITS).dll : $(DEF_FILE) $(LDOBJS)
 
 fec$(BITS).obj : fec.c
 	$(CPP) $(CPP_OPTS) /Fo"fec$(BITS).obj" /c fec.c
+
+fec$(BITS)-jinterf.obj : fec-jinterf.c
+	$(CPP) $(CPP_OPTS) /Fo"fec$(BITS)-jinterf.obj" /c fec-jinterf.c
 
 .c.obj::
 	$(CPP) $(CPP_OPTS) /c $<
