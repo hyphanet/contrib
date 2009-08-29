@@ -57,6 +57,7 @@ public class NativeDeployer {
 			OS_ARCH=OS+"-x86";
 		else
 			OS_ARCH=OS+"-"+System.getProperty("os.arch").toLowerCase();
+		System.out.println("Attempting to deploy Native FEC for " + OS_ARCH);
 	}
 
 	public final static String NATIVE_PROPERTIES_PATH = "lib/native.properties";
