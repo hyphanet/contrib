@@ -104,7 +104,7 @@ function make_static {
 	return 0
 }
 
-function is_64 {
+function is_pic {
 	for i in $PLAT_PIC; do [ $i = $1 ] && return 0; done;
 	return 1;
 }
@@ -123,9 +123,9 @@ function make_file {
 function configure_file {
 	echo -e "Attempting configure for ${3}${5}${2}"
 	sleep 1
+	if is_pic ${2}; then FLAGS_PIC=--with-pic; fi
 	# Nonfatal bail out on unsupported platform
-	if is_64 ${2}; then FLAGS_64=--with-pic; fi
-	../../gmp-${1}/configure $FLAGS_64 --host=${2} && return 0;
+	../../gmp-${1}/configure $FLAGS_PIC --host=${2} && return 0;
 	cd ..
 	rm -R "$2"
 	echo -e "\n\nSorry, ${3}${5}${2} is not supported on your build environment.\a"
