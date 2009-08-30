@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Modification of i2p's i2p-0.7.6/core/c/jbigi/mbuild-all.sh
+
 # FIXME: make the thing name files differently when compiled on 32/64 platforms
 # currently target "none" will build either a 32-bit or 64-bit binary depending
 # on your compiler.
