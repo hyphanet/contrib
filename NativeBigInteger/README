@@ -7,7 +7,9 @@ TODO: Document generated folder structure
 TODO: Instructions for adding the libraries to a jar
 
 Linux-specific information:
-Some linux distributions comes bundled with GMP. There is currently no out-of-the-box support for this in the current build-scripts.
+Some linux distributions comes bundled with GMP.
+There is currently no out-of-the-box support for this in the current build-scripts.
 
 Windows-specific information:
-The best way of building the jbigi dll's is to install Mingw {URL} and msys {URL}. The combination of these two should be able to run the included build-scripts without modifications.
+The best way of building the jbigi dll's is to install Mingw {URL} and msys {URL}.
+The combination of these two should be able to run the included build-scripts without modifications.
