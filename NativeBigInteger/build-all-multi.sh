@@ -26,35 +26,15 @@ VER="4.3.1"                                 # version of GMP to retrieve
 # Note: You will have to add the CPU ID for the platform in the CPU ID code
 # for a new CPU. Just adding them here won't let I2P use the code!
 
-#
-# If you know of other platforms i2p on linux works on,
-# please add them here.
-# Do NOT add any X86 platforms, do that below in the x86 platform list.
-#
+# General x86 platforms that all kernels can build for
+X86_PLATFORMS="pentium pentiummmx pentium2 pentium3 pentium4 pentiumm k6 k62 k63 athlon athlon64 core2 geode atom"
+
+# Misc kernel-specific platforms
 MISC_LINUX_PLATFORMS="hppa2.0 alphaev56 armv5tel mips64el itanium itanium2 ultrasparc2 ultrasparc2i alphaev6 powerpc970 powerpc7455 powerpc7447"
-
-#
-# If you know of other platforms i2p on FREEBSD works on,
-# please add them here.
-# Do NOT add any X86 platforms, do that below in the x86 platform list.
-#
 MISC_FREEBSD_PLATFORMS="alphaev56 ultrasparc2i"
-
 MISC_DARWIN_PLATFORMS="powerpc970 powerpc7455 powerpc7447"
-
-#
-# MINGW/Windows??
-#
 MISC_MINGW_PLATFORMS=""
 
-#
-# Are there any other X86 platforms that work on i2p? Add them here.
-#
-# Oddly athlon64 builds.... I wonder what others can :-)
-#
-X86_PLATFORMS="pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon pentiumm core2 athlon64 geode atom"
-
-#
 # Platforms which need to link against PIC code (-fPIC). These are generally
 # CPUs that use the x86_64 instruction set
 #
@@ -92,8 +72,8 @@ MINGW*)
 	TARGET="-windows-"
 	LINKFLAGS="-shared -Wl,--kill-at"
 	PLAT_MSG="Building windows .dlls"
-	JAVA_HOME="c:/j2sdk1.4.2_05"
-	JINCLUDES="-I$JAVA_HOME/include/win32"
+	#JAVA_HOME="c:/j2sdk1.4.2_05"
+	JINCLUDES="-I\$(JAVA_HOME)/include/win32"
 	;;
 Linux*)
 	PLATFORM_LIST="${LINUX_PLATFORMS}"
@@ -101,7 +81,7 @@ Linux*)
 	TYPE="so"
 	TARGET="-linux-"
 	PLAT_MSG="Building linux .sos"
-	JINCLUDES="-I$JAVA_HOME/include/linux"
+	JINCLUDES="-I\$(JAVA_HOME)/include/linux"
 	;;
 FreeBSD*)
 	PLATFORM_LIST="${FREEBSD_PLATFORMS}"
@@ -109,7 +89,7 @@ FreeBSD*)
 	TYPE="so"
 	TARGET="-freebsd-"
 	PLAT_MSG="Building freebsd .sos"
-	JINCLUDES="-I$JAVA_HOME/include/linux -I/usr/local/include"
+	JINCLUDES="-I\$(JAVA_HOME)/include/linux -I/usr/local/include"
 	;;
 Darwin*)
 	PLATFORM_LIST="${DARWIN_PLATFORMS}"
@@ -118,7 +98,7 @@ Darwin*)
 	TARGET="-darwin-"
 	LINKFLAGS="-dynamiclib"
 	PLAT_MSG="Building Darwin .jnilibs"
-	JAVA_HOME="/Library/Java/Home"
+	#JAVA_HOME="/Library/Java/Home"
 	;;
 *)
 	echo "Unsupported build environment"
@@ -127,7 +107,7 @@ Darwin*)
 esac
 
 # Default variables
-JINCLUDES="-I$JAVA_HOME/include $JINCLUDES"
+JINCLUDES="-I\$(JAVA_HOME)/include $JINCLUDES"
 if [ -z "$LIBFILE" ]; then LIBFILE="$NAME.$TYPE"; fi
 if [ -z "$LINKFLAGS" ]; then LINKFLAGS="-shared -Wl,-soname,$LIBFILE"; fi
 
@@ -163,8 +143,7 @@ is_pic() {
 make_file() {
 	# Nonfatal bail out on Failed build.
 	echo "Attempting make for ${3}${5}${2}"
-	make && return 0
-	cd .. && rm -R "$2"
+	make && make check && return 0
 	echo && echo "Failed to make ${3}${5}${2}."
 	sleep 1 && return 1
 }
@@ -174,7 +153,6 @@ configure_file() {
 	if is_pic ${2}; then FLAGS_PIC=--with-pic; fi
 	# Nonfatal bail out on unsupported platform
 	../../gmp-${1}/configure $FLAGS_PIC --host=${2} && return 0;
-	cd .. && rm -rf "$2"
 	echo && echo "Failed to configure for ${3}${5}${2}; maybe it isn't supported on your build environment.\a"
 	sleep 1 && return 1
 }
@@ -223,13 +201,9 @@ FAILED=
 for x in $PLATFORMS
 do
 	if ! (
-		if [ ! -d bin/$x ]; then
-			mkdir bin/$x
-			cd bin/$x
-		else
-			cd bin/$x
-			rm -Rf *
-		fi
+		if [ -d "bin/$x" ]; then rm -rf bin/$x; fi
+		mkdir -p bin/$x
+		cd bin/$x
 
 		build_file "$VER" "$x" "$NAME" "$TYPE" "$TARGET"
 		exit $?
