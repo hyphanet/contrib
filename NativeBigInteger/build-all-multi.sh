@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Modification of i2p's i2p-0.7.6/core/c/jbigi/mbuild-all.sh
 
@@ -114,49 +114,42 @@ fi
 if which tailf > /dev/null; then tailf="tailf";
 else tailf="tail -f"; fi
 
-function make_static {
-	echo "Attempting .${4} creation for ${3}${5}${2}"
-	make $LIBFILE || return 1
-	eval $(grep "ABI=" config.log)
-	cp ${3}.${4} ../../lib/net/i2p/util/${3}${5}${2}_${ABI}.${4}
-	return 0
+make_static() {
+	echo "Attempting make for ${3}${5}${2}.${4}"
+	make $LIBFILE && eval $(grep "ABI=" config.log) && cp ${3}.${4} ../../lib/net/i2p/util/${3}${5}${2}_${ABI}.${4} && return 0;
+	echo "Failed to make ${3}${5}${2}.${4}"
+	sleep 1 && return 1
 }
 
-function is_pic {
+is_pic() {
 	for i in $PLAT_PIC; do [ $i = $1 ] && return 0; done;
 	return 1;
 }
 
-function make_file {
+make_file() {
 	# Nonfatal bail out on Failed build.
 	echo "Attempting make for ${3}${5}${2}"
 	make && return 0
-	cd ..
-	rm -R "$2"
-	echo -e "\n\nFailed to make ${3}${5}${2}.\a"
-	sleep 1
-	return 1
+	cd .. && rm -R "$2"
+	echo && echo "Failed to make ${3}${5}${2}."
+	sleep 1 && return 1
 }
 
-function configure_file {
-	echo -e "Attempting configure for ${3}${5}${2}"
-	sleep 1
+configure_file() {
+	echo "Attempting configure for ${3}${5}${2}"
 	if is_pic ${2}; then FLAGS_PIC=--with-pic; fi
 	# Nonfatal bail out on unsupported platform
 	../../gmp-${1}/configure $FLAGS_PIC --host=${2} && return 0;
-	cd ..
-	rm -R "$2"
-	echo -e "\n\nFailed to configure for ${3}${5}${2}; maybe it isn't supported on your build environment.\a"
-	sleep 1
-	return 1
+	cd .. && rm -rf "$2"
+	echo && echo "Failed to configure for ${3}${5}${2}; maybe it isn't supported on your build environment.\a"
+	sleep 1 && return 1
 }
 
-function build_file {
-	echo -e "\n\n== Building for ${3}${5}${2} ==\n"
+build_file() {
+	echo && echo && echo "== Building for ${3}${5}${2} ==" && echo
 	configure_file "$1" "$2" "$3" "$4" "$5"  && make_file "$1" "$2" "$3" "$4" "$5" && make_static "$1" "$2" "$3" "$4" "$5" && return 0
-	echo -e "\nError building ${3}${5}${2}!\n\a"
-	sleep 1
-	return 1
+	echo && echo "Error building ${3}${5}${2}!"
+	sleep 1 && return 1
 }
 
 get_latest ftp://ftp.gnu.org/gnu/gmp/gmp-${VER}.tar.bz2
@@ -210,6 +203,6 @@ do
 	); then FAILED="$x $FAILED"; fi
 done
 
-if [ -z "$FAILED" ]; then echo -e "\nAll targets built successfully: $PLATFORMS";
-else echo -e "\nBuild complete; failed targets: $FAILED"; fi
+if [ -z "$FAILED" ]; then echo && echo "All targets built successfully: $PLATFORMS";
+else echo && echo "Build complete; failed targets: $FAILED"; fi
 exit 0
