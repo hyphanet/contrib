@@ -2,9 +2,15 @@
 
 # Modification of i2p's i2p-0.7.6/core/c/jbigi/mbuild-all.sh
 
-# FIXME: make the thing name files differently when compiled on 32/64 platforms
-# currently target "none" will build either a 32-bit or 64-bit binary depending
-# on your compiler.
+# This build script will produce shared libraries in lib/net/i2p/util of the
+# form *jbigi-K-CPU_ABI.*, where K is the kernal (eg. linux), CPU is the
+# processor type (eg. core2), and ABI is the instruction set (eg. 32 or 64).
+
+# If you are on a 64-bit platform with gcc-mulitlib installed, you can compile
+# 32-bit and 64-bit binaries for a bunch of architectures with:
+
+# ABI=32 ./build-all-multi.sh
+# ./build-all-multi.sh core2 athlon64 pentium4 atom
 
 WGET=""                                     # custom URL retrieval program
 VER="4.3.1"                                 # version of GMP to retrieve
@@ -41,11 +47,17 @@ MISC_MINGW_PLATFORMS=""
 X86_PLATFORMS="pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon pentiumm core2 athlon64 geode atom"
 
 #
-# Platforms which need to link against PIC code (-fPIC)
+# Platforms which need to link against PIC code (-fPIC). These are generally
+# CPUs that use the x86_64 instruction set
 #
-PLAT_PIC="core2 athlon64 atom"
-# We need -fPIC on x86_64
+# ABI=32 doesn't require -fPIC
+if [ "$ABI" = 32 ]; then PLAT_PIC="";
+# if no ABI is set, ./configure defaults to ABI=64, which require -fPIC
+else PLAT_PIC="core2 athlon64 pentium4 atom"; fi
+# If our own platform is x86_64 we need to set it too
 if [ `uname -m` = "x86_64" -o `uname -m` = "mips" ]; then PLAT_PIC="none $PLAT_PIC"; fi
+
+#echo "PLAT_PIC = $PLAT_PIC"
 
 #
 # You should not need to edit anything below this comment.
@@ -91,16 +103,22 @@ elif which wget > /dev/null; then
 	get_latest() { if ! wget -N "$@"; then echo "could not download $@; abort"; exit 2; fi }
 elif which curl > /dev/null; then
 	get_latest() { if ! curl -O "$@"; then echo "could not download $@; abort"; exit 2; fi }
+elif which fetch > /dev/null; then
+	get_latest() { if ! fetch -m "$@"; then echo "could not download $@; abort"; exit 2; fi }
 else
 	echo "could not find a suitable URL-retrieval program. try setting the WGET variable "
 	echo "near the top of this file."
 	exit 6
 fi
 
+if which tailf > /dev/null; then tailf="tailf";
+else tailf="tail -f"; fi
+
 function make_static {
 	echo "Attempting .${4} creation for ${3}${5}${2}"
 	make $LIBFILE || return 1
-	cp ${3}.${4} ../../lib/net/i2p/util/${3}${5}${2}.${4}
+	eval $(grep "ABI=" config.log)
+	cp ${3}.${4} ../../lib/net/i2p/util/${3}${5}${2}_${ABI}.${4}
 	return 0
 }
 
@@ -111,11 +129,11 @@ function is_pic {
 
 function make_file {
 	# Nonfatal bail out on Failed build.
-	echo "Attempting build for ${3}${5}${2}"
+	echo "Attempting make for ${3}${5}${2}"
 	make && return 0
 	cd ..
 	rm -R "$2"
-	echo -e "\n\nFAILED! ${3}${5}${2} not made.\a"
+	echo -e "\n\nFailed to make ${3}${5}${2}.\a"
 	sleep 1
 	return 1
 }
@@ -128,7 +146,7 @@ function configure_file {
 	../../gmp-${1}/configure $FLAGS_PIC --host=${2} && return 0;
 	cd ..
 	rm -R "$2"
-	echo -e "\n\nSorry, ${3}${5}${2} is not supported on your build environment.\a"
+	echo -e "\n\nFailed to configure for ${3}${5}${2}; maybe it isn't supported on your build environment.\a"
 	sleep 1
 	return 1
 }
