@@ -141,11 +141,11 @@ test_gmp() {
 	eval $(grep "^ABI=" config.log)
 	eval $(grep "^build=" config.log)
 	echo "Testing ${3}${5}${2} by running it on the current CPU ($build)."
-	make check >make_check.log 2>&1 && return 0
+	make check 2>&1 && return 0 | tee make_check.log
 	cat <<- EOF
 	Test failed. Note however, that if the current CPU does not support all the
 	instructions of ${2}_$ABI, then these test results are invalid and you need to
-	re-run it on a machine that *is* compatible with ${2}_ABI.
+	re-run it on a machine that *is* compatible with ${2}_$ABI.
 	EOF
 	sleep 1 && return 1
 }
@@ -181,7 +181,7 @@ build_jbigi() {
 		configure_gmp "$@" || break
 		make_gmp "$@" || break
 		test_gmp "$@" || TEST_EXIT=2
-		make_static "$@" || break
+		make_jbigi_static "$@" || break
 		return TEST_EXIT
 	done
 	echo && echo "Error building ${3}${5}${2}!"
