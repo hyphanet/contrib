@@ -1,21 +1,27 @@
 #!/bin/sh
 
 # Modification of i2p's i2p-0.7.6/core/c/jbigi/mbuild-all.sh
-
+#
 # This build script will produce shared libraries in lib/net/i2p/util of the
 # form *jbigi-K-CPU_ABI.*, where K is the kernal (eg. linux), CPU is the
 # processor type (eg. core2), and ABI is the instruction set (eg. 32 or 64).
-
-# If you are on a 64-bit platform with gcc-mulitlib installed, you can compile
+#
+# If you are on a 64-bit platform with gcc-multilib installed, you can compile
 # 32-bit and 64-bit binaries for a bunch of architectures with:
-
-# ABI=32 ./build-all-multi.sh
-# ./build-all-multi.sh core2 athlon64 pentium4 atom
+#
+# $ ABI=32 ./build-all-multi.sh
+# $ ./build-all-multi.sh core2 athlon64 pentium4 atom
+#
+# Otherwise, just run
+#
+# $ ./build-all-multi.sh
+#
+# TO-DO: Darwin, mingw32,, mingw64
+# TO-DO: use $JAVA_HOME, FreeBSD needs this
+#
 
 WGET=""                                     # custom URL retrieval program
 VER="4.3.1"                                 # version of GMP to retrieve
-
-# TO-DO: Darwin.
 
 # Note: You will have to add the CPU ID for the platform in the CPU ID code
 # for a new CPU. Just adding them here won't let I2P use the code!
