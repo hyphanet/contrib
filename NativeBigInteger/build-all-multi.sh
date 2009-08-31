@@ -2,9 +2,10 @@
 
 # Modification of i2p's i2p-0.7.6/core/c/jbigi/mbuild-all.sh
 #
-# This build script will produce shared libraries in lib/net/i2p/util of the
-# form *jbigi-K-CPU_ABI.*, where K is the kernal (eg. linux), CPU is the
-# processor type (eg. core2), and ABI is the instruction set (eg. 32 or 64).
+# This build script will produce jbigi shared libraries that are statically
+# linked with libgmp, in lib/net/i2p/util and named *jbigi-K-CPU_ABI.*, where
+# K is the kernel (eg. linux), CPU is the processor type (eg. core2), and ABI
+# is the instruction set (eg. 32 or 64).
 #
 # If you are on a 64-bit platform with gcc-multilib installed, you can compile
 # 32-bit and 64-bit binaries for a bunch of architectures with:
@@ -16,8 +17,7 @@
 #
 # $ ./build-all-multi.sh
 #
-# TO-DO: Darwin, mingw32,, mingw64
-# TO-DO: use $JAVA_HOME, FreeBSD needs this
+# TO-DO: Test on Darwin, FreeBSD, mingw32,, mingw64
 #
 
 WGET=""                                     # custom URL retrieval program
@@ -39,6 +39,8 @@ MISC_LINUX_PLATFORMS="hppa2.0 alphaev56 armv5tel mips64el itanium itanium2 ultra
 # Do NOT add any X86 platforms, do that below in the x86 platform list.
 #
 MISC_FREEBSD_PLATFORMS="alphaev56 ultrasparc2i"
+
+MISC_DARWIN_PLATFORMS="powerpc970 powerpc7455 powerpc7447"
 
 #
 # MINGW/Windows??
@@ -65,43 +67,69 @@ if [ `uname -m` = "x86_64" -o `uname -m` = "mips" ]; then PLAT_PIC="none $PLAT_P
 
 #echo "PLAT_PIC = $PLAT_PIC"
 
-#
-# You should not need to edit anything below this comment.
-#
+
+###########################################################################
+# The rest of this file should not need to be changed.
+###########################################################################
+
+# Error codes:
+# 1: (at least) some tasks not completed
+# 2: error retrieving something from a remote location
+# 3: error extracting an archive
+# 6: unsupported environment (eg. unavailable utility program)
 
 MINGW_PLATFORMS="${X86_PLATFORMS} ${MISC_MINGW_PLATFORMS}"
 LINUX_PLATFORMS="${X86_PLATFORMS} ${MISC_LINUX_PLATFORMS}"
 FREEBSD_PLATFORMS="${X86_PLATFORMS} ${MISC_FREEBSD_PLATFORMS}"
+DARWIN_PLATFORMS="${X86_PLATFORMS} ${MISC_DARWIN_PLATFORMS}"
 
+# Platform-specifc variables. Default variables are below this section.
 case `uname -sr` in
 MINGW*)
 	PLATFORM_LIST="${MINGW_PLATFORMS}"
 	NAME="jbigi"
 	TYPE="dll"
 	TARGET="-windows-"
-	LIBFILE="jbigi.dll"
 	LINKFLAGS="-shared -Wl,--kill-at"
-	PLAT_MSG="Building windows .dlls";;
+	PLAT_MSG="Building windows .dlls"
+	JAVA_HOME="c:/j2sdk1.4.2_05"
+	JINCLUDES="-I$JAVA_HOME/include/win32"
+	;;
 Linux*)
 	PLATFORM_LIST="${LINUX_PLATFORMS}"
 	NAME="libjbigi"
 	TYPE="so"
 	TARGET="-linux-"
-	LIBFILE="libjbigi.so"
-	LINKFLAGS="-shared -Wl,-soname,$LIBFILE"
-	PLAT_MSG="Building linux .sos";;
+	PLAT_MSG="Building linux .sos"
+	JINCLUDES="-I$JAVA_HOME/include/linux"
+	;;
 FreeBSD*)
 	PLATFORM_LIST="${FREEBSD_PLATFORMS}"
 	NAME="libjbigi"
 	TYPE="so"
 	TARGET="-freebsd-"
-	LIBFILE="libjbigi.so"
-	LINKFLAGS="-shared -Wl,-soname,$LIBFILE"
-	PLAT_MSG="Building freebsd .sos";;
+	PLAT_MSG="Building freebsd .sos"
+	JINCLUDES="-I$JAVA_HOME/include/linux -I/usr/local/include"
+	;;
+Darwin*)
+	PLATFORM_LIST="${DARWIN_PLATFORMS}"
+	NAME="libjbigi"
+	TYPE="jnilib"
+	TARGET="-darwin-"
+	LINKFLAGS="-dynamiclib"
+	PLAT_MSG="Building Darwin .jnilibs"
+	JAVA_HOME="/Library/Java/Home"
+	;;
 *)
 	echo "Unsupported build environment"
-	exit;;
+	exit 6
+	;;
 esac
+
+# Default variables
+JINCLUDES="-I$JAVA_HOME/include $JINCLUDES"
+if [ -z "$LIBFILE" ]; then LIBFILE="$NAME.$TYPE"; fi
+if [ -z "$LINKFLAGS" ]; then LINKFLAGS="-shared -Wl,-soname,$LIBFILE"; fi
 
 if [ -n "$WGET" ]; then
 	get_latest() { if ! $WGET "$@"; then echo "could not download $@; abort"; exit 2; fi }
@@ -161,7 +189,7 @@ build_file() {
 get_latest ftp://ftp.gnu.org/gnu/gmp/gmp-${VER}.tar.bz2
 
 echo "Extracting GMP Version $VER ..."
-tar -xf gmp-$VER.tar.bz2 || ( echo "Error in tarball file!" ; exit 1 )
+tar -xf gmp-$VER.tar.bz2 || ( echo "Error in tarball file!" ; exit 3 )
 cp jbigi/include/jbigi.h gmp-$VER
 cp jbigi/src/jbigi.c gmp-$VER
 echo "Attaching jbigi to GMP's Makefile.in"
@@ -170,7 +198,7 @@ cat >> gmp-$VER/Makefile.in <<EOF
 # This section added by the build script for jbigi
 
 jbigi.o: jbigi.c
-	\$(LTCOMPILE) -c \$(srcdir)/jbigi.c
+	\$(LTCOMPILE) $JINCLUDES -c \$(srcdir)/jbigi.c
 
 $LIBFILE: jbigi.o .libs/libgmp.a
 	\$(LINK) -rpath \$(libdir) $LINKFLAGS jbigi.o .libs/libgmp.a
@@ -209,6 +237,5 @@ do
 	); then FAILED="$x $FAILED"; fi
 done
 
-if [ -z "$FAILED" ]; then echo && echo "All targets built successfully: $PLATFORMS";
-else echo && echo "Build complete; failed targets: $FAILED"; fi
-exit 0
+if [ -z "$FAILED" ]; then echo && echo "All targets built successfully: $PLATFORMS"; exit 0;
+else echo && echo "Build complete; failed targets: $FAILED"; exit 1; fi
