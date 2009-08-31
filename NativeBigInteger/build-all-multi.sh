@@ -125,30 +125,41 @@ else
 	exit 6
 fi
 
-if which tailf > /dev/null; then tailf="tailf";
-else tailf="tail -f"; fi
-
-make_static() {
-	echo "Attempting make for ${3}${5}${2}.${4}"
-	make $LIBFILE && eval $(grep "ABI=" config.log) && cp ${3}.${4} ../../lib/net/i2p/util/${3}${5}${2}_${ABI}.${4} && return 0;
-	echo "Failed to make ${3}${5}${2}.${4}"
-	sleep 1 && return 1
-}
-
 is_pic() {
 	for i in $PLAT_PIC; do [ $i = $1 ] && return 0; done;
 	return 1;
 }
 
-make_file() {
+make_jbigi_static() {
+	echo "Attempting make for ${3}${5}${2}.${4}"
+	make $LIBFILE && eval $(grep "^ABI=" config.log) && cp "${3}.${4}" "../../lib/net/i2p/util/${3}${5}${2}_$ABI.${4}" && return 0;
+	echo "Failed to make ${3}${5}${2}.${4}"
+	sleep 1 && return 1
+}
+
+test_gmp() {
+	eval $(grep "^ABI=" config.log)
+	eval $(grep "^build=" config.log)
+	echo "Testing ${3}${5}${2} by running it on the current CPU ($build)."
+	make check >make_check.log 2>&1 && return 0
+	cat <<- EOF
+	Test failed. Note however, that if the current CPU does not support all the
+	instructions of ${2}_$ABI, then these test results are invalid and you need to
+	re-run it on a machine that *is* compatible with ${2}_ABI.
+	EOF
+	sleep 1 && return 1
+}
+
+make_gmp() {
 	# Nonfatal bail out on Failed build.
 	echo "Attempting make for ${3}${5}${2}"
-	make && make check && return 0
+	#make && make check >make_check.log 2>&1 && return 0
+	make && return 0
 	echo && echo "Failed to make ${3}${5}${2}."
 	sleep 1 && return 1
 }
 
-configure_file() {
+configure_gmp() {
 	echo "Attempting configure for ${3}${5}${2}"
 	if is_pic ${2}; then FLAGS_PIC=--with-pic; fi
 	# Nonfatal bail out on unsupported platform
@@ -157,9 +168,22 @@ configure_file() {
 	sleep 1 && return 1
 }
 
-build_file() {
+build_jbigi() {
+	# Error codes:
+	#
+	# 0: successful build
+	# 1: failed build
+	# 2: failed test
+
 	echo && echo && echo "== Building for ${3}${5}${2} ==" && echo
-	configure_file "$1" "$2" "$3" "$4" "$5"  && make_file "$1" "$2" "$3" "$4" "$5" && make_static "$1" "$2" "$3" "$4" "$5" && return 0
+	TEST_EXIT=0
+	while true; do
+		configure_gmp "$@" || break
+		make_gmp "$@" || break
+		test_gmp "$@" || TEST_EXIT=2
+		make_static "$@" || break
+		return TEST_EXIT
+	done
 	echo && echo "Error building ${3}${5}${2}!"
 	sleep 1 && return 1
 }
@@ -198,18 +222,40 @@ else PLATFORMS="$@"; fi
 echo "$PLAT_MSG for target platforms $PLATFORMS"
 
 FAILED=
+TEST_FAILED=
 for x in $PLATFORMS
 do
-	if ! (
+	(
 		if [ -d "bin/$x" ]; then rm -rf bin/$x; fi
 		mkdir -p bin/$x
 		cd bin/$x
 
-		build_file "$VER" "$x" "$NAME" "$TYPE" "$TARGET"
+		build_jbigi "$VER" "$x" "$NAME" "$TYPE" "$TARGET"
 		exit $?
+	);
 
-	); then FAILED="$x $FAILED"; fi
+	case $? in
+	0) ;;
+	1) FAILED="$x $FAILED";;
+	2) TEST_FAILED="$x $TEST_FAILED";;
+	*) "bug in build script?"; exit 1;;
+	esac
+
 done
 
-if [ -z "$FAILED" ]; then echo && echo "All targets built successfully: $PLATFORMS"; exit 0;
-else echo && echo "Build complete; failed targets: $FAILED"; exit 1; fi
+echo
+EXIT=0
+if [ -n "$FAILED" ]; then echo "Build complete; failed targets: $FAILED"; EXIT=1;
+else echo "All targets built successfully: $PLATFORMS"; fi
+
+if [ -n "$TEST_FAILED" ]; then
+	cat <<- EOF
+	Failed test targets: $TEST_FAILED
+	Note however, that if the current CPU does not support all the instructions of
+	a given target, then the test results are invalid for that target, and you need
+	to re-run it on a machine that *is* compatible with that target.
+	EOF
+	EXIT=1
+fi
+
+exit $EXIT
