@@ -141,11 +141,13 @@ test_gmp() {
 	eval $(grep "^ABI=" config.log)
 	eval $(grep "^build=" config.log)
 	echo "Testing ${3}${5}${2} by running it on the current CPU ($build)."
-	make check 2>&1 && return 0 | tee make_check.log
+	make check 2>&1 && return 0
 	cat <<- EOF
+	================================================================================
 	Test failed. Note however, that if the current CPU does not support all the
 	instructions of ${2}_$ABI, then these test results are invalid and you need to
 	re-run it on a machine that *is* compatible with ${2}_$ABI.
+	================================================================================
 	EOF
 	sleep 1 && return 1
 }
@@ -164,7 +166,7 @@ configure_gmp() {
 	if is_pic ${2}; then FLAGS_PIC=--with-pic; fi
 	# Nonfatal bail out on unsupported platform
 	../../gmp-${1}/configure $FLAGS_PIC --host=${2} && return 0;
-	echo && echo "Failed to configure for ${3}${5}${2}; maybe it isn't supported on your build environment.\a"
+	echo && echo "Failed to configure for ${3}${5}${2}; maybe it isn't supported on your build environment."
 	sleep 1 && return 1
 }
 
@@ -182,7 +184,7 @@ build_jbigi() {
 		make_gmp "$@" || break
 		test_gmp "$@" || TEST_EXIT=2
 		make_jbigi_static "$@" || break
-		return TEST_EXIT
+		return $TEST_EXIT
 	done
 	echo && echo "Error building ${3}${5}${2}!"
 	sleep 1 && return 1
@@ -252,7 +254,7 @@ if [ -n "$TEST_FAILED" ]; then
 	cat <<- EOF
 	Failed test targets: $TEST_FAILED
 	Note however, that if the current CPU does not support all the instructions of
-	a given target, then the test results are invalid for that target, and you need
+	a given target, then the test results for that target are invalid, and you need
 	to re-run it on a machine that *is* compatible with that target.
 	EOF
 	EXIT=1
