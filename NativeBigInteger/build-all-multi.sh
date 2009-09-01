@@ -141,12 +141,16 @@ test_gmp() {
 	eval $(grep "^ABI=" config.log)
 	eval $(grep "^build=" config.log)
 	echo "Testing ${3}${5}${2} by running it on the current CPU ($build)."
-	make check 2>&1 && return 0
+	{ status=$( { { make check 2>&1; echo $? >&3; } | tee make_check.log >&4; } 3>&1 ); } 4>&1;
+	# in bash, one would just do "set -o pipefail; { make check 2>&1 | tee.log; } && return 0"
+	case $status in
+	0) return 0;;
+	esac
 	cat <<- EOF
 	================================================================================
-	Test failed. Note however, that if the current CPU does not support all the
-	instructions of ${2}_$ABI, then these test results are invalid and you need to
-	re-run it on a machine that *is* compatible with ${2}_$ABI.
+	Tests failed. However, note that if the current CPU does not support the entire
+	instructions set of ${2}_$ABI, then these test results are invalid and you need
+	to re-run it on a machine that *is* compatible with ${2}_$ABI.
 	================================================================================
 	EOF
 	sleep 1 && return 1
@@ -253,9 +257,9 @@ else echo "All targets built successfully: $PLATFORMS"; fi
 if [ -n "$TEST_FAILED" ]; then
 	cat <<- EOF
 	Failed test targets: $TEST_FAILED
-	Note however, that if the current CPU does not support all the instructions of
-	a given target, then the test results for that target are invalid, and you need
-	to re-run it on a machine that *is* compatible with that target.
+	However, note that if the current CPU does not support the entire instruction
+	set of a given target, then the test results for that target are invalid, and
+	you need to re-run it on a machine that *is* compatible with that target.
 	EOF
 	EXIT=1
 fi
