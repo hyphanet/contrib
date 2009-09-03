@@ -19,6 +19,10 @@
 #
 # TO-DO: Test on Darwin, FreeBSD, mingw32,, mingw64
 #
+# FIXME: the binaries that this build script creates is not yet name-compatible
+# with the jcpuid supplied. It also includes some newer processors that are not
+# recognised by jcpuid. So don't deploy them with ext until this is fixed.
+#
 
 WGET=""                                     # custom URL retrieval program
 VER="4.3.1"                                 # version of GMP to retrieve
@@ -64,7 +68,7 @@ FREEBSD_PLATFORMS="${X86_PLATFORMS} ${MISC_FREEBSD_PLATFORMS}"
 DARWIN_PLATFORMS="${X86_PLATFORMS} ${MISC_DARWIN_PLATFORMS}"
 
 # Platform-specifc variables. Default variables are below this section.
-case `uname -sr` in
+case `uname -s` in
 MINGW*)
 	PLATFORM_LIST="${MINGW_PLATFORMS}"
 	NAME="jbigi"
@@ -142,14 +146,14 @@ test_gmp() {
 	eval $(grep "^build=" config.log)
 	echo "Testing ${3}${5}${2} by running it on the current CPU ($build)."
 	{ status=$( { { make check 2>&1; echo $? >&3; } | tee make_check.log >&4; } 3>&1 ); } 4>&1;
-	# in bash, one would just do "set -o pipefail; { make check 2>&1 | tee.log; } && return 0"
+	# in bash, one would just do "set -o pipefail; { make check 2>&1 | tee make_check.log; } && return 0"
 	case $status in
 	0) return 0;;
 	esac
 	cat <<- EOF
 	================================================================================
 	Tests failed. However, note that if the current CPU does not support the entire
-	instructions set of ${2}_$ABI, then these test results are invalid and you need
+	instruction set of ${2}_$ABI, then these test results are invalid and you need
 	to re-run it on a machine that *is* compatible with ${2}_$ABI.
 	================================================================================
 	EOF
