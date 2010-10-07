@@ -64,7 +64,6 @@
 	
 	<target name="wrapper" depends="init" description="Build the java wrapper">
 		<ant antfile="build.xml" target="jar" dir="../wrapper/">
-			<!-- detect it! -->
 			<property name="bits" value="${sun.arch.data.model}"/>
 			<property name="javac.target.version" value="${javac.target.version}"/>
 		</ant>
@@ -122,16 +121,23 @@
 		<delete dir="${build}-test"/>
 	</target>
 
-	<target name="clean" description="Cleanup the build directory">
-		<delete file="${jar.location}"/>
-		<delete dir="${build}"/>
-		<ant antfile="build.xml" target="clean" dir="../fec/common/"/>
-		<ant antfile="build.xml" target="clean" dir="../bdb/"/>
-		<ant antfile="build.xml" target="clean" dir="../wrapper/">
-			<!-- detect it! -->
+	<target name="clean-all" depends="clean" description="More thorough version of clean">
+		<ant antfile="build.xml" target="clean-javadoc" dir="../bdb"/>
+		<ant antfile="build.xml" target="clean-jca" dir="../bdb"/>
+		<ant antfile="build.xml" target="total-clean" dir="../wrapper">
 			<property name="bits" value="${sun.arch.data.model}"/>
 		</ant>
-		<ant antfile="build.xml" target="clean" dir="../db4o/"/>
+	</target>
+
+	<target name="clean" description="Cleanup the build directories">
+		<delete file="${jar.location}"/>
+		<delete dir="${build}"/>
+		<ant antfile="build.xml" target="clean" dir="../bdb"/>
+		<ant antfile="build.xml" target="clean" dir="../db4o"/>
+		<ant antfile="build.xml" target="clean" dir="../fec/common"/>
+		<ant antfile="build.xml" target="clean" dir="../wrapper">
+			<property name="bits" value="${sun.arch.data.model}"/>
+		</ant>
 	</target>
 
 	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper,db4o,build-java" description="Create the jar file">

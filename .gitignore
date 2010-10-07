@@ -17,3 +17,4 @@ wrapper/src/c/org_tanukisoftware_wrapper_WrapperManager_ShutdownLock.h
 wrapper/src/c/org_tanukisoftware_wrapper_WrapperManager_WrapperEventListenerMask.h
 wrapper/src/c/org_tanukisoftware_wrapper_WrapperManager_WrapperInputStream.h
 wrapper/src/c/org_tanukisoftware_wrapper_WrapperManager_WrapperTickEventImpl.h
+wrapper/src/c/wrapperinfo.c
