@@ -65,7 +65,7 @@
 	<target name="wrapper" depends="init" description="Build the java wrapper">
 		<ant antfile="build.xml" target="jar" dir="../wrapper/">
 			<!-- detect it! -->
-			<property name="bits" value="32"/>
+			<property name="bits" value="${sun.arch.data.model}"/>
 			<property name="javac.target.version" value="${javac.target.version}"/>
 		</ant>
 	</target>
@@ -129,7 +129,7 @@
 		<ant antfile="build.xml" target="clean" dir="../bdb/"/>
 		<ant antfile="build.xml" target="clean" dir="../wrapper/">
 			<!-- detect it! -->
-			<property name="bits" value="32"/>
+			<property name="bits" value="${sun.arch.data.model}"/>
 		</ant>
 		<ant antfile="build.xml" target="clean" dir="../db4o/"/>
 	</target>
