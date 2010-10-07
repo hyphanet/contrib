@@ -124,6 +124,10 @@
 	<target name="clean-all" depends="clean" description="More thorough version of clean">
 		<ant antfile="build.xml" target="clean-javadoc" dir="../bdb"/>
 		<ant antfile="build.xml" target="clean-jca" dir="../bdb"/>
+		<!--WORKAROUND bug in wrapper's build.xml-->
+		<mkdir dir="../wrapper/bin"/>
+		<mkdir dir="../wrapper/lib"/>
+		<mkdir dir="../wrapper/test"/>
 		<ant antfile="build.xml" target="total-clean" dir="../wrapper">
 			<property name="bits" value="${sun.arch.data.model}"/>
 		</ant>
