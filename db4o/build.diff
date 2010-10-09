@@ -1,8 +1,3 @@
-Only in db4o-checkout: bloat
-Only in db4o: build.diff
-Only in db4o: build.sh
-Only in db4o/db4obuild: bin
-Only in db4o-checkout/db4obuild: build
 diff -ru -ruw -x .svn db4o-checkout/db4obuild/build-db4obuild.xml db4o/db4obuild/build-db4obuild.xml
 --- db4o-checkout/db4obuild/build-db4obuild.xml	2010-10-09 20:10:01.212734713 +0100
 +++ db4o/db4obuild/build-db4obuild.xml	2010-10-10 00:14:36.808761437 +0100
@@ -14,8 +9,6 @@ diff -ru -ruw -x .svn db4o-checkout/db4obuild/build-db4obuild.xml db4o/db4obuild
  	</target>
  
  	<target name="compileall" depends="compiledoctor,compiledb4obuild" description="Compile everything needed for the main ant script tasks"/>
-Only in db4o/db4obuild: build-db4obuild.xml.orig
-Only in db4o/db4obuild: build-db4obuild.xml.rej
 diff -ru -ruw -x .svn db4o-checkout/db4obuild/common.xml db4o/db4obuild/common.xml
 --- db4o-checkout/db4obuild/common.xml	2010-10-09 20:10:01.209739169 +0100
 +++ db4o/db4obuild/common.xml	2010-10-10 00:15:05.928737396 +0100
@@ -64,41 +57,3 @@ diff -ru -ruw -x .svn db4o-checkout/db4obuild/common.xml db4o/db4obuild/common.x
  		<echo>Revision: ${svn.revision}</echo>
  	</target>
  
-Only in db4o-checkout/db4obuild/config/osgi: org.eclipse.osgi_3.2.2.R32x_v20070118.jar
-Only in db4o-checkout/db4obuild/lib: ant.jar
-Only in db4o-checkout/db4obuild/lib: ant.license.html
-Only in db4o-checkout/db4obuild/lib: bnd-0.0.337.jar
-Only in db4o/db4obuild/lib: bnd-0.0.384.jar
-Only in db4o-checkout/db4obuild/lib: boo
-Only in db4o-checkout/db4obuild/lib: eclipse.license.html
-Only in db4o-checkout/db4obuild/lib: jtidy.license.htm
-Only in db4o-checkout/db4obuild/lib: junit.jar
-Only in db4o-checkout/db4obuild/lib: junit.license.html
-Only in db4o-checkout/db4obuild/lib: macker
-Only in db4o-checkout/db4obuild/lib: ndoc
-Only in db4o-checkout/db4obuild/lib: org.eclipse.osgi_3.3.jar
-Only in db4o-checkout/db4obuild/lib: SharpDevelop
-Only in db4o-checkout/db4obuild/lib: svnkit
-Only in db4o-checkout/db4obuild/lib: tidy.config
-Only in db4o-checkout/db4obuild/lib: tidy.jar
-Only in db4o-checkout/db4obuild/lib: wix
-Only in db4o-checkout/db4obuild/maven/lib: maven-ant-tasks-2.0.10.jar
-Only in db4o-checkout/db4obuild: mono
-Only in db4o-checkout/db4obuild/src/com/db4o/devtools/ant: SvnRevision.java
-Only in db4o-checkout/db4obuild/src/com/db4o/devtools/ant: SvnSync.java
-Only in db4o-checkout/db4obuild/src/com/db4o: osgi
-Only in db4o-checkout/db4obuild: wikiOffline
-Only in db4o-checkout: db4obuild.tests
-Only in db4o-checkout: db4o.instrumentation
-Binary files db4o-checkout/db4oj/lib/decaf-annotations.jar and db4o/db4oj/lib/decaf-annotations.jar differ
-Only in db4o-checkout: db4oj.tests
-Only in db4o-checkout: db4o.net
-Only in db4o-checkout: db4onqopt
-Only in db4o-checkout: db4otaj
-Only in db4o-checkout: db4otaj.tests.integration
-Only in db4o-checkout: db4otools
-Only in db4o-checkout: db4ounit
-Only in db4o-checkout: db4ounit.extensions
-Binary files db4o-checkout/decaf/decaf/lib/decaf-annotations.jar and db4o/decaf/decaf/lib/decaf-annotations.jar differ
-Only in db4o/decaf/decaf.annotations: bin
-Only in db4o: machine.properties
