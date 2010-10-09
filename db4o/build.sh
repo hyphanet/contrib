@@ -1,17 +1,23 @@
 #!/bin/sh
 # Eventually this is going to be an ant script
 
+JDIR="/usr/share/java"
+
 REPO="https://source.db4o.com/db4o/trunk"
+P_CORE="db4o.cs db4o.cs.optional db4oj db4oj.optional decaf"
 SVN_REV="14653"
 BND_VER="0.0.384"
 
+rm -rf db4obuild $P_CORE
+if [ "$1" = "-c" ]; then exit; fi
+
 # pull in core projects
-for i in db4o.cs db4o.cs.optional db4oj db4oj.optional decaf; do svn checkout -r $SVN_REV "$REPO/$i"; done
+for i in $P_CORE; do svn checkout -r $SVN_REV "$REPO/$i"; done
 
 # pull, cull, and patch db4obuild
 svn checkout -r $SVN_REV --depth=files "$REPO/db4obuild"
 cp machine.properties db4obuild/
-patch -p1 < build.diff
+patch -p1 < db4obuild.diff
 cd db4obuild
 sed -i -e "s/bnd-0.0.337.jar/bnd-$BND_VER.jar/g" -e "s/@svnRevision@/$SVN_REV/g" common.xml
 mkdir lib
@@ -35,8 +41,8 @@ wget "http://www.aqute.biz/repo/biz/aQute/bnd/$BND_VER/bnd-$BND_VER.jar" && mv "
 
 # do the build!
 cd db4obuild
-CLASSPATH=/usr/share/java/ant-contrib.jar ant -f build-db4obuild.xml || exit 1
-CLASSPATH=/usr/share/java/ant-contrib.jar ant -f build-java.xml clean build.db4ojdk1.5 || exit 1
+CLASSPATH="$JDIR/ant-contrib.jar" ant -f build-db4obuild.xml || exit 1
+CLASSPATH="$JDIR/ant-contrib.jar" ant -f build-java.xml clean build.db4ojdk1.5 || exit 1
 cd ..
 
 
