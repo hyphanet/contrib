@@ -6,6 +6,7 @@ debian package: libdb-je-java
 debian version: 3.3.62
 debian jar: /usr/share/java/db-je.jar
 notes: debian has newer versions called libdb4.[5678]-java
+todo: drop this from freenet altogether
 
 [db4o]
 contrib version: 7.4.63.11890
