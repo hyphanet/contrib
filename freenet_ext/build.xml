@@ -21,20 +21,20 @@
 		</javac>
 	</target>
 
-	<target name="fec-common" depends="init" description="build required classes for FEC">
-		<ant antfile="build.xml" dir="../fec/common/"/>
+	<target name="onion-common" depends="init" description="build required classes for FEC">
+		<ant antfile="build.xml" dir="../onion-common/"/>
 	</target>
 
-	<target name="fec" depends="fec-common" description="build the fecencoder/decoder plugins for fproxy.">
+	<target name="onion-fec" depends="onion-common" description="build the FEC encoder/decoder plugins for fproxy.">
 		<javac destdir="${build}" optimize="on" source="${javac.target.version}">
-			<src path="../fec/src"/>
-			<classpath path="../fec/common/lib/onion-common.jar"/>
+			<src path="../onion-fec/src"/>
+			<classpath path="../onion-common/lib/onion-common.jar"/>
 			<exclude name="csrc/*.java"/>
 		</javac>
 
-		<copy file="../fec/onion_LICENSE" todir="${build}"/>
+		<copy file="../onion-fec/onion_LICENSE" todir="${build}"/>
 		<copy todir="${build}">
-			<fileset dir="../fec/">
+			<fileset dir="../onion-fec/">
 				<include name="lib/"/>
 			</fileset>
 		</copy>
@@ -132,16 +132,16 @@
 		<delete dir="${build}"/>
 		<ant antfile="build.xml" target="clean" dir="../bdb"/>
 		<ant antfile="build.xml" target="clean" dir="../db4o"/>
-		<ant antfile="build.xml" target="clean" dir="../fec/common"/>
+		<ant antfile="build.xml" target="clean" dir="../onion-common"/>
 		<ant antfile="build.xml" target="clean" dir="../wrapper">
 			<property name="bits" value="${sun.arch.data.model}"/>
 		</ant>
 	</target>
 
-	<target name="jar" depends="clean,fec,jcpuid,nativethread,bigint,bdb,wrapper,db4o,build-java" description="Create the jar file">
+	<target name="jar" depends="clean,onion-fec,jcpuid,nativethread,bigint,bdb,wrapper,db4o,build-java" description="Create the jar file">
 		<delete file="${jar.location}"/>
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
-			<zipfileset src="../fec/common/lib/onion-common.jar"/>
+			<zipfileset src="../onion-common/lib/onion-common.jar"/>
 			<zipfileset src="../bdb/build/lib/je.jar"/>
 			<zipfileset src="../wrapper/lib/wrapper.jar"/>
 		</jar>

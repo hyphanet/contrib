@@ -1,0 +1,29 @@
+[onion-common]
+
+Version 20020926 was imported into contrib on 2006-11-10. You can verify that
+this was a clean import by running:
+
+  $ unzip fec-1.0.3/common-20020926.zip common-20020926/*
+  $ git checkout 3ebd55031d69ebfd129a83e2433b6fcc20e88b6c fec/common
+  $ diff -ru common-20020926 fec/common
+  Only in common-20020926: classes
+  Only in common-20020926: javadoc
+  Only in common-20020926: lib
+  [snip]
+  $ rm -rf fec/common && git reset --hard HEAD
+
+where fec-1.0.3 is where you extracted Onion FEC 1.0.3.
+
+You can view the changes made since this time, by running 
+
+  $ git log -M -- fec/common
+
+[onion-fec]
+
+changes to be made to hg tip:
+
+- crlf src/csrc/Makefile.nmake 
+- rm src/csrc/fec_win32.c
+- rm src/csrc/w32
+- add src/csrc/fec8.def
+- add src/csrc/fec16.def

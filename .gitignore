@@ -4,9 +4,9 @@ db4o/build-db4oj/
 db4o/build-db4ojdk1.2/
 db4o/build-db4ojdk5/
 db4o/db4o.jar
-fec/common/classes/
-fec/common/lib/
-fec/common/tools/classes/
+onion-common/classes/
+onion-common/lib/
+onion-common/tools/classes/
 freenet_ext/build_dir/
 freenet_ext/freenet-ext.jar
 wrapper/build/
