@@ -3,9 +3,8 @@
 contrib contains the following libraries:
 
 Upstream source
-:	The build scripts will download these from the upstream project. These are
-	well-known  and most OS distributions should have them in their package
-	repository.
+:	The build scripts get these from upstream. These are established projects
+	and most OS distributions will have them in their package repository.
 
 	- bdb
 	- db4o
@@ -13,9 +12,9 @@ Upstream source
 	- commons-compress
 
 Mirrored source
-:	The build scripts will download these from the freenet servers, but they
-	have not been modified from upstream. These projects are smaller, and are
-	unlikely to have been packaged by an OS distribution.
+:	The build scripts get these from the freenet servers, but they have not
+	been modified from upstream. These are smaller projects and are unlikely to
+	have been packaged by an OS distribution.
 
 	- lzma
 	- SevenZip
@@ -33,27 +32,32 @@ Locally maintained
 
 == Building ==
 
-The contrib build script will retrieve each of the source packages and build
-them. It will then build all the locally-maintained packages, and collect them
-into freenet-ext.jar.
+The contrib build script retrieves each of the source packages and builds them.
+It then builds all the locally-maintained packages, and collects them into
+freenet-ext.jar.
 
 == Upstream source ==
 
 [bdb]
-location:
-sum-sha256:
+version: 3.3.98
+location: http://download.oracle.com/berkeley-db/je-3.3.98.tar.gz
+sum-md5: a7ea9a6aa6ba694217bf60a54a07d668
+sum-sha256: 293dc8e9aaa6f2bb1589bfc2a7fec1641e6b5d18f32707f026b85008f519d598
 
 [db4o]
-location:
-sum-sha256:
+version: 7.4.155.14653
+svn-repo: https://source.db4o.com/db4o/trunk/
+svn-revision: 14653
 
 [wrapper]
-location:
-sum-sha256:
+location: http://wrapper.tanukisoftware.com/download/3.5.5/wrapper_3.5.5_src.tar.gz
+sum-md5: 733180ea595ce80bee91e0afa7cc2ae5
+sum-sha256: 19451b2e52f4a2ed3b9ad5d4327f3d6f764fa3593294c4f7f2283de5f262e406
 
 [commons-compress]
-location:
-sum-sha256:
+location: ftp://ftp.mirrorservice.org/sites/ftp.apache.org/commons/compress/source/commons-compress-1.1-src.tar.gz
+sum-md5: 735815362c7a459108e0e162ba9f3842
+sum-sha256: 1d22ea33d50fa5cafdf3ce86136021b3c66ea02d6d66ff5223b60799fd37ed34
 
 == Mirrored source ==
 
