@@ -46,15 +46,18 @@ sum-sha256: 293dc8e9aaa6f2bb1589bfc2a7fec1641e6b5d18f32707f026b85008f519d598
 
 [db4o]
 version: 7.4.155.14653
-svn-repo: https://source.db4o.com/db4o/trunk/
-svn-revision: 14653
+location: http://www.db4o.com/downloads/db4o-7.4-java.zip
+sum-md5: 36f76bc8fc72ac7251e345954fbd57a6
+sum-sha256: 73f307a8cbd114fdc0af8daa067994a2cdc364c4053e6734d16b8dd1d5a0469f
 
 [wrapper]
+version: 3.5.5
 location: http://wrapper.tanukisoftware.com/download/3.5.5/wrapper_3.5.5_src.tar.gz
 sum-md5: 733180ea595ce80bee91e0afa7cc2ae5
 sum-sha256: 19451b2e52f4a2ed3b9ad5d4327f3d6f764fa3593294c4f7f2283de5f262e406
 
 [commons-compress]
+version: 1.1
 location: ftp://ftp.mirrorservice.org/sites/ftp.apache.org/commons/compress/source/commons-compress-1.1-src.tar.gz
 sum-md5: 735815362c7a459108e0e162ba9f3842
 sum-sha256: 1d22ea33d50fa5cafdf3ce86136021b3c66ea02d6d66ff5223b60799fd37ed34
