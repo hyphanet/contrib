@@ -64,17 +64,23 @@ sum-sha256: 1d22ea33d50fa5cafdf3ce86136021b3c66ea02d6d66ff5223b60799fd37ed34
 
 == Mirrored source ==
 
-[lzma]
-location:
-sum-sha256:
+[lzmajio]
+version: 0.95
+location: http://github.com/league/lzmajio/tarball/0.95
+sum-md5: f972edfdffb3656174e692af307f27ee
+sum-sha256: 265f7ed2dd4fecb058884d3f8974674b06e0be46131c3b2bc6a310373937d2ef
 
-[SevenZip]
-location:
-sum-sha256:
+[lzma]
+version: 4.65
+location: http://downloads.sourceforge.net/project/sevenzip/LZMA%20SDK/4.65/lzma465.tar.bz2
+sum-md5: 29d5ffd03a5a3e51aef6a74e9eafb759
+sum-sha256: c935fd04dd8e0e8c688a3078f3675d699679a90be81c12686837e0880aa0fa1e
 
 [mantissa]
-location:
-sum-sha256:
+version: 7.2
+location: http://www.spaceroots.org/software/mantissa/mantissa-7.2-src.zip
+sum-md5: bc7ccbec50970fa907c8089167eeec9d
+sum-sha256: e438135d69139ed4fa44400f416ea73935d16afe50dfe490b7bba0602ee89476
 
 == Locally maintained ==
 

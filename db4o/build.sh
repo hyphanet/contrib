@@ -1,6 +1,7 @@
 #!/bin/sh
 # Eventually this is going to be an ant script
 # - This only works for the 8.0 in SVN, not the 7.4 release. whoops
+# db4o doesn't actually provide buildscripts for the releases
 
 JDIR="/usr/share/java"
 
