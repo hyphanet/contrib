@@ -80,9 +80,11 @@
 		<copy todir="${dist}" file="${pkg.base}/wrapper/lib/wrapper.jar"/>
 		<copy todir="${dist}" file="${pkg.base}/bdb-je/build/lib/je.jar"/>
 		<copy todir="${dist}" file="${pkg.base}/db4o/db4o.jar"/>
-		<copy todir="${dist}" file="${pkg.base}/commons-compress/target/commons-compress-${extlib.commons-compress.version}.jar"/>
+		<copy tofile="${dist}/commons-compress.jar"
+		  file="${pkg.base}/commons-compress/target/commons-compress-${extlib.commons-compress.version}.jar"/>
 		<copy todir="${dist}" file="${pkg.base}/lzmajio/lzmajio.jar"/>
-		<copy todir="${dist}" file="${pkg.base}/mantissa/mantissa-${extlib.mantissa.version}.jar"/>
+		<copy tofile="${dist}/mantissa.jar"
+		  file="${pkg.base}/mantissa/mantissa-${extlib.mantissa.version}.jar"/>
 	</target>
 
 	<target name="clean" description="clean standard build products">
