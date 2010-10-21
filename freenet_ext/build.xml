@@ -7,10 +7,16 @@
 
 	<property file="build.properties" />
 	<property file="source.properties" />
-
-	<property name="build" location="build"/>
-	<property name="jar.location" location="freenet-ext.jar"/>
+	<property name="javac.args" value="-Xlint"/>
 	<property name="javac.target.version" value="1.5"/>
+
+	<property name="pkg.base" value=".."/>
+	<property name="build" value="build"/>
+	<property name="src" value="src"/>
+	<property name="dist" value="dist"/>
+
+	<property name="version.src" value="freenet/node/ExtVersion.java" />
+	<property name="version.make" value="freenet/node/ExtVersion.class" />
 
 	<!-- set version string based on git-describe -->
 	<exec executable="git" failifexecutionfails="false"
@@ -32,7 +38,7 @@
 
 	<target name="dist" depends="clean-all, all" description="clean-build everything"/>
 
-	<target name="all" depends="package" description="build everything"/>
+	<target name="all" depends="package" description="build everything, incl. docs"/>
 
 	<target name="clean-all" depends="clean, clean-local, clean-lib" description="clean all build products"/>
 
@@ -46,112 +52,103 @@
 
 	<target name="init">
 		<mkdir dir="${build}"/>
-		<!-- Update the Version file -->
-		<replace file="ExtVersion.java">
+		<mkdir dir="${dist}"/>
+	</target>
+
+	<target name="build" depends="init">
+		<!-- Create the time stamp -->
+		<tstamp/>
+
+		<!-- Create the Version file with patched revision number in ${build} -->
+		<copy file="${src}/${version.src}" tofile="${build}/${version.src}" overwrite="true" />
+		<delete file="${build}/${version.make}" quiet="true" />
+		<replace file="${build}/${version.src}">
 			<replacefilter token="@custom@" value="${git.revision}"/>
 		</replace>
-		<javac srcdir="." destdir="${build}" optimize="on" source="${javac.target.version}">
-			<include name="ExtVersion.java"/>
+		<echo message="Updated build version to ${git.revision} in ${main.make}/${version.src}"/>
+
+		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+			<compilerarg line="${javac.args}"/>
+			<include name="${version.src}"/>
 		</javac>
 	</target>
 
-	<target name="package" depends="build-local,build-lib" description="build standard components">
-		<delete file="${jar.location}"/>
-		<jar jarfile="${jar.location}" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
-			<zipfileset src="../onion-common/lib/onion-common.jar"/>
-			<zipfileset src="../bdb/build/lib/je.jar"/>
-			<zipfileset src="../wrapper/lib/wrapper.jar"/>
+	<target name="package" depends="build,prepare-local,package-lib" description="build standard binary packages">
+		<jar jarfile="${dist}/freenet-ext.jar" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
+			<exclude name="${version.src}"/>
 		</jar>
+		<copy todir="${dist}" src="${pkg.base}/bdb/build/lib/je.jar"/>
+		<copy todir="${dist}" src="${pkg.base}/wrapper/lib/wrapper.jar"/>
 	</target>
 
 	<target name="clean" description="clean standard build products">
-		<delete file="${jar.location}"/>
 		<delete dir="${build}"/>
+		<delete dir="${dist}"/>
 	</target>
 
 	<!-- =================================================================== -->
 	<!-- Locally-maintained                                                  -->
 	<!-- =================================================================== -->
 
-	<target name="build-local" description="build locally maintained packages">
+	<target name="prepare-local" depends="init,package-local">
+		<unjar dest="${build}" src="${pkg.base}/onion-common/lib/onion-common.jar"/>
+		<unjar dest="${build}" src="${pkg.base}/onion-fec/lib/onion-fec.jar"/>
+		<copy todir="${build}"><fileset dir="${pkg.base}/jcpuid/lib" includes="freenet/**" /></copy>
+		<copy todir="${build}"><fileset dir="${pkg.base}/NativeBigInteger/lib" includes="net/i2p/**" /></copy>
+		<copy todir="${build}"><fileset dir="${pkg.base}/NativeThread/lib" includes="freenet/**" /></copy>
 	</target>
 
-	<target name="onion-common">
-		<ant antfile="build.xml" dir="../onion-common/"/>
-	</target>
-
-	<target name="onion-fec" depends="onion-common">
-		<javac destdir="${build}" optimize="on" source="${javac.target.version}">
-			<src path="../onion-fec/src"/>
-			<classpath path="../onion-common/lib/onion-common.jar"/>
-			<exclude name="csrc/*.java"/>
-		</javac>
-		<copy file="../onion-fec/onion_LICENSE" todir="${build}"/>
-		<copy todir="${build}">
-			<fileset dir="../onion-fec/">
-				<include name="lib/"/>
-			</fileset>
-		</copy>
-	</target>
-
-	<target name="jcpuid" depends="init">
-		<copy todir="${build}">
-			<fileset dir="../jcpuid/lib" includes="freenet/**" />
-		</copy>
-	</target>
-
-	<target name="bigint" depends="init">
-		<copy todir="${build}">
-			<fileset dir="../NativeBigInteger/lib" includes="net/**" />
-		</copy>
-	</target>
-
-	<target name="nativethread" depends="init">
-		<copy todir="${build}">
-			<fileset dir="../NativeThread/lib" includes="freenet/**" />
-		</copy>
+	<target name="package-local" description="build locally maintained packages">
+		<ant inheritAll="false" antfile="${pkg.base}/onion-common/build.xml"/>
+		<ant inheritAll="false" antfile="${pkg.base}/onion-fec/build.xml"/>
+		<!-- TODO build native binaries for the other libs -->
 	</target>
 
 	<target name="clean-local">
-		<ant antfile="build.xml" target="clean" dir="../onion-common"/>
+		<ant inheritAll="false" antfile="${pkg.base}/onion-common/build.xml" target="clean" />
+		<ant inheritAll="false" antfile="${pkg.base}/onion-fec/build.xml" target="clean" />
+		<!-- TODO clean native binaries for the other libs -->
 	</target>
 
 	<!-- =================================================================== -->
 	<!-- External source                                                     -->
 	<!-- =================================================================== -->
 
-	<target name="build-lib" description="build external packages">
+	<target name="package-lib" description="build external packages">
+	</target>
+
+	<target name="src-lib" description="ensure that all required source code is available">
 	</target>
 
 	<target name="bdb" depends="init">
-		<ant antfile="build.xml" dir="../bdb/" target="jar"/>
+		<ant antfile="build.xml" dir="${pkg.base}/bdb/" target="jar"/>
 	</target>
 
-	<target name="wrapper" depends="check-lib">
-		<ant antfile="build.xml" target="jar" dir="../wrapper/">
+	<target name="wrapper" depends="src-lib">
+		<ant antfile="build.xml" target="jar" dir="${pkg.base}/wrapper/">
 			<property name="bits" value="${sun.arch.data.model}"/>
 			<property name="javac.target.version" value="${javac.target.version}"/>
 		</ant>
 	</target>
 
-	<target name="db4o" depends="check-lib">
-		<ant antfile="build.xml" target="jar" dir="../db4o/">
+	<target name="db4o" depends="src-lib">
+		<ant antfile="build.xml" target="jar" dir="${pkg.base}/db4o/">
 			<property name="javac.target.version" value="${javac.target.version}"/>
 		</ant>
 	</target>
 
 	<target name="clean-lib">
-		<ant antfile="build.xml" dir="../bdb">
+		<ant antfile="build.xml" dir="${pkg.base}/bdb">
 			<target name="clean"/>
 			<target name="clean-javadoc"/>
 			<target name="clean-jca"/>
 		</ant>
-		<ant antfile="build.xml" target="clean" dir="../db4o"/>
+		<ant antfile="build.xml" target="clean" dir="${pkg.base}/db4o"/>
 		<!--WORKAROUND bug in wrapper's build.xml-->
-		<mkdir dir="../wrapper/bin"/>
-		<mkdir dir="../wrapper/lib"/>
-		<mkdir dir="../wrapper/test"/>
-		<ant antfile="build.xml" target="total-clean" dir="../wrapper">
+		<mkdir dir="${pkg.base}/wrapper/bin"/>
+		<mkdir dir="${pkg.base}/wrapper/lib"/>
+		<mkdir dir="${pkg.base}/wrapper/test"/>
+		<ant antfile="build.xml" target="total-clean" dir="${pkg.base}/wrapper">
 			<property name="bits" value="${sun.arch.data.model}"/>
 			<target name="clean"/>
 			<target name="total-clean"/>
@@ -162,7 +159,7 @@
 	<!-- leftover code from previous build script -->
 	<target name="build-java">
 		<tstamp/>
-		<javac srcdir="../java" destdir="${build}" debug="on" optimize="on" source="1.5">
+		<javac srcdir="${pkg.base}/java" destdir="${build}" debug="on" optimize="on" source="1.5">
 			<classpath>
 				<pathelement location="${build}"/>
 			</classpath>
@@ -173,7 +170,7 @@
 		<delete dir="${build}-test"/>
 		<mkdir dir="${build}-test"/>
 
-		<javac srcdir="../java-test" destdir="${build}-test" debug="on" optimize="on" source="1.5">
+		<javac srcdir="${pkg.base}/java-test" destdir="${build}-test" debug="on" optimize="on" source="1.5">
 			<classpath>
 				<pathelement location="${build}"/>
 			</classpath>

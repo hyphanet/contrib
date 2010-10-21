@@ -7,6 +7,8 @@ db4o/db4o.jar
 onion-common/classes/
 onion-common/lib/
 onion-common/tools/classes/
+onion-fec/build/
+onion-fec/lib/
 freenet_ext/build/
 freenet_ext/freenet-ext.jar
 freenet_ext/lib/

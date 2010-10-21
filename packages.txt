@@ -60,10 +60,10 @@ You can view the changes made since this time, by running
 
 [onion-fec]
 
-changes to be made to hg tip:
+changes to be made to hg tip at http://bitbucket.org/onionnetworks/fec:
 
 - crlf src/csrc/Makefile.nmake
-- rm src/csrc/fec_win32.c
-- rm src/csrc/w32
+- rm src/csrc/fec_win32.c (already empty)
+- rm src/csrc/w32 (already empty)
 - add src/csrc/fec8.def
 - add src/csrc/fec16.def
