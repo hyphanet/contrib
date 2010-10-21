@@ -77,7 +77,7 @@
 		<jar jarfile="${dist}/freenet-ext.jar" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
 			<exclude name="${version.src}"/>
 		</jar>
-		<copy todir="${dist}" src="${pkg.base}/bdb/build/lib/je.jar"/>
+		<copy todir="${dist}" src="${pkg.base}/bdb-je/build/lib/je.jar"/>
 		<copy todir="${dist}" src="${pkg.base}/wrapper/lib/wrapper.jar"/>
 	</target>
 
@@ -115,45 +115,43 @@
 	<!-- =================================================================== -->
 
 	<target name="package-lib" description="build external packages">
-	</target>
-
-	<target name="src-lib" description="ensure that all required source code is available">
-	</target>
-
-	<target name="bdb" depends="init">
-		<ant antfile="build.xml" dir="${pkg.base}/bdb/" target="jar"/>
-	</target>
-
-	<target name="wrapper" depends="src-lib">
-		<ant antfile="build.xml" target="jar" dir="${pkg.base}/wrapper/">
+		<maven basedir="${pkg.base}/commons-compress" goal="package"/>
+		<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml" target="jar"/>
+		<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="jar">
+			<property name="javac.target.version" value="${javac.target.version}"/>
+		</ant>
+		<!-- TODO build wrapper native libs -->
+		<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml" target="jar">
 			<property name="bits" value="${sun.arch.data.model}"/>
 			<property name="javac.target.version" value="${javac.target.version}"/>
 		</ant>
 	</target>
 
-	<target name="db4o" depends="src-lib">
-		<ant antfile="build.xml" target="jar" dir="${pkg.base}/db4o/">
-			<property name="javac.target.version" value="${javac.target.version}"/>
-		</ant>
+	<target name="src-lib" description="ensure that all required source code is available">
+		<!-- TODO massage db4o source tree into place -->
+		<fail message="TODO; not implemented"/>
 	</target>
 
 	<target name="clean-lib">
-		<ant antfile="build.xml" dir="${pkg.base}/bdb">
+		<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
+		<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml">
 			<target name="clean"/>
 			<target name="clean-javadoc"/>
 			<target name="clean-jca"/>
 		</ant>
-		<ant antfile="build.xml" target="clean" dir="${pkg.base}/db4o"/>
+		<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="clean"/>
 		<!--WORKAROUND bug in wrapper's build.xml-->
 		<mkdir dir="${pkg.base}/wrapper/bin"/>
 		<mkdir dir="${pkg.base}/wrapper/lib"/>
 		<mkdir dir="${pkg.base}/wrapper/test"/>
-		<ant antfile="build.xml" target="total-clean" dir="${pkg.base}/wrapper">
+		<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml">
 			<property name="bits" value="${sun.arch.data.model}"/>
 			<target name="clean"/>
 			<target name="total-clean"/>
 		</ant>
 	</target>
+
+	<include file="ant-task-maven.xml"/><!-- required to work with commons-compress -->
 
 	<!-- misc -->
 	<!-- leftover code from previous build script -->
@@ -196,6 +194,5 @@
 
 		<delete dir="${build}-test"/>
 	</target>
-
 
 </project>
