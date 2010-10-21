@@ -1,4 +1,3 @@
-lib/
 META-INF/
 bdb/build/
 db4o/build-db4oj/
@@ -8,8 +7,9 @@ db4o/db4o.jar
 onion-common/classes/
 onion-common/lib/
 onion-common/tools/classes/
-freenet_ext/build_dir/
+freenet_ext/build/
 freenet_ext/freenet-ext.jar
+freenet_ext/lib/
 wrapper/build/
 wrapper/lib/
 wrapper/src/java/org/tanukisoftware/wrapper/WrapperInfo.java

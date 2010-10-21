@@ -24,19 +24,6 @@ debian jar: /usr/share/java/ant.jar
 notes: different, possibly newer, version called commons-compress;
        needs API modifications, but is much easier to bundle.
 
-== Split, mirror source code ourselves ==
-
-[java.lzma]
-http://contrapunctus.net/
-TODO: need to ask toad why there are two of these...
-
-[java.sevenzip]
-aka. java_lzma
-http://p7zip.sourceforge.net/
-
-[java.mantissa]
-http://www.spaceroots.org/
-
 == Keep ==
 
 These packages seem to be used ONLY in freenet and pretty much no-where else.

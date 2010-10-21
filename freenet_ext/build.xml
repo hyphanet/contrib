@@ -1,17 +1,51 @@
-<!-- ==================================================================== -->
-<!-- Ant build file for Freenet-ext.                                      -->
-<!-- Please download and install ant from http://ant.apache.org/          -->
-<!-- ==================================================================== -->
-<project name="Freenet-ext" default="jar">
-	<property name="build" location="build_dir"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Freenet dependencies" default="all" basedir=".">
+
+	<!-- =================================================================== -->
+	<!-- Global properties                                                   -->
+	<!-- =================================================================== -->
+
+	<property file="build.properties" />
+	<property file="source.properties" />
+
+	<property name="build" location="build"/>
 	<property name="jar.location" location="freenet-ext.jar"/>
-	<property name="git.revision" value="@custom@"/>
 	<property name="javac.target.version" value="1.5"/>
 
-	<target name="init" description="Create build directory">
-		<mkdir dir="${build}"/>
-		<mkdir dir="${build}/freenet/node/"/>
+	<!-- set version string based on git-describe -->
+	<exec executable="git" failifexecutionfails="false"
+		errorProperty="git.errror" outputproperty="git.describe" resultproperty="git.result">
+		<arg value="describe" />
+		<arg value="--always" />
+		<arg value="--abbrev=4" />
+	</exec>
+	<condition property="git.revision" value="${git.describe}" else="@custom@">
+		<and>
+			<equals arg1="${git.result}" arg2="0" />
+			<isset property="git.describe" />
+		</and>
+	</condition>
 
+	<!-- =================================================================== -->
+	<!-- Miscellaneous                                                       -->
+	<!-- =================================================================== -->
+
+	<target name="dist" depends="clean-all, all" description="clean-build everything"/>
+
+	<target name="all" depends="package" description="build everything"/>
+
+	<target name="clean-all" depends="clean, clean-local, clean-lib" description="clean all build products"/>
+
+	<target name="debug">
+		<echoproperties/>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Standard build                                                      -->
+	<!-- =================================================================== -->
+
+	<target name="init">
+		<mkdir dir="${build}"/>
 		<!-- Update the Version file -->
 		<replace file="ExtVersion.java">
 			<replacefilter token="@custom@" value="${git.revision}"/>
@@ -21,17 +55,37 @@
 		</javac>
 	</target>
 
-	<target name="onion-common" depends="init" description="build required classes for FEC">
+	<target name="package" depends="build-local,build-lib" description="build standard components">
+		<delete file="${jar.location}"/>
+		<jar jarfile="${jar.location}" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
+			<zipfileset src="../onion-common/lib/onion-common.jar"/>
+			<zipfileset src="../bdb/build/lib/je.jar"/>
+			<zipfileset src="../wrapper/lib/wrapper.jar"/>
+		</jar>
+	</target>
+
+	<target name="clean" description="clean standard build products">
+		<delete file="${jar.location}"/>
+		<delete dir="${build}"/>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Locally-maintained                                                  -->
+	<!-- =================================================================== -->
+
+	<target name="build-local" description="build locally maintained packages">
+	</target>
+
+	<target name="onion-common">
 		<ant antfile="build.xml" dir="../onion-common/"/>
 	</target>
 
-	<target name="onion-fec" depends="onion-common" description="build the FEC encoder/decoder plugins for fproxy.">
+	<target name="onion-fec" depends="onion-common">
 		<javac destdir="${build}" optimize="on" source="${javac.target.version}">
 			<src path="../onion-fec/src"/>
 			<classpath path="../onion-common/lib/onion-common.jar"/>
 			<exclude name="csrc/*.java"/>
 		</javac>
-
 		<copy file="../onion-fec/onion_LICENSE" todir="${build}"/>
 		<copy todir="${build}">
 			<fileset dir="../onion-fec/">
@@ -58,24 +112,55 @@
 		</copy>
 	</target>
 
-	<target name="bdb" depends="init" description="Build the BDB provider">
+	<target name="clean-local">
+		<ant antfile="build.xml" target="clean" dir="../onion-common"/>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- External source                                                     -->
+	<!-- =================================================================== -->
+
+	<target name="build-lib" description="build external packages">
+	</target>
+
+	<target name="bdb" depends="init">
 		<ant antfile="build.xml" dir="../bdb/" target="jar"/>
 	</target>
 
-	<target name="wrapper" depends="init" description="Build the java wrapper">
+	<target name="wrapper" depends="check-lib">
 		<ant antfile="build.xml" target="jar" dir="../wrapper/">
 			<property name="bits" value="${sun.arch.data.model}"/>
 			<property name="javac.target.version" value="${javac.target.version}"/>
 		</ant>
 	</target>
 
-	<target name="db4o" depends="init" description="Build db4o">
+	<target name="db4o" depends="check-lib">
 		<ant antfile="build.xml" target="jar" dir="../db4o/">
 			<property name="javac.target.version" value="${javac.target.version}"/>
 		</ant>
 	</target>
 
-	<target name="build-java" description="build the 3rd party code we bundle">
+	<target name="clean-lib">
+		<ant antfile="build.xml" dir="../bdb">
+			<target name="clean"/>
+			<target name="clean-javadoc"/>
+			<target name="clean-jca"/>
+		</ant>
+		<ant antfile="build.xml" target="clean" dir="../db4o"/>
+		<!--WORKAROUND bug in wrapper's build.xml-->
+		<mkdir dir="../wrapper/bin"/>
+		<mkdir dir="../wrapper/lib"/>
+		<mkdir dir="../wrapper/test"/>
+		<ant antfile="build.xml" target="total-clean" dir="../wrapper">
+			<property name="bits" value="${sun.arch.data.model}"/>
+			<target name="clean"/>
+			<target name="total-clean"/>
+		</ant>
+	</target>
+
+	<!-- misc -->
+	<!-- leftover code from previous build script -->
+	<target name="build-java">
 		<tstamp/>
 		<javac srcdir="../java" destdir="${build}" debug="on" optimize="on" source="1.5">
 			<classpath>
@@ -115,35 +200,5 @@
 		<delete dir="${build}-test"/>
 	</target>
 
-	<target name="clean-all" depends="clean" description="More thorough version of clean">
-		<ant antfile="build.xml" target="clean-javadoc" dir="../bdb"/>
-		<ant antfile="build.xml" target="clean-jca" dir="../bdb"/>
-		<!--WORKAROUND bug in wrapper's build.xml-->
-		<mkdir dir="../wrapper/bin"/>
-		<mkdir dir="../wrapper/lib"/>
-		<mkdir dir="../wrapper/test"/>
-		<ant antfile="build.xml" target="total-clean" dir="../wrapper">
-			<property name="bits" value="${sun.arch.data.model}"/>
-		</ant>
-	</target>
 
-	<target name="clean" description="Cleanup the build directories">
-		<delete file="${jar.location}"/>
-		<delete dir="${build}"/>
-		<ant antfile="build.xml" target="clean" dir="../bdb"/>
-		<ant antfile="build.xml" target="clean" dir="../db4o"/>
-		<ant antfile="build.xml" target="clean" dir="../onion-common"/>
-		<ant antfile="build.xml" target="clean" dir="../wrapper">
-			<property name="bits" value="${sun.arch.data.model}"/>
-		</ant>
-	</target>
-
-	<target name="jar" depends="clean,onion-fec,jcpuid,nativethread,bigint,bdb,wrapper,db4o,build-java" description="Create the jar file">
-		<delete file="${jar.location}"/>
-		<jar jarfile="${jar.location}" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
-			<zipfileset src="../onion-common/lib/onion-common.jar"/>
-			<zipfileset src="../bdb/build/lib/je.jar"/>
-			<zipfileset src="../wrapper/lib/wrapper.jar"/>
-		</jar>
-	</target>
 </project>
