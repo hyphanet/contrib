@@ -21,6 +21,7 @@ lzmajio/
 mantissa/
 
 # db4o is "special". not in a good way.
+db4o.orig/
 db4o/build/
 db4o/build-db4oj/
 db4o/build-db4ojdk1.2/
