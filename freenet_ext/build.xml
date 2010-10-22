@@ -9,11 +9,14 @@
 	<property file="source.properties" />
 	<property name="javac.args" value="-Xlint"/>
 	<property name="javac.target.version" value="1.5"/>
+	<property name="java.class.dirs" value="/usr/share/java"/>
 
 	<property name="pkg.base" value=".."/>
 	<property name="build" value="build"/>
 	<property name="src" value="src"/>
 	<property name="dist" value="dist"/>
+	<property name="tmp" value="tmp"/>
+	<property name="lib" value="lib"/>
 
 	<property name="version.src" value="freenet/node/ExtVersion.java" />
 	<property name="version.make" value="freenet/node/ExtVersion.class" />
@@ -77,14 +80,12 @@
 		<jar jarfile="${dist}/freenet-ext.jar" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
 			<exclude name="${version.src}"/>
 		</jar>
-		<copy todir="${dist}" file="${pkg.base}/wrapper/lib/wrapper.jar"/>
-		<copy todir="${dist}" file="${pkg.base}/bdb-je/build/lib/je.jar"/>
-		<copy todir="${dist}" file="${pkg.base}/db4o/db4o.jar"/>
-		<copy tofile="${dist}/commons-compress.jar"
-		  file="${pkg.base}/commons-compress/target/commons-compress-${extlib.commons-compress.version}.jar"/>
-		<copy todir="${dist}" file="${pkg.base}/lzmajio/lzmajio.jar"/>
-		<copy tofile="${dist}/mantissa.jar"
-		  file="${pkg.base}/mantissa/mantissa-${extlib.mantissa.version}.jar"/>
+		<copylib name="wrapper"/>
+		<copylib name="bdb-je"/>
+		<copylib name="db4o"/>
+		<copylib name="commons-compress"/>
+		<copylib name="lzmajio"/>
+		<copylib name="mantissa"/>
 	</target>
 
 	<target name="clean" description="clean standard build products">
@@ -138,8 +139,17 @@
 	</target>
 
 	<target name="src-lib" description="ensure that all required source code is available">
-		<!-- TODO massage db4o source tree into place -->
-		<fail message="TODO; not implemented"/>
+		<delete dir="${tmp}"/>
+		<mkdir dir="${tmp}"/>
+		<getlibsrc name="wrapper"/>
+		<getlibsrc name="bdb-je"/>
+		<getlibsrc name="db4o"/>
+		<getlibsrc name="commons-compress"/>
+		<getlibsrc name="lzma"/>
+		<getlibsrc name="lzmajio"/>
+		<getlibsrc name="mantissa"/>
+		<!-- TODO extract archives and massage source trees into place -->
+		<delete dir="${tmp}"/>
 	</target>
 
 	<target name="clean-lib">
@@ -165,7 +175,49 @@
 		<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
 	</target>
 
+	<!-- =================================================================== -->
+	<!-- ANT dependencies                                                    -->
+	<!-- =================================================================== -->
+
 	<!-- required to work with commons-compress -->
 	<include file="ant-task-maven.xml"/>
+
+	<macrodef name="copylib">
+		<attribute name="name" />
+		<sequential>
+			<copy tofile="${dist}/@{name}.jar" file="${pkg.base}/@{name}/${extlib.@{name}.jar-dst}"/>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="getlibsrc">
+		<attribute name="name" />
+		<sequential>
+			<basename property="extlib.@{name}.filename" file="${extlib.@{name}.location}"/>
+			<condition property="extlib.@{name}.available" else="false">
+				<and>
+					<available file="${lib}/${extlib.@{name}.filename}"/>
+					<checksum file="${lib}/${extlib.@{name}.filename}" algorithm="SHA-256"
+					  property="${extlib.@{name}.sum-sha256}" />
+				</and>
+			</condition>
+			<if>
+				<equals arg1="${extlib.@{name}.available}" arg2="false"/>
+				<then>
+					<get src="${extlib.@{name}.location}" dest="${tmp}/${extlib.@{name}.filename}"
+					  verbose="true" usetimestamp="true"/>
+					<checksum file="${tmp}/${extlib.@{name}.filename}" algorithm="SHA-256"
+					  property="${extlib.@{name}.sum-sha256}" verifyProperty="extlib.@{name}.sum-sha256.remote" />
+					<fail unless="${extlib.@{name}.sum-sha256.remote}"
+					  message="getlibsrc: ${extlib.@{name}.filename} checksum mismatch"/>
+					<move file="${tmp}/${extlib.@{name}.filename}" todir="${lib}"/>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- required for "getlibsrc" macro -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml">
+		<classpath><pathelement location="${java.class.dirs}/ant-contrib.jar"/></classpath>
+	</taskdef>
 
 </project>
