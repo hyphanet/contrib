@@ -7,7 +7,7 @@ freenet-ext/lib/
 onion-common/classes/
 onion-common/lib/
 onion-common/tools/classes/
-onion-fec/build/
+onion-fec/classes/
 onion-fec/lib/
 
 ## external packages
