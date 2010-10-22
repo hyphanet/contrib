@@ -1,4 +1,4 @@
-== Overview ==
+## Overview
 
 contrib contains the following libraries:
 
@@ -30,13 +30,18 @@ Locally maintained
 	- onion-common
 	- onion-fec
 
-== Building ==
+## Build
 
-The contrib build script retrieves each of the source packages and builds them.
-It then builds all the locally-maintained packages, and collects them into
-freenet-ext.jar.
+You need to install ant-contrib and maven, then call ant from the freenet-ext
+subdirectory.
 
-== Notes on locally maintained libraries ==
+contrib/freenet-ext$ ant
+
+The build script compiles all the locally-maintained packages, and collects
+them into freenet-ext.jar. It then retrieves all the remote source packages,
+and builds those.
+
+## Notes on locally maintained libraries
 
 [onion-common]
 
@@ -62,8 +67,8 @@ You can view the changes made since this time, by running
 
 changes to be made to hg tip at http://bitbucket.org/onionnetworks/fec:
 
-- crlf src/csrc/Makefile.nmake
-- rm src/csrc/fec_win32.c (already empty)
-- rm src/csrc/w32 (already empty)
+- sed -i -e 's/\n/\r\n/g' src/csrc/Makefile.nmake
+- rm src/csrc/fec_win32.c # already empty
+- rm src/csrc/w32 # already empty
 - add src/csrc/fec8.def
 - add src/csrc/fec16.def
