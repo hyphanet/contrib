@@ -6,9 +6,9 @@ Upstream source
 :	The build scripts get these from upstream. These are established projects
 	and most OS distributions will have them in their package repository.
 
-	- bdb
-	- db4o
 	- wrapper
+	- bdb-je
+	- db4o
 	- commons-compress
 
 Mirrored source
@@ -17,7 +17,7 @@ Mirrored source
 	have been packaged by an OS distribution.
 
 	- lzma
-	- SevenZip
+	- lzmajio
 	- mantissa
 
 Locally maintained
