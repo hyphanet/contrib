@@ -43,7 +43,7 @@
 
 	<target name="all" depends="package" description="build everything, incl. docs"/>
 
-	<target name="clean-all" depends="clean, clean-local, clean-lib" description="clean all build products"/>
+	<target name="clean-all" depends="clean, clean-local, clean-lib" description="clean all build products (except remote source code)"/>
 
 	<target name="debug">
 		<echoproperties/>
@@ -94,7 +94,7 @@
 	</target>
 
 	<!-- =================================================================== -->
-	<!-- Locally-maintained                                                  -->
+	<!-- Build local packages                                                -->
 	<!-- =================================================================== -->
 
 	<target name="prepare-local" depends="init,package-local">
@@ -118,10 +118,10 @@
 	</target>
 
 	<!-- =================================================================== -->
-	<!-- External source                                                     -->
+	<!-- Build remote packages                                               -->
 	<!-- =================================================================== -->
 
-	<target name="package-lib" description="build external packages">
+	<target name="package-lib" depends="prepare-libsrc" description="build external packages">
 		<!-- TODO build wrapper native libs -->
 		<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml" target="jar">
 			<property name="bits" value="${sun.arch.data.model}"/>
@@ -136,20 +136,6 @@
 		<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="jar"/>
 		<!-- TODO run tests -->
 		<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="jar"/>
-	</target>
-
-	<target name="src-lib" description="ensure that all required source code is available">
-		<delete dir="${tmp}"/>
-		<mkdir dir="${tmp}"/>
-		<getlibsrc name="wrapper"/>
-		<getlibsrc name="bdb-je"/>
-		<getlibsrc name="db4o"/>
-		<getlibsrc name="commons-compress"/>
-		<getlibsrc name="lzma"/>
-		<getlibsrc name="lzmajio"/>
-		<getlibsrc name="mantissa"/>
-		<!-- TODO extract archives and massage source trees into place -->
-		<delete dir="${tmp}"/>
 	</target>
 
 	<target name="clean-lib">
@@ -170,9 +156,54 @@
 		<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="clean"/>
 		<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
 
-		<!-- lzmajio doesn't have a "clean" target :/ -->
+		<!-- TODO lzmajio doesn't have a "clean" target :/ -->
 		<!--<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="clean"/>-->
 		<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Get remote packages                                                 -->
+	<!-- =================================================================== -->
+
+	<target name="get-libsrc">
+		<getlibsrc name="wrapper"/>
+		<getlibsrc name="bdb-je"/>
+		<getlibsrc name="db4o"/>
+		<getlibsrc name="commons-compress"/>
+		<getlibsrc name="lzma"/>
+		<getlibsrc name="lzmajio"/>
+		<getlibsrc name="mantissa"/>
+	</target>
+
+	<target name="prepare-libsrc" depends="get-libsrc" description="ensure that all remote source code is available">
+		<unpacklibsrc name="wrapper"/>
+		<unpacklibsrc name="bdb-je"/>
+		<unpacklibsrc name="db4o" dest="db4o.orig"/>
+		<unpacklibsrc name="commons-compress"/>
+		<unpacklibsrc name="lzma"/>
+		<unpacklibsrc name="lzmajio"/>
+		<unpacklibsrc name="mantissa"/>
+
+		<!-- extra massaging -->
+		<copy todir="${pkg.base}/db4o">
+			<fileset dir="${pkg.base}/db4o.orig"><include name="src/db4oj*/**"/></fileset>
+		</copy>
+		<copy todir="${pkg.base}/lzmajio">
+			<fileset dir="${pkg.base}/lzma/Java"><include name="SevenZip/**"/></fileset>
+		</copy>
+	</target>
+
+	<target name="clean-libsrc" description="clean source code of remote packages">
+		<delete dir="${pkg.base}/wrapper"/>
+		<delete dir="${pkg.base}/bdb-je"/>
+		<delete dir="${pkg.base}/db4o.orig"/>
+		<delete dir="${pkg.base}/commons-compress"/>
+		<delete dir="${pkg.base}/lzma"/>
+		<delete dir="${pkg.base}/lzmajio"/>
+		<delete dir="${pkg.base}/mantissa"/>
+
+		<!-- undo source code massaging -->
+		<delete dir="${pkg.base}/db4o/src"/>
 	</target>
 
 	<!-- =================================================================== -->
@@ -189,6 +220,35 @@
 		</sequential>
 	</macrodef>
 
+	<macrodef name="unpacklibsrc">
+		<attribute name="name" />
+		<attribute name="dest" default="@{name}"/>
+		<sequential>
+			<if>
+				<available file="${pkg.base}/@{dest}" type="dir"/>
+				<else>
+					<delete dir="${tmp}"/>
+					<mkdir dir="${tmp}"/>
+					<basename property="extlib.@{name}.filename" file="${extlib.@{name}.location}"/>
+					<untar dest="${tmp}" compression="gzip">
+						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.tar.gz"/></fileset>
+					</untar>
+					<untar dest="${tmp}" compression="bzip2">
+						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.tar.bz2"/></fileset>
+					</untar>
+					<untar dest="${tmp}">
+						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.tar"/></fileset>
+					</untar>
+					<unzip dest="${tmp}">
+						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.zip"/></fileset>
+					</unzip>
+					<move file="${tmp}/${extlib.@{name}.top-dir}" tofile="${pkg.base}/@{dest}"/>
+					<delete dir="${tmp}"/>
+				</else>
+			</if>
+		</sequential>
+	</macrodef>
+
 	<macrodef name="getlibsrc">
 		<attribute name="name" />
 		<sequential>
@@ -201,8 +261,10 @@
 				</and>
 			</condition>
 			<if>
-				<equals arg1="${extlib.@{name}.available}" arg2="false"/>
-				<then>
+				<equals arg1="${extlib.@{name}.available}" arg2="true"/>
+				<else>
+					<delete dir="${tmp}"/>
+					<mkdir dir="${tmp}"/>
 					<get src="${extlib.@{name}.location}" dest="${tmp}/${extlib.@{name}.filename}"
 					  verbose="true" usetimestamp="true"/>
 					<checksum file="${tmp}/${extlib.@{name}.filename}" algorithm="SHA-256"
@@ -210,7 +272,8 @@
 					<fail unless="${extlib.@{name}.sum-sha256.remote}"
 					  message="getlibsrc: ${extlib.@{name}.filename} checksum mismatch"/>
 					<move file="${tmp}/${extlib.@{name}.filename}" todir="${lib}"/>
-				</then>
+					<delete dir="${tmp}"/>
+				</else>
 			</if>
 		</sequential>
 	</macrodef>
