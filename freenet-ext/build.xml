@@ -21,6 +21,8 @@
 	<property name="version.src" value="freenet/node/ExtVersion.java" />
 	<property name="version.make" value="freenet/node/ExtVersion.class" />
 
+	<!-- TODO allow specific libraries to be skipped -->
+
 	<!-- set version string based on git-describe -->
 	<exec executable="git" failifexecutionfails="false"
 		errorProperty="git.errror" outputproperty="git.describe" resultproperty="git.result">

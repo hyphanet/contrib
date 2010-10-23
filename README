@@ -32,8 +32,8 @@ Locally maintained
 
 ## Build
 
-You need to install ant-contrib and maven, then call ant from the freenet-ext
-subdirectory.
+You need to install ant, ant-contrib and maven, then call ant from the freenet-ext
+subdirectory. TODO detect this.
 
 contrib/freenet-ext$ ant
 
