@@ -5,16 +5,19 @@
 	<!-- Global properties                                                   -->
 	<!-- =================================================================== -->
 
+	<!-- user overrides (properties are immutable, so set overrides first) -->
+	<property file="override.properties" />
 	<property file="build.properties" />
 	<property file="source.properties" />
-	<property name="javac.args" value="-Xlint"/>
-	<property name="javac.target.version" value="1.5"/>
-	<property name="java.class.dirs" value="/usr/share/java"/>
+	<condition property="java.class.dirs" value="${java.class.dirs.user}" else="${java.home}/lib">
+		<available file="${java.class.dirs.user}" type="dir"/>
+	</condition>
 
 	<property name="pkg.base" value=".."/>
-	<property name="build" value="build"/>
-	<property name="src" value="src"/>
-	<property name="dist" value="dist"/>
+	<property name="main.make" value="build"/>
+	<property name="main.src" value="src"/>
+	<property name="main.dst" value="dist"/>
+
 	<property name="tmp" value="tmp"/>
 	<property name="lib" value="lib"/>
 
@@ -56,30 +59,30 @@
 	<!-- =================================================================== -->
 
 	<target name="init">
-		<mkdir dir="${build}"/>
-		<mkdir dir="${dist}"/>
+		<mkdir dir="${main.make}"/>
+		<mkdir dir="${main.dst}"/>
 	</target>
 
 	<target name="build" depends="init">
 		<!-- Create the time stamp -->
 		<tstamp/>
 
-		<!-- Create the Version file with patched revision number in ${build} -->
-		<copy file="${src}/${version.src}" tofile="${build}/${version.src}" overwrite="true" />
-		<delete file="${build}/${version.make}" quiet="true" />
-		<replace file="${build}/${version.src}">
+		<!-- Create the Version file with patched revision number in ${main.make} -->
+		<copy file="${main.src}/${version.src}" tofile="${main.make}/${version.src}" overwrite="true" />
+		<delete file="${main.make}/${version.make}" quiet="true" />
+		<replace file="${main.make}/${version.src}">
 			<replacefilter token="@custom@" value="${git.revision}"/>
 		</replace>
 		<echo message="Updated build version to ${git.revision} in ${main.make}/${version.src}"/>
 
-		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="${main.make}" destdir="${main.make}" debug="on" optimize="on" source="1.5" target="1.5">
 			<compilerarg line="${javac.args}"/>
 			<include name="${version.src}"/>
 		</javac>
 	</target>
 
 	<target name="package" depends="build,prepare-local,package-lib" description="build standard binary packages">
-		<jar jarfile="${dist}/freenet-ext.jar" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
+		<jar jarfile="${main.dst}/freenet-ext.jar" basedir="${main.make}" includes="**" update="yes" duplicate="fail" level="9">
 			<exclude name="${version.src}"/>
 		</jar>
 		<copylib name="wrapper"/>
@@ -91,8 +94,8 @@
 	</target>
 
 	<target name="clean" description="clean standard build products">
-		<delete dir="${build}"/>
-		<delete dir="${dist}"/>
+		<delete dir="${main.make}"/>
+		<delete dir="${main.dst}"/>
 	</target>
 
 	<!-- =================================================================== -->
@@ -100,11 +103,11 @@
 	<!-- =================================================================== -->
 
 	<target name="prepare-local" depends="init,package-local">
-		<unjar dest="${build}" src="${pkg.base}/onion-common/lib/onion-common.jar"/>
-		<unjar dest="${build}" src="${pkg.base}/onion-fec/lib/onion-fec.jar"/>
-		<copy todir="${build}"><fileset dir="${pkg.base}/jcpuid/lib" includes="freenet/**" /></copy>
-		<copy todir="${build}"><fileset dir="${pkg.base}/NativeBigInteger/lib" includes="net/i2p/**" /></copy>
-		<copy todir="${build}"><fileset dir="${pkg.base}/NativeThread/lib" includes="freenet/**" /></copy>
+		<unjar dest="${main.make}" src="${pkg.base}/onion-common/lib/onion-common.jar"/>
+		<unjar dest="${main.make}" src="${pkg.base}/onion-fec/lib/onion-fec.jar"/>
+		<copy todir="${main.make}"><fileset dir="${pkg.base}/jcpuid/lib" includes="freenet/**" /></copy>
+		<copy todir="${main.make}"><fileset dir="${pkg.base}/NativeBigInteger/lib" includes="net/i2p/**" /></copy>
+		<copy todir="${main.make}"><fileset dir="${pkg.base}/NativeThread/lib" includes="freenet/**" /></copy>
 	</target>
 
 	<target name="package-local" description="build locally maintained packages">
@@ -218,7 +221,7 @@
 	<macrodef name="copylib">
 		<attribute name="name" />
 		<sequential>
-			<copy tofile="${dist}/@{name}.jar" file="${pkg.base}/@{name}/${extlib.@{name}.jar-dst}"/>
+			<copy tofile="${main.dst}/@{name}.jar" file="${pkg.base}/@{name}/${extlib.@{name}.jar-dst}"/>
 		</sequential>
 	</macrodef>
 

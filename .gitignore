@@ -1,6 +1,7 @@
 freenet-ext/build/
 freenet-ext/dist/
 freenet-ext/lib/
+freenet-ext/override.properties
 
 ## local packages
 
