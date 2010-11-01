@@ -85,12 +85,12 @@
 		<jar jarfile="${main.dst}/freenet-ext.jar" basedir="${main.make}" includes="**" update="yes" duplicate="fail" level="9">
 			<exclude name="${version.src}"/>
 		</jar>
-		<copylib name="wrapper"/>
-		<copylib name="bdb-je"/>
-		<copylib name="db4o"/>
-		<copylib name="commons-compress"/>
-		<copylib name="lzmajio"/>
-		<copylib name="mantissa"/>
+		<lib-copy lib="wrapper"/>
+		<lib-copy lib="bdb-je"/>
+		<lib-copy lib="db4o"/>
+		<lib-copy lib="commons-compress"/>
+		<lib-copy lib="lzmajio"/>
+		<lib-copy lib="mantissa"/>
 	</target>
 
 	<target name="clean" description="clean standard build products">
@@ -127,43 +127,69 @@
 	<!-- =================================================================== -->
 
 	<target name="package-lib" depends="prepare-libsrc" description="build external packages">
-		<!-- TODO build wrapper native libs -->
-		<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml" target="jar">
-			<property name="bits" value="${sun.arch.data.model}"/>
-			<property name="javac.target.version" value="${javac.target.version}"/>
-		</ant>
-		<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml" target="jar"/>
-		<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="jar">
-			<property name="javac.target.version" value="${javac.target.version}"/>
-		</ant>
-		<maven basedir="${pkg.base}/commons-compress" goal="package"/>
-
-		<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="jar"/>
-		<!-- TODO run tests -->
-		<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="jar"/>
+		<lib-sequential lib="wrapper">
+			<!-- TODO build native libs -->
+			<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml" target="jar">
+				<property name="bits" value="${sun.arch.data.model}"/>
+				<property name="javac.target.version" value="${javac.target.version}"/>
+			</ant>
+		</lib-sequential>
+		<lib-sequential lib="bdb-je">
+			<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml" target="jar"/>
+		</lib-sequential>
+		<lib-sequential lib="db4o">
+			<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="jar">
+				<property name="javac.target.version" value="${javac.target.version}"/>
+			</ant>
+		</lib-sequential>
+		<lib-sequential lib="commons-compress">
+			<maven basedir="${pkg.base}/commons-compress" goal="package"/>
+		</lib-sequential>
+		<lib-sequential lib="lzmajio">
+			<fail if="${extlib.lzma.suppress}" message="lzmajio requires lzma, but extlib.lzma.suppress is ON."/>
+			<copy todir="${pkg.base}/lzmajio">
+				<fileset dir="${pkg.base}/lzma/Java"><include name="SevenZip/**"/></fileset>
+			</copy>
+			<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="jar"/>
+		</lib-sequential>
+		<lib-sequential lib="mantissa">
+			<!-- TODO run tests -->
+			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="jar"/>
+		</lib-sequential>
 	</target>
 
-	<target name="clean-lib">
-		<!--WORKAROUND bug in wrapper's build.xml-->
-		<mkdir dir="${pkg.base}/wrapper/bin"/>
-		<mkdir dir="${pkg.base}/wrapper/lib"/>
-		<mkdir dir="${pkg.base}/wrapper/test"/>
-		<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml">
-			<property name="bits" value="${sun.arch.data.model}"/>
-			<target name="clean"/>
-			<target name="total-clean"/>
-		</ant>
-		<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml">
-			<target name="clean"/>
-			<target name="clean-javadoc"/>
-			<target name="clean-jca"/>
-		</ant>
-		<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="clean"/>
-		<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
-
-		<!-- TODO lzmajio doesn't have a "clean" target :/ -->
-		<!--<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="clean"/>-->
-		<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
+	<target name="clean-lib" depends="prepare-libsrc" description="clean build products of external packages">
+		<lib-sequential lib="wrapper">
+			<!--WORKAROUND bug in wrapper's build.xml-->
+			<mkdir dir="${pkg.base}/wrapper/bin"/>
+			<mkdir dir="${pkg.base}/wrapper/lib"/>
+			<mkdir dir="${pkg.base}/wrapper/test"/>
+			<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml">
+				<property name="bits" value="${sun.arch.data.model}"/>
+				<target name="clean"/>
+				<target name="total-clean"/>
+			</ant>
+		</lib-sequential>
+		<lib-sequential lib="bdb-je">
+			<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml">
+				<target name="clean"/>
+				<target name="clean-javadoc"/>
+				<target name="clean-jca"/>
+			</ant>
+		</lib-sequential>
+		<lib-sequential lib="db4o">
+			<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="clean"/>
+		</lib-sequential>
+		<lib-sequential lib="commons-compress">
+			<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
+		</lib-sequential>
+		<lib-sequential lib="lzmajio">
+			<!-- TODO lzmajio doesn't have a "clean" target :/ -->
+			<!--<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="clean"/>-->
+		</lib-sequential>
+		<lib-sequential lib="mantissa">
+			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
+		</lib-sequential>
 	</target>
 
 	<!-- =================================================================== -->
@@ -171,44 +197,43 @@
 	<!-- =================================================================== -->
 
 	<target name="get-libsrc">
-		<getlibsrc name="wrapper"/>
-		<getlibsrc name="bdb-je"/>
-		<getlibsrc name="db4o"/>
-		<getlibsrc name="commons-compress"/>
-		<getlibsrc name="lzma"/>
-		<getlibsrc name="lzmajio"/>
-		<getlibsrc name="mantissa"/>
+		<lib-getsrc lib="wrapper"/>
+		<lib-getsrc lib="bdb-je"/>
+		<lib-getsrc lib="db4o"/>
+		<lib-getsrc lib="commons-compress"/>
+		<lib-getsrc lib="lzma"/>
+		<lib-getsrc lib="lzmajio"/>
+		<lib-getsrc lib="mantissa"/>
 	</target>
 
 	<target name="prepare-libsrc" depends="get-libsrc" description="ensure that all remote source code is available">
-		<unpacklibsrc name="wrapper"/>
-		<unpacklibsrc name="bdb-je"/>
-		<unpacklibsrc name="db4o" dest="db4o.orig"/>
-		<unpacklibsrc name="commons-compress"/>
-		<unpacklibsrc name="lzma"/>
-		<unpacklibsrc name="lzmajio"/>
-		<unpacklibsrc name="mantissa"/>
+		<lib-unpacksrc lib="wrapper"/>
+		<lib-unpacksrc lib="bdb-je"/>
+		<lib-unpacksrc lib="db4o" dest="db4o.orig"/>
+		<lib-unpacksrc lib="commons-compress"/>
+		<lib-unpacksrc lib="lzma"/>
+		<lib-unpacksrc lib="lzmajio"/>
+		<lib-unpacksrc lib="mantissa"/>
 
 		<!-- extra massaging -->
-		<copy todir="${pkg.base}/db4o">
-			<fileset dir="${pkg.base}/db4o.orig"><include name="src/db4oj*/**"/></fileset>
-		</copy>
-		<copy todir="${pkg.base}/lzmajio">
-			<fileset dir="${pkg.base}/lzma/Java"><include name="SevenZip/**"/></fileset>
-		</copy>
+		<lib-sequential lib="db4o">
+			<copy todir="${pkg.base}/db4o">
+				<fileset dir="${pkg.base}/db4o.orig"><include name="src/db4oj*/**"/></fileset>
+			</copy>
+		</lib-sequential>
 	</target>
 
-	<target name="clean-libsrc" description="clean source code of remote packages">
-		<delete dir="${pkg.base}/wrapper"/>
-		<delete dir="${pkg.base}/bdb-je"/>
-		<delete dir="${pkg.base}/db4o.orig"/>
-		<delete dir="${pkg.base}/commons-compress"/>
-		<delete dir="${pkg.base}/lzma"/>
-		<delete dir="${pkg.base}/lzmajio"/>
-		<delete dir="${pkg.base}/mantissa"/>
+	<target name="clean-libsrc" description="remove all remote source code">
+		<lib-delsrc lib="wrapper"/>
+		<lib-delsrc lib="bdb-je"/>
+		<lib-delsrc lib="db4o" dest="db4o.orig"/>
+		<lib-delsrc lib="commons-compress"/>
+		<lib-delsrc lib="lzma"/>
+		<lib-delsrc lib="lzmajio"/>
+		<lib-delsrc lib="mantissa"/>
 
-		<!-- undo source code massaging -->
-		<delete dir="${pkg.base}/db4o/src"/>
+		<!-- undo massaging -->
+		<lib-delsrc lib="db4o" dest="db4o/src"/>
 	</target>
 
 	<!-- =================================================================== -->
@@ -218,74 +243,112 @@
 	<!-- required to work with commons-compress -->
 	<include file="ant-task-maven.xml"/>
 
-	<macrodef name="copylib">
-		<attribute name="name" />
-		<sequential>
-			<copy tofile="${main.dst}/@{name}.jar" file="${pkg.base}/@{name}/${extlib.@{name}.jar-dst}"/>
-		</sequential>
-	</macrodef>
-
-	<macrodef name="unpacklibsrc">
-		<attribute name="name" />
-		<attribute name="dest" default="@{name}"/>
-		<sequential>
-			<if>
-				<available file="${pkg.base}/@{dest}" type="dir"/>
-				<else>
-					<delete dir="${tmp}"/>
-					<mkdir dir="${tmp}"/>
-					<basename property="extlib.@{name}.filename" file="${extlib.@{name}.location}"/>
-					<untar dest="${tmp}" compression="gzip">
-						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.tar.gz"/></fileset>
-					</untar>
-					<untar dest="${tmp}" compression="bzip2">
-						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.tar.bz2"/></fileset>
-					</untar>
-					<untar dest="${tmp}">
-						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.tar"/></fileset>
-					</untar>
-					<unzip dest="${tmp}">
-						<fileset dir="${lib}" includes="${extlib.@{name}.filename}"><filename name="*.zip"/></fileset>
-					</unzip>
-					<move file="${tmp}/${extlib.@{name}.top-dir}" tofile="${pkg.base}/@{dest}"/>
-					<delete dir="${tmp}"/>
-				</else>
-			</if>
-		</sequential>
-	</macrodef>
-
-	<macrodef name="getlibsrc">
-		<attribute name="name" />
-		<sequential>
-			<basename property="extlib.@{name}.filename" file="${extlib.@{name}.location}"/>
-			<condition property="extlib.@{name}.available" else="false">
-				<and>
-					<available file="${lib}/${extlib.@{name}.filename}"/>
-					<checksum file="${lib}/${extlib.@{name}.filename}" algorithm="SHA-256"
-					  property="${extlib.@{name}.sum-sha256}" />
-				</and>
-			</condition>
-			<if>
-				<equals arg1="${extlib.@{name}.available}" arg2="true"/>
-				<else>
-					<delete dir="${tmp}"/>
-					<mkdir dir="${tmp}"/>
-					<get src="${extlib.@{name}.location}" dest="${tmp}/${extlib.@{name}.filename}"
-					  verbose="true" usetimestamp="true"/>
-					<checksum file="${tmp}/${extlib.@{name}.filename}" algorithm="SHA-256"
-					  property="${extlib.@{name}.sum-sha256}" verifyProperty="extlib.@{name}.sum-sha256.remote" />
-					<fail unless="${extlib.@{name}.sum-sha256.remote}"
-					  message="getlibsrc: ${extlib.@{name}.filename} checksum mismatch"/>
-					<move file="${tmp}/${extlib.@{name}.filename}" todir="${lib}"/>
-					<delete dir="${tmp}"/>
-				</else>
-			</if>
-		</sequential>
-	</macrodef>
-
-	<!-- required for "getlibsrc" macro -->
+	<!-- required for "lib-getsrc" macro -->
 	<taskdef resource="net/sf/antcontrib/antlib.xml">
 		<classpath><pathelement location="${java.class.dirs}/ant-contrib.jar"/></classpath>
 	</taskdef>
+
+	<macrodef name="lib-report">
+		<attribute name="lib" />
+		<sequential>
+			<if>
+				<istrue value="${extlib.@{lib}.suppress}"/>
+				<then><echo message="suppress @{lib} is ON"/></then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="lib-sequential">
+		<attribute name="lib" />
+		<element name="tasks" implicit="true" optional="true" />
+		<sequential>
+			<if>
+				<istrue value="${extlib.@{lib}.suppress}"/>
+				<else><tasks/></else>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="lib-delsrc">
+		<attribute name="lib" />
+		<attribute name="dest" default="@{lib}"/>
+		<sequential>
+			<lib-sequential lib="@{lib}">
+				<delete dir="${pkg.base}/@{dest}"/>
+			</lib-sequential>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="lib-copy">
+		<attribute name="lib" />
+		<sequential>
+			<lib-sequential lib="@{lib}">
+				<copy tofile="${main.dst}/@{lib}.jar" file="${pkg.base}/@{lib}/${extlib.@{lib}.jar-dst}"/>
+			</lib-sequential>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="lib-unpacksrc">
+		<attribute name="lib" />
+		<attribute name="dest" default="@{lib}"/>
+		<sequential>
+			<lib-report lib="@{lib}"/>
+			<lib-sequential lib="@{lib}">
+				<if>
+					<available file="${pkg.base}/@{dest}" type="dir"/>
+					<else>
+						<delete dir="${tmp}"/>
+						<mkdir dir="${tmp}"/>
+						<basename property="extlib.@{lib}.filename" file="${extlib.@{lib}.location}"/>
+						<untar dest="${tmp}" compression="gzip">
+							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar.gz"/></fileset>
+						</untar>
+						<untar dest="${tmp}" compression="bzip2">
+							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar.bz2"/></fileset>
+						</untar>
+						<untar dest="${tmp}">
+							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar"/></fileset>
+						</untar>
+						<unzip dest="${tmp}">
+							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.zip"/></fileset>
+						</unzip>
+						<move file="${tmp}/${extlib.@{lib}.top-dir}" tofile="${pkg.base}/@{dest}"/>
+						<delete dir="${tmp}"/>
+					</else>
+				</if>
+			</lib-sequential>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="lib-getsrc">
+		<attribute name="lib" />
+		<sequential>
+			<lib-sequential lib="@{lib}">
+				<basename property="extlib.@{lib}.filename" file="${extlib.@{lib}.location}"/>
+				<condition property="extlib.@{lib}.available" else="false">
+					<and>
+						<available file="${lib}/${extlib.@{lib}.filename}"/>
+						<checksum file="${lib}/${extlib.@{lib}.filename}" algorithm="SHA-256"
+						  property="${extlib.@{lib}.sum-sha256}" />
+					</and>
+				</condition>
+				<if>
+					<istrue value="${extlib.@{lib}.available}"/>
+					<else>
+						<delete dir="${tmp}"/>
+						<mkdir dir="${tmp}"/>
+						<get src="${extlib.@{lib}.location}" dest="${tmp}/${extlib.@{lib}.filename}"
+						  verbose="true" usetimestamp="true"/>
+						<checksum file="${tmp}/${extlib.@{lib}.filename}" algorithm="SHA-256"
+						  property="${extlib.@{lib}.sum-sha256}" verifyProperty="extlib.@{lib}.sum-sha256.remote" />
+						<fail unless="${extlib.@{lib}.sum-sha256.remote}"
+						  message="lib-getsrc: ${extlib.@{lib}.filename} checksum mismatch"/>
+						<move file="${tmp}/${extlib.@{lib}.filename}" todir="${lib}"/>
+						<delete dir="${tmp}"/>
+					</else>
+				</if>
+			</lib-sequential>
+		</sequential>
+	</macrodef>
 
 </project>
