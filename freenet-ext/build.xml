@@ -48,7 +48,7 @@
 
 	<target name="all" depends="package" description="build everything, incl. docs"/>
 
-	<target name="clean-all" depends="clean, clean-local, clean-lib" description="clean all build products (except remote source code)"/>
+	<target name="clean-all" depends="clean, clean-local, clean-libsrc" description="clean all build products and remote source code"/>
 
 	<target name="debug">
 		<echoproperties/>
