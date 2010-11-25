@@ -28,6 +28,8 @@
     </condition>
     <property name="libdir" value="${builddir}/lib"/>
     <property name="extdir" value="${basedir}/ext"/>
+	
+	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 
     <property name="dist.srcdir" value="${basedir}/dist"/>
     <property name="dist.destdir" value="${builddir}/dist"/>
@@ -102,11 +104,13 @@
     <path id="empty.classpath"/>
 
     <path id="class.path">
+      <pathelement location="${junit.location}"/>
       <pathelement location="${specificjar}"/>
       <pathelement location="."/>
     </path>
 
     <path id="unittest.classpath">
+    	<pathelement location="${junit.location}"/>
       <pathelement location="${specificjar}"/>
       <pathelement location="."/>
       <pathelement location="${unittest.destdir}"/>
@@ -118,6 +122,7 @@
     </path>
 
     <path id="unittest-j2ee.classpath">
+      <pathelement location="${junit.location}"/>
       <pathelement location="${destdir}"/>
       <pathelement location="."/>
       <pathelement location="${unittest.destdir}"/>

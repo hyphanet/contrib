@@ -16,6 +16,12 @@
     <property name="exclude1" value="com/sleepycat/**/jca/**/*.java"/>
     <property name="exclude2" value="com/sleepycat/**/jmx/**/*.java"/>
 
+	<property name="junit.location" value="/usr/share/java/junit.jar"/>
+	
+	<path id="compile.classpath">
+		<pathelement location="${junit.location}"/>
+	</path>
+	
     <target name="compile">
         <javac srcdir="${srcdir}"
                destdir="${destdir}" 
