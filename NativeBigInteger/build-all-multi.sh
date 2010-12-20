@@ -23,6 +23,10 @@
 # with the jcpuid supplied. It also includes some newer processors that are not
 # recognised by jcpuid. So don't deploy them with ext until this is fixed.
 #
+# FIXME: using GMP 5.0.1 currently gives
+#   libtool: link: can not build a shared library
+# when building libjbigi.so
+#
 
 WGET=""                                     # custom URL retrieval program
 VER="4.3.1"                                 # version of GMP to retrieve
@@ -71,9 +75,11 @@ LINUX_PLATFORMS="${X86_PLATFORMS} ${MISC_LINUX_PLATFORMS}"
 FREEBSD_PLATFORMS="${X86_PLATFORMS} ${MISC_FREEBSD_PLATFORMS}"
 DARWIN_PLATFORMS="${X86_PLATFORMS} ${MISC_DARWIN_PLATFORMS}"
 
+if ! which realpath > /dev/null; then realpath() { readlink -f "$@"; }; fi
+
 if [ -z "$FAIL_FAST" ]; then FAIL_FAST=true; fi
 if [ -z "$JAVA_HOME" ]; then
-	export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+	export JAVA_HOME=$(dirname $(dirname $(realpath $(which javac))))
 	echo "!!! \$JAVA_HOME not set, automatically setting to $JAVA_HOME"
 fi
 
@@ -125,14 +131,12 @@ JINCLUDES="-I\$(JAVA_HOME)/include $JINCLUDES"
 if [ -z "$LIBFILE" ]; then LIBFILE="$NAME.$TYPE"; fi
 if [ -z "$LINKFLAGS" ]; then LINKFLAGS="-shared -Wl,-soname,$LIBFILE"; fi
 
-if [ -n "$WGET" ]; then
-	get_latest() { if ! $WGET "$@"; then echo "could not download $@; abort"; exit 2; fi }
-elif which wget > /dev/null; then
-	get_latest() { if ! wget -N "$@"; then echo "could not download $@; abort"; exit 2; fi }
-elif which curl > /dev/null; then
-	get_latest() { if ! curl -O "$@"; then echo "could not download $@; abort"; exit 2; fi }
-elif which fetch > /dev/null; then
-	get_latest() { if ! fetch -m "$@"; then echo "could not download $@; abort"; exit 2; fi }
+get_latest() { if ! $WGET "$@"; then echo "could not download $@; abort"; exit 2; fi }
+
+if [ -n "$WGET" ]; then true;
+elif which wget > /dev/null; then WGET="wget -N";
+elif which curl > /dev/null; then WGET="curl -O";
+elif which fetch > /dev/null; then WGET="fetch -m";
 else
 	echo "could not find a suitable URL-retrieval program. try setting the WGET variable "
 	echo "near the top of this file."
