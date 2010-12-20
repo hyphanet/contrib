@@ -26,6 +26,7 @@ FreeBSD*)
 	;;
 Darwin*)
 	echo "Building osx .jnilib's"
+	WGET="curl -C - -O"
 	;;
 *)
 	echo "Sorry, unsupported OS/build environment, exiting"
