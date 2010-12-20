@@ -13,10 +13,9 @@ MINGW*)
 	LINKFLAGS="-shared -Wl,--kill-at"
 	LIBFILE="jbigi.dll";;
 Darwin*)
-	JAVA_HOME="/Library/Java/Home"
 	COMPILEFLAGS="-Wall"
-	INCLUDES="-I. -I../../jbigi/include -I$JAVA_HOME/include"
-	LINKFLAGS="-dynamiclib JavaVM"/ LINKFLAGS="-dynamiclib"
+	INCLUDES="-I. -I../../jbigi/include"
+	LINKFLAGS="-dynamiclib"
 	LIBFILE="libjbigi.jnilib";;
 FreeBSD*)
 	COMPILEFLAGS="-fPIC -Wall"
