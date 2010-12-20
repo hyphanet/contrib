@@ -127,7 +127,7 @@ cd bin/none
 ../../gmp-${GMP_VERSION}/configure --with-pic
 $MAKE
 sh ../../build_jbigi.sh static
-cp libjbigi.jnilib ../../lib/net/i2p/util/libjbigi-osx-none.jnilib
+cp libjbigi.jnilib ../../lib/net/i2p/util/libjbigi-osx-$(uname -m).jnilib
 cd ../..
 fi
 
