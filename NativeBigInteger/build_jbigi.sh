@@ -41,10 +41,22 @@ else
 	STATICLIBS=".libs/libgmp.a"
 fi
 
-echo "Compiling C code..."
+# cleanup
 rm -f jbigi.o $LIBFILE
+
+# building
+echo "Compiling ../../jbigi/src/jbigi.c -> jbigi.o ..."
 $CC -c $COMPILEFLAGS $INCLUDES ../../jbigi/src/jbigi.c
-$CC $LINKFLAGS $INCLUDES $INCLUDELIBS -o $LIBFILE jbigi.o $STATICLIBS
+
+echo "Linking jbigi.o + $STATICLIBS -> $LIBFILE ..."
+$CC $LINKFLAGS $INCLUDELIBS -o $LIBFILE jbigi.o $STATICLIBS
+
+if [ -f $LIBFILE ]
+then
+	echo "$LIBFILE is done"
+else
+	echo "Error building $LIBFILE"
+fi
 
 #echo ""
 #echo "Doing an ant build..."
