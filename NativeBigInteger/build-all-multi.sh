@@ -27,6 +27,10 @@
 WGET=""                                     # custom URL retrieval program
 VER="4.3.1"                                 # version of GMP to retrieve
 
+# Environment variables (NAME=default)
+#FAIL_FAST=true                              # fail overall if a platform fails
+#JAVA_HOME=(2 up from javac's realpath)      # java home directory
+
 # Note: You will have to add the CPU ID for the platform in the CPU ID code
 # for a new CPU. Just adding them here won't let I2P use the code!
 
@@ -66,6 +70,12 @@ MINGW_PLATFORMS="${X86_PLATFORMS} ${MISC_MINGW_PLATFORMS}"
 LINUX_PLATFORMS="${X86_PLATFORMS} ${MISC_LINUX_PLATFORMS}"
 FREEBSD_PLATFORMS="${X86_PLATFORMS} ${MISC_FREEBSD_PLATFORMS}"
 DARWIN_PLATFORMS="${X86_PLATFORMS} ${MISC_DARWIN_PLATFORMS}"
+
+if [ -z "$FAIL_FAST" ]; then FAIL_FAST=true; fi
+if [ -z "$JAVA_HOME" ]; then
+	export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+	echo "!!! \$JAVA_HOME not set, automatically setting to $JAVA_HOME"
+fi
 
 # Platform-specifc variables. Default variables are below this section.
 case `uname -s` in
@@ -246,7 +256,7 @@ do
 
 	case $? in
 	0) ;;
-	1) FAILED="$x $FAILED";;
+	1) FAILED="$x $FAILED"; if $FAIL_FAST; then exit 1; fi;;
 	2) TEST_FAILED="$x $TEST_FAILED";;
 	*) "bug in build script?"; exit 1;;
 	esac
@@ -255,7 +265,8 @@ done
 
 echo
 EXIT=0
-if [ -n "$FAILED" ]; then echo "Build complete; failed targets: $FAILED"; EXIT=1;
+echo "Build complete.";
+if [ -n "$FAILED" ]; then echo "Attempted targets: $PLATFORMS"; echo "Failed targets: $FAILED"; EXIT=1;
 else echo "All targets built successfully: $PLATFORMS"; fi
 
 if [ -n "$TEST_FAILED" ]; then
