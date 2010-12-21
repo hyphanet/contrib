@@ -23,16 +23,13 @@
 # with the jcpuid supplied. It also includes some newer processors that are not
 # recognised by jcpuid. So don't deploy them with ext until this is fixed.
 #
-# FIXME: using GMP 5.0.1 currently gives
-#   libtool: link: can not build a shared library
-# when building libjbigi.so
-#
 
 WGET=""                                     # custom URL retrieval program
-VER="4.3.1"                                 # version of GMP to retrieve
+VER="5.0.1"                                 # version of GMP to retrieve
 
 # Environment variables (NAME=default)
 #FAIL_FAST=true                              # fail overall if a platform fails
+#TEST_SKIP=false                             # skip tests
 #JAVA_HOME=(2 up from javac's realpath)      # java home directory
 
 # Note: You will have to add the CPU ID for the platform in the CPU ID code
@@ -78,6 +75,7 @@ DARWIN_PLATFORMS="${X86_PLATFORMS} ${MISC_DARWIN_PLATFORMS}"
 if ! which realpath > /dev/null; then realpath() { readlink -f "$@"; }; fi
 
 if [ -z "$FAIL_FAST" ]; then FAIL_FAST=true; fi
+if [ -z "$TEST_SKIP" ]; then TEST_SKIP=false; fi
 if [ -z "$JAVA_HOME" ]; then
 	export JAVA_HOME=$(dirname $(dirname $(realpath $(which javac))))
 	echo "!!! \$JAVA_HOME not set, automatically setting to $JAVA_HOME"
@@ -87,36 +85,34 @@ fi
 case `uname -s` in
 MINGW*)
 	PLATFORM_LIST="${MINGW_PLATFORMS}"
-	NAME="jbigi"
-	TYPE="dll"
+	LIBNAME="jbigi"
+	LIBEXT="dll"
 	TARGET="-windows-"
-	LINKFLAGS="-shared -Wl,--kill-at"
 	PLAT_MSG="Building windows .dlls"
 	#JAVA_HOME="c:/j2sdk1.4.2_05"
 	JINCLUDES="-I\$(JAVA_HOME)/include/win32"
 	;;
 Linux*)
 	PLATFORM_LIST="${LINUX_PLATFORMS}"
-	NAME="libjbigi"
-	TYPE="so"
+	LIBNAME="libjbigi"
+	LIBEXT="so"
 	TARGET="-linux-"
 	PLAT_MSG="Building linux .sos"
 	JINCLUDES="-I\$(JAVA_HOME)/include/linux"
 	;;
 FreeBSD*)
 	PLATFORM_LIST="${FREEBSD_PLATFORMS}"
-	NAME="libjbigi"
-	TYPE="so"
+	LIBNAME="libjbigi"
+	LIBEXT="so"
 	TARGET="-freebsd-"
 	PLAT_MSG="Building freebsd .sos"
 	JINCLUDES="-I\$(JAVA_HOME)/include/linux -I/usr/local/include"
 	;;
 Darwin*)
 	PLATFORM_LIST="${DARWIN_PLATFORMS}"
-	NAME="libjbigi"
-	TYPE="jnilib"
+	LIBNAME="libjbigi"
+	LIBEXT="jnilib"
 	TARGET="-darwin-"
-	LINKFLAGS="-dynamiclib"
 	PLAT_MSG="Building Darwin .jnilibs"
 	#JAVA_HOME="/Library/Java/Home"
 	;;
@@ -128,8 +124,6 @@ esac
 
 # Default variables
 JINCLUDES="-I\$(JAVA_HOME)/include $JINCLUDES"
-if [ -z "$LIBFILE" ]; then LIBFILE="$NAME.$TYPE"; fi
-if [ -z "$LINKFLAGS" ]; then LINKFLAGS="-shared -Wl,-soname,$LIBFILE"; fi
 
 get_latest() { if ! $WGET "$@"; then echo "could not download $@; abort"; exit 2; fi }
 
@@ -150,7 +144,7 @@ is_pic() {
 
 make_jbigi_static() {
 	echo "Attempting make for ${3}${5}${2}.${4}"
-	make $LIBFILE && eval $(grep "^ABI=" config.log) && cp "${3}.${4}" "../../lib/net/i2p/util/${3}${5}${2}_$ABI.${4}" && return 0;
+	make $LIBNAME.la && eval $(grep "^ABI=" config.log) && cp ".libs/${3}.${4}" "../../lib/net/i2p/util/${3}${5}${2}_$ABI.${4}" && return 0;
 	echo "Failed to make ${3}${5}${2}.${4}"
 	sleep 1 && return 1
 }
@@ -187,7 +181,7 @@ configure_gmp() {
 	echo "Attempting configure for ${3}${5}${2}"
 	if is_pic ${2}; then FLAGS_PIC=--with-pic; fi
 	# Nonfatal bail out on unsupported platform
-	../../gmp-${1}/configure $FLAGS_PIC --host=${2} && return 0;
+	../../gmp-${1}/configure $FLAGS_PIC --host=${2}-$(../../gmp-${1}/config.guess | cut -d- -f2-) && return 0;
 	echo && echo "Failed to configure for ${3}${5}${2}; maybe it isn't supported on your build environment."
 	sleep 1 && return 1
 }
@@ -204,7 +198,7 @@ build_jbigi() {
 	while true; do
 		configure_gmp "$@" || break
 		make_gmp "$@" || break
-		test_gmp "$@" || TEST_EXIT=2
+		if ! $TEST_SKIP; then test_gmp "$@" || TEST_EXIT=2; fi
 		make_jbigi_static "$@" || break
 		return $TEST_EXIT
 	done
@@ -223,12 +217,15 @@ cat >> gmp-$VER/Makefile.in <<EOF
 
 # This section added by the build script for jbigi
 
-jbigi.o: jbigi.c
+jbigi.lo: jbigi.c
 	\$(LTCOMPILE) $JINCLUDES -c \$(srcdir)/jbigi.c
 
-$LIBFILE: jbigi.o .libs/libgmp.a
-	\$(LINK) -rpath \$(libdir) $LINKFLAGS jbigi.o .libs/libgmp.a
+$LIBNAME.la: jbigi.lo libgmp.la
+	\$(LINK) -rpath \$(libdir) .libs/jbigi.o .libs/libgmp.a
+
 EOF
+# WORKAROUND bug in GMP 5.0.1 build script (aclocal.m4) which makes it unnecessarily skip /usr/bin/nm
+sed -e 's/if test -n "\$ac_tool_prefix" && test "\$build" = "\$host";/if test -n "\$ac_tool_prefix";/g' -i gmp-$VER/configure
 
 if [ ! -d bin ]; then
 	mkdir bin
@@ -254,7 +251,7 @@ do
 		mkdir -p bin/$x
 		cd bin/$x
 
-		build_jbigi "$VER" "$x" "$NAME" "$TYPE" "$TARGET"
+		build_jbigi "$VER" "$x" "$LIBNAME" "$LIBEXT" "$TARGET"
 		exit $?
 	);
 
