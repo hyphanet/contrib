@@ -1,3 +1,23 @@
+## NativeBigInteger and jbigi
+
+JNI wrapper for GMP
+
+build.sh is the current build script we use for making deployment binaries. It
+has a number of problems:
+
+- naming convention ignores ABI (assumes 32-bit)
+  - ${OS_LIB_PREFIX}jbigi-${OS}-${CPU}.${OS_LIB_SUFFIX}
+- misses out newer processors
+- script itself is awful
+
+build-all-multi.sh aims to solve these problems, but the binaries it produces
+cannot yet be used by the Java code because of the different naming convention.
+
+Both scripts static-link with GMP. This is not ideal, but dynamic linking opens
+up a whole new can of worms to do with JNI.
+
+## Old docs
+
 ***net.i2p.util.NativeBigInteger, native part of the code****
 
 Execute the build.sh script to produce jbigi library files optimized for a number of different CPU-types.
