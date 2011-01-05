@@ -85,7 +85,7 @@ do
 
 	echo "Building GNU MP library for ${CPU}..."
 
-	../../gmp-${GMP_VERSION}/configure --build=${CPU}
+	../../gmp-${GMP_VERSION}/configure --build=${CPU} --host=${CPU}
 	$MAKE
 
 	# Now build a CPU-specific jbigi library

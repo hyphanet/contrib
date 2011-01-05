@@ -4,8 +4,13 @@
 # When executed in OSX: Produces an libjbigi.jnilib
 
 CC="gcc"
+if ! which realpath > /dev/null; then realpath() { readlink -f "$@"; }; fi
+if [ -z "$JAVA_HOME" ]; then
+	export JAVA_HOME=$(dirname $(dirname $(realpath $(which javac))))
+	echo "!!! \$JAVA_HOME not set, automatically setting to $JAVA_HOME"
+fi
 
-case `uname -sr` in
+case $(uname -sr) in
 MINGW*)
 	JAVA_HOME="c:/j2sdk1.4.2_05"
 	COMPILEFLAGS="-Wall"
