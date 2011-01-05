@@ -6,7 +6,7 @@
 # be run directly)
 #
 
-GMP_VERSION="4.2.1"
+GMP_VERSION="5.0.1"
 
 OS=$(uname -s)
 WGET="wget -c"
