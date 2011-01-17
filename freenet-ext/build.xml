@@ -91,6 +91,7 @@
 		<lib-copy lib="commons-compress"/>
 		<lib-copy lib="lzmajio"/>
 		<lib-copy lib="mantissa"/>
+		<lib-copy lib="bitcollider-core"/>
 	</target>
 
 	<target name="clean" description="clean standard build products">
@@ -156,6 +157,12 @@
 			<!-- TODO run tests -->
 			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="jar"/>
 		</lib-sequential>
+		<lib-sequential lib="bitcollider-core">
+			<ant inheritAll="false" antfile="${pkg.base}/freenet-ext/generic-build.xml"
+			  dir="${pkg.base}/bitcollider-core" target="jar">
+				<property name="jar" value="bitcollider-core.jar"/>
+			</ant>
+		</lib-sequential>
 	</target>
 
 	<target name="clean-lib" depends="prepare-libsrc" description="clean build products of external packages">
@@ -190,6 +197,12 @@
 		<lib-sequential lib="mantissa">
 			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
 		</lib-sequential>
+		<lib-sequential lib="bitcollider-core">
+			<ant inheritAll="false" antfile="${pkg.base}/freenet-ext/generic-build.xml"
+			  dir="${pkg.base}/bitcollider-core" target="clean">
+				<property name="jar" value="bitcollider-core.jar"/>
+			</ant>
+		</lib-sequential>
 	</target>
 
 	<!-- =================================================================== -->
@@ -204,6 +217,7 @@
 		<lib-getsrc lib="lzma"/>
 		<lib-getsrc lib="lzmajio"/>
 		<lib-getsrc lib="mantissa"/>
+		<lib-getsrc lib="bitcollider-core"/>
 	</target>
 
 	<target name="prepare-libsrc" depends="get-libsrc" description="ensure that all remote source code is available">
@@ -214,6 +228,9 @@
 		<lib-unpacksrc lib="lzma"/>
 		<lib-unpacksrc lib="lzmajio"/>
 		<lib-unpacksrc lib="mantissa"/>
+		<lib-unpacksrc lib="bitcollider-core"/>
+		<!-- TODO NOW add patches we made to the source.
+		     see `git log src/org/bitpedia` in fred for details. -->
 
 		<!-- extra massaging -->
 		<lib-sequential lib="db4o">
@@ -231,6 +248,7 @@
 		<lib-delsrc lib="lzma"/>
 		<lib-delsrc lib="lzmajio"/>
 		<lib-delsrc lib="mantissa"/>
+		<lib-delsrc lib="bitcollider-core"/>
 
 		<!-- undo massaging -->
 		<lib-delsrc lib="db4o" dest="db4o/src"/>

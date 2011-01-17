@@ -19,6 +19,7 @@ Mirrored source
 	- lzma
 	- lzmajio
 	- mantissa
+	- bitcollider-core
 
 Locally maintained
 :	These sources for these are included here in the repo, and we maintain it
