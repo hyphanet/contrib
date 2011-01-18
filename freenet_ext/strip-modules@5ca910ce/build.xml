@@ -14,30 +14,11 @@
 	</condition>
 
 	<property name="pkg.base" value=".."/>
-	<property name="pkg.contrib" value="freenet-ext"/>
-	<property name="main.make" value="build"/>
-	<property name="main.src" value="src"/>
+	<property name="pkg.contrib" value="strip-modules@5ca910ce"/>
 	<property name="main.dst" value="dist"/>
 
 	<property name="tmp" value="tmp"/>
 	<property name="lib" value="lib"/>
-
-	<property name="version.src" value="freenet/node/ExtVersion.java" />
-	<property name="version.make" value="freenet/node/ExtVersion.class" />
-
-	<!-- set version string based on git-describe -->
-	<exec executable="git" failifexecutionfails="false"
-		errorProperty="git.errror" outputproperty="git.describe" resultproperty="git.result">
-		<arg value="describe" />
-		<arg value="--always" />
-		<arg value="--abbrev=4" />
-	</exec>
-	<condition property="git.revision" value="${git.describe}" else="@custom@">
-		<and>
-			<equals arg1="${git.result}" arg2="0" />
-			<isset property="git.describe" />
-		</and>
-	</condition>
 
 	<!-- =================================================================== -->
 	<!-- Miscellaneous                                                       -->
@@ -47,7 +28,7 @@
 
 	<target name="all" depends="package" description="build everything, incl. docs"/>
 
-	<target name="clean-all" depends="clean, clean-local, clean-libsrc" description="clean all build products and remote source code"/>
+	<target name="clean-all" depends="clean, clean-libsrc" description="clean all build products and remote source code"/>
 
 	<target name="debug">
 		<echoproperties/>
@@ -58,68 +39,16 @@
 	<!-- =================================================================== -->
 
 	<target name="init">
-		<mkdir dir="${main.make}"/>
 		<mkdir dir="${main.dst}"/>
 	</target>
 
-	<target name="build" depends="init">
-		<!-- Create the time stamp -->
-		<tstamp/>
-
-		<!-- Create the Version file with patched revision number in ${main.make} -->
-		<copy file="${main.src}/${version.src}" tofile="${main.make}/${version.src}" overwrite="true" />
-		<delete file="${main.make}/${version.make}" quiet="true" />
-		<replace file="${main.make}/${version.src}">
-			<replacefilter token="@custom@" value="${git.revision}"/>
-		</replace>
-		<echo message="Updated build version to ${git.revision} in ${main.make}/${version.src}"/>
-
-		<javac srcdir="${main.make}" destdir="${main.make}" debug="on" optimize="on" source="1.5" target="1.5">
-			<compilerarg line="${javac.args}"/>
-			<include name="${version.src}"/>
-		</javac>
-	</target>
-
-	<target name="package" depends="build,prepare-local,package-lib" description="build standard binary packages">
-		<jar jarfile="${main.dst}/${pkg.contrib}.jar" basedir="${main.make}" includes="**" update="yes" duplicate="fail" level="9">
-			<exclude name="${version.src}"/>
-		</jar>
-		<lib-copy lib="wrapper"/>
-		<lib-copy lib="bdb-je"/>
-		<lib-copy lib="db4o"/>
+	<target name="package" depends="package-lib" description="build standard binary packages">
 		<lib-copy lib="commons-compress"/>
-		<lib-copy lib="lzmajio"/>
-		<lib-copy lib="mantissa"/>
 		<lib-copy lib="bitcollider-core"/>
 	</target>
 
 	<target name="clean" description="clean standard build products">
-		<delete dir="${main.make}"/>
 		<delete dir="${main.dst}"/>
-	</target>
-
-	<!-- =================================================================== -->
-	<!-- Build local packages                                                -->
-	<!-- =================================================================== -->
-
-	<target name="prepare-local" depends="init,package-local">
-		<unjar dest="${main.make}" src="${pkg.base}/onion-common/lib/onion-common.jar"/>
-		<unjar dest="${main.make}" src="${pkg.base}/onion-fec/lib/onion-fec.jar"/>
-		<copy todir="${main.make}"><fileset dir="${pkg.base}/jcpuid/lib" includes="freenet/**" /></copy>
-		<copy todir="${main.make}"><fileset dir="${pkg.base}/NativeBigInteger/lib" includes="net/i2p/**" /></copy>
-		<copy todir="${main.make}"><fileset dir="${pkg.base}/NativeThread/lib" includes="freenet/**" /></copy>
-	</target>
-
-	<target name="package-local" description="build locally maintained packages">
-		<ant inheritAll="false" antfile="${pkg.base}/onion-common/build.xml"/>
-		<ant inheritAll="false" antfile="${pkg.base}/onion-fec/build.xml"/>
-		<!-- TODO build native binaries for the other libs -->
-	</target>
-
-	<target name="clean-local">
-		<ant inheritAll="false" antfile="${pkg.base}/onion-common/build.xml" target="clean" />
-		<ant inheritAll="false" antfile="${pkg.base}/onion-fec/build.xml" target="clean" />
-		<!-- TODO clean native binaries for the other libs -->
 	</target>
 
 	<!-- =================================================================== -->
@@ -127,34 +56,8 @@
 	<!-- =================================================================== -->
 
 	<target name="package-lib" depends="prepare-libsrc" description="build external packages">
-		<lib-sequential lib="wrapper">
-			<!-- TODO build native libs -->
-			<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml" target="jar">
-				<property name="bits" value="${sun.arch.data.model}"/>
-				<property name="javac.target.version" value="${javac.target.version}"/>
-			</ant>
-		</lib-sequential>
-		<lib-sequential lib="bdb-je">
-			<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml" target="jar"/>
-		</lib-sequential>
-		<lib-sequential lib="db4o">
-			<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="jar">
-				<property name="javac.target.version" value="${javac.target.version}"/>
-			</ant>
-		</lib-sequential>
 		<lib-sequential lib="commons-compress">
 			<maven basedir="${pkg.base}/commons-compress" goal="package"/>
-		</lib-sequential>
-		<lib-sequential lib="lzmajio">
-			<fail if="${extlib.lzma.suppress}" message="lzmajio requires lzma, but extlib.lzma.suppress is ON."/>
-			<copy todir="${pkg.base}/lzmajio">
-				<fileset dir="${pkg.base}/lzma/Java"><include name="SevenZip/**"/></fileset>
-			</copy>
-			<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="jar"/>
-		</lib-sequential>
-		<lib-sequential lib="mantissa">
-			<!-- TODO run tests -->
-			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="jar"/>
 		</lib-sequential>
 		<lib-sequential lib="bitcollider-core">
 			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
@@ -165,36 +68,8 @@
 	</target>
 
 	<target name="clean-lib" depends="prepare-libsrc" description="clean build products of external packages">
-		<lib-sequential lib="wrapper">
-			<!--WORKAROUND bug in wrapper's build.xml-->
-			<mkdir dir="${pkg.base}/wrapper/bin"/>
-			<mkdir dir="${pkg.base}/wrapper/lib"/>
-			<mkdir dir="${pkg.base}/wrapper/test"/>
-			<ant inheritAll="false" antfile="${pkg.base}/wrapper/build.xml">
-				<property name="bits" value="${sun.arch.data.model}"/>
-				<target name="clean"/>
-				<target name="total-clean"/>
-			</ant>
-		</lib-sequential>
-		<lib-sequential lib="bdb-je">
-			<ant inheritAll="false" antfile="${pkg.base}/bdb-je/build.xml">
-				<target name="clean"/>
-				<target name="clean-javadoc"/>
-				<target name="clean-jca"/>
-			</ant>
-		</lib-sequential>
-		<lib-sequential lib="db4o">
-			<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="clean"/>
-		</lib-sequential>
 		<lib-sequential lib="commons-compress">
 			<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
-		</lib-sequential>
-		<lib-sequential lib="lzmajio">
-			<!-- TODO lzmajio doesn't have a "clean" target :/ -->
-			<!--<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="clean"/>-->
-		</lib-sequential>
-		<lib-sequential lib="mantissa">
-			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
 		</lib-sequential>
 		<lib-sequential lib="bitcollider-core">
 			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
@@ -209,46 +84,18 @@
 	<!-- =================================================================== -->
 
 	<target name="get-libsrc">
-		<lib-getsrc lib="wrapper"/>
-		<lib-getsrc lib="bdb-je"/>
-		<lib-getsrc lib="db4o"/>
 		<lib-getsrc lib="commons-compress"/>
-		<lib-getsrc lib="lzma"/>
-		<lib-getsrc lib="lzmajio"/>
-		<lib-getsrc lib="mantissa"/>
 		<lib-getsrc lib="bitcollider-core"/>
 	</target>
 
 	<target name="prepare-libsrc" depends="get-libsrc" description="ensure that all remote source code is available">
-		<lib-unpacksrc lib="wrapper"/>
-		<lib-unpacksrc lib="bdb-je"/>
-		<lib-unpacksrc lib="db4o" dest="db4o.orig"/>
 		<lib-unpacksrc lib="commons-compress"/>
-		<lib-unpacksrc lib="lzma"/>
-		<lib-unpacksrc lib="lzmajio"/>
-		<lib-unpacksrc lib="mantissa"/>
 		<lib-unpacksrc lib="bitcollider-core"/>
-
-		<!-- extra massaging -->
-		<lib-sequential lib="db4o">
-			<copy todir="${pkg.base}/db4o">
-				<fileset dir="${pkg.base}/db4o.orig"><include name="src/db4oj*/**"/></fileset>
-			</copy>
-		</lib-sequential>
 	</target>
 
 	<target name="clean-libsrc" description="remove all remote source code">
-		<lib-delsrc lib="wrapper"/>
-		<lib-delsrc lib="bdb-je"/>
-		<lib-delsrc lib="db4o" dest="db4o.orig"/>
 		<lib-delsrc lib="commons-compress"/>
-		<lib-delsrc lib="lzma"/>
-		<lib-delsrc lib="lzmajio"/>
-		<lib-delsrc lib="mantissa"/>
 		<lib-delsrc lib="bitcollider-core"/>
-
-		<!-- undo massaging -->
-		<lib-delsrc lib="db4o" dest="db4o/src"/>
 	</target>
 
 	<!-- =================================================================== -->
