@@ -14,6 +14,7 @@
 	</condition>
 
 	<property name="pkg.base" value=".."/>
+	<property name="pkg.contrib" value="freenet-ext"/>
 	<property name="main.make" value="build"/>
 	<property name="main.src" value="src"/>
 	<property name="main.dst" value="dist"/>
@@ -23,8 +24,6 @@
 
 	<property name="version.src" value="freenet/node/ExtVersion.java" />
 	<property name="version.make" value="freenet/node/ExtVersion.class" />
-
-	<!-- TODO allow specific libraries to be skipped -->
 
 	<!-- set version string based on git-describe -->
 	<exec executable="git" failifexecutionfails="false"
@@ -82,7 +81,7 @@
 	</target>
 
 	<target name="package" depends="build,prepare-local,package-lib" description="build standard binary packages">
-		<jar jarfile="${main.dst}/freenet-ext.jar" basedir="${main.make}" includes="**" update="yes" duplicate="fail" level="9">
+		<jar jarfile="${main.dst}/${pkg.contrib}.jar" basedir="${main.make}" includes="**" update="yes" duplicate="fail" level="9">
 			<exclude name="${version.src}"/>
 		</jar>
 		<lib-copy lib="wrapper"/>
@@ -158,7 +157,7 @@
 			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="jar"/>
 		</lib-sequential>
 		<lib-sequential lib="bitcollider-core">
-			<ant inheritAll="false" antfile="${pkg.base}/freenet-ext/generic-build.xml"
+			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
 			  dir="${pkg.base}/bitcollider-core" target="jar">
 				<property name="jar" value="bitcollider-core.jar"/>
 			</ant>
@@ -198,7 +197,7 @@
 			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
 		</lib-sequential>
 		<lib-sequential lib="bitcollider-core">
-			<ant inheritAll="false" antfile="${pkg.base}/freenet-ext/generic-build.xml"
+			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
 			  dir="${pkg.base}/bitcollider-core" target="clean">
 				<property name="jar" value="bitcollider-core.jar"/>
 			</ant>
