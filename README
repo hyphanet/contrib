@@ -1,0 +1,75 @@
+## Overview
+
+contrib contains the following libraries:
+
+Upstream source
+:	The build scripts get these from upstream. These are established projects
+	and most OS distributions will have them in their package repository.
+
+	- wrapper
+	- bdb-je
+	- db4o
+	- commons-compress
+
+Mirrored source
+:	The build scripts get these from the freenet servers, but they have not
+	been modified from upstream. These are smaller projects and are unlikely to
+	have been packaged by an OS distribution.
+
+	- lzma
+	- lzmajio
+	- mantissa
+	- bitcollider-core
+
+Locally maintained
+:	These sources for these are included here in the repo, and we maintain it
+	ourselves, because the original projects are no longer actively maintained.
+
+	- jcpuid
+	- NativeBigInteger
+	- NativeThread
+	- onion-common
+	- onion-fec
+
+## Build
+
+You need to install ant, ant-contrib and maven, then call ant from the freenet-ext
+subdirectory. TODO detect this.
+
+contrib/freenet-ext$ ant
+
+The build script compiles all the locally-maintained packages, and collects
+them into freenet-ext.jar. It then retrieves all the remote source packages,
+and builds those.
+
+## Notes on locally maintained libraries
+
+[onion-common]
+
+Version 20020926 was imported into contrib on 2006-11-10. You can verify that
+this was a clean import by running:
+
+  $ unzip fec-1.0.3/common-20020926.zip common-20020926/*
+  $ git checkout 3ebd55031d69ebfd129a83e2433b6fcc20e88b6c fec/common
+  $ diff -ru common-20020926 fec/common
+  Only in common-20020926: classes
+  Only in common-20020926: javadoc
+  Only in common-20020926: lib
+  [snip]
+  $ rm -rf fec/common && git reset --hard HEAD
+
+where fec-1.0.3 is where you extracted Onion FEC 1.0.3.
+
+You can view the changes made since this time, by running
+
+  $ git log -M -- fec/common
+
+[onion-fec]
+
+changes to be made to hg tip at http://bitbucket.org/onionnetworks/fec:
+
+- sed -i -e 's/\n/\r\n/g' src/csrc/Makefile.nmake
+- rm src/csrc/fec_win32.c # already empty
+- rm src/csrc/w32 # already empty
+- add src/csrc/fec8.def
+- add src/csrc/fec16.def

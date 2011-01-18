@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Ant Task - Maven">
+	<description>Defines a macro to run Maven tasks from ANT, without needing additional libraries.
+Lifted from http://maven.apache.org/ant-tasks/examples/mvn.html</description>
+
+	<property name="maven.home" value="/usr/share/maven2"/>
+
+	<macrodef name="maven">
+		<attribute name="options" default="" />
+		<attribute name="goal" />
+		<attribute name="basedir" />
+		<attribute name="resultproperty" default="maven.result" />
+		<element name="args" implicit="true" optional="true" />
+		<sequential>
+			<java classname="org.codehaus.classworlds.Launcher" fork="true"
+			  dir="@{basedir}" resultproperty="@{resultproperty}">
+				<!--<jvmarg value="-Xmx512m"/>-->
+				<classpath>
+					<fileset dir="${maven.home}/boot"><include name="*.jar" /></fileset>
+					<fileset dir="${maven.home}/lib"><include name="*.jar" /></fileset>
+				</classpath>
+				<sysproperty key="classworlds.conf" value="${maven.home}/bin/m2.conf" />
+				<sysproperty key="maven.home" value="${maven.home}" />
+				<arg line="--batch-mode @{options} @{goal}" />
+			</java>
+		</sequential>
+	</macrodef>
+
+</project>

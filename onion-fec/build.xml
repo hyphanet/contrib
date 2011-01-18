@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Onion FEC library" default="jars" basedir=".">
+	<description>A simple build file to build the subset of the Onion FEC library required by Freenet.</description>
+
+	<property name="classes" value="classes"/>
+	<property name="bin" value="bin"/>
+	<property name="src" value="src"/>
+	<property name="lib" value="lib"/>
+
+	<target name="init">
+		<mkdir dir="${classes}"/>
+		<mkdir dir="${lib}"/>
+	</target>
+
+	<target name="build" depends="init">
+		<javac srcdir="${src}" destdir="${classes}" optimize="on">
+			<classpath path="../onion-common/lib/onion-common.jar"/>
+			<exclude name="csrc/**"/>
+		</javac>
+		<copy todir="${classes}" file="onion_LICENSE" />
+		<copy todir="${classes}"><fileset dir="${bin}" includes="lib/**"/></copy>
+	</target>
+
+	<target name="jars" depends="build">
+		<jar jarfile="${lib}/onion-fec.jar" basedir="${classes}" includes="**" update="yes" duplicate="fail" level="9">
+		</jar>
+	</target>
+
+	<target name="clean">
+		<delete dir="${classes}"/>
+		<delete dir="${lib}"/>
+	</target>
+
+</project>
