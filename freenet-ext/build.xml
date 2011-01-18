@@ -229,8 +229,6 @@
 		<lib-unpacksrc lib="lzmajio"/>
 		<lib-unpacksrc lib="mantissa"/>
 		<lib-unpacksrc lib="bitcollider-core"/>
-		<!-- TODO NOW add patches we made to the source.
-		     see `git log src/org/bitpedia` in fred for details. -->
 
 		<!-- extra massaging -->
 		<lib-sequential lib="db4o">
