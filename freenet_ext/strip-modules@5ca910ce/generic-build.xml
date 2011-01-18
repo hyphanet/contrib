@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project default="jar" basedir=".">
+	<description>A simple build file to build a generic library.</description>
+
+	<property name="class" value="class"/>
+	<property name="src" value="src"/>
+	<property name="lib" value="lib"/>
+	<fail unless="jar" message="Java property &quot;jar&quot; not set!"/>
+
+	<target name="init">
+		<mkdir dir="${class}"/>
+	</target>
+
+	<target name="build" depends="init">
+		<javac srcdir="${src}" destdir="${class}" optimize="on"/>
+	</target>
+
+	<target name="jar" depends="build">
+		<jar jarfile="${jar}" basedir="${class}" includes="**" update="yes" duplicate="fail" level="9"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="${class}"/>
+		<delete file="${jar}"/>
+	</target>
+
+</project>
