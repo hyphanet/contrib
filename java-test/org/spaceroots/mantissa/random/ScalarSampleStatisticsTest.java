@@ -69,13 +69,11 @@ public class ScalarSampleStatisticsTest
 
   }
 
-  @Override
-public void setUp() {
+  public void setUp() {
     points = new double[] {1.0, 4.2, -5, 4.0, 2.9, 10.4, 0.0, 4.1, 4.2, 4.2};
   }
 
-  @Override
-public void tearDown() {
+  public void tearDown() {
     points = null;
   }
 
