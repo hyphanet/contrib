@@ -26,25 +26,36 @@
 #include "fec.h"
 
 /*
-** A macro which tries to malloc to the given pointer. If this fails, it sets
-** the pending Java exception to an OutOfMemoryError and returns void from the
-** current function. PTR must be already declared and of type TYPE.
+** Try to malloc to the given pointer. If it fails, set the pending Java
+** exception to an OutOfMemoryError.
+**
+** @param CLEANUP: a label to goto in the case of failure, which should free()
+**   unneeded memory (e.g. from an earlier successful malloc()) before the
+**   function is exited.
+** @param PTR: an already-declared, but uninitialised, pointer.
+** @param TYPE: type of PTR
+** @param NUM: number of objects to allocate (for an array)
+** @param ENV: JNI environment for setting the pending exception
 */
-#define malloc_jthrow(ENV, PTR, TYPE, NUM) \
+#define malloc_or_oom(CLEANUP, PTR, TYPE, NUM, ENV) \
     PTR = (TYPE *) malloc(sizeof(TYPE) * NUM); \
     if (PTR == NULL) { \
         (*ENV)->ThrowNew(ENV, (*ENV)->FindClass(ENV, "java/lang/OutOfMemoryError"), "malloc failed"); \
-        return; \
+        goto CLEANUP; \
     } \
 
 /*
-** A macro which tests if the given pointer is NULL. If it is, it returns from
-** the current function. It is assumed that Java already has an exception
-** pending; this will be true if PTR is the output of one of JNI's reference-
-** getting functions.
+** Test if the given pointer is NULL. If so, assume that Java already has an
+** exception pending; this will be true if PTR is the output of one of JNI's
+** reference-getting functions.
+**
+** @param CLEANUP: a label to goto in the case of failure, which should free()
+**   unneeded memory (e.g. from an earlier successful malloc()) before the
+**   function is exited.
+** @param PTR: the pointer to check
 */
-#define jref_null_check(PTR) \
-    if (PTR == NULL) { return; } \
+#define nonnull_or_oom(CLEANUP, PTR) \
+    if (PTR == NULL) { goto CLEANUP; } \
 
 jfieldID codeField;
 JNIEXPORT void JNICALL FEC_METHOD(initFEC)
@@ -72,11 +83,10 @@ JNIEXPORT void JNICALL FEC_METHOD(nativeEncode)
     jlong code = (*env)->GetLongField(env, obj, codeField);
 
     /* allocate memory for the arrays */
-    malloc_jthrow(env, inArr, jbyteArray, k);
-    malloc_jthrow(env, retArr, jbyteArray, k);
-
-    malloc_jthrow(env, inarr, jbyte *, k);
-    malloc_jthrow(env, retarr, jbyte *, k);
+    malloc_or_oom(nativeEncode_cleanup_inArr, inArr, jbyteArray, k, env);
+    malloc_or_oom(nativeEncode_cleanup_retArr, retArr, jbyteArray, k, env);
+    malloc_or_oom(nativeEncode_cleanup_inarr, inarr, jbyte *, k, env);
+    malloc_or_oom(nativeEncode_cleanup_retarr, retarr, jbyte *, k, env);
 
     numRet = (*env)->GetArrayLength(env, ret);
 
@@ -90,34 +100,34 @@ JNIEXPORT void JNICALL FEC_METHOD(nativeEncode)
      * decode() for details. Leaving in for now because I'm not a JNI expert.
      */
     if ((*env)->PushLocalFrame(env, 3+k+numRet) < 0) {
-        return; /* exception OutOfMemoryError */
+        goto nativeEncode_cleanup; /* exception OutOfMemoryError */
     }
 
     localSrcOff = (*env)->GetIntArrayElements(env, srcOff, NULL);
-    jref_null_check(localSrcOff);
+    nonnull_or_oom(nativeEncode_cleanup, localSrcOff);
 
     localIndex = (*env)->GetIntArrayElements(env, index, NULL);
-    jref_null_check(localIndex);
+    nonnull_or_oom(nativeEncode_cleanup, localIndex);
 
     localRetOff = (*env)->GetIntArrayElements(env, retOff, NULL);
-    jref_null_check(localRetOff);
+    nonnull_or_oom(nativeEncode_cleanup, localRetOff);
 
     for (i=0; i<k; i++) {
         inArr[i] = ((*env)->GetObjectArrayElement(env, src, i));
-        jref_null_check(inArr[i]);
+        nonnull_or_oom(nativeEncode_cleanup, inArr[i]);
 
         inarr[i] = (*env)->GetPrimitiveArrayCritical(env, inArr[i], 0);
-        jref_null_check(inarr[i]);
+        nonnull_or_oom(nativeEncode_cleanup, inarr[i]);
 
         inarr[i] += localSrcOff[i];
     }
 
     for (i=0; i<numRet; i++) {
         retArr[i] = ((*env)->GetObjectArrayElement(env, ret, i));
-        jref_null_check(retArr[i]);
+        nonnull_or_oom(nativeEncode_cleanup, retArr[i]);
 
         retarr[i] = (*env)->GetPrimitiveArrayCritical(env, retArr[i], 0);
-        jref_null_check(retarr[i]);
+        nonnull_or_oom(nativeEncode_cleanup, retarr[i]);
 
         retarr[i] += localRetOff[i];
     }
@@ -145,10 +155,12 @@ JNIEXPORT void JNICALL FEC_METHOD(nativeEncode)
     result = (*env)->PopLocalFrame(env, result);
 
     /* free() complements malloc() */
-    free(inArr);
-    free(retArr);
-    free(inarr);
-    free(retarr);
+    nativeEncode_cleanup:
+    free(retarr); nativeEncode_cleanup_retarr:
+    free(inarr); nativeEncode_cleanup_inarr:
+    free(retArr); nativeEncode_cleanup_retArr:
+    free(inArr); nativeEncode_cleanup_inArr:
+    return;
 }
 
 /*
@@ -170,8 +182,8 @@ JNIEXPORT void JNICALL FEC_METHOD(nativeDecode)
     jlong code = (*env)->GetLongField(env, obj, codeField);
 
     /* allocate memory for the arrays */
-    malloc_jthrow(env, inArr, jbyteArray, k);
-    malloc_jthrow(env, inarr, jbyte *, k);
+    malloc_or_oom(nativeDecode_cleanup_inArr, inArr, jbyteArray, k, env);
+    malloc_or_oom(nativeDecode_cleanup_inarr, inarr, jbyte *, k, env);
 
     /* PushLocalFrame reserves enough space for local variable references
      *
@@ -198,21 +210,21 @@ JNIEXPORT void JNICALL FEC_METHOD(nativeDecode)
      * Leaving in for now because I'm not a JNI expert.
      */
     if ((*env)->PushLocalFrame(env, 2+k) < 0) {
-        return; /* exception: OutOfMemoryError */
+        goto nativeDecode_cleanup; /* exception: OutOfMemoryError */
     }
 
     localDataOff = (*env)->GetIntArrayElements(env, dataOff, NULL);
-    jref_null_check(localDataOff);
+    nonnull_or_oom(nativeDecode_cleanup, localDataOff);
 
     localWhich = (*env)->GetIntArrayElements(env, whichdata, NULL);
-    jref_null_check(localWhich);
+    nonnull_or_oom(nativeDecode_cleanup, localWhich);
 
     for (i=0; i<k; i++) {
         inArr[i] = ((*env)->GetObjectArrayElement(env, data, i));
-        jref_null_check(inArr[i]);
+        nonnull_or_oom(nativeDecode_cleanup, inArr[i]);
 
         inarr[i] = (*env)->GetPrimitiveArrayCritical(env, inArr[i], 0);
-        jref_null_check(inarr[i]);
+        nonnull_or_oom(nativeDecode_cleanup, inarr[i]);
 
         inarr[i] += localDataOff[i];
     }
@@ -232,8 +244,10 @@ JNIEXPORT void JNICALL FEC_METHOD(nativeDecode)
     result = (*env)->PopLocalFrame(env, result);
 
     /* free() may not be necessary. complements malloc() */
-    free(inArr);
-    free(inarr);
+    nativeDecode_cleanup:
+    free(inarr); nativeDecode_cleanup_inarr:
+    free(inArr); nativeDecode_cleanup_inArr:
+    return;
 }
 
 JNIEXPORT jlong JNICALL FEC_METHOD(nativeNewFEC)
